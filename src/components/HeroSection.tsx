@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
+import { LiquidGlassBox } from './LiquidGlassBox';
 import infinityLoop from '@/assets/infinity-loop.png';
+import abstractBackground from '@/assets/abstract-background.png';
 
 const taglines = [
   "Education, Personalized by AI.",
@@ -27,6 +29,17 @@ export const HeroSection = () => {
 
   return (
     <section className="relative min-h-screen flex items-center justify-center overflow-hidden bg-hero-gradient">
+      {/* Abstract background elements */}
+      <div 
+        className="absolute inset-0 opacity-[0.03]"
+        style={{
+          backgroundImage: `url(${abstractBackground})`,
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+          backgroundRepeat: 'no-repeat',
+        }}
+      />
+      
       {/* Infinity Loop Background */}
       <div 
         className="absolute inset-0 opacity-5 parallax-slow"
@@ -38,6 +51,41 @@ export const HeroSection = () => {
           transform: 'translateZ(0)',
         }}
       />
+      
+      {/* Floating 3D liquid glass boxes */}
+      <div className="absolute inset-0 pointer-events-none">
+        <LiquidGlassBox 
+          variant="mirror" 
+          size="sm" 
+          className="absolute top-20 left-20 animate-bounce" 
+        >
+          <div className="w-4 h-4 rounded-full bg-accent/30"></div>
+        </LiquidGlassBox>
+        
+        <LiquidGlassBox 
+          variant="vibrant" 
+          size="md" 
+          className="absolute top-32 right-24 animate-bounce" 
+        >
+          <div className="w-6 h-6 rounded-lg bg-gradient-to-br from-accent to-primary opacity-40"></div>
+        </LiquidGlassBox>
+        
+        <LiquidGlassBox 
+          variant="mirror" 
+          size="lg" 
+          className="absolute bottom-32 left-32 animate-bounce" 
+        >
+          <div className="w-8 h-8 rounded-xl bg-secondary/50"></div>
+        </LiquidGlassBox>
+        
+        <LiquidGlassBox 
+          variant="subtle" 
+          size="sm" 
+          className="absolute bottom-20 right-20 animate-bounce" 
+        >
+          <div className="w-3 h-3 rounded-full bg-muted-foreground/20"></div>
+        </LiquidGlassBox>
+      </div>
       
       {/* Frosted Glass UI Element */}
       <div className="absolute top-1/2 right-1/4 transform -translate-y-1/2 glass-effect rounded-2xl p-6 max-w-sm opacity-40">
