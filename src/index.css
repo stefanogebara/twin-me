@@ -56,6 +56,16 @@ All colors MUST be HSL. Semantic tokens for consistent theming.
     --shadow-medium: 0 8px 32px hsl(0 0% 0% / 0.12);
     --shadow-strong: 0 16px 64px hsl(0 0% 0% / 0.16);
     
+    /* Apple Liquid Glass Effects */
+    --liquid-glass-bg: 0 0% 100% / 0.3;
+    --liquid-glass-border: 0 0% 100% / 0.2;
+    --liquid-glass-shadow: 0 8px 32px hsl(0 0% 0% / 0.1), 0 0 0 1px hsl(0 0% 100% / 0.05);
+    --liquid-glass-reflection: linear-gradient(135deg, hsl(0 0% 100% / 0.25) 0%, hsl(0 0% 100% / 0.05) 50%, hsl(0 0% 0% / 0.05) 100%);
+    
+    /* 3D Transform Perspectives */
+    --perspective-subtle: 1200px;
+    --perspective-dramatic: 800px;
+    
     /* Typography scale - Apple San Francisco inspired */
     --text-hero: 4rem;
     --text-xl: 2.5rem;
@@ -119,6 +129,12 @@ All colors MUST be HSL. Semantic tokens for consistent theming.
     --hero-gradient: linear-gradient(135deg, hsl(0 0% 7%) 0%, hsl(0 0% 10%) 100%);
     --glass-bg: 0 0% 7% / 0.7;
     --glass-border: 0 0% 20% / 0.3;
+    
+    /* Dark mode liquid glass */
+    --liquid-glass-bg: 0 0% 0% / 0.4;
+    --liquid-glass-border: 0 0% 100% / 0.1;
+    --liquid-glass-shadow: 0 8px 32px hsl(0 0% 0% / 0.3), 0 0 0 1px hsl(0 0% 100% / 0.05);
+    --liquid-glass-reflection: linear-gradient(135deg, hsl(0 0% 100% / 0.1) 0%, hsl(0 0% 100% / 0.02) 50%, hsl(0 0% 0% / 0.1) 100%);
   }
 }
 
@@ -169,6 +185,49 @@ All colors MUST be HSL. Semantic tokens for consistent theming.
   .parallax-slow {
     transform: translateZ(0);
     will-change: transform;
+  }
+  
+  .abstract-background {
+    background-image: url('/src/assets/abstract-background.png');
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    opacity: 0.03;
+  }
+  
+  .liquid-glass {
+    background: hsl(var(--liquid-glass-bg));
+    backdrop-filter: blur(20px) saturate(180%);
+    border: 1px solid hsl(var(--liquid-glass-border));
+    box-shadow: var(--liquid-glass-shadow);
+    position: relative;
+    overflow: hidden;
+  }
+  
+  .liquid-glass::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: var(--liquid-glass-reflection);
+    pointer-events: none;
+    z-index: 1;
+  }
+  
+  .mirror-3d {
+    transform-style: preserve-3d;
+    perspective: var(--perspective-subtle);
+  }
+  
+  .mirror-box {
+    transform: rotateX(15deg) rotateY(-10deg);
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  
+  .mirror-box:hover {
+    transform: rotateX(10deg) rotateY(-5deg) translateY(-4px);
   }
 }
 
