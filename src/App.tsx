@@ -7,6 +7,8 @@ import { SignedIn, SignedOut } from "@clerk/clerk-react";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
+import TalkToTwin from "./pages/TalkToTwin";
+import Chat from "./pages/Chat";
 
 const queryClient = new QueryClient();
 
@@ -22,6 +24,26 @@ const App = () => (
             <>
               <SignedIn>
                 <Index />
+              </SignedIn>
+              <SignedOut>
+                <Auth />
+              </SignedOut>
+            </>
+          } />
+          <Route path="/talk-to-twin" element={
+            <>
+              <SignedIn>
+                <TalkToTwin />
+              </SignedIn>
+              <SignedOut>
+                <Auth />
+              </SignedOut>
+            </>
+          } />
+          <Route path="/chat/:professorId" element={
+            <>
+              <SignedIn>
+                <Chat />
               </SignedIn>
               <SignedOut>
                 <Auth />
