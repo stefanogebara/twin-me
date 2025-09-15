@@ -128,7 +128,8 @@ All colors MUST be HSL. Semantic tokens for consistent theming.
   }
 
   body {
-    @apply bg-background text-foreground font-['system-ui','-apple-system','San Francisco','Segoe UI',sans-serif] antialiased;
+    @apply bg-background text-foreground antialiased;
+    font-family: system-ui, -apple-system, 'San Francisco', 'Segoe UI', sans-serif;
   }
   
   html {
