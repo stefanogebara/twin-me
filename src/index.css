@@ -8,9 +8,9 @@ All colors MUST be HSL. Semantic tokens for consistent theming.
 
 @layer base {
   :root {
-    /* Clean modern palette - Lorix inspired */
-    --background: 0 0% 98%;
-    --foreground: 0 0% 15%;
+    /* Bold vibrant palette - OLIV IA inspired */
+    --background: 255 100% 98%;
+    --foreground: 0 0% 100%;
     
     /* Card system - Soft and rounded */
     --card: 0 0% 100%;
@@ -20,22 +20,22 @@ All colors MUST be HSL. Semantic tokens for consistent theming.
     --popover: 0 0% 100%;
     --popover-foreground: 258 15% 15%;
     
-    /* Primary: Clean modern blue */
-    --primary: 221 83% 53%;
+    /* Primary: Bold vibrant purple */
+    --primary: 259 100% 65%;
     --primary-foreground: 0 0% 100%;
-    --primary-glow: 221 83% 70%;
+    --primary-glow: 259 100% 75%;
     
-    /* Secondary: Subtle gray */
-    --secondary: 210 10% 90%;
-    --secondary-foreground: 0 0% 15%;
+    /* Secondary: Deep purple */
+    --secondary: 259 60% 20%;
+    --secondary-foreground: 0 0% 100%;
     
-    /* Muted tones - Light grays */
-    --muted: 210 10% 95%;
-    --muted-foreground: 0 0% 45%;
+    /* Muted tones - Light purples */
+    --muted: 259 30% 95%;
+    --muted-foreground: 259 20% 60%;
     
-    /* Accent: Bright sunny yellow */
-    --accent: 48 100% 65%;
-    --accent-foreground: 258 15% 15%;
+    /* Accent: Electric blue */
+    --accent: 200 100% 60%;
+    --accent-foreground: 0 0% 100%;
     
     /* Cartoonish accent variants for variety */
     --accent-pink: 330 80% 75%;
@@ -48,22 +48,21 @@ All colors MUST be HSL. Semantic tokens for consistent theming.
     --destructive: 0 80% 62%;
     --destructive-foreground: 0 0% 98%;
     
-    /* Borders and inputs - Clean */
-    --border: 210 15% 85%;
-    --input: 210 10% 96%;
-    --ring: 221 83% 53%;
+    /* Borders and inputs - Purple theme */
+    --border: 259 30% 85%;
+    --input: 259 20% 96%;
+    --ring: 259 100% 65%;
     
     /* More rounded for cartoonish feel */
     --radius: 18px;
     
-    /* Custom Twin Me tokens - Vibrant and educational */
+    /* Custom Twin Me tokens - Bold vibrant gradient */
     --hero-gradient: linear-gradient(135deg, 
-      hsl(258, 95%, 95%) 0%, 
-      hsl(280, 100%, 96%) 20%,
-      hsl(48, 100%, 93%) 40%, 
-      hsl(25, 95%, 93%) 60%,
-      hsl(210, 100%, 95%) 80%,
-      hsl(330, 90%, 96%) 100%);
+      hsl(259, 100%, 55%) 0%, 
+      hsl(250, 100%, 60%) 25%,
+      hsl(240, 100%, 65%) 50%, 
+      hsl(259, 90%, 60%) 75%,
+      hsl(270, 100%, 55%) 100%);
     
     --glass-bg: 258 90% 98% / 0.15;
     --glass-border: 258 60% 85% / 0.3;
@@ -181,8 +180,9 @@ All colors MUST be HSL. Semantic tokens for consistent theming.
   }
 
   body {
-    @apply bg-background text-foreground antialiased;
-    font-family: system-ui, -apple-system, 'San Francisco', 'Segoe UI', sans-serif;
+    @apply bg-hero-gradient text-foreground antialiased;
+    font-family: 'Inter', -apple-system, system-ui, 'Segoe UI', 'Roboto', sans-serif;
+    font-weight: 600;
   }
   
   html {
@@ -194,16 +194,11 @@ All colors MUST be HSL. Semantic tokens for consistent theming.
 @layer utilities {
   .hero-text {
     font-size: var(--text-hero);
-    font-weight: 800;
-    letter-spacing: -0.02em;
-    line-height: 1.1;
-    background: linear-gradient(135deg, 
-      hsl(var(--primary)) 0%, 
-      hsl(var(--accent-purple)) 50%, 
-      hsl(var(--accent)) 100%);
-    background-clip: text;
-    -webkit-background-clip: text;
-    color: transparent;
+    font-weight: 900;
+    letter-spacing: -0.03em;
+    line-height: 0.9;
+    color: hsl(var(--foreground));
+    text-shadow: 0 0 40px rgba(255, 255, 255, 0.3);
   }
   
   .section-spacing {
