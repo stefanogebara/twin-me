@@ -82,16 +82,16 @@ const TalkToTwin = () => {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50">
+    <div className="min-h-screen bg-slate-900 relative">
       {/* Navigation */}
-      <nav className="fixed top-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-sm">
+      <nav className="relative z-50 bg-slate-800/90 backdrop-blur-sm border-b border-slate-700">
         <div className="max-w-6xl mx-auto px-6 py-6">
           <div className="flex items-center justify-between">
             <Button 
               variant="ghost" 
               size="sm"
               onClick={() => navigate('/')}
-              className="flex items-center gap-2 text-slate-600 hover:text-slate-900"
+              className="flex items-center gap-2 text-slate-300 hover:text-white"
             >
               <ArrowLeft className="w-4 h-4" />
               Back to Home
@@ -101,7 +101,7 @@ const TalkToTwin = () => {
               className="text-2xl font-serif text-orange-500 cursor-pointer italic"
               onClick={() => navigate('/')}
             >
-              Twin Me & <span className="text-slate-900">Artemis</span>
+              Twin Me & <span className="text-white">Artemis</span>
             </div>
 
             <div className="w-24"></div> {/* Spacer for center alignment */}
@@ -109,50 +109,73 @@ const TalkToTwin = () => {
         </div>
       </nav>
 
-      {/* Floating Decorative Cards */}
+      {/* Illustrated Characters Background */}
       <div className="absolute inset-0 pointer-events-none overflow-hidden">
-        <div className="absolute top-32 left-8 w-32 h-20 bg-white rounded-2xl shadow-lg transform rotate-12 border">
-          <div className="p-3 h-full bg-gradient-to-br from-blue-50 to-purple-50 rounded-2xl flex items-center justify-center">
-            <div className="text-center">
-              <div className="w-6 h-6 bg-blue-500 rounded-full mx-auto mb-1"></div>
-              <div className="text-xs font-medium text-slate-700">AI Tutoring</div>
-            </div>
+        {/* Floating musical notes */}
+        <div className="absolute top-32 left-16 text-6xl animate-bounce" style={{ animationDelay: '0s', animationDuration: '3s' }}>
+          🎵
+        </div>
+        <div className="absolute top-48 right-20 text-4xl animate-bounce" style={{ animationDelay: '1s', animationDuration: '4s' }}>
+          🎶
+        </div>
+        <div className="absolute bottom-32 left-32 text-5xl animate-bounce" style={{ animationDelay: '2s', animationDuration: '3.5s' }}>
+          🎼
+        </div>
+        
+        {/* Art supplies */}
+        <div className="absolute top-64 left-8 text-5xl animate-bounce" style={{ animationDelay: '0.5s', animationDuration: '4s' }}>
+          🎨
+        </div>
+        <div className="absolute bottom-48 right-16 text-4xl animate-bounce" style={{ animationDelay: '1.5s', animationDuration: '3s' }}>
+          ✏️
+        </div>
+        
+        {/* Educational items */}
+        <div className="absolute top-80 right-32 text-4xl animate-bounce" style={{ animationDelay: '0.8s', animationDuration: '3.8s' }}>
+          📚
+        </div>
+        <div className="absolute bottom-64 left-48 text-3xl animate-bounce" style={{ animationDelay: '2.2s', animationDuration: '4.2s' }}>
+          🔬
+        </div>
+
+        {/* Illustrated Character - Teacher */}
+        <div className="absolute top-40 right-8 w-32 h-40 opacity-30">
+          <div className="relative">
+            {/* Simple illustrated teacher character */}
+            <div className="w-20 h-24 bg-purple-600 rounded-t-full mx-auto"></div>
+            <div className="w-16 h-16 bg-orange-400 rounded-full mx-auto -mt-8 border-4 border-purple-600"></div>
+            <div className="w-12 h-3 bg-slate-800 rounded-full mx-auto mt-2"></div>
+            <div className="w-2 h-2 bg-white rounded-full mx-auto -mt-1"></div>
           </div>
         </div>
 
-        <div className="absolute top-48 right-16 w-32 h-20 bg-white rounded-2xl shadow-lg transform -rotate-12 border">
-          <div className="p-3 h-full bg-gradient-to-br from-green-50 to-emerald-50 rounded-2xl flex items-center justify-center">
-            <div className="text-center">
-              <div className="w-6 h-6 bg-green-500 rounded-full mx-auto mb-1"></div>
-              <div className="text-xs font-medium text-slate-700">24/7 Learning</div>
-            </div>
-          </div>
-        </div>
-
-        <div className="absolute bottom-64 left-24 w-32 h-20 bg-white rounded-2xl shadow-lg transform rotate-6 border">
-          <div className="p-3 h-full bg-gradient-to-br from-pink-50 to-red-50 rounded-2xl flex items-center justify-center">
-            <div className="text-center">
-              <div className="w-6 h-6 bg-pink-500 rounded-full mx-auto mb-1"></div>
-              <div className="text-xs font-medium text-slate-700">Personal AI</div>
-            </div>
+        {/* Illustrated Character - Student */}
+        <div className="absolute bottom-40 left-8 w-28 h-36 opacity-30">
+          <div className="relative">
+            {/* Simple illustrated student character */}
+            <div className="w-18 h-20 bg-yellow-500 rounded-t-full mx-auto"></div>
+            <div className="w-14 h-14 bg-orange-300 rounded-full mx-auto -mt-6 border-4 border-yellow-500"></div>
+            <div className="w-10 h-2 bg-slate-800 rounded-full mx-auto mt-2"></div>
           </div>
         </div>
       </div>
 
       {/* Main Content */}
-      <div className="pt-32 pb-16 px-6 relative z-10">
+      <div className="pt-16 pb-16 px-6 relative z-10">
         <div className="max-w-6xl mx-auto">
-          {/* Header */}
+          {/* Header with AI Icon */}
           <div className="text-center mb-16">
-            <p className="text-slate-600 mb-4 font-medium">Choose Your Professor</p>
+            <div className="w-24 h-24 mx-auto mb-8 bg-gradient-to-br from-blue-500 to-purple-500 rounded-2xl flex items-center justify-center shadow-xl">
+              <div className="text-4xl">🤖</div>
+            </div>
             
-            <h1 className="text-6xl md:text-7xl lg:text-8xl font-serif text-slate-900 mb-8 leading-tight">
-              Talk to Your<br />
-              <span className="italic">Professor's Twin</span>
+            <h1 className="text-6xl md:text-7xl font-serif text-white mb-8 leading-tight italic">
+              Talk to Your Professor's Twin
             </h1>
 
-            <p className="text-slate-600 mb-12 text-lg font-medium max-w-2xl mx-auto">
-              Start learning with AI twins of real professors, trained on their actual teaching style and expertise.
+            <p className="text-slate-300 mb-12 text-lg font-medium max-w-2xl mx-auto leading-relaxed">
+              Finally, meet the AI technology passionate about helping 
+              students succeed – choose your professor twin and start learning
             </p>
           </div>
 
@@ -162,10 +185,10 @@ const TalkToTwin = () => {
               <button
                 key={subject}
                 onClick={() => setSelectedSubject(subject)}
-                className={`px-6 py-2 rounded-full text-sm font-medium transition-all duration-200 ${
+                className={`px-6 py-3 rounded-full text-sm font-medium transition-all duration-200 ${
                   selectedSubject === subject
-                    ? 'bg-orange-500 text-white shadow-lg'
-                    : 'bg-white text-slate-600 border border-slate-200 hover:border-orange-300 hover:text-orange-500'
+                    ? 'bg-orange-500 hover:bg-orange-600 text-white shadow-lg'
+                    : 'bg-slate-700 text-slate-300 border border-slate-600 hover:bg-slate-600 hover:text-white'
                 }`}
               >
                 {subject}
@@ -249,10 +272,17 @@ const TalkToTwin = () => {
           </div>
 
           {/* Load More */}
-          <div className="text-center mt-12">
-            <button className="bg-orange-500 hover:bg-orange-600 text-white rounded-full px-8 py-3 text-lg font-medium shadow-lg transition-colors duration-200">
-              View More Professors
+          <div className="text-center mt-16">
+            <button className="bg-orange-500 hover:bg-orange-600 text-white rounded-full px-8 py-3 text-lg font-medium shadow-lg transition-all duration-200 hover:scale-105">
+              Try Twin Me for Free!
             </button>
+            
+            {/* Bottom decorative grid like original design */}
+            <div className="mt-16 grid grid-cols-3 gap-8 max-w-2xl mx-auto opacity-20">
+              <div className="aspect-square bg-gradient-to-br from-blue-400 to-cyan-300 rounded-2xl shadow-lg"></div>
+              <div className="aspect-square bg-gradient-to-br from-orange-400 to-pink-400 rounded-2xl shadow-lg"></div>
+              <div className="aspect-square bg-gradient-to-br from-green-400 to-emerald-300 rounded-2xl shadow-lg"></div>
+            </div>
           </div>
         </div>
       </div>
