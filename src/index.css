@@ -180,9 +180,9 @@ All colors MUST be HSL. Semantic tokens for consistent theming.
   }
 
   body {
-    @apply bg-hero-gradient text-foreground antialiased;
+    @apply bg-white text-slate-900 antialiased;
     font-family: 'Inter', -apple-system, system-ui, 'Segoe UI', 'Roboto', sans-serif;
-    font-weight: 600;
+    font-weight: 400;
   }
   
   html {

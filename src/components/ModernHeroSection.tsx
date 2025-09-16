@@ -6,37 +6,69 @@ export const ModernHeroSection = () => {
   const navigate = useNavigate();
 
   return (
-    <section className="pt-24 pb-16 px-6">
-      <div className="max-w-7xl mx-auto">
-        <div className="text-center max-w-4xl mx-auto">
-          {/* Small badge */}
-          <div className="inline-flex items-center gap-2 bg-muted rounded-full px-4 py-2 mb-8 text-sm font-medium text-muted-foreground">
-            <Sparkles className="w-4 h-4 text-primary" />
-            Twin Me for you
+    <section className="min-h-screen bg-slate-50 relative pt-32 pb-16 px-6 overflow-hidden">
+      <div className="max-w-6xl mx-auto relative">
+        {/* Floating Cards */}
+        <div className="absolute inset-0 pointer-events-none">
+          {/* Top Left Card */}
+          <div className="absolute top-0 left-8 w-48 h-32 bg-white rounded-2xl shadow-lg transform rotate-12 border">
+            <div className="p-4 h-full bg-gradient-to-br from-blue-50 to-purple-50 rounded-2xl flex items-center justify-center">
+              <div className="text-center">
+                <div className="w-8 h-8 bg-blue-500 rounded-full mx-auto mb-2"></div>
+                <div className="text-sm font-medium text-slate-700">AI Professor</div>
+              </div>
+            </div>
           </div>
 
-          {/* Main heading */}
-          <h1 className="hero-text text-6xl md:text-8xl lg:text-9xl mb-8">
-            TWIN<br />
-            <span className="inline-block relative">
-              ME
-              <div className="absolute -bottom-4 -right-8 w-16 h-16 rounded-full bg-gradient-to-br from-accent/80 to-primary/80 blur-lg animate-pulse"></div>
-            </span>
+          {/* Top Right Card */}
+          <div className="absolute top-12 right-8 w-48 h-32 bg-white rounded-2xl shadow-lg transform -rotate-12 border">
+            <div className="p-4 h-full bg-gradient-to-br from-green-50 to-emerald-50 rounded-2xl flex items-center justify-center">
+              <div className="text-center">
+                <div className="w-8 h-8 bg-green-500 rounded-full mx-auto mb-2"></div>
+                <div className="text-sm font-medium text-slate-700">24/7 Learning</div>
+              </div>
+            </div>
+          </div>
+
+          {/* Bottom Left Card */}
+          <div className="absolute bottom-32 left-16 w-48 h-32 bg-white rounded-2xl shadow-lg transform rotate-6 border">
+            <div className="p-4 h-full bg-gradient-to-br from-pink-50 to-red-50 rounded-2xl flex items-center justify-center">
+              <div className="text-center">
+                <div className="w-8 h-8 bg-pink-500 rounded-full mx-auto mb-2"></div>
+                <div className="text-sm font-medium text-slate-700">Personalized</div>
+              </div>
+            </div>
+          </div>
+
+          {/* Bottom Right Card */}
+          <div className="absolute bottom-24 right-16 w-48 h-32 bg-white rounded-2xl shadow-lg transform -rotate-6 border">
+            <div className="p-4 h-full bg-gradient-to-br from-orange-50 to-yellow-50 rounded-2xl flex items-center justify-center">
+              <div className="text-center">
+                <div className="w-8 h-8 bg-orange-500 rounded-full mx-auto mb-2"></div>
+                <div className="text-sm font-medium text-slate-700">Smart AI</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Main Content */}
+        <div className="text-center relative z-10">
+          <p className="text-slate-600 mb-4 font-medium">This is Twin Me</p>
+          
+          <h1 className="text-6xl md:text-7xl lg:text-8xl font-serif text-slate-900 mb-8 leading-tight">
+            AI Professor &<br />
+            <span className="italic">Learning Twin</span>
           </h1>
 
-          {/* Subtitle */}
-          <p className="text-xl md:text-2xl text-foreground/90 mb-12 max-w-3xl mx-auto leading-relaxed font-medium">
-            AI-powered professor twins that capture teaching styles,<br />
-            enabling personalized learning conversations 24/7.
+          <p className="text-slate-600 mb-12 text-lg font-medium max-w-md mx-auto">
+            students can count on!
           </p>
 
-          {/* CTA Button */}
           <Button 
-            className="bg-foreground text-primary hover:bg-foreground/90 rounded-full px-12 py-4 text-xl font-bold inline-flex items-center gap-3 shadow-2xl border-2 border-white/20"
+            className="bg-orange-500 hover:bg-orange-600 text-white rounded-full px-8 py-3 text-lg font-medium shadow-lg"
             onClick={() => navigate('/talk-to-twin')}
           >
-            Start Learning
-            <ArrowRight className="w-6 h-6" />
+            Check out my works
           </Button>
         </div>
       </div>
