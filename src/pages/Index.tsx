@@ -1,18 +1,16 @@
-import { HeroSection } from '@/components/HeroSection';
-import { WhatIsSection } from '@/components/WhatIsSection';
-import { HowItWorksSection } from '@/components/HowItWorksSection';
-import { ComingSoonSection } from '@/components/ComingSoonSection';
-import { CTASection } from '@/components/CTASection';
+import { Navigation } from '@/components/Navigation';
+import { ModernHeroSection } from '@/components/ModernHeroSection';
+import { ArchitectureSection } from '@/components/ArchitectureSection';
+import { TrustedBySection } from '@/components/TrustedBySection';
 import { Footer } from '@/components/Footer';
 
 const Index = () => {
   return (
-    <div className="min-h-screen">
-      <HeroSection />
-      <WhatIsSection />
-      <HowItWorksSection />
-      <ComingSoonSection />
-      <CTASection />
+    <div className="min-h-screen bg-background">
+      <Navigation />
+      <ModernHeroSection />
+      <ArchitectureSection />
+      <TrustedBySection />
       <Footer />
     </div>
   );

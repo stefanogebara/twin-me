@@ -8,9 +8,9 @@ All colors MUST be HSL. Semantic tokens for consistent theming.
 
 @layer base {
   :root {
-    /* Cartoonish Educational palette - Warm and inviting */
-    --background: 43 100% 97%;
-    --foreground: 258 15% 15%;
+    /* Clean modern palette - Lorix inspired */
+    --background: 0 0% 98%;
+    --foreground: 0 0% 15%;
     
     /* Card system - Soft and rounded */
     --card: 0 0% 100%;
@@ -20,18 +20,18 @@ All colors MUST be HSL. Semantic tokens for consistent theming.
     --popover: 0 0% 100%;
     --popover-foreground: 258 15% 15%;
     
-    /* Primary: Educational purple - friendly but professional */
-    --primary: 258 85% 60%;
+    /* Primary: Clean modern blue */
+    --primary: 221 83% 53%;
     --primary-foreground: 0 0% 100%;
-    --primary-glow: 258 90% 75%;
+    --primary-glow: 221 83% 70%;
     
-    /* Secondary: Warm peach */
-    --secondary: 25 90% 85%;
-    --secondary-foreground: 258 15% 15%;
+    /* Secondary: Subtle gray */
+    --secondary: 210 10% 90%;
+    --secondary-foreground: 0 0% 15%;
     
-    /* Muted tones - Soft beiges */
-    --muted: 43 25% 92%;
-    --muted-foreground: 258 10% 45%;
+    /* Muted tones - Light grays */
+    --muted: 210 10% 95%;
+    --muted-foreground: 0 0% 45%;
     
     /* Accent: Bright sunny yellow */
     --accent: 48 100% 65%;
@@ -48,10 +48,10 @@ All colors MUST be HSL. Semantic tokens for consistent theming.
     --destructive: 0 80% 62%;
     --destructive-foreground: 0 0% 98%;
     
-    /* Borders and inputs - Softer */
-    --border: 43 40% 88%;
-    --input: 43 40% 94%;
-    --ring: 258 85% 60%;
+    /* Borders and inputs - Clean */
+    --border: 210 15% 85%;
+    --input: 210 10% 96%;
+    --ring: 221 83% 53%;
     
     /* More rounded for cartoonish feel */
     --radius: 18px;
