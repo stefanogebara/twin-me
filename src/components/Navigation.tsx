@@ -15,15 +15,15 @@ export const Navigation = () => {
   ];
 
   return (
-    <nav className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-xl border-b border-border/50">
+    <nav className="fixed top-0 left-0 right-0 z-50 bg-primary/10 backdrop-blur-xl border-b border-foreground/10">
       <div className="max-w-7xl mx-auto px-6 py-4">
         <div className="flex items-center justify-between">
           {/* Logo */}
           <div 
-            className="text-2xl font-bold text-foreground cursor-pointer"
+            className="text-2xl font-black text-foreground cursor-pointer tracking-tight"
             onClick={() => navigate('/')}
           >
-            Twin Me
+            TWIN ME
           </div>
 
           {/* Desktop Menu */}
@@ -32,7 +32,7 @@ export const Navigation = () => {
               <a
                 key={item.label}
                 href={item.href}
-                className="text-muted-foreground hover:text-foreground transition-colors duration-200 font-medium"
+                className="text-foreground/80 hover:text-foreground transition-colors duration-200 font-semibold"
               >
                 {item.label}
               </a>
@@ -42,7 +42,7 @@ export const Navigation = () => {
           {/* CTA Button */}
           <div className="hidden md:block">
             <Button 
-              className="bg-foreground text-background hover:bg-foreground/90 rounded-full px-6 py-2 font-medium"
+              className="bg-foreground text-primary hover:bg-foreground/90 rounded-full px-6 py-2 font-bold shadow-lg"
               onClick={() => navigate('/talk-to-twin')}
             >
               Get a Demo

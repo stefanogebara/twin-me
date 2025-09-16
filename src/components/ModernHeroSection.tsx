@@ -16,27 +16,27 @@ export const ModernHeroSection = () => {
           </div>
 
           {/* Main heading */}
-          <h1 className="text-5xl md:text-7xl font-bold text-foreground mb-6 leading-tight">
-            Onboard your<br />
-            student{' '}
+          <h1 className="hero-text text-6xl md:text-8xl lg:text-9xl mb-8">
+            TWIN<br />
             <span className="inline-block relative">
-              10x faster
+              ME
+              <div className="absolute -bottom-4 -right-8 w-16 h-16 rounded-full bg-gradient-to-br from-accent/80 to-primary/80 blur-lg animate-pulse"></div>
             </span>
           </h1>
 
           {/* Subtitle */}
-          <p className="text-xl text-muted-foreground mb-12 max-w-2xl mx-auto leading-relaxed">
-            AI-powered workflows replace paperwork, streamline<br />
-            onboarding, save time and money.
+          <p className="text-xl md:text-2xl text-foreground/90 mb-12 max-w-3xl mx-auto leading-relaxed font-medium">
+            AI-powered professor twins that capture teaching styles,<br />
+            enabling personalized learning conversations 24/7.
           </p>
 
           {/* CTA Button */}
           <Button 
-            className="bg-foreground text-background hover:bg-foreground/90 rounded-full px-8 py-3 text-lg font-semibold inline-flex items-center gap-2"
+            className="bg-foreground text-primary hover:bg-foreground/90 rounded-full px-12 py-4 text-xl font-bold inline-flex items-center gap-3 shadow-2xl border-2 border-white/20"
             onClick={() => navigate('/talk-to-twin')}
           >
-            Start Free
-            <ArrowRight className="w-5 h-5" />
+            Start Learning
+            <ArrowRight className="w-6 h-6" />
           </Button>
         </div>
       </div>
