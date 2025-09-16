@@ -8,76 +8,95 @@ All colors MUST be HSL. Semantic tokens for consistent theming.
 
 @layer base {
   :root {
-    /* Apple-inspired neutral palette */
-    --background: 0 0% 100%;
-    --foreground: 0 0% 7%;
+    /* Cartoonish Educational palette - Warm and inviting */
+    --background: 43 100% 97%;
+    --foreground: 258 15% 15%;
     
-    /* Card system */
+    /* Card system - Soft and rounded */
     --card: 0 0% 100%;
-    --card-foreground: 0 0% 7%;
+    --card-foreground: 258 15% 15%;
     
     /* Interactive surfaces */
     --popover: 0 0% 100%;
-    --popover-foreground: 0 0% 7%;
+    --popover-foreground: 258 15% 15%;
     
-    /* Primary: Deep space gray */
-    --primary: 0 0% 7%;
-    --primary-foreground: 0 0% 98%;
+    /* Primary: Educational purple - friendly but professional */
+    --primary: 258 85% 60%;
+    --primary-foreground: 0 0% 100%;
+    --primary-glow: 258 90% 75%;
     
-    /* Secondary: Apple light gray */
-    --secondary: 0 0% 97%;
-    --secondary-foreground: 0 0% 7%;
+    /* Secondary: Warm peach */
+    --secondary: 25 90% 85%;
+    --secondary-foreground: 258 15% 15%;
     
-    /* Muted tones */
-    --muted: 0 0% 96%;
-    --muted-foreground: 0 0% 45%;
+    /* Muted tones - Soft beiges */
+    --muted: 43 25% 92%;
+    --muted-foreground: 258 10% 45%;
     
-    /* Accent: Cool blue highlight */
-    --accent: 215 100% 60%;
-    --accent-foreground: 0 0% 98%;
+    /* Accent: Bright sunny yellow */
+    --accent: 48 100% 65%;
+    --accent-foreground: 258 15% 15%;
+    
+    /* Cartoonish accent variants for variety */
+    --accent-pink: 330 80% 75%;
+    --accent-blue: 210 95% 70%;
+    --accent-green: 120 55% 65%;
+    --accent-orange: 25 90% 67%;
+    --accent-purple: 280 80% 75%;
     
     /* Destructive states */
-    --destructive: 0 84% 60%;
+    --destructive: 0 80% 62%;
     --destructive-foreground: 0 0% 98%;
     
-    /* Borders and inputs */
-    --border: 0 0% 90%;
-    --input: 0 0% 94%;
-    --ring: 215 100% 60%;
+    /* Borders and inputs - Softer */
+    --border: 43 40% 88%;
+    --input: 43 40% 94%;
+    --ring: 258 85% 60%;
     
-    /* Apple-style radius */
-    --radius: 12px;
+    /* More rounded for cartoonish feel */
+    --radius: 18px;
     
-    /* Custom Twin Me tokens */
-    --hero-gradient: linear-gradient(135deg, hsl(0 0% 100%) 0%, hsl(0 0% 98%) 100%);
-    --glass-bg: 0 0% 100% / 0.7;
-    --glass-border: 0 0% 100% / 0.3;
-    --shadow-soft: 0 4px 16px hsl(0 0% 0% / 0.08);
-    --shadow-medium: 0 8px 32px hsl(0 0% 0% / 0.12);
-    --shadow-strong: 0 16px 64px hsl(0 0% 0% / 0.16);
+    /* Custom Twin Me tokens - Vibrant and educational */
+    --hero-gradient: linear-gradient(135deg, 
+      hsl(258, 95%, 95%) 0%, 
+      hsl(280, 100%, 96%) 20%,
+      hsl(48, 100%, 93%) 40%, 
+      hsl(25, 95%, 93%) 60%,
+      hsl(210, 100%, 95%) 80%,
+      hsl(330, 90%, 96%) 100%);
     
-    /* Apple Liquid Glass Effects */
-    --liquid-glass-bg: 0 0% 100% / 0.3;
-    --liquid-glass-border: 0 0% 100% / 0.2;
-    --liquid-glass-shadow: 0 8px 32px hsl(0 0% 0% / 0.1), 0 0 0 1px hsl(0 0% 100% / 0.05);
-    --liquid-glass-reflection: linear-gradient(135deg, hsl(0 0% 100% / 0.25) 0%, hsl(0 0% 100% / 0.05) 50%, hsl(0 0% 0% / 0.05) 100%);
+    --glass-bg: 258 90% 98% / 0.15;
+    --glass-border: 258 60% 85% / 0.3;
+    --shadow-soft: 0 6px 20px hsl(258 50% 50% / 0.12);
+    --shadow-medium: 0 12px 35px hsl(258 60% 60% / 0.18);
+    --shadow-strong: 0 20px 50px hsl(258 70% 70% / 0.25);
     
-    /* 3D Transform Perspectives */
-    --perspective-subtle: 1200px;
-    --perspective-dramatic: 800px;
+    /* Cartoonish Liquid Glass Effects */
+    --liquid-glass-bg: 258 90% 98% / 0.12;
+    --liquid-glass-border: 258 70% 85% / 0.25;
+    --liquid-glass-shadow: 0 15px 40px hsl(258 90% 66% / 0.15), 0 0 0 1px hsl(48 100% 90% / 0.3);
+    --liquid-glass-reflection: linear-gradient(135deg, 
+      hsl(48 100% 90% / 0.6) 0%, 
+      hsl(258 95% 95% / 0.2) 30%, 
+      hsl(25 95% 90% / 0.3) 70%, 
+      hsl(258 90% 85% / 0.1) 100%);
     
-    /* Typography scale - Apple San Francisco inspired */
-    --text-hero: 4rem;
-    --text-xl: 2.5rem;
+    /* 3D Transform Perspectives - More playful */
+    --perspective-subtle: 1000px;
+    --perspective-dramatic: 600px;
+    
+    /* Typography scale - Friendly and approachable */
+    --text-hero: 3.5rem;
+    --text-xl: 2.25rem;
     --text-lg: 1.75rem;
     --text-base: 1rem;
     --text-sm: 0.875rem;
     --text-xs: 0.75rem;
     
     /* Spacing scale */
-    --space-hero: 8rem;
-    --space-section: 6rem;
-    --space-block: 3rem;
+    --space-hero: 7rem;
+    --space-section: 5rem;
+    --space-block: 2.5rem;
 
     --sidebar-background: 0 0% 98%;
 
@@ -97,44 +116,62 @@ All colors MUST be HSL. Semantic tokens for consistent theming.
   }
 
   .dark {
-    --background: 0 0% 7%;
-    --foreground: 0 0% 98%;
+    --background: 258 25% 8%;
+    --foreground: 43 90% 95%;
     
-    --card: 0 0% 7%;
-    --card-foreground: 0 0% 98%;
+    --card: 258 20% 10%;
+    --card-foreground: 43 90% 95%;
     
-    --popover: 0 0% 7%;
-    --popover-foreground: 0 0% 98%;
+    --popover: 258 20% 10%;
+    --popover-foreground: 43 90% 95%;
     
-    --primary: 0 0% 98%;
-    --primary-foreground: 0 0% 7%;
+    --primary: 258 90% 70%;
+    --primary-foreground: 258 25% 8%;
+    --primary-glow: 258 95% 80%;
     
-    --secondary: 0 0% 12%;
-    --secondary-foreground: 0 0% 98%;
+    --secondary: 25 30% 15%;
+    --secondary-foreground: 43 90% 95%;
     
-    --muted: 0 0% 12%;
-    --muted-foreground: 0 0% 65%;
+    --muted: 258 15% 15%;
+    --muted-foreground: 43 30% 70%;
     
-    --accent: 215 100% 65%;
-    --accent-foreground: 0 0% 7%;
+    --accent: 48 95% 70%;
+    --accent-foreground: 258 25% 8%;
     
-    --destructive: 0 75% 55%;
-    --destructive-foreground: 0 0% 98%;
+    /* Dark cartoonish accents */
+    --accent-pink: 330 75% 80%;
+    --accent-blue: 210 90% 75%;
+    --accent-green: 120 50% 70%;
+    --accent-orange: 25 85% 72%;
+    --accent-purple: 280 75% 80%;
     
-    --border: 0 0% 20%;
-    --input: 0 0% 15%;
-    --ring: 215 100% 65%;
+    --destructive: 0 75% 65%;
+    --destructive-foreground: 258 25% 8%;
     
-    /* Dark mode custom tokens */
-    --hero-gradient: linear-gradient(135deg, hsl(0 0% 7%) 0%, hsl(0 0% 10%) 100%);
-    --glass-bg: 0 0% 7% / 0.7;
-    --glass-border: 0 0% 20% / 0.3;
+    --border: 258 25% 25%;
+    --input: 258 20% 20%;
+    --ring: 258 90% 70%;
     
-    /* Dark mode liquid glass */
-    --liquid-glass-bg: 0 0% 0% / 0.4;
-    --liquid-glass-border: 0 0% 100% / 0.1;
-    --liquid-glass-shadow: 0 8px 32px hsl(0 0% 0% / 0.3), 0 0 0 1px hsl(0 0% 100% / 0.05);
-    --liquid-glass-reflection: linear-gradient(135deg, hsl(0 0% 100% / 0.1) 0%, hsl(0 0% 100% / 0.02) 50%, hsl(0 0% 0% / 0.1) 100%);
+    /* Dark mode custom tokens - Magical night vibes */
+    --hero-gradient: linear-gradient(135deg, 
+      hsl(258, 30%, 8%) 0%, 
+      hsl(280, 25%, 12%) 25%,
+      hsl(240, 30%, 10%) 50%, 
+      hsl(290, 25%, 9%) 75%,
+      hsl(270, 30%, 11%) 100%);
+      
+    --glass-bg: 258 30% 8% / 0.7;
+    --glass-border: 258 40% 30% / 0.3;
+    
+    /* Dark mode liquid glass - Enchanting */
+    --liquid-glass-bg: 258 25% 5% / 0.4;
+    --liquid-glass-border: 258 80% 70% / 0.2;
+    --liquid-glass-shadow: 0 15px 40px hsl(258 80% 30% / 0.3), 0 0 0 1px hsl(258 90% 70% / 0.1);
+    --liquid-glass-reflection: linear-gradient(135deg, 
+      hsl(258 90% 80% / 0.15) 0%, 
+      hsl(48 95% 80% / 0.08) 30%, 
+      hsl(330 80% 80% / 0.1) 70%, 
+      hsl(258 70% 50% / 0.05) 100%);
   }
 }
 
@@ -153,13 +190,20 @@ All colors MUST be HSL. Semantic tokens for consistent theming.
   }
 }
 
-/* Apple-inspired animation utilities */
+/* Cartoonish Educational Design Utilities */
 @layer utilities {
   .hero-text {
     font-size: var(--text-hero);
-    font-weight: 700;
-    letter-spacing: -0.03em;
+    font-weight: 800;
+    letter-spacing: -0.02em;
     line-height: 1.1;
+    background: linear-gradient(135deg, 
+      hsl(var(--primary)) 0%, 
+      hsl(var(--accent-purple)) 50%, 
+      hsl(var(--accent)) 100%);
+    background-clip: text;
+    -webkit-background-clip: text;
+    color: transparent;
   }
   
   .section-spacing {
@@ -169,9 +213,14 @@ All colors MUST be HSL. Semantic tokens for consistent theming.
   
   .glass-effect {
     background: hsl(var(--glass-bg));
-    backdrop-filter: blur(20px);
+    backdrop-filter: blur(25px) saturate(200%);
     border: 1px solid hsl(var(--glass-border));
     box-shadow: var(--shadow-soft);
+    border-radius: var(--radius);
+  }
+  
+  .cartoon-bounce {
+    animation: cartoonBounce 2s ease-in-out infinite;
   }
   
   .fade-in {
@@ -182,26 +231,27 @@ All colors MUST be HSL. Semantic tokens for consistent theming.
     animation: slideUp 0.8s ease-out forwards;
   }
   
+  .wiggle {
+    animation: wiggle 3s ease-in-out infinite;
+  }
+  
+  .float {
+    animation: float 4s ease-in-out infinite;
+  }
+  
   .parallax-slow {
     transform: translateZ(0);
     will-change: transform;
   }
   
-  .abstract-background {
-    background-image: url('/src/assets/abstract-background.png');
-    background-size: cover;
-    background-position: center;
-    background-repeat: no-repeat;
-    opacity: 0.03;
-  }
-  
   .liquid-glass {
     background: hsl(var(--liquid-glass-bg));
-    backdrop-filter: blur(20px) saturate(180%);
+    backdrop-filter: blur(25px) saturate(200%);
     border: 1px solid hsl(var(--liquid-glass-border));
     box-shadow: var(--liquid-glass-shadow);
     position: relative;
     overflow: hidden;
+    border-radius: var(--radius);
   }
   
   .liquid-glass::before {
@@ -216,18 +266,70 @@ All colors MUST be HSL. Semantic tokens for consistent theming.
     z-index: 1;
   }
   
+  .cartoon-button {
+    background: linear-gradient(135deg, 
+      hsl(var(--primary)) 0%, 
+      hsl(var(--primary-glow)) 100%);
+    border-radius: var(--radius);
+    border: 2px solid hsl(var(--accent) / 0.3);
+    box-shadow: 
+      0 8px 25px hsl(var(--primary) / 0.3),
+      0 0 0 1px hsl(var(--accent) / 0.2) inset;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+    overflow: hidden;
+  }
+  
+  .cartoon-button:hover {
+    transform: translateY(-2px);
+    box-shadow: 
+      0 12px 35px hsl(var(--primary) / 0.4),
+      0 0 0 1px hsl(var(--accent) / 0.4) inset;
+  }
+  
+  .cartoon-button:active {
+    transform: translateY(0px);
+  }
+  
+  .cartoon-button::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, 
+      transparent, 
+      hsl(var(--accent) / 0.4), 
+      transparent);
+    transition: left 0.5s;
+  }
+  
+  .cartoon-button:hover::before {
+    left: 100%;
+  }
+  
   .mirror-3d {
     transform-style: preserve-3d;
     perspective: var(--perspective-subtle);
   }
   
   .mirror-box {
-    transform: rotateX(15deg) rotateY(-10deg);
+    transform: rotateX(12deg) rotateY(-8deg);
     transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   }
   
   .mirror-box:hover {
-    transform: rotateX(10deg) rotateY(-5deg) translateY(-4px);
+    transform: rotateX(8deg) rotateY(-4deg) translateY(-6px);
+  }
+  
+  .educational-gradient {
+    background: linear-gradient(135deg,
+      hsl(var(--accent-purple)) 0%,
+      hsl(var(--accent)) 25%,
+      hsl(var(--accent-orange)) 50%,
+      hsl(var(--accent-pink)) 75%,
+      hsl(var(--primary)) 100%);
   }
 }
 
@@ -250,5 +352,53 @@ All colors MUST be HSL. Semantic tokens for consistent theming.
   to {
     opacity: 1;
     transform: translateY(0);
+  }
+}
+
+@keyframes cartoonBounce {
+  0%, 20%, 53%, 80%, 100% {
+    transform: translate3d(0, 0, 0);
+  }
+  40%, 43% {
+    transform: translate3d(0, -15px, 0);
+  }
+  70% {
+    transform: translate3d(0, -8px, 0);
+  }
+  90% {
+    transform: translate3d(0, -3px, 0);
+  }
+}
+
+@keyframes wiggle {
+  0%, 7% {
+    transform: rotateZ(0);
+  }
+  15% {
+    transform: rotateZ(-15deg);
+  }
+  20% {
+    transform: rotateZ(10deg);
+  }
+  25% {
+    transform: rotateZ(-10deg);
+  }
+  30% {
+    transform: rotateZ(6deg);
+  }
+  35% {
+    transform: rotateZ(-4deg);
+  }
+  40%, 100% {
+    transform: rotateZ(0);
+  }
+}
+
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-10px);
   }
 }
