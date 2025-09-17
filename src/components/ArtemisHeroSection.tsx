@@ -8,10 +8,10 @@ export const ArtemisHeroSection = () => {
   return (
     <section className="min-h-screen bg-background relative pt-24 pb-16 px-6 overflow-hidden">
       <div className="max-w-[1440px] mx-auto relative">
-        {/* Floating Portfolio Cards - Exact Artemis Style */}
+        {/* Floating Portfolio Cards - Spread farther from center */}
         <div className="absolute inset-0 pointer-events-none">
-          {/* Top Left Card */}
-          <div className="absolute top-20 left-16 w-48 h-36 bg-card rounded-2xl shadow-lg transform -rotate-12 border overflow-hidden">
+          {/* Top Left Card - Moved farther */}
+          <div className="absolute top-12 left-8 w-48 h-36 bg-card rounded-2xl shadow-lg transform -rotate-12 border overflow-hidden">
             <div className="w-full h-full bg-gradient-to-br from-green-400 to-emerald-500 flex items-center justify-center">
               <div className="text-white text-center">
                 <div className="text-2xl font-bold mb-1">AI</div>
@@ -20,8 +20,8 @@ export const ArtemisHeroSection = () => {
             </div>
           </div>
 
-          {/* Top Right Card */}
-          <div className="absolute top-12 right-16 w-56 h-40 bg-card rounded-2xl shadow-lg transform rotate-6 border overflow-hidden">
+          {/* Top Right Card - Moved farther */}
+          <div className="absolute top-8 right-8 w-56 h-40 bg-card rounded-2xl shadow-lg transform rotate-6 border overflow-hidden">
             <div className="w-full h-full bg-gradient-to-br from-blue-400 to-purple-500 flex items-center justify-center">
               <div className="text-white text-center">
                 <div className="text-lg font-semibold mb-2">Learning Platform</div>
@@ -30,8 +30,8 @@ export const ArtemisHeroSection = () => {
             </div>
           </div>
 
-          {/* Bottom Left Card */}
-          <div className="absolute bottom-32 left-24 w-40 h-32 bg-card rounded-2xl shadow-lg transform rotate-3 border overflow-hidden">
+          {/* Bottom Left Card - Moved farther */}
+          <div className="absolute bottom-20 left-12 w-40 h-32 bg-card rounded-2xl shadow-lg transform rotate-3 border overflow-hidden">
             <div className="w-full h-full bg-gradient-to-br from-orange-400 to-red-400 flex items-center justify-center">
               <div className="text-white text-center">
                 <div className="text-lg font-bold">Voice</div>
@@ -40,8 +40,8 @@ export const ArtemisHeroSection = () => {
             </div>
           </div>
 
-          {/* Bottom Right Card */}
-          <div className="absolute bottom-24 right-24 w-44 h-36 bg-card rounded-2xl shadow-lg transform -rotate-6 border overflow-hidden">
+          {/* Bottom Right Card - Moved farther */}
+          <div className="absolute bottom-16 right-12 w-44 h-36 bg-card rounded-2xl shadow-lg transform -rotate-6 border overflow-hidden">
             <div className="w-full h-full bg-gradient-to-br from-pink-400 to-purple-400 flex items-center justify-center">
               <div className="text-white text-center">
                 <div className="text-base font-semibold mb-1">Personalized</div>

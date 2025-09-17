@@ -30,7 +30,7 @@ export const ArtemisHowItWorksSection = () => {
     <section id="how-it-works" className="py-24 px-6 bg-background">
       <div className="max-w-[1440px] mx-auto">
         <div className="text-center mb-16">
-          <h2 className="text-5xl font-bold text-foreground mb-6 leading-tight">
+          <h2 className="text-5xl font-serif text-foreground mb-6 leading-tight italic">
             How It Works
           </h2>
           <p className="text-lg text-muted-foreground max-w-2xl mx-auto leading-relaxed">
@@ -54,7 +54,7 @@ export const ArtemisHowItWorksSection = () => {
                 <div className={`flex-1 ${step.side === 'right' ? 'lg:text-right' : ''}`}>
                   <div className="artemis-card max-w-md mx-auto lg:mx-0">
                     <div className="text-sm font-semibold text-primary mb-2">{step.number}</div>
-                    <h3 className="text-2xl font-bold text-foreground mb-4">{step.title}</h3>
+                    <h3 className="text-2xl font-serif text-foreground mb-4 italic">{step.title}</h3>
                     <p className="text-muted-foreground leading-relaxed">{step.description}</p>
                   </div>
                 </div>

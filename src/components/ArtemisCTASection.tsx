@@ -12,7 +12,7 @@ export const ArtemisCTASection = () => {
       
       <div className="max-w-[1440px] mx-auto text-center relative z-10">
         <div className="max-w-3xl mx-auto">
-          <h2 className="text-5xl font-bold text-foreground mb-6 leading-tight">
+          <h2 className="text-5xl font-serif text-foreground mb-6 leading-tight italic">
             Ready to Transform Your Learning Experience?
           </h2>
           

@@ -31,13 +31,12 @@ export const ArtemisNavigation = () => {
             </a>
           </div>
 
-          {/* Center Logo - Exact Artemis style */}
+          {/* Center Logo - Just Twin Me */}
           <div 
             className="text-2xl font-serif cursor-pointer"
             onClick={() => navigate('/')}
           >
-            <span className="text-primary italic">Twin Me &</span>
-            <span className="text-foreground"> Artemis</span>
+            <span className="text-primary italic">Twin Me</span>
           </div>
 
           {/* Right Menu */}
