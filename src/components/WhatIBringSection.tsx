@@ -49,7 +49,7 @@ export const WhatIBringSection = () => {
         <div className="text-center relative z-10">
           {/* Central Icon */}
           <div className="w-24 h-24 mx-auto mb-8 bg-gradient-to-br from-orange-500 to-red-500 rounded-2xl flex items-center justify-center shadow-lg">
-            <div className="text-4xl">🎓</div>
+            <div className="w-8 h-8 bg-white rounded-full"></div>
           </div>
           
           <h2 className="text-6xl md:text-7xl font-serif text-slate-900 mb-8 italic leading-tight">

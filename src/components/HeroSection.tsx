@@ -72,10 +72,10 @@ export const HeroSection = () => {
             className="px-10 py-4 text-lg font-bold shadow-2xl"
             onClick={() => navigate('/talk-to-twin')}
           >
-            🎓 Talk to a Twin
+            Talk to a Twin
           </Button>
           <Button variant="cartoon" size="lg" className="px-10 py-4 text-lg">
-            ✨ Start Learning
+            Start Learning
           </Button>
         </div>
       </div>

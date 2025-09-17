@@ -113,30 +113,23 @@ const TalkToTwin = () => {
       {/* Illustrated Characters Background */}
       <div className="absolute inset-0 pointer-events-none overflow-hidden">
         {/* Floating musical notes */}
-        <div className="absolute top-32 left-16 text-6xl animate-bounce" style={{ animationDelay: '0s', animationDuration: '3s' }}>
-          🎵
+        <div className="absolute top-32 left-16 w-16 h-16 bg-blue-200 rounded-full animate-bounce" style={{ animationDelay: '0s', animationDuration: '3s' }}>
         </div>
-        <div className="absolute top-48 right-20 text-4xl animate-bounce" style={{ animationDelay: '1s', animationDuration: '4s' }}>
-          🎶
+        <div className="absolute top-48 right-20 w-10 h-10 bg-purple-200 rounded-full animate-bounce" style={{ animationDelay: '1s', animationDuration: '4s' }}>
         </div>
-        <div className="absolute bottom-32 left-32 text-5xl animate-bounce" style={{ animationDelay: '2s', animationDuration: '3.5s' }}>
-          🎼
+        <div className="absolute bottom-32 left-32 w-12 h-12 bg-indigo-200 rounded-full animate-bounce" style={{ animationDelay: '2s', animationDuration: '3.5s' }}>
         </div>
         
         {/* Art supplies */}
-        <div className="absolute top-64 left-8 text-5xl animate-bounce" style={{ animationDelay: '0.5s', animationDuration: '4s' }}>
-          🎨
+        <div className="absolute top-64 left-8 w-12 h-12 bg-orange-200 rounded-full animate-bounce" style={{ animationDelay: '0.5s', animationDuration: '4s' }}>
         </div>
-        <div className="absolute bottom-48 right-16 text-4xl animate-bounce" style={{ animationDelay: '1.5s', animationDuration: '3s' }}>
-          ✏️
+        <div className="absolute bottom-48 right-16 w-10 h-10 bg-blue-200 rounded-full animate-bounce" style={{ animationDelay: '1.5s', animationDuration: '3s' }}>
         </div>
         
         {/* Educational items */}
-        <div className="absolute top-80 right-32 text-4xl animate-bounce" style={{ animationDelay: '0.8s', animationDuration: '3.8s' }}>
-          📚
+        <div className="absolute top-80 right-32 w-10 h-10 bg-green-200 rounded-full animate-bounce" style={{ animationDelay: '0.8s', animationDuration: '3.8s' }}>
         </div>
-        <div className="absolute bottom-64 left-48 text-3xl animate-bounce" style={{ animationDelay: '2.2s', animationDuration: '4.2s' }}>
-          🔬
+        <div className="absolute bottom-64 left-48 w-8 h-8 bg-purple-200 rounded-full animate-bounce" style={{ animationDelay: '2.2s', animationDuration: '4.2s' }}>
         </div>
 
         {/* Illustrated Character - Teacher */}
@@ -172,7 +165,7 @@ const TalkToTwin = () => {
             </div>
             
             <div className="w-24 h-24 mx-auto mb-8 bg-gradient-to-br from-blue-500 to-purple-500 rounded-2xl flex items-center justify-center shadow-xl relative z-10">
-              <div className="text-4xl">🤖</div>
+              <div className="w-8 h-8 bg-white rounded-full"></div>
             </div>
             
             <h1 className="text-6xl md:text-7xl font-serif text-white mb-8 leading-tight italic relative z-10">
