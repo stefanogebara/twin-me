@@ -83,98 +83,51 @@ const TalkToTwin = () => {
   };
 
   return (
-    <div className="min-h-screen bg-slate-900 relative">
-      {/* Navigation */}
-      <nav className="relative z-50 bg-slate-800/90 backdrop-blur-sm border-b border-slate-700">
-        <div className="max-w-6xl mx-auto px-6 py-6">
+    <div className="min-h-screen bg-background relative">
+      {/* Navigation - Match home page style */}
+      <nav className="fixed top-0 left-0 right-0 z-50 bg-card/95 backdrop-blur-sm">
+        <div className="max-w-[1440px] mx-auto px-6 py-6">
           <div className="flex items-center justify-between">
+            {/* Left - Back Button */}
             <Button 
               variant="ghost" 
               size="sm"
               onClick={() => navigate('/')}
-              className="flex items-center gap-2 text-slate-300 hover:text-white"
+              className="flex items-center gap-2 text-foreground hover:text-primary"
             >
               <ArrowLeft className="w-4 h-4" />
               Back to Home
             </Button>
 
+            {/* Center Logo */}
             <div 
-              className="text-2xl font-serif text-orange-500 cursor-pointer italic"
+              className="text-2xl font-serif cursor-pointer"
               onClick={() => navigate('/')}
             >
-              Twin Me & <span className="text-white">Artemis</span>
+              <span className="text-primary italic">Twin Me</span>
             </div>
 
-            <div className="w-24"></div> {/* Spacer for center alignment */}
+            {/* Right - Spacer */}
+            <div className="w-24"></div>
           </div>
         </div>
       </nav>
 
-      {/* Illustrated Characters Background */}
-      <div className="absolute inset-0 pointer-events-none overflow-hidden">
-        {/* Floating musical notes */}
-        <div className="absolute top-32 left-16 w-16 h-16 bg-blue-200 rounded-full animate-bounce" style={{ animationDelay: '0s', animationDuration: '3s' }}>
-        </div>
-        <div className="absolute top-48 right-20 w-10 h-10 bg-purple-200 rounded-full animate-bounce" style={{ animationDelay: '1s', animationDuration: '4s' }}>
-        </div>
-        <div className="absolute bottom-32 left-32 w-12 h-12 bg-indigo-200 rounded-full animate-bounce" style={{ animationDelay: '2s', animationDuration: '3.5s' }}>
-        </div>
-        
-        {/* Art supplies */}
-        <div className="absolute top-64 left-8 w-12 h-12 bg-orange-200 rounded-full animate-bounce" style={{ animationDelay: '0.5s', animationDuration: '4s' }}>
-        </div>
-        <div className="absolute bottom-48 right-16 w-10 h-10 bg-blue-200 rounded-full animate-bounce" style={{ animationDelay: '1.5s', animationDuration: '3s' }}>
-        </div>
-        
-        {/* Educational items */}
-        <div className="absolute top-80 right-32 w-10 h-10 bg-green-200 rounded-full animate-bounce" style={{ animationDelay: '0.8s', animationDuration: '3.8s' }}>
-        </div>
-        <div className="absolute bottom-64 left-48 w-8 h-8 bg-purple-200 rounded-full animate-bounce" style={{ animationDelay: '2.2s', animationDuration: '4.2s' }}>
-        </div>
-
-        {/* Illustrated Character - Teacher */}
-        <div className="absolute top-40 right-8 w-32 h-40 opacity-30">
-          <div className="relative">
-            {/* Simple illustrated teacher character */}
-            <div className="w-20 h-24 bg-purple-600 rounded-t-full mx-auto"></div>
-            <div className="w-16 h-16 bg-orange-400 rounded-full mx-auto -mt-8 border-4 border-purple-600"></div>
-            <div className="w-12 h-3 bg-slate-800 rounded-full mx-auto mt-2"></div>
-            <div className="w-2 h-2 bg-white rounded-full mx-auto -mt-1"></div>
-          </div>
-        </div>
-
-        {/* Illustrated Character - Student */}
-        <div className="absolute bottom-40 left-8 w-28 h-36 opacity-30">
-          <div className="relative">
-            {/* Simple illustrated student character */}
-            <div className="w-18 h-20 bg-yellow-500 rounded-t-full mx-auto"></div>
-            <div className="w-14 h-14 bg-orange-300 rounded-full mx-auto -mt-6 border-4 border-yellow-500"></div>
-            <div className="w-10 h-2 bg-slate-800 rounded-full mx-auto mt-2"></div>
-          </div>
-        </div>
-      </div>
-
       {/* Main Content */}
-      <div className="pt-16 pb-16 px-6 relative z-10">
-        <div className="max-w-6xl mx-auto">
-          {/* Header with AI Icon */}
-          <div className="text-center mb-16 relative">
-            {/* Animated Background */}
-            <div className="absolute inset-0 w-full h-full opacity-20 -z-10">
-              <AnimatedBackground />
+      <div className="pt-32 pb-16 px-6 relative">
+        <div className="max-w-[1440px] mx-auto">
+          {/* Header */}
+          <div className="text-center mb-16">
+            <div className="w-16 h-16 mx-auto mb-8 bg-gradient-to-br from-primary to-accent rounded-2xl flex items-center justify-center transform rotate-3">
+              <MessageCircle className="w-8 h-8 text-card" />
             </div>
             
-            <div className="w-24 h-24 mx-auto mb-8 bg-gradient-to-br from-blue-500 to-purple-500 rounded-2xl flex items-center justify-center shadow-xl relative z-10">
-              <div className="w-8 h-8 bg-white rounded-full"></div>
-            </div>
-            
-            <h1 className="text-6xl md:text-7xl font-serif text-white mb-8 leading-tight italic relative z-10">
+            <h1 className="text-6xl md:text-7xl font-serif text-foreground mb-8 leading-tight italic">
               Talk to Your Professor's Twin
             </h1>
 
-            <p className="text-slate-300 mb-12 text-lg font-medium max-w-2xl mx-auto leading-relaxed relative z-10">
-              Finally, meet the AI technology passionate about helping 
-              students succeed – choose your professor twin and start learning
+            <p className="text-muted-foreground mb-12 text-lg font-medium max-w-2xl mx-auto leading-relaxed">
+              Choose your professor twin and start learning with personalized AI assistance
             </p>
           </div>
 
@@ -186,8 +139,8 @@ const TalkToTwin = () => {
                 onClick={() => setSelectedSubject(subject)}
                 className={`px-6 py-3 rounded-full text-sm font-medium transition-all duration-200 ${
                   selectedSubject === subject
-                    ? 'bg-orange-500 hover:bg-orange-600 text-white shadow-lg'
-                    : 'bg-slate-700 text-slate-300 border border-slate-600 hover:bg-slate-600 hover:text-white'
+                    ? 'bg-primary hover:bg-primary/90 text-white shadow-lg'
+                    : 'bg-card text-foreground border border-border hover:bg-muted'
                 }`}
               >
                 {subject}
@@ -200,28 +153,27 @@ const TalkToTwin = () => {
             {filteredProfessors.slice(0, 4).map((professor, index) => (
               <div
                 key={professor.id}
-                className="relative bg-gradient-to-br from-purple-500 to-purple-700 rounded-3xl p-8 text-white cursor-pointer transition-all duration-300 hover:shadow-2xl hover:-translate-y-2 overflow-hidden"
+                className="artemis-card cursor-pointer group transition-all duration-300 hover:scale-[1.02] hover:rotate-1 relative overflow-hidden"
                 onClick={() => handleProfessorSelect(professor.id)}
-                style={{ animationDelay: `${index * 0.1}s` }}
               >
-                {/* Background Pattern */}
-                <div className="absolute inset-0 opacity-10">
-                  <div className="absolute top-8 left-8 w-24 h-24 border-2 border-white rounded-full"></div>
-                  <div className="absolute top-12 right-8 w-16 h-16 border border-white rounded-full"></div>
+                {/* Decorative Background Elements */}
+                <div className="absolute inset-0 opacity-5">
+                  <div className="absolute top-8 left-8 w-20 h-20 border-2 border-primary rounded-full"></div>
+                  <div className="absolute bottom-8 right-8 w-16 h-16 border border-accent rounded-full"></div>
                 </div>
 
                 {/* Content */}
                 <div className="relative z-10">
                   {/* Professor Name Circle */}
-                  <div className="w-32 h-32 bg-gradient-to-br from-purple-300 to-purple-400 rounded-full flex items-center justify-center mb-6 mx-auto">
+                  <div className="w-32 h-32 bg-gradient-to-br from-primary/10 to-accent/10 border-2 border-primary/20 rounded-full flex items-center justify-center mb-6 mx-auto">
                     <div className="text-center">
-                      <div className="text-lg font-bold text-purple-900">{professor.name.split(' ')[0]}</div>
-                      <div className="text-sm font-medium text-purple-800">{professor.name.split(' ')[1]}</div>
+                      <div className="text-lg font-bold text-foreground">{professor.name.split(' ')[0]}</div>
+                      <div className="text-sm font-medium text-muted-foreground">{professor.name.split(' ')[1]}</div>
                     </div>
                   </div>
 
-                  {/* Professor Avatar (smaller, positioned top right) */}
-                  <div className="absolute top-4 right-4 w-16 h-16 rounded-full overflow-hidden border-2 border-white/30">
+                  {/* Professor Avatar */}
+                  <div className="absolute top-6 right-6 w-16 h-16 rounded-full overflow-hidden border-2 border-primary/20">
                     <img
                       src={professor.image}
                       alt={professor.name}
@@ -231,19 +183,19 @@ const TalkToTwin = () => {
 
                   {/* Professor Details */}
                   <div className="text-center mb-6">
-                    <h3 className="text-2xl font-bold mb-2">{professor.name}</h3>
+                    <h3 className="text-2xl font-serif text-foreground mb-2 italic">{professor.name}</h3>
                     
                     <div className="flex items-center justify-center gap-4 mb-4">
-                      <span className="bg-black/20 text-white px-3 py-1 rounded-full text-sm font-medium">
+                      <span className="bg-accent/10 text-accent px-3 py-1 rounded-full text-sm font-medium border border-accent/20">
                         {professor.subject}
                       </span>
-                      <div className="flex items-center gap-1 bg-white/20 px-3 py-1 rounded-full">
-                        <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
+                      <div className="flex items-center gap-1 bg-primary/10 text-primary px-3 py-1 rounded-full border border-primary/20">
+                        <Star className="w-4 h-4 fill-primary text-primary" />
                         <span className="text-sm font-medium">{professor.rating}</span>
                       </div>
                     </div>
 
-                    <p className="text-white/90 text-sm mb-6 leading-relaxed">
+                    <p className="text-muted-foreground text-sm mb-6 leading-relaxed">
                       {professor.description}
                     </p>
 
@@ -252,7 +204,7 @@ const TalkToTwin = () => {
                       {professor.expertise.slice(0, 3).map((skill) => (
                         <span
                           key={skill}
-                          className="text-xs bg-white/20 text-white px-3 py-1 rounded-full"
+                          className="text-xs bg-muted text-muted-foreground px-3 py-1 rounded-full border"
                         >
                           {skill}
                         </span>
@@ -261,7 +213,7 @@ const TalkToTwin = () => {
                   </div>
 
                   {/* Start Conversation Button */}
-                  <button className="w-full bg-gradient-to-r from-green-400 to-blue-500 hover:from-green-500 hover:to-blue-600 text-white rounded-full px-8 py-3 font-medium shadow-lg transition-all duration-200 hover:scale-105 flex items-center justify-center gap-2">
+                  <button className="w-full artemis-btn-primary flex items-center justify-center gap-2">
                     <MessageCircle className="w-4 h-4" />
                     Start Conversation
                   </button>
@@ -270,17 +222,20 @@ const TalkToTwin = () => {
             ))}
           </div>
 
-          {/* Load More */}
+          {/* CTA Section */}
           <div className="text-center mt-16">
-            <button className="bg-orange-500 hover:bg-orange-600 text-white rounded-full px-8 py-3 text-lg font-medium shadow-lg transition-all duration-200 hover:scale-105">
+            <Button 
+              className="artemis-btn-primary text-lg px-10 py-4"
+              onClick={() => navigate('/auth')}
+            >
               Try Twin Me for Free!
-            </button>
+            </Button>
             
-            {/* Bottom decorative grid like original design */}
-            <div className="mt-16 grid grid-cols-3 gap-8 max-w-2xl mx-auto opacity-20">
-              <div className="aspect-square bg-gradient-to-br from-blue-400 to-cyan-300 rounded-2xl shadow-lg"></div>
-              <div className="aspect-square bg-gradient-to-br from-orange-400 to-pink-400 rounded-2xl shadow-lg"></div>
-              <div className="aspect-square bg-gradient-to-br from-green-400 to-emerald-300 rounded-2xl shadow-lg"></div>
+            {/* Decorative Elements - Artemis Style */}
+            <div className="mt-16 grid grid-cols-3 gap-6 max-w-md mx-auto">
+              <div className="aspect-square bg-gradient-to-br from-primary/20 to-accent/20 rounded-2xl shadow-lg hover:scale-105 transition-transform duration-300"></div>
+              <div className="aspect-square bg-gradient-to-br from-accent/20 to-primary/20 rounded-2xl shadow-lg hover:scale-105 transition-transform duration-300"></div>
+              <div className="aspect-square bg-gradient-to-br from-primary/20 to-accent/20 rounded-2xl shadow-lg hover:scale-105 transition-transform duration-300"></div>
             </div>
           </div>
         </div>
