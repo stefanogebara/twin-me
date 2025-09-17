@@ -2,67 +2,65 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Apple-inspired Design System - Twin Me
+/* Artemis Design System - Twin Me
+Exact color palette from artemis1.framer.website
 All colors MUST be HSL. Semantic tokens for consistent theming.
 */
 
 @layer base {
   :root {
-    /* Bold vibrant palette - OLIV IA inspired */
-    --background: 255 100% 98%;
-    --foreground: 0 0% 100%;
+    /* Artemis Color Palette */
+    --background: 34 50% 97%; /* Cream #FBF7F0 */
+    --foreground: 241 56% 19%; /* Deep Blue #14134B */
     
-    /* Card system - Soft and rounded */
-    --card: 0 0% 100%;
-    --card-foreground: 258 15% 15%;
+    /* Card system - White on cream */
+    --card: 0 0% 100%; /* Pure White */
+    --card-foreground: 241 56% 19%; /* Deep Blue */
     
     /* Interactive surfaces */
     --popover: 0 0% 100%;
-    --popover-foreground: 258 15% 15%;
+    --popover-foreground: 241 56% 19%;
     
-    /* Primary: Bold vibrant purple */
-    --primary: 259 100% 65%;
+    /* Primary: Artemis Orange */
+    --primary: 25 100% 50%; /* Orange #FF6B00 */
     --primary-foreground: 0 0% 100%;
-    --primary-glow: 259 100% 75%;
+    --primary-glow: 25 100% 60%;
     
-    /* Secondary: Deep purple */
-    --secondary: 259 60% 20%;
+    /* Secondary: Deep Blue */
+    --secondary: 241 56% 19%; /* Deep Blue #14134B */
     --secondary-foreground: 0 0% 100%;
     
-    /* Muted tones - Light purples */
-    --muted: 259 30% 95%;
-    --muted-foreground: 259 20% 60%;
+    /* Muted tones */
+    --muted: 34 30% 95%;
+    --muted-foreground: 220 13% 46%; /* Gray #6B7280 */
     
-    /* Accent: Electric blue */
-    --accent: 200 100% 60%;
+    /* Accent: Light Blue */
+    --accent: 213 71% 58%; /* Blue #4A90E2 */
     --accent-foreground: 0 0% 100%;
     
-    /* Cartoonish accent variants for variety */
-    --accent-pink: 330 80% 75%;
-    --accent-blue: 210 95% 70%;
-    --accent-green: 120 55% 65%;
-    --accent-orange: 25 90% 67%;
-    --accent-purple: 280 80% 75%;
+    /* Artemis color variants */
+    --accent-blue: 213 71% 58%; /* #4A90E2 */
+    --accent-cream: 34 50% 97%; /* #FBF7F0 */
+    --accent-white: 0 0% 100%; /* #FFFFFF */
+    --accent-navy: 241 56% 19%; /* #14134B */
+    --accent-gray: 220 13% 46%; /* #6B7280 */
     
     /* Destructive states */
     --destructive: 0 80% 62%;
     --destructive-foreground: 0 0% 98%;
     
-    /* Borders and inputs - Purple theme */
-    --border: 259 30% 85%;
-    --input: 259 20% 96%;
-    --ring: 259 100% 65%;
+    /* Borders and inputs */
+    --border: 34 20% 85%;
+    --input: 34 30% 95%;
+    --ring: 25 100% 50%;
     
-    /* More rounded for cartoonish feel */
-    --radius: 18px;
+    /* Artemis rounded corners */
+    --radius: 24px;
     
-    /* Custom Twin Me tokens - Bold vibrant gradient */
+    /* Custom gradients - Artemis style */
     --hero-gradient: linear-gradient(135deg, 
-      hsl(259, 100%, 55%) 0%, 
-      hsl(250, 100%, 60%) 25%,
-      hsl(240, 100%, 65%) 50%, 
-      hsl(259, 90%, 60%) 75%,
-      hsl(270, 100%, 55%) 100%);
+      hsl(34, 50%, 97%) 0%, 
+      hsl(34, 40%, 95%) 100%);
     
     --glass-bg: 258 90% 98% / 0.15;
     --glass-border: 258 60% 85% / 0.3;
@@ -180,8 +178,8 @@ All colors MUST be HSL. Semantic tokens for consistent theming.
   }
 
   body {
-    @apply bg-white text-slate-900 antialiased;
-    font-family: 'Inter', -apple-system, system-ui, 'Segoe UI', 'Roboto', sans-serif;
+    @apply bg-background text-foreground antialiased;
+    font-family: 'Inter', 'Plus Jakarta Sans', -apple-system, system-ui, 'Segoe UI', 'Roboto', sans-serif;
     font-weight: 400;
   }
   
@@ -193,12 +191,58 @@ All colors MUST be HSL. Semantic tokens for consistent theming.
 /* Cartoonish Educational Design Utilities */
 @layer utilities {
   .hero-text {
-    font-size: var(--text-hero);
-    font-weight: 900;
+    font-size: clamp(3rem, 8vw, 6rem);
+    font-weight: 800;
     letter-spacing: -0.03em;
     line-height: 0.9;
     color: hsl(var(--foreground));
-    text-shadow: 0 0 40px rgba(255, 255, 255, 0.3);
+  }
+  
+  .artemis-shadow {
+    box-shadow: 0 10px 40px rgba(20, 19, 75, 0.08);
+  }
+  
+  .artemis-card {
+    background: hsl(var(--card));
+    border-radius: 24px;
+    padding: 2.5rem;
+    box-shadow: 0 10px 40px rgba(20, 19, 75, 0.08);
+    transition: all 0.3s ease;
+  }
+  
+  .artemis-card:hover {
+    transform: scale(1.02) rotate(1deg);
+    box-shadow: 0 20px 60px rgba(20, 19, 75, 0.12);
+  }
+  
+  .artemis-btn-primary {
+    background: hsl(var(--primary));
+    color: hsl(var(--primary-foreground));
+    border: none;
+    border-radius: 100px;
+    padding: 1rem 2rem;
+    font-weight: 600;
+    transition: all 0.3s ease;
+  }
+  
+  .artemis-btn-primary:hover {
+    transform: scale(1.05);
+    box-shadow: 0 10px 30px rgba(255, 107, 0, 0.3);
+  }
+  
+  .artemis-btn-secondary {
+    background: hsl(var(--card));
+    color: hsl(var(--accent));
+    border: 2px solid hsl(var(--accent));
+    border-radius: 100px;
+    padding: 1rem 2rem;
+    font-weight: 600;
+    transition: all 0.3s ease;
+  }
+  
+  .artemis-btn-secondary:hover {
+    transform: scale(1.05);
+    background: hsl(var(--accent) / 0.1);
   }
   
   .section-spacing {
