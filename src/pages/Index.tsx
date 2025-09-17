@@ -1,6 +1,6 @@
 import { ArtemisNavigation } from '@/components/ArtemisNavigation';
 import { ArtemisHeroSection } from '@/components/ArtemisHeroSection';
-import { ArtemisFeaturesSection } from '@/components/ArtemisFeaturesSection';
+import { ArtemisWorksSection } from '@/components/ArtemisWorksSection';
 import { ArtemisHowItWorksSection } from '@/components/ArtemisHowItWorksSection';
 import { ArtemisTestimonialsSection } from '@/components/ArtemisTestimonialsSection';
 import { ArtemisCTASection } from '@/components/ArtemisCTASection';
@@ -11,7 +11,7 @@ const Index = () => {
     <div className="min-h-screen bg-background">
       <ArtemisNavigation />
       <ArtemisHeroSection />
-      <ArtemisFeaturesSection />
+      <ArtemisWorksSection />
       <ArtemisHowItWorksSection />
       <ArtemisTestimonialsSection />
       <ArtemisCTASection />
