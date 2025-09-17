@@ -1,12 +1,18 @@
 import { Button } from '@/components/ui/button';
 import { useNavigate } from 'react-router-dom';
 import { Sparkles, ArrowRight } from 'lucide-react';
+import { Component as AnimatedBackground } from '@/components/ui/open-ai-codex-animated-background';
 
 export const ModernHeroSection = () => {
   const navigate = useNavigate();
 
   return (
     <section className="min-h-screen bg-slate-50 relative pt-32 pb-16 px-6 overflow-hidden">
+      {/* Animated Background */}
+      <div className="absolute inset-0 w-full h-full opacity-10 -z-10">
+        <AnimatedBackground />
+      </div>
+      
       <div className="max-w-6xl mx-auto relative">
         {/* Floating Cards */}
         <div className="absolute inset-0 pointer-events-none">

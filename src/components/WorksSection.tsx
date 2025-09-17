@@ -4,7 +4,7 @@ export const WorksSection = () => {
       <div className="max-w-6xl mx-auto">
         <div className="text-center mb-16">
           <div className="w-20 h-20 mx-auto mb-8 bg-gradient-to-br from-orange-500 to-red-500 rounded-2xl flex items-center justify-center shadow-lg">
-            <div className="text-3xl">📚</div>
+            <div className="w-8 h-8 bg-white rounded-full"></div>
           </div>
           
           <h2 className="text-5xl md:text-6xl font-serif text-slate-900 mb-8 italic">

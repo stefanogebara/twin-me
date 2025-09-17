@@ -1,6 +1,5 @@
 import { SignedIn, SignedOut, SignInButton, SignUpButton, UserButton } from '@clerk/clerk-react';
 import { Navigate } from 'react-router-dom';
-import { Component as AnimatedBackground } from '@/components/ui/open-ai-codex-animated-background';
 
 const Auth = () => {
   return (
@@ -9,19 +8,14 @@ const Auth = () => {
         <Navigate to="/" replace />
       </SignedIn>
       <SignedOut>
-        <div className="min-h-screen bg-slate-900 flex items-center justify-center relative overflow-hidden">
-          {/* Animated Background */}
-          <div className="absolute inset-0 w-full h-full opacity-20 -z-10">
-            <AnimatedBackground />
-          </div>
-          
-          <div className="max-w-md w-full mx-4 relative z-10">
+        <div className="min-h-screen bg-background flex items-center justify-center">
+          <div className="max-w-md w-full mx-4">
             {/* Hero Section */}
             <div className="text-center mb-8">
-              <h1 className="text-6xl md:text-7xl font-serif text-white mb-4 leading-tight italic">
+              <h1 className="hero-text text-foreground mb-4">
                 Welcome to Twin Me
               </h1>
-              <p className="text-slate-300 text-lg font-medium">
+              <p className="text-muted-foreground text-lg">
                 Your AI-powered educational platform
               </p>
             </div>
@@ -43,14 +37,14 @@ const Auth = () => {
                 fallbackRedirectUrl="/"
                 forceRedirectUrl="/"
               >
-                <button className="w-full border border-white/20 bg-white/10 text-white hover:bg-white/20 h-12 px-8 rounded-lg font-medium transition-colors">
+                <button className="w-full border border-border bg-background hover:bg-accent hover:text-accent-foreground h-12 px-8 rounded-lg font-medium transition-colors">
                   Sign Up
                 </button>
               </SignUpButton>
             </div>
 
             {/* Footer */}
-            <div className="text-center mt-8 text-sm text-slate-300">
+            <div className="text-center mt-8 text-sm text-muted-foreground">
               <p>Join thousands of students learning with AI</p>
             </div>
           </div>
