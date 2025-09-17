@@ -7,101 +7,73 @@ export const ArtemisHeroSection = () => {
 
   return (
     <section className="min-h-screen bg-background relative pt-24 pb-16 px-6 overflow-hidden">
-      {/* Animated Background */}
-      <div className="absolute inset-0 w-full h-full opacity-5 -z-10">
-        <AnimatedBackground />
-      </div>
-      
-      {/* Organic Shapes */}
-      <div className="absolute top-20 right-10 w-80 h-80 rounded-full bg-gradient-to-br from-primary/20 to-accent/20 blur-3xl"></div>
-      <div className="absolute bottom-20 left-10 w-60 h-60 rounded-full bg-gradient-to-tr from-accent/20 to-primary/20 blur-3xl"></div>
-      
       <div className="max-w-[1440px] mx-auto relative">
-        {/* Floating Interface Cards */}
+        {/* Floating Portfolio Cards - Exact Artemis Style */}
         <div className="absolute inset-0 pointer-events-none">
-          {/* AI Chat Card */}
-          <div className="absolute top-20 right-16 w-80 h-48 bg-card rounded-3xl shadow-lg transform rotate-3 border artemis-shadow">
-            <div className="p-6 h-full bg-gradient-to-br from-accent/5 to-primary/5 rounded-3xl">
-              <div className="flex items-center mb-4">
-                <div className="w-10 h-10 bg-accent rounded-full flex items-center justify-center">
-                  <div className="w-5 h-5 bg-card rounded-full"></div>
-                </div>
-                <div className="ml-3">
-                  <div className="text-sm font-semibold text-foreground">AI Professor</div>
-                  <div className="text-xs text-muted-foreground">Physics Expert</div>
-                </div>
-              </div>
-              <div className="space-y-2">
-                <div className="h-3 bg-muted rounded-full w-4/5"></div>
-                <div className="h-3 bg-muted rounded-full w-3/5"></div>
-                <div className="h-3 bg-primary/20 rounded-full w-2/3"></div>
+          {/* Top Left Card */}
+          <div className="absolute top-20 left-16 w-48 h-36 bg-card rounded-2xl shadow-lg transform -rotate-12 border overflow-hidden">
+            <div className="w-full h-full bg-gradient-to-br from-green-400 to-emerald-500 flex items-center justify-center">
+              <div className="text-white text-center">
+                <div className="text-2xl font-bold mb-1">AI</div>
+                <div className="text-sm">Physics Prof</div>
               </div>
             </div>
           </div>
 
-          {/* Learning Progress Card */}
-          <div className="absolute top-40 left-16 w-72 h-40 bg-card rounded-3xl shadow-lg transform -rotate-6 border artemis-shadow">
-            <div className="p-6 h-full bg-gradient-to-br from-primary/5 to-accent/5 rounded-3xl">
-              <div className="text-sm font-semibold text-foreground mb-3">Learning Progress</div>
-              <div className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs text-muted-foreground">Quantum Physics</span>
-                  <span className="text-xs font-medium text-accent">85%</span>
-                </div>
-                <div className="w-full bg-muted rounded-full h-2">
-                  <div className="bg-gradient-to-r from-accent to-primary h-2 rounded-full" style={{width: '85%'}}></div>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-xs text-muted-foreground">Calculus</span>
-                  <span className="text-xs font-medium text-primary">72%</span>
-                </div>
-                <div className="w-full bg-muted rounded-full h-2">
-                  <div className="bg-gradient-to-r from-primary to-accent h-2 rounded-full" style={{width: '72%'}}></div>
-                </div>
+          {/* Top Right Card */}
+          <div className="absolute top-12 right-16 w-56 h-40 bg-card rounded-2xl shadow-lg transform rotate-6 border overflow-hidden">
+            <div className="w-full h-full bg-gradient-to-br from-blue-400 to-purple-500 flex items-center justify-center">
+              <div className="text-white text-center">
+                <div className="text-lg font-semibold mb-2">Learning Platform</div>
+                <div className="text-xs opacity-90">24/7 Access</div>
               </div>
             </div>
           </div>
 
-          {/* Voice Interaction Card */}
-          <div className="absolute bottom-32 right-20 w-64 h-32 bg-card rounded-3xl shadow-lg transform rotate-2 border artemis-shadow">
-            <div className="p-4 h-full bg-gradient-to-br from-accent/5 to-primary/5 rounded-3xl flex items-center justify-center">
-              <div className="text-center">
-                <div className="w-12 h-12 bg-gradient-to-br from-primary to-accent rounded-full mx-auto mb-2 flex items-center justify-center">
-                  <div className="w-6 h-6 bg-card rounded-full animate-pulse"></div>
-                </div>
-                <div className="text-sm font-medium text-foreground">Voice Chat Active</div>
-                <div className="text-xs text-muted-foreground">Listening...</div>
+          {/* Bottom Left Card */}
+          <div className="absolute bottom-32 left-24 w-40 h-32 bg-card rounded-2xl shadow-lg transform rotate-3 border overflow-hidden">
+            <div className="w-full h-full bg-gradient-to-br from-orange-400 to-red-400 flex items-center justify-center">
+              <div className="text-white text-center">
+                <div className="text-lg font-bold">Voice</div>
+                <div className="text-xs">Chat Ready</div>
+              </div>
+            </div>
+          </div>
+
+          {/* Bottom Right Card */}
+          <div className="absolute bottom-24 right-24 w-44 h-36 bg-card rounded-2xl shadow-lg transform -rotate-6 border overflow-hidden">
+            <div className="w-full h-full bg-gradient-to-br from-pink-400 to-purple-400 flex items-center justify-center">
+              <div className="text-white text-center">
+                <div className="text-base font-semibold mb-1">Personalized</div>
+                <div className="text-xs opacity-90">Learning Experience</div>
               </div>
             </div>
           </div>
         </div>
 
-        {/* Main Content */}
+        {/* Main Content - Exact Artemis Layout */}
         <div className="text-center relative z-10 pt-20">
-          <h1 className="hero-text text-foreground mb-6 leading-tight max-w-4xl mx-auto">
+          {/* Small intro text */}
+          <p className="text-foreground mb-6 font-medium">This is Twin Me</p>
+          
+          {/* Large serif headline - exact Artemis style */}
+          <h1 className="text-6xl md:text-7xl lg:text-8xl font-serif text-foreground mb-8 leading-tight italic">
             AI Professor &<br />
-            <span className="italic">Learning Twin</span>
+            Learning Twin
           </h1>
 
-          <p className="text-lg text-muted-foreground mb-12 max-w-2xl mx-auto leading-relaxed font-medium">
-            Twin Me builds digital replicas of real teachers – capturing their lectures, writings, 
-            and distinctive teaching style – letting students chat or talk directly with their professor's AI twin, anytime.
+          {/* Subtitle */}
+          <p className="text-foreground mb-12 text-lg font-medium">
+            students can count on!
           </p>
 
-          <div className="flex flex-col sm:flex-row gap-6 justify-center items-center">
-            <Button 
-              className="artemis-btn-primary text-lg px-8 py-4"
-              onClick={() => navigate('/talk-to-twin')}
-            >
-              Try AI Professor
-            </Button>
-            <Button 
-              className="artemis-btn-secondary text-lg px-8 py-4"
-              onClick={() => navigate('/auth')}
-            >
-              Get Started
-            </Button>
-          </div>
+          {/* Orange CTA Button - exact Artemis style */}
+          <Button 
+            className="bg-primary hover:bg-primary/90 text-white rounded-full px-8 py-3 text-lg font-semibold shadow-lg transition-all duration-300 hover:scale-105"
+            onClick={() => navigate('/talk-to-twin')}
+          >
+            Check out my works
+          </Button>
         </div>
       </div>
     </section>
