@@ -1,19 +1,21 @@
-import { Navigation } from '@/components/Navigation';
-import { ModernHeroSection } from '@/components/ModernHeroSection';
-import { WhatIBringSection } from '@/components/WhatIBringSection';
-import { WorksSection } from '@/components/WorksSection';
-import { BehindTheCanvasSection } from '@/components/BehindTheCanvasSection';
-import { Footer } from '@/components/Footer';
+import { ArtemisNavigation } from '@/components/ArtemisNavigation';
+import { ArtemisHeroSection } from '@/components/ArtemisHeroSection';
+import { ArtemisFeaturesSection } from '@/components/ArtemisFeaturesSection';
+import { ArtemisHowItWorksSection } from '@/components/ArtemisHowItWorksSection';
+import { ArtemisTestimonialsSection } from '@/components/ArtemisTestimonialsSection';
+import { ArtemisCTASection } from '@/components/ArtemisCTASection';
+import { ArtemisFooter } from '@/components/ArtemisFooter';
 
 const Index = () => {
   return (
-    <div className="min-h-screen bg-white">
-      <Navigation />
-      <ModernHeroSection />
-      <WhatIBringSection />
-      <WorksSection />
-      <BehindTheCanvasSection />
-      <Footer />
+    <div className="min-h-screen bg-background">
+      <ArtemisNavigation />
+      <ArtemisHeroSection />
+      <ArtemisFeaturesSection />
+      <ArtemisHowItWorksSection />
+      <ArtemisTestimonialsSection />
+      <ArtemisCTASection />
+      <ArtemisFooter />
     </div>
   );
 };
