@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ArrowLeft, MessageCircle, Star } from 'lucide-react';
+import { Component as AnimatedBackground } from '@/components/ui/open-ai-codex-animated-background';
 
 const professors = [
   {
@@ -164,16 +165,21 @@ const TalkToTwin = () => {
       <div className="pt-16 pb-16 px-6 relative z-10">
         <div className="max-w-6xl mx-auto">
           {/* Header with AI Icon */}
-          <div className="text-center mb-16">
-            <div className="w-24 h-24 mx-auto mb-8 bg-gradient-to-br from-blue-500 to-purple-500 rounded-2xl flex items-center justify-center shadow-xl">
+          <div className="text-center mb-16 relative">
+            {/* Animated Background */}
+            <div className="absolute inset-0 w-full h-full opacity-20 -z-10">
+              <AnimatedBackground />
+            </div>
+            
+            <div className="w-24 h-24 mx-auto mb-8 bg-gradient-to-br from-blue-500 to-purple-500 rounded-2xl flex items-center justify-center shadow-xl relative z-10">
               <div className="text-4xl">🤖</div>
             </div>
             
-            <h1 className="text-6xl md:text-7xl font-serif text-white mb-8 leading-tight italic">
+            <h1 className="text-6xl md:text-7xl font-serif text-white mb-8 leading-tight italic relative z-10">
               Talk to Your Professor's Twin
             </h1>
 
-            <p className="text-slate-300 mb-12 text-lg font-medium max-w-2xl mx-auto leading-relaxed">
+            <p className="text-slate-300 mb-12 text-lg font-medium max-w-2xl mx-auto leading-relaxed relative z-10">
               Finally, meet the AI technology passionate about helping 
               students succeed – choose your professor twin and start learning
             </p>
