@@ -1,6 +1,9 @@
 import { useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 
 const Index = () => {
+  const navigate = useNavigate();
+
   useEffect(() => {
     // Navigation scroll effect
     const handleScroll = () => {
@@ -28,7 +31,7 @@ const Index = () => {
             <li><a href="#about" className="text-[#1A1A4B] no-underline font-normal italic text-base transition-colors duration-300 hover:text-[#FF5722]">About</a></li>
             <li><a href="#contact" className="text-[#1A1A4B] no-underline font-normal italic text-base transition-colors duration-300 hover:text-[#FF5722]">Contact</a></li>
           </ul>
-          <button className="px-8 py-3 rounded-full bg-[#FF5722] text-white font-normal italic text-base cursor-pointer transition-all duration-300 border-none hover:scale-105 hover:shadow-[0_8px_24px_rgba(255,87,34,0.3)]">Get Started</button>
+          <button onClick={() => navigate('/get-started')} className="px-8 py-3 rounded-full bg-[#FF5722] text-white font-normal italic text-base cursor-pointer transition-all duration-300 border-none hover:scale-105 hover:shadow-[0_8px_24px_rgba(255,87,34,0.3)]">Get Started</button>
         </div>
       </nav>
 
@@ -56,8 +59,8 @@ const Index = () => {
           </h1>
           <p className="text-[22px] italic text-[#6B7280] max-w-[700px] mx-auto mb-12 leading-[1.6]">Create AI replicas of educators that provide personalized, always-available learning experiences through natural conversations</p>
           <div className="flex gap-6 justify-center">
-            <button className="px-8 py-3 rounded-full bg-[#FF5722] text-white font-normal italic text-base cursor-pointer transition-all duration-300 border-none hover:scale-105 hover:shadow-[0_8px_24px_rgba(255,87,34,0.3)]">Create Your Twin</button>
-            <button className="px-8 py-3 rounded-full bg-transparent text-[#1A1A4B] border-2 border-[#1A1A4B] font-normal italic text-base cursor-pointer transition-all duration-300 hover:bg-[#1A1A4B] hover:text-white hover:scale-105">Watch Demo</button>
+            <button onClick={() => navigate('/get-started')} className="px-8 py-3 rounded-full bg-[#FF5722] text-white font-normal italic text-base cursor-pointer transition-all duration-300 border-none hover:scale-105 hover:shadow-[0_8px_24px_rgba(255,87,34,0.3)]">Create Your Twin</button>
+            <button onClick={() => navigate('/watch-demo')} className="px-8 py-3 rounded-full bg-transparent text-[#1A1A4B] border-2 border-[#1A1A4B] font-normal italic text-base cursor-pointer transition-all duration-300 hover:bg-[#1A1A4B] hover:text-white hover:scale-105">Watch Demo</button>
           </div>
         </div>
       </section>
@@ -143,7 +146,7 @@ const Index = () => {
           <h2 className="text-[64px] text-white mb-6 italic font-normal">Behind the Technology</h2>
           <p className="text-[rgba(255,255,255,0.8)] text-[20px] leading-[1.6] mb-6 italic">Finally, meet the platform transforming education</p>
           <p className="text-[rgba(255,255,255,0.8)] text-[20px] leading-[1.6] mb-12 italic">We help educators create digital twins that actually work. Whether you need to scale your teaching or preserve your knowledge, we focus on real impact—no complicated tech, just education that works.</p>
-          <button className="px-12 py-[18px] rounded-full bg-[#FF5722] text-white font-normal italic text-[18px] cursor-pointer transition-all duration-300 border-none hover:scale-105 hover:shadow-[0_8px_24px_rgba(255,87,34,0.3)]">Start Creating for Free</button>
+          <button onClick={() => navigate('/get-started')} className="px-12 py-[18px] rounded-full bg-[#FF5722] text-white font-normal italic text-[18px] cursor-pointer transition-all duration-300 border-none hover:scale-105 hover:shadow-[0_8px_24px_rgba(255,87,34,0.3)]">Start Creating for Free</button>
         </div>
       </section>
 
@@ -151,7 +154,7 @@ const Index = () => {
       <section id="contact" className="py-[120px] px-[60px] text-center bg-[#FBF7F0]">
         <h2 className="text-[64px] text-[#1A1A4B] mb-6 italic font-normal">Ready to transform education?</h2>
         <p className="text-[22px] text-[#6B7280] mb-12 italic">Join thousands of educators creating their digital twins</p>
-        <button className="px-12 py-[18px] rounded-full bg-[#FF5722] text-white font-normal italic text-[18px] cursor-pointer transition-all duration-300 border-none hover:scale-105 hover:shadow-[0_8px_24px_rgba(255,87,34,0.3)]">Get Started Today</button>
+        <button onClick={() => navigate('/get-started')} className="px-12 py-[18px] rounded-full bg-[#FF5722] text-white font-normal italic text-[18px] cursor-pointer transition-all duration-300 border-none hover:scale-105 hover:shadow-[0_8px_24px_rgba(255,87,34,0.3)]">Get Started Today</button>
       </section>
 
       <style dangerouslySetInnerHTML={{
