@@ -9,6 +9,8 @@ import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
 import TalkToTwin from "./pages/TalkToTwin";
 import Chat from "./pages/Chat";
+import GetStarted from "./pages/GetStarted";
+import VoiceSettings from "./pages/VoiceSettings";
 
 const queryClient = new QueryClient();
 
@@ -44,6 +46,26 @@ const App = () => (
             <>
               <SignedIn>
                 <Chat />
+              </SignedIn>
+              <SignedOut>
+                <Auth />
+              </SignedOut>
+            </>
+          } />
+          <Route path="/get-started" element={
+            <>
+              <SignedIn>
+                <GetStarted />
+              </SignedIn>
+              <SignedOut>
+                <Auth />
+              </SignedOut>
+            </>
+          } />
+          <Route path="/voice-settings" element={
+            <>
+              <SignedIn>
+                <VoiceSettings />
               </SignedIn>
               <SignedOut>
                 <Auth />
