@@ -42,10 +42,10 @@ export const ArtemisNavigation = () => {
           {/* Right Menu */}
           <div className="flex items-center">
             <a
-              href="#playground"
-              className="text-foreground hover:text-primary transition-colors duration-200 font-medium"
+              href="/get-started"
+              className="text-foreground hover:text-primary transition-colors duration-200 font-medium font-playfair italic"
             >
-              Playground
+              Get Started
             </a>
           </div>
         </div>
