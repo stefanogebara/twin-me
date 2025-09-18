@@ -441,3 +441,12 @@ All colors MUST be HSL. Semantic tokens for consistent theming.
     transform: translateY(-10px);
   }
 }
+
+/* Hide default details marker */
+details summary::-webkit-details-marker {
+  display: none;
+}
+
+details summary {
+  list-style: none;
+}

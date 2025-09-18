@@ -24,10 +24,10 @@ export const ArtemisNavigation = () => {
           {/* Left Menu */}
           <div className="flex items-center">
             <a
-              href="#works"
-              className="text-foreground hover:text-primary transition-colors duration-200 font-medium"
+              href="/watch-demo"
+              className="text-foreground hover:text-primary transition-colors duration-200 font-medium font-playfair italic"
             >
-              Works
+              Demo
             </a>
           </div>
 
@@ -42,10 +42,10 @@ export const ArtemisNavigation = () => {
           {/* Right Menu */}
           <div className="flex items-center">
             <a
-              href="/get-started"
+              href="/contact"
               className="text-foreground hover:text-primary transition-colors duration-200 font-medium font-playfair italic"
             >
-              Get Started
+              Contact
             </a>
           </div>
         </div>
