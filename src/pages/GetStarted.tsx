@@ -1,11 +1,20 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { SignUp, useAuth } from '@clerk/clerk-react';
 
 const GetStarted = () => {
   const navigate = useNavigate();
+  const { isSignedIn } = useAuth();
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedPath, setSelectedPath] = useState('');
   const [selectedType, setSelectedType] = useState('');
+
+  // Check if user completed signup and auto-advance to next step
+  useEffect(() => {
+    if (isSignedIn && currentPage === 3) {
+      setCurrentPage(4);
+    }
+  }, [isSignedIn, currentPage]);
 
   const updateProgress = () => {
     return (currentPage / 4) * 100;
@@ -218,76 +227,25 @@ const GetStarted = () => {
           <div className="max-w-[500px] mx-auto bg-white rounded-[32px] p-12 shadow-[0_20px_60px_rgba(0,0,0,0.1)]">
             <h2 className="font-playfair text-center mb-8 text-5xl font-normal italic">Create Your Account</h2>
             
-            <form>
-              <div className="mb-6">
-                <label className="block mb-2 text-sm font-medium text-[#1A1A4B]">Full Name</label>
-                <input 
-                  type="text" 
-                  placeholder="Dr. Jane Smith"
-                  className="w-full py-[14px] px-5 border-2 border-[#E5E7EB] rounded-2xl font-inter text-sm transition-all duration-300 focus:outline-none focus:border-[#FF5722] focus:bg-[#FFFBF8]"
-                />
-              </div>
-              
-              <div className="mb-6">
-                <label className="block mb-2 text-sm font-medium text-[#1A1A4B]">Email Address</label>
-                <input 
-                  type="email" 
-                  placeholder="jane.smith@university.edu"
-                  className="w-full py-[14px] px-5 border-2 border-[#E5E7EB] rounded-2xl font-inter text-sm transition-all duration-300 focus:outline-none focus:border-[#FF5722] focus:bg-[#FFFBF8]"
-                />
-              </div>
-              
-              <div className="mb-6">
-                <label className="block mb-2 text-sm font-medium text-[#1A1A4B]">Password</label>
-                <input 
-                  type="password" 
-                  placeholder="Create a strong password"
-                  className="w-full py-[14px] px-5 border-2 border-[#E5E7EB] rounded-2xl font-inter text-sm transition-all duration-300 focus:outline-none focus:border-[#FF5722] focus:bg-[#FFFBF8]"
-                />
-                <div className="h-1 bg-[#E5E7EB] rounded-sm mt-2 overflow-hidden">
-                  <div className="h-full bg-[#4CAF50] transition-all duration-300 w-0"></div>
-                </div>
-              </div>
-              
-              <div className="mb-6">
-                <label className="block mb-2 text-sm font-medium text-[#1A1A4B]">Institution (Optional)</label>
-                <input 
-                  type="text" 
-                  placeholder="Stanford University"
-                  className="w-full py-[14px] px-5 border-2 border-[#E5E7EB] rounded-2xl font-inter text-sm transition-all duration-300 focus:outline-none focus:border-[#FF5722] focus:bg-[#FFFBF8]"
-                />
-              </div>
-              
-              <div className="text-center my-8 relative">
-                <div className="absolute top-1/2 left-0 right-0 h-px bg-[#E5E7EB]"></div>
-                <span className="bg-white px-4 relative text-[#6B7280] text-sm">or continue with</span>
-              </div>
-              
-              <div className="grid grid-cols-2 gap-4 mb-8">
-                <button type="button" className="py-3 px-4 border-2 border-[#E5E7EB] rounded-2xl bg-white cursor-pointer transition-all duration-300 flex items-center justify-center gap-2 font-inter text-sm font-medium hover:border-[#1A1A4B] hover:transform hover:translate-y-[-2px]">
-                  <span className="text-xl">G</span>
-                  Google
-                </button>
-                <button type="button" className="py-3 px-4 border-2 border-[#E5E7EB] rounded-2xl bg-white cursor-pointer transition-all duration-300 flex items-center justify-center gap-2 font-inter text-sm font-medium hover:border-[#1A1A4B] hover:transform hover:translate-y-[-2px]">
-                  <span className="text-xl">M</span>
-                  Microsoft
-                </button>
-              </div>
-              
-              <button 
-                type="button" 
-                className="w-full py-[14px] px-8 rounded-full bg-[#FF5722] text-white font-medium text-sm cursor-pointer transition-all duration-300 border-none hover:transform hover:translate-y-[-2px] hover:shadow-[0_8px_24px_rgba(255,87,34,0.3)]"
-                onClick={nextPage}
-              >
-                Create Account
-              </button>
-              
-              <p className="text-center mt-6 text-sm">
-                By creating an account, you agree to our{' '}
-                <a href="#" className="text-[#FF5722]">Terms</a> and{' '}
-                <a href="#" className="text-[#FF5722]">Privacy Policy</a>
-              </p>
-            </form>
+            <div className="clerk-signup-wrapper">
+              <SignUp 
+                redirectUrl="/get-started?step=4"
+                appearance={{
+                  elements: {
+                    formButtonPrimary: 'bg-[#FF5722] hover:bg-[#FF5722]/90 text-white',
+                    card: 'shadow-none border-none bg-transparent',
+                    headerTitle: 'hidden',
+                    headerSubtitle: 'hidden',
+                    socialButtons: 'flex flex-col gap-4',
+                    socialButtonsBlockButton: 'border-2 border-[#E5E7EB] rounded-2xl bg-white hover:border-[#1A1A4B] hover:transform hover:translate-y-[-2px] transition-all duration-300',
+                    formFieldInput: 'w-full py-[14px] px-5 border-2 border-[#E5E7EB] rounded-2xl text-sm transition-all duration-300 focus:outline-none focus:border-[#FF5722] focus:bg-[#FFFBF8]',
+                    formFieldLabel: 'block mb-2 text-sm font-medium text-[#1A1A4B]',
+                    dividerLine: 'bg-[#E5E7EB]',
+                    dividerText: 'text-[#6B7280] text-sm'
+                  }
+                }}
+              />
+            </div>
           </div>
         </div>
       )}
