@@ -11,6 +11,7 @@ import TalkToTwin from "./pages/TalkToTwin";
 import Chat from "./pages/Chat";
 import GetStarted from "./pages/GetStarted";
 import VoiceSettings from "./pages/VoiceSettings";
+import TwinBuilder from "./pages/TwinBuilder";
 import WatchDemo from "./pages/WatchDemo";
 import Contact from "./pages/Contact";
 
@@ -68,6 +69,16 @@ const App = () => (
             <>
               <SignedIn>
                 <VoiceSettings />
+              </SignedIn>
+              <SignedOut>
+                <Auth />
+              </SignedOut>
+            </>
+          } />
+          <Route path="/twin-builder" element={
+            <>
+              <SignedIn>
+                <TwinBuilder />
               </SignedIn>
               <SignedOut>
                 <Auth />
