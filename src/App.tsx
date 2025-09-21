@@ -12,6 +12,7 @@ import Chat from "./pages/Chat";
 import GetStarted from "./pages/GetStarted";
 import VoiceSettings from "./pages/VoiceSettings";
 import TwinBuilder from "./pages/TwinBuilder";
+import { TwinActivation } from "./pages/TwinActivation";
 import WatchDemo from "./pages/WatchDemo";
 import Contact from "./pages/Contact";
 
@@ -79,6 +80,16 @@ const App = () => (
             <>
               <SignedIn>
                 <TwinBuilder />
+              </SignedIn>
+              <SignedOut>
+                <Auth />
+              </SignedOut>
+            </>
+          } />
+          <Route path="/twin-activation" element={
+            <>
+              <SignedIn>
+                <TwinActivation />
               </SignedIn>
               <SignedOut>
                 <Auth />
