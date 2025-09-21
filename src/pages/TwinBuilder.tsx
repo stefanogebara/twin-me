@@ -261,7 +261,10 @@ const TwinBuilder = () => {
             <button className="py-[14px] px-8 rounded-full bg-transparent text-[#1A1A4B] border-2 border-[#1A1A4B] font-medium text-sm cursor-pointer transition-all duration-300 hover:bg-[#1A1A4B] hover:text-white">
               Save Draft
             </button>
-            <button className="flex-1 py-[14px] px-8 rounded-full bg-[#FF5722] text-white font-medium text-sm cursor-pointer transition-all duration-300 border-none hover:transform hover:translate-y-[-2px] hover:shadow-[0_8px_24px_rgba(255,87,34,0.3)]">
+            <button 
+              className="flex-1 py-[14px] px-8 rounded-full bg-[#FF5722] text-white font-medium text-sm cursor-pointer transition-all duration-300 border-none hover:transform hover:translate-y-[-2px] hover:shadow-[0_8px_24px_rgba(255,87,34,0.3)]"
+              onClick={() => navigate('/twin-activation')}
+            >
               Activate Twin
             </button>
           </div>
