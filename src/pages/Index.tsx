@@ -148,20 +148,31 @@ const Index = () => {
         <div className="floating-element orange w-14 h-14 bottom-[30%] left-[10%]"></div>
         <div className="floating-element rect w-10 h-14 bottom-[15%] right-[15%]"></div>
 
+        {/* Floating Skills */}
+        <div className="absolute w-full h-full top-0 left-0 pointer-events-none skills-container">
+          <div className="skill-pill" style={{"--orbit-radius": "250px", "--duration": "30s", "animationDelay": "0s"} as React.CSSProperties}>Voice Learning</div>
+          <div className="skill-pill" style={{"--orbit-radius": "200px", "--duration": "25s", "animationDelay": "-5s"} as React.CSSProperties}>AI Teaching</div>
+          <div className="skill-pill" style={{"--orbit-radius": "280px", "--duration": "35s", "animationDelay": "-10s"} as React.CSSProperties}>Digital Twins</div>
+          <div className="skill-pill" style={{"--orbit-radius": "220px", "--duration": "28s", "animationDelay": "-15s"} as React.CSSProperties}>24/7 Support</div>
+          <div className="skill-pill" style={{"--orbit-radius": "260px", "--duration": "32s", "animationDelay": "-20s"} as React.CSSProperties}>Adaptive Learning</div>
+          <div className="skill-pill" style={{"--orbit-radius": "240px", "--duration": "27s", "animationDelay": "-25s"} as React.CSSProperties}>Personalized</div>
+          <div className="skill-pill" style={{"--orbit-radius": "270px", "--duration": "33s", "animationDelay": "-30s"} as React.CSSProperties}>Real-time</div>
+        </div>
+
         <div className="text-center relative z-10">
-          <h1 className="lenny-heading-xl mb-8 animate-text-reveal stagger-1">
-            Unlock a growing library of<br />
-            world-class educational experiences
+          <h1 className="text-fluid-xl leading-[1.1] mb-8 text-[hsl(var(--lenny-black))] font-display text-weight-animate animate-text-reveal stagger-1 gradient-text">
+            Transform Teaching<br />
+            with Digital Twins
           </h1>
-          <p className="lenny-body-lg max-w-[700px] mx-auto mb-12 animate-text-reveal stagger-2">Create AI replicas of educators that provide personalized, always-available learning experiences through natural conversations</p>
-          <div className="flex gap-4 justify-center animate-scale-in stagger-3">
+          <p className="text-[22px] font-body text-[hsl(var(--lenny-gray))] max-w-[700px] mx-auto mb-12 leading-[1.6] animate-text-reveal stagger-2">Create AI replicas of educators that provide personalized, always-available learning experiences through natural conversations</p>
+          <div className="flex gap-6 justify-center animate-scale-in stagger-3">
             {!isLoaded ? (
-              <button disabled className="btn-lenny opacity-50 cursor-not-allowed">Loading...</button>
+              <button disabled className="btn-modern opacity-50 cursor-not-allowed">Loading...</button>
             ) : isSignedIn ? (
-              <button onClick={() => navigate('/get-started')} className="btn-lenny">Get access →</button>
+              <button onClick={() => navigate('/get-started')} className="btn-modern hover-lift hover-glow">Create Your Twin</button>
             ) : (
               <SignInButton mode="modal" fallbackRedirectUrl="/get-started" forceRedirectUrl="/get-started">
-                <button className="btn-lenny">Get access →</button>
+                <button className="btn-modern hover-lift hover-glow">Create Your Twin</button>
               </SignInButton>
             )}
             <button onClick={handleWatchDemoClick} className="btn-lenny-secondary">Watch Demo</button>
