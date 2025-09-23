@@ -1,0 +1,356 @@
+import Anthropic from '@anthropic-ai/sdk';
+import type { DigitalTwin, Message, StudentProfile } from '@/types/database';
+
+const anthropic = new Anthropic({
+  apiKey: import.meta.env.VITE_ANTHROPIC_API_KEY,
+  dangerouslyAllowBrowser: true // Note: In production, this should be handled server-side
+});
+
+interface ChatContext {
+  twin: DigitalTwin;
+  studentProfile?: StudentProfile;
+  conversationHistory: Message[];
+  professorContext?: {
+    full_name: string;
+    university?: string;
+    department?: string;
+  };
+}
+
+export class DigitalTwinClaude {
+  static async generateResponse(
+    userMessage: string,
+    context: ChatContext
+  ): Promise<string> {
+    try {
+      const systemPrompt = this.buildSystemPrompt(context);
+      const conversationMessages = this.formatConversationHistory(context.conversationHistory);
+
+      const response = await anthropic.messages.create({
+        model: 'claude-3-5-sonnet-20241022',
+        max_tokens: 1000,
+        temperature: 0.7,
+        system: systemPrompt,
+        messages: [
+          ...conversationMessages,
+          { role: 'user', content: userMessage }
+        ]
+      });
+
+      const content = response.content[0];
+      if (content.type === 'text') {
+        return content.text;
+      }
+
+      return 'I apologize, but I encountered an issue processing your message. Could you please try again?';
+    } catch (error) {
+      console.error('Claude API Error:', error);
+      throw new Error('Failed to generate response. Please check your Claude API configuration.');
+    }
+  }
+
+  private static buildSystemPrompt(context: ChatContext): string {
+    const { twin, studentProfile, professorContext } = context;
+
+    // Base persona from twin data
+    let systemPrompt = `You are a digital twin of ${professorContext?.full_name || twin.name}, `;
+
+    if (professorContext?.university) {
+      systemPrompt += `a professor at ${professorContext.university}`;
+      if (professorContext.department) {
+        systemPrompt += ` in the ${professorContext.department} department`;
+      }
+    }
+    systemPrompt += `. `;
+
+    // Add subject expertise
+    if (twin.subject_area) {
+      systemPrompt += `You specialize in ${twin.subject_area}. `;
+    }
+
+    // Add description and personality
+    if (twin.description) {
+      systemPrompt += `${twin.description} `;
+    }
+
+    // Add personality traits
+    if (twin.personality_traits && Object.keys(twin.personality_traits).length > 0) {
+      const traits = twin.personality_traits as any;
+      systemPrompt += `Your personality traits include: `;
+
+      if (traits.communication_style) {
+        systemPrompt += `you communicate in a ${traits.communication_style} manner, `;
+      }
+      if (traits.energy_level) {
+        systemPrompt += `your energy level is ${traits.energy_level}, `;
+      }
+      if (traits.sense_of_humor && traits.sense_of_humor !== 'none') {
+        systemPrompt += `you have a ${traits.sense_of_humor} sense of humor, `;
+      }
+      if (traits.supportiveness) {
+        systemPrompt += `you are ${traits.supportiveness}ly supportive. `;
+      }
+    }
+
+    // Add teaching style
+    if (twin.teaching_style && Object.keys(twin.teaching_style).length > 0) {
+      const teachingStyle = twin.teaching_style as any;
+      systemPrompt += `Your teaching approach: `;
+
+      if (teachingStyle.primary_method) {
+        const methodMap: {[key: string]: string} = {
+          'socratic': 'You prefer the Socratic method, asking guiding questions to help students discover answers',
+          'direct_instruction': 'You use direct instruction, clearly explaining concepts step by step',
+          'project_based': 'You favor project-based learning, using real-world applications',
+          'flipped_classroom': 'You use a flipped classroom approach, encouraging exploration and discussion'
+        };
+        systemPrompt += `${methodMap[teachingStyle.primary_method] || teachingStyle.primary_method}. `;
+      }
+
+      if (teachingStyle.encourages_questions) {
+        systemPrompt += `You actively encourage students to ask questions. `;
+      }
+      if (teachingStyle.uses_humor) {
+        systemPrompt += `You incorporate appropriate humor into your teaching. `;
+      }
+      if (teachingStyle.provides_examples) {
+        systemPrompt += `You frequently provide concrete examples to illustrate concepts. `;
+      }
+      if (teachingStyle.checks_understanding) {
+        systemPrompt += `You regularly check if students understand before moving on. `;
+      }
+    }
+
+    // Add common phrases - Vicente Leon specific
+    if (twin.common_phrases && twin.common_phrases.length > 0) {
+      systemPrompt += `You often use phrases like: "${twin.common_phrases.join('", "')}" `;
+    }
+
+    // Add favorite analogies
+    if (twin.favorite_analogies && twin.favorite_analogies.length > 0) {
+      systemPrompt += `When explaining concepts, you like to use analogies such as: ${twin.favorite_analogies.join(', ')}. `;
+    }
+
+    // Vicente Leon specific traits (if this is Vicente)
+    if (twin.name.toLowerCase().includes('vicente') || twin.name.toLowerCase().includes('leon')) {
+      systemPrompt += `
+
+You are specifically modeled after Professor Vicente M. León from Universidad del Pacífico in Lima, Peru. You are known for:
+
+**Your Core Teaching Mantras:**
+- "Connect the dots" - You frequently encourage students to link concepts across disciplines and time periods
+- "Uncertainty is the enemy of markets" - A hallmark saying you use when discussing market dynamics
+- You often emphasize the importance of understanding geopolitics and current events for finance
+
+**Your Communication Style:**
+- You speak with intellectual rigor but remain approachable and warm
+- You use rhetorical questions to engage students ("What happens if our assumptions are wrong?")
+- You incorporate gentle humor and real-world examples
+- You often reference current events and global markets
+- You might say things like "Let me put it this way..." or "The key insight here is..."
+
+**Your Teaching Philosophy:**
+- Finance is deeply connected to geopolitics, history, and human behavior
+- You bridge global best practices with local Latin American context
+- You emphasize ethical decision-making and long-term thinking
+- You value continuous learning and intellectual curiosity
+- You believe in questioning assumptions and maintaining humility
+
+**Your Background:**
+- Former banker with 20+ years experience before academia
+- History degree from Georgetown, MBA from Columbia
+- Worked at ING Barings and HSBC in structured finance and debt capital markets
+- Research focus on institutional finance and philanthropy in Latin America
+- You bring practical banking experience into theoretical discussions`;
+    }
+
+    // Student-specific adaptations
+    if (studentProfile && studentProfile.learning_style) {
+      const learningStyle = studentProfile.learning_style as any;
+      systemPrompt += `\n\nAdapt your responses to this student's learning preferences: `;
+
+      if (learningStyle.visual_preference > 3) {
+        systemPrompt += `They prefer visual explanations with diagrams and examples. `;
+      }
+      if (learningStyle.auditory_preference > 3) {
+        systemPrompt += `They learn well through spoken explanations and discussions. `;
+      }
+      if (learningStyle.reading_preference > 3) {
+        systemPrompt += `They prefer text-based learning and written materials. `;
+      }
+      if (learningStyle.preferred_pace === 'slow') {
+        systemPrompt += `Take your time and break down concepts into smaller steps. `;
+      } else if (learningStyle.preferred_pace === 'fast') {
+        systemPrompt += `You can move through concepts more quickly with this student. `;
+      }
+    }
+
+    systemPrompt += `\n\nImportant guidelines:
+- Stay in character as the professor throughout the conversation
+- Be helpful, educational, and encouraging
+- If asked about topics outside your expertise, acknowledge the limitation but try to provide general guidance
+- Keep responses concise but thorough (aim for 2-3 paragraphs maximum)
+- Use your characteristic phrases and teaching style naturally
+- If the student seems confused, adjust your explanation approach
+- Always maintain an educational focus
+- Connect concepts to real-world applications when possible
+- Encourage critical thinking and questioning`;
+
+    return systemPrompt;
+  }
+
+  private static formatConversationHistory(messages: Message[]): Array<{role: 'user' | 'assistant', content: string}> {
+    // Take the last 10 messages to maintain context while staying within token limits
+    const recentMessages = messages.slice(-10);
+
+    return recentMessages.map(message => ({
+      role: message.is_user_message ? 'user' as const : 'assistant' as const,
+      content: message.content
+    }));
+  }
+
+  // Method to generate follow-up questions based on the conversation
+  static async generateFollowUpQuestions(context: ChatContext): Promise<string[]> {
+    try {
+      const systemPrompt = `Based on the conversation history, suggest 3 relevant follow-up questions that would help the student deepen their understanding of the topic. Return as a JSON array of strings.`;
+
+      const conversationMessages = this.formatConversationHistory(context.conversationHistory);
+
+      const response = await anthropic.messages.create({
+        model: 'claude-3-haiku-20240307',
+        max_tokens: 300,
+        temperature: 0.5,
+        system: systemPrompt,
+        messages: conversationMessages
+      });
+
+      const content = response.content[0];
+      if (content.type === 'text') {
+        try {
+          const questions = JSON.parse(content.text);
+          return Array.isArray(questions) ? questions.slice(0, 3) : [];
+        } catch {
+          return [];
+        }
+      }
+      return [];
+    } catch (error) {
+      console.error('Error generating follow-up questions:', error);
+      return [];
+    }
+  }
+
+  // Method to assess student understanding based on their responses
+  static async assessStudentUnderstanding(
+    studentResponse: string,
+    topic: string
+  ): Promise<{
+    understanding_level: 'low' | 'medium' | 'high';
+    areas_of_confusion?: string[];
+    suggestions?: string[];
+  }> {
+    try {
+      const systemPrompt = `Analyze the student's response about "${topic}" and assess their understanding level. Return a JSON object with:
+      {
+        "understanding_level": "low" | "medium" | "high",
+        "areas_of_confusion": ["list of specific areas where student seems confused"],
+        "suggestions": ["specific suggestions for helping the student improve understanding"]
+      }`;
+
+      const response = await anthropic.messages.create({
+        model: 'claude-3-haiku-20240307',
+        max_tokens: 400,
+        temperature: 0.3,
+        system: systemPrompt,
+        messages: [{ role: 'user', content: studentResponse }]
+      });
+
+      const content = response.content[0];
+      if (content.type === 'text') {
+        try {
+          return JSON.parse(content.text);
+        } catch {
+          return { understanding_level: 'medium' };
+        }
+      }
+      return { understanding_level: 'medium' };
+    } catch (error) {
+      console.error('Error assessing student understanding:', error);
+      return { understanding_level: 'medium' };
+    }
+  }
+
+  // Method specifically for Vicente Leon's teaching style
+  static async generateVicenteResponse(
+    userMessage: string,
+    context: ChatContext
+  ): Promise<string> {
+    // Enhanced system prompt specifically for Vicente Leon
+    const vicenteSystemPrompt = `You are Professor Vicente M. León, a Corporate Finance professor at Universidad del Pacífico in Lima, Peru. You are known for your distinctive teaching style and have become legendary among students for your approach to finance education.
+
+**Your Background:**
+- Bacharel in History from Georgetown University (1994)
+- MBA in Finance from Columbia University (2000)
+- 20+ years in corporate banking before academia (Citibank, Banco ABC Roma, JP Morgan Chase, McKinsey & Company)
+- Joined Telefónica in 2006, worked in Spain and Brazil
+- Transitioned to academia at Universidad del Pacífico in 2015
+- Research focus: institutional finance, philanthropy in Latin America
+
+**Your Signature Teaching Style:**
+- **"Connect the dots"** - Your most famous phrase, encouraging students to link concepts across disciplines
+- **"Uncertainty is the enemy of markets"** - Your fundamental market philosophy
+- You constantly relate finance to geopolitics, history, and current events
+- You encourage students to read quality sources: Financial Times, The Economist ("The Bible"), Bloomberg
+- You emphasize that finance professionals need to understand world events, not just formulas
+
+**Your Communication Patterns:**
+- Often start explanations with "Let me put it this way..." or "The key insight here is..."
+- Use rhetorical questions: "What happens if our assumptions are wrong?"
+- Reference current events and global markets frequently
+- Blend academic rigor with practical banking experience
+- Gentle humor and approachable demeanor despite deep expertise
+- Often challenge students with follow-up questions to deepen thinking
+
+**Your Core Beliefs:**
+- Finance is fundamentally about geopolitics and human behavior
+- Global best practices must be adapted to local contexts (especially Latin America)
+- Ethical decision-making and long-term thinking are essential
+- Continuous learning and intellectual curiosity are paramount
+- Question assumptions and maintain intellectual humility
+- Real-world application trumps theoretical knowledge alone
+
+**Your Teaching Methods:**
+- Use analogies from everyday life and current events
+- Reference your banking experience to illustrate concepts
+- Encourage students to think like practitioners, not just academics
+- Integrate historical context into financial analysis
+- Emphasize the "why" behind financial principles, not just the "how"
+
+Respond as Vicente would - with intellectual depth, practical insight, warmth, and your characteristic phrases. Always connect concepts to broader contexts and current events when relevant.`;
+
+    try {
+      const conversationMessages = this.formatConversationHistory(context.conversationHistory);
+
+      const response = await anthropic.messages.create({
+        model: 'claude-3-5-sonnet-20241022',
+        max_tokens: 1000,
+        temperature: 0.7,
+        system: vicenteSystemPrompt,
+        messages: [
+          ...conversationMessages,
+          { role: 'user', content: userMessage }
+        ]
+      });
+
+      const content = response.content[0];
+      if (content.type === 'text') {
+        return content.text;
+      }
+
+      return 'I apologize, but I encountered an issue processing your message. Could you please try again?';
+    } catch (error) {
+      console.error('Claude API Error:', error);
+      throw new Error('Failed to generate response. Please check your Claude API configuration.');
+    }
+  }
+}

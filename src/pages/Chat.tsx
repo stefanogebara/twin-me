@@ -1,11 +1,15 @@
 import { useState, useRef, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { useUser } from '@clerk/clerk-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { ArrowLeft, Send, Mic, MicOff, Volume2, VolumeX } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
+import { supabase, dbHelpers } from '@/lib/supabase';
+import { DigitalTwinLLM } from '@/lib/openai';
+import type { DigitalTwin, Conversation, Message as DBMessage, StudentProfile } from '@/types/database';
 
 const professors = [
   {

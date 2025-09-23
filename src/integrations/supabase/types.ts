@@ -14,7 +14,325 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      profiles: {
+        Row: {
+          id: string
+          email: string
+          full_name: string | null
+          avatar_url: string | null
+          user_type: 'student' | 'professor' | 'personal'
+          university: string | null
+          department: string | null
+          bio: string | null
+          expertise_areas: string[] | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id: string
+          email: string
+          full_name?: string | null
+          avatar_url?: string | null
+          user_type: 'student' | 'professor' | 'personal'
+          university?: string | null
+          department?: string | null
+          bio?: string | null
+          expertise_areas?: string[] | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          email?: string
+          full_name?: string | null
+          avatar_url?: string | null
+          user_type?: 'student' | 'professor' | 'personal'
+          university?: string | null
+          department?: string | null
+          bio?: string | null
+          expertise_areas?: string[] | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      digital_twins: {
+        Row: {
+          id: string
+          creator_id: string
+          name: string
+          description: string | null
+          subject_area: string | null
+          twin_type: 'professor' | 'personal'
+          is_active: boolean
+          voice_profile_id: string | null
+          personality_traits: Json
+          teaching_style: Json
+          common_phrases: string[] | null
+          favorite_analogies: string[] | null
+          knowledge_base_status: string
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          creator_id: string
+          name: string
+          description?: string | null
+          subject_area?: string | null
+          twin_type: 'professor' | 'personal'
+          is_active?: boolean
+          voice_profile_id?: string | null
+          personality_traits?: Json
+          teaching_style?: Json
+          common_phrases?: string[] | null
+          favorite_analogies?: string[] | null
+          knowledge_base_status?: string
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          creator_id?: string
+          name?: string
+          description?: string | null
+          subject_area?: string | null
+          twin_type?: 'professor' | 'personal'
+          is_active?: boolean
+          voice_profile_id?: string | null
+          personality_traits?: Json
+          teaching_style?: Json
+          common_phrases?: string[] | null
+          favorite_analogies?: string[] | null
+          knowledge_base_status?: string
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "digital_twins_creator_id_fkey"
+            columns: ["creator_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
+      training_materials: {
+        Row: {
+          id: string
+          twin_id: string
+          file_name: string
+          file_type: string
+          file_size: number | null
+          storage_path: string
+          processing_status: 'pending' | 'processing' | 'completed' | 'failed'
+          content_summary: string | null
+          extracted_text: string | null
+          metadata: Json
+          uploaded_at: string
+        }
+        Insert: {
+          id?: string
+          twin_id: string
+          file_name: string
+          file_type: string
+          file_size?: number | null
+          storage_path: string
+          processing_status?: 'pending' | 'processing' | 'completed' | 'failed'
+          content_summary?: string | null
+          extracted_text?: string | null
+          metadata?: Json
+          uploaded_at?: string
+        }
+        Update: {
+          id?: string
+          twin_id?: string
+          file_name?: string
+          file_type?: string
+          file_size?: number | null
+          storage_path?: string
+          processing_status?: 'pending' | 'processing' | 'completed' | 'failed'
+          content_summary?: string | null
+          extracted_text?: string | null
+          metadata?: Json
+          uploaded_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "training_materials_twin_id_fkey"
+            columns: ["twin_id"]
+            isOneToOne: false
+            referencedRelation: "digital_twins"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
+      conversations: {
+        Row: {
+          id: string
+          student_id: string
+          twin_id: string
+          title: string | null
+          started_at: string
+          last_message_at: string
+        }
+        Insert: {
+          id?: string
+          student_id: string
+          twin_id: string
+          title?: string | null
+          started_at?: string
+          last_message_at?: string
+        }
+        Update: {
+          id?: string
+          student_id?: string
+          twin_id?: string
+          title?: string | null
+          started_at?: string
+          last_message_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "conversations_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "conversations_twin_id_fkey"
+            columns: ["twin_id"]
+            isOneToOne: false
+            referencedRelation: "digital_twins"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
+      messages: {
+        Row: {
+          id: string
+          conversation_id: string
+          content: string
+          is_user_message: boolean
+          message_type: 'text' | 'voice' | 'image'
+          audio_url: string | null
+          metadata: Json
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          conversation_id: string
+          content: string
+          is_user_message: boolean
+          message_type?: 'text' | 'voice' | 'image'
+          audio_url?: string | null
+          metadata?: Json
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          conversation_id?: string
+          content?: string
+          is_user_message?: boolean
+          message_type?: 'text' | 'voice' | 'image'
+          audio_url?: string | null
+          metadata?: Json
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "messages_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "conversations"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
+      student_profiles: {
+        Row: {
+          id: string
+          learning_style: Json
+          cognitive_preferences: Json
+          interaction_history: Json
+          performance_metrics: Json
+          assessment_completed: boolean
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id: string
+          learning_style?: Json
+          cognitive_preferences?: Json
+          interaction_history?: Json
+          performance_metrics?: Json
+          assessment_completed?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          learning_style?: Json
+          cognitive_preferences?: Json
+          interaction_history?: Json
+          performance_metrics?: Json
+          assessment_completed?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "student_profiles_id_fkey"
+            columns: ["id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
+      voice_profiles: {
+        Row: {
+          id: string
+          twin_id: string
+          elevenlabs_voice_id: string | null
+          voice_name: string | null
+          voice_description: string | null
+          sample_audio_url: string | null
+          is_cloned: boolean
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          twin_id: string
+          elevenlabs_voice_id?: string | null
+          voice_name?: string | null
+          voice_description?: string | null
+          sample_audio_url?: string | null
+          is_cloned?: boolean
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          twin_id?: string
+          elevenlabs_voice_id?: string | null
+          voice_name?: string | null
+          voice_description?: string | null
+          sample_audio_url?: string | null
+          is_cloned?: boolean
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "voice_profiles_twin_id_fkey"
+            columns: ["twin_id"]
+            isOneToOne: false
+            referencedRelation: "digital_twins"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
     }
     Views: {
       [_ in never]: never

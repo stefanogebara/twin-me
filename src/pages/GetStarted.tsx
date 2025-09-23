@@ -1,13 +1,20 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { SignUp, useAuth } from '@clerk/clerk-react';
+import { useToast } from '@/components/ui/use-toast';
+import { AcademicHierarchy, AcademicStructure } from '@/components/ui/AcademicHierarchy';
+import EnhancedFileUpload from '@/components/ui/EnhancedFileUpload';
 
 const GetStarted = () => {
   const navigate = useNavigate();
   const { isSignedIn } = useAuth();
+  const { toast } = useToast();
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedPath, setSelectedPath] = useState('');
   const [selectedType, setSelectedType] = useState('');
+  const [twinName, setTwinName] = useState('');
+  const [academicStructure, setAcademicStructure] = useState<AcademicStructure | null>(null);
+  const [teachingLevel, setTeachingLevel] = useState('');
 
   // Check if user completed signup and auto-advance to next step
   useEffect(() => {
@@ -23,7 +30,11 @@ const GetStarted = () => {
   const selectPath = (path: string) => {
     setSelectedPath(path);
     if (path === 'learner') {
-      alert('Redirecting to learner dashboard...');
+      toast({
+        title: "Feature Coming Soon",
+        description: "Learner dashboard is currently under development. Please check back soon!",
+        duration: 5000
+      });
       return;
     }
     nextPage();
@@ -34,7 +45,10 @@ const GetStarted = () => {
   };
 
   const nextPage = () => {
-    if (currentPage < 4) {
+    if (currentPage === 2 && selectedType === 'personal') {
+      // Skip the teacher setup page for personal twins
+      navigate('/personal-twin-builder');
+    } else if (currentPage < 4) {
       setCurrentPage(currentPage + 1);
     }
   };
@@ -46,19 +60,28 @@ const GetStarted = () => {
   };
 
   const goToBuilder = () => {
-    navigate('/twin-builder');
-  };
-
-  const skipToBuilder = () => {
-    navigate('/twin-builder');
+    if (selectedType === 'personal') {
+      navigate('/personal-twin-builder');
+    } else {
+      navigate('/twin-builder');
+    }
   };
 
   const goHome = () => {
     navigate('/');
   };
 
+  const skipToBuilder = () => {
+    console.log('Skip to builder clicked, selectedType:', selectedType);
+    if (selectedType === 'personal') {
+      navigate('/personal-twin-builder');
+    } else {
+      navigate('/twin-builder');
+    }
+  };
+
   return (
-    <div className="font-inter bg-[#FBF7F0] text-[#1A1A4B] min-h-screen">
+    <div className="bg-[#FBF7F0] text-[#1A1A4B] min-h-screen">
       {/* Background Effects */}
       <div className="fixed w-[400px] h-[400px] bg-gradient-to-br from-[#FF5722] to-[#FF9800] rounded-full top-[20%] right-[10%] blur-[100px] opacity-30 animate-[float_20s_ease-in-out_infinite] pointer-events-none"></div>
       <div className="fixed w-[300px] h-[300px] bg-gradient-to-br from-[#4A90E2] to-[#00BCD4] rounded-full bottom-[20%] left-[10%] blur-[100px] opacity-30 animate-[float_20s_ease-in-out_infinite] pointer-events-none"></div>
@@ -88,6 +111,9 @@ const GetStarted = () => {
       {/* Page 1: Choose Your Path */}
       {currentPage === 1 && (
         <div className="min-h-screen pt-[140px] pb-20 px-6 animate-[fadeIn_0.5s_ease]">
+          <button className="inline-flex items-center gap-2 text-[#6B7280] no-underline text-sm mb-8 transition-colors duration-300 hover:text-[#1A1A4B]" onClick={goHome}>
+            ← Back to Home
+          </button>
           <div className="max-w-[1200px] mx-auto text-center">
             <h1 className="font-playfair text-[clamp(48px,6vw,72px)] font-normal italic leading-[1.1] mb-6">
               Welcome to Twin Me
@@ -268,55 +294,57 @@ const GetStarted = () => {
                 <h3 className="font-playfair text-[26px] font-normal italic mb-6">Quick Info</h3>
                 <div className="mb-6">
                   <label className="block mb-2 text-sm font-medium text-[#1A1A4B] text-left">What should we call your twin?</label>
-                  <input 
-                    type="text" 
+                  <input
+                    type="text"
                     placeholder="Physics 101 with Dr. Smith"
+                    value={twinName}
+                    onChange={(e) => setTwinName(e.target.value)}
                     className="w-full py-[14px] px-5 border-2 border-[#E5E7EB] rounded-2xl text-sm"
+                  />
+                </div>
+
+                <div className="mb-6">
+                  <AcademicHierarchy
+                    value={academicStructure || undefined}
+                    onChange={setAcademicStructure}
+                    allowCustom={true}
                   />
                 </div>
                 
                 <div className="mb-6">
-                  <label className="block mb-2 text-sm font-medium text-[#1A1A4B] text-left">Primary subject area</label>
-                  <select className="w-full py-[14px] px-5 border-2 border-[#E5E7EB] rounded-2xl text-sm">
-                    <option>Select a subject</option>
-                    <option>Computer Science</option>
-                    <option>Physics</option>
-                    <option>Mathematics</option>
-                    <option>Biology</option>
-                    <option>Literature</option>
-                    <option>Business</option>
-                    <option>Other</option>
-                  </select>
-                </div>
-                
-                <div className="mb-6">
                   <label className="block mb-2 text-sm font-medium text-[#1A1A4B] text-left">Teaching level</label>
-                  <select className="w-full py-[14px] px-5 border-2 border-[#E5E7EB] rounded-2xl text-sm">
-                    <option>Select level</option>
-                    <option>High School</option>
-                    <option>Undergraduate</option>
-                    <option>Graduate</option>
-                    <option>Professional</option>
-                    <option>All Levels</option>
+                  <select
+                    className="w-full py-[14px] px-5 border-2 border-[#E5E7EB] rounded-2xl text-sm"
+                    value={teachingLevel}
+                    onChange={(e) => setTeachingLevel(e.target.value)}
+                  >
+                    <option value="">Select level</option>
+                    <option value="high-school">High School</option>
+                    <option value="undergraduate">Undergraduate</option>
+                    <option value="graduate">Graduate</option>
+                    <option value="professional">Professional</option>
+                    <option value="all-levels">All Levels</option>
                   </select>
                 </div>
               </div>
               
               <div className="bg-white rounded-[24px] p-10 shadow-[0_10px_40px_rgba(0,0,0,0.08)]">
                 <h3 className="font-playfair text-[26px] font-normal italic mb-6">Quick Start Content</h3>
-                <div className="border-2 border-dashed border-[#E5E7EB] rounded-[20px] p-10 text-center cursor-pointer transition-all duration-300 bg-[#FAFAFA] hover:border-[#FF5722] hover:bg-[rgba(255,87,34,0.03)]">
-                  <div className="w-20 h-20 mx-auto mb-5 bg-gradient-to-br from-[rgba(255,87,34,0.1)] to-[rgba(255,152,0,0.1)] rounded-[20px] flex items-center justify-center text-[32px]">
-                    ↑
-                  </div>
-                  <h4 className="mb-2 font-medium">Drop Your First File</h4>
-                  <p className="text-[#6B7280] text-sm mb-5">
-                    Syllabus, lecture notes, or any teaching material
-                  </p>
-                  <button className="py-[14px] px-8 rounded-full bg-transparent text-[#1A1A4B] border-2 border-[#1A1A4B] font-medium text-sm cursor-pointer transition-all duration-300 hover:bg-[#1A1A4B] hover:text-white">
-                    Browse Files
-                  </button>
-                </div>
-                
+                <EnhancedFileUpload
+                  twinId="placeholder"
+                  title="Drop Your First File"
+                  description="Syllabus, lecture notes, or any teaching material"
+                  allowMultiple={true}
+                  maxFiles={5}
+                  className=""
+                  onUploadComplete={(file) => {
+                    toast({
+                      title: "File uploaded successfully",
+                      description: `${file.fileName} has been processed for your twin.`
+                    });
+                  }}
+                />
+
                 <p className="mt-6 text-sm text-[#6B7280] text-center">
                   Don't worry, you can add more content in the builder
                 </p>

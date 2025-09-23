@@ -1,0 +1,187 @@
+import express from 'express';
+import helmet from 'helmet';
+import cors from 'cors';
+import rateLimit from 'express-rate-limit';
+import { body, validationResult } from 'express-validator';
+import dotenv from 'dotenv';
+import path from 'path';
+
+// Load .env from api directory
+dotenv.config({ path: path.resolve(process.cwd(), '.env') });
+
+const app = express();
+const PORT = process.env.PORT || 3001;
+
+// Security middleware
+app.use(helmet({
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      scriptSrc: ["'self'", "'unsafe-inline'"],
+      styleSrc: ["'self'", "'unsafe-inline'"],
+      imgSrc: ["'self'", "data:", "https:"],
+      connectSrc: ["'self'", "https://api.anthropic.com", "https://api.openai.com"],
+    },
+  },
+}));
+
+// CORS configuration - more secure
+const allowedOrigins = [
+  process.env.VITE_APP_URL || 'http://localhost:8085',
+  'http://localhost:8080',
+  'http://localhost:8081',
+  'http://localhost:8082',
+  'http://localhost:8083',
+  'http://localhost:8084',
+  'http://localhost:8085'
+].filter(Boolean);
+
+app.use(cors({
+  origin: function (origin, callback) {
+    // Allow requests with no origin (like mobile apps, curl, etc.)
+    if (!origin) return callback(null, true);
+
+    // In development, allow localhost on any port
+    if (process.env.NODE_ENV === 'development' && origin.startsWith('http://localhost:')) {
+      return callback(null, true);
+    }
+
+    // In production, only allow specific origins
+    if (allowedOrigins.includes(origin)) {
+      return callback(null, true);
+    }
+
+    return callback(new Error('Not allowed by CORS'));
+  },
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+  optionsSuccessStatus: 200,
+}));
+
+// Rate limiting
+const apiLimiter = rateLimit({
+  windowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS) || 15 * 60 * 1000, // 15 minutes
+  max: parseInt(process.env.RATE_LIMIT_MAX_REQUESTS) || 100, // limit each IP to 100 requests per windowMs
+  message: {
+    error: 'Too many requests from this IP, please try again later.',
+    retryAfter: 15 * 60 * 1000
+  },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+// Apply rate limiting to all API routes
+app.use('/api/', apiLimiter);
+
+// Stricter rate limiting for AI endpoints
+const aiLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 50, // limit each IP to 50 AI requests per 15 minutes
+  message: {
+    error: 'AI request limit exceeded. Please try again later.',
+    retryAfter: 15 * 60 * 1000
+  },
+});
+
+app.use('/api/ai/', aiLimiter);
+
+// Parse JSON bodies
+app.use(express.json({ limit: '10mb' }));
+
+// Content-Type validation
+app.use(validateContentType(['application/json', 'multipart/form-data']));
+
+// Input sanitization (applied to all routes)
+app.use('/api/', sanitizeInput);
+
+// Input validation middleware
+const validateChatRequest = [
+  body('message')
+    .trim()
+    .isLength({ min: 1, max: 5000 })
+    .withMessage('Message must be between 1 and 5000 characters')
+    .escape(), // Sanitize HTML
+  body('twinId')
+    .isUUID()
+    .withMessage('Invalid twin ID format'),
+  body('conversationId')
+    .optional()
+    .isUUID()
+    .withMessage('Invalid conversation ID format'),
+  body('context')
+    .optional()
+    .isObject()
+    .withMessage('Context must be an object'),
+  body('context.twin')
+    .optional()
+    .isObject()
+    .withMessage('Twin context must be an object'),
+  body('context.studentProfile')
+    .optional()
+    .isObject()
+    .withMessage('Student profile must be an object'),
+];
+
+// Error handling middleware
+const handleValidationErrors = (req, res, next) => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(400).json({
+      error: 'Validation failed',
+      details: errors.array()
+    });
+  }
+  next();
+};
+
+// Import routes
+import aiRoutes from './routes/ai.js';
+import documentRoutes from './routes/documents.js';
+import twinsRoutes from './routes/twins.js';
+import conversationsRoutes from './routes/conversations.js';
+import voiceRoutes from './routes/voice.js';
+import analyticsRoutes from './routes/analytics.js';
+import { serverDb } from './services/database.js';
+import { sanitizeInput, validateContentType } from './middleware/sanitization.js';
+import { handleAuthError, handleGeneralError, handle404 } from './middleware/errorHandler.js';
+
+app.use('/api/ai', aiRoutes);
+app.use('/api/documents', documentRoutes);
+app.use('/api/twins', twinsRoutes);
+app.use('/api/conversations', conversationsRoutes);
+app.use('/api/voice', voiceRoutes);
+app.use('/api/analytics', analyticsRoutes);
+
+// Health check endpoint
+app.get('/api/health', async (req, res) => {
+  const dbHealth = await serverDb.healthCheck();
+
+  res.json({
+    status: dbHealth.healthy ? 'ok' : 'degraded',
+    timestamp: new Date().toISOString(),
+    environment: process.env.NODE_ENV || 'development',
+    database: {
+      connected: dbHealth.healthy,
+      error: dbHealth.error?.message || null
+    }
+  });
+});
+
+// Authentication error handling (must be before general error handler)
+app.use(handleAuthError);
+
+// General error handling middleware
+app.use(handleGeneralError);
+
+// 404 handler (must be last)
+app.use(handle404);
+
+// Start server
+app.listen(PORT, () => {
+  console.log(`🚀 Secure API server running on port ${PORT}`);
+  console.log(`📝 Environment: ${process.env.NODE_ENV || 'development'}`);
+  console.log(`🔐 CORS origin: ${process.env.VITE_APP_URL || 'http://localhost:8080'}`);
+});
+
+export default app;

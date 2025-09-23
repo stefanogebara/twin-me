@@ -1,8 +1,58 @@
 import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useUser, SignInButton, SignUpButton } from '@clerk/clerk-react';
 
 const Index = () => {
   const navigate = useNavigate();
+  const { isSignedIn, isLoaded } = useUser();
+
+  // Debug authentication state when component loads
+  useEffect(() => {
+    console.log('Index component loaded - Auth state:', { isSignedIn, isLoaded });
+  }, [isSignedIn, isLoaded]);
+
+  const handleGetStartedClick = () => {
+    console.log('Get Started clicked. isSignedIn:', isSignedIn, 'isLoaded:', isLoaded);
+    if (!isLoaded) {
+      console.log('Auth not loaded yet, waiting...');
+      return; // Wait for auth to load
+    }
+
+    if (isSignedIn) {
+      console.log('User is signed in, navigating to /get-started');
+      navigate('/get-started');
+    } else {
+      console.log('User not signed in - Clerk modal will handle sign-in');
+      // Don't navigate, let Clerk handle the modal
+    }
+  };
+
+  const handleCreateTwinClick = () => {
+    console.log('Create Twin clicked. isSignedIn:', isSignedIn, 'isLoaded:', isLoaded);
+    if (!isLoaded) {
+      console.log('Auth not loaded yet, waiting...');
+      return; // Wait for auth to load
+    }
+
+    if (isSignedIn) {
+      console.log('User is signed in, navigating to /get-started');
+      navigate('/get-started');
+    } else {
+      console.log('User not signed in - Clerk modal will handle sign-in');
+      // Don't navigate, let Clerk handle the modal
+    }
+  };
+
+  const handleWatchDemoClick = () => {
+    console.log('Watch Demo clicked. isSignedIn:', isSignedIn, 'isLoaded:', isLoaded);
+    if (!isLoaded) return; // Wait for auth to load
+
+    if (isSignedIn) {
+      navigate('/watch-demo');
+    } else {
+      navigate('/auth');
+    }
+  };
 
   useEffect(() => {
     // Navigation scroll effect
@@ -31,7 +81,15 @@ const Index = () => {
             <li><a href="#about" className="text-[#1A1A4B] no-underline font-normal italic text-base transition-colors duration-300 hover:text-[#FF5722]">About</a></li>
             <li><a href="#contact" className="text-[#1A1A4B] no-underline font-normal italic text-base transition-colors duration-300 hover:text-[#FF5722]">Contact</a></li>
           </ul>
-          <button onClick={() => navigate('/get-started')} className="px-8 py-3 rounded-full bg-[#FF5722] text-white font-normal italic text-base cursor-pointer transition-all duration-300 border-none hover:scale-105 hover:shadow-[0_8px_24px_rgba(255,87,34,0.3)]">Get Started</button>
+          {!isLoaded ? (
+            <button disabled className="px-8 py-3 rounded-full bg-gray-400 text-white font-normal italic text-base cursor-not-allowed transition-all duration-300 border-none">Loading...</button>
+          ) : isSignedIn ? (
+            <button onClick={() => navigate('/get-started')} className="px-8 py-3 rounded-full bg-[#FF5722] text-white font-normal italic text-base cursor-pointer transition-all duration-300 border-none hover:scale-105 hover:shadow-[0_8px_24px_rgba(255,87,34,0.3)]">Get Started</button>
+          ) : (
+            <SignInButton mode="modal" fallbackRedirectUrl="/get-started" forceRedirectUrl="/get-started">
+              <button className="px-8 py-3 rounded-full bg-[#FF5722] text-white font-normal italic text-base cursor-pointer transition-all duration-300 border-none hover:scale-105 hover:shadow-[0_8px_24px_rgba(255,87,34,0.3)]">Get Started</button>
+            </SignInButton>
+          )}
         </div>
       </nav>
 
@@ -59,8 +117,16 @@ const Index = () => {
           </h1>
           <p className="text-[22px] italic text-[#6B7280] max-w-[700px] mx-auto mb-12 leading-[1.6]">Create AI replicas of educators that provide personalized, always-available learning experiences through natural conversations</p>
           <div className="flex gap-6 justify-center">
-            <button onClick={() => navigate('/get-started')} className="px-8 py-3 rounded-full bg-[#FF5722] text-white font-normal italic text-base cursor-pointer transition-all duration-300 border-none hover:scale-105 hover:shadow-[0_8px_24px_rgba(255,87,34,0.3)]">Create Your Twin</button>
-            <button onClick={() => navigate('/watch-demo')} className="px-8 py-3 rounded-full bg-transparent text-[#1A1A4B] border-2 border-[#1A1A4B] font-normal italic text-base cursor-pointer transition-all duration-300 hover:bg-[#1A1A4B] hover:text-white hover:scale-105">Watch Demo</button>
+            {!isLoaded ? (
+              <button disabled className="px-8 py-3 rounded-full bg-gray-400 text-white font-normal italic text-base cursor-not-allowed transition-all duration-300 border-none">Loading...</button>
+            ) : isSignedIn ? (
+              <button onClick={() => navigate('/get-started')} className="px-8 py-3 rounded-full bg-[#FF5722] text-white font-normal italic text-base cursor-pointer transition-all duration-300 border-none hover:scale-105 hover:shadow-[0_8px_24px_rgba(255,87,34,0.3)]">Create Your Twin</button>
+            ) : (
+              <SignInButton mode="modal" fallbackRedirectUrl="/get-started" forceRedirectUrl="/get-started">
+                <button className="px-8 py-3 rounded-full bg-[#FF5722] text-white font-normal italic text-base cursor-pointer transition-all duration-300 border-none hover:scale-105 hover:shadow-[0_8px_24px_rgba(255,87,34,0.3)]">Create Your Twin</button>
+              </SignInButton>
+            )}
+            <button onClick={handleWatchDemoClick} className="px-8 py-3 rounded-full bg-transparent text-[#1A1A4B] border-2 border-[#1A1A4B] font-normal italic text-base cursor-pointer transition-all duration-300 hover:bg-[#1A1A4B] hover:text-white hover:scale-105">Watch Demo</button>
           </div>
         </div>
       </section>
@@ -146,7 +212,13 @@ const Index = () => {
           <h2 className="text-[64px] text-white mb-6 italic font-normal">Behind the Technology</h2>
           <p className="text-[rgba(255,255,255,0.8)] text-[20px] leading-[1.6] mb-6 italic">Finally, meet the platform transforming education</p>
           <p className="text-[rgba(255,255,255,0.8)] text-[20px] leading-[1.6] mb-12 italic">We help educators create digital twins that actually work. Whether you need to scale your teaching or preserve your knowledge, we focus on real impact—no complicated tech, just education that works.</p>
-          <button onClick={() => navigate('/get-started')} className="px-12 py-[18px] rounded-full bg-[#FF5722] text-white font-normal italic text-[18px] cursor-pointer transition-all duration-300 border-none hover:scale-105 hover:shadow-[0_8px_24px_rgba(255,87,34,0.3)]">Start Creating for Free</button>
+          {isSignedIn ? (
+            <button onClick={() => navigate('/get-started')} className="px-12 py-[18px] rounded-full bg-[#FF5722] text-white font-normal italic text-[18px] cursor-pointer transition-all duration-300 border-none hover:scale-105 hover:shadow-[0_8px_24px_rgba(255,87,34,0.3)]">Start Creating for Free</button>
+          ) : (
+            <SignInButton mode="modal" fallbackRedirectUrl="/get-started" forceRedirectUrl="/get-started">
+              <button className="px-12 py-[18px] rounded-full bg-[#FF5722] text-white font-normal italic text-[18px] cursor-pointer transition-all duration-300 border-none hover:scale-105 hover:shadow-[0_8px_24px_rgba(255,87,34,0.3)]">Start Creating for Free</button>
+            </SignInButton>
+          )}
         </div>
       </section>
 
@@ -154,7 +226,13 @@ const Index = () => {
       <section id="contact" className="py-[120px] px-[60px] text-center bg-[#FBF7F0]">
         <h2 className="text-[64px] text-[#1A1A4B] mb-6 italic font-normal">Ready to transform education?</h2>
         <p className="text-[22px] text-[#6B7280] mb-12 italic">Join thousands of educators creating their digital twins</p>
-        <button onClick={() => navigate('/get-started')} className="px-12 py-[18px] rounded-full bg-[#FF5722] text-white font-normal italic text-[18px] cursor-pointer transition-all duration-300 border-none hover:scale-105 hover:shadow-[0_8px_24px_rgba(255,87,34,0.3)]">Get Started Today</button>
+        {isSignedIn ? (
+          <button onClick={() => navigate('/get-started')} className="px-12 py-[18px] rounded-full bg-[#FF5722] text-white font-normal italic text-[18px] cursor-pointer transition-all duration-300 border-none hover:scale-105 hover:shadow-[0_8px_24px_rgba(255,87,34,0.3)]">Get Started Today</button>
+        ) : (
+          <SignInButton mode="modal" fallbackRedirectUrl="/get-started" forceRedirectUrl="/get-started">
+            <button className="px-12 py-[18px] rounded-full bg-[#FF5722] text-white font-normal italic text-[18px] cursor-pointer transition-all duration-300 border-none hover:scale-105 hover:shadow-[0_8px_24px_rgba(255,87,34,0.3)]">Get Started Today</button>
+          </SignInButton>
+        )}
       </section>
 
       <style dangerouslySetInnerHTML={{
