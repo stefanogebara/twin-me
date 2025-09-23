@@ -104,7 +104,7 @@ const GetStarted = () => {
       </nav>
       
       {/* Progress Bar */}
-      <div className="fixed top-[80px] left-0 right-0 h-1 bg-gray-200/50 z-[90]">
+      <div className="fixed top-[80px] left-0 right-0 h-1 bg-gray-200/50 z-[40]">
         <div className="h-full bg-gradient-to-r from-[#FF5722] to-[#FF9800] transition-all duration-500" style={{ width: `${updateProgress()}%` }}></div>
       </div>
       
