@@ -65,8 +65,52 @@ const Index = () => {
       }
     };
 
+    // Scroll reveal animations
+    const observerOptions = {
+      threshold: 0.1,
+      rootMargin: '0px 0px -50px 0px'
+    };
+
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach((entry) => {
+        if (entry.isIntersecting) {
+          entry.target.classList.add('animate-in');
+
+          // Add staggered animations for child elements
+          const staggerElements = entry.target.querySelectorAll('.stagger-1, .stagger-2, .stagger-3, .stagger-4, .stagger-5, .stagger-6');
+          staggerElements.forEach((el, index) => {
+            setTimeout(() => {
+              el.classList.add('animate-in');
+            }, index * 100);
+          });
+        }
+      });
+    }, observerOptions);
+
+    // Observe scroll-reveal elements
+    const scrollRevealElements = document.querySelectorAll('.scroll-reveal, .animate-text-reveal, .animate-slide-in-left, .animate-scale-in');
+    scrollRevealElements.forEach((el) => observer.observe(el));
+
+    // Parallax effect for gradient blobs
+    const handleParallax = () => {
+      const scrolled = window.pageYOffset;
+      const parallaxElements = document.querySelectorAll('.gradient-blob-orange, .gradient-blob-blue');
+
+      parallaxElements.forEach((el, index) => {
+        const speed = 0.5 + (index * 0.2);
+        const element = el as HTMLElement;
+        element.style.transform = `translateY(${scrolled * speed}px)`;
+      });
+    };
+
     window.addEventListener('scroll', handleScroll);
-    return () => window.removeEventListener('scroll', handleScroll);
+    window.addEventListener('scroll', handleParallax);
+
+    return () => {
+      window.removeEventListener('scroll', handleScroll);
+      window.removeEventListener('scroll', handleParallax);
+      observer.disconnect();
+    };
   }, []);
 
   return (
@@ -111,92 +155,92 @@ const Index = () => {
         </div>
         
         <div className="text-center relative z-10">
-          <h1 className="text-[clamp(56px,8vw,96px)] leading-[1.1] mb-8 text-[#1A1A4B] font-normal italic font-playfair">
+          <h1 className="text-fluid-xl leading-[1.1] mb-8 text-[#1A1A4B] font-display text-weight-animate animate-text-reveal stagger-1 gradient-text">
             Transform Teaching<br />
             with Digital Twins
           </h1>
-          <p className="text-[22px] italic text-[#6B7280] max-w-[700px] mx-auto mb-12 leading-[1.6]">Create AI replicas of educators that provide personalized, always-available learning experiences through natural conversations</p>
-          <div className="flex gap-6 justify-center">
+          <p className="text-[22px] font-body text-[#6B7280] max-w-[700px] mx-auto mb-12 leading-[1.6] animate-text-reveal stagger-2">Create AI replicas of educators that provide personalized, always-available learning experiences through natural conversations</p>
+          <div className="flex gap-6 justify-center animate-scale-in stagger-3">
             {!isLoaded ? (
-              <button disabled className="px-8 py-3 rounded-full bg-gray-400 text-white font-normal italic text-base cursor-not-allowed transition-all duration-300 border-none">Loading...</button>
+              <button disabled className="btn-modern opacity-50 cursor-not-allowed">Loading...</button>
             ) : isSignedIn ? (
-              <button onClick={() => navigate('/get-started')} className="px-8 py-3 rounded-full bg-[#FF5722] text-white font-normal italic text-base cursor-pointer transition-all duration-300 border-none hover:scale-105 hover:shadow-[0_8px_24px_rgba(255,87,34,0.3)]">Create Your Twin</button>
+              <button onClick={() => navigate('/get-started')} className="btn-modern hover-lift hover-glow">Create Your Twin</button>
             ) : (
               <SignInButton mode="modal" fallbackRedirectUrl="/get-started" forceRedirectUrl="/get-started">
-                <button className="px-8 py-3 rounded-full bg-[#FF5722] text-white font-normal italic text-base cursor-pointer transition-all duration-300 border-none hover:scale-105 hover:shadow-[0_8px_24px_rgba(255,87,34,0.3)]">Create Your Twin</button>
+                <button className="btn-modern hover-lift hover-glow">Create Your Twin</button>
               </SignInButton>
             )}
-            <button onClick={handleWatchDemoClick} className="px-8 py-3 rounded-full bg-transparent text-[#1A1A4B] border-2 border-[#1A1A4B] font-normal italic text-base cursor-pointer transition-all duration-300 hover:bg-[#1A1A4B] hover:text-white hover:scale-105">Watch Demo</button>
+            <button onClick={handleWatchDemoClick} className="px-8 py-3 rounded-full bg-transparent text-[#1A1A4B] border-2 border-[#1A1A4B] font-display font-medium text-base cursor-pointer transition-all duration-300 hover:bg-[#1A1A4B] hover:text-white hover-lift">Watch Demo</button>
           </div>
         </div>
       </section>
 
       {/* Portfolio Section */}
-      <section id="works" className="py-[100px] px-[60px] bg-white">
+      <section id="works" className="py-[100px] px-[60px] bg-white scroll-reveal">
         <div className="text-center mb-[60px]">
-          <h2 className="text-[56px] text-[#1A1A4B] mb-4 italic font-normal font-playfair">See Our Platform in Action</h2>
-          <p className="text-[20px] text-[#6B7280] italic">Experience the future of personalized education</p>
+          <h2 className="text-fluid-lg text-[#1A1A4B] mb-4 font-display text-weight-animate gradient-text-blue">See Our Platform in Action</h2>
+          <p className="text-[20px] text-[#6B7280] font-body">Experience the future of personalized education</p>
         </div>
         <div className="max-w-[1400px] mx-auto flex gap-8 overflow-x-auto pb-5">
-          <div className="flex-shrink-0 w-[360px] bg-white rounded-[24px] p-8 shadow-[0_10px_40px_rgba(0,0,0,0.08)] transition-all duration-[400ms] cursor-pointer portfolio-card odd:rotate-[-2deg] even:rotate-[2deg] hover:translate-y-[-10px] hover:rotate-0 hover:scale-105 hover:shadow-[0_30px_60px_rgba(0,0,0,0.15)]">
+          <div className="flex-shrink-0 w-[360px] bg-white rounded-[24px] p-8 shadow-[0_10px_40px_rgba(0,0,0,0.08)] transition-all duration-[400ms] cursor-pointer portfolio-card odd:rotate-[-2deg] even:rotate-[2deg] hover-lift hover:rotate-0 hover:scale-105 hover:shadow-[0_30px_60px_rgba(0,0,0,0.15)] glass-card animate-slide-in-left stagger-1">
             <div className="w-full h-[200px] rounded-[16px] mb-6 bg-gradient-to-br from-[#FF5722] to-[#FFC107]"></div>
-            <h3 className="text-[28px] text-[#1A1A4B] mb-3 italic font-normal">Voice Assistant</h3>
-            <span className="inline-block px-4 py-2 rounded-full text-[14px] font-normal italic text-white bg-[#FF5722]">Voice AI</span>
+            <h3 className="text-[28px] text-[#1A1A4B] mb-3 font-display text-weight-animate">Voice Assistant</h3>
+            <span className="inline-block px-4 py-2 rounded-full text-[14px] font-body font-medium text-white bg-[#FF5722] pill-glow">Voice AI</span>
           </div>
-          <div className="flex-shrink-0 w-[360px] bg-white rounded-[24px] p-8 shadow-[0_10px_40px_rgba(0,0,0,0.08)] transition-all duration-[400ms] cursor-pointer portfolio-card odd:rotate-[-2deg] even:rotate-[2deg] hover:translate-y-[-10px] hover:rotate-0 hover:scale-105 hover:shadow-[0_30px_60px_rgba(0,0,0,0.15)]">
+          <div className="flex-shrink-0 w-[360px] bg-white rounded-[24px] p-8 shadow-[0_10px_40px_rgba(0,0,0,0.08)] transition-all duration-[400ms] cursor-pointer portfolio-card odd:rotate-[-2deg] even:rotate-[2deg] hover-lift hover:rotate-0 hover:scale-105 hover:shadow-[0_30px_60px_rgba(0,0,0,0.15)] glass-card animate-slide-in-left stagger-2">
             <div className="w-full h-[200px] rounded-[16px] mb-6 bg-gradient-to-br from-[#4A90E2] to-[#00BCD4]"></div>
-            <h3 className="text-[28px] text-[#1A1A4B] mb-3 italic font-normal">Chat Interface</h3>
-            <span className="inline-block px-4 py-2 rounded-full text-[14px] font-normal italic text-white bg-[#4A90E2]">Text Learning</span>
+            <h3 className="text-[28px] text-[#1A1A4B] mb-3 font-display text-weight-animate">Chat Interface</h3>
+            <span className="inline-block px-4 py-2 rounded-full text-[14px] font-body font-medium text-white bg-[#4A90E2] pill-glow">Text Learning</span>
           </div>
-          <div className="flex-shrink-0 w-[360px] bg-white rounded-[24px] p-8 shadow-[0_10px_40px_rgba(0,0,0,0.08)] transition-all duration-[400ms] cursor-pointer portfolio-card odd:rotate-[-2deg] even:rotate-[2deg] hover:translate-y-[-10px] hover:rotate-0 hover:scale-105 hover:shadow-[0_30px_60px_rgba(0,0,0,0.15)]">
+          <div className="flex-shrink-0 w-[360px] bg-white rounded-[24px] p-8 shadow-[0_10px_40px_rgba(0,0,0,0.08)] transition-all duration-[400ms] cursor-pointer portfolio-card odd:rotate-[-2deg] even:rotate-[2deg] hover-lift hover:rotate-0 hover:scale-105 hover:shadow-[0_30px_60px_rgba(0,0,0,0.15)] glass-card animate-slide-in-left stagger-3">
             <div className="w-full h-[200px] rounded-[16px] mb-6 bg-gradient-to-br from-[#9C27B0] to-[#E91E63]"></div>
-            <h3 className="text-[28px] text-[#1A1A4B] mb-3 italic font-normal">Analytics Dashboard</h3>
-            <span className="inline-block px-4 py-2 rounded-full text-[14px] font-normal italic text-white bg-[#9C27B0]">Data Science</span>
+            <h3 className="text-[28px] text-[#1A1A4B] mb-3 font-display text-weight-animate">Analytics Dashboard</h3>
+            <span className="inline-block px-4 py-2 rounded-full text-[14px] font-body font-medium text-white bg-[#9C27B0] pill-glow">Data Science</span>
           </div>
-          <div className="flex-shrink-0 w-[360px] bg-white rounded-[24px] p-8 shadow-[0_10px_40px_rgba(0,0,0,0.08)] transition-all duration-[400ms] cursor-pointer portfolio-card odd:rotate-[-2deg] even:rotate-[2deg] hover:translate-y-[-10px] hover:rotate-0 hover:scale-105 hover:shadow-[0_30px_60px_rgba(0,0,0,0.15)]">
+          <div className="flex-shrink-0 w-[360px] bg-white rounded-[24px] p-8 shadow-[0_10px_40px_rgba(0,0,0,0.08)] transition-all duration-[400ms] cursor-pointer portfolio-card odd:rotate-[-2deg] even:rotate-[2deg] hover-lift hover:rotate-0 hover:scale-105 hover:shadow-[0_30px_60px_rgba(0,0,0,0.15)] glass-card animate-slide-in-left stagger-4">
             <div className="w-full h-[200px] rounded-[16px] mb-6 bg-gradient-to-br from-[#4CAF50] to-[#8BC34A]"></div>
-            <h3 className="text-[28px] text-[#1A1A4B] mb-3 italic font-normal">Teacher Portal</h3>
-            <span className="inline-block px-4 py-2 rounded-full text-[14px] font-normal italic text-white bg-[#4CAF50]">Platform</span>
+            <h3 className="text-[28px] text-[#1A1A4B] mb-3 font-display text-weight-animate">Teacher Portal</h3>
+            <span className="inline-block px-4 py-2 rounded-full text-[14px] font-body font-medium text-white bg-[#4CAF50] pill-glow">Platform</span>
           </div>
         </div>
       </section>
 
       {/* Features Grid */}
-      <section id="features" className="py-[100px] px-[60px] bg-[#FBF7F0]">
+      <section id="features" className="py-[100px] px-[60px] bg-[#FBF7F0] scroll-reveal">
         <div className="text-center mb-[60px]">
-          <h2 className="text-[56px] text-[#1A1A4B] mb-4 italic font-normal">What We Bring to Education</h2>
-          <p className="text-[20px] text-[#6B7280] italic">Digital experiences that revolutionize learning</p>
+          <h2 className="text-fluid-lg text-[#1A1A4B] mb-4 font-display text-weight-animate gradient-text-purple animate-text-reveal">What We Bring to Education</h2>
+          <p className="text-[20px] text-[#6B7280] font-body animate-text-reveal stagger-1">Digital experiences that revolutionize learning</p>
         </div>
         <div className="max-w-[1200px] mx-auto grid grid-cols-[repeat(auto-fit,minmax(350px,1fr))] gap-10">
-          <div className="bg-white rounded-[24px] p-10 transition-all duration-300 cursor-pointer hover:translate-y-[-8px] hover:scale-[1.02] hover:shadow-[0_20px_40px_rgba(0,0,0,0.1)]">
-            <div className="w-[60px] h-[60px] bg-[rgba(255,87,34,0.1)] rounded-[16px] flex items-center justify-center mb-6 text-[32px]">〜</div>
-            <h3 className="text-[28px] text-[#1A1A4B] mb-3 italic font-normal">Voice Learning</h3>
-            <p className="text-[#6B7280] leading-[1.6] italic">Natural conversations with AI teachers that feel like real interactions</p>
+          <div className="bg-white rounded-[24px] p-10 transition-all duration-300 cursor-pointer hover-lift hover:scale-[1.02] hover:shadow-[0_20px_40px_rgba(0,0,0,0.1)] glass-card animate-scale-in stagger-1">
+            <div className="w-[60px] h-[60px] bg-[rgba(255,87,34,0.1)] rounded-[16px] flex items-center justify-center mb-6 text-[32px] icon-float">〜</div>
+            <h3 className="text-[28px] text-[#1A1A4B] mb-3 font-display text-weight-animate">Voice Learning</h3>
+            <p className="text-[#6B7280] leading-[1.6] font-body">Natural conversations with AI teachers that feel like real interactions</p>
           </div>
-          <div className="bg-white rounded-[24px] p-10 transition-all duration-300 cursor-pointer hover:translate-y-[-8px] hover:scale-[1.02] hover:shadow-[0_20px_40px_rgba(0,0,0,0.1)]">
-            <div className="w-[60px] h-[60px] bg-[rgba(255,87,34,0.1)] rounded-[16px] flex items-center justify-center mb-6 text-[32px]">◐</div>
-            <h3 className="text-[28px] text-[#1A1A4B] mb-3 italic font-normal">Text Interface</h3>
-            <p className="text-[#6B7280] leading-[1.6] italic">ChatGPT-style learning experience for written communication</p>
+          <div className="bg-white rounded-[24px] p-10 transition-all duration-300 cursor-pointer hover-lift hover:scale-[1.02] hover:shadow-[0_20px_40px_rgba(0,0,0,0.1)] glass-card animate-scale-in stagger-2">
+            <div className="w-[60px] h-[60px] bg-[rgba(255,87,34,0.1)] rounded-[16px] flex items-center justify-center mb-6 text-[32px] icon-float">◐</div>
+            <h3 className="text-[28px] text-[#1A1A4B] mb-3 font-display text-weight-animate">Text Interface</h3>
+            <p className="text-[#6B7280] leading-[1.6] font-body">ChatGPT-style learning experience for written communication</p>
           </div>
-          <div className="bg-white rounded-[24px] p-10 transition-all duration-300 cursor-pointer hover:translate-y-[-8px] hover:scale-[1.02] hover:shadow-[0_20px_40px_rgba(0,0,0,0.1)]">
-            <div className="w-[60px] h-[60px] bg-[rgba(255,87,34,0.1)] rounded-[16px] flex items-center justify-center mb-6 text-[32px]">◉</div>
-            <h3 className="text-[28px] text-[#1A1A4B] mb-3 italic font-normal">Adaptive AI</h3>
-            <p className="text-[#6B7280] leading-[1.6] italic">Personalized teaching that adapts to your unique learning style</p>
+          <div className="bg-white rounded-[24px] p-10 transition-all duration-300 cursor-pointer hover-lift hover:scale-[1.02] hover:shadow-[0_20px_40px_rgba(0,0,0,0.1)] glass-card animate-scale-in stagger-3">
+            <div className="w-[60px] h-[60px] bg-[rgba(255,87,34,0.1)] rounded-[16px] flex items-center justify-center mb-6 text-[32px] icon-float">◉</div>
+            <h3 className="text-[28px] text-[#1A1A4B] mb-3 font-display text-weight-animate">Adaptive AI</h3>
+            <p className="text-[#6B7280] leading-[1.6] font-body">Personalized teaching that adapts to your unique learning style</p>
           </div>
-          <div className="bg-white rounded-[24px] p-10 transition-all duration-300 cursor-pointer hover:translate-y-[-8px] hover:scale-[1.02] hover:shadow-[0_20px_40px_rgba(0,0,0,0.1)]">
-            <div className="w-[60px] h-[60px] bg-[rgba(255,87,34,0.1)] rounded-[16px] flex items-center justify-center mb-6 text-[32px]">▣</div>
-            <h3 className="text-[28px] text-[#1A1A4B] mb-3 italic font-normal">Smart Analytics</h3>
-            <p className="text-[#6B7280] leading-[1.6] italic">Track progress and get insights into your learning journey</p>
+          <div className="bg-white rounded-[24px] p-10 transition-all duration-300 cursor-pointer hover-lift hover:scale-[1.02] hover:shadow-[0_20px_40px_rgba(0,0,0,0.1)] glass-card animate-scale-in stagger-4">
+            <div className="w-[60px] h-[60px] bg-[rgba(255,87,34,0.1)] rounded-[16px] flex items-center justify-center mb-6 text-[32px] icon-float">▣</div>
+            <h3 className="text-[28px] text-[#1A1A4B] mb-3 font-display text-weight-animate">Smart Analytics</h3>
+            <p className="text-[#6B7280] leading-[1.6] font-body">Track progress and get insights into your learning journey</p>
           </div>
-          <div className="bg-white rounded-[24px] p-10 transition-all duration-300 cursor-pointer hover:translate-y-[-8px] hover:scale-[1.02] hover:shadow-[0_20px_40px_rgba(0,0,0,0.1)]">
-            <div className="w-[60px] h-[60px] bg-[rgba(255,87,34,0.1)] rounded-[16px] flex items-center justify-center mb-6 text-[32px]">◎</div>
-            <h3 className="text-[28px] text-[#1A1A4B] mb-3 italic font-normal">Global Access</h3>
-            <p className="text-[#6B7280] leading-[1.6] italic">Learn from anywhere, anytime, with any device</p>
+          <div className="bg-white rounded-[24px] p-10 transition-all duration-300 cursor-pointer hover-lift hover:scale-[1.02] hover:shadow-[0_20px_40px_rgba(0,0,0,0.1)] glass-card animate-scale-in stagger-5">
+            <div className="w-[60px] h-[60px] bg-[rgba(255,87,34,0.1)] rounded-[16px] flex items-center justify-center mb-6 text-[32px] icon-float">◎</div>
+            <h3 className="text-[28px] text-[#1A1A4B] mb-3 font-display text-weight-animate">Global Access</h3>
+            <p className="text-[#6B7280] leading-[1.6] font-body">Learn from anywhere, anytime, with any device</p>
           </div>
-          <div className="bg-white rounded-[24px] p-10 transition-all duration-300 cursor-pointer hover:translate-y-[-8px] hover:scale-[1.02] hover:shadow-[0_20px_40px_rgba(0,0,0,0.1)]">
-            <div className="w-[60px] h-[60px] bg-[rgba(255,87,34,0.1)] rounded-[16px] flex items-center justify-center mb-6 text-[32px]">△</div>
-            <h3 className="text-[28px] text-[#1A1A4B] mb-3 italic font-normal">Instant Setup</h3>
-            <p className="text-[#6B7280] leading-[1.6] italic">Teachers upload content, AI learns and deploys instantly</p>
+          <div className="bg-white rounded-[24px] p-10 transition-all duration-300 cursor-pointer hover-lift hover:scale-[1.02] hover:shadow-[0_20px_40px_rgba(0,0,0,0.1)] glass-card animate-scale-in stagger-6">
+            <div className="w-[60px] h-[60px] bg-[rgba(255,87,34,0.1)] rounded-[16px] flex items-center justify-center mb-6 text-[32px] icon-float">△</div>
+            <h3 className="text-[28px] text-[#1A1A4B] mb-3 font-display text-weight-animate">Instant Setup</h3>
+            <p className="text-[#6B7280] leading-[1.6] font-body">Teachers upload content, AI learns and deploys instantly</p>
           </div>
         </div>
       </section>
@@ -209,28 +253,28 @@ const Index = () => {
         <div className="floating-image absolute bg-white p-3 rounded-[12px] shadow-[0_20px_40px_rgba(0,0,0,0.3)] w-[140px] h-[140px] bottom-[25%] left-[20%] bg-gradient-to-br from-[#4CAF50] to-[#00BCD4] floating-anim-delay-4"></div>
         
         <div className="relative z-10 text-center max-w-[900px] mx-auto">
-          <h2 className="text-[64px] text-white mb-6 italic font-normal">Behind the Technology</h2>
-          <p className="text-[rgba(255,255,255,0.8)] text-[20px] leading-[1.6] mb-6 italic">Finally, meet the platform transforming education</p>
-          <p className="text-[rgba(255,255,255,0.8)] text-[20px] leading-[1.6] mb-12 italic">We help educators create digital twins that actually work. Whether you need to scale your teaching or preserve your knowledge, we focus on real impact—no complicated tech, just education that works.</p>
+          <h2 className="text-fluid-lg text-white mb-6 font-display text-weight-animate animate-text-reveal gradient-text-white">Behind the Technology</h2>
+          <p className="text-[rgba(255,255,255,0.8)] text-[20px] leading-[1.6] mb-6 font-body animate-text-reveal stagger-1">Finally, meet the platform transforming education</p>
+          <p className="text-[rgba(255,255,255,0.8)] text-[20px] leading-[1.6] mb-12 font-body animate-text-reveal stagger-2">We help educators create digital twins that actually work. Whether you need to scale your teaching or preserve your knowledge, we focus on real impact—no complicated tech, just education that works.</p>
           {isSignedIn ? (
-            <button onClick={() => navigate('/get-started')} className="px-12 py-[18px] rounded-full bg-[#FF5722] text-white font-normal italic text-[18px] cursor-pointer transition-all duration-300 border-none hover:scale-105 hover:shadow-[0_8px_24px_rgba(255,87,34,0.3)]">Start Creating for Free</button>
+            <button onClick={() => navigate('/get-started')} className="btn-modern px-12 py-[18px] text-[18px] hover-lift hover-glow animate-scale-in stagger-3">Start Creating for Free</button>
           ) : (
             <SignInButton mode="modal" fallbackRedirectUrl="/get-started" forceRedirectUrl="/get-started">
-              <button className="px-12 py-[18px] rounded-full bg-[#FF5722] text-white font-normal italic text-[18px] cursor-pointer transition-all duration-300 border-none hover:scale-105 hover:shadow-[0_8px_24px_rgba(255,87,34,0.3)]">Start Creating for Free</button>
+              <button className="btn-modern px-12 py-[18px] text-[18px] hover-lift hover-glow animate-scale-in stagger-3">Start Creating for Free</button>
             </SignInButton>
           )}
         </div>
       </section>
 
       {/* CTA Section */}
-      <section id="contact" className="py-[120px] px-[60px] text-center bg-[#FBF7F0]">
-        <h2 className="text-[64px] text-[#1A1A4B] mb-6 italic font-normal">Ready to transform education?</h2>
-        <p className="text-[22px] text-[#6B7280] mb-12 italic">Join thousands of educators creating their digital twins</p>
+      <section id="contact" className="py-[120px] px-[60px] text-center bg-[#FBF7F0] scroll-reveal">
+        <h2 className="text-fluid-lg text-[#1A1A4B] mb-6 font-display text-weight-animate gradient-text animate-text-reveal">Ready to transform education?</h2>
+        <p className="text-[22px] text-[#6B7280] mb-12 font-body animate-text-reveal stagger-1">Join thousands of educators creating their digital twins</p>
         {isSignedIn ? (
-          <button onClick={() => navigate('/get-started')} className="px-12 py-[18px] rounded-full bg-[#FF5722] text-white font-normal italic text-[18px] cursor-pointer transition-all duration-300 border-none hover:scale-105 hover:shadow-[0_8px_24px_rgba(255,87,34,0.3)]">Get Started Today</button>
+          <button onClick={() => navigate('/get-started')} className="btn-modern px-12 py-[18px] text-[18px] hover-lift hover-glow animate-scale-in stagger-2">Get Started Today</button>
         ) : (
           <SignInButton mode="modal" fallbackRedirectUrl="/get-started" forceRedirectUrl="/get-started">
-            <button className="px-12 py-[18px] rounded-full bg-[#FF5722] text-white font-normal italic text-[18px] cursor-pointer transition-all duration-300 border-none hover:scale-105 hover:shadow-[0_8px_24px_rgba(255,87,34,0.3)]">Get Started Today</button>
+            <button className="btn-modern px-12 py-[18px] text-[18px] hover-lift hover-glow animate-scale-in stagger-2">Get Started Today</button>
           </SignInButton>
         )}
       </section>
