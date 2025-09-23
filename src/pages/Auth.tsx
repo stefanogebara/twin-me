@@ -15,14 +15,14 @@ const Auth = () => {
         <Navigate to="/" replace />
       </SignedIn>
       <SignedOut>
-        <div className="min-h-screen bg-white flex items-center justify-center">
+        <div className="min-h-screen bg-[hsl(var(--lenny-cream))] flex items-center justify-center">
           <div className="max-w-md w-full mx-4">
             {/* Hero Section */}
             <div className="text-center mb-8">
-              <h1 className="text-4xl font-bold text-[#1A1A4B] mb-4">
+              <h1 className="text-4xl font-display font-medium text-[hsl(var(--lenny-black))] mb-4 gradient-text">
                 Welcome to Twin Me
               </h1>
-              <p className="text-gray-600 text-lg">
+              <p className="text-[hsl(var(--muted-foreground))] text-lg">
                 Your AI-powered educational platform
               </p>
             </div>
@@ -34,7 +34,7 @@ const Auth = () => {
                 fallbackRedirectUrl="/"
                 forceRedirectUrl="/"
               >
-                <button className="w-full bg-[#FF5722] text-white hover:bg-[#FF5722]/90 h-12 px-8 rounded-lg font-medium transition-colors">
+                <button className="w-full btn-lenny h-12 px-8 rounded-lg font-medium transition-colors">
                   Sign In
                 </button>
               </SignInButton>
@@ -44,14 +44,14 @@ const Auth = () => {
                 fallbackRedirectUrl="/"
                 forceRedirectUrl="/"
               >
-                <button className="w-full border border-[#1A1A4B] bg-white hover:bg-[#1A1A4B] hover:text-white h-12 px-8 rounded-lg font-medium transition-colors">
+                <button className="w-full btn-lenny-secondary h-12 px-8 rounded-lg font-medium transition-colors">
                   Sign Up
                 </button>
               </SignUpButton>
             </div>
 
             {/* Footer */}
-            <div className="text-center mt-8 text-sm text-gray-500">
+            <div className="text-center mt-8 text-sm text-[hsl(var(--muted-foreground))]">
               <p>Join thousands of students learning with AI</p>
             </div>
           </div>

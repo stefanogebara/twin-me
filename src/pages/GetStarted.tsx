@@ -81,22 +81,22 @@ const GetStarted = () => {
   };
 
   return (
-    <div className="bg-[#FBF7F0] text-[#1A1A4B] min-h-screen">
+    <div className="bg-[hsl(var(--lenny-cream))] text-[hsl(var(--lenny-black))] min-h-screen">
       {/* Background Effects */}
-      <div className="fixed w-[400px] h-[400px] bg-gradient-to-br from-[#FF5722] to-[#FF9800] rounded-full top-[20%] right-[10%] blur-[100px] opacity-30 animate-[float_20s_ease-in-out_infinite] pointer-events-none"></div>
-      <div className="fixed w-[300px] h-[300px] bg-gradient-to-br from-[#4A90E2] to-[#00BCD4] rounded-full bottom-[20%] left-[10%] blur-[100px] opacity-30 animate-[float_20s_ease-in-out_infinite] pointer-events-none"></div>
+      <div className="fixed w-[400px] h-[400px] bg-gradient-to-br from-[hsl(var(--lenny-orange))] to-[hsl(var(--lenny-peach))] rounded-full top-[20%] right-[10%] blur-[100px] opacity-30 animate-[float_20s_ease-in-out_infinite] pointer-events-none"></div>
+      <div className="fixed w-[300px] h-[300px] bg-gradient-to-br from-[hsl(var(--lenny-orange))] to-[hsl(var(--lenny-cream))] rounded-full bottom-[20%] left-[10%] blur-[100px] opacity-30 animate-[float_20s_ease-in-out_infinite] pointer-events-none"></div>
       
       {/* Navigation */}
-      <nav className="fixed top-0 w-full z-[100] px-[60px] py-6 transition-all duration-300 bg-[#FBF7F0]">
+      <nav className="fixed top-0 w-full z-[100] px-[60px] py-6 transition-all duration-300 bg-[hsl(var(--lenny-cream))]">
         <div className="max-w-[1400px] mx-auto flex justify-between items-center">
-          <div className="text-[28px] text-[#1A1A4B] font-normal italic font-playfair cursor-pointer" onClick={goHome}>
+          <div className="text-[28px] text-[hsl(var(--lenny-black))] font-display font-medium cursor-pointer" onClick={goHome}>
             Twin Me
           </div>
           <div className="flex items-center gap-8">
-            <a href="#" className="text-[#1A1A4B] no-underline font-normal italic text-base transition-colors duration-300 hover:text-[#FF5722]">
+            <a href="#" className="text-[hsl(var(--lenny-black))] no-underline font-medium text-base transition-colors duration-300 hover:text-[hsl(var(--lenny-orange))]">
               Help
             </a>
-            <a href="#" className="text-[#1A1A4B] no-underline font-normal italic text-base transition-colors duration-300 hover:text-[#FF5722]">
+            <a href="#" className="text-[hsl(var(--lenny-black))] no-underline font-medium text-base transition-colors duration-300 hover:text-[hsl(var(--lenny-orange))]">
               Sign In
             </a>
           </div>
@@ -105,17 +105,17 @@ const GetStarted = () => {
       
       {/* Progress Bar */}
       <div className="fixed top-[80px] left-0 right-0 h-1 bg-gray-200/50 z-[40]">
-        <div className="h-full bg-gradient-to-r from-[#FF5722] to-[#FF9800] transition-all duration-500" style={{ width: `${updateProgress()}%` }}></div>
+        <div className="h-full bg-gradient-to-r from-[hsl(var(--lenny-orange))] to-[hsl(var(--lenny-peach))] transition-all duration-500" style={{ width: `${updateProgress()}%` }}></div>
       </div>
       
       {/* Page 1: Choose Your Path */}
       {currentPage === 1 && (
         <div className="min-h-screen pt-[140px] pb-20 px-6 animate-[fadeIn_0.5s_ease]">
-          <button className="inline-flex items-center gap-2 text-[#6B7280] no-underline text-sm mb-8 transition-colors duration-300 hover:text-[#1A1A4B]" onClick={goHome}>
+          <button className="inline-flex items-center gap-2 text-[hsl(var(--muted-foreground))] no-underline text-sm mb-8 transition-colors duration-300 hover:text-[hsl(var(--lenny-black))]" onClick={goHome}>
             ← Back to Home
           </button>
           <div className="max-w-[1200px] mx-auto text-center">
-            <h1 className="font-playfair text-[clamp(48px,6vw,72px)] font-normal italic leading-[1.1] mb-6">
+            <h1 className="font-display text-[clamp(48px,6vw,72px)] font-medium leading-[1.1] mb-6 gradient-text">
               Welcome to Twin Me
             </h1>
             <p className="text-xl mt-6 mb-16">How would you like to use the platform?</p>
@@ -128,8 +128,8 @@ const GetStarted = () => {
                 <div className="w-[100px] h-[100px] mx-auto mb-8 bg-gradient-to-br from-[rgba(255,87,34,0.1)] to-[rgba(255,152,0,0.1)] rounded-[24px] flex items-center justify-center text-5xl">
                   ◉
                 </div>
-                <h3 className="font-playfair text-[32px] font-normal italic mb-2">I Want to Create</h3>
-                <p className="text-[#6B7280] leading-[1.6]">Build a digital twin of yourself for teaching, mentoring, or sharing knowledge</p>
+                <h3 className="font-heading text-[32px] font-medium mb-2">I Want to Create</h3>
+                <p className="text-[hsl(var(--muted-foreground))] leading-[1.6]">Build a digital twin of yourself for teaching, mentoring, or sharing knowledge</p>
               </div>
               
               <div 
@@ -139,8 +139,8 @@ const GetStarted = () => {
                 <div className="w-[100px] h-[100px] mx-auto mb-8 bg-gradient-to-br from-[rgba(74,144,226,0.1)] to-[rgba(0,188,212,0.1)] rounded-[24px] flex items-center justify-center text-5xl">
                   ◎
                 </div>
-                <h3 className="font-playfair text-[32px] font-normal italic mb-2">I Want to Learn</h3>
-                <p className="text-[#6B7280] leading-[1.6]">Access digital twins of educators and experts to enhance your learning journey</p>
+                <h3 className="font-heading text-[32px] font-medium mb-2">I Want to Learn</h3>
+                <p className="text-[hsl(var(--muted-foreground))] leading-[1.6]">Access digital twins of educators and experts to enhance your learning journey</p>
               </div>
             </div>
           </div>
@@ -150,33 +150,33 @@ const GetStarted = () => {
       {/* Page 2: Twin Type Selection */}
       {currentPage === 2 && (
         <div className="min-h-screen pt-[140px] pb-20 px-6 animate-[fadeIn_0.5s_ease]">
-          <button className="inline-flex items-center gap-2 text-[#6B7280] no-underline text-sm mb-8 transition-colors duration-300 hover:text-[#1A1A4B]" onClick={previousPage}>
+          <button className="inline-flex items-center gap-2 text-[hsl(var(--muted-foreground))] no-underline text-sm mb-8 transition-colors duration-300 hover:text-[hsl(var(--lenny-black))]" onClick={previousPage}>
             ← Back
           </button>
           
           <div className="max-w-[1200px] mx-auto text-center">
-            <h1 className="font-playfair text-[clamp(42px,6vw,72px)] font-normal italic leading-[1.1] mb-6">
+            <h1 className="font-display text-[clamp(42px,6vw,72px)] font-medium leading-[1.1] mb-6 gradient-text">
               What Type of Twin?
             </h1>
             <p className="text-xl mt-6 mb-16">You can create multiple twins for different purposes</p>
             
             <div className="grid grid-cols-3 gap-8 max-w-[1200px] mx-auto mt-16">
-              <div 
+              <div
                 className={`bg-white rounded-[24px] p-10 border-2 cursor-pointer transition-all duration-300 relative ${
-                  selectedType === 'educational' ? 'border-[#FF5722] transform translate-y-[-4px] shadow-[0_20px_40px_rgba(0,0,0,0.1)]' : 'border-transparent'
+                  selectedType === 'educational' ? 'border-[hsl(var(--lenny-orange))] transform translate-y-[-4px] shadow-[0_20px_40px_rgba(0,0,0,0.1)]' : 'border-transparent'
                 }`}
                 onClick={() => selectType('educational')}
               >
                 {selectedType === 'educational' && (
-                  <div className="absolute top-5 right-5 w-8 h-8 bg-[#FF5722] text-white rounded-full flex items-center justify-center text-lg">
+                  <div className="absolute top-5 right-5 w-8 h-8 bg-[hsl(var(--lenny-orange))] text-white rounded-full flex items-center justify-center text-lg">
                     ✓
                   </div>
                 )}
-                <h3 className="font-playfair text-[24px] font-normal italic mb-4">Educational Twin</h3>
+                <h3 className="font-heading text-[24px] font-medium mb-4">Educational Twin</h3>
                 <div className="bg-[#4A90E2] text-white py-1 px-3 rounded-full text-xs inline-block mb-4">
                   INSTITUTION VERIFIED
                 </div>
-                <ul className="list-none text-[#6B7280] text-sm leading-8 text-left">
+                <ul className="list-none text-[hsl(var(--muted-foreground))] text-sm leading-8 text-left">
                   <li>→ For universities & schools</li>
                   <li>→ Formal teaching style</li>
                   <li>→ Course integration</li>
@@ -185,19 +185,19 @@ const GetStarted = () => {
                 </ul>
               </div>
               
-              <div 
+              <div
                 className={`bg-white rounded-[24px] p-10 border-2 cursor-pointer transition-all duration-300 relative ${
-                  selectedType === 'personal' ? 'border-[#FF5722] transform translate-y-[-4px] shadow-[0_20px_40px_rgba(0,0,0,0.1)]' : 'border-transparent'
+                  selectedType === 'personal' ? 'border-[hsl(var(--lenny-orange))] transform translate-y-[-4px] shadow-[0_20px_40px_rgba(0,0,0,0.1)]' : 'border-transparent'
                 }`}
                 onClick={() => selectType('personal')}
               >
                 {selectedType === 'personal' && (
-                  <div className="absolute top-5 right-5 w-8 h-8 bg-[#FF5722] text-white rounded-full flex items-center justify-center text-lg">
+                  <div className="absolute top-5 right-5 w-8 h-8 bg-[hsl(var(--lenny-orange))] text-white rounded-full flex items-center justify-center text-lg">
                     ✓
                   </div>
                 )}
-                <h3 className="font-playfair text-[24px] font-normal italic mb-12">Personal Twin</h3>
-                <ul className="list-none text-[#6B7280] text-sm leading-8 text-left">
+                <h3 className="font-heading text-[24px] font-medium mb-12">Personal Twin</h3>
+                <ul className="list-none text-[hsl(var(--muted-foreground))] text-sm leading-8 text-left">
                   <li>→ Share life experiences</li>
                   <li>→ Mentorship & coaching</li>
                   <li>→ Personal brand</li>
@@ -206,22 +206,22 @@ const GetStarted = () => {
                 </ul>
               </div>
               
-              <div 
+              <div
                 className={`bg-white rounded-[24px] p-10 border-2 cursor-pointer transition-all duration-300 relative ${
-                  selectedType === 'both' ? 'border-[#FF5722] transform translate-y-[-4px] shadow-[0_20px_40px_rgba(0,0,0,0.1)]' : 'border-transparent'
+                  selectedType === 'both' ? 'border-[hsl(var(--lenny-orange))] transform translate-y-[-4px] shadow-[0_20px_40px_rgba(0,0,0,0.1)]' : 'border-transparent'
                 }`}
                 onClick={() => selectType('both')}
               >
                 {selectedType === 'both' && (
-                  <div className="absolute top-5 right-5 w-8 h-8 bg-[#FF5722] text-white rounded-full flex items-center justify-center text-lg">
+                  <div className="absolute top-5 right-5 w-8 h-8 bg-[hsl(var(--lenny-orange))] text-white rounded-full flex items-center justify-center text-lg">
                     ✓
                   </div>
                 )}
-                <h3 className="font-playfair text-[24px] font-normal italic mb-4">Create Both</h3>
-                <div className="bg-[#FF5722] text-white py-1 px-3 rounded-full text-xs inline-block mb-4">
+                <h3 className="font-heading text-[24px] font-medium mb-4">Create Both</h3>
+                <div className="bg-[hsl(var(--lenny-orange))] text-white py-1 px-3 rounded-full text-xs inline-block mb-4">
                   BEST VALUE
                 </div>
-                <ul className="list-none text-[#6B7280] text-sm leading-8 text-left">
+                <ul className="list-none text-[hsl(var(--muted-foreground))] text-sm leading-8 text-left">
                   <li>→ Multiple twins per account</li>
                   <li>→ Switch between profiles</li>
                   <li>→ Share content across twins</li>
@@ -232,8 +232,8 @@ const GetStarted = () => {
             </div>
             
             <div className="flex gap-4 justify-center mt-12">
-              <button 
-                className="py-[14px] px-8 rounded-full bg-[#FF5722] text-white font-medium text-sm cursor-pointer transition-all duration-300 border-none hover:transform hover:translate-y-[-2px] hover:shadow-[0_8px_24px_rgba(255,87,34,0.3)]"
+              <button
+                className="btn-lenny py-[14px] px-8 rounded-full font-medium text-sm cursor-pointer transition-all duration-300 border-none hover:transform hover:translate-y-[-2px]"
                 onClick={nextPage}
               >
                 Continue
@@ -246,28 +246,28 @@ const GetStarted = () => {
       {/* Page 3: Account Creation */}
       {currentPage === 3 && (
         <div className="min-h-screen pt-[140px] pb-20 px-6 animate-[fadeIn_0.5s_ease]">
-          <button className="inline-flex items-center gap-2 text-[#6B7280] no-underline text-sm mb-8 transition-colors duration-300 hover:text-[#1A1A4B]" onClick={previousPage}>
+          <button className="inline-flex items-center gap-2 text-[hsl(var(--muted-foreground))] no-underline text-sm mb-8 transition-colors duration-300 hover:text-[hsl(var(--lenny-black))]" onClick={previousPage}>
             ← Back
           </button>
           
           <div className="max-w-[500px] mx-auto bg-white rounded-[32px] p-12 shadow-[0_20px_60px_rgba(0,0,0,0.1)]">
-            <h2 className="font-playfair text-center mb-8 text-5xl font-normal italic">Create Your Account</h2>
+            <h2 className="font-display text-center mb-8 text-5xl font-medium gradient-text">Create Your Account</h2>
             
             <div className="clerk-signup-wrapper">
               <SignUp 
                 redirectUrl="/get-started?step=4"
                 appearance={{
                   elements: {
-                    formButtonPrimary: 'bg-[#FF5722] hover:bg-[#FF5722]/90 text-white',
+                    formButtonPrimary: 'bg-[hsl(var(--lenny-orange))] hover:bg-[hsl(var(--lenny-orange))]/90 text-white',
                     card: 'shadow-none border-none bg-transparent',
                     headerTitle: 'hidden',
                     headerSubtitle: 'hidden',
                     socialButtons: 'flex flex-col gap-4',
-                    socialButtonsBlockButton: 'border-2 border-[#E5E7EB] rounded-2xl bg-white hover:border-[#1A1A4B] hover:transform hover:translate-y-[-2px] transition-all duration-300',
-                    formFieldInput: 'w-full py-[14px] px-5 border-2 border-[#E5E7EB] rounded-2xl text-sm transition-all duration-300 focus:outline-none focus:border-[#FF5722] focus:bg-[#FFFBF8]',
-                    formFieldLabel: 'block mb-2 text-sm font-medium text-[#1A1A4B]',
+                    socialButtonsBlockButton: 'border-2 border-[#E5E7EB] rounded-2xl bg-white hover:border-[hsl(var(--lenny-black))] hover:transform hover:translate-y-[-2px] transition-all duration-300',
+                    formFieldInput: 'w-full py-[14px] px-5 border-2 border-[#E5E7EB] rounded-2xl text-sm transition-all duration-300 focus:outline-none focus:border-[hsl(var(--lenny-orange))] focus:bg-[hsl(var(--lenny-cream))]',
+                    formFieldLabel: 'block mb-2 text-sm font-medium text-[hsl(var(--lenny-black))]',
                     dividerLine: 'bg-[#E5E7EB]',
-                    dividerText: 'text-[#6B7280] text-sm'
+                    dividerText: 'text-[hsl(var(--muted-foreground))] text-sm'
                   }
                 }}
               />
@@ -279,21 +279,21 @@ const GetStarted = () => {
       {/* Page 4: Quick Setup Before Builder */}
       {currentPage === 4 && (
         <div className="min-h-screen pt-[140px] pb-20 px-6 animate-[fadeIn_0.5s_ease]">
-          <button className="inline-flex items-center gap-2 text-[#6B7280] no-underline text-sm mb-8 transition-colors duration-300 hover:text-[#1A1A4B]" onClick={previousPage}>
+          <button className="inline-flex items-center gap-2 text-[hsl(var(--muted-foreground))] no-underline text-sm mb-8 transition-colors duration-300 hover:text-[hsl(var(--lenny-black))]" onClick={previousPage}>
             ← Back
           </button>
           
           <div className="max-w-[1200px] mx-auto text-center">
-            <h1 className="font-playfair text-[clamp(42px,6vw,72px)] font-normal italic leading-[1.1] mb-6">
+            <h1 className="font-display text-[clamp(42px,6vw,72px)] font-medium leading-[1.1] mb-6 gradient-text">
               Let's Set Up Your First Twin
             </h1>
             <p className="text-xl mt-6 mb-16">We'll start with the basics, then refine in the builder</p>
             
             <div className="grid grid-cols-2 gap-10 max-w-[1200px] mx-auto mt-16">
               <div className="bg-white rounded-[24px] p-10 shadow-[0_10px_40px_rgba(0,0,0,0.08)]">
-                <h3 className="font-playfair text-[26px] font-normal italic mb-6">Quick Info</h3>
+                <h3 className="font-heading text-[26px] font-medium mb-6">Quick Info</h3>
                 <div className="mb-6">
-                  <label className="block mb-2 text-sm font-medium text-[#1A1A4B] text-left">What should we call your twin?</label>
+                  <label className="block mb-2 text-sm font-medium text-[hsl(var(--lenny-black))] text-left">What should we call your twin?</label>
                   <input
                     type="text"
                     placeholder="Physics 101 with Dr. Smith"
@@ -312,7 +312,7 @@ const GetStarted = () => {
                 </div>
                 
                 <div className="mb-6">
-                  <label className="block mb-2 text-sm font-medium text-[#1A1A4B] text-left">Teaching level</label>
+                  <label className="block mb-2 text-sm font-medium text-[hsl(var(--lenny-black))] text-left">Teaching level</label>
                   <select
                     className="w-full py-[14px] px-5 border-2 border-[#E5E7EB] rounded-2xl text-sm"
                     value={teachingLevel}
@@ -329,7 +329,7 @@ const GetStarted = () => {
               </div>
               
               <div className="bg-white rounded-[24px] p-10 shadow-[0_10px_40px_rgba(0,0,0,0.08)]">
-                <h3 className="font-playfair text-[26px] font-normal italic mb-6">Quick Start Content</h3>
+                <h3 className="font-heading text-[26px] font-medium mb-6">Quick Start Content</h3>
                 <EnhancedFileUpload
                   twinId="placeholder"
                   title="Drop Your First File"
@@ -345,21 +345,21 @@ const GetStarted = () => {
                   }}
                 />
 
-                <p className="mt-6 text-sm text-[#6B7280] text-center">
+                <p className="mt-6 text-sm text-[hsl(var(--muted-foreground))] text-center">
                   Don't worry, you can add more content in the builder
                 </p>
               </div>
             </div>
             
             <div className="flex gap-4 justify-center mt-12">
-              <button 
-                className="py-[14px] px-8 rounded-full bg-transparent text-[#1A1A4B] border-2 border-[#1A1A4B] font-medium text-sm cursor-pointer transition-all duration-300 hover:bg-[#1A1A4B] hover:text-white"
+              <button
+                className="btn-lenny-secondary py-[14px] px-8 rounded-full font-medium text-sm cursor-pointer transition-all duration-300"
                 onClick={skipToBuilder}
               >
                 Skip for Now
               </button>
-              <button 
-                className="py-[14px] px-8 rounded-full bg-[#FF5722] text-white font-medium text-sm cursor-pointer transition-all duration-300 border-none hover:transform hover:translate-y-[-2px] hover:shadow-[0_8px_24px_rgba(255,87,34,0.3)]"
+              <button
+                className="btn-lenny py-[14px] px-8 rounded-full font-medium text-sm cursor-pointer transition-all duration-300 border-none hover:transform hover:translate-y-[-2px]"
                 onClick={goToBuilder}
               >
                 Continue to Builder
