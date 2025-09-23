@@ -62,6 +62,182 @@ interface SubjectData {
 // Mock data structure - In production, this would come from your backend
 const UNIVERSITY_DATA: UniversityData[] = [
   {
+    id: 'ie-university',
+    name: 'IE University',
+    country: 'Spain',
+    departments: [
+      {
+        id: 'ie-school-global-public-affairs',
+        name: 'IE School of Global and Public Affairs',
+        majors: [
+          {
+            id: 'international-relations',
+            name: 'International Relations',
+            degree: 'Bachelor in International Relations',
+            yearLevels: [
+              {
+                id: 'first-year',
+                name: 'First Year',
+                level: 1,
+                subjects: [
+                  { id: 'intro-ir', name: 'Introduction to International Relations', code: 'IR 101', credits: 6 },
+                  { id: 'political-theory', name: 'Political Theory', code: 'POL 101', credits: 6 },
+                  { id: 'microeconomics', name: 'Microeconomics', code: 'ECON 101', credits: 6 },
+                  { id: 'history-modern-world', name: 'History of the Modern World', code: 'HIST 101', credits: 6 }
+                ]
+              },
+              {
+                id: 'second-year',
+                name: 'Second Year',
+                level: 2,
+                subjects: [
+                  { id: 'comparative-politics', name: 'Comparative Politics', code: 'POL 201', credits: 6 },
+                  { id: 'international-law', name: 'International Law', code: 'LAW 201', credits: 6 },
+                  { id: 'macroeconomics', name: 'Macroeconomics', code: 'ECON 201', credits: 6 }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        id: 'ie-business-school',
+        name: 'IE Business School',
+        majors: [
+          {
+            id: 'business-administration',
+            name: 'Business Administration',
+            degree: 'Bachelor in Business Administration',
+            yearLevels: [
+              {
+                id: 'first-year',
+                name: 'First Year',
+                level: 1,
+                subjects: [
+                  { id: 'intro-business', name: 'Introduction to Business', code: 'BUS 101', credits: 6 },
+                  { id: 'accounting-principles', name: 'Accounting Principles', code: 'ACC 101', credits: 6 },
+                  { id: 'business-math', name: 'Business Mathematics', code: 'MATH 101', credits: 6 },
+                  { id: 'business-communication', name: 'Business Communication', code: 'COM 101', credits: 6 }
+                ]
+              },
+              {
+                id: 'second-year',
+                name: 'Second Year',
+                level: 2,
+                subjects: [
+                  { id: 'corporate-finance', name: 'Corporate Finance', code: 'FIN 201', credits: 6 },
+                  { id: 'marketing-principles', name: 'Marketing Principles', code: 'MKT 201', credits: 6 },
+                  { id: 'operations-management', name: 'Operations Management', code: 'OPS 201', credits: 6 }
+                ]
+              }
+            ]
+          },
+          {
+            id: 'management-information-systems',
+            name: 'Management Information Systems',
+            degree: 'Bachelor in Management Information Systems',
+            yearLevels: [
+              {
+                id: 'first-year',
+                name: 'First Year',
+                level: 1,
+                subjects: [
+                  { id: 'intro-mis', name: 'Introduction to MIS', code: 'MIS 101', credits: 6 },
+                  { id: 'programming-fundamentals', name: 'Programming Fundamentals', code: 'CS 101', credits: 6 },
+                  { id: 'database-systems', name: 'Database Systems', code: 'CS 201', credits: 6 }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        id: 'ie-school-science-technology',
+        name: 'IE School of Science and Technology',
+        majors: [
+          {
+            id: 'computer-science-ai',
+            name: 'Computer Science and Artificial Intelligence',
+            degree: 'Bachelor in Computer Science and Artificial Intelligence',
+            yearLevels: [
+              {
+                id: 'first-year',
+                name: 'First Year',
+                level: 1,
+                subjects: [
+                  { id: 'programming-i', name: 'Programming I', code: 'CS 101', credits: 6 },
+                  { id: 'calculus-i', name: 'Calculus I', code: 'MATH 101', credits: 6 },
+                  { id: 'discrete-math', name: 'Discrete Mathematics', code: 'MATH 111', credits: 6 },
+                  { id: 'physics-i', name: 'Physics I', code: 'PHYS 101', credits: 6 }
+                ]
+              },
+              {
+                id: 'second-year',
+                name: 'Second Year',
+                level: 2,
+                subjects: [
+                  { id: 'data-structures', name: 'Data Structures and Algorithms', code: 'CS 201', credits: 6 },
+                  { id: 'linear-algebra', name: 'Linear Algebra', code: 'MATH 201', credits: 6 },
+                  { id: 'intro-ai', name: 'Introduction to Artificial Intelligence', code: 'AI 201', credits: 6 }
+                ]
+              },
+              {
+                id: 'third-year',
+                name: 'Third Year',
+                level: 3,
+                subjects: [
+                  { id: 'machine-learning', name: 'Machine Learning', code: 'AI 301', credits: 6 },
+                  { id: 'deep-learning', name: 'Deep Learning', code: 'AI 302', credits: 6 },
+                  { id: 'computer-vision', name: 'Computer Vision', code: 'AI 303', credits: 6 }
+                ]
+              }
+            ]
+          },
+          {
+            id: 'data-applied-science',
+            name: 'Data and Applied Science',
+            degree: 'Bachelor in Data and Applied Science',
+            yearLevels: [
+              {
+                id: 'first-year',
+                name: 'First Year',
+                level: 1,
+                subjects: [
+                  { id: 'intro-data-science', name: 'Introduction to Data Science', code: 'DS 101', credits: 6 },
+                  { id: 'statistics', name: 'Statistics', code: 'STAT 101', credits: 6 },
+                  { id: 'python-programming', name: 'Python Programming', code: 'CS 101', credits: 6 }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        id: 'ie-school-architecture-design',
+        name: 'IE School of Architecture and Design',
+        majors: [
+          {
+            id: 'design',
+            name: 'Design',
+            degree: 'Bachelor in Design',
+            yearLevels: [
+              {
+                id: 'first-year',
+                name: 'First Year',
+                level: 1,
+                subjects: [
+                  { id: 'design-fundamentals', name: 'Design Fundamentals', code: 'DES 101', credits: 6 },
+                  { id: 'drawing-techniques', name: 'Drawing Techniques', code: 'ART 101', credits: 6 },
+                  { id: 'color-theory', name: 'Color Theory', code: 'ART 102', credits: 6 }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  {
     id: 'mit',
     name: 'Massachusetts Institute of Technology',
     country: 'USA',
