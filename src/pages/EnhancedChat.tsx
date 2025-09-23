@@ -165,7 +165,7 @@ const EnhancedChat = () => {
     try {
       // Use Vicente-specific method if this is Vicente Leon
       if (twin.name.toLowerCase().includes('vicente') || twin.name.toLowerCase().includes('leon')) {
-        const response = await DigitalTwinClaude.generateVicenteResponse(
+        const response = await SecureDigitalTwinAPI.generateVicenteResponse(
           "Please provide a warm greeting to introduce yourself to a new student. Keep it friendly and encouraging, mention what subject you teach, and use your characteristic style.",
           {
             twin,
@@ -222,7 +222,7 @@ const EnhancedChat = () => {
 
       // Use Vicente-specific method if this is Vicente Leon
       const aiResponse = digitalTwin.name.toLowerCase().includes('vicente') || digitalTwin.name.toLowerCase().includes('leon')
-        ? await DigitalTwinClaude.generateVicenteResponse(
+        ? await SecureDigitalTwinAPI.generateVicenteResponse(
             content.trim(),
             {
               twin: digitalTwin,
@@ -345,12 +345,12 @@ const EnhancedChat = () => {
 
   if (!digitalTwin) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
+      <div className="min-h-screen bg-[hsl(var(--lenny-cream))] flex items-center justify-center">
         <div className="text-center">
           <MessageSquare className="w-16 h-16 mx-auto mb-4 text-muted-foreground" />
-          <h2 className="text-2xl font-semibold mb-2">Digital Twin Not Found</h2>
-          <p className="text-muted-foreground mb-4">This digital twin is not available or has been deactivated.</p>
-          <Button onClick={() => navigate('/talk-to-twin')}>
+          <h2 className="text-2xl font-display gradient-text mb-2">Digital Twin Not Found</h2>
+          <p className="text-[hsl(var(--muted-foreground))] mb-4">This digital twin is not available or has been deactivated.</p>
+          <Button className="btn-lenny" onClick={() => navigate('/talk-to-twin')}>
             <ArrowLeft className="w-4 h-4 mr-2" />
             Back to Twins
           </Button>
@@ -360,9 +360,9 @@ const EnhancedChat = () => {
   }
 
   return (
-    <div className="min-h-screen bg-background flex flex-col">
+    <div className="min-h-screen bg-[hsl(var(--lenny-cream))] flex flex-col">
       {/* Header */}
-      <div className="sticky top-0 z-10 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b">
+      <div className="sticky top-0 z-10 bg-[hsl(var(--lenny-cream))]/95 backdrop-blur supports-[backdrop-filter]:bg-[hsl(var(--lenny-cream))]/60 border-b">
         <div className="max-w-4xl mx-auto px-6 py-4">
           <div className="flex items-center gap-4">
             <Button
@@ -380,8 +380,8 @@ const EnhancedChat = () => {
                 <AvatarFallback>{digitalTwin.name.split(' ').map(n => n[0]).join('')}</AvatarFallback>
               </Avatar>
               <div>
-                <h1 className="text-lg font-semibold">{digitalTwin.name}</h1>
-                <p className="text-sm text-muted-foreground">
+                <h1 className="text-lg font-display gradient-text">{digitalTwin.name}</h1>
+                <p className="text-sm text-[hsl(var(--muted-foreground))]">
                   {digitalTwin.subject_area} • {digitalTwin.profiles?.university}
                 </p>
               </div>
@@ -406,10 +406,12 @@ const EnhancedChat = () => {
             <div className={`max-w-[70%] ${message.isUser ? 'order-first' : ''}`}>
               <Card className={`p-4 ${
                 message.isUser
-                  ? 'bg-accent text-accent-foreground ml-auto'
-                  : 'bg-muted'
+                  ? 'bg-[hsl(var(--lenny-orange))] text-white ml-auto'
+                  : 'bg-white border border-gray-200 shadow-sm'
               }`}>
-                <p className="text-sm leading-relaxed">{message.content}</p>
+                <p className={`text-sm leading-relaxed ${
+                  message.isUser ? 'text-white' : 'text-[hsl(var(--lenny-black))]'
+                }`}>{message.content}</p>
                 {!message.isUser && (
                   <div className="flex items-center justify-end mt-2 pt-2 border-t border-border/50">
                     <Button
@@ -428,7 +430,7 @@ const EnhancedChat = () => {
                   </div>
                 )}
               </Card>
-              <p className="text-xs text-muted-foreground mt-1 px-3">
+              <p className="text-xs text-[hsl(var(--muted-foreground))] mt-1 px-3">
                 {message.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
               </p>
             </div>
@@ -446,11 +448,11 @@ const EnhancedChat = () => {
               <AvatarImage src={digitalTwin.profiles?.avatar_url} alt={digitalTwin.name} />
               <AvatarFallback>{digitalTwin.name.split(' ').map(n => n[0]).join('')}</AvatarFallback>
             </Avatar>
-            <Card className="p-4 bg-muted max-w-[70%]">
+            <Card className="p-4 bg-white border border-gray-200 shadow-sm max-w-[70%]">
               <div className="flex items-center gap-2">
-                <div className="w-2 h-2 bg-muted-foreground rounded-full animate-bounce"></div>
-                <div className="w-2 h-2 bg-muted-foreground rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
-                <div className="w-2 h-2 bg-muted-foreground rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+                <div className="w-2 h-2 bg-[hsl(var(--muted-foreground))] rounded-full animate-bounce"></div>
+                <div className="w-2 h-2 bg-[hsl(var(--muted-foreground))] rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
+                <div className="w-2 h-2 bg-[hsl(var(--muted-foreground))] rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
               </div>
             </Card>
           </div>
@@ -459,7 +461,7 @@ const EnhancedChat = () => {
       </div>
 
       {/* Input Area */}
-      <div className="sticky bottom-0 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-t">
+      <div className="sticky bottom-0 bg-[hsl(var(--lenny-cream))]/95 backdrop-blur supports-[backdrop-filter]:bg-[hsl(var(--lenny-cream))]/60 border-t">
         <div className="max-w-4xl mx-auto px-6 py-4">
           <div className="flex items-center gap-2">
             <div className="flex-1 relative">
@@ -479,7 +481,7 @@ const EnhancedChat = () => {
               <Button
                 type="submit"
                 size="sm"
-                className="absolute right-1 top-1/2 -translate-y-1/2 h-8 w-8 p-0"
+                className="btn-lenny absolute right-1 top-1/2 -translate-y-1/2 h-8 w-8 p-0"
                 onClick={() => handleSendMessage(inputValue)}
                 disabled={!inputValue.trim() || isLoading}
               >
@@ -489,7 +491,7 @@ const EnhancedChat = () => {
             <Button
               variant={isRecording ? "destructive" : "outline"}
               size="sm"
-              className="h-10 w-10 p-0"
+              className={`h-10 w-10 p-0 ${!isRecording ? 'btn-lenny-secondary' : ''}`}
               onClick={toggleRecording}
               disabled={isLoading}
             >
@@ -500,7 +502,7 @@ const EnhancedChat = () => {
               )}
             </Button>
           </div>
-          <p className="text-xs text-muted-foreground mt-2 text-center">
+          <p className="text-xs text-[hsl(var(--muted-foreground))] mt-2 text-center">
             Type your message or click the mic to speak
           </p>
         </div>

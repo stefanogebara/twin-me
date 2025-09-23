@@ -195,9 +195,9 @@ const Chat = () => {
   }
 
   return (
-    <div className="min-h-screen bg-background flex flex-col">
+    <div className="min-h-screen bg-[hsl(var(--lenny-cream))] flex flex-col">
       {/* Header */}
-      <div className="sticky top-0 z-10 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b">
+      <div className="sticky top-0 z-10 bg-[hsl(var(--lenny-cream))]/95 backdrop-blur supports-[backdrop-filter]:bg-[hsl(var(--lenny-cream))]/60 border-b">
         <div className="max-w-4xl mx-auto px-6 py-4">
           <div className="flex items-center gap-4">
             <Button 
@@ -215,8 +215,8 @@ const Chat = () => {
                 <AvatarFallback>{professor.name.split(' ').map(n => n[0]).join('')}</AvatarFallback>
               </Avatar>
               <div>
-                <h1 className="text-lg font-semibold">{professor.name}</h1>
-                <p className="text-sm text-muted-foreground">{professor.subject} • {professor.university}</p>
+                <h1 className="text-lg font-display gradient-text">{professor.name}</h1>
+                <p className="text-sm text-[hsl(var(--muted-foreground))]">{professor.subject} • {professor.university}</p>
               </div>
             </div>
           </div>
@@ -238,11 +238,13 @@ const Chat = () => {
             )}
             <div className={`max-w-[70%] ${message.isUser ? 'order-first' : ''}`}>
               <Card className={`p-4 ${
-                message.isUser 
-                  ? 'bg-accent text-accent-foreground ml-auto' 
-                  : 'bg-muted'
+                message.isUser
+                  ? 'bg-[hsl(var(--lenny-orange))] text-white ml-auto'
+                  : 'bg-white border border-gray-200 shadow-sm'
               }`}>
-                <p className="text-sm leading-relaxed">{message.content}</p>
+                <p className={`text-sm leading-relaxed ${
+                  message.isUser ? 'text-white' : 'text-[hsl(var(--lenny-black))]'
+                }`}>{message.content}</p>
                 {!message.isUser && (
                   <div className="flex items-center justify-end mt-2 pt-2 border-t border-border/50">
                     <Button
@@ -261,7 +263,7 @@ const Chat = () => {
                   </div>
                 )}
               </Card>
-              <p className="text-xs text-muted-foreground mt-1 px-3">
+              <p className="text-xs text-[hsl(var(--muted-foreground))] mt-1 px-3">
                 {message.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
               </p>
             </div>
@@ -279,11 +281,11 @@ const Chat = () => {
               <AvatarImage src={professor.image} alt={professor.name} />
               <AvatarFallback>{professor.name.split(' ').map(n => n[0]).join('')}</AvatarFallback>
             </Avatar>
-            <Card className="p-4 bg-muted max-w-[70%]">
+            <Card className="p-4 bg-white border border-gray-200 shadow-sm max-w-[70%]">
               <div className="flex items-center gap-2">
-                <div className="w-2 h-2 bg-muted-foreground rounded-full animate-bounce"></div>
-                <div className="w-2 h-2 bg-muted-foreground rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
-                <div className="w-2 h-2 bg-muted-foreground rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+                <div className="w-2 h-2 bg-[hsl(var(--muted-foreground))] rounded-full animate-bounce"></div>
+                <div className="w-2 h-2 bg-[hsl(var(--muted-foreground))] rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
+                <div className="w-2 h-2 bg-[hsl(var(--muted-foreground))] rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
               </div>
             </Card>
           </div>
@@ -292,7 +294,7 @@ const Chat = () => {
       </div>
 
       {/* Input Area */}
-      <div className="sticky bottom-0 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-t">
+      <div className="sticky bottom-0 bg-[hsl(var(--lenny-cream))]/95 backdrop-blur supports-[backdrop-filter]:bg-[hsl(var(--lenny-cream))]/60 border-t">
         <div className="max-w-4xl mx-auto px-6 py-4">
           <div className="flex items-center gap-2">
             <div className="flex-1 relative">
@@ -312,7 +314,7 @@ const Chat = () => {
               <Button
                 type="submit"
                 size="sm"
-                className="absolute right-1 top-1/2 -translate-y-1/2 h-8 w-8 p-0"
+                className="btn-lenny absolute right-1 top-1/2 -translate-y-1/2 h-8 w-8 p-0"
                 onClick={() => handleSendMessage(inputValue)}
                 disabled={!inputValue.trim() || isLoading}
               >
@@ -322,7 +324,7 @@ const Chat = () => {
             <Button
               variant={isRecording ? "destructive" : "outline"}
               size="sm"
-              className="h-10 w-10 p-0"
+              className={`h-10 w-10 p-0 ${!isRecording ? 'btn-lenny-secondary' : ''}`}
               onClick={toggleRecording}
               disabled={isLoading}
             >
@@ -333,7 +335,7 @@ const Chat = () => {
               )}
             </Button>
           </div>
-          <p className="text-xs text-muted-foreground mt-2 text-center">
+          <p className="text-xs text-[hsl(var(--muted-foreground))] mt-2 text-center">
             Type your message or click the mic to speak
           </p>
         </div>
