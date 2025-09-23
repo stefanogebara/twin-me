@@ -87,16 +87,16 @@ const GetStarted = () => {
       <div className="fixed w-[300px] h-[300px] bg-gradient-to-br from-[#4A90E2] to-[#00BCD4] rounded-full bottom-[20%] left-[10%] blur-[100px] opacity-30 animate-[float_20s_ease-in-out_infinite] pointer-events-none"></div>
       
       {/* Navigation */}
-      <nav className="fixed top-0 w-full z-[100] p-6">
+      <nav className="fixed top-0 w-full z-[100] px-[60px] py-6 transition-all duration-300 bg-[#FBF7F0]">
         <div className="max-w-[1400px] mx-auto flex justify-between items-center">
-          <div className="font-playfair text-[28px] font-normal italic text-[#1A1A4B] cursor-pointer" onClick={goHome}>
+          <div className="text-[28px] text-[#1A1A4B] font-normal italic font-playfair cursor-pointer" onClick={goHome}>
             Twin Me
           </div>
           <div className="flex items-center gap-8">
-            <a href="#" className="text-[#6B7280] no-underline text-sm transition-colors duration-300 hover:text-[#FF5722]">
+            <a href="#" className="text-[#1A1A4B] no-underline font-normal italic text-base transition-colors duration-300 hover:text-[#FF5722]">
               Help
             </a>
-            <a href="#" className="text-[#6B7280] no-underline text-sm transition-colors duration-300 hover:text-[#FF5722]">
+            <a href="#" className="text-[#1A1A4B] no-underline font-normal italic text-base transition-colors duration-300 hover:text-[#FF5722]">
               Sign In
             </a>
           </div>
