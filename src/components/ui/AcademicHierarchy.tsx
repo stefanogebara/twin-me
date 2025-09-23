@@ -129,6 +129,26 @@ const UNIVERSITY_DATA: UniversityData[] = [
                   { id: 'marketing-principles', name: 'Marketing Principles', code: 'MKT 201', credits: 6 },
                   { id: 'operations-management', name: 'Operations Management', code: 'OPS 201', credits: 6 }
                 ]
+              },
+              {
+                id: 'third-year',
+                name: 'Third Year',
+                level: 3,
+                subjects: [
+                  { id: 'strategic-management', name: 'Strategic Management', code: 'BUS 301', credits: 6 },
+                  { id: 'international-business', name: 'International Business', code: 'BUS 302', credits: 6 },
+                  { id: 'business-analytics', name: 'Business Analytics', code: 'BUS 303', credits: 6 }
+                ]
+              },
+              {
+                id: 'fourth-year',
+                name: 'Fourth Year',
+                level: 4,
+                subjects: [
+                  { id: 'business-capstone', name: 'Business Capstone Project', code: 'BUS 401', credits: 12 },
+                  { id: 'entrepreneurship', name: 'Entrepreneurship', code: 'BUS 402', credits: 6 },
+                  { id: 'business-ethics', name: 'Business Ethics', code: 'BUS 403', credits: 6 }
+                ]
               }
             ]
           },
@@ -189,6 +209,69 @@ const UNIVERSITY_DATA: UniversityData[] = [
                   { id: 'machine-learning', name: 'Machine Learning', code: 'AI 301', credits: 6 },
                   { id: 'deep-learning', name: 'Deep Learning', code: 'AI 302', credits: 6 },
                   { id: 'computer-vision', name: 'Computer Vision', code: 'AI 303', credits: 6 }
+                ]
+              },
+              {
+                id: 'fourth-year',
+                name: 'Fourth Year',
+                level: 4,
+                subjects: [
+                  { id: 'final-project', name: 'Final Project', code: 'CS 401', credits: 12 },
+                  { id: 'advanced-ai', name: 'Advanced AI Systems', code: 'AI 401', credits: 6 },
+                  { id: 'ai-ethics', name: 'AI Ethics and Society', code: 'AI 402', credits: 6 }
+                ]
+              }
+            ]
+          },
+          {
+            id: 'bba-cs-ai-dual',
+            name: 'BBA + Computer Science and AI (Dual Degree)',
+            degree: 'Bachelor in Business Administration + Bachelor in Computer Science and AI',
+            yearLevels: [
+              {
+                id: 'first-year',
+                name: 'First Year',
+                level: 1,
+                subjects: [
+                  { id: 'intro-business', name: 'Introduction to Business', code: 'BUS 101', credits: 6 },
+                  { id: 'programming-i', name: 'Programming I', code: 'CS 101', credits: 6 },
+                  { id: 'calculus-i', name: 'Calculus I', code: 'MATH 101', credits: 6 }
+                ]
+              },
+              {
+                id: 'second-year',
+                name: 'Second Year',
+                level: 2,
+                subjects: [
+                  { id: 'accounting-principles', name: 'Accounting Principles', code: 'ACC 101', credits: 6 },
+                  { id: 'data-structures', name: 'Data Structures and Algorithms', code: 'CS 201', credits: 6 }
+                ]
+              },
+              {
+                id: 'third-year',
+                name: 'Third Year',
+                level: 3,
+                subjects: [
+                  { id: 'corporate-finance', name: 'Corporate Finance', code: 'FIN 201', credits: 6 },
+                  { id: 'machine-learning', name: 'Machine Learning', code: 'AI 301', credits: 6 }
+                ]
+              },
+              {
+                id: 'fourth-year',
+                name: 'Fourth Year',
+                level: 4,
+                subjects: [
+                  { id: 'strategic-management', name: 'Strategic Management', code: 'BUS 401', credits: 6 },
+                  { id: 'advanced-ai', name: 'Advanced AI Systems', code: 'AI 401', credits: 6 }
+                ]
+              },
+              {
+                id: 'fifth-year',
+                name: 'Fifth Year',
+                level: 5,
+                subjects: [
+                  { id: 'business-final-project', name: 'Business Final Project', code: 'BUS 501', credits: 12 },
+                  { id: 'cs-final-project', name: 'CS Final Project', code: 'CS 501', credits: 12 }
                 ]
               }
             ]
