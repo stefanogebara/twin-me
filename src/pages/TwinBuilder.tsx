@@ -1,10 +1,15 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { AcademicHierarchy, type AcademicStructure } from '@/components/ui/AcademicHierarchy';
+import EnhancedFileUpload from '@/components/ui/EnhancedFileUpload';
 
 const TwinBuilder = () => {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('identity');
   const [isRecording, setIsRecording] = useState(false);
+  const [currentTwinId, setCurrentTwinId] = useState<string>(''); // Will be set after twin creation
+  const [uploadedFiles, setUploadedFiles] = useState<any[]>([]);
+  const [academicStructure, setAcademicStructure] = useState<AcademicStructure | undefined>();
   const [toggleStates, setToggleStates] = useState({
     questions: true,
     humor: false,
@@ -29,8 +34,13 @@ const TwinBuilder = () => {
     setIsRecording(!isRecording);
   };
 
+  const handleFileUploadComplete = (file: { fileName: string; chunksProcessed: number; totalCharacters: number; processedAt: string }) => {
+    setUploadedFiles(prev => [...prev, file]);
+    console.log('File uploaded successfully:', file);
+  };
+
   return (
-    <div className="font-inter bg-[#FBF7F0] text-[#1A1A4B] h-screen overflow-hidden">
+    <div className="bg-[#FBF7F0] text-[#1A1A4B] h-screen overflow-hidden">
       <div className="flex h-screen">
         {/* Configuration Panel */}
         <div className="w-[500px] bg-white border-r border-[#E5E7EB] overflow-y-auto p-8">
@@ -46,7 +56,7 @@ const TwinBuilder = () => {
             ].map((tab) => (
               <button
                 key={tab.key}
-                className={`py-[10px] px-5 bg-transparent border-none font-inter text-sm font-medium cursor-pointer transition-all duration-300 relative ${
+                className={`py-[10px] px-5 bg-transparent border-none text-sm font-medium cursor-pointer transition-all duration-300 relative ${
                   activeTab === tab.key ? 'text-[#1A1A4B]' : 'text-[#6B7280]'
                 }`}
                 onClick={() => switchTab(tab.key)}
@@ -69,7 +79,7 @@ const TwinBuilder = () => {
                   <input 
                     type="text" 
                     placeholder="Dr. Smith - Physics 101"
-                    className="w-full py-3 px-4 border-2 border-[#E5E7EB] rounded-xl font-inter text-sm transition-all duration-300 focus:outline-none focus:border-[#FF5722] focus:bg-[#FFFBF8]"
+                    className="w-full py-3 px-4 border-2 border-[#E5E7EB] rounded-xl text-sm transition-all duration-300 focus:outline-none focus:border-[#FF5722] focus:bg-[#FFFBF8]"
                   />
                 </div>
                 <div className="mb-5">
@@ -77,15 +87,14 @@ const TwinBuilder = () => {
                   <textarea 
                     rows={3} 
                     placeholder="A digital twin specializing in quantum mechanics..."
-                    className="w-full py-3 px-4 border-2 border-[#E5E7EB] rounded-xl font-inter text-sm transition-all duration-300 focus:outline-none focus:border-[#FF5722] focus:bg-[#FFFBF8]"
+                    className="w-full py-3 px-4 border-2 border-[#E5E7EB] rounded-xl text-sm transition-all duration-300 focus:outline-none focus:border-[#FF5722] focus:bg-[#FFFBF8]"
                   ></textarea>
                 </div>
                 <div className="mb-5">
-                  <label className="block mb-2 text-sm font-medium text-[#1A1A4B]">Expertise Areas</label>
-                  <input 
-                    type="text" 
-                    placeholder="Quantum Physics, Theoretical Physics, Mathematics"
-                    className="w-full py-3 px-4 border-2 border-[#E5E7EB] rounded-xl font-inter text-sm transition-all duration-300 focus:outline-none focus:border-[#FF5722] focus:bg-[#FFFBF8]"
+                  <AcademicHierarchy
+                    value={academicStructure}
+                    onChange={setAcademicStructure}
+                    allowCustom={true}
                   />
                 </div>
               </div>
@@ -117,7 +126,7 @@ const TwinBuilder = () => {
                 <h3 className="font-playfair text-[24px] mb-5 font-normal italic">Teaching Approach</h3>
                 <div className="mb-5">
                   <label className="block mb-2 text-sm font-medium text-[#1A1A4B]">Primary Method</label>
-                  <select className="w-full py-3 px-4 border-2 border-[#E5E7EB] rounded-xl font-inter text-sm transition-all duration-300 focus:outline-none focus:border-[#FF5722] focus:bg-[#FFFBF8]">
+                  <select className="w-full py-3 px-4 border-2 border-[#E5E7EB] rounded-xl text-sm transition-all duration-300 focus:outline-none focus:border-[#FF5722] focus:bg-[#FFFBF8]">
                     <option>Socratic Method - Question-based</option>
                     <option>Direct Instruction</option>
                     <option>Project-Based Learning</option>
@@ -129,7 +138,7 @@ const TwinBuilder = () => {
                   <textarea 
                     rows={3} 
                     placeholder="Let me put it this way..., The key insight here is..."
-                    className="w-full py-3 px-4 border-2 border-[#E5E7EB] rounded-xl font-inter text-sm transition-all duration-300 focus:outline-none focus:border-[#FF5722] focus:bg-[#FFFBF8]"
+                    className="w-full py-3 px-4 border-2 border-[#E5E7EB] rounded-xl text-sm transition-all duration-300 focus:outline-none focus:border-[#FF5722] focus:bg-[#FFFBF8]"
                   ></textarea>
                 </div>
                 <div className="mb-5">
@@ -137,7 +146,7 @@ const TwinBuilder = () => {
                   <textarea 
                     rows={3} 
                     placeholder="I like to explain quantum entanglement like two dancers..."
-                    className="w-full py-3 px-4 border-2 border-[#E5E7EB] rounded-xl font-inter text-sm transition-all duration-300 focus:outline-none focus:border-[#FF5722] focus:bg-[#FFFBF8]"
+                    className="w-full py-3 px-4 border-2 border-[#E5E7EB] rounded-xl text-sm transition-all duration-300 focus:outline-none focus:border-[#FF5722] focus:bg-[#FFFBF8]"
                   ></textarea>
                 </div>
               </div>
@@ -174,36 +183,60 @@ const TwinBuilder = () => {
           {activeTab === 'content' && (
             <div>
               <div className="mb-10">
-                <h3 className="font-playfair text-[24px] mb-5 font-normal italic">Upload Materials</h3>
-                <div className="grid grid-cols-2 gap-4">
-                  {[
-                    { icon: '📹', label: 'Video Lectures', count: '0 uploaded', uploaded: false },
-                    { icon: '📄', label: 'Documents', count: '12 uploaded', uploaded: true },
-                    { icon: '🎤', label: 'Audio', count: '3 uploaded', uploaded: true },
-                    { icon: '💬', label: 'Chat Logs', count: '0 uploaded', uploaded: false }
-                  ].map((item, index) => (
-                    <div 
-                      key={index}
-                      className={`bg-white border-2 rounded-xl p-4 cursor-pointer transition-all duration-300 hover:border-[#FF5722] hover:transform hover:translate-y-[-2px] ${
-                        item.uploaded ? 'bg-[#F0FDF4] border-[#4CAF50]' : 'border-[#E5E7EB]'
-                      }`}
-                    >
-                      <div className="text-2xl mb-2">{item.icon}</div>
-                      <div className="font-medium text-sm">{item.label}</div>
-                      <div className={`text-xs ${item.uploaded ? 'text-[#4CAF50]' : 'text-[#6B7280]'}`}>
-                        {item.count}
-                      </div>
-                    </div>
-                  ))}
-                </div>
+                <h3 className="font-playfair text-[24px] mb-5 font-normal italic">Upload Training Materials</h3>
+                <EnhancedFileUpload
+                  twinId={currentTwinId}
+                  onUploadComplete={handleFileUploadComplete}
+                  maxFiles={15}
+                  title="Upload Educational Materials"
+                  description="Upload syllabus, lecture notes, textbooks, presentations, and other course materials"
+                  className="mb-6"
+                />
               </div>
-              
+
+              <div className="mb-10">
+                <h3 className="font-playfair text-[24px] mb-5 font-normal italic">Uploaded Files</h3>
+                {uploadedFiles.length === 0 ? (
+                  <div className="text-center py-8 text-[#6B7280]">
+                    <p>No files uploaded yet</p>
+                    <p className="text-sm mt-2">Upload documents above to start training your twin</p>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {uploadedFiles.map((file, index) => (
+                      <div key={index} className="bg-white border border-[#E5E7EB] rounded-lg p-4">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-3">
+                            <span className="text-2xl">📄</span>
+                            <div>
+                              <h5 className="font-medium text-[#1A1A4B] text-sm">
+                                {file.fileName || file.result?.fileName || 'Unknown file'}
+                              </h5>
+                              <p className="text-xs text-[#6B7280]">
+                                Uploaded successfully
+                              </p>
+                            </div>
+                          </div>
+                          <div className="text-xs text-[#4CAF50]">✓ Processed</div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
               <div className="mb-10">
                 <h3 className="font-playfair text-[24px] mb-5 font-normal italic">Knowledge Base Progress</h3>
                 <div className="bg-[#E5E7EB] h-[6px] rounded-[3px] overflow-hidden mb-5">
-                  <div className="h-full bg-gradient-to-r from-[#FF5722] to-[#FF9800] rounded-[3px] transition-all duration-300 w-[65%]"></div>
+                  <div
+                    className="h-full bg-gradient-to-r from-[#FF5722] to-[#FF9800] rounded-[3px] transition-all duration-300"
+                    style={{ width: `${Math.min((uploadedFiles.length / 5) * 100, 100)}%` }}
+                  ></div>
                 </div>
-                <p className="text-sm text-[#6B7280]">15 documents processed, 8 pending</p>
+                <p className="text-sm text-[#6B7280]">
+                  {uploadedFiles.length} document{uploadedFiles.length !== 1 ? 's' : ''} processed
+                  {uploadedFiles.length === 0 && ', upload files to begin training'}
+                </p>
               </div>
             </div>
           )}

@@ -1,3 +1,8 @@
+/* Claude-inspired fonts - clean, modern, professional */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400;1,700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Source+Sans+3:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300;1,400;1,500;1,600;1,700&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -179,12 +184,66 @@ All colors MUST be HSL. Semantic tokens for consistent theming.
 
   body {
     @apply bg-background text-foreground antialiased;
-    font-family: 'Inter', 'Plus Jakarta Sans', -apple-system, system-ui, 'Segoe UI', 'Roboto', sans-serif;
+    font-family: 'Source Sans 3', 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
     font-weight: 400;
+    font-feature-settings: 'cv11', 'ss01';
+    font-variation-settings: 'slnt' 0;
   }
   
   html {
     scroll-behavior: smooth;
+  }
+}
+
+/* Typography & Font Utilities */
+@layer utilities {
+  /* Claude-style text utilities */
+  .text-body {
+    font-family: 'Source Sans 3', 'Inter', system-ui, sans-serif;
+    font-weight: 400;
+    line-height: 1.6;
+  }
+
+  .text-body-medium {
+    font-family: 'Source Sans 3', 'Inter', system-ui, sans-serif;
+    font-weight: 500;
+    line-height: 1.5;
+  }
+
+  .text-body-semibold {
+    font-family: 'Source Sans 3', 'Inter', system-ui, sans-serif;
+    font-weight: 600;
+    line-height: 1.5;
+  }
+
+  .text-heading {
+    font-family: 'Playfair Display', serif;
+    font-style: italic;
+    font-weight: 400;
+    line-height: 1.2;
+  }
+
+  .text-heading-bold {
+    font-family: 'Playfair Display', serif;
+    font-style: italic;
+    font-weight: 700;
+    line-height: 1.1;
+  }
+
+  /* Ensure all input elements use Source Sans 3 (Claude's font) */
+  input, textarea, select, button {
+    font-family: 'Source Sans 3', 'Inter', system-ui, sans-serif;
+  }
+
+  /* Override any remaining serif usage for body text - use Claude's font */
+  p, span, div, label, li, td, th {
+    font-family: 'Source Sans 3', 'Inter', system-ui, sans-serif;
+  }
+
+  /* Keep headings with Playfair */
+  h1, h2, h3, h4, h5, h6 {
+    font-family: 'Playfair Display', serif;
+    font-style: italic;
   }
 }
 
