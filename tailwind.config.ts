@@ -14,12 +14,13 @@ export default {
     },
     extend: {
       fontFamily: {
-        'sans': ['Inter', 'system-ui', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Roboto', 'Helvetica Neue', 'Arial', 'sans-serif'],
-        'playfair': ['Playfair Display', 'serif'],
-        'inter': ['Inter', 'system-ui', 'sans-serif'],
-        'display': ['Space Grotesk', 'Inter', 'system-ui', 'sans-serif'],
-        'body': ['Inter', 'system-ui', 'sans-serif'],
-        'mono': ['JetBrains Mono', 'Fira Code', 'monospace'],
+        'sans': ['Geist', 'Inter', 'system-ui', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Roboto', 'Helvetica Neue', 'Arial', 'sans-serif'],
+        'heading': ['Degular-Bold', 'Geist', 'Inter', 'system-ui', 'sans-serif'],
+        'display': ['Degular-Bold', 'Geist', 'system-ui', 'sans-serif'],
+        'body': ['Geist', 'Inter', 'system-ui', 'sans-serif'],
+        'medium': ['Degular-Medium', 'Geist', 'system-ui', 'sans-serif'],
+        'mono': ['Geist Mono', 'Consolas', 'SFMono-Regular', 'Menlo', 'monospace'],
+        'handwriting': ['FaveHandPro', 'kumbayaBold', 'cursive'],
       },
       colors: {
         border: "hsl(var(--border))",

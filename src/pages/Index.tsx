@@ -114,24 +114,24 @@ const Index = () => {
   }, []);
 
   return (
-    <div className="min-h-screen bg-[#FBF7F0] text-[#1A1A4B] overflow-x-hidden font-playfair italic">
+    <div className="min-h-screen bg-[hsl(var(--lenny-cream))] text-[hsl(var(--lenny-black))] overflow-x-hidden font-body">
       {/* Navigation */}
       <nav id="navbar" className="fixed top-0 w-full z-50 px-[60px] py-6 transition-all duration-300 navbar-default">
         <div className="max-w-[1400px] mx-auto flex justify-between items-center">
-          <div className="text-[28px] text-[#1A1A4B] font-normal italic font-playfair">Twin Me</div>
+          <div className="text-[28px] text-[hsl(var(--lenny-black))] font-heading font-semibold">Twin Me</div>
           <ul className="flex gap-10 list-none">
-            <li><a href="#features" className="text-[#1A1A4B] no-underline font-normal italic text-base transition-colors duration-300 hover:text-[#FF5722]">Features</a></li>
-            <li><a href="#works" className="text-[#1A1A4B] no-underline font-normal italic text-base transition-colors duration-300 hover:text-[#FF5722]">How It Works</a></li>
-            <li><a href="#about" className="text-[#1A1A4B] no-underline font-normal italic text-base transition-colors duration-300 hover:text-[#FF5722]">About</a></li>
-            <li><a href="#contact" className="text-[#1A1A4B] no-underline font-normal italic text-base transition-colors duration-300 hover:text-[#FF5722]">Contact</a></li>
+            <li><a href="#features" className="text-[hsl(var(--lenny-black))] no-underline font-medium text-base transition-colors duration-300 hover:text-[hsl(var(--lenny-orange))]">Features</a></li>
+            <li><a href="#works" className="text-[hsl(var(--lenny-black))] no-underline font-medium text-base transition-colors duration-300 hover:text-[hsl(var(--lenny-orange))]">How It Works</a></li>
+            <li><a href="#about" className="text-[hsl(var(--lenny-black))] no-underline font-medium text-base transition-colors duration-300 hover:text-[hsl(var(--lenny-orange))]">About</a></li>
+            <li><a href="#contact" className="text-[hsl(var(--lenny-black))] no-underline font-medium text-base transition-colors duration-300 hover:text-[hsl(var(--lenny-orange))]">Contact</a></li>
           </ul>
           {!isLoaded ? (
-            <button disabled className="px-8 py-3 rounded-full bg-gray-400 text-white font-normal italic text-base cursor-not-allowed transition-all duration-300 border-none">Loading...</button>
+            <button disabled className="btn-lenny opacity-50 cursor-not-allowed">Loading...</button>
           ) : isSignedIn ? (
-            <button onClick={() => navigate('/get-started')} className="px-8 py-3 rounded-full bg-[#FF5722] text-white font-normal italic text-base cursor-pointer transition-all duration-300 border-none hover:scale-105 hover:shadow-[0_8px_24px_rgba(255,87,34,0.3)]">Get Started</button>
+            <button onClick={() => navigate('/get-started')} className="btn-lenny">Get Started</button>
           ) : (
             <SignInButton mode="modal" fallbackRedirectUrl="/get-started" forceRedirectUrl="/get-started">
-              <button className="px-8 py-3 rounded-full bg-[#FF5722] text-white font-normal italic text-base cursor-pointer transition-all duration-300 border-none hover:scale-105 hover:shadow-[0_8px_24px_rgba(255,87,34,0.3)]">Get Started</button>
+              <button className="btn-lenny">Get Started</button>
             </SignInButton>
           )}
         </div>
@@ -139,38 +139,32 @@ const Index = () => {
 
       {/* Hero Section */}
       <section className="min-h-screen flex items-center justify-center relative pt-[120px] pb-20 px-[60px]">
-        {/* Gradient Blobs */}
-        <div className="absolute w-[400px] h-[400px] rounded-full opacity-30 top-[10%] right-[10%] gradient-blob-orange"></div>
-        <div className="absolute w-[300px] h-[300px] rounded-full opacity-30 bottom-[20%] left-[5%] gradient-blob-blue"></div>
-        
-        {/* Floating Skills */}
-        <div className="absolute w-full h-full top-0 left-0 pointer-events-none skills-container">
-          <div className="skill-pill" style={{"--orbit-radius": "250px", "--duration": "30s", "animationDelay": "0s"} as React.CSSProperties}>Voice Learning</div>
-          <div className="skill-pill" style={{"--orbit-radius": "200px", "--duration": "25s", "animationDelay": "-5s"} as React.CSSProperties}>AI Teaching</div>
-          <div className="skill-pill" style={{"--orbit-radius": "280px", "--duration": "35s", "animationDelay": "-10s"} as React.CSSProperties}>Digital Twins</div>
-          <div className="skill-pill" style={{"--orbit-radius": "220px", "--duration": "28s", "animationDelay": "-15s"} as React.CSSProperties}>24/7 Support</div>
-          <div className="skill-pill" style={{"--orbit-radius": "260px", "--duration": "32s", "animationDelay": "-20s"} as React.CSSProperties}>Adaptive Learning</div>
-          <div className="skill-pill" style={{"--orbit-radius": "240px", "--duration": "27s", "animationDelay": "-25s"} as React.CSSProperties}>Personalized</div>
-          <div className="skill-pill" style={{"--orbit-radius": "270px", "--duration": "33s", "animationDelay": "-30s"} as React.CSSProperties}>Real-time</div>
-        </div>
-        
+        {/* Floating Geometric Elements (Lenny-inspired) */}
+        <div className="floating-element orange w-12 h-12 top-[15%] left-[8%]"></div>
+        <div className="floating-element rect w-16 h-10 top-[25%] right-[12%]"></div>
+        <div className="floating-element triangle top-[60%] left-[15%]"></div>
+        <div className="floating-element orange w-8 h-8 top-[70%] right-[20%]"></div>
+        <div className="floating-element rect w-12 h-12 top-[40%] right-[8%]"></div>
+        <div className="floating-element orange w-14 h-14 bottom-[30%] left-[10%]"></div>
+        <div className="floating-element rect w-10 h-14 bottom-[15%] right-[15%]"></div>
+
         <div className="text-center relative z-10">
-          <h1 className="text-fluid-xl leading-[1.1] mb-8 text-[#1A1A4B] font-display text-weight-animate animate-text-reveal stagger-1 gradient-text">
-            Transform Teaching<br />
-            with Digital Twins
+          <h1 className="lenny-heading-xl mb-8 animate-text-reveal stagger-1">
+            Unlock a growing library of<br />
+            world-class educational experiences
           </h1>
-          <p className="text-[22px] font-body text-[#6B7280] max-w-[700px] mx-auto mb-12 leading-[1.6] animate-text-reveal stagger-2">Create AI replicas of educators that provide personalized, always-available learning experiences through natural conversations</p>
-          <div className="flex gap-6 justify-center animate-scale-in stagger-3">
+          <p className="lenny-body-lg max-w-[700px] mx-auto mb-12 animate-text-reveal stagger-2">Create AI replicas of educators that provide personalized, always-available learning experiences through natural conversations</p>
+          <div className="flex gap-4 justify-center animate-scale-in stagger-3">
             {!isLoaded ? (
-              <button disabled className="btn-modern opacity-50 cursor-not-allowed">Loading...</button>
+              <button disabled className="btn-lenny opacity-50 cursor-not-allowed">Loading...</button>
             ) : isSignedIn ? (
-              <button onClick={() => navigate('/get-started')} className="btn-modern hover-lift hover-glow">Create Your Twin</button>
+              <button onClick={() => navigate('/get-started')} className="btn-lenny">Get access →</button>
             ) : (
               <SignInButton mode="modal" fallbackRedirectUrl="/get-started" forceRedirectUrl="/get-started">
-                <button className="btn-modern hover-lift hover-glow">Create Your Twin</button>
+                <button className="btn-lenny">Get access →</button>
               </SignInButton>
             )}
-            <button onClick={handleWatchDemoClick} className="px-8 py-3 rounded-full bg-transparent text-[#1A1A4B] border-2 border-[#1A1A4B] font-display font-medium text-base cursor-pointer transition-all duration-300 hover:bg-[#1A1A4B] hover:text-white hover-lift">Watch Demo</button>
+            <button onClick={handleWatchDemoClick} className="btn-lenny-secondary">Watch Demo</button>
           </div>
         </div>
       </section>
