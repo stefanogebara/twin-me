@@ -15,14 +15,14 @@ const Auth = () => {
         <Navigate to="/" replace />
       </SignedIn>
       <SignedOut>
-        <div className="min-h-screen bg-[hsl(var(--lenny-cream))] flex items-center justify-center">
+        <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: 'var(--_color-theme---background)' }}>
           <div className="max-w-md w-full mx-4">
             {/* Hero Section */}
             <div className="text-center mb-8">
-              <h1 className="text-4xl font-display font-medium text-[hsl(var(--lenny-black))] mb-4 gradient-text">
+              <h1 className="u-display-l text-heading mb-4" style={{ color: 'var(--_color-theme---text)' }}>
                 Welcome to Twin Me
               </h1>
-              <p className="text-[hsl(var(--muted-foreground))] text-lg">
+              <p className="text-body-large" style={{ color: 'var(--_color-theme---text)' }}>
                 Your AI-powered educational platform
               </p>
             </div>
@@ -34,7 +34,7 @@ const Auth = () => {
                 fallbackRedirectUrl="/"
                 forceRedirectUrl="/"
               >
-                <button className="w-full btn-lenny h-12 px-8 rounded-lg font-medium transition-colors">
+                <button className="w-full btn-anthropic-primary h-12">
                   Sign In
                 </button>
               </SignInButton>
@@ -44,15 +44,15 @@ const Auth = () => {
                 fallbackRedirectUrl="/"
                 forceRedirectUrl="/"
               >
-                <button className="w-full btn-lenny-secondary h-12 px-8 rounded-lg font-medium transition-colors">
+                <button className="w-full btn-anthropic-secondary h-12">
                   Sign Up
                 </button>
               </SignUpButton>
             </div>
 
             {/* Footer */}
-            <div className="text-center mt-8 text-sm text-[hsl(var(--muted-foreground))]">
-              <p>Join thousands of students learning with AI</p>
+            <div className="text-center mt-8">
+              <p className="text-body text-sm opacity-70">Join thousands of educators and students using AI twins</p>
             </div>
           </div>
         </div>

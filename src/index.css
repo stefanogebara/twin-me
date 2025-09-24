@@ -1,7 +1,16 @@
-/* Lenny's typography stack - Matching extracted fonts */
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
-@import url('https://fonts.googleapis.com/css2?family=Geist:wght@100;200;300;400;500;600;700;800;900&display=swap');
+/* Anthropic's Actual Font Stack - Styrene & Tiempos */
+/* Note: These are premium fonts used by Anthropic. Using fallbacks that match their characteristics */
+
+/* Styrene A & B alternatives - geometric sans with extended characters */
 @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&display=swap');
+
+/* Tiempos alternative - elegant serif for body text */
+@import url('https://fonts.googleapis.com/css2?family=Crimson+Text:ital,wght@0,400;0,600;1,400&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Source+Serif+4:ital,opsz,wght@0,8..60,300;0,8..60,400;0,8..60,500;0,8..60,600;1,8..60,400&display=swap');
+
+/* Supporting fonts */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
 @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&display=swap');
 
 @tailwind base;
@@ -122,25 +131,105 @@ All colors MUST be HSL. Semantic tokens for consistent theming.
     --sidebar-ring: 217.2 91.2% 59.8%;
   }
 
-  .dark {
-    --background: 258 25% 8%;
-    --foreground: 43 90% 95%;
-    
-    --card: 258 20% 10%;
-    --card-foreground: 43 90% 95%;
-    
-    --popover: 258 20% 10%;
-    --popover-foreground: 43 90% 95%;
-    
-    --primary: 258 90% 70%;
-    --primary-foreground: 258 25% 8%;
-    --primary-glow: 258 95% 80%;
-    
-    --secondary: 25 30% 15%;
-    --secondary-foreground: 43 90% 95%;
-    
-    --muted: 258 15% 15%;
-    --muted-foreground: 43 30% 70%;
+  /* Anthropic Design System Variables */
+  :root {
+    /* Anthropic Typography Variables - Using Premium Font Alternatives */
+    /* Styrene A/B alternatives for headlines (geometric sans with extended chars) */
+    --_typography---font--display-sans: "Space Grotesk", "DM Sans", system-ui, sans-serif;
+    --_typography---font--styrene-a: "Space Grotesk", system-ui, sans-serif;
+    --_typography---font--styrene-b: "DM Sans", system-ui, sans-serif;
+
+    /* Tiempos alternatives for body text (elegant serif) */
+    --_typography---font--body-serif: "Source Serif 4", "Crimson Text", Georgia, serif;
+    --_typography---font--tiempos: "Source Serif 4", Georgia, serif;
+
+    --_typography---font--display-sans-medium: 500;
+    --_typography---font--display-sans-regular: 400;
+    --_typography---font-size--display-xl: clamp(2.5rem, 2.0408163265306123rem + 1.9591836734693877vw, 4rem);
+    --_typography---line-height--1: 1.1;
+    --_typography---line-height--1-4: 1.4;
+    --_typography---line-height--1-6: 1.6;
+    --_typography---letter-spacing--0-02em: -0.02em;
+    --_typography---text-transform--none: none;
+
+    /* Anthropic Color System - Light Theme */
+    --swatch--ivory-medium: #f9f6f1;
+    --swatch--ivory-light: #fefdfb;
+    --swatch--slate-dark: #2c2c2c;
+    --swatch--slate-medium: #595959;
+    --swatch--slate-light: #8c8c8c;
+    --swatch--slate-faded-10: rgba(44, 44, 44, 0.1);
+    --swatch--slate-faded-20: rgba(44, 44, 44, 0.2);
+    --swatch--white: #ffffff;
+    --swatch--transparent: transparent;
+
+    /* Anthropic Spacing */
+    --_spacing---space--6: 2rem;
+    --_spacing---space--7: 2.5rem;
+
+    /* Anthropic Color Theme Variables */
+    --_color-theme---background: var(--swatch--ivory-medium);
+    --_color-theme---text: var(--swatch--slate-dark);
+    --_color-theme---link--text-hover: var(--swatch--slate-light);
+    --_color-theme---border: var(--swatch--slate-faded-10);
+    --_color-theme---background-secondary: var(--swatch--slate-faded-10);
+    --_color-theme---text-agate: var(--swatch--slate-faded-10);
+    --_color-theme---background-secondary-hover: var(--swatch--slate-faded-20);
+    --_color-theme---button-primary--border: var(--swatch--slate-dark);
+    --_color-theme---card: var(--swatch--white);
+    --_color-theme---card-faded: var(--swatch--slate-faded-10);
+    --_color-theme---card-faded-hover: var(--swatch--slate-faded-20);
+    --_color-theme---link--text: var(--swatch--slate-dark);
+    --_color-theme---border-hover: var(--swatch--slate-faded-20);
+    --_color-theme---link--text-active: var(--swatch--slate-dark);
+    --_color-theme---button-primary--background: var(--swatch--slate-dark);
+    --_color-theme---button-primary--text: var(--swatch--ivory-light);
+    --_color-theme---button-primary--background-hover: var(--swatch--slate-medium);
+    --_color-theme---button-primary--border-hover: var(--swatch--slate-medium);
+    --_color-theme---button-primary--text-hover: var(--swatch--ivory-light);
+    --_color-theme---button-secondary--background: var(--swatch--transparent);
+    --_color-theme---button-secondary--border: var(--swatch--slate-dark);
+    --_color-theme---button-secondary--text: var(--swatch--slate-dark);
+    --_color-theme---button-secondary--background-hover: var(--swatch--slate-dark);
+    --_color-theme---button-secondary--border-hover: var(--swatch--slate-dark);
+    --_color-theme---button-secondary--text-hover: var(--swatch--ivory-light);
+    --_color-theme---button-tertiary--background: var(--swatch--transparent);
+    --_color-theme---button-tertiary--border: var(--_color-theme---border);
+    --_color-theme---button-tertiary--text: var(--_color-theme---text);
+    --_color-theme---button-tertiary--background-hover: var(--swatch--transparent);
+    --_color-theme---button-tertiary--border-hover: var(--_color-theme---text);
+    --_color-theme---button-tertiary--text-hover: var(--_color-theme---text);
+
+    /* Claude's Dark Mode Colors - Keeping existing dark mode for current design */
+    --claude-bg: 210 11% 7%; /* #111319 */
+    --claude-surface: 213 11% 11%; /* #191d26 */
+    --claude-surface-raised: 213 14% 16%; /* #252a36 */
+    --claude-border: 215 14% 20%; /* #343a47 */
+    --claude-text: 0 0% 90%; /* #e5e5e5 */
+    --claude-text-muted: 218 11% 65%; /* #9ca3af */
+    --claude-accent: 31 81% 56%; /* #d97706 - Claude's orange */
+    --claude-accent-hover: 31 81% 50%;
+    --claude-accent-subtle: 31 81% 56% / 0.1;
+
+    /* Use Anthropic's theme as the global default */
+    --background: var(--_color-theme---background);
+    --foreground: var(--_color-theme---text);
+
+    --card: var(--_color-theme---card);
+    --card-foreground: var(--_color-theme---text);
+
+    --popover: var(--_color-theme---card);
+    --popover-foreground: var(--_color-theme---text);
+
+    --primary: var(--_color-theme---button-primary--background);
+    --primary-foreground: var(--_color-theme---button-primary--text);
+    --primary-hover: var(--_color-theme---button-primary--background-hover);
+
+    --secondary: var(--_color-theme---button-secondary--background);
+    --secondary-foreground: var(--_color-theme---button-secondary--text);
+
+    --muted: var(--_color-theme---card-faded);
+    --muted-foreground: var(--_color-theme---text);
     
     --accent: 48 95% 70%;
     --accent-foreground: 258 25% 8%;
@@ -189,10 +278,13 @@ All colors MUST be HSL. Semantic tokens for consistent theming.
 
   body {
     @apply bg-background text-foreground antialiased;
-    font-family: 'Source Sans 3', 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    /* Anthropic uses Tiempos for body text - using Source Serif 4 as closest alternative */
+    font-family: var(--_typography---font--tiempos);
     font-weight: 400;
-    font-feature-settings: 'cv11', 'ss01';
-    font-variation-settings: 'slnt' 0;
+    line-height: var(--_typography---line-height--1-6);
+    font-feature-settings: 'kern' 1, 'liga' 1;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
   }
   
   html {
@@ -200,55 +292,71 @@ All colors MUST be HSL. Semantic tokens for consistent theming.
   }
 }
 
-/* Typography & Font Utilities */
+/* Anthropic Typography & Font Utilities */
 @layer utilities {
-  /* Claude-style text utilities */
+  /* Anthropic-style typography using Tiempos alternatives for body */
   .text-body {
-    font-family: 'Source Sans 3', 'Inter', system-ui, sans-serif;
+    font-family: var(--_typography---font--tiempos);
     font-weight: 400;
-    line-height: 1.6;
+    line-height: var(--_typography---line-height--1-6);
   }
 
   .text-body-medium {
-    font-family: 'Source Sans 3', 'Inter', system-ui, sans-serif;
+    font-family: var(--_typography---font--tiempos);
     font-weight: 500;
     line-height: 1.5;
   }
 
-  .text-body-semibold {
-    font-family: 'Source Sans 3', 'Inter', system-ui, sans-serif;
-    font-weight: 600;
-    line-height: 1.5;
+  .text-body-large {
+    font-family: var(--_typography---font--tiempos);
+    font-weight: 400;
+    font-size: 1.125rem;
+    line-height: var(--_typography---line-height--1-6);
   }
 
+  /* Anthropic headings use Styrene alternatives */
   .text-heading {
-    font-family: 'Playfair Display', serif;
-    font-style: italic;
-    font-weight: 400;
-    line-height: 1.2;
+    font-family: var(--_typography---font--styrene-a);
+    font-weight: 500;
+    line-height: var(--_typography---line-height--1);
+    letter-spacing: var(--_typography---letter-spacing--0-02em);
   }
 
   .text-heading-bold {
-    font-family: 'Playfair Display', serif;
-    font-style: italic;
-    font-weight: 700;
-    line-height: 1.1;
+    font-family: var(--_typography---font--styrene-a);
+    font-weight: 600;
+    line-height: var(--_typography---line-height--1);
+    letter-spacing: var(--_typography---letter-spacing--0-02em);
   }
 
-  /* Ensure all input elements use Source Sans 3 (Claude's font) */
+  /* Interactive elements use Styrene B (narrower) */
   input, textarea, select, button {
-    font-family: 'Source Sans 3', 'Inter', system-ui, sans-serif;
+    font-family: var(--_typography---font--styrene-b);
   }
 
-  /* Override any remaining serif usage for body text - use Claude's font */
+  /* Body text elements use Tiempos */
   p, span, div, label, li, td, th {
-    font-family: 'Source Sans 3', 'Inter', system-ui, sans-serif;
+    font-family: var(--_typography---font--tiempos);
   }
 
-  /* Keep headings with Playfair */
+  /* Headings use Styrene A */
   h1, h2, h3, h4, h5, h6 {
-    font-family: 'Playfair Display', serif;
-    font-style: italic;
+    font-family: var(--_typography---font--styrene-a);
+    font-weight: 500;
+    letter-spacing: var(--_typography---letter-spacing--0-02em);
+  }
+
+  /* Anthropic-specific text classes */
+  .text-styrene-a {
+    font-family: var(--_typography---font--styrene-a);
+  }
+
+  .text-styrene-b {
+    font-family: var(--_typography---font--styrene-b);
+  }
+
+  .text-tiempos {
+    font-family: var(--_typography---font--tiempos);
   }
 }
 
@@ -1066,6 +1174,131 @@ details summary {
 
 ::-webkit-scrollbar-thumb:hover {
   background: linear-gradient(135deg, #E64A19, #FF5722);
+}
+
+/* Anthropic Typography System */
+.u-display-xl {
+  font-family: var(--_typography---font--display-sans);
+  font-size: var(--_typography---font-size--display-xl);
+  line-height: var(--_typography---line-height--1);
+  font-weight: var(--_typography---font--display-sans-medium);
+  letter-spacing: var(--_typography---letter-spacing--0-02em);
+  text-transform: var(--_typography---text-transform--none);
+  text-wrap: balance;
+  display: flow-root;
+  margin-top: var(--_spacing---space--7);
+  margin-bottom: var(--_spacing---space--6);
+}
+
+.u-display-l {
+  font-family: var(--_typography---font--display-sans);
+  font-size: clamp(2rem, 1.6938775510204083rem + 1.306122448979592vw, 3rem);
+  line-height: var(--_typography---line-height--1);
+  font-weight: var(--_typography---font--display-sans-medium);
+  letter-spacing: var(--_typography---letter-spacing--0-02em);
+  text-transform: var(--_typography---text-transform--none);
+  text-wrap: balance;
+  display: flow-root;
+}
+
+.u-display-m {
+  font-family: var(--_typography---font--display-sans);
+  font-size: clamp(1.75rem, 1.6734693877551021rem + 0.326530612244898vw, 2rem);
+  line-height: var(--_typography---line-height--1);
+  font-weight: var(--_typography---font--display-sans-medium);
+  letter-spacing: var(--_typography---letter-spacing--0-02em);
+  text-transform: var(--_typography---text-transform--none);
+  text-wrap: balance;
+}
+
+/* Anthropic Word Animation System */
+.animate-word {
+  display: inline-block;
+  opacity: 0;
+  transform: translateY(24px);
+  transition: opacity 800ms cubic-bezier(0.16, 1, 0.3, 1),
+              transform 800ms cubic-bezier(0.16, 1, 0.3, 1);
+  will-change: opacity, transform;
+  text-decoration: inherit;
+  margin-right: 0.25rem; /* Ensure spacing between words */
+}
+
+.animate-word.animate-in {
+  opacity: 1;
+  transform: translateY(0px);
+}
+
+/* Stagger animation delays for word animations */
+.animate-word:nth-child(1) { transition-delay: 0ms; }
+.animate-word:nth-child(2) { transition-delay: 100ms; }
+.animate-word:nth-child(3) { transition-delay: 200ms; }
+.animate-word:nth-child(4) { transition-delay: 300ms; }
+.animate-word:nth-child(5) { transition-delay: 400ms; }
+.animate-word:nth-child(6) { transition-delay: 500ms; }
+.animate-word:nth-child(7) { transition-delay: 600ms; }
+.animate-word:nth-child(8) { transition-delay: 700ms; }
+.animate-word:nth-child(9) { transition-delay: 800ms; }
+.animate-word:nth-child(10) { transition-delay: 900ms; }
+
+/* Anthropic Hero Wrap Styling */
+.hero_wrap {
+  background-color: var(--_color-theme---background);
+  text-align: center;
+  flex-flow: column;
+  min-height: auto;
+  display: flex;
+  padding: 4rem 2rem;
+}
+
+/* Anthropic Button System */
+.btn-anthropic-primary {
+  background: var(--_color-theme---button-primary--background);
+  color: var(--_color-theme---button-primary--text);
+  border: 1px solid var(--_color-theme---button-primary--border);
+  border-radius: 50px;
+  padding: 12px 24px;
+  font-family: var(--_typography---font--display-sans);
+  font-weight: var(--_typography---font--display-sans-medium);
+  font-size: 1rem;
+  line-height: 1.2;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.btn-anthropic-primary:hover {
+  background: var(--_color-theme---button-primary--background-hover);
+  border-color: var(--_color-theme---button-primary--border-hover);
+  color: var(--_color-theme---button-primary--text-hover);
+}
+
+.btn-anthropic-secondary {
+  background: var(--_color-theme---button-secondary--background);
+  color: var(--_color-theme---button-secondary--text);
+  border: 1px solid var(--_color-theme---button-secondary--border);
+  border-radius: 50px;
+  padding: 12px 24px;
+  font-family: var(--_typography---font--display-sans);
+  font-weight: var(--_typography---font--display-sans-medium);
+  font-size: 1rem;
+  line-height: 1.2;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.btn-anthropic-secondary:hover {
+  background: var(--_color-theme---button-secondary--background-hover);
+  border-color: var(--_color-theme---button-secondary--border-hover);
+  color: var(--_color-theme---button-secondary--text-hover);
 }
 
 /* Performance Optimizations */

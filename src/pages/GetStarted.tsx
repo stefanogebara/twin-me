@@ -115,7 +115,7 @@ const GetStarted = () => {
             ← Back to Home
           </button>
           <div className="max-w-[1200px] mx-auto text-center">
-            <h1 className="font-display text-[clamp(48px,6vw,72px)] font-medium leading-[1.1] mb-6 gradient-text">
+            <h1 className="u-display-xl text-heading font-medium leading-[1.1] mb-6" style={{ color: 'var(--_color-theme---text)' }}>
               Welcome to Twin Me
             </h1>
             <p className="text-xl mt-6 mb-16">How would you like to use the platform?</p>

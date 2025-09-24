@@ -144,6 +144,58 @@ router.get('/voices', authenticateUser, userRateLimit(30, 15 * 60 * 1000), async
   }
 });
 
+// POST /api/voice/transcribe - Convert speech to text
+router.post('/transcribe', authenticateUser, userRateLimit(30, 15 * 60 * 1000), upload.single('audio'), async (req, res) => {
+  try {
+    if (!voiceService.speechToTextEnabled) {
+      return res.status(503).json({
+        error: 'Speech-to-text service unavailable',
+        message: 'OpenAI API key is not configured'
+      });
+    }
+
+    if (!req.file) {
+      return res.status(400).json({
+        error: 'No audio file provided',
+        message: 'Please upload an audio file for transcription'
+      });
+    }
+
+    // Create a File object for OpenAI API
+    const fs = require('fs');
+    const audioFile = fs.createReadStream(req.file.path);
+    audioFile.name = req.file.originalname;
+
+    const result = await voiceService.speechToText(audioFile);
+
+    // Clean up uploaded file
+    try {
+      fs.unlinkSync(req.file.path);
+    } catch (cleanupError) {
+      console.error('Failed to clean up uploaded file:', cleanupError);
+    }
+
+    if (result.success) {
+      res.json({
+        success: true,
+        transcription: result.transcription,
+        timestamp: new Date().toISOString()
+      });
+    } else {
+      res.status(500).json({
+        error: 'Speech-to-text failed',
+        message: result.error
+      });
+    }
+  } catch (error) {
+    console.error('Error in speech-to-text:', error);
+    res.status(500).json({
+      error: 'Speech-to-text failed',
+      message: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
+    });
+  }
+});
+
 // POST /api/voice/synthesize - Convert text to speech
 router.post('/synthesize', authenticateUser, userRateLimit(20, 15 * 60 * 1000), validateTTSRequest, handleValidationErrors, async (req, res) => {
   try {
