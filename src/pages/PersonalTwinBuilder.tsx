@@ -1,8 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useUser } from '@clerk/clerk-react';
 import { useNavigate } from 'react-router-dom';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
@@ -223,17 +221,17 @@ const PersonalTwinBuilder = () => {
 
           {/* Identity Tab */}
           <TabsContent value="identity" className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle className="font-playfair italic flex items-center gap-2">
+            <div className="bg-white rounded-2xl p-8 shadow-sm border" style={{ borderColor: 'var(--_color-theme---border)' }}>
+              <div className="mb-6">
+                <h3 className="text-heading text-xl font-medium flex items-center gap-2 mb-2">
                   <User className="w-5 h-5" />
                   Basic Identity
-                </CardTitle>
-                <CardDescription>
+                </h3>
+                <p className="text-body" style={{ color: 'var(--_color-theme---text)' }}>
                   Define the core identity of your digital twin
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-6">
+                </p>
+              </div>
+              <div className="space-y-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div>
                     <Label htmlFor="name">Twin Name</Label>
@@ -286,23 +284,21 @@ const PersonalTwinBuilder = () => {
                           placeholder="e.g., Photography, Cooking, Technology"
                         />
                         {twinForm.interests.length > 1 && (
-                          <Button
-                            variant="outline"
-                            size="sm"
+                          <button
+                            className="btn-anthropic-secondary text-sm px-4 py-2"
                             onClick={() => removeArrayItem('interests', index)}
                           >
                             Remove
-                          </Button>
+                          </button>
                         )}
                       </div>
                     ))}
-                    <Button
-                      variant="outline"
-                      size="sm"
+                    <button
+                      className="btn-anthropic-secondary text-sm px-4 py-2"
                       onClick={() => addArrayItem('interests')}
                     >
                       Add Interest
-                    </Button>
+                    </button>
                   </div>
                 </div>
 
@@ -318,42 +314,40 @@ const PersonalTwinBuilder = () => {
                           placeholder="e.g., Learn a new language, Start a business"
                         />
                         {twinForm.goals.length > 1 && (
-                          <Button
-                            variant="outline"
-                            size="sm"
+                          <button
+                            className="btn-anthropic-secondary text-sm px-4 py-2"
                             onClick={() => removeArrayItem('goals', index)}
                           >
                             Remove
-                          </Button>
+                          </button>
                         )}
                       </div>
                     ))}
-                    <Button
-                      variant="outline"
-                      size="sm"
+                    <button
+                      className="btn-anthropic-secondary text-sm px-4 py-2"
                       onClick={() => addArrayItem('goals')}
                     >
                       Add Goal
-                    </Button>
+                    </button>
                   </div>
                 </div>
-              </CardContent>
-            </Card>
+              </div>
+            </div>
           </TabsContent>
 
           {/* Personality Tab */}
           <TabsContent value="personality" className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle className="font-playfair italic flex items-center gap-2">
+            <div className="bg-white rounded-2xl p-8 shadow-sm border" style={{ borderColor: 'var(--_color-theme---border)' }}>
+              <div className="mb-6">
+                <h3 className="text-heading text-xl font-medium flex items-center gap-2 mb-2">
                   <Brain className="w-5 h-5" />
                   Personality Traits
-                </CardTitle>
-                <CardDescription>
+                </h3>
+                <p className="text-body" style={{ color: 'var(--_color-theme---text)' }}>
                   Define how your digital twin thinks and behaves
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-6">
+                </p>
+              </div>
+              <div className="space-y-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div>
                     <Label>Communication Style</Label>
@@ -459,23 +453,23 @@ const PersonalTwinBuilder = () => {
                     rows={3}
                   />
                 </div>
-              </CardContent>
-            </Card>
+              </div>
+            </div>
           </TabsContent>
 
           {/* Content Tab */}
           <TabsContent value="content" className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle className="font-playfair italic flex items-center gap-2">
+            <div className="bg-white rounded-2xl p-8 shadow-sm border" style={{ borderColor: 'var(--_color-theme---border)' }}>
+              <div className="mb-6">
+                <h3 className="text-heading text-xl font-medium flex items-center gap-2 mb-2">
                   <FileText className="w-5 h-5" />
                   Training Materials
-                </CardTitle>
-                <CardDescription>
+                </h3>
+                <p className="text-body" style={{ color: 'var(--_color-theme---text)' }}>
                   Upload content to help your digital twin learn about you
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
+                </p>
+              </div>
+              <div>
                 <EnhancedFileUpload
                   twinId="placeholder" // Will be updated after twin creation
                   onUploadComplete={(file) => {
@@ -498,72 +492,71 @@ const PersonalTwinBuilder = () => {
                     <li>Social media exports or communications</li>
                   </ul>
                 </div>
-              </CardContent>
-            </Card>
+              </div>
+            </div>
           </TabsContent>
 
           {/* Voice Tab */}
           <TabsContent value="voice" className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle className="font-playfair italic flex items-center gap-2">
+            <div className="bg-white rounded-2xl p-8 shadow-sm border" style={{ borderColor: 'var(--_color-theme---border)' }}>
+              <div className="mb-6">
+                <h3 className="text-heading text-xl font-medium flex items-center gap-2 mb-2">
                   <Mic className="w-5 h-5" />
                   Voice Profile
-                </CardTitle>
-                <CardDescription>
+                </h3>
+                <p className="text-body" style={{ color: 'var(--_color-theme---text)' }}>
                   Optional: Add voice samples to clone your voice for your digital twin
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
+                </p>
+              </div>
+              <div>
                 <div className="text-center py-8">
-                  <h3 className="text-xl font-playfair italic text-[#1A1A4B] mb-2">
+                  <h3 className="text-heading text-xl mb-2">
                     Voice Cloning Setup (Optional)
                   </h3>
-                  <p className="text-[#6B7280] mb-8">
+                  <p className="text-body mb-8" style={{ color: 'var(--_color-theme---text)' }}>
                     Choose to record directly or upload existing audio files to create a unique voice
                   </p>
 
                   <div className="grid grid-cols-2 gap-6 max-w-2xl mx-auto">
                     {/* Record Voice */}
-                    <div className="border-2 border-dashed border-[#E5E7EB] rounded-xl p-6 hover:border-[#FF5722] hover:bg-[#FF5722]/5 transition-all duration-300">
+                    <div className="border-2 border-dashed rounded-xl p-6 hover:shadow-md transition-all duration-300" style={{ borderColor: 'var(--_color-theme---border)' }}>
                       <div className={`w-16 h-16 mx-auto rounded-full border-4 flex items-center justify-center mb-4 transition-all duration-300 ${
                         isRecording
                           ? 'border-red-500 bg-red-50 animate-pulse'
-                          : 'border-[#FF5722] bg-[#FF5722]/10'
-                      }`}>
-                        <Mic className={`w-8 h-8 ${isRecording ? 'text-red-500' : 'text-[#FF5722]'}`} />
+                          : 'animate-pulse'
+                      }`} style={{ borderColor: 'var(--_color-theme---button-primary--background)', backgroundColor: 'var(--_color-theme---background-secondary)' }}>
+                        <Mic className={`w-8 h-8 ${isRecording ? 'text-red-500' : ''}`} style={{ color: 'var(--_color-theme---button-primary--background)' }} />
                       </div>
-                      <h4 className="font-medium mb-2">Record Now</h4>
-                      <p className="text-sm text-[#6B7280] mb-4">Record about 1.5 minutes of your voice</p>
-                      <Button
+                      <h4 className="text-heading font-medium mb-2">Record Now</h4>
+                      <p className="text-body text-sm mb-4" style={{ color: 'var(--_color-theme---text)' }}>Record about 1.5 minutes of your voice</p>
+                      <button
                         onClick={toggleRecording}
-                        size="sm"
                         className={
                           isRecording
-                            ? 'bg-red-500 hover:bg-red-600'
-                            : 'bg-[#FF5722] hover:bg-[#FF5722]/90'
+                            ? 'bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg text-sm flex items-center gap-2'
+                            : 'btn-anthropic-primary text-sm px-4 py-2 flex items-center gap-2'
                         }
                       >
-                        <Mic className="w-4 h-4 mr-2" />
+                        <Mic className="w-4 h-4" />
                         {isRecording ? 'Stop' : 'Record'}
-                      </Button>
+                      </button>
                     </div>
 
                     {/* Upload Audio */}
-                    <div className="border-2 border-dashed border-[#E5E7EB] rounded-xl p-6 hover:border-[#FF5722] hover:bg-[#FF5722]/5 transition-all duration-300 cursor-pointer">
-                      <div className="w-16 h-16 mx-auto rounded-full border-4 border-[#4A90E2] bg-[#4A90E2]/10 flex items-center justify-center mb-4">
-                        <Upload className="w-8 h-8 text-[#4A90E2]" />
+                    <div className="border-2 border-dashed rounded-xl p-6 hover:shadow-md transition-all duration-300 cursor-pointer" style={{ borderColor: 'var(--_color-theme---border)' }}>
+                      <div className="w-16 h-16 mx-auto rounded-full border-4 flex items-center justify-center mb-4 animate-pulse" style={{ borderColor: 'var(--_color-theme---button-primary--background)', backgroundColor: 'var(--_color-theme---background-secondary)' }}>
+                        <Upload className="w-8 h-8" style={{ color: 'var(--_color-theme---button-primary--background)' }} />
                       </div>
-                      <h4 className="font-medium mb-2">Upload Files</h4>
-                      <p className="text-sm text-[#6B7280] mb-4">Upload existing audio recordings</p>
-                      <Button size="sm" variant="outline">
-                        <Upload className="w-4 h-4 mr-2" />
+                      <h4 className="text-heading font-medium mb-2">Upload Files</h4>
+                      <p className="text-body text-sm mb-4" style={{ color: 'var(--_color-theme---text)' }}>Upload existing audio recordings</p>
+                      <button className="btn-anthropic-secondary text-sm px-4 py-2 flex items-center gap-2 mx-auto">
+                        <Upload className="w-4 h-4" />
                         Browse
-                      </Button>
+                      </button>
                     </div>
                   </div>
 
-                  <div className="mt-8 text-sm text-[#6B7280] max-w-lg mx-auto">
+                  <div className="mt-8 text-body text-sm max-w-lg mx-auto" style={{ color: 'var(--_color-theme---text)' }}>
                     <p className="mb-2">💡 Tips for better voice quality:</p>
                     <ul className="list-disc list-inside space-y-1 text-left">
                       <li>Record in a quiet environment</li>
@@ -580,26 +573,26 @@ const PersonalTwinBuilder = () => {
                     </p>
                   </div>
                 </div>
-              </CardContent>
-            </Card>
+              </div>
+            </div>
           </TabsContent>
         </Tabs>
 
         {/* Action Buttons */}
         <div className="flex gap-4 justify-end mt-8">
-          <Button
-            variant="outline"
+          <button
             onClick={() => navigate('/get-started')}
+            className="btn-anthropic-secondary"
           >
             Cancel
-          </Button>
-          <Button
+          </button>
+          <button
             onClick={handleCreatePersonalTwin}
-            className="bg-[#FF5722] hover:bg-[#FF5722]/90"
+            className="btn-anthropic-primary flex items-center gap-2"
           >
-            <Save className="w-4 h-4 mr-2" />
+            <Save className="w-4 h-4" />
             Create My Digital Twin
-          </Button>
+          </button>
         </div>
       </div>
     </div>

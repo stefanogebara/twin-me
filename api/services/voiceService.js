@@ -2,6 +2,7 @@ import axios from 'axios';
 import fs from 'fs';
 import path from 'path';
 import dotenv from 'dotenv';
+import OpenAI from 'openai';
 
 // Load environment variables
 dotenv.config({ path: path.resolve(process.cwd(), '../.env') });
@@ -17,6 +18,18 @@ class VoiceService {
       this.enabled = false;
     } else {
       this.enabled = true;
+    }
+
+    // Initialize OpenAI for speech-to-text
+    const openaiApiKey = process.env.OPENAI_API_KEY;
+    if (openaiApiKey && openaiApiKey !== 'your_openai_api_key_here') {
+      this.openai = new OpenAI({
+        apiKey: openaiApiKey,
+      });
+      this.speechToTextEnabled = true;
+    } else {
+      console.warn('OpenAI API key not configured. Speech-to-text will be disabled.');
+      this.speechToTextEnabled = false;
     }
   }
 
@@ -366,6 +379,35 @@ class VoiceService {
       };
     } catch (error) {
       console.error('Failed to process twin voice upload:', error);
+      return {
+        success: false,
+        error: error.message
+      };
+    }
+  }
+
+  /**
+   * Convert speech to text using OpenAI Whisper
+   */
+  async speechToText(audioFile) {
+    if (!this.speechToTextEnabled) {
+      throw new Error('Speech-to-text service not available - OpenAI API key not configured');
+    }
+
+    try {
+      const transcription = await this.openai.audio.transcriptions.create({
+        file: audioFile,
+        model: 'whisper-1',
+        response_format: 'text',
+        language: 'en'
+      });
+
+      return {
+        success: true,
+        transcription: transcription.trim()
+      };
+    } catch (error) {
+      console.error('Speech-to-text failed:', error);
       return {
         success: false,
         error: error.message
