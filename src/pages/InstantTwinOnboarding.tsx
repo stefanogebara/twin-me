@@ -247,7 +247,7 @@ const InstantTwinOnboarding = () => {
             <div className={`flex items-center justify-center w-8 h-8 rounded-full text-sm font-medium transition-all duration-300 ${
               currentStep >= step.id
                 ? 'bg-[hsl(var(--_color-theme---button-primary--background))] text-white'
-                : 'bg-gray-200 text-gray-600'
+                : 'text-[hsl(var(--_color-theme---text-secondary))]'
             }`}>
               {currentStep > step.id ? (
                 <CheckCircle2 className="w-5 h-5" />
@@ -256,14 +256,14 @@ const InstantTwinOnboarding = () => {
               )}
             </div>
             <div className="ml-2 text-sm">
-              <div className={`font-medium ${currentStep >= step.id ? 'text-[hsl(var(--_color-theme---text))]' : 'text-gray-500'}`}>
+              <div className={`font-medium ${currentStep >= step.id ? 'text-[hsl(var(--_color-theme---text))]' : 'text-[hsl(var(--_color-theme---text-secondary))]'}`}>
                 {step.name}
               </div>
-              <div className="text-gray-400 text-xs">{step.description}</div>
+              <div className="text-xs" style={{ color: 'var(--_color-theme---text-secondary)' }}>{step.description}</div>
             </div>
             {index < STEPS.length - 1 && (
               <div className={`w-8 h-px mx-4 transition-colors duration-300 ${
-                currentStep > step.id ? 'bg-[hsl(var(--_color-theme---button-primary--background))]' : 'bg-gray-200'
+                currentStep > step.id ? 'bg-[hsl(var(--_color-theme---button-primary--background))]' : 'bg-[hsl(var(--_color-theme---surface-raised))]'
               }`} />
             )}
           </div>
@@ -289,7 +289,7 @@ const InstantTwinOnboarding = () => {
         {/* Connection status indicator */}
         {isConnected && (
           <div className="absolute top-4 right-4">
-            <CheckCircle2 className="w-5 h-5 text-green-500" />
+            <CheckCircle2 className="w-5 h-5 text-[hsl(var(--_color-theme---accent))]" />
           </div>
         )}
 
@@ -305,7 +305,7 @@ const InstantTwinOnboarding = () => {
             <h3 className="font-medium text-lg" style={{ color: 'var(--_color-theme---text)' }}>
               {connector.name}
             </h3>
-            <p className="text-sm text-gray-500">{connector.setupTime} setup</p>
+            <p className="text-sm" style={{ color: 'var(--_color-theme---text-secondary)' }}>{connector.setupTime} setup</p>
           </div>
         </div>
 
@@ -317,7 +317,7 @@ const InstantTwinOnboarding = () => {
         {/* Data insights preview */}
         <div className="space-y-2">
           <div className="flex items-center justify-between text-xs">
-            <span className="text-gray-500">Insights Generated:</span>
+            <span className="text-[hsl(var(--_color-theme---text-secondary))]">Insights Generated:</span>
             <span className="font-medium" style={{ color: 'var(--_color-theme---text)' }}>
               ~{connector.estimatedInsights}
             </span>
@@ -340,8 +340,8 @@ const InstantTwinOnboarding = () => {
 
         {/* Privacy indicator */}
         <div className="flex items-center gap-2 mt-4 pt-4 border-t" style={{ borderColor: 'var(--_color-theme---border)' }}>
-          <Shield className="w-4 h-4 text-gray-400" />
-          <span className="text-xs text-gray-500">
+          <Shield className="w-4 h-4 text-[hsl(var(--_color-theme---text-secondary))]" />
+          <span className="text-xs text-[hsl(var(--_color-theme---text-secondary))]">
             Privacy: {connector.privacyLevel}
           </span>
         </div>
@@ -356,7 +356,7 @@ const InstantTwinOnboarding = () => {
       <div className="text-center">
         <div className="mb-8">
           <div className="w-24 h-24 mx-auto mb-4 relative">
-            <div className="absolute inset-0 rounded-full border-4 border-gray-200"></div>
+            <div className="absolute inset-0 rounded-full border-4" style={{ borderColor: 'var(--_color-theme---border)' }}></div>
             <div
               className="absolute inset-0 rounded-full border-4 border-[hsl(var(--_color-theme---button-primary--background))] transition-all duration-500"
               style={{
@@ -368,15 +368,15 @@ const InstantTwinOnboarding = () => {
             </div>
           </div>
 
-          <h2 className="text-2xl font-medium mb-2" style={{ color: 'var(--_color-theme---text)' }}>
+          <h2 className="text-2xl font-medium mb-2" style={{ fontFamily: 'var(--_typography---font--styrene-a)', color: 'var(--_color-theme---text)' }}>
             {generationProgress.progress === 100 ? 'Your Twin is Ready!' : 'Creating Your Digital Twin'}
           </h2>
 
-          <p className="text-gray-500 mb-6">{generationProgress.currentTask}</p>
+          <p className="text-[hsl(var(--_color-theme---text-secondary))] mb-6">{generationProgress.currentTask}</p>
 
           {/* Progress bar */}
           <div className="max-w-md mx-auto mb-6">
-            <div className="w-full bg-gray-200 rounded-full h-2">
+            <div className="w-full rounded-full h-2" style={{ backgroundColor: 'var(--_color-theme---surface-raised)' }}>
               <div
                 className="h-2 rounded-full transition-all duration-500"
                 style={{
@@ -386,8 +386,8 @@ const InstantTwinOnboarding = () => {
               ></div>
             </div>
             <div className="flex justify-between text-sm mt-2">
-              <span className="text-gray-500">{generationProgress.progress}% complete</span>
-              <span className="text-gray-500">
+              <span className="text-[hsl(var(--_color-theme---text-secondary))]">{generationProgress.progress}% complete</span>
+              <span className="text-[hsl(var(--_color-theme---text-secondary))]">
                 {generationProgress.estimatedTimeRemaining > 0
                   ? `${Math.ceil(generationProgress.estimatedTimeRemaining)}s remaining`
                   : 'Complete!'
@@ -402,19 +402,19 @@ const InstantTwinOnboarding = () => {
               <div className="text-2xl font-bold" style={{ color: 'var(--_color-theme---button-primary--background)' }}>
                 {generationProgress.connectorsConnected.length}
               </div>
-              <div className="text-xs text-gray-500">Services</div>
+              <div className="text-xs text-[hsl(var(--_color-theme---text-secondary))]">Services</div>
             </div>
             <div className="text-center">
               <div className="text-2xl font-bold" style={{ color: 'var(--_color-theme---button-primary--background)' }}>
                 {generationProgress.dataPointsIngested}
               </div>
-              <div className="text-xs text-gray-500">Data Points</div>
+              <div className="text-xs text-[hsl(var(--_color-theme---text-secondary))]">Data Points</div>
             </div>
             <div className="text-center">
               <div className="text-2xl font-bold" style={{ color: 'var(--_color-theme---button-primary--background)' }}>
                 {generationProgress.insightsGenerated}
               </div>
-              <div className="text-xs text-gray-500">Insights</div>
+              <div className="text-xs text-[hsl(var(--_color-theme---text-secondary))]">Insights</div>
             </div>
           </div>
         </div>
@@ -429,7 +429,7 @@ const InstantTwinOnboarding = () => {
   return (
     <div className="min-h-screen" style={{ backgroundColor: 'var(--_color-theme---background)' }}>
       {/* Header */}
-      <div className="sticky top-0 z-50 bg-white/90 backdrop-blur-sm border-b" style={{ borderColor: 'var(--_color-theme---border)' }}>
+      <div className="sticky top-0 z-50 backdrop-blur-sm border-b" style={{ backgroundColor: 'var(--_color-theme---background)/90', borderColor: 'var(--_color-theme---border)' }}>
         <div className="max-w-7xl mx-auto px-6 py-4">
           <div className="flex items-center justify-between">
             <button
@@ -442,17 +442,17 @@ const InstantTwinOnboarding = () => {
             </button>
 
             <div className="text-center">
-              <h1 className="text-xl font-medium" style={{ color: 'var(--_color-theme---text)' }}>
+              <h1 className="text-2xl font-medium" style={{ fontFamily: 'var(--_typography---font--styrene-a)', color: 'var(--_color-theme---text)' }}>
                 Create Your Instant Twin
               </h1>
-              <p className="text-sm text-gray-500">
+              <p className="text-sm" style={{ color: 'var(--_color-theme---text-secondary)' }}>
                 Connect your digital life and get a working twin in 60 seconds
               </p>
             </div>
 
             <div className="flex items-center gap-2 text-sm">
               <Zap className="w-4 h-4 text-yellow-500" />
-              <span className="text-gray-500">60s setup</span>
+              <span className="text-[hsl(var(--_color-theme---text-secondary))]">60s setup</span>
             </div>
           </div>
         </div>
@@ -466,10 +466,10 @@ const InstantTwinOnboarding = () => {
         {currentStep === 1 && (
           <div>
             <div className="text-center mb-12">
-              <h2 className="text-3xl font-medium mb-4" style={{ color: 'var(--_color-theme---text)' }}>
+              <h2 className="text-3xl font-medium mb-4" style={{ fontFamily: 'var(--_typography---font--styrene-a)', color: 'var(--_color-theme---text)' }}>
                 Connect Your Digital Services
               </h2>
-              <p className="text-gray-500 max-w-2xl mx-auto">
+              <p className="text-[hsl(var(--_color-theme---text-secondary))] max-w-2xl mx-auto">
                 Your twin learns from your actual behavior across platforms. Connect the services you use most
                 to get the most accurate personality representation.
               </p>
@@ -488,7 +488,7 @@ const InstantTwinOnboarding = () => {
                 Continue with {selectedConnectors.length} service{selectedConnectors.length !== 1 ? 's' : ''}
                 <ArrowRight className="w-5 h-5" />
               </button>
-              <p className="text-sm text-gray-500 mt-2">
+              <p className="text-sm text-[hsl(var(--_color-theme---text-secondary))] mt-2">
                 You can always add more services later
               </p>
             </div>
@@ -499,47 +499,47 @@ const InstantTwinOnboarding = () => {
         {currentStep === 2 && (
           <div>
             <div className="text-center mb-12">
-              <h2 className="text-3xl font-medium mb-4" style={{ color: 'var(--_color-theme---text)' }}>
+              <h2 className="text-3xl font-medium mb-4" style={{ fontFamily: 'var(--_typography---font--styrene-a)', color: 'var(--_color-theme---text)' }}>
                 Privacy & Data Control
               </h2>
-              <p className="text-gray-500 max-w-2xl mx-auto">
+              <p className="text-[hsl(var(--_color-theme---text-secondary))] max-w-2xl mx-auto">
                 Your data security is our priority. All processing happens with military-grade encryption,
                 and you maintain full control over what information is used.
               </p>
             </div>
 
             <div className="max-w-2xl mx-auto space-y-6 mb-12">
-              <div className="bg-white rounded-2xl p-6 border" style={{ borderColor: 'var(--_color-theme---border)' }}>
+              <div className="rounded-2xl p-6 border" style={{ backgroundColor: 'var(--_color-theme---surface)', borderColor: 'var(--_color-theme---border)' }}>
                 <div className="flex items-center justify-between mb-4">
                   <div className="flex items-center gap-3">
-                    <Shield className="w-5 h-5 text-green-500" />
+                    <Shield className="w-5 h-5 text-[hsl(var(--_color-theme---accent))]" />
                     <h3 className="font-medium" style={{ color: 'var(--_color-theme---text)' }}>
                       Data Encryption
                     </h3>
                   </div>
-                  <CheckCircle2 className="w-5 h-5 text-green-500" />
+                  <CheckCircle2 className="w-5 h-5 text-[hsl(var(--_color-theme---accent))]" />
                 </div>
-                <p className="text-sm text-gray-500">
+                <p className="text-sm text-[hsl(var(--_color-theme---text-secondary))]">
                   All data is encrypted in transit and at rest using AES-256 encryption
                 </p>
               </div>
 
-              <div className="bg-white rounded-2xl p-6 border" style={{ borderColor: 'var(--_color-theme---border)' }}>
+              <div className="rounded-2xl p-6 border" style={{ backgroundColor: 'var(--_color-theme---surface)', borderColor: 'var(--_color-theme---border)' }}>
                 <div className="flex items-center justify-between mb-4">
                   <div className="flex items-center gap-3">
-                    <Eye className="w-5 h-5 text-blue-500" />
+                    <Eye className="w-5 h-5 text-[hsl(var(--_color-theme---accent))]" />
                     <h3 className="font-medium" style={{ color: 'var(--_color-theme---text)' }}>
                       Data Transparency
                     </h3>
                   </div>
                   <button
                     onClick={() => setShowPrivacyDetails(!showPrivacyDetails)}
-                    className="text-sm text-blue-500 hover:underline"
+                    className="text-sm text-[hsl(var(--_color-theme---accent))] hover:underline"
                   >
                     {showPrivacyDetails ? 'Hide' : 'View'} Details
                   </button>
                 </div>
-                <p className="text-sm text-gray-500 mb-4">
+                <p className="text-sm text-[hsl(var(--_color-theme---text-secondary))] mb-4">
                   You can see exactly what data is being processed and how it's used
                 </p>
 
@@ -550,7 +550,7 @@ const InstantTwinOnboarding = () => {
                       return connector ? (
                         <div key={provider} className="flex items-center justify-between text-sm">
                           <span>{connector.name}:</span>
-                          <span className="text-gray-500">{connector.dataTypes.join(', ')}</span>
+                          <span className="text-[hsl(var(--_color-theme---text-secondary))]">{connector.dataTypes.join(', ')}</span>
                         </div>
                       ) : null;
                     })}
@@ -558,7 +558,7 @@ const InstantTwinOnboarding = () => {
                 )}
               </div>
 
-              <div className="bg-white rounded-2xl p-6 border" style={{ borderColor: 'var(--_color-theme---border)' }}>
+              <div className="rounded-2xl p-6 border" style={{ backgroundColor: 'var(--_color-theme---surface)', borderColor: 'var(--_color-theme---border)' }}>
                 <div className="flex items-center justify-between mb-4">
                   <div className="flex items-center gap-3">
                     <Settings className="w-5 h-5 text-purple-500" />
@@ -566,9 +566,9 @@ const InstantTwinOnboarding = () => {
                       Data Retention
                     </h3>
                   </div>
-                  <span className="text-sm text-gray-500">30 days default</span>
+                  <span className="text-sm text-[hsl(var(--_color-theme---text-secondary))]">30 days default</span>
                 </div>
-                <p className="text-sm text-gray-500">
+                <p className="text-sm text-[hsl(var(--_color-theme---text-secondary))]">
                   Raw data is automatically deleted after processing. Only anonymized insights are kept.
                 </p>
               </div>
@@ -582,7 +582,7 @@ const InstantTwinOnboarding = () => {
                 <Sparkles className="w-5 h-5" />
                 Generate My Twin (60s)
               </button>
-              <p className="text-sm text-gray-500 mt-2">
+              <p className="text-sm text-[hsl(var(--_color-theme---text-secondary))] mt-2">
                 Your twin will be ready in about 60 seconds
               </p>
             </div>
