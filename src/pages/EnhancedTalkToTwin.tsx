@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { ArrowLeft, MessageCircle, Star, Users, BookOpen, Zap } from 'lucide-react';
+import { ArrowLeft, MessageCircle, Star, Users, BookOpen, Zap, BarChart3 } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
 import { dbHelpers } from '@/lib/supabase';
 import LoadingScreen from '@/components/LoadingScreen';
@@ -212,6 +212,21 @@ const EnhancedTalkToTwin = () => {
                       size="sm"
                       className="px-3"
                       onClick={() => {
+                        trackTwinInteraction(twin.id, 'dashboard_view', {
+                          twin_name: twin.name,
+                          subject_area: twin.subject_area
+                        });
+                        navigate(`/twin-dashboard/${twin.id}`);
+                      }}
+                      title="View Dashboard"
+                    >
+                      <BarChart3 className="w-4 h-4" />
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="px-3"
+                      onClick={() => {
                         trackTwinInteraction(twin.id, 'preview_attempt', {
                           twin_name: twin.name,
                           subject_area: twin.subject_area
@@ -221,6 +236,7 @@ const EnhancedTalkToTwin = () => {
                           description: "Twin preview feature is coming soon!",
                         });
                       }}
+                      title="Preview Twin"
                     >
                       <BookOpen className="w-4 h-4" />
                     </Button>

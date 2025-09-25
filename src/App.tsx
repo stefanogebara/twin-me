@@ -29,6 +29,8 @@ import Contact from "./pages/Contact";
 import ProfessorDashboard from "./pages/ProfessorDashboard";
 import PersonalTwinBuilder from "./pages/PersonalTwinBuilder";
 import StudentDashboard from "./pages/StudentDashboard";
+import InstantTwinOnboarding from "./pages/InstantTwinOnboarding";
+import TwinDashboard from "./pages/TwinDashboard";
 
 const queryClient = new QueryClient();
 
@@ -70,7 +72,7 @@ const App = () => (
             <Route path="/get-started" element={
               <>
                 <SignedIn>
-                  <AnthropicGetStarted />
+                  <InstantTwinOnboarding />
                 </SignedIn>
                 <SignedOut>
                   <Auth />
@@ -78,6 +80,16 @@ const App = () => (
               </>
             } />
             <Route path="/legacy-get-started" element={
+              <>
+                <SignedIn>
+                  <AnthropicGetStarted />
+                </SignedIn>
+                <SignedOut>
+                  <Auth />
+                </SignedOut>
+              </>
+            } />
+            <Route path="/original-get-started" element={
               <>
                 <SignedIn>
                   <GetStarted />
@@ -187,7 +199,17 @@ const App = () => (
                 </SignedOut>
               </>
             } />
-            {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+            <Route path="/twin-dashboard/:twinId" element={
+              <>
+                <SignedIn>
+                  <TwinDashboard />
+                </SignedIn>
+                <SignedOut>
+                  <Auth />
+                </SignedOut>
+              </>
+            } />
+            {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>

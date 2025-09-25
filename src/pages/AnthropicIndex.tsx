@@ -72,23 +72,6 @@ const AnthropicIndex = () => {
     }
   ];
 
-  const testimonials = [
-    {
-      quote: "This platform has revolutionized how I connect with my students. My digital twin helps them even when I'm not available.",
-      author: "Dr. Sarah Chen",
-      role: "Professor of Computer Science"
-    },
-    {
-      quote: "The conversational interface feels so natural. It's like having a personal tutor who understands exactly how I learn.",
-      author: "Maria Rodriguez",
-      role: "Graduate Student"
-    },
-    {
-      quote: "Creating my teaching twin was incredibly intuitive. The platform captured my personality and teaching style perfectly.",
-      author: "Prof. James Wilson",
-      role: "Mathematics Department"
-    }
-  ];
 
   return (
     <div className="min-h-screen" style={{ backgroundColor: 'var(--_color-theme---background)', color: 'var(--_color-theme---text)' }}>
@@ -103,7 +86,6 @@ const AnthropicIndex = () => {
             <div className="hidden md:flex items-center space-x-8">
               <a href="#features" className="text-body hover:opacity-70 transition-opacity">Features</a>
               <a href="#how-it-works" className="text-body hover:opacity-70 transition-opacity">How It Works</a>
-              <a href="#testimonials" className="text-body hover:opacity-70 transition-opacity">Testimonials</a>
               <a href="#contact" className="text-body hover:opacity-70 transition-opacity">Contact</a>
             </div>
             {!isLoaded ? (
@@ -124,15 +106,14 @@ const AnthropicIndex = () => {
       {/* Hero Section - Anthropic Style */}
       <section className="min-h-screen flex items-center justify-center pt-20 px-6">
         <div className="max-w-4xl mx-auto text-center">
-          <h1 className="u-display-xl text-heading mb-8 text-center" style={{ fontFamily: 'var(--_typography---font--styrene-a)' }}>
+          <h1 className="u-display-xl mb-8 text-center" style={{ fontFamily: 'var(--_typography---font--styrene-a)' }}>
             <div className="flex flex-wrap justify-center items-center gap-2">
               {animatedWords.map((word, index) => (
                 <span
                   key={index}
                   className="hero-word animate-word inline-block"
                   style={{
-                    transitionDelay: `${index * 150}ms`,
-                    fontFamily: 'inherit'
+                    transitionDelay: `${index * 150}ms`
                   }}
                 >
                   {word}
@@ -253,34 +234,6 @@ const AnthropicIndex = () => {
         </div>
       </section>
 
-      {/* Testimonials Section */}
-      <section id="testimonials" className="py-24 px-6">
-        <div className="max-w-7xl mx-auto">
-          <div className="text-center mb-16">
-            <h2 className="u-display-l text-heading mb-6">
-              Trusted by Educators Worldwide
-            </h2>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {testimonials.map((testimonial, index) => (
-              <div
-                key={index}
-                className="bg-white rounded-2xl p-8 shadow-sm border"
-                style={{ borderColor: 'var(--_color-theme---border)' }}
-              >
-                <p className="text-body mb-6 leading-relaxed">
-                  "{testimonial.quote}"
-                </p>
-                <div>
-                  <p className="text-heading font-medium">{testimonial.author}</p>
-                  <p className="text-body text-sm opacity-70">{testimonial.role}</p>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
 
       {/* CTA Section */}
       <section className="py-24 px-6" style={{ backgroundColor: 'var(--_color-theme---card)' }}>
