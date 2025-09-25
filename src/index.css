@@ -135,7 +135,7 @@ All colors MUST be HSL. Semantic tokens for consistent theming.
   :root {
     /* Anthropic Typography Variables - Using Premium Font Alternatives */
     /* Styrene A/B alternatives for headlines (geometric sans with extended chars) */
-    --_typography---font--display-sans: "Space Grotesk", "DM Sans", system-ui, sans-serif;
+    --_typography---font--display-sans: "Space Grotesk", system-ui, sans-serif;
     --_typography---font--styrene-a: "Space Grotesk", system-ui, sans-serif;
     --_typography---font--styrene-b: "DM Sans", system-ui, sans-serif;
 
@@ -1178,7 +1178,7 @@ details summary {
 
 /* Anthropic Typography System */
 .u-display-xl {
-  font-family: var(--_typography---font--display-sans);
+  font-family: var(--_typography---font--styrene-a);
   font-size: var(--_typography---font-size--display-xl);
   line-height: var(--_typography---line-height--1);
   font-weight: var(--_typography---font--display-sans-medium);
@@ -1191,7 +1191,7 @@ details summary {
 }
 
 .u-display-l {
-  font-family: var(--_typography---font--display-sans);
+  font-family: var(--_typography---font--styrene-a);
   font-size: clamp(2rem, 1.6938775510204083rem + 1.306122448979592vw, 3rem);
   line-height: var(--_typography---line-height--1);
   font-weight: var(--_typography---font--display-sans-medium);
@@ -1202,7 +1202,7 @@ details summary {
 }
 
 .u-display-m {
-  font-family: var(--_typography---font--display-sans);
+  font-family: var(--_typography---font--styrene-a);
   font-size: clamp(1.75rem, 1.6734693877551021rem + 0.326530612244898vw, 2rem);
   line-height: var(--_typography---line-height--1);
   font-weight: var(--_typography---font--display-sans-medium);
@@ -1257,7 +1257,7 @@ details summary {
   border: 1px solid var(--_color-theme---button-primary--border);
   border-radius: 50px;
   padding: 12px 24px;
-  font-family: var(--_typography---font--display-sans);
+  font-family: var(--_typography---font--styrene-a);
   font-weight: var(--_typography---font--display-sans-medium);
   font-size: 1rem;
   line-height: 1.2;
@@ -1282,7 +1282,7 @@ details summary {
   border: 1px solid var(--_color-theme---button-secondary--border);
   border-radius: 50px;
   padding: 12px 24px;
-  font-family: var(--_typography---font--display-sans);
+  font-family: var(--_typography---font--styrene-a);
   font-weight: var(--_typography---font--display-sans-medium);
   font-size: 1rem;
   line-height: 1.2;
