@@ -35,7 +35,7 @@ const AnthropicIndex = () => {
     if (!isLoaded) return;
 
     if (isSignedIn) {
-      navigate('/get-started');
+      navigate('/legacy-get-started');
     }
   };
 
@@ -49,28 +49,41 @@ const AnthropicIndex = () => {
     }
   };
 
-  const features = [
-    {
-      icon: <Sparkles className="w-8 h-8" />,
-      title: "AI-Powered Teaching",
-      description: "Create digital twins that capture your unique teaching style and personality"
+  // Apple-style content grouping by user benefit
+  const featureGroups = {
+    forEducators: {
+      title: "For Educators",
+      description: "Powerful tools to amplify your teaching",
+      features: [
+        {
+          icon: <Sparkles className="w-8 h-8" />,
+          title: "AI-Powered Teaching",
+          description: "Create digital twins that capture your unique teaching style and personality"
+        },
+        {
+          icon: <User className="w-8 h-8" />,
+          title: "24/7 Availability",
+          description: "Your teaching presence available anytime, anywhere for students"
+        }
+      ]
     },
-    {
-      icon: <Mic className="w-8 h-8" />,
-      title: "Voice-Enabled Learning",
-      description: "Natural conversation experiences with voice synthesis technology"
-    },
-    {
-      icon: <Brain className="w-8 h-8" />,
-      title: "Personalized Education",
-      description: "Adaptive learning that adjusts to each student's pace and style"
-    },
-    {
-      icon: <User className="w-8 h-8" />,
-      title: "24/7 Availability",
-      description: "Your teaching presence available anytime, anywhere for students"
+    forStudents: {
+      title: "For Students",
+      description: "Personalized learning experiences that adapt to you",
+      features: [
+        {
+          icon: <Mic className="w-8 h-8" />,
+          title: "Voice-Enabled Learning",
+          description: "Natural conversation experiences with voice synthesis technology"
+        },
+        {
+          icon: <Brain className="w-8 h-8" />,
+          title: "Personalized Education",
+          description: "Adaptive learning that adjusts to each student's pace and style"
+        }
+      ]
     }
-  ];
+  };
 
 
   return (
@@ -83,19 +96,41 @@ const AnthropicIndex = () => {
             <div className="text-2xl font-medium text-heading" style={{ color: 'var(--_color-theme---text)' }}>
               Twin Me
             </div>
+            {/* Apple-style Navigation with Clear Hierarchy */}
             <div className="hidden md:flex items-center space-x-8">
-              <a href="#features" className="text-body hover:opacity-70 transition-opacity">Features</a>
-              <a href="#how-it-works" className="text-body hover:opacity-70 transition-opacity">How It Works</a>
-              <a href="#contact" className="text-body hover:opacity-70 transition-opacity">Contact</a>
+              <a
+                href="#features"
+                className="text-sm font-medium transition-all hover:opacity-70 relative group"
+                style={{ color: 'var(--_color-theme---text)' }}
+              >
+                Features
+                <div className="absolute -bottom-1 left-0 w-0 h-0.5 transition-all group-hover:w-full" style={{ backgroundColor: 'var(--_color-theme---accent)' }}></div>
+              </a>
+              <a
+                href="#how-it-works"
+                className="text-sm font-medium transition-all hover:opacity-70 relative group"
+                style={{ color: 'var(--_color-theme---text)' }}
+              >
+                How It Works
+                <div className="absolute -bottom-1 left-0 w-0 h-0.5 transition-all group-hover:w-full" style={{ backgroundColor: 'var(--_color-theme---accent)' }}></div>
+              </a>
+              <a
+                href="#contact"
+                className="text-sm font-medium transition-all hover:opacity-70 relative group"
+                style={{ color: 'var(--_color-theme---text)' }}
+              >
+                Contact
+                <div className="absolute -bottom-1 left-0 w-0 h-0.5 transition-all group-hover:w-full" style={{ backgroundColor: 'var(--_color-theme---accent)' }}></div>
+              </a>
             </div>
             {!isLoaded ? (
               <button disabled className="btn-anthropic-primary opacity-50 cursor-not-allowed">Loading...</button>
             ) : isSignedIn ? (
-              <button onClick={() => navigate('/twin-builder')} className="btn-anthropic-primary">
+              <button onClick={() => navigate('/professor-dashboard')} className="btn-anthropic-primary">
                 Dashboard
               </button>
             ) : (
-              <SignInButton mode="modal" fallbackRedirectUrl="/get-started" forceRedirectUrl="/get-started">
+              <SignInButton mode="modal" afterSignInUrl="/legacy-get-started">
                 <button className="btn-anthropic-primary">Get Started</button>
               </SignInButton>
             )}
@@ -135,7 +170,7 @@ const AnthropicIndex = () => {
                 <ArrowRight className="w-5 h-5" />
               </button>
             ) : (
-              <SignInButton mode="modal" fallbackRedirectUrl="/get-started" forceRedirectUrl="/get-started">
+              <SignInButton mode="modal" afterSignInUrl="/legacy-get-started">
                 <button className="btn-anthropic-primary flex items-center gap-2">
                   Create Your Twin
                   <ArrowRight className="w-5 h-5" />
@@ -161,24 +196,44 @@ const AnthropicIndex = () => {
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-            {features.map((feature, index) => (
-              <div
-                key={index}
-                className="bg-white rounded-2xl p-8 shadow-sm border hover:shadow-md transition-all duration-300"
-                style={{ borderColor: 'var(--_color-theme---border)' }}
-              >
-                <div className="mb-6 p-3 rounded-xl w-fit" style={{ backgroundColor: 'var(--_color-theme---background-secondary)' }}>
-                  <div style={{ color: 'var(--_color-theme---text)' }}>
-                    {feature.icon}
+          {/* Apple-style Grouped Content */}
+          <div className="space-y-16">
+            {Object.entries(featureGroups).map(([groupKey, group]) => (
+              <div key={groupKey} className="">
+                {/* Group Header */}
+                <div className="text-center mb-12">
+                  <div className="inline-flex items-center gap-2 bg-white border rounded-full px-4 py-2 mb-4" style={{ borderColor: 'var(--_color-theme---border)' }}>
+                    <span className="text-sm font-medium" style={{ color: 'var(--_color-theme---accent)' }}>
+                      {group.title}
+                    </span>
                   </div>
+                  <p className="text-lg" style={{ color: 'var(--_color-theme---text-secondary)' }}>
+                    {group.description}
+                  </p>
                 </div>
-                <h3 className="text-heading font-medium text-xl mb-4">
-                  {feature.title}
-                </h3>
-                <p className="text-body">
-                  {feature.description}
-                </p>
+
+                {/* Group Features */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto">
+                  {group.features.map((feature, index) => (
+                    <div
+                      key={index}
+                      className="bg-white rounded-2xl p-8 shadow-sm border hover:shadow-md transition-all duration-300"
+                      style={{ borderColor: 'var(--_color-theme---border)' }}
+                    >
+                      <div className="mb-6 p-3 rounded-xl w-fit" style={{ backgroundColor: 'var(--_color-theme---background-secondary)' }}>
+                        <div style={{ color: 'var(--_color-theme---text)' }}>
+                          {feature.icon}
+                        </div>
+                      </div>
+                      <h3 className="text-heading font-medium text-xl mb-4">
+                        {feature.title}
+                      </h3>
+                      <p className="text-body">
+                        {feature.description}
+                      </p>
+                    </div>
+                  ))}
+                </div>
               </div>
             ))}
           </div>
@@ -249,12 +304,12 @@ const AnthropicIndex = () => {
             {!isLoaded ? (
               <button disabled className="btn-anthropic-primary opacity-50 cursor-not-allowed">Loading...</button>
             ) : isSignedIn ? (
-              <button onClick={() => navigate('/get-started')} className="btn-anthropic-primary flex items-center gap-2">
+              <button onClick={() => navigate('/legacy-get-started')} className="btn-anthropic-primary flex items-center gap-2">
                 Start Building Your Twin
                 <ArrowRight className="w-5 h-5" />
               </button>
             ) : (
-              <SignInButton mode="modal" fallbackRedirectUrl="/get-started" forceRedirectUrl="/get-started">
+              <SignInButton mode="modal" afterSignInUrl="/legacy-get-started">
                 <button className="btn-anthropic-primary flex items-center gap-2">
                   Start Building Your Twin
                   <ArrowRight className="w-5 h-5" />

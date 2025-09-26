@@ -142,6 +142,7 @@ import twinsRoutes from './routes/twins.js';
 import conversationsRoutes from './routes/conversations.js';
 import voiceRoutes from './routes/voice.js';
 import analyticsRoutes from './routes/analytics.js';
+import connectorsRoutes from './routes/connectors.js';
 import { serverDb } from './services/database.js';
 import { sanitizeInput, validateContentType } from './middleware/sanitization.js';
 import { handleAuthError, handleGeneralError, handle404 } from './middleware/errorHandler.js';
@@ -152,6 +153,7 @@ app.use('/api/twins', twinsRoutes);
 app.use('/api/conversations', conversationsRoutes);
 app.use('/api/voice', voiceRoutes);
 app.use('/api/analytics', analyticsRoutes);
+app.use('/api/connectors', connectorsRoutes);
 
 // Health check endpoint
 app.get('/api/health', async (req, res) => {

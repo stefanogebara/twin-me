@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { SignUp, useAuth } from '@clerk/clerk-react';
 import { useToast } from '@/components/ui/use-toast';
 import { AcademicHierarchy, AcademicStructure } from '@/components/ui/AcademicHierarchy';
-import { Sparkles, User, BookOpen, ArrowLeft, ArrowRight, Users, GraduationCap, Heart, Zap, Check, Building2, Book, BarChart3, Award, MessageCircle, Sprout, Rocket, Briefcase, Plus, Shield, Target, Gem } from 'lucide-react';
+import { Sparkles, User, BookOpen, ArrowLeft, ArrowRight, Users, GraduationCap, Heart, Check, Building2, Book, BarChart3, Award, MessageCircle, Sprout, Rocket, Briefcase } from 'lucide-react';
 
 const AnthropicGetStarted = () => {
   const navigate = useNavigate();
@@ -43,11 +43,11 @@ const AnthropicGetStarted = () => {
 
   const nextPage = () => {
     if (currentPage === 2 && selectedType === 'personal') {
-      // Skip the teacher setup page for personal twins
-      navigate('/personal-twin-builder');
+      // Route personal twins to connector onboarding (same as educational)
+      navigate('/get-started?type=personal');
       return;
-    } else if (currentPage === 2 && (selectedType === 'educational' || selectedType === 'both')) {
-      navigate('/twin-builder');
+    } else if (currentPage === 2 && selectedType === 'educational') {
+      navigate('/get-started');
       return;
     }
     setCurrentPage(currentPage + 1);
@@ -89,20 +89,6 @@ const AnthropicGetStarted = () => {
         { icon: <Sprout className="w-4 h-4" />, text: 'Mentorship & coaching' },
         { icon: <Rocket className="w-4 h-4" />, text: 'Personal branding' },
         { icon: <Briefcase className="w-4 h-4" />, text: 'Flexible monetization' }
-      ]
-    },
-    {
-      id: 'both',
-      title: 'Complete Package',
-      subtitle: 'Maximum flexibility',
-      badge: null,
-      icon: <Zap className="w-8 h-8" />,
-      gradient: 'from-amber-50 to-orange-50',
-      features: [
-        { icon: <Plus className="w-4 h-4" />, text: 'Educational + Personal' },
-        { icon: <Shield className="w-4 h-4" />, text: 'All features included' },
-        { icon: <Target className="w-4 h-4" />, text: 'Multiple use cases' },
-        { icon: <Gem className="w-4 h-4" />, text: 'Best value option' }
       ]
     }
   ];
@@ -197,7 +183,7 @@ const AnthropicGetStarted = () => {
               </p>
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 max-w-7xl mx-auto">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 max-w-4xl mx-auto">
               {twinTypes.map((type) => (
                 <div
                   key={type.id}

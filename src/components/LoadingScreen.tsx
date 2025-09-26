@@ -27,36 +27,27 @@ const LoadingScreen = ({
   }, []);
 
   return (
-    <div className={`min-h-screen bg-[#FBF7F0] flex items-center justify-center ${className}`}>
+    <div className={`min-h-screen flex items-center justify-center ${className}`} style={{ backgroundColor: 'var(--_color-theme---background)' }}>
       <div className="text-center max-w-md mx-auto px-6">
-        {/* Beautiful animated icon */}
+        {/* Simple animated loading icon */}
         <div className="relative mb-8">
-          {/* Outer rotating ring */}
           <div className="w-24 h-24 mx-auto relative">
-            <div className="absolute inset-0 rounded-full border-4 border-[#FF5722]/20"></div>
-            <div className="absolute inset-0 rounded-full border-4 border-transparent border-t-[#FF5722] animate-spin"></div>
+            <div className="absolute inset-0 rounded-full border-4" style={{ borderColor: 'var(--_color-theme---border)' }}></div>
+            <div className="absolute inset-0 rounded-full border-4 border-transparent animate-spin" style={{ borderTopColor: 'var(--_color-theme---accent)' }}></div>
 
-            {/* Inner pulsing dot */}
-            <div className="absolute inset-6 bg-[#FF5722] rounded-full animate-pulse flex items-center justify-center">
+            {/* Center dot */}
+            <div className="absolute inset-6 rounded-full animate-pulse flex items-center justify-center" style={{ backgroundColor: 'var(--_color-theme---accent)' }}>
               <div className="w-3 h-3 bg-white rounded-full animate-bounce"></div>
             </div>
-          </div>
-
-          {/* Floating particles */}
-          <div className="absolute -inset-8 pointer-events-none">
-            <div className="absolute top-0 left-1/4 w-2 h-2 bg-[#FF5722]/30 rounded-full animate-ping" style={{ animationDelay: '0s' }}></div>
-            <div className="absolute top-1/4 right-0 w-1.5 h-1.5 bg-[#4A90E2]/30 rounded-full animate-ping" style={{ animationDelay: '0.5s' }}></div>
-            <div className="absolute bottom-1/4 left-0 w-1 h-1 bg-[#FF5722]/30 rounded-full animate-ping" style={{ animationDelay: '1s' }}></div>
-            <div className="absolute bottom-0 right-1/4 w-2 h-2 bg-[#4A90E2]/30 rounded-full animate-ping" style={{ animationDelay: '1.5s' }}></div>
           </div>
         </div>
 
         {/* Loading text */}
         <div className="space-y-3">
-          <h2 className="font-playfair text-2xl italic text-[#1A1A4B] font-normal">
+          <h2 className="text-2xl font-medium" style={{ fontFamily: 'var(--_typography---font--styrene-a)', color: 'var(--_color-theme---text)' }}>
             {message}{dots}
           </h2>
-          <p className="text-[#6B7280] text-sm">
+          <p className="text-sm" style={{ color: 'var(--_color-theme---text-secondary)' }}>
             {submessage}
           </p>
         </div>
@@ -64,20 +55,23 @@ const LoadingScreen = ({
         {/* Progress bar (if provided) */}
         {progress !== undefined && (
           <div className="mt-6">
-            <div className="w-full bg-[#E5E7EB] rounded-full h-2 overflow-hidden">
+            <div className="w-full rounded-full h-2 overflow-hidden" style={{ backgroundColor: 'var(--_color-theme---surface-raised)' }}>
               <div
-                className="h-full bg-gradient-to-r from-[#FF5722] to-[#FF9800] rounded-full transition-all duration-500 ease-out"
-                style={{ width: `${Math.min(100, Math.max(0, progress))}%` }}
+                className="h-full rounded-full transition-all duration-500 ease-out"
+                style={{
+                  width: `${Math.min(100, Math.max(0, progress))}%`,
+                  backgroundColor: 'var(--_color-theme---accent)'
+                }}
               ></div>
             </div>
-            <p className="text-xs text-[#6B7280] mt-2">
+            <p className="text-xs mt-2" style={{ color: 'var(--_color-theme---text-secondary)' }}>
               {Math.round(progress)}% complete
             </p>
           </div>
         )}
 
         {/* Subtle hint text */}
-        <div className="mt-8 text-xs text-[#6B7280]/70">
+        <div className="mt-8 text-xs" style={{ color: 'var(--_color-theme---text-secondary)', opacity: 0.7 }}>
           <p>Building your personalized AI experience</p>
         </div>
       </div>

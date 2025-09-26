@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useUser } from '@clerk/clerk-react';
 import { useNavigate } from 'react-router-dom';
+import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
@@ -178,7 +179,7 @@ const PersonalTwinBuilder = () => {
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => navigate('/get-started')}
+              onClick={() => navigate('/legacy-get-started')}
               className="flex items-center gap-2"
             >
               <ArrowLeft className="w-4 h-4" />
@@ -581,7 +582,7 @@ const PersonalTwinBuilder = () => {
         {/* Action Buttons */}
         <div className="flex gap-4 justify-end mt-8">
           <button
-            onClick={() => navigate('/get-started')}
+            onClick={() => navigate('/legacy-get-started')}
             className="btn-anthropic-secondary"
           >
             Cancel

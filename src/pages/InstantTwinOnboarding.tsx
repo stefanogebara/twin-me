@@ -16,6 +16,7 @@ import {
   Shield,
   Brain,
   Sparkles,
+  User,
   Mail,
   Calendar,
   MessageSquare,
@@ -26,7 +27,8 @@ import {
   Play,
   Settings,
   Eye,
-  EyeOff
+  EyeOff,
+  Plus
 } from 'lucide-react';
 
 import {
@@ -130,6 +132,13 @@ const InstantTwinOnboarding = () => {
   const { user } = useUser();
   const { toast } = useToast();
 
+  // Parse URL parameters once
+  const urlParams = new URLSearchParams(window.location.search);
+  const twinType = urlParams.get('type') || 'educational'; // Default to educational
+  const isPersonalTwin = twinType === 'personal';
+  // Map frontend types to API types
+  const apiTwinType = isPersonalTwin ? 'personal' : 'professor';
+
   // State management
   const [currentStep, setCurrentStep] = useState(1);
   const [selectedConnectors, setSelectedConnectors] = useState<DataProvider[]>([]);
@@ -137,6 +146,89 @@ const InstantTwinOnboarding = () => {
   const [generationProgress, setGenerationProgress] = useState<TwinGenerationProgress | null>(null);
   const [showPrivacyDetails, setShowPrivacyDetails] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [hasCheckedConnection, setHasCheckedConnection] = useState(false);
+  // Progressive disclosure state
+  const [showAllConnectors, setShowAllConnectors] = useState(false);
+
+  // Check for OAuth callback success
+  useEffect(() => {
+    if (!user?.id || hasCheckedConnection) return;
+
+    const currentUrlParams = new URLSearchParams(window.location.search);
+    const connected = currentUrlParams.get('connected');
+
+    if (connected === 'true') {
+      // A connection was successful, check connection status
+      setTimeout(() => {
+        checkConnectionStatus();
+        setHasCheckedConnection(true);
+      }, 1000);
+    } else {
+      // Reset connection status on fresh page load (no OAuth callback)
+      resetConnectionStatus();
+      setHasCheckedConnection(true);
+    }
+  }, [user]);
+
+  const resetConnectionStatus = async () => {
+    try {
+      if (!user?.id) return;
+
+      console.log('🔄 Resetting connection status for fresh page load');
+      const response = await fetch(`http://localhost:3002/api/connectors/reset/${user.id}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      const result = await response.json();
+      if (result.success) {
+        setConnectedServices([]);
+        console.log('✅ Connection status reset successfully');
+      }
+    } catch (error) {
+      console.error('❌ Error resetting connection status:', error);
+      // Clear local state anyway
+      setConnectedServices([]);
+    }
+  };
+
+  const checkConnectionStatus = async () => {
+    try {
+      if (!user?.id) return;
+
+      const response = await fetch(`http://localhost:3002/api/connectors/status/${user.id}`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      const result = await response.json();
+
+      if (result.success) {
+        // Update connected services based on actual backend status
+        const connectedProviders = Object.keys(result.data || {}) as DataProvider[];
+        console.log('🔍 Connection status check:', {
+          resultData: result.data,
+          connectedProviders,
+          currentConnectedServices: connectedServices
+        });
+
+        setConnectedServices(connectedProviders);
+
+        if (connectedProviders.length > 0) {
+          toast({
+            title: "Connection Updated",
+            description: `${connectedProviders.length} service${connectedProviders.length !== 1 ? 's' : ''} connected`,
+          });
+        }
+      }
+    } catch (error) {
+      console.error('Error checking connection status:', error);
+    }
+  };
 
   // Steps configuration
   const STEPS = [
@@ -159,24 +251,48 @@ const InstantTwinOnboarding = () => {
 
   const connectService = useCallback(async (provider: DataProvider) => {
     try {
-      // In production, this would initiate OAuth flow
-      const authUrl = `https://accounts.google.com/oauth?provider=${provider}&redirect=${window.location.origin}/oauth/callback`;
+      console.log('🔍 Connect service called with:', { provider, userId: user?.id, user });
+      console.log('🌐 Current VITE_API_URL:', import.meta.env.VITE_API_URL);
+      console.log('🌐 All env vars:', import.meta.env);
+
+      if (!user?.id) {
+        throw new Error('User not authenticated');
+      }
 
       toast({
         title: "Connecting...",
         description: `Redirecting to ${AVAILABLE_CONNECTORS.find(c => c.provider === provider)?.name}`,
       });
 
-      // Simulate OAuth flow
-      setTimeout(() => {
-        setConnectedServices(prev => [...prev, provider]);
-        toast({
-          title: "Connected!",
-          description: `Successfully connected to ${AVAILABLE_CONNECTORS.find(c => c.provider === provider)?.name}`,
-        });
-      }, 1500);
+      // Get OAuth authorization URL from backend
+      const apiUrl = `http://localhost:3002/api/connectors/auth/${provider}?userId=${user.id}`;
+      console.log('🌐 Making request to:', apiUrl);
+      console.log('🔑 API URL env var:', import.meta.env.VITE_API_URL);
+      console.log('🔧 Using hardcoded URL to bypass caching issue');
 
-    } catch (error) {
+      const response = await fetch(apiUrl, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+
+      const result = await response.json();
+      console.log('OAuth auth response:', result);
+
+      if (result.success && result.data?.authUrl) {
+        // Redirect to OAuth provider
+        window.location.href = result.data.authUrl;
+      } else {
+        throw new Error(result.error || 'Failed to get authorization URL');
+      }
+
+    } catch (error: any) {
+      console.error('Error connecting service:', error);
       toast({
         title: "Connection failed",
         description: "Please try again or skip this service",
@@ -187,6 +303,16 @@ const InstantTwinOnboarding = () => {
 
   const startTwinGeneration = useCallback(async () => {
     if (!user) return;
+
+    // Check if user has actually connected at least one service
+    if (connectedServices.length === 0) {
+      toast({
+        title: "No connections found",
+        description: "Please connect at least one service before generating your twin.",
+        variant: "destructive"
+      });
+      return;
+    }
 
     setIsGenerating(true);
     setCurrentStep(3);
@@ -228,42 +354,108 @@ const InstantTwinOnboarding = () => {
       });
     }
 
-    // Complete
-    setTimeout(() => {
-      navigate('/twin-dashboard');
-    }, 2000);
+    // Create the twin first, then navigate to its dashboard
+    try {
+      const twinData = {
+        name: user.fullName || user.firstName || `My ${isPersonalTwin ? 'Personal' : 'Educational'} Twin`,
+        user_id: user.id,
+        twin_type: apiTwinType,
+        teaching_philosophy: isPersonalTwin
+          ? 'Personal knowledge and experiences from connected data sources'
+          : 'Generated from connected data sources',
+        student_interaction: isPersonalTwin
+          ? 'Casual and personalized based on communication style'
+          : 'Personalized based on your communication patterns',
+        humor_style: 'Adaptive',
+        communication_style: 'Based on your connected platform analysis',
+        expertise: ['Data-driven insights from your digital footprint'],
+        is_active: true
+      };
 
-  }, [user, selectedConnectors, navigate]);
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/twins`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(twinData)
+      });
+
+      const result = await response.json();
+
+      if (result.success && result.data?.id) {
+        // Navigate to the specific twin dashboard based on twin type
+        setTimeout(() => {
+          if (isPersonalTwin) {
+            navigate(`/twin-dashboard/${result.data.id}`);
+          } else {
+            navigate(`/twin-dashboard/${result.data.id}`);
+          }
+        }, 2000);
+      } else {
+        throw new Error('Failed to create twin');
+      }
+    } catch (error) {
+      console.error('Error creating twin:', error);
+      toast({
+        title: "Error",
+        description: "Failed to create your digital twin. Please try again.",
+        variant: "destructive"
+      });
+      // Fallback navigation based on twin type
+      setTimeout(() => {
+        navigate(isPersonalTwin ? '/personal-dashboard' : '/professor-dashboard');
+      }, 2000);
+    }
+
+  }, [user, selectedConnectors, navigate, isPersonalTwin, apiTwinType]);
 
   // ====================================================================
   // RENDER HELPERS
   // ====================================================================
 
+  // Apple-style Step Indicator with Consistent Design
   const renderStepIndicator = () => (
     <div className="flex items-center justify-center mb-12">
       <div className="flex items-center space-x-4">
         {STEPS.map((step, index) => (
           <div key={step.id} className="flex items-center">
-            <div className={`flex items-center justify-center w-8 h-8 rounded-full text-sm font-medium transition-all duration-300 ${
-              currentStep >= step.id
-                ? 'bg-[hsl(var(--_color-theme---button-primary--background))] text-white'
-                : 'text-[hsl(var(--_color-theme---text-secondary))]'
-            }`}>
+            <button
+              onClick={() => {
+                // Only allow going back to previous steps or current step
+                if (step.id <= currentStep) {
+                  setCurrentStep(step.id);
+                }
+              }}
+              className={`flex items-center justify-center w-10 h-10 rounded-full text-sm font-medium transition-all duration-300 border-2 ${
+                currentStep > step.id
+                  ? 'bg-orange-500 border-orange-500 text-white cursor-pointer hover:opacity-80'
+                  : currentStep === step.id
+                  ? 'bg-orange-500 border-orange-500 text-white'
+                  : 'bg-white border-gray-300 text-black cursor-default'
+              }`}
+              disabled={step.id > currentStep}
+            >
               {currentStep > step.id ? (
                 <CheckCircle2 className="w-5 h-5" />
               ) : (
                 step.id
               )}
-            </div>
-            <div className="ml-2 text-sm">
-              <div className={`font-medium ${currentStep >= step.id ? 'text-[hsl(var(--_color-theme---text))]' : 'text-[hsl(var(--_color-theme---text-secondary))]'}`}>
+            </button>
+            <div className="ml-3 text-sm">
+              <div className={`font-heading font-medium ${
+                currentStep >= step.id ? 'text-black' : 'text-gray-600 opacity-60'
+              }`}>
                 {step.name}
               </div>
-              <div className="text-xs" style={{ color: 'var(--_color-theme---text-secondary)' }}>{step.description}</div>
+              <div className={`font-heading text-xs ${
+                currentStep >= step.id ? 'text-gray-600' : 'text-gray-600 opacity-40'
+              }`}>
+                {step.description}
+              </div>
             </div>
             {index < STEPS.length - 1 && (
-              <div className={`w-8 h-px mx-4 transition-colors duration-300 ${
-                currentStep > step.id ? 'bg-[hsl(var(--_color-theme---button-primary--background))]' : 'bg-[hsl(var(--_color-theme---surface-raised))]'
+              <div className={`w-12 h-0.5 mx-4 transition-colors duration-300 ${
+                currentStep > step.id ? 'bg-orange-500' : 'bg-gray-300'
               }`} />
             )}
           </div>
@@ -279,72 +471,92 @@ const InstantTwinOnboarding = () => {
     return (
       <div
         key={connector.provider}
-        className={`relative p-6 rounded-2xl border-2 transition-all duration-300 cursor-pointer hover:shadow-lg ${
-          isSelected
-            ? 'border-[hsl(var(--_color-theme---button-primary--background))] bg-[hsl(var(--_color-theme---button-primary--background))]/5'
-            : 'border-[hsl(var(--_color-theme---border))] hover:border-[hsl(var(--_color-theme---border-hover))]'
+        className={`relative p-6 rounded-2xl transition-all duration-300 cursor-pointer group hover:shadow-xl hover:-translate-y-1 border ${
+          isConnected
+            ? 'border-2 shadow-lg'
+            : isSelected
+            ? 'border-2 shadow-md'
+            : 'hover:shadow-md'
         }`}
-        onClick={() => handleConnectorToggle(connector.provider)}
+        style={{
+          backgroundColor: 'white',
+          borderColor: isConnected || isSelected ? '#d97706' : '#e5e7eb'
+        }}
+        onClick={() => !isConnected && handleConnectorToggle(connector.provider)}
       >
         {/* Connection status indicator */}
         {isConnected && (
-          <div className="absolute top-4 right-4">
-            <CheckCircle2 className="w-5 h-5 text-[hsl(var(--_color-theme---accent))]" />
+          <div className="absolute -top-2 -right-2 z-10">
+            <div className="text-white rounded-full p-2" style={{ backgroundColor: 'var(--_color-theme---accent)' }}>
+              <CheckCircle2 className="w-4 h-4" />
+            </div>
           </div>
         )}
 
-        {/* Service icon and name */}
-        <div className="flex items-center gap-4 mb-4">
+        {/* Service icon and name - Apple-style clean layout */}
+        <div className="relative flex items-center gap-4 mb-3">
           <div
-            className="w-12 h-12 rounded-xl flex items-center justify-center text-white"
+            className="w-12 h-12 rounded-xl flex items-center justify-center text-white transform transition-transform group-hover:scale-110"
             style={{ backgroundColor: connector.color }}
           >
             {connector.icon}
           </div>
-          <div>
-            <h3 className="font-medium text-lg" style={{ color: 'var(--_color-theme---text)' }}>
+          <div className="flex-1">
+            <h3 className="font-heading font-semibold text-lg text-black">
               {connector.name}
             </h3>
-            <p className="text-sm" style={{ color: 'var(--_color-theme---text-secondary)' }}>{connector.setupTime} setup</p>
+            <p className="text-xs text-gray-600">{connector.setupTime} setup</p>
           </div>
         </div>
 
-        {/* Description */}
-        <p className="text-sm mb-4" style={{ color: 'var(--_color-theme---text)' }}>
+        {/* Simplified description - Apple's progressive disclosure */}
+        <p className="font-heading text-sm mb-3 leading-relaxed text-gray-700">
           {connector.description}
         </p>
 
-        {/* Data insights preview */}
-        <div className="space-y-2">
-          <div className="flex items-center justify-between text-xs">
-            <span className="text-[hsl(var(--_color-theme---text-secondary))]">Insights Generated:</span>
-            <span className="font-medium" style={{ color: 'var(--_color-theme---text)' }}>
-              ~{connector.estimatedInsights}
-            </span>
-          </div>
+        {/* Data types shown directly - simplified approach */}
+        <div className="mb-3">
           <div className="flex flex-wrap gap-1">
-            {connector.dataTypes.slice(0, 3).map((type) => (
-              <span
-                key={type}
-                className="px-2 py-1 text-xs rounded-full"
-                style={{
-                  backgroundColor: 'var(--_color-theme---background-secondary)',
-                  color: 'var(--_color-theme---text)'
-                }}
-              >
+            {connector.dataTypes.slice(0, 2).map((type, idx) => (
+              <span key={idx} className="text-xs px-2 py-1 rounded-full bg-gray-100 text-gray-700">
                 {type}
               </span>
             ))}
+            {connector.dataTypes.length > 2 && (
+              <span className="text-xs px-2 py-1 rounded-full bg-gray-100 text-gray-700">
+                +{connector.dataTypes.length - 2} more
+              </span>
+            )}
           </div>
         </div>
 
-        {/* Privacy indicator */}
-        <div className="flex items-center gap-2 mt-4 pt-4 border-t" style={{ borderColor: 'var(--_color-theme---border)' }}>
-          <Shield className="w-4 h-4 text-[hsl(var(--_color-theme---text-secondary))]" />
-          <span className="text-xs text-[hsl(var(--_color-theme---text-secondary))]">
-            Privacy: {connector.privacyLevel}
-          </span>
-        </div>
+        {/* Connect Button */}
+        {!isConnected && (
+          <div className="mt-3">
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                connectService(connector.provider);
+              }}
+              className="w-full py-3 px-4 rounded-xl text-sm font-semibold transition-all transform hover:scale-105 text-white shadow-lg hover:shadow-xl"
+              style={{ backgroundColor: 'var(--_color-theme---accent)', fontFamily: 'var(--_typography---font--styrene-a)' }}
+            >
+              Connect
+            </button>
+          </div>
+        )}
+
+        {/* Connection Success State - Apple-style clean */}
+        {isConnected && (
+          <div className="mt-3 p-3 rounded-xl border" style={{ backgroundColor: 'var(--_color-theme---background-secondary)', borderColor: 'var(--_color-theme---accent)' }}>
+            <div className="flex items-center gap-2">
+              <CheckCircle2 className="w-4 h-4 text-orange-600" />
+              <span className="text-sm font-semibold font-heading text-orange-600">
+                Connected
+              </span>
+            </div>
+          </div>
+        )}
       </div>
     );
   };
@@ -372,7 +584,7 @@ const InstantTwinOnboarding = () => {
             {generationProgress.progress === 100 ? 'Your Twin is Ready!' : 'Creating Your Digital Twin'}
           </h2>
 
-          <p className="text-[hsl(var(--_color-theme---text-secondary))] mb-6">{generationProgress.currentTask}</p>
+          <p className="text-gray-600 mb-6">{generationProgress.currentTask}</p>
 
           {/* Progress bar */}
           <div className="max-w-md mx-auto mb-6">
@@ -386,8 +598,8 @@ const InstantTwinOnboarding = () => {
               ></div>
             </div>
             <div className="flex justify-between text-sm mt-2">
-              <span className="text-[hsl(var(--_color-theme---text-secondary))]">{generationProgress.progress}% complete</span>
-              <span className="text-[hsl(var(--_color-theme---text-secondary))]">
+              <span className="text-gray-600">{generationProgress.progress}% complete</span>
+              <span className="text-gray-600">
                 {generationProgress.estimatedTimeRemaining > 0
                   ? `${Math.ceil(generationProgress.estimatedTimeRemaining)}s remaining`
                   : 'Complete!'
@@ -402,19 +614,19 @@ const InstantTwinOnboarding = () => {
               <div className="text-2xl font-bold" style={{ color: 'var(--_color-theme---button-primary--background)' }}>
                 {generationProgress.connectorsConnected.length}
               </div>
-              <div className="text-xs text-[hsl(var(--_color-theme---text-secondary))]">Services</div>
+              <div className="text-xs text-gray-600">Services</div>
             </div>
             <div className="text-center">
               <div className="text-2xl font-bold" style={{ color: 'var(--_color-theme---button-primary--background)' }}>
                 {generationProgress.dataPointsIngested}
               </div>
-              <div className="text-xs text-[hsl(var(--_color-theme---text-secondary))]">Data Points</div>
+              <div className="text-xs text-gray-600">Data Points</div>
             </div>
             <div className="text-center">
               <div className="text-2xl font-bold" style={{ color: 'var(--_color-theme---button-primary--background)' }}>
                 {generationProgress.insightsGenerated}
               </div>
-              <div className="text-xs text-[hsl(var(--_color-theme---text-secondary))]">Insights</div>
+              <div className="text-xs text-gray-600">Insights</div>
             </div>
           </div>
         </div>
@@ -432,27 +644,37 @@ const InstantTwinOnboarding = () => {
       <div className="sticky top-0 z-50 backdrop-blur-sm border-b" style={{ backgroundColor: 'var(--_color-theme---background)/90', borderColor: 'var(--_color-theme---border)' }}>
         <div className="max-w-7xl mx-auto px-6 py-4">
           <div className="flex items-center justify-between">
+            {/* Apple-style Back Navigation with Clear Context */}
             <button
-              onClick={() => navigate(-1)}
-              className="flex items-center gap-2 text-sm hover:opacity-70 transition-opacity"
-              style={{ color: 'var(--_color-theme---text)' }}
+              onClick={() => {
+                if (currentStep > 1) {
+                  setCurrentStep(currentStep - 1);
+                } else {
+                  navigate('/');
+                }
+              }}
+              className="flex items-center gap-2 text-sm hover:opacity-70 transition-all hover:scale-105 px-3 py-2 rounded-lg"
+              style={{ color: 'var(--_color-theme---text)', backgroundColor: 'var(--_color-theme---background-secondary)' }}
             >
               <ArrowLeft className="w-4 h-4" />
-              Back
+              {currentStep > 1 ? `Back to ${STEPS[currentStep - 2].name}` : 'Back to Home'}
             </button>
 
             <div className="text-center">
-              <h1 className="text-2xl font-medium" style={{ fontFamily: 'var(--_typography---font--styrene-a)', color: 'var(--_color-theme---text)' }}>
-                Create Your Instant Twin
+              <h1 className="text-2xl font-bold text-black" style={{ fontFamily: 'var(--_typography---font--styrene-a)' }}>
+                Create Your {isPersonalTwin ? 'Personal' : 'Educational'} AI Twin
               </h1>
-              <p className="text-sm" style={{ color: 'var(--_color-theme---text-secondary)' }}>
-                Connect your digital life and get a working twin in 60 seconds
+              <p className="text-sm font-medium text-gray-700">
+                {isPersonalTwin
+                  ? 'Connect apps and get instant AI personality'
+                  : 'Connect tools and get instant teaching AI'
+                }
               </p>
             </div>
 
-            <div className="flex items-center gap-2 text-sm">
-              <Zap className="w-4 h-4 text-yellow-500" />
-              <span className="text-[hsl(var(--_color-theme---text-secondary))]">60s setup</span>
+            <div className="flex items-center gap-2 text-sm px-3 py-2 rounded-full font-semibold" style={{ backgroundColor: 'var(--_color-theme---accent)', color: 'white' }}>
+              <Zap className="w-4 h-4" />
+              <span>60s setup</span>
             </div>
           </div>
         </div>
@@ -465,32 +687,141 @@ const InstantTwinOnboarding = () => {
         {/* Step 1: Connect Services */}
         {currentStep === 1 && (
           <div>
-            <div className="text-center mb-12">
-              <h2 className="text-3xl font-medium mb-4" style={{ fontFamily: 'var(--_typography---font--styrene-a)', color: 'var(--_color-theme---text)' }}>
-                Connect Your Digital Services
+            {/* Hero Section */}
+            <div className="text-center mb-16">
+              <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium mb-6" style={{ backgroundColor: 'var(--_color-theme---accent)', color: 'white' }}>
+                <Sparkles className="w-4 h-4" />
+                {isPersonalTwin ? 'Personal AI Twin' : 'Educational AI Twin'}
+              </div>
+
+              <h2 className="text-4xl md:text-5xl font-bold mb-6" style={{ fontFamily: 'var(--_typography---font--styrene-a)', color: 'var(--_color-theme---text)' }}>
+                {isPersonalTwin
+                  ? 'Create Your Digital Twin'
+                  : 'Transform Your Teaching'
+                }
               </h2>
-              <p className="text-[hsl(var(--_color-theme---text-secondary))] max-w-2xl mx-auto">
-                Your twin learns from your actual behavior across platforms. Connect the services you use most
-                to get the most accurate personality representation.
+
+              <p className="text-base max-w-3xl mx-auto leading-relaxed" style={{ color: 'var(--_color-theme---text-secondary)' }}>
+                {isPersonalTwin
+                  ? 'Connect your apps and get an instant AI that captures your personality. Your twin learns your style, humor, and expertise from real data.'
+                  : 'Connect your digital teaching footprint and get an AI that teaches exactly like you. Your students get 24/7 access to your expertise and teaching style.'
+                }
               </p>
+
+              {/* Stats Row */}
+              <div className="flex justify-center items-center gap-8 mt-8">
+                <div className="text-center">
+                  <div className="text-2xl font-bold" style={{ color: 'var(--_color-theme---accent)' }}>60s</div>
+                  <div className="text-sm" style={{ color: 'var(--_color-theme---text-secondary)' }}>Setup Time</div>
+                </div>
+                <div className="text-center">
+                  <div className="text-2xl font-bold" style={{ color: 'var(--_color-theme---accent)' }}>100%</div>
+                  <div className="text-sm" style={{ color: 'var(--_color-theme---text-secondary)' }}>Your Style</div>
+                </div>
+                <div className="text-center">
+                  <div className="text-2xl font-bold" style={{ color: 'var(--_color-theme---accent)' }}>24/7</div>
+                  <div className="text-sm" style={{ color: 'var(--_color-theme---text-secondary)' }}>Available</div>
+                </div>
+              </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-12">
-              {AVAILABLE_CONNECTORS.map(renderConnectorCard)}
+            {/* Apple-style Progressive Disclosure for Connectors */}
+            <div className="mb-16">
+              <h3 className="text-2xl font-semibold text-center mb-4" style={{ color: 'var(--_color-theme---text)' }}>
+                Choose Your Digital Footprint
+              </h3>
+              <p className="text-center mb-8 max-w-2xl mx-auto" style={{ color: 'var(--_color-theme---text-secondary)' }}>
+                Start with the essentials. You can always add more services later.
+              </p>
+
+              {/* Essential Connectors First - Progressive Disclosure */}
+              <div className="space-y-8">
+                {/* Primary/Essential Connectors */}
+                <div>
+                  <div className="flex items-center justify-center gap-2 mb-6">
+                    <div className="px-3 py-1 border rounded-full text-sm font-medium" style={{ backgroundColor: 'var(--_color-theme---surface)', borderColor: 'var(--_color-theme---accent)', color: 'var(--_color-theme---accent)' }}>
+                      Essential
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-4xl mx-auto">
+                    {AVAILABLE_CONNECTORS.slice(0, 3).map(renderConnectorCard)}
+                  </div>
+                </div>
+
+                {/* Show More Button - Apple-style Progressive Disclosure */}
+                {!showAllConnectors && AVAILABLE_CONNECTORS.length > 3 && (
+                  <div className="text-center">
+                    <button
+                      onClick={() => setShowAllConnectors(true)}
+                      className="inline-flex items-center gap-2 px-6 py-3 rounded-xl border text-sm font-medium transition-all hover:shadow-md"
+                      style={{ backgroundColor: 'var(--_color-theme---surface)', borderColor: 'var(--_color-theme---border)', color: 'var(--_color-theme---text)' }}
+                    >
+                      <Plus className="w-4 h-4" />
+                      Show {AVAILABLE_CONNECTORS.length - 3} More Options
+                    </button>
+                    <p className="text-xs mt-2" style={{ color: 'var(--_color-theme---text-secondary)' }}>Professional tools, social platforms, and more</p>
+                  </div>
+                )}
+
+                {/* Additional Connectors - Revealed Progressively */}
+                {showAllConnectors && (
+                  <div className="animate-in slide-in-from-bottom-4 duration-500">
+                    <div className="flex items-center justify-center gap-2 mb-6">
+                      <div className="px-3 py-1 border rounded-full text-sm font-medium" style={{ backgroundColor: 'var(--_color-theme---surface)', borderColor: 'var(--_color-theme---border)', color: 'var(--_color-theme---text-secondary)' }}>
+                        Optional
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-4xl mx-auto">
+                      {AVAILABLE_CONNECTORS.slice(3).map(renderConnectorCard)}
+                    </div>
+
+                    {/* Show Less Button */}
+                    <div className="text-center mt-6">
+                      <button
+                        onClick={() => setShowAllConnectors(false)}
+                        className="text-sm transition-colors"
+                        style={{ color: 'var(--_color-theme---text-secondary)' }}
+                      >
+                        Show less
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
 
-            <div className="text-center">
-              <button
-                onClick={() => setCurrentStep(2)}
-                disabled={selectedConnectors.length === 0}
-                className="btn-anthropic-primary disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 mx-auto"
-              >
-                Continue with {selectedConnectors.length} service{selectedConnectors.length !== 1 ? 's' : ''}
-                <ArrowRight className="w-5 h-5" />
-              </button>
-              <p className="text-sm text-[hsl(var(--_color-theme---text-secondary))] mt-2">
-                You can always add more services later
-              </p>
+            {/* Action Section */}
+            <div className="text-center rounded-3xl p-8 border" style={{ backgroundColor: 'var(--_color-theme---background-secondary)', borderColor: 'var(--_color-theme---border)' }}>
+              {connectedServices.length > 0 ? (
+                <div className="animate-in slide-in-from-bottom-4 duration-500">
+                  <div className="flex items-center justify-center gap-2 mb-4" style={{ color: 'var(--_color-theme---accent)' }}>
+                    <CheckCircle2 className="w-6 h-6" />
+                    <span className="text-lg font-semibold">
+                      Great! You're connected to {connectedServices.length} service{connectedServices.length !== 1 ? 's' : ''}
+                    </span>
+                  </div>
+                  <button
+                    onClick={() => setCurrentStep(2)}
+                    className="btn-anthropic-primary text-lg px-8 py-4 flex items-center gap-3 mx-auto transform hover:scale-105 transition-transform"
+                  >
+                    <User className="w-5 h-5" />
+                    Build Your AI Twin
+                    <ArrowRight className="w-5 h-5" />
+                  </button>
+                  <p className="font-heading text-sm mt-3" style={{ color: 'var(--_color-theme---text-secondary)' }}>
+                    Your AI will be ready in under 60 seconds
+                  </p>
+                </div>
+              ) : (
+                <div>
+                  <div className="text-lg font-semibold mb-4" style={{ color: 'var(--_color-theme---text)' }}>
+                    Connect at least one service to continue
+                  </div>
+                  <p style={{ color: 'var(--_color-theme---text-secondary)' }}>
+                    Each connection makes your AI twin more accurate and personalized
+                  </p>
+                </div>
+              )}
             </div>
           </div>
         )}
@@ -502,7 +833,7 @@ const InstantTwinOnboarding = () => {
               <h2 className="text-3xl font-medium mb-4" style={{ fontFamily: 'var(--_typography---font--styrene-a)', color: 'var(--_color-theme---text)' }}>
                 Privacy & Data Control
               </h2>
-              <p className="text-[hsl(var(--_color-theme---text-secondary))] max-w-2xl mx-auto">
+              <p className="text-gray-600 max-w-2xl mx-auto">
                 Your data security is our priority. All processing happens with military-grade encryption,
                 and you maintain full control over what information is used.
               </p>
@@ -519,7 +850,7 @@ const InstantTwinOnboarding = () => {
                   </div>
                   <CheckCircle2 className="w-5 h-5 text-[hsl(var(--_color-theme---accent))]" />
                 </div>
-                <p className="text-sm text-[hsl(var(--_color-theme---text-secondary))]">
+                <p className="text-sm text-gray-600">
                   All data is encrypted in transit and at rest using AES-256 encryption
                 </p>
               </div>
@@ -539,7 +870,7 @@ const InstantTwinOnboarding = () => {
                     {showPrivacyDetails ? 'Hide' : 'View'} Details
                   </button>
                 </div>
-                <p className="text-sm text-[hsl(var(--_color-theme---text-secondary))] mb-4">
+                <p className="text-sm text-gray-600 mb-4">
                   You can see exactly what data is being processed and how it's used
                 </p>
 
@@ -550,7 +881,7 @@ const InstantTwinOnboarding = () => {
                       return connector ? (
                         <div key={provider} className="flex items-center justify-between text-sm">
                           <span>{connector.name}:</span>
-                          <span className="text-[hsl(var(--_color-theme---text-secondary))]">{connector.dataTypes.join(', ')}</span>
+                          <span className="text-gray-600">{connector.dataTypes.join(', ')}</span>
                         </div>
                       ) : null;
                     })}
@@ -566,9 +897,9 @@ const InstantTwinOnboarding = () => {
                       Data Retention
                     </h3>
                   </div>
-                  <span className="text-sm text-[hsl(var(--_color-theme---text-secondary))]">30 days default</span>
+                  <span className="text-sm text-gray-600">30 days default</span>
                 </div>
-                <p className="text-sm text-[hsl(var(--_color-theme---text-secondary))]">
+                <p className="text-sm text-gray-600">
                   Raw data is automatically deleted after processing. Only anonymized insights are kept.
                 </p>
               </div>
@@ -582,7 +913,7 @@ const InstantTwinOnboarding = () => {
                 <Sparkles className="w-5 h-5" />
                 Generate My Twin (60s)
               </button>
-              <p className="text-sm text-[hsl(var(--_color-theme---text-secondary))] mt-2">
+              <p className="text-sm text-gray-600 mt-2">
                 Your twin will be ready in about 60 seconds
               </p>
             </div>
