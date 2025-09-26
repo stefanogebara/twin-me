@@ -31,6 +31,7 @@ import PersonalTwinBuilder from "./pages/PersonalTwinBuilder";
 import StudentDashboard from "./pages/StudentDashboard";
 import InstantTwinOnboarding from "./pages/InstantTwinOnboarding";
 import TwinDashboard from "./pages/TwinDashboard";
+import OAuthCallback from "./pages/OAuthCallback";
 
 const queryClient = new QueryClient();
 
@@ -47,6 +48,7 @@ const App = () => (
               <BrowserRouter>
           <Routes>
             <Route path="/auth" element={<Auth />} />
+            <Route path="/oauth/callback" element={<OAuthCallback />} />
             <Route path="/" element={<AnthropicIndex />} />
             <Route path="/legacy" element={<Index />} />
             <Route path="/talk-to-twin" element={

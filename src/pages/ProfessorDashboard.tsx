@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useUser } from '@clerk/clerk-react';
+import { useUser, SignedIn, SignedOut } from '@clerk/clerk-react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -24,7 +24,9 @@ import {
   Video,
   Eye,
   Edit,
-  Trash2
+  Trash2,
+  Home,
+  ChevronRight
 } from 'lucide-react';
 import { SecureDigitalTwinAPI } from '@/lib/api';
 import { useAsyncOperation } from '@/hooks/useAsyncOperation';
@@ -254,380 +256,376 @@ const ProfessorDashboard = () => {
     );
   }
 
-  return (
-    <div className="min-h-screen bg-[#FBF7F0]">
-      {/* Header */}
-      <div className="bg-white border-b border-[#E5E7EB] px-6 py-4">
-        <div className="max-w-7xl mx-auto flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-playfair font-normal italic text-[#1A1A4B]">
-              Professor Dashboard
-            </h1>
-            <p className="text-[#6B7280]">Welcome back, {profile?.full_name || 'Professor'}!</p>
-          </div>
-          <Button
-            onClick={() => setShowCreateForm(true)}
-            className="bg-[#FF5722] hover:bg-[#FF5722]/90"
+  // Add authentication protection
+  if (!user) {
+    return (
+      <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: 'var(--_color-theme---background)' }}>
+        <div className="text-center">
+          <h2 className="text-2xl font-medium mb-4" style={{ fontFamily: 'var(--_typography---font--styrene-a)', color: 'var(--_color-theme---text)' }}>
+            Access Denied
+          </h2>
+          <p className="mb-6" style={{ color: 'var(--_color-theme---text-secondary)' }}>
+            Please sign in to access the professor dashboard.
+          </p>
+          <button
+            onClick={() => navigate('/')}
+            className="btn-anthropic-primary"
           >
-            <Plus className="w-4 h-4 mr-2" />
-            Create New Twin
-          </Button>
+            Go to Home
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen" style={{ backgroundColor: 'var(--_color-theme---background)' }}>
+      {/* Apple-style Navigation Breadcrumb */}
+      <div className="px-6 py-4 border-b" style={{ backgroundColor: 'var(--_color-theme---background)', borderColor: 'var(--_color-theme---border)' }}>
+        <div className="max-w-7xl mx-auto">
+          <nav className="flex items-center space-x-2 text-sm">
+            <button
+              onClick={() => navigate('/')}
+              className="flex items-center gap-1 px-2 py-1 rounded-lg transition-all hover:opacity-70"
+              style={{ color: 'var(--_color-theme---text-secondary)' }}
+            >
+              <Home className="w-4 h-4" />
+              <span>Home</span>
+            </button>
+            <ChevronRight className="w-4 h-4" style={{ color: 'var(--_color-theme---text-secondary)' }} />
+            <span className="font-medium" style={{ color: 'var(--_color-theme---text)' }}>Dashboard</span>
+          </nav>
+        </div>
+      </div>
+
+      {/* Apple-style Header with Clear Visual Hierarchy */}
+      <div className="px-6 py-8 border-b" style={{ backgroundColor: 'var(--_color-theme---surface)', borderColor: 'var(--_color-theme---border)' }}>
+        <div className="max-w-7xl mx-auto">
+          {/* Large Title - Apple's primary text hierarchy */}
+          <div className="mb-6">
+            <h1 className="text-4xl font-bold tracking-tight mb-2" style={{ fontFamily: 'var(--_typography---font--styrene-a)', color: 'var(--_color-theme---text)' }}>
+              Dashboard
+            </h1>
+            <p className="text-lg" style={{ color: 'var(--_color-theme---text-secondary)' }}>
+              Manage your AI teaching assistants
+            </p>
+          </div>
+
+          {/* Primary Action - Prominent and Clear */}
+          <button
+            onClick={() => setShowCreateForm(true)}
+            className="btn-anthropic-primary inline-flex items-center gap-2 text-base px-6 py-3"
+          >
+            <Plus className="w-5 h-5" />
+            Create Your First Twin
+          </button>
         </div>
       </div>
 
       <div className="max-w-7xl mx-auto p-6">
-        {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium">Total Twins</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-[#1A1A4B]">{stats.totalTwins}</div>
-            </CardContent>
-          </Card>
+        {/* Apple-style Progressive Disclosure - Show only essential stats first */}
+        {stats.totalTwins > 0 && (
+          <div className="mb-8">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* Primary Metric - Active Twins with Visual Emphasis */}
+              <div className="rounded-2xl p-6 border" style={{ backgroundColor: 'var(--_color-theme---surface)', borderColor: 'var(--_color-theme---border)' }}>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium mb-1" style={{ color: 'var(--_color-theme---text-secondary)' }}>Active Twins</p>
+                    <p className="text-3xl font-bold" style={{ color: 'var(--_color-theme---accent)' }}>{stats.activeTwins}</p>
+                    <p className="text-sm mt-1" style={{ color: 'var(--_color-theme---text-secondary)' }}>Currently available to students</p>
+                  </div>
+                  <div className="w-12 h-12 rounded-full flex items-center justify-center" style={{ backgroundColor: 'var(--_color-theme---background-secondary)' }}>
+                    <Play className="w-6 h-6" style={{ color: 'var(--_color-theme---accent)' }} />
+                  </div>
+                </div>
+              </div>
 
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium">Active Twins</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-[#FF5722]">{stats.activeTwins}</div>
-            </CardContent>
-          </Card>
+              {/* Secondary Metric - Total with Supporting Info */}
+              <div className="rounded-2xl p-6 border" style={{ backgroundColor: 'var(--_color-theme---surface)', borderColor: 'var(--_color-theme---border)' }}>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium mb-1" style={{ color: 'var(--_color-theme---text-secondary)' }}>Total Twins</p>
+                    <p className="text-3xl font-bold" style={{ color: 'var(--_color-theme---text)' }}>{stats.totalTwins}</p>
+                    <p className="text-sm mt-1" style={{ color: 'var(--_color-theme---text-secondary)' }}>
+                      {stats.totalTwins - stats.activeTwins > 0 ? `${stats.totalTwins - stats.activeTwins} in development` : 'All twins active'}
+                    </p>
+                  </div>
+                  <div className="w-12 h-12 rounded-full flex items-center justify-center" style={{ backgroundColor: 'var(--_color-theme---background-secondary)' }}>
+                    <Users className="w-6 h-6" style={{ color: 'var(--_color-theme---text-secondary)' }} />
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
 
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium">Conversations</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-[#1A1A4B]">{stats.totalConversations}</div>
-            </CardContent>
-          </Card>
+        {/* Apple-style Content Organization with Grouping by Status */}
+        <div className="space-y-8">
+          {digitalTwins.length > 0 ? (
+            <div>
+              {/* Section Title with Apple's Typography Hierarchy */}
+              <div className="mb-8">
+                <h2 className="text-2xl font-semibold mb-2" style={{ fontFamily: 'var(--_typography---font--styrene-a)', color: 'var(--_color-theme---text)' }}>
+                  Your Digital Twins
+                </h2>
+                <p className="text-base" style={{ color: 'var(--_color-theme---text-secondary)' }}>
+                  {digitalTwins.length} {digitalTwins.length === 1 ? 'twin' : 'twins'} created
+                </p>
+              </div>
 
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium">Students Reached</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-[#1A1A4B]">{stats.totalStudents}</div>
-            </CardContent>
-          </Card>
-        </div>
-
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Digital Twins List */}
-          <Card className="lg:col-span-1">
-            <CardHeader>
-              <CardTitle className="font-playfair italic">Your Digital Twins</CardTitle>
-              <CardDescription>Manage your AI teaching assistants</CardDescription>
-            </CardHeader>
-            <CardContent className="p-0">
-              <div className="space-y-2">
-                {digitalTwins.map((twin) => (
-                  <div
-                    key={twin.id}
-                    className={`p-4 cursor-pointer border-l-4 transition-colors ${
-                      selectedTwin?.id === twin.id
-                        ? 'bg-[#FFF3F0] border-l-[#FF5722]'
-                        : 'hover:bg-gray-50 border-l-transparent'
-                    }`}
-                    onClick={() => setSelectedTwin(twin)}
-                  >
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <h4 className="font-medium text-[#1A1A4B]">{twin.name}</h4>
-                        <p className="text-sm text-[#6B7280]">{twin.subject_area}</p>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <Badge
-                          variant={twin.is_active ? "default" : "secondary"}
-                          className={twin.is_active ? "bg-green-100 text-green-800" : ""}
-                        >
-                          {twin.is_active ? 'Active' : 'Inactive'}
-                        </Badge>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            toggleTwinStatus(twin.id, twin.is_active);
+              {/* Apple-style Content Grouping - Group by Progress/Status */}
+              <div className="space-y-8">
+                {/* Active Twins Group */}
+                {digitalTwins.filter(t => t.is_active).length > 0 && (
+                  <div>
+                    <div className="mb-4">
+                      <h3 className="text-lg font-medium mb-1" style={{ color: 'var(--_color-theme---text)' }}>Active</h3>
+                      <p className="text-sm" style={{ color: 'var(--_color-theme---text-secondary)' }}>
+                        Currently available to students
+                      </p>
+                    </div>
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                      {digitalTwins.filter(t => t.is_active).map((twin) => (
+                        <div
+                          key={twin.id}
+                          className={`p-6 rounded-xl border cursor-pointer transition-all hover:shadow-lg ${
+                            selectedTwin?.id === twin.id ? 'ring-2' : ''
+                          }`}
+                          style={{
+                            backgroundColor: 'var(--_color-theme---surface)',
+                            borderColor: selectedTwin?.id === twin.id ? 'var(--_color-theme---accent)' : 'var(--_color-theme---border)',
+                            ringColor: selectedTwin?.id === twin.id ? 'var(--_color-theme---accent)' : 'transparent'
                           }}
+                          onClick={() => setSelectedTwin(twin)}
                         >
-                          {twin.is_active ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
-                        </Button>
-                      </div>
+                          <div className="flex items-start justify-between mb-4">
+                            <div className="flex-1">
+                              <h4 className="font-semibold text-lg mb-1" style={{ color: 'var(--_color-theme---text)' }}>{twin.name}</h4>
+                              <p className="text-sm" style={{ color: 'var(--_color-theme---text-secondary)' }}>{twin.subject_area}</p>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <div className="px-3 py-1 rounded-full text-xs font-medium text-white" style={{ backgroundColor: 'var(--_color-theme---accent)' }}>
+                                Live
+                              </div>
+                            </div>
+                          </div>
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-4 text-sm" style={{ color: 'var(--_color-theme---text-secondary)' }}>
+                              <span>Ready for students</span>
+                            </div>
+                            <button
+                              className="p-2 rounded-lg hover:opacity-70 transition-opacity"
+                              style={{ color: 'var(--_color-theme---text-secondary)', backgroundColor: 'var(--_color-theme---background-secondary)' }}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                toggleTwinStatus(twin.id, twin.is_active);
+                              }}
+                            >
+                              <Pause className="w-4 h-4" />
+                            </button>
+                          </div>
+                        </div>
+                      ))}
                     </div>
                   </div>
-                ))}
+                )}
 
-                {digitalTwins.length === 0 && (
-                  <div className="p-8 text-center text-[#6B7280]">
-                    <Users className="w-12 h-12 mx-auto mb-4 opacity-50" />
-                    <p>No digital twins yet</p>
-                    <p className="text-sm">Create your first AI teaching assistant</p>
+                {/* In Development Twins Group */}
+                {digitalTwins.filter(t => !t.is_active).length > 0 && (
+                  <div>
+                    <div className="mb-4">
+                      <h3 className="text-lg font-medium mb-1" style={{ color: 'var(--_color-theme---text)' }}>In Development</h3>
+                      <p className="text-sm" style={{ color: 'var(--_color-theme---text-secondary)' }}>
+                        Not yet available to students
+                      </p>
+                    </div>
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                      {digitalTwins.filter(t => !t.is_active).map((twin) => (
+                        <div
+                          key={twin.id}
+                          className={`p-6 rounded-xl border cursor-pointer transition-all hover:shadow-lg ${
+                            selectedTwin?.id === twin.id ? 'ring-2' : ''
+                          }`}
+                          style={{
+                            backgroundColor: 'var(--_color-theme---surface)',
+                            borderColor: selectedTwin?.id === twin.id ? 'var(--_color-theme---accent)' : 'var(--_color-theme---border)',
+                            ringColor: selectedTwin?.id === twin.id ? 'var(--_color-theme---accent)' : 'transparent'
+                          }}
+                          onClick={() => setSelectedTwin(twin)}
+                        >
+                          <div className="flex items-start justify-between mb-4">
+                            <div className="flex-1">
+                              <h4 className="font-semibold text-lg mb-1" style={{ color: 'var(--_color-theme---text)' }}>{twin.name}</h4>
+                              <p className="text-sm" style={{ color: 'var(--_color-theme---text-secondary)' }}>{twin.subject_area}</p>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <div className="px-3 py-1 rounded-full text-xs font-medium" style={{ backgroundColor: 'var(--_color-theme---border)', color: 'var(--_color-theme---text-secondary)' }}>
+                                Draft
+                              </div>
+                            </div>
+                          </div>
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-4 text-sm" style={{ color: 'var(--_color-theme---text-secondary)' }}>
+                              <span>Configure and test</span>
+                            </div>
+                            <button
+                              className="p-2 rounded-lg hover:opacity-70 transition-opacity"
+                              style={{ color: 'var(--_color-theme---text-secondary)', backgroundColor: 'var(--_color-theme---background-secondary)' }}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                toggleTwinStatus(twin.id, twin.is_active);
+                              }}
+                            >
+                              <Play className="w-4 h-4" />
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 )}
               </div>
-            </CardContent>
-          </Card>
+            </div>
+          ) : (
+            /* Apple-style Empty State with Clear Hierarchy */
+            <div className="text-center py-20">
+              <div className="w-20 h-20 mx-auto mb-6 rounded-full flex items-center justify-center" style={{ backgroundColor: 'var(--_color-theme---background-secondary)' }}>
+                <Users className="w-10 h-10" style={{ color: 'var(--_color-theme---text-secondary)' }} />
+              </div>
+              <h3 className="text-xl font-semibold mb-2" style={{ color: 'var(--_color-theme---text)' }}>
+                Create Your First AI Twin
+              </h3>
+              <p className="text-base mb-8 max-w-md mx-auto" style={{ color: 'var(--_color-theme---text-secondary)' }}>
+                Build a digital version of yourself that can teach students 24/7 with your unique teaching style
+              </p>
+              <button
+                onClick={() => setShowCreateForm(true)}
+                className="btn-anthropic-primary inline-flex items-center gap-2 text-base px-6 py-3"
+              >
+                <Plus className="w-5 h-5" />
+                Get Started
+              </button>
+            </div>
+          )}
 
-          {/* Twin Details */}
-          <div className="lg:col-span-2">
-            {selectedTwin ? (
-              <Tabs value={activeTab} onValueChange={setActiveTab}>
-                <TabsList className="grid w-full grid-cols-4">
-                  <TabsTrigger value="overview">Overview</TabsTrigger>
-                  <TabsTrigger value="content">Content</TabsTrigger>
-                  <TabsTrigger value="voice">Voice</TabsTrigger>
-                  <TabsTrigger value="analytics">Analytics</TabsTrigger>
-                </TabsList>
-
-                <TabsContent value="overview" className="space-y-6">
-                  <Card>
-                    <CardHeader>
-                      <CardTitle className="font-playfair italic">{selectedTwin.name}</CardTitle>
-                      <CardDescription>{selectedTwin.description}</CardDescription>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                      <div>
-                        <Label className="text-sm font-medium">Subject Area</Label>
-                        <p className="text-[#6B7280]">{selectedTwin.subject_area}</p>
-                      </div>
-
-                      <div>
-                        <Label className="text-sm font-medium">Status</Label>
-                        <div className="flex items-center gap-2 mt-1">
-                          <Badge
-                            variant={selectedTwin.is_active ? "default" : "secondary"}
-                            className={selectedTwin.is_active ? "bg-green-100 text-green-800" : ""}
-                          >
-                            {selectedTwin.is_active ? 'Active & Available to Students' : 'Inactive'}
-                          </Badge>
-                        </div>
-                      </div>
-
-                      <div>
-                        <Label className="text-sm font-medium">Knowledge Base</Label>
-                        <div className="flex items-center gap-2 mt-1">
-                          <Badge className={getProcessingStatusColor(selectedTwin.knowledge_base_status)}>
-                            {selectedTwin.knowledge_base_status}
-                          </Badge>
-                          <span className="text-sm text-[#6B7280]">
-                            {trainingMaterials.length} materials uploaded
-                          </span>
-                        </div>
-                      </div>
-
-                      <div className="flex gap-2">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => navigate(`/twin-builder?twin=${selectedTwin.id}`)}
-                        >
-                          <Edit className="w-4 h-4 mr-2" />
-                          Edit Configuration
-                        </Button>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => navigate(`/chat/${selectedTwin.id}`)}
-                        >
-                          <MessageSquare className="w-4 h-4 mr-2" />
-                          Test Chat
-                        </Button>
-                      </div>
-                    </CardContent>
-                  </Card>
-                </TabsContent>
-
-                <TabsContent value="content" className="space-y-6">
-                  <Card>
-                    <CardHeader>
-                      <CardTitle className="font-playfair italic">Training Materials</CardTitle>
-                      <CardDescription>
-                        Upload content to train your digital twin's knowledge and personality
-                      </CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                      <FileUpload
-                        twinId={selectedTwin.id}
-                        onUploadComplete={(file) => {
-                          setTrainingMaterials(prev => [file, ...prev]);
-                          toast({
-                            title: "File uploaded",
-                            description: "Your training material has been uploaded successfully",
-                          });
-                        }}
-                      />
-
-                      {/* Materials List */}
-                      <div className="mt-6 space-y-2">
-                        <h4 className="font-medium text-[#1A1A4B]">Uploaded Materials</h4>
-                        {trainingMaterials.length > 0 ? (
-                          trainingMaterials.map((material) => (
-                            <div
-                              key={material.id}
-                              className="flex items-center justify-between p-3 bg-white border border-[#E5E7EB] rounded-lg"
-                            >
-                              <div className="flex items-center gap-3">
-                                {getFileTypeIcon(material.file_type)}
-                                <div>
-                                  <h5 className="font-medium text-[#1A1A4B] text-sm">
-                                    {material.file_name}
-                                  </h5>
-                                  <p className="text-xs text-[#6B7280]">
-                                    Uploaded {new Date(material.uploaded_at).toLocaleDateString()}
-                                  </p>
-                                </div>
-                              </div>
-                              <Badge className={getProcessingStatusColor(material.processing_status)}>
-                                {material.processing_status}
-                              </Badge>
-                            </div>
-                          ))
-                        ) : (
-                          <p className="text-[#6B7280] text-sm">No materials uploaded yet</p>
-                        )}
-                      </div>
-                    </CardContent>
-                  </Card>
-                </TabsContent>
-
-                <TabsContent value="voice" className="space-y-6">
-                  <Card>
-                    <CardHeader>
-                      <CardTitle className="font-playfair italic">Voice Configuration</CardTitle>
-                      <CardDescription>
-                        Set up voice cloning and text-to-speech for your digital twin
-                      </CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="text-center py-8">
-                        <Mic className="w-16 h-16 mx-auto mb-4 text-[#6B7280]" />
-                        <h3 className="text-lg font-medium text-[#1A1A4B] mb-2">
-                          Voice Cloning Setup
-                        </h3>
-                        <p className="text-[#6B7280] mb-4">
-                          Upload voice samples to create a unique voice for your digital twin
-                        </p>
-                        <Button className="bg-[#FF5722] hover:bg-[#FF5722]/90">
-                          <Upload className="w-4 h-4 mr-2" />
-                          Upload Voice Samples
-                        </Button>
-                      </div>
-                    </CardContent>
-                  </Card>
-                </TabsContent>
-
-                <TabsContent value="analytics" className="space-y-6">
-                  <Card>
-                    <CardHeader>
-                      <CardTitle className="font-playfair italic">Performance Analytics</CardTitle>
-                      <CardDescription>
-                        Track how your digital twin is performing with students
-                      </CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="text-center py-8">
-                        <BarChart3 className="w-16 h-16 mx-auto mb-4 text-[#6B7280]" />
-                        <h3 className="text-lg font-medium text-[#1A1A4B] mb-2">
-                          Analytics Coming Soon
-                        </h3>
-                        <p className="text-[#6B7280]">
-                          Detailed analytics about student interactions and learning outcomes
-                        </p>
-                      </div>
-                    </CardContent>
-                  </Card>
-                </TabsContent>
-              </Tabs>
-            ) : (
-              <Card>
-                <CardContent className="pt-6">
-                  <div className="text-center py-8">
-                    <Users className="w-16 h-16 mx-auto mb-4 text-[#6B7280]" />
-                    <h3 className="text-lg font-medium text-[#1A1A4B] mb-2">
-                      No Digital Twin Selected
-                    </h3>
-                    <p className="text-[#6B7280] mb-4">
-                      Select a digital twin from the list or create a new one to get started
-                    </p>
-                    <Button
-                      onClick={() => setShowCreateForm(true)}
-                      className="bg-[#FF5722] hover:bg-[#FF5722]/90"
-                    >
-                      <Plus className="w-4 h-4 mr-2" />
-                      Create Your First Twin
-                    </Button>
+          {/* Apple-style Twin Details Panel with Progressive Disclosure */}
+          {selectedTwin && (
+            <div className="rounded-2xl border" style={{ backgroundColor: 'var(--_color-theme---surface)', borderColor: 'var(--_color-theme---border)' }}>
+              <div className="p-8">
+                <div className="flex items-start justify-between mb-6">
+                  <div>
+                    <h3 className="text-xl font-semibold mb-1" style={{ color: 'var(--_color-theme---text)' }}>{selectedTwin.name}</h3>
+                    <p className="text-base" style={{ color: 'var(--_color-theme---text-secondary)' }}>{selectedTwin.description}</p>
                   </div>
-                </CardContent>
-              </Card>
-            )}
+                  <div className="flex items-center gap-3">
+                    <button
+                      onClick={() => navigate(`/twin-builder?twin=${selectedTwin.id}`)}
+                      className="btn-anthropic-secondary"
+                    >
+                      <Edit className="w-4 h-4 mr-2" />
+                      Edit
+                    </button>
+                    <button
+                      onClick={() => navigate(`/chat/${selectedTwin.id}`)}
+                      className="btn-anthropic-primary"
+                    >
+                      <MessageSquare className="w-4 h-4 mr-2" />
+                      Test Chat
+                    </button>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  <div className="p-4 rounded-xl" style={{ backgroundColor: 'var(--_color-theme---background-secondary)' }}>
+                    <p className="text-sm font-medium mb-1" style={{ color: 'var(--_color-theme---text-secondary)' }}>Subject</p>
+                    <p className="font-semibold" style={{ color: 'var(--_color-theme---text)' }}>{selectedTwin.subject_area}</p>
+                  </div>
+                  <div className="p-4 rounded-xl" style={{ backgroundColor: 'var(--_color-theme---background-secondary)' }}>
+                    <p className="text-sm font-medium mb-1" style={{ color: 'var(--_color-theme---text-secondary)' }}>Status</p>
+                    <p className="font-semibold" style={{ color: selectedTwin.is_active ? 'var(--_color-theme---accent)' : 'var(--_color-theme---text-secondary)' }}>
+                      {selectedTwin.is_active ? 'Active' : 'In Development'}
+                    </p>
+                  </div>
+                  <div className="p-4 rounded-xl" style={{ backgroundColor: 'var(--_color-theme---background-secondary)' }}>
+                    <p className="text-sm font-medium mb-1" style={{ color: 'var(--_color-theme---text-secondary)' }}>Knowledge Base</p>
+                    <p className="font-semibold capitalize" style={{ color: 'var(--_color-theme---text)' }}>{selectedTwin.knowledge_base_status}</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Apple-style Create Twin Modal */}
+        {showCreateForm && (
+          <div className="fixed inset-0 flex items-center justify-center z-50" style={{ backgroundColor: 'rgba(0, 0, 0, 0.5)' }}>
+            <div className="w-full max-w-2xl max-h-[90vh] overflow-y-auto mx-4 rounded-2xl border" style={{ backgroundColor: 'var(--_color-theme---surface)', borderColor: 'var(--_color-theme---border)' }}>
+              <div className="p-8">
+                <div className="mb-8">
+                  <h2 className="text-2xl font-semibold mb-2" style={{ fontFamily: 'var(--_typography---font--styrene-a)', color: 'var(--_color-theme---text)' }}>
+                    Create New Digital Twin
+                  </h2>
+                  <p className="text-base" style={{ color: 'var(--_color-theme---text-secondary)' }}>
+                    Set up your AI teaching assistant with basic information
+                  </p>
+                </div>
+
+                <div className="space-y-6">
+                  <div>
+                    <label className="block text-sm font-medium mb-2" style={{ color: 'var(--_color-theme---text)' }}>Twin Name</label>
+                    <input
+                      value={twinForm.name}
+                      onChange={(e) => setTwinForm(prev => ({ ...prev, name: e.target.value }))}
+                      placeholder="e.g., Dr. Smith - Physics 101"
+                      className="w-full px-4 py-3 rounded-xl border text-base"
+                      style={{ backgroundColor: 'var(--_color-theme---background)', borderColor: 'var(--_color-theme---border)', color: 'var(--_color-theme---text)' }}
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium mb-2" style={{ color: 'var(--_color-theme---text)' }}>Subject Area</label>
+                    <input
+                      value={twinForm.subject_area}
+                      onChange={(e) => setTwinForm(prev => ({ ...prev, subject_area: e.target.value }))}
+                      placeholder="e.g., Physics, Mathematics, Computer Science"
+                      className="w-full px-4 py-3 rounded-xl border text-base"
+                      style={{ backgroundColor: 'var(--_color-theme---background)', borderColor: 'var(--_color-theme---border)', color: 'var(--_color-theme---text)' }}
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium mb-2" style={{ color: 'var(--_color-theme---text)' }}>Description</label>
+                    <textarea
+                      value={twinForm.description}
+                      onChange={(e) => setTwinForm(prev => ({ ...prev, description: e.target.value }))}
+                      placeholder="Describe your teaching style and expertise..."
+                      rows={3}
+                      className="w-full px-4 py-3 rounded-xl border text-base resize-none"
+                      style={{ backgroundColor: 'var(--_color-theme---background)', borderColor: 'var(--_color-theme---border)', color: 'var(--_color-theme---text)' }}
+                    />
+                  </div>
+
+                  <div className="flex gap-3 justify-end pt-4">
+                    <button
+                      onClick={() => setShowCreateForm(false)}
+                      className="btn-anthropic-secondary"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      onClick={handleCreateTwin}
+                      className="btn-anthropic-primary"
+                    >
+                      Create Twin
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
-        </div>
+        )}
       </div>
-
-      {/* Create Twin Modal */}
-      {showCreateForm && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <Card className="w-full max-w-2xl max-h-[90vh] overflow-y-auto mx-4">
-            <CardHeader>
-              <CardTitle className="font-playfair italic">Create New Digital Twin</CardTitle>
-              <CardDescription>
-                Set up your AI teaching assistant with basic information
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div>
-                <Label htmlFor="name">Twin Name</Label>
-                <Input
-                  id="name"
-                  value={twinForm.name}
-                  onChange={(e) => setTwinForm(prev => ({ ...prev, name: e.target.value }))}
-                  placeholder="e.g., Dr. Smith - Physics 101"
-                />
-              </div>
-
-              <div>
-                <Label htmlFor="subject">Subject Area</Label>
-                <Input
-                  id="subject"
-                  value={twinForm.subject_area}
-                  onChange={(e) => setTwinForm(prev => ({ ...prev, subject_area: e.target.value }))}
-                  placeholder="e.g., Physics, Mathematics, Computer Science"
-                />
-              </div>
-
-              <div>
-                <Label htmlFor="description">Description</Label>
-                <Textarea
-                  id="description"
-                  value={twinForm.description}
-                  onChange={(e) => setTwinForm(prev => ({ ...prev, description: e.target.value }))}
-                  placeholder="Describe your teaching style and expertise..."
-                  rows={3}
-                />
-              </div>
-
-              <div className="flex gap-2 justify-end">
-                <Button
-                  variant="outline"
-                  onClick={() => setShowCreateForm(false)}
-                >
-                  Cancel
-                </Button>
-                <Button
-                  onClick={handleCreateTwin}
-                  className="bg-[#FF5722] hover:bg-[#FF5722]/90"
-                >
-                  Create Twin
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-      )}
     </div>
   );
 };
