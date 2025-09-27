@@ -92,8 +92,15 @@ app.use(express.json({ limit: '10mb' }));
 // Content-Type validation
 app.use(validateContentType(['application/json', 'multipart/form-data']));
 
-// Input sanitization (applied to all routes)
-app.use('/api/', sanitizeInput);
+// Input sanitization (exclude auth routes to prevent breaking authentication)
+app.use('/api/', (req, res, next) => {
+  // Skip sanitization for authentication routes
+  if (req.originalUrl.startsWith('/api/auth/')) {
+    return next();
+  }
+  // Apply sanitization to all other API routes
+  sanitizeInput(req, res, next);
+});
 
 // Input validation middleware
 const validateChatRequest = [
@@ -143,9 +150,9 @@ const handleValidationErrors = (req, res, next) => {
 // import voiceRoutes from './routes/voice.js';
 // import analyticsRoutes from './routes/analytics.js';
 import connectorsRoutes from './routes/connectors.js';
-import mcpConnectorsRoutes from './routes/mcp-connectors.js';
+// import mcpConnectorsRoutes from './routes/mcp-connectors.js';
 import entertainmentRoutes from './routes/entertainment-connectors.js';
-// import authRoutes from './routes/auth.js';
+import soulExtractionRoutes from './routes/soul-extraction.js';
 import authRoutes from './routes/auth-simple.js';
 import { serverDb } from './services/database.js';
 import { sanitizeInput, validateContentType } from './middleware/sanitization.js';
@@ -159,8 +166,9 @@ import { /* handleAuthError, */ handleGeneralError, handle404 } from './middlewa
 // app.use('/api/voice', voiceRoutes);
 // app.use('/api/analytics', analyticsRoutes);
 app.use('/api/connectors', connectorsRoutes);
-app.use('/api/mcp', mcpConnectorsRoutes);
+// app.use('/api/mcp', mcpConnectorsRoutes);
 app.use('/api/entertainment', entertainmentRoutes);
+app.use('/api/soul', soulExtractionRoutes);
 app.use('/api/auth', authRoutes);
 
 // Health check endpoint

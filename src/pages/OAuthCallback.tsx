@@ -1,121 +1,195 @@
-/**
- * OAuth Callback Handler
- * Handles OAuth returns from external providers
- */
-
 import { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { useAuth } from '../contexts/AuthContext';
-import { useToast } from '@/components/ui/use-toast';
-import LoadingScreen from '@/components/LoadingScreen';
+import { Brain, CheckCircle, XCircle, Loader2 } from 'lucide-react';
 
 const OAuthCallback = () => {
-  const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const { user } = useAuth();
-  const { toast } = useToast();
-  const [status, setStatus] = useState<'processing' | 'success' | 'error'>('processing');
+  const navigate = useNavigate();
+  const [status, setStatus] = useState<'loading' | 'success' | 'error'>('loading');
+  const [message, setMessage] = useState('Processing authentication...');
 
   useEffect(() => {
-    let hasRun = false; // Prevent duplicate requests
-
-    const handleCallback = async () => {
-      if (hasRun) return; // Prevent duplicate calls
-      hasRun = true;
-
+    const handleOAuthCallback = async () => {
       try {
         const code = searchParams.get('code');
         const state = searchParams.get('state');
         const error = searchParams.get('error');
 
-        console.log('🔄 OAuth callback starting with:', { code: !!code, state: !!state, error });
+        console.log('🔄 OAuth callback received:', { code: !!code, state: !!state, error });
 
         if (error) {
-          throw new Error(`OAuth error: ${error}`);
+          setStatus('error');
+          setMessage(`Authentication failed: ${error}`);
+          setTimeout(() => navigate('/auth'), 3000);
+          return;
         }
 
-        if (!code || !state) {
-          throw new Error('Missing authorization code or state');
+        if (!code) {
+          setStatus('error');
+          setMessage('No authorization code received');
+          setTimeout(() => navigate('/auth'), 3000);
+          return;
         }
 
-        console.log('📤 Sending callback request to server...');
+        console.log('📤 Exchanging code for token...');
 
-        // Send callback data to backend
-        const response = await fetch(`http://localhost:3001/api/connectors/callback`, {
+        // Exchange code for token via our backend
+        const response = await fetch(`${import.meta.env.VITE_API_URL}/auth/oauth/callback`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify({ code, state })
+          body: JSON.stringify({
+            code,
+            state,
+            provider: 'google'
+          })
         });
 
-        console.log('📥 Server response status:', response.status);
-        const result = await response.json();
-        console.log('📥 Server response data:', result);
-
-        if (result.success) {
-          setStatus('success');
-          toast({
-            title: "Connected!",
-            description: `Successfully connected to ${result.data?.provider}`,
-          });
-
-          console.log('✅ Connection successful, redirecting...');
-          // Redirect back to onboarding
-          setTimeout(() => {
-            navigate('/get-started?connected=true');
-          }, 2000);
-        } else {
-          throw new Error(result.error || 'Connection failed');
+        if (!response.ok) {
+          throw new Error(`Token exchange failed: ${response.status}`);
         }
 
-      } catch (error: any) {
+        const data = await response.json();
+        console.log('📥 Token exchange response:', { success: data.success });
+
+        if (data.success && data.token) {
+          // Store the token in localStorage for our auth system
+          localStorage.setItem('auth_token', data.token);
+          localStorage.setItem('auth_provider', 'google');
+
+          console.log('✅ Authentication successful, token stored');
+          setStatus('success');
+          setMessage('Authentication successful! Redirecting...');
+
+          // Trigger a page reload to ensure AuthContext picks up the new token
+          setTimeout(() => {
+            window.location.href = '/get-started';
+          }, 1500);
+        } else {
+          throw new Error(data.error || 'Token exchange failed');
+        }
+
+      } catch (error) {
         console.error('❌ OAuth callback error:', error);
         setStatus('error');
-        toast({
-          title: "Connection failed",
-          description: error.message || 'Unable to complete connection',
-          variant: "destructive"
-        });
-
-        // Redirect back to onboarding after error
-        setTimeout(() => {
-          navigate('/get-started?error=connection_failed');
-        }, 3000);
+        setMessage('An unexpected error occurred during authentication');
+        setTimeout(() => navigate('/auth'), 3000);
       }
     };
 
-    handleCallback();
-  }, []); // Remove dependencies to prevent re-runs
+    handleOAuthCallback();
+  }, [searchParams, navigate]);
 
-  if (status === 'processing') {
-    return (
-      <LoadingScreen
-        message="Processing connection"
-        submessage="Completing OAuth authentication..."
-      />
-    );
-  }
+  const getStatusIcon = () => {
+    switch (status) {
+      case 'loading':
+        return <Loader2 className="w-12 h-12 animate-spin" style={{ color: 'var(--_color-theme---accent)' }} />;
+      case 'success':
+        return <CheckCircle className="w-12 h-12" style={{ color: '#10B981' }} />;
+      case 'error':
+        return <XCircle className="w-12 h-12" style={{ color: '#EF4444' }} />;
+    }
+  };
 
-  if (status === 'success') {
-    return (
-      <LoadingScreen
-        message="Connected successfully!"
-        submessage="Redirecting you back to onboarding..."
-      />
-    );
-  }
+  const getStatusColor = () => {
+    switch (status) {
+      case 'loading':
+        return 'var(--_color-theme---text)';
+      case 'success':
+        return '#10B981';
+      case 'error':
+        return '#EF4444';
+    }
+  };
 
-  if (status === 'error') {
-    return (
-      <LoadingScreen
-        message="Connection failed"
-        submessage="Redirecting you back to try again..."
-      />
-    );
-  }
+  return (
+    <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: 'var(--_color-theme---background)' }}>
+      <div
+        className="max-w-md w-full mx-4 p-8 rounded-2xl border text-center"
+        style={{
+          backgroundColor: 'var(--_color-theme---surface)',
+          borderColor: 'var(--_color-theme---border)'
+        }}
+      >
+        {/* Logo */}
+        <div className="flex items-center justify-center mb-8">
+          <div
+            className="flex items-center justify-center w-12 h-12 rounded-xl mr-3"
+            style={{ backgroundColor: 'var(--_color-theme---accent)' }}
+          >
+            <Brain className="w-6 h-6 text-white" />
+          </div>
+          <h1
+            className="text-2xl font-bold"
+            style={{
+              fontFamily: 'var(--_typography---font--styrene-a)',
+              color: 'var(--_color-theme---text)'
+            }}
+          >
+            Twin AI Learn
+          </h1>
+        </div>
 
-  return null;
+        {/* Status Icon */}
+        <div className="flex justify-center mb-6">
+          {getStatusIcon()}
+        </div>
+
+        {/* Status Message */}
+        <h2
+          className="text-xl font-semibold mb-2"
+          style={{
+            color: getStatusColor(),
+            fontFamily: 'var(--_typography---font--styrene-a)'
+          }}
+        >
+          {status === 'loading' && 'Authenticating...'}
+          {status === 'success' && 'Welcome!'}
+          {status === 'error' && 'Authentication Failed'}
+        </h2>
+
+        <p
+          className="text-sm"
+          style={{ color: 'var(--_color-theme---text-secondary)' }}
+        >
+          {message}
+        </p>
+
+        {/* Progress indicator for loading state */}
+        {status === 'loading' && (
+          <div className="mt-6">
+            <div
+              className="w-full bg-gray-200 rounded-full h-1.5"
+              style={{ backgroundColor: 'var(--_color-theme---surface-raised)' }}
+            >
+              <div
+                className="h-1.5 rounded-full animate-pulse"
+                style={{
+                  backgroundColor: 'var(--_color-theme---accent)',
+                  width: '60%'
+                }}
+              />
+            </div>
+          </div>
+        )}
+
+        {/* Error state - show retry button */}
+        {status === 'error' && (
+          <button
+            onClick={() => navigate('/auth')}
+            className="mt-6 px-6 py-2 rounded-lg font-medium transition-colors"
+            style={{
+              backgroundColor: 'var(--_color-theme---accent)',
+              color: 'white'
+            }}
+          >
+            Try Again
+          </button>
+        )}
+      </div>
+    </div>
+  );
 };
 
 export default OAuthCallback;

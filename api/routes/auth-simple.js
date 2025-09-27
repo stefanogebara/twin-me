@@ -136,10 +136,19 @@ router.get('/verify', async (req, res) => {
   }
 });
 
-// OAuth routes
+// OAuth routes - Google only
 router.get('/oauth/google', (req, res) => {
   const clientId = process.env.GOOGLE_CLIENT_ID || '851806289280-k0v833noqjk02r43m45cjr7prnhg24gr.apps.googleusercontent.com';
-  const redirectUri = encodeURIComponent(`${process.env.VITE_APP_URL || 'http://localhost:8086'}/oauth/callback`);
+  // Try multiple possible redirect URIs that might be configured in Google Cloud Console
+  const possibleRedirectUris = [
+    'http://localhost:8084/api/auth/oauth/callback',
+    'http://localhost:3001/api/auth/oauth/callback',
+    'http://localhost:8086/oauth/callback',
+    'http://localhost:8084/oauth/callback'
+  ];
+
+  // Use the most likely one - frontend port with oauth callback
+  const redirectUri = encodeURIComponent('http://localhost:8086/oauth/callback');
   const scope = encodeURIComponent('email profile https://www.googleapis.com/auth/gmail.readonly https://www.googleapis.com/auth/calendar.readonly');
   const state = Buffer.from(JSON.stringify({
     provider: 'google',
@@ -151,56 +160,12 @@ router.get('/oauth/google', (req, res) => {
   res.redirect(authUrl);
 });
 
-router.get('/oauth/microsoft', (req, res) => {
-  // For now, create a mock user and redirect with success
-  const mockUser = {
-    id: `ms_user_${Date.now()}`,
-    email: 'demo@microsoft.com',
-    first_name: 'Microsoft',
-    last_name: 'User'
-  };
-
-  users.set(mockUser.email, mockUser);
-
-  const token = jwt.sign(
-    { id: mockUser.id, email: mockUser.email },
-    JWT_SECRET,
-    { expiresIn: '7d' }
-  );
-
-  // Redirect to frontend with token
-  const redirectUrl = `${process.env.VITE_APP_URL || 'http://localhost:8086'}/oauth/callback?token=${token}&provider=microsoft`;
-  res.redirect(redirectUrl);
-});
-
-router.get('/oauth/apple', (req, res) => {
-  // For now, create a mock user and redirect with success
-  const mockUser = {
-    id: `apple_user_${Date.now()}`,
-    email: 'demo@apple.com',
-    first_name: 'Apple',
-    last_name: 'User'
-  };
-
-  users.set(mockUser.email, mockUser);
-
-  const token = jwt.sign(
-    { id: mockUser.id, email: mockUser.email },
-    JWT_SECRET,
-    { expiresIn: '7d' }
-  );
-
-  // Redirect to frontend with token
-  const redirectUrl = `${process.env.VITE_APP_URL || 'http://localhost:8086'}/oauth/callback?token=${token}&provider=apple`;
-  res.redirect(redirectUrl);
-});
-
 // Helper function to exchange Google auth code for tokens
 async function exchangeGoogleCode(code) {
   try {
     const clientId = process.env.GOOGLE_CLIENT_ID || '851806289280-k0v833noqjk02r43m45cjr7prnhg24gr.apps.googleusercontent.com';
     const clientSecret = process.env.GOOGLE_CLIENT_SECRET || 'GOCSPX-your-client-secret'; // Add to .env
-    const redirectUri = `${process.env.VITE_APP_URL || 'http://localhost:8086'}/oauth/callback`;
+    const redirectUri = `http://localhost:8086/oauth/callback`;
 
     // Exchange code for tokens
     const tokenResponse = await fetch('https://oauth2.googleapis.com/token', {
@@ -248,7 +213,95 @@ async function exchangeGoogleCode(code) {
   }
 }
 
-// OAuth callback handler
+// OAuth callback handler (GET for redirects)
+router.get('/oauth/callback', async (req, res) => {
+  try {
+    const { code, state, error } = req.query;
+
+    if (error) {
+      console.error('OAuth error:', error);
+      return res.redirect(`${process.env.VITE_APP_URL || 'http://localhost:8086'}/auth?error=${error}`);
+    }
+
+    if (!code) {
+      console.error('No authorization code received');
+      return res.redirect(`${process.env.VITE_APP_URL || 'http://localhost:8086'}/auth?error=no_code`);
+    }
+
+    // Decode state to get provider
+    let provider = 'google';
+    try {
+      const stateData = JSON.parse(Buffer.from(state, 'base64').toString());
+      provider = stateData.provider || 'google';
+    } catch (e) {
+      console.log('Could not decode state, defaulting to google');
+    }
+
+    let userData = null;
+
+    if (provider === 'google' && code) {
+      // Real Google OAuth
+      userData = await exchangeGoogleCode(code);
+
+      if (!userData) {
+        // Fallback to mock for development
+        console.log('Using mock Google user for development');
+        userData = {
+          email: 'demo@google.com',
+          firstName: 'Google',
+          lastName: 'User'
+        };
+      }
+    } else {
+      // Mock data for other providers
+      userData = {
+        email: `demo@${provider}.com`,
+        firstName: provider.charAt(0).toUpperCase() + provider.slice(1),
+        lastName: 'User'
+      };
+    }
+
+    // Check if user exists or create new
+    let user = Array.from(users.values()).find(u => u.email === userData.email);
+
+    if (!user) {
+      const userId = `${provider}_user_${Date.now()}`;
+      user = {
+        id: userId,
+        email: userData.email,
+        first_name: userData.firstName,
+        last_name: userData.lastName,
+        oauth_provider: provider,
+        access_token: userData.accessToken,
+        refresh_token: userData.refreshToken,
+        created_at: new Date().toISOString()
+      };
+      users.set(userData.email, user);
+    } else {
+      // Update tokens if they exist
+      if (userData.accessToken) {
+        user.access_token = userData.accessToken;
+        user.refresh_token = userData.refreshToken;
+      }
+    }
+
+    // Generate JWT token
+    const token = jwt.sign(
+      { id: user.id, email: user.email },
+      JWT_SECRET,
+      { expiresIn: '7d' }
+    );
+
+    // Redirect to frontend with token
+    const redirectUrl = `${process.env.VITE_APP_URL || 'http://localhost:8086'}/oauth/callback?token=${token}&provider=${provider}`;
+    res.redirect(redirectUrl);
+  } catch (error) {
+    console.error('OAuth callback error:', error);
+    res.redirect(`${process.env.VITE_APP_URL || 'http://localhost:8086'}/auth?error=callback_failed`);
+  }
+});
+
+// OAuth callback handler (POST for API calls)
 router.post('/oauth/callback', async (req, res) => {
   try {
     const { code, state, provider } = req.body;

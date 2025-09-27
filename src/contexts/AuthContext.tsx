@@ -16,7 +16,7 @@ interface AuthContextType {
   signIn: (email: string, password: string) => Promise<void>;
   signUp: (email: string, password: string, firstName?: string, lastName?: string) => Promise<void>;
   signOut: () => Promise<void>;
-  signInWithOAuth: (provider: 'google' | 'microsoft' | 'apple') => Promise<void>;
+  signInWithOAuth: (provider: 'google') => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -119,7 +119,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     setUser(null);
   };
 
-  const signInWithOAuth = async (provider: 'google' | 'microsoft' | 'apple') => {
+  const signInWithOAuth = async (provider: 'google') => {
     try {
       // Redirect to OAuth provider
       window.location.href = `${import.meta.env.VITE_API_URL}/auth/oauth/${provider}`;
