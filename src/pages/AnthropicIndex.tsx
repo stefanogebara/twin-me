@@ -1,11 +1,11 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useUser, SignInButton, SignUpButton } from '@clerk/clerk-react';
+import { useAuth, SignInButton } from '../contexts/AuthContext';
 import { Sparkles, User, BookOpen, Mic, Brain, ArrowRight } from 'lucide-react';
 
 const AnthropicIndex = () => {
   const navigate = useNavigate();
-  const { isSignedIn, isLoaded } = useUser();
+  const { isSignedIn, isLoaded } = useAuth();
   const [animatedWords, setAnimatedWords] = useState<string[]>("Transform Teaching with Digital Twins".split(' '));
 
   // Anthropic-style word animation for hero text
@@ -35,7 +35,7 @@ const AnthropicIndex = () => {
     if (!isLoaded) return;
 
     if (isSignedIn) {
-      navigate('/legacy-get-started');
+      navigate('/choose-mode');
     }
   };
 
@@ -130,7 +130,7 @@ const AnthropicIndex = () => {
                 Dashboard
               </button>
             ) : (
-              <SignInButton mode="modal" afterSignInUrl="/legacy-get-started">
+              <SignInButton mode="modal" afterSignInUrl="/choose-mode">
                 <button className="btn-anthropic-primary">Get Started</button>
               </SignInButton>
             )}
@@ -170,7 +170,7 @@ const AnthropicIndex = () => {
                 <ArrowRight className="w-5 h-5" />
               </button>
             ) : (
-              <SignInButton mode="modal" afterSignInUrl="/legacy-get-started">
+              <SignInButton mode="modal" afterSignInUrl="/choose-mode">
                 <button className="btn-anthropic-primary flex items-center gap-2">
                   Create Your Twin
                   <ArrowRight className="w-5 h-5" />
@@ -304,12 +304,12 @@ const AnthropicIndex = () => {
             {!isLoaded ? (
               <button disabled className="btn-anthropic-primary opacity-50 cursor-not-allowed">Loading...</button>
             ) : isSignedIn ? (
-              <button onClick={() => navigate('/legacy-get-started')} className="btn-anthropic-primary flex items-center gap-2">
+              <button onClick={() => navigate('/get-started')} className="btn-anthropic-primary flex items-center gap-2">
                 Start Building Your Twin
                 <ArrowRight className="w-5 h-5" />
               </button>
             ) : (
-              <SignInButton mode="modal" afterSignInUrl="/legacy-get-started">
+              <SignInButton mode="modal" afterSignInUrl="/choose-mode">
                 <button className="btn-anthropic-primary flex items-center gap-2">
                   Start Building Your Twin
                   <ArrowRight className="w-5 h-5" />

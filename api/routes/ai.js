@@ -1,6 +1,7 @@
 import express from 'express';
 import { body, validationResult } from 'express-validator';
 import Anthropic from '@anthropic-ai/sdk';
+import OpenAI from 'openai';
 import dotenv from 'dotenv';
 import { documentProcessor } from '../services/simpleDocumentProcessor.js';
 import { authenticateUser, userRateLimit } from '../middleware/auth.js';
@@ -11,9 +12,14 @@ dotenv.config();
 
 const router = express.Router();
 
-// Initialize Anthropic client (server-side only)
+// Initialize AI clients (server-side only)
 const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY,
+  // No dangerouslyAllowBrowser - this is server-side!
+});
+
+const openai = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY,
   // No dangerouslyAllowBrowser - this is server-side!
 });
 
@@ -414,6 +420,184 @@ router.post('/assess-understanding', authenticateUser, userRateLimit(20, 15 * 60
 
   } catch (error) {
     console.error('Assessment error:', error);
+    res.status(500).json({
+      error: 'Failed to assess understanding',
+      assessment: { understanding_level: 'medium' }
+    });
+  }
+});
+
+// POST /api/ai/openai-chat - Generate AI response using OpenAI (Requires authentication)
+router.post('/openai-chat', authenticateUser, userRateLimit(30, 15 * 60 * 1000), validateChatRequest, handleValidationErrors, async (req, res) => {
+  try {
+    const { message, context } = req.body;
+
+    // Validate required context
+    if (!context || !context.twin) {
+      return errorResponse(res, 'MISSING_CONTEXT', 'Twin data is required in request context', 400);
+    }
+
+    // Build system prompt (reusing the same function)
+    const systemPrompt = buildSystemPrompt(context);
+
+    // Format conversation history
+    const conversationMessages = context.conversationHistory
+      ? formatConversationHistory(context.conversationHistory)
+      : [];
+
+    // Call OpenAI API
+    const response = await openai.chat.completions.create({
+      model: 'gpt-4',
+      messages: [
+        { role: 'system', content: systemPrompt },
+        ...conversationMessages,
+        { role: 'user', content: message }
+      ],
+      temperature: 0.7,
+      max_tokens: 1000,
+      presence_penalty: 0.1,
+      frequency_penalty: 0.1
+    });
+
+    const content = response.choices[0]?.message?.content;
+    if (content) {
+      return successResponse(res, {
+        response: content,
+        usage: response.usage,
+        model: 'gpt-4'
+      }, 'AI response generated successfully');
+    } else {
+      throw new Error('No content in OpenAI response');
+    }
+
+  } catch (error) {
+    console.error('OpenAI API Error:', error);
+
+    // Handle specific error types
+    if (error.status === 429) {
+      return res.status(429).json({
+        error: 'Rate limit exceeded. Please try again later.',
+        retryAfter: 60
+      });
+    }
+
+    if (error.status === 401) {
+      return res.status(500).json({
+        error: 'AI service configuration error'
+      });
+    }
+
+    res.status(500).json({
+      error: 'Failed to generate AI response',
+      message: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
+    });
+  }
+});
+
+// POST /api/ai/openai-follow-up-questions - Generate follow-up questions using OpenAI
+router.post('/openai-follow-up-questions', authenticateUser, userRateLimit(50, 15 * 60 * 1000), validateChatRequest, handleValidationErrors, async (req, res) => {
+  try {
+    const { context } = req.body;
+
+    if (!context || !context.conversationHistory || context.conversationHistory.length === 0) {
+      return res.status(400).json({
+        error: 'Conversation history is required to generate follow-up questions'
+      });
+    }
+
+    const systemPrompt = `Based on the conversation history, suggest 3 relevant follow-up questions that would help the student deepen their understanding of the topic. Return as a JSON array of strings.`;
+    const conversationMessages = formatConversationHistory(context.conversationHistory);
+
+    const response = await openai.chat.completions.create({
+      model: 'gpt-3.5-turbo',
+      messages: [
+        { role: 'system', content: systemPrompt },
+        ...conversationMessages
+      ],
+      temperature: 0.5,
+      max_tokens: 200
+    });
+
+    const content = response.choices[0]?.message?.content;
+    if (content) {
+      try {
+        const questions = JSON.parse(content);
+        res.json({
+          questions: Array.isArray(questions) ? questions.slice(0, 3) : [],
+          timestamp: new Date().toISOString()
+        });
+      } catch (parseError) {
+        res.json({
+          questions: [],
+          timestamp: new Date().toISOString()
+        });
+      }
+    } else {
+      throw new Error('No content in OpenAI response');
+    }
+
+  } catch (error) {
+    console.error('OpenAI follow-up questions error:', error);
+    res.status(500).json({
+      error: 'Failed to generate follow-up questions',
+      questions: []
+    });
+  }
+});
+
+// POST /api/ai/openai-assess-understanding - Assess student understanding using OpenAI
+router.post('/openai-assess-understanding', authenticateUser, userRateLimit(20, 15 * 60 * 1000), [
+  body('studentResponse')
+    .trim()
+    .isLength({ min: 1, max: 2000 })
+    .withMessage('Student response must be between 1 and 2000 characters')
+    .escape(),
+  body('topic')
+    .trim()
+    .isLength({ min: 1, max: 200 })
+    .withMessage('Topic must be between 1 and 200 characters')
+    .escape(),
+], handleValidationErrors, async (req, res) => {
+  try {
+    const { studentResponse, topic } = req.body;
+
+    const systemPrompt = `Analyze the student's response about "${topic}" and assess their understanding level. Return a JSON object with:
+    {
+      "understanding_level": "low" | "medium" | "high",
+      "areas_of_confusion": ["list of specific areas where student seems confused"],
+      "suggestions": ["specific suggestions for helping the student improve understanding"]
+    }`;
+
+    const response = await openai.chat.completions.create({
+      model: 'gpt-3.5-turbo',
+      messages: [
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: studentResponse }
+      ],
+      temperature: 0.3,
+      max_tokens: 300
+    });
+
+    const content = response.choices[0]?.message?.content;
+    if (content) {
+      try {
+        const assessment = JSON.parse(content);
+        res.json({
+          assessment,
+          timestamp: new Date().toISOString()
+        });
+      } catch (parseError) {
+        res.json({
+          assessment: { understanding_level: 'medium' },
+          timestamp: new Date().toISOString()
+        });
+      }
+    } else {
+      throw new Error('No content in OpenAI response');
+    }
+
+  } catch (error) {
+    console.error('OpenAI assessment error:', error);
     res.status(500).json({
       error: 'Failed to assess understanding',
       assessment: { understanding_level: 'medium' }

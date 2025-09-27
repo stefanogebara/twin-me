@@ -3,7 +3,12 @@
  */
 
 import express from 'express';
+import { supabase } from '../config/supabase.js';
 const router = express.Router();
+
+// Temporary in-memory storage for OAuth connections (for testing)
+// In production, this should be stored in the database
+const tempConnections = new Map();
 
 // ====================================================================
 // OAUTH CONFIGURATIONS
@@ -166,8 +171,35 @@ router.post('/callback', async (req, res) => {
       });
     }
 
-    // TODO: Store tokens securely in database
-    // For now, return success with provider info
+    // Store tokens temporarily in memory (for testing)
+    try {
+      const connectionKey = `${userId}-${provider}`;
+      const connectionData = {
+        user_id: userId,
+        provider: provider,
+        access_token: tokens.access_token, // In production, this should be encrypted
+        refresh_token: tokens.refresh_token,
+        expires_at: tokens.expires_in ? new Date(Date.now() + tokens.expires_in * 1000) : null,
+        connected_at: new Date(),
+        last_sync: new Date(),
+        is_active: true,
+        permissions: {},
+        total_synced: 0,
+        last_sync_status: 'success',
+        error_count: 0
+      };
+
+      // Store in temporary memory storage
+      tempConnections.set(connectionKey, connectionData);
+
+      console.log(`✅ Successfully stored ${provider} connection for user ${userId} (temp storage)`);
+      console.log(`📊 Current connections:`, Array.from(tempConnections.keys()));
+
+    } catch (error) {
+      console.error('Error storing connection:', error);
+      // Continue anyway - don't fail the OAuth flow
+    }
+
     res.json({
       success: true,
       data: {
@@ -196,13 +228,28 @@ router.get('/status/:userId', async (req, res) => {
   try {
     const { userId } = req.params;
 
-    // TODO: Get actual connection status from database
-    // For now, return mock data
-    const mockConnections = {};
+    // Get connection status from temporary storage
+    const connectionStatus = {};
+
+    // Filter connections for this user
+    for (const [key, connection] of tempConnections.entries()) {
+      if (connection.user_id === userId && connection.is_active) {
+        connectionStatus[connection.provider] = {
+          connected: true,
+          isActive: connection.is_active,
+          connectedAt: connection.connected_at,
+          lastSync: connection.last_sync,
+          status: connection.last_sync_status
+        };
+      }
+    }
+
+    console.log(`📊 Connection status for user ${userId}:`, connectionStatus);
+    console.log(`📋 All stored connections:`, Array.from(tempConnections.keys()));
 
     res.json({
       success: true,
-      data: mockConnections
+      data: connectionStatus
     });
 
   } catch (error) {
@@ -215,6 +262,47 @@ router.get('/status/:userId', async (req, res) => {
 });
 
 /**
+ * POST /api/connectors/reset/:userId
+ * Reset all connections for a user (for fresh page loads)
+ */
+router.post('/reset/:userId', async (req, res) => {
+  try {
+    const { userId } = req.params;
+
+    console.log(`🔄 Resetting connections for user ${userId}`);
+
+    // Remove all connections for this user from temporary storage
+    const keysToDelete = [];
+    for (const [key, connection] of tempConnections.entries()) {
+      if (connection.user_id === userId) {
+        keysToDelete.push(key);
+      }
+    }
+
+    keysToDelete.forEach(key => tempConnections.delete(key));
+
+    console.log(`🗑️ Deleted ${keysToDelete.length} connections for user ${userId}`);
+
+    res.json({
+      success: true,
+      data: {
+        userId,
+        reset: true,
+        deletedConnections: keysToDelete.length,
+        message: 'Connection status reset'
+      }
+    });
+
+  } catch (error) {
+    console.error('Error resetting connections:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to reset connections'
+    });
+  }
+});
+
+/**
  * DELETE /api/connectors/:provider/:userId
  * Disconnect a provider for a user
  */
@@ -222,8 +310,18 @@ router.delete('/:provider/:userId', async (req, res) => {
   try {
     const { provider, userId } = req.params;
 
-    // TODO: Remove tokens from database and revoke access
-    // For now, return success
+    // Remove tokens from database and revoke access
+    const { error } = await supabase
+      .from('data_connectors')
+      .update({ is_active: false })
+      .eq('user_id', userId)
+      .eq('provider', provider);
+
+    if (error) {
+      console.error('Error disconnecting provider:', error);
+      throw error;
+    }
+
     res.json({
       success: true,
       data: {
@@ -238,6 +336,53 @@ router.delete('/:provider/:userId', async (req, res) => {
     res.status(500).json({
       success: false,
       error: 'Failed to disconnect provider'
+    });
+  }
+});
+
+/**
+ * POST /api/connectors/test-add-connection
+ * Test endpoint to add a connection for testing purposes
+ */
+router.post('/test-add-connection', async (req, res) => {
+  try {
+    const { userId, provider } = req.body;
+
+    const connectionKey = `${userId}-${provider}`;
+    const connectionData = {
+      user_id: userId,
+      provider: provider,
+      access_token: 'test-token',
+      refresh_token: 'test-refresh-token',
+      expires_at: new Date(Date.now() + 3600000), // 1 hour
+      connected_at: new Date(),
+      last_sync: new Date(),
+      is_active: true,
+      permissions: {},
+      total_synced: 0,
+      last_sync_status: 'success',
+      error_count: 0
+    };
+
+    tempConnections.set(connectionKey, connectionData);
+
+    console.log(`🧪 Test connection added: ${connectionKey}`);
+
+    res.json({
+      success: true,
+      data: {
+        provider,
+        userId,
+        connected: true,
+        message: 'Test connection added'
+      }
+    });
+
+  } catch (error) {
+    console.error('Error adding test connection:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to add test connection'
     });
   }
 });

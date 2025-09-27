@@ -5,7 +5,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useUser } from '@clerk/clerk-react';
+import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '@/components/ui/use-toast';
 import {
   ArrowLeft,
@@ -129,7 +129,7 @@ const AVAILABLE_CONNECTORS: ConnectorConfig[] = [
 
 const InstantTwinOnboarding = () => {
   const navigate = useNavigate();
-  const { user } = useUser();
+  const { user } = useAuth();
   const { toast } = useToast();
 
   // Parse URL parameters once
@@ -158,11 +158,12 @@ const InstantTwinOnboarding = () => {
     const connected = currentUrlParams.get('connected');
 
     if (connected === 'true') {
-      // A connection was successful, check connection status
+      // A connection was successful, check connection status with longer delay
+      console.log('🔗 OAuth callback detected, checking connection status...');
       setTimeout(() => {
         checkConnectionStatus();
         setHasCheckedConnection(true);
-      }, 1000);
+      }, 2000); // Increased delay to ensure backend processing is complete
     } else {
       // Reset connection status on fresh page load (no OAuth callback)
       resetConnectionStatus();
@@ -175,7 +176,7 @@ const InstantTwinOnboarding = () => {
       if (!user?.id) return;
 
       console.log('🔄 Resetting connection status for fresh page load');
-      const response = await fetch(`http://localhost:3002/api/connectors/reset/${user.id}`, {
+      const response = await fetch(`http://localhost:3001/api/connectors/reset/${user.id}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -198,7 +199,7 @@ const InstantTwinOnboarding = () => {
     try {
       if (!user?.id) return;
 
-      const response = await fetch(`http://localhost:3002/api/connectors/status/${user.id}`, {
+      const response = await fetch(`http://localhost:3001/api/connectors/status/${user.id}`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
@@ -211,12 +212,16 @@ const InstantTwinOnboarding = () => {
         // Update connected services based on actual backend status
         const connectedProviders = Object.keys(result.data || {}) as DataProvider[];
         console.log('🔍 Connection status check:', {
+          success: result.success,
           resultData: result.data,
           connectedProviders,
-          currentConnectedServices: connectedServices
+          currentConnectedServices: connectedServices,
+          dataKeys: Object.keys(result.data || {}),
+          dataValues: Object.values(result.data || {})
         });
 
         setConnectedServices(connectedProviders);
+        console.log('📝 Updated connectedServices state to:', connectedProviders);
 
         if (connectedProviders.length > 0) {
           toast({
@@ -224,6 +229,8 @@ const InstantTwinOnboarding = () => {
             description: `${connectedProviders.length} service${connectedProviders.length !== 1 ? 's' : ''} connected`,
           });
         }
+      } else {
+        console.warn('❌ Connection status check failed:', result);
       }
     } catch (error) {
       console.error('Error checking connection status:', error);
@@ -265,7 +272,7 @@ const InstantTwinOnboarding = () => {
       });
 
       // Get OAuth authorization URL from backend
-      const apiUrl = `http://localhost:3002/api/connectors/auth/${provider}?userId=${user.id}`;
+      const apiUrl = `http://localhost:3001/api/connectors/auth/${provider}?userId=${user.id}`;
       console.log('🌐 Making request to:', apiUrl);
       console.log('🔑 API URL env var:', import.meta.env.VITE_API_URL);
       console.log('🔧 Using hardcoded URL to bypass caching issue');
@@ -481,6 +488,16 @@ const InstantTwinOnboarding = () => {
     const isSelected = selectedConnectors.includes(connector.provider);
     const isConnected = connectedServices.includes(connector.provider);
 
+    // Debug logging for connection status
+    if (connector.provider === 'google_gmail') {
+      console.log('🎨 Rendering Gmail card:', {
+        provider: connector.provider,
+        isConnected,
+        connectedServices,
+        selectedConnectors
+      });
+    }
+
     return (
       <div
         key={connector.provider}
@@ -500,7 +517,7 @@ const InstantTwinOnboarding = () => {
         {/* Connection status indicator */}
         {isConnected && (
           <div className="absolute -top-2 -right-2 z-10">
-            <div className="text-white rounded-full p-2" style={{ backgroundColor: 'var(--_color-theme---accent)' }}>
+            <div className="rounded-full p-2" style={{ backgroundColor: 'var(--_color-theme---accent)', color: 'white' }}>
               <CheckCircle2 className="w-4 h-4" />
             </div>
           </div>
@@ -509,8 +526,8 @@ const InstantTwinOnboarding = () => {
         {/* Service icon and name - Apple-style clean layout */}
         <div className="relative flex items-center gap-4 mb-3">
           <div
-            className="w-12 h-12 rounded-xl flex items-center justify-center text-white transform transition-transform group-hover:scale-110"
-            style={{ backgroundColor: connector.color }}
+            className="w-12 h-12 rounded-xl flex items-center justify-center transform transition-transform group-hover:scale-110"
+            style={{ backgroundColor: connector.color, color: 'white' }}
           >
             {connector.icon}
           </div>
@@ -581,8 +598,8 @@ const InstantTwinOnboarding = () => {
                 e.stopPropagation();
                 connectService(connector.provider);
               }}
-              className="w-full py-3 px-4 rounded-xl text-sm font-semibold transition-all transform hover:scale-105 text-white shadow-lg hover:shadow-xl"
-              style={{ backgroundColor: 'var(--_color-theme---accent)', fontFamily: 'var(--_typography---font--styrene-a)' }}
+              className="w-full py-3 px-4 rounded-xl text-sm font-semibold transition-all transform hover:scale-105 shadow-lg hover:shadow-xl"
+              style={{ backgroundColor: 'var(--_color-theme---accent)', color: 'black', fontFamily: 'var(--_typography---font--styrene-a)' }}
             >
               Connect
             </button>
@@ -638,7 +655,7 @@ const InstantTwinOnboarding = () => {
               className="absolute inset-4 rounded-full flex items-center justify-center"
               style={{ backgroundColor: 'var(--_color-theme---accent)' }}
             >
-              <Brain className="w-8 h-8 text-white" />
+              <Brain className="w-8 h-8" style={{ color: 'white' }} />
             </div>
           </div>
 
@@ -790,20 +807,12 @@ const InstantTwinOnboarding = () => {
 
       {/* Main Content */}
       <div className="max-w-6xl mx-auto px-6 py-12">
-        {renderStepIndicator()}
 
         {/* Step 1: Connect Services */}
         {currentStep === 1 && (
           <div>
             {/* Hero Section */}
             <div className="text-center mb-16">
-              <div
-                className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium mb-6"
-                style={{ backgroundColor: 'var(--_color-theme---accent)', color: 'white' }}
-              >
-                <Sparkles className="w-4 h-4" />
-                {isPersonalTwin ? 'Personal AI Twin' : 'Educational AI Twin'}
-              </div>
 
               <h2 className="text-4xl md:text-5xl font-bold mb-6" style={{ fontFamily: 'var(--_typography---font--styrene-a)', color: 'var(--_color-theme---text)' }}>
                 {isPersonalTwin
@@ -924,7 +933,6 @@ const InstantTwinOnboarding = () => {
                         onClick={() => setShowAllConnectors(false)}
                         className="text-sm transition-colors"
                         style={{ color: 'var(--_color-theme---text-secondary)' }}
-                      >
                       >
                         Show less
                       </button>

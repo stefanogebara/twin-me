@@ -1,10 +1,10 @@
-import { SignedIn, SignedOut, SignInButton, SignUpButton, useUser } from '@clerk/clerk-react';
+import { SignedIn, SignedOut, SignInButton, SignUpButton, useAuth } from '../contexts/AuthContext';
 import { Navigate } from 'react-router-dom';
 import { useEffect, useState } from 'react';
 import { Brain, Users, Sparkles, Zap, ChevronRight, Shield, Trophy, Star } from 'lucide-react';
 
 const Auth = () => {
-  const { isSignedIn, isLoaded, user } = useUser();
+  const { isSignedIn, isLoaded, user } = useAuth();
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {

@@ -53,7 +53,7 @@ export class RealTimeDataSyncEngine {
         const connectorImpl = dataConnectorRegistry.getConnector(connector.provider);
 
         if (connectorImpl.setupWebhook) {
-          const webhookUrl = `${process.env.VITE_API_URL}${this.webhookEndpoints.get(connector.provider)}`;
+          const webhookUrl = `${import.meta.env.VITE_API_URL}${this.webhookEndpoints.get(connector.provider)}`;
           await connectorImpl.setupWebhook(connector.id, webhookUrl);
 
           console.log(`✅ Webhook setup complete for ${connector.provider}`);

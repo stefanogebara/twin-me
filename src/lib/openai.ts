@@ -1,10 +1,10 @@
-import OpenAI from 'openai';
+// DEPRECATED: This file is deprecated in favor of secure server-side API calls
+// Use secureApi from '@/lib/secureApi' instead
+import { secureApi } from '@/lib/secureApi';
 import type { DigitalTwin, Message, StudentProfile } from '@/types/database';
 
-const openai = new OpenAI({
-  apiKey: import.meta.env.VITE_OPENAI_API_KEY,
-  dangerouslyAllowBrowser: true // Note: In production, this should be handled server-side
-});
+// Legacy warning
+console.warn('WARNING: Using deprecated OpenAI client. Please migrate to secureApi.');
 
 interface ChatContext {
   twin: DigitalTwin;
@@ -23,26 +23,11 @@ export class DigitalTwinLLM {
     context: ChatContext
   ): Promise<string> {
     try {
-      const systemPrompt = this.buildSystemPrompt(context);
-      const conversationMessages = this.formatConversationHistory(context.conversationHistory);
-
-      const response = await openai.chat.completions.create({
-        model: 'gpt-4',
-        messages: [
-          { role: 'system', content: systemPrompt },
-          ...conversationMessages,
-          { role: 'user', content: userMessage }
-        ],
-        temperature: 0.7,
-        max_tokens: 500,
-        presence_penalty: 0.1,
-        frequency_penalty: 0.1
-      });
-
-      return response.choices[0]?.message?.content || 'I apologize, but I encountered an issue processing your message. Could you please try again?';
+      // Use secure server-side API instead of exposed client-side API
+      return await secureApi.generateOpenAIResponse(userMessage, context);
     } catch (error) {
       console.error('OpenAI API Error:', error);
-      throw new Error('Failed to generate response. Please check your OpenAI API configuration.');
+      throw new Error('Failed to generate response. Please check your connection and try again.');
     }
   }
 
@@ -174,31 +159,8 @@ export class DigitalTwinLLM {
   // Method to generate follow-up questions based on the conversation
   static async generateFollowUpQuestions(context: ChatContext): Promise<string[]> {
     try {
-      const systemPrompt = `Based on the conversation history, suggest 3 relevant follow-up questions that would help the student deepen their understanding of the topic. Format as a JSON array of strings.`;
-
-      const conversationMessages = this.formatConversationHistory(context.conversationHistory);
-
-      const response = await openai.chat.completions.create({
-        model: 'gpt-3.5-turbo',
-        messages: [
-          { role: 'system', content: systemPrompt },
-          ...conversationMessages
-        ],
-        temperature: 0.5,
-        max_tokens: 200
-      });
-
-      const content = response.choices[0]?.message?.content;
-      if (content) {
-        try {
-          const questions = JSON.parse(content);
-          return Array.isArray(questions) ? questions.slice(0, 3) : [];
-        } catch {
-          // If JSON parsing fails, return empty array
-          return [];
-        }
-      }
-      return [];
+      // Use secure server-side API
+      return await secureApi.generateOpenAIFollowUpQuestions(context);
     } catch (error) {
       console.error('Error generating follow-up questions:', error);
       return [];
@@ -215,32 +177,8 @@ export class DigitalTwinLLM {
     suggestions?: string[];
   }> {
     try {
-      const systemPrompt = `Analyze the student's response about "${topic}" and assess their understanding level. Return a JSON object with:
-      {
-        "understanding_level": "low" | "medium" | "high",
-        "areas_of_confusion": ["list of specific areas where student seems confused"],
-        "suggestions": ["specific suggestions for helping the student improve understanding"]
-      }`;
-
-      const response = await openai.chat.completions.create({
-        model: 'gpt-3.5-turbo',
-        messages: [
-          { role: 'system', content: systemPrompt },
-          { role: 'user', content: studentResponse }
-        ],
-        temperature: 0.3,
-        max_tokens: 300
-      });
-
-      const content = response.choices[0]?.message?.content;
-      if (content) {
-        try {
-          return JSON.parse(content);
-        } catch {
-          return { understanding_level: 'medium' };
-        }
-      }
-      return { understanding_level: 'medium' };
+      // Use secure server-side API
+      return await secureApi.assessStudentUnderstandingOpenAI(studentResponse, topic);
     } catch (error) {
       console.error('Error assessing student understanding:', error);
       return { understanding_level: 'medium' };

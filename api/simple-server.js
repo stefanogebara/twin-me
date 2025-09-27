@@ -7,11 +7,16 @@ import fs from 'fs';
 dotenv.config();
 
 const app = express();
-const port = 3002; // Use different port to avoid conflicts
+const port = process.env.PORT || 3001;
 
 // Configure CORS
 app.use(cors({
-  origin: process.env.VITE_APP_URL || 'http://localhost:8084',
+  origin: [
+    'http://localhost:8082',
+    'http://localhost:8084',
+    'http://localhost:8086',
+    process.env.VITE_APP_URL
+  ].filter(Boolean),
   credentials: true
 }));
 

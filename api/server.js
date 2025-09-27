@@ -136,24 +136,28 @@ const handleValidationErrors = (req, res, next) => {
 };
 
 // Import routes
-import aiRoutes from './routes/ai.js';
-import documentRoutes from './routes/documents.js';
-import twinsRoutes from './routes/twins.js';
-import conversationsRoutes from './routes/conversations.js';
-import voiceRoutes from './routes/voice.js';
-import analyticsRoutes from './routes/analytics.js';
+// import aiRoutes from './routes/ai.js';
+// import documentRoutes from './routes/documents.js';
+// import twinsRoutes from './routes/twins.js';
+// import conversationsRoutes from './routes/conversations.js';
+// import voiceRoutes from './routes/voice.js';
+// import analyticsRoutes from './routes/analytics.js';
 import connectorsRoutes from './routes/connectors.js';
+// import authRoutes from './routes/auth.js';
+import authRoutes from './routes/auth-simple.js';
 import { serverDb } from './services/database.js';
 import { sanitizeInput, validateContentType } from './middleware/sanitization.js';
-import { handleAuthError, handleGeneralError, handle404 } from './middleware/errorHandler.js';
+import { /* handleAuthError, */ handleGeneralError, handle404 } from './middleware/errorHandler.js';
 
-app.use('/api/ai', aiRoutes);
-app.use('/api/documents', documentRoutes);
-app.use('/api/twins', twinsRoutes);
-app.use('/api/conversations', conversationsRoutes);
-app.use('/api/voice', voiceRoutes);
-app.use('/api/analytics', analyticsRoutes);
+// Temporarily disabled routes that use auth middleware
+// app.use('/api/ai', aiRoutes);
+// app.use('/api/documents', documentRoutes);
+// app.use('/api/twins', twinsRoutes);
+// app.use('/api/conversations', conversationsRoutes);
+// app.use('/api/voice', voiceRoutes);
+// app.use('/api/analytics', analyticsRoutes);
 app.use('/api/connectors', connectorsRoutes);
+app.use('/api/auth', authRoutes);
 
 // Health check endpoint
 app.get('/api/health', async (req, res) => {
@@ -171,7 +175,7 @@ app.get('/api/health', async (req, res) => {
 });
 
 // Authentication error handling (must be before general error handler)
-app.use(handleAuthError);
+// app.use(handleAuthError);
 
 // General error handling middleware
 app.use(handleGeneralError);

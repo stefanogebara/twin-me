@@ -47,8 +47,7 @@ export interface IDataConnector {
 export class GoogleWorkspaceConnector implements IDataConnector {
   provider: DataProvider = 'google_gmail';
 
-  private readonly clientId = process.env.GOOGLE_CLIENT_ID!;
-  private readonly clientSecret = process.env.GOOGLE_CLIENT_SECRET!;
+  // OAuth credentials should be handled server-side for security
 
   async authenticate(userId: string, redirectUrl?: string): Promise<string> {
     const scopes = [
@@ -223,8 +222,7 @@ export class GoogleWorkspaceConnector implements IDataConnector {
 export class SlackConnector implements IDataConnector {
   provider: DataProvider = 'slack';
 
-  private readonly clientId = process.env.SLACK_CLIENT_ID!;
-  private readonly clientSecret = process.env.SLACK_CLIENT_SECRET!;
+  // OAuth credentials should be handled server-side for security
 
   async authenticate(userId: string, redirectUrl?: string): Promise<string> {
     const scopes = ['channels:read', 'im:read', 'groups:read', 'users:read', 'chat:write'].join(',');

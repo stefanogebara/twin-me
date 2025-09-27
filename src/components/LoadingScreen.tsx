@@ -76,34 +76,6 @@ const LoadingScreen = ({
         </div>
       </div>
 
-      <style dangerouslySetInnerHTML={{
-        __html: `
-        @keyframes gentlePulse {
-          0%, 100% {
-            transform: scale(1);
-            opacity: 1;
-          }
-          50% {
-            transform: scale(1.05);
-            opacity: 0.8;
-          }
-        }
-
-        @keyframes floatUp {
-          0% {
-            transform: translateY(0px);
-            opacity: 0;
-          }
-          50% {
-            opacity: 1;
-          }
-          100% {
-            transform: translateY(-20px);
-            opacity: 0;
-          }
-        }
-        `
-      }} />
     </div>
   );
 };

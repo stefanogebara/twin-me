@@ -1,9 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { ArrowLeft, MessageCircle, Star } from 'lucide-react';
-import { Component as AnimatedBackground } from '@/components/ui/open-ai-codex-animated-background';
+import { ArrowLeft, MessageCircle, Star, GraduationCap, Search } from 'lucide-react';
 
 const professors = [
   {
@@ -39,7 +36,7 @@ const professors = [
   {
     id: 4,
     name: "Prof. David Kim",
-    subject: "Blocktech",
+    subject: "Blockchain Technology",
     university: "Caltech",
     expertise: ["Blockchain", "Cryptocurrency", "Smart Contracts"],
     rating: 4.7,
@@ -49,7 +46,7 @@ const professors = [
   {
     id: 5,
     name: "Dr. Lisa Thompson",
-    subject: "Business Driven Technologies",
+    subject: "Business Technology",
     university: "UC Berkeley",
     expertise: ["Digital Transformation", "Enterprise Systems", "Tech Strategy"],
     rating: 4.8,
@@ -71,64 +68,89 @@ const professors = [
 const TalkToTwin = () => {
   const navigate = useNavigate();
   const [selectedSubject, setSelectedSubject] = useState<string>('All');
+  const [searchTerm, setSearchTerm] = useState('');
 
-  const subjects = ['All', 'Corporate Finance', 'Statistics', 'Macroeconomics', 'Blocktech', 'Business Driven Technologies', 'Marketing Management'];
-  
-  const filteredProfessors = selectedSubject === 'All' 
-    ? professors 
-    : professors.filter(prof => prof.subject === selectedSubject);
+  const subjects = ['All', 'Corporate Finance', 'Statistics', 'Macroeconomics', 'Blockchain Technology', 'Business Technology', 'Marketing Management'];
+
+  const filteredProfessors = professors.filter(prof => {
+    const matchesSubject = selectedSubject === 'All' || prof.subject === selectedSubject;
+    const matchesSearch = prof.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         prof.subject.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         prof.university.toLowerCase().includes(searchTerm.toLowerCase());
+    return matchesSubject && matchesSearch;
+  });
 
   const handleProfessorSelect = (professorId: number) => {
     navigate(`/chat/${professorId}`);
   };
 
   return (
-    <div className="min-h-screen bg-background relative">
-      {/* Navigation - Match home page style */}
-      <nav className="fixed top-0 left-0 right-0 z-50 bg-card/95 backdrop-blur-sm">
-        <div className="max-w-[1440px] mx-auto px-6 py-6">
+    <div className="min-h-screen" style={{ backgroundColor: 'var(--_color-theme---background)' }}>
+      {/* Navigation */}
+      <div className="sticky top-0 z-50 backdrop-blur-sm border-b" style={{ backgroundColor: 'var(--_color-theme---background)/90', borderColor: 'var(--_color-theme---border)' }}>
+        <div className="max-w-7xl mx-auto px-6 py-4">
           <div className="flex items-center justify-between">
-            {/* Left - Back Button */}
-            <Button 
-              variant="ghost" 
-              size="sm"
+            <button
               onClick={() => navigate('/')}
-              className="flex items-center gap-2 text-foreground hover:text-primary"
+              className="inline-flex items-center gap-2 text-body hover:opacity-70 transition-opacity text-sm"
+              style={{ color: 'var(--_color-theme---text)' }}
             >
               <ArrowLeft className="w-4 h-4" />
               Back to Home
-            </Button>
+            </button>
 
-            {/* Center Logo */}
-            <div 
-              className="text-2xl font-serif cursor-pointer"
-              onClick={() => navigate('/')}
-            >
-              <span className="text-primary italic">Twin Me</span>
+            <div className="flex items-center gap-4">
+              <button
+                onClick={() => navigate('/get-started')}
+                className="px-6 py-2 rounded-lg font-medium border transition-colors"
+                style={{
+                  borderColor: 'var(--_color-theme---border)',
+                  color: 'var(--_color-theme---text)',
+                  backgroundColor: 'transparent'
+                }}
+              >
+                Create Your Twin
+              </button>
             </div>
-
-            {/* Right - Spacer */}
-            <div className="w-24"></div>
           </div>
         </div>
-      </nav>
+      </div>
 
       {/* Main Content */}
-      <div className="pt-32 pb-16 px-6 relative">
-        <div className="max-w-[1440px] mx-auto">
+      <div className="pt-16 pb-20 px-6">
+        <div className="max-w-6xl mx-auto">
           {/* Header */}
           <div className="text-center mb-16">
-            <div className="w-16 h-16 mx-auto mb-8 bg-gradient-to-br from-primary to-accent rounded-2xl flex items-center justify-center transform rotate-3">
-              <MessageCircle className="w-8 h-8 text-card" />
+            <div className="w-20 h-20 mx-auto mb-8 rounded-2xl flex items-center justify-center" style={{ backgroundColor: 'var(--_color-theme---surface-raised)' }}>
+              <MessageCircle className="w-10 h-10" style={{ color: 'var(--_color-theme---accent)' }} />
             </div>
-            
-            <h1 className="text-6xl md:text-7xl font-serif text-foreground mb-8 leading-tight italic">
-              Talk to Your Professor's Twin
+
+            <h1 className="u-display-xl text-heading mb-6" style={{ fontFamily: 'var(--_typography---font--styrene-a)', color: 'var(--_color-theme---text)' }}>
+              Talk to Professor Twins
             </h1>
 
-            <p className="text-muted-foreground mb-12 text-lg font-medium max-w-2xl mx-auto leading-relaxed">
-              Choose your professor twin and start learning with personalized AI assistance
+            <p className="text-body-large max-w-3xl mx-auto mb-12" style={{ color: 'var(--_color-theme---text-muted)' }}>
+              Choose from our collection of AI professor twins and start learning with personalized assistance that matches each educator's unique teaching style.
             </p>
+
+            {/* Search Bar */}
+            <div className="max-w-lg mx-auto mb-8">
+              <div className="relative">
+                <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5" style={{ color: 'var(--_color-theme---text-muted)' }} />
+                <input
+                  type="text"
+                  placeholder="Search by professor, subject, or university..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="w-full pl-12 pr-4 py-3 rounded-xl border transition-colors focus:ring-2 focus:ring-opacity-50"
+                  style={{
+                    borderColor: 'var(--_color-theme---border)',
+                    backgroundColor: 'white',
+                    color: 'var(--_color-theme---text)'
+                  }}
+                />
+              </div>
+            </div>
           </div>
 
           {/* Subject Filter */}
@@ -137,106 +159,127 @@ const TalkToTwin = () => {
               <button
                 key={subject}
                 onClick={() => setSelectedSubject(subject)}
-                className={`px-6 py-3 rounded-full text-sm font-medium font-serif transition-all duration-200 ${
-                  selectedSubject === subject
-                    ? 'bg-primary hover:bg-primary/90 text-white shadow-lg'
-                    : 'bg-card text-foreground border border-border hover:bg-muted'
+                className={`px-6 py-3 rounded-xl text-sm font-medium transition-all duration-200 ${
+                  selectedSubject === subject ? '' : 'border'
                 }`}
+                style={selectedSubject === subject ? {
+                  backgroundColor: 'var(--_color-theme---accent)',
+                  color: 'white'
+                } : {
+                  borderColor: 'var(--_color-theme---border)',
+                  color: 'var(--_color-theme---text)',
+                  backgroundColor: 'white'
+                }}
               >
                 {subject}
               </button>
-            ))}
+            )}
           </div>
 
           {/* Professors Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto">
-            {filteredProfessors.slice(0, 4).map((professor, index) => (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            {filteredProfessors.map((professor) => (
               <div
                 key={professor.id}
-                className="artemis-card cursor-pointer group transition-all duration-300 hover:scale-[1.02] hover:rotate-1 relative overflow-hidden"
+                className="rounded-2xl p-6 border cursor-pointer transition-all duration-300 hover:shadow-lg hover:scale-[1.02]"
+                style={{ backgroundColor: 'white', borderColor: 'var(--_color-theme---border)' }}
                 onClick={() => handleProfessorSelect(professor.id)}
               >
-                {/* Decorative Background Elements */}
-                <div className="absolute inset-0 opacity-5">
-                  <div className="absolute top-8 left-8 w-20 h-20 border-2 border-primary rounded-full"></div>
-                  <div className="absolute bottom-8 right-8 w-16 h-16 border border-accent rounded-full"></div>
-                </div>
-
-                {/* Content */}
-                <div className="relative z-10">
-                  {/* Professor Name Circle */}
-                  <div className="w-32 h-32 bg-gradient-to-br from-primary/10 to-accent/10 border-2 border-primary/20 rounded-full flex items-center justify-center mb-6 mx-auto">
-                    <div className="text-center">
-                      <div className="text-lg font-bold text-foreground">{professor.name.split(' ')[0]}</div>
-                      <div className="text-sm font-medium text-muted-foreground">{professor.name.split(' ')[1]}</div>
-                    </div>
-                  </div>
-
-                  {/* Professor Avatar */}
-                  <div className="absolute top-6 right-6 w-16 h-16 rounded-full overflow-hidden border-2 border-primary/20">
+                {/* Professor Avatar and Info */}
+                <div className="flex items-start gap-4 mb-6">
+                  <div className="w-16 h-16 rounded-xl overflow-hidden border-2" style={{ borderColor: 'var(--_color-theme---accent)' }}>
                     <img
                       src={professor.image}
                       alt={professor.name}
                       className="w-full h-full object-cover"
                     />
                   </div>
-
-                  {/* Professor Details */}
-                  <div className="text-center mb-6">
-                    <h3 className="text-2xl font-serif text-foreground mb-2 italic">{professor.name}</h3>
-                    
-                    <div className="flex items-center justify-center gap-4 mb-4">
-                      <span className="bg-accent/10 text-accent px-3 py-1 rounded-full text-sm font-medium border border-accent/20">
+                  <div className="flex-1">
+                    <h3 className="text-heading text-lg font-medium mb-1" style={{ fontFamily: 'var(--_typography---font--styrene-a)', color: 'var(--_color-theme---text)' }}>
+                      {professor.name}
+                    </h3>
+                    <p className="text-body text-sm mb-2" style={{ color: 'var(--_color-theme---text-muted)' }}>
+                      {professor.university}
+                    </p>
+                    <div className="flex items-center gap-2">
+                      <span className="px-3 py-1 rounded-full text-xs font-medium" style={{ backgroundColor: 'var(--_color-theme---surface-raised)', color: 'var(--_color-theme---accent)' }}>
                         {professor.subject}
                       </span>
-                      <div className="flex items-center gap-1 bg-primary/10 text-primary px-3 py-1 rounded-full border border-primary/20">
-                        <Star className="w-4 h-4 fill-primary text-primary" />
-                        <span className="text-sm font-medium">{professor.rating}</span>
+                      <div className="flex items-center gap-1">
+                        <Star className="w-4 h-4 fill-current" style={{ color: 'var(--_color-theme---accent)' }} />
+                        <span className="text-sm font-medium" style={{ color: 'var(--_color-theme---text)' }}>{professor.rating}</span>
                       </div>
                     </div>
-
-                    <p className="text-muted-foreground text-sm mb-6 leading-relaxed">
-                      {professor.description}
-                    </p>
-
-                    {/* Expertise Tags */}
-                    <div className="flex flex-wrap gap-2 justify-center mb-6">
-                      {professor.expertise.slice(0, 3).map((skill) => (
-                        <span
-                          key={skill}
-                          className="text-xs bg-muted text-muted-foreground px-3 py-1 rounded-full border"
-                        >
-                          {skill}
-                        </span>
-                      ))}
-                    </div>
                   </div>
-
-                  {/* Start Conversation Button */}
-                  <button className="w-full artemis-btn-primary font-serif flex items-center justify-center gap-2">
-                    <MessageCircle className="w-4 h-4" />
-                    Start Conversation
-                  </button>
                 </div>
+
+                {/* Description */}
+                <p className="text-body text-sm leading-relaxed mb-4" style={{ color: 'var(--_color-theme---text-muted)' }}>
+                  {professor.description}
+                </p>
+
+                {/* Expertise Tags */}
+                <div className="flex flex-wrap gap-2 mb-6">
+                  {professor.expertise.slice(0, 3).map((skill) => (
+                    <span
+                      key={skill}
+                      className="text-xs px-2 py-1 rounded-lg border"
+                      style={{
+                        borderColor: 'var(--_color-theme---border)',
+                        color: 'var(--_color-theme---text-muted)',
+                        backgroundColor: 'var(--_color-theme---background)'
+                      }}
+                    >
+                      {skill}
+                    </span>
+                  )}
+                </div>
+
+                {/* Start Conversation Button */}
+                <button className="w-full px-4 py-3 rounded-xl font-medium transition-colors flex items-center justify-center gap-2"
+                  style={{
+                    backgroundColor: 'var(--_color-theme---accent)',
+                    color: 'white'
+                  }}
+                >
+                  <MessageCircle className="w-4 h-4" />
+                  Start Conversation
+                </button>
               </div>
-            ))}
+            )}
           </div>
 
-          {/* CTA Section */}
-          <div className="text-center mt-16">
-            <Button 
-              className="artemis-btn-primary font-serif text-lg px-10 py-4"
-              onClick={() => navigate('/auth')}
-            >
-              Try Twin Me for Free!
-            </Button>
-            
-            {/* Decorative Elements - Artemis Style */}
-            <div className="mt-16 grid grid-cols-3 gap-6 max-w-md mx-auto">
-              <div className="aspect-square bg-gradient-to-br from-primary/20 to-accent/20 rounded-2xl shadow-lg hover:scale-105 transition-transform duration-300"></div>
-              <div className="aspect-square bg-gradient-to-br from-accent/20 to-primary/20 rounded-2xl shadow-lg hover:scale-105 transition-transform duration-300"></div>
-              <div className="aspect-square bg-gradient-to-br from-primary/20 to-accent/20 rounded-2xl shadow-lg hover:scale-105 transition-transform duration-300"></div>
+          {/* Empty State */}
+          {filteredProfessors.length === 0 && (
+            <div className="text-center py-16">
+              <GraduationCap className="w-16 h-16 mx-auto mb-4" style={{ color: 'var(--_color-theme---text-muted)' }} />
+              <h3 className="text-heading text-xl font-medium mb-2" style={{ fontFamily: 'var(--_typography---font--styrene-a)', color: 'var(--_color-theme---text)' }}>
+                No professors found
+              </h3>
+              <p className="text-body" style={{ color: 'var(--_color-theme---text-muted)' }}>
+                Try adjusting your search or filter criteria
+              </p>
             </div>
+          )}
+
+          {/* CTA Section */}
+          <div className="text-center mt-20 pt-16 border-t" style={{ borderColor: 'var(--_color-theme---border)' }}>
+            <h2 className="u-display-l text-heading mb-6" style={{ fontFamily: 'var(--_typography---font--styrene-a)', color: 'var(--_color-theme---text)' }}>
+              Want to Create Your Own Twin?
+            </h2>
+            <p className="text-body-large max-w-2xl mx-auto mb-8" style={{ color: 'var(--_color-theme---text-muted)' }}>
+              Join thousands of educators who are already using AI twins to enhance their teaching and reach more students.
+            </p>
+            <button
+              className="px-8 py-4 rounded-xl font-semibold text-lg transition-all duration-200 hover:scale-105"
+              style={{
+                backgroundColor: 'var(--_color-theme---accent)',
+                color: 'white'
+              }}
+              onClick={() => navigate('/get-started')}
+            >
+              Create Your Twin Today
+            </button>
           </div>
         </div>
       </div>

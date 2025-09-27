@@ -4,7 +4,7 @@ import { Upload, File, X, CheckCircle, AlertCircle, FileText, Video, Music, Imag
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { useToast } from '@/components/ui/use-toast';
-import { useAuth } from '@clerk/clerk-react';
+import { useAuth } from '../../contexts/AuthContext';
 
 interface UploadedFile {
   fileName: string;

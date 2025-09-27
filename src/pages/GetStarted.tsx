@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { SignUp, useAuth } from '@clerk/clerk-react';
+import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '@/components/ui/use-toast';
 import { AcademicHierarchy, AcademicStructure } from '@/components/ui/AcademicHierarchy';
 import EnhancedFileUpload from '@/components/ui/EnhancedFileUpload';
@@ -81,44 +81,57 @@ const GetStarted = () => {
   };
 
   return (
-    <div className="bg-[hsl(var(--lenny-cream))] text-[hsl(var(--lenny-black))] min-h-screen">
+    <div className="min-h-screen" style={{ backgroundColor: 'var(--_color-theme---background)' }}>
       {/* Background Effects */}
-      <div className="fixed w-[400px] h-[400px] bg-gradient-to-br from-[hsl(var(--lenny-orange))] to-[hsl(var(--lenny-peach))] rounded-full top-[20%] right-[10%] blur-[100px] opacity-30 animate-[float_20s_ease-in-out_infinite] pointer-events-none"></div>
-      <div className="fixed w-[300px] h-[300px] bg-gradient-to-br from-[hsl(var(--lenny-orange))] to-[hsl(var(--lenny-cream))] rounded-full bottom-[20%] left-[10%] blur-[100px] opacity-30 animate-[float_20s_ease-in-out_infinite] pointer-events-none"></div>
+      <div className="fixed w-[400px] h-[400px] bg-gradient-to-br rounded-full top-[20%] right-[10%] blur-[100px] opacity-20 animate-[float_20s_ease-in-out_infinite] pointer-events-none" style={{ background: 'linear-gradient(135deg, var(--_color-theme---accent), var(--_color-theme---accent-light))' }}></div>
+      <div className="fixed w-[300px] h-[300px] bg-gradient-to-br rounded-full bottom-[20%] left-[10%] blur-[100px] opacity-20 animate-[float_20s_ease-in-out_infinite] pointer-events-none" style={{ background: 'linear-gradient(135deg, var(--_color-theme---accent), var(--_color-theme---background))' }}></div>
       
-      {/* Navigation */}
-      <nav className="fixed top-0 w-full z-[100] px-[60px] py-6 transition-all duration-300 bg-[hsl(var(--lenny-cream))]">
-        <div className="max-w-[1400px] mx-auto flex justify-between items-center">
-          <div className="text-[28px] text-[hsl(var(--lenny-black))] font-display font-medium cursor-pointer" onClick={goHome}>
-            Twin Me
-          </div>
+      {/* Navigation - Match home page exactly */}
+      <nav className="fixed top-0 left-0 right-0 z-50 px-6 py-6"
+           style={{ backgroundColor: 'var(--_color-theme---background)/90', borderBottom: '1px solid var(--_color-theme---border)' }}>
+        <div className="max-w-7xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-8">
-            <a href="#" className="text-[hsl(var(--lenny-black))] no-underline font-medium text-base transition-colors duration-300 hover:text-[hsl(var(--lenny-orange))]">
-              Help
-            </a>
-            <a href="#" className="text-[hsl(var(--lenny-black))] no-underline font-medium text-base transition-colors duration-300 hover:text-[hsl(var(--lenny-orange))]">
-              Sign In
-            </a>
+            <div className="text-2xl font-bold" style={{ fontFamily: 'var(--_typography---font--styrene-a)', color: 'var(--_color-theme---text)' }}>
+              Twin AI Learn
+            </div>
+            <div className="hidden md:flex items-center gap-6">
+              <button
+                onClick={goHome}
+                className="relative font-medium transition-all group"
+                style={{ color: 'var(--_color-theme---text)' }}
+              >
+                Home
+                <div className="absolute -bottom-1 left-0 w-0 h-0.5 transition-all group-hover:w-full" style={{ backgroundColor: 'var(--_color-theme---accent)' }}></div>
+              </button>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-4">
+            <button
+              className="btn-anthropic-primary"
+            >
+              Get Started
+            </button>
           </div>
         </div>
       </nav>
       
       {/* Progress Bar */}
       <div className="fixed top-[80px] left-0 right-0 h-1 bg-gray-200/50 z-[40]">
-        <div className="h-full bg-gradient-to-r from-[hsl(var(--lenny-orange))] to-[hsl(var(--lenny-peach))] transition-all duration-500" style={{ width: `${updateProgress()}%` }}></div>
+        <div className="h-full transition-all duration-500" style={{ backgroundColor: 'var(--_color-theme---accent)', width: `${updateProgress()}%` }}></div>
       </div>
       
       {/* Page 1: Choose Your Path */}
       {currentPage === 1 && (
         <div className="min-h-screen pt-[140px] pb-20 px-6 animate-[fadeIn_0.5s_ease]">
-          <button className="inline-flex items-center gap-2 text-[hsl(var(--muted-foreground))] no-underline text-sm mb-8 transition-colors duration-300 hover:text-[hsl(var(--lenny-black))]" onClick={goHome}>
+          <button className="inline-flex items-center gap-2 text-body hover:opacity-70 transition-opacity text-sm mb-8" style={{ color: 'var(--_color-theme---text)' }} onClick={goHome}>
             ← Back to Home
           </button>
           <div className="max-w-[1200px] mx-auto text-center">
-            <h1 className="u-display-xl text-heading font-medium leading-[1.1] mb-6" style={{ color: 'var(--_color-theme---text)' }}>
+            <h1 className="u-display-xl text-heading mb-6" style={{ fontFamily: 'var(--_typography---font--styrene-a)', color: 'var(--_color-theme---text)' }}>
               Welcome to Twin Me
             </h1>
-            <p className="text-xl mt-6 mb-16">How would you like to use the platform?</p>
+            <p className="text-body-large max-w-3xl mx-auto" style={{ color: 'var(--_color-theme---text)' }}>How would you like to use the platform?</p>
             
             <div className="grid grid-cols-[repeat(auto-fit,minmax(400px,1fr))] gap-10 mt-16">
               <div 
@@ -128,8 +141,8 @@ const GetStarted = () => {
                 <div className="w-[100px] h-[100px] mx-auto mb-8 bg-gradient-to-br from-[rgba(255,87,34,0.1)] to-[rgba(255,152,0,0.1)] rounded-[24px] flex items-center justify-center text-5xl">
                   ◉
                 </div>
-                <h3 className="font-heading text-[32px] font-medium mb-2">I Want to Create</h3>
-                <p className="text-[hsl(var(--muted-foreground))] leading-[1.6]">Build a digital twin of yourself for teaching, mentoring, or sharing knowledge</p>
+                <h3 className="text-heading text-xl font-medium mb-4" style={{ fontFamily: 'var(--_typography---font--styrene-a)', color: 'var(--_color-theme---text)' }}>I Want to Create</h3>
+                <p className="text-body leading-relaxed" style={{ color: 'var(--_color-theme---text)' }}>Build a digital twin of yourself for teaching, mentoring, or sharing knowledge</p>
               </div>
               
               <div 
@@ -139,8 +152,8 @@ const GetStarted = () => {
                 <div className="w-[100px] h-[100px] mx-auto mb-8 bg-gradient-to-br from-[rgba(74,144,226,0.1)] to-[rgba(0,188,212,0.1)] rounded-[24px] flex items-center justify-center text-5xl">
                   ◎
                 </div>
-                <h3 className="font-heading text-[32px] font-medium mb-2">I Want to Learn</h3>
-                <p className="text-[hsl(var(--muted-foreground))] leading-[1.6]">Access digital twins of educators and experts to enhance your learning journey</p>
+                <h3 className="text-heading text-xl font-medium mb-4" style={{ fontFamily: 'var(--_typography---font--styrene-a)', color: 'var(--_color-theme---text)' }}>I Want to Learn</h3>
+                <p className="text-body leading-relaxed" style={{ color: 'var(--_color-theme---text)' }}>Access digital twins of educators and experts to enhance your learning journey</p>
               </div>
             </div>
           </div>
@@ -150,25 +163,25 @@ const GetStarted = () => {
       {/* Page 2: Twin Type Selection */}
       {currentPage === 2 && (
         <div className="min-h-screen pt-[140px] pb-20 px-6 animate-[fadeIn_0.5s_ease]">
-          <button className="inline-flex items-center gap-2 text-[hsl(var(--muted-foreground))] no-underline text-sm mb-8 transition-colors duration-300 hover:text-[hsl(var(--lenny-black))]" onClick={previousPage}>
+          <button className="inline-flex items-center gap-2 text-body hover:opacity-70 transition-opacity text-sm mb-8" style={{ color: 'var(--_color-theme---text)' }} onClick={previousPage}>
             ← Back
           </button>
           
           <div className="max-w-[1200px] mx-auto text-center">
-            <h1 className="font-display text-[clamp(42px,6vw,72px)] font-medium leading-[1.1] mb-6 gradient-text">
+            <h1 className="u-display-l text-heading mb-6" style={{ fontFamily: 'var(--_typography---font--styrene-a)', color: 'var(--_color-theme---text)' }}>
               What Type of Twin?
             </h1>
-            <p className="text-xl mt-6 mb-16">You can create multiple twins for different purposes</p>
+            <p className="text-body-large max-w-2xl mx-auto" style={{ color: 'var(--_color-theme---text)' }}>You can create multiple twins for different purposes</p>
             
             <div className="grid grid-cols-3 gap-8 max-w-[1200px] mx-auto mt-16">
               <div
                 className={`bg-white rounded-[24px] p-10 border-2 cursor-pointer transition-all duration-300 relative ${
-                  selectedType === 'educational' ? 'border-[hsl(var(--lenny-orange))] transform translate-y-[-4px] shadow-[0_20px_40px_rgba(0,0,0,0.1)]' : 'border-transparent'
+                  selectedType === 'educational' ? 'border-[var(--_color-theme---accent)] transform translate-y-[-4px] shadow-[0_20px_40px_rgba(0,0,0,0.1)]' : 'border-transparent'
                 }`}
                 onClick={() => selectType('educational')}
               >
                 {selectedType === 'educational' && (
-                  <div className="absolute top-5 right-5 w-8 h-8 bg-[hsl(var(--lenny-orange))] text-white rounded-full flex items-center justify-center text-lg">
+                  <div className="absolute top-5 right-5 w-8 h-8 text-white rounded-full flex items-center justify-center text-lg" style={{ backgroundColor: 'var(--_color-theme---accent)' }}>
                     ✓
                   </div>
                 )}
@@ -176,7 +189,7 @@ const GetStarted = () => {
                 <div className="bg-[#4A90E2] text-white py-1 px-3 rounded-full text-xs inline-block mb-4">
                   INSTITUTION VERIFIED
                 </div>
-                <ul className="list-none text-[hsl(var(--muted-foreground))] text-sm leading-8 text-left">
+                <ul className="list-none style={{ color: 'var(--_color-theme---text)' }} text-sm leading-8 text-left">
                   <li>→ For universities & schools</li>
                   <li>→ Formal teaching style</li>
                   <li>→ Course integration</li>
@@ -187,17 +200,17 @@ const GetStarted = () => {
               
               <div
                 className={`bg-white rounded-[24px] p-10 border-2 cursor-pointer transition-all duration-300 relative ${
-                  selectedType === 'personal' ? 'border-[hsl(var(--lenny-orange))] transform translate-y-[-4px] shadow-[0_20px_40px_rgba(0,0,0,0.1)]' : 'border-transparent'
+                  selectedType === 'personal' ? 'border-[var(--_color-theme---accent)] transform translate-y-[-4px] shadow-[0_20px_40px_rgba(0,0,0,0.1)]' : 'border-transparent'
                 }`}
                 onClick={() => selectType('personal')}
               >
                 {selectedType === 'personal' && (
-                  <div className="absolute top-5 right-5 w-8 h-8 bg-[hsl(var(--lenny-orange))] text-white rounded-full flex items-center justify-center text-lg">
+                  <div className="absolute top-5 right-5 w-8 h-8 text-white rounded-full flex items-center justify-center text-lg" style={{ backgroundColor: 'var(--_color-theme---accent)' }}>
                     ✓
                   </div>
                 )}
                 <h3 className="font-heading text-[24px] font-medium mb-12">Personal Twin</h3>
-                <ul className="list-none text-[hsl(var(--muted-foreground))] text-sm leading-8 text-left">
+                <ul className="list-none style={{ color: 'var(--_color-theme---text)' }} text-sm leading-8 text-left">
                   <li>→ Share life experiences</li>
                   <li>→ Mentorship & coaching</li>
                   <li>→ Personal brand</li>
@@ -208,20 +221,20 @@ const GetStarted = () => {
               
               <div
                 className={`bg-white rounded-[24px] p-10 border-2 cursor-pointer transition-all duration-300 relative ${
-                  selectedType === 'both' ? 'border-[hsl(var(--lenny-orange))] transform translate-y-[-4px] shadow-[0_20px_40px_rgba(0,0,0,0.1)]' : 'border-transparent'
+                  selectedType === 'both' ? 'border-[var(--_color-theme---accent)] transform translate-y-[-4px] shadow-[0_20px_40px_rgba(0,0,0,0.1)]' : 'border-transparent'
                 }`}
                 onClick={() => selectType('both')}
               >
                 {selectedType === 'both' && (
-                  <div className="absolute top-5 right-5 w-8 h-8 bg-[hsl(var(--lenny-orange))] text-white rounded-full flex items-center justify-center text-lg">
+                  <div className="absolute top-5 right-5 w-8 h-8 text-white rounded-full flex items-center justify-center text-lg" style={{ backgroundColor: 'var(--_color-theme---accent)' }}>
                     ✓
                   </div>
                 )}
                 <h3 className="font-heading text-[24px] font-medium mb-4">Create Both</h3>
-                <div className="bg-[hsl(var(--lenny-orange))] text-white py-1 px-3 rounded-full text-xs inline-block mb-4">
+                <div className="style={{ backgroundColor: 'var(--_color-theme---accent)' }} text-white py-1 px-3 rounded-full text-xs inline-block mb-4">
                   BEST VALUE
                 </div>
-                <ul className="list-none text-[hsl(var(--muted-foreground))] text-sm leading-8 text-left">
+                <ul className="list-none style={{ color: 'var(--_color-theme---text)' }} text-sm leading-8 text-left">
                   <li>→ Multiple twins per account</li>
                   <li>→ Switch between profiles</li>
                   <li>→ Share content across twins</li>
@@ -233,7 +246,7 @@ const GetStarted = () => {
             
             <div className="flex gap-4 justify-center mt-12">
               <button
-                className="btn-lenny py-[14px] px-8 rounded-full font-medium text-sm cursor-pointer transition-all duration-300 border-none hover:transform hover:translate-y-[-2px]"
+                className="btn-anthropic-primary"
                 onClick={nextPage}
               >
                 Continue
@@ -246,7 +259,7 @@ const GetStarted = () => {
       {/* Page 3: Account Creation */}
       {currentPage === 3 && (
         <div className="min-h-screen pt-[140px] pb-20 px-6 animate-[fadeIn_0.5s_ease]">
-          <button className="inline-flex items-center gap-2 text-[hsl(var(--muted-foreground))] no-underline text-sm mb-8 transition-colors duration-300 hover:text-[hsl(var(--lenny-black))]" onClick={previousPage}>
+          <button className="inline-flex items-center gap-2 text-body hover:opacity-70 transition-opacity text-sm mb-8" style={{ color: 'var(--_color-theme---text)' }} onClick={previousPage}>
             ← Back
           </button>
           
@@ -258,16 +271,16 @@ const GetStarted = () => {
                 redirectUrl="/get-started?step=4"
                 appearance={{
                   elements: {
-                    formButtonPrimary: 'bg-[hsl(var(--lenny-orange))] hover:bg-[hsl(var(--lenny-orange))]/90 text-white',
+                    formButtonPrimary: 'bg-[#d97706] hover:bg-[#b45309] text-white',
                     card: 'shadow-none border-none bg-transparent',
                     headerTitle: 'hidden',
                     headerSubtitle: 'hidden',
                     socialButtons: 'flex flex-col gap-4',
-                    socialButtonsBlockButton: 'border-2 border-[#E5E7EB] rounded-2xl bg-white hover:border-[hsl(var(--lenny-black))] hover:transform hover:translate-y-[-2px] transition-all duration-300',
-                    formFieldInput: 'w-full py-[14px] px-5 border-2 border-[#E5E7EB] rounded-2xl text-sm transition-all duration-300 focus:outline-none focus:border-[hsl(var(--lenny-orange))] focus:bg-[hsl(var(--lenny-cream))]',
-                    formFieldLabel: 'block mb-2 text-sm font-medium text-[hsl(var(--lenny-black))]',
+                    socialButtonsBlockButton: 'border-2 border-[#E5E7EB] rounded-2xl bg-white hover:border-[#111319] hover:transform hover:translate-y-[-2px] transition-all duration-300',
+                    formFieldInput: 'w-full py-[14px] px-5 border-2 border-[#E5E7EB] rounded-2xl text-sm transition-all duration-300 focus:outline-none focus:border-[#d97706] focus:bg-[#fefdf9]',
+                    formFieldLabel: 'block mb-2 text-sm font-medium text-[#111319]',
                     dividerLine: 'bg-[#E5E7EB]',
-                    dividerText: 'text-[hsl(var(--muted-foreground))] text-sm'
+                    dividerText: 'text-[#6b7280] text-sm'
                   }
                 }}
               />
@@ -279,7 +292,7 @@ const GetStarted = () => {
       {/* Page 4: Quick Setup Before Builder */}
       {currentPage === 4 && (
         <div className="min-h-screen pt-[140px] pb-20 px-6 animate-[fadeIn_0.5s_ease]">
-          <button className="inline-flex items-center gap-2 text-[hsl(var(--muted-foreground))] no-underline text-sm mb-8 transition-colors duration-300 hover:text-[hsl(var(--lenny-black))]" onClick={previousPage}>
+          <button className="inline-flex items-center gap-2 text-body hover:opacity-70 transition-opacity text-sm mb-8" style={{ color: 'var(--_color-theme---text)' }} onClick={previousPage}>
             ← Back
           </button>
           
@@ -345,7 +358,7 @@ const GetStarted = () => {
                   }}
                 />
 
-                <p className="mt-6 text-sm text-[hsl(var(--muted-foreground))] text-center">
+                <p className="mt-6 text-sm text-center" style={{ color: 'var(--_color-theme---text)' }}>
                   Don't worry, you can add more content in the builder
                 </p>
               </div>
@@ -353,13 +366,13 @@ const GetStarted = () => {
             
             <div className="flex gap-4 justify-center mt-12">
               <button
-                className="btn-lenny-secondary py-[14px] px-8 rounded-full font-medium text-sm cursor-pointer transition-all duration-300"
+                className="btn-anthropic-secondary"
                 onClick={skipToBuilder}
               >
                 Skip for Now
               </button>
               <button
-                className="btn-lenny py-[14px] px-8 rounded-full font-medium text-sm cursor-pointer transition-all duration-300 border-none hover:transform hover:translate-y-[-2px]"
+                className="btn-anthropic-primary"
                 onClick={goToBuilder}
               >
                 Continue to Builder

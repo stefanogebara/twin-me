@@ -3,7 +3,7 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
-import { SignedIn, SignedOut } from "@clerk/clerk-react";
+import { SignedIn, SignedOut } from "./contexts/AuthContext";
 import ErrorBoundary from "@/components/ErrorBoundary";
 import { LoadingProvider } from "./contexts/LoadingContext";
 import { ErrorProvider } from "./contexts/ErrorContext";
@@ -32,6 +32,9 @@ import StudentDashboard from "./pages/StudentDashboard";
 import InstantTwinOnboarding from "./pages/InstantTwinOnboarding";
 import TwinDashboard from "./pages/TwinDashboard";
 import OAuthCallback from "./pages/OAuthCallback";
+import CustomAuth from "./pages/CustomAuth";
+import ChooseMode from "./pages/ChooseMode";
+import ChooseTwinType from "./pages/ChooseTwinType";
 
 const queryClient = new QueryClient();
 
@@ -47,9 +50,30 @@ const App = () => (
               <ErrorNotification />
               <BrowserRouter>
           <Routes>
-            <Route path="/auth" element={<Auth />} />
+            <Route path="/auth" element={<CustomAuth />} />
+            <Route path="/custom-auth" element={<CustomAuth />} />
             <Route path="/oauth/callback" element={<OAuthCallback />} />
             <Route path="/" element={<AnthropicIndex />} />
+            <Route path="/choose-mode" element={
+              <>
+                <SignedIn>
+                  <ChooseMode />
+                </SignedIn>
+                <SignedOut>
+                  <CustomAuth />
+                </SignedOut>
+              </>
+            } />
+            <Route path="/choose-twin-type" element={
+              <>
+                <SignedIn>
+                  <ChooseTwinType />
+                </SignedIn>
+                <SignedOut>
+                  <CustomAuth />
+                </SignedOut>
+              </>
+            } />
             <Route path="/legacy" element={<Index />} />
             <Route path="/talk-to-twin" element={
               <>
@@ -57,7 +81,7 @@ const App = () => (
                   <EnhancedTalkToTwin />
                 </SignedIn>
                 <SignedOut>
-                  <Auth />
+                  <CustomAuth />
                 </SignedOut>
               </>
             } />
@@ -67,7 +91,7 @@ const App = () => (
                   <EnhancedChat />
                 </SignedIn>
                 <SignedOut>
-                  <Auth />
+                  <CustomAuth />
                 </SignedOut>
               </>
             } />
@@ -77,7 +101,7 @@ const App = () => (
                   <InstantTwinOnboarding />
                 </SignedIn>
                 <SignedOut>
-                  <Auth />
+                  <CustomAuth />
                 </SignedOut>
               </>
             } />
@@ -87,7 +111,7 @@ const App = () => (
                   <AnthropicGetStarted />
                 </SignedIn>
                 <SignedOut>
-                  <Auth />
+                  <CustomAuth />
                 </SignedOut>
               </>
             } />
@@ -97,7 +121,7 @@ const App = () => (
                   <GetStarted />
                 </SignedIn>
                 <SignedOut>
-                  <Auth />
+                  <CustomAuth />
                 </SignedOut>
               </>
             } />
@@ -107,7 +131,7 @@ const App = () => (
                   <VoiceSettings />
                 </SignedIn>
                 <SignedOut>
-                  <Auth />
+                  <CustomAuth />
                 </SignedOut>
               </>
             } />
@@ -117,7 +141,7 @@ const App = () => (
                   <AnthropicTwinBuilder />
                 </SignedIn>
                 <SignedOut>
-                  <Auth />
+                  <CustomAuth />
                 </SignedOut>
               </>
             } />
@@ -127,7 +151,7 @@ const App = () => (
                   <TwinBuilder />
                 </SignedIn>
                 <SignedOut>
-                  <Auth />
+                  <CustomAuth />
                 </SignedOut>
               </>
             } />
@@ -137,7 +161,7 @@ const App = () => (
                   <AnthropicTwinBuilder />
                 </SignedIn>
                 <SignedOut>
-                  <Auth />
+                  <CustomAuth />
                 </SignedOut>
               </>
             } />
@@ -147,7 +171,7 @@ const App = () => (
                   <TwinActivation />
                 </SignedIn>
                 <SignedOut>
-                  <Auth />
+                  <CustomAuth />
                 </SignedOut>
               </>
             } />
@@ -157,7 +181,7 @@ const App = () => (
                   <WatchDemo />
                 </SignedIn>
                 <SignedOut>
-                  <Auth />
+                  <CustomAuth />
                 </SignedOut>
               </>
             } />
@@ -167,7 +191,7 @@ const App = () => (
                   <Contact />
                 </SignedIn>
                 <SignedOut>
-                  <Auth />
+                  <CustomAuth />
                 </SignedOut>
               </>
             } />
@@ -177,7 +201,7 @@ const App = () => (
                   <ProfessorDashboard />
                 </SignedIn>
                 <SignedOut>
-                  <Auth />
+                  <CustomAuth />
                 </SignedOut>
               </>
             } />
@@ -187,7 +211,7 @@ const App = () => (
                   <PersonalTwinBuilder />
                 </SignedIn>
                 <SignedOut>
-                  <Auth />
+                  <CustomAuth />
                 </SignedOut>
               </>
             } />
@@ -197,7 +221,7 @@ const App = () => (
                   <StudentDashboard />
                 </SignedIn>
                 <SignedOut>
-                  <Auth />
+                  <CustomAuth />
                 </SignedOut>
               </>
             } />
@@ -207,7 +231,7 @@ const App = () => (
                   <TwinDashboard />
                 </SignedIn>
                 <SignedOut>
-                  <Auth />
+                  <CustomAuth />
                 </SignedOut>
               </>
             } />

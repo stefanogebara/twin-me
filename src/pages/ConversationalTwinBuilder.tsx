@@ -2,6 +2,7 @@ import { useState, useRef, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useToast } from '@/components/ui/use-toast';
 import { Mic, MicOff, Upload, Sparkles, User, BookOpen, Volume2, FileAudio, Clock } from 'lucide-react';
+import { secureApi } from '@/lib/secureApi';
 
 interface PersonalityData {
   teachingPhilosophy: string;
@@ -127,27 +128,13 @@ const ConversationalTwinBuilder = () => {
         typewriterEffect(text);
       }
 
-      // Call ElevenLabs API to generate speech
-      const response = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${ASSISTANT_VOICE_ID}`, {
-        method: 'POST',
-        headers: {
-          'Accept': 'audio/mpeg',
-          'Content-Type': 'application/json',
-          'xi-api-key': import.meta.env.VITE_ELEVENLABS_API_KEY || '',
-        },
-        body: JSON.stringify({
-          text: text,
+      // Use secure server-side voice synthesis
+      try {
+        const audioUrl = await secureApi.synthesizeVoice(text, ASSISTANT_VOICE_ID, {
           model_id: 'eleven_multilingual_v2',
-          voice_settings: {
-            stability: 0.5,
-            similarity_boost: 0.75
-          }
-        }),
-      });
-
-      if (response.ok) {
-        const audioBlob = await response.blob();
-        const audioUrl = URL.createObjectURL(audioBlob);
+          stability: 0.5,
+          similarity_boost: 0.75
+        });
 
         if (audioRef.current) {
           audioRef.current.src = audioUrl;
@@ -155,11 +142,10 @@ const ConversationalTwinBuilder = () => {
 
           audioRef.current.onended = () => {
             setIsAssistantSpeaking(false);
-            URL.revokeObjectURL(audioUrl);
           };
         }
-      } else {
-        console.error('ElevenLabs API error:', response.status);
+      } catch (error) {
+        console.error('Voice synthesis failed:', error);
         setIsAssistantSpeaking(false);
       }
     } catch (error) {

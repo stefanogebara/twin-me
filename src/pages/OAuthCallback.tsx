@@ -5,14 +5,14 @@
 
 import { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { useUser } from '@clerk/clerk-react';
+import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '@/components/ui/use-toast';
 import LoadingScreen from '@/components/LoadingScreen';
 
 const OAuthCallback = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const { user } = useUser();
+  const { user } = useAuth();
   const { toast } = useToast();
   const [status, setStatus] = useState<'processing' | 'success' | 'error'>('processing');
 
@@ -41,7 +41,7 @@ const OAuthCallback = () => {
         console.log('📤 Sending callback request to server...');
 
         // Send callback data to backend
-        const response = await fetch(`http://localhost:3002/api/connectors/callback`, {
+        const response = await fetch(`http://localhost:3001/api/connectors/callback`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
