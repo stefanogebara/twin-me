@@ -28,7 +28,14 @@ import {
   Settings,
   Eye,
   EyeOff,
-  Plus
+  Plus,
+  Film,
+  Youtube,
+  Gamepad2,
+  Book,
+  Heart,
+  Palette,
+  Fingerprint
 } from 'lucide-react';
 
 import {
@@ -118,6 +125,50 @@ const AVAILABLE_CONNECTORS: ConnectorConfig[] = [
     color: '#1DB954',
     dataTypes: ['Music Taste', 'Cultural Interests', 'Mood Patterns'],
     estimatedInsights: 5,
+    setupTime: '5 seconds',
+    privacyLevel: 'low'
+  },
+  {
+    provider: 'netflix',
+    name: 'Netflix',
+    description: 'Entertainment preferences and narrative interests',
+    icon: <Film className="w-6 h-6" />,
+    color: '#E50914',
+    dataTypes: ['Genre Preferences', 'Narrative Themes', 'Viewing Habits'],
+    estimatedInsights: 8,
+    setupTime: '10 seconds',
+    privacyLevel: 'low'
+  },
+  {
+    provider: 'youtube',
+    name: 'YouTube',
+    description: 'Learning interests and content preferences',
+    icon: <Youtube className="w-6 h-6" />,
+    color: '#FF0000',
+    dataTypes: ['Learning Style', 'Interests', 'Content Types'],
+    estimatedInsights: 10,
+    setupTime: '10 seconds',
+    privacyLevel: 'low'
+  },
+  {
+    provider: 'steam',
+    name: 'Steam',
+    description: 'Gaming preferences and interactive experiences',
+    icon: <Gamepad2 className="w-6 h-6" />,
+    color: '#171A21',
+    dataTypes: ['Gaming Style', 'Strategic Thinking', 'Social Gaming'],
+    estimatedInsights: 6,
+    setupTime: '5 seconds',
+    privacyLevel: 'low'
+  },
+  {
+    provider: 'goodreads',
+    name: 'Goodreads',
+    description: 'Reading preferences and intellectual interests',
+    icon: <Book className="w-6 h-6" />,
+    color: '#372213',
+    dataTypes: ['Literary Taste', 'Knowledge Areas', 'Reading Patterns'],
+    estimatedInsights: 7,
     setupTime: '5 seconds',
     privacyLevel: 'low'
   }

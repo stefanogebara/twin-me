@@ -35,6 +35,9 @@ import OAuthCallback from "./pages/OAuthCallback";
 import CustomAuth from "./pages/CustomAuth";
 import ChooseMode from "./pages/ChooseMode";
 import ChooseTwinType from "./pages/ChooseTwinType";
+import SoulSignatureDashboard from "./pages/SoulSignatureDashboard";
+import PrivacySpectrumDashboard from "./components/PrivacySpectrumDashboard";
+import TwinProfilePreview from "./components/TwinProfilePreview";
 
 const queryClient = new QueryClient();
 
@@ -99,6 +102,39 @@ const App = () => (
               <>
                 <SignedIn>
                   <InstantTwinOnboarding />
+                </SignedIn>
+                <SignedOut>
+                  <CustomAuth />
+                </SignedOut>
+              </>
+            } />
+            <Route path="/soul-signature" element={
+              <>
+                <SignedIn>
+                  <SoulSignatureDashboard />
+                </SignedIn>
+                <SignedOut>
+                  <CustomAuth />
+                </SignedOut>
+              </>
+            } />
+            <Route path="/privacy-spectrum" element={
+              <>
+                <SignedIn>
+                  <PrivacySpectrumDashboard />
+                </SignedIn>
+                <SignedOut>
+                  <CustomAuth />
+                </SignedOut>
+              </>
+            } />
+            <Route path="/twin-profile-preview" element={
+              <>
+                <SignedIn>
+                  <TwinProfilePreview
+                    onActivate={() => window.location.href = '/twin-activation'}
+                    onEdit={() => window.location.href = '/soul-signature'}
+                  />
                 </SignedIn>
                 <SignedOut>
                   <CustomAuth />
