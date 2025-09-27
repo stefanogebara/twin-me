@@ -195,24 +195,115 @@ router.get('/oauth/apple', (req, res) => {
   res.redirect(redirectUrl);
 });
 
+// Helper function to exchange Google auth code for tokens
+async function exchangeGoogleCode(code) {
+  try {
+    const clientId = process.env.GOOGLE_CLIENT_ID || '851806289280-k0v833noqjk02r43m45cjr7prnhg24gr.apps.googleusercontent.com';
+    const clientSecret = process.env.GOOGLE_CLIENT_SECRET || 'GOCSPX-your-client-secret'; // Add to .env
+    const redirectUri = `${process.env.VITE_APP_URL || 'http://localhost:8086'}/oauth/callback`;
+
+    // Exchange code for tokens
+    const tokenResponse = await fetch('https://oauth2.googleapis.com/token', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({
+        code,
+        client_id: clientId,
+        client_secret: clientSecret,
+        redirect_uri: redirectUri,
+        grant_type: 'authorization_code'
+      })
+    });
+
+    if (!tokenResponse.ok) {
+      console.error('Token exchange failed:', await tokenResponse.text());
+      return null;
+    }
+
+    const tokens = await tokenResponse.json();
+
+    // Get user info
+    const userResponse = await fetch('https://www.googleapis.com/oauth2/v2/userinfo', {
+      headers: { 'Authorization': `Bearer ${tokens.access_token}` }
+    });
+
+    if (!userResponse.ok) {
+      console.error('Failed to get user info:', await userResponse.text());
+      return null;
+    }
+
+    const userData = await userResponse.json();
+
+    return {
+      email: userData.email,
+      firstName: userData.given_name || '',
+      lastName: userData.family_name || '',
+      picture: userData.picture,
+      accessToken: tokens.access_token,
+      refreshToken: tokens.refresh_token
+    };
+  } catch (error) {
+    console.error('Google OAuth error:', error);
+    return null;
+  }
+}
+
 // OAuth callback handler
 router.post('/oauth/callback', async (req, res) => {
   try {
     const { code, state, provider } = req.body;
 
-    // For demo purposes, create a mock user
-    const mockUser = {
-      id: `${provider}_user_${Date.now()}`,
-      email: `demo@${provider}.com`,
-      first_name: provider.charAt(0).toUpperCase() + provider.slice(1),
-      last_name: 'User'
-    };
+    let userData = null;
 
-    users.set(mockUser.email, mockUser);
+    if (provider === 'google' && code) {
+      // Real Google OAuth
+      userData = await exchangeGoogleCode(code);
+
+      if (!userData) {
+        // Fallback to mock for development
+        console.log('Using mock Google user for development');
+        userData = {
+          email: 'demo@google.com',
+          firstName: 'Google',
+          lastName: 'User'
+        };
+      }
+    } else {
+      // Mock data for other providers
+      userData = {
+        email: `demo@${provider}.com`,
+        firstName: provider.charAt(0).toUpperCase() + provider.slice(1),
+        lastName: 'User'
+      };
+    }
+
+    // Check if user exists or create new
+    let user = Array.from(users.values()).find(u => u.email === userData.email);
+
+    if (!user) {
+      const userId = `${provider}_user_${Date.now()}`;
+      user = {
+        id: userId,
+        email: userData.email,
+        first_name: userData.firstName,
+        last_name: userData.lastName,
+        oauth_provider: provider,
+        access_token: userData.accessToken,
+        refresh_token: userData.refreshToken,
+        created_at: new Date().toISOString()
+      };
+      users.set(userData.email, user);
+    } else {
+      // Update tokens if they exist
+      if (userData.accessToken) {
+        user.access_token = userData.accessToken;
+        user.refresh_token = userData.refreshToken;
+      }
+    }
 
     // Generate JWT token
     const token = jwt.sign(
-      { id: mockUser.id, email: mockUser.email },
+      { id: user.id, email: user.email },
       JWT_SECRET,
       { expiresIn: '7d' }
     );
@@ -221,11 +312,11 @@ router.post('/oauth/callback', async (req, res) => {
       success: true,
       token,
       user: {
-        id: mockUser.id,
-        email: mockUser.email,
-        firstName: mockUser.first_name,
-        lastName: mockUser.last_name,
-        fullName: `${mockUser.first_name} ${mockUser.last_name}`.trim()
+        id: user.id,
+        email: user.email,
+        firstName: user.first_name,
+        lastName: user.last_name,
+        fullName: `${user.first_name} ${user.last_name}`.trim()
       }
     });
   } catch (error) {

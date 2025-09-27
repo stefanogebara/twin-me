@@ -143,6 +143,8 @@ const handleValidationErrors = (req, res, next) => {
 // import voiceRoutes from './routes/voice.js';
 // import analyticsRoutes from './routes/analytics.js';
 import connectorsRoutes from './routes/connectors.js';
+import mcpConnectorsRoutes from './routes/mcp-connectors.js';
+import entertainmentRoutes from './routes/entertainment-connectors.js';
 // import authRoutes from './routes/auth.js';
 import authRoutes from './routes/auth-simple.js';
 import { serverDb } from './services/database.js';
@@ -157,6 +159,8 @@ import { /* handleAuthError, */ handleGeneralError, handle404 } from './middlewa
 // app.use('/api/voice', voiceRoutes);
 // app.use('/api/analytics', analyticsRoutes);
 app.use('/api/connectors', connectorsRoutes);
+app.use('/api/mcp', mcpConnectorsRoutes);
+app.use('/api/entertainment', entertainmentRoutes);
 app.use('/api/auth', authRoutes);
 
 // Health check endpoint

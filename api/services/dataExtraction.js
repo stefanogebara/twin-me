@@ -401,6 +401,100 @@ class DataExtractionService {
   }
 
   /**
+   * Extract patterns from Microsoft Teams
+   */
+  async extractTeamsPatterns(chats) {
+    const patterns = {
+      teachingMentions: 0,
+      collaborationStyle: 'Unknown',
+      expertise: [],
+      communicationPatterns: []
+    };
+
+    // Analyze Teams chats for teaching patterns
+    chats.forEach(chat => {
+      // Look for educational keywords
+      if (chat.topic && chat.topic.toLowerCase().includes('class')) {
+        patterns.teachingMentions++;
+      }
+    });
+
+    // Determine collaboration style
+    if (patterns.teachingMentions > 10) {
+      patterns.collaborationStyle = 'Highly collaborative educator';
+    } else if (patterns.teachingMentions > 5) {
+      patterns.collaborationStyle = 'Regular collaboration with students';
+    } else {
+      patterns.collaborationStyle = 'Occasional educational discussions';
+    }
+
+    return patterns;
+  }
+
+  /**
+   * Extract patterns from Slack
+   */
+  async extractSlackPatterns(channels) {
+    const patterns = {
+      communicationStyle: 'Unknown',
+      identifiedExpertise: [],
+      responsePatterns: [],
+      helpfulnessScore: 0
+    };
+
+    // Analyze channel participation
+    const educationalChannels = channels.filter(ch =>
+      ch.name.includes('education') ||
+      ch.name.includes('class') ||
+      ch.name.includes('student')
+    );
+
+    if (educationalChannels.length > 0) {
+      patterns.communicationStyle = 'Active in educational communities';
+      patterns.identifiedExpertise = ['Community teaching', 'Peer support'];
+    }
+
+    patterns.helpfulnessScore = Math.min(100, educationalChannels.length * 10);
+
+    return patterns;
+  }
+
+  /**
+   * Extract patterns from Discord
+   */
+  async extractDiscordPatterns(guilds) {
+    const patterns = {
+      communities: [],
+      engagementLevel: 'Unknown',
+      teachingServers: 0,
+      expertise: []
+    };
+
+    // Analyze Discord guilds
+    guilds.forEach(guild => {
+      patterns.communities.push(guild.name);
+
+      // Check for educational servers
+      if (guild.name.toLowerCase().includes('learn') ||
+          guild.name.toLowerCase().includes('edu') ||
+          guild.name.toLowerCase().includes('study')) {
+        patterns.teachingServers++;
+      }
+    });
+
+    // Determine engagement level
+    if (patterns.teachingServers > 5) {
+      patterns.engagementLevel = 'Highly engaged educator';
+    } else if (patterns.teachingServers > 2) {
+      patterns.engagementLevel = 'Moderately engaged';
+    } else {
+      patterns.engagementLevel = 'Casual participant';
+    }
+
+    return patterns;
+  }
+
+  /**
    * Generate instant twin profile from extracted data
    */
   async generateInstantTwinProfile(gmailData, calendarData, userData) {
