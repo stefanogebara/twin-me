@@ -9,9 +9,13 @@ const sanitizeInput = (req, res, next) => {
       req.body = sanitizeObject(req.body);
     }
 
-    // Sanitize query parameters
+    // Sanitize query parameters (in-place modification)
     if (req.query && typeof req.query === 'object') {
-      req.query = sanitizeObject(req.query);
+      const sanitizedQuery = sanitizeObject(req.query);
+      Object.keys(req.query).forEach(key => {
+        delete req.query[key];
+      });
+      Object.assign(req.query, sanitizedQuery);
     }
 
     // Sanitize URL parameters

@@ -359,10 +359,10 @@ function analyzeDiscoveryPattern(artists, recent) {
 
 function analyzeSocialPatterns(playlists) {
   const collaborative = playlists.filter(p => p.collaborative).length;
-  const public = playlists.filter(p => p.public).length;
+  const publicPlaylists = playlists.filter(p => p.public).length;
 
   return {
-    sharingTendency: public / playlists.length,
+    sharingTendency: publicPlaylists / playlists.length,
     collaborativeSpirit: collaborative / playlists.length,
     curationType: playlists.length > 20 ? 'curator' : 'casual'
   };
