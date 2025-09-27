@@ -7,7 +7,7 @@ export default function VoiceSettings() {
   return (
     <div className="min-h-screen" style={{ backgroundColor: 'var(--_color-theme---background)' }}>
       {/* Header */}
-      <div className="bg-white px-6 py-4" style={{ borderBottom: '1px solid var(--_color-theme---border)' }}>
+      <div className="px-6 py-4 border-b" style={{ backgroundColor: 'var(--_color-theme---background)', borderColor: 'var(--_color-theme---border)' }}>
         <div className="max-w-7xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-4">
             <button
@@ -19,10 +19,10 @@ export default function VoiceSettings() {
               Back to Twin Builder
             </button>
             <div>
-              <h1 className="u-display-l text-heading mb-2">
+              <h1 className="u-display-l text-heading mb-2" style={{ fontFamily: 'var(--_typography---font--styrene-a)', color: 'var(--_color-theme---text)' }}>
                 Voice Settings
               </h1>
-              <p className="text-body-large" style={{ color: 'var(--_color-theme---text)' }}>Manage samples, preview synthesis, and review your consent</p>
+              <p className="text-body-large" style={{ color: 'var(--_color-theme---text-muted)' }}>Manage samples, preview synthesis, and review your consent</p>
             </div>
           </div>
         </div>
@@ -32,21 +32,21 @@ export default function VoiceSettings() {
 
         <section className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           {/* Status + Preview */}
-          <div className="bg-white rounded-2xl p-8 shadow-sm border" style={{ borderColor: 'var(--_color-theme---border)' }}>
+          <div className="rounded-2xl p-8 shadow-sm border" style={{ backgroundColor: 'white', borderColor: 'var(--_color-theme---border)' }}>
             <div className="flex justify-between items-center mb-4">
-              <h3 className="text-heading text-xl font-medium">Current Voice</h3>
-              <span className="inline-block px-3 py-1 rounded-full text-sm" style={{ backgroundColor: 'var(--_color-theme---background-secondary)', color: 'var(--_color-theme---button-primary--background)' }}>
+              <h3 className="text-heading text-xl font-medium" style={{ fontFamily: 'var(--_typography---font--styrene-a)', color: 'var(--_color-theme---text)' }}>Current Voice</h3>
+              <span className="inline-block px-3 py-1 rounded-full text-sm" style={{ backgroundColor: 'hsl(var(--claude-surface-raised))', color: 'var(--_color-theme---accent)' }}>
                 Pending
               </span>
             </div>
-            <p className="text-body mb-6" style={{ color: 'var(--_color-theme---text)' }}>Preview your cloned voice using a test sentence once it's ready.</p>
+            <p className="text-body mb-6" style={{ color: 'var(--_color-theme---text-muted)' }}>Preview your cloned voice using a test sentence once it's ready.</p>
             <div className="flex gap-3 items-center mb-4">
-              <button className="btn-anthropic-primary">
+              <button className="px-6 py-3 rounded-lg font-medium transition-colors" style={{ backgroundColor: 'var(--_color-theme---accent)', color: 'white' }}>
                 Generate Preview
               </button>
               <audio controls style={{display: 'none'}}></audio>
             </div>
-            <p className="text-body text-sm" style={{ color: 'var(--_color-theme---text)' }}>Status updates when processing completes.</p>
+            <p className="text-body text-sm" style={{ color: 'var(--_color-theme---text-muted)' }}>Status updates when processing completes.</p>
           </div>
 
           {/* Samples Manager */}

@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useCallback, useEffect } from 'react';
-import { useUser } from '@clerk/clerk-react';
+import { useAuth } from './AuthContext';
 
 export interface AnalyticsEvent {
   event_type: string;
@@ -36,7 +36,7 @@ const getSessionId = (): string => {
 };
 
 export const AnalyticsProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { user } = useUser();
+  const { user } = useAuth();
 
   const sendAnalyticsEvent = async (event: Omit<AnalyticsEvent, 'timestamp' | 'session_id' | 'page_url' | 'user_agent' | 'referrer'>) => {
     try {

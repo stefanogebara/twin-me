@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useUser } from '@clerk/clerk-react';
+import { useAuth } from '../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -15,7 +15,7 @@ import LoadingScreen from '@/components/LoadingScreen';
 import type { DigitalTwin, Profile, PersonalityTraits } from '@/types/database';
 
 const PersonalTwinBuilder = () => {
-  const { user } = useUser();
+  const { user } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -179,7 +179,7 @@ const PersonalTwinBuilder = () => {
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => navigate('/legacy-get-started')}
+              onClick={() => navigate('/get-started')}
               className="flex items-center gap-2"
             >
               <ArrowLeft className="w-4 h-4" />
@@ -582,7 +582,7 @@ const PersonalTwinBuilder = () => {
         {/* Action Buttons */}
         <div className="flex gap-4 justify-end mt-8">
           <button
-            onClick={() => navigate('/legacy-get-started')}
+            onClick={() => navigate('/get-started')}
             className="btn-anthropic-secondary"
           >
             Cancel

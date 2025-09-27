@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { useUser } from '@clerk/clerk-react';
+import { useAuth } from '../contexts/AuthContext';
 import {
   ArrowLeft,
   Activity,
@@ -196,7 +196,7 @@ const EvolutionTimeline: React.FC<TimelineProps> = ({ entries }) => {
 
 const TwinDashboard: React.FC = () => {
   const { twinId } = useParams<{ twinId: string }>();
-  const { user } = useUser();
+  const { user } = useAuth();
 
   const [isLoading, setIsLoading] = useState(true);
   const [twin, setTwin] = useState<any>(null);

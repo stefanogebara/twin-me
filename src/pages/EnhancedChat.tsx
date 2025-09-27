@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { useUser } from '@clerk/clerk-react';
+import { useAuth } from '../contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card } from '@/components/ui/card';
@@ -21,7 +21,7 @@ interface Message {
 
 const EnhancedChat = () => {
   const { twinId } = useParams();
-  const { user } = useUser();
+  const { user } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
 

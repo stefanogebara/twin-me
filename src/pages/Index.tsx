@@ -1,10 +1,10 @@
 import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useUser, SignInButton, SignUpButton } from '@clerk/clerk-react';
+import { useAuth, SignInButton, SignUpButton } from '../contexts/AuthContext';
 
 const Index = () => {
   const navigate = useNavigate();
-  const { isSignedIn, isLoaded } = useUser();
+  const { isSignedIn, isLoaded } = useAuth();
 
   // Debug authentication state when component loads
   useEffect(() => {
@@ -284,108 +284,6 @@ const Index = () => {
         )}
       </section>
 
-      <style dangerouslySetInnerHTML={{
-        __html: `
-        .navbar-default.scrolled {
-          background: rgba(251, 247, 240, 0.95) !important;
-          backdrop-filter: blur(10px);
-          box-shadow: 0 2px 20px rgba(0, 0, 0, 0.05);
-          padding: 16px 60px !important;
-        }
-        
-        .gradient-blob-orange {
-          background: linear-gradient(135deg, #FF5722, #FF9800);
-          filter: blur(100px);
-          animation: morphing 20s ease-in-out infinite;
-        }
-        
-        .gradient-blob-blue {
-          background: linear-gradient(135deg, #4A90E2, #00BCD4);
-          filter: blur(100px);
-          animation: morphing 20s ease-in-out infinite;
-        }
-        
-        @keyframes morphing {
-          0%, 100% {
-            border-radius: 60% 40% 30% 70% / 60% 30% 70% 40%;
-            transform: translate(0, 0) scale(1);
-          }
-          33% {
-            border-radius: 30% 60% 70% 40% / 50% 60% 30% 60%;
-            transform: translate(50px, -30px) scale(1.1);
-          }
-          66% {
-            border-radius: 50% 50% 40% 60% / 40% 50% 60% 50%;
-            transform: translate(-30px, 30px) scale(0.95);
-          }
-        }
-        
-        @keyframes orbit {
-          0% {
-            transform: rotate(0deg) translateX(var(--orbit-radius)) rotate(0deg);
-          }
-          100% {
-            transform: rotate(360deg) translateX(var(--orbit-radius)) rotate(-360deg);
-          }
-        }
-        
-        .skill-pill {
-          position: absolute;
-          padding: 12px 24px;
-          background: #C5D8FF;
-          color: #1A1A4B;
-          border-radius: 100px;
-          font-size: 14px;
-          font-weight: 400;
-          font-style: italic;
-          white-space: nowrap;
-          left: 50%;
-          top: 50%;
-          transform-origin: center;
-          animation: orbit var(--duration) linear infinite;
-          opacity: 0.9;
-          pointer-events: auto;
-          transition: all 0.3s ease;
-        }
-        
-        .skill-pill:hover {
-          transform: scale(1.1);
-          opacity: 1;
-          z-index: 20;
-        }
-        
-        .perspective-grid {
-          transform: perspective(1000px) rotateX(60deg) translateY(50%);
-          background-image: 
-            linear-gradient(rgba(255, 255, 255, 0.1) 1px, transparent 1px),
-            linear-gradient(90deg, rgba(255, 255, 255, 0.1) 1px, transparent 1px);
-          background-size: 50px 50px;
-        }
-        
-        @keyframes floatImage {
-          0%, 100% { transform: translateY(0) rotate(-3deg); }
-          50% { transform: translateY(-20px) rotate(3deg); }
-        }
-        
-        .floating-anim {
-          animation: floatImage 6s ease-in-out infinite;
-        }
-        
-        .floating-anim-delay-2 {
-          animation: floatImage 6s ease-in-out infinite;
-          animation-delay: 2s;
-        }
-        
-        .floating-anim-delay-4 {
-          animation: floatImage 6s ease-in-out infinite;
-          animation-delay: 4s;
-        }
-        
-        .floating-image:hover {
-          transform: translateY(-10px) scale(1.1);
-        }
-        `
-      }} />
     </div>
   );
 };

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useUser, SignedIn, SignedOut } from '@clerk/clerk-react';
+import { useAuth, SignedIn, SignedOut } from '../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -42,7 +42,7 @@ interface DashboardStats {
 }
 
 const ProfessorDashboard = () => {
-  const { user } = useUser();
+  const { user } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
 

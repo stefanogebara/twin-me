@@ -19,8 +19,7 @@ import {
 // ====================================================================
 
 export class PersonalityAnalysisEngine {
-  private readonly anthropicApiKey = process.env.ANTHROPIC_API_KEY;
-  private readonly openaiApiKey = process.env.OPENAI_API_KEY;
+  // Note: API calls should go through secure server endpoints, not direct API access
 
   async analyzePersonality(
     userId: string,
