@@ -6,11 +6,11 @@ import { Sparkles, User, BookOpen, Mic, Brain, ArrowRight } from 'lucide-react';
 const AnthropicIndex = () => {
   const navigate = useNavigate();
   const { isSignedIn, isLoaded } = useAuth();
-  const [animatedWords, setAnimatedWords] = useState<string[]>("Transform Teaching with Digital Twins".split(' '));
+  const [animatedWords, setAnimatedWords] = useState<string[]>("Discover Your Soul Signature".split(' '));
 
   // Anthropic-style word animation for hero text
   useEffect(() => {
-    const heroText = "Transform Teaching with Digital Twins";
+    const heroText = "Discover Your Soul Signature";
     const words = heroText.split(' ');
 
     // Set words immediately to prevent layout shift
@@ -51,35 +51,35 @@ const AnthropicIndex = () => {
 
   // Apple-style content grouping by user benefit
   const featureGroups = {
-    forEducators: {
-      title: "For Educators",
-      description: "Powerful tools to amplify your teaching",
+    forPersonal: {
+      title: "Personal Universe",
+      description: "Capture what makes you authentically YOU",
       features: [
         {
           icon: <Sparkles className="w-8 h-8" />,
-          title: "AI-Powered Teaching",
-          description: "Create digital twins that capture your unique teaching style and personality"
+          title: "Soul Signature Discovery",
+          description: "Connect your digital life to reveal your unique patterns and authentic self"
         },
         {
           icon: <User className="w-8 h-8" />,
-          title: "24/7 Availability",
-          description: "Your teaching presence available anytime, anywhere for students"
+          title: "30+ Platform Connectors",
+          description: "Spotify, Netflix, YouTube, Discord - your digital footprint becomes your identity"
         }
       ]
     },
-    forStudents: {
-      title: "For Students",
-      description: "Personalized learning experiences that adapt to you",
+    forProfessional: {
+      title: "Professional Identity",
+      description: "Share your expertise while preserving your essence",
       features: [
         {
           icon: <Mic className="w-8 h-8" />,
-          title: "Voice-Enabled Learning",
-          description: "Natural conversation experiences with voice synthesis technology"
+          title: "Privacy Spectrum Control",
+          description: "Choose what to reveal and what to share with granular intensity sliders"
         },
         {
           icon: <Brain className="w-8 h-8" />,
-          title: "Personalized Education",
-          description: "Adaptive learning that adjusts to each student's pace and style"
+          title: "Life Clusters",
+          description: "Organize your identity into meaningful groupings - hobbies, spirituality, career"
         }
       ]
     }
@@ -93,8 +93,11 @@ const AnthropicIndex = () => {
            style={{ backgroundColor: 'var(--_color-theme---background)/90', borderBottom: '1px solid var(--_color-theme---border)' }}>
         <div className="max-w-7xl mx-auto px-6 py-4">
           <div className="flex justify-between items-center">
-            <div className="text-2xl font-medium text-heading" style={{ color: 'var(--_color-theme---text)' }}>
-              Twin Me
+            <div className="flex items-center gap-3">
+              <img src="/twin-me-logo.svg" alt="Twin Me" className="w-10 h-10" />
+              <div className="text-2xl font-medium text-heading" style={{ color: 'var(--_color-theme---text)' }}>
+                Twin Me
+              </div>
             </div>
             {/* Apple-style Navigation with Clear Hierarchy */}
             <div className="hidden md:flex items-center space-x-8">
@@ -158,7 +161,7 @@ const AnthropicIndex = () => {
           </h1>
 
           <p className="text-body-large mb-12 max-w-3xl mx-auto leading-relaxed" style={{ color: 'var(--_color-theme---text)' }}>
-            Create AI replicas of educators that provide personalized, always-available learning experiences through natural conversations. Transform how students learn with digital twins that capture your unique teaching style.
+            "Perhaps we are searching in the branches for what we only find in the roots." Connect your digital life - Netflix, Spotify, Discord, and 30+ platforms - to discover and share your authentic soul signature.
           </p>
 
           <div className="flex flex-col sm:flex-row gap-6 justify-center items-center">
@@ -189,10 +192,10 @@ const AnthropicIndex = () => {
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-16">
             <h2 className="u-display-l text-heading mb-6">
-              The Future of Personalized Education
+              Beyond Digital Cloning
             </h2>
             <p className="text-body-large max-w-2xl mx-auto">
-              Our AI-powered platform creates digital twins of educators, enabling personalized learning experiences that adapt to each student's unique needs.
+              While public information is easily cloned, it lacks soul. We go deeper - discovering what makes you authentically YOU through your genuine curiosities, passions, and digital footprints.
             </p>
           </div>
 
@@ -248,7 +251,7 @@ const AnthropicIndex = () => {
               How It Works
             </h2>
             <p className="text-body-large max-w-2xl mx-auto">
-              Create your digital teaching twin in three simple steps
+              Discover your soul signature in three simple steps
             </p>
           </div>
 
@@ -258,9 +261,9 @@ const AnthropicIndex = () => {
                    style={{ backgroundColor: 'var(--_color-theme---button-primary--background)' }}>
                 1
               </div>
-              <h3 className="text-heading text-xl font-medium mb-4">Share Your Teaching Style</h3>
+              <h3 className="text-heading text-xl font-medium mb-4">Connect Your Digital Life</h3>
               <p className="text-body">
-                Answer a few conversational questions about your teaching philosophy, communication style, and expertise areas.
+                Link your entertainment platforms, professional tools, and social networks. We extract your authentic patterns from Spotify moods, Netflix narratives, and more.
               </p>
             </div>
 
@@ -269,9 +272,9 @@ const AnthropicIndex = () => {
                    style={{ backgroundColor: 'var(--_color-theme---button-primary--background)' }}>
                 2
               </div>
-              <h3 className="text-heading text-xl font-medium mb-4">Add Your Content</h3>
+              <h3 className="text-heading text-xl font-medium mb-4">Control Your Privacy</h3>
               <p className="text-body">
-                Upload course materials, lectures, or simply describe your classes. Our AI learns from your content to create authentic responses.
+                Use our revolutionary privacy spectrum with intensity sliders. Choose what to reveal and what to share - different levels for different audiences.
               </p>
             </div>
 
@@ -280,9 +283,9 @@ const AnthropicIndex = () => {
                    style={{ backgroundColor: 'var(--_color-theme---button-primary--background)' }}>
                 3
               </div>
-              <h3 className="text-heading text-xl font-medium mb-4">Start Teaching</h3>
+              <h3 className="text-heading text-xl font-medium mb-4">Share Your Twin</h3>
               <p className="text-body">
-                Your digital twin is ready! Students can now have natural conversations and get personalized help anytime.
+                Your soul signature is ready! Share different aspects of yourself with different contexts - professional, social, or personal.
               </p>
             </div>
           </div>

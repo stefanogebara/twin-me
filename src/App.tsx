@@ -20,6 +20,7 @@ import EnhancedChat from "./pages/EnhancedChat";
 import GetStarted from "./pages/GetStarted";
 import AnthropicGetStarted from "./pages/AnthropicGetStarted";
 import VoiceSettings from "./pages/VoiceSettings";
+import Settings from "./pages/Settings";
 import TwinBuilder from "./pages/TwinBuilder";
 import ConversationalTwinBuilder from "./pages/ConversationalTwinBuilder";
 import AnthropicTwinBuilder from "./pages/AnthropicTwinBuilder";
@@ -165,6 +166,16 @@ const App = () => (
               <>
                 <SignedIn>
                   <VoiceSettings />
+                </SignedIn>
+                <SignedOut>
+                  <CustomAuth />
+                </SignedOut>
+              </>
+            } />
+            <Route path="/settings" element={
+              <>
+                <SignedIn>
+                  <Settings />
                 </SignedIn>
                 <SignedOut>
                   <CustomAuth />

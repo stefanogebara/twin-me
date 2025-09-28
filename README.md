@@ -1,73 +1,183 @@
-# Welcome to your Lovable project
+# Twin Me - Discover Your Soul Signature
 
-## Project info
+> "Perhaps we are searching in the branches for what we only find in the roots." - Rami
 
-**URL**: https://lovable.dev/projects/7ce0491b-6626-4102-8fff-a5825c1fd312
+Twin Me creates digital twins that capture your true originality - not just your public persona, but your complete soul signature. By connecting your digital life (Netflix, Spotify, Discord, and 30+ platforms), we discover what makes you authentically YOU.
 
-## How can I edit this code?
+## 🚀 Quick Start
 
-There are several ways of editing your application.
+```bash
+# Install dependencies
+npm install --legacy-peer-deps
 
-**Use Lovable**
+# Start development servers
+npm run dev         # Frontend: http://localhost:8086
+npm run server:dev  # Backend: http://localhost:3001
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/7ce0491b-6626-4102-8fff-a5825c1fd312) and start prompting.
-
-Changes made via Lovable will be committed automatically to this repo.
-
-**Use your preferred IDE**
-
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
-
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
-
-Follow these steps:
-
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
-
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
-
-# Step 3: Install the necessary dependencies.
-npm i
-
-# Step 4: Start the development server with auto-reloading and an instant preview.
-npm run dev
+# Or run both together
+npm run dev:full
 ```
 
-**Edit a file directly in GitHub**
+## 🎯 Core Philosophy
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+While public information is easily cloned and commoditized, it lacks soul. Twin Me goes deeper by:
+- **Mapping your entertainment DNA** through streaming patterns and music moods
+- **Understanding your social dynamics** via gaming and community platforms
+- **Capturing professional identity** while preserving your personal essence
+- **Creating multi-dimensional twins** that reflect your authentic originality
 
-**Use GitHub Codespaces**
+## ✨ Key Features
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+### Soul Signature Discovery
+- Connect 30+ platforms (Spotify, Netflix, YouTube, Discord, GitHub, etc.)
+- Automatic pattern extraction from your digital footprints
+- Visual soul signature dashboard with life clusters
 
-## What technologies are used for this project?
+### Revolutionary Privacy Controls - "What's To Reveal, What's To Share"
+- Granular intensity sliders (0-100%) for each aspect of your identity
+- Different privacy settings for different audiences
+- Life clusters: Personal, Professional, Creative, Social
+- Context-aware sharing (professional vs social vs personal)
 
-This project is built with:
+### Platform Connectors
+- ✅ **Has API**: Spotify, YouTube, GitHub, LinkedIn, Reddit, Discord
+- ⚠️ **Limited API**: Netflix, Instagram, TikTok
+- 🔧 **Browser Extension**: For platforms without APIs
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+## 🏗️ Architecture
 
-## How can I deploy this project?
+```
+twin-me/
+├── src/                  # React frontend
+│   ├── pages/           # Page components
+│   ├── components/      # Reusable UI components
+│   └── contexts/        # State management
+├── api/                  # Express backend
+│   ├── routes/          # API endpoints
+│   ├── services/        # Business logic
+│   └── connectors/      # Platform integrations
+└── public/              # Static assets
+```
 
-Simply open [Lovable](https://lovable.dev/projects/7ce0491b-6626-4102-8fff-a5825c1fd312) and click on Share -> Publish.
+## 🔑 Environment Setup
 
-## Can I connect a custom domain to my Lovable project?
+Create a `.env` file:
 
-Yes, you can!
+```env
+# Core
+PORT=3001
+VITE_APP_URL=http://localhost:8086
+VITE_API_URL=http://localhost:3001/api
 
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
+# Authentication
+GOOGLE_CLIENT_ID=your-google-client-id
+JWT_SECRET=your-jwt-secret
 
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
+# AI Services
+ANTHROPIC_API_KEY=your-anthropic-key
+OPENAI_API_KEY=your-openai-key
+
+# Database
+SUPABASE_URL=your-supabase-url
+SUPABASE_ANON_KEY=your-supabase-key
+```
+
+## 📊 The Personal-Professional Spectrum
+
+### Personal Universe
+- **Entertainment**: Netflix narratives, Spotify moods, YouTube interests
+- **Gaming**: Discord communities, Steam patterns, Twitch engagement
+- **Social**: Reddit discussions, Twitter thoughts, Instagram aesthetics
+
+### Professional Universe
+- **Communication**: Email patterns, Slack dynamics, Teams collaboration
+- **Technical**: GitHub contributions, LinkedIn trajectory, portfolio work
+- **Productivity**: Calendar patterns, task management, documentation style
+
+## 🎛️ Life Clusters System
+
+**Personal Clusters**
+- Hobbies & Interests
+- Sports & Fitness
+- Spirituality & Religion
+- Entertainment Choices
+- Social Connections
+
+**Professional Clusters**
+- Studies & Education
+- Career & Jobs
+- Skills & Expertise
+- Achievements & Recognition
+
+**Creative Clusters**
+- Artistic Expression
+- Content Creation
+- Musical Identity
+
+## 🚦 Getting Started
+
+1. **Clone the repository**
+   ```bash
+   git clone https://github.com/stefanogebara/twin-ai-learn
+   cd twin-ai-learn
+   ```
+
+2. **Install dependencies**
+   ```bash
+   npm install --legacy-peer-deps
+   ```
+
+3. **Set up environment variables**
+   - Copy `.env.example` to `.env`
+   - Add your API keys and configuration
+
+4. **Run the application**
+   ```bash
+   npm run dev:full
+   ```
+
+5. **Access the platform**
+   - Frontend: http://localhost:8086
+   - Backend API: http://localhost:3001
+
+## 🔐 Security & Privacy
+
+- **Privacy-First Design**: Complete transparency on collected data
+- **Granular Controls**: Delete any portion of your data anytime
+- **Progressive Disclosure**: Start simple, unlock features as you share more
+- **Contextual Sharing**: Different aspects for different audiences
+- **Data Portability**: Export your entire profile anytime
+
+## 🛠️ Tech Stack
+
+- **Frontend**: React 18, TypeScript, Tailwind CSS, Vite
+- **Backend**: Node.js, Express, JWT Authentication
+- **AI**: Anthropic Claude, OpenAI GPT
+- **Database**: Supabase (PostgreSQL)
+- **Auth**: OAuth 2.0 for platform connections
+
+## 📈 Roadmap
+
+- [ ] Real OAuth implementation for all platforms
+- [ ] Browser extension for Netflix/streaming data
+- [ ] Soul signature matching algorithm
+- [ ] Advanced visualization interface
+- [ ] API rate limiting and caching
+- [ ] Mobile applications
+- [ ] Blockchain-based identity verification
+
+## 🤝 Contributing
+
+We welcome contributions! Please see our [Contributing Guide](CONTRIBUTING.md) for details.
+
+## 📄 License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## 🙏 Acknowledgments
+
+Built with inspiration from the philosophy that true originality lies not in what we present publicly, but in the authentic patterns of our private choices and genuine curiosities.
+
+---
+
+**Twin Me** - Discover what makes you authentically YOU ✨

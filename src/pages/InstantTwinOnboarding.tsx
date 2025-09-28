@@ -38,6 +38,8 @@ import {
   Fingerprint
 } from 'lucide-react';
 
+import UserProfile from '../components/UserProfile';
+
 import {
   DataProvider,
   TwinGenerationProgress,
@@ -845,13 +847,7 @@ const InstantTwinOnboarding = () => {
               </p>
             </div>
 
-            <div
-              className="flex items-center gap-2 text-sm px-3 py-2 rounded-full font-semibold"
-              style={{ backgroundColor: 'var(--_color-theme---accent)', color: 'white' }}
-            >
-              <Zap className="w-4 h-4" />
-              <span>60s setup</span>
-            </div>
+            <UserProfile />
           </div>
         </div>
       </div>

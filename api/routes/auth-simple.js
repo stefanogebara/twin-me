@@ -10,6 +10,9 @@ const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-this-in-pro
 // In-memory user storage (for testing - replace with database in production)
 const users = new Map();
 
+// In-memory connector storage (for testing - replace with database in production)
+const tempConnections = new Map();
+
 // Sign up
 router.post('/signup', async (req, res) => {
   try {
@@ -228,11 +231,15 @@ router.get('/oauth/callback', async (req, res) => {
       return res.redirect(`${process.env.VITE_APP_URL || 'http://localhost:8086'}/auth?error=no_code`);
     }
 
-    // Decode state to get provider
+    // Decode state to get provider and userId
     let provider = 'google';
+    let userId = null;
+    let isConnectorFlow = false;
     try {
       const stateData = JSON.parse(Buffer.from(state, 'base64').toString());
       provider = stateData.provider || 'google';
+      userId = stateData.userId;
+      isConnectorFlow = !!userId; // If userId exists, this is a connector OAuth flow
     } catch (e) {
       console.log('Could not decode state, defaulting to google');
     }
@@ -285,7 +292,41 @@ router.get('/oauth/callback', async (req, res) => {
       }
     }
 
-    // Generate JWT token
+    // Handle connector storage if this is a connector OAuth flow
+    if (isConnectorFlow && userId) {
+      try {
+        console.log(`🔗 Storing connector for ${provider} and user ${userId}`);
+
+        // Store the connector data (similar to connectors.js logic)
+        const connectionKey = `${userId}-${provider}`;
+        const connectionData = {
+          user_id: userId,
+          provider: provider,
+          access_token: userData.accessToken || 'mock_token_' + Date.now(), // Mock token for testing
+          refresh_token: userData.refreshToken || null,
+          expires_at: null,
+          connected_at: new Date(),
+          last_sync: new Date(),
+          is_active: true,
+          permissions: {},
+          total_synced: 0,
+          last_sync_status: 'success',
+          error_count: 0
+        };
+
+        tempConnections.set(connectionKey, connectionData);
+        console.log(`✅ Successfully stored ${provider} connection for user ${userId}`);
+        console.log(`📊 Current connections:`, Array.from(tempConnections.keys()));
+
+        // Redirect back to get-started page with connected=true
+        const redirectUrl = `http://localhost:8086/get-started?connected=true`;
+        return res.redirect(redirectUrl);
+      } catch (error) {
+        console.error('Error storing connector:', error);
+      }
+    }
+
+    // Generate JWT token for regular user authentication
     const token = jwt.sign(
       { id: user.id, email: user.email },
       JWT_SECRET,

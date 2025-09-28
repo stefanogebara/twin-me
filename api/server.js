@@ -148,10 +148,11 @@ const handleValidationErrors = (req, res, next) => {
 // import twinsRoutes from './routes/twins.js';
 // import conversationsRoutes from './routes/conversations.js';
 // import voiceRoutes from './routes/voice.js';
-// import analyticsRoutes from './routes/analytics.js';
+import analyticsRoutes from './routes/analytics.js';
 import connectorsRoutes from './routes/connectors.js';
 // import mcpConnectorsRoutes from './routes/mcp-connectors.js';
 import entertainmentRoutes from './routes/entertainment-connectors.js';
+import additionalEntertainmentRoutes from './routes/additional-entertainment-connectors.js';
 import soulExtractionRoutes from './routes/soul-extraction.js';
 import authRoutes from './routes/auth-simple.js';
 import { serverDb } from './services/database.js';
@@ -164,10 +165,11 @@ import { /* handleAuthError, */ handleGeneralError, handle404 } from './middlewa
 // app.use('/api/twins', twinsRoutes);
 // app.use('/api/conversations', conversationsRoutes);
 // app.use('/api/voice', voiceRoutes);
-// app.use('/api/analytics', analyticsRoutes);
+app.use('/api/analytics', analyticsRoutes);
 app.use('/api/connectors', connectorsRoutes);
 // app.use('/api/mcp', mcpConnectorsRoutes);
 app.use('/api/entertainment', entertainmentRoutes);
+app.use('/api/entertainment', additionalEntertainmentRoutes);
 app.use('/api/soul', soulExtractionRoutes);
 app.use('/api/auth', authRoutes);
 

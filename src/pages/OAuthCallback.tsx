@@ -33,41 +33,85 @@ const OAuthCallback = () => {
 
         console.log('📤 Exchanging code for token...');
 
-        // Exchange code for token via our backend
-        const response = await fetch(`${import.meta.env.VITE_API_URL}/auth/oauth/callback`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            code,
-            state,
-            provider: 'google'
-          })
-        });
+        // Determine if this is a connector OAuth or auth OAuth by checking state
+        let stateData = null;
+        let isConnectorOAuth = false;
+        try {
+          if (state) {
+            stateData = JSON.parse(Buffer.from(state, 'base64').toString());
+            // Check if this is a connector OAuth (has provider field other than just 'google')
+            isConnectorOAuth = stateData.provider && ['google_gmail', 'google_calendar', 'google_drive', 'slack', 'teams', 'discord'].includes(stateData.provider);
+          }
+        } catch (e) {
+          console.log('Could not decode state, assuming auth OAuth');
+        }
+
+        console.log('🔍 OAuth type detected:', { isConnectorOAuth, stateData });
+
+        let response;
+        if (isConnectorOAuth) {
+          // Handle connector OAuth callback
+          response = await fetch(`${import.meta.env.VITE_API_URL}/connectors/callback`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              code,
+              state
+            })
+          });
+        } else {
+          // Handle main auth OAuth callback
+          response = await fetch(`${import.meta.env.VITE_API_URL}/auth/oauth/callback`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              code,
+              state,
+              provider: 'google'
+            })
+          });
+        }
 
         if (!response.ok) {
           throw new Error(`Token exchange failed: ${response.status}`);
         }
 
         const data = await response.json();
-        console.log('📥 Token exchange response:', { success: data.success });
+        console.log('📥 Token exchange response:', { success: data.success, isConnector: isConnectorOAuth });
 
-        if (data.success && data.token) {
-          // Store the token in localStorage for our auth system
-          localStorage.setItem('auth_token', data.token);
-          localStorage.setItem('auth_provider', 'google');
+        if (data.success) {
+          if (isConnectorOAuth) {
+            // Handle connector OAuth success
+            console.log('✅ Connector OAuth successful');
+            setStatus('success');
+            setMessage(`${stateData?.provider || 'Service'} connected successfully! Redirecting...`);
 
-          console.log('✅ Authentication successful, token stored');
-          setStatus('success');
-          setMessage('Authentication successful! Redirecting...');
+            // Redirect back to the onboarding page with success flag
+            setTimeout(() => {
+              window.location.href = '/get-started?connected=true';
+            }, 1500);
+          } else if (data.token) {
+            // Handle auth OAuth success
+            localStorage.setItem('auth_token', data.token);
+            localStorage.setItem('auth_provider', 'google');
 
-          // Trigger a page reload to ensure AuthContext picks up the new token
-          setTimeout(() => {
-            window.location.href = '/get-started';
-          }, 1500);
+            console.log('✅ Authentication successful, token stored');
+            setStatus('success');
+            setMessage('Authentication successful! Redirecting...');
+
+            // Trigger a page reload to ensure AuthContext picks up the new token
+            setTimeout(() => {
+              window.location.href = '/get-started';
+            }, 1500);
+          } else {
+            throw new Error('Missing token in auth response');
+          }
         } else {
-          throw new Error(data.error || 'Token exchange failed');
+          throw new Error(data.error || 'OAuth exchange failed');
         }
 
       } catch (error) {
