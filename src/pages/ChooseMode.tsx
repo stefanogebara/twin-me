@@ -44,7 +44,7 @@ const ChooseMode = () => {
           <div className="grid md:grid-cols-2 gap-8 max-w-3xl mx-auto">
             {/* Learn Option */}
             <div
-              onClick={() => navigate('/choose-twin-type?mode=learn')}
+              onClick={() => navigate('/talk-to-twin')}
               className="p-8 rounded-2xl border-2 cursor-pointer transition-all duration-300 hover:scale-105"
               style={{
                 backgroundColor: 'var(--_color-theme---surface)',
@@ -72,14 +72,14 @@ const ChooseMode = () => {
                   className="text-base leading-relaxed"
                   style={{ color: 'var(--_color-theme---text-secondary)' }}
                 >
-                  Chat with AI twins of professors and experts to learn new subjects, get explanations, and practice concepts.
+                  Interact with digital twins of real people - discover their unique perspectives, learn from their experiences, and engage with their authentic personalities.
                 </p>
               </div>
             </div>
 
             {/* Create Option */}
             <div
-              onClick={() => navigate('/choose-twin-type?mode=create')}
+              onClick={() => navigate('/soul-signature')}
               className="p-8 rounded-2xl border-2 cursor-pointer transition-all duration-300 hover:scale-105"
               style={{
                 backgroundColor: 'var(--_color-theme---surface)',
@@ -107,7 +107,7 @@ const ChooseMode = () => {
                   className="text-base leading-relaxed"
                   style={{ color: 'var(--_color-theme---text-secondary)' }}
                 >
-                  Build your own AI twin that captures your personality, knowledge, and teaching style to help others.
+                  Build your digital twin by connecting your digital life - from Netflix to Spotify to Gmail - capturing your true essence and originality.
                 </p>
               </div>
             </div>

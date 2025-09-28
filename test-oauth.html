@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>OAuth Test</title>
+</head>
+<body>
+    <h1>OAuth Test Page</h1>
+    <p>Click the button below to test Google OAuth:</p>
+    <button onclick="testOAuth()">Test Google OAuth</button>
+
+    <h2>Direct Link:</h2>
+    <a href="http://localhost:3001/api/auth/oauth/google">http://localhost:3001/api/auth/oauth/google</a>
+
+    <h2>Status:</h2>
+    <div id="status"></div>
+
+    <script>
+        function testOAuth() {
+            document.getElementById('status').innerHTML = 'Redirecting to Google OAuth...';
+            window.location.href = 'http://localhost:3001/api/auth/oauth/google';
+        }
+    </script>
+</body>
+</html>

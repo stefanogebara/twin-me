@@ -58,7 +58,7 @@ export class GoogleWorkspaceConnector implements IDataConnector {
 
     const authUrl = `https://accounts.google.com/oauth2/auth?` +
       `client_id=${this.clientId}&` +
-      `redirect_uri=${encodeURIComponent(redirectUrl || 'http://localhost:8084/oauth/callback')}&` +
+      `redirect_uri=${encodeURIComponent(redirectUrl || 'http://localhost:8086/oauth/callback')}&` +
       `scope=${encodeURIComponent(scopes)}&` +
       `response_type=code&` +
       `access_type=offline&` +
@@ -77,7 +77,7 @@ export class GoogleWorkspaceConnector implements IDataConnector {
         client_secret: this.clientSecret,
         code,
         grant_type: 'authorization_code',
-        redirect_uri: 'http://localhost:8084/oauth/callback'
+        redirect_uri: 'http://localhost:8086/oauth/callback'
       })
     });
 
@@ -230,7 +230,7 @@ export class SlackConnector implements IDataConnector {
     return `https://slack.com/oauth/v2/authorize?` +
       `client_id=${this.clientId}&` +
       `scope=${encodeURIComponent(scopes)}&` +
-      `redirect_uri=${encodeURIComponent(redirectUrl || 'http://localhost:8084/oauth/callback')}&` +
+      `redirect_uri=${encodeURIComponent(redirectUrl || 'http://localhost:8086/oauth/callback')}&` +
       `state=${userId}`;
   }
 

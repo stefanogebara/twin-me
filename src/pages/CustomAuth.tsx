@@ -61,10 +61,10 @@ const CustomAuth = () => {
               Back to Home
             </button>
 
-            <div className="flex items-center gap-2">
-              <Brain className="w-6 h-6" style={{ color: 'var(--_color-theme---accent)' }} />
+            <div className="flex items-center gap-3">
+              <img src="/twin-me-logo.svg" alt="Twin Me" className="w-8 h-8" />
               <span className="text-xl font-bold" style={{ color: 'var(--_color-theme---text)', fontFamily: 'var(--_typography---font--styrene-a)' }}>
-                Twin AI Learn
+                Twin Me
               </span>
             </div>
 
@@ -86,9 +86,7 @@ const CustomAuth = () => {
           >
             {/* Header */}
             <div className="text-center mb-8">
-              <div className="w-16 h-16 mx-auto mb-4 rounded-full flex items-center justify-center" style={{ backgroundColor: 'var(--_color-theme---accent)' }}>
-                <Brain className="w-8 h-8 text-white" />
-              </div>
+              <img src="/twin-me-logo.svg" alt="Twin Me" className="w-16 h-16 mx-auto mb-4" />
               <h1
                 className="text-2xl font-bold mb-2"
                 style={{ color: 'var(--_color-theme---text)', fontFamily: 'var(--_typography---font--styrene-a)' }}
@@ -97,8 +95,8 @@ const CustomAuth = () => {
               </h1>
               <p style={{ color: 'var(--_color-theme---text-secondary)' }}>
                 {mode === 'signin'
-                  ? 'Sign in to continue to your AI twins'
-                  : 'Join thousands creating AI twins'
+                  ? 'Sign in to discover your soul signature'
+                  : 'Join thousands discovering their authentic selves'
                 }
               </p>
             </div>

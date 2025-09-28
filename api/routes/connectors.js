@@ -81,9 +81,17 @@ router.get('/auth/:provider', (req, res) => {
     })).toString('base64');
 
     // Build authorization URL
+    // HARDCODED to fix OAuth redirect issue - always use port 8086
+    const redirectUri = 'http://localhost:8086/oauth/callback'; // Frontend callback URL
+
+    console.log(`🔗 OAuth for ${provider}:`);
+    console.log(`📍 Redirect URI: ${redirectUri}`);
+    console.log(`🌍 VITE_APP_URL from env: ${process.env.VITE_APP_URL}`);
+    console.log(`🔑 All APP URLs in env:`, Object.keys(process.env).filter(k => k.includes('APP_URL')));
+
     const params = new URLSearchParams({
       client_id: config.clientId,
-      redirect_uri: `${process.env.VITE_APP_URL}/oauth/callback`,
+      redirect_uri: redirectUri,
       scope: config.scopes.join(' '),
       response_type: 'code',
       access_type: 'offline',
@@ -158,7 +166,7 @@ router.post('/callback', async (req, res) => {
         client_secret: config.clientSecret,
         code,
         grant_type: 'authorization_code',
-        redirect_uri: `${process.env.VITE_APP_URL}/oauth/callback`
+        redirect_uri: 'http://localhost:8086/oauth/callback' // HARDCODED to match OAuth settings
       })
     });
 
