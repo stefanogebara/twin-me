@@ -249,23 +249,22 @@ router.get('/oauth/callback', async (req, res) => {
     if (provider === 'google' && code) {
       // Real Google OAuth
       userData = await exchangeGoogleCode(code);
+    }
 
+    // For connector OAuth, we don't need real user data - just store the connection
+    if (isConnectorFlow) {
+      console.log('Processing connector OAuth flow for:', provider);
+      // Skip user creation for connector flows
+    } else {
+      // Only create mock users for authentication flows
       if (!userData) {
-        // Fallback to mock for development
-        console.log('Using mock Google user for development');
+        console.log('Using mock user for development (auth flow)');
         userData = {
-          email: 'demo@google.com',
-          firstName: 'Google',
+          email: provider === 'google' ? 'demo@google.com' : `demo@${provider}.com`,
+          firstName: provider.charAt(0).toUpperCase() + provider.slice(1),
           lastName: 'User'
         };
       }
-    } else {
-      // Mock data for other providers
-      userData = {
-        email: `demo@${provider}.com`,
-        firstName: provider.charAt(0).toUpperCase() + provider.slice(1),
-        lastName: 'User'
-      };
     }
 
     // Check if user exists or create new
@@ -352,23 +351,22 @@ router.post('/oauth/callback', async (req, res) => {
     if (provider === 'google' && code) {
       // Real Google OAuth
       userData = await exchangeGoogleCode(code);
+    }
 
+    // For connector OAuth, we don't need real user data - just store the connection
+    if (isConnectorFlow) {
+      console.log('Processing connector OAuth flow for:', provider);
+      // Skip user creation for connector flows
+    } else {
+      // Only create mock users for authentication flows
       if (!userData) {
-        // Fallback to mock for development
-        console.log('Using mock Google user for development');
+        console.log('Using mock user for development (auth flow)');
         userData = {
-          email: 'demo@google.com',
-          firstName: 'Google',
+          email: provider === 'google' ? 'demo@google.com' : `demo@${provider}.com`,
+          firstName: provider.charAt(0).toUpperCase() + provider.slice(1),
           lastName: 'User'
         };
       }
-    } else {
-      // Mock data for other providers
-      userData = {
-        email: `demo@${provider}.com`,
-        firstName: provider.charAt(0).toUpperCase() + provider.slice(1),
-        lastName: 'User'
-      };
     }
 
     // Check if user exists or create new

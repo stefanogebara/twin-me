@@ -90,14 +90,24 @@ const OAuthCallback = () => {
             setStatus('success');
             setMessage(`${stateData?.provider || 'Service'} connected successfully! Redirecting...`);
 
+            // Store connection in localStorage to persist across refreshes
+            const existingConnections = JSON.parse(localStorage.getItem('connectedServices') || '[]');
+            if (!existingConnections.includes(stateData?.provider)) {
+              existingConnections.push(stateData?.provider);
+              localStorage.setItem('connectedServices', JSON.stringify(existingConnections));
+            }
+
             // Redirect back to the onboarding page with success flag
             setTimeout(() => {
-              window.location.href = '/get-started?connected=true';
+              window.location.href = '/get-started?connected=true&provider=' + (stateData?.provider || '');
             }, 1500);
           } else if (data.token) {
-            // Handle auth OAuth success
-            localStorage.setItem('auth_token', data.token);
-            localStorage.setItem('auth_provider', 'google');
+            // Handle auth OAuth success - DON'T overwrite existing auth
+            const existingToken = localStorage.getItem('auth_token');
+            if (!existingToken) {
+              localStorage.setItem('auth_token', data.token);
+              localStorage.setItem('auth_provider', 'google');
+            }
 
             console.log('✅ Authentication successful, token stored');
             setStatus('success');
@@ -171,7 +181,7 @@ const OAuthCallback = () => {
               color: 'var(--_color-theme---text)'
             }}
           >
-            Twin AI Learn
+            Twin Me
           </h1>
         </div>
 
