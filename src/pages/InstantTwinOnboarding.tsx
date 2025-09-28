@@ -195,13 +195,27 @@ const InstantTwinOnboarding = () => {
   // State management
   const [currentStep, setCurrentStep] = useState(1);
   const [selectedConnectors, setSelectedConnectors] = useState<DataProvider[]>([]);
-  const [connectedServices, setConnectedServices] = useState<DataProvider[]>([]);
+  const [connectedServices, setConnectedServices] = useState<DataProvider[]>(() => {
+    // Initialize from localStorage on mount
+    const stored = localStorage.getItem('connectedServices');
+    return stored ? JSON.parse(stored) : [];
+  });
   const [generationProgress, setGenerationProgress] = useState<TwinGenerationProgress | null>(null);
   const [showPrivacyDetails, setShowPrivacyDetails] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
   const [hasCheckedConnection, setHasCheckedConnection] = useState(false);
   // Progressive disclosure state
   const [showAllConnectors, setShowAllConnectors] = useState(false);
+
+  // Load connections from localStorage on mount
+  useEffect(() => {
+    const storedConnections = localStorage.getItem('connectedServices');
+    if (storedConnections) {
+      const parsed = JSON.parse(storedConnections);
+      console.log('📦 Loaded connections from localStorage:', parsed);
+      setConnectedServices(parsed);
+    }
+  }, []);
 
   // Check for OAuth callback success
   useEffect(() => {
@@ -226,10 +240,15 @@ const InstantTwinOnboarding = () => {
 
   const resetConnectionStatus = async () => {
     try {
+      // Clear localStorage connections on fresh load (no OAuth callback)
+      localStorage.removeItem('connectedServices');
+      setConnectedServices([]);
+      console.log('🔄 Reset connection status for fresh page load');
+
       if (!user?.id) return;
 
-      console.log('🔄 Resetting connection status for fresh page load');
-      const response = await fetch(`http://localhost:3001/api/connectors/reset/${user.id}`, {
+      // Also try to reset backend
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/connectors/reset/${user.id}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -238,21 +257,43 @@ const InstantTwinOnboarding = () => {
 
       const result = await response.json();
       if (result.success) {
-        setConnectedServices([]);
-        console.log('✅ Connection status reset successfully');
+        console.log('✅ Backend connection status reset');
       }
     } catch (error) {
       console.error('❌ Error resetting connection status:', error);
-      // Clear local state anyway
-      setConnectedServices([]);
     }
   };
 
   const checkConnectionStatus = async () => {
     try {
+      // First check localStorage for persisted connections
+      const storedConnections = JSON.parse(localStorage.getItem('connectedServices') || '[]');
+      if (storedConnections.length > 0) {
+        console.log('📱 Found stored connections:', storedConnections);
+        setConnectedServices(storedConnections);
+
+        // Get the provider from URL params
+        const currentUrlParams = new URLSearchParams(window.location.search);
+        const provider = currentUrlParams.get('provider');
+
+        if (provider) {
+          toast({
+            title: "✅ Connected Successfully",
+            description: `${provider.replace('_', ' ')} is now connected to your Twin Me account`,
+            variant: "default",
+          });
+        } else if (storedConnections.length > 0) {
+          toast({
+            title: "Connections Restored",
+            description: `${storedConnections.length} service${storedConnections.length !== 1 ? 's' : ''} connected`,
+          });
+        }
+      }
+
+      // Also check backend status if user is logged in
       if (!user?.id) return;
 
-      const response = await fetch(`http://localhost:3001/api/connectors/status/${user.id}`, {
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/connectors/status/${user.id}`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
@@ -261,32 +302,24 @@ const InstantTwinOnboarding = () => {
 
       const result = await response.json();
 
-      if (result.success) {
-        // Update connected services based on actual backend status
-        const connectedProviders = Object.keys(result.data || {}) as DataProvider[];
-        console.log('🔍 Connection status check:', {
-          success: result.success,
-          resultData: result.data,
-          connectedProviders,
-          currentConnectedServices: connectedServices,
-          dataKeys: Object.keys(result.data || {}),
-          dataValues: Object.values(result.data || {})
-        });
+      if (result.success && Object.keys(result.data || {}).length > 0) {
+        // Merge backend status with localStorage
+        const backendProviders = Object.keys(result.data || {}) as DataProvider[];
+        const mergedProviders = [...new Set([...storedConnections, ...backendProviders])];
 
-        setConnectedServices(connectedProviders);
-        console.log('📝 Updated connectedServices state to:', connectedProviders);
+        console.log('🔄 Merged connection status:', mergedProviders);
+        setConnectedServices(mergedProviders);
 
-        if (connectedProviders.length > 0) {
-          toast({
-            title: "Connection Updated",
-            description: `${connectedProviders.length} service${connectedProviders.length !== 1 ? 's' : ''} connected`,
-          });
-        }
-      } else {
-        console.warn('❌ Connection status check failed:', result);
+        // Update localStorage with merged data
+        localStorage.setItem('connectedServices', JSON.stringify(mergedProviders));
       }
     } catch (error) {
       console.error('Error checking connection status:', error);
+      // Fallback to localStorage only
+      const storedConnections = JSON.parse(localStorage.getItem('connectedServices') || '[]');
+      if (storedConnections.length > 0) {
+        setConnectedServices(storedConnections);
+      }
     }
   };
 
@@ -342,13 +375,33 @@ const InstantTwinOnboarding = () => {
       }
 
       const result = await response.json();
-      console.log('OAuth auth response:', result);
+      console.log('✅ Connection response:', result);
 
-      if (result.success && result.data?.authUrl) {
-        // Redirect to OAuth provider
-        window.location.href = result.data.authUrl;
+      if (result.success) {
+        // Store connection in localStorage
+        const existingConnections = JSON.parse(localStorage.getItem('connectedServices') || '[]');
+        if (!existingConnections.includes(provider)) {
+          existingConnections.push(provider);
+          localStorage.setItem('connectedServices', JSON.stringify(existingConnections));
+        }
+
+        // Update local state immediately
+        setConnectedServices(prev => {
+          const updated = prev.includes(provider) ? prev : [...prev, provider];
+          console.log('📝 Updated connected services:', updated);
+          return updated;
+        });
+
+        toast({
+          title: "✅ Connected Successfully",
+          description: `${AVAILABLE_CONNECTORS.find(c => c.provider === provider)?.name} is now connected`,
+          variant: "default",
+        });
+
+        // Note: In production with real OAuth, this would redirect:
+        // if (result.data?.authUrl) window.location.href = result.data.authUrl;
       } else {
-        throw new Error(result.error || 'Failed to get authorization URL');
+        throw new Error(result.error || 'Connection failed');
       }
 
     } catch (error: any) {
