@@ -141,7 +141,13 @@ router.get('/verify', async (req, res) => {
 
 // OAuth routes - Google only
 router.get('/oauth/google', (req, res) => {
-  const clientId = process.env.GOOGLE_CLIENT_ID || '851806289280-k0v833noqjk02r43m45cjr7prnhg24gr.apps.googleusercontent.com';
+  const clientId = process.env.GOOGLE_CLIENT_ID;
+
+  if (!clientId || clientId === 'your-actual-client-id-here.apps.googleusercontent.com') {
+    return res.status(500).json({
+      error: 'Google OAuth not configured. Please set GOOGLE_CLIENT_ID in .env file'
+    });
+  }
   // Try multiple possible redirect URIs that might be configured in Google Cloud Console
   const possibleRedirectUris = [
     'http://localhost:8084/api/auth/oauth/callback',
@@ -166,8 +172,8 @@ router.get('/oauth/google', (req, res) => {
 // Helper function to exchange Google auth code for tokens
 async function exchangeGoogleCode(code) {
   try {
-    const clientId = process.env.GOOGLE_CLIENT_ID || '851806289280-k0v833noqjk02r43m45cjr7prnhg24gr.apps.googleusercontent.com';
-    const clientSecret = process.env.GOOGLE_CLIENT_SECRET || 'GOCSPX-your-client-secret'; // Add to .env
+    const clientId = process.env.GOOGLE_CLIENT_ID;
+    const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
     const redirectUri = `http://localhost:8086/oauth/callback`;
 
     // Exchange code for tokens
