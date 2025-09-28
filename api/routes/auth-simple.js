@@ -346,6 +346,18 @@ router.post('/oauth/callback', async (req, res) => {
   try {
     const { code, state, provider } = req.body;
 
+    // Decode state to check if this is a connector OAuth
+    let stateData = null;
+    let isConnectorFlow = false;
+    try {
+      if (state) {
+        stateData = JSON.parse(Buffer.from(state, 'base64').toString());
+        isConnectorFlow = !!stateData.userId;
+      }
+    } catch (e) {
+      console.log('Could not decode state');
+    }
+
     let userData = null;
 
     if (provider === 'google' && code) {
@@ -369,48 +381,64 @@ router.post('/oauth/callback', async (req, res) => {
       }
     }
 
-    // Check if user exists or create new
-    let user = Array.from(users.values()).find(u => u.email === userData.email);
+    // Check if user exists or create new (only for auth flows, not connector flows)
+    let user = null;
 
-    if (!user) {
-      const userId = `${provider}_user_${Date.now()}`;
-      user = {
-        id: userId,
-        email: userData.email,
-        first_name: userData.firstName,
-        last_name: userData.lastName,
-        oauth_provider: provider,
-        access_token: userData.accessToken,
-        refresh_token: userData.refreshToken,
-        created_at: new Date().toISOString()
-      };
-      users.set(userData.email, user);
-    } else {
-      // Update tokens if they exist
-      if (userData.accessToken) {
-        user.access_token = userData.accessToken;
-        user.refresh_token = userData.refreshToken;
+    if (!isConnectorFlow && userData) {
+      user = Array.from(users.values()).find(u => u.email === userData.email);
+
+      if (!user) {
+        const userId = `${provider}_user_${Date.now()}`;
+        user = {
+          id: userId,
+          email: userData.email,
+          first_name: userData.firstName,
+          last_name: userData.lastName,
+          oauth_provider: provider,
+          access_token: userData.accessToken,
+          refresh_token: userData.refreshToken,
+          created_at: new Date().toISOString()
+        };
+        users.set(userData.email, user);
+      } else {
+        // Update tokens if they exist
+        if (userData.accessToken) {
+          user.access_token = userData.accessToken;
+          user.refresh_token = userData.refreshToken;
+        }
       }
     }
 
-    // Generate JWT token
-    const token = jwt.sign(
-      { id: user.id, email: user.email },
-      JWT_SECRET,
-      { expiresIn: '7d' }
-    );
+    // Handle response based on flow type
+    if (isConnectorFlow) {
+      // For connector flows, just return success
+      res.json({
+        success: true,
+        message: 'Connector authenticated successfully',
+        provider: provider
+      });
+    } else if (user) {
+      // Generate JWT token for auth flows
+      const token = jwt.sign(
+        { id: user.id, email: user.email },
+        JWT_SECRET,
+        { expiresIn: '7d' }
+      );
 
-    res.json({
-      success: true,
-      token,
-      user: {
-        id: user.id,
-        email: user.email,
-        firstName: user.first_name,
-        lastName: user.last_name,
-        fullName: `${user.first_name} ${user.last_name}`.trim()
-      }
-    });
+      res.json({
+        success: true,
+        token,
+        user: {
+          id: user.id,
+          email: user.email,
+          firstName: user.first_name,
+          lastName: user.last_name,
+          fullName: `${user.first_name} ${user.last_name}`.trim()
+        }
+      });
+    } else {
+      throw new Error('Authentication failed');
+    }
   } catch (error) {
     console.error('OAuth callback error:', error);
     res.status(500).json({ error: 'OAuth authentication failed' });
