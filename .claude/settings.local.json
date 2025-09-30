@@ -5,7 +5,18 @@
       "WebFetch(domain:api.github.com)",
       "mcp__github__list_issues",
       "Bash(git add:*)",
-      "Bash(git commit:*)"
+      "Bash(git commit:*)",
+      "Bash(node server.js)",
+      "Bash(npm run dev:*)",
+      "mcp__playwright__browser_navigate",
+      "mcp__playwright__browser_take_screenshot",
+      "mcp__playwright__browser_click",
+      "mcp__playwright__browser_fill_form",
+      "Bash(curl:*)",
+      "Bash(timeout:*)",
+      "WebSearch",
+      "Bash(test:*)",
+      "Bash(npm install:*)"
     ],
     "deny": [],
     "ask": []

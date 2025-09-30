@@ -133,57 +133,47 @@ All colors MUST be HSL. Semantic tokens for consistent theming.
 
   /* Dark Theme Support */
   [data-theme="dark"] {
-    /* Dark theme color overrides */
-    --_color-theme---background: #111319; /* Dark background */
-    --_color-theme---text: #e5e5e5; /* Light text */
-    --_color-theme---text-secondary: #9ca3af; /* Muted light text */
-    --_color-theme---text-muted: #6b7280; /* Even more muted text */
-    --_color-theme---surface: #191d26; /* Dark surface */
-    --_color-theme---surface-elevated: #252a36; /* Slightly elevated dark surface */
-    --_color-theme---accent: #d97706; /* Keep orange accent */
-    --_color-theme---accent-hover: #b45309; /* Keep orange hover */
-    --_color-theme---link--text-hover: #9ca3af;
-    --_color-theme---border: #343a47; /* Dark borders */
-    --_color-theme---background-secondary: #343a47; /* Dark secondary background */
-    --_color-theme---text-agate: #343a47;
-    --_color-theme---background-secondary-hover: #4b5563; /* Hover state */
-    --_color-theme---button-primary--border: #e5e5e5; /* Light borders for buttons */
-    --_color-theme---card: #191d26; /* Dark cards */
-    --_color-theme---card-faded: #343a47; /* Faded dark cards */
-    --_color-theme---card-faded-hover: #4b5563; /* Hover state for faded cards */
-    --_color-theme---link--text: #e5e5e5; /* Light link text */
-    --_color-theme---border-hover: #4b5563; /* Border hover state */
-    --_color-theme---link--text-active: #e5e5e5; /* Active link text */
+    /* Dark theme - Using HSL format for Tailwind compatibility */
+    --background: 210 11% 7%; /* #111319 - Dark background */
+    --foreground: 0 0% 90%; /* #e5e5e5 - Light text */
 
-    /* Override swatch colors for dark theme */
-    --swatch--ivory-medium: #111319;
-    --swatch--slate-dark: #e5e5e5;
-    --swatch--slate-medium: #9ca3af;
-    --swatch--slate-light: #6b7280;
-    --swatch--white: #191d26;
-    --swatch--slate-faded-10: #343a47;
-    --swatch--slate-faded-20: #4b5563;
+    --card: 213 11% 11%; /* #191d26 - Dark cards */
+    --card-foreground: 0 0% 90%; /* Light text */
 
-    /* Update all other variables that use these colors */
-    --background: var(--_color-theme---background);
-    --foreground: var(--_color-theme---text);
-    --card: var(--_color-theme---card);
-    --card-foreground: var(--_color-theme---text);
-    --popover: var(--_color-theme---surface);
-    --popover-foreground: var(--_color-theme---text);
-    --primary: var(--_color-theme---accent);
-    --primary-foreground: #ffffff;
-    --secondary: var(--_color-theme---surface-elevated);
-    --secondary-foreground: var(--_color-theme---text);
-    --muted: var(--_color-theme---background-secondary);
-    --muted-foreground: var(--_color-theme---text-secondary);
-    --accent: var(--_color-theme---surface-elevated);
-    --accent-foreground: var(--_color-theme---text);
-    --destructive: #ef4444;
-    --destructive-foreground: #ffffff;
-    --border: var(--_color-theme---border);
-    --input: var(--_color-theme---border);
-    --ring: var(--_color-theme---accent);
+    --popover: 213 11% 11%; /* #191d26 - Dark surface */
+    --popover-foreground: 0 0% 90%; /* Light text */
+
+    --primary: 31 81% 56%; /* #d97706 - Orange accent */
+    --primary-foreground: 0 0% 100%; /* White text */
+    --primary-hover: 27 81% 48%; /* #b45309 - Darker orange */
+
+    --secondary: 213 14% 16%; /* #252a36 - Slightly elevated surface */
+    --secondary-foreground: 0 0% 90%; /* Light text */
+
+    --muted: 215 14% 20%; /* #343a47 - Muted background */
+    --muted-foreground: 218 11% 65%; /* #9ca3af - Muted text */
+
+    --accent: 213 14% 16%; /* #252a36 - Accent surface */
+    --accent-foreground: 0 0% 90%; /* Light text */
+
+    --destructive: 0 84% 60%; /* #ef4444 - Red */
+    --destructive-foreground: 0 0% 100%; /* White text */
+
+    --border: 215 14% 20%; /* #343a47 - Dark borders */
+    --input: 215 14% 20%; /* #343a47 - Input borders */
+    --ring: 31 81% 56%; /* Orange focus ring */
+
+    /* Additional semantic colors for dark theme */
+    --surface: 213 11% 11%; /* #191d26 */
+    --surface-elevated: 213 14% 16%; /* #252a36 */
+    --text-secondary: 218 11% 65%; /* #9ca3af */
+    --text-muted: 220 9% 46%; /* #6b7280 */
+    --border-hover: 220 13% 36%; /* #4b5563 */
+
+    /* Lenny's orange for dark mode */
+    --lenny-orange: 31 81% 56%;
+    --lenny-orange-light: 29 81% 61%;
+    --lenny-orange-dark: 27 81% 48%;
   }
 
   /* Anthropic Design System Variables */
