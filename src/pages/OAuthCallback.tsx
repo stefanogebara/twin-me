@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Brain, CheckCircle, XCircle, Loader2 } from 'lucide-react';
+import { toast } from 'sonner';
 
 const OAuthCallback = () => {
   const [searchParams] = useSearchParams();
@@ -119,7 +120,18 @@ const OAuthCallback = () => {
             // Handle connector OAuth success
             console.log('✅ Connector OAuth successful');
             setStatus('success');
-            setMessage(`${stateData?.provider || 'Service'} connected successfully! Redirecting...`);
+
+            // Get provider display name
+            const providerName = stateData?.provider?.replace('google_', '').replace('_', ' ') || 'Service';
+            const displayName = providerName.charAt(0).toUpperCase() + providerName.slice(1);
+
+            setMessage(`${displayName} connected successfully! Redirecting...`);
+
+            // Show success toast
+            toast.success(`${displayName} Connected!`, {
+              description: 'Your data is now being synced and analyzed',
+              duration: 3000
+            });
 
             // Store connection in localStorage to persist across refreshes
             const existingConnections = JSON.parse(localStorage.getItem('connectedServices') || '[]');
@@ -148,6 +160,12 @@ const OAuthCallback = () => {
               setStatus('success');
               setMessage('Authentication successful! Redirecting...');
 
+              // Show success toast
+              toast.success('Welcome to Twin Me!', {
+                description: `Signed in as ${data.user?.email || 'user'}`,
+                duration: 3000
+              });
+
               // Redirect to get-started page
               setTimeout(() => {
                 window.location.href = '/get-started';
@@ -157,6 +175,12 @@ const OAuthCallback = () => {
               console.log('✅ Connector OAuth successful (fallback detection)');
               setStatus('success');
               setMessage(`Service connected successfully! Redirecting...`);
+
+              // Show success toast
+              toast.success('Service Connected!', {
+                description: 'Your data is now being synced',
+                duration: 3000
+              });
 
               // Redirect back to the onboarding page
               setTimeout(() => {
@@ -175,6 +199,12 @@ const OAuthCallback = () => {
               setStatus('success');
               setMessage('Authentication successful! Redirecting...');
 
+              // Show success toast
+              toast.success('Welcome!', {
+                description: 'Successfully signed in',
+                duration: 3000
+              });
+
               setTimeout(() => {
                 window.location.href = '/get-started';
               }, 1500);
@@ -184,6 +214,16 @@ const OAuthCallback = () => {
                 console.log('✅ Detected connector OAuth based on response data');
                 setStatus('success');
                 setMessage(`Service connected successfully! Redirecting...`);
+
+                // Get provider display name
+                const providerName = data.provider?.replace('google_', '').replace('_', ' ') || 'Service';
+                const displayName = providerName.charAt(0).toUpperCase() + providerName.slice(1);
+
+                // Show success toast
+                toast.success(`${displayName} Connected!`, {
+                  description: 'Your data connection is now active',
+                  duration: 3000
+                });
 
                 // Store connection info if we can determine the provider
                 if (data.provider) {
@@ -212,6 +252,12 @@ const OAuthCallback = () => {
         console.error('❌ OAuth callback error:', error);
         setStatus('error');
         setMessage('Connection failed. Please try again.');
+
+        // Show error toast
+        toast.error('Connection Failed', {
+          description: 'Unable to complete authentication. Please try again.',
+          duration: 4000
+        });
 
         // Don't redirect to auth for connector OAuth failures - stay on get-started
         setTimeout(() => {

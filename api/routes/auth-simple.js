@@ -162,16 +162,8 @@ router.get('/oauth/google', (req, res) => {
       error: 'Google OAuth not configured. Please set GOOGLE_CLIENT_ID in .env file'
     });
   }
-  // Try multiple possible redirect URIs that might be configured in Google Cloud Console
-  const possibleRedirectUris = [
-    'http://localhost:8084/api/auth/oauth/callback',
-    'http://localhost:3001/api/auth/oauth/callback',
-    'http://localhost:8086/oauth/callback',
-    'http://localhost:8084/oauth/callback'
-  ];
-
-  // Use the most likely one - frontend port with oauth callback
-  const redirectUri = encodeURIComponent('http://localhost:8086/oauth/callback');
+  // Use environment variable for redirect URI
+  const redirectUri = encodeURIComponent(`${process.env.VITE_APP_URL || 'http://localhost:8086'}/oauth/callback`);
   // Only request basic profile scopes for authentication
   const scope = encodeURIComponent('email profile openid');
   const state = Buffer.from(JSON.stringify({
@@ -190,7 +182,7 @@ async function exchangeGoogleCode(code) {
   try {
     const clientId = process.env.GOOGLE_CLIENT_ID;
     const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
-    const redirectUri = `http://localhost:8086/oauth/callback`;
+    const redirectUri = `${process.env.VITE_APP_URL || 'http://localhost:8086'}/oauth/callback`;
 
     // Exchange code for tokens
     const tokenResponse = await fetch('https://oauth2.googleapis.com/token', {

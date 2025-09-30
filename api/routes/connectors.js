@@ -82,7 +82,7 @@ router.get('/auth/:provider', (req, res) => {
 
     // Build authorization URL
     // Use connector-specific callback to avoid conflicts with auth OAuth
-    const redirectUri = 'http://localhost:8086/oauth/callback'; // Frontend callback URL
+    const redirectUri = `${process.env.VITE_APP_URL || 'http://localhost:8086'}/oauth/callback`;
 
     console.log(`🔗 OAuth for ${provider}:`);
     console.log(`📍 Redirect URI: ${redirectUri}`);
@@ -166,7 +166,7 @@ router.post('/callback', async (req, res) => {
         client_secret: config.clientSecret,
         code,
         grant_type: 'authorization_code',
-        redirect_uri: 'http://localhost:8086/oauth/callback' // HARDCODED to match OAuth settings
+        redirect_uri: `${process.env.VITE_APP_URL || 'http://localhost:8086'}/oauth/callback`
       })
     });
 
