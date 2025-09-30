@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../contexts/AuthContext';
 import {
   Sparkles, Music, Film, Book, Gamepad2, Heart, Brain, Globe,
   ChevronRight, Play, Pause, Lock, Unlock, Fingerprint,
-  User, Briefcase, Palette, Coffee, Headphones, Monitor,
-  Instagram, Twitter, Github, Linkedin, Youtube
+  User, Briefcase, Palette, Calendar, Mail, MessageSquare,
+  Instagram, Twitter, Github, Linkedin, Youtube, Users
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -14,6 +15,7 @@ import { Slider } from '@/components/ui/slider';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import PrivacySpectrumDashboard from '@/components/PrivacySpectrumDashboard';
+import ThemeToggle from '../components/ThemeToggle';
 
 interface ConnectionStatus {
   spotify: boolean;
@@ -30,6 +32,7 @@ interface ConnectionStatus {
 
 const SoulSignatureDashboard: React.FC = () => {
   const navigate = useNavigate();
+  const { user, isSignedIn } = useAuth();
   const [activeCluster, setActiveCluster] = useState<string>('personal');
   const [isExtracting, setIsExtracting] = useState(false);
   const [extractionProgress, setExtractionProgress] = useState(0);
@@ -46,6 +49,14 @@ const SoulSignatureDashboard: React.FC = () => {
     slack: false,
     discord: false
   });
+
+  // Authentication check
+  useEffect(() => {
+    if (!isSignedIn) {
+      navigate('/auth');
+      return;
+    }
+  }, [isSignedIn, navigate]);
 
   // Animated extraction simulation
   useEffect(() => {
@@ -67,60 +78,87 @@ const SoulSignatureDashboard: React.FC = () => {
     {
       id: 'personal',
       name: 'Personal Soul',
+      description: 'Your authentic self through entertainment, creativity, and personal interests',
       icon: <Heart className="w-6 h-6" />,
       gradient: 'from-purple-600 via-pink-500 to-red-500',
       glowColor: 'rgba(219, 39, 119, 0.5)',
       connectors: [
-        { name: 'Spotify', icon: <Music />, status: connections.spotify, key: 'spotify' },
-        { name: 'Netflix', icon: <Film />, status: connections.netflix, key: 'netflix' },
-        { name: 'YouTube', icon: <Youtube />, status: connections.youtube, key: 'youtube' },
-        { name: 'Steam', icon: <Gamepad2 />, status: connections.steam, key: 'steam' },
-        { name: 'Goodreads', icon: <Book />, status: connections.goodreads, key: 'goodreads' }
+        // Entertainment & Media
+        { name: 'Spotify', icon: <Music />, status: connections.spotify, key: 'spotify', category: 'Entertainment' },
+        { name: 'Netflix', icon: <Film />, status: connections.netflix, key: 'netflix', category: 'Entertainment' },
+        { name: 'YouTube', icon: <Youtube />, status: connections.youtube, key: 'youtube', category: 'Entertainment' },
+        { name: 'Steam', icon: <Gamepad2 />, status: connections.steam, key: 'steam', category: 'Gaming' },
+        { name: 'Goodreads', icon: <Book />, status: connections.goodreads, key: 'goodreads', category: 'Reading' },
+        // Social & Creative (merged from Creative Expression)
+        { name: 'Instagram', icon: <Instagram />, status: false, key: 'instagram', category: 'Social' },
+        { name: 'Twitter', icon: <Twitter />, status: false, key: 'twitter', category: 'Social' },
+        { name: 'GitHub', icon: <Github />, status: false, key: 'github', category: 'Creative' },
+        { name: 'Discord', icon: <Users />, status: connections.discord, key: 'discord', category: 'Community' }
       ],
       insights: [
-        'Musical taste: Eclectic Explorer',
-        'Entertainment: Deep narratives',
-        'Gaming: Strategic thinker',
-        'Reading: Philosophy & Sci-Fi'
+        '🎵 Musical Identity: Eclectic Explorer with deep emotional connection',
+        '🎬 Entertainment DNA: Seeks complex narratives and meaningful stories',
+        '🎮 Gaming Persona: Strategic thinker who values collaborative experiences',
+        '📚 Learning Style: Philosophy seeker with sci-fi imagination',
+        '🎨 Creative Expression: Boundary pusher who thinks across domains',
+        '💬 Social Engagement: Community builder with authentic connections'
+      ],
+      analysisActions: [
+        {
+          id: 'entertainment-analysis',
+          name: 'Analyze Entertainment Soul',
+          description: 'Extract personality from entertainment platforms',
+          platforms: ['spotify', 'netflix', 'youtube']
+        },
+        {
+          id: 'complete-personal',
+          name: 'Complete Personal Analysis',
+          description: 'Comprehensive personal profile analysis',
+          platforms: 'all'
+        }
       ]
     },
     {
       id: 'professional',
       name: 'Professional Identity',
+      description: 'Your work persona through communication, collaboration, and productivity patterns',
       icon: <Briefcase className="w-6 h-6" />,
       gradient: 'from-blue-600 via-cyan-500 to-teal-500',
       glowColor: 'rgba(6, 182, 212, 0.5)',
       connectors: [
-        { name: 'Gmail', icon: <Globe />, status: connections.gmail, key: 'gmail' },
-        { name: 'Calendar', icon: <Coffee />, status: connections.calendar, key: 'calendar' },
-        { name: 'Teams', icon: <Monitor />, status: connections.teams, key: 'teams' },
-        { name: 'Slack', icon: <Headphones />, status: connections.slack, key: 'slack' },
-        { name: 'LinkedIn', icon: <Linkedin />, status: false, key: 'linkedin' }
+        { name: 'Gmail', icon: <Mail />, status: connections.gmail, key: 'gmail', category: 'Communication' },
+        { name: 'Calendar', icon: <Calendar />, status: connections.calendar, key: 'calendar', category: 'Time Management' },
+        { name: 'Teams', icon: <Users />, status: connections.teams, key: 'teams', category: 'Collaboration' },
+        { name: 'Slack', icon: <MessageSquare />, status: connections.slack, key: 'slack', category: 'Collaboration' },
+        { name: 'LinkedIn', icon: <Linkedin />, status: false, key: 'linkedin', category: 'Networking' }
       ],
       insights: [
-        'Communication: Encouraging mentor',
-        'Work style: Deep focus blocks',
-        'Collaboration: Cross-functional',
-        'Leadership: Servant leader'
-      ]
-    },
-    {
-      id: 'creative',
-      name: 'Creative Expression',
-      icon: <Palette className="w-6 h-6" />,
-      gradient: 'from-orange-600 via-yellow-500 to-green-500',
-      glowColor: 'rgba(251, 146, 60, 0.5)',
-      connectors: [
-        { name: 'Instagram', icon: <Instagram />, status: false, key: 'instagram' },
-        { name: 'Twitter', icon: <Twitter />, status: false, key: 'twitter' },
-        { name: 'GitHub', icon: <Github />, status: false, key: 'github' },
-        { name: 'Discord', icon: <Brain />, status: connections.discord, key: 'discord' }
+        '📧 Communication DNA: Professional Communicator with adaptive tone',
+        '🗓️ Time Management: Strategic scheduler with balanced meeting rhythm',
+        '🤝 Collaboration Style: High-touch collaborative approach',
+        '⚡ Productivity Pattern: Peak performance during business hours',
+        '🎯 Professional Signature: External-focused networker with meeting-centric work style',
+        '💼 Leadership Style: Servant leader with cross-functional expertise'
       ],
-      insights: [
-        'Creative style: Boundary pusher',
-        'Innovation: Cross-domain thinker',
-        'Expression: Visual storyteller',
-        'Impact: Community builder'
+      analysisActions: [
+        {
+          id: 'communication-analysis',
+          name: 'Analyze Communication Style',
+          description: 'Extract communication patterns from Gmail',
+          platforms: ['gmail']
+        },
+        {
+          id: 'productivity-analysis',
+          name: 'Analyze Work Patterns',
+          description: 'Discover productivity and time patterns',
+          platforms: ['calendar']
+        },
+        {
+          id: 'complete-professional',
+          name: 'Complete Professional Analysis',
+          description: 'Comprehensive professional profile',
+          platforms: ['gmail', 'calendar']
+        }
       ]
     }
   ];
@@ -156,39 +194,96 @@ const SoulSignatureDashboard: React.FC = () => {
     setExtractionProgress(0);
 
     try {
-      console.log(`🎭 Extracting soul signature from ${platform}`);
+      console.log(`🧠 Extracting soul signature from ${platform}`);
 
-      // Start real extraction
-      const response = await fetch(`/api/soul/extract/platform/${platform}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          userId: 'current-user',
-          accessToken: null // In real implementation, get from auth
-        })
-      });
+      let response;
+      const userId = user?.id || user?.email || 'anonymous-user'; // Use actual user ID
 
-      if (response.ok) {
+      // Handle different analysis types
+      if (platform === 'communication-analysis' || platform === 'gmail') {
+        console.log('📧 Analyzing Gmail communication patterns...');
+        response = await fetch(`/api/soul/extract/gmail/${userId}`, {
+          method: 'GET',
+          headers: { 'Content-Type': 'application/json' }
+        });
+      } else if (platform === 'productivity-analysis' || platform === 'calendar') {
+        console.log('🗓️ Analyzing Calendar time management patterns...');
+        response = await fetch(`/api/soul/extract/calendar/${userId}`, {
+          method: 'GET',
+          headers: { 'Content-Type': 'application/json' }
+        });
+      } else if (platform === 'complete-professional' || platform === 'professional') {
+        console.log('💼 Generating complete professional soul signature...');
+        response = await fetch(`/api/soul/extract/professional/${userId}`, {
+          method: 'GET',
+          headers: { 'Content-Type': 'application/json' }
+        });
+      } else {
+        // For other platforms, try original route
+        response = await fetch(`/api/soul/extract/platform/${platform}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            userId: userId,
+            accessToken: null
+          })
+        });
+      }
+
+      if (response?.ok) {
         const data = await response.json();
-        console.log('✨ Soul signature extracted:', data);
+        console.log('✨ Real soul signature extracted:', data);
 
         // Update UI with real insights
-        if (data.data.soulSignature) {
-          updateClusterInsights(platform, data.data.soulSignature);
+        if (data.data) {
+          updateClusterInsights(platform, data.data);
         }
       } else {
-        // Fallback to demo extraction
-        const demoResponse = await fetch(`/api/soul/demo/${platform}`);
-        if (demoResponse.ok) {
-          const demoData = await demoResponse.json();
-          console.log('🎭 Using demo soul signature:', demoData);
-          updateClusterInsights(platform, demoData.data.soulSignature);
+        // Fallback to demo extraction for non-professional platforms
+        if (!['gmail', 'calendar', 'professional'].includes(platform)) {
+          const demoResponse = await fetch(`/api/soul/demo/${platform}`);
+          if (demoResponse.ok) {
+            const demoData = await demoResponse.json();
+            console.log('🎭 Using demo soul signature:', demoData);
+            updateClusterInsights(platform, demoData.data);
+          }
+        } else {
+          // Show demo professional insights for Gmail/Calendar
+          const demoInsights = {
+            soulSignature: {
+              communicationStyle: {
+                communicationTone: 'Professional',
+                responsePattern: 'Business Hours',
+                formalityScore: 75,
+                emailFrequency: 12
+              },
+              professionalIdentity: {
+                collaborationStyle: 'High Collaboration',
+                networkType: 'External Focused',
+                networkDiversity: 15
+              },
+              personalityInsights: {
+                communicationPersona: 'The Professional Communicator',
+                workStyle: 'Traditional business hour focus',
+                socialProfile: 'Team-oriented and meeting-focused'
+              }
+            }
+          };
+          updateClusterInsights(platform, demoInsights);
         }
       }
     } catch (error) {
       console.error('Soul extraction error:', error);
+      // Show demo insights on error
+      updateClusterInsights(platform, {
+        soulSignature: {
+          personalityInsights: {
+            communicationPersona: `The ${platform.charAt(0).toUpperCase() + platform.slice(1)} Professional`
+          }
+        }
+      });
     } finally {
-      // Simulate extraction animation
+      // Animate extraction progress
       const interval = setInterval(() => {
         setExtractionProgress(prev => {
           if (prev >= 100) {
@@ -196,9 +291,9 @@ const SoulSignatureDashboard: React.FC = () => {
             clearInterval(interval);
             return 100;
           }
-          return prev + 5;
+          return prev + 8;
         });
-      }, 100);
+      }, 80);
     }
   };
 
@@ -248,6 +343,11 @@ const SoulSignatureDashboard: React.FC = () => {
 
       {/* Main Content */}
       <div className="relative z-10 p-8 max-w-7xl mx-auto">
+        {/* Theme Toggle - Fixed Top Right */}
+        <div className="fixed top-8 right-8 z-50">
+          <ThemeToggle />
+        </div>
+
         {/* Header */}
         <motion.div
           initial={{ opacity: 0, y: -20 }}
@@ -261,9 +361,13 @@ const SoulSignatureDashboard: React.FC = () => {
             </h1>
             <Sparkles className="w-10 h-10 text-cyan-400" />
           </div>
-          <p className="text-gray-400 text-lg">
+          <p className="text-gray-300 text-lg">
             Discovering your authentic digital essence through your choices and preferences
           </p>
+          <div className="text-sm text-gray-400 mt-4 max-w-2xl mx-auto">
+            <strong>Twin Me</strong> analyzes your digital footprint to create an authentic personality profile.
+            Connect your platforms to discover insights about your Professional Identity and Personal Soul.
+          </div>
         </motion.div>
 
         {/* Cluster Navigation */}
@@ -287,8 +391,8 @@ const SoulSignatureDashboard: React.FC = () => {
                 `bg-gradient-to-r ${cluster.gradient}`
               )} />
               <div className="relative flex items-center gap-2">
-                {cluster.icon}
-                <span className="font-medium">{cluster.name}</span>
+                <span className="text-white">{cluster.icon}</span>
+                <span className="font-medium text-white">{cluster.name}</span>
               </div>
             </motion.button>
           ))}
@@ -303,8 +407,8 @@ const SoulSignatureDashboard: React.FC = () => {
             transition={{ delay: 0.1 }}
           >
             <Card className="bg-gray-900/50 backdrop-blur border-gray-800 p-6 h-full">
-              <h3 className="text-xl font-semibold mb-6 flex items-center gap-2">
-                <Globe className="w-5 h-5" />
+              <h3 className="text-xl font-semibold mb-6 flex items-center gap-2 text-white">
+                <Globe className="w-5 h-5 text-white" />
                 Data Sources
               </h3>
               <div className="space-y-3">
@@ -323,8 +427,8 @@ const SoulSignatureDashboard: React.FC = () => {
                     whileTap={{ scale: 0.98 }}
                   >
                     <div className="flex items-center gap-3">
-                      {connector.icon}
-                      <span>{connector.name}</span>
+                      <span className="text-white">{connector.icon}</span>
+                      <span className="text-white">{connector.name}</span>
                     </div>
                     {connector.status ? (
                       <Badge className="bg-green-500/20 text-green-400 border-green-500/50">
@@ -335,6 +439,31 @@ const SoulSignatureDashboard: React.FC = () => {
                     )}
                   </motion.button>
                 ))}
+
+                {/* Analysis Actions */}
+                <motion.div
+                  className="mt-6 pt-6 border-t border-gray-700"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                >
+                  <h4 className="text-sm font-medium text-white mb-4">Soul Analysis Options</h4>
+                  <div className="space-y-3">
+                    {currentCluster.analysisActions?.map((action, index) => (
+                      <Button
+                        key={action.id}
+                        onClick={() => extractSoulSignature(action.id)}
+                        disabled={isExtracting}
+                        variant="outline"
+                        className="w-full justify-start text-left p-4 h-auto bg-gray-800/30 border-gray-600 hover:bg-gray-700/50 text-white"
+                      >
+                        <div>
+                          <div className="font-medium text-sm">{action.name}</div>
+                          <div className="text-xs text-gray-400 mt-1">{action.description}</div>
+                        </div>
+                      </Button>
+                    ))}
+                  </div>
+                </motion.div>
               </div>
             </Card>
           </motion.div>
@@ -346,7 +475,7 @@ const SoulSignatureDashboard: React.FC = () => {
             transition={{ delay: 0.2 }}
           >
             <Card className="bg-gray-900/50 backdrop-blur border-gray-800 p-6 h-full">
-              <h3 className="text-xl font-semibold mb-6 text-center">
+              <h3 className="text-xl font-semibold mb-6 text-center text-white">
                 Soul Signature Visualization
               </h3>
 
@@ -376,8 +505,8 @@ const SoulSignatureDashboard: React.FC = () => {
                     {currentCluster.icon}
                   </div>
                   <div className="mt-4">
-                    <div className="text-sm text-gray-400">Uniqueness Score</div>
-                    <div className="text-2xl font-bold">87%</div>
+                    <div className="text-sm text-gray-300">Uniqueness Score</div>
+                    <div className="text-2xl font-bold text-white">87%</div>
                   </div>
                 </div>
               </div>
@@ -386,7 +515,7 @@ const SoulSignatureDashboard: React.FC = () => {
               <div className="mt-6 space-y-4">
                 {isExtracting ? (
                   <div>
-                    <div className="flex justify-between text-sm mb-2">
+                    <div className="flex justify-between text-sm mb-2 text-white">
                       <span>Extracting Soul Signature...</span>
                       <span>{extractionProgress}%</span>
                     </div>
@@ -415,8 +544,8 @@ const SoulSignatureDashboard: React.FC = () => {
             transition={{ delay: 0.3 }}
           >
             <Card className="bg-gray-900/50 backdrop-blur border-gray-800 p-6 h-full">
-              <h3 className="text-xl font-semibold mb-6 flex items-center gap-2">
-                <Brain className="w-5 h-5" />
+              <h3 className="text-xl font-semibold mb-6 flex items-center gap-2 text-white">
+                <Brain className="w-5 h-5 text-white" />
                 Discovered Patterns
               </h3>
               <div className="space-y-3">

@@ -39,20 +39,22 @@ import ChooseTwinType from "./pages/ChooseTwinType";
 import SoulSignatureDashboard from "./pages/SoulSignatureDashboard";
 import PrivacySpectrumDashboard from "./components/PrivacySpectrumDashboard";
 import TwinProfilePreview from "./components/TwinProfilePreview";
+import { ThemeProvider } from "./contexts/ThemeContext";
 
 const queryClient = new QueryClient();
 
 const App = () => (
-  <ErrorBoundary showHomeButton>
-    <ErrorProvider>
-      <LoadingProvider>
-        <AnalyticsProvider>
-          <QueryClientProvider client={queryClient}>
-            <TooltipProvider>
-              <Toaster />
-              <Sonner />
-              <ErrorNotification />
-              <BrowserRouter>
+  <ThemeProvider>
+    <ErrorBoundary showHomeButton>
+      <ErrorProvider>
+        <LoadingProvider>
+          <AnalyticsProvider>
+            <QueryClientProvider client={queryClient}>
+              <TooltipProvider>
+                <Toaster />
+                <Sonner />
+                <ErrorNotification />
+                <BrowserRouter>
           <Routes>
             <Route path="/auth" element={<CustomAuth />} />
             <Route path="/custom-auth" element={<CustomAuth />} />
@@ -286,12 +288,13 @@ const App = () => (
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>
-            </TooltipProvider>
-          </QueryClientProvider>
-        </AnalyticsProvider>
-      </LoadingProvider>
-    </ErrorProvider>
-  </ErrorBoundary>
+              </TooltipProvider>
+            </QueryClientProvider>
+          </AnalyticsProvider>
+        </LoadingProvider>
+      </ErrorProvider>
+    </ErrorBoundary>
+  </ThemeProvider>
 );
 
 export default App;

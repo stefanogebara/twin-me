@@ -1,6 +1,7 @@
 import express from 'express';
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcrypt';
+import { tempConnections } from './connectors.js';
 
 const router = express.Router();
 
@@ -9,9 +10,6 @@ const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-this-in-pro
 
 // In-memory user storage (for testing - replace with database in production)
 const users = new Map();
-
-// In-memory connector storage (for testing - replace with database in production)
-const tempConnections = new Map();
 
 // Sign up
 router.post('/signup', async (req, res) => {
@@ -143,7 +141,7 @@ router.get('/verify', async (req, res) => {
 router.get('/oauth/google', (req, res) => {
   const clientId = process.env.GOOGLE_CLIENT_ID;
 
-  if (!clientId || clientId === 'your-actual-client-id-here.apps.googleusercontent.com') {
+  if (!clientId) {
     return res.status(500).json({
       error: 'Google OAuth not configured. Please set GOOGLE_CLIENT_ID in .env file'
     });
@@ -158,9 +156,11 @@ router.get('/oauth/google', (req, res) => {
 
   // Use the most likely one - frontend port with oauth callback
   const redirectUri = encodeURIComponent('http://localhost:8086/oauth/callback');
-  const scope = encodeURIComponent('email profile https://www.googleapis.com/auth/gmail.readonly https://www.googleapis.com/auth/calendar.readonly');
+  // Only request basic profile scopes for authentication
+  const scope = encodeURIComponent('email profile openid');
   const state = Buffer.from(JSON.stringify({
     provider: 'google',
+    isAuth: true, // Mark this as authentication flow
     timestamp: Date.now()
   })).toString('base64');
 
@@ -241,25 +241,69 @@ router.get('/oauth/callback', async (req, res) => {
     let provider = 'google';
     let userId = null;
     let isConnectorFlow = false;
+    let stateData = null;
+
+    console.log('🔍 Auth GET callback - raw state:', state);
+
     try {
-      const stateData = JSON.parse(Buffer.from(state, 'base64').toString());
+      stateData = JSON.parse(Buffer.from(state, 'base64').toString());
+      console.log('🔍 Auth GET callback - decoded state:', stateData);
       provider = stateData.provider || 'google';
       userId = stateData.userId;
       isConnectorFlow = !!userId; // If userId exists, this is a connector OAuth flow
+      console.log('🔍 Auth GET callback - flow detection:', { provider, userId, isConnectorFlow });
     } catch (e) {
       console.log('Could not decode state, defaulting to google');
     }
 
     let userData = null;
 
-    if (provider === 'google' && code) {
-      // Real Google OAuth
+    // Check if this is a Google-based OAuth (auth or connector)
+    const isGoogleBased = provider === 'google' || provider.startsWith('google_');
+
+    // Check if this is an authentication flow
+    const isAuthFlow = stateData && stateData.isAuth === true;
+
+    if (isGoogleBased && code && (isAuthFlow || !isConnectorFlow)) {
+      // Real Google OAuth for authentication
       userData = await exchangeGoogleCode(code);
+
+      // If we failed to get real data, don't fall back to demo for auth flows
+      if (!userData && isAuthFlow) {
+        console.error('Failed to exchange Google OAuth code for authentication');
+        return res.redirect(`${process.env.VITE_APP_URL || 'http://localhost:8086'}/auth?error=oauth_failed`);
+      }
     }
 
     // For connector OAuth, we don't need real user data - just store the connection
     if (isConnectorFlow) {
       console.log('Processing connector OAuth flow for:', provider);
+
+      // For Google-based connectors, exchange the code for tokens
+      if (isGoogleBased && code) {
+        const tokens = await exchangeGoogleCode(code);
+        if (tokens) {
+          // Store the connection with tokens
+          const connectionKey = `${userId}-${provider}`;
+          const connectionData = {
+            user_id: userId,
+            provider: provider,
+            access_token: tokens.accessToken || 'mock_token_' + Date.now(),
+            refresh_token: tokens.refreshToken || null,
+            expires_at: null,
+            connected_at: new Date(),
+            last_sync: new Date(),
+            is_active: true,
+            permissions: {},
+            total_synced: 0,
+            last_sync_status: 'success',
+            error_count: 0
+          };
+
+          tempConnections.set(connectionKey, connectionData);
+          console.log(`✅ Successfully stored ${provider} connection for user ${userId}`);
+        }
+      }
       // Skip user creation for connector flows
     } else {
       // Only create mock users for authentication flows
@@ -297,38 +341,12 @@ router.get('/oauth/callback', async (req, res) => {
       }
     }
 
-    // Handle connector storage if this is a connector OAuth flow
+    // Handle redirect for connector OAuth flow
     if (isConnectorFlow && userId) {
-      try {
-        console.log(`🔗 Storing connector for ${provider} and user ${userId}`);
-
-        // Store the connector data (similar to connectors.js logic)
-        const connectionKey = `${userId}-${provider}`;
-        const connectionData = {
-          user_id: userId,
-          provider: provider,
-          access_token: userData.accessToken || 'mock_token_' + Date.now(), // Mock token for testing
-          refresh_token: userData.refreshToken || null,
-          expires_at: null,
-          connected_at: new Date(),
-          last_sync: new Date(),
-          is_active: true,
-          permissions: {},
-          total_synced: 0,
-          last_sync_status: 'success',
-          error_count: 0
-        };
-
-        tempConnections.set(connectionKey, connectionData);
-        console.log(`✅ Successfully stored ${provider} connection for user ${userId}`);
-        console.log(`📊 Current connections:`, Array.from(tempConnections.keys()));
-
-        // Redirect back to get-started page with connected=true
-        const redirectUrl = `http://localhost:8086/get-started?connected=true`;
-        return res.redirect(redirectUrl);
-      } catch (error) {
-        console.error('Error storing connector:', error);
-      }
+      console.log('🔗 Processing connector OAuth in backend GET route');
+      // Redirect back to get-started page with connected=true
+      const redirectUrl = `http://localhost:8086/get-started?connected=true&provider=${provider}`;
+      return res.redirect(redirectUrl);
     }
 
     // Generate JWT token for regular user authentication
@@ -366,14 +384,55 @@ router.post('/oauth/callback', async (req, res) => {
 
     let userData = null;
 
-    if (provider === 'google' && code) {
-      // Real Google OAuth
+    // Check if this is a Google-based OAuth (auth or connector)
+    const isGoogleBased = provider === 'google' || (provider && provider.startsWith('google_'));
+
+    // Check if this is an authentication flow
+    const isAuthFlow = stateData && stateData.isAuth === true;
+
+    if (isGoogleBased && code && (isAuthFlow || !isConnectorFlow)) {
+      // Real Google OAuth for authentication
       userData = await exchangeGoogleCode(code);
+
+      // If we failed to get real data, don't fall back to demo for auth flows
+      if (!userData && isAuthFlow) {
+        console.error('Failed to exchange Google OAuth code for authentication (POST)');
+        return res.status(400).json({
+          success: false,
+          error: 'Failed to authenticate with Google'
+        });
+      }
     }
 
     // For connector OAuth, we don't need real user data - just store the connection
     if (isConnectorFlow) {
       console.log('Processing connector OAuth flow for:', provider);
+
+      // For Google-based connectors, exchange the code for tokens
+      if (isGoogleBased && code) {
+        const tokens = await exchangeGoogleCode(code);
+        if (tokens) {
+          // Store the connection with tokens
+          const connectionKey = `${stateData.userId}-${provider}`;
+          const connectionData = {
+            user_id: stateData.userId,
+            provider: provider,
+            access_token: tokens.accessToken || 'mock_token_' + Date.now(),
+            refresh_token: tokens.refreshToken || null,
+            expires_at: null,
+            connected_at: new Date(),
+            last_sync: new Date(),
+            is_active: true,
+            permissions: {},
+            total_synced: 0,
+            last_sync_status: 'success',
+            error_count: 0
+          };
+
+          tempConnections.set(connectionKey, connectionData);
+          console.log(`✅ Successfully stored ${provider} connection for user ${stateData.userId}`);
+        }
+      }
       // Skip user creation for connector flows
     } else {
       // Only create mock users for authentication flows

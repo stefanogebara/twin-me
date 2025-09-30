@@ -150,6 +150,7 @@ const handleValidationErrors = (req, res, next) => {
 // import voiceRoutes from './routes/voice.js';
 import analyticsRoutes from './routes/analytics.js';
 import connectorsRoutes from './routes/connectors.js';
+import dataVerificationRoutes from './routes/data-verification.js';
 // import mcpConnectorsRoutes from './routes/mcp-connectors.js';
 import entertainmentRoutes from './routes/entertainment-connectors.js';
 import additionalEntertainmentRoutes from './routes/additional-entertainment-connectors.js';
@@ -167,6 +168,7 @@ import { /* handleAuthError, */ handleGeneralError, handle404 } from './middlewa
 // app.use('/api/voice', voiceRoutes);
 app.use('/api/analytics', analyticsRoutes);
 app.use('/api/connectors', connectorsRoutes);
+app.use('/api/data-verification', dataVerificationRoutes);
 // app.use('/api/mcp', mcpConnectorsRoutes);
 app.use('/api/entertainment', entertainmentRoutes);
 app.use('/api/entertainment', additionalEntertainmentRoutes);
