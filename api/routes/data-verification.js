@@ -3,7 +3,8 @@
  */
 
 import express from 'express';
-import { tempConnections } from './connectors.js';
+import supabase from '../config/supabase.js';
+import { decryptToken } from '../services/encryption.js';
 const router = express.Router();
 
 /**
@@ -13,13 +14,32 @@ const router = express.Router();
 router.get('/gmail/:userId', async (req, res) => {
   try {
     const { userId } = req.params;
-    const connectionKey = `${userId}-google_gmail`;
-    const connection = tempConnections.get(connectionKey);
 
-    if (!connection || !connection.access_token) {
+    // Get connection from database
+    const { data: connection, error } = await supabase
+      .from('data_connectors')
+      .select('*')
+      .eq('user_id', userId)
+      .eq('provider', 'google_gmail')
+      .eq('is_active', true)
+      .single();
+
+    if (error || !connection || !connection.access_token_encrypted) {
       return res.status(404).json({
         success: false,
         error: 'Gmail not connected or token expired'
+      });
+    }
+
+    // Decrypt the access token
+    let accessToken;
+    try {
+      accessToken = decryptToken(connection.access_token_encrypted);
+    } catch (decryptError) {
+      console.error('Token decryption error:', decryptError);
+      return res.status(500).json({
+        success: false,
+        error: 'Failed to decrypt access token'
       });
     }
 
@@ -35,7 +55,7 @@ router.get('/gmail/:userId', async (req, res) => {
         'https://gmail.googleapis.com/gmail/v1/users/me/messages?maxResults=1',
         {
           headers: {
-            'Authorization': `Bearer ${connection.access_token}`
+            'Authorization': `Bearer ${accessToken}`
           }
         }
       );
@@ -50,7 +70,7 @@ router.get('/gmail/:userId', async (req, res) => {
         'https://gmail.googleapis.com/gmail/v1/users/me/messages?q=is:unread&maxResults=1',
         {
           headers: {
-            'Authorization': `Bearer ${connection.access_token}`
+            'Authorization': `Bearer ${accessToken}`
           }
         }
       );
@@ -68,7 +88,7 @@ router.get('/gmail/:userId', async (req, res) => {
       'https://gmail.googleapis.com/gmail/v1/users/me/messages?maxResults=5',
       {
         headers: {
-          'Authorization': `Bearer ${connection.access_token}`
+          'Authorization': `Bearer ${accessToken}`
         }
       }
     );
@@ -93,7 +113,7 @@ router.get('/gmail/:userId', async (req, res) => {
           `https://gmail.googleapis.com/gmail/v1/users/me/messages/${msg.id}`,
           {
             headers: {
-              'Authorization': `Bearer ${connection.access_token}`
+              'Authorization': `Bearer ${accessToken}`
             }
           }
         );
@@ -152,13 +172,32 @@ router.get('/gmail/:userId', async (req, res) => {
 router.get('/calendar/:userId', async (req, res) => {
   try {
     const { userId } = req.params;
-    const connectionKey = `${userId}-google_calendar`;
-    const connection = tempConnections.get(connectionKey);
 
-    if (!connection || !connection.access_token) {
+    // Get connection from database
+    const { data: connection, error } = await supabase
+      .from('data_connectors')
+      .select('*')
+      .eq('user_id', userId)
+      .eq('provider', 'google_calendar')
+      .eq('is_active', true)
+      .single();
+
+    if (error || !connection || !connection.access_token_encrypted) {
       return res.status(404).json({
         success: false,
         error: 'Google Calendar not connected or token expired'
+      });
+    }
+
+    // Decrypt the access token
+    let accessToken;
+    try {
+      accessToken = decryptToken(connection.access_token_encrypted);
+    } catch (decryptError) {
+      console.error('Token decryption error:', decryptError);
+      return res.status(500).json({
+        success: false,
+        error: 'Failed to decrypt access token'
       });
     }
 
@@ -169,7 +208,7 @@ router.get('/calendar/:userId', async (req, res) => {
       'https://www.googleapis.com/calendar/v3/users/me/calendarList',
       {
         headers: {
-          'Authorization': `Bearer ${connection.access_token}`
+          'Authorization': `Bearer ${accessToken}`
         }
       }
     );
@@ -207,7 +246,7 @@ router.get('/calendar/:userId', async (req, res) => {
       `maxResults=5&orderBy=startTime&singleEvents=true&timeMin=${now}`,
       {
         headers: {
-          'Authorization': `Bearer ${connection.access_token}`
+          'Authorization': `Bearer ${accessToken}`
         }
       }
     );
@@ -261,9 +300,16 @@ router.get('/all/:userId', async (req, res) => {
     const { userId } = req.params;
     const verificationResults = {};
 
-    // Check Gmail
-    const gmailKey = `${userId}-google_gmail`;
-    if (tempConnections.has(gmailKey)) {
+    // Check Gmail - query database for active connection
+    const { data: gmailConnection } = await supabase
+      .from('data_connectors')
+      .select('id')
+      .eq('user_id', userId)
+      .eq('provider', 'google_gmail')
+      .eq('is_active', true)
+      .single();
+
+    if (gmailConnection) {
       try {
         const gmailResponse = await fetch(`http://localhost:3001/api/data-verification/gmail/${userId}`);
         if (gmailResponse.ok) {
@@ -276,9 +322,16 @@ router.get('/all/:userId', async (req, res) => {
       }
     }
 
-    // Check Calendar
-    const calendarKey = `${userId}-google_calendar`;
-    if (tempConnections.has(calendarKey)) {
+    // Check Calendar - query database for active connection
+    const { data: calendarConnection } = await supabase
+      .from('data_connectors')
+      .select('id')
+      .eq('user_id', userId)
+      .eq('provider', 'google_calendar')
+      .eq('is_active', true)
+      .single();
+
+    if (calendarConnection) {
       try {
         const calendarResponse = await fetch(`http://localhost:3001/api/data-verification/calendar/${userId}`);
         if (calendarResponse.ok) {

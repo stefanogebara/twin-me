@@ -1,15 +1,13 @@
 import express from 'express';
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcrypt';
-import { tempConnections } from './connectors.js';
+import supabase from '../config/supabase.js';
+import { encryptToken } from '../services/encryption.js';
 
 const router = express.Router();
 
 // JWT secret - in production use environment variable
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-this-in-production';
-
-// In-memory user storage (for testing - replace with database in production)
-const users = new Map();
 
 // Sign up
 router.post('/signup', async (req, res) => {
@@ -17,7 +15,13 @@ router.post('/signup', async (req, res) => {
     const { email, password, firstName, lastName } = req.body;
 
     // Check if user exists
-    if (users.has(email)) {
+    const { data: existingUser } = await supabase
+      .from('users')
+      .select('id')
+      .eq('email', email)
+      .single();
+
+    if (existingUser) {
       return res.status(400).json({ error: 'User already exists' });
     }
 
@@ -25,17 +29,21 @@ router.post('/signup', async (req, res) => {
     const hashedPassword = await bcrypt.hash(password, 10);
 
     // Create user
-    const userId = `user_${Date.now()}`;
-    const newUser = {
-      id: userId,
-      email,
-      password_hash: hashedPassword,
-      first_name: firstName || '',
-      last_name: lastName || '',
-      created_at: new Date().toISOString()
-    };
+    const { data: newUser, error: insertError } = await supabase
+      .from('users')
+      .insert({
+        email,
+        password_hash: hashedPassword,
+        first_name: firstName || '',
+        last_name: lastName || ''
+      })
+      .select()
+      .single();
 
-    users.set(email, newUser);
+    if (insertError) {
+      console.error('Database error:', insertError);
+      return res.status(500).json({ error: 'Failed to create user' });
+    }
 
     // Generate JWT token
     const token = jwt.sign(
@@ -67,9 +75,13 @@ router.post('/signin', async (req, res) => {
     const { email, password } = req.body;
 
     // Get user
-    const user = users.get(email);
+    const { data: user, error: fetchError } = await supabase
+      .from('users')
+      .select('*')
+      .eq('email', email)
+      .single();
 
-    if (!user) {
+    if (fetchError || !user) {
       return res.status(400).json({ error: 'Invalid credentials' });
     }
 
@@ -115,9 +127,13 @@ router.get('/verify', async (req, res) => {
     const decoded = jwt.verify(token, JWT_SECRET);
 
     // Get user data
-    const user = Array.from(users.values()).find(u => u.id === decoded.id);
+    const { data: user, error: fetchError } = await supabase
+      .from('users')
+      .select('*')
+      .eq('id', decoded.id)
+      .single();
 
-    if (!user) {
+    if (fetchError || !user) {
       return res.status(401).json({ error: 'Invalid token' });
     }
 
@@ -283,25 +299,34 @@ router.get('/oauth/callback', async (req, res) => {
       if (isGoogleBased && code) {
         const tokens = await exchangeGoogleCode(code);
         if (tokens) {
-          // Store the connection with tokens
-          const connectionKey = `${userId}-${provider}`;
+          // Store the connection with encrypted tokens in database
           const connectionData = {
             user_id: userId,
             provider: provider,
-            access_token: tokens.accessToken || 'mock_token_' + Date.now(),
-            refresh_token: tokens.refreshToken || null,
+            access_token_encrypted: encryptToken(tokens.accessToken || 'mock_token_' + Date.now()),
+            refresh_token_encrypted: tokens.refreshToken ? encryptToken(tokens.refreshToken) : null,
             expires_at: null,
-            connected_at: new Date(),
-            last_sync: new Date(),
+            connected_at: new Date().toISOString(),
+            last_sync: new Date().toISOString(),
             is_active: true,
             permissions: {},
             total_synced: 0,
             last_sync_status: 'success',
-            error_count: 0
+            error_count: 0,
+            scopes: []
           };
 
-          tempConnections.set(connectionKey, connectionData);
-          console.log(`✅ Successfully stored ${provider} connection for user ${userId}`);
+          const { error: dbError } = await supabase
+            .from('data_connectors')
+            .upsert(connectionData, {
+              onConflict: 'user_id,provider'
+            });
+
+          if (dbError) {
+            console.error('Database error storing connector:', dbError);
+          } else {
+            console.log(`✅ Successfully stored ${provider} connection for user ${userId} in database`);
+          }
         }
       }
       // Skip user creation for connector flows
@@ -318,27 +343,32 @@ router.get('/oauth/callback', async (req, res) => {
     }
 
     // Check if user exists or create new
-    let user = Array.from(users.values()).find(u => u.email === userData.email);
+    let { data: user, error: userFetchError } = await supabase
+      .from('users')
+      .select('*')
+      .eq('email', userData.email)
+      .single();
 
     if (!user) {
-      const userId = `${provider}_user_${Date.now()}`;
-      user = {
-        id: userId,
-        email: userData.email,
-        first_name: userData.firstName,
-        last_name: userData.lastName,
-        oauth_provider: provider,
-        access_token: userData.accessToken,
-        refresh_token: userData.refreshToken,
-        created_at: new Date().toISOString()
-      };
-      users.set(userData.email, user);
-    } else {
-      // Update tokens if they exist
-      if (userData.accessToken) {
-        user.access_token = userData.accessToken;
-        user.refresh_token = userData.refreshToken;
+      // Create new user with encrypted tokens
+      const { data: newUser, error: insertError } = await supabase
+        .from('users')
+        .insert({
+          email: userData.email,
+          first_name: userData.firstName,
+          last_name: userData.lastName,
+          oauth_provider: provider,
+          picture_url: userData.picture
+        })
+        .select()
+        .single();
+
+      if (insertError) {
+        console.error('Failed to create user:', insertError);
+        throw new Error('User creation failed');
       }
+
+      user = newUser;
     }
 
     // Handle redirect for connector OAuth flow
@@ -412,25 +442,34 @@ router.post('/oauth/callback', async (req, res) => {
       if (isGoogleBased && code) {
         const tokens = await exchangeGoogleCode(code);
         if (tokens) {
-          // Store the connection with tokens
-          const connectionKey = `${stateData.userId}-${provider}`;
+          // Store the connection with encrypted tokens in database
           const connectionData = {
             user_id: stateData.userId,
             provider: provider,
-            access_token: tokens.accessToken || 'mock_token_' + Date.now(),
-            refresh_token: tokens.refreshToken || null,
+            access_token_encrypted: encryptToken(tokens.accessToken || 'mock_token_' + Date.now()),
+            refresh_token_encrypted: tokens.refreshToken ? encryptToken(tokens.refreshToken) : null,
             expires_at: null,
-            connected_at: new Date(),
-            last_sync: new Date(),
+            connected_at: new Date().toISOString(),
+            last_sync: new Date().toISOString(),
             is_active: true,
             permissions: {},
             total_synced: 0,
             last_sync_status: 'success',
-            error_count: 0
+            error_count: 0,
+            scopes: []
           };
 
-          tempConnections.set(connectionKey, connectionData);
-          console.log(`✅ Successfully stored ${provider} connection for user ${stateData.userId}`);
+          const { error: dbError } = await supabase
+            .from('data_connectors')
+            .upsert(connectionData, {
+              onConflict: 'user_id,provider'
+            });
+
+          if (dbError) {
+            console.error('Database error storing connector:', dbError);
+          } else {
+            console.log(`✅ Successfully stored ${provider} connection for user ${stateData.userId} in database`);
+          }
         }
       }
       // Skip user creation for connector flows
@@ -450,27 +489,34 @@ router.post('/oauth/callback', async (req, res) => {
     let user = null;
 
     if (!isConnectorFlow && userData) {
-      user = Array.from(users.values()).find(u => u.email === userData.email);
+      const { data: existingUser, error: userFetchError } = await supabase
+        .from('users')
+        .select('*')
+        .eq('email', userData.email)
+        .single();
 
-      if (!user) {
-        const userId = `${provider}_user_${Date.now()}`;
-        user = {
-          id: userId,
-          email: userData.email,
-          first_name: userData.firstName,
-          last_name: userData.lastName,
-          oauth_provider: provider,
-          access_token: userData.accessToken,
-          refresh_token: userData.refreshToken,
-          created_at: new Date().toISOString()
-        };
-        users.set(userData.email, user);
-      } else {
-        // Update tokens if they exist
-        if (userData.accessToken) {
-          user.access_token = userData.accessToken;
-          user.refresh_token = userData.refreshToken;
+      if (!existingUser) {
+        // Create new user
+        const { data: newUser, error: insertError } = await supabase
+          .from('users')
+          .insert({
+            email: userData.email,
+            first_name: userData.firstName,
+            last_name: userData.lastName,
+            oauth_provider: provider,
+            picture_url: userData.picture
+          })
+          .select()
+          .single();
+
+        if (insertError) {
+          console.error('Failed to create user:', insertError);
+          throw new Error('User creation failed');
         }
+
+        user = newUser;
+      } else {
+        user = existingUser;
       }
     }
 
