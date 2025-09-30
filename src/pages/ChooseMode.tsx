@@ -1,8 +1,55 @@
 import { useNavigate } from 'react-router-dom';
-import { BookOpen, Sparkles, ArrowLeft } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { BookOpen, Sparkles, ArrowLeft, User } from 'lucide-react';
+import { useAuth } from '../contexts/AuthContext';
 
 const ChooseMode = () => {
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const [hasExistingTwin, setHasExistingTwin] = useState(false);
+  const [loading, setLoading] = useState(true);
+
+  // Check if user has existing twins
+  useEffect(() => {
+    const checkForExistingTwins = async () => {
+      if (!user) return;
+
+      try {
+        // Check multiple possible endpoints for twins
+        const endpoints = [
+          '/api/twins',
+          '/api/soul-extraction/status',
+          '/api/connectors/status/current-user'
+        ];
+
+        for (const endpoint of endpoints) {
+          try {
+            const response = await fetch(`${import.meta.env.VITE_API_URL}${endpoint}`);
+            if (response.ok) {
+              const data = await response.json();
+
+              // Check if user has any twins or connections that indicate a created twin
+              if ((data.data && data.data.length > 0) ||
+                  (data.twins && data.twins.length > 0) ||
+                  (data.success && Object.keys(data.data || {}).length > 0)) {
+                setHasExistingTwin(true);
+                break;
+              }
+            }
+          } catch (err) {
+            console.log(`Endpoint ${endpoint} not available:`, err);
+            continue;
+          }
+        }
+      } catch (error) {
+        console.log('Error checking for existing twins:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    checkForExistingTwins();
+  }, [user]);
 
   return (
     <div
@@ -38,13 +85,16 @@ const ChooseMode = () => {
             className="text-lg md:text-xl mb-12 max-w-2xl mx-auto"
             style={{ color: 'var(--_color-theme---text-secondary)' }}
           >
-            Choose whether you want to learn from AI twins or create your own digital twin.
+            {loading ? 'Loading your options...' : hasExistingTwin
+              ? 'Welcome back! Access your existing twin or create a new one.'
+              : 'Choose whether you want to learn from AI twins or create your own digital twin.'
+            }
           </p>
 
           <div className="grid md:grid-cols-2 gap-8 max-w-3xl mx-auto">
-            {/* Learn Option */}
+            {/* Learn/Access Twin Option */}
             <div
-              onClick={() => navigate('/talk-to-twin')}
+              onClick={() => hasExistingTwin ? navigate('/soul-signature') : navigate('/talk-to-twin')}
               className="p-8 rounded-2xl border-2 cursor-pointer transition-all duration-300 hover:scale-105"
               style={{
                 backgroundColor: 'var(--_color-theme---surface)',
@@ -57,7 +107,11 @@ const ChooseMode = () => {
                   className="w-16 h-16 rounded-full flex items-center justify-center mb-6"
                   style={{ backgroundColor: 'var(--_color-theme---accent)' }}
                 >
-                  <BookOpen className="w-8 h-8 text-white" />
+                  {hasExistingTwin ? (
+                    <User className="w-8 h-8 text-white" />
+                  ) : (
+                    <BookOpen className="w-8 h-8 text-white" />
+                  )}
                 </div>
                 <h3
                   className="text-2xl font-bold mb-4"
@@ -66,13 +120,16 @@ const ChooseMode = () => {
                     fontFamily: 'var(--_typography---font--styrene-a)'
                   }}
                 >
-                  Learn
+                  {loading ? 'Loading...' : hasExistingTwin ? 'Access Twin' : 'Learn'}
                 </h3>
                 <p
                   className="text-base leading-relaxed"
                   style={{ color: 'var(--_color-theme---text-secondary)' }}
                 >
-                  Interact with digital twins of real people - discover their unique perspectives, learn from their experiences, and engage with their authentic personalities.
+                  {loading ? 'Checking your account...' : hasExistingTwin
+                    ? 'Access and manage your existing digital twin, update your soul signature, or chat with your twin.'
+                    : 'Interact with digital twins of real people - discover their unique perspectives, learn from their experiences, and engage with their authentic personalities.'
+                  }
                 </p>
               </div>
             </div>

@@ -1,6 +1,6 @@
 /**
- * InstantTwinOnboarding - Revolutionary 60-Second Twin Generation
- * Connect your digital life and get an instant working twin
+ * InstantTwinOnboarding - Soul Signature Discovery Journey
+ * Connect your digital life to discover and share your authentic soul signature
  */
 
 import { useState, useEffect, useCallback } from 'react';
@@ -39,6 +39,8 @@ import {
 } from 'lucide-react';
 
 import UserProfile from '../components/UserProfile';
+import { DataVerification } from '../components/DataVerification';
+import ThemeToggle from '../components/ThemeToggle';
 
 import {
   DataProvider,
@@ -185,12 +187,8 @@ const InstantTwinOnboarding = () => {
   const { user } = useAuth();
   const { toast } = useToast();
 
-  // Parse URL parameters once
+  // Soul Signature Discovery - no twin types needed
   const urlParams = new URLSearchParams(window.location.search);
-  const twinType = urlParams.get('type') || 'educational'; // Default to educational
-  const isPersonalTwin = twinType === 'personal';
-  // Map frontend types to API types
-  const apiTwinType = isPersonalTwin ? 'personal' : 'professor';
 
   // State management
   const [currentStep, setCurrentStep] = useState(1);
@@ -198,7 +196,9 @@ const InstantTwinOnboarding = () => {
   const [connectedServices, setConnectedServices] = useState<DataProvider[]>(() => {
     // Initialize from localStorage on mount
     const stored = localStorage.getItem('connectedServices');
-    return stored ? JSON.parse(stored) : [];
+    const parsed = stored ? JSON.parse(stored) : [];
+    console.log('🏗️ Initial connectedServices state:', parsed);
+    return parsed;
   });
   const [generationProgress, setGenerationProgress] = useState<TwinGenerationProgress | null>(null);
   const [showPrivacyDetails, setShowPrivacyDetails] = useState(false);
@@ -227,13 +227,27 @@ const InstantTwinOnboarding = () => {
     if (connected === 'true') {
       // A connection was successful, check connection status with longer delay
       console.log('🔗 OAuth callback detected, checking connection status...');
+
+      // Don't reset - preserve connections and update state immediately
+      const currentConnections = JSON.parse(localStorage.getItem('connectedServices') || '[]');
+      console.log('📦 Preserving existing connections:', currentConnections);
+      setConnectedServices(currentConnections);
+
       setTimeout(() => {
         checkConnectionStatus();
         setHasCheckedConnection(true);
-      }, 2000); // Increased delay to ensure backend processing is complete
+      }, 1000); // Reduced delay
     } else {
-      // Reset connection status on fresh page load (no OAuth callback)
-      resetConnectionStatus();
+      // Only reset on fresh page load if no connections exist
+      const existingConnections = JSON.parse(localStorage.getItem('connectedServices') || '[]');
+      if (existingConnections.length === 0) {
+        resetConnectionStatus();
+      } else {
+        // Preserve existing connections on page refresh
+        console.log('📦 Preserving existing connections on refresh:', existingConnections);
+        setConnectedServices(existingConnections);
+        checkConnectionStatus();
+      }
       setHasCheckedConnection(true);
     }
   }, [user]);
@@ -344,13 +358,12 @@ const InstantTwinOnboarding = () => {
 
   const connectService = useCallback(async (provider: DataProvider) => {
     try {
-      console.log('🔍 Connect service called with:', { provider, userId: user?.id, user });
-      console.log('🌐 Current VITE_API_URL:', import.meta.env.VITE_API_URL);
-      console.log('🌐 All env vars:', import.meta.env);
+      console.log('🔍 Connect service called with:', { provider, user });
 
-      if (!user?.id) {
-        throw new Error('User not authenticated');
-      }
+      // Use email as userId since it's more reliable than id
+      const userId = user?.email || user?.id || 'demo-user';
+
+      console.log('🔑 Using userId:', userId);
 
       toast({
         title: "Connecting...",
@@ -358,7 +371,7 @@ const InstantTwinOnboarding = () => {
       });
 
       // Get OAuth authorization URL from backend
-      const apiUrl = `http://localhost:3001/api/connectors/auth/${provider}?userId=${user.id}`;
+      const apiUrl = `http://localhost:3001/api/connectors/auth/${provider}?userId=${encodeURIComponent(userId)}`;
       console.log('🌐 Making request to:', apiUrl);
       console.log('🔑 API URL env var:', import.meta.env.VITE_API_URL);
       console.log('🔧 Using hardcoded URL to bypass caching issue');
@@ -375,9 +388,21 @@ const InstantTwinOnboarding = () => {
       }
 
       const result = await response.json();
-      console.log('✅ Connection response:', result);
+      console.log('🌐 OAuth response:', result);
 
-      if (result.success) {
+      if (result.success && result.data?.authUrl) {
+        // REAL OAuth flow - redirect to Google OAuth
+        console.log('🚀 Redirecting to OAuth URL:', result.data.authUrl);
+
+        // Store the provider we're connecting so we can update UI after OAuth callback
+        sessionStorage.setItem('connecting_provider', provider);
+
+        // Redirect to Google OAuth consent screen
+        window.location.href = result.data.authUrl;
+      } else if (result.success) {
+        // Fallback for test connections (shouldn't happen with real OAuth)
+        console.warn('⚠️ No OAuth URL received, using test connection');
+
         // Store connection in localStorage
         const existingConnections = JSON.parse(localStorage.getItem('connectedServices') || '[]');
         if (!existingConnections.includes(provider)) {
@@ -393,13 +418,10 @@ const InstantTwinOnboarding = () => {
         });
 
         toast({
-          title: "✅ Connected Successfully",
-          description: `${AVAILABLE_CONNECTORS.find(c => c.provider === provider)?.name} is now connected`,
+          title: "⚠️ Test Connection",
+          description: `${AVAILABLE_CONNECTORS.find(c => c.provider === provider)?.name} test connection added (not real OAuth)`,
           variant: "default",
         });
-
-        // Note: In production with real OAuth, this would redirect:
-        // if (result.data?.authUrl) window.location.href = result.data.authUrl;
       } else {
         throw new Error(result.error || 'Connection failed');
       }
@@ -467,60 +489,66 @@ const InstantTwinOnboarding = () => {
       });
     }
 
-    // Create the twin first, then navigate to its dashboard
+    // Create the soul signature twin, then navigate to dashboard
     try {
       const twinData = {
-        name: user.fullName || user.firstName || `My ${isPersonalTwin ? 'Personal' : 'Educational'} Twin`,
-        user_id: user.id,
-        twin_type: apiTwinType,
-        teaching_philosophy: isPersonalTwin
-          ? 'Personal knowledge and experiences from connected data sources'
-          : 'Generated from connected data sources',
-        student_interaction: isPersonalTwin
-          ? 'Casual and personalized based on communication style'
-          : 'Personalized based on your communication patterns',
-        humor_style: 'Adaptive',
-        communication_style: 'Based on your connected platform analysis',
-        expertise: ['Data-driven insights from your digital footprint'],
-        is_active: true
+        name: user.fullName || user.firstName || 'My Soul Signature',
+        description: 'AI twin created from soul signature discovery through connected digital platforms',
+        subject_area: 'Soul Signature Analysis',
+        twin_type: 'personal',
+        personality_traits: {
+          communication_style: 'Reflecting true self from connected platform analysis',
+          humor_style: 'Adaptive to authentic personality traits',
+          authenticity: 'Based on discovered personality patterns'
+        },
+        teaching_style: {
+          philosophy: 'Authentic self-expression derived from digital soul signature',
+          interaction: 'Natural and genuine based on discovered personality patterns'
+        },
+        common_phrases: ['Let me share my authentic perspective', 'Based on my digital soul signature'],
+        favorite_analogies: ['Like searching in the branches for what we find in the roots']
       };
 
+      const token = localStorage.getItem('auth_token');
       const response = await fetch(`${import.meta.env.VITE_API_URL}/twins`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify(twinData)
       });
 
       const result = await response.json();
+      console.log('🔍 API Response:', { status: response.status, result });
 
-      if (result.success && result.data?.id) {
-        // Navigate to the specific twin dashboard based on twin type
+      if (response.ok && result.id) {
+        // Navigate to the Soul Signature Dashboard
         setTimeout(() => {
-          if (isPersonalTwin) {
-            navigate(`/twin-dashboard/${result.data.id}`);
-          } else {
-            navigate(`/twin-dashboard/${result.data.id}`);
-          }
+          navigate('/soul-signature');
         }, 2000);
       } else {
-        throw new Error('Failed to create twin');
+        console.error('🚨 API Error Details:', {
+          status: response.status,
+          statusText: response.statusText,
+          result
+        });
+        throw new Error(`Failed to create soul signature: ${result.error || result.message || 'Unknown error'}`);
       }
     } catch (error) {
-      console.error('Error creating twin:', error);
+      console.error('Error creating soul signature:', error);
       toast({
         title: "Error",
-        description: "Failed to create your digital twin. Please try again.",
+        description: "Failed to create your soul signature. Please try again.",
         variant: "destructive"
       });
-      // Fallback navigation based on twin type
+      // Fallback navigation to Soul Signature Dashboard
       setTimeout(() => {
-        navigate(isPersonalTwin ? '/personal-dashboard' : '/professor-dashboard');
+        navigate('/soul-signature');
       }, 2000);
     }
 
-  }, [user, selectedConnectors, navigate, isPersonalTwin, apiTwinType]);
+  }, [user, selectedConnectors, navigate]);
 
   // ====================================================================
   // RENDER HELPERS
@@ -593,6 +621,16 @@ const InstantTwinOnboarding = () => {
   const renderConnectorCard = (connector: ConnectorConfig) => {
     const isSelected = selectedConnectors.includes(connector.provider);
     const isConnected = connectedServices.includes(connector.provider);
+
+    // Debug connection status for Gmail and Calendar
+    if (connector.provider === 'google_gmail' || connector.provider === 'google_calendar') {
+      console.log(`🎨 Rendering ${connector.provider}:`, {
+        provider: connector.provider,
+        isConnected,
+        connectedServices,
+        localStorage: JSON.parse(localStorage.getItem('connectedServices') || '[]')
+      });
+    }
 
     // Debug logging for connection status
     if (connector.provider === 'google_gmail') {
@@ -746,27 +784,34 @@ const InstantTwinOnboarding = () => {
       <div className="text-center">
         <div className="mb-8">
           <div className="w-24 h-24 mx-auto mb-4 relative">
+            {/* Background circle */}
             <div
               className="absolute inset-0 rounded-full border-4"
               style={{ borderColor: 'var(--_color-theme---border)' }}
             ></div>
-            <div
-              className="absolute inset-0 rounded-full border-4 transition-all duration-500"
-              style={{
-                borderColor: 'var(--_color-theme---accent)',
-                clipPath: `polygon(50% 50%, 50% 0%, ${50 + 50 * Math.cos((generationProgress.progress * 3.6 - 90) * Math.PI / 180)}% ${50 + 50 * Math.sin((generationProgress.progress * 3.6 - 90) * Math.PI / 180)}%, 50% 50%)`
-              }}
-            ></div>
-            <div
-              className="absolute inset-4 rounded-full flex items-center justify-center"
-              style={{ backgroundColor: 'var(--_color-theme---accent)' }}
-            >
+            {/* Progress circle */}
+            <svg className="absolute inset-0 w-24 h-24 transform -rotate-90" viewBox="0 0 100 100">
+              <circle
+                cx="50"
+                cy="50"
+                r="42"
+                fill="none"
+                stroke="var(--_color-theme---accent)"
+                strokeWidth="8"
+                strokeLinecap="round"
+                strokeDasharray={`${2 * Math.PI * 42}`}
+                strokeDashoffset={`${2 * Math.PI * 42 * (1 - generationProgress.progress / 100)}`}
+                className="transition-all duration-500 ease-out"
+              />
+            </svg>
+            {/* Center icon */}
+            <div className="absolute inset-4 rounded-full flex items-center justify-center" style={{ backgroundColor: 'var(--_color-theme---accent)' }}>
               <Brain className="w-8 h-8" style={{ color: 'white' }} />
             </div>
           </div>
 
           <h2 className="text-2xl font-medium mb-2" style={{ fontFamily: 'var(--_typography---font--styrene-a)', color: 'var(--_color-theme---text)' }}>
-            {generationProgress.progress === 100 ? 'Your Twin is Ready!' : 'Creating Your Digital Twin'}
+            {generationProgress.progress === 100 ? 'Your Soul Signature is Ready!' : 'Discovering Your Soul Signature'}
           </h2>
 
           <p
@@ -887,20 +932,20 @@ const InstantTwinOnboarding = () => {
                   color: 'var(--_color-theme---text)'
                 }}
               >
-                Create Your {isPersonalTwin ? 'Personal' : 'Educational'} AI Twin
+                Discover Your Soul Signature
               </h1>
               <p
                 className="text-sm font-medium"
                 style={{ color: 'var(--_color-theme---text-secondary)' }}
               >
-                {isPersonalTwin
-                  ? 'Connect apps and get instant AI personality'
-                  : 'Connect tools and get instant teaching AI'
-                }
+                Connect your digital life to reveal your authentic essence
               </p>
             </div>
 
-            <UserProfile />
+            <div className="flex items-center gap-3">
+              <ThemeToggle />
+              <UserProfile />
+            </div>
           </div>
         </div>
       </div>
@@ -915,32 +960,26 @@ const InstantTwinOnboarding = () => {
             <div className="text-center mb-16">
 
               <h2 className="text-4xl md:text-5xl font-bold mb-6" style={{ fontFamily: 'var(--_typography---font--styrene-a)', color: 'var(--_color-theme---text)' }}>
-                {isPersonalTwin
-                  ? 'Create Your Digital Twin'
-                  : 'Transform Your Teaching'
-                }
+                Discover Your Soul Signature
               </h2>
 
               <p className="text-base max-w-3xl mx-auto leading-relaxed" style={{ color: 'var(--_color-theme---text-secondary)' }}>
-                {isPersonalTwin
-                  ? 'Connect your apps and get an instant AI that captures your personality. Your twin learns your style, humor, and expertise from real data.'
-                  : 'Connect your digital teaching footprint and get an AI that teaches exactly like you. Your students get 24/7 access to your expertise and teaching style.'
-                }
+                "Perhaps we are searching in the branches for what we only find in the roots." Connect your digital life - Netflix, Spotify, Discord, and 30+ platforms - to discover what makes you authentically you.
               </p>
 
               {/* Stats Row */}
               <div className="flex justify-center items-center gap-8 mt-8">
                 <div className="text-center">
-                  <div className="text-2xl font-bold" style={{ color: 'var(--_color-theme---accent)' }}>60s</div>
-                  <div className="text-sm" style={{ color: 'var(--_color-theme---text-secondary)' }}>Setup Time</div>
+                  <div className="text-2xl font-bold" style={{ color: 'var(--_color-theme---accent)' }}>30+</div>
+                  <div className="text-sm" style={{ color: 'var(--_color-theme---text-secondary)' }}>Platforms</div>
                 </div>
                 <div className="text-center">
                   <div className="text-2xl font-bold" style={{ color: 'var(--_color-theme---accent)' }}>100%</div>
-                  <div className="text-sm" style={{ color: 'var(--_color-theme---text-secondary)' }}>Your Style</div>
+                  <div className="text-sm" style={{ color: 'var(--_color-theme---text-secondary)' }}>Authentic</div>
                 </div>
                 <div className="text-center">
-                  <div className="text-2xl font-bold" style={{ color: 'var(--_color-theme---accent)' }}>24/7</div>
-                  <div className="text-sm" style={{ color: 'var(--_color-theme---text-secondary)' }}>Available</div>
+                  <div className="text-2xl font-bold" style={{ color: 'var(--_color-theme---accent)' }}>∞</div>
+                  <div className="text-sm" style={{ color: 'var(--_color-theme---text-secondary)' }}>Sharable</div>
                 </div>
               </div>
             </div>
@@ -954,13 +993,13 @@ const InstantTwinOnboarding = () => {
                   fontFamily: 'var(--_typography---font--styrene-a)'
                 }}
               >
-                Choose Your Digital Footprint
+                Connect Your Soul's Digital Canvas
               </h3>
               <p
                 className="text-center mb-8 max-w-2xl mx-auto"
                 style={{ color: 'var(--_color-theme---text-secondary)' }}
               >
-                Start with the essentials. You can always add more services later.
+                Each platform reveals a different facet of your authentic self. Start with the ones that feel most "you."
               </p>
 
               {/* Essential Connectors First - Progressive Disclosure */}
@@ -1042,6 +1081,14 @@ const InstantTwinOnboarding = () => {
               </div>
             </div>
 
+            {/* Data Verification Section */}
+            {connectedServices.length > 0 && (
+              <DataVerification
+                userId={user?.email || user?.id || 'demo-user'}
+                connectedServices={connectedServices}
+              />
+            )}
+
             {/* Action Section */}
             <div
               className="text-center rounded-3xl p-8 border"
@@ -1055,15 +1102,15 @@ const InstantTwinOnboarding = () => {
                   <div className="flex items-center justify-center gap-2 mb-4" style={{ color: 'var(--_color-theme---accent)' }}>
                     <CheckCircle2 className="w-6 h-6" />
                     <span className="text-lg font-semibold">
-                      Great! You're connected to {connectedServices.length} service{connectedServices.length !== 1 ? 's' : ''}
+                      Perfect! {connectedServices.length} platform{connectedServices.length !== 1 ? 's' : ''} connected
                     </span>
                   </div>
                   <button
                     onClick={() => setCurrentStep(2)}
                     className="btn-anthropic-primary text-lg px-8 py-4 flex items-center gap-3 mx-auto transform hover:scale-105 transition-transform"
                   >
-                    <User className="w-5 h-5" />
-                    Build Your AI Twin
+                    <Fingerprint className="w-5 h-5" />
+                    Discover Your Soul Signature
                     <ArrowRight className="w-5 h-5" />
                   </button>
                   <p
@@ -1073,7 +1120,7 @@ const InstantTwinOnboarding = () => {
                       fontFamily: 'var(--_typography---font--styrene-a)'
                     }}
                   >
-                    Your AI will be ready in under 60 seconds
+                    Your soul signature will emerge in moments
                   </p>
                 </div>
               ) : (
@@ -1085,10 +1132,10 @@ const InstantTwinOnboarding = () => {
                       fontFamily: 'var(--_typography---font--styrene-a)'
                     }}
                   >
-                    Connect at least one service to continue
+                    Connect at least one platform to begin
                   </div>
                   <p style={{ color: 'var(--_color-theme---text-secondary)' }}>
-                    Each connection makes your AI twin more accurate and personalized
+                    Each connection reveals more depth in your soul signature
                   </p>
                 </div>
               )}
@@ -1099,151 +1146,89 @@ const InstantTwinOnboarding = () => {
         {/* Step 2: Privacy Settings */}
         {currentStep === 2 && (
           <div>
+            {/* Visual Privacy Header */}
             <div className="text-center mb-12">
+              <div className="w-20 h-20 mx-auto mb-6 rounded-full flex items-center justify-center" style={{ backgroundColor: 'var(--_color-theme---accent)', boxShadow: '0 0 30px rgba(217, 119, 6, 0.3)' }}>
+                <Shield className="w-10 h-10" style={{ color: 'white' }} />
+              </div>
               <h2 className="text-3xl font-medium mb-4" style={{ fontFamily: 'var(--_typography---font--styrene-a)', color: 'var(--_color-theme---text)' }}>
-                Privacy & Data Control
+                Your Privacy Matters
               </h2>
-              <p
-                className="max-w-2xl mx-auto"
-                style={{ color: 'var(--_color-theme---text-secondary)' }}
-              >
-                Your data security is our priority. All processing happens with military-grade encryption,
-                and you maintain full control over what information is used.
+              <p className="text-lg max-w-2xl mx-auto leading-relaxed" style={{ color: 'var(--_color-theme---text-secondary)' }}>
+                Your soul signature is precious. We protect it with the highest standards while giving you complete control.
               </p>
             </div>
 
-            <div className="max-w-2xl mx-auto space-y-6 mb-12">
-              <div
-                className="rounded-2xl p-6 border"
-                style={{
-                  backgroundColor: 'var(--_color-theme---surface)',
-                  borderColor: 'var(--_color-theme---border)'
-                }}
-              >
-                <div className="flex items-center justify-between mb-4">
-                  <div className="flex items-center gap-3">
-                    <Shield className="w-5 h-5" style={{ color: 'var(--_color-theme---accent)' }} />
-                    <h3
-                      className="font-medium"
-                      style={{
-                        color: 'var(--_color-theme---text)',
-                        fontFamily: 'var(--_typography---font--styrene-a)'
-                      }}
-                    >
-                      Data Encryption
-                    </h3>
+            {/* Visual Privacy Features */}
+            <div className="max-w-4xl mx-auto mb-12">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                {/* Military Grade Encryption */}
+                <div className="text-center p-6 rounded-2xl border hover:shadow-lg transition-all" style={{ backgroundColor: 'var(--_color-theme---surface)', borderColor: 'var(--_color-theme---border)' }}>
+                  <div className="w-16 h-16 mx-auto mb-4 rounded-2xl flex items-center justify-center" style={{ backgroundColor: 'var(--_color-theme---background-secondary)' }}>
+                    <Shield className="w-8 h-8" style={{ color: 'var(--_color-theme---accent)' }} />
                   </div>
-                  <CheckCircle2 className="w-5 h-5" style={{ color: 'var(--_color-theme---accent)' }} />
+                  <h3 className="text-lg font-semibold mb-2" style={{ color: 'var(--_color-theme---text)' }}>
+                    Military-Grade Security
+                  </h3>
+                  <p className="text-sm" style={{ color: 'var(--_color-theme---text-secondary)' }}>
+                    AES-256 encryption protects your data at every step
+                  </p>
                 </div>
-                <p
-                  className="text-sm"
-                  style={{ color: 'var(--_color-theme---text-secondary)' }}
-                >
-                  All data is encrypted in transit and at rest using AES-256 encryption
-                </p>
+
+                {/* You Control Everything */}
+                <div className="text-center p-6 rounded-2xl border hover:shadow-lg transition-all" style={{ backgroundColor: 'var(--_color-theme---surface)', borderColor: 'var(--_color-theme---border)' }}>
+                  <div className="w-16 h-16 mx-auto mb-4 rounded-2xl flex items-center justify-center" style={{ backgroundColor: 'var(--_color-theme---background-secondary)' }}>
+                    <Settings className="w-8 h-8" style={{ color: 'var(--_color-theme---accent)' }} />
+                  </div>
+                  <h3 className="text-lg font-semibold mb-2" style={{ color: 'var(--_color-theme---text)' }}>
+                    You're In Control
+                  </h3>
+                  <p className="text-sm" style={{ color: 'var(--_color-theme---text-secondary)' }}>
+                    Choose what to reveal, what to share, with whom
+                  </p>
+                </div>
+
+                {/* Zero Data Retention */}
+                <div className="text-center p-6 rounded-2xl border hover:shadow-lg transition-all" style={{ backgroundColor: 'var(--_color-theme---surface)', borderColor: 'var(--_color-theme---border)' }}>
+                  <div className="w-16 h-16 mx-auto mb-4 rounded-2xl flex items-center justify-center" style={{ backgroundColor: 'var(--_color-theme---background-secondary)' }}>
+                    <Eye className="w-8 h-8" style={{ color: 'var(--_color-theme---accent)' }} />
+                  </div>
+                  <h3 className="text-lg font-semibold mb-2" style={{ color: 'var(--_color-theme---text)' }}>
+                    Complete Transparency
+                  </h3>
+                  <p className="text-sm" style={{ color: 'var(--_color-theme---text-secondary)' }}>
+                    See exactly how your data creates your soul signature
+                  </p>
+                </div>
               </div>
+            </div>
 
-              <div
-                className="rounded-2xl p-6 border"
-                style={{
-                  backgroundColor: 'var(--_color-theme---surface)',
-                  borderColor: 'var(--_color-theme---border)'
-                }}
-              >
-                <div className="flex items-center justify-between mb-4">
-                  <div className="flex items-center gap-3">
-                    <Eye className="w-5 h-5" style={{ color: 'var(--_color-theme---accent)' }} />
-                    <h3
-                      className="font-medium"
-                      style={{
-                        color: 'var(--_color-theme---text)',
-                        fontFamily: 'var(--_typography---font--styrene-a)'
-                      }}
-                    >
-                      Data Transparency
-                    </h3>
-                  </div>
-                  <button
-                    onClick={() => setShowPrivacyDetails(!showPrivacyDetails)}
-                    className="text-sm hover:underline"
-                    style={{ color: 'var(--_color-theme---accent)' }}
-                  >
-                    {showPrivacyDetails ? 'Hide' : 'View'} Details
-                  </button>
-                </div>
-                <p
-                  className="text-sm mb-4"
-                  style={{ color: 'var(--_color-theme---text-secondary)' }}
-                >
-                  You can see exactly what data is being processed and how it's used
-                </p>
-
-                {showPrivacyDetails && (
-                  <div className="space-y-3 pt-4 border-t" style={{ borderColor: 'var(--_color-theme---border)' }}>
-                    {selectedConnectors.map(provider => {
-                      const connector = AVAILABLE_CONNECTORS.find(c => c.provider === provider);
-                      return connector ? (
-                        <div key={provider} className="flex items-center justify-between text-sm">
-                          <span>{connector.name}:</span>
-                          <span style={{ color: 'var(--_color-theme---text-secondary)' }}>
-                            {connector.dataTypes.join(', ')}
-                          </span>
-                        </div>
-                      ) : null;
-                    })}
-                  </div>
-                )}
-              </div>
-
-              <div
-                className="rounded-2xl p-6 border"
-                style={{
-                  backgroundColor: 'var(--_color-theme---surface)',
-                  borderColor: 'var(--_color-theme---border)'
-                }}
-              >
-                <div className="flex items-center justify-between mb-4">
-                  <div className="flex items-center gap-3">
-                    <Settings className="w-5 h-5" style={{ color: 'var(--_color-theme---accent)' }} />
-                    <h3
-                      className="font-medium"
-                      style={{
-                        color: 'var(--_color-theme---text)',
-                        fontFamily: 'var(--_typography---font--styrene-a)'
-                      }}
-                    >
-                      Data Retention
-                    </h3>
-                  </div>
-                  <span
-                    className="text-sm"
-                    style={{ color: 'var(--_color-theme---text-secondary)' }}
-                  >
-                    30 days default
-                  </span>
-                </div>
-                <p
-                  className="text-sm"
-                  style={{ color: 'var(--_color-theme---text-secondary)' }}
-                >
-                  Raw data is automatically deleted after processing. Only anonymized insights are kept.
+            {/* What Makes This Special */}
+            <div className="max-w-2xl mx-auto mb-12 text-center">
+              <div className="p-8 rounded-3xl border" style={{ backgroundColor: 'var(--_color-theme---surface)', borderColor: 'var(--_color-theme---accent)' }}>
+                <h3 className="text-xl font-semibold mb-4" style={{ color: 'var(--_color-theme---text)' }}>
+                  ✨ What makes this different?
+                </h3>
+                <p className="text-base leading-relaxed" style={{ color: 'var(--_color-theme---text-secondary)' }}>
+                  Unlike other platforms that harvest your data, we discover your soul signature and then
+                  <span style={{ color: 'var(--_color-theme---accent)' }}> delete the raw data</span>.
+                  You keep the insights, we keep nothing.
                 </p>
               </div>
             </div>
 
+            {/* CTA */}
             <div className="text-center">
               <button
                 onClick={startTwinGeneration}
-                className="btn-anthropic-primary flex items-center gap-2 mx-auto text-lg px-8 py-4"
+                className="btn-anthropic-primary flex items-center gap-3 mx-auto text-lg px-10 py-4 transform hover:scale-105 transition-all shadow-lg hover:shadow-xl"
               >
-                <Sparkles className="w-5 h-5" />
-                Generate My Twin (60s)
+                <Sparkles className="w-6 h-6" />
+                Reveal My Soul Signature
+                <ArrowRight className="w-5 h-5" />
               </button>
-              <p
-                className="text-sm mt-2"
-                style={{ color: 'var(--_color-theme---text-secondary)' }}
-              >
-                Your twin will be ready in about 60 seconds
+              <p className="text-sm mt-4 max-w-md mx-auto" style={{ color: 'var(--_color-theme---text-secondary)' }}>
+                Your authentic essence will emerge in moments, protected by the highest security standards
               </p>
             </div>
           </div>

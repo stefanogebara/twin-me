@@ -16,6 +16,9 @@ const OAuthCallback = () => {
         const error = searchParams.get('error');
 
         console.log('🔄 OAuth callback received:', { code: !!code, state: !!state, error });
+        console.log('🔄 Full URL:', window.location.href);
+        console.log('🔄 Search params:', searchParams.toString());
+        console.log('🔄 All URL params:', Object.fromEntries(searchParams.entries()));
 
         if (error) {
           setStatus('error');
@@ -36,17 +39,38 @@ const OAuthCallback = () => {
         // Determine if this is a connector OAuth or auth OAuth by checking state
         let stateData = null;
         let isConnectorOAuth = false;
+        let isAuthOAuth = false;
+
+        console.log('🔍 Raw state parameter:', state);
+        console.log('🔍 State type:', typeof state);
+        console.log('🔍 State length:', state?.length);
+
         try {
           if (state) {
-            stateData = JSON.parse(Buffer.from(state, 'base64').toString());
-            // Check if this is a connector OAuth (has provider field other than just 'google')
-            isConnectorOAuth = stateData.provider && ['google_gmail', 'google_calendar', 'google_drive', 'slack', 'teams', 'discord'].includes(stateData.provider);
+            console.log('🔄 Attempting to decode state...');
+            // Use atob instead of Buffer for browser compatibility
+            const decodedState = atob(state);
+            console.log('🔄 Decoded state string:', decodedState);
+            stateData = JSON.parse(decodedState);
+            console.log('🔄 Parsed state data:', stateData);
+
+            // Check if this is a connector OAuth (has userId or specific provider)
+            isConnectorOAuth = stateData.userId ||
+              (stateData.provider && ['google_gmail', 'google_calendar', 'google_drive', 'slack', 'teams', 'discord'].includes(stateData.provider));
+            // Check if this is an authentication OAuth
+            isAuthOAuth = stateData.isAuth === true;
+
+            console.log('🔍 Flow detection results:', { isConnectorOAuth, isAuthOAuth, hasUserId: !!stateData.userId, provider: stateData.provider });
+          } else {
+            console.log('❌ No state parameter found');
           }
         } catch (e) {
-          console.log('Could not decode state, assuming auth OAuth');
+          console.error('❌ State decoding failed:', e);
+          console.log('🔍 Raw state for debugging:', state);
+          // If we can't decode state, try to determine from the error response later
         }
 
-        console.log('🔍 OAuth type detected:', { isConnectorOAuth, stateData });
+        console.log('🔍 OAuth type detected:', { isConnectorOAuth, isAuthOAuth, stateData });
 
         let response;
         if (isConnectorOAuth) {
@@ -81,7 +105,14 @@ const OAuthCallback = () => {
         }
 
         const data = await response.json();
-        console.log('📥 Token exchange response:', { success: data.success, isConnector: isConnectorOAuth });
+        console.log('📥 Token exchange response:', {
+          success: data.success,
+          isConnector: isConnectorOAuth,
+          data: data,
+          hasToken: !!data.token,
+          hasUser: !!data.user,
+          error: data.error
+        });
 
         if (data.success) {
           if (isConnectorOAuth) {
@@ -101,24 +132,77 @@ const OAuthCallback = () => {
             setTimeout(() => {
               window.location.href = '/get-started?connected=true&provider=' + (stateData?.provider || '');
             }, 1500);
-          } else if (data.token) {
-            // Handle auth OAuth success - DON'T overwrite existing auth
-            const existingToken = localStorage.getItem('auth_token');
-            if (!existingToken) {
+          } else {
+            // Check what type of flow this is
+            if (isAuthOAuth && data.token) {
+              // Handle auth OAuth success
               localStorage.setItem('auth_token', data.token);
               localStorage.setItem('auth_provider', 'google');
+
+              // Store user data if provided
+              if (data.user) {
+                localStorage.setItem('user_data', JSON.stringify(data.user));
+              }
+
+              console.log('✅ Authentication successful, token stored');
+              setStatus('success');
+              setMessage('Authentication successful! Redirecting...');
+
+              // Redirect to get-started page
+              setTimeout(() => {
+                window.location.href = '/get-started';
+              }, 1500);
+            } else if (!data.token && stateData?.userId) {
+              // This is likely a connector flow that was misidentified
+              console.log('✅ Connector OAuth successful (fallback detection)');
+              setStatus('success');
+              setMessage(`Service connected successfully! Redirecting...`);
+
+              // Redirect back to the onboarding page
+              setTimeout(() => {
+                window.location.href = '/get-started?connected=true';
+              }, 1500);
+            } else if (data.token && !isAuthOAuth && !isConnectorOAuth) {
+              // Generic OAuth success (might be auth without explicit isAuth flag)
+              localStorage.setItem('auth_token', data.token);
+              localStorage.setItem('auth_provider', 'google');
+
+              if (data.user) {
+                localStorage.setItem('user_data', JSON.stringify(data.user));
+              }
+
+              console.log('✅ OAuth successful, token stored');
+              setStatus('success');
+              setMessage('Authentication successful! Redirecting...');
+
+              setTimeout(() => {
+                window.location.href = '/get-started';
+              }, 1500);
+            } else {
+              // Check if this might be a connector flow based on the response data structure
+              if (data.success && (data.provider || data.connected || data.hasAccess)) {
+                console.log('✅ Detected connector OAuth based on response data');
+                setStatus('success');
+                setMessage(`Service connected successfully! Redirecting...`);
+
+                // Store connection info if we can determine the provider
+                if (data.provider) {
+                  const existingConnections = JSON.parse(localStorage.getItem('connectedServices') || '[]');
+                  if (!existingConnections.includes(data.provider)) {
+                    existingConnections.push(data.provider);
+                    localStorage.setItem('connectedServices', JSON.stringify(existingConnections));
+                  }
+                }
+
+                setTimeout(() => {
+                  window.location.href = '/get-started?connected=true';
+                }, 1500);
+              } else {
+                // This is truly an error - no valid data received
+                console.error('OAuth callback failed - no valid data received', { data, stateData, isAuthOAuth, isConnectorOAuth });
+                throw new Error('OAuth authentication failed. Please try again.');
+              }
             }
-
-            console.log('✅ Authentication successful, token stored');
-            setStatus('success');
-            setMessage('Authentication successful! Redirecting...');
-
-            // Trigger a page reload to ensure AuthContext picks up the new token
-            setTimeout(() => {
-              window.location.href = '/get-started';
-            }, 1500);
-          } else {
-            throw new Error('Missing token in auth response');
           }
         } else {
           throw new Error(data.error || 'OAuth exchange failed');
@@ -127,8 +211,12 @@ const OAuthCallback = () => {
       } catch (error) {
         console.error('❌ OAuth callback error:', error);
         setStatus('error');
-        setMessage('An unexpected error occurred during authentication');
-        setTimeout(() => navigate('/auth'), 3000);
+        setMessage('Connection failed. Please try again.');
+
+        // Don't redirect to auth for connector OAuth failures - stay on get-started
+        setTimeout(() => {
+          window.location.href = '/get-started';
+        }, 3000);
       }
     };
 

@@ -2,10 +2,11 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth, SignInButton } from '../contexts/AuthContext';
 import { Sparkles, User, BookOpen, Mic, Brain, ArrowRight } from 'lucide-react';
+import ThemeToggle from '../components/ThemeToggle';
 
 const AnthropicIndex = () => {
   const navigate = useNavigate();
-  const { isSignedIn, isLoaded } = useAuth();
+  const { isSignedIn, isLoaded, user } = useAuth();
   const [animatedWords, setAnimatedWords] = useState<string[]>("Discover Your Soul Signature".split(' '));
 
   // Anthropic-style word animation for hero text
@@ -32,11 +33,12 @@ const AnthropicIndex = () => {
   }, []);
 
   const handleGetStartedClick = () => {
-    if (!isLoaded) return;
+    console.log('🚀 Get Started clicked - Auth state:', { isLoaded, isSignedIn, user });
 
-    if (isSignedIn) {
-      navigate('/choose-mode');
-    }
+    // Always go to auth first - even if user might be logged in
+    // After login, they should see proper onboarding
+    console.log('🚀 Redirecting to authentication/onboarding flow');
+    navigate('/auth');
   };
 
   const handleWatchDemoClick = () => {
@@ -49,41 +51,6 @@ const AnthropicIndex = () => {
     }
   };
 
-  // Apple-style content grouping by user benefit
-  const featureGroups = {
-    forPersonal: {
-      title: "Personal Universe",
-      description: "Capture what makes you authentically YOU",
-      features: [
-        {
-          icon: <Sparkles className="w-8 h-8" />,
-          title: "Soul Signature Discovery",
-          description: "Connect your digital life to reveal your unique patterns and authentic self"
-        },
-        {
-          icon: <User className="w-8 h-8" />,
-          title: "30+ Platform Connectors",
-          description: "Spotify, Netflix, YouTube, Discord - your digital footprint becomes your identity"
-        }
-      ]
-    },
-    forProfessional: {
-      title: "Professional Identity",
-      description: "Share your expertise while preserving your essence",
-      features: [
-        {
-          icon: <Mic className="w-8 h-8" />,
-          title: "Privacy Spectrum Control",
-          description: "Choose what to reveal and what to share with granular intensity sliders"
-        },
-        {
-          icon: <Brain className="w-8 h-8" />,
-          title: "Life Clusters",
-          description: "Organize your identity into meaningful groupings - hobbies, spirituality, career"
-        }
-      ]
-    }
-  };
 
 
   return (
@@ -99,44 +66,14 @@ const AnthropicIndex = () => {
                 Twin Me
               </div>
             </div>
-            {/* Apple-style Navigation with Clear Hierarchy */}
-            <div className="hidden md:flex items-center space-x-8">
-              <a
-                href="#features"
-                className="text-sm font-medium transition-all hover:opacity-70 relative group"
-                style={{ color: 'var(--_color-theme---text)' }}
-              >
-                Features
-                <div className="absolute -bottom-1 left-0 w-0 h-0.5 transition-all group-hover:w-full" style={{ backgroundColor: 'var(--_color-theme---accent)' }}></div>
-              </a>
-              <a
-                href="#how-it-works"
-                className="text-sm font-medium transition-all hover:opacity-70 relative group"
-                style={{ color: 'var(--_color-theme---text)' }}
-              >
-                How It Works
-                <div className="absolute -bottom-1 left-0 w-0 h-0.5 transition-all group-hover:w-full" style={{ backgroundColor: 'var(--_color-theme---accent)' }}></div>
-              </a>
-              <a
-                href="#contact"
-                className="text-sm font-medium transition-all hover:opacity-70 relative group"
-                style={{ color: 'var(--_color-theme---text)' }}
-              >
-                Contact
-                <div className="absolute -bottom-1 left-0 w-0 h-0.5 transition-all group-hover:w-full" style={{ backgroundColor: 'var(--_color-theme---accent)' }}></div>
-              </a>
+            <div className="flex items-center gap-3">
+              <ThemeToggle />
+              {!isLoaded ? (
+                <button disabled className="btn-anthropic-primary opacity-50 cursor-not-allowed">Loading...</button>
+              ) : (
+                <button onClick={handleGetStartedClick} className="btn-anthropic-primary">Get Started</button>
+              )}
             </div>
-            {!isLoaded ? (
-              <button disabled className="btn-anthropic-primary opacity-50 cursor-not-allowed">Loading...</button>
-            ) : isSignedIn ? (
-              <button onClick={() => navigate('/professor-dashboard')} className="btn-anthropic-primary">
-                Dashboard
-              </button>
-            ) : (
-              <SignInButton mode="modal" afterSignInUrl="/choose-mode">
-                <button className="btn-anthropic-primary">Get Started</button>
-              </SignInButton>
-            )}
           </div>
         </div>
       </nav>
@@ -167,18 +104,11 @@ const AnthropicIndex = () => {
           <div className="flex flex-col sm:flex-row gap-6 justify-center items-center">
             {!isLoaded ? (
               <button disabled className="btn-anthropic-primary opacity-50 cursor-not-allowed">Loading...</button>
-            ) : isSignedIn ? (
+            ) : (
               <button onClick={handleGetStartedClick} className="btn-anthropic-primary flex items-center gap-2">
                 Create Your Twin
                 <ArrowRight className="w-5 h-5" />
               </button>
-            ) : (
-              <SignInButton mode="modal" afterSignInUrl="/choose-mode">
-                <button className="btn-anthropic-primary flex items-center gap-2">
-                  Create Your Twin
-                  <ArrowRight className="w-5 h-5" />
-                </button>
-              </SignInButton>
             )}
             <button onClick={handleWatchDemoClick} className="btn-anthropic-secondary">
               Watch Demo
@@ -199,46 +129,47 @@ const AnthropicIndex = () => {
             </p>
           </div>
 
-          {/* Apple-style Grouped Content */}
-          <div className="space-y-16">
-            {Object.entries(featureGroups).map(([groupKey, group]) => (
-              <div key={groupKey} className="">
-                {/* Group Header */}
-                <div className="text-center mb-12">
-                  <div className="inline-flex items-center gap-2 bg-white border rounded-full px-4 py-2 mb-4" style={{ borderColor: 'var(--_color-theme---border)' }}>
-                    <span className="text-sm font-medium" style={{ color: 'var(--_color-theme---accent)' }}>
-                      {group.title}
-                    </span>
-                  </div>
-                  <p className="text-lg" style={{ color: 'var(--_color-theme---text-secondary)' }}>
-                    {group.description}
-                  </p>
-                </div>
-
-                {/* Group Features */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto">
-                  {group.features.map((feature, index) => (
-                    <div
-                      key={index}
-                      className="bg-white rounded-2xl p-8 shadow-sm border hover:shadow-md transition-all duration-300"
-                      style={{ borderColor: 'var(--_color-theme---border)' }}
-                    >
-                      <div className="mb-6 p-3 rounded-xl w-fit" style={{ backgroundColor: 'var(--_color-theme---background-secondary)' }}>
-                        <div style={{ color: 'var(--_color-theme---text)' }}>
-                          {feature.icon}
-                        </div>
-                      </div>
-                      <h3 className="text-heading font-medium text-xl mb-4">
-                        {feature.title}
-                      </h3>
-                      <p className="text-body">
-                        {feature.description}
-                      </p>
-                    </div>
-                  ))}
-                </div>
+          {/* Features Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            <div className="bg-white rounded-2xl p-8 shadow-sm border hover:shadow-md transition-all duration-300" style={{ borderColor: 'var(--_color-theme---border)' }}>
+              <div className="mb-6 p-3 rounded-xl w-fit" style={{ backgroundColor: 'var(--_color-theme---background-secondary)' }}>
+                <Sparkles className="w-8 h-8" style={{ color: 'var(--_color-theme---text)' }} />
               </div>
-            ))}
+              <h3 className="text-heading font-medium text-xl mb-4">Soul Signature Discovery</h3>
+              <p className="text-body">Connect your digital life to reveal your unique patterns and authentic self</p>
+            </div>
+
+            <div className="bg-white rounded-2xl p-8 shadow-sm border hover:shadow-md transition-all duration-300" style={{ borderColor: 'var(--_color-theme---border)' }}>
+              <div className="mb-6 p-3 rounded-xl w-fit" style={{ backgroundColor: 'var(--_color-theme---background-secondary)' }}>
+                <User className="w-8 h-8" style={{ color: 'var(--_color-theme---text)' }} />
+              </div>
+              <h3 className="text-heading font-medium text-xl mb-4">30+ Platform Connectors</h3>
+              <p className="text-body">Spotify, Netflix, YouTube, Discord - your digital footprint becomes your identity</p>
+            </div>
+
+            <div className="bg-white rounded-2xl p-8 shadow-sm border hover:shadow-md transition-all duration-300" style={{ borderColor: 'var(--_color-theme---border)' }}>
+              <div className="mb-6 p-3 rounded-xl w-fit" style={{ backgroundColor: 'var(--_color-theme---background-secondary)' }}>
+                <Mic className="w-8 h-8" style={{ color: 'var(--_color-theme---text)' }} />
+              </div>
+              <h3 className="text-heading font-medium text-xl mb-4">Privacy Spectrum Control</h3>
+              <p className="text-body">Choose what to reveal and what to share with granular intensity sliders</p>
+            </div>
+
+            <div className="bg-white rounded-2xl p-8 shadow-sm border hover:shadow-md transition-all duration-300" style={{ borderColor: 'var(--_color-theme---border)' }}>
+              <div className="mb-6 p-3 rounded-xl w-fit" style={{ backgroundColor: 'var(--_color-theme---background-secondary)' }}>
+                <Brain className="w-8 h-8" style={{ color: 'var(--_color-theme---text)' }} />
+              </div>
+              <h3 className="text-heading font-medium text-xl mb-4">Life Clusters</h3>
+              <p className="text-body">Organize your identity into meaningful groupings - hobbies, spirituality, career</p>
+            </div>
+
+            <div className="bg-white rounded-2xl p-8 shadow-sm border hover:shadow-md transition-all duration-300" style={{ borderColor: 'var(--_color-theme---border)' }}>
+              <div className="mb-6 p-3 rounded-xl w-fit" style={{ backgroundColor: 'var(--_color-theme---background-secondary)' }}>
+                <BookOpen className="w-8 h-8" style={{ color: 'var(--_color-theme---text)' }} />
+              </div>
+              <h3 className="text-heading font-medium text-xl mb-4">Instant Twin Generation</h3>
+              <p className="text-body">Connect platforms → Discover soul signature → Create authentic twin</p>
+            </div>
           </div>
         </div>
       </section>
@@ -257,71 +188,22 @@ const AnthropicIndex = () => {
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-12">
             <div className="text-center">
-              <div className="w-16 h-16 rounded-full flex items-center justify-center text-2xl font-bold text-white mb-6 mx-auto"
-                   style={{ backgroundColor: 'var(--_color-theme---button-primary--background)' }}>
-                1
-              </div>
+              <div className="w-16 h-16 rounded-full flex items-center justify-center text-2xl font-bold text-white mb-6 mx-auto" style={{ backgroundColor: 'var(--_color-theme---button-primary--background)' }}>1</div>
               <h3 className="text-heading text-xl font-medium mb-4">Connect Your Digital Life</h3>
-              <p className="text-body">
-                Link your entertainment platforms, professional tools, and social networks. We extract your authentic patterns from Spotify moods, Netflix narratives, and more.
-              </p>
+              <p className="text-body">Link your entertainment platforms, professional tools, and social networks. We extract your authentic patterns from Spotify moods, Netflix narratives, and more.</p>
             </div>
 
             <div className="text-center">
-              <div className="w-16 h-16 rounded-full flex items-center justify-center text-2xl font-bold text-white mb-6 mx-auto"
-                   style={{ backgroundColor: 'var(--_color-theme---button-primary--background)' }}>
-                2
-              </div>
+              <div className="w-16 h-16 rounded-full flex items-center justify-center text-2xl font-bold text-white mb-6 mx-auto" style={{ backgroundColor: 'var(--_color-theme---button-primary--background)' }}>2</div>
               <h3 className="text-heading text-xl font-medium mb-4">Control Your Privacy</h3>
-              <p className="text-body">
-                Use our revolutionary privacy spectrum with intensity sliders. Choose what to reveal and what to share - different levels for different audiences.
-              </p>
+              <p className="text-body">Use our revolutionary privacy spectrum with intensity sliders. Choose what to reveal and what to share - different levels for different audiences.</p>
             </div>
 
             <div className="text-center">
-              <div className="w-16 h-16 rounded-full flex items-center justify-center text-2xl font-bold text-white mb-6 mx-auto"
-                   style={{ backgroundColor: 'var(--_color-theme---button-primary--background)' }}>
-                3
-              </div>
+              <div className="w-16 h-16 rounded-full flex items-center justify-center text-2xl font-bold text-white mb-6 mx-auto" style={{ backgroundColor: 'var(--_color-theme---button-primary--background)' }}>3</div>
               <h3 className="text-heading text-xl font-medium mb-4">Share Your Twin</h3>
-              <p className="text-body">
-                Your soul signature is ready! Share different aspects of yourself with different contexts - professional, social, or personal.
-              </p>
+              <p className="text-body">Your soul signature is ready! Share different aspects of yourself with different contexts - professional, social, or personal.</p>
             </div>
-          </div>
-        </div>
-      </section>
-
-
-      {/* CTA Section */}
-      <section className="py-24 px-6" style={{ backgroundColor: 'var(--_color-theme---card)' }}>
-        <div className="max-w-4xl mx-auto text-center">
-          <h2 className="u-display-l text-heading mb-6">
-            Ready to Transform Your Teaching?
-          </h2>
-          <p className="text-body-large mb-8 max-w-2xl mx-auto">
-            Join thousands of educators who are already using AI to create more personalized and effective learning experiences.
-          </p>
-
-          <div className="flex flex-col sm:flex-row gap-6 justify-center items-center">
-            {!isLoaded ? (
-              <button disabled className="btn-anthropic-primary opacity-50 cursor-not-allowed">Loading...</button>
-            ) : isSignedIn ? (
-              <button onClick={() => navigate('/get-started')} className="btn-anthropic-primary flex items-center gap-2">
-                Start Building Your Twin
-                <ArrowRight className="w-5 h-5" />
-              </button>
-            ) : (
-              <SignInButton mode="modal" afterSignInUrl="/choose-mode">
-                <button className="btn-anthropic-primary flex items-center gap-2">
-                  Start Building Your Twin
-                  <ArrowRight className="w-5 h-5" />
-                </button>
-              </SignInButton>
-            )}
-            <button onClick={handleWatchDemoClick} className="btn-anthropic-secondary">
-              See Demo First
-            </button>
           </div>
         </div>
       </section>
@@ -332,9 +214,7 @@ const AnthropicIndex = () => {
           <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-8">
             <div>
               <h3 className="text-heading font-medium text-xl mb-4">Twin Me</h3>
-              <p className="text-body">
-                Creating the future of personalized education through AI-powered digital twins.
-              </p>
+              <p className="text-body">Creating the future of personalized education through AI-powered digital twins.</p>
             </div>
 
             <div>
@@ -366,9 +246,7 @@ const AnthropicIndex = () => {
           </div>
 
           <div className="pt-8 border-t text-center" style={{ borderColor: 'var(--_color-theme---border)' }}>
-            <p className="text-body opacity-70">
-              © 2024 Twin Me. All rights reserved.
-            </p>
+            <p className="text-body opacity-70">© 2024 Twin Me. All rights reserved.</p>
           </div>
         </div>
       </footer>

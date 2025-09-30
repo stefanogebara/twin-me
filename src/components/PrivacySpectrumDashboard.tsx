@@ -137,30 +137,6 @@ const PrivacySpectrumDashboard: React.FC = () => {
         }
       ]
     },
-    {
-      id: 'creative',
-      name: 'Creative Expression',
-      icon: <Palette className="w-5 h-5" />,
-      color: 'from-orange-500 to-red-500',
-      intensity: 60,
-      privacyLevel: 50,
-      subclusters: [
-        {
-          id: 'artistic',
-          name: 'Artistic Output',
-          dataPoints: [],
-          intensity: 70,
-          privacyLevel: 70
-        },
-        {
-          id: 'innovation',
-          name: 'Ideas & Vision',
-          dataPoints: [],
-          intensity: 55,
-          privacyLevel: 40
-        }
-      ]
-    }
   ]);
 
   // Privacy level descriptions
@@ -339,17 +315,6 @@ const PrivacySpectrumDashboard: React.FC = () => {
           )
         };
       }
-      if (cluster.id === 'creative' && ['spotify', 'goodreads', 'youtube'].includes(platform)) {
-        return {
-          ...cluster,
-          intensity: Math.min(100, cluster.intensity + 3),
-          subclusters: cluster.subclusters.map(sub =>
-            sub.id === 'artistic'
-              ? { ...sub, intensity: Math.min(100, sub.intensity + 4) }
-              : sub
-          )
-        };
-      }
       if (cluster.id === 'professional' && ['goodreads', 'youtube'].includes(platform)) {
         return {
           ...cluster,
@@ -439,8 +404,17 @@ const PrivacySpectrumDashboard: React.FC = () => {
               <p className="text-sm text-gray-400">Apply uniform privacy across all clusters</p>
             </div>
             <Button
-              onClick={applyGlobalPrivacy}
+              onClick={() => {
+                applyGlobalPrivacy();
+                // Show feedback
+                const feedback = document.createElement('div');
+                feedback.textContent = 'Global privacy applied to all clusters!';
+                feedback.className = 'fixed top-4 right-4 bg-green-500 text-white p-3 rounded-lg z-50';
+                document.body.appendChild(feedback);
+                setTimeout(() => feedback.remove(), 3000);
+              }}
               className="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700"
+              title="Apply current privacy setting to all clusters"
             >
               Apply to All
             </Button>
@@ -765,9 +739,13 @@ const PrivacySpectrumDashboard: React.FC = () => {
                     <Button
                       variant="ghost"
                       size="sm"
-                      onClick={() => setSelectedCluster(cluster.id)}
+                      onClick={() => setSelectedCluster(cluster.id === selectedCluster ? null : cluster.id)}
+                      title="View cluster details"
                     >
-                      <ChevronRight className="w-4 h-4" />
+                      <ChevronRight className={cn(
+                        "w-4 h-4 transition-transform",
+                        selectedCluster === cluster.id && "rotate-90"
+                      )} />
                     </Button>
                   </div>
 
@@ -829,6 +807,40 @@ const PrivacySpectrumDashboard: React.FC = () => {
                       </div>
                     ))}
                   </div>
+
+                  {/* Expanded Details */}
+                  <AnimatePresence>
+                    {selectedCluster === cluster.id && (
+                      <motion.div
+                        initial={{ opacity: 0, height: 0 }}
+                        animate={{ opacity: 1, height: 'auto' }}
+                        exit={{ opacity: 0, height: 0 }}
+                        className="mt-4 p-4 rounded-lg bg-gray-800/50 border border-gray-600"
+                      >
+                        <h4 className="text-sm font-semibold mb-3 text-white">Cluster Details</h4>
+                        <div className="space-y-2 text-xs text-gray-400">
+                          <div className="flex justify-between">
+                            <span>Data Points Collected:</span>
+                            <span className="text-blue-400">{Math.floor(cluster.intensity * 1.2)} items</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span>Authenticity Score:</span>
+                            <span className="text-green-400">{Math.floor(cluster.intensity * 0.9)}%</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span>Last Updated:</span>
+                            <span className="text-yellow-400">2 hours ago</span>
+                          </div>
+                        </div>
+                        <div className="mt-3 pt-3 border-t border-gray-700">
+                          <p className="text-xs text-gray-400">
+                            This cluster contains insights from your {cluster.subclusters.length} subcategories
+                            and helps create your authentic digital twin personality.
+                          </p>
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
                 </div>
               </Card>
             </motion.div>

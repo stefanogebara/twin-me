@@ -20,6 +20,7 @@ import {
   Settings
 } from 'lucide-react';
 import { SecureDigitalTwinAPI } from '@/lib/api';
+import ThemeToggle from '../components/ThemeToggle';
 
 interface Conversation {
   id: string;
@@ -77,7 +78,7 @@ const StudentDashboard = () => {
 
   const loadDashboardData = async () => {
     try {
-      const token = await user!.getToken();
+      const token = localStorage.getItem('auth_token');
 
       // Load conversations, active twins, and calculate stats
       const [conversationsResult, twinsResult] = await Promise.all([
@@ -124,7 +125,7 @@ const StudentDashboard = () => {
 
   const startNewConversation = async (twinId: string, twinName: string) => {
     try {
-      const token = await user!.getToken();
+      const token = localStorage.getItem('auth_token');
       const result = await SecureDigitalTwinAPI.createConversation(token, {
         twin_id: twinId,
         title: `Chat with ${twinName}`
@@ -164,7 +165,7 @@ const StudentDashboard = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-6">
+      <div className="min-h-screen p-6" style={{ backgroundColor: 'var(--_color-theme---background)' }}>
         <div className="max-w-7xl mx-auto">
           <div className="animate-pulse space-y-6">
             <div className="h-8 bg-gray-200 rounded w-1/3"></div>
@@ -184,7 +185,7 @@ const StudentDashboard = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-6">
+    <div className="min-h-screen p-6" style={{ backgroundColor: 'var(--_color-theme---background)' }}>
       <div className="max-w-7xl mx-auto space-y-6">
         {/* Header */}
         <div className="flex items-center justify-between">
@@ -197,6 +198,7 @@ const StudentDashboard = () => {
             </p>
           </div>
           <div className="flex items-center gap-3">
+            <ThemeToggle />
             <Button variant="outline" size="sm">
               <Settings className="h-4 w-4 mr-2" />
               Settings

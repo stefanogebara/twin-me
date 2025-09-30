@@ -98,8 +98,8 @@ const ProfessorDashboard = () => {
         return;
       }
 
-      // Get authentication token
-      const token = await user.getToken();
+      // Get authentication token from localStorage
+      const token = localStorage.getItem('auth_token');
 
       // Load digital twins using secure API
       const twins = await SecureDigitalTwinAPI.getMyTwins(token);
@@ -132,7 +132,7 @@ const ProfessorDashboard = () => {
   const loadTrainingMaterials = async (twinId: string) => {
     try {
       if (!user) return;
-      const token = await user.getToken();
+      const token = localStorage.getItem('auth_token');
 
       // TODO: Add API endpoint for getting training materials
       // For now, return empty array
@@ -157,7 +157,7 @@ const ProfessorDashboard = () => {
     }
 
     try {
-      const token = await user!.getToken();
+      const token = localStorage.getItem('auth_token');
 
       const newTwin = await SecureDigitalTwinAPI.createTwin({
         creator_id: user!.id,
@@ -204,7 +204,7 @@ const ProfessorDashboard = () => {
 
   const toggleTwinStatus = async (twinId: string, currentStatus: boolean) => {
     try {
-      const token = await user!.getToken();
+      const token = localStorage.getItem('auth_token');
 
       const updatedTwin = await SecureDigitalTwinAPI.updateTwin(twinId, {
         is_active: !currentStatus
@@ -307,7 +307,7 @@ const ProfessorDashboard = () => {
               Dashboard
             </h1>
             <p className="text-lg" style={{ color: 'var(--_color-theme---text-secondary)' }}>
-              Manage your AI teaching assistants
+              Manage your digital soul signatures
             </p>
           </div>
 
@@ -317,7 +317,7 @@ const ProfessorDashboard = () => {
             className="btn-anthropic-primary inline-flex items-center gap-2 text-base px-6 py-3"
           >
             <Plus className="w-5 h-5" />
-            Create Your First Twin
+            Discover Your Soul Signature
           </button>
         </div>
       </div>
@@ -331,9 +331,9 @@ const ProfessorDashboard = () => {
               <div className="rounded-2xl p-6 border" style={{ backgroundColor: 'var(--_color-theme---surface)', borderColor: 'var(--_color-theme---border)' }}>
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm font-medium mb-1" style={{ color: 'var(--_color-theme---text-secondary)' }}>Active Twins</p>
+                    <p className="text-sm font-medium mb-1" style={{ color: 'var(--_color-theme---text-secondary)' }}>Active Signatures</p>
                     <p className="text-3xl font-bold" style={{ color: 'var(--_color-theme---accent)' }}>{stats.activeTwins}</p>
-                    <p className="text-sm mt-1" style={{ color: 'var(--_color-theme---text-secondary)' }}>Currently available to students</p>
+                    <p className="text-sm mt-1" style={{ color: 'var(--_color-theme---text-secondary)' }}>Ready to share</p>
                   </div>
                   <div className="w-12 h-12 rounded-full flex items-center justify-center" style={{ backgroundColor: 'var(--_color-theme---background-secondary)' }}>
                     <Play className="w-6 h-6" style={{ color: 'var(--_color-theme---accent)' }} />
@@ -345,10 +345,10 @@ const ProfessorDashboard = () => {
               <div className="rounded-2xl p-6 border" style={{ backgroundColor: 'var(--_color-theme---surface)', borderColor: 'var(--_color-theme---border)' }}>
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm font-medium mb-1" style={{ color: 'var(--_color-theme---text-secondary)' }}>Total Twins</p>
+                    <p className="text-sm font-medium mb-1" style={{ color: 'var(--_color-theme---text-secondary)' }}>Soul Signatures</p>
                     <p className="text-3xl font-bold" style={{ color: 'var(--_color-theme---text)' }}>{stats.totalTwins}</p>
                     <p className="text-sm mt-1" style={{ color: 'var(--_color-theme---text-secondary)' }}>
-                      {stats.totalTwins - stats.activeTwins > 0 ? `${stats.totalTwins - stats.activeTwins} in development` : 'All twins active'}
+                      {stats.totalTwins - stats.activeTwins > 0 ? `${stats.totalTwins - stats.activeTwins} being refined` : 'All signatures ready'}
                     </p>
                   </div>
                   <div className="w-12 h-12 rounded-full flex items-center justify-center" style={{ backgroundColor: 'var(--_color-theme---background-secondary)' }}>
@@ -367,10 +367,10 @@ const ProfessorDashboard = () => {
               {/* Section Title with Apple's Typography Hierarchy */}
               <div className="mb-8">
                 <h2 className="text-2xl font-semibold mb-2" style={{ fontFamily: 'var(--_typography---font--styrene-a)', color: 'var(--_color-theme---text)' }}>
-                  Your Digital Twins
+                  Your Soul Signatures
                 </h2>
                 <p className="text-base" style={{ color: 'var(--_color-theme---text-secondary)' }}>
-                  {digitalTwins.length} {digitalTwins.length === 1 ? 'twin' : 'twins'} created
+                  {digitalTwins.length} {digitalTwins.length === 1 ? 'signature' : 'signatures'} discovered
                 </p>
               </div>
 
@@ -380,9 +380,9 @@ const ProfessorDashboard = () => {
                 {digitalTwins.filter(t => t.is_active).length > 0 && (
                   <div>
                     <div className="mb-4">
-                      <h3 className="text-lg font-medium mb-1" style={{ color: 'var(--_color-theme---text)' }}>Active</h3>
+                      <h3 className="text-lg font-medium mb-1" style={{ color: 'var(--_color-theme---text)' }}>Ready to Share</h3>
                       <p className="text-sm" style={{ color: 'var(--_color-theme---text-secondary)' }}>
-                        Currently available to students
+                        Signatures refined and ready for sharing
                       </p>
                     </div>
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
@@ -412,7 +412,7 @@ const ProfessorDashboard = () => {
                           </div>
                           <div className="flex items-center justify-between">
                             <div className="flex items-center gap-4 text-sm" style={{ color: 'var(--_color-theme---text-secondary)' }}>
-                              <span>Ready for students</span>
+                              <span>Ready to share</span>
                             </div>
                             <button
                               className="p-2 rounded-lg hover:opacity-70 transition-opacity"
@@ -435,9 +435,9 @@ const ProfessorDashboard = () => {
                 {digitalTwins.filter(t => !t.is_active).length > 0 && (
                   <div>
                     <div className="mb-4">
-                      <h3 className="text-lg font-medium mb-1" style={{ color: 'var(--_color-theme---text)' }}>In Development</h3>
+                      <h3 className="text-lg font-medium mb-1" style={{ color: 'var(--_color-theme---text)' }}>Being Refined</h3>
                       <p className="text-sm" style={{ color: 'var(--_color-theme---text-secondary)' }}>
-                        Not yet available to students
+                        Signatures still discovering their depth
                       </p>
                     </div>
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
@@ -467,7 +467,7 @@ const ProfessorDashboard = () => {
                           </div>
                           <div className="flex items-center justify-between">
                             <div className="flex items-center gap-4 text-sm" style={{ color: 'var(--_color-theme---text-secondary)' }}>
-                              <span>Configure and test</span>
+                              <span>Refine and explore</span>
                             </div>
                             <button
                               className="p-2 rounded-lg hover:opacity-70 transition-opacity"
@@ -494,10 +494,10 @@ const ProfessorDashboard = () => {
                 <Users className="w-10 h-10" style={{ color: 'var(--_color-theme---text-secondary)' }} />
               </div>
               <h3 className="text-xl font-semibold mb-2" style={{ color: 'var(--_color-theme---text)' }}>
-                Create Your First AI Twin
+                Discover Your Soul Signature
               </h3>
               <p className="text-base mb-8 max-w-md mx-auto" style={{ color: 'var(--_color-theme---text-secondary)' }}>
-                Build a digital version of yourself that can teach students 24/7 with your unique teaching style
+                Connect your digital life to reveal your authentic essence and create a shareable soul signature
               </p>
               <button
                 onClick={() => setShowCreateForm(true)}
@@ -564,31 +564,31 @@ const ProfessorDashboard = () => {
               <div className="p-8">
                 <div className="mb-8">
                   <h2 className="text-2xl font-semibold mb-2" style={{ fontFamily: 'var(--_typography---font--styrene-a)', color: 'var(--_color-theme---text)' }}>
-                    Create New Digital Twin
+                    Create New Soul Signature
                   </h2>
                   <p className="text-base" style={{ color: 'var(--_color-theme---text-secondary)' }}>
-                    Set up your AI teaching assistant with basic information
+                    Begin your journey to discover your authentic digital essence
                   </p>
                 </div>
 
                 <div className="space-y-6">
                   <div>
-                    <label className="block text-sm font-medium mb-2" style={{ color: 'var(--_color-theme---text)' }}>Twin Name</label>
+                    <label className="block text-sm font-medium mb-2" style={{ color: 'var(--_color-theme---text)' }}>Signature Name</label>
                     <input
                       value={twinForm.name}
                       onChange={(e) => setTwinForm(prev => ({ ...prev, name: e.target.value }))}
-                      placeholder="e.g., Dr. Smith - Physics 101"
+                      placeholder="e.g., My Authentic Self, Creative Explorer"
                       className="w-full px-4 py-3 rounded-xl border text-base"
                       style={{ backgroundColor: 'var(--_color-theme---background)', borderColor: 'var(--_color-theme---border)', color: 'var(--_color-theme---text)' }}
                     />
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium mb-2" style={{ color: 'var(--_color-theme---text)' }}>Subject Area</label>
+                    <label className="block text-sm font-medium mb-2" style={{ color: 'var(--_color-theme---text)' }}>Primary Focus</label>
                     <input
                       value={twinForm.subject_area}
                       onChange={(e) => setTwinForm(prev => ({ ...prev, subject_area: e.target.value }))}
-                      placeholder="e.g., Physics, Mathematics, Computer Science"
+                      placeholder="e.g., Creative Arts, Technology, Wellness, Music"
                       className="w-full px-4 py-3 rounded-xl border text-base"
                       style={{ backgroundColor: 'var(--_color-theme---background)', borderColor: 'var(--_color-theme---border)', color: 'var(--_color-theme---text)' }}
                     />
@@ -599,7 +599,7 @@ const ProfessorDashboard = () => {
                     <textarea
                       value={twinForm.description}
                       onChange={(e) => setTwinForm(prev => ({ ...prev, description: e.target.value }))}
-                      placeholder="Describe your teaching style and expertise..."
+                      placeholder="Describe what makes you unique and authentic..."
                       rows={3}
                       className="w-full px-4 py-3 rounded-xl border text-base resize-none"
                       style={{ backgroundColor: 'var(--_color-theme---background)', borderColor: 'var(--_color-theme---border)', color: 'var(--_color-theme---text)' }}
@@ -617,7 +617,7 @@ const ProfessorDashboard = () => {
                       onClick={handleCreateTwin}
                       className="btn-anthropic-primary"
                     >
-                      Create Twin
+                      Create Signature
                     </button>
                   </div>
                 </div>

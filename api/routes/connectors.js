@@ -8,7 +8,8 @@ const router = express.Router();
 
 // Temporary in-memory storage for OAuth connections (for testing)
 // In production, this should be stored in the database
-const tempConnections = new Map();
+// Export this so it can be shared with data-verification routes
+export const tempConnections = new Map();
 
 // ====================================================================
 // OAUTH CONFIGURATIONS
@@ -74,14 +75,17 @@ router.get('/auth/:provider', (req, res) => {
     }
 
     // Generate state parameter for security
-    const state = Buffer.from(JSON.stringify({
+    const stateObject = {
       provider,
       userId,
       timestamp: Date.now()
-    })).toString('base64');
+    };
+    console.log('🔗 Creating state object for connector OAuth:', stateObject);
+    const state = Buffer.from(JSON.stringify(stateObject)).toString('base64');
+    console.log('🔗 Encoded state:', state);
 
     // Build authorization URL
-    // HARDCODED to fix OAuth redirect issue - always use port 8086
+    // Use connector-specific callback to avoid conflicts with auth OAuth
     const redirectUri = 'http://localhost:8086/oauth/callback'; // Frontend callback URL
 
     console.log(`🔗 OAuth for ${provider}:`);
@@ -208,16 +212,25 @@ router.post('/callback', async (req, res) => {
       // Continue anyway - don't fail the OAuth flow
     }
 
-    res.json({
+    console.log(`📤 Sending connector callback response for ${provider}`);
+
+    const responseData = {
       success: true,
+      provider,
+      userId,
+      connected: true,
+      hasAccess: !!tokens.access_token,
       data: {
         provider,
         userId,
         connected: true,
-        // Don't return actual tokens to frontend
         hasAccess: !!tokens.access_token
       }
-    });
+    };
+
+    console.log('📤 Connector response:', responseData);
+
+    res.json(responseData);
 
   } catch (error) {
     console.error('Error handling OAuth callback:', error);

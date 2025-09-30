@@ -17,6 +17,7 @@ interface AuthContextType {
   signUp: (email: string, password: string, firstName?: string, lastName?: string) => Promise<void>;
   signOut: () => Promise<void>;
   signInWithOAuth: (provider: 'google') => Promise<void>;
+  clearAuth: () => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -45,7 +46,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const checkAuth = async () => {
     try {
       const token = localStorage.getItem('auth_token');
+      console.log('🔍 Auth check - token exists:', !!token);
+
       if (token) {
+        console.log('🔍 Verifying token with backend...');
         // Verify token with backend
         const response = await fetch(`${import.meta.env.VITE_API_URL}/auth/verify`, {
           headers: {
@@ -53,18 +57,28 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           }
         });
 
+        console.log('🔍 Token verification response:', response.status, response.ok);
+
         if (response.ok) {
           const userData = await response.json();
+          console.log('✅ Token valid, user:', userData.user);
           setUser(userData.user);
         } else {
+          console.log('❌ Invalid token, removing from localStorage');
           localStorage.removeItem('auth_token');
+          setUser(null);
         }
+      } else {
+        console.log('🔍 No token found, user not signed in');
+        setUser(null);
       }
     } catch (error) {
-      console.error('Auth check failed:', error);
+      console.error('❌ Auth check failed:', error);
       localStorage.removeItem('auth_token');
+      setUser(null);
     } finally {
       setIsLoaded(true);
+      console.log('🔍 Auth check complete, isLoaded set to true');
     }
   };
 
@@ -115,6 +129,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   };
 
   const signOut = async () => {
+    console.log('🚪 Signing out user');
+    localStorage.removeItem('auth_token');
+    setUser(null);
+  };
+
+  const clearAuth = () => {
+    console.log('🧹 Clearing auth state and localStorage');
     localStorage.removeItem('auth_token');
     setUser(null);
   };
@@ -137,6 +158,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     signUp,
     signOut,
     signInWithOAuth,
+    clearAuth,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
