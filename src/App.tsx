@@ -10,20 +10,15 @@ import { ErrorProvider } from "./contexts/ErrorContext";
 import { AnalyticsProvider } from "./contexts/AnalyticsContext";
 import ErrorNotification from "./components/ui/ErrorNotification";
 import Index from "./pages/Index";
-import AnthropicIndex from "./pages/AnthropicIndex";
 import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
 import TalkToTwin from "./pages/TalkToTwin";
-import EnhancedTalkToTwin from "./pages/EnhancedTalkToTwin";
 import Chat from "./pages/Chat";
-import EnhancedChat from "./pages/EnhancedChat";
 import GetStarted from "./pages/GetStarted";
-import AnthropicGetStarted from "./pages/AnthropicGetStarted";
 import VoiceSettings from "./pages/VoiceSettings";
 import Settings from "./pages/Settings";
 import TwinBuilder from "./pages/TwinBuilder";
 import ConversationalTwinBuilder from "./pages/ConversationalTwinBuilder";
-import AnthropicTwinBuilder from "./pages/AnthropicTwinBuilder";
 import { TwinActivation } from "./pages/TwinActivation";
 import WatchDemo from "./pages/WatchDemo";
 import Contact from "./pages/Contact";
@@ -59,7 +54,7 @@ const App = () => (
             <Route path="/auth" element={<CustomAuth />} />
             <Route path="/custom-auth" element={<CustomAuth />} />
             <Route path="/oauth/callback" element={<OAuthCallback />} />
-            <Route path="/" element={<AnthropicIndex />} />
+            <Route path="/" element={<Index />} />
             <Route path="/choose-mode" element={
               <>
                 <SignedIn>
@@ -84,7 +79,7 @@ const App = () => (
             <Route path="/talk-to-twin" element={
               <>
                 <SignedIn>
-                  <EnhancedTalkToTwin />
+                  <TalkToTwin />
                 </SignedIn>
                 <SignedOut>
                   <CustomAuth />
@@ -94,7 +89,7 @@ const App = () => (
             <Route path="/chat/:twinId" element={
               <>
                 <SignedIn>
-                  <EnhancedChat />
+                  <Chat />
                 </SignedIn>
                 <SignedOut>
                   <CustomAuth />
