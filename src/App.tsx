@@ -99,7 +99,9 @@ const App = () => (
             <Route path="/get-started" element={
               <>
                 <SignedIn>
-                  <InstantTwinOnboarding />
+                  <ErrorBoundary>
+                    <InstantTwinOnboarding />
+                  </ErrorBoundary>
                 </SignedIn>
                 <SignedOut>
                   <CustomAuth />
@@ -109,7 +111,9 @@ const App = () => (
             <Route path="/soul-signature" element={
               <>
                 <SignedIn>
-                  <SoulSignatureDashboard />
+                  <ErrorBoundary>
+                    <SoulSignatureDashboard />
+                  </ErrorBoundary>
                 </SignedIn>
                 <SignedOut>
                   <CustomAuth />
@@ -119,7 +123,9 @@ const App = () => (
             <Route path="/privacy-spectrum" element={
               <>
                 <SignedIn>
-                  <PrivacySpectrumDashboard />
+                  <ErrorBoundary>
+                    <PrivacySpectrumDashboard />
+                  </ErrorBoundary>
                 </SignedIn>
                 <SignedOut>
                   <CustomAuth />
@@ -142,7 +148,7 @@ const App = () => (
             <Route path="/legacy-get-started" element={
               <>
                 <SignedIn>
-                  <AnthropicGetStarted />
+                  <GetStarted />
                 </SignedIn>
                 <SignedOut>
                   <CustomAuth />
