@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, memo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   User, Briefcase, Palette, Music, Film, Book, Heart, Brain,
@@ -330,15 +330,15 @@ const PrivacySpectrumDashboard: React.FC = () => {
     }));
   };
 
-  const handleClusterPrivacyChange = (clusterId: string, value: number[]) => {
+  const handleClusterPrivacyChange = useCallback((clusterId: string, value: number[]) => {
     setClusters(prev => prev.map(cluster =>
       cluster.id === clusterId
         ? { ...cluster, privacyLevel: value[0] }
         : cluster
     ));
-  };
+  }, []);
 
-  const handleSubclusterPrivacyChange = (clusterId: string, subclusterId: string, value: number[]) => {
+  const handleSubclusterPrivacyChange = useCallback((clusterId: string, subclusterId: string, value: number[]) => {
     setClusters(prev => prev.map(cluster =>
       cluster.id === clusterId
         ? {
@@ -351,7 +351,7 @@ const PrivacySpectrumDashboard: React.FC = () => {
           }
         : cluster
     ));
-  };
+  }, []);
 
   const applyGlobalPrivacy = () => {
     setClusters(prev => prev.map(cluster => ({
