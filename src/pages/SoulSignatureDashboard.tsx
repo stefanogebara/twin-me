@@ -49,6 +49,14 @@ const SoulSignatureDashboard: React.FC = () => {
     slack: false,
     discord: false
   });
+  const [extractedInsights, setExtractedInsights] = useState<{
+    personal: string[] | null;
+    professional: string[] | null;
+  }>({
+    personal: null,
+    professional: null
+  });
+  const [hasExtractedData, setHasExtractedData] = useState(false);
 
   // Authentication check
   useEffect(() => {
@@ -95,14 +103,7 @@ const SoulSignatureDashboard: React.FC = () => {
         { name: 'GitHub', icon: <Github />, status: false, key: 'github', category: 'Creative' },
         { name: 'Discord', icon: <Users />, status: connections.discord, key: 'discord', category: 'Community' }
       ],
-      insights: [
-        '🎵 Musical Identity: Eclectic Explorer with deep emotional connection',
-        '🎬 Entertainment DNA: Seeks complex narratives and meaningful stories',
-        '🎮 Gaming Persona: Strategic thinker who values collaborative experiences',
-        '📚 Learning Style: Philosophy seeker with sci-fi imagination',
-        '🎨 Creative Expression: Boundary pusher who thinks across domains',
-        '💬 Social Engagement: Community builder with authentic connections'
-      ],
+      insights: extractedInsights.personal || [],
       analysisActions: [
         {
           id: 'entertainment-analysis',
@@ -132,14 +133,7 @@ const SoulSignatureDashboard: React.FC = () => {
         { name: 'Slack', icon: <MessageSquare />, status: connections.slack, key: 'slack', category: 'Collaboration' },
         { name: 'LinkedIn', icon: <Linkedin />, status: false, key: 'linkedin', category: 'Networking' }
       ],
-      insights: [
-        '📧 Communication DNA: Professional Communicator with adaptive tone',
-        '🗓️ Time Management: Strategic scheduler with balanced meeting rhythm',
-        '🤝 Collaboration Style: High-touch collaborative approach',
-        '⚡ Productivity Pattern: Peak performance during business hours',
-        '🎯 Professional Signature: External-focused networker with meeting-centric work style',
-        '💼 Leadership Style: Servant leader with cross-functional expertise'
-      ],
+      insights: extractedInsights.professional || [],
       analysisActions: [
         {
           id: 'communication-analysis',
@@ -300,15 +294,41 @@ const SoulSignatureDashboard: React.FC = () => {
   const updateClusterInsights = (platform: string, soulSignature: any) => {
     // Find which cluster this platform belongs to
     const cluster = clusters.find(c =>
-      c.connectors.some(conn => conn.key === platform)
+      c.connectors.some(conn => conn.key === platform) ||
+      platform.includes(c.id)
     );
 
     if (cluster && soulSignature) {
-      // Update cluster insights with real data
-      const newInsights = soulSignature.uniquenessMarkers || cluster.insights;
+      // Extract insights from the soul signature data
+      let newInsights: string[] = [];
 
-      // This would update the cluster's insights in a real state management system
-      console.log(`🌟 Updated ${cluster.name} with insights:`, newInsights);
+      if (soulSignature.uniquenessMarkers && Array.isArray(soulSignature.uniquenessMarkers)) {
+        newInsights = soulSignature.uniquenessMarkers.map((marker: string) => marker);
+      } else if (soulSignature.soulSignature?.uniquenessMarkers) {
+        newInsights = soulSignature.soulSignature.uniquenessMarkers;
+      } else if (soulSignature.soulSignature?.personalityInsights) {
+        // Build insights from personality data
+        const insights = soulSignature.soulSignature.personalityInsights;
+        if (insights.communicationPersona) {
+          newInsights.push(`💬 Communication Style: ${insights.communicationPersona}`);
+        }
+        if (insights.workStyle) {
+          newInsights.push(`⚡ Work Pattern: ${insights.workStyle}`);
+        }
+        if (insights.socialProfile) {
+          newInsights.push(`🤝 Social Profile: ${insights.socialProfile}`);
+        }
+      }
+
+      // Update the appropriate cluster insights
+      if (newInsights.length > 0) {
+        setExtractedInsights(prev => ({
+          ...prev,
+          [cluster.id]: newInsights
+        }));
+        setHasExtractedData(true);
+        console.log(`✨ Updated ${cluster.name} with ${newInsights.length} insights`);
+      }
     }
   };
 
@@ -549,23 +569,53 @@ const SoulSignatureDashboard: React.FC = () => {
                 Discovered Patterns
               </h3>
               <div className="space-y-3">
-                {currentCluster.insights.map((insight, index) => (
-                  <motion.div
-                    key={index}
-                    initial={{ opacity: 0, x: -10 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: 0.4 + index * 0.1 }}
-                    className="p-3 rounded-lg bg-gray-800/50 border border-gray-700"
-                  >
-                    <div className="flex items-start gap-2">
-                      <div className={cn(
-                        "w-2 h-2 rounded-full mt-1.5",
-                        `bg-gradient-to-r ${currentCluster.gradient}`
-                      )} />
-                      <p className="text-sm text-gray-300">{insight}</p>
-                    </div>
-                  </motion.div>
-                ))}
+                {currentCluster.insights.length === 0 ? (
+                  <div className="text-center py-12">
+                    <Fingerprint className="w-16 h-16 mx-auto mb-4 text-gray-600" />
+                    <h4 className="text-lg font-semibold text-gray-400 mb-2">
+                      No Soul Signature Yet
+                    </h4>
+                    <p className="text-sm text-gray-500 mb-6 max-w-md mx-auto">
+                      Connect at least one platform from this cluster to begin discovering your authentic {currentCluster.name.toLowerCase()}.
+                    </p>
+                    <Button
+                      onClick={() => {
+                        const connectedPlatforms = currentCluster.connectors.filter(c => c.status);
+                        if (connectedPlatforms.length > 0) {
+                          startExtraction();
+                        }
+                      }}
+                      variant="outline"
+                      className={cn(
+                        "border-2",
+                        `border-${currentCluster.gradient.split('-')[1]}-500/50`,
+                        `text-${currentCluster.gradient.split('-')[1]}-400`,
+                        `hover:bg-${currentCluster.gradient.split('-')[1]}-500/10`
+                      )}
+                    >
+                      <Sparkles className="w-4 h-4 mr-2" />
+                      Start Soul Discovery
+                    </Button>
+                  </div>
+                ) : (
+                  currentCluster.insights.map((insight, index) => (
+                    <motion.div
+                      key={index}
+                      initial={{ opacity: 0, x: -10 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: 0.4 + index * 0.1 }}
+                      className="p-3 rounded-lg bg-gray-800/50 border border-gray-700"
+                    >
+                      <div className="flex items-start gap-2">
+                        <div className={cn(
+                          "w-2 h-2 rounded-full mt-1.5",
+                          `bg-gradient-to-r ${currentCluster.gradient}`
+                        )} />
+                        <p className="text-sm text-gray-300">{insight}</p>
+                      </div>
+                    </motion.div>
+                  ))
+                )}
               </div>
             </Card>
           </motion.div>
