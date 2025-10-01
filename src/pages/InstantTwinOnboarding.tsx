@@ -204,6 +204,7 @@ const InstantTwinOnboarding = () => {
   const [showPrivacyDetails, setShowPrivacyDetails] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
   const [hasCheckedConnection, setHasCheckedConnection] = useState(false);
+  const [connectingProvider, setConnectingProvider] = useState<DataProvider | null>(null);
   // Progressive disclosure state
   const [showAllConnectors, setShowAllConnectors] = useState(false);
 
@@ -357,6 +358,7 @@ const InstantTwinOnboarding = () => {
   }, []);
 
   const connectService = useCallback(async (provider: DataProvider) => {
+    setConnectingProvider(provider);
     try {
       console.log('🔍 Connect service called with:', { provider, user });
 
@@ -433,6 +435,8 @@ const InstantTwinOnboarding = () => {
         description: "Please try again or skip this service",
         variant: "destructive"
       });
+    } finally {
+      setConnectingProvider(null);
     }
   }, [toast]);
 
@@ -742,10 +746,21 @@ const InstantTwinOnboarding = () => {
                 e.stopPropagation();
                 connectService(connector.provider);
               }}
-              className="w-full py-3 px-4 rounded-xl text-sm font-semibold transition-all transform hover:scale-105 shadow-lg hover:shadow-xl"
+              disabled={connectingProvider === connector.provider}
+              className="w-full py-3 px-4 rounded-xl text-sm font-semibold transition-all transform hover:scale-105 shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none flex items-center justify-center gap-2"
               style={{ backgroundColor: 'var(--_color-theme---accent)', color: 'black', fontFamily: 'var(--_typography---font--styrene-a)' }}
             >
-              Connect
+              {connectingProvider === connector.provider ? (
+                <>
+                  <svg className="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  Connecting...
+                </>
+              ) : (
+                'Connect'
+              )}
             </button>
           </div>
         )}
