@@ -140,9 +140,16 @@ const OAuthCallback = () => {
               localStorage.setItem('connectedServices', JSON.stringify(existingConnections));
             }
 
-            // Redirect back to the onboarding page with success flag
+            // If we're in a popup, close it; otherwise redirect
             setTimeout(() => {
-              window.location.href = '/get-started?connected=true&provider=' + (stateData?.provider || '');
+              if (window.opener) {
+                // We're in a popup - notify parent and close
+                window.opener.postMessage({ type: 'oauth-success', provider: stateData?.provider }, window.location.origin);
+                window.close();
+              } else {
+                // We're in the main window - redirect
+                window.location.href = '/get-started?connected=true&provider=' + (stateData?.provider || '');
+              }
             }, 1500);
           } else {
             // Check what type of flow this is
@@ -182,9 +189,14 @@ const OAuthCallback = () => {
                 duration: 3000
               });
 
-              // Redirect back to the onboarding page
+              // If we're in a popup, close it; otherwise redirect
               setTimeout(() => {
-                window.location.href = '/get-started?connected=true';
+                if (window.opener) {
+                  window.opener.postMessage({ type: 'oauth-success', provider: stateData?.provider }, window.location.origin);
+                  window.close();
+                } else {
+                  window.location.href = '/get-started?connected=true';
+                }
               }, 1500);
             } else if (data.token && !isAuthOAuth && !isConnectorOAuth) {
               // Generic OAuth success (might be auth without explicit isAuth flag)
@@ -235,7 +247,12 @@ const OAuthCallback = () => {
                 }
 
                 setTimeout(() => {
-                  window.location.href = '/get-started?connected=true';
+                  if (window.opener) {
+                    window.opener.postMessage({ type: 'oauth-success', provider: data.provider }, window.location.origin);
+                    window.close();
+                  } else {
+                    window.location.href = '/get-started?connected=true';
+                  }
                 }, 1500);
               } else {
                 // This is truly an error - no valid data received
@@ -272,47 +289,49 @@ const OAuthCallback = () => {
   const getStatusIcon = () => {
     switch (status) {
       case 'loading':
-        return <Loader2 className="w-12 h-12 animate-spin" style={{ color: 'var(--_color-theme---accent)' }} />;
+        return <Loader2 className="w-12 h-12" style={{ color: '#D97706' }} />;
       case 'success':
-        return <CheckCircle className="w-12 h-12" style={{ color: '#10B981' }} />;
+        return <CheckCircle className="w-12 h-12" style={{ color: '#D97706' }} />;
       case 'error':
-        return <XCircle className="w-12 h-12" style={{ color: '#EF4444' }} />;
+        return <XCircle className="w-12 h-12" style={{ color: '#D97706' }} />;
     }
   };
 
   const getStatusColor = () => {
     switch (status) {
       case 'loading':
-        return 'var(--_color-theme---text)';
+        return '#141413';
       case 'success':
-        return '#10B981';
+        return '#D97706';
       case 'error':
-        return '#EF4444';
+        return '#141413';
     }
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: 'var(--_color-theme---background)' }}>
+    <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: '#FAF9F5' }}>
       <div
         className="max-w-md w-full mx-4 p-8 rounded-2xl border text-center"
         style={{
-          backgroundColor: 'var(--_color-theme---surface)',
-          borderColor: 'var(--_color-theme---border)'
+          backgroundColor: 'white',
+          borderColor: 'rgba(20,20,19,0.1)'
         }}
       >
         {/* Logo */}
         <div className="flex items-center justify-center mb-8">
           <div
             className="flex items-center justify-center w-12 h-12 rounded-xl mr-3"
-            style={{ backgroundColor: 'var(--_color-theme---accent)' }}
+            style={{ backgroundColor: '#D97706' }}
           >
             <Brain className="w-6 h-6 text-white" />
           </div>
           <h1
-            className="text-2xl font-bold"
+            className="text-2xl"
             style={{
               fontFamily: 'var(--_typography---font--styrene-a)',
-              color: 'var(--_color-theme---text)'
+              fontWeight: 500,
+              letterSpacing: '-0.02em',
+              color: '#141413'
             }}
           >
             Twin Me
@@ -326,10 +345,12 @@ const OAuthCallback = () => {
 
         {/* Status Message */}
         <h2
-          className="text-xl font-semibold mb-2"
+          className="text-xl mb-2"
           style={{
             color: getStatusColor(),
-            fontFamily: 'var(--_typography---font--styrene-a)'
+            fontFamily: 'var(--_typography---font--styrene-a)',
+            fontWeight: 500,
+            letterSpacing: '-0.02em'
           }}
         >
           {status === 'loading' && 'Authenticating...'}
@@ -339,7 +360,10 @@ const OAuthCallback = () => {
 
         <p
           className="text-sm"
-          style={{ color: 'var(--_color-theme---text-secondary)' }}
+          style={{
+            color: '#6B7280',
+            fontFamily: 'var(--_typography---font--tiempos)'
+          }}
         >
           {message}
         </p>
@@ -348,13 +372,13 @@ const OAuthCallback = () => {
         {status === 'loading' && (
           <div className="mt-6">
             <div
-              className="w-full bg-gray-200 rounded-full h-1.5"
-              style={{ backgroundColor: 'var(--_color-theme---surface-raised)' }}
+              className="w-full rounded-full h-1.5"
+              style={{ backgroundColor: 'rgba(20,20,19,0.1)' }}
             >
               <div
-                className="h-1.5 rounded-full animate-pulse"
+                className="h-1.5 rounded-full"
                 style={{
-                  backgroundColor: 'var(--_color-theme---accent)',
+                  backgroundColor: '#D97706',
                   width: '60%'
                 }}
               />
@@ -366,10 +390,13 @@ const OAuthCallback = () => {
         {status === 'error' && (
           <button
             onClick={() => navigate('/auth')}
-            className="mt-6 px-6 py-2 rounded-lg font-medium transition-colors"
+            className="mt-6 px-6 py-2 rounded-lg"
             style={{
-              backgroundColor: 'var(--_color-theme---accent)',
-              color: 'white'
+              backgroundColor: '#D97706',
+              color: 'white',
+              fontFamily: 'var(--_typography---font--styrene-a)',
+              fontWeight: 500,
+              letterSpacing: '-0.02em'
             }}
           >
             Try Again

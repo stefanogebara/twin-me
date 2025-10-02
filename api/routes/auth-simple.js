@@ -295,17 +295,19 @@ router.get('/oauth/callback', async (req, res) => {
           const connectionData = {
             user_id: userId,
             provider: provider,
-            access_token_encrypted: encryptToken(tokens.accessToken || 'mock_token_' + Date.now()),
-            refresh_token_encrypted: tokens.refreshToken ? encryptToken(tokens.refreshToken) : null,
-            expires_at: null,
-            connected_at: new Date().toISOString(),
-            last_sync: new Date().toISOString(),
-            is_active: true,
-            permissions: {},
-            total_synced: 0,
-            last_sync_status: 'success',
-            error_count: 0,
-            scopes: []
+            connected: true,
+            access_token: encryptToken(tokens.accessToken || 'mock_token_' + Date.now()),
+            refresh_token: tokens.refreshToken ? encryptToken(tokens.refreshToken) : null,
+            token_expires_at: null,
+            scopes: [],
+            metadata: {
+              connected_at: new Date().toISOString(),
+              last_sync: new Date().toISOString(),
+              permissions: {},
+              total_synced: 0,
+              last_sync_status: 'success',
+              error_count: 0
+            }
           };
 
           const { error: dbError } = await supabase
@@ -438,17 +440,19 @@ router.post('/oauth/callback', async (req, res) => {
           const connectionData = {
             user_id: stateData.userId,
             provider: provider,
-            access_token_encrypted: encryptToken(tokens.accessToken || 'mock_token_' + Date.now()),
-            refresh_token_encrypted: tokens.refreshToken ? encryptToken(tokens.refreshToken) : null,
-            expires_at: null,
-            connected_at: new Date().toISOString(),
-            last_sync: new Date().toISOString(),
-            is_active: true,
-            permissions: {},
-            total_synced: 0,
-            last_sync_status: 'success',
-            error_count: 0,
-            scopes: []
+            connected: true,
+            access_token: encryptToken(tokens.accessToken || 'mock_token_' + Date.now()),
+            refresh_token: tokens.refreshToken ? encryptToken(tokens.refreshToken) : null,
+            token_expires_at: null,
+            scopes: [],
+            metadata: {
+              connected_at: new Date().toISOString(),
+              last_sync: new Date().toISOString(),
+              permissions: {},
+              total_synced: 0,
+              last_sync_status: 'success',
+              error_count: 0
+            }
           };
 
           const { error: dbError } = await supabase

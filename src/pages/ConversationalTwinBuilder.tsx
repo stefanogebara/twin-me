@@ -482,16 +482,12 @@ const ConversationalTwinBuilder = () => {
   }, [isRecording]);
 
   return (
-    <div className="min-h-screen bg-[hsl(var(--claude-bg))] relative overflow-hidden">
-      {/* Background Elements */}
-      <div className="fixed w-[400px] h-[400px] bg-gradient-to-br from-[hsl(var(--claude-accent))] to-orange-600 rounded-full top-[15%] right-[10%] blur-[120px] opacity-10 animate-[float_25s_ease-in-out_infinite] pointer-events-none"></div>
-      <div className="fixed w-[300px] h-[300px] bg-gradient-to-br from-[hsl(var(--claude-accent))] to-orange-500 rounded-full bottom-[15%] left-[10%] blur-[120px] opacity-10 animate-[float_30s_ease-in-out_infinite_reverse] pointer-events-none"></div>
-
+    <div className="min-h-screen bg-[#FAF9F5] relative overflow-hidden">
       {/* Progress Indicator */}
       <div className="fixed top-8 left-8 z-10 flex items-center gap-3">
-        <div className="flex items-center gap-2 px-4 py-2 bg-[hsl(var(--claude-surface))]/80 backdrop-blur-sm rounded-full border border-[hsl(var(--claude-border))]">
-          {isPersonalityPhase ? <User className="w-4 h-4 text-[hsl(var(--claude-accent))]" /> : <BookOpen className="w-4 h-4 text-[hsl(var(--claude-accent))]" />}
-          <span className="text-sm font-medium text-[hsl(var(--claude-text))]">
+        <div className="flex items-center gap-2 px-4 py-2 bg-white rounded-full border border-[rgba(20,20,19,0.1)]">
+          {isPersonalityPhase ? <User className="w-4 h-4 text-[#D97706]" /> : <BookOpen className="w-4 h-4 text-[#D97706]" />}
+          <span className="text-sm text-[#141413]" style={{ fontFamily: 'var(--_typography---font--tiempos)' }}>
             {isPersonalityPhase ? 'Building Your Personality' : 'Adding Your Classes'}
           </span>
         </div>
@@ -504,7 +500,7 @@ const ConversationalTwinBuilder = () => {
           {/* AI Assistant Message */}
           <div className="mb-8">
             <div className="flex items-start gap-4 mb-6">
-              <div className={`w-12 h-12 bg-gradient-to-br from-[hsl(var(--claude-accent))] to-orange-600 rounded-full flex items-center justify-center shadow-lg ${isAssistantSpeaking ? 'animate-pulse' : ''}`}>
+              <div className="w-12 h-12 bg-[#D97706] rounded-full flex items-center justify-center">
                 {isAssistantSpeaking ? (
                   <Volume2 className="w-6 h-6 text-white" />
                 ) : (
@@ -512,51 +508,51 @@ const ConversationalTwinBuilder = () => {
                 )}
               </div>
               <div className="flex-1">
-                <div className="bg-[hsl(var(--claude-surface))] rounded-3xl px-6 py-5 shadow-lg border border-[hsl(var(--claude-border))] relative">
+                <div className="bg-white rounded-3xl px-6 py-5 border border-[rgba(20,20,19,0.1)] relative">
                   {isPersonalityComplete && currentStep === personalityQuestions.length + 1 ? (
                     <div>
-                      <p className="text-[hsl(var(--claude-text))] font-medium mb-3">
-                        Perfect! I've captured your teaching personality. 🎉
+                      <p className="text-[#141413] mb-3" style={{ fontFamily: 'var(--_typography---font--styrene-a)', fontWeight: 500, letterSpacing: '-0.02em' }}>
+                        Perfect! I've captured your teaching personality.
                       </p>
-                      <p className="text-[hsl(var(--claude-text-muted))] text-sm mb-4">
+                      <p className="text-[#6B7280] text-sm mb-4" style={{ fontFamily: 'var(--_typography---font--tiempos)' }}>
                         Now all your twins will have your unique style, humor, and approach. Let's add your first class!
                       </p>
                       <button
                         onClick={() => speakAssistantResponse("Perfect! I've captured your teaching personality. Now all your twins will have your unique style, humor, and approach. Let's add your first class!", false)}
-                        className="absolute top-3 right-3 p-2 hover:bg-[hsl(var(--claude-surface-raised))] rounded-full transition-colors duration-200"
+                        className="absolute top-3 right-3 p-2 rounded-full"
                         disabled={isAssistantSpeaking}
                       >
-                        <Volume2 className="w-4 h-4 text-[hsl(var(--claude-text-muted))]" />
+                        <Volume2 className="w-4 h-4 text-[#6B7280]" />
                       </button>
                     </div>
                   ) : currentStep > personalityQuestions.length + classQuestions.length ? (
                     <div>
-                      <p className="text-[hsl(var(--claude-text))] font-medium mb-3">
-                        Excellent! Your first twin is ready. ✨
+                      <p className="text-[#141413] mb-3" style={{ fontFamily: 'var(--_typography---font--styrene-a)', fontWeight: 500, letterSpacing: '-0.02em' }}>
+                        Excellent! Your first twin is ready.
                       </p>
-                      <p className="text-[hsl(var(--claude-text-muted))] text-sm mb-4">
+                      <p className="text-[#6B7280] text-sm mb-4" style={{ fontFamily: 'var(--_typography---font--tiempos)' }}>
                         Would you like to create twins for more classes, or start using this one?
                       </p>
                       <button
                         onClick={() => speakAssistantResponse("Excellent! Your first twin is ready. Would you like to create twins for more classes, or start using this one?", false)}
-                        className="absolute top-3 right-3 p-2 hover:bg-[hsl(var(--claude-surface-raised))] rounded-full transition-colors duration-200"
+                        className="absolute top-3 right-3 p-2 rounded-full"
                         disabled={isAssistantSpeaking}
                       >
-                        <Volume2 className="w-4 h-4 text-[hsl(var(--claude-text-muted))]" />
+                        <Volume2 className="w-4 h-4 text-[#6B7280]" />
                       </button>
                     </div>
                   ) : (
                     <div>
-                      <p className="text-[hsl(var(--claude-text))] leading-relaxed min-h-[1.5rem]">
+                      <p className="text-[#141413] leading-relaxed min-h-[1.5rem]" style={{ fontFamily: 'var(--_typography---font--tiempos)' }}>
                         {displayedText}
-                        {isTyping && <span className="animate-pulse">|</span>}
+                        {isTyping && <span>|</span>}
                       </p>
                       <button
                         onClick={() => currentQuestion && speakAssistantResponse(currentQuestion.question, false)}
-                        className="absolute top-3 right-3 p-2 hover:bg-[hsl(var(--claude-surface-raised))] rounded-full transition-colors duration-200"
+                        className="absolute top-3 right-3 p-2 rounded-full"
                         disabled={isAssistantSpeaking || !currentQuestion}
                       >
-                        <Volume2 className="w-4 h-4 text-[hsl(var(--claude-text-muted))]" />
+                        <Volume2 className="w-4 h-4 text-[#6B7280]" />
                       </button>
                     </div>
                   )}
@@ -566,10 +562,10 @@ const ConversationalTwinBuilder = () => {
 
             {/* Follow-up encouragement */}
             {currentStep > 1 && currentStep <= personalityQuestions.length && (
-              <div className="flex items-start gap-4 mb-6 opacity-70">
+              <div className="flex items-start gap-4 mb-6">
                 <div className="w-12"></div>
-                <div className="bg-[hsl(var(--claude-accent-subtle))] rounded-2xl px-4 py-3 border border-[hsl(var(--claude-accent))]/20">
-                  <p className="text-[hsl(var(--claude-accent))] text-sm">
+                <div className="bg-[#FEF3E2] rounded-2xl px-4 py-3 border border-[rgba(217,119,6,0.2)]">
+                  <p className="text-[#D97706] text-sm" style={{ fontFamily: 'var(--_typography---font--tiempos)' }}>
                     {personalityQuestions[currentStep - 2]?.followUp}
                   </p>
                 </div>
@@ -580,8 +576,8 @@ const ConversationalTwinBuilder = () => {
           {/* Response Area */}
           {currentStep <= personalityQuestions.length + classQuestions.length && (
             <div
-              className={`bg-[hsl(var(--claude-surface))] rounded-3xl p-6 shadow-lg border-2 transition-all duration-300 mb-6 ${
-                isDragOver ? 'border-[hsl(var(--claude-accent))] bg-[hsl(var(--claude-accent-subtle))]' : 'border-[hsl(var(--claude-border))]'
+              className={`bg-white rounded-3xl p-6 border-2 mb-6 ${
+                isDragOver ? 'border-[#D97706] bg-[#FEF3E2]' : 'border-[rgba(20,20,19,0.1)]'
               }`}
               onDragOver={handleDragOver}
               onDragLeave={handleDragLeave}
@@ -592,16 +588,16 @@ const ConversationalTwinBuilder = () => {
                   <button
                     onClick={toggleRecording}
                     disabled={isProcessingRecording}
-                    className={`w-12 h-12 rounded-full flex items-center justify-center transition-all duration-300 ${
+                    className={`w-12 h-12 rounded-full flex items-center justify-center ${
                       isRecording
-                        ? 'bg-red-500 text-white shadow-lg'
+                        ? 'bg-red-500 text-white'
                         : isProcessingRecording
                         ? 'bg-gray-500 text-white cursor-not-allowed'
-                        : 'bg-[hsl(var(--claude-accent))] text-white hover:scale-105 shadow-lg'
+                        : 'bg-[#D97706] text-white'
                     }`}
                   >
                     {isProcessingRecording ? (
-                      <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                      <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full" style={{ animation: 'spin 1s linear infinite' }} />
                     ) : isRecording ? (
                       <MicOff className="w-5 h-5" />
                     ) : (
@@ -611,15 +607,13 @@ const ConversationalTwinBuilder = () => {
 
                   {/* Recording indicator ring */}
                   {isRecording && (
-                    <div
-                      className="absolute -inset-1 rounded-full border-2 border-red-400 animate-pulse"
-                    />
+                    <div className="absolute -inset-1 rounded-full border-2 border-red-400" />
                   )}
                 </div>
 
                 <div className="flex-1">
                   <div className="flex items-center gap-3">
-                    <span className="text-sm text-[hsl(var(--claude-text-muted))]">
+                    <span className="text-sm text-[#6B7280]" style={{ fontFamily: 'var(--_typography---font--tiempos)' }}>
                       {isProcessingRecording
                         ? 'Processing recording...'
                         : isRecording
@@ -638,11 +632,11 @@ const ConversationalTwinBuilder = () => {
                         </div>
                         <button
                           onClick={stopRecording}
-                          className="px-3 py-1 text-xs bg-red-500 hover:bg-red-600 text-white rounded-full transition-all duration-200 hover:scale-105"
+                          className="px-3 py-1 text-xs bg-red-500 text-white rounded-full"
                         >
                           Stop Recording
                         </button>
-                        <span className="text-xs text-[hsl(var(--claude-text-muted))]">
+                        <span className="text-xs text-[#6B7280]" style={{ fontFamily: 'var(--_typography---font--tiempos)' }}>
                           or press ESC/Spacebar
                         </span>
                       </div>
@@ -658,21 +652,21 @@ const ConversationalTwinBuilder = () => {
                 onChange={(e) => setCurrentResponse(e.target.value)}
                 placeholder={isProcessingRecording ? "Processing your voice recording..." : currentQuestion?.placeholder || "Type your response..."}
                 disabled={isProcessingRecording}
-                className={`w-full p-4 border-2 bg-[hsl(var(--claude-bg))] text-[hsl(var(--claude-text))] rounded-2xl resize-none min-h-[120px] focus:outline-none transition-colors duration-300 ${
+                className={`w-full p-4 border-2 bg-[#F5F5F5] text-[#141413] rounded-2xl resize-none min-h-[120px] focus:outline-none ${
                   isProcessingRecording
-                    ? 'border-[hsl(var(--claude-border))] opacity-50 cursor-not-allowed'
-                    : 'border-[hsl(var(--claude-border))] focus:border-[hsl(var(--claude-accent))]'
+                    ? 'border-[rgba(20,20,19,0.1)] opacity-50 cursor-not-allowed'
+                    : 'border-[rgba(20,20,19,0.1)] focus:border-[#D97706]'
                 }`}
-                style={{ height: 'auto' }}
+                style={{ height: 'auto', fontFamily: 'var(--_typography---font--tiempos)' }}
               />
 
               {/* Uploaded Files Display */}
               {uploadedFiles.length > 0 && (
                 <div className="mt-4 flex flex-wrap gap-2">
                   {uploadedFiles.map((file, index) => (
-                    <div key={index} className="flex items-center gap-2 bg-[hsl(var(--claude-surface-raised))] px-3 py-2 rounded-full text-sm">
-                      <FileAudio className="w-4 h-4 text-[hsl(var(--claude-accent))]" />
-                      <span className="text-[hsl(var(--claude-text-muted))]">{file.name}</span>
+                    <div key={index} className="flex items-center gap-2 bg-[#F5F5F5] px-3 py-2 rounded-full text-sm">
+                      <FileAudio className="w-4 h-4 text-[#D97706]" />
+                      <span className="text-[#6B7280]" style={{ fontFamily: 'var(--_typography---font--tiempos)' }}>{file.name}</span>
                     </div>
                   ))}
                 </div>
@@ -680,13 +674,13 @@ const ConversationalTwinBuilder = () => {
 
               <div className="flex items-center justify-between mt-4">
                 <div className="flex items-center gap-3">
-                  <span className="text-sm text-[hsl(var(--claude-text-muted))]">or</span>
+                  <span className="text-sm text-[#6B7280]" style={{ fontFamily: 'var(--_typography---font--tiempos)' }}>or</span>
                   <button
                     onClick={() => fileInputRef.current?.click()}
-                    className="flex items-center gap-2 px-4 py-2 bg-[hsl(var(--claude-surface-raised))] hover:bg-[hsl(var(--claude-border))] rounded-full text-sm text-[hsl(var(--claude-text))] transition-colors duration-300"
+                    className="flex items-center gap-2 px-4 py-2 bg-[#F5F5F5] rounded-full text-sm text-[#141413]"
                   >
                     <Upload className="w-4 h-4" />
-                    Upload files
+                    <span style={{ fontFamily: 'var(--_typography---font--tiempos)' }}>Upload files</span>
                   </button>
                   <input
                     ref={fileInputRef}
@@ -701,7 +695,7 @@ const ConversationalTwinBuilder = () => {
                 <button
                   onClick={handleNextStep}
                   disabled={!currentResponse.trim() || isProcessingRecording}
-                  className="bg-[hsl(var(--claude-accent))] hover:bg-[hsl(var(--claude-accent-hover))] disabled:bg-[hsl(var(--claude-surface-raised))] disabled:text-[hsl(var(--claude-text-muted))] text-white px-6 py-2 rounded-full text-sm font-medium transition-all duration-300 disabled:cursor-not-allowed"
+                  className="btn-anthropic-primary disabled:bg-[#F5F5F5] disabled:text-[#6B7280] disabled:cursor-not-allowed"
                 >
                   Continue
                 </button>
@@ -711,17 +705,18 @@ const ConversationalTwinBuilder = () => {
 
           {/* Completion Actions */}
           {currentStep > personalityQuestions.length + classQuestions.length && (
-            <div className="bg-[hsl(var(--claude-surface))] rounded-3xl p-6 shadow-lg border border-[hsl(var(--claude-border))]">
+            <div className="bg-white rounded-3xl p-6 border border-[rgba(20,20,19,0.1)]">
               <div className="flex gap-4 justify-center">
                 <button
                   onClick={createAnotherClass}
-                  className="bg-[hsl(var(--claude-surface-raised))] hover:bg-[hsl(var(--claude-border))] text-[hsl(var(--claude-text))] px-6 py-3 rounded-full font-medium transition-all duration-300"
+                  className="bg-[#F5F5F5] text-[#141413] px-6 py-3 rounded-full"
+                  style={{ fontFamily: 'var(--_typography---font--styrene-a)', fontWeight: 500 }}
                 >
                   Add Another Class
                 </button>
                 <button
                   onClick={finishSetup}
-                  className="bg-[hsl(var(--claude-accent))] hover:bg-[hsl(var(--claude-accent-hover))] text-white px-8 py-3 rounded-full font-medium transition-all duration-300"
+                  className="btn-anthropic-primary px-8 py-3"
                 >
                   Start Using My Twins
                 </button>

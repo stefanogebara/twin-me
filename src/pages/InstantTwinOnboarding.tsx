@@ -35,7 +35,8 @@ import {
   Book,
   Heart,
   Palette,
-  Fingerprint
+  Fingerprint,
+  X
 } from 'lucide-react';
 
 import UserProfile from '../components/UserProfile';
@@ -133,17 +134,6 @@ const AVAILABLE_CONNECTORS: ConnectorConfig[] = [
     privacyLevel: 'low'
   },
   {
-    provider: 'netflix',
-    name: 'Netflix',
-    description: 'Entertainment preferences and narrative interests',
-    icon: <Film className="w-6 h-6" />,
-    color: '#E50914',
-    dataTypes: ['Genre Preferences', 'Narrative Themes', 'Viewing Habits'],
-    estimatedInsights: 8,
-    setupTime: '10 seconds',
-    privacyLevel: 'low'
-  },
-  {
     provider: 'youtube',
     name: 'YouTube',
     description: 'Learning interests and content preferences',
@@ -155,28 +145,22 @@ const AVAILABLE_CONNECTORS: ConnectorConfig[] = [
     privacyLevel: 'low'
   },
   {
-    provider: 'steam',
-    name: 'Steam',
-    description: 'Gaming preferences and interactive experiences',
-    icon: <Gamepad2 className="w-6 h-6" />,
-    color: '#171A21',
-    dataTypes: ['Gaming Style', 'Strategic Thinking', 'Social Gaming'],
-    estimatedInsights: 6,
-    setupTime: '5 seconds',
-    privacyLevel: 'low'
-  },
-  {
-    provider: 'goodreads',
-    name: 'Goodreads',
-    description: 'Reading preferences and intellectual interests',
-    icon: <Book className="w-6 h-6" />,
-    color: '#372213',
-    dataTypes: ['Literary Taste', 'Knowledge Areas', 'Reading Patterns'],
-    estimatedInsights: 7,
-    setupTime: '5 seconds',
-    privacyLevel: 'low'
+    provider: 'discord',
+    name: 'Discord',
+    description: 'Community involvement and social gaming',
+    icon: <MessageSquare className="w-6 h-6" />,
+    color: '#5865F2',
+    dataTypes: ['Community', 'Social Interactions', 'Gaming Identity'],
+    estimatedInsights: 8,
+    setupTime: '10 seconds',
+    privacyLevel: 'medium'
   }
 ];
+
+// Note: Removed connectors:
+// - Netflix: Uses CSV upload (no OAuth API for watch history)
+// - Goodreads: API deprecated since 2020
+// - Steam: Requires separate implementation
 
 // ====================================================================
 // MAIN COMPONENT
@@ -205,6 +189,7 @@ const InstantTwinOnboarding = () => {
   const [isGenerating, setIsGenerating] = useState(false);
   const [hasCheckedConnection, setHasCheckedConnection] = useState(false);
   const [connectingProvider, setConnectingProvider] = useState<DataProvider | null>(null);
+  const [disconnectingProvider, setDisconnectingProvider] = useState<DataProvider | null>(null);
   // Progressive disclosure state
   const [showAllConnectors, setShowAllConnectors] = useState(false);
 
@@ -252,6 +237,43 @@ const InstantTwinOnboarding = () => {
       setHasCheckedConnection(true);
     }
   }, [user]);
+
+  // Listen for postMessage from OAuth popup to avoid COOP errors
+  useEffect(() => {
+    const handleMessage = (event: MessageEvent) => {
+      // Verify origin for security
+      if (event.origin !== window.location.origin) {
+        console.warn('⚠️ Ignoring message from untrusted origin:', event.origin);
+        return;
+      }
+
+      // Check if this is an OAuth success message
+      if (event.data?.type === 'oauth-success') {
+        console.log('✅ Received OAuth success message:', event.data);
+        const provider = event.data.provider;
+
+        // Update connected services
+        const existingConnections = JSON.parse(localStorage.getItem('connectedServices') || '[]');
+        if (provider && !existingConnections.includes(provider)) {
+          existingConnections.push(provider);
+          localStorage.setItem('connectedServices', JSON.stringify(existingConnections));
+          setConnectedServices(existingConnections);
+        }
+
+        // Refresh connection status after a short delay
+        setTimeout(() => {
+          console.log('🔄 Refreshing connection status after OAuth success');
+          checkConnectionStatus();
+        }, 1000);
+      }
+    };
+
+    window.addEventListener('message', handleMessage);
+
+    return () => {
+      window.removeEventListener('message', handleMessage);
+    };
+  }, []);
 
   const resetConnectionStatus = async () => {
     try {
@@ -399,8 +421,21 @@ const InstantTwinOnboarding = () => {
         // Store the provider we're connecting so we can update UI after OAuth callback
         sessionStorage.setItem('connecting_provider', provider);
 
-        // Redirect to Google OAuth consent screen
-        window.location.href = result.data.authUrl;
+        // Open OAuth in new window/tab
+        const width = 600;
+        const height = 700;
+        const left = (window.screen.width - width) / 2;
+        const top = (window.screen.height - height) / 2;
+
+        const popup = window.open(
+          result.data.authUrl,
+          'oauth',
+          `width=${width},height=${height},left=${left},top=${top},toolbar=no,menubar=no,location=no`
+        );
+
+        // Use postMessage instead of polling to avoid COOP errors
+        // The OAuth callback will send a message when it completes
+        console.log('🪟 OAuth popup opened, waiting for completion message...');
       } else if (result.success) {
         // Fallback for test connections (shouldn't happen with real OAuth)
         console.warn('⚠️ No OAuth URL received, using test connection');
@@ -439,6 +474,59 @@ const InstantTwinOnboarding = () => {
       setConnectingProvider(null);
     }
   }, [toast]);
+
+  const disconnectService = useCallback(async (provider: DataProvider) => {
+    if (!user) return;
+
+    setDisconnectingProvider(provider);
+    try {
+      const userId = user?.email || user?.id;
+      const connectorName = AVAILABLE_CONNECTORS.find(c => c.provider === provider)?.name;
+
+      console.log(`🔌 Disconnecting ${provider} for user ${userId}`);
+
+      // Call backend disconnect API
+      const response = await fetch(
+        `http://localhost:3001/api/connectors/${provider}/${encodeURIComponent(userId)}`,
+        {
+          method: 'DELETE',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+
+      const result = await response.json();
+      console.log(`✅ ${provider} disconnected:`, result);
+
+      // Remove from localStorage
+      const existingConnections = JSON.parse(localStorage.getItem('connectedServices') || '[]');
+      const updated = existingConnections.filter((p: string) => p !== provider);
+      localStorage.setItem('connectedServices', JSON.stringify(updated));
+
+      // Update state
+      setConnectedServices(updated);
+
+      toast({
+        title: "Disconnected",
+        description: `${connectorName} has been disconnected`,
+      });
+
+    } catch (error: any) {
+      console.error('Error disconnecting service:', error);
+      toast({
+        title: "Disconnect failed",
+        description: "Please try again",
+        variant: "destructive"
+      });
+    } finally {
+      setDisconnectingProvider(null);
+    }
+  }, [user, toast]);
 
   const startTwinGeneration = useCallback(async () => {
     if (!user) return;
@@ -558,7 +646,7 @@ const InstantTwinOnboarding = () => {
   // RENDER HELPERS
   // ====================================================================
 
-  // Apple-style Step Indicator with Consistent Design
+  // Step Indicator
   const renderStepIndicator = () => (
     <div className="flex items-center justify-center mb-12">
       <div className="flex items-center space-x-4">
@@ -571,12 +659,13 @@ const InstantTwinOnboarding = () => {
                   setCurrentStep(step.id);
                 }
               }}
-              className="flex items-center justify-center w-10 h-10 rounded-full text-sm font-medium transition-all duration-300 border-2"
+              className="flex items-center justify-center w-10 h-10 rounded-full text-sm border-2"
               style={{
-                backgroundColor: currentStep >= step.id ? 'var(--_color-theme---accent)' : 'var(--_color-theme---surface)',
-                borderColor: currentStep >= step.id ? 'var(--_color-theme---accent)' : 'var(--_color-theme---border)',
-                color: currentStep >= step.id ? 'white' : 'var(--_color-theme---text)',
-                cursor: step.id <= currentStep ? 'pointer' : 'default'
+                backgroundColor: currentStep >= step.id ? '#D97706' : 'white',
+                borderColor: currentStep >= step.id ? '#D97706' : 'rgba(20,20,19,0.1)',
+                color: currentStep >= step.id ? 'white' : '#141413',
+                cursor: step.id <= currentStep ? 'pointer' : 'default',
+                fontWeight: 500
               }}
               disabled={step.id > currentStep}
             >
@@ -588,21 +677,20 @@ const InstantTwinOnboarding = () => {
             </button>
             <div className="ml-3 text-sm">
               <div
-                className="font-heading font-medium"
                 style={{
-                  color: currentStep >= step.id ? 'var(--_color-theme---text)' : 'var(--_color-theme---text-secondary)',
-                  opacity: currentStep >= step.id ? 1 : 0.6,
-                  fontFamily: 'var(--_typography---font--styrene-a)'
+                  color: currentStep >= step.id ? '#141413' : '#6B7280',
+                  fontFamily: 'var(--_typography---font--styrene-a)',
+                  fontWeight: 500,
+                  letterSpacing: '-0.02em'
                 }}
               >
                 {step.name}
               </div>
               <div
-                className="font-heading text-xs"
+                className="text-xs"
                 style={{
-                  color: 'var(--_color-theme---text-secondary)',
-                  opacity: currentStep >= step.id ? 1 : 0.4,
-                  fontFamily: 'var(--_typography---font--styrene-a)'
+                  color: '#6B7280',
+                  fontFamily: 'var(--_typography---font--tiempos)'
                 }}
               >
                 {step.description}
@@ -610,9 +698,9 @@ const InstantTwinOnboarding = () => {
             </div>
             {index < STEPS.length - 1 && (
               <div
-                className="w-12 h-0.5 mx-4 transition-colors duration-300"
+                className="w-12 h-0.5 mx-4"
                 style={{
-                  backgroundColor: currentStep > step.id ? 'var(--_color-theme---accent)' : 'var(--_color-theme---border)'
+                  backgroundColor: currentStep > step.id ? '#D97706' : 'rgba(20,20,19,0.1)'
                 }}
               />
             )}
@@ -649,67 +737,67 @@ const InstantTwinOnboarding = () => {
     return (
       <div
         key={connector.provider}
-        className={`relative p-6 rounded-2xl transition-all duration-300 cursor-pointer group hover:shadow-xl hover:-translate-y-1 border ${
-          isConnected
-            ? 'border-2 shadow-lg'
-            : isSelected
-            ? 'border-2 shadow-md'
-            : 'hover:shadow-md'
-        }`}
+        className="relative p-6 rounded-2xl cursor-pointer border"
         style={{
-          backgroundColor: 'var(--_color-theme---surface)',
-          borderColor: isConnected || isSelected ? 'var(--_color-theme---accent)' : 'var(--_color-theme---border)'
+          backgroundColor: 'white',
+          borderColor: isConnected || isSelected ? '#D97706' : 'rgba(20,20,19,0.1)',
+          borderWidth: isConnected || isSelected ? '2px' : '1px'
         }}
         onClick={() => !isConnected && handleConnectorToggle(connector.provider)}
       >
         {/* Connection status indicator */}
         {isConnected && (
           <div className="absolute -top-2 -right-2 z-10">
-            <div className="rounded-full p-2" style={{ backgroundColor: 'var(--_color-theme---accent)', color: 'white' }}>
+            <div className="rounded-full p-2" style={{ backgroundColor: '#D97706', color: 'white' }}>
               <CheckCircle2 className="w-4 h-4" />
             </div>
           </div>
         )}
 
-        {/* Service icon and name - Apple-style clean layout */}
+        {/* Service icon and name */}
         <div className="relative flex items-center gap-4 mb-3">
           <div
-            className="w-12 h-12 rounded-xl flex items-center justify-center transform transition-transform group-hover:scale-110"
+            className="w-12 h-12 rounded-xl flex items-center justify-center"
             style={{ backgroundColor: connector.color, color: 'white' }}
           >
             {connector.icon}
           </div>
           <div className="flex-1">
             <h3
-              className="font-heading font-semibold text-lg"
+              className="text-lg"
               style={{
-                color: 'var(--_color-theme---text)',
-                fontFamily: 'var(--_typography---font--styrene-a)'
+                color: '#141413',
+                fontFamily: 'var(--_typography---font--styrene-a)',
+                fontWeight: 500,
+                letterSpacing: '-0.02em'
               }}
             >
               {connector.name}
             </h3>
             <p
               className="text-xs"
-              style={{ color: 'var(--_color-theme---text-secondary)' }}
+              style={{
+                color: '#6B7280',
+                fontFamily: 'var(--_typography---font--tiempos)'
+              }}
             >
               {connector.setupTime} setup
             </p>
           </div>
         </div>
 
-        {/* Simplified description - Apple's progressive disclosure */}
+        {/* Description */}
         <p
-          className="font-heading text-sm mb-3 leading-relaxed"
+          className="text-sm mb-3 leading-relaxed"
           style={{
-            color: 'var(--_color-theme---text-secondary)',
-            fontFamily: 'var(--_typography---font--styrene-a)'
+            color: '#6B7280',
+            fontFamily: 'var(--_typography---font--tiempos)'
           }}
         >
           {connector.description}
         </p>
 
-        {/* Data types shown directly - simplified approach */}
+        {/* Data types */}
         <div className="mb-3">
           <div className="flex flex-wrap gap-1">
             {connector.dataTypes.slice(0, 2).map((type, idx) => (
@@ -717,8 +805,9 @@ const InstantTwinOnboarding = () => {
                 key={idx}
                 className="text-xs px-2 py-1 rounded-full"
                 style={{
-                  backgroundColor: 'var(--_color-theme---surface-raised)',
-                  color: 'var(--_color-theme---text-secondary)'
+                  backgroundColor: '#F5F5F5',
+                  color: '#6B7280',
+                  fontFamily: 'var(--_typography---font--tiempos)'
                 }}
               >
                 {type}
@@ -728,8 +817,9 @@ const InstantTwinOnboarding = () => {
               <span
                 className="text-xs px-2 py-1 rounded-full"
                 style={{
-                  backgroundColor: 'var(--_color-theme---surface-raised)',
-                  color: 'var(--_color-theme---text-secondary)'
+                  backgroundColor: '#F5F5F5',
+                  color: '#6B7280',
+                  fontFamily: 'var(--_typography---font--tiempos)'
                 }}
               >
                 +{connector.dataTypes.length - 2} more
@@ -747,8 +837,7 @@ const InstantTwinOnboarding = () => {
                 connectService(connector.provider);
               }}
               disabled={connectingProvider === connector.provider}
-              className="w-full py-3 px-4 rounded-xl text-sm font-semibold transition-all transform hover:scale-105 shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none flex items-center justify-center gap-2"
-              style={{ backgroundColor: 'var(--_color-theme---accent)', color: 'black', fontFamily: 'var(--_typography---font--styrene-a)' }}
+              className="btn-anthropic-primary w-full flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {connectingProvider === connector.provider ? (
                 <>
@@ -765,26 +854,76 @@ const InstantTwinOnboarding = () => {
           </div>
         )}
 
-        {/* Connection Success State - Apple-style clean */}
+        {/* Connection Success State */}
         {isConnected && (
-          <div
-            className="mt-3 p-3 rounded-xl border"
-            style={{
-              backgroundColor: 'var(--_color-theme---surface-raised)',
-              borderColor: 'var(--_color-theme---accent)'
-            }}
-          >
-            <div className="flex items-center gap-2">
-              <CheckCircle2 className="w-4 h-4" style={{ color: 'var(--_color-theme---accent)' }} />
-              <span
-                className="text-sm font-semibold font-heading"
-                style={{
-                  color: 'var(--_color-theme---accent)',
-                  fontFamily: 'var(--_typography---font--styrene-a)'
-                }}
-              >
-                Connected
-              </span>
+          <div className="mt-3 space-y-2">
+            {/* Connected Badge */}
+            <div
+              className="p-3 rounded-xl border"
+              style={{
+                backgroundColor: '#F5F5F5',
+                borderColor: '#D97706'
+              }}
+            >
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <CheckCircle2 className="w-4 h-4" style={{ color: '#D97706' }} />
+                  <span
+                    className="text-sm"
+                    style={{
+                      color: '#D97706',
+                      fontFamily: 'var(--_typography---font--styrene-a)',
+                      fontWeight: 500,
+                      letterSpacing: '-0.02em'
+                    }}
+                  >
+                    Connected
+                  </span>
+                </div>
+
+                {/* Disconnect Button */}
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    disconnectService(connector.provider);
+                  }}
+                  disabled={disconnectingProvider === connector.provider}
+                  className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  style={{
+                    backgroundColor: disconnectingProvider === connector.provider ? '#F3F4F6' : 'white',
+                    color: '#EF4444',
+                    border: '1px solid #FEE2E2',
+                    fontFamily: 'var(--_typography---font--styrene-a)',
+                    fontWeight: 500,
+                    letterSpacing: '-0.02em'
+                  }}
+                  onMouseEnter={(e) => {
+                    if (disconnectingProvider !== connector.provider) {
+                      e.currentTarget.style.backgroundColor = '#FEF2F2';
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    if (disconnectingProvider !== connector.provider) {
+                      e.currentTarget.style.backgroundColor = 'white';
+                    }
+                  }}
+                >
+                  {disconnectingProvider === connector.provider ? (
+                    <>
+                      <svg className="animate-spin h-3 w-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                      </svg>
+                      Disconnecting
+                    </>
+                  ) : (
+                    <>
+                      <X className="w-3 h-3" />
+                      Disconnect
+                    </>
+                  )}
+                </button>
+              </div>
             </div>
           </div>
         )}
@@ -802,7 +941,7 @@ const InstantTwinOnboarding = () => {
             {/* Background circle */}
             <div
               className="absolute inset-0 rounded-full border-4"
-              style={{ borderColor: 'var(--_color-theme---border)' }}
+              style={{ borderColor: 'rgba(20,20,19,0.1)' }}
             ></div>
             {/* Progress circle */}
             <svg className="absolute inset-0 w-24 h-24 transform -rotate-90" viewBox="0 0 100 100">
@@ -811,27 +950,37 @@ const InstantTwinOnboarding = () => {
                 cy="50"
                 r="42"
                 fill="none"
-                stroke="var(--_color-theme---accent)"
+                stroke="#D97706"
                 strokeWidth="8"
                 strokeLinecap="round"
                 strokeDasharray={`${2 * Math.PI * 42}`}
                 strokeDashoffset={`${2 * Math.PI * 42 * (1 - generationProgress.progress / 100)}`}
-                className="transition-all duration-500 ease-out"
               />
             </svg>
             {/* Center icon */}
-            <div className="absolute inset-4 rounded-full flex items-center justify-center" style={{ backgroundColor: 'var(--_color-theme---accent)' }}>
+            <div className="absolute inset-4 rounded-full flex items-center justify-center" style={{ backgroundColor: '#D97706' }}>
               <Brain className="w-8 h-8" style={{ color: 'white' }} />
             </div>
           </div>
 
-          <h2 className="text-2xl font-medium mb-2" style={{ fontFamily: 'var(--_typography---font--styrene-a)', color: 'var(--_color-theme---text)' }}>
+          <h2
+            className="text-2xl mb-2"
+            style={{
+              fontFamily: 'var(--_typography---font--styrene-a)',
+              fontWeight: 500,
+              letterSpacing: '-0.02em',
+              color: '#141413'
+            }}
+          >
             {generationProgress.progress === 100 ? 'Your Soul Signature is Ready!' : 'Discovering Your Soul Signature'}
           </h2>
 
           <p
             className="mb-6"
-            style={{ color: 'var(--_color-theme---text-secondary)' }}
+            style={{
+              color: '#6B7280',
+              fontFamily: 'var(--_typography---font--tiempos)'
+            }}
           >
             {generationProgress.currentTask}
           </p>
@@ -840,21 +989,21 @@ const InstantTwinOnboarding = () => {
           <div className="max-w-md mx-auto mb-6">
             <div
               className="w-full rounded-full h-2"
-              style={{ backgroundColor: 'var(--_color-theme---surface-raised)' }}
+              style={{ backgroundColor: '#F5F5F5' }}
             >
               <div
-                className="h-2 rounded-full transition-all duration-500"
+                className="h-2 rounded-full"
                 style={{
                   width: `${generationProgress.progress}%`,
-                  backgroundColor: 'var(--_color-theme---accent)'
+                  backgroundColor: '#D97706'
                 }}
               ></div>
             </div>
-            <div className="flex justify-between text-sm mt-2">
-              <span style={{ color: 'var(--_color-theme---text-secondary)' }}>
+            <div className="flex justify-between text-sm mt-2" style={{ fontFamily: 'var(--_typography---font--tiempos)' }}>
+              <span style={{ color: '#6B7280' }}>
                 {generationProgress.progress}% complete
               </span>
-              <span style={{ color: 'var(--_color-theme---text-secondary)' }}>
+              <span style={{ color: '#6B7280' }}>
                 {generationProgress.estimatedTimeRemaining > 0
                   ? `${Math.ceil(generationProgress.estimatedTimeRemaining)}s remaining`
                   : 'Complete!'
@@ -867,42 +1016,63 @@ const InstantTwinOnboarding = () => {
           <div className="grid grid-cols-3 gap-6 max-w-md mx-auto">
             <div className="text-center">
               <div
-                className="text-2xl font-bold"
-                style={{ color: 'var(--_color-theme---accent)' }}
+                className="text-2xl"
+                style={{
+                  color: '#D97706',
+                  fontFamily: 'var(--_typography---font--styrene-a)',
+                  fontWeight: 500
+                }}
               >
                 {generationProgress.connectorsConnected.length}
               </div>
               <div
                 className="text-xs"
-                style={{ color: 'var(--_color-theme---text-secondary)' }}
+                style={{
+                  color: '#6B7280',
+                  fontFamily: 'var(--_typography---font--tiempos)'
+                }}
               >
                 Services
               </div>
             </div>
             <div className="text-center">
               <div
-                className="text-2xl font-bold"
-                style={{ color: 'var(--_color-theme---accent)' }}
+                className="text-2xl"
+                style={{
+                  color: '#D97706',
+                  fontFamily: 'var(--_typography---font--styrene-a)',
+                  fontWeight: 500
+                }}
               >
                 {generationProgress.dataPointsIngested}
               </div>
               <div
                 className="text-xs"
-                style={{ color: 'var(--_color-theme---text-secondary)' }}
+                style={{
+                  color: '#6B7280',
+                  fontFamily: 'var(--_typography---font--tiempos)'
+                }}
               >
                 Data Points
               </div>
             </div>
             <div className="text-center">
               <div
-                className="text-2xl font-bold"
-                style={{ color: 'var(--_color-theme---accent)' }}
+                className="text-2xl"
+                style={{
+                  color: '#D97706',
+                  fontFamily: 'var(--_typography---font--styrene-a)',
+                  fontWeight: 500
+                }}
               >
                 {generationProgress.insightsGenerated}
               </div>
               <div
                 className="text-xs"
-                style={{ color: 'var(--_color-theme---text-secondary)' }}
+                style={{
+                  color: '#6B7280',
+                  fontFamily: 'var(--_typography---font--tiempos)'
+                }}
               >
                 Insights
               </div>
@@ -918,12 +1088,12 @@ const InstantTwinOnboarding = () => {
   // ====================================================================
 
   return (
-    <div className="min-h-screen" style={{ backgroundColor: 'var(--_color-theme---background)' }}>
+    <div className="min-h-screen" style={{ backgroundColor: '#FAF9F5' }}>
       {/* Header */}
-      <div className="sticky top-0 z-50 backdrop-blur-sm border-b" style={{ backgroundColor: 'var(--_color-theme---background)/90', borderColor: 'var(--_color-theme---border)' }}>
+      <div className="sticky top-0 z-50 border-b" style={{ backgroundColor: '#FAF9F5', borderColor: 'rgba(20,20,19,0.1)' }}>
         <div className="max-w-7xl mx-auto px-6 py-4">
           <div className="flex items-center justify-between">
-            {/* Apple-style Back Navigation with Clear Context */}
+            {/* Back Navigation */}
             <button
               onClick={() => {
                 if (currentStep > 1) {
@@ -932,8 +1102,8 @@ const InstantTwinOnboarding = () => {
                   navigate('/');
                 }
               }}
-              className="flex items-center gap-2 text-sm hover:opacity-70 transition-all hover:scale-105 px-3 py-2 rounded-lg"
-              style={{ color: 'var(--_color-theme---text)', backgroundColor: 'var(--_color-theme---surface)' }}
+              className="flex items-center gap-2 text-sm px-3 py-2 rounded-lg"
+              style={{ color: '#141413', backgroundColor: 'white' }}
             >
               <ArrowLeft className="w-4 h-4" />
               {currentStep > 1 ? `Back to ${STEPS[currentStep - 2].name}` : 'Back to Home'}
@@ -941,17 +1111,22 @@ const InstantTwinOnboarding = () => {
 
             <div className="text-center">
               <h1
-                className="text-2xl font-bold"
+                className="text-2xl"
                 style={{
                   fontFamily: 'var(--_typography---font--styrene-a)',
-                  color: 'var(--_color-theme---text)'
+                  fontWeight: 500,
+                  letterSpacing: '-0.02em',
+                  color: '#141413'
                 }}
               >
                 Discover Your Soul Signature
               </h1>
               <p
-                className="text-sm font-medium"
-                style={{ color: 'var(--_color-theme---text-secondary)' }}
+                className="text-sm"
+                style={{
+                  color: '#6B7280',
+                  fontFamily: 'var(--_typography---font--tiempos)'
+                }}
               >
                 Connect your digital life to reveal your authentic essence
               </p>
@@ -974,45 +1149,115 @@ const InstantTwinOnboarding = () => {
             {/* Hero Section */}
             <div className="text-center mb-16">
 
-              <h2 className="text-4xl md:text-5xl font-bold mb-6" style={{ fontFamily: 'var(--_typography---font--styrene-a)', color: 'var(--_color-theme---text)' }}>
+              <h2
+                className="text-4xl md:text-5xl mb-6"
+                style={{
+                  fontFamily: 'var(--_typography---font--styrene-a)',
+                  fontWeight: 500,
+                  letterSpacing: '-0.02em',
+                  color: '#141413'
+                }}
+              >
                 Discover Your Soul Signature
               </h2>
 
-              <p className="text-base max-w-3xl mx-auto leading-relaxed" style={{ color: 'var(--_color-theme---text-secondary)' }}>
+              <p
+                className="text-base max-w-3xl mx-auto leading-relaxed"
+                style={{
+                  color: '#6B7280',
+                  fontFamily: 'var(--_typography---font--tiempos)'
+                }}
+              >
                 "Perhaps we are searching in the branches for what we only find in the roots." Connect your digital life - Netflix, Spotify, Discord, and 30+ platforms - to discover what makes you authentically you.
               </p>
 
               {/* Stats Row */}
               <div className="flex justify-center items-center gap-8 mt-8">
                 <div className="text-center">
-                  <div className="text-2xl font-bold" style={{ color: 'var(--_color-theme---accent)' }}>30+</div>
-                  <div className="text-sm" style={{ color: 'var(--_color-theme---text-secondary)' }}>Platforms</div>
+                  <div
+                    className="text-2xl"
+                    style={{
+                      color: '#D97706',
+                      fontFamily: 'var(--_typography---font--styrene-a)',
+                      fontWeight: 500
+                    }}
+                  >
+                    30+
+                  </div>
+                  <div
+                    className="text-sm"
+                    style={{
+                      color: '#6B7280',
+                      fontFamily: 'var(--_typography---font--tiempos)'
+                    }}
+                  >
+                    Platforms
+                  </div>
                 </div>
                 <div className="text-center">
-                  <div className="text-2xl font-bold" style={{ color: 'var(--_color-theme---accent)' }}>100%</div>
-                  <div className="text-sm" style={{ color: 'var(--_color-theme---text-secondary)' }}>Authentic</div>
+                  <div
+                    className="text-2xl"
+                    style={{
+                      color: '#D97706',
+                      fontFamily: 'var(--_typography---font--styrene-a)',
+                      fontWeight: 500
+                    }}
+                  >
+                    100%
+                  </div>
+                  <div
+                    className="text-sm"
+                    style={{
+                      color: '#6B7280',
+                      fontFamily: 'var(--_typography---font--tiempos)'
+                    }}
+                  >
+                    Authentic
+                  </div>
                 </div>
                 <div className="text-center">
-                  <div className="text-2xl font-bold" style={{ color: 'var(--_color-theme---accent)' }}>∞</div>
-                  <div className="text-sm" style={{ color: 'var(--_color-theme---text-secondary)' }}>Sharable</div>
+                  <div
+                    className="text-2xl"
+                    style={{
+                      color: '#D97706',
+                      fontFamily: 'var(--_typography---font--styrene-a)',
+                      fontWeight: 500
+                    }}
+                  >
+                    ∞
+                  </div>
+                  <div
+                    className="text-sm"
+                    style={{
+                      color: '#6B7280',
+                      fontFamily: 'var(--_typography---font--tiempos)'
+                    }}
+                  >
+                    Sharable
+                  </div>
                 </div>
               </div>
             </div>
 
-            {/* Apple-style Progressive Disclosure for Connectors */}
+            {/* Progressive Disclosure for Connectors */}
             <div className="mb-16">
               <h3
-                className="text-2xl font-semibold text-center mb-4"
+                className="text-2xl text-center mb-4"
                 style={{
-                  color: 'var(--_color-theme---text)',
-                  fontFamily: 'var(--_typography---font--styrene-a)'
+                  color: '#141413',
+                  fontFamily: 'var(--_typography---font--styrene-a)',
+                  fontWeight: 500,
+                  letterSpacing: '-0.02em'
                 }}
               >
                 Connect Your Soul's Digital Canvas
               </h3>
               <p
                 className="text-center mb-8 max-w-2xl mx-auto"
-                style={{ color: 'var(--_color-theme---text-secondary)' }}
+                style={{
+                  color: '#6B7280',
+                  fontFamily: 'var(--_typography---font--tiempos)'
+                }}
               >
                 Each platform reveals a different facet of your authentic self. Start with the ones that feel most "you."
               </p>
@@ -1023,11 +1268,13 @@ const InstantTwinOnboarding = () => {
                 <div>
                   <div className="flex items-center justify-center gap-2 mb-6">
                     <div
-                      className="px-3 py-1 border rounded-full text-sm font-medium"
+                      className="px-3 py-1 border rounded-full text-sm"
                       style={{
-                        backgroundColor: 'var(--_color-theme---surface)',
-                        borderColor: 'var(--_color-theme---accent)',
-                        color: 'var(--_color-theme---accent)'
+                        backgroundColor: 'white',
+                        borderColor: '#D97706',
+                        color: '#D97706',
+                        fontFamily: 'var(--_typography---font--styrene-a)',
+                        fontWeight: 500
                       }}
                     >
                       Essential
@@ -1038,16 +1285,18 @@ const InstantTwinOnboarding = () => {
                   </div>
                 </div>
 
-                {/* Show More Button - Apple-style Progressive Disclosure */}
+                {/* Show More Button */}
                 {!showAllConnectors && AVAILABLE_CONNECTORS.length > 3 && (
                   <div className="text-center">
                     <button
                       onClick={() => setShowAllConnectors(true)}
-                      className="inline-flex items-center gap-2 px-6 py-3 rounded-xl border text-sm font-medium transition-all hover:shadow-md"
+                      className="inline-flex items-center gap-2 px-6 py-3 rounded-xl border text-sm"
                       style={{
-                        backgroundColor: 'var(--_color-theme---surface)',
-                        borderColor: 'var(--_color-theme---border)',
-                        color: 'var(--_color-theme---text)'
+                        backgroundColor: 'white',
+                        borderColor: 'rgba(20,20,19,0.1)',
+                        color: '#141413',
+                        fontFamily: 'var(--_typography---font--styrene-a)',
+                        fontWeight: 500
                       }}
                     >
                       <Plus className="w-4 h-4" />
@@ -1055,7 +1304,10 @@ const InstantTwinOnboarding = () => {
                     </button>
                     <p
                       className="text-xs mt-2"
-                      style={{ color: 'var(--_color-theme---text-secondary)' }}
+                      style={{
+                        color: '#6B7280',
+                        fontFamily: 'var(--_typography---font--tiempos)'
+                      }}
                     >
                       Professional tools, social platforms, and more
                     </p>
@@ -1064,14 +1316,16 @@ const InstantTwinOnboarding = () => {
 
                 {/* Additional Connectors - Revealed Progressively */}
                 {showAllConnectors && (
-                  <div className="animate-in slide-in-from-bottom-4 duration-500">
+                  <div>
                     <div className="flex items-center justify-center gap-2 mb-6">
                       <div
-                        className="px-3 py-1 border rounded-full text-sm font-medium"
+                        className="px-3 py-1 border rounded-full text-sm"
                         style={{
-                          backgroundColor: 'var(--_color-theme---surface)',
-                          borderColor: 'var(--_color-theme---border)',
-                          color: 'var(--_color-theme---text-secondary)'
+                          backgroundColor: 'white',
+                          borderColor: 'rgba(20,20,19,0.1)',
+                          color: '#6B7280',
+                          fontFamily: 'var(--_typography---font--styrene-a)',
+                          fontWeight: 500
                         }}
                       >
                         Optional
@@ -1085,8 +1339,11 @@ const InstantTwinOnboarding = () => {
                     <div className="text-center mt-6">
                       <button
                         onClick={() => setShowAllConnectors(false)}
-                        className="text-sm transition-colors"
-                        style={{ color: 'var(--_color-theme---text-secondary)' }}
+                        className="text-sm"
+                        style={{
+                          color: '#6B7280',
+                          fontFamily: 'var(--_typography---font--tiempos)'
+                        }}
                       >
                         Show less
                       </button>
@@ -1108,31 +1365,38 @@ const InstantTwinOnboarding = () => {
             <div
               className="text-center rounded-3xl p-8 border"
               style={{
-                backgroundColor: 'var(--_color-theme---surface)',
-                borderColor: 'var(--_color-theme---border)'
+                backgroundColor: 'white',
+                borderColor: 'rgba(20,20,19,0.1)'
               }}
             >
               {connectedServices.length > 0 ? (
-                <div className="animate-in slide-in-from-bottom-4 duration-500">
-                  <div className="flex items-center justify-center gap-2 mb-4" style={{ color: 'var(--_color-theme---accent)' }}>
+                <div>
+                  <div className="flex items-center justify-center gap-2 mb-4" style={{ color: '#D97706' }}>
                     <CheckCircle2 className="w-6 h-6" />
-                    <span className="text-lg font-semibold">
+                    <span
+                      className="text-lg"
+                      style={{
+                        fontFamily: 'var(--_typography---font--styrene-a)',
+                        fontWeight: 500,
+                        letterSpacing: '-0.02em'
+                      }}
+                    >
                       Perfect! {connectedServices.length} platform{connectedServices.length !== 1 ? 's' : ''} connected
                     </span>
                   </div>
                   <button
                     onClick={() => setCurrentStep(2)}
-                    className="btn-anthropic-primary text-lg px-8 py-4 flex items-center gap-3 mx-auto transform hover:scale-105 transition-transform"
+                    className="btn-anthropic-primary text-lg px-8 py-4 flex items-center gap-3 mx-auto"
                   >
                     <Fingerprint className="w-5 h-5" />
                     Discover Your Soul Signature
                     <ArrowRight className="w-5 h-5" />
                   </button>
                   <p
-                    className="font-heading text-sm mt-3"
+                    className="text-sm mt-3"
                     style={{
-                      color: 'var(--_color-theme---text-secondary)',
-                      fontFamily: 'var(--_typography---font--styrene-a)'
+                      color: '#6B7280',
+                      fontFamily: 'var(--_typography---font--tiempos)'
                     }}
                   >
                     Your soul signature will emerge in moments
@@ -1141,15 +1405,22 @@ const InstantTwinOnboarding = () => {
               ) : (
                 <div>
                   <div
-                    className="text-lg font-semibold mb-4"
+                    className="text-lg mb-4"
                     style={{
-                      color: 'var(--_color-theme---text)',
-                      fontFamily: 'var(--_typography---font--styrene-a)'
+                      color: '#141413',
+                      fontFamily: 'var(--_typography---font--styrene-a)',
+                      fontWeight: 500,
+                      letterSpacing: '-0.02em'
                     }}
                   >
                     Connect at least one platform to begin
                   </div>
-                  <p style={{ color: 'var(--_color-theme---text-secondary)' }}>
+                  <p
+                    style={{
+                      color: '#6B7280',
+                      fontFamily: 'var(--_typography---font--tiempos)'
+                    }}
+                  >
                     Each connection reveals more depth in your soul signature
                   </p>
                 </div>
@@ -1163,13 +1434,27 @@ const InstantTwinOnboarding = () => {
           <div>
             {/* Visual Privacy Header */}
             <div className="text-center mb-12">
-              <div className="w-20 h-20 mx-auto mb-6 rounded-full flex items-center justify-center" style={{ backgroundColor: 'var(--_color-theme---accent)', boxShadow: '0 0 30px rgba(217, 119, 6, 0.3)' }}>
+              <div className="w-20 h-20 mx-auto mb-6 rounded-full flex items-center justify-center" style={{ backgroundColor: '#D97706' }}>
                 <Shield className="w-10 h-10" style={{ color: 'white' }} />
               </div>
-              <h2 className="text-3xl font-medium mb-4" style={{ fontFamily: 'var(--_typography---font--styrene-a)', color: 'var(--_color-theme---text)' }}>
+              <h2
+                className="text-3xl mb-4"
+                style={{
+                  fontFamily: 'var(--_typography---font--styrene-a)',
+                  fontWeight: 500,
+                  letterSpacing: '-0.02em',
+                  color: '#141413'
+                }}
+              >
                 Your Privacy Matters
               </h2>
-              <p className="text-lg max-w-2xl mx-auto leading-relaxed" style={{ color: 'var(--_color-theme---text-secondary)' }}>
+              <p
+                className="text-lg max-w-2xl mx-auto leading-relaxed"
+                style={{
+                  color: '#6B7280',
+                  fontFamily: 'var(--_typography---font--tiempos)'
+                }}
+              >
                 Your soul signature is precious. We protect it with the highest standards while giving you complete control.
               </p>
             </div>
@@ -1178,40 +1463,82 @@ const InstantTwinOnboarding = () => {
             <div className="max-w-4xl mx-auto mb-12">
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 {/* Military Grade Encryption */}
-                <div className="text-center p-6 rounded-2xl border hover:shadow-lg transition-all" style={{ backgroundColor: 'var(--_color-theme---surface)', borderColor: 'var(--_color-theme---border)' }}>
-                  <div className="w-16 h-16 mx-auto mb-4 rounded-2xl flex items-center justify-center" style={{ backgroundColor: 'var(--_color-theme---background-secondary)' }}>
-                    <Shield className="w-8 h-8" style={{ color: 'var(--_color-theme---accent)' }} />
+                <div className="text-center p-6 rounded-2xl border" style={{ backgroundColor: 'white', borderColor: 'rgba(20,20,19,0.1)' }}>
+                  <div className="w-16 h-16 mx-auto mb-4 rounded-2xl flex items-center justify-center" style={{ backgroundColor: '#F5F5F5' }}>
+                    <Shield className="w-8 h-8" style={{ color: '#D97706' }} />
                   </div>
-                  <h3 className="text-lg font-semibold mb-2" style={{ color: 'var(--_color-theme---text)' }}>
+                  <h3
+                    className="text-lg mb-2"
+                    style={{
+                      color: '#141413',
+                      fontFamily: 'var(--_typography---font--styrene-a)',
+                      fontWeight: 500,
+                      letterSpacing: '-0.02em'
+                    }}
+                  >
                     Military-Grade Security
                   </h3>
-                  <p className="text-sm" style={{ color: 'var(--_color-theme---text-secondary)' }}>
+                  <p
+                    className="text-sm"
+                    style={{
+                      color: '#6B7280',
+                      fontFamily: 'var(--_typography---font--tiempos)'
+                    }}
+                  >
                     AES-256 encryption protects your data at every step
                   </p>
                 </div>
 
                 {/* You Control Everything */}
-                <div className="text-center p-6 rounded-2xl border hover:shadow-lg transition-all" style={{ backgroundColor: 'var(--_color-theme---surface)', borderColor: 'var(--_color-theme---border)' }}>
-                  <div className="w-16 h-16 mx-auto mb-4 rounded-2xl flex items-center justify-center" style={{ backgroundColor: 'var(--_color-theme---background-secondary)' }}>
-                    <Settings className="w-8 h-8" style={{ color: 'var(--_color-theme---accent)' }} />
+                <div className="text-center p-6 rounded-2xl border" style={{ backgroundColor: 'white', borderColor: 'rgba(20,20,19,0.1)' }}>
+                  <div className="w-16 h-16 mx-auto mb-4 rounded-2xl flex items-center justify-center" style={{ backgroundColor: '#F5F5F5' }}>
+                    <Settings className="w-8 h-8" style={{ color: '#D97706' }} />
                   </div>
-                  <h3 className="text-lg font-semibold mb-2" style={{ color: 'var(--_color-theme---text)' }}>
+                  <h3
+                    className="text-lg mb-2"
+                    style={{
+                      color: '#141413',
+                      fontFamily: 'var(--_typography---font--styrene-a)',
+                      fontWeight: 500,
+                      letterSpacing: '-0.02em'
+                    }}
+                  >
                     You're In Control
                   </h3>
-                  <p className="text-sm" style={{ color: 'var(--_color-theme---text-secondary)' }}>
+                  <p
+                    className="text-sm"
+                    style={{
+                      color: '#6B7280',
+                      fontFamily: 'var(--_typography---font--tiempos)'
+                    }}
+                  >
                     Choose what to reveal, what to share, with whom
                   </p>
                 </div>
 
                 {/* Zero Data Retention */}
-                <div className="text-center p-6 rounded-2xl border hover:shadow-lg transition-all" style={{ backgroundColor: 'var(--_color-theme---surface)', borderColor: 'var(--_color-theme---border)' }}>
-                  <div className="w-16 h-16 mx-auto mb-4 rounded-2xl flex items-center justify-center" style={{ backgroundColor: 'var(--_color-theme---background-secondary)' }}>
-                    <Eye className="w-8 h-8" style={{ color: 'var(--_color-theme---accent)' }} />
+                <div className="text-center p-6 rounded-2xl border" style={{ backgroundColor: 'white', borderColor: 'rgba(20,20,19,0.1)' }}>
+                  <div className="w-16 h-16 mx-auto mb-4 rounded-2xl flex items-center justify-center" style={{ backgroundColor: '#F5F5F5' }}>
+                    <Eye className="w-8 h-8" style={{ color: '#D97706' }} />
                   </div>
-                  <h3 className="text-lg font-semibold mb-2" style={{ color: 'var(--_color-theme---text)' }}>
+                  <h3
+                    className="text-lg mb-2"
+                    style={{
+                      color: '#141413',
+                      fontFamily: 'var(--_typography---font--styrene-a)',
+                      fontWeight: 500,
+                      letterSpacing: '-0.02em'
+                    }}
+                  >
                     Complete Transparency
                   </h3>
-                  <p className="text-sm" style={{ color: 'var(--_color-theme---text-secondary)' }}>
+                  <p
+                    className="text-sm"
+                    style={{
+                      color: '#6B7280',
+                      fontFamily: 'var(--_typography---font--tiempos)'
+                    }}
+                  >
                     See exactly how your data creates your soul signature
                   </p>
                 </div>
@@ -1220,13 +1547,27 @@ const InstantTwinOnboarding = () => {
 
             {/* What Makes This Special */}
             <div className="max-w-2xl mx-auto mb-12 text-center">
-              <div className="p-8 rounded-3xl border" style={{ backgroundColor: 'var(--_color-theme---surface)', borderColor: 'var(--_color-theme---accent)' }}>
-                <h3 className="text-xl font-semibold mb-4" style={{ color: 'var(--_color-theme---text)' }}>
+              <div className="p-8 rounded-3xl border" style={{ backgroundColor: 'white', borderColor: '#D97706' }}>
+                <h3
+                  className="text-xl mb-4"
+                  style={{
+                    color: '#141413',
+                    fontFamily: 'var(--_typography---font--styrene-a)',
+                    fontWeight: 500,
+                    letterSpacing: '-0.02em'
+                  }}
+                >
                   ✨ What makes this different?
                 </h3>
-                <p className="text-base leading-relaxed" style={{ color: 'var(--_color-theme---text-secondary)' }}>
+                <p
+                  className="text-base leading-relaxed"
+                  style={{
+                    color: '#6B7280',
+                    fontFamily: 'var(--_typography---font--tiempos)'
+                  }}
+                >
                   Unlike other platforms that harvest your data, we discover your soul signature and then
-                  <span style={{ color: 'var(--_color-theme---accent)' }}> delete the raw data</span>.
+                  <span style={{ color: '#D97706' }}> delete the raw data</span>.
                   You keep the insights, we keep nothing.
                 </p>
               </div>
@@ -1236,13 +1577,19 @@ const InstantTwinOnboarding = () => {
             <div className="text-center">
               <button
                 onClick={startTwinGeneration}
-                className="btn-anthropic-primary flex items-center gap-3 mx-auto text-lg px-10 py-4 transform hover:scale-105 transition-all shadow-lg hover:shadow-xl"
+                className="btn-anthropic-primary flex items-center gap-3 mx-auto text-lg px-10 py-4"
               >
                 <Sparkles className="w-6 h-6" />
                 Reveal My Soul Signature
                 <ArrowRight className="w-5 h-5" />
               </button>
-              <p className="text-sm mt-4 max-w-md mx-auto" style={{ color: 'var(--_color-theme---text-secondary)' }}>
+              <p
+                className="text-sm mt-4 max-w-md mx-auto"
+                style={{
+                  color: '#6B7280',
+                  fontFamily: 'var(--_typography---font--tiempos)'
+                }}
+              >
                 Your authentic essence will emerge in moments, protected by the highest security standards
               </p>
             </div>

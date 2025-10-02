@@ -99,38 +99,46 @@ const Settings = () => {
   ];
 
   return (
-    <div className="min-h-screen" style={{ backgroundColor: 'var(--_color-theme---background)' }}>
+    <div className="min-h-screen" style={{ backgroundColor: '#FAF9F5' }}>
       {/* Header */}
       <div
         className="px-6 py-4 border-b"
         style={{
-          backgroundColor: 'var(--_color-theme---surface)',
-          borderColor: 'var(--_color-theme---border)'
+          backgroundColor: 'white',
+          borderColor: 'rgba(20,20,19,0.1)'
         }}
       >
         <div className="max-w-7xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-4">
             <button
               onClick={() => navigate('/get-started')}
-              className="inline-flex items-center gap-2 text-body hover:opacity-70 transition-opacity text-sm"
-              style={{ color: 'var(--_color-theme---text)' }}
+              className="inline-flex items-center gap-2 text-sm"
+              style={{
+                color: '#141413',
+                fontFamily: 'var(--_typography---font--tiempos)'
+              }}
             >
               <ArrowLeft className="w-4 h-4" />
               Back to Dashboard
             </button>
             <div>
               <h1
-                className="text-2xl font-bold mb-1"
+                className="text-2xl mb-1"
                 style={{
                   fontFamily: 'var(--_typography---font--styrene-a)',
-                  color: 'var(--_color-theme---text)'
+                  fontWeight: 500,
+                  letterSpacing: '-0.02em',
+                  color: '#141413'
                 }}
               >
                 Settings
               </h1>
               <p
                 className="text-sm"
-                style={{ color: 'var(--_color-theme---text-secondary)' }}
+                style={{
+                  color: '#666666',
+                  fontFamily: 'var(--_typography---font--tiempos)'
+                }}
               >
                 Manage your account, connected services, and preferences
               </p>
@@ -146,17 +154,19 @@ const Settings = () => {
           <section
             className="rounded-2xl p-6 border"
             style={{
-              backgroundColor: 'var(--_color-theme---surface)',
-              borderColor: 'var(--_color-theme---border)'
+              backgroundColor: 'white',
+              borderColor: 'rgba(20,20,19,0.1)'
             }}
           >
             <div className="flex items-center gap-3 mb-4">
-              <User className="w-5 h-5" style={{ color: 'var(--_color-theme---accent)' }} />
+              <User className="w-5 h-5" style={{ color: '#D97706' }} />
               <h2
-                className="text-xl font-semibold"
+                className="text-xl"
                 style={{
                   fontFamily: 'var(--_typography---font--styrene-a)',
-                  color: 'var(--_color-theme---text)'
+                  fontWeight: 500,
+                  letterSpacing: '-0.02em',
+                  color: '#141413'
                 }}
               >
                 Account Information
@@ -166,17 +176,22 @@ const Settings = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
                 <label
-                  className="block text-sm font-medium mb-2"
-                  style={{ color: 'var(--_color-theme---text)' }}
+                  className="block text-sm mb-2"
+                  style={{
+                    color: '#141413',
+                    fontFamily: 'var(--_typography---font--tiempos)',
+                    fontWeight: 500
+                  }}
                 >
                   Name
                 </label>
                 <div
                   className="p-3 rounded-lg border"
                   style={{
-                    backgroundColor: 'var(--_color-theme---background)',
-                    borderColor: 'var(--_color-theme---border)',
-                    color: 'var(--_color-theme---text)'
+                    backgroundColor: '#F5F5F5',
+                    borderColor: 'rgba(20,20,19,0.1)',
+                    color: '#141413',
+                    fontFamily: 'var(--_typography---font--tiempos)'
                   }}
                 >
                   {user?.fullName || `${user?.firstName || ''} ${user?.lastName || ''}`.trim() || 'Not set'}
@@ -185,17 +200,22 @@ const Settings = () => {
 
               <div>
                 <label
-                  className="block text-sm font-medium mb-2"
-                  style={{ color: 'var(--_color-theme---text)' }}
+                  className="block text-sm mb-2"
+                  style={{
+                    color: '#141413',
+                    fontFamily: 'var(--_typography---font--tiempos)',
+                    fontWeight: 500
+                  }}
                 >
                   Email
                 </label>
                 <div
                   className="p-3 rounded-lg border"
                   style={{
-                    backgroundColor: 'var(--_color-theme---background)',
-                    borderColor: 'var(--_color-theme---border)',
-                    color: 'var(--_color-theme---text)'
+                    backgroundColor: '#F5F5F5',
+                    borderColor: 'rgba(20,20,19,0.1)',
+                    color: '#141413',
+                    fontFamily: 'var(--_typography---font--tiempos)'
                   }}
                 >
                   {user?.email}
@@ -208,18 +228,20 @@ const Settings = () => {
           <section
             className="rounded-2xl p-6 border"
             style={{
-              backgroundColor: 'var(--_color-theme---surface)',
-              borderColor: 'var(--_color-theme---border)'
+              backgroundColor: 'white',
+              borderColor: 'rgba(20,20,19,0.1)'
             }}
           >
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-3">
-                <Link className="w-5 h-5" style={{ color: 'var(--_color-theme---accent)' }} />
+                <Link className="w-5 h-5" style={{ color: '#D97706' }} />
                 <h2
-                  className="text-xl font-semibold"
+                  className="text-xl"
                   style={{
                     fontFamily: 'var(--_typography---font--styrene-a)',
-                    color: 'var(--_color-theme---text)'
+                    fontWeight: 500,
+                    letterSpacing: '-0.02em',
+                    color: '#141413'
                   }}
                 >
                   Connected Services
@@ -227,11 +249,12 @@ const Settings = () => {
               </div>
               <button
                 onClick={fetchConnectorStatus}
-                className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm transition-colors"
+                className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm"
                 style={{
-                  backgroundColor: 'var(--_color-theme---surface-raised)',
-                  color: 'var(--_color-theme---text)',
-                  border: `1px solid var(--_color-theme---border)`
+                  backgroundColor: '#F5F5F5',
+                  color: '#141413',
+                  border: '1px solid rgba(20,20,19,0.1)',
+                  fontFamily: 'var(--_typography---font--tiempos)'
                 }}
               >
                 <RefreshCw className="w-4 h-4" />
@@ -241,15 +264,24 @@ const Settings = () => {
 
             <p
               className="text-sm mb-6"
-              style={{ color: 'var(--_color-theme---text-secondary)' }}
+              style={{
+                color: '#666666',
+                fontFamily: 'var(--_typography---font--tiempos)'
+              }}
             >
               These services help your digital twin understand your communication style and preferences.
             </p>
 
             {isLoading ? (
               <div className="flex items-center justify-center py-8">
-                <Loader2 className="w-6 h-6 animate-spin" style={{ color: 'var(--_color-theme---accent)' }} />
-                <span className="ml-2" style={{ color: 'var(--_color-theme---text-secondary)' }}>
+                <Loader2 className="w-6 h-6" style={{ color: '#D97706' }} />
+                <span
+                  className="ml-2"
+                  style={{
+                    color: '#666666',
+                    fontFamily: 'var(--_typography---font--tiempos)'
+                  }}
+                >
                   Loading connection status...
                 </span>
               </div>
@@ -263,22 +295,28 @@ const Settings = () => {
                       key={connector.id}
                       className="flex items-center justify-between p-4 rounded-lg border"
                       style={{
-                        backgroundColor: 'var(--_color-theme---background)',
-                        borderColor: 'var(--_color-theme---border)'
+                        backgroundColor: '#F5F5F5',
+                        borderColor: 'rgba(20,20,19,0.1)'
                       }}
                     >
                       <div className="flex items-center gap-4">
                         <span className="text-2xl">{connector.icon}</span>
                         <div>
                           <h3
-                            className="font-medium"
-                            style={{ color: 'var(--_color-theme---text)' }}
+                            style={{
+                              color: '#141413',
+                              fontFamily: 'var(--_typography---font--tiempos)',
+                              fontWeight: 500
+                            }}
                           >
                             {connector.name}
                           </h3>
                           <p
                             className="text-sm"
-                            style={{ color: 'var(--_color-theme---text-secondary)' }}
+                            style={{
+                              color: '#666666',
+                              fontFamily: 'var(--_typography---font--tiempos)'
+                            }}
                           >
                             {connector.description}
                           </p>
@@ -289,27 +327,40 @@ const Settings = () => {
                         {isConnected ? (
                           <>
                             <div className="flex items-center gap-2">
-                              <CheckCircle className="w-4 h-4 text-green-500" />
+                              <CheckCircle className="w-4 h-4" style={{ color: '#10B981' }} />
                               <span
-                                className="text-sm font-medium text-green-600"
-                                style={{ color: '#10B981' }}
+                                className="text-sm"
+                                style={{
+                                  color: '#10B981',
+                                  fontFamily: 'var(--_typography---font--tiempos)',
+                                  fontWeight: 500
+                                }}
                               >
                                 Connected
                               </span>
                             </div>
                             <button
                               onClick={() => handleDisconnectService(connector.id)}
-                              className="px-3 py-1.5 rounded-lg text-sm transition-colors border border-red-300 text-red-600 hover:bg-red-50"
+                              className="px-3 py-1.5 rounded-lg text-sm border"
+                              style={{
+                                borderColor: '#FCA5A5',
+                                color: '#DC2626',
+                                backgroundColor: 'white',
+                                fontFamily: 'var(--_typography---font--tiempos)'
+                              }}
                             >
                               Disconnect
                             </button>
                           </>
                         ) : (
                           <div className="flex items-center gap-2">
-                            <XCircle className="w-4 h-4" style={{ color: 'var(--_color-theme---text-secondary)' }} />
+                            <XCircle className="w-4 h-4" style={{ color: '#666666' }} />
                             <span
                               className="text-sm"
-                              style={{ color: 'var(--_color-theme---text-secondary)' }}
+                              style={{
+                                color: '#666666',
+                                fontFamily: 'var(--_typography---font--tiempos)'
+                              }}
                             >
                               Not connected
                             </span>
@@ -325,20 +376,26 @@ const Settings = () => {
             <div
               className="mt-6 p-4 rounded-lg border-l-4"
               style={{
-                backgroundColor: 'var(--_color-theme---surface-raised)',
-                borderLeftColor: 'var(--_color-theme---accent)',
-                borderColor: 'var(--_color-theme---border)'
+                backgroundColor: '#F5F5F5',
+                borderLeftColor: '#D97706',
+                borderColor: 'rgba(20,20,19,0.1)'
               }}
             >
               <p
                 className="text-sm"
-                style={{ color: 'var(--_color-theme---text)' }}
+                style={{
+                  color: '#141413',
+                  fontFamily: 'var(--_typography---font--tiempos)'
+                }}
               >
                 <strong>Note:</strong> To connect new services, go back to the{' '}
                 <button
                   onClick={() => navigate('/get-started')}
-                  className="underline hover:opacity-70"
-                  style={{ color: 'var(--_color-theme---accent)' }}
+                  className="underline"
+                  style={{
+                    color: '#D97706',
+                    fontFamily: 'var(--_typography---font--tiempos)'
+                  }}
                 >
                   onboarding page
                 </button>{' '}
@@ -351,17 +408,19 @@ const Settings = () => {
           <section
             className="rounded-2xl p-6 border"
             style={{
-              backgroundColor: 'var(--_color-theme---surface)',
-              borderColor: 'var(--_color-theme---border)'
+              backgroundColor: 'white',
+              borderColor: 'rgba(20,20,19,0.1)'
             }}
           >
             <div className="flex items-center gap-3 mb-4">
-              <Shield className="w-5 h-5" style={{ color: 'var(--_color-theme---accent)' }} />
+              <Shield className="w-5 h-5" style={{ color: '#D97706' }} />
               <h2
-                className="text-xl font-semibold"
+                className="text-xl"
                 style={{
                   fontFamily: 'var(--_typography---font--styrene-a)',
-                  color: 'var(--_color-theme---text)'
+                  fontWeight: 500,
+                  letterSpacing: '-0.02em',
+                  color: '#141413'
                 }}
               >
                 Privacy & Security
@@ -372,42 +431,54 @@ const Settings = () => {
               <div className="flex items-center justify-between">
                 <div>
                   <h3
-                    className="font-medium"
-                    style={{ color: 'var(--_color-theme---text)' }}
+                    style={{
+                      color: '#141413',
+                      fontFamily: 'var(--_typography---font--tiempos)',
+                      fontWeight: 500
+                    }}
                   >
                     Data Usage Consent
                   </h3>
                   <p
                     className="text-sm"
-                    style={{ color: 'var(--_color-theme---text-secondary)' }}
+                    style={{
+                      color: '#666666',
+                      fontFamily: 'var(--_typography---font--tiempos)'
+                    }}
                   >
                     Allow the platform to analyze your connected data to improve your digital twin
                   </p>
                 </div>
-                <label className="relative inline-flex items-center cursor-pointer">
+                <label className="relative inline-flex items-center">
                   <input type="checkbox" defaultChecked className="sr-only peer" />
-                  <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-green-600"></div>
+                  <div className="w-11 h-6 rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 peer-checked:bg-green-600" style={{ backgroundColor: '#D1D5DB' }}></div>
                 </label>
               </div>
 
               <div className="flex items-center justify-between">
                 <div>
                   <h3
-                    className="font-medium"
-                    style={{ color: 'var(--_color-theme---text)' }}
+                    style={{
+                      color: '#141413',
+                      fontFamily: 'var(--_typography---font--tiempos)',
+                      fontWeight: 500
+                    }}
                   >
                     Analytics
                   </h3>
                   <p
                     className="text-sm"
-                    style={{ color: 'var(--_color-theme---text-secondary)' }}
+                    style={{
+                      color: '#666666',
+                      fontFamily: 'var(--_typography---font--tiempos)'
+                    }}
                   >
                     Share anonymous usage data to help improve the platform
                   </p>
                 </div>
-                <label className="relative inline-flex items-center cursor-pointer">
+                <label className="relative inline-flex items-center">
                   <input type="checkbox" defaultChecked className="sr-only peer" />
-                  <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-green-600"></div>
+                  <div className="w-11 h-6 rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 peer-checked:bg-green-600" style={{ backgroundColor: '#D1D5DB' }}></div>
                 </label>
               </div>
             </div>
@@ -417,17 +488,19 @@ const Settings = () => {
           <section
             className="rounded-2xl p-6 border"
             style={{
-              backgroundColor: 'var(--_color-theme---surface)',
-              borderColor: 'var(--_color-theme---border)'
+              backgroundColor: 'white',
+              borderColor: 'rgba(20,20,19,0.1)'
             }}
           >
             <div className="flex items-center gap-3 mb-4">
-              <Palette className="w-5 h-5" style={{ color: 'var(--_color-theme---accent)' }} />
+              <Palette className="w-5 h-5" style={{ color: '#D97706' }} />
               <h2
-                className="text-xl font-semibold"
+                className="text-xl"
                 style={{
                   fontFamily: 'var(--_typography---font--styrene-a)',
-                  color: 'var(--_color-theme---text)'
+                  fontWeight: 500,
+                  letterSpacing: '-0.02em',
+                  color: '#141413'
                 }}
               >
                 Preferences
@@ -437,18 +510,23 @@ const Settings = () => {
             <div className="space-y-4">
               <div>
                 <h3
-                  className="font-medium mb-2"
-                  style={{ color: 'var(--_color-theme---text)' }}
+                  className="mb-2"
+                  style={{
+                    color: '#141413',
+                    fontFamily: 'var(--_typography---font--tiempos)',
+                    fontWeight: 500
+                  }}
                 >
                   Voice Settings
                 </h3>
                 <button
                   onClick={() => navigate('/voice-settings')}
-                  className="flex items-center gap-2 px-4 py-2 rounded-lg transition-colors"
+                  className="flex items-center gap-2 px-4 py-2 rounded-lg"
                   style={{
-                    backgroundColor: 'var(--_color-theme---surface-raised)',
-                    color: 'var(--_color-theme---text)',
-                    border: `1px solid var(--_color-theme---border)`
+                    backgroundColor: '#F5F5F5',
+                    color: '#141413',
+                    border: '1px solid rgba(20,20,19,0.1)',
+                    fontFamily: 'var(--_typography---font--tiempos)'
                   }}
                 >
                   Configure Voice Clone
@@ -458,18 +536,23 @@ const Settings = () => {
 
               <div>
                 <h3
-                  className="font-medium mb-2"
-                  style={{ color: 'var(--_color-theme---text)' }}
+                  className="mb-2"
+                  style={{
+                    color: '#141413',
+                    fontFamily: 'var(--_typography---font--tiempos)',
+                    fontWeight: 500
+                  }}
                 >
                   Twin Builder
                 </h3>
                 <button
                   onClick={() => navigate('/twin-builder')}
-                  className="flex items-center gap-2 px-4 py-2 rounded-lg transition-colors"
+                  className="flex items-center gap-2 px-4 py-2 rounded-lg"
                   style={{
-                    backgroundColor: 'var(--_color-theme---surface-raised)',
-                    color: 'var(--_color-theme---text)',
-                    border: `1px solid var(--_color-theme---border)`
+                    backgroundColor: '#F5F5F5',
+                    color: '#141413',
+                    border: '1px solid rgba(20,20,19,0.1)',
+                    fontFamily: 'var(--_typography---font--tiempos)'
                   }}
                 >
                   Manage Your Digital Twin

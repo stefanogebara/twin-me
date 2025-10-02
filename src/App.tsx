@@ -188,7 +188,7 @@ const App = () => (
             <Route path="/twin-builder" element={
               <>
                 <SignedIn>
-                  <AnthropicTwinBuilder />
+                  <ConversationalTwinBuilder />
                 </SignedIn>
                 <SignedOut>
                   <CustomAuth />
@@ -208,7 +208,7 @@ const App = () => (
             <Route path="/anthropic-twin-builder" element={
               <>
                 <SignedIn>
-                  <AnthropicTwinBuilder />
+                  <ConversationalTwinBuilder />
                 </SignedIn>
                 <SignedOut>
                   <CustomAuth />

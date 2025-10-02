@@ -181,6 +181,68 @@ router.post('/connect/github', async (req, res) => {
   }
 });
 
+// Instagram Connector
+router.post('/connect/instagram', async (req, res) => {
+  try {
+    const { userId } = req.body;
+
+    const clientId = process.env.INSTAGRAM_CLIENT_ID || 'your-instagram-client-id';
+    const redirectUri = encodeURIComponent(`${process.env.VITE_APP_URL}/oauth/callback`);
+    const scope = encodeURIComponent('user_profile,user_media');
+    const state = Buffer.from(JSON.stringify({
+      provider: 'instagram',
+      userId,
+      timestamp: Date.now()
+    })).toString('base64');
+
+    const authUrl = `https://api.instagram.com/oauth/authorize?` +
+      `client_id=${clientId}&redirect_uri=${redirectUri}&` +
+      `scope=${scope}&response_type=code&state=${state}`;
+
+    res.json({
+      success: true,
+      authUrl,
+      message: 'Connect your visual storytelling',
+      insights: platformAPIMappings.social?.instagram?.insights || ['Visual preferences', 'Aesthetic style', 'Social engagement patterns']
+    });
+  } catch (error) {
+    console.error('Instagram connection error:', error);
+    res.status(500).json({ error: 'Failed to initialize Instagram connection' });
+  }
+});
+
+// Twitter/X Connector
+router.post('/connect/twitter', async (req, res) => {
+  try {
+    const { userId } = req.body;
+
+    const clientId = process.env.TWITTER_CLIENT_ID || 'your-twitter-client-id';
+    const redirectUri = encodeURIComponent(`${process.env.VITE_APP_URL}/oauth/callback`);
+    const scope = encodeURIComponent('tweet.read users.read follows.read');
+    const state = Buffer.from(JSON.stringify({
+      provider: 'twitter',
+      userId,
+      timestamp: Date.now()
+    })).toString('base64');
+
+    // Twitter OAuth 2.0
+    const authUrl = `https://twitter.com/i/oauth2/authorize?` +
+      `response_type=code&client_id=${clientId}&` +
+      `redirect_uri=${redirectUri}&scope=${scope}&` +
+      `state=${state}&code_challenge=challenge&code_challenge_method=plain`;
+
+    res.json({
+      success: true,
+      authUrl,
+      message: 'Connect your thought patterns and interests',
+      insights: platformAPIMappings.social?.twitter?.insights || ['Conversation topics', 'Network analysis', 'Engagement style']
+    });
+  } catch (error) {
+    console.error('Twitter connection error:', error);
+    res.status(500).json({ error: 'Failed to initialize Twitter connection' });
+  }
+});
+
 // Medium Connector
 router.post('/connect/medium', async (req, res) => {
   try {

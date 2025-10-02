@@ -53,7 +53,7 @@ const PersonalityRadarChart: React.FC<RadarChartProps> = ({ data }) => {
             cy={center}
             r={radius * scale}
             fill="none"
-            stroke="hsl(var(--claude-border))"
+            stroke="rgba(20,20,19,0.1)"
             strokeWidth="1"
             opacity={0.3}
           />
@@ -67,7 +67,7 @@ const PersonalityRadarChart: React.FC<RadarChartProps> = ({ data }) => {
             y1={center}
             x2={center + radius * Math.cos(angle)}
             y2={center + radius * Math.sin(angle)}
-            stroke="hsl(var(--claude-border))"
+            stroke="rgba(20,20,19,0.1)"
             strokeWidth="1"
             opacity={0.3}
           />
@@ -76,9 +76,9 @@ const PersonalityRadarChart: React.FC<RadarChartProps> = ({ data }) => {
         {/* Data polygon */}
         <polygon
           points={polygonPoints}
-          fill="hsl(var(--claude-accent))"
+          fill="#D97706"
           fillOpacity={0.2}
-          stroke="hsl(var(--claude-accent))"
+          stroke="#D97706"
           strokeWidth="2"
         />
 
@@ -93,7 +93,7 @@ const PersonalityRadarChart: React.FC<RadarChartProps> = ({ data }) => {
               cx={x}
               cy={y}
               r="4"
-              fill="hsl(var(--claude-accent))"
+              fill="#D97706"
               stroke="white"
               strokeWidth="2"
             />
@@ -112,7 +112,7 @@ const PersonalityRadarChart: React.FC<RadarChartProps> = ({ data }) => {
               y={y}
               textAnchor="middle"
               dominantBaseline="middle"
-              className="text-sm fill-[hsl(var(--claude-text))]"
+              className="text-sm fill-[#141413]"
               fontSize="12"
             >
               {data[i].trait}
@@ -149,16 +149,16 @@ const EvolutionTimeline: React.FC<TimelineProps> = ({ entries }) => {
               'bg-gray-500'
             }`} />
             {index < sortedEntries.length - 1 && (
-              <div className="w-px h-8 bg-[hsl(var(--claude-border))] ml-1 mt-2" />
+              <div className="w-px h-8 bg-[rgba(20,20,19,0.1)] ml-1 mt-2" />
             )}
           </div>
 
           <div className="flex-grow">
             <div className="flex items-center justify-between">
-              <p className="text-sm font-medium text-[hsl(var(--claude-text))]">
+              <p className="text-sm font-medium text-[#141413]">
                 {entry.changeSummary}
               </p>
-              <span className="text-xs text-[hsl(var(--claude-text-muted))]">
+              <span className="text-xs text-[#6B7280]">
                 {new Date(entry.createdAt).toLocaleDateString()}
               </span>
             </div>
@@ -174,13 +174,13 @@ const EvolutionTimeline: React.FC<TimelineProps> = ({ entries }) => {
               </span>
 
               {entry.confidenceImpact > 0.3 && (
-                <span className="text-xs text-[hsl(var(--claude-accent))]">
+                <span className="text-xs text-[#D97706]">
                   High Impact
                 </span>
               )}
             </div>
 
-            <p className="text-xs text-[hsl(var(--claude-text-muted))] mt-1">
+            <p className="text-xs text-[#6B7280] mt-1">
               Source: {entry.triggerSource.replace('_', ' ')}
             </p>
           </div>
@@ -363,39 +363,39 @@ const TwinDashboard: React.FC = () => {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-[hsl(var(--claude-bg))] flex items-center justify-center">
+      <div className="min-h-screen bg-[#FAF9F5] flex items-center justify-center">
         <div className="text-center">
-          <RefreshCw className="h-8 w-8 animate-spin text-[hsl(var(--claude-accent))] mx-auto mb-4" />
-          <p className="text-[hsl(var(--claude-text-muted))]">Loading dashboard...</p>
+          <RefreshCw className="h-8 w-8 text-[#D97706] mx-auto mb-4" />
+          <p className="text-[#6B7280]">Loading dashboard...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-[hsl(var(--claude-bg))] text-[hsl(var(--claude-text))]">
+    <div className="min-h-screen bg-[#FAF9F5] text-[#141413]">
       {/* Header */}
-      <div className="border-b border-[hsl(var(--claude-border))] bg-[hsl(var(--claude-surface))]">
+      <div className="border-b border-[rgba(20,20,19,0.1)] bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
             <div className="flex items-center space-x-4">
               <Link
                 to="/talk-to-twin"
-                className="flex items-center text-[hsl(var(--claude-text-muted))] hover:text-[hsl(var(--claude-text))] transition-colors"
+                className="flex items-center text-[#6B7280]"
               >
                 <ArrowLeft className="h-5 w-5 mr-2" />
                 Back to Twins
               </Link>
-              <div className="h-6 w-px bg-[hsl(var(--claude-border))]" />
-              <h1 className="text-xl font-semibold">{twin?.name || 'Twin Dashboard'}</h1>
+              <div className="h-6 w-px bg-[rgba(20,20,19,0.1)]" />
+              <h1 className="text-xl text-[#141413]" style={{ fontFamily: 'var(--_typography---font--styrene-a)', fontWeight: 500, letterSpacing: '-0.02em' }}>{twin?.name || 'Twin Dashboard'}</h1>
               <div className="flex items-center space-x-2">
-                <div className="h-2 w-2 bg-green-500 rounded-full animate-pulse" />
-                <span className="text-sm text-[hsl(var(--claude-text-muted))]">Live</span>
+                <div className="h-2 w-2 bg-green-500 rounded-full" />
+                <span className="text-sm text-[#6B7280]">Live</span>
               </div>
             </div>
 
             <div className="flex items-center space-x-4">
-              <button className="p-2 text-[hsl(var(--claude-text-muted))] hover:text-[hsl(var(--claude-text))] hover:bg-[hsl(var(--claude-surface-raised))] rounded-lg transition-colors">
+              <button className="p-2 text-[#6B7280] rounded-lg">
                 <Settings className="h-5 w-5" />
               </button>
             </div>
@@ -404,7 +404,7 @@ const TwinDashboard: React.FC = () => {
       </div>
 
       {/* Navigation Tabs */}
-      <div className="border-b border-[hsl(var(--claude-border))] bg-[hsl(var(--claude-surface))]">
+      <div className="border-b border-[rgba(20,20,19,0.1)] bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <nav className="flex space-x-8">
             {[
@@ -416,10 +416,10 @@ const TwinDashboard: React.FC = () => {
               <button
                 key={tab.id}
                 onClick={() => setActiveView(tab.id as any)}
-                className={`flex items-center space-x-2 py-4 px-1 border-b-2 font-medium text-sm transition-colors ${
+                className={`flex items-center space-x-2 py-4 px-1 border-b-2 font-medium text-sm ${
                   activeView === tab.id
-                    ? 'border-[hsl(var(--claude-accent))] text-[hsl(var(--claude-accent))]'
-                    : 'border-transparent text-[hsl(var(--claude-text-muted))] hover:text-[hsl(var(--claude-text))] hover:border-gray-300'
+                    ? 'border-[#D97706] text-[#D97706]'
+                    : 'border-transparent text-[#6B7280]'
                 }`}
               >
                 <tab.icon className="h-4 w-4" />
@@ -436,13 +436,13 @@ const TwinDashboard: React.FC = () => {
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             {/* Stats Cards */}
             <div className="lg:col-span-3 grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-              <div className="bg-[hsl(var(--claude-surface))] border border-[hsl(var(--claude-border))] rounded-xl p-6">
+              <div className="bg-white border border-[rgba(20,20,19,0.1)] rounded-xl p-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm text-[hsl(var(--claude-text-muted))]">Data Points</p>
-                    <p className="text-2xl font-bold">{twin?.dataPoints?.toLocaleString()}</p>
+                    <p className="text-sm text-[#6B7280]">Data Points</p>
+                    <p className="text-2xl text-[#141413]" style={{ fontFamily: 'var(--_typography---font--styrene-a)', fontWeight: 500 }}>{twin?.dataPoints?.toLocaleString()}</p>
                   </div>
-                  <Database className="h-8 w-8 text-[hsl(var(--claude-accent))]" />
+                  <Database className="h-8 w-8 text-[#D97706]" />
                 </div>
                 <div className="mt-4 flex items-center">
                   <TrendingUp className="h-4 w-4 text-green-500 mr-1" />
@@ -450,13 +450,13 @@ const TwinDashboard: React.FC = () => {
                 </div>
               </div>
 
-              <div className="bg-[hsl(var(--claude-surface))] border border-[hsl(var(--claude-border))] rounded-xl p-6">
+              <div className="bg-white border border-[rgba(20,20,19,0.1)] rounded-xl p-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm text-[hsl(var(--claude-text-muted))]">Conversations</p>
-                    <p className="text-2xl font-bold">{twin?.conversationsCount}</p>
+                    <p className="text-sm text-[#6B7280]">Conversations</p>
+                    <p className="text-2xl text-[#141413]" style={{ fontFamily: 'var(--_typography---font--styrene-a)', fontWeight: 500 }}>{twin?.conversationsCount}</p>
                   </div>
-                  <MessageSquare className="h-8 w-8 text-[hsl(var(--claude-accent))]" />
+                  <MessageSquare className="h-8 w-8 text-[#D97706]" />
                 </div>
                 <div className="mt-4 flex items-center">
                   <TrendingUp className="h-4 w-4 text-green-500 mr-1" />
@@ -464,13 +464,13 @@ const TwinDashboard: React.FC = () => {
                 </div>
               </div>
 
-              <div className="bg-[hsl(var(--claude-surface))] border border-[hsl(var(--claude-border))] rounded-xl p-6">
+              <div className="bg-white border border-[rgba(20,20,19,0.1)] rounded-xl p-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm text-[hsl(var(--claude-text-muted))]">Students</p>
-                    <p className="text-2xl font-bold">{twin?.studentsEngaged}</p>
+                    <p className="text-sm text-[#6B7280]">Students</p>
+                    <p className="text-2xl text-[#141413]" style={{ fontFamily: 'var(--_typography---font--styrene-a)', fontWeight: 500 }}>{twin?.studentsEngaged}</p>
                   </div>
-                  <Users className="h-8 w-8 text-[hsl(var(--claude-accent))]" />
+                  <Users className="h-8 w-8 text-[#D97706]" />
                 </div>
                 <div className="mt-4 flex items-center">
                   <TrendingUp className="h-4 w-4 text-green-500 mr-1" />
@@ -478,11 +478,11 @@ const TwinDashboard: React.FC = () => {
                 </div>
               </div>
 
-              <div className="bg-[hsl(var(--claude-surface))] border border-[hsl(var(--claude-border))] rounded-xl p-6">
+              <div className="bg-white border border-[rgba(20,20,19,0.1)] rounded-xl p-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm text-[hsl(var(--claude-text-muted))]">Sync Health</p>
-                    <p className="text-2xl font-bold">94%</p>
+                    <p className="text-sm text-[#6B7280]">Sync Health</p>
+                    <p className="text-2xl text-[#141413]" style={{ fontFamily: 'var(--_typography---font--styrene-a)', fontWeight: 500 }}>94%</p>
                   </div>
                   <Activity className="h-8 w-8 text-green-500" />
                 </div>
@@ -495,9 +495,9 @@ const TwinDashboard: React.FC = () => {
 
             {/* Quick Personality Overview */}
             <div className="lg:col-span-2">
-              <div className="bg-[hsl(var(--claude-surface))] border border-[hsl(var(--claude-border))] rounded-xl p-6">
-                <h3 className="text-lg font-semibold mb-6 flex items-center">
-                  <Brain className="h-5 w-5 mr-2 text-[hsl(var(--claude-accent))]" />
+              <div className="bg-white border border-[rgba(20,20,19,0.1)] rounded-xl p-6">
+                <h3 className="text-lg mb-6 flex items-center text-[#141413]" style={{ fontFamily: 'var(--_typography---font--styrene-a)', fontWeight: 500, letterSpacing: '-0.02em' }}>
+                  <Brain className="h-5 w-5 mr-2 text-[#D97706]" />
                   Personality Overview
                 </h3>
 
@@ -508,14 +508,14 @@ const TwinDashboard: React.FC = () => {
                 <div className="mt-6 grid grid-cols-2 gap-4">
                   {personalityData.slice(0, 4).map((trait, index) => (
                     <div key={index} className="text-center">
-                      <p className="text-sm text-[hsl(var(--claude-text-muted))]">{trait.trait}</p>
-                      <div className="mt-1 bg-[hsl(var(--claude-surface-raised))] rounded-full h-2">
+                      <p className="text-sm text-[#6B7280]">{trait.trait}</p>
+                      <div className="mt-1 bg-[#F5F5F5] rounded-full h-2">
                         <div
-                          className="bg-[hsl(var(--claude-accent))] h-2 rounded-full transition-all duration-300"
+                          className="bg-[#D97706] h-2 rounded-full"
                           style={{ width: `${(trait.value / trait.maxValue) * 100}%` }}
                         />
                       </div>
-                      <p className="text-xs text-[hsl(var(--claude-text-muted))] mt-1">
+                      <p className="text-xs text-[#6B7280] mt-1">
                         {Math.round((trait.value / trait.maxValue) * 100)}%
                       </p>
                     </div>
@@ -526,9 +526,9 @@ const TwinDashboard: React.FC = () => {
 
             {/* Recent Evolution */}
             <div>
-              <div className="bg-[hsl(var(--claude-surface))] border border-[hsl(var(--claude-border))] rounded-xl p-6">
-                <h3 className="text-lg font-semibold mb-6 flex items-center">
-                  <TrendingUp className="h-5 w-5 mr-2 text-[hsl(var(--claude-accent))]" />
+              <div className="bg-white border border-[rgba(20,20,19,0.1)] rounded-xl p-6">
+                <h3 className="text-lg mb-6 flex items-center text-[#141413]" style={{ fontFamily: 'var(--_typography---font--styrene-a)', fontWeight: 500, letterSpacing: '-0.02em' }}>
+                  <TrendingUp className="h-5 w-5 mr-2 text-[#D97706]" />
                   Recent Changes
                 </h3>
 
@@ -537,7 +537,7 @@ const TwinDashboard: React.FC = () => {
                 <div className="mt-6">
                   <button
                     onClick={() => setActiveView('evolution')}
-                    className="w-full text-center text-sm text-[hsl(var(--claude-accent))] hover:underline"
+                    className="w-full text-center text-sm text-[#D97706]"
                   >
                     View complete evolution timeline →
                   </button>
@@ -550,32 +550,32 @@ const TwinDashboard: React.FC = () => {
         {activeView === 'personality' && (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
             {/* Personality Radar */}
-            <div className="bg-[hsl(var(--claude-surface))] border border-[hsl(var(--claude-border))] rounded-xl p-6">
-              <h3 className="text-lg font-semibold mb-6">Personality Profile</h3>
+            <div className="bg-white border border-[rgba(20,20,19,0.1)] rounded-xl p-6">
+              <h3 className="text-lg mb-6 text-[#141413]" style={{ fontFamily: 'var(--_typography---font--styrene-a)', fontWeight: 500, letterSpacing: '-0.02em' }}>Personality Profile</h3>
               <div className="flex justify-center">
                 <PersonalityRadarChart data={personalityData} />
               </div>
             </div>
 
             {/* Personality Insights */}
-            <div className="bg-[hsl(var(--claude-surface))] border border-[hsl(var(--claude-border))] rounded-xl p-6">
-              <h3 className="text-lg font-semibold mb-6">Detailed Insights</h3>
+            <div className="bg-white border border-[rgba(20,20,19,0.1)] rounded-xl p-6">
+              <h3 className="text-lg mb-6 text-[#141413]" style={{ fontFamily: 'var(--_typography---font--styrene-a)', fontWeight: 500, letterSpacing: '-0.02em' }}>Detailed Insights</h3>
               <div className="space-y-4">
                 {personalityData.map((trait, index) => (
-                  <div key={index} className="p-4 bg-[hsl(var(--claude-surface-raised))] rounded-lg">
+                  <div key={index} className="p-4 bg-[#F5F5F5] rounded-lg">
                     <div className="flex justify-between items-center mb-2">
-                      <span className="font-medium">{trait.trait}</span>
-                      <span className="text-sm text-[hsl(var(--claude-text-muted))]">
+                      <span className="text-[#141413]" style={{ fontFamily: 'var(--_typography---font--styrene-a)', fontWeight: 500 }}>{trait.trait}</span>
+                      <span className="text-sm text-[#6B7280]">
                         {Math.round((trait.value / trait.maxValue) * 100)}%
                       </span>
                     </div>
-                    <div className="bg-[hsl(var(--claude-bg))] rounded-full h-2 mb-2">
+                    <div className="bg-white rounded-full h-2 mb-2">
                       <div
-                        className="bg-[hsl(var(--claude-accent))] h-2 rounded-full transition-all duration-300"
+                        className="bg-[#D97706] h-2 rounded-full"
                         style={{ width: `${(trait.value / trait.maxValue) * 100}%` }}
                       />
                     </div>
-                    <p className="text-sm text-[hsl(var(--claude-text-muted))]">
+                    <p className="text-sm text-[#6B7280]" style={{ fontFamily: 'var(--_typography---font--tiempos)' }}>
                       {trait.trait === 'Warmth' && 'Shows high empathy and emotional connection with students'}
                       {trait.trait === 'Structure' && 'Moderately organized approach to lesson planning'}
                       {trait.trait === 'Creativity' && 'Uses innovative methods to explain complex concepts'}
@@ -594,21 +594,21 @@ const TwinDashboard: React.FC = () => {
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             {/* Full Timeline */}
             <div className="lg:col-span-2">
-              <div className="bg-[hsl(var(--claude-surface))] border border-[hsl(var(--claude-border))] rounded-xl p-6">
-                <h3 className="text-lg font-semibold mb-6">Evolution Timeline</h3>
+              <div className="bg-white border border-[rgba(20,20,19,0.1)] rounded-xl p-6">
+                <h3 className="text-lg mb-6 text-[#141413]" style={{ fontFamily: 'var(--_typography---font--styrene-a)', fontWeight: 500, letterSpacing: '-0.02em' }}>Evolution Timeline</h3>
                 <EvolutionTimeline entries={evolutionEntries} />
               </div>
             </div>
 
             {/* Trends Summary */}
             <div>
-              <div className="bg-[hsl(var(--claude-surface))] border border-[hsl(var(--claude-border))] rounded-xl p-6 mb-6">
-                <h3 className="text-lg font-semibold mb-4">Trending Changes</h3>
+              <div className="bg-white border border-[rgba(20,20,19,0.1)] rounded-xl p-6 mb-6">
+                <h3 className="text-lg mb-4 text-[#141413]" style={{ fontFamily: 'var(--_typography---font--styrene-a)', fontWeight: 500, letterSpacing: '-0.02em' }}>Trending Changes</h3>
                 <div className="space-y-3">
                   {trends.map((trend, index) => (
-                    <div key={index} className="p-3 bg-[hsl(var(--claude-surface-raised))] rounded-lg">
+                    <div key={index} className="p-3 bg-[#F5F5F5] rounded-lg">
                       <div className="flex items-center justify-between mb-1">
-                        <span className="text-sm font-medium capitalize">
+                        <span className="text-sm text-[#141413] capitalize" style={{ fontFamily: 'var(--_typography---font--styrene-a)', fontWeight: 500 }}>
                           {trend.insightType.replace('_', ' ')}
                         </span>
                         <div className="flex items-center">
@@ -620,7 +620,7 @@ const TwinDashboard: React.FC = () => {
                           )}
                         </div>
                       </div>
-                      <p className="text-xs text-[hsl(var(--claude-text-muted))]">
+                      <p className="text-xs text-[#6B7280]">
                         Change rate: {(trend.changeRate * 100).toFixed(1)}%
                       </p>
                     </div>
@@ -628,20 +628,20 @@ const TwinDashboard: React.FC = () => {
                 </div>
               </div>
 
-              <div className="bg-[hsl(var(--claude-surface))] border border-[hsl(var(--claude-border))] rounded-xl p-6">
-                <h3 className="text-lg font-semibold mb-4">Evolution Stats</h3>
+              <div className="bg-white border border-[rgba(20,20,19,0.1)] rounded-xl p-6">
+                <h3 className="text-lg mb-4 text-[#141413]" style={{ fontFamily: 'var(--_typography---font--styrene-a)', fontWeight: 500, letterSpacing: '-0.02em' }}>Evolution Stats</h3>
                 <div className="space-y-4">
                   <div className="flex justify-between">
-                    <span className="text-sm text-[hsl(var(--claude-text-muted))]">Total Changes</span>
-                    <span className="font-medium">{evolutionEntries.length}</span>
+                    <span className="text-sm text-[#6B7280]">Total Changes</span>
+                    <span className="text-[#141413]" style={{ fontFamily: 'var(--_typography---font--styrene-a)', fontWeight: 500 }}>{evolutionEntries.length}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-sm text-[hsl(var(--claude-text-muted))]">This Week</span>
-                    <span className="font-medium">3</span>
+                    <span className="text-sm text-[#6B7280]">This Week</span>
+                    <span className="text-[#141413]" style={{ fontFamily: 'var(--_typography---font--styrene-a)', fontWeight: 500 }}>3</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-sm text-[hsl(var(--claude-text-muted))]">High Impact</span>
-                    <span className="font-medium">1</span>
+                    <span className="text-sm text-[#6B7280]">High Impact</span>
+                    <span className="text-[#141413]" style={{ fontFamily: 'var(--_typography---font--styrene-a)', fontWeight: 500 }}>1</span>
                   </div>
                 </div>
               </div>
@@ -653,11 +653,11 @@ const TwinDashboard: React.FC = () => {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
             {/* Connected Services */}
             <div className="lg:col-span-2">
-              <div className="bg-[hsl(var(--claude-surface))] border border-[hsl(var(--claude-border))] rounded-xl p-6">
-                <h3 className="text-lg font-semibold mb-6">Connected Data Sources</h3>
+              <div className="bg-white border border-[rgba(20,20,19,0.1)] rounded-xl p-6">
+                <h3 className="text-lg mb-6 text-[#141413]" style={{ fontFamily: 'var(--_typography---font--styrene-a)', fontWeight: 500, letterSpacing: '-0.02em' }}>Connected Data Sources</h3>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                   {connectors.map((connector) => (
-                    <div key={connector.id} className="p-4 bg-[hsl(var(--claude-surface-raised))] rounded-lg">
+                    <div key={connector.id} className="p-4 bg-[#F5F5F5] rounded-lg">
                       <div className="flex items-center justify-between mb-3">
                         <div className="flex items-center space-x-2">
                           <div className={`w-3 h-3 rounded-full ${
@@ -665,32 +665,32 @@ const TwinDashboard: React.FC = () => {
                             connector.status === 'syncing' ? 'bg-yellow-500' :
                             'bg-red-500'
                           }`} />
-                          <span className="font-medium">{connector.displayName}</span>
+                          <span className="text-[#141413]" style={{ fontFamily: 'var(--_typography---font--styrene-a)', fontWeight: 500 }}>{connector.displayName}</span>
                         </div>
-                        <span className="text-xs text-[hsl(var(--claude-text-muted))] capitalize">
+                        <span className="text-xs text-[#6B7280] capitalize">
                           {connector.status}
                         </span>
                       </div>
 
                       <div className="space-y-2">
                         <div className="flex justify-between text-sm">
-                          <span className="text-[hsl(var(--claude-text-muted))]">Data Points</span>
-                          <span>{connector.dataPointsCount?.toLocaleString()}</span>
+                          <span className="text-[#6B7280]">Data Points</span>
+                          <span className="text-[#141413]">{connector.dataPointsCount?.toLocaleString()}</span>
                         </div>
                         <div className="flex justify-between text-sm">
-                          <span className="text-[hsl(var(--claude-text-muted))]">Health Score</span>
-                          <span>{Math.round((connector.healthScore || 0) * 100)}%</span>
+                          <span className="text-[#6B7280]">Health Score</span>
+                          <span className="text-[#141413]">{Math.round((connector.healthScore || 0) * 100)}%</span>
                         </div>
                         <div className="flex justify-between text-sm">
-                          <span className="text-[hsl(var(--claude-text-muted))]">Last Sync</span>
-                          <span>{new Date(connector.lastSync).toLocaleDateString()}</span>
+                          <span className="text-[#6B7280]">Last Sync</span>
+                          <span className="text-[#141413]">{new Date(connector.lastSync).toLocaleDateString()}</span>
                         </div>
                       </div>
 
-                      <div className="mt-3 pt-3 border-t border-[hsl(var(--claude-border))]">
-                        <div className="bg-[hsl(var(--claude-bg))] rounded-full h-2">
+                      <div className="mt-3 pt-3 border-t border-[rgba(20,20,19,0.1)]">
+                        <div className="bg-white rounded-full h-2">
                           <div
-                            className="bg-[hsl(var(--claude-accent))] h-2 rounded-full transition-all duration-300"
+                            className="bg-[#D97706] h-2 rounded-full"
                             style={{ width: `${Math.round((connector.healthScore || 0) * 100)}%` }}
                           />
                         </div>

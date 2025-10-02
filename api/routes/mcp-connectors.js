@@ -1,5 +1,6 @@
 import express from 'express';
 import { DataExtractionService } from '../services/dataExtraction.js';
+import mcpClient from '../services/mcp-client.js';
 
 const router = express.Router();
 const extractionService = new DataExtractionService();
@@ -93,6 +94,138 @@ router.post('/connect/discord', async (req, res) => {
   }
 });
 
+/**
+ * OAuth Callback Handler for MCP Platforms
+ * Handles OAuth callbacks for Teams, Slack, and Discord
+ */
+router.post('/oauth/callback', async (req, res) => {
+  try {
+    const { code, state, error: oauthError } = req.body;
+
+    if (oauthError) {
+      return res.status(400).json({
+        success: false,
+        error: `OAuth error: ${oauthError}`
+      });
+    }
+
+    if (!code || !state) {
+      return res.status(400).json({
+        success: false,
+        error: 'Missing authorization code or state'
+      });
+    }
+
+    // Decode state to get provider and userId
+    const stateData = JSON.parse(Buffer.from(state, 'base64').toString('utf8'));
+    const { provider, userId } = stateData;
+
+    let accessToken, refreshToken, expiresIn;
+
+    // Exchange authorization code for access token based on provider
+    switch (provider) {
+      case 'discord':
+        const discordTokenResponse = await fetch('https://discord.com/api/oauth2/token', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+          body: new URLSearchParams({
+            client_id: process.env.DISCORD_CLIENT_ID,
+            client_secret: process.env.DISCORD_CLIENT_SECRET,
+            grant_type: 'authorization_code',
+            code,
+            redirect_uri: `${process.env.VITE_APP_URL || 'http://localhost:8086'}/oauth/callback`
+          })
+        });
+
+        if (!discordTokenResponse.ok) {
+          throw new Error('Failed to exchange Discord authorization code');
+        }
+
+        const discordTokens = await discordTokenResponse.json();
+        accessToken = discordTokens.access_token;
+        refreshToken = discordTokens.refresh_token;
+        expiresIn = discordTokens.expires_in;
+        break;
+
+      case 'slack':
+        const slackTokenResponse = await fetch('https://slack.com/api/oauth.v2.access', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+          body: new URLSearchParams({
+            client_id: process.env.SLACK_CLIENT_ID,
+            client_secret: process.env.SLACK_CLIENT_SECRET,
+            code,
+            redirect_uri: `${process.env.VITE_APP_URL || 'http://localhost:8086'}/oauth/callback`
+          })
+        });
+
+        if (!slackTokenResponse.ok) {
+          throw new Error('Failed to exchange Slack authorization code');
+        }
+
+        const slackTokens = await slackTokenResponse.json();
+        if (!slackTokens.ok) {
+          throw new Error(slackTokens.error || 'Slack token exchange failed');
+        }
+        accessToken = slackTokens.access_token;
+        // Slack v2 doesn't always return refresh token
+        refreshToken = slackTokens.refresh_token;
+        expiresIn = slackTokens.expires_in;
+        break;
+
+      case 'teams':
+        const teamsTokenResponse = await fetch('https://login.microsoftonline.com/common/oauth2/v2.0/token', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+          body: new URLSearchParams({
+            client_id: process.env.TEAMS_CLIENT_ID,
+            client_secret: process.env.TEAMS_CLIENT_SECRET,
+            grant_type: 'authorization_code',
+            code,
+            redirect_uri: `${process.env.VITE_APP_URL || 'http://localhost:8086'}/oauth/callback`,
+            scope: 'User.Read Chat.Read Channel.ReadBasic.All Files.Read.All'
+          })
+        });
+
+        if (!teamsTokenResponse.ok) {
+          throw new Error('Failed to exchange Teams authorization code');
+        }
+
+        const teamsTokens = await teamsTokenResponse.json();
+        accessToken = teamsTokens.access_token;
+        refreshToken = teamsTokens.refresh_token;
+        expiresIn = teamsTokens.expires_in;
+        break;
+
+      default:
+        return res.status(400).json({
+          success: false,
+          error: `Unsupported provider: ${provider}`
+        });
+    }
+
+    // TODO: Store tokens in database with encryption
+    // For now, return them to the client
+    res.json({
+      success: true,
+      provider,
+      userId,
+      accessToken,
+      refreshToken,
+      expiresIn,
+      message: `Successfully connected to ${provider}`
+    });
+
+  } catch (error) {
+    console.error('OAuth callback error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to complete OAuth flow',
+      details: error.message
+    });
+  }
+});
+
 // Extract data from Teams
 router.post('/extract/teams', async (req, res) => {
   try {
@@ -132,32 +265,93 @@ router.post('/extract/slack', async (req, res) => {
   try {
     const { userId, accessToken } = req.body;
 
-    // Get Slack conversations
-    const conversationsResponse = await fetch('https://slack.com/api/conversations.list', {
-      headers: { 'Authorization': `Bearer ${accessToken}` }
-    });
-
-    if (!conversationsResponse.ok) {
-      throw new Error('Failed to fetch Slack data');
+    if (!userId || !accessToken) {
+      return res.status(400).json({
+        success: false,
+        error: 'userId and accessToken are required'
+      });
     }
 
-    const conversations = await conversationsResponse.json();
+    // Load MCP configuration
+    await mcpClient.loadConfig();
+
+    let rawData;
+    let extractionMethod = 'direct-api';
+
+    // Try to use MCP if available
+    if (mcpClient.usesMCP('slack')) {
+      console.log('📊 Using MCP for Slack data extraction');
+      try {
+        rawData = await mcpClient.extractData('slack', accessToken, userId);
+        extractionMethod = 'mcp';
+      } catch (mcpError) {
+        console.error('MCP extraction failed, falling back to direct API:', mcpError);
+        extractionMethod = 'direct-api-fallback';
+      }
+    }
+
+    // Fallback to direct Slack API if MCP not available or failed
+    if (!rawData || extractionMethod !== 'mcp') {
+      console.log('📊 Using direct Slack API for data extraction');
+
+      // Get Slack conversations
+      const conversationsResponse = await fetch('https://slack.com/api/conversations.list', {
+        headers: { 'Authorization': `Bearer ${accessToken}` }
+      });
+
+      if (!conversationsResponse.ok) {
+        throw new Error('Failed to fetch Slack data');
+      }
+
+      const conversations = await conversationsResponse.json();
+
+      if (!conversations.ok) {
+        throw new Error(conversations.error || 'Slack API error');
+      }
+
+      rawData = {
+        platform: 'slack',
+        userId,
+        dataType: 'direct_api_extraction',
+        extracted: {
+          channels: conversations.channels || [],
+          messages: [],
+          reactions: [],
+          communicationMetrics: {}
+        },
+        metadata: {
+          extractedAt: new Date().toISOString(),
+          method: 'direct-api',
+          dataPoints: conversations.channels?.length || 0
+        }
+      };
+    }
 
     // Extract patterns from Slack
-    const patterns = await extractionService.extractSlackPatterns(conversations.channels);
+    const patterns = await extractionService.extractSlackPatterns(rawData.extracted.channels);
 
     res.json({
       success: true,
+      extractionMethod,
       patterns,
       summary: {
-        totalChannels: conversations.channels.length,
+        totalChannels: rawData.extracted.channels.length,
         communicationStyle: patterns.communicationStyle,
         expertise: patterns.identifiedExpertise
+      },
+      metadata: {
+        dataPoints: rawData.metadata.dataPoints,
+        extractedAt: rawData.metadata.extractedAt,
+        method: extractionMethod
       }
     });
   } catch (error) {
     console.error('Slack extraction error:', error);
-    res.status(500).json({ error: 'Failed to extract Slack data' });
+    res.status(500).json({
+      success: false,
+      error: 'Failed to extract Slack data',
+      details: error.message
+    });
   }
 });
 
@@ -166,32 +360,89 @@ router.post('/extract/discord', async (req, res) => {
   try {
     const { userId, accessToken } = req.body;
 
-    // Get Discord guilds
-    const guildsResponse = await fetch('https://discord.com/api/v10/users/@me/guilds', {
-      headers: { 'Authorization': `Bearer ${accessToken}` }
-    });
-
-    if (!guildsResponse.ok) {
-      throw new Error('Failed to fetch Discord data');
+    if (!userId || !accessToken) {
+      return res.status(400).json({
+        success: false,
+        error: 'userId and accessToken are required'
+      });
     }
 
-    const guilds = await guildsResponse.json();
+    // Load MCP configuration
+    await mcpClient.loadConfig();
+
+    let rawData;
+    let extractionMethod = 'direct-api';
+
+    // Try to use MCP if available
+    if (mcpClient.usesMCP('discord')) {
+      console.log('📊 Using MCP for Discord data extraction');
+      try {
+        rawData = await mcpClient.extractData('discord', accessToken, userId);
+        extractionMethod = 'mcp';
+      } catch (mcpError) {
+        console.error('MCP extraction failed, falling back to direct API:', mcpError);
+        extractionMethod = 'direct-api-fallback';
+      }
+    }
+
+    // Fallback to direct Discord API if MCP not available or failed
+    if (!rawData || extractionMethod !== 'mcp') {
+      console.log('📊 Using direct Discord API for data extraction');
+
+      // Get Discord guilds
+      const guildsResponse = await fetch('https://discord.com/api/v10/users/@me/guilds', {
+        headers: { 'Authorization': `Bearer ${accessToken}` }
+      });
+
+      if (!guildsResponse.ok) {
+        throw new Error('Failed to fetch Discord data');
+      }
+
+      const guilds = await guildsResponse.json();
+
+      rawData = {
+        platform: 'discord',
+        userId,
+        dataType: 'direct_api_extraction',
+        extracted: {
+          servers: guilds,
+          messages: [],
+          interactions: [],
+          communicationStyle: {}
+        },
+        metadata: {
+          extractedAt: new Date().toISOString(),
+          method: 'direct-api',
+          dataPoints: guilds.length
+        }
+      };
+    }
 
     // Extract patterns from Discord
-    const patterns = await extractionService.extractDiscordPatterns(guilds);
+    const patterns = await extractionService.extractDiscordPatterns(rawData.extracted.servers);
 
     res.json({
       success: true,
+      extractionMethod,
       patterns,
       summary: {
-        totalGuilds: guilds.length,
+        totalGuilds: rawData.extracted.servers.length,
         communities: patterns.communities,
         engagement: patterns.engagementLevel
+      },
+      metadata: {
+        dataPoints: rawData.metadata.dataPoints,
+        extractedAt: rawData.metadata.extractedAt,
+        method: extractionMethod
       }
     });
   } catch (error) {
     console.error('Discord extraction error:', error);
-    res.status(500).json({ error: 'Failed to extract Discord data' });
+    res.status(500).json({
+      success: false,
+      error: 'Failed to extract Discord data',
+      details: error.message
+    });
   }
 });
 
