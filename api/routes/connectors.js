@@ -12,6 +12,7 @@ const router = express.Router();
 // ====================================================================
 
 const OAUTH_CONFIGS = {
+  // Google Services
   google_gmail: {
     clientId: process.env.GOOGLE_CLIENT_ID,
     clientSecret: process.env.GOOGLE_CLIENT_SECRET,
@@ -32,6 +33,81 @@ const OAUTH_CONFIGS = {
     scopes: ['https://www.googleapis.com/auth/drive.readonly'],
     authUrl: 'https://accounts.google.com/o/oauth2/v2/auth',
     tokenUrl: 'https://oauth2.googleapis.com/token'
+  },
+
+  // YouTube (uses Google OAuth)
+  youtube: {
+    clientId: process.env.GOOGLE_CLIENT_ID,
+    clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+    scopes: [
+      'https://www.googleapis.com/auth/youtube.readonly',
+      'https://www.googleapis.com/auth/youtube.force-ssl'
+    ],
+    authUrl: 'https://accounts.google.com/o/oauth2/v2/auth',
+    tokenUrl: 'https://oauth2.googleapis.com/token'
+  },
+
+  // Spotify
+  spotify: {
+    clientId: process.env.SPOTIFY_CLIENT_ID,
+    clientSecret: process.env.SPOTIFY_CLIENT_SECRET,
+    scopes: [
+      'user-read-private',
+      'user-read-email',
+      'user-top-read',
+      'user-read-recently-played',
+      'playlist-read-private',
+      'playlist-read-collaborative',
+      'user-library-read',
+      'user-follow-read'
+    ],
+    authUrl: 'https://accounts.spotify.com/authorize',
+    tokenUrl: 'https://accounts.spotify.com/api/token'
+  },
+
+  // GitHub
+  github: {
+    clientId: process.env.GITHUB_CLIENT_ID,
+    clientSecret: process.env.GITHUB_CLIENT_SECRET,
+    scopes: ['user', 'repo', 'read:org'],
+    authUrl: 'https://github.com/login/oauth/authorize',
+    tokenUrl: 'https://github.com/login/oauth/access_token'
+  },
+
+  // Discord
+  discord: {
+    clientId: process.env.DISCORD_CLIENT_ID,
+    clientSecret: process.env.DISCORD_CLIENT_SECRET,
+    scopes: ['identify', 'email', 'guilds', 'guilds.members.read'],
+    authUrl: 'https://discord.com/api/oauth2/authorize',
+    tokenUrl: 'https://discord.com/api/oauth2/token'
+  },
+
+  // Slack
+  slack: {
+    clientId: process.env.SLACK_CLIENT_ID,
+    clientSecret: process.env.SLACK_CLIENT_SECRET,
+    scopes: [
+      'channels:history',
+      'channels:read',
+      'groups:history',
+      'groups:read',
+      'im:history',
+      'im:read',
+      'users:read',
+      'users.profile:read'
+    ],
+    authUrl: 'https://slack.com/oauth/v2/authorize',
+    tokenUrl: 'https://slack.com/api/oauth.v2.access'
+  },
+
+  // LinkedIn (if available)
+  linkedin: {
+    clientId: process.env.LINKEDIN_CLIENT_ID,
+    clientSecret: process.env.LINKEDIN_CLIENT_SECRET,
+    scopes: ['r_liteprofile', 'r_emailaddress'],
+    authUrl: 'https://www.linkedin.com/oauth/v2/authorization',
+    tokenUrl: 'https://www.linkedin.com/oauth/v2/accessToken'
   }
 };
 
@@ -155,20 +231,78 @@ router.post('/callback', async (req, res) => {
       });
     }
 
+    // Convert email to UUID by looking up in users table
+    // userId from state might be email (test@twinme.com) or UUID
+    let userUuid = userId;
+    if (userId && !userId.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i)) {
+      // This is an email, look up UUID
+      const { data: userData, error: userError } = await supabase
+        .from('users')
+        .select('id')
+        .eq('email', userId)
+        .single();
+
+      if (userError || !userData) {
+        console.error('Error looking up user UUID:', userError);
+        return res.status(400).json({
+          success: false,
+          error: 'User not found'
+        });
+      }
+      userUuid = userData.id;
+      console.log(`🔄 Converted email ${userId} to UUID ${userUuid}`);
+    }
+
     // Exchange authorization code for tokens
-    const tokenResponse = await fetch(config.tokenUrl, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
-      },
-      body: new URLSearchParams({
-        client_id: config.clientId,
-        client_secret: config.clientSecret,
-        code,
-        grant_type: 'authorization_code',
-        redirect_uri: `${process.env.VITE_APP_URL || 'http://localhost:8086'}/oauth/callback`
-      })
-    });
+    // Different providers need different auth methods
+    const redirectUri = `${process.env.VITE_APP_URL || 'http://localhost:8086'}/oauth/callback`;
+    let tokenResponse;
+
+    if (provider === 'spotify') {
+      // Spotify uses Basic Authentication
+      tokenResponse = await fetch(config.tokenUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+          'Authorization': `Basic ${Buffer.from(`${config.clientId}:${config.clientSecret}`).toString('base64')}`
+        },
+        body: new URLSearchParams({
+          grant_type: 'authorization_code',
+          code,
+          redirect_uri: redirectUri
+        })
+      });
+    } else if (provider === 'github') {
+      // GitHub needs Accept header for JSON response
+      tokenResponse = await fetch(config.tokenUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
+        body: JSON.stringify({
+          client_id: config.clientId,
+          client_secret: config.clientSecret,
+          code,
+          redirect_uri: redirectUri
+        })
+      });
+    } else {
+      // Standard OAuth2 flow (Google, Discord, etc.)
+      tokenResponse = await fetch(config.tokenUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: new URLSearchParams({
+          client_id: config.clientId,
+          client_secret: config.clientSecret,
+          code,
+          grant_type: 'authorization_code',
+          redirect_uri: redirectUri
+        })
+      });
+    }
 
     const tokens = await tokenResponse.json();
 
@@ -182,19 +316,18 @@ router.post('/callback', async (req, res) => {
     // Store encrypted tokens in database
     try {
       const connectionData = {
-        user_id: userId,
+        user_id: userUuid,  // Use UUID not email
         provider: provider,
-        access_token_encrypted: encryptToken(tokens.access_token),
-        refresh_token_encrypted: tokens.refresh_token ? encryptToken(tokens.refresh_token) : null,
-        expires_at: tokens.expires_in ? new Date(Date.now() + tokens.expires_in * 1000).toISOString() : null,
-        scopes: config.scopes,
-        is_active: true,
-        connected_at: new Date().toISOString(),
-        last_sync: new Date().toISOString(),
-        last_sync_status: 'success',
-        permissions: {},
-        total_synced: 0,
-        error_count: 0
+        access_token: encryptToken(tokens.access_token),
+        refresh_token: tokens.refresh_token ? encryptToken(tokens.refresh_token) : null,
+        token_expires_at: tokens.expires_in ? new Date(Date.now() + tokens.expires_in * 1000).toISOString() : null,
+        connected: true,  // Old schema uses 'connected' not 'is_active'
+        metadata: {
+          connected_at: new Date().toISOString(),
+          last_sync: new Date().toISOString(),
+          last_sync_status: 'success'
+        },
+        scopes: config.scopes || []
       };
 
       // Upsert connection to database (insert or update if exists)
@@ -256,12 +389,23 @@ router.get('/status/:userId', async (req, res) => {
   try {
     const { userId } = req.params;
 
-    // Get connection status from database
+    // Convert email to UUID if needed
+    let userUuid = userId;
+    if (userId && !userId.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i)) {
+      const { data: userData } = await supabase
+        .from('users')
+        .select('id')
+        .eq('email', userId)
+        .single();
+      if (userData) userUuid = userData.id;
+    }
+
+    // Get connection status from database (old schema)
     const { data: connections, error } = await supabase
       .from('data_connectors')
-      .select('provider, is_active, connected_at, last_sync, last_sync_status')
-      .eq('user_id', userId)
-      .eq('is_active', true);
+      .select('provider, connected, metadata')
+      .eq('user_id', userUuid)
+      .eq('connected', true);
 
     if (error) {
       console.error('Database error getting connections:', error);
@@ -273,10 +417,10 @@ router.get('/status/:userId', async (req, res) => {
     connections?.forEach(connection => {
       connectionStatus[connection.provider] = {
         connected: true,
-        isActive: connection.is_active,
-        connectedAt: connection.connected_at,
-        lastSync: connection.last_sync,
-        status: connection.last_sync_status
+        isActive: connection.connected,
+        connectedAt: connection.metadata?.connected_at || null,
+        lastSync: connection.metadata?.last_sync || null,
+        status: connection.metadata?.last_sync_status || 'unknown'
       };
     });
 
@@ -306,11 +450,22 @@ router.post('/reset/:userId', async (req, res) => {
 
     console.log(`🔄 Resetting connections for user ${userId}`);
 
-    // Mark all connections as inactive in database
-    const { data, error } = await supabase
+    // Convert email to UUID if needed
+    let userUuid = userId;
+    if (userId && !userId.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i)) {
+      const { data: userData } = await supabase
+        .from('users')
+        .select('id')
+        .eq('email', userId)
+        .single();
+      if (userData) userUuid = userData.id;
+    }
+
+    // Mark all connections as inactive in database (old schema uses 'connected')
+    const { data, error} = await supabase
       .from('data_connectors')
-      .update({ is_active: false })
-      .eq('user_id', userId)
+      .update({ connected: false })
+      .eq('user_id', userUuid)
       .select();
 
     if (error) {
@@ -348,11 +503,22 @@ router.delete('/:provider/:userId', async (req, res) => {
   try {
     const { provider, userId } = req.params;
 
-    // Remove tokens from database and revoke access
+    // Convert email to UUID if needed
+    let userUuid = userId;
+    if (userId && !userId.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i)) {
+      const { data: userData } = await supabase
+        .from('users')
+        .select('id')
+        .eq('email', userId)
+        .single();
+      if (userData) userUuid = userData.id;
+    }
+
+    // Remove tokens from database and revoke access (old schema)
     const { error } = await supabase
       .from('data_connectors')
-      .update({ is_active: false })
-      .eq('user_id', userId)
+      .update({ connected: false })
+      .eq('user_id', userUuid)
       .eq('provider', provider);
 
     if (error) {
@@ -386,19 +552,29 @@ router.post('/test-add-connection', async (req, res) => {
   try {
     const { userId, provider } = req.body;
 
+    // Convert email to UUID if needed
+    let userUuid = userId;
+    if (userId && !userId.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i)) {
+      const { data: userData } = await supabase
+        .from('users')
+        .select('id')
+        .eq('email', userId)
+        .single();
+      if (userData) userUuid = userData.id;
+    }
+
     const connectionData = {
-      user_id: userId,
+      user_id: userUuid,
       provider: provider,
-      access_token_encrypted: encryptToken('test-token'),
-      refresh_token_encrypted: encryptToken('test-refresh-token'),
-      expires_at: new Date(Date.now() + 3600000).toISOString(), // 1 hour
-      connected_at: new Date().toISOString(),
-      last_sync: new Date().toISOString(),
-      is_active: true,
-      permissions: {},
-      total_synced: 0,
-      last_sync_status: 'success',
-      error_count: 0,
+      access_token: encryptToken('test-token'),
+      refresh_token: encryptToken('test-refresh-token'),
+      token_expires_at: new Date(Date.now() + 3600000).toISOString(), // 1 hour
+      connected: true,  // Old schema
+      metadata: {
+        connected_at: new Date().toISOString(),
+        last_sync: new Date().toISOString(),
+        last_sync_status: 'success'
+      },
       scopes: []
     };
 

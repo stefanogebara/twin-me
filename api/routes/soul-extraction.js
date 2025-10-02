@@ -10,6 +10,7 @@ import express from 'express';
 import RealTimeExtractor from '../services/realTimeExtractor.js';
 import { createClient } from '@supabase/supabase-js';
 import { decryptToken } from '../services/encryption.js';
+import { getValidAccessToken } from '../services/tokenRefresh.js';
 
 const router = express.Router();
 const extractor = new RealTimeExtractor();
@@ -38,17 +39,11 @@ router.post('/extract/platform/:platform', async (req, res) => {
       });
     }
 
-    // Query database for the connection with encrypted tokens
-    const { data: connection, error: dbError } = await supabase
-      .from('data_connectors')
-      .select('access_token_encrypted, refresh_token_encrypted, expires_at, provider')
-      .eq('user_id', userId)
-      .eq('provider', platform)
-      .eq('is_active', true)
-      .single();
+    // Get valid access token (will auto-refresh if expired)
+    const tokenResult = await getValidAccessToken(userId, platform);
 
-    if (dbError || !connection) {
-      console.log(`⚠️ No active connection found for ${platform}`);
+    if (!tokenResult.success) {
+      console.log(`⚠️ No active connection or token failed for ${platform}: ${tokenResult.error}`);
       // Fall back to generating realistic data if no connection exists
       const extraction = await extractor.generateGenericPlatformData(platform, userId);
       return res.json({
@@ -61,28 +56,7 @@ router.post('/extract/platform/:platform', async (req, res) => {
       });
     }
 
-    // Decrypt the access token
-    let accessToken;
-    try {
-      accessToken = decryptToken(connection.access_token_encrypted);
-    } catch (decryptError) {
-      console.error('❌ Token decryption failed:', decryptError);
-      return res.status(500).json({
-        success: false,
-        error: 'Failed to decrypt access token'
-      });
-    }
-
-    // Check if token is expired
-    if (connection.expires_at && new Date(connection.expires_at) < new Date()) {
-      console.log('⏰ Access token expired, needs refresh');
-      // TODO: Implement token refresh logic
-      return res.status(401).json({
-        success: false,
-        error: 'Access token expired - please reconnect your account'
-      });
-    }
-
+    const accessToken = tokenResult.accessToken;
     let extraction;
 
     switch (platform.toLowerCase()) {
@@ -96,7 +70,6 @@ router.post('/extract/platform/:platform', async (req, res) => {
 
       case 'netflix':
       case 'steam':
-      case 'goodreads':
         extraction = await extractor.generateGenericPlatformData(platform, userId);
         break;
 
@@ -166,9 +139,9 @@ router.post('/extract/multi-platform', async (req, res) => {
     // Query database for all active connections for this user
     const { data: connections, error: dbError } = await supabase
       .from('data_connectors')
-      .select('provider, access_token_encrypted, expires_at')
+      .select('provider, access_token, token_expires_at')
       .eq('user_id', userId)
-      .eq('is_active', true)
+      .eq('connected', true)
       .in('provider', validPlatforms.map(p => p.name));
 
     if (dbError) {
@@ -181,12 +154,12 @@ router.post('/extract/multi-platform', async (req, res) => {
     for (const platform of validPlatforms) {
       const connection = connections?.find(c => c.provider === platform.name);
 
-      if (connection && connection.access_token_encrypted) {
+      if (connection && connection.access_token) {
         try {
-          const accessToken = decryptToken(connection.access_token_encrypted);
+          const accessToken = decryptToken(connection.access_token);
 
           // Check if token is expired
-          if (!connection.expires_at || new Date(connection.expires_at) > new Date()) {
+          if (!connection.token_expires_at || new Date(connection.token_expires_at) > new Date()) {
             platformsWithTokens.push({
               name: platform.name,
               accessToken: accessToken
@@ -377,43 +350,19 @@ router.get('/extract/gmail/:userId', async (req, res) => {
   try {
     const { userId } = req.params;
 
-    // Query database for Gmail connection
-    const { data: connection, error: dbError } = await supabase
-      .from('data_connectors')
-      .select('access_token_encrypted, expires_at')
-      .eq('user_id', userId)
-      .eq('provider', 'google_gmail')
-      .eq('is_active', true)
-      .single();
-
-    if (dbError || !connection || !connection.access_token_encrypted) {
-      return res.status(404).json({
-        success: false,
-        error: 'Gmail not connected or token expired'
-      });
-    }
-
-    // Decrypt access token
-    let accessToken;
-    try {
-      accessToken = decryptToken(connection.access_token_encrypted);
-    } catch (decryptError) {
-      console.error('❌ Token decryption failed:', decryptError);
-      return res.status(500).json({
-        success: false,
-        error: 'Failed to decrypt access token'
-      });
-    }
-
-    // Check if token is expired
-    if (connection.expires_at && new Date(connection.expires_at) < new Date()) {
-      return res.status(401).json({
-        success: false,
-        error: 'Access token expired - please reconnect your Gmail account'
-      });
-    }
-
     console.log('🧠 Extracting Gmail personality patterns for soul signature...');
+
+    // Get valid access token (will auto-refresh if expired)
+    const tokenResult = await getValidAccessToken(userId, 'google_gmail');
+
+    if (!tokenResult.success) {
+      return res.status(tokenResult.error.includes('No active connection') ? 404 : 401).json({
+        success: false,
+        error: tokenResult.error
+      });
+    }
+
+    const accessToken = tokenResult.accessToken;
 
     // Analyze multiple aspects of communication style
     const soulSignature = {
@@ -636,43 +585,19 @@ router.get('/extract/calendar/:userId', async (req, res) => {
   try {
     const { userId } = req.params;
 
-    // Query database for Calendar connection
-    const { data: connection, error: dbError } = await supabase
-      .from('data_connectors')
-      .select('access_token_encrypted, expires_at')
-      .eq('user_id', userId)
-      .eq('provider', 'google_calendar')
-      .eq('is_active', true)
-      .single();
-
-    if (dbError || !connection || !connection.access_token_encrypted) {
-      return res.status(404).json({
-        success: false,
-        error: 'Google Calendar not connected or token expired'
-      });
-    }
-
-    // Decrypt access token
-    let accessToken;
-    try {
-      accessToken = decryptToken(connection.access_token_encrypted);
-    } catch (decryptError) {
-      console.error('❌ Token decryption failed:', decryptError);
-      return res.status(500).json({
-        success: false,
-        error: 'Failed to decrypt access token'
-      });
-    }
-
-    // Check if token is expired
-    if (connection.expires_at && new Date(connection.expires_at) < new Date()) {
-      return res.status(401).json({
-        success: false,
-        error: 'Access token expired - please reconnect your Google Calendar account'
-      });
-    }
-
     console.log('🗓️ Extracting Calendar patterns for soul signature...');
+
+    // Get valid access token (will auto-refresh if expired)
+    const tokenResult = await getValidAccessToken(userId, 'google_calendar');
+
+    if (!tokenResult.success) {
+      return res.status(tokenResult.error.includes('No active connection') ? 404 : 401).json({
+        success: false,
+        error: tokenResult.error
+      });
+    }
+
+    const accessToken = tokenResult.accessToken;
 
     const soulSignature = {
       timeManagement: {},
