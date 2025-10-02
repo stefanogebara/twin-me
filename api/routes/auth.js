@@ -230,6 +230,7 @@ router.post('/oauth/callback', async (req, res) => {
           email: userData.email,
           first_name: userData.firstName,
           last_name: userData.lastName,
+          picture_url: userData.pictureUrl,
           oauth_provider: provider,
           created_at: new Date().toISOString()
         })
@@ -270,13 +271,49 @@ router.post('/oauth/callback', async (req, res) => {
 
 // Helper functions for OAuth token exchange
 async function exchangeGoogleCode(code) {
-  // Implementation for Google OAuth token exchange
-  // This would normally call Google's OAuth API to exchange the code for user data
-  return {
-    email: 'user@example.com',
-    firstName: 'John',
-    lastName: 'Doe'
-  };
+  try {
+    // Exchange authorization code for access token
+    const tokenResponse = await fetch('https://oauth2.googleapis.com/token', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({
+        code,
+        client_id: process.env.GOOGLE_CLIENT_ID,
+        client_secret: process.env.GOOGLE_CLIENT_SECRET,
+        redirect_uri: `${process.env.VITE_APP_URL}/oauth/callback`,
+        grant_type: 'authorization_code'
+      })
+    });
+
+    if (!tokenResponse.ok) {
+      console.error('Token exchange failed:', await tokenResponse.text());
+      return null;
+    }
+
+    const tokens = await tokenResponse.json();
+
+    // Get user info using access token
+    const userResponse = await fetch('https://www.googleapis.com/oauth2/v2/userinfo', {
+      headers: { 'Authorization': `Bearer ${tokens.access_token}` }
+    });
+
+    if (!userResponse.ok) {
+      console.error('User info fetch failed:', await userResponse.text());
+      return null;
+    }
+
+    const userInfo = await userResponse.json();
+
+    return {
+      email: userInfo.email,
+      firstName: userInfo.given_name || userInfo.name?.split(' ')[0] || '',
+      lastName: userInfo.family_name || userInfo.name?.split(' ').slice(1).join(' ') || '',
+      pictureUrl: userInfo.picture
+    };
+  } catch (error) {
+    console.error('Google OAuth error:', error);
+    return null;
+  }
 }
 
 async function exchangeMicrosoftCode(code) {

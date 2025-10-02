@@ -1,0 +1,117 @@
+{
+  "mcpServers": {
+    "spotify": {
+      "enabled": true,
+      "package": "@open-mcp/spotify",
+      "version": "0.0.14",
+      "command": "npx",
+      "args": ["@open-mcp/spotify"],
+      "env": {
+        "SPOTIFY_CLIENT_ID": "",
+        "SPOTIFY_CLIENT_SECRET": "",
+        "SPOTIFY_REDIRECT_URI": "http://localhost:3001/api/mcp/spotify/callback"
+      },
+      "scopes": [
+        "user-read-private",
+        "user-read-email",
+        "user-top-read",
+        "user-read-recently-played",
+        "playlist-read-private",
+        "playlist-read-collaborative",
+        "user-library-read",
+        "user-follow-read"
+      ],
+      "description": "Access Spotify listening history, playlists, and music preferences"
+    },
+    "discord": {
+      "enabled": true,
+      "package": "discord-mcp",
+      "command": "npx",
+      "args": ["discord-mcp"],
+      "env": {
+        "DISCORD_BOT_TOKEN": "",
+        "DISCORD_CLIENT_ID": "",
+        "DISCORD_CLIENT_SECRET": ""
+      },
+      "scopes": [
+        "identify",
+        "guilds",
+        "guilds.members.read",
+        "messages.read"
+      ],
+      "description": "Access Discord servers, messages, and community interactions"
+    },
+    "youtube": {
+      "enabled": true,
+      "package": "vidcap-youtube-mcp",
+      "command": "npx",
+      "args": ["vidcap-youtube-mcp"],
+      "env": {
+        "GOOGLE_CLIENT_ID": "",
+        "GOOGLE_CLIENT_SECRET": "",
+        "YOUTUBE_API_KEY": ""
+      },
+      "scopes": [
+        "https://www.googleapis.com/auth/youtube.readonly"
+      ],
+      "description": "Access YouTube watch history, subscriptions, and video preferences"
+    },
+    "slack": {
+      "enabled": true,
+      "package": "@korotovsky/slack-mcp-server",
+      "command": "npx",
+      "args": ["@korotovsky/slack-mcp-server"],
+      "env": {
+        "SLACK_BOT_TOKEN": "",
+        "SLACK_USER_TOKEN": ""
+      },
+      "scopes": [
+        "channels:history",
+        "channels:read",
+        "users:read",
+        "chat:write"
+      ],
+      "description": "Access Slack workspace messages and communication patterns"
+    },
+    "github": {
+      "enabled": true,
+      "type": "builtin",
+      "description": "GitHub integration via built-in MCP tools"
+    }
+  },
+  "fallbackToOAuth": {
+    "teams": {
+      "reason": "No MCP server available",
+      "method": "Microsoft Graph API OAuth 2.0",
+      "scopes": [
+        "Chat.Read",
+        "User.Read",
+        "ChannelMessage.Read.All"
+      ]
+    },
+    "gmail": {
+      "reason": "Existing Google OAuth implementation",
+      "method": "Google OAuth 2.0",
+      "scopes": [
+        "https://www.googleapis.com/auth/gmail.readonly"
+      ]
+    },
+    "calendar": {
+      "reason": "Existing Google OAuth implementation",
+      "method": "Google OAuth 2.0",
+      "scopes": [
+        "https://www.googleapis.com/auth/calendar.readonly"
+      ]
+    },
+    "steam": {
+      "reason": "OpenID 2.0 only",
+      "method": "Steam OpenID",
+      "endpoint": "https://steamcommunity.com/openid"
+    },
+    "netflix": {
+      "reason": "No public API",
+      "method": "Manual CSV import",
+      "endpoint": "/api/connectors/netflix/upload-csv"
+    }
+  }
+}

@@ -39,31 +39,9 @@ export const AnalyticsProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   const { user } = useAuth();
 
   const sendAnalyticsEvent = async (event: Omit<AnalyticsEvent, 'timestamp' | 'session_id' | 'page_url' | 'user_agent' | 'referrer'>) => {
-    try {
-      const analyticsEvent: AnalyticsEvent = {
-        ...event,
-        user_id: user?.id,
-        session_id: getSessionId(),
-        timestamp: new Date(),
-        page_url: window.location.href,
-        user_agent: navigator.userAgent,
-        referrer: document.referrer || undefined
-      };
-
-      const response = await fetch('/api/analytics/events', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(analyticsEvent)
-      });
-
-      if (!response.ok) {
-        console.warn('Analytics event failed to send:', response.statusText);
-      }
-    } catch (error) {
-      console.warn('Analytics event failed to send:', error);
-    }
+    // Analytics temporarily disabled - no backend endpoints implemented yet
+    // TODO: Implement analytics backend endpoints before re-enabling
+    return;
   };
 
   const trackEvent = useCallback(async (eventType: string, eventData: Record<string, any> = {}) => {

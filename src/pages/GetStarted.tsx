@@ -81,27 +81,22 @@ const GetStarted = () => {
   };
 
   return (
-    <div className="min-h-screen" style={{ backgroundColor: 'var(--_color-theme---background)' }}>
-      {/* Background Effects */}
-      <div className="fixed w-[400px] h-[400px] bg-gradient-to-br rounded-full top-[20%] right-[10%] blur-[100px] opacity-20 animate-[float_20s_ease-in-out_infinite] pointer-events-none" style={{ background: 'linear-gradient(135deg, var(--_color-theme---accent), var(--_color-theme---accent-light))' }}></div>
-      <div className="fixed w-[300px] h-[300px] bg-gradient-to-br rounded-full bottom-[20%] left-[10%] blur-[100px] opacity-20 animate-[float_20s_ease-in-out_infinite] pointer-events-none" style={{ background: 'linear-gradient(135deg, var(--_color-theme---accent), var(--_color-theme---background))' }}></div>
-      
-      {/* Navigation - Match home page exactly */}
+    <div className="min-h-screen" style={{ backgroundColor: '#FAF9F5' }}>
+      {/* Navigation */}
       <nav className="fixed top-0 left-0 right-0 z-50 px-6 py-6"
-           style={{ backgroundColor: 'var(--_color-theme---background)/90', borderBottom: '1px solid var(--_color-theme---border)' }}>
+           style={{ backgroundColor: '#FAF9F5', borderBottom: '1px solid rgba(20,20,19,0.1)' }}>
         <div className="max-w-7xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-8">
-            <div className="text-2xl font-bold" style={{ fontFamily: 'var(--_typography---font--styrene-a)', color: 'var(--_color-theme---text)' }}>
+            <div className="text-2xl" style={{ fontFamily: 'var(--_typography---font--styrene-a)', fontWeight: 500, letterSpacing: '-0.02em', color: '#141413' }}>
               Twin AI Learn
             </div>
             <div className="hidden md:flex items-center gap-6">
               <button
                 onClick={goHome}
-                className="relative font-medium transition-all group"
-                style={{ color: 'var(--_color-theme---text)' }}
+                className="font-medium"
+                style={{ fontFamily: 'var(--_typography---font--tiempos)', color: '#141413' }}
               >
                 Home
-                <div className="absolute -bottom-1 left-0 w-0 h-0.5 transition-all group-hover:w-full" style={{ backgroundColor: 'var(--_color-theme---accent)' }}></div>
               </button>
             </div>
           </div>
@@ -115,45 +110,47 @@ const GetStarted = () => {
           </div>
         </div>
       </nav>
-      
+
       {/* Progress Bar */}
-      <div className="fixed top-[80px] left-0 right-0 h-1 bg-gray-200/50 z-[40]">
-        <div className="h-full transition-all duration-500" style={{ backgroundColor: 'var(--_color-theme---accent)', width: `${updateProgress()}%` }}></div>
+      <div className="fixed top-[80px] left-0 right-0 h-1 z-[40]" style={{ backgroundColor: 'rgba(20,20,19,0.1)' }}>
+        <div className="h-full" style={{ backgroundColor: '#D97706', width: `${updateProgress()}%` }}></div>
       </div>
       
       {/* Page 1: Choose Your Path */}
       {currentPage === 1 && (
-        <div className="min-h-screen pt-[140px] pb-20 px-6 animate-[fadeIn_0.5s_ease]">
-          <button className="inline-flex items-center gap-2 text-body hover:opacity-70 transition-opacity text-sm mb-8" style={{ color: 'var(--_color-theme---text)' }} onClick={goHome}>
+        <div className="min-h-screen pt-[140px] pb-20 px-6">
+          <button className="inline-flex items-center gap-2 text-sm mb-8" style={{ fontFamily: 'var(--_typography---font--tiempos)', color: '#141413' }} onClick={goHome}>
             ← Back to Home
           </button>
           <div className="max-w-[1200px] mx-auto text-center">
-            <h1 className="u-display-xl text-heading mb-6" style={{ fontFamily: 'var(--_typography---font--styrene-a)', color: 'var(--_color-theme---text)' }}>
+            <h1 className="text-[56px] mb-6" style={{ fontFamily: 'var(--_typography---font--styrene-a)', fontWeight: 500, letterSpacing: '-0.02em', color: '#141413' }}>
               Welcome to Twin Me
             </h1>
-            <p className="text-body-large max-w-3xl mx-auto" style={{ color: 'var(--_color-theme---text)' }}>How would you like to use the platform?</p>
-            
+            <p className="text-lg max-w-3xl mx-auto" style={{ fontFamily: 'var(--_typography---font--tiempos)', color: '#6B7280' }}>How would you like to use the platform?</p>
+
             <div className="grid grid-cols-[repeat(auto-fit,minmax(400px,1fr))] gap-10 mt-16">
-              <div 
-                className="bg-white rounded-[32px] p-16 cursor-pointer transition-all duration-[0.4s] shadow-[0_10px_40px_rgba(0,0,0,0.08)] overflow-hidden transform -rotate-2 hover:translate-y-[-10px] hover:rotate-0 hover:scale-[1.02] hover:shadow-[0_30px_60px_rgba(0,0,0,0.15)]"
+              <div
+                className="bg-white rounded-[32px] p-16 cursor-pointer overflow-hidden"
+                style={{ border: '1px solid rgba(20,20,19,0.1)' }}
                 onClick={() => selectPath('creator')}
               >
-                <div className="w-[100px] h-[100px] mx-auto mb-8 bg-gradient-to-br from-[rgba(255,87,34,0.1)] to-[rgba(255,152,0,0.1)] rounded-[24px] flex items-center justify-center text-5xl">
+                <div className="w-[100px] h-[100px] mx-auto mb-8 rounded-[24px] flex items-center justify-center text-5xl" style={{ backgroundColor: 'rgba(217,119,6,0.1)', color: '#D97706' }}>
                   ◉
                 </div>
-                <h3 className="text-heading text-xl font-medium mb-4" style={{ fontFamily: 'var(--_typography---font--styrene-a)', color: 'var(--_color-theme---text)' }}>I Want to Create</h3>
-                <p className="text-body leading-relaxed" style={{ color: 'var(--_color-theme---text)' }}>Build a digital twin of yourself for teaching, mentoring, or sharing knowledge</p>
+                <h3 className="text-xl mb-4" style={{ fontFamily: 'var(--_typography---font--styrene-a)', fontWeight: 500, letterSpacing: '-0.02em', color: '#141413' }}>I Want to Create</h3>
+                <p className="leading-relaxed" style={{ fontFamily: 'var(--_typography---font--tiempos)', color: '#6B7280' }}>Build a digital twin of yourself for teaching, mentoring, or sharing knowledge</p>
               </div>
-              
-              <div 
-                className="bg-white rounded-[32px] p-16 cursor-pointer transition-all duration-[0.4s] shadow-[0_10px_40px_rgba(0,0,0,0.08)] overflow-hidden transform rotate-2 hover:translate-y-[-10px] hover:rotate-0 hover:scale-[1.02] hover:shadow-[0_30px_60px_rgba(0,0,0,0.15)]"
+
+              <div
+                className="bg-white rounded-[32px] p-16 cursor-pointer overflow-hidden"
+                style={{ border: '1px solid rgba(20,20,19,0.1)' }}
                 onClick={() => selectPath('learner')}
               >
-                <div className="w-[100px] h-[100px] mx-auto mb-8 bg-gradient-to-br from-[rgba(74,144,226,0.1)] to-[rgba(0,188,212,0.1)] rounded-[24px] flex items-center justify-center text-5xl">
+                <div className="w-[100px] h-[100px] mx-auto mb-8 rounded-[24px] flex items-center justify-center text-5xl" style={{ backgroundColor: 'rgba(217,119,6,0.1)', color: '#D97706' }}>
                   ◎
                 </div>
-                <h3 className="text-heading text-xl font-medium mb-4" style={{ fontFamily: 'var(--_typography---font--styrene-a)', color: 'var(--_color-theme---text)' }}>I Want to Learn</h3>
-                <p className="text-body leading-relaxed" style={{ color: 'var(--_color-theme---text)' }}>Access digital twins of educators and experts to enhance your learning journey</p>
+                <h3 className="text-xl mb-4" style={{ fontFamily: 'var(--_typography---font--styrene-a)', fontWeight: 500, letterSpacing: '-0.02em', color: '#141413' }}>I Want to Learn</h3>
+                <p className="leading-relaxed" style={{ fontFamily: 'var(--_typography---font--tiempos)', color: '#6B7280' }}>Access digital twins of educators and experts to enhance your learning journey</p>
               </div>
             </div>
           </div>
@@ -162,34 +159,33 @@ const GetStarted = () => {
       
       {/* Page 2: Twin Type Selection */}
       {currentPage === 2 && (
-        <div className="min-h-screen pt-[140px] pb-20 px-6 animate-[fadeIn_0.5s_ease]">
-          <button className="inline-flex items-center gap-2 text-body hover:opacity-70 transition-opacity text-sm mb-8" style={{ color: 'var(--_color-theme---text)' }} onClick={previousPage}>
+        <div className="min-h-screen pt-[140px] pb-20 px-6">
+          <button className="inline-flex items-center gap-2 text-sm mb-8" style={{ fontFamily: 'var(--_typography---font--tiempos)', color: '#141413' }} onClick={previousPage}>
             ← Back
           </button>
-          
+
           <div className="max-w-[1200px] mx-auto text-center">
-            <h1 className="u-display-l text-heading mb-6" style={{ fontFamily: 'var(--_typography---font--styrene-a)', color: 'var(--_color-theme---text)' }}>
+            <h1 className="text-[48px] mb-6" style={{ fontFamily: 'var(--_typography---font--styrene-a)', fontWeight: 500, letterSpacing: '-0.02em', color: '#141413' }}>
               What Type of Twin?
             </h1>
-            <p className="text-body-large max-w-2xl mx-auto" style={{ color: 'var(--_color-theme---text)' }}>You can create multiple twins for different purposes</p>
-            
+            <p className="text-lg max-w-2xl mx-auto" style={{ fontFamily: 'var(--_typography---font--tiempos)', color: '#6B7280' }}>You can create multiple twins for different purposes</p>
+
             <div className="grid grid-cols-3 gap-8 max-w-[1200px] mx-auto mt-16">
               <div
-                className={`bg-white rounded-[24px] p-10 border-2 cursor-pointer transition-all duration-300 relative ${
-                  selectedType === 'educational' ? 'border-[var(--_color-theme---accent)] transform translate-y-[-4px] shadow-[0_20px_40px_rgba(0,0,0,0.1)]' : 'border-transparent'
-                }`}
+                className="bg-white rounded-[24px] p-10 cursor-pointer relative"
+                style={{ border: selectedType === 'educational' ? '2px solid #D97706' : '1px solid rgba(20,20,19,0.1)' }}
                 onClick={() => selectType('educational')}
               >
                 {selectedType === 'educational' && (
-                  <div className="absolute top-5 right-5 w-8 h-8 text-white rounded-full flex items-center justify-center text-lg" style={{ backgroundColor: 'var(--_color-theme---accent)' }}>
+                  <div className="absolute top-5 right-5 w-8 h-8 text-white rounded-full flex items-center justify-center text-lg" style={{ backgroundColor: '#D97706' }}>
                     ✓
                   </div>
                 )}
-                <h3 className="font-heading text-[24px] font-medium mb-4">Educational Twin</h3>
-                <div className="bg-[#4A90E2] text-white py-1 px-3 rounded-full text-xs inline-block mb-4">
+                <h3 className="text-[24px] mb-4" style={{ fontFamily: 'var(--_typography---font--styrene-a)', fontWeight: 500, letterSpacing: '-0.02em', color: '#141413' }}>Educational Twin</h3>
+                <div className="py-1 px-3 rounded-full text-xs inline-block mb-4" style={{ backgroundColor: '#4A90E2', color: 'white' }}>
                   INSTITUTION VERIFIED
                 </div>
-                <ul className="list-none style={{ color: 'var(--_color-theme---text)' }} text-sm leading-8 text-left">
+                <ul className="list-none text-sm leading-8 text-left" style={{ fontFamily: 'var(--_typography---font--tiempos)', color: '#6B7280' }}>
                   <li>→ For universities & schools</li>
                   <li>→ Formal teaching style</li>
                   <li>→ Course integration</li>
@@ -197,20 +193,19 @@ const GetStarted = () => {
                   <li>→ Institution badge</li>
                 </ul>
               </div>
-              
+
               <div
-                className={`bg-white rounded-[24px] p-10 border-2 cursor-pointer transition-all duration-300 relative ${
-                  selectedType === 'personal' ? 'border-[var(--_color-theme---accent)] transform translate-y-[-4px] shadow-[0_20px_40px_rgba(0,0,0,0.1)]' : 'border-transparent'
-                }`}
+                className="bg-white rounded-[24px] p-10 cursor-pointer relative"
+                style={{ border: selectedType === 'personal' ? '2px solid #D97706' : '1px solid rgba(20,20,19,0.1)' }}
                 onClick={() => selectType('personal')}
               >
                 {selectedType === 'personal' && (
-                  <div className="absolute top-5 right-5 w-8 h-8 text-white rounded-full flex items-center justify-center text-lg" style={{ backgroundColor: 'var(--_color-theme---accent)' }}>
+                  <div className="absolute top-5 right-5 w-8 h-8 text-white rounded-full flex items-center justify-center text-lg" style={{ backgroundColor: '#D97706' }}>
                     ✓
                   </div>
                 )}
-                <h3 className="font-heading text-[24px] font-medium mb-12">Personal Twin</h3>
-                <ul className="list-none style={{ color: 'var(--_color-theme---text)' }} text-sm leading-8 text-left">
+                <h3 className="text-[24px] mb-12" style={{ fontFamily: 'var(--_typography---font--styrene-a)', fontWeight: 500, letterSpacing: '-0.02em', color: '#141413' }}>Personal Twin</h3>
+                <ul className="list-none text-sm leading-8 text-left" style={{ fontFamily: 'var(--_typography---font--tiempos)', color: '#6B7280' }}>
                   <li>→ Share life experiences</li>
                   <li>→ Mentorship & coaching</li>
                   <li>→ Personal brand</li>
@@ -218,23 +213,22 @@ const GetStarted = () => {
                   <li>→ Public or private access</li>
                 </ul>
               </div>
-              
+
               <div
-                className={`bg-white rounded-[24px] p-10 border-2 cursor-pointer transition-all duration-300 relative ${
-                  selectedType === 'both' ? 'border-[var(--_color-theme---accent)] transform translate-y-[-4px] shadow-[0_20px_40px_rgba(0,0,0,0.1)]' : 'border-transparent'
-                }`}
+                className="bg-white rounded-[24px] p-10 cursor-pointer relative"
+                style={{ border: selectedType === 'both' ? '2px solid #D97706' : '1px solid rgba(20,20,19,0.1)' }}
                 onClick={() => selectType('both')}
               >
                 {selectedType === 'both' && (
-                  <div className="absolute top-5 right-5 w-8 h-8 text-white rounded-full flex items-center justify-center text-lg" style={{ backgroundColor: 'var(--_color-theme---accent)' }}>
+                  <div className="absolute top-5 right-5 w-8 h-8 text-white rounded-full flex items-center justify-center text-lg" style={{ backgroundColor: '#D97706' }}>
                     ✓
                   </div>
                 )}
-                <h3 className="font-heading text-[24px] font-medium mb-4">Create Both</h3>
-                <div className="style={{ backgroundColor: 'var(--_color-theme---accent)' }} text-white py-1 px-3 rounded-full text-xs inline-block mb-4">
+                <h3 className="text-[24px] mb-4" style={{ fontFamily: 'var(--_typography---font--styrene-a)', fontWeight: 500, letterSpacing: '-0.02em', color: '#141413' }}>Create Both</h3>
+                <div className="text-white py-1 px-3 rounded-full text-xs inline-block mb-4" style={{ backgroundColor: '#D97706' }}>
                   BEST VALUE
                 </div>
-                <ul className="list-none style={{ color: 'var(--_color-theme---text)' }} text-sm leading-8 text-left">
+                <ul className="list-none text-sm leading-8 text-left" style={{ fontFamily: 'var(--_typography---font--tiempos)', color: '#6B7280' }}>
                   <li>→ Multiple twins per account</li>
                   <li>→ Switch between profiles</li>
                   <li>→ Share content across twins</li>
@@ -243,7 +237,7 @@ const GetStarted = () => {
                 </ul>
               </div>
             </div>
-            
+
             <div className="flex gap-4 justify-center mt-12">
               <button
                 className="btn-anthropic-primary"
@@ -258,32 +252,37 @@ const GetStarted = () => {
       
       {/* Page 3: Account Creation */}
       {currentPage === 3 && (
-        <div className="min-h-screen pt-[140px] pb-20 px-6 animate-[fadeIn_0.5s_ease]">
-          <button className="inline-flex items-center gap-2 text-body hover:opacity-70 transition-opacity text-sm mb-8" style={{ color: 'var(--_color-theme---text)' }} onClick={previousPage}>
+        <div className="min-h-screen pt-[140px] pb-20 px-6">
+          <button className="inline-flex items-center gap-2 text-sm mb-8" style={{ fontFamily: 'var(--_typography---font--tiempos)', color: '#141413' }} onClick={previousPage}>
             ← Back
           </button>
-          
-          <div className="max-w-[500px] mx-auto bg-white rounded-[32px] p-12 shadow-[0_20px_60px_rgba(0,0,0,0.1)]">
-            <h2 className="font-display text-center mb-8 text-5xl font-medium gradient-text">Create Your Account</h2>
-            
-            <div className="clerk-signup-wrapper">
-              <SignUp 
-                redirectUrl="/get-started?step=4"
-                appearance={{
-                  elements: {
-                    formButtonPrimary: 'bg-[#d97706] hover:bg-[#b45309] text-white',
-                    card: 'shadow-none border-none bg-transparent',
-                    headerTitle: 'hidden',
-                    headerSubtitle: 'hidden',
-                    socialButtons: 'flex flex-col gap-4',
-                    socialButtonsBlockButton: 'border-2 border-[#E5E7EB] rounded-2xl bg-white hover:border-[#111319] hover:transform hover:translate-y-[-2px] transition-all duration-300',
-                    formFieldInput: 'w-full py-[14px] px-5 border-2 border-[#E5E7EB] rounded-2xl text-sm transition-all duration-300 focus:outline-none focus:border-[#d97706] focus:bg-[#fefdf9]',
-                    formFieldLabel: 'block mb-2 text-sm font-medium text-[#111319]',
-                    dividerLine: 'bg-[#E5E7EB]',
-                    dividerText: 'text-[#6b7280] text-sm'
-                  }
-                }}
-              />
+
+          <div className="max-w-[500px] mx-auto bg-white rounded-[32px] p-12" style={{ border: '1px solid rgba(20,20,19,0.1)' }}>
+            <h2 className="text-center mb-8 text-5xl" style={{ fontFamily: 'var(--_typography---font--styrene-a)', fontWeight: 500, letterSpacing: '-0.02em', color: '#141413' }}>Create Your Account</h2>
+
+            <div className="space-y-4">
+              <p className="text-center mb-6" style={{ fontFamily: 'var(--_typography---font--tiempos)', color: '#6B7280' }}>
+                Sign up to start building your digital twin
+              </p>
+
+              <button
+                onClick={() => navigate('/auth?mode=signup')}
+                className="w-full py-4 px-6 rounded-2xl bg-[#D97706] text-white text-lg"
+                style={{ fontFamily: 'var(--_typography---font--tiempos)', fontWeight: 500 }}
+              >
+                Sign Up Now
+              </button>
+
+              <p className="text-center text-sm" style={{ fontFamily: 'var(--_typography---font--tiempos)', color: '#6B7280' }}>
+                Already have an account?{' '}
+                <button
+                  onClick={() => navigate('/auth?mode=signin')}
+                  className="underline"
+                  style={{ color: '#D97706' }}
+                >
+                  Sign in
+                </button>
+              </p>
             </div>
           </div>
         </div>
@@ -291,28 +290,29 @@ const GetStarted = () => {
       
       {/* Page 4: Quick Setup Before Builder */}
       {currentPage === 4 && (
-        <div className="min-h-screen pt-[140px] pb-20 px-6 animate-[fadeIn_0.5s_ease]">
-          <button className="inline-flex items-center gap-2 text-body hover:opacity-70 transition-opacity text-sm mb-8" style={{ color: 'var(--_color-theme---text)' }} onClick={previousPage}>
+        <div className="min-h-screen pt-[140px] pb-20 px-6">
+          <button className="inline-flex items-center gap-2 text-sm mb-8" style={{ fontFamily: 'var(--_typography---font--tiempos)', color: '#141413' }} onClick={previousPage}>
             ← Back
           </button>
-          
+
           <div className="max-w-[1200px] mx-auto text-center">
-            <h1 className="font-display text-[clamp(42px,6vw,72px)] font-medium leading-[1.1] mb-6 gradient-text">
+            <h1 className="text-[clamp(42px,6vw,72px)] leading-[1.1] mb-6" style={{ fontFamily: 'var(--_typography---font--styrene-a)', fontWeight: 500, letterSpacing: '-0.02em', color: '#141413' }}>
               Let's Set Up Your First Twin
             </h1>
-            <p className="text-xl mt-6 mb-16">We'll start with the basics, then refine in the builder</p>
-            
+            <p className="text-xl mt-6 mb-16" style={{ fontFamily: 'var(--_typography---font--tiempos)', color: '#6B7280' }}>We'll start with the basics, then refine in the builder</p>
+
             <div className="grid grid-cols-2 gap-10 max-w-[1200px] mx-auto mt-16">
-              <div className="bg-white rounded-[24px] p-10 shadow-[0_10px_40px_rgba(0,0,0,0.08)]">
-                <h3 className="font-heading text-[26px] font-medium mb-6">Quick Info</h3>
+              <div className="bg-white rounded-[24px] p-10" style={{ border: '1px solid rgba(20,20,19,0.1)' }}>
+                <h3 className="text-[26px] mb-6" style={{ fontFamily: 'var(--_typography---font--styrene-a)', fontWeight: 500, letterSpacing: '-0.02em', color: '#141413' }}>Quick Info</h3>
                 <div className="mb-6">
-                  <label className="block mb-2 text-sm font-medium text-[hsl(var(--lenny-black))] text-left">What should we call your twin?</label>
+                  <label className="block mb-2 text-sm font-medium text-left" style={{ fontFamily: 'var(--_typography---font--tiempos)', color: '#141413' }}>What should we call your twin?</label>
                   <input
                     type="text"
                     placeholder="Physics 101 with Dr. Smith"
                     value={twinName}
                     onChange={(e) => setTwinName(e.target.value)}
-                    className="w-full py-[14px] px-5 border-2 border-[#E5E7EB] rounded-2xl text-sm"
+                    className="w-full py-[14px] px-5 rounded-2xl text-sm"
+                    style={{ border: '1px solid rgba(20,20,19,0.1)', backgroundColor: '#F5F5F5', fontFamily: 'var(--_typography---font--tiempos)', color: '#141413' }}
                   />
                 </div>
 
@@ -323,11 +323,12 @@ const GetStarted = () => {
                     allowCustom={true}
                   />
                 </div>
-                
+
                 <div className="mb-6">
-                  <label className="block mb-2 text-sm font-medium text-[hsl(var(--lenny-black))] text-left">Teaching level</label>
+                  <label className="block mb-2 text-sm font-medium text-left" style={{ fontFamily: 'var(--_typography---font--tiempos)', color: '#141413' }}>Teaching level</label>
                   <select
-                    className="w-full py-[14px] px-5 border-2 border-[#E5E7EB] rounded-2xl text-sm"
+                    className="w-full py-[14px] px-5 rounded-2xl text-sm"
+                    style={{ border: '1px solid rgba(20,20,19,0.1)', backgroundColor: '#F5F5F5', fontFamily: 'var(--_typography---font--tiempos)', color: '#141413' }}
                     value={teachingLevel}
                     onChange={(e) => setTeachingLevel(e.target.value)}
                   >
@@ -340,9 +341,9 @@ const GetStarted = () => {
                   </select>
                 </div>
               </div>
-              
-              <div className="bg-white rounded-[24px] p-10 shadow-[0_10px_40px_rgba(0,0,0,0.08)]">
-                <h3 className="font-heading text-[26px] font-medium mb-6">Quick Start Content</h3>
+
+              <div className="bg-white rounded-[24px] p-10" style={{ border: '1px solid rgba(20,20,19,0.1)' }}>
+                <h3 className="text-[26px] mb-6" style={{ fontFamily: 'var(--_typography---font--styrene-a)', fontWeight: 500, letterSpacing: '-0.02em', color: '#141413' }}>Quick Start Content</h3>
                 <EnhancedFileUpload
                   twinId="placeholder"
                   title="Drop Your First File"
@@ -358,12 +359,12 @@ const GetStarted = () => {
                   }}
                 />
 
-                <p className="mt-6 text-sm text-center" style={{ color: 'var(--_color-theme---text)' }}>
+                <p className="mt-6 text-sm text-center" style={{ fontFamily: 'var(--_typography---font--tiempos)', color: '#6B7280' }}>
                   Don't worry, you can add more content in the builder
                 </p>
               </div>
             </div>
-            
+
             <div className="flex gap-4 justify-center mt-12">
               <button
                 className="btn-anthropic-secondary"

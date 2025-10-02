@@ -171,9 +171,9 @@ const PersonalTwinBuilder = () => {
   }
 
   return (
-    <div className="min-h-screen bg-[#FBF7F0]">
+    <div className="min-h-screen bg-[#FAF9F5]">
       {/* Header */}
-      <div className="bg-white border-b border-[#E5E7EB] px-6 py-4">
+      <div className="bg-white px-6 py-4" style={{ borderBottom: '1px solid rgba(20,20,19,0.1)' }}>
         <div className="max-w-7xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-4">
             <Button
@@ -186,15 +186,15 @@ const PersonalTwinBuilder = () => {
               Back
             </Button>
             <div>
-              <h1 className="text-2xl font-playfair font-normal italic text-[#1A1A4B]">
+              <h1 className="text-2xl font-medium" style={{ fontFamily: 'var(--_typography---font--styrene-a)', fontWeight: 500, letterSpacing: '-0.02em', color: '#141413' }}>
                 Create Your Personal Digital Twin
               </h1>
-              <p className="text-[#6B7280]">Design an AI version of yourself for self-reflection and growth</p>
+              <p className="text-[#6B7280]" style={{ fontFamily: 'var(--_typography---font--tiempos)' }}>Design an AI version of yourself for self-reflection and growth</p>
             </div>
           </div>
           <div className="flex items-center gap-2">
-            <Sparkles className="w-5 h-5 text-[#FF5722]" />
-            <span className="text-sm text-[#6B7280]">Personal AI Assistant</span>
+            <Sparkles className="w-5 h-5 text-[#D97706]" />
+            <span className="text-sm text-[#6B7280]" style={{ fontFamily: 'var(--_typography---font--tiempos)' }}>Personal AI Assistant</span>
           </div>
         </div>
       </div>
@@ -222,13 +222,13 @@ const PersonalTwinBuilder = () => {
 
           {/* Identity Tab */}
           <TabsContent value="identity" className="space-y-6">
-            <div className="bg-white rounded-2xl p-8 shadow-sm border" style={{ borderColor: 'var(--_color-theme---border)' }}>
+            <div className="bg-white rounded-2xl p-8 shadow-sm" style={{ border: '1px solid rgba(20,20,19,0.1)' }}>
               <div className="mb-6">
-                <h3 className="text-heading text-xl font-medium flex items-center gap-2 mb-2">
+                <h3 className="text-xl font-medium flex items-center gap-2 mb-2" style={{ fontFamily: 'var(--_typography---font--styrene-a)', fontWeight: 500, letterSpacing: '-0.02em', color: '#141413' }}>
                   <User className="w-5 h-5" />
                   Basic Identity
                 </h3>
-                <p className="text-body" style={{ color: 'var(--_color-theme---text)' }}>
+                <p className="text-[#6B7280]" style={{ fontFamily: 'var(--_typography---font--tiempos)' }}>
                   Define the core identity of your digital twin
                 </p>
               </div>
@@ -338,13 +338,13 @@ const PersonalTwinBuilder = () => {
 
           {/* Personality Tab */}
           <TabsContent value="personality" className="space-y-6">
-            <div className="bg-white rounded-2xl p-8 shadow-sm border" style={{ borderColor: 'var(--_color-theme---border)' }}>
+            <div className="bg-white rounded-2xl p-8 shadow-sm" style={{ border: '1px solid rgba(20,20,19,0.1)' }}>
               <div className="mb-6">
-                <h3 className="text-heading text-xl font-medium flex items-center gap-2 mb-2">
+                <h3 className="text-xl font-medium flex items-center gap-2 mb-2" style={{ fontFamily: 'var(--_typography---font--styrene-a)', fontWeight: 500, letterSpacing: '-0.02em', color: '#141413' }}>
                   <Brain className="w-5 h-5" />
                   Personality Traits
                 </h3>
-                <p className="text-body" style={{ color: 'var(--_color-theme---text)' }}>
+                <p className="text-[#6B7280]" style={{ fontFamily: 'var(--_typography---font--tiempos)' }}>
                   Define how your digital twin thinks and behaves
                 </p>
               </div>
@@ -460,13 +460,13 @@ const PersonalTwinBuilder = () => {
 
           {/* Content Tab */}
           <TabsContent value="content" className="space-y-6">
-            <div className="bg-white rounded-2xl p-8 shadow-sm border" style={{ borderColor: 'var(--_color-theme---border)' }}>
+            <div className="bg-white rounded-2xl p-8 shadow-sm" style={{ border: '1px solid rgba(20,20,19,0.1)' }}>
               <div className="mb-6">
-                <h3 className="text-heading text-xl font-medium flex items-center gap-2 mb-2">
+                <h3 className="text-xl font-medium flex items-center gap-2 mb-2" style={{ fontFamily: 'var(--_typography---font--styrene-a)', fontWeight: 500, letterSpacing: '-0.02em', color: '#141413' }}>
                   <FileText className="w-5 h-5" />
                   Training Materials
                 </h3>
-                <p className="text-body" style={{ color: 'var(--_color-theme---text)' }}>
+                <p className="text-[#6B7280]" style={{ fontFamily: 'var(--_typography---font--tiempos)' }}>
                   Upload content to help your digital twin learn about you
                 </p>
               </div>
@@ -483,7 +483,7 @@ const PersonalTwinBuilder = () => {
                   title="Upload Personal Content"
                   description="Upload journals, recordings, essays, or other personal materials to train your digital twin"
                 />
-                <div className="mt-4 text-sm text-[#6B7280]">
+                <div className="mt-4 text-sm text-[#6B7280]" style={{ fontFamily: 'var(--_typography---font--tiempos)' }}>
                   <p className="mb-2">You can upload:</p>
                   <ul className="list-disc list-inside space-y-1">
                     <li>Personal journals or diary entries</li>
@@ -499,44 +499,45 @@ const PersonalTwinBuilder = () => {
 
           {/* Voice Tab */}
           <TabsContent value="voice" className="space-y-6">
-            <div className="bg-white rounded-2xl p-8 shadow-sm border" style={{ borderColor: 'var(--_color-theme---border)' }}>
+            <div className="bg-white rounded-2xl p-8 shadow-sm" style={{ border: '1px solid rgba(20,20,19,0.1)' }}>
               <div className="mb-6">
-                <h3 className="text-heading text-xl font-medium flex items-center gap-2 mb-2">
+                <h3 className="text-xl font-medium flex items-center gap-2 mb-2" style={{ fontFamily: 'var(--_typography---font--styrene-a)', fontWeight: 500, letterSpacing: '-0.02em', color: '#141413' }}>
                   <Mic className="w-5 h-5" />
                   Voice Profile
                 </h3>
-                <p className="text-body" style={{ color: 'var(--_color-theme---text)' }}>
+                <p className="text-[#6B7280]" style={{ fontFamily: 'var(--_typography---font--tiempos)' }}>
                   Optional: Add voice samples to clone your voice for your digital twin
                 </p>
               </div>
               <div>
                 <div className="text-center py-8">
-                  <h3 className="text-heading text-xl mb-2">
+                  <h3 className="text-xl mb-2" style={{ fontFamily: 'var(--_typography---font--styrene-a)', fontWeight: 500, letterSpacing: '-0.02em', color: '#141413' }}>
                     Voice Cloning Setup (Optional)
                   </h3>
-                  <p className="text-body mb-8" style={{ color: 'var(--_color-theme---text)' }}>
+                  <p className="mb-8 text-[#6B7280]" style={{ fontFamily: 'var(--_typography---font--tiempos)' }}>
                     Choose to record directly or upload existing audio files to create a unique voice
                   </p>
 
                   <div className="grid grid-cols-2 gap-6 max-w-2xl mx-auto">
                     {/* Record Voice */}
-                    <div className="border-2 border-dashed rounded-xl p-6 hover:shadow-md transition-all duration-300" style={{ borderColor: 'var(--_color-theme---border)' }}>
-                      <div className={`w-16 h-16 mx-auto rounded-full border-4 flex items-center justify-center mb-4 transition-all duration-300 ${
+                    <div className="border-2 border-dashed rounded-xl p-6" style={{ borderColor: 'rgba(20,20,19,0.1)' }}>
+                      <div className={`w-16 h-16 mx-auto rounded-full border-4 flex items-center justify-center mb-4 ${
                         isRecording
-                          ? 'border-red-500 bg-red-50 animate-pulse'
-                          : 'animate-pulse'
-                      }`} style={{ borderColor: 'var(--_color-theme---button-primary--background)', backgroundColor: 'var(--_color-theme---background-secondary)' }}>
-                        <Mic className={`w-8 h-8 ${isRecording ? 'text-red-500' : ''}`} style={{ color: 'var(--_color-theme---button-primary--background)' }} />
+                          ? 'border-red-500 bg-red-50'
+                          : ''
+                      }`} style={{ borderColor: isRecording ? '#DC2626' : '#D97706', backgroundColor: isRecording ? '#FEF2F2' : '#FAF9F5' }}>
+                        <Mic className={`w-8 h-8 ${isRecording ? 'text-red-500' : 'text-[#D97706]'}`} />
                       </div>
-                      <h4 className="text-heading font-medium mb-2">Record Now</h4>
-                      <p className="text-body text-sm mb-4" style={{ color: 'var(--_color-theme---text)' }}>Record about 1.5 minutes of your voice</p>
+                      <h4 className="font-medium mb-2" style={{ fontFamily: 'var(--_typography---font--styrene-a)', fontWeight: 500, color: '#141413' }}>Record Now</h4>
+                      <p className="text-sm mb-4 text-[#6B7280]" style={{ fontFamily: 'var(--_typography---font--tiempos)' }}>Record about 1.5 minutes of your voice</p>
                       <button
                         onClick={toggleRecording}
                         className={
                           isRecording
-                            ? 'bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg text-sm flex items-center gap-2'
-                            : 'btn-anthropic-primary text-sm px-4 py-2 flex items-center gap-2'
+                            ? 'bg-red-500 text-white px-4 py-2 rounded-lg text-sm flex items-center gap-2 mx-auto'
+                            : 'btn-anthropic-primary text-sm px-4 py-2 flex items-center gap-2 mx-auto'
                         }
+                        style={{ fontFamily: 'var(--_typography---font--tiempos)' }}
                       >
                         <Mic className="w-4 h-4" />
                         {isRecording ? 'Stop' : 'Record'}
@@ -544,20 +545,20 @@ const PersonalTwinBuilder = () => {
                     </div>
 
                     {/* Upload Audio */}
-                    <div className="border-2 border-dashed rounded-xl p-6 hover:shadow-md transition-all duration-300 cursor-pointer" style={{ borderColor: 'var(--_color-theme---border)' }}>
-                      <div className="w-16 h-16 mx-auto rounded-full border-4 flex items-center justify-center mb-4 animate-pulse" style={{ borderColor: 'var(--_color-theme---button-primary--background)', backgroundColor: 'var(--_color-theme---background-secondary)' }}>
-                        <Upload className="w-8 h-8" style={{ color: 'var(--_color-theme---button-primary--background)' }} />
+                    <div className="border-2 border-dashed rounded-xl p-6 cursor-pointer" style={{ borderColor: 'rgba(20,20,19,0.1)' }}>
+                      <div className="w-16 h-16 mx-auto rounded-full border-4 flex items-center justify-center mb-4" style={{ borderColor: '#D97706', backgroundColor: '#FAF9F5' }}>
+                        <Upload className="w-8 h-8 text-[#D97706]" />
                       </div>
-                      <h4 className="text-heading font-medium mb-2">Upload Files</h4>
-                      <p className="text-body text-sm mb-4" style={{ color: 'var(--_color-theme---text)' }}>Upload existing audio recordings</p>
-                      <button className="btn-anthropic-secondary text-sm px-4 py-2 flex items-center gap-2 mx-auto">
+                      <h4 className="font-medium mb-2" style={{ fontFamily: 'var(--_typography---font--styrene-a)', fontWeight: 500, color: '#141413' }}>Upload Files</h4>
+                      <p className="text-sm mb-4 text-[#6B7280]" style={{ fontFamily: 'var(--_typography---font--tiempos)' }}>Upload existing audio recordings</p>
+                      <button className="btn-anthropic-secondary text-sm px-4 py-2 flex items-center gap-2 mx-auto" style={{ fontFamily: 'var(--_typography---font--tiempos)' }}>
                         <Upload className="w-4 h-4" />
                         Browse
                       </button>
                     </div>
                   </div>
 
-                  <div className="mt-8 text-body text-sm max-w-lg mx-auto" style={{ color: 'var(--_color-theme---text)' }}>
+                  <div className="mt-8 text-sm max-w-lg mx-auto text-[#6B7280]" style={{ fontFamily: 'var(--_typography---font--tiempos)' }}>
                     <p className="mb-2">💡 Tips for better voice quality:</p>
                     <ul className="list-disc list-inside space-y-1 text-left">
                       <li>Record in a quiet environment</li>
@@ -569,7 +570,7 @@ const PersonalTwinBuilder = () => {
                   </div>
 
                   <div className="mt-6 p-4 bg-blue-50 rounded-lg">
-                    <p className="text-sm text-blue-700">
+                    <p className="text-sm text-blue-700" style={{ fontFamily: 'var(--_typography---font--tiempos)' }}>
                       ⚠️ Voice cloning is optional. Your digital twin will use a default voice if no samples are provided.
                     </p>
                   </div>

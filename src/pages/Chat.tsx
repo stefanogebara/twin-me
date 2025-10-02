@@ -195,16 +195,16 @@ const Chat = () => {
   }
 
   return (
-    <div className="min-h-screen bg-[hsl(var(--lenny-cream))] flex flex-col">
+    <div className="min-h-screen bg-[#FAF9F5] flex flex-col">
       {/* Header */}
-      <div className="sticky top-0 z-10 bg-[hsl(var(--lenny-cream))]/95 backdrop-blur supports-[backdrop-filter]:bg-[hsl(var(--lenny-cream))]/60 border-b">
+      <div className="sticky top-0 z-10 bg-white/95 backdrop-blur border-b border-[rgba(20,20,19,0.1)]">
         <div className="max-w-4xl mx-auto px-6 py-4">
           <div className="flex items-center gap-4">
-            <Button 
-              variant="ghost" 
+            <Button
+              variant="ghost"
               size="sm"
               onClick={() => navigate('/talk-to-twin')}
-              className="flex items-center gap-2"
+              className="flex items-center gap-2 text-[#141413] hover:bg-[#F5F5F5]"
             >
               <ArrowLeft className="w-4 h-4" />
               Back
@@ -215,8 +215,8 @@ const Chat = () => {
                 <AvatarFallback>{professor.name.split(' ').map(n => n[0]).join('')}</AvatarFallback>
               </Avatar>
               <div>
-                <h1 className="text-lg font-display gradient-text">{professor.name}</h1>
-                <p className="text-sm text-[hsl(var(--muted-foreground))]">{professor.subject} • {professor.university}</p>
+                <h1 className="text-lg text-[#141413]" style={{ fontFamily: 'var(--_typography---font--styrene-a)', fontWeight: 500, letterSpacing: '-0.02em' }}>{professor.name}</h1>
+                <p className="text-sm text-[#6B7280]" style={{ fontFamily: 'var(--_typography---font--tiempos)' }}>{professor.subject} • {professor.university}</p>
               </div>
             </div>
           </div>
@@ -237,22 +237,22 @@ const Chat = () => {
               </Avatar>
             )}
             <div className={`max-w-[70%] ${message.isUser ? 'order-first' : ''}`}>
-              <Card className={`p-4 ${
+              <Card className={`p-4 shadow-none ${
                 message.isUser
-                  ? 'bg-[hsl(var(--lenny-orange))] text-white ml-auto'
-                  : 'bg-white border border-gray-200 shadow-sm'
+                  ? 'bg-[#D97706] text-white ml-auto border-[#D97706]'
+                  : 'bg-white border border-[rgba(20,20,19,0.1)]'
               }`}>
                 <p className={`text-sm leading-relaxed ${
-                  message.isUser ? 'text-white' : 'text-[hsl(var(--lenny-black))]'
-                }`}>{message.content}</p>
+                  message.isUser ? 'text-white' : 'text-[#141413]'
+                }`} style={{ fontFamily: 'var(--_typography---font--tiempos)' }}>{message.content}</p>
                 {!message.isUser && (
-                  <div className="flex items-center justify-end mt-2 pt-2 border-t border-border/50">
+                  <div className="flex items-center justify-end mt-2 pt-2 border-t border-[rgba(20,20,19,0.1)]">
                     <Button
                       variant="ghost"
                       size="sm"
                       onClick={() => speakMessage(message.content)}
                       disabled={isPlayingAudio}
-                      className="h-8 px-2"
+                      className="h-8 px-2 text-[#6B7280] hover:bg-[#F5F5F5]"
                     >
                       {isPlayingAudio ? (
                         <VolumeX className="w-4 h-4" />
@@ -263,7 +263,7 @@ const Chat = () => {
                   </div>
                 )}
               </Card>
-              <p className="text-xs text-[hsl(var(--muted-foreground))] mt-1 px-3">
+              <p className="text-xs text-[#6B7280] mt-1 px-3" style={{ fontFamily: 'var(--_typography---font--tiempos)' }}>
                 {message.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
               </p>
             </div>
@@ -274,18 +274,18 @@ const Chat = () => {
             )}
           </div>
         ))}
-        
+
         {isLoading && (
           <div className="flex gap-3 justify-start">
             <Avatar className="w-8 h-8 mt-1">
               <AvatarImage src={professor.image} alt={professor.name} />
               <AvatarFallback>{professor.name.split(' ').map(n => n[0]).join('')}</AvatarFallback>
             </Avatar>
-            <Card className="p-4 bg-white border border-gray-200 shadow-sm max-w-[70%]">
+            <Card className="p-4 bg-white border border-[rgba(20,20,19,0.1)] shadow-none max-w-[70%]">
               <div className="flex items-center gap-2">
-                <div className="w-2 h-2 bg-[hsl(var(--muted-foreground))] rounded-full animate-bounce"></div>
-                <div className="w-2 h-2 bg-[hsl(var(--muted-foreground))] rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
-                <div className="w-2 h-2 bg-[hsl(var(--muted-foreground))] rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+                <div className="w-2 h-2 bg-[#6B7280] rounded-full"></div>
+                <div className="w-2 h-2 bg-[#6B7280] rounded-full"></div>
+                <div className="w-2 h-2 bg-[#6B7280] rounded-full"></div>
               </div>
             </Card>
           </div>
@@ -294,7 +294,7 @@ const Chat = () => {
       </div>
 
       {/* Input Area */}
-      <div className="sticky bottom-0 bg-[hsl(var(--lenny-cream))]/95 backdrop-blur supports-[backdrop-filter]:bg-[hsl(var(--lenny-cream))]/60 border-t">
+      <div className="sticky bottom-0 bg-white/95 backdrop-blur border-t border-[rgba(20,20,19,0.1)]">
         <div className="max-w-4xl mx-auto px-6 py-4">
           <div className="flex items-center gap-2">
             <div className="flex-1 relative">
@@ -308,13 +308,14 @@ const Chat = () => {
                     handleSendMessage(inputValue);
                   }
                 }}
-                className="pr-12"
+                className="pr-12 bg-[#F5F5F5] border-[rgba(20,20,19,0.1)] text-[#141413] placeholder:text-[#6B7280]"
+                style={{ fontFamily: 'var(--_typography---font--tiempos)' }}
                 disabled={isLoading}
               />
               <Button
                 type="submit"
                 size="sm"
-                className="btn-lenny absolute right-1 top-1/2 -translate-y-1/2 h-8 w-8 p-0"
+                className="btn-anthropic-primary absolute right-1 top-1/2 -translate-y-1/2 h-8 w-8 p-0"
                 onClick={() => handleSendMessage(inputValue)}
                 disabled={!inputValue.trim() || isLoading}
               >
@@ -324,7 +325,7 @@ const Chat = () => {
             <Button
               variant={isRecording ? "destructive" : "outline"}
               size="sm"
-              className={`h-10 w-10 p-0 ${!isRecording ? 'btn-lenny-secondary' : ''}`}
+              className={`h-10 w-10 p-0 ${!isRecording ? 'border-[rgba(20,20,19,0.1)] text-[#141413] hover:bg-[#F5F5F5]' : ''}`}
               onClick={toggleRecording}
               disabled={isLoading}
             >
@@ -335,7 +336,7 @@ const Chat = () => {
               )}
             </Button>
           </div>
-          <p className="text-xs text-[hsl(var(--muted-foreground))] mt-2 text-center">
+          <p className="text-xs text-[#6B7280] mt-2 text-center" style={{ fontFamily: 'var(--_typography---font--tiempos)' }}>
             Type your message or click the mic to speak
           </p>
         </div>

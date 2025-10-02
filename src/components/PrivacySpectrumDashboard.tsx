@@ -1,17 +1,10 @@
 import React, { useState, useEffect, useCallback, useMemo, memo } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
 import {
   User, Briefcase, Palette, Music, Film, Book, Heart, Brain,
   Globe, Shield, Eye, EyeOff, Sparkles, Fingerprint,
   ChevronRight, Lock, Unlock, Users, UserCheck, Clock,
   MapPin, Wifi, Calendar, Zap, Settings
 } from 'lucide-react';
-import { Slider } from '@/components/ui/slider';
-import { Card } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Badge } from '@/components/ui/badge';
-import { cn } from '@/lib/utils';
 
 interface ClusterData {
   id: string;
@@ -86,7 +79,7 @@ const PrivacySpectrumDashboard: React.FC = () => {
       id: 'personal',
       name: 'Personal Identity',
       icon: <Heart className="w-5 h-5" />,
-      color: 'from-purple-500 to-pink-500',
+      color: '#D97706',
       intensity: 75,
       privacyLevel: 30,
       subclusters: [
@@ -117,7 +110,7 @@ const PrivacySpectrumDashboard: React.FC = () => {
       id: 'professional',
       name: 'Professional Identity',
       icon: <Briefcase className="w-5 h-5" />,
-      color: 'from-blue-500 to-cyan-500',
+      color: '#D97706',
       intensity: 85,
       privacyLevel: 70,
       subclusters: [
@@ -141,11 +134,11 @@ const PrivacySpectrumDashboard: React.FC = () => {
 
   // Privacy level descriptions
   const privacyLevels = [
-    { value: 0, label: 'Hidden', icon: <Lock className="w-4 h-4" />, color: 'text-red-500' },
-    { value: 25, label: 'Intimate', icon: <Heart className="w-4 h-4" />, color: 'text-pink-500' },
-    { value: 50, label: 'Friends', icon: <Users className="w-4 h-4" />, color: 'text-blue-500' },
-    { value: 75, label: 'Professional', icon: <Briefcase className="w-4 h-4" />, color: 'text-green-500' },
-    { value: 100, label: 'Public', icon: <Globe className="w-4 h-4" />, color: 'text-purple-500' }
+    { value: 0, label: 'Hidden', icon: <Lock className="w-4 h-4" />, color: '#D97706' },
+    { value: 25, label: 'Intimate', icon: <Heart className="w-4 h-4" />, color: '#D97706' },
+    { value: 50, label: 'Friends', icon: <Users className="w-4 h-4" />, color: '#D97706' },
+    { value: 75, label: 'Professional', icon: <Briefcase className="w-4 h-4" />, color: '#D97706' },
+    { value: 100, label: 'Public', icon: <Globe className="w-4 h-4" />, color: '#D97706' }
   ];
 
   const getPrivacyLabel = (value: number) => {
@@ -380,527 +373,604 @@ const PrivacySpectrumDashboard: React.FC = () => {
   }, [contextAwareMode]);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-black text-white p-6">
+    <div className="min-h-screen bg-[#FAF9F5] p-6">
       {/* Header */}
       <div className="max-w-7xl mx-auto mb-8">
-        <motion.div
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="text-center mb-8"
-        >
-          <h1 className="text-4xl font-bold mb-2 bg-gradient-to-r from-blue-400 to-purple-600 bg-clip-text text-transparent">
+        <div className="text-center mb-8">
+          <h1
+            className="text-4xl mb-2"
+            style={{
+              fontFamily: 'var(--_typography---font--styrene-a)',
+              fontWeight: 500,
+              letterSpacing: '-0.02em',
+              color: '#141413'
+            }}
+          >
             Your Soul Signature Dashboard
           </h1>
-          <p className="text-gray-400">
+          <p style={{ fontFamily: 'var(--_typography---font--tiempos)', color: '#6B7280' }}>
             Control what aspects of yourself to reveal and to whom
           </p>
-        </motion.div>
+        </div>
 
         {/* Global Controls */}
-        <Card className="bg-gray-900/50 backdrop-blur border-gray-700 p-6 mb-8">
+        <div className="rounded-2xl p-6 bg-white border border-[rgba(20,20,19,0.1)] mb-8">
           <div className="flex items-center justify-between mb-4">
             <div>
-              <h3 className="text-lg font-semibold mb-1">Global Privacy Settings</h3>
-              <p className="text-sm text-gray-400">Apply uniform privacy across all clusters</p>
+              <h3
+                className="text-lg mb-1"
+                style={{
+                  fontFamily: 'var(--_typography---font--styrene-a)',
+                  fontWeight: 500,
+                  letterSpacing: '-0.02em',
+                  color: '#141413'
+                }}
+              >
+                Global Privacy Settings
+              </h3>
+              <p className="text-sm" style={{ fontFamily: 'var(--_typography---font--tiempos)', color: '#6B7280' }}>
+                Apply uniform privacy across all clusters
+              </p>
             </div>
-            <Button
+            <button
               onClick={() => {
                 applyGlobalPrivacy();
                 // Show feedback
                 const feedback = document.createElement('div');
                 feedback.textContent = 'Global privacy applied to all clusters!';
-                feedback.className = 'fixed top-4 right-4 bg-green-500 text-white p-3 rounded-lg z-50';
+                feedback.className = 'fixed top-4 right-4 bg-[#D97706] text-white p-3 rounded-lg z-50';
+                feedback.style.fontFamily = 'var(--_typography---font--tiempos)';
                 document.body.appendChild(feedback);
                 setTimeout(() => feedback.remove(), 3000);
               }}
-              className="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700"
+              className="px-4 py-2 rounded-lg bg-[#D97706] text-white"
+              style={{ fontFamily: 'var(--_typography---font--tiempos)' }}
               title="Apply current privacy setting to all clusters"
             >
               Apply to All
-            </Button>
+            </button>
           </div>
           <div className="flex items-center gap-4">
-            <Eye className="w-5 h-5 text-gray-400" />
-            <Slider
-              value={[globalPrivacy]}
-              onValueChange={(v) => setGlobalPrivacy(v[0])}
-              max={100}
-              step={25}
+            <Eye className="w-5 h-5" style={{ color: '#6B7280' }} />
+            <input
+              type="range"
+              value={globalPrivacy}
+              onChange={(e) => setGlobalPrivacy(parseInt(e.target.value))}
+              min="0"
+              max="100"
+              step="25"
               className="flex-1"
             />
-            <EyeOff className="w-5 h-5 text-gray-400" />
-            <Badge className={cn("ml-2", getPrivacyLabel(globalPrivacy).color)}>
+            <EyeOff className="w-5 h-5" style={{ color: '#6B7280' }} />
+            <span
+              className="ml-2 px-2 py-1 rounded text-sm border border-[rgba(20,20,19,0.1)]"
+              style={{ color: '#D97706', fontFamily: 'var(--_typography---font--tiempos)' }}
+            >
               {getPrivacyLabel(globalPrivacy).label}
-            </Badge>
+            </span>
           </div>
-        </Card>
+        </div>
 
         {/* Context-Aware Intelligence Panel */}
-        <AnimatePresence>
-          {contextAwareMode && (
-            <motion.div
-              initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: 'auto' }}
-              exit={{ opacity: 0, height: 0 }}
-              className="mb-8"
-            >
-              <Card className="bg-gradient-to-r from-blue-900/20 to-purple-900/20 backdrop-blur border-blue-500/30 p-6">
-                <div className="flex items-center justify-between mb-4">
-                  <div className="flex items-center gap-3">
-                    <Brain className="w-6 h-6 text-blue-400" />
-                    <div>
-                      <h3 className="text-lg font-semibold">Context Intelligence</h3>
-                      <p className="text-sm text-gray-400">
-                        Privacy auto-adjusting based on your current environment
-                      </p>
-                    </div>
+        {contextAwareMode && (
+          <div className="mb-8">
+            <div className="rounded-2xl p-6 bg-white border border-[rgba(20,20,19,0.1)]">
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-3">
+                  <Brain className="w-6 h-6" style={{ color: '#D97706' }} />
+                  <div>
+                    <h3
+                      className="text-lg"
+                      style={{
+                        fontFamily: 'var(--_typography---font--styrene-a)',
+                        fontWeight: 500,
+                        letterSpacing: '-0.02em',
+                        color: '#141413'
+                      }}
+                    >
+                      Context Intelligence
+                    </h3>
+                    <p className="text-sm" style={{ fontFamily: 'var(--_typography---font--tiempos)', color: '#6B7280' }}>
+                      Privacy auto-adjusting based on your current environment
+                    </p>
                   </div>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setContextAwareMode(false)}
-                    className="border-gray-600 text-gray-400"
+                </div>
+                <button
+                  onClick={() => setContextAwareMode(false)}
+                  className="px-3 py-1.5 rounded-lg border border-[rgba(20,20,19,0.1)]"
+                  style={{ fontFamily: 'var(--_typography---font--tiempos)', color: '#6B7280' }}
+                >
+                  <Settings className="w-4 h-4 mr-2 inline" />
+                  Manual Mode
+                </button>
+              </div>
+
+              {/* Current Context Display */}
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
+                <div className="flex items-center gap-2 p-3 rounded-lg bg-[#F5F5F5]">
+                  <Clock className="w-4 h-4" style={{ color: '#D97706' }} />
+                  <div>
+                    <p className="text-xs" style={{ fontFamily: 'var(--_typography---font--tiempos)', color: '#6B7280' }}>Time</p>
+                    <p className="text-sm capitalize" style={{ fontFamily: 'var(--_typography---font--tiempos)', color: '#141413', fontWeight: 500 }}>
+                      {currentContext.timeOfDay}
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2 p-3 rounded-lg bg-[#F5F5F5]">
+                  <MapPin className="w-4 h-4" style={{ color: '#D97706' }} />
+                  <div>
+                    <p className="text-xs" style={{ fontFamily: 'var(--_typography---font--tiempos)', color: '#6B7280' }}>Location</p>
+                    <p className="text-sm capitalize" style={{ fontFamily: 'var(--_typography---font--tiempos)', color: '#141413', fontWeight: 500 }}>
+                      {currentContext.location}
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2 p-3 rounded-lg bg-[#F5F5F5]">
+                  <Wifi className="w-4 h-4" style={{ color: '#D97706' }} />
+                  <div>
+                    <p className="text-xs" style={{ fontFamily: 'var(--_typography---font--tiempos)', color: '#6B7280' }}>Network</p>
+                    <p className="text-sm capitalize" style={{ fontFamily: 'var(--_typography---font--tiempos)', color: '#141413', fontWeight: 500 }}>
+                      {currentContext.networkType}
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2 p-3 rounded-lg bg-[#F5F5F5]">
+                  <Users className="w-4 h-4" style={{ color: '#D97706' }} />
+                  <div>
+                    <p className="text-xs" style={{ fontFamily: 'var(--_typography---font--tiempos)', color: '#6B7280' }}>Context</p>
+                    <p className="text-sm capitalize" style={{ fontFamily: 'var(--_typography---font--tiempos)', color: '#141413', fontWeight: 500 }}>
+                      {currentContext.socialContext}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Privacy Recommendations */}
+              {privacyRecommendations.length > 0 && (
+                <div className="space-y-2">
+                  <h4
+                    className="text-sm mb-2"
+                    style={{
+                      fontFamily: 'var(--_typography---font--styrene-a)',
+                      fontWeight: 500,
+                      color: '#D97706'
+                    }}
                   >
-                    <Settings className="w-4 h-4 mr-2" />
-                    Manual Mode
-                  </Button>
-                </div>
-
-                {/* Current Context Display */}
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
-                  <div className="flex items-center gap-2 p-3 rounded-lg bg-gray-800/50">
-                    <Clock className="w-4 h-4 text-blue-400" />
-                    <div>
-                      <p className="text-xs text-gray-400">Time</p>
-                      <p className="text-sm font-medium capitalize">{currentContext.timeOfDay}</p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2 p-3 rounded-lg bg-gray-800/50">
-                    <MapPin className="w-4 h-4 text-green-400" />
-                    <div>
-                      <p className="text-xs text-gray-400">Location</p>
-                      <p className="text-sm font-medium capitalize">{currentContext.location}</p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2 p-3 rounded-lg bg-gray-800/50">
-                    <Wifi className="w-4 h-4 text-purple-400" />
-                    <div>
-                      <p className="text-xs text-gray-400">Network</p>
-                      <p className="text-sm font-medium capitalize">{currentContext.networkType}</p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2 p-3 rounded-lg bg-gray-800/50">
-                    <Users className="w-4 h-4 text-orange-400" />
-                    <div>
-                      <p className="text-xs text-gray-400">Context</p>
-                      <p className="text-sm font-medium capitalize">{currentContext.socialContext}</p>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Privacy Recommendations */}
-                {privacyRecommendations.length > 0 && (
-                  <div className="space-y-2">
-                    <h4 className="text-sm font-medium text-blue-400 mb-2">Smart Recommendations</h4>
-                    {privacyRecommendations.slice(0, 2).map((rec, index) => (
-                      <motion.div
-                        key={index}
-                        initial={{ opacity: 0, x: -20 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        transition={{ delay: index * 0.1 }}
-                        className="flex items-center justify-between p-3 rounded-lg bg-gradient-to-r from-gray-800/50 to-gray-700/30 border border-gray-600/30"
-                      >
-                        <div className="flex items-center gap-3">
-                          <div className="p-1.5 rounded bg-blue-500/20 text-blue-400">
-                            {rec.icon}
-                          </div>
-                          <div>
-                            <p className="text-sm font-medium">{rec.context}</p>
-                            <p className="text-xs text-gray-400">{rec.reason}</p>
-                          </div>
+                    Smart Recommendations
+                  </h4>
+                  {privacyRecommendations.slice(0, 2).map((rec, index) => (
+                    <div
+                      key={index}
+                      className="flex items-center justify-between p-3 rounded-lg bg-[#F5F5F5] border border-[rgba(20,20,19,0.1)]"
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="p-1.5 rounded" style={{ backgroundColor: 'rgba(217, 119, 6, 0.1)', color: '#D97706' }}>
+                          {rec.icon}
                         </div>
-                        <div className="flex items-center gap-2">
-                          <Badge
-                            variant="outline"
-                            className={cn("text-xs", getPrivacyLabel(rec.suggestedLevel).color)}
-                          >
-                            {getPrivacyLabel(rec.suggestedLevel).label}
-                          </Badge>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => {
-                              setGlobalPrivacy(rec.suggestedLevel);
-                              setTimeout(applyGlobalPrivacy, 100);
-                            }}
-                            className="text-xs h-7 px-2"
-                          >
-                            Apply
-                          </Button>
+                        <div>
+                          <p className="text-sm" style={{ fontFamily: 'var(--_typography---font--tiempos)', color: '#141413', fontWeight: 500 }}>
+                            {rec.context}
+                          </p>
+                          <p className="text-xs" style={{ fontFamily: 'var(--_typography---font--tiempos)', color: '#6B7280' }}>
+                            {rec.reason}
+                          </p>
                         </div>
-                      </motion.div>
-                    ))}
-                  </div>
-                )}
-
-                <div className="flex items-center justify-between mt-4 pt-4 border-t border-gray-700">
-                  <div className="text-xs text-gray-400">
-                    Last updated: {lastContextUpdate.toLocaleTimeString()}
-                  </div>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={applyContextualPrivacy}
-                    className="text-xs"
-                  >
-                    <Zap className="w-3 h-3 mr-1" />
-                    Refresh Context
-                  </Button>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span
+                          className="text-xs px-2 py-1 rounded border border-[rgba(20,20,19,0.1)]"
+                          style={{ color: '#D97706', fontFamily: 'var(--_typography---font--tiempos)' }}
+                        >
+                          {getPrivacyLabel(rec.suggestedLevel).label}
+                        </span>
+                        <button
+                          onClick={() => {
+                            setGlobalPrivacy(rec.suggestedLevel);
+                            setTimeout(applyGlobalPrivacy, 100);
+                          }}
+                          className="text-xs h-7 px-2 rounded"
+                          style={{ fontFamily: 'var(--_typography---font--tiempos)', color: '#6B7280' }}
+                        >
+                          Apply
+                        </button>
+                      </div>
+                    </div>
+                  ))}
                 </div>
-              </Card>
-            </motion.div>
-          )}
-        </AnimatePresence>
+              )}
+
+              <div className="flex items-center justify-between mt-4 pt-4 border-t border-[rgba(20,20,19,0.1)]">
+                <div className="text-xs" style={{ fontFamily: 'var(--_typography---font--tiempos)', color: '#6B7280' }}>
+                  Last updated: {lastContextUpdate.toLocaleTimeString()}
+                </div>
+                <button
+                  onClick={applyContextualPrivacy}
+                  className="text-xs px-2 py-1 rounded"
+                  style={{ fontFamily: 'var(--_typography---font--tiempos)', color: '#6B7280' }}
+                >
+                  <Zap className="w-3 h-3 mr-1 inline" />
+                  Refresh Context
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Manual Mode Button */}
         {!contextAwareMode && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            className="mb-8"
-          >
-            <Card className="bg-gray-900/30 border-gray-700 p-4">
+          <div className="mb-8">
+            <div className="rounded-2xl p-4 bg-white border border-[rgba(20,20,19,0.1)]">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  <Settings className="w-5 h-5 text-gray-400" />
+                  <Settings className="w-5 h-5" style={{ color: '#6B7280' }} />
                   <div>
-                    <p className="text-sm font-medium">Manual Privacy Mode</p>
-                    <p className="text-xs text-gray-400">Context intelligence disabled</p>
+                    <p className="text-sm" style={{ fontFamily: 'var(--_typography---font--tiempos)', color: '#141413', fontWeight: 500 }}>
+                      Manual Privacy Mode
+                    </p>
+                    <p className="text-xs" style={{ fontFamily: 'var(--_typography---font--tiempos)', color: '#6B7280' }}>
+                      Context intelligence disabled
+                    </p>
                   </div>
                 </div>
-                <Button
+                <button
                   onClick={() => setContextAwareMode(true)}
-                  className="bg-gradient-to-r from-blue-500 to-purple-600"
+                  className="px-4 py-2 rounded-lg bg-[#D97706] text-white"
+                  style={{ fontFamily: 'var(--_typography---font--tiempos)' }}
                 >
-                  <Brain className="w-4 h-4 mr-2" />
+                  <Brain className="w-4 h-4 mr-2 inline" />
                   Enable Smart Mode
-                </Button>
+                </button>
               </div>
-            </Card>
-          </motion.div>
+            </div>
+          </div>
         )}
 
         {/* Audience Mode Selector */}
-        <Tabs value={audienceMode} onValueChange={(v: any) => setAudienceMode(v)} className="mb-8">
-          <TabsList className="grid w-full grid-cols-4 bg-gray-800">
-            <TabsTrigger value="intimate" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-pink-500 data-[state=active]:to-red-500">
-              <Heart className="w-4 h-4 mr-2" />
+        <div className="mb-8">
+          <div className="grid grid-cols-4 gap-2 rounded-2xl p-2 bg-[#F5F5F5]">
+            <button
+              onClick={() => setAudienceMode('intimate')}
+              className={`px-4 py-2 rounded-lg ${audienceMode === 'intimate' ? 'bg-[#D97706] text-white' : 'bg-transparent'}`}
+              style={{
+                fontFamily: 'var(--_typography---font--tiempos)',
+                color: audienceMode === 'intimate' ? 'white' : '#141413'
+              }}
+            >
+              <Heart className="w-4 h-4 mr-2 inline" />
               Intimate
-            </TabsTrigger>
-            <TabsTrigger value="friends" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-500 data-[state=active]:to-cyan-500">
-              <Users className="w-4 h-4 mr-2" />
+            </button>
+            <button
+              onClick={() => setAudienceMode('friends')}
+              className={`px-4 py-2 rounded-lg ${audienceMode === 'friends' ? 'bg-[#D97706] text-white' : 'bg-transparent'}`}
+              style={{
+                fontFamily: 'var(--_typography---font--tiempos)',
+                color: audienceMode === 'friends' ? 'white' : '#141413'
+              }}
+            >
+              <Users className="w-4 h-4 mr-2 inline" />
               Friends
-            </TabsTrigger>
-            <TabsTrigger value="professional" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-green-500 data-[state=active]:to-emerald-500">
-              <Briefcase className="w-4 h-4 mr-2" />
+            </button>
+            <button
+              onClick={() => setAudienceMode('professional')}
+              className={`px-4 py-2 rounded-lg ${audienceMode === 'professional' ? 'bg-[#D97706] text-white' : 'bg-transparent'}`}
+              style={{
+                fontFamily: 'var(--_typography---font--tiempos)',
+                color: audienceMode === 'professional' ? 'white' : '#141413'
+              }}
+            >
+              <Briefcase className="w-4 h-4 mr-2 inline" />
               Professional
-            </TabsTrigger>
-            <TabsTrigger value="everyone" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-purple-500 data-[state=active]:to-pink-500">
-              <Globe className="w-4 h-4 mr-2" />
+            </button>
+            <button
+              onClick={() => setAudienceMode('everyone')}
+              className={`px-4 py-2 rounded-lg ${audienceMode === 'everyone' ? 'bg-[#D97706] text-white' : 'bg-transparent'}`}
+              style={{
+                fontFamily: 'var(--_typography---font--tiempos)',
+                color: audienceMode === 'everyone' ? 'white' : '#141413'
+              }}
+            >
+              <Globe className="w-4 h-4 mr-2 inline" />
               Everyone
-            </TabsTrigger>
-          </TabsList>
-        </Tabs>
+            </button>
+          </div>
+        </div>
 
         {/* Real-time Data Stream Panel */}
         {dataStream.length > 0 && (
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="mb-8"
-          >
-            <Card className="bg-gradient-to-r from-green-900/20 to-cyan-900/20 backdrop-blur border-green-500/30 p-6">
+          <div className="mb-8">
+            <div className="rounded-2xl p-6 bg-white border border-[rgba(20,20,19,0.1)]">
               <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center gap-3">
-                  <div className="relative">
-                    <Zap className="w-6 h-6 text-green-400" />
-                    <motion.div
-                      className="absolute inset-0 bg-green-400 rounded-full"
-                      animate={{ scale: [1, 1.5, 1], opacity: [0.7, 0, 0.7] }}
-                      transition={{ duration: 2, repeat: Infinity }}
-                    />
-                  </div>
+                  <Zap className="w-6 h-6" style={{ color: '#D97706' }} />
                   <div>
-                    <h3 className="text-lg font-semibold">Live Soul Signature Stream</h3>
-                    <p className="text-sm text-gray-400">
+                    <h3
+                      className="text-lg"
+                      style={{
+                        fontFamily: 'var(--_typography---font--styrene-a)',
+                        fontWeight: 500,
+                        letterSpacing: '-0.02em',
+                        color: '#141413'
+                      }}
+                    >
+                      Live Soul Signature Stream
+                    </h3>
+                    <p className="text-sm" style={{ fontFamily: 'var(--_typography---font--tiempos)', color: '#6B7280' }}>
                       Real-time personality insights flowing from connected platforms
                     </p>
                   </div>
                 </div>
-                <Badge className="bg-green-500/20 text-green-400 border-green-500/30">
+                <span
+                  className="px-2 py-1 rounded text-sm border border-[rgba(20,20,19,0.1)]"
+                  style={{ color: '#D97706', fontFamily: 'var(--_typography---font--tiempos)' }}
+                >
                   {dataStream.length} insights
-                </Badge>
+                </span>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-3">
                 {dataStream.slice(-5).map((dataPoint, index) => (
-                  <motion.div
+                  <div
                     key={dataPoint.id}
-                    initial={{ opacity: 0, scale: 0.8 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    transition={{ delay: index * 0.1 }}
-                    className="p-3 rounded-lg bg-gradient-to-br from-gray-800/80 to-gray-700/60 border border-gray-600/30"
+                    className="p-3 rounded-lg bg-[#F5F5F5] border border-[rgba(20,20,19,0.1)]"
                   >
                     <div className="flex items-center gap-2 mb-2">
-                      <div className={cn(
-                        "w-2 h-2 rounded-full",
-                        connectionPulse[dataPoint.source] ? "bg-green-400 animate-pulse" : "bg-gray-500"
-                      )} />
-                      <span className="text-xs font-medium capitalize">{dataPoint.source}</span>
+                      <div
+                        className="w-2 h-2 rounded-full"
+                        style={{ backgroundColor: connectionPulse[dataPoint.source] ? '#D97706' : '#6B7280' }}
+                      />
+                      <span className="text-xs capitalize" style={{ fontFamily: 'var(--_typography---font--tiempos)', color: '#141413', fontWeight: 500 }}>
+                        {dataPoint.source}
+                      </span>
                     </div>
-                    <p className="text-xs text-gray-400 mb-1">
+                    <p className="text-xs mb-1" style={{ fontFamily: 'var(--_typography---font--tiempos)', color: '#6B7280' }}>
                       {new Date(dataPoint.timestamp).toLocaleTimeString()}
                     </p>
                     <div className="flex items-center gap-1">
-                      <Sparkles className="w-3 h-3 text-blue-400" />
-                      <span className="text-xs text-blue-400">
+                      <Sparkles className="w-3 h-3" style={{ color: '#D97706' }} />
+                      <span className="text-xs" style={{ fontFamily: 'var(--_typography---font--tiempos)', color: '#D97706' }}>
                         {dataPoint.value?.soulSignature?.authenticityScore || 'N/A'}% authentic
                       </span>
                     </div>
-                  </motion.div>
+                  </div>
                 ))}
               </div>
 
               {isExtractingData && (
-                <motion.div
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  className="mt-4 p-3 rounded-lg bg-blue-500/10 border border-blue-500/30"
-                >
+                <div className="mt-4 p-3 rounded-lg bg-[#F5F5F5] border border-[rgba(20,20,19,0.1)]">
                   <div className="flex items-center gap-3">
-                    <motion.div
-                      className="w-4 h-4 border-2 border-blue-400 border-t-transparent rounded-full"
-                      animate={{ rotate: 360 }}
-                      transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-                    />
-                    <span className="text-sm text-blue-400">
+                    <div className="w-4 h-4 border-2 rounded-full" style={{ borderColor: '#D97706', borderTopColor: 'transparent' }} />
+                    <span className="text-sm" style={{ fontFamily: 'var(--_typography---font--tiempos)', color: '#D97706' }}>
                       Extracting soul signature from connected platforms...
                     </span>
                   </div>
-                </motion.div>
+                </div>
               )}
-            </Card>
-          </motion.div>
+            </div>
+          </div>
         )}
 
         {/* Identity Clusters Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {clusters.map((cluster) => (
-            <motion.div
+            <div
               key={cluster.id}
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              whileHover={{ scale: 1.02 }}
-              transition={{ duration: 0.2 }}
               onMouseEnter={() => setHoveredCluster(cluster.id)}
               onMouseLeave={() => setHoveredCluster(null)}
             >
-              <Card className={cn(
-                "relative overflow-hidden border-gray-700 bg-gradient-to-br",
-                "from-gray-900/90 to-gray-800/90 backdrop-blur",
-                "transition-all duration-300",
-                hoveredCluster === cluster.id && "ring-2 ring-blue-500"
-              )}>
-                {/* Gradient Background */}
-                <div className={cn(
-                  "absolute inset-0 opacity-20 bg-gradient-to-br",
-                  cluster.color
-                )} />
-
+              <div
+                className="relative overflow-hidden rounded-2xl p-6 bg-white border"
+                style={{
+                  borderColor: hoveredCluster === cluster.id ? '#D97706' : 'rgba(20,20,19,0.1)',
+                  borderWidth: hoveredCluster === cluster.id ? '2px' : '1px'
+                }}
+              >
                 {/* Content */}
-                <div className="relative p-6">
+                <div className="relative">
                   {/* Header */}
                   <div className="flex items-center justify-between mb-4">
                     <div className="flex items-center gap-3">
-                      <div className={cn(
-                        "p-2 rounded-lg bg-gradient-to-br",
-                        cluster.color,
-                        "text-white"
-                      )}>
+                      <div className="p-2 rounded-lg" style={{ backgroundColor: 'rgba(217, 119, 6, 0.1)', color: '#D97706' }}>
                         {cluster.icon}
                       </div>
                       <div>
-                        <h3 className="font-semibold">{cluster.name}</h3>
-                        <p className="text-xs text-gray-400">
+                        <h3
+                          style={{
+                            fontFamily: 'var(--_typography---font--styrene-a)',
+                            fontWeight: 500,
+                            color: '#141413'
+                          }}
+                        >
+                          {cluster.name}
+                        </h3>
+                        <p className="text-xs" style={{ fontFamily: 'var(--_typography---font--tiempos)', color: '#6B7280' }}>
                           {cluster.subclusters.length} subcategories
                         </p>
                       </div>
                     </div>
-                    <Button
-                      variant="ghost"
-                      size="sm"
+                    <button
                       onClick={() => setSelectedCluster(cluster.id === selectedCluster ? null : cluster.id)}
                       title="View cluster details"
+                      style={{ background: 'none', border: 'none', cursor: 'pointer' }}
                     >
-                      <ChevronRight className={cn(
-                        "w-4 h-4 transition-transform",
-                        selectedCluster === cluster.id && "rotate-90"
-                      )} />
-                    </Button>
+                      <ChevronRight
+                        className="w-4 h-4"
+                        style={{
+                          color: '#6B7280',
+                          transform: selectedCluster === cluster.id ? 'rotate(90deg)' : 'rotate(0deg)',
+                          transition: 'transform 0.2s'
+                        }}
+                      />
+                    </button>
                   </div>
 
                   {/* Intensity Meter */}
                   <div className="mb-4">
-                    <div className="flex justify-between text-xs text-gray-400 mb-1">
+                    <div className="flex justify-between text-xs mb-1" style={{ fontFamily: 'var(--_typography---font--tiempos)', color: '#6B7280' }}>
                       <span>Data Richness</span>
                       <span>{cluster.intensity}%</span>
                     </div>
-                    <div className="h-2 bg-gray-700 rounded-full overflow-hidden">
-                      <motion.div
-                        className={cn("h-full bg-gradient-to-r", cluster.color)}
-                        initial={{ width: 0 }}
-                        animate={{ width: `${cluster.intensity}%` }}
-                        transition={{ duration: 0.5, delay: 0.2 }}
+                    <div className="h-2 bg-[#F5F5F5] rounded-full overflow-hidden">
+                      <div
+                        className="h-full"
+                        style={{
+                          width: `${cluster.intensity}%`,
+                          backgroundColor: '#D97706'
+                        }}
                       />
                     </div>
                   </div>
 
                   {/* Privacy Control */}
                   <div>
-                    <div className="flex justify-between text-xs text-gray-400 mb-2">
-                      <span>Privacy Level</span>
-                      <Badge variant="outline" className={cn("text-xs", getPrivacyLabel(cluster.privacyLevel).color)}>
+                    <div className="flex justify-between text-xs mb-2">
+                      <span style={{ fontFamily: 'var(--_typography---font--tiempos)', color: '#6B7280' }}>Privacy Level</span>
+                      <span
+                        className="px-2 py-1 rounded text-xs border border-[rgba(20,20,19,0.1)]"
+                        style={{ color: '#D97706', fontFamily: 'var(--_typography---font--tiempos)' }}
+                      >
                         {getPrivacyLabel(cluster.privacyLevel).label}
-                      </Badge>
+                      </span>
                     </div>
-                    <Slider
-                      value={[cluster.privacyLevel]}
-                      onValueChange={(v) => handleClusterPrivacyChange(cluster.id, v)}
-                      max={100}
-                      step={25}
-                      className="mb-4"
+                    <input
+                      type="range"
+                      value={cluster.privacyLevel}
+                      onChange={(e) => handleClusterPrivacyChange(cluster.id, [parseInt(e.target.value)])}
+                      min="0"
+                      max="100"
+                      step="25"
+                      className="w-full mb-4"
                     />
                   </div>
 
                   {/* Subclusters */}
-                  <div className="space-y-2 mt-4 pt-4 border-t border-gray-700">
+                  <div className="space-y-2 mt-4 pt-4 border-t border-[rgba(20,20,19,0.1)]">
                     {cluster.subclusters.map((subcluster) => (
                       <div key={subcluster.id} className="space-y-2">
                         <div className="flex items-center justify-between">
-                          <span className="text-sm text-gray-300">{subcluster.name}</span>
+                          <span className="text-sm" style={{ fontFamily: 'var(--_typography---font--tiempos)', color: '#141413' }}>
+                            {subcluster.name}
+                          </span>
                           <div className="flex items-center gap-2">
-                            <Badge
-                              variant="outline"
-                              className={cn("text-xs", getPrivacyLabel(subcluster.privacyLevel).color)}
+                            <span
+                              className="px-2 py-1 rounded text-xs border border-[rgba(20,20,19,0.1)]"
+                              style={{ color: '#D97706', fontFamily: 'var(--_typography---font--tiempos)' }}
                             >
                               {getPrivacyLabel(subcluster.privacyLevel).icon}
-                            </Badge>
+                            </span>
                           </div>
                         </div>
-                        <Slider
-                          value={[subcluster.privacyLevel]}
-                          onValueChange={(v) => handleSubclusterPrivacyChange(cluster.id, subcluster.id, v)}
-                          max={100}
-                          step={25}
-                          className="h-1"
+                        <input
+                          type="range"
+                          value={subcluster.privacyLevel}
+                          onChange={(e) => handleSubclusterPrivacyChange(cluster.id, subcluster.id, [parseInt(e.target.value)])}
+                          min="0"
+                          max="100"
+                          step="25"
+                          className="w-full h-1"
                         />
                       </div>
                     ))}
                   </div>
 
                   {/* Expanded Details */}
-                  <AnimatePresence>
-                    {selectedCluster === cluster.id && (
-                      <motion.div
-                        initial={{ opacity: 0, height: 0 }}
-                        animate={{ opacity: 1, height: 'auto' }}
-                        exit={{ opacity: 0, height: 0 }}
-                        className="mt-4 p-4 rounded-lg bg-gray-800/50 border border-gray-600"
+                  {selectedCluster === cluster.id && (
+                    <div className="mt-4 p-4 rounded-lg bg-[#F5F5F5] border border-[rgba(20,20,19,0.1)]">
+                      <h4
+                        className="text-sm mb-3"
+                        style={{
+                          fontFamily: 'var(--_typography---font--styrene-a)',
+                          fontWeight: 500,
+                          color: '#141413'
+                        }}
                       >
-                        <h4 className="text-sm font-semibold mb-3 text-white">Cluster Details</h4>
-                        <div className="space-y-2 text-xs text-gray-400">
-                          <div className="flex justify-between">
-                            <span>Data Points Collected:</span>
-                            <span className="text-blue-400">{Math.floor(cluster.intensity * 1.2)} items</span>
-                          </div>
-                          <div className="flex justify-between">
-                            <span>Authenticity Score:</span>
-                            <span className="text-green-400">{Math.floor(cluster.intensity * 0.9)}%</span>
-                          </div>
-                          <div className="flex justify-between">
-                            <span>Last Updated:</span>
-                            <span className="text-yellow-400">2 hours ago</span>
-                          </div>
+                        Cluster Details
+                      </h4>
+                      <div className="space-y-2 text-xs" style={{ fontFamily: 'var(--_typography---font--tiempos)', color: '#6B7280' }}>
+                        <div className="flex justify-between">
+                          <span>Data Points Collected:</span>
+                          <span style={{ color: '#D97706' }}>{Math.floor(cluster.intensity * 1.2)} items</span>
                         </div>
-                        <div className="mt-3 pt-3 border-t border-gray-700">
-                          <p className="text-xs text-gray-400">
-                            This cluster contains insights from your {cluster.subclusters.length} subcategories
-                            and helps create your authentic digital twin personality.
-                          </p>
+                        <div className="flex justify-between">
+                          <span>Authenticity Score:</span>
+                          <span style={{ color: '#D97706' }}>{Math.floor(cluster.intensity * 0.9)}%</span>
                         </div>
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
+                        <div className="flex justify-between">
+                          <span>Last Updated:</span>
+                          <span style={{ color: '#D97706' }}>2 hours ago</span>
+                        </div>
+                      </div>
+                      <div className="mt-3 pt-3 border-t border-[rgba(20,20,19,0.1)]">
+                        <p className="text-xs" style={{ fontFamily: 'var(--_typography---font--tiempos)', color: '#6B7280' }}>
+                          This cluster contains insights from your {cluster.subclusters.length} subcategories
+                          and helps create your authentic digital twin personality.
+                        </p>
+                      </div>
+                    </div>
+                  )}
                 </div>
-              </Card>
-            </motion.div>
+              </div>
+            </div>
           ))}
         </div>
 
         {/* Soul Signature Fingerprint */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.5 }}
-          className="mt-8"
-        >
-          <Card className="bg-gradient-to-br from-purple-900/20 to-blue-900/20 backdrop-blur border-purple-500/30 p-8">
+        <div className="mt-8">
+          <div className="rounded-2xl p-8 bg-white border border-[rgba(20,20,19,0.1)]">
             <div className="text-center">
-              <Fingerprint className="w-16 h-16 mx-auto mb-4 text-purple-400" />
-              <h3 className="text-2xl font-bold mb-2 bg-gradient-to-r from-purple-400 to-blue-400 bg-clip-text text-transparent">
+              <Fingerprint className="w-16 h-16 mx-auto mb-4" style={{ color: '#D97706' }} />
+              <h3
+                className="text-2xl mb-2"
+                style={{
+                  fontFamily: 'var(--_typography---font--styrene-a)',
+                  fontWeight: 500,
+                  letterSpacing: '-0.02em',
+                  color: '#141413'
+                }}
+              >
                 Your Unique Soul Signature
               </h3>
-              <p className="text-gray-400 mb-6">
+              <p className="mb-6" style={{ fontFamily: 'var(--_typography---font--tiempos)', color: '#6B7280' }}>
                 A combination of {clusters.reduce((acc, c) => acc + c.subclusters.length, 0)} unique data dimensions
                 creating your authentic digital identity
               </p>
               <div className="flex justify-center gap-4">
-                <Button
-                  className="bg-gradient-to-r from-purple-500 to-blue-500"
+                <button
+                  className="px-4 py-2 rounded-lg bg-[#D97706] text-white"
+                  style={{ fontFamily: 'var(--_typography---font--tiempos)' }}
                   disabled={isExtractingData}
                 >
-                  <Sparkles className="w-4 h-4 mr-2" />
+                  <Sparkles className="w-4 h-4 mr-2 inline" />
                   Preview My Twin
-                </Button>
-                <Button
+                </button>
+                <button
                   onClick={extractSoulSignatureData}
                   disabled={isExtractingData}
-                  className="bg-gradient-to-r from-green-500 to-cyan-500 hover:from-green-600 hover:to-cyan-600"
+                  className="px-4 py-2 rounded-lg bg-[#D97706] text-white"
+                  style={{ fontFamily: 'var(--_typography---font--tiempos)' }}
                 >
                   {isExtractingData ? (
                     <>
-                      <motion.div
-                        className="w-4 h-4 border-2 border-white border-t-transparent rounded-full mr-2"
-                        animate={{ rotate: 360 }}
-                        transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-                      />
+                      <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full mr-2 inline-block" />
                       Extracting...
                     </>
                   ) : (
                     <>
-                      <Zap className="w-4 h-4 mr-2" />
+                      <Zap className="w-4 h-4 mr-2 inline" />
                       Start Real-time Extraction
                     </>
                   )}
-                </Button>
-                <Button variant="outline" className="border-purple-500 text-purple-400">
-                  <Shield className="w-4 h-4 mr-2" />
+                </button>
+                <button
+                  className="px-4 py-2 rounded-lg border border-[rgba(20,20,19,0.1)]"
+                  style={{ fontFamily: 'var(--_typography---font--tiempos)', color: '#D97706' }}
+                >
+                  <Shield className="w-4 h-4 mr-2 inline" />
                   Export Privacy Settings
-                </Button>
+                </button>
               </div>
             </div>
-          </Card>
-        </motion.div>
+          </div>
+        </div>
       </div>
     </div>
   );

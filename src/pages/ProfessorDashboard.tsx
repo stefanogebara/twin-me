@@ -259,12 +259,12 @@ const ProfessorDashboard = () => {
   // Add authentication protection
   if (!user) {
     return (
-      <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: 'var(--_color-theme---background)' }}>
+      <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: '#FAF9F5' }}>
         <div className="text-center">
-          <h2 className="text-2xl font-medium mb-4" style={{ fontFamily: 'var(--_typography---font--styrene-a)', color: 'var(--_color-theme---text)' }}>
+          <h2 className="text-2xl mb-4" style={{ fontFamily: 'var(--_typography---font--styrene-a)', fontWeight: 500, letterSpacing: '-0.02em', color: '#141413' }}>
             Access Denied
           </h2>
-          <p className="mb-6" style={{ color: 'var(--_color-theme---text-secondary)' }}>
+          <p className="mb-6" style={{ fontFamily: 'var(--_typography---font--tiempos)', color: '#6B7280' }}>
             Please sign in to access the professor dashboard.
           </p>
           <button
@@ -279,39 +279,39 @@ const ProfessorDashboard = () => {
   }
 
   return (
-    <div className="min-h-screen" style={{ backgroundColor: 'var(--_color-theme---background)' }}>
-      {/* Apple-style Navigation Breadcrumb */}
-      <div className="px-6 py-4 border-b" style={{ backgroundColor: 'var(--_color-theme---background)', borderColor: 'var(--_color-theme---border)' }}>
+    <div className="min-h-screen" style={{ backgroundColor: '#FAF9F5' }}>
+      {/* Navigation Breadcrumb */}
+      <div className="px-6 py-4 border-b" style={{ backgroundColor: '#FAF9F5', borderColor: 'rgba(20,20,19,0.1)' }}>
         <div className="max-w-7xl mx-auto">
-          <nav className="flex items-center space-x-2 text-sm">
+          <nav className="flex items-center space-x-2 text-sm" style={{ fontFamily: 'var(--_typography---font--tiempos)' }}>
             <button
               onClick={() => navigate('/')}
-              className="flex items-center gap-1 px-2 py-1 rounded-lg transition-all hover:opacity-70"
-              style={{ color: 'var(--_color-theme---text-secondary)' }}
+              className="flex items-center gap-1 px-2 py-1 rounded-lg"
+              style={{ color: '#6B7280' }}
             >
               <Home className="w-4 h-4" />
               <span>Home</span>
             </button>
-            <ChevronRight className="w-4 h-4" style={{ color: 'var(--_color-theme---text-secondary)' }} />
-            <span className="font-medium" style={{ color: 'var(--_color-theme---text)' }}>Dashboard</span>
+            <ChevronRight className="w-4 h-4" style={{ color: '#6B7280' }} />
+            <span style={{ color: '#141413', fontWeight: 500 }}>Dashboard</span>
           </nav>
         </div>
       </div>
 
-      {/* Apple-style Header with Clear Visual Hierarchy */}
-      <div className="px-6 py-8 border-b" style={{ backgroundColor: 'var(--_color-theme---surface)', borderColor: 'var(--_color-theme---border)' }}>
+      {/* Header with Clear Visual Hierarchy */}
+      <div className="px-6 py-8 border-b" style={{ backgroundColor: 'white', borderColor: 'rgba(20,20,19,0.1)' }}>
         <div className="max-w-7xl mx-auto">
-          {/* Large Title - Apple's primary text hierarchy */}
+          {/* Large Title */}
           <div className="mb-6">
-            <h1 className="text-4xl font-bold tracking-tight mb-2" style={{ fontFamily: 'var(--_typography---font--styrene-a)', color: 'var(--_color-theme---text)' }}>
+            <h1 className="text-4xl mb-2" style={{ fontFamily: 'var(--_typography---font--styrene-a)', fontWeight: 500, letterSpacing: '-0.02em', color: '#141413' }}>
               Dashboard
             </h1>
-            <p className="text-lg" style={{ color: 'var(--_color-theme---text-secondary)' }}>
+            <p className="text-lg" style={{ fontFamily: 'var(--_typography---font--tiempos)', color: '#6B7280' }}>
               Manage your digital soul signatures
             </p>
           </div>
 
-          {/* Primary Action - Prominent and Clear */}
+          {/* Primary Action */}
           <button
             onClick={() => setShowCreateForm(true)}
             className="btn-anthropic-primary inline-flex items-center gap-2 text-base px-6 py-3"
@@ -323,36 +323,36 @@ const ProfessorDashboard = () => {
       </div>
 
       <div className="max-w-7xl mx-auto p-6">
-        {/* Apple-style Progressive Disclosure - Show only essential stats first */}
+        {/* Stats */}
         {stats.totalTwins > 0 && (
           <div className="mb-8">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {/* Primary Metric - Active Twins with Visual Emphasis */}
-              <div className="rounded-2xl p-6 border" style={{ backgroundColor: 'var(--_color-theme---surface)', borderColor: 'var(--_color-theme---border)' }}>
+              {/* Primary Metric - Active Twins */}
+              <div className="rounded-2xl p-6 border" style={{ backgroundColor: 'white', borderColor: 'rgba(20,20,19,0.1)' }}>
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm font-medium mb-1" style={{ color: 'var(--_color-theme---text-secondary)' }}>Active Signatures</p>
-                    <p className="text-3xl font-bold" style={{ color: 'var(--_color-theme---accent)' }}>{stats.activeTwins}</p>
-                    <p className="text-sm mt-1" style={{ color: 'var(--_color-theme---text-secondary)' }}>Ready to share</p>
+                    <p className="text-sm mb-1" style={{ fontFamily: 'var(--_typography---font--tiempos)', fontWeight: 500, color: '#6B7280' }}>Active Signatures</p>
+                    <p className="text-3xl" style={{ fontFamily: 'var(--_typography---font--styrene-a)', fontWeight: 500, color: '#D97706' }}>{stats.activeTwins}</p>
+                    <p className="text-sm mt-1" style={{ fontFamily: 'var(--_typography---font--tiempos)', color: '#6B7280' }}>Ready to share</p>
                   </div>
-                  <div className="w-12 h-12 rounded-full flex items-center justify-center" style={{ backgroundColor: 'var(--_color-theme---background-secondary)' }}>
-                    <Play className="w-6 h-6" style={{ color: 'var(--_color-theme---accent)' }} />
+                  <div className="w-12 h-12 rounded-full flex items-center justify-center" style={{ backgroundColor: '#F5F5F5' }}>
+                    <Play className="w-6 h-6" style={{ color: '#D97706' }} />
                   </div>
                 </div>
               </div>
 
-              {/* Secondary Metric - Total with Supporting Info */}
-              <div className="rounded-2xl p-6 border" style={{ backgroundColor: 'var(--_color-theme---surface)', borderColor: 'var(--_color-theme---border)' }}>
+              {/* Secondary Metric - Total */}
+              <div className="rounded-2xl p-6 border" style={{ backgroundColor: 'white', borderColor: 'rgba(20,20,19,0.1)' }}>
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm font-medium mb-1" style={{ color: 'var(--_color-theme---text-secondary)' }}>Soul Signatures</p>
-                    <p className="text-3xl font-bold" style={{ color: 'var(--_color-theme---text)' }}>{stats.totalTwins}</p>
-                    <p className="text-sm mt-1" style={{ color: 'var(--_color-theme---text-secondary)' }}>
+                    <p className="text-sm mb-1" style={{ fontFamily: 'var(--_typography---font--tiempos)', fontWeight: 500, color: '#6B7280' }}>Soul Signatures</p>
+                    <p className="text-3xl" style={{ fontFamily: 'var(--_typography---font--styrene-a)', fontWeight: 500, color: '#141413' }}>{stats.totalTwins}</p>
+                    <p className="text-sm mt-1" style={{ fontFamily: 'var(--_typography---font--tiempos)', color: '#6B7280' }}>
                       {stats.totalTwins - stats.activeTwins > 0 ? `${stats.totalTwins - stats.activeTwins} being refined` : 'All signatures ready'}
                     </p>
                   </div>
-                  <div className="w-12 h-12 rounded-full flex items-center justify-center" style={{ backgroundColor: 'var(--_color-theme---background-secondary)' }}>
-                    <Users className="w-6 h-6" style={{ color: 'var(--_color-theme---text-secondary)' }} />
+                  <div className="w-12 h-12 rounded-full flex items-center justify-center" style={{ backgroundColor: '#F5F5F5' }}>
+                    <Users className="w-6 h-6" style={{ color: '#6B7280' }} />
                   </div>
                 </div>
               </div>
@@ -360,28 +360,28 @@ const ProfessorDashboard = () => {
           </div>
         )}
 
-        {/* Apple-style Content Organization with Grouping by Status */}
+        {/* Content Organization */}
         <div className="space-y-8">
           {digitalTwins.length > 0 ? (
             <div>
-              {/* Section Title with Apple's Typography Hierarchy */}
+              {/* Section Title */}
               <div className="mb-8">
-                <h2 className="text-2xl font-semibold mb-2" style={{ fontFamily: 'var(--_typography---font--styrene-a)', color: 'var(--_color-theme---text)' }}>
+                <h2 className="text-2xl mb-2" style={{ fontFamily: 'var(--_typography---font--styrene-a)', fontWeight: 500, letterSpacing: '-0.02em', color: '#141413' }}>
                   Your Soul Signatures
                 </h2>
-                <p className="text-base" style={{ color: 'var(--_color-theme---text-secondary)' }}>
+                <p className="text-base" style={{ fontFamily: 'var(--_typography---font--tiempos)', color: '#6B7280' }}>
                   {digitalTwins.length} {digitalTwins.length === 1 ? 'signature' : 'signatures'} discovered
                 </p>
               </div>
 
-              {/* Apple-style Content Grouping - Group by Progress/Status */}
+              {/* Content Grouping */}
               <div className="space-y-8">
                 {/* Active Twins Group */}
                 {digitalTwins.filter(t => t.is_active).length > 0 && (
                   <div>
                     <div className="mb-4">
-                      <h3 className="text-lg font-medium mb-1" style={{ color: 'var(--_color-theme---text)' }}>Ready to Share</h3>
-                      <p className="text-sm" style={{ color: 'var(--_color-theme---text-secondary)' }}>
+                      <h3 className="text-lg mb-1" style={{ fontFamily: 'var(--_typography---font--styrene-a)', fontWeight: 500, color: '#141413' }}>Ready to Share</h3>
+                      <p className="text-sm" style={{ fontFamily: 'var(--_typography---font--tiempos)', color: '#6B7280' }}>
                         Signatures refined and ready for sharing
                       </p>
                     </div>
@@ -389,34 +389,34 @@ const ProfessorDashboard = () => {
                       {digitalTwins.filter(t => t.is_active).map((twin) => (
                         <div
                           key={twin.id}
-                          className={`p-6 rounded-xl border cursor-pointer transition-all hover:shadow-lg ${
+                          className={`p-6 rounded-xl border cursor-pointer ${
                             selectedTwin?.id === twin.id ? 'ring-2' : ''
                           }`}
                           style={{
-                            backgroundColor: 'var(--_color-theme---surface)',
-                            borderColor: selectedTwin?.id === twin.id ? 'var(--_color-theme---accent)' : 'var(--_color-theme---border)',
-                            ringColor: selectedTwin?.id === twin.id ? 'var(--_color-theme---accent)' : 'transparent'
+                            backgroundColor: 'white',
+                            borderColor: selectedTwin?.id === twin.id ? '#D97706' : 'rgba(20,20,19,0.1)',
+                            ringColor: selectedTwin?.id === twin.id ? '#D97706' : 'transparent'
                           }}
                           onClick={() => setSelectedTwin(twin)}
                         >
                           <div className="flex items-start justify-between mb-4">
                             <div className="flex-1">
-                              <h4 className="font-semibold text-lg mb-1" style={{ color: 'var(--_color-theme---text)' }}>{twin.name}</h4>
-                              <p className="text-sm" style={{ color: 'var(--_color-theme---text-secondary)' }}>{twin.subject_area}</p>
+                              <h4 className="text-lg mb-1" style={{ fontFamily: 'var(--_typography---font--styrene-a)', fontWeight: 500, color: '#141413' }}>{twin.name}</h4>
+                              <p className="text-sm" style={{ fontFamily: 'var(--_typography---font--tiempos)', color: '#6B7280' }}>{twin.subject_area}</p>
                             </div>
                             <div className="flex items-center gap-2">
-                              <div className="px-3 py-1 rounded-full text-xs font-medium text-white" style={{ backgroundColor: 'var(--_color-theme---accent)' }}>
+                              <div className="px-3 py-1 rounded-full text-xs text-white" style={{ fontFamily: 'var(--_typography---font--tiempos)', fontWeight: 500, backgroundColor: '#D97706' }}>
                                 Live
                               </div>
                             </div>
                           </div>
                           <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-4 text-sm" style={{ color: 'var(--_color-theme---text-secondary)' }}>
+                            <div className="flex items-center gap-4 text-sm" style={{ fontFamily: 'var(--_typography---font--tiempos)', color: '#6B7280' }}>
                               <span>Ready to share</span>
                             </div>
                             <button
-                              className="p-2 rounded-lg hover:opacity-70 transition-opacity"
-                              style={{ color: 'var(--_color-theme---text-secondary)', backgroundColor: 'var(--_color-theme---background-secondary)' }}
+                              className="p-2 rounded-lg"
+                              style={{ color: '#6B7280', backgroundColor: '#F5F5F5' }}
                               onClick={(e) => {
                                 e.stopPropagation();
                                 toggleTwinStatus(twin.id, twin.is_active);
@@ -435,8 +435,8 @@ const ProfessorDashboard = () => {
                 {digitalTwins.filter(t => !t.is_active).length > 0 && (
                   <div>
                     <div className="mb-4">
-                      <h3 className="text-lg font-medium mb-1" style={{ color: 'var(--_color-theme---text)' }}>Being Refined</h3>
-                      <p className="text-sm" style={{ color: 'var(--_color-theme---text-secondary)' }}>
+                      <h3 className="text-lg mb-1" style={{ fontFamily: 'var(--_typography---font--styrene-a)', fontWeight: 500, color: '#141413' }}>Being Refined</h3>
+                      <p className="text-sm" style={{ fontFamily: 'var(--_typography---font--tiempos)', color: '#6B7280' }}>
                         Signatures still discovering their depth
                       </p>
                     </div>
@@ -444,34 +444,34 @@ const ProfessorDashboard = () => {
                       {digitalTwins.filter(t => !t.is_active).map((twin) => (
                         <div
                           key={twin.id}
-                          className={`p-6 rounded-xl border cursor-pointer transition-all hover:shadow-lg ${
+                          className={`p-6 rounded-xl border cursor-pointer ${
                             selectedTwin?.id === twin.id ? 'ring-2' : ''
                           }`}
                           style={{
-                            backgroundColor: 'var(--_color-theme---surface)',
-                            borderColor: selectedTwin?.id === twin.id ? 'var(--_color-theme---accent)' : 'var(--_color-theme---border)',
-                            ringColor: selectedTwin?.id === twin.id ? 'var(--_color-theme---accent)' : 'transparent'
+                            backgroundColor: 'white',
+                            borderColor: selectedTwin?.id === twin.id ? '#D97706' : 'rgba(20,20,19,0.1)',
+                            ringColor: selectedTwin?.id === twin.id ? '#D97706' : 'transparent'
                           }}
                           onClick={() => setSelectedTwin(twin)}
                         >
                           <div className="flex items-start justify-between mb-4">
                             <div className="flex-1">
-                              <h4 className="font-semibold text-lg mb-1" style={{ color: 'var(--_color-theme---text)' }}>{twin.name}</h4>
-                              <p className="text-sm" style={{ color: 'var(--_color-theme---text-secondary)' }}>{twin.subject_area}</p>
+                              <h4 className="text-lg mb-1" style={{ fontFamily: 'var(--_typography---font--styrene-a)', fontWeight: 500, color: '#141413' }}>{twin.name}</h4>
+                              <p className="text-sm" style={{ fontFamily: 'var(--_typography---font--tiempos)', color: '#6B7280' }}>{twin.subject_area}</p>
                             </div>
                             <div className="flex items-center gap-2">
-                              <div className="px-3 py-1 rounded-full text-xs font-medium" style={{ backgroundColor: 'var(--_color-theme---border)', color: 'var(--_color-theme---text-secondary)' }}>
+                              <div className="px-3 py-1 rounded-full text-xs" style={{ fontFamily: 'var(--_typography---font--tiempos)', fontWeight: 500, backgroundColor: '#F5F5F5', color: '#6B7280' }}>
                                 Draft
                               </div>
                             </div>
                           </div>
                           <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-4 text-sm" style={{ color: 'var(--_color-theme---text-secondary)' }}>
+                            <div className="flex items-center gap-4 text-sm" style={{ fontFamily: 'var(--_typography---font--tiempos)', color: '#6B7280' }}>
                               <span>Refine and explore</span>
                             </div>
                             <button
-                              className="p-2 rounded-lg hover:opacity-70 transition-opacity"
-                              style={{ color: 'var(--_color-theme---text-secondary)', backgroundColor: 'var(--_color-theme---background-secondary)' }}
+                              className="p-2 rounded-lg"
+                              style={{ color: '#6B7280', backgroundColor: '#F5F5F5' }}
                               onClick={(e) => {
                                 e.stopPropagation();
                                 toggleTwinStatus(twin.id, twin.is_active);
@@ -488,15 +488,15 @@ const ProfessorDashboard = () => {
               </div>
             </div>
           ) : (
-            /* Apple-style Empty State with Clear Hierarchy */
+            /* Empty State */
             <div className="text-center py-20">
-              <div className="w-20 h-20 mx-auto mb-6 rounded-full flex items-center justify-center" style={{ backgroundColor: 'var(--_color-theme---background-secondary)' }}>
-                <Users className="w-10 h-10" style={{ color: 'var(--_color-theme---text-secondary)' }} />
+              <div className="w-20 h-20 mx-auto mb-6 rounded-full flex items-center justify-center" style={{ backgroundColor: '#F5F5F5' }}>
+                <Users className="w-10 h-10" style={{ color: '#6B7280' }} />
               </div>
-              <h3 className="text-xl font-semibold mb-2" style={{ color: 'var(--_color-theme---text)' }}>
+              <h3 className="text-xl mb-2" style={{ fontFamily: 'var(--_typography---font--styrene-a)', fontWeight: 500, letterSpacing: '-0.02em', color: '#141413' }}>
                 Discover Your Soul Signature
               </h3>
-              <p className="text-base mb-8 max-w-md mx-auto" style={{ color: 'var(--_color-theme---text-secondary)' }}>
+              <p className="text-base mb-8 max-w-md mx-auto" style={{ fontFamily: 'var(--_typography---font--tiempos)', color: '#6B7280' }}>
                 Connect your digital life to reveal your authentic essence and create a shareable soul signature
               </p>
               <button
@@ -509,14 +509,14 @@ const ProfessorDashboard = () => {
             </div>
           )}
 
-          {/* Apple-style Twin Details Panel with Progressive Disclosure */}
+          {/* Twin Details Panel */}
           {selectedTwin && (
-            <div className="rounded-2xl border" style={{ backgroundColor: 'var(--_color-theme---surface)', borderColor: 'var(--_color-theme---border)' }}>
+            <div className="rounded-2xl border" style={{ backgroundColor: 'white', borderColor: 'rgba(20,20,19,0.1)' }}>
               <div className="p-8">
                 <div className="flex items-start justify-between mb-6">
                   <div>
-                    <h3 className="text-xl font-semibold mb-1" style={{ color: 'var(--_color-theme---text)' }}>{selectedTwin.name}</h3>
-                    <p className="text-base" style={{ color: 'var(--_color-theme---text-secondary)' }}>{selectedTwin.description}</p>
+                    <h3 className="text-xl mb-1" style={{ fontFamily: 'var(--_typography---font--styrene-a)', fontWeight: 500, letterSpacing: '-0.02em', color: '#141413' }}>{selectedTwin.name}</h3>
+                    <p className="text-base" style={{ fontFamily: 'var(--_typography---font--tiempos)', color: '#6B7280' }}>{selectedTwin.description}</p>
                   </div>
                   <div className="flex items-center gap-3">
                     <button
@@ -537,19 +537,19 @@ const ProfessorDashboard = () => {
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                  <div className="p-4 rounded-xl" style={{ backgroundColor: 'var(--_color-theme---background-secondary)' }}>
-                    <p className="text-sm font-medium mb-1" style={{ color: 'var(--_color-theme---text-secondary)' }}>Subject</p>
-                    <p className="font-semibold" style={{ color: 'var(--_color-theme---text)' }}>{selectedTwin.subject_area}</p>
+                  <div className="p-4 rounded-xl" style={{ backgroundColor: '#F5F5F5' }}>
+                    <p className="text-sm mb-1" style={{ fontFamily: 'var(--_typography---font--tiempos)', fontWeight: 500, color: '#6B7280' }}>Subject</p>
+                    <p style={{ fontFamily: 'var(--_typography---font--styrene-a)', fontWeight: 500, color: '#141413' }}>{selectedTwin.subject_area}</p>
                   </div>
-                  <div className="p-4 rounded-xl" style={{ backgroundColor: 'var(--_color-theme---background-secondary)' }}>
-                    <p className="text-sm font-medium mb-1" style={{ color: 'var(--_color-theme---text-secondary)' }}>Status</p>
-                    <p className="font-semibold" style={{ color: selectedTwin.is_active ? 'var(--_color-theme---accent)' : 'var(--_color-theme---text-secondary)' }}>
+                  <div className="p-4 rounded-xl" style={{ backgroundColor: '#F5F5F5' }}>
+                    <p className="text-sm mb-1" style={{ fontFamily: 'var(--_typography---font--tiempos)', fontWeight: 500, color: '#6B7280' }}>Status</p>
+                    <p style={{ fontFamily: 'var(--_typography---font--styrene-a)', fontWeight: 500, color: selectedTwin.is_active ? '#D97706' : '#6B7280' }}>
                       {selectedTwin.is_active ? 'Active' : 'In Development'}
                     </p>
                   </div>
-                  <div className="p-4 rounded-xl" style={{ backgroundColor: 'var(--_color-theme---background-secondary)' }}>
-                    <p className="text-sm font-medium mb-1" style={{ color: 'var(--_color-theme---text-secondary)' }}>Knowledge Base</p>
-                    <p className="font-semibold capitalize" style={{ color: 'var(--_color-theme---text)' }}>{selectedTwin.knowledge_base_status}</p>
+                  <div className="p-4 rounded-xl" style={{ backgroundColor: '#F5F5F5' }}>
+                    <p className="text-sm mb-1" style={{ fontFamily: 'var(--_typography---font--tiempos)', fontWeight: 500, color: '#6B7280' }}>Knowledge Base</p>
+                    <p className="capitalize" style={{ fontFamily: 'var(--_typography---font--styrene-a)', fontWeight: 500, color: '#141413' }}>{selectedTwin.knowledge_base_status}</p>
                   </div>
                 </div>
               </div>
@@ -557,52 +557,52 @@ const ProfessorDashboard = () => {
           )}
         </div>
 
-        {/* Apple-style Create Twin Modal */}
+        {/* Create Twin Modal */}
         {showCreateForm && (
           <div className="fixed inset-0 flex items-center justify-center z-50" style={{ backgroundColor: 'rgba(0, 0, 0, 0.5)' }}>
-            <div className="w-full max-w-2xl max-h-[90vh] overflow-y-auto mx-4 rounded-2xl border" style={{ backgroundColor: 'var(--_color-theme---surface)', borderColor: 'var(--_color-theme---border)' }}>
+            <div className="w-full max-w-2xl max-h-[90vh] overflow-y-auto mx-4 rounded-2xl border" style={{ backgroundColor: 'white', borderColor: 'rgba(20,20,19,0.1)' }}>
               <div className="p-8">
                 <div className="mb-8">
-                  <h2 className="text-2xl font-semibold mb-2" style={{ fontFamily: 'var(--_typography---font--styrene-a)', color: 'var(--_color-theme---text)' }}>
+                  <h2 className="text-2xl mb-2" style={{ fontFamily: 'var(--_typography---font--styrene-a)', fontWeight: 500, letterSpacing: '-0.02em', color: '#141413' }}>
                     Create New Soul Signature
                   </h2>
-                  <p className="text-base" style={{ color: 'var(--_color-theme---text-secondary)' }}>
+                  <p className="text-base" style={{ fontFamily: 'var(--_typography---font--tiempos)', color: '#6B7280' }}>
                     Begin your journey to discover your authentic digital essence
                   </p>
                 </div>
 
                 <div className="space-y-6">
                   <div>
-                    <label className="block text-sm font-medium mb-2" style={{ color: 'var(--_color-theme---text)' }}>Signature Name</label>
+                    <label className="block text-sm mb-2" style={{ fontFamily: 'var(--_typography---font--tiempos)', fontWeight: 500, color: '#141413' }}>Signature Name</label>
                     <input
                       value={twinForm.name}
                       onChange={(e) => setTwinForm(prev => ({ ...prev, name: e.target.value }))}
                       placeholder="e.g., My Authentic Self, Creative Explorer"
                       className="w-full px-4 py-3 rounded-xl border text-base"
-                      style={{ backgroundColor: 'var(--_color-theme---background)', borderColor: 'var(--_color-theme---border)', color: 'var(--_color-theme---text)' }}
+                      style={{ fontFamily: 'var(--_typography---font--tiempos)', backgroundColor: '#F5F5F5', borderColor: 'rgba(20,20,19,0.1)', color: '#141413' }}
                     />
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium mb-2" style={{ color: 'var(--_color-theme---text)' }}>Primary Focus</label>
+                    <label className="block text-sm mb-2" style={{ fontFamily: 'var(--_typography---font--tiempos)', fontWeight: 500, color: '#141413' }}>Primary Focus</label>
                     <input
                       value={twinForm.subject_area}
                       onChange={(e) => setTwinForm(prev => ({ ...prev, subject_area: e.target.value }))}
                       placeholder="e.g., Creative Arts, Technology, Wellness, Music"
                       className="w-full px-4 py-3 rounded-xl border text-base"
-                      style={{ backgroundColor: 'var(--_color-theme---background)', borderColor: 'var(--_color-theme---border)', color: 'var(--_color-theme---text)' }}
+                      style={{ fontFamily: 'var(--_typography---font--tiempos)', backgroundColor: '#F5F5F5', borderColor: 'rgba(20,20,19,0.1)', color: '#141413' }}
                     />
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium mb-2" style={{ color: 'var(--_color-theme---text)' }}>Description</label>
+                    <label className="block text-sm mb-2" style={{ fontFamily: 'var(--_typography---font--tiempos)', fontWeight: 500, color: '#141413' }}>Description</label>
                     <textarea
                       value={twinForm.description}
                       onChange={(e) => setTwinForm(prev => ({ ...prev, description: e.target.value }))}
                       placeholder="Describe what makes you unique and authentic..."
                       rows={3}
                       className="w-full px-4 py-3 rounded-xl border text-base resize-none"
-                      style={{ backgroundColor: 'var(--_color-theme---background)', borderColor: 'var(--_color-theme---border)', color: 'var(--_color-theme---text)' }}
+                      style={{ fontFamily: 'var(--_typography---font--tiempos)', backgroundColor: '#F5F5F5', borderColor: 'rgba(20,20,19,0.1)', color: '#141413' }}
                     />
                   </div>
 

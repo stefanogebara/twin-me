@@ -1,9 +1,12 @@
-import { clerkClient } from '@clerk/clerk-sdk-node';
+import jwt from 'jsonwebtoken';
 import dotenv from 'dotenv';
 
 dotenv.config();
 
-// Authentication middleware for Clerk
+// JWT secret from environment
+const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-this-in-production';
+
+// Authentication middleware for JWT tokens
 export const authenticateUser = async (req, res, next) => {
   try {
     // Extract the authorization header
@@ -27,15 +30,13 @@ export const authenticateUser = async (req, res, next) => {
     }
 
     try {
-      // Verify the JWT token with Clerk
-      const payload = await clerkClient.verifyToken(token, {
-        secretKey: process.env.CLERK_SECRET_KEY
-      });
+      // Verify the JWT token
+      const payload = jwt.verify(token, JWT_SECRET);
 
       // Add user info to request
       req.user = {
-        id: payload.sub,
-        sessionId: payload.sid,
+        id: payload.userId,
+        email: payload.email,
         ...payload
       };
 
@@ -67,13 +68,11 @@ export const optionalAuth = async (req, res, next) => {
 
       if (token) {
         try {
-          const payload = await clerkClient.verifyToken(token, {
-            secretKey: process.env.CLERK_SECRET_KEY
-          });
+          const payload = jwt.verify(token, JWT_SECRET);
 
           req.user = {
-            id: payload.sub,
-            sessionId: payload.sid,
+            id: payload.userId,
+            email: payload.email,
             ...payload
           };
         } catch (verifyError) {
@@ -99,9 +98,9 @@ export const requireProfessor = (req, res, next) => {
     });
   }
 
-  // Check if user has professor role (you may need to adjust based on your Clerk setup)
-  const userRoles = req.user.publicMetadata?.roles || [];
-  const isProfessor = userRoles.includes('professor') || userRoles.includes('admin');
+  // Check if user has professor role
+  const userRole = req.user.role || req.user.user_type;
+  const isProfessor = userRole === 'professor' || userRole === 'admin';
 
   if (!isProfessor) {
     return res.status(403).json({

@@ -197,14 +197,14 @@ All colors MUST be HSL. Semantic tokens for consistent theming.
     --_typography---letter-spacing--0-02em: -0.02em;
     --_typography---text-transform--none: none;
 
-    /* Anthropic Color System - Light Theme */
-    --swatch--ivory-medium: #ffffff;
+    /* Anthropic Color System - Exact from anthropic.com */
+    --swatch--ivory-medium: #FAF9F5; /* Extracted: rgb(250, 249, 245) */
     --swatch--ivory-light: #ffffff;
-    --swatch--slate-dark: #2c2c2c;
+    --swatch--slate-dark: #141413; /* Extracted: rgb(20, 20, 19) */
     --swatch--slate-medium: #595959;
     --swatch--slate-light: #8c8c8c;
-    --swatch--slate-faded-10: rgba(44, 44, 44, 0.1);
-    --swatch--slate-faded-20: rgba(44, 44, 44, 0.2);
+    --swatch--slate-faded-10: rgba(20, 20, 19, 0.1);
+    --swatch--slate-faded-20: rgba(20, 20, 19, 0.2);
     --swatch--white: #ffffff;
     --swatch--transparent: transparent;
 
@@ -1502,6 +1502,15 @@ details summary {
   }
   50% {
     transform: translateY(-5px);
+  }
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
   }
 }
 

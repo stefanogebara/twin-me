@@ -165,9 +165,9 @@ const StudentDashboard = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen p-6" style={{ backgroundColor: 'var(--_color-theme---background)' }}>
+      <div className="min-h-screen p-6" style={{ backgroundColor: '#FAF9F5' }}>
         <div className="max-w-7xl mx-auto">
-          <div className="animate-pulse space-y-6">
+          <div className="space-y-6">
             <div className="h-8 bg-gray-200 rounded w-1/3"></div>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
               {[...Array(4)].map((_, i) => (
@@ -185,21 +185,34 @@ const StudentDashboard = () => {
   }
 
   return (
-    <div className="min-h-screen p-6" style={{ backgroundColor: 'var(--_color-theme---background)' }}>
+    <div className="min-h-screen p-6" style={{ backgroundColor: '#FAF9F5' }}>
       <div className="max-w-7xl mx-auto space-y-6">
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">
+            <h1
+              className="text-3xl font-medium"
+              style={{
+                color: '#141413',
+                fontFamily: 'var(--_typography---font--styrene-a)',
+                letterSpacing: '-0.02em'
+              }}
+            >
               Welcome back, {user?.firstName || 'Student'}!
             </h1>
-            <p className="text-gray-600">
+            <p
+              className="mt-1"
+              style={{
+                color: '#6B7280',
+                fontFamily: 'var(--_typography---font--tiempos)'
+              }}
+            >
               Continue your learning journey with AI-powered digital twins
             </p>
           </div>
           <div className="flex items-center gap-3">
             <ThemeToggle />
-            <Button variant="outline" size="sm">
+            <Button variant="outline" size="sm" style={{ borderColor: 'rgba(20,20,19,0.1)' }}>
               <Settings className="h-4 w-4 mr-2" />
               Settings
             </Button>
@@ -212,60 +225,138 @@ const StudentDashboard = () => {
 
         {/* Stats Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          <Card>
+          <Card style={{ backgroundColor: 'white', borderColor: 'rgba(20,20,19,0.1)' }}>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">
+              <CardTitle
+                className="text-sm font-medium"
+                style={{
+                  color: '#141413',
+                  fontFamily: 'var(--_typography---font--styrene-a)'
+                }}
+              >
                 Total Conversations
               </CardTitle>
-              <MessageCircle className="h-4 w-4 text-muted-foreground" />
+              <MessageCircle className="h-4 w-4" style={{ color: '#6B7280' }} />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{stats.totalConversations}</div>
-              <p className="text-xs text-muted-foreground">
+              <div
+                className="text-2xl font-medium"
+                style={{
+                  color: '#141413',
+                  fontFamily: 'var(--_typography---font--styrene-a)',
+                  letterSpacing: '-0.02em'
+                }}
+              >
+                {stats.totalConversations}
+              </div>
+              <p
+                className="text-xs"
+                style={{
+                  color: '#6B7280',
+                  fontFamily: 'var(--_typography---font--tiempos)'
+                }}
+              >
                 +2 from last week
               </p>
             </CardContent>
           </Card>
 
-          <Card>
+          <Card style={{ backgroundColor: 'white', borderColor: 'rgba(20,20,19,0.1)' }}>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">
+              <CardTitle
+                className="text-sm font-medium"
+                style={{
+                  color: '#141413',
+                  fontFamily: 'var(--_typography---font--styrene-a)'
+                }}
+              >
                 Study Time
               </CardTitle>
-              <Clock className="h-4 w-4 text-muted-foreground" />
+              <Clock className="h-4 w-4" style={{ color: '#6B7280' }} />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{Math.floor(stats.studyTime / 60)}h {stats.studyTime % 60}m</div>
-              <p className="text-xs text-muted-foreground">
+              <div
+                className="text-2xl font-medium"
+                style={{
+                  color: '#141413',
+                  fontFamily: 'var(--_typography---font--styrene-a)',
+                  letterSpacing: '-0.02em'
+                }}
+              >
+                {Math.floor(stats.studyTime / 60)}h {stats.studyTime % 60}m
+              </div>
+              <p
+                className="text-xs"
+                style={{
+                  color: '#6B7280',
+                  fontFamily: 'var(--_typography---font--tiempos)'
+                }}
+              >
                 +15% from last week
               </p>
             </CardContent>
           </Card>
 
-          <Card>
+          <Card style={{ backgroundColor: 'white', borderColor: 'rgba(20,20,19,0.1)' }}>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">
+              <CardTitle
+                className="text-sm font-medium"
+                style={{
+                  color: '#141413',
+                  fontFamily: 'var(--_typography---font--styrene-a)'
+                }}
+              >
                 Active Twins
               </CardTitle>
-              <Users className="h-4 w-4 text-muted-foreground" />
+              <Users className="h-4 w-4" style={{ color: '#6B7280' }} />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{stats.activeTwins}</div>
-              <p className="text-xs text-muted-foreground">
+              <div
+                className="text-2xl font-medium"
+                style={{
+                  color: '#141413',
+                  fontFamily: 'var(--_typography---font--styrene-a)',
+                  letterSpacing: '-0.02em'
+                }}
+              >
+                {stats.activeTwins}
+              </div>
+              <p
+                className="text-xs"
+                style={{
+                  color: '#6B7280',
+                  fontFamily: 'var(--_typography---font--tiempos)'
+                }}
+              >
                 Across {new Set(activeTwins.map(t => t.subject_area)).size} subjects
               </p>
             </CardContent>
           </Card>
 
-          <Card>
+          <Card style={{ backgroundColor: 'white', borderColor: 'rgba(20,20,19,0.1)' }}>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">
+              <CardTitle
+                className="text-sm font-medium"
+                style={{
+                  color: '#141413',
+                  fontFamily: 'var(--_typography---font--styrene-a)'
+                }}
+              >
                 Progress Score
               </CardTitle>
-              <TrendingUp className="h-4 w-4 text-muted-foreground" />
+              <TrendingUp className="h-4 w-4" style={{ color: '#6B7280' }} />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">85%</div>
+              <div
+                className="text-2xl font-medium"
+                style={{
+                  color: '#141413',
+                  fontFamily: 'var(--_typography---font--styrene-a)',
+                  letterSpacing: '-0.02em'
+                }}
+              >
+                85%
+              </div>
               <Progress value={85} className="mt-2" />
             </CardContent>
           </Card>
@@ -273,13 +364,26 @@ const StudentDashboard = () => {
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Recent Conversations */}
-          <Card>
+          <Card style={{ backgroundColor: 'white', borderColor: 'rgba(20,20,19,0.1)' }}>
             <CardHeader>
-              <CardTitle className="flex items-center gap-2">
+              <CardTitle
+                className="flex items-center gap-2"
+                style={{
+                  color: '#141413',
+                  fontFamily: 'var(--_typography---font--styrene-a)',
+                  fontWeight: 500,
+                  letterSpacing: '-0.02em'
+                }}
+              >
                 <MessageCircle className="h-5 w-5" />
                 Recent Conversations
               </CardTitle>
-              <CardDescription>
+              <CardDescription
+                style={{
+                  color: '#6B7280',
+                  fontFamily: 'var(--_typography---font--tiempos)'
+                }}
+              >
                 Your recent chats with digital twins
               </CardDescription>
             </CardHeader>
@@ -287,7 +391,13 @@ const StudentDashboard = () => {
               <div className="space-y-4">
                 {conversations.length > 0 ? (
                   conversations.slice(0, 5).map((conversation) => (
-                    <div key={conversation.id} className="flex items-center justify-between p-3 rounded-lg border hover:bg-gray-50 transition-colors">
+                    <div
+                      key={conversation.id}
+                      className="flex items-center justify-between p-3 rounded-lg"
+                      style={{
+                        border: '1px solid rgba(20,20,19,0.1)'
+                      }}
+                    >
                       <div className="flex items-center gap-3">
                         <Avatar className="h-8 w-8">
                           <AvatarFallback className="text-xs">
@@ -295,8 +405,22 @@ const StudentDashboard = () => {
                           </AvatarFallback>
                         </Avatar>
                         <div>
-                          <p className="font-medium text-sm">{conversation.title}</p>
-                          <p className="text-xs text-gray-500">
+                          <p
+                            className="font-medium text-sm"
+                            style={{
+                              color: '#141413',
+                              fontFamily: 'var(--_typography---font--tiempos)'
+                            }}
+                          >
+                            {conversation.title}
+                          </p>
+                          <p
+                            className="text-xs"
+                            style={{
+                              color: '#6B7280',
+                              fontFamily: 'var(--_typography---font--tiempos)'
+                            }}
+                          >
                             {conversation.twin?.subject_area} • {formatDate(conversation.last_message_at)}
                           </p>
                         </div>
@@ -311,10 +435,10 @@ const StudentDashboard = () => {
                     </div>
                   ))
                 ) : (
-                  <div className="text-center py-8 text-gray-500">
-                    <MessageCircle className="h-12 w-12 mx-auto mb-3 text-gray-300" />
-                    <p>No conversations yet</p>
-                    <p className="text-sm">Start chatting with a digital twin below!</p>
+                  <div className="text-center py-8" style={{ color: '#6B7280' }}>
+                    <MessageCircle className="h-12 w-12 mx-auto mb-3" style={{ color: '#6B7280', opacity: 0.3 }} />
+                    <p style={{ fontFamily: 'var(--_typography---font--tiempos)' }}>No conversations yet</p>
+                    <p className="text-sm" style={{ fontFamily: 'var(--_typography---font--tiempos)' }}>Start chatting with a digital twin below!</p>
                   </div>
                 )}
               </div>
@@ -322,13 +446,26 @@ const StudentDashboard = () => {
           </Card>
 
           {/* Available Twins */}
-          <Card>
+          <Card style={{ backgroundColor: 'white', borderColor: 'rgba(20,20,19,0.1)' }}>
             <CardHeader>
-              <CardTitle className="flex items-center gap-2">
+              <CardTitle
+                className="flex items-center gap-2"
+                style={{
+                  color: '#141413',
+                  fontFamily: 'var(--_typography---font--styrene-a)',
+                  fontWeight: 500,
+                  letterSpacing: '-0.02em'
+                }}
+              >
                 <Users className="h-5 w-5" />
                 Available Digital Twins
               </CardTitle>
-              <CardDescription>
+              <CardDescription
+                style={{
+                  color: '#6B7280',
+                  fontFamily: 'var(--_typography---font--tiempos)'
+                }}
+              >
                 Active professor twins you can chat with
               </CardDescription>
             </CardHeader>
@@ -336,7 +473,13 @@ const StudentDashboard = () => {
               <div className="space-y-4">
                 {activeTwins.length > 0 ? (
                   activeTwins.slice(0, 5).map((twin) => (
-                    <div key={twin.id} className="flex items-center justify-between p-3 rounded-lg border hover:bg-gray-50 transition-colors">
+                    <div
+                      key={twin.id}
+                      className="flex items-center justify-between p-3 rounded-lg"
+                      style={{
+                        border: '1px solid rgba(20,20,19,0.1)'
+                      }}
+                    >
                       <div className="flex items-center gap-3">
                         <Avatar className="h-8 w-8">
                           <AvatarFallback className="text-xs">
@@ -344,20 +487,37 @@ const StudentDashboard = () => {
                           </AvatarFallback>
                         </Avatar>
                         <div>
-                          <p className="font-medium text-sm">{twin.name}</p>
+                          <p
+                            className="font-medium text-sm"
+                            style={{
+                              color: '#141413',
+                              fontFamily: 'var(--_typography---font--tiempos)'
+                            }}
+                          >
+                            {twin.name}
+                          </p>
                           <div className="flex items-center gap-2">
                             <Badge variant="secondary" className="text-xs">
                               {twin.subject_area}
                             </Badge>
                             <div className="flex items-center gap-1">
                               <Star className="h-3 w-3 fill-yellow-400 text-yellow-400" />
-                              <span className="text-xs text-gray-500">{stats.averageRating}</span>
+                              <span
+                                className="text-xs"
+                                style={{
+                                  color: '#6B7280',
+                                  fontFamily: 'var(--_typography---font--tiempos)'
+                                }}
+                              >
+                                {stats.averageRating}
+                              </span>
                             </div>
                           </div>
                         </div>
                       </div>
                       <Button
                         size="sm"
+                        className="btn-anthropic-primary"
                         onClick={() => startNewConversation(twin.id, twin.name)}
                       >
                         <Plus className="h-4 w-4 mr-1" />
@@ -366,10 +526,10 @@ const StudentDashboard = () => {
                     </div>
                   ))
                 ) : (
-                  <div className="text-center py-8 text-gray-500">
-                    <Users className="h-12 w-12 mx-auto mb-3 text-gray-300" />
-                    <p>No active twins available</p>
-                    <p className="text-sm">Check back later for new professors!</p>
+                  <div className="text-center py-8" style={{ color: '#6B7280' }}>
+                    <Users className="h-12 w-12 mx-auto mb-3" style={{ color: '#6B7280', opacity: 0.3 }} />
+                    <p style={{ fontFamily: 'var(--_typography---font--tiempos)' }}>No active twins available</p>
+                    <p className="text-sm" style={{ fontFamily: 'var(--_typography---font--tiempos)' }}>Check back later for new professors!</p>
                   </div>
                 )}
               </div>
@@ -378,13 +538,26 @@ const StudentDashboard = () => {
         </div>
 
         {/* Learning Progress */}
-        <Card>
+        <Card style={{ backgroundColor: 'white', borderColor: 'rgba(20,20,19,0.1)' }}>
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
+            <CardTitle
+              className="flex items-center gap-2"
+              style={{
+                color: '#141413',
+                fontFamily: 'var(--_typography---font--styrene-a)',
+                fontWeight: 500,
+                letterSpacing: '-0.02em'
+              }}
+            >
               <BookOpen className="h-5 w-5" />
               Learning Progress
             </CardTitle>
-            <CardDescription>
+            <CardDescription
+              style={{
+                color: '#6B7280',
+                fontFamily: 'var(--_typography---font--tiempos)'
+              }}
+            >
               Track your learning journey across different subjects
             </CardDescription>
           </CardHeader>
@@ -393,11 +566,33 @@ const StudentDashboard = () => {
               {['Mathematics', 'Computer Science', 'Physics'].map((subject, index) => (
                 <div key={subject} className="space-y-2">
                   <div className="flex items-center justify-between">
-                    <span className="text-sm font-medium">{subject}</span>
-                    <span className="text-sm text-gray-500">{[75, 60, 90][index]}%</span>
+                    <span
+                      className="text-sm font-medium"
+                      style={{
+                        color: '#141413',
+                        fontFamily: 'var(--_typography---font--styrene-a)'
+                      }}
+                    >
+                      {subject}
+                    </span>
+                    <span
+                      className="text-sm"
+                      style={{
+                        color: '#6B7280',
+                        fontFamily: 'var(--_typography---font--tiempos)'
+                      }}
+                    >
+                      {[75, 60, 90][index]}%
+                    </span>
                   </div>
                   <Progress value={[75, 60, 90][index]} />
-                  <p className="text-xs text-gray-500">
+                  <p
+                    className="text-xs"
+                    style={{
+                      color: '#6B7280',
+                      fontFamily: 'var(--_typography---font--tiempos)'
+                    }}
+                  >
                     {['5 conversations', '3 conversations', '7 conversations'][index]} completed
                   </p>
                 </div>

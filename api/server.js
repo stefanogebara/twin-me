@@ -143,37 +143,39 @@ const handleValidationErrors = (req, res, next) => {
 };
 
 // Import routes
-// import aiRoutes from './routes/ai.js';
-// import documentRoutes from './routes/documents.js';
-// import twinsRoutes from './routes/twins.js';
-// import conversationsRoutes from './routes/conversations.js';
-// import voiceRoutes from './routes/voice.js';
+import aiRoutes from './routes/ai.js';
+import documentRoutes from './routes/documents.js';
+import twinsRoutes from './routes/twins.js';
+import conversationsRoutes from './routes/conversations.js';
+import voiceRoutes from './routes/voice.js';
 import analyticsRoutes from './routes/analytics.js';
 import connectorsRoutes from './routes/connectors.js';
 import dataVerificationRoutes from './routes/data-verification.js';
-// import mcpConnectorsRoutes from './routes/mcp-connectors.js';
+import mcpRoutes from './routes/mcp.js';
 import entertainmentRoutes from './routes/entertainment-connectors.js';
 import additionalEntertainmentRoutes from './routes/additional-entertainment-connectors.js';
 import soulExtractionRoutes from './routes/soul-extraction.js';
 import authRoutes from './routes/auth-simple.js';
+import oauthCallbackRoutes from './routes/oauth-callback.js';
 import { serverDb } from './services/database.js';
 import { sanitizeInput, validateContentType } from './middleware/sanitization.js';
 import { /* handleAuthError, */ handleGeneralError, handle404 } from './middleware/errorHandler.js';
 
-// Temporarily disabled routes that use auth middleware
-// app.use('/api/ai', aiRoutes);
-// app.use('/api/documents', documentRoutes);
-// app.use('/api/twins', twinsRoutes);
-// app.use('/api/conversations', conversationsRoutes);
-// app.use('/api/voice', voiceRoutes);
+// API routes
+app.use('/api/ai', aiRoutes);
+app.use('/api/documents', documentRoutes);
+app.use('/api/twins', twinsRoutes);
+app.use('/api/conversations', conversationsRoutes);
+app.use('/api/voice', voiceRoutes);
 app.use('/api/analytics', analyticsRoutes);
 app.use('/api/connectors', connectorsRoutes);
 app.use('/api/data-verification', dataVerificationRoutes);
-// app.use('/api/mcp', mcpConnectorsRoutes);
+app.use('/api/mcp', mcpRoutes);
 app.use('/api/entertainment', entertainmentRoutes);
 app.use('/api/entertainment', additionalEntertainmentRoutes);
 app.use('/api/soul', soulExtractionRoutes);
 app.use('/api/auth', authRoutes);
+app.use('/oauth', oauthCallbackRoutes); // Unified OAuth callback handler
 
 // Health check endpoint
 app.get('/api/health', async (req, res) => {
