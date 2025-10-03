@@ -3,9 +3,9 @@
  * Combines vector search with Claude API for personalized responses
  */
 
-const { createClient } = require('@supabase/supabase-js');
-const embeddingGenerator = require('./embeddingGenerator');
-const stylometricAnalyzer = require('./stylometricAnalyzer');
+import { createClient } from '@supabase/supabase-js';
+import embeddingGenerator from './embeddingGenerator.js';
+import stylometricAnalyzer from './stylometricAnalyzer.js';
 
 const supabase = createClient(
   process.env.SUPABASE_URL,
@@ -420,4 +420,4 @@ Do NOT simply provide information. Channel their authentic voice, perspective, a
   }
 }
 
-module.exports = new RAGService();
+export default new RAGService();

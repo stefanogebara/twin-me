@@ -3,11 +3,11 @@
  * Orchestrates data extraction from all connected OAuth platforms
  */
 
-const { createClient } = require('@supabase/supabase-js');
-const GitHubExtractor = require('./extractors/githubExtractor');
-const DiscordExtractor = require('./extractors/discordExtractor');
-const LinkedInExtractor = require('./extractors/linkedinExtractor');
-const { decryptToken } = require('./tokenRefresh');
+import { createClient } from '@supabase/supabase-js';
+import GitHubExtractor from './extractors/githubExtractor.js';
+import DiscordExtractor from './extractors/discordExtractor.js';
+import LinkedInExtractor from './extractors/linkedinExtractor.js';
+import { decryptToken } from './encryption.js';
 
 const supabase = createClient(
   process.env.SUPABASE_URL,
@@ -240,4 +240,4 @@ class DataExtractionService {
   }
 }
 
-module.exports = new DataExtractionService();
+export default new DataExtractionService();
