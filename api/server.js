@@ -155,6 +155,7 @@ import mcpRoutes from './routes/mcp.js';
 import entertainmentRoutes from './routes/entertainment-connectors.js';
 import additionalEntertainmentRoutes from './routes/additional-entertainment-connectors.js';
 import soulExtractionRoutes from './routes/soul-extraction.js';
+import soulDataRoutes from './routes/soul-data.js';
 import authRoutes from './routes/auth-simple.js';
 import oauthCallbackRoutes from './routes/oauth-callback.js';
 import { serverDb } from './services/database.js';
@@ -174,6 +175,7 @@ app.use('/api/mcp', mcpRoutes);
 app.use('/api/entertainment', entertainmentRoutes);
 app.use('/api/entertainment', additionalEntertainmentRoutes);
 app.use('/api/soul', soulExtractionRoutes);
+app.use('/api/soul-data', soulDataRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/oauth', oauthCallbackRoutes); // Unified OAuth callback handler
 
