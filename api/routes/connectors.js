@@ -105,11 +105,18 @@ const OAUTH_CONFIGS = {
   linkedin: {
     clientId: process.env.LINKEDIN_CLIENT_ID,
     clientSecret: process.env.LINKEDIN_CLIENT_SECRET,
-    scopes: ['r_liteprofile', 'r_emailaddress'],
+    scopes: ['openid', 'profile', 'email'],
     authUrl: 'https://www.linkedin.com/oauth/v2/authorization',
     tokenUrl: 'https://www.linkedin.com/oauth/v2/accessToken'
   }
 };
+
+// Debug: Check LinkedIn config on load
+console.log('🔍 LinkedIn config on file load:', {
+  hasLinkedIn: !!OAUTH_CONFIGS.linkedin,
+  clientId: OAUTH_CONFIGS.linkedin?.clientId,
+  hasClientSecret: !!OAUTH_CONFIGS.linkedin?.clientSecret
+});
 
 // ====================================================================
 // ROUTES
@@ -132,6 +139,7 @@ router.get('/auth/:provider', (req, res) => {
     }
 
     const config = OAUTH_CONFIGS[provider];
+    console.log(`🔍 Provider: ${provider}, Config exists: ${!!config}, ClientId: ${config?.clientId}`);
     if (!config) {
       return res.status(400).json({
         success: false,
@@ -140,6 +148,7 @@ router.get('/auth/:provider', (req, res) => {
     }
 
     if (!config.clientId) {
+      console.log(`❌ No clientId for ${provider}. Full config:`, config);
       return res.status(500).json({
         success: false,
         error: 'OAuth not configured for this provider'
@@ -158,7 +167,10 @@ router.get('/auth/:provider', (req, res) => {
 
     // Build authorization URL
     // Use connector-specific callback to avoid conflicts with auth OAuth
-    const redirectUri = `${process.env.VITE_APP_URL || 'http://localhost:8086'}/oauth/callback`;
+    // For Spotify, use platform-specific redirect URI if available (Spotify requires HTTPS)
+    const redirectUri = provider === 'spotify' && process.env.SPOTIFY_REDIRECT_URI
+      ? process.env.SPOTIFY_REDIRECT_URI
+      : `${process.env.VITE_APP_URL || 'http://localhost:8086'}/oauth/callback`;
 
     console.log(`🔗 OAuth for ${provider}:`);
     console.log(`📍 Redirect URI: ${redirectUri}`);
