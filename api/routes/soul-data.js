@@ -3,14 +3,14 @@
  * Endpoints for data extraction, processing, and RAG-powered chat
  */
 
-const express = require('express');
+import express from 'express';
 const router = express.Router();
 
-const dataExtractionService = require('../services/dataExtractionService');
-const textProcessor = require('../services/textProcessor');
-const stylometricAnalyzer = require('../services/stylometricAnalyzer');
-const embeddingGenerator = require('../services/embeddingGenerator');
-const ragService = require('../services/ragService');
+import dataExtractionService from '../services/dataExtractionService.js';
+import textProcessor from '../services/textProcessor.js';
+import stylometricAnalyzer from '../services/stylometricAnalyzer.js';
+import embeddingGenerator from '../services/embeddingGenerator.js';
+import ragService from '../services/ragService.js';
 
 /**
  * POST /api/soul-data/extract/:platform
@@ -424,4 +424,4 @@ router.post('/full-pipeline', async (req, res) => {
   }
 });
 
-module.exports = router;
+export default router;

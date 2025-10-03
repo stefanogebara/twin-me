@@ -3,7 +3,7 @@
  * Generates vector embeddings for text content using OpenAI API
  */
 
-const { createClient } = require('@supabase/supabase-js');
+import { createClient } from '@supabase/supabase-js';
 
 const supabase = createClient(
   process.env.SUPABASE_URL,
@@ -307,4 +307,4 @@ class EmbeddingGenerator {
   }
 }
 
-module.exports = new EmbeddingGenerator();
+export default new EmbeddingGenerator();

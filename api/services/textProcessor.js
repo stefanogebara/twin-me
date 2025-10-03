@@ -3,7 +3,7 @@
  * Extracts, cleans, and normalizes text from platform data
  */
 
-const { createClient } = require('@supabase/supabase-js');
+import { createClient } from '@supabase/supabase-js';
 
 const supabase = createClient(
   process.env.SUPABASE_URL,
@@ -357,4 +357,4 @@ class TextProcessor {
   }
 }
 
-module.exports = new TextProcessor();
+export default new TextProcessor();

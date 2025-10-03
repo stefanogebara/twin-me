@@ -3,8 +3,8 @@
  * Extracts commits, issues, PRs, comments, and code reviews from GitHub
  */
 
-const { Octokit } = require('@octokit/rest');
-const { createClient } = require('@supabase/supabase-js');
+import { Octokit } from '@octokit/rest';
+import { createClient } from '@supabase/supabase-js';
 
 const supabase = createClient(
   process.env.SUPABASE_URL,
@@ -432,4 +432,4 @@ class GitHubExtractor {
   }
 }
 
-module.exports = GitHubExtractor;
+export default GitHubExtractor;

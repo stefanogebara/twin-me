@@ -4,7 +4,7 @@
  * Using OpenID Connect scopes
  */
 
-const { createClient } = require('@supabase/supabase-js');
+import { createClient } from '@supabase/supabase-js';
 
 const supabase = createClient(
   process.env.SUPABASE_URL,
@@ -193,4 +193,4 @@ class LinkedInExtractor {
   }
 }
 
-module.exports = LinkedInExtractor;
+export default LinkedInExtractor;

@@ -3,8 +3,8 @@
  * Analyzes user's writing style, personality traits, and communication patterns
  */
 
-const { createClient } = require('@supabase/supabase-js');
-const natural = require('natural');
+import { createClient } from '@supabase/supabase-js';
+import natural from 'natural';
 
 const supabase = createClient(
   process.env.SUPABASE_URL,
@@ -466,4 +466,4 @@ class StylometricAnalyzer {
   }
 }
 
-module.exports = new StylometricAnalyzer();
+export default new StylometricAnalyzer();
