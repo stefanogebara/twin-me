@@ -222,7 +222,7 @@ const InstantTwinOnboarding = () => {
       setTimeout(() => {
         checkConnectionStatus();
         setHasCheckedConnection(true);
-      }, 1000); // Reduced delay
+      }, 500); // Minimal delay for UI smoothness
     } else {
       // Only reset on fresh page load if no connections exist
       const existingConnections = JSON.parse(localStorage.getItem('connectedServices') || '[]');
@@ -264,7 +264,7 @@ const InstantTwinOnboarding = () => {
         setTimeout(() => {
           console.log('🔄 Refreshing connection status after OAuth success');
           checkConnectionStatus();
-        }, 1000);
+        }, 500); // Reduced delay for faster feedback
       }
     };
 
@@ -614,11 +614,11 @@ const InstantTwinOnboarding = () => {
       const result = await response.json();
       console.log('🔍 API Response:', { status: response.status, result });
 
-      if (response.ok && result.id) {
+      if (response.ok && (result.id || result.twin?.id)) {
         // Navigate to the Soul Signature Dashboard
         setTimeout(() => {
           navigate('/soul-signature');
-        }, 2000);
+        }, 500); // Reduced from 2000ms - navigate faster
       } else {
         console.error('🚨 API Error Details:', {
           status: response.status,
@@ -637,7 +637,7 @@ const InstantTwinOnboarding = () => {
       // Fallback navigation to Soul Signature Dashboard
       setTimeout(() => {
         navigate('/soul-signature');
-      }, 2000);
+      }, 500); // Reduced from 2000ms - navigate faster even on error
     }
 
   }, [user, selectedConnectors, navigate]);
@@ -659,11 +659,12 @@ const InstantTwinOnboarding = () => {
                   setCurrentStep(step.id);
                 }
               }}
-              className="flex items-center justify-center w-10 h-10 rounded-full text-sm border-2"
+              className={`flex items-center justify-center w-10 h-10 rounded-full text-sm border-2 ${
+                currentStep >= step.id
+                  ? 'bg-[hsl(var(--claude-accent))] border-[hsl(var(--claude-accent))] text-white'
+                  : 'bg-[hsl(var(--claude-surface))] border-[hsl(var(--claude-border))] text-[hsl(var(--claude-text))]'
+              }`}
               style={{
-                backgroundColor: currentStep >= step.id ? '#D97706' : 'white',
-                borderColor: currentStep >= step.id ? '#D97706' : 'rgba(20,20,19,0.1)',
-                color: currentStep >= step.id ? 'white' : '#141413',
                 cursor: step.id <= currentStep ? 'pointer' : 'default',
                 fontWeight: 500
               }}
@@ -737,10 +738,10 @@ const InstantTwinOnboarding = () => {
     return (
       <div
         key={connector.provider}
-        className="relative p-6 rounded-2xl cursor-pointer border"
+        className="relative p-6 rounded-2xl cursor-pointer border transition-all"
         style={{
-          backgroundColor: 'white',
-          borderColor: isConnected || isSelected ? '#D97706' : 'rgba(20,20,19,0.1)',
+          backgroundColor: 'hsl(var(--claude-surface))',
+          borderColor: isConnected || isSelected ? 'hsl(var(--claude-accent))' : 'hsl(var(--claude-border))',
           borderWidth: isConnected || isSelected ? '2px' : '1px'
         }}
         onClick={() => !isConnected && handleConnectorToggle(connector.provider)}
@@ -766,7 +767,7 @@ const InstantTwinOnboarding = () => {
             <h3
               className="text-lg"
               style={{
-                color: '#141413',
+                color: 'hsl(var(--claude-text))',
                 fontFamily: 'var(--_typography---font--styrene-a)',
                 fontWeight: 500,
                 letterSpacing: '-0.02em'
@@ -803,10 +804,8 @@ const InstantTwinOnboarding = () => {
             {connector.dataTypes.slice(0, 2).map((type, idx) => (
               <span
                 key={idx}
-                className="text-xs px-2 py-1 rounded-full"
+                className="text-xs px-2 py-1 rounded-full bg-[hsl(var(--claude-surface-raised))] text-[hsl(var(--claude-text-muted))]"
                 style={{
-                  backgroundColor: '#F5F5F5',
-                  color: '#6B7280',
                   fontFamily: 'var(--_typography---font--tiempos)'
                 }}
               >
@@ -815,10 +814,8 @@ const InstantTwinOnboarding = () => {
             ))}
             {connector.dataTypes.length > 2 && (
               <span
-                className="text-xs px-2 py-1 rounded-full"
+                className="text-xs px-2 py-1 rounded-full bg-[hsl(var(--claude-surface-raised))] text-[hsl(var(--claude-text-muted))]"
                 style={{
-                  backgroundColor: '#F5F5F5',
-                  color: '#6B7280',
                   fontFamily: 'var(--_typography---font--tiempos)'
                 }}
               >
@@ -859,15 +856,11 @@ const InstantTwinOnboarding = () => {
           <div className="mt-3 space-y-2">
             {/* Connected Badge */}
             <div
-              className="p-3 rounded-xl border"
-              style={{
-                backgroundColor: '#F5F5F5',
-                borderColor: '#D97706'
-              }}
+              className="p-3 rounded-xl border bg-[hsl(var(--claude-surface-raised))] border-[hsl(var(--claude-accent))]"
             >
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <CheckCircle2 className="w-4 h-4" style={{ color: '#D97706' }} />
+                  <CheckCircle2 className="w-4 h-4 text-[hsl(var(--claude-accent))]" />
                   <span
                     className="text-sm"
                     style={{
@@ -888,24 +881,12 @@ const InstantTwinOnboarding = () => {
                     disconnectService(connector.provider);
                   }}
                   disabled={disconnectingProvider === connector.provider}
-                  className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs transition-colors disabled:opacity-50 disabled:cursor-not-allowed bg-[hsl(var(--claude-surface))] hover:bg-[hsl(var(--claude-surface-raised))] border border-red-200 dark:border-red-900"
                   style={{
-                    backgroundColor: disconnectingProvider === connector.provider ? '#F3F4F6' : 'white',
                     color: '#EF4444',
-                    border: '1px solid #FEE2E2',
                     fontFamily: 'var(--_typography---font--styrene-a)',
                     fontWeight: 500,
                     letterSpacing: '-0.02em'
-                  }}
-                  onMouseEnter={(e) => {
-                    if (disconnectingProvider !== connector.provider) {
-                      e.currentTarget.style.backgroundColor = '#FEF2F2';
-                    }
-                  }}
-                  onMouseLeave={(e) => {
-                    if (disconnectingProvider !== connector.provider) {
-                      e.currentTarget.style.backgroundColor = 'white';
-                    }
                   }}
                 >
                   {disconnectingProvider === connector.provider ? (
@@ -1088,9 +1069,9 @@ const InstantTwinOnboarding = () => {
   // ====================================================================
 
   return (
-    <div className="min-h-screen" style={{ backgroundColor: '#FAF9F5' }}>
+    <div className="min-h-screen bg-[hsl(var(--claude-bg))]">
       {/* Header */}
-      <div className="sticky top-0 z-50 border-b" style={{ backgroundColor: '#FAF9F5', borderColor: 'rgba(20,20,19,0.1)' }}>
+      <div className="sticky top-0 z-50 border-b bg-[hsl(var(--claude-surface))]" style={{ borderColor: 'hsl(var(--claude-border))' }}>
         <div className="max-w-7xl mx-auto px-6 py-4">
           <div className="flex items-center justify-between">
             {/* Back Navigation */}
@@ -1102,8 +1083,7 @@ const InstantTwinOnboarding = () => {
                   navigate('/');
                 }
               }}
-              className="flex items-center gap-2 text-sm px-3 py-2 rounded-lg"
-              style={{ color: '#141413', backgroundColor: 'white' }}
+              className="flex items-center gap-2 text-sm px-3 py-2 rounded-lg bg-[hsl(var(--claude-surface-raised))] text-[hsl(var(--claude-text))] hover:opacity-80 transition-opacity"
             >
               <ArrowLeft className="w-4 h-4" />
               {currentStep > 1 ? `Back to ${STEPS[currentStep - 2].name}` : 'Back to Home'}
@@ -1116,7 +1096,7 @@ const InstantTwinOnboarding = () => {
                   fontFamily: 'var(--_typography---font--styrene-a)',
                   fontWeight: 500,
                   letterSpacing: '-0.02em',
-                  color: '#141413'
+                  color: 'hsl(var(--claude-text))'
                 }}
               >
                 Discover Your Soul Signature
@@ -1124,7 +1104,7 @@ const InstantTwinOnboarding = () => {
               <p
                 className="text-sm"
                 style={{
-                  color: '#6B7280',
+                  color: 'hsl(var(--claude-text-muted))',
                   fontFamily: 'var(--_typography---font--tiempos)'
                 }}
               >
@@ -1268,11 +1248,8 @@ const InstantTwinOnboarding = () => {
                 <div>
                   <div className="flex items-center justify-center gap-2 mb-6">
                     <div
-                      className="px-3 py-1 border rounded-full text-sm"
+                      className="px-3 py-1 border rounded-full text-sm bg-[hsl(var(--claude-surface))] border-[hsl(var(--claude-accent))] text-[hsl(var(--claude-accent))]"
                       style={{
-                        backgroundColor: 'white',
-                        borderColor: '#D97706',
-                        color: '#D97706',
                         fontFamily: 'var(--_typography---font--styrene-a)',
                         fontWeight: 500
                       }}
@@ -1290,11 +1267,8 @@ const InstantTwinOnboarding = () => {
                   <div className="text-center">
                     <button
                       onClick={() => setShowAllConnectors(true)}
-                      className="inline-flex items-center gap-2 px-6 py-3 rounded-xl border text-sm"
+                      className="inline-flex items-center gap-2 px-6 py-3 rounded-xl border text-sm bg-[hsl(var(--claude-surface))] border-[hsl(var(--claude-border))] text-[hsl(var(--claude-text))] hover:bg-[hsl(var(--claude-surface-raised))] transition-colors"
                       style={{
-                        backgroundColor: 'white',
-                        borderColor: 'rgba(20,20,19,0.1)',
-                        color: '#141413',
                         fontFamily: 'var(--_typography---font--styrene-a)',
                         fontWeight: 500
                       }}
@@ -1319,11 +1293,8 @@ const InstantTwinOnboarding = () => {
                   <div>
                     <div className="flex items-center justify-center gap-2 mb-6">
                       <div
-                        className="px-3 py-1 border rounded-full text-sm"
+                        className="px-3 py-1 border rounded-full text-sm bg-[hsl(var(--claude-surface))] border-[hsl(var(--claude-border))] text-[hsl(var(--claude-text-muted))]"
                         style={{
-                          backgroundColor: 'white',
-                          borderColor: 'rgba(20,20,19,0.1)',
-                          color: '#6B7280',
                           fontFamily: 'var(--_typography---font--styrene-a)',
                           fontWeight: 500
                         }}
@@ -1363,11 +1334,7 @@ const InstantTwinOnboarding = () => {
 
             {/* Action Section */}
             <div
-              className="text-center rounded-3xl p-8 border"
-              style={{
-                backgroundColor: 'white',
-                borderColor: 'rgba(20,20,19,0.1)'
-              }}
+              className="text-center rounded-3xl p-8 border bg-[hsl(var(--claude-surface))] border-[hsl(var(--claude-border))]"
             >
               {connectedServices.length > 0 ? (
                 <div>
@@ -1463,9 +1430,9 @@ const InstantTwinOnboarding = () => {
             <div className="max-w-4xl mx-auto mb-12">
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 {/* Military Grade Encryption */}
-                <div className="text-center p-6 rounded-2xl border" style={{ backgroundColor: 'white', borderColor: 'rgba(20,20,19,0.1)' }}>
-                  <div className="w-16 h-16 mx-auto mb-4 rounded-2xl flex items-center justify-center" style={{ backgroundColor: '#F5F5F5' }}>
-                    <Shield className="w-8 h-8" style={{ color: '#D97706' }} />
+                <div className="text-center p-6 rounded-2xl border bg-[hsl(var(--claude-surface))] border-[hsl(var(--claude-border))]">
+                  <div className="w-16 h-16 mx-auto mb-4 rounded-2xl flex items-center justify-center bg-[hsl(var(--claude-surface-raised))]">
+                    <Shield className="w-8 h-8 text-[hsl(var(--claude-accent))]" />
                   </div>
                   <h3
                     className="text-lg mb-2"
@@ -1490,9 +1457,9 @@ const InstantTwinOnboarding = () => {
                 </div>
 
                 {/* You Control Everything */}
-                <div className="text-center p-6 rounded-2xl border" style={{ backgroundColor: 'white', borderColor: 'rgba(20,20,19,0.1)' }}>
-                  <div className="w-16 h-16 mx-auto mb-4 rounded-2xl flex items-center justify-center" style={{ backgroundColor: '#F5F5F5' }}>
-                    <Settings className="w-8 h-8" style={{ color: '#D97706' }} />
+                <div className="text-center p-6 rounded-2xl border bg-[hsl(var(--claude-surface))] border-[hsl(var(--claude-border))]">
+                  <div className="w-16 h-16 mx-auto mb-4 rounded-2xl flex items-center justify-center bg-[hsl(var(--claude-surface-raised))]">
+                    <Settings className="w-8 h-8 text-[hsl(var(--claude-accent))]" />
                   </div>
                   <h3
                     className="text-lg mb-2"
@@ -1517,9 +1484,9 @@ const InstantTwinOnboarding = () => {
                 </div>
 
                 {/* Zero Data Retention */}
-                <div className="text-center p-6 rounded-2xl border" style={{ backgroundColor: 'white', borderColor: 'rgba(20,20,19,0.1)' }}>
-                  <div className="w-16 h-16 mx-auto mb-4 rounded-2xl flex items-center justify-center" style={{ backgroundColor: '#F5F5F5' }}>
-                    <Eye className="w-8 h-8" style={{ color: '#D97706' }} />
+                <div className="text-center p-6 rounded-2xl border bg-[hsl(var(--claude-surface))] border-[hsl(var(--claude-border))]">
+                  <div className="w-16 h-16 mx-auto mb-4 rounded-2xl flex items-center justify-center bg-[hsl(var(--claude-surface-raised))]">
+                    <Eye className="w-8 h-8 text-[hsl(var(--claude-accent))]" />
                   </div>
                   <h3
                     className="text-lg mb-2"
@@ -1547,7 +1514,7 @@ const InstantTwinOnboarding = () => {
 
             {/* What Makes This Special */}
             <div className="max-w-2xl mx-auto mb-12 text-center">
-              <div className="p-8 rounded-3xl border" style={{ backgroundColor: 'white', borderColor: '#D97706' }}>
+              <div className="p-8 rounded-3xl border bg-[hsl(var(--claude-surface))] border-[hsl(var(--claude-accent))]">
                 <h3
                   className="text-xl mb-4"
                   style={{

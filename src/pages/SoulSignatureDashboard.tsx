@@ -5,7 +5,7 @@ import {
   Sparkles, Music, Film, Gamepad2, Heart, Brain, Globe,
   ChevronRight, Play, Pause, Lock, Unlock, Fingerprint,
   User, Briefcase, Palette, Calendar, Mail, MessageSquare,
-  Instagram, Twitter, Github, Linkedin, Youtube, Users
+  Instagram, Twitter, Github, Linkedin, Youtube, Users, CheckCircle2
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -14,6 +14,7 @@ import { Slider } from '@/components/ui/slider';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import PrivacySpectrumDashboard from '@/components/PrivacySpectrumDashboard';
+import { SoulDataExtractor } from '@/components/SoulDataExtractor';
 
 interface ConnectionStatus {
   spotify: boolean;
@@ -53,6 +54,7 @@ const SoulSignatureDashboard: React.FC = () => {
     professional: null
   });
   const [hasExtractedData, setHasExtractedData] = useState(false);
+  const [hasConnectedServices, setHasConnectedServices] = useState(false);
 
   // Authentication check
   useEffect(() => {
@@ -61,6 +63,24 @@ const SoulSignatureDashboard: React.FC = () => {
       return;
     }
   }, [isSignedIn, navigate]);
+
+  // Check for already connected services from localStorage
+  useEffect(() => {
+    const storedConnections = JSON.parse(localStorage.getItem('connectedServices') || '[]');
+    if (storedConnections.length > 0) {
+      console.log('📱 Found existing connections:', storedConnections);
+      setHasConnectedServices(true);
+
+      // Update connection status from localStorage
+      const newConnections: ConnectionStatus = {...connections};
+      storedConnections.forEach((service: string) => {
+        if (service in newConnections) {
+          newConnections[service as keyof ConnectionStatus] = true;
+        }
+      });
+      setConnections(newConnections);
+    }
+  }, []);
 
   // Animated extraction simulation
   useEffect(() => {
@@ -333,7 +353,7 @@ const SoulSignatureDashboard: React.FC = () => {
   const currentCluster = clusters.find(c => c.id === activeCluster)!;
 
   return (
-    <div className="min-h-screen bg-[#FAF9F5] overflow-hidden relative">
+    <div className="min-h-screen bg-[hsl(var(--claude-bg))] overflow-hidden relative">
       {/* Main Content */}
       <div className="relative z-10 p-8 max-w-7xl mx-auto">
         {/* Header */}
@@ -345,7 +365,7 @@ const SoulSignatureDashboard: React.FC = () => {
               style={{
                 fontFamily: 'var(--_typography---font--styrene-a)',
                 letterSpacing: '-0.02em',
-                color: '#141413'
+                color: 'hsl(var(--claude-text))'
               }}
             >
               Soul Signature Extraction
@@ -356,7 +376,7 @@ const SoulSignatureDashboard: React.FC = () => {
             className="text-lg"
             style={{
               fontFamily: 'var(--_typography---font--tiempos)',
-              color: '#6B7280'
+              color: 'hsl(var(--claude-text-muted))'
             }}
           >
             Discovering your authentic digital essence through your choices and preferences
@@ -365,7 +385,7 @@ const SoulSignatureDashboard: React.FC = () => {
             className="text-sm mt-4 max-w-2xl mx-auto"
             style={{
               fontFamily: 'var(--_typography---font--tiempos)',
-              color: '#6B7280'
+              color: 'hsl(var(--claude-text-muted))'
             }}
           >
             <strong style={{ color: '#141413' }}>Twin Me</strong> analyzes your digital footprint to create an authentic personality profile.
@@ -403,6 +423,31 @@ const SoulSignatureDashboard: React.FC = () => {
           ))}
         </div>
 
+        {/* Soul Data Extractor - New Real Backend Integration */}
+        <div className="mb-8">
+          <SoulDataExtractor
+            userId={user?.id || user?.email || 'anonymous-user'}
+            onExtractionComplete={(data) => {
+              console.log('Extraction complete:', data);
+              setHasExtractedData(true);
+              // Update insights from real personality data
+              if (data.profile?.success) {
+                const profile = data.profile.profile;
+                const insights = [
+                  `🧠 Communication: ${profile.communication_style}`,
+                  `😄 Humor: ${profile.humor_style}`,
+                  `📊 Confidence: ${(profile.confidence_score * 100).toFixed(0)}%`,
+                  `✍️ Analyzed from ${profile.sample_size} samples`
+                ];
+                setExtractedInsights(prev => ({
+                  ...prev,
+                  personal: insights
+                }));
+              }
+            }}
+          />
+        </div>
+
         {/* Main Dashboard Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Connectors Panel */}
@@ -410,8 +455,8 @@ const SoulSignatureDashboard: React.FC = () => {
             <Card
               className="p-6 h-full"
               style={{
-                backgroundColor: 'white',
-                border: '1px solid rgba(20,20,19,0.1)'
+                backgroundColor: 'hsl(var(--claude-surface))',
+                border: '1px solid hsl(var(--claude-border))'
               }}
             >
               <h3
@@ -420,32 +465,52 @@ const SoulSignatureDashboard: React.FC = () => {
                   fontFamily: 'var(--_typography---font--styrene-a)',
                   fontWeight: 500,
                   letterSpacing: '-0.02em',
-                  color: '#141413'
+                  color: 'hsl(var(--claude-text))'
                 }}
               >
-                <Globe className="w-5 h-5" style={{ color: '#141413' }} />
-                Data Sources
+                <Globe className="w-5 h-5" style={{ color: 'hsl(var(--claude-text))' }} />
+                {hasConnectedServices ? 'Connected Services' : 'Data Sources'}
               </h3>
+
+              {/* Show summary if already connected from onboarding */}
+              {hasConnectedServices && (
+                <div className="mb-6 p-4 rounded-lg bg-[hsl(var(--claude-surface-raised))] border border-[hsl(var(--claude-accent))]">
+                  <div className="flex items-center gap-2 mb-2">
+                    <CheckCircle2 className="w-5 h-5" style={{ color: 'hsl(var(--claude-accent))' }} />
+                    <p style={{
+                      fontFamily: 'var(--_typography---font--styrene-a)',
+                      fontWeight: 500,
+                      color: 'hsl(var(--claude-accent))'
+                    }}>
+                      Services Connected
+                    </p>
+                  </div>
+                  <p className="text-sm" style={{
+                    fontFamily: 'var(--_typography---font--tiempos)',
+                    color: 'hsl(var(--claude-text-muted))'
+                  }}>
+                    Your digital platforms are connected. Ready to extract your soul signature.
+                  </p>
+                </div>
+              )}
+
               <div className="space-y-3">
                 {currentCluster.connectors.map((connector) => (
                   <button
                     key={connector.key}
                     onClick={() => handleConnectorClick(activeCluster, connector.key)}
                     className={cn(
-                      "w-full p-3 rounded-lg",
-                      "flex items-center justify-between"
+                      "w-full p-3 rounded-lg bg-[hsl(var(--claude-surface-raised))]",
+                      "flex items-center justify-between",
+                      connector.status ? 'border border-[hsl(var(--claude-accent))]' : 'border border-[hsl(var(--claude-border))]'
                     )}
-                    style={{
-                      backgroundColor: connector.status ? '#F5F5F5' : '#F5F5F5',
-                      border: connector.status ? '1px solid #D97706' : '1px solid rgba(20,20,19,0.1)'
-                    }}
                   >
                     <div className="flex items-center gap-3">
                       <span style={{ color: '#141413' }}>{connector.icon}</span>
                       <span
                         style={{
                           fontFamily: 'var(--_typography---font--tiempos)',
-                          color: '#141413'
+                          color: 'hsl(var(--claude-text))'
                         }}
                       >
                         {connector.name}
@@ -453,11 +518,7 @@ const SoulSignatureDashboard: React.FC = () => {
                     </div>
                     {connector.status ? (
                       <Badge
-                        style={{
-                          backgroundColor: '#F5F5F5',
-                          color: '#D97706',
-                          border: '1px solid #D97706'
-                        }}
+                        className="bg-[hsl(var(--claude-surface-raised))] text-[hsl(var(--claude-accent))] border border-[hsl(var(--claude-accent))]"
                       >
                         Connected
                       </Badge>
@@ -477,7 +538,7 @@ const SoulSignatureDashboard: React.FC = () => {
                     style={{
                       fontFamily: 'var(--_typography---font--styrene-a)',
                       fontWeight: 500,
-                      color: '#141413'
+                      color: 'hsl(var(--claude-text))'
                     }}
                   >
                     Soul Analysis Options
@@ -489,12 +550,9 @@ const SoulSignatureDashboard: React.FC = () => {
                         onClick={() => extractSoulSignature(action.id)}
                         disabled={isExtracting}
                         variant="outline"
-                        className="w-full justify-start text-left p-4 h-auto"
+                        className="w-full justify-start text-left p-4 h-auto bg-[hsl(var(--claude-surface-raised))] border border-[hsl(var(--claude-border))] text-[hsl(var(--claude-text))]"
                         style={{
-                          backgroundColor: '#F5F5F5',
-                          border: '1px solid rgba(20,20,19,0.1)',
-                          fontFamily: 'var(--_typography---font--tiempos)',
-                          color: '#141413'
+                          fontFamily: 'var(--_typography---font--tiempos)'
                         }}
                       >
                         <div>
@@ -502,7 +560,7 @@ const SoulSignatureDashboard: React.FC = () => {
                             className="font-medium text-sm"
                             style={{
                               fontFamily: 'var(--_typography---font--styrene-a)',
-                              color: '#141413'
+                              color: 'hsl(var(--claude-text))'
                             }}
                           >
                             {action.name}
@@ -530,8 +588,8 @@ const SoulSignatureDashboard: React.FC = () => {
             <Card
               className="p-6 h-full"
               style={{
-                backgroundColor: 'white',
-                border: '1px solid rgba(20,20,19,0.1)'
+                backgroundColor: 'hsl(var(--claude-surface))',
+                border: '1px solid hsl(var(--claude-border))'
               }}
             >
               <h3
@@ -540,7 +598,7 @@ const SoulSignatureDashboard: React.FC = () => {
                   fontFamily: 'var(--_typography---font--styrene-a)',
                   fontWeight: 500,
                   letterSpacing: '-0.02em',
-                  color: '#141413'
+                  color: 'hsl(var(--claude-text))'
                 }}
               >
                 Soul Signature Visualization
@@ -572,7 +630,7 @@ const SoulSignatureDashboard: React.FC = () => {
                       className="text-2xl font-medium"
                       style={{
                         fontFamily: 'var(--_typography---font--styrene-a)',
-                        color: '#141413'
+                        color: 'hsl(var(--claude-text))'
                       }}
                     >
                       87%
@@ -589,7 +647,7 @@ const SoulSignatureDashboard: React.FC = () => {
                       className="flex justify-between text-sm mb-2"
                       style={{
                         fontFamily: 'var(--_typography---font--tiempos)',
-                        color: '#141413'
+                        color: 'hsl(var(--claude-text))'
                       }}
                     >
                       <span>Extracting Soul Signature...</span>
@@ -621,8 +679,8 @@ const SoulSignatureDashboard: React.FC = () => {
             <Card
               className="p-6 h-full"
               style={{
-                backgroundColor: 'white',
-                border: '1px solid rgba(20,20,19,0.1)'
+                backgroundColor: 'hsl(var(--claude-surface))',
+                border: '1px solid hsl(var(--claude-border))'
               }}
             >
               <h3
@@ -631,7 +689,7 @@ const SoulSignatureDashboard: React.FC = () => {
                   fontFamily: 'var(--_typography---font--styrene-a)',
                   fontWeight: 500,
                   letterSpacing: '-0.02em',
-                  color: '#141413'
+                  color: 'hsl(var(--claude-text))'
                 }}
               >
                 <Brain className="w-5 h-5" style={{ color: '#141413' }} />
@@ -683,11 +741,7 @@ const SoulSignatureDashboard: React.FC = () => {
                   currentCluster.insights.map((insight, index) => (
                     <div
                       key={index}
-                      className="p-3 rounded-lg"
-                      style={{
-                        backgroundColor: '#F5F5F5',
-                        border: '1px solid rgba(20,20,19,0.1)'
-                      }}
+                      className="p-3 rounded-lg bg-[hsl(var(--claude-surface-raised))] border border-[hsl(var(--claude-border))]"
                     >
                       <div className="flex items-start gap-2">
                         <div
@@ -698,7 +752,7 @@ const SoulSignatureDashboard: React.FC = () => {
                           className="text-sm"
                           style={{
                             fontFamily: 'var(--_typography---font--tiempos)',
-                            color: '#141413'
+                            color: 'hsl(var(--claude-text))'
                           }}
                         >
                           {insight}
@@ -739,10 +793,24 @@ const SoulSignatureDashboard: React.FC = () => {
         {/* Action Buttons */}
         <div className="mt-12 flex justify-center gap-4">
           <Button
-            onClick={() => navigate('/twin-profile-preview')}
+            onClick={() => navigate('/soul-chat')}
             style={{
               backgroundColor: '#D97706',
               color: 'white',
+              fontFamily: 'var(--_typography---font--styrene-a)',
+              fontWeight: 500
+            }}
+            disabled={!hasExtractedData}
+          >
+            <MessageSquare className="w-4 h-4 mr-2" />
+            Chat with Your Twin
+          </Button>
+          <Button
+            onClick={() => navigate('/twin-profile-preview')}
+            variant="outline"
+            style={{
+              border: '2px solid #D97706',
+              color: '#D97706',
               fontFamily: 'var(--_typography---font--styrene-a)',
               fontWeight: 500
             }}

@@ -59,19 +59,24 @@ app.use(cors({
   optionsSuccessStatus: 200,
 }));
 
-// Rate limiting
+// Rate limiting - more generous in development
+const isDevelopment = process.env.NODE_ENV === 'development';
 const apiLimiter = rateLimit({
   windowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS) || 15 * 60 * 1000, // 15 minutes
-  max: parseInt(process.env.RATE_LIMIT_MAX_REQUESTS) || 100, // limit each IP to 100 requests per windowMs
+  max: isDevelopment ? 1000 : (parseInt(process.env.RATE_LIMIT_MAX_REQUESTS) || 100), // 1000 in dev, 100 in prod
   message: {
     error: 'Too many requests from this IP, please try again later.',
     retryAfter: 15 * 60 * 1000
   },
   standardHeaders: true,
   legacyHeaders: false,
+  skip: (req) => {
+    // Skip rate limiting for auth verification in development
+    return isDevelopment && req.path === '/auth/verify';
+  }
 });
 
-// Apply rate limiting to all API routes
+// Apply rate limiting to all API routes (except skipped ones)
 app.use('/api/', apiLimiter);
 
 // Stricter rate limiting for AI endpoints
@@ -158,6 +163,8 @@ import soulExtractionRoutes from './routes/soul-extraction.js';
 import soulDataRoutes from './routes/soul-data.js';
 import authRoutes from './routes/auth-simple.js';
 import oauthCallbackRoutes from './routes/oauth-callback.js';
+import dashboardRoutes from './routes/dashboard.js';
+import trainingRoutes from './routes/training.js';
 import { serverDb } from './services/database.js';
 import { sanitizeInput, validateContentType } from './middleware/sanitization.js';
 import { /* handleAuthError, */ handleGeneralError, handle404 } from './middleware/errorHandler.js';
@@ -178,6 +185,8 @@ app.use('/api/soul', soulExtractionRoutes);
 app.use('/api/soul-data', soulDataRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/oauth', oauthCallbackRoutes); // Unified OAuth callback handler
+app.use('/api/dashboard', dashboardRoutes);
+app.use('/api/training', trainingRoutes);
 
 // Health check endpoint
 app.get('/api/health', async (req, res) => {
