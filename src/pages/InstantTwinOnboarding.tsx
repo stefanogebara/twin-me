@@ -679,7 +679,7 @@ const InstantTwinOnboarding = () => {
             <div className="ml-3 text-sm">
               <div
                 style={{
-                  color: currentStep >= step.id ? '#141413' : '#6B7280',
+                  color: currentStep >= step.id ? 'hsl(var(--claude-text))' : '#6B7280',
                   fontFamily: 'var(--_typography---font--styrene-a)',
                   fontWeight: 500,
                   letterSpacing: '-0.02em'
@@ -950,7 +950,7 @@ const InstantTwinOnboarding = () => {
               fontFamily: 'var(--_typography---font--styrene-a)',
               fontWeight: 500,
               letterSpacing: '-0.02em',
-              color: '#141413'
+              color: 'hsl(var(--claude-text))'
             }}
           >
             {generationProgress.progress === 100 ? 'Your Soul Signature is Ready!' : 'Discovering Your Soul Signature'}
@@ -1135,7 +1135,7 @@ const InstantTwinOnboarding = () => {
                   fontFamily: 'var(--_typography---font--styrene-a)',
                   fontWeight: 500,
                   letterSpacing: '-0.02em',
-                  color: '#141413'
+                  color: 'hsl(var(--claude-text))'
                 }}
               >
                 Discover Your Soul Signature
@@ -1224,7 +1224,7 @@ const InstantTwinOnboarding = () => {
               <h3
                 className="text-2xl text-center mb-4"
                 style={{
-                  color: '#141413',
+                  color: 'hsl(var(--claude-text))',
                   fontFamily: 'var(--_typography---font--styrene-a)',
                   fontWeight: 500,
                   letterSpacing: '-0.02em'
@@ -1374,7 +1374,7 @@ const InstantTwinOnboarding = () => {
                   <div
                     className="text-lg mb-4"
                     style={{
-                      color: '#141413',
+                      color: 'hsl(var(--claude-text))',
                       fontFamily: 'var(--_typography---font--styrene-a)',
                       fontWeight: 500,
                       letterSpacing: '-0.02em'
@@ -1437,7 +1437,7 @@ const InstantTwinOnboarding = () => {
                   <h3
                     className="text-lg mb-2"
                     style={{
-                      color: '#141413',
+                      color: 'hsl(var(--claude-text))',
                       fontFamily: 'var(--_typography---font--styrene-a)',
                       fontWeight: 500,
                       letterSpacing: '-0.02em'
@@ -1464,7 +1464,7 @@ const InstantTwinOnboarding = () => {
                   <h3
                     className="text-lg mb-2"
                     style={{
-                      color: '#141413',
+                      color: 'hsl(var(--claude-text))',
                       fontFamily: 'var(--_typography---font--styrene-a)',
                       fontWeight: 500,
                       letterSpacing: '-0.02em'
@@ -1491,7 +1491,7 @@ const InstantTwinOnboarding = () => {
                   <h3
                     className="text-lg mb-2"
                     style={{
-                      color: '#141413',
+                      color: 'hsl(var(--claude-text))',
                       fontFamily: 'var(--_typography---font--styrene-a)',
                       fontWeight: 500,
                       letterSpacing: '-0.02em'
@@ -1518,7 +1518,7 @@ const InstantTwinOnboarding = () => {
                 <h3
                   className="text-xl mb-4"
                   style={{
-                    color: '#141413',
+                    color: 'hsl(var(--claude-text))',
                     fontFamily: 'var(--_typography---font--styrene-a)',
                     fontWeight: 500,
                     letterSpacing: '-0.02em'
