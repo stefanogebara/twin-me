@@ -181,8 +181,11 @@ router.post('/', authenticateUser, userRateLimit(20, 15 * 60 * 1000), validateTw
       });
     }
 
+    // Return consistent structure that matches what frontend expects
     res.status(201).json({
-      twin,
+      success: true,
+      id: twin.id,
+      twin: twin,
       message: 'Digital twin created successfully',
       timestamp: new Date().toISOString()
     });

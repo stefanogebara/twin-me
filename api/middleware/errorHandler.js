@@ -207,7 +207,13 @@ const handle404 = (req, res) => {
       '/api/twins/:id': 'GET, PUT, DELETE - Specific twin',
       '/api/conversations': 'GET, POST - Conversations',
       '/api/documents': 'POST - Document upload',
-      '/api/voice': 'POST - Voice generation'
+      '/api/voice': 'POST - Voice generation',
+      '/api/dashboard/stats': 'GET - Dashboard statistics',
+      '/api/dashboard/activity': 'GET - Recent activity',
+      '/api/training/status': 'GET - Training status',
+      '/api/training/start': 'POST - Start training',
+      '/api/training/stop': 'POST - Stop training',
+      '/api/training/reset': 'POST - Reset model'
     }
   });
 };

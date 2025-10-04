@@ -35,6 +35,33 @@ class DataExtractionService {
         throw new Error(`No connected ${platform} account found for user`);
       }
 
+      // Check if token has expired
+      if (connector.expires_at && new Date(connector.expires_at) < new Date()) {
+        console.warn(`[DataExtraction] Token expired for ${platform}`);
+
+        // Mark connector as needing re-authentication
+        await supabase
+          .from('data_connectors')
+          .update({
+            connected: false,
+            metadata: {
+              ...connector.metadata,
+              token_expired: true,
+              expired_at: new Date().toISOString()
+            }
+          })
+          .eq('id', connector.id);
+
+        return {
+          success: false,
+          platform,
+          error: 'TOKEN_EXPIRED',
+          message: `Your ${platform} connection has expired. Please reconnect your account.`,
+          itemsExtracted: 0,
+          requiresReauth: true
+        };
+      }
+
       // Decrypt access token
       const accessToken = decryptToken(connector.access_token);
 
@@ -50,6 +77,22 @@ class DataExtractionService {
         case 'linkedin':
           extractor = new LinkedInExtractor(accessToken);
           break;
+        case 'youtube':
+        case 'google_calendar':
+        case 'google_gmail':
+        case 'spotify':
+        case 'slack':
+        case 'twitch':
+        case 'reddit':
+          // These platforms are defined but extractors not yet implemented
+          console.warn(`[DataExtraction] Extractor for ${platform} not yet implemented - skipping`);
+          return {
+            success: false,
+            platform,
+            message: `Extractor for ${platform} is not yet implemented`,
+            itemsExtracted: 0,
+            skipped: true
+          };
         default:
           throw new Error(`Unsupported platform: ${platform}`);
       }
@@ -63,6 +106,36 @@ class DataExtractionService {
       return result;
     } catch (error) {
       console.error(`[DataExtraction] Error extracting from ${platform}:`, error);
+
+      // Handle specific error types
+      if (error.status === 401 || error.message?.includes('401') || error.message?.includes('Unauthorized')) {
+        console.warn(`[DataExtraction] 401 Unauthorized for ${platform} - token likely expired or revoked`);
+
+        // Mark connector as disconnected
+        await supabase
+          .from('data_connectors')
+          .update({
+            connected: false,
+            metadata: {
+              ...connector?.metadata,
+              auth_error: true,
+              last_error: '401 Unauthorized - Token expired or revoked',
+              error_timestamp: new Date().toISOString()
+            }
+          })
+          .eq('user_id', userId)
+          .eq('provider', platform);
+
+        return {
+          success: false,
+          platform,
+          error: 'UNAUTHORIZED',
+          message: `Authentication failed for ${platform}. Please reconnect your account.`,
+          itemsExtracted: 0,
+          requiresReauth: true
+        };
+      }
+
       throw error;
     }
   }

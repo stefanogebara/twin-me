@@ -9,6 +9,7 @@ import { LoadingProvider } from "./contexts/LoadingContext";
 import { ErrorProvider } from "./contexts/ErrorContext";
 import { AnalyticsProvider } from "./contexts/AnalyticsContext";
 import ErrorNotification from "./components/ui/ErrorNotification";
+import { SidebarLayout } from "./components/layout/SidebarLayout";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
@@ -32,9 +33,12 @@ import CustomAuth from "./pages/CustomAuth";
 import ChooseMode from "./pages/ChooseMode";
 import ChooseTwinType from "./pages/ChooseTwinType";
 import SoulSignatureDashboard from "./pages/SoulSignatureDashboard";
+import SoulChatPage from "./pages/SoulChatPage";
 import PrivacySpectrumDashboard from "./components/PrivacySpectrumDashboard";
 import TwinProfilePreview from "./components/TwinProfilePreview";
 import { ThemeProvider } from "./contexts/ThemeContext";
+import Dashboard from "./pages/Dashboard";
+import Training from "./pages/Training";
 
 const queryClient = new QueryClient();
 
@@ -76,10 +80,36 @@ const App = () => (
               </>
             } />
             <Route path="/legacy" element={<Index />} />
+            <Route path="/dashboard" element={
+              <>
+                <SignedIn>
+                  <SidebarLayout>
+                    <Dashboard />
+                  </SidebarLayout>
+                </SignedIn>
+                <SignedOut>
+                  <CustomAuth />
+                </SignedOut>
+              </>
+            } />
+            <Route path="/training" element={
+              <>
+                <SignedIn>
+                  <SidebarLayout>
+                    <Training />
+                  </SidebarLayout>
+                </SignedIn>
+                <SignedOut>
+                  <CustomAuth />
+                </SignedOut>
+              </>
+            } />
             <Route path="/talk-to-twin" element={
               <>
                 <SignedIn>
-                  <TalkToTwin />
+                  <SidebarLayout>
+                    <TalkToTwin />
+                  </SidebarLayout>
                 </SignedIn>
                 <SignedOut>
                   <CustomAuth />
@@ -99,9 +129,11 @@ const App = () => (
             <Route path="/get-started" element={
               <>
                 <SignedIn>
-                  <ErrorBoundary>
-                    <InstantTwinOnboarding />
-                  </ErrorBoundary>
+                  <SidebarLayout>
+                    <ErrorBoundary>
+                      <InstantTwinOnboarding />
+                    </ErrorBoundary>
+                  </SidebarLayout>
                 </SignedIn>
                 <SignedOut>
                   <CustomAuth />
@@ -111,9 +143,25 @@ const App = () => (
             <Route path="/soul-signature" element={
               <>
                 <SignedIn>
-                  <ErrorBoundary>
-                    <SoulSignatureDashboard />
-                  </ErrorBoundary>
+                  <SidebarLayout>
+                    <ErrorBoundary>
+                      <SoulSignatureDashboard />
+                    </ErrorBoundary>
+                  </SidebarLayout>
+                </SignedIn>
+                <SignedOut>
+                  <CustomAuth />
+                </SignedOut>
+              </>
+            } />
+            <Route path="/soul-chat" element={
+              <>
+                <SignedIn>
+                  <SidebarLayout>
+                    <ErrorBoundary>
+                      <SoulChatPage />
+                    </ErrorBoundary>
+                  </SidebarLayout>
                 </SignedIn>
                 <SignedOut>
                   <CustomAuth />
@@ -178,7 +226,9 @@ const App = () => (
             <Route path="/settings" element={
               <>
                 <SignedIn>
-                  <Settings />
+                  <SidebarLayout>
+                    <Settings />
+                  </SidebarLayout>
                 </SignedIn>
                 <SignedOut>
                   <CustomAuth />
