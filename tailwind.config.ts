@@ -14,15 +14,16 @@ export default {
     },
     extend: {
       fontFamily: {
-        'sans': ['Geist', 'Inter', 'system-ui', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Roboto', 'Helvetica Neue', 'Arial', 'sans-serif'],
-        'heading': ['Degular-Bold', 'Geist', 'Inter', 'system-ui', 'sans-serif'],
-        'display': ['Degular-Bold', 'Geist', 'system-ui', 'sans-serif'],
-        'body': ['Geist', 'Inter', 'system-ui', 'sans-serif'],
-        'medium': ['Degular-Medium', 'Geist', 'system-ui', 'sans-serif'],
-        'mono': ['Geist Mono', 'Consolas', 'SFMono-Regular', 'Menlo', 'monospace'],
-        'handwriting': ['FaveHandPro', 'kumbayaBold', 'cursive'],
+        // Anthropic/Claude Design System Fonts
+        'heading': ['Space Grotesk', 'system-ui', '-apple-system', 'sans-serif'],  // Styrene A alternative
+        'body': ['Source Serif 4', 'Georgia', 'serif'],                            // Tiempos alternative
+        'ui': ['DM Sans', 'system-ui', 'sans-serif'],                              // Styrene B alternative
+        'sans': ['DM Sans', 'system-ui', 'sans-serif'],                            // Default sans
+        'serif': ['Source Serif 4', 'Georgia', 'serif'],                           // Default serif
+        'mono': ['JetBrains Mono', 'Consolas', 'monospace'],                       // Monospace
       },
       colors: {
+        // Semantic tokens from CSS variables
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",
         ring: "hsl(var(--ring))",
@@ -55,6 +56,17 @@ export default {
         card: {
           DEFAULT: "hsl(var(--card))",
           foreground: "hsl(var(--card-foreground))",
+        },
+
+        // Direct Anthropic colors for hard-coded use
+        'anthropic': {
+          ivory: '#FAF9F5',
+          white: '#FFFFFF',
+          slate: '#141413',
+          'slate-medium': '#595959',
+          'slate-light': '#8C8C8C',
+          orange: '#D97706',
+          'orange-hover': '#B45309',
         },
       },
       fontSize: {

@@ -140,6 +140,12 @@ router.get('/:id', authenticateUser, userRateLimit(200, 15 * 60 * 1000), async (
 router.post('/', authenticateUser, userRateLimit(20, 15 * 60 * 1000), validateTwinRequest, handleValidationErrors, async (req, res) => {
   try {
     const userId = req.user.id;
+    console.log('✅ Twin creation request:', {
+      userId,
+      userName: req.user.email,
+      body: req.body
+    });
+
     const {
       name,
       description,
@@ -159,7 +165,7 @@ router.post('/', authenticateUser, userRateLimit(20, 15 * 60 * 1000), validateTw
     }
 
     const twinData = {
-      user_id: userId,  // Fixed: was creator_id, actual column is user_id
+      creator_id: userId,  // Database column is creator_id, not user_id
       name,
       description: description || null,
       subject_area: subject_area || null,
@@ -191,10 +197,16 @@ router.post('/', authenticateUser, userRateLimit(20, 15 * 60 * 1000), validateTw
     });
 
   } catch (error) {
-    console.error('Error creating twin:', error);
+    console.error('❌ Error creating twin:', {
+      message: error.message,
+      stack: error.stack,
+      code: error.code,
+      details: error.details || error
+    });
     res.status(500).json({
       error: 'Failed to create digital twin',
-      message: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
+      message: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error',
+      ...(process.env.NODE_ENV === 'development' && { stack: error.stack, details: error.details })
     });
   }
 });

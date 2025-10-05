@@ -4,6 +4,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '@/components/ui/use-toast';
 import { AcademicHierarchy, AcademicStructure } from '@/components/ui/AcademicHierarchy';
 import EnhancedFileUpload from '@/components/ui/EnhancedFileUpload';
+import { ThemeToggle } from '../components/ThemeToggle';
 
 const GetStarted = () => {
   const navigate = useNavigate();
@@ -81,20 +82,19 @@ const GetStarted = () => {
   };
 
   return (
-    <div className="min-h-screen" style={{ backgroundColor: '#FAF9F5' }}>
+    <div className="min-h-screen bg-background">
       {/* Navigation */}
-      <nav className="fixed top-0 left-0 right-0 z-50 px-6 py-6"
-           style={{ backgroundColor: '#FAF9F5', borderBottom: '1px solid rgba(20,20,19,0.1)' }}>
+      <nav className="fixed top-0 left-0 right-0 z-50 px-6 py-6 bg-background border-b border-border">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-8">
-            <div className="text-2xl" style={{ fontFamily: 'var(--_typography---font--styrene-a)', fontWeight: 500, letterSpacing: '-0.02em', color: '#141413' }}>
+            <div className="text-2xl text-foreground" style={{ fontFamily: 'var(--_typography---font--styrene-a)', fontWeight: 500, letterSpacing: '-0.02em' }}>
               Twin AI Learn
             </div>
             <div className="hidden md:flex items-center gap-6">
               <button
                 onClick={goHome}
-                className="font-medium"
-                style={{ fontFamily: 'var(--_typography---font--tiempos)', color: '#141413' }}
+                className="font-medium text-foreground hover:text-primary transition-colors"
+                style={{ fontFamily: 'var(--_typography---font--tiempos)' }}
               >
                 Home
               </button>
@@ -102,6 +102,7 @@ const GetStarted = () => {
           </div>
 
           <div className="flex items-center gap-4">
+            <ThemeToggle />
             <button
               className="btn-anthropic-primary"
             >
@@ -119,11 +120,11 @@ const GetStarted = () => {
       {/* Page 1: Choose Your Path */}
       {currentPage === 1 && (
         <div className="min-h-screen pt-[140px] pb-20 px-6">
-          <button className="inline-flex items-center gap-2 text-sm mb-8" style={{ fontFamily: 'var(--_typography---font--tiempos)', color: '#141413' }} onClick={goHome}>
+          <button className="inline-flex items-center gap-2 text-sm mb-8" style={{ fontFamily: 'var(--_typography---font--tiempos)', color: 'hsl(var(--foreground))' }} onClick={goHome}>
             ← Back to Home
           </button>
           <div className="max-w-[1200px] mx-auto text-center">
-            <h1 className="text-[56px] mb-6" style={{ fontFamily: 'var(--_typography---font--styrene-a)', fontWeight: 500, letterSpacing: '-0.02em', color: '#141413' }}>
+            <h1 className="text-[56px] mb-6" style={{ fontFamily: 'var(--_typography---font--styrene-a)', fontWeight: 500, letterSpacing: '-0.02em', color: 'hsl(var(--foreground))' }}>
               Welcome to Twin Me
             </h1>
             <p className="text-lg max-w-3xl mx-auto" style={{ fontFamily: 'var(--_typography---font--tiempos)', color: '#6B7280' }}>How would you like to use the platform?</p>
@@ -137,7 +138,7 @@ const GetStarted = () => {
                 <div className="w-[100px] h-[100px] mx-auto mb-8 rounded-[24px] flex items-center justify-center text-5xl" style={{ backgroundColor: 'rgba(217,119,6,0.1)', color: '#D97706' }}>
                   ◉
                 </div>
-                <h3 className="text-xl mb-4" style={{ fontFamily: 'var(--_typography---font--styrene-a)', fontWeight: 500, letterSpacing: '-0.02em', color: '#141413' }}>I Want to Create</h3>
+                <h3 className="text-xl mb-4" style={{ fontFamily: 'var(--_typography---font--styrene-a)', fontWeight: 500, letterSpacing: '-0.02em', color: 'hsl(var(--foreground))' }}>I Want to Create</h3>
                 <p className="leading-relaxed" style={{ fontFamily: 'var(--_typography---font--tiempos)', color: '#6B7280' }}>Build a digital twin of yourself for teaching, mentoring, or sharing knowledge</p>
               </div>
 
@@ -149,7 +150,7 @@ const GetStarted = () => {
                 <div className="w-[100px] h-[100px] mx-auto mb-8 rounded-[24px] flex items-center justify-center text-5xl" style={{ backgroundColor: 'rgba(217,119,6,0.1)', color: '#D97706' }}>
                   ◎
                 </div>
-                <h3 className="text-xl mb-4" style={{ fontFamily: 'var(--_typography---font--styrene-a)', fontWeight: 500, letterSpacing: '-0.02em', color: '#141413' }}>I Want to Learn</h3>
+                <h3 className="text-xl mb-4" style={{ fontFamily: 'var(--_typography---font--styrene-a)', fontWeight: 500, letterSpacing: '-0.02em', color: 'hsl(var(--foreground))' }}>I Want to Learn</h3>
                 <p className="leading-relaxed" style={{ fontFamily: 'var(--_typography---font--tiempos)', color: '#6B7280' }}>Access digital twins of educators and experts to enhance your learning journey</p>
               </div>
             </div>
@@ -160,12 +161,12 @@ const GetStarted = () => {
       {/* Page 2: Twin Type Selection */}
       {currentPage === 2 && (
         <div className="min-h-screen pt-[140px] pb-20 px-6">
-          <button className="inline-flex items-center gap-2 text-sm mb-8" style={{ fontFamily: 'var(--_typography---font--tiempos)', color: '#141413' }} onClick={previousPage}>
+          <button className="inline-flex items-center gap-2 text-sm mb-8" style={{ fontFamily: 'var(--_typography---font--tiempos)', color: 'hsl(var(--foreground))' }} onClick={previousPage}>
             ← Back
           </button>
 
           <div className="max-w-[1200px] mx-auto text-center">
-            <h1 className="text-[48px] mb-6" style={{ fontFamily: 'var(--_typography---font--styrene-a)', fontWeight: 500, letterSpacing: '-0.02em', color: '#141413' }}>
+            <h1 className="text-[48px] mb-6" style={{ fontFamily: 'var(--_typography---font--styrene-a)', fontWeight: 500, letterSpacing: '-0.02em', color: 'hsl(var(--foreground))' }}>
               What Type of Twin?
             </h1>
             <p className="text-lg max-w-2xl mx-auto" style={{ fontFamily: 'var(--_typography---font--tiempos)', color: '#6B7280' }}>You can create multiple twins for different purposes</p>
@@ -181,7 +182,7 @@ const GetStarted = () => {
                     ✓
                   </div>
                 )}
-                <h3 className="text-[24px] mb-4" style={{ fontFamily: 'var(--_typography---font--styrene-a)', fontWeight: 500, letterSpacing: '-0.02em', color: '#141413' }}>Educational Twin</h3>
+                <h3 className="text-[24px] mb-4" style={{ fontFamily: 'var(--_typography---font--styrene-a)', fontWeight: 500, letterSpacing: '-0.02em', color: 'hsl(var(--foreground))' }}>Educational Twin</h3>
                 <div className="py-1 px-3 rounded-full text-xs inline-block mb-4" style={{ backgroundColor: '#4A90E2', color: 'white' }}>
                   INSTITUTION VERIFIED
                 </div>
@@ -204,7 +205,7 @@ const GetStarted = () => {
                     ✓
                   </div>
                 )}
-                <h3 className="text-[24px] mb-12" style={{ fontFamily: 'var(--_typography---font--styrene-a)', fontWeight: 500, letterSpacing: '-0.02em', color: '#141413' }}>Personal Twin</h3>
+                <h3 className="text-[24px] mb-12" style={{ fontFamily: 'var(--_typography---font--styrene-a)', fontWeight: 500, letterSpacing: '-0.02em', color: 'hsl(var(--foreground))' }}>Personal Twin</h3>
                 <ul className="list-none text-sm leading-8 text-left" style={{ fontFamily: 'var(--_typography---font--tiempos)', color: '#6B7280' }}>
                   <li>→ Share life experiences</li>
                   <li>→ Mentorship & coaching</li>
@@ -224,7 +225,7 @@ const GetStarted = () => {
                     ✓
                   </div>
                 )}
-                <h3 className="text-[24px] mb-4" style={{ fontFamily: 'var(--_typography---font--styrene-a)', fontWeight: 500, letterSpacing: '-0.02em', color: '#141413' }}>Create Both</h3>
+                <h3 className="text-[24px] mb-4" style={{ fontFamily: 'var(--_typography---font--styrene-a)', fontWeight: 500, letterSpacing: '-0.02em', color: 'hsl(var(--foreground))' }}>Create Both</h3>
                 <div className="text-white py-1 px-3 rounded-full text-xs inline-block mb-4" style={{ backgroundColor: '#D97706' }}>
                   BEST VALUE
                 </div>
@@ -253,12 +254,12 @@ const GetStarted = () => {
       {/* Page 3: Account Creation */}
       {currentPage === 3 && (
         <div className="min-h-screen pt-[140px] pb-20 px-6">
-          <button className="inline-flex items-center gap-2 text-sm mb-8" style={{ fontFamily: 'var(--_typography---font--tiempos)', color: '#141413' }} onClick={previousPage}>
+          <button className="inline-flex items-center gap-2 text-sm mb-8" style={{ fontFamily: 'var(--_typography---font--tiempos)', color: 'hsl(var(--foreground))' }} onClick={previousPage}>
             ← Back
           </button>
 
           <div className="max-w-[500px] mx-auto bg-white rounded-[32px] p-12" style={{ border: '1px solid rgba(20,20,19,0.1)' }}>
-            <h2 className="text-center mb-8 text-5xl" style={{ fontFamily: 'var(--_typography---font--styrene-a)', fontWeight: 500, letterSpacing: '-0.02em', color: '#141413' }}>Create Your Account</h2>
+            <h2 className="text-center mb-8 text-5xl" style={{ fontFamily: 'var(--_typography---font--styrene-a)', fontWeight: 500, letterSpacing: '-0.02em', color: 'hsl(var(--foreground))' }}>Create Your Account</h2>
 
             <div className="space-y-4">
               <p className="text-center mb-6" style={{ fontFamily: 'var(--_typography---font--tiempos)', color: '#6B7280' }}>
@@ -291,28 +292,28 @@ const GetStarted = () => {
       {/* Page 4: Quick Setup Before Builder */}
       {currentPage === 4 && (
         <div className="min-h-screen pt-[140px] pb-20 px-6">
-          <button className="inline-flex items-center gap-2 text-sm mb-8" style={{ fontFamily: 'var(--_typography---font--tiempos)', color: '#141413' }} onClick={previousPage}>
+          <button className="inline-flex items-center gap-2 text-sm mb-8" style={{ fontFamily: 'var(--_typography---font--tiempos)', color: 'hsl(var(--foreground))' }} onClick={previousPage}>
             ← Back
           </button>
 
           <div className="max-w-[1200px] mx-auto text-center">
-            <h1 className="text-[clamp(42px,6vw,72px)] leading-[1.1] mb-6" style={{ fontFamily: 'var(--_typography---font--styrene-a)', fontWeight: 500, letterSpacing: '-0.02em', color: '#141413' }}>
+            <h1 className="text-[clamp(42px,6vw,72px)] leading-[1.1] mb-6" style={{ fontFamily: 'var(--_typography---font--styrene-a)', fontWeight: 500, letterSpacing: '-0.02em', color: 'hsl(var(--foreground))' }}>
               Let's Set Up Your First Twin
             </h1>
             <p className="text-xl mt-6 mb-16" style={{ fontFamily: 'var(--_typography---font--tiempos)', color: '#6B7280' }}>We'll start with the basics, then refine in the builder</p>
 
             <div className="grid grid-cols-2 gap-10 max-w-[1200px] mx-auto mt-16">
               <div className="bg-white rounded-[24px] p-10" style={{ border: '1px solid rgba(20,20,19,0.1)' }}>
-                <h3 className="text-[26px] mb-6" style={{ fontFamily: 'var(--_typography---font--styrene-a)', fontWeight: 500, letterSpacing: '-0.02em', color: '#141413' }}>Quick Info</h3>
+                <h3 className="text-[26px] mb-6" style={{ fontFamily: 'var(--_typography---font--styrene-a)', fontWeight: 500, letterSpacing: '-0.02em', color: 'hsl(var(--foreground))' }}>Quick Info</h3>
                 <div className="mb-6">
-                  <label className="block mb-2 text-sm font-medium text-left" style={{ fontFamily: 'var(--_typography---font--tiempos)', color: '#141413' }}>What should we call your twin?</label>
+                  <label className="block mb-2 text-sm font-medium text-left" style={{ fontFamily: 'var(--_typography---font--tiempos)', color: 'hsl(var(--foreground))' }}>What should we call your twin?</label>
                   <input
                     type="text"
                     placeholder="Physics 101 with Dr. Smith"
                     value={twinName}
                     onChange={(e) => setTwinName(e.target.value)}
                     className="w-full py-[14px] px-5 rounded-2xl text-sm"
-                    style={{ border: '1px solid rgba(20,20,19,0.1)', backgroundColor: '#F5F5F5', fontFamily: 'var(--_typography---font--tiempos)', color: '#141413' }}
+                    style={{ border: '1px solid rgba(20,20,19,0.1)', backgroundColor: '#F5F5F5', fontFamily: 'var(--_typography---font--tiempos)', color: 'hsl(var(--foreground))' }}
                   />
                 </div>
 
@@ -325,10 +326,10 @@ const GetStarted = () => {
                 </div>
 
                 <div className="mb-6">
-                  <label className="block mb-2 text-sm font-medium text-left" style={{ fontFamily: 'var(--_typography---font--tiempos)', color: '#141413' }}>Teaching level</label>
+                  <label className="block mb-2 text-sm font-medium text-left" style={{ fontFamily: 'var(--_typography---font--tiempos)', color: 'hsl(var(--foreground))' }}>Teaching level</label>
                   <select
                     className="w-full py-[14px] px-5 rounded-2xl text-sm"
-                    style={{ border: '1px solid rgba(20,20,19,0.1)', backgroundColor: '#F5F5F5', fontFamily: 'var(--_typography---font--tiempos)', color: '#141413' }}
+                    style={{ border: '1px solid rgba(20,20,19,0.1)', backgroundColor: '#F5F5F5', fontFamily: 'var(--_typography---font--tiempos)', color: 'hsl(var(--foreground))' }}
                     value={teachingLevel}
                     onChange={(e) => setTeachingLevel(e.target.value)}
                   >
@@ -343,7 +344,7 @@ const GetStarted = () => {
               </div>
 
               <div className="bg-white rounded-[24px] p-10" style={{ border: '1px solid rgba(20,20,19,0.1)' }}>
-                <h3 className="text-[26px] mb-6" style={{ fontFamily: 'var(--_typography---font--styrene-a)', fontWeight: 500, letterSpacing: '-0.02em', color: '#141413' }}>Quick Start Content</h3>
+                <h3 className="text-[26px] mb-6" style={{ fontFamily: 'var(--_typography---font--styrene-a)', fontWeight: 500, letterSpacing: '-0.02em', color: 'hsl(var(--foreground))' }}>Quick Start Content</h3>
                 <EnhancedFileUpload
                   twinId="placeholder"
                   title="Drop Your First File"
