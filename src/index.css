@@ -76,6 +76,10 @@
     --font-body: 'Source Serif 4', Georgia, serif;
     --font-ui: 'DM Sans', system-ui, sans-serif;
 
+    /* === Styrene Font Variables (for existing components) === */
+    --_typography---font--styrene-a: "Space Grotesk", system-ui, sans-serif;
+    --_typography---font--styrene-b: "DM Sans", system-ui, sans-serif;
+
     /* Font weights */
     --font-weight-normal: 400;
     --font-weight-medium: 500;
