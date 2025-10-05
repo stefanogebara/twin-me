@@ -6,6 +6,7 @@ import dotenv from 'dotenv';
 import { documentProcessor } from '../services/simpleDocumentProcessor.js';
 import { authenticateUser, userRateLimit } from '../middleware/auth.js';
 import { successResponse, errorResponse } from '../middleware/errorHandler.js';
+import { sanitizeUnicode } from '../utils/unicodeSanitizer.js';
 
 // Ensure environment variables are loaded
 dotenv.config();
@@ -235,7 +236,7 @@ function formatConversationHistory(messages) {
   const recentMessages = messages.slice(-10);
   return recentMessages.map(message => ({
     role: message.is_user_message ? 'user' : 'assistant',
-    content: message.content
+    content: sanitizeUnicode(message.content || '')
   }));
 }
 
@@ -249,22 +250,25 @@ router.post('/chat', authenticateUser, userRateLimit(30, 15 * 60 * 1000), valida
       return errorResponse(res, 'MISSING_CONTEXT', 'Twin data is required in request context', 400);
     }
 
+    // Sanitize user message to prevent Unicode errors
+    const sanitizedMessage = sanitizeUnicode(message || '');
+
     // Search for relevant context from uploaded documents
     let relevantContext = null;
     try {
       const twinId = context.twin.id || req.body.twinId;
       if (twinId) {
-        relevantContext = await documentProcessor.searchRelevantContext(twinId, message, 3);
+        relevantContext = await documentProcessor.searchRelevantContext(twinId, sanitizedMessage, 3);
       }
     } catch (ragError) {
       console.warn('RAG context search failed:', ragError);
       // Continue without RAG context rather than failing the entire request
     }
 
-    // Build enhanced system prompt with RAG context
-    const systemPrompt = buildSystemPromptWithRAG(context, relevantContext);
+    // Build enhanced system prompt with RAG context (already sanitized in build functions)
+    const systemPrompt = sanitizeUnicode(buildSystemPromptWithRAG(context, relevantContext));
 
-    // Format conversation history
+    // Format conversation history (already sanitized in formatConversationHistory)
     const conversationMessages = context.conversationHistory
       ? formatConversationHistory(context.conversationHistory)
       : [];
@@ -277,7 +281,7 @@ router.post('/chat', authenticateUser, userRateLimit(30, 15 * 60 * 1000), valida
       system: systemPrompt,
       messages: [
         ...conversationMessages,
-        { role: 'user', content: message }
+        { role: 'user', content: sanitizedMessage }
       ]
     });
 
@@ -385,19 +389,19 @@ router.post('/assess-understanding', authenticateUser, userRateLimit(20, 15 * 60
   try {
     const { studentResponse, topic } = req.body;
 
-    const systemPrompt = `Analyze the student's response about "${topic}" and assess their understanding level. Return a JSON object with:
+    const systemPrompt = sanitizeUnicode(`Analyze the student's response about "${topic}" and assess their understanding level. Return a JSON object with:
     {
       "understanding_level": "low" | "medium" | "high",
       "areas_of_confusion": ["list of specific areas where student seems confused"],
       "suggestions": ["specific suggestions for helping the student improve understanding"]
-    }`;
+    }`);
 
     const response = await anthropic.messages.create({
       model: 'claude-3-haiku-20240307',
       max_tokens: 400,
       temperature: 0.3,
       system: systemPrompt,
-      messages: [{ role: 'user', content: studentResponse }]
+      messages: [{ role: 'user', content: sanitizeUnicode(studentResponse) }]
     });
 
     const content = response.content[0];

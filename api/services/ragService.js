@@ -6,6 +6,7 @@
 import { createClient } from '@supabase/supabase-js';
 import embeddingGenerator from './embeddingGenerator.js';
 import stylometricAnalyzer from './stylometricAnalyzer.js';
+import { sanitizeUnicode, sanitizeObject } from '../utils/unicodeSanitizer.js';
 
 const supabase = createClient(
   process.env.SUPABASE_URL,
@@ -297,17 +298,33 @@ Do NOT simply provide information. Channel their authentic voice, perspective, a
    */
   async callClaude(systemPrompt, contextPrompt, userMessage, conversationHistory) {
     try {
-      // Build messages array
+      // Sanitize all text inputs to remove broken Unicode surrogate pairs
+      const sanitizedSystemPrompt = sanitizeUnicode(systemPrompt);
+      const sanitizedContextPrompt = sanitizeUnicode(contextPrompt);
+      const sanitizedUserMessage = sanitizeUnicode(userMessage);
+
+      // Build messages array with sanitized conversation history
       const messages = [
         ...conversationHistory.map(msg => ({
           role: msg.role,
-          content: msg.content
+          content: sanitizeUnicode(msg.content)
         })),
         {
           role: 'user',
-          content: `${contextPrompt}\n\n---\n\n**User's Current Message:** ${userMessage}`
+          content: `${sanitizedContextPrompt}\n\n---\n\n**User's Current Message:** ${sanitizedUserMessage}`
         }
       ];
+
+      // Create sanitized request body
+      const requestBody = {
+        model: this.claudeModel,
+        max_tokens: 4096,
+        system: sanitizedSystemPrompt,
+        messages
+      };
+
+      // Additional sanitization of the entire request body
+      const sanitizedBody = sanitizeObject(requestBody);
 
       const response = await fetch('https://api.anthropic.com/v1/messages', {
         method: 'POST',
@@ -316,18 +333,13 @@ Do NOT simply provide information. Channel their authentic voice, perspective, a
           'anthropic-version': '2023-06-01',
           'content-type': 'application/json'
         },
-        body: JSON.stringify({
-          model: this.claudeModel,
-          max_tokens: 4096,
-          system: systemPrompt,
-          messages
-        })
+        body: JSON.stringify(sanitizedBody)
       });
 
       if (!response.ok) {
         const error = await response.text();
         console.error('[RAG] Claude API error:', error);
-        throw new Error(`Claude API error: ${response.status}`);
+        throw new Error(`Claude API error: ${response.status} - ${error}`);
       }
 
       const data = await response.json();
