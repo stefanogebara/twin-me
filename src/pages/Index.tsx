@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth, SignInButton, SignUpButton } from '../contexts/AuthContext';
+import { ThemeToggle } from '../components/ThemeToggle';
 
 const Index = () => {
   const navigate = useNavigate();
@@ -114,37 +115,40 @@ const Index = () => {
   }, []);
 
   return (
-    <div className="min-h-screen bg-[#FAF9F5] text-[#141413] overflow-x-hidden" style={{ fontFamily: 'var(--_typography---font--tiempos)' }}>
+    <div className="min-h-screen bg-background text-foreground overflow-x-hidden" style={{ fontFamily: 'var(--_typography---font--tiempos)' }}>
       {/* Navigation */}
-      <nav id="navbar" className="fixed top-0 w-full z-50 px-[60px] py-6 bg-[#FAF9F5]">
+      <nav id="navbar" className="fixed top-0 w-full z-50 px-[60px] py-6 bg-background border-b border-border">
         <div className="max-w-[1400px] mx-auto flex justify-between items-center">
-          <div className="text-[28px] text-[#141413]" style={{ fontFamily: 'var(--_typography---font--styrene-a)', fontWeight: 500 }}>Twin Me</div>
+          <div className="text-[28px] text-foreground" style={{ fontFamily: 'var(--_typography---font--styrene-a)', fontWeight: 500 }}>Twin Me</div>
           <ul className="flex gap-10 list-none">
-            <li><a href="#features" className="text-[#141413] no-underline font-medium text-base">Features</a></li>
-            <li><a href="#works" className="text-[#141413] no-underline font-medium text-base">How It Works</a></li>
-            <li><a href="#about" className="text-[#141413] no-underline font-medium text-base">About</a></li>
-            <li><a href="#contact" className="text-[#141413] no-underline font-medium text-base">Contact</a></li>
+            <li><a href="#features" className="text-foreground no-underline font-medium text-base hover:text-primary transition-colors">Features</a></li>
+            <li><a href="#works" className="text-foreground no-underline font-medium text-base hover:text-primary transition-colors">How It Works</a></li>
+            <li><a href="#about" className="text-foreground no-underline font-medium text-base hover:text-primary transition-colors">About</a></li>
+            <li><a href="#contact" className="text-foreground no-underline font-medium text-base hover:text-primary transition-colors">Contact</a></li>
           </ul>
-          {!isLoaded ? (
-            <button disabled className="btn-anthropic-primary opacity-50 cursor-not-allowed">Loading...</button>
-          ) : isSignedIn ? (
-            <button onClick={() => navigate('/get-started')} className="btn-anthropic-primary">Get Started</button>
-          ) : (
-            <SignInButton mode="modal" fallbackRedirectUrl="/get-started" forceRedirectUrl="/get-started">
-              <button className="btn-anthropic-primary">Get Started</button>
-            </SignInButton>
-          )}
+          <div className="flex items-center gap-4">
+            <ThemeToggle />
+            {!isLoaded ? (
+              <button disabled className="btn-anthropic-primary opacity-50 cursor-not-allowed">Loading...</button>
+            ) : isSignedIn ? (
+              <button onClick={() => navigate('/get-started')} className="btn-anthropic-primary">Get Started</button>
+            ) : (
+              <SignInButton mode="modal" fallbackRedirectUrl="/get-started" forceRedirectUrl="/get-started">
+                <button className="btn-anthropic-primary">Get Started</button>
+              </SignInButton>
+            )}
+          </div>
         </div>
       </nav>
 
       {/* Hero Section */}
       <section className="min-h-screen flex items-center justify-center relative pt-[120px] pb-20 px-[60px]">
         <div className="text-center relative z-10 max-w-[900px]">
-          <h1 className="text-[clamp(2.5rem,5vw,4rem)] leading-[1.1] mb-8 text-[#141413]" style={{ fontFamily: 'var(--_typography---font--styrene-a)', fontWeight: 500, letterSpacing: '-0.02em' }}>
+          <h1 className="text-[clamp(2.5rem,5vw,4rem)] leading-[1.1] mb-8 text-foreground" style={{ fontFamily: 'var(--_typography---font--styrene-a)', fontWeight: 500, letterSpacing: '-0.02em' }}>
             Discover Your<br />
             Soul Signature
           </h1>
-          <p className="text-[20px] text-[#141413] max-w-[700px] mx-auto mb-12 leading-[1.6]" style={{ fontFamily: 'var(--_typography---font--tiempos)' }}>
+          <p className="text-[20px] text-foreground max-w-[700px] mx-auto mb-12 leading-[1.6]" style={{ fontFamily: 'var(--_typography---font--tiempos)' }}>
             Beyond your resume and public persona lies your authentic digital identity. We reveal the signature of your originality through your curiosities, passions, and characteristic patterns.
           </p>
           <div className="flex gap-6 justify-center">
@@ -163,110 +167,110 @@ const Index = () => {
       </section>
 
       {/* Portfolio Section */}
-      <section id="works" className="py-[100px] px-[60px] bg-[#FAF9F5]">
+      <section id="works" className="py-[100px] px-[60px] bg-background">
         <div className="text-center mb-[60px]">
-          <h2 className="text-[clamp(2rem,4vw,3rem)] mb-4 text-[#141413]" style={{ fontFamily: 'var(--_typography---font--styrene-a)', fontWeight: 500, letterSpacing: '-0.02em' }}>Your Digital Identity, Revealed</h2>
-          <p className="text-[20px] text-[#141413]" style={{ fontFamily: 'var(--_typography---font--tiempos)' }}>From the branches to the roots—discover what makes you authentically you</p>
+          <h2 className="text-[clamp(2rem,4vw,3rem)] mb-4 text-foreground" style={{ fontFamily: 'var(--_typography---font--styrene-a)', fontWeight: 500, letterSpacing: '-0.02em' }}>Your Digital Identity, Revealed</h2>
+          <p className="text-[20px] text-foreground" style={{ fontFamily: 'var(--_typography---font--tiempos)' }}>From the branches to the roots—discover what makes you authentically you</p>
         </div>
         <div className="max-w-[1400px] mx-auto grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
           <div className="bg-white rounded-[16px] p-8 border border-[rgba(20,20,19,0.1)]">
             <div className="w-full h-[200px] rounded-[12px] mb-6 bg-[#F5F5F5]"></div>
-            <h3 className="text-[24px] text-[#141413] mb-3" style={{ fontFamily: 'var(--_typography---font--styrene-a)', fontWeight: 500 }}>Personal Cluster</h3>
-            <span className="inline-block px-4 py-2 rounded-full text-[14px] font-medium text-[#141413] bg-[rgba(20,20,19,0.05)]" style={{ fontFamily: 'var(--_typography---font--styrene-b)' }}>Hobbies & Passions</span>
+            <h3 className="text-[24px] text-foreground mb-3" style={{ fontFamily: 'var(--_typography---font--styrene-a)', fontWeight: 500 }}>Personal Cluster</h3>
+            <span className="inline-block px-4 py-2 rounded-full text-[14px] font-medium text-foreground bg-[rgba(20,20,19,0.05)]" style={{ fontFamily: 'var(--_typography---font--styrene-b)' }}>Hobbies & Passions</span>
           </div>
           <div className="bg-white rounded-[16px] p-8 border border-[rgba(20,20,19,0.1)]">
             <div className="w-full h-[200px] rounded-[12px] mb-6 bg-[#F5F5F5]"></div>
-            <h3 className="text-[24px] text-[#141413] mb-3" style={{ fontFamily: 'var(--_typography---font--styrene-a)', fontWeight: 500 }}>Professional Cluster</h3>
-            <span className="inline-block px-4 py-2 rounded-full text-[14px] font-medium text-[#141413] bg-[rgba(20,20,19,0.05)]" style={{ fontFamily: 'var(--_typography---font--styrene-b)' }}>Career & Skills</span>
+            <h3 className="text-[24px] text-foreground mb-3" style={{ fontFamily: 'var(--_typography---font--styrene-a)', fontWeight: 500 }}>Professional Cluster</h3>
+            <span className="inline-block px-4 py-2 rounded-full text-[14px] font-medium text-foreground bg-[rgba(20,20,19,0.05)]" style={{ fontFamily: 'var(--_typography---font--styrene-b)' }}>Career & Skills</span>
           </div>
           <div className="bg-white rounded-[16px] p-8 border border-[rgba(20,20,19,0.1)]">
             <div className="w-full h-[200px] rounded-[12px] mb-6 bg-[#F5F5F5]"></div>
-            <h3 className="text-[24px] text-[#141413] mb-3" style={{ fontFamily: 'var(--_typography---font--styrene-a)', fontWeight: 500 }}>Privacy Spectrum</h3>
-            <span className="inline-block px-4 py-2 rounded-full text-[14px] font-medium text-[#141413] bg-[rgba(20,20,19,0.05)]" style={{ fontFamily: 'var(--_typography---font--styrene-b)' }}>What To Reveal</span>
+            <h3 className="text-[24px] text-foreground mb-3" style={{ fontFamily: 'var(--_typography---font--styrene-a)', fontWeight: 500 }}>Privacy Spectrum</h3>
+            <span className="inline-block px-4 py-2 rounded-full text-[14px] font-medium text-foreground bg-[rgba(20,20,19,0.05)]" style={{ fontFamily: 'var(--_typography---font--styrene-b)' }}>What To Reveal</span>
           </div>
           <div className="bg-white rounded-[16px] p-8 border border-[rgba(20,20,19,0.1)]">
             <div className="w-full h-[200px] rounded-[12px] mb-6 bg-[#F5F5F5]"></div>
-            <h3 className="text-[24px] text-[#141413] mb-3" style={{ fontFamily: 'var(--_typography---font--styrene-a)', fontWeight: 500 }}>Soul Dashboard</h3>
-            <span className="inline-block px-4 py-2 rounded-full text-[14px] font-medium text-[#141413] bg-[rgba(20,20,19,0.05)]" style={{ fontFamily: 'var(--_typography---font--styrene-b)' }}>Your Signature</span>
+            <h3 className="text-[24px] text-foreground mb-3" style={{ fontFamily: 'var(--_typography---font--styrene-a)', fontWeight: 500 }}>Soul Dashboard</h3>
+            <span className="inline-block px-4 py-2 rounded-full text-[14px] font-medium text-foreground bg-[rgba(20,20,19,0.05)]" style={{ fontFamily: 'var(--_typography---font--styrene-b)' }}>Your Signature</span>
           </div>
         </div>
       </section>
 
       {/* Features Grid */}
-      <section id="features" className="py-[100px] px-[60px] bg-[#FAF9F5]">
+      <section id="features" className="py-[100px] px-[60px] bg-background">
         <div className="text-center mb-[60px]">
-          <h2 className="text-[clamp(2rem,4vw,3rem)] mb-4 text-[#141413]"
+          <h2 className="text-[clamp(2rem,4vw,3rem)] mb-4 text-foreground"
               style={{ fontFamily: 'var(--_typography---font--styrene-a)', fontWeight: 500, letterSpacing: '-0.02em' }}>
             Beyond Public Information
           </h2>
-          <p className="text-[20px] text-[#141413]"
+          <p className="text-[20px] text-foreground"
              style={{ fontFamily: 'var(--_typography---font--tiempos)' }}>
             Information doesn't have a soul—discover yours
           </p>
         </div>
         <div className="max-w-[1200px] mx-auto grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10">
           <div className="bg-white rounded-[16px] p-10 border border-[rgba(20,20,19,0.1)]">
-            <div className="w-[60px] h-[60px] bg-[#F5F5F5] rounded-[12px] flex items-center justify-center mb-6 text-[32px] text-[#141413]">〜</div>
-            <h3 className="text-[24px] text-[#141413] mb-3"
+            <div className="w-[60px] h-[60px] bg-[#F5F5F5] rounded-[12px] flex items-center justify-center mb-6 text-[32px] text-foreground">〜</div>
+            <h3 className="text-[24px] text-foreground mb-3"
                 style={{ fontFamily: 'var(--_typography---font--styrene-a)', fontWeight: 500 }}>
               Voice Learning
             </h3>
-            <p className="text-[#141413] leading-[1.6]"
+            <p className="text-foreground leading-[1.6]"
                style={{ fontFamily: 'var(--_typography---font--tiempos)' }}>
               Natural conversations with AI teachers that feel like real interactions
             </p>
           </div>
           <div className="bg-white rounded-[16px] p-10 border border-[rgba(20,20,19,0.1)]">
-            <div className="w-[60px] h-[60px] bg-[#F5F5F5] rounded-[12px] flex items-center justify-center mb-6 text-[32px] text-[#141413]">◐</div>
-            <h3 className="text-[24px] text-[#141413] mb-3"
+            <div className="w-[60px] h-[60px] bg-[#F5F5F5] rounded-[12px] flex items-center justify-center mb-6 text-[32px] text-foreground">◐</div>
+            <h3 className="text-[24px] text-foreground mb-3"
                 style={{ fontFamily: 'var(--_typography---font--styrene-a)', fontWeight: 500 }}>
               Text Interface
             </h3>
-            <p className="text-[#141413] leading-[1.6]"
+            <p className="text-foreground leading-[1.6]"
                style={{ fontFamily: 'var(--_typography---font--tiempos)' }}>
               ChatGPT-style learning experience for written communication
             </p>
           </div>
           <div className="bg-white rounded-[16px] p-10 border border-[rgba(20,20,19,0.1)]">
-            <div className="w-[60px] h-[60px] bg-[#F5F5F5] rounded-[12px] flex items-center justify-center mb-6 text-[32px] text-[#141413]">◉</div>
-            <h3 className="text-[24px] text-[#141413] mb-3"
+            <div className="w-[60px] h-[60px] bg-[#F5F5F5] rounded-[12px] flex items-center justify-center mb-6 text-[32px] text-foreground">◉</div>
+            <h3 className="text-[24px] text-foreground mb-3"
                 style={{ fontFamily: 'var(--_typography---font--styrene-a)', fontWeight: 500 }}>
               Adaptive AI
             </h3>
-            <p className="text-[#141413] leading-[1.6]"
+            <p className="text-foreground leading-[1.6]"
                style={{ fontFamily: 'var(--_typography---font--tiempos)' }}>
               Personalized teaching that adapts to your unique learning style
             </p>
           </div>
           <div className="bg-white rounded-[16px] p-10 border border-[rgba(20,20,19,0.1)]">
-            <div className="w-[60px] h-[60px] bg-[#F5F5F5] rounded-[12px] flex items-center justify-center mb-6 text-[32px] text-[#141413]">▣</div>
-            <h3 className="text-[24px] text-[#141413] mb-3"
+            <div className="w-[60px] h-[60px] bg-[#F5F5F5] rounded-[12px] flex items-center justify-center mb-6 text-[32px] text-foreground">▣</div>
+            <h3 className="text-[24px] text-foreground mb-3"
                 style={{ fontFamily: 'var(--_typography---font--styrene-a)', fontWeight: 500 }}>
               Smart Analytics
             </h3>
-            <p className="text-[#141413] leading-[1.6]"
+            <p className="text-foreground leading-[1.6]"
                style={{ fontFamily: 'var(--_typography---font--tiempos)' }}>
               Track progress and get insights into your learning journey
             </p>
           </div>
           <div className="bg-white rounded-[16px] p-10 border border-[rgba(20,20,19,0.1)]">
-            <div className="w-[60px] h-[60px] bg-[#F5F5F5] rounded-[12px] flex items-center justify-center mb-6 text-[32px] text-[#141413]">◎</div>
-            <h3 className="text-[24px] text-[#141413] mb-3"
+            <div className="w-[60px] h-[60px] bg-[#F5F5F5] rounded-[12px] flex items-center justify-center mb-6 text-[32px] text-foreground">◎</div>
+            <h3 className="text-[24px] text-foreground mb-3"
                 style={{ fontFamily: 'var(--_typography---font--styrene-a)', fontWeight: 500 }}>
               Global Access
             </h3>
-            <p className="text-[#141413] leading-[1.6]"
+            <p className="text-foreground leading-[1.6]"
                style={{ fontFamily: 'var(--_typography---font--tiempos)' }}>
               Learn from anywhere, anytime, with any device
             </p>
           </div>
           <div className="bg-white rounded-[16px] p-10 border border-[rgba(20,20,19,0.1)]">
-            <div className="w-[60px] h-[60px] bg-[#F5F5F5] rounded-[12px] flex items-center justify-center mb-6 text-[32px] text-[#141413]">△</div>
-            <h3 className="text-[24px] text-[#141413] mb-3"
+            <div className="w-[60px] h-[60px] bg-[#F5F5F5] rounded-[12px] flex items-center justify-center mb-6 text-[32px] text-foreground">△</div>
+            <h3 className="text-[24px] text-foreground mb-3"
                 style={{ fontFamily: 'var(--_typography---font--styrene-a)', fontWeight: 500 }}>
               Instant Setup
             </h3>
-            <p className="text-[#141413] leading-[1.6]"
+            <p className="text-foreground leading-[1.6]"
                style={{ fontFamily: 'var(--_typography---font--tiempos)' }}>
               Teachers upload content, AI learns and deploys instantly
             </p>
@@ -277,15 +281,15 @@ const Index = () => {
       {/* About Section */}
       <section id="about" className="py-[120px] px-[60px] bg-white">
         <div className="text-center max-w-[900px] mx-auto">
-          <h2 className="text-[clamp(2rem,4vw,3rem)] mb-6 text-[#141413]"
+          <h2 className="text-[clamp(2rem,4vw,3rem)] mb-6 text-foreground"
               style={{ fontFamily: 'var(--_typography---font--styrene-a)', fontWeight: 500, letterSpacing: '-0.02em' }}>
             Behind the Technology
           </h2>
-          <p className="text-[20px] leading-[1.6] mb-6 text-[#141413]"
+          <p className="text-[20px] leading-[1.6] mb-6 text-foreground"
              style={{ fontFamily: 'var(--_typography---font--tiempos)' }}>
             Finally, meet the platform transforming education
           </p>
-          <p className="text-[20px] leading-[1.6] mb-12 text-[#141413]"
+          <p className="text-[20px] leading-[1.6] mb-12 text-foreground"
              style={{ fontFamily: 'var(--_typography---font--tiempos)' }}>
             We help educators create digital twins that actually work. Whether you need to scale your teaching or preserve your knowledge, we focus on real impact—no complicated tech, just education that works.
           </p>
@@ -304,12 +308,12 @@ const Index = () => {
       </section>
 
       {/* CTA Section */}
-      <section id="contact" className="py-[120px] px-[60px] text-center bg-[#FAF9F5]">
-        <h2 className="text-[clamp(2rem,4vw,3rem)] mb-6 text-[#141413]"
+      <section id="contact" className="py-[120px] px-[60px] text-center bg-background">
+        <h2 className="text-[clamp(2rem,4vw,3rem)] mb-6 text-foreground"
             style={{ fontFamily: 'var(--_typography---font--styrene-a)', fontWeight: 500, letterSpacing: '-0.02em' }}>
           Ready to transform education?
         </h2>
-        <p className="text-[22px] text-[#141413] mb-12"
+        <p className="text-[22px] text-foreground mb-12"
            style={{ fontFamily: 'var(--_typography---font--tiempos)' }}>
           Join thousands of educators creating their digital twins
         </p>

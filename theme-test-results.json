@@ -1,0 +1,2799 @@
+{
+  "themeToggleWorks": false,
+  "themeAttributeChanges": false,
+  "consoleErrors": [],
+  "pagesScanned": [
+    {
+      "page": "home",
+      "lightModeIssues": [
+        {
+          "type": "low-contrast",
+          "element": "div",
+          "text": "Twin MeFeaturesHow It WorksAboutContactGet Started",
+          "color": "rgb(0, 0, 0)",
+          "backgroundColor": "rgba(0, 0, 0, 0)",
+          "classes": "",
+          "id": "root"
+        },
+        {
+          "type": "hardcoded-black",
+          "element": "div",
+          "text": "Twin MeFeaturesHow It WorksAboutContactGet Started",
+          "color": "rgb(20, 20, 19)",
+          "classes": "min-h-screen bg-[#FAF9F5] text-[#141413] overflow-x-hidden",
+          "id": ""
+        },
+        {
+          "type": "hardcoded-black",
+          "element": "div",
+          "text": "Twin MeFeaturesHow It WorksAboutContactGet Started",
+          "color": "rgb(20, 20, 19)",
+          "classes": "max-w-[1400px] mx-auto flex justify-between items-center",
+          "id": ""
+        },
+        {
+          "type": "hardcoded-black",
+          "element": "div",
+          "text": "Twin Me",
+          "color": "rgb(20, 20, 19)",
+          "classes": "text-[28px] text-[#141413]",
+          "id": ""
+        },
+        {
+          "type": "hardcoded-black",
+          "element": "div",
+          "text": "Get Started",
+          "color": "rgb(20, 20, 19)",
+          "classes": "",
+          "id": ""
+        },
+        {
+          "type": "hardcoded-black",
+          "element": "div",
+          "text": "Discover YourSoul SignatureBeyond your resume and ",
+          "color": "rgb(20, 20, 19)",
+          "classes": "text-center relative z-10 max-w-[900px]",
+          "id": ""
+        },
+        {
+          "type": "hardcoded-black",
+          "element": "h1",
+          "text": "Discover YourSoul Signature",
+          "color": "rgb(20, 20, 19)",
+          "classes": "text-[clamp(2.5rem,5vw,4rem)] leading-[1.1] mb-8 text-[#141413]",
+          "id": ""
+        },
+        {
+          "type": "hardcoded-black",
+          "element": "p",
+          "text": "Beyond your resume and public persona lies your au",
+          "color": "rgb(20, 20, 19)",
+          "classes": "text-[20px] text-[#141413] max-w-[700px] mx-auto mb-12 leading-[1.6]",
+          "id": ""
+        },
+        {
+          "type": "hardcoded-black",
+          "element": "div",
+          "text": "Discover Your SignatureSee How It Works",
+          "color": "rgb(20, 20, 19)",
+          "classes": "flex gap-6 justify-center",
+          "id": ""
+        },
+        {
+          "type": "hardcoded-black",
+          "element": "div",
+          "text": "Discover Your Signature",
+          "color": "rgb(20, 20, 19)",
+          "classes": "",
+          "id": ""
+        },
+        {
+          "type": "hardcoded-black",
+          "element": "button",
+          "text": "See How It Works",
+          "color": "rgb(20, 20, 19)",
+          "classes": "btn-anthropic-secondary",
+          "id": ""
+        },
+        {
+          "type": "hardcoded-black",
+          "element": "div",
+          "text": "Your Digital Identity, RevealedFrom the branches t",
+          "color": "rgb(20, 20, 19)",
+          "classes": "text-center mb-[60px]",
+          "id": ""
+        },
+        {
+          "type": "hardcoded-black",
+          "element": "h2",
+          "text": "Your Digital Identity, Revealed",
+          "color": "rgb(20, 20, 19)",
+          "classes": "text-[clamp(2rem,4vw,3rem)] mb-4 text-[#141413]",
+          "id": ""
+        },
+        {
+          "type": "hardcoded-black",
+          "element": "p",
+          "text": "From the branches to the roots—discover what makes",
+          "color": "rgb(20, 20, 19)",
+          "classes": "text-[20px] text-[#141413]",
+          "id": ""
+        },
+        {
+          "type": "hardcoded-black",
+          "element": "div",
+          "text": "Personal ClusterHobbies & PassionsProfessional Clu",
+          "color": "rgb(20, 20, 19)",
+          "classes": "max-w-[1400px] mx-auto grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8",
+          "id": ""
+        },
+        {
+          "type": "hardcoded-black",
+          "element": "div",
+          "text": "Personal ClusterHobbies & Passions",
+          "color": "rgb(20, 20, 19)",
+          "classes": "bg-white rounded-[16px] p-8 border border-[rgba(20,20,19,0.1)]",
+          "id": ""
+        },
+        {
+          "type": "hardcoded-black",
+          "element": "h3",
+          "text": "Personal Cluster",
+          "color": "rgb(20, 20, 19)",
+          "classes": "text-[24px] text-[#141413] mb-3",
+          "id": ""
+        },
+        {
+          "type": "hardcoded-black",
+          "element": "span",
+          "text": "Hobbies & Passions",
+          "color": "rgb(20, 20, 19)",
+          "classes": "inline-block px-4 py-2 rounded-full text-[14px] font-medium text-[#141413] bg-[rgba(20,20,19,0.05)]",
+          "id": ""
+        },
+        {
+          "type": "low-contrast",
+          "element": "span",
+          "text": "Hobbies & Passions",
+          "color": "rgb(20, 20, 19)",
+          "backgroundColor": "rgba(20, 20, 19, 0.05)",
+          "classes": "inline-block px-4 py-2 rounded-full text-[14px] font-medium text-[#141413] bg-[rgba(20,20,19,0.05)]",
+          "id": ""
+        },
+        {
+          "type": "hardcoded-black",
+          "element": "div",
+          "text": "Professional ClusterCareer & Skills",
+          "color": "rgb(20, 20, 19)",
+          "classes": "bg-white rounded-[16px] p-8 border border-[rgba(20,20,19,0.1)]",
+          "id": ""
+        },
+        {
+          "type": "hardcoded-black",
+          "element": "h3",
+          "text": "Professional Cluster",
+          "color": "rgb(20, 20, 19)",
+          "classes": "text-[24px] text-[#141413] mb-3",
+          "id": ""
+        },
+        {
+          "type": "hardcoded-black",
+          "element": "span",
+          "text": "Career & Skills",
+          "color": "rgb(20, 20, 19)",
+          "classes": "inline-block px-4 py-2 rounded-full text-[14px] font-medium text-[#141413] bg-[rgba(20,20,19,0.05)]",
+          "id": ""
+        },
+        {
+          "type": "low-contrast",
+          "element": "span",
+          "text": "Career & Skills",
+          "color": "rgb(20, 20, 19)",
+          "backgroundColor": "rgba(20, 20, 19, 0.05)",
+          "classes": "inline-block px-4 py-2 rounded-full text-[14px] font-medium text-[#141413] bg-[rgba(20,20,19,0.05)]",
+          "id": ""
+        },
+        {
+          "type": "hardcoded-black",
+          "element": "div",
+          "text": "Privacy SpectrumWhat To Reveal",
+          "color": "rgb(20, 20, 19)",
+          "classes": "bg-white rounded-[16px] p-8 border border-[rgba(20,20,19,0.1)]",
+          "id": ""
+        },
+        {
+          "type": "hardcoded-black",
+          "element": "h3",
+          "text": "Privacy Spectrum",
+          "color": "rgb(20, 20, 19)",
+          "classes": "text-[24px] text-[#141413] mb-3",
+          "id": ""
+        },
+        {
+          "type": "hardcoded-black",
+          "element": "span",
+          "text": "What To Reveal",
+          "color": "rgb(20, 20, 19)",
+          "classes": "inline-block px-4 py-2 rounded-full text-[14px] font-medium text-[#141413] bg-[rgba(20,20,19,0.05)]",
+          "id": ""
+        },
+        {
+          "type": "low-contrast",
+          "element": "span",
+          "text": "What To Reveal",
+          "color": "rgb(20, 20, 19)",
+          "backgroundColor": "rgba(20, 20, 19, 0.05)",
+          "classes": "inline-block px-4 py-2 rounded-full text-[14px] font-medium text-[#141413] bg-[rgba(20,20,19,0.05)]",
+          "id": ""
+        },
+        {
+          "type": "hardcoded-black",
+          "element": "div",
+          "text": "Soul DashboardYour Signature",
+          "color": "rgb(20, 20, 19)",
+          "classes": "bg-white rounded-[16px] p-8 border border-[rgba(20,20,19,0.1)]",
+          "id": ""
+        },
+        {
+          "type": "hardcoded-black",
+          "element": "h3",
+          "text": "Soul Dashboard",
+          "color": "rgb(20, 20, 19)",
+          "classes": "text-[24px] text-[#141413] mb-3",
+          "id": ""
+        },
+        {
+          "type": "hardcoded-black",
+          "element": "span",
+          "text": "Your Signature",
+          "color": "rgb(20, 20, 19)",
+          "classes": "inline-block px-4 py-2 rounded-full text-[14px] font-medium text-[#141413] bg-[rgba(20,20,19,0.05)]",
+          "id": ""
+        },
+        {
+          "type": "low-contrast",
+          "element": "span",
+          "text": "Your Signature",
+          "color": "rgb(20, 20, 19)",
+          "backgroundColor": "rgba(20, 20, 19, 0.05)",
+          "classes": "inline-block px-4 py-2 rounded-full text-[14px] font-medium text-[#141413] bg-[rgba(20,20,19,0.05)]",
+          "id": ""
+        },
+        {
+          "type": "hardcoded-black",
+          "element": "div",
+          "text": "Beyond Public InformationInformation doesn't have ",
+          "color": "rgb(20, 20, 19)",
+          "classes": "text-center mb-[60px]",
+          "id": ""
+        },
+        {
+          "type": "hardcoded-black",
+          "element": "h2",
+          "text": "Beyond Public Information",
+          "color": "rgb(20, 20, 19)",
+          "classes": "text-[clamp(2rem,4vw,3rem)] mb-4 text-[#141413]",
+          "id": ""
+        },
+        {
+          "type": "hardcoded-black",
+          "element": "p",
+          "text": "Information doesn't have a soul—discover yours",
+          "color": "rgb(20, 20, 19)",
+          "classes": "text-[20px] text-[#141413]",
+          "id": ""
+        },
+        {
+          "type": "hardcoded-black",
+          "element": "div",
+          "text": "〜Voice LearningNatural conversations with AI teach",
+          "color": "rgb(20, 20, 19)",
+          "classes": "max-w-[1200px] mx-auto grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10",
+          "id": ""
+        },
+        {
+          "type": "hardcoded-black",
+          "element": "div",
+          "text": "〜Voice LearningNatural conversations with AI teach",
+          "color": "rgb(20, 20, 19)",
+          "classes": "bg-white rounded-[16px] p-10 border border-[rgba(20,20,19,0.1)]",
+          "id": ""
+        },
+        {
+          "type": "hardcoded-black",
+          "element": "div",
+          "text": "〜",
+          "color": "rgb(20, 20, 19)",
+          "classes": "w-[60px] h-[60px] bg-[#F5F5F5] rounded-[12px] flex items-center justify-center mb-6 text-[32px] text-[#141413]",
+          "id": ""
+        },
+        {
+          "type": "hardcoded-black",
+          "element": "h3",
+          "text": "Voice Learning",
+          "color": "rgb(20, 20, 19)",
+          "classes": "text-[24px] text-[#141413] mb-3",
+          "id": ""
+        },
+        {
+          "type": "hardcoded-black",
+          "element": "p",
+          "text": "Natural conversations with AI teachers that feel l",
+          "color": "rgb(20, 20, 19)",
+          "classes": "text-[#141413] leading-[1.6]",
+          "id": ""
+        },
+        {
+          "type": "hardcoded-black",
+          "element": "div",
+          "text": "◐Text InterfaceChatGPT-style learning experience f",
+          "color": "rgb(20, 20, 19)",
+          "classes": "bg-white rounded-[16px] p-10 border border-[rgba(20,20,19,0.1)]",
+          "id": ""
+        },
+        {
+          "type": "hardcoded-black",
+          "element": "div",
+          "text": "◐",
+          "color": "rgb(20, 20, 19)",
+          "classes": "w-[60px] h-[60px] bg-[#F5F5F5] rounded-[12px] flex items-center justify-center mb-6 text-[32px] text-[#141413]",
+          "id": ""
+        },
+        {
+          "type": "hardcoded-black",
+          "element": "h3",
+          "text": "Text Interface",
+          "color": "rgb(20, 20, 19)",
+          "classes": "text-[24px] text-[#141413] mb-3",
+          "id": ""
+        },
+        {
+          "type": "hardcoded-black",
+          "element": "p",
+          "text": "ChatGPT-style learning experience for written comm",
+          "color": "rgb(20, 20, 19)",
+          "classes": "text-[#141413] leading-[1.6]",
+          "id": ""
+        },
+        {
+          "type": "hardcoded-black",
+          "element": "div",
+          "text": "◉Adaptive AIPersonalized teaching that adapts to y",
+          "color": "rgb(20, 20, 19)",
+          "classes": "bg-white rounded-[16px] p-10 border border-[rgba(20,20,19,0.1)]",
+          "id": ""
+        },
+        {
+          "type": "hardcoded-black",
+          "element": "div",
+          "text": "◉",
+          "color": "rgb(20, 20, 19)",
+          "classes": "w-[60px] h-[60px] bg-[#F5F5F5] rounded-[12px] flex items-center justify-center mb-6 text-[32px] text-[#141413]",
+          "id": ""
+        },
+        {
+          "type": "hardcoded-black",
+          "element": "h3",
+          "text": "Adaptive AI",
+          "color": "rgb(20, 20, 19)",
+          "classes": "text-[24px] text-[#141413] mb-3",
+          "id": ""
+        },
+        {
+          "type": "hardcoded-black",
+          "element": "p",
+          "text": "Personalized teaching that adapts to your unique l",
+          "color": "rgb(20, 20, 19)",
+          "classes": "text-[#141413] leading-[1.6]",
+          "id": ""
+        },
+        {
+          "type": "hardcoded-black",
+          "element": "div",
+          "text": "▣Smart AnalyticsTrack progress and get insights in",
+          "color": "rgb(20, 20, 19)",
+          "classes": "bg-white rounded-[16px] p-10 border border-[rgba(20,20,19,0.1)]",
+          "id": ""
+        },
+        {
+          "type": "hardcoded-black",
+          "element": "div",
+          "text": "▣",
+          "color": "rgb(20, 20, 19)",
+          "classes": "w-[60px] h-[60px] bg-[#F5F5F5] rounded-[12px] flex items-center justify-center mb-6 text-[32px] text-[#141413]",
+          "id": ""
+        },
+        {
+          "type": "hardcoded-black",
+          "element": "h3",
+          "text": "Smart Analytics",
+          "color": "rgb(20, 20, 19)",
+          "classes": "text-[24px] text-[#141413] mb-3",
+          "id": ""
+        },
+        {
+          "type": "hardcoded-black",
+          "element": "p",
+          "text": "Track progress and get insights into your learning",
+          "color": "rgb(20, 20, 19)",
+          "classes": "text-[#141413] leading-[1.6]",
+          "id": ""
+        },
+        {
+          "type": "hardcoded-black",
+          "element": "div",
+          "text": "◎Global AccessLearn from anywhere, anytime, with a",
+          "color": "rgb(20, 20, 19)",
+          "classes": "bg-white rounded-[16px] p-10 border border-[rgba(20,20,19,0.1)]",
+          "id": ""
+        },
+        {
+          "type": "hardcoded-black",
+          "element": "div",
+          "text": "◎",
+          "color": "rgb(20, 20, 19)",
+          "classes": "w-[60px] h-[60px] bg-[#F5F5F5] rounded-[12px] flex items-center justify-center mb-6 text-[32px] text-[#141413]",
+          "id": ""
+        },
+        {
+          "type": "hardcoded-black",
+          "element": "h3",
+          "text": "Global Access",
+          "color": "rgb(20, 20, 19)",
+          "classes": "text-[24px] text-[#141413] mb-3",
+          "id": ""
+        },
+        {
+          "type": "hardcoded-black",
+          "element": "p",
+          "text": "Learn from anywhere, anytime, with any device",
+          "color": "rgb(20, 20, 19)",
+          "classes": "text-[#141413] leading-[1.6]",
+          "id": ""
+        },
+        {
+          "type": "hardcoded-black",
+          "element": "div",
+          "text": "△Instant SetupTeachers upload content, AI learns a",
+          "color": "rgb(20, 20, 19)",
+          "classes": "bg-white rounded-[16px] p-10 border border-[rgba(20,20,19,0.1)]",
+          "id": ""
+        },
+        {
+          "type": "hardcoded-black",
+          "element": "div",
+          "text": "△",
+          "color": "rgb(20, 20, 19)",
+          "classes": "w-[60px] h-[60px] bg-[#F5F5F5] rounded-[12px] flex items-center justify-center mb-6 text-[32px] text-[#141413]",
+          "id": ""
+        },
+        {
+          "type": "hardcoded-black",
+          "element": "h3",
+          "text": "Instant Setup",
+          "color": "rgb(20, 20, 19)",
+          "classes": "text-[24px] text-[#141413] mb-3",
+          "id": ""
+        },
+        {
+          "type": "hardcoded-black",
+          "element": "p",
+          "text": "Teachers upload content, AI learns and deploys ins",
+          "color": "rgb(20, 20, 19)",
+          "classes": "text-[#141413] leading-[1.6]",
+          "id": ""
+        },
+        {
+          "type": "hardcoded-black",
+          "element": "div",
+          "text": "Behind the TechnologyFinally, meet the platform tr",
+          "color": "rgb(20, 20, 19)",
+          "classes": "text-center max-w-[900px] mx-auto",
+          "id": ""
+        },
+        {
+          "type": "hardcoded-black",
+          "element": "h2",
+          "text": "Behind the Technology",
+          "color": "rgb(20, 20, 19)",
+          "classes": "text-[clamp(2rem,4vw,3rem)] mb-6 text-[#141413]",
+          "id": ""
+        },
+        {
+          "type": "hardcoded-black",
+          "element": "p",
+          "text": "Finally, meet the platform transforming education",
+          "color": "rgb(20, 20, 19)",
+          "classes": "text-[20px] leading-[1.6] mb-6 text-[#141413]",
+          "id": ""
+        },
+        {
+          "type": "hardcoded-black",
+          "element": "p",
+          "text": "We help educators create digital twins that actual",
+          "color": "rgb(20, 20, 19)",
+          "classes": "text-[20px] leading-[1.6] mb-12 text-[#141413]",
+          "id": ""
+        },
+        {
+          "type": "hardcoded-black",
+          "element": "div",
+          "text": "Start Creating for Free",
+          "color": "rgb(20, 20, 19)",
+          "classes": "",
+          "id": ""
+        },
+        {
+          "type": "hardcoded-black",
+          "element": "h2",
+          "text": "Ready to transform education?",
+          "color": "rgb(20, 20, 19)",
+          "classes": "text-[clamp(2rem,4vw,3rem)] mb-6 text-[#141413]",
+          "id": ""
+        },
+        {
+          "type": "hardcoded-black",
+          "element": "p",
+          "text": "Join thousands of educators creating their digital",
+          "color": "rgb(20, 20, 19)",
+          "classes": "text-[22px] text-[#141413] mb-12",
+          "id": ""
+        },
+        {
+          "type": "hardcoded-black",
+          "element": "div",
+          "text": "Get Started Today",
+          "color": "rgb(20, 20, 19)",
+          "classes": "",
+          "id": ""
+        }
+      ],
+      "darkModeIssues": [
+        {
+          "type": "low-contrast",
+          "element": "div",
+          "text": "Twin MeFeaturesHow It WorksAboutContactGet Started",
+          "color": "rgb(0, 0, 0)",
+          "backgroundColor": "rgba(0, 0, 0, 0)",
+          "classes": "",
+          "id": "root"
+        },
+        {
+          "type": "hardcoded-black",
+          "element": "div",
+          "text": "Twin MeFeaturesHow It WorksAboutContactGet Started",
+          "color": "rgb(20, 20, 19)",
+          "classes": "min-h-screen bg-[#FAF9F5] text-[#141413] overflow-x-hidden",
+          "id": ""
+        },
+        {
+          "type": "hardcoded-black",
+          "element": "div",
+          "text": "Twin MeFeaturesHow It WorksAboutContactGet Started",
+          "color": "rgb(20, 20, 19)",
+          "classes": "max-w-[1400px] mx-auto flex justify-between items-center",
+          "id": ""
+        },
+        {
+          "type": "hardcoded-black",
+          "element": "div",
+          "text": "Twin Me",
+          "color": "rgb(20, 20, 19)",
+          "classes": "text-[28px] text-[#141413]",
+          "id": ""
+        },
+        {
+          "type": "hardcoded-black",
+          "element": "div",
+          "text": "Get Started",
+          "color": "rgb(20, 20, 19)",
+          "classes": "",
+          "id": ""
+        },
+        {
+          "type": "hardcoded-black",
+          "element": "div",
+          "text": "Discover YourSoul SignatureBeyond your resume and ",
+          "color": "rgb(20, 20, 19)",
+          "classes": "text-center relative z-10 max-w-[900px]",
+          "id": ""
+        },
+        {
+          "type": "hardcoded-black",
+          "element": "h1",
+          "text": "Discover YourSoul Signature",
+          "color": "rgb(20, 20, 19)",
+          "classes": "text-[clamp(2.5rem,5vw,4rem)] leading-[1.1] mb-8 text-[#141413]",
+          "id": ""
+        },
+        {
+          "type": "hardcoded-black",
+          "element": "p",
+          "text": "Beyond your resume and public persona lies your au",
+          "color": "rgb(20, 20, 19)",
+          "classes": "text-[20px] text-[#141413] max-w-[700px] mx-auto mb-12 leading-[1.6]",
+          "id": ""
+        },
+        {
+          "type": "hardcoded-black",
+          "element": "div",
+          "text": "Discover Your SignatureSee How It Works",
+          "color": "rgb(20, 20, 19)",
+          "classes": "flex gap-6 justify-center",
+          "id": ""
+        },
+        {
+          "type": "hardcoded-black",
+          "element": "div",
+          "text": "Discover Your Signature",
+          "color": "rgb(20, 20, 19)",
+          "classes": "",
+          "id": ""
+        },
+        {
+          "type": "hardcoded-black",
+          "element": "button",
+          "text": "See How It Works",
+          "color": "rgb(20, 20, 19)",
+          "classes": "btn-anthropic-secondary",
+          "id": ""
+        },
+        {
+          "type": "hardcoded-black",
+          "element": "div",
+          "text": "Your Digital Identity, RevealedFrom the branches t",
+          "color": "rgb(20, 20, 19)",
+          "classes": "text-center mb-[60px]",
+          "id": ""
+        },
+        {
+          "type": "hardcoded-black",
+          "element": "h2",
+          "text": "Your Digital Identity, Revealed",
+          "color": "rgb(20, 20, 19)",
+          "classes": "text-[clamp(2rem,4vw,3rem)] mb-4 text-[#141413]",
+          "id": ""
+        },
+        {
+          "type": "hardcoded-black",
+          "element": "p",
+          "text": "From the branches to the roots—discover what makes",
+          "color": "rgb(20, 20, 19)",
+          "classes": "text-[20px] text-[#141413]",
+          "id": ""
+        },
+        {
+          "type": "hardcoded-black",
+          "element": "div",
+          "text": "Personal ClusterHobbies & PassionsProfessional Clu",
+          "color": "rgb(20, 20, 19)",
+          "classes": "max-w-[1400px] mx-auto grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8",
+          "id": ""
+        },
+        {
+          "type": "hardcoded-black",
+          "element": "div",
+          "text": "Personal ClusterHobbies & Passions",
+          "color": "rgb(20, 20, 19)",
+          "classes": "bg-white rounded-[16px] p-8 border border-[rgba(20,20,19,0.1)]",
+          "id": ""
+        },
+        {
+          "type": "hardcoded-black",
+          "element": "h3",
+          "text": "Personal Cluster",
+          "color": "rgb(20, 20, 19)",
+          "classes": "text-[24px] text-[#141413] mb-3",
+          "id": ""
+        },
+        {
+          "type": "hardcoded-black",
+          "element": "span",
+          "text": "Hobbies & Passions",
+          "color": "rgb(20, 20, 19)",
+          "classes": "inline-block px-4 py-2 rounded-full text-[14px] font-medium text-[#141413] bg-[rgba(20,20,19,0.05)]",
+          "id": ""
+        },
+        {
+          "type": "low-contrast",
+          "element": "span",
+          "text": "Hobbies & Passions",
+          "color": "rgb(20, 20, 19)",
+          "backgroundColor": "rgba(20, 20, 19, 0.05)",
+          "classes": "inline-block px-4 py-2 rounded-full text-[14px] font-medium text-[#141413] bg-[rgba(20,20,19,0.05)]",
+          "id": ""
+        },
+        {
+          "type": "hardcoded-black",
+          "element": "div",
+          "text": "Professional ClusterCareer & Skills",
+          "color": "rgb(20, 20, 19)",
+          "classes": "bg-white rounded-[16px] p-8 border border-[rgba(20,20,19,0.1)]",
+          "id": ""
+        },
+        {
+          "type": "hardcoded-black",
+          "element": "h3",
+          "text": "Professional Cluster",
+          "color": "rgb(20, 20, 19)",
+          "classes": "text-[24px] text-[#141413] mb-3",
+          "id": ""
+        },
+        {
+          "type": "hardcoded-black",
+          "element": "span",
+          "text": "Career & Skills",
+          "color": "rgb(20, 20, 19)",
+          "classes": "inline-block px-4 py-2 rounded-full text-[14px] font-medium text-[#141413] bg-[rgba(20,20,19,0.05)]",
+          "id": ""
+        },
+        {
+          "type": "low-contrast",
+          "element": "span",
+          "text": "Career & Skills",
+          "color": "rgb(20, 20, 19)",
+          "backgroundColor": "rgba(20, 20, 19, 0.05)",
+          "classes": "inline-block px-4 py-2 rounded-full text-[14px] font-medium text-[#141413] bg-[rgba(20,20,19,0.05)]",
+          "id": ""
+        },
+        {
+          "type": "hardcoded-black",
+          "element": "div",
+          "text": "Privacy SpectrumWhat To Reveal",
+          "color": "rgb(20, 20, 19)",
+          "classes": "bg-white rounded-[16px] p-8 border border-[rgba(20,20,19,0.1)]",
+          "id": ""
+        },
+        {
+          "type": "hardcoded-black",
+          "element": "h3",
+          "text": "Privacy Spectrum",
+          "color": "rgb(20, 20, 19)",
+          "classes": "text-[24px] text-[#141413] mb-3",
+          "id": ""
+        },
+        {
+          "type": "hardcoded-black",
+          "element": "span",
+          "text": "What To Reveal",
+          "color": "rgb(20, 20, 19)",
+          "classes": "inline-block px-4 py-2 rounded-full text-[14px] font-medium text-[#141413] bg-[rgba(20,20,19,0.05)]",
+          "id": ""
+        },
+        {
+          "type": "low-contrast",
+          "element": "span",
+          "text": "What To Reveal",
+          "color": "rgb(20, 20, 19)",
+          "backgroundColor": "rgba(20, 20, 19, 0.05)",
+          "classes": "inline-block px-4 py-2 rounded-full text-[14px] font-medium text-[#141413] bg-[rgba(20,20,19,0.05)]",
+          "id": ""
+        },
+        {
+          "type": "hardcoded-black",
+          "element": "div",
+          "text": "Soul DashboardYour Signature",
+          "color": "rgb(20, 20, 19)",
+          "classes": "bg-white rounded-[16px] p-8 border border-[rgba(20,20,19,0.1)]",
+          "id": ""
+        },
+        {
+          "type": "hardcoded-black",
+          "element": "h3",
+          "text": "Soul Dashboard",
+          "color": "rgb(20, 20, 19)",
+          "classes": "text-[24px] text-[#141413] mb-3",
+          "id": ""
+        },
+        {
+          "type": "hardcoded-black",
+          "element": "span",
+          "text": "Your Signature",
+          "color": "rgb(20, 20, 19)",
+          "classes": "inline-block px-4 py-2 rounded-full text-[14px] font-medium text-[#141413] bg-[rgba(20,20,19,0.05)]",
+          "id": ""
+        },
+        {
+          "type": "low-contrast",
+          "element": "span",
+          "text": "Your Signature",
+          "color": "rgb(20, 20, 19)",
+          "backgroundColor": "rgba(20, 20, 19, 0.05)",
+          "classes": "inline-block px-4 py-2 rounded-full text-[14px] font-medium text-[#141413] bg-[rgba(20,20,19,0.05)]",
+          "id": ""
+        },
+        {
+          "type": "hardcoded-black",
+          "element": "div",
+          "text": "Beyond Public InformationInformation doesn't have ",
+          "color": "rgb(20, 20, 19)",
+          "classes": "text-center mb-[60px]",
+          "id": ""
+        },
+        {
+          "type": "hardcoded-black",
+          "element": "h2",
+          "text": "Beyond Public Information",
+          "color": "rgb(20, 20, 19)",
+          "classes": "text-[clamp(2rem,4vw,3rem)] mb-4 text-[#141413]",
+          "id": ""
+        },
+        {
+          "type": "hardcoded-black",
+          "element": "p",
+          "text": "Information doesn't have a soul—discover yours",
+          "color": "rgb(20, 20, 19)",
+          "classes": "text-[20px] text-[#141413]",
+          "id": ""
+        },
+        {
+          "type": "hardcoded-black",
+          "element": "div",
+          "text": "〜Voice LearningNatural conversations with AI teach",
+          "color": "rgb(20, 20, 19)",
+          "classes": "max-w-[1200px] mx-auto grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10",
+          "id": ""
+        },
+        {
+          "type": "hardcoded-black",
+          "element": "div",
+          "text": "〜Voice LearningNatural conversations with AI teach",
+          "color": "rgb(20, 20, 19)",
+          "classes": "bg-white rounded-[16px] p-10 border border-[rgba(20,20,19,0.1)]",
+          "id": ""
+        },
+        {
+          "type": "hardcoded-black",
+          "element": "div",
+          "text": "〜",
+          "color": "rgb(20, 20, 19)",
+          "classes": "w-[60px] h-[60px] bg-[#F5F5F5] rounded-[12px] flex items-center justify-center mb-6 text-[32px] text-[#141413]",
+          "id": ""
+        },
+        {
+          "type": "hardcoded-black",
+          "element": "h3",
+          "text": "Voice Learning",
+          "color": "rgb(20, 20, 19)",
+          "classes": "text-[24px] text-[#141413] mb-3",
+          "id": ""
+        },
+        {
+          "type": "hardcoded-black",
+          "element": "p",
+          "text": "Natural conversations with AI teachers that feel l",
+          "color": "rgb(20, 20, 19)",
+          "classes": "text-[#141413] leading-[1.6]",
+          "id": ""
+        },
+        {
+          "type": "hardcoded-black",
+          "element": "div",
+          "text": "◐Text InterfaceChatGPT-style learning experience f",
+          "color": "rgb(20, 20, 19)",
+          "classes": "bg-white rounded-[16px] p-10 border border-[rgba(20,20,19,0.1)]",
+          "id": ""
+        },
+        {
+          "type": "hardcoded-black",
+          "element": "div",
+          "text": "◐",
+          "color": "rgb(20, 20, 19)",
+          "classes": "w-[60px] h-[60px] bg-[#F5F5F5] rounded-[12px] flex items-center justify-center mb-6 text-[32px] text-[#141413]",
+          "id": ""
+        },
+        {
+          "type": "hardcoded-black",
+          "element": "h3",
+          "text": "Text Interface",
+          "color": "rgb(20, 20, 19)",
+          "classes": "text-[24px] text-[#141413] mb-3",
+          "id": ""
+        },
+        {
+          "type": "hardcoded-black",
+          "element": "p",
+          "text": "ChatGPT-style learning experience for written comm",
+          "color": "rgb(20, 20, 19)",
+          "classes": "text-[#141413] leading-[1.6]",
+          "id": ""
+        },
+        {
+          "type": "hardcoded-black",
+          "element": "div",
+          "text": "◉Adaptive AIPersonalized teaching that adapts to y",
+          "color": "rgb(20, 20, 19)",
+          "classes": "bg-white rounded-[16px] p-10 border border-[rgba(20,20,19,0.1)]",
+          "id": ""
+        },
+        {
+          "type": "hardcoded-black",
+          "element": "div",
+          "text": "◉",
+          "color": "rgb(20, 20, 19)",
+          "classes": "w-[60px] h-[60px] bg-[#F5F5F5] rounded-[12px] flex items-center justify-center mb-6 text-[32px] text-[#141413]",
+          "id": ""
+        },
+        {
+          "type": "hardcoded-black",
+          "element": "h3",
+          "text": "Adaptive AI",
+          "color": "rgb(20, 20, 19)",
+          "classes": "text-[24px] text-[#141413] mb-3",
+          "id": ""
+        },
+        {
+          "type": "hardcoded-black",
+          "element": "p",
+          "text": "Personalized teaching that adapts to your unique l",
+          "color": "rgb(20, 20, 19)",
+          "classes": "text-[#141413] leading-[1.6]",
+          "id": ""
+        },
+        {
+          "type": "hardcoded-black",
+          "element": "div",
+          "text": "▣Smart AnalyticsTrack progress and get insights in",
+          "color": "rgb(20, 20, 19)",
+          "classes": "bg-white rounded-[16px] p-10 border border-[rgba(20,20,19,0.1)]",
+          "id": ""
+        },
+        {
+          "type": "hardcoded-black",
+          "element": "div",
+          "text": "▣",
+          "color": "rgb(20, 20, 19)",
+          "classes": "w-[60px] h-[60px] bg-[#F5F5F5] rounded-[12px] flex items-center justify-center mb-6 text-[32px] text-[#141413]",
+          "id": ""
+        },
+        {
+          "type": "hardcoded-black",
+          "element": "h3",
+          "text": "Smart Analytics",
+          "color": "rgb(20, 20, 19)",
+          "classes": "text-[24px] text-[#141413] mb-3",
+          "id": ""
+        },
+        {
+          "type": "hardcoded-black",
+          "element": "p",
+          "text": "Track progress and get insights into your learning",
+          "color": "rgb(20, 20, 19)",
+          "classes": "text-[#141413] leading-[1.6]",
+          "id": ""
+        },
+        {
+          "type": "hardcoded-black",
+          "element": "div",
+          "text": "◎Global AccessLearn from anywhere, anytime, with a",
+          "color": "rgb(20, 20, 19)",
+          "classes": "bg-white rounded-[16px] p-10 border border-[rgba(20,20,19,0.1)]",
+          "id": ""
+        },
+        {
+          "type": "hardcoded-black",
+          "element": "div",
+          "text": "◎",
+          "color": "rgb(20, 20, 19)",
+          "classes": "w-[60px] h-[60px] bg-[#F5F5F5] rounded-[12px] flex items-center justify-center mb-6 text-[32px] text-[#141413]",
+          "id": ""
+        },
+        {
+          "type": "hardcoded-black",
+          "element": "h3",
+          "text": "Global Access",
+          "color": "rgb(20, 20, 19)",
+          "classes": "text-[24px] text-[#141413] mb-3",
+          "id": ""
+        },
+        {
+          "type": "hardcoded-black",
+          "element": "p",
+          "text": "Learn from anywhere, anytime, with any device",
+          "color": "rgb(20, 20, 19)",
+          "classes": "text-[#141413] leading-[1.6]",
+          "id": ""
+        },
+        {
+          "type": "hardcoded-black",
+          "element": "div",
+          "text": "△Instant SetupTeachers upload content, AI learns a",
+          "color": "rgb(20, 20, 19)",
+          "classes": "bg-white rounded-[16px] p-10 border border-[rgba(20,20,19,0.1)]",
+          "id": ""
+        },
+        {
+          "type": "hardcoded-black",
+          "element": "div",
+          "text": "△",
+          "color": "rgb(20, 20, 19)",
+          "classes": "w-[60px] h-[60px] bg-[#F5F5F5] rounded-[12px] flex items-center justify-center mb-6 text-[32px] text-[#141413]",
+          "id": ""
+        },
+        {
+          "type": "hardcoded-black",
+          "element": "h3",
+          "text": "Instant Setup",
+          "color": "rgb(20, 20, 19)",
+          "classes": "text-[24px] text-[#141413] mb-3",
+          "id": ""
+        },
+        {
+          "type": "hardcoded-black",
+          "element": "p",
+          "text": "Teachers upload content, AI learns and deploys ins",
+          "color": "rgb(20, 20, 19)",
+          "classes": "text-[#141413] leading-[1.6]",
+          "id": ""
+        },
+        {
+          "type": "hardcoded-black",
+          "element": "div",
+          "text": "Behind the TechnologyFinally, meet the platform tr",
+          "color": "rgb(20, 20, 19)",
+          "classes": "text-center max-w-[900px] mx-auto",
+          "id": ""
+        },
+        {
+          "type": "hardcoded-black",
+          "element": "h2",
+          "text": "Behind the Technology",
+          "color": "rgb(20, 20, 19)",
+          "classes": "text-[clamp(2rem,4vw,3rem)] mb-6 text-[#141413]",
+          "id": ""
+        },
+        {
+          "type": "hardcoded-black",
+          "element": "p",
+          "text": "Finally, meet the platform transforming education",
+          "color": "rgb(20, 20, 19)",
+          "classes": "text-[20px] leading-[1.6] mb-6 text-[#141413]",
+          "id": ""
+        },
+        {
+          "type": "hardcoded-black",
+          "element": "p",
+          "text": "We help educators create digital twins that actual",
+          "color": "rgb(20, 20, 19)",
+          "classes": "text-[20px] leading-[1.6] mb-12 text-[#141413]",
+          "id": ""
+        },
+        {
+          "type": "hardcoded-black",
+          "element": "div",
+          "text": "Start Creating for Free",
+          "color": "rgb(20, 20, 19)",
+          "classes": "",
+          "id": ""
+        },
+        {
+          "type": "hardcoded-black",
+          "element": "h2",
+          "text": "Ready to transform education?",
+          "color": "rgb(20, 20, 19)",
+          "classes": "text-[clamp(2rem,4vw,3rem)] mb-6 text-[#141413]",
+          "id": ""
+        },
+        {
+          "type": "hardcoded-black",
+          "element": "p",
+          "text": "Join thousands of educators creating their digital",
+          "color": "rgb(20, 20, 19)",
+          "classes": "text-[22px] text-[#141413] mb-12",
+          "id": ""
+        },
+        {
+          "type": "hardcoded-black",
+          "element": "div",
+          "text": "Get Started Today",
+          "color": "rgb(20, 20, 19)",
+          "classes": "",
+          "id": ""
+        }
+      ]
+    },
+    {
+      "page": "get-started",
+      "lightModeIssues": [
+        {
+          "type": "low-contrast",
+          "element": "div",
+          "text": "Back to HomeTwin Me Welcome BackSign in to discove",
+          "color": "rgb(0, 0, 0)",
+          "backgroundColor": "rgba(0, 0, 0, 0)",
+          "classes": "",
+          "id": "root"
+        },
+        {
+          "type": "hardcoded-black",
+          "element": "button",
+          "text": "Back to Home",
+          "color": "rgb(20, 20, 19)",
+          "classes": "flex items-center gap-2 text-sm px-3 py-2 rounded-lg bg-white border border-[rgba(20,20,19,0.1)] text-[#141413]",
+          "id": ""
+        },
+        {
+          "type": "hardcoded-black",
+          "element": "span",
+          "text": "Twin Me",
+          "color": "rgb(20, 20, 19)",
+          "classes": "text-xl text-[#141413]",
+          "id": ""
+        },
+        {
+          "type": "hardcoded-black",
+          "element": "h1",
+          "text": "Welcome Back",
+          "color": "rgb(20, 20, 19)",
+          "classes": "text-2xl mb-2 text-[#141413]",
+          "id": ""
+        },
+        {
+          "type": "hardcoded-black",
+          "element": "p",
+          "text": "Sign in to discover your soul signature",
+          "color": "rgb(20, 20, 19)",
+          "classes": "text-[#141413]",
+          "id": ""
+        },
+        {
+          "type": "hardcoded-black",
+          "element": "button",
+          "text": "Continue with Google",
+          "color": "rgb(20, 20, 19)",
+          "classes": "w-full flex items-center justify-center gap-3 py-3 px-4 rounded-xl border bg-white border-[rgba(20,20,19,0.1)] text-[#141413]",
+          "id": ""
+        },
+        {
+          "type": "hardcoded-black",
+          "element": "span",
+          "text": "Or continue with email",
+          "color": "rgb(20, 20, 19)",
+          "classes": "px-2 bg-white text-[#141413]",
+          "id": ""
+        },
+        {
+          "type": "hardcoded-black",
+          "element": "label",
+          "text": "Email",
+          "color": "rgb(20, 20, 19)",
+          "classes": "block text-sm mb-1 text-[#141413]",
+          "id": ""
+        },
+        {
+          "type": "hardcoded-black",
+          "element": "label",
+          "text": "Password",
+          "color": "rgb(20, 20, 19)",
+          "classes": "block text-sm mb-1 text-[#141413]",
+          "id": ""
+        }
+      ],
+      "darkModeIssues": [
+        {
+          "type": "low-contrast",
+          "element": "div",
+          "text": "Back to HomeTwin Me Welcome BackSign in to discove",
+          "color": "rgb(0, 0, 0)",
+          "backgroundColor": "rgba(0, 0, 0, 0)",
+          "classes": "",
+          "id": "root"
+        },
+        {
+          "type": "hardcoded-black",
+          "element": "button",
+          "text": "Back to Home",
+          "color": "rgb(20, 20, 19)",
+          "classes": "flex items-center gap-2 text-sm px-3 py-2 rounded-lg bg-white border border-[rgba(20,20,19,0.1)] text-[#141413]",
+          "id": ""
+        },
+        {
+          "type": "hardcoded-black",
+          "element": "span",
+          "text": "Twin Me",
+          "color": "rgb(20, 20, 19)",
+          "classes": "text-xl text-[#141413]",
+          "id": ""
+        },
+        {
+          "type": "hardcoded-black",
+          "element": "h1",
+          "text": "Welcome Back",
+          "color": "rgb(20, 20, 19)",
+          "classes": "text-2xl mb-2 text-[#141413]",
+          "id": ""
+        },
+        {
+          "type": "hardcoded-black",
+          "element": "p",
+          "text": "Sign in to discover your soul signature",
+          "color": "rgb(20, 20, 19)",
+          "classes": "text-[#141413]",
+          "id": ""
+        },
+        {
+          "type": "hardcoded-black",
+          "element": "button",
+          "text": "Continue with Google",
+          "color": "rgb(20, 20, 19)",
+          "classes": "w-full flex items-center justify-center gap-3 py-3 px-4 rounded-xl border bg-white border-[rgba(20,20,19,0.1)] text-[#141413]",
+          "id": ""
+        },
+        {
+          "type": "hardcoded-black",
+          "element": "span",
+          "text": "Or continue with email",
+          "color": "rgb(20, 20, 19)",
+          "classes": "px-2 bg-white text-[#141413]",
+          "id": ""
+        },
+        {
+          "type": "hardcoded-black",
+          "element": "label",
+          "text": "Email",
+          "color": "rgb(20, 20, 19)",
+          "classes": "block text-sm mb-1 text-[#141413]",
+          "id": ""
+        },
+        {
+          "type": "hardcoded-black",
+          "element": "label",
+          "text": "Password",
+          "color": "rgb(20, 20, 19)",
+          "classes": "block text-sm mb-1 text-[#141413]",
+          "id": ""
+        }
+      ]
+    },
+    {
+      "page": "twin-builder",
+      "lightModeIssues": [
+        {
+          "type": "low-contrast",
+          "element": "div",
+          "text": "Back to HomeTwin Me Welcome BackSign in to discove",
+          "color": "rgb(0, 0, 0)",
+          "backgroundColor": "rgba(0, 0, 0, 0)",
+          "classes": "",
+          "id": "root"
+        },
+        {
+          "type": "hardcoded-black",
+          "element": "button",
+          "text": "Back to Home",
+          "color": "rgb(20, 20, 19)",
+          "classes": "flex items-center gap-2 text-sm px-3 py-2 rounded-lg bg-white border border-[rgba(20,20,19,0.1)] text-[#141413]",
+          "id": ""
+        },
+        {
+          "type": "hardcoded-black",
+          "element": "span",
+          "text": "Twin Me",
+          "color": "rgb(20, 20, 19)",
+          "classes": "text-xl text-[#141413]",
+          "id": ""
+        },
+        {
+          "type": "hardcoded-black",
+          "element": "h1",
+          "text": "Welcome Back",
+          "color": "rgb(20, 20, 19)",
+          "classes": "text-2xl mb-2 text-[#141413]",
+          "id": ""
+        },
+        {
+          "type": "hardcoded-black",
+          "element": "p",
+          "text": "Sign in to discover your soul signature",
+          "color": "rgb(20, 20, 19)",
+          "classes": "text-[#141413]",
+          "id": ""
+        },
+        {
+          "type": "hardcoded-black",
+          "element": "button",
+          "text": "Continue with Google",
+          "color": "rgb(20, 20, 19)",
+          "classes": "w-full flex items-center justify-center gap-3 py-3 px-4 rounded-xl border bg-white border-[rgba(20,20,19,0.1)] text-[#141413]",
+          "id": ""
+        },
+        {
+          "type": "hardcoded-black",
+          "element": "span",
+          "text": "Or continue with email",
+          "color": "rgb(20, 20, 19)",
+          "classes": "px-2 bg-white text-[#141413]",
+          "id": ""
+        },
+        {
+          "type": "hardcoded-black",
+          "element": "label",
+          "text": "Email",
+          "color": "rgb(20, 20, 19)",
+          "classes": "block text-sm mb-1 text-[#141413]",
+          "id": ""
+        },
+        {
+          "type": "hardcoded-black",
+          "element": "label",
+          "text": "Password",
+          "color": "rgb(20, 20, 19)",
+          "classes": "block text-sm mb-1 text-[#141413]",
+          "id": ""
+        }
+      ],
+      "darkModeIssues": [
+        {
+          "type": "low-contrast",
+          "element": "div",
+          "text": "Back to HomeTwin Me Welcome BackSign in to discove",
+          "color": "rgb(0, 0, 0)",
+          "backgroundColor": "rgba(0, 0, 0, 0)",
+          "classes": "",
+          "id": "root"
+        },
+        {
+          "type": "hardcoded-black",
+          "element": "button",
+          "text": "Back to Home",
+          "color": "rgb(20, 20, 19)",
+          "classes": "flex items-center gap-2 text-sm px-3 py-2 rounded-lg bg-white border border-[rgba(20,20,19,0.1)] text-[#141413]",
+          "id": ""
+        },
+        {
+          "type": "hardcoded-black",
+          "element": "span",
+          "text": "Twin Me",
+          "color": "rgb(20, 20, 19)",
+          "classes": "text-xl text-[#141413]",
+          "id": ""
+        },
+        {
+          "type": "hardcoded-black",
+          "element": "h1",
+          "text": "Welcome Back",
+          "color": "rgb(20, 20, 19)",
+          "classes": "text-2xl mb-2 text-[#141413]",
+          "id": ""
+        },
+        {
+          "type": "hardcoded-black",
+          "element": "p",
+          "text": "Sign in to discover your soul signature",
+          "color": "rgb(20, 20, 19)",
+          "classes": "text-[#141413]",
+          "id": ""
+        },
+        {
+          "type": "hardcoded-black",
+          "element": "button",
+          "text": "Continue with Google",
+          "color": "rgb(20, 20, 19)",
+          "classes": "w-full flex items-center justify-center gap-3 py-3 px-4 rounded-xl border bg-white border-[rgba(20,20,19,0.1)] text-[#141413]",
+          "id": ""
+        },
+        {
+          "type": "hardcoded-black",
+          "element": "span",
+          "text": "Or continue with email",
+          "color": "rgb(20, 20, 19)",
+          "classes": "px-2 bg-white text-[#141413]",
+          "id": ""
+        },
+        {
+          "type": "hardcoded-black",
+          "element": "label",
+          "text": "Email",
+          "color": "rgb(20, 20, 19)",
+          "classes": "block text-sm mb-1 text-[#141413]",
+          "id": ""
+        },
+        {
+          "type": "hardcoded-black",
+          "element": "label",
+          "text": "Password",
+          "color": "rgb(20, 20, 19)",
+          "classes": "block text-sm mb-1 text-[#141413]",
+          "id": ""
+        }
+      ]
+    }
+  ],
+  "visibilityIssues": [
+    {
+      "page": "home",
+      "lightMode": [
+        {
+          "type": "low-contrast",
+          "element": "div",
+          "text": "Twin MeFeaturesHow It WorksAboutContactGet Started",
+          "color": "rgb(0, 0, 0)",
+          "backgroundColor": "rgba(0, 0, 0, 0)",
+          "classes": "",
+          "id": "root"
+        },
+        {
+          "type": "hardcoded-black",
+          "element": "div",
+          "text": "Twin MeFeaturesHow It WorksAboutContactGet Started",
+          "color": "rgb(20, 20, 19)",
+          "classes": "min-h-screen bg-[#FAF9F5] text-[#141413] overflow-x-hidden",
+          "id": ""
+        },
+        {
+          "type": "hardcoded-black",
+          "element": "div",
+          "text": "Twin MeFeaturesHow It WorksAboutContactGet Started",
+          "color": "rgb(20, 20, 19)",
+          "classes": "max-w-[1400px] mx-auto flex justify-between items-center",
+          "id": ""
+        },
+        {
+          "type": "hardcoded-black",
+          "element": "div",
+          "text": "Twin Me",
+          "color": "rgb(20, 20, 19)",
+          "classes": "text-[28px] text-[#141413]",
+          "id": ""
+        },
+        {
+          "type": "hardcoded-black",
+          "element": "div",
+          "text": "Get Started",
+          "color": "rgb(20, 20, 19)",
+          "classes": "",
+          "id": ""
+        },
+        {
+          "type": "hardcoded-black",
+          "element": "div",
+          "text": "Discover YourSoul SignatureBeyond your resume and ",
+          "color": "rgb(20, 20, 19)",
+          "classes": "text-center relative z-10 max-w-[900px]",
+          "id": ""
+        },
+        {
+          "type": "hardcoded-black",
+          "element": "h1",
+          "text": "Discover YourSoul Signature",
+          "color": "rgb(20, 20, 19)",
+          "classes": "text-[clamp(2.5rem,5vw,4rem)] leading-[1.1] mb-8 text-[#141413]",
+          "id": ""
+        },
+        {
+          "type": "hardcoded-black",
+          "element": "p",
+          "text": "Beyond your resume and public persona lies your au",
+          "color": "rgb(20, 20, 19)",
+          "classes": "text-[20px] text-[#141413] max-w-[700px] mx-auto mb-12 leading-[1.6]",
+          "id": ""
+        },
+        {
+          "type": "hardcoded-black",
+          "element": "div",
+          "text": "Discover Your SignatureSee How It Works",
+          "color": "rgb(20, 20, 19)",
+          "classes": "flex gap-6 justify-center",
+          "id": ""
+        },
+        {
+          "type": "hardcoded-black",
+          "element": "div",
+          "text": "Discover Your Signature",
+          "color": "rgb(20, 20, 19)",
+          "classes": "",
+          "id": ""
+        },
+        {
+          "type": "hardcoded-black",
+          "element": "button",
+          "text": "See How It Works",
+          "color": "rgb(20, 20, 19)",
+          "classes": "btn-anthropic-secondary",
+          "id": ""
+        },
+        {
+          "type": "hardcoded-black",
+          "element": "div",
+          "text": "Your Digital Identity, RevealedFrom the branches t",
+          "color": "rgb(20, 20, 19)",
+          "classes": "text-center mb-[60px]",
+          "id": ""
+        },
+        {
+          "type": "hardcoded-black",
+          "element": "h2",
+          "text": "Your Digital Identity, Revealed",
+          "color": "rgb(20, 20, 19)",
+          "classes": "text-[clamp(2rem,4vw,3rem)] mb-4 text-[#141413]",
+          "id": ""
+        },
+        {
+          "type": "hardcoded-black",
+          "element": "p",
+          "text": "From the branches to the roots—discover what makes",
+          "color": "rgb(20, 20, 19)",
+          "classes": "text-[20px] text-[#141413]",
+          "id": ""
+        },
+        {
+          "type": "hardcoded-black",
+          "element": "div",
+          "text": "Personal ClusterHobbies & PassionsProfessional Clu",
+          "color": "rgb(20, 20, 19)",
+          "classes": "max-w-[1400px] mx-auto grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8",
+          "id": ""
+        },
+        {
+          "type": "hardcoded-black",
+          "element": "div",
+          "text": "Personal ClusterHobbies & Passions",
+          "color": "rgb(20, 20, 19)",
+          "classes": "bg-white rounded-[16px] p-8 border border-[rgba(20,20,19,0.1)]",
+          "id": ""
+        },
+        {
+          "type": "hardcoded-black",
+          "element": "h3",
+          "text": "Personal Cluster",
+          "color": "rgb(20, 20, 19)",
+          "classes": "text-[24px] text-[#141413] mb-3",
+          "id": ""
+        },
+        {
+          "type": "hardcoded-black",
+          "element": "span",
+          "text": "Hobbies & Passions",
+          "color": "rgb(20, 20, 19)",
+          "classes": "inline-block px-4 py-2 rounded-full text-[14px] font-medium text-[#141413] bg-[rgba(20,20,19,0.05)]",
+          "id": ""
+        },
+        {
+          "type": "low-contrast",
+          "element": "span",
+          "text": "Hobbies & Passions",
+          "color": "rgb(20, 20, 19)",
+          "backgroundColor": "rgba(20, 20, 19, 0.05)",
+          "classes": "inline-block px-4 py-2 rounded-full text-[14px] font-medium text-[#141413] bg-[rgba(20,20,19,0.05)]",
+          "id": ""
+        },
+        {
+          "type": "hardcoded-black",
+          "element": "div",
+          "text": "Professional ClusterCareer & Skills",
+          "color": "rgb(20, 20, 19)",
+          "classes": "bg-white rounded-[16px] p-8 border border-[rgba(20,20,19,0.1)]",
+          "id": ""
+        },
+        {
+          "type": "hardcoded-black",
+          "element": "h3",
+          "text": "Professional Cluster",
+          "color": "rgb(20, 20, 19)",
+          "classes": "text-[24px] text-[#141413] mb-3",
+          "id": ""
+        },
+        {
+          "type": "hardcoded-black",
+          "element": "span",
+          "text": "Career & Skills",
+          "color": "rgb(20, 20, 19)",
+          "classes": "inline-block px-4 py-2 rounded-full text-[14px] font-medium text-[#141413] bg-[rgba(20,20,19,0.05)]",
+          "id": ""
+        },
+        {
+          "type": "low-contrast",
+          "element": "span",
+          "text": "Career & Skills",
+          "color": "rgb(20, 20, 19)",
+          "backgroundColor": "rgba(20, 20, 19, 0.05)",
+          "classes": "inline-block px-4 py-2 rounded-full text-[14px] font-medium text-[#141413] bg-[rgba(20,20,19,0.05)]",
+          "id": ""
+        },
+        {
+          "type": "hardcoded-black",
+          "element": "div",
+          "text": "Privacy SpectrumWhat To Reveal",
+          "color": "rgb(20, 20, 19)",
+          "classes": "bg-white rounded-[16px] p-8 border border-[rgba(20,20,19,0.1)]",
+          "id": ""
+        },
+        {
+          "type": "hardcoded-black",
+          "element": "h3",
+          "text": "Privacy Spectrum",
+          "color": "rgb(20, 20, 19)",
+          "classes": "text-[24px] text-[#141413] mb-3",
+          "id": ""
+        },
+        {
+          "type": "hardcoded-black",
+          "element": "span",
+          "text": "What To Reveal",
+          "color": "rgb(20, 20, 19)",
+          "classes": "inline-block px-4 py-2 rounded-full text-[14px] font-medium text-[#141413] bg-[rgba(20,20,19,0.05)]",
+          "id": ""
+        },
+        {
+          "type": "low-contrast",
+          "element": "span",
+          "text": "What To Reveal",
+          "color": "rgb(20, 20, 19)",
+          "backgroundColor": "rgba(20, 20, 19, 0.05)",
+          "classes": "inline-block px-4 py-2 rounded-full text-[14px] font-medium text-[#141413] bg-[rgba(20,20,19,0.05)]",
+          "id": ""
+        },
+        {
+          "type": "hardcoded-black",
+          "element": "div",
+          "text": "Soul DashboardYour Signature",
+          "color": "rgb(20, 20, 19)",
+          "classes": "bg-white rounded-[16px] p-8 border border-[rgba(20,20,19,0.1)]",
+          "id": ""
+        },
+        {
+          "type": "hardcoded-black",
+          "element": "h3",
+          "text": "Soul Dashboard",
+          "color": "rgb(20, 20, 19)",
+          "classes": "text-[24px] text-[#141413] mb-3",
+          "id": ""
+        },
+        {
+          "type": "hardcoded-black",
+          "element": "span",
+          "text": "Your Signature",
+          "color": "rgb(20, 20, 19)",
+          "classes": "inline-block px-4 py-2 rounded-full text-[14px] font-medium text-[#141413] bg-[rgba(20,20,19,0.05)]",
+          "id": ""
+        },
+        {
+          "type": "low-contrast",
+          "element": "span",
+          "text": "Your Signature",
+          "color": "rgb(20, 20, 19)",
+          "backgroundColor": "rgba(20, 20, 19, 0.05)",
+          "classes": "inline-block px-4 py-2 rounded-full text-[14px] font-medium text-[#141413] bg-[rgba(20,20,19,0.05)]",
+          "id": ""
+        },
+        {
+          "type": "hardcoded-black",
+          "element": "div",
+          "text": "Beyond Public InformationInformation doesn't have ",
+          "color": "rgb(20, 20, 19)",
+          "classes": "text-center mb-[60px]",
+          "id": ""
+        },
+        {
+          "type": "hardcoded-black",
+          "element": "h2",
+          "text": "Beyond Public Information",
+          "color": "rgb(20, 20, 19)",
+          "classes": "text-[clamp(2rem,4vw,3rem)] mb-4 text-[#141413]",
+          "id": ""
+        },
+        {
+          "type": "hardcoded-black",
+          "element": "p",
+          "text": "Information doesn't have a soul—discover yours",
+          "color": "rgb(20, 20, 19)",
+          "classes": "text-[20px] text-[#141413]",
+          "id": ""
+        },
+        {
+          "type": "hardcoded-black",
+          "element": "div",
+          "text": "〜Voice LearningNatural conversations with AI teach",
+          "color": "rgb(20, 20, 19)",
+          "classes": "max-w-[1200px] mx-auto grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10",
+          "id": ""
+        },
+        {
+          "type": "hardcoded-black",
+          "element": "div",
+          "text": "〜Voice LearningNatural conversations with AI teach",
+          "color": "rgb(20, 20, 19)",
+          "classes": "bg-white rounded-[16px] p-10 border border-[rgba(20,20,19,0.1)]",
+          "id": ""
+        },
+        {
+          "type": "hardcoded-black",
+          "element": "div",
+          "text": "〜",
+          "color": "rgb(20, 20, 19)",
+          "classes": "w-[60px] h-[60px] bg-[#F5F5F5] rounded-[12px] flex items-center justify-center mb-6 text-[32px] text-[#141413]",
+          "id": ""
+        },
+        {
+          "type": "hardcoded-black",
+          "element": "h3",
+          "text": "Voice Learning",
+          "color": "rgb(20, 20, 19)",
+          "classes": "text-[24px] text-[#141413] mb-3",
+          "id": ""
+        },
+        {
+          "type": "hardcoded-black",
+          "element": "p",
+          "text": "Natural conversations with AI teachers that feel l",
+          "color": "rgb(20, 20, 19)",
+          "classes": "text-[#141413] leading-[1.6]",
+          "id": ""
+        },
+        {
+          "type": "hardcoded-black",
+          "element": "div",
+          "text": "◐Text InterfaceChatGPT-style learning experience f",
+          "color": "rgb(20, 20, 19)",
+          "classes": "bg-white rounded-[16px] p-10 border border-[rgba(20,20,19,0.1)]",
+          "id": ""
+        },
+        {
+          "type": "hardcoded-black",
+          "element": "div",
+          "text": "◐",
+          "color": "rgb(20, 20, 19)",
+          "classes": "w-[60px] h-[60px] bg-[#F5F5F5] rounded-[12px] flex items-center justify-center mb-6 text-[32px] text-[#141413]",
+          "id": ""
+        },
+        {
+          "type": "hardcoded-black",
+          "element": "h3",
+          "text": "Text Interface",
+          "color": "rgb(20, 20, 19)",
+          "classes": "text-[24px] text-[#141413] mb-3",
+          "id": ""
+        },
+        {
+          "type": "hardcoded-black",
+          "element": "p",
+          "text": "ChatGPT-style learning experience for written comm",
+          "color": "rgb(20, 20, 19)",
+          "classes": "text-[#141413] leading-[1.6]",
+          "id": ""
+        },
+        {
+          "type": "hardcoded-black",
+          "element": "div",
+          "text": "◉Adaptive AIPersonalized teaching that adapts to y",
+          "color": "rgb(20, 20, 19)",
+          "classes": "bg-white rounded-[16px] p-10 border border-[rgba(20,20,19,0.1)]",
+          "id": ""
+        },
+        {
+          "type": "hardcoded-black",
+          "element": "div",
+          "text": "◉",
+          "color": "rgb(20, 20, 19)",
+          "classes": "w-[60px] h-[60px] bg-[#F5F5F5] rounded-[12px] flex items-center justify-center mb-6 text-[32px] text-[#141413]",
+          "id": ""
+        },
+        {
+          "type": "hardcoded-black",
+          "element": "h3",
+          "text": "Adaptive AI",
+          "color": "rgb(20, 20, 19)",
+          "classes": "text-[24px] text-[#141413] mb-3",
+          "id": ""
+        },
+        {
+          "type": "hardcoded-black",
+          "element": "p",
+          "text": "Personalized teaching that adapts to your unique l",
+          "color": "rgb(20, 20, 19)",
+          "classes": "text-[#141413] leading-[1.6]",
+          "id": ""
+        },
+        {
+          "type": "hardcoded-black",
+          "element": "div",
+          "text": "▣Smart AnalyticsTrack progress and get insights in",
+          "color": "rgb(20, 20, 19)",
+          "classes": "bg-white rounded-[16px] p-10 border border-[rgba(20,20,19,0.1)]",
+          "id": ""
+        },
+        {
+          "type": "hardcoded-black",
+          "element": "div",
+          "text": "▣",
+          "color": "rgb(20, 20, 19)",
+          "classes": "w-[60px] h-[60px] bg-[#F5F5F5] rounded-[12px] flex items-center justify-center mb-6 text-[32px] text-[#141413]",
+          "id": ""
+        },
+        {
+          "type": "hardcoded-black",
+          "element": "h3",
+          "text": "Smart Analytics",
+          "color": "rgb(20, 20, 19)",
+          "classes": "text-[24px] text-[#141413] mb-3",
+          "id": ""
+        },
+        {
+          "type": "hardcoded-black",
+          "element": "p",
+          "text": "Track progress and get insights into your learning",
+          "color": "rgb(20, 20, 19)",
+          "classes": "text-[#141413] leading-[1.6]",
+          "id": ""
+        },
+        {
+          "type": "hardcoded-black",
+          "element": "div",
+          "text": "◎Global AccessLearn from anywhere, anytime, with a",
+          "color": "rgb(20, 20, 19)",
+          "classes": "bg-white rounded-[16px] p-10 border border-[rgba(20,20,19,0.1)]",
+          "id": ""
+        },
+        {
+          "type": "hardcoded-black",
+          "element": "div",
+          "text": "◎",
+          "color": "rgb(20, 20, 19)",
+          "classes": "w-[60px] h-[60px] bg-[#F5F5F5] rounded-[12px] flex items-center justify-center mb-6 text-[32px] text-[#141413]",
+          "id": ""
+        },
+        {
+          "type": "hardcoded-black",
+          "element": "h3",
+          "text": "Global Access",
+          "color": "rgb(20, 20, 19)",
+          "classes": "text-[24px] text-[#141413] mb-3",
+          "id": ""
+        },
+        {
+          "type": "hardcoded-black",
+          "element": "p",
+          "text": "Learn from anywhere, anytime, with any device",
+          "color": "rgb(20, 20, 19)",
+          "classes": "text-[#141413] leading-[1.6]",
+          "id": ""
+        },
+        {
+          "type": "hardcoded-black",
+          "element": "div",
+          "text": "△Instant SetupTeachers upload content, AI learns a",
+          "color": "rgb(20, 20, 19)",
+          "classes": "bg-white rounded-[16px] p-10 border border-[rgba(20,20,19,0.1)]",
+          "id": ""
+        },
+        {
+          "type": "hardcoded-black",
+          "element": "div",
+          "text": "△",
+          "color": "rgb(20, 20, 19)",
+          "classes": "w-[60px] h-[60px] bg-[#F5F5F5] rounded-[12px] flex items-center justify-center mb-6 text-[32px] text-[#141413]",
+          "id": ""
+        },
+        {
+          "type": "hardcoded-black",
+          "element": "h3",
+          "text": "Instant Setup",
+          "color": "rgb(20, 20, 19)",
+          "classes": "text-[24px] text-[#141413] mb-3",
+          "id": ""
+        },
+        {
+          "type": "hardcoded-black",
+          "element": "p",
+          "text": "Teachers upload content, AI learns and deploys ins",
+          "color": "rgb(20, 20, 19)",
+          "classes": "text-[#141413] leading-[1.6]",
+          "id": ""
+        },
+        {
+          "type": "hardcoded-black",
+          "element": "div",
+          "text": "Behind the TechnologyFinally, meet the platform tr",
+          "color": "rgb(20, 20, 19)",
+          "classes": "text-center max-w-[900px] mx-auto",
+          "id": ""
+        },
+        {
+          "type": "hardcoded-black",
+          "element": "h2",
+          "text": "Behind the Technology",
+          "color": "rgb(20, 20, 19)",
+          "classes": "text-[clamp(2rem,4vw,3rem)] mb-6 text-[#141413]",
+          "id": ""
+        },
+        {
+          "type": "hardcoded-black",
+          "element": "p",
+          "text": "Finally, meet the platform transforming education",
+          "color": "rgb(20, 20, 19)",
+          "classes": "text-[20px] leading-[1.6] mb-6 text-[#141413]",
+          "id": ""
+        },
+        {
+          "type": "hardcoded-black",
+          "element": "p",
+          "text": "We help educators create digital twins that actual",
+          "color": "rgb(20, 20, 19)",
+          "classes": "text-[20px] leading-[1.6] mb-12 text-[#141413]",
+          "id": ""
+        },
+        {
+          "type": "hardcoded-black",
+          "element": "div",
+          "text": "Start Creating for Free",
+          "color": "rgb(20, 20, 19)",
+          "classes": "",
+          "id": ""
+        },
+        {
+          "type": "hardcoded-black",
+          "element": "h2",
+          "text": "Ready to transform education?",
+          "color": "rgb(20, 20, 19)",
+          "classes": "text-[clamp(2rem,4vw,3rem)] mb-6 text-[#141413]",
+          "id": ""
+        },
+        {
+          "type": "hardcoded-black",
+          "element": "p",
+          "text": "Join thousands of educators creating their digital",
+          "color": "rgb(20, 20, 19)",
+          "classes": "text-[22px] text-[#141413] mb-12",
+          "id": ""
+        },
+        {
+          "type": "hardcoded-black",
+          "element": "div",
+          "text": "Get Started Today",
+          "color": "rgb(20, 20, 19)",
+          "classes": "",
+          "id": ""
+        }
+      ],
+      "darkMode": [
+        {
+          "type": "low-contrast",
+          "element": "div",
+          "text": "Twin MeFeaturesHow It WorksAboutContactGet Started",
+          "color": "rgb(0, 0, 0)",
+          "backgroundColor": "rgba(0, 0, 0, 0)",
+          "classes": "",
+          "id": "root"
+        },
+        {
+          "type": "hardcoded-black",
+          "element": "div",
+          "text": "Twin MeFeaturesHow It WorksAboutContactGet Started",
+          "color": "rgb(20, 20, 19)",
+          "classes": "min-h-screen bg-[#FAF9F5] text-[#141413] overflow-x-hidden",
+          "id": ""
+        },
+        {
+          "type": "hardcoded-black",
+          "element": "div",
+          "text": "Twin MeFeaturesHow It WorksAboutContactGet Started",
+          "color": "rgb(20, 20, 19)",
+          "classes": "max-w-[1400px] mx-auto flex justify-between items-center",
+          "id": ""
+        },
+        {
+          "type": "hardcoded-black",
+          "element": "div",
+          "text": "Twin Me",
+          "color": "rgb(20, 20, 19)",
+          "classes": "text-[28px] text-[#141413]",
+          "id": ""
+        },
+        {
+          "type": "hardcoded-black",
+          "element": "div",
+          "text": "Get Started",
+          "color": "rgb(20, 20, 19)",
+          "classes": "",
+          "id": ""
+        },
+        {
+          "type": "hardcoded-black",
+          "element": "div",
+          "text": "Discover YourSoul SignatureBeyond your resume and ",
+          "color": "rgb(20, 20, 19)",
+          "classes": "text-center relative z-10 max-w-[900px]",
+          "id": ""
+        },
+        {
+          "type": "hardcoded-black",
+          "element": "h1",
+          "text": "Discover YourSoul Signature",
+          "color": "rgb(20, 20, 19)",
+          "classes": "text-[clamp(2.5rem,5vw,4rem)] leading-[1.1] mb-8 text-[#141413]",
+          "id": ""
+        },
+        {
+          "type": "hardcoded-black",
+          "element": "p",
+          "text": "Beyond your resume and public persona lies your au",
+          "color": "rgb(20, 20, 19)",
+          "classes": "text-[20px] text-[#141413] max-w-[700px] mx-auto mb-12 leading-[1.6]",
+          "id": ""
+        },
+        {
+          "type": "hardcoded-black",
+          "element": "div",
+          "text": "Discover Your SignatureSee How It Works",
+          "color": "rgb(20, 20, 19)",
+          "classes": "flex gap-6 justify-center",
+          "id": ""
+        },
+        {
+          "type": "hardcoded-black",
+          "element": "div",
+          "text": "Discover Your Signature",
+          "color": "rgb(20, 20, 19)",
+          "classes": "",
+          "id": ""
+        },
+        {
+          "type": "hardcoded-black",
+          "element": "button",
+          "text": "See How It Works",
+          "color": "rgb(20, 20, 19)",
+          "classes": "btn-anthropic-secondary",
+          "id": ""
+        },
+        {
+          "type": "hardcoded-black",
+          "element": "div",
+          "text": "Your Digital Identity, RevealedFrom the branches t",
+          "color": "rgb(20, 20, 19)",
+          "classes": "text-center mb-[60px]",
+          "id": ""
+        },
+        {
+          "type": "hardcoded-black",
+          "element": "h2",
+          "text": "Your Digital Identity, Revealed",
+          "color": "rgb(20, 20, 19)",
+          "classes": "text-[clamp(2rem,4vw,3rem)] mb-4 text-[#141413]",
+          "id": ""
+        },
+        {
+          "type": "hardcoded-black",
+          "element": "p",
+          "text": "From the branches to the roots—discover what makes",
+          "color": "rgb(20, 20, 19)",
+          "classes": "text-[20px] text-[#141413]",
+          "id": ""
+        },
+        {
+          "type": "hardcoded-black",
+          "element": "div",
+          "text": "Personal ClusterHobbies & PassionsProfessional Clu",
+          "color": "rgb(20, 20, 19)",
+          "classes": "max-w-[1400px] mx-auto grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8",
+          "id": ""
+        },
+        {
+          "type": "hardcoded-black",
+          "element": "div",
+          "text": "Personal ClusterHobbies & Passions",
+          "color": "rgb(20, 20, 19)",
+          "classes": "bg-white rounded-[16px] p-8 border border-[rgba(20,20,19,0.1)]",
+          "id": ""
+        },
+        {
+          "type": "hardcoded-black",
+          "element": "h3",
+          "text": "Personal Cluster",
+          "color": "rgb(20, 20, 19)",
+          "classes": "text-[24px] text-[#141413] mb-3",
+          "id": ""
+        },
+        {
+          "type": "hardcoded-black",
+          "element": "span",
+          "text": "Hobbies & Passions",
+          "color": "rgb(20, 20, 19)",
+          "classes": "inline-block px-4 py-2 rounded-full text-[14px] font-medium text-[#141413] bg-[rgba(20,20,19,0.05)]",
+          "id": ""
+        },
+        {
+          "type": "low-contrast",
+          "element": "span",
+          "text": "Hobbies & Passions",
+          "color": "rgb(20, 20, 19)",
+          "backgroundColor": "rgba(20, 20, 19, 0.05)",
+          "classes": "inline-block px-4 py-2 rounded-full text-[14px] font-medium text-[#141413] bg-[rgba(20,20,19,0.05)]",
+          "id": ""
+        },
+        {
+          "type": "hardcoded-black",
+          "element": "div",
+          "text": "Professional ClusterCareer & Skills",
+          "color": "rgb(20, 20, 19)",
+          "classes": "bg-white rounded-[16px] p-8 border border-[rgba(20,20,19,0.1)]",
+          "id": ""
+        },
+        {
+          "type": "hardcoded-black",
+          "element": "h3",
+          "text": "Professional Cluster",
+          "color": "rgb(20, 20, 19)",
+          "classes": "text-[24px] text-[#141413] mb-3",
+          "id": ""
+        },
+        {
+          "type": "hardcoded-black",
+          "element": "span",
+          "text": "Career & Skills",
+          "color": "rgb(20, 20, 19)",
+          "classes": "inline-block px-4 py-2 rounded-full text-[14px] font-medium text-[#141413] bg-[rgba(20,20,19,0.05)]",
+          "id": ""
+        },
+        {
+          "type": "low-contrast",
+          "element": "span",
+          "text": "Career & Skills",
+          "color": "rgb(20, 20, 19)",
+          "backgroundColor": "rgba(20, 20, 19, 0.05)",
+          "classes": "inline-block px-4 py-2 rounded-full text-[14px] font-medium text-[#141413] bg-[rgba(20,20,19,0.05)]",
+          "id": ""
+        },
+        {
+          "type": "hardcoded-black",
+          "element": "div",
+          "text": "Privacy SpectrumWhat To Reveal",
+          "color": "rgb(20, 20, 19)",
+          "classes": "bg-white rounded-[16px] p-8 border border-[rgba(20,20,19,0.1)]",
+          "id": ""
+        },
+        {
+          "type": "hardcoded-black",
+          "element": "h3",
+          "text": "Privacy Spectrum",
+          "color": "rgb(20, 20, 19)",
+          "classes": "text-[24px] text-[#141413] mb-3",
+          "id": ""
+        },
+        {
+          "type": "hardcoded-black",
+          "element": "span",
+          "text": "What To Reveal",
+          "color": "rgb(20, 20, 19)",
+          "classes": "inline-block px-4 py-2 rounded-full text-[14px] font-medium text-[#141413] bg-[rgba(20,20,19,0.05)]",
+          "id": ""
+        },
+        {
+          "type": "low-contrast",
+          "element": "span",
+          "text": "What To Reveal",
+          "color": "rgb(20, 20, 19)",
+          "backgroundColor": "rgba(20, 20, 19, 0.05)",
+          "classes": "inline-block px-4 py-2 rounded-full text-[14px] font-medium text-[#141413] bg-[rgba(20,20,19,0.05)]",
+          "id": ""
+        },
+        {
+          "type": "hardcoded-black",
+          "element": "div",
+          "text": "Soul DashboardYour Signature",
+          "color": "rgb(20, 20, 19)",
+          "classes": "bg-white rounded-[16px] p-8 border border-[rgba(20,20,19,0.1)]",
+          "id": ""
+        },
+        {
+          "type": "hardcoded-black",
+          "element": "h3",
+          "text": "Soul Dashboard",
+          "color": "rgb(20, 20, 19)",
+          "classes": "text-[24px] text-[#141413] mb-3",
+          "id": ""
+        },
+        {
+          "type": "hardcoded-black",
+          "element": "span",
+          "text": "Your Signature",
+          "color": "rgb(20, 20, 19)",
+          "classes": "inline-block px-4 py-2 rounded-full text-[14px] font-medium text-[#141413] bg-[rgba(20,20,19,0.05)]",
+          "id": ""
+        },
+        {
+          "type": "low-contrast",
+          "element": "span",
+          "text": "Your Signature",
+          "color": "rgb(20, 20, 19)",
+          "backgroundColor": "rgba(20, 20, 19, 0.05)",
+          "classes": "inline-block px-4 py-2 rounded-full text-[14px] font-medium text-[#141413] bg-[rgba(20,20,19,0.05)]",
+          "id": ""
+        },
+        {
+          "type": "hardcoded-black",
+          "element": "div",
+          "text": "Beyond Public InformationInformation doesn't have ",
+          "color": "rgb(20, 20, 19)",
+          "classes": "text-center mb-[60px]",
+          "id": ""
+        },
+        {
+          "type": "hardcoded-black",
+          "element": "h2",
+          "text": "Beyond Public Information",
+          "color": "rgb(20, 20, 19)",
+          "classes": "text-[clamp(2rem,4vw,3rem)] mb-4 text-[#141413]",
+          "id": ""
+        },
+        {
+          "type": "hardcoded-black",
+          "element": "p",
+          "text": "Information doesn't have a soul—discover yours",
+          "color": "rgb(20, 20, 19)",
+          "classes": "text-[20px] text-[#141413]",
+          "id": ""
+        },
+        {
+          "type": "hardcoded-black",
+          "element": "div",
+          "text": "〜Voice LearningNatural conversations with AI teach",
+          "color": "rgb(20, 20, 19)",
+          "classes": "max-w-[1200px] mx-auto grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10",
+          "id": ""
+        },
+        {
+          "type": "hardcoded-black",
+          "element": "div",
+          "text": "〜Voice LearningNatural conversations with AI teach",
+          "color": "rgb(20, 20, 19)",
+          "classes": "bg-white rounded-[16px] p-10 border border-[rgba(20,20,19,0.1)]",
+          "id": ""
+        },
+        {
+          "type": "hardcoded-black",
+          "element": "div",
+          "text": "〜",
+          "color": "rgb(20, 20, 19)",
+          "classes": "w-[60px] h-[60px] bg-[#F5F5F5] rounded-[12px] flex items-center justify-center mb-6 text-[32px] text-[#141413]",
+          "id": ""
+        },
+        {
+          "type": "hardcoded-black",
+          "element": "h3",
+          "text": "Voice Learning",
+          "color": "rgb(20, 20, 19)",
+          "classes": "text-[24px] text-[#141413] mb-3",
+          "id": ""
+        },
+        {
+          "type": "hardcoded-black",
+          "element": "p",
+          "text": "Natural conversations with AI teachers that feel l",
+          "color": "rgb(20, 20, 19)",
+          "classes": "text-[#141413] leading-[1.6]",
+          "id": ""
+        },
+        {
+          "type": "hardcoded-black",
+          "element": "div",
+          "text": "◐Text InterfaceChatGPT-style learning experience f",
+          "color": "rgb(20, 20, 19)",
+          "classes": "bg-white rounded-[16px] p-10 border border-[rgba(20,20,19,0.1)]",
+          "id": ""
+        },
+        {
+          "type": "hardcoded-black",
+          "element": "div",
+          "text": "◐",
+          "color": "rgb(20, 20, 19)",
+          "classes": "w-[60px] h-[60px] bg-[#F5F5F5] rounded-[12px] flex items-center justify-center mb-6 text-[32px] text-[#141413]",
+          "id": ""
+        },
+        {
+          "type": "hardcoded-black",
+          "element": "h3",
+          "text": "Text Interface",
+          "color": "rgb(20, 20, 19)",
+          "classes": "text-[24px] text-[#141413] mb-3",
+          "id": ""
+        },
+        {
+          "type": "hardcoded-black",
+          "element": "p",
+          "text": "ChatGPT-style learning experience for written comm",
+          "color": "rgb(20, 20, 19)",
+          "classes": "text-[#141413] leading-[1.6]",
+          "id": ""
+        },
+        {
+          "type": "hardcoded-black",
+          "element": "div",
+          "text": "◉Adaptive AIPersonalized teaching that adapts to y",
+          "color": "rgb(20, 20, 19)",
+          "classes": "bg-white rounded-[16px] p-10 border border-[rgba(20,20,19,0.1)]",
+          "id": ""
+        },
+        {
+          "type": "hardcoded-black",
+          "element": "div",
+          "text": "◉",
+          "color": "rgb(20, 20, 19)",
+          "classes": "w-[60px] h-[60px] bg-[#F5F5F5] rounded-[12px] flex items-center justify-center mb-6 text-[32px] text-[#141413]",
+          "id": ""
+        },
+        {
+          "type": "hardcoded-black",
+          "element": "h3",
+          "text": "Adaptive AI",
+          "color": "rgb(20, 20, 19)",
+          "classes": "text-[24px] text-[#141413] mb-3",
+          "id": ""
+        },
+        {
+          "type": "hardcoded-black",
+          "element": "p",
+          "text": "Personalized teaching that adapts to your unique l",
+          "color": "rgb(20, 20, 19)",
+          "classes": "text-[#141413] leading-[1.6]",
+          "id": ""
+        },
+        {
+          "type": "hardcoded-black",
+          "element": "div",
+          "text": "▣Smart AnalyticsTrack progress and get insights in",
+          "color": "rgb(20, 20, 19)",
+          "classes": "bg-white rounded-[16px] p-10 border border-[rgba(20,20,19,0.1)]",
+          "id": ""
+        },
+        {
+          "type": "hardcoded-black",
+          "element": "div",
+          "text": "▣",
+          "color": "rgb(20, 20, 19)",
+          "classes": "w-[60px] h-[60px] bg-[#F5F5F5] rounded-[12px] flex items-center justify-center mb-6 text-[32px] text-[#141413]",
+          "id": ""
+        },
+        {
+          "type": "hardcoded-black",
+          "element": "h3",
+          "text": "Smart Analytics",
+          "color": "rgb(20, 20, 19)",
+          "classes": "text-[24px] text-[#141413] mb-3",
+          "id": ""
+        },
+        {
+          "type": "hardcoded-black",
+          "element": "p",
+          "text": "Track progress and get insights into your learning",
+          "color": "rgb(20, 20, 19)",
+          "classes": "text-[#141413] leading-[1.6]",
+          "id": ""
+        },
+        {
+          "type": "hardcoded-black",
+          "element": "div",
+          "text": "◎Global AccessLearn from anywhere, anytime, with a",
+          "color": "rgb(20, 20, 19)",
+          "classes": "bg-white rounded-[16px] p-10 border border-[rgba(20,20,19,0.1)]",
+          "id": ""
+        },
+        {
+          "type": "hardcoded-black",
+          "element": "div",
+          "text": "◎",
+          "color": "rgb(20, 20, 19)",
+          "classes": "w-[60px] h-[60px] bg-[#F5F5F5] rounded-[12px] flex items-center justify-center mb-6 text-[32px] text-[#141413]",
+          "id": ""
+        },
+        {
+          "type": "hardcoded-black",
+          "element": "h3",
+          "text": "Global Access",
+          "color": "rgb(20, 20, 19)",
+          "classes": "text-[24px] text-[#141413] mb-3",
+          "id": ""
+        },
+        {
+          "type": "hardcoded-black",
+          "element": "p",
+          "text": "Learn from anywhere, anytime, with any device",
+          "color": "rgb(20, 20, 19)",
+          "classes": "text-[#141413] leading-[1.6]",
+          "id": ""
+        },
+        {
+          "type": "hardcoded-black",
+          "element": "div",
+          "text": "△Instant SetupTeachers upload content, AI learns a",
+          "color": "rgb(20, 20, 19)",
+          "classes": "bg-white rounded-[16px] p-10 border border-[rgba(20,20,19,0.1)]",
+          "id": ""
+        },
+        {
+          "type": "hardcoded-black",
+          "element": "div",
+          "text": "△",
+          "color": "rgb(20, 20, 19)",
+          "classes": "w-[60px] h-[60px] bg-[#F5F5F5] rounded-[12px] flex items-center justify-center mb-6 text-[32px] text-[#141413]",
+          "id": ""
+        },
+        {
+          "type": "hardcoded-black",
+          "element": "h3",
+          "text": "Instant Setup",
+          "color": "rgb(20, 20, 19)",
+          "classes": "text-[24px] text-[#141413] mb-3",
+          "id": ""
+        },
+        {
+          "type": "hardcoded-black",
+          "element": "p",
+          "text": "Teachers upload content, AI learns and deploys ins",
+          "color": "rgb(20, 20, 19)",
+          "classes": "text-[#141413] leading-[1.6]",
+          "id": ""
+        },
+        {
+          "type": "hardcoded-black",
+          "element": "div",
+          "text": "Behind the TechnologyFinally, meet the platform tr",
+          "color": "rgb(20, 20, 19)",
+          "classes": "text-center max-w-[900px] mx-auto",
+          "id": ""
+        },
+        {
+          "type": "hardcoded-black",
+          "element": "h2",
+          "text": "Behind the Technology",
+          "color": "rgb(20, 20, 19)",
+          "classes": "text-[clamp(2rem,4vw,3rem)] mb-6 text-[#141413]",
+          "id": ""
+        },
+        {
+          "type": "hardcoded-black",
+          "element": "p",
+          "text": "Finally, meet the platform transforming education",
+          "color": "rgb(20, 20, 19)",
+          "classes": "text-[20px] leading-[1.6] mb-6 text-[#141413]",
+          "id": ""
+        },
+        {
+          "type": "hardcoded-black",
+          "element": "p",
+          "text": "We help educators create digital twins that actual",
+          "color": "rgb(20, 20, 19)",
+          "classes": "text-[20px] leading-[1.6] mb-12 text-[#141413]",
+          "id": ""
+        },
+        {
+          "type": "hardcoded-black",
+          "element": "div",
+          "text": "Start Creating for Free",
+          "color": "rgb(20, 20, 19)",
+          "classes": "",
+          "id": ""
+        },
+        {
+          "type": "hardcoded-black",
+          "element": "h2",
+          "text": "Ready to transform education?",
+          "color": "rgb(20, 20, 19)",
+          "classes": "text-[clamp(2rem,4vw,3rem)] mb-6 text-[#141413]",
+          "id": ""
+        },
+        {
+          "type": "hardcoded-black",
+          "element": "p",
+          "text": "Join thousands of educators creating their digital",
+          "color": "rgb(20, 20, 19)",
+          "classes": "text-[22px] text-[#141413] mb-12",
+          "id": ""
+        },
+        {
+          "type": "hardcoded-black",
+          "element": "div",
+          "text": "Get Started Today",
+          "color": "rgb(20, 20, 19)",
+          "classes": "",
+          "id": ""
+        }
+      ]
+    },
+    {
+      "page": "get-started",
+      "lightMode": [
+        {
+          "type": "low-contrast",
+          "element": "div",
+          "text": "Back to HomeTwin Me Welcome BackSign in to discove",
+          "color": "rgb(0, 0, 0)",
+          "backgroundColor": "rgba(0, 0, 0, 0)",
+          "classes": "",
+          "id": "root"
+        },
+        {
+          "type": "hardcoded-black",
+          "element": "button",
+          "text": "Back to Home",
+          "color": "rgb(20, 20, 19)",
+          "classes": "flex items-center gap-2 text-sm px-3 py-2 rounded-lg bg-white border border-[rgba(20,20,19,0.1)] text-[#141413]",
+          "id": ""
+        },
+        {
+          "type": "hardcoded-black",
+          "element": "span",
+          "text": "Twin Me",
+          "color": "rgb(20, 20, 19)",
+          "classes": "text-xl text-[#141413]",
+          "id": ""
+        },
+        {
+          "type": "hardcoded-black",
+          "element": "h1",
+          "text": "Welcome Back",
+          "color": "rgb(20, 20, 19)",
+          "classes": "text-2xl mb-2 text-[#141413]",
+          "id": ""
+        },
+        {
+          "type": "hardcoded-black",
+          "element": "p",
+          "text": "Sign in to discover your soul signature",
+          "color": "rgb(20, 20, 19)",
+          "classes": "text-[#141413]",
+          "id": ""
+        },
+        {
+          "type": "hardcoded-black",
+          "element": "button",
+          "text": "Continue with Google",
+          "color": "rgb(20, 20, 19)",
+          "classes": "w-full flex items-center justify-center gap-3 py-3 px-4 rounded-xl border bg-white border-[rgba(20,20,19,0.1)] text-[#141413]",
+          "id": ""
+        },
+        {
+          "type": "hardcoded-black",
+          "element": "span",
+          "text": "Or continue with email",
+          "color": "rgb(20, 20, 19)",
+          "classes": "px-2 bg-white text-[#141413]",
+          "id": ""
+        },
+        {
+          "type": "hardcoded-black",
+          "element": "label",
+          "text": "Email",
+          "color": "rgb(20, 20, 19)",
+          "classes": "block text-sm mb-1 text-[#141413]",
+          "id": ""
+        },
+        {
+          "type": "hardcoded-black",
+          "element": "label",
+          "text": "Password",
+          "color": "rgb(20, 20, 19)",
+          "classes": "block text-sm mb-1 text-[#141413]",
+          "id": ""
+        }
+      ],
+      "darkMode": [
+        {
+          "type": "low-contrast",
+          "element": "div",
+          "text": "Back to HomeTwin Me Welcome BackSign in to discove",
+          "color": "rgb(0, 0, 0)",
+          "backgroundColor": "rgba(0, 0, 0, 0)",
+          "classes": "",
+          "id": "root"
+        },
+        {
+          "type": "hardcoded-black",
+          "element": "button",
+          "text": "Back to Home",
+          "color": "rgb(20, 20, 19)",
+          "classes": "flex items-center gap-2 text-sm px-3 py-2 rounded-lg bg-white border border-[rgba(20,20,19,0.1)] text-[#141413]",
+          "id": ""
+        },
+        {
+          "type": "hardcoded-black",
+          "element": "span",
+          "text": "Twin Me",
+          "color": "rgb(20, 20, 19)",
+          "classes": "text-xl text-[#141413]",
+          "id": ""
+        },
+        {
+          "type": "hardcoded-black",
+          "element": "h1",
+          "text": "Welcome Back",
+          "color": "rgb(20, 20, 19)",
+          "classes": "text-2xl mb-2 text-[#141413]",
+          "id": ""
+        },
+        {
+          "type": "hardcoded-black",
+          "element": "p",
+          "text": "Sign in to discover your soul signature",
+          "color": "rgb(20, 20, 19)",
+          "classes": "text-[#141413]",
+          "id": ""
+        },
+        {
+          "type": "hardcoded-black",
+          "element": "button",
+          "text": "Continue with Google",
+          "color": "rgb(20, 20, 19)",
+          "classes": "w-full flex items-center justify-center gap-3 py-3 px-4 rounded-xl border bg-white border-[rgba(20,20,19,0.1)] text-[#141413]",
+          "id": ""
+        },
+        {
+          "type": "hardcoded-black",
+          "element": "span",
+          "text": "Or continue with email",
+          "color": "rgb(20, 20, 19)",
+          "classes": "px-2 bg-white text-[#141413]",
+          "id": ""
+        },
+        {
+          "type": "hardcoded-black",
+          "element": "label",
+          "text": "Email",
+          "color": "rgb(20, 20, 19)",
+          "classes": "block text-sm mb-1 text-[#141413]",
+          "id": ""
+        },
+        {
+          "type": "hardcoded-black",
+          "element": "label",
+          "text": "Password",
+          "color": "rgb(20, 20, 19)",
+          "classes": "block text-sm mb-1 text-[#141413]",
+          "id": ""
+        }
+      ]
+    },
+    {
+      "page": "twin-builder",
+      "lightMode": [
+        {
+          "type": "low-contrast",
+          "element": "div",
+          "text": "Back to HomeTwin Me Welcome BackSign in to discove",
+          "color": "rgb(0, 0, 0)",
+          "backgroundColor": "rgba(0, 0, 0, 0)",
+          "classes": "",
+          "id": "root"
+        },
+        {
+          "type": "hardcoded-black",
+          "element": "button",
+          "text": "Back to Home",
+          "color": "rgb(20, 20, 19)",
+          "classes": "flex items-center gap-2 text-sm px-3 py-2 rounded-lg bg-white border border-[rgba(20,20,19,0.1)] text-[#141413]",
+          "id": ""
+        },
+        {
+          "type": "hardcoded-black",
+          "element": "span",
+          "text": "Twin Me",
+          "color": "rgb(20, 20, 19)",
+          "classes": "text-xl text-[#141413]",
+          "id": ""
+        },
+        {
+          "type": "hardcoded-black",
+          "element": "h1",
+          "text": "Welcome Back",
+          "color": "rgb(20, 20, 19)",
+          "classes": "text-2xl mb-2 text-[#141413]",
+          "id": ""
+        },
+        {
+          "type": "hardcoded-black",
+          "element": "p",
+          "text": "Sign in to discover your soul signature",
+          "color": "rgb(20, 20, 19)",
+          "classes": "text-[#141413]",
+          "id": ""
+        },
+        {
+          "type": "hardcoded-black",
+          "element": "button",
+          "text": "Continue with Google",
+          "color": "rgb(20, 20, 19)",
+          "classes": "w-full flex items-center justify-center gap-3 py-3 px-4 rounded-xl border bg-white border-[rgba(20,20,19,0.1)] text-[#141413]",
+          "id": ""
+        },
+        {
+          "type": "hardcoded-black",
+          "element": "span",
+          "text": "Or continue with email",
+          "color": "rgb(20, 20, 19)",
+          "classes": "px-2 bg-white text-[#141413]",
+          "id": ""
+        },
+        {
+          "type": "hardcoded-black",
+          "element": "label",
+          "text": "Email",
+          "color": "rgb(20, 20, 19)",
+          "classes": "block text-sm mb-1 text-[#141413]",
+          "id": ""
+        },
+        {
+          "type": "hardcoded-black",
+          "element": "label",
+          "text": "Password",
+          "color": "rgb(20, 20, 19)",
+          "classes": "block text-sm mb-1 text-[#141413]",
+          "id": ""
+        }
+      ],
+      "darkMode": [
+        {
+          "type": "low-contrast",
+          "element": "div",
+          "text": "Back to HomeTwin Me Welcome BackSign in to discove",
+          "color": "rgb(0, 0, 0)",
+          "backgroundColor": "rgba(0, 0, 0, 0)",
+          "classes": "",
+          "id": "root"
+        },
+        {
+          "type": "hardcoded-black",
+          "element": "button",
+          "text": "Back to Home",
+          "color": "rgb(20, 20, 19)",
+          "classes": "flex items-center gap-2 text-sm px-3 py-2 rounded-lg bg-white border border-[rgba(20,20,19,0.1)] text-[#141413]",
+          "id": ""
+        },
+        {
+          "type": "hardcoded-black",
+          "element": "span",
+          "text": "Twin Me",
+          "color": "rgb(20, 20, 19)",
+          "classes": "text-xl text-[#141413]",
+          "id": ""
+        },
+        {
+          "type": "hardcoded-black",
+          "element": "h1",
+          "text": "Welcome Back",
+          "color": "rgb(20, 20, 19)",
+          "classes": "text-2xl mb-2 text-[#141413]",
+          "id": ""
+        },
+        {
+          "type": "hardcoded-black",
+          "element": "p",
+          "text": "Sign in to discover your soul signature",
+          "color": "rgb(20, 20, 19)",
+          "classes": "text-[#141413]",
+          "id": ""
+        },
+        {
+          "type": "hardcoded-black",
+          "element": "button",
+          "text": "Continue with Google",
+          "color": "rgb(20, 20, 19)",
+          "classes": "w-full flex items-center justify-center gap-3 py-3 px-4 rounded-xl border bg-white border-[rgba(20,20,19,0.1)] text-[#141413]",
+          "id": ""
+        },
+        {
+          "type": "hardcoded-black",
+          "element": "span",
+          "text": "Or continue with email",
+          "color": "rgb(20, 20, 19)",
+          "classes": "px-2 bg-white text-[#141413]",
+          "id": ""
+        },
+        {
+          "type": "hardcoded-black",
+          "element": "label",
+          "text": "Email",
+          "color": "rgb(20, 20, 19)",
+          "classes": "block text-sm mb-1 text-[#141413]",
+          "id": ""
+        },
+        {
+          "type": "hardcoded-black",
+          "element": "label",
+          "text": "Password",
+          "color": "rgb(20, 20, 19)",
+          "classes": "block text-sm mb-1 text-[#141413]",
+          "id": ""
+        }
+      ]
+    }
+  ]
+}

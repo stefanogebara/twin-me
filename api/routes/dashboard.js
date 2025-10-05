@@ -1,5 +1,5 @@
 import express from 'express';
-import { supabase } from '../config/supabase.js';
+import { supabaseAdmin } from '../services/database.js';
 
 const router = express.Router();
 
@@ -16,7 +16,7 @@ router.get('/stats', async (req, res) => {
     }
 
     // Get connected platforms count from soul_data_sources
-    const { data: platforms, error: platformsError } = await supabase
+    const { data: platforms, error: platformsError } = await supabaseAdmin
       .from('soul_data_sources')
       .select('provider', { count: 'exact' })
       .eq('user_id', userId)
@@ -29,7 +29,7 @@ router.get('/stats', async (req, res) => {
     const connectedPlatforms = platforms?.length || 0;
 
     // Get total data points count from soul_signature_data
-    const { count: dataPointsCount, error: dataPointsError } = await supabase
+    const { count: dataPointsCount, error: dataPointsError } = await supabaseAdmin
       .from('soul_signature_data')
       .select('*', { count: 'exact', head: true })
       .eq('user_id', userId);
@@ -48,7 +48,7 @@ router.get('/stats', async (req, res) => {
     }
 
     // Get last sync time from soul_data_sources
-    const { data: lastSyncData, error: lastSyncError } = await supabase
+    const { data: lastSyncData, error: lastSyncError } = await supabaseAdmin
       .from('soul_data_sources')
       .select('last_sync')
       .eq('user_id', userId)
@@ -63,7 +63,7 @@ router.get('/stats', async (req, res) => {
     const lastSync = lastSyncData?.last_sync || new Date().toISOString();
 
     // Get training status (check if model exists for user)
-    const { data: modelData, error: modelError } = await supabase
+    const { data: modelData, error: modelError } = await supabaseAdmin
       .from('digital_twins')
       .select('id')
       .eq('user_id', userId)
@@ -105,7 +105,7 @@ router.get('/activity', async (req, res) => {
     }
 
     // Get recent analytics events for this user
-    const { data: events, error: eventsError } = await supabase
+    const { data: events, error: eventsError } = await supabaseAdmin
       .from('analytics_events')
       .select('*')
       .eq('user_id', userId)

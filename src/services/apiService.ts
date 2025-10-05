@@ -49,8 +49,8 @@ export const dashboardAPI = {
    */
   getStats: async (userId?: string): Promise<DashboardStats> => {
     const url = userId
-      ? `${API_URL}/api/dashboard/stats?userId=${encodeURIComponent(userId)}`
-      : `${API_URL}/api/dashboard/stats`;
+      ? `${API_URL}/dashboard/stats?userId=${encodeURIComponent(userId)}`
+      : `${API_URL}/dashboard/stats`;
 
     const response = await fetch(url, {
       headers: getAuthHeaders(),
@@ -69,8 +69,8 @@ export const dashboardAPI = {
    */
   getActivity: async (userId?: string, limit: number = 10): Promise<ActivityItem[]> => {
     const url = userId
-      ? `${API_URL}/api/dashboard/activity?userId=${encodeURIComponent(userId)}&limit=${limit}`
-      : `${API_URL}/api/dashboard/activity?limit=${limit}`;
+      ? `${API_URL}/dashboard/activity?userId=${encodeURIComponent(userId)}&limit=${limit}`
+      : `${API_URL}/dashboard/activity?limit=${limit}`;
 
     const response = await fetch(url, {
       headers: getAuthHeaders(),
