@@ -2,6 +2,17 @@
 
 **Status:** Ready to purchase and implement
 **Date:** October 5, 2025
+**Source:** [Type.Today - Styrene in use: ANTHROPIC](https://type.today/en/journal/anthropic)
+
+---
+
+## ✅ CONFIRMED: Anthropic Uses Styrene B
+
+According to Type.Today typography journal:
+
+> "**Styrene by Berton Hasebe is applied to the website headlines and subheadings**, Tiempos by Klim Type Foundry is used for body text."
+
+This is the **exact font** Anthropic uses for anthropic.com and claude.ai.
 
 ---
 
