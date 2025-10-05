@@ -4,13 +4,21 @@
  */
 
 import express from 'express';
+import { createClient } from '@supabase/supabase-js';
+
 const router = express.Router();
+
+const supabase = createClient(
+  process.env.SUPABASE_URL,
+  process.env.SUPABASE_SERVICE_ROLE_KEY
+);
 
 import dataExtractionService from '../services/dataExtractionService.js';
 import textProcessor from '../services/textProcessor.js';
 import stylometricAnalyzer from '../services/stylometricAnalyzer.js';
 import embeddingGenerator from '../services/embeddingGenerator.js';
 import ragService from '../services/ragService.js';
+import soulSignatureBuilder from '../services/soulSignatureBuilder.js';
 
 /**
  * POST /api/soul-data/extract/:platform
@@ -28,7 +36,7 @@ router.post('/extract/:platform', async (req, res) => {
       });
     }
 
-    const validPlatforms = ['github', 'discord', 'linkedin'];
+    const validPlatforms = ['github', 'discord', 'linkedin', 'spotify', 'reddit', 'youtube'];
     if (!validPlatforms.includes(platform)) {
       return res.status(400).json({
         success: false,
@@ -410,6 +418,9 @@ router.post('/full-pipeline', async (req, res) => {
     // Step 4: Generate embeddings
     results.embeddings = await embeddingGenerator.generateEmbeddings(userId, 100);
 
+    // Step 5: Build soul signature
+    results.soulSignature = await soulSignatureBuilder.buildSoulSignature(userId);
+
     res.json({
       success: true,
       message: 'Full pipeline completed',
@@ -417,6 +428,76 @@ router.post('/full-pipeline', async (req, res) => {
     });
   } catch (error) {
     console.error('[API] Error in /full-pipeline:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
+/**
+ * POST /api/soul-data/build-soul-signature
+ * Build soul signature from extracted data
+ */
+router.post('/build-soul-signature', async (req, res) => {
+  try {
+    const userId = req.body.userId || req.query.userId;
+
+    if (!userId) {
+      return res.status(400).json({
+        success: false,
+        error: 'userId is required'
+      });
+    }
+
+    console.log(`[API] Building soul signature for user: ${userId}`);
+
+    const result = await soulSignatureBuilder.buildSoulSignature(userId);
+
+    res.json(result);
+  } catch (error) {
+    console.error('[API] Error in /build-soul-signature:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
+/**
+ * GET /api/soul-data/soul-signature
+ * Get user's soul signature
+ */
+router.get('/soul-signature', async (req, res) => {
+  try {
+    const userId = req.query.userId;
+
+    if (!userId) {
+      return res.status(400).json({
+        success: false,
+        error: 'userId is required'
+      });
+    }
+
+    const { data, error } = await supabase
+      .from('soul_signature_profile')
+      .select('*')
+      .eq('user_id', userId)
+      .single();
+
+    if (error || !data) {
+      return res.status(404).json({
+        success: false,
+        error: 'Soul signature not found. Please extract data from platforms first.'
+      });
+    }
+
+    res.json({
+      success: true,
+      soulSignature: data
+    });
+  } catch (error) {
+    console.error('[API] Error in /soul-signature:', error);
     res.status(500).json({
       success: false,
       error: error.message

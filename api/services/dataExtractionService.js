@@ -7,6 +7,9 @@ import { createClient } from '@supabase/supabase-js';
 import GitHubExtractor from './extractors/githubExtractor.js';
 import DiscordExtractor from './extractors/discordExtractor.js';
 import LinkedInExtractor from './extractors/linkedinExtractor.js';
+import SpotifyExtractor from './extractors/spotifyExtractor.js';
+import RedditExtractor from './extractors/redditExtractor.js';
+import YouTubeExtractor from './extractors/youtubeExtractor.js';
 import { decryptToken } from './encryption.js';
 
 const supabase = createClient(
@@ -77,13 +80,19 @@ class DataExtractionService {
         case 'linkedin':
           extractor = new LinkedInExtractor(accessToken);
           break;
+        case 'spotify':
+          extractor = new SpotifyExtractor(accessToken);
+          break;
+        case 'reddit':
+          extractor = new RedditExtractor(accessToken);
+          break;
         case 'youtube':
+          extractor = new YouTubeExtractor(accessToken);
+          break;
         case 'google_calendar':
         case 'google_gmail':
-        case 'spotify':
         case 'slack':
         case 'twitch':
-        case 'reddit':
           // These platforms are defined but extractors not yet implemented
           console.warn(`[DataExtraction] Extractor for ${platform} not yet implemented - skipping`);
           return {
