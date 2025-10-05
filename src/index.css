@@ -139,36 +139,49 @@
     -moz-osx-font-smoothing: grayscale;
   }
 
-  /* Headings use Space Grotesk */
+  /* Headings use Space Grotesk (Styrene B alternative) */
+  /* EXACT Anthropic styling: Medium weight (500), tight spacing */
   h1, h2, h3, h4, h5, h6 {
     font-family: var(--font-heading);
-    font-weight: var(--font-weight-medium);
-    line-height: var(--line-height-tight);
-    letter-spacing: var(--letter-spacing-tight);
+    font-weight: 500;  /* EXACT: Anthropic uses Medium (500), not Semi-bold */
+    line-height: 1.1;  /* EXACT: Anthropic's tight line-height */
+    letter-spacing: -0.02em;  /* EXACT: Anthropic's letter-spacing */
     color: hsl(var(--foreground));
   }
 
   h1 {
     font-size: clamp(2.5rem, 5vw, 4rem);
-    font-weight: var(--font-weight-semibold);
+    font-weight: 500;  /* Medium weight like Anthropic */
+    line-height: 1.1;
+    letter-spacing: -0.02em;
   }
 
   h2 {
     font-size: clamp(2rem, 4vw, 3rem);
+    font-weight: 500;
+    line-height: 1.2;
+    letter-spacing: -0.01em;
   }
 
   h3 {
     font-size: clamp(1.5rem, 3vw, 2rem);
+    font-weight: 500;
+    line-height: 1.3;
   }
 
   h4 {
     font-size: clamp(1.25rem, 2vw, 1.5rem);
+    font-weight: 500;
+    line-height: 1.4;
   }
 
-  /* Body text */
+  /* Body text uses Source Serif 4 (Tiempos Text alternative) */
+  /* EXACT Anthropic styling: Regular weight (400), 1.6 line-height */
   p {
     font-family: var(--font-body);
-    line-height: var(--line-height-relaxed);
+    font-weight: 400;  /* EXACT: Regular weight */
+    line-height: 1.6;  /* EXACT: Anthropic's body line-height */
+    font-feature-settings: 'kern' 1, 'liga' 1;  /* Enable kerning & ligatures */
   }
 
   /* UI elements use DM Sans */
@@ -242,21 +255,25 @@
   }
 
   /* === Typography Utilities === */
+  /* Optimized to match Anthropic's exact styling */
   .text-heading {
     font-family: var(--font-heading);
-    font-weight: var(--font-weight-medium);
-    line-height: var(--line-height-tight);
-    letter-spacing: var(--letter-spacing-tight);
+    font-weight: 500;  /* EXACT: Medium weight */
+    line-height: 1.1;  /* EXACT: Tight leading */
+    letter-spacing: -0.02em;  /* EXACT: Tight spacing */
   }
 
   .text-body {
     font-family: var(--font-body);
-    line-height: var(--line-height-relaxed);
+    font-weight: 400;
+    line-height: 1.6;  /* EXACT: Anthropic's body line-height */
+    font-feature-settings: 'kern' 1, 'liga' 1;
   }
 
   .text-ui {
     font-family: var(--font-ui);
-    line-height: var(--line-height-normal);
+    font-weight: 400;
+    line-height: 1.5;
   }
 
   /* === Layout === */
