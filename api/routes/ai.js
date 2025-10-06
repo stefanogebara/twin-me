@@ -3,7 +3,7 @@ import { body, validationResult } from 'express-validator';
 import Anthropic from '@anthropic-ai/sdk';
 import OpenAI from 'openai';
 import dotenv from 'dotenv';
-import { documentProcessor } from '../services/simpleDocumentProcessor.js';
+// Removed static import of documentProcessor to avoid pdf-parse initialization in serverless
 import { authenticateUser, userRateLimit } from '../middleware/auth.js';
 import { successResponse, errorResponse } from '../middleware/errorHandler.js';
 import { sanitizeUnicode } from '../utils/unicodeSanitizer.js';
@@ -258,6 +258,8 @@ router.post('/chat', authenticateUser, userRateLimit(30, 15 * 60 * 1000), valida
     try {
       const twinId = context.twin.id || req.body.twinId;
       if (twinId) {
+        // Dynamic import to avoid pdf-parse initialization in serverless
+        const { documentProcessor } = await import('../services/simpleDocumentProcessor.js');
         relevantContext = await documentProcessor.searchRelevantContext(twinId, sanitizedMessage, 3);
       }
     } catch (ragError) {
