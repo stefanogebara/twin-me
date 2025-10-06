@@ -94,8 +94,15 @@ app.use('/api/ai/', aiLimiter);
 // Parse JSON bodies
 app.use(express.json({ limit: '10mb' }));
 
-// Content-Type validation
-app.use(validateContentType(['application/json', 'multipart/form-data']));
+// Content-Type validation (exclude auth routes)
+app.use((req, res, next) => {
+  // Skip Content-Type validation for auth routes
+  if (req.originalUrl.startsWith('/api/auth/')) {
+    return next();
+  }
+  // Apply Content-Type validation to all other routes
+  return validateContentType(['application/json', 'multipart/form-data'])(req, res, next);
+});
 
 // Input sanitization (exclude auth routes to prevent breaking authentication)
 app.use('/api/', (req, res, next) => {
@@ -168,6 +175,7 @@ import trainingRoutes from './routes/training.js';
 import { serverDb } from './services/database.js';
 import { sanitizeInput, validateContentType } from './middleware/sanitization.js';
 import { /* handleAuthError, */ handleGeneralError, handle404 } from './middleware/errorHandler.js';
+import { errorHandler, notFoundHandler } from './middleware/errors.js';
 
 // API routes
 app.use('/api/ai', aiRoutes);
@@ -206,17 +214,19 @@ app.get('/api/health', async (req, res) => {
 // Authentication error handling (must be before general error handler)
 // app.use(handleAuthError);
 
-// General error handling middleware
-app.use(handleGeneralError);
+// 404 handler (must come before error handler)
+app.use(notFoundHandler);
 
-// 404 handler (must be last)
-app.use(handle404);
+// General error handling middleware (must be last)
+app.use(errorHandler);
 
-// Start server
-app.listen(PORT, () => {
-  console.log(`🚀 Secure API server running on port ${PORT}`);
-  console.log(`📝 Environment: ${process.env.NODE_ENV || 'development'}`);
-  console.log(`🔐 CORS origin: ${process.env.VITE_APP_URL || 'http://localhost:8080'}`);
-});
+// Start server only in development (not in Vercel serverless)
+if (process.env.NODE_ENV !== 'production') {
+  app.listen(PORT, () => {
+    console.log(`🚀 Secure API server running on port ${PORT}`);
+    console.log(`📝 Environment: ${process.env.NODE_ENV || 'development'}`);
+    console.log(`🔐 CORS origin: ${process.env.VITE_APP_URL || 'http://localhost:8080'}`);
+  });
+}
 
 export default app;
