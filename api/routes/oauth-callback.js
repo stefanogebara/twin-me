@@ -6,7 +6,7 @@
 import express from 'express';
 import crypto from 'crypto';
 import { serverDb } from '../services/database.js';
-import platformDataExtraction from '../services/platformDataExtraction.js';
+import dataExtractionService from '../services/dataExtractionService.js';
 
 const router = express.Router();
 
@@ -86,6 +86,9 @@ async function exchangeCodeForTokens(provider, code) {
 
     case 'youtube':
       return await exchangeGoogleCode(code, redirectUri); // YouTube uses Google OAuth
+
+    case 'google_gmail':
+      return await exchangeGoogleCode(code, redirectUri); // Gmail uses Google OAuth
 
     case 'discord':
       return await exchangeDiscordCode(code, redirectUri);
@@ -293,11 +296,9 @@ function decryptToken(encryptedToken) {
 async function extractDataInBackground(userId, provider, accessToken, connectorId) {
   try {
     // This runs asynchronously without blocking the OAuth callback response
-    const result = await platformDataExtraction.extractPlatformData(
+    const result = await dataExtractionService.extractPlatformData(
       userId,
-      provider,
-      accessToken,
-      connectorId
+      provider
     );
 
     console.log(`✅ Data extraction completed for ${provider}:`, result);
@@ -371,11 +372,9 @@ router.post('/extract/:provider', async (req, res) => {
     }
 
     // Trigger extraction
-    const result = await platformDataExtraction.extractPlatformData(
+    const result = await dataExtractionService.extractPlatformData(
       userId,
-      provider,
-      accessToken,
-      connectorData.id
+      provider
     );
 
     // Update last sync

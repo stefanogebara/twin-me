@@ -1,9 +1,18 @@
 import express from 'express';
 import multer from 'multer';
+import crypto from 'crypto';
 import { SoulSignatureService } from '../services/soulSignature.js';
 import mcpClient from '../services/mcp-client.js';
+import dataExtractionService from '../services/dataExtractionService.js';
+import { encryptToken } from '../services/encryption.js';
+import { createClient } from '@supabase/supabase-js';
 import fs from 'fs/promises';
 import path from 'path';
+
+const supabase = createClient(
+  process.env.SUPABASE_URL,
+  process.env.SUPABASE_SERVICE_ROLE_KEY
+);
 
 const router = express.Router();
 const soulService = new SoulSignatureService();
@@ -354,16 +363,51 @@ router.post('/oauth/callback', async (req, res) => {
         });
     }
 
-    // TODO: Store tokens in database with encryption
-    // For now, return them to the client
+    // Store tokens in database with encryption
+    const expiresAt = expiresIn ? new Date(Date.now() + expiresIn * 1000) : null;
+    const encryptedAccessToken = encryptToken(accessToken);
+    const encryptedRefreshToken = refreshToken ? encryptToken(refreshToken) : null;
+
+    // Insert or update data connector
+    const { data: connectorData, error: connectorError } = await supabase
+      .from('data_connectors')
+      .upsert({
+        user_id: userId,
+        provider: provider,
+        access_token: encryptedAccessToken,
+        refresh_token: encryptedRefreshToken,
+        expires_at: expiresAt,
+        connected: true,
+        last_sync_status: 'pending'
+      }, {
+        onConflict: 'user_id,provider',
+        returning: 'minimal'
+      });
+
+    if (connectorError) {
+      console.error('Error storing connector:', connectorError);
+      throw new Error('Failed to store connection');
+    }
+
+    console.log(`💾 Tokens stored for ${provider} - User: ${userId}`);
+
+    // Trigger data extraction in background (non-blocking)
+    console.log(`📊 Starting background data extraction for ${provider}...`);
+
+    // Don't await - let it run in background
+    dataExtractionService.extractPlatformData(userId, provider)
+      .then(result => {
+        console.log(`✅ Background extraction completed for ${provider}:`, result);
+      })
+      .catch(error => {
+        console.error(`❌ Background extraction failed for ${provider}:`, error);
+      });
+
     res.json({
       success: true,
       provider,
       userId,
-      accessToken,
-      refreshToken,
-      expiresIn,
-      message: `Successfully connected to ${provider}`
+      message: `Successfully connected to ${provider}. Data extraction started.`
     });
 
   } catch (error) {
@@ -1021,5 +1065,96 @@ function calculateViewingFrequency(viewingHistory) {
   if (avgViewsPerDay > 0.3) return 'moderate';
   return 'light';
 }
+
+// GitHub Connector - Code & Collaboration Soul
+router.post('/connect/github', async (req, res) => {
+  try {
+    const { userId } = req.body;
+
+    if (!userId) {
+      return res.status(400).json({
+        success: false,
+        error: 'userId is required'
+      });
+    }
+
+    // GitHub OAuth Configuration
+    const clientId = process.env.GITHUB_CLIENT_ID;
+    const redirectUri = encodeURIComponent(`${process.env.VITE_APP_URL || 'http://localhost:8086'}/oauth/callback`);
+    const scope = encodeURIComponent('read:user repo read:org');
+    const state = Buffer.from(JSON.stringify({
+      provider: 'github',
+      userId,
+      timestamp: Date.now()
+    })).toString('base64');
+
+    const authUrl = `https://github.com/login/oauth/authorize?` +
+      `client_id=${clientId}&redirect_uri=${redirectUri}&scope=${scope}&state=${state}`;
+
+    console.log(`🔧 GitHub OAuth initiated for user ${userId}`);
+
+    res.json({
+      success: true,
+      authUrl,
+      message: 'Connect your coding soul'
+    });
+  } catch (error) {
+    console.error('GitHub connection error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to initialize GitHub connection'
+    });
+  }
+});
+
+// Gmail Connector - Communication Patterns Soul
+router.post('/connect/gmail', async (req, res) => {
+  try {
+    const { userId } = req.body;
+
+    if (!userId) {
+      return res.status(400).json({
+        success: false,
+        error: 'userId is required'
+      });
+    }
+
+    // Gmail uses Google OAuth
+    const clientId = process.env.GOOGLE_CLIENT_ID;
+    const redirectUri = encodeURIComponent(`${process.env.VITE_APP_URL || 'http://localhost:8086'}/oauth/callback`);
+
+    // Gmail scopes for reading email metadata and labels
+    const scope = encodeURIComponent(
+      'https://www.googleapis.com/auth/gmail.readonly ' +
+      'https://www.googleapis.com/auth/gmail.labels ' +
+      'https://www.googleapis.com/auth/userinfo.email ' +
+      'https://www.googleapis.com/auth/userinfo.profile'
+    );
+
+    const state = Buffer.from(JSON.stringify({
+      provider: 'google_gmail',
+      userId,
+      timestamp: Date.now()
+    })).toString('base64');
+
+    const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?` +
+      `client_id=${clientId}&response_type=code&` +
+      `redirect_uri=${redirectUri}&scope=${scope}&state=${state}&access_type=offline&prompt=consent`;
+
+    console.log(`📧 Gmail OAuth initiated for user ${userId}`);
+
+    res.json({
+      success: true,
+      authUrl,
+      message: 'Connect your communication soul'
+    });
+  } catch (error) {
+    console.error('Gmail connection error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to initialize Gmail connection'
+    });
+  }
+});
 
 export default router;
