@@ -3,7 +3,7 @@
  * Extracts listening history, playlists, top artists, top tracks, and audio features
  */
 
-import fetch from 'node-fetch';
+// Node.js 18+ has built-in fetch, no need for node-fetch
 import { createClient } from '@supabase/supabase-js';
 
 const supabase = createClient(
