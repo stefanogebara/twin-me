@@ -64,23 +64,72 @@ const SoulSignatureDashboard: React.FC = () => {
     }
   }, [isSignedIn, navigate]);
 
-  // Check for already connected services from localStorage
+  // Fetch connection status from API and localStorage
   useEffect(() => {
-    const storedConnections = JSON.parse(localStorage.getItem('connectedServices') || '[]');
-    if (storedConnections.length > 0) {
-      console.log('📱 Found existing connections:', storedConnections);
-      setHasConnectedServices(true);
+    const fetchConnectionStatus = async () => {
+      try {
+        if (!user?.id) return;
 
-      // Update connection status from localStorage
-      const newConnections: ConnectionStatus = {...connections};
-      storedConnections.forEach((service: string) => {
-        if (service in newConnections) {
-          newConnections[service as keyof ConnectionStatus] = true;
+        // Fetch from API
+        const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3001/api'}/connectors/status/${user.id}`);
+
+        if (response.ok) {
+          const data = await response.json();
+          console.log('📱 Fetched connection status from API:', data);
+
+          const newConnections: ConnectionStatus = {...connections};
+
+          // Update connection status based on API response
+          Object.keys(data).forEach((platform: string) => {
+            const platformData = data[platform];
+            if (platformData.connected && platform in newConnections) {
+              newConnections[platform as keyof ConnectionStatus] = true;
+            }
+          });
+
+          setConnections(newConnections);
+
+          // Check if any services are connected
+          const hasAnyConnections = Object.values(newConnections).some(status => status);
+          setHasConnectedServices(hasAnyConnections);
+
+          // Sync with localStorage for consistency
+          const connectedPlatforms = Object.keys(newConnections).filter(key => newConnections[key as keyof ConnectionStatus]);
+          localStorage.setItem('connectedServices', JSON.stringify(connectedPlatforms));
+        } else {
+          // Fallback to localStorage if API fails
+          console.warn('⚠️ API failed, falling back to localStorage');
+          const storedConnections = JSON.parse(localStorage.getItem('connectedServices') || '[]');
+          if (storedConnections.length > 0) {
+            const newConnections: ConnectionStatus = {...connections};
+            storedConnections.forEach((service: string) => {
+              if (service in newConnections) {
+                newConnections[service as keyof ConnectionStatus] = true;
+              }
+            });
+            setConnections(newConnections);
+            setHasConnectedServices(true);
+          }
         }
-      });
-      setConnections(newConnections);
-    }
-  }, []);
+      } catch (error) {
+        console.error('❌ Error fetching connection status:', error);
+        // Fallback to localStorage
+        const storedConnections = JSON.parse(localStorage.getItem('connectedServices') || '[]');
+        if (storedConnections.length > 0) {
+          const newConnections: ConnectionStatus = {...connections};
+          storedConnections.forEach((service: string) => {
+            if (service in newConnections) {
+              newConnections[service as keyof ConnectionStatus] = true;
+            }
+          });
+          setConnections(newConnections);
+          setHasConnectedServices(true);
+        }
+      }
+    };
+
+    fetchConnectionStatus();
+  }, [user?.id]); // Re-fetch when user changes
 
   // Animated extraction simulation
   useEffect(() => {

@@ -10,6 +10,7 @@ import LinkedInExtractor from './extractors/linkedinExtractor.js';
 import SpotifyExtractor from './extractors/spotifyExtractor.js';
 import RedditExtractor from './extractors/redditExtractor.js';
 import YouTubeExtractor from './extractors/youtubeExtractor.js';
+import GmailExtractor from './extractors/gmailExtractor.js';
 import { decryptToken } from './encryption.js';
 
 const supabase = createClient(
@@ -89,8 +90,10 @@ class DataExtractionService {
         case 'youtube':
           extractor = new YouTubeExtractor(accessToken);
           break;
-        case 'google_calendar':
         case 'google_gmail':
+          extractor = new GmailExtractor(accessToken);
+          break;
+        case 'google_calendar':
         case 'slack':
         case 'twitch':
           // These platforms are defined but extractors not yet implemented
@@ -121,19 +124,22 @@ class DataExtractionService {
         console.warn(`[DataExtraction] 401 Unauthorized for ${platform} - token likely expired or revoked`);
 
         // Mark connector as disconnected
-        await supabase
-          .from('data_connectors')
-          .update({
-            connected: false,
-            metadata: {
-              ...connector?.metadata,
-              auth_error: true,
-              last_error: '401 Unauthorized - Token expired or revoked',
-              error_timestamp: new Date().toISOString()
-            }
-          })
-          .eq('user_id', userId)
-          .eq('provider', platform);
+        try {
+          await supabase
+            .from('data_connectors')
+            .update({
+              connected: false,
+              metadata: {
+                auth_error: true,
+                last_error: '401 Unauthorized - Token expired or revoked',
+                error_timestamp: new Date().toISOString()
+              }
+            })
+            .eq('user_id', userId)
+            .eq('provider', platform);
+        } catch (updateError) {
+          console.error(`[DataExtraction] Failed to update connector status:`, updateError);
+        }
 
         return {
           success: false,
