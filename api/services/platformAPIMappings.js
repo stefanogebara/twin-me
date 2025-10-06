@@ -280,6 +280,21 @@ export const platformAPIMappings = {
       authType: 'Microsoft Graph API',
       insights: ['collaboration style', 'meeting patterns', 'work rhythms'],
       apiDocs: 'https://docs.microsoft.com/graph/teams-concept-overview'
+    },
+
+    gmail: {
+      name: 'Gmail',
+      category: 'Email Communication',
+      apiAvailable: true,
+      authType: 'Google OAuth2',
+      scopes: [
+        'https://www.googleapis.com/auth/gmail.readonly',
+        'https://www.googleapis.com/auth/gmail.labels',
+        'https://www.googleapis.com/auth/userinfo.email',
+        'https://www.googleapis.com/auth/userinfo.profile'
+      ],
+      insights: ['communication frequency', 'email organization', 'response patterns', 'contact network'],
+      apiDocs: 'https://developers.google.com/gmail/api'
     }
   },
 

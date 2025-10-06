@@ -11,6 +11,21 @@ import RealTimeExtractor from '../services/realTimeExtractor.js';
 import { createClient } from '@supabase/supabase-js';
 import { decryptToken } from '../services/encryption.js';
 import { getValidAccessToken } from '../services/tokenRefresh.js';
+import {
+  asyncHandler,
+  PlatformNotConnectedError,
+  PlatformAPIError,
+  PlatformTokenExpiredError,
+  InsufficientDataError,
+  RateLimitError,
+  PlatformError
+} from '../middleware/errors.js';
+import {
+  validateUserId,
+  validatePlatform,
+  requirePlatformConnection,
+  validateMultiplePlatforms
+} from '../middleware/platformValidation.js';
 
 const router = express.Router();
 const extractor = new RealTimeExtractor();
@@ -24,27 +39,40 @@ const supabase = createClient(
 /**
  * POST /api/soul/extract/platform/:platform
  * Extract soul signature from a specific platform
+ *
+ * Middleware chain:
+ * 1. validateUserId - Ensures userId is provided and valid
+ * 2. validatePlatform - Ensures platform is supported
+ * 3. requirePlatformConnection - Ensures platform is connected (or throws helpful error)
  */
-router.post('/extract/platform/:platform', async (req, res) => {
-  try {
+router.post('/extract/platform/:platform',
+  validateUserId,
+  validatePlatform,
+  requirePlatformConnection,
+  asyncHandler(async (req, res) => {
     const { platform } = req.params;
     const { userId } = req.body;
 
     console.log(`🎭 Soul extraction request for ${platform} from user ${userId}`);
 
-    if (!userId) {
-      return res.status(400).json({
-        success: false,
-        error: 'User ID is required'
-      });
-    }
-
     // Get valid access token (will auto-refresh if expired)
     const tokenResult = await getValidAccessToken(userId, platform);
 
     if (!tokenResult.success) {
-      console.log(`⚠️ No active connection or token failed for ${platform}: ${tokenResult.error}`);
-      // Fall back to generating realistic data if no connection exists
+      // If token validation fails, try to provide helpful error
+      if (tokenResult.error.includes('expired')) {
+        throw new PlatformTokenExpiredError(platform, userId, {
+          originalError: tokenResult.error
+        });
+      }
+      if (tokenResult.error.includes('No active connection')) {
+        throw new PlatformNotConnectedError(platform, userId, {
+          originalError: tokenResult.error
+        });
+      }
+
+      // Fall back to generic platform data for platforms that don't require auth
+      console.log(`⚠️ No active connection for ${platform}, using sample data`);
       const extraction = await extractor.generateGenericPlatformData(platform, userId);
       return res.json({
         success: true,
@@ -59,36 +87,65 @@ router.post('/extract/platform/:platform', async (req, res) => {
     const accessToken = tokenResult.accessToken;
     let extraction;
 
-    switch (platform.toLowerCase()) {
-      case 'spotify':
-        extraction = await extractor.extractSpotifySignature(accessToken, userId);
-        break;
+    try {
+      switch (platform.toLowerCase()) {
+        case 'spotify':
+          extraction = await extractor.extractSpotifySignature(accessToken, userId);
+          break;
 
-      case 'youtube':
-        extraction = await extractor.extractYouTubeSignature(accessToken, userId);
-        break;
+        case 'youtube':
+          extraction = await extractor.extractYouTubeSignature(accessToken, userId);
+          break;
 
-      case 'netflix':
-      case 'steam':
-        extraction = await extractor.generateGenericPlatformData(platform, userId);
-        break;
+        case 'netflix':
+        case 'steam':
+          extraction = await extractor.generateGenericPlatformData(platform, userId);
+          break;
 
-      default:
-        return res.status(400).json({
-          success: false,
-          error: `Unsupported platform: ${platform}`
-        });
+        default:
+          // This shouldn't happen since validatePlatform middleware should catch it
+          throw new PlatformAPIError(platform, 'Extraction not implemented for this platform', 501);
+      }
+    } catch (extractionError) {
+      // Platform API errors
+      if (extractionError.response) {
+        const status = extractionError.response.status;
+        if (status === 429) {
+          throw new RateLimitError(platform, '15 minutes', {
+            originalError: extractionError.message
+          });
+        }
+        throw new PlatformAPIError(platform, extractionError.message, status);
+      }
+      // Re-throw if it's already one of our custom errors
+      if (extractionError instanceof PlatformError) {
+        throw extractionError;
+      }
+      // Generic extraction error
+      throw new PlatformAPIError(platform, extractionError.message);
+    }
+
+    // Check if we got enough data
+    if (extraction && extraction.dataPointsCount !== undefined && extraction.dataPointsCount < 5) {
+      throw new InsufficientDataError(platform, 5, extraction.dataPointsCount, {
+        message: 'Need more activity on this platform for meaningful analysis'
+      });
     }
 
     // Update last_sync timestamp in database
-    await supabase
-      .from('data_connectors')
-      .update({
-        last_sync: new Date().toISOString(),
-        last_sync_status: extraction.success ? 'success' : 'failed'
-      })
-      .eq('user_id', userId)
-      .eq('provider', platform);
+    try {
+      await supabase
+        .from('data_connectors')
+        .update({
+          last_sync: new Date().toISOString(),
+          last_sync_status: extraction.success !== false ? 'success' : 'failed'
+        })
+        .eq('user_id', userId)
+        .eq('provider', platform);
+    } catch (dbError) {
+      console.warn('⚠️ Failed to update last_sync timestamp:', dbError.message);
+      // Don't throw - extraction succeeded even if sync timestamp update failed
+    }
 
     res.json({
       success: true,
@@ -96,45 +153,34 @@ router.post('/extract/platform/:platform', async (req, res) => {
       userId,
       extractedAt: new Date().toISOString(),
       data: extraction,
-      usingRealData: !extraction.isMockData
+      usingRealData: !extraction.isMockData,
+      dataQuality: extraction.dataPointsCount >= 20 ? 'high' : extraction.dataPointsCount >= 10 ? 'medium' : 'low'
     });
-
-  } catch (error) {
-    console.error('❌ Soul extraction error:', error);
-    res.status(500).json({
-      success: false,
-      error: 'Failed to extract soul signature',
-      details: error.message
-    });
-  }
-});
+  })
+);
 
 /**
  * POST /api/soul/extract/multi-platform
  * Extract comprehensive soul signature from multiple platforms
+ *
+ * Middleware chain:
+ * 1. validateUserId - Ensures userId is valid
+ * 2. validateMultiplePlatforms - Validates platforms array and checks connections
  */
-router.post('/extract/multi-platform', async (req, res) => {
-  try {
+router.post('/extract/multi-platform',
+  validateUserId,
+  validateMultiplePlatforms,
+  asyncHandler(async (req, res) => {
     const { userId, platforms } = req.body;
+    const { connectedPlatforms, disconnectedPlatforms, platformConnections } = req;
 
     console.log(`🌟 Multi-platform soul extraction for user ${userId}`);
+    console.log(`   Connected: ${connectedPlatforms.length}, Disconnected: ${disconnectedPlatforms.length}`);
 
-    if (!userId || !platforms || !Array.isArray(platforms)) {
-      return res.status(400).json({
-        success: false,
-        error: 'User ID and platforms array are required'
-      });
-    }
-
-    // Validate platforms format
-    const validPlatforms = platforms.filter(p => p.name && typeof p.name === 'string');
-
-    if (validPlatforms.length === 0) {
-      return res.status(400).json({
-        success: false,
-        error: 'At least one valid platform is required'
-      });
-    }
+    // Format platforms for validation
+    const validPlatforms = Array.isArray(platforms)
+      ? platforms.map(p => typeof p === 'string' ? { name: p } : p)
+      : [];
 
     // Query database for all active connections for this user
     const { data: connections, error: dbError } = await supabase
@@ -186,16 +232,8 @@ router.post('/extract/multi-platform', async (req, res) => {
       requestedPlatforms: validPlatforms.length,
       data: multiPlatformSignature
     });
-
-  } catch (error) {
-    console.error('❌ Multi-platform extraction error:', error);
-    res.status(500).json({
-      success: false,
-      error: 'Failed to extract multi-platform soul signature',
-      details: error.message
-    });
-  }
-});
+  })
+);
 
 /**
  * GET /api/soul/demo/:platform
