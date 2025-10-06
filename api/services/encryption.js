@@ -32,7 +32,8 @@ try {
 } catch (error) {
   console.error('❌ Encryption setup failed:', error.message);
   console.error('💡 Generate a key with: node -e "console.log(require(\'crypto\').randomBytes(32).toString(\'hex\'))"');
-  process.exit(1);
+  // Don't call process.exit() in serverless environments - throw error instead
+  throw new Error(`Encryption initialization failed: ${error.message}`);
 }
 
 /**
