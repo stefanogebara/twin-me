@@ -156,7 +156,7 @@ router.get('/verify', async (req, res) => {
 // OAuth routes
 router.get('/oauth/google', (req, res) => {
   const clientId = process.env.GOOGLE_CLIENT_ID || 'your-google-client-id';
-  const redirectUri = encodeURIComponent(`${process.env.VITE_APP_URL}/oauth/callback`);
+  const redirectUri = encodeURIComponent(`${process.env.VITE_API_URL || 'http://localhost:3001/api'}/auth/oauth/callback`);
   const scope = encodeURIComponent('email profile https://www.googleapis.com/auth/gmail.readonly https://www.googleapis.com/auth/calendar.readonly');
   const state = Buffer.from(JSON.stringify({
     provider: 'google',
@@ -280,7 +280,7 @@ async function exchangeGoogleCode(code) {
         code,
         client_id: process.env.GOOGLE_CLIENT_ID,
         client_secret: process.env.GOOGLE_CLIENT_SECRET,
-        redirect_uri: `${process.env.VITE_APP_URL}/oauth/callback`,
+        redirect_uri: `${process.env.VITE_API_URL || 'http://localhost:3001/api'}/auth/oauth/callback`,
         grant_type: 'authorization_code'
       })
     });
