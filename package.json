@@ -59,6 +59,7 @@
     "express-rate-limit": "^8.1.0",
     "express-validator": "^7.2.1",
     "framer-motion": "^12.23.13",
+    "googleapis": "^161.0.0",
     "helmet": "^8.1.0",
     "input-otp": "^1.4.2",
     "isomorphic-dompurify": "^2.28.0",
