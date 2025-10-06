@@ -165,7 +165,8 @@ router.post('/', authenticateUser, userRateLimit(20, 15 * 60 * 1000), validateTw
     }
 
     const twinData = {
-      creator_id: userId,  // Database column is creator_id, not user_id
+      user_id: userId,     // User who owns this twin (required NOT NULL field)
+      creator_id: userId,  // User who created this twin
       name,
       description: description || null,
       subject_area: subject_area || null,
