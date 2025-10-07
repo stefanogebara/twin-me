@@ -33,7 +33,9 @@ const allowedOrigins = [
   'http://localhost:8082',
   'http://localhost:8083',
   'http://localhost:8084',
-  'http://localhost:8085'
+  'http://localhost:8085',
+  'http://localhost:8086',
+  'https://twin-ai-learn.vercel.app'
 ].filter(Boolean);
 
 app.use(cors({
