@@ -168,8 +168,9 @@ router.get('/oauth/google', (req, res) => {
   if (process.env.APP_URL) {
     appUrl = process.env.APP_URL;
   } else if (req.get('host')?.includes('vercel.app')) {
-    // In Vercel production, construct URL from request host
-    appUrl = `https://${req.get('host')}`;
+    // IMPORTANT: Always use the production domain for OAuth, not deployment-specific URLs
+    // This ensures redirect_uri matches between authorization and token exchange
+    appUrl = 'https://twin-ai-learn.vercel.app';
   } else {
     // Local development fallback
     appUrl = process.env.VITE_APP_URL || 'http://localhost:8086';
@@ -281,8 +282,9 @@ router.get('/oauth/callback', async (req, res) => {
     if (process.env.APP_URL) {
       appUrl = process.env.APP_URL;
     } else if (req.get('host')?.includes('vercel.app')) {
-      // In Vercel production, construct URL from request host
-      appUrl = `https://${req.get('host')}`;
+      // IMPORTANT: Always use the production domain for OAuth, not deployment-specific URLs
+      // This ensures redirect_uri matches between authorization and token exchange
+      appUrl = 'https://twin-ai-learn.vercel.app';
     } else {
       // Local development fallback
       appUrl = process.env.VITE_APP_URL || 'http://localhost:8086';
@@ -462,8 +464,9 @@ router.post('/oauth/callback', async (req, res) => {
     if (process.env.APP_URL) {
       appUrl = process.env.APP_URL;
     } else if (req.get('host')?.includes('vercel.app')) {
-      // In Vercel production, construct URL from request host
-      appUrl = `https://${req.get('host')}`;
+      // IMPORTANT: Always use the production domain for OAuth, not deployment-specific URLs
+      // This ensures redirect_uri matches between authorization and token exchange
+      appUrl = 'https://twin-ai-learn.vercel.app';
     } else {
       // Local development fallback
       appUrl = process.env.VITE_APP_URL || 'http://localhost:8086';
