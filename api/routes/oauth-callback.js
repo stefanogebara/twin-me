@@ -20,16 +20,17 @@ const ENCRYPTION_KEY = process.env.TOKEN_ENCRYPTION_KEY || crypto.randomBytes(32
 router.get('/callback', async (req, res) => {
   try {
     const { code, state, error: oauthError } = req.query;
+    const appUrl = process.env.APP_URL || process.env.VITE_APP_URL || 'http://localhost:8086';
 
     // Handle OAuth errors
     if (oauthError) {
       console.error('OAuth error:', oauthError);
-      return res.redirect(`${process.env.VITE_APP_URL}/soul-signature?error=${oauthError}`);
+      return res.redirect(`${appUrl}/soul-signature?error=${oauthError}`);
     }
 
     // Validate required parameters
     if (!code || !state) {
-      return res.redirect(`${process.env.VITE_APP_URL}/soul-signature?error=missing_params`);
+      return res.redirect(`${appUrl}/soul-signature?error=missing_params`);
     }
 
     // Decode state to get provider and userId
@@ -38,7 +39,7 @@ router.get('/callback', async (req, res) => {
       stateData = JSON.parse(Buffer.from(state, 'base64').toString('utf8'));
     } catch (err) {
       console.error('Failed to decode state:', err);
-      return res.redirect(`${process.env.VITE_APP_URL}/soul-signature?error=invalid_state`);
+      return res.redirect(`${appUrl}/soul-signature?error=invalid_state`);
     }
 
     const { provider, userId } = stateData;
@@ -66,11 +67,11 @@ router.get('/callback', async (req, res) => {
     extractDataInBackground(userId, provider, tokens.access_token, connectorId);
 
     // Redirect back to Soul Signature Dashboard with success
-    res.redirect(`${process.env.VITE_APP_URL}/soul-signature?connected=${provider}`);
+    res.redirect(`${appUrl}/soul-signature?connected=${provider}`);
 
   } catch (error) {
     console.error('OAuth callback error:', error);
-    res.redirect(`${process.env.VITE_APP_URL}/soul-signature?error=${error.message}`);
+    res.redirect(`${appUrl}/soul-signature?error=${error.message}`);
   }
 });
 
@@ -78,7 +79,8 @@ router.get('/callback', async (req, res) => {
  * Exchange authorization code for access tokens
  */
 async function exchangeCodeForTokens(provider, code) {
-  const redirectUri = `${process.env.VITE_APP_URL}/oauth/callback`;
+  const appUrl = process.env.APP_URL || process.env.VITE_APP_URL || 'http://localhost:8086';
+  const redirectUri = `${appUrl}/oauth/callback`;
 
   switch (provider) {
     case 'spotify':

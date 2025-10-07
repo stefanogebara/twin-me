@@ -162,8 +162,9 @@ router.get('/oauth/google', (req, res) => {
       error: 'Google OAuth not configured. Please set GOOGLE_CLIENT_ID in .env file'
     });
   }
-  // Use environment variable for redirect URI
-  const redirectUri = encodeURIComponent(`${process.env.VITE_APP_URL || 'http://localhost:8086'}/oauth/callback`);
+  // Use environment variable for redirect URI (use APP_URL for backend, falls back to VITE_APP_URL for local dev)
+  const appUrl = process.env.APP_URL || process.env.VITE_APP_URL || 'http://localhost:8086';
+  const redirectUri = encodeURIComponent(`${appUrl}/oauth/callback`);
   // Only request basic profile scopes for authentication
   const scope = encodeURIComponent('email profile openid');
   const state = Buffer.from(JSON.stringify({
@@ -182,7 +183,8 @@ async function exchangeGoogleCode(code) {
   try {
     const clientId = process.env.GOOGLE_CLIENT_ID;
     const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
-    const redirectUri = `${process.env.VITE_APP_URL || 'http://localhost:8086'}/oauth/callback`;
+    const appUrl = process.env.APP_URL || process.env.VITE_APP_URL || 'http://localhost:8086';
+    const redirectUri = `${appUrl}/oauth/callback`;
 
     // Exchange code for tokens
     const tokenResponse = await fetch('https://oauth2.googleapis.com/token', {
@@ -235,14 +237,16 @@ router.get('/oauth/callback', async (req, res) => {
   try {
     const { code, state, error } = req.query;
 
+    const appUrl = process.env.APP_URL || process.env.VITE_APP_URL || 'http://localhost:8086';
+
     if (error) {
       console.error('OAuth error:', error);
-      return res.redirect(`${process.env.VITE_APP_URL || 'http://localhost:8086'}/auth?error=${error}`);
+      return res.redirect(`${appUrl}/auth?error=${error}`);
     }
 
     if (!code) {
       console.error('No authorization code received');
-      return res.redirect(`${process.env.VITE_APP_URL || 'http://localhost:8086'}/auth?error=no_code`);
+      return res.redirect(`${appUrl}/auth?error=no_code`);
     }
 
     // Decode state to get provider and userId
@@ -279,7 +283,7 @@ router.get('/oauth/callback', async (req, res) => {
       // If we failed to get real data, don't fall back to demo for auth flows
       if (!userData && isAuthFlow) {
         console.error('Failed to exchange Google OAuth code for authentication');
-        return res.redirect(`${process.env.VITE_APP_URL || 'http://localhost:8086'}/auth?error=oauth_failed`);
+        return res.redirect(`${appUrl}/auth?error=oauth_failed`);
       }
     }
 
@@ -381,11 +385,11 @@ router.get('/oauth/callback', async (req, res) => {
     );
 
     // Redirect to frontend with token
-    const redirectUrl = `${process.env.VITE_APP_URL || 'http://localhost:8086'}/oauth/callback?token=${token}&provider=${provider}`;
+    const redirectUrl = `${appUrl}/oauth/callback?token=${token}&provider=${provider}`;
     res.redirect(redirectUrl);
   } catch (error) {
     console.error('OAuth callback error:', error);
-    res.redirect(`${process.env.VITE_APP_URL || 'http://localhost:8086'}/auth?error=callback_failed`);
+    res.redirect(`${appUrl}/auth?error=callback_failed`);
   }
 });
 
