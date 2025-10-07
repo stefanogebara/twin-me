@@ -418,6 +418,8 @@ router.post('/oauth/callback', async (req, res) => {
   try {
     const { code, state, provider } = req.body;
 
+    console.log('🔵 POST /oauth/callback - received:', { hasCode: !!code, hasState: !!state, provider });
+
     // Auto-detect production URL from request or use environment variable
     let appUrl;
     if (process.env.APP_URL) {
@@ -430,6 +432,8 @@ router.post('/oauth/callback', async (req, res) => {
       appUrl = process.env.VITE_APP_URL || 'http://localhost:8086';
     }
 
+    console.log('🔵 Detected appUrl:', appUrl);
+
     // Decode state to check if this is a connector OAuth
     let stateData = null;
     let isConnectorFlow = false;
@@ -437,6 +441,8 @@ router.post('/oauth/callback', async (req, res) => {
       if (state) {
         stateData = JSON.parse(Buffer.from(state, 'base64').toString());
         isConnectorFlow = !!stateData.userId;
+        console.log('🔵 Decoded state:', stateData);
+        console.log('🔵 isConnectorFlow:', isConnectorFlow);
       }
     } catch (e) {
       console.log('Could not decode state');
@@ -452,7 +458,9 @@ router.post('/oauth/callback', async (req, res) => {
 
     if (isGoogleBased && code && (isAuthFlow || !isConnectorFlow)) {
       // Real Google OAuth for authentication
+      console.log('🔵 Calling exchangeGoogleCode with appUrl:', appUrl);
       userData = await exchangeGoogleCode(code, appUrl);
+      console.log('🔵 exchangeGoogleCode result:', userData ? 'success' : 'null');
 
       // If we failed to get real data, don't fall back to demo for auth flows
       if (!userData && isAuthFlow) {
@@ -520,15 +528,21 @@ router.post('/oauth/callback', async (req, res) => {
     // Check if user exists or create new (only for auth flows, not connector flows)
     let user = null;
 
+    console.log('🔵 Checking user:', { isConnectorFlow, hasUserData: !!userData });
+
     if (!isConnectorFlow && userData) {
+      console.log('🔵 Querying for existing user with email:', userData.email);
       const { data: existingUser, error: userFetchError } = await supabase
         .from('users')
         .select('*')
         .eq('email', userData.email)
         .single();
 
+      console.log('🔵 Existing user query result:', { found: !!existingUser, error: userFetchError });
+
       if (!existingUser) {
         // Create new user
+        console.log('🔵 Creating new user');
         const { data: newUser, error: insertError } = await supabase
           .from('users')
           .insert({
@@ -542,19 +556,24 @@ router.post('/oauth/callback', async (req, res) => {
           .single();
 
         if (insertError) {
-          console.error('Failed to create user:', insertError);
+          console.error('❌ Failed to create user:', insertError);
           throw new Error('User creation failed');
         }
 
+        console.log('✅ New user created:', newUser.id);
         user = newUser;
       } else {
+        console.log('✅ Existing user found:', existingUser.id);
         user = existingUser;
       }
     }
 
     // Handle response based on flow type
+    console.log('🔵 Determining response type:', { isConnectorFlow, hasUser: !!user });
+
     if (isConnectorFlow) {
       // For connector flows, just return success
+      console.log('✅ Returning connector success');
       res.json({
         success: true,
         message: 'Connector authenticated successfully',
@@ -562,12 +581,14 @@ router.post('/oauth/callback', async (req, res) => {
       });
     } else if (user) {
       // Generate JWT token for auth flows
+      console.log('✅ Generating JWT token for user:', user.id);
       const token = jwt.sign(
         { id: user.id, email: user.email },
         JWT_SECRET,
         { expiresIn: '7d' }
       );
 
+      console.log('✅ Returning auth success with token');
       res.json({
         success: true,
         token,
@@ -580,11 +601,13 @@ router.post('/oauth/callback', async (req, res) => {
         }
       });
     } else {
+      console.error('❌ No user and not connector flow - authentication failed');
       throw new Error('Authentication failed');
     }
   } catch (error) {
-    console.error('OAuth callback error:', error);
-    res.status(500).json({ error: 'OAuth authentication failed' });
+    console.error('❌ OAuth callback error (caught in catch block):', error);
+    console.error('❌ Error stack:', error.stack);
+    res.status(500).json({ error: 'OAuth authentication failed', message: error.message });
   }
 });
 
