@@ -12,6 +12,10 @@ dotenv.config({ path: path.resolve(process.cwd(), '.env') });
 const app = express();
 const PORT = process.env.PORT || 3001;
 
+// Trust proxy - required for Vercel serverless functions
+// This allows Express to correctly identify client IPs from X-Forwarded-For headers
+app.set('trust proxy', 1);
+
 // Security middleware
 app.use(helmet({
   contentSecurityPolicy: {
@@ -53,6 +57,8 @@ app.use(cors({
       return callback(null, true);
     }
 
+    // Log rejected origins for debugging
+    console.warn(`CORS rejected origin: ${origin}`);
     return callback(new Error('Not allowed by CORS'));
   },
   credentials: true,
