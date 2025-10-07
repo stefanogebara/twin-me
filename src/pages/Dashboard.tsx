@@ -47,7 +47,7 @@ export const Dashboard: React.FC = () => {
       setLoading(true);
       setError(null);
 
-      const userId = user?.email || user?.id;
+      const userId = user?.id;
 
       // Fetch real stats from API
       const [statsData, activityData] = await Promise.all([

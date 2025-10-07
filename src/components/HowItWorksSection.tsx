@@ -2,24 +2,24 @@ import { Upload, Brain, MessageSquare, FileText, Video, Headphones } from 'lucid
 
 const steps = [
   {
-    title: "Content Ingestion",
-    description: "Twin Me gathers the professor's knowledge sources – lecture videos, audio recordings, academic papers, and writings.",
+    title: "Platform Connection",
+    description: "TwinMe connects to your entertainment, social, and professional platforms – Netflix, Spotify, Discord, GitHub, and more.",
     icon: Upload,
     visual: [
-      { icon: Video, label: "Lectures" },
-      { icon: FileText, label: "Papers" },
-      { icon: Headphones, label: "Audio" }
+      { icon: Video, label: "Streaming" },
+      { icon: FileText, label: "Social" },
+      { icon: Headphones, label: "Music" }
     ]
   },
   {
-    title: "AI Twin Creation", 
-    description: "Advanced AI analyzes and learns from the content to create the professor's digital twin, mapping their teaching style and knowledge.",
+    title: "Soul Signature Extraction",
+    description: "Advanced AI analyzes your digital footprints to extract your authentic soul signature – curiosities, patterns, and unique characteristics.",
     icon: Brain,
     visual: []
   },
   {
-    title: "Interactive AI Professor",
-    description: "The professor's twin is ready to engage with students 24/7 through natural conversation – chat or talk anytime.",
+    title: "Your Digital Twin",
+    description: "Your authentic digital twin is ready to represent you 24/7 with complete privacy control – share what you want, when you want.",
     icon: MessageSquare,
     visual: []
   }
@@ -86,7 +86,7 @@ export const HowItWorksSection = () => {
                 </div>
               )}
               
-              {/* Interactive Professor Visual */}
+              {/* Digital Twin Visual */}
               {index === 2 && (
                 <div className="glass-effect rounded-xl p-4 mx-auto max-w-xs">
                   <div className="flex items-start space-x-3">
@@ -96,7 +96,7 @@ export const HowItWorksSection = () => {
                         <div className="h-2 bg-muted/60 rounded mb-1" />
                         <div className="h-2 bg-muted/40 rounded w-3/4" />
                       </div>
-                      <div className="text-xs text-muted-foreground">Professor's Twin</div>
+                      <div className="text-xs text-muted-foreground">Your Digital Twin</div>
                     </div>
                   </div>
                 </div>

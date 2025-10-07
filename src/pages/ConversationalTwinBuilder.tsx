@@ -5,17 +5,17 @@ import { Mic, MicOff, Upload, Sparkles, User, BookOpen, Volume2, FileAudio, Cloc
 import { secureApi } from '@/lib/secureApi';
 
 interface PersonalityData {
-  teachingPhilosophy: string;
-  studentInteraction: string;
+  personalityCore: string;
+  socialStyle: string;
   humorStyle: string;
   communicationStyle: string;
-  expertise: string[];
+  interests: string[];
 }
 
-interface ClassData {
-  subject: string;
-  level: string;
-  description: string;
+interface PlatformData {
+  entertainment: string;
+  social: string;
+  professional: string;
   materials: File[];
 }
 
@@ -26,13 +26,13 @@ const ConversationalTwinBuilder = () => {
   const [isRecording, setIsRecording] = useState(false);
   const [isPersonalityComplete, setIsPersonalityComplete] = useState(false);
   const [personalityData, setPersonalityData] = useState<PersonalityData>({
-    teachingPhilosophy: '',
-    studentInteraction: '',
+    personalityCore: '',
+    socialStyle: '',
     humorStyle: '',
     communicationStyle: '',
-    expertise: []
+    interests: []
   });
-  const [classes, setClasses] = useState<ClassData[]>([]);
+  const [platforms, setPlatforms] = useState<PlatformData[]>([]);
   const [currentResponse, setCurrentResponse] = useState('');
   const [isAssistantSpeaking, setIsAssistantSpeaking] = useState(false);
   const [isDragOver, setIsDragOver] = useState(false);
@@ -57,46 +57,46 @@ const ConversationalTwinBuilder = () => {
 
   const personalityQuestions = [
     {
-      question: "Hi! I'm here to help you create your digital twin. First, tell me about your teaching philosophy in your own words.",
-      placeholder: "I believe learning should be...",
-      field: 'teachingPhilosophy',
-      followUp: "That sounds wonderful! Your students are lucky to have you."
+      question: "Hi! I'm here to help you create your digital twin. First, tell me about what drives you - your passions, values, and what makes you uniquely you.",
+      placeholder: "I'm passionate about... I value... What makes me unique is...",
+      field: 'personalityCore',
+      followUp: "That's fascinating! I love hearing what makes people tick."
     },
     {
-      question: "How do you usually handle it when students are confused or struggling?",
-      placeholder: "When students are confused, I usually...",
-      field: 'studentInteraction',
-      followUp: "I love that approach! Patience really makes all the difference."
+      question: "How do you usually interact with people? Are you outgoing and social, more reserved and thoughtful, or somewhere in between?",
+      placeholder: "In social situations, I'm usually...",
+      field: 'socialStyle',
+      followUp: "I love that! Everyone has their own authentic way of connecting with others."
     },
     {
-      question: "What's your sense of humor like in class? Are you more serious, playful, or somewhere in between?",
-      placeholder: "In class, my humor is...",
+      question: "What's your sense of humor like? Witty and sarcastic? Playful and silly? Dry and subtle? Something else?",
+      placeholder: "My humor is...",
       field: 'humorStyle',
-      followUp: "Perfect! Humor is such a great way to connect with students."
+      followUp: "Perfect! Humor says so much about who we are."
     },
     {
-      question: "How would you describe your communication style? Direct and clear? Warm and encouraging? Something else?",
+      question: "How would you describe your communication style? Direct and straightforward? Warm and empathetic? Analytical and precise?",
       placeholder: "I would describe my style as...",
       field: 'communicationStyle',
-      followUp: "Excellent! That really helps me understand your teaching personality."
+      followUp: "Excellent! That really helps me understand your authentic personality."
     }
   ];
 
-  const classQuestions = [
+  const platformQuestions = [
     {
-      question: "Great! Now let's create your first class twin. What subject or class is this for?",
-      placeholder: "Introduction to Physics, Advanced Chemistry, etc.",
-      field: 'subject'
+      question: "Great! Now let's connect to your digital platforms. Which entertainment platforms do you use most? (Netflix, Spotify, YouTube, etc.)",
+      placeholder: "Netflix, Spotify, YouTube, Prime Video...",
+      field: 'entertainment'
     },
     {
-      question: "What level are these students? (Freshman, Advanced, Graduate, etc.)",
-      placeholder: "Freshman, Sophomore, Advanced, Graduate...",
-      field: 'level'
+      question: "What social or community platforms are you active on? (Discord, Reddit, Twitter, Instagram, etc.)",
+      placeholder: "Discord, Reddit, Twitter, Instagram...",
+      field: 'social'
     },
     {
-      question: "Tell me about this class in your own words - what should students expect?",
-      placeholder: "This class covers... Students will learn...",
-      field: 'description'
+      question: "Any professional or creative platforms? (GitHub, LinkedIn, Medium, Behance, etc.)",
+      placeholder: "GitHub, LinkedIn, Medium, Behance...",
+      field: 'professional'
     }
   ];
 
@@ -210,7 +210,7 @@ const ConversationalTwinBuilder = () => {
           // Fallback to sample response if API fails
           const sampleResponses = [
             "I believe learning should be engaging and interactive",
-            "I try to be patient and use different approaches when students struggle",
+            "I try to be understanding and adapt my communication to different people",
             "I like to use humor to make concepts more memorable",
             "I prefer a warm and encouraging communication style"
           ];
@@ -349,7 +349,7 @@ const ConversationalTwinBuilder = () => {
       setUploadedFiles(prev => [...prev, ...audioFiles]);
       toast({
         title: "Files uploaded!",
-        description: `Uploaded ${audioFiles.length} file(s). I'll analyze these to understand your teaching materials.`,
+        description: `Uploaded ${audioFiles.length} file(s). I'll analyze these to understand your personality and interests.`,
       });
     } else {
       toast({
@@ -385,8 +385,8 @@ const ConversationalTwinBuilder = () => {
         setCurrentResponse('');
         setUploadedFiles([]);
       }
-    } else if (currentStep <= personalityQuestions.length + classQuestions.length) {
-      // Handle class questions
+    } else if (currentStep <= personalityQuestions.length + platformQuestions.length) {
+      // Handle platform questions
       if (currentResponse.trim()) {
         setCurrentStep(currentStep + 1);
         setCurrentResponse('');
@@ -395,7 +395,7 @@ const ConversationalTwinBuilder = () => {
     }
   };
 
-  const createAnotherClass = () => {
+  const addMorePlatforms = () => {
     setCurrentStep(personalityQuestions.length + 1);
     setCurrentResponse('');
     setUploadedFiles([]);
@@ -414,8 +414,8 @@ const ConversationalTwinBuilder = () => {
   const getCurrentQuestion = () => {
     if (currentStep <= personalityQuestions.length) {
       return personalityQuestions[currentStep - 1];
-    } else if (currentStep <= personalityQuestions.length + classQuestions.length) {
-      return classQuestions[currentStep - personalityQuestions.length - 1];
+    } else if (currentStep <= personalityQuestions.length + platformQuestions.length) {
+      return platformQuestions[currentStep - personalityQuestions.length - 1];
     }
     return null;
   };
@@ -488,7 +488,7 @@ const ConversationalTwinBuilder = () => {
         <div className="flex items-center gap-2 px-4 py-2 bg-white rounded-full border border-[rgba(20,20,19,0.1)]">
           {isPersonalityPhase ? <User className="w-4 h-4 text-[#D97706]" /> : <BookOpen className="w-4 h-4 text-[#D97706]" />}
           <span className="text-sm text-[#141413]" style={{ fontFamily: 'var(--_typography---font--tiempos)' }}>
-            {isPersonalityPhase ? 'Building Your Personality' : 'Adding Your Classes'}
+            {isPersonalityPhase ? 'Building Your Soul Signature' : 'Connecting Your Platforms'}
           </span>
         </div>
       </div>
@@ -512,13 +512,13 @@ const ConversationalTwinBuilder = () => {
                   {isPersonalityComplete && currentStep === personalityQuestions.length + 1 ? (
                     <div>
                       <p className="text-[#141413] mb-3" style={{ fontFamily: 'var(--_typography---font--styrene-a)', fontWeight: 500, letterSpacing: '-0.02em' }}>
-                        Perfect! I've captured your teaching personality.
+                        Perfect! I've captured your authentic personality.
                       </p>
                       <p className="text-[#6B7280] text-sm mb-4" style={{ fontFamily: 'var(--_typography---font--tiempos)' }}>
-                        Now all your twins will have your unique style, humor, and approach. Let's add your first class!
+                        Now your digital twin will have your unique style, humor, and communication approach. Let's connect your platforms!
                       </p>
                       <button
-                        onClick={() => speakAssistantResponse("Perfect! I've captured your teaching personality. Now all your twins will have your unique style, humor, and approach. Let's add your first class!", false)}
+                        onClick={() => speakAssistantResponse("Perfect! I've captured your authentic personality. Now your digital twin will have your unique style, humor, and communication approach. Let's connect your platforms!", false)}
                         className="absolute top-3 right-3 p-2 rounded-full"
                         disabled={isAssistantSpeaking}
                       >
@@ -574,7 +574,7 @@ const ConversationalTwinBuilder = () => {
           </div>
 
           {/* Response Area */}
-          {currentStep <= personalityQuestions.length + classQuestions.length && (
+          {currentStep <= personalityQuestions.length + platformQuestions.length && (
             <div
               className={`bg-white rounded-3xl p-6 border-2 mb-6 ${
                 isDragOver ? 'border-[#D97706] bg-[#FEF3E2]' : 'border-[rgba(20,20,19,0.1)]'
@@ -704,15 +704,15 @@ const ConversationalTwinBuilder = () => {
           )}
 
           {/* Completion Actions */}
-          {currentStep > personalityQuestions.length + classQuestions.length && (
+          {currentStep > personalityQuestions.length + platformQuestions.length && (
             <div className="bg-white rounded-3xl p-6 border border-[rgba(20,20,19,0.1)]">
               <div className="flex gap-4 justify-center">
                 <button
-                  onClick={createAnotherClass}
+                  onClick={addMorePlatforms}
                   className="bg-[#F5F5F5] text-[#141413] px-6 py-3 rounded-full"
                   style={{ fontFamily: 'var(--_typography---font--styrene-a)', fontWeight: 500 }}
                 >
-                  Add Another Class
+                  Connect More Platforms
                 </button>
                 <button
                   onClick={finishSetup}

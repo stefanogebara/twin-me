@@ -58,7 +58,7 @@ export const Training: React.FC = () => {
       setLoading(true);
       setError(null);
 
-      const userId = user?.email || user?.id;
+      const userId = user?.id;
 
       // Fetch real training status from API
       const metricsData = await trainingAPI.getStatus(userId);
@@ -78,7 +78,7 @@ export const Training: React.FC = () => {
   const startTraining = async () => {
     try {
       setError(null);
-      const userId = user?.email || user?.id;
+      const userId = user?.id;
 
       // Start training via API
       const response = await trainingAPI.startTraining(userId, metrics.epochs);
@@ -105,7 +105,7 @@ export const Training: React.FC = () => {
   const stopTraining = async () => {
     try {
       setError(null);
-      const userId = user?.email || user?.id;
+      const userId = user?.id;
 
       // Stop training via API
       await trainingAPI.stopTraining(userId);
@@ -122,7 +122,7 @@ export const Training: React.FC = () => {
     if (confirm('Are you sure you want to reset the model? This will clear all training progress.')) {
       try {
         setError(null);
-        const userId = user?.email || user?.id;
+        const userId = user?.id;
 
         // Reset model via API
         await trainingAPI.resetModel(userId);

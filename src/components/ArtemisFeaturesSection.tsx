@@ -1,8 +1,8 @@
 export const ArtemisFeaturesSection = () => {
   const features = [
     {
-      title: "Voice & Text Chat",
-      description: "Interact with your AI twin through natural conversation, just like talking to your real professor.",
+      title: "Platform Integration",
+      description: "Connect to Netflix, Spotify, Discord, GitHub, and 30+ platforms to extract your authentic soul signature.",
       visual: (
         <div className="w-16 h-16 bg-gradient-to-br from-primary to-accent rounded-2xl flex items-center justify-center mb-4">
           <div className="w-8 h-8 relative">
@@ -13,8 +13,8 @@ export const ArtemisFeaturesSection = () => {
       )
     },
     {
-      title: "Personalized Learning",
-      description: "Each AI twin adapts to your learning style and pace, providing customized explanations and examples.",
+      title: "Privacy Control",
+      description: "Granular 0-100% intensity sliders for each life cluster. Share what you want, when you want, with whom you want.",
       visual: (
         <div className="w-16 h-16 bg-gradient-to-br from-accent to-primary rounded-2xl flex items-center justify-center mb-4 relative">
           <div className="grid grid-cols-2 gap-1">
@@ -27,8 +27,8 @@ export const ArtemisFeaturesSection = () => {
       )
     },
     {
-      title: "24/7 Availability",
-      description: "Get help whenever you need it. Your AI professor never sleeps and is always ready to assist.",
+      title: "Contextual Sharing",
+      description: "Different twin personas for different contexts - professional for LinkedIn, personal for dating, creative for communities.",
       visual: (
         <div className="w-16 h-16 bg-gradient-to-br from-primary/80 to-accent/80 rounded-2xl flex items-center justify-center mb-4">
           <div className="w-8 h-8 bg-card rounded-full relative">
@@ -39,8 +39,8 @@ export const ArtemisFeaturesSection = () => {
       )
     },
     {
-      title: "Knowledge Retention",
-      description: "Your AI twin remembers every conversation and builds on previous discussions for continuous learning.",
+      title: "Soul Signature Discovery",
+      description: "AI-powered pattern recognition reveals curiosities, interests, and characteristics you didn't know about yourself.",
       visual: (
         <div className="w-16 h-16 bg-gradient-to-br from-accent/90 to-primary/70 rounded-2xl flex items-center justify-center mb-4">
           <div className="relative">
@@ -58,10 +58,10 @@ export const ArtemisFeaturesSection = () => {
       <div className="max-w-[1440px] mx-auto">
         <div className="text-center mb-16">
           <h2 className="text-5xl font-bold text-foreground mb-6 leading-tight">
-            Revolutionize Your Learning Experience
+            Capture Your Authentic Soul Signature
           </h2>
           <p className="text-lg text-muted-foreground max-w-2xl mx-auto leading-relaxed">
-            Experience education like never before with AI twins that capture the essence of your favorite professors.
+            Experience digital identity like never before with AI twins that capture the essence of who you truly are.
           </p>
         </div>
 

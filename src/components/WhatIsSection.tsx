@@ -5,14 +5,14 @@ export const WhatIsSection = () => {
     <section className="section-spacing bg-background">
       <div className="max-w-4xl mx-auto px-6 text-center">
         <h2 className="text-xl font-bold mb-8 slide-up">
-          What is Twin Me?
+          What is TwinMe?
         </h2>
-        
+
         <p className="text-lg text-muted-foreground leading-relaxed mb-12 max-w-3xl mx-auto fade-in">
-          Twin Me builds <strong className="text-foreground">digital replicas of real teachers</strong> – 
-          capturing their lectures, writings, analogies, and distinctive teaching style – and lets students 
-          <strong className="text-foreground"> chat or talk directly</strong> with their professor's AI "twin," 
-          <strong className="text-foreground"> anytime</strong>.
+          TwinMe creates <strong className="text-foreground">authentic digital twins</strong> by capturing
+          your soul signature – your genuine curiosities, behavioral patterns, and unique characteristics –
+          letting you <strong className="text-foreground">control what you reveal</strong> and
+          <strong className="text-foreground"> share your true self</strong> contextually.
         </p>
         
         <div className="flex justify-center items-center space-x-12 fade-in">

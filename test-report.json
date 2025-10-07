@@ -1,0 +1,284 @@
+{
+  "passed": [
+    {
+      "test": "Landing Page Load",
+      "status": "passed",
+      "message": "",
+      "timestamp": "2025-10-05T14:29:13.175Z"
+    },
+    {
+      "test": "Hero Heading Present",
+      "status": "passed",
+      "message": "Text: \"Discover Your Soul Signature\"",
+      "timestamp": "2025-10-05T14:29:13.670Z"
+    },
+    {
+      "test": "Soul Signature Branding",
+      "status": "passed",
+      "message": "Found Soul Signature terminology",
+      "timestamp": "2025-10-05T14:29:13.676Z"
+    },
+    {
+      "test": "Old Content Removed",
+      "status": "passed",
+      "message": "No education-related content found",
+      "timestamp": "2025-10-05T14:29:13.676Z"
+    },
+    {
+      "test": "Typography - Hero Heading",
+      "status": "passed",
+      "message": "Font: \"Space Grotesk\", system-ui, sans-serif",
+      "timestamp": "2025-10-05T14:29:13.710Z"
+    },
+    {
+      "test": "CTA Buttons Count",
+      "status": "passed",
+      "message": "Found 6 buttons",
+      "timestamp": "2025-10-05T14:29:13.714Z"
+    },
+    {
+      "test": "Button 1",
+      "status": "passed",
+      "message": "Text: \"\", Class: No cartoon class",
+      "timestamp": "2025-10-05T14:29:13.722Z"
+    },
+    {
+      "test": "Button 2",
+      "status": "passed",
+      "message": "Text: \"Get Started\", Class: Has cartoon class",
+      "timestamp": "2025-10-05T14:29:13.736Z"
+    },
+    {
+      "test": "Button 3",
+      "status": "passed",
+      "message": "Text: \"Discover Your Signature\", Class: Has cartoon class",
+      "timestamp": "2025-10-05T14:29:13.742Z"
+    },
+    {
+      "test": "Button 4",
+      "status": "passed",
+      "message": "Text: \"See How It Works\", Class: No cartoon class",
+      "timestamp": "2025-10-05T14:29:13.747Z"
+    },
+    {
+      "test": "Button 5",
+      "status": "passed",
+      "message": "Text: \"Discover Your Soul Signature\", Class: Has cartoon class",
+      "timestamp": "2025-10-05T14:29:13.751Z"
+    },
+    {
+      "test": "Cartoon Button Styling",
+      "status": "passed",
+      "message": "Found 4 cartoon-styled buttons - excellent consistency!",
+      "timestamp": "2025-10-05T14:29:13.753Z"
+    },
+    {
+      "test": "Features Section",
+      "status": "passed",
+      "message": "Found 3 feature cards",
+      "timestamp": "2025-10-05T14:29:13.759Z"
+    },
+    {
+      "test": "Testimonials Section",
+      "status": "passed",
+      "message": "",
+      "timestamp": "2025-10-05T14:29:14.247Z"
+    },
+    {
+      "test": "Navigation Links",
+      "status": "passed",
+      "message": "Found 4 navigation links",
+      "timestamp": "2025-10-05T14:29:14.704Z"
+    },
+    {
+      "test": "Theme Toggle Button Found",
+      "status": "passed",
+      "message": "Theme toggle detected in navigation",
+      "timestamp": "2025-10-05T14:29:14.708Z"
+    },
+    {
+      "test": "Initial Theme",
+      "status": "passed",
+      "message": "Theme: light",
+      "timestamp": "2025-10-05T14:29:14.711Z"
+    },
+    {
+      "test": "Theme Toggle Functionality",
+      "status": "passed",
+      "message": "Changed to: dark",
+      "timestamp": "2025-10-05T14:29:15.857Z"
+    },
+    {
+      "test": "Theme Transition Smoothness",
+      "status": "passed",
+      "message": "Smooth transitions detected",
+      "timestamp": "2025-10-05T14:29:16.311Z"
+    },
+    {
+      "test": "Auth Buttons Found",
+      "status": "passed",
+      "message": "Found 4 auth-related buttons",
+      "timestamp": "2025-10-05T14:29:16.314Z"
+    },
+    {
+      "test": "Auth Button Click Attempt",
+      "status": "passed",
+      "message": "Clicking: \"Get Started\"",
+      "timestamp": "2025-10-05T14:29:16.318Z"
+    },
+    {
+      "test": "Auth Navigation",
+      "status": "passed",
+      "message": "URL: http://localhost:8086/auth",
+      "timestamp": "2025-10-05T14:29:17.536Z"
+    },
+    {
+      "test": "Email Input",
+      "status": "passed",
+      "message": "",
+      "timestamp": "2025-10-05T14:29:17.753Z"
+    },
+    {
+      "test": "Password Input",
+      "status": "passed",
+      "message": "",
+      "timestamp": "2025-10-05T14:29:17.753Z"
+    },
+    {
+      "test": "Google OAuth Button",
+      "status": "passed",
+      "message": "Google OAuth available",
+      "timestamp": "2025-10-05T14:29:17.753Z"
+    },
+    {
+      "test": "Route: Home",
+      "status": "passed",
+      "message": "Title: \"Twin Me - Discover Your Soul Signature\"",
+      "timestamp": "2025-10-05T14:29:18.834Z"
+    },
+    {
+      "test": "Route: Talk to Twin",
+      "status": "passed",
+      "message": "Title: \"Twin Me - Discover Your Soul Signature\"",
+      "timestamp": "2025-10-05T14:29:20.141Z"
+    },
+    {
+      "test": "Route: Contact",
+      "status": "passed",
+      "message": "Title: \"Twin Me - Discover Your Soul Signature\"",
+      "timestamp": "2025-10-05T14:29:21.208Z"
+    },
+    {
+      "test": "Route: Authentication",
+      "status": "passed",
+      "message": "Title: \"Twin Me - Discover Your Soul Signature\"",
+      "timestamp": "2025-10-05T14:29:22.311Z"
+    },
+    {
+      "test": "Responsive: Mobile",
+      "status": "passed",
+      "message": "375x667",
+      "timestamp": "2025-10-05T14:29:23.977Z"
+    },
+    {
+      "test": "Responsive: Tablet",
+      "status": "passed",
+      "message": "768x1024",
+      "timestamp": "2025-10-05T14:29:25.894Z"
+    },
+    {
+      "test": "Responsive: Desktop",
+      "status": "passed",
+      "message": "1920x1080",
+      "timestamp": "2025-10-05T14:29:27.833Z"
+    },
+    {
+      "test": "API: Health Check",
+      "status": "passed",
+      "message": "Status: 200",
+      "timestamp": "2025-10-05T14:29:29.201Z"
+    },
+    {
+      "test": "API: Platform List",
+      "status": "passed",
+      "message": "Status: 200",
+      "timestamp": "2025-10-05T14:29:29.214Z"
+    }
+  ],
+  "failed": [],
+  "warnings": [
+    {
+      "test": "Browser Console Error",
+      "status": "warning",
+      "message": "Failed to load resource: the server responded with a status of 415 (Unsupported Media Type)",
+      "timestamp": "2025-10-05T14:29:16.392Z"
+    }
+  ],
+  "screenshots": [
+    {
+      "name": "landing-page-initial",
+      "filename": "landing-page-initial.png",
+      "description": "Initial landing page load"
+    },
+    {
+      "name": "features-section",
+      "filename": "features-section.png",
+      "description": "Features section with cards"
+    },
+    {
+      "name": "testimonials-section",
+      "filename": "testimonials-section.png",
+      "description": "Testimonials section"
+    },
+    {
+      "name": "theme-before-toggle",
+      "filename": "theme-before-toggle.png",
+      "description": "Before theme toggle"
+    },
+    {
+      "name": "theme-after-toggle",
+      "filename": "theme-after-toggle.png",
+      "description": "After theme toggle"
+    },
+    {
+      "name": "auth-page",
+      "filename": "auth-page.png",
+      "description": "Authentication page"
+    },
+    {
+      "name": "route-home",
+      "filename": "route-home.png",
+      "description": "Home page"
+    },
+    {
+      "name": "route-talk-to-twin",
+      "filename": "route-talk-to-twin.png",
+      "description": "Talk to Twin page"
+    },
+    {
+      "name": "route-contact",
+      "filename": "route-contact.png",
+      "description": "Contact page"
+    },
+    {
+      "name": "route-authentication",
+      "filename": "route-authentication.png",
+      "description": "Authentication page"
+    },
+    {
+      "name": "responsive-mobile",
+      "filename": "responsive-mobile.png",
+      "description": "Mobile view"
+    },
+    {
+      "name": "responsive-tablet",
+      "filename": "responsive-tablet.png",
+      "description": "Tablet view"
+    },
+    {
+      "name": "responsive-desktop",
+      "filename": "responsive-desktop.png",
+      "description": "Desktop view"
+    }
+  ]
+}

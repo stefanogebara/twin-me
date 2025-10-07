@@ -1,0 +1,13 @@
+// Load .env from api directory
+dotenv.config({ path: path.resolve(process.cwd(), '.env') });
+
+// Debug environment variables
+console.log('🔵 [Server] Environment check:');
+console.log('🔵 [Server] NODE_ENV:', process.env.NODE_ENV);
+console.log('🔵 [Server] SUPABASE_URL exists:', !!process.env.SUPABASE_URL);
+console.log('🔵 [Server] SUPABASE_URL value:', process.env.SUPABASE_URL);
+console.log('🔵 [Server] SUPABASE_SERVICE_ROLE_KEY exists:', !!process.env.SUPABASE_SERVICE_ROLE_KEY);
+console.log('🔵 [Server] SUPABASE_SERVICE_ROLE_KEY length:', process.env.SUPABASE_SERVICE_ROLE_KEY?.length);
+
+const app = express();
+const PORT = process.env.PORT || 3001;

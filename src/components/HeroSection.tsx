@@ -4,10 +4,10 @@ import { useNavigate } from 'react-router-dom';
 import { FloatingElements } from './FloatingElements';
 
 const taglines = [
-  "Education, Personalized by AI.",
-  "Talk to Your Teacher's Twin.",
-  "Learn Differently, From the Same Mind.",
-  "Your Professor, Reimagined."
+  "Your Soul, Digitally Authentic.",
+  "Beyond Public Persona, Into Soul Signature.",
+  "Discover What Makes You, You.",
+  "Your True Identity, Digitized."
 ];
 
 export const HeroSection = () => {
@@ -61,21 +61,21 @@ export const HeroSection = () => {
         </h1>
         
         <p className="text-xl text-muted-foreground mb-12 max-w-2xl mx-auto leading-relaxed fade-in font-medium">
-          Twin Me builds digital replicas of real teachers – capturing their lectures, writings, 
-          and distinctive teaching style – letting students chat or talk directly with their professor's AI twin, anytime.
+          TwinMe creates authentic digital twins by capturing your soul signature – not just public information,
+          but your genuine curiosities, passions, and patterns that make you uniquely yourself.
         </p>
         
         <div className="flex flex-col sm:flex-row gap-6 justify-center slide-up">
-          <Button 
+          <Button
             variant="default"
-            size="lg" 
+            size="lg"
             className="px-10 py-4 text-lg font-bold shadow-2xl"
             onClick={() => navigate('/talk-to-twin')}
           >
-            Talk to a Twin
+            Discover Your Soul Signature
           </Button>
           <Button variant="cartoon" size="lg" className="px-10 py-4 text-lg">
-            Start Learning
+            Create Your Twin
           </Button>
         </div>
       </div>

@@ -13,12 +13,12 @@ export const ArtemisCTASection = () => {
       <div className="max-w-[1440px] mx-auto text-center relative z-10">
         <div className="max-w-3xl mx-auto">
           <h2 className="text-5xl font-serif text-foreground mb-6 leading-tight italic">
-            Ready to Transform Your Learning Experience?
+            Ready to Discover Your Soul Signature?
           </h2>
-          
+
           <p className="text-lg text-muted-foreground mb-12 leading-relaxed">
-            Join thousands of students and educators already using Twin Me to create more engaging, 
-            accessible, and personalized learning experiences.
+            Join thousands of people already using TwinMe to create authentic digital twins that
+            capture their true personality, not just their public persona.
           </p>
           
           <div className="flex flex-col sm:flex-row gap-6 justify-center items-center">

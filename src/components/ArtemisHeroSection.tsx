@@ -14,8 +14,8 @@ export const ArtemisHeroSection = () => {
           <div className="absolute top-12 left-8 w-48 h-36 bg-card rounded-2xl shadow-lg transform -rotate-12 border overflow-hidden">
             <div className="w-full h-full bg-gradient-to-br from-green-400 to-emerald-500 flex items-center justify-center">
               <div className="text-white text-center">
-                <div className="text-2xl font-bold mb-1">AI</div>
-                <div className="text-sm">Physics Prof</div>
+                <div className="text-2xl font-bold mb-1">Soul</div>
+                <div className="text-sm">Signature</div>
               </div>
             </div>
           </div>
@@ -24,8 +24,8 @@ export const ArtemisHeroSection = () => {
           <div className="absolute top-8 right-8 w-56 h-40 bg-card rounded-2xl shadow-lg transform rotate-6 border overflow-hidden">
             <div className="w-full h-full bg-gradient-to-br from-blue-400 to-purple-500 flex items-center justify-center">
               <div className="text-white text-center">
-                <div className="text-lg font-semibold mb-2">Learning Platform</div>
-                <div className="text-xs opacity-90">24/7 Access</div>
+                <div className="text-lg font-semibold mb-2">Digital Identity</div>
+                <div className="text-xs opacity-90">Authentic You</div>
               </div>
             </div>
           </div>
@@ -34,8 +34,8 @@ export const ArtemisHeroSection = () => {
           <div className="absolute bottom-20 left-12 w-40 h-32 bg-card rounded-2xl shadow-lg transform rotate-3 border overflow-hidden">
             <div className="w-full h-full bg-gradient-to-br from-orange-400 to-red-400 flex items-center justify-center">
               <div className="text-white text-center">
-                <div className="text-lg font-bold">Voice</div>
-                <div className="text-xs">Chat Ready</div>
+                <div className="text-lg font-bold">Privacy</div>
+                <div className="text-xs">Control</div>
               </div>
             </div>
           </div>
@@ -44,8 +44,8 @@ export const ArtemisHeroSection = () => {
           <div className="absolute bottom-16 right-12 w-44 h-36 bg-card rounded-2xl shadow-lg transform -rotate-6 border overflow-hidden">
             <div className="w-full h-full bg-gradient-to-br from-pink-400 to-purple-400 flex items-center justify-center">
               <div className="text-white text-center">
-                <div className="text-base font-semibold mb-1">Personalized</div>
-                <div className="text-xs opacity-90">Learning Experience</div>
+                <div className="text-base font-semibold mb-1">Contextual</div>
+                <div className="text-xs opacity-90">Self Expression</div>
               </div>
             </div>
           </div>
@@ -54,25 +54,25 @@ export const ArtemisHeroSection = () => {
         {/* Main Content - Exact Artemis Layout */}
         <div className="text-center relative z-10 pt-20">
           {/* Small intro text */}
-          <p className="text-foreground mb-6 font-medium">This is Twin Me</p>
-          
+          <p className="text-foreground mb-6 font-medium">This is TwinMe</p>
+
           {/* Large serif headline - exact Artemis style */}
           <h1 className="text-6xl md:text-7xl lg:text-8xl font-serif text-foreground mb-8 leading-tight italic">
-            AI Professor &<br />
-            Learning Twin
+            Your Soul &<br />
+            Digital Twin
           </h1>
 
           {/* Subtitle */}
           <p className="text-foreground mb-12 text-lg font-medium">
-            students can count on!
+            Authenticity you control!
           </p>
 
           {/* Orange CTA Button - exact Artemis style */}
-          <Button 
+          <Button
             className="bg-primary hover:bg-primary/90 text-white rounded-full px-8 py-3 text-lg font-semibold shadow-lg transition-all duration-300 hover:scale-105"
             onClick={() => navigate('/talk-to-twin')}
           >
-            Check out my works
+            Discover Your Soul Signature
           </Button>
         </div>
       </div>

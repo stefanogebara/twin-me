@@ -1,21 +1,21 @@
 export const ArtemisTestimonialsSection = () => {
   const testimonials = [
     {
-      quote: "Having my AI twin available 24/7 has transformed how my students learn. They can get help exactly when they need it, not just during office hours.",
-      name: "Dr. Sarah Chen",
-      title: "Physics Professor, Stanford",
+      quote: "TwinMe helped me discover patterns in my interests I never noticed. It's fascinating to see how my Netflix choices, Spotify playlists, and Discord communities paint such an authentic picture of who I am.",
+      name: "Sarah Chen",
+      title: "Creative Professional",
       avatar: "SC"
     },
     {
-      quote: "My professor's AI twin explains concepts in the exact same way she does in class. It's like having personal tutoring sessions whenever I'm stuck.",
-      name: "Marcus Rodriguez", 
-      title: "Computer Science Student",
+      quote: "The privacy controls are incredible. I can share my professional side on LinkedIn while keeping my gaming and entertainment preferences separate. True contextual identity.",
+      name: "Marcus Rodriguez",
+      title: "Software Engineer",
       avatar: "MR"
     },
     {
-      quote: "The AI twin captures my teaching philosophy perfectly. Students get the same quality explanations and encouragement they'd receive from me directly.",
-      name: "Prof. James Wilson",
-      title: "Mathematics Department Head",
+      quote: "My digital twin captures the real me - not just my resume, but my curiosities, my humor, the things that make me uniquely myself. It's authenticity with control.",
+      name: "James Wilson",
+      title: "Digital Creator",
       avatar: "JW"
     }
   ];
@@ -25,10 +25,10 @@ export const ArtemisTestimonialsSection = () => {
       <div className="max-w-[1440px] mx-auto">
         <div className="text-center mb-16">
           <h2 className="text-5xl font-bold text-foreground mb-6 leading-tight">
-            Trusted by Educators & Students
+            Trusted by Authentic People
           </h2>
           <p className="text-lg text-muted-foreground max-w-2xl mx-auto leading-relaxed">
-            See how Twin Me is revolutionizing education for both professors and students worldwide.
+            See how TwinMe is revolutionizing digital identity by capturing authentic soul signatures.
           </p>
         </div>
 
