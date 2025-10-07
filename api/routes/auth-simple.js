@@ -192,11 +192,27 @@ router.get('/oauth/google', (req, res) => {
 // Helper function to exchange Google auth code for tokens
 async function exchangeGoogleCode(code, appUrl) {
   try {
+    console.log('🟢 exchangeGoogleCode START');
+    console.log('🟢 code:', code?.substring(0, 20) + '...');
+    console.log('🟢 appUrl:', appUrl);
+
     const clientId = process.env.GOOGLE_CLIENT_ID;
     const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
+
+    console.log('🟢 GOOGLE_CLIENT_ID:', clientId);
+    console.log('🟢 GOOGLE_CLIENT_SECRET length:', clientSecret?.length);
+    console.log('🟢 JWT_SECRET defined:', !!process.env.JWT_SECRET);
+
+    if (!clientId || !clientSecret) {
+      console.error('❌ Missing Google OAuth credentials');
+      return null;
+    }
+
     const redirectUri = `${appUrl}/oauth/callback`;
+    console.log('🟢 redirectUri:', redirectUri);
 
     // Exchange code for tokens
+    console.log('🟢 Calling Google token endpoint...');
     const tokenResponse = await fetch('https://oauth2.googleapis.com/token', {
       method: 'POST',
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
@@ -209,26 +225,35 @@ async function exchangeGoogleCode(code, appUrl) {
       })
     });
 
+    console.log('🟢 Token response status:', tokenResponse.status);
+
     if (!tokenResponse.ok) {
-      console.error('Token exchange failed:', await tokenResponse.text());
+      const errorText = await tokenResponse.text();
+      console.error('❌ Token exchange failed:', tokenResponse.status, errorText);
       return null;
     }
 
     const tokens = await tokenResponse.json();
+    console.log('✅ Tokens received, has access_token:', !!tokens.access_token);
 
     // Get user info
+    console.log('🟢 Fetching user info from Google...');
     const userResponse = await fetch('https://www.googleapis.com/oauth2/v2/userinfo', {
       headers: { 'Authorization': `Bearer ${tokens.access_token}` }
     });
 
+    console.log('🟢 User info response status:', userResponse.status);
+
     if (!userResponse.ok) {
-      console.error('Failed to get user info:', await userResponse.text());
+      const errorText = await userResponse.text();
+      console.error('❌ Failed to get user info:', userResponse.status, errorText);
       return null;
     }
 
     const userData = await userResponse.json();
+    console.log('✅ User info received:', { email: userData.email, hasGivenName: !!userData.given_name });
 
-    return {
+    const result = {
       email: userData.email,
       firstName: userData.given_name || '',
       lastName: userData.family_name || '',
@@ -236,8 +261,12 @@ async function exchangeGoogleCode(code, appUrl) {
       accessToken: tokens.access_token,
       refreshToken: tokens.refresh_token
     };
+
+    console.log('✅ exchangeGoogleCode SUCCESS - returning user data');
+    return result;
   } catch (error) {
-    console.error('Google OAuth error:', error);
+    console.error('❌ Google OAuth exception:', error);
+    console.error('❌ Exception stack:', error.stack);
     return null;
   }
 }
