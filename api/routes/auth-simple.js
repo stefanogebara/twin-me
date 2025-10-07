@@ -597,6 +597,18 @@ router.post('/oauth/callback', async (req, res) => {
 
         if (insertError) {
           console.error('❌ Failed to create user:', insertError);
+          console.error('❌ Supabase error code:', insertError.code);
+          console.error('❌ Supabase error message:', insertError.message);
+          console.error('❌ Supabase error details:', JSON.stringify(insertError.details));
+          console.error('❌ Supabase error hint:', insertError.hint);
+          console.error('❌ Full insertError object:', JSON.stringify(insertError, null, 2));
+          console.error('❌ Attempted insert with data:', {
+            email: userData.email,
+            first_name: userData.firstName,
+            last_name: userData.lastName,
+            oauth_provider: provider,
+            picture_url: userData.picture
+          });
           throw new Error('User creation failed');
         }
 
