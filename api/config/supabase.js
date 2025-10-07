@@ -1,7 +1,10 @@
 import { createClient } from '@supabase/supabase-js';
 import dotenv from 'dotenv';
 
-dotenv.config();
+// Only use dotenv in development - Vercel provides env vars directly
+if (process.env.NODE_ENV !== 'production') {
+  dotenv.config();
+}
 
 const supabaseUrl = process.env.SUPABASE_URL;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
