@@ -1,0 +1,61 @@
+name: Deploy to Vercel
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:  # Allows manual triggering from GitHub UI
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    name: Trigger Vercel Deployment
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Trigger Vercel Deploy Hook
+        env:
+          VERCEL_DEPLOY_HOOK_URL: ${{ secrets.VERCEL_DEPLOY_HOOK_URL }}
+        run: |
+          echo "🚀 Triggering Vercel deployment..."
+          echo "📝 Commit: ${{ github.sha }}"
+          echo "👤 Author: ${{ github.actor }}"
+          echo "📦 Branch: ${{ github.ref_name }}"
+
+          if [ -z "$VERCEL_DEPLOY_HOOK_URL" ]; then
+            echo "❌ ERROR: VERCEL_DEPLOY_HOOK_URL secret is not set"
+            echo "Please add the Deploy Hook URL to GitHub Secrets"
+            exit 1
+          fi
+
+          RESPONSE=$(curl -X POST "$VERCEL_DEPLOY_HOOK_URL" \
+            -H "Content-Type: application/json" \
+            -w "\n%{http_code}" \
+            -s)
+
+          HTTP_CODE=$(echo "$RESPONSE" | tail -n1)
+          BODY=$(echo "$RESPONSE" | sed '$d')
+
+          echo "📊 HTTP Response Code: $HTTP_CODE"
+          echo "📄 Response Body: $BODY"
+
+          if [ "$HTTP_CODE" = "201" ] || [ "$HTTP_CODE" = "200" ]; then
+            echo "✅ Deployment triggered successfully!"
+
+            # Extract job ID if available
+            JOB_ID=$(echo "$BODY" | grep -o '"job":{"id":"[^"]*"' | grep -o 'id":"[^"]*"' | cut -d'"' -f3)
+            if [ -n "$JOB_ID" ]; then
+              echo "🆔 Deployment Job ID: $JOB_ID"
+            fi
+          else
+            echo "❌ Failed to trigger deployment"
+            exit 1
+          fi
+
+      - name: Deployment Status
+        if: success()
+        run: |
+          echo "✅ Deployment workflow completed"
+          echo "🔗 Check status at: https://vercel.com/datalake-9521s-projects/twin-ai-learn"
