@@ -162,8 +162,19 @@ router.get('/oauth/google', (req, res) => {
       error: 'Google OAuth not configured. Please set GOOGLE_CLIENT_ID in .env file'
     });
   }
-  // Use environment variable for redirect URI (use APP_URL for backend, falls back to VITE_APP_URL for local dev)
-  const appUrl = process.env.APP_URL || process.env.VITE_APP_URL || 'http://localhost:8086';
+
+  // Auto-detect production URL from request or use environment variable
+  let appUrl;
+  if (process.env.APP_URL) {
+    appUrl = process.env.APP_URL;
+  } else if (req.get('host')?.includes('vercel.app')) {
+    // In Vercel production, construct URL from request host
+    appUrl = `https://${req.get('host')}`;
+  } else {
+    // Local development fallback
+    appUrl = process.env.VITE_APP_URL || 'http://localhost:8086';
+  }
+
   const redirectUri = encodeURIComponent(`${appUrl}/oauth/callback`);
   // Only request basic profile scopes for authentication
   const scope = encodeURIComponent('email profile openid');
@@ -179,11 +190,10 @@ router.get('/oauth/google', (req, res) => {
 });
 
 // Helper function to exchange Google auth code for tokens
-async function exchangeGoogleCode(code) {
+async function exchangeGoogleCode(code, appUrl) {
   try {
     const clientId = process.env.GOOGLE_CLIENT_ID;
     const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
-    const appUrl = process.env.APP_URL || process.env.VITE_APP_URL || 'http://localhost:8086';
     const redirectUri = `${appUrl}/oauth/callback`;
 
     // Exchange code for tokens
@@ -237,7 +247,17 @@ router.get('/oauth/callback', async (req, res) => {
   try {
     const { code, state, error } = req.query;
 
-    const appUrl = process.env.APP_URL || process.env.VITE_APP_URL || 'http://localhost:8086';
+    // Auto-detect production URL from request or use environment variable
+    let appUrl;
+    if (process.env.APP_URL) {
+      appUrl = process.env.APP_URL;
+    } else if (req.get('host')?.includes('vercel.app')) {
+      // In Vercel production, construct URL from request host
+      appUrl = `https://${req.get('host')}`;
+    } else {
+      // Local development fallback
+      appUrl = process.env.VITE_APP_URL || 'http://localhost:8086';
+    }
 
     if (error) {
       console.error('OAuth error:', error);
@@ -278,7 +298,7 @@ router.get('/oauth/callback', async (req, res) => {
 
     if (isGoogleBased && code && (isAuthFlow || !isConnectorFlow)) {
       // Real Google OAuth for authentication
-      userData = await exchangeGoogleCode(code);
+      userData = await exchangeGoogleCode(code, appUrl);
 
       // If we failed to get real data, don't fall back to demo for auth flows
       if (!userData && isAuthFlow) {
@@ -293,7 +313,7 @@ router.get('/oauth/callback', async (req, res) => {
 
       // For Google-based connectors, exchange the code for tokens
       if (isGoogleBased && code) {
-        const tokens = await exchangeGoogleCode(code);
+        const tokens = await exchangeGoogleCode(code, appUrl);
         if (tokens) {
           // Store the connection with encrypted tokens in database
           const connectionData = {
@@ -398,6 +418,18 @@ router.post('/oauth/callback', async (req, res) => {
   try {
     const { code, state, provider } = req.body;
 
+    // Auto-detect production URL from request or use environment variable
+    let appUrl;
+    if (process.env.APP_URL) {
+      appUrl = process.env.APP_URL;
+    } else if (req.get('host')?.includes('vercel.app')) {
+      // In Vercel production, construct URL from request host
+      appUrl = `https://${req.get('host')}`;
+    } else {
+      // Local development fallback
+      appUrl = process.env.VITE_APP_URL || 'http://localhost:8086';
+    }
+
     // Decode state to check if this is a connector OAuth
     let stateData = null;
     let isConnectorFlow = false;
@@ -420,7 +452,7 @@ router.post('/oauth/callback', async (req, res) => {
 
     if (isGoogleBased && code && (isAuthFlow || !isConnectorFlow)) {
       // Real Google OAuth for authentication
-      userData = await exchangeGoogleCode(code);
+      userData = await exchangeGoogleCode(code, appUrl);
 
       // If we failed to get real data, don't fall back to demo for auth flows
       if (!userData && isAuthFlow) {
@@ -438,7 +470,7 @@ router.post('/oauth/callback', async (req, res) => {
 
       // For Google-based connectors, exchange the code for tokens
       if (isGoogleBased && code) {
-        const tokens = await exchangeGoogleCode(code);
+        const tokens = await exchangeGoogleCode(code, appUrl);
         if (tokens) {
           // Store the connection with encrypted tokens in database
           const connectionData = {
