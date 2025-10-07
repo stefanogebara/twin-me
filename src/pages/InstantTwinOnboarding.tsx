@@ -398,10 +398,10 @@ const InstantTwinOnboarding = () => {
       });
 
       // Get OAuth authorization URL from backend
-      const apiUrl = `http://localhost:3001/api/connectors/auth/${provider}?userId=${encodeURIComponent(userId)}`;
+      const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
+      const apiUrl = `${baseUrl}/connectors/auth/${provider}?userId=${encodeURIComponent(userId)}`;
       console.log('🌐 Making request to:', apiUrl);
       console.log('🔑 API URL env var:', import.meta.env.VITE_API_URL);
-      console.log('🔧 Using hardcoded URL to bypass caching issue');
 
       const response = await fetch(apiUrl, {
         method: 'GET',
@@ -489,8 +489,9 @@ const InstantTwinOnboarding = () => {
       console.log(`🔌 Disconnecting ${provider} for user ${userId}`);
 
       // Call backend disconnect API
+      const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
       const response = await fetch(
-        `http://localhost:3001/api/connectors/${provider}/${encodeURIComponent(userId)}`,
+        `${baseUrl}/connectors/${provider}/${encodeURIComponent(userId)}`,
         {
           method: 'DELETE',
           headers: {
