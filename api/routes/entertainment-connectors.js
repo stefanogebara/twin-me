@@ -63,7 +63,7 @@ router.post('/connect/spotify', async (req, res) => {
 
     // Spotify OAuth Configuration
     const clientId = process.env.SPOTIFY_CLIENT_ID || 'your-spotify-client-id';
-    const redirectUri = encodeURIComponent(`${process.env.VITE_APP_URL || 'http://localhost:8086'}/oauth/callback`);
+    const redirectUri = encodeURIComponent(`${process.env.APP_URL || process.env.VITE_APP_URL || 'http://localhost:8086'}/oauth/callback`);
     const scope = encodeURIComponent(
       'user-read-private user-read-email ' +
       'user-top-read user-read-recently-played ' +
@@ -232,7 +232,7 @@ router.post('/connect/youtube', async (req, res) => {
 
     // YouTube/Google OAuth
     const clientId = process.env.GOOGLE_CLIENT_ID || '851806289280-k0v833noqjk02r43m45cjr7prnhg24gr.apps.googleusercontent.com';
-    const redirectUri = encodeURIComponent(`${process.env.VITE_APP_URL || 'http://localhost:8086'}/oauth/callback`);
+    const redirectUri = encodeURIComponent(`${process.env.APP_URL || process.env.VITE_APP_URL || 'http://localhost:8086'}/oauth/callback`);
     const scope = encodeURIComponent(
       'https://www.googleapis.com/auth/youtube.readonly ' +
       'https://www.googleapis.com/auth/youtube.force-ssl'
@@ -319,7 +319,7 @@ router.post('/oauth/callback', async (req, res) => {
           body: new URLSearchParams({
             grant_type: 'authorization_code',
             code,
-            redirect_uri: `${process.env.VITE_APP_URL || 'http://localhost:8086'}/oauth/callback`
+            redirect_uri: `${process.env.APP_URL || process.env.VITE_APP_URL || 'http://localhost:8086'}/oauth/callback`
           })
         });
 
@@ -341,7 +341,7 @@ router.post('/oauth/callback', async (req, res) => {
             code,
             client_id: process.env.GOOGLE_CLIENT_ID,
             client_secret: process.env.GOOGLE_CLIENT_SECRET,
-            redirect_uri: `${process.env.VITE_APP_URL || 'http://localhost:8086'}/oauth/callback`,
+            redirect_uri: `${process.env.APP_URL || process.env.VITE_APP_URL || 'http://localhost:8086'}/oauth/callback`,
             grant_type: 'authorization_code'
           })
         });
@@ -1080,7 +1080,7 @@ router.post('/connect/github', async (req, res) => {
 
     // GitHub OAuth Configuration
     const clientId = process.env.GITHUB_CLIENT_ID;
-    const redirectUri = encodeURIComponent(`${process.env.VITE_APP_URL || 'http://localhost:8086'}/oauth/callback`);
+    const redirectUri = encodeURIComponent(`${process.env.APP_URL || process.env.VITE_APP_URL || 'http://localhost:8086'}/oauth/callback`);
     const scope = encodeURIComponent('read:user repo read:org');
     const state = Buffer.from(JSON.stringify({
       provider: 'github',
@@ -1121,7 +1121,8 @@ router.post('/connect/gmail', async (req, res) => {
 
     // Gmail uses Google OAuth
     const clientId = process.env.GOOGLE_CLIENT_ID;
-    const redirectUri = encodeURIComponent(`${process.env.VITE_APP_URL || 'http://localhost:8086'}/oauth/callback`);
+    const appUrl = process.env.APP_URL || process.env.APP_URL || process.env.VITE_APP_URL || 'http://localhost:8086';
+    const redirectUri = encodeURIComponent(`${appUrl}/oauth/callback`);
 
     // Gmail scopes for reading email metadata and labels
     const scope = encodeURIComponent(
