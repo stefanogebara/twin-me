@@ -148,6 +148,7 @@ const CustomAuth = () => {
                         className="w-full pl-10 pr-4 py-3 rounded-xl border focus:outline-none bg-[#F5F5F5] border-[rgba(20,20,19,0.1)] text-[#141413]"
                         style={{ fontFamily: 'var(--_typography---font--tiempos)' }}
                         placeholder="John"
+                        autoComplete="given-name"
                         required
                       />
                     </div>
@@ -163,6 +164,7 @@ const CustomAuth = () => {
                       className="w-full px-4 py-3 rounded-xl border focus:outline-none bg-[#F5F5F5] border-[rgba(20,20,19,0.1)] text-[#141413]"
                       style={{ fontFamily: 'var(--_typography---font--tiempos)' }}
                       placeholder="Doe"
+                      autoComplete="family-name"
                       required
                     />
                   </div>
@@ -182,6 +184,7 @@ const CustomAuth = () => {
                     className="w-full pl-10 pr-4 py-3 rounded-xl border focus:outline-none bg-[#F5F5F5] border-[rgba(20,20,19,0.1)] text-[#141413]"
                     style={{ fontFamily: 'var(--_typography---font--tiempos)' }}
                     placeholder="john@example.com"
+                    autoComplete="email"
                     required
                   />
                 </div>
@@ -200,6 +203,7 @@ const CustomAuth = () => {
                     className="w-full pl-10 pr-12 py-3 rounded-xl border focus:outline-none bg-[#F5F5F5] border-[rgba(20,20,19,0.1)] text-[#141413]"
                     style={{ fontFamily: 'var(--_typography---font--tiempos)' }}
                     placeholder="••••••••"
+                    autoComplete={mode === 'signin' ? 'current-password' : 'new-password'}
                     required
                   />
                   <button
@@ -236,7 +240,10 @@ const CustomAuth = () => {
             {/* Footer */}
             <div className="text-center mt-6">
               <button
-                onClick={() => setMode(mode === 'signin' ? 'signup' : 'signin')}
+                onClick={() => {
+                  setMode(mode === 'signin' ? 'signup' : 'signin');
+                  setError('');
+                }}
                 className="text-sm text-[#D97706]"
                 style={{ fontFamily: 'var(--_typography---font--tiempos)' }}
               >

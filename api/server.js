@@ -7,6 +7,7 @@ import dotenv from 'dotenv';
 import path from 'path';
 
 // Only use dotenv in development - Vercel provides env vars directly
+// Updated: Fixed SUPABASE_SERVICE_ROLE_KEY truncation issue
 if (process.env.NODE_ENV !== 'production') {
   dotenv.config({ path: path.resolve(process.cwd(), '.env') });
 }

@@ -38,3 +38,9 @@ temp/
 *.sln
 *.sw?
 nul
+
+# Playwright
+playwright/.auth/
+test-results/
+playwright-report/
+.vercel

@@ -72,14 +72,14 @@ const secondaryNavItems: NavItem[] = [
     id: 'privacy',
     label: 'Privacy Controls',
     icon: Shield,
-    path: '/privacy',
+    path: '/privacy-spectrum',
     description: 'Manage your data sharing'
   },
   {
     id: 'help',
     label: 'Help & Docs',
     icon: HelpCircle,
-    path: '/help',
+    path: '/settings',
     description: 'Get support'
   }
 ];

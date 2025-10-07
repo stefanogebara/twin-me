@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth, SignInButton, SignUpButton } from '../contexts/AuthContext';
 import { ThemeToggle } from '../components/ThemeToggle';
+import { ArtemisTestimonialsSection } from '../components/ArtemisTestimonialsSection';
 
 const Index = () => {
   const navigate = useNavigate();
@@ -129,12 +130,12 @@ const Index = () => {
           <div className="flex items-center gap-4">
             <ThemeToggle />
             {!isLoaded ? (
-              <button disabled className="btn-anthropic-primary opacity-50 cursor-not-allowed">Loading...</button>
+              <button disabled className="cartoon-button opacity-50 cursor-not-allowed">Loading...</button>
             ) : isSignedIn ? (
-              <button onClick={() => navigate('/get-started')} className="btn-anthropic-primary">Get Started</button>
+              <button onClick={() => navigate('/get-started')} className="cartoon-button">Get Started</button>
             ) : (
               <SignInButton mode="modal" fallbackRedirectUrl="/get-started" forceRedirectUrl="/get-started">
-                <button className="btn-anthropic-primary">Get Started</button>
+                <button className="cartoon-button">Get Started</button>
               </SignInButton>
             )}
           </div>
@@ -145,23 +146,22 @@ const Index = () => {
       <section className="min-h-screen flex items-center justify-center relative pt-[120px] pb-20 px-[60px]">
         <div className="text-center relative z-10 max-w-[900px]">
           <h1 className="text-[clamp(2.5rem,5vw,4rem)] leading-[1.1] mb-8 text-foreground" style={{ fontFamily: 'var(--_typography---font--styrene-a)', fontWeight: 500, letterSpacing: '-0.02em' }}>
-            Discover Your<br />
-            Soul Signature
+            Discover Your Soul Signature
           </h1>
           <p className="text-[20px] text-foreground max-w-[700px] mx-auto mb-12 leading-[1.6]" style={{ fontFamily: 'var(--_typography---font--tiempos)' }}>
             Beyond your resume and public persona lies your authentic digital identity. We reveal the signature of your originality through your curiosities, passions, and characteristic patterns.
           </p>
           <div className="flex gap-6 justify-center">
             {!isLoaded ? (
-              <button disabled className="btn-anthropic-primary opacity-50 cursor-not-allowed">Loading...</button>
+              <button disabled className="cartoon-button text-lg px-10 py-4 opacity-50 cursor-not-allowed">Loading...</button>
             ) : isSignedIn ? (
-              <button onClick={() => navigate('/get-started')} className="btn-anthropic-primary">Discover Your Signature</button>
+              <button onClick={() => navigate('/get-started')} className="cartoon-button text-lg px-10 py-4">Discover Your Signature</button>
             ) : (
               <SignInButton mode="modal" fallbackRedirectUrl="/get-started" forceRedirectUrl="/get-started">
-                <button className="btn-anthropic-primary">Discover Your Signature</button>
+                <button className="cartoon-button text-lg px-10 py-4">Discover Your Signature</button>
               </SignInButton>
             )}
-            <button onClick={handleWatchDemoClick} className="btn-anthropic-secondary">See How It Works</button>
+            <button onClick={handleWatchDemoClick} className="btn-anthropic-secondary text-lg px-10 py-4">See How It Works</button>
           </div>
         </div>
       </section>
@@ -213,66 +213,66 @@ const Index = () => {
             <div className="w-[60px] h-[60px] bg-[#F5F5F5] rounded-[12px] flex items-center justify-center mb-6 text-[32px] text-foreground">〜</div>
             <h3 className="text-[24px] text-foreground mb-3"
                 style={{ fontFamily: 'var(--_typography---font--styrene-a)', fontWeight: 500 }}>
-              Voice Learning
+              Platform Integration
             </h3>
             <p className="text-foreground leading-[1.6]"
                style={{ fontFamily: 'var(--_typography---font--tiempos)' }}>
-              Natural conversations with AI teachers that feel like real interactions
+              Connect Netflix, Spotify, Discord, GitHub, and 30+ platforms to reveal your authentic patterns
             </p>
           </div>
           <div className="bg-white rounded-[16px] p-10 border border-[rgba(20,20,19,0.1)]">
             <div className="w-[60px] h-[60px] bg-[#F5F5F5] rounded-[12px] flex items-center justify-center mb-6 text-[32px] text-foreground">◐</div>
             <h3 className="text-[24px] text-foreground mb-3"
                 style={{ fontFamily: 'var(--_typography---font--styrene-a)', fontWeight: 500 }}>
-              Text Interface
+              Privacy Control
             </h3>
             <p className="text-foreground leading-[1.6]"
                style={{ fontFamily: 'var(--_typography---font--tiempos)' }}>
-              ChatGPT-style learning experience for written communication
+              Granular 0-100% sliders for each life cluster. Share what you want, when you want
             </p>
           </div>
           <div className="bg-white rounded-[16px] p-10 border border-[rgba(20,20,19,0.1)]">
             <div className="w-[60px] h-[60px] bg-[#F5F5F5] rounded-[12px] flex items-center justify-center mb-6 text-[32px] text-foreground">◉</div>
             <h3 className="text-[24px] text-foreground mb-3"
                 style={{ fontFamily: 'var(--_typography---font--styrene-a)', fontWeight: 500 }}>
-              Adaptive AI
+              Soul Discovery
             </h3>
             <p className="text-foreground leading-[1.6]"
                style={{ fontFamily: 'var(--_typography---font--tiempos)' }}>
-              Personalized teaching that adapts to your unique learning style
+              AI reveals patterns and curiosities you didn't know about yourself
             </p>
           </div>
           <div className="bg-white rounded-[16px] p-10 border border-[rgba(20,20,19,0.1)]">
             <div className="w-[60px] h-[60px] bg-[#F5F5F5] rounded-[12px] flex items-center justify-center mb-6 text-[32px] text-foreground">▣</div>
             <h3 className="text-[24px] text-foreground mb-3"
                 style={{ fontFamily: 'var(--_typography---font--styrene-a)', fontWeight: 500 }}>
-              Smart Analytics
+              Contextual Sharing
             </h3>
             <p className="text-foreground leading-[1.6]"
                style={{ fontFamily: 'var(--_typography---font--tiempos)' }}>
-              Track progress and get insights into your learning journey
+              Different twin personas for professional, social, dating, or creative contexts
             </p>
           </div>
           <div className="bg-white rounded-[16px] p-10 border border-[rgba(20,20,19,0.1)]">
             <div className="w-[60px] h-[60px] bg-[#F5F5F5] rounded-[12px] flex items-center justify-center mb-6 text-[32px] text-foreground">◎</div>
             <h3 className="text-[24px] text-foreground mb-3"
                 style={{ fontFamily: 'var(--_typography---font--styrene-a)', fontWeight: 500 }}>
-              Global Access
+              Digital Twin Chat
             </h3>
             <p className="text-foreground leading-[1.6]"
                style={{ fontFamily: 'var(--_typography---font--tiempos)' }}>
-              Learn from anywhere, anytime, with any device
+              Interact with your authentic digital twin through voice and text
             </p>
           </div>
           <div className="bg-white rounded-[16px] p-10 border border-[rgba(20,20,19,0.1)]">
             <div className="w-[60px] h-[60px] bg-[#F5F5F5] rounded-[12px] flex items-center justify-center mb-6 text-[32px] text-foreground">△</div>
             <h3 className="text-[24px] text-foreground mb-3"
                 style={{ fontFamily: 'var(--_typography---font--styrene-a)', fontWeight: 500 }}>
-              Instant Setup
+              Instant Creation
             </h3>
             <p className="text-foreground leading-[1.6]"
                style={{ fontFamily: 'var(--_typography---font--tiempos)' }}>
-              Teachers upload content, AI learns and deploys instantly
+              Connect platforms, answer questions, deploy your soul signature instantly
             </p>
           </div>
         </div>
@@ -283,47 +283,50 @@ const Index = () => {
         <div className="text-center max-w-[900px] mx-auto">
           <h2 className="text-[clamp(2rem,4vw,3rem)] mb-6 text-foreground"
               style={{ fontFamily: 'var(--_typography---font--styrene-a)', fontWeight: 500, letterSpacing: '-0.02em' }}>
-            Behind the Technology
+            Beyond Digital Cloning
           </h2>
           <p className="text-[20px] leading-[1.6] mb-6 text-foreground"
              style={{ fontFamily: 'var(--_typography---font--tiempos)' }}>
-            Finally, meet the platform transforming education
+            "Perhaps we are searching in the branches for what we only find in the roots."
           </p>
           <p className="text-[20px] leading-[1.6] mb-12 text-foreground"
              style={{ fontFamily: 'var(--_typography---font--tiempos)' }}>
-            We help educators create digital twins that actually work. Whether you need to scale your teaching or preserve your knowledge, we focus on real impact—no complicated tech, just education that works.
+            Public information is easy to clone, but it lacks soul. We create digital twins that capture your true originality—not just what you wrote, but your curiosities, passions, and the patterns that make you uniquely yourself.
           </p>
           {isSignedIn ? (
-            <button onClick={() => navigate('/get-started')} className="btn-anthropic-primary">
-              Start Creating for Free
+            <button onClick={() => navigate('/get-started')} className="cartoon-button text-lg px-10 py-4">
+              Discover Your Soul Signature
             </button>
           ) : (
             <SignInButton mode="modal" fallbackRedirectUrl="/get-started" forceRedirectUrl="/get-started">
-              <button className="btn-anthropic-primary">
-                Start Creating for Free
+              <button className="cartoon-button text-lg px-10 py-4">
+                Discover Your Soul Signature
               </button>
             </SignInButton>
           )}
         </div>
       </section>
 
+      {/* Testimonials Section */}
+      <ArtemisTestimonialsSection />
+
       {/* CTA Section */}
       <section id="contact" className="py-[120px] px-[60px] text-center bg-background">
         <h2 className="text-[clamp(2rem,4vw,3rem)] mb-6 text-foreground"
             style={{ fontFamily: 'var(--_typography---font--styrene-a)', fontWeight: 500, letterSpacing: '-0.02em' }}>
-          Ready to transform education?
+          Ready to Discover Your Soul Signature?
         </h2>
         <p className="text-[22px] text-foreground mb-12"
            style={{ fontFamily: 'var(--_typography---font--tiempos)' }}>
-          Join thousands of educators creating their digital twins
+          Join thousands creating authentic digital twins that capture their true originality
         </p>
         {isSignedIn ? (
-          <button onClick={() => navigate('/get-started')} className="btn-anthropic-primary">
+          <button onClick={() => navigate('/get-started')} className="cartoon-button text-lg px-10 py-4">
             Get Started Today
           </button>
         ) : (
           <SignInButton mode="modal" fallbackRedirectUrl="/get-started" forceRedirectUrl="/get-started">
-            <button className="btn-anthropic-primary">
+            <button className="cartoon-button text-lg px-10 py-4">
               Get Started Today
             </button>
           </SignInButton>

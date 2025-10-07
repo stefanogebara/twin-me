@@ -44,28 +44,28 @@ interface ActiveTwin {
   created_at: string;
 }
 
-interface StudentStats {
+interface PersonalStats {
   totalConversations: number;
   totalMessages: number;
   activeTwins: number;
-  studyTime: number;
-  completedAssessments: number;
+  interactionTime: number;
+  connectionsCompleted: number;
   averageRating: number;
 }
 
-const StudentDashboard = () => {
+const PersonalDashboard = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
 
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [activeTwins, setActiveTwins] = useState<ActiveTwin[]>([]);
-  const [stats, setStats] = useState<StudentStats>({
+  const [stats, setStats] = useState<PersonalStats>({
     totalConversations: 0,
     totalMessages: 0,
     activeTwins: 0,
-    studyTime: 0,
-    completedAssessments: 0,
+    interactionTime: 0,
+    connectionsCompleted: 0,
     averageRating: 0
   });
   const [loading, setLoading] = useState(true);
@@ -117,8 +117,8 @@ const StudentDashboard = () => {
       totalConversations: conversations.length,
       totalMessages: conversations.length * 8, // Estimate based on conversations
       activeTwins: twins.length,
-      studyTime: conversations.length * 15, // Estimate 15 minutes per conversation
-      completedAssessments: Math.floor(conversations.length / 3), // Estimate
+      interactionTime: conversations.length * 15, // Estimate 15 minutes per conversation
+      connectionsCompleted: Math.floor(conversations.length / 3), // Estimate
       averageRating: 4.5 // Static for now
     });
   };
@@ -198,7 +198,7 @@ const StudentDashboard = () => {
                 letterSpacing: '-0.02em'
               }}
             >
-              Welcome back, {user?.firstName || 'Student'}!
+              Welcome back, {user?.firstName || 'there'}!
             </h1>
             <p
               className="mt-1"
@@ -438,7 +438,7 @@ const StudentDashboard = () => {
                   <div className="text-center py-8" style={{ color: '#6B7280' }}>
                     <MessageCircle className="h-12 w-12 mx-auto mb-3" style={{ color: '#6B7280', opacity: 0.3 }} />
                     <p style={{ fontFamily: 'var(--_typography---font--tiempos)' }}>No conversations yet</p>
-                    <p className="text-sm" style={{ fontFamily: 'var(--_typography---font--tiempos)' }}>Start chatting with a digital twin below!</p>
+                    <p className="text-sm" style={{ fontFamily: 'var(--_typography---font--tiempos)' }}>Start a conversation with your digital twin!</p>
                   </div>
                 )}
               </div>
@@ -466,7 +466,7 @@ const StudentDashboard = () => {
                   fontFamily: 'var(--_typography---font--tiempos)'
                 }}
               >
-                Active professor twins you can chat with
+                Your digital twins and connections
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -529,7 +529,7 @@ const StudentDashboard = () => {
                   <div className="text-center py-8" style={{ color: '#6B7280' }}>
                     <Users className="h-12 w-12 mx-auto mb-3" style={{ color: '#6B7280', opacity: 0.3 }} />
                     <p style={{ fontFamily: 'var(--_typography---font--tiempos)' }}>No active twins available</p>
-                    <p className="text-sm" style={{ fontFamily: 'var(--_typography---font--tiempos)' }}>Check back later for new professors!</p>
+                    <p className="text-sm" style={{ fontFamily: 'var(--_typography---font--tiempos)' }}>Create your first digital twin to get started!</p>
                   </div>
                 )}
               </div>
@@ -605,4 +605,4 @@ const StudentDashboard = () => {
   );
 };
 
-export default StudentDashboard;
+export default PersonalDashboard;

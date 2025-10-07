@@ -42,6 +42,7 @@ import {
 import UserProfile from '../components/UserProfile';
 import { DataVerification } from '../components/DataVerification';
 import ThemeToggle from '../components/ThemeToggle';
+import { ExtractionProgressIndicator } from '../components/ExtractionProgressIndicator';
 
 import {
   DataProvider,
@@ -187,6 +188,8 @@ const InstantTwinOnboarding = () => {
   const [generationProgress, setGenerationProgress] = useState<TwinGenerationProgress | null>(null);
   const [showPrivacyDetails, setShowPrivacyDetails] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [showExtractionProgress, setShowExtractionProgress] = useState(false);
+  const [extractionComplete, setExtractionComplete] = useState(false);
   const [hasCheckedConnection, setHasCheckedConnection] = useState(false);
   const [connectingProvider, setConnectingProvider] = useState<DataProvider | null>(null);
   const [disconnectingProvider, setDisconnectingProvider] = useState<DataProvider | null>(null);
@@ -384,8 +387,8 @@ const InstantTwinOnboarding = () => {
     try {
       console.log('🔍 Connect service called with:', { provider, user });
 
-      // Use email as userId since it's more reliable than id
-      const userId = user?.email || user?.id || 'demo-user';
+      // Use UUID as userId for database queries
+      const userId = user?.id || 'demo-user';
 
       console.log('🔑 Using userId:', userId);
 
@@ -480,7 +483,7 @@ const InstantTwinOnboarding = () => {
 
     setDisconnectingProvider(provider);
     try {
-      const userId = user?.email || user?.id;
+      const userId = user?.id;
       const connectorName = AVAILABLE_CONNECTORS.find(c => c.provider === provider)?.name;
 
       console.log(`🔌 Disconnecting ${provider} for user ${userId}`);
@@ -543,6 +546,8 @@ const InstantTwinOnboarding = () => {
 
     setIsGenerating(true);
     setCurrentStep(3);
+    setShowExtractionProgress(true); // Enable extraction progress display
+    setExtractionComplete(false); // Reset extraction completion flag
 
     const config: InstantTwinConfig = {
       userId: user.id,
@@ -583,22 +588,81 @@ const InstantTwinOnboarding = () => {
 
     // Create the soul signature twin, then navigate to dashboard
     try {
-      const twinData = {
+      // Step 1: Check if user has connected platforms
+      let soulSignature = null;
+      let hasExtractedData = false;
+
+      if (selectedConnectors.length > 0) {
+        // Step 2: Extract data from connected platforms and build soul signature
+        console.log('🔄 Extracting soul signature from connected platforms...');
+
+        try {
+          const extractResponse = await fetch(`${import.meta.env.VITE_API_URL}/soul-data/build-soul-signature`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ userId: user.id })
+          });
+
+          const extractResult = await extractResponse.json();
+
+          if (extractResult.success && extractResult.soulSignature) {
+            soulSignature = extractResult.soulSignature;
+            hasExtractedData = true;
+            console.log('✅ Soul signature extracted:', soulSignature);
+          } else {
+            console.warn('⚠️ No soul signature data available yet:', extractResult.message);
+          }
+        } catch (extractError) {
+          console.error('❌ Error extracting soul signature:', extractError);
+        }
+      }
+
+      // Step 3: Build twin data from real soul signature OR use basic fallback
+      const twinData = hasExtractedData && soulSignature ? {
+        // REAL DATA from soul extraction
         name: user.fullName || user.firstName || 'My Soul Signature',
-        description: 'AI twin created from soul signature discovery through connected digital platforms',
+        description: `AI twin created from analyzing ${selectedConnectors.join(', ')} platforms`,
+        subject_area: 'Soul Signature Analysis',
+        twin_type: 'personal',
+        personality_traits: soulSignature.personality_traits || {
+          openness: 0.7,
+          conscientiousness: 0.6,
+          extraversion: 0.5,
+          agreeableness: 0.7,
+          neuroticism: 0.4
+        },
+        teaching_style: {
+          communication_style: soulSignature.communication_style || 'balanced',
+          philosophy: `Authentic self-expression derived from ${soulSignature.data_sources?.join(', ') || 'platform'} analysis`
+        },
+        common_phrases: soulSignature.common_phrases || ['Working on something interesting'],
+        favorite_analogies: soulSignature.favorite_analogies || ['Like searching in the branches for what we find in the roots'],
+        soul_signature: soulSignature,
+        connected_platforms: selectedConnectors,
+        knowledge_base_status: 'ready'
+      } : {
+        // FALLBACK: Basic twin without soul extraction (no platforms connected)
+        name: user.fullName || user.firstName || 'My Soul Signature',
+        description: 'AI twin ready for soul signature discovery. Connect platforms to enhance.',
         subject_area: 'Soul Signature Analysis',
         twin_type: 'personal',
         personality_traits: {
-          communication_style: 'Reflecting true self from connected platform analysis',
-          humor_style: 'Adaptive to authentic personality traits',
-          authenticity: 'Based on discovered personality patterns'
+          openness: 0.7,
+          conscientiousness: 0.6,
+          extraversion: 0.5,
+          agreeableness: 0.7,
+          neuroticism: 0.4
         },
         teaching_style: {
-          philosophy: 'Authentic self-expression derived from digital soul signature',
-          interaction: 'Natural and genuine based on discovered personality patterns'
+          communication_style: 'balanced',
+          philosophy: 'Ready to learn from your connected platforms'
         },
-        common_phrases: ['Let me share my authentic perspective', 'Based on my digital soul signature'],
-        favorite_analogies: ['Like searching in the branches for what we find in the roots']
+        common_phrases: ['Connect platforms to discover my authentic voice'],
+        favorite_analogies: ['Like searching in the branches for what we find in the roots'],
+        connected_platforms: [],
+        knowledge_base_status: 'empty'
       };
 
       const token = localStorage.getItem('auth_token');
@@ -916,45 +980,59 @@ const InstantTwinOnboarding = () => {
     if (!generationProgress) return null;
 
     return (
-      <div className="text-center">
-        <div className="mb-8">
-          <div className="w-24 h-24 mx-auto mb-4 relative">
-            {/* Background circle */}
-            <div
-              className="absolute inset-0 rounded-full border-4"
-              style={{ borderColor: 'rgba(20,20,19,0.1)' }}
-            ></div>
-            {/* Progress circle */}
-            <svg className="absolute inset-0 w-24 h-24 transform -rotate-90" viewBox="0 0 100 100">
-              <circle
-                cx="50"
-                cy="50"
-                r="42"
-                fill="none"
-                stroke="#D97706"
-                strokeWidth="8"
-                strokeLinecap="round"
-                strokeDasharray={`${2 * Math.PI * 42}`}
-                strokeDashoffset={`${2 * Math.PI * 42 * (1 - generationProgress.progress / 100)}`}
-              />
-            </svg>
-            {/* Center icon */}
-            <div className="absolute inset-4 rounded-full flex items-center justify-center" style={{ backgroundColor: '#D97706' }}>
-              <Brain className="w-8 h-8" style={{ color: 'white' }} />
-            </div>
-          </div>
-
-          <h2
-            className="text-2xl mb-2"
-            style={{
-              fontFamily: 'var(--_typography---font--styrene-a)',
-              fontWeight: 500,
-              letterSpacing: '-0.02em',
-              color: 'hsl(var(--claude-text))'
+      <div className="max-w-4xl mx-auto space-y-6">
+        {/* Show Extraction Progress if connectors are selected */}
+        {selectedConnectors.length > 0 && showExtractionProgress && !extractionComplete && user && (
+          <ExtractionProgressIndicator
+            userId={user.id}
+            platforms={selectedConnectors}
+            onComplete={() => {
+              console.log('✅ Extraction complete');
+              setExtractionComplete(true);
             }}
-          >
-            {generationProgress.progress === 100 ? 'Your Soul Signature is Ready!' : 'Discovering Your Soul Signature'}
-          </h2>
+          />
+        )}
+
+        {/* Show Twin Generation Progress */}
+        <div className="text-center">
+          <div className="mb-8">
+            <div className="w-24 h-24 mx-auto mb-4 relative">
+              {/* Background circle */}
+              <div
+                className="absolute inset-0 rounded-full border-4"
+                style={{ borderColor: 'rgba(20,20,19,0.1)' }}
+              ></div>
+              {/* Progress circle */}
+              <svg className="absolute inset-0 w-24 h-24 transform -rotate-90" viewBox="0 0 100 100">
+                <circle
+                  cx="50"
+                  cy="50"
+                  r="42"
+                  fill="none"
+                  stroke="#D97706"
+                  strokeWidth="8"
+                  strokeLinecap="round"
+                  strokeDasharray={`${2 * Math.PI * 42}`}
+                  strokeDashoffset={`${2 * Math.PI * 42 * (1 - generationProgress.progress / 100)}`}
+                />
+              </svg>
+              {/* Center icon */}
+              <div className="absolute inset-4 rounded-full flex items-center justify-center" style={{ backgroundColor: '#D97706' }}>
+                <Brain className="w-8 h-8" style={{ color: 'white' }} />
+              </div>
+            </div>
+
+            <h2
+              className="text-2xl mb-2"
+              style={{
+                fontFamily: 'var(--_typography---font--styrene-a)',
+                fontWeight: 500,
+                letterSpacing: '-0.02em',
+                color: 'hsl(var(--claude-text))'
+              }}
+            >
+              {generationProgress.progress === 100 ? 'Your Soul Signature is Ready!' : 'Discovering Your Soul Signature'}
+            </h2>
 
           <p
             className="mb-6"
@@ -1061,6 +1139,7 @@ const InstantTwinOnboarding = () => {
           </div>
         </div>
       </div>
+    </div>
     );
   };
 
@@ -1327,7 +1406,7 @@ const InstantTwinOnboarding = () => {
             {/* Data Verification Section */}
             {connectedServices.length > 0 && (
               <DataVerification
-                userId={user?.email || user?.id || 'demo-user'}
+                userId={user?.id || 'demo-user'}
                 connectedServices={connectedServices}
               />
             )}

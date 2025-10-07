@@ -1,60 +1,110 @@
-# Twin AI Learn - Claude Development Guide
+# Soul Signature Platform - Claude Development Guide
 
 ## Project Overview
 
-**Twin AI Learn** is an educational platform that enables teachers to create conversational AI twins of themselves. The platform transforms traditional teaching methods by allowing educators to build interactive, voice-enabled digital twins that can engage students in natural conversations while maintaining their unique personality, teaching philosophy, and expertise.
+**Soul Signature Platform** (TwinMe) is a revolutionary digital identity platform that creates authentic digital twins by capturing your true originality - not just your public persona, but your complete soul signature. The platform discovers what makes you genuinely YOU through digital footprints that reveal your authentic curiosities, passions, and characteristics.
 
-## Core Architecture
+## Core Philosophy: The Soul Signature
 
-### Technology Stack
+> "Perhaps we are searching in the branches for what we only find in the roots." - Rami
 
-**Frontend:**
+**The Problem with Public Information:**
+Everything public about a person is increasingly easy to clone and digitize. But information doesn't have a soul. While professional content and public achievements can be easily replicated, they lack the essence of who someone truly is.
+
+**Our Solution:**
+The beauty of our digital twin is finding the **signature of each person's originality** - not just what they wrote or their professional content, but their:
+- Authentic curiosities and interests
+- Characteristic behavioral patterns
+- Personal entertainment choices
+- Unique thought processes
+- Things that make them genuinely themselves
+
+## The Personal-Professional Spectrum
+
+### Personal Universe (Your Soul Signature)
+Entertainment and lifestyle platforms that reveal your authentic self:
+
+**Streaming & Entertainment:**
+- **Netflix**: Narrative preferences, binge patterns, emotional journeys
+- **Prime/HBO/Disney+**: Content preferences across platforms
+- **YouTube**: Learning interests, curiosity profile, creator loyalty
+- **TikTok**: Trend participation, attention patterns
+- **Twitch**: Live engagement, community participation
+
+**Music & Audio:**
+- **Spotify**: Musical taste, mood patterns, discovery behavior
+- **Apple Music**: Curated tastes, premium preferences
+
+**Social & Community:**
+- **Discord**: Community involvement, social circles
+- **Reddit**: Discussion style, expertise areas
+- **Gaming Platforms (Steam)**: Game genres, playtime patterns
+
+**Reading & Learning:**
+- **Goodreads**: Reading preferences, intellectual interests
+- **Personal browsing**: Research patterns, knowledge seeking
+
+### Professional Universe (Your Work Identity)
+Tools and platforms that capture your professional persona:
+- **Gmail**: Communication style, response patterns
+- **Microsoft Teams**: Collaboration dynamics, meeting participation
+- **Calendar**: Schedule preferences, work-life balance
+- **GitHub**: Technical skills, contribution patterns
+- **LinkedIn**: Professional trajectory, skill endorsements
+- **Slack**: Team dynamics, communication patterns
+- **Google Workspace**: Document creation, organization style
+
+## Revolutionary Feature: "What's To Reveal, What's To Share"
+
+The most sophisticated privacy control interface - a visually stunning dashboard where you see everything collected about you with **intensity controls**:
+
+### Life Clusters with Granular Control
+Interactive clusters with thermometer-style intensity sliders (0-100% revelation):
+
+**Personal Clusters:**
+- Hobbies & Interests
+- Sports & Fitness
+- Spirituality & Religion
+- Entertainment Choices
+- Social Connections
+
+**Professional Clusters:**
+- Studies & Education
+- Career & Jobs
+- Skills & Expertise
+- Achievements & Recognition
+
+**Creative Clusters:**
+- Artistic Expression
+- Content Creation
+- Musical Identity
+
+### Contextual Revelation
+- Different privacy settings for different audiences
+- Audience-specific twins (professional, social, dating, educational)
+- Example: "I don't want you to mention my Netflix series" vs "Share my viewing habits"
+
+## Technology Stack
+
+### Frontend
 - **React 18.3.1** with TypeScript
 - **Vite 5.4.19** for build tooling
-- **Tailwind CSS 3.4.17** with custom design system
+- **Tailwind CSS 3.4.17** with Anthropic-inspired design system
 - **shadcn/ui** components with Radix UI primitives
 - **React Router DOM 6.30.1** for routing
 - **TanStack React Query 5.83.0** for state management
 - **Framer Motion 12.23.13** for animations
-- **Claude's Dark Mode Color Palette** for consistent theming
 
-**Backend:**
+### Backend
 - **Node.js** with **Express 5.1.0**
-- **Supabase** for database and authentication backend
-- **Clerk** for frontend authentication
+- **Supabase** (PostgreSQL) for database
 - **Express Rate Limiting** and **Helmet** for security
 - **Multer** for file upload handling
-- **PDF-parse** and **Mammoth** for document processing
 
-**AI & Voice:**
+### AI & Voice
 - **Anthropic Claude API** (claude-3-5-sonnet model)
-- **OpenAI API** for backup AI processing
-- **ElevenLabs API** for voice synthesis and cloning
-- Custom voice ID: `1SM7GgM6IMuvQlz2BwM3`
-
-### Key Design Principles
-
-1. **User Experience First**: Every feature prioritizes maximum user experience and intuitive interaction
-2. **Personality vs Content Separation**: Teacher personality (humor, tone, philosophy) remains consistent while content varies by subject/class
-3. **Conversational Interface**: Natural, engaging interactions replace traditional form-heavy interfaces
-4. **Progressive Disclosure**: Complex processes broken into simple, guided steps
-5. **Instant Value Delivery**: The first setup should be as fast as possible, delivering immediate working value
-
-## Critical User Experience Philosophy
-
-### Instant Twin Creation Strategy
-
-**Speed-First Approach**: The platform should deliver value to users super quickly - within just a minute of setup. The core hypothesis is that as soon as a user provides access to their tools (APIs, email, Teams, Slack, Discord), they should immediately receive a working digital twin.
-
-**Two Primary Approaches**:
-1. **Instant Data Integration**: User connects their data sources (Google, email, messaging) → System immediately generates a functional digital twin from existing data
-2. **Conversational Building**: User engages in guided conversation → System builds the twin through natural interaction
-
-**Photo vs Film Analogy**:
-- **Photo Approach**: Capture many interactions, conversations, and data access points, then deliver a comprehensive digital twin from these "snapshots"
-- **Film Approach**: Continuous, real-time building where the twin evolves and improves as the user interacts more
-
-**Key Principle**: The more the user interacts with the platform, the more the digital twin learns, masters, and becomes an accurate representation of them. However, the initial value must be delivered immediately, not after extensive setup.
+- **OpenAI API** for additional AI processing
+- **ElevenLabs API** for voice synthesis
 
 ## Development Environment
 
@@ -62,7 +112,7 @@
 
 ```bash
 # Development servers
-Frontend: http://localhost:8084 (Vite dev server)
+Frontend: http://localhost:8086 (Vite dev server)
 Backend: http://localhost:3001 (Express API)
 
 # Start development
@@ -76,286 +126,125 @@ npm run dev:full     # Both frontend and backend
 **Database & Authentication:**
 ```env
 VITE_SUPABASE_URL="https://lurebwaudisfilhuhmnj.supabase.co"
-VITE_SUPABASE_ANON_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
-SUPABASE_SERVICE_ROLE_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
-VITE_CLERK_PUBLISHABLE_KEY="pk_test_Y2xpbWJpbmctaHVtcGJhY2stOTAuY2xlcmsuYWNjb3VudHMuZGV2JA"
-CLERK_SECRET_KEY="sk_test_xS9o79miaLJ2cDaeNkc8B1Rf8uCb2mbsa2b7lm7kC3"
+VITE_SUPABASE_ANON_KEY="your-supabase-anon-key"
+SUPABASE_SERVICE_ROLE_KEY="your-service-role-key"
 ```
 
 **AI & Voice APIs:**
 ```env
-ANTHROPIC_API_KEY="sk-ant-api03-VAX6b0ibtJYolr0o_eKr1B6qQrj0DXNNqnrfL58lC2g..."
-OPENAI_API_KEY="sk-proj-5U_iYHSoXN4EVRUlvUWXUX09yXwSthKUWyP6UaoqYC..."
-ELEVENLABS_API_KEY="9bc9bec411dede5aa204741d9664a3d23250ad5b0bdc84ab90d6afe217e33405"
-VITE_ELEVENLABS_API_KEY="9bc9bec411dede5aa204741d9664a3d23250ad5b0bdc84ab90d6afe217e33405"
+ANTHROPIC_API_KEY="your-anthropic-key"
+OPENAI_API_KEY="your-openai-key"
+ELEVENLABS_API_KEY="your-elevenlabs-key"
+VITE_ELEVENLABS_API_KEY="your-elevenlabs-key"
 ```
 
 **Server Configuration:**
 ```env
 PORT=3001
 NODE_ENV=development
-VITE_APP_URL=http://localhost:8084
+VITE_APP_URL=http://localhost:8086
 VITE_API_URL=http://localhost:3001/api
 ```
 
-## Core Features & Implementation
+## Core Features
 
-### 1. Conversational Twin Builder
-
-**Location:** `src/pages/ConversationalTwinBuilder.tsx`
-**Route:** `/twin-builder`
-
-**Revolution:** Replaced 20+ form fields with 4 natural conversation questions:
-
-1. **Teaching Philosophy**: How do you approach education?
-2. **Student Interaction**: How do you connect with students?
-3. **Communication Style**: What's your teaching personality?
-4. **Expertise Areas**: What subjects do you specialize in?
+### 1. Soul Signature Dashboard
+**Location:** `src/pages/SoulSignatureDashboard.tsx`
+**Purpose:** Main interface for discovering and managing your soul signature
 
 **Key Features:**
-- **Voice-First Interface**: ElevenLabs integration with voice ID `1SM7GgM6IMuvQlz2BwM3`
-- **Multi-Input Support**: Text typing, voice recording, file upload
-- **Real-time Voice Playback**: Questions spoken naturally by AI assistant
-- **Progress Tracking**: Visual step indicator with completion states
-- **Claude Dark Mode Theme**: Consistent color palette throughout
+- Visual life clusters (personal, professional, creative)
+- Real-time data integration status
+- Privacy intensity controls
+- Soul signature visualization
 
-**Technical Implementation:**
-```typescript
-interface PersonalityData {
-  teachingPhilosophy: string;
-  studentInteraction: string;
-  humorStyle: string;
-  communicationStyle: string;
-  expertise: string[];
-}
+### 2. Privacy Spectrum Dashboard
+**Location:** `src/components/PrivacySpectrumDashboard.tsx`
+**Purpose:** Granular privacy control interface
 
-const questions = [
-  {
-    id: 'philosophy',
-    text: "Let's start with your teaching philosophy. How do you approach education?",
-    field: 'teachingPhilosophy'
-  },
-  // ... 3 more questions
-];
-```
+**Features:**
+- Thermometer-style intensity sliders (0-100%)
+- Life cluster categorization
+- Contextual revelation settings
+- Audience-specific twin configurations
 
-**Recording Logic:**
-```typescript
-const startRecording = async () => {
-  try {
-    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-    streamRef.current = stream;
+### 3. Platform Connectors
+**Location:** `api/routes/entertainment-connectors.js`, `api/routes/mcp-connectors.js`
+**Purpose:** OAuth integration with 30+ platforms
 
-    const mediaRecorder = new MediaRecorder(stream);
-    mediaRecorderRef.current = mediaRecorder;
+**Supported Platforms:**
+- ✅ **Has API**: Spotify, YouTube, GitHub, LinkedIn, Reddit, Twitch, Discord
+- ⚠️ **Limited API**: Netflix (no watch history), Instagram, TikTok
+- ❌ **No API**: HBO, Prime Video, Disney+ (requires browser extension)
 
-    const audioChunks: Blob[] = [];
-    mediaRecorder.ondataavailable = (event) => {
-      audioChunks.push(event.data);
-    };
+### 4. Soul Extraction Engine
+**Location:** `api/routes/soul-extraction.js`, `api/services/dataExtraction.js`
+**Purpose:** Extract authentic personality from platform data
 
-    mediaRecorder.start();
-    setIsRecording(true);
-  } catch (error) {
-    console.error('Error starting recording:', error);
-  }
-};
-```
+**Capabilities:**
+- Behavioral pattern recognition
+- Interest clustering
+- Personality trait extraction
+- Curiosity profiling
+- Mood and preference analysis
 
-### 2. Voice Integration System
+## Design System - Anthropic Inspired
 
-**ElevenLabs Configuration:**
-- Voice ID: `1SM7GgM6IMuvQlz2BwM3`
-- Automatic question playback on page load
-- Real-time audio synthesis for conversational flow
-- Simplified recording with visual feedback (no volume visualization)
-
-**Audio Processing:**
-```typescript
-const playAudio = async (text: string) => {
-  try {
-    const response = await fetch(`${VITE_API_URL}/synthesize-speech`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        text,
-        voice_id: '1SM7GgM6IMuvQlz2BwM3'
-      })
-    });
-
-    const audioBlob = await response.blob();
-    const audioUrl = URL.createObjectURL(audioBlob);
-    const audio = new Audio(audioUrl);
-    await audio.play();
-  } catch (error) {
-    console.error('Error playing audio:', error);
-  }
-};
-```
-
-### 3. Design System - Claude's Dark Mode
-
-**Color Palette (CSS Custom Properties):**
+### Color Palette
 ```css
 :root {
-  --claude-bg: 210 11% 7%;           /* #111319 - Main background */
-  --claude-surface: 213 11% 11%;     /* #191d26 - Card surfaces */
-  --claude-surface-raised: 213 14% 16%; /* #252a36 - Elevated surfaces */
-  --claude-border: 215 14% 20%;      /* #343a47 - Borders */
-  --claude-text: 0 0% 90%;           /* #e5e5e5 - Primary text */
-  --claude-text-muted: 218 11% 65%;  /* #9ca3af - Secondary text */
-  --claude-accent: 31 81% 56%;       /* #d97706 - Orange accents */
+  /* Backgrounds */
+  --color-ivory: #FAF9F5;           /* Main background */
+  --color-white: #FFFFFF;            /* Surface/cards */
+
+  /* Text */
+  --color-slate: #141413;            /* Primary text */
+  --color-slate-medium: #595959;     /* Secondary text */
+  --color-slate-light: #8C8C8C;      /* Muted text */
+
+  /* Accents */
+  --color-orange: #D97706;           /* Interactive */
+  --color-orange-hover: #B45309;     /* Hover state */
+
+  /* Borders */
+  --color-slate-faded: rgba(20, 20, 19, 0.1);
 }
 ```
 
-**Implementation in Components:**
-```tsx
-<div className="min-h-screen bg-[hsl(var(--claude-bg))] text-[hsl(var(--claude-text))]">
-  <div className="bg-[hsl(var(--claude-surface))] border border-[hsl(var(--claude-border))]">
-    <p className="text-[hsl(var(--claude-text-muted))]">Secondary text</p>
-    <button className="bg-[hsl(var(--claude-accent))] text-white">Action</button>
-  </div>
-</div>
+### Typography
+```css
+/* Headlines - Space Grotesk (Styrene B alternative) */
+--font-heading: 'Space Grotesk', system-ui, sans-serif;
+font-weight: 500;  /* Medium */
+line-height: 1.1;
+letter-spacing: -0.02em;
+
+/* Body - Source Serif 4 (Tiempos alternative) */
+--font-body: 'Source Serif 4', Georgia, serif;
+font-weight: 400;
+line-height: 1.6;
+
+/* UI - DM Sans */
+--font-ui: 'DM Sans', system-ui, sans-serif;
 ```
 
-### 4. File Upload & Processing
-
-**Supported Formats:**
-- **Audio**: WAV, MP3, M4A for voice samples
-- **Documents**: PDF, DOCX, TXT for content materials
-- **Drag & Drop Interface** with visual feedback
-
-**Backend Processing:**
-```javascript
-// api/routes/twins.js
-const upload = multer({
-  dest: 'uploads/',
-  limits: { fileSize: 50 * 1024 * 1024 }, // 50MB
-  fileFilter: (req, file, cb) => {
-    const allowedTypes = [
-      'audio/wav', 'audio/mpeg', 'audio/mp4',
-      'application/pdf', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-      'text/plain'
-    ];
-    cb(null, allowedTypes.includes(file.mimetype));
-  }
-});
-```
-
-### 5. Authentication & Security
-
-**Multi-Provider Setup:**
-- **Clerk** for frontend user management
-- **Supabase** for database authentication and RLS (Row Level Security)
-- **Express Rate Limiting** for API protection
-
-**Security Middleware:**
-```javascript
-// API rate limiting
-const rateLimit = require('express-rate-limit');
-const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100 // limit each IP to 100 requests per windowMs
-});
-
-// Helmet for security headers
-app.use(helmet());
-
-// CORS configuration
-app.use(cors({
-  origin: process.env.VITE_APP_URL,
-  credentials: true
-}));
-```
-
-## Routing Architecture
-
-### Main Application Routes
-
-**Public Routes:**
-- `/` - Landing page (Index)
-- `/auth` - Authentication page
-- `/contact` - Contact form with FAQs
-
-**Protected Routes (Require Authentication):**
-- `/twin-builder` - **Conversational Twin Builder** (Primary)
-- `/legacy-twin-builder` - Original form-based builder (Fallback)
-- `/talk-to-twin` - Enhanced twin interaction interface
-- `/chat/:twinId` - Individual twin chat interface
-- `/voice-settings` - Voice configuration management
-- `/get-started` - Onboarding flow
-- `/professor-dashboard` - Teacher management dashboard
-- `/student-dashboard` - Student interaction dashboard
-- `/personal-twin-builder` - Personal twin creation
-- `/watch-demo` - Product demonstration
-- `/twin-activation` - Twin deployment interface
-
-### Route Protection Pattern
-
-```tsx
-<Route path="/twin-builder" element={
-  <>
-    <SignedIn>
-      <ConversationalTwinBuilder />
-    </SignedIn>
-    <SignedOut>
-      <Auth />
-    </SignedOut>
-  </>
-} />
-```
-
-## Database Schema
-
-### Core Tables
-
-**digital_twins**
-```sql
-CREATE TABLE digital_twins (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id TEXT NOT NULL,
-  name TEXT NOT NULL,
-  teaching_philosophy TEXT,
-  student_interaction TEXT,
-  humor_style TEXT,
-  communication_style TEXT,
-  expertise TEXT[],
-  voice_id TEXT,
-  created_at TIMESTAMP DEFAULT NOW(),
-  updated_at TIMESTAMP DEFAULT NOW()
-);
-```
-
-**conversations**
-```sql
-CREATE TABLE conversations (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  twin_id UUID REFERENCES digital_twins(id),
-  user_id TEXT NOT NULL,
-  title TEXT,
-  created_at TIMESTAMP DEFAULT NOW()
-);
-```
-
-**messages**
-```sql
-CREATE TABLE messages (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  conversation_id UUID REFERENCES conversations(id),
-  role TEXT CHECK (role IN ('user', 'assistant')),
-  content TEXT NOT NULL,
-  created_at TIMESTAMP DEFAULT NOW()
-);
-```
-
-## API Endpoints
+## API Architecture
 
 ### Core API Routes
 
-**Authentication & Users:**
+**Platform Connections:**
 ```
-GET  /api/health              - Health check
-POST /api/auth/verify         - Verify authentication token
+GET  /api/platforms                    - List available platforms
+POST /api/platforms/connect/:platform  - Initiate OAuth flow
+GET  /api/platforms/callback/:platform - OAuth callback handler
+GET  /api/platforms/status             - Get connection status
+```
+
+**Soul Extraction:**
+```
+POST /api/soul-extraction/extract      - Extract soul signature
+GET  /api/soul-extraction/profile/:id  - Get soul profile
+PUT  /api/soul-extraction/privacy      - Update privacy settings
 ```
 
 **Digital Twins:**
@@ -365,212 +254,246 @@ POST   /api/twins             - Create new twin
 GET    /api/twins/:id         - Get specific twin
 PUT    /api/twins/:id         - Update twin
 DELETE /api/twins/:id         - Delete twin
-POST   /api/twins/:id/upload  - Upload twin documents
 ```
 
-**Conversations:**
+**Soul Data:**
 ```
-GET  /api/conversations/:twinId     - Get twin conversations
-POST /api/conversations             - Create conversation
-GET  /api/conversations/:id/messages - Get conversation messages
-POST /api/conversations/:id/messages - Send message to twin
+GET /api/soul-data/clusters           - Get life clusters
+GET /api/soul-data/style-profile      - Get style profile
+POST /api/soul-data/analyze-style     - Analyze communication style
 ```
 
-**Voice & AI:**
+## Database Schema
+
+### Core Tables
+
+**users**
+```sql
+CREATE TABLE users (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  email TEXT UNIQUE NOT NULL,
+  full_name TEXT,
+  created_at TIMESTAMP DEFAULT NOW()
+);
 ```
-POST /api/synthesize-speech    - Generate voice audio
-POST /api/process-audio        - Process uploaded audio
-POST /api/chat                 - Direct AI interaction
+
+**digital_twins**
+```sql
+CREATE TABLE digital_twins (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID REFERENCES users(id) ON DELETE CASCADE,
+  creator_id UUID REFERENCES users(id) ON DELETE CASCADE,
+  name TEXT NOT NULL,
+  soul_signature JSONB,
+  privacy_settings JSONB,
+  created_at TIMESTAMP DEFAULT NOW(),
+  updated_at TIMESTAMP DEFAULT NOW()
+);
+```
+
+**platform_connections**
+```sql
+CREATE TABLE platform_connections (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID REFERENCES users(id) ON DELETE CASCADE,
+  platform TEXT NOT NULL,
+  access_token TEXT,
+  refresh_token TEXT,
+  connected_at TIMESTAMP DEFAULT NOW(),
+  last_sync TIMESTAMP,
+  UNIQUE(user_id, platform)
+);
+```
+
+**soul_data**
+```sql
+CREATE TABLE soul_data (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID REFERENCES users(id) ON DELETE CASCADE,
+  platform TEXT NOT NULL,
+  data_type TEXT NOT NULL,
+  raw_data JSONB,
+  extracted_patterns JSONB,
+  privacy_level INT DEFAULT 50,
+  created_at TIMESTAMP DEFAULT NOW()
+);
+```
+
+## Routing Architecture
+
+### Main Application Routes
+
+**Public Routes:**
+- `/` - Landing page showcasing Soul Signature platform
+- `/contact` - Contact form
+
+**Protected Routes (Require Authentication):**
+- `/soul-dashboard` - Main soul signature dashboard
+- `/privacy-controls` - Privacy spectrum interface
+- `/connect-platforms` - Platform connection wizard
+- `/twin-builder` - Digital twin creation interface
+- `/talk-to-twin` - Interact with your digital twin
+- `/chat/:twinId` - Individual twin chat interface
+
+### Route Protection Pattern
+```tsx
+<Route path="/soul-dashboard" element={
+  <ProtectedRoute>
+    <SoulSignatureDashboard />
+  </ProtectedRoute>
+} />
+```
+
+## Platform Integration Guide
+
+### OAuth Flow Implementation
+
+**Step 1: Platform Configuration**
+```javascript
+// api/services/platformAPIMappings.js
+const PLATFORM_CONFIGS = {
+  spotify: {
+    authUrl: 'https://accounts.spotify.com/authorize',
+    tokenUrl: 'https://accounts.spotify.com/api/token',
+    scopes: ['user-read-recently-played', 'user-top-read']
+  }
+};
+```
+
+**Step 2: Initiate OAuth**
+```javascript
+// Frontend
+const connectPlatform = async (platform) => {
+  const response = await fetch(`/api/platforms/connect/${platform}`);
+  const { authUrl } = await response.json();
+  window.location.href = authUrl;
+};
+```
+
+**Step 3: Handle Callback**
+```javascript
+// Backend - api/routes/entertainment-connectors.js
+router.get('/callback/:platform', async (req, res) => {
+  const { code } = req.query;
+  const tokens = await exchangeCodeForTokens(code);
+  await savePlatformConnection(userId, platform, tokens);
+  res.redirect('/soul-dashboard');
+});
 ```
 
 ## Development Workflows
 
-### Adding New Features
+### Adding New Platform Connector
 
-1. **Plan with TodoWrite Tool**: Always use TodoWrite for complex features
-2. **Follow Design System**: Use Claude's color palette and existing patterns
-3. **Test Voice Integration**: Ensure ElevenLabs API works with new features
-4. **Authentication Check**: Verify proper route protection
-5. **Database Updates**: Use Supabase migrations for schema changes
+1. **Define platform configuration** in `api/services/platformAPIMappings.js`
+2. **Add OAuth routes** in `api/routes/entertainment-connectors.js`
+3. **Implement data extraction** in `api/services/dataExtraction.js`
+4. **Update UI** in `src/components/PlatformConnector.tsx`
+5. **Test OAuth flow** and data extraction
 
-### Code Standards
+### Adding New Life Cluster
 
-**TypeScript Interfaces:**
+1. **Define cluster schema** in `src/types/data-integration.ts`
+2. **Update extraction logic** in `api/routes/soul-extraction.js`
+3. **Add privacy controls** in `src/components/PrivacySpectrumDashboard.tsx`
+4. **Visualize in dashboard** in `src/pages/SoulSignatureDashboard.tsx`
+
+## Code Standards
+
+### TypeScript Interfaces
 ```typescript
-// Always define interfaces for data structures
-interface TwinData {
+interface SoulSignature {
   id: string;
+  userId: string;
+  personalClusters: LifeCluster[];
+  professionalClusters: LifeCluster[];
+  creativeClusters: LifeCluster[];
+  privacySettings: PrivacySettings;
+}
+
+interface LifeCluster {
   name: string;
-  teachingPhilosophy: string;
-  expertise: string[];
-  voiceId?: string;
+  category: 'personal' | 'professional' | 'creative';
+  intensityLevel: number; // 0-100
+  dataPoints: DataPoint[];
+  revealLevel: number; // 0-100
 }
 
-// Use proper typing for API responses
-type APIResponse<T> = {
-  success: boolean;
-  data?: T;
-  error?: string;
-};
-```
-
-**Error Handling:**
-```typescript
-// Consistent error handling pattern
-try {
-  const response = await fetch('/api/twins');
-  if (!response.ok) {
-    throw new Error(`HTTP error! status: ${response.status}`);
-  }
-  const data = await response.json();
-  return data;
-} catch (error) {
-  console.error('Error fetching twins:', error);
-  // Handle error appropriately
+interface PrivacySettings {
+  globalLevel: number;
+  clusterOverrides: Record<string, number>;
+  audienceSettings: Record<string, ClusterSettings>;
 }
 ```
+
+## Performance Optimizations
+
+### Frontend
+1. **Code Splitting**: Route-based with React.lazy
+2. **API Caching**: TanStack Query for intelligent caching
+3. **Bundle Optimization**: Regular bundle size monitoring
+4. **Image Optimization**: WebP with fallbacks
+
+### Backend
+1. **Database Indexing**: Proper indexes on user_id, platform, data_type
+2. **Rate Limiting**: Per-platform rate limiting for API calls
+3. **Data Caching**: Redis for frequently accessed soul signatures
+4. **Connection Pooling**: Efficient database connections
+
+## Security & Privacy
+
+### Data Protection
+- **End-to-end encryption** for sensitive platform data
+- **JWT authentication** with short-lived tokens
+- **Row Level Security (RLS)** on all database tables
+- **GDPR compliance** with full data export and deletion
+
+### Privacy Controls
+- **Granular permissions** per data cluster
+- **Audit logging** for all data access
+- **Contextual sharing** with audience-specific settings
+- **Complete transparency** on collected data
+
+## Future Roadmap
+
+### Planned Features
+1. **Advanced Soul Matching**: Find people with complementary soul signatures
+2. **Life Journey Tracking**: Visualize how interests evolve over time
+3. **Browser Extension**: Capture data from platforms without APIs
+4. **AI-Powered Insights**: Discover patterns you didn't know about yourself
+5. **Mobile Application**: Native iOS/Android experience
+
+### Technical Improvements
+1. **Real-time Sync**: WebSocket integration for live platform updates
+2. **ML Model Training**: Custom models for personality extraction
+3. **Microservices**: Split into focused services (connectors, extraction, twin engine)
+4. **Advanced Analytics**: Usage metrics and engagement tracking
 
 ## Troubleshooting Guide
 
 ### Common Issues
 
-**1. AudioLevel Undefined Error**
-```typescript
-// Issue: References to removed audioLevel variable
-// Solution: Remove or replace with static values
-// Before:
-transform: `scale(${1 + (audioLevel / 100) * 0.3})`
-// After:
-className="animate-pulse" // Use CSS animation instead
-```
+**Platform OAuth Not Working:**
+- Verify CLIENT_ID and CLIENT_SECRET in .env
+- Check redirect URI matches platform configuration
+- Ensure callback URL is whitelisted
 
-**2. Voice Playback Not Working**
-```typescript
-// Check ElevenLabs API key configuration
-// Verify voice ID: 1SM7GgM6IMuvQlz2BwM3
-// Ensure CORS headers allow audio requests
-```
+**Soul Extraction Failing:**
+- Check platform API rate limits
+- Verify access tokens are valid and not expired
+- Review extraction logs in `api/services/dataExtraction.js`
 
-**3. Recording Button Not Stopping**
-```typescript
-// Simplified recording stop logic:
-const stopRecording = () => {
-  if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
-    mediaRecorderRef.current.stop();
-  }
-  if (streamRef.current) {
-    streamRef.current.getTracks().forEach(track => track.stop());
-    streamRef.current = null;
-  }
-  setIsRecording(false);
-};
-```
-
-### Development Commands
-
-```bash
-# Start development servers
-npm run dev:full                    # Full stack development
-npm run dev                         # Frontend only
-npm run server:dev                  # Backend only
-
-# Build and deploy
-npm run build                       # Production build
-npm run preview                     # Preview production build
-
-# Code quality
-npm run lint                        # Lint code
-```
-
-### Environment Debugging
-
-**Check Environment Variables:**
-```bash
-# Verify all required environment variables are set
-node -e "console.log(process.env.VITE_SUPABASE_URL)"
-node -e "console.log(process.env.ANTHROPIC_API_KEY)"
-node -e "console.log(process.env.ELEVENLABS_API_KEY)"
-```
-
-**Database Connection:**
-```javascript
-// Test Supabase connection
-import { supabase } from './lib/supabase';
-const { data, error } = await supabase.from('digital_twins').select('count');
-console.log('Database connection:', error ? 'Failed' : 'Success');
-```
-
-## Performance Optimizations
-
-### Frontend Optimizations
-
-1. **Code Splitting**: Route-based code splitting with React.lazy
-2. **Image Optimization**: Use WebP format with fallbacks
-3. **API Caching**: TanStack Query for intelligent caching
-4. **Bundle Analysis**: Regular bundle size monitoring
-
-### Backend Optimizations
-
-1. **Database Indexing**: Proper indexes on frequently queried columns
-2. **Rate Limiting**: Prevent API abuse with express-rate-limit
-3. **File Upload Limits**: Reasonable file size and type restrictions
-4. **Connection Pooling**: Efficient database connection management
-
-## Deployment Checklist
-
-### Pre-Deployment
-
-- [ ] All environment variables configured
-- [ ] Database migrations applied
-- [ ] API endpoints tested
-- [ ] Voice integration verified
-- [ ] Authentication flow working
-- [ ] File upload tested
-- [ ] Error handling implemented
-- [ ] Security headers configured
-- [ ] Rate limiting active
-
-### Production Environment
-
-```env
-NODE_ENV=production
-VITE_APP_URL=https://yourdomain.com
-VITE_API_URL=https://api.yourdomain.com
-```
-
-## Future Roadmap
-
-### Planned Features
-
-1. **Advanced Voice Cloning**: Multiple voice samples for better accuracy
-2. **Content Management**: Visual interface for managing twin knowledge
-3. **Analytics Dashboard**: Usage metrics and engagement tracking
-4. **Multi-Language Support**: Internationalization for global use
-5. **Mobile Application**: Native mobile experience
-6. **Integration APIs**: LMS and third-party integrations
-
-### Technical Improvements
-
-1. **Microservices Architecture**: Split into focused services
-2. **Real-time Features**: WebSocket integration for live conversations
-3. **AI Model Fine-tuning**: Custom models trained on educational data
-4. **Advanced Security**: OAuth2, API versioning, enhanced monitoring
-5. **Performance Monitoring**: APM integration and real-time metrics
-
----
+**Privacy Controls Not Saving:**
+- Verify user authentication
+- Check database RLS policies
+- Review network requests in DevTools
 
 ## Contact & Support
 
-**Primary Developer Contact:**
-- Issues: Report bugs and feature requests via project issues
-- Documentation: Update this file for any architectural changes
-- Code Reviews: All changes must follow established patterns
+**Key Principles:**
+- **Privacy First**: User control over all data
+- **Authenticity Over Performance**: Real soul signature, not manufactured persona
+- **Transparency**: Complete visibility into collected data
+- **Contextual Sharing**: Different aspects for different audiences
 
-**Key Principles to Remember:**
-- **User Experience First**: Every decision should prioritize user experience
-- **Conversational Over Forms**: Natural interaction patterns preferred
-- **Personality Consistency**: Teacher personality remains constant across subjects
-- **Voice-Enabled**: Always consider voice interaction in new features
-- **Security-First**: Authentication and data protection are paramount
-
-This project revolutionizes educational technology by making AI teacher twins as natural and engaging as talking to the actual educator. The conversational interface has transformed user engagement from 20+ tedious form fields to 4 natural questions, creating an intuitive experience that educators actually want to use.
+This platform revolutionizes digital identity by moving beyond public information to capture the authentic soul signature that makes each person uniquely themselves.
