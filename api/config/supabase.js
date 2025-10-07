@@ -9,12 +9,13 @@ if (process.env.NODE_ENV !== 'production') {
 const supabaseUrl = process.env.SUPABASE_URL;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
-// Debug logging
+// Debug logging - Verify environment variables are loaded correctly
 console.log('🔵 [Supabase Config] Initializing Supabase client');
+console.log('🔵 [Supabase Config] NODE_ENV:', process.env.NODE_ENV);
 console.log('🔵 [Supabase Config] SUPABASE_URL:', supabaseUrl);
 console.log('🔵 [Supabase Config] SUPABASE_SERVICE_ROLE_KEY length:', supabaseServiceKey?.length);
 console.log('🔵 [Supabase Config] SUPABASE_SERVICE_ROLE_KEY first 50:', supabaseServiceKey?.substring(0, 50));
-console.log('🔵 [Supabase Config] SUPABASE_SERVICE_ROLE_KEY last 10:', supabaseServiceKey?.substring(supabaseServiceKey.length - 10));
+console.log('🔵 [Supabase Config] SUPABASE_SERVICE_ROLE_KEY last 20:', supabaseServiceKey?.substring(supabaseServiceKey.length - 20));
 
 if (!supabaseUrl || !supabaseServiceKey) {
   console.error('❌ [Supabase Config] Missing environment variables');
