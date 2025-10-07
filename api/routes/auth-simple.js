@@ -444,6 +444,14 @@ router.get('/oauth/callback', async (req, res) => {
 
 // OAuth callback handler (POST for API calls)
 router.post('/oauth/callback', async (req, res) => {
+  console.log('🟡 ========== POST /oauth/callback ENTRY POINT ==========');
+  console.log('🟡 Headers:', JSON.stringify(req.headers, null, 2));
+  console.log('🟡 Body:', JSON.stringify(req.body, null, 2));
+  console.log('🟡 Query:', JSON.stringify(req.query, null, 2));
+  console.log('🟡 Method:', req.method);
+  console.log('🟡 URL:', req.url);
+  console.log('🟡 Original URL:', req.originalUrl);
+
   try {
     const { code, state, provider } = req.body;
 
