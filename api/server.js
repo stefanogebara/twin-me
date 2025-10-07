@@ -6,8 +6,10 @@ import { body, validationResult } from 'express-validator';
 import dotenv from 'dotenv';
 import path from 'path';
 
-// Load .env from api directory
-dotenv.config({ path: path.resolve(process.cwd(), '.env') });
+// Only use dotenv in development - Vercel provides env vars directly
+if (process.env.NODE_ENV !== 'production') {
+  dotenv.config({ path: path.resolve(process.cwd(), '.env') });
+}
 
 const app = express();
 const PORT = process.env.PORT || 3001;
