@@ -1,0 +1,5 @@
+Vercel CLI 46.0.5
+Fetching deployment "twin-ai-learn-hi1wcde9m-datalake-9521s-projects.vercel.app" in datalake-9521s-projects
+Displaying runtime logs for deployment twin-ai-learn-hi1wcde9m-datalake-9521s-projects.vercel.app (dpl_6vcHJPXSikKpAAt9aKzbU81MJtv4) starting from Oct Tu 21:46:16.30
+
+waiting for new logs...

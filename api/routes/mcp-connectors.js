@@ -12,7 +12,7 @@ router.post('/connect/teams', async (req, res) => {
 
     // Microsoft Teams OAuth URL
     const clientId = process.env.TEAMS_CLIENT_ID || 'your-teams-client-id';
-    const redirectUri = encodeURIComponent(`${process.env.VITE_APP_URL || 'http://localhost:8086'}/oauth/callback`);
+    const redirectUri = encodeURIComponent(`${process.env.APP_URL || process.env.VITE_APP_URL || 'http://localhost:8086'}/oauth/callback`);
     const scope = encodeURIComponent('User.Read Chat.Read Channel.ReadBasic.All Files.Read.All');
     const state = Buffer.from(JSON.stringify({
       provider: 'teams',
@@ -42,7 +42,7 @@ router.post('/connect/slack', async (req, res) => {
 
     // Slack OAuth URL
     const clientId = process.env.SLACK_CLIENT_ID || 'your-slack-client-id';
-    const redirectUri = encodeURIComponent(`${process.env.VITE_APP_URL || 'http://localhost:8086'}/oauth/callback`);
+    const redirectUri = encodeURIComponent(`${process.env.APP_URL || process.env.VITE_APP_URL || 'http://localhost:8086'}/oauth/callback`);
     const scope = 'channels:history,channels:read,chat:write,files:read,groups:read,im:read,mpim:read,users:read';
     const state = Buffer.from(JSON.stringify({
       provider: 'slack',
@@ -71,7 +71,7 @@ router.post('/connect/discord', async (req, res) => {
 
     // Discord OAuth URL
     const clientId = process.env.DISCORD_CLIENT_ID || 'your-discord-client-id';
-    const redirectUri = encodeURIComponent(`${process.env.VITE_APP_URL || 'http://localhost:8086'}/oauth/callback`);
+    const redirectUri = encodeURIComponent(`${process.env.APP_URL || process.env.VITE_APP_URL || 'http://localhost:8086'}/oauth/callback`);
     const scope = encodeURIComponent('identify email guilds messages.read');
     const state = Buffer.from(JSON.stringify({
       provider: 'discord',
@@ -133,7 +133,7 @@ router.post('/oauth/callback', async (req, res) => {
             client_secret: process.env.DISCORD_CLIENT_SECRET,
             grant_type: 'authorization_code',
             code,
-            redirect_uri: `${process.env.VITE_APP_URL || 'http://localhost:8086'}/oauth/callback`
+            redirect_uri: `${process.env.APP_URL || process.env.VITE_APP_URL || 'http://localhost:8086'}/oauth/callback`
           })
         });
 
@@ -155,7 +155,7 @@ router.post('/oauth/callback', async (req, res) => {
             client_id: process.env.SLACK_CLIENT_ID,
             client_secret: process.env.SLACK_CLIENT_SECRET,
             code,
-            redirect_uri: `${process.env.VITE_APP_URL || 'http://localhost:8086'}/oauth/callback`
+            redirect_uri: `${process.env.APP_URL || process.env.VITE_APP_URL || 'http://localhost:8086'}/oauth/callback`
           })
         });
 
@@ -182,7 +182,7 @@ router.post('/oauth/callback', async (req, res) => {
             client_secret: process.env.TEAMS_CLIENT_SECRET,
             grant_type: 'authorization_code',
             code,
-            redirect_uri: `${process.env.VITE_APP_URL || 'http://localhost:8086'}/oauth/callback`,
+            redirect_uri: `${process.env.APP_URL || process.env.VITE_APP_URL || 'http://localhost:8086'}/oauth/callback`,
             scope: 'User.Read Chat.Read Channel.ReadBasic.All Files.Read.All'
           })
         });

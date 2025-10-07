@@ -170,7 +170,7 @@ router.get('/auth/:provider', (req, res) => {
     // For Spotify, use platform-specific redirect URI if available (Spotify requires HTTPS)
     const redirectUri = provider === 'spotify' && process.env.SPOTIFY_REDIRECT_URI
       ? process.env.SPOTIFY_REDIRECT_URI
-      : `${process.env.VITE_APP_URL || 'http://localhost:8086'}/oauth/callback`;
+      : `${process.env.APP_URL || process.env.VITE_APP_URL || 'http://localhost:8086'}/oauth/callback`;
 
     console.log(`🔗 OAuth for ${provider}:`);
     console.log(`📍 Redirect URI: ${redirectUri}`);
@@ -267,7 +267,7 @@ router.post('/callback', async (req, res) => {
 
     // Exchange authorization code for tokens
     // Different providers need different auth methods
-    const redirectUri = `${process.env.VITE_APP_URL || 'http://localhost:8086'}/oauth/callback`;
+    const redirectUri = `${process.env.APP_URL || process.env.VITE_APP_URL || 'http://localhost:8086'}/oauth/callback`;
     let tokenResponse;
 
     if (provider === 'spotify') {
