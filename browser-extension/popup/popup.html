@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Soul Signature</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <div class="container">
+    <!-- Header -->
+    <div class="header">
+      <h1 class="title">Soul Signature</h1>
+      <p class="subtitle">Authentic Digital Identity</p>
+    </div>
+
+    <!-- Not Authenticated State -->
+    <div id="not-authenticated" class="section" style="display: none;">
+      <div class="message-box warning">
+        <p>Connect to your Soul Signature account to start tracking your authentic viewing patterns.</p>
+      </div>
+
+      <button id="connect-btn" class="btn btn-primary">
+        Connect Account
+      </button>
+
+      <p class="help-text">
+        Don't have an account?
+        <a href="https://twin-ai-learn.vercel.app/soul-dashboard" target="_blank">Create one</a>
+      </p>
+    </div>
+
+    <!-- Authenticated State -->
+    <div id="authenticated" class="section" style="display: none;">
+      <!-- Status -->
+      <div class="status-card">
+        <div class="status-row">
+          <span class="status-label">Status</span>
+          <span class="status-value" id="status-indicator">
+            <span class="dot dot-green"></span>
+            Connected
+          </span>
+        </div>
+
+        <div class="status-row">
+          <span class="status-label">User ID</span>
+          <span class="status-value user-id" id="user-id">-</span>
+        </div>
+      </div>
+
+      <!-- Tracking Stats -->
+      <div class="stats-card">
+        <h3 class="section-title">Today's Activity</h3>
+
+        <div class="stat-row">
+          <span class="stat-label">YouTube</span>
+          <span class="stat-value" id="youtube-count">0 videos</span>
+        </div>
+
+        <div class="stat-row">
+          <span class="stat-label">Netflix</span>
+          <span class="stat-value" id="netflix-count">0 shows</span>
+        </div>
+
+        <div class="stat-row">
+          <span class="stat-label">Pending Sync</span>
+          <span class="stat-value" id="pending-count">0 events</span>
+        </div>
+      </div>
+
+      <!-- Actions -->
+      <div class="actions">
+        <button id="sync-btn" class="btn btn-secondary">
+          Sync Now
+        </button>
+
+        <button id="dashboard-btn" class="btn btn-secondary">
+          Open Dashboard
+        </button>
+
+        <button id="disconnect-btn" class="btn btn-link">
+          Disconnect
+        </button>
+      </div>
+
+      <!-- Settings -->
+      <div class="settings-card">
+        <h3 class="section-title">Settings</h3>
+
+        <label class="checkbox-label">
+          <input type="checkbox" id="enable-youtube">
+          <span>Track YouTube</span>
+        </label>
+
+        <label class="checkbox-label">
+          <input type="checkbox" id="enable-netflix">
+          <span>Track Netflix</span>
+        </label>
+
+        <label class="checkbox-label">
+          <input type="checkbox" id="enable-history-import">
+          <span>Import History (one-time)</span>
+        </label>
+      </div>
+    </div>
+
+    <!-- Footer -->
+    <div class="footer">
+      <p>
+        <a href="https://twin-ai-learn.vercel.app/privacy" target="_blank">Privacy Policy</a>
+        ·
+        <a href="https://twin-ai-learn.vercel.app/contact" target="_blank">Support</a>
+      </p>
+    </div>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>
