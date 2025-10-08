@@ -43,8 +43,8 @@ async function sendToAPI(endpoint, data) {
   }
 
   try {
-    const result = await chrome.storage.local.get(['authToken']);
-    const authToken = result.authToken;
+    const storage = await chrome.storage.local.get(['authToken']);
+    const authToken = storage.authToken;
 
     const response = await fetch(`${apiUrl}${endpoint}`, {
       method: 'POST',
