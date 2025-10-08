@@ -1,6 +1,7 @@
 /**
  * Gmail Data Extractor
  * Extracts email metadata, labels, sent/received patterns, and communication insights
+ * Fixed: Now correctly stores data in user_platform_data table
  */
 
 import { google } from 'googleapis';
