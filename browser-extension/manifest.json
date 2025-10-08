@@ -1,0 +1,64 @@
+{
+  "manifest_version": 3,
+  "name": "Soul Signature - Authentic Digital Twin",
+  "version": "1.0.0",
+  "description": "Capture your authentic viewing patterns to build your soul signature - your true digital identity beyond public information",
+
+  "permissions": [
+    "storage",
+    "tabs",
+    "alarms"
+  ],
+
+  "host_permissions": [
+    "https://www.youtube.com/*",
+    "https://www.netflix.com/*",
+    "https://www.primevideo.com/*",
+    "https://www.hbomax.com/*",
+    "https://www.disneyplus.com/*",
+    "https://twin-ai-learn.vercel.app/*",
+    "http://localhost:3001/*"
+  ],
+
+  "background": {
+    "service_worker": "src/background.js",
+    "type": "module"
+  },
+
+  "content_scripts": [
+    {
+      "matches": ["https://www.youtube.com/*"],
+      "js": ["src/content-youtube.js"],
+      "run_at": "document_idle"
+    },
+    {
+      "matches": ["https://www.netflix.com/*"],
+      "js": ["src/content-netflix.js"],
+      "run_at": "document_idle"
+    }
+  ],
+
+  "action": {
+    "default_popup": "popup/popup.html",
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "32": "icons/icon32.png",
+      "48": "icons/icon48.png",
+      "128": "icons/icon128.png"
+    }
+  },
+
+  "icons": {
+    "16": "icons/icon16.png",
+    "32": "icons/icon32.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  },
+
+  "web_accessible_resources": [
+    {
+      "resources": ["src/injected.js"],
+      "matches": ["https://www.youtube.com/*", "https://www.netflix.com/*"]
+    }
+  ]
+}

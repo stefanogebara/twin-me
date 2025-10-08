@@ -1263,4 +1263,146 @@ router.post('/build-signature/:userId', async (req, res) => {
   }
 });
 
+// ===================================================================
+// BROWSER EXTENSION ENDPOINTS
+// ===================================================================
+
+/**
+ * POST /api/soul/extension-tracking
+ * Receive real-time tracking data from browser extension
+ */
+router.post('/extension-tracking', async (req, res) => {
+  try {
+    const { userId, platform, eventType, data } = req.body;
+
+    console.log(`[Extension] Received ${eventType} from ${platform} for user ${userId}`);
+
+    // Validate required fields
+    if (!userId || !platform || !eventType || !data) {
+      return res.status(400).json({
+        success: false,
+        error: 'Missing required fields: userId, platform, eventType, data'
+      });
+    }
+
+    // Determine data type based on event
+    let dataType = 'watch_event';
+    if (eventType === 'VIDEO_STARTED') dataType = 'watch_start';
+    else if (eventType === 'VIDEO_PROGRESS') dataType = 'watch_progress';
+    else if (eventType === 'VIDEO_ENDED') dataType = 'watch_end';
+
+    // Store in user_platform_data table
+    const { error } = await supabase
+      .from('user_platform_data')
+      .insert({
+        user_id: userId,
+        platform: platform,
+        data_type: dataType,
+        raw_data: {
+          ...data,
+          event_type: eventType,
+          source: 'browser_extension'
+        },
+        extracted_at: new Date().toISOString(),
+        processed: false
+      });
+
+    if (error) {
+      console.error('[Extension] Error storing tracking data:', error);
+      return res.status(500).json({
+        success: false,
+        error: 'Failed to store tracking data',
+        message: error.message
+      });
+    }
+
+    console.log(`[Extension] Successfully stored ${dataType} event for ${platform}`);
+
+    res.json({
+      success: true,
+      message: 'Tracking data received',
+      stored: true
+    });
+
+  } catch (error) {
+    console.error('[Extension] Error processing tracking data:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to process tracking data',
+      message: error.message
+    });
+  }
+});
+
+/**
+ * POST /api/soul/extension-historical-import
+ * Receive historical viewing data from browser extension (one-time import)
+ */
+router.post('/extension-historical-import', async (req, res) => {
+  try {
+    const { userId, platform, videos, importedAt } = req.body;
+
+    console.log(`[Extension] Historical import: ${videos?.length || 0} videos from ${platform} for user ${userId}`);
+
+    // Validate required fields
+    if (!userId || !platform || !videos || !Array.isArray(videos)) {
+      return res.status(400).json({
+        success: false,
+        error: 'Missing required fields: userId, platform, videos (array)'
+      });
+    }
+
+    // Process in batches
+    let successCount = 0;
+    let errorCount = 0;
+
+    for (const video of videos) {
+      try {
+        const { error } = await supabase
+          .from('user_platform_data')
+          .insert({
+            user_id: userId,
+            platform: platform,
+            data_type: 'historical_watch',
+            raw_data: {
+              ...video,
+              source: 'browser_extension_import',
+              imported_at: importedAt
+            },
+            extracted_at: importedAt || new Date().toISOString(),
+            processed: false
+          });
+
+        if (error) {
+          console.error(`[Extension] Error storing video ${video.videoId}:`, error);
+          errorCount++;
+        } else {
+          successCount++;
+        }
+      } catch (itemError) {
+        console.error(`[Extension] Exception storing video:`, itemError);
+        errorCount++;
+      }
+    }
+
+    console.log(`[Extension] Historical import complete: ${successCount} success, ${errorCount} errors`);
+
+    res.json({
+      success: true,
+      message: 'Historical import processed',
+      imported: successCount,
+      errors: errorCount,
+      total: videos.length
+    });
+
+  } catch (error) {
+    console.error('[Extension] Error processing historical import:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to process historical import',
+      message: error.message
+    });
+  }
+});
+
 export default router;
