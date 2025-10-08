@@ -1188,9 +1188,8 @@ router.post('/build-signature/:userId', async (req, res) => {
 
     console.log(`[SoulSignature] Building soul signature for user: ${userId}`);
 
-    // Import soul signature builder
-    const { default: SoulSignatureBuilder } = await import('../services/soulSignatureBuilder.js');
-    const soulBuilder = new SoulSignatureBuilder();
+    // Import soul signature builder (it's a singleton instance)
+    const { default: soulBuilder } = await import('../services/soulSignatureBuilder.js');
 
     // Build soul signature from extracted data
     const soulSignature = await soulBuilder.buildSoulSignature(userId);
