@@ -1177,4 +1177,88 @@ router.get('/extraction-status/:userId', async (req, res) => {
   }
 });
 
+/**
+ * Build/Refresh Soul Signature
+ * POST /api/soul/build-signature/:userId
+ * Analyzes extracted platform data and builds soul signature, then updates all user's twins
+ */
+router.post('/build-signature/:userId', async (req, res) => {
+  try {
+    const { userId } = req.params;
+
+    console.log(`[SoulSignature] Building soul signature for user: ${userId}`);
+
+    // Import soul signature builder
+    const { default: SoulSignatureBuilder } = await import('../services/soulSignatureBuilder.js');
+    const soulBuilder = new SoulSignatureBuilder();
+
+    // Build soul signature from extracted data
+    const soulSignature = await soulBuilder.buildSoulSignature(userId);
+
+    console.log(`[SoulSignature] Soul signature built successfully:`, {
+      platforms: Object.keys(soulSignature.platforms || {}),
+      traitCount: Object.keys(soulSignature.personality_traits || {}).length
+    });
+
+    // Import supabase to update digital twins
+    const { createClient } = await import('@supabase/supabase-js');
+    const supabase = createClient(
+      process.env.SUPABASE_URL,
+      process.env.SUPABASE_SERVICE_ROLE_KEY
+    );
+
+    // Get all digital twins for this user
+    const { data: twins, error: twinsError } = await supabase
+      .from('digital_twins')
+      .select('id, name')
+      .eq('user_id', userId);
+
+    if (twinsError) {
+      console.error('[SoulSignature] Error fetching twins:', twinsError);
+      throw twinsError;
+    }
+
+    if (!twins || twins.length === 0) {
+      return res.json({
+        success: true,
+        message: 'Soul signature built successfully (no twins to update)',
+        soulSignature,
+        twinsUpdated: 0
+      });
+    }
+
+    // Update all twins with the built soul signature
+    const updatePromises = twins.map(twin =>
+      supabase
+        .from('digital_twins')
+        .update({
+          soul_signature: soulSignature,
+          personality_traits: soulSignature.personality_traits || {},
+          connected_platforms: Object.keys(soulSignature.platforms || {}),
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', twin.id)
+    );
+
+    await Promise.all(updatePromises);
+
+    console.log(`[SoulSignature] Updated ${twins.length} digital twins with soul signature`);
+
+    res.json({
+      success: true,
+      message: `Soul signature built and applied to ${twins.length} twin(s)`,
+      soulSignature,
+      twinsUpdated: twins.length,
+      twins: twins.map(t => ({ id: t.id, name: t.name }))
+    });
+  } catch (error) {
+    console.error('[SoulSignature] Error building soul signature:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to build soul signature',
+      message: error.message
+    });
+  }
+});
+
 export default router;
