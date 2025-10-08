@@ -303,6 +303,20 @@ router.post('/callback', async (req, res) => {
           redirect_uri: redirectUri
         })
       });
+    } else if (provider === 'slack') {
+      // Slack uses OAuth v2 with special response format
+      tokenResponse = await fetch(config.tokenUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: new URLSearchParams({
+          client_id: config.clientId,
+          client_secret: config.clientSecret,
+          code,
+          redirect_uri: redirectUri
+        })
+      });
     } else {
       // Standard OAuth2 flow (Google, Discord, etc.)
       tokenResponse = await fetch(config.tokenUrl, {
@@ -320,7 +334,27 @@ router.post('/callback', async (req, res) => {
       });
     }
 
-    const tokens = await tokenResponse.json();
+    const tokenData = await tokenResponse.json();
+
+    // Handle Slack's special response format
+    let tokens;
+    if (provider === 'slack') {
+      if (!tokenData.ok) {
+        return res.status(400).json({
+          success: false,
+          error: `Slack OAuth error: ${tokenData.error || 'Unknown error'}`
+        });
+      }
+      // Extract user token from Slack response
+      tokens = {
+        access_token: tokenData.authed_user?.access_token || tokenData.access_token,
+        refresh_token: tokenData.authed_user?.refresh_token || tokenData.refresh_token,
+        expires_in: tokenData.authed_user?.expires_in || tokenData.expires_in,
+        scope: tokenData.scope
+      };
+    } else {
+      tokens = tokenData;
+    }
 
     if (tokens.error) {
       return res.status(400).json({
