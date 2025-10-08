@@ -55,6 +55,8 @@ const SoulSignatureDashboard: React.FC = () => {
   });
   const [hasExtractedData, setHasExtractedData] = useState(false);
   const [hasConnectedServices, setHasConnectedServices] = useState(false);
+  const [extensionInstalled, setExtensionInstalled] = useState(false);
+  const [extensionAuthenticated, setExtensionAuthenticated] = useState(false);
 
   // Authentication check
   useEffect(() => {
@@ -63,6 +65,71 @@ const SoulSignatureDashboard: React.FC = () => {
       return;
     }
   }, [isSignedIn, navigate]);
+
+  // Detect and authenticate browser extension
+  useEffect(() => {
+    const detectAndAuthExtension = async () => {
+      if (!user?.id) return;
+
+      const EXTENSION_ID = 'lgackjdjfgjciljchpcgidahjjimhmdh'; // Your extension ID
+
+      try {
+        // Try to ping the extension
+        // @ts-ignore - chrome runtime API
+        if (typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.sendMessage) {
+          // @ts-ignore
+          chrome.runtime.sendMessage(
+            EXTENSION_ID,
+            { type: 'PING' },
+            (response: any) => {
+              if (chrome.runtime.lastError) {
+                console.log('🔌 Extension not detected:', chrome.runtime.lastError.message);
+                setExtensionInstalled(false);
+                return;
+              }
+
+              if (response && response.installed) {
+                console.log('✅ Extension detected:', response);
+                setExtensionInstalled(true);
+
+                // If not authenticated, send auth credentials
+                if (!response.isAuthenticated) {
+                  console.log('🔐 Authenticating extension...');
+
+                  // Get auth token from localStorage (or wherever you store it)
+                  const authToken = localStorage.getItem('authToken');
+
+                  // @ts-ignore
+                  chrome.runtime.sendMessage(
+                    EXTENSION_ID,
+                    {
+                      type: 'AUTHENTICATE',
+                      userId: user.id,
+                      authToken: authToken
+                    },
+                    (authResponse: any) => {
+                      if (authResponse && authResponse.success) {
+                        console.log('✅ Extension authenticated successfully');
+                        setExtensionAuthenticated(true);
+                      }
+                    }
+                  );
+                } else {
+                  console.log('✅ Extension already authenticated');
+                  setExtensionAuthenticated(true);
+                }
+              }
+            }
+          );
+        }
+      } catch (error) {
+        console.log('🔌 Extension communication failed:', error);
+        setExtensionInstalled(false);
+      }
+    };
+
+    detectAndAuthExtension();
+  }, [user]);
 
   // Fetch connection status from API and localStorage
   useEffect(() => {
@@ -430,6 +497,28 @@ const SoulSignatureDashboard: React.FC = () => {
           >
             Discovering your authentic digital essence through your choices and preferences
           </p>
+
+          {/* Extension Status Badge */}
+          {extensionInstalled && (
+            <div className="mt-4 flex justify-center">
+              <Badge
+                className="px-4 py-2 text-sm font-medium"
+                style={{
+                  backgroundColor: extensionAuthenticated ? '#10b981' : '#f59e0b',
+                  color: 'white',
+                  fontFamily: 'var(--_typography---font--styrene-a)'
+                }}
+              >
+                <div className="flex items-center gap-2">
+                  <div className="w-2 h-2 rounded-full bg-white animate-pulse"></div>
+                  {extensionAuthenticated
+                    ? '✓ Browser Extension Connected - Real-time tracking active'
+                    : '⏳ Browser Extension Connecting...'}
+                </div>
+              </Badge>
+            </div>
+          )}
+
           <div
             className="text-sm mt-4 max-w-2xl mx-auto"
             style={{

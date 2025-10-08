@@ -235,6 +235,54 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 });
 
 /**
+ * Handle messages from external websites (Soul Dashboard)
+ */
+chrome.runtime.onMessageExternal.addListener((message, sender, sendResponse) => {
+  console.log('[Soul Signature] Received external message from:', sender.url);
+  console.log('[Soul Signature] Message type:', message.type);
+
+  if (message.type === 'AUTHENTICATE') {
+    // Authenticate extension from main platform
+    userId = message.userId;
+    isAuthenticated = true;
+
+    chrome.storage.local.set({
+      userId: message.userId,
+      authToken: message.authToken
+    }).then(() => {
+      console.log('[Soul Signature] Authenticated via Soul Dashboard');
+
+      // Update badge to show connected
+      chrome.action.setBadgeText({ text: '✓' });
+      chrome.action.setBadgeBackgroundColor({ color: '#10b981' });
+
+      sendResponse({
+        success: true,
+        message: 'Extension authenticated successfully'
+      });
+
+      // Sync any pending data
+      syncPendingData();
+    });
+
+    return true; // Keep channel open for async response
+  }
+
+  if (message.type === 'PING') {
+    // Check if extension is installed and responding
+    sendResponse({
+      installed: true,
+      version: chrome.runtime.getManifest().version,
+      isAuthenticated,
+      userId
+    });
+    return false;
+  }
+
+  return false;
+});
+
+/**
  * Handle extension install/update
  */
 chrome.runtime.onInstalled.addListener((details) => {
