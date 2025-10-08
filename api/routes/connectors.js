@@ -401,8 +401,7 @@ router.post('/callback', async (req, res) => {
             console.log(`✅ Background extraction completed for ${provider}:`, result);
 
             // Trigger soul signature building after extraction
-            import('../services/soulSignatureBuilder.js').then(({ default: SoulSignatureBuilder }) => {
-              const soulBuilder = new SoulSignatureBuilder();
+            import('../services/soulSignatureBuilder.js').then(({ default: soulBuilder }) => {
               soulBuilder.buildSoulSignature(userUuid)
                 .then(soulResult => {
                   console.log(`✅ Soul signature updated for user after ${provider} extraction:`, soulResult);
