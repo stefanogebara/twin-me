@@ -70,7 +70,7 @@ class GmailExtractor {
       // Store labels
       for (const label of labels) {
         await supabase
-          .from('platform_data')
+          .from('user_platform_data')
           .upsert({
             user_id: userId,
             platform: 'google_gmail',
@@ -134,7 +134,7 @@ class GmailExtractor {
 
           // Store email metadata
           await supabase
-            .from('platform_data')
+            .from('user_platform_data')
             .insert({
               user_id: userId,
               platform: 'google_gmail',
@@ -187,7 +187,7 @@ class GmailExtractor {
 
       // Store patterns
       await supabase
-        .from('platform_data')
+        .from('user_platform_data')
         .insert({
           user_id: userId,
           platform: 'google_gmail',
@@ -223,7 +223,7 @@ class GmailExtractor {
 
       // Store insights
       await supabase
-        .from('platform_data')
+        .from('user_platform_data')
         .insert({
           user_id: userId,
           platform: 'google_gmail',
