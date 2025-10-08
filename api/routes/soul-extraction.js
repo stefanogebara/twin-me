@@ -1020,9 +1020,8 @@ router.post('/trigger-extraction/:platform/:userId', async (req, res) => {
 
     console.log(`[Manual Extraction] Triggering extraction for ${platform}, user: ${userId}`);
 
-    // Import DataExtractionService dynamically
-    const { default: DataExtractionService } = await import('../services/dataExtractionService.js');
-    const extractionService = new DataExtractionService();
+    // Import DataExtractionService (it's a singleton instance)
+    const { default: extractionService } = await import('../services/dataExtractionService.js');
 
     // Trigger extraction
     const result = await extractionService.extractPlatformData(userId, platform);
@@ -1072,9 +1071,8 @@ router.post('/trigger-extraction-all/:userId', async (req, res) => {
 
     console.log(`[Manual Extraction] Triggering extraction for ALL platforms, user: ${userId}`);
 
-    // Import DataExtractionService dynamically
-    const { default: DataExtractionService } = await import('../services/dataExtractionService.js');
-    const extractionService = new DataExtractionService();
+    // Import DataExtractionService (it's a singleton instance)
+    const { default: extractionService } = await import('../services/dataExtractionService.js');
 
     // Trigger extraction for all platforms
     const results = await extractionService.extractAllPlatforms(userId);

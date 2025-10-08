@@ -395,8 +395,7 @@ router.post('/callback', async (req, res) => {
       console.log(`✅ Successfully stored ${provider} connection for user ${userId} in database`);
 
       // Trigger background extraction (don't await - fire and forget)
-      import('../services/dataExtractionService.js').then(({ default: DataExtractionService }) => {
-        const extractionService = new DataExtractionService();
+      import('../services/dataExtractionService.js').then(({ default: extractionService }) => {
         extractionService.extractPlatformData(userUuid, provider)
           .then(result => {
             console.log(`✅ Background extraction completed for ${provider}:`, result);
