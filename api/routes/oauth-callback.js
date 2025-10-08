@@ -92,11 +92,17 @@ async function exchangeCodeForTokens(provider, code) {
     case 'google_gmail':
       return await exchangeGoogleCode(code, redirectUri); // Gmail uses Google OAuth
 
+    case 'google_calendar':
+      return await exchangeGoogleCode(code, redirectUri); // Calendar uses Google OAuth
+
     case 'discord':
       return await exchangeDiscordCode(code, redirectUri);
 
     case 'github':
       return await exchangeGitHubCode(code, redirectUri);
+
+    case 'slack':
+      return await exchangeSlackCode(code, redirectUri);
 
     default:
       throw new Error(`Unsupported provider: ${provider}`);
@@ -228,6 +234,50 @@ async function exchangeGitHubCode(code, redirectUri) {
   }
 
   return await response.json();
+}
+
+/**
+ * Slack token exchange
+ */
+async function exchangeSlackCode(code, redirectUri) {
+  const clientId = process.env.SLACK_CLIENT_ID;
+  const clientSecret = process.env.SLACK_CLIENT_SECRET;
+
+  if (!clientId || !clientSecret) {
+    throw new Error('Slack credentials not configured');
+  }
+
+  const response = await fetch('https://slack.com/api/oauth.v2.access', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: new URLSearchParams({
+      client_id: clientId,
+      client_secret: clientSecret,
+      code,
+      redirect_uri: redirectUri
+    })
+  });
+
+  if (!response.ok) {
+    const error = await response.text();
+    throw new Error(`Slack token exchange failed: ${error}`);
+  }
+
+  const data = await response.json();
+
+  // Slack returns { ok: true/false, ... }
+  if (!data.ok) {
+    throw new Error(`Slack OAuth error: ${data.error || 'Unknown error'}`);
+  }
+
+  // Slack returns authed_user.access_token for user tokens
+  return {
+    access_token: data.authed_user?.access_token || data.access_token,
+    refresh_token: data.authed_user?.refresh_token || data.refresh_token,
+    expires_in: data.authed_user?.expires_in || data.expires_in,
+    scope: data.scope,
+    team: data.team
+  };
 }
 
 /**
