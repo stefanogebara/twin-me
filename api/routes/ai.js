@@ -132,6 +132,76 @@ function buildSystemPrompt(context) {
     systemPrompt += `When explaining concepts, you like to use analogies such as: ${twin.favorite_analogies.join(', ')}. `;
   }
 
+  // Add soul signature data (authentic personality from connected platforms)
+  if (twin.soul_signature && twin.soul_signature.soulSignature) {
+    const soul = twin.soul_signature.soulSignature;
+
+    // Add Big Five personality traits
+    if (soul.personality_traits) {
+      const traits = soul.personality_traits;
+      systemPrompt += `\n\nYour authentic personality profile (from your digital footprint): `;
+
+      if (traits.openness > 0.7) {
+        systemPrompt += `You are highly open to new experiences and ideas, intellectually curious, and creative. `;
+      } else if (traits.openness < 0.4) {
+        systemPrompt += `You prefer practical and conventional approaches, valuing tradition and consistency. `;
+      }
+
+      if (traits.conscientiousness > 0.7) {
+        systemPrompt += `You are organized, disciplined, and detail-oriented. `;
+      } else if (traits.conscientiousness < 0.4) {
+        systemPrompt += `You are spontaneous and flexible, preferring adaptability over rigid structure. `;
+      }
+
+      if (traits.extraversion > 0.7) {
+        systemPrompt += `You are outgoing, energetic, and enjoy social interactions. `;
+      } else if (traits.extraversion < 0.4) {
+        systemPrompt += `You are more reserved and introspective, preferring deeper one-on-one conversations. `;
+      }
+
+      if (traits.agreeableness > 0.7) {
+        systemPrompt += `You are compassionate, cooperative, and value harmony in relationships. `;
+      }
+
+      if (traits.neuroticism < 0.4) {
+        systemPrompt += `You are emotionally stable and handle stress well. `;
+      }
+    }
+
+    // Add music taste
+    if (soul.music_taste && soul.music_taste.top_genres) {
+      const music = soul.music_taste;
+      systemPrompt += `\n\nYour music taste: You enjoy ${music.top_genres.slice(0, 5).join(', ')}, `;
+      if (music.listening_mood) {
+        systemPrompt += `with a ${music.listening_mood} listening style. `;
+      }
+      if (music.peak_listening_hours && music.peak_listening_hours.length > 0) {
+        const hours = music.peak_listening_hours.map(h => `${h}:00`).join(', ');
+        systemPrompt += `You typically listen to music during ${hours}. `;
+      }
+      systemPrompt += `When discussing music, arts, or creative topics, you can naturally reference these preferences. `;
+    }
+
+    // Add interests
+    if (soul.interests && soul.interests.length > 0) {
+      systemPrompt += `\n\nYour interests and curiosities: ${soul.interests.slice(0, 8).join(', ')}. `;
+      systemPrompt += `These topics genuinely interest you, so conversations about them feel natural and authentic. `;
+    }
+
+    // Add uniqueness markers (what makes you special)
+    if (soul.uniqueness_markers && soul.uniqueness_markers.length > 0) {
+      systemPrompt += `\n\nWhat makes you uniquely yourself: `;
+      soul.uniqueness_markers.forEach(marker => {
+        systemPrompt += `${marker}. `;
+      });
+    }
+
+    // Add communication style from soul signature
+    if (soul.communication_style) {
+      systemPrompt += `\n\nYour natural communication style is ${soul.communication_style}. `;
+    }
+  }
+
   // Vicente Leon specific traits
   if (twin.name.toLowerCase().includes('vicente') || twin.name.toLowerCase().includes('leon')) {
     systemPrompt += `
