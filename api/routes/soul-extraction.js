@@ -1010,4 +1010,173 @@ async function performSoulSynthesis(userId, platforms, preferences) {
   return synthesis;
 }
 
+/**
+ * POST /api/soul/trigger-extraction/:platform/:userId
+ * Manually trigger data extraction for a specific platform
+ */
+router.post('/trigger-extraction/:platform/:userId', async (req, res) => {
+  try {
+    const { platform, userId } = req.params;
+
+    console.log(`[Manual Extraction] Triggering extraction for ${platform}, user: ${userId}`);
+
+    // Import DataExtractionService dynamically
+    const { default: DataExtractionService } = await import('../services/dataExtractionService.js');
+    const extractionService = new DataExtractionService();
+
+    // Trigger extraction
+    const result = await extractionService.extractPlatformData(userId, platform);
+
+    // If extraction succeeded, trigger soul signature building
+    if (result.success) {
+      // Fire and forget soul signature building
+      import('../services/soulSignatureBuilder.js').then(({ default: SoulSignatureBuilder }) => {
+        const soulBuilder = new SoulSignatureBuilder();
+        soulBuilder.buildSoulSignature(userId)
+          .then(soulResult => {
+            console.log(`✅ Soul signature updated after manual ${platform} extraction`);
+          })
+          .catch(error => {
+            console.warn(`⚠️ Soul signature building failed:`, error);
+          });
+      });
+    }
+
+    res.json({
+      success: result.success,
+      platform,
+      userId,
+      itemsExtracted: result.itemsExtracted || 0,
+      message: result.message || 'Extraction completed',
+      requiresReauth: result.requiresReauth || false,
+      extractedAt: new Date().toISOString()
+    });
+
+  } catch (error) {
+    console.error('[Manual Extraction] Error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to trigger extraction',
+      message: error.message
+    });
+  }
+});
+
+/**
+ * POST /api/soul/trigger-extraction-all/:userId
+ * Manually trigger data extraction for all connected platforms
+ */
+router.post('/trigger-extraction-all/:userId', async (req, res) => {
+  try {
+    const { userId } = req.params;
+
+    console.log(`[Manual Extraction] Triggering extraction for ALL platforms, user: ${userId}`);
+
+    // Import DataExtractionService dynamically
+    const { default: DataExtractionService } = await import('../services/dataExtractionService.js');
+    const extractionService = new DataExtractionService();
+
+    // Trigger extraction for all platforms
+    const results = await extractionService.extractAllPlatforms(userId);
+
+    // Trigger soul signature building after all extractions
+    import('../services/soulSignatureBuilder.js').then(({ default: SoulSignatureBuilder }) => {
+      const soulBuilder = new SoulSignatureBuilder();
+      soulBuilder.buildSoulSignature(userId)
+        .then(soulResult => {
+          console.log(`✅ Soul signature updated after full extraction`);
+        })
+        .catch(error => {
+          console.warn(`⚠️ Soul signature building failed:`, error);
+        });
+    });
+
+    res.json({
+      success: true,
+      userId,
+      results,
+      extractedAt: new Date().toISOString()
+    });
+
+  } catch (error) {
+    console.error('[Manual Extraction] Error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to trigger extraction',
+      message: error.message
+    });
+  }
+});
+
+/**
+ * GET /api/soul/extraction-status/:userId
+ * Get extraction status for all platforms
+ */
+router.get('/extraction-status/:userId', async (req, res) => {
+  try {
+    const { userId } = req.params;
+
+    console.log(`[Extraction Status] Getting status for user: ${userId}`);
+
+    // Get all connectors for this user
+    const { data: connectors, error } = await supabase
+      .from('data_connectors')
+      .select('*')
+      .eq('user_id', userId);
+
+    if (error) {
+      throw error;
+    }
+
+    // Get recent extraction jobs
+    const { data: jobs, error: jobsError } = await supabase
+      .from('data_extraction_jobs')
+      .select('*')
+      .eq('user_id', userId)
+      .order('started_at', { ascending: false })
+      .limit(20);
+
+    if (jobsError) {
+      console.warn('[Extraction Status] Error fetching jobs:', jobsError);
+    }
+
+    // Build status response
+    const status = connectors.map(connector => {
+      const recentJobs = jobs?.filter(job => job.platform === connector.provider) || [];
+      const latestJob = recentJobs[0];
+
+      return {
+        platform: connector.provider,
+        connected: connector.connected,
+        lastSync: connector.metadata?.last_sync,
+        lastSyncStatus: connector.metadata?.last_sync_status,
+        tokenExpired: connector.metadata?.token_expired || false,
+        latestExtractionJob: latestJob ? {
+          status: latestJob.status,
+          startedAt: latestJob.started_at,
+          completedAt: latestJob.completed_at,
+          totalItems: latestJob.total_items,
+          error: latestJob.error_message
+        } : null
+      };
+    });
+
+    res.json({
+      success: true,
+      userId,
+      platforms: status,
+      totalConnected: connectors.filter(c => c.connected).length,
+      checkedAt: new Date().toISOString()
+    });
+
+  } catch (error) {
+    console.error('[Extraction Status] Error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to get extraction status',
+      message: error.message
+    });
+  }
+});
+
 export default router;
