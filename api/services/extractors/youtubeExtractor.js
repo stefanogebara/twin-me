@@ -92,6 +92,8 @@ class YouTubeExtractor {
         mine: 'true'
       });
 
+      console.log(`[YouTube] Channel API response:`, JSON.stringify(data, null, 2));
+
       if (data.items && data.items.length > 0) {
         const channel = data.items[0];
 
@@ -114,9 +116,11 @@ class YouTubeExtractor {
         return 1;
       }
 
+      console.log(`[YouTube] No channel found - data.items is empty or missing`);
       return 0;
     } catch (error) {
-      console.error('[YouTube] Error extracting channel:', error);
+      console.error('[YouTube] Error extracting channel:', error.message);
+      console.error('[YouTube] Full error:', error);
       return 0;
     }
   }
@@ -141,6 +145,7 @@ class YouTubeExtractor {
         if (pageToken) params.pageToken = pageToken;
 
         const data = await this.makeRequest('/subscriptions', params);
+        console.log(`[YouTube] Subscriptions API response (page ${subCount/50 + 1}):`, JSON.stringify(data, null, 2).substring(0, 500));
 
         if (data.items && data.items.length > 0) {
           for (const sub of data.items) {
