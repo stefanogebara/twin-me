@@ -166,17 +166,15 @@ router.get('/auth/:provider', (req, res) => {
     const state = Buffer.from(JSON.stringify(stateObject)).toString('base64');
     console.log('🔗 Encoded state:', state);
 
-    // Build authorization URL
-    // Use connector-specific callback to avoid conflicts with auth OAuth
-    // For Spotify, use platform-specific redirect URI if available (Spotify requires HTTPS)
-    const redirectUri = provider === 'spotify' && process.env.SPOTIFY_REDIRECT_URI
-      ? process.env.SPOTIFY_REDIRECT_URI
-      : `${process.env.APP_URL || process.env.VITE_APP_URL || 'http://localhost:8086'}/oauth/callback`;
+    // Build authorization URL - Use unified callback for all platforms
+    const appUrl = process.env.APP_URL || process.env.VITE_APP_URL || 'http://localhost:8086';
+    const redirectUri = `${appUrl}/oauth/callback`;
 
     console.log(`🔗 OAuth for ${provider}:`);
+    console.log(`📍 APP_URL from env: ${process.env.APP_URL}`);
+    console.log(`📍 VITE_APP_URL from env: ${process.env.VITE_APP_URL}`);
+    console.log(`📍 Final appUrl: ${appUrl}`);
     console.log(`📍 Redirect URI: ${redirectUri}`);
-    console.log(`🌍 VITE_APP_URL from env: ${process.env.VITE_APP_URL}`);
-    console.log(`🔑 All APP URLs in env:`, Object.keys(process.env).filter(k => k.includes('APP_URL')));
 
     // Slack requires 'user_scope' parameter for user tokens (not 'scope' which is for bot tokens)
     // Slack also uses comma-separated scopes, while most others use space-separated
