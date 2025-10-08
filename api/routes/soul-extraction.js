@@ -1226,14 +1226,17 @@ router.post('/build-signature/:userId', async (req, res) => {
       });
     }
 
+    // Extract the actual soul signature data
+    const soulData = soulSignature.soulSignature || soulSignature;
+
     // Update all twins with the built soul signature
     const updatePromises = twins.map(twin =>
       supabase
         .from('digital_twins')
         .update({
           soul_signature: soulSignature,
-          personality_traits: soulSignature.personality_traits || {},
-          connected_platforms: Object.keys(soulSignature.platforms || {}),
+          personality_traits: soulData.personality_traits || {},
+          connected_platforms: soulData.data_sources || [],
           updated_at: new Date().toISOString()
         })
         .eq('id', twin.id)
