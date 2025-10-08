@@ -11,6 +11,8 @@ import SpotifyExtractor from './extractors/spotifyExtractor.js';
 import RedditExtractor from './extractors/redditExtractor.js';
 import YouTubeExtractor from './extractors/youtubeExtractor.js';
 import GmailExtractor from './extractors/gmailExtractor.js';
+import SlackExtractor from './extractors/slackExtractor.js';
+import CalendarExtractor from './extractors/calendarExtractor.js';
 import { decryptToken } from './encryption.js';
 
 const supabase = createClient(
@@ -94,9 +96,13 @@ class DataExtractionService {
           extractor = new GmailExtractor(accessToken);
           break;
         case 'google_calendar':
+          extractor = new CalendarExtractor(accessToken);
+          break;
         case 'slack':
+          extractor = new SlackExtractor(accessToken);
+          break;
         case 'twitch':
-          // These platforms are defined but extractors not yet implemented
+          // This platform is defined but extractor not yet implemented
           console.warn(`[DataExtraction] Extractor for ${platform} not yet implemented - skipping`);
           return {
             success: false,

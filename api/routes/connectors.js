@@ -394,6 +394,30 @@ router.post('/callback', async (req, res) => {
 
       console.log(`✅ Successfully stored ${provider} connection for user ${userId} in database`);
 
+      // Trigger background extraction (don't await - fire and forget)
+      import('../services/dataExtractionService.js').then(({ default: DataExtractionService }) => {
+        const extractionService = new DataExtractionService();
+        extractionService.extractPlatformData(userUuid, provider)
+          .then(result => {
+            console.log(`✅ Background extraction completed for ${provider}:`, result);
+
+            // Trigger soul signature building after extraction
+            import('../services/soulSignatureBuilder.js').then(({ default: SoulSignatureBuilder }) => {
+              const soulBuilder = new SoulSignatureBuilder();
+              soulBuilder.buildSoulSignature(userUuid)
+                .then(soulResult => {
+                  console.log(`✅ Soul signature updated for user after ${provider} extraction:`, soulResult);
+                })
+                .catch(soulError => {
+                  console.warn(`⚠️ Soul signature building failed:`, soulError);
+                });
+            });
+          })
+          .catch(error => {
+            console.warn(`⚠️ Background extraction failed for ${provider}:`, error.message);
+          });
+      });
+
     } catch (error) {
       console.error('Error storing connection:', error);
       return res.status(500).json({
