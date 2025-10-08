@@ -151,10 +151,10 @@ router.post('/', authenticateUser, userRateLimit(20, 15 * 60 * 1000), validateTw
       description,
       subject_area,
       twin_type,
-      personality_traits = {},
+      personality_traits: requestedTraits = {},
       teaching_style = {},
-      common_phrases = [],
-      favorite_analogies = []
+      common_phrases: requestedPhrases = [],
+      favorite_analogies: requestedAnalogies = []
     } = req.body;
 
     // Check if user can create professor twins (require professor role)
@@ -162,6 +162,48 @@ router.post('/', authenticateUser, userRateLimit(20, 15 * 60 * 1000), validateTw
       return res.status(403).json({
         error: 'Only professors can create professor-type digital twins'
       });
+    }
+
+    // Build soul signature from extracted data
+    let soulSignature = null;
+    let personality_traits = requestedTraits;
+    let common_phrases = requestedPhrases;
+    let favorite_analogies = requestedAnalogies;
+    let connected_platforms = [];
+
+    try {
+      console.log('🎨 Building soul signature from extracted data...');
+      const { default: soulBuilder } = await import('../services/soulSignatureBuilder.js');
+      const soulResult = await soulBuilder.buildSoulSignature(userId);
+
+      if (soulResult.success && soulResult.soulSignature) {
+        soulSignature = soulResult;
+        const soulData = soulResult.soulSignature;
+
+        // Use soul signature data if no manual traits provided
+        if (Object.keys(requestedTraits).length === 0 && soulData.personality_traits) {
+          personality_traits = soulData.personality_traits;
+          console.log('✅ Using soul signature personality traits');
+        }
+
+        if (requestedPhrases.length === 0 && soulData.common_phrases) {
+          common_phrases = soulData.common_phrases;
+          console.log('✅ Using soul signature common phrases');
+        }
+
+        if (requestedAnalogies.length === 0 && soulData.favorite_analogies) {
+          favorite_analogies = soulData.favorite_analogies;
+          console.log('✅ Using soul signature favorite analogies');
+        }
+
+        if (soulData.data_sources) {
+          connected_platforms = soulData.data_sources;
+          console.log('✅ Using soul signature connected platforms:', connected_platforms);
+        }
+      }
+    } catch (soulError) {
+      console.warn('⚠️ Soul signature building failed, using manual data:', soulError.message);
+      // Continue with manual data if soul signature fails
     }
 
     const twinData = {
@@ -176,6 +218,8 @@ router.post('/', authenticateUser, userRateLimit(20, 15 * 60 * 1000), validateTw
       teaching_style,
       common_phrases,
       favorite_analogies,
+      soul_signature: soulSignature,
+      connected_platforms,
       knowledge_base_status: 'empty'
     };
 
