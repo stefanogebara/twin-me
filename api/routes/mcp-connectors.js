@@ -40,10 +40,11 @@ router.post('/connect/slack', async (req, res) => {
   try {
     const { userId } = req.body;
 
-    // Slack OAuth URL
+    // Slack OAuth URL - Using user_scope for user token (not bot token)
     const clientId = process.env.SLACK_CLIENT_ID || 'your-slack-client-id';
     const redirectUri = encodeURIComponent(`${process.env.APP_URL || process.env.VITE_APP_URL || 'http://localhost:8086'}/oauth/callback`);
-    const scope = 'channels:history,channels:read,chat:write,files:read,groups:read,im:read,mpim:read,users:read';
+    // User scopes aligned with Slack app configuration
+    const userScope = 'channels:read,files:read,groups:read,users:read,users:read.email,search:read,team.preferences:read,lists:read,reminders:read';
     const state = Buffer.from(JSON.stringify({
       provider: 'slack',
       userId,
@@ -51,7 +52,7 @@ router.post('/connect/slack', async (req, res) => {
     })).toString('base64');
 
     const authUrl = `https://slack.com/oauth/v2/authorize?` +
-      `client_id=${clientId}&redirect_uri=${redirectUri}&scope=${scope}&state=${state}`;
+      `client_id=${clientId}&redirect_uri=${redirectUri}&user_scope=${userScope}&state=${state}`;
 
     res.json({
       success: true,

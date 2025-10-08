@@ -83,19 +83,20 @@ const OAUTH_CONFIGS = {
     tokenUrl: 'https://discord.com/api/oauth2/token'
   },
 
-  // Slack
+  // Slack - User Token Scopes (not bot scopes)
   slack: {
     clientId: process.env.SLACK_CLIENT_ID,
     clientSecret: process.env.SLACK_CLIENT_SECRET,
     scopes: [
-      'channels:history',
       'channels:read',
-      'groups:history',
+      'files:read',
       'groups:read',
-      'im:history',
-      'im:read',
       'users:read',
-      'users.profile:read'
+      'users:read.email',
+      'search:read',
+      'team.preferences:read',
+      'lists:read',
+      'reminders:read'
     ],
     authUrl: 'https://slack.com/oauth/v2/authorize',
     tokenUrl: 'https://slack.com/api/oauth.v2.access'
@@ -177,10 +178,15 @@ router.get('/auth/:provider', (req, res) => {
     console.log(`🌍 VITE_APP_URL from env: ${process.env.VITE_APP_URL}`);
     console.log(`🔑 All APP URLs in env:`, Object.keys(process.env).filter(k => k.includes('APP_URL')));
 
+    // Slack requires 'user_scope' parameter for user tokens (not 'scope' which is for bot tokens)
+    // Slack also uses comma-separated scopes, while most others use space-separated
+    const scopeParam = provider === 'slack' ? 'user_scope' : 'scope';
+    const scopeSeparator = provider === 'slack' ? ',' : ' ';
+
     const params = new URLSearchParams({
       client_id: config.clientId,
       redirect_uri: redirectUri,
-      scope: config.scopes.join(' '),
+      [scopeParam]: config.scopes.join(scopeSeparator),
       response_type: 'code',
       access_type: 'offline',
       prompt: 'consent',
