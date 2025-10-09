@@ -15,6 +15,52 @@ import {
 } from '@/types/data-integration';
 
 // ====================================================================
+// TYPE DEFINITIONS
+// ====================================================================
+
+interface MessageData {
+  content: {
+    text?: string;
+    body?: string;
+    subject?: string;
+    attendees?: unknown[];
+  };
+  dataType: string;
+  sourceTimestamp: string;
+  metadata?: {
+    channel?: string;
+    context?: string;
+    [key: string]: unknown;
+  };
+}
+
+interface Interest {
+  category: string;
+  intensity: number;
+  keywords: string[];
+  recentEngagement: number;
+  socialSharing: number;
+}
+
+interface WorkPattern {
+  workingHours: { start: number; end: number };
+  meetingFrequency: number;
+  emailVolume: number;
+  collaborationLevel: number;
+  workLifeBalance: number;
+  productivity_peaks: number[];
+}
+
+interface EmotionalProfile {
+  sentiment: 'positive' | 'negative';
+  sentimentStrength: number;
+  empathy: number;
+  emotionalRange: string;
+  expressiveness: number;
+  optimism: number;
+}
+
+// ====================================================================
 // CORE ANALYSIS ENGINE
 // ====================================================================
 
@@ -196,7 +242,7 @@ Return your analysis as a JSON object with these exact fields:
   // COMMUNICATION PATTERN ANALYSIS
   // ====================================================================
 
-  private async analyzeCommunicationPatterns(messageData: any[]): Promise<CommunicationPattern> {
+  private async analyzeCommunicationPatterns(messageData: MessageData[]): Promise<CommunicationPattern> {
     // Analyze timing patterns
     const responseTimes = this.calculateResponseTimes(messageData);
     const messageLengths = messageData.map(msg => (msg.content.text || '').length);
@@ -217,19 +263,19 @@ Return your analysis as a JSON object with these exact fields:
     };
   }
 
-  private calculateResponseTimes(messages: any[]): number[] {
+  private calculateResponseTimes(messages: MessageData[]): number[] {
     // Simplified - in production, would analyze conversation threads
     return [30, 60, 90, 120, 180]; // sample response times in minutes
   }
 
-  private calculateQuestionFrequency(messages: any[]): number {
+  private calculateQuestionFrequency(messages: MessageData[]): number {
     const questionCount = messages.filter(msg =>
       (msg.content.text || '').includes('?')
     ).length;
     return messages.length > 0 ? questionCount / messages.length : 0;
   }
 
-  private calculateSupportiveness(messages: any[]): number {
+  private calculateSupportiveness(messages: MessageData[]): number {
     const supportWords = ['help', 'support', 'thanks', 'great job', 'well done', 'appreciate'];
     const supportiveMessages = messages.filter(msg =>
       supportWords.some(word => (msg.content.text || '').toLowerCase().includes(word))
@@ -237,12 +283,12 @@ Return your analysis as a JSON object with these exact fields:
     return messages.length > 0 ? supportiveMessages / messages.length : 0;
   }
 
-  private calculateInitiationRate(messages: any[]): number {
+  private calculateInitiationRate(messages: MessageData[]): number {
     // Simplified - in production would analyze thread starters
     return 0.3; // 30% of conversations initiated by user
   }
 
-  private identifyPreferredChannels(messages: any[]): string[] {
+  private identifyPreferredChannels(messages: MessageData[]): string[] {
     const channels = messages.map(msg => msg.metadata?.channel || msg.dataType);
     const channelCounts = channels.reduce((acc, channel) => {
       acc[channel] = (acc[channel] || 0) + 1;
@@ -255,7 +301,7 @@ Return your analysis as a JSON object with these exact fields:
       .map(([channel]) => channel);
   }
 
-  private analyzeActiveHours(messages: any[]): { start: number; end: number } {
+  private analyzeActiveHours(messages: MessageData[]): { start: number; end: number } {
     const hours = messages.map(msg => new Date(msg.sourceTimestamp).getHours());
     const hourCounts = hours.reduce((acc, hour) => {
       acc[hour] = (acc[hour] || 0) + 1;
@@ -328,7 +374,7 @@ Return your analysis as a JSON object with these exact fields:
   // INTEREST IDENTIFICATION
   // ====================================================================
 
-  private async identifyInterests(textData: string[]): Promise<any[]> {
+  private async identifyInterests(textData: string[]): Promise<Interest[]> {
     const combinedText = textData.join(' ').toLowerCase();
 
     const interestCategories = {
@@ -340,7 +386,7 @@ Return your analysis as a JSON object with these exact fields:
       gaming: ['games', 'gaming', 'playstation', 'xbox', 'nintendo', 'streaming']
     };
 
-    const interests: any[] = [];
+    const interests: Interest[] = [];
 
     for (const [category, keywords] of Object.entries(interestCategories)) {
       const matchCount = keywords.filter(keyword => combinedText.includes(keyword)).length;
@@ -364,7 +410,7 @@ Return your analysis as a JSON object with these exact fields:
   // WORK PATTERN ANALYSIS
   // ====================================================================
 
-  private async analyzeWorkPatterns(rawData: RawDataPoint[]): Promise<any> {
+  private async analyzeWorkPatterns(rawData: RawDataPoint[]): Promise<WorkPattern | null> {
     const calendarEvents = rawData.filter(d => d.dataType === 'calendar_event');
     const emails = rawData.filter(d => d.dataType === 'email');
     const messages = rawData.filter(d => d.dataType === 'slack_message');
@@ -426,7 +472,7 @@ Return your analysis as a JSON object with these exact fields:
   // EMOTIONAL TONE ANALYSIS
   // ====================================================================
 
-  private async analyzeEmotionalTone(textData: string[]): Promise<any> {
+  private async analyzeEmotionalTone(textData: string[]): Promise<EmotionalProfile> {
     const combinedText = textData.join(' ').toLowerCase();
 
     // Simple sentiment analysis
@@ -461,10 +507,10 @@ Return your analysis as a JSON object with these exact fields:
       .filter(text => text.length > 10); // Filter out very short texts
   }
 
-  private extractCommunicationData(rawData: RawDataPoint[]): any[] {
+  private extractCommunicationData(rawData: RawDataPoint[]): MessageData[] {
     return rawData.filter(d =>
       ['email', 'slack_message', 'teams_message'].includes(d.dataType)
-    );
+    ) as MessageData[];
   }
 
   private extractCommonWords(text: string): string[] {
@@ -486,7 +532,7 @@ Return your analysis as a JSON object with these exact fields:
   private createInsight(
     userId: string,
     insightType: InsightType,
-    insightData: any,
+    insightData: unknown,
     sourceDataCount: number
   ): PersonalityInsight {
     return {

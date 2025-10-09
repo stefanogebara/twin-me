@@ -19,6 +19,32 @@ import { dataConnectorRegistry } from './DataConnectorService';
 import { personalityAnalysisEngine } from './PersonalityAnalysisEngine';
 
 // ====================================================================
+// TYPE DEFINITIONS
+// ====================================================================
+
+interface WebhookData {
+  event: string;
+  timestamp: string;
+  data: Record<string, unknown>;
+  signature?: string;
+  provider: string;
+}
+
+interface TrendDataPoint {
+  date: Date;
+  value: number;
+  confidence: number;
+}
+
+interface DataQuality {
+  completeness: number;
+  accuracy: number;
+  timeliness: number;
+  consistency: number;
+  overallScore: number;
+}
+
+// ====================================================================
 // REAL-TIME SYNC ENGINE
 // ====================================================================
 
@@ -85,7 +111,7 @@ export class RealTimeDataSyncEngine {
 
   async handleIncomingWebhook(
     provider: DataProvider,
-    webhookData: any
+    webhookData: WebhookData
   ): Promise<void> {
     console.log(`📡 Received webhook from ${provider}`);
 
@@ -366,7 +392,7 @@ export class RealTimeDataSyncEngine {
 
       if (trend.dataPoints.length >= 3) { // Need minimum data points for trend
         trends.push({
-          insightType: insightType as any,
+          insightType: insightType as PersonalityTrend['insightType'],
           trendDirection: trend.direction,
           changeRate: trend.changeRate,
           confidenceTrend: trend.confidenceTrend,
@@ -566,10 +592,14 @@ export class RealTimeDataSyncEngine {
     console.log(`📈 Logged ${entries.length} evolution entries for user ${userId}`);
   }
 
-  private extractNumericValue(insightData: any): number {
+  private extractNumericValue(insightData: unknown): number {
     // Extract a numeric value from insight data for trend analysis
-    if (typeof insightData === 'object') {
-      return insightData.confidence || insightData.score || insightData.level || 0.5;
+    if (typeof insightData === 'object' && insightData !== null) {
+      const data = insightData as Record<string, unknown>;
+      const confidence = typeof data.confidence === 'number' ? data.confidence : undefined;
+      const score = typeof data.score === 'number' ? data.score : undefined;
+      const level = typeof data.level === 'number' ? data.level : undefined;
+      return confidence ?? score ?? level ?? 0.5;
     }
     return 0.5; // default
   }
@@ -580,7 +610,7 @@ export class RealTimeDataSyncEngine {
     return variance;
   }
 
-  private calculateConfidenceTrend(dataPoints: any[]): number {
+  private calculateConfidenceTrend(dataPoints: TrendDataPoint[]): number {
     // Simple confidence trend calculation
     if (dataPoints.length < 2) return 0;
 
@@ -610,8 +640,16 @@ export class RealTimeDataSyncEngine {
   // Additional mock methods...
   private async getHistoricalInsights(userId: string, days: number): Promise<PersonalityInsight[]> { return []; }
   private async updateDataQualityMetrics(userId: string, dataPoints: RawDataPoint[]) {}
-  private async updateQualityMetrics(userId: string, connectorId: string, quality: any) {}
-  private async assessDataQuality(userId: string, connectorId: string): Promise<any> { return {}; }
+  private async updateQualityMetrics(userId: string, connectorId: string, quality: DataQuality) {}
+  private async assessDataQuality(userId: string, connectorId: string): Promise<DataQuality> {
+    return {
+      completeness: 0.8,
+      accuracy: 0.9,
+      timeliness: 0.85,
+      consistency: 0.88,
+      overallScore: 0.86
+    };
+  }
   private async processWebhookEvent(item: SyncQueueItem) {}
   private async monitorConnectorHealth() {}
 
