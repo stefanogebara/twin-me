@@ -141,15 +141,17 @@ const SoulSignatureDashboard: React.FC = () => {
         const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3001/api'}/connectors/status/${user.id}`);
 
         if (response.ok) {
-          const data = await response.json();
-          console.log('📱 Fetched connection status from API:', data);
+          const result = await response.json();
+          console.log('📱 Fetched connection status from API:', result);
 
+          // Backend returns { success: true, data: { platform: {...}, ... } }
+          const platformData = result.data || {};
           const newConnections: ConnectionStatus = {...connections};
 
           // Update connection status based on API response
-          Object.keys(data).forEach((platform: string) => {
-            const platformData = data[platform];
-            if (platformData.connected && platform in newConnections) {
+          Object.keys(platformData).forEach((platform: string) => {
+            const connDetails = platformData[platform];
+            if (connDetails.connected && platform in newConnections) {
               newConnections[platform as keyof ConnectionStatus] = true;
             }
           });
