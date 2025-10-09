@@ -8,8 +8,9 @@ import { createClient } from '@supabase/supabase-js';
 
 const router = express.Router();
 
+// Use SUPABASE_URL (backend) - fallback to VITE_ prefix for compatibility
 const supabase = createClient(
-  process.env.SUPABASE_URL,
+  process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL,
   process.env.SUPABASE_SERVICE_ROLE_KEY
 );
 
@@ -327,7 +328,17 @@ router.post('/rag/chat', async (req, res) => {
       });
     }
 
-    console.log(`[API] RAG chat request from user: ${userId}`);
+    console.log(`[API] RAG chat request from user: ${userId}, message length: ${message.length}`);
+    console.log(`[API] Conversation history length: ${conversationHistory?.length || 0}`);
+
+    // Check if ragService is properly initialized
+    if (!ragService || typeof ragService.chat !== 'function') {
+      console.error('[API] ragService not properly initialized');
+      return res.status(500).json({
+        success: false,
+        error: 'Chat service not available. Please try again later.'
+      });
+    }
 
     const result = await ragService.chat(
       userId,
@@ -336,12 +347,15 @@ router.post('/rag/chat', async (req, res) => {
       conversationHistory || []
     );
 
+    console.log(`[API] RAG chat response generated successfully`);
     res.json(result);
   } catch (error) {
     console.error('[API] Error in /rag/chat:', error);
+    console.error('[API] Error stack:', error.stack);
     res.status(500).json({
       success: false,
-      error: error.message
+      error: error.message || 'Failed to process chat message',
+      details: process.env.NODE_ENV === 'development' ? error.stack : undefined
     });
   }
 });

@@ -3,6 +3,11 @@ import { supabase } from '../config/supabase.js';
 
 const router = express.Router();
 
+// Verify Supabase is properly initialized
+if (!supabase) {
+  console.error('[Training API] Supabase client not initialized');
+}
+
 // In-memory storage for training jobs (in production, use Redis or database)
 const trainingJobs = new Map();
 

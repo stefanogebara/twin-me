@@ -31,8 +31,9 @@ const router = express.Router();
 const extractor = new RealTimeExtractor();
 
 // Initialize Supabase client
+// Use SUPABASE_URL (backend) not VITE_SUPABASE_URL (frontend)
 const supabase = createClient(
-  process.env.VITE_SUPABASE_URL,
+  process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL,
   process.env.SUPABASE_SERVICE_ROLE_KEY
 );
 
