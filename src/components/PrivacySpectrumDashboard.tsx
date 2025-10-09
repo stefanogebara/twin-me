@@ -27,7 +27,7 @@ interface SubclusterData {
 interface DataPoint {
   id: string;
   type: string;
-  value: any;
+  value: unknown;
   source: string;
   timestamp: string;
   sensitivity: number;
@@ -50,6 +50,17 @@ interface PrivacyRecommendation {
   icon: React.ReactNode;
 }
 
+interface ExtractedSoulData {
+  platform: string;
+  extractedAt: Date;
+  soulSignature: {
+    authenticityScore: number;
+    personalityTraits: string[];
+    emotionalResonance: number;
+    creativityIndex: number;
+  };
+}
+
 const PrivacySpectrumDashboard: React.FC = () => {
   const [selectedCluster, setSelectedCluster] = useState<string | null>(null);
   const [audienceMode, setAudienceMode] = useState<'everyone' | 'professional' | 'friends' | 'intimate'>('friends');
@@ -68,7 +79,7 @@ const PrivacySpectrumDashboard: React.FC = () => {
   });
   const [privacyRecommendations, setPrivacyRecommendations] = useState<PrivacyRecommendation[]>([]);
   const [lastContextUpdate, setLastContextUpdate] = useState(new Date());
-  const [realTimeData, setRealTimeData] = useState<{[key: string]: any}>({});
+  const [realTimeData, setRealTimeData] = useState<Record<string, unknown>>({});
   const [isExtractingData, setIsExtractingData] = useState(false);
   const [dataStream, setDataStream] = useState<DataPoint[]>([]);
   const [connectionPulse, setConnectionPulse] = useState<{[key: string]: boolean}>({});
@@ -295,7 +306,7 @@ const PrivacySpectrumDashboard: React.FC = () => {
     return traitsByPlatform[platform as keyof typeof traitsByPlatform] || ['unique-individual'];
   };
 
-  const updateClusterWithRealData = (platform: string, data: any) => {
+  const updateClusterWithRealData = (platform: string, data: ExtractedSoulData) => {
     setClusters(prev => prev.map(cluster => {
       if (cluster.id === 'personal' && ['spotify', 'youtube', 'netflix'].includes(platform)) {
         return {
