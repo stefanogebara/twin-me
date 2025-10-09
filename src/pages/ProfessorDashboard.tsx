@@ -118,10 +118,11 @@ const ProfessorDashboard = () => {
         setSelectedTwin(twins[0]);
       }
 
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const errorMsg = error instanceof Error ? error.message : 'Error loading dashboard';
       toast({
         title: "Error loading dashboard",
-        description: error.message,
+        description: errorMsg,
         variant: "destructive"
       });
     } finally {
@@ -137,10 +138,11 @@ const ProfessorDashboard = () => {
       // TODO: Add API endpoint for getting training materials
       // For now, return empty array
       setTrainingMaterials([]);
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const errorMsg = error instanceof Error ? error.message : 'Error loading training materials';
       toast({
         title: "Error loading training materials",
-        description: error.message,
+        description: errorMsg,
         variant: "destructive"
       });
     }
@@ -193,10 +195,11 @@ const ProfessorDashboard = () => {
         description: "Your digital twin has been created successfully!",
       });
 
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const errorMsg = error instanceof Error ? error.message : 'Error creating twin';
       toast({
         title: "Error creating twin",
-        description: error.message,
+        description: errorMsg,
         variant: "destructive"
       });
     }
@@ -223,10 +226,11 @@ const ProfessorDashboard = () => {
         description: `Your digital twin is now ${!currentStatus ? 'active' : 'inactive'}`,
       });
 
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const errorMsg = error instanceof Error ? error.message : 'Error updating twin';
       toast({
         title: "Error updating twin",
-        description: error.message,
+        description: errorMsg,
         variant: "destructive"
       });
     }

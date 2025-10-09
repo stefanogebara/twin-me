@@ -466,11 +466,12 @@ const InstantTwinOnboarding = () => {
         throw new Error(result.error || 'Connection failed');
       }
 
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error connecting service:', error);
+      const errorMsg = error instanceof Error ? error.message : 'Connection failed';
       toast({
         title: "Connection failed",
-        description: "Please try again or skip this service",
+        description: errorMsg,
         variant: "destructive"
       });
     } finally {
@@ -520,11 +521,12 @@ const InstantTwinOnboarding = () => {
         description: `${connectorName} has been disconnected`,
       });
 
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error disconnecting service:', error);
+      const errorMsg = error instanceof Error ? error.message : 'Disconnect failed';
       toast({
         title: "Disconnect failed",
-        description: "Please try again",
+        description: errorMsg,
         variant: "destructive"
       });
     } finally {
