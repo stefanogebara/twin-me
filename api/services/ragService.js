@@ -1,6 +1,6 @@
 /**
  * RAG (Retrieval-Augmented Generation) Service
- * Combines vector search with Claude API for personalized responses
+ * Combines vector search with OpenAI API for personalized responses
  */
 
 import { createClient } from '@supabase/supabase-js';
@@ -8,15 +8,26 @@ import embeddingGenerator from './embeddingGenerator.js';
 import stylometricAnalyzer from './stylometricAnalyzer.js';
 import { sanitizeUnicode, sanitizeObject } from '../utils/unicodeSanitizer.js';
 
+// Use SUPABASE_URL (backend) - fallback to VITE_ prefix for compatibility
 const supabase = createClient(
-  process.env.SUPABASE_URL,
+  process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL,
   process.env.SUPABASE_SERVICE_ROLE_KEY
 );
 
+// Log initialization status
+console.log('[RAG Service] Supabase client initialized:', {
+  url: process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL,
+  hasServiceKey: !!process.env.SUPABASE_SERVICE_ROLE_KEY
+});
+
 class RAGService {
   constructor() {
-    this.anthropicApiKey = process.env.ANTHROPIC_API_KEY;
-    this.claudeModel = 'claude-3-5-sonnet-20250929';
+    this.openaiApiKey = process.env.OPENAI_API_KEY;
+    this.model = 'gpt-4o'; // OpenAI's latest model
+    console.log('[RAG Service] Initialized with OpenAI:', {
+      hasApiKey: !!this.openaiApiKey,
+      model: this.model
+    });
   }
 
   /**
@@ -48,9 +59,9 @@ class RAGService {
       const systemPrompt = this.buildSystemPrompt(styleProfile);
       const contextPrompt = this.buildContextPrompt(relevantChunks, pastConversations, platformInsights);
 
-      // Step 4: Call Claude API
-      console.log('[RAG] Calling Claude API...');
-      const response = await this.callClaude(systemPrompt, contextPrompt, userMessage, conversationHistory);
+      // Step 4: Call OpenAI API
+      console.log('[RAG] Calling OpenAI API...');
+      const response = await this.callOpenAI(systemPrompt, contextPrompt, userMessage, conversationHistory);
 
       // Step 5: Store conversation in memory
       console.log('[RAG] Storing conversation memory...');
@@ -294,9 +305,9 @@ Do NOT simply provide information. Channel their authentic voice, perspective, a
   }
 
   /**
-   * Call Claude API
+   * Call OpenAI API
    */
-  async callClaude(systemPrompt, contextPrompt, userMessage, conversationHistory) {
+  async callOpenAI(systemPrompt, contextPrompt, userMessage, conversationHistory) {
     try {
       // Sanitize all text inputs to remove broken Unicode surrogate pairs
       const sanitizedSystemPrompt = sanitizeUnicode(systemPrompt);
@@ -305,6 +316,10 @@ Do NOT simply provide information. Channel their authentic voice, perspective, a
 
       // Build messages array with sanitized conversation history
       const messages = [
+        {
+          role: 'system',
+          content: sanitizedSystemPrompt
+        },
         ...conversationHistory.map(msg => ({
           role: msg.role,
           content: sanitizeUnicode(msg.content)
@@ -317,35 +332,33 @@ Do NOT simply provide information. Channel their authentic voice, perspective, a
 
       // Create sanitized request body
       const requestBody = {
-        model: this.claudeModel,
+        model: this.model,
         max_tokens: 4096,
-        system: sanitizedSystemPrompt,
         messages
       };
 
       // Additional sanitization of the entire request body
       const sanitizedBody = sanitizeObject(requestBody);
 
-      const response = await fetch('https://api.anthropic.com/v1/messages', {
+      const response = await fetch('https://api.openai.com/v1/chat/completions', {
         method: 'POST',
         headers: {
-          'x-api-key': this.anthropicApiKey,
-          'anthropic-version': '2023-06-01',
-          'content-type': 'application/json'
+          'Authorization': `Bearer ${this.openaiApiKey}`,
+          'Content-Type': 'application/json'
         },
         body: JSON.stringify(sanitizedBody)
       });
 
       if (!response.ok) {
         const error = await response.text();
-        console.error('[RAG] Claude API error:', error);
-        throw new Error(`Claude API error: ${response.status} - ${error}`);
+        console.error('[RAG] OpenAI API error:', error);
+        throw new Error(`OpenAI API error: ${response.status} - ${error}`);
       }
 
       const data = await response.json();
-      return data.content[0].text;
+      return data.choices[0].message.content;
     } catch (error) {
-      console.error('[RAG] Error calling Claude:', error);
+      console.error('[RAG] Error calling OpenAI:', error);
       throw error;
     }
   }
