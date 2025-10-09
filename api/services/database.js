@@ -6,7 +6,8 @@ import path from 'path';
 dotenv.config({ path: path.resolve(process.cwd(), '.env') });
 
 // Create server-side Supabase client with service role key
-const supabaseUrl = process.env.SUPABASE_URL;
+// Use SUPABASE_URL (backend) - fallback to VITE_ prefix for compatibility
+const supabaseUrl = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
 let supabaseAdmin = null;

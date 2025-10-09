@@ -15,8 +15,9 @@ import { createClient } from '@supabase/supabase-js';
 import { encryptToken, decryptToken } from './encryption.js';
 
 // Initialize Supabase client
+// Use SUPABASE_URL (backend) - fallback to VITE_ prefix for compatibility
 const supabase = createClient(
-  process.env.VITE_SUPABASE_URL,
+  process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL,
   process.env.SUPABASE_SERVICE_ROLE_KEY
 );
 
