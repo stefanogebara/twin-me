@@ -1,5 +1,16 @@
 import type { DigitalTwin, Message, StudentProfile } from '@/types/database';
 
+// Extend Window interface for Clerk
+declare global {
+  interface Window {
+    Clerk?: {
+      session?: {
+        getToken?: () => Promise<string | null> | string | null;
+      };
+    };
+  }
+}
+
 interface ChatContext {
   twin: DigitalTwin;
   studentProfile?: StudentProfile;
@@ -70,7 +81,7 @@ class SecureAPIClient {
 
     // Get auth token from Clerk or your auth system
     const token = localStorage.getItem('auth_token') ||
-                 (window as any).Clerk?.session?.getToken?.();
+                 window.Clerk?.session?.getToken?.();
 
     const defaultOptions: RequestInit = {
       headers: {

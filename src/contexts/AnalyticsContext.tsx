@@ -3,7 +3,7 @@ import { useAuth } from './AuthContext';
 
 export interface AnalyticsEvent {
   event_type: string;
-  event_data: Record<string, any>;
+  event_data: Record<string, unknown>;
   user_id?: string;
   session_id: string;
   timestamp: Date;
@@ -13,11 +13,11 @@ export interface AnalyticsEvent {
 }
 
 interface AnalyticsContextType {
-  trackEvent: (eventType: string, eventData?: Record<string, any>) => Promise<void>;
+  trackEvent: (eventType: string, eventData?: Record<string, unknown>) => Promise<void>;
   trackPageView: (pagePath: string) => Promise<void>;
-  trackUserAction: (action: string, target: string, metadata?: Record<string, any>) => Promise<void>;
+  trackUserAction: (action: string, target: string, metadata?: Record<string, unknown>) => Promise<void>;
   trackConversation: (twinId: string, messageCount: number, duration: number) => Promise<void>;
-  trackTwinInteraction: (twinId: string, interactionType: string, metadata?: Record<string, any>) => Promise<void>;
+  trackTwinInteraction: (twinId: string, interactionType: string, metadata?: Record<string, unknown>) => Promise<void>;
 }
 
 const AnalyticsContext = createContext<AnalyticsContextType | undefined>(undefined);
@@ -44,7 +44,7 @@ export const AnalyticsProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     return;
   };
 
-  const trackEvent = useCallback(async (eventType: string, eventData: Record<string, any> = {}) => {
+  const trackEvent = useCallback(async (eventType: string, eventData: Record<string, unknown> = {}) => {
     await sendAnalyticsEvent({
       event_type: eventType,
       event_data: {
@@ -64,7 +64,7 @@ export const AnalyticsProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     });
   }, [user]);
 
-  const trackUserAction = useCallback(async (action: string, target: string, metadata: Record<string, any> = {}) => {
+  const trackUserAction = useCallback(async (action: string, target: string, metadata: Record<string, unknown> = {}) => {
     await sendAnalyticsEvent({
       event_type: 'user_action',
       event_data: {
@@ -87,7 +87,7 @@ export const AnalyticsProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     });
   }, [user]);
 
-  const trackTwinInteraction = useCallback(async (twinId: string, interactionType: string, metadata: Record<string, any> = {}) => {
+  const trackTwinInteraction = useCallback(async (twinId: string, interactionType: string, metadata: Record<string, unknown> = {}) => {
     await sendAnalyticsEvent({
       event_type: 'twin_interaction',
       event_data: {
