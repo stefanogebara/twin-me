@@ -11,9 +11,14 @@ import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
 import { soulDataService, ExtractionStatus, StyleProfile } from '@/services/soulDataService';
 
+interface ExtractionCompleteData {
+  status: ExtractionStatus;
+  profile: StyleProfile;
+}
+
 interface Props {
   userId: string;
-  onExtractionComplete?: (data: any) => void;
+  onExtractionComplete?: (data: ExtractionCompleteData) => void;
 }
 
 export const SoulDataExtractor: React.FC<Props> = ({ userId, onExtractionComplete }) => {
@@ -113,9 +118,10 @@ export const SoulDataExtractor: React.FC<Props> = ({ userId, onExtractionComplet
         onExtractionComplete({ status: finalStatus, profile: finalProfile });
       }
 
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Extraction pipeline error:', err);
-      setError(err.message || 'Extraction failed');
+      const errorMsg = err instanceof Error ? err.message : 'Extraction failed';
+      setError(errorMsg);
     } finally {
       setIsExtracting(false);
     }
