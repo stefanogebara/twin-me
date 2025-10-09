@@ -18,6 +18,92 @@ import { realTimeDataSyncEngine } from './RealTimeDataSyncEngine';
 import { personalityAnalysisEngine } from './PersonalityAnalysisEngine';
 
 // ====================================================================
+// TYPE DEFINITIONS FOR AUTOMATED ACTIONS
+// ====================================================================
+
+interface DashboardNotification {
+  id: string;
+  type: string;
+  title: string;
+  message: string;
+  priority: 'low' | 'medium' | 'high';
+  actionUrl?: string;
+  createdAt: Date;
+  userId: string;
+}
+
+interface ProactiveMessage {
+  id: string;
+  twinId: string;
+  message: string;
+  context: string;
+  suggestedResponses: string[];
+  priority: string;
+  expiresAt: Date;
+  createdAt: Date;
+}
+
+interface ContentSuggestionCriteria {
+  contentType: 'article' | 'video' | 'exercise' | 'topic';
+  subject: string;
+  difficultyLevel: number;
+  personalityMatch: number;
+  reasoning: string;
+}
+
+interface ConversationStarterPayload {
+  conversationType: 'check_in' | 'review_session' | 'clarification' | 'encouragement';
+  context?: string;
+  previousTopics?: string[];
+  personalityTrigger?: string;
+}
+
+interface LearningPathUpdates {
+  pathId: string;
+  updates: {
+    addTopics?: string[];
+    removeTopics?: string[];
+    adjustDifficulty?: number;
+    changeSequence?: Array<{ topicId: string; newOrder: number }>;
+  };
+  reasoning: string;
+}
+
+interface FeedbackRequest {
+  id: string;
+  userId: string;
+  type: string;
+  context: string;
+  questions: string[];
+  createdAt: Date;
+  expiresAt: Date;
+}
+
+interface InsightReportConfig {
+  reportType: 'weekly_summary' | 'monthly_analysis' | 'personality_drift' | 'learning_progress';
+  includeRecommendations: boolean;
+  shareWithUser: boolean;
+}
+
+interface InsightReport {
+  id: string;
+  reportType: string;
+  includeRecommendations: boolean;
+  shareWithUser: boolean;
+}
+
+interface ConnectionCriteria {
+  connectionType: 'study_buddy' | 'mentor' | 'peer_learner' | 'subject_expert';
+  criteria: {
+    subject?: string;
+    learningStyle?: string;
+    personality?: string;
+    experience?: string;
+  };
+  maxRecommendations: number;
+}
+
+// ====================================================================
 // AUTOMATED ACTIONS ENGINE
 // ====================================================================
 
@@ -732,46 +818,46 @@ export class AutomatedActionsEngine {
   }
 
   // Mock implementations for external integrations
-  private async queueDashboardNotification(userId: string, notification: any) {
+  private async queueDashboardNotification(userId: string, notification: DashboardNotification) {
     console.log(`📱 Dashboard notification queued for ${userId}:`, notification.title);
   }
 
-  private async queueProactiveMessage(userId: string, message: any) {
+  private async queueProactiveMessage(userId: string, message: ProactiveMessage) {
     console.log(`💬 Proactive message queued for ${userId}`);
   }
 
-  private async generateContentSuggestions(userId: string, criteria: any) {
+  private async generateContentSuggestions(userId: string, criteria: ContentSuggestionCriteria) {
     console.log(`💡 Generating content suggestions for ${userId}`);
     return [];
   }
 
-  private async generateConversationStarter(userId: string, payload: any) {
+  private async generateConversationStarter(userId: string, payload: ConversationStarterPayload) {
     console.log(`💬 Generating conversation starter for ${userId}`);
     return {
       message: "I've noticed some interesting patterns in your learning. Want to chat about it?",
-      context: payload.context,
+      context: payload.context || '',
       suggestedResponses: ["Sure, what did you notice?", "Tell me more", "Not right now"]
     };
   }
 
-  private async applyLearningPathUpdates(userId: string, updates: any) {
+  private async applyLearningPathUpdates(userId: string, updates: LearningPathUpdates) {
     console.log(`🛤️ Applying learning path updates for ${userId}`);
   }
 
-  private async createFeedbackRequest(request: any) {
+  private async createFeedbackRequest(request: FeedbackRequest) {
     console.log(`📝 Creating feedback request ${request.id}`);
   }
 
-  private async generateInsightReport(userId: string, config: any) {
+  private async generateInsightReport(userId: string, config: InsightReportConfig): Promise<InsightReport> {
     console.log(`📊 Generating insight report for ${userId}`);
     return { id: crypto.randomUUID(), ...config };
   }
 
-  private async saveInsightReport(userId: string, report: any) {
+  private async saveInsightReport(userId: string, report: InsightReport) {
     console.log(`💾 Saving insight report for ${userId}`);
   }
 
-  private async findCompatibleConnections(userId: string, criteria: any) {
+  private async findCompatibleConnections(userId: string, criteria: ConnectionCriteria) {
     console.log(`🤝 Finding connections for ${userId}`);
     return [];
   }
