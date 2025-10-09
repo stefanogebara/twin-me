@@ -548,124 +548,35 @@ const InstantTwinOnboarding = () => {
     }
 
     setIsGenerating(true);
-    setCurrentStep(3);
-    setShowExtractionProgress(true); // Enable extraction progress display
-    setExtractionComplete(false); // Reset extraction completion flag
 
-    const config: InstantTwinConfig = {
-      userId: user.id,
-      selectedProviders: selectedConnectors,
-      dataTimeRange: {
-        start: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000), // 30 days ago
-        end: new Date()
-      },
-      processingPriority: 'fast',
-      privacyLevel: 'standard'
-    };
+    // Show simple loading toast
+    toast({
+      title: "Setting up your Soul Signature dashboard...",
+      description: "Creating your digital twin structure",
+    });
 
-    // Simulate twin generation progress
-    const progressStages = [
-      { stage: 'connecting', progress: 10, task: 'Establishing secure connections...', time: 1000 },
-      { stage: 'ingesting', progress: 30, task: 'Analyzing your communication patterns...', time: 2000 },
-      { stage: 'ingesting', progress: 50, task: 'Processing calendar and work data...', time: 2000 },
-      { stage: 'analyzing', progress: 70, task: 'Extracting personality insights...', time: 3000 },
-      { stage: 'analyzing', progress: 85, task: 'Identifying expertise areas...', time: 2000 },
-      { stage: 'generating', progress: 95, task: 'Creating your digital twin...', time: 2000 },
-      { stage: 'ready', progress: 100, task: 'Your twin is ready!', time: 1000 }
-    ];
-
-    for (const stage of progressStages) {
-      await new Promise(resolve => setTimeout(resolve, stage.time));
-
-      setGenerationProgress({
-        userId: user.id,
-        stage: stage.stage as any,
-        progress: stage.progress,
-        currentTask: stage.task,
-        estimatedTimeRemaining: Math.max(0, 60 - (stage.progress * 0.6)),
-        connectorsConnected: selectedConnectors,
-        dataPointsIngested: Math.floor(stage.progress * 5),
-        insightsGenerated: Math.floor(stage.progress * 0.2)
-      });
-    }
-
-    // Create the soul signature twin, then navigate to dashboard
+    // Create the digital twin record (lightweight operation)
     try {
-      // Step 1: Check if user has connected platforms
-      let soulSignature = null;
-      let hasExtractedData = false;
-
-      if (selectedConnectors.length > 0) {
-        // Step 2: Extract data from connected platforms and build soul signature
-        console.log('🔄 Extracting soul signature from connected platforms...');
-
-        try {
-          const extractResponse = await fetch(`${import.meta.env.VITE_API_URL}/soul-data/build-soul-signature`, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({ userId: user.id })
-          });
-
-          const extractResult = await extractResponse.json();
-
-          if (extractResult.success && extractResult.soulSignature) {
-            soulSignature = extractResult.soulSignature;
-            hasExtractedData = true;
-            console.log('✅ Soul signature extracted:', soulSignature);
-          } else {
-            console.warn('⚠️ No soul signature data available yet:', extractResult.message);
-          }
-        } catch (extractError) {
-          console.error('❌ Error extracting soul signature:', extractError);
-        }
-      }
-
-      // Step 3: Build twin data from real soul signature OR use basic fallback
-      const twinData = hasExtractedData && soulSignature ? {
-        // REAL DATA from soul extraction
+      const twinData = {
         name: user.fullName || user.firstName || 'My Soul Signature',
-        description: `AI twin created from analyzing ${selectedConnectors.join(', ')} platforms`,
-        subject_area: 'Soul Signature Analysis',
-        twin_type: 'personal',
-        personality_traits: soulSignature.personality_traits || {
-          openness: 0.7,
-          conscientiousness: 0.6,
-          extraversion: 0.5,
-          agreeableness: 0.7,
-          neuroticism: 0.4
-        },
-        teaching_style: {
-          communication_style: soulSignature.communication_style || 'balanced',
-          philosophy: `Authentic self-expression derived from ${soulSignature.data_sources?.join(', ') || 'platform'} analysis`
-        },
-        common_phrases: soulSignature.common_phrases || ['Working on something interesting'],
-        favorite_analogies: soulSignature.favorite_analogies || ['Like searching in the branches for what we find in the roots'],
-        soul_signature: soulSignature,
-        connected_platforms: selectedConnectors,
-        knowledge_base_status: 'ready'
-      } : {
-        // FALLBACK: Basic twin without soul extraction (no platforms connected)
-        name: user.fullName || user.firstName || 'My Soul Signature',
-        description: 'AI twin ready for soul signature discovery. Connect platforms to enhance.',
+        description: `Digital twin for ${user.fullName || user.firstName || 'user'}. Soul signature extraction ready.`,
         subject_area: 'Soul Signature Analysis',
         twin_type: 'personal',
         personality_traits: {
-          openness: 0.7,
-          conscientiousness: 0.6,
+          openness: 0.5,
+          conscientiousness: 0.5,
           extraversion: 0.5,
-          agreeableness: 0.7,
-          neuroticism: 0.4
+          agreeableness: 0.5,
+          neuroticism: 0.5
         },
         teaching_style: {
           communication_style: 'balanced',
-          philosophy: 'Ready to learn from your connected platforms'
+          philosophy: 'Awaiting soul signature extraction from connected platforms'
         },
-        common_phrases: ['Connect platforms to discover my authentic voice'],
-        favorite_analogies: ['Like searching in the branches for what we find in the roots'],
-        connected_platforms: [],
-        knowledge_base_status: 'empty'
+        common_phrases: [],
+        favorite_analogies: [],
+        connected_platforms: connectedServices,
+        knowledge_base_status: 'pending_extraction'
       };
 
       const token = localStorage.getItem('auth_token');
@@ -679,35 +590,43 @@ const InstantTwinOnboarding = () => {
       });
 
       const result = await response.json();
-      console.log('🔍 API Response:', { status: response.status, result });
+      console.log('✅ Digital twin structure created:', { status: response.status, result });
 
       if (response.ok && (result.id || result.twin?.id)) {
-        // Navigate to the Soul Signature Dashboard
+        // Navigate directly to Soul Signature Dashboard
+        // Actual data extraction will happen there when user clicks "Extract Soul Signature"
+        toast({
+          title: "Ready to extract your Soul Signature!",
+          description: "Navigate to the dashboard to begin extraction.",
+        });
+
         setTimeout(() => {
           navigate('/soul-signature');
-        }, 500); // Reduced from 2000ms - navigate faster
+        }, 500);
       } else {
-        console.error('🚨 API Error Details:', {
+        console.error('API Error:', {
           status: response.status,
           statusText: response.statusText,
           result
         });
-        throw new Error(`Failed to create soul signature: ${result.error || result.message || 'Unknown error'}`);
+        throw new Error(`Failed to create soul signature structure: ${result.error || result.message || 'Unknown error'}`);
       }
     } catch (error) {
-      console.error('Error creating soul signature:', error);
+      console.error('Error creating soul signature structure:', error);
       toast({
         title: "Error",
-        description: "Failed to create your soul signature. Please try again.",
+        description: "Failed to create your soul signature structure. Please try again.",
         variant: "destructive"
       });
-      // Fallback navigation to Soul Signature Dashboard
+      setIsGenerating(false);
+
+      // Still navigate to dashboard even on error (they might have an existing twin)
       setTimeout(() => {
         navigate('/soul-signature');
-      }, 500); // Reduced from 2000ms - navigate faster even on error
+      }, 1000);
     }
 
-  }, [user, selectedConnectors, navigate]);
+  }, [user, connectedServices, navigate, toast]);
 
   // ====================================================================
   // RENDER HELPERS
@@ -1645,12 +1564,7 @@ const InstantTwinOnboarding = () => {
           </div>
         )}
 
-        {/* Step 3: Generation Progress */}
-        {currentStep === 3 && (
-          <div>
-            {renderGenerationProgress()}
-          </div>
-        )}
+        {/* Step 3: No longer used - we navigate directly to soul-signature dashboard */}
       </div>
     </div>
   );
