@@ -18,6 +18,14 @@ interface ExtractionProgress {
   estimatedTimeRemaining?: number;
 }
 
+interface ExtractionJob {
+  platform: string;
+  status: string;
+  processed_items?: number;
+  total_items?: number;
+  error_message?: string;
+}
+
 interface Props {
   userId: string;
   platforms: string[];
@@ -85,7 +93,7 @@ export const ExtractionProgressIndicator: React.FC<Props> = ({
           // Update platform progress based on jobs
           const updatedProgress = { ...platformProgress };
 
-          data.recentJobs.forEach((job: any) => {
+          data.recentJobs.forEach((job: ExtractionJob) => {
             if (platforms.includes(job.platform)) {
               updatedProgress[job.platform] = {
                 platform: job.platform,
