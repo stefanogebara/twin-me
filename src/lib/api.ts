@@ -390,9 +390,9 @@ export class SecureDigitalTwinAPI {
   /**
    * Get all twins with processed documents (professor only)
    */
-  static async getProcessedTwins(authToken: string): Promise<any[]> {
+  static async getProcessedTwins(authToken: string): Promise<DigitalTwin[]> {
     try {
-      const response = await makeAPICall<{ twins: any[] }>('/documents/twins', {
+      const response = await makeAPICall<{ twins: DigitalTwin[] }>('/documents/twins', {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${authToken}`,

@@ -18,14 +18,34 @@ interface ApiResponse<T> {
   message?: string;
 }
 
+interface UsageData {
+  input_tokens?: number;
+  output_tokens?: number;
+  total_tokens?: number;
+}
+
+interface SourceData {
+  id?: string;
+  content: string;
+  metadata?: Record<string, unknown>;
+  relevance_score?: number;
+}
+
+interface VoiceSettings {
+  stability?: number;
+  similarity_boost?: number;
+  style?: number;
+  use_speaker_boost?: boolean;
+}
+
 interface ChatResponse {
   response: string;
-  usage?: any;
+  usage?: UsageData;
   model?: string;
   ragContext?: {
     foundRelevantContent: boolean;
     sourcesUsed: number;
-    sources: any[];
+    sources: SourceData[];
   };
 }
 
@@ -192,7 +212,7 @@ class SecureAPIClient {
   async synthesizeVoice(
     text: string,
     voiceId?: string,
-    settings: any = {}
+    settings: VoiceSettings = {}
   ): Promise<string> {
     try {
       const response = await this.makeRequest<{

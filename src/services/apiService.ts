@@ -186,7 +186,7 @@ export const trainingAPI = {
 /**
  * Generic API error handler
  */
-export const handleAPIError = (error: any): string => {
+export const handleAPIError = (error: unknown): string => {
   if (error instanceof Error) {
     return error.message;
   }

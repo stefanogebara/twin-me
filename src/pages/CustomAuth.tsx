@@ -31,8 +31,9 @@ const CustomAuth = () => {
         await signUp(email, password, firstName, lastName);
       }
       navigate('/get-started');
-    } catch (err: any) {
-      setError(err.message || 'Authentication failed');
+    } catch (err: unknown) {
+      const errorMsg = err instanceof Error ? err.message : 'Authentication failed';
+      setError(errorMsg);
     } finally {
       setLoading(false);
     }
@@ -41,8 +42,9 @@ const CustomAuth = () => {
   const handleOAuthSignIn = async (provider: 'google') => {
     try {
       await signInWithOAuth(provider);
-    } catch (err: any) {
-      setError(err.message || `${provider} sign in failed`);
+    } catch (err: unknown) {
+      const errorMsg = err instanceof Error ? err.message : `${provider} sign in failed`;
+      setError(errorMsg);
     }
   };
 

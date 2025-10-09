@@ -10,6 +10,17 @@ if (!supabaseUrl || !supabaseAnonKey) {
 
 export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey);
 
+// Supabase Realtime payload type
+export interface RealtimePayload<T = unknown> {
+  schema: string;
+  table: string;
+  commit_timestamp: string;
+  eventType: 'INSERT' | 'UPDATE' | 'DELETE';
+  new: T;
+  old: T;
+  errors: string[] | null;
+}
+
 // Helper functions for common database operations
 export const dbHelpers = {
   // Profile operations
@@ -233,7 +244,7 @@ export const dbHelpers = {
   },
 
   // Real-time subscriptions
-  subscribeToConversation(conversationId: string, callback: (payload: any) => void) {
+  subscribeToConversation(conversationId: string, callback: (payload: RealtimePayload) => void) {
     return supabase
       .channel(`conversation-${conversationId}`)
       .on(
@@ -249,7 +260,7 @@ export const dbHelpers = {
       .subscribe();
   },
 
-  subscribeToTwinUpdates(twinId: string, callback: (payload: any) => void) {
+  subscribeToTwinUpdates(twinId: string, callback: (payload: RealtimePayload) => void) {
     return supabase
       .channel(`twin-${twinId}`)
       .on(
