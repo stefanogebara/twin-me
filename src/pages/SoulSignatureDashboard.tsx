@@ -57,6 +57,67 @@ const SoulSignatureDashboard: React.FC = () => {
   const [hasConnectedServices, setHasConnectedServices] = useState(false);
   const [extensionInstalled, setExtensionInstalled] = useState(false);
   const [extensionAuthenticated, setExtensionAuthenticated] = useState(false);
+  const [uniquenessScore, setUniquenessScore] = useState<number>(0);
+
+  // Calculate uniqueness score from style profile
+  const calculateUniquenessScore = (profile: any): number => {
+    if (!profile) return 0;
+
+    let score = 0;
+    let components = 0;
+
+    // 1. Vocabulary richness (0-30 points)
+    if (profile.vocabulary_richness !== undefined) {
+      score += Math.min(profile.vocabulary_richness * 100 * 0.3, 30);
+      components++;
+    }
+
+    // 2. Personality trait variance from baseline 0.5 (0-25 points)
+    if (profile.personality_traits) {
+      const traits = profile.personality_traits;
+      const traitValues = [
+        traits.openness,
+        traits.conscientiousness,
+        traits.extraversion,
+        traits.agreeableness,
+        traits.neuroticism
+      ].filter(v => v !== undefined);
+
+      if (traitValues.length > 0) {
+        // Calculate average distance from baseline (0.5 = average person)
+        const avgDeviation = traitValues.reduce((sum, val) => sum + Math.abs(val - 0.5), 0) / traitValues.length;
+        score += Math.min(avgDeviation * 100, 25);
+        components++;
+      }
+    }
+
+    // 3. Communication style uniqueness (0-20 points)
+    if (profile.communication_style) {
+      // Non-"balanced" styles are more unique
+      if (profile.communication_style !== 'balanced') {
+        score += 15;
+      } else {
+        score += 5;
+      }
+      components++;
+    }
+
+    // 4. Writing complexity (0-15 points)
+    if (profile.sentence_complexity !== undefined) {
+      score += Math.min(profile.sentence_complexity * 100 * 0.15, 15);
+      components++;
+    }
+
+    // 5. Confidence bonus (0-10 points)
+    if (profile.confidence_score !== undefined && profile.confidence_score > 0.7) {
+      score += Math.min((profile.confidence_score - 0.7) * 100 / 3, 10);
+      components++;
+    }
+
+    // Normalize to 0-100 range
+    if (components === 0) return 0;
+    return Math.min(Math.round(score), 100);
+  };
 
   // Authentication check
   useEffect(() => {
@@ -574,6 +635,11 @@ const SoulSignatureDashboard: React.FC = () => {
               if (data.profile?.success) {
                 const profile = data.profile.profile;
 
+                // Calculate uniqueness score
+                const uniqueness = calculateUniquenessScore(profile);
+                setUniquenessScore(uniqueness);
+                console.log(`✨ Calculated uniqueness score: ${uniqueness}%`);
+
                 // Personal insights - personality and communication style
                 const personalInsights = [
                   `😄 Humor Style: ${profile.humor_style}`,
@@ -805,7 +871,7 @@ const SoulSignatureDashboard: React.FC = () => {
                         color: 'hsl(var(--claude-text))'
                       }}
                     >
-                      87%
+                      {uniquenessScore > 0 ? `${uniquenessScore}%` : 'Extract to see'}
                     </div>
                   </div>
                 </div>
