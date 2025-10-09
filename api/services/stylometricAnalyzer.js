@@ -6,8 +6,9 @@
 import { createClient } from '@supabase/supabase-js';
 import natural from 'natural';
 
+// Use SUPABASE_URL (backend) - fallback to VITE_ prefix for compatibility
 const supabase = createClient(
-  process.env.SUPABASE_URL,
+  process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL,
   process.env.SUPABASE_SERVICE_ROLE_KEY
 );
 
@@ -36,9 +37,32 @@ class StylometricAnalyzer {
       console.log(`[Stylometric] Analyzing ${textContent.length} text samples...`);
 
       // Combine all text
-      const allText = textContent.map(t => t.text_content).join(' ');
+      const allText = textContent.map(t => t.text_content || '').join(' ').trim();
+
+      // Check if we have actual text content
+      if (!allText || allText.length < 50) {
+        console.log('[Stylometric] Extracted data contains no meaningful text content');
+        return {
+          success: false,
+          message: 'Insufficient text content for analysis. Platform data may be empty.',
+          samplesAnalyzed: textContent.length,
+          textLength: allText.length
+        };
+      }
+
       const words = tokenizer.tokenize(allText.toLowerCase());
       const sentences = sentenceTokenizer.tokenize(allText);
+
+      // Additional validation
+      if (words.length < 10 || sentences.length < 2) {
+        console.log('[Stylometric] Text too short for meaningful analysis');
+        return {
+          success: false,
+          message: 'Text content too short for analysis. Need at least 10 words.',
+          samplesAnalyzed: textContent.length,
+          wordCount: words.length
+        };
+      }
 
       // Perform analyses
       const lexical = this.analyzeLexicalFeatures(words, allText);
@@ -83,6 +107,18 @@ class StylometricAnalyzer {
    * Analyze lexical features (word choices, vocabulary)
    */
   analyzeLexicalFeatures(words, text) {
+    // Safety check
+    if (!words || words.length === 0) {
+      return {
+        avg_word_length: 0,
+        vocabulary_richness: 0,
+        unique_words_count: 0,
+        total_words_count: 0,
+        common_words: {},
+        rare_words: {}
+      };
+    }
+
     // Calculate word statistics
     const uniqueWords = new Set(words);
     const avgWordLength = words.reduce((sum, w) => sum + w.length, 0) / words.length;
@@ -117,6 +153,16 @@ class StylometricAnalyzer {
    * Analyze syntactic features (sentence structure)
    */
   analyzeSyntacticFeatures(sentences, text) {
+    // Safety check
+    if (!sentences || sentences.length === 0) {
+      return {
+        avg_sentence_length: 0,
+        sentence_complexity: 0,
+        punctuation_patterns: {},
+        grammar_patterns: {}
+      };
+    }
+
     // Calculate sentence statistics
     const sentenceLengths = sentences.map(s => tokenizer.tokenize(s).length);
     const avgSentenceLength = sentenceLengths.reduce((sum, len) => sum + len, 0) / sentences.length;
@@ -150,13 +196,24 @@ class StylometricAnalyzer {
     // This is a simplified heuristic model
     // In production, use trained ML model
 
+    // Safety check
+    if (!textContent || textContent.length === 0) {
+      return {
+        openness: 0.5,
+        conscientiousness: 0.5,
+        extraversion: 0.5,
+        agreeableness: 0.5,
+        neuroticism: 0.5
+      };
+    }
+
     let openness = 0.5;
     let conscientiousness = 0.5;
     let extraversion = 0.5;
     let agreeableness = 0.5;
     let neuroticism = 0.5;
 
-    const allText = textContent.map(t => t.text_content.toLowerCase()).join(' ');
+    const allText = textContent.map(t => (t.text_content || '').toLowerCase()).join(' ');
 
     // Openness markers (curiosity, creativity)
     const opennessMarkers = ['interesting', 'creative', 'innovative', 'curious', 'explore', 'discover', 'imagine', 'wonder'];
@@ -191,8 +248,18 @@ class StylometricAnalyzer {
    * Score personality trait markers
    */
   scoreTraitMarkers(text, markers) {
+    // Safety check
+    if (!text || text.trim().length === 0) {
+      return 0.5; // Return neutral score
+    }
+
     const words = text.split(/\s+/);
     const totalWords = words.length;
+
+    if (totalWords === 0) {
+      return 0.5;
+    }
+
     let markerCount = 0;
 
     markers.forEach(marker => {
@@ -207,7 +274,17 @@ class StylometricAnalyzer {
    * Analyze communication style
    */
   analyzeCommunicationStyle(textContent) {
-    const allText = textContent.map(t => t.text_content.toLowerCase()).join(' ');
+    // Safety check
+    if (!textContent || textContent.length === 0) {
+      return { style: 'balanced', humor: 'neutral' };
+    }
+
+    const allText = textContent.map(t => (t.text_content || '').toLowerCase()).join(' ').trim();
+
+    // Additional check for empty text
+    if (!allText || allText.length === 0) {
+      return { style: 'balanced', humor: 'neutral' };
+    }
 
     // Formality analysis
     const formalMarkers = ['furthermore', 'moreover', 'consequently', 'therefore', 'regarding', 'respective'];
@@ -263,6 +340,15 @@ class StylometricAnalyzer {
    * Analyze emotional tone
    */
   analyzeEmotionalTone(textContent) {
+    // Safety check
+    if (!textContent || textContent.length === 0) {
+      return {
+        positive: 0.33,
+        negative: 0.33,
+        neutral: 0.34
+      };
+    }
+
     const positiveWords = ['good', 'great', 'excellent', 'amazing', 'awesome', 'love', 'happy', 'thanks', 'perfect', 'nice'];
     const negativeWords = ['bad', 'terrible', 'awful', 'hate', 'angry', 'sad', 'wrong', 'problem', 'issue', 'error'];
 
@@ -271,7 +357,7 @@ class StylometricAnalyzer {
     let neutralCount = 0;
 
     textContent.forEach(item => {
-      const text = item.text_content.toLowerCase();
+      const text = (item.text_content || '').toLowerCase();
       let itemPositive = 0;
       let itemNegative = 0;
 
@@ -300,6 +386,16 @@ class StylometricAnalyzer {
    * Analyze behavioral patterns
    */
   analyzeBehavioralPatterns(textContent) {
+    // Safety check
+    if (!textContent || textContent.length === 0) {
+      return {
+        responseTime: null,
+        activityPatterns: {},
+        engagementStyle: 'unknown',
+        contentTypeDistribution: {}
+      };
+    }
+
     // Response time patterns (if timestamp data available)
     // Activity patterns (when user is most active)
     // Engagement style (proactive vs reactive)
