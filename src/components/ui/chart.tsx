@@ -61,11 +61,12 @@ ChartContainer.displayName = "Chart";
 const ChartStyle = ({ id, config }: { id: string; config: ChartConfig }) => {
   const colorConfig = Object.entries(config).filter(([_, config]) => config.theme || config.color);
 
-  if (!colorConfig.length) {
-    return null;
-  }
-
   React.useEffect(() => {
+    // Skip if no color config
+    if (!colorConfig.length) {
+      return;
+    }
+
     // Create style element programmatically to avoid dangerouslySetInnerHTML
     const styleId = `chart-style-${id}`;
     let styleElement = document.getElementById(styleId) as HTMLStyleElement;

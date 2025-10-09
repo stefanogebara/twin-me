@@ -62,13 +62,14 @@ export function SearchAndFilter<T>({
               return Array.isArray(filterValue) ? filterValue.includes(itemValue) : itemValue === filterValue;
             case 'boolean':
               return Boolean(itemValue) === Boolean(filterValue);
-            case 'range':
+            case 'range': {
               const numValue = Number(itemValue);
               const rangeValue = filterValue as { min?: number; max?: number };
               return (
                 (rangeValue.min === undefined || numValue >= rangeValue.min) &&
                 (rangeValue.max === undefined || numValue <= rangeValue.max)
               );
+            }
             default:
               return true;
           }
@@ -155,7 +156,7 @@ export function SearchAndFilter<T>({
           </label>
         );
 
-      case 'range':
+      case 'range': {
         const rangeValue = value as { min?: number; max?: number } || {};
         return (
           <div key={String(filter.key)} className="space-y-2">
@@ -188,6 +189,7 @@ export function SearchAndFilter<T>({
             </div>
           </div>
         );
+      }
 
       default:
         return null;
