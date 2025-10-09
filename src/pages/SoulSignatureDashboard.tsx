@@ -75,9 +75,9 @@ const SoulSignatureDashboard: React.FC = () => {
 
       try {
         // Try to ping the extension
-        // @ts-ignore - chrome runtime API
+        // @ts-expect-error - chrome runtime API not typed
         if (typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.sendMessage) {
-          // @ts-ignore
+          // @ts-expect-error - chrome.runtime types not available
           chrome.runtime.sendMessage(
             EXTENSION_ID,
             { type: 'PING' },
@@ -99,7 +99,7 @@ const SoulSignatureDashboard: React.FC = () => {
                   // Get auth token from localStorage (or wherever you store it)
                   const authToken = localStorage.getItem('authToken');
 
-                  // @ts-ignore
+                  // @ts-expect-error - chrome.runtime types not available
                   chrome.runtime.sendMessage(
                     EXTENSION_ID,
                     {

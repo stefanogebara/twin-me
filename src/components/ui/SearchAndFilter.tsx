@@ -16,7 +16,7 @@ interface FilterConfig<T> {
   key: keyof T;
   label: string;
   type: 'select' | 'multiselect' | 'range' | 'boolean';
-  options?: Array<{ value: any; label: string }>;
+  options?: Array<{ value: string | number | boolean; label: string }>;
   min?: number;
   max?: number;
 }
@@ -30,7 +30,7 @@ export function SearchAndFilter<T>({
   className = ''
 }: SearchAndFilterProps<T>) {
   const [searchTerm, setSearchTerm] = useState('');
-  const [filterValues, setFilterValues] = useState<Record<string, any>>({});
+  const [filterValues, setFilterValues] = useState<Record<string, string | number | boolean | string[] | { min?: number; max?: number }>>({});
   const [showFilters, setShowFilters] = useState(false);
   const { isLoading } = useLoading();
 
@@ -84,7 +84,7 @@ export function SearchAndFilter<T>({
     onFilteredData(filteredData);
   }, [filteredData, onFilteredData]);
 
-  const handleFilterChange = useCallback((filterKey: string, value: any) => {
+  const handleFilterChange = useCallback((filterKey: string, value: string | number | boolean | string[] | { min?: number; max?: number }) => {
     setFilterValues(prev => ({
       ...prev,
       [filterKey]: value

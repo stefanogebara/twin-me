@@ -8,17 +8,17 @@ export interface AsyncState<T> {
   success: boolean;
 }
 
-export interface UseAsyncOperationOptions {
+export interface UseAsyncOperationOptions<T = unknown> {
   showSuccessToast?: boolean;
   showErrorToast?: boolean;
   successMessage?: string;
   errorMessage?: string;
-  onSuccess?: (data: any) => void;
+  onSuccess?: (data: T) => void;
   onError?: (error: Error) => void;
 }
 
-export function useAsyncOperation<T = any>(
-  options: UseAsyncOperationOptions = {}
+export function useAsyncOperation<T = unknown>(
+  options: UseAsyncOperationOptions<T> = {}
 ) {
   const {
     showSuccessToast = false,
