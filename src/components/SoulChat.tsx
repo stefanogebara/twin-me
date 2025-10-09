@@ -23,6 +23,12 @@ interface Message {
   };
 }
 
+interface HistoryMessage {
+  role: 'user' | 'assistant';
+  content: string;
+  timestamp: string | Date;
+}
+
 interface Props {
   userId: string;
   twinId?: string;
@@ -54,7 +60,7 @@ export const SoulChat: React.FC<Props> = ({ userId, twinId, onNewMessage }) => {
     try {
       const history = await soulDataService.getConversationHistory(userId, twinId || 'default', 10);
       if (history.success && history.messages) {
-        const loadedMessages: Message[] = history.messages.map((msg: any) => ({
+        const loadedMessages: Message[] = history.messages.map((msg: HistoryMessage) => ({
           role: msg.role,
           content: msg.content,
           timestamp: new Date(msg.timestamp)
@@ -112,9 +118,10 @@ export const SoulChat: React.FC<Props> = ({ userId, twinId, onNewMessage }) => {
       } else {
         throw new Error('Chat response failed');
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Chat error:', err);
-      setError(err.message || 'Failed to send message');
+      const errorMsg = err instanceof Error ? err.message : 'Failed to send message';
+      setError(errorMsg);
 
       // Add error message
       const errorMessage: Message = {
