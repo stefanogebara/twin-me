@@ -6,6 +6,29 @@ import type { DigitalTwin, Message, StudentProfile } from '@/types/database';
 // Legacy warning
 console.warn('WARNING: Using deprecated OpenAI client. Please migrate to secureApi.');
 
+// Type guards for JSONB fields
+interface PersonalityTraits {
+  communication_style?: string;
+  energy_level?: string;
+  sense_of_humor?: string;
+  supportiveness?: string;
+}
+
+interface TeachingStyle {
+  primary_method?: string;
+  encourages_questions?: boolean;
+  uses_humor?: boolean;
+  provides_examples?: boolean;
+  checks_understanding?: boolean;
+}
+
+interface LearningStyle {
+  visual_preference?: number;
+  auditory_preference?: number;
+  reading_preference?: number;
+  preferred_pace?: string;
+}
+
 interface ChatContext {
   twin: DigitalTwin;
   studentProfile?: StudentProfile;
@@ -57,7 +80,7 @@ export class DigitalTwinLLM {
 
     // Add personality traits
     if (twin.personality_traits && Object.keys(twin.personality_traits).length > 0) {
-      const traits = twin.personality_traits as any;
+      const traits = twin.personality_traits as PersonalityTraits;
       systemPrompt += `Your personality traits include: `;
 
       if (traits.communication_style) {
@@ -76,7 +99,7 @@ export class DigitalTwinLLM {
 
     // Add teaching style
     if (twin.teaching_style && Object.keys(twin.teaching_style).length > 0) {
-      const teachingStyle = twin.teaching_style as any;
+      const teachingStyle = twin.teaching_style as TeachingStyle;
       systemPrompt += `Your teaching approach: `;
 
       if (teachingStyle.primary_method) {
@@ -115,7 +138,7 @@ export class DigitalTwinLLM {
 
     // Student-specific adaptations
     if (studentProfile && studentProfile.learning_style) {
-      const learningStyle = studentProfile.learning_style as any;
+      const learningStyle = studentProfile.learning_style as LearningStyle;
       systemPrompt += `\n\nAdapt your responses to this student's learning preferences: `;
 
       if (learningStyle.visual_preference > 3) {

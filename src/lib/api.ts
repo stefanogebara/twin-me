@@ -327,7 +327,7 @@ export class SecureDigitalTwinAPI {
   /**
    * Get document statistics for a twin
    */
-  static async getDocumentStats(twinId: string, authToken: string): Promise<any> {
+  static async getDocumentStats(twinId: string, authToken: string): Promise<unknown> {
     try {
       const response = await makeAPICall(`/documents/stats/${twinId}`, {
         method: 'GET',
@@ -345,7 +345,7 @@ export class SecureDigitalTwinAPI {
   /**
    * Search documents for relevant context
    */
-  static async searchDocuments(twinId: string, query: string, maxResults: number = 5, authToken: string): Promise<any> {
+  static async searchDocuments(twinId: string, query: string, maxResults: number = 5, authToken: string): Promise<unknown> {
     try {
       const response = await makeAPICall('/documents/search', {
         method: 'POST',
