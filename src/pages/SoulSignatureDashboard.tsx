@@ -571,16 +571,48 @@ const SoulSignatureDashboard: React.FC = () => {
               // Update insights from real personality data
               if (data.profile?.success) {
                 const profile = data.profile.profile;
-                const insights = [
-                  `🧠 Communication: ${profile.communication_style}`,
-                  `😄 Humor: ${profile.humor_style}`,
+
+                // Personal insights - personality and communication style
+                const personalInsights = [
+                  `😄 Humor Style: ${profile.humor_style}`,
                   `📊 Confidence: ${(profile.confidence_score * 100).toFixed(0)}%`,
-                  `✍️ Analyzed from ${profile.sample_size} samples`
+                  `✍️ Analyzed from ${profile.sample_size} text samples`
                 ];
-                setExtractedInsights(prev => ({
-                  ...prev,
-                  personal: insights
-                }));
+
+                // Add Big Five personality traits to personal insights
+                if (profile.personality_traits) {
+                  const traits = profile.personality_traits;
+                  if (traits.openness !== undefined) {
+                    personalInsights.push(`🎨 Openness: ${(traits.openness * 100).toFixed(0)}%`);
+                  }
+                  if (traits.extraversion !== undefined) {
+                    personalInsights.push(`🗣️ Extraversion: ${(traits.extraversion * 100).toFixed(0)}%`);
+                  }
+                }
+
+                // Professional insights - work-related traits
+                const professionalInsights = [
+                  `🧠 Communication: ${profile.communication_style}`,
+                  `📧 Sample Size: ${profile.sample_size} messages analyzed`,
+                  `📊 Analysis Confidence: ${(profile.confidence_score * 100).toFixed(0)}%`
+                ];
+
+                // Add conscientiousness and agreeableness to professional insights
+                if (profile.personality_traits) {
+                  const traits = profile.personality_traits;
+                  if (traits.conscientiousness !== undefined) {
+                    professionalInsights.push(`✅ Conscientiousness: ${(traits.conscientiousness * 100).toFixed(0)}%`);
+                  }
+                  if (traits.agreeableness !== undefined) {
+                    professionalInsights.push(`🤝 Agreeableness: ${(traits.agreeableness * 100).toFixed(0)}%`);
+                  }
+                }
+
+                // Update both clusters
+                setExtractedInsights({
+                  personal: personalInsights,
+                  professional: professionalInsights
+                });
               }
             }}
           />
