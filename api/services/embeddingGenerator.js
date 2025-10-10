@@ -125,11 +125,13 @@ class EmbeddingGenerator {
       const chunk = chunks[i];
 
       // Generate embedding
-      const embedding = await this.generateEmbedding(chunk);
+      const result = await this.generateEmbedding(chunk);
 
-      if (!embedding) {
-        throw new Error('Failed to generate embedding');
+      if (!result || !result.embedding) {
+        throw new Error(result?.error || 'Failed to generate embedding');
       }
+
+      const embedding = result.embedding;
 
       // Store in database
       await this.storeEmbedding({
@@ -166,21 +168,22 @@ class EmbeddingGenerator {
       });
 
       if (!response.ok) {
-        const error = await response.text();
-        console.error('[Embeddings] OpenAI API error:', {
+        const errorText = await response.text();
+        const errorDetails = {
           status: response.status,
           statusText: response.statusText,
-          error: error,
+          error: errorText,
           apiKey: this.openaiApiKey ? `${this.openaiApiKey.substring(0, 10)}...` : 'NOT SET'
-        });
-        return null;
+        };
+        console.error('[Embeddings] OpenAI API error:', errorDetails);
+        return { error: `OpenAI API ${response.status}: ${errorText.substring(0, 100)}` };
       }
 
       const data = await response.json();
-      return data.data[0].embedding;
+      return { embedding: data.data[0].embedding };
     } catch (error) {
       console.error('[Embeddings] Error calling OpenAI API:', error);
-      return null;
+      return { error: `Exception: ${error.message || String(error)}` };
     }
   }
 
@@ -300,14 +303,14 @@ class EmbeddingGenerator {
   async searchSimilar(userId, queryText, limit = 10, threshold = 0.7, platform = null) {
     try {
       // Generate query embedding
-      const queryEmbedding = await this.generateQueryEmbedding(queryText);
+      const result = await this.generateQueryEmbedding(queryText);
 
-      if (!queryEmbedding) {
-        throw new Error('Failed to generate query embedding');
+      if (!result || !result.embedding) {
+        throw new Error(result?.error || 'Failed to generate query embedding');
       }
 
       // Convert to pgvector format
-      const queryVector = `[${queryEmbedding.join(',')}]`;
+      const queryVector = `[${result.embedding.join(',')}]`;
 
       // Use the search_similar_content function from database
       const { data, error } = await supabase
