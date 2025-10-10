@@ -155,7 +155,12 @@ class EmbeddingGenerator {
 
       if (!response.ok) {
         const error = await response.text();
-        console.error('[Embeddings] OpenAI API error:', error);
+        console.error('[Embeddings] OpenAI API error:', {
+          status: response.status,
+          statusText: response.statusText,
+          error: error,
+          apiKey: this.openaiApiKey ? `${this.openaiApiKey.substring(0, 10)}...` : 'NOT SET'
+        });
         return null;
       }
 
