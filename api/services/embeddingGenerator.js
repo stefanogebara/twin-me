@@ -16,6 +16,13 @@ class EmbeddingGenerator {
     this.openaiApiKey = process.env.OPENAI_API_KEY;
     this.embeddingModel = 'text-embedding-3-small'; // 1536 dimensions
     this.chunkSize = 800; // Optimal chunk size in characters
+
+    // Log API key status (first 8 chars for security)
+    if (!this.openaiApiKey) {
+      console.error('[Embeddings] ❌ OPENAI_API_KEY not found in environment variables');
+    } else {
+      console.log('[Embeddings] ✅ OpenAI API key configured:', this.openaiApiKey.substring(0, 8) + '...');
+    }
   }
 
   /**
