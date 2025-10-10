@@ -13,15 +13,23 @@ const supabase = createClient(
 
 class EmbeddingGenerator {
   constructor() {
-    this.openaiApiKey = process.env.OPENAI_API_KEY;
-    this.embeddingModel = 'text-embedding-3-small'; // 1536 dimensions
+    // Azure OpenAI configuration
+    this.azureApiKey = process.env.AZURE_OPENAI_API_KEY;
+    this.azureEndpoint = process.env.AZURE_OPENAI_ENDPOINT || 'https://twinme.openai.azure.com';
+    this.azureDeployment = process.env.AZURE_OPENAI_EMBEDDING_DEPLOYMENT || 'text-embedding-3-small';
+    this.azureApiVersion = process.env.AZURE_OPENAI_API_VERSION || '2024-02-01';
     this.chunkSize = 800; // Optimal chunk size in characters
 
     // Log API key status (first 8 chars for security)
-    if (!this.openaiApiKey) {
-      console.error('[Embeddings] ❌ OPENAI_API_KEY not found in environment variables');
+    if (!this.azureApiKey) {
+      console.error('[Embeddings] ❌ AZURE_OPENAI_API_KEY not found in environment variables');
     } else {
-      console.log('[Embeddings] ✅ OpenAI API key configured:', this.openaiApiKey.substring(0, 8) + '...');
+      console.log('[Embeddings] ✅ Azure OpenAI configured:', {
+        endpoint: this.azureEndpoint,
+        deployment: this.azureDeployment,
+        apiVersion: this.azureApiVersion,
+        apiKey: this.azureApiKey.substring(0, 8) + '...'
+      });
     }
   }
 
@@ -150,18 +158,20 @@ class EmbeddingGenerator {
   }
 
   /**
-   * Generate embedding using OpenAI API
+   * Generate embedding using Azure OpenAI API
    */
   async generateEmbedding(text) {
     try {
-      const response = await fetch('https://api.openai.com/v1/embeddings', {
+      // Build Azure OpenAI endpoint URL
+      const url = `${this.azureEndpoint}/openai/deployments/${this.azureDeployment}/embeddings?api-version=${this.azureApiVersion}`;
+
+      const response = await fetch(url, {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${this.openaiApiKey}`,
+          'api-key': this.azureApiKey,
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
-          model: this.embeddingModel,
           input: text,
           encoding_format: 'float'
         })
@@ -173,16 +183,17 @@ class EmbeddingGenerator {
           status: response.status,
           statusText: response.statusText,
           error: errorText,
-          apiKey: this.openaiApiKey ? `${this.openaiApiKey.substring(0, 10)}...` : 'NOT SET'
+          endpoint: url,
+          apiKey: this.azureApiKey ? `${this.azureApiKey.substring(0, 10)}...` : 'NOT SET'
         };
-        console.error('[Embeddings] OpenAI API error:', errorDetails);
-        return { error: `OpenAI API ${response.status}: ${errorText.substring(0, 100)}` };
+        console.error('[Embeddings] Azure OpenAI API error:', errorDetails);
+        return { error: `Azure OpenAI API ${response.status}: ${errorText.substring(0, 100)}` };
       }
 
       const data = await response.json();
       return { embedding: data.data[0].embedding };
     } catch (error) {
-      console.error('[Embeddings] Error calling OpenAI API:', error);
+      console.error('[Embeddings] Error calling Azure OpenAI API:', error);
       return { error: `Exception: ${error.message || String(error)}` };
     }
   }
