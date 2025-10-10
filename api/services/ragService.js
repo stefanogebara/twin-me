@@ -22,11 +22,17 @@ console.log('[RAG Service] Supabase client initialized:', {
 
 class RAGService {
   constructor() {
-    this.openaiApiKey = process.env.OPENAI_API_KEY;
-    this.model = 'gpt-4o'; // OpenAI's latest model
-    console.log('[RAG Service] Initialized with OpenAI:', {
-      hasApiKey: !!this.openaiApiKey,
-      model: this.model
+    // Azure OpenAI configuration
+    this.azureApiKey = process.env.AZURE_OPENAI_API_KEY;
+    this.azureEndpoint = process.env.AZURE_OPENAI_ENDPOINT || 'https://twinme.openai.azure.com';
+    this.azureChatDeployment = process.env.AZURE_OPENAI_CHAT_DEPLOYMENT || 'gpt-4o';
+    this.azureApiVersion = process.env.AZURE_OPENAI_API_VERSION || '2024-02-01';
+
+    console.log('[RAG Service] Initialized with Azure OpenAI:', {
+      hasApiKey: !!this.azureApiKey,
+      endpoint: this.azureEndpoint,
+      deployment: this.azureChatDeployment,
+      apiVersion: this.azureApiVersion
     });
   }
 
@@ -330,9 +336,8 @@ Do NOT simply provide information. Channel their authentic voice, perspective, a
         }
       ];
 
-      // Create sanitized request body
+      // Create sanitized request body (no model field for Azure)
       const requestBody = {
-        model: this.model,
         max_tokens: 4096,
         messages
       };
@@ -340,10 +345,13 @@ Do NOT simply provide information. Channel their authentic voice, perspective, a
       // Additional sanitization of the entire request body
       const sanitizedBody = sanitizeObject(requestBody);
 
-      const response = await fetch('https://api.openai.com/v1/chat/completions', {
+      // Build Azure OpenAI endpoint URL
+      const url = `${this.azureEndpoint}/openai/deployments/${this.azureChatDeployment}/chat/completions?api-version=${this.azureApiVersion}`;
+
+      const response = await fetch(url, {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${this.openaiApiKey}`,
+          'api-key': this.azureApiKey,
           'Content-Type': 'application/json'
         },
         body: JSON.stringify(sanitizedBody)
@@ -351,8 +359,12 @@ Do NOT simply provide information. Channel their authentic voice, perspective, a
 
       if (!response.ok) {
         const error = await response.text();
-        console.error('[RAG] OpenAI API error:', error);
-        throw new Error(`OpenAI API error: ${response.status} - ${error}`);
+        console.error('[RAG] Azure OpenAI API error:', {
+          status: response.status,
+          error,
+          endpoint: url
+        });
+        throw new Error(`Azure OpenAI API error: ${response.status} - ${error}`);
       }
 
       const data = await response.json();
