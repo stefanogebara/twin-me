@@ -204,14 +204,40 @@ router.post('/analyze-style', async (req, res) => {
 
     console.log(`[API] Starting stylometric analysis for user: ${userId}`);
 
+    // Call the analyzer with comprehensive error handling
     const result = await stylometricAnalyzer.analyzeUserStyle(userId);
 
+    // Check if the result indicates failure (insufficient data, etc.)
+    if (!result.success) {
+      console.log(`[API] Analysis completed with warnings: ${result.message}`);
+      return res.status(200).json({
+        success: false,
+        error: result.message || 'Insufficient data for analysis',
+        details: {
+          samplesAnalyzed: result.samplesAnalyzed || 0,
+          textLength: result.textLength || 0,
+          wordCount: result.wordCount || 0
+        }
+      });
+    }
+
+    // Success case
+    console.log(`[API] Style analysis completed successfully`);
     res.json(result);
+
   } catch (error) {
     console.error('[API] Error in /analyze-style:', error);
+    console.error('[API] Error stack:', error.stack);
+
+    // Return detailed error information
     res.status(500).json({
       success: false,
-      error: error.message
+      error: 'Failed to analyze communication style',
+      message: error.message,
+      details: process.env.NODE_ENV === 'development' ? {
+        stack: error.stack,
+        name: error.name
+      } : undefined
     });
   }
 });
