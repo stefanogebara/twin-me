@@ -39,6 +39,7 @@ import TwinProfilePreview from "./components/TwinProfilePreview";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import Dashboard from "./pages/Dashboard";
 import Training from "./pages/Training";
+import Help from "./pages/Help";
 
 const queryClient = new QueryClient();
 
@@ -228,6 +229,18 @@ const App = () => (
                 <SignedIn>
                   <SidebarLayout>
                     <Settings />
+                  </SidebarLayout>
+                </SignedIn>
+                <SignedOut>
+                  <CustomAuth />
+                </SignedOut>
+              </>
+            } />
+            <Route path="/help" element={
+              <>
+                <SignedIn>
+                  <SidebarLayout>
+                    <Help />
                   </SidebarLayout>
                 </SignedIn>
                 <SignedOut>

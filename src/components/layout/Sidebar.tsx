@@ -79,7 +79,7 @@ const secondaryNavItems: NavItem[] = [
     id: 'help',
     label: 'Help & Docs',
     icon: HelpCircle,
-    path: '/settings',
+    path: '/help',
     description: 'Get support'
   }
 ];
