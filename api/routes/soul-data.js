@@ -551,13 +551,17 @@ router.get('/soul-signature', async (req, res) => {
  */
 router.get('/debug-env', (req, res) => {
   const apiKey = process.env.ANTHROPIC_API_KEY;
+  const allEnvKeys = Object.keys(process.env).filter(key =>
+    key.includes('ANTHROPIC') || key.includes('API') || key.includes('CLAUDE')
+  );
   res.json({
     hasKey: !!apiKey,
     keyLength: apiKey?.length,
     keyPrefix: apiKey?.substring(0, 15),
     keySuffix: apiKey?.substring(apiKey.length - 10),
     hasWhitespace: /\s/.test(apiKey),
-    environment: process.env.NODE_ENV || 'production'
+    environment: process.env.NODE_ENV || 'production',
+    relatedEnvVars: allEnvKeys
   });
 });
 
