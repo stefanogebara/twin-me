@@ -545,4 +545,20 @@ router.get('/soul-signature', async (req, res) => {
   }
 });
 
+/**
+ * GET /api/soul-data/debug-env
+ * Debug endpoint to check environment variable status
+ */
+router.get('/debug-env', (req, res) => {
+  const apiKey = process.env.ANTHROPIC_API_KEY;
+  res.json({
+    hasKey: !!apiKey,
+    keyLength: apiKey?.length,
+    keyPrefix: apiKey?.substring(0, 15),
+    keySuffix: apiKey?.substring(apiKey.length - 10),
+    hasWhitespace: /\s/.test(apiKey),
+    environment: process.env.NODE_ENV || 'production'
+  });
+});
+
 export default router;
