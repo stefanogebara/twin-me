@@ -19,10 +19,18 @@ const anthropic = new Anthropic({
   // No dangerouslyAllowBrowser - this is server-side!
 });
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-  // No dangerouslyAllowBrowser - this is server-side!
-});
+// OpenAI SDK initialization - conditional (only if API key exists)
+// Note: We've migrated to Azure OpenAI for most functionality
+let openai = null;
+if (process.env.OPENAI_API_KEY) {
+  openai = new OpenAI({
+    apiKey: process.env.OPENAI_API_KEY,
+    // No dangerouslyAllowBrowser - this is server-side!
+  });
+  console.log('[AI Routes] OpenAI SDK initialized');
+} else {
+  console.log('[AI Routes] OpenAI API key not found - OpenAI endpoints will be unavailable');
+}
 
 // Input validation middleware
 const validateChatRequest = [
@@ -506,6 +514,11 @@ router.post('/assess-understanding', authenticateUser, userRateLimit(20, 15 * 60
 // POST /api/ai/openai-chat - Generate AI response using OpenAI (Requires authentication)
 router.post('/openai-chat', authenticateUser, userRateLimit(30, 15 * 60 * 1000), validateChatRequest, handleValidationErrors, async (req, res) => {
   try {
+    // Check if OpenAI is available
+    if (!openai) {
+      return errorResponse(res, 'SERVICE_UNAVAILABLE', 'OpenAI service is not configured. Please use Azure OpenAI endpoints instead.', 503);
+    }
+
     const { message, context } = req.body;
 
     // Validate required context
@@ -573,6 +586,14 @@ router.post('/openai-chat', authenticateUser, userRateLimit(30, 15 * 60 * 1000),
 // POST /api/ai/openai-follow-up-questions - Generate follow-up questions using OpenAI
 router.post('/openai-follow-up-questions', authenticateUser, userRateLimit(50, 15 * 60 * 1000), validateChatRequest, handleValidationErrors, async (req, res) => {
   try {
+    // Check if OpenAI is available
+    if (!openai) {
+      return res.status(503).json({
+        error: 'OpenAI service is not configured. Please use Azure OpenAI endpoints instead.',
+        questions: []
+      });
+    }
+
     const { context } = req.body;
 
     if (!context || !context.conversationHistory || context.conversationHistory.length === 0) {
@@ -635,6 +656,14 @@ router.post('/openai-assess-understanding', authenticateUser, userRateLimit(20, 
     .escape(),
 ], handleValidationErrors, async (req, res) => {
   try {
+    // Check if OpenAI is available
+    if (!openai) {
+      return res.status(503).json({
+        error: 'OpenAI service is not configured. Please use Azure OpenAI endpoints instead.',
+        assessment: { understanding_level: 'medium' }
+      });
+    }
+
     const { studentResponse, topic } = req.body;
 
     const systemPrompt = `Analyze the student's response about "${topic}" and assess their understanding level. Return a JSON object with:
