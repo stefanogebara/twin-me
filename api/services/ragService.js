@@ -29,6 +29,8 @@ class RAGService {
 
     console.log('[RAG Service] Initialized with Claude (Anthropic):', {
       hasApiKey: !!this.anthropicApiKey,
+      apiKeyLength: this.anthropicApiKey?.length,
+      apiKeyPrefix: this.anthropicApiKey?.substring(0, 20),
       model: this.anthropicModel
     });
   }
