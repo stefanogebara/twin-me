@@ -112,8 +112,8 @@ export const trainingAPI = {
    */
   getStatus: async (userId?: string): Promise<TrainingMetrics> => {
     const url = userId
-      ? `${API_URL}/api/training/status?userId=${encodeURIComponent(userId)}`
-      : `${API_URL}/api/training/status`;
+      ? `${API_URL}/training/status?userId=${encodeURIComponent(userId)}`
+      : `${API_URL}/training/status`;
 
     const response = await fetch(url, {
       headers: getAuthHeaders(),
@@ -131,7 +131,7 @@ export const trainingAPI = {
    * Start training the model
    */
   startTraining: async (userId?: string, epochs: number = 10): Promise<TrainingStartResponse> => {
-    const response = await fetch(`${API_URL}/api/training/start`, {
+    const response = await fetch(`${API_URL}/training/start`, {
       method: 'POST',
       headers: getAuthHeaders(),
       body: JSON.stringify({ userId, epochs }),
@@ -148,7 +148,7 @@ export const trainingAPI = {
    * Stop ongoing training
    */
   stopTraining: async (userId?: string): Promise<{ success: boolean }> => {
-    const response = await fetch(`${API_URL}/api/training/stop`, {
+    const response = await fetch(`${API_URL}/training/stop`, {
       method: 'POST',
       headers: getAuthHeaders(),
       body: JSON.stringify({ userId }),
@@ -165,7 +165,7 @@ export const trainingAPI = {
    * Reset the model
    */
   resetModel: async (userId?: string): Promise<{ success: boolean }> => {
-    const response = await fetch(`${API_URL}/api/training/reset`, {
+    const response = await fetch(`${API_URL}/training/reset`, {
       method: 'POST',
       headers: getAuthHeaders(),
       body: JSON.stringify({ userId }),
