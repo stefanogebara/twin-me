@@ -22,17 +22,14 @@ console.log('[RAG Service] Supabase client initialized:', {
 
 class RAGService {
   constructor() {
-    // Azure OpenAI configuration
-    this.azureApiKey = process.env.AZURE_OPENAI_API_KEY;
-    this.azureEndpoint = process.env.AZURE_OPENAI_ENDPOINT || 'https://twinme.openai.azure.com';
-    this.azureChatDeployment = process.env.AZURE_OPENAI_CHAT_DEPLOYMENT || 'gpt-4o';
-    this.azureApiVersion = process.env.AZURE_OPENAI_API_VERSION || '2024-02-01';
+    // Claude (Anthropic) API configuration
+    this.anthropicApiKey = process.env.ANTHROPIC_API_KEY;
+    this.anthropicModel = process.env.ANTHROPIC_MODEL || 'claude-3-5-sonnet-20241022';
+    this.anthropicEndpoint = 'https://api.anthropic.com/v1/messages';
 
-    console.log('[RAG Service] Initialized with Azure OpenAI:', {
-      hasApiKey: !!this.azureApiKey,
-      endpoint: this.azureEndpoint,
-      deployment: this.azureChatDeployment,
-      apiVersion: this.azureApiVersion
+    console.log('[RAG Service] Initialized with Claude (Anthropic):', {
+      hasApiKey: !!this.anthropicApiKey,
+      model: this.anthropicModel
     });
   }
 
@@ -311,7 +308,7 @@ Do NOT simply provide information. Channel their authentic voice, perspective, a
   }
 
   /**
-   * Call OpenAI API
+   * Call Claude (Anthropic) API
    */
   async callOpenAI(systemPrompt, contextPrompt, userMessage, conversationHistory) {
     try {
@@ -320,14 +317,11 @@ Do NOT simply provide information. Channel their authentic voice, perspective, a
       const sanitizedContextPrompt = sanitizeUnicode(contextPrompt);
       const sanitizedUserMessage = sanitizeUnicode(userMessage);
 
-      // Build messages array with sanitized conversation history
+      // Build messages array - Claude requires system prompt separate from messages
+      // Also, messages must alternate between user and assistant
       const messages = [
-        {
-          role: 'system',
-          content: sanitizedSystemPrompt
-        },
         ...conversationHistory.map(msg => ({
-          role: msg.role,
+          role: msg.role === 'assistant' ? 'assistant' : 'user',
           content: sanitizeUnicode(msg.content)
         })),
         {
@@ -336,22 +330,22 @@ Do NOT simply provide information. Channel their authentic voice, perspective, a
         }
       ];
 
-      // Create sanitized request body (no model field for Azure)
+      // Create Claude API request body
       const requestBody = {
+        model: this.anthropicModel,
         max_tokens: 4096,
+        system: sanitizedSystemPrompt, // Claude uses separate system parameter
         messages
       };
 
       // Additional sanitization of the entire request body
       const sanitizedBody = sanitizeObject(requestBody);
 
-      // Build Azure OpenAI endpoint URL
-      const url = `${this.azureEndpoint}/openai/deployments/${this.azureChatDeployment}/chat/completions?api-version=${this.azureApiVersion}`;
-
-      const response = await fetch(url, {
+      const response = await fetch(this.anthropicEndpoint, {
         method: 'POST',
         headers: {
-          'api-key': this.azureApiKey,
+          'x-api-key': this.anthropicApiKey,
+          'anthropic-version': '2023-06-01',
           'Content-Type': 'application/json'
         },
         body: JSON.stringify(sanitizedBody)
@@ -359,18 +353,18 @@ Do NOT simply provide information. Channel their authentic voice, perspective, a
 
       if (!response.ok) {
         const error = await response.text();
-        console.error('[RAG] Azure OpenAI API error:', {
+        console.error('[RAG] Claude API error:', {
           status: response.status,
-          error,
-          endpoint: url
+          error
         });
-        throw new Error(`Azure OpenAI API error: ${response.status} - ${error}`);
+        throw new Error(`Claude API error: ${response.status} - ${error}`);
       }
 
       const data = await response.json();
-      return data.choices[0].message.content;
+      // Claude response format: data.content[0].text
+      return data.content[0].text;
     } catch (error) {
-      console.error('[RAG] Error calling OpenAI:', error);
+      console.error('[RAG] Error calling Claude:', error);
       throw error;
     }
   }
