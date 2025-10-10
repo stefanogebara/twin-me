@@ -31,11 +31,5 @@
       "src": "/(.*)",
       "dest": "/index.html"
     }
-  ],
-  "env": {
-    "NODE_ENV": "production",
-    "APP_URL": "https://twin-ai-learn.vercel.app",
-    "VITE_APP_URL": "https://twin-ai-learn.vercel.app",
-    "ANTHROPIC_API_KEY": ""
-  }
+  ]
 }
