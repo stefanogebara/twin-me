@@ -77,6 +77,10 @@ class EmbeddingGenerator {
             } catch (error) {
               console.error(`[Embeddings] Error processing text ${item.id}:`, error);
               errors++;
+              // Store first error for debugging
+              if (!this.lastError) {
+                this.lastError = error.message || String(error);
+              }
             }
           })
         );
@@ -88,12 +92,20 @@ class EmbeddingGenerator {
       }
 
       console.log(`[Embeddings] Generated ${generated} embeddings (${errors} errors)`);
-      return {
+      const result = {
         success: true,
         generated,
         errors,
         total: toProcess.length
       };
+
+      // Include last error for debugging
+      if (this.lastError) {
+        result.lastError = this.lastError;
+        this.lastError = null; // Reset for next call
+      }
+
+      return result;
     } catch (error) {
       console.error('[Embeddings] Error in generateEmbeddings:', error);
       throw error;
