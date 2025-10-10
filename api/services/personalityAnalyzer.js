@@ -7,9 +7,17 @@
 
 import OpenAI from 'openai';
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
+// OpenAI SDK initialization - conditional (only if API key exists)
+// Note: We've migrated to Azure OpenAI for most functionality
+let openai = null;
+if (process.env.OPENAI_API_KEY) {
+  openai = new OpenAI({
+    apiKey: process.env.OPENAI_API_KEY,
+  });
+  console.log('[Personality Analyzer] OpenAI SDK initialized');
+} else {
+  console.log('[Personality Analyzer] OpenAI API key not found - using fallback personality analysis');
+}
 
 export class PersonalityAnalyzer {
   constructor() {
@@ -357,6 +365,12 @@ export class PersonalityAnalyzer {
    * Generate AI-powered personality insights using OpenAI
    */
   async generateAIPersonalityInsights(domain, data) {
+    // Use fallback if OpenAI is not available
+    if (!openai) {
+      console.log('[Personality Analyzer] Using fallback insights (OpenAI not configured)');
+      return this.generateFallbackInsights(domain, data);
+    }
+
     try {
       const prompt = this.createPersonalityAnalysisPrompt(domain, data);
 
