@@ -21,10 +21,10 @@ router.get('/gmail/:userId', async (req, res) => {
       .select('*')
       .eq('user_id', userId)
       .eq('provider', 'google_gmail')
-      .eq('is_active', true)
+      .eq('connected', true)
       .single();
 
-    if (error || !connection || !connection.access_token_encrypted) {
+    if (error || !connection || !connection.access_token) {
       return res.status(404).json({
         success: false,
         error: 'Gmail not connected or token expired'
@@ -34,7 +34,7 @@ router.get('/gmail/:userId', async (req, res) => {
     // Decrypt the access token
     let accessToken;
     try {
-      accessToken = decryptToken(connection.access_token_encrypted);
+      accessToken = decryptToken(connection.access_token);
     } catch (decryptError) {
       console.error('Token decryption error:', decryptError);
       return res.status(500).json({
@@ -179,10 +179,10 @@ router.get('/calendar/:userId', async (req, res) => {
       .select('*')
       .eq('user_id', userId)
       .eq('provider', 'google_calendar')
-      .eq('is_active', true)
+      .eq('connected', true)
       .single();
 
-    if (error || !connection || !connection.access_token_encrypted) {
+    if (error || !connection || !connection.access_token) {
       return res.status(404).json({
         success: false,
         error: 'Google Calendar not connected or token expired'
@@ -192,7 +192,7 @@ router.get('/calendar/:userId', async (req, res) => {
     // Decrypt the access token
     let accessToken;
     try {
-      accessToken = decryptToken(connection.access_token_encrypted);
+      accessToken = decryptToken(connection.access_token);
     } catch (decryptError) {
       console.error('Token decryption error:', decryptError);
       return res.status(500).json({
@@ -302,17 +302,17 @@ async function verifyGmailAccess(userId) {
       .select('*')
       .eq('user_id', userId)
       .eq('provider', 'google_gmail')
-      .eq('is_active', true)
+      .eq('connected', true)
       .single();
 
-    if (error || !connection || !connection.access_token_encrypted) {
+    if (error || !connection || !connection.access_token) {
       return { error: 'Gmail not connected or token expired' };
     }
 
     // Decrypt the access token
     let accessToken;
     try {
-      accessToken = decryptToken(connection.access_token_encrypted);
+      accessToken = decryptToken(connection.access_token);
     } catch (decryptError) {
       console.error('Token decryption error:', decryptError);
       return { error: 'Failed to decrypt access token' };
@@ -398,17 +398,17 @@ async function verifyCalendarAccess(userId) {
       .select('*')
       .eq('user_id', userId)
       .eq('provider', 'google_calendar')
-      .eq('is_active', true)
+      .eq('connected', true)
       .single();
 
-    if (error || !connection || !connection.access_token_encrypted) {
+    if (error || !connection || !connection.access_token) {
       return { error: 'Google Calendar not connected or token expired' };
     }
 
     // Decrypt the access token
     let accessToken;
     try {
-      accessToken = decryptToken(connection.access_token_encrypted);
+      accessToken = decryptToken(connection.access_token);
     } catch (decryptError) {
       console.error('Token decryption error:', decryptError);
       return { error: 'Failed to decrypt access token' };
@@ -507,7 +507,7 @@ router.get('/all/:userId', async (req, res) => {
       .select('id')
       .eq('user_id', userId)
       .eq('provider', 'google_gmail')
-      .eq('is_active', true)
+      .eq('connected', true)
       .single();
 
     if (gmailConnection) {
@@ -520,7 +520,7 @@ router.get('/all/:userId', async (req, res) => {
       .select('id')
       .eq('user_id', userId)
       .eq('provider', 'google_calendar')
-      .eq('is_active', true)
+      .eq('connected', true)
       .single();
 
     if (calendarConnection) {
