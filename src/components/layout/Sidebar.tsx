@@ -6,7 +6,7 @@ import {
   Link2,
   Sparkles,
   MessageCircle,
-  GraduationCap,
+  Brain,
   Settings,
   Shield,
   HelpCircle,
@@ -53,10 +53,10 @@ const primaryNavItems: NavItem[] = [
   },
   {
     id: 'training',
-    label: 'Training & Learning',
-    icon: GraduationCap,
+    label: 'Model Training',
+    icon: Brain,
     path: '/training',
-    description: 'Model training and fine-tuning'
+    description: 'Train your digital twin model'
   },
   {
     id: 'settings',
