@@ -13,6 +13,14 @@ const Index = () => {
     console.log('Index component loaded - Auth state:', { isSignedIn, isLoaded });
   }, [isSignedIn, isLoaded]);
 
+  // Redirect logged-in users to dashboard
+  useEffect(() => {
+    if (isLoaded && isSignedIn) {
+      console.log('User is signed in, redirecting to dashboard...');
+      navigate('/dashboard');
+    }
+  }, [isLoaded, isSignedIn, navigate]);
+
   const handleGetStartedClick = () => {
     console.log('Get Started clicked. isSignedIn:', isSignedIn, 'isLoaded:', isLoaded);
     if (!isLoaded) {
@@ -22,7 +30,7 @@ const Index = () => {
 
     if (isSignedIn) {
       console.log('User is signed in, navigating to /get-started');
-      navigate('/get-started');
+      navigate('/dashboard');
     } else {
       console.log('User not signed in - Clerk modal will handle sign-in');
       // Don't navigate, let Clerk handle the modal
@@ -38,7 +46,7 @@ const Index = () => {
 
     if (isSignedIn) {
       console.log('User is signed in, navigating to /get-started');
-      navigate('/get-started');
+      navigate('/dashboard');
     } else {
       console.log('User not signed in - Clerk modal will handle sign-in');
       // Don't navigate, let Clerk handle the modal
@@ -53,6 +61,15 @@ const Index = () => {
       navigate('/watch-demo');
     } else {
       navigate('/auth');
+    }
+  };
+
+  // Add smooth scrolling to anchor links
+  const handleAnchorClick = (e: React.MouseEvent<HTMLAnchorElement>, targetId: string) => {
+    e.preventDefault();
+    const element = document.getElementById(targetId);
+    if (element) {
+      element.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
   };
 
@@ -122,17 +139,17 @@ const Index = () => {
         <div className="max-w-[1400px] mx-auto flex justify-between items-center">
           <div className="text-[28px] text-foreground" style={{ fontFamily: 'var(--_typography---font--styrene-a)', fontWeight: 500 }}>Twin Me</div>
           <ul className="flex gap-10 list-none">
-            <li><a href="#features" className="text-foreground no-underline font-medium text-base hover:text-primary transition-colors">Features</a></li>
-            <li><a href="#works" className="text-foreground no-underline font-medium text-base hover:text-primary transition-colors">How It Works</a></li>
-            <li><a href="#about" className="text-foreground no-underline font-medium text-base hover:text-primary transition-colors">About</a></li>
-            <li><a href="#contact" className="text-foreground no-underline font-medium text-base hover:text-primary transition-colors">Contact</a></li>
+            <li><a href="#features" onClick={(e) => handleAnchorClick(e, 'features')} className="text-foreground no-underline font-medium text-base hover:text-primary transition-colors cursor-pointer">Features</a></li>
+            <li><a href="#works" onClick={(e) => handleAnchorClick(e, 'works')} className="text-foreground no-underline font-medium text-base hover:text-primary transition-colors cursor-pointer">How It Works</a></li>
+            <li><a href="#about" onClick={(e) => handleAnchorClick(e, 'about')} className="text-foreground no-underline font-medium text-base hover:text-primary transition-colors cursor-pointer">About</a></li>
+            <li><a href="#contact" onClick={(e) => handleAnchorClick(e, 'contact')} className="text-foreground no-underline font-medium text-base hover:text-primary transition-colors cursor-pointer">Contact</a></li>
           </ul>
           <div className="flex items-center gap-4">
             <ThemeToggle />
             {!isLoaded ? (
               <button disabled className="cartoon-button opacity-50 cursor-not-allowed">Loading...</button>
             ) : isSignedIn ? (
-              <button onClick={() => navigate('/get-started')} className="cartoon-button">Get Started</button>
+              <button onClick={() => navigate('/dashboard')} className="cartoon-button">Get Started</button>
             ) : (
               <SignInButton mode="modal" fallbackRedirectUrl="/get-started" forceRedirectUrl="/get-started">
                 <button className="cartoon-button">Get Started</button>
@@ -155,7 +172,7 @@ const Index = () => {
             {!isLoaded ? (
               <button disabled className="cartoon-button text-lg px-10 py-4 opacity-50 cursor-not-allowed">Loading...</button>
             ) : isSignedIn ? (
-              <button onClick={() => navigate('/get-started')} className="cartoon-button text-lg px-10 py-4">Discover Your Signature</button>
+              <button onClick={() => navigate('/dashboard')} className="cartoon-button text-lg px-10 py-4">Discover Your Signature</button>
             ) : (
               <SignInButton mode="modal" fallbackRedirectUrl="/get-started" forceRedirectUrl="/get-started">
                 <button className="cartoon-button text-lg px-10 py-4">Discover Your Signature</button>
@@ -294,7 +311,7 @@ const Index = () => {
             Public information is easy to clone, but it lacks soul. We create digital twins that capture your true originality—not just what you wrote, but your curiosities, passions, and the patterns that make you uniquely yourself.
           </p>
           {isSignedIn ? (
-            <button onClick={() => navigate('/get-started')} className="cartoon-button text-lg px-10 py-4">
+            <button onClick={() => navigate('/dashboard')} className="cartoon-button text-lg px-10 py-4">
               Discover Your Soul Signature
             </button>
           ) : (
@@ -321,7 +338,7 @@ const Index = () => {
           Join thousands creating authentic digital twins that capture their true originality
         </p>
         {isSignedIn ? (
-          <button onClick={() => navigate('/get-started')} className="cartoon-button text-lg px-10 py-4">
+          <button onClick={() => navigate('/dashboard')} className="cartoon-button text-lg px-10 py-4">
             Get Started Today
           </button>
         ) : (

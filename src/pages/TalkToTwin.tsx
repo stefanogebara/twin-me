@@ -6,7 +6,7 @@ import {
   Mail, Calendar, Users, MessageSquare, Music, Film, Youtube,
   Gamepad2, Book, Lock, Unlock, Play, Settings, HelpCircle,
   ChevronRight, RefreshCw, Plus, BarChart, Download, Check,
-  X, AlertCircle, Zap, Target
+  X, AlertCircle, Zap, Target, Loader2
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -44,6 +44,15 @@ interface Platform {
   key: string;
 }
 
+interface ApiStats {
+  conversationCount: number;
+  authenticityScore: number;
+  connectedPlatformCount: number;
+  totalDataPoints: number;
+  insightCount: number;
+  lastChatTime?: string;
+}
+
 const TalkToTwin = () => {
   const navigate = useNavigate();
   const { user, isSignedIn } = useAuth();
@@ -58,10 +67,33 @@ const TalkToTwin = () => {
   const [isTyping, setIsTyping] = useState(false);
   const [showTestBank, setShowTestBank] = useState(true);
   const [showRefinementControls, setShowRefinementControls] = useState(true);
-  const [validationProgress, setValidationProgress] = useState({
-    personal: 67,
-    professional: 92
+  const [isLoadingStats, setIsLoadingStats] = useState(true);
+
+  // Real data state
+  const [apiStats, setApiStats] = useState<ApiStats>({
+    conversationCount: 0,
+    authenticityScore: 0,
+    connectedPlatformCount: 0,
+    totalDataPoints: 0,
+    insightCount: 0,
+    lastChatTime: undefined
   });
+
+  // Platform states with real data
+  const [professionalPlatforms, setProfessionalPlatforms] = useState<Platform[]>([
+    { name: 'Gmail', icon: <Mail className="w-4 h-4" />, connected: false, dataPoints: 0, key: 'gmail' },
+    { name: 'Calendar', icon: <Calendar className="w-4 h-4" />, connected: false, dataPoints: 0, key: 'calendar' },
+    { name: 'Teams', icon: <Users className="w-4 h-4" />, connected: false, dataPoints: 0, key: 'teams' },
+    { name: 'Slack', icon: <MessageSquare className="w-4 h-4" />, connected: false, dataPoints: 0, key: 'slack' }
+  ]);
+
+  const [personalPlatforms, setPersonalPlatforms] = useState<Platform[]>([
+    { name: 'Spotify', icon: <Music className="w-4 h-4" />, connected: false, dataPoints: 0, key: 'spotify' },
+    { name: 'Netflix', icon: <Film className="w-4 h-4" />, connected: false, dataPoints: 0, key: 'netflix' },
+    { name: 'YouTube', icon: <Youtube className="w-4 h-4" />, connected: false, dataPoints: 0, key: 'youtube' },
+    { name: 'Steam', icon: <Gamepad2 className="w-4 h-4" />, connected: false, dataPoints: 0, key: 'steam' },
+    { name: 'Goodreads', icon: <Book className="w-4 h-4" />, connected: false, dataPoints: 0, key: 'goodreads' }
+  ]);
 
   // Authentication check
   useEffect(() => {
@@ -71,26 +103,140 @@ const TalkToTwin = () => {
     }
   }, [isSignedIn, navigate]);
 
+  // Fetch real data from API
+  useEffect(() => {
+    if (!user?.id) return;
+
+    const fetchRealData = async () => {
+      setIsLoadingStats(true);
+      try {
+        // Fetch conversations count
+        const conversationsRes = await fetch(`${import.meta.env.VITE_API_URL}/conversations`, {
+          headers: {
+            'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
+          }
+        });
+
+        let conversationCount = 0;
+        let lastChatTime = undefined;
+
+        if (conversationsRes.ok) {
+          const conversationsData = await conversationsRes.json();
+          conversationCount = conversationsData.count || 0;
+
+          // Get last chat time from most recent conversation
+          if (conversationsData.conversations && conversationsData.conversations.length > 0) {
+            const lastConversation = conversationsData.conversations[0];
+            lastChatTime = lastConversation.last_message_at;
+          }
+        }
+
+        // Fetch connected platforms
+        const platformsRes = await fetch(`${import.meta.env.VITE_API_URL}/data-sources/connected?userId=${user.id}`);
+        let connectedPlatformData: any[] = [];
+
+        if (platformsRes.ok) {
+          const platformsData = await platformsRes.json();
+          connectedPlatformData = platformsData.connections || [];
+        }
+
+        // Update platform states based on real connections
+        const updatePlatformList = (platforms: Platform[]) => {
+          return platforms.map(platform => {
+            const connection = connectedPlatformData.find(
+              c => c.provider?.toLowerCase() === platform.key.toLowerCase()
+            );
+
+            if (connection) {
+              return {
+                ...platform,
+                connected: connection.status === 'connected',
+                dataPoints: connection.data_points || 0
+              };
+            }
+            return platform;
+          });
+        };
+
+        setProfessionalPlatforms(prev => updatePlatformList(prev));
+        setPersonalPlatforms(prev => updatePlatformList(prev));
+
+        // Fetch soul signature data
+        const soulRes = await fetch(`${import.meta.env.VITE_API_URL}/soul-data/soul-signature?userId=${user.id}`);
+        let hasSignature = false;
+
+        if (soulRes.ok) {
+          const soulData = await soulRes.json();
+          hasSignature = soulData.success && soulData.soulSignature;
+        }
+
+        // Fetch processing stats
+        const statsRes = await fetch(`${import.meta.env.VITE_API_URL}/soul-data/processing-stats?userId=${user.id}`);
+        let totalDataPoints = 0;
+
+        if (statsRes.ok) {
+          const statsData = await statsRes.json();
+          if (statsData.success && statsData.stats) {
+            totalDataPoints = statsData.stats.totalSamples || 0;
+          }
+        }
+
+        // Calculate authenticity score based on real data
+        const connectedCount = connectedPlatformData.filter(c => c.status === 'connected').length;
+        let authenticityScore = 0;
+
+        if (connectedCount > 0) {
+          // Base score for having connections
+          authenticityScore = 20;
+
+          // Add points for each connected platform (up to 10 points each, max 50)
+          authenticityScore += Math.min(connectedCount * 10, 50);
+
+          // Add points for having data points (up to 20 points)
+          if (totalDataPoints > 0) {
+            authenticityScore += Math.min(Math.floor(totalDataPoints / 10), 20);
+          }
+
+          // Add points for having soul signature (10 points)
+          if (hasSignature) {
+            authenticityScore += 10;
+          }
+
+          // Cap at 95%
+          authenticityScore = Math.min(authenticityScore, 95);
+        }
+
+        // Calculate insight count based on connected platforms
+        const insightCount = connectedCount * 8; // Roughly 8 insights per platform
+
+        setApiStats({
+          conversationCount,
+          authenticityScore,
+          connectedPlatformCount: connectedCount,
+          totalDataPoints,
+          insightCount,
+          lastChatTime
+        });
+
+      } catch (error) {
+        console.error('Error fetching real data:', error);
+      } finally {
+        setIsLoadingStats(false);
+      }
+    };
+
+    fetchRealData();
+
+    // Refresh data every 30 seconds
+    const interval = setInterval(fetchRealData, 30000);
+
+    return () => clearInterval(interval);
+  }, [user?.id]);
+
   // Auto-scroll to bottom of messages
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
-
-  // Platform Connections
-  const professionalPlatforms: Platform[] = [
-    { name: 'Gmail', icon: <Mail className="w-4 h-4" />, connected: true, dataPoints: 127, key: 'gmail' },
-    { name: 'Calendar', icon: <Calendar className="w-4 h-4" />, connected: true, dataPoints: 48, key: 'calendar' },
-    { name: 'Teams', icon: <Users className="w-4 h-4" />, connected: true, dataPoints: 12, key: 'teams' },
-    { name: 'Slack', icon: <MessageSquare className="w-4 h-4" />, connected: true, dataPoints: 89, key: 'slack' }
-  ];
-
-  const personalPlatforms: Platform[] = [
-    { name: 'Spotify', icon: <Music className="w-4 h-4" />, connected: true, dataPoints: 342, key: 'spotify' },
-    { name: 'Netflix', icon: <Film className="w-4 h-4" />, connected: true, dataPoints: 67, key: 'netflix' },
-    { name: 'YouTube', icon: <Youtube className="w-4 h-4" />, connected: true, dataPoints: 156, key: 'youtube' },
-    { name: 'Steam', icon: <Gamepad2 className="w-4 h-4" />, connected: false, dataPoints: 0, key: 'steam' },
-    { name: 'Goodreads', icon: <Book className="w-4 h-4" />, connected: false, dataPoints: 0, key: 'goodreads' }
-  ];
 
   // Test Questions
   const testQuestions: TestQuestion[] = [
@@ -151,22 +297,65 @@ const TalkToTwin = () => {
     ]
   };
 
-  // Key Insights
-  const insights = {
-    professional: [
-      'Communication Tone: Professional but warm (75% formality)',
-      'Response Pattern: 2-3 hours during business hours',
-      'Meeting Style: Collaborative with 2-min icebreaker',
-      'Peak Productivity: 9-11 AM, 2-4 PM',
-      'Collaboration Preference: 60% team meetings, 40% solo work'
-    ],
-    personal: [
-      'Music Style: Lo-fi hip hop and ambient electronic while working',
-      'Weekend Pattern: Netflix binge sessions on Friday/Saturday nights',
-      'Gaming: Prefers strategy games with 2-3 hour sessions',
-      'Reading: Non-fiction with focus on psychology and technology',
-      'Social: Small group hangouts over large parties'
-    ]
+  // Dynamic insights based on real data
+  const generateInsights = () => {
+    const insights = {
+      professional: [],
+      personal: []
+    };
+
+    // Add insights based on connected platforms
+    const connectedProf = professionalPlatforms.filter(p => p.connected);
+    const connectedPers = personalPlatforms.filter(p => p.connected);
+
+    if (connectedProf.length > 0) {
+      insights.professional.push(`Connected to ${connectedProf.length} professional platform${connectedProf.length > 1 ? 's' : ''}`);
+      if (connectedProf.find(p => p.key === 'gmail')) {
+        insights.professional.push('Email patterns analyzed for communication style');
+      }
+      if (connectedProf.find(p => p.key === 'calendar')) {
+        insights.professional.push('Meeting patterns and productivity peaks identified');
+      }
+      if (apiStats.totalDataPoints > 0) {
+        insights.professional.push(`${apiStats.totalDataPoints} professional data points processed`);
+      }
+    } else {
+      insights.professional.push('Connect professional platforms to discover work patterns');
+      insights.professional.push('Gmail and Calendar recommended for best insights');
+    }
+
+    if (connectedPers.length > 0) {
+      insights.personal.push(`Connected to ${connectedPers.length} personal platform${connectedPers.length > 1 ? 's' : ''}`);
+      if (connectedPers.find(p => p.key === 'spotify')) {
+        insights.personal.push('Music preferences and listening patterns analyzed');
+      }
+      if (connectedPers.find(p => p.key === 'youtube')) {
+        insights.personal.push('Video interests and learning topics identified');
+      }
+    } else {
+      insights.personal.push('Connect entertainment platforms to reveal personality');
+      insights.personal.push('Spotify and YouTube recommended for best insights');
+    }
+
+    return insights;
+  };
+
+  const insights = generateInsights();
+
+  // Calculate last chat time display
+  const getLastChatDisplay = () => {
+    if (!apiStats.lastChatTime) return 'Never';
+
+    const lastChat = new Date(apiStats.lastChatTime);
+    const now = new Date();
+    const diffMs = now.getTime() - lastChat.getTime();
+    const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+    const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+
+    if (diffHours < 1) return 'Just now';
+    if (diffHours < 24) return `${diffHours} hour${diffHours > 1 ? 's' : ''} ago`;
+    if (diffDays < 7) return `${diffDays} day${diffDays > 1 ? 's' : ''} ago`;
+    return 'Over a week ago';
   };
 
   // Handle Message Send
@@ -199,10 +388,18 @@ const TalkToTwin = () => {
 
   // Generate Mock Response
   const generateResponse = (question: string, mode: TwinMode): string => {
+    // Check if user has connected platforms
+    const relevantPlatforms = mode === 'professional' ? professionalPlatforms : personalPlatforms;
+    const hasConnections = relevantPlatforms.some(p => p.connected);
+
+    if (!hasConnections) {
+      return `I don't have enough data yet to answer that question accurately. Please connect your ${mode === 'professional' ? 'professional tools like Gmail and Calendar' : 'entertainment platforms like Spotify and YouTube'} to help me understand your ${mode === 'professional' ? 'work patterns' : 'personal preferences'}.`;
+    }
+
     if (mode === 'professional') {
-      return "Based on your Gmail patterns, you tend to respond to professional emails within 2-3 hours during business hours. Your communication style is direct but warm, with an average formality score of 75%. You typically use collaborative language and include actionable next steps in your emails.";
+      return `Based on ${apiStats.totalDataPoints} data points from your connected professional platforms, I can provide insights about your work patterns. However, connecting more platforms will help me give you more accurate responses.`;
     } else {
-      return "Looking at your Spotify listening history, you gravitate toward lo-fi hip hop and ambient electronic music while working, especially artists like Nujabes and Tycho. Your playlists show 70% of work-time listening is in 'Focus' and 'Chill' categories, with sessions averaging 2-3 hours.";
+      return `I'm analyzing your personal preferences from ${apiStats.connectedPlatformCount} connected platforms. The more data I have, the better I can understand your unique personality and preferences.`;
     }
   };
 
@@ -232,7 +429,9 @@ const TalkToTwin = () => {
   const currentPlatforms = twinMode === 'professional' ? professionalPlatforms : personalPlatforms;
   const currentContexts = conversationContexts[twinMode];
   const currentInsights = insights[twinMode];
-  const currentValidation = validationProgress[twinMode];
+  const currentValidation = twinMode === 'professional'
+    ? Math.min(apiStats.authenticityScore + 10, 95) // Professional mode gets slight boost
+    : apiStats.authenticityScore;
 
   // Filter test questions by current mode
   const relevantTests = testQuestions.filter(test => {
@@ -303,6 +502,16 @@ const TalkToTwin = () => {
               Your Digital Soul Signature in Conversation
             </p>
           </div>
+
+          {/* Loading State */}
+          {isLoadingStats && (
+            <div className="flex items-center justify-center py-8">
+              <Loader2 className="w-8 h-8 animate-spin" style={{ color: '#D97706' }} />
+              <span className="ml-3" style={{ color: '#6B7280', fontFamily: 'var(--_typography---font--tiempos)' }}>
+                Loading your twin data...
+              </span>
+            </div>
+          )}
 
           {/* Twin Identity Dashboard */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
@@ -455,7 +664,10 @@ const TalkToTwin = () => {
               <div className="relative h-48 flex items-center justify-center mb-6">
                 <div
                   className="w-32 h-32 rounded-full flex items-center justify-center"
-                  style={{ backgroundColor: '#D97706', border: '4px solid rgba(217,119,6,0.2)' }}
+                  style={{
+                    backgroundColor: currentValidation > 0 ? '#D97706' : '#E5E5E5',
+                    border: '4px solid rgba(217,119,6,0.2)'
+                  }}
                 >
                   {twinMode === 'personal' ? (
                     <Heart className="w-16 h-16" style={{ color: 'white' }} />
@@ -482,7 +694,11 @@ const TalkToTwin = () => {
                     color: '#141413'
                   }}
                 >
-                  {currentValidation}%
+                  {isLoadingStats ? (
+                    <Loader2 className="w-8 h-8 animate-spin inline" />
+                  ) : (
+                    `${currentValidation}%`
+                  )}
                 </div>
                 <Progress value={currentValidation} className="h-2" />
               </div>
@@ -496,7 +712,7 @@ const TalkToTwin = () => {
                   }}
                 >
                   <span>Last chat:</span>
-                  <span style={{ color: '#141413' }}>2 hours ago</span>
+                  <span style={{ color: '#141413' }}>{getLastChatDisplay()}</span>
                 </div>
                 <div
                   className="flex justify-between"
@@ -506,7 +722,9 @@ const TalkToTwin = () => {
                   }}
                 >
                   <span>Conversations:</span>
-                  <span style={{ color: '#141413' }}>127</span>
+                  <span style={{ color: '#141413' }}>
+                    {isLoadingStats ? '...' : apiStats.conversationCount}
+                  </span>
                 </div>
                 <div
                   className="flex justify-between"
@@ -516,23 +734,31 @@ const TalkToTwin = () => {
                   }}
                 >
                   <span>Insights:</span>
-                  <span style={{ color: '#141413' }}>48</span>
+                  <span style={{ color: '#141413' }}>
+                    {isLoadingStats ? '...' : apiStats.insightCount}
+                  </span>
                 </div>
               </div>
 
               <Button
                 className="w-full mt-6"
                 onClick={() => handleSendMessage()}
-                disabled={!inputMessage.trim()}
+                disabled={!inputMessage.trim() || apiStats.connectedPlatformCount === 0}
+                title={apiStats.connectedPlatformCount === 0
+                  ? "Connect at least one platform to start chatting with your twin"
+                  : !inputMessage.trim()
+                    ? "Type a message first"
+                    : ""
+                }
                 style={{
-                  backgroundColor: '#D97706',
-                  color: 'white',
+                  backgroundColor: apiStats.connectedPlatformCount > 0 ? '#D97706' : '#E5E5E5',
+                  color: apiStats.connectedPlatformCount > 0 ? 'white' : '#6B7280',
                   fontFamily: 'var(--_typography---font--styrene-a)',
                   fontWeight: 500
                 }}
               >
                 <MessageCircle className="w-4 h-4 mr-2" />
-                Start Chat
+                {apiStats.connectedPlatformCount > 0 ? 'Start Chat' : 'Connect Platforms First'}
               </Button>
             </Card>
 
@@ -574,7 +800,7 @@ const TalkToTwin = () => {
                       color: '#141413'
                     }}
                   >
-                    127
+                    {isLoadingStats ? '...' : apiStats.conversationCount}
                   </div>
                 </div>
 
@@ -596,7 +822,7 @@ const TalkToTwin = () => {
                       color: '#141413'
                     }}
                   >
-                    48
+                    {isLoadingStats ? '...' : apiStats.insightCount}
                   </div>
                 </div>
 
@@ -618,7 +844,7 @@ const TalkToTwin = () => {
                       color: '#141413'
                     }}
                   >
-                    {currentPlatforms.filter(p => p.connected).length}
+                    {isLoadingStats ? '...' : apiStats.connectedPlatformCount}
                   </div>
                 </div>
 
@@ -640,7 +866,7 @@ const TalkToTwin = () => {
                       color: '#141413'
                     }}
                   >
-                    {currentValidation}%
+                    {isLoadingStats ? '...' : `${currentValidation}%`}
                   </div>
                 </div>
               </div>
@@ -655,11 +881,58 @@ const TalkToTwin = () => {
                   fontFamily: 'var(--_typography---font--tiempos)'
                 }}
               >
-                View Full Details
+                {apiStats.connectedPlatformCount === 0 ? 'Connect Platforms' : 'View Full Details'}
                 <ChevronRight className="w-4 h-4 ml-2" />
               </Button>
             </Card>
           </div>
+
+          {/* No Data Warning */}
+          {!isLoadingStats && apiStats.connectedPlatformCount === 0 && (
+            <Card
+              className="mb-8 p-6"
+              style={{
+                backgroundColor: '#FEF3E2',
+                border: '1px solid #D97706'
+              }}
+            >
+              <div className="flex items-start gap-4">
+                <AlertCircle className="w-6 h-6 mt-1" style={{ color: '#D97706' }} />
+                <div className="flex-1">
+                  <h4
+                    className="text-lg mb-2"
+                    style={{
+                      fontFamily: 'var(--_typography---font--styrene-a)',
+                      fontWeight: 500,
+                      color: '#141413'
+                    }}
+                  >
+                    No Platforms Connected
+                  </h4>
+                  <p
+                    className="mb-4"
+                    style={{
+                      fontFamily: 'var(--_typography---font--tiempos)',
+                      color: '#6B7280'
+                    }}
+                  >
+                    Your digital twin needs data to understand you. Connect at least one platform to start building your soul signature.
+                  </p>
+                  <Button
+                    onClick={() => navigate('/soul-signature-dashboard')}
+                    style={{
+                      backgroundColor: '#D97706',
+                      color: 'white',
+                      fontFamily: 'var(--_typography---font--styrene-a)',
+                      fontWeight: 500
+                    }}
+                  >
+                    Connect Platforms Now
+                  </Button>
+                </div>
+              </div>
+            </Card>
+          )}
 
           {/* Conversation Interface */}
           <Card
@@ -700,7 +973,9 @@ const TalkToTwin = () => {
                           color: '#141413'
                         }}
                       >
-                        Start a conversation
+                        {apiStats.connectedPlatformCount > 0
+                          ? 'Start a conversation'
+                          : 'Connect platforms first'}
                       </p>
                       <p
                         className="text-sm"
@@ -709,7 +984,9 @@ const TalkToTwin = () => {
                           color: '#6B7280'
                         }}
                       >
-                        Ask your twin anything or try a test question below
+                        {apiStats.connectedPlatformCount > 0
+                          ? 'Ask your twin anything or try a test question below'
+                          : 'Your twin needs data from connected platforms to chat'}
                       </p>
                     </div>
                   </div>
@@ -823,11 +1100,14 @@ const TalkToTwin = () => {
               <div className="flex gap-3">
                 <input
                   type="text"
-                  placeholder="Type your message..."
+                  placeholder={apiStats.connectedPlatformCount > 0
+                    ? "Type your message..."
+                    : "Connect platforms to enable chat..."}
                   value={inputMessage}
                   onChange={(e) => setInputMessage(e.target.value)}
                   onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
-                  className="flex-1 px-4 py-3 rounded-xl border focus:outline-none focus:ring-2 focus:ring-opacity-50"
+                  disabled={apiStats.connectedPlatformCount === 0}
+                  className="flex-1 px-4 py-3 rounded-xl border focus:outline-none focus:ring-2 focus:ring-opacity-50 disabled:opacity-50"
                   style={{
                     borderColor: 'rgba(20, 20, 19, 0.1)',
                     backgroundColor: '#F5F5F5',
@@ -837,10 +1117,10 @@ const TalkToTwin = () => {
                 />
                 <Button
                   onClick={handleSendMessage}
-                  disabled={!inputMessage.trim()}
+                  disabled={!inputMessage.trim() || apiStats.connectedPlatformCount === 0}
                   style={{
-                    backgroundColor: '#D97706',
-                    color: 'white',
+                    backgroundColor: apiStats.connectedPlatformCount > 0 ? '#D97706' : '#E5E5E5',
+                    color: apiStats.connectedPlatformCount > 0 ? 'white' : '#6B7280',
                     fontFamily: 'var(--_typography---font--styrene-a)',
                     fontWeight: 500
                   }}
@@ -967,9 +1247,10 @@ const TalkToTwin = () => {
                               e.stopPropagation();
                               handleTestQuestion(test);
                             }}
+                            disabled={apiStats.connectedPlatformCount === 0}
                             style={{
-                              backgroundColor: '#D97706',
-                              color: 'white',
+                              backgroundColor: apiStats.connectedPlatformCount > 0 ? '#D97706' : '#E5E5E5',
+                              color: apiStats.connectedPlatformCount > 0 ? 'white' : '#6B7280',
                               fontSize: '0.75rem',
                               padding: '0.25rem 0.75rem',
                               fontFamily: 'var(--_typography---font--tiempos)'
@@ -1043,13 +1324,14 @@ const TalkToTwin = () => {
                     <Button
                       variant="outline"
                       className="w-full justify-start"
+                      disabled={apiStats.connectedPlatformCount === 0}
                       style={{
                         fontFamily: 'var(--_typography---font--tiempos)',
                         backgroundColor: '#F5F5F5'
                       }}
                     >
                       <RefreshCw className="w-4 h-4 mr-2" />
-                      Re-extract {twinMode === 'professional' ? 'Gmail' : 'Spotify'} insights
+                      Re-extract {twinMode === 'professional' ? 'professional' : 'personal'} insights
                     </Button>
                     <Button
                       variant="outline"
@@ -1078,6 +1360,7 @@ const TalkToTwin = () => {
                     <Button
                       variant="outline"
                       className="w-full justify-start"
+                      disabled={apiStats.connectedPlatformCount === 0}
                       style={{
                         fontFamily: 'var(--_typography---font--tiempos)',
                         backgroundColor: '#F5F5F5'
@@ -1089,6 +1372,7 @@ const TalkToTwin = () => {
                     <Button
                       variant="outline"
                       className="w-full justify-start"
+                      disabled={apiStats.connectedPlatformCount === 0}
                       style={{
                         fontFamily: 'var(--_typography---font--tiempos)',
                         backgroundColor: '#F5F5F5'
@@ -1280,7 +1564,7 @@ const TalkToTwin = () => {
                   fontFamily: 'var(--_typography---font--tiempos)'
                 }}
               >
-                View Full Insights
+                {apiStats.connectedPlatformCount === 0 ? 'Connect Platforms' : 'View Full Insights'}
                 <ChevronRight className="w-4 h-4 ml-2" />
               </Button>
             </div>
@@ -1309,6 +1593,7 @@ const TalkToTwin = () => {
                 <Button
                   variant="outline"
                   onClick={() => navigate('/twin-activation')}
+                  disabled={apiStats.connectedPlatformCount === 0}
                   style={{
                     fontFamily: 'var(--_typography---font--tiempos)'
                   }}

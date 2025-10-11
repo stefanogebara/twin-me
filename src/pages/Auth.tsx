@@ -40,7 +40,7 @@ const Auth = () => {
                       color: 'var(--_color-theme---text)'
                     }}
                   >
-                    Twin AI Learn
+                    Twin Me
                   </h1>
                 </div>
               </div>
@@ -154,7 +154,7 @@ const Auth = () => {
                     color: 'var(--_color-theme---text)'
                   }}
                 >
-                  Twin AI Learn
+                  Twin Me
                 </h1>
               </div>
 

@@ -133,12 +133,10 @@ const OAuthCallback = () => {
               duration: 3000
             });
 
-            // Store connection in localStorage to persist across refreshes
-            const existingConnections = JSON.parse(localStorage.getItem('connectedServices') || '[]');
-            if (!existingConnections.includes(stateData?.provider)) {
-              existingConnections.push(stateData?.provider);
-              localStorage.setItem('connectedServices', JSON.stringify(existingConnections));
-            }
+            // DO NOT store connection in localStorage - this causes state sync issues
+            // Connection status should ONLY come from the backend
+            // Remove any stale localStorage data
+            localStorage.removeItem('connectedServices');
 
             // If we're in a popup, close it; otherwise redirect
             setTimeout(() => {
@@ -237,14 +235,8 @@ const OAuthCallback = () => {
                   duration: 3000
                 });
 
-                // Store connection info if we can determine the provider
-                if (data.provider) {
-                  const existingConnections = JSON.parse(localStorage.getItem('connectedServices') || '[]');
-                  if (!existingConnections.includes(data.provider)) {
-                    existingConnections.push(data.provider);
-                    localStorage.setItem('connectedServices', JSON.stringify(existingConnections));
-                  }
-                }
+                // DO NOT store connection in localStorage - this causes state sync issues
+                // Connection status should ONLY come from the backend
 
                 setTimeout(() => {
                   if (window.opener) {

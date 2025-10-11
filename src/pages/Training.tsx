@@ -262,14 +262,19 @@ export const Training: React.FC = () => {
         </h2>
         <div className="flex flex-wrap gap-3">
           {!isTraining ? (
-            <button
-              onClick={startTraining}
-              disabled={metrics.totalSamples === 0}
-              className="flex items-center gap-2 px-6 py-3 bg-[hsl(var(--claude-accent))] text-white rounded-lg hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
+            <div
+              className="inline-block"
+              title={metrics.totalSamples === 0 ? "Connect platforms and collect data before training" : ""}
             >
-              <Play className="w-4 h-4" />
-              Start Training
-            </button>
+              <button
+                onClick={startTraining}
+                disabled={metrics.totalSamples === 0}
+                className="flex items-center gap-2 px-6 py-3 bg-[hsl(var(--claude-accent))] text-white rounded-lg hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <Play className="w-4 h-4" />
+                Start Training
+              </button>
+            </div>
           ) : (
             <button
               onClick={stopTraining}
@@ -279,14 +284,19 @@ export const Training: React.FC = () => {
               Stop Training
             </button>
           )}
-          <button
-            onClick={resetModel}
-            disabled={isTraining}
-            className="flex items-center gap-2 px-6 py-3 bg-[hsl(var(--claude-surface-raised))] text-[hsl(var(--claude-text))] border border-[hsl(var(--claude-border))] rounded-lg hover:bg-[hsl(var(--claude-bg))] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          <div
+            className="inline-block"
+            title={isTraining ? "Cannot reset while training is in progress" : ""}
           >
-            <RefreshCcw className="w-4 h-4" />
-            Reset Model
-          </button>
+            <button
+              onClick={resetModel}
+              disabled={isTraining}
+              className="flex items-center gap-2 px-6 py-3 bg-[hsl(var(--claude-surface-raised))] text-[hsl(var(--claude-text))] border border-[hsl(var(--claude-border))] rounded-lg hover:bg-[hsl(var(--claude-bg))] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <RefreshCcw className="w-4 h-4" />
+              Reset Model
+            </button>
+          </div>
         </div>
       </div>
 

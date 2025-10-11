@@ -88,7 +88,7 @@ const GetStarted = () => {
         <div className="max-w-7xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-8">
             <div className="text-2xl text-foreground" style={{ fontFamily: 'var(--_typography---font--styrene-a)', fontWeight: 500, letterSpacing: '-0.02em' }}>
-              Twin AI Learn
+              Twin Me
             </div>
             <div className="hidden md:flex items-center gap-6">
               <button

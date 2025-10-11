@@ -305,6 +305,11 @@ export const DataVerification: React.FC<DataVerificationProps> = ({ userId, conn
               {verificationData.calendar.error ? (
                 <p style={{ color: 'var(--_color-theme---text-secondary)' }}>
                   {verificationData.calendar.error}
+                  {verificationData.calendar.error.includes('not connected') && (
+                    <span className="block mt-2 text-sm">
+                      ℹ️ OAuth connection established. Verification requires initial data sync.
+                    </span>
+                  )}
                 </p>
               ) : (
                 <>

@@ -35,7 +35,7 @@ import ChooseTwinType from "./pages/ChooseTwinType";
 import SoulSignatureDashboard from "./pages/SoulSignatureDashboard";
 import SoulChatPage from "./pages/SoulChatPage";
 import PrivacySpectrumDashboard from "./components/PrivacySpectrumDashboard";
-import TwinProfilePreview from "./components/TwinProfilePreview";
+import TwinProfilePreviewPage from "./pages/TwinProfilePreviewPage";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import Dashboard from "./pages/Dashboard";
 import Training from "./pages/Training";
@@ -184,10 +184,9 @@ const App = () => (
             <Route path="/twin-profile-preview" element={
               <>
                 <SignedIn>
-                  <TwinProfilePreview
-                    onActivate={() => window.location.href = '/twin-activation'}
-                    onEdit={() => window.location.href = '/soul-signature'}
-                  />
+                  <SidebarLayout>
+                    <TwinProfilePreviewPage />
+                  </SidebarLayout>
                 </SignedIn>
                 <SignedOut>
                   <CustomAuth />

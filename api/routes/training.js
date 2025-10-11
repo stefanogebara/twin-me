@@ -26,9 +26,9 @@ router.get('/status', async (req, res) => {
     // Check if there's an active training job
     const activeJob = trainingJobs.get(userId);
 
-    // Get total samples from soul_signature_data
+    // Get total samples from user_text_content (processed text samples for training)
     const { count: totalSamples, error: samplesError } = await supabase
-      .from('soul_signature_data')
+      .from('user_text_content')
       .select('*', { count: 'exact', head: true })
       .eq('user_id', userId);
 
@@ -117,7 +117,7 @@ router.post('/start', async (req, res) => {
 
     // Verify user has data to train on
     const { count: dataCount, error: dataError } = await supabase
-      .from('soul_signature_data')
+      .from('user_text_content')
       .select('*', { count: 'exact', head: true })
       .eq('user_id', userId);
 

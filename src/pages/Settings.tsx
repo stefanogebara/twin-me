@@ -13,7 +13,8 @@ import {
   XCircle,
   Loader2,
   ExternalLink,
-  RefreshCw
+  RefreshCw,
+  AlertCircle
 } from 'lucide-react';
 
 const Settings = () => {
@@ -21,6 +22,8 @@ const Settings = () => {
   const { user } = useAuth();
   const [connectorStatus, setConnectorStatus] = useState<any>({});
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [disconnectingService, setDisconnectingService] = useState<string | null>(null);
 
   // Fetch connector status on load
   useEffect(() => {
@@ -32,13 +35,17 @@ const Settings = () => {
   const fetchConnectorStatus = async () => {
     try {
       setIsLoading(true);
+      setError(null);
       const response = await fetch(`${import.meta.env.VITE_API_URL}/connectors/status/${user?.id}`);
       if (response.ok) {
         const data = await response.json();
         setConnectorStatus(data.data || {});
+      } else {
+        throw new Error('Failed to fetch connector status');
       }
     } catch (error) {
       console.error('Error fetching connector status:', error);
+      setError('Unable to load connection status. Please try again.');
     } finally {
       setIsLoading(false);
     }
@@ -46,16 +53,23 @@ const Settings = () => {
 
   const handleDisconnectService = async (provider: string) => {
     try {
+      setDisconnectingService(provider);
       const response = await fetch(`${import.meta.env.VITE_API_URL}/connectors/${provider}/${user?.id}`, {
         method: 'DELETE'
       });
 
       if (response.ok) {
         // Refresh status after disconnection
-        fetchConnectorStatus();
+        await fetchConnectorStatus();
+        // Optionally show success toast
+      } else {
+        throw new Error('Failed to disconnect service');
       }
     } catch (error) {
       console.error('Error disconnecting service:', error);
+      setError(`Failed to disconnect ${provider}. Please try again.`);
+    } finally {
+      setDisconnectingService(null);
     }
   };
 
@@ -272,6 +286,22 @@ const Settings = () => {
               These services help your digital twin understand your communication style and preferences.
             </p>
 
+            {error && (
+              <div
+                className="flex items-center gap-2 p-4 mb-4 rounded-lg border"
+                style={{
+                  backgroundColor: '#FEE2E2',
+                  borderColor: '#FECACA',
+                  color: '#DC2626'
+                }}
+              >
+                <AlertCircle className="w-5 h-5 flex-shrink-0" />
+                <span style={{ fontFamily: 'var(--_typography---font--tiempos)' }}>
+                  {error}
+                </span>
+              </div>
+            )}
+
             {isLoading ? (
               <div className="flex items-center justify-center py-8">
                 <Loader2 className="w-6 h-6" style={{ color: '#D97706' }} />
@@ -341,15 +371,25 @@ const Settings = () => {
                             </div>
                             <button
                               onClick={() => handleDisconnectService(connector.id)}
-                              className="px-3 py-1.5 rounded-lg text-sm border"
+                              disabled={disconnectingService === connector.id}
+                              className="px-3 py-1.5 rounded-lg text-sm border flex items-center gap-2"
                               style={{
                                 borderColor: '#FCA5A5',
                                 color: '#DC2626',
                                 backgroundColor: 'white',
-                                fontFamily: 'var(--_typography---font--tiempos)'
+                                fontFamily: 'var(--_typography---font--tiempos)',
+                                opacity: disconnectingService === connector.id ? 0.7 : 1,
+                                cursor: disconnectingService === connector.id ? 'not-allowed' : 'pointer'
                               }}
                             >
-                              Disconnect
+                              {disconnectingService === connector.id ? (
+                                <>
+                                  <Loader2 className="w-3 h-3 animate-spin" />
+                                  Disconnecting...
+                                </>
+                              ) : (
+                                'Disconnect'
+                              )}
                             </button>
                           </>
                         ) : (
