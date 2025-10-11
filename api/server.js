@@ -184,6 +184,7 @@ import oauthCallbackRoutes from './routes/oauth-callback.js';
 import dashboardRoutes from './routes/dashboard.js';
 import trainingRoutes from './routes/training.js';
 import diagnosticsRoutes from './routes/diagnostics.js';
+import dataSourcesRoutes from './routes/data-sources.js';
 import { serverDb } from './services/database.js';
 import { sanitizeInput, validateContentType } from './middleware/sanitization.js';
 import { /* handleAuthError, */ handleGeneralError, handle404 } from './middleware/errorHandler.js';
@@ -208,6 +209,7 @@ app.use('/oauth', oauthCallbackRoutes); // Unified OAuth callback handler
 app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/training', trainingRoutes);
 app.use('/api/diagnostics', diagnosticsRoutes); // Supabase connection diagnostics
+app.use('/api/data-sources', dataSourcesRoutes);
 
 // Health check endpoint
 app.get('/api/health', async (req, res) => {
