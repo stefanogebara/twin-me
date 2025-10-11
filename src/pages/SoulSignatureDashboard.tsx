@@ -1071,19 +1071,6 @@ const SoulSignatureDashboard: React.FC = () => {
             <Play className="w-4 h-4 mr-2" />
             Preview Your Twin
           </Button>
-          <Button
-            onClick={() => navigate('/twin-activation')}
-            variant="outline"
-            style={{
-              border: '2px solid #D97706',
-              color: '#D97706',
-              fontFamily: 'var(--_typography---font--styrene-a)',
-              fontWeight: 500
-            }}
-          >
-            <Sparkles className="w-4 h-4 mr-2" />
-            Activate Twin
-          </Button>
         </div>
       </div>
     </div>

@@ -18,7 +18,6 @@ import VoiceSettings from "./pages/VoiceSettings";
 import Settings from "./pages/Settings";
 import TwinBuilder from "./pages/TwinBuilder";
 import ConversationalTwinBuilder from "./pages/ConversationalTwinBuilder";
-import { TwinActivation } from "./pages/TwinActivation";
 import WatchDemo from "./pages/WatchDemo";
 import Contact from "./pages/Contact";
 import PersonalTwinBuilder from "./pages/PersonalTwinBuilder";
@@ -237,16 +236,6 @@ const App = () => (
               <>
                 <SignedIn>
                   <ConversationalTwinBuilder />
-                </SignedIn>
-                <SignedOut>
-                  <CustomAuth />
-                </SignedOut>
-              </>
-            } />
-            <Route path="/twin-activation" element={
-              <>
-                <SignedIn>
-                  <TwinActivation />
                 </SignedIn>
                 <SignedOut>
                   <CustomAuth />
