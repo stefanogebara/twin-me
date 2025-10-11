@@ -123,8 +123,8 @@ const PersonalTwinBuilder = () => {
         description: "Your digital twin has been created successfully!",
       });
 
-      // Navigate to activation or dashboard
-      navigate('/twin-activation', { state: { twinId: newTwin.id } });
+      // Navigate to soul signature dashboard
+      navigate('/soul-signature', { state: { twinId: newTwin.id } });
 
     } catch (error: unknown) {
       toast({

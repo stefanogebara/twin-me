@@ -1592,7 +1592,7 @@ const TalkToTwin = () => {
               <div className="flex gap-3">
                 <Button
                   variant="outline"
-                  onClick={() => navigate('/twin-activation')}
+                  onClick={() => navigate('/twin-profile-preview')}
                   disabled={apiStats.connectedPlatformCount === 0}
                   style={{
                     fontFamily: 'var(--_typography---font--tiempos)'

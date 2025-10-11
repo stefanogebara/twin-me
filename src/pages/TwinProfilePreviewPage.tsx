@@ -195,7 +195,7 @@ const TwinProfilePreviewPage: React.FC = () => {
   };
 
   const handleActivate = () => {
-    navigate('/twin-activation');
+    navigate('/soul-signature');
   };
 
   const handleEdit = () => {
