@@ -62,11 +62,21 @@ router.get('/connected', optionalAuth, async (req, res) => {
       });
     }
 
+    // Transform connections to expected format
+    const formattedConnections = (connections || []).map(conn => ({
+      provider: conn.provider,
+      status: conn.connected ? 'connected' : 'disconnected',
+      data_points: conn.metadata?.data_points || 0,
+      last_sync_at: conn.last_sync_at,
+      created_at: conn.created_at,
+      metadata: conn.metadata
+    }));
+
     // Return connections in expected format
     res.json({
       success: true,
-      connections: connections || [],
-      count: connections?.length || 0,
+      connections: formattedConnections,
+      count: formattedConnections.length,
       userId: userUuid
     });
 
@@ -101,7 +111,7 @@ router.get('/status/:userId', async (req, res) => {
 
     const { data: connections, error } = await supabase
       .from('data_connectors')
-      .select('provider, connected, metadata')
+      .select('provider, connected, metadata, last_sync_at')
       .eq('user_id', userUuid)
       .eq('connected', true);
 
@@ -115,14 +125,27 @@ router.get('/status/:userId', async (req, res) => {
     connections?.forEach(connection => {
       connectionStatus[connection.provider] = {
         connected: true,
+        status: 'connected',
+        data_points: connection.metadata?.data_points || 0,
+        last_sync_at: connection.last_sync_at,
         metadata: connection.metadata
       };
     });
 
+    // Also return connections array for compatibility
+    const formattedConnections = (connections || []).map(conn => ({
+      provider: conn.provider,
+      status: 'connected',
+      data_points: conn.metadata?.data_points || 0,
+      last_sync_at: conn.last_sync_at,
+      metadata: conn.metadata
+    }));
+
     res.json({
       success: true,
       status: connectionStatus,
-      connections: connections || []
+      connections: formattedConnections,
+      data: connectionStatus // For Settings page compatibility
     });
 
   } catch (error) {
