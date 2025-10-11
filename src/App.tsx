@@ -14,8 +14,6 @@ import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
 import TalkToTwin from "./pages/TalkToTwin";
-import Chat from "./pages/Chat";
-import GetStarted from "./pages/GetStarted";
 import VoiceSettings from "./pages/VoiceSettings";
 import Settings from "./pages/Settings";
 import TwinBuilder from "./pages/TwinBuilder";
@@ -23,9 +21,7 @@ import ConversationalTwinBuilder from "./pages/ConversationalTwinBuilder";
 import { TwinActivation } from "./pages/TwinActivation";
 import WatchDemo from "./pages/WatchDemo";
 import Contact from "./pages/Contact";
-import ProfessorDashboard from "./pages/ProfessorDashboard";
 import PersonalTwinBuilder from "./pages/PersonalTwinBuilder";
-import StudentDashboard from "./pages/StudentDashboard";
 import InstantTwinOnboarding from "./pages/InstantTwinOnboarding";
 import TwinDashboard from "./pages/TwinDashboard";
 import OAuthCallback from "./pages/OAuthCallback";
@@ -117,16 +113,6 @@ const App = () => (
                 </SignedOut>
               </>
             } />
-            <Route path="/chat/:twinId" element={
-              <>
-                <SignedIn>
-                  <Chat />
-                </SignedIn>
-                <SignedOut>
-                  <CustomAuth />
-                </SignedOut>
-              </>
-            } />
             <Route path="/get-started" element={
               <>
                 <SignedIn>
@@ -187,26 +173,6 @@ const App = () => (
                   <SidebarLayout>
                     <TwinProfilePreviewPage />
                   </SidebarLayout>
-                </SignedIn>
-                <SignedOut>
-                  <CustomAuth />
-                </SignedOut>
-              </>
-            } />
-            <Route path="/legacy-get-started" element={
-              <>
-                <SignedIn>
-                  <GetStarted />
-                </SignedIn>
-                <SignedOut>
-                  <CustomAuth />
-                </SignedOut>
-              </>
-            } />
-            <Route path="/original-get-started" element={
-              <>
-                <SignedIn>
-                  <GetStarted />
                 </SignedIn>
                 <SignedOut>
                   <CustomAuth />
@@ -307,30 +273,10 @@ const App = () => (
                 </SignedOut>
               </>
             } />
-            <Route path="/professor-dashboard" element={
-              <>
-                <SignedIn>
-                  <ProfessorDashboard />
-                </SignedIn>
-                <SignedOut>
-                  <CustomAuth />
-                </SignedOut>
-              </>
-            } />
             <Route path="/personal-twin-builder" element={
               <>
                 <SignedIn>
                   <PersonalTwinBuilder />
-                </SignedIn>
-                <SignedOut>
-                  <CustomAuth />
-                </SignedOut>
-              </>
-            } />
-            <Route path="/student-dashboard" element={
-              <>
-                <SignedIn>
-                  <StudentDashboard />
                 </SignedIn>
                 <SignedOut>
                   <CustomAuth />
