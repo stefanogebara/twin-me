@@ -1,6 +1,6 @@
 /**
  * Twin AI Learn - Data Integration Types
- * Revolutionary data-driven digital twin system
+ * Revolutionary Soul Signature extraction and analysis system
  */
 
 // ====================================================================
