@@ -40,8 +40,8 @@ const SoulSignatureDashboard: React.FC = () => {
     netflix: false,
     youtube: false,
     steam: false,
-    gmail: true,
-    calendar: true,
+    gmail: false,
+    calendar: false,
     teams: false,
     slack: false,
     discord: false
@@ -428,49 +428,12 @@ const SoulSignatureDashboard: React.FC = () => {
           updateClusterInsights(platform, data.data);
         }
       } else {
-        // Fallback to demo extraction for non-professional platforms
-        if (!['gmail', 'calendar', 'professional'].includes(platform)) {
-          const demoResponse = await fetch(`${apiUrl}/soul/demo/${platform}`);
-          if (demoResponse.ok) {
-            const demoData = await demoResponse.json();
-            console.log('🎭 Using demo soul signature:', demoData);
-            updateClusterInsights(platform, demoData.data);
-          }
-        } else {
-          // Show demo professional insights for Gmail/Calendar
-          const demoInsights = {
-            soulSignature: {
-              communicationStyle: {
-                communicationTone: 'Professional',
-                responsePattern: 'Business Hours',
-                formalityScore: 75,
-                emailFrequency: 12
-              },
-              professionalIdentity: {
-                collaborationStyle: 'High Collaboration',
-                networkType: 'External Focused',
-                networkDiversity: 15
-              },
-              personalityInsights: {
-                communicationPersona: 'The Professional Communicator',
-                workStyle: 'Traditional business hour focus',
-                socialProfile: 'Team-oriented and meeting-focused'
-              }
-            }
-          };
-          updateClusterInsights(platform, demoInsights);
-        }
+        console.warn(`⚠️ No data available for ${platform} - extraction failed`);
+        // Don't show fake data - let UI show "No Soul Signature Yet"
       }
     } catch (error) {
       console.error('Soul extraction error:', error);
-      // Show demo insights on error
-      updateClusterInsights(platform, {
-        soulSignature: {
-          personalityInsights: {
-            communicationPersona: `The ${platform.charAt(0).toUpperCase() + platform.slice(1)} Professional`
-          }
-        }
-      });
+      // Don't show fake data on error - let UI show honest state
     } finally {
       // Animate extraction progress
       const interval = setInterval(() => {
