@@ -72,16 +72,9 @@ router.post('/extract/platform/:platform',
         });
       }
 
-      // Fall back to generic platform data for platforms that don't require auth
-      console.log(`⚠️ No active connection for ${platform}, using sample data`);
-      const extraction = await extractor.generateGenericPlatformData(platform, userId);
-      return res.json({
-        success: true,
-        platform,
-        userId,
-        extractedAt: new Date().toISOString(),
-        data: extraction,
-        note: 'Using sample data - connect your account for real insights'
+      // Don't fall back to sample data - throw proper error
+      throw new PlatformNotConnectedError(platform, userId, {
+        originalError: tokenResult.error
       });
     }
 
@@ -943,13 +936,11 @@ async function analyzePersonalityPatterns(extractions, timeframe) {
 }
 
 async function getStoredInsights(userId, includeRaw) {
-  // In a real implementation, this would query a database
-  // For now, return structure indicating no stored data
+  // Return structure indicating no stored data - no demo available
   return {
     hasData: false,
     message: 'No soul signature data found. Connect platforms to begin extraction.',
-    suggestedPlatforms: ['spotify', 'youtube', 'netflix'],
-    availableDemo: true
+    suggestedPlatforms: ['spotify', 'youtube', 'netflix']
   };
 }
 
