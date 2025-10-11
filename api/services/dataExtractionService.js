@@ -223,15 +223,21 @@ class DataExtractionService {
    */
   async updateConnectorMetadata(connectorId, extractionResult) {
     try {
+      const now = new Date().toISOString();
       const metadata = {
-        last_sync: new Date().toISOString(),
+        last_sync: now,
         last_sync_status: extractionResult.success ? 'success' : 'failed',
         last_sync_items: extractionResult.itemsExtracted || 0
       };
 
       await supabase
         .from('data_connectors')
-        .update({ metadata })
+        .update({ 
+          metadata,
+          last_sync: now,
+          last_sync_status: extractionResult.success ? 'success' : 'failed',
+          total_synced: extractionResult.itemsExtracted || 0
+        })
         .eq('id', connectorId);
     } catch (error) {
       console.error('[DataExtraction] Error updating metadata:', error);
