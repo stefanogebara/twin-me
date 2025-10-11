@@ -28,7 +28,7 @@ const primaryNavItems: NavItem[] = [
     label: 'Dashboard',
     icon: Home,
     path: '/dashboard',
-    description: 'Overview of your digital twin'
+    description: 'Overview of your soul signature'
   },
   {
     id: 'connectors',
@@ -56,7 +56,7 @@ const primaryNavItems: NavItem[] = [
     label: 'Model Training',
     icon: Brain,
     path: '/training',
-    description: 'Train your digital twin model'
+    description: 'Train your soul signature model'
   },
   {
     id: 'settings',

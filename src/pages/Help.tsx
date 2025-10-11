@@ -22,7 +22,7 @@ const Help: React.FC = () => {
   const faqItems: FAQItem[] = [
     {
       question: 'What is Soul Signature Platform?',
-      answer: 'Soul Signature Platform (TwinMe) creates authentic digital twins by capturing your true originality through your digital footprints. Unlike traditional cloning that focuses on public information, we discover what makes you genuinely YOU through your personal choices, curiosities, and authentic patterns.',
+      answer: 'Soul Signature Platform (TwinMe) creates authentic personality profiles by capturing your true originality through your digital footprints. Unlike traditional cloning that focuses on public information, we discover what makes you genuinely YOU through your personal choices, curiosities, and authentic patterns.',
       category: 'getting-started'
     },
     {
@@ -46,8 +46,8 @@ const Help: React.FC = () => {
       category: 'extraction'
     },
     {
-      question: 'Can I chat with my digital twin?',
-      answer: 'Yes! Once you\'ve extracted your soul signature, you can interact with your digital twin through RAG-powered chat. Your twin responds based on your authentic personality profile and communication patterns.',
+      question: 'Can I chat with my soul signature twin?',
+      answer: 'Yes! Once you\'ve extracted your soul signature, you can interact with your AI twin through RAG-powered chat. Your twin responds based on your authentic personality profile and communication patterns.',
       category: 'features'
     },
     {
