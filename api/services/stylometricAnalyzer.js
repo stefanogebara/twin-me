@@ -5,6 +5,7 @@
 
 import { createClient } from '@supabase/supabase-js';
 import natural from 'natural';
+import Anthropic from '@anthropic-ai/sdk';
 
 // Use SUPABASE_URL (backend) - fallback to VITE_ prefix for compatibility
 const supabase = createClient(
@@ -67,7 +68,7 @@ class StylometricAnalyzer {
       // Perform analyses
       const lexical = this.analyzeLexicalFeatures(words, allText);
       const syntactic = this.analyzeSyntacticFeatures(sentences, allText);
-      const personality = this.predictPersonality(textContent);
+      const personality = await this.predictPersonality(textContent);
       const communication = this.analyzeCommunicationStyle(textContent);
       const emotional = this.analyzeEmotionalTone(textContent);
       const behavioral = this.analyzeBehavioralPatterns(textContent);
@@ -190,12 +191,9 @@ class StylometricAnalyzer {
   }
 
   /**
-   * Predict personality traits (simplified Big Five model)
+   * Predict personality traits using Claude AI (Big Five model)
    */
-  predictPersonality(textContent) {
-    // This is a simplified heuristic model
-    // In production, use trained ML model
-
+  async predictPersonality(textContent) {
     // Safety check
     if (!textContent || textContent.length === 0) {
       return {
@@ -207,67 +205,86 @@ class StylometricAnalyzer {
       };
     }
 
-    let openness = 0.5;
-    let conscientiousness = 0.5;
-    let extraversion = 0.5;
-    let agreeableness = 0.5;
-    let neuroticism = 0.5;
+    // Combine text samples
+    const allText = textContent.map(t => t.text_content || '').join('\n\n');
 
-    const allText = textContent.map(t => (t.text_content || '').toLowerCase()).join(' ');
+    // Truncate if too long (Claude has token limits - stay under 8K chars for safety)
+    const textSample = allText.length > 8000 ? allText.substring(0, 8000) + '...' : allText;
 
-    // Openness markers (curiosity, creativity)
-    const opennessMarkers = ['interesting', 'creative', 'innovative', 'curious', 'explore', 'discover', 'imagine', 'wonder'];
-    openness = this.scoreTraitMarkers(allText, opennessMarkers);
+    // If text is too short for meaningful analysis
+    if (textSample.trim().length < 100) {
+      console.log('[Stylometric] Text too short for Claude analysis, using neutral scores');
+      return {
+        openness: 0.5,
+        conscientiousness: 0.5,
+        extraversion: 0.5,
+        agreeableness: 0.5,
+        neuroticism: 0.5
+      };
+    }
 
-    // Conscientiousness markers (organization, responsibility)
-    const conscientiousnessMarkers = ['plan', 'organize', 'schedule', 'complete', 'finish', 'careful', 'detail', 'precise'];
-    conscientiousness = this.scoreTraitMarkers(allText, conscientiousnessMarkers);
+    try {
+      const anthropic = new Anthropic({
+        apiKey: process.env.ANTHROPIC_API_KEY
+      });
 
-    // Extraversion markers (social, outgoing)
-    const extraversionMarkers = ['we', 'together', 'group', 'team', 'social', 'meet', 'chat', 'talk', 'party', 'friend'];
-    extraversion = this.scoreTraitMarkers(allText, extraversionMarkers);
+      console.log('[Stylometric] Analyzing personality with Claude AI...');
 
-    // Agreeableness markers (cooperative, kind)
-    const agreeablenessMarkers = ['help', 'support', 'agree', 'thanks', 'please', 'appreciate', 'kind', 'nice', 'friendly'];
-    agreeableness = this.scoreTraitMarkers(allText, agreeablenessMarkers);
+      const response = await anthropic.messages.create({
+        model: 'claude-3-5-sonnet-20241022',
+        max_tokens: 1000,
+        temperature: 0.3,
+        system: 'You are a personality psychologist analyzing writing samples to assess Big Five personality traits. Provide accurate, nuanced assessments based on writing style, word choice, and communication patterns.',
+        messages: [{
+          role: 'user',
+          content: `Analyze this person's writing samples and provide Big Five personality trait scores (0.0 to 1.0 scale) with brief reasoning.
 
-    // Neuroticism markers (anxiety, negative emotion)
-    const neuroticismMarkers = ['worry', 'stress', 'anxious', 'nervous', 'afraid', 'concerned', 'problem', 'difficult'];
-    neuroticism = this.scoreTraitMarkers(allText, neuroticismMarkers);
+Writing samples:
+${textSample}
 
-    return {
-      openness: Math.min(Math.max(openness, 0), 1),
-      conscientiousness: Math.min(Math.max(conscientiousness, 0), 1),
-      extraversion: Math.min(Math.max(extraversion, 0), 1),
-      agreeableness: Math.min(Math.max(agreeableness, 0), 1),
-      neuroticism: Math.min(Math.max(neuroticism, 0), 1)
-    };
+Return ONLY valid JSON in this exact format:
+{
+  "openness": 0.X,
+  "conscientiousness": 0.X,
+  "extraversion": 0.X,
+  "agreeableness": 0.X,
+  "neuroticism": 0.X,
+  "reasoning": {
+    "openness": "brief explanation",
+    "conscientiousness": "brief explanation",
+    "extraversion": "brief explanation",
+    "agreeableness": "brief explanation",
+    "neuroticism": "brief explanation"
   }
+}`
+        }]
+      });
 
-  /**
-   * Score personality trait markers
-   */
-  scoreTraitMarkers(text, markers) {
-    // Safety check
-    if (!text || text.trim().length === 0) {
-      return 0.5; // Return neutral score
+      const result = JSON.parse(response.content[0].text);
+
+      console.log('[Stylometric] Claude personality analysis complete');
+
+      return {
+        openness: Math.min(Math.max(result.openness || 0.5, 0), 1),
+        conscientiousness: Math.min(Math.max(result.conscientiousness || 0.5, 0), 1),
+        extraversion: Math.min(Math.max(result.extraversion || 0.5, 0), 1),
+        agreeableness: Math.min(Math.max(result.agreeableness || 0.5, 0), 1),
+        neuroticism: Math.min(Math.max(result.neuroticism || 0.5, 0), 1),
+        reasoning: result.reasoning || {}
+      };
+    } catch (error) {
+      console.error('[Stylometric] Claude API error:', error.message);
+
+      // Fallback to neutral scores on error
+      return {
+        openness: 0.5,
+        conscientiousness: 0.5,
+        extraversion: 0.5,
+        agreeableness: 0.5,
+        neuroticism: 0.5,
+        reasoning: { error: 'Analysis failed, using neutral scores' }
+      };
     }
-
-    const words = text.split(/\s+/);
-    const totalWords = words.length;
-
-    if (totalWords === 0) {
-      return 0.5;
-    }
-
-    let markerCount = 0;
-
-    markers.forEach(marker => {
-      markerCount += (text.match(new RegExp(`\\b${marker}\\b`, 'gi')) || []).length;
-    });
-
-    // Normalize to 0-1 scale
-    return 0.5 + (markerCount / totalWords) * 10; // Multiply by 10 for scaling
   }
 
   /**
