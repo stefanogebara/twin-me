@@ -238,44 +238,22 @@ router.post('/extract/multi-platform',
 
 /**
  * GET /api/soul/demo/:platform
- * Get a demo soul signature for a platform (for testing/preview)
+ * Demo endpoint removed - Soul Signature platform only uses real data
+ * @deprecated Use real platform connections for authentic soul signature
  */
 router.get('/demo/:platform', async (req, res) => {
-  try {
-    const { platform } = req.params;
+  const { platform } = req.params;
 
-    console.log(`🎭 Demo soul signature request for ${platform}`);
+  console.log(`🎭 Demo request for ${platform} - redirecting to real connection`);
 
-    let demoData;
-
-    switch (platform.toLowerCase()) {
-      case 'spotify':
-        demoData = await extractor.generateRealisticSpotifyData('demo-user');
-        break;
-
-      case 'youtube':
-        demoData = await extractor.generateYouTubePersonality('demo-user');
-        break;
-
-      default:
-        demoData = await extractor.generateGenericPlatformData(platform, 'demo-user');
-    }
-
-    res.json({
-      success: true,
-      platform,
-      isDemo: true,
-      extractedAt: new Date().toISOString(),
-      data: demoData
-    });
-
-  } catch (error) {
-    console.error('❌ Demo generation error:', error);
-    res.status(500).json({
-      success: false,
-      error: 'Failed to generate demo soul signature'
-    });
-  }
+  res.json({
+    success: false,
+    platform,
+    error: 'DEMO_NOT_AVAILABLE',
+    message: 'Soul Signature platform uses only real data. Please connect your account for authentic insights.',
+    action: 'connect',
+    redirectTo: `/connect-platforms?platform=${platform}`
+  });
 });
 
 /**
