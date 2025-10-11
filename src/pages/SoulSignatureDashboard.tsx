@@ -757,15 +757,27 @@ const SoulSignatureDashboard: React.FC = () => {
                         {connector.name}
                       </span>
                     </div>
-                    {connector.status ? (
-                      <Badge
-                        className="bg-[hsl(var(--claude-surface-raised))] text-[hsl(var(--claude-accent))] border border-[hsl(var(--claude-accent))]"
-                      >
-                        Connected
-                      </Badge>
-                    ) : (
-                      <ChevronRight className="w-4 h-4" style={{ color: '#6B7280' }} />
-                    )}
+                    <div className="flex items-center gap-2">
+                      {connector.status ? (
+                        <>
+                          <Badge
+                            className="bg-[hsl(var(--claude-surface-raised))] text-[hsl(var(--claude-accent))] border border-[hsl(var(--claude-accent))]"
+                          >
+                            ✓ Connected
+                          </Badge>
+                          {hasExtractedData && (
+                            <Badge
+                              className="bg-green-500/10 text-green-600 border border-green-500/20"
+                              title="Data extracted successfully"
+                            >
+                              Extracted
+                            </Badge>
+                          )}
+                        </>
+                      ) : (
+                        <ChevronRight className="w-4 h-4" style={{ color: '#6B7280' }} />
+                      )}
+                    </div>
                   </button>
                 ))}
 
