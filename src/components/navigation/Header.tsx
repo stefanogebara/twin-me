@@ -42,7 +42,7 @@ export const Header: React.FC<HeaderProps> = ({ user, onSignOut }) => {
               letterSpacing: '-0.02em'
             }}
           >
-            Twin AI Learn
+            Twin Me
           </span>
         </NavLink>
 

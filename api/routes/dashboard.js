@@ -28,9 +28,9 @@ router.get('/stats', async (req, res) => {
 
     const connectedPlatforms = platforms?.length || 0;
 
-    // Get total data points count from soul_signature_data
+    // Get total data points count from user_platform_data (raw extracted data)
     const { count: dataPointsCount, error: dataPointsError } = await supabaseAdmin
-      .from('soul_signature_data')
+      .from('user_platform_data')
       .select('*', { count: 'exact', head: true })
       .eq('user_id', userId);
 
@@ -40,10 +40,27 @@ router.get('/stats', async (req, res) => {
 
     const totalDataPoints = dataPointsCount || 0;
 
-    // Get soul signature progress (calculated from data completeness)
+    // Get soul signature progress from soul_signature_profile
+    const { data: soulProfile, error: soulProfileError } = await supabaseAdmin
+      .from('soul_signature_profile')
+      .select('confidence_score, data_completeness')
+      .eq('user_id', userId)
+      .single();
+
+    if (soulProfileError && soulProfileError.code !== 'PGRST116') {
+      console.error('Error fetching soul signature profile:', soulProfileError);
+    }
+
+    // Calculate progress: use confidence_score if available, otherwise estimate from platforms
     let soulSignatureProgress = 0;
-    if (connectedPlatforms > 0) {
-      // Base progress: 20% per platform (up to 5 platforms = 100%)
+    if (soulProfile?.confidence_score) {
+      // Convert confidence score (0-1) to percentage
+      soulSignatureProgress = Math.round(parseFloat(soulProfile.confidence_score) * 100);
+    } else if (soulProfile?.data_completeness) {
+      // Use data_completeness if confidence not available
+      soulSignatureProgress = Math.round(parseFloat(soulProfile.data_completeness));
+    } else if (connectedPlatforms > 0) {
+      // Fallback: estimate from connected platforms (20% per platform, max 100%)
       soulSignatureProgress = Math.min((connectedPlatforms / 5) * 100, 100);
     }
 
@@ -201,17 +218,40 @@ router.get('/activity', async (req, res) => {
       }
     }
 
-    // If no events found, provide default activity items
+    // If no events found, provide contextual default activity items
     if (activity.length === 0) {
-      activity.push(
-        {
+      // Check if user has connected platforms
+      const { data: connectedPlatforms, error: platformsError } = await supabaseAdmin
+        .from('data_connectors')
+        .select('provider', { count: 'exact' })
+        .eq('user_id', userId)
+        .eq('is_active', true);
+
+      if (platformsError) {
+        console.error('Error checking connected platforms:', platformsError);
+      }
+
+      const hasConnections = connectedPlatforms && connectedPlatforms.length > 0;
+
+      if (hasConnections) {
+        // User has connections but no recent events
+        activity.push({
+          id: '1',
+          type: 'sync',
+          message: `${connectedPlatforms.length} platforms connected and ready for data extraction`,
+          timestamp: new Date().toISOString(),
+          icon: 'CheckCircle2',
+        });
+      } else {
+        // User has no connections yet
+        activity.push({
           id: '1',
           type: 'connection',
           message: 'Ready to connect your first platform',
           timestamp: new Date().toISOString(),
           icon: 'Sparkles',
-        }
-      );
+        });
+      }
     }
 
     res.json({ success: true, activity });

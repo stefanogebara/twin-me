@@ -353,10 +353,11 @@ const SoulSignatureDashboard: React.FC = () => {
     if (!connections[connectorKey as keyof ConnectionStatus]) {
       // Start real connection process
       try {
-        const response = await fetch(`/api/entertainment/connect/${connectorKey}`, {
+        const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
+        const response = await fetch(`${apiUrl}/entertainment/connect/${connectorKey}`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ userId: 'current-user' })
+          body: JSON.stringify({ userId: user?.id || 'current-user' })
         });
 
         if (response.ok) {
@@ -386,27 +387,29 @@ const SoulSignatureDashboard: React.FC = () => {
       const userId = user?.id || user?.email || 'anonymous-user'; // Use actual user ID
 
       // Handle different analysis types
+      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
+
       if (platform === 'communication-analysis' || platform === 'gmail') {
         console.log('📧 Analyzing Gmail communication patterns...');
-        response = await fetch(`/api/soul/extract/gmail/${userId}`, {
+        response = await fetch(`${apiUrl}/soul/extract/gmail/${userId}`, {
           method: 'GET',
           headers: { 'Content-Type': 'application/json' }
         });
       } else if (platform === 'productivity-analysis' || platform === 'calendar') {
         console.log('🗓️ Analyzing Calendar time management patterns...');
-        response = await fetch(`/api/soul/extract/calendar/${userId}`, {
+        response = await fetch(`${apiUrl}/soul/extract/calendar/${userId}`, {
           method: 'GET',
           headers: { 'Content-Type': 'application/json' }
         });
       } else if (platform === 'complete-professional' || platform === 'professional') {
         console.log('💼 Generating complete professional soul signature...');
-        response = await fetch(`/api/soul/extract/professional/${userId}`, {
+        response = await fetch(`${apiUrl}/soul/extract/professional/${userId}`, {
           method: 'GET',
           headers: { 'Content-Type': 'application/json' }
         });
       } else {
         // For other platforms, try original route
-        response = await fetch(`/api/soul/extract/platform/${platform}`, {
+        response = await fetch(`${apiUrl}/soul/extract/platform/${platform}`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -427,7 +430,7 @@ const SoulSignatureDashboard: React.FC = () => {
       } else {
         // Fallback to demo extraction for non-professional platforms
         if (!['gmail', 'calendar', 'professional'].includes(platform)) {
-          const demoResponse = await fetch(`/api/soul/demo/${platform}`);
+          const demoResponse = await fetch(`${apiUrl}/soul/demo/${platform}`);
           if (demoResponse.ok) {
             const demoData = await demoResponse.json();
             console.log('🎭 Using demo soul signature:', demoData);

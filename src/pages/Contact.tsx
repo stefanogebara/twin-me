@@ -140,7 +140,7 @@ export default function Contact() {
                 <strong className="block">Can I bring my own ElevenLabs account?</strong>
               </summary>
               <p className="leading-relaxed mt-2 text-[#141413]" style={{ fontFamily: 'var(--_typography---font--tiempos)' }}>
-                Yes. We support managed cloning by Twin AI Learn and self-serve via your own provider later on.
+                Yes. We support managed cloning by Twin Me and self-serve via your own provider later on.
               </p>
             </details>
           </aside>

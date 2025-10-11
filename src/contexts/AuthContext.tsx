@@ -36,8 +36,18 @@ interface AuthProviderProps {
 }
 
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
-  const [user, setUser] = useState<User | null>(null);
-  const [isLoaded, setIsLoaded] = useState(false);
+  // Optimistic initialization: Check localStorage for cached user data
+  const getCachedUser = (): User | null => {
+    try {
+      const cachedUser = localStorage.getItem('auth_user');
+      return cachedUser ? JSON.parse(cachedUser) : null;
+    } catch {
+      return null;
+    }
+  };
+
+  const [user, setUser] = useState<User | null>(getCachedUser());
+  const [isLoaded, setIsLoaded] = useState(true); // Set to true immediately for optimistic UI
   const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
@@ -46,41 +56,55 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   }, []);
 
   const checkAuth = async () => {
+    const token = localStorage.getItem('auth_token');
+    console.log('🔍 Auth check - token exists:', !!token);
+
+    if (!token) {
+      console.log('🔍 No token found, user not signed in');
+      setUser(null);
+      localStorage.removeItem('auth_user');
+      setIsLoaded(true);
+      return;
+    }
+
+    // If we have a cached user, use it optimistically
+    // Verify token in the background without blocking UI
+    const cachedUser = getCachedUser();
+    if (cachedUser) {
+      setUser(cachedUser);
+      setIsLoaded(true); // UI loads immediately
+    }
+
+    // Background token verification
     try {
-      const token = localStorage.getItem('auth_token');
-      console.log('🔍 Auth check - token exists:', !!token);
-
-      if (token) {
-        console.log('🔍 Verifying token with backend...');
-        // Verify token with backend
-        const response = await fetch(`${import.meta.env.VITE_API_URL}/auth/verify`, {
-          headers: {
-            'Authorization': `Bearer ${token}`
-          }
-        });
-
-        console.log('🔍 Token verification response:', response.status, response.ok);
-
-        if (response.ok) {
-          const userData = await response.json();
-          console.log('✅ Token valid, user:', userData.user);
-          setUser(userData.user);
-        } else {
-          console.log('❌ Invalid token, removing from localStorage');
-          localStorage.removeItem('auth_token');
-          setUser(null);
+      console.log('🔍 Verifying token in background...');
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/auth/verify`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
         }
+      });
+
+      console.log('🔍 Token verification response:', response.status, response.ok);
+
+      if (response.ok) {
+        const userData = await response.json();
+        console.log('✅ Token valid, updating user:', userData.user);
+        setUser(userData.user);
+        // Cache user data for next load
+        localStorage.setItem('auth_user', JSON.stringify(userData.user));
       } else {
-        console.log('🔍 No token found, user not signed in');
+        console.log('❌ Invalid token, clearing auth');
+        localStorage.removeItem('auth_token');
+        localStorage.removeItem('auth_user');
         setUser(null);
       }
     } catch (error) {
-      console.error('❌ Auth check failed:', error);
-      localStorage.removeItem('auth_token');
-      setUser(null);
+      console.error('❌ Auth verification failed:', error);
+      // Don't clear auth on network errors - keep cached state
+      // This prevents logout on temporary network issues
     } finally {
-      setIsLoaded(true);
-      console.log('🔍 Auth check complete, isLoaded set to true');
+      setIsLoaded(true); // Ensure loaded state
+      console.log('🔍 Auth check complete');
     }
   };
 
@@ -101,6 +125,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
       const data = await response.json();
       localStorage.setItem('auth_token', data.token);
+      localStorage.setItem('auth_user', JSON.stringify(data.user));
       setUser(data.user);
     } catch (error) {
       console.error('Sign in error:', error);
@@ -127,6 +152,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
       const data = await response.json();
       localStorage.setItem('auth_token', data.token);
+      localStorage.setItem('auth_user', JSON.stringify(data.user));
       setUser(data.user);
     } catch (error) {
       console.error('Sign up error:', error);
@@ -139,12 +165,14 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const signOut = async () => {
     console.log('🚪 Signing out user');
     localStorage.removeItem('auth_token');
+    localStorage.removeItem('auth_user');
     setUser(null);
   };
 
   const clearAuth = () => {
     console.log('🧹 Clearing auth state and localStorage');
     localStorage.removeItem('auth_token');
+    localStorage.removeItem('auth_user');
     setUser(null);
   };
 

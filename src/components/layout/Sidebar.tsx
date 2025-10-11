@@ -111,7 +111,7 @@ export const Sidebar: React.FC = () => {
         </div>
         <div>
           <h1 className="text-[hsl(var(--claude-text))] font-semibold text-lg">
-            Twin AI
+            Twin Me
           </h1>
           <p className="text-[hsl(var(--claude-text-muted))] text-xs">
             Soul Signature Platform

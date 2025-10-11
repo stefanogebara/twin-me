@@ -15,6 +15,8 @@ import {
   RefreshCw
 } from 'lucide-react';
 import { dashboardAPI, ActivityItem as APIActivityItem, handleAPIError } from '@/services/apiService';
+import { OnboardingTour } from '@/components/OnboardingTour';
+import { OnboardingProgress } from '@/components/OnboardingProgress';
 
 interface DashboardStats {
   connectedPlatforms: number;
@@ -197,6 +199,9 @@ export const Dashboard: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-[hsl(var(--claude-bg))] p-8">
+      {/* Onboarding Tour */}
+      <OnboardingTour />
+
       {/* Header */}
       <div className="mb-8">
         <h1 className="text-3xl font-bold text-[hsl(var(--claude-text))] mb-2">
@@ -206,6 +211,17 @@ export const Dashboard: React.FC = () => {
           Here's an overview of your digital twin's progress
         </p>
       </div>
+
+      {/* Onboarding Progress - Show if not fully set up */}
+      {(stats.connectedPlatforms < 3 || stats.soulSignatureProgress < 100) && (
+        <div className="mb-8">
+          <OnboardingProgress
+            connectedPlatforms={stats.connectedPlatforms}
+            hasCreatedTwin={stats.trainingStatus === 'ready'}
+            hasSetPrivacy={stats.soulSignatureProgress > 25}
+          />
+        </div>
+      )}
 
       {/* Status Cards Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
@@ -243,9 +259,15 @@ export const Dashboard: React.FC = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {quickActions.map((action) => {
             const Icon = action.icon;
+            // Add IDs for onboarding tour
+            const buttonId = action.id === 'connect' ? 'connect-platforms-section' :
+                           action.id === 'soul' ? 'soul-signature-section' :
+                           action.id === 'chat' ? 'chat-twin-section' :
+                           action.id === 'training' ? 'training-section' : undefined;
             return (
               <button
                 key={action.id}
+                id={buttonId}
                 onClick={() => navigate(action.path)}
                 className="bg-[hsl(var(--claude-surface))] border border-[hsl(var(--claude-border))] rounded-lg p-6 text-left hover:border-[hsl(var(--claude-accent))] hover:bg-[hsl(var(--claude-surface-raised))] transition-all duration-200 group"
               >
