@@ -32,8 +32,6 @@ const SoulSignatureDashboard: React.FC = () => {
   const navigate = useNavigate();
   const { user, isSignedIn } = useAuth();
   const [activeCluster, setActiveCluster] = useState<string>('personal');
-  const [isExtracting, setIsExtracting] = useState(false);
-  const [extractionProgress, setExtractionProgress] = useState(0);
   const [showPrivacyControls, setShowPrivacyControls] = useState(false);
   const [connections, setConnections] = useState<ConnectionStatus>({
     spotify: false,
@@ -261,22 +259,6 @@ const SoulSignatureDashboard: React.FC = () => {
     fetchConnectionStatus();
   }, [user?.id]); // Re-fetch when user changes
 
-  // Animated extraction simulation
-  useEffect(() => {
-    if (isExtracting) {
-      const interval = setInterval(() => {
-        setExtractionProgress(prev => {
-          if (prev >= 100) {
-            setIsExtracting(false);
-            return 100;
-          }
-          return prev + 2;
-        });
-      }, 50);
-      return () => clearInterval(interval);
-    }
-  }, [isExtracting]);
-
   const clusters = [
     {
       id: 'personal',
@@ -377,9 +359,6 @@ const SoulSignatureDashboard: React.FC = () => {
   };
 
   const extractSoulSignature = async (platform: string) => {
-    setIsExtracting(true);
-    setExtractionProgress(0);
-
     try {
       console.log(`🧠 Extracting soul signature from ${platform}`);
 
@@ -434,18 +413,6 @@ const SoulSignatureDashboard: React.FC = () => {
     } catch (error) {
       console.error('Soul extraction error:', error);
       // Don't show fake data on error - let UI show honest state
-    } finally {
-      // Animate extraction progress
-      const interval = setInterval(() => {
-        setExtractionProgress(prev => {
-          if (prev >= 100) {
-            setIsExtracting(false);
-            clearInterval(interval);
-            return 100;
-          }
-          return prev + 8;
-        });
-      }, 80);
     }
   };
 
@@ -488,11 +455,6 @@ const SoulSignatureDashboard: React.FC = () => {
         console.log(`✨ Updated ${cluster.name} with ${newInsights.length} insights`);
       }
     }
-  };
-
-  const startExtraction = () => {
-    setIsExtracting(true);
-    setExtractionProgress(0);
   };
 
   const currentCluster = clusters.find(c => c.id === activeCluster)!;
@@ -764,7 +726,6 @@ const SoulSignatureDashboard: React.FC = () => {
                       <Button
                         key={action.id}
                         onClick={() => extractSoulSignature(action.id)}
-                        disabled={isExtracting}
                         variant="outline"
                         className="w-full justify-start text-left p-4 h-auto bg-[hsl(var(--claude-surface-raised))] border border-[hsl(var(--claude-border))] text-[hsl(var(--claude-text))]"
                         style={{
@@ -855,37 +816,14 @@ const SoulSignatureDashboard: React.FC = () => {
                 </div>
               </div>
 
-              {/* Extraction Control */}
-              <div className="mt-6 space-y-4">
-                {isExtracting ? (
-                  <div>
-                    <div
-                      className="flex justify-between text-sm mb-2"
-                      style={{
-                        fontFamily: 'var(--_typography---font--tiempos)',
-                        color: 'hsl(var(--claude-text))'
-                      }}
-                    >
-                      <span>Extracting Soul Signature...</span>
-                      <span>{extractionProgress}%</span>
-                    </div>
-                    <Progress value={extractionProgress} className="h-2" />
-                  </div>
-                ) : (
-                  <Button
-                    onClick={startExtraction}
-                    className="w-full"
-                    style={{
-                      backgroundColor: currentCluster.accentColor,
-                      color: 'white',
-                      fontFamily: 'var(--_typography---font--styrene-a)',
-                      fontWeight: 500
-                    }}
-                  >
-                    <Sparkles className="w-4 h-4 mr-2" />
-                    Extract {currentCluster.name}
-                  </Button>
-                )}
+              {/* Note: Real extraction handled by SoulDataExtractor component above */}
+              <div className="mt-6">
+                <p className="text-sm text-center" style={{
+                  fontFamily: 'var(--_typography---font--tiempos)',
+                  color: 'hsl(var(--claude-text-muted))'
+                }}>
+                  Use the "Extract Soul Signature" button above to begin full pipeline extraction
+                </p>
               </div>
             </Card>
           </div>
@@ -932,26 +870,8 @@ const SoulSignatureDashboard: React.FC = () => {
                         color: '#6B7280'
                       }}
                     >
-                      Connect at least one platform from this cluster to begin discovering your authentic {currentCluster.name.toLowerCase()}.
+                      Connect platforms and use the "Extract Soul Signature" button above to begin discovering your authentic {currentCluster.name.toLowerCase()}.
                     </p>
-                    <Button
-                      onClick={() => {
-                        const connectedPlatforms = currentCluster.connectors.filter(c => c.status);
-                        if (connectedPlatforms.length > 0) {
-                          startExtraction();
-                        }
-                      }}
-                      variant="outline"
-                      style={{
-                        border: '2px solid ' + currentCluster.accentColor,
-                        color: currentCluster.accentColor,
-                        fontFamily: 'var(--_typography---font--styrene-a)',
-                        fontWeight: 500
-                      }}
-                    >
-                      <Sparkles className="w-4 h-4 mr-2" />
-                      Start Soul Discovery
-                    </Button>
                   </div>
                 ) : (
                   currentCluster.insights.map((insight, index) => (
