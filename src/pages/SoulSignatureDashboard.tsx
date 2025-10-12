@@ -21,11 +21,15 @@ interface ConnectionStatus {
   netflix: boolean;
   youtube: boolean;
   steam: boolean;
-  gmail: boolean;
-  calendar: boolean;
+  google_gmail: boolean;
+  google_calendar: boolean;
   teams: boolean;
   slack: boolean;
   discord: boolean;
+  github: boolean;
+  linkedin: boolean;
+  instagram: boolean;
+  twitter: boolean;
 }
 
 const SoulSignatureDashboard: React.FC = () => {
@@ -38,11 +42,15 @@ const SoulSignatureDashboard: React.FC = () => {
     netflix: false,
     youtube: false,
     steam: false,
-    gmail: false,
-    calendar: false,
+    google_gmail: false,
+    google_calendar: false,
     teams: false,
     slack: false,
-    discord: false
+    discord: false,
+    github: false,
+    linkedin: false,
+    instagram: false,
+    twitter: false
   });
   const [extractedInsights, setExtractedInsights] = useState<{
     personal: string[] | null;
@@ -269,14 +277,9 @@ const SoulSignatureDashboard: React.FC = () => {
       connectors: [
         // Entertainment & Media
         { name: 'Spotify', icon: <Music />, status: connections.spotify, key: 'spotify', category: 'Entertainment' },
-        { name: 'Netflix', icon: <Film />, status: connections.netflix, key: 'netflix', category: 'Entertainment' },
         { name: 'YouTube', icon: <Youtube />, status: connections.youtube, key: 'youtube', category: 'Entertainment' },
-        { name: 'Steam', icon: <Gamepad2 />, status: connections.steam, key: 'steam', category: 'Gaming' },
-        // Social & Creative (merged from Creative Expression)
-        { name: 'Instagram', icon: <Instagram />, status: false, key: 'instagram', category: 'Social' },
-        { name: 'Twitter', icon: <Twitter />, status: false, key: 'twitter', category: 'Social' },
-        { name: 'GitHub', icon: <Github />, status: false, key: 'github', category: 'Creative' },
-        { name: 'Discord', icon: <Users />, status: connections.discord, key: 'discord', category: 'Community' }
+        { name: 'Discord', icon: <Users />, status: connections.discord, key: 'discord', category: 'Community' },
+        { name: 'GitHub', icon: <Github />, status: connections.github, key: 'github', category: 'Creative' }
       ],
       insights: extractedInsights.personal || [],
       analysisActions: [
@@ -301,11 +304,10 @@ const SoulSignatureDashboard: React.FC = () => {
       icon: <Briefcase className="w-6 h-6" />,
       accentColor: '#D97706',
       connectors: [
-        { name: 'Gmail', icon: <Mail />, status: connections.gmail, key: 'gmail', category: 'Communication' },
-        { name: 'Calendar', icon: <Calendar />, status: connections.calendar, key: 'calendar', category: 'Time Management' },
-        { name: 'Teams', icon: <Users />, status: connections.teams, key: 'teams', category: 'Collaboration' },
+        { name: 'Gmail', icon: <Mail />, status: connections.google_gmail, key: 'google_gmail', category: 'Communication' },
+        { name: 'Google Calendar', icon: <Calendar />, status: connections.google_calendar, key: 'google_calendar', category: 'Time Management' },
         { name: 'Slack', icon: <MessageSquare />, status: connections.slack, key: 'slack', category: 'Collaboration' },
-        { name: 'LinkedIn', icon: <Linkedin />, status: false, key: 'linkedin', category: 'Networking' }
+        { name: 'LinkedIn', icon: <Linkedin />, status: connections.linkedin, key: 'linkedin', category: 'Networking' }
       ],
       insights: extractedInsights.professional || [],
       analysisActions: [
@@ -313,19 +315,19 @@ const SoulSignatureDashboard: React.FC = () => {
           id: 'communication-analysis',
           name: 'Analyze Communication Style',
           description: 'Extract communication patterns from Gmail',
-          platforms: ['gmail']
+          platforms: ['google_gmail']
         },
         {
           id: 'productivity-analysis',
           name: 'Analyze Work Patterns',
           description: 'Discover productivity and time patterns',
-          platforms: ['calendar']
+          platforms: ['google_calendar']
         },
         {
           id: 'complete-professional',
           name: 'Complete Professional Analysis',
           description: 'Comprehensive professional profile',
-          platforms: ['gmail', 'calendar']
+          platforms: ['google_gmail', 'google_calendar']
         }
       ]
     }
@@ -368,13 +370,13 @@ const SoulSignatureDashboard: React.FC = () => {
       // Handle different analysis types
       const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
 
-      if (platform === 'communication-analysis' || platform === 'gmail') {
+      if (platform === 'communication-analysis' || platform === 'gmail' || platform === 'google_gmail') {
         console.log('📧 Analyzing Gmail communication patterns...');
         response = await fetch(`${apiUrl}/soul/extract/gmail/${userId}`, {
           method: 'GET',
           headers: { 'Content-Type': 'application/json' }
         });
-      } else if (platform === 'productivity-analysis' || platform === 'calendar') {
+      } else if (platform === 'productivity-analysis' || platform === 'calendar' || platform === 'google_calendar') {
         console.log('🗓️ Analyzing Calendar time management patterns...');
         response = await fetch(`${apiUrl}/soul/extract/calendar/${userId}`, {
           method: 'GET',
