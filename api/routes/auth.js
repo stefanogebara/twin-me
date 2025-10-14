@@ -156,15 +156,7 @@ router.get('/verify', async (req, res) => {
 // OAuth routes
 router.get('/oauth/google', (req, res) => {
   const clientId = process.env.GOOGLE_CLIENT_ID || 'your-google-client-id';
-
-  // Dynamically construct API URL based on environment
-  const protocol = req.protocol;
-  const host = req.get('host');
-  const apiUrl = process.env.NODE_ENV === 'production'
-    ? `https://${host}/api`
-    : 'http://localhost:3001/api';
-
-  const redirectUri = encodeURIComponent(`${apiUrl}/auth/oauth/callback`);
+  const redirectUri = encodeURIComponent(`${process.env.VITE_API_URL || 'http://localhost:3001/api'}/auth/oauth/callback`);
   const scope = encodeURIComponent('email profile https://www.googleapis.com/auth/gmail.readonly https://www.googleapis.com/auth/calendar.readonly');
   const state = Buffer.from(JSON.stringify({
     provider: 'google',
@@ -209,16 +201,9 @@ router.get('/oauth/callback', async (req, res) => {
   try {
     const { code, state } = req.query;
 
-    // Dynamically construct frontend URL
-    const protocol = req.protocol;
-    const host = req.get('host');
-    const frontendUrl = process.env.NODE_ENV === 'production'
-      ? `https://${host}`
-      : 'http://localhost:8086';
-
     if (!code || !state) {
       console.error('OAuth callback missing code or state');
-      return res.redirect(`${frontendUrl}/auth?error=missing_parameters`);
+      return res.redirect(`${process.env.VITE_APP_URL || 'http://localhost:8086'}/auth?error=missing_parameters`);
     }
 
     // Decode state to get provider info
@@ -227,20 +212,15 @@ router.get('/oauth/callback', async (req, res) => {
       stateData = JSON.parse(Buffer.from(state, 'base64').toString('utf-8'));
     } catch (err) {
       console.error('Failed to decode state:', err);
-      return res.redirect(`${frontendUrl}/auth?error=invalid_state`);
+      return res.redirect(`${process.env.VITE_APP_URL || 'http://localhost:8086'}/auth?error=invalid_state`);
     }
 
     const provider = stateData.provider;
 
-    // Construct API URL for token exchange
-    const apiUrl = process.env.NODE_ENV === 'production'
-      ? `https://${host}/api`
-      : 'http://localhost:3001/api';
-
     // Exchange code for tokens based on provider
     let userData;
     if (provider === 'google') {
-      userData = await exchangeGoogleCode(code, apiUrl);
+      userData = await exchangeGoogleCode(code);
     } else if (provider === 'microsoft') {
       userData = await exchangeMicrosoftCode(code);
     } else if (provider === 'apple') {
@@ -249,7 +229,7 @@ router.get('/oauth/callback', async (req, res) => {
 
     if (!userData) {
       console.error('Failed to exchange OAuth code for user data');
-      return res.redirect(`${frontendUrl}/auth?error=authentication_failed`);
+      return res.redirect(`${process.env.VITE_APP_URL || 'http://localhost:8086'}/auth?error=authentication_failed`);
     }
 
     // Check if user exists or create new user
@@ -276,7 +256,7 @@ router.get('/oauth/callback', async (req, res) => {
 
       if (error) {
         console.error('OAuth user creation error:', error);
-        return res.redirect(`${frontendUrl}/auth?error=user_creation_failed`);
+        return res.redirect(`${process.env.VITE_APP_URL || 'http://localhost:8086'}/auth?error=user_creation_failed`);
       }
 
       user = newUser;
@@ -290,23 +270,16 @@ router.get('/oauth/callback', async (req, res) => {
     );
 
     // Redirect to frontend with token
+    const frontendUrl = process.env.VITE_APP_URL || 'http://localhost:8086';
     res.redirect(`${frontendUrl}/auth/callback?token=${token}`);
   } catch (error) {
     console.error('OAuth callback error:', error);
-
-    // Reconstruct frontendUrl for error redirect
-    const protocol = req.protocol;
-    const host = req.get('host');
-    const frontendUrl = process.env.NODE_ENV === 'production'
-      ? `https://${host}`
-      : 'http://localhost:8086';
-
-    res.redirect(`${frontendUrl}/auth?error=server_error`);
+    res.redirect(`${process.env.VITE_APP_URL || 'http://localhost:8086'}/auth?error=server_error`);
   }
 });
 
 // Helper functions for OAuth token exchange
-async function exchangeGoogleCode(code, apiUrl) {
+async function exchangeGoogleCode(code) {
   try {
     // Exchange authorization code for access token
     const tokenResponse = await fetch('https://oauth2.googleapis.com/token', {
@@ -316,7 +289,7 @@ async function exchangeGoogleCode(code, apiUrl) {
         code,
         client_id: process.env.GOOGLE_CLIENT_ID,
         client_secret: process.env.GOOGLE_CLIENT_SECRET,
-        redirect_uri: `${apiUrl}/auth/oauth/callback`,
+        redirect_uri: `${process.env.VITE_API_URL || 'http://localhost:3001/api'}/auth/oauth/callback`,
         grant_type: 'authorization_code'
       })
     });
