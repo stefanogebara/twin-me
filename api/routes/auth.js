@@ -196,10 +196,26 @@ router.get('/oauth/apple', (req, res) => {
   res.redirect(authUrl);
 });
 
-// OAuth callback handler
-router.post('/oauth/callback', async (req, res) => {
+// OAuth callback handler (GET request from OAuth providers)
+router.get('/oauth/callback', async (req, res) => {
   try {
-    const { code, state, provider } = req.body;
+    const { code, state } = req.query;
+
+    if (!code || !state) {
+      console.error('OAuth callback missing code or state');
+      return res.redirect(`${process.env.VITE_APP_URL || 'http://localhost:8086'}/auth?error=missing_parameters`);
+    }
+
+    // Decode state to get provider info
+    let stateData;
+    try {
+      stateData = JSON.parse(Buffer.from(state, 'base64').toString('utf-8'));
+    } catch (err) {
+      console.error('Failed to decode state:', err);
+      return res.redirect(`${process.env.VITE_APP_URL || 'http://localhost:8086'}/auth?error=invalid_state`);
+    }
+
+    const provider = stateData.provider;
 
     // Exchange code for tokens based on provider
     let userData;
@@ -212,7 +228,8 @@ router.post('/oauth/callback', async (req, res) => {
     }
 
     if (!userData) {
-      return res.status(400).json({ error: 'OAuth authentication failed' });
+      console.error('Failed to exchange OAuth code for user data');
+      return res.redirect(`${process.env.VITE_APP_URL || 'http://localhost:8086'}/auth?error=authentication_failed`);
     }
 
     // Check if user exists or create new user
@@ -239,7 +256,7 @@ router.post('/oauth/callback', async (req, res) => {
 
       if (error) {
         console.error('OAuth user creation error:', error);
-        return res.status(400).json({ error: 'Failed to create user' });
+        return res.redirect(`${process.env.VITE_APP_URL || 'http://localhost:8086'}/auth?error=user_creation_failed`);
       }
 
       user = newUser;
@@ -252,20 +269,12 @@ router.post('/oauth/callback', async (req, res) => {
       { expiresIn: '7d' }
     );
 
-    res.json({
-      success: true,
-      token,
-      user: {
-        id: user.id,
-        email: user.email,
-        firstName: user.first_name,
-        lastName: user.last_name,
-        fullName: `${user.first_name} ${user.last_name}`
-      }
-    });
+    // Redirect to frontend with token
+    const frontendUrl = process.env.VITE_APP_URL || 'http://localhost:8086';
+    res.redirect(`${frontendUrl}/auth/callback?token=${token}`);
   } catch (error) {
     console.error('OAuth callback error:', error);
-    res.status(500).json({ error: 'OAuth authentication failed' });
+    res.redirect(`${process.env.VITE_APP_URL || 'http://localhost:8086'}/auth?error=server_error`);
   }
 });
 

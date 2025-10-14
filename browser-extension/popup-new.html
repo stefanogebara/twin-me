@@ -1,0 +1,423 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Soul Signature - Platform Connector</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      width: 380px;
+      min-height: 500px;
+      font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: #FAF9F5;
+      color: #141413;
+    }
+
+    .header {
+      background: linear-gradient(135deg, #D97706 0%, #B45309 100%);
+      padding: 20px;
+      color: white;
+    }
+
+    .header h1 {
+      font-size: 18px;
+      font-weight: 600;
+      margin-bottom: 4px;
+    }
+
+    .header p {
+      font-size: 12px;
+      opacity: 0.9;
+    }
+
+    .status {
+      padding: 16px 20px;
+      background: white;
+      border-bottom: 1px solid rgba(20, 20, 19, 0.1);
+    }
+
+    .status-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 13px;
+    }
+
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #10B981;
+    }
+
+    .status-dot.disconnected {
+      background: #EF4444;
+    }
+
+    .platforms {
+      padding: 12px 20px;
+    }
+
+    .section-title {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: #8C8C8C;
+      margin: 16px 0 8px;
+      font-weight: 600;
+    }
+
+    .platform-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px;
+      background: white;
+      border-radius: 8px;
+      margin-bottom: 8px;
+      border: 1px solid rgba(20, 20, 19, 0.1);
+      transition: all 0.2s;
+    }
+
+    .platform-item:hover {
+      border-color: #D97706;
+      box-shadow: 0 2px 4px rgba(217, 119, 6, 0.1);
+    }
+
+    .platform-info {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .platform-icon {
+      width: 32px;
+      height: 32px;
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+      background: #F5F5F5;
+    }
+
+    .platform-details h3 {
+      font-size: 13px;
+      font-weight: 500;
+      margin-bottom: 2px;
+    }
+
+    .platform-details p {
+      font-size: 11px;
+      color: #8C8C8C;
+    }
+
+    .toggle-switch {
+      position: relative;
+      width: 44px;
+      height: 24px;
+      background: #E5E5E5;
+      border-radius: 12px;
+      cursor: pointer;
+      transition: background 0.3s;
+    }
+
+    .toggle-switch.active {
+      background: #D97706;
+    }
+
+    .toggle-switch::after {
+      content: '';
+      position: absolute;
+      top: 2px;
+      left: 2px;
+      width: 20px;
+      height: 20px;
+      background: white;
+      border-radius: 50%;
+      transition: transform 0.3s;
+    }
+
+    .toggle-switch.active::after {
+      transform: translateX(20px);
+    }
+
+    .footer {
+      padding: 16px 20px;
+      background: white;
+      border-top: 1px solid rgba(20, 20, 19, 0.1);
+      margin-top: auto;
+    }
+
+    .btn {
+      width: 100%;
+      padding: 10px;
+      background: #D97706;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    .btn:hover {
+      background: #B45309;
+    }
+
+    .btn-secondary {
+      background: transparent;
+      color: #D97706;
+      border: 1px solid #D97706;
+      margin-top: 8px;
+    }
+
+    .btn-secondary:hover {
+      background: rgba(217, 119, 6, 0.1);
+    }
+
+    .stats {
+      display: flex;
+      gap: 16px;
+      padding: 12px 20px;
+      background: #FFF7ED;
+      border-bottom: 1px solid rgba(217, 119, 6, 0.2);
+    }
+
+    .stat-item {
+      flex: 1;
+      text-align: center;
+    }
+
+    .stat-value {
+      font-size: 20px;
+      font-weight: 600;
+      color: #D97706;
+    }
+
+    .stat-label {
+      font-size: 10px;
+      color: #8C8C8C;
+      margin-top: 2px;
+    }
+
+    .soul-observer-section {
+      padding: 16px 20px;
+      background: linear-gradient(135deg, #FFF7ED 0%, #FFEDD5 100%);
+      border-top: 2px solid #D97706;
+      border-bottom: 2px solid #D97706;
+    }
+
+    .observer-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+    }
+
+    .observer-info h2 {
+      font-size: 15px;
+      font-weight: 600;
+      color: #141413;
+      margin-bottom: 4px;
+    }
+
+    .observer-info p {
+      font-size: 11px;
+      color: #8C8C8C;
+    }
+
+    .toggle-switch.large {
+      width: 52px;
+      height: 28px;
+    }
+
+    .toggle-switch.large::after {
+      width: 24px;
+      height: 24px;
+    }
+
+    .toggle-switch.large.active::after {
+      transform: translateX(24px);
+    }
+
+    .observer-details {
+      margin-top: 12px;
+      padding-top: 12px;
+      border-top: 1px solid rgba(217, 119, 6, 0.3);
+    }
+
+    .observer-feature {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 8px 0;
+      font-size: 12px;
+      color: #141413;
+    }
+
+    .feature-icon {
+      font-size: 18px;
+      width: 24px;
+      text-align: center;
+    }
+
+    .feature-text {
+      flex: 1;
+    }
+
+    .privacy-note {
+      margin-top: 12px;
+      padding: 10px;
+      background: white;
+      border-radius: 6px;
+      font-size: 11px;
+      color: #8C8C8C;
+      border: 1px solid rgba(217, 119, 6, 0.2);
+    }
+
+    .privacy-note strong {
+      color: #D97706;
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>Soul Signature</h1>
+    <p>Platform Connector Extension</p>
+  </div>
+
+  <div class="status">
+    <div class="status-item">
+      <div class="status-dot" id="connectionStatus"></div>
+      <span id="connectionText">Checking connection...</span>
+    </div>
+  </div>
+
+  <div class="stats">
+    <div class="stat-item">
+      <div class="stat-value" id="activeCount">0</div>
+      <div class="stat-label">ACTIVE</div>
+    </div>
+    <div class="stat-item">
+      <div class="stat-value" id="totalCollected">0</div>
+      <div class="stat-label">ITEMS COLLECTED</div>
+    </div>
+  </div>
+
+  <div class="soul-observer-section">
+    <div class="observer-header">
+      <div class="observer-info">
+        <h2>🧠 Soul Observer Mode</h2>
+        <p>AI analyzes everything you do in browser</p>
+      </div>
+      <div class="toggle-switch large" id="soulObserverToggle"></div>
+    </div>
+    <div class="observer-details" id="observerDetails" style="display: none;">
+      <div class="observer-feature">
+        <span class="feature-icon">⌨️</span>
+        <span class="feature-text">Typing patterns & writing style</span>
+      </div>
+      <div class="observer-feature">
+        <span class="feature-icon">🖱️</span>
+        <span class="feature-text">Mouse behavior & decision-making</span>
+      </div>
+      <div class="observer-feature">
+        <span class="feature-icon">📖</span>
+        <span class="feature-text">Reading speed & comprehension</span>
+      </div>
+      <div class="observer-feature">
+        <span class="feature-icon">🎯</span>
+        <span class="feature-text">Focus patterns & multitasking</span>
+      </div>
+      <div class="observer-feature">
+        <span class="feature-icon">🔍</span>
+        <span class="feature-text">Search & browsing habits</span>
+      </div>
+      <div class="observer-feature">
+        <span class="feature-icon">🛒</span>
+        <span class="feature-text">Shopping & decision patterns</span>
+      </div>
+      <div class="privacy-note">
+        <strong>Privacy:</strong> All data is encrypted and only you can see it. You can delete anytime.
+      </div>
+    </div>
+  </div>
+
+  <div class="platforms">
+    <div class="section-title">Streaming Platforms</div>
+
+    <div class="platform-item" data-platform="netflix">
+      <div class="platform-info">
+        <div class="platform-icon">🎬</div>
+        <div class="platform-details">
+          <h3>Netflix</h3>
+          <p>Watch history & preferences</p>
+        </div>
+      </div>
+      <div class="toggle-switch" data-platform="netflix"></div>
+    </div>
+
+    <div class="platform-item" data-platform="disneyplus">
+      <div class="platform-info">
+        <div class="platform-icon">✨</div>
+        <div class="platform-details">
+          <h3>Disney+</h3>
+          <p>Watchlist & favorites</p>
+        </div>
+      </div>
+      <div class="toggle-switch" data-platform="disneyplus"></div>
+    </div>
+
+    <div class="platform-item" data-platform="hbomax">
+      <div class="platform-info">
+        <div class="platform-icon">📺</div>
+        <div class="platform-details">
+          <h3>HBO Max</h3>
+          <p>Viewing activity</p>
+        </div>
+      </div>
+      <div class="toggle-switch" data-platform="hbomax"></div>
+    </div>
+
+    <div class="platform-item" data-platform="primevideo">
+      <div class="platform-info">
+        <div class="platform-icon">📦</div>
+        <div class="platform-details">
+          <h3>Prime Video</h3>
+          <p>Watch history & purchases</p>
+        </div>
+      </div>
+      <div class="toggle-switch" data-platform="primevideo"></div>
+    </div>
+
+    <div class="section-title">Social Media</div>
+
+    <div class="platform-item" data-platform="instagram">
+      <div class="platform-info">
+        <div class="platform-icon">📷</div>
+        <div class="platform-details">
+          <h3>Instagram</h3>
+          <p>Liked posts & interests</p>
+        </div>
+      </div>
+      <div class="toggle-switch" data-platform="instagram"></div>
+    </div>
+  </div>
+
+  <div class="footer">
+    <button class="btn" id="syncNow">Sync Data Now</button>
+    <button class="btn btn-secondary" id="openDashboard">Open Dashboard</button>
+  </div>
+
+  <script type="module" src="config.js"></script>
+  <script type="module" src="popup-new.js"></script>
+</body>
+</html>

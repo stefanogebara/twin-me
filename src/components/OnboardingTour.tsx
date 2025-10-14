@@ -65,8 +65,8 @@ export const OnboardingTour: React.FC<OnboardingTourProps> = ({
       title: 'Discover Your Soul Signature',
       description: 'We analyze your digital footprints to find patterns you didn\'t know existed - your curiosities, characteristic behaviors, and what makes you uniquely you.',
       icon: Users,
-      actionText: 'View Soul Dashboard',
-      action: () => navigate('/soul-dashboard')
+      actionText: 'View Dashboard',
+      action: () => navigate('/dashboard')
     },
     {
       id: 'create-twin',

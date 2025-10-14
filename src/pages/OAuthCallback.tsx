@@ -161,6 +161,25 @@ const OAuthCallback = () => {
                 localStorage.setItem('user_data', JSON.stringify(data.user));
               }
 
+              // Also store token in extension storage if extension is available
+              if (typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.sendMessage) {
+                try {
+                  chrome.runtime.sendMessage(
+                    'acnofcjjfjaikcfnalggkkbghjaijepc', // Extension ID
+                    { type: 'SET_AUTH_TOKEN', token: data.token },
+                    (response) => {
+                      if (chrome.runtime.lastError) {
+                        console.log('Extension not available:', chrome.runtime.lastError.message);
+                      } else {
+                        console.log('✅ Token synced to extension:', response);
+                      }
+                    }
+                  );
+                } catch (error) {
+                  console.log('Could not sync to extension:', error);
+                }
+              }
+
               console.log('✅ Authentication successful, token stored');
               setStatus('success');
               setMessage('Authentication successful! Redirecting...');
@@ -203,6 +222,25 @@ const OAuthCallback = () => {
 
               if (data.user) {
                 localStorage.setItem('user_data', JSON.stringify(data.user));
+              }
+
+              // Also store token in extension storage if extension is available
+              if (typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.sendMessage) {
+                try {
+                  chrome.runtime.sendMessage(
+                    'acnofcjjfjaikcfnalggkkbghjaijepc', // Extension ID
+                    { type: 'SET_AUTH_TOKEN', token: data.token },
+                    (response) => {
+                      if (chrome.runtime.lastError) {
+                        console.log('Extension not available:', chrome.runtime.lastError.message);
+                      } else {
+                        console.log('✅ Token synced to extension:', response);
+                      }
+                    }
+                  );
+                } catch (error) {
+                  console.log('Could not sync to extension:', error);
+                }
               }
 
               console.log('✅ OAuth successful, token stored');
