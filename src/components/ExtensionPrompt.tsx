@@ -141,17 +141,20 @@ export const ExtensionPrompt: React.FC = () => {
                 </h4>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                   {[
+                    { icon: '🔍', title: 'Search Content', desc: 'What you search reveals your interests, professional life, and personal curiosities', highlighted: true },
                     { icon: '⌨️', title: 'Typing Patterns', desc: 'Your unique writing style and cadence' },
                     { icon: '🖱️', title: 'Mouse Behavior', desc: 'How you navigate and interact' },
                     { icon: '📖', title: 'Reading Speed', desc: 'Your comprehension and attention patterns' },
-                    { icon: '🔍', title: 'Search Habits', desc: 'Your curiosities and interests' },
                     { icon: '🛒', title: 'Decision Making', desc: 'How you research and choose' },
                     { icon: '⏱️', title: 'Focus Patterns', desc: 'When and how long you concentrate' }
                   ].map((feature, idx) => (
                     <div
                       key={idx}
                       className="flex items-start gap-2 p-2 rounded-lg"
-                      style={{ backgroundColor: '#FAF9F5' }}
+                      style={{
+                        backgroundColor: feature.highlighted ? '#FEF3C7' : '#FAF9F5',
+                        border: feature.highlighted ? '2px solid #D97706' : 'none'
+                      }}
                     >
                       <span className="text-xl flex-shrink-0">{feature.icon}</span>
                       <div>
@@ -160,6 +163,7 @@ export const ExtensionPrompt: React.FC = () => {
                           style={{ color: '#141413' }}
                         >
                           {feature.title}
+                          {feature.highlighted && <span className="ml-1 text-xs" style={{ color: '#D97706' }}>✨ NEW</span>}
                         </div>
                         <div
                           className="text-xs"
