@@ -15,6 +15,7 @@ let typingState = { startTime: null, charCount: 0, corrections: 0, lastKeyTime: 
 let mouseState = { lastX: 0, lastY: 0, lastTime: Date.now() };
 let scrollState = { lastY: 0, lastTime: Date.now() };
 let focusState = { focusStart: null, totalFocusTime: 0 };
+let lastSearchQuery = null;
 
 (function init() {
   chrome.storage.local.get(['soulObserverEnabled'], (data) => {
@@ -26,7 +27,123 @@ let focusState = { focusStart: null, totalFocusTime: 0 };
   console.log('[Soul Observer] Session ID:', sessionId);
   setupEventListeners();
   startBatchSending();
+  detectAndCaptureSearch();
 })();
+
+// Search detection and capture
+function detectAndCaptureSearch() {
+  const url = window.location.href;
+  const query = extractSearchQuery(url);
+
+  if (query && query !== lastSearchQuery) {
+    lastSearchQuery = query;
+    const searchEngine = detectSearchEngine(url);
+    const category = categorizeSearch(query);
+
+    console.log('[Soul Observer] 🔍 Search detected:', { query, searchEngine, category });
+
+    captureEvent({
+      type: 'search_query',
+      data: {
+        query,
+        searchEngine,
+        category,
+        timestamp: Date.now()
+      }
+    });
+  }
+}
+
+function detectSearchEngine(url) {
+  if (url.includes('google.com/search')) return 'Google';
+  if (url.includes('bing.com/search')) return 'Bing';
+  if (url.includes('duckduckgo.com')) return 'DuckDuckGo';
+  if (url.includes('yahoo.com/search')) return 'Yahoo';
+  if (url.includes('search.brave.com')) return 'Brave';
+  if (url.includes('yandex.com/search')) return 'Yandex';
+  if (url.includes('baidu.com')) return 'Baidu';
+  return 'Unknown';
+}
+
+function extractSearchQuery(url) {
+  try {
+    const urlObj = new URL(url);
+
+    // Google: ?q=query
+    if (urlObj.host.includes('google.com')) {
+      return urlObj.searchParams.get('q');
+    }
+
+    // Bing: ?q=query
+    if (urlObj.host.includes('bing.com')) {
+      return urlObj.searchParams.get('q');
+    }
+
+    // DuckDuckGo: ?q=query
+    if (urlObj.host.includes('duckduckgo.com')) {
+      return urlObj.searchParams.get('q');
+    }
+
+    // Yahoo: ?p=query
+    if (urlObj.host.includes('yahoo.com')) {
+      return urlObj.searchParams.get('p');
+    }
+
+    // Brave: ?q=query
+    if (urlObj.host.includes('brave.com')) {
+      return urlObj.searchParams.get('q');
+    }
+
+    // Yandex: ?text=query
+    if (urlObj.host.includes('yandex.com')) {
+      return urlObj.searchParams.get('text');
+    }
+
+    return null;
+  } catch (e) {
+    return null;
+  }
+}
+
+function categorizeSearch(query) {
+  if (!query) return 'uncategorized';
+
+  const lowerQuery = query.toLowerCase();
+
+  // Professional/Work keywords
+  const professionalKeywords = ['job', 'resume', 'linkedin', 'career', 'salary', 'interview', 'work', 'office', 'meeting', 'project', 'business', 'company', 'software', 'programming', 'code', 'developer', 'engineer', 'data', 'analytics', 'marketing', 'sales'];
+  if (professionalKeywords.some(kw => lowerQuery.includes(kw))) return 'professional';
+
+  // Health & Wellness
+  const healthKeywords = ['health', 'doctor', 'medicine', 'symptom', 'diet', 'fitness', 'exercise', 'nutrition', 'mental health', 'therapy', 'workout', 'yoga', 'meditation'];
+  if (healthKeywords.some(kw => lowerQuery.includes(kw))) return 'health';
+
+  // Finance & Shopping
+  const financeKeywords = ['buy', 'price', 'cost', 'cheap', 'discount', 'sale', 'shop', 'purchase', 'invest', 'stock', 'crypto', 'bank', 'loan', 'mortgage', 'credit'];
+  if (financeKeywords.some(kw => lowerQuery.includes(kw))) return 'finance_shopping';
+
+  // Entertainment
+  const entertainmentKeywords = ['movie', 'film', 'show', 'series', 'watch', 'netflix', 'music', 'song', 'artist', 'concert', 'game', 'play', 'stream'];
+  if (entertainmentKeywords.some(kw => lowerQuery.includes(kw))) return 'entertainment';
+
+  // Education & Learning
+  const educationKeywords = ['how to', 'tutorial', 'learn', 'course', 'education', 'study', 'university', 'college', 'class', 'lesson', 'guide', 'what is', 'why is'];
+  if (educationKeywords.some(kw => lowerQuery.includes(kw))) return 'education';
+
+  // Travel
+  const travelKeywords = ['flight', 'hotel', 'travel', 'vacation', 'trip', 'visit', 'destination', 'tourism', 'booking'];
+  if (travelKeywords.some(kw => lowerQuery.includes(kw))) return 'travel';
+
+  // Food & Recipes
+  const foodKeywords = ['recipe', 'cook', 'restaurant', 'food', 'meal', 'dinner', 'lunch', 'breakfast', 'kitchen'];
+  if (foodKeywords.some(kw => lowerQuery.includes(kw))) return 'food';
+
+  // Technology
+  const techKeywords = ['tech', 'gadget', 'phone', 'computer', 'laptop', 'tablet', 'app', 'software', 'download', 'update'];
+  if (techKeywords.some(kw => lowerQuery.includes(kw))) return 'technology';
+
+  return 'general';
+}
 
 function setupEventListeners() {
   document.addEventListener('keydown', handleKeyDown, true);
