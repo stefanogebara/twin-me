@@ -3,6 +3,7 @@ import { Download, Check, ExternalLink, Sparkles, Info } from 'lucide-react';
 
 const EXTENSION_ID = 'acnofcjjfjaikcfnalggkkbghjaijepc';
 const CHROME_STORE_URL = 'https://chrome.google.com/webstore/detail/soul-observer-twinme/' + EXTENSION_ID;
+const EXTENSION_PUBLISHED = false; // Set to true once published to Chrome Web Store
 
 export const ExtensionPrompt: React.FC = () => {
   const [extensionStatus, setExtensionStatus] = useState<'checking' | 'installed' | 'not-installed'>('checking');
@@ -91,8 +92,10 @@ export const ExtensionPrompt: React.FC = () => {
               >
                 {extensionStatus === 'installed' ? (
                   '✓ Soul Observer Extension Active'
-                ) : (
+                ) : EXTENSION_PUBLISHED ? (
                   '🧠 Unlock Deep Soul Insights with Our Extension'
+                ) : (
+                  '🧠 Install Soul Observer Extension (Beta)'
                 )}
               </h3>
               <p
@@ -191,23 +194,74 @@ export const ExtensionPrompt: React.FC = () => {
                 </div>
               </div>
 
-              {/* Install Button */}
-              <button
-                onClick={handleInstallClick}
-                className="w-full py-3 px-4 rounded-lg font-semibold transition-all flex items-center justify-center gap-2"
-                style={{
-                  backgroundColor: '#D97706',
-                  color: 'white',
-                  fontFamily: 'var(--_typography---font--styrene-a)',
-                  letterSpacing: '-0.02em'
-                }}
-                onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#B45309'}
-                onMouseOut={(e) => e.currentTarget.style.backgroundColor = '#D97706'}
-              >
-                <Download className="w-5 h-5" />
-                Install Soul Observer Extension
-                <ExternalLink className="w-4 h-4" />
-              </button>
+              {/* Install Instructions */}
+              {EXTENSION_PUBLISHED ? (
+                <button
+                  onClick={handleInstallClick}
+                  className="w-full py-3 px-4 rounded-lg font-semibold transition-all flex items-center justify-center gap-2"
+                  style={{
+                    backgroundColor: '#D97706',
+                    color: 'white',
+                    fontFamily: 'var(--_typography---font--styrene-a)',
+                    letterSpacing: '-0.02em'
+                  }}
+                  onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#B45309'}
+                  onMouseOut={(e) => e.currentTarget.style.backgroundColor = '#D97706'}
+                >
+                  <Download className="w-5 h-5" />
+                  Install Soul Observer Extension
+                  <ExternalLink className="w-4 h-4" />
+                </button>
+              ) : (
+                <div className="space-y-3">
+                  <div
+                    className="p-3 rounded-lg"
+                    style={{ backgroundColor: '#FEF3C7', border: '1px solid #D97706' }}
+                  >
+                    <div className="flex items-start gap-2">
+                      <span className="text-lg">🚀</span>
+                      <div className="text-sm" style={{ color: '#141413' }}>
+                        <strong>Coming Soon to Chrome Web Store!</strong>
+                        <br />
+                        <span style={{ color: '#6B7280' }}>
+                          For now, you can install the extension manually by following the instructions below.
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div
+                    className="p-4 rounded-lg text-left text-sm"
+                    style={{ backgroundColor: '#F3F4F6', color: '#141413' }}
+                  >
+                    <div className="font-semibold mb-3">Manual Installation Steps:</div>
+                    <ol className="space-y-2 ml-4" style={{ listStyleType: 'decimal', color: '#6B7280' }}>
+                      <li>Contact support to get the extension files</li>
+                      <li>Open Chrome and go to <code className="px-1 py-0.5 rounded" style={{ backgroundColor: '#E5E7EB' }}>chrome://extensions</code></li>
+                      <li>Enable <strong style={{ color: '#141413' }}>"Developer mode"</strong> (toggle in top-right)</li>
+                      <li>Click <strong style={{ color: '#141413' }}>"Load unpacked"</strong></li>
+                      <li>Select the <code className="px-1 py-0.5 rounded" style={{ backgroundColor: '#E5E7EB' }}>browser-extension</code> folder</li>
+                      <li>The Soul Observer extension will appear in your browser!</li>
+                    </ol>
+                  </div>
+
+                  <button
+                    onClick={() => window.open('mailto:support@twin-ai-learn.com?subject=Soul Observer Extension Files', '_blank')}
+                    className="w-full py-3 px-4 rounded-lg font-semibold transition-all flex items-center justify-center gap-2"
+                    style={{
+                      backgroundColor: '#D97706',
+                      color: 'white',
+                      fontFamily: 'var(--_typography---font--styrene-a)',
+                      letterSpacing: '-0.02em'
+                    }}
+                    onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#B45309'}
+                    onMouseOut={(e) => e.currentTarget.style.backgroundColor = '#D97706'}
+                  >
+                    <Download className="w-5 h-5" />
+                    Request Extension Files
+                  </button>
+                </div>
+              )}
             </>
           ) : (
             <>
