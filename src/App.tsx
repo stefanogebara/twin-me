@@ -2,7 +2,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { SignedIn, SignedOut } from "./contexts/AuthContext";
 import ErrorBoundary from "@/components/ErrorBoundary";
 import { LoadingProvider } from "./contexts/LoadingContext";
@@ -82,6 +82,8 @@ const App = () => {
               </>
             } />
             <Route path="/legacy" element={<Index />} />
+            {/* Redirect legacy /soul-dashboard to /dashboard */}
+            <Route path="/soul-dashboard" element={<Navigate to="/dashboard" replace />} />
             <Route path="/dashboard" element={
               <>
                 <SignedIn>
