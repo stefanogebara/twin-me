@@ -125,7 +125,7 @@ const Help: React.FC = () => {
               backgroundColor: 'hsl(var(--claude-surface))',
               border: '1px solid hsl(var(--claude-border))'
             }}
-            onClick={() => navigate('/soul-dashboard')}
+            onClick={() => navigate('/dashboard')}
           >
             <BookOpen className="w-8 h-8 mb-4" style={{ color: '#D97706' }} />
             <h3
@@ -478,7 +478,7 @@ const Help: React.FC = () => {
         {/* Action Buttons */}
         <div className="mt-12 flex justify-center gap-4">
           <Button
-            onClick={() => navigate('/soul-dashboard')}
+            onClick={() => navigate('/dashboard')}
             style={{
               backgroundColor: '#D97706',
               color: 'white',
@@ -487,7 +487,7 @@ const Help: React.FC = () => {
             }}
           >
             <Sparkles className="w-4 h-4 mr-2" />
-            Go to Soul Dashboard
+            Go to Dashboard
           </Button>
           <Button
             onClick={() => navigate('/contact')}

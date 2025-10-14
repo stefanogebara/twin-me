@@ -29,16 +29,22 @@ import ChooseMode from "./pages/ChooseMode";
 import ChooseTwinType from "./pages/ChooseTwinType";
 import SoulSignatureDashboard from "./pages/SoulSignatureDashboard";
 import SoulChatPage from "./pages/SoulChatPage";
+import PlatformHub from "./pages/PlatformHub";
 import PrivacySpectrumDashboard from "./components/PrivacySpectrumDashboard";
 import TwinProfilePreviewPage from "./pages/TwinProfilePreviewPage";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import Dashboard from "./pages/Dashboard";
 import Training from "./pages/Training";
 import Help from "./pages/Help";
+import { useExtensionSync } from "./hooks/useExtensionSync";
 
 const queryClient = new QueryClient();
 
-const App = () => (
+const App = () => {
+  // Automatically sync auth tokens to browser extension
+  useExtensionSync();
+
+  return (
   <ThemeProvider>
     <ErrorBoundary showHomeButton>
       <ErrorProvider>
@@ -146,6 +152,20 @@ const App = () => (
                   <SidebarLayout>
                     <ErrorBoundary>
                       <SoulChatPage />
+                    </ErrorBoundary>
+                  </SidebarLayout>
+                </SignedIn>
+                <SignedOut>
+                  <CustomAuth />
+                </SignedOut>
+              </>
+            } />
+            <Route path="/platform-hub" element={
+              <>
+                <SignedIn>
+                  <SidebarLayout>
+                    <ErrorBoundary>
+                      <PlatformHub />
                     </ErrorBoundary>
                   </SidebarLayout>
                 </SignedIn>
@@ -293,6 +313,7 @@ const App = () => (
       </ErrorProvider>
     </ErrorBoundary>
   </ThemeProvider>
-);
+  );
+};
 
 export default App;

@@ -35,7 +35,7 @@ export const authenticateUser = async (req, res, next) => {
 
       // Add user info to request
       req.user = {
-        id: payload.userId,
+        id: payload.id || payload.userId, // Support both 'id' and 'userId' for backwards compatibility
         email: payload.email,
         ...payload
       };
@@ -71,7 +71,7 @@ export const optionalAuth = async (req, res, next) => {
           const payload = jwt.verify(token, JWT_SECRET);
 
           req.user = {
-            id: payload.userId,
+            id: payload.id || payload.userId, // Support both 'id' and 'userId' for backwards compatibility
             email: payload.email,
             ...payload
           };
