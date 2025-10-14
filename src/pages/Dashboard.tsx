@@ -17,6 +17,7 @@ import {
 import { dashboardAPI, ActivityItem as APIActivityItem, handleAPIError } from '@/services/apiService';
 import { OnboardingTour } from '@/components/OnboardingTour';
 import { OnboardingProgress } from '@/components/OnboardingProgress';
+import { ExtensionPrompt } from '@/components/ExtensionPrompt';
 
 interface DashboardStats {
   connectedPlatforms: number;
@@ -222,6 +223,9 @@ export const Dashboard: React.FC = () => {
           />
         </div>
       )}
+
+      {/* Extension Prompt */}
+      <ExtensionPrompt />
 
       {/* Status Cards Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
