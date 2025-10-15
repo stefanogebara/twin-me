@@ -265,7 +265,9 @@ export const SoulDataExtractor: React.FC<Props> = ({ userId, onExtractionComplet
                 Big Five Personality Traits
               </div>
               <div className="space-y-1 text-sm text-[hsl(var(--claude-text))]">
-                {styleProfile.profile.personality_traits && Object.entries(styleProfile.profile.personality_traits).map(([trait, value]) => (
+                {styleProfile.profile.personality_traits && Object.entries(styleProfile.profile.personality_traits)
+                  .filter(([trait, value]) => typeof value === 'number' && !isNaN(value))
+                  .map(([trait, value]) => (
                   <div key={trait} className="flex items-center justify-between">
                     <span className="capitalize">{trait}</span>
                     <div className="flex items-center gap-2">
