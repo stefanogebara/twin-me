@@ -304,6 +304,21 @@ const App = () => {
                 </SignedOut>
               </>
             } />
+            {/* Student Dashboard - Educational twin management */}
+            <Route path="/student-dashboard" element={
+              <>
+                <SignedIn>
+                  <SidebarLayout>
+                    <Dashboard />
+                  </SidebarLayout>
+                </SignedIn>
+                <SignedOut>
+                  <CustomAuth />
+                </SignedOut>
+              </>
+            } />
+            {/* Twin Dashboard (without ID) - Redirect to dashboard */}
+            <Route path="/twin-dashboard" element={<Navigate to="/dashboard" replace />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
