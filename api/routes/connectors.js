@@ -456,6 +456,7 @@ router.post('/callback', async (req, res) => {
 /**
  * GET /api/connectors/status/:userId
  * Get connection status for all providers for a user
+ * Validates token expiration and returns accurate connection state
  */
 router.get('/status/:userId', async (req, res) => {
   try {
@@ -472,27 +473,50 @@ router.get('/status/:userId', async (req, res) => {
       if (userData) userUuid = userData.id;
     }
 
-    // Get connection status from database (old schema)
+    // Get ALL connections (not just connected=true) to check token expiration
     const { data: connections, error } = await supabase
       .from('data_connectors')
-      .select('provider, connected, metadata')
-      .eq('user_id', userUuid)
-      .eq('connected', true);
+      .select('provider, connected, token_expires_at, expires_at, metadata, last_sync, last_sync_status')
+      .eq('user_id', userUuid);
 
     if (error) {
       console.error('Database error getting connections:', error);
       throw error;
     }
 
-    // Transform to status object
+    // Transform to status object with token expiration validation
     const connectionStatus = {};
+    const now = new Date();
+
     connections?.forEach(connection => {
+      // Check if token is expired (check both possible expiration columns)
+      const expiresAt = connection.token_expires_at || connection.expires_at;
+      const isTokenExpired = expiresAt && new Date(expiresAt) < now;
+      const isConnected = connection.connected && !isTokenExpired;
+
+      // Auto-update database if token is expired but still marked as connected
+      if (connection.connected && isTokenExpired) {
+        console.warn(`⚠️ Token expired for ${connection.provider}, marking as disconnected`);
+        supabase
+          .from('data_connectors')
+          .update({
+            connected: false,
+            last_sync_status: 'token_expired'
+          })
+          .eq('user_id', userUuid)
+          .eq('provider', connection.provider)
+          .then(() => console.log(`✅ Updated ${connection.provider} to disconnected due to token expiration`))
+          .catch(err => console.error(`❌ Failed to update ${connection.provider}:`, err));
+      }
+
       connectionStatus[connection.provider] = {
-        connected: true,
-        isActive: connection.connected,
+        connected: isConnected,
+        isActive: isConnected,
+        tokenExpired: isTokenExpired,
         connectedAt: connection.metadata?.connected_at || null,
-        lastSync: connection.metadata?.last_sync || null,
-        status: connection.metadata?.last_sync_status || 'unknown'
+        lastSync: connection.last_sync || connection.metadata?.last_sync || null,
+        status: isTokenExpired ? 'token_expired' : (connection.last_sync_status || connection.metadata?.last_sync_status || 'unknown'),
+        expiresAt: expiresAt
       };
     });
 
