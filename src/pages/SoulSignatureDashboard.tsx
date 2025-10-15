@@ -228,39 +228,12 @@ const SoulSignatureDashboard: React.FC = () => {
           // Check if any services are connected
           const hasAnyConnections = Object.values(newConnections).some(status => status);
           setHasConnectedServices(hasAnyConnections);
-
-          // Sync with localStorage for consistency
-          const connectedPlatforms = Object.keys(newConnections).filter(key => newConnections[key as keyof ConnectionStatus]);
-          localStorage.setItem('connectedServices', JSON.stringify(connectedPlatforms));
         } else {
-          // Fallback to localStorage if API fails
-          console.warn('⚠️ API failed, falling back to localStorage');
-          const storedConnections = JSON.parse(localStorage.getItem('connectedServices') || '[]');
-          if (storedConnections.length > 0) {
-            const newConnections: ConnectionStatus = {...connections};
-            storedConnections.forEach((service: string) => {
-              if (service in newConnections) {
-                newConnections[service as keyof ConnectionStatus] = true;
-              }
-            });
-            setConnections(newConnections);
-            setHasConnectedServices(true);
-          }
+          console.warn('⚠️ API returned non-OK status - using database as single source of truth');
         }
       } catch (error) {
         console.error('❌ Error fetching connection status:', error);
-        // Fallback to localStorage
-        const storedConnections = JSON.parse(localStorage.getItem('connectedServices') || '[]');
-        if (storedConnections.length > 0) {
-          const newConnections: ConnectionStatus = {...connections};
-          storedConnections.forEach((service: string) => {
-            if (service in newConnections) {
-              newConnections[service as keyof ConnectionStatus] = true;
-            }
-          });
-          setConnections(newConnections);
-          setHasConnectedServices(true);
-        }
+        console.warn('⚠️ Could not fetch connection status from database');
       }
     };
 
