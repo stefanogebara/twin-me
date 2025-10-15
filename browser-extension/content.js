@@ -23,7 +23,7 @@ let lastSearchQuery = null;
     console.log(`[Soul Observer] Initialized with tracking ${isTracking ? 'ENABLED' : 'DISABLED'}`);
   });
 
-  sessionId = Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+  sessionId = crypto.randomUUID(); // Generate proper UUID instead of custom string
   console.log('[Soul Observer] Session ID:', sessionId);
   setupEventListeners();
   startBatchSending();
@@ -292,7 +292,7 @@ function startBatchSending() {
     }
     if (Date.now() - lastActivity > SESSION_TIMEOUT) {
       console.log('[Soul Observer] Session timeout, creating new session ID');
-      sessionId = Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+      sessionId = crypto.randomUUID(); // Generate proper UUID
       lastActivity = Date.now();
     }
   }, 30000);
