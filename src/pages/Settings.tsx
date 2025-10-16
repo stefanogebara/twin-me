@@ -1,6 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import { usePlatformStatus } from '../hooks/usePlatformStatus';
 import {
   ArrowLeft,
   User,
@@ -20,36 +21,13 @@ import {
 const Settings = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const [connectorStatus, setConnectorStatus] = useState<any>({});
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [disconnectingService, setDisconnectingService] = useState<string | null>(null);
 
-  // Fetch connector status on load
-  useEffect(() => {
-    if (user?.id) {
-      fetchConnectorStatus();
-    }
-  }, [user]);
+  // Use unified platform status hook
+  const { data: connectorStatus, isLoading, error: statusError, refetch } = usePlatformStatus(user?.id);
 
-  const fetchConnectorStatus = async () => {
-    try {
-      setIsLoading(true);
-      setError(null);
-      const response = await fetch(`${import.meta.env.VITE_API_URL}/connectors/status/${user?.id}`);
-      if (response.ok) {
-        const data = await response.json();
-        setConnectorStatus(data.data || {});
-      } else {
-        throw new Error('Failed to fetch connector status');
-      }
-    } catch (error) {
-      console.error('Error fetching connector status:', error);
-      setError('Unable to load connection status. Please try again.');
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  // Convert status error to string for display
+  const error = statusError?.message || null;
 
   const handleDisconnectService = async (provider: string) => {
     try {
@@ -59,15 +37,15 @@ const Settings = () => {
       });
 
       if (response.ok) {
-        // Refresh status after disconnection
-        await fetchConnectorStatus();
+        // Refresh status after disconnection using unified hook
+        await refetch();
         // Optionally show success toast
       } else {
         throw new Error('Failed to disconnect service');
       }
     } catch (error) {
       console.error('Error disconnecting service:', error);
-      setError(`Failed to disconnect ${provider}. Please try again.`);
+      // Error will be shown by status error state
     } finally {
       setDisconnectingService(null);
     }
@@ -262,7 +240,7 @@ const Settings = () => {
                 </h2>
               </div>
               <button
-                onClick={fetchConnectorStatus}
+                onClick={() => refetch()}
                 className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm"
                 style={{
                   backgroundColor: '#F5F5F5',

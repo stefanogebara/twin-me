@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import { usePlatformStatus } from '../hooks/usePlatformStatus';
 import {
   ArrowLeft, Heart, Briefcase, MessageCircle, Star, Sparkles,
   Mail, Calendar, Users, MessageSquare, Music, Film, Youtube,
@@ -58,6 +59,13 @@ const TalkToTwin = () => {
   const { user, isSignedIn } = useAuth();
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
+  // Use unified platform status hook
+  const {
+    data: platformStatus,
+    connectedCount,
+    isLoading: isLoadingPlatforms
+  } = usePlatformStatus(user?.id);
+
   // State Management
   const [twinMode, setTwinMode] = useState<TwinMode>('professional');
   const [conversationContext, setConversationContext] = useState<ConversationContext>('work');
@@ -79,21 +87,21 @@ const TalkToTwin = () => {
     lastChatTime: undefined
   });
 
-  // Platform states with real data
-  const [professionalPlatforms, setProfessionalPlatforms] = useState<Platform[]>([
-    { name: 'Gmail', icon: <Mail className="w-4 h-4" />, connected: false, dataPoints: 0, key: 'gmail' },
-    { name: 'Calendar', icon: <Calendar className="w-4 h-4" />, connected: false, dataPoints: 0, key: 'calendar' },
-    { name: 'Teams', icon: <Users className="w-4 h-4" />, connected: false, dataPoints: 0, key: 'teams' },
-    { name: 'Slack', icon: <MessageSquare className="w-4 h-4" />, connected: false, dataPoints: 0, key: 'slack' }
-  ]);
+  // Platform states - derive connection status from unified hook
+  const professionalPlatforms: Platform[] = [
+    { name: 'Gmail', icon: <Mail className="w-4 h-4" />, connected: platformStatus['google_gmail']?.connected || false, dataPoints: 0, key: 'gmail' },
+    { name: 'Calendar', icon: <Calendar className="w-4 h-4" />, connected: platformStatus['google_calendar']?.connected || false, dataPoints: 0, key: 'calendar' },
+    { name: 'Teams', icon: <Users className="w-4 h-4" />, connected: platformStatus['teams']?.connected || false, dataPoints: 0, key: 'teams' },
+    { name: 'Slack', icon: <MessageSquare className="w-4 h-4" />, connected: platformStatus['slack']?.connected || false, dataPoints: 0, key: 'slack' }
+  ];
 
-  const [personalPlatforms, setPersonalPlatforms] = useState<Platform[]>([
-    { name: 'Spotify', icon: <Music className="w-4 h-4" />, connected: false, dataPoints: 0, key: 'spotify' },
-    { name: 'Netflix', icon: <Film className="w-4 h-4" />, connected: false, dataPoints: 0, key: 'netflix' },
-    { name: 'YouTube', icon: <Youtube className="w-4 h-4" />, connected: false, dataPoints: 0, key: 'youtube' },
-    { name: 'Steam', icon: <Gamepad2 className="w-4 h-4" />, connected: false, dataPoints: 0, key: 'steam' },
-    { name: 'Goodreads', icon: <Book className="w-4 h-4" />, connected: false, dataPoints: 0, key: 'goodreads' }
-  ]);
+  const personalPlatforms: Platform[] = [
+    { name: 'Spotify', icon: <Music className="w-4 h-4" />, connected: platformStatus['spotify']?.connected || false, dataPoints: 0, key: 'spotify' },
+    { name: 'Netflix', icon: <Film className="w-4 h-4" />, connected: platformStatus['netflix']?.connected || false, dataPoints: 0, key: 'netflix' },
+    { name: 'YouTube', icon: <Youtube className="w-4 h-4" />, connected: platformStatus['youtube']?.connected || false, dataPoints: 0, key: 'youtube' },
+    { name: 'Steam', icon: <Gamepad2 className="w-4 h-4" />, connected: platformStatus['steam']?.connected || false, dataPoints: 0, key: 'steam' },
+    { name: 'Goodreads', icon: <Book className="w-4 h-4" />, connected: platformStatus['goodreads']?.connected || false, dataPoints: 0, key: 'goodreads' }
+  ];
 
   // Authentication check
   useEffect(() => {
@@ -103,7 +111,7 @@ const TalkToTwin = () => {
     }
   }, [isSignedIn, navigate]);
 
-  // Fetch real data from API
+  // Fetch additional stats (connection status now from unified hook)
   useEffect(() => {
     if (!user?.id) return;
 
@@ -131,36 +139,6 @@ const TalkToTwin = () => {
           }
         }
 
-        // Fetch connected platforms
-        const platformsRes = await fetch(`${import.meta.env.VITE_API_URL}/data-sources/connected?userId=${user.id}`);
-        let connectedPlatformData: any[] = [];
-
-        if (platformsRes.ok) {
-          const platformsData = await platformsRes.json();
-          connectedPlatformData = platformsData.connections || [];
-        }
-
-        // Update platform states based on real connections
-        const updatePlatformList = (platforms: Platform[]) => {
-          return platforms.map(platform => {
-            const connection = connectedPlatformData.find(
-              c => c.provider?.toLowerCase() === platform.key.toLowerCase()
-            );
-
-            if (connection) {
-              return {
-                ...platform,
-                connected: connection.status === 'connected',
-                dataPoints: connection.data_points || 0
-              };
-            }
-            return platform;
-          });
-        };
-
-        setProfessionalPlatforms(prev => updatePlatformList(prev));
-        setPersonalPlatforms(prev => updatePlatformList(prev));
-
         // Fetch soul signature data
         const soulRes = await fetch(`${import.meta.env.VITE_API_URL}/soul-data/soul-signature?userId=${user.id}`);
         let hasSignature = false;
@@ -181,8 +159,7 @@ const TalkToTwin = () => {
           }
         }
 
-        // Calculate authenticity score based on real data
-        const connectedCount = connectedPlatformData.filter(c => c.status === 'connected').length;
+        // Calculate authenticity score using connectedCount from unified hook
         let authenticityScore = 0;
 
         if (connectedCount > 0) {
@@ -231,7 +208,7 @@ const TalkToTwin = () => {
     const interval = setInterval(fetchRealData, 30000);
 
     return () => clearInterval(interval);
-  }, [user?.id]);
+  }, [user?.id, connectedCount]);
 
   // Auto-scroll to bottom of messages
   useEffect(() => {
@@ -449,7 +426,7 @@ const TalkToTwin = () => {
         <div className="max-w-7xl mx-auto px-6 py-4">
           <div className="flex items-center justify-between">
             <button
-              onClick={() => navigate('/soul-signature-dashboard')}
+              onClick={() => navigate('/soul-signature')}
               className="inline-flex items-center gap-2 text-sm"
               style={{ color: '#141413', fontFamily: 'var(--_typography---font--tiempos)' }}
             >
@@ -874,7 +851,7 @@ const TalkToTwin = () => {
               <Button
                 variant="outline"
                 className="w-full mt-4"
-                onClick={() => navigate('/soul-signature-dashboard')}
+                onClick={() => navigate('/soul-signature')}
                 style={{
                   borderColor: '#D97706',
                   color: '#D97706',
@@ -919,7 +896,7 @@ const TalkToTwin = () => {
                     Your digital twin needs data to understand you. Connect at least one platform to start building your soul signature.
                   </p>
                   <Button
-                    onClick={() => navigate('/soul-signature-dashboard')}
+                    onClick={() => navigate('/soul-signature')}
                     style={{
                       backgroundColor: '#D97706',
                       color: 'white',
@@ -1340,7 +1317,7 @@ const TalkToTwin = () => {
                         fontFamily: 'var(--_typography---font--tiempos)',
                         backgroundColor: '#F5F5F5'
                       }}
-                      onClick={() => navigate('/soul-signature-dashboard')}
+                      onClick={() => navigate('/soul-signature')}
                     >
                       <Lock className="w-4 h-4 mr-2" />
                       Adjust privacy settings
@@ -1352,7 +1329,7 @@ const TalkToTwin = () => {
                         fontFamily: 'var(--_typography---font--tiempos)',
                         backgroundColor: '#F5F5F5'
                       }}
-                      onClick={() => navigate('/soul-signature-dashboard')}
+                      onClick={() => navigate('/soul-signature')}
                     >
                       <Plus className="w-4 h-4 mr-2" />
                       Add more platforms
@@ -1557,7 +1534,7 @@ const TalkToTwin = () => {
               </Button>
               <Button
                 variant="outline"
-                onClick={() => navigate('/soul-signature-dashboard')}
+                onClick={() => navigate('/soul-signature')}
                 style={{
                   borderColor: '#D97706',
                   color: '#D97706',
@@ -1581,7 +1558,7 @@ const TalkToTwin = () => {
             <div className="max-w-7xl mx-auto flex items-center justify-between">
               <Button
                 variant="outline"
-                onClick={() => navigate('/soul-signature-dashboard')}
+                onClick={() => navigate('/soul-signature')}
                 style={{
                   fontFamily: 'var(--_typography---font--tiempos)'
                 }}

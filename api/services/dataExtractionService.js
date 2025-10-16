@@ -28,6 +28,9 @@ class DataExtractionService {
   async extractPlatformData(userId, platform) {
     console.log(`[DataExtraction] Starting extraction for ${platform}...`);
 
+    // Create extraction job record
+    let jobId = null;
+
     try {
       // Get connector for this platform
       const { data: connector, error } = await supabase
@@ -42,9 +45,46 @@ class DataExtractionService {
         throw new Error(`No connected ${platform} account found for user`);
       }
 
+      // Create job record with 'pending' status
+      const { data: job, error: jobError } = await supabase
+        .from('data_extraction_jobs')
+        .insert({
+          user_id: userId,
+          connector_id: connector.id,
+          platform: platform,
+          job_type: 'full_sync',
+          status: 'pending',
+          total_items: null,
+          processed_items: 0,
+          failed_items: 0,
+          started_at: new Date().toISOString(),
+          created_at: new Date().toISOString()
+        })
+        .select()
+        .single();
+
+      if (jobError) {
+        console.error(`[DataExtraction] Failed to create job record:`, jobError);
+      } else {
+        jobId = job.id;
+        console.log(`[DataExtraction] Created job ${jobId} for ${platform}`);
+      }
+
       // Check if token has expired
       if (connector.expires_at && new Date(connector.expires_at) < new Date()) {
         console.warn(`[DataExtraction] Token expired for ${platform}`);
+
+        // Mark job as failed
+        if (jobId) {
+          await supabase
+            .from('data_extraction_jobs')
+            .update({
+              status: 'failed',
+              error_message: 'Token expired - requires re-authentication',
+              completed_at: new Date().toISOString()
+            })
+            .eq('id', jobId);
+        }
 
         // Mark connector as needing re-authentication
         await supabase
@@ -67,6 +107,14 @@ class DataExtractionService {
           itemsExtracted: 0,
           requiresReauth: true
         };
+      }
+
+      // Update job to 'running' status
+      if (jobId) {
+        await supabase
+          .from('data_extraction_jobs')
+          .update({ status: 'running' })
+          .eq('id', jobId);
       }
 
       // Decrypt access token
@@ -105,6 +153,19 @@ class DataExtractionService {
         case 'twitch':
           // This platform is defined but extractor not yet implemented
           console.warn(`[DataExtraction] Extractor for ${platform} not yet implemented - skipping`);
+
+          // Mark job as failed
+          if (jobId) {
+            await supabase
+              .from('data_extraction_jobs')
+              .update({
+                status: 'failed',
+                error_message: 'Extractor not yet implemented',
+                completed_at: new Date().toISOString()
+              })
+              .eq('id', jobId);
+          }
+
           return {
             success: false,
             platform,
@@ -119,12 +180,46 @@ class DataExtractionService {
       // Run extraction
       const result = await extractor.extractAll(userId, connector.id);
 
+      // Update job with completion status
+      if (jobId) {
+        await supabase
+          .from('data_extraction_jobs')
+          .update({
+            status: result.success ? 'completed' : 'failed',
+            total_items: result.itemsExtracted || 0,
+            processed_items: result.itemsExtracted || 0,
+            failed_items: result.success ? 0 : (result.itemsExtracted || 0),
+            completed_at: new Date().toISOString(),
+            error_message: result.success ? null : (result.error || result.message),
+            results: {
+              success: result.success,
+              itemsExtracted: result.itemsExtracted,
+              platform: platform
+            }
+          })
+          .eq('id', jobId);
+
+        console.log(`[DataExtraction] Updated job ${jobId} to ${result.success ? 'completed' : 'failed'}`);
+      }
+
       // Update connector metadata
       await this.updateConnectorMetadata(connector.id, result);
 
       return result;
     } catch (error) {
       console.error(`[DataExtraction] Error extracting from ${platform}:`, error);
+
+      // Mark job as failed
+      if (jobId) {
+        await supabase
+          .from('data_extraction_jobs')
+          .update({
+            status: 'failed',
+            error_message: error.message || 'Unknown error',
+            completed_at: new Date().toISOString()
+          })
+          .eq('id', jobId);
+      }
 
       // Handle specific error types
       if (error.status === 401 || error.message?.includes('401') || error.message?.includes('Unauthorized')) {
