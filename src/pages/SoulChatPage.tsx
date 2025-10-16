@@ -58,7 +58,7 @@ const SoulChatPage: React.FC = () => {
         <div className="mb-8">
           <Button
             variant="ghost"
-            onClick={() => navigate('/soul-signature-dashboard')}
+            onClick={() => navigate('/soul-signature')}
             className="mb-4 text-[hsl(var(--claude-text-muted))] hover:text-[hsl(var(--claude-text))]"
           >
             <ArrowLeft className="w-4 h-4 mr-2" />
@@ -138,7 +138,7 @@ const SoulChatPage: React.FC = () => {
                   from your connected platforms. Without this, the chat will provide generic responses.
                 </p>
                 <Button
-                  onClick={() => navigate('/soul-signature-dashboard')}
+                  onClick={() => navigate('/soul-signature')}
                   className="bg-[hsl(var(--claude-accent))] hover:bg-[hsl(var(--claude-accent))]/90"
                 >
                   <Sparkles className="w-4 h-4 mr-2" />

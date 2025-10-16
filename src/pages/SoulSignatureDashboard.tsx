@@ -1,11 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import { usePlatformStatus } from '../hooks/usePlatformStatus';
 import {
   Sparkles, Music, Film, Gamepad2, Heart, Brain, Globe,
   ChevronRight, Play, Pause, Lock, Unlock, Fingerprint,
   User, Briefcase, Palette, Calendar, Mail, MessageSquare,
-  Instagram, Twitter, Github, Linkedin, Youtube, Users, CheckCircle2
+  Instagram, Twitter, Github, Linkedin, Youtube, Users, CheckCircle2,
+  Video
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -20,6 +22,7 @@ interface ConnectionStatus {
   spotify: boolean;
   netflix: boolean;
   youtube: boolean;
+  twitch: boolean;
   steam: boolean;
   google_gmail: boolean;
   google_calendar: boolean;
@@ -30,28 +33,41 @@ interface ConnectionStatus {
   linkedin: boolean;
   instagram: boolean;
   twitter: boolean;
+  reddit: boolean;
 }
 
 const SoulSignatureDashboard: React.FC = () => {
   const navigate = useNavigate();
   const { user, isSignedIn } = useAuth();
+
+  // Use unified platform status hook
+  const {
+    data: platformStatus,
+    hasConnectedServices: platformsConnected,
+    connectedProviders
+  } = usePlatformStatus(user?.id);
+
   const [activeCluster, setActiveCluster] = useState<string>('personal');
   const [showPrivacyControls, setShowPrivacyControls] = useState(false);
-  const [connections, setConnections] = useState<ConnectionStatus>({
-    spotify: false,
-    netflix: false,
-    youtube: false,
-    steam: false,
-    google_gmail: false,
-    google_calendar: false,
-    teams: false,
-    slack: false,
-    discord: false,
-    github: false,
-    linkedin: false,
-    instagram: false,
-    twitter: false
-  });
+
+  // Derive connections from unified hook (replaces manual state)
+  const connections: ConnectionStatus = {
+    spotify: platformStatus['spotify']?.connected || false,
+    netflix: platformStatus['netflix']?.connected || false,
+    youtube: platformStatus['youtube']?.connected || false,
+    twitch: platformStatus['twitch']?.connected || false,
+    steam: platformStatus['steam']?.connected || false,
+    google_gmail: platformStatus['google_gmail']?.connected || false,
+    google_calendar: platformStatus['google_calendar']?.connected || false,
+    teams: platformStatus['teams']?.connected || false,
+    slack: platformStatus['slack']?.connected || false,
+    discord: platformStatus['discord']?.connected || false,
+    github: platformStatus['github']?.connected || false,
+    linkedin: platformStatus['linkedin']?.connected || false,
+    instagram: platformStatus['instagram']?.connected || false,
+    twitter: platformStatus['twitter']?.connected || false,
+    reddit: platformStatus['reddit']?.connected || false
+  };
   const [extractedInsights, setExtractedInsights] = useState<{
     personal: string[] | null;
     professional: string[] | null;
@@ -60,7 +76,7 @@ const SoulSignatureDashboard: React.FC = () => {
     professional: null
   });
   const [hasExtractedData, setHasExtractedData] = useState(false);
-  const [hasConnectedServices, setHasConnectedServices] = useState(false);
+  const hasConnectedServices = platformsConnected; // Use unified hook value
   const [extensionInstalled, setExtensionInstalled] = useState(false);
   const [extensionAuthenticated, setExtensionAuthenticated] = useState(false);
   const [uniquenessScore, setUniquenessScore] = useState<number>(0);
@@ -138,7 +154,7 @@ const SoulSignatureDashboard: React.FC = () => {
     const detectAndAuthExtension = async () => {
       if (!user?.id) return;
 
-      const EXTENSION_ID = 'lgackjdjfgjciljchpcgidahjjimhmdh'; // Your extension ID
+      const EXTENSION_ID = 'acnofcjjfjaikcfnalggkkbghjaijepc'; // Soul Observer Extension ID
 
       try {
         // Try to ping the extension
@@ -198,48 +214,6 @@ const SoulSignatureDashboard: React.FC = () => {
     detectAndAuthExtension();
   }, [user]);
 
-  // Fetch connection status from API and localStorage
-  useEffect(() => {
-    const fetchConnectionStatus = async () => {
-      try {
-        if (!user?.id) return;
-
-        // Fetch from API
-        const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3001/api'}/connectors/status/${user.id}`);
-
-        if (response.ok) {
-          const result = await response.json();
-          console.log('📱 Fetched connection status from API:', result);
-
-          // Backend returns { success: true, data: { platform: {...}, ... } }
-          const platformData = result.data || {};
-          const newConnections: ConnectionStatus = {...connections};
-
-          // Update connection status based on API response
-          Object.keys(platformData).forEach((platform: string) => {
-            const connDetails = platformData[platform];
-            if (connDetails.connected && platform in newConnections) {
-              newConnections[platform as keyof ConnectionStatus] = true;
-            }
-          });
-
-          setConnections(newConnections);
-
-          // Check if any services are connected
-          const hasAnyConnections = Object.values(newConnections).some(status => status);
-          setHasConnectedServices(hasAnyConnections);
-        } else {
-          console.warn('⚠️ API returned non-OK status - using database as single source of truth');
-        }
-      } catch (error) {
-        console.error('❌ Error fetching connection status:', error);
-        console.warn('⚠️ Could not fetch connection status from database');
-      }
-    };
-
-    fetchConnectionStatus();
-  }, [user?.id]); // Re-fetch when user changes
-
   const clusters = [
     {
       id: 'personal',
@@ -249,9 +223,21 @@ const SoulSignatureDashboard: React.FC = () => {
       accentColor: '#D97706',
       connectors: [
         // Entertainment & Media
-        { name: 'Spotify', icon: <Music />, status: connections.spotify, key: 'spotify', category: 'Entertainment' },
-        { name: 'YouTube', icon: <Youtube />, status: connections.youtube, key: 'youtube', category: 'Entertainment' },
+        { name: 'Spotify', icon: <Music />, status: connections.spotify, key: 'spotify', category: 'Music' },
+        { name: 'Netflix', icon: <Film />, status: connections.netflix, key: 'netflix', category: 'Video' },
+        { name: 'YouTube', icon: <Youtube />, status: connections.youtube, key: 'youtube', category: 'Video' },
+        { name: 'Twitch', icon: <Video />, status: connections.twitch, key: 'twitch', category: 'Live Streaming' },
+
+        // Gaming
+        { name: 'Steam', icon: <Gamepad2 />, status: connections.steam, key: 'steam', category: 'Gaming' },
         { name: 'Discord', icon: <Users />, status: connections.discord, key: 'discord', category: 'Community' },
+
+        // Social & Community
+        { name: 'Instagram', icon: <Instagram />, status: connections.instagram, key: 'instagram', category: 'Social' },
+        { name: 'Twitter', icon: <Twitter />, status: connections.twitter, key: 'twitter', category: 'Social' },
+        { name: 'Reddit', icon: <MessageSquare />, status: connections.reddit, key: 'reddit', category: 'Social' },
+
+        // Reading & Creative
         { name: 'GitHub', icon: <Github />, status: connections.github, key: 'github', category: 'Creative' }
       ],
       insights: extractedInsights.personal || [],
@@ -278,9 +264,11 @@ const SoulSignatureDashboard: React.FC = () => {
       accentColor: '#D97706',
       connectors: [
         { name: 'Gmail', icon: <Mail />, status: connections.google_gmail, key: 'google_gmail', category: 'Communication' },
-        { name: 'Google Calendar', icon: <Calendar />, status: connections.google_calendar, key: 'google_calendar', category: 'Time Management' },
+        { name: 'Calendar', icon: <Calendar />, status: connections.google_calendar, key: 'google_calendar', category: 'Time Management' },
+        { name: 'Teams', icon: <Users />, status: connections.teams, key: 'teams', category: 'Collaboration' },
         { name: 'Slack', icon: <MessageSquare />, status: connections.slack, key: 'slack', category: 'Collaboration' },
-        { name: 'LinkedIn', icon: <Linkedin />, status: connections.linkedin, key: 'linkedin', category: 'Networking' }
+        { name: 'LinkedIn', icon: <Linkedin />, status: connections.linkedin, key: 'linkedin', category: 'Networking' },
+        { name: 'GitHub', icon: <Github />, status: connections.github, key: 'github', category: 'Development' }
       ],
       insights: extractedInsights.professional || [],
       analysisActions: [
@@ -322,7 +310,7 @@ const SoulSignatureDashboard: React.FC = () => {
           if (data.authUrl) {
             window.open(data.authUrl, '_blank');
           }
-          setConnections(prev => ({ ...prev, [connectorKey]: true }));
+          // Note: Connection status will be updated via usePlatformStatus hook
         }
       } catch (error) {
         console.error('Connection error:', error);
@@ -437,13 +425,13 @@ const SoulSignatureDashboard: React.FC = () => {
   return (
     <div className="min-h-screen bg-[hsl(var(--claude-bg))] overflow-hidden relative">
       {/* Main Content */}
-      <div className="relative z-10 p-8 max-w-7xl mx-auto">
+      <div className="relative z-10 px-4 sm:px-6 lg:px-8 py-6 sm:py-8 max-w-7xl mx-auto">
         {/* Header */}
-        <div className="text-center mb-12">
-          <div className="inline-flex items-center gap-3 mb-4">
-            <Fingerprint className="w-10 h-10" style={{ color: '#D97706' }} />
+        <div className="text-center mb-8 sm:mb-12">
+          <div className="inline-flex items-center gap-2 sm:gap-3 mb-4">
+            <Fingerprint className="w-6 h-6 sm:w-8 sm:h-8 lg:w-10 lg:h-10" style={{ color: '#D97706' }} />
             <h1
-              className="text-5xl font-medium"
+              className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-medium"
               style={{
                 fontFamily: 'var(--_typography---font--styrene-a)',
                 letterSpacing: '-0.02em',
@@ -452,10 +440,10 @@ const SoulSignatureDashboard: React.FC = () => {
             >
               Soul Signature Extraction
             </h1>
-            <Sparkles className="w-10 h-10" style={{ color: '#D97706' }} />
+            <Sparkles className="w-6 h-6 sm:w-8 sm:h-8 lg:w-10 lg:h-10" style={{ color: '#D97706' }} />
           </div>
           <p
-            className="text-lg"
+            className="text-sm sm:text-base lg:text-lg px-4"
             style={{
               fontFamily: 'var(--_typography---font--tiempos)',
               color: 'hsl(var(--claude-text-muted))'
@@ -498,13 +486,13 @@ const SoulSignatureDashboard: React.FC = () => {
         </div>
 
         {/* Cluster Navigation */}
-        <div className="flex justify-center gap-4 mb-12">
+        <div className="flex flex-col sm:flex-row justify-center gap-3 sm:gap-4 mb-8 sm:mb-12 px-4">
           {clusters.map((cluster) => (
             <button
               key={cluster.id}
               onClick={() => setActiveCluster(cluster.id)}
               className={cn(
-                "relative px-6 py-3 rounded-full",
+                "relative px-4 sm:px-6 py-2 sm:py-3 rounded-full w-full sm:w-auto",
                 activeCluster === cluster.id
                   ? "bg-white border-2"
                   : "bg-white border"
@@ -515,11 +503,11 @@ const SoulSignatureDashboard: React.FC = () => {
                 fontWeight: 500
               }}
             >
-              <div className="flex items-center gap-2">
+              <div className="flex items-center justify-center gap-2">
                 <span style={{ color: activeCluster === cluster.id ? cluster.accentColor : '#141413' }}>
                   {cluster.icon}
                 </span>
-                <span style={{ color: activeCluster === cluster.id ? cluster.accentColor : '#141413' }}>
+                <span className="text-sm sm:text-base" style={{ color: activeCluster === cluster.id ? cluster.accentColor : '#141413' }}>
                   {cluster.name}
                 </span>
               </div>
@@ -590,7 +578,7 @@ const SoulSignatureDashboard: React.FC = () => {
         </div>
 
         {/* Main Dashboard Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8">
           {/* Connectors Panel */}
           <div>
             <Card

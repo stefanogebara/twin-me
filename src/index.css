@@ -271,10 +271,17 @@
     @apply border border-border;
     @apply shadow-sm;
     @apply transition-all duration-200;
+    @apply overflow-hidden; /* Prevent content overflow */
   }
 
   .card-hover {
     @apply hover:shadow-md hover:-translate-y-1;
+  }
+
+  .card-content {
+    @apply max-w-full;
+    word-wrap: break-word;
+    overflow-wrap: anywhere;
   }
 
   /* === Inputs === */
@@ -369,6 +376,29 @@
   .hover-lift:hover {
     @apply -translate-y-1;
   }
+
+  /* Text Overflow Protection */
+  .text-truncate {
+    @apply overflow-hidden text-ellipsis whitespace-nowrap;
+  }
+
+  .text-wrap-balance {
+    @apply break-words overflow-wrap-anywhere;
+  }
+
+  .text-line-clamp-2 {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  .text-line-clamp-3 {
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
 }
 
 /* ===== SCROLLBAR ===== */
@@ -395,4 +425,32 @@
 *:focus-visible {
   outline: 2px solid var(--ring);
   outline-offset: 2px;
+}
+
+/* ===== TEXT OVERFLOW PROTECTION ===== */
+/* Ensure all text content respects container boundaries */
+.card, .card-content, [class*="bg-white"], [class*="bg-card"], [class*="rounded"] {
+  overflow: hidden;
+}
+
+/* Platform names and labels */
+.platform-name, .label, .badge, button span, a span {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Long insight/trait text */
+.insight-text, .trait-text, p {
+  word-wrap: break-word;
+  overflow-wrap: anywhere;
+  max-width: 100%;
+}
+
+/* Message bubbles */
+.message-bubble, [class*="message"], [class*="chat"] {
+  word-wrap: break-word;
+  overflow-wrap: anywhere;
+  max-width: 100%;
 }

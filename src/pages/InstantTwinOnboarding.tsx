@@ -3,10 +3,11 @@
  * Connect your digital life to discover and share your authentic soul signature
  */
 
-import { useState, useEffect, useCallback } from 'react';
+import React, { useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '@/components/ui/use-toast';
+import { usePlatformStatus } from '../hooks/usePlatformStatus';
 import {
   ArrowLeft,
   ArrowRight,
@@ -172,196 +173,52 @@ const InstantTwinOnboarding = () => {
   const { user } = useAuth();
   const { toast } = useToast();
 
-  // Soul Signature Discovery - no twin types needed
-  const urlParams = new URLSearchParams(window.location.search);
+  // Use unified platform status hook - single source of truth
+  const {
+    data: platformStatus,
+    connectedProviders,
+    hasConnectedServices,
+    refetch: refetchPlatformStatus
+  } = usePlatformStatus(user?.id);
 
   // State management
   const [currentStep, setCurrentStep] = useState(1);
   const [selectedConnectors, setSelectedConnectors] = useState<DataProvider[]>([]);
-  const [connectedServices, setConnectedServices] = useState<DataProvider[]>(() => {
-    // Initialize from localStorage on mount
-    const stored = localStorage.getItem('connectedServices');
-    const parsed = stored ? JSON.parse(stored) : [];
-    console.log('🏗️ Initial connectedServices state:', parsed);
-    return parsed;
-  });
   const [generationProgress, setGenerationProgress] = useState<TwinGenerationProgress | null>(null);
   const [showPrivacyDetails, setShowPrivacyDetails] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
   const [showExtractionProgress, setShowExtractionProgress] = useState(false);
   const [extractionComplete, setExtractionComplete] = useState(false);
-  const [hasCheckedConnection, setHasCheckedConnection] = useState(false);
   const [connectingProvider, setConnectingProvider] = useState<DataProvider | null>(null);
   const [disconnectingProvider, setDisconnectingProvider] = useState<DataProvider | null>(null);
   // Progressive disclosure state
   const [showAllConnectors, setShowAllConnectors] = useState(false);
 
-  // Load connections from localStorage on mount
-  useEffect(() => {
-    const storedConnections = localStorage.getItem('connectedServices');
-    if (storedConnections) {
-      const parsed = JSON.parse(storedConnections);
-      console.log('📦 Loaded connections from localStorage:', parsed);
-      setConnectedServices(parsed);
-    }
-  }, []);
+  // Derive connectedServices from unified hook (replaces localStorage)
+  const connectedServices = connectedProviders as DataProvider[];
 
-  // Check for OAuth callback success
-  useEffect(() => {
-    if (!user?.id || hasCheckedConnection) return;
+  // Handle OAuth callback success - simplified without localStorage
+  React.useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const connected = urlParams.get('connected');
+    const provider = urlParams.get('provider');
 
-    const currentUrlParams = new URLSearchParams(window.location.search);
-    const connected = currentUrlParams.get('connected');
+    if (connected === 'true' && provider) {
+      console.log('🔗 OAuth callback detected for:', provider);
 
-    if (connected === 'true') {
-      // A connection was successful, check connection status with longer delay
-      console.log('🔗 OAuth callback detected, checking connection status...');
+      // Show success toast
+      toast({
+        title: "✅ Connected Successfully",
+        description: `${provider.replace('_', ' ')} is now connected to your Twin Me account`,
+        variant: "default",
+      });
 
-      // Don't reset - preserve connections and update state immediately
-      const currentConnections = JSON.parse(localStorage.getItem('connectedServices') || '[]');
-      console.log('📦 Preserving existing connections:', currentConnections);
-      setConnectedServices(currentConnections);
-
+      // Refetch platform status from database (single source of truth)
       setTimeout(() => {
-        checkConnectionStatus();
-        setHasCheckedConnection(true);
-      }, 500); // Minimal delay for UI smoothness
-    } else {
-      // Only reset on fresh page load if no connections exist
-      const existingConnections = JSON.parse(localStorage.getItem('connectedServices') || '[]');
-      if (existingConnections.length === 0) {
-        resetConnectionStatus();
-      } else {
-        // Preserve existing connections on page refresh
-        console.log('📦 Preserving existing connections on refresh:', existingConnections);
-        setConnectedServices(existingConnections);
-        checkConnectionStatus();
-      }
-      setHasCheckedConnection(true);
+        refetchPlatformStatus();
+      }, 1000); // Small delay to allow backend to process
     }
-  }, [user]);
-
-  // Listen for postMessage from OAuth popup to avoid COOP errors
-  useEffect(() => {
-    const handleMessage = (event: MessageEvent) => {
-      // Verify origin for security
-      if (event.origin !== window.location.origin) {
-        console.warn('⚠️ Ignoring message from untrusted origin:', event.origin);
-        return;
-      }
-
-      // Check if this is an OAuth success message
-      if (event.data?.type === 'oauth-success') {
-        console.log('✅ Received OAuth success message:', event.data);
-        const provider = event.data.provider;
-
-        // Update connected services
-        const existingConnections = JSON.parse(localStorage.getItem('connectedServices') || '[]');
-        if (provider && !existingConnections.includes(provider)) {
-          existingConnections.push(provider);
-          localStorage.setItem('connectedServices', JSON.stringify(existingConnections));
-          setConnectedServices(existingConnections);
-        }
-
-        // Refresh connection status after a short delay
-        setTimeout(() => {
-          console.log('🔄 Refreshing connection status after OAuth success');
-          checkConnectionStatus();
-        }, 500); // Reduced delay for faster feedback
-      }
-    };
-
-    window.addEventListener('message', handleMessage);
-
-    return () => {
-      window.removeEventListener('message', handleMessage);
-    };
-  }, []);
-
-  const resetConnectionStatus = async () => {
-    try {
-      // Clear localStorage connections on fresh load (no OAuth callback)
-      localStorage.removeItem('connectedServices');
-      setConnectedServices([]);
-      console.log('🔄 Reset connection status for fresh page load');
-
-      if (!user?.id) return;
-
-      // Also try to reset backend
-      const response = await fetch(`${import.meta.env.VITE_API_URL}/connectors/reset/${user.id}`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
-
-      const result = await response.json();
-      if (result.success) {
-        console.log('✅ Backend connection status reset');
-      }
-    } catch (error) {
-      console.error('❌ Error resetting connection status:', error);
-    }
-  };
-
-  const checkConnectionStatus = async () => {
-    try {
-      // First check localStorage for persisted connections
-      const storedConnections = JSON.parse(localStorage.getItem('connectedServices') || '[]');
-      if (storedConnections.length > 0) {
-        console.log('📱 Found stored connections:', storedConnections);
-        setConnectedServices(storedConnections);
-
-        // Get the provider from URL params
-        const currentUrlParams = new URLSearchParams(window.location.search);
-        const provider = currentUrlParams.get('provider');
-
-        if (provider) {
-          toast({
-            title: "✅ Connected Successfully",
-            description: `${provider.replace('_', ' ')} is now connected to your Twin Me account`,
-            variant: "default",
-          });
-        } else if (storedConnections.length > 0) {
-          toast({
-            title: "Connections Restored",
-            description: `${storedConnections.length} service${storedConnections.length !== 1 ? 's' : ''} connected`,
-          });
-        }
-      }
-
-      // Also check backend status if user is logged in
-      if (!user?.id) return;
-
-      const response = await fetch(`${import.meta.env.VITE_API_URL}/connectors/status/${user.id}`, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
-
-      const result = await response.json();
-
-      if (result.success && Object.keys(result.data || {}).length > 0) {
-        // Merge backend status with localStorage
-        const backendProviders = Object.keys(result.data || {}) as DataProvider[];
-        const mergedProviders = [...new Set([...storedConnections, ...backendProviders])];
-
-        console.log('🔄 Merged connection status:', mergedProviders);
-        setConnectedServices(mergedProviders);
-
-        // Update localStorage with merged data
-        localStorage.setItem('connectedServices', JSON.stringify(mergedProviders));
-      }
-    } catch (error) {
-      console.error('Error checking connection status:', error);
-      // Fallback to localStorage only
-      const storedConnections = JSON.parse(localStorage.getItem('connectedServices') || '[]');
-      if (storedConnections.length > 0) {
-        setConnectedServices(storedConnections);
-      }
-    }
-  };
+  }, []); // Run once on mount
 
   // Steps configuration
   const STEPS = [
@@ -436,26 +293,14 @@ const InstantTwinOnboarding = () => {
           `width=${width},height=${height},left=${left},top=${top},toolbar=no,menubar=no,location=no`
         );
 
-        // Use postMessage instead of polling to avoid COOP errors
-        // The OAuth callback will send a message when it completes
-        console.log('🪟 OAuth popup opened, waiting for completion message...');
+        // Note: OAuth callback page will handle the success and redirect back
+        console.log('🪟 OAuth popup opened, waiting for OAuth callback...');
       } else if (result.success) {
-        // Fallback for test connections (shouldn't happen with real OAuth)
-        console.warn('⚠️ No OAuth URL received, using test connection');
+        // Test connection success (shouldn't happen in production)
+        console.warn('⚠️ No OAuth URL received, connection may be in test mode');
 
-        // Store connection in localStorage
-        const existingConnections = JSON.parse(localStorage.getItem('connectedServices') || '[]');
-        if (!existingConnections.includes(provider)) {
-          existingConnections.push(provider);
-          localStorage.setItem('connectedServices', JSON.stringify(existingConnections));
-        }
-
-        // Update local state immediately
-        setConnectedServices(prev => {
-          const updated = prev.includes(provider) ? prev : [...prev, provider];
-          console.log('📝 Updated connected services:', updated);
-          return updated;
-        });
+        // Refetch status from database (no localStorage)
+        await refetchPlatformStatus();
 
         toast({
           title: "⚠️ Test Connection",
@@ -477,7 +322,7 @@ const InstantTwinOnboarding = () => {
     } finally {
       setConnectingProvider(null);
     }
-  }, [toast]);
+  }, [toast, user, refetchPlatformStatus]);
 
   const disconnectService = useCallback(async (provider: DataProvider) => {
     if (!user) return;
@@ -508,13 +353,8 @@ const InstantTwinOnboarding = () => {
       const result = await response.json();
       console.log(`✅ ${provider} disconnected:`, result);
 
-      // Remove from localStorage
-      const existingConnections = JSON.parse(localStorage.getItem('connectedServices') || '[]');
-      const updated = existingConnections.filter((p: string) => p !== provider);
-      localStorage.setItem('connectedServices', JSON.stringify(updated));
-
-      // Update state
-      setConnectedServices(updated);
+      // Refetch platform status from database (single source of truth)
+      await refetchPlatformStatus();
 
       toast({
         title: "Disconnected",
@@ -532,7 +372,7 @@ const InstantTwinOnboarding = () => {
     } finally {
       setDisconnectingProvider(null);
     }
-  }, [user, toast]);
+  }, [user, toast, refetchPlatformStatus]);
 
   const startTwinGeneration = useCallback(async () => {
     if (!user) return;
@@ -700,26 +540,6 @@ const InstantTwinOnboarding = () => {
   const renderConnectorCard = (connector: ConnectorConfig) => {
     const isSelected = selectedConnectors.includes(connector.provider);
     const isConnected = connectedServices.includes(connector.provider);
-
-    // Debug connection status for Gmail and Calendar
-    if (connector.provider === 'google_gmail' || connector.provider === 'google_calendar') {
-      console.log(`🎨 Rendering ${connector.provider}:`, {
-        provider: connector.provider,
-        isConnected,
-        connectedServices,
-        localStorage: JSON.parse(localStorage.getItem('connectedServices') || '[]')
-      });
-    }
-
-    // Debug logging for connection status
-    if (connector.provider === 'google_gmail') {
-      console.log('🎨 Rendering Gmail card:', {
-        provider: connector.provider,
-        isConnected,
-        connectedServices,
-        selectedConnectors
-      });
-    }
 
     return (
       <div
