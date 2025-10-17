@@ -61,56 +61,36 @@ export const SoulDataExtractor: React.FC<Props> = ({ userId, onExtractionComplet
     setProgress(0);
 
     try {
-      // Phase 1: Extract data from all platforms
-      setCurrentPhase('Extracting data from connected platforms...');
-      setProgress(10);
+      // Start full pipeline (single backend call handles all orchestration)
+      setCurrentPhase('Starting soul signature extraction...');
+      const response = await soulDataService.runFullPipeline(userId);
 
-      const extractResult = await soulDataService.extractAll(userId);
-
-      if (!extractResult.success) {
-        throw new Error(extractResult.error || 'Extraction failed');
+      if (!response.success) {
+        throw new Error(response.error || 'Pipeline failed');
       }
 
-      // Poll for extraction completion
-      setCurrentPhase('Processing platform data...');
+      setCurrentPhase('Extracting data from platforms...');
       setProgress(25);
 
+      // Poll extraction jobs until complete
       await soulDataService.pollExtractionStatus(userId, (status) => {
         setExtractionStatus(status);
 
-        // Calculate progress based on completed jobs
+        // Calculate progress from real job status
         const totalJobs = status.recentJobs.length;
-        const completedJobs = status.recentJobs.filter(j => j.status === 'completed').length;
-        const phaseProgress = 25 + (completedJobs / totalJobs) * 25;
-        setProgress(phaseProgress);
+        const completedJobs = status.recentJobs.filter(j =>
+          j.status === 'completed'
+        ).length;
+
+        // Progress: 25% start + (75% based on job completion)
+        setProgress(25 + (completedJobs / totalJobs) * 75);
       });
 
-      // Phase 2: Process text
-      setCurrentPhase('Processing and cleaning text content...');
-      setProgress(50);
-
-      await soulDataService.processText(userId, 100);
-      setProgress(60);
-
-      // Phase 3: Analyze style
-      setCurrentPhase('Analyzing writing style and personality...');
-      setProgress(70);
-
-      await soulDataService.analyzeStyle(userId);
-      setProgress(80);
-
-      // Reload style profile
-      await loadStyleProfile();
-
-      // Phase 4: Generate embeddings
-      setCurrentPhase('Generating vector embeddings...');
-      setProgress(85);
-
-      await soulDataService.generateEmbeddings(userId, 100);
       setProgress(100);
-
-      // Complete
       setCurrentPhase('Soul signature extraction complete!');
+
+      // Reload profiles
+      await loadStyleProfile();
 
       if (onExtractionComplete) {
         const finalStatus = await soulDataService.getExtractionStatus(userId);
