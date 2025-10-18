@@ -13,6 +13,10 @@ import { ALL_PLATFORM_CONFIGS, getPlatformConfig, getPlatformStats } from '../se
 import { createClient } from '@supabase/supabase-js';
 import crypto from 'crypto';
 import axios from 'axios';
+import { extractYouTubeData } from '../services/youtubeExtraction.js';
+import { extractRedditData } from '../services/redditExtraction.js';
+import { extractGitHubData } from '../services/githubExtraction.js';
+import { extractDiscordData } from '../services/discordExtraction.js';
 
 const router = express.Router();
 
@@ -175,22 +179,24 @@ async function handleOAuthConnection(userId, platformId, platformConfig, req, re
       return res.status(400).json({ error: 'OAuth configuration missing' });
     }
 
-    // Generate state for CSRF protection
-    const state = crypto.randomBytes(16).toString('hex');
+    // Generate state for CSRF protection with embedded user data
+    const state = Buffer.from(JSON.stringify({
+      provider: platformId,
+      userId,
+      timestamp: Date.now()
+    })).toString('base64');
 
     // Store state in session/database
     await supabase
       .from('oauth_states')
       .insert({
-        user_id: userId,
-        platform: platformId,
         state,
-        created_at: new Date().toISOString(),
-        expires_at: new Date(Date.now() + 10 * 60 * 1000).toISOString() // 10 min expiry
+        data: { userId, provider: platformId, timestamp: Date.now() },
+        expires_at: new Date(Date.now() + 10 * 60 * 1000) // 10 min expiry
       });
 
     // Build authorization URL
-    const redirectUri = `${process.env.VITE_API_URL || 'http://localhost:3001/api'}/platforms/callback/${platformId}`;
+    const redirectUri = `${process.env.VITE_APP_URL || 'http://localhost:8086'}/oauth/callback`;
 
     const authParams = new URLSearchParams({
       client_id: apiConfig.clientId,
@@ -206,13 +212,21 @@ async function handleOAuthConnection(userId, platformId, platformConfig, req, re
       authParams.append('response_mode', 'form_post');
     }
 
+    // Spotify-specific: show dialog
+    if (platformId === 'spotify') {
+      authParams.append('show_dialog', 'true');
+    }
+
     authUrl = `${apiConfig.authUrl}?${authParams.toString()}`;
+
+    console.log(`🎵 ${platformConfig.name} OAuth initiated for user ${userId}`);
 
     res.json({
       success: true,
       authUrl,
       platform: platformId,
-      integrationType: 'oauth'
+      integrationType: 'oauth',
+      message: `Connect your ${platformConfig.name} account`
     });
   } catch (error) {
     console.error('OAuth connection error:', error);
@@ -389,6 +403,18 @@ async function extractOAuthPlatformData(userId, platformId, platformConfig, conn
   switch (platformId) {
     case 'spotify':
       return await extractSpotifyData(userId, accessToken);
+
+    case 'youtube':
+      return await extractYouTubeData(userId);
+
+    case 'reddit':
+      return await extractRedditData(userId);
+
+    case 'github':
+      return await extractGitHubData(userId);
+
+    case 'discord':
+      return await extractDiscordData(userId);
 
     case 'apple_music':
       return await extractAppleMusicData(userId, accessToken);

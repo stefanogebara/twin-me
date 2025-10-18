@@ -123,9 +123,9 @@ export const ALL_PLATFORM_CONFIGS = {
     name: 'YouTube',
     category: 'streaming',
     icon: '▶️',
-    integrationType: 'mcp',
-    dataTypes: ['watch_history', 'subscriptions', 'playlists', 'likes', 'comments'],
-    description: 'Learning interests, curiosity profile, creator loyalty',
+    integrationType: 'oauth',
+    dataTypes: ['watch_history', 'subscriptions', 'playlists', 'likes', 'comments', 'activities'],
+    description: 'Learning interests, curiosity profile, creator loyalty, content preferences',
     apiConfig: {
       authUrl: 'https://accounts.google.com/o/oauth2/v2/auth',
       tokenUrl: 'https://oauth2.googleapis.com/token',
@@ -133,9 +133,8 @@ export const ALL_PLATFORM_CONFIGS = {
       clientId: process.env.GOOGLE_CLIENT_ID,
       clientSecret: process.env.GOOGLE_CLIENT_SECRET
     },
-    extractionStrategy: 'mcp',
-    mcpServer: '@modelcontextprotocol/server-youtube',
-    soulInsights: ['curiosity_patterns', 'learning_style', 'entertainment_mix', 'creator_loyalty']
+    extractionStrategy: 'oauth',
+    soulInsights: ['curiosity_patterns', 'learning_style', 'entertainment_mix', 'creator_loyalty', 'Big Five Traits']
   },
 
   // ========================================
@@ -146,20 +145,25 @@ export const ALL_PLATFORM_CONFIGS = {
     id: 'spotify',
     name: 'Spotify',
     category: 'music',
-    icon: '🟢',
-    integrationType: 'mcp',
-    dataTypes: ['listening_history', 'playlists', 'saved_tracks', 'top_artists', 'podcasts'],
-    description: 'Musical taste, mood patterns, discovery behavior',
+    icon: '🎵',
+    integrationType: 'oauth',
+    dataTypes: ['listening_history', 'playlists', 'saved_tracks', 'top_artists', 'top_tracks', 'recent_tracks'],
+    description: 'Discover your musical soul through your authentic listening habits, genre diversity, and emotional landscape',
     apiConfig: {
       authUrl: 'https://accounts.spotify.com/authorize',
       tokenUrl: 'https://accounts.spotify.com/api/token',
-      scopes: ['user-read-recently-played', 'user-top-read', 'user-library-read', 'playlist-read-private'],
+      scopes: [
+        'user-read-recently-played',
+        'user-top-read',
+        'user-library-read',
+        'user-read-playback-state',
+        'playlist-read-private'
+      ],
       clientId: process.env.SPOTIFY_CLIENT_ID,
       clientSecret: process.env.SPOTIFY_CLIENT_SECRET
     },
-    extractionStrategy: 'mcp',
-    mcpServer: '@modelcontextprotocol/server-spotify',
-    soulInsights: ['music_taste', 'mood_patterns', 'genre_diversity', 'discovery_openness']
+    extractionStrategy: 'oauth',
+    soulInsights: ['Musical Taste Profile', 'Mood Patterns', 'Discovery Behavior', 'Emotional Landscape', 'Big Five Traits']
   },
 
   apple_music: {
@@ -731,19 +735,18 @@ export const ALL_PLATFORM_CONFIGS = {
     name: 'Discord',
     category: 'messaging',
     icon: '💜',
-    integrationType: 'mcp',
-    dataTypes: ['messages', 'servers', 'voice_activity', 'roles'],
+    integrationType: 'oauth',
+    dataTypes: ['guilds', 'connections', 'user_profile'],
     description: 'Gaming and community engagement',
     apiConfig: {
       authUrl: 'https://discord.com/api/oauth2/authorize',
       tokenUrl: 'https://discord.com/api/oauth2/token',
-      scopes: ['identify', 'guilds', 'messages.read'],
+      scopes: ['identify', 'guilds', 'connections'],
       clientId: process.env.DISCORD_CLIENT_ID,
       clientSecret: process.env.DISCORD_CLIENT_SECRET
     },
-    extractionStrategy: 'mcp',
-    mcpServer: '@modelcontextprotocol/server-discord',
-    soulInsights: ['community_participation', 'gaming_social', 'voice_engagement', 'role_diversity']
+    extractionStrategy: 'oauth',
+    soulInsights: ['community_participation', 'gaming_social', 'server_diversity', 'cross_platform_connections', 'Big Five Traits']
   },
 
   slack: {
@@ -869,7 +872,7 @@ export const ALL_PLATFORM_CONFIGS = {
     name: 'Reddit',
     category: 'social',
     icon: '🤖',
-    integrationType: 'mcp',
+    integrationType: 'oauth',
     dataTypes: ['posts', 'comments', 'saved', 'subreddits', 'upvotes'],
     description: 'Community interests and discussion participation',
     apiConfig: {
@@ -879,9 +882,8 @@ export const ALL_PLATFORM_CONFIGS = {
       clientId: process.env.REDDIT_CLIENT_ID,
       clientSecret: process.env.REDDIT_CLIENT_SECRET
     },
-    extractionStrategy: 'mcp',
-    mcpServer: '@modelcontextprotocol/server-reddit',
-    soulInsights: ['niche_interests', 'community_depth', 'discussion_style', 'expertise_areas']
+    extractionStrategy: 'oauth',
+    soulInsights: ['niche_interests', 'community_depth', 'discussion_style', 'expertise_areas', 'Big Five Traits']
   },
 
   // ========================================
