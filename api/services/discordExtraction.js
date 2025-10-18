@@ -21,10 +21,10 @@ export async function extractDiscordData(userId) {
   try {
     // Get platform connection with encrypted tokens
     const { data: connection, error: connectionError } = await supabase
-      .from('data_connectors')
+      .from('platform_connections')
       .select('*')
       .eq('user_id', userId)
-      .eq('provider', 'discord')
+      .eq('platform', 'discord')
       .single();
 
     if (connectionError || !connection) {
@@ -97,13 +97,13 @@ export async function extractDiscordData(userId) {
 
     // Update connection status
     await supabase
-      .from('data_connectors')
+      .from('platform_connections')
       .update({
         last_synced_at: new Date(),
         last_sync_status: 'success'
       })
       .eq('user_id', userId)
-      .eq('provider', 'discord');
+      .eq('platform', 'discord');
 
     return {
       success: true,
@@ -119,12 +119,12 @@ export async function extractDiscordData(userId) {
     // Handle token expiration
     if (error.response?.status === 401) {
       await supabase
-        .from('data_connectors')
+        .from('platform_connections')
         .update({
           last_sync_status: 'requires_reauth'
         })
         .eq('user_id', userId)
-        .eq('provider', 'discord');
+        .eq('platform', 'discord');
 
       return {
         success: false,
@@ -146,12 +146,12 @@ export async function extractDiscordData(userId) {
 
     // Update connection with error status
     await supabase
-      .from('data_connectors')
+      .from('platform_connections')
       .update({
         last_sync_status: 'failed'
       })
       .eq('user_id', userId)
-      .eq('provider', 'discord');
+      .eq('platform', 'discord');
 
     throw error;
   }
