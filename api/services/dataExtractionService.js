@@ -34,11 +34,10 @@ class DataExtractionService {
     try {
       // Get connector for this platform
       const { data: connector, error } = await supabase
-        .from('data_connectors')
+        .from('platform_connections')
         .select('*')
         .eq('user_id', userId)
-        .eq('provider', platform)
-        .eq('connected', true)
+        .eq('platform', platform)
         .single();
 
       if (error || !connector) {
@@ -88,9 +87,8 @@ class DataExtractionService {
 
         // Mark connector as needing re-authentication
         await supabase
-          .from('data_connectors')
+          .from('platform_connections')
           .update({
-            connected: false,
             metadata: {
               ...connector.metadata,
               token_expired: true,
@@ -228,9 +226,8 @@ class DataExtractionService {
         // Mark connector as disconnected
         try {
           await supabase
-            .from('data_connectors')
+            .from('platform_connections')
             .update({
-              connected: false,
               metadata: {
                 auth_error: true,
                 last_error: '401 Unauthorized - Token expired or revoked',
@@ -238,7 +235,7 @@ class DataExtractionService {
               }
             })
             .eq('user_id', userId)
-            .eq('provider', platform);
+            .eq('platform', platform);
         } catch (updateError) {
           console.error(`[DataExtraction] Failed to update connector status:`, updateError);
         }
@@ -266,10 +263,9 @@ class DataExtractionService {
     try {
       // Get all connected platforms
       const { data: connectors, error } = await supabase
-        .from('data_connectors')
-        .select('provider')
-        .eq('user_id', userId)
-        .eq('connected', true);
+        .from('platform_connections')
+        .select('platform')
+        .eq('user_id', userId);
 
       if (error) {
         throw new Error('Failed to fetch connectors');
@@ -287,11 +283,11 @@ class DataExtractionService {
       // Extract from each platform
       for (const connector of connectors) {
         try {
-          const result = await this.extractPlatformData(userId, connector.provider);
-          results[connector.provider] = result;
+          const result = await this.extractPlatformData(userId, connector.platform);
+          results[connector.platform] = result;
         } catch (error) {
-          console.error(`[DataExtraction] Failed to extract from ${connector.provider}:`, error);
-          results[connector.provider] = {
+          console.error(`[DataExtraction] Failed to extract from ${connector.platform}:`, error);
+          results[connector.platform] = {
             success: false,
             error: error.message
           };
@@ -326,12 +322,10 @@ class DataExtractionService {
       };
 
       await supabase
-        .from('data_connectors')
-        .update({ 
-          metadata,
-          last_sync: now,
-          last_sync_status: extractionResult.success ? 'success' : 'failed',
-          total_synced: extractionResult.itemsExtracted || 0
+        .from('platform_connections')
+        .update({
+          last_synced_at: now,
+          last_sync_status: extractionResult.success ? 'success' : 'failed'
         })
         .eq('id', connectorId);
     } catch (error) {
@@ -411,10 +405,10 @@ class DataExtractionService {
 
     // For now, store schedule in connector metadata
     const { data: connector } = await supabase
-        .from('data_connectors')
+        .from('platform_connections')
         .select('metadata')
         .eq('user_id', userId)
-        .eq('provider', platform)
+        .eq('platform', platform)
         .single();
 
     if (connector) {
@@ -426,10 +420,10 @@ class DataExtractionService {
       };
 
       await supabase
-        .from('data_connectors')
+        .from('platform_connections')
         .update({ metadata })
         .eq('user_id', userId)
-        .eq('provider', platform);
+        .eq('platform', platform);
     }
 
     return { scheduled: true, intervalHours };
