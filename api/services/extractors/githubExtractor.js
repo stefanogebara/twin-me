@@ -78,7 +78,7 @@ class GitHubExtractor {
               author: username,
               per_page: 100
             },
-            { mapFn: commits => commits.slice(0, 50) } // Limit to 50 commits per repo
+            (response) => response.data.slice(0, 50) // Limit to 50 commits per repo
           );
 
           for (const commit of commits) {
@@ -126,7 +126,7 @@ class GitHubExtractor {
           state: 'all',
           per_page: 100
         },
-        { mapFn: issues => issues.slice(0, 100) } // Limit to 100 issues
+        (response) => response.data.slice(0, 100) // Limit to 100 issues
       );
 
       for (const issue of issues) {
@@ -212,7 +212,7 @@ class GitHubExtractor {
               state: 'all',
               per_page: 100
             },
-            { mapFn: prs => prs.slice(0, 30) }
+            (response) => response.data.slice(0, 30)
           );
 
           for (const pr of prs) {
@@ -271,7 +271,7 @@ class GitHubExtractor {
               state: 'all',
               per_page: 100
             },
-            { mapFn: prs => prs.slice(0, 20) }
+            (response) => response.data.slice(0, 20)
           );
 
           for (const pr of prs) {
