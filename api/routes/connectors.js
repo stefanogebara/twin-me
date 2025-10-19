@@ -562,6 +562,7 @@ router.post('/reset/:userId', async (req, res) => {
     const { userId } = req.params;
 
     console.log(`🔄 Resetting connections for user ${userId}`);
+    console.warn(`⚠️ RESET ENDPOINT CALLED - This should only be called on fresh page loads!`);
 
     // Convert email to UUID if needed
     let userUuid = userId;
@@ -575,10 +576,19 @@ router.post('/reset/:userId', async (req, res) => {
     }
 
     // Mark all connections as inactive in database (old schema uses 'connected')
+    // BUT preserve connected=true for platforms with encryption_key_mismatch
+    // First, get current connections to check their status
+    const { data: currentConnections } = await supabase
+      .from('platform_connections')
+      .select('id, platform, last_sync_status')
+      .eq('user_id', userUuid);
+
+    // Only reset connections that don't have encryption_key_mismatch
     const { data, error} = await supabase
       .from('platform_connections')
       .update({ connected: false })
       .eq('user_id', userUuid)
+      .not('last_sync_status', 'eq', 'encryption_key_mismatch')
       .select();
 
     if (error) {
