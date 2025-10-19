@@ -181,7 +181,7 @@ async function handleOAuthConnection(userId, platformId, platformConfig, req, re
 
     // Generate state for CSRF protection with embedded user data
     const state = Buffer.from(JSON.stringify({
-      provider: platformId,
+      platform: platformId,
       userId,
       timestamp: Date.now()
     })).toString('base64');
@@ -191,7 +191,7 @@ async function handleOAuthConnection(userId, platformId, platformConfig, req, re
       .from('oauth_states')
       .insert({
         state,
-        data: { userId, provider: platformId, timestamp: Date.now() },
+        data: { userId, platform: platformId, timestamp: Date.now() },
         expires_at: new Date(Date.now() + 10 * 60 * 1000) // 10 min expiry
       });
 

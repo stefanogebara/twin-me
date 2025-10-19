@@ -17,6 +17,7 @@ import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import PrivacySpectrumDashboard from '@/components/PrivacySpectrumDashboard';
 import { SoulDataExtractor } from '@/components/SoulDataExtractor';
+import { PlatformConnectionCard } from '@/components/PlatformConnectionCard';
 
 interface ConnectionStatus {
   spotify: boolean;
@@ -44,7 +45,8 @@ const SoulSignatureDashboard: React.FC = () => {
   const {
     data: platformStatus,
     hasConnectedServices: platformsConnected,
-    connectedProviders
+    connectedProviders,
+    refetch
   } = usePlatformStatus(user?.id);
 
   const [activeCluster, setActiveCluster] = useState<string>('personal');
@@ -318,6 +320,60 @@ const SoulSignatureDashboard: React.FC = () => {
     } else {
       // Platform is connected, extract soul signature
       await extractSoulSignature(connectorKey);
+    }
+  };
+
+
+  // Handle platform reconnection (for expired tokens)
+  const handleReconnect = async (connectorKey: string) => {
+    try {
+      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
+
+      // First disconnect the expired/failed connection
+      await fetch(`${apiUrl}/oauth/disconnect/${connectorKey}`, {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: user?.id || 'current-user' })
+      });
+
+      // Then initiate fresh OAuth flow
+      const response = await fetch(`${apiUrl}/entertainment/connect/${connectorKey}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: user?.id || 'current-user' })
+      });
+
+      const data = await response.json();
+      if (data.authUrl) {
+        window.location.href = data.authUrl;
+      }
+    } catch (error) {
+      console.error(`Failed to reconnect ${connectorKey}:`, error);
+    }
+  };
+
+  // Handle platform disconnection
+  const handleDisconnect = async (connectorKey: string) => {
+    if (!confirm(`Are you sure you want to disconnect ${connectorKey}?`)) {
+      return;
+    }
+
+    try {
+      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
+      const response = await fetch(`${apiUrl}/oauth/disconnect/${connectorKey}`, {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: user?.id || 'current-user' })
+      });
+
+      if (response.ok) {
+        // Refetch platform status to update UI
+        if (refetch) {
+          refetch();
+        }
+      }
+    } catch (error) {
+      console.error(`Failed to disconnect ${connectorKey}:`, error);
     }
   };
 
@@ -625,51 +681,19 @@ const SoulSignatureDashboard: React.FC = () => {
 
               <div className="space-y-3">
                 {currentCluster.connectors.map((connector) => (
-                  <button
+                  <PlatformConnectionCard
                     key={connector.key}
-                    onClick={() => handleConnectorClick(activeCluster, connector.key)}
-                    className={cn(
-                      "w-full p-3 rounded-lg bg-[hsl(var(--claude-surface-raised))]",
-                      "flex items-center justify-between",
-                      connector.status ? 'border border-[hsl(var(--claude-accent))]' : 'border border-[hsl(var(--claude-border))]'
-                    )}
-                  >
-                    <div className="flex items-center gap-3">
-                      <span style={{ color: '#141413' }}>{connector.icon}</span>
-                      <span
-                        style={{
-                          fontFamily: 'var(--_typography---font--tiempos)',
-                          color: 'hsl(var(--claude-text))'
-                        }}
-                      >
-                        {connector.name}
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      {connector.status ? (
-                        <>
-                          <Badge
-                            className="bg-[hsl(var(--claude-surface-raised))] text-[hsl(var(--claude-accent))] border border-[hsl(var(--claude-accent))]"
-                          >
-                            ✓ Connected
-                          </Badge>
-                          {hasExtractedData && (
-                            <Badge
-                              className="bg-green-500/10 text-green-600 border border-green-500/20"
-                              title="Data extracted successfully"
-                            >
-                              Extracted
-                            </Badge>
-                          )}
-                        </>
-                      ) : (
-                        <ChevronRight className="w-4 h-4" style={{ color: '#6B7280' }} />
-                      )}
-                    </div>
-                  </button>
+                    connector={connector}
+                    platformStatus={platformStatus[connector.key]}
+                    hasExtractedData={hasExtractedData}
+                    onConnect={() => handleConnectorClick(activeCluster, connector.key)}
+                    onReconnect={() => handleReconnect(connector.key)}
+                    onDisconnect={() => handleDisconnect(connector.key)}
+                  />
                 ))}
+              </div>
 
-                {/* Analysis Actions */}
+              {/* Analysis Actions */}
                 <div
                   className="mt-6 pt-6"
                   style={{ borderTop: '1px solid rgba(20,20,19,0.1)' }}
@@ -719,7 +743,6 @@ const SoulSignatureDashboard: React.FC = () => {
                     ))}
                   </div>
                 </div>
-              </div>
             </Card>
           </div>
 

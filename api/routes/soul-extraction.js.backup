@@ -10,9 +10,6 @@ import express from 'express';
 import RealTimeExtractor from '../services/realTimeExtractor.js';
 import spotifyEnhancedExtractor from '../services/spotifyEnhancedExtractor.js';
 import youtubeEnhancedExtractor from '../services/youtubeEnhancedExtractor.js';
-import GitHubExtractor from '../services/extractors/githubExtractor.js';
-import DiscordExtractor from '../services/extractors/discordExtractor.js';
-import SlackExtractor from '../services/extractors/slackExtractor.js';
 import { createClient } from '@supabase/supabase-js';
 import { decryptToken } from '../services/encryption.js';
 import { getValidAccessToken } from '../services/tokenRefresh.js';
@@ -98,20 +95,6 @@ router.post('/extract/platform/:platform',
 
         case 'netflix':
         case 'steam':
-case 'github':
-          const githubExtractor = new GitHubExtractor(accessToken);
-          extraction = await githubExtractor.extractAll(userId, null);
-          break;
-
-        case 'discord':
-          const discordExtractor = new DiscordExtractor(accessToken);
-          extraction = await discordExtractor.extractAll(userId, null);
-          break;
-
-        case 'slack':
-          const slackExtractor = new SlackExtractor(accessToken);
-          extraction = await slackExtractor.extractAll(userId, null);
-          break;
           extraction = await extractor.generateGenericPlatformData(platform, userId);
           break;
 
@@ -148,13 +131,13 @@ case 'github':
     // Update last_sync timestamp in database
     try {
       await supabase
-        .from('platform_connections')
+        .from('data_connectors')
         .update({
           last_sync: new Date().toISOString(),
           last_sync_status: extraction.success !== false ? 'success' : 'failed'
         })
         .eq('user_id', userId)
-        .eq('platform', platform);
+        .eq('provider', platform);
     } catch (dbError) {
       console.warn('⚠️ Failed to update last_sync timestamp:', dbError.message);
       // Don't throw - extraction succeeded even if sync timestamp update failed
@@ -232,7 +215,7 @@ router.post('/extract/spotify-deep/:userId', asyncHandler(async (req, res) => {
   // Update last_sync timestamp
   try {
     await supabase
-      .from('platform_connections')
+      .from('data_connectors')
       .update({
         last_sync: new Date().toISOString(),
         last_sync_status: 'success',
@@ -244,7 +227,7 @@ router.post('/extract/spotify-deep/:userId', asyncHandler(async (req, res) => {
         }
       })
       .eq('user_id', userId)
-      .eq('platform', 'spotify');
+      .eq('provider', 'spotify');
   } catch (dbError) {
     console.warn('⚠️ Failed to update connector metadata:', dbError.message);
   }
@@ -324,7 +307,7 @@ router.post('/extract/youtube-deep/:userId', asyncHandler(async (req, res) => {
   // Update last_sync timestamp
   try {
     await supabase
-      .from('platform_connections')
+      .from('data_connectors')
       .update({
         last_sync: new Date().toISOString(),
         last_sync_status: 'success',
@@ -336,7 +319,7 @@ router.post('/extract/youtube-deep/:userId', asyncHandler(async (req, res) => {
         }
       })
       .eq('user_id', userId)
-      .eq('platform', 'youtube');
+      .eq('provider', 'youtube');
   } catch (dbError) {
     console.warn('⚠️ Failed to update connector metadata:', dbError.message);
   }
@@ -386,10 +369,11 @@ router.post('/extract/multi-platform',
 
     // Query database for all active connections for this user
     const { data: connections, error: dbError } = await supabase
-      .from('platform_connections')
-      .select('platform, access_token, token_expires_at')
+      .from('data_connectors')
+      .select('provider, access_token, token_expires_at')
       .eq('user_id', userId)
-      .in('platform', validPlatforms.map(p => p.name));
+      .eq('connected', true)
+      .in('provider', validPlatforms.map(p => p.name));
 
     if (dbError) {
       console.error('❌ Database error fetching connections:', dbError);
@@ -399,7 +383,7 @@ router.post('/extract/multi-platform',
     const platformsWithTokens = [];
 
     for (const platform of validPlatforms) {
-      const connection = connections?.find(c => c.platform === platform.name);
+      const connection = connections?.find(c => c.provider === platform.name);
 
       if (connection && connection.access_token) {
         try {
@@ -1293,7 +1277,7 @@ router.get('/extraction-status/:userId', async (req, res) => {
 
     // Get all connectors for this user
     const { data: connectors, error } = await supabase
-      .from('platform_connections')
+      .from('data_connectors')
       .select('*')
       .eq('user_id', userId);
 
@@ -1315,14 +1299,14 @@ router.get('/extraction-status/:userId', async (req, res) => {
 
     // Build status response
     const status = connectors.map(connector => {
-      const recentJobs = jobs?.filter(job => job.platform === connector.platform) || [];
+      const recentJobs = jobs?.filter(job => job.platform === connector.provider) || [];
       const latestJob = recentJobs[0];
 
       return {
-        platform: connector.platform,
-        connected: connector.access_token ? true : false,
-        lastSync: connector.last_synced_at,
-        lastSyncStatus: connector.last_sync_status,
+        platform: connector.provider,
+        connected: connector.connected,
+        lastSync: connector.metadata?.last_sync,
+        lastSyncStatus: connector.metadata?.last_sync_status,
         tokenExpired: connector.metadata?.token_expired || false,
         latestExtractionJob: latestJob ? {
           status: latestJob.status,
@@ -1338,7 +1322,7 @@ router.get('/extraction-status/:userId', async (req, res) => {
       success: true,
       userId,
       platforms: status,
-      totalConnected: connectors.filter(c => c.access_token).length,
+      totalConnected: connectors.filter(c => c.connected).length,
       checkedAt: new Date().toISOString()
     });
 

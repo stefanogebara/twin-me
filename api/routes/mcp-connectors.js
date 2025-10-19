@@ -75,7 +75,7 @@ router.post('/connect/discord', async (req, res) => {
     const redirectUri = encodeURIComponent(`${process.env.APP_URL || process.env.VITE_APP_URL || 'http://localhost:8086'}/oauth/callback`);
     const scope = encodeURIComponent('identify email guilds messages.read');
     const state = Buffer.from(JSON.stringify({
-      provider: 'discord',
+      platform: 'discord',
       userId,
       timestamp: Date.now()
     })).toString('base64');

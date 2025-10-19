@@ -8,6 +8,7 @@ import { encryptToken } from '../services/encryption.js';
 import { createClient } from '@supabase/supabase-js';
 import fs from 'fs/promises';
 import path from 'path';
+import PLATFORM_CONFIGS from '../config/platformConfigs.js';
 
 const supabase = createClient(
   process.env.SUPABASE_URL,
@@ -61,33 +62,55 @@ router.post('/connect/spotify', async (req, res) => {
   try {
     const { userId } = req.body;
 
-    // Spotify OAuth Configuration
-    const clientId = process.env.SPOTIFY_CLIENT_ID || 'your-spotify-client-id';
-    const redirectUri = encodeURIComponent(`${process.env.APP_URL || process.env.VITE_APP_URL || 'http://localhost:8086'}/oauth/callback`);
-    const scope = encodeURIComponent(
-      'user-read-private user-read-email ' +
-      'user-top-read user-read-recently-played ' +
-      'playlist-read-private playlist-read-collaborative ' +
-      'user-library-read user-follow-read'
-    );
+    if (!userId) {
+      return res.status(400).json({
+        success: false,
+        error: 'userId is required'
+      });
+    }
+
+    const config = PLATFORM_CONFIGS.spotify;
+    const redirectUri = `${process.env.VITE_APP_URL || 'http://localhost:8086'}/oauth/callback`;
+    const scope = config.scopes.join(' ');
+
+    // Generate secure OAuth state
     const state = Buffer.from(JSON.stringify({
-      provider: 'spotify',
+      platform: 'spotify',
       userId,
       timestamp: Date.now()
     })).toString('base64');
 
-    const authUrl = `https://accounts.spotify.com/authorize?` +
-      `client_id=${clientId}&response_type=code&` +
-      `redirect_uri=${redirectUri}&scope=${scope}&state=${state}`;
+    // Store state in Supabase for validation (CSRF protection)
+    await supabase
+      .from('oauth_states')
+      .insert({
+        state,
+        data: { userId, platform: 'spotify', timestamp: Date.now() },
+        expires_at: new Date(Date.now() + 600000) // 10 minutes
+      });
+
+    const authUrl = `${config.authUrl}?` +
+      `client_id=${process.env.SPOTIFY_CLIENT_ID}&` +
+      `response_type=code&` +
+      `redirect_uri=${encodeURIComponent(redirectUri)}&` +
+      `scope=${encodeURIComponent(scope)}&` +
+      `state=${state}&` +
+      `show_dialog=true`;
+
+    console.log(`🎵 Spotify OAuth initiated for user ${userId}`);
 
     res.json({
       success: true,
       authUrl,
-      message: 'Connect your musical soul'
+      message: 'Connect your musical soul - discover your authentic taste'
     });
   } catch (error) {
     console.error('Spotify connection error:', error);
-    res.status(500).json({ error: 'Failed to initialize Spotify connection' });
+    res.status(500).json({
+      success: false,
+      error: 'Failed to initialize Spotify connection',
+      details: error.message
+    });
   }
 });
 
@@ -238,7 +261,7 @@ router.post('/connect/youtube', async (req, res) => {
       'https://www.googleapis.com/auth/youtube.force-ssl'
     );
     const state = Buffer.from(JSON.stringify({
-      provider: 'youtube',
+      platform: 'youtube',
       userId,
       timestamp: Date.now()
     })).toString('base64');
@@ -308,7 +331,8 @@ router.post('/oauth/callback', async (req, res) => {
     // Exchange authorization code for access token based on provider
     switch (provider) {
       case 'spotify':
-        const spotifyTokenResponse = await fetch('https://accounts.spotify.com/api/token', {
+        const spotifyConfig = PLATFORM_CONFIGS.spotify;
+        const spotifyTokenResponse = await fetch(spotifyConfig.tokenUrl, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/x-www-form-urlencoded',
@@ -319,12 +343,14 @@ router.post('/oauth/callback', async (req, res) => {
           body: new URLSearchParams({
             grant_type: 'authorization_code',
             code,
-            redirect_uri: `${process.env.APP_URL || process.env.VITE_APP_URL || 'http://localhost:8086'}/oauth/callback`
+            redirect_uri: `${process.env.VITE_APP_URL || 'http://localhost:8086'}/oauth/callback`
           })
         });
 
         if (!spotifyTokenResponse.ok) {
-          throw new Error('Failed to exchange Spotify authorization code');
+          const errorData = await spotifyTokenResponse.json();
+          console.error('Spotify token exchange error:', errorData);
+          throw new Error(`Failed to exchange Spotify authorization code: ${errorData.error_description || errorData.error}`);
         }
 
         const spotifyTokens = await spotifyTokenResponse.json();
@@ -370,17 +396,17 @@ router.post('/oauth/callback', async (req, res) => {
 
     // Insert or update data connector
     const { data: connectorData, error: connectorError } = await supabase
-      .from('data_connectors')
+      .from('platform_connections')
       .upsert({
         user_id: userId,
-        provider: provider,
+        platform: provider,
         access_token: encryptedAccessToken,
         refresh_token: encryptedRefreshToken,
         expires_at: expiresAt,
         connected: true,
         last_sync_status: 'pending'
       }, {
-        onConflict: 'user_id,provider',
+        onConflict: 'user_id,platform',
         returning: 'minimal'
       });
 
@@ -1083,7 +1109,7 @@ router.post('/connect/github', async (req, res) => {
     const redirectUri = encodeURIComponent(`${process.env.APP_URL || process.env.VITE_APP_URL || 'http://localhost:8086'}/oauth/callback`);
     const scope = encodeURIComponent('read:user repo read:org');
     const state = Buffer.from(JSON.stringify({
-      provider: 'github',
+      platform: 'github',
       userId,
       timestamp: Date.now()
     })).toString('base64');
@@ -1133,7 +1159,7 @@ router.post('/connect/gmail', async (req, res) => {
     );
 
     const state = Buffer.from(JSON.stringify({
-      provider: 'google_gmail',
+      platform: 'google_gmail',
       userId,
       timestamp: Date.now()
     })).toString('base64');

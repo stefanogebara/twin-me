@@ -15,10 +15,10 @@ router.get('/stats', async (req, res) => {
       return res.status(400).json({ error: 'User ID is required' });
     }
 
-    // Get connected platforms count from data_connectors
+    // Get connected platforms count from platform_connections
     const { data: platforms, error: platformsError } = await supabaseAdmin
-      .from('data_connectors')
-      .select('provider', { count: 'exact' })
+      .from('platform_connections')
+      .select('platform', { count: 'exact' })
       .eq('user_id', userId)
       .eq('is_active', true);
 
@@ -64,9 +64,9 @@ router.get('/stats', async (req, res) => {
       soulSignatureProgress = Math.min((connectedPlatforms / 5) * 100, 100);
     }
 
-    // Get last sync time from data_connectors
+    // Get last sync time from platform_connections
     const { data: lastSyncData, error: lastSyncError } = await supabaseAdmin
-      .from('data_connectors')
+      .from('platform_connections')
       .select('last_sync')
       .eq('user_id', userId)
       .eq('is_active', true)
@@ -222,8 +222,8 @@ router.get('/activity', async (req, res) => {
     if (activity.length === 0) {
       // Check if user has connected platforms
       const { data: connectedPlatforms, error: platformsError } = await supabaseAdmin
-        .from('data_connectors')
-        .select('provider', { count: 'exact' })
+        .from('platform_connections')
+        .select('platform', { count: 'exact' })
         .eq('user_id', userId)
         .eq('is_active', true);
 
