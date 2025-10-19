@@ -334,7 +334,23 @@ router.post('/callback', async (req, res) => {
       });
     }
 
+    // Check if token exchange was successful
+    if (!tokenResponse.ok) {
+      const errorText = await tokenResponse.text();
+      console.error(`❌ Token exchange failed for ${provider}:`, {
+        status: tokenResponse.status,
+        statusText: tokenResponse.statusText,
+        error: errorText
+      });
+      return res.status(tokenResponse.status).json({
+        success: false,
+        error: `Token exchange failed: ${tokenResponse.statusText}`,
+        details: errorText
+      });
+    }
+
     const tokenData = await tokenResponse.json();
+    console.log(`✅ Token exchange successful for ${provider}`);
 
     // Handle Slack's special response format
     let tokens;
@@ -367,7 +383,7 @@ router.post('/callback', async (req, res) => {
     try {
       const connectionData = {
         user_id: userUuid,  // Use UUID not email
-        provider: provider,
+        platform: provider,
         access_token: encryptToken(tokens.access_token),
         refresh_token: tokens.refresh_token ? encryptToken(tokens.refresh_token) : null,
         token_expires_at: tokens.expires_in ? new Date(Date.now() + tokens.expires_in * 1000).toISOString() : null,
@@ -382,9 +398,9 @@ router.post('/callback', async (req, res) => {
 
       // Upsert connection to database (insert or update if exists)
       const { error: dbError } = await supabase
-        .from('data_connectors')
+        .from('platform_connections')
         .upsert(connectionData, {
-          onConflict: 'user_id,provider'
+          onConflict: 'user_id,platform'
         });
 
       if (dbError) {
@@ -475,8 +491,8 @@ router.get('/status/:userId', async (req, res) => {
 
     // Get ALL connections (not just connected=true) to check token expiration
     const { data: connections, error } = await supabase
-      .from('data_connectors')
-      .select('provider, connected, token_expires_at, expires_at, metadata, last_sync, last_sync_status')
+      .from('platform_connections')
+      .select('platform, connected, token_expires_at, expires_at, metadata, last_sync, last_sync_status')
       .eq('user_id', userUuid);
 
     if (error) {
@@ -490,32 +506,33 @@ router.get('/status/:userId', async (req, res) => {
 
     connections?.forEach(connection => {
       // Check if token is expired (check both possible expiration columns)
+      // Updated to preserve connected status for expired tokens
       const expiresAt = connection.token_expires_at || connection.expires_at;
       const isTokenExpired = expiresAt && new Date(expiresAt) < now;
-      const isConnected = connection.connected && !isTokenExpired;
 
-      // Auto-update database if token is expired but still marked as connected
-      if (connection.connected && isTokenExpired) {
-        console.warn(`⚠️ Token expired for ${connection.provider}, marking as disconnected`);
-        supabase
-          .from('data_connectors')
-          .update({
-            connected: false,
-            last_sync_status: 'token_expired'
-          })
-          .eq('user_id', userUuid)
-          .eq('provider', connection.provider)
-          .then(() => console.log(`✅ Updated ${connection.provider} to disconnected due to token expiration`))
-          .catch(err => console.error(`❌ Failed to update ${connection.provider}:`, err));
+      // SPECIAL CASE: For Spotify and YouTube with encryption_key_mismatch,
+      // force connected=true to show "Token Expired" badge instead of "Connect"
+      let isConnected = connection.connected;
+      if ((connection.platform === 'spotify' || connection.platform === 'youtube') &&
+          connection.last_sync_status === 'encryption_key_mismatch') {
+        isConnected = true;  // Force true to show expired state in UI
+        console.log(`🔧 Forcing ${connection.platform} connected=true due to encryption_key_mismatch`);
       }
 
-      connectionStatus[connection.provider] = {
-        connected: isConnected,
-        isActive: isConnected,
+      const isActive = isConnected && !isTokenExpired;
+
+      // Don't auto-update database - let user explicitly reconnect through UI
+      if (isConnected && isTokenExpired) {
+        console.warn(`⚠️ Token expired for ${connection.platform}, needs reconnection via UI`);
+      }
+
+      connectionStatus[connection.platform] = {
+        connected: isConnected,  // May be forced true for encryption_key_mismatch
+        isActive: isActive,      // Actual usability - false if token expired
         tokenExpired: isTokenExpired,
         connectedAt: connection.metadata?.connected_at || null,
         lastSync: connection.last_sync || connection.metadata?.last_sync || null,
-        status: isTokenExpired ? 'token_expired' : (connection.last_sync_status || connection.metadata?.last_sync_status || 'unknown'),
+        status: connection.last_sync_status || (isTokenExpired ? 'token_expired' : (connection.metadata?.last_sync_status || 'unknown')),
         expiresAt: expiresAt
       };
     });
@@ -559,7 +576,7 @@ router.post('/reset/:userId', async (req, res) => {
 
     // Mark all connections as inactive in database (old schema uses 'connected')
     const { data, error} = await supabase
-      .from('data_connectors')
+      .from('platform_connections')
       .update({ connected: false })
       .eq('user_id', userUuid)
       .select();
@@ -612,10 +629,10 @@ router.delete('/:provider/:userId', async (req, res) => {
 
     // Remove tokens from database and revoke access (old schema)
     const { error } = await supabase
-      .from('data_connectors')
+      .from('platform_connections')
       .update({ connected: false })
       .eq('user_id', userUuid)
-      .eq('provider', provider);
+      .eq('platform', provider);
 
     if (error) {
       console.error('Error disconnecting provider:', error);
@@ -661,7 +678,7 @@ router.post('/test-add-connection', async (req, res) => {
 
     const connectionData = {
       user_id: userUuid,
-      provider: provider,
+      platform: provider,
       access_token: encryptToken('test-token'),
       refresh_token: encryptToken('test-refresh-token'),
       token_expires_at: new Date(Date.now() + 3600000).toISOString(), // 1 hour
@@ -675,9 +692,9 @@ router.post('/test-add-connection', async (req, res) => {
     };
 
     const { error } = await supabase
-      .from('data_connectors')
+      .from('platform_connections')
       .upsert(connectionData, {
-        onConflict: 'user_id,provider'
+        onConflict: 'user_id,platform'
       });
 
     if (error) {

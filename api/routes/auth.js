@@ -248,7 +248,7 @@ router.get('/oauth/callback', async (req, res) => {
           first_name: userData.firstName,
           last_name: userData.lastName,
           picture_url: userData.pictureUrl,
-          oauth_provider: provider,
+          oauth_platform: provider,
           created_at: new Date().toISOString()
         })
         .select()
@@ -359,7 +359,7 @@ router.post('/oauth/callback', async (req, res) => {
           first_name: userData.firstName,
           last_name: userData.lastName,
           picture_url: userData.pictureUrl,
-          oauth_provider: provider,
+          oauth_platform: provider,
           created_at: new Date().toISOString()
         })
         .select()

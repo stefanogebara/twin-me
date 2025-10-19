@@ -17,10 +17,10 @@ router.get('/gmail/:userId', async (req, res) => {
 
     // Get connection from database
     const { data: connection, error } = await supabase
-      .from('data_connectors')
+      .from('platform_connections')
       .select('*')
       .eq('user_id', userId)
-      .eq('provider', 'google_gmail')
+      .eq('platform', 'google_gmail')
       .eq('connected', true)
       .single();
 
@@ -175,10 +175,10 @@ router.get('/calendar/:userId', async (req, res) => {
 
     // Get connection from database
     const { data: connection, error } = await supabase
-      .from('data_connectors')
+      .from('platform_connections')
       .select('*')
       .eq('user_id', userId)
-      .eq('provider', 'google_calendar')
+      .eq('platform', 'google_calendar')
       .eq('connected', true)
       .single();
 
@@ -298,10 +298,10 @@ async function verifyGmailAccess(userId) {
   try {
     // Get connection from database
     const { data: connection, error } = await supabase
-      .from('data_connectors')
+      .from('platform_connections')
       .select('*')
       .eq('user_id', userId)
-      .eq('provider', 'google_gmail')
+      .eq('platform', 'google_gmail')
       .eq('connected', true)
       .single();
 
@@ -394,10 +394,10 @@ async function verifyCalendarAccess(userId) {
   try {
     // Get connection from database
     const { data: connection, error } = await supabase
-      .from('data_connectors')
+      .from('platform_connections')
       .select('*')
       .eq('user_id', userId)
-      .eq('provider', 'google_calendar')
+      .eq('platform', 'google_calendar')
       .eq('connected', true)
       .single();
 
@@ -503,10 +503,10 @@ router.get('/all/:userId', async (req, res) => {
 
     // Check Gmail - query database for active connection
     const { data: gmailConnection } = await supabase
-      .from('data_connectors')
+      .from('platform_connections')
       .select('id')
       .eq('user_id', userId)
-      .eq('provider', 'google_gmail')
+      .eq('platform', 'google_gmail')
       .eq('connected', true)
       .single();
 
@@ -516,10 +516,10 @@ router.get('/all/:userId', async (req, res) => {
 
     // Check Calendar - query database for active connection
     const { data: calendarConnection } = await supabase
-      .from('data_connectors')
+      .from('platform_connections')
       .select('id')
       .eq('user_id', userId)
-      .eq('provider', 'google_calendar')
+      .eq('platform', 'google_calendar')
       .eq('connected', true)
       .single();
 

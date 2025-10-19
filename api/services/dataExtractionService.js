@@ -14,6 +14,7 @@ import GmailExtractor from './extractors/gmailExtractor.js';
 import SlackExtractor from './extractors/slackExtractor.js';
 import CalendarExtractor from './extractors/calendarExtractor.js';
 import { decryptToken } from './encryption.js';
+import { getValidAccessToken } from './tokenRefresh.js';
 
 // Use SUPABASE_URL (backend) - fallback to VITE_ prefix for compatibility
 const supabase = createClient(
@@ -69,44 +70,6 @@ class DataExtractionService {
         console.log(`[DataExtraction] Created job ${jobId} for ${platform}`);
       }
 
-      // Check if token has expired
-      if (connector.expires_at && new Date(connector.expires_at) < new Date()) {
-        console.warn(`[DataExtraction] Token expired for ${platform}`);
-
-        // Mark job as failed
-        if (jobId) {
-          await supabase
-            .from('data_extraction_jobs')
-            .update({
-              status: 'failed',
-              error_message: 'Token expired - requires re-authentication',
-              completed_at: new Date().toISOString()
-            })
-            .eq('id', jobId);
-        }
-
-        // Mark connector as needing re-authentication
-        await supabase
-          .from('platform_connections')
-          .update({
-            metadata: {
-              ...connector.metadata,
-              token_expired: true,
-              expired_at: new Date().toISOString()
-            }
-          })
-          .eq('id', connector.id);
-
-        return {
-          success: false,
-          platform,
-          error: 'TOKEN_EXPIRED',
-          message: `Your ${platform} connection has expired. Please reconnect your account.`,
-          itemsExtracted: 0,
-          requiresReauth: true
-        };
-      }
-
       // Update job to 'running' status
       if (jobId) {
         await supabase
@@ -115,8 +78,37 @@ class DataExtractionService {
           .eq('id', jobId);
       }
 
-      // Decrypt access token
-      const accessToken = decryptToken(connector.access_token);
+      // Get valid access token (auto-refresh if expired)
+      console.log(`[DataExtraction] Getting valid access token for ${platform}...`);
+      const tokenResult = await getValidAccessToken(userId, platform);
+
+      if (!tokenResult.success) {
+        console.warn(`[DataExtraction] Failed to get valid token for ${platform}: ${tokenResult.error}`);
+
+        // Mark job as failed
+        if (jobId) {
+          await supabase
+            .from('data_extraction_jobs')
+            .update({
+              status: 'failed',
+              error_message: tokenResult.error || 'Token refresh failed',
+              completed_at: new Date().toISOString()
+            })
+            .eq('id', jobId);
+        }
+
+        return {
+          success: false,
+          platform,
+          error: 'TOKEN_REFRESH_FAILED',
+          message: `${tokenResult.error} Please reconnect your account.`,
+          itemsExtracted: 0,
+          requiresReauth: true
+        };
+      }
+
+      const accessToken = tokenResult.accessToken;
+      console.log(`[DataExtraction] [OK] Valid access token obtained for ${platform}`);
 
       // Create appropriate extractor
       let extractor;
@@ -268,7 +260,8 @@ class DataExtractionService {
         .eq('user_id', userId);
 
       if (error) {
-        throw new Error('Failed to fetch connectors');
+        console.error('[DataExtraction] Supabase error fetching connectors:', error);
+        throw new Error(`Failed to fetch connectors: ${error.message || JSON.stringify(error)}`);
       }
 
       if (!connectors || connectors.length === 0) {

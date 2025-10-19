@@ -48,8 +48,8 @@ router.get('/connected', optionalAuth, async (req, res) => {
 
     // Get connection status from database
     const { data: connections, error } = await supabase
-      .from('data_connectors')
-      .select('provider, connected, metadata, last_sync_at, created_at')
+      .from('platform_connections')
+      .select('platform, connected, metadata, last_sync_at, created_at')
       .eq('user_id', userUuid)
       .eq('connected', true);
 
@@ -64,7 +64,7 @@ router.get('/connected', optionalAuth, async (req, res) => {
 
     // Transform connections to expected format
     const formattedConnections = (connections || []).map(conn => ({
-      provider: conn.provider,
+      provider: conn.platform,
       status: conn.connected ? 'connected' : 'disconnected',
       data_points: conn.metadata?.data_points || 0,
       last_sync_at: conn.last_sync_at,
@@ -110,8 +110,8 @@ router.get('/status/:userId', async (req, res) => {
     }
 
     const { data: connections, error } = await supabase
-      .from('data_connectors')
-      .select('provider, connected, metadata, last_sync_at')
+      .from('platform_connections')
+      .select('platform, connected, metadata, last_sync_at')
       .eq('user_id', userUuid)
       .eq('connected', true);
 
@@ -123,7 +123,7 @@ router.get('/status/:userId', async (req, res) => {
     // Transform to status object
     const connectionStatus = {};
     connections?.forEach(connection => {
-      connectionStatus[connection.provider] = {
+      connectionStatus[connection.platform] = {
         connected: true,
         status: 'connected',
         data_points: connection.metadata?.data_points || 0,
@@ -134,7 +134,7 @@ router.get('/status/:userId', async (req, res) => {
 
     // Also return connections array for compatibility
     const formattedConnections = (connections || []).map(conn => ({
-      provider: conn.provider,
+      provider: conn.platform,
       status: 'connected',
       data_points: conn.metadata?.data_points || 0,
       last_sync_at: conn.last_sync_at,

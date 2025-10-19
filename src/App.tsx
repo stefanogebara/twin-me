@@ -28,10 +28,10 @@ import CustomAuth from "./pages/CustomAuth";
 import ChooseMode from "./pages/ChooseMode";
 import ChooseTwinType from "./pages/ChooseTwinType";
 import SoulSignatureDashboard from "./pages/SoulSignatureDashboard";
-import SoulChatPage from "./pages/SoulChatPage";
+import SoulChat from "./pages/SoulChat";
 import PlatformHub from "./pages/PlatformHub";
 import PrivacySpectrumDashboard from "./components/PrivacySpectrumDashboard";
-import TwinProfilePreviewPage from "./pages/TwinProfilePreviewPage";
+import TwinProfilePreview from "./pages/TwinProfilePreview";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import Dashboard from "./pages/Dashboard";
 import Training from "./pages/Training";
@@ -153,7 +153,7 @@ const App = () => {
                 <SignedIn>
                   <SidebarLayout>
                     <ErrorBoundary>
-                      <SoulChatPage />
+                      <SoulChat />
                     </ErrorBoundary>
                   </SidebarLayout>
                 </SignedIn>
@@ -192,7 +192,7 @@ const App = () => {
               <>
                 <SignedIn>
                   <SidebarLayout>
-                    <TwinProfilePreviewPage />
+                    <TwinProfilePreview />
                   </SidebarLayout>
                 </SignedIn>
                 <SignedOut>
