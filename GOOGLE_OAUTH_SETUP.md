@@ -1,117 +1,59 @@
-# Google OAuth Setup Guide for Twin Me
+# Google OAuth Configuration - Redirect URI Setup
 
-## Quick Setup Steps
+## Error: redirect_uri_mismatch
 
-### 1. Get Your Google OAuth Credentials
+You're getting this error because the redirect URI used by your application is not registered in Google Cloud Console.
 
-1. Go to [Google Cloud Console](https://console.cloud.google.com/)
-2. Create a new project or select existing one
-3. Enable these APIs:
-   - Google+ API
-   - Gmail API (for Gmail connector)
-   - Google Calendar API (for Calendar connector)
-   - Google Drive API (for Drive connector)
+## Redirect URI to Add
 
-4. Configure OAuth consent screen:
-   - Choose "External" user type
-   - Add app name: "Twin Me"
-   - Add your email as support contact
-   - Add scopes: email, profile, openid, gmail.readonly, calendar.readonly, drive.readonly
+Your application is using this redirect URI:
 
-5. Create OAuth 2.0 credentials:
-   - Type: Web application
-   - Name: Twin Me Web Client
-   - Authorized JavaScript origins:
-     ```
-     http://localhost:8086
-     http://localhost:3001
-     ```
-   - Authorized redirect URIs:
-     ```
-     http://localhost:8086/oauth/callback
-     http://localhost:3001/api/auth/oauth/callback
-     ```
-
-6. Copy your credentials:
-   - Client ID: (looks like: xxxxx.apps.googleusercontent.com)
-   - Client Secret: (looks like: GOCSPX-xxxxx)
-
-### 2. Update Your .env File
-
-Open `.env` file and replace with your actual credentials:
-
-```env
-# OAuth Configuration
-GOOGLE_CLIENT_ID=your-actual-client-id-here.apps.googleusercontent.com
-GOOGLE_CLIENT_SECRET=GOCSPX-your-actual-client-secret-here
+```
+http://localhost:3001/api/auth/oauth/callback
 ```
 
-### 3. Restart the Backend Server
+## Steps to Fix
 
-The server should auto-restart if using nodemon, or manually restart:
+### 1. Go to Google Cloud Console
+Visit: https://console.cloud.google.com/apis/credentials
 
-```bash
-# Stop the server (Ctrl+C) and restart
-npm run server:dev
+### 2. Select Your OAuth 2.0 Client
+- Find your client ID: `298873888709-eq7rid9tib30m97r94qaasi3ohpaq52q.apps.googleusercontent.com`
+- Click on it to edit
+
+### 3. Add Authorized Redirect URI
+In the "Authorized redirect URIs" section, add:
+```
+http://localhost:3001/api/auth/oauth/callback
 ```
 
-### 4. Test Google Sign-In
+### 4. Also Add (for Future/Production Use)
+```
+https://twin-ai-learn.vercel.app/api/auth/oauth/callback
+```
 
-1. Go to http://localhost:8086
-2. Click "Sign in with Google"
-3. You should be redirected to Google's OAuth consent page
-4. After authorizing, you'll be redirected back to Twin Me
+### 5. Save Changes
+- Click "Save" at the bottom
+- Wait 5-10 seconds for changes to propagate
 
-## Troubleshooting
+### 6. Test Again
+- Go back to http://localhost:8086
+- Click "Sign In with Google"
+- Should now work!
 
-### Error: "Google OAuth not configured"
-- Make sure you've added your credentials to the .env file
-- Restart the backend server after updating .env
+---
 
-### Error: "redirect_uri_mismatch"
-- Make sure the redirect URIs in Google Cloud Console match exactly:
-  - `http://localhost:8086/oauth/callback`
-  - `http://localhost:3001/api/auth/oauth/callback`
+## Your Current OAuth Configuration
 
-### Error: "invalid_grant"
-- The authorization code might have expired (they're only valid for a few minutes)
-- Try signing in again
+**Google Client ID:** 298873888709-eq7rid9tib30m97r94qaasi3ohpaq52q.apps.googleusercontent.com
 
-### Error: "This app is blocked"
-- Your OAuth consent screen might be in testing mode
-- Add your email as a test user in Google Cloud Console
-- Or publish your app (requires verification for production)
+**Redirect URIs in use:**
+- Development: http://localhost:3001/api/auth/oauth/callback
+- Production: https://twin-ai-learn.vercel.app/api/auth/oauth/callback
 
-## Production Setup
+---
 
-For production deployment:
+## Quick Link
+https://console.cloud.google.com/apis/credentials
 
-1. Add your production domain to authorized origins and redirect URIs
-2. Update .env with production URLs
-3. Consider implementing refresh token rotation
-4. Add proper error handling and logging
-5. Secure your credentials using environment variables or secret management
-
-## Security Notes
-
-- **NEVER** commit your .env file with real credentials to Git
-- Keep your Client Secret secure
-- Use HTTPS in production
-- Implement proper session management
-- Consider adding rate limiting for OAuth endpoints
-
-## Additional Scopes
-
-If you need more Google services, add these scopes in Google Cloud Console:
-
-- `https://www.googleapis.com/auth/youtube.readonly` - YouTube data
-- `https://www.googleapis.com/auth/fitness.activity.read` - Google Fit
-- `https://www.googleapis.com/auth/photoslibrary.readonly` - Google Photos
-- `https://www.googleapis.com/auth/contacts.readonly` - Google Contacts
-
-## Support
-
-For issues with Google OAuth:
-- [Google OAuth 2.0 Documentation](https://developers.google.com/identity/protocols/oauth2)
-- [Google Cloud Console Help](https://support.google.com/cloud)
-- [OAuth 2.0 Playground](https://developers.google.com/oauthplayground/) - for testing
+Created: January 13, 2025

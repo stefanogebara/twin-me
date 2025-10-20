@@ -17,6 +17,7 @@ import {
 import { dashboardAPI, ActivityItem as APIActivityItem, handleAPIError } from '@/services/apiService';
 import { OnboardingTour } from '@/components/OnboardingTour';
 import { OnboardingProgress } from '@/components/OnboardingProgress';
+import { ExtensionPrompt } from '@/components/ExtensionPrompt';
 
 interface DashboardStats {
   connectedPlatforms: number;
@@ -136,7 +137,7 @@ export const Dashboard: React.FC = () => {
     {
       id: 'chat',
       label: 'Chat with Your Twin',
-      description: 'Interact with your digital twin',
+      description: 'Interact with your soul signature twin',
       icon: MessageCircle,
       color: 'bg-green-500/10 text-green-500',
       path: '/talk-to-twin'
@@ -208,7 +209,7 @@ export const Dashboard: React.FC = () => {
           Welcome back, {user?.firstName || 'there'}
         </h1>
         <p className="text-[hsl(var(--claude-text-muted))]">
-          Here's an overview of your digital twin's progress
+          Here's an overview of your soul signature progress
         </p>
       </div>
 
@@ -222,6 +223,9 @@ export const Dashboard: React.FC = () => {
           />
         </div>
       )}
+
+      {/* Extension Prompt */}
+      <ExtensionPrompt />
 
       {/* Status Cards Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">

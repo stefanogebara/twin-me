@@ -118,23 +118,23 @@ const TwinProfilePreviewPage: React.FC = () => {
           personalityProfile: {
             name: user?.firstName + ' ' + user?.lastName || user?.email || 'User',
             email: user?.email || '',
-            teachingPhilosophy: soul.curiosity_profile?.description || 'Passionate about authentic learning and personal growth',
-            communicationStyle: style.communication_style || 'direct',
-            encouragementLevel: style.emotional_tone?.dominant || 'balanced'
+            teachingPhilosophy: soul.curiosity_profile?.description || '',
+            communicationStyle: style.communication_style || '',
+            encouragementLevel: style.emotional_tone?.dominant || ''
           },
           communication: {
-            primaryStyle: style.communication_style || 'direct',
-            formalityLevel: style.avg_sentence_length ? Math.min(10, Math.round(style.avg_sentence_length / 2)) : 5,
-            responsePatterns: style.grammar_patterns?.common_patterns || ['Thoughtful responses', 'Clear communication']
+            primaryStyle: style.communication_style || '',
+            formalityLevel: style.avg_sentence_length ? Math.min(10, Math.round(style.avg_sentence_length / 2)) : 0,
+            responsePatterns: style.grammar_patterns?.common_patterns || []
           },
           expertise: {
             subjects: style.expertise_areas || soul.uniqueness_markers || [],
-            teachingMethods: ['Personalized Learning', 'Data-Driven Insights'],
+            teachingMethods: [],
             specializations: style.interests || []
           },
           availability: {
-            officeHours: style.typical_response_time || 'Flexible',
-            responseTime: style.typical_response_time || '2-3 hours',
+            officeHours: style.typical_response_time || '',
+            responseTime: style.typical_response_time || '',
             preferredChannels: Object.keys(dataSources)
           },
           dataSources
@@ -195,7 +195,7 @@ const TwinProfilePreviewPage: React.FC = () => {
   };
 
   const handleActivate = () => {
-    navigate('/twin-activation');
+    navigate('/soul-signature');
   };
 
   const handleEdit = () => {

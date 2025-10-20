@@ -50,6 +50,12 @@ app.use(cors({
     // Allow requests with no origin (like mobile apps, curl, etc.)
     if (!origin) return callback(null, true);
 
+    // Allow browser extensions (Chrome, Edge, Firefox)
+    if (origin && (origin.startsWith('chrome-extension://') || origin.startsWith('moz-extension://'))) {
+      console.log(`✅ CORS allowing browser extension: ${origin}`);
+      return callback(null, true);
+    }
+
     // In development, allow localhost on any port
     if (process.env.NODE_ENV === 'development' && origin.startsWith('http://localhost:')) {
       return callback(null, true);
@@ -185,10 +191,13 @@ import dashboardRoutes from './routes/dashboard.js';
 import trainingRoutes from './routes/training.js';
 import diagnosticsRoutes from './routes/diagnostics.js';
 import dataSourcesRoutes from './routes/data-sources.js';
+import allPlatformRoutes from './routes/all-platform-connectors.js';
+import soulObserverRoutes from './routes/soul-observer.js';
 import { serverDb } from './services/database.js';
 import { sanitizeInput, validateContentType } from './middleware/sanitization.js';
 import { /* handleAuthError, */ handleGeneralError, handle404 } from './middleware/errorHandler.js';
 import { errorHandler, notFoundHandler } from './middleware/errors.js';
+import { authenticateUser } from './middleware/auth.js';
 
 // API routes
 app.use('/api/ai', aiRoutes);
@@ -210,6 +219,8 @@ app.use('/oauth', oauthCallbackRoutes); // Unified OAuth callback handler
 app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/training', trainingRoutes);
 app.use('/api/diagnostics', diagnosticsRoutes); // Supabase connection diagnostics
+app.use('/api/platforms', allPlatformRoutes); // Comprehensive 56-platform integration
+app.use('/api/soul-observer', authenticateUser, soulObserverRoutes); // Soul Observer Mode - behavioral tracking
 
 // Health check endpoint
 app.get('/api/health', async (req, res) => {

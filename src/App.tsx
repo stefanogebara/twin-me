@@ -2,7 +2,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { SignedIn, SignedOut } from "./contexts/AuthContext";
 import ErrorBoundary from "@/components/ErrorBoundary";
 import { LoadingProvider } from "./contexts/LoadingContext";
@@ -14,18 +14,13 @@ import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
 import TalkToTwin from "./pages/TalkToTwin";
-import Chat from "./pages/Chat";
-import GetStarted from "./pages/GetStarted";
 import VoiceSettings from "./pages/VoiceSettings";
 import Settings from "./pages/Settings";
 import TwinBuilder from "./pages/TwinBuilder";
 import ConversationalTwinBuilder from "./pages/ConversationalTwinBuilder";
-import { TwinActivation } from "./pages/TwinActivation";
 import WatchDemo from "./pages/WatchDemo";
 import Contact from "./pages/Contact";
-import ProfessorDashboard from "./pages/ProfessorDashboard";
 import PersonalTwinBuilder from "./pages/PersonalTwinBuilder";
-import StudentDashboard from "./pages/StudentDashboard";
 import InstantTwinOnboarding from "./pages/InstantTwinOnboarding";
 import TwinDashboard from "./pages/TwinDashboard";
 import OAuthCallback from "./pages/OAuthCallback";
@@ -33,17 +28,23 @@ import CustomAuth from "./pages/CustomAuth";
 import ChooseMode from "./pages/ChooseMode";
 import ChooseTwinType from "./pages/ChooseTwinType";
 import SoulSignatureDashboard from "./pages/SoulSignatureDashboard";
-import SoulChatPage from "./pages/SoulChatPage";
+import SoulChat from "./pages/SoulChat";
+import PlatformHub from "./pages/PlatformHub";
 import PrivacySpectrumDashboard from "./components/PrivacySpectrumDashboard";
-import TwinProfilePreviewPage from "./pages/TwinProfilePreviewPage";
+import TwinProfilePreview from "./pages/TwinProfilePreview";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import Dashboard from "./pages/Dashboard";
 import Training from "./pages/Training";
 import Help from "./pages/Help";
+import { useExtensionSync } from "./hooks/useExtensionSync";
 
 const queryClient = new QueryClient();
 
-const App = () => (
+const App = () => {
+  // Automatically sync auth tokens to browser extension
+  useExtensionSync();
+
+  return (
   <ThemeProvider>
     <ErrorBoundary showHomeButton>
       <ErrorProvider>
@@ -81,6 +82,8 @@ const App = () => (
               </>
             } />
             <Route path="/legacy" element={<Index />} />
+            {/* Redirect legacy /soul-dashboard to /dashboard */}
+            <Route path="/soul-dashboard" element={<Navigate to="/dashboard" replace />} />
             <Route path="/dashboard" element={
               <>
                 <SignedIn>
@@ -111,16 +114,6 @@ const App = () => (
                   <SidebarLayout>
                     <TalkToTwin />
                   </SidebarLayout>
-                </SignedIn>
-                <SignedOut>
-                  <CustomAuth />
-                </SignedOut>
-              </>
-            } />
-            <Route path="/chat/:twinId" element={
-              <>
-                <SignedIn>
-                  <Chat />
                 </SignedIn>
                 <SignedOut>
                   <CustomAuth />
@@ -160,7 +153,21 @@ const App = () => (
                 <SignedIn>
                   <SidebarLayout>
                     <ErrorBoundary>
-                      <SoulChatPage />
+                      <SoulChat />
+                    </ErrorBoundary>
+                  </SidebarLayout>
+                </SignedIn>
+                <SignedOut>
+                  <CustomAuth />
+                </SignedOut>
+              </>
+            } />
+            <Route path="/platform-hub" element={
+              <>
+                <SignedIn>
+                  <SidebarLayout>
+                    <ErrorBoundary>
+                      <PlatformHub />
                     </ErrorBoundary>
                   </SidebarLayout>
                 </SignedIn>
@@ -185,28 +192,8 @@ const App = () => (
               <>
                 <SignedIn>
                   <SidebarLayout>
-                    <TwinProfilePreviewPage />
+                    <TwinProfilePreview />
                   </SidebarLayout>
-                </SignedIn>
-                <SignedOut>
-                  <CustomAuth />
-                </SignedOut>
-              </>
-            } />
-            <Route path="/legacy-get-started" element={
-              <>
-                <SignedIn>
-                  <GetStarted />
-                </SignedIn>
-                <SignedOut>
-                  <CustomAuth />
-                </SignedOut>
-              </>
-            } />
-            <Route path="/original-get-started" element={
-              <>
-                <SignedIn>
-                  <GetStarted />
                 </SignedIn>
                 <SignedOut>
                   <CustomAuth />
@@ -277,16 +264,6 @@ const App = () => (
                 </SignedOut>
               </>
             } />
-            <Route path="/twin-activation" element={
-              <>
-                <SignedIn>
-                  <TwinActivation />
-                </SignedIn>
-                <SignedOut>
-                  <CustomAuth />
-                </SignedOut>
-              </>
-            } />
             <Route path="/watch-demo" element={
               <>
                 <SignedIn>
@@ -307,30 +284,10 @@ const App = () => (
                 </SignedOut>
               </>
             } />
-            <Route path="/professor-dashboard" element={
-              <>
-                <SignedIn>
-                  <ProfessorDashboard />
-                </SignedIn>
-                <SignedOut>
-                  <CustomAuth />
-                </SignedOut>
-              </>
-            } />
             <Route path="/personal-twin-builder" element={
               <>
                 <SignedIn>
                   <PersonalTwinBuilder />
-                </SignedIn>
-                <SignedOut>
-                  <CustomAuth />
-                </SignedOut>
-              </>
-            } />
-            <Route path="/student-dashboard" element={
-              <>
-                <SignedIn>
-                  <StudentDashboard />
                 </SignedIn>
                 <SignedOut>
                   <CustomAuth />
@@ -347,6 +304,21 @@ const App = () => (
                 </SignedOut>
               </>
             } />
+            {/* Student Dashboard - Educational twin management */}
+            <Route path="/student-dashboard" element={
+              <>
+                <SignedIn>
+                  <SidebarLayout>
+                    <Dashboard />
+                  </SidebarLayout>
+                </SignedIn>
+                <SignedOut>
+                  <CustomAuth />
+                </SignedOut>
+              </>
+            } />
+            {/* Twin Dashboard (without ID) - Redirect to dashboard */}
+            <Route path="/twin-dashboard" element={<Navigate to="/dashboard" replace />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
@@ -358,6 +330,7 @@ const App = () => (
       </ErrorProvider>
     </ErrorBoundary>
   </ThemeProvider>
-);
+  );
+};
 
 export default App;

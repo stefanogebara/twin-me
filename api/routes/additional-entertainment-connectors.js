@@ -40,7 +40,7 @@ router.post('/connect/tiktok', async (req, res) => {
     const clientKey = process.env.TIKTOK_CLIENT_KEY || 'your-tiktok-client-key';
     const redirectUri = encodeURIComponent(`${process.env.VITE_APP_URL}/oauth/callback`);
     const state = Buffer.from(JSON.stringify({
-      provider: 'tiktok',
+      platform: 'tiktok',
       userId,
       timestamp: Date.now()
     })).toString('base64');
@@ -70,7 +70,7 @@ router.post('/connect/twitch', async (req, res) => {
     const redirectUri = encodeURIComponent(`${process.env.VITE_APP_URL}/oauth/callback`);
     const scope = encodeURIComponent('user:read:follows user:read:subscriptions');
     const state = Buffer.from(JSON.stringify({
-      provider: 'twitch',
+      platform: 'twitch',
       userId,
       timestamp: Date.now()
     })).toString('base64');
@@ -100,7 +100,7 @@ router.post('/connect/discord', async (req, res) => {
     const redirectUri = encodeURIComponent(`${process.env.VITE_APP_URL}/oauth/callback`);
     const scope = encodeURIComponent('identify guilds activities.read');
     const state = Buffer.from(JSON.stringify({
-      provider: 'discord',
+      platform: 'discord',
       userId,
       timestamp: Date.now()
     })).toString('base64');
@@ -129,7 +129,7 @@ router.post('/connect/reddit', async (req, res) => {
     const clientId = process.env.REDDIT_CLIENT_ID || 'your-reddit-client-id';
     const redirectUri = encodeURIComponent(`${process.env.VITE_APP_URL}/oauth/callback`);
     const state = Buffer.from(JSON.stringify({
-      provider: 'reddit',
+      platform: 'reddit',
       userId,
       timestamp: Date.now()
     })).toString('base64');
@@ -160,7 +160,7 @@ router.post('/connect/github', async (req, res) => {
     const redirectUri = encodeURIComponent(`${process.env.VITE_APP_URL}/oauth/callback`);
     const scope = encodeURIComponent('read:user repo read:org');
     const state = Buffer.from(JSON.stringify({
-      provider: 'github',
+      platform: 'github',
       userId,
       timestamp: Date.now()
     })).toString('base64');
@@ -190,7 +190,7 @@ router.post('/connect/instagram', async (req, res) => {
     const redirectUri = encodeURIComponent(`${process.env.VITE_APP_URL}/oauth/callback`);
     const scope = encodeURIComponent('user_profile,user_media');
     const state = Buffer.from(JSON.stringify({
-      provider: 'instagram',
+      platform: 'instagram',
       userId,
       timestamp: Date.now()
     })).toString('base64');
@@ -220,7 +220,7 @@ router.post('/connect/twitter', async (req, res) => {
     const redirectUri = encodeURIComponent(`${process.env.VITE_APP_URL}/oauth/callback`);
     const scope = encodeURIComponent('tweet.read users.read follows.read');
     const state = Buffer.from(JSON.stringify({
-      provider: 'twitter',
+      platform: 'twitter',
       userId,
       timestamp: Date.now()
     })).toString('base64');
@@ -252,7 +252,7 @@ router.post('/connect/medium', async (req, res) => {
     const redirectUri = encodeURIComponent(`${process.env.VITE_APP_URL}/oauth/callback`);
     const scope = encodeURIComponent('basicProfile listPublications');
     const state = Buffer.from(JSON.stringify({
-      provider: 'medium',
+      platform: 'medium',
       userId,
       timestamp: Date.now()
     })).toString('base64');
@@ -282,7 +282,7 @@ router.post('/connect/strava', async (req, res) => {
     const clientId = process.env.STRAVA_CLIENT_ID || 'your-strava-client-id';
     const redirectUri = encodeURIComponent(`${process.env.VITE_APP_URL}/oauth/callback`);
     const state = Buffer.from(JSON.stringify({
-      provider: 'strava',
+      platform: 'strava',
       userId,
       timestamp: Date.now()
     })).toString('base64');

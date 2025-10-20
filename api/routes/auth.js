@@ -196,10 +196,26 @@ router.get('/oauth/apple', (req, res) => {
   res.redirect(authUrl);
 });
 
-// OAuth callback handler
-router.post('/oauth/callback', async (req, res) => {
+// OAuth callback handler (GET request from OAuth providers)
+router.get('/oauth/callback', async (req, res) => {
   try {
-    const { code, state, provider } = req.body;
+    const { code, state } = req.query;
+
+    if (!code || !state) {
+      console.error('OAuth callback missing code or state');
+      return res.redirect(`${process.env.VITE_APP_URL || 'http://localhost:8086'}/auth?error=missing_parameters`);
+    }
+
+    // Decode state to get provider info
+    let stateData;
+    try {
+      stateData = JSON.parse(Buffer.from(state, 'base64').toString('utf-8'));
+    } catch (err) {
+      console.error('Failed to decode state:', err);
+      return res.redirect(`${process.env.VITE_APP_URL || 'http://localhost:8086'}/auth?error=invalid_state`);
+    }
+
+    const provider = stateData.provider;
 
     // Exchange code for tokens based on provider
     let userData;
@@ -212,7 +228,8 @@ router.post('/oauth/callback', async (req, res) => {
     }
 
     if (!userData) {
-      return res.status(400).json({ error: 'OAuth authentication failed' });
+      console.error('Failed to exchange OAuth code for user data');
+      return res.redirect(`${process.env.VITE_APP_URL || 'http://localhost:8086'}/auth?error=authentication_failed`);
     }
 
     // Check if user exists or create new user
@@ -231,7 +248,7 @@ router.post('/oauth/callback', async (req, res) => {
           first_name: userData.firstName,
           last_name: userData.lastName,
           picture_url: userData.pictureUrl,
-          oauth_provider: provider,
+          oauth_platform: provider,
           created_at: new Date().toISOString()
         })
         .select()
@@ -239,7 +256,7 @@ router.post('/oauth/callback', async (req, res) => {
 
       if (error) {
         console.error('OAuth user creation error:', error);
-        return res.status(400).json({ error: 'Failed to create user' });
+        return res.redirect(`${process.env.VITE_APP_URL || 'http://localhost:8086'}/auth?error=user_creation_failed`);
       }
 
       user = newUser;
@@ -252,6 +269,126 @@ router.post('/oauth/callback', async (req, res) => {
       { expiresIn: '7d' }
     );
 
+    // Redirect to frontend with token
+    const frontendUrl = process.env.VITE_APP_URL || 'http://localhost:8086';
+    res.redirect(`${frontendUrl}/auth/callback?token=${token}`);
+  } catch (error) {
+    console.error('OAuth callback error:', error);
+    res.redirect(`${process.env.VITE_APP_URL || 'http://localhost:8086'}/auth?error=server_error`);
+  }
+});
+
+// OAuth callback handler (POST request from frontend)
+router.post('/oauth/callback', async (req, res) => {
+  try {
+    const { code, state, provider: explicitProvider } = req.body;
+
+    console.log('🔵 [Auth OAuth POST] Received callback:', {
+      hasCode: !!code,
+      hasState: !!state,
+      explicitProvider
+    });
+
+    if (!code || !state) {
+      console.error('❌ [Auth OAuth POST] Missing code or state');
+      return res.status(400).json({
+        success: false,
+        error: 'Missing code or state parameter'
+      });
+    }
+
+    // Decode state to get provider info
+    let stateData;
+    try {
+      stateData = JSON.parse(Buffer.from(state, 'base64').toString('utf-8'));
+      console.log('🔍 [Auth OAuth POST] Decoded state:', stateData);
+    } catch (err) {
+      console.error('❌ [Auth OAuth POST] Failed to decode state:', err);
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid state parameter'
+      });
+    }
+
+    const provider = explicitProvider || stateData.provider;
+    console.log('🔍 [Auth OAuth POST] Using provider:', provider);
+
+    // Exchange code for tokens based on provider
+    let userData;
+    if (provider === 'google') {
+      userData = await exchangeGoogleCode(code);
+    } else if (provider === 'microsoft') {
+      userData = await exchangeMicrosoftCode(code);
+    } else if (provider === 'apple') {
+      userData = await exchangeAppleCode(code);
+    } else {
+      console.error('❌ [Auth OAuth POST] Unsupported provider:', provider);
+      return res.status(400).json({
+        success: false,
+        error: `Unsupported provider: ${provider}`
+      });
+    }
+
+    if (!userData) {
+      console.error('❌ [Auth OAuth POST] Failed to exchange OAuth code for user data');
+      return res.status(400).json({
+        success: false,
+        error: 'Failed to exchange authorization code'
+      });
+    }
+
+    console.log('✅ [Auth OAuth POST] User data retrieved:', {
+      email: userData.email,
+      hasName: !!(userData.firstName || userData.lastName)
+    });
+
+    // Check if user exists or create new user
+    let { data: user } = await supabase
+      .from('users')
+      .select('*')
+      .eq('email', userData.email)
+      .single();
+
+    if (!user) {
+      console.log('🔵 [Auth OAuth POST] Creating new user for:', userData.email);
+      // Create new user
+      const { data: newUser, error } = await supabase
+        .from('users')
+        .insert({
+          email: userData.email,
+          first_name: userData.firstName,
+          last_name: userData.lastName,
+          picture_url: userData.pictureUrl,
+          oauth_platform: provider,
+          created_at: new Date().toISOString()
+        })
+        .select()
+        .single();
+
+      if (error) {
+        console.error('❌ [Auth OAuth POST] User creation error:', error);
+        return res.status(500).json({
+          success: false,
+          error: 'Failed to create user account'
+        });
+      }
+
+      user = newUser;
+      console.log('✅ [Auth OAuth POST] New user created:', user.id);
+    } else {
+      console.log('✅ [Auth OAuth POST] Existing user found:', user.id);
+    }
+
+    // Generate JWT token
+    const token = jwt.sign(
+      { id: user.id, email: user.email },
+      JWT_SECRET,
+      { expiresIn: '7d' }
+    );
+
+    console.log('✅ [Auth OAuth POST] JWT token generated for user:', user.id);
+
+    // Return JSON response instead of redirecting
     res.json({
       success: true,
       token,
@@ -260,12 +397,16 @@ router.post('/oauth/callback', async (req, res) => {
         email: user.email,
         firstName: user.first_name,
         lastName: user.last_name,
-        fullName: `${user.first_name} ${user.last_name}`
+        fullName: `${user.first_name || ''} ${user.last_name || ''}`.trim(),
+        pictureUrl: user.picture_url
       }
     });
   } catch (error) {
-    console.error('OAuth callback error:', error);
-    res.status(500).json({ error: 'OAuth authentication failed' });
+    console.error('❌ [Auth OAuth POST] Error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Internal server error during OAuth authentication'
+    });
   }
 });
 

@@ -14,6 +14,7 @@ import GmailExtractor from './extractors/gmailExtractor.js';
 import SlackExtractor from './extractors/slackExtractor.js';
 import CalendarExtractor from './extractors/calendarExtractor.js';
 import { decryptToken } from './encryption.js';
+import { getValidAccessToken } from './tokenRefresh.js';
 
 // Use SUPABASE_URL (backend) - fallback to VITE_ prefix for compatibility
 const supabase = createClient(
@@ -28,49 +29,86 @@ class DataExtractionService {
   async extractPlatformData(userId, platform) {
     console.log(`[DataExtraction] Starting extraction for ${platform}...`);
 
+    // Create extraction job record
+    let jobId = null;
+
     try {
       // Get connector for this platform
       const { data: connector, error } = await supabase
-        .from('data_connectors')
+        .from('platform_connections')
         .select('*')
         .eq('user_id', userId)
-        .eq('provider', platform)
-        .eq('connected', true)
+        .eq('platform', platform)
         .single();
 
       if (error || !connector) {
         throw new Error(`No connected ${platform} account found for user`);
       }
 
-      // Check if token has expired
-      if (connector.expires_at && new Date(connector.expires_at) < new Date()) {
-        console.warn(`[DataExtraction] Token expired for ${platform}`);
+      // Create job record with 'pending' status
+      const { data: job, error: jobError } = await supabase
+        .from('data_extraction_jobs')
+        .insert({
+          user_id: userId,
+          connector_id: connector.id,
+          platform: platform,
+          job_type: 'full_sync',
+          status: 'pending',
+          total_items: null,
+          processed_items: 0,
+          failed_items: 0,
+          started_at: new Date().toISOString(),
+          created_at: new Date().toISOString()
+        })
+        .select()
+        .single();
 
-        // Mark connector as needing re-authentication
+      if (jobError) {
+        console.error(`[DataExtraction] Failed to create job record:`, jobError);
+      } else {
+        jobId = job.id;
+        console.log(`[DataExtraction] Created job ${jobId} for ${platform}`);
+      }
+
+      // Update job to 'running' status
+      if (jobId) {
         await supabase
-          .from('data_connectors')
-          .update({
-            connected: false,
-            metadata: {
-              ...connector.metadata,
-              token_expired: true,
-              expired_at: new Date().toISOString()
-            }
-          })
-          .eq('id', connector.id);
+          .from('data_extraction_jobs')
+          .update({ status: 'running' })
+          .eq('id', jobId);
+      }
+
+      // Get valid access token (auto-refresh if expired)
+      console.log(`[DataExtraction] Getting valid access token for ${platform}...`);
+      const tokenResult = await getValidAccessToken(userId, platform);
+
+      if (!tokenResult.success) {
+        console.warn(`[DataExtraction] Failed to get valid token for ${platform}: ${tokenResult.error}`);
+
+        // Mark job as failed
+        if (jobId) {
+          await supabase
+            .from('data_extraction_jobs')
+            .update({
+              status: 'failed',
+              error_message: tokenResult.error || 'Token refresh failed',
+              completed_at: new Date().toISOString()
+            })
+            .eq('id', jobId);
+        }
 
         return {
           success: false,
           platform,
-          error: 'TOKEN_EXPIRED',
-          message: `Your ${platform} connection has expired. Please reconnect your account.`,
+          error: 'TOKEN_REFRESH_FAILED',
+          message: `${tokenResult.error} Please reconnect your account.`,
           itemsExtracted: 0,
           requiresReauth: true
         };
       }
 
-      // Decrypt access token
-      const accessToken = decryptToken(connector.access_token);
+      const accessToken = tokenResult.accessToken;
+      console.log(`[DataExtraction] [OK] Valid access token obtained for ${platform}`);
 
       // Create appropriate extractor
       let extractor;
@@ -105,6 +143,19 @@ class DataExtractionService {
         case 'twitch':
           // This platform is defined but extractor not yet implemented
           console.warn(`[DataExtraction] Extractor for ${platform} not yet implemented - skipping`);
+
+          // Mark job as failed
+          if (jobId) {
+            await supabase
+              .from('data_extraction_jobs')
+              .update({
+                status: 'failed',
+                error_message: 'Extractor not yet implemented',
+                completed_at: new Date().toISOString()
+              })
+              .eq('id', jobId);
+          }
+
           return {
             success: false,
             platform,
@@ -119,12 +170,46 @@ class DataExtractionService {
       // Run extraction
       const result = await extractor.extractAll(userId, connector.id);
 
+      // Update job with completion status
+      if (jobId) {
+        await supabase
+          .from('data_extraction_jobs')
+          .update({
+            status: result.success ? 'completed' : 'failed',
+            total_items: result.itemsExtracted || 0,
+            processed_items: result.itemsExtracted || 0,
+            failed_items: result.success ? 0 : (result.itemsExtracted || 0),
+            completed_at: new Date().toISOString(),
+            error_message: result.success ? null : (result.error || result.message),
+            results: {
+              success: result.success,
+              itemsExtracted: result.itemsExtracted,
+              platform: platform
+            }
+          })
+          .eq('id', jobId);
+
+        console.log(`[DataExtraction] Updated job ${jobId} to ${result.success ? 'completed' : 'failed'}`);
+      }
+
       // Update connector metadata
       await this.updateConnectorMetadata(connector.id, result);
 
       return result;
     } catch (error) {
       console.error(`[DataExtraction] Error extracting from ${platform}:`, error);
+
+      // Mark job as failed
+      if (jobId) {
+        await supabase
+          .from('data_extraction_jobs')
+          .update({
+            status: 'failed',
+            error_message: error.message || 'Unknown error',
+            completed_at: new Date().toISOString()
+          })
+          .eq('id', jobId);
+      }
 
       // Handle specific error types
       if (error.status === 401 || error.message?.includes('401') || error.message?.includes('Unauthorized')) {
@@ -133,9 +218,8 @@ class DataExtractionService {
         // Mark connector as disconnected
         try {
           await supabase
-            .from('data_connectors')
+            .from('platform_connections')
             .update({
-              connected: false,
               metadata: {
                 auth_error: true,
                 last_error: '401 Unauthorized - Token expired or revoked',
@@ -143,7 +227,7 @@ class DataExtractionService {
               }
             })
             .eq('user_id', userId)
-            .eq('provider', platform);
+            .eq('platform', platform);
         } catch (updateError) {
           console.error(`[DataExtraction] Failed to update connector status:`, updateError);
         }
@@ -171,13 +255,13 @@ class DataExtractionService {
     try {
       // Get all connected platforms
       const { data: connectors, error } = await supabase
-        .from('data_connectors')
-        .select('provider')
-        .eq('user_id', userId)
-        .eq('connected', true);
+        .from('platform_connections')
+        .select('platform')
+        .eq('user_id', userId);
 
       if (error) {
-        throw new Error('Failed to fetch connectors');
+        console.error('[DataExtraction] Supabase error fetching connectors:', error);
+        throw new Error(`Failed to fetch connectors: ${error.message || JSON.stringify(error)}`);
       }
 
       if (!connectors || connectors.length === 0) {
@@ -192,11 +276,11 @@ class DataExtractionService {
       // Extract from each platform
       for (const connector of connectors) {
         try {
-          const result = await this.extractPlatformData(userId, connector.provider);
-          results[connector.provider] = result;
+          const result = await this.extractPlatformData(userId, connector.platform);
+          results[connector.platform] = result;
         } catch (error) {
-          console.error(`[DataExtraction] Failed to extract from ${connector.provider}:`, error);
-          results[connector.provider] = {
+          console.error(`[DataExtraction] Failed to extract from ${connector.platform}:`, error);
+          results[connector.platform] = {
             success: false,
             error: error.message
           };
@@ -223,15 +307,19 @@ class DataExtractionService {
    */
   async updateConnectorMetadata(connectorId, extractionResult) {
     try {
+      const now = new Date().toISOString();
       const metadata = {
-        last_sync: new Date().toISOString(),
+        last_sync: now,
         last_sync_status: extractionResult.success ? 'success' : 'failed',
         last_sync_items: extractionResult.itemsExtracted || 0
       };
 
       await supabase
-        .from('data_connectors')
-        .update({ metadata })
+        .from('platform_connections')
+        .update({
+          last_synced_at: now,
+          last_sync_status: extractionResult.success ? 'success' : 'failed'
+        })
         .eq('id', connectorId);
     } catch (error) {
       console.error('[DataExtraction] Error updating metadata:', error);
@@ -310,10 +398,10 @@ class DataExtractionService {
 
     // For now, store schedule in connector metadata
     const { data: connector } = await supabase
-        .from('data_connectors')
+        .from('platform_connections')
         .select('metadata')
         .eq('user_id', userId)
-        .eq('provider', platform)
+        .eq('platform', platform)
         .single();
 
     if (connector) {
@@ -325,10 +413,10 @@ class DataExtractionService {
       };
 
       await supabase
-        .from('data_connectors')
+        .from('platform_connections')
         .update({ metadata })
         .eq('user_id', userId)
-        .eq('provider', platform);
+        .eq('platform', platform);
     }
 
     return { scheduled: true, intervalHours };

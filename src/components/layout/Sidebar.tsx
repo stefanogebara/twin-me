@@ -6,7 +6,7 @@ import {
   Link2,
   Sparkles,
   MessageCircle,
-  GraduationCap,
+  Brain,
   Settings,
   Shield,
   HelpCircle,
@@ -28,7 +28,7 @@ const primaryNavItems: NavItem[] = [
     label: 'Dashboard',
     icon: Home,
     path: '/dashboard',
-    description: 'Overview of your digital twin'
+    description: 'Overview of your soul signature'
   },
   {
     id: 'connectors',
@@ -53,10 +53,10 @@ const primaryNavItems: NavItem[] = [
   },
   {
     id: 'training',
-    label: 'Training & Learning',
-    icon: GraduationCap,
+    label: 'Model Training',
+    icon: Brain,
     path: '/training',
-    description: 'Model training and fine-tuning'
+    description: 'Train your soul signature model'
   },
   {
     id: 'settings',

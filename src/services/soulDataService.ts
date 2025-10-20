@@ -202,7 +202,7 @@ class SoulDataService {
   }
 
   /**
-   * Chat with RAG-powered digital twin
+   * Chat with RAG-powered soul signature twin
    */
   async chat(
     userId: string,

@@ -163,10 +163,10 @@ export async function refreshAccessToken(userId, provider) {
 
     // Fetch connection from database
     const { data: connection, error: dbError } = await supabase
-      .from('data_connectors')
+      .from('platform_connections')
       .select('refresh_token, token_expires_at, access_token')
       .eq('user_id', userId)
-      .eq('provider', provider)
+      .eq('platform', provider)
       .eq('connected', true)
       .single();
 
@@ -220,7 +220,7 @@ export async function refreshAccessToken(userId, provider) {
 
     // Update database with new tokens
     const { error: updateError } = await supabase
-      .from('data_connectors')
+      .from('platform_connections')
       .update({
         access_token: encryptToken(newAccessToken),
         refresh_token: encryptToken(newRefreshToken),
@@ -232,7 +232,7 @@ export async function refreshAccessToken(userId, provider) {
         }
       })
       .eq('user_id', userId)
-      .eq('provider', provider);
+      .eq('platform', provider);
 
     if (updateError) {
       console.error(`❌ Failed to update tokens in database:`, updateError);
@@ -254,7 +254,7 @@ export async function refreshAccessToken(userId, provider) {
     // Update error count in database
     try {
       await supabase
-        .from('data_connectors')
+        .from('platform_connections')
         .update({
           error_count: supabase.raw('COALESCE(error_count, 0) + 1'),
           last_sync_status: 'token_refresh_failed',
@@ -264,7 +264,7 @@ export async function refreshAccessToken(userId, provider) {
           }
         })
         .eq('user_id', userId)
-        .eq('provider', provider);
+        .eq('platform', provider);
     } catch (updateError) {
       console.error(`Failed to update error count:`, updateError);
     }
@@ -290,10 +290,10 @@ export async function getValidAccessToken(userId, provider) {
 
     // Fetch connection from database
     const { data: connection, error: dbError } = await supabase
-      .from('data_connectors')
+      .from('platform_connections')
       .select('access_token, token_expires_at, connected')
       .eq('user_id', userId)
-      .eq('provider', provider)
+      .eq('platform', provider)
       .eq('connected', true)
       .single();
 

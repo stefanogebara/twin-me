@@ -565,4 +565,45 @@ router.get('/debug-env', (req, res) => {
   });
 });
 
+
+
+/**
+ * POST /api/soul-data/trigger-extraction
+ * Manually trigger data extraction for all connected platforms
+ */
+router.post('/trigger-extraction', async (req, res) => {
+  try {
+    const userId = req.body.userId || req.query.userId;
+
+    if (!userId) {
+      return res.status(400).json({
+        success: false,
+        error: 'userId is required'
+      });
+    }
+
+    console.log(`[API] Manual extraction triggered for user: ${userId}`);
+
+    // Import extraction service
+    const { default: extractionService } = await import('../services/dataExtractionService.js');
+    
+    // Trigger extraction for all platforms
+    const result = await extractionService.extractAllPlatforms(userId);
+
+    res.json({
+      success: true,
+      message: 'Data extraction started for all connected platforms',
+      ...result
+    });
+
+  } catch (error) {
+    console.error('[API] Error in /trigger-extraction:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to trigger extraction',
+      message: error.message
+    });
+  }
+});
+
 export default router;

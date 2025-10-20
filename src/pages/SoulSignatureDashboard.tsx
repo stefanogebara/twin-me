@@ -1,11 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import { usePlatformStatus } from '../hooks/usePlatformStatus';
 import {
   Sparkles, Music, Film, Gamepad2, Heart, Brain, Globe,
   ChevronRight, Play, Pause, Lock, Unlock, Fingerprint,
   User, Briefcase, Palette, Calendar, Mail, MessageSquare,
-  Instagram, Twitter, Github, Linkedin, Youtube, Users, CheckCircle2
+  Instagram, Twitter, Github, Linkedin, Youtube, Users, CheckCircle2,
+  Video
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -15,37 +17,59 @@ import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import PrivacySpectrumDashboard from '@/components/PrivacySpectrumDashboard';
 import { SoulDataExtractor } from '@/components/SoulDataExtractor';
+import { PlatformConnectionCard } from '@/components/PlatformConnectionCard';
 
 interface ConnectionStatus {
   spotify: boolean;
   netflix: boolean;
   youtube: boolean;
+  twitch: boolean;
   steam: boolean;
-  gmail: boolean;
-  calendar: boolean;
+  google_gmail: boolean;
+  google_calendar: boolean;
   teams: boolean;
   slack: boolean;
   discord: boolean;
+  github: boolean;
+  linkedin: boolean;
+  instagram: boolean;
+  twitter: boolean;
+  reddit: boolean;
 }
 
 const SoulSignatureDashboard: React.FC = () => {
   const navigate = useNavigate();
   const { user, isSignedIn } = useAuth();
+
+  // Use unified platform status hook
+  const {
+    data: platformStatus,
+    hasConnectedServices: platformsConnected,
+    connectedProviders,
+    refetch
+  } = usePlatformStatus(user?.id);
+
   const [activeCluster, setActiveCluster] = useState<string>('personal');
-  const [isExtracting, setIsExtracting] = useState(false);
-  const [extractionProgress, setExtractionProgress] = useState(0);
   const [showPrivacyControls, setShowPrivacyControls] = useState(false);
-  const [connections, setConnections] = useState<ConnectionStatus>({
-    spotify: false,
-    netflix: false,
-    youtube: false,
-    steam: false,
-    gmail: true,
-    calendar: true,
-    teams: false,
-    slack: false,
-    discord: false
-  });
+
+  // Derive connections from unified hook (replaces manual state)
+  const connections: ConnectionStatus = {
+    spotify: platformStatus['spotify']?.connected || false,
+    netflix: platformStatus['netflix']?.connected || false,
+    youtube: platformStatus['youtube']?.connected || false,
+    twitch: platformStatus['twitch']?.connected || false,
+    steam: platformStatus['steam']?.connected || false,
+    google_gmail: platformStatus['google_gmail']?.connected || false,
+    google_calendar: platformStatus['google_calendar']?.connected || false,
+    teams: platformStatus['teams']?.connected || false,
+    slack: platformStatus['slack']?.connected || false,
+    discord: platformStatus['discord']?.connected || false,
+    github: platformStatus['github']?.connected || false,
+    linkedin: platformStatus['linkedin']?.connected || false,
+    instagram: platformStatus['instagram']?.connected || false,
+    twitter: platformStatus['twitter']?.connected || false,
+    reddit: platformStatus['reddit']?.connected || false
+  };
   const [extractedInsights, setExtractedInsights] = useState<{
     personal: string[] | null;
     professional: string[] | null;
@@ -54,7 +78,7 @@ const SoulSignatureDashboard: React.FC = () => {
     professional: null
   });
   const [hasExtractedData, setHasExtractedData] = useState(false);
-  const [hasConnectedServices, setHasConnectedServices] = useState(false);
+  const hasConnectedServices = platformsConnected; // Use unified hook value
   const [extensionInstalled, setExtensionInstalled] = useState(false);
   const [extensionAuthenticated, setExtensionAuthenticated] = useState(false);
   const [uniquenessScore, setUniquenessScore] = useState<number>(0);
@@ -132,7 +156,7 @@ const SoulSignatureDashboard: React.FC = () => {
     const detectAndAuthExtension = async () => {
       if (!user?.id) return;
 
-      const EXTENSION_ID = 'lgackjdjfgjciljchpcgidahjjimhmdh'; // Your extension ID
+      const EXTENSION_ID = 'acnofcjjfjaikcfnalggkkbghjaijepc'; // Soul Observer Extension ID
 
       try {
         // Try to ping the extension
@@ -192,91 +216,6 @@ const SoulSignatureDashboard: React.FC = () => {
     detectAndAuthExtension();
   }, [user]);
 
-  // Fetch connection status from API and localStorage
-  useEffect(() => {
-    const fetchConnectionStatus = async () => {
-      try {
-        if (!user?.id) return;
-
-        // Fetch from API
-        const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3001/api'}/connectors/status/${user.id}`);
-
-        if (response.ok) {
-          const result = await response.json();
-          console.log('📱 Fetched connection status from API:', result);
-
-          // Backend returns { success: true, data: { platform: {...}, ... } }
-          const platformData = result.data || {};
-          const newConnections: ConnectionStatus = {...connections};
-
-          // Update connection status based on API response
-          Object.keys(platformData).forEach((platform: string) => {
-            const connDetails = platformData[platform];
-            if (connDetails.connected && platform in newConnections) {
-              newConnections[platform as keyof ConnectionStatus] = true;
-            }
-          });
-
-          setConnections(newConnections);
-
-          // Check if any services are connected
-          const hasAnyConnections = Object.values(newConnections).some(status => status);
-          setHasConnectedServices(hasAnyConnections);
-
-          // Sync with localStorage for consistency
-          const connectedPlatforms = Object.keys(newConnections).filter(key => newConnections[key as keyof ConnectionStatus]);
-          localStorage.setItem('connectedServices', JSON.stringify(connectedPlatforms));
-        } else {
-          // Fallback to localStorage if API fails
-          console.warn('⚠️ API failed, falling back to localStorage');
-          const storedConnections = JSON.parse(localStorage.getItem('connectedServices') || '[]');
-          if (storedConnections.length > 0) {
-            const newConnections: ConnectionStatus = {...connections};
-            storedConnections.forEach((service: string) => {
-              if (service in newConnections) {
-                newConnections[service as keyof ConnectionStatus] = true;
-              }
-            });
-            setConnections(newConnections);
-            setHasConnectedServices(true);
-          }
-        }
-      } catch (error) {
-        console.error('❌ Error fetching connection status:', error);
-        // Fallback to localStorage
-        const storedConnections = JSON.parse(localStorage.getItem('connectedServices') || '[]');
-        if (storedConnections.length > 0) {
-          const newConnections: ConnectionStatus = {...connections};
-          storedConnections.forEach((service: string) => {
-            if (service in newConnections) {
-              newConnections[service as keyof ConnectionStatus] = true;
-            }
-          });
-          setConnections(newConnections);
-          setHasConnectedServices(true);
-        }
-      }
-    };
-
-    fetchConnectionStatus();
-  }, [user?.id]); // Re-fetch when user changes
-
-  // Animated extraction simulation
-  useEffect(() => {
-    if (isExtracting) {
-      const interval = setInterval(() => {
-        setExtractionProgress(prev => {
-          if (prev >= 100) {
-            setIsExtracting(false);
-            return 100;
-          }
-          return prev + 2;
-        });
-      }, 50);
-      return () => clearInterval(interval);
-    }
-  }, [isExtracting]);
-
   const clusters = [
     {
       id: 'personal',
@@ -286,15 +225,22 @@ const SoulSignatureDashboard: React.FC = () => {
       accentColor: '#D97706',
       connectors: [
         // Entertainment & Media
-        { name: 'Spotify', icon: <Music />, status: connections.spotify, key: 'spotify', category: 'Entertainment' },
-        { name: 'Netflix', icon: <Film />, status: connections.netflix, key: 'netflix', category: 'Entertainment' },
-        { name: 'YouTube', icon: <Youtube />, status: connections.youtube, key: 'youtube', category: 'Entertainment' },
+        { name: 'Spotify', icon: <Music />, status: connections.spotify, key: 'spotify', category: 'Music' },
+        { name: 'Netflix', icon: <Film />, status: connections.netflix, key: 'netflix', category: 'Video' },
+        { name: 'YouTube', icon: <Youtube />, status: connections.youtube, key: 'youtube', category: 'Video' },
+        { name: 'Twitch', icon: <Video />, status: connections.twitch, key: 'twitch', category: 'Live Streaming' },
+
+        // Gaming
         { name: 'Steam', icon: <Gamepad2 />, status: connections.steam, key: 'steam', category: 'Gaming' },
-        // Social & Creative (merged from Creative Expression)
-        { name: 'Instagram', icon: <Instagram />, status: false, key: 'instagram', category: 'Social' },
-        { name: 'Twitter', icon: <Twitter />, status: false, key: 'twitter', category: 'Social' },
-        { name: 'GitHub', icon: <Github />, status: false, key: 'github', category: 'Creative' },
-        { name: 'Discord', icon: <Users />, status: connections.discord, key: 'discord', category: 'Community' }
+        { name: 'Discord', icon: <Users />, status: connections.discord, key: 'discord', category: 'Community' },
+
+        // Social & Community
+        { name: 'Instagram', icon: <Instagram />, status: connections.instagram, key: 'instagram', category: 'Social' },
+        { name: 'Twitter', icon: <Twitter />, status: connections.twitter, key: 'twitter', category: 'Social' },
+        { name: 'Reddit', icon: <MessageSquare />, status: connections.reddit, key: 'reddit', category: 'Social' },
+
+        // Reading & Creative
+        { name: 'GitHub', icon: <Github />, status: connections.github, key: 'github', category: 'Creative' }
       ],
       insights: extractedInsights.personal || [],
       analysisActions: [
@@ -319,11 +265,12 @@ const SoulSignatureDashboard: React.FC = () => {
       icon: <Briefcase className="w-6 h-6" />,
       accentColor: '#D97706',
       connectors: [
-        { name: 'Gmail', icon: <Mail />, status: connections.gmail, key: 'gmail', category: 'Communication' },
-        { name: 'Calendar', icon: <Calendar />, status: connections.calendar, key: 'calendar', category: 'Time Management' },
+        { name: 'Gmail', icon: <Mail />, status: connections.google_gmail, key: 'google_gmail', category: 'Communication' },
+        { name: 'Calendar', icon: <Calendar />, status: connections.google_calendar, key: 'google_calendar', category: 'Time Management' },
         { name: 'Teams', icon: <Users />, status: connections.teams, key: 'teams', category: 'Collaboration' },
         { name: 'Slack', icon: <MessageSquare />, status: connections.slack, key: 'slack', category: 'Collaboration' },
-        { name: 'LinkedIn', icon: <Linkedin />, status: false, key: 'linkedin', category: 'Networking' }
+        { name: 'LinkedIn', icon: <Linkedin />, status: connections.linkedin, key: 'linkedin', category: 'Networking' },
+        { name: 'GitHub', icon: <Github />, status: connections.github, key: 'github', category: 'Development' }
       ],
       insights: extractedInsights.professional || [],
       analysisActions: [
@@ -331,19 +278,19 @@ const SoulSignatureDashboard: React.FC = () => {
           id: 'communication-analysis',
           name: 'Analyze Communication Style',
           description: 'Extract communication patterns from Gmail',
-          platforms: ['gmail']
+          platforms: ['google_gmail']
         },
         {
           id: 'productivity-analysis',
           name: 'Analyze Work Patterns',
           description: 'Discover productivity and time patterns',
-          platforms: ['calendar']
+          platforms: ['google_calendar']
         },
         {
           id: 'complete-professional',
           name: 'Complete Professional Analysis',
           description: 'Comprehensive professional profile',
-          platforms: ['gmail', 'calendar']
+          platforms: ['google_gmail', 'google_calendar']
         }
       ]
     }
@@ -365,7 +312,7 @@ const SoulSignatureDashboard: React.FC = () => {
           if (data.authUrl) {
             window.open(data.authUrl, '_blank');
           }
-          setConnections(prev => ({ ...prev, [connectorKey]: true }));
+          // Note: Connection status will be updated via usePlatformStatus hook
         }
       } catch (error) {
         console.error('Connection error:', error);
@@ -376,10 +323,61 @@ const SoulSignatureDashboard: React.FC = () => {
     }
   };
 
-  const extractSoulSignature = async (platform: string) => {
-    setIsExtracting(true);
-    setExtractionProgress(0);
 
+  // Handle platform reconnection (for expired tokens)
+  const handleReconnect = async (connectorKey: string) => {
+    try {
+      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
+
+      // First disconnect the expired/failed connection
+      await fetch(`${apiUrl}/oauth/disconnect/${connectorKey}`, {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: user?.id || 'current-user' })
+      });
+
+      // Then initiate fresh OAuth flow
+      const response = await fetch(`${apiUrl}/entertainment/connect/${connectorKey}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: user?.id || 'current-user' })
+      });
+
+      const data = await response.json();
+      if (data.authUrl) {
+        window.location.href = data.authUrl;
+      }
+    } catch (error) {
+      console.error(`Failed to reconnect ${connectorKey}:`, error);
+    }
+  };
+
+  // Handle platform disconnection
+  const handleDisconnect = async (connectorKey: string) => {
+    if (!confirm(`Are you sure you want to disconnect ${connectorKey}?`)) {
+      return;
+    }
+
+    try {
+      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
+      const response = await fetch(`${apiUrl}/oauth/disconnect/${connectorKey}`, {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: user?.id || 'current-user' })
+      });
+
+      if (response.ok) {
+        // Refetch platform status to update UI
+        if (refetch) {
+          refetch();
+        }
+      }
+    } catch (error) {
+      console.error(`Failed to disconnect ${connectorKey}:`, error);
+    }
+  };
+
+  const extractSoulSignature = async (platform: string) => {
     try {
       console.log(`🧠 Extracting soul signature from ${platform}`);
 
@@ -389,13 +387,13 @@ const SoulSignatureDashboard: React.FC = () => {
       // Handle different analysis types
       const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
 
-      if (platform === 'communication-analysis' || platform === 'gmail') {
+      if (platform === 'communication-analysis' || platform === 'gmail' || platform === 'google_gmail') {
         console.log('📧 Analyzing Gmail communication patterns...');
         response = await fetch(`${apiUrl}/soul/extract/gmail/${userId}`, {
           method: 'GET',
           headers: { 'Content-Type': 'application/json' }
         });
-      } else if (platform === 'productivity-analysis' || platform === 'calendar') {
+      } else if (platform === 'productivity-analysis' || platform === 'calendar' || platform === 'google_calendar') {
         console.log('🗓️ Analyzing Calendar time management patterns...');
         response = await fetch(`${apiUrl}/soul/extract/calendar/${userId}`, {
           method: 'GET',
@@ -428,61 +426,12 @@ const SoulSignatureDashboard: React.FC = () => {
           updateClusterInsights(platform, data.data);
         }
       } else {
-        // Fallback to demo extraction for non-professional platforms
-        if (!['gmail', 'calendar', 'professional'].includes(platform)) {
-          const demoResponse = await fetch(`${apiUrl}/soul/demo/${platform}`);
-          if (demoResponse.ok) {
-            const demoData = await demoResponse.json();
-            console.log('🎭 Using demo soul signature:', demoData);
-            updateClusterInsights(platform, demoData.data);
-          }
-        } else {
-          // Show demo professional insights for Gmail/Calendar
-          const demoInsights = {
-            soulSignature: {
-              communicationStyle: {
-                communicationTone: 'Professional',
-                responsePattern: 'Business Hours',
-                formalityScore: 75,
-                emailFrequency: 12
-              },
-              professionalIdentity: {
-                collaborationStyle: 'High Collaboration',
-                networkType: 'External Focused',
-                networkDiversity: 15
-              },
-              personalityInsights: {
-                communicationPersona: 'The Professional Communicator',
-                workStyle: 'Traditional business hour focus',
-                socialProfile: 'Team-oriented and meeting-focused'
-              }
-            }
-          };
-          updateClusterInsights(platform, demoInsights);
-        }
+        console.warn(`⚠️ No data available for ${platform} - extraction failed`);
+        // Don't show fake data - let UI show "No Soul Signature Yet"
       }
     } catch (error) {
       console.error('Soul extraction error:', error);
-      // Show demo insights on error
-      updateClusterInsights(platform, {
-        soulSignature: {
-          personalityInsights: {
-            communicationPersona: `The ${platform.charAt(0).toUpperCase() + platform.slice(1)} Professional`
-          }
-        }
-      });
-    } finally {
-      // Animate extraction progress
-      const interval = setInterval(() => {
-        setExtractionProgress(prev => {
-          if (prev >= 100) {
-            setIsExtracting(false);
-            clearInterval(interval);
-            return 100;
-          }
-          return prev + 8;
-        });
-      }, 80);
+      // Don't show fake data on error - let UI show honest state
     }
   };
 
@@ -527,164 +476,18 @@ const SoulSignatureDashboard: React.FC = () => {
     }
   };
 
-  const startExtraction = async () => {
-    setIsExtracting(true);
-    setExtractionProgress(0);
-
-    try {
-      console.log('🚀 Starting real soul extraction...');
-
-      // Start progress animation
-      let progress = 0;
-      const progressInterval = setInterval(() => {
-        progress += 5;
-        setExtractionProgress(Math.min(progress, 90)); // Cap at 90% until complete
-      }, 200);
-
-      const userId = user?.id || user?.email || 'anonymous-user';
-      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
-
-      // Step 1: Extract all platform data (20%)
-      console.log('📊 Step 1: Extracting platform data...');
-      const extractResponse = await fetch(`${apiUrl}/soul-data/extract-all`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId })
-      });
-
-      if (!extractResponse.ok) {
-        throw new Error('Failed to extract platform data');
-      }
-
-      setExtractionProgress(25);
-
-      // Step 2: Process text data (40%)
-      console.log('📝 Step 2: Processing text data...');
-      const processResponse = await fetch(`${apiUrl}/soul-data/process`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId, limit: 100 })
-      });
-
-      if (!processResponse.ok) {
-        throw new Error('Failed to process text data');
-      }
-
-      setExtractionProgress(45);
-
-      // Step 3: Analyze communication style (60%)
-      console.log('🧠 Step 3: Analyzing communication style...');
-      const analyzeResponse = await fetch(`${apiUrl}/soul-data/analyze-style`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId })
-      });
-
-      if (!analyzeResponse.ok) {
-        throw new Error('Failed to analyze style');
-      }
-
-      const styleData = await analyzeResponse.json();
-      setExtractionProgress(65);
-
-      // Step 4: Generate embeddings (80%)
-      console.log('🔮 Step 4: Generating embeddings...');
-      const embeddingsResponse = await fetch(`${apiUrl}/soul-data/generate-embeddings`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId, limit: 50 })
-      });
-
-      setExtractionProgress(85);
-
-      // Step 5: Get the updated style profile
-      console.log('✨ Step 5: Fetching soul signature...');
-      const profileResponse = await fetch(`${apiUrl}/soul-data/style-profile?userId=${userId}`);
-
-      if (profileResponse.ok) {
-        const profileData = await profileResponse.json();
-
-        if (profileData.success && profileData.profile) {
-          const profile = profileData.profile;
-
-          // Calculate real uniqueness score
-          const uniqueness = calculateUniquenessScore(profile);
-          setUniquenessScore(uniqueness);
-
-          // Build real insights from actual data
-          const personalInsights = [];
-          const professionalInsights = [];
-
-          // Add personality traits to insights
-          if (profile.personality_traits) {
-            const traits = profile.personality_traits;
-            personalInsights.push(`🎨 Openness: ${Math.round((traits.openness || 0.5) * 100)}%`);
-            personalInsights.push(`🗣️ Extraversion: ${Math.round((traits.extraversion || 0.5) * 100)}%`);
-            personalInsights.push(`😊 Agreeableness: ${Math.round((traits.agreeableness || 0.5) * 100)}%`);
-            professionalInsights.push(`✅ Conscientiousness: ${Math.round((traits.conscientiousness || 0.5) * 100)}%`);
-            professionalInsights.push(`😰 Neuroticism: ${Math.round((traits.neuroticism || 0.5) * 100)}%`);
-          }
-
-          // Add communication style
-          if (profile.communication_style) {
-            personalInsights.push(`💬 Communication: ${profile.communication_style}`);
-          }
-
-          if (profile.humor_style) {
-            personalInsights.push(`😄 Humor Style: ${profile.humor_style}`);
-          }
-
-          // Add confidence and sample size
-          if (profile.confidence_score) {
-            professionalInsights.push(`📊 Confidence: ${Math.round(profile.confidence_score * 100)}%`);
-          }
-
-          if (profile.sample_size) {
-            professionalInsights.push(`📝 Analyzed ${profile.sample_size} samples`);
-          }
-
-          // Update insights for both clusters
-          setExtractedInsights({
-            personal: personalInsights.length > 0 ? personalInsights : ['Extraction complete - building insights...'],
-            professional: professionalInsights.length > 0 ? professionalInsights : ['Analysis complete - processing data...']
-          });
-
-          setHasExtractedData(true);
-          console.log('✅ Soul signature extraction complete!');
-        }
-      }
-
-      clearInterval(progressInterval);
-      setExtractionProgress(100);
-
-      // Complete animation
-      setTimeout(() => {
-        setIsExtracting(false);
-        setExtractionProgress(0);
-      }, 500);
-
-    } catch (error) {
-      console.error('❌ Soul extraction failed:', error);
-      setIsExtracting(false);
-      setExtractionProgress(0);
-
-      // Show error to user
-      alert(`Extraction failed: ${error.message}\n\nPlease make sure you have connected at least one platform and try again.`);
-    }
-  };
-
   const currentCluster = clusters.find(c => c.id === activeCluster)!;
 
   return (
     <div className="min-h-screen bg-[hsl(var(--claude-bg))] overflow-hidden relative">
       {/* Main Content */}
-      <div className="relative z-10 p-8 max-w-7xl mx-auto">
+      <div className="relative z-10 px-4 sm:px-6 lg:px-8 py-6 sm:py-8 max-w-7xl mx-auto">
         {/* Header */}
-        <div className="text-center mb-12">
-          <div className="inline-flex items-center gap-3 mb-4">
-            <Fingerprint className="w-10 h-10" style={{ color: '#D97706' }} />
+        <div className="text-center mb-8 sm:mb-12">
+          <div className="inline-flex items-center gap-2 sm:gap-3 mb-4">
+            <Fingerprint className="w-6 h-6 sm:w-8 sm:h-8 lg:w-10 lg:h-10" style={{ color: '#D97706' }} />
             <h1
-              className="text-5xl font-medium"
+              className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-medium"
               style={{
                 fontFamily: 'var(--_typography---font--styrene-a)',
                 letterSpacing: '-0.02em',
@@ -693,10 +496,10 @@ const SoulSignatureDashboard: React.FC = () => {
             >
               Soul Signature Extraction
             </h1>
-            <Sparkles className="w-10 h-10" style={{ color: '#D97706' }} />
+            <Sparkles className="w-6 h-6 sm:w-8 sm:h-8 lg:w-10 lg:h-10" style={{ color: '#D97706' }} />
           </div>
           <p
-            className="text-lg"
+            className="text-sm sm:text-base lg:text-lg px-4"
             style={{
               fontFamily: 'var(--_typography---font--tiempos)',
               color: 'hsl(var(--claude-text-muted))'
@@ -739,13 +542,13 @@ const SoulSignatureDashboard: React.FC = () => {
         </div>
 
         {/* Cluster Navigation */}
-        <div className="flex justify-center gap-4 mb-12">
+        <div className="flex flex-col sm:flex-row justify-center gap-3 sm:gap-4 mb-8 sm:mb-12 px-4">
           {clusters.map((cluster) => (
             <button
               key={cluster.id}
               onClick={() => setActiveCluster(cluster.id)}
               className={cn(
-                "relative px-6 py-3 rounded-full",
+                "relative px-4 sm:px-6 py-2 sm:py-3 rounded-full w-full sm:w-auto",
                 activeCluster === cluster.id
                   ? "bg-white border-2"
                   : "bg-white border"
@@ -756,11 +559,11 @@ const SoulSignatureDashboard: React.FC = () => {
                 fontWeight: 500
               }}
             >
-              <div className="flex items-center gap-2">
+              <div className="flex items-center justify-center gap-2">
                 <span style={{ color: activeCluster === cluster.id ? cluster.accentColor : '#141413' }}>
                   {cluster.icon}
                 </span>
-                <span style={{ color: activeCluster === cluster.id ? cluster.accentColor : '#141413' }}>
+                <span className="text-sm sm:text-base" style={{ color: activeCluster === cluster.id ? cluster.accentColor : '#141413' }}>
                   {cluster.name}
                 </span>
               </div>
@@ -831,7 +634,7 @@ const SoulSignatureDashboard: React.FC = () => {
         </div>
 
         {/* Main Dashboard Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8">
           {/* Connectors Panel */}
           <div>
             <Card
@@ -878,39 +681,19 @@ const SoulSignatureDashboard: React.FC = () => {
 
               <div className="space-y-3">
                 {currentCluster.connectors.map((connector) => (
-                  <button
+                  <PlatformConnectionCard
                     key={connector.key}
-                    onClick={() => handleConnectorClick(activeCluster, connector.key)}
-                    className={cn(
-                      "w-full p-3 rounded-lg bg-[hsl(var(--claude-surface-raised))]",
-                      "flex items-center justify-between",
-                      connector.status ? 'border border-[hsl(var(--claude-accent))]' : 'border border-[hsl(var(--claude-border))]'
-                    )}
-                  >
-                    <div className="flex items-center gap-3">
-                      <span style={{ color: '#141413' }}>{connector.icon}</span>
-                      <span
-                        style={{
-                          fontFamily: 'var(--_typography---font--tiempos)',
-                          color: 'hsl(var(--claude-text))'
-                        }}
-                      >
-                        {connector.name}
-                      </span>
-                    </div>
-                    {connector.status ? (
-                      <Badge
-                        className="bg-[hsl(var(--claude-surface-raised))] text-[hsl(var(--claude-accent))] border border-[hsl(var(--claude-accent))]"
-                      >
-                        Connected
-                      </Badge>
-                    ) : (
-                      <ChevronRight className="w-4 h-4" style={{ color: '#6B7280' }} />
-                    )}
-                  </button>
+                    connector={connector}
+                    platformStatus={platformStatus[connector.key]}
+                    hasExtractedData={hasExtractedData}
+                    onConnect={() => handleConnectorClick(activeCluster, connector.key)}
+                    onReconnect={() => handleReconnect(connector.key)}
+                    onDisconnect={() => handleDisconnect(connector.key)}
+                  />
                 ))}
+              </div>
 
-                {/* Analysis Actions */}
+              {/* Analysis Actions */}
                 <div
                   className="mt-6 pt-6"
                   style={{ borderTop: '1px solid rgba(20,20,19,0.1)' }}
@@ -930,7 +713,6 @@ const SoulSignatureDashboard: React.FC = () => {
                       <Button
                         key={action.id}
                         onClick={() => extractSoulSignature(action.id)}
-                        disabled={isExtracting}
                         variant="outline"
                         className="w-full justify-start text-left p-4 h-auto bg-[hsl(var(--claude-surface-raised))] border border-[hsl(var(--claude-border))] text-[hsl(var(--claude-text))]"
                         style={{
@@ -961,7 +743,6 @@ const SoulSignatureDashboard: React.FC = () => {
                     ))}
                   </div>
                 </div>
-              </div>
             </Card>
           </div>
 
@@ -1021,37 +802,14 @@ const SoulSignatureDashboard: React.FC = () => {
                 </div>
               </div>
 
-              {/* Extraction Control */}
-              <div className="mt-6 space-y-4">
-                {isExtracting ? (
-                  <div>
-                    <div
-                      className="flex justify-between text-sm mb-2"
-                      style={{
-                        fontFamily: 'var(--_typography---font--tiempos)',
-                        color: 'hsl(var(--claude-text))'
-                      }}
-                    >
-                      <span>Extracting Soul Signature...</span>
-                      <span>{extractionProgress}%</span>
-                    </div>
-                    <Progress value={extractionProgress} className="h-2" />
-                  </div>
-                ) : (
-                  <Button
-                    onClick={startExtraction}
-                    className="w-full"
-                    style={{
-                      backgroundColor: currentCluster.accentColor,
-                      color: 'white',
-                      fontFamily: 'var(--_typography---font--styrene-a)',
-                      fontWeight: 500
-                    }}
-                  >
-                    <Sparkles className="w-4 h-4 mr-2" />
-                    Extract {currentCluster.name}
-                  </Button>
-                )}
+              {/* Note: Real extraction handled by SoulDataExtractor component above */}
+              <div className="mt-6">
+                <p className="text-sm text-center" style={{
+                  fontFamily: 'var(--_typography---font--tiempos)',
+                  color: 'hsl(var(--claude-text-muted))'
+                }}>
+                  Use the "Extract Soul Signature" button above to begin full pipeline extraction
+                </p>
               </div>
             </Card>
           </div>
@@ -1098,26 +856,8 @@ const SoulSignatureDashboard: React.FC = () => {
                         color: '#6B7280'
                       }}
                     >
-                      Connect at least one platform from this cluster to begin discovering your authentic {currentCluster.name.toLowerCase()}.
+                      Connect platforms and use the "Extract Soul Signature" button above to begin discovering your authentic {currentCluster.name.toLowerCase()}.
                     </p>
-                    <Button
-                      onClick={() => {
-                        const connectedPlatforms = currentCluster.connectors.filter(c => c.status);
-                        if (connectedPlatforms.length > 0) {
-                          startExtraction();
-                        }
-                      }}
-                      variant="outline"
-                      style={{
-                        border: '2px solid ' + currentCluster.accentColor,
-                        color: currentCluster.accentColor,
-                        fontFamily: 'var(--_typography---font--styrene-a)',
-                        fontWeight: 500
-                      }}
-                    >
-                      <Sparkles className="w-4 h-4 mr-2" />
-                      Start Soul Discovery
-                    </Button>
                   </div>
                 ) : (
                   currentCluster.insights.map((insight, index) => (
@@ -1199,19 +939,6 @@ const SoulSignatureDashboard: React.FC = () => {
           >
             <Play className="w-4 h-4 mr-2" />
             Preview Your Twin
-          </Button>
-          <Button
-            onClick={() => navigate('/twin-activation')}
-            variant="outline"
-            style={{
-              border: '2px solid #D97706',
-              color: '#D97706',
-              fontFamily: 'var(--_typography---font--styrene-a)',
-              fontWeight: 500
-            }}
-          >
-            <Sparkles className="w-4 h-4 mr-2" />
-            Activate Twin
           </Button>
         </div>
       </div>

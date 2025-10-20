@@ -512,7 +512,7 @@ class PlatformDataExtraction {
       await serverDb.query(`
         INSERT INTO extraction_status (user_id, connector_id, provider, extraction_stage, total_items_extracted, last_extraction_count, last_error_message, last_error_timestamp, updated_at)
         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW())
-        ON CONFLICT (user_id, provider) DO UPDATE SET
+        ON CONFLICT (user_id, platform) DO UPDATE SET
           extraction_stage = EXCLUDED.extraction_stage,
           total_items_extracted = extraction_status.total_items_extracted + EXCLUDED.last_extraction_count,
           last_extraction_count = EXCLUDED.last_extraction_count,

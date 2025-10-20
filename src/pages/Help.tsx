@@ -22,7 +22,7 @@ const Help: React.FC = () => {
   const faqItems: FAQItem[] = [
     {
       question: 'What is Soul Signature Platform?',
-      answer: 'Soul Signature Platform (TwinMe) creates authentic digital twins by capturing your true originality through your digital footprints. Unlike traditional cloning that focuses on public information, we discover what makes you genuinely YOU through your personal choices, curiosities, and authentic patterns.',
+      answer: 'Soul Signature Platform (TwinMe) creates authentic personality profiles by capturing your true originality through your digital footprints. Unlike traditional cloning that focuses on public information, we discover what makes you genuinely YOU through your personal choices, curiosities, and authentic patterns.',
       category: 'getting-started'
     },
     {
@@ -46,8 +46,8 @@ const Help: React.FC = () => {
       category: 'extraction'
     },
     {
-      question: 'Can I chat with my digital twin?',
-      answer: 'Yes! Once you\'ve extracted your soul signature, you can interact with your digital twin through RAG-powered chat. Your twin responds based on your authentic personality profile and communication patterns.',
+      question: 'Can I chat with my soul signature twin?',
+      answer: 'Yes! Once you\'ve extracted your soul signature, you can interact with your AI twin through RAG-powered chat. Your twin responds based on your authentic personality profile and communication patterns.',
       category: 'features'
     },
     {
@@ -125,7 +125,7 @@ const Help: React.FC = () => {
               backgroundColor: 'hsl(var(--claude-surface))',
               border: '1px solid hsl(var(--claude-border))'
             }}
-            onClick={() => navigate('/soul-dashboard')}
+            onClick={() => navigate('/dashboard')}
           >
             <BookOpen className="w-8 h-8 mb-4" style={{ color: '#D97706' }} />
             <h3
@@ -478,7 +478,7 @@ const Help: React.FC = () => {
         {/* Action Buttons */}
         <div className="mt-12 flex justify-center gap-4">
           <Button
-            onClick={() => navigate('/soul-dashboard')}
+            onClick={() => navigate('/dashboard')}
             style={{
               backgroundColor: '#D97706',
               color: 'white',
@@ -487,7 +487,7 @@ const Help: React.FC = () => {
             }}
           >
             <Sparkles className="w-4 h-4 mr-2" />
-            Go to Soul Dashboard
+            Go to Dashboard
           </Button>
           <Button
             onClick={() => navigate('/contact')}
