@@ -197,14 +197,15 @@ const InstantTwinOnboarding = () => {
   // Derive connectedServices from unified hook (replaces localStorage)
   const connectedServices = connectedProviders as DataProvider[];
 
-  // Handle OAuth callback success - simplified without localStorage
+  // Handle OAuth callback success - both from URL params and postMessage
   React.useEffect(() => {
+    // Handle OAuth callback from URL params (when redirected back)
     const urlParams = new URLSearchParams(window.location.search);
     const connected = urlParams.get('connected');
     const provider = urlParams.get('provider');
 
     if (connected === 'true' && provider) {
-      console.log('🔗 OAuth callback detected for:', provider);
+      console.log('🔗 OAuth callback detected from URL for:', provider);
 
       // Show success toast
       toast({
@@ -213,12 +214,53 @@ const InstantTwinOnboarding = () => {
         variant: "default",
       });
 
+      // Clear connecting provider state
+      setConnectingProvider(null);
+
       // Refetch platform status from database (single source of truth)
       setTimeout(() => {
         refetchPlatformStatus();
-      }, 1000); // Small delay to allow backend to process
+      }, 1500); // Small delay to allow backend to process
     }
-  }, []); // Run once on mount
+
+    // Handle OAuth success from popup window via postMessage
+    const handleOAuthMessage = (event: MessageEvent) => {
+      // Validate origin
+      if (event.origin !== window.location.origin) return;
+
+      // Check for OAuth success message
+      if (event.data?.type === 'oauth-success' && event.data?.provider) {
+        console.log('🔗 OAuth success received via postMessage for:', event.data.provider);
+
+        // Show success toast
+        const providerName = event.data.provider.replace('google_', '').replace('_', ' ');
+        const displayName = providerName.charAt(0).toUpperCase() + providerName.slice(1);
+
+        toast({
+          title: "✅ Connected Successfully",
+          description: `${displayName} is now connected to your Twin Me account`,
+          variant: "default",
+        });
+
+        // Clear connecting provider state
+        setConnectingProvider(null);
+
+        // Refetch platform status from database
+        setTimeout(() => {
+          console.log('🔄 Refetching platform status after OAuth success...');
+          refetchPlatformStatus();
+        }, 1500); // Give backend time to process the OAuth tokens
+      }
+    };
+
+    // Add event listener for OAuth popup messages
+    window.addEventListener('message', handleOAuthMessage);
+
+    // Cleanup listener on unmount
+    return () => {
+      window.removeEventListener('message', handleOAuthMessage);
+    };
+  }, [refetchPlatformStatus, toast]); // Include dependencies for proper updates
 
   // Steps configuration
   const STEPS = [
