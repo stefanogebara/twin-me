@@ -5,6 +5,12 @@ import rateLimit from 'express-rate-limit';
 import { body, validationResult } from 'express-validator';
 import dotenv from 'dotenv';
 import path from 'path';
+import http from 'http';
+
+// Background services
+import { startTokenRefreshService } from './services/tokenRefreshService.js';
+import { startPlatformPolling } from './services/platformPollingService.js';
+import { initializeWebSocketServer } from './services/websocketService.js';
 
 // Only use dotenv in development - Vercel provides env vars directly
 // Updated: Fixed SUPABASE_SERVICE_ROLE_KEY truncation issue
@@ -193,6 +199,8 @@ import diagnosticsRoutes from './routes/diagnostics.js';
 import dataSourcesRoutes from './routes/data-sources.js';
 import allPlatformRoutes from './routes/all-platform-connectors.js';
 import soulObserverRoutes from './routes/soul-observer.js';
+import webhookRoutes from './routes/webhooks.js';
+import sseRoutes from './routes/sse.js';
 import { serverDb } from './services/database.js';
 import { sanitizeInput, validateContentType } from './middleware/sanitization.js';
 import { /* handleAuthError, */ handleGeneralError, handle404 } from './middleware/errorHandler.js';
@@ -221,6 +229,8 @@ app.use('/api/training', trainingRoutes);
 app.use('/api/diagnostics', diagnosticsRoutes); // Supabase connection diagnostics
 app.use('/api/platforms', allPlatformRoutes); // Comprehensive 56-platform integration
 app.use('/api/soul-observer', authenticateUser, soulObserverRoutes); // Soul Observer Mode - behavioral tracking
+app.use('/api/webhooks', webhookRoutes); // Real-time webhook receivers (GitHub, Gmail, Slack)
+app.use('/api/sse', sseRoutes); // Server-Sent Events for real-time updates
 
 // Health check endpoint
 app.get('/api/health', async (req, res) => {
@@ -247,11 +257,39 @@ app.use(notFoundHandler);
 app.use(errorHandler);
 
 // Start server only in development (not in Vercel serverless)
+console.log(`🔍 NODE_ENV check: "${process.env.NODE_ENV}" (condition: !== 'production')`);
+console.log(`🔍 Condition result: ${process.env.NODE_ENV !== 'production'}`);
+
 if (process.env.NODE_ENV !== 'production') {
-  app.listen(PORT, () => {
+  console.log('✅ Entering development server initialization block...');
+  // Create HTTP server for WebSocket support
+  const server = http.createServer(app);
+
+  // Initialize WebSocket server
+  initializeWebSocketServer(server);
+
+  // Start background services
+  console.log('🔧 Initializing background services...');
+
+  // Token refresh service - runs every 5 minutes
+  startTokenRefreshService();
+
+  // Platform polling service - platform-specific schedules
+  startPlatformPolling();
+
+  // Start HTTP server
+  server.listen(PORT, () => {
     console.log(`🚀 Secure API server running on port ${PORT}`);
     console.log(`📝 Environment: ${process.env.NODE_ENV || 'development'}`);
     console.log(`🔐 CORS origin: ${process.env.VITE_APP_URL || 'http://localhost:8080'}`);
+    console.log(`🔌 WebSocket server enabled on ws://localhost:${PORT}/ws`);
+    console.log(`⏰ Background services active:`);
+    console.log(`   - Token Refresh: Every 5 minutes`);
+    console.log(`   - Spotify Polling: Every 30 minutes`);
+    console.log(`   - YouTube Polling: Every 2 hours`);
+    console.log(`   - GitHub Polling: Every 6 hours`);
+    console.log(`   - Discord Polling: Every 4 hours`);
+    console.log(`   - Gmail Polling: Every 1 hour`);
   });
 }
 

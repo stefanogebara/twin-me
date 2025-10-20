@@ -23,9 +23,10 @@ class SpotifyExtractor {
   async extractAll(userId, connectorId) {
     console.log(`[Spotify] Starting full extraction for user: ${userId}`);
 
+    let job = null;
     try {
       // Create extraction job
-      const job = await this.createExtractionJob(userId, connectorId);
+      job = await this.createExtractionJob(userId, connectorId);
 
       let totalItems = 0;
 
@@ -43,6 +44,12 @@ class SpotifyExtractor {
       return { success: true, itemsExtracted: totalItems };
     } catch (error) {
       console.error('[Spotify] Extraction error:', error);
+
+      // Mark the job as failed if it was created
+      if (job && job.id) {
+        await this.failExtractionJob(job.id, error.message || 'Unknown error occurred');
+      }
+
       throw error;
     }
   }
@@ -413,6 +420,25 @@ class SpotifyExtractor {
         results: { message: 'Extraction completed successfully' }
       })
       .eq('id', jobId);
+  }
+
+  /**
+   * Mark extraction job as failed
+   */
+  async failExtractionJob(jobId, errorMessage) {
+    try {
+      await supabase
+        .from('data_extraction_jobs')
+        .update({
+          status: 'failed',
+          completed_at: new Date().toISOString(),
+          error_message: errorMessage
+        })
+        .eq('id', jobId);
+    } catch (error) {
+      console.error('[Spotify] Error marking job as failed:', error);
+      // Don't throw - we're already in error handling
+    }
   }
 }
 

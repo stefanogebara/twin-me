@@ -606,4 +606,55 @@ router.post('/trigger-extraction', async (req, res) => {
   }
 });
 
+/**
+ * GET /api/soul-data/check-extracted-data
+ * Check if user has any extracted data to enable chat functionality
+ */
+router.get('/check-extracted-data', async (req, res) => {
+  try {
+    const userId = req.query.userId;
+
+    if (!userId) {
+      return res.status(400).json({
+        success: false,
+        error: 'userId is required'
+      });
+    }
+
+    console.log(`[API] Checking for existing extracted data for user: ${userId}`);
+
+    // Check if user has any data in user_platform_data table
+    const { data, error } = await supabase
+      .from('user_platform_data')
+      .select('id')
+      .eq('user_id', userId)
+      .limit(1);
+
+    if (error) {
+      console.error('[API] Error checking for extracted data:', error);
+      return res.status(500).json({
+        success: false,
+        error: 'Failed to check for existing data'
+      });
+    }
+
+    const hasData = data && data.length > 0;
+
+    console.log(`[API] User ${userId} has extracted data: ${hasData}`);
+
+    res.json({
+      success: true,
+      hasData,
+      dataCount: data?.length || 0
+    });
+  } catch (error) {
+    console.error('[API] Error in /check-extracted-data:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to check for extracted data',
+      message: error.message
+    });
+  }
+});
+
 export default router;

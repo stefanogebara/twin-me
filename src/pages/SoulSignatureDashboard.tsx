@@ -7,7 +7,7 @@ import {
   ChevronRight, Play, Pause, Lock, Unlock, Fingerprint,
   User, Briefcase, Palette, Calendar, Mail, MessageSquare,
   Instagram, Twitter, Github, Linkedin, Youtube, Users, CheckCircle2,
-  Video
+  Video, Eye, EyeOff
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -18,6 +18,7 @@ import { cn } from '@/lib/utils';
 import PrivacySpectrumDashboard from '@/components/PrivacySpectrumDashboard';
 import { SoulDataExtractor } from '@/components/SoulDataExtractor';
 import { PlatformConnectionCard } from '@/components/PlatformConnectionCard';
+import { DataExtractionClarity } from '@/components/DataExtractionClarity';
 
 interface ConnectionStatus {
   spotify: boolean;
@@ -51,6 +52,7 @@ const SoulSignatureDashboard: React.FC = () => {
 
   const [activeCluster, setActiveCluster] = useState<string>('personal');
   const [showPrivacyControls, setShowPrivacyControls] = useState(false);
+  const [showExtractionClarity, setShowExtractionClarity] = useState(false);
 
   // Derive connections from unified hook (replaces manual state)
   const connections: ConnectionStatus = {
@@ -150,6 +152,35 @@ const SoulSignatureDashboard: React.FC = () => {
       return;
     }
   }, [isSignedIn, navigate]);
+
+  // Check for existing extracted data on mount
+  useEffect(() => {
+    const checkExistingData = async () => {
+      if (!user?.id && !user?.email) return;
+
+      try {
+        const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
+        const userId = user?.id || user?.email;
+
+        // Check if user has any extracted data
+        const response = await fetch(`${apiUrl}/soul-data/check-extracted-data?userId=${userId}`);
+
+        if (response.ok) {
+          const data = await response.json();
+          if (data.hasData) {
+            setHasExtractedData(true);
+            console.log('✅ Existing extracted data found - enabling chat button');
+          }
+        }
+      } catch (error) {
+        console.error('Error checking for existing data:', error);
+        // Don't prevent user from chatting if check fails
+        setHasExtractedData(true);
+      }
+    };
+
+    checkExistingData();
+  }, [user]);
 
   // Detect and authenticate browser extension
   useEffect(() => {
@@ -888,8 +919,8 @@ const SoulSignatureDashboard: React.FC = () => {
           </div>
         </div>
 
-        {/* Privacy Controls Toggle */}
-        <div className="mt-12 text-center">
+        {/* Privacy Controls & Extraction Clarity Toggles */}
+        <div className="mt-12 flex justify-center gap-4">
           <Button
             onClick={() => setShowPrivacyControls(!showPrivacyControls)}
             variant="outline"
@@ -903,12 +934,39 @@ const SoulSignatureDashboard: React.FC = () => {
             {showPrivacyControls ? <Lock className="w-4 h-4 mr-2" /> : <Unlock className="w-4 h-4 mr-2" />}
             {showPrivacyControls ? 'Hide' : 'Show'} Privacy Controls
           </Button>
+
+          <Button
+            onClick={() => setShowExtractionClarity(!showExtractionClarity)}
+            variant="outline"
+            style={{
+              border: '2px solid #D97706',
+              color: '#D97706',
+              fontFamily: 'var(--_typography---font--styrene-a)',
+              fontWeight: 500
+            }}
+          >
+            {showExtractionClarity ? <EyeOff className="w-4 h-4 mr-2" /> : <Eye className="w-4 h-4 mr-2" />}
+            {showExtractionClarity ? 'Hide' : 'Show'} Data Transparency
+          </Button>
         </div>
 
         {/* Privacy Spectrum Dashboard */}
         {showPrivacyControls && (
           <div className="mt-8">
             <PrivacySpectrumDashboard />
+          </div>
+        )}
+
+        {/* Data Extraction Clarity */}
+        {showExtractionClarity && (
+          <div className="mt-8">
+            <DataExtractionClarity
+              userId={user?.id || user?.email}
+              connectedPlatforms={connectedProviders}
+              onPrivacyChange={(category, level) => {
+                console.log(`Privacy change for ${category}: ${level}%`);
+              }}
+            />
           </div>
         )}
 

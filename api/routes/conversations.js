@@ -144,11 +144,11 @@ router.post('/', authenticateUser, userRateLimit(50, 15 * 60 * 1000), validateCo
     }
 
     const conversationData = {
-      student_id: userId,
+      user_id: userId,
       twin_id: twin_id,
       title: title || `Chat with ${twin.name}`,
-      started_at: new Date().toISOString(),
-      last_message_at: new Date().toISOString()
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
     };
 
     const { data: conversation, error } = await serverDb.createConversation(conversationData);

@@ -10,10 +10,17 @@ import { createClient } from '@supabase/supabase-js';
 import { spawn } from 'child_process';
 import crypto from 'crypto';
 
-const supabase = createClient(
-  process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+// Lazy initialization to avoid crashes if env vars not loaded yet
+let supabase = null;
+function getSupabaseClient() {
+  if (!supabase) {
+    supabase = createClient(
+      process.env.SUPABASE_URL,
+      process.env.SUPABASE_SERVICE_ROLE_KEY
+    );
+  }
+  return supabase;
+}
 
 // MCP Server Configurations
 const MCP_SERVER_CONFIGS = {

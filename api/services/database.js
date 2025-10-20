@@ -319,8 +319,8 @@ export const serverDb = {
       const { data, error } = await supabaseAdmin
         .from('conversations')
         .select('*')
-        .eq('student_id', studentId)
-        .order('last_message_at', { ascending: false });
+        .eq('user_id', studentId)
+        .order('updated_at', { ascending: false });
 
       if (error) {
         console.error('Error fetching conversations:', error);
@@ -337,7 +337,7 @@ export const serverDb = {
     try {
       const { error } = await supabaseAdmin
         .from('conversations')
-        .update({ last_message_at: new Date().toISOString() })
+        .update({ updated_at: new Date().toISOString() })
         .eq('id', conversationId);
 
       if (error) {
