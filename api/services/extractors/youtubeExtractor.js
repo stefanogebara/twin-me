@@ -441,13 +441,13 @@ class YouTubeExtractor {
   }
 
   /**
-   * Store raw data in database
+   * Store raw data in database using UPSERT to prevent duplicates
    */
   async storeRawData(userId, platform, dataType, rawData) {
     try {
       const { error } = await supabase
         .from('user_platform_data')
-        .insert({
+        .upsert({
           user_id: userId,
           platform,
           data_type: dataType,
@@ -455,6 +455,9 @@ class YouTubeExtractor {
           source_url: rawData.url || null,
           extracted_at: new Date().toISOString(),
           processed: false
+        }, {
+          onConflict: 'user_id,platform,data_type,source_url',
+          ignoreDuplicates: false
         });
 
       if (error) {
