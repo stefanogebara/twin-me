@@ -9,10 +9,17 @@ import stylometricAnalyzer from './stylometricAnalyzer.js';
 import { sanitizeUnicode, sanitizeObject } from '../utils/unicodeSanitizer.js';
 
 // Use SUPABASE_URL (backend) - fallback to VITE_ prefix for compatibility
-const supabase = createClient(
-  process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+// Lazy initialization to avoid crashes if env vars not loaded yet
+let supabase = null;
+function getSupabaseClient() {
+  if (!supabase) {
+    supabase = createClient(
+      process.env.SUPABASE_URL,
+      process.env.SUPABASE_SERVICE_ROLE_KEY
+    );
+  }
+  return supabase;
+}
 
 // Log initialization status
 console.log('[RAG Service] Supabase client initialized:', {

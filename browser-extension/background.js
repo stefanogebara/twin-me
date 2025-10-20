@@ -222,6 +222,48 @@ async function sendSoulObserverData(data) {
     console.log('[Soul Observer] Response status:', response.status, response.statusText);
 
     if (!response.ok) {
+      // Handle 401 Unauthorized - token expired/invalid
+      if (response.status === 401) {
+        console.error('[Soul Observer] ❌ Token expired or invalid - clearing stored token');
+
+        // Clear the expired token
+        authToken = null;
+        await chrome.storage.sync.remove(['authToken']);
+        console.log('[Soul Observer] 🗑️  Expired token cleared from storage');
+
+        // Try to parse error response to check if token was expired
+        let tokenExpired = false;
+        try {
+          const errorData = await response.json();
+          tokenExpired = errorData.tokenExpired === true;
+          console.log('[Soul Observer] Token expired status:', tokenExpired);
+        } catch (e) {
+          // Couldn't parse response, assume token issue
+          tokenExpired = true;
+        }
+
+        // Notify user they need to re-authenticate
+        chrome.notifications.create('soul-observer-auth-required', {
+          type: 'basic',
+          iconUrl: 'icons/icon48.png',
+          title: 'Soul Observer: Authentication Required',
+          message: tokenExpired
+            ? 'Your session has expired. Click here to log in again.'
+            : 'Authentication failed. Click here to log in.',
+          priority: 2,
+          requireInteraction: true
+        });
+
+        // Open login page when user clicks the notification
+        chrome.notifications.onClicked.addListener(function(notificationId) {
+          if (notificationId === 'soul-observer-auth-required') {
+            chrome.tabs.create({ url: `${CLIENT_URL}/auth` });
+          }
+        });
+
+        throw new Error('Authentication required - please log in');
+      }
+
       const errorText = await response.text();
       console.error('[Soul Observer] Backend error response:', errorText);
       throw new Error(`Backend error: ${response.status} - ${errorText}`);
@@ -261,6 +303,24 @@ async function sendSoulObserverSession(sessionData) {
     });
 
     if (!response.ok) {
+      // Handle 401 Unauthorized - token expired
+      if (response.status === 401) {
+        console.error('[Soul Observer] ❌ Token expired during session send - clearing token');
+        authToken = null;
+        await chrome.storage.sync.remove(['authToken']);
+
+        chrome.notifications.create('soul-observer-session-auth-required', {
+          type: 'basic',
+          iconUrl: 'icons/icon48.png',
+          title: 'Soul Observer: Authentication Required',
+          message: 'Your session has expired. Please log in again.',
+          priority: 2,
+          requireInteraction: true
+        });
+
+        throw new Error('Token expired - please re-authenticate');
+      }
+
       throw new Error(`Backend error: ${response.status}`);
     }
 

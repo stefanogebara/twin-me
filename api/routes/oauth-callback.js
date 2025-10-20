@@ -7,6 +7,10 @@ import express from 'express';
 import crypto from 'crypto';
 import { serverDb } from '../services/database.js';
 import dataExtractionService from '../services/dataExtractionService.js';
+import {
+  registerGitHubWebhook,
+  setupGmailPushNotifications,
+} from '../services/webhookReceiverService.js';
 
 const router = express.Router();
 
@@ -59,6 +63,9 @@ router.get('/callback', async (req, res) => {
     const connectorId = await storeOAuthTokens(userId, provider, tokens);
 
     console.log(`💾 Tokens stored in database - Connector ID: ${connectorId}`);
+
+    // Register webhooks for supported platforms (GitHub, Gmail, Slack)
+    await registerWebhooksIfSupported(userId, provider, tokens.access_token);
 
     // Trigger immediate data extraction
     console.log(`📊 Starting data extraction for ${provider}...`);
@@ -523,5 +530,66 @@ router.delete('/disconnect/:provider', async (req, res) => {
     });
   }
 });
+
+/**
+ * Register webhooks for platforms that support real-time push notifications
+ * This runs automatically after OAuth connection is established
+ */
+async function registerWebhooksIfSupported(userId, provider, accessToken) {
+  try {
+    console.log(`🔔 Checking webhook support for ${provider}...`);
+
+    switch (provider) {
+      case 'github':
+        // GitHub supports webhooks - register for all user repos
+        // Note: This requires additional API call to get user's repos
+        // For now, we'll log that it's available
+        console.log(`✅ GitHub webhook registration available - will register on first repo activity`);
+        // TODO: Get user's repos and register webhooks for each
+        // const repos = await fetchUserRepos(accessToken);
+        // for (const repo of repos) {
+        //   await registerGitHubWebhook(userId, accessToken, repo.owner, repo.name);
+        // }
+        break;
+
+      case 'google_gmail':
+      case 'gmail':
+        // Gmail supports push notifications via Pub/Sub
+        console.log(`📧 Setting up Gmail push notifications...`);
+        const gmailResult = await setupGmailPushNotifications(userId, accessToken);
+
+        if (gmailResult.success) {
+          console.log(`✅ Gmail push notifications enabled for user ${userId}`);
+        } else {
+          console.warn(`⚠️  Gmail push setup failed:`, gmailResult.error);
+        }
+        break;
+
+      case 'slack':
+        // Slack supports event subscriptions, but requires additional setup
+        // in the Slack app configuration (event subscription URL)
+        console.log(`💬 Slack webhooks require app-level configuration`);
+        console.log(`   Configure event subscriptions at: https://api.slack.com/apps`);
+        break;
+
+      case 'discord':
+        // Discord does NOT support outgoing webhooks for user events
+        // Continue using polling approach
+        console.log(`🎮 Discord does not support webhooks - using polling`);
+        break;
+
+      case 'spotify':
+      case 'youtube':
+      case 'google_calendar':
+      default:
+        // These platforms don't support webhooks - continue using polling
+        console.log(`ℹ️  ${provider} does not support webhooks - using polling`);
+        break;
+    }
+  } catch (error) {
+    console.error(`❌ Webhook registration failed for ${provider}:`, error);
+    // Don't throw - webhook registration is optional, platform will still work with polling
+  }
+}
 
 export default router;

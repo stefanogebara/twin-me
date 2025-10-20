@@ -13,6 +13,7 @@ export const authenticateUser = async (req, res, next) => {
     const authHeader = req.headers.authorization;
 
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      console.log(`[Auth] ❌ Missing authorization header for ${req.path}`);
       return res.status(401).json({
         error: 'Unauthorized',
         message: 'Missing or invalid authorization header'
@@ -23,6 +24,7 @@ export const authenticateUser = async (req, res, next) => {
     const token = authHeader.substring(7); // Remove 'Bearer ' prefix
 
     if (!token) {
+      console.log(`[Auth] ❌ No token provided for ${req.path}`);
       return res.status(401).json({
         error: 'Unauthorized',
         message: 'No token provided'
@@ -42,15 +44,17 @@ export const authenticateUser = async (req, res, next) => {
 
       next();
     } catch (verifyError) {
-      console.error('Token verification failed:', verifyError);
+      console.error('[Auth] ❌ Token verification failed for ${req.path}:', verifyError.name);
       return res.status(401).json({
         error: 'Unauthorized',
-        message: 'Invalid or expired token'
+        message: 'Invalid or expired token',
+        tokenExpired: verifyError.name === 'TokenExpiredError',
+        details: process.env.NODE_ENV === 'development' ? verifyError.message : undefined
       });
     }
 
   } catch (error) {
-    console.error('Authentication middleware error:', error);
+    console.error('[Auth] ❌ Unexpected error:', error);
     return res.status(500).json({
       error: 'Authentication service error',
       message: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'

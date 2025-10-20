@@ -4,10 +4,11 @@
  */
 
 import React, { useState, useEffect } from 'react';
-import { Loader2, CheckCircle2, AlertCircle, Music, Github, MessageSquare, Sparkles } from 'lucide-react';
+import { Loader2, CheckCircle2, AlertCircle } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
+import { getPlatformIcon, getPlatformColor, PlatformIcon } from './PlatformIcons';
 
 interface ExtractionProgress {
   platform: string;
@@ -32,20 +33,6 @@ interface Props {
   onComplete?: () => void;
   className?: string;
 }
-
-const platformIcons: Record<string, React.ElementType> = {
-  spotify: Music,
-  github: Github,
-  discord: MessageSquare,
-  linkedin: Sparkles,
-};
-
-const platformColors: Record<string, string> = {
-  spotify: 'text-green-500',
-  github: 'text-purple-500',
-  discord: 'text-indigo-500',
-  linkedin: 'text-blue-500',
-};
 
 export const ExtractionProgressIndicator: React.FC<Props> = ({
   userId,
@@ -223,18 +210,13 @@ export const ExtractionProgressIndicator: React.FC<Props> = ({
               const progress = platformProgress[platform];
               if (!progress) return null;
 
-              const Icon = platformIcons[platform] || Sparkles;
-              const colorClass = platformColors[platform] || 'text-gray-500';
-
               return (
                 <div
                   key={platform}
                   className="flex items-center justify-between p-3 bg-[hsl(var(--claude-surface-raised))] rounded-lg border border-[hsl(var(--claude-border))]"
                 >
                   <div className="flex items-center gap-3 flex-1">
-                    <div className={colorClass}>
-                      <Icon className="w-5 h-5" />
-                    </div>
+                    <PlatformIcon platform={platform} size="md" colored />
                     <div className="flex-1">
                       <div className="flex items-center justify-between">
                         <span className="text-sm font-medium text-[hsl(var(--claude-text))] capitalize">

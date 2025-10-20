@@ -179,9 +179,11 @@ const App = () => {
             <Route path="/privacy-spectrum" element={
               <>
                 <SignedIn>
-                  <ErrorBoundary>
-                    <PrivacySpectrumDashboard />
-                  </ErrorBoundary>
+                  <SidebarLayout>
+                    <ErrorBoundary>
+                      <PrivacySpectrumDashboard />
+                    </ErrorBoundary>
+                  </SidebarLayout>
                 </SignedIn>
                 <SignedOut>
                   <CustomAuth />

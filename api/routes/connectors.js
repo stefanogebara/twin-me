@@ -527,13 +527,25 @@ router.get('/status/:userId', async (req, res) => {
         console.warn(`⚠️ Token expired for ${connection.platform}, needs reconnection via UI`);
       }
 
+      // Determine the current status
+      // Use the stored last_sync_status from the database as the primary source
+      let status = connection.last_sync_status || connection.metadata?.last_sync_status || 'unknown';
+
+      // Only override with 'token_expired' if:
+      // 1. The token is actually expired NOW
+      // 2. AND we don't have a sync status OR the last status was 'success'
+      // This prevents overriding 'failed' or other error states with 'token_expired'
+      if (isTokenExpired && (status === 'success' || status === 'unknown')) {
+        status = 'token_expired';
+      }
+
       connectionStatus[connection.platform] = {
         connected: isConnected,  // May be forced true for encryption_key_mismatch
         isActive: isActive,      // Actual usability - false if token expired
         tokenExpired: isTokenExpired,
         connectedAt: connection.metadata?.connected_at || null,
         lastSync: connection.last_sync || connection.metadata?.last_sync || null,
-        status: connection.last_sync_status || (isTokenExpired ? 'token_expired' : (connection.metadata?.last_sync_status || 'unknown')),
+        status: status,
         expiresAt: expiresAt
       };
     });

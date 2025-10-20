@@ -9,10 +9,17 @@ import axios from 'axios';
 import { createClient } from '@supabase/supabase-js';
 import { decryptToken } from './encryption.js';
 
-const supabase = createClient(
-  process.env.SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+// Lazy initialization to avoid crashes if env vars not loaded yet
+let supabase = null;
+function getSupabaseClient() {
+  if (!supabase) {
+    supabase = createClient(
+      process.env.SUPABASE_URL,
+      process.env.SUPABASE_SERVICE_ROLE_KEY
+    );
+  }
+  return supabase;
+}
 
 /**
  * Main extraction function - retrieves all Reddit data
