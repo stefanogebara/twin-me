@@ -527,9 +527,150 @@ const SoulSignatureDashboard: React.FC = () => {
     }
   };
 
-  const startExtraction = () => {
+  const startExtraction = async () => {
     setIsExtracting(true);
     setExtractionProgress(0);
+
+    try {
+      console.log('🚀 Starting real soul extraction...');
+
+      // Start progress animation
+      let progress = 0;
+      const progressInterval = setInterval(() => {
+        progress += 5;
+        setExtractionProgress(Math.min(progress, 90)); // Cap at 90% until complete
+      }, 200);
+
+      const userId = user?.id || user?.email || 'anonymous-user';
+      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
+
+      // Step 1: Extract all platform data (20%)
+      console.log('📊 Step 1: Extracting platform data...');
+      const extractResponse = await fetch(`${apiUrl}/soul-data/extract-all`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId })
+      });
+
+      if (!extractResponse.ok) {
+        throw new Error('Failed to extract platform data');
+      }
+
+      setExtractionProgress(25);
+
+      // Step 2: Process text data (40%)
+      console.log('📝 Step 2: Processing text data...');
+      const processResponse = await fetch(`${apiUrl}/soul-data/process`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId, limit: 100 })
+      });
+
+      if (!processResponse.ok) {
+        throw new Error('Failed to process text data');
+      }
+
+      setExtractionProgress(45);
+
+      // Step 3: Analyze communication style (60%)
+      console.log('🧠 Step 3: Analyzing communication style...');
+      const analyzeResponse = await fetch(`${apiUrl}/soul-data/analyze-style`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId })
+      });
+
+      if (!analyzeResponse.ok) {
+        throw new Error('Failed to analyze style');
+      }
+
+      const styleData = await analyzeResponse.json();
+      setExtractionProgress(65);
+
+      // Step 4: Generate embeddings (80%)
+      console.log('🔮 Step 4: Generating embeddings...');
+      const embeddingsResponse = await fetch(`${apiUrl}/soul-data/generate-embeddings`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId, limit: 50 })
+      });
+
+      setExtractionProgress(85);
+
+      // Step 5: Get the updated style profile
+      console.log('✨ Step 5: Fetching soul signature...');
+      const profileResponse = await fetch(`${apiUrl}/soul-data/style-profile?userId=${userId}`);
+
+      if (profileResponse.ok) {
+        const profileData = await profileResponse.json();
+
+        if (profileData.success && profileData.profile) {
+          const profile = profileData.profile;
+
+          // Calculate real uniqueness score
+          const uniqueness = calculateUniquenessScore(profile);
+          setUniquenessScore(uniqueness);
+
+          // Build real insights from actual data
+          const personalInsights = [];
+          const professionalInsights = [];
+
+          // Add personality traits to insights
+          if (profile.personality_traits) {
+            const traits = profile.personality_traits;
+            personalInsights.push(`🎨 Openness: ${Math.round((traits.openness || 0.5) * 100)}%`);
+            personalInsights.push(`🗣️ Extraversion: ${Math.round((traits.extraversion || 0.5) * 100)}%`);
+            personalInsights.push(`😊 Agreeableness: ${Math.round((traits.agreeableness || 0.5) * 100)}%`);
+            professionalInsights.push(`✅ Conscientiousness: ${Math.round((traits.conscientiousness || 0.5) * 100)}%`);
+            professionalInsights.push(`😰 Neuroticism: ${Math.round((traits.neuroticism || 0.5) * 100)}%`);
+          }
+
+          // Add communication style
+          if (profile.communication_style) {
+            personalInsights.push(`💬 Communication: ${profile.communication_style}`);
+          }
+
+          if (profile.humor_style) {
+            personalInsights.push(`😄 Humor Style: ${profile.humor_style}`);
+          }
+
+          // Add confidence and sample size
+          if (profile.confidence_score) {
+            professionalInsights.push(`📊 Confidence: ${Math.round(profile.confidence_score * 100)}%`);
+          }
+
+          if (profile.sample_size) {
+            professionalInsights.push(`📝 Analyzed ${profile.sample_size} samples`);
+          }
+
+          // Update insights for both clusters
+          setExtractedInsights({
+            personal: personalInsights.length > 0 ? personalInsights : ['Extraction complete - building insights...'],
+            professional: professionalInsights.length > 0 ? professionalInsights : ['Analysis complete - processing data...']
+          });
+
+          setHasExtractedData(true);
+          console.log('✅ Soul signature extraction complete!');
+        }
+      }
+
+      clearInterval(progressInterval);
+      setExtractionProgress(100);
+
+      // Complete animation
+      setTimeout(() => {
+        setIsExtracting(false);
+        setExtractionProgress(0);
+      }, 500);
+
+    } catch (error) {
+      console.error('❌ Soul extraction failed:', error);
+      setIsExtracting(false);
+      setExtractionProgress(0);
+
+      // Show error to user
+      alert(`Extraction failed: ${error.message}\n\nPlease make sure you have connected at least one platform and try again.`);
+    }
   };
 
   const currentCluster = clusters.find(c => c.id === activeCluster)!;

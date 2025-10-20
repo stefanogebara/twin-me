@@ -184,6 +184,7 @@ import oauthCallbackRoutes from './routes/oauth-callback.js';
 import dashboardRoutes from './routes/dashboard.js';
 import trainingRoutes from './routes/training.js';
 import diagnosticsRoutes from './routes/diagnostics.js';
+import dataSourcesRoutes from './routes/data-sources.js';
 import { serverDb } from './services/database.js';
 import { sanitizeInput, validateContentType } from './middleware/sanitization.js';
 import { /* handleAuthError, */ handleGeneralError, handle404 } from './middleware/errorHandler.js';
@@ -203,6 +204,7 @@ app.use('/api/entertainment', entertainmentRoutes);
 app.use('/api/entertainment', additionalEntertainmentRoutes);
 app.use('/api/soul', soulExtractionRoutes);
 app.use('/api/soul-data', soulDataRoutes);
+app.use('/api/data-sources', dataSourcesRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/oauth', oauthCallbackRoutes); // Unified OAuth callback handler
 app.use('/api/dashboard', dashboardRoutes);
