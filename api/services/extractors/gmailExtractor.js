@@ -133,10 +133,10 @@ class GmailExtractor {
             metadata[header.name] = header.value;
           }
 
-          // Store email metadata
+          // Store email metadata using UPSERT to prevent duplicates
           await supabase
             .from('user_platform_data')
-            .insert({
+            .upsert({
               user_id: userId,
               platform: 'google_gmail',
               data_type: 'email_metadata',
@@ -148,7 +148,12 @@ class GmailExtractor {
                 internalDate: message.data.internalDate,
                 metadata
               },
-              extracted_at: new Date().toISOString()
+              source_url: `https://mail.google.com/mail/u/0/#inbox/${message.data.id}`,
+              extracted_at: new Date().toISOString(),
+              processed: false
+            }, {
+              onConflict: 'user_id,platform,data_type,source_url',
+              ignoreDuplicates: false
             });
 
           emailCount++;
@@ -186,15 +191,20 @@ class GmailExtractor {
         extracted_at: new Date().toISOString()
       };
 
-      // Store patterns
+      // Store patterns using UPSERT to prevent duplicates
       await supabase
         .from('user_platform_data')
-        .insert({
+        .upsert({
           user_id: userId,
           platform: 'google_gmail',
           data_type: 'sent_patterns',
           raw_data: patterns,
-          extracted_at: new Date().toISOString()
+          source_url: 'gmail://sent_patterns',
+          extracted_at: new Date().toISOString(),
+          processed: false
+        }, {
+          onConflict: 'user_id,platform,data_type,source_url',
+          ignoreDuplicates: false
         });
 
       return 1;
@@ -222,15 +232,20 @@ class GmailExtractor {
         extracted_at: new Date().toISOString()
       };
 
-      // Store insights
+      // Store insights using UPSERT to prevent duplicates
       await supabase
         .from('user_platform_data')
-        .insert({
+        .upsert({
           user_id: userId,
           platform: 'google_gmail',
           data_type: 'communication_insights',
           raw_data: insights,
-          extracted_at: new Date().toISOString()
+          source_url: 'gmail://communication_insights',
+          extracted_at: new Date().toISOString(),
+          processed: false
+        }, {
+          onConflict: 'user_id,platform,data_type,source_url',
+          ignoreDuplicates: false
         });
 
       return 1;
