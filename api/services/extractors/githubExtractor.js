@@ -69,17 +69,17 @@ class GitHubExtractor {
 
       for (const repo of repos.slice(0, 20)) { // Limit to 20 repos for initial version
         try {
-          // Get commits from this repo
-          const commits = await this.octokit.paginate(
+          // Get commits from this repo (limit to 50 per repo)
+          const allCommits = await this.octokit.paginate(
             this.octokit.repos.listCommits,
             {
               owner: repo.owner.login,
               repo: repo.name,
               author: username,
               per_page: 100
-            },
-            { mapFn: commits => commits.slice(0, 50) } // Limit to 50 commits per repo
+            }
           );
+          const commits = allCommits.slice(0, 50); // Limit to 50 commits per repo
 
           for (const commit of commits) {
             await this.storeRawData(userId, 'github', 'commit', {
@@ -118,16 +118,16 @@ class GitHubExtractor {
     let itemCount = 0;
 
     try {
-      // Get issues created by or assigned to user
-      const issues = await this.octokit.paginate(
+      // Get issues created by or assigned to user (limit to 100 total)
+      const allIssues = await this.octokit.paginate(
         this.octokit.issues.listForAuthenticatedUser,
         {
           filter: 'all',
           state: 'all',
           per_page: 100
-        },
-        { mapFn: issues => issues.slice(0, 100) } // Limit to 100 issues
+        }
       );
+      const issues = allIssues.slice(0, 100); // Limit to 100 issues
 
       for (const issue of issues) {
         // Skip pull requests (they have pull_request property)
@@ -204,16 +204,17 @@ class GitHubExtractor {
 
       for (const repo of repos.slice(0, 20)) {
         try {
-          const prs = await this.octokit.paginate(
+          // Get PRs for this repo (limit to 30 per repo)
+          const allPrs = await this.octokit.paginate(
             this.octokit.pulls.list,
             {
               owner: repo.owner.login,
               repo: repo.name,
               state: 'all',
               per_page: 100
-            },
-            { mapFn: prs => prs.slice(0, 30) }
+            }
           );
+          const prs = allPrs.slice(0, 30); // Limit to 30 PRs per repo
 
           for (const pr of prs) {
             if (pr.user.login === username) {
@@ -263,16 +264,17 @@ class GitHubExtractor {
 
       for (const repo of repos.slice(0, 15)) {
         try {
-          const prs = await this.octokit.paginate(
+          // Get PRs for review extraction (limit to 20 per repo)
+          const allPrs = await this.octokit.paginate(
             this.octokit.pulls.list,
             {
               owner: repo.owner.login,
               repo: repo.name,
               state: 'all',
               per_page: 100
-            },
-            { mapFn: prs => prs.slice(0, 20) }
+            }
           );
+          const prs = allPrs.slice(0, 20); // Limit to 20 PRs per repo
 
           for (const pr of prs) {
             try {

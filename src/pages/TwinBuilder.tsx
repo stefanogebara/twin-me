@@ -304,7 +304,7 @@ const TwinBuilder = () => {
             <button
               className="btn-anthropic-primary flex-1 py-[14px] px-8 rounded-full font-medium text-sm cursor-pointer border-none"
               style={{ fontFamily: 'var(--_typography---font--tiempos)' }}
-              onClick={() => navigate('/twin-activation')}
+              onClick={() => navigate('/soul-signature')}
             >
               Activate Twin
             </button>

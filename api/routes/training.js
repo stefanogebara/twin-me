@@ -39,7 +39,7 @@ router.get('/status', async (req, res) => {
     // Get connected platforms count
     const { data: platforms, error: platformsError } = await supabase
       .from('soul_data_sources')
-      .select('provider', { count: 'exact' })
+      .select('platform', { count: 'exact' })
       .eq('user_id', userId)
       .eq('status', 'connected');
 

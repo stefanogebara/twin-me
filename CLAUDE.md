@@ -4,6 +4,21 @@
 
 **Soul Signature Platform** (TwinMe) is a revolutionary digital identity platform that creates authentic digital twins by capturing your true originality - not just your public persona, but your complete soul signature. The platform discovers what makes you genuinely YOU through digital footprints that reveal your authentic curiosities, passions, and characteristics.
 
+## Recent Updates (January 2025)
+
+### Platform Refinement
+- **Removed Educational Features**: Eliminated 2,041 lines of code related to professor chat and educational onboarding to focus purely on Soul Signature discovery
+- **Authentic Data Only**: Removed all sample data fallbacks (262 lines), platform now uses only real user data
+- **Claude AI Personality Analysis**: Replaced simplistic keyword matching with Claude 3.5 Sonnet for sophisticated Big Five personality trait analysis
+- **Soul Signature Branding**: Rebranded user-facing language from "Digital Twin" to "Soul Signature" for clearer platform identity
+- **Data Quality Indicators**: Added extraction status badges showing connection and extraction states with visual quality indicators
+
+### Technical Improvements
+- **Claude API Integration**: `api/services/stylometricAnalyzer.js` now uses Claude for context-aware personality analysis
+- **Authentic Error States**: Spotify/YouTube failures return honest "NO_DATA" errors instead of fake fallbacks
+- **Type System Updates**: Core types updated to reflect Soul Signature extraction focus
+- **Frontend Extraction Controls**: Enhanced SoulDataExtractor component with real-time progress and quality scores
+
 ## Core Philosophy: The Soul Signature
 
 > "Perhaps we are searching in the branches for what we only find in the roots." - Rami
@@ -397,6 +412,267 @@ router.get('/callback/:platform', async (req, res) => {
 2. **Update extraction logic** in `api/routes/soul-extraction.js`
 3. **Add privacy controls** in `src/components/PrivacySpectrumDashboard.tsx`
 4. **Visualize in dashboard** in `src/pages/SoulSignatureDashboard.tsx`
+
+## Visual Development Workflow
+
+### Design Principles & Style Guide
+- **Comprehensive design checklist**: `/context/design-principles.md` - World-class UI/UX standards inspired by Stripe, Airbnb, and Linear
+- **Component patterns & tokens**: `/context/style-guide.md` - Ready-to-use code patterns with Anthropic-inspired design system
+- **When making visual (front-end, UI/UX) changes**, always refer to these files for guidance on:
+  - Color tokens and HSL custom properties
+  - Typography scale and font families
+  - Spacing system and border radii
+  - Component design standards
+  - Accessibility requirements (WCAG AA+)
+  - Animation patterns and micro-interactions
+
+### Quick Visual Verification Workflow
+
+IMMEDIATELY after implementing any front-end change, follow this verification process:
+
+1. **Identify What Changed** - Review the modified components/pages
+2. **Start Local Dev Server** - Ensure `npm run dev` is running on `http://localhost:8086`
+3. **Navigate to Affected Pages** - Use `mcp__playwright__browser_navigate` to visit each changed view
+4. **Verify Design Compliance** - Compare against `/context/design-principles.md` and `/context/style-guide.md`:
+   - Color tokens match design system
+   - Typography follows established scale
+   - Spacing uses 8px base unit system
+   - Interactive states (hover, focus, active) are properly styled
+   - Accessibility features present (focus rings, ARIA labels, semantic HTML)
+5. **Validate Feature Implementation** - Ensure the change fulfills the user's specific request
+6. **Check Acceptance Criteria** - Review any provided context files or requirements
+7. **Capture Evidence** - Take full page screenshot at desktop viewport (1440px) of each changed view
+8. **Check for Errors** - Run `mcp__playwright__browser_console_messages` to catch JavaScript errors
+
+**Example Workflow:**
+```typescript
+// After implementing new Soul Signature Dashboard card
+await mcp__playwright__browser_navigate('http://localhost:8086/soul-signature');
+await mcp__playwright__browser_resize({ width: 1440, height: 900 });
+await mcp__playwright__browser_take_screenshot({ filename: 'soul-signature-dashboard.png' });
+const consoleMessages = await mcp__playwright__browser_console_messages({ onlyErrors: true });
+```
+
+This verification ensures changes meet design standards and user requirements BEFORE requesting comprehensive review.
+
+### Comprehensive Design Review
+
+Invoke the `@agent-design-review` subagent for thorough design validation when:
+- Completing significant UI/UX features
+- Before finalizing PRs with visual changes
+- Needing comprehensive accessibility and responsiveness testing
+- Implementing new components or page layouts
+- Making changes to the design system itself
+
+**Slash Command Alternative:**
+Use `/design-review` for on-demand design reviews of pending git changes
+
+**What the Design Review Agent Does:**
+1. **Interaction Testing**: Tests user flows, interactive states (hover, active, disabled), confirmations
+2. **Responsiveness**: Verifies 1440px (desktop), 768px (tablet), 375px (mobile) viewports
+3. **Visual Polish**: Checks alignment, spacing, typography, color consistency
+4. **Accessibility**: Tests keyboard navigation, focus states, WCAG 2.1 AA compliance
+5. **Robustness**: Tests edge cases, error states, loading states, content overflow
+6. **Code Health**: Verifies component reuse, design token usage, pattern adherence
+7. **Console & Content**: Checks for errors, grammar, clarity
+
+**Review Output Format:**
+```markdown
+### Design Review Summary
+[Positive opening and overall assessment]
+
+### Findings
+
+#### Blockers
+- [Critical failures requiring immediate fix + screenshot]
+
+#### High-Priority
+- [Significant issues to fix before merge + screenshot]
+
+#### Medium-Priority / Suggestions
+- [Improvements for follow-up]
+
+#### Nitpicks
+- Nit: [Minor aesthetic details]
+```
+
+### Development Server URL
+
+**IMPORTANT**: All Playwright MCP browser navigation must use the correct local development URL:
+```
+http://localhost:8086
+```
+
+This is the Vite dev server running the React frontend. Do NOT use http://localhost:3001 (that's the Express API server).
+
+### Design System Quick Reference
+
+**Primary Colors:**
+- Background: `bg-[hsl(var(--claude-bg))]` (#FAF9F5 - warm ivory)
+- Surface: `bg-[hsl(var(--claude-surface))]` (#FFFFFF - white cards)
+- Accent: `bg-[hsl(var(--claude-accent))]` (#D97706 - orange)
+- Text: `text-[hsl(var(--claude-text))]` (#141413 - deep slate)
+
+**Typography:**
+- Heading: `font-heading` (Space Grotesk)
+- Body: `font-body` (Source Serif 4)
+- UI: `font-ui` (DM Sans)
+
+**Common Patterns:**
+- Primary CTA: Orange accent button with icon
+- Card: White surface with subtle border
+- Status Badge: Colored with icon (connected, extracting, error)
+- Empty State: Centered with icon, heading, description, CTA
+
+## Code Review Workflow
+
+### Pragmatic Quality Framework
+
+The Soul Signature platform follows Anthropic's "Pragmatic Quality" code review methodology:
+- **Net Positive > Perfection**: Changes should definitively improve code health, even if not perfect
+- **Focus on Substance**: Emphasize architecture, security, and business logic over style
+- **Grounded in Principles**: Feedback based on SOLID, DRY, KISS, YAGNI principles
+- **Development Velocity**: Balance rigorous standards with shipping speed
+
+### When to Request Code Review
+
+**Automatic Reviews (via `/code-review`):**
+- After implementing a new feature or significant refactor
+- Before merging a pull request
+- After security-critical changes (OAuth, API keys, data handling)
+- When touching core platform systems (soul extraction, privacy controls, AI integration)
+
+**Examples:**
+- "I've added a new platform connector for Discord"
+- "Refactored the soul extraction pipeline for better performance"
+- "Updated privacy intensity sliders with new validation"
+- "Integrated Claude API for personality analysis"
+
+### Code Review Agent
+
+Invoke the `@agent-code-review` subagent for comprehensive reviews that analyze:
+
+1. **Architectural Design** (Critical)
+   - Modularity and Single Responsibility Principle
+   - Separation of concerns (frontend/backend/AI services)
+   - Platform connector isolation and reusability
+   - Soul extraction pipeline patterns
+
+2. **Functionality & Correctness** (Critical)
+   - Business logic implementation
+   - Edge case handling (missing data, API failures, rate limits)
+   - OAuth flows (token expiration, revocation, network errors)
+   - Privacy controls (0-100% validation, concurrent updates)
+
+3. **Security** (Non-Negotiable)
+   - **OAuth Security**: State validation, secure token storage, refresh handling
+   - **API Keys**: Environment variables only, never hardcoded
+   - **User Data Privacy**: RLS policies, proper access controls
+   - **Input Validation**: All user inputs sanitized (XSS, SQLi prevention)
+   - **Supabase Security**: Proper RLS, restricted service role usage
+
+4. **Maintainability & Readability** (High Priority)
+   - Descriptive naming (`soulDataService`, `extractionPipeline`)
+   - TypeScript interfaces (`SoulSignature`, `LifeCluster`, `PrivacySettings`)
+   - Comments explaining "why" (privacy decisions, AI model choices, platform quirks)
+
+5. **Testing Strategy** (High Priority)
+   - OAuth flows: Token refresh, expiration, revocation scenarios
+   - Soul extraction: Partial data, API failures, rate limiting
+   - Privacy controls: Boundary values (0%, 100%), concurrent updates
+   - RAG chat: No context, large context, API failures
+
+6. **Performance & Scalability** (Important)
+   - Database query efficiency, N+1 problems
+   - React Query caching, lazy loading
+   - Platform data extraction: Batch processing, rate limit handling
+   - Personality analysis: Claude API batching, result caching
+
+7. **Dependencies & Documentation** (Important)
+   - New platform integrations: OAuth scopes, API limits, data structure
+   - AI service changes: Model versions, prompt templates, fallback behavior
+   - Database migrations: Rollback scripts, schema documentation
+
+### Slash Command Usage
+
+Use `/code-review` for on-demand reviews of pending git changes:
+
+```bash
+# Review all uncommitted changes
+/code-review
+
+# Or be specific
+/code-review Please review the last 3 commits
+```
+
+### Review Output Format
+
+```markdown
+### Code Review Summary
+[Overall assessment: ready to merge?]
+[Positive highlights]
+
+---
+
+### Findings
+
+#### Critical Issues / Blockers
+- **[File:Line]** [Issue]
+  - **Problem**: [What's wrong and why critical]
+  - **Impact**: [Effect on users/security/system]
+  - **Recommendation**: [Specific action]
+
+#### High-Priority Issues
+- **[File:Line]** [Issue]
+  - **Problem**: [What could be improved]
+  - **Recommendation**: [Specific suggestion]
+
+#### Suggested Improvements
+- **[File:Line]** [Enhancement]
+  - **Benefit**: [How this improves quality]
+
+#### Nitpicks
+- **Nit**: [File:Line]: [Minor detail]
+
+---
+
+### Positive Highlights
+- [Exceptional work]
+
+---
+
+### Testing Recommendations
+- [Specific test scenarios]
+
+---
+
+### Next Steps
+1. [Priority actions]
+```
+
+### Soul Signature Security Checklist
+
+**Before Merging ANY Code:**
+- [ ] No hardcoded API keys or secrets (grep for `ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, etc.)
+- [ ] OAuth state validation present for all platform connectors
+- [ ] User input validated on all endpoints (soul data, chat messages, privacy settings)
+- [ ] Supabase RLS policies tested for new tables/columns
+- [ ] Error messages don't expose sensitive data (tokens, user IDs, internal paths)
+- [ ] Platform API rate limits handled gracefully
+- [ ] TypeScript types defined for all new interfaces
+- [ ] Privacy controls properly validated (0-100% range, database persistence)
+
+### Dual-Loop Architecture
+
+**Inner Loop** (Development):
+- Use `@agent-code-review` or `/code-review` during development
+- Quick feedback on architecture, security, functionality
+- Iterate rapidly with AI-assisted reviews
+
+**Outer Loop** (CI/CD):
+- GitHub Actions with automated code review (future enhancement)
+- Runs on every PR before human review
+- Ensures consistent quality standards
 
 ## Code Standards
 

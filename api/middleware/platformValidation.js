@@ -142,10 +142,10 @@ export const requirePlatformConnection = asyncHandler(async (req, res, next) => 
 
   // Check database for platform connection
   const { data: connection, error } = await supabase
-    .from('data_connectors')
+    .from('platform_connections')
     .select('*')
     .eq('user_id', userId)
-    .eq('provider', platform)
+    .eq('platform', platform)
     .eq('connected', true)
     .single();
 
@@ -230,17 +230,17 @@ export const validateMultiplePlatforms = asyncHandler(async (req, res, next) => 
   const normalizedPlatforms = platforms.map(p => p.toLowerCase());
 
   const { data: connections, error } = await supabase
-    .from('data_connectors')
-    .select('provider, connected, token_expires_at')
+    .from('platform_connections')
+    .select('platform, connected, token_expires_at')
     .eq('user_id', userId)
-    .in('provider', normalizedPlatforms)
+    .in('platform', normalizedPlatforms)
     .eq('connected', true);
 
   if (error) {
     console.error('Error checking platform connections:', error);
   }
 
-  const connectedPlatforms = connections?.map(c => c.provider) || [];
+  const connectedPlatforms = connections?.map(c => c.platform) || [];
   const disconnectedPlatforms = normalizedPlatforms.filter(p => {
     const config = SUPPORTED_PLATFORMS[p];
     return config.requiresAuth && !connectedPlatforms.includes(p);

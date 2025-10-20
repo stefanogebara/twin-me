@@ -349,7 +349,7 @@ router.get('/oauth/callback', async (req, res) => {
           // Store the connection with encrypted tokens in database
           const connectionData = {
             user_id: userId,
-            provider: provider,
+            platform: provider,
             connected: true,
             access_token: encryptToken(tokens.accessToken || 'mock_token_' + Date.now()),
             refresh_token: tokens.refreshToken ? encryptToken(tokens.refreshToken) : null,
@@ -366,9 +366,9 @@ router.get('/oauth/callback', async (req, res) => {
           };
 
           const { error: dbError } = await supabase
-            .from('data_connectors')
+            .from('platform_connections')
             .upsert(connectionData, {
-              onConflict: 'user_id,provider'
+              onConflict: 'user_id,platform'
             });
 
           if (dbError) {
@@ -406,7 +406,7 @@ router.get('/oauth/callback', async (req, res) => {
           email: userData.email,
           first_name: userData.firstName,
           last_name: userData.lastName,
-          oauth_provider: provider,
+          oauth_platform: provider,
           picture_url: userData.picture
         })
         .select()
@@ -523,7 +523,7 @@ router.post('/oauth/callback', async (req, res) => {
           // Store the connection with encrypted tokens in database
           const connectionData = {
             user_id: stateData.userId,
-            provider: provider,
+            platform: provider,
             connected: true,
             access_token: encryptToken(tokens.accessToken || 'mock_token_' + Date.now()),
             refresh_token: tokens.refreshToken ? encryptToken(tokens.refreshToken) : null,
@@ -540,9 +540,9 @@ router.post('/oauth/callback', async (req, res) => {
           };
 
           const { error: dbError } = await supabase
-            .from('data_connectors')
+            .from('platform_connections')
             .upsert(connectionData, {
-              onConflict: 'user_id,provider'
+              onConflict: 'user_id,platform'
             });
 
           if (dbError) {
@@ -589,7 +589,7 @@ router.post('/oauth/callback', async (req, res) => {
             email: userData.email,
             first_name: userData.firstName,
             last_name: userData.lastName,
-            oauth_provider: provider,
+            oauth_platform: provider,
             picture_url: userData.picture
           })
           .select()
@@ -606,7 +606,7 @@ router.post('/oauth/callback', async (req, res) => {
             email: userData.email,
             first_name: userData.firstName,
             last_name: userData.lastName,
-            oauth_provider: provider,
+            oauth_platform: provider,
             picture_url: userData.picture
           });
           throw new Error('User creation failed');

@@ -31,8 +31,13 @@ export class RealTimeExtractor {
       const spotifyData = await this.fetchSpotifyData(accessToken);
 
       if (!spotifyData.success) {
-        console.log('📊 Using fallback data for Spotify analysis');
-        return await this.generateRealisticSpotifyData(userId);
+        console.log('❌ Spotify API failed - no data available');
+        return {
+          success: false,
+          platform: 'spotify',
+          error: 'NO_DATA',
+          message: 'Unable to fetch Spotify data. Please reconnect your account.'
+        };
       }
 
       // Analyze with AI
@@ -50,7 +55,12 @@ export class RealTimeExtractor {
 
     } catch (error) {
       console.error('❌ Spotify extraction error:', error);
-      return await this.generateRealisticSpotifyData(userId);
+      return {
+        success: false,
+        platform: 'spotify',
+        error: 'EXTRACTION_FAILED',
+        message: error.message || 'Failed to extract Spotify data'
+      };
     }
   }
 
@@ -137,243 +147,32 @@ export class RealTimeExtractor {
   }
 
   /**
-   * Generate realistic fallback data when API fails
-   */
-  async generateRealisticSpotifyData(userId) {
-    console.log('🎭 Generating realistic Spotify soul signature');
-
-    const mockData = {
-      topTracks: this.generateMockTracks(),
-      topArtists: this.generateMockArtists(),
-      audioFeatures: this.generateMockAudioFeatures(),
-      recentTracks: this.generateMockRecentTracks()
-    };
-
-    const soulSignature = await this.analyzer.analyzeSpotifyPersonality(mockData);
-
-    return {
-      success: true,
-      platform: 'spotify',
-      extractedAt: new Date().toISOString(),
-      isMockData: true,
-      ...soulSignature
-    };
-  }
-
-  generateMockTracks() {
-    return [
-      {
-        id: 'track1',
-        name: 'Liminal Space',
-        artists: [{ name: 'Ólafur Arnalds' }],
-        popularity: 45
-      },
-      {
-        id: 'track2',
-        name: 'Avril 14th',
-        artists: [{ name: 'Aphex Twin' }],
-        popularity: 65
-      },
-      {
-        id: 'track3',
-        name: 'The Blue Notebooks',
-        artists: [{ name: 'Max Richter' }],
-        popularity: 52
-      },
-      {
-        id: 'track4',
-        name: 'Ryo',
-        artists: [{ name: 'Floating Points' }],
-        popularity: 38
-      },
-      {
-        id: 'track5',
-        name: 'Pattern Recognition',
-        artists: [{ name: 'Rival Consoles' }],
-        popularity: 41
-      }
-    ];
-  }
-
-  generateMockArtists() {
-    return [
-      {
-        id: 'artist1',
-        name: 'Ólafur Arnalds',
-        genres: ['modern classical', 'ambient', 'post-rock'],
-        popularity: 45
-      },
-      {
-        id: 'artist2',
-        name: 'Aphex Twin',
-        genres: ['electronic', 'experimental', 'ambient'],
-        popularity: 70
-      },
-      {
-        id: 'artist3',
-        name: 'Max Richter',
-        genres: ['modern classical', 'neoclassical', 'film score'],
-        popularity: 55
-      },
-      {
-        id: 'artist4',
-        name: 'Floating Points',
-        genres: ['electronic', 'ambient', 'experimental'],
-        popularity: 42
-      },
-      {
-        id: 'artist5',
-        name: 'Rival Consoles',
-        genres: ['electronic', 'ambient techno', 'experimental'],
-        popularity: 38
-      },
-      {
-        id: 'artist6',
-        name: 'Kiasmos',
-        genres: ['electronic', 'minimal techno', 'ambient'],
-        popularity: 35
-      }
-    ];
-  }
-
-  generateMockAudioFeatures() {
-    return [
-      {
-        id: 'track1',
-        energy: 0.3,
-        valence: 0.4,
-        danceability: 0.2,
-        acousticness: 0.8,
-        instrumentalness: 0.9,
-        speechiness: 0.05,
-        liveness: 0.1,
-        tempo: 85
-      },
-      {
-        id: 'track2',
-        energy: 0.7,
-        valence: 0.6,
-        danceability: 0.5,
-        acousticness: 0.1,
-        instrumentalness: 0.8,
-        speechiness: 0.03,
-        liveness: 0.08,
-        tempo: 140
-      },
-      {
-        id: 'track3',
-        energy: 0.2,
-        valence: 0.3,
-        danceability: 0.15,
-        acousticness: 0.9,
-        instrumentalness: 0.95,
-        speechiness: 0.02,
-        liveness: 0.05,
-        tempo: 70
-      },
-      {
-        id: 'track4',
-        energy: 0.6,
-        valence: 0.7,
-        danceability: 0.6,
-        acousticness: 0.2,
-        instrumentalness: 0.7,
-        speechiness: 0.04,
-        liveness: 0.12,
-        tempo: 125
-      },
-      {
-        id: 'track5',
-        energy: 0.5,
-        valence: 0.5,
-        danceability: 0.4,
-        acousticness: 0.3,
-        instrumentalness: 0.6,
-        speechiness: 0.06,
-        liveness: 0.1,
-        tempo: 110
-      }
-    ];
-  }
-
-  generateMockRecentTracks() {
-    const now = new Date();
-    return [
-      {
-        track: { id: 'track1', name: 'Liminal Space' },
-        played_at: new Date(now - 2 * 60 * 60 * 1000).toISOString() // 2 hours ago
-      },
-      {
-        track: { id: 'track3', name: 'The Blue Notebooks' },
-        played_at: new Date(now - 4 * 60 * 60 * 1000).toISOString() // 4 hours ago
-      },
-      {
-        track: { id: 'track2', name: 'Avril 14th' },
-        played_at: new Date(now - 6 * 60 * 60 * 1000).toISOString() // 6 hours ago
-      }
-    ];
-  }
-
-  /**
    * Extract YouTube personality signature
+   * NOTE: YouTube API implementation pending - no public watch history API available
+   * TODO: Implement browser extension for data collection
    */
   async extractYouTubeSignature(accessToken, userId) {
     try {
-      console.log(`📺 Extracting YouTube soul signature for user ${userId}`);
+      console.log(`📺 YouTube extraction requested for user ${userId}`);
 
-      // For now, generate realistic YouTube personality data
-      const youtubeSignature = await this.generateYouTubePersonality(userId);
-
-      this.cacheExtraction('youtube', userId, youtubeSignature);
-
+      // YouTube doesn't provide watch history API
+      // Requires browser extension for data collection
       return {
-        success: true,
+        success: false,
         platform: 'youtube',
-        extractedAt: new Date().toISOString(),
-        ...youtubeSignature
+        error: 'NOT_IMPLEMENTED',
+        message: 'YouTube watch history requires browser extension. Coming soon!'
       };
 
     } catch (error) {
       console.error('❌ YouTube extraction error:', error);
-      return await this.generateYouTubePersonality(userId);
+      return {
+        success: false,
+        platform: 'youtube',
+        error: 'EXTRACTION_FAILED',
+        message: error.message || 'Failed to extract YouTube data'
+      };
     }
-  }
-
-  async generateYouTubePersonality(userId) {
-    return {
-      viewingPersonality: {
-        categories: ['Technology', 'Science', 'Philosophy', 'Documentary', 'Art'],
-        primaryInterests: ['deep-dive-content', 'educational-videos', 'creative-process'],
-        watchingPatterns: {
-          avgWatchTime: '15-25 minutes',
-          completionRate: 'high',
-          bingeStyle: 'methodical',
-          timeSlots: ['evening-learning', 'weekend-exploration']
-        },
-        engagementStyle: {
-          commentFrequency: 'selective-thoughtful',
-          sharingBehavior: 'curated-sharing',
-          subscriptionPattern: 'quality-over-quantity'
-        }
-      },
-      soulSignature: {
-        authenticityScore: 88,
-        uniquenessMarkers: [
-          'Seeks educational value in entertainment',
-          'Prefers long-form, substantive content',
-          'Values creator authenticity over production quality',
-          'Gravitates toward niche, specialized topics'
-        ],
-        personalityTraits: [
-          'intellectually-curious',
-          'patient-learner',
-          'depth-seeking',
-          'quality-focused'
-        ],
-        viewingPhilosophy: 'intentional-consumption'
-      },
-      confidence: 85
-    };
   }
 
   /**

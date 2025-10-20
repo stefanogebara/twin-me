@@ -7,22 +7,21 @@ if (process.env.NODE_ENV !== 'production') {
 }
 
 const supabaseUrl = process.env.SUPABASE_URL;
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+const supabaseAnonKey = process.env.SUPABASE_ANON_KEY;
 
 // Debug logging - Verify environment variables are loaded correctly
 console.log('🔵 [Supabase Config] Initializing Supabase client');
 console.log('🔵 [Supabase Config] NODE_ENV:', process.env.NODE_ENV);
 console.log('🔵 [Supabase Config] SUPABASE_URL:', supabaseUrl);
-console.log('🔵 [Supabase Config] SUPABASE_SERVICE_ROLE_KEY length:', supabaseServiceKey?.length);
-console.log('🔵 [Supabase Config] SUPABASE_SERVICE_ROLE_KEY first 50:', supabaseServiceKey?.substring(0, 50));
-console.log('🔵 [Supabase Config] SUPABASE_SERVICE_ROLE_KEY last 20:', supabaseServiceKey?.substring(supabaseServiceKey.length - 20));
+console.log('🔵 [Supabase Config] SUPABASE_ANON_KEY length:', supabaseAnonKey?.length);
+console.log('🔵 [Supabase Config] Using ANON KEY (RLS-compliant)');
 
-if (!supabaseUrl || !supabaseServiceKey) {
+if (!supabaseUrl || !supabaseAnonKey) {
   console.error('❌ [Supabase Config] Missing environment variables');
   throw new Error('Missing Supabase environment variables');
 }
 
-export const supabase = createClient(supabaseUrl, supabaseServiceKey, {
+export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {
     autoRefreshToken: false,
     persistSession: false

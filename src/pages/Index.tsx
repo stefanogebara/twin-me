@@ -2,7 +2,6 @@ import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth, SignInButton, SignUpButton } from '../contexts/AuthContext';
 import { ThemeToggle } from '../components/ThemeToggle';
-import { ArtemisTestimonialsSection } from '../components/ArtemisTestimonialsSection';
 
 const Index = () => {
   const navigate = useNavigate();
@@ -323,9 +322,6 @@ const Index = () => {
           )}
         </div>
       </section>
-
-      {/* Testimonials Section */}
-      <ArtemisTestimonialsSection />
 
       {/* CTA Section */}
       <section id="contact" className="py-[120px] px-[60px] text-center bg-background">

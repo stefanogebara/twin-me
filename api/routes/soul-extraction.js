@@ -8,6 +8,11 @@
 
 import express from 'express';
 import RealTimeExtractor from '../services/realTimeExtractor.js';
+import spotifyEnhancedExtractor from '../services/spotifyEnhancedExtractor.js';
+import youtubeEnhancedExtractor from '../services/youtubeEnhancedExtractor.js';
+import GitHubExtractor from '../services/extractors/githubExtractor.js';
+import DiscordExtractor from '../services/extractors/discordExtractor.js';
+import SlackExtractor from '../services/extractors/slackExtractor.js';
 import { createClient } from '@supabase/supabase-js';
 import { decryptToken } from '../services/encryption.js';
 import { getValidAccessToken } from '../services/tokenRefresh.js';
@@ -72,16 +77,9 @@ router.post('/extract/platform/:platform',
         });
       }
 
-      // Fall back to generic platform data for platforms that don't require auth
-      console.log(`⚠️ No active connection for ${platform}, using sample data`);
-      const extraction = await extractor.generateGenericPlatformData(platform, userId);
-      return res.json({
-        success: true,
-        platform,
-        userId,
-        extractedAt: new Date().toISOString(),
-        data: extraction,
-        note: 'Using sample data - connect your account for real insights'
+      // Don't fall back to sample data - throw proper error
+      throw new PlatformNotConnectedError(platform, userId, {
+        originalError: tokenResult.error
       });
     }
 
@@ -100,6 +98,20 @@ router.post('/extract/platform/:platform',
 
         case 'netflix':
         case 'steam':
+case 'github':
+          const githubExtractor = new GitHubExtractor(accessToken);
+          extraction = await githubExtractor.extractAll(userId, null);
+          break;
+
+        case 'discord':
+          const discordExtractor = new DiscordExtractor(accessToken);
+          extraction = await discordExtractor.extractAll(userId, null);
+          break;
+
+        case 'slack':
+          const slackExtractor = new SlackExtractor(accessToken);
+          extraction = await slackExtractor.extractAll(userId, null);
+          break;
           extraction = await extractor.generateGenericPlatformData(platform, userId);
           break;
 
@@ -136,13 +148,13 @@ router.post('/extract/platform/:platform',
     // Update last_sync timestamp in database
     try {
       await supabase
-        .from('data_connectors')
+        .from('platform_connections')
         .update({
           last_sync: new Date().toISOString(),
           last_sync_status: extraction.success !== false ? 'success' : 'failed'
         })
         .eq('user_id', userId)
-        .eq('provider', platform);
+        .eq('platform', platform);
     } catch (dbError) {
       console.warn('⚠️ Failed to update last_sync timestamp:', dbError.message);
       // Don't throw - extraction succeeded even if sync timestamp update failed
@@ -159,6 +171,195 @@ router.post('/extract/platform/:platform',
     });
   })
 );
+
+/**
+ * POST /api/soul/extract/spotify-deep/:userId
+ * Enhanced Spotify extraction with 15+ behavioral dimensions
+ *
+ * This endpoint provides Spotify Wrapped-level insights:
+ * - Temporal patterns (night owl vs early bird)
+ * - Discovery behavior (explorer vs comfort-zone)
+ * - Audio personality (emotional profile, energy levels)
+ * - Playlist behavior (organization style)
+ * - Genre evolution (taste development over time)
+ * - Artist loyalty patterns
+ * - Musical sophistication analysis
+ * - Overall personality metrics (openness, conscientiousness, authenticity)
+ */
+router.post('/extract/spotify-deep/:userId', asyncHandler(async (req, res) => {
+  const { userId } = req.params;
+
+  console.log(`🎵 [Spotify Enhanced] Deep extraction request for user ${userId}`);
+
+  // Get valid access token (will auto-refresh if expired)
+  const tokenResult = await getValidAccessToken(userId, 'spotify');
+
+  if (!tokenResult.success) {
+    throw new PlatformNotConnectedError('spotify', userId, {
+      originalError: tokenResult.error,
+      message: 'Please connect your Spotify account first'
+    });
+  }
+
+  const accessToken = tokenResult.accessToken;
+
+  // Perform comprehensive extraction
+  const enhancedProfile = await spotifyEnhancedExtractor.extractComprehensiveProfile(accessToken, userId);
+
+  if (!enhancedProfile.success) {
+    throw new PlatformAPIError('spotify', enhancedProfile.error || 'Extraction failed');
+  }
+
+  // Store enhanced data in database for later analysis
+  try {
+    await supabase
+      .from('user_platform_data')
+      .insert({
+        user_id: userId,
+        platform: 'spotify',
+        data_type: 'enhanced_profile',
+        raw_data: enhancedProfile,
+        extracted_at: new Date().toISOString(),
+        processed: false
+      });
+
+    console.log(`✅ [Spotify Enhanced] Profile stored in database`);
+  } catch (dbError) {
+    console.warn('⚠️ [Spotify Enhanced] Failed to store in database:', dbError.message);
+    // Continue even if database storage fails
+  }
+
+  // Update last_sync timestamp
+  try {
+    await supabase
+      .from('platform_connections')
+      .update({
+        last_sync: new Date().toISOString(),
+        last_sync_status: 'success',
+        metadata: {
+          enhanced_extraction: true,
+          data_quality: enhancedProfile.dataQuality?.quality || 'unknown',
+          analyses_performed: 8,
+          last_enhanced_sync: new Date().toISOString()
+        }
+      })
+      .eq('user_id', userId)
+      .eq('platform', 'spotify');
+  } catch (dbError) {
+    console.warn('⚠️ Failed to update connector metadata:', dbError.message);
+  }
+
+  res.json({
+    success: true,
+    platform: 'spotify',
+    extractionType: 'enhanced-comprehensive',
+    userId,
+    extractedAt: enhancedProfile.extractedAt,
+    dataQuality: enhancedProfile.dataQuality,
+    data: enhancedProfile,
+    message: '15+ behavioral dimensions extracted from Spotify'
+  });
+}));
+
+/**
+ * POST /api/soul/extract/youtube-deep/:userId
+ * Enhanced YouTube extraction with 10+ behavioral dimensions
+ *
+ * This endpoint provides comprehensive YouTube behavioral analysis:
+ * - Watch patterns (night owl vs early bird, binge behavior)
+ * - Content preferences (educational vs entertainment ratio)
+ * - Creator loyalty (consistent vs exploratory)
+ * - Learning style (tutorial vs conceptual vs practical)
+ * - Curiosity profiling (specialist vs generalist)
+ * - Attention patterns (short-form vs long-form preference)
+ * - Engagement behavior (active curator vs passive consumer)
+ * - Content evolution (how tastes change over time)
+ * - Discovery behavior (how you find new content)
+ * - Educational depth (learning commitment level)
+ * - Overall personality metrics (openness, conscientiousness, intellectual curiosity)
+ */
+router.post('/extract/youtube-deep/:userId', asyncHandler(async (req, res) => {
+  const { userId } = req.params;
+
+  console.log(`📺 [YouTube Enhanced] Deep extraction request for user ${userId}`);
+
+  // Get valid access token (will auto-refresh if expired)
+  const tokenResult = await getValidAccessToken(userId, 'youtube');
+
+  if (!tokenResult.success) {
+    throw new PlatformNotConnectedError('youtube', userId, {
+      originalError: tokenResult.error,
+      message: 'Please connect your YouTube account first'
+    });
+  }
+
+  const accessToken = tokenResult.accessToken;
+
+  // Perform comprehensive extraction
+  const enhancedProfile = await youtubeEnhancedExtractor.extractComprehensiveProfile(accessToken, userId);
+
+  if (!enhancedProfile.success) {
+    throw new PlatformAPIError('youtube', enhancedProfile.error || 'Extraction failed');
+  }
+
+  // Store enhanced data in database for later analysis
+  try {
+    await supabase
+      .from('user_platform_data')
+      .insert({
+        user_id: userId,
+        platform: 'youtube',
+        data_type: 'enhanced_profile',
+        raw_data: enhancedProfile,
+        extracted_at: new Date().toISOString(),
+        processed: false
+      });
+
+    console.log(`✅ [YouTube Enhanced] Profile stored in database`);
+  } catch (dbError) {
+    console.warn('⚠️ [YouTube Enhanced] Failed to store in database:', dbError.message);
+    // Continue even if database storage fails
+  }
+
+  // Update last_sync timestamp
+  try {
+    await supabase
+      .from('platform_connections')
+      .update({
+        last_sync: new Date().toISOString(),
+        last_sync_status: 'success',
+        metadata: {
+          enhanced_extraction: true,
+          data_quality: enhancedProfile.dataQuality?.quality || 'unknown',
+          analyses_performed: 10,
+          last_enhanced_sync: new Date().toISOString()
+        }
+      })
+      .eq('user_id', userId)
+      .eq('platform', 'youtube');
+  } catch (dbError) {
+    console.warn('⚠️ Failed to update connector metadata:', dbError.message);
+  }
+
+  res.json({
+    success: true,
+    platform: 'youtube',
+    extractionType: 'enhanced-comprehensive',
+    userId,
+    extractedAt: enhancedProfile.extractedAt,
+    dataQuality: enhancedProfile.dataQuality,
+    data: enhancedProfile,
+    message: '10+ behavioral dimensions extracted from YouTube'
+  });
+}));
+
+/**
+ * GET /api/soul/extract/test-youtube
+ * Simple test endpoint to verify YouTube routes are loaded
+ */
+router.get('/extract/test-youtube', (req, res) => {
+  res.json({ success: true, message: 'YouTube enhanced extractor routes are loaded!' });
+});
 
 /**
  * POST /api/soul/extract/multi-platform
@@ -185,11 +386,10 @@ router.post('/extract/multi-platform',
 
     // Query database for all active connections for this user
     const { data: connections, error: dbError } = await supabase
-      .from('data_connectors')
-      .select('provider, access_token, token_expires_at')
+      .from('platform_connections')
+      .select('platform, access_token, token_expires_at')
       .eq('user_id', userId)
-      .eq('connected', true)
-      .in('provider', validPlatforms.map(p => p.name));
+      .in('platform', validPlatforms.map(p => p.name));
 
     if (dbError) {
       console.error('❌ Database error fetching connections:', dbError);
@@ -199,7 +399,7 @@ router.post('/extract/multi-platform',
     const platformsWithTokens = [];
 
     for (const platform of validPlatforms) {
-      const connection = connections?.find(c => c.provider === platform.name);
+      const connection = connections?.find(c => c.platform === platform.name);
 
       if (connection && connection.access_token) {
         try {
@@ -238,44 +438,22 @@ router.post('/extract/multi-platform',
 
 /**
  * GET /api/soul/demo/:platform
- * Get a demo soul signature for a platform (for testing/preview)
+ * Demo endpoint removed - Soul Signature platform only uses real data
+ * @deprecated Use real platform connections for authentic soul signature
  */
 router.get('/demo/:platform', async (req, res) => {
-  try {
-    const { platform } = req.params;
+  const { platform } = req.params;
 
-    console.log(`🎭 Demo soul signature request for ${platform}`);
+  console.log(`🎭 Demo request for ${platform} - redirecting to real connection`);
 
-    let demoData;
-
-    switch (platform.toLowerCase()) {
-      case 'spotify':
-        demoData = await extractor.generateRealisticSpotifyData('demo-user');
-        break;
-
-      case 'youtube':
-        demoData = await extractor.generateYouTubePersonality('demo-user');
-        break;
-
-      default:
-        demoData = await extractor.generateGenericPlatformData(platform, 'demo-user');
-    }
-
-    res.json({
-      success: true,
-      platform,
-      isDemo: true,
-      extractedAt: new Date().toISOString(),
-      data: demoData
-    });
-
-  } catch (error) {
-    console.error('❌ Demo generation error:', error);
-    res.status(500).json({
-      success: false,
-      error: 'Failed to generate demo soul signature'
-    });
-  }
+  res.json({
+    success: false,
+    platform,
+    error: 'DEMO_NOT_AVAILABLE',
+    message: 'Soul Signature platform uses only real data. Please connect your account for authentic insights.',
+    action: 'connect',
+    redirectTo: `/connect-platforms?platform=${platform}`
+  });
 });
 
 /**
@@ -965,13 +1143,11 @@ async function analyzePersonalityPatterns(extractions, timeframe) {
 }
 
 async function getStoredInsights(userId, includeRaw) {
-  // In a real implementation, this would query a database
-  // For now, return structure indicating no stored data
+  // Return structure indicating no stored data - no demo available
   return {
     hasData: false,
     message: 'No soul signature data found. Connect platforms to begin extraction.',
-    suggestedPlatforms: ['spotify', 'youtube', 'netflix'],
-    availableDemo: true
+    suggestedPlatforms: ['spotify', 'youtube', 'netflix']
   };
 }
 
@@ -1117,7 +1293,7 @@ router.get('/extraction-status/:userId', async (req, res) => {
 
     // Get all connectors for this user
     const { data: connectors, error } = await supabase
-      .from('data_connectors')
+      .from('platform_connections')
       .select('*')
       .eq('user_id', userId);
 
@@ -1139,14 +1315,14 @@ router.get('/extraction-status/:userId', async (req, res) => {
 
     // Build status response
     const status = connectors.map(connector => {
-      const recentJobs = jobs?.filter(job => job.platform === connector.provider) || [];
+      const recentJobs = jobs?.filter(job => job.platform === connector.platform) || [];
       const latestJob = recentJobs[0];
 
       return {
-        platform: connector.provider,
-        connected: connector.connected,
-        lastSync: connector.metadata?.last_sync,
-        lastSyncStatus: connector.metadata?.last_sync_status,
+        platform: connector.platform,
+        connected: connector.access_token ? true : false,
+        lastSync: connector.last_synced_at,
+        lastSyncStatus: connector.last_sync_status,
         tokenExpired: connector.metadata?.token_expired || false,
         latestExtractionJob: latestJob ? {
           status: latestJob.status,
@@ -1162,7 +1338,7 @@ router.get('/extraction-status/:userId', async (req, res) => {
       success: true,
       userId,
       platforms: status,
-      totalConnected: connectors.filter(c => c.connected).length,
+      totalConnected: connectors.filter(c => c.access_token).length,
       checkedAt: new Date().toISOString()
     });
 

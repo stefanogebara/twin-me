@@ -5,6 +5,7 @@
 
 import { createClient } from '@supabase/supabase-js';
 import natural from 'natural';
+import Anthropic from '@anthropic-ai/sdk';
 
 // Use SUPABASE_URL (backend) - fallback to VITE_ prefix for compatibility
 const supabase = createClient(
@@ -64,52 +65,42 @@ class StylometricAnalyzer {
         };
       }
 
-      // Perform analyses - wrap in try-catch to handle insufficient data
-      try {
-        const lexical = this.analyzeLexicalFeatures(words, allText);
-        const syntactic = this.analyzeSyntacticFeatures(sentences, allText);
+      // Perform analyses
+      const lexical = this.analyzeLexicalFeatures(words, allText);
+      const syntactic = this.analyzeSyntacticFeatures(sentences, allText);
+      const personality = await this.predictPersonality(textContent);
+      const communication = this.analyzeCommunicationStyle(textContent);
+      const emotional = this.analyzeEmotionalTone(textContent);
+      const behavioral = this.analyzeBehavioralPatterns(textContent);
 
-        // This will throw error if insufficient data
-        const personality = this.predictPersonality(textContent);
-        const communication = this.analyzeCommunicationStyle(textContent);
-        const emotional = this.analyzeEmotionalTone(textContent);
-        const behavioral = this.analyzeBehavioralPatterns(textContent);
+      // Extract and store n-grams
+      await this.extractNgrams(userId, words);
 
-        // Extract and store n-grams
-        await this.extractNgrams(userId, words);
+      // Calculate confidence with behavioral data boost
+      const confidence = await this.calculateConfidence(textContent.length, userId);
 
-        // Store style profile - only if we have valid data
-        await this.storeStyleProfile(userId, {
-          ...lexical,
-          ...syntactic,
-          personality_traits: personality,
-          communication_style: communication.style || 'analyzing',
-          humor_style: communication.humor || 'analyzing',
-          emotional_tone: emotional,
-          typical_response_time: behavioral.responseTime,
-          activity_patterns: behavioral.activityPatterns,
-          engagement_style: behavioral.engagementStyle,
-          sample_size: textContent.length,
-          confidence_score: this.calculateConfidence(textContent.length),
-          last_updated: new Date().toISOString()
-        });
+      // Store style profile
+      await this.storeStyleProfile(userId, {
+        ...lexical,
+        ...syntactic,
+        personality_traits: personality,
+        communication_style: communication.style,
+        humor_style: communication.humor,
+        emotional_tone: emotional,
+        typical_response_time: behavioral.responseTime,
+        activity_patterns: behavioral.activityPatterns,
+        engagement_style: behavioral.engagementStyle,
+        sample_size: textContent.length,
+        confidence_score: confidence,
+        last_updated: new Date().toISOString()
+      });
 
-        console.log('[Stylometric] Analysis complete');
-        return {
-          success: true,
-          samplesAnalyzed: textContent.length,
-          confidence: this.calculateConfidence(textContent.length)
-        };
-      } catch (error) {
-        console.error('[Stylometric] Analysis failed:', error.message);
-        // Return error details instead of fake data
-        return {
-          success: false,
-          message: error.message,
-          samplesAnalyzed: textContent.length,
-          needsMoreData: true
-        };
-      }
+      console.log('[Stylometric] Analysis complete');
+      return {
+        success: true,
+        samplesAnalyzed: textContent.length,
+        confidence: confidence
+      };
     } catch (error) {
       console.error('[Stylometric] Error in analyzeUserStyle:', error);
       throw error;
@@ -203,94 +194,264 @@ class StylometricAnalyzer {
   }
 
   /**
-   * Predict personality traits (simplified Big Five model)
+   * Predict personality traits using Claude AI (Big Five model)
+   * Integrates both text content AND behavioral data from Soul Observer extension
    */
-  predictPersonality(textContent) {
-    // This is a simplified heuristic model
-    // In production, use trained ML model
-
-    // Safety check - throw error instead of returning fake data
+  async predictPersonality(textContent) {
+    // Safety check
     if (!textContent || textContent.length === 0) {
-      throw new Error('Insufficient data for personality analysis. Please connect more platforms and extract data first.');
+      return {
+        openness: 0.5,
+        conscientiousness: 0.5,
+        extraversion: 0.5,
+        agreeableness: 0.5,
+        neuroticism: 0.5
+      };
     }
 
-    let openness = 0.5;
-    let conscientiousness = 0.5;
-    let extraversion = 0.5;
-    let agreeableness = 0.5;
-    let neuroticism = 0.5;
+    // Combine text samples
+    const allText = textContent.map(t => t.text_content || '').join('\n\n');
 
-    const allText = textContent.map(t => (t.text_content || '').toLowerCase()).join(' ');
+    // Truncate if too long (Claude has token limits - stay under 8K chars for safety)
+    const textSample = allText.length > 8000 ? allText.substring(0, 8000) + '...' : allText;
 
-    // Openness markers (curiosity, creativity)
-    const opennessMarkers = ['interesting', 'creative', 'innovative', 'curious', 'explore', 'discover', 'imagine', 'wonder'];
-    openness = this.scoreTraitMarkers(allText, opennessMarkers);
+    // If text is too short for meaningful analysis
+    if (textSample.trim().length < 100) {
+      console.log('[Stylometric] Text too short for Claude analysis, using neutral scores');
+      return {
+        openness: 0.5,
+        conscientiousness: 0.5,
+        extraversion: 0.5,
+        agreeableness: 0.5,
+        neuroticism: 0.5
+      };
+    }
 
-    // Conscientiousness markers (organization, responsibility)
-    const conscientiousnessMarkers = ['plan', 'organize', 'schedule', 'complete', 'finish', 'careful', 'detail', 'precise'];
-    conscientiousness = this.scoreTraitMarkers(allText, conscientiousnessMarkers);
+    try {
+      const anthropic = new Anthropic({
+        apiKey: process.env.ANTHROPIC_API_KEY
+      });
 
-    // Extraversion markers (social, outgoing)
-    const extraversionMarkers = ['we', 'together', 'group', 'team', 'social', 'meet', 'chat', 'talk', 'party', 'friend'];
-    extraversion = this.scoreTraitMarkers(allText, extraversionMarkers);
+      // Get user ID from text content (assume all samples have same user_id)
+      const userId = textContent[0]?.user_id;
 
-    // Agreeableness markers (cooperative, kind)
-    const agreeablenessMarkers = ['help', 'support', 'agree', 'thanks', 'please', 'appreciate', 'kind', 'nice', 'friendly'];
-    agreeableness = this.scoreTraitMarkers(allText, agreeablenessMarkers);
+      // Fetch behavioral data from Soul Observer extension
+      const behavioralData = userId ? await this.getBehavioralData(userId) : null;
 
-    // Neuroticism markers (anxiety, negative emotion)
-    const neuroticismMarkers = ['worry', 'stress', 'anxious', 'nervous', 'afraid', 'concerned', 'problem', 'difficult'];
-    neuroticism = this.scoreTraitMarkers(allText, neuroticismMarkers);
+      console.log('[Stylometric] Analyzing personality with Claude AI (text + behavioral data)...');
 
-    return {
-      openness: Math.min(Math.max(openness, 0), 1),
-      conscientiousness: Math.min(Math.max(conscientiousness, 0), 1),
-      extraversion: Math.min(Math.max(extraversion, 0), 1),
-      agreeableness: Math.min(Math.max(agreeableness, 0), 1),
-      neuroticism: Math.min(Math.max(neuroticism, 0), 1)
-    };
+      // Build enhanced prompt with behavioral data
+      const prompt = this.buildEnhancedPersonalityPrompt(textSample, behavioralData);
+
+      const response = await anthropic.messages.create({
+        model: 'claude-3-5-sonnet-20241022',
+        max_tokens: 1500,
+        temperature: 0.3,
+        system: 'You are an expert personality psychologist analyzing both writing samples AND behavioral patterns to assess Big Five personality traits. Integrate insights from both text analysis and digital behavior for accurate personality assessment.',
+        messages: [{
+          role: 'user',
+          content: prompt
+        }]
+      });
+
+      const result = JSON.parse(response.content[0].text);
+
+      console.log('[Stylometric] Claude personality analysis complete (with behavioral integration)');
+
+      return {
+        openness: Math.min(Math.max(result.openness || 0.5, 0), 1),
+        conscientiousness: Math.min(Math.max(result.conscientiousness || 0.5, 0), 1),
+        extraversion: Math.min(Math.max(result.extraversion || 0.5, 0), 1),
+        agreeableness: Math.min(Math.max(result.agreeableness || 0.5, 0), 1),
+        neuroticism: Math.min(Math.max(result.neuroticism || 0.5, 0), 1),
+        reasoning: result.reasoning || {},
+        data_sources: {
+          text_samples: textContent.length,
+          behavioral_sessions: behavioralData?.sessions || 0,
+          total_events: behavioralData?.total_events || 0
+        }
+      };
+    } catch (error) {
+      console.error('[Stylometric] Claude API error:', error.message);
+
+      // Fallback to neutral scores on error
+      return {
+        openness: 0.5,
+        conscientiousness: 0.5,
+        extraversion: 0.5,
+        agreeableness: 0.5,
+        neuroticism: 0.5,
+        reasoning: { error: 'Analysis failed, using neutral scores' }
+      };
+    }
   }
 
   /**
-   * Score personality trait markers
+   * Get behavioral data from Soul Observer extension for personality analysis
    */
-  scoreTraitMarkers(text, markers) {
-    // Safety check
-    if (!text || text.trim().length === 0) {
-      return 0.5; // Return neutral score
+  async getBehavioralData(userId) {
+    try {
+      // Get recent sessions with behavioral metrics
+      const { data: sessions, error } = await supabase
+        .from('soul_observer_sessions')
+        .select('typing_speed_wpm, typing_correction_rate, mouse_movement_pattern, mouse_avg_speed, scroll_pattern, scroll_avg_speed, focus_avg_duration, multitasking_score, total_events, duration_seconds, personality_indicators')
+        .eq('user_id', userId)
+        .order('created_at', { ascending: false })
+        .limit(10);
+
+      if (error || !sessions || sessions.length === 0) {
+        console.log('[Stylometric] No behavioral data found for user');
+        return null;
+      }
+
+      // Aggregate behavioral metrics
+      const totalSessions = sessions.length;
+      const totalEvents = sessions.reduce((sum, s) => sum + (s.total_events || 0), 0);
+
+      const avgTypingSpeed = sessions.reduce((sum, s) => sum + (s.typing_speed_wpm || 0), 0) / totalSessions;
+      const avgCorrectionRate = sessions.reduce((sum, s) => sum + (s.typing_correction_rate || 0), 0) / totalSessions;
+      const avgMouseSpeed = sessions.reduce((sum, s) => sum + (s.mouse_avg_speed || 0), 0) / totalSessions;
+      const avgScrollSpeed = sessions.reduce((sum, s) => sum + (s.scroll_avg_speed || 0), 0) / totalSessions;
+      const avgFocusDuration = sessions.reduce((sum, s) => sum + (s.focus_avg_duration || 0), 0) / totalSessions;
+      const avgMultitasking = sessions.reduce((sum, s) => sum + (s.multitasking_score || 0), 0) / totalSessions;
+
+      // Get most common patterns
+      const mousePatterns = sessions.map(s => s.mouse_movement_pattern).filter(p => p);
+      const scrollPatterns = sessions.map(s => s.scroll_pattern).filter(p => p);
+      const mostCommonMousePattern = this.getMostCommon(mousePatterns);
+      const mostCommonScrollPattern = this.getMostCommon(scrollPatterns);
+
+      return {
+        sessions: totalSessions,
+        total_events: totalEvents,
+        typing: {
+          speed_wpm: Math.round(avgTypingSpeed),
+          correction_rate: Math.round(avgCorrectionRate * 100) / 100
+        },
+        mouse: {
+          pattern: mostCommonMousePattern || 'unknown',
+          avg_speed: Math.round(avgMouseSpeed)
+        },
+        scroll: {
+          pattern: mostCommonScrollPattern || 'unknown',
+          avg_speed: Math.round(avgScrollSpeed)
+        },
+        focus: {
+          avg_duration_seconds: Math.round(avgFocusDuration),
+          multitasking_score: Math.round(avgMultitasking * 100) / 100
+        }
+      };
+    } catch (error) {
+      console.error('[Stylometric] Error fetching behavioral data:', error);
+      return null;
+    }
+  }
+
+  /**
+   * Build enhanced personality analysis prompt combining text and behavioral data
+   */
+  buildEnhancedPersonalityPrompt(textSample, behavioralData) {
+    let prompt = `Analyze this person's personality using both their writing samples AND behavioral patterns.
+
+## Writing Samples
+${textSample}
+
+`;
+
+    if (behavioralData) {
+      prompt += `## Behavioral Data (from browser extension)
+
+**Typing Patterns:**
+- Speed: ${behavioralData.typing.speed_wpm} WPM ${behavioralData.typing.speed_wpm > 60 ? '(fast)' : behavioralData.typing.speed_wpm < 40 ? '(deliberate)' : '(moderate)'}
+- Correction Rate: ${Math.round(behavioralData.typing.correction_rate * 100)}% ${behavioralData.typing.correction_rate > 0.15 ? '(frequent edits, perfectionist tendencies)' : '(confident, decisive)'}
+
+**Mouse Behavior:**
+- Movement Pattern: ${behavioralData.mouse.pattern}
+- Average Speed: ${behavioralData.mouse.avg_speed} px/s
+
+**Scroll Behavior:**
+- Pattern: ${behavioralData.scroll.pattern} ${behavioralData.scroll.pattern === 'rapid_scan' ? '(impatient, goal-oriented)' : behavioralData.scroll.pattern === 'steady_read' ? '(thorough, deliberate)' : ''}
+- Average Speed: ${behavioralData.scroll.avg_speed} px/s
+
+**Focus & Attention:**
+- Average Focus Duration: ${behavioralData.focus.avg_duration_seconds} seconds ${behavioralData.focus.avg_duration_seconds > 120 ? '(deep focus capacity)' : behavioralData.focus.avg_duration_seconds < 30 ? '(easily distracted or multitasking)' : '(moderate focus)'}
+- Multitasking Score: ${Math.round(behavioralData.focus.multitasking_score * 100)}% ${behavioralData.focus.multitasking_score > 0.7 ? '(high multitasking)' : '(focused single-tasking)'}
+
+**Data Quality:**
+- Behavioral Sessions: ${behavioralData.sessions}
+- Total Events Captured: ${behavioralData.total_events}
+
+`;
+    } else {
+      prompt += `## Behavioral Data
+No browser extension data available. Analysis based solely on writing samples.
+
+`;
     }
 
-    const words = text.split(/\s+/);
-    const totalWords = words.length;
+    prompt += `## Analysis Instructions
 
-    if (totalWords === 0) {
-      return 0.5;
-    }
+Provide Big Five personality trait scores (0.0 to 1.0 scale) integrating BOTH writing style AND behavioral patterns:
 
-    let markerCount = 0;
+**Openness**: Consider curiosity in writing + exploration patterns in browsing behavior
+**Conscientiousness**: Consider organization in writing + correction rates + focus duration
+**Extraversion**: Consider expressiveness in writing + multitasking patterns + scroll speed
+**Agreeableness**: Consider tone/language in writing + patience indicators (correction rate, focus)
+**Neuroticism**: Consider anxiety markers in writing + typing correction rate + erratic mouse movements
 
-    markers.forEach(marker => {
-      markerCount += (text.match(new RegExp(`\\b${marker}\\b`, 'gi')) || []).length;
+Return ONLY valid JSON in this exact format:
+{
+  "openness": 0.X,
+  "conscientiousness": 0.X,
+  "extraversion": 0.X,
+  "agreeableness": 0.X,
+  "neuroticism": 0.X,
+  "reasoning": {
+    "openness": "brief explanation integrating text and behavior",
+    "conscientiousness": "brief explanation integrating text and behavior",
+    "extraversion": "brief explanation integrating text and behavior",
+    "agreeableness": "brief explanation integrating text and behavior",
+    "neuroticism": "brief explanation integrating text and behavior"
+  }
+}`;
+
+    return prompt;
+  }
+
+  /**
+   * Helper: Get most common value in array
+   */
+  getMostCommon(arr) {
+    if (!arr || arr.length === 0) return null;
+    const counts = {};
+    let maxCount = 0;
+    let mostCommon = null;
+
+    arr.forEach(item => {
+      counts[item] = (counts[item] || 0) + 1;
+      if (counts[item] > maxCount) {
+        maxCount = counts[item];
+        mostCommon = item;
+      }
     });
 
-    // Normalize to 0-1 scale
-    return 0.5 + (markerCount / totalWords) * 10; // Multiply by 10 for scaling
+    return mostCommon;
   }
 
   /**
    * Analyze communication style
    */
   analyzeCommunicationStyle(textContent) {
-    // Safety check - return null instead of fake data
+    // Safety check
     if (!textContent || textContent.length === 0) {
-      return { style: null, humor: null };
+      return { style: 'balanced', humor: 'neutral' };
     }
 
     const allText = textContent.map(t => (t.text_content || '').toLowerCase()).join(' ').trim();
 
     // Additional check for empty text
     if (!allText || allText.length === 0) {
-      return { style: null, humor: null };
+      return { style: 'balanced', humor: 'neutral' };
     }
 
     // Formality analysis
@@ -508,16 +669,46 @@ class StylometricAnalyzer {
   }
 
   /**
-   * Calculate confidence score based on sample size
+   * Calculate confidence score based on sample size AND behavioral data
    */
-  calculateConfidence(sampleSize) {
-    // More samples = higher confidence
-    // Use sigmoid function for smooth curve
-    if (sampleSize < 10) return 0.3;
-    if (sampleSize < 50) return 0.5;
-    if (sampleSize < 100) return 0.7;
-    if (sampleSize < 500) return 0.85;
-    return 0.95;
+  async calculateConfidence(sampleSize, userId = null) {
+    // Base confidence from text samples
+    let textConfidence = 0;
+    if (sampleSize < 10) textConfidence = 0.3;
+    else if (sampleSize < 50) textConfidence = 0.5;
+    else if (sampleSize < 100) textConfidence = 0.7;
+    else if (sampleSize < 500) textConfidence = 0.85;
+    else textConfidence = 0.95;
+
+    // Boost confidence if we have behavioral data from Soul Observer extension
+    if (userId) {
+      try {
+        const { data: sessions, error } = await supabase
+          .from('soul_observer_sessions')
+          .select('total_events')
+          .eq('user_id', userId);
+
+        if (!error && sessions && sessions.length > 0) {
+          const totalEvents = sessions.reduce((sum, s) => sum + (s.total_events || 0), 0);
+
+          // Behavioral data contributes up to +0.25 confidence
+          let behavioralBoost = 0;
+          if (totalEvents >= 5000) behavioralBoost = 0.25;        // Very high confidence boost
+          else if (totalEvents >= 2000) behavioralBoost = 0.20;   // High confidence boost
+          else if (totalEvents >= 1000) behavioralBoost = 0.15;   // Moderate confidence boost
+          else if (totalEvents >= 500) behavioralBoost = 0.10;    // Small confidence boost
+          else if (totalEvents >= 100) behavioralBoost = 0.05;    // Minimal confidence boost
+
+          // Combine: cap total confidence at 0.98 (never 100% certain)
+          return Math.min(textConfidence + behavioralBoost, 0.98);
+        }
+      } catch (error) {
+        console.error('[Stylometric] Error checking behavioral data for confidence:', error);
+      }
+    }
+
+    // Return text-only confidence if no behavioral data
+    return textConfidence;
   }
 
   /**

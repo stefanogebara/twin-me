@@ -364,11 +364,46 @@ Do NOT simply provide information. Channel their authentic voice, perspective, a
 
       const data = await response.json();
       // Claude response format: data.content[0].text
-      return data.content[0].text;
+      const rawResponse = data.content[0].text;
+
+      // Post-process for proper grammar and capitalization
+      const processedResponse = this.ensureProperGrammar(rawResponse);
+
+      return processedResponse;
     } catch (error) {
       console.error('[RAG] Error calling Claude:', error);
       throw error;
     }
+  }
+
+  /**
+   * Ensure proper grammar and capitalization in responses
+   */
+  ensureProperGrammar(text) {
+    if (!text || typeof text !== 'string') return text;
+
+    // Split into sentences (simple approach)
+    const sentences = text.split(/([.!?]\s+)/);
+
+    const processedSentences = sentences.map((sentence, index) => {
+      // Skip punctuation parts
+      if (/^[.!?]\s+$/.test(sentence)) return sentence;
+
+      // Capitalize first letter of each sentence
+      if (sentence && sentence.length > 0) {
+        return sentence.charAt(0).toUpperCase() + sentence.slice(1);
+      }
+      return sentence;
+    });
+
+    const result = processedSentences.join('');
+
+    // Ensure the response ends with punctuation
+    if (result.length > 0 && !/[.!?]$/.test(result.trim())) {
+      return result.trim() + '.';
+    }
+
+    return result;
   }
 
   /**
