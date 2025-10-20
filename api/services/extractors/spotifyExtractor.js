@@ -5,6 +5,7 @@
 
 // Node.js 18+ has built-in fetch, no need for node-fetch
 import { createClient } from '@supabase/supabase-js';
+import { ensureFreshToken } from '../tokenRefreshService.js';
 
 const supabase = createClient(
   process.env.SUPABASE_URL,
@@ -12,8 +13,9 @@ const supabase = createClient(
 );
 
 class SpotifyExtractor {
-  constructor(accessToken) {
-    this.accessToken = accessToken;
+  constructor(userId, platform = 'spotify') {
+    this.userId = userId;
+    this.platform = platform;
     this.baseUrl = 'https://api.spotify.com/v1';
   }
 
@@ -55,27 +57,47 @@ class SpotifyExtractor {
   }
 
   /**
-   * Make authenticated request to Spotify API
+   * Make authenticated request to Spotify API with automatic token refresh
    */
-  async makeRequest(endpoint, params = {}) {
-    const url = new URL(`${this.baseUrl}${endpoint}`);
-    Object.entries(params).forEach(([key, value]) => {
-      url.searchParams.append(key, value);
-    });
+  async makeRequest(endpoint, params = {}, retryCount = 0) {
+    try {
+      // Get fresh access token (automatically refreshes if needed)
+      const accessToken = await ensureFreshToken(this.userId, this.platform);
 
-    const response = await fetch(url, {
-      headers: {
-        'Authorization': `Bearer ${this.accessToken}`,
-        'Content-Type': 'application/json'
+      const url = new URL(`${this.baseUrl}${endpoint}`);
+      Object.entries(params).forEach(([key, value]) => {
+        url.searchParams.append(key, value);
+      });
+
+      const response = await fetch(url, {
+        headers: {
+          'Authorization': `Bearer ${accessToken}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      // Handle 401 with retry (token might have expired during long extraction)
+      if (response.status === 401 && retryCount < 2) {
+        console.log(`[Spotify] 401 error, retrying with fresh token (attempt ${retryCount + 1}/2)`);
+        await new Promise(resolve => setTimeout(resolve, 1000)); // Wait 1 second before retry
+        return this.makeRequest(endpoint, params, retryCount + 1);
       }
-    });
 
-    if (!response.ok) {
-      const error = await response.text();
-      throw new Error(`Spotify API error (${response.status}): ${error}`);
+      if (!response.ok) {
+        const error = await response.text();
+        throw new Error(`Spotify API error (${response.status}): ${error}`);
+      }
+
+      return response.json();
+    } catch (error) {
+      if (error.message.includes('Token refresh failed') || error.message.includes('Not authenticated')) {
+        console.error('[Spotify] Token refresh failed - marking connection as needs_reauth');
+        const authError = new Error('Spotify authentication failed - please reconnect');
+        authError.status = 401;
+        throw authError;
+      }
+      throw error;
     }
-
-    return response.json();
   }
 
   /**

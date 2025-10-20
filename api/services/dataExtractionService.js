@@ -130,13 +130,13 @@ class DataExtractionService {
           extractor = new LinkedInExtractor(accessToken);
           break;
         case 'spotify':
-          extractor = new SpotifyExtractor(accessToken);
+          extractor = new SpotifyExtractor(userId, 'spotify');
           break;
         case 'reddit':
           extractor = new RedditExtractor(accessToken);
           break;
         case 'youtube':
-          extractor = new YouTubeExtractor(accessToken);
+          extractor = new YouTubeExtractor(userId, 'youtube');
           break;
         case 'google_gmail':
           extractor = new GmailExtractor(accessToken);
