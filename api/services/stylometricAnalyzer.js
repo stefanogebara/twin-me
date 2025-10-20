@@ -64,39 +64,52 @@ class StylometricAnalyzer {
         };
       }
 
-      // Perform analyses
-      const lexical = this.analyzeLexicalFeatures(words, allText);
-      const syntactic = this.analyzeSyntacticFeatures(sentences, allText);
-      const personality = this.predictPersonality(textContent);
-      const communication = this.analyzeCommunicationStyle(textContent);
-      const emotional = this.analyzeEmotionalTone(textContent);
-      const behavioral = this.analyzeBehavioralPatterns(textContent);
+      // Perform analyses - wrap in try-catch to handle insufficient data
+      try {
+        const lexical = this.analyzeLexicalFeatures(words, allText);
+        const syntactic = this.analyzeSyntacticFeatures(sentences, allText);
 
-      // Extract and store n-grams
-      await this.extractNgrams(userId, words);
+        // This will throw error if insufficient data
+        const personality = this.predictPersonality(textContent);
+        const communication = this.analyzeCommunicationStyle(textContent);
+        const emotional = this.analyzeEmotionalTone(textContent);
+        const behavioral = this.analyzeBehavioralPatterns(textContent);
 
-      // Store style profile
-      await this.storeStyleProfile(userId, {
-        ...lexical,
-        ...syntactic,
-        personality_traits: personality,
-        communication_style: communication.style,
-        humor_style: communication.humor,
-        emotional_tone: emotional,
-        typical_response_time: behavioral.responseTime,
-        activity_patterns: behavioral.activityPatterns,
-        engagement_style: behavioral.engagementStyle,
-        sample_size: textContent.length,
-        confidence_score: this.calculateConfidence(textContent.length),
-        last_updated: new Date().toISOString()
-      });
+        // Extract and store n-grams
+        await this.extractNgrams(userId, words);
 
-      console.log('[Stylometric] Analysis complete');
-      return {
-        success: true,
-        samplesAnalyzed: textContent.length,
-        confidence: this.calculateConfidence(textContent.length)
-      };
+        // Store style profile - only if we have valid data
+        await this.storeStyleProfile(userId, {
+          ...lexical,
+          ...syntactic,
+          personality_traits: personality,
+          communication_style: communication.style || 'analyzing',
+          humor_style: communication.humor || 'analyzing',
+          emotional_tone: emotional,
+          typical_response_time: behavioral.responseTime,
+          activity_patterns: behavioral.activityPatterns,
+          engagement_style: behavioral.engagementStyle,
+          sample_size: textContent.length,
+          confidence_score: this.calculateConfidence(textContent.length),
+          last_updated: new Date().toISOString()
+        });
+
+        console.log('[Stylometric] Analysis complete');
+        return {
+          success: true,
+          samplesAnalyzed: textContent.length,
+          confidence: this.calculateConfidence(textContent.length)
+        };
+      } catch (error) {
+        console.error('[Stylometric] Analysis failed:', error.message);
+        // Return error details instead of fake data
+        return {
+          success: false,
+          message: error.message,
+          samplesAnalyzed: textContent.length,
+          needsMoreData: true
+        };
+      }
     } catch (error) {
       console.error('[Stylometric] Error in analyzeUserStyle:', error);
       throw error;
@@ -196,15 +209,9 @@ class StylometricAnalyzer {
     // This is a simplified heuristic model
     // In production, use trained ML model
 
-    // Safety check
+    // Safety check - throw error instead of returning fake data
     if (!textContent || textContent.length === 0) {
-      return {
-        openness: 0.5,
-        conscientiousness: 0.5,
-        extraversion: 0.5,
-        agreeableness: 0.5,
-        neuroticism: 0.5
-      };
+      throw new Error('Insufficient data for personality analysis. Please connect more platforms and extract data first.');
     }
 
     let openness = 0.5;
@@ -274,16 +281,16 @@ class StylometricAnalyzer {
    * Analyze communication style
    */
   analyzeCommunicationStyle(textContent) {
-    // Safety check
+    // Safety check - return null instead of fake data
     if (!textContent || textContent.length === 0) {
-      return { style: 'balanced', humor: 'neutral' };
+      return { style: null, humor: null };
     }
 
     const allText = textContent.map(t => (t.text_content || '').toLowerCase()).join(' ').trim();
 
     // Additional check for empty text
     if (!allText || allText.length === 0) {
-      return { style: 'balanced', humor: 'neutral' };
+      return { style: null, humor: null };
     }
 
     // Formality analysis

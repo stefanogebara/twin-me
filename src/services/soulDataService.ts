@@ -87,7 +87,17 @@ class SoulDataService {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ userId })
     });
-    return response.json();
+
+    if (!response.ok) {
+      throw new Error(`Failed to extract data from ${platform}: ${response.statusText}`);
+    }
+
+    const data = await response.json();
+    if (!data.success && data.error) {
+      throw new Error(data.error);
+    }
+
+    return data;
   }
 
   /**
@@ -99,7 +109,17 @@ class SoulDataService {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ userId })
     });
-    return response.json();
+
+    if (!response.ok) {
+      throw new Error(`Failed to extract data: ${response.statusText}`);
+    }
+
+    const data = await response.json();
+    if (!data.success && data.error) {
+      throw new Error(data.error);
+    }
+
+    return data;
   }
 
   /**
@@ -139,7 +159,18 @@ class SoulDataService {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ userId })
     });
-    return response.json();
+
+    const data = await response.json();
+
+    // Special handling for insufficient data
+    if (!data.success) {
+      if (data.error?.includes('Insufficient data') || data.message?.includes('Insufficient')) {
+        throw new Error('Insufficient data for personality analysis. Please connect more platforms and extract data first.');
+      }
+      throw new Error(data.error || data.message || 'Failed to analyze communication style');
+    }
+
+    return data;
   }
 
   /**
