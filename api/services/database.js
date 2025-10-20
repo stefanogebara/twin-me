@@ -101,6 +101,9 @@ export const serverDb = {
   },
 
   async updateProfile(userId, updates) {
+    const dbCheck = checkDbAvailable();
+    if (dbCheck) return dbCheck;
+
     try {
       const { data, error } = await supabaseAdmin
         .from('profiles')
@@ -122,6 +125,9 @@ export const serverDb = {
 
   // Digital Twin operations
   async createDigitalTwin(twinData) {
+    const dbCheck = checkDbAvailable();
+    if (dbCheck) return dbCheck;
+
     try {
       const { data, error } = await supabaseAdmin
         .from('digital_twins')
@@ -141,6 +147,9 @@ export const serverDb = {
   },
 
   async getDigitalTwin(twinId) {
+    const dbCheck = checkDbAvailable();
+    if (dbCheck) return dbCheck;
+
     try {
       const { data, error } = await supabaseAdmin
         .from('digital_twins')
@@ -160,6 +169,9 @@ export const serverDb = {
   },
 
   async getDigitalTwinsByCreator(creatorId) {
+    const dbCheck = checkDbAvailable();
+    if (dbCheck) return dbCheck;
+
     try {
       const { data, error } = await supabaseAdmin
         .from('digital_twins')
@@ -179,8 +191,11 @@ export const serverDb = {
   },
 
   async updateDigitalTwin(twinId, updates) {
+    const dbCheck = checkDbAvailable();
+    if (dbCheck) return dbCheck;
+
     try {
-      const { data, error } = await supabaseAdmin
+      const { data, error} = await supabaseAdmin
         .from('digital_twins')
         .update(updates)
         .eq('id', twinId)
@@ -199,6 +214,9 @@ export const serverDb = {
   },
 
   async deleteDigitalTwin(twinId) {
+    const dbCheck = checkDbAvailable();
+    if (dbCheck) return dbCheck;
+
     try {
       const { error } = await supabaseAdmin
         .from('digital_twins')
@@ -218,6 +236,9 @@ export const serverDb = {
 
   // Training Material operations
   async createTrainingMaterial(materialData) {
+    const dbCheck = checkDbAvailable();
+    if (dbCheck) return dbCheck;
+
     try {
       const { data, error } = await supabaseAdmin
         .from('training_materials')
@@ -237,6 +258,9 @@ export const serverDb = {
   },
 
   async getTrainingMaterialsByTwin(twinId) {
+    const dbCheck = checkDbAvailable();
+    if (dbCheck) return dbCheck;
+
     try {
       const { data, error } = await supabaseAdmin
         .from('training_materials')
@@ -256,6 +280,9 @@ export const serverDb = {
   },
 
   async updateTrainingMaterial(materialId, updates) {
+    const dbCheck = checkDbAvailable();
+    if (dbCheck) return dbCheck;
+
     try {
       const { data, error } = await supabaseAdmin
         .from('training_materials')
@@ -277,6 +304,9 @@ export const serverDb = {
 
   // Conversation operations
   async createConversation(conversationData) {
+    const dbCheck = checkDbAvailable();
+    if (dbCheck) return dbCheck;
+
     try {
       const { data, error } = await supabaseAdmin
         .from('conversations')
@@ -296,6 +326,9 @@ export const serverDb = {
   },
 
   async getConversation(conversationId) {
+    const dbCheck = checkDbAvailable();
+    if (dbCheck) return dbCheck;
+
     try {
       const { data, error } = await supabaseAdmin
         .from('conversations')
@@ -315,6 +348,9 @@ export const serverDb = {
   },
 
   async getConversationsByStudent(studentId) {
+    const dbCheck = checkDbAvailable();
+    if (dbCheck) return dbCheck;
+
     try {
       const { data, error } = await supabaseAdmin
         .from('conversations')
@@ -334,6 +370,9 @@ export const serverDb = {
   },
 
   async updateConversationLastMessage(conversationId) {
+    const dbCheck = checkDbAvailable();
+    if (dbCheck) return dbCheck;
+
     try {
       const { error } = await supabaseAdmin
         .from('conversations')
@@ -352,6 +391,9 @@ export const serverDb = {
   },
 
   async deleteConversation(conversationId) {
+    const dbCheck = checkDbAvailable();
+    if (dbCheck) return dbCheck;
+
     try {
       const { error } = await supabaseAdmin
         .from('conversations')
@@ -371,6 +413,9 @@ export const serverDb = {
 
   // Message operations
   async createMessage(messageData) {
+    const dbCheck = checkDbAvailable();
+    if (dbCheck) return dbCheck;
+
     try {
       const { data, error } = await supabaseAdmin
         .from('messages')
@@ -390,6 +435,9 @@ export const serverDb = {
   },
 
   async getMessagesByConversation(conversationId, limit = 50) {
+    const dbCheck = checkDbAvailable();
+    if (dbCheck) return dbCheck;
+
     try {
       const { data, error } = await supabaseAdmin
         .from('messages')
@@ -411,6 +459,9 @@ export const serverDb = {
 
   // Student Profile operations
   async createStudentProfile(profileData) {
+    const dbCheck = checkDbAvailable();
+    if (dbCheck) return dbCheck;
+
     try {
       const { data, error } = await supabaseAdmin
         .from('student_profiles')
@@ -430,6 +481,9 @@ export const serverDb = {
   },
 
   async getStudentProfile(studentId) {
+    const dbCheck = checkDbAvailable();
+    if (dbCheck) return dbCheck;
+
     try {
       const { data, error } = await supabaseAdmin
         .from('student_profiles')
@@ -449,6 +503,9 @@ export const serverDb = {
   },
 
   async updateStudentProfile(studentId, updates) {
+    const dbCheck = checkDbAvailable();
+    if (dbCheck) return dbCheck;
+
     try {
       const { data, error } = await supabaseAdmin
         .from('student_profiles')
@@ -470,6 +527,9 @@ export const serverDb = {
 
   // Voice Profile operations
   async createVoiceProfile(profileData) {
+    const dbCheck = checkDbAvailable();
+    if (dbCheck) return dbCheck;
+
     try {
       const { data, error } = await supabaseAdmin
         .from('voice_profiles')
@@ -489,6 +549,9 @@ export const serverDb = {
   },
 
   async getVoiceProfilesByTwin(twinId) {
+    const dbCheck = checkDbAvailable();
+    if (dbCheck) return dbCheck;
+
     try {
       const { data, error } = await supabaseAdmin
         .from('voice_profiles')
@@ -508,6 +571,9 @@ export const serverDb = {
   },
 
   async updateVoiceProfile(profileId, updates) {
+    const dbCheck = checkDbAvailable();
+    if (dbCheck) return dbCheck;
+
     try {
       const { data, error } = await supabaseAdmin
         .from('voice_profiles')
@@ -528,6 +594,9 @@ export const serverDb = {
   },
 
   async getVoiceProfile(profileId) {
+    const dbCheck = checkDbAvailable();
+    if (dbCheck) return dbCheck;
+
     try {
       const { data, error } = await supabaseAdmin
         .from('voice_profiles')
@@ -547,6 +616,9 @@ export const serverDb = {
   },
 
   async deleteVoiceProfile(profileId) {
+    const dbCheck = checkDbAvailable();
+    if (dbCheck) return dbCheck;
+
     try {
       const { error } = await supabaseAdmin
         .from('voice_profiles')
