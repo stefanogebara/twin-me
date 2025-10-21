@@ -191,6 +191,7 @@ import entertainmentRoutes from './routes/entertainment-connectors.js';
 import additionalEntertainmentRoutes from './routes/additional-entertainment-connectors.js';
 import soulExtractionRoutes from './routes/soul-extraction.js';
 import soulDataRoutes from './routes/soul-data.js';
+import soulMatchingRoutes from './routes/soul-matching.js';
 import authRoutes from './routes/auth-simple.js';
 import oauthCallbackRoutes from './routes/oauth-callback.js';
 import dashboardRoutes from './routes/dashboard.js';
@@ -221,6 +222,7 @@ app.use('/api/entertainment', entertainmentRoutes);
 app.use('/api/entertainment', additionalEntertainmentRoutes);
 app.use('/api/soul', soulExtractionRoutes);
 app.use('/api/soul-data', soulDataRoutes);
+app.use('/api/soul-matching', soulMatchingRoutes);
 app.use('/api/data-sources', dataSourcesRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/oauth', oauthCallbackRoutes); // Unified OAuth callback handler
