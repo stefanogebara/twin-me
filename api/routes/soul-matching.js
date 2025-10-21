@@ -5,7 +5,7 @@
 
 import express from 'express';
 import soulMatchingService from '../services/soulMatchingService.js';
-import { authenticateToken } from '../middleware/auth.js';
+import { authenticateUser } from '../middleware/auth.js';
 
 const router = express.Router();
 
@@ -13,7 +13,7 @@ const router = express.Router();
  * Find soul signature matches for the authenticated user
  * GET /api/soul-matching/find-matches
  */
-router.get('/find-matches', authenticateToken, async (req, res) => {
+router.get('/find-matches', authenticateUser, async (req, res) => {
   try {
     const userId = req.user.userId;
     const {
@@ -50,7 +50,7 @@ router.get('/find-matches', authenticateToken, async (req, res) => {
  * Calculate compatibility with a specific user
  * POST /api/soul-matching/calculate-compatibility
  */
-router.post('/calculate-compatibility', authenticateToken, async (req, res) => {
+router.post('/calculate-compatibility', authenticateUser, async (req, res) => {
   try {
     const userId = req.user.userId;
     const { targetUserId, includeOpposites = false } = req.body;
@@ -108,7 +108,7 @@ router.post('/calculate-compatibility', authenticateToken, async (req, res) => {
  * Get match statistics for the user
  * GET /api/soul-matching/stats
  */
-router.get('/stats', authenticateToken, async (req, res) => {
+router.get('/stats', authenticateUser, async (req, res) => {
   try {
     const userId = req.user.userId;
 
@@ -152,7 +152,7 @@ router.get('/stats', authenticateToken, async (req, res) => {
  * Update matching preferences (privacy settings)
  * PUT /api/soul-matching/preferences
  */
-router.put('/preferences', authenticateToken, async (req, res) => {
+router.put('/preferences', authenticateUser, async (req, res) => {
   try {
     const userId = req.user.userId;
     const {

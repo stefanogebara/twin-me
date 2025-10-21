@@ -5,7 +5,7 @@
 
 import express from 'express';
 import { createBullBoard } from '@bull-board/api';
-import { BullAdapter } from '@bull-board/api/bullAdapter.js';
+import { BullAdapter } from '@bull-board/api/bullAdapter';
 import { ExpressAdapter } from '@bull-board/express';
 import { getQueues, getQueueStats, areQueuesAvailable } from '../services/queueService.js';
 
