@@ -24,6 +24,7 @@ import {
   notifyConnectionStatus,
   notifyPlatformSync,
 } from './websocketService.js';
+import { invalidatePlatformStatusCache } from './redisClient.js';
 
 // Use SUPABASE_URL (backend) - fallback to VITE_ prefix for compatibility
 // Lazy initialization to avoid crashes if env vars not loaded yet
@@ -228,6 +229,9 @@ class DataExtractionService {
         } else {
           notifyExtractionFailed(userId, jobId, platform, new Error(result.error || result.message || 'Extraction failed'));
         }
+
+        // Invalidate cached platform status (last_sync_status changed)
+        await invalidatePlatformStatusCache(userId);
       }
 
       // Update connector metadata
