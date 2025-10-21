@@ -27,7 +27,32 @@
   "content_scripts": [
     {
       "matches": ["https://www.netflix.com/*"],
-      "js": ["content/netflix.js"],
+      "js": ["collectors/netflix.js"],
+      "run_at": "document_idle"
+    },
+    {
+      "matches": ["https://www.hulu.com/*"],
+      "js": ["collectors/hulu.js"],
+      "run_at": "document_idle"
+    },
+    {
+      "matches": ["https://www.hbomax.com/*", "https://max.com/*"],
+      "js": ["collectors/hbomax.js"],
+      "run_at": "document_idle"
+    },
+    {
+      "matches": ["https://www.primevideo.com/*", "https://www.amazon.com/gp/video/*"],
+      "js": ["collectors/primevideo.js"],
+      "run_at": "document_idle"
+    },
+    {
+      "matches": ["https://www.disneyplus.com/*"],
+      "js": ["collectors/disneyplus.js"],
+      "run_at": "document_idle"
+    },
+    {
+      "matches": ["https://www.instagram.com/*"],
+      "js": ["collectors/instagram.js"],
       "run_at": "document_idle"
     },
     {
