@@ -13,6 +13,7 @@ import YouTubeExtractor from './extractors/youtubeExtractor.js';
 import GmailExtractor from './extractors/gmailExtractor.js';
 import SlackExtractor from './extractors/slackExtractor.js';
 import CalendarExtractor from './extractors/calendarExtractor.js';
+import TeamsExtractor from './extractors/teamsExtractor.js';
 import { decryptToken } from './encryption.js';
 import { getValidAccessToken } from './tokenRefresh.js';
 
@@ -146,6 +147,10 @@ class DataExtractionService {
           break;
         case 'slack':
           extractor = new SlackExtractor(accessToken);
+          break;
+        case 'teams':
+        case 'microsoft_teams':
+          extractor = new TeamsExtractor(userId, 'teams');
           break;
         case 'twitch':
           // This platform is defined but extractor not yet implemented
