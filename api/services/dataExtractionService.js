@@ -17,6 +17,13 @@ import TeamsExtractor from './extractors/teamsExtractor.js';
 import TikTokExtractor from './extractors/tiktokExtractor.js';
 import { decryptToken } from './encryption.js';
 import { getValidAccessToken } from './tokenRefresh.js';
+import {
+  notifyExtractionStarted,
+  notifyExtractionCompleted,
+  notifyExtractionFailed,
+  notifyConnectionStatus,
+  notifyPlatformSync,
+} from './websocketService.js';
 
 // Use SUPABASE_URL (backend) - fallback to VITE_ prefix for compatibility
 // Lazy initialization to avoid crashes if env vars not loaded yet
@@ -85,6 +92,9 @@ class DataExtractionService {
           .from('data_extraction_jobs')
           .update({ status: 'running' })
           .eq('id', jobId);
+
+        // Notify user via WebSocket that extraction has started
+        notifyExtractionStarted(userId, jobId, platform);
       }
 
       // Get valid access token (auto-refresh if expired)
@@ -104,6 +114,10 @@ class DataExtractionService {
               completed_at: new Date().toISOString()
             })
             .eq('id', jobId);
+
+          // Notify user via WebSocket that extraction failed
+          notifyExtractionFailed(userId, jobId, platform, new Error(tokenResult.error || 'Token refresh failed'));
+          notifyConnectionStatus(userId, platform, 'needs_reauth', 'Please reconnect your account');
         }
 
         return {
@@ -206,6 +220,14 @@ class DataExtractionService {
           .eq('id', jobId);
 
         console.log(`[DataExtraction] Updated job ${jobId} to ${result.success ? 'completed' : 'failed'}`);
+
+        // Notify user via WebSocket
+        if (result.success) {
+          notifyExtractionCompleted(userId, jobId, platform, result.itemsExtracted || 0);
+          notifyPlatformSync(userId, platform, result);
+        } else {
+          notifyExtractionFailed(userId, jobId, platform, new Error(result.error || result.message || 'Extraction failed'));
+        }
       }
 
       // Update connector metadata
@@ -225,6 +247,9 @@ class DataExtractionService {
             completed_at: new Date().toISOString()
           })
           .eq('id', jobId);
+
+        // Notify user via WebSocket that extraction failed
+        notifyExtractionFailed(userId, jobId, platform, error);
       }
 
       // Handle specific error types
@@ -244,6 +269,9 @@ class DataExtractionService {
             })
             .eq('user_id', userId)
             .eq('platform', platform);
+
+          // Notify user via WebSocket about connection status
+          notifyConnectionStatus(userId, platform, 'unauthorized', 'Authentication failed. Please reconnect your account.');
         } catch (updateError) {
           console.error(`[DataExtraction] Failed to update connector status:`, updateError);
         }
