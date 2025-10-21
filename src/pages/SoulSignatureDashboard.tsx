@@ -19,6 +19,7 @@ import PrivacySpectrumDashboard from '@/components/PrivacySpectrumDashboard';
 import { SoulDataExtractor } from '@/components/SoulDataExtractor';
 import { PlatformConnectionCard } from '@/components/PlatformConnectionCard';
 import { DataExtractionClarity } from '@/components/DataExtractionClarity';
+import ExtractionProgressMonitor from '@/components/ExtractionProgressMonitor';
 
 interface ConnectionStatus {
   spotify: boolean;
@@ -571,6 +572,9 @@ const SoulSignatureDashboard: React.FC = () => {
             Connect your platforms to discover insights about your Professional Identity and Personal Soul.
           </div>
         </div>
+
+        {/* Real-Time Extraction Progress Monitor */}
+        <ExtractionProgressMonitor showCompleted={true} maxJobs={3} />
 
         {/* Cluster Navigation */}
         <div className="flex flex-col sm:flex-row justify-center gap-3 sm:gap-4 mb-8 sm:mb-12 px-4">

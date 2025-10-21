@@ -5,7 +5,12 @@
  */
 
 import WebSocket from 'ws';
-// Note: Supabase client removed - not used in this service
+import { createClient } from '@supabase/supabase-js';
+
+const supabase = createClient(
+  process.env.SUPABASE_URL,
+  process.env.SUPABASE_SERVICE_ROLE_KEY
+);
 
 let wss = null;
 const clients = new Map(); // userId -> WebSocket connection
@@ -154,6 +159,60 @@ function notifyExtractionProgress(userId, progress) {
 }
 
 /**
+ * Notify user that extraction job has started
+ */
+function notifyExtractionStarted(userId, jobId, platform) {
+  sendToUser(userId, {
+    type: 'extraction_started',
+    jobId,
+    platform,
+    message: `Starting data extraction from ${platform}`,
+  });
+}
+
+/**
+ * Notify user about extraction job update (items processed)
+ */
+function notifyExtractionUpdate(userId, jobId, platform, itemsProcessed, totalItems, currentDataType) {
+  sendToUser(userId, {
+    type: 'extraction_update',
+    jobId,
+    platform,
+    itemsProcessed,
+    totalItems,
+    currentDataType,
+    progress: totalItems > 0 ? Math.round((itemsProcessed / totalItems) * 100) : 0,
+    message: `Extracted ${itemsProcessed}${totalItems ? `/${totalItems}` : ''} items from ${platform}`,
+  });
+}
+
+/**
+ * Notify user that extraction job has completed
+ */
+function notifyExtractionCompleted(userId, jobId, platform, itemsExtracted) {
+  sendToUser(userId, {
+    type: 'extraction_completed',
+    jobId,
+    platform,
+    itemsExtracted,
+    message: `Successfully extracted ${itemsExtracted} items from ${platform}`,
+  });
+}
+
+/**
+ * Notify user that extraction job has failed
+ */
+function notifyExtractionFailed(userId, jobId, platform, error) {
+  sendToUser(userId, {
+    type: 'extraction_failed',
+    jobId,
+    platform,
+    error: error.message || error,
+    message: `Failed to extract data from ${platform}: ${error.message || error}`,
+  });
+}
+
+/**
  * Notify user about new data available
  */
 function notifyNewData(userId, platform, dataType, count) {
@@ -205,6 +264,10 @@ export {
   notifyPlatformSync,
   notifyTokenRefresh,
   notifyExtractionProgress,
+  notifyExtractionStarted,
+  notifyExtractionUpdate,
+  notifyExtractionCompleted,
+  notifyExtractionFailed,
   notifyNewData,
   notifyConnectionStatus,
   getConnectedClientsCount,
