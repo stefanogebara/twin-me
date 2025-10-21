@@ -11,6 +11,7 @@ import http from 'http';
 import { startTokenRefreshService } from './services/tokenRefreshService.js';
 import { startPlatformPolling } from './services/platformPollingService.js';
 import { initializeWebSocketServer } from './services/websocketService.js';
+import { initializeQueues } from './services/queueService.js';
 
 // Only use dotenv in development - Vercel provides env vars directly
 // Updated: Fixed SUPABASE_SERVICE_ROLE_KEY truncation issue
@@ -202,6 +203,7 @@ import allPlatformRoutes from './routes/all-platform-connectors.js';
 import soulObserverRoutes from './routes/soul-observer.js';
 import webhookRoutes from './routes/webhooks.js';
 import sseRoutes from './routes/sse.js';
+import queueDashboardRoutes from './routes/queue-dashboard.js';
 import { serverDb } from './services/database.js';
 import { sanitizeInput, validateContentType } from './middleware/sanitization.js';
 import { /* handleAuthError, */ handleGeneralError, handle404 } from './middleware/errorHandler.js';
@@ -233,6 +235,7 @@ app.use('/api/platforms', allPlatformRoutes); // Comprehensive 56-platform integ
 app.use('/api/soul-observer', authenticateUser, soulObserverRoutes); // Soul Observer Mode - behavioral tracking
 app.use('/api/webhooks', webhookRoutes); // Real-time webhook receivers (GitHub, Gmail, Slack)
 app.use('/api/sse', sseRoutes); // Server-Sent Events for real-time updates
+app.use('/api/queues', queueDashboardRoutes); // Bull Board job queue dashboard
 
 // Health check endpoint
 app.get('/api/health', async (req, res) => {
@@ -273,6 +276,9 @@ if (process.env.NODE_ENV !== 'production') {
   // Start background services
   console.log('🔧 Initializing background services...');
 
+  // Initialize Bull queues for background job processing
+  initializeQueues();
+
   // Token refresh service - runs every 5 minutes
   startTokenRefreshService();
 
@@ -286,6 +292,8 @@ if (process.env.NODE_ENV !== 'production') {
     console.log(`🔐 CORS origin: ${process.env.VITE_APP_URL || 'http://localhost:8080'}`);
     console.log(`🔌 WebSocket server enabled on ws://localhost:${PORT}/ws`);
     console.log(`⏰ Background services active:`);
+    console.log(`   - Bull Job Queue: ${process.env.REDIS_URL || process.env.UPSTASH_REDIS_URL ? 'Enabled' : 'Disabled (using fallback)'}`);
+    console.log(`   - Queue Dashboard: http://localhost:${PORT}/api/queues/dashboard`);
     console.log(`   - Token Refresh: Every 5 minutes`);
     console.log(`   - Spotify Polling: Every 30 minutes`);
     console.log(`   - YouTube Polling: Every 2 hours`);

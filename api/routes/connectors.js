@@ -419,26 +419,42 @@ router.post('/callback', async (req, res) => {
       // Invalidate cached platform status for this user
       await invalidatePlatformStatusCache(userUuid);
 
-      // Trigger background extraction (don't await - fire and forget)
-      import('../services/dataExtractionService.js').then(({ default: extractionService }) => {
-        extractionService.extractPlatformData(userUuid, provider)
-          .then(result => {
-            console.log(`✅ Background extraction completed for ${provider}:`, result);
-
-            // Trigger soul signature building after extraction
-            import('../services/soulSignatureBuilder.js').then(({ default: soulBuilder }) => {
-              soulBuilder.buildSoulSignature(userUuid)
-                .then(soulResult => {
-                  console.log(`✅ Soul signature updated for user after ${provider} extraction:`, soulResult);
-                })
-                .catch(soulError => {
-                  console.warn(`⚠️ Soul signature building failed:`, soulError);
-                });
+      // Trigger background extraction using Bull queue (if available)
+      // Falls back to direct execution if queue not available
+      import('../services/queueService.js').then(({ addExtractionJob, areQueuesAvailable }) => {
+        // Check if job queue is available
+        if (areQueuesAvailable()) {
+          // Add job to queue with high priority (newly connected platforms)
+          addExtractionJob(userUuid, provider, null, { priority: 1 })
+            .then(job => {
+              console.log(`✅ Added extraction job to queue: ${job.id} for ${provider}`);
+            })
+            .catch(error => {
+              console.warn(`⚠️ Failed to queue extraction job for ${provider}:`, error.message);
             });
-          })
-          .catch(error => {
-            console.warn(`⚠️ Background extraction failed for ${provider}:`, error.message);
+        } else {
+          // Fallback to direct execution if queue not available
+          import('../services/dataExtractionService.js').then(({ default: extractionService }) => {
+            extractionService.extractPlatformData(userUuid, provider)
+              .then(result => {
+                console.log(`✅ Background extraction completed for ${provider}:`, result);
+
+                // Trigger soul signature building after extraction
+                import('../services/soulSignatureBuilder.js').then(({ default: soulBuilder }) => {
+                  soulBuilder.buildSoulSignature(userUuid)
+                    .then(soulResult => {
+                      console.log(`✅ Soul signature updated for user after ${provider} extraction:`, soulResult);
+                    })
+                    .catch(soulError => {
+                      console.warn(`⚠️ Soul signature building failed:`, soulError);
+                    });
+                });
+              })
+              .catch(error => {
+                console.warn(`⚠️ Background extraction failed for ${provider}:`, error.message);
+              });
           });
+        }
       });
 
     } catch (error) {
