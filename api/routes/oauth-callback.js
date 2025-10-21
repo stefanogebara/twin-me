@@ -111,6 +111,9 @@ async function exchangeCodeForTokens(provider, code) {
     case 'slack':
       return await exchangeSlackCode(code, redirectUri);
 
+    case 'tiktok':
+      return await exchangeTikTokCode(code, redirectUri);
+
     default:
       throw new Error(`Unsupported provider: ${provider}`);
   }
@@ -284,6 +287,46 @@ async function exchangeSlackCode(code, redirectUri) {
     expires_in: data.authed_user?.expires_in || data.expires_in,
     scope: data.scope,
     team: data.team
+  };
+}
+
+/**
+ * TikTok token exchange
+ */
+async function exchangeTikTokCode(code, redirectUri) {
+  const clientKey = process.env.TIKTOK_CLIENT_KEY;
+  const clientSecret = process.env.TIKTOK_CLIENT_SECRET;
+
+  if (!clientKey || !clientSecret) {
+    throw new Error('TikTok credentials not configured');
+  }
+
+  const response = await fetch('https://open.tiktokapis.com/v2/oauth/token/', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: new URLSearchParams({
+      client_key: clientKey,
+      client_secret: clientSecret,
+      code,
+      grant_type: 'authorization_code',
+      redirect_uri: redirectUri
+    })
+  });
+
+  if (!response.ok) {
+    const error = await response.text();
+    throw new Error(`TikTok token exchange failed: ${error}`);
+  }
+
+  const data = await response.json();
+
+  // TikTok returns tokens in data object
+  return {
+    access_token: data.access_token,
+    refresh_token: data.refresh_token,
+    expires_in: data.expires_in,
+    open_id: data.open_id,
+    scope: data.scope
   };
 }
 
