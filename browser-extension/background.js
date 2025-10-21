@@ -1,379 +1,285 @@
 /**
- * Background Service Worker for Soul Signature Browser Extension
- * Coordinates data collection from streaming, social, and delivery platforms
+ * Soul Signature Browser Extension - Background Service Worker
+ * Handles data collection, API communication, and LLM interpretation
  */
 
-import { EXTENSION_CONFIG, ENVIRONMENT } from './config.js';
+// Configuration
+const API_BASE_URL = 'http://localhost:3001/api';
+const SYNC_INTERVAL = 5 * 60 * 1000; // 5 minutes
 
-const API_URL = EXTENSION_CONFIG.API_URL;
-let authToken = null;
+// State
+let userId = null;
+let observerMode = false;
+let activityBuffer = [];
 
-console.log(`[Soul Signature Background] Running in ${ENVIRONMENT} mode - API: ${API_URL}`);
-
-// Load auth token on service worker startup
-(async function loadAuthToken() {
-  const result = await chrome.storage.sync.get(['authToken']);
-  authToken = result.authToken;
-  console.log('[Soul Signature Background] Auth token loaded on startup:', !!authToken);
-  if (authToken) {
-    console.log('[Soul Signature Background] Token preview:', authToken.substring(0, 20) + '...');
-  }
-})();
-
-// Initialize extension
-chrome.runtime.onInstalled.addListener(() => {
+/**
+ * Initialize extension
+ */
+chrome.runtime.onInstalled.addListener(async () => {
   console.log('[Soul Signature] Extension installed');
-
-  // Get auth token from storage
-  chrome.storage.sync.get(['authToken'], (result) => {
-    authToken = result.authToken;
-    console.log('[Soul Signature] Auth token loaded on install:', !!authToken);
-  });
-
-  // Initialize platform settings (all enabled by default)
-  chrome.storage.sync.get(['platformSettings'], (result) => {
-    if (!result.platformSettings) {
-      const defaultSettings = {
-        netflix: { enabled: true },
-        disneyplus: { enabled: true },
-        hbomax: { enabled: true },
-        primevideo: { enabled: true },
-        instagram: { enabled: true }
-      };
-      chrome.storage.sync.set({ platformSettings: defaultSettings });
-      console.log('[Soul Signature] Platform settings initialized');
-    }
-  });
+  
+  // Load user ID from storage
+  const { userId: storedUserId, observerMode: storedMode } = await chrome.storage.local.get(['userId', 'observerMode']);
+  userId = storedUserId;
+  observerMode = storedMode || false;
+  
+  // Setup periodic sync
+  chrome.alarms.create('sync-data', { periodInMinutes: 5 });
+  
+  // Setup activity flush
+  chrome.alarms.create('flush-activity', { periodInMinutes: 1 });
 });
 
-// Listen for messages from content scripts
+/**
+ * Handle alarm events
+ */
+chrome.alarms.onAlarm.addListener(async (alarm) => {
+  if (alarm.name === 'sync-data') {
+    await syncCollectedData();
+  } else if (alarm.name === 'flush-activity') {
+    await flushActivityBuffer();
+  }
+});
+
+/**
+ * Handle messages from content scripts and popup
+ */
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-  console.log('[Soul Signature] Received message:', message.type);
-
+  console.log('[Background] Received message:', message.type);
+  
   switch (message.type) {
-    case 'SET_AUTH_TOKEN':
-      authToken = message.token;
-      chrome.storage.sync.set({ authToken: message.token });
+    case 'SET_USER_ID':
+      userId = message.userId;
+      chrome.storage.local.set({ userId });
       sendResponse({ success: true });
       break;
-
-    case 'SEND_PLATFORM_DATA':
-      // Check if platform is enabled before sending
-      chrome.storage.sync.get(['platformSettings'], (result) => {
-        const platformSettings = result.platformSettings || {};
-        const isEnabled = platformSettings[message.platform]?.enabled !== false;
-
-        if (!isEnabled) {
-          sendResponse({ success: false, error: `${message.platform} data collection is disabled` });
-          return;
-        }
-
-        sendDataToBackend(message.platform, message.data)
-          .then(result => sendResponse({ success: true, result }))
-          .catch(error => sendResponse({ success: false, error: error.message }));
+      
+    case 'TOGGLE_OBSERVER_MODE':
+      observerMode = message.enabled;
+      chrome.storage.local.set({ observerMode });
+      sendResponse({ success: true, enabled: observerMode });
+      break;
+      
+    case 'GET_STATUS':
+      sendResponse({
+        userId,
+        observerMode,
+        bufferSize: activityBuffer.length
+      });
+      break;
+      
+    case 'NETFLIX_DATA':
+      handleNetflixData(message.data);
+      sendResponse({ success: true });
+      break;
+      
+    case 'BROWSING_ACTIVITY':
+      if (observerMode) {
+        handleBrowsingActivity(message.data, sender.tab);
+        sendResponse({ success: true });
+      } else {
+        sendResponse({ success: false, reason: 'Observer mode disabled' });
+      }
+      break;
+      
+    case 'MANUAL_SYNC':
+      syncCollectedData().then(() => {
+        sendResponse({ success: true });
       });
       return true; // Keep channel open for async response
-
-    case 'GET_AUTH_STATUS':
-      sendResponse({ authenticated: !!authToken });
-      break;
-
-    case 'PLATFORM_TOGGLED':
-      console.log(`[Soul Signature] Platform ${message.platform} ${message.enabled ? 'enabled' : 'disabled'}`);
-      sendResponse({ success: true });
-      break;
-
-    case 'SOUL_OBSERVER_DATA':
-      sendSoulObserverData(message.data)
-        .then(result => sendResponse({ success: true, result }))
-        .catch(error => sendResponse({ success: false, error: error.message }));
-      return true;
-
-    case 'SOUL_OBSERVER_SESSION_END':
-      sendSoulObserverSession(message.data)
-        .then(result => sendResponse({ success: true, result }))
-        .catch(error => sendResponse({ success: false, error: error.message }));
-      return true;
-
-    case 'SOUL_OBSERVER_EVENT':
-      // Handle captured events from content script
-      console.log('[Soul Observer] 📥 Received event batch from content script:', message.data?.length, 'events');
-      console.log('[Soul Observer] Auth token available:', !!authToken);
-      console.log('[Soul Observer] Sample event from batch:', message.data?.[0]);
-
-      sendSoulObserverData({
-        activities: message.data,
-        insights: [] // Can be populated later with real-time insights
-      })
-        .then(result => {
-          console.log('[Soul Observer] ✅ Successfully sent to backend:', result);
-          sendResponse({ success: true, result });
-        })
-        .catch(error => {
-          console.error('[Soul Observer] ❌ Failed to send events to backend:', error.message);
-          console.error('[Soul Observer] Error details:', error);
-          sendResponse({ success: false, error: error.message });
-        });
-      return true; // Keep channel open for async response
-
-    case 'SOUL_OBSERVER_TOGGLED':
-      console.log(`[Soul Observer] ${message.enabled ? 'Enabled' : 'Disabled'}`);
-      chrome.storage.sync.get(['stats'], (result) => {
-        const stats = result.stats || {};
-        stats.soulObserverActive = message.enabled;
-        chrome.storage.sync.set({ stats });
-      });
-      sendResponse({ success: true });
-      break;
-
+      
     default:
-      sendResponse({ error: 'Unknown message type' });
+      sendResponse({ success: false, error: 'Unknown message type' });
   }
+  
+  return false;
 });
 
 /**
- * Send collected data to Soul Signature backend
+ * Handle Netflix watch history data
  */
-async function sendDataToBackend(platform, data) {
-  if (!authToken) {
-    throw new Error('Not authenticated. Please log in to Soul Signature.');
-  }
+async function handleNetflixData(data) {
+  console.log('[Background] Received Netflix data:', data);
+  
+  // Store locally first
+  const { netflixData = [] } = await chrome.storage.local.get('netflixData');
+  netflixData.push({
+    ...data,
+    collectedAt: new Date().toISOString(),
+    synced: false
+  });
+  await chrome.storage.local.set({ netflixData });
+  
+  // Update badge
+  updateBadge();
+}
 
+/**
+ * Handle browsing activity
+ */
+async function handleBrowsingActivity(activity, tab) {
+  if (!observerMode) return;
+  
+  console.log('[Background] Recording browsing activity:', activity.type);
+  
+  activityBuffer.push({
+    ...activity,
+    url: tab?.url,
+    title: tab?.title,
+    timestamp: new Date().toISOString(),
+    tabId: tab?.id
+  });
+  
+  // Limit buffer size
+  if (activityBuffer.length > 100) {
+    await flushActivityBuffer();
+  }
+  
+  updateBadge();
+}
+
+/**
+ * Flush activity buffer to API
+ */
+async function flushActivityBuffer() {
+  if (activityBuffer.length === 0 || !userId) return;
+  
+  console.log(`[Background] Flushing ${activityBuffer.length} activities to API`);
+  
   try {
-    const response = await fetch(`${API_URL}/platforms/extract/${platform}`, {
+    // Send to LLM interpretation endpoint
+    const response = await fetch(`${API_BASE_URL}/soul-observer/interpret`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${authToken}`
       },
       body: JSON.stringify({
-        platform,
-        data,
-        timestamp: new Date().toISOString(),
-        source: 'browser_extension'
+        userId,
+        activities: activityBuffer,
+        requestInterpretation: true
       })
     });
-
-    if (!response.ok) {
-      throw new Error(`Backend error: ${response.status}`);
-    }
-
-    const result = await response.json();
-    console.log('[Soul Signature] Data sent successfully:', platform);
     
-    // Show notification
-    chrome.notifications.create({
-      type: 'basic',
-      iconUrl: 'icons/icon48.svg',
-      title: 'Soul Signature',
-      message: `${platform} data synced successfully!`
-    });
-
-    return result;
-  } catch (error) {
-    console.error('[Soul Signature] Error sending data:', error);
-    throw error;
-  }
-}
-
-/**
- * Send Soul Observer data to backend for AI processing
- */
-async function sendSoulObserverData(data) {
-  console.log('[Soul Observer] sendSoulObserverData called with:', data.activities?.length, 'activities');
-
-  // CRITICAL: Always reload token from storage before sending (in case it was updated after service worker started)
-  const tokenResult = await chrome.storage.sync.get(['authToken']);
-  authToken = tokenResult.authToken;
-  console.log('[Soul Observer] 🔄 Reloaded auth token from storage:', !!authToken);
-
-  if (!authToken) {
-    console.error('[Soul Observer] ❌ No auth token available!');
-    throw new Error('Not authenticated');
-  }
-
-  const url = `${API_URL}/soul-observer/activity`;
-  console.log('[Soul Observer] 🌐 Sending POST request to:', url);
-
-  try {
-    const payload = {
-      activities: data.activities,
-      insights: data.insights,
-      timestamp: new Date().toISOString(),
-      source: 'soul_observer'
-    };
-
-    console.log('[Soul Observer] Request payload:', {
-      activitiesCount: payload.activities?.length,
-      insightsCount: payload.insights?.length,
-      timestamp: payload.timestamp,
-      source: payload.source
-    });
-
-    const response = await fetch(url, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${authToken}`
-      },
-      body: JSON.stringify(payload)
-    });
-
-    console.log('[Soul Observer] Response status:', response.status, response.statusText);
-
-    if (!response.ok) {
-      // Handle 401 Unauthorized - token expired/invalid
-      if (response.status === 401) {
-        console.error('[Soul Observer] ❌ Token expired or invalid - clearing stored token');
-
-        // Clear the expired token
-        authToken = null;
-        await chrome.storage.sync.remove(['authToken']);
-        console.log('[Soul Observer] 🗑️  Expired token cleared from storage');
-
-        // Try to parse error response to check if token was expired
-        let tokenExpired = false;
-        try {
-          const errorData = await response.json();
-          tokenExpired = errorData.tokenExpired === true;
-          console.log('[Soul Observer] Token expired status:', tokenExpired);
-        } catch (e) {
-          // Couldn't parse response, assume token issue
-          tokenExpired = true;
-        }
-
-        // Notify user they need to re-authenticate
-        chrome.notifications.create('soul-observer-auth-required', {
-          type: 'basic',
-          iconUrl: 'icons/icon48.png',
-          title: 'Soul Observer: Authentication Required',
-          message: tokenExpired
-            ? 'Your session has expired. Click here to log in again.'
-            : 'Authentication failed. Click here to log in.',
-          priority: 2,
-          requireInteraction: true
+    if (response.ok) {
+      const result = await response.json();
+      console.log('[Background] Activities interpreted:', result);
+      
+      // Clear buffer
+      activityBuffer = [];
+      
+      // Store interpretation
+      if (result.interpretation) {
+        const { interpretations = [] } = await chrome.storage.local.get('interpretations');
+        interpretations.push({
+          timestamp: new Date().toISOString(),
+          activityCount: result.activityCount,
+          interpretation: result.interpretation,
+          insights: result.insights
         });
-
-        // Open login page when user clicks the notification
-        chrome.notifications.onClicked.addListener(function(notificationId) {
-          if (notificationId === 'soul-observer-auth-required') {
-            chrome.tabs.create({ url: `${CLIENT_URL}/auth` });
-          }
-        });
-
-        throw new Error('Authentication required - please log in');
+        await chrome.storage.local.set({ interpretations });
       }
-
-      const errorText = await response.text();
-      console.error('[Soul Observer] Backend error response:', errorText);
-      throw new Error(`Backend error: ${response.status} - ${errorText}`);
+    } else {
+      console.error('[Background] Failed to flush activities:', response.statusText);
     }
-
-    const result = await response.json();
-    console.log('[Soul Observer] ✅ Activity data sent to AI for processing successfully');
-    console.log('[Soul Observer] Backend result:', result);
-
-    return result;
   } catch (error) {
-    console.error('[Soul Observer] ❌ Error sending data:', error);
-    console.error('[Soul Observer] Error stack:', error.stack);
-    throw error;
+    console.error('[Background] Error flushing activities:', error);
   }
 }
 
 /**
- * Send complete Soul Observer session data
+ * Sync all collected data to API
  */
-async function sendSoulObserverSession(sessionData) {
-  if (!authToken) {
-    throw new Error('Not authenticated');
+async function syncCollectedData() {
+  if (!userId) {
+    console.log('[Background] No user ID - skipping sync');
+    return;
   }
-
+  
+  console.log('[Background] Syncing collected data...');
+  
   try {
-    const response = await fetch(`${API_URL}/soul-observer/session`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${authToken}`
-      },
-      body: JSON.stringify({
-        ...sessionData,
-        endTime: new Date().toISOString()
-      })
-    });
-
-    if (!response.ok) {
-      // Handle 401 Unauthorized - token expired
-      if (response.status === 401) {
-        console.error('[Soul Observer] ❌ Token expired during session send - clearing token');
-        authToken = null;
-        await chrome.storage.sync.remove(['authToken']);
-
-        chrome.notifications.create('soul-observer-session-auth-required', {
-          type: 'basic',
-          iconUrl: 'icons/icon48.png',
-          title: 'Soul Observer: Authentication Required',
-          message: 'Your session has expired. Please log in again.',
-          priority: 2,
-          requireInteraction: true
-        });
-
-        throw new Error('Token expired - please re-authenticate');
-      }
-
-      throw new Error(`Backend error: ${response.status}`);
-    }
-
-    const result = await response.json();
-    console.log('[Soul Observer] Session data sent for deep analysis');
-
-    // Show notification
-    chrome.notifications.create({
-      type: 'basic',
-      iconUrl: 'icons/icon48.svg',
-      title: 'Soul Observer',
-      message: 'Session analyzed! Check your Soul Signature dashboard for new insights.'
-    });
-
-    return result;
-  } catch (error) {
-    console.error('[Soul Observer] Error sending session:', error);
-    throw error;
-  }
-}
-
-/**
- * Periodic data collection (every 6 hours)
- */
-chrome.alarms.create('periodicCollection', { periodInMinutes: 360 });
-
-chrome.alarms.onAlarm.addListener((alarm) => {
-  if (alarm.name === 'periodicCollection') {
-    console.log('[Soul Signature] Running periodic data collection');
-
-    // Get platform settings first
-    chrome.storage.sync.get(['platformSettings'], (result) => {
-      const platformSettings = result.platformSettings || {};
-
-      // Trigger collection on supported tabs (only if platform is enabled)
-      chrome.tabs.query({}, (tabs) => {
-        tabs.forEach(tab => {
-          if (tab.url) {
-            let platform = null;
-
-            if (tab.url.includes('netflix.com')) platform = 'netflix';
-            else if (tab.url.includes('disneyplus.com')) platform = 'disneyplus';
-            else if (tab.url.includes('hbomax.com') || tab.url.includes('max.com')) platform = 'hbomax';
-            else if (tab.url.includes('primevideo.com') || tab.url.includes('amazon.com/gp/video')) platform = 'primevideo';
-            else if (tab.url.includes('instagram.com')) platform = 'instagram';
-
-            // Only collect if platform is enabled
-            if (platform && platformSettings[platform]?.enabled !== false) {
-              chrome.tabs.sendMessage(tab.id, { type: 'COLLECT_DATA' });
-            }
-          }
-        });
+    // Get unsynced Netflix data
+    const { netflixData = [] } = await chrome.storage.local.get('netflixData');
+    const unsyncedNetflix = netflixData.filter(d => !d.synced);
+    
+    if (unsyncedNetflix.length > 0) {
+      console.log(`[Background] Syncing ${unsyncedNetflix.length} Netflix items`);
+      
+      const response = await fetch(`${API_BASE_URL}/soul-observer/netflix`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          userId,
+          data: unsyncedNetflix
+        })
       });
+      
+      if (response.ok) {
+        // Mark as synced
+        const updatedData = netflixData.map(d => 
+          unsyncedNetflix.includes(d) ? { ...d, synced: true } : d
+        );
+        await chrome.storage.local.set({ netflixData: updatedData });
+        console.log('[Background] Netflix data synced successfully');
+      }
+    }
+    
+    // Flush any pending activities
+    await flushActivityBuffer();
+    
+    updateBadge();
+  } catch (error) {
+    console.error('[Background] Sync error:', error);
+  }
+}
+
+/**
+ * Update extension badge
+ */
+async function updateBadge() {
+  const { netflixData = [] } = await chrome.storage.local.get('netflixData');
+  const unsyncedCount = netflixData.filter(d => !d.synced).length + activityBuffer.length;
+  
+  if (unsyncedCount > 0) {
+    chrome.action.setBadgeText({ text: String(unsyncedCount) });
+    chrome.action.setBadgeBackgroundColor({ color: '#D97706' }); // Orange
+  } else {
+    chrome.action.setBadgeText({ text: '' });
+  }
+}
+
+/**
+ * Listen for tab updates to track browsing
+ */
+chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
+  if (!observerMode || !userId) return;
+  
+  if (changeInfo.status === 'complete' && tab.url) {
+    // Record page visit
+    activityBuffer.push({
+      type: 'page_visit',
+      url: tab.url,
+      title: tab.title,
+      timestamp: new Date().toISOString()
     });
   }
 });
+
+/**
+ * Listen for tab activation (user switching tabs)
+ */
+chrome.tabs.onActivated.addListener(async (activeInfo) => {
+  if (!observerMode || !userId) return;
+  
+  const tab = await chrome.tabs.get(activeInfo.tabId);
+  activityBuffer.push({
+    type: 'tab_switch',
+    url: tab.url,
+    title: tab.title,
+    timestamp: new Date().toISOString()
+  });
+});
+
+console.log('[Soul Signature] Background service worker loaded');

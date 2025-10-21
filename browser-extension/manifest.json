@@ -1,54 +1,57 @@
 {
   "manifest_version": 3,
-  "name": "Soul Observer - TwinMe Behavioral Tracker",
+  "name": "Soul Signature - Digital Twin Collector",
   "version": "1.0.0",
-  "description": "Captures browser behavioral patterns for authentic digital twin creation",
-
+  "description": "Capture your authentic digital footprint from streaming platforms and browsing activity to build your Soul Signature",
   "permissions": [
     "storage",
     "tabs",
     "activeTab",
     "scripting",
-    "alarms",
-    "notifications"
+    "webNavigation",
+    "alarms"
   ],
-
   "host_permissions": [
-    "<all_urls>"
+    "https://www.netflix.com/*",
+    "https://www.hulu.com/*",
+    "https://www.hbomax.com/*",
+    "https://www.primevideo.com/*",
+    "https://www.disneyplus.com/*",
+    "https://*/*",
+    "http://localhost:*/*"
   ],
-
   "background": {
     "service_worker": "background.js",
     "type": "module"
   },
-
   "content_scripts": [
     {
+      "matches": ["https://www.netflix.com/*"],
+      "js": ["content/netflix.js"],
+      "run_at": "document_idle"
+    },
+    {
       "matches": ["<all_urls>"],
-      "js": ["content.js"],
-      "run_at": "document_end",
-      "all_frames": false
+      "js": ["content/soul-observer.js"],
+      "run_at": "document_idle"
     }
   ],
-
   "action": {
-    "default_popup": "popup-new.html",
+    "default_popup": "popup/popup.html",
     "default_icon": {
-      "16": "icons/icon16.svg",
-      "48": "icons/icon48.svg",
-      "128": "icons/icon128.svg"
+      "16": "icons/icon16.png",
+      "48": "icons/icon48.png",
+      "128": "icons/icon128.png"
     }
   },
-
   "icons": {
-    "16": "icons/icon16.svg",
-    "48": "icons/icon48.svg",
-    "128": "icons/icon128.svg"
+    "16": "icons/icon16.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
   },
-
   "web_accessible_resources": [
     {
-      "resources": ["eventCollector.js"],
+      "resources": ["content/*"],
       "matches": ["<all_urls>"]
     }
   ]
