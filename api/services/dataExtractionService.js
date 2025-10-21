@@ -14,6 +14,7 @@ import GmailExtractor from './extractors/gmailExtractor.js';
 import SlackExtractor from './extractors/slackExtractor.js';
 import CalendarExtractor from './extractors/calendarExtractor.js';
 import TeamsExtractor from './extractors/teamsExtractor.js';
+import TikTokExtractor from './extractors/tiktokExtractor.js';
 import { decryptToken } from './encryption.js';
 import { getValidAccessToken } from './tokenRefresh.js';
 
@@ -151,6 +152,9 @@ class DataExtractionService {
         case 'teams':
         case 'microsoft_teams':
           extractor = new TeamsExtractor(userId, 'teams');
+          break;
+        case 'tiktok':
+          extractor = new TikTokExtractor(userId, 'tiktok');
           break;
         case 'twitch':
           // This platform is defined but extractor not yet implemented
