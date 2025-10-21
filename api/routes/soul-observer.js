@@ -8,6 +8,12 @@ import express from 'express';
 import { supabaseAdmin } from '../services/database.js';
 import patternDetectionEngine from '../services/patternDetectionEngine.js';
 import behavioralEmbeddingService from '../services/behavioralEmbeddingService.js';
+import Anthropic from '@anthropic-ai/sdk';
+
+// Initialize Anthropic client for LLM interpretation
+const anthropic = new Anthropic({
+  apiKey: process.env.ANTHROPIC_API_KEY,
+});
 
 const router = express.Router();
 
@@ -559,6 +565,230 @@ async function triggerAIAnalysis(userId, sessionId) {
     console.error('[Soul Observer] AI analysis error:', error);
     // Don't throw - background job should not fail the main request
   }
+}
+
+/**
+ * POST /api/soul-observer/netflix
+ * Receive Netflix viewing data from browser extension
+ */
+router.post('/netflix', async (req, res) => {
+  try {
+    const { userId, data } = req.body;
+
+    if (!userId || !data) {
+      return res.status(400).json({
+        success: false,
+        error: 'Missing userId or data',
+      });
+    }
+
+    console.log(`[Soul Observer] Received Netflix data for user ${userId}:`, data.length, 'items');
+
+    // Store in database
+    const records = data.map(item => ({
+      user_id: userId,
+      platform: 'netflix',
+      data_type: 'viewing_activity',
+      source_url: 'https://www.netflix.com',
+      raw_data: item,
+      extracted_at: item.collectedAt || new Date().toISOString(),
+      processed: false,
+    }));
+
+    const { error: dbError } = await supabase
+      .from('user_platform_data')
+      .upsert(records, {
+        onConflict: 'user_id,platform,data_type,source_url',
+      });
+
+    if (dbError) {
+      console.error('[Soul Observer] Database error:', dbError);
+      throw dbError;
+    }
+
+    res.json({
+      success: true,
+      itemsReceived: data.length,
+      message: 'Netflix data stored successfully',
+    });
+  } catch (error) {
+    console.error('[Soul Observer] Error storing Netflix data:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to store Netflix data',
+    });
+  }
+});
+
+/**
+ * POST /api/soul-observer/interpret
+ * Interpret browsing activity using Claude LLM
+ */
+router.post('/interpret', async (req, res) => {
+  try {
+    const { userId, activities, requestInterpretation } = req.body;
+
+    if (!userId || !activities || activities.length === 0) {
+      return res.status(400).json({
+        success: false,
+        error: 'Missing userId or activities',
+      });
+    }
+
+    console.log(`[Soul Observer] Interpreting ${activities.length} activities for user ${userId}`);
+
+    // Store activities in database
+    const records = activities.map(activity => ({
+      user_id: userId,
+      platform: 'browser_extension',
+      data_type: activity.type || 'browsing_activity',
+      source_url: activity.url,
+      raw_data: activity,
+      extracted_at: activity.timestamp,
+      processed: false,
+    }));
+
+    const { error: dbError } = await supabase
+      .from('user_platform_data')
+      .insert(records);
+
+    if (dbError && dbError.code !== '23505') { // Ignore duplicate key errors
+      console.error('[Soul Observer] Database error:', dbError);
+    }
+
+    let interpretation = null;
+    let insights = null;
+
+    // Request LLM interpretation if enabled
+    if (requestInterpretation && activities.length >= 5) {
+      interpretation = await interpretActivitiesWithClaude(activities);
+      insights = extractInsights(interpretation);
+
+      // Store interpretation in database
+      if (interpretation) {
+        const sessionId = `interpret_${Date.now()}`;
+        await supabase
+          .from('soul_observer_insights')
+          .insert({
+            user_id: userId,
+            session_id: sessionId,
+            insight_category: 'llm_interpretation',
+            insight_text: interpretation,
+            insight_data: { insights, activityCount: activities.length },
+            confidence: 0.8,
+            evidence_count: activities.length,
+          });
+      }
+    }
+
+    res.json({
+      success: true,
+      activityCount: activities.length,
+      stored: true,
+      interpretation,
+      insights,
+    });
+  } catch (error) {
+    console.error('[Soul Observer] Error interpreting activities:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to interpret activities',
+    });
+  }
+});
+
+/**
+ * Interpret browsing activities using Claude
+ */
+async function interpretActivitiesWithClaude(activities) {
+  try {
+    // Prepare activity summary for Claude
+    const activitySummary = activities.map(a => ({
+      type: a.type,
+      category: a.category,
+      title: a.title,
+      url: a.url,
+      timeSpent: a.timeSpent,
+      scrollDepth: a.scrollDepth,
+      interactions: a.interactions,
+      engaged: a.engaged,
+    }));
+
+    const prompt = `You are analyzing browsing activity to understand authentic user interests and personality traits for their "Soul Signature" - a digital twin that captures what makes them uniquely themselves.
+
+BROWSING ACTIVITY DATA (${activities.length} activities):
+${JSON.stringify(activitySummary, null, 2)}
+
+Please analyze this browsing activity and provide:
+
+1. **Primary Interests**: What are the user's main areas of interest based on this activity?
+
+2. **Engagement Patterns**: How does the user engage with content? (deep reading, quick scanning, video consumption, etc.)
+
+3. **Personality Indicators**: What personality traits does this activity suggest? (curious, focused, social, analytical, creative, etc.)
+
+4. **Hidden Passions**: Any unexpected or unique interests that stand out?
+
+5. **Authentic Self**: What does this reveal about the user's authentic curiosity and genuine interests (not just mainstream content)?
+
+6. **Soul Signature Contribution**: How does this browsing session contribute to understanding their unique "soul signature"?
+
+Provide a thoughtful, insightful analysis that goes beyond surface-level observations. Focus on what makes this person uniquely themselves.`;
+
+    const message = await anthropic.messages.create({
+      model: 'claude-3-5-sonnet-20241022',
+      max_tokens: 1500,
+      messages: [
+        {
+          role: 'user',
+          content: prompt,
+        },
+      ],
+    });
+
+    const interpretationText = message.content[0].text;
+    console.log('[Soul Observer] Claude interpretation generated');
+
+    return interpretationText;
+  } catch (error) {
+    console.error('[Soul Observer] Error calling Claude API:', error);
+    return null;
+  }
+}
+
+/**
+ * Extract structured insights from interpretation
+ */
+function extractInsights(interpretation) {
+  if (!interpretation) return null;
+
+  // Simple extraction - could be enhanced with more structured parsing
+  const insights = {
+    interests: [],
+    engagementStyle: null,
+    personalityTraits: [],
+    uniqueQualities: [],
+  };
+
+  // Extract interests (lines after "Primary Interests:")
+  const interestsMatch = interpretation.match(/Primary Interests[:\s]+([\s\S]*?)(?=\n\n|\d\.)/i);
+  if (interestsMatch) {
+    insights.interests = interestsMatch[1]
+      .split('\n')
+      .filter(line => line.trim().startsWith('-'))
+      .map(line => line.replace(/^-\s*/, '').trim());
+  }
+
+  // Extract personality traits (lines after "Personality Indicators:")
+  const traitsMatch = interpretation.match(/Personality Indicators[:\s]+([\s\S]*?)(?=\n\n|\d\.)/i);
+  if (traitsMatch) {
+    insights.personalityTraits = traitsMatch[1]
+      .split('\n')
+      .filter(line => line.trim().startsWith('-'))
+      .map(line => line.replace(/^-\s*/, '').trim());
+  }
+
+  return insights;
 }
 
 export default router;
