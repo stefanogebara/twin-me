@@ -32,6 +32,7 @@ import SoulChat from "./pages/SoulChat";
 import PlatformHub from "./pages/PlatformHub";
 import PrivacySpectrumDashboard from "./components/PrivacySpectrumDashboard";
 import TwinProfilePreview from "./pages/TwinProfilePreview";
+import SoulMatching from "./pages/SoulMatching";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import Dashboard from "./pages/Dashboard";
 import Training from "./pages/Training";
@@ -182,6 +183,20 @@ const App = () => {
                   <SidebarLayout>
                     <ErrorBoundary>
                       <PrivacySpectrumDashboard />
+                    </ErrorBoundary>
+                  </SidebarLayout>
+                </SignedIn>
+                <SignedOut>
+                  <CustomAuth />
+                </SignedOut>
+              </>
+            } />
+            <Route path="/soul-matching" element={
+              <>
+                <SignedIn>
+                  <SidebarLayout>
+                    <ErrorBoundary>
+                      <SoulMatching />
                     </ErrorBoundary>
                   </SidebarLayout>
                 </SignedIn>
