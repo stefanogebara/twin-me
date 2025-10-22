@@ -11,6 +11,7 @@ import {
   registerGitHubWebhook,
   setupGmailPushNotifications,
 } from '../services/webhookReceiverService.js';
+import { encryptToken, decryptToken } from '../services/encryption.js';
 
 const router = express.Router();
 
@@ -361,36 +362,11 @@ async function storeOAuthTokens(userId, provider, tokens) {
 }
 
 /**
- * Simple token encryption (use proper encryption like AES-256 in production)
+ * Token encryption/decryption
+ * (Using shared encryption service with AES-256-GCM)
  */
-function encryptToken(token) {
-  try {
-    const cipher = crypto.createCipher('aes-256-cbc', ENCRYPTION_KEY);
-    let encrypted = cipher.update(token, 'utf8', 'hex');
-    encrypted += cipher.final('hex');
-    return encrypted;
-  } catch (error) {
-    console.error('Token encryption error:', error);
-    // Fallback to base64 encoding if encryption fails
-    return Buffer.from(token).toString('base64');
-  }
-}
-
-/**
- * Decrypt token (use proper decryption in production)
- */
-function decryptToken(encryptedToken) {
-  try {
-    const decipher = crypto.createDecipher('aes-256-cbc', ENCRYPTION_KEY);
-    let decrypted = decipher.update(encryptedToken, 'hex', 'utf8');
-    decrypted += decipher.final('utf8');
-    return decrypted;
-  } catch (error) {
-    console.error('Token decryption error:', error);
-    // Fallback to base64 decoding if decryption fails
-    return Buffer.from(encryptedToken, 'base64').toString('utf8');
-  }
-}
+// Removed insecure deprecated crypto.createCipher implementation
+// Now using secure encryption.js service with authenticated encryption
 
 /**
  * Extract data in background (non-blocking)

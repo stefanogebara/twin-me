@@ -16,24 +16,29 @@ const IV_LENGTH = 16; // 128 bits
 const AUTH_TAG_LENGTH = 16; // 128 bits
 const KEY_LENGTH = 32; // 256 bits
 
-// Get encryption key from environment
+// Lazy-load encryption key to allow dotenv.config() to run first
 let encryptionKey;
-try {
-  const keyHex = process.env.ENCRYPTION_KEY;
-  if (!keyHex) {
-    throw new Error('ENCRYPTION_KEY not set in environment variables');
-  }
 
-  encryptionKey = Buffer.from(keyHex, 'hex');
+function getEncryptionKey() {
+  if (!encryptionKey) {
+    try {
+      const keyHex = process.env.ENCRYPTION_KEY;
+      if (!keyHex) {
+        throw new Error('ENCRYPTION_KEY not set in environment variables');
+      }
 
-  if (encryptionKey.length !== KEY_LENGTH) {
-    throw new Error(`Encryption key must be ${KEY_LENGTH} bytes (${KEY_LENGTH * 2} hex characters)`);
+      encryptionKey = Buffer.from(keyHex, 'hex');
+
+      if (encryptionKey.length !== KEY_LENGTH) {
+        throw new Error(`Encryption key must be ${KEY_LENGTH} bytes (${KEY_LENGTH * 2} hex characters)`);
+      }
+    } catch (error) {
+      console.error('❌ Encryption setup failed:', error.message);
+      console.error('💡 Generate a key with: node -e "console.log(require(\'crypto\').randomBytes(32).toString(\'hex\'))"');
+      throw new Error(`Encryption initialization failed: ${error.message}`);
+    }
   }
-} catch (error) {
-  console.error('❌ Encryption setup failed:', error.message);
-  console.error('💡 Generate a key with: node -e "console.log(require(\'crypto\').randomBytes(32).toString(\'hex\'))"');
-  // Don't call process.exit() in serverless environments - throw error instead
-  throw new Error(`Encryption initialization failed: ${error.message}`);
+  return encryptionKey;
 }
 
 /**
@@ -51,7 +56,7 @@ export function encryptToken(plaintext) {
     const iv = crypto.randomBytes(IV_LENGTH);
 
     // Create cipher
-    const cipher = crypto.createCipheriv(ALGORITHM, encryptionKey, iv);
+    const cipher = crypto.createCipheriv(ALGORITHM, getEncryptionKey(), iv);
 
     // Encrypt the plaintext
     let ciphertext = cipher.update(plaintext, 'utf8', 'hex');
@@ -100,7 +105,7 @@ export function decryptToken(encryptedData) {
     }
 
     // Create decipher
-    const decipher = crypto.createDecipheriv(ALGORITHM, encryptionKey, iv);
+    const decipher = crypto.createDecipheriv(ALGORITHM, getEncryptionKey(), iv);
     decipher.setAuthTag(authTag);
 
     // Decrypt the ciphertext
