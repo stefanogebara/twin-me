@@ -31,5 +31,15 @@
       "src": "/(.*)",
       "dest": "/index.html"
     }
+  ],
+  "crons": [
+    {
+      "path": "/api/cron/token-refresh",
+      "schedule": "*/5 * * * *"
+    },
+    {
+      "path": "/api/cron/platform-polling",
+      "schedule": "*/30 * * * *"
+    }
   ]
 }
