@@ -204,6 +204,8 @@ import soulObserverRoutes from './routes/soul-observer.js';
 import webhookRoutes from './routes/webhooks.js';
 import sseRoutes from './routes/sse.js';
 import queueDashboardRoutes from './routes/queue-dashboard.js';
+import cronTokenRefreshHandler from './routes/cron-token-refresh.js';
+import cronPlatformPollingHandler from './routes/cron-platform-polling.js';
 import { serverDb } from './services/database.js';
 import { sanitizeInput, validateContentType } from './middleware/sanitization.js';
 import { /* handleAuthError, */ handleGeneralError, handle404 } from './middleware/errorHandler.js';
@@ -239,6 +241,11 @@ app.use('/api/webhooks', webhookRoutes); // Real-time webhook receivers (GitHub,
 app.use('/api/sse', sseRoutes); // Server-Sent Events for real-time updates
 app.use('/api/queues', queueDashboardRoutes); // Bull Board job queue dashboard
 
+// Vercel Cron Job endpoints (production automation)
+// These are called by Vercel Cron Jobs on schedule (configured in vercel.json)
+app.use('/api/cron/token-refresh', cronTokenRefreshHandler); // Every 5 minutes
+app.use('/api/cron/platform-polling', cronPlatformPollingHandler); // Every 30 minutes
+
 // Health check endpoint
 app.get('/api/health', async (req, res) => {
   const dbHealth = await serverDb.healthCheck();
@@ -264,6 +271,15 @@ app.use(notFoundHandler);
 app.use(errorHandler);
 
 // Start server only in development (not in Vercel serverless)
+//
+// ARCHITECTURE NOTES:
+// - Development: Background services (token refresh, platform polling) run via node-cron
+// - Production (Vercel): Vercel Cron Jobs call HTTP endpoints instead:
+//   * /api/cron/token-refresh (every 5 minutes)
+//   * /api/cron/platform-polling (every 30 minutes)
+// - This is necessary because Vercel serverless functions are stateless - persistent
+//   cron jobs won't work. Vercel Cron calls our endpoints on schedule instead.
+//
 console.log(`🔍 NODE_ENV check: "${process.env.NODE_ENV}" (condition: !== 'production')`);
 console.log(`🔍 Condition result: ${process.env.NODE_ENV !== 'production'}`);
 
@@ -275,16 +291,19 @@ if (process.env.NODE_ENV !== 'production') {
   // Initialize WebSocket server
   initializeWebSocketServer(server);
 
-  // Start background services
-  console.log('🔧 Initializing background services...');
+  // Start background services (development only)
+  // In production, these are handled by Vercel Cron Jobs calling /api/cron/* endpoints
+  console.log('🔧 Initializing background services (development mode)...');
 
   // Initialize Bull queues for background job processing
   initializeQueues();
 
   // Token refresh service - runs every 5 minutes
+  // Production equivalent: Vercel Cron → /api/cron/token-refresh
   startTokenRefreshService();
 
   // Platform polling service - platform-specific schedules
+  // Production equivalent: Vercel Cron → /api/cron/platform-polling
   startPlatformPolling();
 
   // Start HTTP server
