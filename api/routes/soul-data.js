@@ -525,10 +525,31 @@ router.get('/soul-signature', async (req, res) => {
       .eq('user_id', userId)
       .single();
 
-    if (error || !data) {
-      return res.status(404).json({
+    // Handle "no rows" error separately from actual errors
+    if (error) {
+      // PGRST116 = Row not found (not an error, just no data yet)
+      if (error.code === 'PGRST116' || error.message?.includes('0 rows')) {
+        return res.status(200).json({
+          success: false,
+          error: 'Soul signature not found. Please extract data from platforms first.',
+          soulSignature: null
+        });
+      }
+
+      // Actual database error
+      console.error('[API] Database error in /soul-signature:', error);
+      return res.status(500).json({
         success: false,
-        error: 'Soul signature not found. Please extract data from platforms first.'
+        error: 'Failed to fetch soul signature',
+        message: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
+      });
+    }
+
+    if (!data) {
+      return res.status(200).json({
+        success: false,
+        error: 'Soul signature not found. Please extract data from platforms first.',
+        soulSignature: null
       });
     }
 
@@ -537,10 +558,11 @@ router.get('/soul-signature', async (req, res) => {
       soulSignature: data
     });
   } catch (error) {
-    console.error('[API] Error in /soul-signature:', error);
+    console.error('[API] Unexpected error in /soul-signature:', error);
     res.status(500).json({
       success: false,
-      error: error.message
+      error: 'Failed to fetch soul signature',
+      message: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
     });
   }
 });
