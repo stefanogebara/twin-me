@@ -37,9 +37,14 @@ router.post('/activity', async (req, res) => {
     const userId = req.body.userId || req.user?.id;
 
     if (!userId) {
+      console.log('[Soul Observer] ❌ No userId found in request');
+      console.log('[Soul Observer] Body userId:', req.body.userId);
+      console.log('[Soul Observer] req.user:', req.user);
+      console.log('[Soul Observer] Authorization header:', req.headers.authorization ? 'Present' : 'Missing');
       return res.status(401).json({
         success: false,
-        error: 'User authentication required'
+        error: 'User authentication required',
+        details: 'Please provide userId in request body or valid authentication token'
       });
     }
 

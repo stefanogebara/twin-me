@@ -232,7 +232,9 @@ app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/training', trainingRoutes);
 app.use('/api/diagnostics', diagnosticsRoutes); // Supabase connection diagnostics
 app.use('/api/platforms', allPlatformRoutes); // Comprehensive 56-platform integration
-app.use('/api/soul-observer', authenticateUser, soulObserverRoutes); // Soul Observer Mode - behavioral tracking
+// Soul Observer uses optional auth - allows both authenticated and unauthenticated requests
+// Extension sends userId in body when not authenticated
+app.use('/api/soul-observer', soulObserverRoutes); // Soul Observer Mode - behavioral tracking
 app.use('/api/webhooks', webhookRoutes); // Real-time webhook receivers (GitHub, Gmail, Slack)
 app.use('/api/sse', sseRoutes); // Server-Sent Events for real-time updates
 app.use('/api/queues', queueDashboardRoutes); // Bull Board job queue dashboard
