@@ -17,6 +17,7 @@ import { extractYouTubeData } from '../services/youtubeExtraction.js';
 import { extractRedditData } from '../services/redditExtraction.js';
 import { extractGitHubData } from '../services/githubExtraction.js';
 import { extractDiscordData } from '../services/discordExtraction.js';
+import { encryptToken, decryptToken } from '../services/encryption.js';
 
 const router = express.Router();
 
@@ -433,37 +434,9 @@ async function extractOAuthPlatformData(userId, platformId, platformConfig, conn
 
 /**
  * Token encryption/decryption helpers
+ * (Imported from shared encryption service)
  */
-function encryptToken(token) {
-  const algorithm = 'aes-256-gcm';
-  const key = Buffer.from(process.env.ENCRYPTION_KEY || 'your-32-character-secret-key!!', 'utf8');
-  const iv = crypto.randomBytes(16);
-
-  const cipher = crypto.createCipheriv(algorithm, key, iv);
-  let encrypted = cipher.update(token, 'utf8', 'hex');
-  encrypted += cipher.final('hex');
-
-  const authTag = cipher.getAuthTag();
-
-  return `${iv.toString('hex')}:${authTag.toString('hex')}:${encrypted}`;
-}
-
-function decryptToken(encryptedToken) {
-  const algorithm = 'aes-256-gcm';
-  const key = Buffer.from(process.env.ENCRYPTION_KEY || 'your-32-character-secret-key!!', 'utf8');
-
-  const [ivHex, authTagHex, encrypted] = encryptedToken.split(':');
-  const iv = Buffer.from(ivHex, 'hex');
-  const authTag = Buffer.from(authTagHex, 'hex');
-
-  const decipher = crypto.createDecipheriv(algorithm, key, iv);
-  decipher.setAuthTag(authTag);
-
-  let decrypted = decipher.update(encrypted, 'hex', 'utf8');
-  decrypted += decipher.final('utf8');
-
-  return decrypted;
-}
+// Removed duplicate implementation - using shared encryption.js service instead
 
 /**
  * Platform-specific data extraction functions

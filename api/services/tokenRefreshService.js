@@ -7,7 +7,7 @@
 import cron from 'node-cron';
 import { createClient } from '@supabase/supabase-js';
 import axios from 'axios';
-import crypto from 'crypto';
+import { encryptToken, decryptToken } from './encryption.js';
 
 // Lazy initialization to avoid crashes if env vars not loaded yet
 let supabase = null;
@@ -20,9 +20,6 @@ function getSupabaseClient() {
   }
   return supabase;
 }
-
-const ENCRYPTION_KEY = process.env.ENCRYPTION_KEY || crypto.randomBytes(32).toString('hex');
-const ENCRYPTION_ALGORITHM = 'aes-256-gcm';
 
 // Platform-specific OAuth configurations
 const PLATFORM_REFRESH_CONFIGS = {
@@ -62,62 +59,7 @@ const PLATFORM_REFRESH_CONFIGS = {
   },
 };
 
-/**
- * Decrypt token from database
- */
-function decryptToken(encryptedData) {
-  try {
-    if (!encryptedData) return null;
-
-    const parts = encryptedData.split(':');
-    if (parts.length !== 3) return null;
-
-    const iv = Buffer.from(parts[0], 'hex');
-    const authTag = Buffer.from(parts[1], 'hex');
-    const encrypted = Buffer.from(parts[2], 'hex');
-
-    const decipher = crypto.createDecipheriv(
-      ENCRYPTION_ALGORITHM,
-      Buffer.from(ENCRYPTION_KEY.slice(0, 64), 'hex'),
-      iv
-    );
-    decipher.setAuthTag(authTag);
-
-    let decrypted = decipher.update(encrypted);
-    decrypted = Buffer.concat([decrypted, decipher.final()]);
-
-    return decrypted.toString('utf8');
-  } catch (error) {
-    console.error('❌ Token decryption failed:', error.message);
-    return null;
-  }
-}
-
-/**
- * Encrypt token for database storage
- */
-function encryptToken(token) {
-  try {
-    if (!token) return null;
-
-    const iv = crypto.randomBytes(16);
-    const cipher = crypto.createCipheriv(
-      ENCRYPTION_ALGORITHM,
-      Buffer.from(ENCRYPTION_KEY.slice(0, 64), 'hex'),
-      iv
-    );
-
-    let encrypted = cipher.update(token, 'utf8');
-    encrypted = Buffer.concat([encrypted, cipher.final()]);
-
-    const authTag = cipher.getAuthTag();
-
-    return `${iv.toString('hex')}:${authTag.toString('hex')}:${encrypted.toString('hex')}`;
-  } catch (error) {
-    console.error('❌ Token encryption failed:', error.message);
-    return null;
-  }
-}
+// Encryption/decryption functions now imported from encryption.js service
 
 /**
  * Refresh access token using refresh token
@@ -338,6 +280,4 @@ export {
   startTokenRefreshService,
   ensureFreshToken,
   refreshAccessToken,
-  encryptToken,
-  decryptToken,
 };
