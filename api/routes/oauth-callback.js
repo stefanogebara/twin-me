@@ -109,6 +109,9 @@ async function exchangeCodeForTokens(provider, code) {
     case 'github':
       return await exchangeGitHubCode(code, redirectUri);
 
+    case 'reddit':
+      return await exchangeRedditCode(code, redirectUri);
+
     case 'slack':
       return await exchangeSlackCode(code, redirectUri);
 
@@ -242,6 +245,38 @@ async function exchangeGitHubCode(code, redirectUri) {
   if (!response.ok) {
     const error = await response.text();
     throw new Error(`GitHub token exchange failed: ${error}`);
+  }
+
+  return await response.json();
+}
+
+/**
+ * Reddit token exchange
+ */
+async function exchangeRedditCode(code, redirectUri) {
+  const clientId = process.env.REDDIT_CLIENT_ID;
+  const clientSecret = process.env.REDDIT_CLIENT_SECRET;
+
+  if (!clientId || !clientSecret) {
+    throw new Error('Reddit credentials not configured');
+  }
+
+  const response = await fetch('https://www.reddit.com/api/v1/access_token', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/x-www-form-urlencoded',
+      'Authorization': `Basic ${Buffer.from(`${clientId}:${clientSecret}`).toString('base64')}`
+    },
+    body: new URLSearchParams({
+      grant_type: 'authorization_code',
+      code,
+      redirect_uri: redirectUri
+    })
+  });
+
+  if (!response.ok) {
+    const error = await response.text();
+    throw new Error(`Reddit token exchange failed: ${error}`);
   }
 
   return await response.json();
