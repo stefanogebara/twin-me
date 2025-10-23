@@ -156,6 +156,17 @@ const AVAILABLE_CONNECTORS: ConnectorConfig[] = [
     estimatedInsights: 8,
     setupTime: '10 seconds',
     privacyLevel: 'medium'
+  },
+  {
+    provider: 'reddit',
+    name: 'Reddit',
+    description: 'Community interests and discussion patterns',
+    icon: <Hash className="w-6 h-6" />,
+    color: '#FF4500',
+    dataTypes: ['Community Interests', 'Discussion Style', 'Expertise Areas'],
+    estimatedInsights: 8,
+    setupTime: '10 seconds',
+    privacyLevel: 'medium'
   }
 ];
 
