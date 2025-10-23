@@ -155,6 +155,10 @@ router.get('/verify', async (req, res) => {
 
 // OAuth routes
 router.get('/oauth/google', (req, res) => {
+  console.log('🔵 [OAuth Google GET] Initiating OAuth flow');
+  console.log('🔵 [OAuth Google GET] VITE_API_URL:', process.env.VITE_API_URL);
+  console.log('🔵 [OAuth Google GET] GOOGLE_CLIENT_ID:', process.env.GOOGLE_CLIENT_ID ? '✅ Set' : '❌ Missing');
+
   const clientId = process.env.GOOGLE_CLIENT_ID || 'your-google-client-id';
   const redirectUri = encodeURIComponent(`${process.env.VITE_API_URL || 'http://localhost:3001/api'}/auth/oauth/callback`);
   const scope = encodeURIComponent('email profile https://www.googleapis.com/auth/gmail.readonly https://www.googleapis.com/auth/calendar.readonly');
@@ -163,8 +167,11 @@ router.get('/oauth/google', (req, res) => {
     timestamp: Date.now()
   })).toString('base64');
 
+  console.log('🔵 [OAuth Google GET] Redirect URI (decoded):', decodeURIComponent(redirectUri));
+
   const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${clientId}&redirect_uri=${redirectUri}&scope=${scope}&response_type=code&access_type=offline&prompt=consent&state=${state}`;
 
+  console.log('🔵 [OAuth Google GET] Redirecting to Google OAuth...');
   res.redirect(authUrl);
 });
 
@@ -198,11 +205,15 @@ router.get('/oauth/apple', (req, res) => {
 
 // OAuth callback handler (GET request from OAuth providers)
 router.get('/oauth/callback', async (req, res) => {
+  console.log('🟢 [OAuth GET Callback] Received callback from OAuth provider');
+  console.log('🟢 [OAuth GET Callback] Query params:', { code: req.query.code ? '✅ Present' : '❌ Missing', state: req.query.state ? '✅ Present' : '❌ Missing' });
+  console.log('🟢 [OAuth GET Callback] Headers:', req.headers);
+
   try {
     const { code, state } = req.query;
 
     if (!code || !state) {
-      console.error('OAuth callback missing code or state');
+      console.error('❌ [OAuth GET Callback] Missing code or state');
       return res.redirect(`${process.env.VITE_APP_URL || 'http://localhost:8086'}/auth?error=missing_parameters`);
     }
 
@@ -210,12 +221,14 @@ router.get('/oauth/callback', async (req, res) => {
     let stateData;
     try {
       stateData = JSON.parse(Buffer.from(state, 'base64').toString('utf-8'));
+      console.log('🟢 [OAuth GET Callback] Decoded state:', stateData);
     } catch (err) {
-      console.error('Failed to decode state:', err);
+      console.error('❌ [OAuth GET Callback] Failed to decode state:', err);
       return res.redirect(`${process.env.VITE_APP_URL || 'http://localhost:8086'}/auth?error=invalid_state`);
     }
 
     const provider = stateData.provider;
+    console.log('🟢 [OAuth GET Callback] Provider:', provider);
 
     // Exchange code for tokens based on provider
     let userData;
@@ -280,6 +293,11 @@ router.get('/oauth/callback', async (req, res) => {
 
 // OAuth callback handler (POST request from frontend)
 router.post('/oauth/callback', async (req, res) => {
+  console.log('🟣 [OAuth POST Callback] Received POST callback from frontend');
+  console.log('🟣 [OAuth POST Callback] Headers:', req.headers);
+  console.log('🟣 [OAuth POST Callback] Body:', req.body);
+  console.log('🟣 [OAuth POST Callback] Content-Type:', req.get('Content-Type'));
+
   try {
     const { code, state, provider: explicitProvider } = req.body;
 
