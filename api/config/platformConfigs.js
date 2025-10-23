@@ -107,6 +107,31 @@ export const PLATFORM_CONFIGS = {
     }
   },
 
+  reddit: {
+    name: 'Reddit',
+    authUrl: 'https://www.reddit.com/api/v1/authorize',
+    tokenUrl: 'https://www.reddit.com/api/v1/access_token',
+    scopes: ['identity', 'history', 'read', 'mysubreddits'],
+    apiBaseUrl: 'https://oauth.reddit.com',
+
+    endpoints: {
+      userProfile: '/api/v1/me',
+      subreddits: '/subreddits/mine/subscriber',
+      posts: '/user/me/submitted',
+      comments: '/user/me/comments',
+      saved: '/user/me/saved',
+      upvoted: '/user/me/upvoted'
+    },
+
+    tokenType: 'Bearer',
+    refreshable: true,
+
+    rateLimit: {
+      requests: 60,
+      window: 60 // per minute
+    }
+  },
+
   slack: {
     name: 'Slack',
     authUrl: 'https://slack.com/oauth/v2/authorize',
