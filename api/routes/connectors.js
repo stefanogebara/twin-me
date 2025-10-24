@@ -114,6 +114,15 @@ const OAUTH_CONFIGS = {
     scopes: ['openid', 'profile', 'email'],
     authUrl: 'https://www.linkedin.com/oauth/v2/authorization',
     tokenUrl: 'https://www.linkedin.com/oauth/v2/accessToken'
+  },
+
+  // Reddit
+  reddit: {
+    clientId: process.env.REDDIT_CLIENT_ID,
+    clientSecret: process.env.REDDIT_CLIENT_SECRET,
+    scopes: ['identity', 'history', 'read', 'mysubreddits'],
+    authUrl: 'https://www.reddit.com/api/v1/authorize',
+    tokenUrl: 'https://www.reddit.com/api/v1/access_token'
   }
 };
 
