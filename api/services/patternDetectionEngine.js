@@ -110,6 +110,7 @@ class PatternDetectionEngine {
       console.log(`[Pattern Detection] Analyzing session: ${sessionId}`);
 
       // Get session events
+      const supabase = getSupabaseClient();
       const { data: events, error } = await supabase
         .from('soul_observer_events')
         .select('*')
@@ -482,6 +483,7 @@ class PatternDetectionEngine {
         platforms: []
       }));
 
+      const supabase = getSupabaseClient();
       const { data, error } = await supabase
         .from('behavioral_patterns')
         .upsert(patternRecords, {

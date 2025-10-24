@@ -37,6 +37,8 @@ class BehavioralEmbeddingService {
    */
   async generateBehavioralFingerprint(sessionId) {
     try {
+      const supabase = getSupabaseClient();
+
       // Get session data
       const { data: session, error: sessionError } = await supabase
         .from('soul_observer_sessions')
@@ -266,6 +268,7 @@ class BehavioralEmbeddingService {
       const dominantPatterns = patterns.map(p => p.pattern_name);
 
       // Step 4: Store embedding in database
+      const supabase = getSupabaseClient();
       const { data, error } = await supabase
         .from('user_behavioral_embeddings')
         .insert({
@@ -314,6 +317,8 @@ class BehavioralEmbeddingService {
    */
   async findSimilarSessions(userId, sessionId, limit = 10) {
     try {
+      const supabase = getSupabaseClient();
+
       // Get the embedding for the target session
       const { data: targetEmbedding, error: targetError } = await supabase
         .from('user_behavioral_embeddings')
@@ -353,6 +358,8 @@ class BehavioralEmbeddingService {
    */
   async batchGenerateEmbeddings(userId, limit = 50) {
     try {
+      const supabase = getSupabaseClient();
+
       // Get unprocessed sessions
       const { data: sessions, error } = await supabase
         .from('soul_observer_sessions')
