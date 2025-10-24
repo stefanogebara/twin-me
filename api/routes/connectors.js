@@ -331,6 +331,20 @@ router.post('/callback', async (req, res) => {
           redirect_uri: redirectUri
         })
       });
+    } else if (provider === 'reddit') {
+      // Reddit uses Basic Authentication like Spotify
+      tokenResponse = await fetch(config.tokenUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+          'Authorization': `Basic ${Buffer.from(`${config.clientId}:${config.clientSecret}`).toString('base64')}`
+        },
+        body: new URLSearchParams({
+          grant_type: 'authorization_code',
+          code,
+          redirect_uri: redirectUri
+        })
+      });
     } else {
       // Standard OAuth2 flow (Google, Discord, etc.)
       tokenResponse = await fetch(config.tokenUrl, {
