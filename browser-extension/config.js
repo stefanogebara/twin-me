@@ -4,7 +4,7 @@
  */
 
 // SET THIS TO 'production' BEFORE PUBLISHING
-const ENV = 'development'; // 'development' or 'production'
+const ENV = 'production'; // 'development' or 'production'
 
 // Configuration by environment
 const CONFIG = {
