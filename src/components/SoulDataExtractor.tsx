@@ -77,13 +77,16 @@ export const SoulDataExtractor: React.FC<Props> = ({ userId, onExtractionComplet
         setExtractionStatus(status);
 
         // Calculate progress from real job status
-        const totalJobs = status.recentJobs.length;
-        const completedJobs = status.recentJobs.filter(j =>
+        const recentJobs = status.recentJobs || [];
+        const totalJobs = recentJobs.length;
+        const completedJobs = recentJobs.filter(j =>
           j.status === 'completed'
         ).length;
 
         // Progress: 25% start + (75% based on job completion)
-        setProgress(25 + (completedJobs / totalJobs) * 75);
+        if (totalJobs > 0) {
+          setProgress(25 + (completedJobs / totalJobs) * 75);
+        }
       });
 
       setProgress(100);
@@ -168,7 +171,7 @@ export const SoulDataExtractor: React.FC<Props> = ({ userId, onExtractionComplet
         )}
 
         {/* Extraction Status */}
-        {extractionStatus && extractionStatus.recentJobs.length > 0 && (
+        {extractionStatus && extractionStatus.recentJobs && extractionStatus.recentJobs.length > 0 && (
           <div className="space-y-3">
             <h3 className="text-sm font-medium text-[hsl(var(--claude-text))]">Recent Extractions</h3>
             <div className="space-y-2">
@@ -185,7 +188,7 @@ export const SoulDataExtractor: React.FC<Props> = ({ userId, onExtractionComplet
                     ) : job.status === 'failed' ? (
                       <AlertCircle className="w-4 h-4 text-red-500" />
                     ) : (
-                      <div className="w-4 h-4 rounded-full bg-gray-500" />
+                      <div className="w-4 h-4 rounded-full bg-card0" />
                     )}
                     <div>
                       <div className="text-sm font-medium text-[hsl(var(--claude-text))] capitalize">

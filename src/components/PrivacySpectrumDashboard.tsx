@@ -384,7 +384,7 @@ const PrivacySpectrumDashboard: React.FC = () => {
   }, [contextAwareMode]);
 
   return (
-    <div className="min-h-screen bg-[#FAF9F5] p-6">
+    <div className="min-h-screen bg-background p-6">
       {/* Header */}
       <div className="max-w-7xl mx-auto mb-8">
         <div className="text-center mb-8">
@@ -394,18 +394,18 @@ const PrivacySpectrumDashboard: React.FC = () => {
               fontFamily: 'var(--_typography---font--styrene-a)',
               fontWeight: 500,
               letterSpacing: '-0.02em',
-              color: '#141413'
+              color: "hsl(var(--foreground))"
             }}
           >
             Your Soul Signature Dashboard
           </h1>
-          <p style={{ fontFamily: 'var(--_typography---font--tiempos)', color: '#6B7280' }}>
+          <p style={{ fontFamily: 'var(--_typography---font--tiempos)', color: "hsl(var(--muted-foreground))" }}>
             Control what aspects of yourself to reveal and to whom
           </p>
         </div>
 
         {/* Global Controls */}
-        <div className="rounded-2xl p-6 bg-white border border-[rgba(20,20,19,0.1)] mb-8">
+        <div className="rounded-2xl p-6 bg-card border border-border mb-8">
           <div className="flex items-center justify-between mb-4">
             <div>
               <h3
@@ -414,12 +414,12 @@ const PrivacySpectrumDashboard: React.FC = () => {
                   fontFamily: 'var(--_typography---font--styrene-a)',
                   fontWeight: 500,
                   letterSpacing: '-0.02em',
-                  color: '#141413'
+                  color: "hsl(var(--foreground))"
                 }}
               >
                 Global Privacy Settings
               </h3>
-              <p className="text-sm" style={{ fontFamily: 'var(--_typography---font--tiempos)', color: '#6B7280' }}>
+              <p className="text-sm" style={{ fontFamily: 'var(--_typography---font--tiempos)', color: "hsl(var(--muted-foreground))" }}>
                 Apply uniform privacy across all clusters
               </p>
             </div>
@@ -442,7 +442,7 @@ const PrivacySpectrumDashboard: React.FC = () => {
             </button>
           </div>
           <div className="flex items-center gap-4">
-            <Eye className="w-5 h-5" style={{ color: '#6B7280' }} />
+            <Eye className="w-5 h-5" style={{ color: "hsl(var(--muted-foreground))" }} />
             <input
               type="range"
               value={globalPrivacy}
@@ -452,9 +452,9 @@ const PrivacySpectrumDashboard: React.FC = () => {
               step="25"
               className="flex-1"
             />
-            <EyeOff className="w-5 h-5" style={{ color: '#6B7280' }} />
+            <EyeOff className="w-5 h-5" style={{ color: "hsl(var(--muted-foreground))" }} />
             <span
-              className="ml-2 px-2 py-1 rounded text-sm border border-[rgba(20,20,19,0.1)]"
+              className="ml-2 px-2 py-1 rounded text-sm border border-border"
               style={{ color: '#D97706', fontFamily: 'var(--_typography---font--tiempos)' }}
             >
               {getPrivacyLabel(globalPrivacy).label}
@@ -465,7 +465,7 @@ const PrivacySpectrumDashboard: React.FC = () => {
         {/* Context-Aware Intelligence Panel */}
         {contextAwareMode && (
           <div className="mb-8">
-            <div className="rounded-2xl p-6 bg-white border border-[rgba(20,20,19,0.1)]">
+            <div className="rounded-2xl p-6 bg-card border border-border">
               <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center gap-3">
                   <Brain className="w-6 h-6" style={{ color: '#D97706' }} />
@@ -476,20 +476,20 @@ const PrivacySpectrumDashboard: React.FC = () => {
                         fontFamily: 'var(--_typography---font--styrene-a)',
                         fontWeight: 500,
                         letterSpacing: '-0.02em',
-                        color: '#141413'
+                        color: "hsl(var(--foreground))"
                       }}
                     >
                       Context Intelligence
                     </h3>
-                    <p className="text-sm" style={{ fontFamily: 'var(--_typography---font--tiempos)', color: '#6B7280' }}>
+                    <p className="text-sm" style={{ fontFamily: 'var(--_typography---font--tiempos)', color: "hsl(var(--muted-foreground))" }}>
                       Privacy auto-adjusting based on your current environment
                     </p>
                   </div>
                 </div>
                 <button
                   onClick={() => setContextAwareMode(false)}
-                  className="px-3 py-1.5 rounded-lg border border-[rgba(20,20,19,0.1)]"
-                  style={{ fontFamily: 'var(--_typography---font--tiempos)', color: '#6B7280' }}
+                  className="px-3 py-1.5 rounded-lg border border-border"
+                  style={{ fontFamily: 'var(--_typography---font--tiempos)', color: "hsl(var(--muted-foreground))" }}
                 >
                   <Settings className="w-4 h-4 mr-2 inline" />
                   Manual Mode
@@ -498,38 +498,38 @@ const PrivacySpectrumDashboard: React.FC = () => {
 
               {/* Current Context Display */}
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
-                <div className="flex items-center gap-2 p-3 rounded-lg bg-[#F5F5F5]">
+                <div className="flex items-center gap-2 p-3 rounded-lg bg-card">
                   <Clock className="w-4 h-4" style={{ color: '#D97706' }} />
                   <div>
-                    <p className="text-xs" style={{ fontFamily: 'var(--_typography---font--tiempos)', color: '#6B7280' }}>Time</p>
-                    <p className="text-sm capitalize" style={{ fontFamily: 'var(--_typography---font--tiempos)', color: '#141413', fontWeight: 500 }}>
+                    <p className="text-xs" style={{ fontFamily: 'var(--_typography---font--tiempos)', color: "hsl(var(--muted-foreground))" }}>Time</p>
+                    <p className="text-sm capitalize" style={{ fontFamily: 'var(--_typography---font--tiempos)', color: "hsl(var(--foreground))", fontWeight: 500 }}>
                       {currentContext.timeOfDay}
                     </p>
                   </div>
                 </div>
-                <div className="flex items-center gap-2 p-3 rounded-lg bg-[#F5F5F5]">
+                <div className="flex items-center gap-2 p-3 rounded-lg bg-card">
                   <MapPin className="w-4 h-4" style={{ color: '#D97706' }} />
                   <div>
-                    <p className="text-xs" style={{ fontFamily: 'var(--_typography---font--tiempos)', color: '#6B7280' }}>Location</p>
-                    <p className="text-sm capitalize" style={{ fontFamily: 'var(--_typography---font--tiempos)', color: '#141413', fontWeight: 500 }}>
+                    <p className="text-xs" style={{ fontFamily: 'var(--_typography---font--tiempos)', color: "hsl(var(--muted-foreground))" }}>Location</p>
+                    <p className="text-sm capitalize" style={{ fontFamily: 'var(--_typography---font--tiempos)', color: "hsl(var(--foreground))", fontWeight: 500 }}>
                       {currentContext.location}
                     </p>
                   </div>
                 </div>
-                <div className="flex items-center gap-2 p-3 rounded-lg bg-[#F5F5F5]">
+                <div className="flex items-center gap-2 p-3 rounded-lg bg-card">
                   <Wifi className="w-4 h-4" style={{ color: '#D97706' }} />
                   <div>
-                    <p className="text-xs" style={{ fontFamily: 'var(--_typography---font--tiempos)', color: '#6B7280' }}>Network</p>
-                    <p className="text-sm capitalize" style={{ fontFamily: 'var(--_typography---font--tiempos)', color: '#141413', fontWeight: 500 }}>
+                    <p className="text-xs" style={{ fontFamily: 'var(--_typography---font--tiempos)', color: "hsl(var(--muted-foreground))" }}>Network</p>
+                    <p className="text-sm capitalize" style={{ fontFamily: 'var(--_typography---font--tiempos)', color: "hsl(var(--foreground))", fontWeight: 500 }}>
                       {currentContext.networkType}
                     </p>
                   </div>
                 </div>
-                <div className="flex items-center gap-2 p-3 rounded-lg bg-[#F5F5F5]">
+                <div className="flex items-center gap-2 p-3 rounded-lg bg-card">
                   <Users className="w-4 h-4" style={{ color: '#D97706' }} />
                   <div>
-                    <p className="text-xs" style={{ fontFamily: 'var(--_typography---font--tiempos)', color: '#6B7280' }}>Context</p>
-                    <p className="text-sm capitalize" style={{ fontFamily: 'var(--_typography---font--tiempos)', color: '#141413', fontWeight: 500 }}>
+                    <p className="text-xs" style={{ fontFamily: 'var(--_typography---font--tiempos)', color: "hsl(var(--muted-foreground))" }}>Context</p>
+                    <p className="text-sm capitalize" style={{ fontFamily: 'var(--_typography---font--tiempos)', color: "hsl(var(--foreground))", fontWeight: 500 }}>
                       {currentContext.socialContext}
                     </p>
                   </div>
@@ -552,24 +552,24 @@ const PrivacySpectrumDashboard: React.FC = () => {
                   {privacyRecommendations.slice(0, 2).map((rec, index) => (
                     <div
                       key={index}
-                      className="flex items-center justify-between p-3 rounded-lg bg-[#F5F5F5] border border-[rgba(20,20,19,0.1)]"
+                      className="flex items-center justify-between p-3 rounded-lg bg-card border border-border"
                     >
                       <div className="flex items-center gap-3">
                         <div className="p-1.5 rounded" style={{ backgroundColor: 'rgba(217, 119, 6, 0.1)', color: '#D97706' }}>
                           {rec.icon}
                         </div>
                         <div>
-                          <p className="text-sm" style={{ fontFamily: 'var(--_typography---font--tiempos)', color: '#141413', fontWeight: 500 }}>
+                          <p className="text-sm" style={{ fontFamily: 'var(--_typography---font--tiempos)', color: "hsl(var(--foreground))", fontWeight: 500 }}>
                             {rec.context}
                           </p>
-                          <p className="text-xs" style={{ fontFamily: 'var(--_typography---font--tiempos)', color: '#6B7280' }}>
+                          <p className="text-xs" style={{ fontFamily: 'var(--_typography---font--tiempos)', color: "hsl(var(--muted-foreground))" }}>
                             {rec.reason}
                           </p>
                         </div>
                       </div>
                       <div className="flex items-center gap-2">
                         <span
-                          className="text-xs px-2 py-1 rounded border border-[rgba(20,20,19,0.1)]"
+                          className="text-xs px-2 py-1 rounded border border-border"
                           style={{ color: '#D97706', fontFamily: 'var(--_typography---font--tiempos)' }}
                         >
                           {getPrivacyLabel(rec.suggestedLevel).label}
@@ -580,7 +580,7 @@ const PrivacySpectrumDashboard: React.FC = () => {
                             setTimeout(applyGlobalPrivacy, 100);
                           }}
                           className="text-xs h-7 px-2 rounded"
-                          style={{ fontFamily: 'var(--_typography---font--tiempos)', color: '#6B7280' }}
+                          style={{ fontFamily: 'var(--_typography---font--tiempos)', color: "hsl(var(--muted-foreground))" }}
                         >
                           Apply
                         </button>
@@ -590,14 +590,14 @@ const PrivacySpectrumDashboard: React.FC = () => {
                 </div>
               )}
 
-              <div className="flex items-center justify-between mt-4 pt-4 border-t border-[rgba(20,20,19,0.1)]">
-                <div className="text-xs" style={{ fontFamily: 'var(--_typography---font--tiempos)', color: '#6B7280' }}>
+              <div className="flex items-center justify-between mt-4 pt-4 border-t border-border">
+                <div className="text-xs" style={{ fontFamily: 'var(--_typography---font--tiempos)', color: "hsl(var(--muted-foreground))" }}>
                   Last updated: {lastContextUpdate.toLocaleTimeString()}
                 </div>
                 <button
                   onClick={applyContextualPrivacy}
                   className="text-xs px-2 py-1 rounded"
-                  style={{ fontFamily: 'var(--_typography---font--tiempos)', color: '#6B7280' }}
+                  style={{ fontFamily: 'var(--_typography---font--tiempos)', color: "hsl(var(--muted-foreground))" }}
                 >
                   <Zap className="w-3 h-3 mr-1 inline" />
                   Refresh Context
@@ -610,15 +610,15 @@ const PrivacySpectrumDashboard: React.FC = () => {
         {/* Manual Mode Button */}
         {!contextAwareMode && (
           <div className="mb-8">
-            <div className="rounded-2xl p-4 bg-white border border-[rgba(20,20,19,0.1)]">
+            <div className="rounded-2xl p-4 bg-card border border-border">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  <Settings className="w-5 h-5" style={{ color: '#6B7280' }} />
+                  <Settings className="w-5 h-5" style={{ color: "hsl(var(--muted-foreground))" }} />
                   <div>
-                    <p className="text-sm" style={{ fontFamily: 'var(--_typography---font--tiempos)', color: '#141413', fontWeight: 500 }}>
+                    <p className="text-sm" style={{ fontFamily: 'var(--_typography---font--tiempos)', color: "hsl(var(--foreground))", fontWeight: 500 }}>
                       Manual Privacy Mode
                     </p>
-                    <p className="text-xs" style={{ fontFamily: 'var(--_typography---font--tiempos)', color: '#6B7280' }}>
+                    <p className="text-xs" style={{ fontFamily: 'var(--_typography---font--tiempos)', color: "hsl(var(--muted-foreground))" }}>
                       Context intelligence disabled
                     </p>
                   </div>
@@ -638,7 +638,7 @@ const PrivacySpectrumDashboard: React.FC = () => {
 
         {/* Audience Mode Selector */}
         <div className="mb-8">
-          <div className="grid grid-cols-4 gap-2 rounded-2xl p-2 bg-[#F5F5F5]">
+          <div className="grid grid-cols-4 gap-2 rounded-2xl p-2 bg-card">
             <button
               onClick={() => setAudienceMode('intimate')}
               className={`px-4 py-2 rounded-lg ${audienceMode === 'intimate' ? 'bg-[#D97706] text-white' : 'bg-transparent'}`}
@@ -689,7 +689,7 @@ const PrivacySpectrumDashboard: React.FC = () => {
         {/* Real-time Data Stream Panel */}
         {dataStream.length > 0 && (
           <div className="mb-8">
-            <div className="rounded-2xl p-6 bg-white border border-[rgba(20,20,19,0.1)]">
+            <div className="rounded-2xl p-6 bg-card border border-border">
               <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center gap-3">
                   <Zap className="w-6 h-6" style={{ color: '#D97706' }} />
@@ -700,18 +700,18 @@ const PrivacySpectrumDashboard: React.FC = () => {
                         fontFamily: 'var(--_typography---font--styrene-a)',
                         fontWeight: 500,
                         letterSpacing: '-0.02em',
-                        color: '#141413'
+                        color: "hsl(var(--foreground))"
                       }}
                     >
                       Live Soul Signature Stream
                     </h3>
-                    <p className="text-sm" style={{ fontFamily: 'var(--_typography---font--tiempos)', color: '#6B7280' }}>
+                    <p className="text-sm" style={{ fontFamily: 'var(--_typography---font--tiempos)', color: "hsl(var(--muted-foreground))" }}>
                       Real-time personality insights flowing from connected platforms
                     </p>
                   </div>
                 </div>
                 <span
-                  className="px-2 py-1 rounded text-sm border border-[rgba(20,20,19,0.1)]"
+                  className="px-2 py-1 rounded text-sm border border-border"
                   style={{ color: '#D97706', fontFamily: 'var(--_typography---font--tiempos)' }}
                 >
                   {dataStream.length} insights
@@ -722,18 +722,18 @@ const PrivacySpectrumDashboard: React.FC = () => {
                 {dataStream.slice(-5).map((dataPoint, index) => (
                   <div
                     key={dataPoint.id}
-                    className="p-3 rounded-lg bg-[#F5F5F5] border border-[rgba(20,20,19,0.1)]"
+                    className="p-3 rounded-lg bg-card border border-border"
                   >
                     <div className="flex items-center gap-2 mb-2">
                       <div
                         className="w-2 h-2 rounded-full"
                         style={{ backgroundColor: connectionPulse[dataPoint.source] ? '#D97706' : '#6B7280' }}
                       />
-                      <span className="text-xs capitalize" style={{ fontFamily: 'var(--_typography---font--tiempos)', color: '#141413', fontWeight: 500 }}>
+                      <span className="text-xs capitalize" style={{ fontFamily: 'var(--_typography---font--tiempos)', color: "hsl(var(--foreground))", fontWeight: 500 }}>
                         {dataPoint.source}
                       </span>
                     </div>
-                    <p className="text-xs mb-1" style={{ fontFamily: 'var(--_typography---font--tiempos)', color: '#6B7280' }}>
+                    <p className="text-xs mb-1" style={{ fontFamily: 'var(--_typography---font--tiempos)', color: "hsl(var(--muted-foreground))" }}>
                       {new Date(dataPoint.timestamp).toLocaleTimeString()}
                     </p>
                     <div className="flex items-center gap-1">
@@ -747,7 +747,7 @@ const PrivacySpectrumDashboard: React.FC = () => {
               </div>
 
               {isExtractingData && (
-                <div className="mt-4 p-3 rounded-lg bg-[#F5F5F5] border border-[rgba(20,20,19,0.1)]">
+                <div className="mt-4 p-3 rounded-lg bg-card border border-border">
                   <div className="flex items-center gap-3">
                     <div className="w-4 h-4 border-2 rounded-full" style={{ borderColor: '#D97706', borderTopColor: 'transparent' }} />
                     <span className="text-sm" style={{ fontFamily: 'var(--_typography---font--tiempos)', color: '#D97706' }}>
@@ -769,7 +769,7 @@ const PrivacySpectrumDashboard: React.FC = () => {
               onMouseLeave={() => setHoveredCluster(null)}
             >
               <div
-                className="relative overflow-hidden rounded-2xl p-6 bg-white border"
+                className="relative overflow-hidden rounded-2xl p-6 bg-card border"
                 style={{
                   borderColor: hoveredCluster === cluster.id ? '#D97706' : 'rgba(20,20,19,0.1)',
                   borderWidth: hoveredCluster === cluster.id ? '2px' : '1px'
@@ -788,12 +788,12 @@ const PrivacySpectrumDashboard: React.FC = () => {
                           style={{
                             fontFamily: 'var(--_typography---font--styrene-a)',
                             fontWeight: 500,
-                            color: '#141413'
+                            color: "hsl(var(--foreground))"
                           }}
                         >
                           {cluster.name}
                         </h3>
-                        <p className="text-xs" style={{ fontFamily: 'var(--_typography---font--tiempos)', color: '#6B7280' }}>
+                        <p className="text-xs" style={{ fontFamily: 'var(--_typography---font--tiempos)', color: "hsl(var(--muted-foreground))" }}>
                           {cluster.subclusters.length} subcategories
                         </p>
                       </div>
@@ -806,7 +806,7 @@ const PrivacySpectrumDashboard: React.FC = () => {
                       <ChevronRight
                         className="w-4 h-4"
                         style={{
-                          color: '#6B7280',
+                          color: "hsl(var(--muted-foreground))",
                           transform: selectedCluster === cluster.id ? 'rotate(90deg)' : 'rotate(0deg)',
                           transition: 'transform 0.2s'
                         }}
@@ -816,11 +816,11 @@ const PrivacySpectrumDashboard: React.FC = () => {
 
                   {/* Intensity Meter */}
                   <div className="mb-4">
-                    <div className="flex justify-between text-xs mb-1" style={{ fontFamily: 'var(--_typography---font--tiempos)', color: '#6B7280' }}>
+                    <div className="flex justify-between text-xs mb-1" style={{ fontFamily: 'var(--_typography---font--tiempos)', color: "hsl(var(--muted-foreground))" }}>
                       <span>Data Richness</span>
                       <span>{cluster.intensity}%</span>
                     </div>
-                    <div className="h-2 bg-[#F5F5F5] rounded-full overflow-hidden">
+                    <div className="h-2 bg-card rounded-full overflow-hidden">
                       <div
                         className="h-full"
                         style={{
@@ -834,9 +834,9 @@ const PrivacySpectrumDashboard: React.FC = () => {
                   {/* Privacy Control */}
                   <div>
                     <div className="flex justify-between text-xs mb-2">
-                      <span style={{ fontFamily: 'var(--_typography---font--tiempos)', color: '#6B7280' }}>Privacy Level</span>
+                      <span style={{ fontFamily: 'var(--_typography---font--tiempos)', color: "hsl(var(--muted-foreground))" }}>Privacy Level</span>
                       <span
-                        className="px-2 py-1 rounded text-xs border border-[rgba(20,20,19,0.1)]"
+                        className="px-2 py-1 rounded text-xs border border-border"
                         style={{ color: '#D97706', fontFamily: 'var(--_typography---font--tiempos)' }}
                       >
                         {getPrivacyLabel(cluster.privacyLevel).label}
@@ -854,16 +854,16 @@ const PrivacySpectrumDashboard: React.FC = () => {
                   </div>
 
                   {/* Subclusters */}
-                  <div className="space-y-2 mt-4 pt-4 border-t border-[rgba(20,20,19,0.1)]">
+                  <div className="space-y-2 mt-4 pt-4 border-t border-border">
                     {cluster.subclusters.map((subcluster) => (
                       <div key={subcluster.id} className="space-y-2">
                         <div className="flex items-center justify-between">
-                          <span className="text-sm" style={{ fontFamily: 'var(--_typography---font--tiempos)', color: '#141413' }}>
+                          <span className="text-sm" style={{ fontFamily: 'var(--_typography---font--tiempos)', color: "hsl(var(--foreground))" }}>
                             {subcluster.name}
                           </span>
                           <div className="flex items-center gap-2">
                             <span
-                              className="px-2 py-1 rounded text-xs border border-[rgba(20,20,19,0.1)]"
+                              className="px-2 py-1 rounded text-xs border border-border"
                               style={{ color: '#D97706', fontFamily: 'var(--_typography---font--tiempos)' }}
                             >
                               {getPrivacyLabel(subcluster.privacyLevel).icon}
@@ -885,18 +885,18 @@ const PrivacySpectrumDashboard: React.FC = () => {
 
                   {/* Expanded Details */}
                   {selectedCluster === cluster.id && (
-                    <div className="mt-4 p-4 rounded-lg bg-[#F5F5F5] border border-[rgba(20,20,19,0.1)]">
+                    <div className="mt-4 p-4 rounded-lg bg-card border border-border">
                       <h4
                         className="text-sm mb-3"
                         style={{
                           fontFamily: 'var(--_typography---font--styrene-a)',
                           fontWeight: 500,
-                          color: '#141413'
+                          color: "hsl(var(--foreground))"
                         }}
                       >
                         Cluster Details
                       </h4>
-                      <div className="space-y-2 text-xs" style={{ fontFamily: 'var(--_typography---font--tiempos)', color: '#6B7280' }}>
+                      <div className="space-y-2 text-xs" style={{ fontFamily: 'var(--_typography---font--tiempos)', color: "hsl(var(--muted-foreground))" }}>
                         <div className="flex justify-between">
                           <span>Data Points Collected:</span>
                           <span style={{ color: '#D97706' }}>{Math.floor(cluster.intensity * 1.2)} items</span>
@@ -910,8 +910,8 @@ const PrivacySpectrumDashboard: React.FC = () => {
                           <span style={{ color: '#D97706' }}>2 hours ago</span>
                         </div>
                       </div>
-                      <div className="mt-3 pt-3 border-t border-[rgba(20,20,19,0.1)]">
-                        <p className="text-xs" style={{ fontFamily: 'var(--_typography---font--tiempos)', color: '#6B7280' }}>
+                      <div className="mt-3 pt-3 border-t border-border">
+                        <p className="text-xs" style={{ fontFamily: 'var(--_typography---font--tiempos)', color: "hsl(var(--muted-foreground))" }}>
                           This cluster contains insights from your {cluster.subclusters.length} subcategories
                           and helps create your authentic digital twin personality.
                         </p>
@@ -926,7 +926,7 @@ const PrivacySpectrumDashboard: React.FC = () => {
 
         {/* Soul Signature Fingerprint */}
         <div className="mt-8">
-          <div className="rounded-2xl p-8 bg-white border border-[rgba(20,20,19,0.1)]">
+          <div className="rounded-2xl p-8 bg-card border border-border">
             <div className="text-center">
               <Fingerprint className="w-16 h-16 mx-auto mb-4" style={{ color: '#D97706' }} />
               <h3
@@ -935,12 +935,12 @@ const PrivacySpectrumDashboard: React.FC = () => {
                   fontFamily: 'var(--_typography---font--styrene-a)',
                   fontWeight: 500,
                   letterSpacing: '-0.02em',
-                  color: '#141413'
+                  color: "hsl(var(--foreground))"
                 }}
               >
                 Your Unique Soul Signature
               </h3>
-              <p className="mb-6" style={{ fontFamily: 'var(--_typography---font--tiempos)', color: '#6B7280' }}>
+              <p className="mb-6" style={{ fontFamily: 'var(--_typography---font--tiempos)', color: "hsl(var(--muted-foreground))" }}>
                 A combination of {clusters.reduce((acc, c) => acc + c.subclusters.length, 0)} unique data dimensions
                 creating your authentic digital identity
               </p>
@@ -972,7 +972,7 @@ const PrivacySpectrumDashboard: React.FC = () => {
                   )}
                 </button>
                 <button
-                  className="px-4 py-2 rounded-lg border border-[rgba(20,20,19,0.1)]"
+                  className="px-4 py-2 rounded-lg border border-border"
                   style={{ fontFamily: 'var(--_typography---font--tiempos)', color: '#D97706' }}
                 >
                   <Shield className="w-4 h-4 mr-2 inline" />
