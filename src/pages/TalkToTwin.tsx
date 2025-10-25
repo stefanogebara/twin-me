@@ -420,9 +420,9 @@ const TalkToTwin = () => {
   });
 
   return (
-    <div className="min-h-screen" style={{ backgroundColor: '#FAF9F5' }}>
+    <div className="min-h-screen bg-background">
       {/* Navigation */}
-      <div className="sticky top-0 z-50 backdrop-blur-sm border-b" style={{ backgroundColor: 'rgba(250, 249, 245, 0.9)', borderColor: 'rgba(20, 20, 19, 0.1)' }}>
+      <div className="sticky top-0 z-50 backdrop-blur-sm border-b bg-background/90 border-border">
         <div className="max-w-7xl mx-auto px-6 py-4">
           <div className="flex items-center justify-between">
             <button
@@ -438,12 +438,10 @@ const TalkToTwin = () => {
               <Button
                 variant="outline"
                 onClick={() => navigate('/settings')}
-                style={{
-                  borderColor: 'rgba(20, 20, 19, 0.1)',
+                style={{borderColor: 'rgba(20, 20, 19, 0.1)',
                   color: '#141413',
-                  backgroundColor: 'white',
-                  fontFamily: 'var(--_typography---font--tiempos)'
-                }}
+                  
+                  fontFamily: 'var(--_typography---font--tiempos)'}}
               >
                 <Settings className="w-4 h-4 mr-2" />
                 Twin Settings
@@ -495,10 +493,7 @@ const TalkToTwin = () => {
             {/* Mode Selector */}
             <Card
               className="p-6"
-              style={{
-                backgroundColor: 'white',
-                border: '1px solid rgba(20,20,19,0.1)'
-              }}
+              style={{border: '1px solid rgba(20,20,19,0.1)'}}
             >
               <h3
                 className="text-lg mb-4"
@@ -518,10 +513,7 @@ const TalkToTwin = () => {
                     "w-full p-4 rounded-xl flex items-center gap-3",
                     twinMode === 'personal' ? 'border-2' : 'border'
                   )}
-                  style={{
-                    borderColor: twinMode === 'personal' ? '#D97706' : 'rgba(20,20,19,0.1)',
-                    backgroundColor: twinMode === 'personal' ? '#FEF3E2' : 'white'
-                  }}
+                  
                 >
                   <Heart className="w-5 h-5" style={{ color: '#D97706' }} />
                   <div className="text-left">
@@ -552,10 +544,7 @@ const TalkToTwin = () => {
                     "w-full p-4 rounded-xl flex items-center gap-3",
                     twinMode === 'professional' ? 'border-2' : 'border'
                   )}
-                  style={{
-                    borderColor: twinMode === 'professional' ? '#D97706' : 'rgba(20,20,19,0.1)',
-                    backgroundColor: twinMode === 'professional' ? '#FEF3E2' : 'white'
-                  }}
+                  
                 >
                   <Briefcase className="w-5 h-5" style={{ color: '#D97706' }} />
                   <div className="text-left">
@@ -622,10 +611,7 @@ const TalkToTwin = () => {
             {/* Twin Visualization */}
             <Card
               className="p-6"
-              style={{
-                backgroundColor: 'white',
-                border: '1px solid rgba(20,20,19,0.1)'
-              }}
+              style={{border: '1px solid rgba(20,20,19,0.1)'}}
             >
               <h3
                 className="text-lg mb-6 text-center"
@@ -742,10 +728,7 @@ const TalkToTwin = () => {
             {/* Quick Stats */}
             <Card
               className="p-6"
-              style={{
-                backgroundColor: 'white',
-                border: '1px solid rgba(20,20,19,0.1)'
-              }}
+              style={{border: '1px solid rgba(20,20,19,0.1)'}}
             >
               <h3
                 className="text-lg mb-4"
@@ -914,10 +897,7 @@ const TalkToTwin = () => {
           {/* Conversation Interface */}
           <Card
             className="mb-8"
-            style={{
-              backgroundColor: 'white',
-              border: '1px solid rgba(20,20,19,0.1)'
-            }}
+            style={{border: '1px solid rgba(20,20,19,0.1)'}}
           >
             <div className="p-6">
               <h3
@@ -978,11 +958,7 @@ const TalkToTwin = () => {
                             ? 'ml-auto max-w-[80%]'
                             : 'mr-auto max-w-[80%]'
                         )}
-                        style={{
-                          backgroundColor: message.role === 'user' ? '#D97706' : 'white',
-                          color: message.role === 'user' ? 'white' : '#141413',
-                          border: message.role === 'assistant' ? '1px solid rgba(20,20,19,0.1)' : 'none'
-                        }}
+                        
                       >
                         <div
                           className="text-sm mb-2"
@@ -1056,10 +1032,7 @@ const TalkToTwin = () => {
                     {isTyping && (
                       <div
                         className="p-4 rounded-xl mr-auto max-w-[80%]"
-                        style={{
-                          backgroundColor: 'white',
-                          border: '1px solid rgba(20,20,19,0.1)'
-                        }}
+                        style={{border: '1px solid rgba(20,20,19,0.1)'}}
                       >
                         <div className="flex gap-2">
                           <div className="w-2 h-2 rounded-full bg-gray-400 animate-bounce" style={{ animationDelay: '0ms' }} />
@@ -1114,10 +1087,7 @@ const TalkToTwin = () => {
             {/* Authenticity Testing */}
             <Card
               className="p-6"
-              style={{
-                backgroundColor: 'white',
-                border: '1px solid rgba(20,20,19,0.1)'
-              }}
+              style={{border: '1px solid rgba(20,20,19,0.1)'}}
             >
               <div className="flex items-center justify-between mb-6">
                 <h3
@@ -1259,10 +1229,7 @@ const TalkToTwin = () => {
             {/* Refinement Controls */}
             <Card
               className="p-6"
-              style={{
-                backgroundColor: 'white',
-                border: '1px solid rgba(20,20,19,0.1)'
-              }}
+              style={{border: '1px solid rgba(20,20,19,0.1)'}}
             >
               <div className="flex items-center justify-between mb-6">
                 <h3
@@ -1406,10 +1373,7 @@ const TalkToTwin = () => {
           {/* Connected Platforms & Insights */}
           <Card
             className="p-6"
-            style={{
-              backgroundColor: 'white',
-              border: '1px solid rgba(20,20,19,0.1)'
-            }}
+            style={{border: '1px solid rgba(20,20,19,0.1)'}}
           >
             <h3
               className="text-xl mb-6"
@@ -1550,10 +1514,7 @@ const TalkToTwin = () => {
           {/* Bottom Action Bar */}
           <div
             className="fixed bottom-0 left-0 right-0 p-4 border-t"
-            style={{
-              backgroundColor: '#FAF9F5',
-              borderColor: 'rgba(20,20,19,0.1)'
-            }}
+            
           >
             <div className="max-w-7xl mx-auto flex items-center justify-between">
               <Button
