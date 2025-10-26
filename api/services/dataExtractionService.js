@@ -31,10 +31,24 @@ import { invalidatePlatformStatusCache } from './redisClient.js';
 let supabase = null;
 function getSupabaseClient() {
   if (!supabase) {
-    supabase = createClient(
-      process.env.SUPABASE_URL,
-      process.env.SUPABASE_SERVICE_ROLE_KEY
-    );
+    if (!process.env.SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
+      console.error('❌ [DataExtraction] Missing Supabase credentials:', {
+        hasUrl: !!process.env.SUPABASE_URL,
+        hasServiceKey: !!process.env.SUPABASE_SERVICE_ROLE_KEY
+      });
+      throw new Error('Missing Supabase credentials for DataExtraction service');
+    }
+
+    try {
+      supabase = createClient(
+        process.env.SUPABASE_URL,
+        process.env.SUPABASE_SERVICE_ROLE_KEY
+      );
+      console.log('✅ [DataExtraction] Supabase client initialized');
+    } catch (error) {
+      console.error('❌ [DataExtraction] Failed to create Supabase client:', error);
+      throw error;
+    }
   }
   return supabase;
 }
@@ -411,7 +425,7 @@ class DataExtractionService {
   async getExtractionStatus(userId) {
     try {
       // Get recent extraction jobs
-      const { data: jobs, error } = await supabase
+      const { data: jobs, error } = await getSupabaseClient()
         .from('data_extraction_jobs')
         .select('*')
         .eq('user_id', userId)
@@ -423,7 +437,7 @@ class DataExtractionService {
       }
 
       // Get data statistics
-      const { data: stats, error: statsError } = await supabase
+      const { data: stats, error: statsError } = await getSupabaseClient()
         .rpc('get_platform_stats', { target_user_id: userId });
 
       return {

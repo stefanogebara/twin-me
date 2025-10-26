@@ -121,6 +121,7 @@ const App = () => {
                 </SignedOut>
               </>
             } />
+            <Route path="/chat" element={<Navigate to="/talk-to-twin" replace />} />
             <Route path="/get-started" element={
               <>
                 <SignedIn>
