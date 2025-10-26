@@ -14,7 +14,7 @@ const NotFound = () => {
     <div className="min-h-screen bg-[#FAF9F5]">
       <div className="min-h-screen flex items-center justify-center px-6">
         <div className="text-center max-w-lg mx-auto">
-          <div className="w-24 h-24 rounded-full flex items-center justify-center mx-auto mb-8 bg-white border border-[rgba(20,20,19,0.1)]">
+          <div className="w-24 h-24 rounded-full flex items-center justify-center mx-auto mb-8 bg-card border border-[rgba(20,20,19,0.1)]">
             <span className="text-4xl text-[#D97706]" style={{ fontFamily: 'var(--_typography---font--styrene-a)', fontWeight: 500 }}>404</span>
           </div>
           <h1 className="text-[clamp(2rem,4vw,3rem)] mb-6 text-[#141413]" style={{ fontFamily: 'var(--_typography---font--styrene-a)', fontWeight: 500, letterSpacing: '-0.02em' }}>
@@ -26,7 +26,7 @@ const NotFound = () => {
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <button
               onClick={() => navigate(-1)}
-              className="flex items-center gap-2 justify-center px-6 py-3 rounded-lg border bg-white border-[rgba(20,20,19,0.1)] text-[#141413]"
+              className="flex items-center gap-2 justify-center px-6 py-3 rounded-lg border bg-card border-[rgba(20,20,19,0.1)] text-[#141413]"
               style={{ fontFamily: 'var(--_typography---font--tiempos)', fontWeight: 500 }}
             >
               <ArrowLeft className="w-4 h-4" />

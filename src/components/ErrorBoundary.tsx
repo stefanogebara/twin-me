@@ -73,30 +73,30 @@ class ErrorBoundary extends Component<Props, State> {
 
       // Default error UI
       return (
-        <div className="min-h-screen bg-[#FBF7F0] flex items-center justify-center p-4">
-          <div className="max-w-md w-full bg-white rounded-xl shadow-lg p-8 text-center">
+        <div className="min-h-screen bg-background flex items-center justify-center p-4">
+          <div className="max-w-md w-full bg-card rounded-xl shadow-lg p-8 text-center border border-border">
             <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-6">
               <AlertTriangle className="w-8 h-8 text-red-600" />
             </div>
 
-            <h2 className="text-xl font-semibold text-[#1A1A4B] mb-4">
+            <h2 className="text-xl font-semibold text-foreground mb-4">
               Oops! Something went wrong
             </h2>
 
-            <p className="text-[#6B7280] mb-6">
+            <p className="text-muted-foreground mb-6">
               We encountered an unexpected error. Don't worry, this has been logged and we'll work on fixing it.
             </p>
 
             {process.env.NODE_ENV === 'development' && this.state.error && (
               <details className="mb-6 text-left">
-                <summary className="cursor-pointer text-sm text-[#6B7280] mb-2">
+                <summary className="cursor-pointer text-sm text-muted-foreground mb-2">
                   Error Details (Development)
                 </summary>
-                <div className="bg-gray-100 p-3 rounded text-xs overflow-auto max-h-32">
+                <div className="bg-muted p-3 rounded text-xs overflow-auto max-h-32">
                   <div className="font-mono text-red-600 mb-2">
                     {this.state.error.name}: {this.state.error.message}
                   </div>
-                  <div className="font-mono text-gray-600 whitespace-pre-wrap">
+                  <div className="font-mono text-muted-foreground whitespace-pre-wrap">
                     {this.state.error.stack}
                   </div>
                 </div>

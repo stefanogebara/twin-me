@@ -159,7 +159,7 @@ const SoulMatchCard: React.FC<SoulMatchCardProps> = ({ match, onViewProfile, onC
         </button>
         <button
           onClick={() => onConnect?.(userId)}
-          className="flex-1 px-4 py-2 bg-white text-orange-600 border-2 border-orange-600 rounded-lg hover:bg-orange-50 transition-colors duration-200 text-sm font-medium"
+          className="flex-1 px-4 py-2 bg-card text-orange-600 border-2 border-orange-600 rounded-lg hover:bg-orange-50 transition-colors duration-200 text-sm font-medium"
         >
           Connect
         </button>

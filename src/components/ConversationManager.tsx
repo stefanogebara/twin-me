@@ -165,7 +165,7 @@ export const ConversationManager: React.FC<ConversationManagerProps> = ({
   if (isLoading('conversations')) {
     return (
       <div className="space-y-4">
-        <div className="h-12 bg-gray-200 rounded-lg animate-pulse" />
+        <div className="h-12 bg-muted rounded-lg animate-pulse" />
         {[...Array(3)].map((_, i) => (
           <Card key={i} className="p-4">
             <Skeleton lines={3} avatar />
@@ -199,7 +199,7 @@ export const ConversationManager: React.FC<ConversationManagerProps> = ({
             <div className="flex items-start justify-between">
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 mb-1">
-                  <h3 className="font-medium text-gray-900 truncate">
+                  <h3 className="font-medium text-foreground truncate">
                     {conversation.title}
                   </h3>
                   <span className={`px-2 py-1 text-xs rounded-full ${
@@ -210,11 +210,11 @@ export const ConversationManager: React.FC<ConversationManagerProps> = ({
                     {conversation.status}
                   </span>
                 </div>
-                <p className="text-sm text-gray-600 mb-1">{conversation.twinName}</p>
-                <p className="text-sm text-gray-500 truncate mb-2">
+                <p className="text-sm text-muted-foreground mb-1">{conversation.twinName}</p>
+                <p className="text-sm text-muted-foreground truncate mb-2">
                   {conversation.lastMessage}
                 </p>
-                <div className="flex items-center gap-4 text-xs text-gray-400">
+                <div className="flex items-center gap-4 text-xs text-muted-foreground">
                   <span>{conversation.messageCount} messages</span>
                   <span>{formatLastActivity(conversation.lastActivity)}</span>
                 </div>
@@ -228,7 +228,7 @@ export const ConversationManager: React.FC<ConversationManagerProps> = ({
                         e.stopPropagation();
                         archiveConversation(conversation.id);
                       }}
-                      className="p-2 text-gray-400 hover:text-gray-600 transition-colors"
+                      className="p-2 text-muted-foreground hover:text-muted-foreground transition-colors"
                       title="Archive conversation"
                     >
                       <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -240,7 +240,7 @@ export const ConversationManager: React.FC<ConversationManagerProps> = ({
                         e.stopPropagation();
                         deleteConversation(conversation.id);
                       }}
-                      className="p-2 text-gray-400 hover:text-red-600 transition-colors"
+                      className="p-2 text-muted-foreground hover:text-red-600 transition-colors"
                       title="Delete conversation"
                     >
                       <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -254,7 +254,7 @@ export const ConversationManager: React.FC<ConversationManagerProps> = ({
                       e.stopPropagation();
                       restoreConversation(conversation.id);
                     }}
-                    className="p-2 text-gray-400 hover:text-green-600 transition-colors"
+                    className="p-2 text-muted-foreground hover:text-green-600 transition-colors"
                     title="Restore conversation"
                   >
                     <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -268,7 +268,7 @@ export const ConversationManager: React.FC<ConversationManagerProps> = ({
         ))}
 
         {filteredConversations.length === 0 && (
-          <div className="text-center py-8 text-gray-500">
+          <div className="text-center py-8 text-muted-foreground">
             <svg className="w-12 h-12 mx-auto mb-4 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
             </svg>

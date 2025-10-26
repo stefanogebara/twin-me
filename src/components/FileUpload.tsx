@@ -221,7 +221,7 @@ const FileUpload = ({
           {uploadingFiles.map((uploadingFile) => (
             <div
               key={uploadingFile.id}
-              className="bg-white border border-[#E5E7EB] rounded-lg p-4"
+              className="bg-card border border-[#E5E7EB] rounded-lg p-4"
             >
               <div className="flex items-center justify-between mb-2">
                 <div className="flex items-center gap-3">

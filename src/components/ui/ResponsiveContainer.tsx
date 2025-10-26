@@ -96,11 +96,11 @@ export const MobileMenu: React.FC<MobileMenuProps> = ({
       />
 
       {/* Menu */}
-      <div className="fixed top-0 right-0 h-full w-64 bg-white shadow-lg z-50 transform transition-transform duration-300 ease-in-out md:hidden">
+      <div className="fixed top-0 right-0 h-full w-64 bg-card shadow-lg z-50 transform transition-transform duration-300 ease-in-out md:hidden">
         <div className="p-4">
           <button
             onClick={onClose}
-            className="absolute top-4 right-4 p-2 rounded-md hover:bg-gray-100"
+            className="absolute top-4 right-4 p-2 rounded-md hover:bg-muted"
           >
             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />

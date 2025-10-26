@@ -91,22 +91,17 @@ const Settings = () => {
   ];
 
   return (
-    <div className="min-h-screen" style={{ backgroundColor: '#FAF9F5' }}>
+    <div className="min-h-screen bg-background">
       {/* Header */}
       <div
-        className="px-6 py-4 border-b"
-        style={{
-          backgroundColor: 'white',
-          borderColor: 'rgba(20,20,19,0.1)'
-        }}
+        className="px-6 py-4 border-b bg-card border-border"
       >
         <div className="max-w-7xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-4">
             <button
               onClick={() => navigate('/get-started')}
-              className="inline-flex items-center gap-2 text-sm"
+              className="inline-flex items-center gap-2 text-sm text-foreground"
               style={{
-                color: '#141413',
                 fontFamily: 'var(--_typography---font--tiempos)'
               }}
             >
@@ -115,20 +110,18 @@ const Settings = () => {
             </button>
             <div>
               <h1
-                className="text-2xl mb-1"
+                className="text-2xl mb-1 text-foreground"
                 style={{
                   fontFamily: 'var(--_typography---font--styrene-a)',
                   fontWeight: 500,
-                  letterSpacing: '-0.02em',
-                  color: '#141413'
+                  letterSpacing: '-0.02em'
                 }}
               >
                 Settings
               </h1>
               <p
-                className="text-sm"
+                className="text-sm text-muted-foreground"
                 style={{
-                  color: '#666666',
                   fontFamily: 'var(--_typography---font--tiempos)'
                 }}
               >
@@ -144,21 +137,16 @@ const Settings = () => {
 
           {/* Account Information */}
           <section
-            className="rounded-2xl p-6 border"
-            style={{
-              backgroundColor: 'white',
-              borderColor: 'rgba(20,20,19,0.1)'
-            }}
+            className="rounded-2xl p-6 border bg-card border-border"
           >
             <div className="flex items-center gap-3 mb-4">
               <User className="w-5 h-5" style={{ color: '#D97706' }} />
               <h2
-                className="text-xl"
+                className="text-xl text-foreground"
                 style={{
                   fontFamily: 'var(--_typography---font--styrene-a)',
                   fontWeight: 500,
-                  letterSpacing: '-0.02em',
-                  color: '#141413'
+                  letterSpacing: '-0.02em'
                 }}
               >
                 Account Information
@@ -168,9 +156,8 @@ const Settings = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
                 <label
-                  className="block text-sm mb-2"
+                  className="block text-sm mb-2 text-foreground"
                   style={{
-                    color: '#141413',
                     fontFamily: 'var(--_typography---font--tiempos)',
                     fontWeight: 500
                   }}
@@ -178,11 +165,8 @@ const Settings = () => {
                   Name
                 </label>
                 <div
-                  className="p-3 rounded-lg border"
+                  className="p-3 rounded-lg border bg-input border-border text-foreground"
                   style={{
-                    backgroundColor: '#F5F5F5',
-                    borderColor: 'rgba(20,20,19,0.1)',
-                    color: '#141413',
                     fontFamily: 'var(--_typography---font--tiempos)'
                   }}
                 >
@@ -192,9 +176,8 @@ const Settings = () => {
 
               <div>
                 <label
-                  className="block text-sm mb-2"
+                  className="block text-sm mb-2 text-foreground"
                   style={{
-                    color: '#141413',
                     fontFamily: 'var(--_typography---font--tiempos)',
                     fontWeight: 500
                   }}
@@ -202,11 +185,8 @@ const Settings = () => {
                   Email
                 </label>
                 <div
-                  className="p-3 rounded-lg border"
+                  className="p-3 rounded-lg border bg-input border-border text-foreground"
                   style={{
-                    backgroundColor: '#F5F5F5',
-                    borderColor: 'rgba(20,20,19,0.1)',
-                    color: '#141413',
                     fontFamily: 'var(--_typography---font--tiempos)'
                   }}
                 >
@@ -218,22 +198,17 @@ const Settings = () => {
 
           {/* Connected Services */}
           <section
-            className="rounded-2xl p-6 border"
-            style={{
-              backgroundColor: 'white',
-              borderColor: 'rgba(20,20,19,0.1)'
-            }}
+            className="rounded-2xl p-6 border bg-card border-border"
           >
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-3">
                 <Link className="w-5 h-5" style={{ color: '#D97706' }} />
                 <h2
-                  className="text-xl"
+                  className="text-xl text-foreground"
                   style={{
                     fontFamily: 'var(--_typography---font--styrene-a)',
                     fontWeight: 500,
-                    letterSpacing: '-0.02em',
-                    color: '#141413'
+                    letterSpacing: '-0.02em'
                   }}
                 >
                   Connected Services
@@ -241,11 +216,8 @@ const Settings = () => {
               </div>
               <button
                 onClick={() => refetch()}
-                className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm"
+                className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm bg-muted text-foreground border border-border"
                 style={{
-                  backgroundColor: '#F5F5F5',
-                  color: '#141413',
-                  border: '1px solid rgba(20,20,19,0.1)',
                   fontFamily: 'var(--_typography---font--tiempos)'
                 }}
               >
@@ -255,9 +227,8 @@ const Settings = () => {
             </div>
 
             <p
-              className="text-sm mb-6"
+              className="text-sm mb-6 text-muted-foreground"
               style={{
-                color: '#666666',
                 fontFamily: 'var(--_typography---font--tiempos)'
               }}
             >
@@ -266,12 +237,7 @@ const Settings = () => {
 
             {error && (
               <div
-                className="flex items-center gap-2 p-4 mb-4 rounded-lg border"
-                style={{
-                  backgroundColor: '#FEE2E2',
-                  borderColor: '#FECACA',
-                  color: '#DC2626'
-                }}
+                className="flex items-center gap-2 p-4 mb-4 rounded-lg border bg-red-50 border-red-200 text-red-600"
               >
                 <AlertCircle className="w-5 h-5 flex-shrink-0" />
                 <span style={{ fontFamily: 'var(--_typography---font--tiempos)' }}>
@@ -284,9 +250,8 @@ const Settings = () => {
               <div className="flex items-center justify-center py-8">
                 <Loader2 className="w-6 h-6" style={{ color: '#D97706' }} />
                 <span
-                  className="ml-2"
+                  className="ml-2 text-muted-foreground"
                   style={{
-                    color: '#666666',
                     fontFamily: 'var(--_typography---font--tiempos)'
                   }}
                 >
@@ -301,18 +266,14 @@ const Settings = () => {
                   return (
                     <div
                       key={connector.id}
-                      className="flex items-center justify-between p-4 rounded-lg border"
-                      style={{
-                        backgroundColor: '#F5F5F5',
-                        borderColor: 'rgba(20,20,19,0.1)'
-                      }}
+                      className="flex items-center justify-between p-4 rounded-lg border bg-muted border-border"
                     >
                       <div className="flex items-center gap-4">
                         <span className="text-2xl">{connector.icon}</span>
                         <div>
                           <h3
+                            className="text-foreground"
                             style={{
-                              color: '#141413',
                               fontFamily: 'var(--_typography---font--tiempos)',
                               fontWeight: 500
                             }}
@@ -320,9 +281,8 @@ const Settings = () => {
                             {connector.name}
                           </h3>
                           <p
-                            className="text-sm"
+                            className="text-sm text-muted-foreground"
                             style={{
-                              color: '#666666',
                               fontFamily: 'var(--_typography---font--tiempos)'
                             }}
                           >
@@ -372,11 +332,10 @@ const Settings = () => {
                           </>
                         ) : (
                           <div className="flex items-center gap-2">
-                            <XCircle className="w-4 h-4" style={{ color: '#666666' }} />
+                            <XCircle className="w-4 h-4 text-muted-foreground" />
                             <span
-                              className="text-sm"
+                              className="text-sm text-muted-foreground"
                               style={{
-                                color: '#666666',
                                 fontFamily: 'var(--_typography---font--tiempos)'
                               }}
                             >
@@ -392,17 +351,14 @@ const Settings = () => {
             )}
 
             <div
-              className="mt-6 p-4 rounded-lg border-l-4"
+              className="mt-6 p-4 rounded-lg border-l-4 bg-muted border-border"
               style={{
-                backgroundColor: '#F5F5F5',
-                borderLeftColor: '#D97706',
-                borderColor: 'rgba(20,20,19,0.1)'
+                borderLeftColor: '#D97706'
               }}
             >
               <p
-                className="text-sm"
+                className="text-sm text-foreground"
                 style={{
-                  color: '#141413',
                   fontFamily: 'var(--_typography---font--tiempos)'
                 }}
               >
@@ -424,21 +380,16 @@ const Settings = () => {
 
           {/* Privacy & Security */}
           <section
-            className="rounded-2xl p-6 border"
-            style={{
-              backgroundColor: 'white',
-              borderColor: 'rgba(20,20,19,0.1)'
-            }}
+            className="rounded-2xl p-6 border bg-card border-border"
           >
             <div className="flex items-center gap-3 mb-4">
               <Shield className="w-5 h-5" style={{ color: '#D97706' }} />
               <h2
-                className="text-xl"
+                className="text-xl text-foreground"
                 style={{
                   fontFamily: 'var(--_typography---font--styrene-a)',
                   fontWeight: 500,
-                  letterSpacing: '-0.02em',
-                  color: '#141413'
+                  letterSpacing: '-0.02em'
                 }}
               >
                 Privacy & Security
@@ -449,8 +400,8 @@ const Settings = () => {
               <div className="flex items-center justify-between">
                 <div>
                   <h3
+                    className="text-foreground"
                     style={{
-                      color: '#141413',
                       fontFamily: 'var(--_typography---font--tiempos)',
                       fontWeight: 500
                     }}
@@ -458,9 +409,8 @@ const Settings = () => {
                     Data Usage Consent
                   </h3>
                   <p
-                    className="text-sm"
+                    className="text-sm text-muted-foreground"
                     style={{
-                      color: '#666666',
                       fontFamily: 'var(--_typography---font--tiempos)'
                     }}
                   >
@@ -476,8 +426,8 @@ const Settings = () => {
               <div className="flex items-center justify-between">
                 <div>
                   <h3
+                    className="text-foreground"
                     style={{
-                      color: '#141413',
                       fontFamily: 'var(--_typography---font--tiempos)',
                       fontWeight: 500
                     }}
@@ -485,9 +435,8 @@ const Settings = () => {
                     Analytics
                   </h3>
                   <p
-                    className="text-sm"
+                    className="text-sm text-muted-foreground"
                     style={{
-                      color: '#666666',
                       fontFamily: 'var(--_typography---font--tiempos)'
                     }}
                   >
@@ -504,21 +453,16 @@ const Settings = () => {
 
           {/* Additional Settings */}
           <section
-            className="rounded-2xl p-6 border"
-            style={{
-              backgroundColor: 'white',
-              borderColor: 'rgba(20,20,19,0.1)'
-            }}
+            className="rounded-2xl p-6 border bg-card border-border"
           >
             <div className="flex items-center gap-3 mb-4">
               <Palette className="w-5 h-5" style={{ color: '#D97706' }} />
               <h2
-                className="text-xl"
+                className="text-xl text-foreground"
                 style={{
                   fontFamily: 'var(--_typography---font--styrene-a)',
                   fontWeight: 500,
-                  letterSpacing: '-0.02em',
-                  color: '#141413'
+                  letterSpacing: '-0.02em'
                 }}
               >
                 Preferences
@@ -528,9 +472,8 @@ const Settings = () => {
             <div className="space-y-4">
               <div>
                 <h3
-                  className="mb-2"
+                  className="mb-2 text-foreground"
                   style={{
-                    color: '#141413',
                     fontFamily: 'var(--_typography---font--tiempos)',
                     fontWeight: 500
                   }}
@@ -539,11 +482,8 @@ const Settings = () => {
                 </h3>
                 <button
                   onClick={() => navigate('/voice-settings')}
-                  className="flex items-center gap-2 px-4 py-2 rounded-lg"
+                  className="flex items-center gap-2 px-4 py-2 rounded-lg bg-muted text-foreground border border-border"
                   style={{
-                    backgroundColor: '#F5F5F5',
-                    color: '#141413',
-                    border: '1px solid rgba(20,20,19,0.1)',
                     fontFamily: 'var(--_typography---font--tiempos)'
                   }}
                 >
@@ -554,9 +494,8 @@ const Settings = () => {
 
               <div>
                 <h3
-                  className="mb-2"
+                  className="mb-2 text-foreground"
                   style={{
-                    color: '#141413',
                     fontFamily: 'var(--_typography---font--tiempos)',
                     fontWeight: 500
                   }}
@@ -565,11 +504,8 @@ const Settings = () => {
                 </h3>
                 <button
                   onClick={() => navigate('/twin-builder')}
-                  className="flex items-center gap-2 px-4 py-2 rounded-lg"
+                  className="flex items-center gap-2 px-4 py-2 rounded-lg bg-muted text-foreground border border-border"
                   style={{
-                    backgroundColor: '#F5F5F5',
-                    color: '#141413',
-                    border: '1px solid rgba(20,20,19,0.1)',
                     fontFamily: 'var(--_typography---font--tiempos)'
                   }}
                 >

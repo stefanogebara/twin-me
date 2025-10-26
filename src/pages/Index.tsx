@@ -189,22 +189,22 @@ const Index = () => {
           <p className="text-[20px] text-foreground" style={{ fontFamily: 'var(--_typography---font--tiempos)' }}>From the branches to the roots—discover what makes you authentically you</p>
         </div>
         <div className="max-w-[1400px] mx-auto grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-          <div className="bg-white rounded-[16px] p-8 border border-[rgba(20,20,19,0.1)]">
+          <div className="bg-card rounded-[16px] p-8 border border-[rgba(20,20,19,0.1)]">
             <div className="w-full h-[200px] rounded-[12px] mb-6 bg-[#F5F5F5]"></div>
             <h3 className="text-[24px] text-foreground mb-3" style={{ fontFamily: 'var(--_typography---font--styrene-a)', fontWeight: 500 }}>Personal Cluster</h3>
             <span className="inline-block px-4 py-2 rounded-full text-[14px] font-medium text-foreground bg-[rgba(20,20,19,0.05)]" style={{ fontFamily: 'var(--_typography---font--styrene-b)' }}>Hobbies & Passions</span>
           </div>
-          <div className="bg-white rounded-[16px] p-8 border border-[rgba(20,20,19,0.1)]">
+          <div className="bg-card rounded-[16px] p-8 border border-[rgba(20,20,19,0.1)]">
             <div className="w-full h-[200px] rounded-[12px] mb-6 bg-[#F5F5F5]"></div>
             <h3 className="text-[24px] text-foreground mb-3" style={{ fontFamily: 'var(--_typography---font--styrene-a)', fontWeight: 500 }}>Professional Cluster</h3>
             <span className="inline-block px-4 py-2 rounded-full text-[14px] font-medium text-foreground bg-[rgba(20,20,19,0.05)]" style={{ fontFamily: 'var(--_typography---font--styrene-b)' }}>Career & Skills</span>
           </div>
-          <div className="bg-white rounded-[16px] p-8 border border-[rgba(20,20,19,0.1)]">
+          <div className="bg-card rounded-[16px] p-8 border border-[rgba(20,20,19,0.1)]">
             <div className="w-full h-[200px] rounded-[12px] mb-6 bg-[#F5F5F5]"></div>
             <h3 className="text-[24px] text-foreground mb-3" style={{ fontFamily: 'var(--_typography---font--styrene-a)', fontWeight: 500 }}>Privacy Spectrum</h3>
             <span className="inline-block px-4 py-2 rounded-full text-[14px] font-medium text-foreground bg-[rgba(20,20,19,0.05)]" style={{ fontFamily: 'var(--_typography---font--styrene-b)' }}>What To Reveal</span>
           </div>
-          <div className="bg-white rounded-[16px] p-8 border border-[rgba(20,20,19,0.1)]">
+          <div className="bg-card rounded-[16px] p-8 border border-[rgba(20,20,19,0.1)]">
             <div className="w-full h-[200px] rounded-[12px] mb-6 bg-[#F5F5F5]"></div>
             <h3 className="text-[24px] text-foreground mb-3" style={{ fontFamily: 'var(--_typography---font--styrene-a)', fontWeight: 500 }}>Soul Dashboard</h3>
             <span className="inline-block px-4 py-2 rounded-full text-[14px] font-medium text-foreground bg-[rgba(20,20,19,0.05)]" style={{ fontFamily: 'var(--_typography---font--styrene-b)' }}>Your Signature</span>
@@ -225,7 +225,7 @@ const Index = () => {
           </p>
         </div>
         <div className="max-w-[1200px] mx-auto grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10">
-          <div className="bg-white rounded-[16px] p-10 border border-[rgba(20,20,19,0.1)]">
+          <div className="bg-card rounded-[16px] p-10 border border-[rgba(20,20,19,0.1)]">
             <div className="w-[60px] h-[60px] bg-[#F5F5F5] rounded-[12px] flex items-center justify-center mb-6 text-[32px] text-foreground">〜</div>
             <h3 className="text-[24px] text-foreground mb-3"
                 style={{ fontFamily: 'var(--_typography---font--styrene-a)', fontWeight: 500 }}>
@@ -236,7 +236,7 @@ const Index = () => {
               Connect Netflix, Spotify, Discord, GitHub, and 30+ platforms to reveal your authentic patterns
             </p>
           </div>
-          <div className="bg-white rounded-[16px] p-10 border border-[rgba(20,20,19,0.1)]">
+          <div className="bg-card rounded-[16px] p-10 border border-[rgba(20,20,19,0.1)]">
             <div className="w-[60px] h-[60px] bg-[#F5F5F5] rounded-[12px] flex items-center justify-center mb-6 text-[32px] text-foreground">◐</div>
             <h3 className="text-[24px] text-foreground mb-3"
                 style={{ fontFamily: 'var(--_typography---font--styrene-a)', fontWeight: 500 }}>
@@ -247,7 +247,7 @@ const Index = () => {
               Granular 0-100% sliders for each life cluster. Share what you want, when you want
             </p>
           </div>
-          <div className="bg-white rounded-[16px] p-10 border border-[rgba(20,20,19,0.1)]">
+          <div className="bg-card rounded-[16px] p-10 border border-[rgba(20,20,19,0.1)]">
             <div className="w-[60px] h-[60px] bg-[#F5F5F5] rounded-[12px] flex items-center justify-center mb-6 text-[32px] text-foreground">◉</div>
             <h3 className="text-[24px] text-foreground mb-3"
                 style={{ fontFamily: 'var(--_typography---font--styrene-a)', fontWeight: 500 }}>
@@ -258,7 +258,7 @@ const Index = () => {
               AI reveals patterns and curiosities you didn't know about yourself
             </p>
           </div>
-          <div className="bg-white rounded-[16px] p-10 border border-[rgba(20,20,19,0.1)]">
+          <div className="bg-card rounded-[16px] p-10 border border-[rgba(20,20,19,0.1)]">
             <div className="w-[60px] h-[60px] bg-[#F5F5F5] rounded-[12px] flex items-center justify-center mb-6 text-[32px] text-foreground">▣</div>
             <h3 className="text-[24px] text-foreground mb-3"
                 style={{ fontFamily: 'var(--_typography---font--styrene-a)', fontWeight: 500 }}>
@@ -269,7 +269,7 @@ const Index = () => {
               Different twin personas for professional, social, dating, or creative contexts
             </p>
           </div>
-          <div className="bg-white rounded-[16px] p-10 border border-[rgba(20,20,19,0.1)]">
+          <div className="bg-card rounded-[16px] p-10 border border-[rgba(20,20,19,0.1)]">
             <div className="w-[60px] h-[60px] bg-[#F5F5F5] rounded-[12px] flex items-center justify-center mb-6 text-[32px] text-foreground">◎</div>
             <h3 className="text-[24px] text-foreground mb-3"
                 style={{ fontFamily: 'var(--_typography---font--styrene-a)', fontWeight: 500 }}>
@@ -280,7 +280,7 @@ const Index = () => {
               Interact with your authentic digital twin through voice and text
             </p>
           </div>
-          <div className="bg-white rounded-[16px] p-10 border border-[rgba(20,20,19,0.1)]">
+          <div className="bg-card rounded-[16px] p-10 border border-[rgba(20,20,19,0.1)]">
             <div className="w-[60px] h-[60px] bg-[#F5F5F5] rounded-[12px] flex items-center justify-center mb-6 text-[32px] text-foreground">△</div>
             <h3 className="text-[24px] text-foreground mb-3"
                 style={{ fontFamily: 'var(--_typography---font--styrene-a)', fontWeight: 500 }}>
@@ -295,7 +295,7 @@ const Index = () => {
       </section>
 
       {/* About Section */}
-      <section id="about" className="py-[120px] px-[60px] bg-white">
+      <section id="about" className="py-[120px] px-[60px] bg-card">
         <div className="text-center max-w-[900px] mx-auto">
           <h2 className="text-[clamp(2rem,4vw,3rem)] mb-6 text-foreground"
               style={{ fontFamily: 'var(--_typography---font--styrene-a)', fontWeight: 500, letterSpacing: '-0.02em' }}>

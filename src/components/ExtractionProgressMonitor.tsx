@@ -130,7 +130,7 @@ const ExtractionProgressMonitor: React.FC<ExtractionProgressMonitorProps> = ({
   }
 
   return (
-    <div className="bg-white rounded-lg border-2 border-slate-200 p-4 mb-6">
+    <div className="bg-card rounded-lg border-2 border-slate-200 p-4 mb-6">
       {/* Header */}
       <div className="flex items-center justify-between mb-4">
         <h3 className="text-lg font-semibold text-slate-800" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>

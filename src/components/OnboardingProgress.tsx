@@ -75,19 +75,19 @@ export const OnboardingProgress: React.FC<OnboardingProgressProps> = ({
   };
 
   return (
-    <div className={`bg-white border border-[rgba(20,20,19,0.1)] rounded-2xl p-6 ${className}`}>
+    <div className={`bg-card border border-border rounded-2xl p-6 ${className}`}>
       <div className="mb-4">
         <div className="flex items-center justify-between mb-2">
-          <h3 className="text-lg font-semibold text-[#141413]">
+          <h3 className="text-lg font-semibold text-foreground">
             Getting Started Progress
           </h3>
-          <span className="text-sm text-gray-500">
+          <span className="text-sm text-muted-foreground">
             {Math.round(getCompletionPercentage())}% Complete
           </span>
         </div>
 
         {/* Progress Bar */}
-        <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
+        <div className="h-2 bg-muted rounded-full overflow-hidden">
           <div
             className="h-full bg-gradient-to-r from-[#D97706] to-[#FFA500] transition-all duration-500"
             style={{ width: `${getCompletionPercentage()}%` }}
@@ -105,7 +105,7 @@ export const OnboardingProgress: React.FC<OnboardingProgressProps> = ({
               flex items-center gap-3 p-3 rounded-lg transition-all duration-200
               ${step.status === 'locked'
                 ? 'opacity-50 cursor-not-allowed'
-                : 'cursor-pointer hover:bg-gray-50'
+                : 'cursor-pointer hover:bg-muted'
               }
               ${step.status === 'current' ? 'bg-[#D97706]/5 border border-[#D97706]/20' : ''}
             `}
@@ -130,9 +130,9 @@ export const OnboardingProgress: React.FC<OnboardingProgressProps> = ({
             <div className="flex-1">
               <div className="flex items-center gap-2">
                 <h4 className={`text-sm font-medium ${
-                  step.status === 'completed' ? 'text-gray-600' :
-                  step.status === 'current' ? 'text-[#141413]' :
-                  'text-gray-400'
+                  step.status === 'completed' ? 'text-muted-foreground' :
+                  step.status === 'current' ? 'text-foreground' :
+                  'text-muted-foreground/50'
                 }`}>
                   {step.title}
                 </h4>
@@ -143,7 +143,7 @@ export const OnboardingProgress: React.FC<OnboardingProgressProps> = ({
                 )}
               </div>
               <p className={`text-xs mt-0.5 ${
-                step.status === 'locked' ? 'text-gray-400' : 'text-gray-500'
+                step.status === 'locked' ? 'text-muted-foreground/50' : 'text-muted-foreground'
               }`}>
                 {step.description}
               </p>
@@ -154,7 +154,7 @@ export const OnboardingProgress: React.FC<OnboardingProgressProps> = ({
               flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center text-xs font-medium
               ${step.status === 'completed' ? 'bg-green-100 text-green-600' :
                 step.status === 'current' ? 'bg-[#D97706]/10 text-[#D97706]' :
-                'bg-gray-100 text-gray-400'
+                'bg-muted text-muted-foreground'
               }
             `}>
               {index + 1}
@@ -165,8 +165,8 @@ export const OnboardingProgress: React.FC<OnboardingProgressProps> = ({
 
       {/* Call to Action */}
       {getCompletionPercentage() < 100 && (
-        <div className="mt-4 pt-4 border-t border-gray-100">
-          <p className="text-xs text-gray-500 mb-2">
+        <div className="mt-4 pt-4 border-t border-border">
+          <p className="text-xs text-muted-foreground mb-2">
             💡 Complete all steps to unlock your full soul signature
           </p>
           {steps.find(s => s.status === 'current') && (
@@ -187,12 +187,12 @@ export const OnboardingProgress: React.FC<OnboardingProgressProps> = ({
 
       {/* Completion Message */}
       {getCompletionPercentage() === 100 && (
-        <div className="mt-4 pt-4 border-t border-gray-100">
+        <div className="mt-4 pt-4 border-t border-border">
           <div className="flex items-center gap-2 text-green-600">
             <CheckCircle className="w-5 h-5" />
             <span className="text-sm font-medium">Setup Complete!</span>
           </div>
-          <p className="text-xs text-gray-500 mt-1">
+          <p className="text-xs text-muted-foreground mt-1">
             Your digital twin is ready to interact
           </p>
         </div>

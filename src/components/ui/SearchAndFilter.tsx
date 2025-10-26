@@ -106,7 +106,7 @@ export function SearchAndFilter<T>({
             key={String(filter.key)}
             value={value || ''}
             onChange={(e) => handleFilterChange(String(filter.key), e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#FF5722] focus:border-transparent"
+            className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-[#FF5722] focus:border-transparent"
           >
             <option value="">All {filter.label}</option>
             {filter.options?.map(option => (
@@ -120,7 +120,7 @@ export function SearchAndFilter<T>({
       case 'multiselect':
         return (
           <div key={String(filter.key)} className="space-y-2">
-            <label className="text-sm font-medium text-gray-700">{filter.label}</label>
+            <label className="text-sm font-medium text-muted-foreground">{filter.label}</label>
             <div className="space-y-1 max-h-32 overflow-y-auto">
               {filter.options?.map(option => (
                 <label key={option.value} className="flex items-center gap-2">
@@ -134,7 +134,7 @@ export function SearchAndFilter<T>({
                         : currentValues.filter(v => v !== option.value);
                       handleFilterChange(String(filter.key), newValues);
                     }}
-                    className="rounded border-gray-300 text-[#FF5722] focus:ring-[#FF5722]"
+                    className="rounded border-border text-[#FF5722] focus:ring-[#FF5722]"
                   />
                   <span className="text-sm">{option.label}</span>
                 </label>
@@ -150,7 +150,7 @@ export function SearchAndFilter<T>({
               type="checkbox"
               checked={Boolean(value)}
               onChange={(e) => handleFilterChange(String(filter.key), e.target.checked)}
-              className="rounded border-gray-300 text-[#FF5722] focus:ring-[#FF5722]"
+              className="rounded border-border text-[#FF5722] focus:ring-[#FF5722]"
             />
             <span className="text-sm font-medium">{filter.label}</span>
           </label>
@@ -160,7 +160,7 @@ export function SearchAndFilter<T>({
         const rangeValue = value as { min?: number; max?: number } || {};
         return (
           <div key={String(filter.key)} className="space-y-2">
-            <label className="text-sm font-medium text-gray-700">{filter.label}</label>
+            <label className="text-sm font-medium text-muted-foreground">{filter.label}</label>
             <div className="flex gap-2">
               <input
                 type="number"
@@ -172,7 +172,7 @@ export function SearchAndFilter<T>({
                   ...rangeValue,
                   min: e.target.value ? Number(e.target.value) : undefined
                 })}
-                className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#FF5722] focus:border-transparent"
+                className="flex-1 px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-[#FF5722] focus:border-transparent"
               />
               <input
                 type="number"
@@ -184,7 +184,7 @@ export function SearchAndFilter<T>({
                   ...rangeValue,
                   max: e.target.value ? Number(e.target.value) : undefined
                 })}
-                className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#FF5722] focus:border-transparent"
+                className="flex-1 px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-[#FF5722] focus:border-transparent"
               />
             </div>
           </div>
@@ -201,7 +201,7 @@ export function SearchAndFilter<T>({
       {/* Search Bar */}
       <div className="relative">
         <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-          <svg className="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <svg className="h-5 w-5 text-muted-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
           </svg>
         </div>
@@ -210,7 +210,7 @@ export function SearchAndFilter<T>({
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
           placeholder={placeholder}
-          className="block w-full pl-10 pr-12 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#FF5722] focus:border-transparent"
+          className="block w-full pl-10 pr-12 py-3 border border-border rounded-lg focus:ring-2 focus:ring-[#FF5722] focus:border-transparent"
         />
         {isLoading('search') && (
           <div className="absolute inset-y-0 right-0 pr-3 flex items-center">
@@ -224,7 +224,7 @@ export function SearchAndFilter<T>({
         <div className="flex flex-wrap gap-2 items-center">
           <button
             onClick={() => setShowFilters(!showFilters)}
-            className="flex items-center gap-2 px-3 py-2 text-sm border border-gray-300 rounded-md hover:bg-gray-50 transition-colors"
+            className="flex items-center gap-2 px-3 py-2 text-sm border border-border rounded-md hover:bg-card transition-colors"
           >
             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.707A1 1 0 013 7V4z" />
@@ -240,13 +240,13 @@ export function SearchAndFilter<T>({
           {Object.keys(filterValues).length > 0 && (
             <button
               onClick={clearFilters}
-              className="text-sm text-gray-600 hover:text-[#FF5722] transition-colors"
+              className="text-sm text-muted-foreground hover:text-[#FF5722] transition-colors"
             >
               Clear all
             </button>
           )}
 
-          <div className="text-sm text-gray-600">
+          <div className="text-sm text-muted-foreground">
             {filteredData.length} result{filteredData.length !== 1 ? 's' : ''}
           </div>
         </div>
@@ -254,7 +254,7 @@ export function SearchAndFilter<T>({
 
       {/* Filter Panel */}
       {showFilters && filters.length > 0 && (
-        <div className="bg-gray-50 rounded-lg p-4 space-y-4 border border-gray-200">
+        <div className="bg-card rounded-lg p-4 space-y-4 border border-border">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {filters.map(renderFilter)}
           </div>

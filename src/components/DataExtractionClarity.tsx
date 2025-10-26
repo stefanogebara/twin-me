@@ -359,7 +359,7 @@ export const DataExtractionClarity: React.FC<DataExtractionClarityProps> = ({
                         max="100"
                         value={privacyValue}
                         onChange={(e) => handlePrivacyChange(key, parseInt(e.target.value))}
-                        className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
+                        className="w-full h-2 bg-muted rounded-lg appearance-none cursor-pointer"
                         style={{
                           background: `linear-gradient(to right, hsl(var(--claude-accent)) 0%, hsl(var(--claude-accent)) ${privacyValue}%, #e5e7eb ${privacyValue}%, #e5e7eb 100%)`
                         }}
@@ -439,7 +439,7 @@ export const DataExtractionClarity: React.FC<DataExtractionClarityProps> = ({
                               {isConnected ? (
                                 <CheckCircle2 className="w-3 h-3 text-green-600" />
                               ) : (
-                                <Lock className="w-3 h-3 text-gray-400" />
+                                <Lock className="w-3 h-3 text-muted-foreground" />
                               )}
                             </div>
                           );

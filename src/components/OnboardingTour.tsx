@@ -194,9 +194,9 @@ export const OnboardingTour: React.FC<OnboardingTourProps> = ({
 
           {/* Tour Card */}
           <div className="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-50 w-full max-w-lg">
-            <div className="bg-white rounded-2xl shadow-2xl border border-[rgba(20,20,19,0.1)] overflow-hidden">
+            <div className="bg-card rounded-2xl shadow-2xl border border-border overflow-hidden">
               {/* Progress Bar */}
-              <div className="h-2 bg-gray-100">
+              <div className="h-2 bg-muted">
                 <div
                   className="h-full bg-gradient-to-r from-[#D97706] to-[#FFA500] transition-all duration-300"
                   style={{ width: `${((currentStep + 1) / steps.length) * 100}%` }}
@@ -211,13 +211,13 @@ export const OnboardingTour: React.FC<OnboardingTourProps> = ({
                     <div className="w-12 h-12 rounded-xl bg-[#D97706]/10 flex items-center justify-center">
                       <CurrentIcon className="w-6 h-6 text-[#D97706]" />
                     </div>
-                    <div className="text-sm text-gray-500 font-medium">
+                    <div className="text-sm text-muted-foreground font-medium">
                       Step {currentStep + 1} of {steps.length}
                     </div>
                   </div>
                   <button
                     onClick={handleSkip}
-                    className="text-gray-400 hover:text-gray-600 transition-colors"
+                    className="text-muted-foreground hover:text-foreground transition-colors"
                     title="Skip tour"
                   >
                     <X className="w-5 h-5" />
@@ -225,12 +225,12 @@ export const OnboardingTour: React.FC<OnboardingTourProps> = ({
                 </div>
 
                 {/* Title */}
-                <h2 className="text-2xl font-semibold text-[#141413] mb-3">
+                <h2 className="text-2xl font-semibold text-foreground mb-3">
                   {steps[currentStep].title}
                 </h2>
 
                 {/* Description */}
-                <p className="text-gray-600 mb-8 leading-relaxed">
+                <p className="text-muted-foreground mb-8 leading-relaxed">
                   {steps[currentStep].description}
                 </p>
 
@@ -243,8 +243,8 @@ export const OnboardingTour: React.FC<OnboardingTourProps> = ({
                       disabled={currentStep === 0}
                       className={`p-2 rounded-lg border transition-colors ${
                         currentStep === 0
-                          ? 'border-gray-200 text-gray-300 cursor-not-allowed'
-                          : 'border-gray-300 text-gray-600 hover:bg-gray-50'
+                          ? 'border-border text-muted-foreground cursor-not-allowed'
+                          : 'border-border text-foreground hover:bg-muted'
                       }`}
                     >
                       <ChevronLeft className="w-5 h-5" />
@@ -260,7 +260,7 @@ export const OnboardingTour: React.FC<OnboardingTourProps> = ({
                               ? 'bg-[#D97706] w-6'
                               : index < currentStep
                               ? 'bg-[#D97706]/50'
-                              : 'bg-gray-300'
+                              : 'bg-muted-foreground/30'
                           }`}
                         />
                       ))}
@@ -271,8 +271,8 @@ export const OnboardingTour: React.FC<OnboardingTourProps> = ({
                       disabled={currentStep === steps.length - 1}
                       className={`p-2 rounded-lg border transition-colors ${
                         currentStep === steps.length - 1
-                          ? 'border-gray-200 text-gray-300 cursor-not-allowed'
-                          : 'border-gray-300 text-gray-600 hover:bg-gray-50'
+                          ? 'border-border text-muted-foreground cursor-not-allowed'
+                          : 'border-border text-foreground hover:bg-muted'
                       }`}
                     >
                       <ChevronRight className="w-5 h-5" />

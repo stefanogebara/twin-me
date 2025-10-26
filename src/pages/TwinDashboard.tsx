@@ -375,7 +375,7 @@ const TwinDashboard: React.FC = () => {
   return (
     <div className="min-h-screen bg-[#FAF9F5] text-[#141413]">
       {/* Header */}
-      <div className="border-b border-[rgba(20,20,19,0.1)] bg-white">
+      <div className="border-b border-[rgba(20,20,19,0.1)] bg-card">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
             <div className="flex items-center space-x-4">
@@ -404,7 +404,7 @@ const TwinDashboard: React.FC = () => {
       </div>
 
       {/* Navigation Tabs */}
-      <div className="border-b border-[rgba(20,20,19,0.1)] bg-white">
+      <div className="border-b border-[rgba(20,20,19,0.1)] bg-card">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <nav className="flex space-x-8">
             {[
@@ -436,7 +436,7 @@ const TwinDashboard: React.FC = () => {
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             {/* Stats Cards */}
             <div className="lg:col-span-3 grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-              <div className="bg-white border border-[rgba(20,20,19,0.1)] rounded-xl p-6">
+              <div className="bg-card border border-[rgba(20,20,19,0.1)] rounded-xl p-6">
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-sm text-[#6B7280]">Data Points</p>
@@ -450,7 +450,7 @@ const TwinDashboard: React.FC = () => {
                 </div>
               </div>
 
-              <div className="bg-white border border-[rgba(20,20,19,0.1)] rounded-xl p-6">
+              <div className="bg-card border border-[rgba(20,20,19,0.1)] rounded-xl p-6">
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-sm text-[#6B7280]">Conversations</p>
@@ -464,7 +464,7 @@ const TwinDashboard: React.FC = () => {
                 </div>
               </div>
 
-              <div className="bg-white border border-[rgba(20,20,19,0.1)] rounded-xl p-6">
+              <div className="bg-card border border-[rgba(20,20,19,0.1)] rounded-xl p-6">
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-sm text-[#6B7280]">Students</p>
@@ -478,7 +478,7 @@ const TwinDashboard: React.FC = () => {
                 </div>
               </div>
 
-              <div className="bg-white border border-[rgba(20,20,19,0.1)] rounded-xl p-6">
+              <div className="bg-card border border-[rgba(20,20,19,0.1)] rounded-xl p-6">
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-sm text-[#6B7280]">Sync Health</p>
@@ -495,7 +495,7 @@ const TwinDashboard: React.FC = () => {
 
             {/* Quick Personality Overview */}
             <div className="lg:col-span-2">
-              <div className="bg-white border border-[rgba(20,20,19,0.1)] rounded-xl p-6">
+              <div className="bg-card border border-[rgba(20,20,19,0.1)] rounded-xl p-6">
                 <h3 className="text-lg mb-6 flex items-center text-[#141413]" style={{ fontFamily: 'var(--_typography---font--styrene-a)', fontWeight: 500, letterSpacing: '-0.02em' }}>
                   <Brain className="h-5 w-5 mr-2 text-[#D97706]" />
                   Personality Overview
@@ -526,7 +526,7 @@ const TwinDashboard: React.FC = () => {
 
             {/* Recent Evolution */}
             <div>
-              <div className="bg-white border border-[rgba(20,20,19,0.1)] rounded-xl p-6">
+              <div className="bg-card border border-[rgba(20,20,19,0.1)] rounded-xl p-6">
                 <h3 className="text-lg mb-6 flex items-center text-[#141413]" style={{ fontFamily: 'var(--_typography---font--styrene-a)', fontWeight: 500, letterSpacing: '-0.02em' }}>
                   <TrendingUp className="h-5 w-5 mr-2 text-[#D97706]" />
                   Recent Changes
@@ -550,7 +550,7 @@ const TwinDashboard: React.FC = () => {
         {activeView === 'personality' && (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
             {/* Personality Radar */}
-            <div className="bg-white border border-[rgba(20,20,19,0.1)] rounded-xl p-6">
+            <div className="bg-card border border-[rgba(20,20,19,0.1)] rounded-xl p-6">
               <h3 className="text-lg mb-6 text-[#141413]" style={{ fontFamily: 'var(--_typography---font--styrene-a)', fontWeight: 500, letterSpacing: '-0.02em' }}>Personality Profile</h3>
               <div className="flex justify-center">
                 <PersonalityRadarChart data={personalityData} />
@@ -558,7 +558,7 @@ const TwinDashboard: React.FC = () => {
             </div>
 
             {/* Personality Insights */}
-            <div className="bg-white border border-[rgba(20,20,19,0.1)] rounded-xl p-6">
+            <div className="bg-card border border-[rgba(20,20,19,0.1)] rounded-xl p-6">
               <h3 className="text-lg mb-6 text-[#141413]" style={{ fontFamily: 'var(--_typography---font--styrene-a)', fontWeight: 500, letterSpacing: '-0.02em' }}>Detailed Insights</h3>
               <div className="space-y-4">
                 {personalityData.map((trait, index) => (
@@ -569,7 +569,7 @@ const TwinDashboard: React.FC = () => {
                         {Math.round((trait.value / trait.maxValue) * 100)}%
                       </span>
                     </div>
-                    <div className="bg-white rounded-full h-2 mb-2">
+                    <div className="bg-card rounded-full h-2 mb-2">
                       <div
                         className="bg-[#D97706] h-2 rounded-full"
                         style={{ width: `${(trait.value / trait.maxValue) * 100}%` }}
@@ -594,7 +594,7 @@ const TwinDashboard: React.FC = () => {
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             {/* Full Timeline */}
             <div className="lg:col-span-2">
-              <div className="bg-white border border-[rgba(20,20,19,0.1)] rounded-xl p-6">
+              <div className="bg-card border border-[rgba(20,20,19,0.1)] rounded-xl p-6">
                 <h3 className="text-lg mb-6 text-[#141413]" style={{ fontFamily: 'var(--_typography---font--styrene-a)', fontWeight: 500, letterSpacing: '-0.02em' }}>Evolution Timeline</h3>
                 <EvolutionTimeline entries={evolutionEntries} />
               </div>
@@ -602,7 +602,7 @@ const TwinDashboard: React.FC = () => {
 
             {/* Trends Summary */}
             <div>
-              <div className="bg-white border border-[rgba(20,20,19,0.1)] rounded-xl p-6 mb-6">
+              <div className="bg-card border border-[rgba(20,20,19,0.1)] rounded-xl p-6 mb-6">
                 <h3 className="text-lg mb-4 text-[#141413]" style={{ fontFamily: 'var(--_typography---font--styrene-a)', fontWeight: 500, letterSpacing: '-0.02em' }}>Trending Changes</h3>
                 <div className="space-y-3">
                   {trends.map((trend, index) => (
@@ -628,7 +628,7 @@ const TwinDashboard: React.FC = () => {
                 </div>
               </div>
 
-              <div className="bg-white border border-[rgba(20,20,19,0.1)] rounded-xl p-6">
+              <div className="bg-card border border-[rgba(20,20,19,0.1)] rounded-xl p-6">
                 <h3 className="text-lg mb-4 text-[#141413]" style={{ fontFamily: 'var(--_typography---font--styrene-a)', fontWeight: 500, letterSpacing: '-0.02em' }}>Evolution Stats</h3>
                 <div className="space-y-4">
                   <div className="flex justify-between">
@@ -653,7 +653,7 @@ const TwinDashboard: React.FC = () => {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
             {/* Connected Services */}
             <div className="lg:col-span-2">
-              <div className="bg-white border border-[rgba(20,20,19,0.1)] rounded-xl p-6">
+              <div className="bg-card border border-[rgba(20,20,19,0.1)] rounded-xl p-6">
                 <h3 className="text-lg mb-6 text-[#141413]" style={{ fontFamily: 'var(--_typography---font--styrene-a)', fontWeight: 500, letterSpacing: '-0.02em' }}>Connected Data Sources</h3>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                   {connectors.map((connector) => (
@@ -688,7 +688,7 @@ const TwinDashboard: React.FC = () => {
                       </div>
 
                       <div className="mt-3 pt-3 border-t border-[rgba(20,20,19,0.1)]">
-                        <div className="bg-white rounded-full h-2">
+                        <div className="bg-card rounded-full h-2">
                           <div
                             className="bg-[#D97706] h-2 rounded-full"
                             style={{ width: `${Math.round((connector.healthScore || 0) * 100)}%` }}

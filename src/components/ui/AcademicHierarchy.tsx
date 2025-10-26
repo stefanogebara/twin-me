@@ -747,7 +747,7 @@ export const AcademicHierarchy: React.FC<AcademicHierarchyProps> = ({
 
       {/* Selected Structure Display */}
       {value && (
-        <div className="mt-4 p-4 bg-gray-50 rounded-lg">
+        <div className="mt-4 p-4 bg-card rounded-lg">
           <h4 className="font-medium mb-2">Selected Academic Classification:</h4>
           <div className="space-y-1 text-sm">
             <div><strong>University:</strong> {value.university}</div>
