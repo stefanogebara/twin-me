@@ -6,6 +6,7 @@ import { body, validationResult } from 'express-validator';
 import dotenv from 'dotenv';
 import path from 'path';
 import http from 'http';
+import * as Sentry from '@sentry/node';
 
 // Background services
 import { startTokenRefreshService } from './services/tokenRefreshService.js';
@@ -21,6 +22,31 @@ if (process.env.NODE_ENV !== 'production') {
 
 const app = express();
 const PORT = process.env.PORT || 3001;
+
+// Initialize Sentry for error tracking (only if SENTRY_DSN is configured)
+if (process.env.SENTRY_DSN) {
+  Sentry.init({
+    dsn: process.env.SENTRY_DSN,
+    environment: process.env.NODE_ENV || 'development',
+    tracesSampleRate: process.env.NODE_ENV === 'production' ? 0.1 : 1.0, // 10% in prod, 100% in dev
+    integrations: [
+      // Enable HTTP instrumentation for automatic tracing
+      new Sentry.Integrations.Http({ tracing: true }),
+      // Enable Express integration for automatic error capture
+      new Sentry.Integrations.Express({ app }),
+    ],
+  });
+
+  console.log('✅ Sentry error tracking initialized');
+
+  // RequestHandler must be the first middleware
+  app.use(Sentry.Handlers.requestHandler());
+
+  // TracingHandler creates a trace for every incoming request
+  app.use(Sentry.Handlers.tracingHandler());
+} else {
+  console.log('⚠️  Sentry DSN not configured - error tracking disabled');
+}
 
 // Trust proxy - required for Vercel serverless functions
 // This allows Express to correctly identify client IPs from X-Forwarded-For headers
@@ -263,6 +289,16 @@ app.get('/api/health', async (req, res) => {
 
 // Authentication error handling (must be before general error handler)
 // app.use(handleAuthError);
+
+// Sentry error handler (must be after routes but before other error handlers)
+if (process.env.SENTRY_DSN) {
+  app.use(Sentry.Handlers.errorHandler({
+    shouldHandleError(error) {
+      // Capture all errors with status code >= 500
+      return error.status >= 500 || !error.status;
+    }
+  }));
+}
 
 // 404 handler (must come before error handler)
 app.use(notFoundHandler);
