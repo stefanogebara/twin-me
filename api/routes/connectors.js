@@ -555,7 +555,7 @@ router.get('/status/:userId', async (req, res) => {
     }
 
     // Cache miss - fetch from database
-    const { data: connections, error } = await supabase
+    const { data: connections, error } = await supabaseAdmin
       .from('platform_connections')
       .select('platform, connected, token_expires_at, expires_at, metadata, last_sync, last_sync_status')
       .eq('user_id', userUuid);
