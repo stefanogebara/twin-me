@@ -4,6 +4,7 @@
 
 import express from 'express';
 import { supabase } from '../config/supabase.js';
+import { supabaseAdmin } from '../services/database.js';
 import { encryptToken, decryptToken } from '../services/encryption.js';
 import {
   getCachedPlatformStatus,
@@ -426,7 +427,8 @@ router.post('/callback', async (req, res) => {
       };
 
       // Upsert connection to database (insert or update if exists)
-      const { error: dbError } = await supabase
+      // Use supabaseAdmin to bypass RLS since this is a server-side operation
+      const { error: dbError } = await supabaseAdmin
         .from('platform_connections')
         .upsert(connectionData, {
           onConflict: 'user_id,platform'
