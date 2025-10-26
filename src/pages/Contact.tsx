@@ -32,7 +32,7 @@ export default function Contact() {
 
         <section className="grid grid-cols-1 lg:grid-cols-[1.2fr_0.8fr] gap-8">
           {/* Contact form */}
-          <form className="rounded-2xl p-8 bg-white border border-[rgba(20,20,19,0.1)]">
+          <form className="rounded-2xl p-8 bg-card border border-[rgba(20,20,19,0.1)]">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label className="text-base mb-2 block text-[#141413]" style={{ fontFamily: 'var(--_typography---font--tiempos)', fontWeight: 500 }}>Your name</label>
@@ -87,7 +87,7 @@ export default function Contact() {
               <button
                 type="button"
                 onClick={() => navigate('/')}
-                className="px-6 py-3 rounded-lg border bg-white border-[rgba(20,20,19,0.1)] text-[#141413]"
+                className="px-6 py-3 rounded-lg border bg-card border-[rgba(20,20,19,0.1)] text-[#141413]"
                 style={{ fontFamily: 'var(--_typography---font--tiempos)', fontWeight: 500 }}
               >
                 Cancel
@@ -103,7 +103,7 @@ export default function Contact() {
           </form>
 
           {/* FAQs */}
-          <aside className="rounded-2xl p-8 bg-white border border-[rgba(20,20,19,0.1)]">
+          <aside className="rounded-2xl p-8 bg-card border border-[rgba(20,20,19,0.1)]">
             <h3 className="text-xl mb-6 text-[#141413]" style={{ fontFamily: 'var(--_typography---font--styrene-a)', fontWeight: 500 }}>
               Frequently Asked Questions
             </h3>

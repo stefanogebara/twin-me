@@ -287,7 +287,7 @@ const EnhancedFileUpload: React.FC<EnhancedFileUploadProps> = ({
     if (fileType.includes('image')) return <Image className="w-6 h-6 text-green-500" />;
     if (fileType.includes('pdf')) return <FileText className="w-6 h-6 text-red-500" />;
     if (fileType.includes('word') || fileType.includes('document')) return <FileText className="w-6 h-6 text-blue-600" />;
-    return <File className="w-6 h-6 text-gray-500" />;
+    return <File className="w-6 h-6 text-muted-foreground" />;
   };
 
   const getSupportedFormats = () => {
@@ -338,7 +338,7 @@ const EnhancedFileUpload: React.FC<EnhancedFileUploadProps> = ({
           {uploadingFiles.map((uploadingFile) => (
             <div
               key={uploadingFile.id}
-              className="bg-white border border-[#E5E7EB] rounded-lg p-4 shadow-sm"
+              className="bg-card border border-[#E5E7EB] rounded-lg p-4 shadow-sm"
             >
               <div className="flex items-center justify-between mb-2">
                 <div className="flex items-center gap-3">

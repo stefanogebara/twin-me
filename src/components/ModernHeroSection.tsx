@@ -17,7 +17,7 @@ export const ModernHeroSection = () => {
         {/* Floating Cards */}
         <div className="absolute inset-0 pointer-events-none">
           {/* Top Left Card */}
-          <div className="absolute top-0 left-8 w-48 h-32 bg-white rounded-2xl shadow-lg transform rotate-12 border">
+          <div className="absolute top-0 left-8 w-48 h-32 bg-card rounded-2xl shadow-lg transform rotate-12 border">
             <div className="p-4 h-full bg-gradient-to-br from-blue-50 to-purple-50 rounded-2xl flex items-center justify-center">
               <div className="text-center">
                 <div className="w-8 h-8 bg-blue-500 rounded-full mx-auto mb-2"></div>
@@ -27,7 +27,7 @@ export const ModernHeroSection = () => {
           </div>
 
           {/* Top Right Card */}
-          <div className="absolute top-12 right-8 w-48 h-32 bg-white rounded-2xl shadow-lg transform -rotate-12 border">
+          <div className="absolute top-12 right-8 w-48 h-32 bg-card rounded-2xl shadow-lg transform -rotate-12 border">
             <div className="p-4 h-full bg-gradient-to-br from-green-50 to-emerald-50 rounded-2xl flex items-center justify-center">
               <div className="text-center">
                 <div className="w-8 h-8 bg-green-500 rounded-full mx-auto mb-2"></div>
@@ -37,7 +37,7 @@ export const ModernHeroSection = () => {
           </div>
 
           {/* Bottom Left Card */}
-          <div className="absolute bottom-32 left-16 w-48 h-32 bg-white rounded-2xl shadow-lg transform rotate-6 border">
+          <div className="absolute bottom-32 left-16 w-48 h-32 bg-card rounded-2xl shadow-lg transform rotate-6 border">
             <div className="p-4 h-full bg-gradient-to-br from-pink-50 to-red-50 rounded-2xl flex items-center justify-center">
               <div className="text-center">
                 <div className="w-8 h-8 bg-pink-500 rounded-full mx-auto mb-2"></div>
@@ -47,7 +47,7 @@ export const ModernHeroSection = () => {
           </div>
 
           {/* Bottom Right Card */}
-          <div className="absolute bottom-24 right-16 w-48 h-32 bg-white rounded-2xl shadow-lg transform -rotate-6 border">
+          <div className="absolute bottom-24 right-16 w-48 h-32 bg-card rounded-2xl shadow-lg transform -rotate-6 border">
             <div className="p-4 h-full bg-gradient-to-br from-orange-50 to-yellow-50 rounded-2xl flex items-center justify-center">
               <div className="text-center">
                 <div className="w-8 h-8 bg-orange-500 rounded-full mx-auto mb-2"></div>

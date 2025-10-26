@@ -37,7 +37,7 @@ const LoadingScreen = ({
 
             {/* Center dot */}
             <div className="absolute inset-6 rounded-full animate-pulse flex items-center justify-center" style={{ backgroundColor: 'var(--_color-theme---accent)' }}>
-              <div className="w-3 h-3 bg-white rounded-full animate-bounce"></div>
+              <div className="w-3 h-3 bg-card rounded-full animate-bounce"></div>
             </div>
           </div>
         </div>

@@ -12,7 +12,7 @@ export const Navigation = () => {
   ];
 
   return (
-    <nav className="fixed top-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-sm">
+    <nav className="fixed top-0 left-0 right-0 z-50 bg-card/95 backdrop-blur-sm">
       <div className="max-w-6xl mx-auto px-6 py-6">
         <div className="flex items-center justify-between">
           {/* Left Menu */}

@@ -108,7 +108,7 @@ const SoulMatching: React.FC = () => {
 
             <button
               onClick={() => setShowFilters(!showFilters)}
-              className="flex items-center gap-2 px-4 py-2 bg-white border-2 border-orange-600 text-orange-600 rounded-lg hover:bg-orange-50 transition-colors duration-200"
+              className="flex items-center gap-2 px-4 py-2 bg-card border-2 border-orange-600 text-orange-600 rounded-lg hover:bg-orange-50 transition-colors duration-200"
             >
               <Filter className="w-5 h-5" />
               Filters
@@ -118,7 +118,7 @@ const SoulMatching: React.FC = () => {
           {/* Stats Bar */}
           {stats && stats.hasProfile && (
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-              <div className="bg-white p-4 rounded-lg border-2 border-slate-200">
+              <div className="bg-card p-4 rounded-lg border-2 border-slate-200">
                 <div className="flex items-center gap-2 mb-1">
                   <Users className="w-5 h-5 text-blue-600" />
                   <span className="text-sm text-slate-600">Potential Matches</span>
@@ -128,7 +128,7 @@ const SoulMatching: React.FC = () => {
                 </div>
               </div>
 
-              <div className="bg-white p-4 rounded-lg border-2 border-slate-200">
+              <div className="bg-card p-4 rounded-lg border-2 border-slate-200">
                 <div className="flex items-center gap-2 mb-1">
                   <Sparkles className="w-5 h-5 text-orange-600" />
                   <span className="text-sm text-slate-600">Matches Found</span>
@@ -138,7 +138,7 @@ const SoulMatching: React.FC = () => {
                 </div>
               </div>
 
-              <div className="bg-white p-4 rounded-lg border-2 border-slate-200">
+              <div className="bg-card p-4 rounded-lg border-2 border-slate-200">
                 <div className="flex items-center gap-2 mb-1">
                   <TrendingUp className="w-5 h-5 text-emerald-600" />
                   <span className="text-sm text-slate-600">Profile Completeness</span>
@@ -148,7 +148,7 @@ const SoulMatching: React.FC = () => {
                 </div>
               </div>
 
-              <div className="bg-white p-4 rounded-lg border-2 border-slate-200">
+              <div className="bg-card p-4 rounded-lg border-2 border-slate-200">
                 <div className="flex items-center gap-2 mb-1">
                   <Settings className="w-5 h-5 text-purple-600" />
                   <span className="text-sm text-slate-600">Min. Compatibility</span>
@@ -162,7 +162,7 @@ const SoulMatching: React.FC = () => {
 
           {/* Filter Panel */}
           {showFilters && (
-            <div className="bg-white p-6 rounded-xl border-2 border-orange-200 shadow-lg mb-6">
+            <div className="bg-card p-6 rounded-xl border-2 border-orange-200 shadow-lg mb-6">
               <div className="flex items-center justify-between mb-4">
                 <h3 className="text-xl font-semibold text-slate-800" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
                   Search Filters
@@ -216,7 +216,7 @@ const SoulMatching: React.FC = () => {
                   <select
                     value={filters.privacyLevel}
                     onChange={(e) => setFilters({ ...filters, privacyLevel: e.target.value as any })}
-                    className="w-full px-4 py-2 bg-white border-2 border-slate-200 rounded-lg focus:border-orange-600 focus:outline-none"
+                    className="w-full px-4 py-2 bg-card border-2 border-slate-200 rounded-lg focus:border-orange-600 focus:outline-none"
                   >
                     <option value="respect">Respect Privacy Settings</option>
                     <option value="medium">Medium (Default)</option>
@@ -231,7 +231,7 @@ const SoulMatching: React.FC = () => {
                       type="checkbox"
                       checked={filters.includeOpposites}
                       onChange={(e) => setFilters({ ...filters, includeOpposites: e.target.checked })}
-                      className="w-5 h-5 text-orange-600 bg-white border-2 border-slate-300 rounded focus:ring-orange-500 focus:ring-2"
+                      className="w-5 h-5 text-orange-600 bg-card border-2 border-slate-300 rounded focus:ring-orange-500 focus:ring-2"
                     />
                     <div>
                       <span className="text-sm font-medium text-slate-700">Include Opposite Personalities</span>
@@ -251,7 +251,7 @@ const SoulMatching: React.FC = () => {
                 </button>
                 <button
                   onClick={handleResetFilters}
-                  className="px-6 py-2 bg-white text-slate-600 border-2 border-slate-200 rounded-lg hover:bg-slate-50 transition-colors duration-200 font-medium"
+                  className="px-6 py-2 bg-card text-slate-600 border-2 border-slate-200 rounded-lg hover:bg-slate-50 transition-colors duration-200 font-medium"
                 >
                   Reset
                 </button>

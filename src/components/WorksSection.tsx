@@ -1,10 +1,10 @@
 export const WorksSection = () => {
   return (
-    <section id="works" className="min-h-screen bg-white py-32 px-6">
+    <section id="works" className="min-h-screen bg-card py-32 px-6">
       <div className="max-w-6xl mx-auto">
         <div className="text-center mb-16">
           <div className="w-20 h-20 mx-auto mb-8 bg-gradient-to-br from-orange-500 to-red-500 rounded-2xl flex items-center justify-center shadow-lg">
-            <div className="w-8 h-8 bg-white rounded-full"></div>
+            <div className="w-8 h-8 bg-card rounded-full"></div>
           </div>
           
           <h2 className="text-5xl md:text-6xl font-serif text-slate-900 mb-8 italic">
@@ -42,7 +42,7 @@ export const WorksSection = () => {
           <div className="w-12 h-12 bg-pink-500 rounded-full shadow-lg"></div>
           <div className="flex items-center space-x-2">
             <div className="w-8 h-8 bg-green-500 rounded-full"></div>
-            <div className="w-16 h-8 bg-white border-2 border-green-500 rounded-full relative">
+            <div className="w-16 h-8 bg-card border-2 border-green-500 rounded-full relative">
               <div className="w-6 h-6 bg-green-500 rounded-full absolute right-1 top-0.5"></div>
             </div>
           </div>

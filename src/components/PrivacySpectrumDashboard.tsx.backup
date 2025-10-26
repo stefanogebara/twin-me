@@ -1,0 +1,990 @@
+import React, { useState, useEffect, useCallback, useMemo, memo } from 'react';
+import {
+  User, Briefcase, Palette, Music, Film, Book, Heart, Brain,
+  Globe, Shield, Eye, EyeOff, Sparkles, Fingerprint,
+  ChevronRight, Lock, Unlock, Users, UserCheck, Clock,
+  MapPin, Wifi, Calendar, Zap, Settings
+} from 'lucide-react';
+
+interface ClusterData {
+  id: string;
+  name: string;
+  icon: React.ReactNode;
+  color: string;
+  subclusters: SubclusterData[];
+  intensity: number;
+  privacyLevel: number;
+}
+
+interface SubclusterData {
+  id: string;
+  name: string;
+  dataPoints: DataPoint[];
+  intensity: number;
+  privacyLevel: number;
+}
+
+interface DataPoint {
+  id: string;
+  type: string;
+  value: unknown;
+  source: string;
+  timestamp: string;
+  sensitivity: number;
+}
+
+interface ContextualData {
+  timeOfDay: 'morning' | 'work' | 'evening' | 'night';
+  location: 'home' | 'office' | 'public' | 'unknown';
+  deviceType: 'mobile' | 'desktop' | 'tablet';
+  networkType: 'private' | 'corporate' | 'public';
+  activityLevel: number; // 0-100
+  socialContext: 'alone' | 'family' | 'colleagues' | 'friends';
+}
+
+interface PrivacyRecommendation {
+  context: string;
+  suggestedLevel: number;
+  reason: string;
+  confidence: number;
+  icon: React.ReactNode;
+}
+
+interface ExtractedSoulData {
+  platform: string;
+  extractedAt: Date;
+  soulSignature: {
+    authenticityScore: number;
+    personalityTraits: string[];
+    emotionalResonance: number;
+    creativityIndex: number;
+  };
+}
+
+const PrivacySpectrumDashboard: React.FC = () => {
+  const [selectedCluster, setSelectedCluster] = useState<string | null>(null);
+  const [audienceMode, setAudienceMode] = useState<'everyone' | 'professional' | 'friends' | 'intimate'>('friends');
+  const [globalPrivacy, setGlobalPrivacy] = useState(50);
+  const [hoveredCluster, setHoveredCluster] = useState<string | null>(null);
+
+  // Context-aware features
+  const [contextAwareMode, setContextAwareMode] = useState(true);
+  const [currentContext, setCurrentContext] = useState<ContextualData>({
+    timeOfDay: 'work',
+    location: 'office',
+    deviceType: 'desktop',
+    networkType: 'corporate',
+    activityLevel: 75,
+    socialContext: 'colleagues'
+  });
+  const [privacyRecommendations, setPrivacyRecommendations] = useState<PrivacyRecommendation[]>([]);
+  const [lastContextUpdate, setLastContextUpdate] = useState(new Date());
+  const [realTimeData, setRealTimeData] = useState<Record<string, unknown>>({});
+  const [isExtractingData, setIsExtractingData] = useState(false);
+  const [dataStream, setDataStream] = useState<DataPoint[]>([]);
+  const [connectionPulse, setConnectionPulse] = useState<{[key: string]: boolean}>({});
+
+  // Identity clusters with beautiful visualization
+  const [clusters, setClusters] = useState<ClusterData[]>([
+    {
+      id: 'personal',
+      name: 'Personal Identity',
+      icon: <Heart className="w-5 h-5" />,
+      color: '#D97706',
+      intensity: 75,
+      privacyLevel: 30,
+      subclusters: [
+        {
+          id: 'entertainment',
+          name: 'Entertainment & Culture',
+          dataPoints: [],
+          intensity: 80,
+          privacyLevel: 60
+        },
+        {
+          id: 'hobbies',
+          name: 'Hobbies & Passions',
+          dataPoints: [],
+          intensity: 65,
+          privacyLevel: 40
+        },
+        {
+          id: 'lifestyle',
+          name: 'Lifestyle & Values',
+          dataPoints: [],
+          intensity: 70,
+          privacyLevel: 20
+        }
+      ]
+    },
+    {
+      id: 'professional',
+      name: 'Professional Identity',
+      icon: <Briefcase className="w-5 h-5" />,
+      color: '#D97706',
+      intensity: 85,
+      privacyLevel: 70,
+      subclusters: [
+        {
+          id: 'expertise',
+          name: 'Skills & Knowledge',
+          dataPoints: [],
+          intensity: 90,
+          privacyLevel: 80
+        },
+        {
+          id: 'workstyle',
+          name: 'Work Patterns',
+          dataPoints: [],
+          intensity: 75,
+          privacyLevel: 60
+        }
+      ]
+    },
+  ]);
+
+  // Privacy level descriptions
+  const privacyLevels = [
+    { value: 0, label: 'Hidden', icon: <Lock className="w-4 h-4" />, color: '#D97706' },
+    { value: 25, label: 'Intimate', icon: <Heart className="w-4 h-4" />, color: '#D97706' },
+    { value: 50, label: 'Friends', icon: <Users className="w-4 h-4" />, color: '#D97706' },
+    { value: 75, label: 'Professional', icon: <Briefcase className="w-4 h-4" />, color: '#D97706' },
+    { value: 100, label: 'Public', icon: <Globe className="w-4 h-4" />, color: '#D97706' }
+  ];
+
+  const getPrivacyLabel = (value: number) => {
+    return privacyLevels.reduce((prev, curr) =>
+      Math.abs(curr.value - value) < Math.abs(prev.value - value) ? curr : prev
+    );
+  };
+
+  // Context-aware privacy intelligence
+  const detectCurrentContext = (): ContextualData => {
+    const hour = new Date().getHours();
+    const timeOfDay = hour < 9 ? 'morning' : hour < 18 ? 'work' : hour < 22 ? 'evening' : 'night';
+
+    // Simulate context detection (in real app, this would use actual sensors/APIs)
+    return {
+      timeOfDay,
+      location: timeOfDay === 'work' ? 'office' : 'home',
+      deviceType: 'desktop', // Could detect from navigator.userAgent
+      networkType: timeOfDay === 'work' ? 'corporate' : 'private',
+      activityLevel: Math.floor(Math.random() * 100),
+      socialContext: timeOfDay === 'work' ? 'colleagues' : 'alone'
+    };
+  };
+
+  const generatePrivacyRecommendations = (context: ContextualData): PrivacyRecommendation[] => {
+    const recommendations: PrivacyRecommendation[] = [];
+
+    // Work context recommendations
+    if (context.timeOfDay === 'work' && context.location === 'office') {
+      recommendations.push({
+        context: 'Work Environment Detected',
+        suggestedLevel: 75,
+        reason: 'Professional setting - increase visibility for networking',
+        confidence: 90,
+        icon: <Briefcase className="w-4 h-4" />
+      });
+    }
+
+    // Evening context recommendations
+    if (context.timeOfDay === 'evening' && context.location === 'home') {
+      recommendations.push({
+        context: 'Personal Time',
+        suggestedLevel: 25,
+        reason: 'Evening relaxation - reduce professional visibility',
+        confidence: 85,
+        icon: <Heart className="w-4 h-4" />
+      });
+    }
+
+    // Public network warning
+    if (context.networkType === 'public') {
+      recommendations.push({
+        context: 'Public Network',
+        suggestedLevel: 0,
+        reason: 'Unsecured connection detected - maximize privacy',
+        confidence: 95,
+        icon: <Shield className="w-4 h-4" />
+      });
+    }
+
+    // High activity recommendation
+    if (context.activityLevel > 80) {
+      recommendations.push({
+        context: 'High Activity Period',
+        suggestedLevel: 50,
+        reason: 'Intense work detected - balanced visibility for collaboration',
+        confidence: 70,
+        icon: <Zap className="w-4 h-4" />
+      });
+    }
+
+    return recommendations;
+  };
+
+  // Context-aware privacy adjustment
+  const applyContextualPrivacy = () => {
+    const newContext = detectCurrentContext();
+    const recommendations = generatePrivacyRecommendations(newContext);
+
+    setCurrentContext(newContext);
+    setPrivacyRecommendations(recommendations);
+    setLastContextUpdate(new Date());
+
+    if (contextAwareMode && recommendations.length > 0) {
+      // Apply the highest confidence recommendation
+      const bestRecommendation = recommendations.reduce((prev, curr) =>
+        curr.confidence > prev.confidence ? curr : prev
+      );
+
+      setGlobalPrivacy(bestRecommendation.suggestedLevel);
+      applyGlobalPrivacy();
+    }
+  };
+
+  // Real-time soul signature extraction
+  const extractSoulSignatureData = async () => {
+    setIsExtractingData(true);
+
+    // Simulate real-time data extraction from different platforms
+    const platforms = ['spotify', 'youtube', 'netflix', 'goodreads', 'steam'];
+
+    for (const platform of platforms) {
+      // Simulate connection pulse
+      setConnectionPulse(prev => ({ ...prev, [platform]: true }));
+
+      try {
+        // Simulate API call to our soul extraction endpoint
+        await new Promise(resolve => setTimeout(resolve, 500)); // Simulate network delay
+
+        const mockData = {
+          platform,
+          extractedAt: new Date(),
+          soulSignature: {
+            authenticityScore: Math.floor(Math.random() * 30) + 70, // 70-100
+            personalityTraits: generateMockTraits(platform),
+            emotionalResonance: Math.floor(Math.random() * 100),
+            creativityIndex: Math.floor(Math.random() * 100)
+          }
+        };
+
+        // Add to data stream
+        setDataStream(prev => [...prev.slice(-20), {
+          id: `${platform}-${Date.now()}`,
+          type: 'extraction',
+          value: mockData,
+          source: platform,
+          timestamp: new Date().toISOString(),
+          sensitivity: Math.floor(Math.random() * 100)
+        }]);
+
+        // Update cluster data
+        updateClusterWithRealData(platform, mockData);
+
+      } catch (error) {
+        console.error(`Failed to extract from ${platform}:`, error);
+      } finally {
+        setTimeout(() => {
+          setConnectionPulse(prev => ({ ...prev, [platform]: false }));
+        }, 1000);
+      }
+    }
+
+    setIsExtractingData(false);
+  };
+
+  const generateMockTraits = (platform: string) => {
+    const traitsByPlatform = {
+      spotify: ['music-passionate', 'rhythm-sensitive', 'mood-expressive'],
+      youtube: ['knowledge-seeker', 'visual-learner', 'trend-aware'],
+      netflix: ['story-lover', 'emotional-depth', 'culture-curious'],
+      goodreads: ['intellectual', 'imaginative', 'introspective'],
+      steam: ['strategic-thinker', 'competitive', 'immersive-focused']
+    };
+    return traitsByPlatform[platform as keyof typeof traitsByPlatform] || ['unique-individual'];
+  };
+
+  const updateClusterWithRealData = (platform: string, data: ExtractedSoulData) => {
+    setClusters(prev => prev.map(cluster => {
+      if (cluster.id === 'personal' && ['spotify', 'youtube', 'netflix'].includes(platform)) {
+        return {
+          ...cluster,
+          intensity: Math.min(100, cluster.intensity + 2),
+          subclusters: cluster.subclusters.map(sub =>
+            sub.id === 'entertainment'
+              ? { ...sub, intensity: Math.min(100, sub.intensity + 5) }
+              : sub
+          )
+        };
+      }
+      if (cluster.id === 'professional' && ['goodreads', 'youtube'].includes(platform)) {
+        return {
+          ...cluster,
+          intensity: Math.min(100, cluster.intensity + 1),
+          subclusters: cluster.subclusters.map(sub =>
+            sub.id === 'expertise'
+              ? { ...sub, intensity: Math.min(100, sub.intensity + 2) }
+              : sub
+          )
+        };
+      }
+      return cluster;
+    }));
+  };
+
+  const handleClusterPrivacyChange = useCallback((clusterId: string, value: number[]) => {
+    setClusters(prev => prev.map(cluster =>
+      cluster.id === clusterId
+        ? { ...cluster, privacyLevel: value[0] }
+        : cluster
+    ));
+  }, []);
+
+  const handleSubclusterPrivacyChange = useCallback((clusterId: string, subclusterId: string, value: number[]) => {
+    setClusters(prev => prev.map(cluster =>
+      cluster.id === clusterId
+        ? {
+            ...cluster,
+            subclusters: cluster.subclusters.map(sub =>
+              sub.id === subclusterId
+                ? { ...sub, privacyLevel: value[0] }
+                : sub
+            )
+          }
+        : cluster
+    ));
+  }, []);
+
+  const applyGlobalPrivacy = () => {
+    setClusters(prev => prev.map(cluster => ({
+      ...cluster,
+      privacyLevel: globalPrivacy,
+      subclusters: cluster.subclusters.map(sub => ({
+        ...sub,
+        privacyLevel: globalPrivacy
+      }))
+    })));
+  };
+
+  // Initialize context-aware features
+  useEffect(() => {
+    // Initial context detection
+    applyContextualPrivacy();
+
+    // Set up periodic context updates (every 5 minutes in real app)
+    const interval = setInterval(() => {
+      if (contextAwareMode) {
+        applyContextualPrivacy();
+      }
+    }, 30000); // 30 seconds for demo
+
+    return () => clearInterval(interval);
+  }, [contextAwareMode]);
+
+  return (
+    <div className="min-h-screen bg-[#FAF9F5] p-6">
+      {/* Header */}
+      <div className="max-w-7xl mx-auto mb-8">
+        <div className="text-center mb-8">
+          <h1
+            className="text-4xl mb-2"
+            style={{
+              fontFamily: 'var(--_typography---font--styrene-a)',
+              fontWeight: 500,
+              letterSpacing: '-0.02em',
+              color: "hsl(var(--foreground))"
+            }}
+          >
+            Your Soul Signature Dashboard
+          </h1>
+          <p style={{ fontFamily: 'var(--_typography---font--tiempos)', color: "hsl(var(--muted-foreground))" }}>
+            Control what aspects of yourself to reveal and to whom
+          </p>
+        </div>
+
+        {/* Global Controls */}
+        <div className="rounded-2xl p-6 bg-card border border-[rgba(20,20,19,0.1)] mb-8">
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h3
+                className="text-lg mb-1"
+                style={{
+                  fontFamily: 'var(--_typography---font--styrene-a)',
+                  fontWeight: 500,
+                  letterSpacing: '-0.02em',
+                  color: "hsl(var(--foreground))"
+                }}
+              >
+                Global Privacy Settings
+              </h3>
+              <p className="text-sm" style={{ fontFamily: 'var(--_typography---font--tiempos)', color: "hsl(var(--muted-foreground))" }}>
+                Apply uniform privacy across all clusters
+              </p>
+            </div>
+            <button
+              onClick={() => {
+                applyGlobalPrivacy();
+                // Show feedback
+                const feedback = document.createElement('div');
+                feedback.textContent = 'Global privacy applied to all clusters!';
+                feedback.className = 'fixed top-4 right-4 bg-[#D97706] text-white p-3 rounded-lg z-50';
+                feedback.style.fontFamily = 'var(--_typography---font--tiempos)';
+                document.body.appendChild(feedback);
+                setTimeout(() => feedback.remove(), 3000);
+              }}
+              className="px-4 py-2 rounded-lg bg-[#D97706] text-white"
+              style={{ fontFamily: 'var(--_typography---font--tiempos)' }}
+              title="Apply current privacy setting to all clusters"
+            >
+              Apply to All
+            </button>
+          </div>
+          <div className="flex items-center gap-4">
+            <Eye className="w-5 h-5" style={{ color: "hsl(var(--muted-foreground))" }} />
+            <input
+              type="range"
+              value={globalPrivacy}
+              onChange={(e) => setGlobalPrivacy(parseInt(e.target.value))}
+              min="0"
+              max="100"
+              step="25"
+              className="flex-1"
+            />
+            <EyeOff className="w-5 h-5" style={{ color: "hsl(var(--muted-foreground))" }} />
+            <span
+              className="ml-2 px-2 py-1 rounded text-sm border border-[rgba(20,20,19,0.1)]"
+              style={{ color: '#D97706', fontFamily: 'var(--_typography---font--tiempos)' }}
+            >
+              {getPrivacyLabel(globalPrivacy).label}
+            </span>
+          </div>
+        </div>
+
+        {/* Context-Aware Intelligence Panel */}
+        {contextAwareMode && (
+          <div className="mb-8">
+            <div className="rounded-2xl p-6 bg-card border border-[rgba(20,20,19,0.1)]">
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-3">
+                  <Brain className="w-6 h-6" style={{ color: '#D97706' }} />
+                  <div>
+                    <h3
+                      className="text-lg"
+                      style={{
+                        fontFamily: 'var(--_typography---font--styrene-a)',
+                        fontWeight: 500,
+                        letterSpacing: '-0.02em',
+                        color: "hsl(var(--foreground))"
+                      }}
+                    >
+                      Context Intelligence
+                    </h3>
+                    <p className="text-sm" style={{ fontFamily: 'var(--_typography---font--tiempos)', color: "hsl(var(--muted-foreground))" }}>
+                      Privacy auto-adjusting based on your current environment
+                    </p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setContextAwareMode(false)}
+                  className="px-3 py-1.5 rounded-lg border border-[rgba(20,20,19,0.1)]"
+                  style={{ fontFamily: 'var(--_typography---font--tiempos)', color: "hsl(var(--muted-foreground))" }}
+                >
+                  <Settings className="w-4 h-4 mr-2 inline" />
+                  Manual Mode
+                </button>
+              </div>
+
+              {/* Current Context Display */}
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
+                <div className="flex items-center gap-2 p-3 rounded-lg bg-[#F5F5F5]">
+                  <Clock className="w-4 h-4" style={{ color: '#D97706' }} />
+                  <div>
+                    <p className="text-xs" style={{ fontFamily: 'var(--_typography---font--tiempos)', color: "hsl(var(--muted-foreground))" }}>Time</p>
+                    <p className="text-sm capitalize" style={{ fontFamily: 'var(--_typography---font--tiempos)', color: "hsl(var(--foreground))", fontWeight: 500 }}>
+                      {currentContext.timeOfDay}
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2 p-3 rounded-lg bg-[#F5F5F5]">
+                  <MapPin className="w-4 h-4" style={{ color: '#D97706' }} />
+                  <div>
+                    <p className="text-xs" style={{ fontFamily: 'var(--_typography---font--tiempos)', color: "hsl(var(--muted-foreground))" }}>Location</p>
+                    <p className="text-sm capitalize" style={{ fontFamily: 'var(--_typography---font--tiempos)', color: "hsl(var(--foreground))", fontWeight: 500 }}>
+                      {currentContext.location}
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2 p-3 rounded-lg bg-[#F5F5F5]">
+                  <Wifi className="w-4 h-4" style={{ color: '#D97706' }} />
+                  <div>
+                    <p className="text-xs" style={{ fontFamily: 'var(--_typography---font--tiempos)', color: "hsl(var(--muted-foreground))" }}>Network</p>
+                    <p className="text-sm capitalize" style={{ fontFamily: 'var(--_typography---font--tiempos)', color: "hsl(var(--foreground))", fontWeight: 500 }}>
+                      {currentContext.networkType}
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2 p-3 rounded-lg bg-[#F5F5F5]">
+                  <Users className="w-4 h-4" style={{ color: '#D97706' }} />
+                  <div>
+                    <p className="text-xs" style={{ fontFamily: 'var(--_typography---font--tiempos)', color: "hsl(var(--muted-foreground))" }}>Context</p>
+                    <p className="text-sm capitalize" style={{ fontFamily: 'var(--_typography---font--tiempos)', color: "hsl(var(--foreground))", fontWeight: 500 }}>
+                      {currentContext.socialContext}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Privacy Recommendations */}
+              {privacyRecommendations.length > 0 && (
+                <div className="space-y-2">
+                  <h4
+                    className="text-sm mb-2"
+                    style={{
+                      fontFamily: 'var(--_typography---font--styrene-a)',
+                      fontWeight: 500,
+                      color: '#D97706'
+                    }}
+                  >
+                    Smart Recommendations
+                  </h4>
+                  {privacyRecommendations.slice(0, 2).map((rec, index) => (
+                    <div
+                      key={index}
+                      className="flex items-center justify-between p-3 rounded-lg bg-[#F5F5F5] border border-[rgba(20,20,19,0.1)]"
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="p-1.5 rounded" style={{ backgroundColor: 'rgba(217, 119, 6, 0.1)', color: '#D97706' }}>
+                          {rec.icon}
+                        </div>
+                        <div>
+                          <p className="text-sm" style={{ fontFamily: 'var(--_typography---font--tiempos)', color: "hsl(var(--foreground))", fontWeight: 500 }}>
+                            {rec.context}
+                          </p>
+                          <p className="text-xs" style={{ fontFamily: 'var(--_typography---font--tiempos)', color: "hsl(var(--muted-foreground))" }}>
+                            {rec.reason}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span
+                          className="text-xs px-2 py-1 rounded border border-[rgba(20,20,19,0.1)]"
+                          style={{ color: '#D97706', fontFamily: 'var(--_typography---font--tiempos)' }}
+                        >
+                          {getPrivacyLabel(rec.suggestedLevel).label}
+                        </span>
+                        <button
+                          onClick={() => {
+                            setGlobalPrivacy(rec.suggestedLevel);
+                            setTimeout(applyGlobalPrivacy, 100);
+                          }}
+                          className="text-xs h-7 px-2 rounded"
+                          style={{ fontFamily: 'var(--_typography---font--tiempos)', color: "hsl(var(--muted-foreground))" }}
+                        >
+                          Apply
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              <div className="flex items-center justify-between mt-4 pt-4 border-t border-[rgba(20,20,19,0.1)]">
+                <div className="text-xs" style={{ fontFamily: 'var(--_typography---font--tiempos)', color: "hsl(var(--muted-foreground))" }}>
+                  Last updated: {lastContextUpdate.toLocaleTimeString()}
+                </div>
+                <button
+                  onClick={applyContextualPrivacy}
+                  className="text-xs px-2 py-1 rounded"
+                  style={{ fontFamily: 'var(--_typography---font--tiempos)', color: "hsl(var(--muted-foreground))" }}
+                >
+                  <Zap className="w-3 h-3 mr-1 inline" />
+                  Refresh Context
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Manual Mode Button */}
+        {!contextAwareMode && (
+          <div className="mb-8">
+            <div className="rounded-2xl p-4 bg-card border border-[rgba(20,20,19,0.1)]">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <Settings className="w-5 h-5" style={{ color: "hsl(var(--muted-foreground))" }} />
+                  <div>
+                    <p className="text-sm" style={{ fontFamily: 'var(--_typography---font--tiempos)', color: "hsl(var(--foreground))", fontWeight: 500 }}>
+                      Manual Privacy Mode
+                    </p>
+                    <p className="text-xs" style={{ fontFamily: 'var(--_typography---font--tiempos)', color: "hsl(var(--muted-foreground))" }}>
+                      Context intelligence disabled
+                    </p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setContextAwareMode(true)}
+                  className="px-4 py-2 rounded-lg bg-[#D97706] text-white"
+                  style={{ fontFamily: 'var(--_typography---font--tiempos)' }}
+                >
+                  <Brain className="w-4 h-4 mr-2 inline" />
+                  Enable Smart Mode
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Audience Mode Selector */}
+        <div className="mb-8">
+          <div className="grid grid-cols-4 gap-2 rounded-2xl p-2 bg-[#F5F5F5]">
+            <button
+              onClick={() => setAudienceMode('intimate')}
+              className={`px-4 py-2 rounded-lg ${audienceMode === 'intimate' ? 'bg-[#D97706] text-white' : 'bg-transparent'}`}
+              style={{
+                fontFamily: 'var(--_typography---font--tiempos)',
+                color: audienceMode === 'intimate' ? 'white' : '#141413'
+              }}
+            >
+              <Heart className="w-4 h-4 mr-2 inline" />
+              Intimate
+            </button>
+            <button
+              onClick={() => setAudienceMode('friends')}
+              className={`px-4 py-2 rounded-lg ${audienceMode === 'friends' ? 'bg-[#D97706] text-white' : 'bg-transparent'}`}
+              style={{
+                fontFamily: 'var(--_typography---font--tiempos)',
+                color: audienceMode === 'friends' ? 'white' : '#141413'
+              }}
+            >
+              <Users className="w-4 h-4 mr-2 inline" />
+              Friends
+            </button>
+            <button
+              onClick={() => setAudienceMode('professional')}
+              className={`px-4 py-2 rounded-lg ${audienceMode === 'professional' ? 'bg-[#D97706] text-white' : 'bg-transparent'}`}
+              style={{
+                fontFamily: 'var(--_typography---font--tiempos)',
+                color: audienceMode === 'professional' ? 'white' : '#141413'
+              }}
+            >
+              <Briefcase className="w-4 h-4 mr-2 inline" />
+              Professional
+            </button>
+            <button
+              onClick={() => setAudienceMode('everyone')}
+              className={`px-4 py-2 rounded-lg ${audienceMode === 'everyone' ? 'bg-[#D97706] text-white' : 'bg-transparent'}`}
+              style={{
+                fontFamily: 'var(--_typography---font--tiempos)',
+                color: audienceMode === 'everyone' ? 'white' : '#141413'
+              }}
+            >
+              <Globe className="w-4 h-4 mr-2 inline" />
+              Everyone
+            </button>
+          </div>
+        </div>
+
+        {/* Real-time Data Stream Panel */}
+        {dataStream.length > 0 && (
+          <div className="mb-8">
+            <div className="rounded-2xl p-6 bg-card border border-[rgba(20,20,19,0.1)]">
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-3">
+                  <Zap className="w-6 h-6" style={{ color: '#D97706' }} />
+                  <div>
+                    <h3
+                      className="text-lg"
+                      style={{
+                        fontFamily: 'var(--_typography---font--styrene-a)',
+                        fontWeight: 500,
+                        letterSpacing: '-0.02em',
+                        color: "hsl(var(--foreground))"
+                      }}
+                    >
+                      Live Soul Signature Stream
+                    </h3>
+                    <p className="text-sm" style={{ fontFamily: 'var(--_typography---font--tiempos)', color: "hsl(var(--muted-foreground))" }}>
+                      Real-time personality insights flowing from connected platforms
+                    </p>
+                  </div>
+                </div>
+                <span
+                  className="px-2 py-1 rounded text-sm border border-[rgba(20,20,19,0.1)]"
+                  style={{ color: '#D97706', fontFamily: 'var(--_typography---font--tiempos)' }}
+                >
+                  {dataStream.length} insights
+                </span>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-3">
+                {dataStream.slice(-5).map((dataPoint, index) => (
+                  <div
+                    key={dataPoint.id}
+                    className="p-3 rounded-lg bg-[#F5F5F5] border border-[rgba(20,20,19,0.1)]"
+                  >
+                    <div className="flex items-center gap-2 mb-2">
+                      <div
+                        className="w-2 h-2 rounded-full"
+                        style={{ backgroundColor: connectionPulse[dataPoint.source] ? '#D97706' : '#6B7280' }}
+                      />
+                      <span className="text-xs capitalize" style={{ fontFamily: 'var(--_typography---font--tiempos)', color: "hsl(var(--foreground))", fontWeight: 500 }}>
+                        {dataPoint.source}
+                      </span>
+                    </div>
+                    <p className="text-xs mb-1" style={{ fontFamily: 'var(--_typography---font--tiempos)', color: "hsl(var(--muted-foreground))" }}>
+                      {new Date(dataPoint.timestamp).toLocaleTimeString()}
+                    </p>
+                    <div className="flex items-center gap-1">
+                      <Sparkles className="w-3 h-3" style={{ color: '#D97706' }} />
+                      <span className="text-xs" style={{ fontFamily: 'var(--_typography---font--tiempos)', color: '#D97706' }}>
+                        {dataPoint.value?.soulSignature?.authenticityScore || 'N/A'}% authentic
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {isExtractingData && (
+                <div className="mt-4 p-3 rounded-lg bg-[#F5F5F5] border border-[rgba(20,20,19,0.1)]">
+                  <div className="flex items-center gap-3">
+                    <div className="w-4 h-4 border-2 rounded-full" style={{ borderColor: '#D97706', borderTopColor: 'transparent' }} />
+                    <span className="text-sm" style={{ fontFamily: 'var(--_typography---font--tiempos)', color: '#D97706' }}>
+                      Extracting soul signature from connected platforms...
+                    </span>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Identity Clusters Grid */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {clusters.map((cluster) => (
+            <div
+              key={cluster.id}
+              onMouseEnter={() => setHoveredCluster(cluster.id)}
+              onMouseLeave={() => setHoveredCluster(null)}
+            >
+              <div
+                className="relative overflow-hidden rounded-2xl p-6 bg-card border"
+                style={{
+                  borderColor: hoveredCluster === cluster.id ? '#D97706' : 'rgba(20,20,19,0.1)',
+                  borderWidth: hoveredCluster === cluster.id ? '2px' : '1px'
+                }}
+              >
+                {/* Content */}
+                <div className="relative">
+                  {/* Header */}
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="flex items-center gap-3">
+                      <div className="p-2 rounded-lg" style={{ backgroundColor: 'rgba(217, 119, 6, 0.1)', color: '#D97706' }}>
+                        {cluster.icon}
+                      </div>
+                      <div>
+                        <h3
+                          style={{
+                            fontFamily: 'var(--_typography---font--styrene-a)',
+                            fontWeight: 500,
+                            color: "hsl(var(--foreground))"
+                          }}
+                        >
+                          {cluster.name}
+                        </h3>
+                        <p className="text-xs" style={{ fontFamily: 'var(--_typography---font--tiempos)', color: "hsl(var(--muted-foreground))" }}>
+                          {cluster.subclusters.length} subcategories
+                        </p>
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => setSelectedCluster(cluster.id === selectedCluster ? null : cluster.id)}
+                      title="View cluster details"
+                      style={{ background: 'none', border: 'none', cursor: 'pointer' }}
+                    >
+                      <ChevronRight
+                        className="w-4 h-4"
+                        style={{
+                          color: "hsl(var(--muted-foreground))",
+                          transform: selectedCluster === cluster.id ? 'rotate(90deg)' : 'rotate(0deg)',
+                          transition: 'transform 0.2s'
+                        }}
+                      />
+                    </button>
+                  </div>
+
+                  {/* Intensity Meter */}
+                  <div className="mb-4">
+                    <div className="flex justify-between text-xs mb-1" style={{ fontFamily: 'var(--_typography---font--tiempos)', color: "hsl(var(--muted-foreground))" }}>
+                      <span>Data Richness</span>
+                      <span>{cluster.intensity}%</span>
+                    </div>
+                    <div className="h-2 bg-[#F5F5F5] rounded-full overflow-hidden">
+                      <div
+                        className="h-full"
+                        style={{
+                          width: `${cluster.intensity}%`,
+                          backgroundColor: '#D97706'
+                        }}
+                      />
+                    </div>
+                  </div>
+
+                  {/* Privacy Control */}
+                  <div>
+                    <div className="flex justify-between text-xs mb-2">
+                      <span style={{ fontFamily: 'var(--_typography---font--tiempos)', color: "hsl(var(--muted-foreground))" }}>Privacy Level</span>
+                      <span
+                        className="px-2 py-1 rounded text-xs border border-[rgba(20,20,19,0.1)]"
+                        style={{ color: '#D97706', fontFamily: 'var(--_typography---font--tiempos)' }}
+                      >
+                        {getPrivacyLabel(cluster.privacyLevel).label}
+                      </span>
+                    </div>
+                    <input
+                      type="range"
+                      value={cluster.privacyLevel}
+                      onChange={(e) => handleClusterPrivacyChange(cluster.id, [parseInt(e.target.value)])}
+                      min="0"
+                      max="100"
+                      step="25"
+                      className="w-full mb-4"
+                    />
+                  </div>
+
+                  {/* Subclusters */}
+                  <div className="space-y-2 mt-4 pt-4 border-t border-[rgba(20,20,19,0.1)]">
+                    {cluster.subclusters.map((subcluster) => (
+                      <div key={subcluster.id} className="space-y-2">
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm" style={{ fontFamily: 'var(--_typography---font--tiempos)', color: "hsl(var(--foreground))" }}>
+                            {subcluster.name}
+                          </span>
+                          <div className="flex items-center gap-2">
+                            <span
+                              className="px-2 py-1 rounded text-xs border border-[rgba(20,20,19,0.1)]"
+                              style={{ color: '#D97706', fontFamily: 'var(--_typography---font--tiempos)' }}
+                            >
+                              {getPrivacyLabel(subcluster.privacyLevel).icon}
+                            </span>
+                          </div>
+                        </div>
+                        <input
+                          type="range"
+                          value={subcluster.privacyLevel}
+                          onChange={(e) => handleSubclusterPrivacyChange(cluster.id, subcluster.id, [parseInt(e.target.value)])}
+                          min="0"
+                          max="100"
+                          step="25"
+                          className="w-full h-1"
+                        />
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Expanded Details */}
+                  {selectedCluster === cluster.id && (
+                    <div className="mt-4 p-4 rounded-lg bg-[#F5F5F5] border border-[rgba(20,20,19,0.1)]">
+                      <h4
+                        className="text-sm mb-3"
+                        style={{
+                          fontFamily: 'var(--_typography---font--styrene-a)',
+                          fontWeight: 500,
+                          color: "hsl(var(--foreground))"
+                        }}
+                      >
+                        Cluster Details
+                      </h4>
+                      <div className="space-y-2 text-xs" style={{ fontFamily: 'var(--_typography---font--tiempos)', color: "hsl(var(--muted-foreground))" }}>
+                        <div className="flex justify-between">
+                          <span>Data Points Collected:</span>
+                          <span style={{ color: '#D97706' }}>{Math.floor(cluster.intensity * 1.2)} items</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span>Authenticity Score:</span>
+                          <span style={{ color: '#D97706' }}>{Math.floor(cluster.intensity * 0.9)}%</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span>Last Updated:</span>
+                          <span style={{ color: '#D97706' }}>2 hours ago</span>
+                        </div>
+                      </div>
+                      <div className="mt-3 pt-3 border-t border-[rgba(20,20,19,0.1)]">
+                        <p className="text-xs" style={{ fontFamily: 'var(--_typography---font--tiempos)', color: "hsl(var(--muted-foreground))" }}>
+                          This cluster contains insights from your {cluster.subclusters.length} subcategories
+                          and helps create your authentic digital twin personality.
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* Soul Signature Fingerprint */}
+        <div className="mt-8">
+          <div className="rounded-2xl p-8 bg-card border border-[rgba(20,20,19,0.1)]">
+            <div className="text-center">
+              <Fingerprint className="w-16 h-16 mx-auto mb-4" style={{ color: '#D97706' }} />
+              <h3
+                className="text-2xl mb-2"
+                style={{
+                  fontFamily: 'var(--_typography---font--styrene-a)',
+                  fontWeight: 500,
+                  letterSpacing: '-0.02em',
+                  color: "hsl(var(--foreground))"
+                }}
+              >
+                Your Unique Soul Signature
+              </h3>
+              <p className="mb-6" style={{ fontFamily: 'var(--_typography---font--tiempos)', color: "hsl(var(--muted-foreground))" }}>
+                A combination of {clusters.reduce((acc, c) => acc + c.subclusters.length, 0)} unique data dimensions
+                creating your authentic digital identity
+              </p>
+              <div className="flex justify-center gap-4">
+                <button
+                  className="px-4 py-2 rounded-lg bg-[#D97706] text-white"
+                  style={{ fontFamily: 'var(--_typography---font--tiempos)' }}
+                  disabled={isExtractingData}
+                >
+                  <Sparkles className="w-4 h-4 mr-2 inline" />
+                  Preview My Twin
+                </button>
+                <button
+                  onClick={extractSoulSignatureData}
+                  disabled={isExtractingData}
+                  className="px-4 py-2 rounded-lg bg-[#D97706] text-white"
+                  style={{ fontFamily: 'var(--_typography---font--tiempos)' }}
+                >
+                  {isExtractingData ? (
+                    <>
+                      <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full mr-2 inline-block" />
+                      Extracting...
+                    </>
+                  ) : (
+                    <>
+                      <Zap className="w-4 h-4 mr-2 inline" />
+                      Start Real-time Extraction
+                    </>
+                  )}
+                </button>
+                <button
+                  className="px-4 py-2 rounded-lg border border-[rgba(20,20,19,0.1)]"
+                  style={{ fontFamily: 'var(--_typography---font--tiempos)', color: '#D97706' }}
+                >
+                  <Shield className="w-4 h-4 mr-2 inline" />
+                  Export Privacy Settings
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default PrivacySpectrumDashboard;

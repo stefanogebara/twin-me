@@ -23,20 +23,25 @@ interface ThemeProviderProps {
 
 export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
   const [theme, setTheme] = useState<Theme>(() => {
-    // Check localStorage first, then system preference
+    // Check localStorage first
     const stored = localStorage.getItem('theme') as Theme;
     if (stored) return stored;
 
-    // Check system preference
-    if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
-      return 'dark';
-    }
-    return 'light';
+    // Default to dark mode (user requested black UI by default)
+    return 'dark';
   });
 
   useEffect(() => {
-    // Apply theme to document
+    // Apply theme to document using both data-theme attribute and class
     document.documentElement.setAttribute('data-theme', theme);
+
+    // Add/remove dark class for Tailwind
+    if (theme === 'dark') {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+
     localStorage.setItem('theme', theme);
   }, [theme]);
 

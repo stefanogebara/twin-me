@@ -119,9 +119,9 @@ export const LoadingOverlay: React.FC<LoadingOverlayProps> = ({
 
   return (
     <div className={`fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 ${className}`}>
-      <div className="bg-white rounded-lg p-6 flex flex-col items-center gap-4 max-w-sm mx-4">
+      <div className="bg-card rounded-lg p-6 flex flex-col items-center gap-4 max-w-sm mx-4">
         <LoadingSpinner size="lg" />
-        <p className="text-gray-700 text-center">{message}</p>
+        <p className="text-muted-foreground text-center">{message}</p>
       </div>
     </div>
   );

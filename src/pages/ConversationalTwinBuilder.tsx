@@ -485,7 +485,7 @@ const ConversationalTwinBuilder = () => {
     <div className="min-h-screen bg-[#FAF9F5] relative overflow-hidden">
       {/* Progress Indicator */}
       <div className="fixed top-8 left-8 z-10 flex items-center gap-3">
-        <div className="flex items-center gap-2 px-4 py-2 bg-white rounded-full border border-[rgba(20,20,19,0.1)]">
+        <div className="flex items-center gap-2 px-4 py-2 bg-card rounded-full border border-[rgba(20,20,19,0.1)]">
           {isPersonalityPhase ? <User className="w-4 h-4 text-[#D97706]" /> : <BookOpen className="w-4 h-4 text-[#D97706]" />}
           <span className="text-sm text-[#141413]" style={{ fontFamily: 'var(--_typography---font--tiempos)' }}>
             {isPersonalityPhase ? 'Building Your Soul Signature' : 'Connecting Your Platforms'}
@@ -508,7 +508,7 @@ const ConversationalTwinBuilder = () => {
                 )}
               </div>
               <div className="flex-1">
-                <div className="bg-white rounded-3xl px-6 py-5 border border-[rgba(20,20,19,0.1)] relative">
+                <div className="bg-card rounded-3xl px-6 py-5 border border-[rgba(20,20,19,0.1)] relative">
                   {isPersonalityComplete && currentStep === personalityQuestions.length + 1 ? (
                     <div>
                       <p className="text-[#141413] mb-3" style={{ fontFamily: 'var(--_typography---font--styrene-a)', fontWeight: 500, letterSpacing: '-0.02em' }}>
@@ -576,8 +576,8 @@ const ConversationalTwinBuilder = () => {
           {/* Response Area */}
           {currentStep <= personalityQuestions.length + platformQuestions.length && (
             <div
-              className={`bg-white rounded-3xl p-6 border-2 mb-6 ${
-                isDragOver ? 'border-[#D97706] bg-[#FEF3E2]' : 'border-[rgba(20,20,19,0.1)]'
+              className={`bg-card rounded-3xl p-6 border-2 mb-6 ${
+                isDragOver ? 'border-[#D97706] bg-[#FEF3E2]' : 'border-border'
               }`}
               onDragOver={handleDragOver}
               onDragLeave={handleDragLeave}
@@ -592,7 +592,7 @@ const ConversationalTwinBuilder = () => {
                       isRecording
                         ? 'bg-red-500 text-white'
                         : isProcessingRecording
-                        ? 'bg-gray-500 text-white cursor-not-allowed'
+                        ? 'bg-muted text-foreground cursor-not-allowed'
                         : 'bg-[#D97706] text-white'
                     }`}
                   >
@@ -705,7 +705,7 @@ const ConversationalTwinBuilder = () => {
 
           {/* Completion Actions */}
           {currentStep > personalityQuestions.length + platformQuestions.length && (
-            <div className="bg-white rounded-3xl p-6 border border-[rgba(20,20,19,0.1)]">
+            <div className="bg-card rounded-3xl p-6 border border-[rgba(20,20,19,0.1)]">
               <div className="flex gap-4 justify-center">
                 <button
                   onClick={addMorePlatforms}

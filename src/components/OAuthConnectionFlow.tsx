@@ -218,7 +218,7 @@ export const OAuthConnectionFlow: React.FC<OAuthConnectionProps> = ({
         {/* Progress Bar for OAuth Flow */}
         {isInProgress && (
           <div className="mb-4">
-            <div className="h-1 bg-gray-200 rounded-full overflow-hidden">
+            <div className="h-1 bg-muted rounded-full overflow-hidden">
               <div
                 className="h-full bg-[hsl(var(--claude-accent))] transition-all duration-500"
                 style={{ width: `${progress}%` }}

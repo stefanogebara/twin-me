@@ -225,7 +225,7 @@ const PlatformHub: React.FC = () => {
 
         {/* Stats Bar */}
         <div className="grid grid-cols-4 gap-4 mb-8">
-          <Card className="p-6 bg-white border-[hsl(var(--claude-border))]">
+          <Card className="p-6 bg-card border-[hsl(var(--claude-border))]">
             <div className="flex items-center justify-between">
               <div>
                 <div className="text-3xl font-bold text-green-500">{stats.connected}</div>
@@ -237,7 +237,7 @@ const PlatformHub: React.FC = () => {
             </div>
           </Card>
 
-          <Card className="p-6 bg-white border-[hsl(var(--claude-border))]">
+          <Card className="p-6 bg-card border-[hsl(var(--claude-border))]">
             <div className="flex items-center justify-between">
               <div>
                 <div className="text-3xl font-bold text-[hsl(var(--claude-accent))]">
@@ -251,7 +251,7 @@ const PlatformHub: React.FC = () => {
             </div>
           </Card>
 
-          <Card className="p-6 bg-white border-[hsl(var(--claude-border))]">
+          <Card className="p-6 bg-card border-[hsl(var(--claude-border))]">
             <div className="flex items-center justify-between">
               <div>
                 <div className="text-3xl font-bold text-blue-500">
@@ -265,7 +265,7 @@ const PlatformHub: React.FC = () => {
             </div>
           </Card>
 
-          <Card className="p-6 bg-white border-[hsl(var(--claude-border))]">
+          <Card className="p-6 bg-card border-[hsl(var(--claude-border))]">
             <div className="flex items-center justify-between">
               <div>
                 <div className="text-3xl font-bold text-purple-500">
@@ -283,7 +283,7 @@ const PlatformHub: React.FC = () => {
         {/* Search and Filter */}
         <div className="flex gap-4 mb-6">
           <div className="flex-1 relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
             <input
               type="text"
               placeholder="Search platforms..."
@@ -365,12 +365,12 @@ const PlatformHub: React.FC = () => {
                 Instagram, and more platforms without public APIs.
               </p>
               <div className="flex gap-2">
-                <Badge className="bg-white/20 text-white">Chrome</Badge>
-                <Badge className="bg-white/20 text-white">Firefox</Badge>
-                <Badge className="bg-white/20 text-white">Safari</Badge>
+                <Badge className="bg-card/20 text-white">Chrome</Badge>
+                <Badge className="bg-card/20 text-white">Firefox</Badge>
+                <Badge className="bg-card/20 text-white">Safari</Badge>
               </div>
             </div>
-            <Button className="bg-white text-[hsl(var(--claude-accent))] hover:bg-gray-100">
+            <Button className="bg-card text-[hsl(var(--claude-accent))] hover:bg-muted">
               <Download className="w-5 h-5 mr-2" />
               Install Now
             </Button>
@@ -449,7 +449,7 @@ const PlatformCard: React.FC<PlatformCardProps> = ({ platform, onConnect, delay 
             </div>
             <div className="flex flex-wrap gap-1">
               {platform.soulInsights.slice(0, 2).map(insight => (
-                <span key={insight} className="text-xs text-gray-600 bg-purple-50 px-2 py-1 rounded">
+                <span key={insight} className="text-xs text-muted-foreground bg-purple-50 px-2 py-1 rounded">
                   {insight.replace('_', ' ')}
                 </span>
               ))}

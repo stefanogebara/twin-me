@@ -43,8 +43,8 @@ const TwinBuilder = () => {
     <div className="bg-[#FAF9F5] text-[#141413] h-screen overflow-hidden">
       <div className="flex h-screen">
         {/* Configuration Panel */}
-        <div className="w-[500px] bg-white border-r overflow-y-auto p-8" style={{ borderColor: 'rgba(20,20,19,0.1)' }}>
-          <h2 className="mb-6 text-[32px] font-medium" style={{ fontFamily: 'var(--_typography---font--styrene-a)', fontWeight: 500, letterSpacing: '-0.02em', color: '#141413' }}>Configure Your Twin</h2>
+        <div className="w-[500px] bg-card border-r overflow-y-auto p-8" style={{ borderColor: "hsl(var(--border))" }}>
+          <h2 className="mb-6 text-[32px] font-medium" style={{ fontFamily: 'var(--_typography---font--styrene-a)', fontWeight: 500, letterSpacing: '-0.02em', color: "hsl(var(--foreground))" }}>Configure Your Twin</h2>
           
           {/* Tabs */}
           <div className="flex gap-2 mb-8 pb-4" style={{ borderBottom: '2px solid rgba(20,20,19,0.1)' }}>
@@ -74,7 +74,7 @@ const TwinBuilder = () => {
           {activeTab === 'identity' && (
             <div>
               <div className="mb-10">
-                <h3 className="text-[24px] mb-5 font-medium" style={{ fontFamily: 'var(--_typography---font--styrene-a)', fontWeight: 500, letterSpacing: '-0.02em', color: '#141413' }}>Basic Information</h3>
+                <h3 className="text-[24px] mb-5 font-medium" style={{ fontFamily: 'var(--_typography---font--styrene-a)', fontWeight: 500, letterSpacing: '-0.02em', color: "hsl(var(--foreground))" }}>Basic Information</h3>
                 <div className="mb-5">
                   <label className="block mb-2 text-sm font-medium text-[#141413]" style={{ fontFamily: 'var(--_typography---font--tiempos)' }}>Twin Name</label>
                   <input
@@ -103,9 +103,9 @@ const TwinBuilder = () => {
               </div>
               
               <div className="mb-10">
-                <h3 className="text-[24px] mb-5 font-medium" style={{ fontFamily: 'var(--_typography---font--styrene-a)', fontWeight: 500, letterSpacing: '-0.02em', color: '#141413' }}>Voice Profile</h3>
+                <h3 className="text-[24px] mb-5 font-medium" style={{ fontFamily: 'var(--_typography---font--styrene-a)', fontWeight: 500, letterSpacing: '-0.02em', color: "hsl(var(--foreground))" }}>Voice Profile</h3>
                 <div className="bg-[#FAF9F5] rounded-2xl p-6 text-center mb-5">
-                  <p className="mb-4" style={{ fontFamily: 'var(--_typography---font--tiempos)', color: '#141413' }}>Record a sample to clone your voice</p>
+                  <p className="mb-4" style={{ fontFamily: 'var(--_typography---font--tiempos)', color: "hsl(var(--foreground))" }}>Record a sample to clone your voice</p>
                   <button
                     className={`w-20 h-20 rounded-full border-none text-white text-[32px] cursor-pointer my-5 mx-auto flex items-center justify-center ${
                       isRecording
@@ -126,7 +126,7 @@ const TwinBuilder = () => {
           {activeTab === 'teaching' && (
             <div>
               <div className="mb-10">
-                <h3 className="text-[24px] mb-5 font-medium" style={{ fontFamily: 'var(--_typography---font--styrene-a)', fontWeight: 500, letterSpacing: '-0.02em', color: '#141413' }}>Teaching Approach</h3>
+                <h3 className="text-[24px] mb-5 font-medium" style={{ fontFamily: 'var(--_typography---font--styrene-a)', fontWeight: 500, letterSpacing: '-0.02em', color: "hsl(var(--foreground))" }}>Teaching Approach</h3>
                 <div className="mb-5">
                   <label className="block mb-2 text-sm font-medium text-[#141413]" style={{ fontFamily: 'var(--_typography---font--tiempos)' }}>Primary Method</label>
                   <select className="w-full py-3 px-4 rounded-xl text-sm focus:outline-none bg-[#F5F5F5]" style={{ border: '1px solid rgba(20,20,19,0.1)', fontFamily: 'var(--_typography---font--tiempos)' }}>
@@ -157,7 +157,7 @@ const TwinBuilder = () => {
               </div>
               
               <div className="mb-10">
-                <h3 className="text-[24px] mb-5 font-medium" style={{ fontFamily: 'var(--_typography---font--styrene-a)', fontWeight: 500, letterSpacing: '-0.02em', color: '#141413' }}>Interaction Preferences</h3>
+                <h3 className="text-[24px] mb-5 font-medium" style={{ fontFamily: 'var(--_typography---font--styrene-a)', fontWeight: 500, letterSpacing: '-0.02em', color: "hsl(var(--foreground))" }}>Interaction Preferences</h3>
                 {[
                   { key: 'questions', label: 'Encourage questions' },
                   { key: 'humor', label: 'Use humor' },
@@ -189,7 +189,7 @@ const TwinBuilder = () => {
           {activeTab === 'content' && (
             <div>
               <div className="mb-10">
-                <h3 className="text-[24px] mb-5 font-medium" style={{ fontFamily: 'var(--_typography---font--styrene-a)', fontWeight: 500, letterSpacing: '-0.02em', color: '#141413' }}>Upload Training Materials</h3>
+                <h3 className="text-[24px] mb-5 font-medium" style={{ fontFamily: 'var(--_typography---font--styrene-a)', fontWeight: 500, letterSpacing: '-0.02em', color: "hsl(var(--foreground))" }}>Upload Training Materials</h3>
                 <EnhancedFileUpload
                   twinId={currentTwinId}
                   onUploadComplete={handleFileUploadComplete}
@@ -201,7 +201,7 @@ const TwinBuilder = () => {
               </div>
 
               <div className="mb-10">
-                <h3 className="text-[24px] mb-5 font-medium" style={{ fontFamily: 'var(--_typography---font--styrene-a)', fontWeight: 500, letterSpacing: '-0.02em', color: '#141413' }}>Uploaded Files</h3>
+                <h3 className="text-[24px] mb-5 font-medium" style={{ fontFamily: 'var(--_typography---font--styrene-a)', fontWeight: 500, letterSpacing: '-0.02em', color: "hsl(var(--foreground))" }}>Uploaded Files</h3>
                 {uploadedFiles.length === 0 ? (
                   <div className="text-center py-8 text-[#6B7280]" style={{ fontFamily: 'var(--_typography---font--tiempos)' }}>
                     <p>No files uploaded yet</p>
@@ -210,7 +210,7 @@ const TwinBuilder = () => {
                 ) : (
                   <div className="space-y-3">
                     {uploadedFiles.map((file, index) => (
-                      <div key={index} className="bg-white rounded-lg p-4" style={{ border: '1px solid rgba(20,20,19,0.1)' }}>
+                      <div key={index} className="bg-card rounded-lg p-4" style={{ border: '1px solid rgba(20,20,19,0.1)' }}>
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-3">
                             <span className="text-2xl">📄</span>
@@ -232,7 +232,7 @@ const TwinBuilder = () => {
               </div>
 
               <div className="mb-10">
-                <h3 className="text-[24px] mb-5 font-medium" style={{ fontFamily: 'var(--_typography---font--styrene-a)', fontWeight: 500, letterSpacing: '-0.02em', color: '#141413' }}>Knowledge Base Progress</h3>
+                <h3 className="text-[24px] mb-5 font-medium" style={{ fontFamily: 'var(--_typography---font--styrene-a)', fontWeight: 500, letterSpacing: '-0.02em', color: "hsl(var(--foreground))" }}>Knowledge Base Progress</h3>
                 <div className="bg-[#F5F5F5] h-[6px] rounded-[3px] overflow-hidden mb-5">
                   <div
                     className="h-full bg-[#D97706] rounded-[3px]"
@@ -251,7 +251,7 @@ const TwinBuilder = () => {
           {activeTab === 'training' && (
             <div>
               <div className="mb-10">
-                <h3 className="text-[24px] mb-5 font-medium" style={{ fontFamily: 'var(--_typography---font--styrene-a)', fontWeight: 500, letterSpacing: '-0.02em', color: '#141413' }}>Live Training Session</h3>
+                <h3 className="text-[24px] mb-5 font-medium" style={{ fontFamily: 'var(--_typography---font--styrene-a)', fontWeight: 500, letterSpacing: '-0.02em', color: "hsl(var(--foreground))" }}>Live Training Session</h3>
                 <p className="text-[#6B7280] mb-5" style={{ fontFamily: 'var(--_typography---font--tiempos)' }}>
                   Have a conversation with your twin to refine its responses
                 </p>
@@ -263,14 +263,14 @@ const TwinBuilder = () => {
                     'How do you handle student confusion?'
                   ].map((question, index) => (
                     <div key={index} className="bg-[#FAF9F5] rounded-xl p-4 mb-3">
-                      <p className="text-sm" style={{ fontFamily: 'var(--_typography---font--tiempos)', color: '#141413' }}>{question}</p>
+                      <p className="text-sm" style={{ fontFamily: 'var(--_typography---font--tiempos)', color: "hsl(var(--foreground))" }}>{question}</p>
                     </div>
                   ))}
                 </div>
               </div>
 
               <div className="mb-10">
-                <h3 className="text-[24px] mb-5 font-medium" style={{ fontFamily: 'var(--_typography---font--styrene-a)', fontWeight: 500, letterSpacing: '-0.02em', color: '#141413' }}>Fine-tuning Options</h3>
+                <h3 className="text-[24px] mb-5 font-medium" style={{ fontFamily: 'var(--_typography---font--styrene-a)', fontWeight: 500, letterSpacing: '-0.02em', color: "hsl(var(--foreground))" }}>Fine-tuning Options</h3>
                 {[
                   { key: 'autoLearn', label: 'Auto-learn from conversations' },
                   { key: 'approval', label: 'Require approval for updates' }
@@ -298,7 +298,7 @@ const TwinBuilder = () => {
           
           {/* Action Buttons */}
           <div className="flex gap-4 mt-8">
-            <button className="py-[14px] px-8 rounded-full font-medium text-sm cursor-pointer bg-white text-[#141413]" style={{ border: '1px solid rgba(20,20,19,0.1)', fontFamily: 'var(--_typography---font--tiempos)' }}>
+            <button className="py-[14px] px-8 rounded-full font-medium text-sm cursor-pointer bg-card text-[#141413]" style={{ border: '1px solid rgba(20,20,19,0.1)', fontFamily: 'var(--_typography---font--tiempos)' }}>
               Save Draft
             </button>
             <button
@@ -313,8 +313,8 @@ const TwinBuilder = () => {
         
         {/* Preview Panel */}
         <div className="flex-1 bg-[#FAF9F5] flex flex-col">
-          <div className="p-8 bg-white" style={{ borderBottom: '1px solid rgba(20,20,19,0.1)' }}>
-            <h2 className="text-[32px] mb-2 font-medium" style={{ fontFamily: 'var(--_typography---font--styrene-a)', fontWeight: 500, letterSpacing: '-0.02em', color: '#141413' }}>Live Preview</h2>
+          <div className="p-8 bg-card" style={{ borderBottom: '1px solid rgba(20,20,19,0.1)' }}>
+            <h2 className="text-[32px] mb-2 font-medium" style={{ fontFamily: 'var(--_typography---font--styrene-a)', fontWeight: 500, letterSpacing: '-0.02em', color: "hsl(var(--foreground))" }}>Live Preview</h2>
             <div className="flex items-center gap-2 text-sm text-[#6B7280]" style={{ fontFamily: 'var(--_typography---font--tiempos)' }}>
               <div className="w-2 h-2 rounded-full bg-[#4CAF50]"></div>
               <span>Twin is learning...</span>
@@ -323,7 +323,7 @@ const TwinBuilder = () => {
 
           <div className="flex-1 p-8 overflow-y-auto">
             <div className="mb-6 text-right">
-              <div className="inline-block max-w-[70%] py-4 px-5 rounded-[20px] text-sm leading-[1.5] bg-white text-[#141413]" style={{ border: '1px solid rgba(20,20,19,0.1)', fontFamily: 'var(--_typography---font--tiempos)' }}>
+              <div className="inline-block max-w-[70%] py-4 px-5 rounded-[20px] text-sm leading-[1.5] bg-card text-[#141413]" style={{ border: '1px solid rgba(20,20,19,0.1)', fontFamily: 'var(--_typography---font--tiempos)' }}>
                 Can you explain quantum entanglement?
               </div>
             </div>
@@ -335,7 +335,7 @@ const TwinBuilder = () => {
             </div>
 
             <div className="mb-6 text-right">
-              <div className="inline-block max-w-[70%] py-4 px-5 rounded-[20px] text-sm leading-[1.5] bg-white text-[#141413]" style={{ border: '1px solid rgba(20,20,19,0.1)', fontFamily: 'var(--_typography---font--tiempos)' }}>
+              <div className="inline-block max-w-[70%] py-4 px-5 rounded-[20px] text-sm leading-[1.5] bg-card text-[#141413]" style={{ border: '1px solid rgba(20,20,19,0.1)', fontFamily: 'var(--_typography---font--tiempos)' }}>
                 That's interesting! But how does it actually work?
               </div>
             </div>

@@ -51,7 +51,7 @@ export const ArchitectureSection = () => {
               />
               {/* Play button overlay */}
               <div className="absolute inset-0 bg-black/20 flex items-center justify-center">
-                <div className="w-20 h-20 bg-white/90 rounded-full flex items-center justify-center shadow-lg cursor-pointer hover:bg-white transition-colors">
+                <div className="w-20 h-20 bg-card/90 rounded-full flex items-center justify-center shadow-lg cursor-pointer hover:bg-white transition-colors">
                   <div className="w-0 h-0 border-l-[16px] border-l-foreground border-y-[12px] border-y-transparent ml-1" />
                 </div>
               </div>

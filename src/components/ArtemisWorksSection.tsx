@@ -29,8 +29,8 @@ export const ArtemisWorksSection = () => {
           <div className="md:col-span-4 aspect-[3/4] bg-card rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-[1.02] hover:-rotate-2 relative overflow-hidden">
             <div className="absolute inset-0 bg-gradient-to-br from-orange-400 to-pink-500"></div>
             <div className="relative z-10 p-6 h-full flex flex-col justify-center items-center text-center text-white">
-              <div className="w-12 h-12 bg-white/20 rounded-full mx-auto mb-4 flex items-center justify-center">
-                <div className="w-6 h-6 bg-white rounded-full"></div>
+              <div className="w-12 h-12 bg-card/20 rounded-full mx-auto mb-4 flex items-center justify-center">
+                <div className="w-6 h-6 bg-card rounded-full"></div>
               </div>
               <h3 className="text-lg font-serif mb-2">Neural Learning</h3>
               <p className="text-sm text-white/90">Adaptive AI responses</p>

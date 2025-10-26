@@ -49,14 +49,14 @@ const CustomAuth = () => {
   };
 
   return (
-    <div className="min-h-screen bg-[#FAF9F5]" style={{ fontFamily: 'var(--_typography---font--tiempos)' }}>
+    <div className="min-h-screen bg-background" style={{ fontFamily: 'var(--_typography---font--tiempos)' }}>
       {/* Header */}
-      <div className="sticky top-0 z-50 border-b bg-[#FAF9F5] border-[rgba(20,20,19,0.1)]">
+      <div className="sticky top-0 z-50 border-b bg-background border-border">
         <div className="max-w-7xl mx-auto px-6 py-4">
           <div className="flex items-center justify-between">
             <button
               onClick={() => navigate('/')}
-              className="flex items-center gap-2 text-sm px-3 py-2 rounded-lg bg-white border border-[rgba(20,20,19,0.1)] text-[#141413]"
+              className="flex items-center gap-2 text-sm px-3 py-2 rounded-lg bg-card border border-border text-foreground"
               style={{ fontFamily: 'var(--_typography---font--tiempos)' }}
             >
               <ArrowLeft className="w-4 h-4" />
@@ -79,17 +79,17 @@ const CustomAuth = () => {
       <div className="flex items-center justify-center min-h-[calc(100vh-80px)] px-6 py-12">
         <div className="w-full max-w-md">
           {/* Card */}
-          <div className="rounded-2xl p-8 border bg-white border-[rgba(20,20,19,0.1)]">
+          <div className="rounded-2xl p-8 border bg-card border-border">
             {/* Header */}
             <div className="text-center mb-8">
               <img src="/twin-me-logo.svg" alt="Twin Me" className="w-16 h-16 mx-auto mb-4" />
               <h1
-                className="text-2xl mb-2 text-[#141413]"
+                className="text-2xl mb-2 text-foreground"
                 style={{ fontFamily: 'var(--_typography---font--styrene-a)', fontWeight: 500 }}
               >
                 {mode === 'signin' ? 'Welcome Back' : 'Create Account'}
               </h1>
-              <p className="text-[#141413]" style={{ fontFamily: 'var(--_typography---font--tiempos)' }}>
+              <p className="text-muted-foreground" style={{ fontFamily: 'var(--_typography---font--tiempos)' }}>
                 {mode === 'signin'
                   ? 'Sign in to discover your soul signature'
                   : 'Join thousands discovering their authentic selves'
@@ -101,7 +101,7 @@ const CustomAuth = () => {
             <div className="space-y-3 mb-6">
               <button
                 onClick={() => handleOAuthSignIn('google')}
-                className="w-full flex items-center justify-center gap-3 py-3 px-4 rounded-xl border bg-white border-[rgba(20,20,19,0.1)] text-[#141413]"
+                className="w-full flex items-center justify-center gap-3 py-3 px-4 rounded-xl border bg-card border-border text-foreground"
                 style={{ fontFamily: 'var(--_typography---font--tiempos)' }}
               >
                 <svg className="w-5 h-5" viewBox="0 0 24 24">
@@ -117,10 +117,10 @@ const CustomAuth = () => {
             {/* Divider */}
             <div className="relative mb-6">
               <div className="absolute inset-0 flex items-center">
-                <div className="w-full border-t border-[rgba(20,20,19,0.1)]"></div>
+                <div className="w-full border-t border-border"></div>
               </div>
               <div className="relative flex justify-center text-sm">
-                <span className="px-2 bg-white text-[#141413]" style={{ fontFamily: 'var(--_typography---font--tiempos)' }}>
+                <span className="px-2 bg-card text-foreground" style={{ fontFamily: 'var(--_typography---font--tiempos)' }}>
                   Or continue with email
                 </span>
               </div>
@@ -138,16 +138,16 @@ const CustomAuth = () => {
               {mode === 'signup' && (
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-sm mb-1 text-[#141413]" style={{ fontFamily: 'var(--_typography---font--tiempos)', fontWeight: 500 }}>
+                    <label className="block text-sm mb-1 text-foreground" style={{ fontFamily: 'var(--_typography---font--tiempos)', fontWeight: 500 }}>
                       First Name
                     </label>
                     <div className="relative">
-                      <User className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-[#141413] opacity-50" />
+                      <User className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                       <input
                         type="text"
                         value={firstName}
                         onChange={(e) => setFirstName(e.target.value)}
-                        className="w-full pl-10 pr-4 py-3 rounded-xl border focus:outline-none bg-[#F5F5F5] border-[rgba(20,20,19,0.1)] text-[#141413]"
+                        className="w-full pl-10 pr-4 py-3 rounded-xl border focus:outline-none bg-input border-border text-foreground"
                         style={{ fontFamily: 'var(--_typography---font--tiempos)' }}
                         placeholder="John"
                         autoComplete="given-name"
@@ -156,14 +156,14 @@ const CustomAuth = () => {
                     </div>
                   </div>
                   <div>
-                    <label className="block text-sm mb-1 text-[#141413]" style={{ fontFamily: 'var(--_typography---font--tiempos)', fontWeight: 500 }}>
+                    <label className="block text-sm mb-1 text-foreground" style={{ fontFamily: 'var(--_typography---font--tiempos)', fontWeight: 500 }}>
                       Last Name
                     </label>
                     <input
                       type="text"
                       value={lastName}
                       onChange={(e) => setLastName(e.target.value)}
-                      className="w-full px-4 py-3 rounded-xl border focus:outline-none bg-[#F5F5F5] border-[rgba(20,20,19,0.1)] text-[#141413]"
+                      className="w-full px-4 py-3 rounded-xl border focus:outline-none bg-input border-border text-foreground"
                       style={{ fontFamily: 'var(--_typography---font--tiempos)' }}
                       placeholder="Doe"
                       autoComplete="family-name"
@@ -174,16 +174,16 @@ const CustomAuth = () => {
               )}
 
               <div>
-                <label className="block text-sm mb-1 text-[#141413]" style={{ fontFamily: 'var(--_typography---font--tiempos)', fontWeight: 500 }}>
+                <label className="block text-sm mb-1 text-foreground" style={{ fontFamily: 'var(--_typography---font--tiempos)', fontWeight: 500 }}>
                   Email
                 </label>
                 <div className="relative">
-                  <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-[#141413] opacity-50" />
+                  <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                   <input
                     type="email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    className="w-full pl-10 pr-4 py-3 rounded-xl border focus:outline-none bg-[#F5F5F5] border-[rgba(20,20,19,0.1)] text-[#141413]"
+                    className="w-full pl-10 pr-4 py-3 rounded-xl border focus:outline-none bg-input border-border text-foreground"
                     style={{ fontFamily: 'var(--_typography---font--tiempos)' }}
                     placeholder="john@example.com"
                     autoComplete="email"
@@ -193,16 +193,16 @@ const CustomAuth = () => {
               </div>
 
               <div>
-                <label className="block text-sm mb-1 text-[#141413]" style={{ fontFamily: 'var(--_typography---font--tiempos)', fontWeight: 500 }}>
+                <label className="block text-sm mb-1 text-foreground" style={{ fontFamily: 'var(--_typography---font--tiempos)', fontWeight: 500 }}>
                   Password
                 </label>
                 <div className="relative">
-                  <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-[#141413] opacity-50" />
+                  <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                   <input
                     type={showPassword ? 'text' : 'password'}
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    className="w-full pl-10 pr-12 py-3 rounded-xl border focus:outline-none bg-[#F5F5F5] border-[rgba(20,20,19,0.1)] text-[#141413]"
+                    className="w-full pl-10 pr-12 py-3 rounded-xl border focus:outline-none bg-input border-border text-foreground"
                     style={{ fontFamily: 'var(--_typography---font--tiempos)' }}
                     placeholder="••••••••"
                     autoComplete={mode === 'signin' ? 'current-password' : 'new-password'}
@@ -214,9 +214,9 @@ const CustomAuth = () => {
                     className="absolute right-3 top-1/2 transform -translate-y-1/2"
                   >
                     {showPassword ? (
-                      <EyeOff className="w-4 h-4 text-[#141413] opacity-50" />
+                      <EyeOff className="w-4 h-4 text-muted-foreground" />
                     ) : (
-                      <Eye className="w-4 h-4 text-[#141413] opacity-50" />
+                      <Eye className="w-4 h-4 text-muted-foreground" />
                     )}
                   </button>
                 </div>
