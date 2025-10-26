@@ -104,6 +104,8 @@ export const DataVerification: React.FC<DataVerificationProps> = ({ userId, conn
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [platformStatuses, setPlatformStatuses] = useState<Record<string, PlatformStatus>>({});
+  const [lastRefreshTime, setLastRefreshTime] = useState<Date | null>(null);
+  const [refreshingPlatform, setRefreshingPlatform] = useState<string | null>(null);
 
   const fetchPlatformStatuses = async () => {
     try {
@@ -147,19 +149,35 @@ export const DataVerification: React.FC<DataVerificationProps> = ({ userId, conn
         );
 
         if (!response.ok) {
-          throw new Error(`Verification failed: ${response.status}`);
+          // Better error messages based on status code
+          let errorMessage = 'Failed to verify data access';
+
+          if (response.status === 404) {
+            errorMessage = 'Verification endpoint not found. This may be a temporary issue.';
+          } else if (response.status === 401 || response.status === 403) {
+            errorMessage = 'Authentication failed. Please sign in again.';
+          } else if (response.status === 429) {
+            errorMessage = 'Too many requests. Please wait a moment and try again.';
+          } else if (response.status >= 500) {
+            errorMessage = 'Server error. Please try again in a few moments.';
+          }
+
+          throw new Error(errorMessage);
         }
 
         const result = await response.json();
         if (result.success) {
           setVerificationData(result.data);
+          setLastRefreshTime(new Date());
         } else {
           setError(result.error || 'Failed to verify data access');
         }
+      } else {
+        setLastRefreshTime(new Date());
       }
     } catch (err) {
       console.error('Error fetching verification data:', err);
-      setError('Failed to verify data access. Please try reconnecting.');
+      setError(err instanceof Error ? err.message : 'Failed to verify data access. Please try reconnecting.');
     } finally {
       setLoading(false);
     }
@@ -193,26 +211,26 @@ export const DataVerification: React.FC<DataVerificationProps> = ({ userId, conn
 
     if (status.tokenExpired || status.status === 'token_expired' || status.status === 'encryption_key_mismatch') {
       return (
-        <div className="flex items-center gap-2">
-          <Clock className="w-5 h-5" style={{ color: '#EF4444' }} />
-          <span style={{ color: '#EF4444' }}>Token Expired</span>
+        <div className="flex items-center gap-2 px-3 py-1 rounded-full" style={{ backgroundColor: 'rgba(239, 68, 68, 0.1)' }}>
+          <Clock className="w-4 h-4" style={{ color: '#DC2626' }} />
+          <span className="text-sm font-medium" style={{ color: '#DC2626' }}>Token Expired</span>
         </div>
       );
     }
 
     if (status.connected && status.isActive) {
       return (
-        <div className="flex items-center gap-2">
-          <CheckCircle className="w-5 h-5" style={{ color: '#10B981' }} />
-          <span style={{ color: '#10B981' }}>Connected</span>
+        <div className="flex items-center gap-2 px-3 py-1 rounded-full" style={{ backgroundColor: 'rgba(16, 185, 129, 0.1)' }}>
+          <CheckCircle className="w-4 h-4" style={{ color: '#059669' }} />
+          <span className="text-sm font-medium" style={{ color: '#059669' }}>Connected</span>
         </div>
       );
     }
 
     return (
-      <div className="flex items-center gap-2">
-        <XCircle className="w-5 h-5" style={{ color: '#EF4444' }} />
-        <span style={{ color: '#EF4444' }}>Not Connected</span>
+      <div className="flex items-center gap-2 px-3 py-1 rounded-full" style={{ backgroundColor: 'rgba(107, 114, 128, 0.1)' }}>
+        <XCircle className="w-4 h-4" style={{ color: '#6B7280' }} />
+        <span className="text-sm font-medium" style={{ color: '#6B7280' }}>Not Connected</span>
       </div>
     );
   };
@@ -236,17 +254,19 @@ export const DataVerification: React.FC<DataVerificationProps> = ({ userId, conn
     return (
       <div
         key={platform}
-        className="p-6 rounded-lg border"
+        className="p-6 rounded-xl border transition-all hover:shadow-md"
         style={{
           backgroundColor: 'var(--_color-theme---surface)',
           borderColor: 'var(--_color-theme---border)'
         }}
       >
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-3">
-            <Icon className="w-5 h-5" style={{ color: config.color }} />
+        <div className="flex items-start justify-between mb-4">
+          <div className="flex items-center gap-3 flex-1 min-w-0">
+            <div className="flex items-center justify-center w-10 h-10 rounded-lg flex-shrink-0" style={{ backgroundColor: `${config.color}15` }}>
+              <Icon className="w-5 h-5 flex-shrink-0" style={{ color: config.color }} />
+            </div>
             <h4
-              className="font-medium"
+              className="font-semibold truncate"
               style={{
                 color: 'var(--_color-theme---text)',
                 fontFamily: 'var(--_typography---font--styrene-a)'
@@ -255,7 +275,9 @@ export const DataVerification: React.FC<DataVerificationProps> = ({ userId, conn
               {config.name} Access
             </h4>
           </div>
-          {getStatusBadge(platform)}
+          <div className="flex-shrink-0 ml-3">
+            {getStatusBadge(platform)}
+          </div>
         </div>
 
         <p style={{ color: 'var(--_color-theme---text-secondary)' }}>
@@ -266,7 +288,7 @@ export const DataVerification: React.FC<DataVerificationProps> = ({ userId, conn
         </p>
 
         {status.lastSync && (
-          <p className="text-xs mt-2" style={{ color: 'var(--_color-theme---text-secondary)' }}>
+          <p className="text-sm mt-2" style={{ color: 'rgba(var(--_color-theme---text-rgb, 20, 20, 19), 0.7)' }}>
             Last synced: {formatDate(status.lastSync)}
           </p>
         )}
@@ -275,7 +297,7 @@ export const DataVerification: React.FC<DataVerificationProps> = ({ userId, conn
         {needsReconnection && (
           <button
             onClick={() => handleReconnect(platform)}
-            className="mt-4 px-4 py-2 rounded-lg flex items-center gap-2 transition-all hover:opacity-80"
+            className="mt-4 w-full px-4 py-2.5 rounded-lg flex items-center justify-center gap-2 transition-all hover:opacity-90 active:scale-98 font-medium"
             style={{
               backgroundColor: 'var(--_color-theme---accent)',
               color: 'var(--_color-theme---accent-text)'
@@ -292,27 +314,33 @@ export const DataVerification: React.FC<DataVerificationProps> = ({ userId, conn
   return (
     <div className="mt-8 space-y-6">
       <div className="flex items-center justify-between">
-        <h3
-          className="text-lg font-semibold"
-          style={{
-            color: 'var(--_color-theme---text)',
-            fontFamily: 'var(--_typography---font--styrene-a)'
-          }}
-        >
-          Data Access Verification
-        </h3>
+        <div>
+          <h3
+            className="text-lg font-semibold"
+            style={{
+              color: 'var(--_color-theme---text)',
+              fontFamily: 'var(--_typography---font--styrene-a)'
+            }}
+          >
+            Data Access Verification
+          </h3>
+          {lastRefreshTime && !loading && (
+            <p className="text-sm mt-1" style={{ color: 'rgba(var(--_color-theme---text-rgb, 20, 20, 19), 0.7)' }}>
+              Last updated: {lastRefreshTime.toLocaleTimeString()}
+            </p>
+          )}
+        </div>
         <button
           onClick={fetchVerificationData}
           disabled={loading}
-          className="flex items-center gap-2 px-4 py-2 rounded-lg transition-colors"
+          className="flex items-center gap-2 px-4 py-2 rounded-lg transition-all hover:opacity-80 disabled:opacity-50 disabled:cursor-not-allowed"
           style={{
-            backgroundColor: 'var(--_color-theme---surface-raised)',
-            color: 'var(--_color-theme---text)',
-            opacity: loading ? 0.5 : 1
+            backgroundColor: 'var(--_color-theme---accent)',
+            color: 'var(--_color-theme---accent-text)'
           }}
         >
           <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
-          Refresh
+          {loading ? 'Refreshing...' : 'Refresh'}
         </button>
       </div>
 
@@ -365,8 +393,8 @@ export const DataVerification: React.FC<DataVerificationProps> = ({ userId, conn
               {verificationData.gmail.messages.length > 0 && (
                 <div className="space-y-3">
                   <p
-                    className="text-sm font-medium"
-                    style={{ color: 'var(--_color-theme---text-secondary)' }}
+                    className="text-sm font-semibold"
+                    style={{ color: 'rgba(var(--_color-theme---text-rgb, 20, 20, 19), 0.8)' }}
                   >
                     Recent Messages ({verificationData.gmail.messageCount}):
                   </p>
