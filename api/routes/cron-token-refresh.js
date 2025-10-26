@@ -218,10 +218,39 @@ async function checkAndRefreshExpiringTokens() {
 }
 
 /**
+ * Log cron execution to database for tracking and monitoring
+ */
+async function logCronExecution(jobName, status, executionTimeMs, result, errorMessage = null) {
+  try {
+    const logEntry = {
+      job_name: jobName,
+      status,
+      execution_time_ms: executionTimeMs,
+      tokens_refreshed: result?.tokensRefreshed || 0,
+      tokens_checked: result?.tokensChecked || 0,
+      platforms_polled: result?.platformsPolled || 0,
+      error_message: errorMessage,
+      result_data: result || {},
+      executed_at: new Date().toISOString(),
+    };
+
+    await getSupabaseClient()
+      .from('cron_executions')
+      .insert(logEntry);
+
+    console.log(`📊 [CRON] Execution logged to database`);
+  } catch (error) {
+    // Don't fail the cron job if logging fails
+    console.error('⚠️  [CRON] Failed to log execution:', error.message);
+  }
+}
+
+/**
  * Vercel Cron Job Handler
  * Called every 5 minutes by Vercel Cron
  */
 export default async function handler(req, res) {
+  const startTime = Date.now();
   console.log('🌐 [CRON] Token refresh endpoint called');
 
   // Security: Verify cron secret (Vercel automatically adds this header)
@@ -237,17 +266,51 @@ export default async function handler(req, res) {
     });
   }
 
-  // Execute token refresh
-  const result = await checkAndRefreshExpiringTokens();
+  try {
+    // Execute token refresh
+    const result = await checkAndRefreshExpiringTokens();
+    const executionTime = Date.now() - startTime;
 
-  // Return results
-  const status = result.success ? 200 : 500;
+    // Log execution to database
+    await logCronExecution(
+      'token-refresh',
+      result.success ? 'success' : 'error',
+      executionTime,
+      result,
+      result.error || null
+    );
 
-  console.log(`✅ [CRON] Token refresh completed:`, result);
+    // Return results
+    const status = result.success ? 200 : 500;
 
-  return res.status(status).json({
-    ...result,
-    timestamp: new Date().toISOString(),
-    cronType: 'token-refresh',
-  });
+    console.log(`✅ [CRON] Token refresh completed in ${executionTime}ms:`, result);
+
+    return res.status(status).json({
+      ...result,
+      timestamp: new Date().toISOString(),
+      cronType: 'token-refresh',
+      executionTime: `${executionTime}ms`,
+    });
+  } catch (error) {
+    const executionTime = Date.now() - startTime;
+
+    // Log error execution
+    await logCronExecution(
+      'token-refresh',
+      'error',
+      executionTime,
+      null,
+      error.message
+    );
+
+    console.error(`❌ [CRON] Token refresh failed in ${executionTime}ms:`, error);
+
+    return res.status(500).json({
+      success: false,
+      error: error.message,
+      timestamp: new Date().toISOString(),
+      cronType: 'token-refresh',
+      executionTime: `${executionTime}ms`,
+    });
+  }
 }

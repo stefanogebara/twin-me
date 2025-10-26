@@ -3,9 +3,14 @@
  * Handles data collection, API communication, and LLM interpretation
  */
 
+// Import configuration
+import { EXTENSION_CONFIG } from './config.js';
+
 // Configuration
-const API_BASE_URL = 'http://localhost:3001/api';
+const API_BASE_URL = EXTENSION_CONFIG.API_URL;
 const SYNC_INTERVAL = 5 * 60 * 1000; // 5 minutes
+
+console.log('[Soul Signature] API Base URL:', API_BASE_URL);
 
 // State
 let userId = null;
