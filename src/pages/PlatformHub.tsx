@@ -225,7 +225,7 @@ const PlatformHub: React.FC = () => {
 
         {/* Stats Bar */}
         <div className="grid grid-cols-4 gap-4 mb-8">
-          <Card className="p-6 bg-card border-[hsl(var(--claude-border))]">
+          <Card className="p-6 bg-white/50 backdrop-blur-lg border-white/20 shadow-xl">
             <div className="flex items-center justify-between">
               <div>
                 <div className="text-3xl font-bold text-green-500">{stats.connected}</div>
@@ -237,7 +237,7 @@ const PlatformHub: React.FC = () => {
             </div>
           </Card>
 
-          <Card className="p-6 bg-card border-[hsl(var(--claude-border))]">
+          <Card className="p-6 bg-white/50 backdrop-blur-lg border-white/20 shadow-xl">
             <div className="flex items-center justify-between">
               <div>
                 <div className="text-3xl font-bold text-[hsl(var(--claude-accent))]">
@@ -251,7 +251,7 @@ const PlatformHub: React.FC = () => {
             </div>
           </Card>
 
-          <Card className="p-6 bg-card border-[hsl(var(--claude-border))]">
+          <Card className="p-6 bg-white/50 backdrop-blur-lg border-white/20 shadow-xl">
             <div className="flex items-center justify-between">
               <div>
                 <div className="text-3xl font-bold text-blue-500">
@@ -265,7 +265,7 @@ const PlatformHub: React.FC = () => {
             </div>
           </Card>
 
-          <Card className="p-6 bg-card border-[hsl(var(--claude-border))]">
+          <Card className="p-6 bg-white/50 backdrop-blur-lg border-white/20 shadow-xl">
             <div className="flex items-center justify-between">
               <div>
                 <div className="text-3xl font-bold text-purple-500">
@@ -354,7 +354,7 @@ const PlatformHub: React.FC = () => {
 
       {/* Browser Extension CTA */}
       <div className="max-w-7xl mx-auto mt-12">
-        <Card className="bg-gradient-to-r from-[hsl(var(--claude-accent))] to-purple-600 p-8 text-white">
+        <Card className="bg-gradient-to-r from-[hsl(var(--claude-accent))]/80 to-purple-600/80 backdrop-blur-lg p-8 text-white border-white/20 shadow-xl">
           <div className="flex items-center justify-between">
             <div>
               <h3 className="text-2xl font-bold mb-2">
@@ -395,10 +395,10 @@ const PlatformCard: React.FC<PlatformCardProps> = ({ platform, onConnect, delay 
       animate={{ opacity: 1, scale: 1 }}
       transition={{ delay }}
     >
-      <Card className={`p-6 border-2 transition-all duration-200 hover:shadow-xl
+      <Card className={`p-6 border-2 transition-all duration-200 hover:shadow-xl backdrop-blur-lg
                      ${platform.connected
-                       ? 'border-green-500 bg-green-50'
-                       : 'border-[hsl(var(--claude-border))] hover:border-[hsl(var(--claude-accent))]'
+                       ? 'border-green-500/50 bg-green-50/30'
+                       : 'border-white/20 bg-white/50 hover:border-[hsl(var(--claude-accent))]/50'
                      }`}>
         <div className="flex items-start justify-between mb-4">
           <div className="flex items-center gap-3">

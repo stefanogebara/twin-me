@@ -12,10 +12,24 @@ import Anthropic from '@anthropic-ai/sdk';
 let supabase = null;
 function getSupabaseClient() {
   if (!supabase) {
-    supabase = createClient(
-      process.env.SUPABASE_URL,
-      process.env.SUPABASE_SERVICE_ROLE_KEY
-    );
+    if (!process.env.SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
+      console.error('❌ [Stylometric] Missing Supabase credentials:', {
+        hasUrl: !!process.env.SUPABASE_URL,
+        hasServiceKey: !!process.env.SUPABASE_SERVICE_ROLE_KEY
+      });
+      throw new Error('Missing Supabase credentials for Stylometric service');
+    }
+
+    try {
+      supabase = createClient(
+        process.env.SUPABASE_URL,
+        process.env.SUPABASE_SERVICE_ROLE_KEY
+      );
+      console.log('✅ [Stylometric] Supabase client initialized');
+    } catch (error) {
+      console.error('❌ [Stylometric] Failed to create Supabase client:', error);
+      throw error;
+    }
   }
   return supabase;
 }
@@ -32,7 +46,7 @@ class StylometricAnalyzer {
 
     try {
       // Fetch all text content
-      const { data: textContent, error } = await supabase
+      const { data: textContent, error } = await getSupabaseClient()
         .from('user_text_content')
         .select('text_content, content_type, platform')
         .eq('user_id', userId);
@@ -749,7 +763,7 @@ Return ONLY valid JSON in this exact format:
    */
   async getStyleProfile(userId) {
     try {
-      const { data, error } = await supabase
+      const { data, error } = await getSupabaseClient()
         .from('user_style_profile')
         .select('*')
         .eq('user_id', userId)

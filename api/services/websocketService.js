@@ -11,10 +11,24 @@ import { createClient } from '@supabase/supabase-js';
 let supabase = null;
 function getSupabase() {
   if (!supabase) {
-    supabase = createClient(
-      process.env.SUPABASE_URL,
-      process.env.SUPABASE_SERVICE_ROLE_KEY
-    );
+    if (!process.env.SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
+      console.error('❌ [WebSocket] Missing Supabase credentials:', {
+        hasUrl: !!process.env.SUPABASE_URL,
+        hasServiceKey: !!process.env.SUPABASE_SERVICE_ROLE_KEY
+      });
+      throw new Error('Missing Supabase credentials for WebSocket service');
+    }
+
+    try {
+      supabase = createClient(
+        process.env.SUPABASE_URL,
+        process.env.SUPABASE_SERVICE_ROLE_KEY
+      );
+      console.log('✅ [WebSocket] Supabase client initialized');
+    } catch (error) {
+      console.error('❌ [WebSocket] Failed to create Supabase client:', error);
+      throw error;
+    }
   }
   return supabase;
 }
@@ -98,7 +112,7 @@ async function sendPlatformStatus(userId) {
   }
 
   try {
-    const { data: connections, error } = await supabase
+    const { data: connections, error} = await getSupabase()
       .from('platform_connections')
       .select('*')
       .eq('user_id', userId);
