@@ -342,7 +342,7 @@ const SoulSignatureDashboard: React.FC = () => {
         if (response.ok) {
           const data = await response.json();
           if (data.authUrl) {
-            window.open(data.authUrl, '_blank');
+            window.location.href = data.authUrl;
           }
           // Note: Connection status will be updated via usePlatformStatus hook
         }
@@ -552,7 +552,7 @@ const SoulSignatureDashboard: React.FC = () => {
                 }}
               >
                 <div className="flex items-center gap-2">
-                  <div className="w-2 h-2 rounded-full bg-white animate-pulse"></div>
+                  <div className="w-2 h-2 rounded-full bg-card animate-pulse"></div>
                   {extensionAuthenticated
                     ? '✓ Browser Extension Connected - Real-time tracking active'
                     : '⏳ Browser Extension Connecting...'}
@@ -568,7 +568,7 @@ const SoulSignatureDashboard: React.FC = () => {
               color: 'hsl(var(--claude-text-muted))'
             }}
           >
-            <strong style={{ color: '#141413' }}>Twin Me</strong> analyzes your digital footprint to create an authentic personality profile.
+            <strong style={{ color: "hsl(var(--foreground))" }}>Twin Me</strong> analyzes your digital footprint to create an authentic personality profile.
             Connect your platforms to discover insights about your Professional Identity and Personal Soul.
           </div>
         </div>
@@ -768,7 +768,7 @@ const SoulSignatureDashboard: React.FC = () => {
                             className="text-xs mt-1"
                             style={{
                               fontFamily: 'var(--_typography---font--tiempos)',
-                              color: '#6B7280'
+                              color: "hsl(var(--muted-foreground))"
                             }}
                           >
                             {action.description}
@@ -819,7 +819,7 @@ const SoulSignatureDashboard: React.FC = () => {
                       className="text-sm"
                       style={{
                         fontFamily: 'var(--_typography---font--tiempos)',
-                        color: '#6B7280'
+                        color: "hsl(var(--muted-foreground))"
                       }}
                     >
                       Uniqueness Score
@@ -867,19 +867,19 @@ const SoulSignatureDashboard: React.FC = () => {
                   color: 'hsl(var(--claude-text))'
                 }}
               >
-                <Brain className="w-5 h-5" style={{ color: '#141413' }} />
+                <Brain className="w-5 h-5" style={{ color: "hsl(var(--foreground))" }} />
                 Discovered Patterns
               </h3>
               <div className="space-y-3">
                 {currentCluster.insights.length === 0 ? (
                   <div className="text-center py-12">
-                    <Fingerprint className="w-16 h-16 mx-auto mb-4" style={{ color: '#6B7280' }} />
+                    <Fingerprint className="w-16 h-16 mx-auto mb-4" style={{ color: "hsl(var(--muted-foreground))" }} />
                     <h4
                       className="text-lg mb-2"
                       style={{
                         fontFamily: 'var(--_typography---font--styrene-a)',
                         fontWeight: 500,
-                        color: '#6B7280'
+                        color: "hsl(var(--muted-foreground))"
                       }}
                     >
                       No Soul Signature Yet
@@ -888,7 +888,7 @@ const SoulSignatureDashboard: React.FC = () => {
                       className="text-sm mb-6 max-w-md mx-auto"
                       style={{
                         fontFamily: 'var(--_typography---font--tiempos)',
-                        color: '#6B7280'
+                        color: "hsl(var(--muted-foreground))"
                       }}
                     >
                       Connect platforms and use the "Extract Soul Signature" button above to begin discovering your authentic {currentCluster.name.toLowerCase()}.

@@ -334,20 +334,12 @@ const InstantTwinOnboarding = () => {
         // Store the provider we're connecting so we can update UI after OAuth callback
         sessionStorage.setItem('connecting_provider', provider);
 
-        // Open OAuth in new window/tab
-        const width = 600;
-        const height = 700;
-        const left = (window.screen.width - width) / 2;
-        const top = (window.screen.height - height) / 2;
 
-        const popup = window.open(
-          result.data.authUrl,
-          'oauth',
-          `width=${width},height=${height},left=${left},top=${top},toolbar=no,menubar=no,location=no`
-        );
+        // Redirect in same window for better OAuth flow
+        window.location.href = result.data.authUrl;
 
         // Note: OAuth callback page will handle the success and redirect back
-        console.log('🪟 OAuth popup opened, waiting for OAuth callback...');
+        console.log('🪟 OAuth redirect initiated, waiting for OAuth callback...');
       } else if (result.success) {
         // Test connection success (shouldn't happen in production)
         console.warn('⚠️ No OAuth URL received, connection may be in test mode');
