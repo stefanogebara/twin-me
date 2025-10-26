@@ -217,6 +217,12 @@ export const DataVerification: React.FC<DataVerificationProps> = ({ userId, conn
     );
   };
 
+  const handleReconnect = (platform: string) => {
+    // Initiate OAuth flow for the platform
+    const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
+    window.location.href = `${baseUrl}/connectors/connect/${platform}`;
+  };
+
   const renderPlatformCard = (platform: string) => {
     const config = platformConfig[platform];
     if (!config) return null;
@@ -263,6 +269,21 @@ export const DataVerification: React.FC<DataVerificationProps> = ({ userId, conn
           <p className="text-xs mt-2" style={{ color: 'var(--_color-theme---text-secondary)' }}>
             Last synced: {formatDate(status.lastSync)}
           </p>
+        )}
+
+        {/* Add Reconnect button for expired/invalid tokens */}
+        {needsReconnection && (
+          <button
+            onClick={() => handleReconnect(platform)}
+            className="mt-4 px-4 py-2 rounded-lg flex items-center gap-2 transition-all hover:opacity-80"
+            style={{
+              backgroundColor: 'var(--_color-theme---accent)',
+              color: 'var(--_color-theme---accent-text)'
+            }}
+          >
+            <RefreshCw className="w-4 h-4" />
+            Reconnect {config.name}
+          </button>
         )}
       </div>
     );
