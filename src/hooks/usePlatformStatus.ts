@@ -2,10 +2,13 @@
  * Unified Platform Status Hook
  * Single source of truth for connection status across all components
  * Eliminates localStorage usage and ensures database consistency
+ * Now with Supabase Realtime for instant UI updates
  */
 
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { useCallback } from 'react';
+import { useCallback, useEffect } from 'react';
+import { supabase } from '@/lib/supabase';
+import type { RealtimeChannel } from '@supabase/supabase-js';
 
 export interface PlatformConnectionStatus {
   connected: boolean;
@@ -72,6 +75,7 @@ export const usePlatformStatus = (
   options?: {
     refetchInterval?: number;
     enabled?: boolean;
+    enableRealtime?: boolean; // Option to enable/disable realtime updates
   }
 ): UsePlatformStatusReturn => {
   const queryClient = useQueryClient();
@@ -91,6 +95,61 @@ export const usePlatformStatus = (
     retry: 2,
     retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 10000),
   });
+
+  // Set up Supabase Realtime subscription for instant updates
+  useEffect(() => {
+    if (!userId || options?.enableRealtime === false) return;
+
+    let channel: RealtimeChannel | null = null;
+
+    const setupRealtimeSubscription = async () => {
+      // Subscribe to changes in platform_connections for this user
+      channel = supabase
+        .channel(`platform-connections-${userId}`)
+        .on(
+          'postgres_changes',
+          {
+            event: '*', // Listen for INSERT, UPDATE, DELETE
+            schema: 'public',
+            table: 'platform_connections',
+            filter: `user_id=eq.${userId}`,
+          },
+          async (payload) => {
+            console.log('[Realtime] Platform connection change detected:', payload);
+
+            // Invalidate and refetch the platform status query
+            await queryClient.invalidateQueries({
+              queryKey: ['platformStatus', userId]
+            });
+
+            // Also invalidate related queries that might depend on platform status
+            await queryClient.invalidateQueries({
+              queryKey: ['platforms']
+            });
+            await queryClient.invalidateQueries({
+              queryKey: ['connectorStatuses', userId]
+            });
+          }
+        )
+        .subscribe((status) => {
+          if (status === 'SUBSCRIBED') {
+            console.log('[Realtime] Subscribed to platform connections for user:', userId);
+          } else if (status === 'CHANNEL_ERROR') {
+            console.error('[Realtime] Failed to subscribe to platform connections');
+          }
+        });
+    };
+
+    setupRealtimeSubscription();
+
+    // Cleanup subscription on unmount
+    return () => {
+      if (channel) {
+        console.log('[Realtime] Unsubscribing from platform connections');
+        supabase.removeChannel(channel);
+      }
+    };
+  }, [userId, queryClient, options?.enableRealtime]);
 
   // Derived state
   const platformStatus = data || {};

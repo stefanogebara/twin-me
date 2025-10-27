@@ -519,8 +519,8 @@ const InstantTwinOnboarding = () => {
 
   // Step Indicator
   const renderStepIndicator = () => (
-    <div className="flex items-center justify-center mb-12">
-      <div className="flex items-center space-x-4">
+    <div className="flex items-center justify-center mb-8 sm:mb-12 overflow-x-auto">
+      <div className="flex items-center space-x-2 sm:space-x-4 px-4 sm:px-0">
         {STEPS.map((step, index) => (
           <div key={step.id} className="flex items-center">
             <button
@@ -547,7 +547,7 @@ const InstantTwinOnboarding = () => {
                 step.id
               )}
             </button>
-            <div className="ml-3 text-sm">
+            <div className="ml-3 text-sm hidden sm:block">
               <div
                 style={{
                   color: currentStep >= step.id ? 'hsl(var(--claude-text))' : '#6B7280',
@@ -570,7 +570,7 @@ const InstantTwinOnboarding = () => {
             </div>
             {index < STEPS.length - 1 && (
               <div
-                className="w-12 h-0.5 mx-4"
+                className="w-8 sm:w-12 h-0.5 mx-2 sm:mx-4"
                 style={{
                   backgroundColor: currentStep > step.id ? '#D97706' : 'rgba(20,20,19,0.1)'
                 }}
@@ -938,7 +938,7 @@ const InstantTwinOnboarding = () => {
     <div className="min-h-screen bg-[hsl(var(--claude-bg))]">
       {/* Header */}
       <div className="sticky top-0 z-50 border-b bg-[hsl(var(--claude-surface))]" style={{ borderColor: 'hsl(var(--claude-border))' }}>
-        <div className="max-w-7xl mx-auto px-6 py-4">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <div className="flex items-center justify-between">
             {/* Back Navigation */}
             <button
@@ -987,7 +987,7 @@ const InstantTwinOnboarding = () => {
       </div>
 
       {/* Main Content */}
-      <div className="max-w-6xl mx-auto px-6 py-12">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
 
         {/* Step 1: Connect Services */}
         {currentStep === 1 && (

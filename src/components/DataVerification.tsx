@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { CheckCircle, XCircle, Mail, Calendar, Loader2, RefreshCw, AlertTriangle, Music, Youtube, MessageCircle, Github, Briefcase, Hash, Clock } from 'lucide-react';
+import { usePlatformStatus } from '@/hooks/usePlatformStatus';
 
 interface EmailMessage {
   id: string;
@@ -103,41 +104,26 @@ export const DataVerification: React.FC<DataVerificationProps> = ({ userId, conn
   const [verificationData, setVerificationData] = useState<VerificationData>({});
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [platformStatuses, setPlatformStatuses] = useState<Record<string, PlatformStatus>>({});
   const [lastRefreshTime, setLastRefreshTime] = useState<Date | null>(null);
   const [refreshingPlatform, setRefreshingPlatform] = useState<string | null>(null);
 
-  const fetchPlatformStatuses = async () => {
-    try {
-      const response = await fetch(
-        `${import.meta.env.VITE_API_URL}/connectors/status/${userId}`,
-        {
-          headers: {
-            'Authorization': `Bearer ${localStorage.getItem('auth_token')}`,
-          }
-        }
-      );
-
-      if (response.ok) {
-        const result = await response.json();
-        if (result.success) {
-          setPlatformStatuses(result.data);
-        }
-      }
-    } catch (err) {
-      console.error('Error fetching platform statuses:', err);
-    }
-  };
+  // Use the enhanced platform status hook with realtime updates
+  const {
+    data: platformStatuses,
+    refetch: refetchPlatformStatus,
+    isLoading: platformStatusLoading
+  } = usePlatformStatus(userId, {
+    enableRealtime: true, // Enable realtime updates for instant UI sync
+    refetchInterval: 60000 // Still refetch every 60 seconds as backup
+  });
 
   const fetchVerificationData = async () => {
     setLoading(true);
     setError(null);
 
     try {
-      // Fetch platform statuses first
-      await fetchPlatformStatuses();
-
-      // Then fetch Gmail/Calendar verification if needed
+      // Platform statuses are now automatically synced via the hook
+      // Just fetch Gmail/Calendar verification if needed
       if (connectedServices.includes('google_gmail') || connectedServices.includes('google_calendar')) {
         const response = await fetch(
           `${import.meta.env.VITE_API_URL}/data-verification/all/${userId}`,
@@ -235,10 +221,47 @@ export const DataVerification: React.FC<DataVerificationProps> = ({ userId, conn
     );
   };
 
-  const handleReconnect = (platform: string) => {
-    // Initiate OAuth flow for the platform
-    const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
-    window.location.href = `${baseUrl}/connectors/connect/${platform}`;
+  const handleReconnect = async (platform: string) => {
+    setRefreshingPlatform(platform);
+    try {
+      // Fetch OAuth URL from the API
+      const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
+      const response = await fetch(`${baseUrl}/connectors/connect/${platform}?userId=${userId}`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to initiate reconnection: ${response.statusText}`);
+      }
+
+      const result = await response.json();
+
+      if (result.success && result.data?.authUrl) {
+        // Store the platform we're reconnecting so we can update UI after OAuth callback
+        sessionStorage.setItem('reconnecting_platform', platform);
+
+        // Redirect to OAuth URL
+        window.location.href = result.data.authUrl;
+      } else if (result.success && result.message === 'Token refreshed successfully') {
+        // Token was refreshed successfully in the background
+        console.log(`✅ ${platform} token refreshed successfully`);
+
+        // Refresh the platform statuses to update UI (realtime will also trigger automatically)
+        await refetchPlatformStatus();
+        setLastRefreshTime(new Date());
+      } else {
+        throw new Error(result.error || 'Failed to reconnect');
+      }
+    } catch (error) {
+      console.error(`Error reconnecting ${platform}:`, error);
+      setError(`Failed to reconnect ${platform}. Please try again.`);
+    } finally {
+      setRefreshingPlatform(null);
+    }
   };
 
   const renderPlatformCard = (platform: string) => {
@@ -297,14 +320,15 @@ export const DataVerification: React.FC<DataVerificationProps> = ({ userId, conn
         {needsReconnection && (
           <button
             onClick={() => handleReconnect(platform)}
-            className="mt-4 w-full px-4 py-2.5 rounded-lg flex items-center justify-center gap-2 transition-all hover:opacity-90 active:scale-98 font-medium"
+            disabled={refreshingPlatform === platform}
+            className="mt-4 w-full px-4 py-2.5 rounded-lg flex items-center justify-center gap-2 transition-all hover:opacity-90 active:scale-98 font-medium disabled:opacity-50 disabled:cursor-not-allowed"
             style={{
               backgroundColor: 'var(--_color-theme---accent)',
               color: 'var(--_color-theme---accent-text)'
             }}
           >
-            <RefreshCw className="w-4 h-4" />
-            Reconnect {config.name}
+            <RefreshCw className={`w-4 h-4 ${refreshingPlatform === platform ? 'animate-spin' : ''}`} />
+            {refreshingPlatform === platform ? 'Reconnecting...' : `Reconnect ${config.name}`}
           </button>
         )}
       </div>

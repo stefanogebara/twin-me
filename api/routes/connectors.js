@@ -139,6 +139,285 @@ console.log('🔍 LinkedIn config on file load:', {
 // ====================================================================
 
 /**
+ * GET /api/connectors/connect/:provider
+ * Reconnect/Refresh OAuth tokens for a provider
+ * This is called when tokens are expired and need refresh
+ */
+router.get('/connect/:provider', async (req, res) => {
+  try {
+    const { provider } = req.params;
+    const { userId } = req.query;
+
+    if (!userId) {
+      return res.status(400).json({
+        success: false,
+        error: 'userId is required'
+      });
+    }
+
+    const config = OAUTH_CONFIGS[provider];
+    if (!config) {
+      return res.status(404).json({
+        success: false,
+        error: `Provider ${provider} not configured`
+      });
+    }
+
+    console.log(`🔄 Reconnect/refresh initiated for ${provider} - userId: ${userId}`);
+
+    // Check if we have a refresh token stored
+    const { data: connection, error: fetchError } = await supabaseAdmin
+      .from('platform_connections')
+      .select('*')
+      .eq('user_id', userId)
+      .eq('platform', provider)
+      .single();
+
+    if (fetchError || !connection) {
+      // No existing connection, redirect to full OAuth flow
+      console.log(`📝 No existing connection found for ${provider}, initiating full OAuth`);
+
+      // Generate OAuth URL for fresh authentication
+      const redirectUri = `${process.env.VITE_APP_URL || 'http://localhost:8086'}/oauth/callback`;
+      const state = Buffer.from(JSON.stringify({
+        provider,
+        userId,
+        timestamp: Date.now()
+      })).toString('base64');
+
+      // Store state for CSRF protection
+      await supabaseAdmin
+        .from('oauth_states')
+        .insert({
+          state,
+          user_id: userId,
+          provider,
+          created_at: new Date().toISOString(),
+          expires_at: new Date(Date.now() + 600000).toISOString() // 10 minutes
+        });
+
+      let authUrl;
+      if (provider === 'spotify') {
+        const scope = config.scopes.join(' ');
+        authUrl = `${config.authUrl}?` +
+          `client_id=${config.clientId}&` +
+          `response_type=code&` +
+          `redirect_uri=${encodeURIComponent(redirectUri)}&` +
+          `scope=${encodeURIComponent(scope)}&` +
+          `state=${state}&` +
+          `show_dialog=true`;
+      } else {
+        const scope = config.scopes.join(' ');
+        authUrl = `${config.authUrl}?` +
+          `client_id=${config.clientId}&` +
+          `response_type=code&` +
+          `redirect_uri=${encodeURIComponent(redirectUri)}&` +
+          `scope=${encodeURIComponent(scope)}&` +
+          `state=${state}&` +
+          `access_type=offline&` +
+          `prompt=consent`;
+      }
+
+      return res.json({
+        success: true,
+        data: { authUrl }
+      });
+    }
+
+    // We have a connection, attempt to refresh the token
+    if (connection.refresh_token) {
+      try {
+        const refreshToken = decryptToken(connection.refresh_token);
+        console.log(`🔑 Attempting to refresh token for ${provider}`);
+
+        let newTokens;
+        if (provider === 'spotify') {
+          // Spotify refresh
+          const tokenResponse = await fetch(config.tokenUrl, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/x-www-form-urlencoded',
+              'Authorization': 'Basic ' + Buffer.from(`${config.clientId}:${config.clientSecret}`).toString('base64')
+            },
+            body: new URLSearchParams({
+              grant_type: 'refresh_token',
+              refresh_token: refreshToken
+            })
+          });
+
+          if (!tokenResponse.ok) {
+            throw new Error(`Token refresh failed: ${tokenResponse.statusText}`);
+          }
+
+          newTokens = await tokenResponse.json();
+        } else {
+          // Google/YouTube refresh
+          const tokenResponse = await fetch(config.tokenUrl, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/x-www-form-urlencoded'
+            },
+            body: new URLSearchParams({
+              grant_type: 'refresh_token',
+              refresh_token: refreshToken,
+              client_id: config.clientId,
+              client_secret: config.clientSecret
+            })
+          });
+
+          if (!tokenResponse.ok) {
+            throw new Error(`Token refresh failed: ${tokenResponse.statusText}`);
+          }
+
+          newTokens = await tokenResponse.json();
+        }
+
+        // Update the stored tokens
+        const updateData = {
+          access_token: encryptToken(newTokens.access_token),
+          token_expires_at: new Date(Date.now() + (newTokens.expires_in * 1000)).toISOString(),
+          updated_at: new Date().toISOString(),
+          is_active: true,
+          token_expired: false
+        };
+
+        // Only update refresh token if a new one was provided
+        if (newTokens.refresh_token) {
+          updateData.refresh_token = encryptToken(newTokens.refresh_token);
+        }
+
+        const { error: updateError } = await supabaseAdmin
+          .from('platform_connections')
+          .update(updateData)
+          .eq('user_id', userId)
+          .eq('platform', provider);
+
+        if (updateError) {
+          throw updateError;
+        }
+
+        console.log(`✅ Token refreshed successfully for ${provider}`);
+
+        // Invalidate cache
+        await invalidatePlatformStatusCache(userId);
+
+        return res.json({
+          success: true,
+          message: 'Token refreshed successfully'
+        });
+
+      } catch (refreshError) {
+        console.error(`❌ Token refresh failed for ${provider}:`, refreshError);
+
+        // Refresh failed, need to re-authenticate
+        const redirectUri = `${process.env.VITE_APP_URL || 'http://localhost:8086'}/oauth/callback`;
+        const state = Buffer.from(JSON.stringify({
+          provider,
+          userId,
+          timestamp: Date.now(),
+          isReconnect: true
+        })).toString('base64');
+
+        // Store state for CSRF protection
+        await supabaseAdmin
+          .from('oauth_states')
+          .insert({
+            state,
+            user_id: userId,
+            provider,
+            created_at: new Date().toISOString(),
+            expires_at: new Date(Date.now() + 600000).toISOString() // 10 minutes
+          });
+
+        const scope = config.scopes.join(' ');
+        let authUrl;
+
+        if (provider === 'spotify') {
+          authUrl = `${config.authUrl}?` +
+            `client_id=${config.clientId}&` +
+            `response_type=code&` +
+            `redirect_uri=${encodeURIComponent(redirectUri)}&` +
+            `scope=${encodeURIComponent(scope)}&` +
+            `state=${state}&` +
+            `show_dialog=true`;
+        } else {
+          authUrl = `${config.authUrl}?` +
+            `client_id=${config.clientId}&` +
+            `response_type=code&` +
+            `redirect_uri=${encodeURIComponent(redirectUri)}&` +
+            `scope=${encodeURIComponent(scope)}&` +
+            `state=${state}&` +
+            `access_type=offline&` +
+            `prompt=consent`;
+        }
+
+        return res.json({
+          success: true,
+          data: { authUrl }
+        });
+      }
+    } else {
+      // No refresh token available, need full re-authentication
+      console.log(`🔐 No refresh token available for ${provider}, requiring re-authentication`);
+
+      const redirectUri = `${process.env.VITE_APP_URL || 'http://localhost:8086'}/oauth/callback`;
+      const state = Buffer.from(JSON.stringify({
+        provider,
+        userId,
+        timestamp: Date.now(),
+        isReconnect: true
+      })).toString('base64');
+
+      // Store state for CSRF protection
+      await supabaseAdmin
+        .from('oauth_states')
+        .insert({
+          state,
+          user_id: userId,
+          provider,
+          created_at: new Date().toISOString(),
+          expires_at: new Date(Date.now() + 600000).toISOString() // 10 minutes
+        });
+
+      const scope = config.scopes.join(' ');
+      let authUrl;
+
+      if (provider === 'spotify') {
+        authUrl = `${config.authUrl}?` +
+          `client_id=${config.clientId}&` +
+          `response_type=code&` +
+          `redirect_uri=${encodeURIComponent(redirectUri)}&` +
+          `scope=${encodeURIComponent(scope)}&` +
+          `state=${state}&` +
+          `show_dialog=true`;
+      } else {
+        authUrl = `${config.authUrl}?` +
+          `client_id=${config.clientId}&` +
+          `response_type=code&` +
+          `redirect_uri=${encodeURIComponent(redirectUri)}&` +
+          `scope=${encodeURIComponent(scope)}&` +
+          `state=${state}&` +
+          `access_type=offline&` +
+          `prompt=consent`;
+      }
+
+      return res.json({
+        success: true,
+        data: { authUrl }
+      });
+    }
+
+  } catch (error) {
+    console.error('Reconnect error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to reconnect',
+      details: error.message
+    });
+  }
+});
+
+/**
  * GET /api/connectors/auth/:provider
  * Generate OAuth authorization URL for a provider
  */
@@ -750,6 +1029,101 @@ router.delete('/:provider/:userId', async (req, res) => {
     res.status(500).json({
       success: false,
       error: 'Failed to disconnect provider'
+    });
+  }
+});
+
+/**
+ * POST /api/connectors/connect/:platform
+ * Proxy endpoint for entertainment connectors (Spotify, YouTube, etc.)
+ * This provides backward compatibility for frontend that expects this route
+ */
+router.post('/connect/:platform', async (req, res) => {
+  try {
+    const { platform } = req.params;
+    const { userId } = req.body;
+
+    console.log(`🔗 OAuth connection request for ${platform} from user ${userId}`);
+
+    // Platforms handled by entertainment-connectors
+    const entertainmentPlatforms = ['spotify', 'youtube', 'netflix', 'twitch', 'tiktok'];
+
+    if (entertainmentPlatforms.includes(platform)) {
+      // Forward to entertainment connectors endpoint
+      const baseUrl = process.env.API_URL || `http://localhost:${process.env.PORT || 3001}`;
+      const entertainmentUrl = `${baseUrl}/api/entertainment/connect/${platform}`;
+
+      console.log(`📡 Proxying to entertainment connector: ${entertainmentUrl}`);
+
+      // Make internal request to entertainment connector
+      const response = await fetch(entertainmentUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ userId })
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        return res.status(response.status).json(data);
+      }
+
+      return res.json(data);
+    }
+
+    // For other platforms, use the existing auth flow
+    const config = OAUTH_CONFIGS[platform];
+
+    if (!config) {
+      return res.status(400).json({
+        success: false,
+        error: `Unsupported platform: ${platform}`
+      });
+    }
+
+    // Generate state parameter for security
+    const stateObject = {
+      provider: platform,
+      userId,
+      timestamp: Date.now()
+    };
+
+    const state = Buffer.from(JSON.stringify(stateObject)).toString('base64');
+
+    // Build authorization URL
+    const appUrl = process.env.APP_URL || process.env.VITE_APP_URL || 'http://localhost:8086';
+    const redirectUri = `${appUrl}/oauth/callback`;
+
+    const scopeParam = platform === 'slack' ? 'user_scope' : 'scope';
+    const scopeSeparator = platform === 'slack' ? ',' : ' ';
+
+    const params = new URLSearchParams({
+      client_id: config.clientId,
+      redirect_uri: redirectUri,
+      [scopeParam]: config.scopes.join(scopeSeparator),
+      response_type: 'code',
+      access_type: 'offline',
+      prompt: 'consent',
+      state
+    });
+
+    const authUrl = `${config.authUrl}?${params.toString()}`;
+
+    res.json({
+      success: true,
+      authUrl,
+      state,
+      platform
+    });
+
+  } catch (error) {
+    console.error(`Error initiating ${req.params.platform} connection:`, error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to initiate OAuth connection',
+      details: error.message
     });
   }
 });

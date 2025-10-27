@@ -44,8 +44,14 @@ export function useWebSocket(onMessage?: (message: WebSocketMessage) => void): U
   const wsRef = useRef<WebSocket | null>(null);
   const reconnectTimeoutRef = useRef<NodeJS.Timeout>();
   const reconnectAttemptsRef = useRef(0);
+  const onMessageRef = useRef(onMessage);
   const [connected, setConnected] = useState(false);
   const [lastMessage, setLastMessage] = useState<WebSocketMessage | null>(null);
+
+  // Update onMessage ref when it changes
+  useEffect(() => {
+    onMessageRef.current = onMessage;
+  }, [onMessage]);
 
   // Exponential backoff: 5s, 10s, 20s, 40s, 60s (max)
   const getReconnectDelay = (attempt: number): number => {
@@ -68,8 +74,14 @@ export function useWebSocket(onMessage?: (message: WebSocketMessage) => void): U
       return;
     }
 
-    // Close existing connection
-    if (wsRef.current) {
+    // Skip if already connected
+    if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
+      console.log('[WebSocket] Already connected, skipping connection attempt');
+      return;
+    }
+
+    // Close existing connection if it exists
+    if (wsRef.current && wsRef.current.readyState !== WebSocket.CLOSED) {
       wsRef.current.close();
     }
 
@@ -106,7 +118,7 @@ export function useWebSocket(onMessage?: (message: WebSocketMessage) => void): U
           console.log('[WebSocket] 📩 Message received:', message.type, message);
 
           setLastMessage(message);
-          onMessage?.(message);
+          onMessageRef.current?.(message);
         } catch (error) {
           console.error('[WebSocket] Error parsing message:', error);
         }
@@ -153,7 +165,7 @@ export function useWebSocket(onMessage?: (message: WebSocketMessage) => void): U
         }, delay);
       }
     }
-  }, [user?.id, onMessage]);
+  }, [user?.id]); // Removed onMessage dependency - using ref instead
 
   const sendMessage = useCallback((message: any) => {
     if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {

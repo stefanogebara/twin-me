@@ -84,7 +84,11 @@ const secondaryNavItems: NavItem[] = [
   }
 ];
 
-export const Sidebar: React.FC = () => {
+interface SidebarProps {
+  onNavigate?: () => void;
+}
+
+export const Sidebar: React.FC<SidebarProps> = ({ onNavigate }) => {
   const navigate = useNavigate();
   const location = useLocation();
   const { user, signOut } = useAuth();
@@ -95,6 +99,7 @@ export const Sidebar: React.FC = () => {
 
   const handleNavigate = (path: string) => {
     navigate(path);
+    onNavigate?.(); // Close mobile menu if provided
   };
 
   const handleSignOut = async () => {
@@ -103,9 +108,9 @@ export const Sidebar: React.FC = () => {
   };
 
   return (
-    <div className="flex flex-col h-screen w-64 bg-[hsl(var(--claude-surface))] border-r border-[hsl(var(--claude-border))]">
+    <div className="flex flex-col h-screen w-72 md:w-64 bg-[hsl(var(--claude-surface))] border-r border-[hsl(var(--claude-border))]">
       {/* Logo & Brand */}
-      <div className="flex items-center gap-3 p-6 border-b border-[hsl(var(--claude-border))]">
+      <div className="flex items-center gap-3 p-4 md:p-6 border-b border-[hsl(var(--claude-border))]">
         <div className="w-8 h-8 bg-[hsl(var(--claude-accent))] rounded-lg flex items-center justify-center text-white font-bold text-lg">
           T
         </div>

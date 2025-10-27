@@ -185,8 +185,14 @@ export async function refreshAccessToken(userId, provider) {
       throw new Error(`No refresh token available for ${provider}. User must reconnect.`);
     }
 
-    // Decrypt refresh token
-    const refreshToken = decryptToken(connection.refresh_token);
+    // Decrypt refresh token with error handling
+    let refreshToken;
+    try {
+      refreshToken = decryptToken(connection.refresh_token);
+    } catch (decryptError) {
+      console.error(`❌ Failed to decrypt refresh token for ${provider}:`, decryptError.message);
+      throw new Error(`Token decryption failed - user must reconnect ${provider}`);
+    }
 
     // Build request headers
     const headers = typeof config.headers === 'function'
@@ -318,8 +324,23 @@ export async function getValidAccessToken(userId, provider) {
       };
     }
 
-    // Decrypt current access token
-    const currentAccessToken = decryptToken(connection.access_token);
+    // Decrypt current access token with error handling
+    let currentAccessToken;
+    try {
+      currentAccessToken = decryptToken(connection.access_token);
+    } catch (decryptError) {
+      console.error(`❌ Failed to decrypt access token for ${provider}:`, decryptError.message);
+      console.log(`🔄 Token decryption failed, will attempt to refresh...`);
+
+      // If we can't decrypt the access token, we need to refresh it
+      // But refreshAccessToken will also fail if refresh_token can't be decrypted
+      // So we return an error that will prompt re-authentication
+      return {
+        success: false,
+        error: `Token decryption failed - user must reconnect ${provider}`,
+        requiresReauth: true
+      };
+    }
 
     // Check if token is expired or will expire in the next 5 minutes
     const expiryTime = connection.token_expires_at ? new Date(connection.token_expires_at) : null;
