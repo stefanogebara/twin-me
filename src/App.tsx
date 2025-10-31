@@ -336,7 +336,7 @@ const App = () => {
               </>
             } />
             {/* Twin Dashboard (without ID) - Redirect to dashboard */}
-            {/* Streamlined 6-step Onboarding Flow */}}
+            {/* Streamlined 6-step Onboarding Flow */}
             <Route path="/welcome" element={<WelcomeFlow initialStep={1} />} />
             <Route path="/onboarding" element={<WelcomeFlow initialStep={1} />} />
             <Route path="/onboarding/welcome" element={<WelcomeFlow initialStep={1} />} />
