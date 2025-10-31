@@ -336,7 +336,7 @@ const App = () => {
               </>
             } />
             {/* Twin Dashboard (without ID) - Redirect to dashboard */}
-            {/* Streamlined 5-step Onboarding Flow */}
+            {/* Streamlined 6-step Onboarding Flow */}}
             <Route path="/welcome" element={<WelcomeFlow initialStep={1} />} />
             <Route path="/onboarding" element={<WelcomeFlow initialStep={1} />} />
             <Route path="/onboarding/welcome" element={<WelcomeFlow initialStep={1} />} />
@@ -344,6 +344,7 @@ const App = () => {
             <Route path="/onboarding/gmail" element={<WelcomeFlow initialStep={3} />} />
             <Route path="/onboarding/analysis" element={<WelcomeFlow initialStep={4} />} />
             <Route path="/onboarding/platforms" element={<WelcomeFlow initialStep={5} />} />
+            <Route path="/onboarding/create-account" element={<WelcomeFlow initialStep={6} />} />
             <Route path="/twin-dashboard" element={<Navigate to="/dashboard" replace />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL ROUTE */}
             <Route path="*" element={<NotFound />} />

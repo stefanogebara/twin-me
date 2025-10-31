@@ -7,16 +7,18 @@ import Step2AboutYouEnhanced from './Step2AboutYouEnhanced';
 import Step4ConnectGmail from './Step4ConnectGmail';
 import Step7EmailAnalysis from './Step7EmailAnalysis';
 import Step13PlatformGallery from './Step13PlatformGallery';
+import Step6CreateAccount from './Step6CreateAccount';
 
 /**
  * WelcomeFlow Component
  *
- * Streamlined 5-step onboarding experience:
+ * Streamlined 6-step onboarding experience:
  * 1. Welcome - Beautiful introduction with Rami quote
  * 2. About You + Interests - Name and passion discovery combined
  * 3. Connect Gmail - First platform connection with trust-building
  * 4. Email Analysis - WOW MOMENT showing real insights
  * 5. Platform Gallery - Choose additional platforms to connect
+ * 6. Create Account - Sign up and complete onboarding
  *
  * Educational content (How It Works, Memory System, Privacy) moved to Help Center
  */
@@ -62,7 +64,7 @@ const WelcomeFlow: React.FC<WelcomeFlowProps> = ({ initialStep = 1 }) => {
   };
 
   const nextStep = () => {
-    if (currentStep < 5) {
+    if (currentStep < 6) {
       goToStep(currentStep + 1);
     } else {
       // Onboarding complete - redirect to Soul Signature Dashboard
@@ -81,7 +83,7 @@ const WelcomeFlow: React.FC<WelcomeFlowProps> = ({ initialStep = 1 }) => {
     <div className="fixed top-0 left-0 right-0 z-50 bg-white/80 backdrop-blur-sm border-b border-stone-200">
       <div className="max-w-7xl mx-auto px-6 py-3">
         <div className="flex items-center gap-2">
-          {[1, 2, 3, 4, 5].map((step) => (
+          {[1, 2, 3, 4, 5, 6].map((step) => (
             <div
               key={step}
               className="flex-1 h-1 rounded-full transition-all duration-300"
@@ -93,10 +95,10 @@ const WelcomeFlow: React.FC<WelcomeFlowProps> = ({ initialStep = 1 }) => {
         </div>
         <div className="flex justify-between items-center mt-2">
           <span className="text-xs text-stone-600">
-            Step {currentStep} of 5
+            Step {currentStep} of 6
           </span>
           <span className="text-xs text-stone-400">
-            {Math.round((currentStep / 5) * 100)}% complete
+            {Math.round((currentStep / 6) * 100)}% complete
           </span>
         </div>
       </div>
