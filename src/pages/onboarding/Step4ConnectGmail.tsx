@@ -2,8 +2,30 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowRight } from 'lucide-react';
 
-const Step4ConnectGmail = () => {
+interface Step4ConnectGmailProps {
+  onNext?: () => void;
+  onPrev?: () => void;
+  goToStep?: (step: number) => void;
+}
+
+const Step4ConnectGmail: React.FC<Step4ConnectGmailProps> = ({ onNext, onPrev }) => {
   const navigate = useNavigate();
+
+  const handleSkip = () => {
+    if (onNext) {
+      onNext();
+    } else {
+      navigate('/onboarding/analysis');
+    }
+  };
+
+  const handleBack = () => {
+    if (onPrev) {
+      onPrev();
+    } else {
+      navigate(-1);
+    }
+  };
 
   const handleConnectGmail = async () => {
     try {
@@ -20,32 +42,32 @@ const Step4ConnectGmail = () => {
 
       if (!response.ok) {
         console.error('Failed to initiate Gmail OAuth');
-        navigate('/step5'); // Skip on error
+        handleSkip(); // Skip on error
         return;
       }
 
       const data = await response.json();
       if (data.success && data.data.authUrl) {
         // Store where to return after OAuth
-        sessionStorage.setItem('oauth_return_step', 'step5');
+        sessionStorage.setItem('oauth_return_step', 'analysis');
         // Redirect to Google OAuth
         window.location.href = data.data.authUrl;
       } else {
-        navigate('/step5'); // Skip on error
+        handleSkip(); // Skip on error
       }
     } catch (error) {
       console.error('Gmail OAuth error:', error);
-      navigate('/step5'); // Skip on error
+      handleSkip(); // Skip on error
     }
   };
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center px-6 py-20 bg-stone-100">
       <button
-        onClick={() => navigate(-1)}
+        onClick={handleBack}
         className="absolute top-8 left-8 text-[15px] leading-5 text-stone-600 hover:text-stone-900 transition-colors duration-200"
       >
-        Log out
+        Back
       </button>
 
       <div className="w-full max-w-2xl space-y-12">
@@ -104,7 +126,7 @@ const Step4ConnectGmail = () => {
 
         <div className="text-center">
           <button
-            onClick={() => navigate('/step8')}
+            onClick={handleSkip}
             className="text-[15px] leading-5 text-stone-600 hover:text-stone-900 transition-colors duration-200"
           >
             Skip for now

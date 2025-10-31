@@ -90,7 +90,7 @@ const Step7EmailAnalysis = () => {
   return (
     <div className="min-h-screen flex flex-col items-center justify-center px-6 py-20 bg-stone-100">
       <button
-        onClick={() => navigate(-1)}
+        onClick={handleBack}
         className="absolute top-8 left-8 text-[15px] leading-5 text-stone-600 hover:text-stone-900 transition-colors duration-200"
       >
         Back
@@ -119,7 +119,7 @@ const Step7EmailAnalysis = () => {
               You can connect Gmail later from your dashboard.
             </p>
             <button
-              onClick={() => navigate('/step8')}
+              onClick={() => handleContinue()}
               className="inline-flex items-center justify-center gap-2 px-6 py-3 text-[15px] leading-5 font-medium text-stone-900 bg-white border border-stone-200 rounded-xl transition-all duration-200 hover:bg-stone-50 hover:border-stone-300 hover:shadow-[0_2px_4px_0_rgba(0,0,0,0.06)] focus:outline-none focus:ring-2 focus:ring-stone-900/10"
             >
               Continue
@@ -163,7 +163,7 @@ const Step7EmailAnalysis = () => {
 
             <div className="flex justify-center">
               <button
-                onClick={() => navigate('/step8')}
+                onClick={() => handleContinue()}
                 className="inline-flex items-center justify-center gap-2 px-6 py-3 text-[15px] leading-5 font-medium text-stone-900 bg-white border border-stone-200 rounded-xl transition-all duration-200 hover:bg-stone-50 hover:border-stone-300 hover:shadow-[0_2px_4px_0_rgba(0,0,0,0.06)] focus:outline-none focus:ring-2 focus:ring-stone-900/10"
               >
                 Continue
