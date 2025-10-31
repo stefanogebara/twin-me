@@ -2,8 +2,30 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowRight, Loader2, CheckCircle } from 'lucide-react';
 
-const Step7EmailAnalysis = () => {
+
+interface Step7EmailAnalysisProps {
+  onNext?: () => void;
+  onPrev?: () => void;
+  goToStep?: (step: number) => void;
+}
+const Step7EmailAnalysis: React.FC<Step7EmailAnalysisProps> = ({ onNext, onPrev }) => {
   const navigate = useNavigate();
+
+  const handleContinue = () => {
+    if (onNext) {
+      onNext();
+    } else {
+      navigate('/onboarding/platforms');
+    }
+  };
+
+  const handleBack = () => {
+    if (onPrev) {
+      onPrev();
+    } else {
+      navigate(-1);
+    }
+  };
   const [loading, setLoading] = useState(true);
   const [name, setName] = useState('');
   const [insights, setInsights] = useState<Array<{title: string; description: string}>>([]);
