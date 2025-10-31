@@ -20,23 +20,106 @@ const Step1Welcome: React.FC<Step1WelcomeProps> = ({ onNext }) => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center relative px-6 py-20 bg-background">
-      <div className="text-center relative z-10 max-w-[900px]">
+    <div className="min-h-screen flex items-center justify-center relative px-6 py-20" style={{ backgroundColor: 'hsl(var(--claude-bg))' }}>
+      <div className="max-w-4xl mx-auto text-center">
+        {/* Hero Section */}
         <h1
-          className="text-[clamp(2.5rem,5vw,4rem)] leading-[1.1] mb-8 text-foreground"
-          style={{ fontFamily: 'var(--_typography---font--styrene-a)', fontWeight: 500, letterSpacing: '-0.02em' }}
+          className="text-4xl md:text-5xl mb-6"
+          style={{
+            fontFamily: 'var(--_typography---font--styrene-a)',
+            fontWeight: 500,
+            letterSpacing: '-0.02em',
+            color: 'hsl(var(--claude-text))'
+          }}
         >
           Discover Your Soul Signature
         </h1>
+
         <p
-          className="text-[20px] text-foreground max-w-[700px] mx-auto mb-12 leading-[1.6]"
-          style={{ fontFamily: 'var(--_typography---font--tiempos)' }}
+          className="text-base max-w-3xl mx-auto leading-relaxed mb-8"
+          style={{
+            color: '#6B7280',
+            fontFamily: 'var(--_typography---font--tiempos)'
+          }}
         >
-          Beyond your resume and public persona lies your authentic digital identity. We reveal the signature of your originality through your curiosities, passions, and characteristic patterns.
+          "Perhaps we are searching in the branches for what we only find in the roots." Connect your digital life - Netflix, Spotify, Discord, and 30+ platforms - to discover what makes you authentically you.
         </p>
+
+        {/* Stats Row */}
+        <div className="flex justify-center items-center gap-8 mb-12">
+          <div className="text-center">
+            <div
+              className="text-2xl"
+              style={{
+                color: '#D97706',
+                fontFamily: 'var(--_typography---font--styrene-a)',
+                fontWeight: 500
+              }}
+            >
+              30+
+            </div>
+            <div
+              className="text-sm"
+              style={{
+                color: '#6B7280',
+                fontFamily: 'var(--_typography---font--tiempos)'
+              }}
+            >
+              Platforms
+            </div>
+          </div>
+          <div className="text-center">
+            <div
+              className="text-2xl"
+              style={{
+                color: '#D97706',
+                fontFamily: 'var(--_typography---font--styrene-a)',
+                fontWeight: 500
+              }}
+            >
+              100%
+            </div>
+            <div
+              className="text-sm"
+              style={{
+                color: '#6B7280',
+                fontFamily: 'var(--_typography---font--tiempos)'
+              }}
+            >
+              Authentic
+            </div>
+          </div>
+          <div className="text-center">
+            <div
+              className="text-2xl"
+              style={{
+                color: '#D97706',
+                fontFamily: 'var(--_typography---font--styrene-a)',
+                fontWeight: 500
+              }}
+            >
+              ∞
+            </div>
+            <div
+              className="text-sm"
+              style={{
+                color: '#6B7280',
+                fontFamily: 'var(--_typography---font--tiempos)'
+              }}
+            >
+              Sharable
+            </div>
+          </div>
+        </div>
+
+        {/* CTA Button */}
         <button
           onClick={handleBegin}
-          className="cartoon-button text-lg px-10 py-4 inline-flex items-center gap-2"
+          className="inline-flex items-center gap-2 px-8 py-4 rounded-xl text-base bg-[hsl(var(--claude-accent))] text-white hover:opacity-90 transition-opacity"
+          style={{
+            fontFamily: 'var(--_typography---font--styrene-a)',
+            fontWeight: 500
+          }}
         >
           Begin Your Journey
           <ArrowRight className="w-5 h-5" />
