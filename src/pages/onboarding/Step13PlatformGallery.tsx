@@ -2,8 +2,22 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowRight, CheckCircle } from 'lucide-react';
 
-const Step13PlatformGallery = () => {
+
+interface Step13PlatformGalleryProps {
+  onNext?: () => void;
+  onPrev?: () => void;
+  goToStep?: (step: number) => void;
+}
+const Step13PlatformGallery: React.FC<Step13PlatformGalleryProps> = ({ onNext }) => {
   const navigate = useNavigate();
+
+  const handleComplete = () => {
+    if (onNext) {
+      onNext();
+    } else {
+      navigate('/soul-signature');
+    }
+  };
 
   const platformCategories = [
     {
