@@ -206,6 +206,7 @@ import sseRoutes from './routes/sse.js';
 import queueDashboardRoutes from './routes/queue-dashboard.js';
 import cronTokenRefreshHandler from './routes/cron-token-refresh.js';
 import cronPlatformPollingHandler from './routes/cron-platform-polling.js';
+import pipedreamRoutes from './routes/pipedream.js';
 import { serverDb } from './services/database.js';
 import { sanitizeInput, validateContentType } from './middleware/sanitization.js';
 import { /* handleAuthError, */ handleGeneralError, handle404 } from './middleware/errorHandler.js';
@@ -240,6 +241,7 @@ app.use('/api/soul-observer', soulObserverRoutes); // Soul Observer Mode - behav
 app.use('/api/webhooks', webhookRoutes); // Real-time webhook receivers (GitHub, Gmail, Slack)
 app.use('/api/sse', sseRoutes); // Server-Sent Events for real-time updates
 app.use('/api/queues', queueDashboardRoutes); // Bull Board job queue dashboard
+app.use('/api/pipedream', pipedreamRoutes); // Pipedream Connect OAuth integration
 
 // Vercel Cron Job endpoints (production automation)
 // These are called by Vercel Cron Jobs on schedule (configured in vercel.json)

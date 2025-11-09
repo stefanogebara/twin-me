@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Brain, CheckCircle, XCircle, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
@@ -9,7 +9,17 @@ const OAuthCallback = () => {
   const [status, setStatus] = useState<'loading' | 'success' | 'error'>('loading');
   const [message, setMessage] = useState('Processing authentication...');
 
+  // Prevent double execution in React Strict Mode
+  const hasRun = useRef(false);
+
   useEffect(() => {
+    // Guard against double execution in React 18 Strict Mode
+    if (hasRun.current) {
+      console.log('⏭️  OAuth callback already processed, skipping duplicate execution');
+      return;
+    }
+    hasRun.current = true;
+
     const handleOAuthCallback = async () => {
       try {
         const code = searchParams.get('code');
@@ -55,13 +65,14 @@ const OAuthCallback = () => {
             stateData = JSON.parse(decodedState);
             console.log('🔄 Parsed state data:', stateData);
 
-            // Check if this is a connector OAuth (has userId or specific provider)
-            isConnectorOAuth = stateData.userId ||
-              (stateData.provider && ['google_gmail', 'google_calendar', 'google_drive', 'slack', 'teams', 'discord'].includes(stateData.provider));
+            // Check if this is a connector OAuth (has userId or specific provider/platform)
+            const platformOrProvider = stateData.provider || stateData.platform;
+            isConnectorOAuth = !!stateData.userId ||
+              (platformOrProvider && ['spotify', 'youtube', 'netflix', 'discord', 'github', 'linkedin', 'reddit', 'twitch', 'google_gmail', 'google_calendar', 'google_drive', 'slack', 'teams'].includes(platformOrProvider));
             // Check if this is an authentication OAuth
             isAuthOAuth = stateData.isAuth === true;
 
-            console.log('🔍 Flow detection results:', { isConnectorOAuth, isAuthOAuth, hasUserId: !!stateData.userId, provider: stateData.provider });
+            console.log('🔍 Flow detection results:', { isConnectorOAuth, isAuthOAuth, hasUserId: !!stateData.userId, provider: stateData.provider, platform: stateData.platform });
           } else {
             console.log('❌ No state parameter found');
           }
@@ -158,7 +169,7 @@ const OAuthCallback = () => {
 
               // Store user data if provided
               if (data.user) {
-                localStorage.setItem('user_data', JSON.stringify(data.user));
+                localStorage.setItem('auth_user', JSON.stringify(data.user));
               }
 
               // Also store token in extension storage if extension is available
@@ -182,17 +193,24 @@ const OAuthCallback = () => {
 
               console.log('✅ Authentication successful, token stored');
               setStatus('success');
-              setMessage('Authentication successful! Redirecting...');
+
+              // Determine redirect based on whether user is new or existing
+              const redirectPath = data.isNewUser ? '/onboarding' : '/dashboard';
+              const welcomeMessage = data.isNewUser
+                ? 'Welcome! Let\'s set up your Soul Signature'
+                : 'Welcome back!';
+
+              setMessage(`Authentication successful! ${welcomeMessage}`);
 
               // Show success toast
-              toast.success('Welcome to Twin Me!', {
+              toast.success(data.isNewUser ? 'Welcome to Twin Me!' : 'Welcome back!', {
                 description: `Signed in as ${data.user?.email || 'user'}`,
                 duration: 3000
               });
 
-              // Redirect to get-started page
+              // Redirect to appropriate page based on user type
               setTimeout(() => {
-                window.location.href = '/get-started';
+                window.location.href = redirectPath;
               }, 1500);
             } else if (!data.token && stateData?.userId) {
               // This is likely a connector flow that was misidentified
@@ -221,7 +239,7 @@ const OAuthCallback = () => {
               localStorage.setItem('auth_provider', 'google');
 
               if (data.user) {
-                localStorage.setItem('user_data', JSON.stringify(data.user));
+                localStorage.setItem('auth_user', JSON.stringify(data.user));
               }
 
               // Also store token in extension storage if extension is available
@@ -245,16 +263,23 @@ const OAuthCallback = () => {
 
               console.log('✅ OAuth successful, token stored');
               setStatus('success');
-              setMessage('Authentication successful! Redirecting...');
+
+              // Determine redirect based on whether user is new or existing
+              const redirectPath = data.isNewUser ? '/onboarding' : '/dashboard';
+              const welcomeMessage = data.isNewUser
+                ? 'Welcome! Let\'s set up your Soul Signature'
+                : 'Welcome back!';
+
+              setMessage(`Authentication successful! ${welcomeMessage}`);
 
               // Show success toast
-              toast.success('Welcome!', {
+              toast.success(data.isNewUser ? 'Welcome to Twin Me!' : 'Welcome back!', {
                 description: 'Successfully signed in',
                 duration: 3000
               });
 
               setTimeout(() => {
-                window.location.href = '/get-started';
+                window.location.href = redirectPath;
               }, 1500);
             } else {
               // Check if this might be a connector flow based on the response data structure
@@ -319,51 +344,34 @@ const OAuthCallback = () => {
   const getStatusIcon = () => {
     switch (status) {
       case 'loading':
-        return <Loader2 className="w-12 h-12" style={{ color: '#D97706' }} />;
+        return <Loader2 className="w-12 h-12 text-stone-900 animate-spin" />;
       case 'success':
-        return <CheckCircle className="w-12 h-12" style={{ color: '#D97706' }} />;
+        return <CheckCircle className="w-12 h-12 text-stone-900" />;
       case 'error':
-        return <XCircle className="w-12 h-12" style={{ color: '#D97706' }} />;
+        return <XCircle className="w-12 h-12 text-stone-900" />;
     }
   };
 
-  const getStatusColor = () => {
+  const getStatusTextColor = () => {
     switch (status) {
       case 'loading':
-        return '#141413';
+        return 'text-stone-900';
       case 'success':
-        return '#D97706';
+        return 'text-stone-900';
       case 'error':
-        return '#141413';
+        return 'text-stone-900';
     }
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: '#FAF9F5' }}>
-      <div
-        className="max-w-md w-full mx-4 p-8 rounded-2xl border text-center"
-        style={{
-          backgroundColor: 'white',
-          borderColor: 'rgba(20,20,19,0.1)'
-        }}
-      >
+    <div className="min-h-screen flex items-center justify-center bg-[#FAFAFA]">
+      <div className="max-w-md w-full mx-4 p-8 rounded-[16px] border border-black/[0.06] text-center bg-white/50 backdrop-blur-[16px] shadow-[0_4px_16px_rgba(0,0,0,0.03)]">
         {/* Logo */}
         <div className="flex items-center justify-center mb-8">
-          <div
-            className="flex items-center justify-center w-12 h-12 rounded-xl mr-3"
-            style={{ backgroundColor: '#D97706' }}
-          >
+          <div className="flex items-center justify-center w-12 h-12 rounded-xl mr-3 bg-stone-900">
             <Brain className="w-6 h-6 text-white" />
           </div>
-          <h1
-            className="text-2xl"
-            style={{
-              fontFamily: 'var(--_typography---font--styrene-a)',
-              fontWeight: 500,
-              letterSpacing: '-0.02em',
-              color: '#141413'
-            }}
-          >
+          <h1 className="text-2xl text-stone-900 font-medium" style={{ fontFamily: 'var(--_typography---font--styrene-a)', letterSpacing: '-0.02em' }}>
             Twin Me
           </h1>
         </div>
@@ -374,44 +382,21 @@ const OAuthCallback = () => {
         </div>
 
         {/* Status Message */}
-        <h2
-          className="text-xl mb-2"
-          style={{
-            color: getStatusColor(),
-            fontFamily: 'var(--_typography---font--styrene-a)',
-            fontWeight: 500,
-            letterSpacing: '-0.02em'
-          }}
-        >
+        <h2 className={`text-xl mb-2 font-medium ${getStatusTextColor()}`} style={{ fontFamily: 'var(--_typography---font--styrene-a)', letterSpacing: '-0.02em' }}>
           {status === 'loading' && 'Authenticating...'}
           {status === 'success' && 'Welcome!'}
           {status === 'error' && 'Authentication Failed'}
         </h2>
 
-        <p
-          className="text-sm"
-          style={{
-            color: '#6B7280',
-            fontFamily: 'var(--_typography---font--tiempos)'
-          }}
-        >
+        <p className="text-sm text-stone-600" style={{ fontFamily: 'var(--_typography---font--tiempos)' }}>
           {message}
         </p>
 
         {/* Progress indicator for loading state */}
         {status === 'loading' && (
           <div className="mt-6">
-            <div
-              className="w-full rounded-full h-1.5"
-              style={{ backgroundColor: 'rgba(20,20,19,0.1)' }}
-            >
-              <div
-                className="h-1.5 rounded-full"
-                style={{
-                  backgroundColor: '#D97706',
-                  width: '60%'
-                }}
-              />
+            <div className="w-full rounded-full h-1.5 bg-black/[0.06]">
+              <div className="h-1.5 rounded-full bg-stone-900 w-3/5 transition-all duration-300" />
             </div>
           </div>
         )}
@@ -420,14 +405,8 @@ const OAuthCallback = () => {
         {status === 'error' && (
           <button
             onClick={() => navigate('/auth')}
-            className="mt-6 px-6 py-2 rounded-lg"
-            style={{
-              backgroundColor: '#D97706',
-              color: 'white',
-              fontFamily: 'var(--_typography---font--styrene-a)',
-              fontWeight: 500,
-              letterSpacing: '-0.02em'
-            }}
+            className="mt-6 px-6 py-2 rounded-lg bg-stone-900 text-white hover:bg-stone-800 font-medium transition-all shadow-[0_2px_8px_rgba(0,0,0,0.1)] hover:shadow-[0_4px_12px_rgba(0,0,0,0.15)]"
+            style={{ fontFamily: 'var(--_typography---font--styrene-a)', letterSpacing: '-0.02em' }}
           >
             Try Again
           </button>
