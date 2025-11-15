@@ -66,6 +66,13 @@ export const SoulDiscoveryGrid: React.FC<SoulDiscoveryGridProps> = ({
         connected: platforms['reddit']?.connected || false,
         dataPoints: platforms['reddit']?.dataPoints || 0,
         description: 'Community interests & discussion style'
+      },
+      {
+        name: 'Discord',
+        icon: MessageSquare,
+        connected: platforms['discord']?.connected || false,
+        dataPoints: platforms['discord']?.dataPoints || 0,
+        description: 'Community involvement & social circles'
       }
     ],
     professional: [

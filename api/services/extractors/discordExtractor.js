@@ -1,10 +1,20 @@
 /**
  * Discord Data Extractor
- * Extracts guild membership, user profile, and connections from Discord
- * Note: Discord OAuth doesn't provide message history access
+ * Extracts user profile, guilds/servers, and analyzes community involvement patterns
+ *
+ * IMPORTANT LIMITATIONS:
+ * Discord OAuth provides limited data:
+ * ✅ User profile (ID, username, discriminator, avatar)
+ * ✅ List of servers user is in (name, icon, member count)
+ * ❌ Messages/DMs (requires bot token with special permissions)
+ * ❌ Channel data (requires bot token)
+ * ❌ Detailed member activity (requires bot token)
+ *
+ * For deeper integration, a Discord bot would be needed (future enhancement).
  */
 
 import { createClient } from '@supabase/supabase-js';
+import { getValidAccessToken } from '../tokenRefreshService.js';
 
 const supabase = createClient(
   process.env.SUPABASE_URL,
@@ -12,36 +22,129 @@ const supabase = createClient(
 );
 
 class DiscordExtractor {
-  constructor(accessToken) {
-    this.accessToken = accessToken;
+  constructor(userId, platform = 'discord') {
+    this.userId = userId;
+    this.platform = platform;
     this.baseUrl = 'https://discord.com/api/v10';
   }
 
   /**
-   * Main extraction method
+   * Main extraction method - extracts all Discord data for a user
    */
   async extractAll(userId, connectorId) {
-    console.log(`[Discord] Starting extraction for user: ${userId}`);
+    console.log(`[Discord] Starting full extraction for user: ${userId}`);
 
+    let job = null;
     try {
-      const job = await this.createExtractionJob(userId, connectorId);
+      // Create extraction job
+      job = await this.createExtractionJob(userId, connectorId);
+
       let totalItems = 0;
 
-      // Extract user profile
-      totalItems += await this.extractUserProfile(userId);
-
-      // Extract guilds (servers)
+      // Extract different data types
+      totalItems += await this.extractProfile(userId);
       totalItems += await this.extractGuilds(userId);
 
-      // Extract connections (linked accounts)
-      totalItems += await this.extractConnections(userId);
+      // Analyze community soul from extracted data
+      let analysis = null;
+      try {
+        console.log(`[Discord] Analyzing community soul...`);
+        analysis = await this.analyzeCommunitySoul(userId);
+        console.log(`[Discord] Community soul analysis complete`);
+      } catch (analysisError) {
+        console.error('[Discord] Error analyzing community soul:', analysisError);
+        // Don't fail the extraction if analysis fails
+      }
 
+      // Complete job
       await this.completeExtractionJob(job.id, totalItems);
 
       console.log(`[Discord] Extraction complete. Total items: ${totalItems}`);
-      return { success: true, itemsExtracted: totalItems };
+      return {
+        success: true,
+        itemsExtracted: totalItems,
+        platform: 'discord',
+        analysis: analysis
+      };
     } catch (error) {
       console.error('[Discord] Extraction error:', error);
+
+      // Mark job as failed if it was created
+      if (job && job.id) {
+        await this.failExtractionJob(job.id, error.message || 'Unknown error occurred');
+      }
+
+      // If 401, throw to trigger reauth flow
+      if (error.status === 401 || error.message?.includes('401')) {
+        const authError = new Error('Discord authentication failed - please reconnect');
+        authError.status = 401;
+        throw authError;
+      }
+
+      throw error;
+    }
+  }
+
+  /**
+   * Make authenticated request to Discord API with automatic token refresh
+   */
+  async makeRequest(endpoint, params = {}, retryCount = 0) {
+    try {
+      // Get fresh access token (automatically refreshes if needed)
+      const accessToken = await getValidAccessToken(this.userId, this.platform);
+
+      if (!accessToken) {
+        throw new Error('Not authenticated with Discord - please connect your account');
+      }
+
+      const url = new URL(`${this.baseUrl}${endpoint}`);
+      Object.entries(params).forEach(([key, value]) => {
+        url.searchParams.append(key, value);
+      });
+
+      const response = await fetch(url, {
+        headers: {
+          'Authorization': `Bearer ${accessToken}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      // Handle 401 with retry (token might have expired during long extraction)
+      if (response.status === 401 && retryCount < 2) {
+        console.log(`[Discord] 401 error, retrying with fresh token (attempt ${retryCount + 1}/2)`);
+        await new Promise(resolve => setTimeout(resolve, 1000)); // Wait 1 second before retry
+        return this.makeRequest(endpoint, params, retryCount + 1);
+      }
+
+      // Handle rate limiting (Discord returns 429 with Retry-After header)
+      if (response.status === 429) {
+        const retryAfter = response.headers.get('Retry-After');
+        const waitMs = retryAfter ? parseInt(retryAfter) * 1000 : 5000;
+        console.warn(`[Discord] Rate limited, waiting ${waitMs}ms before retry`);
+
+        if (retryCount < 3) {
+          await new Promise(resolve => setTimeout(resolve, waitMs));
+          return this.makeRequest(endpoint, params, retryCount + 1);
+        } else {
+          throw new Error('Discord API rate limit exceeded - please try again later');
+        }
+      }
+
+      if (!response.ok) {
+        const error = await response.text();
+        const apiError = new Error(`Discord API error (${response.status}): ${error}`);
+        apiError.status = response.status;
+        throw apiError;
+      }
+
+      return response.json();
+    } catch (error) {
+      if (error.message.includes('Token refresh failed') || error.message.includes('Not authenticated')) {
+        console.error('[Discord] Token refresh failed - marking connection as needs_reauth');
+        const authError = new Error('Discord authentication failed - please reconnect');
+        authError.status = 401;
+        throw authError;
+      }
       throw error;
     }
   }
