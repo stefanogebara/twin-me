@@ -11,11 +11,14 @@ export const PLATFORM_CONFIGS = {
     authUrl: 'https://accounts.spotify.com/authorize',
     tokenUrl: 'https://accounts.spotify.com/api/token',
     scopes: [
+      'user-read-email',
+      'user-read-private',
       'user-read-recently-played',
       'user-top-read',
       'user-library-read',
       'user-read-playback-state',
-      'playlist-read-private'
+      'playlist-read-private',
+      'playlist-read-collaborative'
     ],
     apiBaseUrl: 'https://api.spotify.com/v1',
 
@@ -66,13 +69,12 @@ export const PLATFORM_CONFIGS = {
     name: 'Discord',
     authUrl: 'https://discord.com/api/oauth2/authorize',
     tokenUrl: 'https://discord.com/api/oauth2/token',
-    scopes: ['identify', 'guilds', 'messages.read'],
+    scopes: ['identify', 'guilds', 'guilds.members.read', 'email'],
     apiBaseUrl: 'https://discord.com/api/v10',
 
     endpoints: {
       userProfile: '/users/@me',
-      guilds: '/users/@me/guilds',
-      connections: '/users/@me/connections'
+      guilds: '/users/@me/guilds'
     },
 
     tokenType: 'Bearer',
@@ -88,22 +90,23 @@ export const PLATFORM_CONFIGS = {
     name: 'GitHub',
     authUrl: 'https://github.com/login/oauth/authorize',
     tokenUrl: 'https://github.com/login/oauth/access_token',
-    scopes: ['user', 'repo:read'],
+    scopes: ['read:user', 'repo', 'read:org'], // User profile, repositories, organization membership
     apiBaseUrl: 'https://api.github.com',
 
     endpoints: {
       userProfile: '/user',
       repos: '/user/repos',
-      events: '/users/{username}/events',
-      commits: '/repos/{owner}/{repo}/commits'
+      pullRequests: '/search/issues?q=author:{username}+type:pr',
+      issues: '/search/issues?q=author:{username}+type:issue',
+      events: '/users/{username}/events/public'
     },
 
-    tokenType: 'token', // GitHub uses 'token' instead of 'Bearer'
-    refreshable: false, // GitHub tokens don't expire
+    tokenType: 'Bearer', // GitHub OAuth apps use Bearer tokens
+    refreshable: false, // GitHub OAuth tokens don't expire by default
 
     rateLimit: {
       requests: 5000,
-      window: 3600 // per hour
+      window: 3600 // per hour (authenticated)
     }
   },
 
@@ -151,6 +154,28 @@ export const PLATFORM_CONFIGS = {
     rateLimit: {
       requests: 20,
       window: 60 // tier 2
+    }
+  },
+
+  linkedin: {
+    name: 'LinkedIn',
+    authUrl: 'https://www.linkedin.com/oauth/v2/authorization',
+    tokenUrl: 'https://www.linkedin.com/oauth/v2/accessToken',
+    scopes: ['openid', 'profile', 'email'],
+    apiBaseUrl: 'https://api.linkedin.com/v2',
+
+    endpoints: {
+      userProfile: '/userinfo',
+      posts: '/ugcPosts',
+      shares: '/shares'
+    },
+
+    tokenType: 'Bearer',
+    refreshable: true,
+
+    rateLimit: {
+      requests: 100,
+      window: 60 // per minute
     }
   }
 };

@@ -4,11 +4,17 @@ import crypto from 'crypto';
 import { SoulSignatureService } from '../services/soulSignature.js';
 import mcpClient from '../services/mcp-client.js';
 import dataExtractionService from '../services/dataExtractionService.js';
-import { encryptToken } from '../services/encryption.js';
+import { encryptToken, decryptToken, encryptState, decryptState } from '../services/encryption.js';
 import { createClient } from '@supabase/supabase-js';
 import fs from 'fs/promises';
 import path from 'path';
 import PLATFORM_CONFIGS from '../config/platformConfigs.js';
+import { generatePKCEParams } from '../services/pkce.js';
+import {
+  oauthAuthorizationLimiter,
+  oauthCallbackLimiter,
+  globalOAuthLimiter
+} from '../middleware/oauthRateLimiter.js';
 
 const supabase = createClient(
   process.env.SUPABASE_URL,
@@ -58,14 +64,22 @@ const csvUpload = multer({
  */
 
 // Spotify Connector - Musical Soul
-router.post('/connect/spotify', async (req, res) => {
+router.post('/connect/spotify', oauthAuthorizationLimiter, async (req, res) => {
   try {
+    // Validate request body exists
+    if (!req.body || typeof req.body !== 'object') {
+      return res.status(400).json({
+        success: false,
+        error: 'Request body is required. Ensure Content-Type is application/json'
+      });
+    }
+
     const { userId } = req.body;
 
     if (!userId) {
       return res.status(400).json({
         success: false,
-        error: 'userId is required'
+        error: 'userId is required in request body'
       });
     }
 
@@ -73,19 +87,23 @@ router.post('/connect/spotify', async (req, res) => {
     const redirectUri = `${process.env.VITE_APP_URL || 'http://localhost:8086'}/oauth/callback`;
     const scope = config.scopes.join(' ');
 
-    // Generate secure OAuth state
-    const state = Buffer.from(JSON.stringify({
+    // Generate PKCE parameters (RFC 7636 - OAuth 2.1 mandatory)
+    const pkce = generatePKCEParams();
+
+    // Generate encrypted OAuth state (CSRF protection with timestamp expiration)
+    const state = encryptState({
       platform: 'spotify',
       userId,
-      timestamp: Date.now()
-    })).toString('base64');
+      codeVerifier: pkce.codeVerifier
+    });
 
-    // Store state in Supabase for validation (CSRF protection)
+    // Store state + code_verifier in Supabase (CSRF protection + PKCE)
     await supabase
       .from('oauth_states')
       .insert({
         state,
-        data: { userId, platform: 'spotify', timestamp: Date.now() },
+        code_verifier: encryptToken(pkce.codeVerifier), // Encrypt PKCE verifier
+        data: { userId, platform: 'spotify' },
         expires_at: new Date(Date.now() + 600000) // 10 minutes
       });
 
@@ -95,6 +113,8 @@ router.post('/connect/spotify', async (req, res) => {
       `redirect_uri=${encodeURIComponent(redirectUri)}&` +
       `scope=${encodeURIComponent(scope)}&` +
       `state=${state}&` +
+      `code_challenge=${pkce.codeChallenge}&` +
+      `code_challenge_method=${pkce.codeChallengeMethod}&` +
       `show_dialog=true`;
 
     console.log(`🎵 Spotify OAuth initiated for user ${userId}`);
@@ -115,7 +135,7 @@ router.post('/connect/spotify', async (req, res) => {
 });
 
 // Netflix Connector - Narrative Preferences
-router.post('/connect/netflix', async (req, res) => {
+router.post('/connect/netflix', oauthAuthorizationLimiter, async (req, res) => {
   try {
     const { userId } = req.body;
 
@@ -249,9 +269,16 @@ router.post('/upload/netflix-csv', csvUpload.single('csvFile'), async (req, res)
 });
 
 // YouTube Connector - Learning & Entertainment Mix
-router.post('/connect/youtube', async (req, res) => {
+router.post('/connect/youtube', oauthAuthorizationLimiter, async (req, res) => {
   try {
     const { userId } = req.body;
+
+    if (!userId) {
+      return res.status(400).json({
+        success: false,
+        error: 'userId is required'
+      });
+    }
 
     // YouTube/Google OAuth
     const clientId = process.env.GOOGLE_CLIENT_ID || '851806289280-k0v833noqjk02r43m45cjr7prnhg24gr.apps.googleusercontent.com';
@@ -260,16 +287,35 @@ router.post('/connect/youtube', async (req, res) => {
       'https://www.googleapis.com/auth/youtube.readonly ' +
       'https://www.googleapis.com/auth/youtube.force-ssl'
     );
-    const state = Buffer.from(JSON.stringify({
+
+    // Generate PKCE parameters (RFC 7636 - OAuth 2.1 mandatory)
+    const pkce = generatePKCEParams();
+
+    // Generate encrypted OAuth state (CSRF protection with timestamp expiration)
+    const state = encryptState({
       platform: 'youtube',
       userId,
-      timestamp: Date.now()
-    })).toString('base64');
+      codeVerifier: pkce.codeVerifier
+    });
+
+    // Store state + code_verifier in Supabase (CSRF protection + PKCE)
+    await supabase
+      .from('oauth_states')
+      .insert({
+        state,
+        code_verifier: encryptToken(pkce.codeVerifier), // Encrypt PKCE verifier
+        data: { userId, platform: 'youtube' },
+        expires_at: new Date(Date.now() + 600000) // 10 minutes
+      });
 
     const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?` +
       `client_id=${clientId}&redirect_uri=${redirectUri}&` +
       `scope=${scope}&response_type=code&access_type=offline&` +
-      `prompt=consent&state=${state}`;
+      `prompt=consent&state=${state}&` +
+      `code_challenge=${pkce.codeChallenge}&` +
+      `code_challenge_method=${pkce.codeChallengeMethod}`;
+
+    console.log(`📺 YouTube OAuth initiated for user ${userId}`);
 
     res.json({
       success: true,
@@ -278,12 +324,16 @@ router.post('/connect/youtube', async (req, res) => {
     });
   } catch (error) {
     console.error('YouTube connection error:', error);
-    res.status(500).json({ error: 'Failed to initialize YouTube connection' });
+    res.status(500).json({
+      success: false,
+      error: 'Failed to initialize YouTube connection',
+      details: error.message
+    });
   }
 });
 
 // Steam/Gaming Connector - Interactive Preferences
-router.post('/connect/steam', async (req, res) => {
+router.post('/connect/steam', oauthAuthorizationLimiter, async (req, res) => {
   try {
     const { userId, steamId } = req.body;
 
@@ -304,7 +354,7 @@ router.post('/connect/steam', async (req, res) => {
  * OAuth Callback Handler
  * Handles OAuth callbacks from all entertainment platforms
  */
-router.post('/oauth/callback', async (req, res) => {
+router.post('/oauth/callback', oauthCallbackLimiter, async (req, res) => {
   try {
     const { code, state, error: oauthError } = req.body;
 
@@ -322,14 +372,40 @@ router.post('/oauth/callback', async (req, res) => {
       });
     }
 
-    // Decode state to get provider and userId
-    const stateData = JSON.parse(Buffer.from(state, 'base64').toString('utf8'));
-    const { provider, userId } = stateData;
+    // Decrypt and validate state (includes timestamp expiration check)
+    let stateData;
+    try {
+      stateData = decryptState(state); // Validates timestamp, throws if expired
+    } catch (error) {
+      console.warn(`⚠️ State decryption failed - possible tampered/expired state:`, error.message);
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid or expired state parameter'
+      });
+    }
+
+    const { platform, userId } = stateData;
+
+    // Atomically mark state as used and retrieve code_verifier (prevents replay attacks)
+    const { data: storedState, error: stateError } = await supabase.rpc('mark_oauth_state_as_used', {
+      state_param: state
+    });
+
+    if (stateError || !storedState) {
+      console.warn(`⚠️ Invalid, expired, or already used state parameter - possible CSRF/replay attack`, stateError);
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid or expired state parameter'
+      });
+    }
+
+    // Decrypt the code_verifier for PKCE token exchange
+    const codeVerifier = storedState.code_verifier ? decryptToken(storedState.code_verifier) : null;
 
     let accessToken, refreshToken, expiresIn;
 
     // Exchange authorization code for access token based on provider
-    switch (provider) {
+    switch (platform) {
       case 'spotify':
         const spotifyConfig = PLATFORM_CONFIGS.spotify;
         const spotifyTokenResponse = await fetch(spotifyConfig.tokenUrl, {
@@ -343,14 +419,29 @@ router.post('/oauth/callback', async (req, res) => {
           body: new URLSearchParams({
             grant_type: 'authorization_code',
             code,
-            redirect_uri: `${process.env.VITE_APP_URL || 'http://localhost:8086'}/oauth/callback`
+            redirect_uri: `${process.env.VITE_APP_URL || 'http://localhost:8086'}/oauth/callback`,
+            code_verifier: codeVerifier // PKCE verification
           })
         });
 
         if (!spotifyTokenResponse.ok) {
           const errorData = await spotifyTokenResponse.json();
-          console.error('Spotify token exchange error:', errorData);
-          throw new Error(`Failed to exchange Spotify authorization code: ${errorData.error_description || errorData.error}`);
+          console.error('Spotify token exchange error:', {
+            status: spotifyTokenResponse.status,
+            error: errorData.error,
+            description: errorData.error_description,
+            clientId: process.env.SPOTIFY_CLIENT_ID?.substring(0, 8) + '...',
+            hasClientSecret: !!process.env.SPOTIFY_CLIENT_SECRET
+          });
+
+          // Provide helpful error message based on error type
+          if (errorData.error === 'invalid_grant') {
+            throw new Error('Authorization code expired or already used. Please try connecting again.');
+          } else if (errorData.error === 'invalid_client') {
+            throw new Error('Invalid Spotify credentials. Please check SPOTIFY_CLIENT_ID and SPOTIFY_CLIENT_SECRET in .env file.');
+          } else {
+            throw new Error(`Failed to exchange Spotify authorization code: ${errorData.error_description || errorData.error}`);
+          }
         }
 
         const spotifyTokens = await spotifyTokenResponse.json();
@@ -359,8 +450,68 @@ router.post('/oauth/callback', async (req, res) => {
         expiresIn = spotifyTokens.expires_in;
         break;
 
+      case 'discord':
+        const discordTokenResponse = await fetch('https://discord.com/api/oauth2/token', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+          body: new URLSearchParams({
+            client_id: process.env.DISCORD_CLIENT_ID,
+            client_secret: process.env.DISCORD_CLIENT_SECRET,
+            grant_type: 'authorization_code',
+            code,
+            redirect_uri: `${process.env.VITE_APP_URL || 'http://localhost:8086'}/oauth/callback`
+          })
+        });
+
+        if (!discordTokenResponse.ok) {
+          const errorData = await discordTokenResponse.json();
+          console.error('Discord token exchange error:', errorData);
+          throw new Error(`Failed to exchange Discord authorization code: ${errorData.error_description || errorData.error}`);
+        }
+
+        const discordTokens = await discordTokenResponse.json();
+        accessToken = discordTokens.access_token;
+        refreshToken = discordTokens.refresh_token;
+        expiresIn = discordTokens.expires_in;
+        break;
+
+      case 'github':
+        const githubTokenResponse = await fetch('https://github.com/login/oauth/access_token', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json'
+          },
+          body: JSON.stringify({
+            client_id: process.env.GITHUB_CLIENT_ID,
+            client_secret: process.env.GITHUB_CLIENT_SECRET,
+            code,
+            redirect_uri: `${process.env.VITE_APP_URL || 'http://localhost:8086'}/oauth/callback`,
+            code_verifier: codeVerifier // PKCE verification
+          })
+        });
+
+        if (!githubTokenResponse.ok) {
+          const errorData = await githubTokenResponse.json();
+          console.error('GitHub token exchange error:', errorData);
+          throw new Error(`Failed to exchange GitHub authorization code: ${errorData.error_description || errorData.error}`);
+        }
+
+        const githubTokens = await githubTokenResponse.json();
+
+        if (githubTokens.error) {
+          throw new Error(`GitHub OAuth error: ${githubTokens.error_description || githubTokens.error}`);
+        }
+
+        accessToken = githubTokens.access_token;
+        refreshToken = githubTokens.refresh_token; // GitHub may not provide refresh tokens
+        expiresIn = githubTokens.expires_in; // GitHub tokens don't expire by default
+        break;
+
       case 'youtube':
-        const youtubeTokenResponse = await fetch('https://oauth2.googleapis.com/token', {
+      case 'google_gmail':
+      case 'google_calendar':
+        const googleTokenResponse = await fetch('https://oauth2.googleapis.com/token', {
           method: 'POST',
           headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
           body: new URLSearchParams({
@@ -368,79 +519,91 @@ router.post('/oauth/callback', async (req, res) => {
             client_id: process.env.GOOGLE_CLIENT_ID,
             client_secret: process.env.GOOGLE_CLIENT_SECRET,
             redirect_uri: `${process.env.APP_URL || process.env.VITE_APP_URL || 'http://localhost:8086'}/oauth/callback`,
-            grant_type: 'authorization_code'
+            grant_type: 'authorization_code',
+            code_verifier: codeVerifier // PKCE verification
           })
         });
 
-        if (!youtubeTokenResponse.ok) {
-          throw new Error('Failed to exchange YouTube authorization code');
+        if (!googleTokenResponse.ok) {
+          const errorData = await googleTokenResponse.json();
+          console.error('Google token exchange error:', errorData);
+          throw new Error(`Failed to exchange Google authorization code: ${errorData.error_description || errorData.error}`);
         }
 
-        const youtubeTokens = await youtubeTokenResponse.json();
-        accessToken = youtubeTokens.access_token;
-        refreshToken = youtubeTokens.refresh_token;
-        expiresIn = youtubeTokens.expires_in;
+        const googleTokens = await googleTokenResponse.json();
+        accessToken = googleTokens.access_token;
+        refreshToken = googleTokens.refresh_token;
+        expiresIn = googleTokens.expires_in;
         break;
 
       default:
         return res.status(400).json({
           success: false,
-          error: `Unsupported provider: ${provider}`
+          error: `Unsupported platform: ${platform}`
         });
     }
 
     // Store tokens in database with encryption
-    const expiresAt = expiresIn ? new Date(Date.now() + expiresIn * 1000) : null;
+    const tokenExpiresAt = expiresIn ? new Date(Date.now() + expiresIn * 1000) : null;
     const encryptedAccessToken = encryptToken(accessToken);
     const encryptedRefreshToken = refreshToken ? encryptToken(refreshToken) : null;
 
-    // Insert or update data connector
+    // Insert or update platform connection
     const { data: connectorData, error: connectorError } = await supabase
       .from('platform_connections')
       .upsert({
         user_id: userId,
-        platform: provider,
+        platform: platform,
         access_token: encryptedAccessToken,
         refresh_token: encryptedRefreshToken,
-        expires_at: expiresAt,
-        connected: true,
-        last_sync_status: 'pending'
+        token_expires_at: tokenExpiresAt,
+        status: 'connected',
+        connected_at: new Date().toISOString(),
+        last_sync_status: 'pending',
+        updated_at: new Date().toISOString()
       }, {
-        onConflict: 'user_id,platform',
-        returning: 'minimal'
-      });
+        onConflict: 'user_id,platform'
+      })
+      .select()
+      .single();
 
     if (connectorError) {
       console.error('Error storing connector:', connectorError);
       throw new Error('Failed to store connection');
     }
 
-    console.log(`💾 Tokens stored for ${provider} - User: ${userId}`);
+    console.log(`💾 Tokens stored for ${platform} - User: ${userId}`);
 
     // Trigger data extraction in background (non-blocking)
-    console.log(`📊 Starting background data extraction for ${provider}...`);
+    console.log(`📊 Starting background data extraction for ${platform}...`);
 
     // Don't await - let it run in background
-    dataExtractionService.extractPlatformData(userId, provider)
+    dataExtractionService.extractPlatformData(userId, platform)
       .then(result => {
-        console.log(`✅ Background extraction completed for ${provider}:`, result);
+        console.log(`✅ Background extraction completed for ${platform}:`, result);
       })
       .catch(error => {
-        console.error(`❌ Background extraction failed for ${provider}:`, error);
+        console.error(`❌ Background extraction failed for ${platform}:`, error);
       });
 
     res.json({
       success: true,
-      provider,
+      platform,
       userId,
-      message: `Successfully connected to ${provider}. Data extraction started.`
+      message: `Successfully connected to ${platform}. Data extraction started.`,
+      connector: {
+        id: connectorData.id,
+        platform,
+        connected_at: connectorData.connected_at
+      }
     });
 
   } catch (error) {
     console.error('OAuth callback error:', error);
     res.status(500).json({
       success: false,
-      error: 'Failed to complete OAuth flow'
+      error: 'Failed to complete OAuth flow',
+      details: error.message
     });
   }
 });
@@ -1093,7 +1256,7 @@ function calculateViewingFrequency(viewingHistory) {
 }
 
 // GitHub Connector - Code & Collaboration Soul
-router.post('/connect/github', async (req, res) => {
+router.post('/connect/github', oauthAuthorizationLimiter, async (req, res) => {
   try {
     const { userId } = req.body;
 
@@ -1108,11 +1271,26 @@ router.post('/connect/github', async (req, res) => {
     const clientId = process.env.GITHUB_CLIENT_ID;
     const redirectUri = encodeURIComponent(`${process.env.APP_URL || process.env.VITE_APP_URL || 'http://localhost:8086'}/oauth/callback`);
     const scope = encodeURIComponent('read:user repo read:org');
-    const state = Buffer.from(JSON.stringify({
+
+    // Generate PKCE parameters (RFC 7636 - recommended for GitHub)
+    const pkce = generatePKCEParams();
+
+    // Generate encrypted OAuth state (CSRF protection with timestamp expiration)
+    const state = encryptState({
       platform: 'github',
       userId,
-      timestamp: Date.now()
-    })).toString('base64');
+      codeVerifier: pkce.codeVerifier
+    });
+
+    // Store state + code_verifier in Supabase (CSRF protection + PKCE)
+    await supabase
+      .from('oauth_states')
+      .insert({
+        state,
+        code_verifier: encryptToken(pkce.codeVerifier), // Encrypt PKCE verifier
+        data: { userId, platform: 'github' },
+        expires_at: new Date(Date.now() + 600000) // 10 minutes
+      });
 
     const authUrl = `https://github.com/login/oauth/authorize?` +
       `client_id=${clientId}&redirect_uri=${redirectUri}&scope=${scope}&state=${state}`;
@@ -1133,8 +1311,71 @@ router.post('/connect/github', async (req, res) => {
   }
 });
 
+// Discord Connector - Community & Social Soul
+router.post('/connect/discord', oauthAuthorizationLimiter, async (req, res) => {
+  try {
+    const { userId } = req.body;
+
+    if (!userId) {
+      return res.status(400).json({
+        success: false,
+        error: 'userId is required'
+      });
+    }
+
+    // Discord OAuth Configuration
+    const config = PLATFORM_CONFIGS.discord;
+    const clientId = process.env.DISCORD_CLIENT_ID;
+    const redirectUri = `${process.env.VITE_APP_URL || 'http://localhost:8086'}/oauth/callback`;
+    const scope = config.scopes.join(' ');
+
+    // Note: Discord doesn't officially support PKCE yet, but we'll use state for CSRF protection
+    const pkce = generatePKCEParams();
+
+    // Generate encrypted OAuth state (CSRF protection with timestamp expiration)
+    const state = encryptState({
+      platform: 'discord',
+      userId,
+      codeVerifier: pkce.codeVerifier
+    });
+
+    // Store state in Supabase (CSRF protection)
+    await supabase
+      .from('oauth_states')
+      .insert({
+        state,
+        code_verifier: encryptToken(pkce.codeVerifier),
+        data: { userId, platform: 'discord' },
+        expires_at: new Date(Date.now() + 600000) // 10 minutes
+      });
+
+    const authUrl = `${config.authUrl}?` +
+      `client_id=${clientId}&` +
+      `response_type=code&` +
+      `redirect_uri=${encodeURIComponent(redirectUri)}&` +
+      `scope=${encodeURIComponent(scope)}&` +
+      `state=${state}&` +
+      `prompt=consent`;
+
+    console.log(`💬 Discord OAuth initiated for user ${userId}`);
+
+    res.json({
+      success: true,
+      authUrl,
+      message: 'Connect your community soul - discover your social circles'
+    });
+  } catch (error) {
+    console.error('Discord connection error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to initialize Discord connection',
+      details: error.message
+    });
+  }
+});
+
 // Gmail Connector - Communication Patterns Soul
-router.post('/connect/gmail', async (req, res) => {
+router.post('/connect/gmail', oauthAuthorizationLimiter, async (req, res) => {
   try {
     const { userId } = req.body;
 
@@ -1158,15 +1399,31 @@ router.post('/connect/gmail', async (req, res) => {
       'https://www.googleapis.com/auth/userinfo.profile'
     );
 
-    const state = Buffer.from(JSON.stringify({
+    // Generate PKCE parameters (RFC 7636 - OAuth 2.1 mandatory)
+    const pkce = generatePKCEParams();
+
+    // Generate encrypted OAuth state (CSRF protection with timestamp expiration)
+    const state = encryptState({
       platform: 'google_gmail',
       userId,
-      timestamp: Date.now()
-    })).toString('base64');
+      codeVerifier: pkce.codeVerifier
+    });
+
+    // Store state + code_verifier in Supabase (CSRF protection + PKCE)
+    await supabase
+      .from('oauth_states')
+      .insert({
+        state,
+        code_verifier: encryptToken(pkce.codeVerifier), // Encrypt PKCE verifier
+        data: { userId, platform: 'google_gmail' },
+        expires_at: new Date(Date.now() + 600000) // 10 minutes
+      });
 
     const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?` +
       `client_id=${clientId}&response_type=code&` +
-      `redirect_uri=${redirectUri}&scope=${scope}&state=${state}&access_type=offline&prompt=consent`;
+      `redirect_uri=${redirectUri}&scope=${scope}&state=${state}&access_type=offline&prompt=consent&` +
+      `code_challenge=${pkce.codeChallenge}&` +
+      `code_challenge_method=${pkce.codeChallengeMethod}`;
 
     console.log(`📧 Gmail OAuth initiated for user ${userId}`);
 
@@ -1179,7 +1436,8 @@ router.post('/connect/gmail', async (req, res) => {
     console.error('Gmail connection error:', error);
     res.status(500).json({
       success: false,
-      error: 'Failed to initialize Gmail connection'
+      error: 'Failed to initialize Gmail connection',
+      details: error.message
     });
   }
 });
