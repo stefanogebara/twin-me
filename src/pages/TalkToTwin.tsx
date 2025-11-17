@@ -3,10 +3,12 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useTheme } from '../contexts/ThemeContext';
 import { useSoulSignature } from '../hooks/useSoulSignature';
+import { useOrchestrator, type OrchestratorRecommendation, type OrchestratorInsight } from '../hooks/useOrchestrator';
 import { twinApi, type ConversationSuggestion } from '@/services/soulApi';
 import { CollapsibleSidebar } from '@/components/layout/CollapsibleSidebar';
 import { PageLayout } from '@/components/layout/PageLayout';
 import { MessageActions } from '@/components/chat/MessageActions';
+import { RecommendationsSidebar } from '@/components/chat/RecommendationsSidebar';
 import {
   ArrowLeft, Heart, Briefcase, MessageCircle, Sparkles,
   Send, Mic, User, Loader2, Menu, Plus, Zap
@@ -24,6 +26,8 @@ interface Message {
   content: string;
   timestamp: Date;
   rating?: number;
+  recommendations?: OrchestratorRecommendation[];
+  insights?: OrchestratorInsight[];
 }
 
 const TalkToTwin = () => {
@@ -39,7 +43,15 @@ const TalkToTwin = () => {
     loading: soulLoading
   } = useSoulSignature({ userId: user?.id });
 
+  const {
+    query: orchestratorQuery,
+    isLoading: orchestratorLoading
+  } = useOrchestrator();
+
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [recommendationsSidebarOpen, setRecommendationsSidebarOpen] = useState(false);
+  const [currentRecommendations, setCurrentRecommendations] = useState<OrchestratorRecommendation[]>([]);
+  const [currentInsights, setCurrentInsights] = useState<OrchestratorInsight[]>([]);
   const [twinMode, setTwinMode] = useState<TwinMode>('personal');
   const [conversationContext, setConversationContext] = useState<ConversationContext>('casual');
   const [messages, setMessages] = useState<Message[]>([]);
@@ -110,42 +122,110 @@ const TalkToTwin = () => {
       id: assistantMessageId,
       role: 'assistant',
       content: '',
-      timestamp: new Date()
+      timestamp: new Date(),
+      recommendations: [],
+      insights: []
     };
     setMessages(prev => [...prev, assistantMessage]);
 
     try {
-      const data = await twinApi.sendMessage(conversationId, messageToSend, {
-        twinType: twinMode,
-        context: conversationContext,
-        onChunk: (chunk: string) => {
-          setMessages(prev =>
-            prev.map(msg =>
-              msg.id === assistantMessageId
-                ? { ...msg, content: msg.content + chunk }
-                : msg
-            )
-          );
+      console.log('🎭 [TalkToTwin] Using orchestrator for query:', messageToSend);
+
+      // Use orchestrator API for intelligent multi-agent processing
+      const result = await orchestratorQuery({
+        query: messageToSend,
+        context: {
+          twinMode,
+          conversationContext,
+          conversationId: conversationId || undefined
         }
       });
 
-      if (!conversationId && data.conversationId) {
-        setConversationId(data.conversationId);
+      // Update message with orchestrator response
+      setMessages(prev =>
+        prev.map(msg =>
+          msg.id === assistantMessageId
+            ? {
+                ...msg,
+                content: result.synthesis,
+                recommendations: result.recommendations || [],
+                insights: result.metadata?.agentContributions ? [] : undefined
+              }
+            : msg
+        )
+      );
+
+      // Update recommendations sidebar
+      if (result.recommendations && result.recommendations.length > 0) {
+        setCurrentRecommendations(result.recommendations);
+        setRecommendationsSidebarOpen(true);
       }
+
+      // Extract insights if available
+      if (result.keyInsights && result.keyInsights.length > 0) {
+        // Convert keyInsights to InsightAgent format if needed
+        setCurrentInsights([]);
+      }
+
+      console.log('✅ [TalkToTwin] Orchestrator succeeded:', {
+        latency: result.latencyMs,
+        recommendations: result.recommendations?.length || 0,
+        agents: result.metadata?.totalAgentsUsed
+      });
 
       setIsTyping(false);
       loadSuggestions();
     } catch (error) {
-      console.error('[TwinChat] Error:', error);
+      console.error('❌ [TalkToTwin] Orchestrator error:', error);
       setIsTyping(false);
 
+      // Fallback to traditional twin API
+      console.log('⚠️ [TalkToTwin] Falling back to traditional twin API');
+
+      const assistantMessageId2 = (Date.now() + 2).toString();
       setMessages(prev =>
-        prev.map(msg =>
-          msg.id === assistantMessageId
-            ? { ...msg, content: 'Sorry, I encountered an error. Please try again.' }
-            : msg
-        )
+        prev.filter(msg => msg.id !== assistantMessageId)
+          .concat({
+            id: assistantMessageId2,
+            role: 'assistant',
+            content: '',
+            timestamp: new Date()
+          })
       );
+
+      try {
+        const data = await twinApi.sendMessage(conversationId, messageToSend, {
+          twinType: twinMode,
+          context: conversationContext,
+          onChunk: (chunk: string) => {
+            setMessages(prev =>
+              prev.map(msg =>
+                msg.id === assistantMessageId2
+                  ? { ...msg, content: msg.content + chunk }
+                  : msg
+              )
+            );
+          }
+        });
+
+        if (!conversationId && data.conversationId) {
+          setConversationId(data.conversationId);
+        }
+
+        setIsTyping(false);
+        loadSuggestions();
+      } catch (fallbackError) {
+        console.error('[TwinChat] Fallback error:', fallbackError);
+        setIsTyping(false);
+
+        setMessages(prev =>
+          prev.map(msg =>
+            msg.id === assistantMessageId2
+              ? { ...msg, content: 'Sorry, I encountered an error. Please try again.' }
+              : msg
+          )
+        );
+      }
     }
   };
 
@@ -241,6 +321,16 @@ const TalkToTwin = () => {
   return (
     <PageLayout sidebarOpen={sidebarOpen}>
       <CollapsibleSidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
+
+      <RecommendationsSidebar
+        recommendations={currentRecommendations}
+        insights={currentInsights}
+        isOpen={recommendationsSidebarOpen}
+        onClose={() => setRecommendationsSidebarOpen(false)}
+        onApplyRecommendation={(rec) => {
+          console.log('[TalkToTwin] Applied recommendation:', rec.title);
+        }}
+      />
 
       <div className="h-screen flex flex-col" style={{
         backgroundColor: theme === 'dark' ? '#232320' : '#FAFAFA'
