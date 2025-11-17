@@ -14,16 +14,8 @@ import AgentBase from './AgentBase.js';
 
 class TaskDecomposer extends AgentBase {
   constructor() {
-    super({
-      name: 'TaskDecomposer',
-      role: 'Query analysis and task decomposition specialist',
-      model: 'claude-opus-4-20250514', // Use Opus for reasoning
-      maxTokens: 2048,
-      temperature: 0.3 // Lower temperature for consistent decomposition
-    });
-
-    // Available specialized agents
-    this.availableAgents = [
+    // Available specialized agents (must be defined BEFORE super() call)
+    const availableAgents = [
       {
         name: 'RecommendationAgent',
         capabilities: [
@@ -69,12 +61,32 @@ class TaskDecomposer extends AgentBase {
         keywords: ['pattern', 'before', 'after', 'when', 'habit', 'routine', 'always', 'usually']
       }
     ];
+
+    super({
+      name: 'TaskDecomposer',
+      role: 'Query analysis and task decomposition specialist',
+      model: 'claude-opus-4-20250514', // Use Opus for reasoning
+      maxTokens: 2048,
+      temperature: 0.3 // Lower temperature for consistent decomposition
+    });
+
+    // Store availableAgents as instance property
+    this.availableAgents = availableAgents;
+
+    // CRITICAL: Rebuild system prompt AFTER availableAgents is assigned
+    // AgentBase constructor already called buildSystemPrompt() but this.availableAgents was undefined then
+    this.systemPrompt = this.buildSystemPrompt();
   }
 
   /**
    * Build system prompt for task decomposition
    */
   buildSystemPrompt() {
+    // Handle case where availableAgents hasn't been set yet (during super() call)
+    if (!this.availableAgents) {
+      return 'TaskDecomposer system prompt (initializing...)';
+    }
+
     return `You are the TaskDecomposer, a specialized AI component of Twin-Me's multi-agent orchestration system.
 
 YOUR ROLE:
@@ -409,3 +421,4 @@ Remember: Output ONLY valid JSON. No additional text.`;
 }
 
 export default TaskDecomposer;
+
