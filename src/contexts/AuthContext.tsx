@@ -1,4 +1,20 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { DEMO_USER } from '../services/demoDataService';
+
+/**
+ * AuthContext - Authentication Management
+ *
+ * DEMO MODE SUPPORT:
+ * - Demo mode is enabled when localStorage has 'demo_mode' = 'true'
+ * - Demo mode uses DEMO_USER from demoDataService
+ * - Demo mode is clearly marked with isDemoMode flag
+ * - All API calls should check isDemoMode before making real requests
+ *
+ * REAL AUTH:
+ * - Uses JWT tokens stored in localStorage ('auth_token')
+ * - Supports email/password and OAuth (Google) authentication
+ * - Validates tokens on mount via /api/auth/verify endpoint
+ */
 
 interface User {
   id: string;
@@ -14,10 +30,11 @@ interface AuthContextType {
   isLoaded: boolean;
   isSignedIn: boolean;
   isLoading: boolean;
+  isDemoMode: boolean;
   signIn: (email: string, password: string) => Promise<void>;
   signUp: (email: string, password: string, firstName?: string, lastName?: string) => Promise<void>;
   signOut: () => Promise<void>;
-  signInWithOAuth: (provider: 'google') => Promise<void>;
+  signInWithOAuth: (provider: 'google', redirectAfterAuth?: string) => Promise<void>;
   clearAuth: () => void;
 }
 
@@ -36,8 +53,18 @@ interface AuthProviderProps {
 }
 
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
-  // Optimistic initialization: Check localStorage for cached user data
+  // DEMO MODE: Check if demo mode is active
+  // This allows users to explore the platform without connecting real accounts
+  const isDemoMode = localStorage.getItem('demo_mode') === 'true';
+
+  // Optimistic initialization: Check localStorage for cached user data or demo user
   const getCachedUser = (): User | null => {
+    // DEMO MODE: If in demo mode, return demo user immediately
+    if (isDemoMode) {
+      console.log('[AuthContext] 🎭 Demo mode active - using DEMO_USER');
+      return DEMO_USER;
+    }
+
     try {
       const cachedUser = localStorage.getItem('auth_user');
       return cachedUser ? JSON.parse(cachedUser) : null;
@@ -53,9 +80,30 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   useEffect(() => {
     // Check for existing session on mount
     checkAuth();
+
+    // Listen for demo mode changes
+    const handleDemoModeChange = () => {
+      const demoActive = localStorage.getItem('demo_mode') === 'true';
+      if (demoActive) {
+        setUser(DEMO_USER);
+      } else {
+        checkAuth();
+      }
+    };
+
+    window.addEventListener('storage', handleDemoModeChange);
+    return () => window.removeEventListener('storage', handleDemoModeChange);
   }, []);
 
   const checkAuth = async () => {
+    // DEMO MODE: Skip real auth check if in demo mode
+    if (localStorage.getItem('demo_mode') === 'true') {
+      console.log('[AuthContext] 🎭 Demo mode active - skipping real auth check');
+      setUser(DEMO_USER);
+      setIsLoaded(true);
+      return;
+    }
+
     const token = localStorage.getItem('auth_token');
     console.log('🔍 Auth check - token exists:', !!token);
 
@@ -166,6 +214,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     console.log('🚪 Signing out user');
     localStorage.removeItem('auth_token');
     localStorage.removeItem('auth_user');
+    localStorage.removeItem('demo_mode'); // Also exit demo mode
     setUser(null);
   };
 
@@ -176,10 +225,19 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     setUser(null);
   };
 
-  const signInWithOAuth = async (provider: 'google') => {
+  const signInWithOAuth = async (provider: 'google', redirectAfterAuth?: string) => {
     try {
+      // Build OAuth URL with optional redirect parameter
+      let oauthUrl = `${import.meta.env.VITE_API_URL}/auth/oauth/${provider}`;
+
+      // If redirectAfterAuth is provided, pass it as a query parameter
+      if (redirectAfterAuth) {
+        console.log(`[OAuth] Redirecting to ${provider} with post-auth redirect: ${redirectAfterAuth}`);
+        oauthUrl += `?redirect=${encodeURIComponent(redirectAfterAuth)}`;
+      }
+
       // Redirect to OAuth provider
-      window.location.href = `${import.meta.env.VITE_API_URL}/auth/oauth/${provider}`;
+      window.location.href = oauthUrl;
     } catch (error) {
       console.error('OAuth sign in error:', error);
       throw error;
@@ -191,6 +249,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     isLoaded,
     isSignedIn: !!user,
     isLoading,
+    isDemoMode: localStorage.getItem('demo_mode') === 'true',
     signIn,
     signUp,
     signOut,

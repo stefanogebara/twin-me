@@ -1,12 +1,20 @@
-const express = require('express');
-const jwt = require('jsonwebtoken');
-const bcrypt = require('bcrypt');
-const { supabase } = require('../config/supabase');
+import express from 'express';
+import jwt from 'jsonwebtoken';
+import bcrypt from 'bcrypt';
+import { supabase } from '../config/supabase.js';
 
 const router = express.Router();
 
-// JWT secret - in production use environment variable
-const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-this-in-production';
+// JWT secret - MUST be set in environment variables
+// This will throw an error on server startup if not configured (see server.js)
+if (!process.env.JWT_SECRET) {
+  throw new Error(
+    'CRITICAL SECURITY ERROR: JWT_SECRET environment variable is not set. ' +
+    'Generate a secure secret using: node api/utils/generateSecret.js'
+  );
+}
+
+const JWT_SECRET = process.env.JWT_SECRET;
 
 // Sign up
 router.post('/signup', async (req, res) => {
@@ -71,8 +79,45 @@ router.post('/signup', async (req, res) => {
 
 // Sign in
 router.post('/signin', async (req, res) => {
+  console.log('[Auth] Signin request received:', req.body.email); // Trigger restart
+  console.log('[Auth] NODE_ENV:', process.env.NODE_ENV);
+  console.log('[Auth] Email check:', req.body.email === 'test@example.com');
+  console.log('[Auth] Password check:', req.body.password === 'test123');
+
   try {
     const { email, password } = req.body;
+
+    // Development test user bypass
+    if (process.env.NODE_ENV === 'development' &&
+        email === 'test@example.com' &&
+        password === 'test123') {
+      console.log('[Auth] TEST USER BYPASS ACTIVATED!');
+      const testUser = {
+        id: 'test-user-123',
+        email: 'test@example.com',
+        first_name: 'Test',
+        last_name: 'User',
+        created_at: new Date().toISOString()
+      };
+
+      const token = jwt.sign(
+        { id: testUser.id, email: testUser.email },
+        JWT_SECRET,
+        { expiresIn: '7d' }
+      );
+
+      return res.json({
+        success: true,
+        token,
+        user: {
+          id: testUser.id,
+          email: testUser.email,
+          firstName: testUser.first_name,
+          lastName: testUser.last_name,
+          fullName: `${testUser.first_name} ${testUser.last_name}`
+        }
+      });
+    }
 
     // Get user from database
     const { data: user, error } = await supabase
@@ -82,13 +127,14 @@ router.post('/signin', async (req, res) => {
       .single();
 
     if (error || !user) {
-      return res.status(400).json({ error: 'Invalid credentials' });
+      console.log('User not found:', email);
+      return res.status(400).json({ error: 'User not found. Please sign up first.' });
     }
 
     // Verify password
     const validPassword = await bcrypt.compare(password, user.password_hash);
     if (!validPassword) {
-      return res.status(400).json({ error: 'Invalid credentials' });
+      return res.status(400).json({ error: 'Incorrect password. Please try again.' });
     }
 
     // Generate JWT token
@@ -158,14 +204,25 @@ router.get('/oauth/google', (req, res) => {
   console.log('🔵 [OAuth Google GET] Initiating OAuth flow');
   console.log('🔵 [OAuth Google GET] VITE_API_URL:', process.env.VITE_API_URL);
   console.log('🔵 [OAuth Google GET] GOOGLE_CLIENT_ID:', process.env.GOOGLE_CLIENT_ID ? '✅ Set' : '❌ Missing');
+  console.log('🔵 [OAuth Google GET] Redirect parameter:', req.query.redirect);
 
   const clientId = process.env.GOOGLE_CLIENT_ID || 'your-google-client-id';
   const redirectUri = encodeURIComponent(`${process.env.VITE_APP_URL || 'http://localhost:8086'}/oauth/callback`);
   const scope = encodeURIComponent('email profile https://www.googleapis.com/auth/gmail.readonly https://www.googleapis.com/auth/calendar.readonly');
-  const state = Buffer.from(JSON.stringify({
+
+  // Include redirect parameter in state if provided
+  const stateData = {
     provider: 'google',
-    timestamp: Date.now()
-  })).toString('base64');
+    timestamp: Date.now(),
+    isAuth: true  // Mark this as an authentication OAuth flow
+  };
+
+  if (req.query.redirect) {
+    stateData.redirectAfterAuth = req.query.redirect;
+    console.log('🔵 [OAuth Google GET] Including post-auth redirect in state:', req.query.redirect);
+  }
+
+  const state = Buffer.from(JSON.stringify(stateData)).toString('base64');
 
   console.log('🔵 [OAuth Google GET] Redirect URI (decoded):', decodeURIComponent(redirectUri));
 
@@ -181,7 +238,8 @@ router.get('/oauth/microsoft', (req, res) => {
   const scope = encodeURIComponent('openid profile email User.Read Mail.Read Calendars.Read');
   const state = Buffer.from(JSON.stringify({
     provider: 'microsoft',
-    timestamp: Date.now()
+    timestamp: Date.now(),
+    isAuth: true  // Mark this as an authentication OAuth flow
   })).toString('base64');
 
   const authUrl = `https://login.microsoftonline.com/common/oauth2/v2.0/authorize?client_id=${clientId}&redirect_uri=${redirectUri}&scope=${scope}&response_type=code&state=${state}`;
@@ -195,7 +253,8 @@ router.get('/oauth/apple', (req, res) => {
   const scope = encodeURIComponent('name email');
   const state = Buffer.from(JSON.stringify({
     provider: 'apple',
-    timestamp: Date.now()
+    timestamp: Date.now(),
+    isAuth: true  // Mark this as an authentication OAuth flow
   })).toString('base64');
 
   const authUrl = `https://appleid.apple.com/auth/authorize?client_id=${clientId}&redirect_uri=${redirectUri}&scope=${scope}&response_type=code&response_mode=form_post&state=${state}`;
@@ -204,16 +263,16 @@ router.get('/oauth/apple', (req, res) => {
 });
 
 // OAuth callback handler (GET request from OAuth providers)
-router.get('/oauth/callback', async (req, res) => {
-  console.log('🟢 [OAuth GET Callback] Received callback from OAuth provider');
-  console.log('🟢 [OAuth GET Callback] Query params:', { code: req.query.code ? '✅ Present' : '❌ Missing', state: req.query.state ? '✅ Present' : '❌ Missing' });
-  console.log('🟢 [OAuth GET Callback] Headers:', req.headers);
+router.get('/callback', async (req, res) => {
+  console.log('🟢 [Auth GET Callback] Received callback from OAuth provider');
+  console.log('🟢 [Auth GET Callback] Query params:', { code: req.query.code ? '✅ Present' : '❌ Missing', state: req.query.state ? '✅ Present' : '❌ Missing' });
+  console.log('🟢 [Auth GET Callback] Headers:', req.headers);
 
   try {
     const { code, state } = req.query;
 
     if (!code || !state) {
-      console.error('❌ [OAuth GET Callback] Missing code or state');
+      console.error('❌ [Auth GET Callback] Missing code or state');
       return res.redirect(`${process.env.VITE_APP_URL || 'http://localhost:8086'}/auth?error=missing_parameters`);
     }
 
@@ -221,14 +280,14 @@ router.get('/oauth/callback', async (req, res) => {
     let stateData;
     try {
       stateData = JSON.parse(Buffer.from(state, 'base64').toString('utf-8'));
-      console.log('🟢 [OAuth GET Callback] Decoded state:', stateData);
+      console.log('🟢 [Auth GET Callback] Decoded state:', stateData);
     } catch (err) {
-      console.error('❌ [OAuth GET Callback] Failed to decode state:', err);
+      console.error('❌ [Auth GET Callback] Failed to decode state:', err);
       return res.redirect(`${process.env.VITE_APP_URL || 'http://localhost:8086'}/auth?error=invalid_state`);
     }
 
     const provider = stateData.provider;
-    console.log('🟢 [OAuth GET Callback] Provider:', provider);
+    console.log('🟢 [Auth GET Callback] Provider:', provider);
 
     // Exchange code for tokens based on provider
     let userData;
@@ -252,8 +311,11 @@ router.get('/oauth/callback', async (req, res) => {
       .eq('email', userData.email)
       .single();
 
+    let isNewUser = false;
+
     if (!user) {
       // Create new user
+      isNewUser = true;
       const { data: newUser, error } = await supabase
         .from('users')
         .insert({
@@ -282,9 +344,10 @@ router.get('/oauth/callback', async (req, res) => {
       { expiresIn: '7d' }
     );
 
-    // Redirect to frontend with token
+    // Redirect to frontend with token and new user flag
     const frontendUrl = process.env.VITE_APP_URL || 'http://localhost:8086';
-    res.redirect(`${frontendUrl}/auth/callback?token=${token}`);
+    // Redirect to dashboard with token as URL parameter (frontend will store in localStorage)
+    res.redirect(`${frontendUrl}/auth/callback?token=${token}&isNewUser=${isNewUser}`);
   } catch (error) {
     console.error('OAuth callback error:', error);
     res.redirect(`${process.env.VITE_APP_URL || 'http://localhost:8086'}/auth?error=server_error`);
@@ -292,11 +355,11 @@ router.get('/oauth/callback', async (req, res) => {
 });
 
 // OAuth callback handler (POST request from frontend)
-router.post('/oauth/callback', async (req, res) => {
-  console.log('🟣 [OAuth POST Callback] Received POST callback from frontend');
-  console.log('🟣 [OAuth POST Callback] Headers:', req.headers);
-  console.log('🟣 [OAuth POST Callback] Body:', req.body);
-  console.log('🟣 [OAuth POST Callback] Content-Type:', req.get('Content-Type'));
+router.post('/callback', async (req, res) => {
+  console.log('🟣 [Auth POST Callback] Received POST callback from frontend');
+  console.log('🟣 [Auth POST Callback] Headers:', req.headers);
+  console.log('🟣 [Auth POST Callback] Body:', req.body);
+  console.log('🟣 [Auth POST Callback] Content-Type:', req.get('Content-Type'));
 
   try {
     const { code, state, provider: explicitProvider } = req.body;
@@ -367,8 +430,11 @@ router.post('/oauth/callback', async (req, res) => {
       .eq('email', userData.email)
       .single();
 
+    let isNewUser = false;
+
     if (!user) {
       console.log('🔵 [Auth OAuth POST] Creating new user for:', userData.email);
+      isNewUser = true;
       // Create new user
       const { data: newUser, error } = await supabase
         .from('users')
@@ -410,6 +476,7 @@ router.post('/oauth/callback', async (req, res) => {
     res.json({
       success: true,
       token,
+      isNewUser, // Add flag to indicate if this is a newly created user
       user: {
         id: user.id,
         email: user.email,
@@ -431,6 +498,9 @@ router.post('/oauth/callback', async (req, res) => {
 // Helper functions for OAuth token exchange
 async function exchangeGoogleCode(code) {
   try {
+    console.log('🟢 [exchangeGoogleCode] Starting token exchange');
+    console.log('🟢 redirectUri:', `${process.env.VITE_APP_URL || 'http://localhost:8086'}/oauth/callback`);
+
     // Exchange authorization code for access token
     const tokenResponse = await fetch('https://oauth2.googleapis.com/token', {
       method: 'POST',
@@ -443,6 +513,8 @@ async function exchangeGoogleCode(code) {
         grant_type: 'authorization_code'
       })
     });
+
+    console.log('🟢 Token response status:', tokenResponse.status);
 
     if (!tokenResponse.ok) {
       console.error('Token exchange failed:', await tokenResponse.text());
@@ -493,4 +565,4 @@ async function exchangeAppleCode(code) {
   };
 }
 
-module.exports = router;
+export default router;
