@@ -8,10 +8,11 @@ import path from 'path';
 import http from 'http';
 
 // Background services
-import { startTokenRefreshService } from './services/tokenRefreshService.js';
 import { startPlatformPolling } from './services/platformPollingService.js';
 import { initializeWebSocketServer } from './services/websocketService.js';
 import { initializeQueues } from './services/queueService.js';
+import { startBackgroundJobs, stopBackgroundJobs } from './services/tokenLifecycleJob.js';
+import { initializeRateLimiter, shutdownRateLimiter } from './middleware/oauthRateLimiter.js';
 
 // Only use dotenv in development - Vercel provides env vars directly
 // Updated: Fixed SUPABASE_SERVICE_ROLE_KEY truncation issue
@@ -182,6 +183,7 @@ const handleValidationErrors = (req, res, next) => {
 import aiRoutes from './routes/ai.js';
 import documentRoutes from './routes/documents.js';
 import twinsRoutes from './routes/twins.js';
+import twinChatRoutes from './routes/twin-chat.js';
 import conversationsRoutes from './routes/conversations.js';
 import voiceRoutes from './routes/voice.js';
 import analyticsRoutes from './routes/analytics.js';
@@ -207,6 +209,12 @@ import queueDashboardRoutes from './routes/queue-dashboard.js';
 import cronTokenRefreshHandler from './routes/cron-token-refresh.js';
 import cronPlatformPollingHandler from './routes/cron-platform-polling.js';
 import pipedreamRoutes from './routes/pipedream.js';
+import arcticRoutes from './routes/arctic-connectors.js';
+import soulSignatureRoutes from './routes/soul-signature.js';
+import soulInsightsRoutes from './routes/soul-insights.js';
+import testExtractionRoutes from './routes/test-extraction.js';
+import behavioralPatternsRoutes from './routes/behavioral-patterns.js';
+import gnnPatternsRoutes from './routes/gnn-patterns.js';
 import { serverDb } from './services/database.js';
 import { sanitizeInput, validateContentType } from './middleware/sanitization.js';
 import { /* handleAuthError, */ handleGeneralError, handle404 } from './middleware/errorHandler.js';
@@ -217,6 +225,7 @@ import { authenticateUser } from './middleware/auth.js';
 app.use('/api/ai', aiRoutes);
 app.use('/api/documents', documentRoutes);
 app.use('/api/twins', twinsRoutes);
+app.use('/api/twin', twinChatRoutes);
 app.use('/api/conversations', conversationsRoutes);
 app.use('/api/voice', voiceRoutes);
 app.use('/api/analytics', analyticsRoutes);
@@ -242,6 +251,12 @@ app.use('/api/webhooks', webhookRoutes); // Real-time webhook receivers (GitHub,
 app.use('/api/sse', sseRoutes); // Server-Sent Events for real-time updates
 app.use('/api/queues', queueDashboardRoutes); // Bull Board job queue dashboard
 app.use('/api/pipedream', pipedreamRoutes); // Pipedream Connect OAuth integration
+app.use('/api/arctic', arcticRoutes); // Arctic OAuth integration (Better Auth + Arctic)
+app.use('/api/soul-signature', soulSignatureRoutes); // Soul Signature Analysis with Claude AI
+app.use('/api/soul-insights', soulInsightsRoutes); // User-friendly insights from graph metrics
+app.use('/api/test-extraction', testExtractionRoutes); // Demo data extraction endpoints
+app.use('/api/behavioral-patterns', behavioralPatternsRoutes); // Cross-platform behavioral pattern recognition
+app.use('/api/gnn-patterns', gnnPatternsRoutes); // GNN-based pattern detection with Neo4j and PyTorch Geometric
 
 // Vercel Cron Job endpoints (production automation)
 // These are called by Vercel Cron Jobs on schedule (configured in vercel.json)
@@ -300,13 +315,18 @@ if (process.env.NODE_ENV !== 'production') {
   // Initialize Bull queues for background job processing
   initializeQueues();
 
-  // Token refresh service - runs every 5 minutes
-  // Production equivalent: Vercel Cron → /api/cron/token-refresh
-  startTokenRefreshService();
+  // Initialize OAuth rate limiting (Redis or in-memory fallback)
+  await initializeRateLimiter();
 
   // Platform polling service - platform-specific schedules
   // Production equivalent: Vercel Cron → /api/cron/platform-polling
   startPlatformPolling();
+
+  // Token lifecycle background jobs (token refresh + OAuth state cleanup)
+  // - Token refresh: Every 5 minutes (prevents token expiration)
+  // - OAuth cleanup: Every 15 minutes (removes expired/used states)
+  // Production equivalent: Vercel Cron → /api/cron/token-refresh
+  startBackgroundJobs();
 
   // Start HTTP server
   server.listen(PORT, () => {
@@ -317,13 +337,42 @@ if (process.env.NODE_ENV !== 'production') {
     console.log(`⏰ Background services active:`);
     console.log(`   - Bull Job Queue: ${process.env.REDIS_URL || process.env.UPSTASH_REDIS_URL ? 'Enabled' : 'Disabled (using fallback)'}`);
     console.log(`   - Queue Dashboard: http://localhost:${PORT}/api/queues/dashboard`);
-    console.log(`   - Token Refresh: Every 5 minutes`);
-    console.log(`   - Spotify Polling: Every 30 minutes`);
-    console.log(`   - YouTube Polling: Every 2 hours`);
-    console.log(`   - GitHub Polling: Every 6 hours`);
-    console.log(`   - Discord Polling: Every 4 hours`);
-    console.log(`   - Gmail Polling: Every 1 hour`);
+    console.log(`   - Token Lifecycle Jobs:`);
+    console.log(`     • Token Refresh: Every 5 minutes (prevents token expiration)`);
+    console.log(`     • OAuth Cleanup: Every 15 minutes (removes expired states)`);
+    console.log(`   - Platform Polling:`);
+    console.log(`     • Spotify: Every 30 minutes`);
+    console.log(`     • YouTube: Every 2 hours`);
+    console.log(`     • GitHub: Every 6 hours`);
+    console.log(`     • Discord: Every 4 hours`);
+    console.log(`     • Gmail: Every 1 hour`);
   });
+
+  // Graceful shutdown handlers
+  const gracefulShutdown = async (signal) => {
+    console.log(`\n🛑 Received ${signal}, starting graceful shutdown...`);
+
+    // Stop background jobs first
+    stopBackgroundJobs();
+
+    // Shutdown rate limiter
+    await shutdownRateLimiter();
+
+    // Close server
+    server.close(() => {
+      console.log('✅ Server closed successfully');
+      process.exit(0);
+    });
+
+    // Force exit after 10 seconds if graceful shutdown fails
+    setTimeout(() => {
+      console.error('⏰ Graceful shutdown timeout, forcing exit');
+      process.exit(1);
+    }, 10000);
+  };
+
+  process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
+  process.on('SIGINT', () => gracefulShutdown('SIGINT'));
 }
 
 export default app;
