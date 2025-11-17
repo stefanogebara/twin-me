@@ -215,6 +215,7 @@ import soulInsightsRoutes from './routes/soul-insights.js';
 import testExtractionRoutes from './routes/test-extraction.js';
 import behavioralPatternsRoutes from './routes/behavioral-patterns.js';
 import gnnPatternsRoutes from './routes/gnn-patterns.js';
+import orchestratorRoutes from './routes/orchestrator.js';
 import { serverDb } from './services/database.js';
 import { sanitizeInput, validateContentType } from './middleware/sanitization.js';
 import { /* handleAuthError, */ handleGeneralError, handle404 } from './middleware/errorHandler.js';
@@ -257,6 +258,7 @@ app.use('/api/soul-insights', soulInsightsRoutes); // User-friendly insights fro
 app.use('/api/test-extraction', testExtractionRoutes); // Demo data extraction endpoints
 app.use('/api/behavioral-patterns', behavioralPatternsRoutes); // Cross-platform behavioral pattern recognition
 app.use('/api/gnn-patterns', gnnPatternsRoutes); // GNN-based pattern detection with Neo4j and PyTorch Geometric
+app.use('/api/orchestrator', orchestratorRoutes); // Multi-agent AI orchestration system (Anthropic pattern)
 
 // Vercel Cron Job endpoints (production automation)
 // These are called by Vercel Cron Jobs on schedule (configured in vercel.json)
