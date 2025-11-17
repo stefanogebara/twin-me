@@ -1,15 +1,28 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Brain, CheckCircle, XCircle, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
+import { ARCTIC_PROVIDERS } from '@/services/arcticService';
+import { useTheme } from '@/contexts/ThemeContext';
 
 const OAuthCallback = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
+  const { theme } = useTheme();
   const [status, setStatus] = useState<'loading' | 'success' | 'error'>('loading');
   const [message, setMessage] = useState('Processing authentication...');
 
+  // Prevent double execution in React Strict Mode
+  const hasRun = useRef(false);
+
   useEffect(() => {
+    // Guard against double execution in React 18 Strict Mode
+    if (hasRun.current) {
+      console.log('⏭️  OAuth callback already processed, skipping duplicate execution');
+      return;
+    }
+    hasRun.current = true;
+
     const handleOAuthCallback = async () => {
       try {
         const code = searchParams.get('code');
@@ -55,13 +68,19 @@ const OAuthCallback = () => {
             stateData = JSON.parse(decodedState);
             console.log('🔄 Parsed state data:', stateData);
 
-            // Check if this is a connector OAuth (has userId or specific provider)
-            isConnectorOAuth = stateData.userId ||
-              (stateData.provider && ['google_gmail', 'google_calendar', 'google_drive', 'slack', 'teams', 'discord'].includes(stateData.provider));
+            // Check if this is a connector OAuth (has userId or specific provider/platform)
+            const platformOrProvider = stateData.provider || stateData.platform;
+
+            // Check if this is an Arctic OAuth provider
+            const isArcticProvider = platformOrProvider && ARCTIC_PROVIDERS.includes(platformOrProvider);
+
+            isConnectorOAuth = !!stateData.userId ||
+              isArcticProvider ||
+              (platformOrProvider && ['youtube', 'netflix', 'google_gmail', 'google_calendar', 'google_drive', 'slack', 'teams', 'linkedin'].includes(platformOrProvider));
             // Check if this is an authentication OAuth
             isAuthOAuth = stateData.isAuth === true;
 
-            console.log('🔍 Flow detection results:', { isConnectorOAuth, isAuthOAuth, hasUserId: !!stateData.userId, provider: stateData.provider });
+            console.log('🔍 Flow detection results:', { isConnectorOAuth, isAuthOAuth, hasUserId: !!stateData.userId, provider: stateData.provider, platform: stateData.platform });
           } else {
             console.log('❌ No state parameter found');
           }
@@ -75,8 +94,14 @@ const OAuthCallback = () => {
 
         let response;
         if (isConnectorOAuth) {
+          // Check if this is an Arctic OAuth callback
+          const platformOrProvider = stateData?.provider || stateData?.platform;
+          const isArcticProvider = platformOrProvider && ARCTIC_PROVIDERS.includes(platformOrProvider);
+
+          const callbackEndpoint = isArcticProvider ? '/arctic/callback' : '/connectors/callback';
+
           // Handle connector OAuth callback
-          response = await fetch(`${import.meta.env.VITE_API_URL}/connectors/callback`, {
+          response = await fetch(`${import.meta.env.VITE_API_URL}${callbackEndpoint}`, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
@@ -88,7 +113,7 @@ const OAuthCallback = () => {
           });
         } else {
           // Handle main auth OAuth callback
-          response = await fetch(`${import.meta.env.VITE_API_URL}/auth/oauth/callback`, {
+          response = await fetch(`${import.meta.env.VITE_API_URL}/auth/callback`, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
@@ -138,11 +163,27 @@ const OAuthCallback = () => {
             // Remove any stale localStorage data
             localStorage.removeItem('connectedServices');
 
+            // Check if this is an Arctic OAuth callback
+            const platformOrProvider = stateData?.provider || stateData?.platform;
+            const isArcticProvider = platformOrProvider && ARCTIC_PROVIDERS.includes(platformOrProvider);
+
             // If we're in a popup, close it; otherwise redirect
             setTimeout(() => {
               if (window.opener) {
                 // We're in a popup - notify parent and close
-                window.opener.postMessage({ type: 'oauth-success', provider: stateData?.provider }, window.location.origin);
+                if (isArcticProvider) {
+                  // Arctic OAuth uses specific message format
+                  window.opener.postMessage({
+                    type: 'ARCTIC_OAUTH_SUCCESS',
+                    provider: stateData?.provider
+                  }, window.location.origin);
+                } else {
+                  // Other OAuth connectors use generic format
+                  window.opener.postMessage({
+                    type: 'oauth-success',
+                    provider: stateData?.provider
+                  }, window.location.origin);
+                }
                 window.close();
               } else {
                 // We're in the main window - redirect
@@ -158,7 +199,7 @@ const OAuthCallback = () => {
 
               // Store user data if provided
               if (data.user) {
-                localStorage.setItem('user_data', JSON.stringify(data.user));
+                localStorage.setItem('auth_user', JSON.stringify(data.user));
               }
 
               // Also store token in extension storage if extension is available
@@ -182,17 +223,34 @@ const OAuthCallback = () => {
 
               console.log('✅ Authentication successful, token stored');
               setStatus('success');
-              setMessage('Authentication successful! Redirecting...');
+
+              // Determine redirect based on redirectAfterAuth in state, user type, or default
+              let redirectPath = '/dashboard';  // Default
+
+              if (stateData?.redirectAfterAuth) {
+                // Use the redirect parameter from the auth flow (e.g., /extension-auth)
+                redirectPath = stateData.redirectAfterAuth;
+                console.log('✅ Using post-auth redirect from state:', redirectPath);
+              } else if (data.isNewUser) {
+                // New users go to onboarding
+                redirectPath = '/onboarding';
+              }
+
+              const welcomeMessage = data.isNewUser
+                ? 'Welcome! Let\'s set up your Soul Signature'
+                : 'Welcome back!';
+
+              setMessage(`Authentication successful! ${welcomeMessage}`);
 
               // Show success toast
-              toast.success('Welcome to Twin Me!', {
+              toast.success(data.isNewUser ? 'Welcome to Twin Me!' : 'Welcome back!', {
                 description: `Signed in as ${data.user?.email || 'user'}`,
                 duration: 3000
               });
 
-              // Redirect to get-started page
+              // Redirect to appropriate page based on user type
               setTimeout(() => {
-                window.location.href = '/get-started';
+                window.location.href = redirectPath;
               }, 1500);
             } else if (!data.token && stateData?.userId) {
               // This is likely a connector flow that was misidentified
@@ -221,7 +279,7 @@ const OAuthCallback = () => {
               localStorage.setItem('auth_provider', 'google');
 
               if (data.user) {
-                localStorage.setItem('user_data', JSON.stringify(data.user));
+                localStorage.setItem('auth_user', JSON.stringify(data.user));
               }
 
               // Also store token in extension storage if extension is available
@@ -245,16 +303,23 @@ const OAuthCallback = () => {
 
               console.log('✅ OAuth successful, token stored');
               setStatus('success');
-              setMessage('Authentication successful! Redirecting...');
+
+              // Determine redirect based on whether user is new or existing
+              const redirectPath = data.isNewUser ? '/onboarding' : '/dashboard';
+              const welcomeMessage = data.isNewUser
+                ? 'Welcome! Let\'s set up your Soul Signature'
+                : 'Welcome back!';
+
+              setMessage(`Authentication successful! ${welcomeMessage}`);
 
               // Show success toast
-              toast.success('Welcome!', {
+              toast.success(data.isNewUser ? 'Welcome to Twin Me!' : 'Welcome back!', {
                 description: 'Successfully signed in',
                 duration: 3000
               });
 
               setTimeout(() => {
-                window.location.href = '/get-started';
+                window.location.href = redirectPath;
               }, 1500);
             } else {
               // Check if this might be a connector flow based on the response data structure
@@ -317,53 +382,34 @@ const OAuthCallback = () => {
   }, [searchParams, navigate]);
 
   const getStatusIcon = () => {
+    const iconColor = theme === 'dark' ? '#C1C0B6' : '#0c0a09';
     switch (status) {
       case 'loading':
-        return <Loader2 className="w-12 h-12" style={{ color: '#D97706' }} />;
+        return <Loader2 className="w-12 h-12 animate-spin" style={{ color: iconColor }} />;
       case 'success':
-        return <CheckCircle className="w-12 h-12" style={{ color: '#D97706' }} />;
+        return <CheckCircle className="w-12 h-12" style={{ color: iconColor }} />;
       case 'error':
-        return <XCircle className="w-12 h-12" style={{ color: '#D97706' }} />;
-    }
-  };
-
-  const getStatusColor = () => {
-    switch (status) {
-      case 'loading':
-        return '#141413';
-      case 'success':
-        return '#D97706';
-      case 'error':
-        return '#141413';
+        return <XCircle className="w-12 h-12" style={{ color: iconColor }} />;
     }
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: '#FAF9F5' }}>
-      <div
-        className="max-w-md w-full mx-4 p-8 rounded-2xl border text-center"
-        style={{
-          backgroundColor: 'white',
-          borderColor: 'rgba(20,20,19,0.1)'
-        }}
-      >
+    <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: theme === 'dark' ? '#232320' : '#FAFAFA' }}>
+      <div className="max-w-md w-full mx-4 p-8 rounded-[16px] border text-center backdrop-blur-[16px]" style={{
+        backgroundColor: theme === 'dark' ? 'rgba(45, 45, 41, 0.5)' : 'rgba(255, 255, 255, 0.5)',
+        borderColor: theme === 'dark' ? 'rgba(193, 192, 182, 0.1)' : 'rgba(0, 0, 0, 0.06)',
+        boxShadow: theme === 'dark' ? '0 4px 16px rgba(0, 0, 0, 0.3)' : '0 4px 16px rgba(0, 0, 0, 0.03)'
+      }}>
         {/* Logo */}
         <div className="flex items-center justify-center mb-8">
-          <div
-            className="flex items-center justify-center w-12 h-12 rounded-xl mr-3"
-            style={{ backgroundColor: '#D97706' }}
-          >
-            <Brain className="w-6 h-6 text-white" />
+          <div className="flex items-center justify-center w-12 h-12 rounded-xl mr-3" style={{ backgroundColor: theme === 'dark' ? '#C1C0B6' : '#0c0a09' }}>
+            <Brain className="w-6 h-6" style={{ color: theme === 'dark' ? '#232320' : '#ffffff' }} />
           </div>
-          <h1
-            className="text-2xl"
-            style={{
-              fontFamily: 'var(--_typography---font--styrene-a)',
-              fontWeight: 500,
-              letterSpacing: '-0.02em',
-              color: '#141413'
-            }}
-          >
+          <h1 className="text-2xl font-medium" style={{
+            fontFamily: 'var(--_typography---font--styrene-a)',
+            letterSpacing: '-0.02em',
+            color: theme === 'dark' ? '#C1C0B6' : '#0c0a09'
+          }}>
             Twin Me
           </h1>
         </div>
@@ -374,44 +420,28 @@ const OAuthCallback = () => {
         </div>
 
         {/* Status Message */}
-        <h2
-          className="text-xl mb-2"
-          style={{
-            color: getStatusColor(),
-            fontFamily: 'var(--_typography---font--styrene-a)',
-            fontWeight: 500,
-            letterSpacing: '-0.02em'
-          }}
-        >
+        <h2 className="text-xl mb-2 font-medium" style={{
+          fontFamily: 'var(--_typography---font--styrene-a)',
+          letterSpacing: '-0.02em',
+          color: theme === 'dark' ? '#C1C0B6' : '#0c0a09'
+        }}>
           {status === 'loading' && 'Authenticating...'}
           {status === 'success' && 'Welcome!'}
           {status === 'error' && 'Authentication Failed'}
         </h2>
 
-        <p
-          className="text-sm"
-          style={{
-            color: '#6B7280',
-            fontFamily: 'var(--_typography---font--tiempos)'
-          }}
-        >
+        <p className="text-sm" style={{
+          fontFamily: 'var(--_typography---font--tiempos)',
+          color: theme === 'dark' ? 'rgba(193, 192, 182, 0.8)' : '#57534e'
+        }}>
           {message}
         </p>
 
         {/* Progress indicator for loading state */}
         {status === 'loading' && (
           <div className="mt-6">
-            <div
-              className="w-full rounded-full h-1.5"
-              style={{ backgroundColor: 'rgba(20,20,19,0.1)' }}
-            >
-              <div
-                className="h-1.5 rounded-full"
-                style={{
-                  backgroundColor: '#D97706',
-                  width: '60%'
-                }}
-              />
+            <div className="w-full rounded-full h-1.5" style={{ backgroundColor: theme === 'dark' ? 'rgba(193, 192, 182, 0.2)' : 'rgba(0, 0, 0, 0.06)' }}>
+              <div className="h-1.5 rounded-full w-3/5 transition-all duration-300" style={{ backgroundColor: theme === 'dark' ? '#C1C0B6' : '#0c0a09' }} />
             </div>
           </div>
         )}
@@ -420,13 +450,21 @@ const OAuthCallback = () => {
         {status === 'error' && (
           <button
             onClick={() => navigate('/auth')}
-            className="mt-6 px-6 py-2 rounded-lg"
+            className="mt-6 px-6 py-2 rounded-lg font-medium transition-all"
             style={{
-              backgroundColor: '#D97706',
-              color: 'white',
               fontFamily: 'var(--_typography---font--styrene-a)',
-              fontWeight: 500,
-              letterSpacing: '-0.02em'
+              letterSpacing: '-0.02em',
+              backgroundColor: theme === 'dark' ? '#C1C0B6' : '#0c0a09',
+              color: theme === 'dark' ? '#232320' : '#ffffff',
+              boxShadow: theme === 'dark' ? '0 2px 8px rgba(0,0,0,0.2)' : '0 2px 8px rgba(0,0,0,0.1)'
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.backgroundColor = theme === 'dark' ? 'rgba(193, 192, 182, 0.9)' : '#1c1917';
+              e.currentTarget.style.boxShadow = theme === 'dark' ? '0 4px 12px rgba(0,0,0,0.3)' : '0 4px 12px rgba(0,0,0,0.15)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.backgroundColor = theme === 'dark' ? '#C1C0B6' : '#0c0a09';
+              e.currentTarget.style.boxShadow = theme === 'dark' ? '0 2px 8px rgba(0,0,0,0.2)' : '0 2px 8px rgba(0,0,0,0.1)';
             }}
           >
             Try Again

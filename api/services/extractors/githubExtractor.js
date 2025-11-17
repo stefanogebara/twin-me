@@ -1,20 +1,22 @@
 /**
  * GitHub Data Extractor
- * Extracts commits, issues, PRs, comments, and code reviews from GitHub
+ * Extracts repositories, commits, pull requests, issues, and code reviews
+ * to build a technical soul signature
  */
 
-import { Octokit } from '@octokit/rest';
 import { createClient } from '@supabase/supabase-js';
+import { GithubTokenManager } from '../tokenManagers/githubTokenManager.js';
 
 const supabase = createClient(
   process.env.SUPABASE_URL,
   process.env.SUPABASE_SERVICE_ROLE_KEY
 );
 
-class GitHubExtractor {
-  constructor(accessToken) {
-    this.octokit = new Octokit({ auth: accessToken });
-    this.accessToken = accessToken;
+class GithubExtractor {
+  constructor(userId, platform = 'github') {
+    this.userId = userId;
+    this.platform = platform;
+    this.baseUrl = 'https://api.github.com';
   }
 
   /**
@@ -23,31 +25,166 @@ class GitHubExtractor {
   async extractAll(userId, connectorId) {
     console.log(`[GitHub] Starting full extraction for user: ${userId}`);
 
+    let job = null;
     try {
       // Create extraction job
-      const job = await this.createExtractionJob(userId, connectorId);
-
-      // Get authenticated user info
-      const { data: user } = await this.octokit.users.getAuthenticated();
-      console.log(`[GitHub] Authenticated as: ${user.login}`);
+      job = await this.createExtractionJob(userId, connectorId);
 
       let totalItems = 0;
 
       // Extract different data types
-      totalItems += await this.extractCommits(userId, user.login);
-      totalItems += await this.extractIssues(userId, user.login);
-      totalItems += await this.extractPullRequests(userId, user.login);
-      totalItems += await this.extractCodeReviews(userId, user.login);
-      totalItems += await this.extractRepositories(userId, user.login);
+      totalItems += await this.extractProfile(userId);
+      totalItems += await this.extractRepositories(userId);
+
+      // Get username for subsequent API calls
+      const username = await this.getUsername(userId);
+      if (username) {
+        totalItems += await this.extractPullRequests(userId, username);
+        totalItems += await this.extractIssues(userId, username);
+        totalItems += await this.extractEvents(userId, username);
+      }
+
+      // Analyze technical profile from extracted data
+      let analysis = null;
+      try {
+        console.log(`[GitHub] Analyzing technical profile...`);
+        analysis = await this.analyzeTechnicalProfile(userId);
+        console.log(`[GitHub] Technical profile analysis complete`);
+      } catch (analysisError) {
+        console.error('[GitHub] Error analyzing technical profile:', analysisError);
+        // Don't fail the extraction if analysis fails
+      }
 
       // Complete job
       await this.completeExtractionJob(job.id, totalItems);
 
       console.log(`[GitHub] Extraction complete. Total items: ${totalItems}`);
-      return { success: true, itemsExtracted: totalItems };
+      return {
+        success: true,
+        itemsExtracted: totalItems,
+        platform: 'github',
+        analysis: analysis
+      };
     } catch (error) {
       console.error('[GitHub] Extraction error:', error);
+
+      // Mark the job as failed if it was created
+      if (job && job.id) {
+        await this.failExtractionJob(job.id, error.message || 'Unknown error occurred');
+      }
+
+      // If 401, throw to trigger reauth flow
+      if (error.status === 401 || error.message?.includes('401')) {
+        const authError = new Error('GitHub authentication failed - please reconnect');
+        authError.status = 401;
+        throw authError;
+      }
+
       throw error;
+    }
+  }
+
+  /**
+   * Make authenticated request to GitHub API with automatic token refresh
+   */
+  async makeRequest(endpoint, params = {}, retryCount = 0) {
+    try {
+      // Get valid access token
+      const accessToken = await GithubTokenManager.getValidAccessToken(this.userId);
+
+      const url = new URL(`${this.baseUrl}${endpoint}`);
+      Object.entries(params).forEach(([key, value]) => {
+        url.searchParams.append(key, value);
+      });
+
+      const response = await fetch(url, {
+        headers: {
+          'Authorization': `Bearer ${accessToken}`,
+          'Accept': 'application/vnd.github+json',
+          'X-GitHub-Api-Version': '2022-11-28'
+        }
+      });
+
+      // Handle 401 with retry
+      if (response.status === 401 && retryCount < 2) {
+        console.log(`[GitHub] 401 error, retrying (attempt ${retryCount + 1}/2)`);
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        return this.makeRequest(endpoint, params, retryCount + 1);
+      }
+
+      // Handle rate limiting (403 with X-RateLimit-Remaining: 0)
+      if (response.status === 403) {
+        const rateLimitRemaining = response.headers.get('X-RateLimit-Remaining');
+        const rateLimitReset = response.headers.get('X-RateLimit-Reset');
+
+        if (rateLimitRemaining === '0' && rateLimitReset) {
+          const resetTime = new Date(parseInt(rateLimitReset) * 1000);
+          const waitTime = resetTime.getTime() - Date.now();
+          console.warn(`[GitHub] Rate limit exceeded. Reset at ${resetTime.toISOString()}`);
+
+          // If reset is within 5 minutes, wait. Otherwise, throw error
+          if (waitTime > 0 && waitTime < 300000) {
+            console.log(`[GitHub] Waiting ${Math.ceil(waitTime / 1000)}s for rate limit reset...`);
+            await new Promise(resolve => setTimeout(resolve, waitTime + 1000));
+            return this.makeRequest(endpoint, params, retryCount);
+          }
+        }
+      }
+
+      if (!response.ok) {
+        const error = await response.text();
+        const apiError = new Error(`GitHub API error (${response.status}): ${error}`);
+        apiError.status = response.status;
+        throw apiError;
+      }
+
+      return response.json();
+    } catch (error) {
+      if (error.message.includes('Token refresh failed') || error.message.includes('Not authenticated')) {
+        console.error('[GitHub] Token refresh failed - marking connection as needs_reauth');
+        const authError = new Error('GitHub authentication failed - please reconnect');
+        authError.status = 401;
+        throw authError;
+      }
+      throw error;
+    }
+  }
+
+  /**
+   * Extract user profile information
+   */
+  async extractProfile(userId) {
+    console.log(`[GitHub] Extracting user profile...`);
+
+    try {
+      const profile = await this.makeRequest('/user');
+
+      await this.storeRawData(userId, 'github', 'profile', {
+        user_id: profile.id,
+        login: profile.login,
+        name: profile.name,
+        email: profile.email,
+        bio: profile.bio,
+        company: profile.company,
+        location: profile.location,
+        blog: profile.blog,
+        twitter_username: profile.twitter_username,
+        public_repos: profile.public_repos,
+        public_gists: profile.public_gists,
+        followers: profile.followers,
+        following: profile.following,
+        created_at: profile.created_at,
+        updated_at: profile.updated_at,
+        avatar_url: profile.avatar_url,
+        hireable: profile.hireable,
+        url: profile.html_url
+      });
+
+      console.log(`[GitHub] Extracted profile for ${profile.login}`);
+      return 1;
+    } catch (error) {
+      console.error('[GitHub] Error extracting profile:', error);
+      return 0;
     }
   }
 
