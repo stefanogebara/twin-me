@@ -1,0 +1,24 @@
+# PyTorch Geometric GNN Requirements
+# Install with: pip install -r requirements.txt
+
+# Core PyTorch
+torch>=2.0.0
+torch-geometric>=2.4.0
+
+# PyTorch Geometric dependencies
+torch-scatter>=2.1.0
+torch-sparse>=0.6.0
+torch-cluster>=1.6.0
+
+# Neo4j Python driver
+neo4j>=5.14.0
+
+# Scientific computing
+numpy>=1.24.0
+scipy>=1.10.0
+
+# Data processing
+pandas>=2.0.0
+
+# Utilities
+tqdm>=4.65.0
