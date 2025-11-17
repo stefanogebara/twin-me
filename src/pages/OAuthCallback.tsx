@@ -2,10 +2,13 @@ import { useEffect, useState, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Brain, CheckCircle, XCircle, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
+import { ARCTIC_PROVIDERS } from '@/services/arcticService';
+import { useTheme } from '@/contexts/ThemeContext';
 
 const OAuthCallback = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
+  const { theme } = useTheme();
   const [status, setStatus] = useState<'loading' | 'success' | 'error'>('loading');
   const [message, setMessage] = useState('Processing authentication...');
 
@@ -67,8 +70,13 @@ const OAuthCallback = () => {
 
             // Check if this is a connector OAuth (has userId or specific provider/platform)
             const platformOrProvider = stateData.provider || stateData.platform;
+
+            // Check if this is an Arctic OAuth provider
+            const isArcticProvider = platformOrProvider && ARCTIC_PROVIDERS.includes(platformOrProvider);
+
             isConnectorOAuth = !!stateData.userId ||
-              (platformOrProvider && ['spotify', 'youtube', 'netflix', 'discord', 'github', 'linkedin', 'reddit', 'twitch', 'google_gmail', 'google_calendar', 'google_drive', 'slack', 'teams'].includes(platformOrProvider));
+              isArcticProvider ||
+              (platformOrProvider && ['youtube', 'netflix', 'google_gmail', 'google_calendar', 'google_drive', 'slack', 'teams', 'linkedin'].includes(platformOrProvider));
             // Check if this is an authentication OAuth
             isAuthOAuth = stateData.isAuth === true;
 
@@ -86,8 +94,14 @@ const OAuthCallback = () => {
 
         let response;
         if (isConnectorOAuth) {
+          // Check if this is an Arctic OAuth callback
+          const platformOrProvider = stateData?.provider || stateData?.platform;
+          const isArcticProvider = platformOrProvider && ARCTIC_PROVIDERS.includes(platformOrProvider);
+
+          const callbackEndpoint = isArcticProvider ? '/arctic/callback' : '/connectors/callback';
+
           // Handle connector OAuth callback
-          response = await fetch(`${import.meta.env.VITE_API_URL}/connectors/callback`, {
+          response = await fetch(`${import.meta.env.VITE_API_URL}${callbackEndpoint}`, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
@@ -99,7 +113,7 @@ const OAuthCallback = () => {
           });
         } else {
           // Handle main auth OAuth callback
-          response = await fetch(`${import.meta.env.VITE_API_URL}/auth/oauth/callback`, {
+          response = await fetch(`${import.meta.env.VITE_API_URL}/auth/callback`, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
@@ -149,11 +163,27 @@ const OAuthCallback = () => {
             // Remove any stale localStorage data
             localStorage.removeItem('connectedServices');
 
+            // Check if this is an Arctic OAuth callback
+            const platformOrProvider = stateData?.provider || stateData?.platform;
+            const isArcticProvider = platformOrProvider && ARCTIC_PROVIDERS.includes(platformOrProvider);
+
             // If we're in a popup, close it; otherwise redirect
             setTimeout(() => {
               if (window.opener) {
                 // We're in a popup - notify parent and close
-                window.opener.postMessage({ type: 'oauth-success', provider: stateData?.provider }, window.location.origin);
+                if (isArcticProvider) {
+                  // Arctic OAuth uses specific message format
+                  window.opener.postMessage({
+                    type: 'ARCTIC_OAUTH_SUCCESS',
+                    provider: stateData?.provider
+                  }, window.location.origin);
+                } else {
+                  // Other OAuth connectors use generic format
+                  window.opener.postMessage({
+                    type: 'oauth-success',
+                    provider: stateData?.provider
+                  }, window.location.origin);
+                }
                 window.close();
               } else {
                 // We're in the main window - redirect
@@ -194,8 +224,18 @@ const OAuthCallback = () => {
               console.log('✅ Authentication successful, token stored');
               setStatus('success');
 
-              // Determine redirect based on whether user is new or existing
-              const redirectPath = data.isNewUser ? '/onboarding' : '/dashboard';
+              // Determine redirect based on redirectAfterAuth in state, user type, or default
+              let redirectPath = '/dashboard';  // Default
+
+              if (stateData?.redirectAfterAuth) {
+                // Use the redirect parameter from the auth flow (e.g., /extension-auth)
+                redirectPath = stateData.redirectAfterAuth;
+                console.log('✅ Using post-auth redirect from state:', redirectPath);
+              } else if (data.isNewUser) {
+                // New users go to onboarding
+                redirectPath = '/onboarding';
+              }
+
               const welcomeMessage = data.isNewUser
                 ? 'Welcome! Let\'s set up your Soul Signature'
                 : 'Welcome back!';
@@ -342,36 +382,34 @@ const OAuthCallback = () => {
   }, [searchParams, navigate]);
 
   const getStatusIcon = () => {
+    const iconColor = theme === 'dark' ? '#C1C0B6' : '#0c0a09';
     switch (status) {
       case 'loading':
-        return <Loader2 className="w-12 h-12 text-stone-900 animate-spin" />;
+        return <Loader2 className="w-12 h-12 animate-spin" style={{ color: iconColor }} />;
       case 'success':
-        return <CheckCircle className="w-12 h-12 text-stone-900" />;
+        return <CheckCircle className="w-12 h-12" style={{ color: iconColor }} />;
       case 'error':
-        return <XCircle className="w-12 h-12 text-stone-900" />;
-    }
-  };
-
-  const getStatusTextColor = () => {
-    switch (status) {
-      case 'loading':
-        return 'text-stone-900';
-      case 'success':
-        return 'text-stone-900';
-      case 'error':
-        return 'text-stone-900';
+        return <XCircle className="w-12 h-12" style={{ color: iconColor }} />;
     }
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-[#FAFAFA]">
-      <div className="max-w-md w-full mx-4 p-8 rounded-[16px] border border-black/[0.06] text-center bg-white/50 backdrop-blur-[16px] shadow-[0_4px_16px_rgba(0,0,0,0.03)]">
+    <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: theme === 'dark' ? '#232320' : '#FAFAFA' }}>
+      <div className="max-w-md w-full mx-4 p-8 rounded-[16px] border text-center backdrop-blur-[16px]" style={{
+        backgroundColor: theme === 'dark' ? 'rgba(45, 45, 41, 0.5)' : 'rgba(255, 255, 255, 0.5)',
+        borderColor: theme === 'dark' ? 'rgba(193, 192, 182, 0.1)' : 'rgba(0, 0, 0, 0.06)',
+        boxShadow: theme === 'dark' ? '0 4px 16px rgba(0, 0, 0, 0.3)' : '0 4px 16px rgba(0, 0, 0, 0.03)'
+      }}>
         {/* Logo */}
         <div className="flex items-center justify-center mb-8">
-          <div className="flex items-center justify-center w-12 h-12 rounded-xl mr-3 bg-stone-900">
-            <Brain className="w-6 h-6 text-white" />
+          <div className="flex items-center justify-center w-12 h-12 rounded-xl mr-3" style={{ backgroundColor: theme === 'dark' ? '#C1C0B6' : '#0c0a09' }}>
+            <Brain className="w-6 h-6" style={{ color: theme === 'dark' ? '#232320' : '#ffffff' }} />
           </div>
-          <h1 className="text-2xl text-stone-900 font-medium" style={{ fontFamily: 'var(--_typography---font--styrene-a)', letterSpacing: '-0.02em' }}>
+          <h1 className="text-2xl font-medium" style={{
+            fontFamily: 'var(--_typography---font--styrene-a)',
+            letterSpacing: '-0.02em',
+            color: theme === 'dark' ? '#C1C0B6' : '#0c0a09'
+          }}>
             Twin Me
           </h1>
         </div>
@@ -382,21 +420,28 @@ const OAuthCallback = () => {
         </div>
 
         {/* Status Message */}
-        <h2 className={`text-xl mb-2 font-medium ${getStatusTextColor()}`} style={{ fontFamily: 'var(--_typography---font--styrene-a)', letterSpacing: '-0.02em' }}>
+        <h2 className="text-xl mb-2 font-medium" style={{
+          fontFamily: 'var(--_typography---font--styrene-a)',
+          letterSpacing: '-0.02em',
+          color: theme === 'dark' ? '#C1C0B6' : '#0c0a09'
+        }}>
           {status === 'loading' && 'Authenticating...'}
           {status === 'success' && 'Welcome!'}
           {status === 'error' && 'Authentication Failed'}
         </h2>
 
-        <p className="text-sm text-stone-600" style={{ fontFamily: 'var(--_typography---font--tiempos)' }}>
+        <p className="text-sm" style={{
+          fontFamily: 'var(--_typography---font--tiempos)',
+          color: theme === 'dark' ? 'rgba(193, 192, 182, 0.8)' : '#57534e'
+        }}>
           {message}
         </p>
 
         {/* Progress indicator for loading state */}
         {status === 'loading' && (
           <div className="mt-6">
-            <div className="w-full rounded-full h-1.5 bg-black/[0.06]">
-              <div className="h-1.5 rounded-full bg-stone-900 w-3/5 transition-all duration-300" />
+            <div className="w-full rounded-full h-1.5" style={{ backgroundColor: theme === 'dark' ? 'rgba(193, 192, 182, 0.2)' : 'rgba(0, 0, 0, 0.06)' }}>
+              <div className="h-1.5 rounded-full w-3/5 transition-all duration-300" style={{ backgroundColor: theme === 'dark' ? '#C1C0B6' : '#0c0a09' }} />
             </div>
           </div>
         )}
@@ -405,8 +450,22 @@ const OAuthCallback = () => {
         {status === 'error' && (
           <button
             onClick={() => navigate('/auth')}
-            className="mt-6 px-6 py-2 rounded-lg bg-stone-900 text-white hover:bg-stone-800 font-medium transition-all shadow-[0_2px_8px_rgba(0,0,0,0.1)] hover:shadow-[0_4px_12px_rgba(0,0,0,0.15)]"
-            style={{ fontFamily: 'var(--_typography---font--styrene-a)', letterSpacing: '-0.02em' }}
+            className="mt-6 px-6 py-2 rounded-lg font-medium transition-all"
+            style={{
+              fontFamily: 'var(--_typography---font--styrene-a)',
+              letterSpacing: '-0.02em',
+              backgroundColor: theme === 'dark' ? '#C1C0B6' : '#0c0a09',
+              color: theme === 'dark' ? '#232320' : '#ffffff',
+              boxShadow: theme === 'dark' ? '0 2px 8px rgba(0,0,0,0.2)' : '0 2px 8px rgba(0,0,0,0.1)'
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.backgroundColor = theme === 'dark' ? 'rgba(193, 192, 182, 0.9)' : '#1c1917';
+              e.currentTarget.style.boxShadow = theme === 'dark' ? '0 4px 12px rgba(0,0,0,0.3)' : '0 4px 12px rgba(0,0,0,0.15)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.backgroundColor = theme === 'dark' ? '#C1C0B6' : '#0c0a09';
+              e.currentTarget.style.boxShadow = theme === 'dark' ? '0 2px 8px rgba(0,0,0,0.2)' : '0 2px 8px rgba(0,0,0,0.1)';
+            }}
           >
             Try Again
           </button>
