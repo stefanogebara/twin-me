@@ -341,14 +341,11 @@ VALIDATION GUIDELINES:
    - ESTP/ESFP: High energy (0.6-1.0)
 
 4. **Confidence Boost Formula**:
-   ```
-   music_match (0-1) * 0.5 +
-   timing_match (0-1) * 0.3 +
-   energy_match (0-1) * 0.2
-   = alignment_score (0-1)
-
-   confidence_boost = alignment_score * 0.20 (max 20%)
-   ```
+   - music_match (0-1) * 0.5
+   - timing_match (0-1) * 0.3
+   - energy_match (0-1) * 0.2
+   - = alignment_score (0-1)
+   - confidence_boost = alignment_score * 0.20 (max 20%)
 
 EXAMPLE:
 
