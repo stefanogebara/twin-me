@@ -74,6 +74,8 @@ const CalendarInsightsPage: React.FC = () => {
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+
   // Theme colors
   const colors = {
     text: theme === 'dark' ? '#C1C0B6' : '#0c0a09',
@@ -95,7 +97,7 @@ const CalendarInsightsPage: React.FC = () => {
     }
 
     try {
-      const response = await fetch('http://localhost:3001/api/insights/calendar', {
+      const response = await fetch(`${API_BASE}/api/insights/calendar`, {
         headers: { 'Authorization': `Bearer ${authToken}` }
       });
 
@@ -120,7 +122,7 @@ const CalendarInsightsPage: React.FC = () => {
     const authToken = token || localStorage.getItem('auth_token');
 
     try {
-      await fetch('http://localhost:3001/api/insights/calendar/refresh', {
+      await fetch(`${API_BASE}/api/insights/calendar/refresh`, {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${authToken}` }
       });

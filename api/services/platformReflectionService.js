@@ -42,7 +42,9 @@ class PlatformReflectionService {
       const cached = await this.getCachedReflection(userId, platform);
       if (cached && !this.isExpired(cached)) {
         console.log(`🪞 [Reflection] Using cached ${platform} reflection`);
-        return this.formatResponse(cached, await this.getHistory(userId, platform));
+        const fullContext = await userContextAggregator.aggregateUserContext(userId);
+        const lifeContext = fullContext?.lifeContext || null;
+        return this.formatResponse(cached, await this.getHistory(userId, platform), lifeContext);
       }
 
       // 2. Get platform-specific data AND life context for cross-platform awareness
