@@ -97,7 +97,7 @@ const WhoopInsightsPage: React.FC = () => {
     }
 
     try {
-      const response = await fetch(`${API_BASE}/api/insights/whoop`, {
+      const response = await fetch(`${API_BASE}/insights/whoop`, {
         headers: { 'Authorization': `Bearer ${authToken}` }
       });
 
@@ -122,7 +122,7 @@ const WhoopInsightsPage: React.FC = () => {
     const authToken = token || localStorage.getItem('auth_token');
 
     try {
-      await fetch(`${API_BASE}/api/insights/whoop/refresh`, {
+      await fetch(`${API_BASE}/insights/whoop/refresh`, {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${authToken}` }
       });

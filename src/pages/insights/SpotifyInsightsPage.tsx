@@ -97,7 +97,7 @@ const SpotifyInsightsPage: React.FC = () => {
     }
 
     try {
-      const response = await fetch(`${API_BASE}/api/insights/spotify`, {
+      const response = await fetch(`${API_BASE}/insights/spotify`, {
         headers: { 'Authorization': `Bearer ${authToken}` }
       });
 
@@ -122,7 +122,7 @@ const SpotifyInsightsPage: React.FC = () => {
     const authToken = token || localStorage.getItem('auth_token');
 
     try {
-      await fetch(`${API_BASE}/api/insights/spotify/refresh`, {
+      await fetch(`${API_BASE}/insights/spotify/refresh`, {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${authToken}` }
       });
