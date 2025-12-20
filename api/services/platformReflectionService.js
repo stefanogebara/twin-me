@@ -47,7 +47,7 @@ class PlatformReflectionService {
         return this.formatResponse(cached, await this.getHistory(userId, platform), lifeContext);
       }
 
-      // 2. Get platform-specific data AND life context for cross-platform awareness
+      // 2. Get platform-specific data AND full context for cross-platform awareness
       const [platformData, fullContext] = await Promise.all([
         this.getPlatformData(userId, platform),
         userContextAggregator.aggregateUserContext(userId)
@@ -60,14 +60,16 @@ class PlatformReflectionService {
         };
       }
 
-      // 3. Get life context for the prompt
+      // 3. Get life context and personality quiz for the prompt
       const lifeContext = fullContext?.lifeContext || null;
+      const personalityQuiz = fullContext?.personalityQuiz || null;
 
-      // 4. Generate new reflection using Claude (with life context)
+      // 4. Generate new reflection using Claude (with life context and personality)
       const reflection = await this.generateReflection(
         platform,
         platformData.data,
         lifeContext,
+        personalityQuiz,
         platformData.data // Pass raw data for storage
       );
 
@@ -93,7 +95,7 @@ class PlatformReflectionService {
   async refreshReflection(userId, platform) {
     console.log(`🪞 [Reflection] Force refreshing ${platform} reflection`);
 
-    // Get both platform data and life context
+    // Get both platform data and full context
     const [platformData, fullContext] = await Promise.all([
       this.getPlatformData(userId, platform),
       userContextAggregator.aggregateUserContext(userId)
@@ -104,11 +106,13 @@ class PlatformReflectionService {
     }
 
     const lifeContext = fullContext?.lifeContext || null;
+    const personalityQuiz = fullContext?.personalityQuiz || null;
 
     const reflection = await this.generateReflection(
       platform,
       platformData.data,
       lifeContext,
+      personalityQuiz,
       platformData.data
     );
     await this.storeReflection(userId, platform, reflection);
@@ -263,8 +267,8 @@ class PlatformReflectionService {
   /**
    * Generate a reflection using Claude
    */
-  async generateReflection(platform, data, lifeContext = null, rawPlatformData = null) {
-    const prompt = this.getPromptForPlatform(platform, data, lifeContext);
+  async generateReflection(platform, data, lifeContext = null, personalityQuiz = null, rawPlatformData = null) {
+    const prompt = this.getPromptForPlatform(platform, data, lifeContext, personalityQuiz);
 
     try {
       const message = await anthropic.messages.create({
@@ -298,6 +302,14 @@ class PlatformReflectionService {
             activeEvents: lifeContext.activeEvents,
             promptSummary: lifeContext.promptSummary
           } : null,
+          personalityQuiz: personalityQuiz ? {
+            summary: personalityQuiz.summary,
+            morningPerson: personalityQuiz.morningPerson,
+            introversion: personalityQuiz.introversion,
+            musicEmotionalStrategy: personalityQuiz.musicEmotionalStrategy,
+            stressCoping: personalityQuiz.stressCoping,
+            noveltySeeking: personalityQuiz.noveltySeeking
+          } : null,
           rawDataUsed: rawPlatformData
         }
       };
@@ -310,7 +322,7 @@ class PlatformReflectionService {
   /**
    * Get platform-specific prompt
    */
-  getPromptForPlatform(platform, data, lifeContext = null) {
+  getPromptForPlatform(platform, data, lifeContext = null, personalityQuiz = null) {
     // Build life context prompt section
     let lifeContextSection = '';
     if (lifeContext && lifeContext.promptSummary && lifeContext.currentStatus !== 'normal') {
@@ -322,6 +334,26 @@ This life context should inform your observation - consider how it affects their
 `;
     }
 
+    // Build personality quiz section
+    let personalitySection = '';
+    if (personalityQuiz && personalityQuiz.summary) {
+      personalitySection = `
+WHO THIS PERSON IS (from their personality quiz):
+${personalityQuiz.summary}
+
+Key traits to incorporate:
+- Morning/evening person: ${personalityQuiz.morningPerson === true ? 'Morning person' : personalityQuiz.morningPerson === false ? 'Not a morning person' : 'Unknown'}
+- Peak productivity: ${personalityQuiz.peakHours || 'Unknown'}
+- Introversion level: ${personalityQuiz.introversion !== undefined ? (personalityQuiz.introversion > 0.6 ? 'Introverted' : personalityQuiz.introversion < 0.4 ? 'Extroverted' : 'Balanced') : 'Unknown'}
+- Music strategy: ${personalityQuiz.musicEmotionalStrategy || 'Unknown'} (match moods vs change moods)
+- Stress coping: ${personalityQuiz.stressCoping || 'Unknown'}
+- Novelty seeking: ${personalityQuiz.noveltySeeking !== undefined ? (personalityQuiz.noveltySeeking > 0.6 ? 'High - loves new discoveries' : personalityQuiz.noveltySeeking < 0.4 ? 'Low - prefers familiar' : 'Moderate') : 'Unknown'}
+- Pre-event strategy: ${personalityQuiz.preEventStrategy || 'Unknown'}
+
+Use this personality context to make your observations more personal and insightful. Connect platform behaviors to their personality traits.
+`;
+    }
+
     const baseInstructions = `You are someone's digital twin who has deeply observed their patterns.
 You speak DIRECTLY to them in second person ("You", "Your").
 
@@ -330,9 +362,10 @@ CRITICAL RULES:
 - NEVER list items ("Your top artists are X, Y, Z" is WRONG)
 - NEVER sound clinical or like an app notification
 - DO notice emotional/behavioral patterns
-- DO connect patterns to life context
+- DO connect patterns to life context AND personality traits
 - DO sound like a thoughtful friend who knows them well
-${lifeContextSection}
+- DO reference their personality when it explains a pattern (e.g., "As someone who uses music to shift moods...")
+${lifeContextSection}${personalitySection}
 Respond in JSON format with:
 {
   "reflection": "Your 2-4 sentence conversational observation",
