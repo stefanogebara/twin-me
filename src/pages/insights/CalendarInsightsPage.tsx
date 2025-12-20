@@ -97,7 +97,7 @@ const CalendarInsightsPage: React.FC = () => {
     }
 
     try {
-      const response = await fetch(`${API_BASE}/api/insights/calendar`, {
+      const response = await fetch(`${API_BASE}/insights/calendar`, {
         headers: { 'Authorization': `Bearer ${authToken}` }
       });
 
@@ -122,7 +122,7 @@ const CalendarInsightsPage: React.FC = () => {
     const authToken = token || localStorage.getItem('auth_token');
 
     try {
-      await fetch(`${API_BASE}/api/insights/calendar/refresh`, {
+      await fetch(`${API_BASE}/insights/calendar/refresh`, {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${authToken}` }
       });
