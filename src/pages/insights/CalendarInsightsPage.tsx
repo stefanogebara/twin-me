@@ -11,9 +11,9 @@ import React, { useEffect, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useTheme } from '@/contexts/ThemeContext';
 import { PageLayout, GlassPanel } from '@/components/layout/PageLayout';
-import { TwinReflection, PatternObservation } from './components/TwinReflection';
+import { TwinReflection, PatternObservation, DataHighlight, StatCard, EventCard } from './components/TwinReflection';
 import { EvidenceSection } from './components/EvidenceSection';
-import { Calendar, RefreshCw, Sparkles, ArrowLeft, AlertCircle } from 'lucide-react';
+import { Calendar, RefreshCw, Sparkles, ArrowLeft, AlertCircle, Clock, CalendarDays } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 interface Reflection {
@@ -54,6 +54,19 @@ interface CrossPlatformContext {
   calendarDensity?: string;
 }
 
+interface UpcomingEvent {
+  title: string;
+  time: string;
+  type?: 'meeting' | 'focus' | 'personal' | 'other';
+}
+
+interface ScheduleStats {
+  meetingHours?: number;
+  focusBlocks?: number;
+  busiestDay?: string;
+  preferredMeetingTime?: string;
+}
+
 interface InsightsResponse {
   success: boolean;
   reflection: Reflection;
@@ -61,6 +74,10 @@ interface InsightsResponse {
   history: HistoryItem[];
   evidence?: EvidenceItem[];
   crossPlatformContext?: CrossPlatformContext;
+  // New: Specific data for visual display
+  upcomingEvents?: UpcomingEvent[];
+  eventTypes?: string[];
+  scheduleStats?: ScheduleStats;
   error?: string;
 }
 
@@ -229,6 +246,63 @@ const CalendarInsightsPage: React.FC = () => {
         </button>
       </div>
 
+      {/* Upcoming Events Section - Visual data display */}
+      {insights?.upcomingEvents && insights.upcomingEvents.length > 0 && (
+        <div className="mb-6">
+          <h3
+            className="text-sm uppercase tracking-wider mb-3 flex items-center gap-2"
+            style={{ color: colors.textSecondary }}
+          >
+            <Clock className="w-4 h-4" style={{ color: colors.calendarBlue }} />
+            Coming Up
+          </h3>
+          <div className="space-y-2">
+            {insights.upcomingEvents.slice(0, 3).map((event, index) => (
+              <EventCard
+                key={index}
+                title={event.title}
+                time={event.time}
+                type={event.type}
+              />
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Event Types - Visual data highlight */}
+      {insights?.eventTypes && insights.eventTypes.length > 0 && (
+        <div className="mb-6">
+          <DataHighlight
+            label="What Fills Your Time"
+            items={insights.eventTypes}
+            icon={<CalendarDays className="w-4 h-4" />}
+            accentColor={colors.calendarBlue}
+          />
+        </div>
+      )}
+
+      {/* Schedule Stats - Visual indicators */}
+      {insights?.scheduleStats && (
+        <div className="grid grid-cols-2 gap-3 mb-6">
+          {insights.scheduleStats.busiestDay && (
+            <StatCard
+              label="Busiest Day"
+              value={insights.scheduleStats.busiestDay}
+              icon={<CalendarDays className="w-4 h-4" />}
+              accentColor={colors.calendarBlue}
+            />
+          )}
+          {insights.scheduleStats.preferredMeetingTime && (
+            <StatCard
+              label="Peak Hours"
+              value={insights.scheduleStats.preferredMeetingTime}
+              icon={<Clock className="w-4 h-4" />}
+              accentColor={colors.calendarBlue}
+            />
+          )}
+        </div>
+      )}
+
       {/* Primary Reflection */}
       {insights?.reflection && (
         <div className="mb-8">
@@ -284,10 +358,10 @@ const CalendarInsightsPage: React.FC = () => {
             {insights.history.map(past => (
               <GlassPanel key={past.id} variant="default" className="!p-4">
                 <p
-                  className="text-sm italic"
+                  className="text-sm leading-relaxed"
                   style={{ color: theme === 'dark' ? 'rgba(193, 192, 182, 0.7)' : '#57534e' }}
                 >
-                  "{past.text}"
+                  {past.text}
                 </p>
                 <p
                   className="text-xs mt-2"
