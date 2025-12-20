@@ -44,7 +44,10 @@ class PlatformReflectionService {
         console.log(`🪞 [Reflection] Using cached ${platform} reflection`);
         const fullContext = await userContextAggregator.aggregateUserContext(userId);
         const lifeContext = fullContext?.lifeContext || null;
-        return this.formatResponse(cached, await this.getHistory(userId, platform), lifeContext);
+        // Also fetch fresh platform data for visual display
+        const platformData = await this.getPlatformData(userId, platform);
+        const visualData = platformData.success ? platformData.data : null;
+        return this.formatResponse(cached, await this.getHistory(userId, platform), lifeContext, visualData);
       }
 
       // 2. Get platform-specific data AND full context for cross-platform awareness
@@ -79,7 +82,7 @@ class PlatformReflectionService {
       // 6. Get history
       const history = await this.getHistory(userId, platform);
 
-      return this.formatResponse(reflection, history, lifeContext);
+      return this.formatResponse(reflection, history, lifeContext, platformData.data);
     } catch (error) {
       console.error(`❌ [Reflection] Error for ${platform}:`, error);
       return {
@@ -118,7 +121,7 @@ class PlatformReflectionService {
     await this.storeReflection(userId, platform, reflection);
     const history = await this.getHistory(userId, platform);
 
-    return this.formatResponse(reflection, history, lifeContext);
+    return this.formatResponse(reflection, history, lifeContext, platformData.data);
   }
 
   /**
@@ -562,7 +565,7 @@ Example good reflection: "The way you protect Tuesday mornings tells me somethin
   /**
    * Format the response
    */
-  formatResponse(reflection, history, lifeContext = null) {
+  formatResponse(reflection, history, lifeContext = null, visualData = null) {
     // Handle both stored and freshly generated reflections
     const reflectionData = reflection.reflection_text
       ? {
@@ -596,6 +599,9 @@ Example good reflection: "The way you protect Tuesday mornings tells me somethin
       } : contextSnapshot?.lifeContext || null
     };
 
+    // Extract visual data from contextSnapshot if available
+    const rawData = contextSnapshot?.rawDataUsed || visualData || {};
+
     return {
       success: true,
       reflection: reflectionData,
@@ -615,7 +621,21 @@ Example good reflection: "The way you protect Tuesday mornings tells me somethin
         id: h.id,
         text: h.reflection_text,
         generatedAt: h.generated_at
-      }))
+      })),
+      // NEW: Visual data for engaging display (no more textbook style)
+      recentTracks: rawData.recentTrackNames?.slice(0, 5)?.map(name => {
+        const parts = name.split(' by ');
+        return {
+          name: parts[0] || name,
+          artist: parts[1] || 'Unknown Artist'
+        };
+      }) || [],
+      topArtists: rawData.topArtists?.slice(0, 6) || [],
+      currentMood: rawData.listeningContext ? {
+        label: rawData.listeningContext,
+        energy: rawData.averageEnergy || 0.5,
+        valence: rawData.averageValence || 0.5
+      } : null
     };
   }
 }

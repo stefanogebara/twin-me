@@ -11,9 +11,9 @@ import React, { useEffect, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useTheme } from '@/contexts/ThemeContext';
 import { PageLayout, GlassPanel } from '@/components/layout/PageLayout';
-import { TwinReflection, PatternObservation } from './components/TwinReflection';
+import { TwinReflection, PatternObservation, StatCard, DataHighlight } from './components/TwinReflection';
 import { EvidenceSection } from './components/EvidenceSection';
-import { Activity, RefreshCw, Sparkles, ArrowLeft, AlertCircle } from 'lucide-react';
+import { Activity, RefreshCw, Sparkles, ArrowLeft, AlertCircle, Heart, Zap, Moon, TrendingUp } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 interface Reflection {
@@ -54,6 +54,20 @@ interface CrossPlatformContext {
   calendarDensity?: string;
 }
 
+interface BodyMetrics {
+  recovery?: number;
+  strain?: number;
+  sleepPerformance?: number;
+  hrv?: number;
+  restingHR?: number;
+}
+
+interface SleepStats {
+  avgSleepHours?: string;
+  sleepConsistency?: string;
+  bestSleepDay?: string;
+}
+
 interface InsightsResponse {
   success: boolean;
   reflection: Reflection;
@@ -61,6 +75,10 @@ interface InsightsResponse {
   history: HistoryItem[];
   evidence?: EvidenceItem[];
   crossPlatformContext?: CrossPlatformContext;
+  // New: Specific data for visual display
+  currentMetrics?: BodyMetrics;
+  recentTrends?: string[];
+  sleepStats?: SleepStats;
   error?: string;
 }
 
@@ -229,6 +247,98 @@ const WhoopInsightsPage: React.FC = () => {
         </button>
       </div>
 
+      {/* Current Metrics - Visual indicators */}
+      {insights?.currentMetrics && (
+        <div className="mb-6">
+          <div className="grid grid-cols-2 gap-3">
+            {insights.currentMetrics.recovery !== undefined && (
+              <GlassPanel className="!p-4">
+                <div className="flex items-center gap-2 mb-2">
+                  <Heart className="w-4 h-4" style={{ color: colors.whoopTeal }} />
+                  <span
+                    className="text-xs uppercase tracking-wider"
+                    style={{ color: colors.textSecondary }}
+                  >
+                    Recovery
+                  </span>
+                </div>
+                <div className="flex items-end gap-2">
+                  <span
+                    className="text-2xl font-medium"
+                    style={{ color: colors.text }}
+                  >
+                    {insights.currentMetrics.recovery}%
+                  </span>
+                  <span
+                    className="text-xs mb-1"
+                    style={{
+                      color: insights.currentMetrics.recovery >= 67 ? '#4ade80' :
+                        insights.currentMetrics.recovery >= 34 ? '#fbbf24' : '#f87171'
+                    }}
+                  >
+                    {insights.currentMetrics.recovery >= 67 ? 'Green' :
+                      insights.currentMetrics.recovery >= 34 ? 'Yellow' : 'Red'}
+                  </span>
+                </div>
+              </GlassPanel>
+            )}
+            {insights.currentMetrics.strain !== undefined && (
+              <GlassPanel className="!p-4">
+                <div className="flex items-center gap-2 mb-2">
+                  <Zap className="w-4 h-4" style={{ color: '#fbbf24' }} />
+                  <span
+                    className="text-xs uppercase tracking-wider"
+                    style={{ color: colors.textSecondary }}
+                  >
+                    Today's Strain
+                  </span>
+                </div>
+                <div
+                  className="text-2xl font-medium"
+                  style={{ color: colors.text }}
+                >
+                  {insights.currentMetrics.strain.toFixed(1)}
+                </div>
+              </GlassPanel>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Sleep Stats - Visual cards */}
+      {insights?.sleepStats && (
+        <div className="grid grid-cols-2 gap-3 mb-6">
+          {insights.sleepStats.avgSleepHours && (
+            <StatCard
+              label="Avg Sleep"
+              value={insights.sleepStats.avgSleepHours}
+              icon={<Moon className="w-4 h-4" />}
+              accentColor={colors.whoopTeal}
+            />
+          )}
+          {insights.sleepStats.bestSleepDay && (
+            <StatCard
+              label="Best Sleep Day"
+              value={insights.sleepStats.bestSleepDay}
+              icon={<TrendingUp className="w-4 h-4" />}
+              accentColor="#4ade80"
+            />
+          )}
+        </div>
+      )}
+
+      {/* Recent Trends - Visual highlight */}
+      {insights?.recentTrends && insights.recentTrends.length > 0 && (
+        <div className="mb-6">
+          <DataHighlight
+            label="What Your Body Shows"
+            items={insights.recentTrends}
+            icon={<Activity className="w-4 h-4" />}
+            accentColor={colors.whoopTeal}
+          />
+        </div>
+      )}
+
       {/* Primary Reflection */}
       {insights?.reflection && (
         <div className="mb-8">
@@ -284,10 +394,10 @@ const WhoopInsightsPage: React.FC = () => {
             {insights.history.map(past => (
               <GlassPanel key={past.id} variant="default" className="!p-4">
                 <p
-                  className="text-sm italic"
+                  className="text-sm leading-relaxed"
                   style={{ color: theme === 'dark' ? 'rgba(193, 192, 182, 0.7)' : '#57534e' }}
                 >
-                  "{past.text}"
+                  {past.text}
                 </p>
                 <p
                   className="text-xs mt-2"

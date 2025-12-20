@@ -1,19 +1,19 @@
 /**
  * Spotify Insights Page
  *
- * "Your Musical Soul" - Conversational reflections from your twin
+ * "Your Musical Soul" - Visual, engaging insights from your twin
  * about what your music patterns reveal about you.
  *
- * NO stats. NO numbers. Just introspective observations.
+ * REDESIGNED: Visual variety, specific data, no textbook style
  */
 
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useTheme } from '@/contexts/ThemeContext';
 import { PageLayout, GlassPanel } from '@/components/layout/PageLayout';
-import { TwinReflection, PatternObservation } from './components/TwinReflection';
+import { TwinReflection, PatternObservation, DataHighlight, TrackCard } from './components/TwinReflection';
 import { EvidenceSection } from './components/EvidenceSection';
-import { Music, RefreshCw, Sparkles, ArrowLeft, AlertCircle } from 'lucide-react';
+import { Music, RefreshCw, Sparkles, ArrowLeft, AlertCircle, Disc3, Users } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 interface Reflection {
@@ -54,6 +54,12 @@ interface CrossPlatformContext {
   calendarDensity?: string;
 }
 
+interface RecentTrack {
+  name: string;
+  artist: string;
+  playedAt?: string;
+}
+
 interface InsightsResponse {
   success: boolean;
   reflection: Reflection;
@@ -61,6 +67,14 @@ interface InsightsResponse {
   history: HistoryItem[];
   evidence?: EvidenceItem[];
   crossPlatformContext?: CrossPlatformContext;
+  // New: Specific data for visual display
+  recentTracks?: RecentTrack[];
+  topArtists?: string[];
+  currentMood?: {
+    label: string;
+    energy: number;
+    valence: number;
+  };
   error?: string;
 }
 
@@ -229,6 +243,105 @@ const SpotifyInsightsPage: React.FC = () => {
         </button>
       </div>
 
+      {/* Recent Tracks Section - Visual data display */}
+      {insights?.recentTracks && insights.recentTracks.length > 0 && (
+        <div className="mb-6">
+          <h3
+            className="text-sm uppercase tracking-wider mb-3 flex items-center gap-2"
+            style={{ color: colors.textSecondary }}
+          >
+            <Disc3 className="w-4 h-4" style={{ color: colors.spotifyGreen }} />
+            Recently Playing
+          </h3>
+          <div className="space-y-2">
+            {insights.recentTracks.slice(0, 3).map((track, index) => (
+              <TrackCard
+                key={index}
+                name={track.name}
+                artist={track.artist}
+                context={index === 0 ? 'Latest' : undefined}
+              />
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Top Artists - Visual data highlight */}
+      {insights?.topArtists && insights.topArtists.length > 0 && (
+        <div className="mb-6">
+          <DataHighlight
+            label="Artists You Gravitate Toward"
+            items={insights.topArtists}
+            icon={<Users className="w-4 h-4" />}
+            accentColor={colors.spotifyGreen}
+          />
+        </div>
+      )}
+
+      {/* Current Mood - Visual indicator */}
+      {insights?.currentMood && (
+        <GlassPanel className="mb-6 !p-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <span
+                className="text-xs uppercase tracking-wider"
+                style={{ color: colors.textSecondary }}
+              >
+                Current Musical Mood
+              </span>
+              <div
+                className="text-lg font-medium mt-1"
+                style={{ color: colors.text }}
+              >
+                {insights.currentMood.label}
+              </div>
+            </div>
+            <div className="flex gap-4">
+              <div className="text-center">
+                <div
+                  className="text-xs mb-1"
+                  style={{ color: colors.textSecondary }}
+                >
+                  Energy
+                </div>
+                <div
+                  className="w-12 h-2 rounded-full overflow-hidden"
+                  style={{ backgroundColor: 'rgba(193, 192, 182, 0.1)' }}
+                >
+                  <div
+                    className="h-full rounded-full"
+                    style={{
+                      width: `${(insights.currentMood.energy || 0.5) * 100}%`,
+                      backgroundColor: colors.spotifyGreen
+                    }}
+                  />
+                </div>
+              </div>
+              <div className="text-center">
+                <div
+                  className="text-xs mb-1"
+                  style={{ color: colors.textSecondary }}
+                >
+                  Positivity
+                </div>
+                <div
+                  className="w-12 h-2 rounded-full overflow-hidden"
+                  style={{ backgroundColor: 'rgba(193, 192, 182, 0.1)' }}
+                >
+                  <div
+                    className="h-full rounded-full"
+                    style={{
+                      width: `${(insights.currentMood.valence || 0.5) * 100}%`,
+                      backgroundColor: '#fbbf24'
+                    }}
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+        </GlassPanel>
+      )}
+
       {/* Primary Reflection */}
       {insights?.reflection && (
         <div className="mb-8">
@@ -284,10 +397,10 @@ const SpotifyInsightsPage: React.FC = () => {
             {insights.history.map(past => (
               <GlassPanel key={past.id} variant="default" className="!p-4">
                 <p
-                  className="text-sm italic"
+                  className="text-sm leading-relaxed"
                   style={{ color: theme === 'dark' ? 'rgba(193, 192, 182, 0.7)' : '#57534e' }}
                 >
-                  "{past.text}"
+                  {past.text}
                 </p>
                 <p
                   className="text-xs mt-2"
