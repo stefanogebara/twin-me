@@ -45,12 +45,13 @@ class UserContextAggregator {
       }
     }
 
-    // Aggregate data from all platforms in parallel (including life context)
-    const [whoopContext, spotifyContext, calendarContext, personality, patterns, lifeContext] = await Promise.all([
+    // Aggregate data from all platforms in parallel (including life context and personality quiz)
+    const [whoopContext, spotifyContext, calendarContext, personality, personalityQuiz, patterns, lifeContext] = await Promise.all([
       platforms.includes('whoop') ? this.getWhoopContext(userId) : null,
       platforms.includes('spotify') ? this.getSpotifyContext(userId) : null,
       platforms.includes('calendar') ? this.getCalendarContext(userId) : null,
       this.getPersonalityProfile(userId),
+      this.getPersonalityQuiz(userId),
       this.getLearnedPatterns(userId),
       this.getLifeContext(userId)
     ]);
@@ -62,8 +63,9 @@ class UserContextAggregator {
       whoop: whoopContext,
       spotify: spotifyContext,
       calendar: calendarContext,
-      lifeContext, // NEW: Life context (vacation, conferences, etc.)
-      personality,
+      lifeContext, // Life context (vacation, conferences, etc.)
+      personality, // Big Five from personality_scores table
+      personalityQuiz, // Onboarding quiz preferences from users table
       patterns,
       summary: this.generateContextSummary(whoopContext, spotifyContext, calendarContext, lifeContext)
     };
@@ -487,7 +489,7 @@ class UserContextAggregator {
   }
 
   /**
-   * Get user's personality profile
+   * Get user's personality profile from personality_scores table (Big Five)
    */
   async getPersonalityProfile(userId) {
     try {
@@ -512,6 +514,136 @@ class UserContextAggregator {
     } catch {
       return null;
     }
+  }
+
+  /**
+   * Get user's personality quiz from onboarding (16personalities-style)
+   * This is stored in users.personality_quiz and contains preferences like
+   * morning_person, stress_coping, music_emotional_strategy, etc.
+   */
+  async getPersonalityQuiz(userId) {
+    console.log(`🧩 [Context Aggregator] Fetching personality quiz for user ${userId}`);
+
+    try {
+      const { data: user, error } = await supabaseAdmin
+        .from('users')
+        .select('personality_quiz, onboarding_completed_at')
+        .eq('id', userId)
+        .single();
+
+      if (error || !user?.personality_quiz || user.personality_quiz.skipped) {
+        console.log(`⚠️ [Context Aggregator] No personality quiz data`);
+        return null;
+      }
+
+      const quiz = user.personality_quiz;
+      const prefs = quiz.preferences || {};
+
+      // Return a summary that's useful for reflections
+      return {
+        completed: true,
+        completedAt: user.onboarding_completed_at || quiz.completedAt,
+
+        // Core personality traits
+        morningPerson: prefs.morning_person,
+        peakHours: prefs.peak_hours,
+        energyPattern: prefs.energy_pattern,
+        introversion: prefs.introversion,
+
+        // Emotional processing
+        musicEmotionalStrategy: prefs.music_emotional_strategy,
+        stressCoping: prefs.stress_coping,
+
+        // Music preferences
+        noveltySeeking: prefs.novelty_seeking,
+        prefersFamiliar: prefs.prefers_familiar,
+        focusInstrumentalness: prefs.focus_instrumentalness,
+
+        // Event preparation style
+        preEventStrategy: prefs.pre_event_strategy,
+
+        // Focus style
+        distractionResistance: prefs.distraction_resistance,
+        needsStimulation: prefs.needs_stimulation,
+
+        // Generate human-readable summary for prompts
+        summary: this.generatePersonalitySummary(prefs)
+      };
+
+    } catch (error) {
+      console.error(`❌ [Context Aggregator] Personality quiz error:`, error.message);
+      return null;
+    }
+  }
+
+  /**
+   * Generate a human-readable summary of personality preferences
+   */
+  generatePersonalitySummary(prefs) {
+    const parts = [];
+
+    // Morning/evening person
+    if (prefs.morning_person === true) {
+      parts.push('morning person who peaks early');
+    } else if (prefs.morning_person === false) {
+      parts.push('not a morning person');
+    }
+
+    // Peak productivity
+    if (prefs.peak_hours) {
+      const labels = {
+        'morning': 'most productive in early morning',
+        'late_morning': 'peaks in late morning',
+        'afternoon': 'hits stride in the afternoon',
+        'evening': 'comes alive in the evening'
+      };
+      parts.push(labels[prefs.peak_hours] || '');
+    }
+
+    // Introversion
+    if (prefs.introversion > 0.7) {
+      parts.push('needs solitude to recharge after social interaction');
+    } else if (prefs.introversion < 0.3) {
+      parts.push('energized by social interaction');
+    }
+
+    // Music emotional strategy
+    if (prefs.music_emotional_strategy === 'match') {
+      parts.push('uses music to match and validate current emotions');
+    } else if (prefs.music_emotional_strategy === 'change') {
+      parts.push('uses music to shift and lift mood');
+    }
+
+    // Stress coping
+    const copingLabels = {
+      'calm': 'seeks calm when stressed',
+      'active': 'works through stress with physical activity',
+      'distract': 'copes with stress through distraction',
+      'social': 'turns to others when stressed'
+    };
+    if (copingLabels[prefs.stress_coping]) {
+      parts.push(copingLabels[prefs.stress_coping]);
+    }
+
+    // Novelty seeking
+    if (prefs.novelty_seeking > 0.7) {
+      parts.push('loves discovering new music');
+    } else if (prefs.novelty_seeking < 0.3) {
+      parts.push('prefers familiar, comfort music');
+    }
+
+    // Pre-event strategy
+    const eventLabels = {
+      'energize': 'pumps up before important events',
+      'calm': 'centers themselves with calm before events',
+      'prepare': 'focuses on preparation before events',
+      'distract': 'distracts themselves before stressful events'
+    };
+    if (eventLabels[prefs.pre_event_strategy]) {
+      parts.push(eventLabels[prefs.pre_event_strategy]);
+    }
+
+    return parts.filter(Boolean).join(', ');
   }
 
   /**
