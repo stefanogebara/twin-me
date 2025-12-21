@@ -114,14 +114,12 @@ const App = () => {
               </ProtectedRoute>
             } />
 
-            {/* Personality Assessment - 16personalities-style */}
+            {/* Personality Assessment - Full-screen focused onboarding experience */}
             <Route path="/personality" element={
               <ProtectedRoute>
-                <SidebarLayout>
-                  <ErrorBoundary>
-                    <PersonalityAssessment />
-                  </ErrorBoundary>
-                </SidebarLayout>
+                <ErrorBoundary>
+                  <PersonalityAssessment />
+                </ErrorBoundary>
               </ProtectedRoute>
             } />
 
