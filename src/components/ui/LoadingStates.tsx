@@ -234,7 +234,7 @@ export const ProgressBar: React.FC<ProgressBarProps> = ({
   const colors = {
     default: 'bg-[hsl(var(--claude-accent))]',
     success: 'bg-green-500',
-    warning: 'bg-amber-500',
+    warning: 'bg-stone-500',
     error: 'bg-red-500',
   };
 

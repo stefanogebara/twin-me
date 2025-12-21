@@ -55,6 +55,12 @@ const PLATFORM_REFRESH_CONFIGS = {
     clientId: process.env.LINKEDIN_CLIENT_ID,
     clientSecret: process.env.LINKEDIN_CLIENT_SECRET,
   },
+  // Whoop OAuth refresh configuration
+  whoop: {
+    tokenUrl: 'https://api.prod.whoop.com/oauth/oauth2/token',
+    clientId: process.env.WHOOP_CLIENT_ID,
+    clientSecret: process.env.WHOOP_CLIENT_SECRET,
+  },
 };
 
 /**
@@ -124,13 +130,23 @@ async function checkAndRefreshExpiringTokens() {
 
     // Get all connections that expire in the next 10 minutes
     const tenMinutesFromNow = new Date(Date.now() + 10 * 60 * 1000).toISOString();
+    console.log('🔍 [CRON] Query threshold:', tenMinutesFromNow);
 
-    const { data: connections, error } = await getSupabaseClient()
+    const client = getSupabaseClient();
+    console.log('🔍 [CRON] Supabase client exists:', !!client);
+
+    const { data: connections, error } = await client
       .from('platform_connections')
       .select('*')
-      .in('status', ['connected', 'token_expired'])
+      .in('status', ['connected', 'token_expired', 'expired'])
       .not('refresh_token', 'is', null)
       .lt('token_expires_at', tenMinutesFromNow);
+
+    console.log('🔍 [CRON] Query result:', {
+      hasError: !!error,
+      connectionCount: connections?.length ?? 0,
+      errorMessage: error?.message
+    });
 
     if (error) {
       console.error('❌ Error fetching connections:', error);

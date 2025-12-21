@@ -109,20 +109,20 @@ export const PlatformConnectionCard: React.FC<PlatformConnectionCardProps> = ({
             {needsReconnect ? (
               <>
                 <Badge
-                  className="bg-red-500/10 text-red-600 border border-red-500/20"
+                  className="bg-[rgba(193,192,182,0.1)] text-[#C1C0B6] border border-[rgba(193,192,182,0.2)]"
                   title={tokenExpired ? "Token expired - reconnection required" : "Connection inactive"}
                 >
                   <AlertCircle className="w-3 h-3 mr-1" />
                   {tokenExpired ? 'Token Expired' : 'Inactive'}
                 </Badge>
+                {/* PLAT 3.4: More urgent reconnect button */}
                 <Button
                   onClick={onReconnect}
                   size="sm"
-                  variant="outline"
-                  className="h-7 px-2 text-xs border-red-500/50 text-red-600 hover:bg-red-50"
+                  className="h-7 px-3 text-xs bg-red-500 text-white hover:bg-red-600 border-0 animate-pulse"
                 >
                   <RefreshCw className="w-3 h-3 mr-1" />
-                  Reconnect
+                  Reconnect Now
                 </Button>
               </>
             ) : (

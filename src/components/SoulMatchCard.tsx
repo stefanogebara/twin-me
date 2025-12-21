@@ -19,7 +19,7 @@ const SoulMatchCard: React.FC<SoulMatchCardProps> = ({ match, onViewProfile, onC
   // Determine compatibility level
   const getCompatibilityLevel = (score: number) => {
     if (score >= 90) return { label: 'Exceptional', color: 'text-emerald-600', bgColor: 'bg-emerald-50', borderColor: 'border-emerald-200' };
-    if (score >= 75) return { label: 'Great', color: 'text-amber-600', bgColor: 'bg-amber-50', borderColor: 'border-amber-200' };
+    if (score >= 75) return { label: 'Great', color: 'text-stone-600', bgColor: 'bg-amber-50', borderColor: 'border-amber-200' };
     if (score >= 60) return { label: 'Good', color: 'text-orange-600', bgColor: 'bg-orange-50', borderColor: 'border-orange-200' };
     return { label: 'Moderate', color: 'text-slate-600', bgColor: 'bg-slate-50', borderColor: 'border-slate-200' };
   };
@@ -38,7 +38,7 @@ const SoulMatchCard: React.FC<SoulMatchCardProps> = ({ match, onViewProfile, onC
               className="w-16 h-16 rounded-full object-cover border-2 border-orange-200"
             />
           ) : (
-            <div className="w-16 h-16 rounded-full bg-gradient-to-br from-orange-400 to-amber-500 flex items-center justify-center">
+            <div className="w-16 h-16 rounded-full bg-gradient-to-br from-stone-400 to-stone-500 flex items-center justify-center">
               <span className="text-white text-xl font-bold">{userName.charAt(0).toUpperCase()}</span>
             </div>
           )}
@@ -114,13 +114,13 @@ const SoulMatchCard: React.FC<SoulMatchCardProps> = ({ match, onViewProfile, onC
 
         <div className="bg-gradient-to-br from-amber-50 to-amber-100 p-3 rounded-lg border border-amber-200">
           <div className="flex items-center gap-2 mb-1">
-            <Target className="w-4 h-4 text-amber-600" />
+            <Target className="w-4 h-4 text-stone-600" />
             <span className="text-xs font-medium text-amber-800">Values</span>
           </div>
           <div className="text-2xl font-bold text-amber-700">{breakdown.values}%</div>
           <div className="w-full bg-amber-200 rounded-full h-1.5 mt-2">
             <div
-              className="bg-amber-600 h-1.5 rounded-full transition-all duration-500"
+              className="bg-stone-600 h-1.5 rounded-full transition-all duration-500"
               style={{ width: `${breakdown.values}%` }}
             />
           </div>
@@ -153,13 +153,13 @@ const SoulMatchCard: React.FC<SoulMatchCardProps> = ({ match, onViewProfile, onC
       <div className="flex gap-3 mt-4">
         <button
           onClick={() => onViewProfile?.(userId)}
-          className="flex-1 px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors duration-200 text-sm font-medium"
+          className="flex-1 px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-stone-700 transition-colors duration-200 text-sm font-medium"
         >
           View Profile
         </button>
         <button
           onClick={() => onConnect?.(userId)}
-          className="flex-1 px-4 py-2 bg-card text-orange-600 border-2 border-orange-600 rounded-lg hover:bg-orange-50 transition-colors duration-200 text-sm font-medium"
+          className="flex-1 px-4 py-2 bg-card text-orange-600 border-2 border-orange-600 rounded-lg hover:bg-stone-50 transition-colors duration-200 text-sm font-medium"
         >
           Connect
         </button>

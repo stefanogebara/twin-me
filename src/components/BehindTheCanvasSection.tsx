@@ -29,14 +29,14 @@ export const BehindTheCanvasSection = () => {
           </p>
         </div>
 
-        <button className="bg-orange-500 hover:bg-orange-600 text-white rounded-full px-8 py-3 text-lg font-medium shadow-lg transition-all duration-200 hover:scale-105">
+        <button className="bg-stone-500 hover:bg-stone-600 text-white rounded-full px-8 py-3 text-lg font-medium shadow-lg transition-all duration-200 hover:scale-105">
           Try Twin Me for Free!
         </button>
 
         {/* Bottom Images Grid */}
         <div className="mt-16 grid grid-cols-3 gap-8 max-w-2xl mx-auto">
           <div className="aspect-square bg-gradient-to-br from-blue-400 to-cyan-300 rounded-2xl shadow-lg"></div>
-          <div className="aspect-square bg-gradient-to-br from-orange-400 to-pink-400 rounded-2xl shadow-lg"></div>
+          <div className="aspect-square bg-gradient-to-br from-stone-400 to-pink-400 rounded-2xl shadow-lg"></div>
           <div className="aspect-square bg-gradient-to-br from-green-400 to-emerald-300 rounded-2xl shadow-lg"></div>
         </div>
       </div>

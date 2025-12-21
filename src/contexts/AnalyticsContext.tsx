@@ -103,11 +103,14 @@ export const AnalyticsProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     trackPageView(currentPath);
 
     const handleBeforeUnload = () => {
-      navigator.sendBeacon('/api/analytics/session-end', JSON.stringify({
+      // Use Blob with correct content type to avoid 415 Unsupported Media Type
+      const data = JSON.stringify({
         session_id: getSessionId(),
         user_id: user?.id,
         end_time: new Date().toISOString()
-      }));
+      });
+      const blob = new Blob([data], { type: 'application/json' });
+      navigator.sendBeacon('/api/analytics/session-end', blob);
     };
 
     window.addEventListener('beforeunload', handleBeforeUnload);

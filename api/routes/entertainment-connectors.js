@@ -84,7 +84,7 @@ router.post('/connect/spotify', oauthAuthorizationLimiter, async (req, res) => {
     }
 
     const config = PLATFORM_CONFIGS.spotify;
-    const redirectUri = `${process.env.VITE_APP_URL || 'http://localhost:8086'}/oauth/callback`;
+    const redirectUri = `${process.env.VITE_APP_URL || 'http://127.0.0.1:8086'}/oauth/callback`;
     const scope = config.scopes.join(' ');
 
     // Generate PKCE parameters (RFC 7636 - OAuth 2.1 mandatory)
@@ -104,7 +104,7 @@ router.post('/connect/spotify', oauthAuthorizationLimiter, async (req, res) => {
         state,
         code_verifier: encryptToken(pkce.codeVerifier), // Encrypt PKCE verifier
         data: { userId, platform: 'spotify' },
-        expires_at: new Date(Date.now() + 600000) // 10 minutes
+        expires_at: new Date(Date.now() + 1800000) // 30 minutes
       });
 
     const authUrl = `${config.authUrl}?` +
@@ -305,7 +305,7 @@ router.post('/connect/youtube', oauthAuthorizationLimiter, async (req, res) => {
         state,
         code_verifier: encryptToken(pkce.codeVerifier), // Encrypt PKCE verifier
         data: { userId, platform: 'youtube' },
-        expires_at: new Date(Date.now() + 600000) // 10 minutes
+        expires_at: new Date(Date.now() + 1800000) // 30 minutes
       });
 
     const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?` +
@@ -534,6 +534,58 @@ router.post('/oauth/callback', oauthCallbackLimiter, async (req, res) => {
         accessToken = googleTokens.access_token;
         refreshToken = googleTokens.refresh_token;
         expiresIn = googleTokens.expires_in;
+        break;
+
+      case 'whoop':
+        const whoopConfig = PLATFORM_CONFIGS.whoop;
+        const whoopTokenResponse = await fetch(whoopConfig.tokenUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+          body: new URLSearchParams({
+            grant_type: 'authorization_code',
+            code,
+            client_id: process.env.WHOOP_CLIENT_ID,
+            client_secret: process.env.WHOOP_CLIENT_SECRET,
+            redirect_uri: `${process.env.VITE_APP_URL || 'http://localhost:8086'}/oauth/callback`
+          })
+        });
+
+        if (!whoopTokenResponse.ok) {
+          const errorData = await whoopTokenResponse.json();
+          console.error('Whoop token exchange error:', errorData);
+          throw new Error(`Failed to exchange Whoop authorization code: ${errorData.error_description || errorData.error}`);
+        }
+
+        const whoopTokens = await whoopTokenResponse.json();
+        accessToken = whoopTokens.access_token;
+        refreshToken = whoopTokens.refresh_token;
+        expiresIn = whoopTokens.expires_in;
+        break;
+
+      case 'oura':
+        const ouraConfig = PLATFORM_CONFIGS.oura;
+        const ouraTokenResponse = await fetch(ouraConfig.tokenUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+          body: new URLSearchParams({
+            grant_type: 'authorization_code',
+            code,
+            client_id: process.env.OURA_CLIENT_ID,
+            client_secret: process.env.OURA_CLIENT_SECRET,
+            redirect_uri: `${process.env.VITE_APP_URL || 'http://localhost:8086'}/oauth/callback`
+          })
+        });
+
+        if (!ouraTokenResponse.ok) {
+          const errorData = await ouraTokenResponse.json();
+          console.error('Oura token exchange error:', errorData);
+          throw new Error(`Failed to exchange Oura authorization code: ${errorData.error_description || errorData.error}`);
+        }
+
+        const ouraTokens = await ouraTokenResponse.json();
+        accessToken = ouraTokens.access_token;
+        refreshToken = ouraTokens.refresh_token;
+        expiresIn = ouraTokens.expires_in;
         break;
 
       default:
@@ -1289,7 +1341,7 @@ router.post('/connect/github', oauthAuthorizationLimiter, async (req, res) => {
         state,
         code_verifier: encryptToken(pkce.codeVerifier), // Encrypt PKCE verifier
         data: { userId, platform: 'github' },
-        expires_at: new Date(Date.now() + 600000) // 10 minutes
+        expires_at: new Date(Date.now() + 1800000) // 30 minutes
       });
 
     const authUrl = `https://github.com/login/oauth/authorize?` +
@@ -1346,7 +1398,7 @@ router.post('/connect/discord', oauthAuthorizationLimiter, async (req, res) => {
         state,
         code_verifier: encryptToken(pkce.codeVerifier),
         data: { userId, platform: 'discord' },
-        expires_at: new Date(Date.now() + 600000) // 10 minutes
+        expires_at: new Date(Date.now() + 1800000) // 30 minutes
       });
 
     const authUrl = `${config.authUrl}?` +
@@ -1416,7 +1468,7 @@ router.post('/connect/gmail', oauthAuthorizationLimiter, async (req, res) => {
         state,
         code_verifier: encryptToken(pkce.codeVerifier), // Encrypt PKCE verifier
         data: { userId, platform: 'google_gmail' },
-        expires_at: new Date(Date.now() + 600000) // 10 minutes
+        expires_at: new Date(Date.now() + 1800000) // 30 minutes
       });
 
     const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?` +

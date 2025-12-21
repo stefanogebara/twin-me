@@ -1,0 +1,158 @@
+import type { Config } from "tailwindcss";
+import tailwindcssAnimate from "tailwindcss-animate";
+
+export default {
+  darkMode: ["class"],
+  content: ["./pages/**/*.{ts,tsx}", "./components/**/*.{ts,tsx}", "./app/**/*.{ts,tsx}", "./src/**/*.{ts,tsx}"],
+  prefix: "",
+  theme: {
+    container: {
+      center: true,
+      padding: "2rem",
+      screens: {
+        "2xl": "1400px",
+      },
+    },
+    extend: {
+      fontFamily: {
+        // Premium Restaurant Design - Consistent Typography
+        'display': ['Playfair Display', 'Georgia', 'serif'],      // Elegant headings with classic feel
+        'heading': ['Cormorant Garamond', 'Georgia', 'serif'],     // Secondary headings, sophisticated
+        'sans': ['Inter', 'system-ui', '-apple-system', 'sans-serif'],  // Clean body text
+        'ui': ['Inter', 'system-ui', 'sans-serif'],                // UI elements
+        'serif': ['Cormorant Garamond', 'Georgia', 'serif'],       // Elegant body alternative
+        'mono': ['JetBrains Mono', 'Consolas', 'monospace'],       // Code/technical
+      },
+      colors: {
+        // Semantic tokens from CSS variables
+        border: "hsl(var(--border))",
+        input: "hsl(var(--input))",
+        ring: "hsl(var(--ring))",
+        background: "hsl(var(--background))",
+        foreground: "hsl(var(--foreground))",
+        primary: {
+          DEFAULT: "hsl(var(--primary))",
+          foreground: "hsl(var(--primary-foreground))",
+        },
+        secondary: {
+          DEFAULT: "hsl(var(--secondary))",
+          foreground: "hsl(var(--secondary-foreground))",
+        },
+        destructive: {
+          DEFAULT: "hsl(var(--destructive))",
+          foreground: "hsl(var(--destructive-foreground))",
+        },
+        muted: {
+          DEFAULT: "hsl(var(--muted))",
+          foreground: "hsl(var(--muted-foreground))",
+        },
+        accent: {
+          DEFAULT: "hsl(var(--accent))",
+          foreground: "hsl(var(--accent-foreground))",
+        },
+        popover: {
+          DEFAULT: "hsl(var(--popover))",
+          foreground: "hsl(var(--popover-foreground))",
+        },
+        card: {
+          DEFAULT: "hsl(var(--card))",
+          foreground: "hsl(var(--card-foreground))",
+        },
+
+        // Premium Restaurant Theme Colors
+        'restaurant': {
+          // Cream tones - warm, inviting backgrounds
+          'cream': {
+            50: '#FFFBF5',   // Lightest cream, almost white
+            100: '#FFF8ED',  // Very light cream
+            200: '#FFF1DC',  // Light cream - PRIMARY BACKGROUND
+            300: '#FFE8C5',  // Medium cream
+            400: '#FFDDA8',  // Deeper cream
+          },
+          // Burgundy tones - rich, sophisticated primary
+          'burgundy': {
+            50: '#FFF1F2',   // Lightest burgundy tint
+            100: '#FFE4E6',  // Very light burgundy
+            200: '#FECDD3',  // Light burgundy
+            300: '#FDA4AF',  // Medium burgundy
+            400: '#FB7185',  // Deeper burgundy
+            500: '#F43F5E',  // True burgundy-red
+            600: '#E11D48',  // Rich burgundy
+            700: '#BE123C',  // Dark burgundy
+            800: '#9F1239',  // Deeper burgundy
+            900: '#881337',  // Darkest burgundy - PRIMARY TEXT
+          },
+          // Gold tones - luxurious accents
+          'gold': {
+            50: '#FFFBEB',   // Lightest gold
+            100: '#FEF3C7',  // Very light gold
+            200: '#FDE68A',  // Light gold
+            300: '#FCD34D',  // Medium gold
+            400: '#FBBF24',  // Deeper gold
+            500: '#F59E0B',  // True gold
+            600: '#D97706',  // Rich gold - PRIMARY ACCENT
+            700: '#B45309',  // Dark gold
+            800: '#92400E',  // Deeper gold
+            900: '#78350F',  // Darkest gold
+          },
+        },
+        // Legacy support (will be phased out)
+        'anthropic': {
+          ivory: '#FAF9F5',
+          white: '#FFFFFF',
+          slate: '#141413',
+          'slate-medium': '#595959',
+          'slate-light': '#8C8C8C',
+          orange: '#D97706',
+          'orange-hover': '#B45309',
+        },
+      },
+      fontSize: {
+        'hero': 'var(--text-hero)',
+        'xl': 'var(--text-xl)',
+        'lg': 'var(--text-lg)',
+      },
+      spacing: {
+        'hero': 'var(--space-hero)',
+        'section': 'var(--space-section)',
+        'block': 'var(--space-block)',
+      },
+      backgroundImage: {
+        'hero-gradient': 'var(--hero-gradient)',
+      },
+      boxShadow: {
+        'soft': 'var(--shadow-soft)',
+        'medium': 'var(--shadow-medium)',
+        'strong': 'var(--shadow-strong)',
+      },
+      borderRadius: {
+        lg: "var(--radius)",
+        md: "calc(var(--radius) - 2px)",
+        sm: "calc(var(--radius) - 4px)",
+      },
+      keyframes: {
+        "accordion-down": {
+          from: {
+            height: "0",
+          },
+          to: {
+            height: "var(--radix-accordion-content-height)",
+          },
+        },
+        "accordion-up": {
+          from: {
+            height: "var(--radix-accordion-content-height)",
+          },
+          to: {
+            height: "0",
+          },
+        },
+      },
+      animation: {
+        "accordion-down": "accordion-down 0.2s ease-out",
+        "accordion-up": "accordion-up 0.2s ease-out",
+      },
+    },
+  },
+  plugins: [tailwindcssAnimate],
+} satisfies Config;

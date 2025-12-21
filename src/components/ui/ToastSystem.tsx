@@ -139,7 +139,7 @@ function ToastItem({ toast, onClose }: { toast: ToastMessage; onClose: () => voi
   const icons = {
     success: <CheckCircle className="w-5 h-5 text-green-600" />,
     error: <XCircle className="w-5 h-5 text-red-600" />,
-    warning: <AlertCircle className="w-5 h-5 text-amber-600" />,
+    warning: <AlertCircle className="w-5 h-5 text-stone-600" />,
     info: <Info className="w-5 h-5 text-blue-600" />,
     loading: <Loader2 className="w-5 h-5 text-[hsl(var(--claude-accent))] animate-spin" />,
     default: null,

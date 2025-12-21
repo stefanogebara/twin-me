@@ -25,7 +25,8 @@ if (import.meta.env.VITE_SENTRY_DSN) {
   });
 
   console.log('✅ Sentry error tracking initialized (frontend)');
-} else {
+} else if (import.meta.env.MODE === 'production') {
+  // Only warn in production - in development, Sentry is typically not needed
   console.log('⚠️  Sentry DSN not configured - frontend error tracking disabled');
 }
 

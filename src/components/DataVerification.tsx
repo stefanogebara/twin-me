@@ -55,6 +55,19 @@ const CalendarLogo = () => (
   </svg>
 );
 
+const WhoopLogo = () => (
+  <svg viewBox="0 0 1332 999" className="w-5 h-5" fill="#00A7E1">
+    <path d="m969.3 804.3l-129.4-426.3h-118.7l189.2 620.8h117.8l303.7-998h-118.7zm-851.3-803.5h-117.9l188.4 620.7h118.6zm488.6 0l-302.8 997.9h117.8l303.7-997.9z"/>
+  </svg>
+);
+
+const OuraLogo = () => (
+  <svg viewBox="0 0 24 24" className="w-5 h-5" fill="#D4AF37">
+    <circle cx="12" cy="12" r="10" fill="none" stroke="#D4AF37" strokeWidth="2.5"/>
+    <circle cx="12" cy="12" r="5" fill="none" stroke="#D4AF37" strokeWidth="2"/>
+  </svg>
+);
+
 interface PlatformStatus {
   connected: boolean;
   isActive: boolean;
@@ -113,6 +126,16 @@ const platformConfig: Record<string, {
     name: 'Google Calendar',
     icon: <CalendarLogo />,
     color: '#4285F4'
+  },
+  whoop: {
+    name: 'Whoop',
+    icon: <WhoopLogo />,
+    color: '#00A7E1'
+  },
+  oura: {
+    name: 'Oura',
+    icon: <OuraLogo />,
+    color: '#D4AF37'
   }
 };
 
@@ -254,14 +277,14 @@ export const DataVerification: React.FC<DataVerificationProps> = ({ userId, conn
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-shrink-0">
             {needsReconnection ? (
               <>
-                <Clock className="w-4 h-4" style={{ color: '#DC2626' }} />
+                <Clock className="w-4 h-4 flex-shrink-0" style={{ color: '#DC2626' }} />
                 <button
                   onClick={() => handleReconnect(platform)}
                   disabled={refreshingPlatform === platform}
-                  className="px-3 py-1 rounded-lg text-xs font-medium transition-all hover:opacity-90 disabled:opacity-50"
+                  className="px-2 py-1 rounded-lg text-xs font-medium transition-all hover:opacity-90 disabled:opacity-50 whitespace-nowrap"
                   style={{
                     backgroundColor: '#DC2626',
                     color: '#FFFFFF',
@@ -276,7 +299,7 @@ export const DataVerification: React.FC<DataVerificationProps> = ({ userId, conn
                 </button>
               </>
             ) : (
-              <CheckCircle className="w-4 h-4" style={{ color: '#059669' }} />
+              <CheckCircle className="w-4 h-4 flex-shrink-0" style={{ color: '#059669' }} />
             )}
           </div>
         </div>
@@ -284,7 +307,10 @@ export const DataVerification: React.FC<DataVerificationProps> = ({ userId, conn
     );
   };
 
-  const connectedCount = Object.keys(platformStatuses).filter(p => platformStatuses[p].connected).length;
+  // Count only platforms that are connected AND have valid (non-expired) tokens
+  const connectedCount = Object.keys(platformStatuses).filter(p =>
+    platformStatuses[p].connected && !platformStatuses[p].tokenExpired
+  ).length;
 
   return (
     <div className="mt-8 space-y-4">

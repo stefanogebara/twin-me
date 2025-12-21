@@ -8,6 +8,9 @@ import presentationRitualExtractor from '../services/extractors/presentationRitu
 import { supabaseAdmin } from '../config/supabase.js';
 import { authenticateUser } from '../middleware/auth.js';
 import { decryptToken } from '../services/encryption.js';
+import intelligentTwinEngine from '../services/intelligentTwinEngine.js';
+import userContextAggregator from '../services/userContextAggregator.js';
+import intelligentMusicService from '../services/intelligentMusicService.js';
 
 const router = express.Router();
 
@@ -136,7 +139,7 @@ router.get('/next', authenticateUser, async (req, res) => {
 
     if (!storedPatterns || !storedPatterns.next_prediction) {
       // Try to generate fresh data if no stored patterns
-      const extractor = new PresentationRitualExtractor();
+      // Note: This is just using the imported instance, not creating a new one
 
       // Get connections
       const { data: connections } = await supabaseAdmin
@@ -153,30 +156,101 @@ router.get('/next', authenticateUser, async (req, res) => {
         });
       }
 
-      // Return mock data for MVP demo
+      // Use Intelligent Twin Engine for dynamic recommendations
+      console.log('🧠 [Ritual API] Using Intelligent Twin Engine for recommendations');
+      const insights = await intelligentTwinEngine.generateInsightsAndRecommendations(userId, {
+        includeMusic: true
+      });
+
+      if (!insights.success) {
+        console.log('⚠️ [Ritual API] Intelligent insights unavailable, using fallback');
+        // Fallback to basic context
+        const context = await userContextAggregator.aggregateUserContext(userId);
+        const nextEvent = context.calendar?.nextEvent;
+
+        if (!nextEvent) {
+          return res.json({
+            success: true,
+            hasUpcomingRitual: false,
+            message: 'No upcoming events found in your calendar'
+          });
+        }
+
+        // Get basic music suggestions
+        const music = await intelligentMusicService.getRecommendations(userId, context, 'pre-event');
+
+        return res.json({
+          success: true,
+          nextEvent: {
+            id: nextEvent.id || 'event-' + Date.now(),
+            title: nextEvent.title,
+            start: nextEvent.start,
+            end: nextEvent.end,
+            attendees: nextEvent.attendeeCount || 0,
+            importanceScore: nextEvent.importance === 'high' ? 0.85 : nextEvent.importance === 'medium' ? 0.65 : 0.45,
+            type: nextEvent.type
+          },
+          ritualSuggestion: {
+            startTime: new Date(new Date(nextEvent.start).getTime() - 30 * 60 * 1000).toISOString(),
+            minutesBeforeEvent: 30,
+            suggestedTracks: music.success ? music.recommendations?.tracks?.slice(0, 5) : [],
+            suggestedPlaylists: music.success ? music.recommendations?.playlists?.slice(0, 3) : [],
+            genre: music.success ? music.recommendations?.audioFeatureTargets?.mood : 'Focus',
+            mood: music.success ? music.recommendations?.reasoning : 'Preparing for your event',
+            confidence: 0.7,
+            basedOnPattern: 'Intelligent recommendation based on your current state'
+          }
+        });
+      }
+
+      // Use full intelligent insights
+      const nextEvent = insights.context?.calendar;
+      const musicRecs = insights.music;
+
+      if (!nextEvent) {
+        return res.json({
+          success: true,
+          hasUpcomingRitual: false,
+          insights: insights.insights,
+          message: 'No upcoming events, but here are some insights for your day'
+        });
+      }
+
       return res.json({
         success: true,
         nextEvent: {
-          id: 'demo-event-1',
-          title: 'Product Strategy Meeting',
-          start: new Date(Date.now() + 3 * 60 * 60 * 1000).toISOString(), // 3 hours from now
-          end: new Date(Date.now() + 4 * 60 * 60 * 1000).toISOString(),
-          attendees: 8,
-          importanceScore: 0.85,
-          type: 'strategy_meeting'
+          id: nextEvent.id || 'event-' + Date.now(),
+          title: nextEvent.title,
+          start: nextEvent.start,
+          end: nextEvent.end,
+          attendees: nextEvent.attendeeCount || 0,
+          importanceScore: nextEvent.importance === 'high' ? 0.85 : nextEvent.importance === 'medium' ? 0.65 : 0.45,
+          type: nextEvent.type,
+          minutesUntil: nextEvent.minutesUntil
         },
         ritualSuggestion: {
-          startTime: new Date(Date.now() + 2.5 * 60 * 60 * 1000).toISOString(), // 30 min before
-          minutesBeforeEvent: 30,
-          suggestedTracks: [
-            { name: 'Midnight City', artist: 'M83', duration: 244, energy: 0.8 },
-            { name: 'Intro', artist: 'The xx', duration: 127, energy: 0.6 },
-            { name: 'Breathe', artist: 'Télépopmusik', duration: 323, energy: 0.5 }
-          ],
-          genre: 'Electronic Focus',
-          mood: 'Confident & Energized',
-          confidence: 0.78,
-          basedOnPattern: 'Similar meetings with 5+ attendees'
+          startTime: insights.insights?.preparationAdvice?.startPrepTime
+            ? new Date(new Date(nextEvent.start).getTime() - insights.insights.preparationAdvice.startPrepTime * 60 * 1000).toISOString()
+            : new Date(new Date(nextEvent.start).getTime() - 30 * 60 * 1000).toISOString(),
+          minutesBeforeEvent: insights.insights?.preparationAdvice?.startPrepTime || 30,
+          suggestedTracks: musicRecs?.tracks?.slice(0, 5) || [],
+          suggestedPlaylists: musicRecs?.playlists?.slice(0, 3) || [],
+          genre: musicRecs?.audioFeatureTargets?.mood || 'Focus',
+          mood: musicRecs?.reasoning || insights.insights?.currentState || 'Preparing for your event',
+          confidence: 0.85,
+          basedOnPattern: 'Intelligent cross-platform analysis'
+        },
+        insights: {
+          currentState: insights.insights?.currentState,
+          healthInsights: insights.insights?.healthInsights,
+          recommendations: insights.insights?.recommendations,
+          preparationAdvice: insights.insights?.preparationAdvice,
+          personalizedTip: insights.insights?.personalizedTip
+        },
+        basedOn: {
+          whoop: insights.context?.whoop,
+          personality: insights.context?.personality,
+          patterns: insights.context?.patterns
         }
       });
     }
@@ -184,48 +258,66 @@ router.get('/next', authenticateUser, async (req, res) => {
     // Check if the prediction is still valid (event hasn't passed)
     const eventStart = new Date(storedPatterns.next_prediction.event.start);
     if (eventStart < new Date()) {
-      // Need to recalculate - return mock data for now
+      // Event passed - get fresh intelligent recommendations
+      console.log('🧠 [Ritual API] Stored prediction expired, getting fresh recommendations');
+      const freshInsights = await intelligentTwinEngine.generateInsightsAndRecommendations(userId, {
+        includeMusic: true
+      });
+
+      if (freshInsights.success && freshInsights.context?.calendar) {
+        const freshEvent = freshInsights.context.calendar;
+        const freshMusic = freshInsights.music;
+
+        return res.json({
+          success: true,
+          nextEvent: {
+            id: freshEvent.id || 'event-' + Date.now(),
+            title: freshEvent.title,
+            start: freshEvent.start,
+            end: freshEvent.end,
+            attendees: freshEvent.attendeeCount || 0,
+            importanceScore: freshEvent.importance === 'high' ? 0.85 : 0.65,
+            type: freshEvent.type
+          },
+          ritualSuggestion: {
+            startTime: new Date(new Date(freshEvent.start).getTime() - 30 * 60 * 1000).toISOString(),
+            minutesBeforeEvent: 30,
+            suggestedTracks: freshMusic?.tracks?.slice(0, 5) || [],
+            suggestedPlaylists: freshMusic?.playlists?.slice(0, 3) || [],
+            genre: freshMusic?.audioFeatureTargets?.mood || 'Focus',
+            mood: freshMusic?.reasoning || 'Preparing for your event',
+            confidence: 0.8,
+            basedOnPattern: 'Fresh intelligent analysis'
+          },
+          insights: freshInsights.insights
+        });
+      }
+
+      // No upcoming events
       return res.json({
         success: true,
-        nextEvent: {
-          id: 'demo-event-2',
-          title: 'Team Standup',
-          start: new Date(Date.now() + 1 * 60 * 60 * 1000).toISOString(), // 1 hour from now
-          end: new Date(Date.now() + 1.5 * 60 * 60 * 1000).toISOString(),
-          attendees: 5,
-          importanceScore: 0.65,
-          type: 'team_meeting'
-        },
-        ritualSuggestion: {
-          startTime: new Date(Date.now() + 0.5 * 60 * 60 * 1000).toISOString(), // 30 min before
-          minutesBeforeEvent: 30,
-          suggestedTracks: [
-            { name: 'Daylight', artist: 'Matt & Kim', duration: 172, energy: 0.9 },
-            { name: 'Electric Feel', artist: 'MGMT', duration: 239, energy: 0.8 },
-            { name: 'Pumped Up Kicks', artist: 'Foster The People', duration: 239, energy: 0.7 }
-          ],
-          genre: 'Upbeat Indie',
-          mood: 'Energetic & Positive',
-          confidence: 0.72,
-          basedOnPattern: 'Morning team meetings'
-        }
+        hasUpcomingRitual: false,
+        message: 'No upcoming events found',
+        insights: freshInsights.insights
       });
     }
 
-    // Transform stored pattern to match expected format
+    // Transform stored pattern to match expected format, but enhance with intelligent music
     const nextEvent = storedPatterns.next_prediction.event;
+
+    // Get intelligent music recommendations for the stored event
+    const context = await userContextAggregator.aggregateUserContext(userId);
+    const intelligentMusic = await intelligentMusicService.getRecommendations(userId, context, 'pre-event');
+
     const ritualSuggestion = {
       startTime: new Date(new Date(nextEvent.start).getTime() - (storedPatterns.next_prediction.minutesBeforeEvent * 60 * 1000)).toISOString(),
       minutesBeforeEvent: storedPatterns.next_prediction.minutesBeforeEvent,
-      suggestedTracks: storedPatterns.next_prediction.suggestedTracks || [
-        { name: 'Time', artist: 'Hans Zimmer', duration: 274, energy: 0.7 },
-        { name: 'Nuvole Bianche', artist: 'Ludovico Einaudi', duration: 366, energy: 0.4 },
-        { name: 'Comptine d\'un autre été', artist: 'Yann Tiersen', duration: 142, energy: 0.5 }
-      ],
-      genre: storedPatterns.next_prediction.genre || 'Focus Music',
-      mood: storedPatterns.next_prediction.mood || 'Calm & Focused',
+      suggestedTracks: intelligentMusic.success ? intelligentMusic.recommendations?.tracks?.slice(0, 5) : (storedPatterns.next_prediction.suggestedTracks || []),
+      suggestedPlaylists: intelligentMusic.success ? intelligentMusic.recommendations?.playlists?.slice(0, 3) : [],
+      genre: intelligentMusic.success ? intelligentMusic.recommendations?.audioFeatureTargets?.mood : (storedPatterns.next_prediction.genre || 'Focus Music'),
+      mood: intelligentMusic.success ? intelligentMusic.recommendations?.reasoning : (storedPatterns.next_prediction.mood || 'Calm & Focused'),
       confidence: storedPatterns.next_prediction.confidence,
-      basedOnPattern: storedPatterns.next_prediction.basedOnPattern || 'Historical patterns'
+      basedOnPattern: storedPatterns.next_prediction.basedOnPattern || 'Historical patterns enhanced with intelligent recommendations'
     };
 
     res.json({
@@ -233,7 +325,8 @@ router.get('/next', authenticateUser, async (req, res) => {
       nextEvent: nextEvent,
       ritualSuggestion: ritualSuggestion,
       insights: storedPatterns.insights,
-      confidence: storedPatterns.confidence
+      confidence: storedPatterns.confidence,
+      basedOn: intelligentMusic.success ? intelligentMusic.recommendations?.basedOn : null
     });
   } catch (error) {
     console.error('[Ritual API] Error getting next ritual:', error);
@@ -372,6 +465,99 @@ router.post('/feedback', authenticateUser, async (req, res) => {
       success: false,
       error: 'Failed to store feedback',
       message: error.message
+    });
+  }
+});
+
+/**
+ * GET /api/presentation-ritual/stats
+ * Get ritual statistics (streak, focus score, etc.)
+ */
+router.get('/stats', authenticateUser, async (req, res) => {
+  try {
+    const userId = req.user.id;
+    console.log(`📊 [Ritual API] Getting stats for user ${userId}`);
+
+    // Get ritual patterns to calculate stats
+    const { data: ritualPattern } = await supabaseAdmin
+      .from('ritual_patterns')
+      .select('*')
+      .eq('user_id', userId)
+      .single();
+
+    // Calculate ritual streak from agent_tasks or ritual_feedback
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+    // Get completed ritual feedback in last 30 days
+    const { data: feedbackData } = await supabaseAdmin
+      .from('ritual_feedback')
+      .select('created_at')
+      .eq('user_id', userId)
+      .gte('created_at', thirtyDaysAgo.toISOString())
+      .order('created_at', { ascending: false });
+
+    // Calculate streak (consecutive days with rituals)
+    let ritualStreak = 0;
+    if (feedbackData && feedbackData.length > 0) {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+
+      let currentDate = new Date(today);
+      const feedbackDates = feedbackData.map(f => {
+        const d = new Date(f.created_at);
+        d.setHours(0, 0, 0, 0);
+        return d.getTime();
+      });
+
+      const uniqueDates = [...new Set(feedbackDates)].sort((a, b) => b - a);
+
+      for (const dateTime of uniqueDates) {
+        if (dateTime === currentDate.getTime()) {
+          ritualStreak++;
+          currentDate.setDate(currentDate.getDate() - 1);
+        } else if (dateTime < currentDate.getTime()) {
+          break;
+        }
+      }
+    }
+
+    // Calculate focus score from ritual confidence and pattern strength
+    let focusScore = 50; // Default
+    if (ritualPattern) {
+      const confidence = ritualPattern.confidence || 0.5;
+      const patternStrength = ritualPattern.pattern_strength || 0.5;
+
+      // Focus score formula: weighted average of confidence and pattern strength
+      focusScore = Math.round((confidence * 0.6 + patternStrength * 0.4) * 100);
+
+      // Boost by streak (up to 20 points)
+      const streakBonus = Math.min(ritualStreak * 2, 20);
+      focusScore = Math.min(focusScore + streakBonus, 100);
+    }
+
+    res.json({
+      success: true,
+      stats: {
+        ritualStreak,
+        focusScore,
+        totalRituals: feedbackData?.length || 0,
+        hasPattern: !!ritualPattern,
+        patternConfidence: ritualPattern?.confidence || 0
+      }
+    });
+  } catch (error) {
+    console.error('[Ritual API] Error getting stats:', error);
+    // Return default values instead of error to avoid breaking the dashboard
+    res.json({
+      success: true,
+      stats: {
+        ritualStreak: 0,
+        focusScore: 50,
+        totalRituals: 0,
+        hasPattern: false,
+        patternConfidence: 0
+      }
     });
   }
 });

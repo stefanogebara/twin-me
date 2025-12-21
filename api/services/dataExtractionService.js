@@ -185,6 +185,28 @@ class DataExtractionService {
         case 'tiktok':
           extractor = new TikTokExtractor(userId, 'tiktok');
           break;
+        case 'whoop':
+          // Whoop data is extracted directly via featureExtractor during soul signature generation
+          // No raw data storage needed - return success to avoid blocking OAuth flow
+          console.log(`[DataExtraction] Whoop uses direct API extraction via featureExtractor - skipping raw data storage`);
+
+          if (jobId) {
+            await supabase
+              .from('data_extraction_jobs')
+              .update({
+                status: 'completed',
+                completed_at: new Date().toISOString()
+              })
+              .eq('id', jobId);
+          }
+
+          return {
+            success: true,
+            platform,
+            message: 'Whoop data will be extracted during soul signature generation',
+            itemsExtracted: 0,
+            skipped: false
+          };
         case 'twitch':
           // This platform is defined but extractor not yet implemented
           console.warn(`[DataExtraction] Extractor for ${platform} not yet implemented - skipping`);

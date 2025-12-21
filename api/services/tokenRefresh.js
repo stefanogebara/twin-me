@@ -9,23 +9,20 @@
  * - Discord
  * - LinkedIn
  * - Slack
+ * - Whoop (health/fitness data)
+ * - Oura (sleep/recovery data)
  */
 
-import { createClient } from '@supabase/supabase-js';
 import { encryptToken, decryptToken } from './encryption.js';
 
-// Initialize Supabase client
-// Use SUPABASE_URL (backend) - fallback to VITE_ prefix for compatibility
-// Lazy initialization to avoid crashes if env vars not loaded yet
-let supabase = null;
-function getSupabaseClient() {
-  if (!supabase) {
-    supabase = createClient(
-      process.env.SUPABASE_URL,
-      process.env.SUPABASE_SERVICE_ROLE_KEY
-    );
+// Lazy load to avoid circular dependency issues
+let supabaseAdmin = null;
+async function getSupabaseClient() {
+  if (!supabaseAdmin) {
+    const module = await import('../config/supabase.js');
+    supabaseAdmin = module.supabaseAdmin;
   }
-  return supabase;
+  return supabaseAdmin;
 }
 
 /**
@@ -104,6 +101,24 @@ const REFRESH_CONFIGS = {
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
     buildBody: (clientId, clientSecret, refreshToken) =>
       `grant_type=refresh_token&refresh_token=${refreshToken}&client_id=${clientId}&client_secret=${clientSecret}`
+  },
+
+  // Whoop
+  whoop: {
+    tokenEndpoint: 'https://api.prod.whoop.com/oauth/oauth2/token',
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    buildBody: (clientId, clientSecret, refreshToken) =>
+      `grant_type=refresh_token&refresh_token=${refreshToken}&client_id=${clientId}&client_secret=${clientSecret}`
+  },
+
+  // Oura
+  oura: {
+    tokenEndpoint: 'https://api.ouraring.com/oauth/token',
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    buildBody: (clientId, clientSecret, refreshToken) =>
+      `grant_type=refresh_token&refresh_token=${refreshToken}&client_id=${clientId}&client_secret=${clientSecret}`
   }
 };
 
@@ -142,6 +157,14 @@ const CLIENT_CREDENTIALS = {
   slack: {
     clientId: process.env.SLACK_CLIENT_ID,
     clientSecret: process.env.SLACK_CLIENT_SECRET
+  },
+  whoop: {
+    clientId: process.env.WHOOP_CLIENT_ID,
+    clientSecret: process.env.WHOOP_CLIENT_SECRET
+  },
+  oura: {
+    clientId: process.env.OURA_CLIENT_ID,
+    clientSecret: process.env.OURA_CLIENT_SECRET
   }
 };
 
@@ -169,6 +192,7 @@ export async function refreshAccessToken(userId, provider) {
     }
 
     // Fetch connection from database
+    const supabase = await getSupabaseClient();
     const { data: connection, error: dbError } = await supabase
       .from('platform_connections')
       .select('refresh_token, token_expires_at, access_token')
@@ -232,7 +256,8 @@ export async function refreshAccessToken(userId, provider) {
     const newExpiryTime = new Date(Date.now() + expiresIn * 1000).toISOString();
 
     // Update database with new tokens
-    const { error: updateError } = await supabase
+    const supabaseUpdate = await getSupabaseClient();
+    const { error: updateError } = await supabaseUpdate
       .from('platform_connections')
       .update({
         access_token: encryptToken(newAccessToken),
@@ -266,7 +291,8 @@ export async function refreshAccessToken(userId, provider) {
 
     // Update error count in database
     try {
-      await supabase
+      const supabaseClient = await getSupabaseClient();
+      await supabaseClient
         .from('platform_connections')
         .update({
           error_count: supabase.raw('COALESCE(error_count, 0) + 1'),
@@ -302,6 +328,7 @@ export async function getValidAccessToken(userId, provider) {
     console.log(`🔑 Getting valid access token for ${provider}`);
 
     // Fetch connection from database
+    const supabase = await getSupabaseClient();
     const { data: connection, error: dbError } = await supabase
       .from('platform_connections')
       .select('access_token, token_expires_at, connected')

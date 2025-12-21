@@ -197,7 +197,7 @@ class BehavioralEmbeddingService {
       // Use Claude to generate a semantic summary, then hash it to vector
       // This is a simplified approach - ideally use a dedicated embedding model
       const response = await anthropic.messages.create({
-        model: 'claude-3-5-sonnet-20241022',
+        model: 'claude-sonnet-4-5-20250929',
         max_tokens: 100,
         messages: [{
           role: 'user',

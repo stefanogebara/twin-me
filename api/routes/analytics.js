@@ -1,5 +1,5 @@
 import express from 'express';
-import { supabase } from '../config/supabase.js';
+import { supabaseAdmin as supabase } from '../config/supabase.js';
 import rateLimit from 'express-rate-limit';
 
 const router = express.Router();
@@ -61,14 +61,17 @@ router.post('/session-end', analyticsLimiter, async (req, res) => {
       return res.status(400).json({ error: 'session_id is required' });
     }
 
+    const upsertData = {
+      session_id,
+      user_id: user_id || null,
+      ended_at: end_time || new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    };
+    console.log('[Analytics] Upserting session data:', JSON.stringify(upsertData));
+
     const { data, error } = await supabase
       .from('analytics_sessions')
-      .upsert([{
-        session_id,
-        user_id: user_id || null,
-        end_time: end_time || new Date().toISOString(),
-        updated_at: new Date().toISOString()
-      }], {
+      .upsert([upsertData], {
         onConflict: 'session_id'
       });
 

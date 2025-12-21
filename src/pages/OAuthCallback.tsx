@@ -26,13 +26,46 @@ const OAuthCallback = () => {
     const handleOAuthCallback = async () => {
       try {
         const code = searchParams.get('code');
-        const state = searchParams.get('state');
+        let state = searchParams.get('state');  // Changed to let so we can reassign for fallback
         const error = searchParams.get('error');
 
         console.log('🔄 OAuth callback received:', { code: !!code, state: !!state, error });
         console.log('🔄 Full URL:', window.location.href);
         console.log('🔄 Search params:', searchParams.toString());
         console.log('🔄 All URL params:', Object.fromEntries(searchParams.entries()));
+
+        // CRITICAL: Prevent duplicate API calls using sessionStorage
+        // This handles cases where component remounts or React Strict Mode causes re-execution
+        if (code) {
+          const processedKey = `oauth_processed_${code.substring(0, 32)}`;
+          const alreadyProcessed = sessionStorage.getItem(processedKey);
+
+          if (alreadyProcessed) {
+            console.log('✅ OAuth code already processed successfully, redirecting...');
+            setStatus('success');
+            setMessage('Connection successful! Redirecting...');
+
+            // Get the stored provider for proper redirect
+            const storedProvider = sessionStorage.getItem(`oauth_provider_${code.substring(0, 32)}`);
+
+            setTimeout(() => {
+              if (window.opener) {
+                window.opener.postMessage({
+                  type: 'oauth-success',
+                  provider: storedProvider
+                }, window.location.origin);
+                window.close();
+              } else {
+                window.location.href = '/get-started?connected=true&provider=' + (storedProvider || '');
+              }
+            }, 500);
+            return;
+          }
+
+          // Mark this code as being processed BEFORE making API call
+          sessionStorage.setItem(processedKey, 'processing');
+          console.log('🔒 Marked OAuth code as processing to prevent duplicates');
+        }
 
         if (error) {
           setStatus('error');
@@ -74,15 +107,42 @@ const OAuthCallback = () => {
             // Check if this is an Arctic OAuth provider
             const isArcticProvider = platformOrProvider && ARCTIC_PROVIDERS.includes(platformOrProvider);
 
+            // Health platforms need special handling
+            const isHealthProvider = platformOrProvider && ['whoop', 'oura'].includes(platformOrProvider);
+
             isConnectorOAuth = !!stateData.userId ||
               isArcticProvider ||
-              (platformOrProvider && ['youtube', 'netflix', 'google_gmail', 'google_calendar', 'google_drive', 'slack', 'teams', 'linkedin'].includes(platformOrProvider));
+              isHealthProvider ||
+              (platformOrProvider && ['youtube', 'netflix', 'google_gmail', 'google_calendar', 'google_drive', 'slack', 'teams', 'linkedin', 'whoop', 'oura'].includes(platformOrProvider));
             // Check if this is an authentication OAuth
             isAuthOAuth = stateData.isAuth === true;
 
             console.log('🔍 Flow detection results:', { isConnectorOAuth, isAuthOAuth, hasUserId: !!stateData.userId, provider: stateData.provider, platform: stateData.platform });
           } else {
             console.log('❌ No state parameter found');
+            // Fallback: Check sessionStorage for connecting_provider
+            const connectingProvider = sessionStorage.getItem('connecting_provider');
+            const currentUser = localStorage.getItem('userId') || sessionStorage.getItem('userId');
+
+            if (connectingProvider) {
+              console.log('📦 Found connecting_provider in sessionStorage:', connectingProvider);
+              console.log('📦 Found userId:', currentUser);
+
+              // Reconstruct state data from sessionStorage
+              stateData = {
+                provider: connectingProvider === 'google_calendar' ? 'google' : connectingProvider,
+                platform: connectingProvider,
+                userId: currentUser,
+                timestamp: Date.now()
+              };
+
+              // Mark as connector OAuth
+              isConnectorOAuth = true;
+
+              // Create a fake state for the backend
+              state = btoa(JSON.stringify(stateData));
+              console.log('📦 Reconstructed state:', stateData);
+            }
           }
         } catch (e) {
           console.error('❌ State decoding failed:', e);
@@ -113,7 +173,7 @@ const OAuthCallback = () => {
           });
         } else {
           // Handle main auth OAuth callback
-          response = await fetch(`${import.meta.env.VITE_API_URL}/auth/callback`, {
+          response = await fetch(`${import.meta.env.VITE_API_URL}/auth/oauth/callback`, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
@@ -144,6 +204,15 @@ const OAuthCallback = () => {
           if (isConnectorOAuth) {
             // Handle connector OAuth success
             console.log('✅ Connector OAuth successful');
+
+            // Mark the OAuth code as successfully processed in sessionStorage
+            if (code) {
+              const processedKey = `oauth_processed_${code.substring(0, 32)}`;
+              sessionStorage.setItem(processedKey, 'success');
+              sessionStorage.setItem(`oauth_provider_${code.substring(0, 32)}`, stateData?.provider || '');
+              console.log('✅ Marked OAuth code as successfully processed');
+            }
+
             setStatus('success');
 
             // Get provider display name
@@ -362,6 +431,15 @@ const OAuthCallback = () => {
 
       } catch (error) {
         console.error('❌ OAuth callback error:', error);
+
+        // Clear the processing marker on error to allow retry
+        const code = searchParams.get('code');
+        if (code) {
+          const processedKey = `oauth_processed_${code.substring(0, 32)}`;
+          sessionStorage.removeItem(processedKey);
+          console.log('🔄 Cleared OAuth processing marker for retry');
+        }
+
         setStatus('error');
         setMessage('Connection failed. Please try again.');
 

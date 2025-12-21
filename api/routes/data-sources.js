@@ -49,9 +49,9 @@ router.get('/connected', optionalAuth, async (req, res) => {
     // Get connection status from database
     const { data: connections, error } = await supabase
       .from('platform_connections')
-      .select('platform, connected, metadata, last_sync_at, created_at')
+      .select('platform, connected_at, metadata, last_sync_at, created_at')
       .eq('user_id', userUuid)
-      .eq('connected', true);
+      .not('connected_at', 'is', null);
 
     if (error) {
       console.error('Database error getting connections:', error);
@@ -65,7 +65,7 @@ router.get('/connected', optionalAuth, async (req, res) => {
     // Transform connections to expected format
     const formattedConnections = (connections || []).map(conn => ({
       provider: conn.platform,
-      status: conn.connected ? 'connected' : 'disconnected',
+      status: conn.connected_at ? 'connected' : 'disconnected',
       data_points: conn.metadata?.data_points || 0,
       last_sync_at: conn.last_sync_at,
       created_at: conn.created_at,
@@ -111,9 +111,9 @@ router.get('/status/:userId', async (req, res) => {
 
     const { data: connections, error } = await supabase
       .from('platform_connections')
-      .select('platform, connected, metadata, last_sync_at')
+      .select('platform, connected_at, metadata, last_sync_at')
       .eq('user_id', userUuid)
-      .eq('connected', true);
+      .not('connected_at', 'is', null);
 
     if (error) {
       console.error('Database error getting connections:', error);

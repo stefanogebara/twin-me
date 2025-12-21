@@ -57,6 +57,11 @@ const PLATFORM_REFRESH_CONFIGS = {
     clientId: process.env.LINKEDIN_CLIENT_ID,
     clientSecret: process.env.LINKEDIN_CLIENT_SECRET,
   },
+  whoop: {
+    tokenUrl: 'https://api.prod.whoop.com/oauth/oauth2/token',
+    clientId: process.env.WHOOP_CLIENT_ID,
+    clientSecret: process.env.WHOOP_CLIENT_SECRET,
+  },
 };
 
 // Encryption/decryption functions now imported from encryption.js service
@@ -75,12 +80,21 @@ async function refreshAccessToken(platform, refreshToken, userId) {
   try {
     console.log(`🔄 Refreshing token for ${platform} (user: ${userId})`);
 
-    const params = new URLSearchParams({
+    // Build base params
+    const paramsObj = {
       grant_type: 'refresh_token',
       refresh_token: refreshToken,
       client_id: config.clientId,
       client_secret: config.clientSecret,
-    });
+    };
+
+    // Add platform-specific parameters
+    // Whoop requires 'scope: offline' for token refresh to work
+    if (platform === 'whoop') {
+      paramsObj.scope = 'offline';
+    }
+
+    const params = new URLSearchParams(paramsObj);
 
     const response = await axios.post(config.tokenUrl, params.toString(), {
       headers: {
@@ -104,12 +118,11 @@ async function refreshAccessToken(platform, refreshToken, userId) {
   } catch (error) {
     console.error(`❌ Token refresh failed for ${platform}:`, error.response?.data || error.message);
 
-    // Mark connection as needs_reauth
-    await supabase
+    // Mark connection as expired (database constraint allows: connected, disconnected, error, pending, expired)
+    await getSupabaseClient()
       .from('platform_connections')
       .update({
-        status: 'needs_reauth',
-        error_message: 'Token refresh failed - please reconnect',
+        status: 'expired',
         updated_at: new Date().toISOString(),
       })
       .eq('user_id', userId)
@@ -134,7 +147,7 @@ async function checkAndRefreshExpiringTokens() {
     const { data: connections, error } = await getSupabaseClient()
       .from('platform_connections')
       .select('*')
-      .in('status', ['connected', 'token_expired'])
+      .in('status', ['connected', 'token_expired', 'expired'])
       .not('refresh_token', 'is', null)
       .lt('token_expires_at', tenMinutesFromNow);
 
@@ -227,13 +240,19 @@ async function ensureFreshToken(userId, platform) {
       throw new Error('Platform not connected');
     }
 
+    // If status is 'expired', we should still TRY to refresh using the refresh_token
+    // Only if the refresh fails do we require re-authorization
+    const isExpiredStatus = connection.status === 'expired';
+
     // Check if token is expired or about to expire (within 5 minutes)
+    // Also refresh if status is 'expired' - the refresh token might still be valid
     const now = new Date();
     const expiresAt = new Date(connection.token_expires_at);
     const fiveMinutesFromNow = new Date(now.getTime() + 5 * 60 * 1000);
+    const needsRefresh = isExpiredStatus || expiresAt <= fiveMinutesFromNow;
 
-    if (expiresAt <= fiveMinutesFromNow) {
-      console.log(`🔄 Token expired/expiring for ${platform}, refreshing...`);
+    if (needsRefresh) {
+      console.log(`🔄 Token ${isExpiredStatus ? 'expired' : 'expiring'} for ${platform}, attempting refresh...`);
 
       const decryptedRefreshToken = decryptToken(connection.refresh_token);
 
@@ -279,5 +298,6 @@ async function ensureFreshToken(userId, platform) {
 export {
   startTokenRefreshService,
   ensureFreshToken,
+  ensureFreshToken as getValidAccessToken,
   refreshAccessToken,
 };

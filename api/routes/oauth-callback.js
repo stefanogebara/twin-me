@@ -134,6 +134,11 @@ async function exchangeSpotifyCode(code, redirectUri) {
     throw new Error('Spotify credentials not configured');
   }
 
+  console.log('🔑 [Spotify OAuth] Exchanging authorization code for tokens...');
+  console.log('   Code length:', code.length);
+  console.log('   Redirect URI:', redirectUri);
+  console.log('   Client ID:', clientId);
+
   const response = await fetch('https://accounts.spotify.com/api/token', {
     method: 'POST',
     headers: {
@@ -147,11 +152,26 @@ async function exchangeSpotifyCode(code, redirectUri) {
     })
   });
 
+  console.log('🔑 [Spotify OAuth] Token exchange response status:', response.status);
+
   if (!response.ok) {
-    const error = await response.text();
-    throw new Error(`Spotify token exchange failed: ${error}`);
+    const errorText = await response.text();
+    console.error('❌ [Spotify OAuth] Token exchange failed!');
+    console.error('   Status:', response.status);
+    console.error('   Error body:', errorText);
+
+    // Try to parse JSON error response
+    try {
+      const errorJson = JSON.parse(errorText);
+      console.error('   Error JSON:', JSON.stringify(errorJson, null, 2));
+    } catch (e) {
+      console.error('   Raw error (not JSON):', errorText);
+    }
+
+    throw new Error(`Spotify token exchange failed (${response.status}): ${errorText}`);
   }
 
+  console.log('✅ [Spotify OAuth] Token exchange successful!');
   return await response.json();
 }
 

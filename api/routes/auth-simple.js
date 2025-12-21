@@ -589,7 +589,7 @@ router.post('/oauth/callback', async (req, res) => {
             email: userData.email,
             first_name: userData.firstName,
             last_name: userData.lastName,
-            oauth_platform: provider,
+            oauth_provider: provider,
             picture_url: userData.picture
           })
           .select()
@@ -606,7 +606,7 @@ router.post('/oauth/callback', async (req, res) => {
             email: userData.email,
             first_name: userData.firstName,
             last_name: userData.lastName,
-            oauth_platform: provider,
+            oauth_provider: provider,
             picture_url: userData.picture
           });
           throw new Error('User creation failed');

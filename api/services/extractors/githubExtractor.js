@@ -571,4 +571,4 @@ class GithubExtractor {
   }
 }
 
-export default GitHubExtractor;
+export default GithubExtractor;

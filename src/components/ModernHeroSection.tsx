@@ -48,9 +48,9 @@ export const ModernHeroSection = () => {
 
           {/* Bottom Right Card */}
           <div className="absolute bottom-24 right-16 w-48 h-32 bg-card rounded-2xl shadow-lg transform -rotate-6 border">
-            <div className="p-4 h-full bg-gradient-to-br from-orange-50 to-yellow-50 rounded-2xl flex items-center justify-center">
+            <div className="p-4 h-full bg-gradient-to-br from-stone-50 to-yellow-50 rounded-2xl flex items-center justify-center">
               <div className="text-center">
-                <div className="w-8 h-8 bg-orange-500 rounded-full mx-auto mb-2"></div>
+                <div className="w-8 h-8 bg-stone-500 rounded-full mx-auto mb-2"></div>
                 <div className="text-sm font-medium text-slate-700">Smart AI</div>
               </div>
             </div>
@@ -71,7 +71,7 @@ export const ModernHeroSection = () => {
           </p>
 
           <Button 
-            className="bg-orange-500 hover:bg-orange-600 text-white rounded-full px-8 py-3 text-lg font-medium shadow-lg"
+            className="bg-stone-500 hover:bg-stone-600 text-white rounded-full px-8 py-3 text-lg font-medium shadow-lg"
             onClick={() => navigate('/talk-to-twin')}
           >
             Check out my works

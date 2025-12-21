@@ -212,7 +212,7 @@ export function SoulChatInterface({
       {/* Header with Conversation Controls */}
       <div className="flex items-center justify-between p-4 border-b border-stone-200 dark:border-stone-700">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-full bg-gradient-to-br from-orange-400 to-orange-600 flex items-center justify-center">
+          <div className="w-10 h-10 rounded-full bg-gradient-to-br from-stone-400 to-stone-600 flex items-center justify-center">
             <Sparkles className="w-6 h-6 text-white" />
           </div>
           <div>
@@ -242,7 +242,7 @@ export function SoulChatInterface({
               animate={{ opacity: 1, y: 0 }}
               className="flex flex-col items-center justify-center h-full text-center py-12"
             >
-              <Sparkles className="w-16 h-16 text-orange-500 mb-4" />
+              <Sparkles className="w-16 h-16 text-stone-500 mb-4" />
               <h3 className="text-xl font-semibold text-slate-900 dark:text-slate-100 mb-2">
                 Start a Conversation
               </h3>
@@ -293,7 +293,7 @@ export function SoulChatInterface({
             animate={{ opacity: 1 }}
             className="flex items-center gap-3 px-6 py-4"
           >
-            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-orange-400 to-orange-600 flex items-center justify-center">
+            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-stone-400 to-stone-600 flex items-center justify-center">
               <Loader className="w-5 h-5 text-white animate-spin" />
             </div>
             <span className="text-slate-600 dark:text-slate-400">Thinking...</span>
@@ -313,7 +313,7 @@ export function SoulChatInterface({
             onKeyDown={handleKeyDown}
             placeholder="Ask about your soul signature..."
             rows={1}
-            className="flex-1 px-4 py-3 rounded-lg border border-stone-300 dark:border-stone-600 bg-white dark:bg-stone-800 text-slate-900 dark:text-slate-100 placeholder-slate-500 dark:placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-orange-500 resize-none"
+            className="flex-1 px-4 py-3 rounded-lg border border-stone-300 dark:border-stone-600 bg-white dark:bg-stone-800 text-slate-900 dark:text-slate-100 placeholder-slate-500 dark:placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-stone-500 resize-none"
             style={{ minHeight: '48px', maxHeight: '120px' }}
           />
           <motion.button
@@ -321,7 +321,7 @@ export function SoulChatInterface({
             disabled={!inputValue.trim() || isLoading}
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
-            className="px-6 py-3 rounded-lg bg-orange-500 hover:bg-orange-600 disabled:bg-stone-300 dark:disabled:bg-stone-700 text-white font-medium transition-colors flex items-center gap-2 disabled:cursor-not-allowed"
+            className="px-6 py-3 rounded-lg bg-stone-500 hover:bg-stone-600 disabled:bg-stone-300 dark:disabled:bg-stone-700 text-white font-medium transition-colors flex items-center gap-2 disabled:cursor-not-allowed"
           >
             <Send className="w-5 h-5" />
           </motion.button>

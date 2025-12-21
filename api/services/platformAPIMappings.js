@@ -318,6 +318,38 @@ export const platformAPIMappings = {
       apiDocs: 'https://dev.fitbit.com/build/reference/web-api'
     },
 
+    whoop: {
+      name: 'Whoop',
+      category: 'Performance Tracking',
+      apiAvailable: true,
+      authType: 'OAuth2',
+      scopes: ['read:profile', 'read:recovery', 'read:cycles', 'read:workout', 'read:sleep', 'read:body_measurement'],
+      insights: ['strain patterns', 'recovery optimization', 'sleep consistency', 'workout intensity', 'stress response', 'physical discipline'],
+      apiDocs: 'https://developer.whoop.com/api',
+      personalityCorrelations: {
+        conscientiousness: ['sleep consistency', 'workout regularity', 'recovery adherence'],
+        neuroticism: ['HRV variability', 'stress indicators', 'recovery fluctuations'],
+        extraversion: ['workout frequency', 'strain levels', 'activity diversity']
+      },
+      rateLimit: '100 requests/minute'
+    },
+
+    oura: {
+      name: 'Oura',
+      category: 'Recovery & Sleep',
+      apiAvailable: true,
+      authType: 'OAuth2',
+      scopes: ['personal', 'daily', 'heartrate', 'workout', 'tag', 'session'],
+      insights: ['sleep quality', 'readiness patterns', 'HRV trends', 'body temperature', 'recovery cycles', 'circadian rhythm'],
+      apiDocs: 'https://cloud.ouraring.com/v2/docs',
+      personalityCorrelations: {
+        conscientiousness: ['sleep schedule consistency', 'bedtime regularity', 'rest day compliance'],
+        neuroticism: ['HRV patterns', 'stress recovery time', 'sleep disturbances'],
+        openness: ['activity variety', 'new workout exploration']
+      },
+      rateLimit: '5000 requests/5 minutes'
+    },
+
     myFitnessPal: {
       name: 'MyFitnessPal',
       category: 'Nutrition',

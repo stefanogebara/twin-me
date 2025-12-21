@@ -47,7 +47,7 @@ export function ConversationControls({
         whileHover={{ scale: 1.02 }}
         whileTap={{ scale: 0.98 }}
         onClick={onNewChat}
-        className="flex items-center gap-2 px-4 py-2 rounded-lg bg-orange-500 hover:bg-orange-600 text-white font-medium transition-colors shadow-sm hover:shadow-md"
+        className="flex items-center gap-2 px-4 py-2 rounded-lg bg-stone-500 hover:bg-stone-600 text-white font-medium transition-colors shadow-sm hover:shadow-md"
       >
         <Plus className="w-4 h-4" />
         <span>New Chat</span>
