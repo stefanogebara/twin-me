@@ -32,6 +32,8 @@ export interface UsePlatformStatusReturn {
   hasConnectedServices: boolean;
   connectedProviders: string[];
   connectedCount: number;
+  optimisticDisconnect: (provider: string) => void;
+  revertOptimisticUpdate: () => Promise<void>;
 }
 
 /**
@@ -135,7 +137,9 @@ export const usePlatformStatus = (
           if (status === 'SUBSCRIBED') {
             console.log('[Realtime] Subscribed to platform connections for user:', userId);
           } else if (status === 'CHANNEL_ERROR') {
-            console.error('[Realtime] Failed to subscribe to platform connections');
+            // This is not critical - polling still works as a fallback
+            // Realtime may fail if not enabled for the table or due to RLS policies
+            console.warn('[Realtime] Could not subscribe to platform connections. Using polling fallback.');
           }
         });
     };
@@ -163,6 +167,32 @@ export const usePlatformStatus = (
   const refetch = useCallback(async () => {
     // Invalidate cache to force fresh data
     await queryClient.invalidateQueries({ queryKey: ['platformStatus', userId] });
+    // Wait for the query to actually complete and return fresh data
+    const result = await queryRefetch();
+    return result;
+  }, [queryClient, queryRefetch, userId]);
+
+  // Optimistic disconnect - immediately update UI cache before server responds
+  const optimisticDisconnect = useCallback((provider: string) => {
+    // Get current cache data
+    const currentData = queryClient.getQueryData<PlatformStatusMap>(['platformStatus', userId]);
+
+    if (currentData) {
+      // Create new data with the provider removed
+      const newData = { ...currentData };
+      delete newData[provider];
+
+      // Immediately update the cache for instant UI response
+      queryClient.setQueryData(['platformStatus', userId], newData);
+
+      console.log('[usePlatformStatus] Optimistic disconnect:', provider);
+    }
+  }, [queryClient, userId]);
+
+  // Revert optimistic update if needed (e.g., on API failure)
+  const revertOptimisticUpdate = useCallback(async () => {
+    // Force refetch from server to get true state
+    await queryClient.invalidateQueries({ queryKey: ['platformStatus', userId] });
     await queryRefetch();
   }, [queryClient, queryRefetch, userId]);
 
@@ -174,6 +204,8 @@ export const usePlatformStatus = (
     hasConnectedServices,
     connectedProviders,
     connectedCount,
+    optimisticDisconnect,
+    revertOptimisticUpdate,
   };
 };
 

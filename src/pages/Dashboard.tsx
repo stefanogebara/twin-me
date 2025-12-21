@@ -1,28 +1,37 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useNavigate } from 'react-router-dom';
 import {
   Calendar,
   Music,
-  Play,
   Clock,
   CheckCircle2,
   ChevronRight,
   Plus,
   Sparkles,
   Target,
-  Award,
   RefreshCw,
-  AlertCircle
+  AlertCircle,
+  Activity,
+  Mail,
+  Video,
+  MessageCircle,
+  Briefcase
 } from 'lucide-react';
 import { PageLayout, GlassPanel } from '@/components/layout/PageLayout';
-import { calendarAPI, spotifyAPI, CalendarEvent } from '@/services/apiService';
+import { calendarAPI, spotifyAPI, whoopAPI, CalendarEvent } from '@/services/apiService';
+import { TodayInsights } from '@/components/TodayInsights';
+import { usePlatformStatus } from '@/hooks/usePlatformStatus';
+
+// Auto-refresh interval for calendar events (1 minute)
+const CALENDAR_REFRESH_INTERVAL = 60 * 1000;
 
 interface PlatformStatus {
   id: string;
   name: string;
   connected: boolean;
+  expired?: boolean;
   icon: React.ElementType;
   color: string;
 }
@@ -33,32 +42,112 @@ interface Pattern {
   description: string;
   icon: React.ElementType;
   color: string;
+  actionLabel?: string;
+  actionPath?: string;
+  hasData?: boolean;
 }
+
+// DASH 2.4: Whoop data interface for dashboard display
+interface WhoopData {
+  recovery: number | null;
+  hrv: number | null;
+  sleepHours: number | null;
+  strain: number | null;
+  recoveryLabel: string;
+}
+
+// Platform configuration for icons and colors
+const PLATFORM_CONFIG: Record<string, { name: string; icon: React.ElementType; color: string }> = {
+  spotify: { name: 'Spotify', icon: Music, color: 'text-green-500' },
+  google_calendar: { name: 'Calendar', icon: Calendar, color: 'text-blue-500' },
+  whoop: { name: 'Whoop', icon: Activity, color: 'text-cyan-500' },
+  youtube: { name: 'YouTube', icon: Video, color: 'text-red-500' },
+  discord: { name: 'Discord', icon: MessageCircle, color: 'text-indigo-500' },
+  google_gmail: { name: 'Gmail', icon: Mail, color: 'text-red-400' },
+  linkedin: { name: 'LinkedIn', icon: Briefcase, color: 'text-blue-600' },
+  github: { name: 'GitHub', icon: Activity, color: 'text-gray-500' },
+};
 
 export const Dashboard: React.FC = () => {
   const { user } = useAuth();
   const { theme } = useTheme();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
-  const [nextEvent, setNextEvent] = useState<CalendarEvent | null>(null);
-  const [todayEvents, setTodayEvents] = useState<CalendarEvent[]>([]);
-  const [ritualStreak, setRitualStreak] = useState(0);
-  const [focusScore, setFocusScore] = useState(0);
+  const [allEvents, setAllEvents] = useState<CalendarEvent[]>([]); // Store all events from API
   const [calendarConnected, setCalendarConnected] = useState(false);
   const [spotifyConnected, setSpotifyConnected] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [whoopConnected, setWhoopConnected] = useState(false);
+  // DASH 2.4: Whoop data state
+  const [whoopData, setWhoopData] = useState<WhoopData | null>(null);
+  const [error, setError] = useState<{ message: string; type?: 'auth' | 'general' } | null>(null);
   const [syncing, setSyncing] = useState(false);
+  const [currentTime, setCurrentTime] = useState(new Date()); // For live updates
+
+  // Use platform status hook for dynamic platform display
+  const { data: platformStatusData, connectedProviders } = usePlatformStatus(user?.id);
+
+  // Update current time every 30 seconds for live event filtering
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCurrentTime(new Date());
+    }, 30 * 1000); // Every 30 seconds
+
+    return () => clearInterval(timer);
+  }, []);
+
+  // Compute today's events and next event based on current time (live filtering)
+  const { todayEvents, nextEvent } = useMemo(() => {
+    const now = currentTime;
+    const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const todayEnd = new Date(todayStart);
+    todayEnd.setDate(todayEnd.getDate() + 1);
+
+    // Filter today's events
+    const todaysEvents = allEvents.filter((event: CalendarEvent) => {
+      const eventStart = new Date(event.startTime);
+      return eventStart >= todayStart && eventStart < todayEnd;
+    });
+
+    // Find next upcoming event (events that haven't started yet OR are currently happening)
+    const upcomingEvents = allEvents
+      .filter((event: CalendarEvent) => {
+        const eventEnd = new Date(event.endTime);
+        // Include event if it hasn't ended yet
+        return eventEnd > now;
+      })
+      .sort((a: CalendarEvent, b: CalendarEvent) =>
+        new Date(a.startTime).getTime() - new Date(b.startTime).getTime()
+      );
+
+    return {
+      todayEvents: todaysEvents,
+      nextEvent: upcomingEvents.length > 0 ? upcomingEvents[0] : null
+    };
+  }, [allEvents, currentTime]);
 
   useEffect(() => {
     const loadData = async () => {
       setLoading(true);
       setError(null);
 
+      // Check for demo mode
+      const isDemoMode = localStorage.getItem('demo_mode') === 'true';
+
+      if (isDemoMode) {
+        // In demo mode, show all MVP platforms as connected
+        setCalendarConnected(true);
+        setSpotifyConnected(true);
+        setWhoopConnected(true);
+        setLoading(false);
+        return;
+      }
+
       try {
         // Fetch platform statuses in parallel
-        const [calendarStatus, spotifyStatus] = await Promise.allSettled([
+        const [calendarStatus, spotifyStatus, whoopStatus] = await Promise.allSettled([
           calendarAPI.getStatus(),
-          spotifyAPI.getStatus()
+          spotifyAPI.getStatus(),
+          whoopAPI.getStatus()
         ]);
 
         // Update calendar connection status
@@ -71,52 +160,70 @@ export const Dashboard: React.FC = () => {
           setSpotifyConnected(spotifyStatus.value.connected);
         }
 
-        // If calendar is connected, fetch events
-        if (calendarStatus.status === 'fulfilled' && calendarStatus.value.connected) {
-          try {
-            const eventsResponse = await calendarAPI.getEvents();
-            const events = eventsResponse.events || [];
+        // Update Whoop connection status and fetch data if connected
+        if (whoopStatus.status === 'fulfilled') {
+          const isWhoopConnected = whoopStatus.value.connected && !whoopStatus.value.tokenExpired;
+          setWhoopConnected(isWhoopConnected);
 
-            // Filter today's events
-            const now = new Date();
-            const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-            const todayEnd = new Date(todayStart);
-            todayEnd.setDate(todayEnd.getDate() + 1);
-
-            const todaysEvents = events.filter((event: CalendarEvent) => {
-              const eventStart = new Date(event.startTime);
-              return eventStart >= todayStart && eventStart < todayEnd;
-            });
-
-            setTodayEvents(todaysEvents);
-
-            // Find next upcoming event
-            const upcomingEvents = events
-              .filter((event: CalendarEvent) => new Date(event.startTime) > now)
-              .sort((a: CalendarEvent, b: CalendarEvent) =>
-                new Date(a.startTime).getTime() - new Date(b.startTime).getTime()
-              );
-
-            if (upcomingEvents.length > 0) {
-              setNextEvent(upcomingEvents[0]);
-            } else {
-              setNextEvent(null);
-            }
-          } catch (err) {
-            console.error('Failed to fetch calendar events:', err);
-            if (err instanceof Error && !err.message.includes('not connected')) {
-              setError('Failed to load calendar events');
+          // DASH 2.4: Fetch Whoop data when connected
+          if (isWhoopConnected) {
+            try {
+              const whoopState = await whoopAPI.getCurrentState();
+              setWhoopData({
+                recovery: whoopState.recovery?.score ?? null,
+                hrv: whoopState.recovery?.components?.hrv ?? null,
+                sleepHours: whoopState.sleep?.hours ?? null,
+                strain: whoopState.strain?.score ?? null,
+                recoveryLabel: whoopState.recovery?.label || 'Unknown'
+              });
+            } catch (err) {
+              console.error('Failed to fetch Whoop data:', err);
+              // Don't set error for Whoop - it's optional
             }
           }
         }
 
-        // Mock data for ritual streak and focus score
-        setRitualStreak(5);
-        setFocusScore(82);
+        // If calendar is connected, fetch events
+        if (calendarStatus.status === 'fulfilled' && calendarStatus.value.connected) {
+          // Check if token is expired before attempting to fetch
+          if (calendarStatus.value.tokenExpired) {
+            setError({
+              message: 'Calendar connection expired. Please reconnect to see your events.',
+              type: 'auth'
+            });
+          } else {
+            try {
+              const eventsResponse = await calendarAPI.getEvents();
+              const events = eventsResponse.events || [];
+              // Store all events - filtering is done in useMemo with live time updates
+              setAllEvents(events);
+            } catch (err: unknown) {
+              console.error('Failed to fetch calendar events:', err);
+              // Check if error is authentication related (401/403)
+              const isAuthError = err instanceof Error && (
+                err.message.includes('401') ||
+                err.message.includes('403') ||
+                err.message.includes('unauthorized') ||
+                err.message.includes('Unauthorized') ||
+                err.message.includes('expired') ||
+                err.message.includes('token')
+              );
+
+              if (err instanceof Error && !err.message.includes('not connected')) {
+                setError({
+                  message: isAuthError
+                    ? 'Calendar connection expired. Please reconnect to see your events.'
+                    : 'Failed to load calendar events',
+                  type: isAuthError ? 'auth' : 'general'
+                });
+              }
+            }
+          }
+        }
 
       } catch (err) {
         console.error('Dashboard loading error:', err);
-        setError('Failed to load dashboard data');
+        setError({ message: 'Failed to load dashboard data', type: 'general' });
       } finally {
         setLoading(false);
       }
@@ -125,40 +232,51 @@ export const Dashboard: React.FC = () => {
     loadData();
   }, [user]);
 
+  // Function to fetch calendar events (used by both initial load and refresh)
+  const fetchCalendarEvents = useCallback(async () => {
+    if (!calendarConnected) return;
+
+    try {
+      const eventsResponse = await calendarAPI.getEvents();
+      const events = eventsResponse.events || [];
+      setAllEvents(events);
+      setCurrentTime(new Date()); // Update time to trigger re-filter
+    } catch (err) {
+      console.error('Failed to fetch calendar events:', err);
+    }
+  }, [calendarConnected]);
+
+  // Auto-refresh calendar events every minute
+  useEffect(() => {
+    if (!calendarConnected) return;
+
+    const refreshInterval = setInterval(() => {
+      console.log('[Dashboard] Auto-refreshing calendar events...');
+      fetchCalendarEvents();
+    }, CALENDAR_REFRESH_INTERVAL);
+
+    return () => clearInterval(refreshInterval);
+  }, [calendarConnected, fetchCalendarEvents]);
+
   const handleSync = async () => {
     setSyncing(true);
     setError(null);
     try {
       await calendarAPI.sync();
-      const eventsResponse = await calendarAPI.getEvents();
-      const events = eventsResponse.events || [];
-
-      const now = new Date();
-      const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-      const todayEnd = new Date(todayStart);
-      todayEnd.setDate(todayEnd.getDate() + 1);
-
-      const todaysEvents = events.filter((event: CalendarEvent) => {
-        const eventStart = new Date(event.startTime);
-        return eventStart >= todayStart && eventStart < todayEnd;
-      });
-
-      setTodayEvents(todaysEvents);
-
-      const upcomingEvents = events
-        .filter((event: CalendarEvent) => new Date(event.startTime) > now)
-        .sort((a: CalendarEvent, b: CalendarEvent) =>
-          new Date(a.startTime).getTime() - new Date(b.startTime).getTime()
-        );
-
-      if (upcomingEvents.length > 0) {
-        setNextEvent(upcomingEvents[0]);
-      } else {
-        setNextEvent(null);
-      }
+      await fetchCalendarEvents();
     } catch (err) {
       console.error('Sync error:', err);
-      setError('Failed to sync calendar');
+      const isAuthError = err instanceof Error && (
+        err.message.includes('401') ||
+        err.message.includes('403') ||
+        err.message.includes('expired')
+      );
+      setError({
+        message: isAuthError
+          ? 'Calendar connection expired. Please reconnect.'
+          : 'Failed to sync calendar',
+        type: isAuthError ? 'auth' : 'general'
+      });
     } finally {
       setSyncing(false);
     }
@@ -171,45 +289,108 @@ export const Dashboard: React.FC = () => {
     return 'Good evening';
   };
 
-  const formatTimeUntil = (date: Date) => {
-    const now = new Date();
-    const eventDate = new Date(date);
-    const diff = eventDate.getTime() - now.getTime();
+  const formatTimeUntil = (startDate: Date, endDate?: Date) => {
+    const now = currentTime; // Use live time
+    const eventStart = new Date(startDate);
+    const eventEnd = endDate ? new Date(endDate) : null;
+    const diff = eventStart.getTime() - now.getTime();
+
+    // Event is currently happening
+    if (diff < 0 && eventEnd && now < eventEnd) {
+      return 'now';
+    }
+
+    // Event has passed (shouldn't show, but handle gracefully)
+    if (diff < 0) {
+      return 'ended';
+    }
+
     const hours = Math.floor(diff / (1000 * 60 * 60));
     const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
 
     if (hours > 0) {
       return `${hours}h ${minutes}m`;
     }
+    if (minutes <= 0) {
+      return 'starting';
+    }
     return `${minutes}m`;
   };
 
-  const platforms: PlatformStatus[] = [
-    { id: 'calendar', name: 'Calendar', connected: calendarConnected, icon: Calendar, color: 'text-blue-500' },
-    { id: 'spotify', name: 'Spotify', connected: spotifyConnected, icon: Music, color: 'text-green-500' },
-  ];
+  // Build dynamic platforms list from connected providers
+  const platforms: PlatformStatus[] = connectedProviders.map(provider => {
+    const config = PLATFORM_CONFIG[provider] || {
+      name: provider.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase()),
+      icon: Activity,
+      color: 'text-gray-500'
+    };
+    const status = platformStatusData[provider];
+    const isExpired = status?.tokenExpired || status?.status === 'token_expired';
 
-  const patterns: Pattern[] = [
+    return {
+      id: provider,
+      name: config.name,
+      connected: true, // It's in connected providers, so it's connected
+      expired: isExpired, // But may have expired token
+      icon: config.icon,
+      color: config.color
+    };
+  });
+
+  // Add MVP platforms if not connected (as suggested connections)
+  const mvpPlatforms = ['google_calendar', 'spotify', 'whoop'];
+  mvpPlatforms.forEach(provider => {
+    if (!connectedProviders.includes(provider)) {
+      const config = PLATFORM_CONFIG[provider];
+      if (config) {
+        platforms.push({
+          id: provider,
+          name: config.name,
+          connected: false,
+          icon: config.icon,
+          color: config.color
+        });
+      }
+    }
+  });
+
+  // Build insight links based on connected platforms
+  const insightLinks: Pattern[] = [
     {
-      id: 'optimal-time',
-      title: 'Optimal Prep Time',
-      description: '15 min rituals work best for you',
-      icon: Clock,
-      color: 'text-purple-500'
-    },
-    {
-      id: 'focus-music',
-      title: 'Focus Music',
-      description: 'Lo-fi beats boost your concentration',
+      id: 'music-soul',
+      title: 'Your Musical Soul',
+      description: spotifyConnected
+        ? 'What your listening reveals about you'
+        : 'Connect Spotify to discover your musical soul',
       icon: Music,
-      color: 'text-green-500'
+      color: spotifyConnected ? 'text-green-500' : 'text-gray-500',
+      hasData: spotifyConnected,
+      actionLabel: spotifyConnected ? 'Explore' : 'Connect',
+      actionPath: spotifyConnected ? '/insights/spotify' : '/get-started'
     },
     {
-      id: 'streak',
-      title: `${ritualStreak} Day Streak`,
-      description: 'Keep it going!',
-      icon: Award,
-      color: 'text-amber-500'
+      id: 'body-stories',
+      title: 'Body Stories',
+      description: whoopConnected
+        ? 'What your body tells you'
+        : 'Connect Whoop to hear your body stories',
+      icon: Activity,
+      color: whoopConnected ? 'text-cyan-500' : 'text-gray-500',
+      hasData: whoopConnected,
+      actionLabel: whoopConnected ? 'Explore' : 'Connect',
+      actionPath: whoopConnected ? '/insights/whoop' : '/get-started'
+    },
+    {
+      id: 'time-patterns',
+      title: 'Time Patterns',
+      description: calendarConnected
+        ? 'How you structure your days'
+        : 'Connect Calendar to see your time patterns',
+      icon: Calendar,
+      color: calendarConnected ? 'text-blue-500' : 'text-gray-500',
+      hasData: calendarConnected,
+      actionLabel: calendarConnected ? 'Explore' : 'Connect',
+      actionPath: calendarConnected ? '/insights/calendar' : '/get-started'
     }
   ];
 
@@ -236,14 +417,37 @@ export const Dashboard: React.FC = () => {
     <PageLayout>
       {error && (
         <div
-          className="mb-4 p-4 rounded-xl flex items-center gap-3"
+          className="mb-4 p-4 rounded-xl flex items-center justify-between"
           style={{
-            backgroundColor: theme === 'dark' ? 'rgba(239, 68, 68, 0.1)' : 'rgba(239, 68, 68, 0.1)',
-            border: '1px solid rgba(239, 68, 68, 0.3)'
+            backgroundColor: error.type === 'auth'
+              ? (theme === 'dark' ? 'rgba(245, 158, 11, 0.1)' : 'rgba(245, 158, 11, 0.1)')
+              : (theme === 'dark' ? 'rgba(239, 68, 68, 0.1)' : 'rgba(239, 68, 68, 0.1)'),
+            border: error.type === 'auth'
+              ? '1px solid rgba(245, 158, 11, 0.3)'
+              : '1px solid rgba(239, 68, 68, 0.3)'
           }}
         >
-          <AlertCircle className="w-5 h-5 text-red-500" />
-          <span style={{ color: theme === 'dark' ? '#fca5a5' : '#dc2626' }}>{error}</span>
+          <div className="flex items-center gap-3">
+            <AlertCircle className={`w-5 h-5 ${error.type === 'auth' ? 'text-amber-500' : 'text-red-500'}`} />
+            <span style={{ color: error.type === 'auth'
+              ? (theme === 'dark' ? '#fcd34d' : '#d97706')
+              : (theme === 'dark' ? '#fca5a5' : '#dc2626')
+            }}>
+              {error.message}
+            </span>
+          </div>
+          {error.type === 'auth' && (
+            <button
+              onClick={() => navigate('/get-started')}
+              className="px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+              style={{
+                backgroundColor: theme === 'dark' ? 'rgba(245, 158, 11, 0.2)' : 'rgba(245, 158, 11, 0.15)',
+                color: theme === 'dark' ? '#fcd34d' : '#d97706'
+              }}
+            >
+              Reconnect
+            </button>
+          )}
         </div>
       )}
 
@@ -262,14 +466,26 @@ export const Dashboard: React.FC = () => {
           className="text-base"
           style={{ color: theme === 'dark' ? 'rgba(193, 192, 182, 0.7)' : '#57534e' }}
         >
-          {todayEvents.length} event{todayEvents.length !== 1 ? 's' : ''} today • Focus Score: {focusScore}%
+          {todayEvents.length > 0
+            ? `${todayEvents.length} event${todayEvents.length !== 1 ? 's' : ''} today`
+            : 'Your day awaits'
+          }
         </p>
       </div>
+
+      {/* Today's Insights Section */}
+      <div className="mb-8">
+        <TodayInsights />
+      </div>
+
 
       {nextEvent ? (
         <GlassPanel className="mb-8 relative overflow-hidden">
           <div
-            className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-purple-500 via-blue-500 to-green-500"
+            className="absolute top-0 left-0 right-0 h-1"
+            style={{
+              backgroundColor: theme === 'dark' ? 'rgba(193, 192, 182, 0.2)' : 'rgba(0, 0, 0, 0.1)'
+            }}
           />
 
           <div className="pt-4">
@@ -312,13 +528,13 @@ export const Dashboard: React.FC = () => {
                     style={{ color: theme === 'dark' ? 'rgba(193, 192, 182, 0.7)' : '#57534e' }}
                   >
                     <Clock className="w-4 h-4" />
-                    in {formatTimeUntil(nextEvent.startTime)}
+                    {formatTimeUntil(nextEvent.startTime, nextEvent.endTime) === 'now' ? 'happening now' : `in ${formatTimeUntil(nextEvent.startTime, nextEvent.endTime)}`}
                   </span>
                   <span
                     className="px-2 py-0.5 rounded-full text-xs"
                     style={{
-                      backgroundColor: theme === 'dark' ? 'rgba(139, 92, 246, 0.2)' : 'rgba(139, 92, 246, 0.1)',
-                      color: '#8b5cf6'
+                      backgroundColor: theme === 'dark' ? 'rgba(193, 192, 182, 0.15)' : 'rgba(0, 0, 0, 0.08)',
+                      color: theme === 'dark' ? 'rgba(193, 192, 182, 0.8)' : '#57534e'
                     }}
                   >
                     {nextEvent.type}
@@ -329,23 +545,23 @@ export const Dashboard: React.FC = () => {
               <div
                 className="w-12 h-12 rounded-xl flex items-center justify-center"
                 style={{
-                  backgroundColor: theme === 'dark' ? 'rgba(139, 92, 246, 0.2)' : 'rgba(139, 92, 246, 0.1)'
+                  backgroundColor: theme === 'dark' ? 'rgba(193, 192, 182, 0.1)' : 'rgba(0, 0, 0, 0.05)'
                 }}
               >
-                <Target className="w-6 h-6 text-purple-500" />
+                <Target className="w-6 h-6" style={{ color: theme === 'dark' ? 'rgba(193, 192, 182, 0.8)' : '#57534e' }} />
               </div>
             </div>
 
             <button
-              onClick={() => navigate('/ritual/start')}
+              onClick={() => navigate('/insights/calendar')}
               className="w-full glass-button py-4 flex items-center justify-center gap-3"
             >
-              <Play className="w-5 h-5" />
+              <Sparkles className="w-5 h-5" />
               <span
                 className="text-base"
                 style={{ fontFamily: 'var(--font-heading)', fontWeight: 500 }}
               >
-                Start Preparation Ritual
+                View Time Patterns
               </span>
             </button>
           </div>
@@ -391,28 +607,46 @@ export const Dashboard: React.FC = () => {
         </GlassPanel>
       )}
 
+      {/* Twin Insights - Links to platform insight pages */}
       <div className="mb-8">
-        <h3
-          className="text-sm uppercase tracking-wider mb-4"
-          style={{ color: theme === 'dark' ? 'rgba(193, 192, 182, 0.5)' : '#a8a29e' }}
-        >
-          Your Patterns
-        </h3>
+        <div className="flex items-center gap-2 mb-4">
+          <div
+            className="w-1 h-5 rounded-full"
+            style={{
+              background: theme === 'dark'
+                ? 'linear-gradient(to bottom, rgba(193, 192, 182, 0.6), rgba(193, 192, 182, 0.2))'
+                : 'linear-gradient(to bottom, rgba(0, 0, 0, 0.4), rgba(0, 0, 0, 0.1))'
+            }}
+          />
+          <h3
+            className="text-sm uppercase tracking-wider"
+            style={{ color: theme === 'dark' ? 'rgba(193, 192, 182, 0.6)' : '#78716c' }}
+          >
+            Twin Insights
+          </h3>
+        </div>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {patterns.map((pattern) => {
-            const Icon = pattern.icon;
+          {insightLinks.map((insight) => {
+            const Icon = insight.icon;
             return (
-              <GlassPanel key={pattern.id} hover className="cursor-pointer">
+              <GlassPanel
+                key={insight.id}
+                hover
+                className="cursor-pointer"
+                onClick={() => navigate(insight.actionPath!)}
+              >
                 <div className="flex items-start gap-3">
                   <div
                     className="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0"
                     style={{
-                      backgroundColor: theme === 'dark' ? 'rgba(193, 192, 182, 0.1)' : 'rgba(0, 0, 0, 0.05)'
+                      backgroundColor: insight.hasData
+                        ? (theme === 'dark' ? 'rgba(34, 197, 94, 0.1)' : 'rgba(34, 197, 94, 0.05)')
+                        : (theme === 'dark' ? 'rgba(193, 192, 182, 0.1)' : 'rgba(0, 0, 0, 0.05)')
                     }}
                   >
-                    <Icon className={`w-5 h-5 ${pattern.color}`} />
+                    <Icon className={`w-5 h-5 ${insight.color}`} />
                   </div>
-                  <div>
+                  <div className="flex-1">
                     <h4
                       className="text-sm mb-1"
                       style={{
@@ -421,14 +655,23 @@ export const Dashboard: React.FC = () => {
                         color: theme === 'dark' ? '#C1C0B6' : '#0c0a09'
                       }}
                     >
-                      {pattern.title}
+                      {insight.title}
                     </h4>
                     <p
-                      className="text-xs"
+                      className="text-xs mb-2"
                       style={{ color: theme === 'dark' ? 'rgba(193, 192, 182, 0.6)' : '#a8a29e' }}
                     >
-                      {pattern.description}
+                      {insight.description}
                     </p>
+                    <span
+                      className="text-xs px-3 py-1 rounded-full inline-block"
+                      style={{
+                        backgroundColor: theme === 'dark' ? 'rgba(193, 192, 182, 0.15)' : 'rgba(0, 0, 0, 0.08)',
+                        color: theme === 'dark' ? '#C1C0B6' : '#44403c'
+                      }}
+                    >
+                      {insight.actionLabel} →
+                    </span>
                   </div>
                 </div>
               </GlassPanel>
@@ -437,14 +680,25 @@ export const Dashboard: React.FC = () => {
         </div>
       </div>
 
+      {/* DASH 2.5: Visual hierarchy improvement */}
       <div>
         <div className="flex items-center justify-between mb-4">
-          <h3
-            className="text-sm uppercase tracking-wider"
-            style={{ color: theme === 'dark' ? 'rgba(193, 192, 182, 0.5)' : '#a8a29e' }}
-          >
-            Connected Platforms
-          </h3>
+          <div className="flex items-center gap-2">
+            <div
+              className="w-1 h-5 rounded-full"
+              style={{
+                background: theme === 'dark'
+                  ? 'linear-gradient(to bottom, rgba(193, 192, 182, 0.6), rgba(193, 192, 182, 0.2))'
+                  : 'linear-gradient(to bottom, rgba(0, 0, 0, 0.4), rgba(0, 0, 0, 0.1))'
+              }}
+            />
+            <h3
+              className="text-sm uppercase tracking-wider"
+              style={{ color: theme === 'dark' ? 'rgba(193, 192, 182, 0.6)' : '#78716c' }}
+            >
+              Connected Platforms
+            </h3>
+          </div>
           <button
             onClick={() => navigate('/get-started')}
             className="text-sm flex items-center gap-1 transition-colors hover:opacity-80"
@@ -467,7 +721,9 @@ export const Dashboard: React.FC = () => {
                   backgroundColor: theme === 'dark'
                     ? platform.connected ? 'rgba(193, 192, 182, 0.15)' : 'rgba(193, 192, 182, 0.05)'
                     : platform.connected ? 'rgba(0, 0, 0, 0.08)' : 'rgba(0, 0, 0, 0.03)',
-                  border: theme === 'dark'
+                  border: platform.expired
+                    ? '1px solid rgba(245, 158, 11, 0.4)'
+                    : theme === 'dark'
                     ? '1px solid rgba(193, 192, 182, 0.1)'
                     : '1px solid rgba(0, 0, 0, 0.06)'
                 }}
@@ -479,8 +735,12 @@ export const Dashboard: React.FC = () => {
                 >
                   {platform.name}
                 </span>
-                {platform.connected ? (
+                {platform.connected && !platform.expired ? (
                   <CheckCircle2 className="w-4 h-4 text-green-500" />
+                ) : platform.expired ? (
+                  <svg className="w-4 h-4 text-amber-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                  </svg>
                 ) : (
                   <Plus className="w-4 h-4 opacity-50" />
                 )}

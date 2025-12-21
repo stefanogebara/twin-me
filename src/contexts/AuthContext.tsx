@@ -31,8 +31,6 @@ interface AuthContextType {
   isSignedIn: boolean;
   isLoading: boolean;
   isDemoMode: boolean;
-  signIn: (email: string, password: string) => Promise<void>;
-  signUp: (email: string, password: string, firstName?: string, lastName?: string) => Promise<void>;
   signOut: () => Promise<void>;
   signInWithOAuth: (provider: 'google', redirectAfterAuth?: string) => Promise<void>;
   clearAuth: () => void;
@@ -156,60 +154,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
-  const signIn = async (email: string, password: string) => {
-    setIsLoading(true);
-    try {
-      const response = await fetch(`${import.meta.env.VITE_API_URL}/auth/signin`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ email, password }),
-      });
-
-      if (!response.ok) {
-        throw new Error('Sign in failed');
-      }
-
-      const data = await response.json();
-      localStorage.setItem('auth_token', data.token);
-      localStorage.setItem('auth_user', JSON.stringify(data.user));
-      setUser(data.user);
-    } catch (error) {
-      console.error('Sign in error:', error);
-      throw error;
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const signUp = async (email: string, password: string, firstName?: string, lastName?: string) => {
-    setIsLoading(true);
-    try {
-      const response = await fetch(`${import.meta.env.VITE_API_URL}/auth/signup`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ email, password, firstName, lastName }),
-      });
-
-      if (!response.ok) {
-        throw new Error('Sign up failed');
-      }
-
-      const data = await response.json();
-      localStorage.setItem('auth_token', data.token);
-      localStorage.setItem('auth_user', JSON.stringify(data.user));
-      setUser(data.user);
-    } catch (error) {
-      console.error('Sign up error:', error);
-      throw error;
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
   const signOut = async () => {
     console.log('🚪 Signing out user');
     localStorage.removeItem('auth_token');
@@ -250,8 +194,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     isSignedIn: !!user,
     isLoading,
     isDemoMode: localStorage.getItem('demo_mode') === 'true',
-    signIn,
-    signUp,
     signOut,
     signInWithOAuth,
     clearAuth,

@@ -11,9 +11,7 @@ import {
   Shield,
   HelpCircle,
   LogOut,
-  User,
-  Music,
-  Zap
+  User
 } from 'lucide-react';
 
 interface NavItem {
@@ -26,25 +24,11 @@ interface NavItem {
 
 const primaryNavItems: NavItem[] = [
   {
-    id: 'todays-twin',
-    label: "Today's Twin",
-    icon: Zap,
-    path: '/todays-twin',
-    description: 'Your daily ritual preparation'
-  },
-  {
     id: 'dashboard',
     label: 'Dashboard',
     icon: Home,
     path: '/dashboard',
     description: 'Overview of your soul signature'
-  },
-  {
-    id: 'rituals',
-    label: 'Music Rituals',
-    icon: Music,
-    path: '/rituals',
-    description: 'Your presentation ritual patterns'
   },
   {
     id: 'connectors',

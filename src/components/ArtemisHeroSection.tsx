@@ -32,7 +32,7 @@ export const ArtemisHeroSection = () => {
 
           {/* Bottom Left Card - Moved farther */}
           <div className="absolute bottom-20 left-12 w-40 h-32 bg-card rounded-2xl shadow-lg transform rotate-3 border overflow-hidden">
-            <div className="w-full h-full bg-gradient-to-br from-orange-400 to-red-400 flex items-center justify-center">
+            <div className="w-full h-full bg-gradient-to-br from-stone-400 to-red-400 flex items-center justify-center">
               <div className="text-white text-center">
                 <div className="text-lg font-bold">Privacy</div>
                 <div className="text-xs">Control</div>

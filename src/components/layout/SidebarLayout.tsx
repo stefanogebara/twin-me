@@ -1,6 +1,7 @@
 import React, { ReactNode, useState } from 'react';
-import { Sidebar } from './Sidebar';
-import { Menu, X } from 'lucide-react';
+import { CollapsibleSidebar } from './CollapsibleSidebar';
+import { useTheme } from '@/contexts/ThemeContext';
+import { Menu } from 'lucide-react';
 
 interface SidebarLayoutProps {
   children: ReactNode;
@@ -8,47 +9,62 @@ interface SidebarLayoutProps {
 
 export const SidebarLayout: React.FC<SidebarLayoutProps> = ({ children }) => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const { theme } = useTheme();
 
   return (
-    <div className="flex h-screen w-full bg-[hsl(var(--claude-bg))]">
+    <div
+      className="flex min-h-screen w-full"
+      style={{
+        backgroundColor: theme === 'dark' ? '#232320' : '#FAFAFA'
+      }}
+    >
       {/* Mobile Menu Button - Only visible on small screens */}
       <button
         onClick={() => setSidebarOpen(!sidebarOpen)}
-        className="fixed top-4 left-4 z-50 p-2 rounded-lg bg-[hsl(var(--claude-surface))] border border-[hsl(var(--claude-border))] shadow-lg lg:hidden"
+        className="fixed top-4 left-4 z-50 p-3 rounded-xl lg:hidden transition-all duration-200"
+        style={{
+          backgroundColor: theme === 'dark'
+            ? 'rgba(45, 45, 41, 0.8)'
+            : 'rgba(255, 255, 255, 0.8)',
+          backdropFilter: 'blur(16px) saturate(180%)',
+          WebkitBackdropFilter: 'blur(16px) saturate(180%)',
+          border: theme === 'dark'
+            ? '1px solid rgba(193, 192, 182, 0.1)'
+            : '1px solid rgba(0, 0, 0, 0.06)',
+          boxShadow: theme === 'dark'
+            ? '0 8px 32px rgba(0, 0, 0, 0.3)'
+            : '0 8px 32px rgba(0, 0, 0, 0.08)'
+        }}
         aria-label="Toggle menu"
       >
-        {sidebarOpen ? (
-          <X className="w-6 h-6 text-[hsl(var(--claude-text))]" />
-        ) : (
-          <Menu className="w-6 h-6 text-[hsl(var(--claude-text))]" />
-        )}
+        <Menu
+          className="w-5 h-5"
+          style={{
+            color: theme === 'dark' ? '#C1C0B6' : '#0c0a09'
+          }}
+        />
       </button>
 
-      {/* Mobile Overlay - Only visible when sidebar is open on mobile */}
-      {sidebarOpen && (
-        <div
-          className="fixed inset-0 bg-black/50 z-30 lg:hidden"
-          onClick={() => setSidebarOpen(false)}
-          aria-hidden="true"
-        />
-      )}
-
-      {/* Sidebar */}
-      <div
-        className={`
-          fixed lg:relative
-          h-screen
-          z-40
-          transform transition-transform duration-200 ease-in-out
-          ${sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
-        `}
-      >
-        <Sidebar onNavigate={() => setSidebarOpen(false)} />
-      </div>
+      {/* Collapsible Sidebar with Glass Morphism */}
+      <CollapsibleSidebar
+        isOpen={sidebarOpen}
+        onClose={() => setSidebarOpen(false)}
+      />
 
       {/* Main Content Area */}
-      <main className="flex-1 overflow-y-auto relative">
-        {/* Add padding for mobile menu button */}
+      <main
+        className="flex-1 overflow-y-auto relative lg:ml-4"
+        style={{
+          marginLeft: 'var(--sidebar-margin, 0)',
+        }}
+      >
+        <style>{`
+          @media (min-width: 1024px) {
+            main {
+              --sidebar-margin: 272px;
+            }
+          }
+        `}</style>
         <div className="min-h-full pt-16 lg:pt-0">
           {children}
         </div>

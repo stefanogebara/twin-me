@@ -12,7 +12,7 @@ const buttonVariants = cva(
         default: "cartoon-button text-primary-foreground",
         destructive: "bg-gradient-to-br from-destructive to-red-500 text-destructive-foreground hover:shadow-lg hover:-translate-y-0.5 rounded-2xl border-2 border-red-300/30",
         outline: "border-2 border-primary/30 bg-background/80 backdrop-blur-sm hover:bg-primary/10 hover:border-primary/50 text-primary rounded-2xl transition-all duration-200",
-        secondary: "bg-gradient-to-br from-secondary to-orange-200 text-secondary-foreground hover:shadow-lg hover:-translate-y-0.5 rounded-2xl border-2 border-orange-300/30",
+        secondary: "bg-gradient-to-br from-secondary to-stone-200 text-secondary-foreground hover:shadow-lg hover:-translate-y-0.5 rounded-2xl border-2 border-orange-300/30",
         ghost: "hover:bg-accent/20 hover:text-accent-foreground rounded-2xl",
         link: "text-primary underline-offset-4 hover:underline",
         liquid: "liquid-glass text-primary hover:shadow-2xl hover:-translate-y-1 transition-all duration-300",

@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Service Worker Syntax Test</title>
+  <style>
+    body {
+      font-family: monospace;
+      padding: 20px;
+      background: #0A0A0A;
+      color: #E8E8E7;
+    }
+    h1 {
+      color: #D97706;
+    }
+    .success {
+      color: #10B981;
+    }
+    .error {
+      color: #EF4444;
+    }
+    pre {
+      background: rgba(232, 232, 231, 0.1);
+      padding: 15px;
+      border-radius: 8px;
+      overflow-x: auto;
+    }
+  </style>
+</head>
+<body>
+  <h1>Service Worker Syntax Test</h1>
+  <div id="result">Testing...</div>
+
+  <script>
+    const result = document.getElementById('result');
+
+    // Try to load and parse the service worker file
+    fetch('src/background/service-worker.js')
+      .then(response => response.text())
+      .then(code => {
+        result.innerHTML = '<p class="success">✓ Service worker file loaded successfully</p>';
+        result.innerHTML += '<p>File size: ' + code.length + ' bytes</p>';
+
+        // Try to parse it as JavaScript
+        try {
+          new Function(code);
+          result.innerHTML += '<p class="success">✓ No syntax errors detected</p>';
+          result.innerHTML += '<p class="success">✓ Service worker is ready to use!</p>';
+        } catch (error) {
+          result.innerHTML += '<p class="error">✗ Syntax error found:</p>';
+          result.innerHTML += '<pre>' + error.message + '</pre>';
+        }
+      })
+      .catch(error => {
+        result.innerHTML = '<p class="error">✗ Failed to load service worker:</p>';
+        result.innerHTML += '<pre>' + error.message + '</pre>';
+      });
+  </script>
+</body>
+</html>

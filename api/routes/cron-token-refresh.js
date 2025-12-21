@@ -55,6 +55,16 @@ const PLATFORM_REFRESH_CONFIGS = {
     clientId: process.env.LINKEDIN_CLIENT_ID,
     clientSecret: process.env.LINKEDIN_CLIENT_SECRET,
   },
+  whoop: {
+    tokenUrl: 'https://api.prod.whoop.com/oauth/oauth2/token',
+    clientId: process.env.WHOOP_CLIENT_ID,
+    clientSecret: process.env.WHOOP_CLIENT_SECRET,
+  },
+  oura: {
+    tokenUrl: 'https://api.ouraring.com/oauth/token',
+    clientId: process.env.OURA_CLIENT_ID,
+    clientSecret: process.env.OURA_CLIENT_SECRET,
+  },
 };
 
 /**

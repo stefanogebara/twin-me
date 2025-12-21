@@ -265,7 +265,7 @@ class StylometricAnalyzer {
       const prompt = this.buildEnhancedPersonalityPrompt(textSample, behavioralData);
 
       const response = await anthropic.messages.create({
-        model: 'claude-3-5-sonnet-20241022',
+        model: 'claude-sonnet-4-5-20250929',
         max_tokens: 1500,
         temperature: 0.3,
         system: 'You are an expert personality psychologist analyzing both writing samples AND behavioral patterns to assess Big Five personality traits. Integrate insights from both text analysis and digital behavior for accurate personality assessment.',

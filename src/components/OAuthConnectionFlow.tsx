@@ -148,7 +148,7 @@ export const OAuthConnectionFlow: React.FC<OAuthConnectionProps> = ({
     if (diff < 0) return { status: 'expired', text: 'Token expired', color: 'text-red-600' };
     if (days > 30) return { status: 'healthy', text: 'Token healthy', color: 'text-green-600' };
     if (days > 7) return { status: 'good', text: `Expires in ${days} days`, color: 'text-blue-600' };
-    if (days > 0) return { status: 'warning', text: `Expires in ${days} days`, color: 'text-amber-600' };
+    if (days > 0) return { status: 'warning', text: `Expires in ${days} days`, color: 'text-stone-600' };
     return { status: 'critical', text: `Expires in ${hours} hours`, color: 'text-red-600' };
   };
 

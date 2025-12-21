@@ -234,6 +234,30 @@ export const serverDb = {
     }
   },
 
+  // Platform Connection operations
+  async getPlatformConnection(userId, platform) {
+    const dbCheck = checkDbAvailable();
+    if (dbCheck) return dbCheck;
+
+    try {
+      const { data, error } = await supabaseAdmin
+        .from('platform_connections')
+        .select('*')
+        .eq('user_id', userId)
+        .eq('platform', platform)
+        .single();
+
+      if (error && error.code !== 'PGRST116') { // PGRST116 is "no rows returned"
+        console.error('Error getting platform connection:', error);
+        return null;
+      }
+      return data;
+    } catch (error) {
+      console.error('Unexpected error getting platform connection:', error);
+      return null;
+    }
+  },
+
   // Training Material operations
   async createTrainingMaterial(materialData) {
     const dbCheck = checkDbAvailable();

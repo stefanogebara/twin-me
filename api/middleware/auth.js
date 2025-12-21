@@ -3,8 +3,11 @@ import dotenv from 'dotenv';
 
 dotenv.config();
 
-// JWT secret from environment
-const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-this-in-production';
+// JWT secret from environment (required)
+const JWT_SECRET = process.env.JWT_SECRET;
+if (!JWT_SECRET) {
+  throw new Error('JWT_SECRET environment variable is required');
+}
 
 // Authentication middleware for JWT tokens
 export const authenticateUser = async (req, res, next) => {
@@ -44,7 +47,7 @@ export const authenticateUser = async (req, res, next) => {
 
       next();
     } catch (verifyError) {
-      console.error('[Auth] ❌ Token verification failed for ${req.path}:', verifyError.name);
+      console.error(`[Auth] ❌ Token verification failed for ${req.path}:`, verifyError.name);
       return res.status(401).json({
         error: 'Unauthorized',
         message: 'Invalid or expired token',
@@ -194,3 +197,6 @@ export const validateTwinOwnership = async (req, res, next) => {
     });
   }
 };
+
+// Alias for backward compatibility
+export { authenticateUser as authenticateToken };

@@ -17,8 +17,11 @@ export const PLATFORM_CONFIGS = {
       'user-top-read',
       'user-library-read',
       'user-read-playback-state',
+      'user-modify-playback-state',
+      'user-read-currently-playing',
       'playlist-read-private',
-      'playlist-read-collaborative'
+      'playlist-read-collaborative',
+      'streaming'
     ],
     apiBaseUrl: 'https://api.spotify.com/v1',
 
@@ -27,7 +30,11 @@ export const PLATFORM_CONFIGS = {
       recentTracks: '/me/player/recently-played',
       topTracks: '/me/top/tracks',
       topArtists: '/me/top/artists',
-      savedTracks: '/me/tracks'
+      savedTracks: '/me/tracks',
+      playlists: '/me/playlists',
+      player: '/me/player',
+      play: '/me/player/play',
+      pause: '/me/player/pause'
     },
 
     tokenType: 'Bearer',
@@ -176,6 +183,88 @@ export const PLATFORM_CONFIGS = {
     rateLimit: {
       requests: 100,
       window: 60 // per minute
+    }
+  },
+
+  // Health & Fitness Platforms
+  whoop: {
+    name: 'Whoop',
+    authUrl: 'https://api.prod.whoop.com/oauth/oauth2/auth',
+    tokenUrl: 'https://api.prod.whoop.com/oauth/oauth2/token',
+    scopes: [
+      'offline',         // Required for refresh tokens
+      'read:profile',
+      'read:recovery',
+      'read:cycles',
+      'read:workout',
+      'read:sleep',
+      'read:body_measurement'
+    ],
+    apiBaseUrl: 'https://api.prod.whoop.com/developer/v1',
+
+    endpoints: {
+      userProfile: '/user/profile/basic',
+      recovery: '/recovery',
+      cycles: '/cycle',
+      workouts: '/activity/workout',
+      sleep: '/activity/sleep',
+      bodyMeasurements: '/user/measurement/body'
+    },
+
+    tokenType: 'Bearer',
+    refreshable: true,
+
+    rateLimit: {
+      requests: 100,
+      window: 60 // per minute
+    },
+
+    // Personality correlations for soul signature extraction
+    personalityCorrelations: {
+      conscientiousness: ['sleep consistency', 'workout regularity', 'recovery adherence'],
+      neuroticism: ['HRV variability', 'stress indicators', 'recovery fluctuations'],
+      extraversion: ['workout frequency', 'strain levels', 'activity diversity']
+    }
+  },
+
+  oura: {
+    name: 'Oura',
+    authUrl: 'https://cloud.ouraring.com/oauth/authorize',
+    tokenUrl: 'https://api.ouraring.com/oauth/token',
+    scopes: [
+      'personal',
+      'daily',
+      'heartrate',
+      'workout',
+      'tag',
+      'session'
+    ],
+    apiBaseUrl: 'https://api.ouraring.com/v2',
+
+    endpoints: {
+      personalInfo: '/usercollection/personal_info',
+      dailyActivity: '/usercollection/daily_activity',
+      dailySleep: '/usercollection/daily_sleep',
+      dailyReadiness: '/usercollection/daily_readiness',
+      heartRate: '/usercollection/heartrate',
+      sessions: '/usercollection/session',
+      tags: '/usercollection/tag',
+      workouts: '/usercollection/workout'
+    },
+
+    tokenType: 'Bearer',
+    refreshable: true,
+
+    rateLimit: {
+      requests: 5000,
+      window: 300 // 5 minutes
+    },
+
+    // Personality correlations for soul signature extraction
+    personalityCorrelations: {
+      conscientiousness: ['sleep schedule consistency', 'bedtime regularity', 'rest day compliance'],
+      neuroticism: ['HRV patterns', 'stress recovery time', 'sleep disturbances'],
+      openness: ['activity variety', 'new workout exploration']
     }
   }
 };

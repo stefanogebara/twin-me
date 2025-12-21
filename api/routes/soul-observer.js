@@ -20,6 +20,16 @@ const router = express.Router();
 // Use shared Supabase admin client with proper configuration
 const supabase = supabaseAdmin;
 
+/**
+ * Validate UUID format
+ * Prevents database errors when invalid IDs (like Chrome extension IDs) are passed
+ */
+function isValidUUID(str) {
+  if (!str || typeof str !== 'string') return false;
+  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+  return uuidRegex.test(str);
+}
+
 // Debug logging to verify supabaseAdmin is properly loaded
 console.log('[Soul Observer] supabaseAdmin client status:', {
   exists: !!supabase,
@@ -268,6 +278,16 @@ router.post('/session', async (req, res) => {
 router.get('/insights/:userId', async (req, res) => {
   try {
     const { userId } = req.params;
+
+    // Validate UUID format to prevent database errors
+    if (!isValidUUID(userId)) {
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid user ID format',
+        details: 'User ID must be a valid UUID'
+      });
+    }
+
     const limit = parseInt(req.query.limit) || 20;
     const category = req.query.category;
 
@@ -310,6 +330,16 @@ router.get('/insights/:userId', async (req, res) => {
 router.get('/patterns/:userId', async (req, res) => {
   try {
     const { userId } = req.params;
+
+    // Validate UUID format to prevent database errors
+    if (!isValidUUID(userId)) {
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid user ID format',
+        details: 'User ID must be a valid UUID'
+      });
+    }
+
     const patternType = req.query.type;
 
     let query = supabase
@@ -350,6 +380,16 @@ router.get('/patterns/:userId', async (req, res) => {
 router.get('/behavioral-summary/:userId', async (req, res) => {
   try {
     const { userId } = req.params;
+
+    // Validate UUID format to prevent database errors
+    if (!isValidUUID(userId)) {
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid user ID format',
+        details: 'User ID must be a valid UUID'
+      });
+    }
+
     const daysBack = parseInt(req.query.days) || 7;
 
     const { data, error } = await supabase
@@ -388,6 +428,16 @@ router.get('/behavioral-summary/:userId', async (req, res) => {
 router.get('/sessions/:userId', async (req, res) => {
   try {
     const { userId } = req.params;
+
+    // Validate UUID format to prevent database errors
+    if (!isValidUUID(userId)) {
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid user ID format',
+        details: 'User ID must be a valid UUID'
+      });
+    }
+
     const limit = parseInt(req.query.limit) || 10;
     const analyzed = req.query.analyzed === 'true';
 
@@ -741,7 +791,7 @@ Please analyze this browsing activity and provide:
 Provide a thoughtful, insightful analysis that goes beyond surface-level observations. Focus on what makes this person uniquely themselves.`;
 
     const message = await anthropic.messages.create({
-      model: 'claude-3-5-sonnet-20241022',
+      model: 'claude-sonnet-4-5-20250929',
       max_tokens: 1500,
       messages: [
         {

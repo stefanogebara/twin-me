@@ -31,7 +31,7 @@ class RAGService {
   constructor() {
     // Claude (Anthropic) API configuration
     this.anthropicApiKey = process.env.ANTHROPIC_API_KEY;
-    this.anthropicModel = process.env.ANTHROPIC_MODEL || 'claude-3-5-sonnet-20241022';
+    this.anthropicModel = process.env.ANTHROPIC_MODEL || 'claude-sonnet-4-5-20250929';
     this.anthropicEndpoint = 'https://api.anthropic.com/v1/messages';
 
     console.log('[RAG Service] Initialized with Claude (Anthropic):', {

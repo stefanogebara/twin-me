@@ -13,6 +13,7 @@ import { startPlatformPolling } from './services/platformPollingService.js';
 import { initializeWebSocketServer } from './services/websocketService.js';
 import { initializeQueues } from './services/queueService.js';
 import { startBackgroundJobs, stopBackgroundJobs } from './services/tokenLifecycleJob.js';
+import { startPatternLearningJob, stopPatternLearningJob } from './services/patternLearningJob.js';
 import { initializeRateLimiter, shutdownRateLimiter } from './middleware/oauthRateLimiter.js';
 
 // Only use dotenv in development - Vercel provides env vars directly
@@ -45,7 +46,8 @@ if (process.env.SENTRY_DSN) {
 
   // TracingHandler creates a trace for every incoming request
   app.use(Sentry.Handlers.tracingHandler());
-} else {
+} else if (process.env.NODE_ENV === 'production') {
+  // Only warn in production - in development, Sentry is typically not needed
   console.log('⚠️  Sentry DSN not configured - error tracking disabled');
 }
 
@@ -76,6 +78,7 @@ const allowedOrigins = [
   'http://localhost:8084',
   'http://localhost:8085',
   'http://localhost:8086',
+  'http://127.0.0.1:8086',
   'https://twin-ai-learn.vercel.app'
 ].filter(Boolean);
 
@@ -218,6 +221,7 @@ import dataVerificationRoutes from './routes/data-verification.js';
 import mcpRoutes from './routes/mcp.js';
 import entertainmentRoutes from './routes/entertainment-connectors.js';
 import additionalEntertainmentRoutes from './routes/additional-entertainment-connectors.js';
+import healthRoutes from './routes/health-connectors.js';
 import soulExtractionRoutes from './routes/soul-extraction.js';
 import soulDataRoutes from './routes/soul-data.js';
 import soulMatchingRoutes from './routes/soul-matching.js';
@@ -234,6 +238,7 @@ import sseRoutes from './routes/sse.js';
 import queueDashboardRoutes from './routes/queue-dashboard.js';
 import cronTokenRefreshHandler from './routes/cron-token-refresh.js';
 import cronPlatformPollingHandler from './routes/cron-platform-polling.js';
+import cronPatternLearningHandler from './routes/cron-pattern-learning.js';
 import pipedreamRoutes from './routes/pipedream.js';
 import arcticRoutes from './routes/arctic-connectors.js';
 import soulSignatureRoutes from './routes/soul-signature.js';
@@ -242,6 +247,14 @@ import testExtractionRoutes from './routes/test-extraction.js';
 import behavioralPatternsRoutes from './routes/behavioral-patterns.js';
 import gnnPatternsRoutes from './routes/gnn-patterns.js';
 import orchestratorRoutes from './routes/orchestrator.js';
+import calendarOAuthRoutes from './routes/calendar-oauth.js';
+import spotifyOAuthRoutes from './routes/spotify-oauth.js';
+import presentationRitualRoutes from './routes/presentation-ritual.js';
+import intelligentTwinRoutes from './routes/intelligent-twin.js';
+import testPatternLearningRoutes from './routes/test-pattern-learning.js';
+import onboardingQuestionsRoutes from './routes/onboarding-questions.js';
+import personalityAssessmentRoutes from './routes/personality-assessment.js';
+import platformInsightsRoutes from './routes/platform-insights.js';
 import { serverDb } from './services/database.js';
 import { sanitizeInput, validateContentType } from './middleware/sanitization.js';
 import { /* handleAuthError, */ handleGeneralError, handle404 } from './middleware/errorHandler.js';
@@ -252,7 +265,7 @@ import { authenticateUser } from './middleware/auth.js';
 app.use('/api/ai', aiRoutes);
 app.use('/api/documents', documentRoutes);
 app.use('/api/twins', twinsRoutes);
-app.use('/api/twin', twinChatRoutes);
+app.use('/api/twin', twinChatRoutes); // MVP placeholder
 app.use('/api/conversations', conversationsRoutes);
 app.use('/api/voice', voiceRoutes);
 app.use('/api/analytics', analyticsRoutes);
@@ -261,6 +274,7 @@ app.use('/api/data-verification', dataVerificationRoutes);
 app.use('/api/mcp', mcpRoutes);
 app.use('/api/entertainment', entertainmentRoutes);
 app.use('/api/entertainment', additionalEntertainmentRoutes);
+app.use('/api/health', healthRoutes);
 app.use('/api/soul', soulExtractionRoutes);
 app.use('/api/soul-data', soulDataRoutes);
 app.use('/api/soul-matching', soulMatchingRoutes);
@@ -285,11 +299,22 @@ app.use('/api/test-extraction', testExtractionRoutes); // Demo data extraction e
 app.use('/api/behavioral-patterns', behavioralPatternsRoutes); // Cross-platform behavioral pattern recognition
 app.use('/api/gnn-patterns', gnnPatternsRoutes); // GNN-based pattern detection with Neo4j and PyTorch Geometric
 app.use('/api/orchestrator', orchestratorRoutes); // Multi-agent AI orchestration system (Anthropic pattern)
+app.use('/api/oauth/calendar', calendarOAuthRoutes); // Google Calendar OAuth connect endpoint
+app.use('/api/calendar', calendarOAuthRoutes); // Calendar events and sync endpoints
+app.use('/api/oauth/spotify', spotifyOAuthRoutes); // Spotify OAuth connect endpoint (Ritual feature)
+app.use('/api/spotify', spotifyOAuthRoutes); // Spotify playback and playlist endpoints
+app.use('/api/presentation-ritual', presentationRitualRoutes); // MVP: Presentation ritual pattern detection
+app.use('/api/twin', intelligentTwinRoutes); // Intelligent Twin Engine routes
+app.use('/api/test-pattern-learning', testPatternLearningRoutes); // Pattern learning test/debug endpoints
+app.use('/api/onboarding', onboardingQuestionsRoutes); // Personality questionnaire for personalization
+app.use('/api/personality', personalityAssessmentRoutes); // Big Five personality assessment with 16personalities archetypes
+app.use('/api/insights', platformInsightsRoutes); // Platform-specific conversational insights
 
 // Vercel Cron Job endpoints (production automation)
 // These are called by Vercel Cron Jobs on schedule (configured in vercel.json)
 app.use('/api/cron/token-refresh', cronTokenRefreshHandler); // Every 5 minutes
 app.use('/api/cron/platform-polling', cronPlatformPollingHandler); // Every 30 minutes
+app.use('/api/cron/pattern-learning', cronPatternLearningHandler); // Every 6 hours
 
 // Health check endpoint
 app.get('/api/health', async (req, res) => {
@@ -366,6 +391,12 @@ if (process.env.NODE_ENV !== 'production') {
   // Production equivalent: Vercel Cron → /api/cron/token-refresh
   startBackgroundJobs();
 
+  // Pattern learning job (feedback processing + insight generation)
+  // - Processes user feedback every 6 hours
+  // - Generates personalized insights using Claude AI
+  // Production equivalent: Vercel Cron → /api/cron/pattern-learning
+  startPatternLearningJob();
+
   // Start HTTP server
   server.listen(PORT, () => {
     console.log(`🚀 Secure API server running on port ${PORT}`);
@@ -384,6 +415,9 @@ if (process.env.NODE_ENV !== 'production') {
     console.log(`     • GitHub: Every 6 hours`);
     console.log(`     • Discord: Every 4 hours`);
     console.log(`     • Gmail: Every 1 hour`);
+    console.log(`   - Pattern Learning:`);
+    console.log(`     • Feedback Processing: Every 6 hours`);
+    console.log(`     • Test endpoint: http://localhost:${PORT}/api/test-pattern-learning/status`);
   });
 
   // Graceful shutdown handlers
@@ -392,6 +426,7 @@ if (process.env.NODE_ENV !== 'production') {
 
     // Stop background jobs first
     stopBackgroundJobs();
+    stopPatternLearningJob();
 
     // Shutdown rate limiter
     await shutdownRateLimiter();
@@ -414,3 +449,4 @@ if (process.env.NODE_ENV !== 'production') {
 }
 
 export default app;
+

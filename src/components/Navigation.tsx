@@ -27,7 +27,7 @@ export const Navigation = () => {
 
           {/* Center Logo */}
           <div 
-            className="text-2xl font-serif text-orange-500 cursor-pointer italic"
+            className="text-2xl font-serif text-stone-500 cursor-pointer italic"
             onClick={() => navigate('/')}
           >
             Twin Me & <span className="text-slate-900">Artemis</span>

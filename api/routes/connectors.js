@@ -11,6 +11,7 @@ import {
   setCachedPlatformStatus,
   invalidatePlatformStatusCache
 } from '../services/redisClient.js';
+import { ensureFreshToken } from '../services/tokenRefreshService.js';
 const router = express.Router();
 
 // ====================================================================
@@ -124,6 +125,23 @@ const OAUTH_CONFIGS = {
     scopes: ['identity', 'history', 'read', 'mysubreddits'],
     authUrl: 'https://www.reddit.com/api/v1/authorize',
     tokenUrl: 'https://www.reddit.com/api/v1/access_token'
+  },
+
+  // Whoop - Health & Fitness
+  whoop: {
+    clientId: process.env.WHOOP_CLIENT_ID,
+    clientSecret: process.env.WHOOP_CLIENT_SECRET,
+    scopes: [
+      'offline',  // Required for refresh tokens
+      'read:profile',
+      'read:recovery',
+      'read:cycles',
+      'read:workout',
+      'read:sleep',
+      'read:body_measurement'
+    ],
+    authUrl: 'https://api.prod.whoop.com/oauth/oauth2/auth',
+    tokenUrl: 'https://api.prod.whoop.com/oauth/oauth2/token'
   }
 };
 
@@ -153,6 +171,50 @@ router.get('/connect/:provider', async (req, res) => {
         success: false,
         error: 'userId is required'
       });
+    }
+
+    // Health platforms handled by health-connectors (use platform-specific redirect URIs)
+    const healthPlatforms = ['whoop', 'oura'];
+    if (healthPlatforms.includes(provider)) {
+      // Forward to health connectors endpoint (uses WHOOP_REDIRECT_URI etc.)
+      const baseUrl = process.env.API_URL || `http://localhost:${process.env.PORT || 3001}`;
+      const healthUrl = `${baseUrl}/api/health/connect/${provider}?userId=${encodeURIComponent(userId)}`;
+
+      console.log(`🏃 Proxying GET reconnect to health connector: ${healthUrl}`);
+
+      try {
+        const response = await fetch(healthUrl, {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json'
+          }
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+          return res.status(response.status).json(data);
+        }
+
+        // Transform health-connector response format to match what frontend expects
+        // Health-connectors returns { success: true, authUrl }
+        // Frontend expects { success: true, data: { authUrl } }
+        if (data.authUrl) {
+          return res.json({
+            success: true,
+            data: { authUrl: data.authUrl }
+          });
+        }
+
+        return res.json(data);
+      } catch (healthError) {
+        console.error(`❌ Health connector error for ${provider}:`, healthError);
+        return res.status(500).json({
+          success: false,
+          error: `Failed to initiate ${provider} reconnection`,
+          details: healthError.message
+        });
+      }
     }
 
     const config = OAUTH_CONFIGS[provider];
@@ -193,7 +255,7 @@ router.get('/connect/:provider', async (req, res) => {
           user_id: userId,
           provider,
           created_at: new Date().toISOString(),
-          expires_at: new Date(Date.now() + 600000).toISOString() // 10 minutes
+          expires_at: new Date(Date.now() + 1800000).toISOString() // 30 minutes
         });
 
       let authUrl;
@@ -326,7 +388,7 @@ router.get('/connect/:provider', async (req, res) => {
             user_id: userId,
             provider,
             created_at: new Date().toISOString(),
-            expires_at: new Date(Date.now() + 600000).toISOString() // 10 minutes
+            expires_at: new Date(Date.now() + 1800000).toISOString() // 30 minutes
           });
 
         const scope = config.scopes.join(' ');
@@ -376,7 +438,7 @@ router.get('/connect/:provider', async (req, res) => {
           user_id: userId,
           provider,
           created_at: new Date().toISOString(),
-          expires_at: new Date(Date.now() + 600000).toISOString() // 10 minutes
+          expires_at: new Date(Date.now() + 1800000).toISOString() // 30 minutes
         });
 
       const scope = config.scopes.join(' ');
@@ -513,7 +575,12 @@ router.post('/callback', async (req, res) => {
   try {
     const { code, state } = req.body;
 
+    console.log('🔵 [Connector Callback] Starting OAuth callback processing');
+    console.log('🔵 [Connector Callback] Code present:', !!code);
+    console.log('🔵 [Connector Callback] State present:', !!state);
+
     if (!code || !state) {
+      console.error('❌ [Connector Callback] Missing required parameters');
       return res.status(400).json({
         success: false,
         error: 'Missing code or state parameter'
@@ -524,22 +591,74 @@ router.post('/callback', async (req, res) => {
     let stateData;
     try {
       stateData = JSON.parse(Buffer.from(state, 'base64').toString());
+      console.log('🔵 [Connector Callback] Decoded state:', stateData);
     } catch (e) {
+      console.error('❌ [Connector Callback] Failed to decode state:', e);
       return res.status(400).json({
         success: false,
         error: 'Invalid state parameter'
       });
     }
 
-    const { provider, userId } = stateData;
-    const config = OAUTH_CONFIGS[provider];
+    let { provider, platform, userId } = stateData;
+
+    // Handle provider vs platform mismatch for Google services
+    // Frontend sends provider: 'google', platform: 'google_calendar'
+    // But OAUTH_CONFIGS uses 'google_calendar' as the key
+    const configKey = platform || provider;
+    console.log('🔵 [Connector Callback] Provider:', provider);
+    console.log('🔵 [Connector Callback] Platform:', platform);
+    console.log('🔵 [Connector Callback] Using config key:', configKey);
+    console.log('🔵 [Connector Callback] UserId:', userId);
+    console.log('🔵 [Connector Callback] Available configs:', Object.keys(OAUTH_CONFIGS));
+
+    // Route health platforms to health connectors
+    const healthPlatforms = ['whoop', 'oura'];
+    if (healthPlatforms.includes(configKey)) {
+      console.log(`🏃 [Connector Callback] Routing ${configKey} to health connectors`);
+      const baseUrl = process.env.API_URL || `http://localhost:${process.env.PORT || 3001}`;
+      const healthUrl = `${baseUrl}/api/health/oauth/callback/${configKey}`;
+
+      try {
+        const healthResponse = await fetch(healthUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ code, state })
+        });
+
+        const healthData = await healthResponse.json();
+
+        if (!healthResponse.ok) {
+          console.error(`❌ [Connector Callback] Health callback failed:`, healthData);
+          return res.status(healthResponse.status).json(healthData);
+        }
+
+        console.log(`✅ [Connector Callback] Health callback successful for ${configKey}`);
+        return res.json(healthData);
+      } catch (healthError) {
+        console.error(`❌ [Connector Callback] Health callback error:`, healthError);
+        return res.status(500).json({
+          success: false,
+          error: `Failed to process ${configKey} callback`,
+          details: healthError.message
+        });
+      }
+    }
+
+    const config = OAUTH_CONFIGS[configKey];
 
     if (!config) {
+      console.error(`❌ [Connector Callback] No config found for key: ${configKey}`);
+      console.error('❌ [Connector Callback] Available configs:', Object.keys(OAUTH_CONFIGS));
       return res.status(400).json({
         success: false,
-        error: `Unsupported provider: ${provider}`
+        error: `Unsupported provider: ${configKey}`
       });
     }
+
+    console.log('🔵 [Connector Callback] Config found:', !!config);
+    console.log('🔵 [Connector Callback] Config has clientId:', !!config.clientId);
+    console.log('🔵 [Connector Callback] Config has clientSecret:', !!config.clientSecret);
 
     // Convert email to UUID by looking up in users table
     // userId from state might be email (test@twinme.com) or UUID
@@ -565,11 +684,18 @@ router.post('/callback', async (req, res) => {
 
     // Exchange authorization code for tokens
     // Different providers need different auth methods
-    const redirectUri = `${process.env.APP_URL || process.env.VITE_APP_URL || 'http://localhost:8086'}/oauth/callback`;
+    const redirectUri = `${process.env.APP_URL || process.env.VITE_APP_URL || 'http://127.0.0.1:8086'}/oauth/callback`;
     let tokenResponse;
+
+    console.log(`🔑 [${provider}] Starting token exchange...`);
+    console.log(`🔑 [${provider}] Code length: ${code.length}`);
+    console.log(`🔑 [${provider}] Redirect URI: ${redirectUri}`);
+    console.log(`🔑 [${provider}] Token URL: ${config.tokenUrl}`);
 
     if (provider === 'spotify') {
       // Spotify uses Basic Authentication
+      console.log(`🔑 [Spotify] Client ID: ${config.clientId}`);
+
       tokenResponse = await fetch(config.tokenUrl, {
         method: 'POST',
         headers: {
@@ -582,6 +708,8 @@ router.post('/callback', async (req, res) => {
           redirect_uri: redirectUri
         })
       });
+
+      console.log(`🔑 [Spotify] Token response status: ${tokenResponse.status}`);
     } else if (provider === 'github') {
       // GitHub needs Accept header for JSON response
       tokenResponse = await fetch(config.tokenUrl, {
@@ -650,6 +778,15 @@ router.post('/callback', async (req, res) => {
         statusText: tokenResponse.statusText,
         error: errorText
       });
+
+      // Try to parse JSON error for more details
+      try {
+        const errorJson = JSON.parse(errorText);
+        console.error(`❌ [${provider}] Parsed error:`, JSON.stringify(errorJson, null, 2));
+      } catch (e) {
+        console.error(`❌ [${provider}] Raw error (not JSON):`, errorText);
+      }
+
       return res.status(tokenResponse.status).json({
         success: false,
         error: `Token exchange failed: ${tokenResponse.statusText}`,
@@ -689,14 +826,20 @@ router.post('/callback', async (req, res) => {
 
     // Store encrypted tokens in database
     try {
+      // Use the correct platform key for storage
+      // For Google services, use the specific service (google_calendar, google_gmail, etc.)
+      const platformKey = configKey;
+      console.log(`🔵 [Connector Callback] Storing connection with platform key: ${platformKey}`);
+
       const connectionData = {
         user_id: userUuid,  // Use UUID not email
-        platform: provider,
+        platform: platformKey,  // Use the config key (e.g., 'google_calendar' not 'google')
         access_token: encryptToken(tokens.access_token),
         refresh_token: tokens.refresh_token ? encryptToken(tokens.refresh_token) : null,
         token_expires_at: tokens.expires_in ? new Date(Date.now() + tokens.expires_in * 1000).toISOString() : null,
-        connected: true,  // Old schema uses 'connected' not 'is_active'
+        connected_at: new Date().toISOString(),  // Use correct column name
         last_sync_status: 'success',  // IMPORTANT: Set to success after OAuth completes!
+        last_sync_at: new Date().toISOString(),  // Use correct column name
         metadata: {
           connected_at: new Date().toISOString(),
           last_sync: new Date().toISOString(),
@@ -718,7 +861,7 @@ router.post('/callback', async (req, res) => {
         throw dbError;
       }
 
-      console.log(`✅ Successfully stored ${provider} connection for user ${userId} in database`);
+      console.log(`✅ Successfully stored ${platformKey} connection for user ${userId} (UUID: ${userUuid}) in database`);
 
       // Invalidate cached platform status for this user
       await invalidatePlatformStatusCache(userUuid);
@@ -729,25 +872,25 @@ router.post('/callback', async (req, res) => {
         // Check if job queue is available
         if (areQueuesAvailable()) {
           // Add job to queue with high priority (newly connected platforms)
-          addExtractionJob(userUuid, provider, null, { priority: 1 })
+          addExtractionJob(userUuid, platformKey, null, { priority: 1 })
             .then(job => {
-              console.log(`✅ Added extraction job to queue: ${job.id} for ${provider}`);
+              console.log(`✅ Added extraction job to queue: ${job.id} for ${platformKey}`);
             })
             .catch(error => {
-              console.warn(`⚠️ Failed to queue extraction job for ${provider}:`, error.message);
+              console.warn(`⚠️ Failed to queue extraction job for ${platformKey}:`, error.message);
             });
         } else {
           // Fallback to direct execution if queue not available
           import('../services/dataExtractionService.js').then(({ default: extractionService }) => {
-            extractionService.extractPlatformData(userUuid, provider)
+            extractionService.extractPlatformData(userUuid, platformKey)
               .then(result => {
-                console.log(`✅ Background extraction completed for ${provider}:`, result);
+                console.log(`✅ Background extraction completed for ${platformKey}:`, result);
 
                 // Trigger soul signature building after extraction
                 import('../services/soulSignatureBuilder.js').then(({ default: soulBuilder }) => {
                   soulBuilder.buildSoulSignature(userUuid)
                     .then(soulResult => {
-                      console.log(`✅ Soul signature updated for user after ${provider} extraction:`, soulResult);
+                      console.log(`✅ Soul signature updated for user after ${platformKey} extraction:`, soulResult);
                     })
                     .catch(soulError => {
                       console.warn(`⚠️ Soul signature building failed:`, soulError);
@@ -755,7 +898,7 @@ router.post('/callback', async (req, res) => {
                 });
               })
               .catch(error => {
-                console.warn(`⚠️ Background extraction failed for ${provider}:`, error.message);
+                console.warn(`⚠️ Background extraction failed for ${platformKey}:`, error.message);
               });
           });
         }
@@ -836,7 +979,7 @@ router.get('/status/:userId', async (req, res) => {
     // Cache miss - fetch from database
     const { data: connections, error } = await supabaseAdmin
       .from('platform_connections')
-      .select('platform, connected, token_expires_at, expires_at, metadata, last_sync, last_sync_status')
+      .select('platform, connected_at, token_expires_at, metadata, last_sync_at, last_sync_status')
       .eq('user_id', userUuid);
 
     if (error) {
@@ -848,37 +991,54 @@ router.get('/status/:userId', async (req, res) => {
     const connectionStatus = {};
     const now = new Date();
 
-    connections?.forEach(connection => {
+    // Use for...of to handle async token refresh
+    for (const connection of connections || []) {
       // Check if token is expired (check both possible expiration columns)
-      // Updated to preserve connected status for expired tokens
-      const expiresAt = connection.token_expires_at || connection.expires_at;
-      const isTokenExpired = expiresAt && new Date(expiresAt) < now;
+      const expiresAt = connection.token_expires_at;
+      let isTokenExpired = expiresAt && new Date(expiresAt) < now;
 
       // SPECIAL CASE: For Spotify and YouTube with encryption_key_mismatch,
       // force connected=true to show "Token Expired" badge instead of "Connect"
-      let isConnected = connection.connected;
+      // Check if connected_at exists to determine if platform is connected
+      let isConnected = !!connection.connected_at;
       if ((connection.platform === 'spotify' || connection.platform === 'youtube') &&
           connection.last_sync_status === 'encryption_key_mismatch') {
         isConnected = true;  // Force true to show expired state in UI
         console.log(`🔧 Forcing ${connection.platform} connected=true due to encryption_key_mismatch`);
       }
 
-      const isActive = isConnected && !isTokenExpired;
-
-      // Don't auto-update database - let user explicitly reconnect through UI
-      if (isConnected && isTokenExpired) {
-        console.warn(`⚠️ Token expired for ${connection.platform}, needs reconnection via UI`);
+      // AUTOMATIC TOKEN REFRESH: Attempt to refresh expired tokens
+      // Skip if already marked as expired (needs user re-authorization, don't spam logs)
+      const isAlreadyMarkedExpired = connection.status === 'expired';
+      if (isConnected && isTokenExpired && !isAlreadyMarkedExpired) {
+        console.log(`🔄 Attempting automatic token refresh for ${connection.platform}...`);
+        try {
+          await ensureFreshToken(userUuid, connection.platform);
+          console.log(`✅ Token automatically refreshed for ${connection.platform}`);
+          isTokenExpired = false;  // Token is now valid
+          // Invalidate cache so next request gets fresh status
+          await invalidatePlatformStatusCache(userUuid);
+        } catch (refreshError) {
+          console.warn(`⚠️ Auto-refresh failed for ${connection.platform}: ${refreshError.message}`);
+          // Keep isTokenExpired = true, user will need to reconnect
+        }
       }
 
+      const isActive = isConnected && !isTokenExpired;
+
       // Determine the current status
-      // Use the stored last_sync_status from the database as the primary source
+      // Priority: database status if 'expired', then last_sync_status, then fallback
       let status = connection.last_sync_status || connection.metadata?.last_sync_status || 'unknown';
 
-      // Only override with 'token_expired' if:
+      // If database status is 'expired', use that as the primary status
+      if (connection.status === 'expired') {
+        status = 'token_expired';
+      }
+      // Override with 'token_expired' if:
       // 1. The token is actually expired NOW
-      // 2. AND we don't have a sync status OR the last status was 'success'
-      // This prevents overriding 'failed' or other error states with 'token_expired'
-      if (isTokenExpired && (status === 'success' || status === 'unknown')) {
+      // 2. AND the status is not meaningful (pending, success, unknown)
+      // This prevents overriding 'failed' or other error states
+      else if (isTokenExpired && (status === 'success' || status === 'unknown' || status === 'pending')) {
         status = 'token_expired';
       }
 
@@ -891,7 +1051,7 @@ router.get('/status/:userId', async (req, res) => {
         status: status,
         expiresAt: expiresAt
       };
-    });
+    }
 
     console.log(`📊 Connection status for user ${userId}:`, connectionStatus);
 
@@ -944,9 +1104,10 @@ router.post('/reset/:userId', async (req, res) => {
       .eq('user_id', userUuid);
 
     // Only reset connections that don't have encryption_key_mismatch
+    // Since we don't have a 'connected' column, we'll update the last_sync_status instead
     const { data, error} = await supabase
       .from('platform_connections')
-      .update({ connected: false })
+      .update({ last_sync_status: 'disconnected' })
       .eq('user_id', userUuid)
       .not('last_sync_status', 'eq', 'encryption_key_mismatch')
       .select();
@@ -1000,10 +1161,11 @@ router.delete('/:provider/:userId', async (req, res) => {
       if (userData) userUuid = userData.id;
     }
 
-    // Remove tokens from database and revoke access (old schema)
+    // Disconnect by deleting the platform connection record
+    // This removes all tokens and effectively disconnects the platform
     const { error } = await supabase
       .from('platform_connections')
-      .update({ connected: false })
+      .delete()
       .eq('user_id', userUuid)
       .eq('platform', provider);
 
@@ -1047,6 +1209,51 @@ router.post('/connect/:platform', async (req, res) => {
 
     // Platforms handled by entertainment-connectors
     const entertainmentPlatforms = ['spotify', 'youtube', 'netflix', 'twitch', 'tiktok'];
+
+    // Health platforms handled by health-connectors (use platform-specific redirect URIs)
+    const healthPlatforms = ['whoop', 'oura'];
+
+    if (healthPlatforms.includes(platform)) {
+      // Forward to health connectors endpoint (uses WHOOP_REDIRECT_URI etc.)
+      const baseUrl = process.env.API_URL || `http://localhost:${process.env.PORT || 3001}`;
+      const healthUrl = `${baseUrl}/api/health/connect/${platform}?userId=${encodeURIComponent(userId)}`;
+
+      console.log(`🏃 Proxying to health connector: ${healthUrl}`);
+
+      try {
+        const response = await fetch(healthUrl, {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json'
+          }
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+          return res.status(response.status).json(data);
+        }
+
+        // Transform health-connector response format to match what frontend expects
+        // Health-connectors returns { success: true, authUrl }
+        // Frontend expects { success: true, data: { authUrl } }
+        if (data.authUrl) {
+          return res.json({
+            success: true,
+            data: { authUrl: data.authUrl }
+          });
+        }
+
+        return res.json(data);
+      } catch (healthError) {
+        console.error(`❌ Health connector error for ${platform}:`, healthError);
+        return res.status(500).json({
+          success: false,
+          error: `Failed to initiate ${platform} connection`,
+          details: healthError.message
+        });
+      }
+    }
 
     if (entertainmentPlatforms.includes(platform)) {
       // Forward to entertainment connectors endpoint

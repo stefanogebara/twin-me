@@ -1,0 +1,42 @@
+/**
+ * Create PNG icons from base64 encoded data
+ * Orange "S" logo on transparent background
+ */
+
+const fs = require('fs');
+const path = require('path');
+
+// Base64 encoded PNG data for each icon size
+// These are simple orange squares with "S" letter
+
+// 16x16 icon
+const icon16Base64 = 'iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAACXBIWXMAAAsTAAALEwEAmpwYAAAA90lEQVR4nK2TsQ3CMBBFX0SCgoYRWIARKJmAhpYNGIEV2IANYARGYARGoKCgQOL+FlZkOwmJxJOu+Hf+/nf2GYB/R0QOAM5mVmfOVUT2ZvZwczkiUszsKiJ1RGoi0otII1m/J+9XEWmXdRGZROTWc/4lItdl3efMfgCGFT8BzOZ7JNk653pm9kny2NLsEa2T7FIcLUDTExeBaym2fXMishdRZOYXQN0DVJl9AtiYWS0i/Vi9vq6IbMzsU1cys1pELhHZZvbXhJaIXETkamYPM6u/LfkrllzOzB6fmE0pn59N/9Me+VfyBcqzZ6jRfk+lAAAAAElFTkSuQmCC';
+
+// 48x48 icon
+const icon48Base64 = 'iVBORw0KGgoAAAANSUhEUgAAADAAAAAwCAYAAABXAvmHAAAACXBIWXMAAAsTAAALEwEAmpwYAAADJklEQVR4nO2ZS0hVURSGP0VFJYiCHkSRQUEvqElBL6IgaFJEDQqKIDKCoIGDIhpEg4iCBhE1aCBBRJMIIqhBRBBBUVCDoiBqEBRBRVFREEQP/YNr4HDdc8+959xzr+gPi3vO3muv/e+919prr3NCQ0NDQ0PD/4wMoAZoA3qBAWAYGAOmgBlgHvgJzAEzwBgwCPQB7UANsFGIZ4BKoBX4AiyKemMe+Ah0AtVATohfB+wC6oHXwG/gn4fmgRfAQWCdEK8dqAJ6JMg/H80Cz4ByIZoBbAfuAb+AJWDVQ8vAG6BOiFcOtACfFNgKfK8CbwObhXg2A61Kxir8SqUgbeQIsEaI1w7sAz4BfwWIJzkObBTitQLHgB8O8CT0XJk2It5pZamcAH460EvSIx+1ANeVzksC/LwqoEqo3VHgswu8BD4AqhPEy+TdZcU/8iibW/nsFtAs1M/cwbsE+R0uG9hKpqVaGbMLaEgQ7xBwV/HMvPFbdRtDyZWYAg8An5V4rkSBT+VDKR2oDlzY20IpThR4tzIBbEkQ+FZl0l2q01C+gPJIv2V/FXit8n4S4NcrE0U+eSThbcjLfRIE/l6ZqEvgEHqodN6dxpbFKD0oFnireOo87kC1Svud2FJbvKa1G6hxoNNKp05sKS5eU7M0f+FAzyqd92Kr7+K1FW4rn0sOVK90trv4HVHirVRc3crnhgNdUnp9VbytEeK1K4fTJQfarnTeiq1ri9e01qbIBygGFpSxOWzyQA5rlR7TxF8qxb/oQBnK1tWNLePFa1obUvyLDtSt9DaKsQUXr6lG8Q84kG3amvZvKBtdvKbDij/sQIdVexhwuYlz8ZoyihfFvORA3UqnweOQ7MZrylG8w4pvyoEOqxrv8rk1d/Ga1ioT1x2o2qN8+LnZq/g7xNiSnXhtVXN/sTV18dpuscoMcNuBspVXxfPQV3IlnymxZYE3KBN3UuwY5FUrn2TL6JIy8Y8y8UCJvQ08BmYdaBqYBB4Be32WdZHyfDQqv3HS/DbSBOwHSoA8IA9YC+QAhUAJsJ//pQ/H0NDQEBoa/gOtxKXdlCng7gAAAABJRU5ErkJggg==';
+
+// 128x128 icon
+const icon128Base64 = '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';
+
+// Write files
+const assetsDir = path.join(__dirname, 'assets');
+
+fs.writeFileSync(
+  path.join(assetsDir, 'icon-16.png'),
+  Buffer.from(icon16Base64, 'base64')
+);
+
+fs.writeFileSync(
+  path.join(assetsDir, 'icon-48.png'),
+  Buffer.from(icon48Base64, 'base64')
+);
+
+fs.writeFileSync(
+  path.join(assetsDir, 'icon-128.png'),
+  Buffer.from(icon128Base64, 'base64')
+);
+
+console.log('✅ PNG icons created successfully!');
+console.log('- assets/icon-16.png');
+console.log('- assets/icon-48.png');
+console.log('- assets/icon-128.png');

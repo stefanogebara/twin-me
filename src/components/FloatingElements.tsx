@@ -20,7 +20,7 @@ export const FloatingElements = () => {
       
       {/* Pencil icon */}
       <div className="absolute bottom-1/3 left-1/5 opacity-25 wiggle">
-        <div className="w-1 h-8 bg-gradient-to-b from-accent-orange to-orange-400 rounded-full relative">
+        <div className="w-1 h-8 bg-gradient-to-b from-accent-orange to-stone-400 rounded-full relative">
           <div className="w-2 h-2 bg-gradient-to-br from-accent to-yellow-300 rounded-full absolute -top-1 -left-0.5" />
         </div>
       </div>

@@ -48,7 +48,7 @@ export const WhatIBringSection = () => {
         {/* Central Content */}
         <div className="text-center relative z-10">
           {/* Central Icon */}
-          <div className="w-24 h-24 mx-auto mb-8 bg-gradient-to-br from-orange-500 to-red-500 rounded-2xl flex items-center justify-center shadow-lg">
+          <div className="w-24 h-24 mx-auto mb-8 bg-gradient-to-br from-stone-500 to-red-500 rounded-2xl flex items-center justify-center shadow-lg">
             <div className="w-8 h-8 bg-card rounded-full"></div>
           </div>
           

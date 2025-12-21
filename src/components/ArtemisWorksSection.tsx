@@ -27,7 +27,7 @@ export const ArtemisWorksSection = () => {
 
           {/* Vertical Card */}
           <div className="md:col-span-4 aspect-[3/4] bg-card rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-[1.02] hover:-rotate-2 relative overflow-hidden">
-            <div className="absolute inset-0 bg-gradient-to-br from-orange-400 to-pink-500"></div>
+            <div className="absolute inset-0 bg-gradient-to-br from-stone-400 to-pink-500"></div>
             <div className="relative z-10 p-6 h-full flex flex-col justify-center items-center text-center text-white">
               <div className="w-12 h-12 bg-card/20 rounded-full mx-auto mb-4 flex items-center justify-center">
                 <div className="w-6 h-6 bg-card rounded-full"></div>
@@ -69,7 +69,7 @@ export const ArtemisWorksSection = () => {
             <div className="absolute inset-0 bg-gradient-to-br from-green-400 to-emerald-500"></div>
           </div>
           <div className="aspect-square bg-card rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 hover:-rotate-2 relative overflow-hidden">
-            <div className="absolute inset-0 bg-gradient-to-br from-yellow-400 to-orange-500"></div>
+            <div className="absolute inset-0 bg-gradient-to-br from-yellow-400 to-stone-500"></div>
           </div>
           <div className="aspect-square bg-card rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 hover:rotate-1 relative overflow-hidden">
             <div className="absolute inset-0 bg-gradient-to-br from-indigo-400 to-purple-500"></div>

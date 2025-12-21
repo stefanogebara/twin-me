@@ -1,1009 +1,720 @@
-import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useEffect, useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
+import { useTheme } from '../contexts/ThemeContext';
 import { usePlatformStatus } from '../hooks/usePlatformStatus';
 import {
-  Sparkles, Music, Film, Gamepad2, Heart, Brain, Globe,
-  ChevronRight, Play, Pause, Lock, Unlock, Fingerprint,
-  User, Briefcase, Palette, Calendar, Mail, MessageSquare,
-  Instagram, Twitter, Github, Linkedin, Youtube, Users, CheckCircle2,
-  Video, Eye, EyeOff
+  Sparkles,
+  Brain,
+  Shield,
+  RefreshCw,
+  ChevronRight,
+  Sun,
+  Compass,
+  Target,
+  Heart,
+  Waves,
+  Music,
+  Calendar,
+  Lightbulb,
+  TrendingUp,
+  Zap,
+  Users,
+  Clock,
+  Eye,
+  Settings
 } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
-import { Progress } from '@/components/ui/progress';
-import { Slider } from '@/components/ui/slider';
-import { Badge } from '@/components/ui/badge';
-import { cn } from '@/lib/utils';
-import PrivacySpectrumDashboard from '@/components/PrivacySpectrumDashboard';
-import { SoulDataExtractor } from '@/components/SoulDataExtractor';
-import { PlatformConnectionCard } from '@/components/PlatformConnectionCard';
-import { DataExtractionClarity } from '@/components/DataExtractionClarity';
-import ExtractionProgressMonitor from '@/components/ExtractionProgressMonitor';
 
-interface ConnectionStatus {
-  spotify: boolean;
-  netflix: boolean;
-  youtube: boolean;
-  twitch: boolean;
-  steam: boolean;
-  google_gmail: boolean;
-  google_calendar: boolean;
-  teams: boolean;
-  slack: boolean;
-  discord: boolean;
-  github: boolean;
-  linkedin: boolean;
-  instagram: boolean;
-  twitter: boolean;
-  reddit: boolean;
+interface PersonalityScores {
+  id: string;
+  openness: number;
+  conscientiousness: number;
+  extraversion: number;
+  agreeableness: number;
+  neuroticism: number;
+  openness_confidence: number;
+  conscientiousness_confidence: number;
+  extraversion_confidence: number;
+  agreeableness_confidence: number;
+  neuroticism_confidence: number;
+  analyzed_platforms: string[];
+  sample_size: number;
 }
 
+interface SoulSignature {
+  id: string;
+  archetype_name: string;
+  archetype_subtitle: string;
+  narrative: string;
+  defining_traits: Array<{
+    trait: string;
+    score: number;
+    evidence: string;
+  }>;
+  color_scheme: {
+    primary: string;
+    secondary: string;
+    accent: string;
+    background: string;
+    text: string;
+  };
+  icon_type: string;
+}
+
+interface BehavioralFeature {
+  id: string;
+  platform: string;
+  feature_type: string;
+  feature_value: number;
+  contributes_to: string;
+  confidence_score: number;
+}
+
+// Spotify-derived personality insights
+interface SpotifyPersonality {
+  success: boolean;
+  bigFive?: {
+    openness: { score: number; level: string; description: string };
+    conscientiousness: { score: number; level: string; description: string };
+    extraversion: { score: number; level: string; description: string };
+    agreeableness: { score: number; level: string; description: string };
+    neuroticism: { score: number; level: string; description: string };
+  };
+  archetype?: {
+    key: string;
+    name: string;
+    description: string;
+    traits: string[];
+    confidence: number;
+  };
+  topGenres?: {
+    current: string[];
+    allTime: string[];
+    stability: { score: number; label: string };
+  };
+  listeningPatterns?: {
+    peakHours: number[];
+    personality: string[];
+    weekdayVsWeekend: { weekday: number; weekend: number };
+    consistency: { score: number; label: string };
+  };
+  dataTimestamp?: string;
+}
+
+const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
+  sun: Sun,
+  compass: Compass,
+  target: Target,
+  heart: Heart,
+  wave: Waves,
+};
+
+// Demo data for demo mode - MVP platforms: Spotify, Google Calendar, Whoop
+const DEMO_PERSONALITY_SCORES: PersonalityScores = {
+  id: 'demo-scores',
+  openness: 78,
+  conscientiousness: 65,
+  extraversion: 82,
+  agreeableness: 71,
+  neuroticism: 35,
+  openness_confidence: 85,
+  conscientiousness_confidence: 72,
+  extraversion_confidence: 90,
+  agreeableness_confidence: 68,
+  neuroticism_confidence: 75,
+  analyzed_platforms: ['spotify', 'google_calendar', 'whoop'],
+  sample_size: 47
+};
+
+const DEMO_SOUL_SIGNATURE: SoulSignature = {
+  id: 'demo-signature',
+  archetype_name: 'The Creative Explorer',
+  archetype_subtitle: 'Curious mind with a passion for discovery',
+  narrative: 'You are driven by an insatiable curiosity and a desire to understand the world around you. Your eclectic taste in music and content reveals a mind that thrives on variety and novelty. You connect deeply with others while maintaining your unique perspective, making you both relatable and distinctively original.',
+  defining_traits: [
+    { trait: 'Intellectual Curiosity', score: 92, evidence: 'Diverse music genres in Spotify history' },
+    { trait: 'Work-Life Balance', score: 78, evidence: 'Healthy mix of meetings and focus time' },
+    { trait: 'Health Conscious', score: 85, evidence: 'Consistent recovery tracking on Whoop' },
+    { trait: 'Emotional Depth', score: 74, evidence: 'Music choices reflect mood awareness' }
+  ],
+  color_scheme: {
+    primary: '#8B5CF6',
+    secondary: '#6366F1',
+    accent: '#A78BFA',
+    background: '#F5F3FF',
+    text: '#1F2937'
+  },
+  icon_type: 'compass'
+};
+
+const DEMO_FEATURES: BehavioralFeature[] = [
+  { id: 'f1', platform: 'spotify', feature_type: 'music_diversity', feature_value: 85, contributes_to: 'openness', confidence_score: 90 },
+  { id: 'f2', platform: 'google_calendar', feature_type: 'focus_time_ratio', feature_value: 67, contributes_to: 'conscientiousness', confidence_score: 78 },
+  { id: 'f3', platform: 'whoop', feature_type: 'recovery_consistency', feature_value: 72, contributes_to: 'neuroticism', confidence_score: 82 },
+  { id: 'f4', platform: 'google_calendar', feature_type: 'social_events_ratio', feature_value: 68, contributes_to: 'extraversion', confidence_score: 85 }
+];
+
 const SoulSignatureDashboard: React.FC = () => {
-  const navigate = useNavigate();
-  const { user, isSignedIn } = useAuth();
+  const { user, isDemoMode } = useAuth();
+  const { theme } = useTheme();
+  const { connectedProviders, data: platformStatusData } = usePlatformStatus(user?.id);
+  const [loading, setLoading] = useState(true);
+  const [generating, setGenerating] = useState(false);
+  const [personalityScores, setPersonalityScores] = useState<PersonalityScores | null>(null);
+  const [soulSignature, setSoulSignature] = useState<SoulSignature | null>(null);
+  const [features, setFeatures] = useState<BehavioralFeature[]>([]);
+  const [spotifyPersonality, setSpotifyPersonality] = useState<SpotifyPersonality | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
-  // Use unified platform status hook
-  const {
-    data: platformStatus,
-    hasConnectedServices: platformsConnected,
-    connectedProviders,
-    refetch
-  } = usePlatformStatus(user?.id);
+  const API_URL = import.meta.env.VITE_API_URL;
 
-  const [activeCluster, setActiveCluster] = useState<string>('personal');
-  const [showPrivacyControls, setShowPrivacyControls] = useState(false);
-  const [showExtractionClarity, setShowExtractionClarity] = useState(false);
-
-  // Derive connections from unified hook (replaces manual state)
-  const connections: ConnectionStatus = {
-    spotify: platformStatus['spotify']?.connected || false,
-    netflix: platformStatus['netflix']?.connected || false,
-    youtube: platformStatus['youtube']?.connected || false,
-    twitch: platformStatus['twitch']?.connected || false,
-    steam: platformStatus['steam']?.connected || false,
-    google_gmail: platformStatus['google_gmail']?.connected || false,
-    google_calendar: platformStatus['google_calendar']?.connected || false,
-    teams: platformStatus['teams']?.connected || false,
-    slack: platformStatus['slack']?.connected || false,
-    discord: platformStatus['discord']?.connected || false,
-    github: platformStatus['github']?.connected || false,
-    linkedin: platformStatus['linkedin']?.connected || false,
-    instagram: platformStatus['instagram']?.connected || false,
-    twitter: platformStatus['twitter']?.connected || false,
-    reddit: platformStatus['reddit']?.connected || false
-  };
-  const [extractedInsights, setExtractedInsights] = useState<{
-    personal: string[] | null;
-    professional: string[] | null;
-  }>({
-    personal: null,
-    professional: null
+  // Get active platforms (excluding expired tokens)
+  const activeConnections = connectedProviders.filter(provider => {
+    const status = platformStatusData[provider];
+    return !status?.tokenExpired && status?.status !== 'token_expired';
   });
-  const [hasExtractedData, setHasExtractedData] = useState(false);
-  const hasConnectedServices = platformsConnected; // Use unified hook value
-  const [extensionInstalled, setExtensionInstalled] = useState(false);
-  const [extensionAuthenticated, setExtensionAuthenticated] = useState(false);
-  const [uniquenessScore, setUniquenessScore] = useState<number>(0);
 
-  // Calculate uniqueness score from style profile
-  const calculateUniquenessScore = (profile: any): number => {
-    if (!profile) return 0;
-
-    let score = 0;
-    let components = 0;
-
-    // 1. Vocabulary richness (0-30 points)
-    if (profile.vocabulary_richness !== undefined) {
-      score += Math.min(profile.vocabulary_richness * 100 * 0.3, 30);
-      components++;
-    }
-
-    // 2. Personality trait variance from baseline 0.5 (0-25 points)
-    if (profile.personality_traits) {
-      const traits = profile.personality_traits;
-      const traitValues = [
-        traits.openness,
-        traits.conscientiousness,
-        traits.extraversion,
-        traits.agreeableness,
-        traits.neuroticism
-      ].filter(v => v !== undefined);
-
-      if (traitValues.length > 0) {
-        // Calculate average distance from baseline (0.5 = average person)
-        const avgDeviation = traitValues.reduce((sum, val) => sum + Math.abs(val - 0.5), 0) / traitValues.length;
-        score += Math.min(avgDeviation * 100, 25);
-        components++;
-      }
-    }
-
-    // 3. Communication style uniqueness (0-20 points)
-    if (profile.communication_style) {
-      // Non-"balanced" styles are more unique
-      if (profile.communication_style !== 'balanced') {
-        score += 15;
-      } else {
-        score += 5;
-      }
-      components++;
-    }
-
-    // 4. Writing complexity (0-15 points)
-    if (profile.sentence_complexity !== undefined) {
-      score += Math.min(profile.sentence_complexity * 100 * 0.15, 15);
-      components++;
-    }
-
-    // 5. Confidence bonus (0-10 points)
-    if (profile.confidence_score !== undefined && profile.confidence_score > 0.7) {
-      score += Math.min((profile.confidence_score - 0.7) * 100 / 3, 10);
-      components++;
-    }
-
-    // Normalize to 0-100 range
-    if (components === 0) return 0;
-    return Math.min(Math.round(score), 100);
-  };
-
-  // Authentication check
-  useEffect(() => {
-    if (!isSignedIn) {
-      navigate('/auth');
+  const fetchData = async () => {
+    // In demo mode, use mock data but with actual connected platforms
+    if (isDemoMode) {
+      // Use actual connected platforms if available, otherwise demo defaults
+      const platformsToUse = connectedProviders.length > 0 ? connectedProviders : DEMO_PERSONALITY_SCORES.analyzed_platforms;
+      setPersonalityScores({
+        ...DEMO_PERSONALITY_SCORES,
+        analyzed_platforms: platformsToUse,
+        sample_size: platformsToUse.length * 15 + 2
+      });
+      setSoulSignature(DEMO_SOUL_SIGNATURE);
+      setFeatures(DEMO_FEATURES);
+      // Demo Spotify personality data
+      setSpotifyPersonality({
+        success: true,
+        bigFive: {
+          openness: { score: 78, level: 'high', description: 'Curious and adventurous - you explore diverse genres and new artists' },
+          conscientiousness: { score: 65, level: 'moderate', description: 'Flexible approach to music organization' },
+          extraversion: { score: 72, level: 'high', description: 'High-energy preferences - upbeat tracks fuel your day' },
+          agreeableness: { score: 45, level: 'moderate', description: 'Mix of personal and shared playlists' },
+          neuroticism: { score: 35, level: 'low', description: 'Emotionally stable - consistent mood in choices' }
+        },
+        archetype: {
+          key: 'eclectic-explorer',
+          name: 'Eclectic Explorer',
+          description: 'You traverse the entire musical landscape, never settling in one genre',
+          traits: ['Open-minded', 'Curious', 'Adventurous'],
+          confidence: 82
+        },
+        topGenres: {
+          current: ['indie pop', 'electronic', 'hip hop', 'lo-fi', 'alternative'],
+          allTime: ['pop', 'rock', 'electronic', 'indie', 'hip hop'],
+          stability: { score: 0.65, label: 'moderately-stable' }
+        },
+        listeningPatterns: {
+          peakHours: [21, 22, 20, 19],
+          personality: ['evening-focused', 'weekend-enthusiast'],
+          weekdayVsWeekend: { weekday: 65, weekend: 35 },
+          consistency: { score: 0.55, label: 'moderately-consistent' }
+        },
+        dataTimestamp: new Date().toISOString()
+      });
+      setLoading(false);
       return;
     }
-  }, [isSignedIn, navigate]);
 
-  // Check for existing extracted data on mount
-  useEffect(() => {
-    const checkExistingData = async () => {
-      if (!user?.id && !user?.email) return;
-
-      try {
-        const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
-        const userId = user?.id || user?.email;
-
-        // Check if user has any extracted data
-        const response = await fetch(`${apiUrl}/soul-data/check-extracted-data?userId=${userId}`);
-
-        if (response.ok) {
-          const data = await response.json();
-          if (data.hasData) {
-            setHasExtractedData(true);
-            console.log('✅ Existing extracted data found - enabling chat button');
-          }
-        }
-      } catch (error) {
-        console.error('Error checking for existing data:', error);
-        // Don't prevent user from chatting if check fails
-        setHasExtractedData(true);
-      }
-    };
-
-    checkExistingData();
-  }, [user]);
-
-  // Detect and authenticate browser extension
-  useEffect(() => {
-    const detectAndAuthExtension = async () => {
-      if (!user?.id) return;
-
-      const EXTENSION_ID = 'acnofcjjfjaikcfnalggkkbghjaijepc'; // Soul Observer Extension ID
-
-      try {
-        // Try to ping the extension
-        // @ts-expect-error - chrome runtime API not typed
-        if (typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.sendMessage) {
-          // @ts-expect-error - chrome.runtime types not available
-          chrome.runtime.sendMessage(
-            EXTENSION_ID,
-            { type: 'PING' },
-            (response: any) => {
-              if (chrome.runtime.lastError) {
-                console.log('🔌 Extension not detected:', chrome.runtime.lastError.message);
-                setExtensionInstalled(false);
-                return;
-              }
-
-              if (response && response.installed) {
-                console.log('✅ Extension detected:', response);
-                setExtensionInstalled(true);
-
-                // If not authenticated, send auth credentials
-                if (!response.isAuthenticated) {
-                  console.log('🔐 Authenticating extension...');
-
-                  // Get auth token from localStorage (or wherever you store it)
-                  const authToken = localStorage.getItem('authToken');
-
-                  // @ts-expect-error - chrome.runtime types not available
-                  chrome.runtime.sendMessage(
-                    EXTENSION_ID,
-                    {
-                      type: 'AUTHENTICATE',
-                      userId: user.id,
-                      authToken: authToken
-                    },
-                    (authResponse: any) => {
-                      if (authResponse && authResponse.success) {
-                        console.log('✅ Extension authenticated successfully');
-                        setExtensionAuthenticated(true);
-                      }
-                    }
-                  );
-                } else {
-                  console.log('✅ Extension already authenticated');
-                  setExtensionAuthenticated(true);
-                }
-              }
-            }
-          );
-        }
-      } catch (error) {
-        console.log('🔌 Extension communication failed:', error);
-        setExtensionInstalled(false);
-      }
-    };
-
-    detectAndAuthExtension();
-  }, [user]);
-
-  const clusters = [
-    {
-      id: 'personal',
-      name: 'Personal Soul',
-      description: 'Your authentic self through entertainment, creativity, and personal interests',
-      icon: <Heart className="w-6 h-6" />,
-      accentColor: '#D97706',
-      connectors: [
-        // Entertainment & Media
-        { name: 'Spotify', icon: <Music />, status: connections.spotify, key: 'spotify', category: 'Music' },
-        { name: 'Netflix', icon: <Film />, status: connections.netflix, key: 'netflix', category: 'Video' },
-        { name: 'YouTube', icon: <Youtube />, status: connections.youtube, key: 'youtube', category: 'Video' },
-        { name: 'Twitch', icon: <Video />, status: connections.twitch, key: 'twitch', category: 'Live Streaming' },
-
-        // Gaming
-        { name: 'Steam', icon: <Gamepad2 />, status: connections.steam, key: 'steam', category: 'Gaming' },
-        { name: 'Discord', icon: <Users />, status: connections.discord, key: 'discord', category: 'Community' },
-
-        // Social & Community
-        { name: 'Instagram', icon: <Instagram />, status: connections.instagram, key: 'instagram', category: 'Social' },
-        { name: 'Twitter', icon: <Twitter />, status: connections.twitter, key: 'twitter', category: 'Social' },
-        { name: 'Reddit', icon: <MessageSquare />, status: connections.reddit, key: 'reddit', category: 'Social' },
-
-        // Reading & Creative
-        { name: 'GitHub', icon: <Github />, status: connections.github, key: 'github', category: 'Creative' }
-      ],
-      insights: extractedInsights.personal || [],
-      analysisActions: [
-        {
-          id: 'entertainment-analysis',
-          name: 'Analyze Entertainment Soul',
-          description: 'Extract personality from entertainment platforms',
-          platforms: ['spotify', 'netflix', 'youtube']
-        },
-        {
-          id: 'complete-personal',
-          name: 'Complete Personal Analysis',
-          description: 'Comprehensive personal profile analysis',
-          platforms: 'all'
-        }
-      ]
-    },
-    {
-      id: 'professional',
-      name: 'Professional Identity',
-      description: 'Your work persona through communication, collaboration, and productivity patterns',
-      icon: <Briefcase className="w-6 h-6" />,
-      accentColor: '#D97706',
-      connectors: [
-        { name: 'Gmail', icon: <Mail />, status: connections.google_gmail, key: 'google_gmail', category: 'Communication' },
-        { name: 'Calendar', icon: <Calendar />, status: connections.google_calendar, key: 'google_calendar', category: 'Time Management' },
-        { name: 'Teams', icon: <Users />, status: connections.teams, key: 'teams', category: 'Collaboration' },
-        { name: 'Slack', icon: <MessageSquare />, status: connections.slack, key: 'slack', category: 'Collaboration' },
-        { name: 'LinkedIn', icon: <Linkedin />, status: connections.linkedin, key: 'linkedin', category: 'Networking' },
-        { name: 'GitHub', icon: <Github />, status: connections.github, key: 'github', category: 'Development' }
-      ],
-      insights: extractedInsights.professional || [],
-      analysisActions: [
-        {
-          id: 'communication-analysis',
-          name: 'Analyze Communication Style',
-          description: 'Extract communication patterns from Gmail',
-          platforms: ['google_gmail']
-        },
-        {
-          id: 'productivity-analysis',
-          name: 'Analyze Work Patterns',
-          description: 'Discover productivity and time patterns',
-          platforms: ['google_calendar']
-        },
-        {
-          id: 'complete-professional',
-          name: 'Complete Professional Analysis',
-          description: 'Comprehensive professional profile',
-          platforms: ['google_gmail', 'google_calendar']
-        }
-      ]
+    const token = localStorage.getItem('auth_token');
+    if (!token) {
+      setLoading(false);
+      return;
     }
-  ];
 
-  const handleConnectorClick = async (clusterKey: string, connectorKey: string) => {
-    if (!connections[connectorKey as keyof ConnectionStatus]) {
-      // Start real connection process
-      try {
-        const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
-        const response = await fetch(`${apiUrl}/entertainment/connect/${connectorKey}`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ userId: user?.id || 'current-user' })
-        });
+    try {
+      setLoading(true);
+      setError(null);
 
-        if (response.ok) {
-          const data = await response.json();
-          if (data.authUrl) {
-            window.location.href = data.authUrl;
-          }
-          // Note: Connection status will be updated via usePlatformStatus hook
-        }
-      } catch (error) {
-        console.error('Connection error:', error);
+      const headers = { 'Authorization': `Bearer ${token}` };
+
+      // Fetch all data in parallel (including Spotify personality)
+      const [scoresRes, signatureRes, featuresRes, spotifyRes] = await Promise.all([
+        fetch(`${API_URL}/soul-signature/personality-scores`, { headers }),
+        fetch(`${API_URL}/soul-signature/archetype`, { headers }),
+        fetch(`${API_URL}/soul-signature/features`, { headers }),
+        fetch(`${API_URL}/soul-insights/${user?.id}/spotify-personality`, { headers }).catch(() => null)
+      ]);
+
+      const [scoresData, signatureData, featuresData] = await Promise.all([
+        scoresRes.json(),
+        signatureRes.json(),
+        featuresRes.json()
+      ]);
+
+      if (scoresData.success && scoresData.data) {
+        setPersonalityScores(scoresData.data);
       }
-    } else {
-      // Platform is connected, extract soul signature
-      await extractSoulSignature(connectorKey);
+      if (signatureData.success && signatureData.data) {
+        setSoulSignature(signatureData.data);
+      }
+      if (featuresData.success && featuresData.data) {
+        setFeatures(featuresData.data);
+      }
+
+      // Handle Spotify personality data
+      if (spotifyRes) {
+        try {
+          const spotifyData = await spotifyRes.json();
+          if (spotifyData.success && spotifyData.spotify) {
+            setSpotifyPersonality(spotifyData.spotify);
+          }
+        } catch (e) {
+          console.log('No Spotify personality data available');
+        }
+      }
+    } catch (err) {
+      console.error('Error fetching soul signature data:', err);
+      setError('Failed to load soul signature data');
+    } finally {
+      setLoading(false);
     }
   };
 
+  const generateSoulSignature = async () => {
+    // In demo mode, just simulate generation
+    if (isDemoMode) {
+      setGenerating(true);
+      await new Promise(resolve => setTimeout(resolve, 1500));
+      setPersonalityScores(DEMO_PERSONALITY_SCORES);
+      setSoulSignature(DEMO_SOUL_SIGNATURE);
+      setFeatures(DEMO_FEATURES);
+      setGenerating(false);
+      return;
+    }
 
-  // Handle platform reconnection (for expired tokens)
-  const handleReconnect = async (connectorKey: string) => {
+    const token = localStorage.getItem('auth_token');
+    if (!token) return;
+
     try {
-      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
+      setGenerating(true);
+      setError(null);
 
-      // First disconnect the expired/failed connection
-      await fetch(`${apiUrl}/oauth/disconnect/${connectorKey}`, {
-        method: 'DELETE',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId: user?.id || 'current-user' })
-      });
-
-      // Then initiate fresh OAuth flow
-      const response = await fetch(`${apiUrl}/entertainment/connect/${connectorKey}`, {
+      const response = await fetch(`${API_URL}/soul-signature/generate`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId: user?.id || 'current-user' })
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ force_refresh: true })
       });
 
       const data = await response.json();
-      if (data.authUrl) {
-        window.location.href = data.authUrl;
-      }
-    } catch (error) {
-      console.error(`Failed to reconnect ${connectorKey}:`, error);
-    }
-  };
 
-  // Handle platform disconnection
-  const handleDisconnect = async (connectorKey: string) => {
-    if (!confirm(`Are you sure you want to disconnect ${connectorKey}?`)) {
-      return;
-    }
-
-    try {
-      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
-      const response = await fetch(`${apiUrl}/oauth/disconnect/${connectorKey}`, {
-        method: 'DELETE',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId: user?.id || 'current-user' })
-      });
-
-      if (response.ok) {
-        // Refetch platform status to update UI
-        if (refetch) {
-          refetch();
-        }
-      }
-    } catch (error) {
-      console.error(`Failed to disconnect ${connectorKey}:`, error);
-    }
-  };
-
-  const extractSoulSignature = async (platform: string) => {
-    try {
-      console.log(`🧠 Extracting soul signature from ${platform}`);
-
-      let response;
-      const userId = user?.id || user?.email || 'anonymous-user'; // Use actual user ID
-
-      // Handle different analysis types
-      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
-
-      if (platform === 'communication-analysis' || platform === 'gmail' || platform === 'google_gmail') {
-        console.log('📧 Analyzing Gmail communication patterns...');
-        response = await fetch(`${apiUrl}/soul/extract/gmail/${userId}`, {
-          method: 'GET',
-          headers: { 'Content-Type': 'application/json' }
-        });
-      } else if (platform === 'productivity-analysis' || platform === 'calendar' || platform === 'google_calendar') {
-        console.log('🗓️ Analyzing Calendar time management patterns...');
-        response = await fetch(`${apiUrl}/soul/extract/calendar/${userId}`, {
-          method: 'GET',
-          headers: { 'Content-Type': 'application/json' }
-        });
-      } else if (platform === 'complete-professional' || platform === 'professional') {
-        console.log('💼 Generating complete professional soul signature...');
-        response = await fetch(`${apiUrl}/soul/extract/professional/${userId}`, {
-          method: 'GET',
-          headers: { 'Content-Type': 'application/json' }
-        });
+      if (data.success) {
+        // Refresh all data
+        await fetchData();
       } else {
-        // For other platforms, try original route
-        response = await fetch(`${apiUrl}/soul/extract/platform/${platform}`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            userId: userId,
-            accessToken: null
-          })
-        });
+        setError(data.error || 'Failed to generate soul signature');
       }
-
-      if (response?.ok) {
-        const data = await response.json();
-        console.log('✨ Real soul signature extracted:', data);
-
-        // Update UI with real insights
-        if (data.data) {
-          updateClusterInsights(platform, data.data);
-        }
-      } else {
-        console.warn(`⚠️ No data available for ${platform} - extraction failed`);
-        // Don't show fake data - let UI show "No Soul Signature Yet"
-      }
-    } catch (error) {
-      console.error('Soul extraction error:', error);
-      // Don't show fake data on error - let UI show honest state
+    } catch (err) {
+      console.error('Error generating soul signature:', err);
+      setError('Failed to generate soul signature');
+    } finally {
+      setGenerating(false);
     }
   };
 
-  const updateClusterInsights = (platform: string, soulSignature: any) => {
-    // Find which cluster this platform belongs to
-    const cluster = clusters.find(c =>
-      c.connectors.some(conn => conn.key === platform) ||
-      platform.includes(c.id)
-    );
+  useEffect(() => {
+    fetchData();
+  }, [isDemoMode, connectedProviders.length]);
 
-    if (cluster && soulSignature) {
-      // Extract insights from the soul signature data
-      let newInsights: string[] = [];
-
-      if (soulSignature.uniquenessMarkers && Array.isArray(soulSignature.uniquenessMarkers)) {
-        newInsights = soulSignature.uniquenessMarkers.map((marker: string) => marker);
-      } else if (soulSignature.soulSignature?.uniquenessMarkers) {
-        newInsights = soulSignature.soulSignature.uniquenessMarkers;
-      } else if (soulSignature.soulSignature?.personalityInsights) {
-        // Build insights from personality data
-        const insights = soulSignature.soulSignature.personalityInsights;
-        if (insights.communicationPersona) {
-          newInsights.push(`💬 Communication Style: ${insights.communicationPersona}`);
-        }
-        if (insights.workStyle) {
-          newInsights.push(`⚡ Work Pattern: ${insights.workStyle}`);
-        }
-        if (insights.socialProfile) {
-          newInsights.push(`🤝 Social Profile: ${insights.socialProfile}`);
-        }
-      }
-
-      // Update the appropriate cluster insights
-      if (newInsights.length > 0) {
-        setExtractedInsights(prev => ({
-          ...prev,
-          [cluster.id]: newInsights
-        }));
-        setHasExtractedData(true);
-        console.log(`✨ Updated ${cluster.name} with ${newInsights.length} insights`);
-      }
-    }
-  };
-
-  const currentCluster = clusters.find(c => c.id === activeCluster)!;
-
-  return (
-    <div className="min-h-screen bg-[hsl(var(--claude-bg))] overflow-hidden relative">
-      {/* Main Content */}
-      <div className="relative z-10 px-4 sm:px-6 lg:px-8 py-6 sm:py-8 max-w-7xl mx-auto">
-        {/* Header */}
-        <div className="text-center mb-8 sm:mb-12">
-          <div className="inline-flex items-center gap-2 sm:gap-3 mb-4">
-            <Fingerprint className="w-6 h-6 sm:w-8 sm:h-8 lg:w-10 lg:h-10" style={{ color: '#D97706' }} />
-            <h1
-              className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-medium"
-              style={{
-                fontFamily: 'var(--_typography---font--styrene-a)',
-                letterSpacing: '-0.02em',
-                color: 'hsl(var(--claude-text))'
-              }}
-            >
-              Soul Signature Extraction
-            </h1>
-            <Sparkles className="w-6 h-6 sm:w-8 sm:h-8 lg:w-10 lg:h-10" style={{ color: '#D97706' }} />
-          </div>
-          <p
-            className="text-sm sm:text-base lg:text-lg px-4"
-            style={{
-              fontFamily: 'var(--_typography---font--tiempos)',
-              color: 'hsl(var(--claude-text-muted))'
-            }}
-          >
-            Discovering your authentic digital essence through your choices and preferences
-          </p>
-
-          {/* Extension Status Badge */}
-          {extensionInstalled && (
-            <div className="mt-4 flex justify-center">
-              <Badge
-                className="px-4 py-2 text-sm font-medium"
-                style={{
-                  backgroundColor: extensionAuthenticated ? '#10b981' : '#f59e0b',
-                  color: 'white',
-                  fontFamily: 'var(--_typography---font--styrene-a)'
-                }}
-              >
-                <div className="flex items-center gap-2">
-                  <div className="w-2 h-2 rounded-full bg-card animate-pulse"></div>
-                  {extensionAuthenticated
-                    ? '✓ Browser Extension Connected - Real-time tracking active'
-                    : '⏳ Browser Extension Connecting...'}
-                </div>
-              </Badge>
-            </div>
-          )}
-
-          <div
-            className="text-sm mt-4 max-w-2xl mx-auto"
-            style={{
-              fontFamily: 'var(--_typography---font--tiempos)',
-              color: 'hsl(var(--claude-text-muted))'
-            }}
-          >
-            <strong style={{ color: "hsl(var(--foreground))" }}>Twin Me</strong> analyzes your digital footprint to create an authentic personality profile.
-            Connect your platforms to discover insights about your Professional Identity and Personal Soul.
-          </div>
+  const PersonalityBar = ({
+    label,
+    value,
+    confidence,
+    color
+  }: {
+    label: string;
+    value: number;
+    confidence: number;
+    color: string;
+  }) => (
+    <div className="space-y-2">
+      <div className="flex justify-between items-center">
+        <span className="text-sm font-medium" style={{ color: theme === 'dark' ? '#C1C0B6' : '#44403c' }}>
+          {label}
+        </span>
+        <span className="text-sm font-bold" style={{ color }}>
+          {Math.round(value)}%
+        </span>
+      </div>
+      <div className="relative h-2 rounded-full overflow-hidden" style={{
+        backgroundColor: theme === 'dark' ? 'rgba(193, 192, 182, 0.1)' : 'rgba(0, 0, 0, 0.05)'
+      }}>
+        <div
+          className="absolute h-full rounded-full transition-all duration-500"
+          style={{
+            width: `${value}%`,
+            backgroundColor: color,
+            opacity: 0.3 + (confidence / 100) * 0.7
+          }}
+        />
+      </div>
+      {confidence > 0 && (
+        <div className="text-xs" style={{ color: theme === 'dark' ? 'rgba(193, 192, 182, 0.5)' : '#a8a29e' }}>
+          {confidence}% confidence
         </div>
+      )}
+    </div>
+  );
 
-        {/* Real-Time Extraction Progress Monitor */}
-        <ExtractionProgressMonitor showCompleted={true} maxJobs={3} />
+  const FeatureCard = ({ feature }: { feature: BehavioralFeature }) => {
+    const platformIcons: Record<string, React.ReactNode> = {
+      spotify: <Music className="w-4 h-4" />,
+      calendar: <Calendar className="w-4 h-4" />
+    };
 
-        {/* Cluster Navigation */}
-        <div className="flex flex-col sm:flex-row justify-center gap-3 sm:gap-4 mb-8 sm:mb-12 px-4">
-          {clusters.map((cluster) => (
-            <button
-              key={cluster.id}
-              onClick={() => setActiveCluster(cluster.id)}
-              className={cn(
-                "relative px-4 sm:px-6 py-2 sm:py-3 rounded-full w-full sm:w-auto",
-                activeCluster === cluster.id
-                  ? "bg-white border-2"
-                  : "bg-white border"
-              )}
-              style={{
-                borderColor: activeCluster === cluster.id ? cluster.accentColor : 'rgba(20,20,19,0.1)',
-                fontFamily: 'var(--_typography---font--styrene-a)',
-                fontWeight: 500
-              }}
-            >
-              <div className="flex items-center justify-center gap-2">
-                <span style={{ color: activeCluster === cluster.id ? cluster.accentColor : '#141413' }}>
-                  {cluster.icon}
-                </span>
-                <span className="text-sm sm:text-base" style={{ color: activeCluster === cluster.id ? cluster.accentColor : '#141413' }}>
-                  {cluster.name}
-                </span>
-              </div>
-            </button>
-          ))}
+    return (
+      <div
+        className="p-4 rounded-xl"
+        style={{
+          backgroundColor: theme === 'dark' ? 'rgba(45, 45, 41, 0.5)' : 'rgba(255, 255, 255, 0.7)',
+          border: theme === 'dark' ? '1px solid rgba(193, 192, 182, 0.1)' : '1px solid rgba(0, 0, 0, 0.05)'
+        }}
+      >
+        <div className="flex items-center gap-2 mb-2">
+          <span style={{ color: theme === 'dark' ? '#C1C0B6' : '#44403c' }}>
+            {platformIcons[feature.platform] || <Sparkles className="w-4 h-4" />}
+          </span>
+          <span className="text-xs uppercase tracking-wider" style={{ color: theme === 'dark' ? 'rgba(193, 192, 182, 0.6)' : '#a8a29e' }}>
+            {feature.platform}
+          </span>
         </div>
-
-        {/* Soul Data Extractor - New Real Backend Integration */}
-        <div className="mb-8">
-          <SoulDataExtractor
-            userId={user?.id || user?.email || 'anonymous-user'}
-            onExtractionComplete={(data) => {
-              console.log('Extraction complete:', data);
-              setHasExtractedData(true);
-              // Update insights from real personality data
-              if (data.profile?.success) {
-                const profile = data.profile.profile;
-
-                // Calculate uniqueness score
-                const uniqueness = calculateUniquenessScore(profile);
-                setUniquenessScore(uniqueness);
-                console.log(`✨ Calculated uniqueness score: ${uniqueness}%`);
-
-                // Personal insights - personality and communication style
-                const personalInsights = [
-                  `😄 Humor Style: ${profile.humor_style}`,
-                  `📊 Confidence: ${(profile.confidence_score * 100).toFixed(0)}%`,
-                  `✍️ Analyzed from ${profile.sample_size} text samples`
-                ];
-
-                // Add Big Five personality traits to personal insights
-                if (profile.personality_traits) {
-                  const traits = profile.personality_traits;
-                  if (traits.openness !== undefined) {
-                    personalInsights.push(`🎨 Openness: ${(traits.openness * 100).toFixed(0)}%`);
-                  }
-                  if (traits.extraversion !== undefined) {
-                    personalInsights.push(`🗣️ Extraversion: ${(traits.extraversion * 100).toFixed(0)}%`);
-                  }
-                }
-
-                // Professional insights - work-related traits
-                const professionalInsights = [
-                  `🧠 Communication: ${profile.communication_style}`,
-                  `📧 Sample Size: ${profile.sample_size} messages analyzed`,
-                  `📊 Analysis Confidence: ${(profile.confidence_score * 100).toFixed(0)}%`
-                ];
-
-                // Add conscientiousness and agreeableness to professional insights
-                if (profile.personality_traits) {
-                  const traits = profile.personality_traits;
-                  if (traits.conscientiousness !== undefined) {
-                    professionalInsights.push(`✅ Conscientiousness: ${(traits.conscientiousness * 100).toFixed(0)}%`);
-                  }
-                  if (traits.agreeableness !== undefined) {
-                    professionalInsights.push(`🤝 Agreeableness: ${(traits.agreeableness * 100).toFixed(0)}%`);
-                  }
-                }
-
-                // Update both clusters
-                setExtractedInsights({
-                  personal: personalInsights,
-                  professional: professionalInsights
-                });
-              }
-            }}
-          />
+        <div className="text-sm font-medium mb-1" style={{ color: theme === 'dark' ? '#C1C0B6' : '#0c0a09' }}>
+          {feature.feature_type.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
         </div>
-
-        {/* Main Dashboard Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8">
-          {/* Connectors Panel */}
-          <div>
-            <Card
-              className="p-6 h-full"
-              style={{
-                backgroundColor: 'hsl(var(--claude-surface))',
-                border: '1px solid hsl(var(--claude-border))'
-              }}
-            >
-              <h3
-                className="text-xl mb-6 flex items-center gap-2"
-                style={{
-                  fontFamily: 'var(--_typography---font--styrene-a)',
-                  fontWeight: 500,
-                  letterSpacing: '-0.02em',
-                  color: 'hsl(var(--claude-text))'
-                }}
-              >
-                <Globe className="w-5 h-5" style={{ color: 'hsl(var(--claude-text))' }} />
-                {hasConnectedServices ? 'Connected Services' : 'Data Sources'}
-              </h3>
-
-              {/* Show summary if already connected from onboarding */}
-              {hasConnectedServices && (
-                <div className="mb-6 p-4 rounded-lg bg-[hsl(var(--claude-surface-raised))] border border-[hsl(var(--claude-accent))]">
-                  <div className="flex items-center gap-2 mb-2">
-                    <CheckCircle2 className="w-5 h-5" style={{ color: 'hsl(var(--claude-accent))' }} />
-                    <p style={{
-                      fontFamily: 'var(--_typography---font--styrene-a)',
-                      fontWeight: 500,
-                      color: 'hsl(var(--claude-accent))'
-                    }}>
-                      Services Connected
-                    </p>
-                  </div>
-                  <p className="text-sm" style={{
-                    fontFamily: 'var(--_typography---font--tiempos)',
-                    color: 'hsl(var(--claude-text-muted))'
-                  }}>
-                    Your digital platforms are connected. Ready to extract your soul signature.
-                  </p>
-                </div>
-              )}
-
-              <div className="space-y-3">
-                {currentCluster.connectors.map((connector) => (
-                  <PlatformConnectionCard
-                    key={connector.key}
-                    connector={connector}
-                    platformStatus={platformStatus[connector.key]}
-                    hasExtractedData={hasExtractedData}
-                    onConnect={() => handleConnectorClick(activeCluster, connector.key)}
-                    onReconnect={() => handleReconnect(connector.key)}
-                    onDisconnect={() => handleDisconnect(connector.key)}
-                  />
-                ))}
-              </div>
-
-              {/* Analysis Actions */}
-                <div
-                  className="mt-6 pt-6"
-                  style={{ borderTop: '1px solid rgba(20,20,19,0.1)' }}
-                >
-                  <h4
-                    className="text-sm mb-4"
-                    style={{
-                      fontFamily: 'var(--_typography---font--styrene-a)',
-                      fontWeight: 500,
-                      color: 'hsl(var(--claude-text))'
-                    }}
-                  >
-                    Soul Analysis Options
-                  </h4>
-                  <div className="space-y-3">
-                    {currentCluster.analysisActions?.map((action, index) => (
-                      <Button
-                        key={action.id}
-                        onClick={() => extractSoulSignature(action.id)}
-                        variant="outline"
-                        className="w-full justify-start text-left p-4 h-auto bg-[hsl(var(--claude-surface-raised))] border border-[hsl(var(--claude-border))] text-[hsl(var(--claude-text))]"
-                        style={{
-                          fontFamily: 'var(--_typography---font--tiempos)'
-                        }}
-                      >
-                        <div>
-                          <div
-                            className="font-medium text-sm"
-                            style={{
-                              fontFamily: 'var(--_typography---font--styrene-a)',
-                              color: 'hsl(var(--claude-text))'
-                            }}
-                          >
-                            {action.name}
-                          </div>
-                          <div
-                            className="text-xs mt-1"
-                            style={{
-                              fontFamily: 'var(--_typography---font--tiempos)',
-                              color: "hsl(var(--muted-foreground))"
-                            }}
-                          >
-                            {action.description}
-                          </div>
-                        </div>
-                      </Button>
-                    ))}
-                  </div>
-                </div>
-            </Card>
-          </div>
-
-          {/* Central Visualization */}
-          <div>
-            <Card
-              className="p-6 h-full"
-              style={{
-                backgroundColor: 'hsl(var(--claude-surface))',
-                border: '1px solid hsl(var(--claude-border))'
-              }}
-            >
-              <h3
-                className="text-xl mb-6 text-center"
-                style={{
-                  fontFamily: 'var(--_typography---font--styrene-a)',
-                  fontWeight: 500,
-                  letterSpacing: '-0.02em',
-                  color: 'hsl(var(--claude-text))'
-                }}
-              >
-                Soul Signature Visualization
-              </h3>
-
-              {/* Cluster Visual */}
-              <div className="relative h-64 flex items-center justify-center">
-                <div className="relative z-10 text-center">
-                  <div
-                    className="w-32 h-32 rounded-full flex items-center justify-center mx-auto"
-                    style={{
-                      backgroundColor: currentCluster.accentColor,
-                      border: '2px solid rgba(20,20,19,0.1)'
-                    }}
-                  >
-                    <span style={{ color: 'white' }}>{currentCluster.icon}</span>
-                  </div>
-                  <div className="mt-4">
-                    <div
-                      className="text-sm"
-                      style={{
-                        fontFamily: 'var(--_typography---font--tiempos)',
-                        color: "hsl(var(--muted-foreground))"
-                      }}
-                    >
-                      Uniqueness Score
-                    </div>
-                    <div
-                      className="text-2xl font-medium"
-                      style={{
-                        fontFamily: 'var(--_typography---font--styrene-a)',
-                        color: 'hsl(var(--claude-text))'
-                      }}
-                    >
-                      {uniquenessScore > 0 ? `${uniquenessScore}%` : 'Extract to see'}
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Note: Real extraction handled by SoulDataExtractor component above */}
-              <div className="mt-6">
-                <p className="text-sm text-center" style={{
-                  fontFamily: 'var(--_typography---font--tiempos)',
-                  color: 'hsl(var(--claude-text-muted))'
-                }}>
-                  Use the "Extract Soul Signature" button above to begin full pipeline extraction
-                </p>
-              </div>
-            </Card>
-          </div>
-
-          {/* Insights Panel */}
-          <div>
-            <Card
-              className="p-6 h-full"
-              style={{
-                backgroundColor: 'hsl(var(--claude-surface))',
-                border: '1px solid hsl(var(--claude-border))'
-              }}
-            >
-              <h3
-                className="text-xl mb-6 flex items-center gap-2"
-                style={{
-                  fontFamily: 'var(--_typography---font--styrene-a)',
-                  fontWeight: 500,
-                  letterSpacing: '-0.02em',
-                  color: 'hsl(var(--claude-text))'
-                }}
-              >
-                <Brain className="w-5 h-5" style={{ color: "hsl(var(--foreground))" }} />
-                Discovered Patterns
-              </h3>
-              <div className="space-y-3">
-                {currentCluster.insights.length === 0 ? (
-                  <div className="text-center py-12">
-                    <Fingerprint className="w-16 h-16 mx-auto mb-4" style={{ color: "hsl(var(--muted-foreground))" }} />
-                    <h4
-                      className="text-lg mb-2"
-                      style={{
-                        fontFamily: 'var(--_typography---font--styrene-a)',
-                        fontWeight: 500,
-                        color: "hsl(var(--muted-foreground))"
-                      }}
-                    >
-                      No Soul Signature Yet
-                    </h4>
-                    <p
-                      className="text-sm mb-6 max-w-md mx-auto"
-                      style={{
-                        fontFamily: 'var(--_typography---font--tiempos)',
-                        color: "hsl(var(--muted-foreground))"
-                      }}
-                    >
-                      Connect platforms and use the "Extract Soul Signature" button above to begin discovering your authentic {currentCluster.name.toLowerCase()}.
-                    </p>
-                  </div>
-                ) : (
-                  currentCluster.insights.map((insight, index) => (
-                    <div
-                      key={index}
-                      className="p-3 rounded-lg bg-[hsl(var(--claude-surface-raised))] border border-[hsl(var(--claude-border))]"
-                    >
-                      <div className="flex items-start gap-2">
-                        <div
-                          className="w-2 h-2 rounded-full mt-1.5"
-                          style={{ backgroundColor: currentCluster.accentColor }}
-                        />
-                        <p
-                          className="text-sm"
-                          style={{
-                            fontFamily: 'var(--_typography---font--tiempos)',
-                            color: 'hsl(var(--claude-text))'
-                          }}
-                        >
-                          {insight}
-                        </p>
-                      </div>
-                    </div>
-                  ))
-                )}
-              </div>
-            </Card>
-          </div>
-        </div>
-
-        {/* Privacy Controls & Extraction Clarity Toggles */}
-        <div className="mt-12 flex justify-center gap-4">
-          <Button
-            onClick={() => setShowPrivacyControls(!showPrivacyControls)}
-            variant="outline"
-            style={{
-              border: '2px solid #D97706',
-              color: '#D97706',
-              fontFamily: 'var(--_typography---font--styrene-a)',
-              fontWeight: 500
-            }}
-          >
-            {showPrivacyControls ? <Lock className="w-4 h-4 mr-2" /> : <Unlock className="w-4 h-4 mr-2" />}
-            {showPrivacyControls ? 'Hide' : 'Show'} Privacy Controls
-          </Button>
-
-          <Button
-            onClick={() => setShowExtractionClarity(!showExtractionClarity)}
-            variant="outline"
-            style={{
-              border: '2px solid #D97706',
-              color: '#D97706',
-              fontFamily: 'var(--_typography---font--styrene-a)',
-              fontWeight: 500
-            }}
-          >
-            {showExtractionClarity ? <EyeOff className="w-4 h-4 mr-2" /> : <Eye className="w-4 h-4 mr-2" />}
-            {showExtractionClarity ? 'Hide' : 'Show'} Data Transparency
-          </Button>
-        </div>
-
-        {/* Privacy Spectrum Dashboard */}
-        {showPrivacyControls && (
-          <div className="mt-8">
-            <PrivacySpectrumDashboard />
-          </div>
-        )}
-
-        {/* Data Extraction Clarity */}
-        {showExtractionClarity && (
-          <div className="mt-8">
-            <DataExtractionClarity
-              userId={user?.id || user?.email}
-              connectedPlatforms={connectedProviders}
-              onPrivacyChange={(category, level) => {
-                console.log(`Privacy change for ${category}: ${level}%`);
-              }}
-            />
-          </div>
-        )}
-
-        {/* Action Buttons */}
-        <div className="mt-12 flex justify-center gap-4">
-          <Button
-            onClick={() => navigate('/soul-chat')}
-            style={{
-              backgroundColor: '#D97706',
-              color: 'white',
-              fontFamily: 'var(--_typography---font--styrene-a)',
-              fontWeight: 500
-            }}
-            disabled={!hasExtractedData}
-          >
-            <MessageSquare className="w-4 h-4 mr-2" />
-            Chat with Your Twin
-          </Button>
-          <Button
-            onClick={() => navigate('/twin-profile-preview')}
-            variant="outline"
-            style={{
-              border: '2px solid #D97706',
-              color: '#D97706',
-              fontFamily: 'var(--_typography---font--styrene-a)',
-              fontWeight: 500
-            }}
-          >
-            <Play className="w-4 h-4 mr-2" />
-            Preview Your Twin
-          </Button>
+        <div className="flex items-center justify-between">
+          <span className="text-lg font-bold" style={{ color: theme === 'dark' ? '#C1C0B6' : '#0c0a09' }}>
+            {Math.round(feature.feature_value)}%
+          </span>
+          <span className="text-xs px-2 py-1 rounded-full" style={{
+            backgroundColor: theme === 'dark' ? 'rgba(193, 192, 182, 0.1)' : 'rgba(0, 0, 0, 0.05)',
+            color: theme === 'dark' ? 'rgba(193, 192, 182, 0.8)' : '#57534e'
+          }}>
+            → {feature.contributes_to}
+          </span>
         </div>
       </div>
+    );
+  };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <div className="text-center">
+          <RefreshCw className="w-8 h-8 animate-spin mx-auto mb-4" style={{ color: theme === 'dark' ? '#C1C0B6' : '#57534e' }} />
+          <p style={{ color: theme === 'dark' ? 'rgba(193, 192, 182, 0.8)' : '#57534e' }}>
+            Loading your soul signature...
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  const IconComponent = soulSignature ? iconMap[soulSignature.icon_type] || Sparkles : Sparkles;
+
+  return (
+    <div className="p-6 max-w-6xl mx-auto space-y-8">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-normal tracking-tight font-garamond" style={{ color: theme === 'dark' ? '#C1C0B6' : '#0c0a09' }}>
+            Your Soul Signature
+          </h1>
+          <p className="mt-1" style={{ color: theme === 'dark' ? 'rgba(193, 192, 182, 0.8)' : '#57534e' }}>
+            Discover what makes you authentically you
+          </p>
+        </div>
+        <button
+          onClick={generateSoulSignature}
+          disabled={generating}
+          className="flex items-center gap-2 px-4 py-2 rounded-xl transition-all duration-200 disabled:opacity-50"
+          style={{
+            backgroundColor: theme === 'dark' ? 'rgba(193, 192, 182, 0.1)' : 'rgba(0, 0, 0, 0.05)',
+            color: theme === 'dark' ? '#C1C0B6' : '#0c0a09',
+            border: theme === 'dark' ? '1px solid rgba(193, 192, 182, 0.2)' : '1px solid rgba(0, 0, 0, 0.1)'
+          }}
+        >
+          <RefreshCw className={`w-4 h-4 ${generating ? 'animate-spin' : ''}`} />
+          {generating ? 'Generating...' : 'Regenerate'}
+        </button>
+      </div>
+
+      {error && (
+        <div className="p-4 rounded-xl" style={{
+          backgroundColor: theme === 'dark' ? 'rgba(220, 38, 38, 0.1)' : 'rgba(255, 235, 235, 0.5)',
+          border: '1px solid rgba(220, 38, 38, 0.2)',
+          color: theme === 'dark' ? '#fca5a5' : '#991b1b'
+        }}>
+          {error}
+        </div>
+      )}
+
+      {/* Soul Signature Card */}
+      {soulSignature ? (
+        <div
+          className="rounded-3xl overflow-hidden"
+          style={{
+            background: theme === 'dark'
+              ? `linear-gradient(135deg, rgba(45, 45, 41, 0.8), rgba(45, 45, 41, 0.5))`
+              : `linear-gradient(135deg, ${soulSignature.color_scheme.background}, white)`,
+            border: theme === 'dark' ? '1px solid rgba(193, 192, 182, 0.1)' : `1px solid ${soulSignature.color_scheme.primary}20`,
+            boxShadow: theme === 'dark' ? '0 8px 32px rgba(0, 0, 0, 0.3)' : '0 8px 32px rgba(0, 0, 0, 0.05)'
+          }}
+        >
+          <div className="p-8">
+            <div className="flex items-start gap-6">
+              {/* Icon */}
+              <div
+                className="w-20 h-20 rounded-2xl flex items-center justify-center flex-shrink-0"
+                style={{
+                  background: theme === 'dark'
+                    ? 'rgba(193, 192, 182, 0.1)'
+                    : `linear-gradient(135deg, ${soulSignature.color_scheme.primary}30, ${soulSignature.color_scheme.secondary}20)`,
+                  border: theme === 'dark'
+                    ? '1px solid rgba(193, 192, 182, 0.2)'
+                    : `1px solid ${soulSignature.color_scheme.primary}40`
+                }}
+              >
+                <IconComponent
+                  className="w-10 h-10"
+                  style={{ color: theme === 'dark' ? '#C1C0B6' : soulSignature.color_scheme.primary }}
+                />
+              </div>
+
+              {/* Title & Subtitle */}
+              <div className="flex-1">
+                <h2
+                  className="text-4xl font-normal tracking-tight font-garamond mb-2"
+                  style={{ color: theme === 'dark' ? '#C1C0B6' : soulSignature.color_scheme.text }}
+                >
+                  {soulSignature.archetype_name}
+                </h2>
+                <p
+                  className="text-lg italic"
+                  style={{ color: theme === 'dark' ? 'rgba(193, 192, 182, 0.7)' : soulSignature.color_scheme.primary }}
+                >
+                  {soulSignature.archetype_subtitle}
+                </p>
+              </div>
+            </div>
+
+
+            {/* Visual Insight Cards */}
+            <div className="mt-6 grid grid-cols-1 md:grid-cols-3 gap-4">
+              {/* Core Drive Card */}
+              <div className="p-4 rounded-xl" style={{
+                backgroundColor: theme === 'dark' ? 'rgba(139, 92, 246, 0.1)' : 'rgba(139, 92, 246, 0.05)',
+                border: theme === 'dark' ? '1px solid rgba(139, 92, 246, 0.2)' : '1px solid rgba(139, 92, 246, 0.15)'
+              }}>
+                <div className="flex items-center gap-2 mb-3">
+                  <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{
+                    backgroundColor: theme === 'dark' ? 'rgba(139, 92, 246, 0.2)' : 'rgba(139, 92, 246, 0.1)'
+                  }}>
+                    <Lightbulb className="w-4 h-4" style={{ color: '#8B5CF6' }} />
+                  </div>
+                  <span className="text-xs uppercase tracking-wider font-medium" style={{ color: '#8B5CF6' }}>
+                    Core Drive
+                  </span>
+                </div>
+                <p className="text-sm leading-relaxed" style={{ color: theme === 'dark' ? '#C1C0B6' : '#44403c' }}>
+                  {soulSignature.defining_traits[0]?.trait || 'Curiosity'} shapes your choices - you seek {soulSignature.defining_traits[0]?.evidence.toLowerCase() || 'new experiences'}
+                </p>
+              </div>
+
+              {/* Social Style Card */}
+              <div className="p-4 rounded-xl" style={{
+                backgroundColor: theme === 'dark' ? 'rgba(99, 102, 241, 0.1)' : 'rgba(99, 102, 241, 0.05)',
+                border: theme === 'dark' ? '1px solid rgba(99, 102, 241, 0.2)' : '1px solid rgba(99, 102, 241, 0.15)'
+              }}>
+                <div className="flex items-center gap-2 mb-3">
+                  <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{
+                    backgroundColor: theme === 'dark' ? 'rgba(99, 102, 241, 0.2)' : 'rgba(99, 102, 241, 0.1)'
+                  }}>
+                    <Users className="w-4 h-4" style={{ color: '#6366F1' }} />
+                  </div>
+                  <span className="text-xs uppercase tracking-wider font-medium" style={{ color: '#6366F1' }}>
+                    Social Style
+                  </span>
+                </div>
+                <p className="text-sm leading-relaxed" style={{ color: theme === 'dark' ? '#C1C0B6' : '#44403c' }}>
+                  {personalityScores && personalityScores.extraversion > 60
+                    ? 'You thrive in social settings and draw energy from connecting with others'
+                    : 'You value deep connections over many, preferring meaningful one-on-one interactions'}
+                </p>
+              </div>
+
+              {/* Creative Pattern Card */}
+              <div className="p-4 rounded-xl" style={{
+                backgroundColor: theme === 'dark' ? 'rgba(236, 72, 153, 0.1)' : 'rgba(236, 72, 153, 0.05)',
+                border: theme === 'dark' ? '1px solid rgba(236, 72, 153, 0.2)' : '1px solid rgba(236, 72, 153, 0.15)'
+              }}>
+                <div className="flex items-center gap-2 mb-3">
+                  <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{
+                    backgroundColor: theme === 'dark' ? 'rgba(236, 72, 153, 0.2)' : 'rgba(236, 72, 153, 0.1)'
+                  }}>
+                    <Zap className="w-4 h-4" style={{ color: '#EC4899' }} />
+                  </div>
+                  <span className="text-xs uppercase tracking-wider font-medium" style={{ color: '#EC4899' }}>
+                    Creative Pattern
+                  </span>
+                </div>
+                <p className="text-sm leading-relaxed" style={{ color: theme === 'dark' ? '#C1C0B6' : '#44403c' }}>
+                  {soulSignature.defining_traits[2]?.trait || 'Creative expression'} is key - {soulSignature.defining_traits[2]?.evidence.toLowerCase() || 'you explore diverse artistic interests'}
+                </p>
+              </div>
+            </div>
+
+            {/* Defining Traits - No percentages */}
+            <div className="mt-6">
+              <h3 className="text-sm font-medium uppercase tracking-wider mb-4" style={{
+                color: theme === 'dark' ? 'rgba(193, 192, 182, 0.5)' : '#a8a29e'
+              }}>
+                What Makes You Unique
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {soulSignature.defining_traits.map((trait, index) => {
+                  const traitColors = ['#8B5CF6', '#6366F1', '#EC4899', '#10B981'];
+                  const color = traitColors[index % traitColors.length];
+
+                  return (
+                    <div
+                      key={index}
+                      className="p-4 rounded-xl flex items-center gap-4 group hover:scale-[1.02] transition-transform"
+                      style={{
+                        backgroundColor: theme === 'dark' ? 'rgba(193, 192, 182, 0.05)' : 'rgba(255, 255, 255, 0.8)',
+                        border: theme === 'dark' ? '1px solid rgba(193, 192, 182, 0.1)' : '1px solid rgba(0, 0, 0, 0.05)'
+                      }}
+                    >
+                      {/* Icon instead of progress ring */}
+                      <div
+                        className="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0"
+                        style={{ backgroundColor: `${color}20` }}
+                      >
+                        <Sparkles className="w-5 h-5" style={{ color }} />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="font-medium" style={{ color: theme === 'dark' ? '#C1C0B6' : '#0c0a09' }}>
+                          {trait.trait}
+                        </div>
+                        <div className="text-sm" style={{ color: theme === 'dark' ? 'rgba(193, 192, 182, 0.6)' : '#57534e' }}>
+                          {trait.evidence}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+        </div>
+      ) : (
+        <div
+          className="rounded-3xl p-12 text-center"
+          style={{
+            backgroundColor: theme === 'dark' ? 'rgba(45, 45, 41, 0.5)' : 'rgba(255, 255, 255, 0.5)',
+            border: theme === 'dark' ? '1px solid rgba(193, 192, 182, 0.1)' : '1px solid rgba(0, 0, 0, 0.05)'
+          }}
+        >
+          <Sparkles className="w-16 h-16 mx-auto mb-4" style={{ color: theme === 'dark' ? 'rgba(193, 192, 182, 0.3)' : '#d4d4d4' }} />
+          <h3 className="text-xl font-medium mb-2" style={{ color: theme === 'dark' ? '#C1C0B6' : '#0c0a09' }}>
+            No Soul Signature Yet
+          </h3>
+          <p className="mb-6" style={{ color: theme === 'dark' ? 'rgba(193, 192, 182, 0.6)' : '#57534e' }}>
+            Connect your platforms and generate your unique soul signature
+          </p>
+          <button
+            onClick={generateSoulSignature}
+            disabled={generating}
+            className="px-6 py-3 rounded-xl font-medium transition-all duration-200 disabled:opacity-50"
+            style={{
+              backgroundColor: theme === 'dark' ? '#C1C0B6' : '#0c0a09',
+              color: theme === 'dark' ? '#232320' : '#ffffff'
+            }}
+          >
+            {generating ? 'Generating...' : 'Generate Soul Signature'}
+          </button>
+        </div>
+      )}
+
+
+      {/* Link to Insight Pages */}
+      <div
+        className="rounded-2xl p-6"
+        style={{
+          backgroundColor: theme === 'dark' ? 'rgba(45, 45, 41, 0.5)' : 'rgba(255, 255, 255, 0.5)',
+          border: theme === 'dark' ? '1px solid rgba(193, 192, 182, 0.1)' : '1px solid rgba(0, 0, 0, 0.05)'
+        }}
+      >
+        <div className="flex items-center gap-2 mb-6">
+          <Eye className="w-5 h-5" style={{ color: theme === 'dark' ? '#C1C0B6' : '#57534e' }} />
+          <h3 className="text-lg font-medium" style={{ color: theme === 'dark' ? '#C1C0B6' : '#0c0a09' }}>
+            Explore Your Twin Insights
+          </h3>
+        </div>
+
+        <p className="text-sm mb-6" style={{ color: theme === 'dark' ? 'rgba(193, 192, 182, 0.7)' : '#57534e' }}>
+          Your digital twin has observations about you based on your connected platforms. Explore what it has noticed.
+        </p>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <button
+            onClick={() => window.location.href = '/insights/spotify'}
+            className="p-4 rounded-xl text-left transition-all hover:scale-[1.02]"
+            style={{
+              backgroundColor: theme === 'dark' ? 'rgba(29, 185, 84, 0.1)' : 'rgba(29, 185, 84, 0.05)',
+              border: theme === 'dark' ? '1px solid rgba(29, 185, 84, 0.2)' : '1px solid rgba(29, 185, 84, 0.15)'
+            }}
+          >
+            <Music className="w-5 h-5 mb-2" style={{ color: '#1DB954' }} />
+            <h4 className="font-medium mb-1" style={{ color: theme === 'dark' ? '#C1C0B6' : '#0c0a09' }}>
+              Your Musical Soul
+            </h4>
+            <p className="text-xs" style={{ color: theme === 'dark' ? 'rgba(193, 192, 182, 0.6)' : '#a8a29e' }}>
+              What your listening reveals
+            </p>
+          </button>
+
+          <button
+            onClick={() => window.location.href = '/insights/whoop'}
+            className="p-4 rounded-xl text-left transition-all hover:scale-[1.02]"
+            style={{
+              backgroundColor: theme === 'dark' ? 'rgba(6, 182, 212, 0.1)' : 'rgba(6, 182, 212, 0.05)',
+              border: theme === 'dark' ? '1px solid rgba(6, 182, 212, 0.2)' : '1px solid rgba(6, 182, 212, 0.15)'
+            }}
+          >
+            <Heart className="w-5 h-5 mb-2" style={{ color: '#06B6D4' }} />
+            <h4 className="font-medium mb-1" style={{ color: theme === 'dark' ? '#C1C0B6' : '#0c0a09' }}>
+              Body Stories
+            </h4>
+            <p className="text-xs" style={{ color: theme === 'dark' ? 'rgba(193, 192, 182, 0.6)' : '#a8a29e' }}>
+              What your body tells you
+            </p>
+          </button>
+
+          <button
+            onClick={() => window.location.href = '/insights/calendar'}
+            className="p-4 rounded-xl text-left transition-all hover:scale-[1.02]"
+            style={{
+              backgroundColor: theme === 'dark' ? 'rgba(99, 102, 241, 0.1)' : 'rgba(99, 102, 241, 0.05)',
+              border: theme === 'dark' ? '1px solid rgba(99, 102, 241, 0.2)' : '1px solid rgba(99, 102, 241, 0.15)'
+            }}
+          >
+            <Calendar className="w-5 h-5 mb-2" style={{ color: '#6366F1' }} />
+            <h4 className="font-medium mb-1" style={{ color: theme === 'dark' ? '#C1C0B6' : '#0c0a09' }}>
+              Time Patterns
+            </h4>
+            <p className="text-xs" style={{ color: theme === 'dark' ? 'rgba(193, 192, 182, 0.6)' : '#a8a29e' }}>
+              How you structure your days
+            </p>
+          </button>
+        </div>
+      </div>
+
     </div>
   );
 };

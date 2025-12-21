@@ -46,7 +46,7 @@ export function ChatMessage({
       {/* Avatar */}
       <div className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center ${
         isAssistant
-          ? 'bg-gradient-to-br from-orange-400 to-orange-600'
+          ? 'bg-gradient-to-br from-stone-400 to-stone-600'
           : 'bg-gradient-to-br from-blue-400 to-blue-600'
       }`}>
         {isAssistant ? (

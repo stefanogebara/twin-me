@@ -318,7 +318,7 @@ router.get('/callback/:platform', async (req, res) => {
  */
 router.post('/extract/:platform', authenticateToken, async (req, res) => {
   try {
-    const userId = req.user.userId;
+    const userId = req.user.id || req.user.userId; // Support both formats
     const platformId = req.params.platform;
 
     const platformConfig = getPlatformConfig(platformId);

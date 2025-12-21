@@ -1,0 +1,575 @@
+{
+  "version": "1.0",
+  "description": "Big Five personality assessment questions based on BFI-2",
+  "scale": {
+    "1": "Strongly Disagree",
+    "2": "Disagree",
+    "3": "Neutral",
+    "4": "Agree",
+    "5": "Strongly Agree"
+  },
+  "dimensions": {
+    "extraversion": {
+      "maps_to": "I vs E",
+      "description": "Social energy, external vs internal focus"
+    },
+    "openness": {
+      "maps_to": "S vs N",
+      "description": "Concrete vs abstract thinking, curiosity"
+    },
+    "agreeableness": {
+      "maps_to": "T vs F",
+      "description": "Logic vs values in decisions, empathy"
+    },
+    "conscientiousness": {
+      "maps_to": "J vs P",
+      "description": "Structure vs flexibility preference"
+    },
+    "neuroticism": {
+      "maps_to": "Emotional Stability",
+      "description": "Stress response, mood patterns"
+    }
+  },
+  "questions": [
+    {
+      "id": "E1",
+      "dimension": "extraversion",
+      "facet": "sociability",
+      "question_text": "I feel energized after spending time with a large group of people",
+      "reverse_scored": false,
+      "quick_pulse": true,
+      "order": 1
+    },
+    {
+      "id": "O1",
+      "dimension": "openness",
+      "facet": "intellectual_curiosity",
+      "question_text": "I enjoy exploring abstract ideas and theories",
+      "reverse_scored": false,
+      "quick_pulse": true,
+      "order": 2
+    },
+    {
+      "id": "C1",
+      "dimension": "conscientiousness",
+      "facet": "organization",
+      "question_text": "I keep my belongings organized and in their proper place",
+      "reverse_scored": false,
+      "quick_pulse": true,
+      "order": 3
+    },
+    {
+      "id": "A1",
+      "dimension": "agreeableness",
+      "facet": "compassion",
+      "question_text": "I prioritize maintaining harmony in relationships",
+      "reverse_scored": false,
+      "quick_pulse": true,
+      "order": 4
+    },
+    {
+      "id": "N1",
+      "dimension": "neuroticism",
+      "facet": "anxiety",
+      "question_text": "I often worry about things that might go wrong",
+      "reverse_scored": false,
+      "quick_pulse": true,
+      "order": 5
+    },
+    {
+      "id": "E2",
+      "dimension": "extraversion",
+      "facet": "sociability",
+      "question_text": "I prefer working alone rather than in a team",
+      "reverse_scored": true,
+      "quick_pulse": true,
+      "order": 6
+    },
+    {
+      "id": "O2",
+      "dimension": "openness",
+      "facet": "aesthetic_sensitivity",
+      "question_text": "I am moved by art, music, or literature",
+      "reverse_scored": false,
+      "quick_pulse": true,
+      "order": 7
+    },
+    {
+      "id": "C2",
+      "dimension": "conscientiousness",
+      "facet": "productiveness",
+      "question_text": "I often leave tasks unfinished",
+      "reverse_scored": true,
+      "quick_pulse": true,
+      "order": 8
+    },
+    {
+      "id": "A2",
+      "dimension": "agreeableness",
+      "facet": "trust",
+      "question_text": "I believe most people have good intentions",
+      "reverse_scored": false,
+      "quick_pulse": true,
+      "order": 9
+    },
+    {
+      "id": "N2",
+      "dimension": "neuroticism",
+      "facet": "emotional_stability",
+      "question_text": "I stay calm under pressure",
+      "reverse_scored": true,
+      "quick_pulse": true,
+      "order": 10
+    },
+    {
+      "id": "E3",
+      "dimension": "extraversion",
+      "facet": "assertiveness",
+      "question_text": "I often take the lead in social situations",
+      "reverse_scored": false,
+      "quick_pulse": true,
+      "order": 11
+    },
+    {
+      "id": "O3",
+      "dimension": "openness",
+      "facet": "creative_imagination",
+      "question_text": "I have a vivid imagination",
+      "reverse_scored": false,
+      "quick_pulse": true,
+      "order": 12
+    },
+    {
+      "id": "E4",
+      "dimension": "extraversion",
+      "facet": "sociability",
+      "question_text": "I find small talk draining",
+      "reverse_scored": true,
+      "quick_pulse": false,
+      "order": 13
+    },
+    {
+      "id": "E5",
+      "dimension": "extraversion",
+      "facet": "energy_level",
+      "question_text": "I am the life of the party",
+      "reverse_scored": false,
+      "quick_pulse": false,
+      "order": 14
+    },
+    {
+      "id": "E6",
+      "dimension": "extraversion",
+      "facet": "assertiveness",
+      "question_text": "I wait for others to lead the way",
+      "reverse_scored": true,
+      "quick_pulse": false,
+      "order": 15
+    },
+    {
+      "id": "E7",
+      "dimension": "extraversion",
+      "facet": "energy_level",
+      "question_text": "I keep in the background",
+      "reverse_scored": true,
+      "quick_pulse": false,
+      "order": 16
+    },
+    {
+      "id": "E8",
+      "dimension": "extraversion",
+      "facet": "sociability",
+      "question_text": "I feel comfortable around people",
+      "reverse_scored": false,
+      "quick_pulse": false,
+      "order": 17
+    },
+    {
+      "id": "E9",
+      "dimension": "extraversion",
+      "facet": "assertiveness",
+      "question_text": "I have little to say",
+      "reverse_scored": true,
+      "quick_pulse": false,
+      "order": 18
+    },
+    {
+      "id": "E10",
+      "dimension": "extraversion",
+      "facet": "energy_level",
+      "question_text": "I start conversations with strangers easily",
+      "reverse_scored": false,
+      "quick_pulse": false,
+      "order": 19
+    },
+    {
+      "id": "E11",
+      "dimension": "extraversion",
+      "facet": "sociability",
+      "question_text": "I need time alone to recharge after socializing",
+      "reverse_scored": true,
+      "quick_pulse": false,
+      "order": 20
+    },
+    {
+      "id": "E12",
+      "dimension": "extraversion",
+      "facet": "energy_level",
+      "question_text": "I enjoy being the center of attention",
+      "reverse_scored": false,
+      "quick_pulse": false,
+      "order": 21
+    },
+    {
+      "id": "O4",
+      "dimension": "openness",
+      "facet": "intellectual_curiosity",
+      "question_text": "I prefer tried-and-true methods over experimentation",
+      "reverse_scored": true,
+      "quick_pulse": false,
+      "order": 22
+    },
+    {
+      "id": "O5",
+      "dimension": "openness",
+      "facet": "intellectual_curiosity",
+      "question_text": "I am curious about many different topics",
+      "reverse_scored": false,
+      "quick_pulse": false,
+      "order": 23
+    },
+    {
+      "id": "O6",
+      "dimension": "openness",
+      "facet": "creative_imagination",
+      "question_text": "I prefer practical solutions over creative ones",
+      "reverse_scored": true,
+      "quick_pulse": false,
+      "order": 24
+    },
+    {
+      "id": "O7",
+      "dimension": "openness",
+      "facet": "aesthetic_sensitivity",
+      "question_text": "I appreciate complex or unconventional art",
+      "reverse_scored": false,
+      "quick_pulse": false,
+      "order": 25
+    },
+    {
+      "id": "O8",
+      "dimension": "openness",
+      "facet": "intellectual_curiosity",
+      "question_text": "I avoid philosophical discussions",
+      "reverse_scored": true,
+      "quick_pulse": false,
+      "order": 26
+    },
+    {
+      "id": "O9",
+      "dimension": "openness",
+      "facet": "creative_imagination",
+      "question_text": "I like to think up new ways of doing things",
+      "reverse_scored": false,
+      "quick_pulse": false,
+      "order": 27
+    },
+    {
+      "id": "O10",
+      "dimension": "openness",
+      "facet": "aesthetic_sensitivity",
+      "question_text": "I am not interested in visiting museums or galleries",
+      "reverse_scored": true,
+      "quick_pulse": false,
+      "order": 28
+    },
+    {
+      "id": "O11",
+      "dimension": "openness",
+      "facet": "intellectual_curiosity",
+      "question_text": "I enjoy learning about topics outside my expertise",
+      "reverse_scored": false,
+      "quick_pulse": false,
+      "order": 29
+    },
+    {
+      "id": "O12",
+      "dimension": "openness",
+      "facet": "creative_imagination",
+      "question_text": "I prefer routine over variety",
+      "reverse_scored": true,
+      "quick_pulse": false,
+      "order": 30
+    },
+    {
+      "id": "C3",
+      "dimension": "conscientiousness",
+      "facet": "organization",
+      "question_text": "I like to plan ahead rather than act spontaneously",
+      "reverse_scored": false,
+      "quick_pulse": false,
+      "order": 31
+    },
+    {
+      "id": "C4",
+      "dimension": "conscientiousness",
+      "facet": "productiveness",
+      "question_text": "I tend to procrastinate on important tasks",
+      "reverse_scored": true,
+      "quick_pulse": false,
+      "order": 32
+    },
+    {
+      "id": "C5",
+      "dimension": "conscientiousness",
+      "facet": "responsibility",
+      "question_text": "I follow through on my commitments",
+      "reverse_scored": false,
+      "quick_pulse": false,
+      "order": 33
+    },
+    {
+      "id": "C6",
+      "dimension": "conscientiousness",
+      "facet": "organization",
+      "question_text": "I often forget to put things back in their proper place",
+      "reverse_scored": true,
+      "quick_pulse": false,
+      "order": 34
+    },
+    {
+      "id": "C7",
+      "dimension": "conscientiousness",
+      "facet": "productiveness",
+      "question_text": "I work hard to achieve my goals",
+      "reverse_scored": false,
+      "quick_pulse": false,
+      "order": 35
+    },
+    {
+      "id": "C8",
+      "dimension": "conscientiousness",
+      "facet": "responsibility",
+      "question_text": "I sometimes make careless mistakes",
+      "reverse_scored": true,
+      "quick_pulse": false,
+      "order": 36
+    },
+    {
+      "id": "C9",
+      "dimension": "conscientiousness",
+      "facet": "organization",
+      "question_text": "I prefer having a detailed schedule",
+      "reverse_scored": false,
+      "quick_pulse": false,
+      "order": 37
+    },
+    {
+      "id": "C10",
+      "dimension": "conscientiousness",
+      "facet": "productiveness",
+      "question_text": "I find it hard to get started on tasks",
+      "reverse_scored": true,
+      "quick_pulse": false,
+      "order": 38
+    },
+    {
+      "id": "C11",
+      "dimension": "conscientiousness",
+      "facet": "responsibility",
+      "question_text": "I pay attention to details",
+      "reverse_scored": false,
+      "quick_pulse": false,
+      "order": 39
+    },
+    {
+      "id": "C12",
+      "dimension": "conscientiousness",
+      "facet": "organization",
+      "question_text": "I prefer to go with the flow rather than stick to a plan",
+      "reverse_scored": true,
+      "quick_pulse": false,
+      "order": 40
+    },
+    {
+      "id": "A3",
+      "dimension": "agreeableness",
+      "facet": "compassion",
+      "question_text": "I am quick to forgive others' mistakes",
+      "reverse_scored": false,
+      "quick_pulse": false,
+      "order": 41
+    },
+    {
+      "id": "A4",
+      "dimension": "agreeableness",
+      "facet": "trust",
+      "question_text": "I think logic should always override emotions in decisions",
+      "reverse_scored": true,
+      "quick_pulse": false,
+      "order": 42
+    },
+    {
+      "id": "A5",
+      "dimension": "agreeableness",
+      "facet": "respectfulness",
+      "question_text": "I treat all people with equal respect",
+      "reverse_scored": false,
+      "quick_pulse": false,
+      "order": 43
+    },
+    {
+      "id": "A6",
+      "dimension": "agreeableness",
+      "facet": "compassion",
+      "question_text": "I believe being right is more important than being kind",
+      "reverse_scored": true,
+      "quick_pulse": false,
+      "order": 44
+    },
+    {
+      "id": "A7",
+      "dimension": "agreeableness",
+      "facet": "trust",
+      "question_text": "I give people the benefit of the doubt",
+      "reverse_scored": false,
+      "quick_pulse": false,
+      "order": 45
+    },
+    {
+      "id": "A8",
+      "dimension": "agreeableness",
+      "facet": "respectfulness",
+      "question_text": "I can be blunt when giving feedback",
+      "reverse_scored": true,
+      "quick_pulse": false,
+      "order": 46
+    },
+    {
+      "id": "A9",
+      "dimension": "agreeableness",
+      "facet": "compassion",
+      "question_text": "I feel others' emotions as if they were my own",
+      "reverse_scored": false,
+      "quick_pulse": false,
+      "order": 47
+    },
+    {
+      "id": "A10",
+      "dimension": "agreeableness",
+      "facet": "trust",
+      "question_text": "I am suspicious of others' motives",
+      "reverse_scored": true,
+      "quick_pulse": false,
+      "order": 48
+    },
+    {
+      "id": "A11",
+      "dimension": "agreeableness",
+      "facet": "respectfulness",
+      "question_text": "I try to see things from other perspectives",
+      "reverse_scored": false,
+      "quick_pulse": false,
+      "order": 49
+    },
+    {
+      "id": "A12",
+      "dimension": "agreeableness",
+      "facet": "compassion",
+      "question_text": "I put my needs before others' needs",
+      "reverse_scored": true,
+      "quick_pulse": false,
+      "order": 50
+    },
+    {
+      "id": "N3",
+      "dimension": "neuroticism",
+      "facet": "anxiety",
+      "question_text": "I am sensitive to criticism from others",
+      "reverse_scored": false,
+      "quick_pulse": false,
+      "order": 51
+    },
+    {
+      "id": "N4",
+      "dimension": "neuroticism",
+      "facet": "emotional_stability",
+      "question_text": "I bounce back quickly from setbacks",
+      "reverse_scored": true,
+      "quick_pulse": false,
+      "order": 52
+    },
+    {
+      "id": "N5",
+      "dimension": "neuroticism",
+      "facet": "depression",
+      "question_text": "I sometimes feel blue or down for no reason",
+      "reverse_scored": false,
+      "quick_pulse": false,
+      "order": 53
+    },
+    {
+      "id": "N6",
+      "dimension": "neuroticism",
+      "facet": "anxiety",
+      "question_text": "I rarely feel anxious or stressed",
+      "reverse_scored": true,
+      "quick_pulse": false,
+      "order": 54
+    },
+    {
+      "id": "N7",
+      "dimension": "neuroticism",
+      "facet": "emotional_volatility",
+      "question_text": "My mood changes easily",
+      "reverse_scored": false,
+      "quick_pulse": false,
+      "order": 55
+    },
+    {
+      "id": "N8",
+      "dimension": "neuroticism",
+      "facet": "emotional_stability",
+      "question_text": "I handle unexpected changes well",
+      "reverse_scored": true,
+      "quick_pulse": false,
+      "order": 56
+    },
+    {
+      "id": "N9",
+      "dimension": "neuroticism",
+      "facet": "depression",
+      "question_text": "I often feel overwhelmed by responsibilities",
+      "reverse_scored": false,
+      "quick_pulse": false,
+      "order": 57
+    },
+    {
+      "id": "N10",
+      "dimension": "neuroticism",
+      "facet": "emotional_volatility",
+      "question_text": "I maintain my composure in difficult situations",
+      "reverse_scored": true,
+      "quick_pulse": false,
+      "order": 58
+    },
+    {
+      "id": "N11",
+      "dimension": "neuroticism",
+      "facet": "anxiety",
+      "question_text": "I find it hard to stop worrying once I start",
+      "reverse_scored": false,
+      "quick_pulse": false,
+      "order": 59
+    },
+    {
+      "id": "N12",
+      "dimension": "neuroticism",
+      "facet": "emotional_stability",
+      "question_text": "I am emotionally stable",
+      "reverse_scored": true,
+      "quick_pulse": false,
+      "order": 60
+    }
+  ]
+}

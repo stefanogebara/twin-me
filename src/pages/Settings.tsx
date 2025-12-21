@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import { useTheme } from '../contexts/ThemeContext';
 import { usePlatformStatus } from '../hooks/usePlatformStatus';
 import {
   ArrowLeft,
@@ -21,10 +22,18 @@ import {
 const Settings = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { theme } = useTheme();
   const [disconnectingService, setDisconnectingService] = useState<string | null>(null);
 
   // Use unified platform status hook
-  const { data: connectorStatus, isLoading, error: statusError, refetch } = usePlatformStatus(user?.id);
+  const {
+    data: connectorStatus,
+    isLoading,
+    error: statusError,
+    refetch,
+    optimisticDisconnect,
+    revertOptimisticUpdate
+  } = usePlatformStatus(user?.id);
 
   // Convert status error to string for display
   const error = statusError?.message || null;
@@ -32,77 +41,75 @@ const Settings = () => {
   const handleDisconnectService = async (provider: string) => {
     try {
       setDisconnectingService(provider);
+
+      // Optimistically update UI immediately for instant feedback
+      optimisticDisconnect(provider);
+
       const response = await fetch(`${import.meta.env.VITE_API_URL}/connectors/${provider}/${user?.id}`, {
         method: 'DELETE'
       });
 
       if (response.ok) {
-        // Refresh status after disconnection using unified hook
+        // Confirm optimistic update with server data
         await refetch();
-        // Optionally show success toast
       } else {
+        // Revert optimistic update on failure
+        await revertOptimisticUpdate();
         throw new Error('Failed to disconnect service');
       }
     } catch (error) {
       console.error('Error disconnecting service:', error);
-      // Error will be shown by status error state
+      // Ensure we revert if anything goes wrong
+      await revertOptimisticUpdate();
     } finally {
       setDisconnectingService(null);
     }
   };
 
+  // MVP platforms - Spotify, Calendar, Whoop
   const connectorConfig = [
     {
-      id: 'google_gmail',
-      name: 'Gmail',
-      description: 'Access your email conversations and writing style',
-      icon: '📧'
+      id: 'spotify',
+      name: 'Spotify',
+      description: 'Music preferences and listening patterns',
+      icon: '🎵'
     },
     {
       id: 'google_calendar',
       name: 'Google Calendar',
-      description: 'Understand your schedule and time management patterns',
+      description: 'Schedule and event patterns',
       icon: '📅'
     },
     {
-      id: 'google_drive',
-      name: 'Google Drive',
-      description: 'Analyze your documents and teaching materials',
-      icon: '📁'
-    },
-    {
-      id: 'slack',
-      name: 'Slack',
-      description: 'Learn from your workplace communication style',
-      icon: '💬'
-    },
-    {
-      id: 'teams',
-      name: 'Microsoft Teams',
-      description: 'Integrate with your Teams conversations',
-      icon: '👥'
-    },
-    {
-      id: 'discord',
-      name: 'Discord',
-      description: 'Connect with your Discord communities',
-      icon: '🎮'
+      id: 'whoop',
+      name: 'Whoop',
+      description: 'Health, recovery, and strain data',
+      icon: '💪'
     }
   ];
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen" style={{
+      backgroundColor: theme === 'dark' ? '#232320' : '#FAFAFA'
+    }}>
       {/* Header */}
       <div
-        className="px-6 py-4 border-b bg-card border-border"
+        className="px-6 py-4 border-b"
+        style={{
+          backgroundColor: theme === 'dark' ? 'rgba(45, 45, 41, 0.6)' : 'rgba(255, 255, 255, 0.9)',
+          borderColor: theme === 'dark' ? 'rgba(193, 192, 182, 0.15)' : 'rgba(0, 0, 0, 0.06)',
+          backdropFilter: 'blur(12px)',
+          WebkitBackdropFilter: 'blur(12px)'
+        }}
       >
         <div className="max-w-7xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-4">
             <button
-              onClick={() => navigate('/get-started')}
-              className="inline-flex items-center gap-2 text-sm text-foreground"
+              onClick={() => navigate('/dashboard')}
+              className="inline-flex items-center gap-2 text-sm transition-colors"
               style={{
-                fontFamily: 'var(--_typography---font--tiempos)'
+                fontFamily: 'var(--font-body)',
+                color: theme === 'dark' ? 'rgba(193, 192, 182, 0.7)' : '#57534e'
               }}
             >
               <ArrowLeft className="w-4 h-4" />
@@ -110,19 +117,21 @@ const Settings = () => {
             </button>
             <div>
               <h1
-                className="text-2xl mb-1 text-foreground"
+                className="text-2xl mb-1"
                 style={{
-                  fontFamily: 'var(--_typography---font--styrene-a)',
-                  fontWeight: 500,
-                  letterSpacing: '-0.02em'
+                  fontFamily: 'var(--font-heading)',
+                  fontWeight: 400,
+                  letterSpacing: '-0.02em',
+                  color: theme === 'dark' ? '#C1C0B6' : '#0c0a09'
                 }}
               >
                 Settings
               </h1>
               <p
-                className="text-sm text-muted-foreground"
+                className="text-sm"
                 style={{
-                  fontFamily: 'var(--_typography---font--tiempos)'
+                  fontFamily: 'var(--font-body)',
+                  color: theme === 'dark' ? 'rgba(193, 192, 182, 0.7)' : '#57534e'
                 }}
               >
                 Manage your account, connected services, and preferences
@@ -137,16 +146,24 @@ const Settings = () => {
 
           {/* Account Information */}
           <section
-            className="rounded-2xl p-6 border bg-card border-border"
+            className="rounded-3xl p-6"
+            style={{
+              backgroundColor: theme === 'dark' ? 'rgba(45, 45, 41, 0.5)' : 'rgba(255, 255, 255, 0.5)',
+              backdropFilter: 'blur(16px) saturate(180%)',
+              WebkitBackdropFilter: 'blur(16px) saturate(180%)',
+              border: theme === 'dark' ? '1px solid rgba(193, 192, 182, 0.1)' : '1px solid rgba(0, 0, 0, 0.06)',
+              boxShadow: theme === 'dark' ? '0 8px 32px rgba(0, 0, 0, 0.3)' : '0 8px 32px rgba(0, 0, 0, 0.03)'
+            }}
           >
             <div className="flex items-center gap-3 mb-4">
-              <User className="w-5 h-5" style={{ color: '#D97706' }} />
+              <User className="w-5 h-5" style={{ color: theme === 'dark' ? '#C1C0B6' : '#0c0a09' }} />
               <h2
-                className="text-xl text-foreground"
+                className="text-xl"
                 style={{
-                  fontFamily: 'var(--_typography---font--styrene-a)',
-                  fontWeight: 500,
-                  letterSpacing: '-0.02em'
+                  fontFamily: 'var(--font-heading)',
+                  fontWeight: 400,
+                  letterSpacing: '-0.02em',
+                  color: theme === 'dark' ? '#C1C0B6' : '#0c0a09'
                 }}
               >
                 Account Information
@@ -156,18 +173,22 @@ const Settings = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
                 <label
-                  className="block text-sm mb-2 text-foreground"
+                  className="block text-sm mb-2"
                   style={{
-                    fontFamily: 'var(--_typography---font--tiempos)',
-                    fontWeight: 500
+                    fontFamily: 'var(--font-body)',
+                    fontWeight: 500,
+                    color: theme === 'dark' ? '#C1C0B6' : '#0c0a09'
                   }}
                 >
                   Name
                 </label>
                 <div
-                  className="p-3 rounded-lg border bg-input border-border text-foreground"
+                  className="p-3 rounded-xl"
                   style={{
-                    fontFamily: 'var(--_typography---font--tiempos)'
+                    backgroundColor: theme === 'dark' ? 'rgba(193, 192, 182, 0.05)' : 'rgba(255, 255, 255, 0.8)',
+                    border: theme === 'dark' ? '1px solid rgba(193, 192, 182, 0.1)' : '1px solid rgba(0, 0, 0, 0.06)',
+                    fontFamily: 'var(--font-body)',
+                    color: theme === 'dark' ? '#C1C0B6' : '#0c0a09'
                   }}
                 >
                   {user?.fullName || `${user?.firstName || ''} ${user?.lastName || ''}`.trim() || 'Not set'}
@@ -176,18 +197,22 @@ const Settings = () => {
 
               <div>
                 <label
-                  className="block text-sm mb-2 text-foreground"
+                  className="block text-sm mb-2"
                   style={{
-                    fontFamily: 'var(--_typography---font--tiempos)',
-                    fontWeight: 500
+                    fontFamily: 'var(--font-body)',
+                    fontWeight: 500,
+                    color: theme === 'dark' ? '#C1C0B6' : '#0c0a09'
                   }}
                 >
                   Email
                 </label>
                 <div
-                  className="p-3 rounded-lg border bg-input border-border text-foreground"
+                  className="p-3 rounded-xl"
                   style={{
-                    fontFamily: 'var(--_typography---font--tiempos)'
+                    backgroundColor: theme === 'dark' ? 'rgba(193, 192, 182, 0.05)' : 'rgba(255, 255, 255, 0.8)',
+                    border: theme === 'dark' ? '1px solid rgba(193, 192, 182, 0.1)' : '1px solid rgba(0, 0, 0, 0.06)',
+                    fontFamily: 'var(--font-body)',
+                    color: theme === 'dark' ? '#C1C0B6' : '#0c0a09'
                   }}
                 >
                   {user?.email}
@@ -198,17 +223,25 @@ const Settings = () => {
 
           {/* Connected Services */}
           <section
-            className="rounded-2xl p-6 border bg-card border-border"
+            className="rounded-3xl p-6"
+            style={{
+              backgroundColor: theme === 'dark' ? 'rgba(45, 45, 41, 0.5)' : 'rgba(255, 255, 255, 0.5)',
+              backdropFilter: 'blur(16px) saturate(180%)',
+              WebkitBackdropFilter: 'blur(16px) saturate(180%)',
+              border: theme === 'dark' ? '1px solid rgba(193, 192, 182, 0.1)' : '1px solid rgba(0, 0, 0, 0.06)',
+              boxShadow: theme === 'dark' ? '0 8px 32px rgba(0, 0, 0, 0.3)' : '0 8px 32px rgba(0, 0, 0, 0.03)'
+            }}
           >
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-3">
-                <Link className="w-5 h-5" style={{ color: '#D97706' }} />
+                <Link className="w-5 h-5" style={{ color: theme === 'dark' ? '#C1C0B6' : '#0c0a09' }} />
                 <h2
-                  className="text-xl text-foreground"
+                  className="text-xl"
                   style={{
-                    fontFamily: 'var(--_typography---font--styrene-a)',
-                    fontWeight: 500,
-                    letterSpacing: '-0.02em'
+                    fontFamily: 'var(--font-heading)',
+                    fontWeight: 400,
+                    letterSpacing: '-0.02em',
+                    color: theme === 'dark' ? '#C1C0B6' : '#0c0a09'
                   }}
                 >
                   Connected Services
@@ -216,9 +249,12 @@ const Settings = () => {
               </div>
               <button
                 onClick={() => refetch()}
-                className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm bg-muted text-foreground border border-border"
+                className="flex items-center gap-2 px-3 py-1.5 rounded-xl text-sm transition-all hover:scale-[1.02]"
                 style={{
-                  fontFamily: 'var(--_typography---font--tiempos)'
+                  backgroundColor: theme === 'dark' ? 'rgba(193, 192, 182, 0.1)' : 'rgba(0, 0, 0, 0.05)',
+                  border: theme === 'dark' ? '1px solid rgba(193, 192, 182, 0.2)' : '1px solid rgba(0, 0, 0, 0.1)',
+                  color: theme === 'dark' ? '#C1C0B6' : '#0c0a09',
+                  fontFamily: 'var(--font-body)'
                 }}
               >
                 <RefreshCw className="w-4 h-4" />
@@ -227,9 +263,10 @@ const Settings = () => {
             </div>
 
             <p
-              className="text-sm mb-6 text-muted-foreground"
+              className="text-sm mb-6"
               style={{
-                fontFamily: 'var(--_typography---font--tiempos)'
+                fontFamily: 'var(--font-body)',
+                color: theme === 'dark' ? 'rgba(193, 192, 182, 0.7)' : '#57534e'
               }}
             >
               These services help your digital twin understand your communication style and preferences.
@@ -237,10 +274,15 @@ const Settings = () => {
 
             {error && (
               <div
-                className="flex items-center gap-2 p-4 mb-4 rounded-lg border bg-red-50 border-red-200 text-red-600"
+                className="flex items-center gap-2 p-4 mb-4 rounded-xl"
+                style={{
+                  backgroundColor: theme === 'dark' ? 'rgba(239, 68, 68, 0.1)' : 'rgba(239, 68, 68, 0.05)',
+                  border: '1px solid rgba(239, 68, 68, 0.3)',
+                  color: '#ef4444'
+                }}
               >
                 <AlertCircle className="w-5 h-5 flex-shrink-0" />
-                <span style={{ fontFamily: 'var(--_typography---font--tiempos)' }}>
+                <span style={{ fontFamily: 'var(--font-body)' }}>
                   {error}
                 </span>
               </div>
@@ -248,11 +290,12 @@ const Settings = () => {
 
             {isLoading ? (
               <div className="flex items-center justify-center py-8">
-                <Loader2 className="w-6 h-6" style={{ color: '#D97706' }} />
+                <Loader2 className="w-6 h-6 animate-spin" style={{ color: theme === 'dark' ? '#C1C0B6' : '#0c0a09' }} />
                 <span
-                  className="ml-2 text-muted-foreground"
+                  className="ml-2"
                   style={{
-                    fontFamily: 'var(--_typography---font--tiempos)'
+                    fontFamily: 'var(--font-body)',
+                    color: theme === 'dark' ? 'rgba(193, 192, 182, 0.7)' : '#57534e'
                   }}
                 >
                   Loading connection status...
@@ -261,29 +304,37 @@ const Settings = () => {
             ) : (
               <div className="space-y-4">
                 {connectorConfig.map((connector) => {
-                  const isConnected = connectorStatus[connector.id]?.connected;
+                  const connectionInfo = connectorStatus[connector.id];
+                  const isConnected = connectionInfo?.connected;
+                  const isExpired = connectionInfo?.tokenExpired || connectionInfo?.status === 'expired';
+                  const isActiveConnection = isConnected && !isExpired;
 
                   return (
                     <div
                       key={connector.id}
-                      className="flex items-center justify-between p-4 rounded-lg border bg-muted border-border"
+                      className="flex items-center justify-between p-4 rounded-xl"
+                      style={{
+                        backgroundColor: theme === 'dark' ? 'rgba(193, 192, 182, 0.05)' : 'rgba(255, 255, 255, 0.8)',
+                        border: theme === 'dark' ? '1px solid rgba(193, 192, 182, 0.1)' : '1px solid rgba(0, 0, 0, 0.06)'
+                      }}
                     >
                       <div className="flex items-center gap-4">
                         <span className="text-2xl">{connector.icon}</span>
                         <div>
                           <h3
-                            className="text-foreground"
                             style={{
-                              fontFamily: 'var(--_typography---font--tiempos)',
-                              fontWeight: 500
+                              fontFamily: 'var(--font-body)',
+                              fontWeight: 500,
+                              color: theme === 'dark' ? '#C1C0B6' : '#0c0a09'
                             }}
                           >
                             {connector.name}
                           </h3>
                           <p
-                            className="text-sm text-muted-foreground"
+                            className="text-sm"
                             style={{
-                              fontFamily: 'var(--_typography---font--tiempos)'
+                              fontFamily: 'var(--font-body)',
+                              color: theme === 'dark' ? 'rgba(193, 192, 182, 0.6)' : '#78716c'
                             }}
                           >
                             {connector.description}
@@ -292,7 +343,7 @@ const Settings = () => {
                       </div>
 
                       <div className="flex items-center gap-3">
-                        {isConnected ? (
+                        {isActiveConnection ? (
                           <>
                             <div className="flex items-center gap-2">
                               <CheckCircle className="w-4 h-4" style={{ color: '#10B981' }} />
@@ -300,7 +351,7 @@ const Settings = () => {
                                 className="text-sm"
                                 style={{
                                   color: '#10B981',
-                                  fontFamily: 'var(--_typography---font--tiempos)',
+                                  fontFamily: 'var(--font-body)',
                                   fontWeight: 500
                                 }}
                               >
@@ -310,12 +361,12 @@ const Settings = () => {
                             <button
                               onClick={() => handleDisconnectService(connector.id)}
                               disabled={disconnectingService === connector.id}
-                              className="px-3 py-1.5 rounded-lg text-sm border flex items-center gap-2"
+                              className="px-3 py-1.5 rounded-xl text-sm flex items-center gap-2 transition-all"
                               style={{
-                                borderColor: '#FCA5A5',
-                                color: '#DC2626',
-                                backgroundColor: 'white',
-                                fontFamily: 'var(--_typography---font--tiempos)',
+                                backgroundColor: theme === 'dark' ? 'rgba(239, 68, 68, 0.1)' : 'rgba(239, 68, 68, 0.05)',
+                                border: '1px solid rgba(239, 68, 68, 0.3)',
+                                color: '#ef4444',
+                                fontFamily: 'var(--font-body)',
                                 opacity: disconnectingService === connector.id ? 0.7 : 1,
                                 cursor: disconnectingService === connector.id ? 'not-allowed' : 'pointer'
                               }}
@@ -330,13 +381,44 @@ const Settings = () => {
                               )}
                             </button>
                           </>
+                        ) : isExpired ? (
+                          <>
+                            <div className="flex items-center gap-2">
+                              <AlertCircle className="w-4 h-4" style={{ color: '#f59e0b' }} />
+                              <span
+                                className="text-sm"
+                                style={{
+                                  color: '#f59e0b',
+                                  fontFamily: 'var(--font-body)',
+                                  fontWeight: 500
+                                }}
+                              >
+                                Token Expired
+                              </span>
+                            </div>
+                            <button
+                              onClick={() => navigate('/get-started')}
+                              className="px-3 py-1.5 rounded-xl text-sm flex items-center gap-2 transition-all hover:scale-[1.02]"
+                              style={{
+                                backgroundColor: theme === 'dark' ? 'rgba(245, 158, 11, 0.1)' : 'rgba(245, 158, 11, 0.05)',
+                                border: '1px solid rgba(245, 158, 11, 0.3)',
+                                color: '#f59e0b',
+                                fontFamily: 'var(--font-body)'
+                              }}
+                            >
+                              Reconnect
+                            </button>
+                          </>
                         ) : (
                           <div className="flex items-center gap-2">
-                            <XCircle className="w-4 h-4 text-muted-foreground" />
+                            <XCircle className="w-4 h-4" style={{
+                              color: theme === 'dark' ? 'rgba(193, 192, 182, 0.4)' : '#d6d3d1'
+                            }} />
                             <span
-                              className="text-sm text-muted-foreground"
+                              className="text-sm"
                               style={{
-                                fontFamily: 'var(--_typography---font--tiempos)'
+                                fontFamily: 'var(--font-body)',
+                                color: theme === 'dark' ? 'rgba(193, 192, 182, 0.5)' : '#a8a29e'
                               }}
                             >
                               Not connected
@@ -351,27 +433,29 @@ const Settings = () => {
             )}
 
             <div
-              className="mt-6 p-4 rounded-lg border-l-4 bg-muted border-border"
+              className="mt-6 p-4 rounded-xl border-l-4"
               style={{
-                borderLeftColor: '#D97706'
+                backgroundColor: theme === 'dark' ? 'rgba(193, 192, 182, 0.05)' : 'rgba(0, 0, 0, 0.02)',
+                borderLeftColor: theme === 'dark' ? '#C1C0B6' : '#0c0a09'
               }}
             >
               <p
-                className="text-sm text-foreground"
+                className="text-sm"
                 style={{
-                  fontFamily: 'var(--_typography---font--tiempos)'
+                  fontFamily: 'var(--font-body)',
+                  color: theme === 'dark' ? 'rgba(193, 192, 182, 0.8)' : '#44403c'
                 }}
               >
                 <strong>Note:</strong> To connect new services, go back to the{' '}
                 <button
-                  onClick={() => navigate('/get-started')}
-                  className="underline"
+                  onClick={() => navigate('/soul-signature')}
+                  className="underline transition-colors"
                   style={{
-                    color: '#D97706',
-                    fontFamily: 'var(--_typography---font--tiempos)'
+                    color: theme === 'dark' ? '#C1C0B6' : '#0c0a09',
+                    fontFamily: 'var(--font-body)'
                   }}
                 >
-                  onboarding page
+                  Soul Signature Dashboard
                 </button>{' '}
                 where you can manage your data connections.
               </p>
@@ -380,16 +464,24 @@ const Settings = () => {
 
           {/* Privacy & Security */}
           <section
-            className="rounded-2xl p-6 border bg-card border-border"
+            className="rounded-3xl p-6"
+            style={{
+              backgroundColor: theme === 'dark' ? 'rgba(45, 45, 41, 0.5)' : 'rgba(255, 255, 255, 0.5)',
+              backdropFilter: 'blur(16px) saturate(180%)',
+              WebkitBackdropFilter: 'blur(16px) saturate(180%)',
+              border: theme === 'dark' ? '1px solid rgba(193, 192, 182, 0.1)' : '1px solid rgba(0, 0, 0, 0.06)',
+              boxShadow: theme === 'dark' ? '0 8px 32px rgba(0, 0, 0, 0.3)' : '0 8px 32px rgba(0, 0, 0, 0.03)'
+            }}
           >
             <div className="flex items-center gap-3 mb-4">
-              <Shield className="w-5 h-5" style={{ color: '#D97706' }} />
+              <Shield className="w-5 h-5" style={{ color: theme === 'dark' ? '#C1C0B6' : '#0c0a09' }} />
               <h2
-                className="text-xl text-foreground"
+                className="text-xl"
                 style={{
-                  fontFamily: 'var(--_typography---font--styrene-a)',
-                  fontWeight: 500,
-                  letterSpacing: '-0.02em'
+                  fontFamily: 'var(--font-heading)',
+                  fontWeight: 400,
+                  letterSpacing: '-0.02em',
+                  color: theme === 'dark' ? '#C1C0B6' : '#0c0a09'
                 }}
               >
                 Privacy & Security
@@ -400,69 +492,96 @@ const Settings = () => {
               <div className="flex items-center justify-between">
                 <div>
                   <h3
-                    className="text-foreground"
                     style={{
-                      fontFamily: 'var(--_typography---font--tiempos)',
-                      fontWeight: 500
+                      fontFamily: 'var(--font-body)',
+                      fontWeight: 500,
+                      color: theme === 'dark' ? '#C1C0B6' : '#0c0a09'
                     }}
                   >
                     Data Usage Consent
                   </h3>
                   <p
-                    className="text-sm text-muted-foreground"
+                    className="text-sm"
                     style={{
-                      fontFamily: 'var(--_typography---font--tiempos)'
+                      fontFamily: 'var(--font-body)',
+                      color: theme === 'dark' ? 'rgba(193, 192, 182, 0.6)' : '#78716c'
                     }}
                   >
                     Allow the platform to analyze your connected data to improve your digital twin
                   </p>
                 </div>
-                <label className="relative inline-flex items-center">
+                <label className="relative inline-flex items-center cursor-pointer">
                   <input type="checkbox" defaultChecked className="sr-only peer" />
-                  <div className="w-11 h-6 rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 peer-checked:bg-green-600" style={{ backgroundColor: '#D1D5DB' }}></div>
+                  <div
+                    className="w-11 h-6 rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:rounded-full after:h-5 after:w-5 after:transition-all"
+                    style={{
+                      backgroundColor: theme === 'dark' ? 'rgba(193, 192, 182, 0.2)' : '#d1d5db',
+                      '--tw-peer-checked-bg': theme === 'dark' ? '#C1C0B6' : '#0c0a09'
+                    } as any}
+                  >
+                    <style>{`
+                      .peer:checked ~ div { background-color: ${theme === 'dark' ? '#C1C0B6' : '#0c0a09'}; }
+                      .peer ~ div::after { background-color: ${theme === 'dark' ? '#232320' : '#ffffff'}; }
+                    `}</style>
+                  </div>
                 </label>
               </div>
 
               <div className="flex items-center justify-between">
                 <div>
                   <h3
-                    className="text-foreground"
                     style={{
-                      fontFamily: 'var(--_typography---font--tiempos)',
-                      fontWeight: 500
+                      fontFamily: 'var(--font-body)',
+                      fontWeight: 500,
+                      color: theme === 'dark' ? '#C1C0B6' : '#0c0a09'
                     }}
                   >
                     Analytics
                   </h3>
                   <p
-                    className="text-sm text-muted-foreground"
+                    className="text-sm"
                     style={{
-                      fontFamily: 'var(--_typography---font--tiempos)'
+                      fontFamily: 'var(--font-body)',
+                      color: theme === 'dark' ? 'rgba(193, 192, 182, 0.6)' : '#78716c'
                     }}
                   >
                     Share anonymous usage data to help improve the platform
                   </p>
                 </div>
-                <label className="relative inline-flex items-center">
+                <label className="relative inline-flex items-center cursor-pointer">
                   <input type="checkbox" defaultChecked className="sr-only peer" />
-                  <div className="w-11 h-6 rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 peer-checked:bg-green-600" style={{ backgroundColor: '#D1D5DB' }}></div>
+                  <div
+                    className="w-11 h-6 rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:rounded-full after:h-5 after:w-5 after:transition-all"
+                    style={{
+                      backgroundColor: theme === 'dark' ? 'rgba(193, 192, 182, 0.2)' : '#d1d5db'
+                    }}
+                  >
+                  </div>
                 </label>
               </div>
             </div>
           </section>
 
-          {/* Additional Settings */}
+          {/* Preferences */}
           <section
-            className="rounded-2xl p-6 border bg-card border-border"
+            className="rounded-3xl p-6"
+            style={{
+              backgroundColor: theme === 'dark' ? 'rgba(45, 45, 41, 0.5)' : 'rgba(255, 255, 255, 0.5)',
+              backdropFilter: 'blur(16px) saturate(180%)',
+              WebkitBackdropFilter: 'blur(16px) saturate(180%)',
+              border: theme === 'dark' ? '1px solid rgba(193, 192, 182, 0.1)' : '1px solid rgba(0, 0, 0, 0.06)',
+              boxShadow: theme === 'dark' ? '0 8px 32px rgba(0, 0, 0, 0.3)' : '0 8px 32px rgba(0, 0, 0, 0.03)'
+            }}
           >
             <div className="flex items-center gap-3 mb-4">
-              <Palette className="w-5 h-5" style={{ color: '#D97706' }} />
+              <Palette className="w-5 h-5" style={{ color: theme === 'dark' ? '#C1C0B6' : '#0c0a09' }} />
               <h2
-                className="text-xl text-foreground"
+                className="text-xl"
                 style={{
-                  fontFamily: 'var(--_typography---font--styrene-a)',
-                  fontWeight: 500,
-                  letterSpacing: '-0.02em'
+                  fontFamily: 'var(--font-heading)',
+                  fontWeight: 400,
+                  letterSpacing: '-0.02em',
+                  color: theme === 'dark' ? '#C1C0B6' : '#0c0a09'
                 }}
               >
                 Preferences
@@ -472,19 +591,23 @@ const Settings = () => {
             <div className="space-y-4">
               <div>
                 <h3
-                  className="mb-2 text-foreground"
+                  className="mb-2"
                   style={{
-                    fontFamily: 'var(--_typography---font--tiempos)',
-                    fontWeight: 500
+                    fontFamily: 'var(--font-body)',
+                    fontWeight: 500,
+                    color: theme === 'dark' ? '#C1C0B6' : '#0c0a09'
                   }}
                 >
                   Voice Settings
                 </h3>
                 <button
                   onClick={() => navigate('/voice-settings')}
-                  className="flex items-center gap-2 px-4 py-2 rounded-lg bg-muted text-foreground border border-border"
+                  className="flex items-center gap-2 px-4 py-2 rounded-xl transition-all hover:scale-[1.02]"
                   style={{
-                    fontFamily: 'var(--_typography---font--tiempos)'
+                    backgroundColor: theme === 'dark' ? 'rgba(193, 192, 182, 0.1)' : 'rgba(0, 0, 0, 0.05)',
+                    border: theme === 'dark' ? '1px solid rgba(193, 192, 182, 0.2)' : '1px solid rgba(0, 0, 0, 0.1)',
+                    color: theme === 'dark' ? '#C1C0B6' : '#0c0a09',
+                    fontFamily: 'var(--font-body)'
                   }}
                 >
                   Configure Voice Clone
@@ -494,19 +617,23 @@ const Settings = () => {
 
               <div>
                 <h3
-                  className="mb-2 text-foreground"
+                  className="mb-2"
                   style={{
-                    fontFamily: 'var(--_typography---font--tiempos)',
-                    fontWeight: 500
+                    fontFamily: 'var(--font-body)',
+                    fontWeight: 500,
+                    color: theme === 'dark' ? '#C1C0B6' : '#0c0a09'
                   }}
                 >
                   Twin Builder
                 </h3>
                 <button
                   onClick={() => navigate('/twin-builder')}
-                  className="flex items-center gap-2 px-4 py-2 rounded-lg bg-muted text-foreground border border-border"
+                  className="flex items-center gap-2 px-4 py-2 rounded-xl transition-all hover:scale-[1.02]"
                   style={{
-                    fontFamily: 'var(--_typography---font--tiempos)'
+                    backgroundColor: theme === 'dark' ? 'rgba(193, 192, 182, 0.1)' : 'rgba(0, 0, 0, 0.05)',
+                    border: theme === 'dark' ? '1px solid rgba(193, 192, 182, 0.2)' : '1px solid rgba(0, 0, 0, 0.1)',
+                    color: theme === 'dark' ? '#C1C0B6' : '#0c0a09',
+                    fontFamily: 'var(--font-body)'
                   }}
                 >
                   Manage Your Digital Twin

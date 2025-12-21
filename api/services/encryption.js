@@ -164,6 +164,35 @@ if (process.env.NODE_ENV === 'development') {
   testEncryption();
 }
 
+
+/**
+ * Encrypt OAuth state parameter
+ * @param {string|object} state - State to encrypt (object will be JSON.stringified)
+ * @returns {string} - Encrypted state
+ */
+export function encryptState(state) {
+  const stateString = typeof state === 'object' ? JSON.stringify(state) : state;
+  return encryptToken(stateString);
+}
+
+/**
+ * Decrypt OAuth state parameter
+ * @param {string} encryptedState - Encrypted state
+ * @param {boolean} parseJson - If true, parse the decrypted string as JSON (default: true)
+ * @returns {string|object} - Decrypted state
+ */
+export function decryptState(encryptedState, parseJson = true) {
+  const decrypted = decryptToken(encryptedState);
+  if (parseJson) {
+    try {
+      return JSON.parse(decrypted);
+    } catch {
+      return decrypted; // Return as string if not valid JSON
+    }
+  }
+  return decrypted;
+}
+
 export default {
   encryptToken,
   decryptToken,
