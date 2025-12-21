@@ -379,71 +379,125 @@ export function PersonalityAssessment() {
             </motion.div>
           )}
 
-          {/* Deep Prompt Phase */}
+          {/* Deep Prompt Phase - Shows Quick Pulse results with option to go deeper */}
           {phase === 'deep-prompt' && result && (
             <motion.div
               key="deep-prompt"
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0 }}
-              className="text-center"
             >
-              {/* Quick result preview */}
-              <div className="mb-8">
+              {/* Success header */}
+              <div className="text-center mb-6">
                 <div
                   className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm mb-4"
                   style={{
-                    backgroundColor: colors.accentBg,
-                    color: colors.accent
+                    backgroundColor: 'rgba(34, 197, 94, 0.15)',
+                    color: '#22c55e'
                   }}
                 >
                   <Check className="w-4 h-4" />
-                  Quick Pulse Complete
+                  Quick Pulse Complete!
                 </div>
-                <h2 className="text-2xl md:text-3xl font-bold mb-2" style={{ color: colors.text }}>
-                  You're an <span style={{ color: colors.accent }}>{result.archetype.code}</span>
+                <h2 className="text-3xl md:text-4xl font-bold mb-2" style={{ color: colors.text }}>
+                  {result.archetype.code}
                 </h2>
-                <p style={{ color: colors.textSecondary }}>{result.archetype.title}</p>
+                <h3 className="text-xl mb-1" style={{ color: colors.accent }}>
+                  {result.archetype.name}
+                </h3>
+                <p className="italic" style={{ color: colors.textSecondary }}>
+                  {result.archetype.title}
+                </p>
               </div>
 
-              {/* Continue prompt */}
+              {/* Quick results preview card */}
               <div
-                className="rounded-2xl p-8 max-w-xl mx-auto mb-8"
+                className="rounded-2xl p-6 mb-6"
                 style={{
                   backgroundColor: colors.cardBg,
                   border: `1px solid ${colors.border}`
                 }}
               >
-                <h3 className="text-lg font-semibold mb-2" style={{ color: colors.text }}>
-                  Want a more accurate profile?
-                </h3>
-                <p className="text-sm mb-6" style={{ color: colors.textSecondary }}>
-                  Complete 48 additional questions to refine your results and unlock deeper insights
-                  about your personality facets.
+                <p className="leading-relaxed mb-4" style={{ color: colors.text }}>
+                  {result.archetype.description}
                 </p>
 
-                <div className="flex flex-col sm:flex-row gap-3 justify-center">
-                  <button
-                    onClick={continueDeepAssessment}
-                    className="px-6 py-3 rounded-xl font-medium transition-all hover:scale-[1.02]"
-                    style={{
-                      backgroundColor: colors.accent,
-                      color: theme === 'dark' ? '#1a1a18' : '#fff'
-                    }}
-                  >
-                    Continue Deep Assessment
-                  </button>
-                  <button
-                    onClick={() => setPhase('results')}
-                    className="px-6 py-3 rounded-xl font-medium transition-all"
-                    style={{
-                      backgroundColor: colors.accentBg,
-                      color: colors.text
-                    }}
-                  >
-                    View Results Now
-                  </button>
+                {/* Quick Big Five preview */}
+                <div className="grid grid-cols-5 gap-2">
+                  {Object.entries(result.scores || {})
+                    .filter(([dimension]) => !dimension.endsWith('_ci'))
+                    .slice(0, 5)
+                    .map(([dimension, score]) => {
+                      const labels: Record<string, string> = {
+                        extraversion: 'E',
+                        openness: 'O',
+                        conscientiousness: 'C',
+                        agreeableness: 'A',
+                        neuroticism: 'N',
+                      };
+                      const percentage = Math.round((score as number) > 1 ? (score as number) : (score as number) * 100);
+                      return (
+                        <div key={dimension} className="text-center">
+                          <div
+                            className="text-lg font-bold"
+                            style={{ color: colors.accent }}
+                          >
+                            {labels[dimension] || dimension[0].toUpperCase()}
+                          </div>
+                          <div
+                            className="text-sm"
+                            style={{ color: colors.textSecondary }}
+                          >
+                            {percentage}%
+                          </div>
+                        </div>
+                      );
+                    })}
                 </div>
+              </div>
+
+              {/* Action buttons - Equal prominence */}
+              <div className="flex flex-col sm:flex-row gap-4 justify-center mb-6">
+                <button
+                  onClick={() => setPhase('results')}
+                  className="px-6 py-3 rounded-xl font-medium transition-all hover:scale-[1.02]"
+                  style={{
+                    backgroundColor: colors.accent,
+                    color: theme === 'dark' ? '#1a1a18' : '#fff'
+                  }}
+                >
+                  See Full Results
+                </button>
+                <button
+                  onClick={() => navigate('/dashboard')}
+                  className="px-6 py-3 rounded-xl font-medium transition-all hover:scale-[1.02]"
+                  style={{
+                    backgroundColor: colors.accentBg,
+                    color: colors.text
+                  }}
+                >
+                  Continue to Dashboard
+                </button>
+              </div>
+
+              {/* Optional: Go deeper prompt */}
+              <div
+                className="rounded-xl p-4 text-center"
+                style={{
+                  backgroundColor: theme === 'dark' ? 'rgba(193, 192, 182, 0.05)' : 'rgba(0, 0, 0, 0.02)',
+                  border: `1px dashed ${colors.border}`
+                }}
+              >
+                <p className="text-sm mb-3" style={{ color: colors.textSecondary }}>
+                  Want even more accurate insights? Complete 48 more questions for a detailed profile.
+                </p>
+                <button
+                  onClick={continueDeepAssessment}
+                  className="text-sm font-medium transition-colors hover:underline"
+                  style={{ color: colors.accent }}
+                >
+                  Take Deep Assessment →
+                </button>
               </div>
             </motion.div>
           )}

@@ -11,9 +11,20 @@ const OAuthCallback = () => {
   const { theme } = useTheme();
   const [status, setStatus] = useState<'loading' | 'success' | 'error'>('loading');
   const [message, setMessage] = useState('Processing authentication...');
+  const [showError, setShowError] = useState(false); // Delay error visibility to prevent 401 flash
 
   // Prevent double execution in React Strict Mode
   const hasRun = useRef(false);
+  const errorTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Cleanup error timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (errorTimeoutRef.current) {
+        clearTimeout(errorTimeoutRef.current);
+      }
+    };
+  }, []);
 
   useEffect(() => {
     // Guard against double execution in React 18 Strict Mode
@@ -70,6 +81,8 @@ const OAuthCallback = () => {
         if (error) {
           setStatus('error');
           setMessage(`Authentication failed: ${error}`);
+          // Delay showing error to prevent transient 401 flash
+          errorTimeoutRef.current = setTimeout(() => setShowError(true), 500);
           setTimeout(() => navigate('/auth'), 3000);
           return;
         }
@@ -77,6 +90,8 @@ const OAuthCallback = () => {
         if (!code) {
           setStatus('error');
           setMessage('No authorization code received');
+          // Delay showing error to prevent transient 401 flash
+          errorTimeoutRef.current = setTimeout(() => setShowError(true), 500);
           setTimeout(() => navigate('/auth'), 3000);
           return;
         }
@@ -201,6 +216,12 @@ const OAuthCallback = () => {
         });
 
         if (data.success) {
+          // Clear any pending error timeout on success
+          if (errorTimeoutRef.current) {
+            clearTimeout(errorTimeoutRef.current);
+            errorTimeoutRef.current = null;
+          }
+
           if (isConnectorOAuth) {
             // Handle connector OAuth success
             console.log('✅ Connector OAuth successful');
@@ -443,11 +464,15 @@ const OAuthCallback = () => {
         setStatus('error');
         setMessage('Connection failed. Please try again.');
 
-        // Show error toast
-        toast.error('Connection Failed', {
-          description: 'Unable to complete authentication. Please try again.',
-          duration: 4000
-        });
+        // Delay showing error to prevent transient 401 flash
+        errorTimeoutRef.current = setTimeout(() => {
+          setShowError(true);
+          // Show error toast only after delay
+          toast.error('Connection Failed', {
+            description: 'Unable to complete authentication. Please try again.',
+            duration: 4000
+          });
+        }, 500);
 
         // Don't redirect to auth for connector OAuth failures - stay on get-started
         setTimeout(() => {
@@ -461,7 +486,9 @@ const OAuthCallback = () => {
 
   const getStatusIcon = () => {
     const iconColor = theme === 'dark' ? '#C1C0B6' : '#0c0a09';
-    switch (status) {
+    // Don't show error icon until showError is true (prevents 401 flash)
+    const displayStatus = status === 'error' && !showError ? 'loading' : status;
+    switch (displayStatus) {
       case 'loading':
         return <Loader2 className="w-12 h-12 animate-spin" style={{ color: iconColor }} />;
       case 'success':
@@ -497,26 +524,34 @@ const OAuthCallback = () => {
           {getStatusIcon()}
         </div>
 
-        {/* Status Message */}
-        <h2 className="text-xl mb-2 font-medium" style={{
-          fontFamily: 'var(--_typography---font--styrene-a)',
-          letterSpacing: '-0.02em',
-          color: theme === 'dark' ? '#C1C0B6' : '#0c0a09'
-        }}>
-          {status === 'loading' && 'Authenticating...'}
-          {status === 'success' && 'Welcome!'}
-          {status === 'error' && 'Authentication Failed'}
-        </h2>
+        {/* Status Message - use displayStatus to prevent error flash */}
+        {(() => {
+          const displayStatus = status === 'error' && !showError ? 'loading' : status;
+          const displayMessage = status === 'error' && !showError ? 'Processing authentication...' : message;
+          return (
+            <>
+              <h2 className="text-xl mb-2 font-medium" style={{
+                fontFamily: 'var(--_typography---font--styrene-a)',
+                letterSpacing: '-0.02em',
+                color: theme === 'dark' ? '#C1C0B6' : '#0c0a09'
+              }}>
+                {displayStatus === 'loading' && 'Authenticating...'}
+                {displayStatus === 'success' && 'Welcome!'}
+                {displayStatus === 'error' && 'Authentication Failed'}
+              </h2>
 
-        <p className="text-sm" style={{
-          fontFamily: 'var(--_typography---font--tiempos)',
-          color: theme === 'dark' ? 'rgba(193, 192, 182, 0.8)' : '#57534e'
-        }}>
-          {message}
-        </p>
+              <p className="text-sm" style={{
+                fontFamily: 'var(--_typography---font--tiempos)',
+                color: theme === 'dark' ? 'rgba(193, 192, 182, 0.8)' : '#57534e'
+              }}>
+                {displayMessage}
+              </p>
+            </>
+          );
+        })()}
 
         {/* Progress indicator for loading state */}
-        {status === 'loading' && (
+        {(status === 'loading' || (status === 'error' && !showError)) && (
           <div className="mt-6">
             <div className="w-full rounded-full h-1.5" style={{ backgroundColor: theme === 'dark' ? 'rgba(193, 192, 182, 0.2)' : 'rgba(0, 0, 0, 0.06)' }}>
               <div className="h-1.5 rounded-full w-3/5 transition-all duration-300" style={{ backgroundColor: theme === 'dark' ? '#C1C0B6' : '#0c0a09' }} />
@@ -524,8 +559,8 @@ const OAuthCallback = () => {
           </div>
         )}
 
-        {/* Error state - show retry button */}
-        {status === 'error' && (
+        {/* Error state - show retry button only after delay */}
+        {status === 'error' && showError && (
           <button
             onClick={() => navigate('/auth')}
             className="mt-6 px-6 py-2 rounded-lg font-medium transition-all"
