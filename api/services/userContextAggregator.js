@@ -489,10 +489,35 @@ class UserContextAggregator {
   }
 
   /**
-   * Get user's personality profile from personality_scores table (Big Five)
+   * Get user's personality profile from personality_estimates table (60-question assessment)
+   * Falls back to personality_scores table (behavioral learning) if no assessment data
    */
   async getPersonalityProfile(userId) {
     try {
+      // First, check personality_estimates (60-question Big Five assessment)
+      const { data: estimates } = await supabaseAdmin
+        .from('personality_estimates')
+        .select('*')
+        .eq('user_id', userId)
+        .single();
+
+      if (estimates && estimates.total_questions_answered > 0) {
+        console.log(`🧠 [Context Aggregator] Found personality assessment: ${estimates.archetype_code} (${estimates.total_questions_answered} questions)`);
+        return {
+          source: 'assessment',
+          archetype: estimates.archetype_code,
+          openness: parseFloat(estimates.openness),
+          conscientiousness: parseFloat(estimates.conscientiousness),
+          extraversion: parseFloat(estimates.extraversion),
+          agreeableness: parseFloat(estimates.agreeableness),
+          neuroticism: parseFloat(estimates.neuroticism),
+          questionsAnswered: estimates.total_questions_answered,
+          dominantTraits: this.getDominantTraits(estimates),
+          confidence: this.getAssessmentConfidence(estimates)
+        };
+      }
+
+      // Fall back to personality_scores (behavioral learning)
       const { data: scores } = await supabaseAdmin
         .from('personality_scores')
         .select('*')
@@ -501,7 +526,9 @@ class UserContextAggregator {
 
       if (!scores) return null;
 
+      console.log(`🧠 [Context Aggregator] Using behavioral personality scores`);
       return {
+        source: 'behavioral',
         openness: scores.openness,
         conscientiousness: scores.conscientiousness,
         extraversion: scores.extraversion,
@@ -511,9 +538,20 @@ class UserContextAggregator {
         confidence: this.getAverageConfidence(scores)
       };
 
-    } catch {
+    } catch (error) {
+      console.error(`❌ [Context Aggregator] Error fetching personality:`, error);
       return null;
     }
+  }
+
+  /**
+   * Get confidence level based on assessment completion
+   */
+  getAssessmentConfidence(estimates) {
+    const questionsAnswered = estimates.total_questions_answered || 0;
+    if (questionsAnswered >= 60) return 'high';
+    if (questionsAnswered >= 12) return 'medium';
+    return 'low';
   }
 
   /**
