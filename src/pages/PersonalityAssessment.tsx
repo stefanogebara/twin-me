@@ -227,7 +227,10 @@ export function PersonalityAssessment() {
                 </div>
               </div>
 
-              <h1 className="text-3xl md:text-4xl font-bold mb-4" style={{ color: colors.text }}>
+              <h1
+                className="text-3xl md:text-4xl mb-4"
+                style={{ color: colors.text, fontFamily: 'var(--font-heading)', fontWeight: 500 }}
+              >
                 Discover Your Soul Signature
               </h1>
 
@@ -255,7 +258,7 @@ export function PersonalityAssessment() {
                       Quick Pulse
                     </span>
                   </div>
-                  <h3 className="text-lg font-semibold mb-2" style={{ color: colors.text }}>
+                  <h3 className="text-lg mb-2" style={{ color: colors.text, fontFamily: 'var(--font-heading)', fontWeight: 500 }}>
                     2-minute snapshot
                   </h3>
                   <p className="text-sm mb-4" style={{ color: colors.textSecondary }}>
@@ -287,7 +290,7 @@ export function PersonalityAssessment() {
                       Deep Dive
                     </span>
                   </div>
-                  <h3 className="text-lg font-semibold mb-2" style={{ color: colors.text }}>
+                  <h3 className="text-lg mb-2" style={{ color: colors.text, fontFamily: 'var(--font-heading)', fontWeight: 500 }}>
                     10-minute complete profile
                   </h3>
                   <p className="text-sm mb-4" style={{ color: colors.textSecondary }}>
@@ -370,7 +373,7 @@ export function PersonalityAssessment() {
                   <Brain className="w-12 h-12 animate-pulse" style={{ color: colors.accent }} />
                 </div>
               </div>
-              <h2 className="text-2xl font-bold mb-2" style={{ color: colors.text }}>
+              <h2 className="text-2xl mb-2" style={{ color: colors.text, fontFamily: 'var(--font-heading)', fontWeight: 500 }}>
                 Analyzing Your Responses
               </h2>
               <p style={{ color: colors.textSecondary }}>
@@ -399,10 +402,10 @@ export function PersonalityAssessment() {
                   <Check className="w-4 h-4" />
                   Quick Pulse Complete!
                 </div>
-                <h2 className="text-3xl md:text-4xl font-bold mb-2" style={{ color: colors.text }}>
+                <h2 className="text-3xl md:text-4xl mb-2" style={{ color: colors.text, fontFamily: 'var(--font-heading)', fontWeight: 500 }}>
                   {result.archetype.code}
                 </h2>
-                <h3 className="text-xl mb-1" style={{ color: colors.accent }}>
+                <h3 className="text-xl mb-1" style={{ color: colors.accent, fontFamily: 'var(--font-heading)', fontWeight: 500 }}>
                   {result.archetype.name}
                 </h3>
                 <p className="italic" style={{ color: colors.textSecondary }}>
@@ -522,10 +525,10 @@ export function PersonalityAssessment() {
                   <Sparkles className="w-4 h-4" />
                   Your Soul Signature
                 </div>
-                <h1 className="text-4xl md:text-5xl font-bold mb-2" style={{ color: colors.text }}>
+                <h1 className="text-4xl md:text-5xl mb-2" style={{ color: colors.text, fontFamily: 'var(--font-heading)', fontWeight: 500 }}>
                   {result.archetype.code}
                 </h1>
-                <h2 className="text-xl mb-2" style={{ color: colors.accent }}>
+                <h2 className="text-xl mb-2" style={{ color: colors.accent, fontFamily: 'var(--font-heading)', fontWeight: 500 }}>
                   {result.archetype.name}
                 </h2>
                 <p className="italic" style={{ color: colors.textSecondary }}>
@@ -554,7 +557,7 @@ export function PersonalityAssessment() {
                   border: `1px solid ${colors.border}`
                 }}
               >
-                <h3 className="text-lg font-semibold mb-4" style={{ color: colors.text }}>
+                <h3 className="text-lg mb-4" style={{ color: colors.text, fontFamily: 'var(--font-heading)', fontWeight: 500 }}>
                   Your Big Five Profile
                 </h3>
                 <div className="space-y-4">
@@ -576,7 +579,7 @@ export function PersonalityAssessment() {
                     border: `1px solid ${colors.border}`
                   }}
                 >
-                  <h3 className="text-lg font-semibold mb-3" style={{ color: '#22c55e' }}>
+                  <h3 className="text-lg mb-3" style={{ color: '#22c55e', fontFamily: 'var(--font-heading)', fontWeight: 500 }}>
                     Strengths
                   </h3>
                   <ul className="space-y-2">
@@ -597,7 +600,7 @@ export function PersonalityAssessment() {
                     border: `1px solid ${colors.border}`
                   }}
                 >
-                  <h3 className="text-lg font-semibold mb-3" style={{ color: '#f59e0b' }}>
+                  <h3 className="text-lg mb-3" style={{ color: '#f59e0b', fontFamily: 'var(--font-heading)', fontWeight: 500 }}>
                     Growth Areas
                   </h3>
                   <ul className="space-y-2">

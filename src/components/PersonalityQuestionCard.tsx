@@ -125,8 +125,8 @@ export function PersonalityQuestionCard({
         }}
       >
         <h2
-          className="text-xl md:text-2xl font-medium text-center mb-8 leading-relaxed"
-          style={{ color: colors.text }}
+          className="text-xl md:text-2xl text-center mb-8 leading-relaxed"
+          style={{ color: colors.text, fontFamily: 'var(--font-heading)', fontWeight: 500 }}
         >
           {questionText}
         </h2>
