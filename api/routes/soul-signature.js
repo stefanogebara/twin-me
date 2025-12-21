@@ -14,6 +14,7 @@ import whoopFeatureExtractor from '../services/featureExtractors/whoopExtractor.
 import personalityAnalyzerService from '../services/personalityAnalyzerService.js';
 import soulSignatureGenerator from '../services/soulSignatureGenerator.js';
 import uniquePatternDetector from '../services/uniquePatternDetector.js';
+import { ARCHETYPES } from '../services/personalityAssessmentService.js';
 
 const router = express.Router();
 
@@ -89,6 +90,38 @@ router.get('/personality-scores', authenticateToken, async (req, res) => {
 
     console.log(`🧠 [Soul Signature] Fetching personality scores for user ${userId}`);
 
+    // First check personality_estimates (60-question assessment)
+    const { data: estimates } = await supabaseAdmin
+      .from('personality_estimates')
+      .select('*')
+      .eq('user_id', userId)
+      .single();
+
+    if (estimates && estimates.total_questions_answered > 0) {
+      console.log(`🧠 [Soul Signature] Found assessment data: ${estimates.archetype_code} (${estimates.total_questions_answered} questions)`);
+      return res.json({
+        success: true,
+        data: {
+          user_id: userId,
+          source: 'assessment',
+          openness: parseFloat(estimates.openness),
+          conscientiousness: parseFloat(estimates.conscientiousness),
+          extraversion: parseFloat(estimates.extraversion),
+          agreeableness: parseFloat(estimates.agreeableness),
+          neuroticism: parseFloat(estimates.neuroticism),
+          openness_confidence: 100 - parseFloat(estimates.openness_ci || 10),
+          conscientiousness_confidence: 100 - parseFloat(estimates.conscientiousness_ci || 10),
+          extraversion_confidence: 100 - parseFloat(estimates.extraversion_ci || 10),
+          agreeableness_confidence: 100 - parseFloat(estimates.agreeableness_ci || 10),
+          neuroticism_confidence: 100 - parseFloat(estimates.neuroticism_ci || 10),
+          archetype_code: estimates.archetype_code,
+          analyzed_platforms: ['personality_assessment'],
+          sample_size: estimates.total_questions_answered
+        }
+      });
+    }
+
+    // Fall back to behavioral personality_scores
     const { data: scores, error } = await supabaseAdmin
       .from('personality_scores')
       .select('*')
@@ -101,15 +134,16 @@ router.get('/personality-scores', authenticateToken, async (req, res) => {
         return res.json({
           success: true,
           data: null,
-          message: 'No personality scores found. Generate soul signature first.'
+          message: 'No personality scores found. Complete the personality assessment first.'
         });
       }
       throw error;
     }
 
+    console.log(`🧠 [Soul Signature] Using behavioral personality scores`);
     res.json({
       success: true,
-      data: scores
+      data: { ...scores, source: 'behavioral' }
     });
 
   } catch (error) {
@@ -132,26 +166,55 @@ router.get('/archetype', authenticateToken, async (req, res) => {
 
     console.log(`✨ [Soul Signature] Fetching archetype for user ${userId}`);
 
+    // First try soul_signatures table
     const { data: signature, error } = await supabaseAdmin
       .from('soul_signatures')
       .select('*')
       .eq('user_id', userId)
       .single();
 
-    if (error) {
-      if (error.code === 'PGRST116') {
-        return res.json({
-          success: true,
-          data: null,
-          message: 'No soul signature found. Generate one first.'
-        });
-      }
-      throw error;
+    if (signature && !error) {
+      console.log(`✨ [Soul Signature] Found soul signature: ${signature.archetype_name}`);
+      return res.json({
+        success: true,
+        data: signature
+      });
     }
 
-    res.json({
+    // Fall back to personality_estimates (from 60-question assessment)
+    const { data: estimates } = await supabaseAdmin
+      .from('personality_estimates')
+      .select('archetype_code, openness, conscientiousness, extraversion, agreeableness, neuroticism, total_questions_answered')
+      .eq('user_id', userId)
+      .single();
+
+    if (estimates?.archetype_code) {
+      const archetype = ARCHETYPES[estimates.archetype_code];
+      console.log(`✨ [Soul Signature] Using personality assessment archetype: ${estimates.archetype_code} - ${archetype?.name}`);
+
+      // Generate a narrative based on Big Five scores
+      const narrative = generateArchetypeNarrative(estimates.archetype_code, archetype, estimates);
+
+      return res.json({
+        success: true,
+        data: {
+          user_id: userId,
+          archetype_name: archetype?.name || estimates.archetype_code,
+          archetype_code: estimates.archetype_code,
+          archetype_subtitle: `${archetype?.group || 'Personality'} Type`,
+          narrative: narrative,
+          color_scheme: { primary: archetype?.color || '#6366f1' },
+          source: 'assessment',
+          questions_answered: estimates.total_questions_answered
+        }
+      });
+    }
+
+    // No data found in either table
+    return res.json({
       success: true,
-      data: signature
+      data: null,
+      message: 'No soul signature found. Complete the personality assessment first.'
     });
 
   } catch (error) {
@@ -163,6 +226,31 @@ router.get('/archetype', authenticateToken, async (req, res) => {
     });
   }
 });
+
+// Helper function to generate narrative from archetype and Big Five scores
+function generateArchetypeNarrative(code, archetype, estimates) {
+  const traits = [];
+
+  if (estimates.openness > 60) traits.push('imaginative and open to new experiences');
+  else if (estimates.openness < 40) traits.push('practical and grounded');
+
+  if (estimates.conscientiousness > 60) traits.push('organized and goal-oriented');
+  else if (estimates.conscientiousness < 40) traits.push('flexible and spontaneous');
+
+  if (estimates.extraversion > 60) traits.push('energized by social interaction');
+  else if (estimates.extraversion < 40) traits.push('thoughtful and introspective');
+
+  if (estimates.agreeableness > 60) traits.push('compassionate and cooperative');
+  else if (estimates.agreeableness < 40) traits.push('independent and analytical');
+
+  if (estimates.neuroticism > 60) traits.push('emotionally attuned');
+  else if (estimates.neuroticism < 40) traits.push('calm and composed');
+
+  const name = archetype?.name || code;
+  const group = archetype?.group || 'Personality';
+
+  return `As ${name}, you are part of the ${group} group. Based on your personality assessment, you are ${traits.join(', ')}. This unique combination shapes how you approach life, relationships, and challenges.`;
+}
 
 // ====================================================================
 // GET /api/soul-signature/patterns
