@@ -1,6 +1,7 @@
 /**
- * PersonalityAssessment - 16personalities-style Big Five assessment page
+ * PersonalityAssessment - 16personalities-style MBTI assessment page
  *
+ * 5 dimensions: Mind (I/E), Energy (S/N), Nature (T/F), Tactics (J/P), Identity (A/T)
  * Matches the platform's warm grey design language with proper theming.
  */
 
@@ -10,7 +11,12 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Sparkles, Brain, ChevronRight, Check, Loader2 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useTheme } from '@/contexts/ThemeContext';
+import { useDemo } from '@/contexts/DemoContext';
 import { PersonalityQuestionCard } from '@/components/PersonalityQuestionCard';
+import {
+  DEMO_MBTI_QUESTIONS,
+  generateDemoPersonalityResult
+} from '@/services/demoDataService';
 
 interface Question {
   id: string;
@@ -32,9 +38,12 @@ interface AssessmentResult {
   scores: PersonalityScores;
   archetype: {
     code: string;
+    fullCode?: string; // e.g., "ENFP-T" with identity suffix
     name: string;
     title: string;
     description: string;
+    identity?: string; // "A" or "T"
+    identityLabel?: string; // "Assertive" or "Turbulent"
   };
   insights: {
     strengths: string[];
@@ -49,9 +58,13 @@ interface AssessmentResult {
 type AssessmentMode = 'quick_pulse' | 'deep' | 'full';
 type AssessmentPhase = 'intro' | 'questions' | 'calculating' | 'results' | 'deep-prompt';
 
+// Demo questions imported from centralized demoDataService.ts
+// DEMO_MBTI_QUESTIONS, generateDemoPersonalityResult
+
 export function PersonalityAssessment() {
   const { token } = useAuth();
   const { theme } = useTheme();
+  const { isDemoMode } = useDemo();
   const navigate = useNavigate();
 
   const [phase, setPhase] = useState<AssessmentPhase>('intro');
@@ -76,10 +89,20 @@ export function PersonalityAssessment() {
 
   // Fetch questions based on mode
   const fetchQuestions = useCallback(async (assessmentMode: AssessmentMode) => {
+    // Demo mode: use local demo questions
+    if (isDemoMode) {
+      setLoading(true);
+      // Simulate loading delay for better UX
+      setTimeout(() => {
+        setQuestions(DEMO_MBTI_QUESTIONS);
+        setLoading(false);
+      }, 500);
+      return;
+    }
+
     const authToken = token || localStorage.getItem('auth_token');
 
     if (!authToken) {
-      console.log('[PersonalityAssessment] No token available');
       setError('Authentication required. Please refresh the page.');
       return;
     }
@@ -88,7 +111,6 @@ export function PersonalityAssessment() {
     setError(null);
 
     try {
-      console.log('[PersonalityAssessment] Fetching questions with mode:', assessmentMode);
       const response = await fetch(
         `http://localhost:3001/api/personality/questions?mode=${assessmentMode}`,
         {
@@ -102,7 +124,6 @@ export function PersonalityAssessment() {
       }
 
       const data = await response.json();
-      console.log('[PersonalityAssessment] Received questions:', data.questions?.length);
       if (data.success) {
         setQuestions(data.questions);
       } else {
@@ -114,14 +135,29 @@ export function PersonalityAssessment() {
     } finally {
       setLoading(false);
     }
-  }, [token]);
+  }, [token, isDemoMode]);
 
   // Submit responses
   const submitResponses = async () => {
-    const authToken = token || localStorage.getItem('auth_token');
-    if (!authToken) return;
-
     setPhase('calculating');
+
+    // Demo mode: calculate results locally
+    if (isDemoMode) {
+      // Simulate calculation delay
+      setTimeout(() => {
+        const demoResult = generateDemoPersonalityResult(responses);
+        setResult(demoResult);
+        setPhase(mode === 'quick_pulse' ? 'deep-prompt' : 'results');
+      }, 1500);
+      return;
+    }
+
+    const authToken = token || localStorage.getItem('auth_token');
+    if (!authToken) {
+      setError('Authentication required');
+      setPhase('questions');
+      return;
+    }
 
     try {
       const responsesArray = Array.from(responses.entries()).map(([question_id, value]) => ({
@@ -129,7 +165,6 @@ export function PersonalityAssessment() {
         value,
       }));
 
-      console.log('[PersonalityAssessment] Submitting', responsesArray.length, 'responses');
       const response = await fetch('http://localhost:3001/api/personality/responses', {
         method: 'POST',
         headers: {
@@ -262,7 +297,7 @@ export function PersonalityAssessment() {
                     2-minute snapshot
                   </h3>
                   <p className="text-sm mb-4" style={{ color: colors.textSecondary }}>
-                    12 key questions for a quick personality profile. Perfect for getting started.
+                    15 key questions for a quick personality profile. Perfect for getting started.
                   </p>
                   <div
                     className="flex items-center text-sm transition-colors"
@@ -337,12 +372,13 @@ export function PersonalityAssessment() {
                 </div>
               ) : currentQuestion ? (
                 <PersonalityQuestionCard
+                  key={currentQuestion.id} // Force re-mount on question change to clear focus states
                   questionId={currentQuestion.id}
                   questionNumber={currentIndex + 1}
                   totalQuestions={questions.length}
                   questionText={currentQuestion.question}
                   dimension={currentQuestion.dimension}
-                  selectedValue={responses.get(currentQuestion.id) || null}
+                  selectedValue={responses.get(currentQuestion.id) ?? null}
                   onAnswer={handleAnswer}
                   onNext={handleNext}
                   onPrevious={handlePrevious}
@@ -403,7 +439,7 @@ export function PersonalityAssessment() {
                   Quick Pulse Complete!
                 </div>
                 <h2 className="text-3xl md:text-4xl mb-2" style={{ color: colors.text, fontFamily: 'var(--font-heading)', fontWeight: 500 }}>
-                  {result.archetype.code}
+                  {result.archetype.fullCode || result.archetype.code}
                 </h2>
                 <h3 className="text-xl mb-1" style={{ color: colors.accent, fontFamily: 'var(--font-heading)', fontWeight: 500 }}>
                   {result.archetype.name}
@@ -425,27 +461,36 @@ export function PersonalityAssessment() {
                   {result.archetype.description}
                 </p>
 
-                {/* Quick Big Five preview */}
+                {/* Quick MBTI dimension preview */}
                 <div className="grid grid-cols-5 gap-2">
                   {Object.entries(result.scores || {})
                     .filter(([dimension]) => !dimension.endsWith('_ci'))
                     .slice(0, 5)
                     .map(([dimension, score]) => {
-                      const labels: Record<string, string> = {
-                        extraversion: 'E',
-                        openness: 'O',
-                        conscientiousness: 'C',
-                        agreeableness: 'A',
-                        neuroticism: 'N',
-                      };
                       const percentage = Math.round((score as number) > 1 ? (score as number) : (score as number) * 100);
+                      // Get MBTI letter based on score (>50% = positive pole)
+                      const mbtiLetters: Record<string, { low: string; high: string }> = {
+                        mind: { low: 'I', high: 'E' },
+                        energy: { low: 'S', high: 'N' },
+                        nature: { low: 'T', high: 'F' },
+                        tactics: { low: 'P', high: 'J' },
+                        identity: { low: 'T', high: 'A' },
+                        // Legacy Big Five mapping
+                        extraversion: { low: 'I', high: 'E' },
+                        openness: { low: 'S', high: 'N' },
+                        agreeableness: { low: 'T', high: 'F' },
+                        conscientiousness: { low: 'P', high: 'J' },
+                        neuroticism: { low: 'T', high: 'A' },
+                      };
+                      const poles = mbtiLetters[dimension] || { low: '?', high: '?' };
+                      const letter = percentage >= 50 ? poles.high : poles.low;
                       return (
                         <div key={dimension} className="text-center">
                           <div
                             className="text-lg font-bold"
                             style={{ color: colors.accent }}
                           >
-                            {labels[dimension] || dimension[0].toUpperCase()}
+                            {letter}
                           </div>
                           <div
                             className="text-sm"
@@ -526,7 +571,7 @@ export function PersonalityAssessment() {
                   Your Soul Signature
                 </div>
                 <h1 className="text-4xl md:text-5xl mb-2" style={{ color: colors.text, fontFamily: 'var(--font-heading)', fontWeight: 500 }}>
-                  {result.archetype.code}
+                  {result.archetype.fullCode || result.archetype.code}
                 </h1>
                 <h2 className="text-xl mb-2" style={{ color: colors.accent, fontFamily: 'var(--font-heading)', fontWeight: 500 }}>
                   {result.archetype.name}
@@ -549,7 +594,7 @@ export function PersonalityAssessment() {
                 </p>
               </div>
 
-              {/* Big Five Scores */}
+              {/* MBTI Dimension Scores */}
               <div
                 className="rounded-2xl p-6 mb-6"
                 style={{
@@ -558,7 +603,7 @@ export function PersonalityAssessment() {
                 }}
               >
                 <h3 className="text-lg mb-4" style={{ color: colors.text, fontFamily: 'var(--font-heading)', fontWeight: 500 }}>
-                  Your Big Five Profile
+                  Your Personality Dimensions
                 </h3>
                 <div className="space-y-4">
                   {Object.entries(result.scores || {})
@@ -652,17 +697,25 @@ export function PersonalityAssessment() {
   );
 }
 
-// Dimension bar component
+// Dimension bar component - MBTI style
 function DimensionBar({ dimension, score, colors }: { dimension: string; score: number; colors: Record<string, string> }) {
-  const labels: Record<string, { name: string; low: string; high: string }> = {
-    extraversion: { name: 'Extraversion', low: 'Introvert', high: 'Extravert' },
-    openness: { name: 'Openness', low: 'Practical', high: 'Imaginative' },
-    conscientiousness: { name: 'Conscientiousness', low: 'Flexible', high: 'Organized' },
-    agreeableness: { name: 'Agreeableness', low: 'Analytical', high: 'Empathetic' },
-    neuroticism: { name: 'Emotional Reactivity', low: 'Calm', high: 'Sensitive' },
+  // MBTI dimension labels with pole names
+  const labels: Record<string, { name: string; low: string; high: string; letter: string }> = {
+    // New MBTI dimensions
+    mind: { name: 'Mind (I/E)', low: 'Introverted', high: 'Extraverted', letter: score >= 50 ? 'E' : 'I' },
+    energy: { name: 'Energy (S/N)', low: 'Observant', high: 'Intuitive', letter: score >= 50 ? 'N' : 'S' },
+    nature: { name: 'Nature (T/F)', low: 'Thinking', high: 'Feeling', letter: score >= 50 ? 'F' : 'T' },
+    tactics: { name: 'Tactics (J/P)', low: 'Prospecting', high: 'Judging', letter: score >= 50 ? 'J' : 'P' },
+    identity: { name: 'Identity (A/T)', low: 'Turbulent', high: 'Assertive', letter: score >= 50 ? 'A' : 'T' },
+    // Legacy Big Five mapping (for backward compatibility)
+    extraversion: { name: 'Mind (I/E)', low: 'Introverted', high: 'Extraverted', letter: score >= 50 ? 'E' : 'I' },
+    openness: { name: 'Energy (S/N)', low: 'Observant', high: 'Intuitive', letter: score >= 50 ? 'N' : 'S' },
+    agreeableness: { name: 'Nature (T/F)', low: 'Thinking', high: 'Feeling', letter: score >= 50 ? 'F' : 'T' },
+    conscientiousness: { name: 'Tactics (J/P)', low: 'Prospecting', high: 'Judging', letter: score >= 50 ? 'J' : 'P' },
+    neuroticism: { name: 'Identity (A/T)', low: 'Turbulent', high: 'Assertive', letter: score >= 50 ? 'A' : 'T' },
   };
 
-  const info = labels[dimension] || { name: dimension, low: 'Low', high: 'High' };
+  const info = labels[dimension] || { name: dimension, low: 'Low', high: 'High', letter: '?' };
   // Scores from backend are already on 0-100 scale
   const percentage = Math.round(score > 1 ? score : score * 100);
 

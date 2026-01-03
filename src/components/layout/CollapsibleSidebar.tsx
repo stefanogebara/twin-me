@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { useTheme } from '@/contexts/ThemeContext';
+import { useSidebar } from '@/contexts/SidebarContext';
 import {
   Home,
   MessageCircle,
@@ -47,10 +48,22 @@ const mainNavItems: NavItem[] = [
     path: '/dashboard'
   },
   {
+    id: 'connect-data',
+    label: 'Connect Data',
+    icon: Link2,
+    path: '/get-started'
+  },
+  {
     id: 'soul-signature',
     label: 'Soul Signature',
     icon: Sparkles,
     path: '/soul-signature'
+  },
+  {
+    id: 'chat',
+    label: 'Chat with Twin',
+    icon: MessageCircle,
+    path: '/talk-to-twin'
   }
 ];
 
@@ -84,7 +97,8 @@ export const CollapsibleSidebar: React.FC<CollapsibleSidebarProps> = ({
   const location = useLocation();
   const { user, signOut } = useAuth();
   const { theme } = useTheme();
-  const [isExpanded, setIsExpanded] = useState(true); // Desktop expand/collapse
+  const { isCollapsed, toggleSidebar } = useSidebar();
+  const isExpanded = !isCollapsed; // Use context state for sidebar expand/collapse
   const [showInsights, setShowInsights] = useState(true); // Keep Insights section open by default
   const [showUserMenu, setShowUserMenu] = useState(false);
 
@@ -159,7 +173,9 @@ export const CollapsibleSidebar: React.FC<CollapsibleSidebarProps> = ({
 
         {/* Toggle Button for Desktop - Outside scrollable area */}
         <button
-          onClick={() => setIsExpanded(!isExpanded)}
+          onClick={toggleSidebar}
+          aria-label={isExpanded ? "Collapse sidebar" : "Expand sidebar"}
+          aria-expanded={isExpanded}
           className="hidden lg:flex absolute top-8 w-8 h-8 bg-sidebar-primary hover:opacity-90 text-sidebar-primary-foreground rounded-full items-center justify-center transition-all shadow-xl hover:shadow-2xl hover:scale-110 z-50 border-2 border-sidebar"
           style={{
             right: '-16px'
@@ -167,9 +183,9 @@ export const CollapsibleSidebar: React.FC<CollapsibleSidebarProps> = ({
           title={isExpanded ? "Collapse sidebar" : "Expand sidebar"}
         >
           {isExpanded ? (
-            <ChevronsLeft className="w-4 h-4" />
+            <ChevronsLeft className="w-4 h-4" aria-hidden="true" />
           ) : (
-            <ChevronsRight className="w-4 h-4" />
+            <ChevronsRight className="w-4 h-4" aria-hidden="true" />
           )}
         </button>
 
@@ -177,9 +193,10 @@ export const CollapsibleSidebar: React.FC<CollapsibleSidebarProps> = ({
         {/* Close button for mobile */}
         <button
           onClick={onClose}
+          aria-label="Close navigation menu"
           className="absolute top-4 right-4 p-2 hover:bg-sidebar-accent rounded-lg transition-colors lg:hidden"
         >
-          <X className="w-5 h-5 text-sidebar-foreground" />
+          <X className="w-5 h-5 text-sidebar-foreground" aria-hidden="true" />
         </button>
 
         {/* Logo */}
@@ -201,7 +218,7 @@ export const CollapsibleSidebar: React.FC<CollapsibleSidebarProps> = ({
           </button>
         </div>
 
-        <div className="p-4 space-y-1 flex-1">
+        <nav className="p-4 space-y-1 flex-1" role="navigation" aria-label="Main navigation">
           {/* Main navigation items */}
           {mainNavItems.map((item) => {
             const Icon = item.icon;
@@ -211,6 +228,8 @@ export const CollapsibleSidebar: React.FC<CollapsibleSidebarProps> = ({
               <button
                 key={item.id}
                 onClick={() => handleNavigate(item.path)}
+                aria-label={`Navigate to ${item.label}`}
+                aria-current={active ? 'page' : undefined}
                 className={cn(
                   "w-full flex items-center gap-3 rounded-lg transition-all duration-200",
                   isExpanded ? "px-4 py-3" : "px-3 py-3 justify-center",
@@ -220,7 +239,7 @@ export const CollapsibleSidebar: React.FC<CollapsibleSidebarProps> = ({
                 )}
                 title={item.label}
               >
-                <Icon className="w-5 h-5" />
+                <Icon className="w-5 h-5" aria-hidden="true" />
                 {isExpanded && <span className="text-sm font-medium">{item.label}</span>}
               </button>
             );
@@ -231,21 +250,23 @@ export const CollapsibleSidebar: React.FC<CollapsibleSidebarProps> = ({
             <div className="pt-4">
               <button
                 onClick={() => setShowInsights(!showInsights)}
+                aria-label={showInsights ? "Collapse Twin Insights section" : "Expand Twin Insights section"}
+                aria-expanded={showInsights}
                 className="w-full flex items-center justify-between px-4 py-3 rounded-lg text-sidebar-foreground hover:bg-sidebar-accent transition-colors"
               >
                 <div className="flex items-center gap-2">
-                  <Eye className="w-4 h-4" />
+                  <Eye className="w-4 h-4" aria-hidden="true" />
                   <span className="text-sm font-medium">Twin Insights</span>
                 </div>
                 {showInsights ? (
-                  <ChevronDown className="w-4 h-4" />
+                  <ChevronDown className="w-4 h-4" aria-hidden="true" />
                 ) : (
-                  <ChevronRight className="w-4 h-4" />
+                  <ChevronRight className="w-4 h-4" aria-hidden="true" />
                 )}
               </button>
 
               {showInsights && (
-                <div className="mt-1 space-y-1 pl-4">
+                <div className="mt-1 space-y-1 pl-4" role="menu" aria-label="Twin Insights submenu">
                   {insightNavItems.map((item) => {
                     const Icon = item.icon;
                     const active = isActive(item.path);
@@ -254,6 +275,9 @@ export const CollapsibleSidebar: React.FC<CollapsibleSidebarProps> = ({
                       <button
                         key={item.id}
                         onClick={() => handleNavigate(item.path)}
+                        role="menuitem"
+                        aria-label={`Navigate to ${item.label}`}
+                        aria-current={active ? 'page' : undefined}
                         className={cn(
                           "w-full flex items-center gap-3 px-4 py-2 rounded-lg transition-all duration-200",
                           active
@@ -262,7 +286,7 @@ export const CollapsibleSidebar: React.FC<CollapsibleSidebarProps> = ({
                         )}
                         title={item.label}
                       >
-                        <Icon className="w-4 h-4" />
+                        <Icon className="w-4 h-4" aria-hidden="true" />
                         <span className="text-sm">{item.label}</span>
                       </button>
                     );
@@ -297,7 +321,7 @@ export const CollapsibleSidebar: React.FC<CollapsibleSidebarProps> = ({
               })}
             </div>
           )}
-        </div>
+        </nav>
 
         {/* User Menu at Bottom */}
         <div className="border-t border-sidebar-border p-4">

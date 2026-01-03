@@ -135,6 +135,8 @@ export const Sidebar: React.FC<SidebarProps> = ({ onNavigate }) => {
               <button
                 key={item.id}
                 onClick={() => handleNavigate(item.path)}
+                aria-label={`Navigate to ${item.label}`}
+                aria-current={active ? 'page' : undefined}
                 className={`
                   w-full flex items-center gap-3 px-3 py-2.5 rounded-lg
                   transition-all duration-150 group
@@ -146,6 +148,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ onNavigate }) => {
               >
                 <Icon
                   className={`w-5 h-5 ${active ? 'text-[hsl(var(--claude-accent))]' : ''}`}
+                  aria-hidden="true"
                 />
                 <span className="text-sm font-medium">{item.label}</span>
               </button>
@@ -166,6 +169,8 @@ export const Sidebar: React.FC<SidebarProps> = ({ onNavigate }) => {
               <button
                 key={item.id}
                 onClick={() => handleNavigate(item.path)}
+                aria-label={`Navigate to ${item.label}`}
+                aria-current={active ? 'page' : undefined}
                 className={`
                   w-full flex items-center gap-3 px-3 py-2.5 rounded-lg
                   transition-all duration-150
@@ -177,6 +182,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ onNavigate }) => {
               >
                 <Icon
                   className={`w-5 h-5 ${active ? 'text-[hsl(var(--claude-accent))]' : ''}`}
+                  aria-hidden="true"
                 />
                 <span className="text-sm font-medium">{item.label}</span>
               </button>
@@ -204,9 +210,10 @@ export const Sidebar: React.FC<SidebarProps> = ({ onNavigate }) => {
         {/* Sign Out Button */}
         <button
           onClick={handleSignOut}
+          aria-label="Sign out of your account"
           className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-[hsl(var(--claude-text-muted))] hover:bg-[hsl(var(--claude-surface-raised))] hover:text-[hsl(var(--claude-text))] transition-all duration-150"
         >
-          <LogOut className="w-4 h-4" />
+          <LogOut className="w-4 h-4" aria-hidden="true" />
           <span className="text-sm font-medium">Sign Out</span>
         </button>
       </div>

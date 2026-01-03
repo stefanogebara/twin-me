@@ -31,13 +31,11 @@ export const DemoProvider: React.FC<DemoProviderProps> = ({ children }) => {
   }, []);
 
   const enterDemoMode = () => {
-    console.log('Entering demo mode');
     localStorage.setItem('demo_mode', 'true');
     setIsDemoMode(true);
   };
 
   const exitDemoMode = () => {
-    console.log('Exiting demo mode');
     localStorage.removeItem('demo_mode');
     setIsDemoMode(false);
   };

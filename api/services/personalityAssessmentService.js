@@ -1,8 +1,12 @@
 /**
  * Personality Assessment Service
  *
- * Big Five (OCEAN) based personality assessment with 16personalities-style archetypes.
- * Uses scientifically validated BFI-2 question methodology.
+ * 16Personalities-style MBTI assessment with 5 dimensions:
+ * - Mind (I/E): Introversion vs Extraversion
+ * - Energy (S/N): Sensing vs Intuition
+ * - Nature (T/F): Thinking vs Feeling
+ * - Tactics (J/P): Judging vs Perceiving
+ * - Identity (A/T): Assertive vs Turbulent
  */
 
 import { readFileSync } from 'fs';
@@ -34,8 +38,17 @@ function loadQuestions() {
   }
 }
 
-// Big Five dimensions
+// MBTI dimensions (16personalities-style)
 export const DIMENSIONS = {
+  MIND: 'mind',           // I/E - Introversion vs Extraversion
+  ENERGY: 'energy',       // S/N - Sensing vs Intuition
+  NATURE: 'nature',       // T/F - Thinking vs Feeling
+  TACTICS: 'tactics',     // J/P - Judging vs Perceiving
+  IDENTITY: 'identity'    // A/T - Assertive vs Turbulent
+};
+
+// Legacy Big Five mapping for backward compatibility
+export const LEGACY_DIMENSIONS = {
   EXTRAVERSION: 'extraversion',
   OPENNESS: 'openness',
   CONSCIENTIOUSNESS: 'conscientiousness',
@@ -93,11 +106,15 @@ export function getQuestions(mode = 'quick_pulse') {
 }
 
 /**
- * Calculate Big Five scores from responses
- * @param {Array} responses - Array of {question_id, value} where value is 1-5
- * @returns {Object} Big Five scores with confidence intervals
+ * Calculate MBTI dimension scores from responses
+ * @param {Array} responses - Array of {question_id, value} where value is 1-7
+ * @returns {Object} MBTI dimension scores (0-100 scale) with confidence intervals
+ *
+ * Scoring: Each dimension has a positive pole (E, N, F, J, A)
+ * - Score > 50 = positive pole letter
+ * - Score < 50 = negative pole letter (I, S, T, P, T)
  */
-export function calculateBigFiveScores(responses) {
+export function calculateMBTIScores(responses) {
   const data = loadQuestions();
   if (!data) return null;
 
@@ -112,7 +129,7 @@ export function calculateBigFiveScores(responses) {
     });
 
     if (dimResponses.length === 0) {
-      scores[dim] = 50; // Default to middle
+      scores[dim] = 50; // Default to middle (no preference)
       scores[`${dim}_ci`] = 25; // High uncertainty
       continue;
     }
@@ -120,26 +137,40 @@ export function calculateBigFiveScores(responses) {
     const adjustedScores = dimResponses.map(r => {
       const question = dimQuestions.find(q => q.id === r.question_id);
       const value = r.value;
-      // Reverse score if needed (1-5 becomes 5-1)
-      return question.reverse_scored ? (6 - value) : value;
+      // Reverse score if needed (1-7 becomes 7-1)
+      // reverse_scored=true means the question targets the negative pole
+      return question.reverse_scored ? (8 - value) : value;
     });
 
     // Calculate mean and convert to 0-100 scale
+    // 7-point scale: 1-7 maps to 0-100
     const avgScore = adjustedScores.reduce((a, b) => a + b, 0) / adjustedScores.length;
-    scores[dim] = ((avgScore - 1) / 4) * 100; // 1-5 -> 0-100
+    scores[dim] = ((avgScore - 1) / 6) * 100; // 1-7 -> 0-100
 
     // Calculate confidence interval based on response count and consistency
-    scores[`${dim}_ci`] = calculateConfidenceInterval(adjustedScores, dimQuestions.length);
+    scores[`${dim}_ci`] = calculateConfidenceInterval(adjustedScores, dimQuestions.length, 7);
   }
 
   return scores;
 }
 
 /**
+ * Legacy function for backward compatibility
+ * @deprecated Use calculateMBTIScores instead
+ */
+export function calculateBigFiveScores(responses) {
+  // Convert old responses to new format if needed
+  return calculateMBTIScores(responses);
+}
+
+/**
  * Calculate confidence interval for a dimension
  * Based on number of questions answered and response consistency
+ * @param {Array} adjustedScores - Array of adjusted response values
+ * @param {number} totalQuestions - Total questions in this dimension
+ * @param {number} scaleMax - Maximum value on the scale (5 for old, 7 for new)
  */
-function calculateConfidenceInterval(adjustedScores, totalQuestions) {
+function calculateConfidenceInterval(adjustedScores, totalQuestions, scaleMax = 7) {
   const n = adjustedScores.length;
 
   if (n === 0) return 25; // Maximum uncertainty
@@ -151,7 +182,9 @@ function calculateConfidenceInterval(adjustedScores, totalQuestions) {
   const stdDev = Math.sqrt(variance);
 
   // Convert to percentage scale and adjust for sample size
-  const baseCI = (stdDev / 4) * 100; // Convert from 1-5 scale to 0-100
+  // Scale range is (scaleMax - 1), e.g., 6 for 1-7 scale
+  const scaleRange = scaleMax - 1;
+  const baseCI = (stdDev / scaleRange) * 100;
   const completionFactor = Math.sqrt(totalQuestions / n); // Higher CI if fewer questions answered
 
   // CI ranges from ~5 (very confident) to ~25 (very uncertain)
@@ -159,44 +192,79 @@ function calculateConfidenceInterval(adjustedScores, totalQuestions) {
 }
 
 /**
- * Map Big Five scores to 16personalities archetype
- * @param {Object} scores - Big Five scores (0-100)
- * @returns {Object} Archetype info
+ * Map MBTI dimension scores to 16personalities archetype
+ * @param {Object} scores - MBTI dimension scores (0-100)
+ * @returns {Object} Archetype info with full type code (e.g., "INTJ-A")
  */
 export function mapToArchetype(scores) {
   // Map dimensions to MBTI letters
-  // Extraversion >= 50 = E, else I
-  // Openness >= 50 = N (iNtuitive), else S (Sensing)
-  // Agreeableness >= 50 = F (Feeling), else T (Thinking)
-  // Conscientiousness >= 50 = J (Judging), else P (Perceiving)
+  // Each dimension > 50% gets the positive pole letter
+  //
+  // Mind (I/E): >= 50 = E (Extraversion), < 50 = I (Introversion)
+  // Energy (S/N): >= 50 = N (Intuition), < 50 = S (Sensing)
+  // Nature (T/F): >= 50 = F (Feeling), < 50 = T (Thinking)
+  // Tactics (J/P): >= 50 = J (Judging), < 50 = P (Perceiving)
+  // Identity (A/T): >= 50 = A (Assertive), < 50 = T (Turbulent)
 
-  const e = scores.extraversion >= 50 ? 'E' : 'I';
-  const n = scores.openness >= 50 ? 'N' : 'S';
-  const f = scores.agreeableness >= 50 ? 'F' : 'T';
-  const j = scores.conscientiousness >= 50 ? 'J' : 'P';
+  // Support both new MBTI dimensions and legacy Big Five dimensions
+  const mindScore = scores.mind ?? scores.extraversion ?? 50;
+  const energyScore = scores.energy ?? scores.openness ?? 50;
+  const natureScore = scores.nature ?? scores.agreeableness ?? 50;
+  const tacticsScore = scores.tactics ?? scores.conscientiousness ?? 50;
+  const identityScore = scores.identity ?? 50;
 
-  const code = `${e}${n}${f}${j}`;
+  const letters = {
+    e: mindScore >= 50 ? 'E' : 'I',
+    n: energyScore >= 50 ? 'N' : 'S',
+    f: natureScore >= 50 ? 'F' : 'T',
+    j: tacticsScore >= 50 ? 'J' : 'P',
+    identity: identityScore >= 50 ? 'A' : 'T'
+  };
+
+  const code = `${letters.e}${letters.n}${letters.f}${letters.j}`;
+  const fullCode = `${code}-${letters.identity}`; // e.g., "INTJ-A"
   const archetype = ARCHETYPES[code];
 
   return {
     code,
+    fullCode,
     name: archetype?.name || 'Unknown',
     group: archetype?.group || 'Unknown',
     color: archetype?.color || '#6366f1',
+    identity: letters.identity,
+    identityLabel: letters.identity === 'A' ? 'Assertive' : 'Turbulent',
     // Calculate how strongly the user fits this type (0-100)
-    strength: calculateArchetypeStrength(scores)
+    strength: calculateArchetypeStrength(scores),
+    // Include percentage for each dimension for display
+    percentages: {
+      mind: mindScore,
+      energy: energyScore,
+      nature: natureScore,
+      tactics: tacticsScore,
+      identity: identityScore
+    }
   };
 }
 
 /**
  * Calculate how strongly user fits their archetype
- * Based on how far from 50 each dimension is
+ * Based on how far from 50 each dimension is (excluding identity)
  */
 function calculateArchetypeStrength(scores) {
-  const dimensions = Object.values(DIMENSIONS).filter(d => d !== 'neuroticism');
+  // Use the 4 core MBTI dimensions (excluding identity)
+  const coreDimensions = ['mind', 'energy', 'nature', 'tactics'];
 
-  const totalDeviation = dimensions.reduce((sum, dim) => {
-    return sum + Math.abs(scores[dim] - 50);
+  // Also support legacy dimension names
+  const legacyMap = {
+    mind: 'extraversion',
+    energy: 'openness',
+    nature: 'agreeableness',
+    tactics: 'conscientiousness'
+  };
+
+  const totalDeviation = coreDimensions.reduce((sum, dim) => {
+    const score = scores[dim] ?? scores[legacyMap[dim]] ?? 50;
+    return sum + Math.abs(score - 50);
   }, 0);
 
   // Max deviation is 200 (4 dimensions * 50 max each)
@@ -283,24 +351,38 @@ export async function saveAssessmentResponses(userId, responses, sessionId = nul
       }
     }
 
-    // Calculate scores from all user responses
-    const scores = calculateBigFiveScores(responses);
+    // Calculate scores from all user responses using new MBTI scoring
+    const scores = calculateMBTIScores(responses);
     const archetype = mapToArchetype(scores);
 
-    // Upsert personality estimate
+    // Upsert personality estimate with both new MBTI dimensions and legacy Big Five
+    // This maintains backward compatibility while supporting new dimension names
     const estimateRecord = {
       user_id: userId,
-      openness: scores.openness,
-      conscientiousness: scores.conscientiousness,
-      extraversion: scores.extraversion,
-      agreeableness: scores.agreeableness,
-      neuroticism: scores.neuroticism,
-      openness_ci: scores.openness_ci,
-      conscientiousness_ci: scores.conscientiousness_ci,
-      extraversion_ci: scores.extraversion_ci,
-      agreeableness_ci: scores.agreeableness_ci,
-      neuroticism_ci: scores.neuroticism_ci,
-      archetype_code: archetype.code,
+      // New MBTI dimension columns
+      mind: scores.mind,
+      energy: scores.energy,
+      nature: scores.nature,
+      tactics: scores.tactics,
+      identity: scores.identity,
+      mind_ci: scores.mind_ci,
+      energy_ci: scores.energy_ci,
+      nature_ci: scores.nature_ci,
+      tactics_ci: scores.tactics_ci,
+      identity_ci: scores.identity_ci,
+      // Legacy Big Five columns (mapped from MBTI for backward compatibility)
+      extraversion: scores.mind,           // Mind (I/E) maps to Extraversion
+      openness: scores.energy,             // Energy (S/N) maps to Openness
+      agreeableness: scores.nature,        // Nature (T/F) maps to Agreeableness
+      conscientiousness: scores.tactics,   // Tactics (J/P) maps to Conscientiousness
+      neuroticism: 100 - (scores.identity ?? 50), // Identity inverted -> Neuroticism
+      extraversion_ci: scores.mind_ci,
+      openness_ci: scores.energy_ci,
+      agreeableness_ci: scores.nature_ci,
+      conscientiousness_ci: scores.tactics_ci,
+      neuroticism_ci: scores.identity_ci,
+      // Archetype code now includes identity suffix (e.g., "INTJ-A")
+      archetype_code: archetype.fullCode || archetype.code,
       questionnaire_score_weight: 1.0,
       last_questionnaire_at: new Date().toISOString(),
       total_questions_answered: responses.length,
@@ -352,16 +434,28 @@ export async function getPersonalityEstimate(userId) {
       return null;
     }
 
-    const archetype = mapToArchetype({
-      extraversion: estimate.extraversion,
-      openness: estimate.openness,
-      conscientiousness: estimate.conscientiousness,
-      agreeableness: estimate.agreeableness,
-      neuroticism: estimate.neuroticism
-    });
+    // Support both new MBTI dimensions and legacy Big Five dimensions
+    const scores = {
+      // Prefer new MBTI dimensions if available, fall back to legacy
+      mind: estimate.mind ?? estimate.extraversion,
+      energy: estimate.energy ?? estimate.openness,
+      nature: estimate.nature ?? estimate.agreeableness,
+      tactics: estimate.tactics ?? estimate.conscientiousness,
+      identity: estimate.identity ?? (100 - (estimate.neuroticism ?? 50)),
+      // Also include legacy names for backward compatibility
+      extraversion: estimate.extraversion ?? estimate.mind,
+      openness: estimate.openness ?? estimate.energy,
+      agreeableness: estimate.agreeableness ?? estimate.nature,
+      conscientiousness: estimate.conscientiousness ?? estimate.tactics,
+      neuroticism: estimate.neuroticism ?? (100 - (estimate.identity ?? 50))
+    };
+
+    const archetype = mapToArchetype(scores);
 
     return {
       ...estimate,
+      // Include both dimension naming conventions
+      scores,
       archetype
     };
 
@@ -382,10 +476,12 @@ export async function seedQuestionsToDatabase() {
 
   const questionRecords = data.questions.map(q => ({
     dimension: q.dimension,
-    facet: q.facet,
+    facet: q.facet || q.target_pole, // Use target_pole as facet for new questions
+    target_pole: q.target_pole, // New field for MBTI questions
     question_text: q.question_text,
     reverse_scored: q.reverse_scored,
     question_order: q.order,
+    quick_pulse: q.quick_pulse || false, // Mark quick pulse questions
     is_active: true
   }));
 
@@ -393,7 +489,7 @@ export async function seedQuestionsToDatabase() {
     .from('personality_questions')
     .upsert(questionRecords, {
       onConflict: 'question_text',
-      ignoreDuplicates: true
+      ignoreDuplicates: false // Update existing questions with new fields
     });
 
   if (error) {
@@ -416,7 +512,16 @@ export async function seedArchetypesToDatabase() {
     group_name: info.group,
     color_primary: info.color,
     color_secondary: info.color,
-    // Set Big Five ranges based on archetype letters
+    // New MBTI dimension ranges
+    mind_min: code[0] === 'E' ? 50 : 0,
+    mind_max: code[0] === 'E' ? 100 : 50,
+    energy_min: code[1] === 'N' ? 50 : 0,
+    energy_max: code[1] === 'N' ? 100 : 50,
+    nature_min: code[2] === 'F' ? 50 : 0,
+    nature_max: code[2] === 'F' ? 100 : 50,
+    tactics_min: code[3] === 'J' ? 50 : 0,
+    tactics_max: code[3] === 'J' ? 100 : 50,
+    // Legacy Big Five ranges (for backward compatibility)
     extraversion_min: code[0] === 'E' ? 50 : 0,
     extraversion_max: code[0] === 'E' ? 100 : 50,
     openness_min: code[1] === 'N' ? 50 : 0,
@@ -441,7 +546,7 @@ export async function seedArchetypesToDatabase() {
 
 /**
  * Generate explanation of user's personality
- * @param {Object} scores - Big Five scores
+ * @param {Object} scores - MBTI dimension scores (supports both new and legacy names)
  * @param {Object} archetype - Archetype info
  * @returns {Object} Explanation with insights, strengths, and growth areas
  */
@@ -450,20 +555,31 @@ export function generatePersonalityInsights(scores, archetype) {
   const strengths = [];
   const growthAreas = [];
 
-  // Extraversion insights
-  if (scores.extraversion >= 70) {
+  // Get scores using both new MBTI and legacy Big Five names
+  const mindScore = scores.mind ?? scores.extraversion ?? 50;
+  const energyScore = scores.energy ?? scores.openness ?? 50;
+  const natureScore = scores.nature ?? scores.agreeableness ?? 50;
+  const tacticsScore = scores.tactics ?? scores.conscientiousness ?? 50;
+  const identityScore = scores.identity ?? (100 - (scores.neuroticism ?? 50));
+
+  // Mind (I/E) insights
+  if (mindScore >= 70) {
     insights.push({
-      dimension: 'extraversion',
-      trait: 'Highly Extraverted',
+      dimension: 'mind',
+      mbtiLetter: 'E',
+      trait: 'Extraversion',
+      percentage: mindScore,
       description: 'You thrive on social interaction and feel energized by being around others.',
       musicImplication: 'You may prefer upbeat, social music and enjoy discovering new artists through friends.'
     });
     strengths.push('Natural energy and enthusiasm in social settings');
     strengths.push('Ability to network and connect with new people easily');
-  } else if (scores.extraversion <= 30) {
+  } else if (mindScore <= 30) {
     insights.push({
-      dimension: 'extraversion',
-      trait: 'Highly Introverted',
+      dimension: 'mind',
+      mbtiLetter: 'I',
+      trait: 'Introversion',
+      percentage: 100 - mindScore,
       description: 'You recharge through solitude and prefer deep one-on-one connections.',
       musicImplication: 'You may prefer intimate, introspective music and curated playlists over trending hits.'
     });
@@ -474,71 +590,54 @@ export function generatePersonalityInsights(scores, archetype) {
     strengths.push('Balanced social energy - comfortable in both groups and solitude');
   }
 
-  // Openness insights
-  if (scores.openness >= 70) {
+  // Energy (S/N) insights
+  if (energyScore >= 70) {
     insights.push({
-      dimension: 'openness',
-      trait: 'Highly Open',
-      description: 'You embrace new ideas, creativity, and unconventional experiences.',
+      dimension: 'energy',
+      mbtiLetter: 'N',
+      trait: 'Intuition',
+      percentage: energyScore,
+      description: 'You embrace abstract ideas, patterns, and future possibilities.',
       musicImplication: 'You likely enjoy diverse genres and are open to experimental or world music.'
     });
     strengths.push('Creative thinking and appreciation for novel ideas');
-    strengths.push('Intellectual curiosity and love of learning');
-  } else if (scores.openness <= 30) {
+    strengths.push('Ability to see patterns and possibilities others miss');
+  } else if (energyScore <= 30) {
     insights.push({
-      dimension: 'openness',
-      trait: 'Practical & Traditional',
-      description: 'You prefer proven methods and familiar experiences.',
+      dimension: 'energy',
+      mbtiLetter: 'S',
+      trait: 'Sensing/Observant',
+      percentage: 100 - energyScore,
+      description: 'You focus on concrete facts, details, and present realities.',
       musicImplication: 'You may prefer familiar songs and established artists over new releases.'
     });
     strengths.push('Practical, grounded approach to problem-solving');
-    strengths.push('Reliability and consistency in preferences');
-    growthAreas.push('Challenge yourself to try one new experience per week');
+    strengths.push('Strong attention to detail and present moment');
+    growthAreas.push('Challenge yourself to explore abstract possibilities');
   } else {
-    strengths.push('Good balance between creativity and practicality');
+    strengths.push('Good balance between abstract thinking and practical focus');
   }
 
-  // Conscientiousness insights
-  if (scores.conscientiousness >= 70) {
+  // Nature (T/F) insights
+  if (natureScore >= 70) {
     insights.push({
-      dimension: 'conscientiousness',
-      trait: 'Highly Organized',
-      description: 'You value structure, planning, and follow-through.',
-      musicImplication: 'You may prefer well-organized playlists and use music to enhance productivity.'
-    });
-    strengths.push('Strong organizational skills and attention to detail');
-    strengths.push('Excellent follow-through on commitments');
-    growthAreas.push('Allow some flexibility for spontaneous opportunities');
-  } else if (scores.conscientiousness <= 30) {
-    insights.push({
-      dimension: 'conscientiousness',
-      trait: 'Spontaneous & Flexible',
-      description: 'You prefer adaptability over rigid planning.',
-      musicImplication: 'You may enjoy shuffle play and spontaneous music discovery.'
-    });
-    strengths.push('Adaptability and comfort with change');
-    strengths.push('Creative, go-with-the-flow approach to challenges');
-    growthAreas.push('Try setting small, achievable daily goals');
-  } else {
-    strengths.push('Healthy balance of structure and flexibility');
-  }
-
-  // Agreeableness insights
-  if (scores.agreeableness >= 70) {
-    insights.push({
-      dimension: 'agreeableness',
-      trait: 'Highly Empathetic',
-      description: 'You prioritize harmony and deeply consider others\' feelings.',
+      dimension: 'nature',
+      mbtiLetter: 'F',
+      trait: 'Feeling',
+      percentage: natureScore,
+      description: 'You prioritize values, harmony, and how decisions affect people.',
       musicImplication: 'You may connect strongly with emotional lyrics and collaborative artists.'
     });
     strengths.push('Strong empathy and emotional intelligence');
     strengths.push('Natural ability to build harmonious relationships');
     growthAreas.push('Practice setting boundaries while staying kind');
-  } else if (scores.agreeableness <= 30) {
+  } else if (natureScore <= 30) {
     insights.push({
-      dimension: 'agreeableness',
-      trait: 'Independent Thinker',
-      description: 'You value logic over emotion and speak your mind directly.',
+      dimension: 'nature',
+      mbtiLetter: 'T',
+      trait: 'Thinking',
+      percentage: 100 - natureScore,
+      description: 'You prioritize logic, objectivity, and rational analysis.',
       musicImplication: 'You may appreciate technical skill and innovative production over emotional appeal.'
     });
     strengths.push('Logical, objective decision-making');
@@ -548,27 +647,60 @@ export function generatePersonalityInsights(scores, archetype) {
     strengths.push('Good balance of empathy and objectivity');
   }
 
-  // Neuroticism insights
-  if (scores.neuroticism >= 70) {
+  // Tactics (J/P) insights
+  if (tacticsScore >= 70) {
     insights.push({
-      dimension: 'neuroticism',
-      trait: 'Emotionally Sensitive',
-      description: 'You experience emotions deeply and may be more affected by stress.',
-      musicImplication: 'Music can be powerful for mood regulation - both matching and shifting your state.'
+      dimension: 'tactics',
+      mbtiLetter: 'J',
+      trait: 'Judging',
+      percentage: tacticsScore,
+      description: 'You value structure, planning, and decisive action.',
+      musicImplication: 'You may prefer well-organized playlists and use music to enhance productivity.'
     });
-    strengths.push('Deep emotional awareness and sensitivity');
-    strengths.push('Ability to connect with art and music on a profound level');
-    growthAreas.push('Develop stress management techniques like mindfulness');
-    growthAreas.push('Build a toolkit of healthy coping strategies');
-  } else if (scores.neuroticism <= 30) {
+    strengths.push('Strong organizational skills and attention to detail');
+    strengths.push('Excellent follow-through on commitments');
+    growthAreas.push('Allow some flexibility for spontaneous opportunities');
+  } else if (tacticsScore <= 30) {
     insights.push({
-      dimension: 'neuroticism',
-      trait: 'Emotionally Stable',
-      description: 'You maintain calm under pressure and recover quickly from setbacks.',
+      dimension: 'tactics',
+      mbtiLetter: 'P',
+      trait: 'Perceiving/Prospecting',
+      percentage: 100 - tacticsScore,
+      description: 'You prefer flexibility, adaptability, and keeping options open.',
+      musicImplication: 'You may enjoy shuffle play and spontaneous music discovery.'
+    });
+    strengths.push('Adaptability and comfort with change');
+    strengths.push('Creative, go-with-the-flow approach to challenges');
+    growthAreas.push('Try setting small, achievable daily goals');
+  } else {
+    strengths.push('Healthy balance of structure and flexibility');
+  }
+
+  // Identity (A/T) insights
+  if (identityScore >= 70) {
+    insights.push({
+      dimension: 'identity',
+      mbtiLetter: 'A',
+      trait: 'Assertive',
+      percentage: identityScore,
+      description: 'You are self-assured, even-tempered, and resistant to stress.',
       musicImplication: 'You may use music more for enjoyment than emotional processing.'
     });
     strengths.push('Emotional resilience and stability under pressure');
-    strengths.push('Quick recovery from setbacks and challenges');
+    strengths.push('Confidence in your decisions and abilities');
+  } else if (identityScore <= 30) {
+    insights.push({
+      dimension: 'identity',
+      mbtiLetter: 'T',
+      trait: 'Turbulent',
+      percentage: 100 - identityScore,
+      description: 'You are self-conscious, sensitive to stress, and driven by perfectionism.',
+      musicImplication: 'Music can be powerful for mood regulation - both matching and shifting your state.'
+    });
+    strengths.push('Deep emotional awareness and sensitivity');
+    strengths.push('Driven to improve and achieve high standards');
+    growthAreas.push('Develop stress management techniques like mindfulness');
+    growthAreas.push('Practice self-compassion when things don\'t go perfectly');
   } else {
     strengths.push('Balanced emotional responsiveness');
   }
@@ -578,13 +710,24 @@ export function generatePersonalityInsights(scores, archetype) {
   strengths.push(...archetypeStrengths.strengths);
   growthAreas.push(...archetypeStrengths.growthAreas);
 
+  // Use fullCode if available (e.g., "INTJ-A" instead of "INTJ")
+  const displayCode = archetype.fullCode || archetype.code;
+  const identityLabel = archetype.identityLabel ? ` (${archetype.identityLabel})` : '';
+
   return {
     archetype,
     insights,
     strengths: [...new Set(strengths)], // Remove duplicates
     growthAreas: [...new Set(growthAreas)], // Remove duplicates
-    summary: `As ${archetype.name} (${archetype.code}), you belong to the ${archetype.group} group. ` +
-             `Your unique combination of traits shapes how you experience and connect with music.`
+    summary: `As ${archetype.name} (${displayCode})${identityLabel}, you belong to the ${archetype.group} group. ` +
+             `Your unique combination of traits shapes how you experience and connect with the world.`,
+    dimensionPercentages: {
+      mind: { score: mindScore, letter: mindScore >= 50 ? 'E' : 'I' },
+      energy: { score: energyScore, letter: energyScore >= 50 ? 'N' : 'S' },
+      nature: { score: natureScore, letter: natureScore >= 50 ? 'F' : 'T' },
+      tactics: { score: tacticsScore, letter: tacticsScore >= 50 ? 'J' : 'P' },
+      identity: { score: identityScore, letter: identityScore >= 50 ? 'A' : 'T' }
+    }
   };
 }
 
@@ -668,9 +811,11 @@ function getArchetypeStrengths(code) {
 
 export default {
   DIMENSIONS,
+  LEGACY_DIMENSIONS,
   ARCHETYPES,
   getQuestions,
-  calculateBigFiveScores,
+  calculateMBTIScores,
+  calculateBigFiveScores, // Legacy alias
   mapToArchetype,
   saveAssessmentResponses,
   getPersonalityEstimate,

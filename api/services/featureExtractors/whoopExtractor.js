@@ -1,8 +1,13 @@
 /**
- * Whoop Feature Extractor
+ * Whoop Feature Extractor - V2 API
  *
  * Extracts behavioral features from Whoop health data that correlate
  * with Big Five personality traits.
+ *
+ * V2 API Migration (Required by October 1, 2025):
+ * - Uses UUID-based IDs instead of numeric IDs
+ * - Pagination via nextToken
+ * - Enhanced recovery data with SpO2 and skin temperature
  *
  * Key Features Extracted:
  * - Sleep consistency -> Conscientiousness (r=0.45)
@@ -21,7 +26,8 @@ import { supabaseAdmin } from '../database.js';
 import { decryptToken } from '../encryption.js';
 import axios from 'axios';
 
-const WHOOP_API_BASE = 'https://api.prod.whoop.com/developer/v1';
+// V2 API Base URL - migrated from v1
+const WHOOP_API_BASE = 'https://api.prod.whoop.com/developer/v2';
 
 class WhoopFeatureExtractor {
   constructor() {
@@ -32,7 +38,7 @@ class WhoopFeatureExtractor {
    * Extract all behavioral features from Whoop data
    */
   async extractFeatures(userId) {
-    console.log(`💪 [Whoop Extractor] Extracting features for user ${userId}`);
+    console.log(`💪 [Whoop Extractor V2] Extracting features for user ${userId}`);
 
     try {
       // Get Whoop connection to fetch fresh data
@@ -61,14 +67,14 @@ class WhoopFeatureExtractor {
         return [];
       }
 
-      // Fetch data from Whoop API
+      // Fetch data from Whoop API V2
       const whoopData = await this.fetchWhoopData(accessToken);
       if (!whoopData) {
         console.log('⚠️ [Whoop Extractor] No Whoop data available');
         return [];
       }
 
-      console.log(`📊 [Whoop Extractor] Found ${whoopData.cycles?.length || 0} cycles, ${whoopData.sleepData?.length || 0} sleep records, ${whoopData.workouts?.length || 0} workouts`);
+      console.log(`📊 [Whoop Extractor] Found ${whoopData.cycles?.length || 0} cycles, ${whoopData.sleepData?.length || 0} sleep records, ${whoopData.workouts?.length || 0} workouts, ${whoopData.recoveries?.length || 0} recoveries`);
 
       // Extract features
       const features = [];
@@ -129,13 +135,12 @@ class WhoopFeatureExtractor {
       }
 
       // 6. Workout Frequency (Extraversion)
-      // Pass cycles data as fallback for strain-based estimation
       const workoutFrequency = this.calculateWorkoutFrequency(whoopData.workouts, whoopData.cycles);
       if (workoutFrequency !== null) {
         features.push(this.createFeature(userId, 'workout_frequency', workoutFrequency, {
           contributes_to: 'extraversion',
           contribution_weight: 0.38,
-          description: 'Frequency of workout activities (based on strain data)',
+          description: 'Frequency of workout activities',
           evidence: { correlation: 0.38 }
         }));
       }
@@ -162,7 +167,143 @@ class WhoopFeatureExtractor {
         }));
       }
 
-      console.log(`✅ [Whoop Extractor] Extracted ${features.length} features`);
+      // ==========================================
+      // NEW V2 API METRICS
+      // ==========================================
+
+      // 9. Sleep Efficiency (Conscientiousness)
+      const sleepEfficiency = this.calculateSleepEfficiency(whoopData.sleepData);
+      if (sleepEfficiency !== null) {
+        features.push(this.createFeature(userId, 'sleep_efficiency', sleepEfficiency, {
+          contributes_to: 'conscientiousness',
+          contribution_weight: 0.40,
+          description: 'Ratio of time asleep to time in bed',
+          evidence: { correlation: 0.40 }
+        }));
+      }
+
+      // 10. Deep Sleep Ratio (Health quality)
+      const deepSleepRatio = this.calculateDeepSleepRatio(whoopData.sleepData);
+      if (deepSleepRatio !== null) {
+        features.push(this.createFeature(userId, 'deep_sleep_ratio', deepSleepRatio, {
+          contributes_to: 'neuroticism',
+          contribution_weight: -0.30,
+          description: 'Proportion of sleep spent in deep (SWS) stage',
+          evidence: { correlation: -0.30, note: 'More deep sleep = lower neuroticism' }
+        }));
+      }
+
+      // 11. REM Sleep Ratio (Creativity/Openness)
+      const remSleepRatio = this.calculateREMSleepRatio(whoopData.sleepData);
+      if (remSleepRatio !== null) {
+        features.push(this.createFeature(userId, 'rem_sleep_ratio', remSleepRatio, {
+          contributes_to: 'openness',
+          contribution_weight: 0.25,
+          description: 'Proportion of sleep spent in REM stage (associated with dreaming)',
+          evidence: { correlation: 0.25 }
+        }));
+      }
+
+      // 12. Respiratory Rate Stability (Health)
+      const respiratoryStability = this.calculateRespiratoryStability(whoopData.sleepData);
+      if (respiratoryStability !== null) {
+        features.push(this.createFeature(userId, 'respiratory_stability', respiratoryStability, {
+          contributes_to: 'neuroticism',
+          contribution_weight: -0.28,
+          description: 'Consistency of respiratory rate during sleep',
+          evidence: { correlation: -0.28 }
+        }));
+      }
+
+      // 13. SpO2 Average (Blood oxygen - V2 specific)
+      const spo2Average = this.calculateSpO2Average(whoopData.recoveries);
+      if (spo2Average !== null) {
+        features.push(this.createFeature(userId, 'spo2_average', spo2Average, {
+          contributes_to: null,
+          contribution_weight: 0,
+          description: 'Average blood oxygen saturation during sleep',
+          evidence: { note: 'Health metric, no direct personality correlation' }
+        }));
+      }
+
+      // 14. Skin Temperature Deviation (V2 specific)
+      const skinTempDeviation = this.calculateSkinTempDeviation(whoopData.recoveries);
+      if (skinTempDeviation !== null) {
+        features.push(this.createFeature(userId, 'skin_temp_deviation', skinTempDeviation, {
+          contributes_to: null,
+          contribution_weight: 0,
+          description: 'Deviation from baseline skin temperature',
+          evidence: { note: 'Health metric, tracks circadian rhythm' }
+        }));
+      }
+
+      // 15. Resting Heart Rate Trend
+      const rhrTrend = this.calculateRHRTrend(whoopData.recoveries);
+      if (rhrTrend !== null) {
+        features.push(this.createFeature(userId, 'rhr_trend', rhrTrend, {
+          contributes_to: 'conscientiousness',
+          contribution_weight: 0.25,
+          description: 'Trend in resting heart rate (lower is healthier)',
+          evidence: { correlation: 0.25, note: 'Improving RHR indicates discipline' }
+        }));
+      }
+
+      // 16. Workout Intensity (Average strain per workout)
+      const workoutIntensity = this.calculateWorkoutIntensity(whoopData.workouts);
+      if (workoutIntensity !== null) {
+        features.push(this.createFeature(userId, 'workout_intensity', workoutIntensity, {
+          contributes_to: 'extraversion',
+          contribution_weight: 0.35,
+          description: 'Average intensity of workout sessions',
+          evidence: { correlation: 0.35 }
+        }));
+      }
+
+      // 17. Heart Rate Zone Distribution
+      const hrZoneBalance = this.calculateHRZoneBalance(whoopData.workouts);
+      if (hrZoneBalance !== null) {
+        features.push(this.createFeature(userId, 'hr_zone_balance', hrZoneBalance, {
+          contributes_to: 'conscientiousness',
+          contribution_weight: 0.30,
+          description: 'Balance of heart rate zones during workouts',
+          evidence: { correlation: 0.30, note: 'Varied training zones indicate planning' }
+        }));
+      }
+
+      // 18. Calories Burned Average
+      const caloriesAvg = this.calculateCaloriesAverage(whoopData.cycles);
+      if (caloriesAvg !== null) {
+        features.push(this.createFeature(userId, 'daily_calories_avg', caloriesAvg, {
+          contributes_to: 'extraversion',
+          contribution_weight: 0.30,
+          description: 'Average daily calories burned',
+          evidence: { correlation: 0.30, note: 'Higher activity = extraversion' }
+        }));
+      }
+
+      // 19. Max Heart Rate Utilization
+      const maxHRUtilization = this.calculateMaxHRUtilization(whoopData.workouts, whoopData.bodyMeasurements);
+      if (maxHRUtilization !== null) {
+        features.push(this.createFeature(userId, 'max_hr_utilization', maxHRUtilization, {
+          contributes_to: 'extraversion',
+          contribution_weight: 0.32,
+          description: 'How close workouts get to max heart rate',
+          evidence: { correlation: 0.32 }
+        }));
+      }
+
+      // 20. Sleep Disturbances (inverse score)
+      const sleepDisturbances = this.calculateSleepDisturbances(whoopData.sleepData);
+      if (sleepDisturbances !== null) {
+        features.push(this.createFeature(userId, 'sleep_disturbances', sleepDisturbances, {
+          contributes_to: 'neuroticism',
+          contribution_weight: 0.35,
+          description: 'Frequency of sleep disturbances (lower = better)',
+          evidence: { correlation: 0.35, note: 'More disturbances = higher neuroticism' }
+        }));
+      }
+
+      console.log(`✅ [Whoop Extractor V2] Extracted ${features.length} features`);
       return features;
 
     } catch (error) {
@@ -172,84 +313,116 @@ class WhoopFeatureExtractor {
   }
 
   /**
-   * Fetch data from Whoop API
-   * Note: Whoop API v1 embeds recovery data within cycles.
-   * Sleep and workout data may require user to re-authorize with proper scopes.
+   * Fetch data from Whoop API V2
+   * V2 uses nextToken pagination and UUID-based IDs
    */
   async fetchWhoopData(accessToken) {
     const headers = { 'Authorization': `Bearer ${accessToken}` };
 
-    console.log(`🔍 [Whoop Extractor] Fetching data from Whoop API v1...`);
+    console.log(`🔍 [Whoop Extractor] Fetching data from Whoop API V2...`);
 
     try {
       let cycles = [];
       let sleepData = [];
       let workouts = [];
+      let recoveries = [];
+      let bodyMeasurements = null;
 
-      // Fetch cycles - This is the primary data source
-      // Cycles contain: strain, recovery scores, HRV, and sleep association
+      // Calculate date range for last 30 days
+      const endDate = new Date().toISOString();
+      const startDate = new Date(Date.now() - this.LOOKBACK_DAYS * 24 * 60 * 60 * 1000).toISOString();
+
+      // 1. Fetch cycles (V2 endpoint)
       try {
         console.log(`🔄 [Whoop Extractor] Fetching cycles from ${WHOOP_API_BASE}/cycle`);
         const cyclesRes = await axios.get(`${WHOOP_API_BASE}/cycle`, {
           headers,
-          params: { limit: 30 } // Match LOOKBACK_DAYS for full analysis
+          params: { limit: 25, start: startDate, end: endDate }
         });
-        console.log(`📊 [Whoop Extractor] Cycles response status: ${cyclesRes.status}`);
         cycles = cyclesRes.data?.records || cyclesRes.data || [];
-
-        // Log full structure of first cycle to understand data model
-        if (cycles.length > 0) {
-          console.log(`📊 [Whoop Extractor] Sample cycle structure:`, JSON.stringify(cycles[0], null, 2).substring(0, 1500));
-        }
         console.log(`✅ [Whoop Extractor] Found ${cycles.length} cycles`);
+
+        // Log sample for debugging
+        if (cycles.length > 0) {
+          console.log(`📊 [Whoop Extractor] Sample cycle keys:`, Object.keys(cycles[0]));
+        }
       } catch (err) {
-        console.error(`❌ [Whoop Extractor] Cycles error: ${err.response?.status} - ${JSON.stringify(err.response?.data) || err.message}`);
+        console.error(`❌ [Whoop Extractor] Cycles error: ${err.response?.status} - ${err.response?.data?.message || err.message}`);
       }
 
-      // Try to fetch sleep data
+      // 2. Fetch recovery data (V2 dedicated endpoint)
+      try {
+        console.log(`🔄 [Whoop Extractor] Fetching recoveries from ${WHOOP_API_BASE}/recovery`);
+        const recoveryRes = await axios.get(`${WHOOP_API_BASE}/recovery`, {
+          headers,
+          params: { limit: 25, start: startDate, end: endDate }
+        });
+        recoveries = recoveryRes.data?.records || recoveryRes.data || [];
+        console.log(`✅ [Whoop Extractor] Found ${recoveries.length} recovery records`);
+
+        // Log sample for V2 specific fields
+        if (recoveries.length > 0) {
+          const sample = recoveries[0];
+          console.log(`📊 [Whoop Extractor] Sample recovery - score: ${sample.score?.recovery_score}, HRV: ${sample.score?.hrv_rmssd_milli}, SpO2: ${sample.score?.spo2_percentage}, skin_temp: ${sample.score?.skin_temp_celsius}`);
+        }
+      } catch (err) {
+        console.error(`❌ [Whoop Extractor] Recovery error: ${err.response?.status} - ${err.response?.data?.message || err.message}`);
+      }
+
+      // 3. Fetch sleep data (V2 endpoint)
       try {
         console.log(`🔄 [Whoop Extractor] Fetching sleep from ${WHOOP_API_BASE}/activity/sleep`);
         const sleepRes = await axios.get(`${WHOOP_API_BASE}/activity/sleep`, {
           headers,
-          params: { limit: 30 } // Match LOOKBACK_DAYS for full analysis
+          params: { limit: 25, start: startDate, end: endDate }
         });
         sleepData = sleepRes.data?.records || sleepRes.data || [];
         console.log(`✅ [Whoop Extractor] Found ${sleepData.length} sleep records`);
+
+        // Log V2 sleep fields
+        if (sleepData.length > 0) {
+          const sample = sleepData[0];
+          console.log(`📊 [Whoop Extractor] Sample sleep - efficiency: ${sample.score?.sleep_efficiency_percentage}, resp_rate: ${sample.score?.respiratory_rate}`);
+        }
       } catch (err) {
-        // Sleep endpoint may not be available - extract sleep info from cycles
-        console.log(`⚠️ [Whoop Extractor] Sleep endpoint unavailable (${err.response?.status}), will extract from cycles`);
+        console.log(`⚠️ [Whoop Extractor] Sleep endpoint error (${err.response?.status}): ${err.response?.data?.message || err.message}`);
       }
 
-      // Try to fetch workouts data
+      // 4. Fetch workouts (V2 endpoint)
       try {
         console.log(`🔄 [Whoop Extractor] Fetching workouts from ${WHOOP_API_BASE}/activity/workout`);
         const workoutsRes = await axios.get(`${WHOOP_API_BASE}/activity/workout`, {
           headers,
-          params: { limit: 30 } // Match LOOKBACK_DAYS for full analysis
+          params: { limit: 25, start: startDate, end: endDate }
         });
         workouts = workoutsRes.data?.records || workoutsRes.data || [];
         console.log(`✅ [Whoop Extractor] Found ${workouts.length} workouts`);
+
+        // Log V2 workout fields
+        if (workouts.length > 0) {
+          const sample = workouts[0];
+          console.log(`📊 [Whoop Extractor] Sample workout - sport: ${sample.sport_id}, strain: ${sample.score?.strain}, zones: ${JSON.stringify(sample.score?.zone_duration)}`);
+        }
       } catch (err) {
-        // Workout endpoint may not be available - extract strain info from cycles
-        console.log(`⚠️ [Whoop Extractor] Workout endpoint unavailable (${err.response?.status}), will extract from cycles`);
+        console.log(`⚠️ [Whoop Extractor] Workout endpoint error (${err.response?.status}): ${err.response?.data?.message || err.message}`);
       }
 
-      // Extract recovery data FROM cycles (Whoop embeds recovery in cycle data)
-      // Each cycle has a 'score' object with recovery_score, hrv_rmssd_milli, etc.
-      const recoveries = cycles.map(cycle => ({
-        cycle_id: cycle.id,
-        start: cycle.start,
-        end: cycle.end,
-        score: cycle.score // Contains strain, recovery_score, hrv, etc.
-      })).filter(r => r.score);
-
-      console.log(`📊 [Whoop Extractor] Extracted ${recoveries.length} recovery records from cycles`);
+      // 5. Fetch body measurements (V2 specific)
+      try {
+        console.log(`🔄 [Whoop Extractor] Fetching body measurements from ${WHOOP_API_BASE}/user/measurement/body`);
+        const bodyRes = await axios.get(`${WHOOP_API_BASE}/user/measurement/body`, { headers });
+        bodyMeasurements = bodyRes.data;
+        console.log(`✅ [Whoop Extractor] Body measurements - height: ${bodyMeasurements?.height_meter}m, weight: ${bodyMeasurements?.weight_kilogram}kg, max_hr: ${bodyMeasurements?.max_heart_rate}`);
+      } catch (err) {
+        console.log(`⚠️ [Whoop Extractor] Body measurements error: ${err.response?.status}`);
+      }
 
       return {
         cycles,
         sleepData,
         workouts,
-        recoveries
+        recoveries,
+        bodyMeasurements
       };
     } catch (error) {
       console.error('❌ [Whoop Extractor] API fetch error:', error.message);
@@ -273,13 +446,11 @@ class WhoopFeatureExtractor {
 
     if (bedtimes.length < 5) return null;
 
-    // Calculate average and standard deviation
     const avg = bedtimes.reduce((a, b) => a + b, 0) / bedtimes.length;
     const variance = bedtimes.reduce((sum, t) => sum + Math.pow(t - avg, 2), 0) / bedtimes.length;
     const stdDev = Math.sqrt(variance);
 
     // Convert to 0-100 scale (lower variance = higher score)
-    // Max variance considered is 120 minutes (2 hours)
     const consistency = Math.max(0, 100 - (stdDev / 120 * 100));
 
     return Math.round(consistency * 100) / 100;
@@ -291,7 +462,6 @@ class WhoopFeatureExtractor {
   calculateWorkoutRegularity(workouts) {
     if (!workouts || workouts.length < 3) return null;
 
-    // Calculate days between workouts
     const sortedWorkouts = [...workouts]
       .filter(w => w.start)
       .sort((a, b) => new Date(a.start) - new Date(b.start));
@@ -304,12 +474,9 @@ class WhoopFeatureExtractor {
       gaps.push(gap);
     }
 
-    // Calculate variance of gaps (lower = more regular)
     const avgGap = gaps.reduce((a, b) => a + b, 0) / gaps.length;
     const gapVariance = gaps.reduce((sum, g) => sum + Math.pow(g - avgGap, 2), 0) / gaps.length;
 
-    // Convert to 0-100 scale
-    // Also factor in frequency (more workouts = higher regularity)
     const frequencyScore = Math.min(100, (sortedWorkouts.length / 30) * 100);
     const varianceScore = Math.max(0, 100 - (Math.sqrt(gapVariance) * 10));
 
@@ -319,63 +486,45 @@ class WhoopFeatureExtractor {
   }
 
   /**
-   * Calculate recovery adherence (how well user recovers)
-   * Works with cycle-embedded recovery data
+   * Calculate recovery adherence (V2 format)
    */
   calculateRecoveryAdherence(recoveries) {
     if (!recoveries || recoveries.length < 5) return null;
 
-    // Try multiple possible field names for recovery score
     const scores = recoveries
-      .map(r => r.score?.recovery_score ?? r.score?.recovery ?? r.recovery_score)
+      .map(r => r.score?.recovery_score ?? r.recovery_score)
       .filter(s => s !== undefined && s !== null);
-
-    console.log(`📊 [Whoop Extractor] Recovery scores found: ${scores.length}`);
-    if (scores.length > 0) {
-      console.log(`📊 [Whoop Extractor] Recovery score sample: ${scores.slice(0, 5).join(', ')}`);
-    }
 
     if (scores.length < 5) return null;
 
-    // Average recovery score is already on 0-100 scale
     const avgRecovery = scores.reduce((a, b) => a + b, 0) / scores.length;
 
     return Math.round(avgRecovery * 100) / 100;
   }
 
   /**
-   * Calculate HRV stability (consistent HRV = stable nervous system)
-   * Works with cycle-embedded recovery data
+   * Calculate HRV stability (V2 uses hrv_rmssd_milli)
    */
   calculateHRVStability(recoveries) {
     if (!recoveries || recoveries.length < 5) return null;
 
-    // Try multiple possible field names for HRV
     const hrvValues = recoveries
-      .map(r => r.score?.hrv_rmssd_milli ?? r.score?.hrv ?? r.hrv_rmssd_milli)
+      .map(r => r.score?.hrv_rmssd_milli ?? r.hrv_rmssd_milli)
       .filter(h => h !== undefined && h !== null);
-
-    console.log(`📊 [Whoop Extractor] HRV values found: ${hrvValues.length}`);
-    if (hrvValues.length > 0) {
-      console.log(`📊 [Whoop Extractor] HRV sample: ${hrvValues.slice(0, 5).join(', ')}`);
-    }
 
     if (hrvValues.length < 5) return null;
 
-    // Calculate coefficient of variation (lower = more stable)
     const avg = hrvValues.reduce((a, b) => a + b, 0) / hrvValues.length;
     const stdDev = Math.sqrt(hrvValues.reduce((sum, h) => sum + Math.pow(h - avg, 2), 0) / hrvValues.length);
     const cv = (stdDev / avg) * 100;
 
-    // Convert to 0-100 scale (lower CV = higher stability score)
-    // Typical CV for HRV is 10-30%
     const stability = Math.max(0, 100 - cv * 2);
 
     return Math.round(stability * 100) / 100;
   }
 
   /**
-   * Calculate strain tolerance (average strain level)
+   * Calculate strain tolerance
    */
   calculateStrainTolerance(cycles) {
     if (!cycles || cycles.length < 5) return null;
@@ -386,7 +535,6 @@ class WhoopFeatureExtractor {
 
     if (strainValues.length < 5) return null;
 
-    // Strain is on 0-21 scale, normalize to 0-100
     const avgStrain = strainValues.reduce((a, b) => a + b, 0) / strainValues.length;
     const normalizedStrain = (avgStrain / 21) * 100;
 
@@ -394,31 +542,21 @@ class WhoopFeatureExtractor {
   }
 
   /**
-   * Calculate workout frequency (workouts per week)
-   * Falls back to strain-based estimation if workout data unavailable
+   * Calculate workout frequency
    */
   calculateWorkoutFrequency(workouts, cycles = []) {
-    // If we have actual workout data, use it
     if (workouts && workouts.length > 0) {
-      // Workouts in last 30 days, convert to per-week rate
       const workoutsPerWeek = (workouts.length / 30) * 7;
-      // Normalize: 7 workouts/week = 100%, 0 = 0%
       const frequencyScore = Math.min(100, (workoutsPerWeek / 7) * 100);
-      console.log(`📊 [Whoop Extractor] Workout frequency from API: ${workouts.length} workouts`);
       return Math.round(frequencyScore * 100) / 100;
     }
 
-    // Fallback: Estimate workout days from strain data
-    // High strain days (strain >= 10 out of 21) likely indicate workout days
     if (cycles && cycles.length > 0) {
       const highStrainDays = cycles.filter(c => {
         const strain = c.score?.strain;
         return strain !== undefined && strain >= 10;
       }).length;
 
-      console.log(`📊 [Whoop Extractor] Estimating workouts from strain: ${highStrainDays}/${cycles.length} high strain days`);
-
-      // Estimate workouts per week based on high strain days ratio
       const workoutRatio = highStrainDays / cycles.length;
       const estimatedWorkoutsPerWeek = workoutRatio * 7;
       const frequencyScore = Math.min(100, (estimatedWorkoutsPerWeek / 7) * 100);
@@ -430,17 +568,15 @@ class WhoopFeatureExtractor {
   }
 
   /**
-   * Calculate activity diversity (variety of workout types)
+   * Calculate activity diversity
    */
   calculateActivityDiversity(workouts) {
     if (!workouts || workouts.length < 3) return null;
 
-    // Count unique sport types
     const sportTypes = new Set(workouts.map(w => w.sport_id).filter(s => s));
 
     if (sportTypes.size === 0) return null;
 
-    // Shannon entropy for diversity
     const typeCounts = {};
     workouts.forEach(w => {
       if (w.sport_id) {
@@ -455,11 +591,9 @@ class WhoopFeatureExtractor {
       entropy -= p * Math.log2(p);
     }
 
-    // Normalize to 0-100 (max entropy is log2(unique_types))
     const maxEntropy = Math.log2(sportTypes.size);
     const diversity = maxEntropy > 0 ? (entropy / maxEntropy) * 100 : 0;
 
-    // Also factor in number of unique types (more types = higher diversity)
     const typeBonus = Math.min(30, sportTypes.size * 10);
     const finalDiversity = Math.min(100, diversity * 0.7 + typeBonus);
 
@@ -467,13 +601,13 @@ class WhoopFeatureExtractor {
   }
 
   /**
-   * Calculate sleep performance
+   * Calculate sleep performance (V2 uses sleep_performance_percentage)
    */
   calculateSleepPerformance(sleepData) {
     if (!sleepData || sleepData.length < 5) return null;
 
     const performances = sleepData
-      .map(s => s.score?.sleep_performance_percentage)
+      .map(s => s.score?.sleep_performance_percentage ?? s.score?.sleep_performance)
       .filter(p => p !== undefined && p !== null);
 
     if (performances.length < 5) return null;
@@ -481,6 +615,287 @@ class WhoopFeatureExtractor {
     const avgPerformance = performances.reduce((a, b) => a + b, 0) / performances.length;
 
     return Math.round(avgPerformance * 100) / 100;
+  }
+
+  // ==========================================
+  // NEW V2 CALCULATION METHODS
+  // ==========================================
+
+  /**
+   * Calculate sleep efficiency (V2 specific)
+   */
+  calculateSleepEfficiency(sleepData) {
+    if (!sleepData || sleepData.length < 5) return null;
+
+    const efficiencies = sleepData
+      .map(s => s.score?.sleep_efficiency_percentage)
+      .filter(e => e !== undefined && e !== null);
+
+    if (efficiencies.length < 5) return null;
+
+    const avgEfficiency = efficiencies.reduce((a, b) => a + b, 0) / efficiencies.length;
+
+    return Math.round(avgEfficiency * 100) / 100;
+  }
+
+  /**
+   * Calculate deep sleep ratio (V2: stage_summary.total_slow_wave_sleep_time_milli)
+   */
+  calculateDeepSleepRatio(sleepData) {
+    if (!sleepData || sleepData.length < 5) return null;
+
+    const ratios = sleepData.map(s => {
+      const totalSleep = s.score?.total_sleep_time_milli ||
+                         s.score?.stage_summary?.total_in_bed_time_milli;
+      const deepSleep = s.score?.stage_summary?.total_slow_wave_sleep_time_milli;
+
+      if (totalSleep && deepSleep && totalSleep > 0) {
+        return (deepSleep / totalSleep) * 100;
+      }
+      return null;
+    }).filter(r => r !== null);
+
+    if (ratios.length < 5) return null;
+
+    const avgRatio = ratios.reduce((a, b) => a + b, 0) / ratios.length;
+
+    return Math.round(avgRatio * 100) / 100;
+  }
+
+  /**
+   * Calculate REM sleep ratio (V2: stage_summary.total_rem_sleep_time_milli)
+   */
+  calculateREMSleepRatio(sleepData) {
+    if (!sleepData || sleepData.length < 5) return null;
+
+    const ratios = sleepData.map(s => {
+      const totalSleep = s.score?.total_sleep_time_milli ||
+                         s.score?.stage_summary?.total_in_bed_time_milli;
+      const remSleep = s.score?.stage_summary?.total_rem_sleep_time_milli;
+
+      if (totalSleep && remSleep && totalSleep > 0) {
+        return (remSleep / totalSleep) * 100;
+      }
+      return null;
+    }).filter(r => r !== null);
+
+    if (ratios.length < 5) return null;
+
+    const avgRatio = ratios.reduce((a, b) => a + b, 0) / ratios.length;
+
+    return Math.round(avgRatio * 100) / 100;
+  }
+
+  /**
+   * Calculate respiratory rate stability (V2 specific)
+   */
+  calculateRespiratoryStability(sleepData) {
+    if (!sleepData || sleepData.length < 5) return null;
+
+    const respRates = sleepData
+      .map(s => s.score?.respiratory_rate)
+      .filter(r => r !== undefined && r !== null);
+
+    if (respRates.length < 5) return null;
+
+    const avg = respRates.reduce((a, b) => a + b, 0) / respRates.length;
+    const stdDev = Math.sqrt(respRates.reduce((sum, r) => sum + Math.pow(r - avg, 2), 0) / respRates.length);
+    const cv = (stdDev / avg) * 100;
+
+    // Lower CV = more stable = higher score
+    const stability = Math.max(0, 100 - cv * 5);
+
+    return Math.round(stability * 100) / 100;
+  }
+
+  /**
+   * Calculate SpO2 average (V2: spo2_percentage)
+   */
+  calculateSpO2Average(recoveries) {
+    if (!recoveries || recoveries.length < 5) return null;
+
+    const spo2Values = recoveries
+      .map(r => r.score?.spo2_percentage)
+      .filter(s => s !== undefined && s !== null);
+
+    if (spo2Values.length < 3) return null;
+
+    const avgSpO2 = spo2Values.reduce((a, b) => a + b, 0) / spo2Values.length;
+
+    return Math.round(avgSpO2 * 100) / 100;
+  }
+
+  /**
+   * Calculate skin temperature deviation (V2: skin_temp_celsius)
+   */
+  calculateSkinTempDeviation(recoveries) {
+    if (!recoveries || recoveries.length < 5) return null;
+
+    const temps = recoveries
+      .map(r => r.score?.skin_temp_celsius)
+      .filter(t => t !== undefined && t !== null);
+
+    if (temps.length < 5) return null;
+
+    const avg = temps.reduce((a, b) => a + b, 0) / temps.length;
+    const stdDev = Math.sqrt(temps.reduce((sum, t) => sum + Math.pow(t - avg, 2), 0) / temps.length);
+
+    // Lower deviation = more stable = higher score (normalized 0-100)
+    // Typical deviation is 0.1-0.5 degrees
+    const stability = Math.max(0, 100 - (stdDev * 100));
+
+    return Math.round(stability * 100) / 100;
+  }
+
+  /**
+   * Calculate resting heart rate trend
+   */
+  calculateRHRTrend(recoveries) {
+    if (!recoveries || recoveries.length < 7) return null;
+
+    const rhrValues = recoveries
+      .map(r => r.score?.resting_heart_rate)
+      .filter(r => r !== undefined && r !== null);
+
+    if (rhrValues.length < 7) return null;
+
+    // Compare first half to second half (improvement = positive trend)
+    const midpoint = Math.floor(rhrValues.length / 2);
+    const firstHalf = rhrValues.slice(0, midpoint);
+    const secondHalf = rhrValues.slice(midpoint);
+
+    const avgFirst = firstHalf.reduce((a, b) => a + b, 0) / firstHalf.length;
+    const avgSecond = secondHalf.reduce((a, b) => a + b, 0) / secondHalf.length;
+
+    // Improving RHR = second half lower than first half
+    const improvement = avgFirst - avgSecond;
+
+    // Normalize: -5 to +5 bpm change maps to 0-100
+    const trendScore = 50 + (improvement * 10);
+
+    return Math.round(Math.max(0, Math.min(100, trendScore)) * 100) / 100;
+  }
+
+  /**
+   * Calculate workout intensity (average strain per workout)
+   */
+  calculateWorkoutIntensity(workouts) {
+    if (!workouts || workouts.length < 3) return null;
+
+    const strainValues = workouts
+      .map(w => w.score?.strain)
+      .filter(s => s !== undefined && s !== null);
+
+    if (strainValues.length < 3) return null;
+
+    const avgStrain = strainValues.reduce((a, b) => a + b, 0) / strainValues.length;
+
+    // Workout strain typically 0-21, normalize to 0-100
+    const intensityScore = (avgStrain / 21) * 100;
+
+    return Math.round(intensityScore * 100) / 100;
+  }
+
+  /**
+   * Calculate heart rate zone balance (V2: zone_duration)
+   */
+  calculateHRZoneBalance(workouts) {
+    if (!workouts || workouts.length < 3) return null;
+
+    let totalZone1 = 0, totalZone2 = 0, totalZone3 = 0, totalZone4 = 0, totalZone5 = 0;
+    let count = 0;
+
+    workouts.forEach(w => {
+      const zones = w.score?.zone_duration;
+      if (zones) {
+        totalZone1 += zones.zone_one_milli || 0;
+        totalZone2 += zones.zone_two_milli || 0;
+        totalZone3 += zones.zone_three_milli || 0;
+        totalZone4 += zones.zone_four_milli || 0;
+        totalZone5 += zones.zone_five_milli || 0;
+        count++;
+      }
+    });
+
+    if (count === 0) return null;
+
+    const total = totalZone1 + totalZone2 + totalZone3 + totalZone4 + totalZone5;
+    if (total === 0) return null;
+
+    // Calculate distribution and entropy for balance
+    const zones = [totalZone1, totalZone2, totalZone3, totalZone4, totalZone5];
+    let entropy = 0;
+    zones.forEach(z => {
+      const p = z / total;
+      if (p > 0) entropy -= p * Math.log2(p);
+    });
+
+    // Max entropy for 5 zones is log2(5) ≈ 2.32
+    const maxEntropy = Math.log2(5);
+    const balance = (entropy / maxEntropy) * 100;
+
+    return Math.round(balance * 100) / 100;
+  }
+
+  /**
+   * Calculate average calories burned
+   */
+  calculateCaloriesAverage(cycles) {
+    if (!cycles || cycles.length < 5) return null;
+
+    const calories = cycles
+      .map(c => c.score?.kilojoule)
+      .filter(k => k !== undefined && k !== null);
+
+    if (calories.length < 5) return null;
+
+    const avgKJ = calories.reduce((a, b) => a + b, 0) / calories.length;
+    const avgKcal = avgKJ / 4.184; // Convert kJ to kcal
+
+    // Normalize: 2000-3500 kcal range to 0-100
+    const normalizedScore = Math.max(0, Math.min(100, ((avgKcal - 1500) / 2000) * 100));
+
+    return Math.round(normalizedScore * 100) / 100;
+  }
+
+  /**
+   * Calculate max HR utilization
+   */
+  calculateMaxHRUtilization(workouts, bodyMeasurements) {
+    if (!workouts || workouts.length < 3) return null;
+
+    const maxHR = bodyMeasurements?.max_heart_rate || 185; // Default if not available
+
+    const maxHRDuringWorkouts = workouts
+      .map(w => w.score?.max_heart_rate)
+      .filter(hr => hr !== undefined && hr !== null);
+
+    if (maxHRDuringWorkouts.length < 3) return null;
+
+    const avgMaxHR = maxHRDuringWorkouts.reduce((a, b) => a + b, 0) / maxHRDuringWorkouts.length;
+    const utilization = (avgMaxHR / maxHR) * 100;
+
+    return Math.round(utilization * 100) / 100;
+  }
+
+  /**
+   * Calculate sleep disturbances (inverse score - fewer is better)
+   */
+  calculateSleepDisturbances(sleepData) {
+    if (!sleepData || sleepData.length < 5) return null;
+
+    const disturbances = sleepData
+      .map(s => s.score?.disturbance_count ?? s.score?.stage_summary?.disturbance_count)
+      .filter(d => d !== undefined && d !== null);
+
+    if (disturbances.length < 5) return null;
+
+    const avgDisturbances = disturbances.reduce((a, b) => a + b, 0) / disturbances.length;
+
+    // Inverse score: 0 disturbances = 100, 10+ disturbances = 0
+    const score = Math.max(0, 100 - (avgDisturbances * 10));
+
+    return Math.round(score * 100) / 100;
   }
 
   /**
@@ -492,8 +907,8 @@ class WhoopFeatureExtractor {
       platform: 'whoop',
       feature_type: featureType,
       feature_value: featureValue,
-      normalized_value: featureValue / 100, // Normalize to 0-1
-      confidence_score: 70, // Default confidence for Whoop features
+      normalized_value: featureValue / 100,
+      confidence_score: 70,
       sample_size: 1,
       contributes_to: metadata.contributes_to || null,
       contribution_weight: metadata.contribution_weight || 0,

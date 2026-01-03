@@ -122,9 +122,7 @@ export const PipedreamProvider: React.FC<PipedreamProviderProps> = ({ children }
 
       const { accounts } = await response.json();
       setConnectedAccounts(accounts);
-      console.log(`[Pipedream] Fetched ${accounts.length} connected accounts`);
     } catch (err: any) {
-      console.error('[Pipedream] Error fetching accounts:', err);
       setError(err.message || 'Failed to fetch connected accounts');
     } finally {
       setIsLoading(false);
@@ -141,7 +139,6 @@ export const PipedreamProvider: React.FC<PipedreamProviderProps> = ({ children }
       return;
     }
 
-    console.log(`[Pipedream] Opening Connect modal for ${appNameSlug || 'any app'}`);
     setIsLoading(true);
     setError(null);
 
@@ -152,21 +149,14 @@ export const PipedreamProvider: React.FC<PipedreamProviderProps> = ({ children }
         throw new Error('Failed to initialize Connect client');
       }
 
-      console.log('[Pipedream] Connect client initialized successfully');
-
       // Open Connect modal - SDK automatically fetches token via tokenCallback
       client.connectAccount({
         app: appNameSlug, // Optional: pre-select specific app
         onSuccess: async (account: any) => {
-          console.log('[Pipedream] ✅ Account connected successfully!');
-          console.log('[Pipedream] Account data:', JSON.stringify(account, null, 2));
-
           setIsLoading(true); // Keep loading while saving
 
           // Save connection to database manually (webhook isn't configured yet)
           try {
-            console.log('[Pipedream] Saving connection to database...');
-
             const payload = {
               external_user_id: user.id,
               account: {
@@ -179,8 +169,6 @@ export const PipedreamProvider: React.FC<PipedreamProviderProps> = ({ children }
               }
             };
 
-            console.log('[Pipedream] Webhook payload:', JSON.stringify(payload, null, 2));
-
             const response = await fetch(`${import.meta.env.VITE_API_URL}/pipedream/webhooks/account-connected`, {
               method: 'POST',
               headers: {
@@ -189,35 +177,23 @@ export const PipedreamProvider: React.FC<PipedreamProviderProps> = ({ children }
               body: JSON.stringify(payload)
             });
 
-            const result = await response.json();
-            console.log('[Pipedream] Webhook response:', result);
-
             if (!response.ok) {
-              console.error('[Pipedream] ❌ Failed to save connection:', result);
               setError('Connected but failed to save to database');
-            } else {
-              console.log('[Pipedream] ✅ Connection saved to database successfully');
             }
           } catch (err) {
-            console.error('[Pipedream] ❌ Error saving connection:', err);
             setError('Connected but failed to save');
           }
 
           // Refresh connected accounts
-          console.log('[Pipedream] Refreshing connected accounts...');
           await fetchConnectedAccounts();
           setIsLoading(false);
         },
         onError: (error: any) => {
-          console.error('[Pipedream] ❌ Connection error:', error);
           setError(error.message || 'Failed to connect account');
           setIsLoading(false);
         }
       });
-
-      console.log('[Pipedream] Connect modal opened - waiting for user action...');
     } catch (err: any) {
-      console.error('[Pipedream] ❌ Error opening Connect:', err);
       setError(err.message || 'Failed to open Pipedream Connect');
       setIsLoading(false);
     }
@@ -248,14 +224,11 @@ export const PipedreamProvider: React.FC<PipedreamProviderProps> = ({ children }
         throw new Error(`Failed to disconnect ${platform}`);
       }
 
-      console.log(`[Pipedream] Disconnected ${platform}`);
-
       // Update connected accounts
       setConnectedAccounts(prev =>
         prev.filter(account => account.platform !== platform)
       );
     } catch (err: any) {
-      console.error('[Pipedream] Error disconnecting account:', err);
       setError(err.message || `Failed to disconnect ${platform}`);
     } finally {
       setIsLoading(false);

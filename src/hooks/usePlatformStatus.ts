@@ -9,6 +9,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useCallback, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import type { RealtimeChannel } from '@supabase/supabase-js';
+import { DEMO_USER, DEMO_PLATFORM_CONNECTIONS } from '@/services/demoDataService';
 
 export interface PlatformConnectionStatus {
   connected: boolean;
@@ -37,6 +38,27 @@ export interface UsePlatformStatusReturn {
 }
 
 /**
+ * Generate demo platform status data
+ */
+const getDemoPlatformStatus = (): PlatformStatusMap => {
+  const statusMap: PlatformStatusMap = {};
+
+  for (const conn of DEMO_PLATFORM_CONNECTIONS) {
+    statusMap[conn.platform] = {
+      connected: conn.connected,
+      isActive: conn.status === 'active',
+      tokenExpired: false,
+      connectedAt: conn.connectedAt,
+      lastSync: conn.lastSync,
+      status: conn.status,
+      expiresAt: null,
+    };
+  }
+
+  return statusMap;
+};
+
+/**
  * Fetch platform connection status from API
  */
 const fetchPlatformStatus = async (userId: string): Promise<PlatformStatusMap> => {
@@ -44,8 +66,15 @@ const fetchPlatformStatus = async (userId: string): Promise<PlatformStatusMap> =
     throw new Error('userId is required');
   }
 
+  // Return demo data for demo user
+  if (userId === DEMO_USER.id) {
+    return getDemoPlatformStatus();
+  }
+
   const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
-  const response = await fetch(`${baseUrl}/connectors/status/${encodeURIComponent(userId)}`);
+  const url = `${baseUrl}/connectors/status/${encodeURIComponent(userId)}`;
+
+  const response = await fetch(url);
 
   if (!response.ok) {
     throw new Error(`Failed to fetch platform status: ${response.statusText}`);
@@ -92,8 +121,8 @@ export const usePlatformStatus = (
     queryFn: () => fetchPlatformStatus(userId!),
     enabled: !!userId && (options?.enabled !== false),
     refetchInterval: options?.refetchInterval ?? 30000, // Default: 30 seconds
-    staleTime: 10000, // Consider data fresh for 10 seconds
-    gcTime: 5 * 60 * 1000, // Keep unused data for 5 minutes
+    staleTime: 0, // Always consider data stale to ensure fresh fetches
+    gcTime: 60 * 1000, // Keep unused data for 1 minute only
     retry: 2,
     retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 10000),
   });

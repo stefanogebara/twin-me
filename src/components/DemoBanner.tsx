@@ -17,7 +17,7 @@ export const DemoBanner: React.FC<DemoBannerProps> = ({
 }) => {
   const navigate = useNavigate();
   const { isDemoMode, exitDemoMode } = useDemo();
-  const { isDemoMode: authDemoMode } = useAuth();
+  const { isDemoMode: authDemoMode, signOut } = useAuth();
 
   // Don't render if not in demo mode
   if (!isDemoMode && !authDemoMode) {
@@ -29,8 +29,9 @@ export const DemoBanner: React.FC<DemoBannerProps> = ({
     navigate('/auth?mode=signup');
   };
 
-  const handleExitDemo = () => {
+  const handleExitDemo = async () => {
     exitDemoMode();
+    await signOut(); // Clear auth state so isSignedIn becomes false
     navigate('/');
   };
 
@@ -64,17 +65,19 @@ export const DemoBanner: React.FC<DemoBannerProps> = ({
             {showSignUp && (
               <button
                 onClick={handleSignUp}
+                aria-label="Sign up for an account to save your data"
                 className="flex items-center gap-2 px-4 py-1.5 bg-white text-[hsl(var(--claude-accent))] rounded-lg text-sm font-medium hover:bg-stone-100 transition-all shadow-md"
               >
                 Sign up to save your data
-                <ArrowRight className="w-4 h-4" />
+                <ArrowRight className="w-4 h-4" aria-hidden="true" />
               </button>
             )}
             <button
               onClick={handleExitDemo}
+              aria-label="Exit demo mode and return to home"
               className="flex items-center gap-2 px-3 py-1.5 bg-white/20 text-white rounded-lg text-sm font-medium hover:bg-white/30 transition-all"
             >
-              <LogOut className="w-4 h-4" />
+              <LogOut className="w-4 h-4" aria-hidden="true" />
               Exit Demo
             </button>
             <button
@@ -105,10 +108,11 @@ export const DemoBanner: React.FC<DemoBannerProps> = ({
           {showSignUp && (
             <button
               onClick={handleSignUp}
+              aria-label="Create your real soul signature by signing up"
               className="flex items-center gap-2 px-4 py-2 bg-[hsl(var(--claude-accent))] text-white rounded-lg text-sm font-medium hover:bg-[hsl(var(--claude-accent-hover))] transition-all shadow-sm"
             >
               Create Your Real Soul Signature
-              <ArrowRight className="w-4 h-4" />
+              <ArrowRight className="w-4 h-4" aria-hidden="true" />
             </button>
           )}
         </div>

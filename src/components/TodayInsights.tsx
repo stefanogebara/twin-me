@@ -10,6 +10,8 @@ import { useNavigate } from 'react-router-dom';
 import { useTheme } from '../contexts/ThemeContext';
 import { useAuth } from '../contexts/AuthContext';
 import { FeedbackWidget } from './FeedbackWidget';
+import { DEMO_TODAY_INSIGHTS } from '../services/demoDataService';
+import { usePlatformStatus } from '../hooks/usePlatformStatus';
 import {
   Activity,
   Calendar,
@@ -73,52 +75,8 @@ interface TodayInsightsResponse {
   };
 }
 
-// Demo insights for demo mode
-const DEMO_INSIGHTS: TodayInsight[] = [
-  {
-    id: 'demo-1',
-    type: 'health',
-    title: 'Good Recovery Day',
-    summary: 'Your recovery is at 72% - perfect for moderate activity',
-    detail: 'Based on your Whoop data, your HRV is above average and you got 7.2 hours of sleep. Consider a workout today.',
-    platforms: ['whoop'],
-    priority: 'high',
-    icon: 'activity',
-    action: { label: 'View Health Data', route: '/soul-signature' }
-  },
-  {
-    id: 'demo-2',
-    type: 'schedule',
-    title: 'Your Day Ahead',
-    summary: 'Check your calendar to see upcoming events',
-    detail: 'Connect Google Calendar to get personalized insights about your schedule. We\'ll analyze your meeting patterns and suggest optimal prep times.',
-    platforms: ['google_calendar'],
-    priority: 'high',
-    icon: 'calendar',
-    action: { label: 'View Time Patterns', route: '/insights/calendar' }
-  },
-  {
-    id: 'demo-3',
-    type: 'music',
-    title: 'Morning Focus Playlist',
-    summary: 'Based on your listening, ambient music helps you focus',
-    detail: 'Your recent Spotify history shows you listen to lo-fi and ambient tracks during work hours. This correlates with your most productive calendar blocks.',
-    platforms: ['spotify', 'google_calendar'],
-    priority: 'medium',
-    icon: 'music',
-    action: { label: 'View Music Insights', route: '/insights/spotify' }
-  },
-  {
-    id: 'demo-4',
-    type: 'pattern',
-    title: 'Energy Pattern Detected',
-    summary: 'You tend to crash around 3pm - schedule important work earlier',
-    detail: 'Cross-referencing your Whoop strain data with calendar events shows your energy dips mid-afternoon. Your high-recovery days correlate with morning workouts.',
-    platforms: ['whoop', 'google_calendar', 'spotify'],
-    priority: 'medium',
-    icon: 'trending'
-  }
-];
+// Demo insights imported from centralized demoDataService.ts
+// DEMO_TODAY_INSIGHTS
 
 const iconMap = {
   activity: Activity,
@@ -139,9 +97,21 @@ const priorityColors = {
 
 export const TodayInsights: React.FC = () => {
   const { theme } = useTheme();
-  const { isDemoMode } = useAuth();
+  const { isDemoMode, user } = useAuth();
   const navigate = useNavigate();
   const [expandedId, setExpandedId] = useState<string | null>(null);
+
+  // Get real platform status to check token expiry
+  const { data: platformStatus, isLoading: platformStatusLoading } = usePlatformStatus(user?.id);
+
+  // Helper to check if platform is truly active (connected AND token not expired)
+  const isPlatformActive = (platform: string) => {
+    // In demo mode, all platforms are active
+    if (isDemoMode) return true;
+
+    const status = platformStatus[platform];
+    return status?.connected && !status?.tokenExpired && status?.status !== 'token_expired';
+  };
 
   const { data, isLoading, error, refetch, isFetching } = useQuery<TodayInsightsResponse>({
     queryKey: ['today-insights'],
@@ -151,7 +121,7 @@ export const TodayInsights: React.FC = () => {
         await new Promise(resolve => setTimeout(resolve, 500));
         return {
           success: true,
-          insights: DEMO_INSIGHTS,
+          insights: DEMO_TODAY_INSIGHTS,
           dataTimestamp: new Date().toISOString(),
           sources: { whoop: true, calendar: true, spotify: true }
         };
@@ -242,19 +212,37 @@ export const TodayInsights: React.FC = () => {
         </button>
       </div>
 
-      {/* Data Sources Indicator */}
+      {/* Data Sources Indicator - Uses real platform status with token expiry check */}
       <div className="flex items-center gap-4 text-xs" style={{ color: theme === 'dark' ? 'rgba(193, 192, 182, 0.5)' : '#a8a29e' }}>
         <span className="flex items-center gap-1">
           <Activity className="w-3 h-3" />
-          Whoop {data.sources.whoop ? <CheckCircle className="w-3 h-3 text-green-500" /> : <AlertCircle className="w-3 h-3 text-orange-500" />}
+          Whoop {isPlatformActive('whoop') ? (
+            <CheckCircle className="w-3 h-3 text-green-500" />
+          ) : platformStatus['whoop']?.tokenExpired ? (
+            <AlertCircle className="w-3 h-3 text-amber-500" title="Token expired" />
+          ) : (
+            <AlertCircle className="w-3 h-3 text-orange-500" />
+          )}
         </span>
         <span className="flex items-center gap-1">
           <Calendar className="w-3 h-3" />
-          Calendar {data.sources.calendar ? <CheckCircle className="w-3 h-3 text-green-500" /> : <AlertCircle className="w-3 h-3 text-orange-500" />}
+          Calendar {isPlatformActive('google_calendar') ? (
+            <CheckCircle className="w-3 h-3 text-green-500" />
+          ) : platformStatus['google_calendar']?.tokenExpired ? (
+            <AlertCircle className="w-3 h-3 text-amber-500" title="Token expired" />
+          ) : (
+            <AlertCircle className="w-3 h-3 text-orange-500" />
+          )}
         </span>
         <span className="flex items-center gap-1">
           <Music className="w-3 h-3" />
-          Spotify {data.sources.spotify ? <CheckCircle className="w-3 h-3 text-green-500" /> : <AlertCircle className="w-3 h-3 text-orange-500" />}
+          Spotify {isPlatformActive('spotify') ? (
+            <CheckCircle className="w-3 h-3 text-green-500" />
+          ) : platformStatus['spotify']?.tokenExpired ? (
+            <AlertCircle className="w-3 h-3 text-amber-500" title="Token expired" />
+          ) : (
+            <AlertCircle className="w-3 h-3 text-orange-500" />
+          )}
         </span>
       </div>
 

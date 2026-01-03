@@ -148,11 +148,24 @@ class PlatformReflectionService {
 
   /**
    * Get Spotify data for reflection
+   *
+   * Data can be stored in two formats:
+   * 1. Individual rows (old format): each row = 1 track with flat structure
+   * 2. API response (new format): each row = full Spotify API response with items[] array
    */
   async getSpotifyData(userId, context) {
     try {
-      // Get top tracks from user_platform_data
-      const { data: topTracks } = await supabaseAdmin
+      // Get top tracks - try both 'top_tracks' (new) and 'top_track' (old) formats
+      const { data: topTracksNew } = await supabaseAdmin
+        .from('user_platform_data')
+        .select('raw_data')
+        .eq('user_id', userId)
+        .eq('platform', 'spotify')
+        .eq('data_type', 'top_tracks')
+        .order('extracted_at', { ascending: false })
+        .limit(1);
+
+      const { data: topTracksOld } = await supabaseAdmin
         .from('user_platform_data')
         .select('raw_data')
         .eq('user_id', userId)
@@ -169,7 +182,7 @@ class PlatformReflectionService {
         .eq('platform', 'spotify')
         .eq('data_type', 'recently_played')
         .order('extracted_at', { ascending: false })
-        .limit(20);
+        .limit(1);
 
       // Get audio features if available
       const { data: audioFeatures } = await supabaseAdmin
@@ -181,31 +194,64 @@ class PlatformReflectionService {
         .order('extracted_at', { ascending: false })
         .limit(1);
 
+      // Extract tracks from new format (API response with items array)
+      let allTopTracks = [];
+      let allRecentTracks = [];
+
+      // Handle new format: raw_data.items is an array
+      if (topTracksNew?.[0]?.raw_data?.items) {
+        allTopTracks = topTracksNew[0].raw_data.items.map(item => ({
+          name: item.name,
+          artist: item.artists?.[0]?.name
+        }));
+      }
+      // Handle old format: each row is a track
+      if (topTracksOld?.length) {
+        const oldTracks = topTracksOld.map(t => ({
+          name: t.raw_data?.track_name || t.raw_data?.name,
+          artist: t.raw_data?.artist_name || t.raw_data?.artists?.[0]?.name
+        })).filter(t => t.name);
+        allTopTracks = [...allTopTracks, ...oldTracks];
+      }
+
+      // Handle recent plays (new format has items array with track nested)
+      if (recentPlays?.[0]?.raw_data?.items) {
+        allRecentTracks = recentPlays[0].raw_data.items.map(item => ({
+          name: item.track?.name,
+          artist: item.track?.artists?.[0]?.name,
+          playedAt: item.played_at
+        })).filter(t => t.name);
+      }
+
+      // Extract unique artists
       const topArtists = [...new Set(
-        (topTracks || [])
-          .map(t => t.raw_data?.artist_name || t.raw_data?.artists?.[0]?.name)
-          .filter(Boolean)
+        allTopTracks.map(t => t.artist).filter(Boolean)
       )].slice(0, 10);
 
-      const topTrackNames = (topTracks || [])
-        .map(t => `${t.raw_data?.track_name || t.raw_data?.name} by ${t.raw_data?.artist_name || t.raw_data?.artists?.[0]?.name}`)
+      // Format track names
+      const topTrackNames = allTopTracks
+        .map(t => `${t.name} by ${t.artist}`)
         .filter(Boolean)
         .slice(0, 10);
 
-      const recentTrackNames = (recentPlays || [])
-        .map(t => t.raw_data?.track?.name || t.raw_data?.name)
+      const recentTrackNames = allRecentTracks
+        .map(t => t.name)
         .filter(Boolean)
         .slice(0, 10);
 
       // Calculate average audio features
       const features = audioFeatures?.[0]?.raw_data || {};
 
+      console.log(`🎵 [Reflection] Found ${allTopTracks.length} top tracks, ${allRecentTracks.length} recent tracks for user ${userId}`);
+
       return {
-        success: true,
+        success: allTopTracks.length > 0 || allRecentTracks.length > 0,
         data: {
           topArtists,
           topTrackNames,
           recentTrackNames,
+          // Also include structured data for visual display
+          recentTracksStructured: allRecentTracks.slice(0, 5),
           averageEnergy: features.energy || context.spotify?.averageEnergy,
           averageValence: features.valence,
           listeningContext: context.spotify?.recentMood
@@ -623,7 +669,12 @@ Example good reflection: "The way you protect Tuesday mornings tells me somethin
         generatedAt: h.generated_at
       })),
       // NEW: Visual data for engaging display (no more textbook style)
-      recentTracks: rawData.recentTrackNames?.slice(0, 5)?.map(name => {
+      // Use structured data if available, otherwise parse from track names
+      recentTracks: rawData.recentTracksStructured?.slice(0, 5)?.map(t => ({
+        name: t.name,
+        artist: t.artist,
+        playedAt: t.playedAt
+      })) || rawData.recentTrackNames?.slice(0, 5)?.map(name => {
         const parts = name.split(' by ');
         return {
           name: parts[0] || name,

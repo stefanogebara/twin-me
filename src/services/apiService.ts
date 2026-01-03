@@ -678,7 +678,8 @@ export const whoopAPI = {
    * Get current health state from Whoop
    */
   getCurrentState: async (): Promise<WhoopCurrentState> => {
-    const response = await fetch(`${API_URL}/health/whoop/current-state`, {
+    const userId = localStorage.getItem('user_id') || '';
+    const response = await fetch(`${API_URL}/health/whoop/current-state?userId=${encodeURIComponent(userId)}`, {
       headers: getAuthHeaders(),
     });
 

@@ -46,12 +46,7 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
   }, [theme]);
 
   const toggleTheme = () => {
-    console.log('🎨 Theme toggle clicked, current theme:', theme);
-    setTheme(prev => {
-      const newTheme = prev === 'light' ? 'dark' : 'light';
-      console.log('🎨 Switching to theme:', newTheme);
-      return newTheme;
-    });
+    setTheme(prev => prev === 'light' ? 'dark' : 'light');
   };
 
   const value: ThemeContextType = {

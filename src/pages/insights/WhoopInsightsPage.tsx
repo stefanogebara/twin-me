@@ -10,11 +10,13 @@
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useTheme } from '@/contexts/ThemeContext';
+import { useDemo } from '@/contexts/DemoContext';
 import { PageLayout, GlassPanel } from '@/components/layout/PageLayout';
 import { TwinReflection, PatternObservation, StatCard, DataHighlight } from './components/TwinReflection';
 import { EvidenceSection } from './components/EvidenceSection';
 import { Activity, RefreshCw, Sparkles, ArrowLeft, AlertCircle, Heart, Zap, Moon, TrendingUp } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { getDemoWhoopData } from '@/services/demoDataService';
 
 interface Reflection {
   id: string | null;
@@ -85,6 +87,7 @@ interface InsightsResponse {
 const WhoopInsightsPage: React.FC = () => {
   const { theme } = useTheme();
   const { token } = useAuth();
+  const { isDemoMode } = useDemo();
   const navigate = useNavigate();
 
   const [insights, setInsights] = useState<InsightsResponse | null>(null);
@@ -102,11 +105,84 @@ const WhoopInsightsPage: React.FC = () => {
     whoopBg: theme === 'dark' ? 'rgba(0, 180, 216, 0.15)' : 'rgba(0, 180, 216, 0.1)'
   };
 
+  // Generate demo insights data
+  const getDemoInsights = (): InsightsResponse => {
+    const whoopData = getDemoWhoopData();
+    return {
+      success: true,
+      reflection: {
+        id: 'demo-reflection-1',
+        text: `Your body tells a story of ${whoopData.recovery.label.toLowerCase()} recovery today. With a ${whoopData.recovery.score}% recovery score and HRV at ${whoopData.recovery.hrv}ms, your twin notices you're ${whoopData.recovery.score >= 70 ? 'ready to push yourself' : whoopData.recovery.score >= 50 ? 'capable of moderate activity' : 'signaling for rest'}. Your sleep last night was ${whoopData.sleep.quality.toLowerCase()} at ${whoopData.sleep.hours} hours - ${whoopData.sleep.hours >= 7 ? 'your body thanks you' : 'consider prioritizing rest tonight'}.`,
+        generatedAt: new Date().toISOString(),
+        expiresAt: null,
+        confidence: 'high',
+        themes: ['recovery', 'sleep', 'readiness'],
+      },
+      patterns: [
+        {
+          id: 'pattern-1',
+          text: `Your HRV has been ${whoopData.recovery.hrvTrend} lately - ${whoopData.recovery.hrvTrend === 'improving' ? 'great sign of adaptation!' : whoopData.recovery.hrvTrend === 'stable' ? 'consistent stress management.' : 'consider more recovery time.'}`,
+          occurrences: 'often',
+        },
+        {
+          id: 'pattern-2',
+          text: `You average ${whoopData.trends.weeklyRecoveryAvg}% recovery this week - ${whoopData.trends.weeklyRecoveryAvg >= 65 ? 'you\'re managing your load well' : 'your body might benefit from lighter days'}.`,
+          occurrences: 'sometimes',
+        },
+        {
+          id: 'pattern-3',
+          text: `Your weekly sleep average is ${whoopData.trends.weeklySleepAvg} hours. ${whoopData.trends.weeklySleepAvg >= 7 ? 'Sleep consistency is your superpower!' : 'More consistent sleep could boost your recovery.'}`,
+          occurrences: 'noticed',
+        },
+      ],
+      history: [
+        {
+          id: 'history-1',
+          text: 'Your recovery tends to be higher on days following lighter strain scores. Your body responds well to intentional recovery.',
+          generatedAt: new Date(Date.now() - 86400000).toISOString(),
+        },
+      ],
+      evidence: [
+        {
+          id: 'evidence-1',
+          observation: `Resting heart rate at ${whoopData.recovery.restingHeartRate} BPM`,
+          dataPoints: [`HRV: ${whoopData.recovery.hrv}ms`, `Sleep efficiency: ${whoopData.sleep.efficiency}%`],
+          confidence: 'high',
+        },
+      ],
+      currentMetrics: {
+        recovery: whoopData.recovery.score,
+        strain: whoopData.strain.score,
+        sleepPerformance: whoopData.recovery.sleepPerformance,
+        hrv: whoopData.recovery.hrv,
+        restingHR: whoopData.recovery.restingHeartRate,
+      },
+      recentTrends: [
+        `${whoopData.recovery.label} recovery zone`,
+        `${whoopData.strain.label} daily strain`,
+        `${whoopData.sleep.quality} sleep quality`,
+        `HRV ${whoopData.recovery.hrvTrend}`,
+      ],
+      sleepStats: {
+        avgSleepHours: `${whoopData.trends.weeklySleepAvg}h`,
+        sleepConsistency: whoopData.sleep.efficiency >= 85 ? 'High' : whoopData.sleep.efficiency >= 70 ? 'Moderate' : 'Low',
+        bestSleepDay: 'Sunday',
+      },
+    };
+  };
+
   useEffect(() => {
     fetchInsights();
-  }, []);
+  }, [isDemoMode]);
 
   const fetchInsights = async () => {
+    // Handle demo mode - return demo data
+    if (isDemoMode) {
+      setInsights(getDemoInsights());
+      setLoading(false);
+      return;
+    }
+
     const authToken = token || localStorage.getItem('auth_token');
     if (!authToken) {
       setError('Please sign in to hear your body stories');
@@ -137,6 +213,16 @@ const WhoopInsightsPage: React.FC = () => {
 
   const handleRefresh = async () => {
     setRefreshing(true);
+
+    // In demo mode, just regenerate demo data
+    if (isDemoMode) {
+      setTimeout(() => {
+        setInsights(getDemoInsights());
+        setRefreshing(false);
+      }, 800);
+      return;
+    }
+
     const authToken = token || localStorage.getItem('auth_token');
 
     try {
@@ -169,23 +255,89 @@ const WhoopInsightsPage: React.FC = () => {
     );
   }
 
-  // Error state
+  // Check if it's a token expiration error
+  const isTokenExpired = error?.toLowerCase().includes('expired') ||
+                          error?.toLowerCase().includes('reconnect') ||
+                          error?.toLowerCase().includes('authentication');
+
+  // Error state - with improved UX for token expiration
   if (error) {
     return (
       <PageLayout>
-        <div className="flex flex-col items-center justify-center min-h-[400px] gap-4">
-          <AlertCircle
-            className="w-12 h-12"
-            style={{ color: colors.textSecondary }}
-          />
-          <p style={{ color: colors.textSecondary }}>{error}</p>
-          <button
-            onClick={() => navigate('/get-started')}
-            className="px-4 py-2 rounded-lg glass-button"
+        <div className="flex flex-col items-center justify-center min-h-[400px] gap-6 px-4">
+          {/* Icon with status indicator */}
+          <div className="relative">
+            <div
+              className="w-20 h-20 rounded-2xl flex items-center justify-center"
+              style={{
+                backgroundColor: isTokenExpired
+                  ? theme === 'dark' ? 'rgba(239, 68, 68, 0.15)' : 'rgba(239, 68, 68, 0.1)'
+                  : colors.whoopBg
+              }}
+            >
+              <Activity
+                className="w-10 h-10"
+                style={{ color: isTokenExpired ? '#ef4444' : colors.whoopTeal }}
+              />
+            </div>
+            {isTokenExpired && (
+              <div className="absolute -top-1 -right-1 w-6 h-6 bg-red-500 rounded-full flex items-center justify-center">
+                <AlertCircle className="w-4 h-4 text-white" />
+              </div>
+            )}
+          </div>
+
+          {/* Title */}
+          <h2
+            className="text-xl font-medium text-center"
             style={{ color: colors.text }}
           >
-            Connect Whoop
-          </button>
+            {isTokenExpired ? 'Whoop Connection Expired' : 'Unable to Load Body Stories'}
+          </h2>
+
+          {/* Description */}
+          <p
+            className="text-center max-w-md"
+            style={{ color: colors.textSecondary }}
+          >
+            {isTokenExpired
+              ? 'Your Whoop connection needs to be refreshed. This happens periodically for security. Reconnecting takes just a few seconds.'
+              : error}
+          </p>
+
+          {/* Action buttons */}
+          <div className="flex flex-col sm:flex-row gap-3">
+            <button
+              onClick={() => navigate('/get-started')}
+              className="px-6 py-3 rounded-xl font-medium transition-all hover:scale-105"
+              style={{
+                backgroundColor: colors.whoopTeal,
+                color: '#ffffff'
+              }}
+            >
+              {isTokenExpired ? 'Reconnect Whoop' : 'Connect Whoop'}
+            </button>
+            <button
+              onClick={() => navigate('/dashboard')}
+              className="px-6 py-3 rounded-xl font-medium transition-colors"
+              style={{
+                backgroundColor: theme === 'dark' ? 'rgba(193, 192, 182, 0.1)' : 'rgba(0, 0, 0, 0.05)',
+                color: colors.text
+              }}
+            >
+              Back to Dashboard
+            </button>
+          </div>
+
+          {/* Help text for token expiration */}
+          {isTokenExpired && (
+            <p
+              className="text-xs text-center max-w-sm"
+              style={{ color: colors.textSecondary }}
+            >
+              Tip: Your data is safe. After reconnecting, your body stories will continue from where you left off.
+            </p>
+          )}
         </div>
       </PageLayout>
     );

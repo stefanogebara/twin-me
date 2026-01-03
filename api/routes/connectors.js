@@ -977,9 +977,10 @@ router.get('/status/:userId', async (req, res) => {
     }
 
     // Cache miss - fetch from database
+    // IMPORTANT: Include 'status' column to check for token_expired status
     const { data: connections, error } = await supabaseAdmin
       .from('platform_connections')
-      .select('platform, connected_at, token_expires_at, metadata, last_sync_at, last_sync_status')
+      .select('platform, connected_at, token_expires_at, metadata, last_sync_at, last_sync_status, status')
       .eq('user_id', userUuid);
 
     if (error) {
@@ -1027,12 +1028,15 @@ router.get('/status/:userId', async (req, res) => {
       const isActive = isConnected && !isTokenExpired;
 
       // Determine the current status
-      // Priority: database status if 'expired', then last_sync_status, then fallback
+      // Priority: database status if 'expired' or 'token_expired', then last_sync_status, then fallback
       let status = connection.last_sync_status || connection.metadata?.last_sync_status || 'unknown';
 
-      // If database status is 'expired', use that as the primary status
-      if (connection.status === 'expired') {
+      // If database status is 'expired' or 'token_expired', use that as the primary status
+      // AND set isTokenExpired to true
+      if (connection.status === 'expired' || connection.status === 'token_expired') {
         status = 'token_expired';
+        isTokenExpired = true;  // Force token expired flag when status indicates expired
+        console.log(`🔄 Platform ${connection.platform} has status=${connection.status}, setting tokenExpired=true`);
       }
       // Override with 'token_expired' if:
       // 1. The token is actually expired NOW
@@ -1042,12 +1046,15 @@ router.get('/status/:userId', async (req, res) => {
         status = 'token_expired';
       }
 
+      // Recalculate isActive after status check (in case isTokenExpired was updated)
+      const finalIsActive = isConnected && !isTokenExpired;
+
       connectionStatus[connection.platform] = {
         connected: isConnected,  // May be forced true for encryption_key_mismatch
-        isActive: isActive,      // Actual usability - false if token expired
+        isActive: finalIsActive,      // Actual usability - false if token expired
         tokenExpired: isTokenExpired,
-        connectedAt: connection.metadata?.connected_at || null,
-        lastSync: connection.last_sync || connection.metadata?.last_sync || null,
+        connectedAt: connection.metadata?.connected_at || connection.connected_at || null,
+        lastSync: connection.last_sync_at || connection.metadata?.last_sync || null,
         status: status,
         expiresAt: expiresAt
       };
@@ -1150,6 +1157,8 @@ router.delete('/:provider/:userId', async (req, res) => {
   try {
     const { provider, userId } = req.params;
 
+    console.log(`🔌 Disconnect request for ${provider} from user ${userId}`);
+
     // Convert email to UUID if needed
     let userUuid = userId;
     if (userId && !userId.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i)) {
@@ -1161,9 +1170,39 @@ router.delete('/:provider/:userId', async (req, res) => {
       if (userData) userUuid = userData.id;
     }
 
+    // Use supabaseAdmin to bypass RLS policies for server-side operations
+    // First check if connection exists
+    const { data: existingConnection, error: checkError } = await supabaseAdmin
+      .from('platform_connections')
+      .select('id, platform')
+      .eq('user_id', userUuid)
+      .eq('platform', provider)
+      .single();
+
+    if (checkError && checkError.code !== 'PGRST116') {
+      // PGRST116 is "not found" which is okay
+      console.error('Error checking connection:', checkError);
+    }
+
+    if (!existingConnection) {
+      console.log(`⚠️ No connection found for ${provider} - user ${userUuid}`);
+      // Still return success since the end state is what user wants
+      return res.json({
+        success: true,
+        data: {
+          provider,
+          userId,
+          disconnected: true,
+          message: 'Connection was already disconnected'
+        }
+      });
+    }
+
+    console.log(`🗑️ Deleting connection: ${existingConnection.id} for ${provider}`);
+
     // Disconnect by deleting the platform connection record
-    // This removes all tokens and effectively disconnects the platform
-    const { error } = await supabase
+    // Use supabaseAdmin to bypass RLS for server-side delete
+    const { error, count } = await supabaseAdmin
       .from('platform_connections')
       .delete()
       .eq('user_id', userUuid)
@@ -1174,8 +1213,11 @@ router.delete('/:provider/:userId', async (req, res) => {
       throw error;
     }
 
-    // Invalidate cached platform status for this user
+    console.log(`✅ Deleted connection for ${provider} - user ${userUuid}`);
+
+    // Invalidate cached platform status for this user BEFORE responding
     await invalidatePlatformStatusCache(userUuid);
+    console.log(`🔄 Cache invalidated for user ${userUuid}`);
 
     res.json({
       success: true,

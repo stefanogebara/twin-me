@@ -10,13 +10,13 @@ interface ProtectedRouteProps {
 /**
  * ProtectedRoute - Wraps content that requires authentication
  *
- * This component prevents the auth redirect flicker by:
- * 1. Checking if auth is still loading - if so, show nothing (prevents flash)
- * 2. If auth is loaded and user is signed in - show protected content
- * 3. If auth is loaded and user is NOT signed in - redirect to auth page
+ * This component properly waits for authentication verification to complete before:
+ * 1. Showing protected content (if authenticated)
+ * 2. Redirecting to auth page (if not authenticated)
  *
- * The key improvement over SignedIn/SignedOut is that this checks for
- * the presence of a cached user or token BEFORE deciding to redirect.
+ * The key is that we wait for `isLoaded` to be true, which only happens
+ * AFTER token verification completes. This prevents the "session expired"
+ * feeling that occurred when content was shown before verification.
  */
 const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   children,
@@ -30,28 +30,26 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
     return <>{children}</>;
   }
 
-  // Quick check: If there's a token in localStorage, likely signed in
-  // This prevents the flash while async verification happens
-  const hasToken = typeof window !== 'undefined' && localStorage.getItem('auth_token');
-  const hasCachedUser = typeof window !== 'undefined' && localStorage.getItem('auth_user');
-
-  // If we have evidence of authentication (token or cached user), render content
-  // This allows the background verification to complete without flicker
-  if (hasToken || hasCachedUser) {
-    return <>{children}</>;
-  }
-
-  // If auth is not yet loaded, show nothing to prevent flash
+  // Wait for auth verification to complete before making any decisions
+  // This prevents showing content then redirecting (the "session expired" feeling)
   if (!isLoaded) {
-    return null;
+    // Show a subtle loading state while verifying
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="flex flex-col items-center gap-3">
+          <div className="w-8 h-8 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
+          <p className="text-sm text-muted-foreground">Verifying session...</p>
+        </div>
+      </div>
+    );
   }
 
-  // If auth is loaded and user is signed in, show content
+  // Auth is loaded - now we can make a decision
   if (isSignedIn) {
     return <>{children}</>;
   }
 
-  // If auth is loaded and user is NOT signed in, redirect
+  // Not signed in - redirect to auth page
   return <Navigate to={fallbackPath} state={{ from: location }} replace />;
 };
 

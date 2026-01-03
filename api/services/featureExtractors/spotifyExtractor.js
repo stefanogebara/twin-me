@@ -28,23 +28,56 @@ class SpotifyFeatureExtractor {
     console.log(`🎵 [Spotify Extractor] Extracting features for user ${userId}`);
 
     try {
-      // Fetch Spotify soul_data for the user
-      const { data: spotifyData, error } = await supabaseAdmin
+      const cutoffDate = new Date(Date.now() - this.LOOKBACK_DAYS * 24 * 60 * 60 * 1000).toISOString();
+
+      // Fetch from BOTH tables to get all Spotify data
+      // Primary source: user_platform_data (11,000+ records)
+      const { data: platformData, error: platformError } = await supabaseAdmin
+        .from('user_platform_data')
+        .select('*')
+        .eq('user_id', userId)
+        .eq('platform', 'spotify')
+        .gte('extracted_at', cutoffDate)
+        .order('extracted_at', { ascending: false });
+
+      if (platformError) {
+        console.warn('⚠️ [Spotify Extractor] Error fetching user_platform_data:', platformError.message);
+      }
+
+      // Secondary source: soul_data (legacy, 18 records)
+      const { data: soulData, error: soulError } = await supabaseAdmin
         .from('soul_data')
         .select('*')
         .eq('user_id', userId)
         .eq('platform', 'spotify')
-        .gte('created_at', new Date(Date.now() - this.LOOKBACK_DAYS * 24 * 60 * 60 * 1000).toISOString())
+        .gte('created_at', cutoffDate)
         .order('created_at', { ascending: false });
 
-      if (error) throw error;
+      if (soulError) {
+        console.warn('⚠️ [Spotify Extractor] Error fetching soul_data:', soulError.message);
+      }
 
-      if (!spotifyData || spotifyData.length === 0) {
-        console.log('⚠️ [Spotify Extractor] No Spotify data found for user');
+      // Normalize data from both tables
+      const normalizedPlatformData = (platformData || []).map(entry => ({
+        ...entry,
+        created_at: entry.extracted_at, // Normalize timestamp field
+        raw_data: entry.raw_data || {}
+      }));
+
+      const normalizedSoulData = (soulData || []).map(entry => ({
+        ...entry,
+        raw_data: entry.raw_data || {}
+      }));
+
+      // Combine all data sources
+      const spotifyData = [...normalizedPlatformData, ...normalizedSoulData];
+
+      if (spotifyData.length === 0) {
+        console.log('⚠️ [Spotify Extractor] No Spotify data found for user in either table');
         return [];
       }
 
-      console.log(`📊 [Spotify Extractor] Found ${spotifyData.length} Spotify data entries`);
+      console.log(`📊 [Spotify Extractor] Found ${spotifyData.length} Spotify data entries (${normalizedPlatformData.length} from user_platform_data, ${normalizedSoulData.length} from soul_data)`);
 
       // Extract features
       const features = [];
@@ -145,9 +178,10 @@ class SpotifyFeatureExtractor {
 
     for (const entry of spotifyData) {
       const raw = entry.raw_data || {};
+      const dataType = entry.data_type || '';
 
-      // From listening history
-      if (entry.data_type === 'listening_history' && raw.track) {
+      // From listening history / recently_played
+      if ((dataType === 'listening_history' || dataType === 'recently_played') && raw.track) {
         uniqueTracks.add(raw.track.id || raw.track.name);
         if (raw.track.artists && raw.track.artists[0]) {
           uniqueArtists.add(raw.track.artists[0].id || raw.track.artists[0].name);
@@ -155,9 +189,24 @@ class SpotifyFeatureExtractor {
         totalPlays++;
       }
 
-      // From top tracks/artists
-      if (entry.data_type === 'top_tracks' && raw.items) {
-        raw.items.forEach(track => {
+      // Handle recently_played with items array (user_platform_data format)
+      if (dataType === 'recently_played' && raw.items) {
+        raw.items.forEach(item => {
+          const track = item.track || item;
+          uniqueTracks.add(track.id || track.name);
+          if (track.artists && track.artists[0]) {
+            uniqueArtists.add(track.artists[0].id || track.artists[0].name);
+          }
+          totalPlays++;
+        });
+      }
+
+      // From top tracks/artists (handle multiple naming conventions)
+      const isTopTracks = ['top_tracks', 'top_track', 'top_tracks_short_term', 'top_tracks_medium_term', 'top_tracks_long_term'].includes(dataType);
+      if (isTopTracks) {
+        // Handle both formats: raw.items array or individual track
+        const items = raw.items || (raw.name ? [raw] : []);
+        items.forEach(track => {
           uniqueTracks.add(track.id || track.name);
           if (track.artists && track.artists[0]) {
             uniqueArtists.add(track.artists[0].id || track.artists[0].name);
@@ -165,20 +214,26 @@ class SpotifyFeatureExtractor {
         });
       }
 
-      if (entry.data_type === 'top_artists' && raw.items) {
-        raw.items.forEach(artist => {
+      const isTopArtists = ['top_artists', 'top_artist', 'top_artists_short_term', 'top_artists_medium_term', 'top_artists_long_term'].includes(dataType);
+      if (isTopArtists) {
+        // Handle both formats: raw.items array or individual artist
+        const items = raw.items || (raw.name ? [raw] : []);
+        items.forEach(artist => {
           uniqueArtists.add(artist.id || artist.name);
         });
       }
     }
 
-    if (totalPlays === 0) return null;
+    // Even without plays, calculate based on unique items discovered
+    const totalItems = uniqueArtists.size + uniqueTracks.size;
+    if (totalItems === 0) return null;
 
-    // Discovery rate = (unique artists + unique tracks) / total plays
-    // Normalize to 0-100 scale (assume max discovery rate is 0.5 = 50%)
-    const discoveryRate = ((uniqueArtists.size + uniqueTracks.size) / Math.max(totalPlays, 1)) * 200;
+    // Discovery rate based on variety of unique content
+    // More unique items = higher discovery (normalized to 0-100)
+    // Assume 200+ unique items is maximum discovery
+    const discoveryRate = Math.min(100, (totalItems / 200) * 100);
 
-    return Math.min(100, Math.round(discoveryRate * 100) / 100);
+    return Math.round(discoveryRate * 100) / 100;
   }
 
   /**
@@ -190,33 +245,42 @@ class SpotifyFeatureExtractor {
 
     for (const entry of spotifyData) {
       const raw = entry.raw_data || {};
+      const dataType = entry.data_type || '';
 
-      // Extract genres from artists
+      // Helper to extract genres from an artist
+      const extractGenres = (artist) => {
+        if (artist.genres && artist.genres.length > 0) {
+          artist.genres.forEach(genre => {
+            genreCounts[genre] = (genreCounts[genre] || 0) + 1;
+            total++;
+          });
+        }
+      };
+
+      // Extract genres from tracks with nested artists
       if (raw.track && raw.track.artists) {
-        raw.track.artists.forEach(artist => {
-          if (artist.genres && artist.genres.length > 0) {
-            artist.genres.forEach(genre => {
-              genreCounts[genre] = (genreCounts[genre] || 0) + 1;
-              total++;
-            });
+        raw.track.artists.forEach(extractGenres);
+      }
+
+      // Handle recently_played items array
+      if (dataType === 'recently_played' && raw.items) {
+        raw.items.forEach(item => {
+          const track = item.track || item;
+          if (track.artists) {
+            track.artists.forEach(extractGenres);
           }
         });
       }
 
-      // From top artists
-      if (entry.data_type === 'top_artists' && raw.items) {
-        raw.items.forEach(artist => {
-          if (artist.genres && artist.genres.length > 0) {
-            artist.genres.forEach(genre => {
-              genreCounts[genre] = (genreCounts[genre] || 0) + 1;
-              total++;
-            });
-          }
-        });
+      // From top artists (handle multiple formats)
+      const isTopArtists = ['top_artists', 'top_artist', 'top_artists_short_term', 'top_artists_medium_term', 'top_artists_long_term'].includes(dataType);
+      if (isTopArtists) {
+        const items = raw.items || (raw.genres ? [raw] : []);
+        items.forEach(extractGenres);
       }
     }
 
-    if (total === 0) return null;
+    if (total === 0 || Object.keys(genreCounts).length === 0) return null;
 
     // Calculate Shannon entropy
     let entropy = 0;
@@ -227,7 +291,7 @@ class SpotifyFeatureExtractor {
 
     // Normalize to 0-100 (max entropy is log2(unique_genres))
     const maxEntropy = Math.log2(Object.keys(genreCounts).length);
-    const diversity = (entropy / maxEntropy) * 100;
+    const diversity = maxEntropy > 0 ? (entropy / maxEntropy) * 100 : 0;
 
     return Math.round(diversity * 100) / 100;
   }
@@ -240,14 +304,30 @@ class SpotifyFeatureExtractor {
     let totalPlays = 0;
 
     for (const entry of spotifyData) {
-      if (entry.data_type === 'listening_history' && entry.raw_data?.track) {
-        const trackId = entry.raw_data.track.id || entry.raw_data.track.name;
+      const raw = entry.raw_data || {};
+      const dataType = entry.data_type || '';
+
+      // From listening_history or recently_played (single track format)
+      if ((dataType === 'listening_history' || dataType === 'recently_played') && raw.track) {
+        const trackId = raw.track.id || raw.track.name;
         trackPlays[trackId] = (trackPlays[trackId] || 0) + 1;
         totalPlays++;
       }
+
+      // Handle recently_played with items array
+      if (dataType === 'recently_played' && raw.items) {
+        raw.items.forEach(item => {
+          const track = item.track || item;
+          const trackId = track.id || track.name;
+          if (trackId) {
+            trackPlays[trackId] = (trackPlays[trackId] || 0) + 1;
+            totalPlays++;
+          }
+        });
+      }
     }
 
-    if (totalPlays === 0) return null;
+    if (totalPlays === 0 || Object.keys(trackPlays).length === 0) return null;
 
     // Calculate repeat rate (tracks played more than once)
     const repeatedTracks = Object.values(trackPlays).filter(count => count > 1).length;
@@ -260,22 +340,37 @@ class SpotifyFeatureExtractor {
    * Calculate playlist organization score
    */
   calculatePlaylistOrganization(spotifyData) {
-    const playlistEntry = spotifyData.find(e => e.data_type === 'playlists');
-    if (!playlistEntry || !playlistEntry.raw_data?.items) return null;
+    // Find playlist entries from either table format
+    const playlistEntries = spotifyData.filter(e =>
+      e.data_type === 'playlists' || e.data_type === 'playlist'
+    );
 
-    const playlists = playlistEntry.raw_data.items;
-    if (playlists.length === 0) return null;
+    if (playlistEntries.length === 0) return null;
+
+    // Collect all playlists from all entries
+    let allPlaylists = [];
+    for (const entry of playlistEntries) {
+      const raw = entry.raw_data || {};
+      if (raw.items) {
+        allPlaylists.push(...raw.items);
+      } else if (raw.name) {
+        // Individual playlist record
+        allPlaylists.push(raw);
+      }
+    }
+
+    if (allPlaylists.length === 0) return null;
 
     // Factors: number of playlists, avg tracks per playlist, description presence
-    const avgTracksPerPlaylist = playlists.reduce((sum, p) => sum + (p.tracks?.total || 0), 0) / playlists.length;
-    const withDescriptions = playlists.filter(p => p.description && p.description.trim().length > 0).length;
-    const descriptionRate = withDescriptions / playlists.length;
+    const avgTracksPerPlaylist = allPlaylists.reduce((sum, p) => sum + (p.tracks?.total || 0), 0) / allPlaylists.length;
+    const withDescriptions = allPlaylists.filter(p => p.description && p.description.trim().length > 0).length;
+    const descriptionRate = withDescriptions / allPlaylists.length;
 
     // Score = weighted combination
     const organizationScore = (
-      (playlists.length > 5 ? 30 : playlists.length * 6) + // More playlists = better organization (max 30)
-      (Math.min(avgTracksPerPlaylist, 50) * 0.6) +          // Moderate playlist size (max 30)
-      (descriptionRate * 40)                                 // Descriptions show curation (max 40)
+      (allPlaylists.length > 5 ? 30 : allPlaylists.length * 6) + // More playlists = better organization (max 30)
+      (Math.min(avgTracksPerPlaylist, 50) * 0.6) +               // Moderate playlist size (max 30)
+      (descriptionRate * 40)                                      // Descriptions show curation (max 40)
     );
 
     return Math.min(100, Math.round(organizationScore * 100) / 100);
@@ -285,16 +380,30 @@ class SpotifyFeatureExtractor {
    * Calculate social sharing behavior
    */
   calculateSocialSharing(spotifyData) {
-    const playlistEntry = spotifyData.find(e => e.data_type === 'playlists');
-    if (!playlistEntry || !playlistEntry.raw_data?.items) return null;
+    // Find playlist entries from either table format
+    const playlistEntries = spotifyData.filter(e =>
+      e.data_type === 'playlists' || e.data_type === 'playlist'
+    );
 
-    const playlists = playlistEntry.raw_data.items;
-    if (playlists.length === 0) return null;
+    if (playlistEntries.length === 0) return null;
 
-    const publicPlaylists = playlists.filter(p => p.public).length;
-    const collaborativePlaylists = playlists.filter(p => p.collaborative).length;
+    // Collect all playlists
+    let allPlaylists = [];
+    for (const entry of playlistEntries) {
+      const raw = entry.raw_data || {};
+      if (raw.items) {
+        allPlaylists.push(...raw.items);
+      } else if (raw.name) {
+        allPlaylists.push(raw);
+      }
+    }
 
-    const socialScore = ((publicPlaylists + collaborativePlaylists * 2) / playlists.length) * 100;
+    if (allPlaylists.length === 0) return null;
+
+    const publicPlaylists = allPlaylists.filter(p => p.public).length;
+    const collaborativePlaylists = allPlaylists.filter(p => p.collaborative).length;
+
+    const socialScore = ((publicPlaylists + collaborativePlaylists * 2) / allPlaylists.length) * 100;
 
     return Math.min(100, Math.round(socialScore * 100) / 100);
   }

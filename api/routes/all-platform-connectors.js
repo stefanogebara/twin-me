@@ -502,7 +502,7 @@ async function extractFitbitData(userId, accessToken) {
 }
 
 async function extractWhoopData(userId, accessToken) {
-  const response = await axios.get('https://api.prod.whoop.com/developer/v1/cycle', {
+  const response = await axios.get('https://api.prod.whoop.com/developer/v2/cycle', {
     headers: { Authorization: `Bearer ${accessToken}` }
   });
 

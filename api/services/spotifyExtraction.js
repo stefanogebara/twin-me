@@ -28,7 +28,7 @@ function getSupabaseClient() {
 export async function extractSpotifyData(userId) {
   try {
     // Get platform connection with encrypted tokens
-    const { data: connection, error: connectionError } = await supabase
+    const { data: connection, error: connectionError } = await getSupabaseClient()
       .from('platform_connections')
       .select('*')
       .eq('user_id', userId)
@@ -99,7 +99,7 @@ export async function extractSpotifyData(userId) {
     console.log(`✅ Extracted ${totalItems} Spotify items`);
 
     // Save extracted data to soul_data table
-    const { error: insertError } = await supabase
+    const { error: insertError } = await getSupabaseClient()
       .from('soul_data')
       .insert({
         user_id: userId,
@@ -129,10 +129,10 @@ export async function extractSpotifyData(userId) {
     }
 
     // Update connection status
-    await supabase
+    await getSupabaseClient()
       .from('platform_connections')
       .update({
-        last_synced_at: new Date(),
+        last_sync_at: new Date(),
         last_sync_status: 'success'
       })
       .eq('user_id', userId)
@@ -151,7 +151,7 @@ export async function extractSpotifyData(userId) {
 
     // Handle token expiration
     if (error.response?.status === 401) {
-      await supabase
+      await getSupabaseClient()
         .from('platform_connections')
         .update({
           last_sync_status: 'requires_reauth'
@@ -178,7 +178,7 @@ export async function extractSpotifyData(userId) {
     }
 
     // Update connection with error status
-    await supabase
+    await getSupabaseClient()
       .from('platform_connections')
       .update({
         last_sync_status: 'failed'

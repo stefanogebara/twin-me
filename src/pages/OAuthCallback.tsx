@@ -287,6 +287,11 @@ const OAuthCallback = () => {
               localStorage.setItem('auth_token', data.token);
               localStorage.setItem('auth_provider', 'google');
 
+              // Store refresh token if provided
+              if (data.refreshToken) {
+                localStorage.setItem('refresh_token', data.refreshToken);
+              }
+
               // Store user data if provided
               if (data.user) {
                 localStorage.setItem('auth_user', JSON.stringify(data.user));
@@ -367,6 +372,11 @@ const OAuthCallback = () => {
               // Generic OAuth success (might be auth without explicit isAuth flag)
               localStorage.setItem('auth_token', data.token);
               localStorage.setItem('auth_provider', 'google');
+
+              // Store refresh token if provided
+              if (data.refreshToken) {
+                localStorage.setItem('refresh_token', data.refreshToken);
+              }
 
               if (data.user) {
                 localStorage.setItem('auth_user', JSON.stringify(data.user));

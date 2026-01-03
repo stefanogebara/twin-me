@@ -1451,12 +1451,27 @@ router.get('/whoop/status', async (req, res) => {
  */
 router.get('/whoop/current-state', async (req, res) => {
   try {
-    const { userId } = req.query;
+    // Get userId from query param or JWT token
+    let userId = req.query.userId;
+
+    // If no userId in query, try to extract from JWT
+    if (!userId) {
+      const authHeader = req.headers.authorization;
+      if (authHeader) {
+        try {
+          const token = authHeader.replace('Bearer ', '');
+          const payload = JSON.parse(Buffer.from(token.split('.')[1], 'base64').toString());
+          userId = payload.id || payload.sub || payload.userId || payload.user_id;
+        } catch (e) {
+          // Token parsing failed
+        }
+      }
+    }
 
     if (!userId) {
       return res.status(400).json({
         success: false,
-        error: 'userId is required'
+        error: 'userId is required (via query param or JWT token)'
       });
     }
 
@@ -1495,7 +1510,7 @@ router.get('/whoop/current-state', async (req, res) => {
     }
 
     // Fetch current cycle (today's data)
-    const cycleResponse = await fetch('https://api.prod.whoop.com/developer/v1/cycle?limit=1', {
+    const cycleResponse = await fetch('https://api.prod.whoop.com/developer/v2/cycle?limit=1', {
       headers: {
         'Authorization': `Bearer ${accessToken}`,
         'Content-Type': 'application/json'
@@ -1509,7 +1524,7 @@ router.get('/whoop/current-state', async (req, res) => {
     }
 
     // Fetch latest recovery
-    const recoveryResponse = await fetch('https://api.prod.whoop.com/developer/v1/recovery?limit=1', {
+    const recoveryResponse = await fetch('https://api.prod.whoop.com/developer/v2/recovery?limit=1', {
       headers: {
         'Authorization': `Bearer ${accessToken}`,
         'Content-Type': 'application/json'
@@ -1523,7 +1538,7 @@ router.get('/whoop/current-state', async (req, res) => {
     }
 
     // Fetch latest sleep
-    const sleepResponse = await fetch('https://api.prod.whoop.com/developer/v1/activity/sleep?limit=1', {
+    const sleepResponse = await fetch('https://api.prod.whoop.com/developer/v2/activity/sleep?limit=1', {
       headers: {
         'Authorization': `Bearer ${accessToken}`,
         'Content-Type': 'application/json'

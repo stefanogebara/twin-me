@@ -1,8 +1,8 @@
 /**
  * Personality Assessment API
  *
- * Big Five (OCEAN) personality assessment endpoints
- * 16personalities-style archetype mapping
+ * 16personalities-style MBTI assessment endpoints
+ * 5 dimensions: Mind (I/E), Energy (S/N), Nature (T/F), Tactics (J/P), Identity (A/T)
  */
 
 import express from 'express';
@@ -55,9 +55,11 @@ router.get('/questions', authenticateToken, (req, res) => {
       scale: {
         1: 'Strongly Disagree',
         2: 'Disagree',
-        3: 'Neutral',
-        4: 'Agree',
-        5: 'Strongly Agree'
+        3: 'Slightly Disagree',
+        4: 'Neutral',
+        5: 'Slightly Agree',
+        6: 'Agree',
+        7: 'Strongly Agree'
       }
     });
   } catch (error) {
@@ -86,12 +88,12 @@ router.post('/responses', authenticateToken, async (req, res) => {
       });
     }
 
-    // Validate response values
+    // Validate response values (7-point Likert scale)
     for (const r of responses) {
-      if (!r.question_id || !r.value || r.value < 1 || r.value > 5) {
+      if (!r.question_id || !r.value || r.value < 1 || r.value > 7) {
         return res.status(400).json({
           success: false,
-          error: `Invalid response: question_id and value (1-5) required`
+          error: `Invalid response: question_id and value (1-7) required`
         });
       }
     }

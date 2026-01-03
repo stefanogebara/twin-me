@@ -2,6 +2,14 @@ import React, { useEffect, useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useTheme } from '../contexts/ThemeContext';
 import { usePlatformStatus } from '../hooks/usePlatformStatus';
+import { useTwinPipeline } from '../hooks/useTwinPipeline';
+import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from '../components/ui/tooltip';
+import {
+  DEMO_PERSONALITY_SCORES,
+  DEMO_SOUL_ARCHETYPE,
+  DEMO_BEHAVIORAL_FEATURES,
+  DEMO_SPOTIFY_PERSONALITY
+} from '../services/demoDataService';
 import {
   Sparkles,
   Brain,
@@ -21,11 +29,28 @@ import {
   Users,
   Clock,
   Eye,
-  Settings
+  Settings,
+  Loader2,
+  CheckCircle2,
+  AlertCircle,
+  Play,
+  HelpCircle
 } from 'lucide-react';
 
 interface PersonalityScores {
   id: string;
+  // New MBTI dimensions (16personalities-style)
+  mind?: number;           // I/E: 0=Introversion, 100=Extraversion
+  energy?: number;         // S/N: 0=Sensing, 100=Intuition
+  nature?: number;         // T/F: 0=Thinking, 100=Feeling
+  tactics?: number;        // J/P: 0=Perceiving, 100=Judging
+  identity?: number;       // A/T: 0=Turbulent, 100=Assertive
+  mind_ci?: number;
+  energy_ci?: number;
+  nature_ci?: number;
+  tactics_ci?: number;
+  identity_ci?: number;
+  // Legacy Big Five dimensions (for backward compatibility)
   openness: number;
   conscientiousness: number;
   extraversion: number;
@@ -36,9 +61,70 @@ interface PersonalityScores {
   extraversion_confidence: number;
   agreeableness_confidence: number;
   neuroticism_confidence: number;
+  // Archetype info
+  archetype_code?: string;  // e.g., "INTJ-A"
   analyzed_platforms: string[];
   sample_size: number;
 }
+
+// MBTI dimension display info with explanations
+const MBTI_DIMENSIONS = {
+  mind: {
+    name: 'Mind',
+    lowLabel: 'Introverted',
+    highLabel: 'Extraverted',
+    lowLetter: 'I',
+    highLetter: 'E',
+    color: '#8B5CF6',
+    description: 'How you interact with the world and where you direct your energy',
+    lowDesc: 'Prefer solitary activities, think before speaking, feel drained by social interaction',
+    highDesc: 'Prefer group activities, think out loud, feel energized by social interaction'
+  },
+  energy: {
+    name: 'Energy',
+    lowLabel: 'Observant',
+    highLabel: 'Intuitive',
+    lowLetter: 'S',
+    highLetter: 'N',
+    color: '#F59E0B',
+    description: 'How you see the world and process information',
+    lowDesc: 'Focus on facts and details, prefer practical solutions, trust experience',
+    highDesc: 'Focus on patterns and possibilities, prefer innovative solutions, trust intuition'
+  },
+  nature: {
+    name: 'Nature',
+    lowLabel: 'Thinking',
+    highLabel: 'Feeling',
+    lowLetter: 'T',
+    highLetter: 'F',
+    color: '#10B981',
+    description: 'How you make decisions and cope with emotions',
+    lowDesc: 'Prioritize logic and objectivity, focus on truth over tact',
+    highDesc: 'Prioritize empathy and harmony, focus on values and feelings'
+  },
+  tactics: {
+    name: 'Tactics',
+    lowLabel: 'Prospecting',
+    highLabel: 'Judging',
+    lowLetter: 'P',
+    highLetter: 'J',
+    color: '#6366F1',
+    description: 'How you approach work and planning',
+    lowDesc: 'Prefer flexibility and spontaneity, keep options open, adapt easily',
+    highDesc: 'Prefer structure and planning, like closure and completion'
+  },
+  identity: {
+    name: 'Identity',
+    lowLabel: 'Turbulent',
+    highLabel: 'Assertive',
+    lowLetter: 'T',
+    highLetter: 'A',
+    color: '#EC4899',
+    description: 'How confident you are in your abilities and decisions',
+    lowDesc: 'Self-conscious, sensitive to stress, perfectionist, success-driven',
+    highDesc: 'Self-assured, even-tempered, resistant to stress, confident'
+  }
+};
 
 interface SoulSignature {
   id: string;
@@ -108,55 +194,23 @@ const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
   wave: Waves,
 };
 
-// Demo data for demo mode - MVP platforms: Spotify, Google Calendar, Whoop
-const DEMO_PERSONALITY_SCORES: PersonalityScores = {
-  id: 'demo-scores',
-  openness: 78,
-  conscientiousness: 65,
-  extraversion: 82,
-  agreeableness: 71,
-  neuroticism: 35,
-  openness_confidence: 85,
-  conscientiousness_confidence: 72,
-  extraversion_confidence: 90,
-  agreeableness_confidence: 68,
-  neuroticism_confidence: 75,
-  analyzed_platforms: ['spotify', 'google_calendar', 'whoop'],
-  sample_size: 47
-};
-
-const DEMO_SOUL_SIGNATURE: SoulSignature = {
-  id: 'demo-signature',
-  archetype_name: 'The Creative Explorer',
-  archetype_subtitle: 'Curious mind with a passion for discovery',
-  narrative: 'You are driven by an insatiable curiosity and a desire to understand the world around you. Your eclectic taste in music and content reveals a mind that thrives on variety and novelty. You connect deeply with others while maintaining your unique perspective, making you both relatable and distinctively original.',
-  defining_traits: [
-    { trait: 'Intellectual Curiosity', score: 92, evidence: 'Diverse music genres in Spotify history' },
-    { trait: 'Work-Life Balance', score: 78, evidence: 'Healthy mix of meetings and focus time' },
-    { trait: 'Health Conscious', score: 85, evidence: 'Consistent recovery tracking on Whoop' },
-    { trait: 'Emotional Depth', score: 74, evidence: 'Music choices reflect mood awareness' }
-  ],
-  color_scheme: {
-    primary: '#8B5CF6',
-    secondary: '#6366F1',
-    accent: '#A78BFA',
-    background: '#F5F3FF',
-    text: '#1F2937'
-  },
-  icon_type: 'compass'
-};
-
-const DEMO_FEATURES: BehavioralFeature[] = [
-  { id: 'f1', platform: 'spotify', feature_type: 'music_diversity', feature_value: 85, contributes_to: 'openness', confidence_score: 90 },
-  { id: 'f2', platform: 'google_calendar', feature_type: 'focus_time_ratio', feature_value: 67, contributes_to: 'conscientiousness', confidence_score: 78 },
-  { id: 'f3', platform: 'whoop', feature_type: 'recovery_consistency', feature_value: 72, contributes_to: 'neuroticism', confidence_score: 82 },
-  { id: 'f4', platform: 'google_calendar', feature_type: 'social_events_ratio', feature_value: 68, contributes_to: 'extraversion', confidence_score: 85 }
-];
+// Demo data imported from centralized demoDataService.ts
+// DEMO_PERSONALITY_SCORES, DEMO_SOUL_ARCHETYPE, DEMO_BEHAVIORAL_FEATURES, DEMO_SPOTIFY_PERSONALITY
 
 const SoulSignatureDashboard: React.FC = () => {
   const { user, isDemoMode } = useAuth();
   const { theme } = useTheme();
   const { connectedProviders, data: platformStatusData } = usePlatformStatus(user?.id);
+  const {
+    isPipelineRunning,
+    currentStage,
+    hasTwin,
+    platforms,
+    connectedCount,
+    formTwin,
+    isForming,
+    formError
+  } = useTwinPipeline(user?.id || null);
   const [loading, setLoading] = useState(true);
   const [generating, setGenerating] = useState(false);
   const [personalityScores, setPersonalityScores] = useState<PersonalityScores | null>(null);
@@ -183,38 +237,10 @@ const SoulSignatureDashboard: React.FC = () => {
         analyzed_platforms: platformsToUse,
         sample_size: platformsToUse.length * 15 + 2
       });
-      setSoulSignature(DEMO_SOUL_SIGNATURE);
-      setFeatures(DEMO_FEATURES);
-      // Demo Spotify personality data
-      setSpotifyPersonality({
-        success: true,
-        bigFive: {
-          openness: { score: 78, level: 'high', description: 'Curious and adventurous - you explore diverse genres and new artists' },
-          conscientiousness: { score: 65, level: 'moderate', description: 'Flexible approach to music organization' },
-          extraversion: { score: 72, level: 'high', description: 'High-energy preferences - upbeat tracks fuel your day' },
-          agreeableness: { score: 45, level: 'moderate', description: 'Mix of personal and shared playlists' },
-          neuroticism: { score: 35, level: 'low', description: 'Emotionally stable - consistent mood in choices' }
-        },
-        archetype: {
-          key: 'eclectic-explorer',
-          name: 'Eclectic Explorer',
-          description: 'You traverse the entire musical landscape, never settling in one genre',
-          traits: ['Open-minded', 'Curious', 'Adventurous'],
-          confidence: 82
-        },
-        topGenres: {
-          current: ['indie pop', 'electronic', 'hip hop', 'lo-fi', 'alternative'],
-          allTime: ['pop', 'rock', 'electronic', 'indie', 'hip hop'],
-          stability: { score: 0.65, label: 'moderately-stable' }
-        },
-        listeningPatterns: {
-          peakHours: [21, 22, 20, 19],
-          personality: ['evening-focused', 'weekend-enthusiast'],
-          weekdayVsWeekend: { weekday: 65, weekend: 35 },
-          consistency: { score: 0.55, label: 'moderately-consistent' }
-        },
-        dataTimestamp: new Date().toISOString()
-      });
+      setSoulSignature(DEMO_SOUL_ARCHETYPE);
+      setFeatures(DEMO_BEHAVIORAL_FEATURES);
+      // Demo Spotify personality data from centralized service
+      setSpotifyPersonality(DEMO_SPOTIFY_PERSONALITY);
       setLoading(false);
       return;
     }
@@ -280,8 +306,8 @@ const SoulSignatureDashboard: React.FC = () => {
       setGenerating(true);
       await new Promise(resolve => setTimeout(resolve, 1500));
       setPersonalityScores(DEMO_PERSONALITY_SCORES);
-      setSoulSignature(DEMO_SOUL_SIGNATURE);
-      setFeatures(DEMO_FEATURES);
+      setSoulSignature(DEMO_SOUL_ARCHETYPE);
+      setFeatures(DEMO_BEHAVIORAL_FEATURES);
       setGenerating(false);
       return;
     }
@@ -361,6 +387,104 @@ const SoulSignatureDashboard: React.FC = () => {
       )}
     </div>
   );
+
+  // MBTI dimension bar - shows polarity between two traits (e.g., I vs E)
+  const MBTIDimensionBar = ({
+    dimension,
+    value,
+    confidence
+  }: {
+    dimension: keyof typeof MBTI_DIMENSIONS;
+    value: number;
+    confidence?: number;
+  }) => {
+    const info = MBTI_DIMENSIONS[dimension];
+    const isHigh = value >= 50;
+    const percentage = isHigh ? value : 100 - value;
+    const letter = isHigh ? info.highLetter : info.lowLetter;
+    const label = isHigh ? info.highLabel : info.lowLabel;
+
+    return (
+      <TooltipProvider>
+        <div className="space-y-2">
+          <div className="flex justify-between items-center">
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <span className="text-xs font-medium uppercase tracking-wider cursor-help flex items-center gap-1" style={{
+                  color: theme === 'dark' ? 'rgba(193, 192, 182, 0.6)' : '#a8a29e'
+                }}>
+                  {info.name}
+                  <HelpCircle className="w-3 h-3 opacity-50" />
+                </span>
+              </TooltipTrigger>
+              <TooltipContent side="top" className="max-w-xs">
+                <p className="text-sm">{info.description}</p>
+              </TooltipContent>
+            </Tooltip>
+            <div className="flex items-center gap-2">
+              <span className="text-lg font-bold" style={{ color: info.color }}>
+                {letter}
+              </span>
+              <span className="text-xs" style={{ color: theme === 'dark' ? 'rgba(193, 192, 182, 0.6)' : '#78716c' }}>
+                {Math.round(percentage)}%
+              </span>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            {/* Low pole label */}
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <span className="text-xs w-20 text-right cursor-help" style={{
+                  color: !isHigh ? info.color : (theme === 'dark' ? 'rgba(193, 192, 182, 0.4)' : '#d4d4d4'),
+                  fontWeight: !isHigh ? 600 : 400
+                }}>
+                  {info.lowLabel}
+                </span>
+              </TooltipTrigger>
+              <TooltipContent side="left" className="max-w-xs">
+                <p className="text-sm font-medium mb-1">{info.lowLabel} ({info.lowLetter})</p>
+                <p className="text-xs opacity-80">{info.lowDesc}</p>
+              </TooltipContent>
+            </Tooltip>
+            {/* Bar */}
+            <div className="flex-1 relative h-2 rounded-full overflow-hidden" style={{
+              backgroundColor: theme === 'dark' ? 'rgba(193, 192, 182, 0.1)' : 'rgba(0, 0, 0, 0.05)'
+            }}>
+              {/* Center marker */}
+              <div className="absolute top-0 bottom-0 left-1/2 w-px" style={{
+                backgroundColor: theme === 'dark' ? 'rgba(193, 192, 182, 0.3)' : 'rgba(0, 0, 0, 0.1)'
+              }} />
+              {/* Value indicator */}
+              <div
+                className="absolute h-full rounded-full transition-all duration-500"
+                style={{
+                  left: value < 50 ? `${value}%` : '50%',
+                  width: `${Math.abs(value - 50)}%`,
+                  backgroundColor: info.color,
+                  opacity: confidence ? 0.4 + (confidence / 100) * 0.6 : 0.8
+                }}
+              />
+            </div>
+            {/* High pole label */}
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <span className="text-xs w-20 cursor-help" style={{
+                  color: isHigh ? info.color : (theme === 'dark' ? 'rgba(193, 192, 182, 0.4)' : '#d4d4d4'),
+                  fontWeight: isHigh ? 600 : 400
+                }}>
+                  {info.highLabel}
+                </span>
+              </TooltipTrigger>
+              <TooltipContent side="right" className="max-w-xs">
+                <p className="text-sm font-medium mb-1">{info.highLabel} ({info.highLetter})</p>
+                <p className="text-xs opacity-80">{info.highDesc}</p>
+              </TooltipContent>
+            </Tooltip>
+          </div>
+        </div>
+      </TooltipProvider>
+    );
+  };
 
   const FeatureCard = ({ feature }: { feature: BehavioralFeature }) => {
     const platformIcons: Record<string, React.ReactNode> = {
@@ -451,6 +575,119 @@ const SoulSignatureDashboard: React.FC = () => {
           color: theme === 'dark' ? '#fca5a5' : '#991b1b'
         }}>
           {error}
+        </div>
+      )}
+
+      {/* Pipeline Status Card */}
+      {!isDemoMode && (
+        <div
+          className="rounded-2xl p-6"
+          style={{
+            backgroundColor: theme === 'dark' ? 'rgba(45, 45, 41, 0.5)' : 'rgba(255, 255, 255, 0.5)',
+            border: theme === 'dark' ? '1px solid rgba(193, 192, 182, 0.1)' : '1px solid rgba(0, 0, 0, 0.05)'
+          }}
+        >
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-3">
+              <div
+                className="w-10 h-10 rounded-xl flex items-center justify-center"
+                style={{
+                  backgroundColor: isPipelineRunning
+                    ? 'rgba(99, 102, 241, 0.1)'
+                    : hasTwin
+                      ? 'rgba(16, 185, 129, 0.1)'
+                      : 'rgba(245, 158, 11, 0.1)'
+                }}
+              >
+                {isPipelineRunning ? (
+                  <Loader2 className="w-5 h-5 animate-spin" style={{ color: '#6366F1' }} />
+                ) : hasTwin ? (
+                  <CheckCircle2 className="w-5 h-5" style={{ color: '#10B981' }} />
+                ) : (
+                  <AlertCircle className="w-5 h-5" style={{ color: '#F59E0B' }} />
+                )}
+              </div>
+              <div>
+                <h3 className="font-medium" style={{ color: theme === 'dark' ? '#C1C0B6' : '#0c0a09' }}>
+                  Twin Formation
+                </h3>
+                <p className="text-sm" style={{ color: theme === 'dark' ? 'rgba(193, 192, 182, 0.6)' : '#78716c' }}>
+                  {isPipelineRunning
+                    ? `Stage: ${currentStage || 'Starting...'}`
+                    : hasTwin
+                      ? 'Your digital twin is ready'
+                      : 'Connect platforms to form your twin'}
+                </p>
+              </div>
+            </div>
+            {!isPipelineRunning && connectedCount > 0 && (
+              <button
+                onClick={() => formTwin(false)}
+                disabled={isForming}
+                className="flex items-center gap-2 px-4 py-2 rounded-xl transition-all duration-200 disabled:opacity-50"
+                style={{
+                  backgroundColor: theme === 'dark' ? 'rgba(99, 102, 241, 0.2)' : 'rgba(99, 102, 241, 0.1)',
+                  color: '#6366F1',
+                  border: theme === 'dark' ? '1px solid rgba(99, 102, 241, 0.3)' : '1px solid rgba(99, 102, 241, 0.2)'
+                }}
+              >
+                <Play className="w-4 h-4" />
+                {hasTwin ? 'Refresh Twin' : 'Form Twin'}
+              </button>
+            )}
+          </div>
+
+          {/* Platform Status */}
+          {connectedCount > 0 && (
+            <div className="grid grid-cols-3 gap-3 mt-4">
+              {['spotify', 'whoop', 'calendar'].map(platform => {
+                const platformData = platforms.find(p => p.platform === platform);
+                const isConnected = !!platformData;
+                const lastSync = platformData?.lastSync;
+
+                return (
+                  <div
+                    key={platform}
+                    className="p-3 rounded-xl"
+                    style={{
+                      backgroundColor: theme === 'dark' ? 'rgba(193, 192, 182, 0.05)' : 'rgba(0, 0, 0, 0.02)',
+                      border: isConnected
+                        ? theme === 'dark' ? '1px solid rgba(16, 185, 129, 0.2)' : '1px solid rgba(16, 185, 129, 0.15)'
+                        : theme === 'dark' ? '1px solid rgba(193, 192, 182, 0.1)' : '1px solid rgba(0, 0, 0, 0.05)'
+                    }}
+                  >
+                    <div className="flex items-center gap-2 mb-1">
+                      {platform === 'spotify' && <Music className="w-4 h-4" style={{ color: isConnected ? '#1DB954' : (theme === 'dark' ? 'rgba(193, 192, 182, 0.4)' : '#d4d4d4') }} />}
+                      {platform === 'whoop' && <Heart className="w-4 h-4" style={{ color: isConnected ? '#06B6D4' : (theme === 'dark' ? 'rgba(193, 192, 182, 0.4)' : '#d4d4d4') }} />}
+                      {platform === 'calendar' && <Calendar className="w-4 h-4" style={{ color: isConnected ? '#6366F1' : (theme === 'dark' ? 'rgba(193, 192, 182, 0.4)' : '#d4d4d4') }} />}
+                      <span className="text-xs font-medium capitalize" style={{
+                        color: isConnected ? (theme === 'dark' ? '#C1C0B6' : '#0c0a09') : (theme === 'dark' ? 'rgba(193, 192, 182, 0.4)' : '#d4d4d4')
+                      }}>
+                        {platform}
+                      </span>
+                    </div>
+                    <p className="text-xs" style={{ color: theme === 'dark' ? 'rgba(193, 192, 182, 0.5)' : '#a8a29e' }}>
+                      {isConnected
+                        ? lastSync
+                          ? `Synced ${new Date(lastSync).toLocaleDateString()}`
+                          : 'Connected'
+                        : 'Not connected'}
+                    </p>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
+          {formError && (
+            <div className="mt-4 p-3 rounded-xl text-sm" style={{
+              backgroundColor: 'rgba(220, 38, 38, 0.1)',
+              border: '1px solid rgba(220, 38, 38, 0.2)',
+              color: theme === 'dark' ? '#fca5a5' : '#991b1b'
+            }}>
+              Pipeline error: {formError.message}
+            </div>
+          )}
         </div>
       )}
 
@@ -568,6 +805,83 @@ const SoulSignatureDashboard: React.FC = () => {
                 </p>
               </div>
             </div>
+
+            {/* MBTI Type Display */}
+            {personalityScores && (personalityScores.mind !== undefined || personalityScores.archetype_code) && (
+              <div className="mt-6">
+                <h3 className="text-sm font-medium uppercase tracking-wider mb-4" style={{
+                  color: theme === 'dark' ? 'rgba(193, 192, 182, 0.5)' : '#a8a29e'
+                }}>
+                  Your Personality Type
+                </h3>
+
+                {/* Type Code Display */}
+                <div className="flex items-center gap-4 mb-6 p-4 rounded-xl" style={{
+                  backgroundColor: theme === 'dark' ? 'rgba(139, 92, 246, 0.1)' : 'rgba(139, 92, 246, 0.05)',
+                  border: theme === 'dark' ? '1px solid rgba(139, 92, 246, 0.2)' : '1px solid rgba(139, 92, 246, 0.15)'
+                }}>
+                  <div className="flex items-center gap-1">
+                    {(personalityScores.archetype_code || 'XXXX-X').split('').map((letter, i) => {
+                      if (letter === '-') return <span key={i} className="text-2xl font-light" style={{ color: theme === 'dark' ? 'rgba(193, 192, 182, 0.3)' : '#d4d4d4' }}>-</span>;
+                      const colors = [
+                        MBTI_DIMENSIONS.mind.color,
+                        MBTI_DIMENSIONS.energy.color,
+                        MBTI_DIMENSIONS.nature.color,
+                        MBTI_DIMENSIONS.tactics.color,
+                        MBTI_DIMENSIONS.identity.color
+                      ];
+                      const colorIndex = i > 4 ? 4 : i;
+                      return (
+                        <span
+                          key={i}
+                          className="text-3xl font-bold"
+                          style={{ color: colors[colorIndex] }}
+                        >
+                          {letter}
+                        </span>
+                      );
+                    })}
+                  </div>
+                  <div className="flex-1">
+                    <div className="text-sm font-medium" style={{ color: theme === 'dark' ? '#C1C0B6' : '#0c0a09' }}>
+                      {soulSignature?.archetype_name || 'Your Unique Type'}
+                    </div>
+                    <div className="text-xs" style={{ color: theme === 'dark' ? 'rgba(193, 192, 182, 0.6)' : '#78716c' }}>
+                      Based on your questionnaire and behavioral patterns
+                    </div>
+                  </div>
+                </div>
+
+                {/* Dimension Bars */}
+                <div className="space-y-4">
+                  <MBTIDimensionBar
+                    dimension="mind"
+                    value={personalityScores.mind ?? personalityScores.extraversion ?? 50}
+                    confidence={personalityScores.mind_ci ?? personalityScores.extraversion_confidence}
+                  />
+                  <MBTIDimensionBar
+                    dimension="energy"
+                    value={personalityScores.energy ?? personalityScores.openness ?? 50}
+                    confidence={personalityScores.energy_ci ?? personalityScores.openness_confidence}
+                  />
+                  <MBTIDimensionBar
+                    dimension="nature"
+                    value={personalityScores.nature ?? personalityScores.agreeableness ?? 50}
+                    confidence={personalityScores.nature_ci ?? personalityScores.agreeableness_confidence}
+                  />
+                  <MBTIDimensionBar
+                    dimension="tactics"
+                    value={personalityScores.tactics ?? personalityScores.conscientiousness ?? 50}
+                    confidence={personalityScores.tactics_ci ?? personalityScores.conscientiousness_confidence}
+                  />
+                  <MBTIDimensionBar
+                    dimension="identity"
+                    value={personalityScores.identity ?? (100 - (personalityScores.neuroticism ?? 50))}
+                    confidence={personalityScores.identity_ci ?? personalityScores.neuroticism_confidence}
+                  />
+                </div>
+              </div>
+            )}
 
             {/* Defining Traits - No percentages */}
             <div className="mt-6">

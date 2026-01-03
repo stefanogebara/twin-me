@@ -119,9 +119,10 @@ export const PlatformConnectionCard: React.FC<PlatformConnectionCardProps> = ({
                 <Button
                   onClick={onReconnect}
                   size="sm"
+                  aria-label={`Reconnect ${connector.name} - token expired`}
                   className="h-7 px-3 text-xs bg-red-500 text-white hover:bg-red-600 border-0 animate-pulse"
                 >
-                  <RefreshCw className="w-3 h-3 mr-1" />
+                  <RefreshCw className="w-3 h-3 mr-1" aria-hidden="true" />
                   Reconnect Now
                 </Button>
               </>
@@ -160,8 +161,9 @@ export const PlatformConnectionCard: React.FC<PlatformConnectionCardProps> = ({
                   variant="ghost"
                   className="h-6 w-6 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
                   title="Disconnect platform"
+                  aria-label={`Disconnect ${connector.name}`}
                 >
-                  <X className="w-3 h-3" />
+                  <X className="w-3 h-3" aria-hidden="true" />
                 </Button>
               </>
             )}
@@ -171,10 +173,11 @@ export const PlatformConnectionCard: React.FC<PlatformConnectionCardProps> = ({
             onClick={onConnect}
             size="sm"
             variant="ghost"
+            aria-label={`Connect ${connector.name}`}
             className="h-7 px-2"
           >
             Connect
-            <ChevronRight className="w-4 h-4 ml-1" />
+            <ChevronRight className="w-4 h-4 ml-1" aria-hidden="true" />
           </Button>
         )}
       </div>
