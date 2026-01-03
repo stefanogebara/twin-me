@@ -104,6 +104,18 @@ router.get('/personality-scores', authenticateToken, async (req, res) => {
         data: {
           user_id: userId,
           source: 'assessment',
+          // MBTI dimensions (new)
+          mind: parseFloat(estimates.mind || estimates.extraversion),
+          energy: parseFloat(estimates.energy || estimates.openness),
+          nature: parseFloat(estimates.nature || estimates.agreeableness),
+          tactics: parseFloat(estimates.tactics || estimates.conscientiousness),
+          identity: parseFloat(estimates.identity || (100 - estimates.neuroticism)),
+          mind_ci: parseFloat(estimates.mind_ci || estimates.extraversion_ci || 25),
+          energy_ci: parseFloat(estimates.energy_ci || estimates.openness_ci || 25),
+          nature_ci: parseFloat(estimates.nature_ci || estimates.agreeableness_ci || 25),
+          tactics_ci: parseFloat(estimates.tactics_ci || estimates.conscientiousness_ci || 25),
+          identity_ci: parseFloat(estimates.identity_ci || estimates.neuroticism_ci || 25),
+          // Legacy Big Five (for backward compatibility)
           openness: parseFloat(estimates.openness),
           conscientiousness: parseFloat(estimates.conscientiousness),
           extraversion: parseFloat(estimates.extraversion),

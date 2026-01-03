@@ -430,14 +430,18 @@ export const EventCard: React.FC<EventCardProps> = ({
 }) => {
   const { theme } = useTheme();
 
-  const typeConfig = {
+  const typeConfig: Record<string, { color: string; icon: string; label: string }> = {
     meeting: { color: '#4285F4', icon: '👥', label: 'Meeting' },
     focus: { color: '#34A853', icon: '🎯', label: 'Focus' },
     personal: { color: '#EA4335', icon: '✨', label: 'Personal' },
+    presentation: { color: '#FBBC04', icon: '📊', label: 'Presentation' },
+    workout: { color: '#EA4335', icon: '💪', label: 'Workout' },
+    interview: { color: '#4285F4', icon: '🎤', label: 'Interview' },
     other: { color: '#9AA0A6', icon: '📅', label: 'Event' }
   };
 
-  const config = typeConfig[type];
+  // Default to 'other' if type is not recognized
+  const config = typeConfig[type || 'other'] || typeConfig.other;
 
   const colors = {
     text: theme === 'dark' ? '#C1C0B6' : '#44403c',

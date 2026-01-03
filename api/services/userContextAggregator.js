@@ -18,7 +18,7 @@ import { ensureFreshToken } from './tokenRefreshService.js';
 import { lifeEventInferenceService } from './lifeEventInferenceService.js';
 import axios from 'axios';
 
-const WHOOP_API_BASE = 'https://api.prod.whoop.com/developer/v1';
+const WHOOP_API_BASE = 'https://api.prod.whoop.com/developer/v2';
 const SPOTIFY_API_BASE = 'https://api.spotify.com/v1';
 
 class UserContextAggregator {

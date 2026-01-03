@@ -4,7 +4,7 @@ import { useAuth, SignInButton } from '../contexts/AuthContext';
 import { useTheme } from '../contexts/ThemeContext';
 import { useDemo } from '../contexts/DemoContext';
 import { ThemeToggle } from '../components/ThemeToggle';
-import { Play, X } from 'lucide-react';
+import { X } from 'lucide-react';
 
 const Index = () => {
   const navigate = useNavigate();
@@ -60,7 +60,15 @@ const Index = () => {
       }}
     >
       {/* Navigation */}
-      <nav className="fixed top-0 w-full z-50 px-6 lg:px-[60px] py-4">
+      <nav
+        className="fixed top-0 w-full z-50 px-6 lg:px-[60px] py-4"
+        style={{
+          backgroundColor: theme === 'dark' ? 'rgba(35, 35, 32, 0.8)' : 'rgba(250, 250, 250, 0.8)',
+          backdropFilter: 'blur(16px)',
+          WebkitBackdropFilter: 'blur(16px)',
+          borderBottom: theme === 'dark' ? '1px solid rgba(193, 192, 182, 0.1)' : '1px solid rgba(0, 0, 0, 0.05)'
+        }}
+      >
         <div className="max-w-[1200px] mx-auto flex justify-between items-center">
           <div
             className="text-[24px]"
@@ -158,9 +166,9 @@ const Index = () => {
         />
 
         <div className="max-w-[1200px] mx-auto w-full">
-          <div className="grid lg:grid-cols-2 gap-16 items-center">
-            {/* Left Content */}
-            <div className="text-center lg:text-left">
+          <div className="max-w-[600px] mx-auto">
+            {/* Hero Content - Centered */}
+            <div className="text-center">
               {/* Badge Pill */}
               <div className="inline-flex mb-8">
                 <span
@@ -192,7 +200,7 @@ const Index = () => {
 
               {/* Subtext */}
               <p
-                className="text-[16px] lg:text-[17px] max-w-[500px] mx-auto lg:mx-0 mb-10 leading-[1.7]"
+                className="text-[16px] lg:text-[17px] max-w-[500px] mx-auto mb-10 leading-[1.7]"
                 style={{
                   fontFamily: 'var(--font-body)',
                   color: theme === 'dark' ? 'rgba(193, 192, 182, 0.7)' : '#57534e'
@@ -202,7 +210,7 @@ const Index = () => {
               </p>
 
               {/* CTA Button */}
-              <div className="flex justify-center lg:justify-start">
+              <div className="flex justify-center">
                 {!isLoaded ? (
                   <button
                     disabled
@@ -238,35 +246,6 @@ const Index = () => {
                     </button>
                   </SignInButton>
                 )}
-              </div>
-            </div>
-
-            {/* Right Content - Video/Image Placeholder */}
-            <div className="flex justify-center lg:justify-end">
-              <div
-                className="relative w-full max-w-[400px] aspect-[4/3] rounded-2xl overflow-hidden"
-                style={{
-                  backgroundColor: theme === 'dark' ? 'rgba(193, 192, 182, 0.08)' : 'rgba(0, 0, 0, 0.04)'
-                }}
-              >
-                {/* Play Button */}
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <button
-                    className="w-14 h-14 rounded-full flex items-center justify-center transition-transform hover:scale-110"
-                    style={{
-                      backgroundColor: theme === 'dark' ? '#C1C0B6' : '#ffffff',
-                      boxShadow: '0 4px 24px rgba(0, 0, 0, 0.15)'
-                    }}
-                  >
-                    <Play
-                      className="w-5 h-5 ml-1"
-                      style={{
-                        color: theme === 'dark' ? '#232320' : '#0c0a09',
-                        fill: theme === 'dark' ? '#232320' : '#0c0a09'
-                      }}
-                    />
-                  </button>
-                </div>
               </div>
             </div>
           </div>
@@ -522,17 +501,30 @@ const Index = () => {
               }}
             >
               {activeModal === 'Company' && (
-                <p>Twin Me is building the future of authentic digital identity. We help you discover, personalize, and protect your digital soul signature through the patterns hidden in your daily choices.</p>
+                <div className="space-y-4">
+                  <p>Twin Me is building the future of authentic digital identity. While public information is easy to clone and lacks soul, we go deeper—discovering what makes you authentically YOU through your digital footprints.</p>
+                  <p><strong style={{ color: theme === 'dark' ? '#C1C0B6' : '#0c0a09' }}>Our Mission:</strong> Help people discover, understand, and share their authentic selves through AI-powered pattern recognition across their digital lives.</p>
+                  <p><strong style={{ color: theme === 'dark' ? '#C1C0B6' : '#0c0a09' }}>What We Believe:</strong> Your curiosities, passions, and daily choices reveal more about who you are than any resume or social profile ever could.</p>
+                  <p><strong style={{ color: theme === 'dark' ? '#C1C0B6' : '#0c0a09' }}>Privacy First:</strong> You decide what to reveal and what to keep private. Your soul signature is yours to control.</p>
+                </div>
               )}
               {activeModal === 'FAQ' && (
                 <div className="space-y-4">
                   <div>
                     <p className="font-medium mb-1" style={{ color: theme === 'dark' ? '#C1C0B6' : '#0c0a09' }}>How does Twin Me work?</p>
-                    <p>We connect to your favorite platforms (with your permission) to discover patterns and insights about your authentic self.</p>
+                    <p>We connect to platforms you use daily—Spotify, Google Calendar, Whoop, and more—to discover patterns in your music taste, schedule, and wellness. Our AI then reveals insights about your authentic personality.</p>
                   </div>
                   <div>
                     <p className="font-medium mb-1" style={{ color: theme === 'dark' ? '#C1C0B6' : '#0c0a09' }}>Is my data secure?</p>
-                    <p>Absolutely. We use enterprise-grade encryption and you control exactly what data to share.</p>
+                    <p>Absolutely. All data is encrypted in transit and at rest. We use OAuth for secure connections and never store your platform passwords. You can disconnect any platform instantly.</p>
+                  </div>
+                  <div>
+                    <p className="font-medium mb-1" style={{ color: theme === 'dark' ? '#C1C0B6' : '#0c0a09' }}>What platforms can I connect?</p>
+                    <p>Currently we support Spotify for music insights, Google Calendar for schedule patterns, and Whoop for wellness data. More platforms coming soon!</p>
+                  </div>
+                  <div>
+                    <p className="font-medium mb-1" style={{ color: theme === 'dark' ? '#C1C0B6' : '#0c0a09' }}>Can I try before connecting accounts?</p>
+                    <p>Yes! We offer a demo mode so you can explore the full experience with sample data before connecting your own accounts.</p>
                   </div>
                 </div>
               )}

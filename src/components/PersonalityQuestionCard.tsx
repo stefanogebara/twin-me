@@ -1,7 +1,7 @@
 /**
- * PersonalityQuestionCard - Big Five personality assessment question component
+ * PersonalityQuestionCard - 16personalities-style MBTI assessment question component
  *
- * Displays a single question with a 5-point Likert scale (Strongly Disagree to Strongly Agree)
+ * Displays a single question with a 7-point Likert scale (Strongly Disagree to Strongly Agree)
  * Matches the platform's warm grey design language with proper theming.
  */
 
@@ -24,20 +24,31 @@ interface PersonalityQuestionCardProps {
   showProgress?: boolean;
 }
 
+// 7-point Likert scale (matching 16personalities methodology)
 const SCALE_OPTIONS = [
   { value: 1, label: 'Strongly Disagree', shortLabel: 'SD' },
   { value: 2, label: 'Disagree', shortLabel: 'D' },
-  { value: 3, label: 'Neutral', shortLabel: 'N' },
-  { value: 4, label: 'Agree', shortLabel: 'A' },
-  { value: 5, label: 'Strongly Agree', shortLabel: 'SA' },
+  { value: 3, label: 'Slightly Disagree', shortLabel: 'sd' },
+  { value: 4, label: 'Neutral', shortLabel: 'N' },
+  { value: 5, label: 'Slightly Agree', shortLabel: 'sa' },
+  { value: 6, label: 'Agree', shortLabel: 'A' },
+  { value: 7, label: 'Strongly Agree', shortLabel: 'SA' },
 ];
 
+// MBTI dimension labels (16personalities-style)
 const DIMENSION_LABELS: Record<string, string> = {
-  extraversion: 'Energy & Social Style',
-  openness: 'Curiosity & Imagination',
-  conscientiousness: 'Structure & Planning',
-  agreeableness: 'Empathy & Values',
-  neuroticism: 'Emotional Patterns',
+  // New MBTI dimensions
+  mind: 'Mind (I/E)',
+  energy: 'Energy (S/N)',
+  nature: 'Nature (T/F)',
+  tactics: 'Tactics (J/P)',
+  identity: 'Identity (A/T)',
+  // Legacy Big Five dimensions for backward compatibility
+  extraversion: 'Mind (I/E)',
+  openness: 'Energy (S/N)',
+  conscientiousness: 'Tactics (J/P)',
+  agreeableness: 'Nature (T/F)',
+  neuroticism: 'Identity (A/T)',
 };
 
 export function PersonalityQuestionCard({
@@ -133,13 +144,15 @@ export function PersonalityQuestionCard({
 
         {/* Likert scale */}
         <div className="space-y-4">
-          {/* Desktop: horizontal buttons */}
-          <div className="hidden md:flex justify-center gap-3">
+          {/* Desktop: horizontal buttons - 7-point scale */}
+          <div className="hidden md:flex justify-center gap-2" role="radiogroup" aria-label="Answer scale from Strongly Disagree to Strongly Agree">
             {SCALE_OPTIONS.map((option) => (
               <button
                 key={option.value}
                 onClick={() => handleSelect(option.value)}
-                className="flex flex-col items-center justify-center w-24 h-24 rounded-xl transition-all duration-200 hover:scale-105"
+                aria-label={`${option.label} (${option.value} of 7)`}
+                aria-pressed={selectedValue === option.value}
+                className="flex flex-col items-center justify-center w-16 h-16 rounded-xl transition-all duration-200 hover:scale-105"
                 style={{
                   backgroundColor: selectedValue === option.value ? colors.accent : colors.buttonBg,
                   border: `2px solid ${selectedValue === option.value ? colors.accent : colors.border}`,
@@ -148,18 +161,20 @@ export function PersonalityQuestionCard({
                     : colors.text,
                 }}
               >
-                <span className="text-2xl font-bold">{option.value}</span>
-                <span className="text-xs mt-1 text-center px-1">{option.shortLabel}</span>
+                <span className="text-xl font-bold" aria-hidden="true">{option.value}</span>
+                <span className="text-[10px] mt-0.5 text-center" aria-hidden="true">{option.shortLabel}</span>
               </button>
             ))}
           </div>
 
           {/* Mobile: vertical list */}
-          <div className="md:hidden space-y-2">
+          <div className="md:hidden space-y-2" role="radiogroup" aria-label="Answer scale">
             {SCALE_OPTIONS.map((option) => (
               <button
                 key={option.value}
                 onClick={() => handleSelect(option.value)}
+                aria-label={`${option.label} (${option.value} of 7)`}
+                aria-pressed={selectedValue === option.value}
                 className="flex items-center justify-between w-full px-4 py-3 rounded-xl transition-all duration-200"
                 style={{
                   backgroundColor: selectedValue === option.value ? colors.accent : colors.buttonBg,
@@ -172,6 +187,7 @@ export function PersonalityQuestionCard({
                 <span className="font-medium">{option.label}</span>
                 <span
                   className="w-8 h-8 rounded-full flex items-center justify-center font-bold"
+                  aria-hidden="true"
                   style={{
                     backgroundColor: selectedValue === option.value
                       ? 'rgba(255, 255, 255, 0.2)'
@@ -198,10 +214,13 @@ export function PersonalityQuestionCard({
         <div
           className="flex justify-between mt-8 pt-6"
           style={{ borderTop: `1px solid ${colors.border}` }}
+          role="navigation"
+          aria-label="Question navigation"
         >
           <button
             onClick={onPrevious}
             disabled={isFirst}
+            aria-label="Go to previous question"
             className="px-4 py-2 rounded-lg text-sm font-medium transition-all"
             style={{
               color: isFirst ? colors.textSecondary : colors.text,
@@ -216,6 +235,7 @@ export function PersonalityQuestionCard({
             <button
               onClick={onNext}
               disabled={selectedValue === null}
+              aria-label="Complete the personality assessment"
               className="px-6 py-2 rounded-lg text-sm font-medium transition-all"
               style={{
                 backgroundColor: selectedValue === null ? colors.accentBg : colors.accent,
@@ -231,6 +251,7 @@ export function PersonalityQuestionCard({
             <button
               onClick={onNext}
               disabled={selectedValue === null}
+              aria-label="Go to next question"
               className="px-4 py-2 rounded-lg text-sm font-medium transition-all"
               style={{
                 color: selectedValue === null ? colors.textSecondary : colors.text,

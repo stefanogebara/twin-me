@@ -124,7 +124,6 @@ export class AutomatedActionsEngine {
   // ====================================================================
 
   async executeAction(action: AutomatedAction): Promise<boolean> {
-    console.log(`🤖 Executing automated action: ${action.actionType} for user ${action.userId}`);
 
     try {
       action.status = 'executing';
@@ -168,7 +167,6 @@ export class AutomatedActionsEngine {
           break;
 
         default:
-          console.warn(`Unknown action type: ${action.actionType}`);
           action.status = 'failed';
           action.errorMessage = 'Unknown action type';
           return false;
@@ -183,7 +181,6 @@ export class AutomatedActionsEngine {
       return true;
 
     } catch (error) {
-      console.error(`❌ Failed to execute action ${action.id}:`, error);
       action.status = 'failed';
       action.errorMessage = error instanceof Error ? error.message : 'Unknown error';
 
@@ -211,8 +208,6 @@ export class AutomatedActionsEngine {
       actionUrl?: string;
     };
 
-    console.log(`📱 Sending notification to user ${action.userId}:`, payload.title);
-
     // In production, would integrate with push notification service
     // For now, we'll queue it for the dashboard notification center
     await this.queueDashboardNotification(action.userId, {
@@ -234,8 +229,6 @@ export class AutomatedActionsEngine {
       reviewDate: Date;
       reviewType: 'spaced_repetition' | 'knowledge_check' | 'concept_review';
     };
-
-    console.log(`📅 Scheduling ${payload.reviewType} for user ${action.userId}`);
 
     // Schedule a review session based on spaced repetition algorithms
     const reviewAction: AutomatedAction = {
@@ -268,8 +261,6 @@ export class AutomatedActionsEngine {
       reasoning: string;
     };
 
-    console.log(`💡 Suggesting ${payload.contentType} content for user ${action.userId}`);
-
     // Generate personalized content recommendations
     const suggestions = await this.generateContentSuggestions(action.userId, payload);
 
@@ -293,8 +284,6 @@ export class AutomatedActionsEngine {
       previousTopics?: string[];
       personalityTrigger?: string;
     };
-
-    console.log(`💬 Initiating ${payload.conversationType} conversation for user ${action.userId}`);
 
     // Create a proactive conversation starter based on the user's recent activity
     const conversationStarter = await this.generateConversationStarter(action.userId, payload);
@@ -324,8 +313,6 @@ export class AutomatedActionsEngine {
       reasoning: string;
     };
 
-    console.log(`🛤️ Updating learning path ${payload.pathId} for user ${action.userId}`);
-
     // Update the user's personalized learning path based on their progress and personality
     await this.applyLearningPathUpdates(action.userId, payload);
 
@@ -349,8 +336,6 @@ export class AutomatedActionsEngine {
       questions: string[];
       timesSinceLast: number;
     };
-
-    console.log(`📝 Requesting ${payload.feedbackType} feedback from user ${action.userId}`);
 
     // Generate a feedback request based on recent learning activity
     const feedbackRequest = {
@@ -385,8 +370,6 @@ export class AutomatedActionsEngine {
       urgency: 'low' | 'medium' | 'high';
     };
 
-    console.log(`🔄 Triggering sync for connector ${payload.connectorId}`);
-
     // Trigger immediate sync for specific data source
     realTimeDataSyncEngine.addToQueue(action.userId, {
       id: crypto.randomUUID(),
@@ -408,8 +391,6 @@ export class AutomatedActionsEngine {
       includeRecommendations: boolean;
       shareWithUser: boolean;
     };
-
-    console.log(`📊 Generating ${payload.reportType} report for user ${action.userId}`);
 
     // Generate comprehensive insight report
     const report = await this.generateInsightReport(action.userId, payload);
@@ -444,8 +425,6 @@ export class AutomatedActionsEngine {
       maxRecommendations: number;
     };
 
-    console.log(`🤝 Finding ${payload.connectionType} recommendations for user ${action.userId}`);
-
     // Find compatible users based on learning patterns and personality
     const recommendations = await this.findCompatibleConnections(action.userId, payload);
 
@@ -472,8 +451,6 @@ export class AutomatedActionsEngine {
     const userRules = this.activeRules.get(userId) || [];
     const triggeredActions: AutomatedAction[] = [];
 
-    console.log(`🔍 Evaluating ${userRules.length} automation rules for user ${userId}`);
-
     for (const rule of userRules) {
       if (!rule.isActive) continue;
 
@@ -481,11 +458,8 @@ export class AutomatedActionsEngine {
         const isTriggered = await this.evaluateRuleTrigger(userId, rule.trigger);
 
         if (isTriggered) {
-          console.log(`✅ Rule "${rule.name}" triggered for user ${userId}`);
-
           // Check cooldown period
           if (await this.isRuleInCooldown(userId, rule.id)) {
-            console.log(`⏳ Rule "${rule.name}" is in cooldown, skipping`);
             continue;
           }
 
@@ -512,7 +486,7 @@ export class AutomatedActionsEngine {
           rule.triggerCount = (rule.triggerCount || 0) + 1;
         }
       } catch (error) {
-        console.error(`Error evaluating rule ${rule.id}:`, error);
+        // Rule evaluation failed - continue with other rules
       }
     }
 
@@ -545,7 +519,6 @@ export class AutomatedActionsEngine {
         return await this.evaluateConversationAnalysisTrigger(userId, trigger.conditions);
 
       default:
-        console.warn(`Unknown trigger type: ${trigger.type}`);
         return false;
     }
   }
@@ -595,8 +568,6 @@ export class AutomatedActionsEngine {
   // ====================================================================
 
   private initializeDefaultRules() {
-    console.log('🔧 Initializing default automation rules...');
-
     // Default rules that apply to all users
     const defaultRules: Omit<EnhancedAutomationRule, 'userId'>[] = [
       {
@@ -713,8 +684,6 @@ export class AutomatedActionsEngine {
   // ====================================================================
 
   private startActionWorkers() {
-    console.log('⚡ Starting automated action workers...');
-
     // High priority action worker (every 30 seconds)
     this.actionWorkers.set('high-priority', setInterval(() => {
       this.processActionQueue('high-priority', 1, 3);
@@ -732,8 +701,6 @@ export class AutomatedActionsEngine {
   }
 
   private startRuleEvaluationWorker() {
-    console.log('🤖 Starting rule evaluation worker...');
-
     // Evaluate rules for all users every 5 minutes
     setInterval(() => {
       this.evaluateAllUserRules();
@@ -741,11 +708,10 @@ export class AutomatedActionsEngine {
   }
 
   private async processActionQueue(
-    workerType: string,
+    _workerType: string,
     minPriority: number,
     maxPriority: number
   ) {
-    console.log(`⚡ Processing ${workerType} action queue`);
 
     for (const [userId, actions] of this.actionQueue) {
       const actionsToProcess = actions.filter(action =>
@@ -773,14 +739,12 @@ export class AutomatedActionsEngine {
   }
 
   private async evaluateAllUserRules() {
-    console.log('🔍 Evaluating automation rules for all users...');
-
     for (const userId of this.activeRules.keys()) {
       if (userId !== 'default') {
         try {
           await this.evaluateRulesForUser(userId);
         } catch (error) {
-          console.error(`Error evaluating rules for user ${userId}:`, error);
+          // Continue with other users if one fails
         }
       }
     }
@@ -794,16 +758,12 @@ export class AutomatedActionsEngine {
     const queue = this.actionQueue.get(userId) || [];
     queue.push(action);
     this.actionQueue.set(userId, queue);
-
-    console.log(`📋 Queued action ${action.actionType} for user ${userId} (priority: ${action.priority})`);
   }
 
   async addCustomRule(userId: string, rule: EnhancedAutomationRule) {
     const userRules = this.activeRules.get(userId) || [];
     userRules.push(rule);
     this.activeRules.set(userId, userRules);
-
-    console.log(`✅ Added custom rule "${rule.name}" for user ${userId}`);
 
     // Immediately evaluate the new rule
     await this.evaluateRulesForUser(userId);
@@ -818,21 +778,19 @@ export class AutomatedActionsEngine {
   }
 
   // Mock implementations for external integrations
-  private async queueDashboardNotification(userId: string, notification: DashboardNotification) {
-    console.log(`📱 Dashboard notification queued for ${userId}:`, notification.title);
+  private async queueDashboardNotification(_userId: string, _notification: DashboardNotification) {
+    // Would queue to notification service in production
   }
 
-  private async queueProactiveMessage(userId: string, message: ProactiveMessage) {
-    console.log(`💬 Proactive message queued for ${userId}`);
+  private async queueProactiveMessage(_userId: string, _message: ProactiveMessage) {
+    // Would queue message for user in production
   }
 
-  private async generateContentSuggestions(userId: string, criteria: ContentSuggestionCriteria) {
-    console.log(`💡 Generating content suggestions for ${userId}`);
+  private async generateContentSuggestions(_userId: string, _criteria: ContentSuggestionCriteria) {
     return [];
   }
 
-  private async generateConversationStarter(userId: string, payload: ConversationStarterPayload) {
-    console.log(`💬 Generating conversation starter for ${userId}`);
+  private async generateConversationStarter(_userId: string, payload: ConversationStarterPayload) {
     return {
       message: "I've noticed some interesting patterns in your learning. Want to chat about it?",
       context: payload.context || '',
@@ -840,25 +798,23 @@ export class AutomatedActionsEngine {
     };
   }
 
-  private async applyLearningPathUpdates(userId: string, updates: LearningPathUpdates) {
-    console.log(`🛤️ Applying learning path updates for ${userId}`);
+  private async applyLearningPathUpdates(_userId: string, _updates: LearningPathUpdates) {
+    // Would update learning path in database in production
   }
 
-  private async createFeedbackRequest(request: FeedbackRequest) {
-    console.log(`📝 Creating feedback request ${request.id}`);
+  private async createFeedbackRequest(_request: FeedbackRequest) {
+    // Would save feedback request in production
   }
 
-  private async generateInsightReport(userId: string, config: InsightReportConfig): Promise<InsightReport> {
-    console.log(`📊 Generating insight report for ${userId}`);
+  private async generateInsightReport(_userId: string, config: InsightReportConfig): Promise<InsightReport> {
     return { id: crypto.randomUUID(), ...config };
   }
 
-  private async saveInsightReport(userId: string, report: InsightReport) {
-    console.log(`💾 Saving insight report for ${userId}`);
+  private async saveInsightReport(_userId: string, _report: InsightReport) {
+    // Would save report to database in production
   }
 
-  private async findCompatibleConnections(userId: string, criteria: ConnectionCriteria) {
-    console.log(`🤝 Finding connections for ${userId}`);
+  private async findCompatibleConnections(_userId: string, _criteria: ConnectionCriteria) {
     return [];
   }
 
@@ -889,17 +845,14 @@ export class AutomatedActionsEngine {
     return cooldownEnd > new Date();
   }
 
-  private logActionExecution(action: AutomatedAction) {
-    console.log(`✅ Action completed: ${action.actionType} for user ${action.userId}`);
+  private logActionExecution(_action: AutomatedAction) {
+    // Would log to analytics/monitoring in production
   }
 
   // Cleanup on shutdown
   shutdown() {
-    console.log('🛑 Shutting down Automated Actions Engine...');
-
-    for (const [name, worker] of this.actionWorkers) {
+    for (const [_name, worker] of this.actionWorkers) {
       clearInterval(worker);
-      console.log(`✅ Stopped ${name} worker`);
     }
 
     this.actionWorkers.clear();

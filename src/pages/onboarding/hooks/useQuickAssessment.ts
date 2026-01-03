@@ -1,9 +1,14 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
+
+// MBTI dimension types (16personalities-style)
+// Mind (I/E), Energy (S/N), Nature (T/F), Tactics (J/P), Identity (A/T)
+export type MBTIDimension = 'mind' | 'energy' | 'nature' | 'tactics' | 'identity';
 
 export interface QuestionOption {
   id: string;
   text: string;
-  trait: 'O' | 'C' | 'E' | 'A' | 'N';
+  trait: 'O' | 'C' | 'E' | 'A' | 'N'; // Legacy Big Five for backward compatibility
+  dimension?: MBTIDimension; // New MBTI dimension
   weight: number; // 0-100, how strongly this indicates the trait
 }
 
@@ -11,8 +16,18 @@ export interface Question {
   id: string;
   text: string;
   category: string;
+  dimension?: MBTIDimension;
   options: QuestionOption[];
 }
+
+// Map legacy Big Five traits to MBTI dimensions
+const TRAIT_TO_DIMENSION: Record<string, MBTIDimension> = {
+  'E': 'mind',      // Extraversion -> Mind (I/E)
+  'O': 'energy',    // Openness -> Energy (S/N)
+  'A': 'nature',    // Agreeableness -> Nature (T/F)
+  'C': 'tactics',   // Conscientiousness -> Tactics (J/P)
+  'N': 'identity',  // Neuroticism (inverted) -> Identity (A/T)
+};
 
 // 10 carefully crafted questions for quick personality assessment
 export const QUICK_ASSESSMENT_QUESTIONS: Question[] = [
@@ -171,6 +186,7 @@ export const useQuickAssessment = () => {
     return Array.from(answers.entries()).map(([questionId, option]) => ({
       questionId,
       trait: option.trait,
+      dimension: option.dimension || TRAIT_TO_DIMENSION[option.trait],
       value: option.weight
     }));
   }, [answers]);

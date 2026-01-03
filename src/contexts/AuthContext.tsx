@@ -34,6 +34,7 @@ interface AuthContextType {
   signOut: () => Promise<void>;
   signInWithOAuth: (provider: 'google', redirectAfterAuth?: string) => Promise<void>;
   clearAuth: () => void;
+  refreshAccessToken: () => Promise<boolean>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -59,7 +60,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const getCachedUser = (): User | null => {
     // DEMO MODE: If in demo mode, return demo user immediately
     if (isDemoMode) {
-      console.log('[AuthContext] 🎭 Demo mode active - using DEMO_USER');
       return DEMO_USER;
     }
 
@@ -72,8 +72,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   };
 
   const [user, setUser] = useState<User | null>(getCachedUser());
-  const [isLoaded, setIsLoaded] = useState(true); // Set to true immediately for optimistic UI
+  const [isLoaded, setIsLoaded] = useState(false); // Don't set true until verification completes
   const [isLoading, setIsLoading] = useState(false);
+  const [isVerifying, setIsVerifying] = useState(false);
 
   useEffect(() => {
     // Check for existing session on mount
@@ -96,78 +97,130 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const checkAuth = async () => {
     // DEMO MODE: Skip real auth check if in demo mode
     if (localStorage.getItem('demo_mode') === 'true') {
-      console.log('[AuthContext] 🎭 Demo mode active - skipping real auth check');
       setUser(DEMO_USER);
       setIsLoaded(true);
       return;
     }
 
     const token = localStorage.getItem('auth_token');
-    console.log('🔍 Auth check - token exists:', !!token);
 
     if (!token) {
-      console.log('🔍 No token found, user not signed in');
       setUser(null);
       localStorage.removeItem('auth_user');
       setIsLoaded(true);
       return;
     }
 
-    // If we have a cached user, use it optimistically
-    // Verify token in the background without blocking UI
+    // If we have a cached user, use it for display while verifying
+    // But don't set isLoaded until verification completes
     const cachedUser = getCachedUser();
     if (cachedUser) {
       setUser(cachedUser);
-      setIsLoaded(true); // UI loads immediately
+      // Note: isLoaded stays false until verification completes
     }
 
-    // Background token verification
+    // Token verification - must complete before isLoaded is set
+    setIsVerifying(true);
     try {
-      console.log('🔍 Verifying token in background...');
       const response = await fetch(`${import.meta.env.VITE_API_URL}/auth/verify`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
       });
 
-      console.log('🔍 Token verification response:', response.status, response.ok);
-
       if (response.ok) {
         const userData = await response.json();
-        console.log('✅ Token valid, updating user:', userData.user);
         setUser(userData.user);
         // Cache user data for next load
         localStorage.setItem('auth_user', JSON.stringify(userData.user));
       } else {
-        console.log('❌ Invalid token, clearing auth');
+        // Token is invalid - clear auth state
         localStorage.removeItem('auth_token');
         localStorage.removeItem('auth_user');
         setUser(null);
       }
     } catch (error) {
-      console.error('❌ Auth verification failed:', error);
-      // Don't clear auth on network errors - keep cached state
+      // Network error - keep cached state if we have one
       // This prevents logout on temporary network issues
+      if (!cachedUser) {
+        // No cached user and network error - clear everything
+        localStorage.removeItem('auth_token');
+        localStorage.removeItem('auth_user');
+        setUser(null);
+      }
+      // If we have cached user, keep them logged in despite network error
     } finally {
-      setIsLoaded(true); // Ensure loaded state
-      console.log('🔍 Auth check complete');
+      setIsVerifying(false);
+      setIsLoaded(true);
     }
   };
 
   const signOut = async () => {
-    console.log('🚪 Signing out user');
     localStorage.removeItem('auth_token');
+    localStorage.removeItem('refresh_token');
     localStorage.removeItem('auth_user');
     localStorage.removeItem('demo_mode'); // Also exit demo mode
     setUser(null);
   };
 
   const clearAuth = () => {
-    console.log('🧹 Clearing auth state and localStorage');
     localStorage.removeItem('auth_token');
+    localStorage.removeItem('refresh_token');
     localStorage.removeItem('auth_user');
     setUser(null);
   };
+
+  // Refresh access token using refresh token
+  const refreshAccessToken = async (): Promise<boolean> => {
+    const refreshToken = localStorage.getItem('refresh_token');
+
+    if (!refreshToken) {
+      return false;
+    }
+
+    try {
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/auth/refresh`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ refreshToken })
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        // Store new tokens
+        localStorage.setItem('auth_token', data.accessToken);
+        localStorage.setItem('refresh_token', data.refreshToken);
+        localStorage.setItem('auth_user', JSON.stringify(data.user));
+        setUser(data.user);
+        return true;
+      } else {
+        // Refresh token is invalid or expired - force re-login
+        clearAuth();
+        return false;
+      }
+    } catch (error) {
+      console.error('Token refresh error:', error);
+      return false;
+    }
+  };
+
+  // Set up automatic token refresh before expiration
+  useEffect(() => {
+    if (!user || localStorage.getItem('demo_mode') === 'true') {
+      return;
+    }
+
+    // Refresh token 5 minutes before expiration (access token is 1 hour)
+    const REFRESH_INTERVAL = 55 * 60 * 1000; // 55 minutes
+
+    const refreshInterval = setInterval(() => {
+      refreshAccessToken();
+    }, REFRESH_INTERVAL);
+
+    return () => clearInterval(refreshInterval);
+  }, [user]);
 
   const signInWithOAuth = async (provider: 'google', redirectAfterAuth?: string) => {
     try {
@@ -176,14 +229,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
       // If redirectAfterAuth is provided, pass it as a query parameter
       if (redirectAfterAuth) {
-        console.log(`[OAuth] Redirecting to ${provider} with post-auth redirect: ${redirectAfterAuth}`);
         oauthUrl += `?redirect=${encodeURIComponent(redirectAfterAuth)}`;
       }
 
       // Redirect to OAuth provider
       window.location.href = oauthUrl;
     } catch (error) {
-      console.error('OAuth sign in error:', error);
       throw error;
     }
   };
@@ -197,6 +248,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     signOut,
     signInWithOAuth,
     clearAuth,
+    refreshAccessToken,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

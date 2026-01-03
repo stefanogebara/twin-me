@@ -1,6 +1,7 @@
 import React, { ReactNode, useState } from 'react';
 import { CollapsibleSidebar } from './CollapsibleSidebar';
 import { useTheme } from '@/contexts/ThemeContext';
+import { useSidebar } from '@/contexts/SidebarContext';
 import { Menu } from 'lucide-react';
 
 interface SidebarLayoutProps {
@@ -10,6 +11,12 @@ interface SidebarLayoutProps {
 export const SidebarLayout: React.FC<SidebarLayoutProps> = ({ children }) => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const { theme } = useTheme();
+  const { isCollapsed } = useSidebar();
+
+  // Calculate sidebar margin based on collapsed state
+  // Expanded: w-64 (256px) + m-4 (16px padding) = 272px
+  // Collapsed: w-20 (80px) + m-4 (16px padding) = 96px
+  const sidebarWidth = isCollapsed ? 96 : 272;
 
   return (
     <div
@@ -51,17 +58,17 @@ export const SidebarLayout: React.FC<SidebarLayoutProps> = ({ children }) => {
         onClose={() => setSidebarOpen(false)}
       />
 
-      {/* Main Content Area */}
+      {/* Main Content Area - margin adjusts based on sidebar collapsed state */}
       <main
-        className="flex-1 overflow-y-auto relative lg:ml-4"
+        className="flex-1 overflow-y-auto relative transition-all duration-300"
         style={{
-          marginLeft: 'var(--sidebar-margin, 0)',
+          marginLeft: window.innerWidth >= 1024 ? `${sidebarWidth}px` : '0',
         }}
       >
         <style>{`
-          @media (min-width: 1024px) {
+          @media (max-width: 1023px) {
             main {
-              --sidebar-margin: 272px;
+              margin-left: 0 !important;
             }
           }
         `}</style>

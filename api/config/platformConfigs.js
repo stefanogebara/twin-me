@@ -200,7 +200,7 @@ export const PLATFORM_CONFIGS = {
       'read:sleep',
       'read:body_measurement'
     ],
-    apiBaseUrl: 'https://api.prod.whoop.com/developer/v1',
+    apiBaseUrl: 'https://api.prod.whoop.com/developer/v2',
 
     endpoints: {
       userProfile: '/user/profile/basic',

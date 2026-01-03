@@ -13,11 +13,7 @@ import {
   Target,
   RefreshCw,
   AlertCircle,
-  Activity,
-  Mail,
-  Video,
-  MessageCircle,
-  Briefcase
+  Activity
 } from 'lucide-react';
 import { PageLayout, GlassPanel } from '@/components/layout/PageLayout';
 import { calendarAPI, spotifyAPI, whoopAPI, CalendarEvent } from '@/services/apiService';
@@ -56,16 +52,11 @@ interface WhoopData {
   recoveryLabel: string;
 }
 
-// Platform configuration for icons and colors
+// Platform configuration for icons and colors (MVP platforms only)
 const PLATFORM_CONFIG: Record<string, { name: string; icon: React.ElementType; color: string }> = {
   spotify: { name: 'Spotify', icon: Music, color: 'text-green-500' },
   google_calendar: { name: 'Calendar', icon: Calendar, color: 'text-blue-500' },
   whoop: { name: 'Whoop', icon: Activity, color: 'text-cyan-500' },
-  youtube: { name: 'YouTube', icon: Video, color: 'text-red-500' },
-  discord: { name: 'Discord', icon: MessageCircle, color: 'text-indigo-500' },
-  google_gmail: { name: 'Gmail', icon: Mail, color: 'text-red-400' },
-  linkedin: { name: 'LinkedIn', icon: Briefcase, color: 'text-blue-600' },
-  github: { name: 'GitHub', icon: Activity, color: 'text-gray-500' },
 };
 
 export const Dashboard: React.FC = () => {
@@ -317,29 +308,32 @@ export const Dashboard: React.FC = () => {
     return `${minutes}m`;
   };
 
-  // Build dynamic platforms list from connected providers
-  const platforms: PlatformStatus[] = connectedProviders.map(provider => {
-    const config = PLATFORM_CONFIG[provider] || {
-      name: provider.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase()),
-      icon: Activity,
-      color: 'text-gray-500'
-    };
-    const status = platformStatusData[provider];
-    const isExpired = status?.tokenExpired || status?.status === 'token_expired';
+  // MVP platforms only
+  const mvpPlatformIds = ['google_calendar', 'spotify', 'whoop'];
 
-    return {
-      id: provider,
-      name: config.name,
-      connected: true, // It's in connected providers, so it's connected
-      expired: isExpired, // But may have expired token
-      icon: config.icon,
-      color: config.color
-    };
-  });
+  // Build dynamic platforms list from connected providers (filtered to MVP platforms only)
+  const platforms: PlatformStatus[] = connectedProviders
+    .filter(provider => mvpPlatformIds.includes(provider))
+    .map(provider => {
+      const config = PLATFORM_CONFIG[provider];
+      if (!config) return null; // Only show platforms with config (MVP platforms)
+
+      const status = platformStatusData[provider];
+      const isExpired = status?.tokenExpired || status?.status === 'token_expired';
+
+      return {
+        id: provider,
+        name: config.name,
+        connected: true, // It's in connected providers, so it's connected
+        expired: isExpired, // But may have expired token
+        icon: config.icon,
+        color: config.color
+      };
+    })
+    .filter((p): p is PlatformStatus => p !== null);
 
   // Add MVP platforms if not connected (as suggested connections)
-  const mvpPlatforms = ['google_calendar', 'spotify', 'whoop'];
-  mvpPlatforms.forEach(provider => {
+  mvpPlatformIds.forEach(provider => {
     if (!connectedProviders.includes(provider)) {
       const config = PLATFORM_CONFIG[provider];
       if (config) {

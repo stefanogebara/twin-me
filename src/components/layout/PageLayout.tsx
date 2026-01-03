@@ -7,6 +7,7 @@
 
 import React, { ReactNode } from 'react';
 import { useTheme } from '@/contexts/ThemeContext';
+import { TokenExpiryBanner } from '@/components/TokenExpiryBanner';
 
 interface PageLayoutProps {
   children: ReactNode;
@@ -50,6 +51,9 @@ export const PageLayout: React.FC<PageLayoutProps> = ({
         backgroundColor: theme === 'dark' ? '#232320' : '#FAFAFA'
       }}
     >
+      {/* Token Expiry Banner - shows when tokens are expiring */}
+      <TokenExpiryBanner />
+
       <div className={`mx-auto ${maxWidthClasses[maxWidth]} ${paddingClasses[padding]}`}>
         {/* Page Header */}
         {(title || subtitle) && (
@@ -97,7 +101,8 @@ export const GlassPanel: React.FC<{
   className?: string;
   hover?: boolean;
   variant?: 'default' | 'card' | 'shimmer' | 'liquid';
-}> = ({ children, className = '', hover = false, variant = 'card' }) => {
+  onClick?: () => void;
+}> = ({ children, className = '', hover = false, variant = 'card', onClick }) => {
   const { theme } = useTheme();
 
   const variantClasses = {
@@ -113,6 +118,7 @@ export const GlassPanel: React.FC<{
       style={{
         borderRadius: '20px'
       }}
+      onClick={onClick}
     >
       {children}
     </div>

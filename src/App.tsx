@@ -20,6 +20,7 @@ import { ThemeProvider } from "./contexts/ThemeContext";
 import { DemoProvider } from "./contexts/DemoContext";
 import { NavigationProvider } from "./contexts/NavigationContext";
 import { PipedreamProvider } from "./contexts/PipedreamContext";
+import { SidebarProvider } from "./contexts/SidebarContext";
 import Dashboard from "./pages/Dashboard";
 import DashboardDemo from "./pages/DashboardDemo";
 import { useExtensionSync } from "./hooks/useExtensionSync";
@@ -30,6 +31,7 @@ import { SpotifyInsightsPage, WhoopInsightsPage, CalendarInsightsPage } from "./
 import SoulSignatureDashboard from "./pages/SoulSignatureDashboard";
 import SoulSignatureOnboarding from "./pages/onboarding/SoulSignatureOnboarding";
 import PersonalityAssessment from "./pages/PersonalityAssessment";
+import TalkToTwin from "./pages/TalkToTwin";
 
 const queryClient = new QueryClient();
 
@@ -51,6 +53,7 @@ const App = () => {
                     <Sonner />
                     <ErrorNotification />
                     <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+                      <SidebarProvider>
                       <NavigationProvider>
                       <DemoBanner variant="top" />
           <Routes>
@@ -167,11 +170,25 @@ const App = () => {
               </ErrorBoundary>
             } />
 
+            {/* Chat with Twin */}
+            <Route path="/talk-to-twin" element={
+              <ProtectedRoute>
+                <SidebarLayout>
+                  <ErrorBoundary>
+                    <TalkToTwin />
+                  </ErrorBoundary>
+                </SidebarLayout>
+              </ProtectedRoute>
+            } />
+
+            {/* Ritual Start - Redirects to Music Insights (MVP) */}
+            <Route path="/ritual/start" element={<Navigate to="/insights/spotify" replace />} />
 
             {/* Catch-all */}
             <Route path="*" element={<NotFound />} />
           </Routes>
                     </NavigationProvider>
+                      </SidebarProvider>
         </BrowserRouter>
                   </TooltipProvider>
                 </PipedreamProvider>

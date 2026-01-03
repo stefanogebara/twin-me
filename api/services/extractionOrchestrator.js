@@ -10,6 +10,10 @@ import { extractSpotifyData } from './spotifyExtraction.js';
 import { extractDiscordData } from './discordExtraction.js';
 import { extractGitHubData } from './githubExtraction.js';
 import soulSignatureBuilder from './soulSignatureBuilder.js';
+// MVP Feature Extractors
+import spotifyFeatureExtractor from './featureExtractors/spotifyExtractor.js';
+import whoopFeatureExtractor from './featureExtractors/whoopExtractor.js';
+import calendarFeatureExtractor from './featureExtractors/calendarExtractor.js';
 
 // Initialize Supabase client
 const supabase = createClient(
@@ -126,8 +130,56 @@ class ExtractionOrchestrator {
 
       switch (platform.toLowerCase()) {
         case 'spotify':
+          // Use both data extraction and feature extraction
           result = await extractSpotifyData(userId);
           itemsExtracted = result.itemsExtracted || 0;
+          // Also extract behavioral features for personality
+          try {
+            const features = await spotifyFeatureExtractor.extractFeatures(userId);
+            if (features.length > 0) {
+              await spotifyFeatureExtractor.saveFeatures(features);
+              console.log(`   📊 Extracted ${features.length} Spotify behavioral features`);
+            }
+          } catch (featureError) {
+            console.error(`   ⚠️ Spotify feature extraction error: ${featureError.message}`);
+          }
+          break;
+
+        case 'whoop':
+          // Use MVP feature extractor for Whoop
+          try {
+            const features = await whoopFeatureExtractor.extractFeatures(userId);
+            if (features.length > 0) {
+              await whoopFeatureExtractor.saveFeatures(features);
+              itemsExtracted = features.length;
+              result = { success: true, itemsExtracted };
+              console.log(`   📊 Extracted ${features.length} Whoop behavioral features`);
+            } else {
+              result = { success: true, itemsExtracted: 0, message: 'No Whoop data available' };
+            }
+          } catch (whoopError) {
+            console.error(`   ❌ Whoop extraction error: ${whoopError.message}`);
+            result = { success: false, error: whoopError.message };
+          }
+          break;
+
+        case 'calendar':
+        case 'google_calendar':
+          // Use MVP feature extractor for Calendar
+          try {
+            const features = await calendarFeatureExtractor.extractFeatures(userId);
+            if (features.length > 0) {
+              await calendarFeatureExtractor.saveFeatures(features);
+              itemsExtracted = features.length;
+              result = { success: true, itemsExtracted };
+              console.log(`   📊 Extracted ${features.length} Calendar behavioral features`);
+            } else {
+              result = { success: true, itemsExtracted: 0, message: 'No Calendar data available' };
+            }
+          } catch (calendarError) {
+            console.error(`   ❌ Calendar extraction error: ${calendarError.message}`);
+            result = { success: false, error: calendarError.message };
+          }
           break;
 
         case 'discord':
@@ -140,11 +192,10 @@ class ExtractionOrchestrator {
           itemsExtracted = result.itemsExtracted || 0;
           break;
 
-        // Add more platform extractors here
+        // Platforms not yet implemented
         case 'youtube':
         case 'reddit':
         case 'gmail':
-        case 'calendar':
           console.log(`⚠️ [Orchestrator] Extractor for ${platform} not yet implemented`);
           result = { success: false, error: 'Extractor not implemented' };
           break;
@@ -192,10 +243,17 @@ class ExtractionOrchestrator {
    */
   async getExtractionStatus(userId) {
     try {
+      // Platform name normalization map (DB name → frontend name)
+      const PLATFORM_NORMALIZE = {
+        'google_calendar': 'calendar',
+        'google_gmail': 'gmail',
+        // Add more as needed
+      };
+
       // Get all platform connections
       const { data: connections } = await supabase
         .from('platform_connections')
-        .select('platform, last_synced_at, last_sync_status')
+        .select('platform, last_sync_at, last_sync_status, status')
         .eq('user_id', userId);
 
       // Get recent extraction jobs
@@ -208,12 +266,16 @@ class ExtractionOrchestrator {
 
       // Build status for each platform
       const platformStatus = connections?.map(conn => {
+        // Normalize platform name for frontend consistency
+        const normalizedPlatform = PLATFORM_NORMALIZE[conn.platform] || conn.platform;
         const recentJobs = jobs?.filter(j => j.platform === conn.platform) || [];
         const latestJob = recentJobs[0];
 
         return {
-          platform: conn.platform,
-          lastSync: conn.last_synced_at,
+          platform: normalizedPlatform,
+          dbPlatform: conn.platform, // Keep original for debugging
+          isConnected: conn.status === 'connected',
+          lastSync: conn.last_sync_at,
           lastSyncStatus: conn.last_sync_status,
           latestJob: latestJob ? {
             status: latestJob.status,
@@ -228,7 +290,7 @@ class ExtractionOrchestrator {
       return {
         success: true,
         platforms: platformStatus,
-        totalConnected: connections?.length || 0
+        totalConnected: connections?.filter(c => c.status === 'connected').length || 0
       };
 
     } catch (error) {

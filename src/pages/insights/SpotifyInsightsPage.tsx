@@ -10,11 +10,13 @@
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useTheme } from '@/contexts/ThemeContext';
+import { useDemo } from '@/contexts/DemoContext';
 import { PageLayout, GlassPanel } from '@/components/layout/PageLayout';
 import { TwinReflection, PatternObservation, DataHighlight, TrackCard } from './components/TwinReflection';
 import { EvidenceSection } from './components/EvidenceSection';
 import { Music, RefreshCw, Sparkles, ArrowLeft, AlertCircle, Disc3, Users } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { getDemoSpotifyData } from '@/services/demoDataService';
 
 interface Reflection {
   id: string | null;
@@ -81,6 +83,7 @@ interface InsightsResponse {
 const SpotifyInsightsPage: React.FC = () => {
   const { theme } = useTheme();
   const { token } = useAuth();
+  const { isDemoMode } = useDemo();
   const navigate = useNavigate();
 
   const [insights, setInsights] = useState<InsightsResponse | null>(null);
@@ -98,11 +101,77 @@ const SpotifyInsightsPage: React.FC = () => {
     spotifyBg: theme === 'dark' ? 'rgba(29, 185, 84, 0.15)' : 'rgba(29, 185, 84, 0.1)'
   };
 
+  // Generate demo insights data
+  const getDemoInsights = (): InsightsResponse => {
+    const spotifyData = getDemoSpotifyData();
+    return {
+      success: true,
+      reflection: {
+        id: 'demo-reflection-1',
+        text: `Your musical soul reveals a curious explorer. You gravitate toward ${spotifyData.topGenres[0]?.genre || 'ambient'} sounds, especially during ${spotifyData.listeningHabits.peakHours}. Your recent listening shows a ${spotifyData.recentMood} energy - your twin notices you use music to match and shift your mood throughout the day.`,
+        generatedAt: new Date().toISOString(),
+        expiresAt: null,
+        confidence: 'high',
+        themes: ['mood', 'discovery', 'patterns'],
+      },
+      patterns: [
+        {
+          id: 'pattern-1',
+          text: `You tend to listen to more energetic music in the morning and wind down with ambient tracks after ${spotifyData.listeningHabits.peakHours.includes('pm') ? 'work' : 'evening activities'}.`,
+          occurrences: 'often',
+        },
+        {
+          id: 'pattern-2',
+          text: `Your skip rate of ${spotifyData.listeningHabits.skipRate} suggests you know what you like - you're selective but committed once you find the right track.`,
+          occurrences: 'sometimes',
+        },
+        {
+          id: 'pattern-3',
+          text: `${spotifyData.listeningHabits.weekdayVsWeekend} - your listening habits shift based on your schedule.`,
+          occurrences: 'noticed',
+        },
+      ],
+      history: [
+        {
+          id: 'history-1',
+          text: 'Your recent shift toward more instrumental music correlates with your calendar showing more deep work blocks.',
+          generatedAt: new Date(Date.now() - 86400000).toISOString(),
+        },
+      ],
+      evidence: [
+        {
+          id: 'evidence-1',
+          observation: `${spotifyData.topArtists[0]?.name} dominates your recent plays`,
+          dataPoints: [`${spotifyData.topArtists[0]?.plays || 500}+ plays`, `Top genre: ${spotifyData.topArtists[0]?.genre || 'Electronic'}`],
+          confidence: 'high',
+        },
+      ],
+      recentTracks: spotifyData.topTracks.slice(0, 5).map(track => ({
+        name: track.name,
+        artist: track.artist,
+        playedAt: new Date(Date.now() - Math.random() * 86400000).toISOString(),
+      })),
+      topArtists: spotifyData.topArtists.map(a => a.name),
+      currentMood: {
+        label: spotifyData.recentMood.charAt(0).toUpperCase() + spotifyData.recentMood.slice(1),
+        energy: spotifyData.averageEnergy,
+        valence: Math.random() * 0.4 + 0.4,
+      },
+    };
+  };
+
   useEffect(() => {
     fetchInsights();
-  }, []);
+  }, [isDemoMode]);
 
   const fetchInsights = async () => {
+    // Handle demo mode - return demo data
+    if (isDemoMode) {
+      setInsights(getDemoInsights());
+      setLoading(false);
+      return;
+    }
+
     const authToken = token || localStorage.getItem('auth_token');
     if (!authToken) {
       setError('Please sign in to see your musical soul');
@@ -133,6 +202,16 @@ const SpotifyInsightsPage: React.FC = () => {
 
   const handleRefresh = async () => {
     setRefreshing(true);
+
+    // In demo mode, just regenerate demo data
+    if (isDemoMode) {
+      setTimeout(() => {
+        setInsights(getDemoInsights());
+        setRefreshing(false);
+      }, 800); // Simulate loading
+      return;
+    }
+
     const authToken = token || localStorage.getItem('auth_token');
 
     try {

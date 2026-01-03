@@ -14,6 +14,7 @@ import { initializeWebSocketServer } from './services/websocketService.js';
 import { initializeQueues } from './services/queueService.js';
 import { startBackgroundJobs, stopBackgroundJobs } from './services/tokenLifecycleJob.js';
 import { startPatternLearningJob, stopPatternLearningJob } from './services/patternLearningJob.js';
+import { startTokenExpiryNotifier, stopTokenExpiryNotifier } from './services/tokenExpiryNotifier.js';
 import { initializeRateLimiter, shutdownRateLimiter } from './middleware/oauthRateLimiter.js';
 
 // Only use dotenv in development - Vercel provides env vars directly
@@ -255,6 +256,10 @@ import testPatternLearningRoutes from './routes/test-pattern-learning.js';
 import onboardingQuestionsRoutes from './routes/onboarding-questions.js';
 import personalityAssessmentRoutes from './routes/personality-assessment.js';
 import platformInsightsRoutes from './routes/platform-insights.js';
+import twinPipelineRoutes from './routes/twin-pipeline.js';
+import notificationsRoutes from './routes/notifications.js';
+import whoopWebhooksRoutes from './routes/whoop-webhooks.js';
+import extractionStatusRoutes from './routes/extraction-status.js';
 import { serverDb } from './services/database.js';
 import { sanitizeInput, validateContentType } from './middleware/sanitization.js';
 import { /* handleAuthError, */ handleGeneralError, handle404 } from './middleware/errorHandler.js';
@@ -289,6 +294,7 @@ app.use('/api/platforms', allPlatformRoutes); // Comprehensive 56-platform integ
 // Extension sends userId in body when not authenticated
 app.use('/api/soul-observer', soulObserverRoutes); // Soul Observer Mode - behavioral tracking
 app.use('/api/webhooks', webhookRoutes); // Real-time webhook receivers (GitHub, Gmail, Slack)
+app.use('/api/webhooks/whoop', whoopWebhooksRoutes); // Whoop push notifications (recovery, sleep, workout)
 app.use('/api/sse', sseRoutes); // Server-Sent Events for real-time updates
 app.use('/api/queues', queueDashboardRoutes); // Bull Board job queue dashboard
 app.use('/api/pipedream', pipedreamRoutes); // Pipedream Connect OAuth integration
@@ -309,6 +315,10 @@ app.use('/api/test-pattern-learning', testPatternLearningRoutes); // Pattern lea
 app.use('/api/onboarding', onboardingQuestionsRoutes); // Personality questionnaire for personalization
 app.use('/api/personality', personalityAssessmentRoutes); // Big Five personality assessment with 16personalities archetypes
 app.use('/api/insights', platformInsightsRoutes); // Platform-specific conversational insights
+app.use('/api/twin', twinPipelineRoutes); // Twin formation pipeline (form, status, profile, evolution)
+app.use('/api/extraction', extractionStatusRoutes); // Extraction status and job history
+app.use('/api/notifications', notificationsRoutes); // User notifications (token expiry, sync issues)
+app.use('/api/webhooks/whoop', whoopWebhooksRoutes); // Whoop push notifications (recovery, sleep, workout)
 
 // Vercel Cron Job endpoints (production automation)
 // These are called by Vercel Cron Jobs on schedule (configured in vercel.json)
@@ -397,6 +407,11 @@ if (process.env.NODE_ENV !== 'production') {
   // Production equivalent: Vercel Cron → /api/cron/pattern-learning
   startPatternLearningJob();
 
+  // Token expiry notification service
+  // - Checks daily for tokens about to expire (especially Whoop with 7-day refresh token)
+  // - Creates user notifications prompting reconnection before data flow interrupts
+  startTokenExpiryNotifier();
+
   // Start HTTP server
   server.listen(PORT, () => {
     console.log(`🚀 Secure API server running on port ${PORT}`);
@@ -427,6 +442,7 @@ if (process.env.NODE_ENV !== 'production') {
     // Stop background jobs first
     stopBackgroundJobs();
     stopPatternLearningJob();
+    stopTokenExpiryNotifier();
 
     // Shutdown rate limiter
     await shutdownRateLimiter();

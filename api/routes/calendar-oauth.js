@@ -161,8 +161,8 @@ function classifyEventType(event) {
     return 'social';
   }
 
-  // Personal keywords
-  if (/break|personal|doctor|dentist|appointment|errand|pto|vacation|day\s*off|haircut|pickup|dropoff/i.test(combined)) {
+  // Personal/vacation keywords (including Portuguese: férias, folga, licença, feriado, descanso)
+  if (/break|personal|doctor|dentist|appointment|errand|pto|vacation|day\s*off|haircut|pickup|dropoff|f[eé]rias|folga|licen[cç]a|feriado|descanso|time\s*off|out\s*of\s*office|ooo/i.test(combined)) {
     return 'personal';
   }
 
