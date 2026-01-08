@@ -14,9 +14,10 @@ import { useDemo } from '@/contexts/DemoContext';
 import { PageLayout, GlassPanel } from '@/components/layout/PageLayout';
 import { TwinReflection, PatternObservation, DataHighlight, TrackCard } from './components/TwinReflection';
 import { EvidenceSection } from './components/EvidenceSection';
-import { Music, RefreshCw, Sparkles, ArrowLeft, AlertCircle, Disc3, Users } from 'lucide-react';
+import { Music, RefreshCw, Sparkles, ArrowLeft, AlertCircle, Disc3, Users, Clock, BarChart3, PieChart } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { getDemoSpotifyData } from '@/services/demoDataService';
+import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer, Cell, Tooltip as RechartsTooltip, PieChart as RechartsPie, Pie } from 'recharts';
 
 interface Reflection {
   id: string | null;
@@ -62,6 +63,22 @@ interface RecentTrack {
   playedAt?: string;
 }
 
+interface ArtistWithPlays {
+  name: string;
+  plays: number;
+  genre?: string;
+}
+
+interface GenreData {
+  genre: string;
+  percentage: number;
+}
+
+interface ListeningHour {
+  hour: number;
+  plays: number;
+}
+
 interface InsightsResponse {
   success: boolean;
   reflection: Reflection;
@@ -72,6 +89,9 @@ interface InsightsResponse {
   // New: Specific data for visual display
   recentTracks?: RecentTrack[];
   topArtists?: string[];
+  topArtistsWithPlays?: ArtistWithPlays[];
+  topGenres?: GenreData[];
+  listeningHours?: ListeningHour[];
   currentMood?: {
     label: string;
     energy: number;
@@ -149,9 +169,12 @@ const SpotifyInsightsPage: React.FC = () => {
       recentTracks: spotifyData.topTracks.slice(0, 5).map(track => ({
         name: track.name,
         artist: track.artist,
-        playedAt: new Date(Date.now() - Math.random() * 86400000).toISOString(),
+        playedAt: track.playedAt,
       })),
       topArtists: spotifyData.topArtists.map(a => a.name),
+      topArtistsWithPlays: spotifyData.topArtists,
+      topGenres: spotifyData.topGenres,
+      listeningHours: spotifyData.listeningHours,
       currentMood: {
         label: spotifyData.recentMood.charAt(0).toUpperCase() + spotifyData.recentMood.slice(1),
         energy: spotifyData.averageEnergy,
@@ -385,7 +408,7 @@ const SpotifyInsightsPage: React.FC = () => {
         </button>
       </div>
 
-      {/* Recent Tracks Section - Visual data display */}
+      {/* Recent Tracks Section - With Timestamps */}
       {insights?.recentTracks && insights.recentTracks.length > 0 && (
         <div className="mb-6">
           <h3
@@ -396,28 +419,198 @@ const SpotifyInsightsPage: React.FC = () => {
             Recently Playing
           </h3>
           <div className="space-y-2">
-            {insights.recentTracks.slice(0, 3).map((track, index) => (
-              <TrackCard
-                key={index}
-                name={track.name}
-                artist={track.artist}
-                context={index === 0 ? 'Latest' : undefined}
-              />
+            {insights.recentTracks.slice(0, 5).map((track, index) => (
+              <GlassPanel key={index} className="!p-3">
+                <div className="flex items-center gap-3">
+                  <div
+                    className="w-10 h-10 rounded flex items-center justify-center text-lg"
+                    style={{ backgroundColor: colors.spotifyBg }}
+                  >
+                    <Music className="w-5 h-5" style={{ color: colors.spotifyGreen }} />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                      <span
+                        className="font-medium truncate"
+                        style={{ color: colors.text }}
+                      >
+                        {track.name}
+                      </span>
+                    </div>
+                    <span
+                      className="text-sm truncate block"
+                      style={{ color: colors.textSecondary }}
+                    >
+                      {track.artist}
+                    </span>
+                  </div>
+                  {track.playedAt && (
+                    <div className="flex items-center gap-1 flex-shrink-0">
+                      <Clock className="w-3 h-3" style={{ color: colors.textSecondary }} />
+                      <span className="text-xs" style={{ color: colors.textSecondary }}>
+                        {track.playedAt}
+                      </span>
+                    </div>
+                  )}
+                </div>
+              </GlassPanel>
             ))}
           </div>
         </div>
       )}
 
-      {/* Top Artists - Visual data highlight */}
-      {insights?.topArtists && insights.topArtists.length > 0 && (
-        <div className="mb-6">
-          <DataHighlight
-            label="Artists You Gravitate Toward"
-            items={insights.topArtists}
-            icon={<Users className="w-4 h-4" />}
-            accentColor={colors.spotifyGreen}
-          />
-        </div>
+      {/* Top Artists with Play Count Bars */}
+      {insights?.topArtistsWithPlays && insights.topArtistsWithPlays.length > 0 && (
+        <GlassPanel className="!p-4 mb-6">
+          <h3
+            className="text-sm uppercase tracking-wider mb-4 flex items-center gap-2"
+            style={{ color: colors.textSecondary }}
+          >
+            <Users className="w-4 h-4" />
+            Top Artists
+          </h3>
+          <div className="space-y-3">
+            {insights.topArtistsWithPlays.slice(0, 5).map((artist, index) => {
+              const maxPlays = insights.topArtistsWithPlays![0].plays;
+              const barWidth = (artist.plays / maxPlays) * 100;
+              return (
+                <div key={index} className="flex items-center gap-3">
+                  <span
+                    className="text-sm w-28 truncate"
+                    style={{ color: colors.text }}
+                  >
+                    {artist.name}
+                  </span>
+                  <div className="flex-1 h-5 rounded-lg overflow-hidden" style={{ backgroundColor: theme === 'dark' ? 'rgba(0,0,0,0.3)' : 'rgba(0,0,0,0.1)' }}>
+                    <div
+                      className="h-full rounded-lg transition-all"
+                      style={{
+                        width: `${barWidth}%`,
+                        backgroundColor: colors.spotifyGreen,
+                        opacity: 1 - (index * 0.12)
+                      }}
+                    />
+                  </div>
+                  <span
+                    className="text-sm font-medium w-16 text-right"
+                    style={{ color: colors.textSecondary }}
+                  >
+                    {artist.plays} plays
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+        </GlassPanel>
+      )}
+
+      {/* Genre Distribution */}
+      {insights?.topGenres && insights.topGenres.length > 0 && (
+        <GlassPanel className="!p-4 mb-6">
+          <h3
+            className="text-sm uppercase tracking-wider mb-4 flex items-center gap-2"
+            style={{ color: colors.textSecondary }}
+          >
+            <PieChart className="w-4 h-4" />
+            Genre Distribution
+          </h3>
+          <div className="flex items-center gap-6">
+            <div className="w-32 h-32">
+              <ResponsiveContainer width="100%" height="100%">
+                <RechartsPie>
+                  <Pie
+                    data={insights.topGenres}
+                    dataKey="percentage"
+                    nameKey="genre"
+                    cx="50%"
+                    cy="50%"
+                    innerRadius={25}
+                    outerRadius={50}
+                    paddingAngle={2}
+                  >
+                    {insights.topGenres.map((_, index) => (
+                      <Cell
+                        key={`cell-${index}`}
+                        fill={[colors.spotifyGreen, '#4ade80', '#60a5fa', '#a78bfa', '#fbbf24'][index % 5]}
+                      />
+                    ))}
+                  </Pie>
+                  <RechartsTooltip
+                    contentStyle={{
+                      backgroundColor: theme === 'dark' ? '#1c1917' : '#ffffff',
+                      border: 'none',
+                      borderRadius: '8px',
+                      color: colors.text,
+                    }}
+                    formatter={(value: number) => [`${value}%`, 'Share']}
+                  />
+                </RechartsPie>
+              </ResponsiveContainer>
+            </div>
+            <div className="flex-1 space-y-2">
+              {insights.topGenres.slice(0, 5).map((genre, index) => (
+                <div key={index} className="flex items-center gap-2">
+                  <div
+                    className="w-3 h-3 rounded-full"
+                    style={{ backgroundColor: [colors.spotifyGreen, '#4ade80', '#60a5fa', '#a78bfa', '#fbbf24'][index % 5] }}
+                  />
+                  <span className="text-sm" style={{ color: colors.text }}>
+                    {genre.genre}
+                  </span>
+                  <span className="text-xs ml-auto" style={{ color: colors.textSecondary }}>
+                    {genre.percentage}%
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </GlassPanel>
+      )}
+
+      {/* Listening Peak Hours */}
+      {insights?.listeningHours && insights.listeningHours.length > 0 && (
+        <GlassPanel className="!p-4 mb-6">
+          <h3
+            className="text-sm uppercase tracking-wider mb-4 flex items-center gap-2"
+            style={{ color: colors.textSecondary }}
+          >
+            <BarChart3 className="w-4 h-4" />
+            Your Peak Listening Hours
+          </h3>
+          <div className="h-32">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={insights.listeningHours} margin={{ top: 5, right: 5, left: -20, bottom: 5 }}>
+                <XAxis
+                  dataKey="hour"
+                  axisLine={false}
+                  tickLine={false}
+                  tick={{ fill: colors.textSecondary, fontSize: 10 }}
+                  tickFormatter={(hour) => hour % 3 === 0 ? `${hour > 12 ? hour - 12 : hour}${hour >= 12 ? 'pm' : 'am'}` : ''}
+                />
+                <YAxis hide />
+                <RechartsTooltip
+                  contentStyle={{
+                    backgroundColor: theme === 'dark' ? '#1c1917' : '#ffffff',
+                    border: 'none',
+                    borderRadius: '8px',
+                    color: colors.text,
+                  }}
+                  labelFormatter={(hour) => `${hour > 12 ? hour - 12 : hour}:00 ${hour >= 12 ? 'PM' : 'AM'}`}
+                  formatter={(value: number) => [`${value} plays`, 'Activity']}
+                />
+                <Bar dataKey="plays" radius={[3, 3, 0, 0]}>
+                  {insights.listeningHours.map((entry, index) => (
+                    <Cell
+                      key={`cell-${index}`}
+                      fill={colors.spotifyGreen}
+                      opacity={entry.plays > 20 ? 1 : 0.5 + (entry.plays / 50)}
+                    />
+                  ))}
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </GlassPanel>
       )}
 
       {/* Current Mood - Visual indicator */}

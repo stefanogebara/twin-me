@@ -98,7 +98,44 @@ export const DEMO_PLATFORM_CONNECTIONS = [
   },
 ];
 
-// Dynamic Whoop data with randomization
+// Helper to format time for display
+const formatTimeAgo = (hoursAgo: number): string => {
+  const date = new Date();
+  date.setHours(date.getHours() - hoursAgo);
+  const hours = date.getHours();
+  const minutes = date.getMinutes();
+  const ampm = hours >= 12 ? 'PM' : 'AM';
+  const displayHours = hours % 12 || 12;
+  return `${displayHours}:${minutes.toString().padStart(2, '0')} ${ampm}`;
+};
+
+// Get day name from days ago
+const getDayName = (daysAgo: number): string => {
+  const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+  const date = new Date();
+  date.setDate(date.getDate() - daysAgo);
+  return days[date.getDay()];
+};
+
+// Generate 7-day historical Whoop data
+const generate7DayHistory = () => {
+  const history = [];
+  for (let i = 6; i >= 0; i--) {
+    const date = new Date();
+    date.setDate(date.getDate() - i);
+    history.push({
+      date: date.toISOString().split('T')[0],
+      dayName: getDayName(i),
+      recovery: randomInRange(35, 95),
+      strain: randomFloat(5, 18, 1),
+      sleepHours: randomFloat(5, 9, 1),
+      hrv: randomInRange(25, 85),
+    });
+  }
+  return history;
+};
+
+// Dynamic Whoop data with randomization and timestamps
 export const getDemoWhoopData = () => {
   const recoveryScore = randomInRange(45, 95);
   const recoveryLabel = recoveryScore >= 80 ? 'Optimal' : recoveryScore >= 65 ? 'Good' : recoveryScore >= 50 ? 'Moderate' : 'Low';
@@ -109,39 +146,104 @@ export const getDemoWhoopData = () => {
   const sleepHours = randomFloat(5.5, 9, 1);
   const sleepQuality = sleepHours >= 8 ? 'Excellent' : sleepHours >= 7 ? 'Good' : sleepHours >= 6 ? 'Fair' : 'Poor';
 
+  const hrvValue = randomInRange(30, 75);
+  const restingHR = randomInRange(50, 70);
+  const sleepEfficiency = randomInRange(75, 96);
+  const remSleep = randomFloat(1.2, 2.5, 1);
+  const deepSleep = randomFloat(1.0, 2.2, 1);
+  const lightSleep = Number((sleepHours - remSleep - deepSleep).toFixed(1));
+
+  // Generate 7-day history
+  const history7Day = generate7DayHistory();
+  // Override today's data with current values
+  history7Day[6] = {
+    ...history7Day[6],
+    recovery: recoveryScore,
+    strain: strainScore,
+    sleepHours: sleepHours,
+    hrv: hrvValue,
+  };
+
   return {
     recovery: {
       score: recoveryScore,
       label: recoveryLabel,
-      hrv: randomInRange(30, 75),
+      hrv: hrvValue,
       hrvTrend: randomFromArray(['improving', 'stable', 'declining'] as const),
-      restingHeartRate: randomInRange(50, 70),
+      restingHeartRate: restingHR,
       sleepPerformance: randomInRange(70, 98),
+      // New: timestamps
+      updatedAt: formatTimeAgo(randomFloat(0.5, 3, 1)),
+      hrvUpdatedAt: formatTimeAgo(randomFloat(1, 4, 1)),
     },
     strain: {
       score: strainScore,
       label: strainLabel,
       calories: randomInRange(1800, 3200),
       averageHeartRate: randomInRange(65, 85),
+      // New: live tracking indicator
+      isLive: true,
     },
     sleep: {
       hours: sleepHours,
       quality: sleepQuality,
-      efficiency: randomInRange(75, 96),
-      remSleep: randomFloat(1.2, 2.5, 1),
-      deepSleep: randomFloat(1.0, 2.2, 1),
+      efficiency: sleepEfficiency,
+      remSleep: remSleep,
+      deepSleep: deepSleep,
+      lightSleep: lightSleep > 0 ? lightSleep : 0,
       disturbances: randomInRange(0, 5),
+      // New: sleep timestamps
+      bedtime: '11:15 PM',
+      wakeTime: formatTimeAgo(randomFloat(1, 6, 1)),
     },
     trends: {
       weeklyRecoveryAvg: randomInRange(55, 80),
       weeklyStrainAvg: randomFloat(8, 14, 1),
       weeklySleepAvg: randomFloat(6, 8, 1),
     },
+    // New: 7-day historical data for charts
+    history7Day: history7Day,
+    // New: today's timestamps
+    timestamps: {
+      recoveryCalculated: formatTimeAgo(randomFloat(0.5, 2, 1)),
+      lastHRVReading: formatTimeAgo(randomFloat(1, 5, 1)),
+      sleepEnded: formatTimeAgo(randomFloat(2, 8, 1)),
+      strainUpdated: 'Live',
+    },
   };
 };
 
 // Static version for backwards compatibility
 export const DEMO_WHOOP_DATA = getDemoWhoopData();
+
+// Generate event type distribution data
+const generateEventTypeDistribution = () => {
+  const meetingPct = randomInRange(35, 55);
+  const focusPct = randomInRange(25, 40);
+  const presentationPct = randomInRange(8, 18);
+  const personalPct = 100 - meetingPct - focusPct - presentationPct;
+
+  return [
+    { type: 'Meetings', percentage: meetingPct, color: '#4285F4' },
+    { type: 'Focus Time', percentage: focusPct, color: '#34A853' },
+    { type: 'Presentations', percentage: presentationPct, color: '#FBBC05' },
+    { type: 'Personal', percentage: Math.max(0, personalPct), color: '#EA4335' },
+  ].sort((a, b) => b.percentage - a.percentage);
+};
+
+// Generate weekly busy hours for heatmap
+const generateWeeklyHeatmap = () => {
+  const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'];
+  const timeSlots = ['8-10', '10-12', '12-2', '2-4', '4-6'];
+
+  return days.map(day => ({
+    day,
+    slots: timeSlots.map(slot => ({
+      slot,
+      intensity: randomInRange(0, 3), // 0 = free, 1 = light, 2 = moderate, 3 = busy
+    })),
+  }));
+};
 
 export const DEMO_CALENDAR_DATA = {
   todayEvents: [
@@ -152,6 +254,7 @@ export const DEMO_CALENDAR_DATA = {
       endTime: '09:30',
       type: 'meeting',
       attendees: 5,
+      isRecurring: true,
     },
     {
       id: 'event-2',
@@ -160,6 +263,7 @@ export const DEMO_CALENDAR_DATA = {
       endTime: '12:00',
       type: 'focus',
       attendees: 0,
+      isRecurring: false,
     },
     {
       id: 'event-3',
@@ -168,6 +272,7 @@ export const DEMO_CALENDAR_DATA = {
       endTime: '15:00',
       type: 'presentation',
       attendees: 8,
+      isRecurring: false,
     },
     {
       id: 'event-4',
@@ -176,6 +281,7 @@ export const DEMO_CALENDAR_DATA = {
       endTime: '19:00',
       type: 'workout',
       attendees: 0,
+      isRecurring: true,
     },
   ],
   upcomingEvents: [
@@ -185,6 +291,7 @@ export const DEMO_CALENDAR_DATA = {
       date: 'Tomorrow',
       time: '11:00',
       type: 'meeting',
+      attendees: 4,
     },
     {
       id: 'event-6',
@@ -192,6 +299,7 @@ export const DEMO_CALENDAR_DATA = {
       date: 'Tomorrow',
       time: '15:00',
       type: 'interview',
+      attendees: 3,
     },
   ],
   patterns: {
@@ -200,6 +308,8 @@ export const DEMO_CALENDAR_DATA = {
     busiestDay: 'Tuesday',
     preferredMeetingTime: '10am - 12pm',
   },
+  eventTypeDistribution: generateEventTypeDistribution(),
+  weeklyHeatmap: generateWeeklyHeatmap(),
 };
 
 // Track name pools for variety
@@ -219,27 +329,87 @@ const GENRE_POOLS = [
 
 const PEAK_HOURS = ['10pm - 2am', '8pm - 11pm', '6am - 9am', '2pm - 5pm', '9pm - 12am'];
 
+// Generate timestamps for recent tracks
+const generateRecentTrackTime = (index: number): string => {
+  const now = new Date();
+  // Each track is spaced ~2-4 hours apart
+  const hoursAgo = index * randomFloat(2, 4, 1);
+  now.setHours(now.getHours() - hoursAgo);
+
+  const today = new Date();
+  const yesterday = new Date();
+  yesterday.setDate(yesterday.getDate() - 1);
+
+  const hours = now.getHours();
+  const minutes = now.getMinutes();
+  const ampm = hours >= 12 ? 'PM' : 'AM';
+  const displayHours = hours % 12 || 12;
+  const timeStr = `${displayHours}:${minutes.toString().padStart(2, '0')} ${ampm}`;
+
+  if (now.toDateString() === today.toDateString()) {
+    return `${timeStr} today`;
+  } else if (now.toDateString() === yesterday.toDateString()) {
+    return `Yesterday ${timeStr}`;
+  } else {
+    return `${now.toLocaleDateString('en-US', { weekday: 'short' })} ${timeStr}`;
+  }
+};
+
+// Generate listening hours data for visualization
+const generateListeningHours = (): Array<{ hour: number; plays: number }> => {
+  const hours = [];
+  for (let h = 6; h <= 23; h++) {
+    // Peak hours around 9-10am and 8-10pm
+    let basePlays = 5;
+    if (h >= 9 && h <= 11) basePlays = 20 + randomInRange(5, 15);
+    else if (h >= 19 && h <= 22) basePlays = 25 + randomInRange(5, 15);
+    else if (h >= 14 && h <= 17) basePlays = 12 + randomInRange(3, 10);
+    else basePlays = 5 + randomInRange(0, 8);
+
+    hours.push({ hour: h, plays: basePlays });
+  }
+  return hours;
+};
+
 // Dynamic Spotify data with randomization
 export const getDemoSpotifyData = () => {
   const artistPool = randomFromArray(ARTIST_POOLS);
   const trackPool = randomFromArray(TRACK_POOLS);
   const genrePool = randomFromArray(GENRE_POOLS);
 
+  const topArtists = artistPool.map((artist, idx) => ({
+    name: artist,
+    plays: randomInRange(400, 900) - idx * 80,
+    genre: genrePool[idx] || 'Electronic',
+  }));
+
+  // Sort by plays descending
+  topArtists.sort((a, b) => b.plays - a.plays);
+
+  const topTracks = artistPool.map((artist, idx) => ({
+    name: trackPool[idx] || `Track ${idx + 1}`,
+    artist,
+    plays: randomInRange(60, 150) - idx * 10,
+    playedAt: generateRecentTrackTime(idx),
+  }));
+
+  const topGenres = genrePool.map((genre, idx) => ({
+    genre,
+    percentage: idx === 0 ? randomInRange(28, 38) : randomInRange(8, 22) - idx * 2,
+  }));
+
+  // Calculate total percentage and normalize
+  const totalPercentage = topGenres.reduce((sum, g) => sum + g.percentage, 0);
+  const normalizedGenres = topGenres.map(g => ({
+    ...g,
+    percentage: Math.round((g.percentage / totalPercentage) * 100)
+  }));
+
   return {
-    topArtists: artistPool.map((artist, idx) => ({
-      name: artist,
-      plays: randomInRange(400, 900) - idx * 50,
-      genre: genrePool[idx] || 'Electronic',
-    })),
-    topTracks: artistPool.map((artist, idx) => ({
-      name: trackPool[idx] || `Track ${idx + 1}`,
-      artist,
-      plays: randomInRange(60, 150) - idx * 10,
-    })),
-    topGenres: genrePool.map((genre, idx) => ({
-      genre,
-      percentage: idx === 0 ? randomInRange(28, 38) : randomInRange(8, 22) - idx * 2,
-    })),
+    topArtists,
+    topTracks,
+    topGenres: normalizedGenres,
+    listeningHours: generateListeningHours(),
     listeningHabits: {
       peakHours: randomFromArray(PEAK_HOURS),
       weekdayVsWeekend: randomFromArray([
