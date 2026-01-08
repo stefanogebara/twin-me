@@ -14,9 +14,10 @@ import { useDemo } from '@/contexts/DemoContext';
 import { PageLayout, GlassPanel } from '@/components/layout/PageLayout';
 import { TwinReflection, PatternObservation, StatCard, DataHighlight } from './components/TwinReflection';
 import { EvidenceSection } from './components/EvidenceSection';
-import { Activity, RefreshCw, Sparkles, ArrowLeft, AlertCircle, Heart, Zap, Moon, TrendingUp } from 'lucide-react';
+import { Activity, RefreshCw, Sparkles, ArrowLeft, AlertCircle, Heart, Zap, Moon, TrendingUp, Clock, Gauge } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { getDemoWhoopData } from '@/services/demoDataService';
+import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer, Cell, Tooltip as RechartsTooltip, AreaChart, Area } from 'recharts';
 
 interface Reflection {
   id: string | null;
@@ -62,12 +63,33 @@ interface BodyMetrics {
   sleepPerformance?: number;
   hrv?: number;
   restingHR?: number;
+  recoveryUpdatedAt?: string;
+  hrvUpdatedAt?: string;
+  strainUpdatedAt?: string;
 }
 
 interface SleepStats {
   avgSleepHours?: string;
   sleepConsistency?: string;
   bestSleepDay?: string;
+}
+
+interface SleepBreakdown {
+  deepSleep: number;
+  remSleep: number;
+  lightSleep: number;
+  totalHours: number;
+  efficiency: number;
+  wakeTime?: string;
+}
+
+interface DayHistory {
+  date: string;
+  dayName: string;
+  recovery: number;
+  strain: number;
+  sleepHours: number;
+  hrv: number;
 }
 
 interface InsightsResponse {
@@ -81,6 +103,8 @@ interface InsightsResponse {
   currentMetrics?: BodyMetrics;
   recentTrends?: string[];
   sleepStats?: SleepStats;
+  sleepBreakdown?: SleepBreakdown;
+  history7Day?: DayHistory[];
   error?: string;
 }
 
@@ -156,6 +180,9 @@ const WhoopInsightsPage: React.FC = () => {
         sleepPerformance: whoopData.recovery.sleepPerformance,
         hrv: whoopData.recovery.hrv,
         restingHR: whoopData.recovery.restingHeartRate,
+        recoveryUpdatedAt: whoopData.recovery.updatedAt,
+        hrvUpdatedAt: whoopData.recovery.hrvUpdatedAt,
+        strainUpdatedAt: whoopData.strain.isLive ? 'Live' : undefined,
       },
       recentTrends: [
         `${whoopData.recovery.label} recovery zone`,
@@ -168,6 +195,15 @@ const WhoopInsightsPage: React.FC = () => {
         sleepConsistency: whoopData.sleep.efficiency >= 85 ? 'High' : whoopData.sleep.efficiency >= 70 ? 'Moderate' : 'Low',
         bestSleepDay: 'Sunday',
       },
+      sleepBreakdown: {
+        deepSleep: whoopData.sleep.deepSleep,
+        remSleep: whoopData.sleep.remSleep,
+        lightSleep: whoopData.sleep.lightSleep,
+        totalHours: whoopData.sleep.hours,
+        efficiency: whoopData.sleep.efficiency,
+        wakeTime: whoopData.sleep.wakeTime,
+      },
+      history7Day: whoopData.history7Day,
     };
   };
 
@@ -399,57 +435,138 @@ const WhoopInsightsPage: React.FC = () => {
         </button>
       </div>
 
-      {/* Current Metrics - Visual indicators */}
+      {/* Expanded Metrics Grid with Timestamps */}
       {insights?.currentMetrics && (
         <div className="mb-6">
-          <div className="grid grid-cols-2 gap-3">
-            {insights.currentMetrics.recovery !== undefined && (
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+            {/* Recovery */}
+            <GlassPanel className="!p-4">
+              <div className="flex items-center gap-2 mb-2">
+                <Heart className="w-4 h-4" style={{ color: colors.whoopTeal }} />
+                <span className="text-xs uppercase tracking-wider" style={{ color: colors.textSecondary }}>
+                  Recovery
+                </span>
+              </div>
+              <div className="flex items-end gap-2">
+                <span className="text-2xl font-medium" style={{ color: colors.text }}>
+                  {insights.currentMetrics.recovery}%
+                </span>
+                <span className="text-xs mb-1" style={{
+                  color: insights.currentMetrics.recovery! >= 67 ? '#4ade80' :
+                    insights.currentMetrics.recovery! >= 34 ? '#fbbf24' : '#f87171'
+                }}>
+                  {insights.currentMetrics.recovery! >= 67 ? 'Green' :
+                    insights.currentMetrics.recovery! >= 34 ? 'Yellow' : 'Red'}
+                </span>
+              </div>
+              {insights.currentMetrics.recoveryUpdatedAt && (
+                <div className="flex items-center gap-1 mt-2">
+                  <Clock className="w-3 h-3" style={{ color: colors.textSecondary }} />
+                  <span className="text-xs" style={{ color: colors.textSecondary }}>
+                    {insights.currentMetrics.recoveryUpdatedAt}
+                  </span>
+                </div>
+              )}
+            </GlassPanel>
+
+            {/* Strain */}
+            <GlassPanel className="!p-4">
+              <div className="flex items-center gap-2 mb-2">
+                <Zap className="w-4 h-4" style={{ color: '#fbbf24' }} />
+                <span className="text-xs uppercase tracking-wider" style={{ color: colors.textSecondary }}>
+                  Strain
+                </span>
+              </div>
+              <div className="text-2xl font-medium" style={{ color: colors.text }}>
+                {insights.currentMetrics.strain?.toFixed(1)}
+              </div>
+              {insights.currentMetrics.strainUpdatedAt && (
+                <div className="flex items-center gap-1 mt-2">
+                  <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
+                  <span className="text-xs" style={{ color: '#4ade80' }}>
+                    {insights.currentMetrics.strainUpdatedAt}
+                  </span>
+                </div>
+              )}
+            </GlassPanel>
+
+            {/* HRV */}
+            <GlassPanel className="!p-4">
+              <div className="flex items-center gap-2 mb-2">
+                <Activity className="w-4 h-4" style={{ color: '#a78bfa' }} />
+                <span className="text-xs uppercase tracking-wider" style={{ color: colors.textSecondary }}>
+                  HRV
+                </span>
+              </div>
+              <div className="flex items-baseline gap-1">
+                <span className="text-2xl font-medium" style={{ color: colors.text }}>
+                  {insights.currentMetrics.hrv}
+                </span>
+                <span className="text-sm" style={{ color: colors.textSecondary }}>ms</span>
+              </div>
+              {insights.currentMetrics.hrvUpdatedAt && (
+                <div className="flex items-center gap-1 mt-2">
+                  <Clock className="w-3 h-3" style={{ color: colors.textSecondary }} />
+                  <span className="text-xs" style={{ color: colors.textSecondary }}>
+                    {insights.currentMetrics.hrvUpdatedAt}
+                  </span>
+                </div>
+              )}
+            </GlassPanel>
+
+            {/* Resting HR */}
+            <GlassPanel className="!p-4">
+              <div className="flex items-center gap-2 mb-2">
+                <Gauge className="w-4 h-4" style={{ color: '#f472b6' }} />
+                <span className="text-xs uppercase tracking-wider" style={{ color: colors.textSecondary }}>
+                  Resting HR
+                </span>
+              </div>
+              <div className="flex items-baseline gap-1">
+                <span className="text-2xl font-medium" style={{ color: colors.text }}>
+                  {insights.currentMetrics.restingHR}
+                </span>
+                <span className="text-sm" style={{ color: colors.textSecondary }}>BPM</span>
+              </div>
+            </GlassPanel>
+
+            {/* Sleep Hours */}
+            {insights.sleepBreakdown && (
               <GlassPanel className="!p-4">
                 <div className="flex items-center gap-2 mb-2">
-                  <Heart className="w-4 h-4" style={{ color: colors.whoopTeal }} />
-                  <span
-                    className="text-xs uppercase tracking-wider"
-                    style={{ color: colors.textSecondary }}
-                  >
-                    Recovery
+                  <Moon className="w-4 h-4" style={{ color: '#60a5fa' }} />
+                  <span className="text-xs uppercase tracking-wider" style={{ color: colors.textSecondary }}>
+                    Sleep
                   </span>
                 </div>
-                <div className="flex items-end gap-2">
-                  <span
-                    className="text-2xl font-medium"
-                    style={{ color: colors.text }}
-                  >
-                    {insights.currentMetrics.recovery}%
+                <div className="flex items-baseline gap-1">
+                  <span className="text-2xl font-medium" style={{ color: colors.text }}>
+                    {insights.sleepBreakdown.totalHours}
                   </span>
-                  <span
-                    className="text-xs mb-1"
-                    style={{
-                      color: insights.currentMetrics.recovery >= 67 ? '#4ade80' :
-                        insights.currentMetrics.recovery >= 34 ? '#fbbf24' : '#f87171'
-                    }}
-                  >
-                    {insights.currentMetrics.recovery >= 67 ? 'Green' :
-                      insights.currentMetrics.recovery >= 34 ? 'Yellow' : 'Red'}
-                  </span>
+                  <span className="text-sm" style={{ color: colors.textSecondary }}>hours</span>
                 </div>
+                {insights.sleepBreakdown.wakeTime && (
+                  <div className="flex items-center gap-1 mt-2">
+                    <Clock className="w-3 h-3" style={{ color: colors.textSecondary }} />
+                    <span className="text-xs" style={{ color: colors.textSecondary }}>
+                      Woke {insights.sleepBreakdown.wakeTime}
+                    </span>
+                  </div>
+                )}
               </GlassPanel>
             )}
-            {insights.currentMetrics.strain !== undefined && (
+
+            {/* Sleep Efficiency */}
+            {insights.sleepBreakdown && (
               <GlassPanel className="!p-4">
                 <div className="flex items-center gap-2 mb-2">
-                  <Zap className="w-4 h-4" style={{ color: '#fbbf24' }} />
-                  <span
-                    className="text-xs uppercase tracking-wider"
-                    style={{ color: colors.textSecondary }}
-                  >
-                    Today's Strain
+                  <TrendingUp className="w-4 h-4" style={{ color: '#4ade80' }} />
+                  <span className="text-xs uppercase tracking-wider" style={{ color: colors.textSecondary }}>
+                    Efficiency
                   </span>
                 </div>
-                <div
-                  className="text-2xl font-medium"
-                  style={{ color: colors.text }}
-                >
-                  {insights.currentMetrics.strain.toFixed(1)}
+                <div className="text-2xl font-medium" style={{ color: colors.text }}>
+                  {insights.sleepBreakdown.efficiency}%
                 </div>
               </GlassPanel>
             )}
@@ -457,26 +574,158 @@ const WhoopInsightsPage: React.FC = () => {
         </div>
       )}
 
-      {/* Sleep Stats - Visual cards */}
-      {insights?.sleepStats && (
-        <div className="grid grid-cols-2 gap-3 mb-6">
-          {insights.sleepStats.avgSleepHours && (
-            <StatCard
-              label="Avg Sleep"
-              value={insights.sleepStats.avgSleepHours}
-              icon={<Moon className="w-4 h-4" />}
-              accentColor={colors.whoopTeal}
-            />
-          )}
-          {insights.sleepStats.bestSleepDay && (
-            <StatCard
-              label="Best Sleep Day"
-              value={insights.sleepStats.bestSleepDay}
-              icon={<TrendingUp className="w-4 h-4" />}
-              accentColor="#4ade80"
-            />
-          )}
-        </div>
+      {/* 7-Day Recovery Chart */}
+      {insights?.history7Day && insights.history7Day.length > 0 && (
+        <GlassPanel className="!p-4 mb-6">
+          <h3 className="text-sm uppercase tracking-wider mb-4 flex items-center gap-2"
+              style={{ color: colors.textSecondary }}>
+            <TrendingUp className="w-4 h-4" />
+            Recovery Score (Last 7 Days)
+          </h3>
+          <div className="h-40">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={insights.history7Day} margin={{ top: 5, right: 5, left: -20, bottom: 5 }}>
+                <XAxis
+                  dataKey="dayName"
+                  axisLine={false}
+                  tickLine={false}
+                  tick={{ fill: colors.textSecondary, fontSize: 12 }}
+                />
+                <YAxis
+                  domain={[0, 100]}
+                  axisLine={false}
+                  tickLine={false}
+                  tick={{ fill: colors.textSecondary, fontSize: 10 }}
+                />
+                <RechartsTooltip
+                  contentStyle={{
+                    backgroundColor: theme === 'dark' ? '#1c1917' : '#ffffff',
+                    border: 'none',
+                    borderRadius: '8px',
+                    color: colors.text,
+                  }}
+                  formatter={(value: number) => [`${value}%`, 'Recovery']}
+                />
+                <Bar dataKey="recovery" radius={[4, 4, 0, 0]}>
+                  {insights.history7Day.map((entry, index) => (
+                    <Cell
+                      key={`cell-${index}`}
+                      fill={entry.recovery >= 67 ? '#4ade80' : entry.recovery >= 34 ? '#fbbf24' : '#f87171'}
+                      opacity={index === insights.history7Day!.length - 1 ? 1 : 0.7}
+                    />
+                  ))}
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </GlassPanel>
+      )}
+
+      {/* Sleep Phase Breakdown */}
+      {insights?.sleepBreakdown && (
+        <GlassPanel className="!p-4 mb-6">
+          <h3 className="text-sm uppercase tracking-wider mb-4 flex items-center gap-2"
+              style={{ color: colors.textSecondary }}>
+            <Moon className="w-4 h-4" />
+            Last Night's Sleep ({insights.sleepBreakdown.totalHours}h total)
+          </h3>
+          <div className="space-y-3">
+            {/* Deep Sleep */}
+            <div className="flex items-center gap-3">
+              <span className="text-xs w-16" style={{ color: colors.textSecondary }}>Deep</span>
+              <div className="flex-1 h-6 rounded-lg overflow-hidden" style={{ backgroundColor: theme === 'dark' ? 'rgba(0,0,0,0.3)' : 'rgba(0,0,0,0.1)' }}>
+                <div
+                  className="h-full rounded-lg transition-all"
+                  style={{
+                    width: `${(insights.sleepBreakdown.deepSleep / insights.sleepBreakdown.totalHours) * 100}%`,
+                    backgroundColor: '#8b5cf6'
+                  }}
+                />
+              </div>
+              <span className="text-sm font-medium w-20 text-right" style={{ color: colors.text }}>
+                {insights.sleepBreakdown.deepSleep}h ({Math.round((insights.sleepBreakdown.deepSleep / insights.sleepBreakdown.totalHours) * 100)}%)
+              </span>
+            </div>
+            {/* REM Sleep */}
+            <div className="flex items-center gap-3">
+              <span className="text-xs w-16" style={{ color: colors.textSecondary }}>REM</span>
+              <div className="flex-1 h-6 rounded-lg overflow-hidden" style={{ backgroundColor: theme === 'dark' ? 'rgba(0,0,0,0.3)' : 'rgba(0,0,0,0.1)' }}>
+                <div
+                  className="h-full rounded-lg transition-all"
+                  style={{
+                    width: `${(insights.sleepBreakdown.remSleep / insights.sleepBreakdown.totalHours) * 100}%`,
+                    backgroundColor: '#60a5fa'
+                  }}
+                />
+              </div>
+              <span className="text-sm font-medium w-20 text-right" style={{ color: colors.text }}>
+                {insights.sleepBreakdown.remSleep}h ({Math.round((insights.sleepBreakdown.remSleep / insights.sleepBreakdown.totalHours) * 100)}%)
+              </span>
+            </div>
+            {/* Light Sleep */}
+            <div className="flex items-center gap-3">
+              <span className="text-xs w-16" style={{ color: colors.textSecondary }}>Light</span>
+              <div className="flex-1 h-6 rounded-lg overflow-hidden" style={{ backgroundColor: theme === 'dark' ? 'rgba(0,0,0,0.3)' : 'rgba(0,0,0,0.1)' }}>
+                <div
+                  className="h-full rounded-lg transition-all"
+                  style={{
+                    width: `${(insights.sleepBreakdown.lightSleep / insights.sleepBreakdown.totalHours) * 100}%`,
+                    backgroundColor: '#a78bfa'
+                  }}
+                />
+              </div>
+              <span className="text-sm font-medium w-20 text-right" style={{ color: colors.text }}>
+                {insights.sleepBreakdown.lightSleep}h ({Math.round((insights.sleepBreakdown.lightSleep / insights.sleepBreakdown.totalHours) * 100)}%)
+              </span>
+            </div>
+          </div>
+        </GlassPanel>
+      )}
+
+      {/* HRV 7-Day Trend */}
+      {insights?.history7Day && insights.history7Day.length > 0 && (
+        <GlassPanel className="!p-4 mb-6">
+          <h3 className="text-sm uppercase tracking-wider mb-4 flex items-center gap-2"
+              style={{ color: colors.textSecondary }}>
+            <Activity className="w-4 h-4" />
+            HRV Trend (7 Days)
+          </h3>
+          <div className="h-24">
+            <ResponsiveContainer width="100%" height="100%">
+              <AreaChart data={insights.history7Day} margin={{ top: 5, right: 5, left: -20, bottom: 5 }}>
+                <defs>
+                  <linearGradient id="hrvGradient" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#a78bfa" stopOpacity={0.4}/>
+                    <stop offset="95%" stopColor="#a78bfa" stopOpacity={0}/>
+                  </linearGradient>
+                </defs>
+                <XAxis
+                  dataKey="dayName"
+                  axisLine={false}
+                  tickLine={false}
+                  tick={{ fill: colors.textSecondary, fontSize: 10 }}
+                />
+                <YAxis hide domain={['auto', 'auto']} />
+                <RechartsTooltip
+                  contentStyle={{
+                    backgroundColor: theme === 'dark' ? '#1c1917' : '#ffffff',
+                    border: 'none',
+                    borderRadius: '8px',
+                    color: colors.text,
+                  }}
+                  formatter={(value: number) => [`${value}ms`, 'HRV']}
+                />
+                <Area
+                  type="monotone"
+                  dataKey="hrv"
+                  stroke="#a78bfa"
+                  strokeWidth={2}
+                  fill="url(#hrvGradient)"
+                />
+              </AreaChart>
+            </ResponsiveContainer>
+          </div>
+        </GlassPanel>
       )}
 
       {/* Recent Trends - Visual highlight */}

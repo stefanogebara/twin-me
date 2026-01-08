@@ -14,7 +14,7 @@ import { useDemo } from '@/contexts/DemoContext';
 import { PageLayout, GlassPanel } from '@/components/layout/PageLayout';
 import { TwinReflection, PatternObservation, DataHighlight, StatCard, EventCard } from './components/TwinReflection';
 import { EvidenceSection } from './components/EvidenceSection';
-import { Calendar, RefreshCw, Sparkles, ArrowLeft, AlertCircle, Clock, CalendarDays } from 'lucide-react';
+import { Calendar, RefreshCw, Sparkles, ArrowLeft, AlertCircle, Clock, CalendarDays, Users, Target, Presentation, Dumbbell } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { DEMO_CALENDAR_DATA } from '@/services/demoDataService';
 
@@ -59,7 +59,29 @@ interface CrossPlatformContext {
 interface UpcomingEvent {
   title: string;
   time: string;
-  type?: 'meeting' | 'focus' | 'personal' | 'other';
+  type?: 'meeting' | 'focus' | 'personal' | 'presentation' | 'workout' | 'interview' | 'other';
+  attendees?: number;
+}
+
+interface TodayEvent {
+  id: string;
+  title: string;
+  startTime: string;
+  endTime: string;
+  type: string;
+  attendees: number;
+  isRecurring?: boolean;
+}
+
+interface EventTypeDistribution {
+  type: string;
+  percentage: number;
+  color: string;
+}
+
+interface WeeklyHeatmapDay {
+  day: string;
+  slots: Array<{ slot: string; intensity: number }>;
 }
 
 interface ScheduleStats {
@@ -78,7 +100,10 @@ interface InsightsResponse {
   crossPlatformContext?: CrossPlatformContext;
   // New: Specific data for visual display
   upcomingEvents?: UpcomingEvent[];
+  todayEvents?: TodayEvent[];
   eventTypes?: string[];
+  eventTypeDistribution?: EventTypeDistribution[];
+  weeklyHeatmap?: WeeklyHeatmapDay[];
   scheduleStats?: ScheduleStats;
   error?: string;
 }
@@ -152,9 +177,13 @@ const CalendarInsightsPage: React.FC = () => {
       upcomingEvents: calendarData.todayEvents.map(event => ({
         title: event.title,
         time: `${event.startTime} - ${event.endTime}`,
-        type: event.type as 'meeting' | 'focus' | 'personal' | 'other',
+        type: event.type as 'meeting' | 'focus' | 'personal' | 'presentation' | 'workout' | 'other',
+        attendees: event.attendees,
       })),
+      todayEvents: calendarData.todayEvents,
       eventTypes: ['Meetings', 'Deep Work', 'Presentations', 'Personal'],
+      eventTypeDistribution: calendarData.eventTypeDistribution,
+      weeklyHeatmap: calendarData.weeklyHeatmap,
       scheduleStats: {
         meetingHours: Math.round(calendarData.patterns.avgMeetingsPerDay * 5),
         focusBlocks: Math.round(calendarData.patterns.focusTimePercentage / 10),
@@ -390,39 +419,262 @@ const CalendarInsightsPage: React.FC = () => {
         </button>
       </div>
 
-      {/* Upcoming Events Section - Visual data display */}
+      {/* Today's Schedule Timeline */}
+      {insights?.todayEvents && insights.todayEvents.length > 0 && (
+        <GlassPanel className="!p-4 mb-6">
+          <h3
+            className="text-sm uppercase tracking-wider mb-4 flex items-center gap-2"
+            style={{ color: colors.textSecondary }}
+          >
+            <Clock className="w-4 h-4" style={{ color: colors.calendarBlue }} />
+            Today's Schedule
+          </h3>
+          {/* Timeline visualization */}
+          <div className="relative">
+            {/* Time axis */}
+            <div className="flex justify-between text-xs mb-2" style={{ color: colors.textSecondary }}>
+              {['8AM', '10AM', '12PM', '2PM', '4PM', '6PM'].map(time => (
+                <span key={time}>{time}</span>
+              ))}
+            </div>
+            {/* Timeline bar */}
+            <div
+              className="h-12 rounded-lg relative overflow-hidden"
+              style={{ backgroundColor: theme === 'dark' ? 'rgba(0,0,0,0.3)' : 'rgba(0,0,0,0.1)' }}
+            >
+              {insights.todayEvents.map((event, index) => {
+                // Convert time to percentage position (8AM = 0%, 6PM = 100%)
+                const startHour = parseInt(event.startTime.split(':')[0]);
+                const endHour = parseInt(event.endTime.split(':')[0]);
+                const startMin = parseInt(event.startTime.split(':')[1]) || 0;
+                const endMin = parseInt(event.endTime.split(':')[1]) || 0;
+
+                const startPos = ((startHour - 8 + startMin / 60) / 10) * 100;
+                const width = ((endHour - startHour + (endMin - startMin) / 60) / 10) * 100;
+
+                const eventColors: Record<string, string> = {
+                  meeting: '#4285F4',
+                  focus: '#34A853',
+                  presentation: '#FBBC05',
+                  workout: '#EA4335',
+                  personal: '#9334E9',
+                };
+
+                if (startPos >= 0 && startPos <= 100) {
+                  return (
+                    <div
+                      key={event.id}
+                      className="absolute h-full rounded-md flex items-center justify-center px-2 overflow-hidden"
+                      style={{
+                        left: `${Math.max(0, startPos)}%`,
+                        width: `${Math.min(width, 100 - startPos)}%`,
+                        backgroundColor: eventColors[event.type] || '#666',
+                        opacity: 0.9,
+                      }}
+                      title={`${event.title} (${event.startTime} - ${event.endTime})`}
+                    >
+                      <span className="text-xs text-white truncate font-medium">
+                        {event.title.length > 15 ? event.title.slice(0, 15) + '...' : event.title}
+                      </span>
+                    </div>
+                  );
+                }
+                return null;
+              })}
+            </div>
+          </div>
+        </GlassPanel>
+      )}
+
+      {/* Enhanced Upcoming Events with Icons and Attendees */}
       {insights?.upcomingEvents && insights.upcomingEvents.length > 0 && (
         <div className="mb-6">
           <h3
             className="text-sm uppercase tracking-wider mb-3 flex items-center gap-2"
             style={{ color: colors.textSecondary }}
           >
-            <Clock className="w-4 h-4" style={{ color: colors.calendarBlue }} />
+            <CalendarDays className="w-4 h-4" style={{ color: colors.calendarBlue }} />
             Coming Up
           </h3>
           <div className="space-y-2">
-            {insights.upcomingEvents.slice(0, 3).map((event, index) => (
-              <EventCard
-                key={index}
-                title={event.title}
-                time={event.time}
-                type={event.type}
-              />
-            ))}
+            {insights.upcomingEvents.map((event, index) => {
+              const eventIcons: Record<string, React.ReactNode> = {
+                meeting: <Users className="w-4 h-4" />,
+                focus: <Target className="w-4 h-4" />,
+                presentation: <Presentation className="w-4 h-4" />,
+                workout: <Dumbbell className="w-4 h-4" />,
+                interview: <Users className="w-4 h-4" />,
+              };
+
+              const eventColors: Record<string, string> = {
+                meeting: '#4285F4',
+                focus: '#34A853',
+                presentation: '#FBBC05',
+                workout: '#EA4335',
+                interview: '#9334E9',
+              };
+
+              return (
+                <GlassPanel key={index} className="!p-3">
+                  <div className="flex items-center gap-3">
+                    <div
+                      className="w-10 h-10 rounded-lg flex items-center justify-center"
+                      style={{ backgroundColor: `${eventColors[event.type || 'meeting']}20` }}
+                    >
+                      <span style={{ color: eventColors[event.type || 'meeting'] }}>
+                        {eventIcons[event.type || 'meeting'] || <Calendar className="w-4 h-4" />}
+                      </span>
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="font-medium truncate" style={{ color: colors.text }}>
+                        {event.title}
+                      </div>
+                      <div className="flex items-center gap-2 text-sm" style={{ color: colors.textSecondary }}>
+                        <span>{event.time}</span>
+                        {event.attendees !== undefined && event.attendees > 0 && (
+                          <>
+                            <span>•</span>
+                            <span className="flex items-center gap-1">
+                              <Users className="w-3 h-3" />
+                              {event.attendees}
+                            </span>
+                          </>
+                        )}
+                      </div>
+                    </div>
+                    <span
+                      className="text-xs px-2 py-1 rounded-full capitalize"
+                      style={{
+                        backgroundColor: `${eventColors[event.type || 'meeting']}20`,
+                        color: eventColors[event.type || 'meeting'],
+                      }}
+                    >
+                      {event.type}
+                    </span>
+                  </div>
+                </GlassPanel>
+              );
+            })}
           </div>
         </div>
       )}
 
-      {/* Event Types - Visual data highlight */}
-      {insights?.eventTypes && insights.eventTypes.length > 0 && (
-        <div className="mb-6">
-          <DataHighlight
-            label="What Fills Your Time"
-            items={insights.eventTypes}
-            icon={<CalendarDays className="w-4 h-4" />}
-            accentColor={colors.calendarBlue}
-          />
-        </div>
+      {/* Event Type Distribution */}
+      {insights?.eventTypeDistribution && insights.eventTypeDistribution.length > 0 && (
+        <GlassPanel className="!p-4 mb-6">
+          <h3
+            className="text-sm uppercase tracking-wider mb-4 flex items-center gap-2"
+            style={{ color: colors.textSecondary }}
+          >
+            <CalendarDays className="w-4 h-4" />
+            How You Spend Your Time
+          </h3>
+          <div className="space-y-3">
+            {insights.eventTypeDistribution.map((item, index) => (
+              <div key={index} className="flex items-center gap-3">
+                <span className="text-sm w-24" style={{ color: colors.text }}>
+                  {item.type}
+                </span>
+                <div
+                  className="flex-1 h-5 rounded-lg overflow-hidden"
+                  style={{ backgroundColor: theme === 'dark' ? 'rgba(0,0,0,0.3)' : 'rgba(0,0,0,0.1)' }}
+                >
+                  <div
+                    className="h-full rounded-lg transition-all"
+                    style={{
+                      width: `${item.percentage}%`,
+                      backgroundColor: item.color,
+                    }}
+                  />
+                </div>
+                <span
+                  className="text-sm font-medium w-12 text-right"
+                  style={{ color: colors.textSecondary }}
+                >
+                  {item.percentage}%
+                </span>
+              </div>
+            ))}
+          </div>
+        </GlassPanel>
+      )}
+
+      {/* Weekly Busy Hours Heatmap */}
+      {insights?.weeklyHeatmap && insights.weeklyHeatmap.length > 0 && (
+        <GlassPanel className="!p-4 mb-6">
+          <h3
+            className="text-sm uppercase tracking-wider mb-4 flex items-center gap-2"
+            style={{ color: colors.textSecondary }}
+          >
+            <Clock className="w-4 h-4" />
+            Weekly Busy Hours
+          </h3>
+          <div className="overflow-x-auto">
+            <div className="min-w-[280px]">
+              {/* Time slot headers */}
+              <div className="flex mb-2">
+                <div className="w-10" />
+                {['8-10', '10-12', '12-2', '2-4', '4-6'].map(slot => (
+                  <div
+                    key={slot}
+                    className="flex-1 text-center text-xs"
+                    style={{ color: colors.textSecondary }}
+                  >
+                    {slot}
+                  </div>
+                ))}
+              </div>
+              {/* Day rows */}
+              {insights.weeklyHeatmap.map((day, dayIndex) => (
+                <div key={dayIndex} className="flex items-center mb-1">
+                  <div
+                    className="w-10 text-xs"
+                    style={{ color: colors.textSecondary }}
+                  >
+                    {day.day}
+                  </div>
+                  {day.slots.map((slot, slotIndex) => {
+                    const intensityColors = [
+                      theme === 'dark' ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)', // free
+                      'rgba(66, 133, 244, 0.3)', // light
+                      'rgba(66, 133, 244, 0.6)', // moderate
+                      'rgba(66, 133, 244, 0.9)', // busy
+                    ];
+                    return (
+                      <div
+                        key={slotIndex}
+                        className="flex-1 h-6 rounded mx-0.5"
+                        style={{ backgroundColor: intensityColors[slot.intensity] }}
+                        title={`${day.day} ${slot.slot}: ${['Free', 'Light', 'Moderate', 'Busy'][slot.intensity]}`}
+                      />
+                    );
+                  })}
+                </div>
+              ))}
+              {/* Legend */}
+              <div className="flex items-center justify-end gap-2 mt-3">
+                <span className="text-xs" style={{ color: colors.textSecondary }}>Free</span>
+                <div className="flex gap-1">
+                  {[0, 1, 2, 3].map(i => (
+                    <div
+                      key={i}
+                      className="w-4 h-3 rounded"
+                      style={{
+                        backgroundColor: [
+                          theme === 'dark' ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)',
+                          'rgba(66, 133, 244, 0.3)',
+                          'rgba(66, 133, 244, 0.6)',
+                          'rgba(66, 133, 244, 0.9)',
+                        ][i],
+                      }}
+                    />
+                  ))}
+                </div>
+                <span className="text-xs" style={{ color: colors.textSecondary }}>Busy</span>
+              </div>
+            </div>
+          </div>
+        </GlassPanel>
       )}
 
       {/* Schedule Stats - Visual indicators */}
