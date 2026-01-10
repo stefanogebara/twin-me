@@ -277,15 +277,20 @@ router.post('/oauth/callback/whoop', oauthCallbackLimiter, async (req, res) => {
       tokenUrl: config.tokenUrl,
       redirectUri,
       hasClientId: !!process.env.WHOOP_CLIENT_ID,
-      hasClientSecret: !!process.env.WHOOP_CLIENT_SECRET
+      hasClientSecret: !!process.env.WHOOP_CLIENT_SECRET,
+      clientIdPrefix: process.env.WHOOP_CLIENT_ID?.substring(0, 8),
+      clientSecretLength: process.env.WHOOP_CLIENT_SECRET?.length
     });
 
+    // WHOOP requires client credentials in the request BODY (not HTTP Basic Auth)
+    // See: https://developer.whoop.com/docs/developing/oauth/
     const tokenParams = {
       grant_type: 'authorization_code',
       code,
+      redirect_uri: redirectUri,
       client_id: process.env.WHOOP_CLIENT_ID,
       client_secret: process.env.WHOOP_CLIENT_SECRET,
-      redirect_uri: redirectUri
+      scope: 'offline'
     };
 
     console.log('🔷 [Whoop Callback] Sending token exchange request...');
@@ -614,11 +619,14 @@ router.post('/refresh/whoop', async (req, res) => {
     const config = PLATFORM_CONFIGS.whoop;
 
     // Exchange refresh token for new access token
+    // WHOOP requires client credentials in the request BODY (not HTTP Basic Auth)
+    // See: https://developer.whoop.com/docs/developing/oauth/
     const tokenParams = {
       grant_type: 'refresh_token',
       refresh_token: refreshToken,
       client_id: process.env.WHOOP_CLIENT_ID,
-      client_secret: process.env.WHOOP_CLIENT_SECRET
+      client_secret: process.env.WHOOP_CLIENT_SECRET,
+      scope: 'offline'
     };
 
     const tokenResponse = await fetch(config.tokenUrl, {
@@ -1647,6 +1655,8 @@ async function refreshWhoopToken(userId, encryptedRefreshToken) {
     const refreshToken = decryptToken(encryptedRefreshToken);
     const config = PLATFORM_CONFIGS.whoop;
 
+    // WHOOP requires client credentials in the request BODY (not HTTP Basic Auth)
+    // See: https://developer.whoop.com/docs/developing/oauth/
     const response = await fetch(config.tokenUrl, {
       method: 'POST',
       headers: {
@@ -1656,7 +1666,8 @@ async function refreshWhoopToken(userId, encryptedRefreshToken) {
         grant_type: 'refresh_token',
         refresh_token: refreshToken,
         client_id: process.env.WHOOP_CLIENT_ID,
-        client_secret: process.env.WHOOP_CLIENT_SECRET
+        client_secret: process.env.WHOOP_CLIENT_SECRET,
+        scope: 'offline'
       })
     });
 

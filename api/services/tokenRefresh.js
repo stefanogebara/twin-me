@@ -103,13 +103,14 @@ const REFRESH_CONFIGS = {
       `grant_type=refresh_token&refresh_token=${refreshToken}&client_id=${clientId}&client_secret=${clientSecret}`
   },
 
-  // Whoop
+  // Whoop - requires client credentials in request BODY (not HTTP Basic Auth)
+  // See: https://developer.whoop.com/docs/developing/oauth/
   whoop: {
     tokenEndpoint: 'https://api.prod.whoop.com/oauth/oauth2/token',
     method: 'POST',
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
     buildBody: (clientId, clientSecret, refreshToken) =>
-      `grant_type=refresh_token&refresh_token=${refreshToken}&client_id=${clientId}&client_secret=${clientSecret}`
+      `grant_type=refresh_token&refresh_token=${refreshToken}&client_id=${clientId}&client_secret=${clientSecret}&scope=offline`
   },
 
   // Oura

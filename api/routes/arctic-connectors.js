@@ -202,6 +202,7 @@ router.post('/callback', async (req, res) => {
         user_id: userId,
         platform: provider,
         connected_at: new Date().toISOString(),
+        status: 'connected',  // Reset status to connected after successful OAuth (matches DB constraint)
         access_token: encryptedAccessToken,
         refresh_token: encryptedRefreshToken,
         token_expires_at: tokens.expiresAt.toISOString(),

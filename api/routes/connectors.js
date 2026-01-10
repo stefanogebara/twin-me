@@ -838,6 +838,7 @@ router.post('/callback', async (req, res) => {
         refresh_token: tokens.refresh_token ? encryptToken(tokens.refresh_token) : null,
         token_expires_at: tokens.expires_in ? new Date(Date.now() + tokens.expires_in * 1000).toISOString() : null,
         connected_at: new Date().toISOString(),  // Use correct column name
+        status: 'connected',  // Reset status to connected after successful OAuth (matches DB constraint)
         last_sync_status: 'success',  // IMPORTANT: Set to success after OAuth completes!
         last_sync_at: new Date().toISOString(),  // Use correct column name
         metadata: {
