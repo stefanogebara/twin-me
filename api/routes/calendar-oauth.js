@@ -15,6 +15,8 @@ import { authenticateUser } from '../middleware/auth.js';
 import { decryptToken, encryptToken } from '../services/encryption.js';
 import { invalidatePlatformStatusCache } from '../services/redisClient.js';
 import { lifeEventInferenceService } from '../services/lifeEventInferenceService.js';
+// Use centralized token refresh system (proactive 5-minute buffer, same as Spotify)
+import { getValidAccessToken as getCentralizedToken } from '../services/tokenRefresh.js';
 
 const router = express.Router();
 
@@ -22,97 +24,25 @@ const router = express.Router();
 const CALENDAR_SCOPES = ['https://www.googleapis.com/auth/calendar.readonly'];
 
 /**
- * Helper to get valid access token, refreshing if needed
+ * Helper to get valid access token using centralized token refresh system
+ * This wraps the centralized function to maintain backward compatibility
  */
 async function getValidAccessToken(userId) {
-  // Fetch connection from database
-  const { data: connection, error: fetchError } = await supabaseAdmin
-    .from('platform_connections')
-    .select('*')
-    .eq('user_id', userId)
-    .eq('platform', 'google_calendar')
-    .single();
+  const result = await getCentralizedToken(userId, 'google_calendar');
 
-  if (fetchError || !connection) {
-    console.log(`[Calendar OAuth] No connection found for user: ${userId}`);
-    return { accessToken: null, error: 'Calendar not connected' };
+  if (!result.success) {
+    return {
+      accessToken: null,
+      error: result.error,
+      needsReconnect: result.requiresReauth || false
+    };
   }
 
-  if (!connection.access_token) {
-    console.log(`[Calendar OAuth] No access token for user: ${userId}`);
-    return { accessToken: null, error: 'No access token available' };
-  }
-
-  // Check if token is expired
-  const now = new Date();
-  const expiresAt = connection.token_expires_at ? new Date(connection.token_expires_at) : null;
-  const isExpired = expiresAt && expiresAt < now;
-
-  if (isExpired && connection.refresh_token) {
-    console.log(`[Calendar OAuth] Token expired, attempting refresh for user: ${userId}`);
-
-    try {
-      const refreshToken = decryptToken(connection.refresh_token);
-
-      // Refresh the token
-      const tokenResponse = await fetch('https://oauth2.googleapis.com/token', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/x-www-form-urlencoded'
-        },
-        body: new URLSearchParams({
-          grant_type: 'refresh_token',
-          refresh_token: refreshToken,
-          client_id: process.env.GOOGLE_CLIENT_ID,
-          client_secret: process.env.GOOGLE_CLIENT_SECRET
-        })
-      });
-
-      if (!tokenResponse.ok) {
-        const errorText = await tokenResponse.text();
-        console.error(`[Calendar OAuth] Token refresh failed: ${errorText}`);
-        return { accessToken: null, error: 'Token refresh failed', needsReconnect: true };
-      }
-
-      const newTokens = await tokenResponse.json();
-
-      // Update stored tokens
-      const updateData = {
-        access_token: encryptToken(newTokens.access_token),
-        token_expires_at: new Date(Date.now() + (newTokens.expires_in * 1000)).toISOString(),
-        updated_at: new Date().toISOString()
-      };
-
-      if (newTokens.refresh_token) {
-        updateData.refresh_token = encryptToken(newTokens.refresh_token);
-      }
-
-      await supabaseAdmin
-        .from('platform_connections')
-        .update(updateData)
-        .eq('user_id', userId)
-        .eq('platform', 'google_calendar');
-
-      // Invalidate cache
-      await invalidatePlatformStatusCache(userId);
-
-      console.log(`[Calendar OAuth] Token refreshed successfully for user: ${userId}`);
-      return { accessToken: newTokens.access_token, error: null };
-
-    } catch (refreshError) {
-      console.error(`[Calendar OAuth] Refresh error:`, refreshError);
-      return { accessToken: null, error: 'Token refresh failed', needsReconnect: true };
-    }
-  }
-
-  // Token is valid, decrypt and return
-  try {
-    const accessToken = decryptToken(connection.access_token);
-    return { accessToken, error: null };
-  } catch (decryptError) {
-    console.error(`[Calendar OAuth] Decrypt error:`, decryptError);
-    return { accessToken: null, error: 'Failed to decrypt token', needsReconnect: true };
-  }
+  return {
+    accessToken: result.accessToken,
+    error: null,
+    needsReconnect: false
+  };
 }
 
 /**

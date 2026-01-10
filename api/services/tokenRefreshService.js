@@ -79,27 +79,47 @@ async function refreshAccessToken(platform, refreshToken, userId) {
 
   try {
     console.log(`🔄 Refreshing token for ${platform} (user: ${userId})`);
+    console.log(`🔷 [Token Refresh] Config for ${platform}:`, {
+      hasTokenUrl: !!config?.tokenUrl,
+      hasClientId: !!config?.clientId,
+      hasClientSecret: !!config?.clientSecret,
+      clientIdPrefix: config?.clientId?.substring(0, 8),
+      clientSecretLength: config?.clientSecret?.length
+    });
 
     // Build base params
     const paramsObj = {
       grant_type: 'refresh_token',
       refresh_token: refreshToken,
-      client_id: config.clientId,
-      client_secret: config.clientSecret,
     };
 
-    // Add platform-specific parameters
-    // Whoop requires 'scope: offline' for token refresh to work
-    if (platform === 'whoop') {
+    // Build headers
+    const headers = {
+      'Content-Type': 'application/x-www-form-urlencoded',
+    };
+
+    // Spotify requires HTTP Basic Auth for client credentials
+    if (platform === 'spotify') {
+      const basicAuth = Buffer.from(
+        `${config.clientId}:${config.clientSecret}`
+      ).toString('base64');
+      headers['Authorization'] = `Basic ${basicAuth}`;
+    } else if (platform === 'whoop') {
+      // WHOOP requires client credentials in the request BODY (not HTTP Basic Auth)
+      // See: https://developer.whoop.com/docs/developing/oauth/
+      paramsObj.client_id = config.clientId;
+      paramsObj.client_secret = config.clientSecret;
       paramsObj.scope = 'offline';
+    } else {
+      // Other platforms use body params for client credentials
+      paramsObj.client_id = config.clientId;
+      paramsObj.client_secret = config.clientSecret;
     }
 
     const params = new URLSearchParams(paramsObj);
 
     const response = await axios.post(config.tokenUrl, params.toString(), {
-      headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
-      },
+      headers,
     });
 
     const { access_token, refresh_token: newRefreshToken, expires_in } = response.data;

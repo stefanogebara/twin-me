@@ -194,6 +194,16 @@ class PlatformReflectionService {
         .order('extracted_at', { ascending: false })
         .limit(1);
 
+      // Get top artists (has genre info from Spotify API)
+      const { data: topArtistsData } = await supabaseAdmin
+        .from('user_platform_data')
+        .select('raw_data')
+        .eq('user_id', userId)
+        .eq('platform', 'spotify')
+        .eq('data_type', 'top_artists')
+        .order('extracted_at', { ascending: false })
+        .limit(1);
+
       // Extract tracks from new format (API response with items array)
       let allTopTracks = [];
       let allRecentTracks = [];
@@ -202,14 +212,16 @@ class PlatformReflectionService {
       if (topTracksNew?.[0]?.raw_data?.items) {
         allTopTracks = topTracksNew[0].raw_data.items.map(item => ({
           name: item.name,
-          artist: item.artists?.[0]?.name
+          artist: item.artists?.[0]?.name,
+          genres: item.artists?.[0]?.genres || []
         }));
       }
       // Handle old format: each row is a track
       if (topTracksOld?.length) {
         const oldTracks = topTracksOld.map(t => ({
           name: t.raw_data?.track_name || t.raw_data?.name,
-          artist: t.raw_data?.artist_name || t.raw_data?.artists?.[0]?.name
+          artist: t.raw_data?.artist_name || t.raw_data?.artists?.[0]?.name,
+          genres: t.raw_data?.genres || []
         })).filter(t => t.name);
         allTopTracks = [...allTopTracks, ...oldTracks];
       }
@@ -219,7 +231,8 @@ class PlatformReflectionService {
         allRecentTracks = recentPlays[0].raw_data.items.map(item => ({
           name: item.track?.name,
           artist: item.track?.artists?.[0]?.name,
-          playedAt: item.played_at
+          playedAt: item.played_at,
+          genres: item.track?.artists?.[0]?.genres || []
         })).filter(t => t.name);
       }
 
@@ -242,7 +255,81 @@ class PlatformReflectionService {
       // Calculate average audio features
       const features = audioFeatures?.[0]?.raw_data || {};
 
+      // ========== VISUALIZATION DATA ==========
+
+      // 1. Top Artists with Play Counts (combine from tracks and recent plays)
+      const artistPlayCounts = {};
+      [...allTopTracks, ...allRecentTracks].forEach(track => {
+        if (track.artist) {
+          artistPlayCounts[track.artist] = (artistPlayCounts[track.artist] || 0) + 1;
+        }
+      });
+      const topArtistsWithPlays = Object.entries(artistPlayCounts)
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 6)
+        .map(([name, plays]) => ({ name, plays }));
+
+      // 2. Genre Distribution (from top artists API data or inferred from tracks)
+      let genreCounts = {};
+
+      // First try top_artists data which has accurate genre info
+      if (topArtistsData?.[0]?.raw_data?.items) {
+        topArtistsData[0].raw_data.items.forEach(artist => {
+          const genres = artist.genres || [];
+          genres.forEach(genre => {
+            // Normalize genre names (capitalize first letter)
+            const normalizedGenre = genre.split(' ')
+              .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+              .join(' ');
+            genreCounts[normalizedGenre] = (genreCounts[normalizedGenre] || 0) + 1;
+          });
+        });
+      }
+
+      // Fallback: try to extract from tracks if available
+      if (Object.keys(genreCounts).length === 0) {
+        [...allTopTracks, ...allRecentTracks].forEach(track => {
+          if (track.genres && Array.isArray(track.genres)) {
+            track.genres.forEach(genre => {
+              const normalizedGenre = genre.split(' ')
+                .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+                .join(' ');
+              genreCounts[normalizedGenre] = (genreCounts[normalizedGenre] || 0) + 1;
+            });
+          }
+        });
+      }
+
+      const totalGenreOccurrences = Object.values(genreCounts).reduce((sum, count) => sum + count, 0);
+      const topGenres = Object.entries(genreCounts)
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 5)
+        .map(([genre, count]) => ({
+          genre,
+          percentage: Math.round((count / totalGenreOccurrences) * 100)
+        }));
+
+      // 3. Listening Hours Distribution (from recent plays with timestamps)
+      const hourCounts = {};
+      for (let h = 0; h < 24; h++) hourCounts[h] = 0;
+
+      allRecentTracks.forEach(track => {
+        if (track.playedAt) {
+          try {
+            const hour = new Date(track.playedAt).getHours();
+            hourCounts[hour] = (hourCounts[hour] || 0) + 1;
+          } catch (e) {
+            // Skip invalid dates
+          }
+        }
+      });
+
+      const listeningHours = Object.entries(hourCounts)
+        .map(([hour, plays]) => ({ hour: parseInt(hour), plays }))
+        .sort((a, b) => a.hour - b.hour);
+
       console.log(`🎵 [Reflection] Found ${allTopTracks.length} top tracks, ${allRecentTracks.length} recent tracks for user ${userId}`);
+      console.log(`📊 [Reflection] Visualization data: ${topArtistsWithPlays.length} artists, ${topGenres.length} genres, ${listeningHours.filter(h => h.plays > 0).length} active hours`);
 
       return {
         success: allTopTracks.length > 0 || allRecentTracks.length > 0,
@@ -254,7 +341,11 @@ class PlatformReflectionService {
           recentTracksStructured: allRecentTracks.slice(0, 5),
           averageEnergy: features.energy || context.spotify?.averageEnergy,
           averageValence: features.valence,
-          listeningContext: context.spotify?.recentMood
+          listeningContext: context.spotify?.recentMood,
+          // NEW: Visualization data for charts
+          topArtistsWithPlays,
+          topGenres,
+          listeningHours
         }
       };
     } catch (error) {
@@ -265,34 +356,93 @@ class PlatformReflectionService {
 
   /**
    * Get Whoop data for reflection
+   * Uses rich structure from userContextAggregator
    */
   getWhoopData(context) {
     if (!context.whoop) {
       return { success: false, error: 'Whoop not connected' };
     }
 
+    const whoop = context.whoop;
+
+    // Handle both old flat structure and new nested structure from userContextAggregator
+    const recoveryScore = whoop.recovery?.score ?? whoop.recovery ?? null;
+    const recoveryLabel = whoop.recovery?.label ?? whoop.recoveryLabel ?? 'unknown';
+    const strainScore = whoop.strain?.score ?? whoop.strain ?? 0;
+    const strainLabel = whoop.strain?.label ?? (strainScore > 15 ? 'high' : strainScore < 8 ? 'low' : 'moderate');
+    const hrvCurrent = whoop.hrv?.current ?? whoop.hrv ?? null;
+    const hrvTrend = whoop.hrv?.trend ?? whoop.hrvTrend ?? 'stable';
+    const rhrCurrent = whoop.rhr?.current ?? null;
+    const sleepHours = whoop.sleep?.hours ?? whoop.sleepHours ?? 0;
+    const sleepPerformance = whoop.sleep?.performance ?? null;
+    const sleepEfficiency = whoop.sleep?.efficiency ?? null;
+    const sleepStages = whoop.sleep?.stages ?? null;
+
+    // Calculate sleep quality
+    const sleepQuality = sleepHours > 7 ? 'good' : sleepHours < 6 ? 'poor' : 'moderate';
+
+    // Calculate recovery trending
+    const recoveryTrending = recoveryScore > 66 ? 'up' : recoveryScore < 33 ? 'down' : 'stable';
+
+    // Calculate sleep breakdown (in hours from milliseconds if available)
+    const msToHours = (ms) => ms ? Math.round((ms / 3600000) * 10) / 10 : 0;
+    const sleepBreakdown = sleepStages ? {
+      deepSleep: msToHours(sleepStages.deep),
+      remSleep: msToHours(sleepStages.rem),
+      lightSleep: msToHours(sleepStages.light),
+      totalHours: Math.round(sleepHours * 10) / 10,
+      efficiency: sleepEfficiency || 0
+    } : null;
+
+    // Current metrics for visualization
+    const currentMetrics = {
+      recovery: recoveryScore,
+      strain: Math.round(strainScore * 10) / 10,
+      sleepPerformance: sleepPerformance,
+      hrv: hrvCurrent,
+      restingHR: rhrCurrent
+    };
+
+    // Recent trends for display
+    const recentTrends = [
+      `${recoveryLabel} recovery zone`,
+      `${strainLabel} daily strain`,
+      `${sleepQuality} sleep quality`,
+      `HRV ${hrvTrend}`
+    ].filter(t => !t.includes('null') && !t.includes('undefined'));
+
+    // Get 7-day history from context if available
+    const history7Day = whoop.history7Day || [];
+
     return {
       success: true,
       data: {
-        recoveryLevel: context.whoop.recoveryLabel, // 'high', 'moderate', 'low'
-        recoveryTrending: context.whoop.recovery > 66 ? 'up' : context.whoop.recovery < 33 ? 'down' : 'stable',
-        sleepQuality: context.whoop.sleepHours > 7 ? 'good' : context.whoop.sleepHours < 6 ? 'poor' : 'moderate',
-        strainLevel: context.whoop.strain > 15 ? 'high' : context.whoop.strain < 8 ? 'low' : 'moderate',
-        hrvTrend: context.whoop.hrvTrend || 'stable',
-        sleepHoursCategory: context.whoop.sleepHours > 8 ? 'long' : context.whoop.sleepHours < 6 ? 'short' : 'normal'
+        // For reflection prompt
+        recoveryLevel: recoveryLabel,
+        recoveryTrending: recoveryTrending,
+        sleepQuality: sleepQuality,
+        strainLevel: strainLabel,
+        hrvTrend: hrvTrend,
+        sleepHoursCategory: sleepHours > 8 ? 'long' : sleepHours < 6 ? 'short' : 'normal',
+        // For visualization
+        currentMetrics,
+        sleepBreakdown,
+        recentTrends,
+        history7Day
       }
     };
   }
 
   /**
    * Get Calendar data for reflection
+   * Includes visualization data for charts
    */
   getCalendarData(context) {
     if (!context.calendar) {
       return { success: false, error: 'Calendar not connected' };
     }
 
-    const events = context.calendar.upcomingEvents || [];
+    const events = context.calendar.upcomingEvents || context.calendar.events || [];
     const nextEvent = context.calendar.nextEvent;
 
     // Analyze patterns without counting
@@ -300,15 +450,108 @@ class PlatformReflectionService {
     const hasUpcomingSoon = nextEvent && nextEvent.minutesUntil < 60;
     const meetingTypes = [...new Set(events.map(e => e.type).filter(Boolean))];
 
+    // Helper to format time as HH:mm
+    const formatTime = (dateStr) => {
+      if (!dateStr) return '09:00';
+      try {
+        const date = new Date(dateStr);
+        return `${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}`;
+      } catch (e) {
+        return '09:00';
+      }
+    };
+
+    // Get today's date for filtering
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const tomorrow = new Date(today);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+
+    // Filter and format today's events for timeline
+    const todayEvents = events
+      .filter(e => {
+        const eventDate = new Date(e.startTime || e.start);
+        return eventDate >= today && eventDate < tomorrow;
+      })
+      .map((e, index) => ({
+        id: e.id || `event-${index}`,
+        title: e.title || 'Untitled',
+        startTime: formatTime(e.startTime || e.start),
+        endTime: formatTime(e.endTime || e.end),
+        type: e.type || 'meeting',
+        attendees: e.attendeeCount || 0
+      }));
+
+    // Format upcoming events for list display
+    const upcomingEvents = events.slice(0, 6).map((e, index) => ({
+      id: e.id || `upcoming-${index}`,
+      title: e.title || 'Untitled',
+      time: `${formatTime(e.startTime || e.start)} - ${formatTime(e.endTime || e.end)}`,
+      type: e.type || 'meeting',
+      attendees: e.attendeeCount || 0
+    }));
+
+    // Calculate event type distribution
+    const typeCounts = {};
+    events.forEach(e => {
+      const type = (e.type || 'Other').charAt(0).toUpperCase() + (e.type || 'Other').slice(1);
+      typeCounts[type] = (typeCounts[type] || 0) + 1;
+    });
+    const totalEvents = events.length || 1;
+    const eventTypeDistribution = Object.entries(typeCounts)
+      .map(([type, count]) => ({
+        type,
+        percentage: Math.round((count / totalEvents) * 100)
+      }))
+      .sort((a, b) => b.percentage - a.percentage);
+
+    // Calculate weekly heatmap (days with event counts)
+    const weekDays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+    const weeklyHeatmap = weekDays.map(day => {
+      const dayEvents = events.filter(e => {
+        const eventDate = new Date(e.startTime || e.start);
+        const eventDay = eventDate.toLocaleDateString('en-US', { weekday: 'short' });
+        return eventDay === day;
+      });
+      return {
+        day,
+        events: dayEvents.length,
+        intensity: dayEvents.length > 4 ? 'high' : dayEvents.length > 1 ? 'medium' : 'low'
+      };
+    });
+
+    // Find busiest day
+    const busiestDay = weeklyHeatmap.reduce((busiest, current) =>
+      current.events > (busiest?.events || 0) ? current : busiest
+    , { day: 'Monday', events: 0 });
+
+    // Calculate schedule stats
+    const meetingEvents = events.filter(e => ['meeting', 'presentation', 'interview'].includes(e.type));
+    const focusEvents = events.filter(e => e.type === 'focus');
+    const avgMeetingDuration = 1; // Default 1 hour
+    const scheduleStats = {
+      meetingHours: Math.round(meetingEvents.length * avgMeetingDuration),
+      focusBlocks: focusEvents.length,
+      busiestDay: busiestDay.day,
+      preferredMeetingTime: todayEvents.length > 0 && parseInt(todayEvents[0].startTime) < 12 ? 'Morning (9-12pm)' : 'Afternoon (1-5pm)'
+    };
+
     return {
       success: true,
       data: {
+        // For reflection prompt
         dayDensity: hasManyMeetings ? 'busy' : events.length > 2 ? 'moderate' : 'light',
         upcomingEventTitle: nextEvent?.title,
         upcomingEventSoon: hasUpcomingSoon,
         eventTypes: meetingTypes,
         hasOpenTime: events.length < 3,
-        dayOfWeek: new Date().toLocaleDateString('en-US', { weekday: 'long' })
+        dayOfWeek: new Date().toLocaleDateString('en-US', { weekday: 'long' }),
+        // For visualization
+        todayEvents,
+        upcomingEvents,
+        eventTypeDistribution,
+        weeklyHeatmap,
+        scheduleStats
       }
     };
   }
@@ -686,7 +929,22 @@ Example good reflection: "The way you protect Tuesday mornings tells me somethin
         label: rawData.listeningContext,
         energy: rawData.averageEnergy || 0.5,
         valence: rawData.averageValence || 0.5
-      } : null
+      } : null,
+      // Spotify: Chart visualization data
+      topArtistsWithPlays: rawData.topArtistsWithPlays || [],
+      topGenres: rawData.topGenres || [],
+      listeningHours: rawData.listeningHours || [],
+      // Whoop: Metrics and visualization data
+      currentMetrics: rawData.currentMetrics || null,
+      sleepBreakdown: rawData.sleepBreakdown || null,
+      recentTrends: rawData.recentTrends || [],
+      history7Day: rawData.history7Day || [],
+      // Calendar: Schedule visualization data
+      todayEvents: rawData.todayEvents || [],
+      upcomingEvents: rawData.upcomingEvents || [],
+      eventTypeDistribution: rawData.eventTypeDistribution || [],
+      weeklyHeatmap: rawData.weeklyHeatmap || [],
+      scheduleStats: rawData.scheduleStats || null
     };
   }
 }

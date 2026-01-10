@@ -270,7 +270,8 @@ import { authenticateUser } from './middleware/auth.js';
 app.use('/api/ai', aiRoutes);
 app.use('/api/documents', documentRoutes);
 app.use('/api/twins', twinsRoutes);
-app.use('/api/twin', twinChatRoutes); // MVP placeholder
+app.use('/api/twin', twinChatRoutes); // Legacy placeholder
+app.use('/api/chat', twinChatRoutes); // Chat with Twin endpoint (POST /api/chat/message)
 app.use('/api/conversations', conversationsRoutes);
 app.use('/api/voice', voiceRoutes);
 app.use('/api/analytics', analyticsRoutes);

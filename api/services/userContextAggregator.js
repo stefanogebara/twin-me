@@ -177,6 +177,19 @@ class UserContextAggregator {
       const recoveryLabel = this.getRecoveryLabel(recovery);
       const strainLabel = this.getStrainLabel(strain);
 
+      // Build 7-day history for visualization charts
+      const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+      const history7Day = recoveries.slice(0, 7).map((r, index) => {
+        const date = r.created_at ? new Date(r.created_at) : new Date();
+        const recoveryScore = r.score?.recovery_score ?? r.recovery_score ?? 0;
+        const hrvValue = r.score?.hrv_rmssd_milli ?? r.hrv_rmssd_milli ?? 0;
+        return {
+          dayName: dayNames[date.getDay()],
+          recovery: Math.round(recoveryScore),
+          hrv: Math.round(hrvValue)
+        };
+      }).reverse(); // Oldest first for chart display
+
       return {
         connected: true,
         recovery: {
@@ -200,6 +213,7 @@ class UserContextAggregator {
           unit: 'bpm'
         },
         sleep: await this.getSleepContext(headers),
+        history7Day: history7Day,
         lastUpdated: latestCycle.end || latestCycle.created_at,
         recommendations: this.generateWhoopRecommendations(recovery, strain)
       };
