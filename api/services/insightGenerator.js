@@ -790,4 +790,8 @@ class InsightGenerator {
   }
 }
 
-module.exports = new InsightGenerator();
+// Export singleton instance (ESM)
+export default new InsightGenerator();
+
+// Also export the class for testing
+export { InsightGenerator };
