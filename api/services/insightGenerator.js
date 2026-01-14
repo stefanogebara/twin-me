@@ -431,6 +431,363 @@ class InsightGenerator {
     const variance = values.reduce((acc, val) => acc + Math.pow(val - mean, 2), 0) / values.length;
     return Math.sqrt(variance);
   }
+
+  /**
+   * Generate insights by combining Big Five personality with platform behavioral data
+   * This creates a unified view of who the user is based on both questionnaire and behavior
+   * @param {Object} bigFiveScores - User's Big Five scores (from big_five_scores table)
+   * @param {Object} behavioralScores - User's behavioral estimates (from personality_estimates table)
+   * @param {Object} platformData - Raw platform data (spotify, calendar, whoop)
+   */
+  async generatePersonalityIntegratedInsights(bigFiveScores, behavioralScores, platformData) {
+    const insights = [];
+
+    try {
+      // Only proceed if we have Big Five data
+      if (!bigFiveScores) {
+        insights.push({
+          title: "Complete Your Personality Profile",
+          icon: "🎯",
+          description: "Take the Big Five assessment to unlock personalized insights",
+          source: 'system',
+          confidence: 100,
+          actions: ["Take Big Five Assessment"],
+          data: { pattern: 'incomplete_profile', value: 0 }
+        });
+        return insights;
+      }
+
+      // Extract Big Five percentiles
+      const personality = {
+        openness: bigFiveScores.openness_percentile || 50,
+        conscientiousness: bigFiveScores.conscientiousness_percentile || 50,
+        extraversion: bigFiveScores.extraversion_percentile || 50,
+        agreeableness: bigFiveScores.agreeableness_percentile || 50,
+        neuroticism: bigFiveScores.neuroticism_percentile || 50
+      };
+
+      // 1. Consistency Analysis: Compare questionnaire vs behavior
+      if (behavioralScores && behavioralScores.total_behavioral_signals > 10) {
+        const consistency = this.analyzePersonalityConsistency(personality, behavioralScores);
+
+        if (consistency.score > 0.8) {
+          insights.push({
+            title: "Authentic Self-Expression",
+            icon: "✨",
+            description: "Your digital behavior strongly aligns with your self-perception. You express your true self consistently.",
+            source: 'personality_behavioral',
+            confidence: Math.round(consistency.score * 100),
+            actions: ["View alignment details", "See behavioral evidence"],
+            data: { pattern: 'personality_consistency', value: consistency.score, details: consistency.details }
+          });
+        } else if (consistency.score < 0.5) {
+          const gaps = consistency.details.filter(d => d.gap > 20);
+          insights.push({
+            title: "Hidden Depths",
+            icon: "🔍",
+            description: `Your behavior suggests different traits than you reported. ${gaps.length > 0 ? `Especially in ${gaps[0].trait}.` : ''}`,
+            source: 'personality_behavioral',
+            confidence: Math.round((1 - consistency.score) * 100),
+            actions: ["Explore the difference", "Retake assessment"],
+            data: { pattern: 'personality_gap', value: consistency.score, gaps }
+          });
+        }
+      }
+
+      // 2. Personality-Driven Insights
+      // High Openness + Spotify
+      if (personality.openness > 70 && platformData?.spotify) {
+        const genreDiversity = this.analyzeGenreDiversity(platformData.spotify);
+        if (genreDiversity.score > 0.6) {
+          insights.push({
+            title: "Musical Explorer",
+            icon: "🎵",
+            description: `Your high openness (${personality.openness}th percentile) perfectly matches your diverse music taste spanning ${genreDiversity.count}+ genres.`,
+            source: 'spotify_personality',
+            confidence: 95,
+            actions: ["Discover new genres", "See your music journey"],
+            data: { pattern: 'openness_music', openness: personality.openness, genreCount: genreDiversity.count }
+          });
+        }
+      }
+
+      // High Conscientiousness + Calendar
+      if (personality.conscientiousness > 70 && platformData?.calendar) {
+        const calendarPatterns = this.analyzeCalendarForConscientiousness(platformData.calendar);
+        if (calendarPatterns.organized) {
+          insights.push({
+            title: "Structured Achiever",
+            icon: "📅",
+            description: `Your disciplined nature (${personality.conscientiousness}th percentile) shows in your organized calendar with ${calendarPatterns.focusBlocks} focus blocks per week.`,
+            source: 'calendar_personality',
+            confidence: 90,
+            actions: ["Optimize your schedule", "See productivity patterns"],
+            data: { pattern: 'conscientiousness_calendar', conscientiousness: personality.conscientiousness, ...calendarPatterns }
+          });
+        }
+      }
+
+      // Extraversion + Social patterns
+      if (personality.extraversion > 70) {
+        const socialScore = this.calculateSocialEngagement(platformData);
+        insights.push({
+          title: personality.extraversion > 85 ? "Social Energizer" : "Social Connector",
+          icon: "🌟",
+          description: `Your extraversion (${personality.extraversion}th percentile) drives your active social life and high energy activities.`,
+          source: 'extraversion_analysis',
+          confidence: 88,
+          actions: ["Find social events", "Connect with similar personalities"],
+          data: { pattern: 'extraversion_social', extraversion: personality.extraversion, socialScore }
+        });
+      } else if (personality.extraversion < 30) {
+        insights.push({
+          title: "Deep Focus Individual",
+          icon: "🧘",
+          description: `Your introverted nature (${personality.extraversion}th percentile) gives you the power of deep focus and thoughtful reflection.`,
+          source: 'extraversion_analysis',
+          confidence: 88,
+          actions: ["Optimize alone time", "Find quiet spaces"],
+          data: { pattern: 'introversion_focus', extraversion: personality.extraversion }
+        });
+      }
+
+      // Neuroticism + Whoop recovery
+      if (platformData?.whoop) {
+        const whoopPatterns = this.analyzeWhoopForNeuroticism(platformData.whoop, personality.neuroticism);
+        if (whoopPatterns.insight) {
+          insights.push(whoopPatterns.insight);
+        }
+      }
+
+      // Agreeableness insights
+      if (personality.agreeableness > 75) {
+        insights.push({
+          title: "Natural Harmonizer",
+          icon: "🤝",
+          description: `Your high agreeableness (${personality.agreeableness}th percentile) makes you a natural at building trust and maintaining relationships.`,
+          source: 'agreeableness_analysis',
+          confidence: 85,
+          actions: ["See relationship patterns", "Team collaboration tips"],
+          data: { pattern: 'agreeableness_high', agreeableness: personality.agreeableness }
+        });
+      }
+
+      // 3. Unique Combination Insights
+      const uniqueProfile = this.identifyUniqueProfile(personality);
+      if (uniqueProfile) {
+        insights.push(uniqueProfile);
+      }
+
+      // 4. Learning & Growth Recommendations
+      const growthAreas = this.identifyGrowthAreas(personality, platformData);
+      if (growthAreas.length > 0) {
+        insights.push({
+          title: "Growth Opportunities",
+          icon: "🌱",
+          description: `Based on your profile, you might benefit from: ${growthAreas.join(', ')}`,
+          source: 'growth_analysis',
+          confidence: 75,
+          actions: growthAreas.map(area => `Explore ${area}`),
+          data: { pattern: 'growth_areas', areas: growthAreas }
+        });
+      }
+
+    } catch (error) {
+      console.error('[InsightGenerator] Error generating personality insights:', error);
+    }
+
+    return insights;
+  }
+
+  /**
+   * Analyze consistency between questionnaire and behavioral scores
+   */
+  analyzePersonalityConsistency(questionnaire, behavioral) {
+    const traits = ['openness', 'conscientiousness', 'extraversion', 'agreeableness', 'neuroticism'];
+    const details = [];
+    let totalScore = 0;
+
+    for (const trait of traits) {
+      const qScore = questionnaire[trait];
+      const bScore = behavioral[trait];
+      const gap = Math.abs(qScore - bScore);
+      const consistency = 1 - (gap / 100);
+
+      details.push({
+        trait,
+        questionnaire: qScore,
+        behavioral: bScore,
+        gap,
+        consistency
+      });
+
+      totalScore += consistency;
+    }
+
+    return {
+      score: totalScore / traits.length,
+      details
+    };
+  }
+
+  /**
+   * Analyze calendar data for conscientiousness indicators
+   */
+  analyzeCalendarForConscientiousness(calendarData) {
+    if (!calendarData?.events) return { organized: false, focusBlocks: 0 };
+
+    const events = calendarData.events;
+    const focusBlocks = events.filter(e =>
+      e.summary?.toLowerCase().includes('focus') ||
+      e.summary?.toLowerCase().includes('deep work') ||
+      e.summary?.toLowerCase().includes('block')
+    ).length;
+
+    const regularMeetings = events.filter(e => e.recurringEventId).length;
+    const organized = focusBlocks > 2 || regularMeetings > 5;
+
+    return {
+      organized,
+      focusBlocks: Math.round(focusBlocks / 4), // Weekly average
+      regularMeetings,
+      totalEvents: events.length
+    };
+  }
+
+  /**
+   * Calculate social engagement from platform data
+   */
+  calculateSocialEngagement(platformData) {
+    let score = 50;
+
+    if (platformData?.calendar) {
+      const events = platformData.calendar.events || [];
+      const socialEvents = events.filter(e => e.attendees?.length > 1).length;
+      score += Math.min(socialEvents * 2, 30);
+    }
+
+    return Math.min(100, score);
+  }
+
+  /**
+   * Analyze Whoop data in context of neuroticism
+   */
+  analyzeWhoopForNeuroticism(whoopData, neuroticismScore) {
+    if (!whoopData?.recoveries || whoopData.recoveries.length < 7) return {};
+
+    const recoveryScores = whoopData.recoveries.map(r => r.score || r.recovery_score || 0);
+    const avgRecovery = recoveryScores.reduce((a, b) => a + b, 0) / recoveryScores.length;
+    const variance = this.calculateVariance(recoveryScores);
+
+    // High neuroticism + low/variable recovery
+    if (neuroticismScore > 60 && (avgRecovery < 50 || variance > 15)) {
+      return {
+        insight: {
+          title: "Stress Awareness",
+          icon: "💚",
+          description: `Your stress sensitivity (${neuroticismScore}th percentile) may be affecting your recovery (avg: ${Math.round(avgRecovery)}%). Consider stress management techniques.`,
+          source: 'whoop_personality',
+          confidence: 80,
+          actions: ["View recovery patterns", "Stress reduction tips"],
+          data: { pattern: 'neuroticism_recovery', neuroticism: neuroticismScore, avgRecovery, variance }
+        }
+      };
+    }
+
+    // Low neuroticism + good recovery
+    if (neuroticismScore < 40 && avgRecovery > 60) {
+      return {
+        insight: {
+          title: "Emotional Resilience",
+          icon: "💪",
+          description: `Your emotional stability (${100 - neuroticismScore}th percentile) contributes to excellent recovery (avg: ${Math.round(avgRecovery)}%).`,
+          source: 'whoop_personality',
+          confidence: 85,
+          actions: ["See resilience patterns", "Share your approach"],
+          data: { pattern: 'stability_recovery', neuroticism: neuroticismScore, avgRecovery }
+        }
+      };
+    }
+
+    return {};
+  }
+
+  /**
+   * Identify unique personality profile combinations
+   */
+  identifyUniqueProfile(personality) {
+    const { openness, conscientiousness, extraversion, agreeableness, neuroticism } = personality;
+
+    // Creative Organizer: High openness + high conscientiousness (rare)
+    if (openness > 70 && conscientiousness > 70) {
+      return {
+        title: "Creative Organizer",
+        icon: "🎨📊",
+        description: "A rare combination: you're both highly creative and highly disciplined. You bring innovation with execution.",
+        source: 'unique_profile',
+        confidence: 92,
+        actions: ["Explore this superpower", "Find similar profiles"],
+        data: { pattern: 'creative_organizer', openness, conscientiousness }
+      };
+    }
+
+    // Empathic Leader: High extraversion + high agreeableness
+    if (extraversion > 70 && agreeableness > 70) {
+      return {
+        title: "Empathic Leader",
+        icon: "👑❤️",
+        description: "You combine social energy with genuine care for others - a natural leader who builds teams through trust.",
+        source: 'unique_profile',
+        confidence: 90,
+        actions: ["Leadership insights", "Team building tips"],
+        data: { pattern: 'empathic_leader', extraversion, agreeableness }
+      };
+    }
+
+    // Analytical Observer: Low extraversion + high openness
+    if (extraversion < 40 && openness > 70) {
+      return {
+        title: "Analytical Observer",
+        icon: "🔬🧠",
+        description: "Your introspective nature combined with curiosity makes you an exceptional analyst and deep thinker.",
+        source: 'unique_profile',
+        confidence: 88,
+        actions: ["Deep thinking resources", "Research communities"],
+        data: { pattern: 'analytical_observer', extraversion, openness }
+      };
+    }
+
+    return null;
+  }
+
+  /**
+   * Identify growth areas based on personality and behavior
+   */
+  identifyGrowthAreas(personality, platformData) {
+    const areas = [];
+
+    // Low conscientiousness + scattered calendar
+    if (personality.conscientiousness < 40) {
+      areas.push('time management');
+    }
+
+    // High neuroticism + poor recovery
+    if (personality.neuroticism > 60) {
+      areas.push('stress resilience');
+    }
+
+    // Low extraversion but desire for connection
+    if (personality.extraversion < 30 && personality.agreeableness > 60) {
+      areas.push('meaningful connections');
+    }
+
+    // Low openness
+    if (personality.openness < 40) {
+      areas.push('new experiences');
+    }
+
+    return areas.slice(0, 3); // Max 3 areas
+  }
 }
 
 module.exports = new InsightGenerator();

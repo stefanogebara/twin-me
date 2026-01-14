@@ -394,10 +394,69 @@ export async function calculateAndSaveScores(userId, responses) {
     // Don't throw - main scores are saved
   }
 
+  // Sync to personality_estimates for behavioral learning integration
+  // This allows the behavioral learning service to refine questionnaire scores
+  await syncToPersonalityEstimates(userId, scores);
+
   return {
     ...scores,
     savedAt: new Date().toISOString()
   };
+}
+
+/**
+ * Sync Big Five scores to personality_estimates table for behavioral learning
+ * @param {string} userId - User ID
+ * @param {Object} scores - Calculated Big Five scores
+ */
+async function syncToPersonalityEstimates(userId, scores) {
+  try {
+    // Map Big Five scores to personality_estimates format
+    // Use percentiles (0-100) for consistency with behavioral learning
+    const estimateRecord = {
+      user_id: userId,
+      openness: scores.domains.O?.percentile || 50,
+      conscientiousness: scores.domains.C?.percentile || 50,
+      extraversion: scores.domains.E?.percentile || 50,
+      agreeableness: scores.domains.A?.percentile || 50,
+      neuroticism: scores.domains.N?.percentile || 50,
+      questionnaire_score_weight: 1.0, // Full weight for questionnaire
+      behavioral_score_weight: 0, // Will be updated by behavioral learning
+      total_questionnaire_questions: scores.totalQuestionsAnswered,
+      total_behavioral_signals: 0,
+      last_questionnaire_update_at: new Date().toISOString(),
+      assessment_source: 'ipip_neo_120',
+      updated_at: new Date().toISOString()
+    };
+
+    // Calculate archetype from the scores
+    try {
+      const { mapToArchetype } = await import('./personalityAssessmentService.js');
+      const archetype = mapToArchetype({
+        extraversion: estimateRecord.extraversion,
+        openness: estimateRecord.openness,
+        conscientiousness: estimateRecord.conscientiousness,
+        agreeableness: estimateRecord.agreeableness,
+        neuroticism: estimateRecord.neuroticism
+      });
+      estimateRecord.archetype_code = archetype.code;
+    } catch (err) {
+      console.warn('[BigFive] Could not calculate archetype:', err.message);
+    }
+
+    const { error } = await supabaseAdmin
+      .from('personality_estimates')
+      .upsert(estimateRecord, { onConflict: 'user_id' });
+
+    if (error) {
+      console.error('[BigFive] Error syncing to personality_estimates:', error);
+      // Don't throw - this is a secondary operation
+    } else {
+      console.log(`[BigFive] Synced scores to personality_estimates for user ${userId}`);
+    }
+  } catch (err) {
+    console.error('[BigFive] Error in syncToPersonalityEstimates:', err);
+  }
 }
 
 /**
