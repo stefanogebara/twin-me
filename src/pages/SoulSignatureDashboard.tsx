@@ -34,8 +34,10 @@ import {
   CheckCircle2,
   AlertCircle,
   Play,
-  HelpCircle
+  HelpCircle,
+  ArrowRight
 } from 'lucide-react';
+import { BigFiveRadarChart } from '@/components/PersonalityRadarChart';
 
 interface PersonalityScores {
   id: string;
@@ -955,6 +957,118 @@ const SoulSignatureDashboard: React.FC = () => {
         </div>
       )}
 
+
+      {/* Big Five Scientific Assessment */}
+      <div
+        className="rounded-2xl p-6"
+        style={{
+          backgroundColor: theme === 'dark' ? 'rgba(45, 45, 41, 0.5)' : 'rgba(255, 255, 255, 0.5)',
+          border: theme === 'dark' ? '1px solid rgba(193, 192, 182, 0.1)' : '1px solid rgba(0, 0, 0, 0.05)'
+        }}
+      >
+        <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center gap-2">
+            <Target className="w-5 h-5" style={{ color: '#8b5cf6' }} />
+            <h3 className="text-lg font-medium" style={{ color: theme === 'dark' ? '#C1C0B6' : '#0c0a09' }}>
+              Big Five Personality Profile
+            </h3>
+          </div>
+          <button
+            onClick={() => window.location.href = '/big-five'}
+            className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-all hover:scale-[1.02]"
+            style={{
+              backgroundColor: theme === 'dark' ? 'rgba(139, 92, 246, 0.1)' : 'rgba(139, 92, 246, 0.05)',
+              color: '#8b5cf6',
+              border: theme === 'dark' ? '1px solid rgba(139, 92, 246, 0.2)' : '1px solid rgba(139, 92, 246, 0.15)'
+            }}
+          >
+            Take Assessment
+            <ArrowRight className="w-4 h-4" />
+          </button>
+        </div>
+
+        <p className="text-sm mb-6" style={{ color: theme === 'dark' ? 'rgba(193, 192, 182, 0.7)' : '#57534e' }}>
+          The scientifically validated IPIP-NEO-120 assessment measures five core personality dimensions with T-score normalization against 619,000+ respondents.
+        </p>
+
+        {/* Radar Chart and Scores */}
+        {personalityScores && (
+          <div className="grid md:grid-cols-2 gap-8 items-center">
+            {/* Radar Chart */}
+            <div className="flex justify-center">
+              <BigFiveRadarChart
+                openness={personalityScores.openness || 50}
+                conscientiousness={personalityScores.conscientiousness || 50}
+                extraversion={personalityScores.extraversion || 50}
+                agreeableness={personalityScores.agreeableness || 50}
+                neuroticism={personalityScores.neuroticism || 50}
+                size={280}
+                showValues={true}
+                animated={true}
+              />
+            </div>
+
+            {/* Score Details */}
+            <div className="space-y-4">
+              {[
+                { name: 'Openness', value: personalityScores.openness, confidence: personalityScores.openness_confidence, color: '#8b5cf6', desc: 'Creativity & intellectual curiosity' },
+                { name: 'Conscientiousness', value: personalityScores.conscientiousness, confidence: personalityScores.conscientiousness_confidence, color: '#22c55e', desc: 'Organization & dependability' },
+                { name: 'Extraversion', value: personalityScores.extraversion, confidence: personalityScores.extraversion_confidence, color: '#f59e0b', desc: 'Sociability & positive emotions' },
+                { name: 'Agreeableness', value: personalityScores.agreeableness, confidence: personalityScores.agreeableness_confidence, color: '#06b6d4', desc: 'Cooperation & trust' },
+                { name: 'Neuroticism', value: personalityScores.neuroticism, confidence: personalityScores.neuroticism_confidence, color: '#ef4444', desc: 'Emotional sensitivity' },
+              ].map((trait) => (
+                <div key={trait.name} className="space-y-1">
+                  <div className="flex justify-between items-center">
+                    <div className="flex items-center gap-2">
+                      <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: trait.color }} />
+                      <span className="text-sm font-medium" style={{ color: theme === 'dark' ? '#C1C0B6' : '#0c0a09' }}>
+                        {trait.name}
+                      </span>
+                    </div>
+                    <span className="text-sm font-bold" style={{ color: trait.color }}>
+                      {Math.round(trait.value || 50)}%
+                    </span>
+                  </div>
+                  <div className="h-1.5 rounded-full overflow-hidden" style={{
+                    backgroundColor: theme === 'dark' ? 'rgba(193, 192, 182, 0.1)' : 'rgba(0, 0, 0, 0.05)'
+                  }}>
+                    <div
+                      className="h-full rounded-full transition-all duration-500"
+                      style={{
+                        width: `${trait.value || 50}%`,
+                        backgroundColor: trait.color,
+                        opacity: 0.7
+                      }}
+                    />
+                  </div>
+                  <p className="text-xs" style={{ color: theme === 'dark' ? 'rgba(193, 192, 182, 0.5)' : '#a8a29e' }}>
+                    {trait.desc}
+                  </p>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {!personalityScores && (
+          <div className="text-center py-8">
+            <Target className="w-12 h-12 mx-auto mb-4" style={{ color: theme === 'dark' ? 'rgba(193, 192, 182, 0.3)' : '#d4d4d4' }} />
+            <p className="mb-4" style={{ color: theme === 'dark' ? 'rgba(193, 192, 182, 0.6)' : '#78716c' }}>
+              Complete the assessment to see your Big Five personality profile
+            </p>
+            <button
+              onClick={() => window.location.href = '/big-five'}
+              className="px-6 py-3 rounded-xl font-medium transition-all hover:scale-[1.02]"
+              style={{
+                backgroundColor: '#8b5cf6',
+                color: '#fff'
+              }}
+            >
+              Start Big Five Assessment
+            </button>
+          </div>
+        )}
+      </div>
 
       {/* Link to Insight Pages */}
       <div

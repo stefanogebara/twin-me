@@ -1,0 +1,203 @@
+{
+  "version": "120",
+  "source": "IPIP-NEO-120 (ipip.ori.org) - Public Domain",
+  "description": "120-item measure of the Big Five personality domains and 30 facets",
+  "methodology": "Based on Costa & McCrae's NEO-PI-R. Questions from International Personality Item Pool.",
+  "scale": {
+    "1": "Very Inaccurate",
+    "2": "Moderately Inaccurate",
+    "3": "Neither Accurate nor Inaccurate",
+    "4": "Moderately Accurate",
+    "5": "Very Accurate"
+  },
+  "domains": {
+    "N": { "name": "Neuroticism", "description": "Tendency to experience negative emotions" },
+    "E": { "name": "Extraversion", "description": "Tendency to seek stimulation and enjoy company" },
+    "O": { "name": "Openness", "description": "Appreciation for art, adventure, and new ideas" },
+    "A": { "name": "Agreeableness", "description": "Tendency to be compassionate and cooperative" },
+    "C": { "name": "Conscientiousness", "description": "Tendency to be organized and dependable" }
+  },
+  "facets": {
+    "N1": { "name": "Anxiety", "domain": "N", "description": "Tendency to worry and feel apprehensive" },
+    "N2": { "name": "Anger", "domain": "N", "description": "Tendency to experience anger and frustration" },
+    "N3": { "name": "Depression", "domain": "N", "description": "Tendency to feel sad and hopeless" },
+    "N4": { "name": "Self-Consciousness", "domain": "N", "description": "Tendency to feel embarrassed and anxious in social situations" },
+    "N5": { "name": "Immoderation", "domain": "N", "description": "Difficulty controlling urges and desires" },
+    "N6": { "name": "Vulnerability", "domain": "N", "description": "Difficulty coping with stress" },
+    "E1": { "name": "Friendliness", "domain": "E", "description": "Tendency to feel affection for others" },
+    "E2": { "name": "Gregariousness", "domain": "E", "description": "Preference for the company of others" },
+    "E3": { "name": "Assertiveness", "domain": "E", "description": "Tendency to take charge and lead" },
+    "E4": { "name": "Activity Level", "domain": "E", "description": "Pace of living and energy level" },
+    "E5": { "name": "Excitement-Seeking", "domain": "E", "description": "Need for thrills and stimulation" },
+    "E6": { "name": "Cheerfulness", "domain": "E", "description": "Tendency to experience positive emotions" },
+    "O1": { "name": "Imagination", "domain": "O", "description": "Vivid fantasy life and daydreaming" },
+    "O2": { "name": "Artistic Interests", "domain": "O", "description": "Appreciation for art and beauty" },
+    "O3": { "name": "Emotionality", "domain": "O", "description": "Awareness and expression of feelings" },
+    "O4": { "name": "Adventurousness", "domain": "O", "description": "Willingness to try new activities" },
+    "O5": { "name": "Intellect", "domain": "O", "description": "Interest in ideas and abstract concepts" },
+    "O6": { "name": "Liberalism", "domain": "O", "description": "Openness to reexamine values" },
+    "A1": { "name": "Trust", "domain": "A", "description": "Belief in the honesty of others" },
+    "A2": { "name": "Morality", "domain": "A", "description": "Sincerity and straightforwardness" },
+    "A3": { "name": "Altruism", "domain": "A", "description": "Active concern for others' welfare" },
+    "A4": { "name": "Cooperation", "domain": "A", "description": "Tendency to defer to others" },
+    "A5": { "name": "Modesty", "domain": "A", "description": "Tendency to be humble" },
+    "A6": { "name": "Sympathy", "domain": "A", "description": "Concern for others' needs" },
+    "C1": { "name": "Self-Efficacy", "domain": "C", "description": "Confidence in one's abilities" },
+    "C2": { "name": "Orderliness", "domain": "C", "description": "Need for order and organization" },
+    "C3": { "name": "Dutifulness", "domain": "C", "description": "Adherence to ethical principles" },
+    "C4": { "name": "Achievement-Striving", "domain": "C", "description": "Drive to succeed" },
+    "C5": { "name": "Self-Discipline", "domain": "C", "description": "Ability to persist at tasks" },
+    "C6": { "name": "Cautiousness", "domain": "C", "description": "Careful deliberation before acting" }
+  },
+  "questions": [
+    { "id": "N1_01", "domain": "N", "facet": 1, "facet_name": "Anxiety", "text": "Worry about things.", "keyed": "+", "order": 1 },
+    { "id": "N1_02", "domain": "N", "facet": 1, "facet_name": "Anxiety", "text": "Fear for the worst.", "keyed": "+", "order": 2 },
+    { "id": "N1_03", "domain": "N", "facet": 1, "facet_name": "Anxiety", "text": "Am relaxed most of the time.", "keyed": "-", "order": 3 },
+    { "id": "N1_04", "domain": "N", "facet": 1, "facet_name": "Anxiety", "text": "Am not easily disturbed by events.", "keyed": "-", "order": 4 },
+
+    { "id": "N2_01", "domain": "N", "facet": 2, "facet_name": "Anger", "text": "Get angry easily.", "keyed": "+", "order": 5 },
+    { "id": "N2_02", "domain": "N", "facet": 2, "facet_name": "Anger", "text": "Get irritated easily.", "keyed": "+", "order": 6 },
+    { "id": "N2_03", "domain": "N", "facet": 2, "facet_name": "Anger", "text": "Rarely get irritated.", "keyed": "-", "order": 7 },
+    { "id": "N2_04", "domain": "N", "facet": 2, "facet_name": "Anger", "text": "Keep my cool.", "keyed": "-", "order": 8 },
+
+    { "id": "N3_01", "domain": "N", "facet": 3, "facet_name": "Depression", "text": "Often feel blue.", "keyed": "+", "order": 9 },
+    { "id": "N3_02", "domain": "N", "facet": 3, "facet_name": "Depression", "text": "Dislike myself.", "keyed": "+", "order": 10 },
+    { "id": "N3_03", "domain": "N", "facet": 3, "facet_name": "Depression", "text": "Seldom feel blue.", "keyed": "-", "order": 11 },
+    { "id": "N3_04", "domain": "N", "facet": 3, "facet_name": "Depression", "text": "Feel comfortable with myself.", "keyed": "-", "order": 12 },
+
+    { "id": "N4_01", "domain": "N", "facet": 4, "facet_name": "Self-Consciousness", "text": "Am easily intimidated.", "keyed": "+", "order": 13 },
+    { "id": "N4_02", "domain": "N", "facet": 4, "facet_name": "Self-Consciousness", "text": "Find it difficult to approach others.", "keyed": "+", "order": 14 },
+    { "id": "N4_03", "domain": "N", "facet": 4, "facet_name": "Self-Consciousness", "text": "Am not embarrassed easily.", "keyed": "-", "order": 15 },
+    { "id": "N4_04", "domain": "N", "facet": 4, "facet_name": "Self-Consciousness", "text": "Am comfortable in unfamiliar situations.", "keyed": "-", "order": 16 },
+
+    { "id": "N5_01", "domain": "N", "facet": 5, "facet_name": "Immoderation", "text": "Often eat too much.", "keyed": "+", "order": 17 },
+    { "id": "N5_02", "domain": "N", "facet": 5, "facet_name": "Immoderation", "text": "Do things I later regret.", "keyed": "+", "order": 18 },
+    { "id": "N5_03", "domain": "N", "facet": 5, "facet_name": "Immoderation", "text": "Easily resist temptations.", "keyed": "-", "order": 19 },
+    { "id": "N5_04", "domain": "N", "facet": 5, "facet_name": "Immoderation", "text": "Am able to control my cravings.", "keyed": "-", "order": 20 },
+
+    { "id": "N6_01", "domain": "N", "facet": 6, "facet_name": "Vulnerability", "text": "Panic easily.", "keyed": "+", "order": 21 },
+    { "id": "N6_02", "domain": "N", "facet": 6, "facet_name": "Vulnerability", "text": "Become overwhelmed by events.", "keyed": "+", "order": 22 },
+    { "id": "N6_03", "domain": "N", "facet": 6, "facet_name": "Vulnerability", "text": "Remain calm under pressure.", "keyed": "-", "order": 23 },
+    { "id": "N6_04", "domain": "N", "facet": 6, "facet_name": "Vulnerability", "text": "Know how to cope.", "keyed": "-", "order": 24 },
+
+    { "id": "E1_01", "domain": "E", "facet": 1, "facet_name": "Friendliness", "text": "Make friends easily.", "keyed": "+", "order": 25 },
+    { "id": "E1_02", "domain": "E", "facet": 1, "facet_name": "Friendliness", "text": "Feel comfortable around people.", "keyed": "+", "order": 26 },
+    { "id": "E1_03", "domain": "E", "facet": 1, "facet_name": "Friendliness", "text": "Am hard to get to know.", "keyed": "-", "order": 27 },
+    { "id": "E1_04", "domain": "E", "facet": 1, "facet_name": "Friendliness", "text": "Keep others at a distance.", "keyed": "-", "order": 28 },
+
+    { "id": "E2_01", "domain": "E", "facet": 2, "facet_name": "Gregariousness", "text": "Love large parties.", "keyed": "+", "order": 29 },
+    { "id": "E2_02", "domain": "E", "facet": 2, "facet_name": "Gregariousness", "text": "Enjoy being part of a group.", "keyed": "+", "order": 30 },
+    { "id": "E2_03", "domain": "E", "facet": 2, "facet_name": "Gregariousness", "text": "Prefer to be alone.", "keyed": "-", "order": 31 },
+    { "id": "E2_04", "domain": "E", "facet": 2, "facet_name": "Gregariousness", "text": "Avoid crowds.", "keyed": "-", "order": 32 },
+
+    { "id": "E3_01", "domain": "E", "facet": 3, "facet_name": "Assertiveness", "text": "Take charge.", "keyed": "+", "order": 33 },
+    { "id": "E3_02", "domain": "E", "facet": 3, "facet_name": "Assertiveness", "text": "Try to lead others.", "keyed": "+", "order": 34 },
+    { "id": "E3_03", "domain": "E", "facet": 3, "facet_name": "Assertiveness", "text": "Wait for others to lead the way.", "keyed": "-", "order": 35 },
+    { "id": "E3_04", "domain": "E", "facet": 3, "facet_name": "Assertiveness", "text": "Keep in the background.", "keyed": "-", "order": 36 },
+
+    { "id": "E4_01", "domain": "E", "facet": 4, "facet_name": "Activity Level", "text": "Am always busy.", "keyed": "+", "order": 37 },
+    { "id": "E4_02", "domain": "E", "facet": 4, "facet_name": "Activity Level", "text": "Am always on the go.", "keyed": "+", "order": 38 },
+    { "id": "E4_03", "domain": "E", "facet": 4, "facet_name": "Activity Level", "text": "Like to take it easy.", "keyed": "-", "order": 39 },
+    { "id": "E4_04", "domain": "E", "facet": 4, "facet_name": "Activity Level", "text": "Like a leisurely lifestyle.", "keyed": "-", "order": 40 },
+
+    { "id": "E5_01", "domain": "E", "facet": 5, "facet_name": "Excitement-Seeking", "text": "Love excitement.", "keyed": "+", "order": 41 },
+    { "id": "E5_02", "domain": "E", "facet": 5, "facet_name": "Excitement-Seeking", "text": "Seek adventure.", "keyed": "+", "order": 42 },
+    { "id": "E5_03", "domain": "E", "facet": 5, "facet_name": "Excitement-Seeking", "text": "Would never go hang gliding or bungee jumping.", "keyed": "-", "order": 43 },
+    { "id": "E5_04", "domain": "E", "facet": 5, "facet_name": "Excitement-Seeking", "text": "Dislike loud music.", "keyed": "-", "order": 44 },
+
+    { "id": "E6_01", "domain": "E", "facet": 6, "facet_name": "Cheerfulness", "text": "Radiate joy.", "keyed": "+", "order": 45 },
+    { "id": "E6_02", "domain": "E", "facet": 6, "facet_name": "Cheerfulness", "text": "Have a lot of fun.", "keyed": "+", "order": 46 },
+    { "id": "E6_03", "domain": "E", "facet": 6, "facet_name": "Cheerfulness", "text": "Am not easily amused.", "keyed": "-", "order": 47 },
+    { "id": "E6_04", "domain": "E", "facet": 6, "facet_name": "Cheerfulness", "text": "Seldom joke around.", "keyed": "-", "order": 48 },
+
+    { "id": "O1_01", "domain": "O", "facet": 1, "facet_name": "Imagination", "text": "Have a vivid imagination.", "keyed": "+", "order": 49 },
+    { "id": "O1_02", "domain": "O", "facet": 1, "facet_name": "Imagination", "text": "Love to daydream.", "keyed": "+", "order": 50 },
+    { "id": "O1_03", "domain": "O", "facet": 1, "facet_name": "Imagination", "text": "Do not have a good imagination.", "keyed": "-", "order": 51 },
+    { "id": "O1_04", "domain": "O", "facet": 1, "facet_name": "Imagination", "text": "Seldom daydream.", "keyed": "-", "order": 52 },
+
+    { "id": "O2_01", "domain": "O", "facet": 2, "facet_name": "Artistic Interests", "text": "Believe in the importance of art.", "keyed": "+", "order": 53 },
+    { "id": "O2_02", "domain": "O", "facet": 2, "facet_name": "Artistic Interests", "text": "See beauty in things that others might not notice.", "keyed": "+", "order": 54 },
+    { "id": "O2_03", "domain": "O", "facet": 2, "facet_name": "Artistic Interests", "text": "Do not like art.", "keyed": "-", "order": 55 },
+    { "id": "O2_04", "domain": "O", "facet": 2, "facet_name": "Artistic Interests", "text": "Do not enjoy going to art museums.", "keyed": "-", "order": 56 },
+
+    { "id": "O3_01", "domain": "O", "facet": 3, "facet_name": "Emotionality", "text": "Experience my emotions intensely.", "keyed": "+", "order": 57 },
+    { "id": "O3_02", "domain": "O", "facet": 3, "facet_name": "Emotionality", "text": "Feel others' emotions.", "keyed": "+", "order": 58 },
+    { "id": "O3_03", "domain": "O", "facet": 3, "facet_name": "Emotionality", "text": "Seldom get emotional.", "keyed": "-", "order": 59 },
+    { "id": "O3_04", "domain": "O", "facet": 3, "facet_name": "Emotionality", "text": "Rarely notice my emotional reactions.", "keyed": "-", "order": 60 },
+
+    { "id": "O4_01", "domain": "O", "facet": 4, "facet_name": "Adventurousness", "text": "Prefer variety to routine.", "keyed": "+", "order": 61 },
+    { "id": "O4_02", "domain": "O", "facet": 4, "facet_name": "Adventurousness", "text": "Like to visit new places.", "keyed": "+", "order": 62 },
+    { "id": "O4_03", "domain": "O", "facet": 4, "facet_name": "Adventurousness", "text": "Prefer to stick with things that I know.", "keyed": "-", "order": 63 },
+    { "id": "O4_04", "domain": "O", "facet": 4, "facet_name": "Adventurousness", "text": "Am a creature of habit.", "keyed": "-", "order": 64 },
+
+    { "id": "O5_01", "domain": "O", "facet": 5, "facet_name": "Intellect", "text": "Like to solve complex problems.", "keyed": "+", "order": 65 },
+    { "id": "O5_02", "domain": "O", "facet": 5, "facet_name": "Intellect", "text": "Love to read challenging material.", "keyed": "+", "order": 66 },
+    { "id": "O5_03", "domain": "O", "facet": 5, "facet_name": "Intellect", "text": "Am not interested in abstract ideas.", "keyed": "-", "order": 67 },
+    { "id": "O5_04", "domain": "O", "facet": 5, "facet_name": "Intellect", "text": "Avoid difficult reading material.", "keyed": "-", "order": 68 },
+
+    { "id": "O6_01", "domain": "O", "facet": 6, "facet_name": "Liberalism", "text": "Tend to vote for liberal political candidates.", "keyed": "+", "order": 69 },
+    { "id": "O6_02", "domain": "O", "facet": 6, "facet_name": "Liberalism", "text": "Believe that there is no absolute right or wrong.", "keyed": "+", "order": 70 },
+    { "id": "O6_03", "domain": "O", "facet": 6, "facet_name": "Liberalism", "text": "Believe in one true religion.", "keyed": "-", "order": 71 },
+    { "id": "O6_04", "domain": "O", "facet": 6, "facet_name": "Liberalism", "text": "Tend to vote for conservative political candidates.", "keyed": "-", "order": 72 },
+
+    { "id": "A1_01", "domain": "A", "facet": 1, "facet_name": "Trust", "text": "Trust others.", "keyed": "+", "order": 73 },
+    { "id": "A1_02", "domain": "A", "facet": 1, "facet_name": "Trust", "text": "Believe that others have good intentions.", "keyed": "+", "order": 74 },
+    { "id": "A1_03", "domain": "A", "facet": 1, "facet_name": "Trust", "text": "Distrust people.", "keyed": "-", "order": 75 },
+    { "id": "A1_04", "domain": "A", "facet": 1, "facet_name": "Trust", "text": "Suspect hidden motives in others.", "keyed": "-", "order": 76 },
+
+    { "id": "A2_01", "domain": "A", "facet": 2, "facet_name": "Morality", "text": "Would never cheat on my taxes.", "keyed": "+", "order": 77 },
+    { "id": "A2_02", "domain": "A", "facet": 2, "facet_name": "Morality", "text": "Stick to the rules.", "keyed": "+", "order": 78 },
+    { "id": "A2_03", "domain": "A", "facet": 2, "facet_name": "Morality", "text": "Use others for my own ends.", "keyed": "-", "order": 79 },
+    { "id": "A2_04", "domain": "A", "facet": 2, "facet_name": "Morality", "text": "Take advantage of others.", "keyed": "-", "order": 80 },
+
+    { "id": "A3_01", "domain": "A", "facet": 3, "facet_name": "Altruism", "text": "Make people feel welcome.", "keyed": "+", "order": 81 },
+    { "id": "A3_02", "domain": "A", "facet": 3, "facet_name": "Altruism", "text": "Love to help others.", "keyed": "+", "order": 82 },
+    { "id": "A3_03", "domain": "A", "facet": 3, "facet_name": "Altruism", "text": "Am indifferent to the feelings of others.", "keyed": "-", "order": 83 },
+    { "id": "A3_04", "domain": "A", "facet": 3, "facet_name": "Altruism", "text": "Take no time for others.", "keyed": "-", "order": 84 },
+
+    { "id": "A4_01", "domain": "A", "facet": 4, "facet_name": "Cooperation", "text": "Am easy to satisfy.", "keyed": "+", "order": 85 },
+    { "id": "A4_02", "domain": "A", "facet": 4, "facet_name": "Cooperation", "text": "Can't stand confrontations.", "keyed": "+", "order": 86 },
+    { "id": "A4_03", "domain": "A", "facet": 4, "facet_name": "Cooperation", "text": "Love a good fight.", "keyed": "-", "order": 87 },
+    { "id": "A4_04", "domain": "A", "facet": 4, "facet_name": "Cooperation", "text": "Insult people.", "keyed": "-", "order": 88 },
+
+    { "id": "A5_01", "domain": "A", "facet": 5, "facet_name": "Modesty", "text": "Dislike being the center of attention.", "keyed": "+", "order": 89 },
+    { "id": "A5_02", "domain": "A", "facet": 5, "facet_name": "Modesty", "text": "Consider myself an average person.", "keyed": "+", "order": 90 },
+    { "id": "A5_03", "domain": "A", "facet": 5, "facet_name": "Modesty", "text": "Think highly of myself.", "keyed": "-", "order": 91 },
+    { "id": "A5_04", "domain": "A", "facet": 5, "facet_name": "Modesty", "text": "Boast about my virtues.", "keyed": "-", "order": 92 },
+
+    { "id": "A6_01", "domain": "A", "facet": 6, "facet_name": "Sympathy", "text": "Sympathize with the homeless.", "keyed": "+", "order": 93 },
+    { "id": "A6_02", "domain": "A", "facet": 6, "facet_name": "Sympathy", "text": "Feel sympathy for those who are worse off than myself.", "keyed": "+", "order": 94 },
+    { "id": "A6_03", "domain": "A", "facet": 6, "facet_name": "Sympathy", "text": "Am not interested in other people's problems.", "keyed": "-", "order": 95 },
+    { "id": "A6_04", "domain": "A", "facet": 6, "facet_name": "Sympathy", "text": "Believe people should fend for themselves.", "keyed": "-", "order": 96 },
+
+    { "id": "C1_01", "domain": "C", "facet": 1, "facet_name": "Self-Efficacy", "text": "Complete tasks successfully.", "keyed": "+", "order": 97 },
+    { "id": "C1_02", "domain": "C", "facet": 1, "facet_name": "Self-Efficacy", "text": "Excel in what I do.", "keyed": "+", "order": 98 },
+    { "id": "C1_03", "domain": "C", "facet": 1, "facet_name": "Self-Efficacy", "text": "Misjudge situations.", "keyed": "-", "order": 99 },
+    { "id": "C1_04", "domain": "C", "facet": 1, "facet_name": "Self-Efficacy", "text": "Don't understand things.", "keyed": "-", "order": 100 },
+
+    { "id": "C2_01", "domain": "C", "facet": 2, "facet_name": "Orderliness", "text": "Like order.", "keyed": "+", "order": 101 },
+    { "id": "C2_02", "domain": "C", "facet": 2, "facet_name": "Orderliness", "text": "Like to tidy up.", "keyed": "+", "order": 102 },
+    { "id": "C2_03", "domain": "C", "facet": 2, "facet_name": "Orderliness", "text": "Leave a mess in my room.", "keyed": "-", "order": 103 },
+    { "id": "C2_04", "domain": "C", "facet": 2, "facet_name": "Orderliness", "text": "Am not bothered by disorder.", "keyed": "-", "order": 104 },
+
+    { "id": "C3_01", "domain": "C", "facet": 3, "facet_name": "Dutifulness", "text": "Try to follow the rules.", "keyed": "+", "order": 105 },
+    { "id": "C3_02", "domain": "C", "facet": 3, "facet_name": "Dutifulness", "text": "Keep my promises.", "keyed": "+", "order": 106 },
+    { "id": "C3_03", "domain": "C", "facet": 3, "facet_name": "Dutifulness", "text": "Break rules.", "keyed": "-", "order": 107 },
+    { "id": "C3_04", "domain": "C", "facet": 3, "facet_name": "Dutifulness", "text": "Break my promises.", "keyed": "-", "order": 108 },
+
+    { "id": "C4_01", "domain": "C", "facet": 4, "facet_name": "Achievement-Striving", "text": "Work hard.", "keyed": "+", "order": 109 },
+    { "id": "C4_02", "domain": "C", "facet": 4, "facet_name": "Achievement-Striving", "text": "Do more than what's expected of me.", "keyed": "+", "order": 110 },
+    { "id": "C4_03", "domain": "C", "facet": 4, "facet_name": "Achievement-Striving", "text": "Am not highly motivated to succeed.", "keyed": "-", "order": 111 },
+    { "id": "C4_04", "domain": "C", "facet": 4, "facet_name": "Achievement-Striving", "text": "Do just enough work to get by.", "keyed": "-", "order": 112 },
+
+    { "id": "C5_01", "domain": "C", "facet": 5, "facet_name": "Self-Discipline", "text": "Get chores done right away.", "keyed": "+", "order": 113 },
+    { "id": "C5_02", "domain": "C", "facet": 5, "facet_name": "Self-Discipline", "text": "Am always prepared.", "keyed": "+", "order": 114 },
+    { "id": "C5_03", "domain": "C", "facet": 5, "facet_name": "Self-Discipline", "text": "Waste my time.", "keyed": "-", "order": 115 },
+    { "id": "C5_04", "domain": "C", "facet": 5, "facet_name": "Self-Discipline", "text": "Have difficulty starting tasks.", "keyed": "-", "order": 116 },
+
+    { "id": "C6_01", "domain": "C", "facet": 6, "facet_name": "Cautiousness", "text": "Avoid mistakes.", "keyed": "+", "order": 117 },
+    { "id": "C6_02", "domain": "C", "facet": 6, "facet_name": "Cautiousness", "text": "Choose my words with care.", "keyed": "+", "order": 118 },
+    { "id": "C6_03", "domain": "C", "facet": 6, "facet_name": "Cautiousness", "text": "Jump into things without thinking.", "keyed": "-", "order": 119 },
+    { "id": "C6_04", "domain": "C", "facet": 6, "facet_name": "Cautiousness", "text": "Make rash decisions.", "keyed": "-", "order": 120 }
+  ]
+}

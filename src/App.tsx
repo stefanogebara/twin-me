@@ -31,6 +31,7 @@ import { SpotifyInsightsPage, WhoopInsightsPage, CalendarInsightsPage } from "./
 import SoulSignatureDashboard from "./pages/SoulSignatureDashboard";
 import SoulSignatureOnboarding from "./pages/onboarding/SoulSignatureOnboarding";
 import PersonalityAssessment from "./pages/PersonalityAssessment";
+import BigFiveAssessment from "./pages/BigFiveAssessment";
 import TalkToTwin from "./pages/TalkToTwin";
 
 const queryClient = new QueryClient();
@@ -122,6 +123,15 @@ const App = () => {
               <ProtectedRoute>
                 <ErrorBoundary>
                   <PersonalityAssessment />
+                </ErrorBoundary>
+              </ProtectedRoute>
+            } />
+
+            {/* Big Five Assessment - IPIP-NEO-120 scientific assessment */}
+            <Route path="/big-five" element={
+              <ProtectedRoute>
+                <ErrorBoundary>
+                  <BigFiveAssessment />
                 </ErrorBoundary>
               </ProtectedRoute>
             } />
