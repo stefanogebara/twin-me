@@ -320,7 +320,9 @@ router.get('/:userId/personality-integrated', async (req, res) => {
     const { userId } = req.params;
     console.log(`[SoulInsights] Getting personality-integrated insights for user ${userId}`);
 
-    const insightGenerator = require('../services/insightGenerator.js');
+    // Dynamic import for CommonJS module in ESM context
+    const insightGeneratorModule = await import('../services/insightGenerator.js');
+    const insightGenerator = insightGeneratorModule.default || insightGeneratorModule;
     const { supabaseAdmin } = await import('../config/supabase.js');
 
     // 1. Get Big Five scores from assessment
