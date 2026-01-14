@@ -310,4 +310,209 @@ router.get('/:userId/spotify-mood', async (req, res) => {
   }
 });
 
+/**
+ * GET /api/soul-insights/:userId/personality-integrated
+ * Get insights that combine Big Five personality assessment with behavioral platform data
+ * This is the core endpoint for personality-driven learning
+ */
+router.get('/:userId/personality-integrated', async (req, res) => {
+  try {
+    const { userId } = req.params;
+    console.log(`[SoulInsights] Getting personality-integrated insights for user ${userId}`);
+
+    const insightGenerator = require('../services/insightGenerator.js');
+    const { supabaseAdmin } = await import('../config/supabase.js');
+
+    // 1. Get Big Five scores from assessment
+    const { data: bigFiveScores, error: bigFiveError } = await supabaseAdmin
+      .from('big_five_scores')
+      .select('*')
+      .eq('user_id', userId)
+      .single();
+
+    if (bigFiveError && bigFiveError.code !== 'PGRST116') {
+      console.error('[SoulInsights] Error fetching Big Five scores:', bigFiveError);
+    }
+
+    // 2. Get behavioral personality estimates
+    const { data: behavioralScores, error: behavioralError } = await supabaseAdmin
+      .from('personality_estimates')
+      .select('*')
+      .eq('user_id', userId)
+      .single();
+
+    if (behavioralError && behavioralError.code !== 'PGRST116') {
+      console.error('[SoulInsights] Error fetching behavioral scores:', behavioralError);
+    }
+
+    // 3. Get platform data for context
+    const platformData = {};
+
+    // Get Spotify data if connected
+    const { data: spotifyConn } = await supabaseAdmin
+      .from('platform_connections')
+      .select('extracted_data')
+      .eq('user_id', userId)
+      .eq('platform', 'spotify')
+      .single();
+
+    if (spotifyConn?.extracted_data) {
+      platformData.spotify = spotifyConn.extracted_data;
+    }
+
+    // Get Calendar data if connected
+    const { data: calendarConn } = await supabaseAdmin
+      .from('platform_connections')
+      .select('extracted_data')
+      .eq('user_id', userId)
+      .eq('platform', 'google_calendar')
+      .single();
+
+    if (calendarConn?.extracted_data) {
+      platformData.calendar = calendarConn.extracted_data;
+    }
+
+    // Get Whoop data if connected
+    const { data: whoopConn } = await supabaseAdmin
+      .from('platform_connections')
+      .select('extracted_data')
+      .eq('user_id', userId)
+      .eq('platform', 'whoop')
+      .single();
+
+    if (whoopConn?.extracted_data) {
+      platformData.whoop = whoopConn.extracted_data;
+    }
+
+    // 4. Generate integrated insights
+    const insights = await insightGenerator.generatePersonalityIntegratedInsights(
+      bigFiveScores,
+      behavioralScores,
+      platformData
+    );
+
+    // 5. Build response
+    const response = {
+      success: true,
+      userId,
+      personality: {
+        questionnaire: bigFiveScores ? {
+          source: 'ipip_neo_120',
+          openness: bigFiveScores.openness_percentile,
+          conscientiousness: bigFiveScores.conscientiousness_percentile,
+          extraversion: bigFiveScores.extraversion_percentile,
+          agreeableness: bigFiveScores.agreeableness_percentile,
+          neuroticism: bigFiveScores.neuroticism_percentile,
+          completedAt: bigFiveScores.updated_at
+        } : null,
+        behavioral: behavioralScores ? {
+          source: 'platform_learning',
+          openness: behavioralScores.openness,
+          conscientiousness: behavioralScores.conscientiousness,
+          extraversion: behavioralScores.extraversion,
+          agreeableness: behavioralScores.agreeableness,
+          neuroticism: behavioralScores.neuroticism,
+          totalSignals: behavioralScores.total_behavioral_signals || 0,
+          lastUpdated: behavioralScores.last_behavioral_update_at
+        } : null
+      },
+      connectedPlatforms: Object.keys(platformData),
+      insights,
+      summary: {
+        hasAssessment: !!bigFiveScores,
+        hasBehavioralData: behavioralScores?.total_behavioral_signals > 0,
+        platformCount: Object.keys(platformData).length,
+        totalInsights: insights.length,
+        topInsight: insights[0] || null
+      },
+      recommendations: generatePersonalityRecommendations(bigFiveScores, platformData)
+    };
+
+    res.json(response);
+
+  } catch (error) {
+    console.error('[SoulInsights] Personality integrated error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to generate personality-integrated insights'
+    });
+  }
+});
+
+/**
+ * Generate recommendations based on personality and connected platforms
+ */
+function generatePersonalityRecommendations(bigFiveScores, platformData) {
+  const recommendations = [];
+
+  // No assessment
+  if (!bigFiveScores) {
+    recommendations.push({
+      type: 'assessment',
+      priority: 'high',
+      title: 'Complete Your Personality Profile',
+      description: 'Take the Big Five assessment to unlock personalized insights',
+      action: '/big-five'
+    });
+  }
+
+  // No Spotify
+  if (!platformData.spotify) {
+    recommendations.push({
+      type: 'connection',
+      priority: 'medium',
+      title: 'Connect Spotify',
+      description: 'Music preferences reveal emotional patterns and openness',
+      action: '/get-started'
+    });
+  }
+
+  // No Calendar
+  if (!platformData.calendar) {
+    recommendations.push({
+      type: 'connection',
+      priority: 'medium',
+      title: 'Connect Google Calendar',
+      description: 'Schedule patterns show conscientiousness and social tendencies',
+      action: '/get-started'
+    });
+  }
+
+  // No Whoop
+  if (!platformData.whoop) {
+    recommendations.push({
+      type: 'connection',
+      priority: 'low',
+      title: 'Connect Whoop',
+      description: 'Recovery data correlates with stress resilience',
+      action: '/get-started'
+    });
+  }
+
+  // Personality-specific recommendations
+  if (bigFiveScores) {
+    if (bigFiveScores.neuroticism_percentile > 70) {
+      recommendations.push({
+        type: 'wellness',
+        priority: 'medium',
+        title: 'Stress Management Resources',
+        description: 'Your profile suggests you might benefit from stress resilience techniques',
+        action: '/resources/stress-management'
+      });
+    }
+
+    if (bigFiveScores.openness_percentile > 80 && !platformData.spotify) {
+      recommendations.push({
+        type: 'connection',
+        priority: 'high',
+        title: 'Connect Spotify to See Your Creative Side',
+        description: 'High openness usually correlates with diverse music taste - let\'s verify!',
+        action: '/get-started'
+      });
+    }
+  }
+
+  return recommendations;
+}
+
 export default router;
