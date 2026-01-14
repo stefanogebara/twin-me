@@ -255,6 +255,7 @@ import intelligentTwinRoutes from './routes/intelligent-twin.js';
 import testPatternLearningRoutes from './routes/test-pattern-learning.js';
 import onboardingQuestionsRoutes from './routes/onboarding-questions.js';
 import personalityAssessmentRoutes from './routes/personality-assessment.js';
+import bigFiveRoutes from './routes/big-five.js';
 import platformInsightsRoutes from './routes/platform-insights.js';
 import twinPipelineRoutes from './routes/twin-pipeline.js';
 import notificationsRoutes from './routes/notifications.js';
@@ -315,6 +316,7 @@ app.use('/api/twin', intelligentTwinRoutes); // Intelligent Twin Engine routes
 app.use('/api/test-pattern-learning', testPatternLearningRoutes); // Pattern learning test/debug endpoints
 app.use('/api/onboarding', onboardingQuestionsRoutes); // Personality questionnaire for personalization
 app.use('/api/personality', personalityAssessmentRoutes); // Big Five personality assessment with 16personalities archetypes
+app.use('/api/big-five', bigFiveRoutes); // IPIP-NEO-120 Big Five assessment with T-score normalization
 app.use('/api/insights', platformInsightsRoutes); // Platform-specific conversational insights
 app.use('/api/twin', twinPipelineRoutes); // Twin formation pipeline (form, status, profile, evolution)
 app.use('/api/extraction', extractionStatusRoutes); // Extraction status and job history
