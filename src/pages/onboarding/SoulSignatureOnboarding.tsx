@@ -227,6 +227,8 @@ const SoulSignatureOnboarding: React.FC = () => {
           <RevealStep
             connectedPlatforms={state.connectedPlatforms}
             questionsAnswered={state.answers.length}
+            archetype={state.archetype}
+            scores={state.preliminaryScores}
             onComplete={handleComplete}
           />
         );
