@@ -105,6 +105,33 @@ const OuraLogo = ({ className = "w-6 h-6" }: { className?: string }) => (
   </svg>
 );
 
+const GarminLogo = ({ className = "w-6 h-6" }: { className?: string }) => (
+  <svg className={className} viewBox="0 0 512 512" fill="currentColor">
+    <path d="M256 0C114.6 0 0 114.6 0 256s114.6 256 256 256 256-114.6 256-256S397.4 0 256 0zm0 472c-119.3 0-216-96.7-216-216S136.7 40 256 40s216 96.7 216 216-96.7 216-216 216zm0-392c-97.2 0-176 78.8-176 176s78.8 176 176 176 176-78.8 176-176S353.2 80 256 80zm0 312c-75.1 0-136-60.9-136-136s60.9-136 136-136 136 60.9 136 136-60.9 136-136 136z"/>
+    <path d="M256 168c-48.6 0-88 39.4-88 88s39.4 88 88 88 88-39.4 88-88-39.4-88-88-88zm0 136c-26.5 0-48-21.5-48-48s21.5-48 48-48 48 21.5 48 48-21.5 48-48 48z"/>
+  </svg>
+);
+
+const PolarLogo = ({ className = "w-6 h-6" }: { className?: string }) => (
+  <svg className={className} viewBox="0 0 24 24" fill="currentColor">
+    <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z"/>
+    <path d="M12 6c-3.31 0-6 2.69-6 6s2.69 6 6 6 6-2.69 6-6-2.69-6-6-6zm0 10c-2.21 0-4-1.79-4-4s1.79-4 4-4 4 1.79 4 4-1.79 4-4 4z"/>
+  </svg>
+);
+
+const SuuntoLogo = ({ className = "w-6 h-6" }: { className?: string }) => (
+  <svg className={className} viewBox="0 0 24 24" fill="currentColor">
+    <circle cx="12" cy="12" r="10" fill="none" stroke="currentColor" strokeWidth="2"/>
+    <path d="M12 6v6l4 2" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+  </svg>
+);
+
+const AppleHealthLogo = ({ className = "w-6 h-6" }: { className?: string }) => (
+  <svg className={className} viewBox="0 0 24 24" fill="currentColor">
+    <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
+  </svg>
+);
+
 // ====================================================================
 // CONNECTOR CONFIGURATION
 // ====================================================================
@@ -162,6 +189,55 @@ const AVAILABLE_CONNECTORS: ConnectorConfig[] = [
     setupTime: '10 seconds',
     privacyLevel: 'medium',
     category: 'health'
+  },
+  // Open Wearables - Additional fitness trackers via Open Wearables
+  {
+    provider: 'garmin' as DataProvider,
+    name: 'Garmin',
+    description: 'Your Garmin data reveals training patterns, GPS activities, and physiological metrics',
+    icon: <GarminLogo className="w-6 h-6" />,
+    color: '#007CC3',
+    dataTypes: ['Activities', 'Heart Rate', 'Sleep'],
+    estimatedInsights: 12,
+    setupTime: '15 seconds',
+    privacyLevel: 'medium',
+    category: 'health'
+  },
+  {
+    provider: 'polar' as DataProvider,
+    name: 'Polar',
+    description: 'Your Polar data reveals heart rate patterns, training load, and recovery insights',
+    icon: <PolarLogo className="w-6 h-6" />,
+    color: '#D32F2F',
+    dataTypes: ['Heart Rate', 'Training Load', 'Recovery'],
+    estimatedInsights: 10,
+    setupTime: '15 seconds',
+    privacyLevel: 'medium',
+    category: 'health'
+  },
+  {
+    provider: 'suunto' as DataProvider,
+    name: 'Suunto',
+    description: 'Your Suunto data reveals outdoor adventures, training metrics, and performance trends',
+    icon: <SuuntoLogo className="w-6 h-6" />,
+    color: '#1A1A1A',
+    dataTypes: ['Activities', 'GPS Tracks', 'Performance'],
+    estimatedInsights: 10,
+    setupTime: '15 seconds',
+    privacyLevel: 'medium',
+    category: 'health'
+  },
+  {
+    provider: 'apple_health' as DataProvider,
+    name: 'Apple Health',
+    description: 'Your Apple Health data reveals daily activity, workouts, and health metrics from your Apple Watch',
+    icon: <AppleHealthLogo className="w-6 h-6" />,
+    color: '#FF2D55',
+    dataTypes: ['Activity', 'Workouts', 'Health Metrics'],
+    estimatedInsights: 15,
+    setupTime: '15 seconds',
+    privacyLevel: 'medium',
+    category: 'health'
   }
 ];
 
@@ -204,14 +280,21 @@ const InstantTwinOnboarding = () => {
 
   const connectedServices = connectedProviders as DataProvider[];
 
-  // Calculate truly active connections (excluding expired tokens)
+  // MVP platforms only - exclude non-MVP platforms like LinkedIn from count
+  const MVP_PLATFORMS = ['spotify', 'google_calendar', 'whoop'];
+
+  // Calculate truly active connections (excluding expired tokens AND non-MVP platforms)
   const activeConnections = connectedServices.filter(provider => {
     const status = platformStatusData[provider];
-    return !status?.tokenExpired && status?.status !== 'token_expired';
+    const isNotExpired = !status?.tokenExpired && status?.status !== 'token_expired';
+    const isMVPPlatform = MVP_PLATFORMS.includes(provider);
+    return isNotExpired && isMVPPlatform;
   });
   const expiredConnections = connectedServices.filter(provider => {
     const status = platformStatusData[provider];
-    return status?.tokenExpired || status?.status === 'token_expired';
+    const isExpired = status?.tokenExpired || status?.status === 'token_expired';
+    const isMVPPlatform = MVP_PLATFORMS.includes(provider);
+    return isExpired && isMVPPlatform;
   });
 
   React.useEffect(() => {
@@ -273,15 +356,35 @@ const InstantTwinOnboarding = () => {
 
       const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
 
+      // Use wearables API for Open Wearables providers
+      const openWearablesProviders = ['garmin', 'polar', 'suunto', 'apple_health'];
       // Use health connector route for health platforms (whoop, oura)
       const healthPlatforms = ['whoop', 'oura'];
-      const apiUrl = healthPlatforms.includes(provider as string)
-        ? `${baseUrl}/health/connect/${provider}?userId=${encodeURIComponent(userId)}`
-        : `${baseUrl}/arctic/connect/${provider}?userId=${encodeURIComponent(userId)}`;
-      const response = await fetch(apiUrl, {
+
+      let apiUrl: string;
+      let fetchOptions: RequestInit = {
         method: 'GET',
         headers: { 'Content-Type': 'application/json' },
-      });
+      };
+
+      if (openWearablesProviders.includes(provider as string)) {
+        // Use Open Wearables API
+        apiUrl = `${baseUrl}/wearables/connect`;
+        fetchOptions = {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
+          },
+          body: JSON.stringify({ provider })
+        };
+      } else if (healthPlatforms.includes(provider as string)) {
+        apiUrl = `${baseUrl}/health/connect/${provider}?userId=${encodeURIComponent(userId)}`;
+      } else {
+        apiUrl = `${baseUrl}/arctic/connect/${provider}?userId=${encodeURIComponent(userId)}`;
+      }
+
+      const response = await fetch(apiUrl, fetchOptions);
 
       if (!response.ok) {
         throw new Error(`HTTP ${response.status}: ${response.statusText}`);
@@ -602,6 +705,11 @@ const InstantTwinOnboarding = () => {
                   }}
                 >
                   Connected
+                  {providerStatus?.lastSync && (
+                    <span className="ml-2 opacity-70">
+                      · Synced {new Date(providerStatus.lastSync).toLocaleDateString()}
+                    </span>
+                  )}
                 </span>
               </div>
 

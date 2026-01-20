@@ -216,18 +216,27 @@ export const getDemoWhoopData = () => {
 // Static version for backwards compatibility
 export const DEMO_WHOOP_DATA = getDemoWhoopData();
 
-// Generate event type distribution data
+// Generate event type distribution data (ensures sum = 100%)
 const generateEventTypeDistribution = () => {
-  const meetingPct = randomInRange(35, 55);
-  const focusPct = randomInRange(25, 40);
-  const presentationPct = randomInRange(8, 18);
+  // Generate raw values
+  const rawMeeting = randomInRange(35, 50);
+  const rawFocus = randomInRange(25, 35);
+  const rawPresentation = randomInRange(8, 15);
+  const rawPersonal = randomInRange(5, 15);
+
+  // Calculate total and normalize to 100%
+  const total = rawMeeting + rawFocus + rawPresentation + rawPersonal;
+  const meetingPct = Math.round((rawMeeting / total) * 100);
+  const focusPct = Math.round((rawFocus / total) * 100);
+  const presentationPct = Math.round((rawPresentation / total) * 100);
+  // Personal gets the remainder to ensure exact 100% total
   const personalPct = 100 - meetingPct - focusPct - presentationPct;
 
   return [
     { type: 'Meetings', percentage: meetingPct, color: '#4285F4' },
     { type: 'Focus Time', percentage: focusPct, color: '#34A853' },
     { type: 'Presentations', percentage: presentationPct, color: '#FBBC05' },
-    { type: 'Personal', percentage: Math.max(0, personalPct), color: '#EA4335' },
+    { type: 'Personal', percentage: personalPct, color: '#EA4335' },
   ].sort((a, b) => b.percentage - a.percentage);
 };
 

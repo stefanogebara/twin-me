@@ -44,17 +44,15 @@ class PlatformReflectionService {
         console.log(`🪞 [Reflection] Using cached ${platform} reflection`);
         const fullContext = await userContextAggregator.aggregateUserContext(userId);
         const lifeContext = fullContext?.lifeContext || null;
-        // Also fetch fresh platform data for visual display
-        const platformData = await this.getPlatformData(userId, platform);
+        // Also fetch fresh platform data for visual display (pass context to avoid duplicate calls)
+        const platformData = await this.getPlatformData(userId, platform, fullContext);
         const visualData = platformData.success ? platformData.data : null;
         return this.formatResponse(cached, await this.getHistory(userId, platform), lifeContext, visualData);
       }
 
-      // 2. Get platform-specific data AND full context for cross-platform awareness
-      const [platformData, fullContext] = await Promise.all([
-        this.getPlatformData(userId, platform),
-        userContextAggregator.aggregateUserContext(userId)
-      ]);
+      // 2. Get full context first (to avoid parallel token refreshes), then platform-specific data
+      const fullContext = await userContextAggregator.aggregateUserContext(userId);
+      const platformData = await this.getPlatformData(userId, platform, fullContext);
 
       if (!platformData.success) {
         return {
@@ -126,9 +124,12 @@ class PlatformReflectionService {
 
   /**
    * Get platform-specific data for reflection generation
+   * @param {string} userId - User ID
+   * @param {string} platform - Platform name
+   * @param {Object} existingContext - Optional pre-fetched context to avoid duplicate calls
    */
-  async getPlatformData(userId, platform) {
-    const context = await userContextAggregator.aggregateUserContext(userId);
+  async getPlatformData(userId, platform, existingContext = null) {
+    const context = existingContext || await userContextAggregator.aggregateUserContext(userId);
 
     if (!context.success) {
       return { success: false, error: 'Failed to get user context' };
@@ -174,15 +175,18 @@ class PlatformReflectionService {
         .order('extracted_at', { ascending: false })
         .limit(20);
 
-      // Get recent plays
+      // Get recent plays - fetch multiple records to aggregate listening hours across days
+      // Spotify API only returns 50 most recent tracks per call, so we need historical records
+      const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
       const { data: recentPlays } = await supabaseAdmin
         .from('user_platform_data')
-        .select('raw_data')
+        .select('raw_data, extracted_at')
         .eq('user_id', userId)
         .eq('platform', 'spotify')
         .eq('data_type', 'recently_played')
+        .gte('extracted_at', sevenDaysAgo)
         .order('extracted_at', { ascending: false })
-        .limit(1);
+        .limit(50); // Get up to 50 sync records for comprehensive listening hour data
 
       // Get audio features if available
       const { data: audioFeatures } = await supabaseAdmin
@@ -226,14 +230,31 @@ class PlatformReflectionService {
         allTopTracks = [...allTopTracks, ...oldTracks];
       }
 
-      // Handle recent plays (new format has items array with track nested)
-      if (recentPlays?.[0]?.raw_data?.items) {
-        allRecentTracks = recentPlays[0].raw_data.items.map(item => ({
-          name: item.track?.name,
-          artist: item.track?.artists?.[0]?.name,
-          playedAt: item.played_at,
-          genres: item.track?.artists?.[0]?.genres || []
-        })).filter(t => t.name);
+      // Handle recent plays - aggregate from multiple sync records for accurate listening hour data
+      // Each sync record contains tracks from that point in time, so we aggregate and deduplicate
+      if (recentPlays?.length > 0) {
+        const seenTracks = new Set(); // Track unique plays by played_at timestamp
+        recentPlays.forEach(record => {
+          if (record.raw_data?.items) {
+            record.raw_data.items.forEach(item => {
+              const playedAt = item.played_at;
+              // Use played_at as unique key to avoid duplicates across sync records
+              if (playedAt && !seenTracks.has(playedAt)) {
+                seenTracks.add(playedAt);
+                allRecentTracks.push({
+                  name: item.track?.name,
+                  artist: item.track?.artists?.[0]?.name,
+                  playedAt: playedAt,
+                  genres: item.track?.artists?.[0]?.genres || []
+                });
+              }
+            });
+          }
+        });
+        // Sort by played_at descending (most recent first)
+        allRecentTracks = allRecentTracks
+          .filter(t => t.name)
+          .sort((a, b) => new Date(b.playedAt) - new Date(a.playedAt));
       }
 
       // Extract unique artists
@@ -378,6 +399,22 @@ class PlatformReflectionService {
     const sleepEfficiency = whoop.sleep?.efficiency ?? null;
     const sleepStages = whoop.sleep?.stages ?? null;
 
+    // New vitals from Whoop V2 API
+    const spo2 = whoop.vitals?.spo2 ?? null;
+    const skinTemp = whoop.vitals?.skinTemp ?? null;
+    const respiratoryRate = whoop.sleep?.respiratoryRate ?? null;
+    const sleepDisturbances = whoop.sleep?.disturbances ?? null;
+
+    // Calculate stress level based on recovery
+    const getStressLevel = (score) => {
+      if (score === null || score === undefined) return null;
+      if (score >= 67) return 'Low';
+      if (score >= 50) return 'Moderate';
+      if (score >= 34) return 'High';
+      return 'Very High';
+    };
+    const stressLevel = getStressLevel(recoveryScore);
+
     // Calculate sleep quality
     const sleepQuality = sleepHours > 7 ? 'good' : sleepHours < 6 ? 'poor' : 'moderate';
 
@@ -400,7 +437,13 @@ class PlatformReflectionService {
       strain: Math.round(strainScore * 10) / 10,
       sleepPerformance: sleepPerformance,
       hrv: hrvCurrent,
-      restingHR: rhrCurrent
+      restingHR: rhrCurrent,
+      // New vitals from Whoop V2 API
+      spo2: spo2,
+      skinTemp: skinTemp,
+      respiratoryRate: respiratoryRate,
+      sleepDisturbances: sleepDisturbances,
+      stressLevel: stressLevel
     };
 
     // Recent trends for display
@@ -414,6 +457,11 @@ class PlatformReflectionService {
     // Get 7-day history from context if available
     const history7Day = whoop.history7Day || [];
 
+    // Calculate historical averages and comparisons for AI context
+    const historicalContext = this.calculateHistoricalContext(
+      recoveryScore, hrvCurrent, sleepHours, history7Day
+    );
+
     return {
       success: true,
       data: {
@@ -424,6 +472,8 @@ class PlatformReflectionService {
         strainLevel: strainLabel,
         hrvTrend: hrvTrend,
         sleepHoursCategory: sleepHours > 8 ? 'long' : sleepHours < 6 ? 'short' : 'normal',
+        // Historical context for richer AI insights
+        historicalContext,
         // For visualization
         currentMetrics,
         sleepBreakdown,
@@ -482,39 +532,98 @@ class PlatformReflectionService {
         attendees: e.attendeeCount || 0
       }));
 
-    // Format upcoming events for list display
-    const upcomingEvents = events.slice(0, 6).map((e, index) => ({
-      id: e.id || `upcoming-${index}`,
-      title: e.title || 'Untitled',
-      time: `${formatTime(e.startTime || e.start)} - ${formatTime(e.endTime || e.end)}`,
-      type: e.type || 'meeting',
-      attendees: e.attendeeCount || 0
-    }));
+    // Format upcoming events for list display with day grouping info
+    const upcomingEvents = events.slice(0, 10).map((e, index) => {
+      const eventDate = new Date(e.startTime || e.start);
+      const eventDateStr = eventDate.toDateString();
+      const todayStr = today.toDateString();
+      const tomorrowStr = tomorrow.toDateString();
 
-    // Calculate event type distribution
+      // Calculate day label
+      let dayLabel;
+      if (eventDateStr === todayStr) {
+        dayLabel = 'Today';
+      } else if (eventDateStr === tomorrowStr) {
+        dayLabel = 'Tomorrow';
+      } else {
+        // Format as "Wednesday, Jan 15"
+        dayLabel = eventDate.toLocaleDateString('en-US', {
+          weekday: 'long',
+          month: 'short',
+          day: 'numeric'
+        });
+      }
+
+      return {
+        id: e.id || `upcoming-${index}`,
+        title: e.title || 'Untitled',
+        time: `${formatTime(e.startTime || e.start)} - ${formatTime(e.endTime || e.end)}`,
+        type: e.type || 'meeting',
+        attendees: e.attendeeCount || 0,
+        date: eventDateStr,
+        dayLabel
+      };
+    });
+
+    // Calculate event type distribution with colors
     const typeCounts = {};
     events.forEach(e => {
-      const type = (e.type || 'Other').charAt(0).toUpperCase() + (e.type || 'Other').slice(1);
+      const type = (e.type || 'General').charAt(0).toUpperCase() + (e.type || 'General').slice(1);
       typeCounts[type] = (typeCounts[type] || 0) + 1;
     });
     const totalEvents = events.length || 1;
+    const typeColors = {
+      'Meeting': '#4285F4',
+      'Focus': '#34A853',
+      'Presentation': '#FBBC05',
+      'Workout': '#EA4335',
+      'Interview': '#9334E9',
+      'Personal': '#FF6D01',
+      'General': '#5F6368',
+      'Other': '#9E9E9E'
+    };
     const eventTypeDistribution = Object.entries(typeCounts)
       .map(([type, count]) => ({
         type,
-        percentage: Math.round((count / totalEvents) * 100)
+        percentage: Math.round((count / totalEvents) * 100),
+        color: typeColors[type] || typeColors['Other']
       }))
       .sort((a, b) => b.percentage - a.percentage);
 
-    // Calculate weekly heatmap (days with event counts)
+    // Calculate weekly heatmap with time slots
     const weekDays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+    const timeSlots = ['8-10', '10-12', '12-2', '2-4', '4-6'];
+    const slotRanges = [
+      { start: 8, end: 10 },
+      { start: 10, end: 12 },
+      { start: 12, end: 14 },
+      { start: 14, end: 16 },
+      { start: 16, end: 18 }
+    ];
+
     const weeklyHeatmap = weekDays.map(day => {
       const dayEvents = events.filter(e => {
         const eventDate = new Date(e.startTime || e.start);
         const eventDay = eventDate.toLocaleDateString('en-US', { weekday: 'short' });
         return eventDay === day;
       });
+
+      // Calculate intensity for each time slot
+      const slots = timeSlots.map((slot, slotIndex) => {
+        const range = slotRanges[slotIndex];
+        const slotEvents = dayEvents.filter(e => {
+          const eventDate = new Date(e.startTime || e.start);
+          const eventHour = eventDate.getHours();
+          return eventHour >= range.start && eventHour < range.end;
+        });
+        // Intensity: 0=free, 1=light, 2=moderate, 3=busy
+        const intensity = slotEvents.length === 0 ? 0 : slotEvents.length === 1 ? 1 : slotEvents.length === 2 ? 2 : 3;
+        return { slot, intensity };
+      });
+
       return {
         day,
+        slots,
         events: dayEvents.length,
         intensity: dayEvents.length > 4 ? 'high' : dayEvents.length > 1 ? 'medium' : 'low'
       };
@@ -685,6 +794,27 @@ IMPORTANT: The "evidence" array should show HOW you reached your conclusions. Ea
 
     switch (platform) {
       case 'spotify':
+        // Calculate peak listening times from listeningHours data
+        const peakHours = data.listeningHours
+          ?.filter(h => h.plays > 0)
+          ?.sort((a, b) => b.plays - a.plays)
+          ?.slice(0, 3)
+          ?.map(h => {
+            if (h.hour >= 5 && h.hour < 12) return 'morning';
+            if (h.hour >= 12 && h.hour < 17) return 'afternoon';
+            if (h.hour >= 17 && h.hour < 21) return 'evening';
+            return 'late night';
+          }) || [];
+        const uniquePeakPeriods = [...new Set(peakHours)];
+        const listeningTimePattern = uniquePeakPeriods.length > 0
+          ? `Peak listening times: ${uniquePeakPeriods.join(', ')}`
+          : '';
+
+        // Genre diversity
+        const genreCount = data.topGenres?.length || 0;
+        const genreDiversity = genreCount > 4 ? 'very diverse musical taste' :
+          genreCount > 2 ? 'focused but varied taste' : 'concentrated on specific genres';
+
         return `${baseInstructions}
 
 You are observing their MUSIC patterns.
@@ -694,15 +824,28 @@ What you know about them (USE THIS TO INFORM YOUR OBSERVATION, don't list it):
 - Recent listening includes: ${data.recentTrackNames?.slice(0, 5).join(', ') || 'various tracks'}
 - Their music tends toward: ${data.averageEnergy > 0.6 ? 'higher energy' : data.averageEnergy < 0.4 ? 'calmer sounds' : 'balanced energy'}
 - Emotional tone: ${data.averageValence > 0.6 ? 'more upbeat' : data.averageValence < 0.4 ? 'more melancholic' : 'varied'}
+${listeningTimePattern ? `- ${listeningTimePattern}` : ''}
+- Genre breadth: ${genreDiversity}
 
 Write an observation about what their music choices reveal about them. Focus on:
 - When/why they might reach for certain sounds
 - What their patterns say about how they process emotions
 - Connections between music and their inner life
+- Time-of-day listening patterns if notable
 
-Example good reflection: "I notice you reach for melancholic indie when you're processing something - not when you're sad, but when you're thinking deeply. Sunday evenings especially seem to be your reflection time."`;
+Example good reflection: "I notice you reach for melancholic indie when you're processing something - not when you're sad, but when you're thinking deeply. ${uniquePeakPeriods.includes('late night') ? 'Those late night listening sessions seem intentional.' : 'Sunday evenings especially seem to be your reflection time.'}"`;
+
 
       case 'whoop':
+        // Build historical context section if available
+        const historicalSection = data.historicalContext?.summary
+          ? `\nHISTORICAL PATTERNS (use this to make observations more insightful):
+${data.historicalContext.summary}
+- Recovery consistency: ${data.historicalContext.recoveryConsistency || 'unknown'}
+${data.historicalContext.bestDay ? `- Best recovery days tend to be: ${data.historicalContext.bestDay}s` : ''}
+`
+          : '';
+
         return `${baseInstructions}
 
 You are observing their BODY's patterns through health data.
@@ -713,15 +856,24 @@ What you know about them (USE THIS TO INFORM YOUR OBSERVATION, don't state it):
 - Sleep lately: ${data.sleepQuality}
 - Physical strain: ${data.strainLevel}
 - HRV trend: ${data.hrvTrend}
-
+${historicalSection}
 Write an observation about what their body is telling them. Focus on:
 - The stories their physiology tells that their calendar doesn't
 - Patterns between their body state and life events
+- How today compares to their typical patterns
 - Wisdom their body shows about what they need
 
-Example good reflection: "Your body tells stories your calendar doesn't. The meetings that drain you leave traces in your HRV. But I've noticed something interesting - after creative work, your recovery actually improves. You're not just resting to recover; you're doing the right kind of work."`;
+Example good reflection: "Your body tells stories your calendar doesn't. Today you're running ${data.historicalContext?.recoveryVsAvg || 'at your average'} - ${data.historicalContext?.bestDay ? `and I've noticed ${data.historicalContext.bestDay}s tend to be your strongest days` : 'your patterns are still emerging'}. The rhythm of your week is starting to show itself."`;
 
       case 'calendar':
+        // Build weekly pattern insights
+        const weeklyPatternSection = data.scheduleStats ? `
+WEEKLY PATTERNS:
+- Busiest day: ${data.scheduleStats.busiestDay || 'varies'}
+- Protected focus blocks: ${data.scheduleStats.focusBlocks > 0 ? `${data.scheduleStats.focusBlocks} scheduled` : 'none visible'}
+- Meeting preference: ${data.scheduleStats.preferredMeetingTime || 'varies'}
+` : '';
+
         return `${baseInstructions}
 
 You are observing their relationship with TIME through calendar patterns.
@@ -732,13 +884,13 @@ What you know about them (USE THIS TO INFORM YOUR OBSERVATION, don't state it):
 - Types of events: ${data.eventTypes?.join(', ') || 'various'}
 - Has protected open time: ${data.hasOpenTime ? 'yes' : 'limited'}
 ${data.upcomingEventTitle ? `- Coming up soon: "${data.upcomingEventTitle}"` : ''}
-
+${weeklyPatternSection}
 Write an observation about how they structure their time. Focus on:
 - What their calendar reveals about their values
 - Patterns in how they protect (or don't protect) certain times
-- The rhythm of their weeks
+- The rhythm of their weeks and which days serve what purpose
 
-Example good reflection: "The way you protect Tuesday mornings tells me something - that's when you do your best thinking, isn't it? I notice you rarely let meetings creep into that space, even when your afternoons are packed."`;
+Example good reflection: "The way you protect ${data.dayOfWeek === data.scheduleStats?.busiestDay ? 'today despite it being your busiest day' : `${data.scheduleStats?.busiestDay || 'certain days'}s`} tells me something - that's when you do your best thinking, isn't it? I notice you rarely let meetings creep into that space, even when your afternoons are packed."`;
 
       default:
         return baseInstructions;
@@ -821,6 +973,115 @@ Example good reflection: "The way you protect Tuesday mornings tells me somethin
     } catch (error) {
       return null;
     }
+  }
+
+  /**
+   * Calculate historical context for richer AI insights
+   * Compares current values to 7-day averages
+   */
+  calculateHistoricalContext(currentRecovery, currentHrv, currentSleepHours, history7Day) {
+    if (!history7Day || history7Day.length === 0) {
+      return null;
+    }
+
+    // Calculate averages from history
+    const validRecoveries = history7Day.filter(d => d.recovery != null);
+    const validHrvs = history7Day.filter(d => d.hrv != null);
+
+    const avgRecovery = validRecoveries.length > 0
+      ? Math.round(validRecoveries.reduce((sum, d) => sum + d.recovery, 0) / validRecoveries.length)
+      : null;
+
+    const avgHrv = validHrvs.length > 0
+      ? Math.round(validHrvs.reduce((sum, d) => sum + d.hrv, 0) / validHrvs.length)
+      : null;
+
+    // Calculate how current compares to average
+    const getComparison = (current, avg) => {
+      if (current == null || avg == null) return null;
+      const diff = current - avg;
+      const percentDiff = Math.round((diff / avg) * 100);
+
+      if (Math.abs(percentDiff) <= 5) return 'at your average';
+      if (percentDiff > 20) return 'significantly above your average';
+      if (percentDiff > 0) return 'above your average';
+      if (percentDiff < -20) return 'significantly below your average';
+      return 'below your average';
+    };
+
+    // Find best and worst days in history
+    const bestRecoveryDay = validRecoveries.length > 0
+      ? validRecoveries.reduce((best, d) => d.recovery > best.recovery ? d : best)
+      : null;
+    const worstRecoveryDay = validRecoveries.length > 0
+      ? validRecoveries.reduce((worst, d) => d.recovery < worst.recovery ? d : worst)
+      : null;
+
+    // Calculate consistency (standard deviation)
+    const calculateConsistency = (values) => {
+      if (values.length < 3) return 'insufficient data';
+      const avg = values.reduce((sum, v) => sum + v, 0) / values.length;
+      const variance = values.reduce((sum, v) => sum + Math.pow(v - avg, 2), 0) / values.length;
+      const stdDev = Math.sqrt(variance);
+      const coeffVar = (stdDev / avg) * 100;
+
+      if (coeffVar < 10) return 'very consistent';
+      if (coeffVar < 20) return 'fairly consistent';
+      if (coeffVar < 35) return 'variable';
+      return 'highly variable';
+    };
+
+    return {
+      // Averages
+      avgRecovery,
+      avgHrv,
+      // Comparisons
+      recoveryVsAvg: getComparison(currentRecovery, avgRecovery),
+      hrvVsAvg: getComparison(currentHrv, avgHrv),
+      // Best/worst
+      bestDay: bestRecoveryDay?.dayName || null,
+      worstDay: worstRecoveryDay?.dayName || null,
+      // Consistency
+      recoveryConsistency: calculateConsistency(validRecoveries.map(d => d.recovery)),
+      // Summary for prompt
+      summary: this.buildHistoricalSummary(
+        currentRecovery, avgRecovery,
+        currentHrv, avgHrv,
+        bestRecoveryDay, worstRecoveryDay
+      )
+    };
+  }
+
+  /**
+   * Build a natural language summary of historical patterns
+   */
+  buildHistoricalSummary(currentRecovery, avgRecovery, currentHrv, avgHrv, bestDay, worstDay) {
+    const parts = [];
+
+    // Recovery comparison
+    if (currentRecovery != null && avgRecovery != null) {
+      const recoveryDiff = currentRecovery - avgRecovery;
+      if (Math.abs(recoveryDiff) > 10) {
+        parts.push(`Today's recovery (${currentRecovery}%) is ${recoveryDiff > 0 ? 'above' : 'below'} your 7-day average of ${avgRecovery}%`);
+      } else {
+        parts.push(`Today's recovery is close to your 7-day average of ${avgRecovery}%`);
+      }
+    }
+
+    // HRV comparison
+    if (currentHrv != null && avgHrv != null) {
+      const hrvDiff = currentHrv - avgHrv;
+      if (Math.abs(hrvDiff) > 5) {
+        parts.push(`HRV is ${hrvDiff > 0 ? 'elevated' : 'lower'} compared to your average of ${avgHrv}ms`);
+      }
+    }
+
+    // Best/worst pattern
+    if (bestDay && worstDay && bestDay.dayName !== worstDay.dayName) {
+      parts.push(`${bestDay.dayName}s tend to be your best recovery days, while ${worstDay.dayName}s are often tougher`);
+    }
+
+    return parts.length > 0 ? parts.join('. ') + '.' : null;
   }
 
   /**

@@ -99,11 +99,37 @@ router.get('/personality-scores', authenticateToken, async (req, res) => {
 
     if (estimates && estimates.total_questions_answered > 0) {
       console.log(`🧠 [Soul Signature] Found assessment data: ${estimates.archetype_code} (${estimates.total_questions_answered} questions)`);
+
+      // Also check for behavioral confidence from personality_scores
+      const { data: behavioralScores } = await supabaseAdmin
+        .from('personality_scores')
+        .select('openness_confidence, conscientiousness_confidence, extraversion_confidence, agreeableness_confidence, neuroticism_confidence')
+        .eq('user_id', userId)
+        .single();
+
+      // Use behavioral confidence if available (higher is better), otherwise fall back to assessment CI
+      const getConfidence = (behavioralConf, assessmentCi, fallback = 10) => {
+        if (behavioralConf && behavioralConf > 0) {
+          return behavioralConf; // Behavioral confidence is already 0-100
+        }
+        return 100 - parseFloat(assessmentCi || fallback); // Assessment uses CI, so invert
+      };
+
+      const hasBehavioral = behavioralScores && (
+        behavioralScores.openness_confidence > 0 ||
+        behavioralScores.conscientiousness_confidence > 0 ||
+        behavioralScores.extraversion_confidence > 0
+      );
+
+      if (hasBehavioral) {
+        console.log(`🔬 [Soul Signature] Merging behavioral confidence:`, behavioralScores);
+      }
+
       return res.json({
         success: true,
         data: {
           user_id: userId,
-          source: 'assessment',
+          source: hasBehavioral ? 'assessment+behavioral' : 'assessment',
           // MBTI dimensions (new)
           mind: parseFloat(estimates.mind || estimates.extraversion),
           energy: parseFloat(estimates.energy || estimates.openness),
@@ -121,13 +147,14 @@ router.get('/personality-scores', authenticateToken, async (req, res) => {
           extraversion: parseFloat(estimates.extraversion),
           agreeableness: parseFloat(estimates.agreeableness),
           neuroticism: parseFloat(estimates.neuroticism),
-          openness_confidence: 100 - parseFloat(estimates.openness_ci || 10),
-          conscientiousness_confidence: 100 - parseFloat(estimates.conscientiousness_ci || 10),
-          extraversion_confidence: 100 - parseFloat(estimates.extraversion_ci || 10),
-          agreeableness_confidence: 100 - parseFloat(estimates.agreeableness_ci || 10),
-          neuroticism_confidence: 100 - parseFloat(estimates.neuroticism_ci || 10),
+          // Use behavioral confidence when available
+          openness_confidence: getConfidence(behavioralScores?.openness_confidence, estimates.openness_ci),
+          conscientiousness_confidence: getConfidence(behavioralScores?.conscientiousness_confidence, estimates.conscientiousness_ci),
+          extraversion_confidence: getConfidence(behavioralScores?.extraversion_confidence, estimates.extraversion_ci),
+          agreeableness_confidence: getConfidence(behavioralScores?.agreeableness_confidence, estimates.agreeableness_ci),
+          neuroticism_confidence: getConfidence(behavioralScores?.neuroticism_confidence, estimates.neuroticism_ci),
           archetype_code: estimates.archetype_code,
-          analyzed_platforms: ['personality_assessment'],
+          analyzed_platforms: hasBehavioral ? ['personality_assessment', 'behavioral'] : ['personality_assessment'],
           sample_size: estimates.total_questions_answered
         }
       });
@@ -153,9 +180,41 @@ router.get('/personality-scores', authenticateToken, async (req, res) => {
     }
 
     console.log(`🧠 [Soul Signature] Using behavioral personality scores`);
+
+    // Compute archetype_code from Big Five scores for MBTI display
+    const computeArchetypeCode = (scores) => {
+      // Map Big Five to MBTI dimensions
+      const E = scores.extraversion >= 50 ? 'E' : 'I';
+      const N = scores.openness >= 50 ? 'N' : 'S';
+      const F = scores.agreeableness >= 50 ? 'F' : 'T';
+      const J = scores.conscientiousness >= 50 ? 'J' : 'P';
+      const A = scores.neuroticism <= 50 ? 'A' : 'T'; // Low neuroticism = Assertive
+      return `${E}${N}${F}${J}-${A}`;
+    };
+
+    // Compute MBTI dimensions from Big Five for the UI
+    const archetypeCode = computeArchetypeCode(scores);
+    const mbtiDimensions = {
+      mind: parseFloat(scores.extraversion) || 50,
+      energy: parseFloat(scores.openness) || 50,
+      nature: parseFloat(scores.agreeableness) || 50,
+      tactics: parseFloat(scores.conscientiousness) || 50,
+      identity: 100 - (parseFloat(scores.neuroticism) || 50),
+      mind_ci: parseFloat(scores.extraversion_confidence) || 70,
+      energy_ci: parseFloat(scores.openness_confidence) || 70,
+      nature_ci: parseFloat(scores.agreeableness_confidence) || 70,
+      tactics_ci: parseFloat(scores.conscientiousness_confidence) || 70,
+      identity_ci: parseFloat(scores.neuroticism_confidence) || 70
+    };
+
     res.json({
       success: true,
-      data: { ...scores, source: 'behavioral' }
+      data: {
+        ...scores,
+        ...mbtiDimensions,
+        archetype_code: archetypeCode,
+        source: 'behavioral'
+      }
     });
 
   } catch (error) {

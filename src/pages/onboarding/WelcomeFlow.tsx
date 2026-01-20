@@ -107,9 +107,9 @@ const OptionIcon: React.FC<{ iconName?: string; className?: string; style?: Reac
 };
 
 /**
- * PersonalityQuestionnaire Component
+ * PersonalityAssessment Component
  *
- * A beautiful, 16personalities-style onboarding quiz that learns
+ * A beautiful, 16personalities-style onboarding assessment that learns
  * about the user to personalize their music recommendations.
  */
 
@@ -214,8 +214,8 @@ const WelcomeFlow: React.FC<WelcomeFlowProps> = () => {
       await onboardingAPI.skip();
       navigate('/dashboard');
     } catch (err) {
-      console.error('Error skipping questionnaire:', err);
-      setError('Failed to skip questionnaire');
+      console.error('Error skipping assessment:', err);
+      setError('Failed to skip assessment');
       setSubmitting(false);
     }
   };
@@ -238,7 +238,7 @@ const WelcomeFlow: React.FC<WelcomeFlowProps> = () => {
             style={{ color: theme === 'dark' ? '#C1C0B6' : '#57534e' }}
           />
           <p style={{ color: theme === 'dark' ? 'rgba(193, 192, 182, 0.8)' : '#57534e' }}>
-            Loading your personalization quiz...
+            Loading your personalization assessment...
           </p>
         </div>
       </div>
@@ -254,7 +254,7 @@ const WelcomeFlow: React.FC<WelcomeFlowProps> = () => {
         <div className="text-center">
           <Check className="w-12 h-12 text-green-500 mx-auto mb-4" />
           <p style={{ color: theme === 'dark' ? 'rgba(193, 192, 182, 0.8)' : '#57534e' }}>
-            Quiz completed! Redirecting...
+            Assessment completed! Redirecting...
           </p>
         </div>
       </div>
@@ -315,7 +315,7 @@ const WelcomeFlow: React.FC<WelcomeFlowProps> = () => {
                   color: theme === 'dark' ? '#232320' : '#FAFAFA'
                 }}
               >
-                Start Quiz
+                Start Assessment
                 <ChevronRight className="w-5 h-5 ml-2" />
               </Button>
 
@@ -498,7 +498,7 @@ const WelcomeFlow: React.FC<WelcomeFlowProps> = () => {
                   </>
                 ) : (
                   <>
-                    Complete Quiz
+                    Complete Assessment
                     <Sparkles className="w-4 h-4 ml-2" />
                   </>
                 )}
@@ -524,7 +524,7 @@ const WelcomeFlow: React.FC<WelcomeFlowProps> = () => {
               className="text-xs transition-colors"
               style={{ color: theme === 'dark' ? 'rgba(193, 192, 182, 0.4)' : '#a8a29e' }}
             >
-              Skip questionnaire
+              Skip assessment
             </button>
           </div>
         </div>

@@ -66,19 +66,19 @@ export function SoulChatInterface({
     setIsLoading(true);
 
     try {
-      // Call the twin chat API
-      const response = await fetch(`${import.meta.env.VITE_API_URL}/twin/chat`, {
+      // Call the twin chat API - POST /api/chat/message
+      const token = localStorage.getItem('auth_token') || localStorage.getItem('token');
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/chat/message`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
+          'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify({
           message: content,
-          conversationHistory: messages.slice(-10).map(m => ({
-            role: m.role,
-            content: m.content
-          }))
+          context: {
+            platforms: ['spotify', 'calendar', 'whoop']
+          }
         })
       });
 
@@ -91,7 +91,7 @@ export function SoulChatInterface({
       const assistantMessage: Message = {
         id: (Date.now() + 1).toString(),
         role: 'assistant',
-        content: data.response,
+        content: data.message || data.response,
         timestamp: new Date()
       };
 

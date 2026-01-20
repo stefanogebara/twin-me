@@ -18,12 +18,14 @@ import extractionOrchestrator from './extractionOrchestrator.js';
 import personalityAggregator from './personalityAggregator.js';
 import twinFormationService from './twinFormationService.js';
 import twinEvolutionService from './twinEvolutionService.js';
+import behavioralEvidencePipeline from './behavioralEvidencePipeline.js';
 
 // Pipeline status constants
 const PIPELINE_STATUS = {
   IDLE: 'idle',
   VALIDATING: 'validating',
   EXTRACTING: 'extracting',
+  GENERATING_EVIDENCE: 'generating_evidence',
   AGGREGATING: 'aggregating',
   FORMING: 'forming',
   RECORDING: 'recording',
@@ -99,6 +101,16 @@ class TwinPipelineOrchestrator {
       }
 
       console.log(`   ✅ Extracted from ${extractionResult.successful}/${extractionResult.total} platform(s)`);
+
+      // Stage 2.5: Generate behavioral evidence
+      this.updateStage(userId, PIPELINE_STATUS.GENERATING_EVIDENCE);
+      const evidenceResult = await this.generateBehavioralEvidence(userId);
+
+      if (evidenceResult.success) {
+        console.log(`   ✅ Generated ${evidenceResult.evidenceGenerated || 0} evidence items from ${evidenceResult.platformsProcessed?.length || 0} platform(s)`);
+      } else {
+        console.log(`   ⚠️ Evidence generation: ${evidenceResult.message || evidenceResult.error || 'No features available'}`);
+      }
 
       // Stage 3: Aggregate personality scores
       this.updateStage(userId, PIPELINE_STATUS.AGGREGATING);
@@ -281,6 +293,23 @@ class TwinPipelineOrchestrator {
   async extractAllPlatforms(userId, connectedPlatforms) {
     const results = await extractionOrchestrator.extractAllPlatforms(userId);
     return results;
+  }
+
+  /**
+   * Generate behavioral evidence from extracted features
+   * This creates research-backed evidence for personality inferences
+   */
+  async generateBehavioralEvidence(userId) {
+    try {
+      const result = await behavioralEvidencePipeline.runPipeline(userId);
+      return result;
+    } catch (error) {
+      console.error('[TwinPipeline] Evidence generation error:', error);
+      return {
+        success: false,
+        error: error.message
+      };
+    }
   }
 
   /**

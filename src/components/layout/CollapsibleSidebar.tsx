@@ -60,6 +60,12 @@ const mainNavItems: NavItem[] = [
     path: '/soul-signature'
   },
   {
+    id: 'ritual-music',
+    label: 'Ritual Music',
+    icon: Music,
+    path: '/ritual-music'
+  },
+  {
     id: 'chat',
     label: 'Chat with Twin',
     icon: MessageCircle,
@@ -339,11 +345,14 @@ export const CollapsibleSidebar: React.FC<CollapsibleSidebarProps> = ({
               </div>
               {isExpanded && (
                 <>
-                  <div className="flex-1 text-left">
+                  <div className="flex-1 text-left min-w-0">
                     <div className="text-sm font-medium text-sidebar-foreground truncate">
                       {user?.firstName || 'User'}
                     </div>
-                    <div className="text-xs text-sidebar-foreground opacity-60 truncate">
+                    <div
+                      className="text-xs text-sidebar-foreground opacity-60 truncate"
+                      title={user?.email}
+                    >
                       {user?.email}
                     </div>
                   </div>

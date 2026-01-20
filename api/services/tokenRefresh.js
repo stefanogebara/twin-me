@@ -103,8 +103,7 @@ const REFRESH_CONFIGS = {
       `grant_type=refresh_token&refresh_token=${refreshToken}&client_id=${clientId}&client_secret=${clientSecret}`
   },
 
-  // Whoop - requires client credentials in request BODY (not HTTP Basic Auth)
-  // See: https://developer.whoop.com/docs/developing/oauth/
+  // Whoop - requires client_secret_post (credentials in body, NOT Basic Auth)
   whoop: {
     tokenEndpoint: 'https://api.prod.whoop.com/oauth/oauth2/token',
     method: 'POST',
@@ -199,7 +198,7 @@ export async function refreshAccessToken(userId, provider) {
       .select('refresh_token, token_expires_at, access_token')
       .eq('user_id', userId)
       .eq('platform', provider)
-      .eq('connected', true)
+      .not('connected_at', 'is', null)
       .single();
 
     if (dbError || !connection) {
@@ -332,10 +331,10 @@ export async function getValidAccessToken(userId, provider) {
     const supabase = await getSupabaseClient();
     const { data: connection, error: dbError } = await supabase
       .from('platform_connections')
-      .select('access_token, token_expires_at, connected')
+      .select('access_token, token_expires_at, connected_at')
       .eq('user_id', userId)
       .eq('platform', provider)
-      .eq('connected', true)
+      .not('connected_at', 'is', null)
       .single();
 
     if (dbError || !connection) {

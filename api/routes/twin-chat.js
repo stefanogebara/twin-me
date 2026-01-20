@@ -4,6 +4,7 @@
  */
 
 import express from 'express';
+import axios from 'axios';
 import Anthropic from '@anthropic-ai/sdk';
 import { authenticateUser } from '../middleware/auth.js';
 import { serverDb, supabaseAdmin } from '../services/database.js';
@@ -102,6 +103,14 @@ Your role is to:
         prompt += `Sleep: ${platformData.whoop.sleep}
 `;
       }
+      if (platformData.whoop.hrv) {
+        prompt += `HRV: ${platformData.whoop.hrv}
+`;
+      }
+      if (platformData.whoop.restingHR) {
+        prompt += `Resting heart rate: ${platformData.whoop.restingHR}
+`;
+      }
     }
   }
 
@@ -143,6 +152,7 @@ async function getSoulSignature(userId) {
 
 /**
  * Fetch recent platform data for context
+ * First tries extracted_data table, then falls back to live API calls
  */
 async function getPlatformData(userId, platforms) {
   const data = {};
@@ -150,7 +160,7 @@ async function getPlatformData(userId, platforms) {
   for (const platform of platforms) {
     try {
       if (platform === 'spotify') {
-        // Get recent Spotify data from extracted_data table
+        // Try extracted_data first
         const { data: spotifyData } = await supabaseAdmin
           .from('extracted_data')
           .select('data')
@@ -166,11 +176,38 @@ async function getPlatformData(userId, platforms) {
             topArtists: spotifyData.data.topArtists?.slice(0, 5) || [],
             genres: spotifyData.data.genres?.slice(0, 5) || []
           };
+        } else {
+          // Fallback: Fetch live from Spotify API
+          try {
+            const token = await getValidAccessToken(userId, 'spotify');
+            if (token) {
+              const [recentRes, topRes] = await Promise.all([
+                axios.get('https://api.spotify.com/v1/me/player/recently-played?limit=5', {
+                  headers: { Authorization: `Bearer ${token}` }
+                }),
+                axios.get('https://api.spotify.com/v1/me/top/artists?limit=5&time_range=short_term', {
+                  headers: { Authorization: `Bearer ${token}` }
+                })
+              ]);
+
+              data.spotify = {
+                recentTracks: recentRes.data?.items?.map(item => ({
+                  name: item.track?.name,
+                  artist: item.track?.artists?.[0]?.name
+                })) || [],
+                topArtists: topRes.data?.items?.map(a => a.name) || [],
+                genres: topRes.data?.items?.flatMap(a => a.genres?.slice(0, 2) || []).slice(0, 5) || []
+              };
+              console.log('[Twin Chat] Fetched live Spotify data');
+            }
+          } catch (spotifyErr) {
+            console.warn('[Twin Chat] Could not fetch live Spotify data:', spotifyErr.message);
+          }
         }
       }
 
-      if (platform === 'calendar') {
-        // Get recent calendar events
+      if (platform === 'calendar' || platform === 'google_calendar') {
+        // Try extracted_data first
         const { data: calendarData } = await supabaseAdmin
           .from('extracted_data')
           .select('data')
@@ -185,11 +222,41 @@ async function getPlatformData(userId, platforms) {
             upcomingEvents: calendarData.data.events?.slice(0, 5) || [],
             patterns: calendarData.data.patterns || null
           };
+        } else {
+          // Fallback: Fetch live from Google Calendar API
+          try {
+            const token = await getValidAccessToken(userId, 'google_calendar');
+            if (token) {
+              const now = new Date().toISOString();
+              const weekFromNow = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
+              const calRes = await axios.get('https://www.googleapis.com/calendar/v3/calendars/primary/events', {
+                headers: { Authorization: `Bearer ${token}` },
+                params: {
+                  timeMin: now,
+                  timeMax: weekFromNow,
+                  maxResults: 10,
+                  singleEvents: true,
+                  orderBy: 'startTime'
+                }
+              });
+
+              data.calendar = {
+                upcomingEvents: calRes.data?.items?.map(e => ({
+                  summary: e.summary,
+                  start: e.start?.dateTime || e.start?.date
+                })).slice(0, 5) || [],
+                patterns: null
+              };
+              console.log('[Twin Chat] Fetched live Calendar data');
+            }
+          } catch (calErr) {
+            console.warn('[Twin Chat] Could not fetch live Calendar data:', calErr.message);
+          }
         }
       }
 
       if (platform === 'whoop') {
-        // Get recent Whoop data
+        // Try extracted_data first
         const { data: whoopData } = await supabaseAdmin
           .from('extracted_data')
           .select('data')
@@ -205,6 +272,48 @@ async function getPlatformData(userId, platforms) {
             strain: whoopData.data.strain,
             sleep: whoopData.data.sleep
           };
+        } else {
+          // Fallback: Fetch live from Whoop API
+          try {
+            const token = await getValidAccessToken(userId, 'whoop');
+            if (token) {
+              const headers = { Authorization: `Bearer ${token}` };
+              const [recoveryRes, sleepRes] = await Promise.all([
+                axios.get('https://api.prod.whoop.com/developer/v2/recovery?limit=1', { headers }),
+                axios.get('https://api.prod.whoop.com/developer/v2/activity/sleep?limit=5', { headers })
+              ]);
+
+              const latestRecovery = recoveryRes.data?.records?.[0];
+              const allSleeps = sleepRes.data?.records || [];
+
+              // Aggregate sleep from last 24 hours (main sleep + naps)
+              const now = new Date();
+              const yesterday = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+              const todaysSleeps = allSleeps.filter(s => new Date(s.end) >= yesterday);
+
+              let totalSleepMs = 0;
+              todaysSleeps.forEach(sleep => {
+                const stageSummary = sleep.score?.stage_summary || {};
+                totalSleepMs += sleep.score?.total_sleep_time_milli ||
+                               (stageSummary.total_in_bed_time_milli - (stageSummary.total_awake_time_milli || 0)) ||
+                               stageSummary.total_in_bed_time_milli || 0;
+              });
+
+              const sleepHours = totalSleepMs / (1000 * 60 * 60);
+              data.whoop = {
+                recovery: latestRecovery?.score?.recovery_score || null,
+                strain: latestRecovery?.score?.user_calibrating ? 'calibrating' : null,
+                sleep: sleepHours > 0 ? `${sleepHours.toFixed(1)} hours${todaysSleeps.length > 1 ? ` (incl. ${todaysSleeps.length - 1} nap${todaysSleeps.length > 2 ? 's' : ''})` : ''}` : null,
+                hrv: latestRecovery?.score?.hrv_rmssd_milli ?
+                  `${Math.round(latestRecovery.score.hrv_rmssd_milli)} ms` : null,
+                restingHR: latestRecovery?.score?.resting_heart_rate ?
+                  `${Math.round(latestRecovery.score.resting_heart_rate)} bpm` : null
+              };
+              console.log(`[Twin Chat] Fetched live Whoop data: ${sleepHours.toFixed(1)}h from ${todaysSleeps.length} sleep records`);
+            }
+          } catch (whoopErr) {
+            console.warn('[Twin Chat] Could not fetch live Whoop data:', whoopErr.message);
+          }
         }
       }
     } catch (err) {

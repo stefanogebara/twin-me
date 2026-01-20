@@ -19,6 +19,27 @@ import { useNavigate } from 'react-router-dom';
 import { getDemoSpotifyData } from '@/services/demoDataService';
 import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer, Cell, Tooltip as RechartsTooltip, PieChart as RechartsPie, Pie } from 'recharts';
 
+/**
+ * Format a timestamp into a human-readable relative time string
+ */
+function formatRelativeTime(timestamp: string): string {
+  const date = new Date(timestamp);
+  const now = new Date();
+  const diffMs = now.getTime() - date.getTime();
+  const diffMins = Math.floor(diffMs / 60000);
+  const diffHours = Math.floor(diffMs / 3600000);
+  const diffDays = Math.floor(diffMs / 86400000);
+
+  if (diffMins < 1) return 'Just now';
+  if (diffMins < 60) return `${diffMins}m ago`;
+  if (diffHours < 24) return `${diffHours}h ago`;
+  if (diffDays === 1) return 'Yesterday';
+  if (diffDays < 7) return `${diffDays}d ago`;
+
+  // For older dates, show the date
+  return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+}
+
 interface Reflection {
   id: string | null;
   text: string;
@@ -61,6 +82,20 @@ interface RecentTrack {
   name: string;
   artist: string;
   playedAt?: string;
+}
+
+/**
+ * Deduplicate tracks by name+artist, keeping only the most recent play
+ */
+function deduplicateTracks(tracks: RecentTrack[]): RecentTrack[] {
+  const seen = new Map<string, RecentTrack>();
+  for (const track of tracks) {
+    const key = `${track.name.toLowerCase()}|${track.artist.toLowerCase()}`;
+    if (!seen.has(key)) {
+      seen.set(key, track);
+    }
+  }
+  return Array.from(seen.values());
 }
 
 interface ArtistWithPlays {
@@ -419,7 +454,7 @@ const SpotifyInsightsPage: React.FC = () => {
             Recently Playing
           </h3>
           <div className="space-y-2">
-            {insights.recentTracks.slice(0, 5).map((track, index) => (
+            {deduplicateTracks(insights.recentTracks).slice(0, 5).map((track, index) => (
               <GlassPanel key={index} className="!p-3">
                 <div className="flex items-center gap-3">
                   <div
@@ -448,7 +483,7 @@ const SpotifyInsightsPage: React.FC = () => {
                     <div className="flex items-center gap-1 flex-shrink-0">
                       <Clock className="w-3 h-3" style={{ color: colors.textSecondary }} />
                       <span className="text-xs" style={{ color: colors.textSecondary }}>
-                        {track.playedAt}
+                        {formatRelativeTime(track.playedAt)}
                       </span>
                     </div>
                   )}
@@ -540,8 +575,9 @@ const SpotifyInsightsPage: React.FC = () => {
                       backgroundColor: theme === 'dark' ? '#1c1917' : '#ffffff',
                       border: 'none',
                       borderRadius: '8px',
-                      color: colors.text,
                     }}
+                    labelStyle={{ color: colors.text }}
+                    itemStyle={{ color: colors.text }}
                     formatter={(value: number) => [`${value}%`, 'Share']}
                   />
                 </RechartsPie>
@@ -593,8 +629,9 @@ const SpotifyInsightsPage: React.FC = () => {
                     backgroundColor: theme === 'dark' ? '#1c1917' : '#ffffff',
                     border: 'none',
                     borderRadius: '8px',
-                    color: colors.text,
                   }}
+                  labelStyle={{ color: colors.text }}
+                  itemStyle={{ color: colors.text }}
                   labelFormatter={(hour) => `${hour > 12 ? hour - 12 : hour}:00 ${hour >= 12 ? 'PM' : 'AM'}`}
                   formatter={(value: number) => [`${value} plays`, 'Activity']}
                 />

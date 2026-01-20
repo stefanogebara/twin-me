@@ -227,9 +227,10 @@ export const DataVerification: React.FC<DataVerificationProps> = ({ userId, conn
     );
   };
 
-  // Count only platforms that are connected AND have valid (non-expired) tokens
-  const connectedCount = Object.keys(platformStatuses).filter(p =>
-    platformStatuses[p].connected && !platformStatuses[p].tokenExpired
+  // Count only MVP platforms that are connected AND have valid (non-expired) tokens
+  const MVP_PLATFORMS = Object.keys(platformConfig);
+  const connectedCount = MVP_PLATFORMS.filter(p =>
+    platformStatuses[p]?.connected && !platformStatuses[p]?.tokenExpired
   ).length;
 
   return (

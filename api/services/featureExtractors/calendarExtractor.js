@@ -11,6 +11,10 @@
  * - Response time to invitations → Agreeableness (r=0.29)
  * - Event overlap/conflicts → Neuroticism (r=0.35)
  * - Work-life balance (work vs personal events) → Conscientiousness (r=0.31)
+ * - Time management score → Conscientiousness (r=0.375)
+ * - Social contact frequency → Extraversion (r=0.35)
+ * - Weekend activity pattern → Extraversion/Openness
+ * - Event diversity → Openness (r=0.30)
  */
 
 import { supabaseAdmin } from '../database.js';
@@ -121,6 +125,70 @@ class CalendarFeatureExtractor {
           contribution_weight: 0.28,
           description: 'Consistency in event duration scheduling',
           evidence: { correlation: 0.28 }
+        }));
+      }
+
+      // ==========================================
+      // NEW RESEARCH-BACKED FEATURES (2025)
+      // ==========================================
+
+      // 8. Time Management Score (Conscientiousness)
+      const timeManagement = this.calculateTimeManagementScore(events);
+      if (timeManagement !== null) {
+        features.push(this.createFeature(userId, 'time_management_score', timeManagement.value, {
+          contributes_to: 'conscientiousness',
+          contribution_weight: 0.375,
+          description: 'Overall time management effectiveness based on scheduling patterns',
+          evidence: { correlation: 0.375, citation: 'Marengo et al. (2023)' },
+          raw_value: timeManagement.rawValue
+        }));
+      }
+
+      // 9. Social Contact Frequency (Extraversion)
+      const socialContactFrequency = this.calculateSocialContactFrequency(events);
+      if (socialContactFrequency !== null) {
+        features.push(this.createFeature(userId, 'social_contact_frequency', socialContactFrequency.value, {
+          contributes_to: 'extraversion',
+          contribution_weight: 0.35,
+          description: 'Frequency of scheduled social interactions',
+          evidence: { correlation: 0.35, citation: 'Marengo et al. (2023)' },
+          raw_value: socialContactFrequency.rawValue
+        }));
+      }
+
+      // 10. Meeting Preparation Time (Conscientiousness) - matches correlation key
+      const meetingPrepTime = this.calculateMeetingPreparationTime(events);
+      if (meetingPrepTime !== null) {
+        features.push(this.createFeature(userId, 'meeting_preparation_time', meetingPrepTime.value, {
+          contributes_to: 'conscientiousness',
+          contribution_weight: 0.32,
+          description: 'Average time allocated before meetings for preparation',
+          evidence: { correlation: 0.32, citation: 'Personality research' },
+          raw_value: meetingPrepTime.rawValue
+        }));
+      }
+
+      // 11. Weekend Activity Pattern (Extraversion/Openness)
+      const weekendActivity = this.calculateWeekendActivityPattern(events);
+      if (weekendActivity !== null) {
+        features.push(this.createFeature(userId, 'weekend_activity_pattern', weekendActivity.value, {
+          contributes_to: 'extraversion',
+          contribution_weight: 0.28,
+          description: 'Activity level during weekends',
+          evidence: { correlation: 0.28, note: 'Active weekends = higher extraversion' },
+          raw_value: weekendActivity.rawValue
+        }));
+      }
+
+      // 12. Event Diversity (Openness)
+      const eventDiversity = this.calculateEventDiversity(events);
+      if (eventDiversity !== null) {
+        features.push(this.createFeature(userId, 'event_diversity', eventDiversity.value, {
+          contributes_to: 'openness',
+          contribution_weight: 0.30,
+          description: 'Variety in types of scheduled events',
+          evidence: { correlation: 0.30, citation: 'Personality calendar research' },
+          raw_value: eventDiversity.rawValue
         }));
       }
 
@@ -349,6 +417,301 @@ class CalendarFeatureExtractor {
     return Math.round(consistencyScore * 100) / 100;
   }
 
+  // ==========================================
+  // NEW RESEARCH-BACKED CALCULATION METHODS
+  // ==========================================
+
+  /**
+   * Calculate time management score
+   * Research: Marengo et al. (2023) - Conscientiousness r=0.375
+   */
+  calculateTimeManagementScore(events) {
+    if (events.length < 5) return null;
+
+    let score = 0;
+    let factors = 0;
+
+    // Factor 1: Events start on time (round numbers like :00, :30)
+    const punctualEvents = events.filter(e => {
+      const startMinute = new Date(e.start_time).getMinutes();
+      return startMinute === 0 || startMinute === 30 || startMinute === 15 || startMinute === 45;
+    }).length;
+    const punctualityScore = (punctualEvents / events.length) * 100;
+    score += punctualityScore;
+    factors++;
+
+    // Factor 2: Appropriate gaps between events (not too tight, not too loose)
+    const gaps = [];
+    for (let i = 1; i < events.length; i++) {
+      const prevEnd = new Date(events[i - 1].end_time);
+      const currStart = new Date(events[i].start_time);
+      const gapMinutes = (currStart - prevEnd) / (1000 * 60);
+      if (gapMinutes > 0 && gapMinutes < 480) {
+        gaps.push(gapMinutes);
+      }
+    }
+    if (gaps.length > 0) {
+      const avgGap = gaps.reduce((a, b) => a + b, 0) / gaps.length;
+      // Ideal gap: 15-60 minutes
+      const gapScore = avgGap >= 15 && avgGap <= 60 ? 100 :
+                       avgGap < 15 ? (avgGap / 15) * 100 :
+                       Math.max(0, 100 - ((avgGap - 60) / 120) * 100);
+      score += gapScore;
+      factors++;
+    }
+
+    // Factor 3: Low conflict rate
+    let conflicts = 0;
+    for (let i = 0; i < events.length; i++) {
+      for (let j = i + 1; j < events.length; j++) {
+        const start1 = new Date(events[i].start_time);
+        const end1 = new Date(events[i].end_time);
+        const start2 = new Date(events[j].start_time);
+        const end2 = new Date(events[j].end_time);
+        if (start1 < end2 && start2 < end1) conflicts++;
+      }
+    }
+    const conflictRate = conflicts / events.length;
+    const conflictScore = Math.max(0, 100 - conflictRate * 200);
+    score += conflictScore;
+    factors++;
+
+    // Factor 4: Consistent event duration
+    const durations = events.map(e => {
+      return (new Date(e.end_time) - new Date(e.start_time)) / (1000 * 60);
+    }).filter(d => d > 0 && d < 480);
+    if (durations.length > 3) {
+      const mean = durations.reduce((a, b) => a + b, 0) / durations.length;
+      const variance = durations.reduce((sum, d) => sum + Math.pow(d - mean, 2), 0) / durations.length;
+      const cv = Math.sqrt(variance) / mean;
+      const consistencyScore = Math.max(0, 100 - cv * 100);
+      score += consistencyScore;
+      factors++;
+    }
+
+    if (factors === 0) return null;
+
+    const finalScore = score / factors;
+
+    return {
+      value: Math.round(finalScore * 100) / 100,
+      rawValue: {
+        punctuality_percent: Math.round(punctualityScore),
+        conflict_count: conflicts,
+        events_analyzed: events.length
+      }
+    };
+  }
+
+  /**
+   * Calculate social contact frequency
+   * Research: Marengo et al. (2023) - Extraversion r=0.35
+   */
+  calculateSocialContactFrequency(events) {
+    // Count events with multiple attendees (social interactions)
+    const socialEvents = events.filter(e => {
+      const attendees = e.attendees || e.raw_data?.attendees || [];
+      return attendees.length > 1;
+    });
+
+    // Count events with titles suggesting social activity
+    const socialKeywords = ['coffee', 'lunch', 'dinner', 'drinks', 'party', 'birthday', 'happy hour',
+                           'team', 'catch up', '1:1', '1-on-1', 'one on one', 'social', 'networking'];
+    const socialTitleEvents = events.filter(e => {
+      const title = (e.title || e.summary || '').toLowerCase();
+      return socialKeywords.some(keyword => title.includes(keyword));
+    });
+
+    // Unique social events (combine both indicators)
+    const allSocialEventIds = new Set([
+      ...socialEvents.map(e => e.id || e.start_time),
+      ...socialTitleEvents.map(e => e.id || e.start_time)
+    ]);
+
+    const totalSocialEvents = allSocialEventIds.size;
+    const weeks = this.LOOKBACK_DAYS / 7;
+    const socialEventsPerWeek = totalSocialEvents / weeks;
+
+    // Normalize: 0-10+ social events per week = 0-100
+    const normalizedScore = Math.min(100, (socialEventsPerWeek / 10) * 100);
+
+    return {
+      value: Math.round(normalizedScore * 100) / 100,
+      rawValue: {
+        social_events_count: totalSocialEvents,
+        social_events_per_week: Math.round(socialEventsPerWeek * 10) / 10
+      }
+    };
+  }
+
+  /**
+   * Calculate meeting preparation time
+   * Similar to calculatePreparationTime but with rawValue output
+   */
+  calculateMeetingPreparationTime(events) {
+    const bufferTimes = [];
+
+    for (let i = 1; i < events.length; i++) {
+      const prevEvent = events[i - 1];
+      const currEvent = events[i];
+
+      // Check if current event is a meeting
+      const isMeeting = (currEvent.attendees || currEvent.raw_data?.attendees || []).length > 1 ||
+                        (currEvent.title || currEvent.summary || '').toLowerCase().includes('meeting');
+
+      if (!isMeeting) continue;
+
+      const prevEnd = new Date(prevEvent.end_time);
+      const currStart = new Date(currEvent.start_time);
+      const gapMinutes = (currStart - prevEnd) / (1000 * 60);
+
+      // Only consider same-day gaps (prep time, not overnight)
+      if (gapMinutes > 0 && gapMinutes < 480) {
+        bufferTimes.push(gapMinutes);
+      }
+    }
+
+    if (bufferTimes.length === 0) return null;
+
+    const avgBuffer = bufferTimes.reduce((sum, t) => sum + t, 0) / bufferTimes.length;
+
+    // Normalize: 0-60+ minutes = 0-100
+    const normalized = Math.min(100, (avgBuffer / 60) * 100);
+
+    return {
+      value: Math.round(normalized * 100) / 100,
+      rawValue: {
+        avg_prep_minutes: Math.round(avgBuffer),
+        meetings_with_buffer: bufferTimes.length
+      }
+    };
+  }
+
+  /**
+   * Calculate weekend activity pattern
+   * Research: Active weekends correlate with extraversion
+   */
+  calculateWeekendActivityPattern(events) {
+    const weekdayEvents = [];
+    const weekendEvents = [];
+
+    events.forEach(event => {
+      const dayOfWeek = new Date(event.start_time).getDay();
+      if (dayOfWeek === 0 || dayOfWeek === 6) {
+        weekendEvents.push(event);
+      } else {
+        weekdayEvents.push(event);
+      }
+    });
+
+    if (events.length < 5) return null;
+
+    // Calculate events per day for weekday vs weekend
+    const weekdayDays = (this.LOOKBACK_DAYS / 7) * 5;
+    const weekendDays = (this.LOOKBACK_DAYS / 7) * 2;
+
+    const weekdayDensity = weekdayEvents.length / weekdayDays;
+    const weekendDensity = weekendEvents.length / weekendDays;
+
+    // Ratio of weekend activity to weekday activity
+    // Higher ratio = more active weekends = higher extraversion
+    const activityRatio = weekdayDensity > 0 ? weekendDensity / weekdayDensity : 0;
+
+    // Also consider absolute weekend activity
+    const weekendEventsPerDay = weekendDensity;
+
+    // Combine: weighted by ratio and absolute activity
+    const activityScore = Math.min(100, (activityRatio * 50) + (weekendEventsPerDay * 25));
+
+    return {
+      value: Math.round(activityScore * 100) / 100,
+      rawValue: {
+        weekend_events: weekendEvents.length,
+        weekday_events: weekdayEvents.length,
+        weekend_weekday_ratio: Math.round(activityRatio * 100) / 100
+      }
+    };
+  }
+
+  /**
+   * Calculate event diversity
+   * Research: Variety in events correlates with openness
+   */
+  calculateEventDiversity(events) {
+    if (events.length < 5) return null;
+
+    // Classify events into categories based on title/type
+    const categories = {
+      work_meeting: 0,
+      social: 0,
+      exercise: 0,
+      learning: 0,
+      personal: 0,
+      travel: 0,
+      entertainment: 0,
+      health: 0,
+      other: 0
+    };
+
+    events.forEach(event => {
+      const title = (event.title || event.summary || '').toLowerCase();
+      const type = event.event_type || '';
+
+      if (title.includes('meeting') || title.includes('standup') || title.includes('sync') || type === 'meeting') {
+        categories.work_meeting++;
+      } else if (title.includes('gym') || title.includes('workout') || title.includes('run') ||
+                 title.includes('yoga') || title.includes('exercise') || title.includes('fitness')) {
+        categories.exercise++;
+      } else if (title.includes('lunch') || title.includes('dinner') || title.includes('party') ||
+                 title.includes('drinks') || title.includes('coffee') || title.includes('birthday')) {
+        categories.social++;
+      } else if (title.includes('class') || title.includes('course') || title.includes('learn') ||
+                 title.includes('study') || title.includes('training') || title.includes('workshop')) {
+        categories.learning++;
+      } else if (title.includes('flight') || title.includes('hotel') || title.includes('trip') ||
+                 title.includes('vacation') || title.includes('travel')) {
+        categories.travel++;
+      } else if (title.includes('movie') || title.includes('concert') || title.includes('show') ||
+                 title.includes('game') || title.includes('play')) {
+        categories.entertainment++;
+      } else if (title.includes('doctor') || title.includes('dentist') || title.includes('therapy') ||
+                 title.includes('appointment') || title.includes('checkup')) {
+        categories.health++;
+      } else if (title.length > 0) {
+        categories.personal++;
+      } else {
+        categories.other++;
+      }
+    });
+
+    // Calculate Shannon entropy for diversity
+    const total = events.length;
+    let entropy = 0;
+    const usedCategories = Object.values(categories).filter(c => c > 0);
+
+    usedCategories.forEach(count => {
+      const p = count / total;
+      if (p > 0) entropy -= p * Math.log2(p);
+    });
+
+    // Normalize: max entropy = log2(9 categories) ≈ 3.17
+    const maxEntropy = Math.log2(Object.keys(categories).length);
+    const diversityScore = (entropy / maxEntropy) * 100;
+
+    // Bonus for having many categories represented
+    const categoryBonus = Math.min(30, usedCategories.length * 5);
+    const finalScore = Math.min(100, diversityScore * 0.7 + categoryBonus);
+
+    return {
+      value: Math.round(finalScore * 100) / 100,
+      rawValue: {
+        categories_used: usedCategories.length,
+        top_category: Object.entries(categories).sort((a, b) => b[1] - a[1])[0][0],
+        entropy: Math.round(entropy * 100) / 100
+      }
+    };
+  }
+
   /**
    * Create standardized feature object
    */
@@ -367,7 +730,8 @@ class CalendarFeatureExtractor {
         description: metadata.description,
         correlation: metadata.evidence?.correlation,
         citation: metadata.evidence?.citation,
-        note: metadata.evidence?.note
+        note: metadata.evidence?.note,
+        raw_value: metadata.raw_value || null
       }
     };
   }

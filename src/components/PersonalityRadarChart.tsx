@@ -59,7 +59,7 @@ export function PersonalityRadarChart({
   };
 
   const center = size / 2;
-  const radius = size * 0.35; // Leave room for labels
+  const radius = size * 0.28; // Smaller radius to leave more room for labels
   const n = scores.length;
   const angleStep = (2 * Math.PI) / n;
 
@@ -72,8 +72,9 @@ export function PersonalityRadarChart({
       return {
         x: center + r * Math.cos(angle),
         y: center + r * Math.sin(angle),
-        labelX: center + (radius + 30) * Math.cos(angle),
-        labelY: center + (radius + 30) * Math.sin(angle),
+        // Increased label distance to prevent cutoff
+        labelX: center + (radius + 45) * Math.cos(angle),
+        labelY: center + (radius + 45) * Math.sin(angle),
         score,
         angle,
       };
@@ -95,7 +96,7 @@ export function PersonalityRadarChart({
   const fillColor = scores[0]?.color || DEFAULT_COLORS[0];
 
   return (
-    <div className="flex flex-col items-center">
+    <div className="flex flex-col items-center" style={{ padding: '20px', overflow: 'visible' }}>
       {/* Title */}
       {title && (
         <div className="text-center mb-4">
@@ -113,7 +114,7 @@ export function PersonalityRadarChart({
         </div>
       )}
 
-      <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
+      <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} style={{ overflow: 'visible' }}>
         {/* Grid circles */}
         {gridCircles.map((percent) => (
           <circle

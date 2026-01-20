@@ -16,6 +16,11 @@
  * - HRV variability -> Neuroticism (r=-0.35)
  * - Strain tolerance -> Extraversion (r=0.40)
  * - Workout frequency -> Extraversion (r=0.38)
+ * - Sleep quality PSQI -> Neuroticism (r=0.287)
+ * - Morningness/eveningness -> Conscientiousness (r=0.29)
+ * - Heart rate recovery -> Neuroticism (r=-0.33)
+ * - HIIT preference -> Extraversion (r=0.42)
+ * - Workout bout duration -> Conscientiousness (r=0.25)
  *
  * Based on research correlating physiological metrics with personality:
  * - Jonassaint et al. (2009): HRV and personality
@@ -300,6 +305,106 @@ class WhoopFeatureExtractor {
           contribution_weight: 0.35,
           description: 'Frequency of sleep disturbances (lower = better)',
           evidence: { correlation: 0.35, note: 'More disturbances = higher neuroticism' }
+        }));
+      }
+
+      // ==========================================
+      // NEW RESEARCH-BACKED FEATURES (2025)
+      // ==========================================
+
+      // 21. Sleep Quality PSQI (Neuroticism)
+      const sleepQualityPsqi = this.calculateSleepQualityPSQI(whoopData.sleepData, whoopData.recoveries);
+      if (sleepQualityPsqi !== null) {
+        features.push(this.createFeature(userId, 'sleep_quality_psqi', sleepQualityPsqi.value, {
+          contributes_to: 'neuroticism',
+          contribution_weight: 0.287,
+          description: 'Overall sleep quality based on PSQI-like metrics',
+          evidence: { correlation: 0.287, citation: 'Wang et al. (2025) meta-analysis' },
+          raw_value: sleepQualityPsqi.rawValue
+        }));
+      }
+
+      // 22. Morningness/Eveningness (Conscientiousness)
+      const morningnessEveningness = this.calculateMorningnessEveningness(whoopData.sleepData);
+      if (morningnessEveningness !== null) {
+        features.push(this.createFeature(userId, 'morningness_eveningness', morningnessEveningness.value, {
+          contributes_to: 'conscientiousness',
+          contribution_weight: 0.29,
+          description: 'Chronotype - morning larks vs night owls',
+          evidence: { correlation: 0.29, citation: 'Randler et al. (2017) meta-analysis', note: 'Higher = more morning-type = higher conscientiousness' },
+          raw_value: morningnessEveningness.rawValue
+        }));
+      }
+
+      // 23. Sleep Duration Variability (Conscientiousness - negative)
+      const sleepDurationVariability = this.calculateSleepDurationVariability(whoopData.sleepData);
+      if (sleepDurationVariability !== null) {
+        features.push(this.createFeature(userId, 'sleep_duration_variability', sleepDurationVariability.value, {
+          contributes_to: 'conscientiousness',
+          contribution_weight: -0.25,
+          description: 'Variability in sleep duration across nights',
+          evidence: { correlation: -0.25, note: 'Higher variability = lower conscientiousness' },
+          raw_value: sleepDurationVariability.rawValue
+        }));
+      }
+
+      // 24. Heart Rate Recovery (Neuroticism - negative)
+      const heartRateRecovery = this.calculateHeartRateRecovery(whoopData.workouts);
+      if (heartRateRecovery !== null) {
+        features.push(this.createFeature(userId, 'heart_rate_recovery', heartRateRecovery.value, {
+          contributes_to: 'neuroticism',
+          contribution_weight: -0.33,
+          description: 'How quickly HR returns to baseline after exercise',
+          evidence: { correlation: -0.33, citation: 'UCL (2025)', note: 'Better recovery = lower neuroticism' },
+          raw_value: heartRateRecovery.rawValue
+        }));
+      }
+
+      // 25. HIIT Preference (Extraversion)
+      const hiitPreference = this.calculateHIITPreference(whoopData.workouts);
+      if (hiitPreference !== null) {
+        features.push(this.createFeature(userId, 'hiit_preference', hiitPreference.value, {
+          contributes_to: 'extraversion',
+          contribution_weight: 0.42,
+          description: 'Preference for high-intensity interval training',
+          evidence: { correlation: 0.42, citation: 'Rhodes & Pfaeffli (2010)' },
+          raw_value: hiitPreference.rawValue
+        }));
+      }
+
+      // 26. Physical Activity Level (Extraversion)
+      const physicalActivityLevel = this.calculatePhysicalActivityLevel(whoopData.cycles, whoopData.workouts);
+      if (physicalActivityLevel !== null) {
+        features.push(this.createFeature(userId, 'physical_activity_level', physicalActivityLevel.value, {
+          contributes_to: 'extraversion',
+          contribution_weight: 0.33,
+          description: 'Overall physical activity level',
+          evidence: { correlation: 0.33, citation: 'Rhodes & Smith (2006)' },
+          raw_value: physicalActivityLevel.rawValue
+        }));
+      }
+
+      // 27. Workout Bout Duration (Conscientiousness)
+      const workoutBoutDuration = this.calculateWorkoutBoutDuration(whoopData.workouts);
+      if (workoutBoutDuration !== null) {
+        features.push(this.createFeature(userId, 'workout_bout_duration', workoutBoutDuration.value, {
+          contributes_to: 'conscientiousness',
+          contribution_weight: 0.25,
+          description: 'Average duration of workout sessions',
+          evidence: { correlation: 0.25, citation: 'Rhodes & Smith (2006)' },
+          raw_value: workoutBoutDuration.rawValue
+        }));
+      }
+
+      // 28. Stress Response Pattern (Neuroticism)
+      const stressResponsePattern = this.calculateStressResponsePattern(whoopData.recoveries, whoopData.cycles);
+      if (stressResponsePattern !== null) {
+        features.push(this.createFeature(userId, 'stress_response_pattern', stressResponsePattern.value, {
+          contributes_to: 'neuroticism',
+          contribution_weight: 0.30,
+          description: 'How the body responds to stress based on recovery patterns',
+          evidence: { correlation: 0.30, note: 'Higher reactivity = higher neuroticism' },
+          raw_value: stressResponsePattern.rawValue
         }));
       }
 
@@ -898,6 +1003,413 @@ class WhoopFeatureExtractor {
     return Math.round(score * 100) / 100;
   }
 
+  // ==========================================
+  // NEW RESEARCH-BACKED CALCULATION METHODS
+  // ==========================================
+
+  /**
+   * Calculate sleep quality using PSQI-like components
+   * Research: Wang et al. (2025) - Neuroticism r=0.287
+   */
+  calculateSleepQualityPSQI(sleepData, recoveries) {
+    if (!sleepData || sleepData.length < 5) return null;
+
+    // PSQI components approximated from Whoop data:
+    // 1. Sleep efficiency
+    // 2. Sleep duration
+    // 3. Sleep latency (time to fall asleep)
+    // 4. Sleep disturbances
+    // 5. Subjective quality (use recovery score as proxy)
+
+    let efficiencySum = 0, durationSum = 0, disturbanceSum = 0;
+    let efficiencyCount = 0, durationCount = 0, disturbanceCount = 0;
+
+    sleepData.forEach(s => {
+      const efficiency = s.score?.sleep_efficiency_percentage;
+      const duration = s.score?.total_sleep_time_milli;
+      const disturbances = s.score?.disturbance_count ?? s.score?.stage_summary?.disturbance_count;
+
+      if (efficiency !== undefined) { efficiencySum += efficiency; efficiencyCount++; }
+      if (duration !== undefined) { durationSum += duration / (1000 * 60 * 60); durationCount++; } // Convert to hours
+      if (disturbances !== undefined) { disturbanceSum += disturbances; disturbanceCount++; }
+    });
+
+    // Get recovery scores as quality proxy
+    let recoverySum = 0, recoveryCount = 0;
+    if (recoveries) {
+      recoveries.forEach(r => {
+        const score = r.score?.recovery_score;
+        if (score !== undefined) { recoverySum += score; recoveryCount++; }
+      });
+    }
+
+    // Calculate component scores (each 0-100)
+    const efficiencyScore = efficiencyCount > 0 ? efficiencySum / efficiencyCount : 50;
+    const durationScore = durationCount > 0 ? Math.min(100, (durationSum / durationCount / 8) * 100) : 50;
+    const disturbanceScore = disturbanceCount > 0 ? Math.max(0, 100 - (disturbanceSum / disturbanceCount * 10)) : 50;
+    const qualityScore = recoveryCount > 0 ? recoverySum / recoveryCount : 50;
+
+    // Composite PSQI-like score (higher = better sleep = LOWER neuroticism)
+    // Note: Original PSQI is inverse (higher = worse), so we invert
+    const psqiScore = (efficiencyScore * 0.3 + durationScore * 0.2 + disturbanceScore * 0.25 + qualityScore * 0.25);
+
+    // Invert for neuroticism correlation (higher PSQI issues = higher neuroticism)
+    const invertedScore = 100 - psqiScore;
+
+    return {
+      value: Math.round(invertedScore * 100) / 100,
+      rawValue: {
+        avg_efficiency: Math.round(efficiencyScore),
+        avg_duration_hours: durationCount > 0 ? Math.round((durationSum / durationCount) * 10) / 10 : null,
+        avg_disturbances: disturbanceCount > 0 ? Math.round(disturbanceSum / disturbanceCount) : null
+      }
+    };
+  }
+
+  /**
+   * Calculate morningness/eveningness (chronotype)
+   * Research: Randler et al. (2017) - Conscientiousness r=0.29
+   */
+  calculateMorningnessEveningness(sleepData) {
+    if (!sleepData || sleepData.length < 7) return null;
+
+    const bedtimes = [];
+    const waketimes = [];
+
+    sleepData.forEach(s => {
+      if (s.start && s.end) {
+        const bedtime = new Date(s.start);
+        const waketime = new Date(s.end);
+
+        // Convert to minutes from midnight
+        const bedMinutes = bedtime.getHours() * 60 + bedtime.getMinutes();
+        const wakeMinutes = waketime.getHours() * 60 + waketime.getMinutes();
+
+        // Adjust for late-night bedtimes (after midnight = next day)
+        bedtimes.push(bedMinutes < 180 ? bedMinutes + 1440 : bedMinutes); // Before 3am = previous night
+        waketimes.push(wakeMinutes);
+      }
+    });
+
+    if (bedtimes.length < 7 || waketimes.length < 7) return null;
+
+    const avgBedtime = bedtimes.reduce((a, b) => a + b, 0) / bedtimes.length;
+    const avgWaketime = waketimes.reduce((a, b) => a + b, 0) / waketimes.length;
+
+    // Calculate midpoint of sleep (chronotype indicator)
+    const avgSleepDuration = sleepData
+      .filter(s => s.score?.total_sleep_time_milli)
+      .map(s => s.score.total_sleep_time_milli / (1000 * 60))
+      .reduce((a, b, _, arr) => a + b / arr.length, 0);
+
+    const midpointMinutes = avgBedtime + (avgSleepDuration / 2);
+
+    // Morningness score: earlier midpoint = higher score
+    // 2:00 AM (120 min + 1440 = 1560) midpoint = extreme evening type (0)
+    // 3:00 AM (180 min + 1440 = 1620) midpoint = evening type (25)
+    // 4:00 AM (240 min + 1440 = 1680 OR 240) midpoint = intermediate (50)
+    // 5:00 AM (300 min) midpoint = morning type (75)
+    // 6:00 AM (360 min) midpoint = extreme morning type (100)
+
+    // Normalize midpoint (accounting for wraparound)
+    const normalizedMidpoint = midpointMinutes > 1440 ? midpointMinutes - 1440 : midpointMinutes;
+
+    // Score: 360 min (6am) = 100, 180 min (3am) = 0
+    const morningnessScore = Math.max(0, Math.min(100, ((360 - normalizedMidpoint) / 180 + 1) * 50));
+
+    return {
+      value: Math.round(morningnessScore * 100) / 100,
+      rawValue: {
+        avg_bedtime_minutes: Math.round(avgBedtime > 1440 ? avgBedtime - 1440 : avgBedtime),
+        avg_waketime_minutes: Math.round(avgWaketime),
+        sleep_midpoint_minutes: Math.round(normalizedMidpoint)
+      }
+    };
+  }
+
+  /**
+   * Calculate sleep duration variability
+   * Research: Higher variability correlates with lower conscientiousness
+   */
+  calculateSleepDurationVariability(sleepData) {
+    if (!sleepData || sleepData.length < 7) return null;
+
+    const durations = sleepData
+      .map(s => s.score?.total_sleep_time_milli)
+      .filter(d => d !== undefined && d !== null)
+      .map(d => d / (1000 * 60 * 60)); // Convert to hours
+
+    if (durations.length < 7) return null;
+
+    const avg = durations.reduce((a, b) => a + b, 0) / durations.length;
+    const variance = durations.reduce((sum, d) => sum + Math.pow(d - avg, 2), 0) / durations.length;
+    const stdDev = Math.sqrt(variance);
+    const cv = (stdDev / avg) * 100; // Coefficient of variation
+
+    // Normalize: CV of 0% = 0 (no variability), CV of 30%+ = 100 (high variability)
+    const variabilityScore = Math.min(100, (cv / 30) * 100);
+
+    return {
+      value: Math.round(variabilityScore * 100) / 100,
+      rawValue: {
+        std_dev_hours: Math.round(stdDev * 100) / 100,
+        coefficient_of_variation: Math.round(cv * 10) / 10
+      }
+    };
+  }
+
+  /**
+   * Calculate heart rate recovery after exercise
+   * Research: UCL (2025) - Neuroticism r=-0.33
+   */
+  calculateHeartRateRecovery(workouts) {
+    if (!workouts || workouts.length < 3) return null;
+
+    // Heart rate recovery is inferred from:
+    // 1. Max HR during workout vs average HR
+    // 2. Zone 5 time relative to total time
+
+    const recoveryScores = workouts.map(w => {
+      const maxHR = w.score?.max_heart_rate;
+      const avgHR = w.score?.average_heart_rate;
+      const zones = w.score?.zone_duration;
+
+      if (maxHR && avgHR && maxHR > avgHR) {
+        // Recovery proxy: how quickly HR drops from max
+        // Larger difference suggests better recovery capacity
+        const hrRange = maxHR - avgHR;
+        const recoveryProxy = Math.min(100, (hrRange / 50) * 100);
+        return recoveryProxy;
+      }
+
+      // Alternative: if zone data available, less zone 5 time = better recovery
+      if (zones) {
+        const totalTime = (zones.zone_one_milli || 0) + (zones.zone_two_milli || 0) +
+                          (zones.zone_three_milli || 0) + (zones.zone_four_milli || 0) +
+                          (zones.zone_five_milli || 0);
+        const zone5Ratio = totalTime > 0 ? (zones.zone_five_milli || 0) / totalTime : 0;
+
+        // Less time in zone 5 relative to workout = better recovery
+        return Math.max(0, 100 - (zone5Ratio * 200));
+      }
+
+      return null;
+    }).filter(s => s !== null);
+
+    if (recoveryScores.length < 3) return null;
+
+    const avgRecovery = recoveryScores.reduce((a, b) => a + b, 0) / recoveryScores.length;
+
+    return {
+      value: Math.round(avgRecovery * 100) / 100,
+      rawValue: { sample_workouts: recoveryScores.length }
+    };
+  }
+
+  /**
+   * Calculate HIIT preference
+   * Research: Rhodes & Pfaeffli (2010) - Extraversion r=0.42
+   */
+  calculateHIITPreference(workouts) {
+    if (!workouts || workouts.length < 3) return null;
+
+    // HIIT indicators:
+    // 1. High time in zones 4-5
+    // 2. High strain relative to duration
+    // 3. Sport types that are HIIT-oriented (e.g., CrossFit, HIIT, cycling intervals)
+
+    const hiitScores = workouts.map(w => {
+      const zones = w.score?.zone_duration;
+      const strain = w.score?.strain;
+      const sportId = w.sport_id;
+
+      let score = 0;
+      let factors = 0;
+
+      // Zone distribution (high zones 4-5 = HIIT)
+      if (zones) {
+        const totalTime = (zones.zone_one_milli || 0) + (zones.zone_two_milli || 0) +
+                          (zones.zone_three_milli || 0) + (zones.zone_four_milli || 0) +
+                          (zones.zone_five_milli || 0);
+        if (totalTime > 0) {
+          const highIntensityRatio = ((zones.zone_four_milli || 0) + (zones.zone_five_milli || 0)) / totalTime;
+          score += highIntensityRatio * 100;
+          factors++;
+        }
+      }
+
+      // Strain per hour (high = HIIT)
+      if (strain && w.start && w.end) {
+        const durationHours = (new Date(w.end) - new Date(w.start)) / (1000 * 60 * 60);
+        if (durationHours > 0) {
+          const strainPerHour = strain / durationHours;
+          // Normalize: 10+ strain per hour = high HIIT
+          score += Math.min(100, (strainPerHour / 10) * 100);
+          factors++;
+        }
+      }
+
+      // Sport type bonus (HIIT-oriented sports)
+      // Common HIIT sport IDs: 63 (HIIT), 1 (Running), 63 (CrossFit)
+      const hiitSportIds = [1, 63, 82, 71]; // Running, HIIT, CrossFit, Cycling
+      if (hiitSportIds.includes(sportId)) {
+        score += 30;
+        factors++;
+      }
+
+      return factors > 0 ? score / factors : null;
+    }).filter(s => s !== null);
+
+    if (hiitScores.length < 3) return null;
+
+    const avgHiit = hiitScores.reduce((a, b) => a + b, 0) / hiitScores.length;
+
+    // Count workouts that qualify as HIIT (score > 50)
+    const hiitCount = hiitScores.filter(s => s > 50).length;
+    const hiitPercent = Math.round((hiitCount / hiitScores.length) * 100);
+
+    return {
+      value: Math.round(avgHiit * 100) / 100,
+      rawValue: {
+        hiit_percent: hiitPercent,
+        hiit_workouts: hiitCount,
+        total_workouts: hiitScores.length
+      }
+    };
+  }
+
+  /**
+   * Calculate overall physical activity level
+   * Research: Rhodes & Smith (2006) - Extraversion r=0.33
+   */
+  calculatePhysicalActivityLevel(cycles, workouts) {
+    let activityScore = 0;
+    let factors = 0;
+
+    // Factor 1: Average daily strain
+    if (cycles && cycles.length >= 5) {
+      const strainValues = cycles
+        .map(c => c.score?.strain)
+        .filter(s => s !== undefined && s !== null);
+
+      if (strainValues.length >= 5) {
+        const avgStrain = strainValues.reduce((a, b) => a + b, 0) / strainValues.length;
+        // Normalize: 0-21 strain to 0-100
+        activityScore += (avgStrain / 21) * 100;
+        factors++;
+      }
+    }
+
+    // Factor 2: Workout frequency
+    if (workouts && workouts.length >= 1) {
+      const workoutsPerWeek = (workouts.length / 30) * 7;
+      // Normalize: 7 workouts/week = 100
+      activityScore += Math.min(100, (workoutsPerWeek / 7) * 100);
+      factors++;
+    }
+
+    // Factor 3: Average daily calories
+    if (cycles && cycles.length >= 5) {
+      const calories = cycles
+        .map(c => c.score?.kilojoule)
+        .filter(k => k !== undefined && k !== null);
+
+      if (calories.length >= 5) {
+        const avgKcal = (calories.reduce((a, b) => a + b, 0) / calories.length) / 4.184;
+        // Normalize: 2000-3500 kcal to 0-100
+        activityScore += Math.max(0, Math.min(100, ((avgKcal - 1500) / 2000) * 100));
+        factors++;
+      }
+    }
+
+    if (factors === 0) return null;
+
+    const finalScore = activityScore / factors;
+
+    return {
+      value: Math.round(finalScore * 100) / 100,
+      rawValue: { factors_used: factors }
+    };
+  }
+
+  /**
+   * Calculate average workout bout duration
+   * Research: Rhodes & Smith (2006) - Conscientiousness r=0.25
+   */
+  calculateWorkoutBoutDuration(workouts) {
+    if (!workouts || workouts.length < 3) return null;
+
+    const durations = workouts
+      .filter(w => w.start && w.end)
+      .map(w => (new Date(w.end) - new Date(w.start)) / (1000 * 60)); // Duration in minutes
+
+    if (durations.length < 3) return null;
+
+    const avgDuration = durations.reduce((a, b) => a + b, 0) / durations.length;
+
+    // Normalize: 30-90 minutes = optimal range (50-100)
+    // <30 min = 0-50, >90 min = 100
+    let durationScore;
+    if (avgDuration < 30) {
+      durationScore = (avgDuration / 30) * 50;
+    } else if (avgDuration <= 90) {
+      durationScore = 50 + ((avgDuration - 30) / 60) * 50;
+    } else {
+      durationScore = 100;
+    }
+
+    return {
+      value: Math.round(durationScore * 100) / 100,
+      rawValue: {
+        avg_duration: Math.round(avgDuration),
+        workout_count: durations.length
+      }
+    };
+  }
+
+  /**
+   * Calculate stress response pattern from HRV and recovery
+   * Research: Higher stress reactivity correlates with neuroticism
+   */
+  calculateStressResponsePattern(recoveries, cycles) {
+    if (!recoveries || recoveries.length < 7 || !cycles || cycles.length < 7) return null;
+
+    // Stress response = how much HRV drops after high-strain days
+    const hrvValues = recoveries
+      .map(r => ({ hrv: r.score?.hrv_rmssd_milli, date: r.start || r.created_at }))
+      .filter(h => h.hrv !== undefined && h.hrv !== null);
+
+    const strainValues = cycles
+      .map(c => ({ strain: c.score?.strain, date: c.start || c.created_at }))
+      .filter(s => s.strain !== undefined && s.strain !== null);
+
+    if (hrvValues.length < 7 || strainValues.length < 7) return null;
+
+    // Calculate HRV drops after high-strain days
+    const avgStrain = strainValues.reduce((sum, s) => sum + s.strain, 0) / strainValues.length;
+    const avgHRV = hrvValues.reduce((sum, h) => sum + h.hrv, 0) / hrvValues.length;
+
+    // Count days where strain was above average
+    const highStrainDays = strainValues.filter(s => s.strain > avgStrain).length;
+    const highStrainRatio = highStrainDays / strainValues.length;
+
+    // Calculate HRV coefficient of variation (stress reactivity indicator)
+    const hrvCV = Math.sqrt(
+      hrvValues.reduce((sum, h) => sum + Math.pow(h.hrv - avgHRV, 2), 0) / hrvValues.length
+    ) / avgHRV * 100;
+
+    // Stress response score: higher CV + lower recovery after strain = higher stress reactivity
+    const stressReactivity = Math.min(100, hrvCV * 2 + (highStrainRatio * 20));
+
+    return {
+      value: Math.round(stressReactivity * 100) / 100,
+      rawValue: {
+        hrv_cv_percent: Math.round(hrvCV * 10) / 10,
+        high_strain_days_ratio: Math.round(highStrainRatio * 100)
+      }
+    };
+  }
+
   /**
    * Create standardized feature object
    */
@@ -916,7 +1428,8 @@ class WhoopFeatureExtractor {
         description: metadata.description,
         correlation: metadata.evidence?.correlation,
         citation: metadata.evidence?.citation,
-        note: metadata.evidence?.note
+        note: metadata.evidence?.note,
+        raw_value: metadata.raw_value || null
       }
     };
   }

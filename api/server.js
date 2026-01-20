@@ -16,6 +16,7 @@ import { startBackgroundJobs, stopBackgroundJobs } from './services/tokenLifecyc
 import { startPatternLearningJob, stopPatternLearningJob } from './services/patternLearningJob.js';
 import { startTokenExpiryNotifier, stopTokenExpiryNotifier } from './services/tokenExpiryNotifier.js';
 import { initializeRateLimiter, shutdownRateLimiter } from './middleware/oauthRateLimiter.js';
+import behavioralEvidencePipeline from './services/behavioralEvidencePipeline.js';
 
 // Only use dotenv in development - Vercel provides env vars directly
 // Updated: Fixed SUPABASE_SERVICE_ROLE_KEY truncation issue
@@ -94,8 +95,8 @@ app.use(cors({
       return callback(null, true);
     }
 
-    // In development, allow localhost on any port
-    if (process.env.NODE_ENV === 'development' && origin.startsWith('http://localhost:')) {
+    // In development, allow localhost and 127.0.0.1 on any port
+    if (process.env.NODE_ENV === 'development' && (origin.startsWith('http://localhost:') || origin.startsWith('http://127.0.0.1:'))) {
       return callback(null, true);
     }
 
@@ -223,6 +224,7 @@ import mcpRoutes from './routes/mcp.js';
 import entertainmentRoutes from './routes/entertainment-connectors.js';
 import additionalEntertainmentRoutes from './routes/additional-entertainment-connectors.js';
 import healthRoutes from './routes/health-connectors.js';
+import wearableRoutes from './routes/wearable-connectors.js';
 import soulExtractionRoutes from './routes/soul-extraction.js';
 import soulDataRoutes from './routes/soul-data.js';
 import soulMatchingRoutes from './routes/soul-matching.js';
@@ -261,6 +263,8 @@ import twinPipelineRoutes from './routes/twin-pipeline.js';
 import notificationsRoutes from './routes/notifications.js';
 import whoopWebhooksRoutes from './routes/whoop-webhooks.js';
 import extractionStatusRoutes from './routes/extraction-status.js';
+import researchRAGRoutes from './routes/research-rag.js';
+import personalityInferenceRoutes from './routes/personality-inference.js';
 import { serverDb } from './services/database.js';
 import { sanitizeInput, validateContentType } from './middleware/sanitization.js';
 import { /* handleAuthError, */ handleGeneralError, handle404 } from './middleware/errorHandler.js';
@@ -282,6 +286,7 @@ app.use('/api/mcp', mcpRoutes);
 app.use('/api/entertainment', entertainmentRoutes);
 app.use('/api/entertainment', additionalEntertainmentRoutes);
 app.use('/api/health', healthRoutes);
+app.use('/api/wearables', wearableRoutes);
 app.use('/api/soul', soulExtractionRoutes);
 app.use('/api/soul-data', soulDataRoutes);
 app.use('/api/soul-matching', soulMatchingRoutes);
@@ -322,6 +327,8 @@ app.use('/api/twin', twinPipelineRoutes); // Twin formation pipeline (form, stat
 app.use('/api/extraction', extractionStatusRoutes); // Extraction status and job history
 app.use('/api/notifications', notificationsRoutes); // User notifications (token expiry, sync issues)
 app.use('/api/webhooks/whoop', whoopWebhooksRoutes); // Whoop push notifications (recovery, sleep, workout)
+app.use('/api/research-rag', researchRAGRoutes); // Research paper RAG for evidence-backed personality inference
+app.use('/api/personality-inference', personalityInferenceRoutes); // Multi-agent personality inference pipeline
 
 // Vercel Cron Job endpoints (production automation)
 // These are called by Vercel Cron Jobs on schedule (configured in vercel.json)
@@ -342,6 +349,19 @@ app.get('/api/health', async (req, res) => {
       error: dbHealth.error?.message || null
     }
   });
+});
+
+// TEMPORARY: Test endpoint to trigger evidence pipeline (for debugging)
+app.get('/api/test-evidence-pipeline/:userId', async (req, res) => {
+  try {
+    const { userId } = req.params;
+    console.log(`🧪 [Test] Triggering evidence pipeline for user ${userId}`);
+    const result = await behavioralEvidencePipeline.runPipeline(userId);
+    res.json(result);
+  } catch (error) {
+    console.error('Test pipeline error:', error);
+    res.status(500).json({ error: error.message });
+  }
 });
 
 // Authentication error handling (must be before general error handler)
@@ -468,4 +488,7 @@ if (process.env.NODE_ENV !== 'production') {
 }
 
 export default app;
+
+
+
 

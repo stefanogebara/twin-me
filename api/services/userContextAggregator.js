@@ -143,6 +143,8 @@ class UserContextAggregator {
       let recovery = null;
       let hrv = null;
       let rhr = null;
+      let spo2 = null;
+      let skinTemp = null;
 
       // Try recovery endpoint first (most accurate)
       if (latestRecovery) {
@@ -150,7 +152,10 @@ class UserContextAggregator {
         recovery = latestRecovery.score?.recovery_score ?? latestRecovery.recovery_score ?? null;
         hrv = latestRecovery.score?.hrv_rmssd_milli ?? latestRecovery.hrv_rmssd_milli ?? null;
         rhr = latestRecovery.score?.resting_heart_rate ?? latestRecovery.resting_heart_rate ?? null;
-        console.log(`📊 [Context Aggregator] Extracted: recovery=${recovery}, hrv=${hrv}, rhr=${rhr}`);
+        // New metrics from Whoop V2 API
+        spo2 = latestRecovery.score?.spo2_percentage ?? null;
+        skinTemp = latestRecovery.score?.skin_temp_celsius ?? null;
+        console.log(`📊 [Context Aggregator] Extracted: recovery=${recovery}, hrv=${hrv}, rhr=${rhr}, spo2=${spo2}, skinTemp=${skinTemp}`);
       } else {
         console.log(`⚠️ [Context Aggregator] No latestRecovery found, recoveries array length: ${recoveries.length}`);
       }
@@ -212,6 +217,11 @@ class UserContextAggregator {
           current: rhr ? Math.round(rhr) : null,
           unit: 'bpm'
         },
+        // New vitals from Whoop V2 API
+        vitals: {
+          spo2: spo2 ? Math.round(spo2) : null,
+          skinTemp: skinTemp ? Math.round(skinTemp * 10) / 10 : null
+        },
         sleep: await this.getSleepContext(headers),
         history7Day: history7Day,
         lastUpdated: latestCycle.end || latestCycle.created_at,
@@ -229,30 +239,75 @@ class UserContextAggregator {
    */
   async getSleepContext(headers) {
     try {
+      // Fetch last 5 sleep records to capture main sleep + naps
       const sleepRes = await axios.get(`${WHOOP_API_BASE}/activity/sleep`, {
         headers,
-        params: { limit: 1 }
+        params: { limit: 5 }
       });
 
-      const latestSleep = sleepRes.data?.records?.[0] || sleepRes.data?.[0];
+      const allSleeps = sleepRes.data?.records || sleepRes.data || [];
+      const latestSleep = allSleeps[0];
 
       if (!latestSleep) return null;
 
-      const totalSleepMs = latestSleep.score?.total_sleep_duration || 0;
-      const totalSleepHours = totalSleepMs / (1000 * 60 * 60);
+      // Aggregate all sleep from last 24 hours (includes main sleep + naps)
+      const now = new Date();
+      const yesterday = new Date(now.getTime() - 24 * 60 * 60 * 1000);
 
+      const todaysSleeps = allSleeps.filter(sleep => {
+        const sleepEnd = new Date(sleep.end);
+        return sleepEnd >= yesterday;
+      });
+
+      // Sum up all sleep - prefer total_sleep_time_milli, fallback to in_bed minus awake
+      let totalSleepMs = 0;
+      let mainSleepMs = 0;
+      let napMs = 0;
+
+      todaysSleeps.forEach((sleep, index) => {
+        const stageSummary = sleep.score?.stage_summary || {};
+        const sleepMs = sleep.score?.total_sleep_time_milli ||
+                        (stageSummary.total_in_bed_time_milli - (stageSummary.total_awake_time_milli || 0)) ||
+                        stageSummary.total_in_bed_time_milli || 0;
+
+        totalSleepMs += sleepMs;
+
+        // Last record in list is usually main sleep (oldest), rest are naps
+        if (index === todaysSleeps.length - 1) {
+          mainSleepMs = sleepMs;
+        } else {
+          napMs += sleepMs;
+        }
+      });
+
+      const totalSleepHours = totalSleepMs / (1000 * 60 * 60);
       const hoursRounded = Math.round(totalSleepHours * 10) / 10;
+
+      // Use main sleep for stage breakdown
+      const stageSummary = latestSleep.score?.stage_summary || {};
+      const respiratoryRate = latestSleep.score?.respiratory_rate || null;
+      const disturbances = latestSleep.score?.disturbance_count || stageSummary.disturbance_count || null;
+
+      console.log(`[UserContext] Total sleep: ${hoursRounded}h from ${todaysSleeps.length} records (main: ${(mainSleepMs / 3600000).toFixed(1)}h, naps: ${(napMs / 3600000).toFixed(1)}h)`);
+
       return {
         hours: hoursRounded,
         totalHours: hoursRounded, // Alias for intelligent-twin.js compatibility
+        mainSleepHours: Math.round((mainSleepMs / 3600000) * 10) / 10,
+        napHours: napMs > 0 ? Math.round((napMs / 3600000) * 10) / 10 : null,
+        sleepCount: todaysSleeps.length,
         performance: latestSleep.score?.sleep_performance_percentage || null,
-        efficiency: latestSleep.score?.sleep_efficiency || null,
+        efficiency: latestSleep.score?.sleep_efficiency_percentage || null,
         stages: {
-          rem: latestSleep.score?.rem_sleep_duration,
-          deep: latestSleep.score?.slow_wave_sleep_duration,
-          light: latestSleep.score?.light_sleep_duration
+          rem: stageSummary.total_rem_sleep_time_milli || 0,
+          deep: stageSummary.total_slow_wave_sleep_time_milli || 0,
+          light: stageSummary.total_light_sleep_time_milli || 0,
+          awake: stageSummary.total_awake_time_milli || 0
         },
-        quality: this.getSleepQualityLabel(latestSleep.score?.sleep_performance_percentage)
+        quality: this.getSleepQualityLabel(latestSleep.score?.sleep_performance_percentage),
+        // New vitals
+        respiratoryRate: respiratoryRate ? Math.round(respiratoryRate * 10) / 10 : null,
+        disturbances: disturbances
       };
 
     } catch {
@@ -865,7 +920,15 @@ class UserContextAggregator {
     if (/meeting|standup|sync|1:1|one-on-one/i.test(lower)) return 'meeting';
     if (/presentation|demo|pitch|keynote/i.test(lower)) return 'presentation';
     if (/interview/i.test(lower)) return 'interview';
-    if (/workout|gym|exercise|run|yoga/i.test(lower)) return 'workout';
+
+    // Learning/education - check BEFORE workout to avoid "class exercises" misclassification
+    const isAcademicContext = /class|lecture|course|chapter|lesson|module|unit|homework|assignment|exam|quiz|test|study|seminar|tutorial|session|ses\./i.test(lower);
+    if (isAcademicContext) return 'learning';
+
+    // Workout - only match when NOT in academic context
+    // Removed standalone "exercise" to avoid "class exercises chapter 2" misclassification
+    if (/workout|gym|\brun\b|running|yoga|fitness|hiit|cardio|weights|crossfit|spin class|cycling|swimming|pilates|morning\s+exercise|daily\s+exercise|physical\s+exercise/i.test(lower)) return 'workout';
+
     if (/lunch|dinner|breakfast|coffee/i.test(lower)) return 'meal';
     if (/deadline|due|submit/i.test(lower)) return 'deadline';
 

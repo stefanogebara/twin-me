@@ -1,5 +1,5 @@
 import React from 'react';
-import { ChevronRight, RefreshCw, X, AlertCircle, CheckCircle, Clock } from 'lucide-react';
+import { ChevronRight, RefreshCw, X, AlertCircle, CheckCircle, Clock, Settings } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -14,6 +14,8 @@ interface PlatformConnectionCardProps {
   };
   platformStatus?: PlatformConnectionStatus;
   hasExtractedData?: boolean;
+  /** Whether OAuth credentials are configured on the backend */
+  isConfigured?: boolean;
   onConnect: () => void;
   onReconnect: () => void;
   onDisconnect: () => void;
@@ -46,6 +48,7 @@ export const PlatformConnectionCard: React.FC<PlatformConnectionCardProps> = ({
   connector,
   platformStatus,
   hasExtractedData,
+  isConfigured = true, // Default to true for backwards compatibility
   onConnect,
   onReconnect,
   onDisconnect
@@ -56,6 +59,46 @@ export const PlatformConnectionCard: React.FC<PlatformConnectionCardProps> = ({
   const needsReconnect = tokenExpired || (isConnected && !isActive);
 
   const tokenHealth = isConnected ? getTokenHealth(platformStatus?.expiresAt || null, tokenExpired) : null;
+
+  // If OAuth is not configured on the backend, show a different state
+  if (!isConfigured) {
+    return (
+      <div
+        className={cn(
+          "w-full p-3 rounded-lg bg-[hsl(var(--claude-surface-raised))]",
+          "flex items-center justify-between",
+          "border border-[hsl(var(--claude-border))] opacity-60"
+        )}
+      >
+        <div className="flex items-center gap-3">
+          <span style={{ color: '#141413', opacity: 0.5 }}>{connector.icon}</span>
+          <div>
+            <span
+              style={{
+                fontFamily: 'var(--_typography---font--tiempos)',
+                color: 'hsl(var(--claude-text))'
+              }}
+            >
+              {connector.name}
+            </span>
+            <div className="text-xs text-amber-500 mt-0.5">
+              OAuth not configured
+            </div>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <Badge
+            className="bg-amber-500/10 text-amber-600 border border-amber-500/20"
+            title="OAuth credentials need to be configured in .env file"
+          >
+            <Settings className="w-3 h-3 mr-1" />
+            Setup Required
+          </Badge>
+        </div>
+      </div>
+    );
+  }
 
   // Format last sync time
   const formatLastSync = (lastSync: string | null) => {
