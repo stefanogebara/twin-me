@@ -5,6 +5,7 @@
 
 import { createClient } from '@supabase/supabase-js';
 import Anthropic from '@anthropic-ai/sdk';
+import wearableFeatureExtractor from './featureExtractors/wearableFeatureExtractor.js';
 
 // Use SUPABASE_URL (backend) - fallback to VITE_ prefix for compatibility
 // Lazy initialization to avoid crashes if env vars not loaded yet
@@ -65,32 +66,37 @@ class SoulSignatureBuilder {
       // 7. Analyze discussion patterns (Reddit)
       const discussionSignature = await this.analyzeDiscussionSignature(extractedData.reddit);
 
-      // 8. Use AI to generate personality insights
+      // 8. Analyze wearable/health data (Garmin, Polar, Suunto, Whoop, Apple Health)
+      const wearableSignature = await this.analyzeWearableSignature(userId);
+
+      // 10. Use AI to generate personality insights
       const personalityInsights = await this.generatePersonalityInsights(
         extractedData,
         styleProfile,
         musicSignature,
         communicationSignature,
         viewingSignature,
-        discussionSignature
+        discussionSignature,
+        wearableSignature
       );
 
       // 9. Extract common phrases and analogies
       const languagePatterns = await this.extractLanguagePatterns(extractedData);
 
-      // 10. Build complete soul signature
+      // 11. Build complete soul signature
       const soulSignature = {
         personality_traits: personalityInsights.traits,
         communication_style: communicationSignature.style || styleProfile?.communication_style || 'balanced',
         music_taste: musicSignature,
         viewing_patterns: viewingSignature,
         discussion_style: discussionSignature,
+        health_signature: wearableSignature,  // Wearable-derived insights
         interests: interests,
         common_phrases: languagePatterns.phrases,
         favorite_analogies: languagePatterns.analogies,
         uniqueness_markers: personalityInsights.uniqueness_markers,
-        authenticity_score: this.calculateAuthenticityScore(extractedData),
-        data_sources: Object.keys(extractedData),
+        authenticity_score: this.calculateAuthenticityScore(extractedData, wearableSignature),
+        data_sources: [...Object.keys(extractedData), ...(wearableSignature?.available ? ['wearable'] : [])],
         generated_at: new Date().toISOString()
       };
 
@@ -113,7 +119,7 @@ class SoulSignatureBuilder {
    */
   async getExtractedData(userId) {
     try {
-      const { data, error } = await supabase
+      const { data, error } = await getSupabaseClient()
         .from('user_platform_data')
         .select('platform, data_type, raw_data')
         .eq('user_id', userId);
@@ -151,7 +157,7 @@ class SoulSignatureBuilder {
    */
   async getStyleProfile(userId) {
     try {
-      const { data, error } = await supabase
+      const { data, error } = await getSupabaseClient()
         .from('user_style_profile')
         .select('*')
         .eq('user_id', userId)
@@ -510,21 +516,74 @@ Respond ONLY with valid JSON, no explanation.`
   }
 
   /**
+   * Analyze wearable/health signature using the wearable feature extractor
+   * @param {string} userId - User ID to analyze
+   * @returns {Object} Wearable-derived personality insights
+   */
+  async analyzeWearableSignature(userId) {
+    try {
+      console.log('[SoulSignature] Analyzing wearable data for user:', userId);
+
+      // Use the wearable feature extractor to get personality insights
+      const wearableSummary = await wearableFeatureExtractor.getPersonalitySummary(userId);
+
+      if (!wearableSummary.available) {
+        console.log('[SoulSignature] No wearable data available');
+        return { available: false, message: wearableSummary.message };
+      }
+
+      console.log('[SoulSignature] Wearable features extracted:', {
+        hasFeatures: !!wearableSummary.features,
+        hasPersonality: !!wearableSummary.personality
+      });
+
+      return {
+        available: true,
+        features: wearableSummary.features,
+        personality: wearableSummary.personality,
+        insights: {
+          conscientiousness: wearableSummary.personality?.conscientiousness?.insights || [],
+          neuroticism: wearableSummary.personality?.neuroticism?.insights || [],
+          extraversion: wearableSummary.personality?.extraversion?.insights || []
+        },
+        health_metrics: {
+          avg_steps: wearableSummary.features?.averageSteps,
+          avg_sleep_hours: wearableSummary.features?.averageSleepDuration,
+          resting_hr: wearableSummary.features?.restingHeartRate,
+          hrv: wearableSummary.features?.heartRateVariability,
+          workout_frequency: wearableSummary.features?.workoutRegularity
+        },
+        dataSource: 'wearable',
+        lastUpdated: wearableSummary.lastUpdated
+      };
+    } catch (error) {
+      console.error('[SoulSignature] Error analyzing wearable data:', error);
+      return { available: false, error: error.message };
+    }
+  }
+
+  /**
    * Calculate authenticity score based on data breadth
    */
-  calculateAuthenticityScore(extractedData) {
+  calculateAuthenticityScore(extractedData, wearableSignature = null) {
     const platformCount = Object.keys(extractedData).length;
     const totalDataPoints = Object.values(extractedData).reduce((sum, items) => sum + items.length, 0);
 
     // More platforms and data points = higher authenticity
     let score = 0.3; // Base score
 
-    if (platformCount >= 1) score += 0.2;
-    if (platformCount >= 2) score += 0.2;
+    if (platformCount >= 1) score += 0.15;
+    if (platformCount >= 2) score += 0.15;
     if (platformCount >= 3) score += 0.1;
 
     if (totalDataPoints >= 50) score += 0.1;
     if (totalDataPoints >= 200) score += 0.1;
+
+    // Bonus for wearable/health data (adds physical dimension to digital twin)
+    if (wearableSignature?.available) {
+      score += 0.15;
+      console.log('[SoulSignature] Authenticity boosted by wearable data');
+    }
 
     return Math.min(score, 1.0);
   }
@@ -534,11 +593,12 @@ Respond ONLY with valid JSON, no explanation.`
    */
   async storeSoulSignature(userId, soulSignature) {
     try {
-      const { error } = await supabase
+      const { error } = await getSupabaseClient()
         .from('soul_signature_profile')
         .upsert({
           user_id: userId,
           music_signature: soulSignature.music_taste,
+          health_signature: soulSignature.health_signature,  // Wearable-derived insights
           communication_signature: {
             style: soulSignature.communication_style,
             common_phrases: soulSignature.common_phrases

@@ -14,7 +14,7 @@ import { useDemo } from '@/contexts/DemoContext';
 import { PageLayout, GlassPanel } from '@/components/layout/PageLayout';
 import { TwinReflection, PatternObservation, DataHighlight, StatCard, EventCard } from './components/TwinReflection';
 import { EvidenceSection } from './components/EvidenceSection';
-import { Calendar, RefreshCw, Sparkles, ArrowLeft, AlertCircle, Clock, CalendarDays, Users, Target, Presentation, Dumbbell } from 'lucide-react';
+import { Calendar, RefreshCw, Sparkles, ArrowLeft, AlertCircle, Clock, CalendarDays, Users, Target, Presentation, Dumbbell, BookOpen } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { DEMO_CALENDAR_DATA } from '@/services/demoDataService';
 
@@ -59,8 +59,10 @@ interface CrossPlatformContext {
 interface UpcomingEvent {
   title: string;
   time: string;
-  type?: 'meeting' | 'focus' | 'personal' | 'presentation' | 'workout' | 'interview' | 'other';
+  type?: 'meeting' | 'focus' | 'personal' | 'presentation' | 'workout' | 'interview' | 'learning' | 'other';
   attendees?: number;
+  date?: string;
+  dayLabel?: string;
 }
 
 interface TodayEvent {
@@ -429,11 +431,11 @@ const CalendarInsightsPage: React.FC = () => {
             <Clock className="w-4 h-4" style={{ color: colors.calendarBlue }} />
             Today's Schedule
           </h3>
-          {/* Timeline visualization */}
+          {/* Timeline visualization - Extended hours (6AM-10PM = 16 hours) */}
           <div className="relative">
             {/* Time axis */}
             <div className="flex justify-between text-xs mb-2" style={{ color: colors.textSecondary }}>
-              {['8AM', '10AM', '12PM', '2PM', '4PM', '6PM'].map(time => (
+              {['6AM', '9AM', '12PM', '3PM', '6PM', '9PM'].map(time => (
                 <span key={time}>{time}</span>
               ))}
             </div>
@@ -443,14 +445,15 @@ const CalendarInsightsPage: React.FC = () => {
               style={{ backgroundColor: theme === 'dark' ? 'rgba(0,0,0,0.3)' : 'rgba(0,0,0,0.1)' }}
             >
               {insights.todayEvents.map((event, index) => {
-                // Convert time to percentage position (8AM = 0%, 6PM = 100%)
+                // Convert time to percentage position (6AM = 0%, 10PM = 100%)
+                // Total span is 16 hours (6AM to 10PM)
                 const startHour = parseInt(event.startTime.split(':')[0]);
                 const endHour = parseInt(event.endTime.split(':')[0]);
                 const startMin = parseInt(event.startTime.split(':')[1]) || 0;
                 const endMin = parseInt(event.endTime.split(':')[1]) || 0;
 
-                const startPos = ((startHour - 8 + startMin / 60) / 10) * 100;
-                const width = ((endHour - startHour + (endMin - startMin) / 60) / 10) * 100;
+                const startPos = ((startHour - 6 + startMin / 60) / 16) * 100;
+                const width = ((endHour - startHour + (endMin - startMin) / 60) / 16) * 100;
 
                 const eventColors: Record<string, string> = {
                   meeting: '#4285F4',
@@ -458,13 +461,14 @@ const CalendarInsightsPage: React.FC = () => {
                   presentation: '#FBBC05',
                   workout: '#EA4335',
                   personal: '#9334E9',
+                  learning: '#8B5CF6',
                 };
 
                 if (startPos >= 0 && startPos <= 100) {
                   return (
                     <div
                       key={event.id}
-                      className="absolute h-full rounded-md flex items-center justify-center px-2 overflow-hidden"
+                      className="absolute h-full rounded-md flex items-center justify-center px-1 overflow-hidden"
                       style={{
                         left: `${Math.max(0, startPos)}%`,
                         width: `${Math.min(width, 100 - startPos)}%`,
@@ -474,7 +478,7 @@ const CalendarInsightsPage: React.FC = () => {
                       title={`${event.title} (${event.startTime} - ${event.endTime})`}
                     >
                       <span className="text-xs text-white truncate font-medium">
-                        {event.title.length > 15 ? event.title.slice(0, 15) + '...' : event.title}
+                        {event.title.length > 12 ? event.title.slice(0, 12) + '...' : event.title}
                       </span>
                     </div>
                   );
@@ -486,78 +490,116 @@ const CalendarInsightsPage: React.FC = () => {
         </GlassPanel>
       )}
 
-      {/* Enhanced Upcoming Events with Icons and Attendees */}
-      {insights?.upcomingEvents && insights.upcomingEvents.length > 0 && (
-        <div className="mb-6">
-          <h3
-            className="text-sm uppercase tracking-wider mb-3 flex items-center gap-2"
-            style={{ color: colors.textSecondary }}
-          >
-            <CalendarDays className="w-4 h-4" style={{ color: colors.calendarBlue }} />
-            Coming Up
-          </h3>
-          <div className="space-y-2">
-            {insights.upcomingEvents.map((event, index) => {
-              const eventIcons: Record<string, React.ReactNode> = {
-                meeting: <Users className="w-4 h-4" />,
-                focus: <Target className="w-4 h-4" />,
-                presentation: <Presentation className="w-4 h-4" />,
-                workout: <Dumbbell className="w-4 h-4" />,
-                interview: <Users className="w-4 h-4" />,
-              };
+      {/* Enhanced Upcoming Events with Icons, Attendees, and Day Grouping */}
+      {insights?.upcomingEvents && insights.upcomingEvents.length > 0 && (() => {
+        // Group events by day
+        const eventsByDay: Record<string, UpcomingEvent[]> = {};
+        insights.upcomingEvents.forEach(event => {
+          const dayKey = event.dayLabel || 'Upcoming';
+          if (!eventsByDay[dayKey]) {
+            eventsByDay[dayKey] = [];
+          }
+          eventsByDay[dayKey].push(event);
+        });
 
-              const eventColors: Record<string, string> = {
-                meeting: '#4285F4',
-                focus: '#34A853',
-                presentation: '#FBBC05',
-                workout: '#EA4335',
-                interview: '#9334E9',
-              };
+        const eventIcons: Record<string, React.ReactNode> = {
+          meeting: <Users className="w-4 h-4" />,
+          focus: <Target className="w-4 h-4" />,
+          presentation: <Presentation className="w-4 h-4" />,
+          workout: <Dumbbell className="w-4 h-4" />,
+          interview: <Users className="w-4 h-4" />,
+          learning: <BookOpen className="w-4 h-4" />,
+        };
 
-              return (
-                <GlassPanel key={index} className="!p-3">
-                  <div className="flex items-center gap-3">
-                    <div
-                      className="w-10 h-10 rounded-lg flex items-center justify-center"
-                      style={{ backgroundColor: `${eventColors[event.type || 'meeting']}20` }}
-                    >
-                      <span style={{ color: eventColors[event.type || 'meeting'] }}>
-                        {eventIcons[event.type || 'meeting'] || <Calendar className="w-4 h-4" />}
-                      </span>
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="font-medium truncate" style={{ color: colors.text }}>
-                        {event.title}
-                      </div>
-                      <div className="flex items-center gap-2 text-sm" style={{ color: colors.textSecondary }}>
-                        <span>{event.time}</span>
-                        {event.attendees !== undefined && event.attendees > 0 && (
-                          <>
-                            <span>•</span>
-                            <span className="flex items-center gap-1">
-                              <Users className="w-3 h-3" />
-                              {event.attendees}
-                            </span>
-                          </>
-                        )}
-                      </div>
-                    </div>
+        const eventColors: Record<string, string> = {
+          meeting: '#4285F4',
+          focus: '#34A853',
+          presentation: '#FBBC05',
+          workout: '#EA4335',
+          interview: '#9334E9',
+          learning: '#8B5CF6',
+        };
+
+        return (
+          <div className="mb-6">
+            <h3
+              className="text-sm uppercase tracking-wider mb-3 flex items-center gap-2"
+              style={{ color: colors.textSecondary }}
+            >
+              <CalendarDays className="w-4 h-4" style={{ color: colors.calendarBlue }} />
+              Coming Up
+            </h3>
+            <div className="space-y-4">
+              {Object.entries(eventsByDay).map(([dayLabel, dayEvents]) => (
+                <div key={dayLabel}>
+                  {/* Day header */}
+                  <div
+                    className="text-sm font-medium mb-2 flex items-center gap-2"
+                    style={{
+                      color: dayLabel === 'Today' ? colors.calendarBlue : colors.text,
+                    }}
+                  >
                     <span
-                      className="text-xs px-2 py-1 rounded-full capitalize"
+                      className="w-2 h-2 rounded-full"
                       style={{
-                        backgroundColor: `${eventColors[event.type || 'meeting']}20`,
-                        color: eventColors[event.type || 'meeting'],
+                        backgroundColor: dayLabel === 'Today'
+                          ? colors.calendarBlue
+                          : dayLabel === 'Tomorrow'
+                          ? '#34A853'
+                          : colors.textSecondary,
                       }}
-                    >
-                      {event.type}
-                    </span>
+                    />
+                    {dayLabel}
                   </div>
-                </GlassPanel>
-              );
-            })}
+                  {/* Events for this day */}
+                  <div className="space-y-2">
+                    {dayEvents.map((event, index) => (
+                      <GlassPanel key={index} className="!p-3">
+                        <div className="flex items-center gap-3">
+                          <div
+                            className="w-10 h-10 rounded-lg flex items-center justify-center"
+                            style={{ backgroundColor: `${eventColors[event.type || 'meeting']}20` }}
+                          >
+                            <span style={{ color: eventColors[event.type || 'meeting'] }}>
+                              {eventIcons[event.type || 'meeting'] || <Calendar className="w-4 h-4" />}
+                            </span>
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="font-medium truncate" style={{ color: colors.text }}>
+                              {event.title}
+                            </div>
+                            <div className="flex items-center gap-2 text-sm" style={{ color: colors.textSecondary }}>
+                              <span>{event.time}</span>
+                              {event.attendees !== undefined && event.attendees > 0 && (
+                                <>
+                                  <span>•</span>
+                                  <span className="flex items-center gap-1">
+                                    <Users className="w-3 h-3" />
+                                    {event.attendees}
+                                  </span>
+                                </>
+                              )}
+                            </div>
+                          </div>
+                          <span
+                            className="text-xs px-2 py-1 rounded-full capitalize"
+                            style={{
+                              backgroundColor: `${eventColors[event.type || 'meeting']}20`,
+                              color: eventColors[event.type || 'meeting'],
+                            }}
+                          >
+                            {event.type}
+                          </span>
+                        </div>
+                      </GlassPanel>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
 
       {/* Event Type Distribution */}
       {insights?.eventTypeDistribution && insights.eventTypeDistribution.length > 0 && (
@@ -633,7 +675,7 @@ const CalendarInsightsPage: React.FC = () => {
                   >
                     {day.day}
                   </div>
-                  {day.slots.map((slot, slotIndex) => {
+                  {(day.slots || []).map((slot, slotIndex) => {
                     const intensityColors = [
                       theme === 'dark' ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)', // free
                       'rgba(66, 133, 244, 0.3)', // light

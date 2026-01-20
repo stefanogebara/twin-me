@@ -81,17 +81,38 @@ async function refreshAccessToken(platform, refreshToken, userId) {
   try {
     console.log(`🔄 Refreshing token for ${platform} (user: ${userId})`);
 
-    const params = new URLSearchParams({
+    // Build params
+    const paramsObj = {
       grant_type: 'refresh_token',
       refresh_token: refreshToken,
-      client_id: config.clientId,
-      client_secret: config.clientSecret,
-    });
+    };
+
+    // Build headers
+    const headers = {
+      'Content-Type': 'application/x-www-form-urlencoded',
+    };
+
+    // Spotify requires HTTP Basic Auth for client credentials
+    if (platform === 'spotify') {
+      const basicAuth = Buffer.from(
+        `${config.clientId}:${config.clientSecret}`
+      ).toString('base64');
+      headers['Authorization'] = `Basic ${basicAuth}`;
+    } else {
+      // Whoop and other platforms use client_secret_post (credentials in body)
+      paramsObj.client_id = config.clientId;
+      paramsObj.client_secret = config.clientSecret;
+
+      // Whoop requires scope
+      if (platform === 'whoop') {
+        paramsObj.scope = 'offline';
+      }
+    }
+
+    const params = new URLSearchParams(paramsObj);
 
     const response = await axios.post(config.tokenUrl, params.toString(), {
-      headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
-      },
+      headers,
     });
 
     const { access_token, refresh_token: newRefreshToken, expires_in } = response.data;

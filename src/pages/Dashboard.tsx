@@ -349,42 +349,47 @@ export const Dashboard: React.FC = () => {
   });
 
   // Build insight links based on connected platforms
+  // Use connectedProviders from usePlatformStatus hook for consistency with bottom section
+  const isSpotifyConnected = connectedProviders.includes('spotify') || spotifyConnected;
+  const isWhoopConnected = connectedProviders.includes('whoop') || whoopConnected;
+  const isCalendarConnected = connectedProviders.includes('google_calendar') || calendarConnected;
+
   const insightLinks: Pattern[] = [
     {
       id: 'music-soul',
       title: 'Your Musical Soul',
-      description: spotifyConnected
+      description: isSpotifyConnected
         ? 'What your listening reveals about you'
         : 'Connect Spotify to discover your musical soul',
       icon: Music,
-      color: spotifyConnected ? 'text-green-500' : 'text-gray-500',
-      hasData: spotifyConnected,
-      actionLabel: spotifyConnected ? 'Explore' : 'Connect',
-      actionPath: spotifyConnected ? '/insights/spotify' : '/get-started'
+      color: isSpotifyConnected ? 'text-green-500' : 'text-gray-500',
+      hasData: isSpotifyConnected,
+      actionLabel: isSpotifyConnected ? 'Explore' : 'Connect',
+      actionPath: isSpotifyConnected ? '/insights/spotify' : '/get-started'
     },
     {
       id: 'body-stories',
       title: 'Body Stories',
-      description: whoopConnected
+      description: isWhoopConnected
         ? 'What your body tells you'
         : 'Connect Whoop to hear your body stories',
       icon: Activity,
-      color: whoopConnected ? 'text-cyan-500' : 'text-gray-500',
-      hasData: whoopConnected,
-      actionLabel: whoopConnected ? 'Explore' : 'Connect',
-      actionPath: whoopConnected ? '/insights/whoop' : '/get-started'
+      color: isWhoopConnected ? 'text-cyan-500' : 'text-gray-500',
+      hasData: isWhoopConnected,
+      actionLabel: isWhoopConnected ? 'Explore' : 'Connect',
+      actionPath: isWhoopConnected ? '/insights/whoop' : '/get-started'
     },
     {
       id: 'time-patterns',
       title: 'Time Patterns',
-      description: calendarConnected
+      description: isCalendarConnected
         ? 'How you structure your days'
         : 'Connect Calendar to see your time patterns',
       icon: Calendar,
-      color: calendarConnected ? 'text-blue-500' : 'text-gray-500',
-      hasData: calendarConnected,
-      actionLabel: calendarConnected ? 'Explore' : 'Connect',
-      actionPath: calendarConnected ? '/insights/calendar' : '/get-started'
+      color: isCalendarConnected ? 'text-blue-500' : 'text-gray-500',
+      hasData: isCalendarConnected,
+      actionLabel: isCalendarConnected ? 'Explore' : 'Connect',
+      actionPath: isCalendarConnected ? '/insights/calendar' : '/get-started'
     }
   ];
 
@@ -550,7 +555,7 @@ export const Dashboard: React.FC = () => {
                   >
                     Next Important Event
                   </span>
-                  {calendarConnected && (
+                  {isCalendarConnected && (
                     <button
                       onClick={handleSync}
                       disabled={syncing}
@@ -638,12 +643,12 @@ export const Dashboard: React.FC = () => {
             className="text-sm mb-6"
             style={{ color: theme === 'dark' ? 'rgba(193, 192, 182, 0.6)' : '#a8a29e' }}
           >
-            {calendarConnected
+            {isCalendarConnected
               ? 'Your calendar is empty. Add events to start preparing for them.'
               : 'Connect your calendar to see your events here'
             }
           </p>
-          {!calendarConnected && (
+          {!isCalendarConnected && (
             <button
               onClick={() => navigate('/get-started')}
               className="px-6 py-3 rounded-xl inline-flex items-center gap-2 transition-all hover:scale-[1.02]"

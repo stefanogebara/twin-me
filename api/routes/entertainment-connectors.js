@@ -4,6 +4,7 @@ import crypto from 'crypto';
 import { SoulSignatureService } from '../services/soulSignature.js';
 import mcpClient from '../services/mcp-client.js';
 import dataExtractionService from '../services/dataExtractionService.js';
+import behavioralEvidencePipeline from '../services/behavioralEvidencePipeline.js';
 import { encryptToken, decryptToken, encryptState, decryptState } from '../services/encryption.js';
 import { createClient } from '@supabase/supabase-js';
 import fs from 'fs/promises';
@@ -538,15 +539,19 @@ router.post('/oauth/callback', oauthCallbackLimiter, async (req, res) => {
 
       case 'whoop':
         const whoopConfig = PLATFORM_CONFIGS.whoop;
+        // Whoop requires client_secret_post (credentials in body, NOT Basic Auth)
         const whoopTokenResponse = await fetch(whoopConfig.tokenUrl, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+          headers: {
+            'Content-Type': 'application/x-www-form-urlencoded'
+          },
           body: new URLSearchParams({
             grant_type: 'authorization_code',
             code,
+            redirect_uri: `${process.env.VITE_APP_URL || 'http://localhost:8086'}/oauth/callback`,
             client_id: process.env.WHOOP_CLIENT_ID,
             client_secret: process.env.WHOOP_CLIENT_SECRET,
-            redirect_uri: `${process.env.VITE_APP_URL || 'http://localhost:8086'}/oauth/callback`
+            scope: 'offline'
           })
         });
 
@@ -631,8 +636,24 @@ router.post('/oauth/callback', oauthCallbackLimiter, async (req, res) => {
 
     // Don't await - let it run in background
     dataExtractionService.extractPlatformData(userId, platform)
-      .then(result => {
+      .then(async (result) => {
         console.log(`✅ Background extraction completed for ${platform}:`, result);
+
+        // Trigger evidence generation pipeline after successful data extraction
+        console.log(`🔬 Starting behavioral evidence pipeline for ${platform}...`);
+        try {
+          const evidenceResult = await behavioralEvidencePipeline.runPlatformPipeline(userId, platform);
+          if (evidenceResult.success) {
+            console.log(`✅ Evidence pipeline completed for ${platform}:`, {
+              evidenceGenerated: evidenceResult.evidenceGenerated,
+              featuresExtracted: evidenceResult.featuresExtracted
+            });
+          } else {
+            console.warn(`⚠️ Evidence pipeline returned no evidence for ${platform}:`, evidenceResult.message);
+          }
+        } catch (evidenceError) {
+          console.error(`❌ Evidence pipeline failed for ${platform}:`, evidenceError.message);
+        }
       })
       .catch(error => {
         console.error(`❌ Background extraction failed for ${platform}:`, error);
@@ -1489,6 +1510,247 @@ router.post('/connect/gmail', oauthAuthorizationLimiter, async (req, res) => {
     res.status(500).json({
       success: false,
       error: 'Failed to initialize Gmail connection',
+      details: error.message
+    });
+  }
+});
+
+// Google Calendar Connector - Schedule & Time Patterns
+router.post('/connect/google_calendar', oauthAuthorizationLimiter, async (req, res) => {
+  try {
+    const { userId } = req.body;
+
+    if (!userId) {
+      return res.status(400).json({
+        success: false,
+        error: 'userId is required'
+      });
+    }
+
+    const clientId = process.env.GOOGLE_CLIENT_ID;
+    const appUrl = process.env.APP_URL || process.env.VITE_APP_URL || 'http://localhost:8086';
+    const redirectUri = encodeURIComponent(`${appUrl}/oauth/callback`);
+
+    // Calendar scopes
+    const scope = encodeURIComponent(
+      'https://www.googleapis.com/auth/calendar.readonly ' +
+      'https://www.googleapis.com/auth/calendar.events.readonly'
+    );
+
+    // Generate PKCE parameters
+    const pkce = generatePKCEParams();
+
+    // Generate encrypted OAuth state
+    const state = encryptState({
+      platform: 'google_calendar',
+      userId,
+      codeVerifier: pkce.codeVerifier
+    });
+
+    // Store state + code_verifier in Supabase
+    await supabase
+      .from('oauth_states')
+      .insert({
+        state,
+        code_verifier: encryptToken(pkce.codeVerifier),
+        data: { userId, platform: 'google_calendar' },
+        expires_at: new Date(Date.now() + 1800000) // 30 minutes
+      });
+
+    const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?` +
+      `client_id=${clientId}&response_type=code&` +
+      `redirect_uri=${redirectUri}&scope=${scope}&state=${state}&access_type=offline&prompt=consent&` +
+      `code_challenge=${pkce.codeChallenge}&` +
+      `code_challenge_method=${pkce.codeChallengeMethod}`;
+
+    console.log(`📅 Google Calendar OAuth initiated for user ${userId}`);
+
+    res.json({
+      success: true,
+      authUrl,
+      message: 'Connect your calendar to understand your schedule patterns'
+    });
+  } catch (error) {
+    console.error('Google Calendar connection error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to initialize Google Calendar connection',
+      details: error.message
+    });
+  }
+});
+
+// Whoop Connector - Biometric & Recovery Data
+router.post('/connect/whoop', oauthAuthorizationLimiter, async (req, res) => {
+  try {
+    const { userId } = req.body;
+
+    if (!userId) {
+      return res.status(400).json({
+        success: false,
+        error: 'userId is required'
+      });
+    }
+
+    const config = PLATFORM_CONFIGS.whoop;
+    const clientId = process.env.WHOOP_CLIENT_ID;
+    const appUrl = process.env.APP_URL || process.env.VITE_APP_URL || 'http://localhost:8086';
+    const redirectUri = `${appUrl}/oauth/callback`;
+    const scope = config.scopes.join(' ');
+
+    // Whoop uses state for CSRF protection (no PKCE support)
+    const state = encryptState({
+      platform: 'whoop',
+      userId
+    });
+
+    // Store state in Supabase
+    await supabase
+      .from('oauth_states')
+      .insert({
+        state,
+        data: { userId, platform: 'whoop' },
+        expires_at: new Date(Date.now() + 1800000) // 30 minutes
+      });
+
+    const authUrl = `${config.authUrl}?` +
+      `client_id=${clientId}&` +
+      `response_type=code&` +
+      `redirect_uri=${encodeURIComponent(redirectUri)}&` +
+      `scope=${encodeURIComponent(scope)}&` +
+      `state=${state}`;
+
+    console.log(`💪 Whoop OAuth initiated for user ${userId}`);
+
+    res.json({
+      success: true,
+      authUrl,
+      message: 'Connect your Whoop to understand your recovery and strain patterns'
+    });
+  } catch (error) {
+    console.error('Whoop connection error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to initialize Whoop connection',
+      details: error.message
+    });
+  }
+});
+
+// Oura Connector - Sleep & Readiness Data
+router.post('/connect/oura', oauthAuthorizationLimiter, async (req, res) => {
+  try {
+    const { userId } = req.body;
+
+    if (!userId) {
+      return res.status(400).json({
+        success: false,
+        error: 'userId is required'
+      });
+    }
+
+    const config = PLATFORM_CONFIGS.oura;
+    const clientId = process.env.OURA_CLIENT_ID;
+    const appUrl = process.env.APP_URL || process.env.VITE_APP_URL || 'http://localhost:8086';
+    const redirectUri = `${appUrl}/oauth/callback`;
+    const scope = config.scopes.join(' ');
+
+    const state = encryptState({
+      platform: 'oura',
+      userId
+    });
+
+    // Store state in Supabase
+    await supabase
+      .from('oauth_states')
+      .insert({
+        state,
+        data: { userId, platform: 'oura' },
+        expires_at: new Date(Date.now() + 1800000)
+      });
+
+    const authUrl = `${config.authUrl}?` +
+      `client_id=${clientId}&` +
+      `response_type=code&` +
+      `redirect_uri=${encodeURIComponent(redirectUri)}&` +
+      `scope=${encodeURIComponent(scope)}&` +
+      `state=${state}`;
+
+    console.log(`💍 Oura OAuth initiated for user ${userId}`);
+
+    res.json({
+      success: true,
+      authUrl,
+      message: 'Connect your Oura Ring to understand your sleep and readiness patterns'
+    });
+  } catch (error) {
+    console.error('Oura connection error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to initialize Oura connection',
+      details: error.message
+    });
+  }
+});
+
+/**
+ * GET /api/entertainment/oauth/debug
+ *
+ * Check OAuth configuration status for all platforms.
+ * Returns which platforms have credentials configured (without exposing secrets).
+ */
+router.get('/oauth/debug', async (req, res) => {
+  try {
+    const platforms = {
+      spotify: {
+        configured: !!(process.env.SPOTIFY_CLIENT_ID && process.env.SPOTIFY_CLIENT_SECRET),
+        clientIdPrefix: process.env.SPOTIFY_CLIENT_ID?.substring(0, 8) || null
+      },
+      google: {
+        configured: !!(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET),
+        clientIdPrefix: process.env.GOOGLE_CLIENT_ID?.substring(0, 20) || null
+      },
+      whoop: {
+        configured: !!(process.env.WHOOP_CLIENT_ID && process.env.WHOOP_CLIENT_SECRET),
+        clientIdPrefix: process.env.WHOOP_CLIENT_ID?.substring(0, 8) || null
+      },
+      discord: {
+        configured: !!(process.env.DISCORD_CLIENT_ID && process.env.DISCORD_CLIENT_SECRET),
+        clientIdPrefix: process.env.DISCORD_CLIENT_ID?.substring(0, 8) || null
+      },
+      github: {
+        configured: !!(process.env.GITHUB_CLIENT_ID && process.env.GITHUB_CLIENT_SECRET),
+        clientIdPrefix: process.env.GITHUB_CLIENT_ID?.substring(0, 8) || null
+      },
+      oura: {
+        configured: !!(process.env.OURA_CLIENT_ID && process.env.OURA_CLIENT_SECRET),
+        clientIdPrefix: process.env.OURA_CLIENT_ID?.substring(0, 8) || null
+      }
+    };
+
+    const encryptionConfigured = !!process.env.ENCRYPTION_KEY;
+    const appUrl = process.env.APP_URL || process.env.VITE_APP_URL || 'http://localhost:8086';
+    const callbackUrl = `${appUrl}/oauth/callback`;
+
+    res.json({
+      success: true,
+      platforms,
+      encryption: {
+        configured: encryptionConfigured
+      },
+      redirectUri: callbackUrl,
+      mvpPlatforms: {
+        spotify: platforms.spotify.configured,
+        google_calendar: platforms.google.configured,
+        whoop: platforms.whoop.configured
+      },
+      allConfigured: platforms.spotify.configured && platforms.google.configured && platforms.whoop.configured && encryptionConfigured
+    });
+  } catch (error) {
+    console.error('OAuth debug error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to check OAuth configuration',
       details: error.message
     });
   }

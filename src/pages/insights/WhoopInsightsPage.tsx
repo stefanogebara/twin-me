@@ -14,7 +14,7 @@ import { useDemo } from '@/contexts/DemoContext';
 import { PageLayout, GlassPanel } from '@/components/layout/PageLayout';
 import { TwinReflection, PatternObservation, StatCard, DataHighlight } from './components/TwinReflection';
 import { EvidenceSection } from './components/EvidenceSection';
-import { Activity, RefreshCw, Sparkles, ArrowLeft, AlertCircle, Heart, Zap, Moon, TrendingUp, Clock, Gauge } from 'lucide-react';
+import { Activity, RefreshCw, Sparkles, ArrowLeft, AlertCircle, Heart, Zap, Moon, TrendingUp, Clock, Gauge, Droplets, Thermometer, Wind, Brain } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { getDemoWhoopData } from '@/services/demoDataService';
 import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer, Cell, Tooltip as RechartsTooltip, AreaChart, Area } from 'recharts';
@@ -66,6 +66,12 @@ interface BodyMetrics {
   recoveryUpdatedAt?: string;
   hrvUpdatedAt?: string;
   strainUpdatedAt?: string;
+  // New metrics
+  spo2?: number;
+  skinTemp?: number;
+  respiratoryRate?: number;
+  sleepDisturbances?: number;
+  stressLevel?: 'Low' | 'Moderate' | 'High' | 'Very High';
 }
 
 interface SleepStats {
@@ -183,6 +189,12 @@ const WhoopInsightsPage: React.FC = () => {
         recoveryUpdatedAt: whoopData.recovery.updatedAt,
         hrvUpdatedAt: whoopData.recovery.hrvUpdatedAt,
         strainUpdatedAt: whoopData.strain.isLive ? 'Live' : undefined,
+        // New metrics (demo data)
+        spo2: 97 + Math.floor(Math.random() * 3), // 97-99%
+        skinTemp: 36.2 + (Math.random() * 0.6 - 0.3), // 35.9-36.5°C
+        respiratoryRate: 13 + Math.floor(Math.random() * 4), // 13-16 breaths/min
+        sleepDisturbances: Math.floor(Math.random() * 5), // 0-4 disturbances
+        stressLevel: whoopData.recovery.score >= 67 ? 'Low' : whoopData.recovery.score >= 50 ? 'Moderate' : whoopData.recovery.score >= 34 ? 'High' : 'Very High',
       },
       recentTrends: [
         `${whoopData.recovery.label} recovery zone`,
@@ -566,8 +578,94 @@ const WhoopInsightsPage: React.FC = () => {
                   </span>
                 </div>
                 <div className="text-2xl font-medium" style={{ color: colors.text }}>
-                  {insights.sleepBreakdown.efficiency}%
+                  {Math.round(insights.sleepBreakdown.efficiency)}%
                 </div>
+              </GlassPanel>
+            )}
+          </div>
+
+          {/* New Metrics Row */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-3">
+            {/* Blood Oxygen (SpO2) */}
+            {insights.currentMetrics.spo2 && (
+              <GlassPanel className="!p-4">
+                <div className="flex items-center gap-2 mb-2">
+                  <Droplets className="w-4 h-4" style={{ color: '#60a5fa' }} />
+                  <span className="text-xs uppercase tracking-wider" style={{ color: colors.textSecondary }}>
+                    Blood O₂
+                  </span>
+                </div>
+                <div className="flex items-baseline gap-1">
+                  <span className="text-2xl font-medium" style={{ color: colors.text }}>
+                    {insights.currentMetrics.spo2}
+                  </span>
+                  <span className="text-sm" style={{ color: colors.textSecondary }}>%</span>
+                </div>
+                <span className="text-xs" style={{
+                  color: insights.currentMetrics.spo2 >= 95 ? '#4ade80' :
+                         insights.currentMetrics.spo2 >= 90 ? '#fbbf24' : '#f87171'
+                }}>
+                  {insights.currentMetrics.spo2 >= 95 ? 'Normal' :
+                   insights.currentMetrics.spo2 >= 90 ? 'Borderline' : 'Low'}
+                </span>
+              </GlassPanel>
+            )}
+
+            {/* Skin Temperature */}
+            {insights.currentMetrics.skinTemp && (
+              <GlassPanel className="!p-4">
+                <div className="flex items-center gap-2 mb-2">
+                  <Thermometer className="w-4 h-4" style={{ color: '#fb923c' }} />
+                  <span className="text-xs uppercase tracking-wider" style={{ color: colors.textSecondary }}>
+                    Skin Temp
+                  </span>
+                </div>
+                <div className="flex items-baseline gap-1">
+                  <span className="text-2xl font-medium" style={{ color: colors.text }}>
+                    {insights.currentMetrics.skinTemp.toFixed(1)}
+                  </span>
+                  <span className="text-sm" style={{ color: colors.textSecondary }}>°C</span>
+                </div>
+              </GlassPanel>
+            )}
+
+            {/* Respiratory Rate */}
+            {insights.currentMetrics.respiratoryRate && (
+              <GlassPanel className="!p-4">
+                <div className="flex items-center gap-2 mb-2">
+                  <Wind className="w-4 h-4" style={{ color: '#2dd4bf' }} />
+                  <span className="text-xs uppercase tracking-wider" style={{ color: colors.textSecondary }}>
+                    Breathing
+                  </span>
+                </div>
+                <div className="flex items-baseline gap-1">
+                  <span className="text-2xl font-medium" style={{ color: colors.text }}>
+                    {insights.currentMetrics.respiratoryRate}
+                  </span>
+                  <span className="text-sm" style={{ color: colors.textSecondary }}>/min</span>
+                </div>
+              </GlassPanel>
+            )}
+
+            {/* Stress Level (Calculated) */}
+            {insights.currentMetrics.stressLevel && (
+              <GlassPanel className="!p-4">
+                <div className="flex items-center gap-2 mb-2">
+                  <Brain className="w-4 h-4" style={{ color: '#c084fc' }} />
+                  <span className="text-xs uppercase tracking-wider" style={{ color: colors.textSecondary }}>
+                    Stress
+                  </span>
+                </div>
+                <div className="text-xl font-medium" style={{
+                  color: insights.currentMetrics.stressLevel === 'Low' ? '#4ade80' :
+                         insights.currentMetrics.stressLevel === 'Moderate' ? '#fbbf24' :
+                         insights.currentMetrics.stressLevel === 'High' ? '#fb923c' : '#f87171'
+                }}>
+                  {insights.currentMetrics.stressLevel}
+                </div>
+                <span className="text-xs" style={{ color: colors.textSecondary }}>
+                  Based on HRV & recovery
+                </span>
               </GlassPanel>
             )}
           </div>
@@ -602,8 +700,9 @@ const WhoopInsightsPage: React.FC = () => {
                     backgroundColor: theme === 'dark' ? '#1c1917' : '#ffffff',
                     border: 'none',
                     borderRadius: '8px',
-                    color: colors.text,
                   }}
+                  labelStyle={{ color: colors.text }}
+                  itemStyle={{ color: colors.text }}
                   formatter={(value: number) => [`${value}%`, 'Recovery']}
                 />
                 <Bar dataKey="recovery" radius={[4, 4, 0, 0]}>
@@ -711,8 +810,9 @@ const WhoopInsightsPage: React.FC = () => {
                     backgroundColor: theme === 'dark' ? '#1c1917' : '#ffffff',
                     border: 'none',
                     borderRadius: '8px',
-                    color: colors.text,
                   }}
+                  labelStyle={{ color: colors.text }}
+                  itemStyle={{ color: colors.text }}
                   formatter={(value: number) => [`${value}ms`, 'HRV']}
                 />
                 <Area

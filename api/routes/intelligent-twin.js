@@ -7,6 +7,8 @@
  * - GET /api/twin/insights - AI-generated insights
  * - GET /api/twin/status - Quick status assessment
  * - GET /api/twin/music/:purpose - Purpose-specific music recommendations
+ * - GET /api/twin/science-analysis - Science-backed personality analysis with citations
+ * - GET /api/twin/science-analysis/agents - Status of specialist AI agents
  */
 
 import express from 'express';
@@ -16,6 +18,9 @@ import intelligentTwinEngine from '../services/intelligentTwinEngine.js';
 import userContextAggregator from '../services/userContextAggregator.js';
 import intelligentMusicService from '../services/intelligentMusicService.js';
 import spotifyInsightGenerator from '../services/spotifyInsightGenerator.js';
+import specialistOrchestrator from '../services/specialists/SpecialistOrchestrator.js';
+import { crossPlatformInferenceService } from '../services/crossPlatformInferenceService.js';
+import purposeLearningService from '../services/purposeLearningService.js';
 
 // Initialize Supabase for feedback persistence
 const supabase = createClient(
@@ -53,6 +58,36 @@ router.get('/context', authenticateUser, async (req, res) => {
 
     // Generate human-readable summary
     const summary = userContextAggregator.generateContextSummary(context);
+
+    // Generate cross-platform behavioral inferences
+    let behavioralInferences = null;
+    try {
+      const inferenceData = {
+        whoop: context.whoop ? {
+          recovery: { score: context.whoop.recovery?.score || context.whoop.recovery },
+          hrv: context.whoop.hrv?.current ?? context.whoop.hrv,
+          rhr: context.whoop.rhr,
+          strain: { score: context.whoop.strain?.score || context.whoop.strain },
+          sleep: context.whoop.sleep
+        } : null,
+        spotify: context.spotify ? {
+          recentListening: context.spotify.recentTracks,
+          topGenres: context.spotify.topGenres,
+          audioFeatures: context.spotify.audioFeatures
+        } : null,
+        calendar: context.calendar ? {
+          events: context.calendar.upcomingEvents || (context.calendar.nextEvent ? [context.calendar.nextEvent] : [])
+        } : null
+      };
+
+      const inferences = await crossPlatformInferenceService.inferBehavioralPatterns(userId, inferenceData);
+      if (inferences && inferences.length > 0) {
+        behavioralInferences = crossPlatformInferenceService.formatForReflection(inferences);
+        console.log(`🔍 [Twin API] Found ${inferences.length} cross-platform inferences`);
+      }
+    } catch (inferenceError) {
+      console.warn('[Twin API] Cross-platform inference error:', inferenceError.message);
+    }
 
     res.json({
       success: true,
@@ -100,6 +135,8 @@ router.get('/context', authenticateUser, async (req, res) => {
         spotify: !!context.spotify,
         calendar: !!context.calendar
       },
+      // Cross-platform behavioral inferences
+      behavioralInferences: behavioralInferences,
       timestamp: new Date().toISOString()
     });
   } catch (error) {
@@ -270,10 +307,21 @@ router.get('/music/:purpose', authenticateUser, async (req, res) => {
       });
     }
 
+    // Flatten the recommendations structure to match frontend expectations
+    // Frontend expects: data.tracks, data.reasoning, data.recommendedEnergy, data.contextSummary
+    const recs = music.recommendations;
     res.json({
       success: true,
       purpose,
-      recommendations: music.recommendations
+      tracks: recs.tracks || [],
+      playlists: recs.playlists || [],
+      reasoning: recs.reasoning || '',
+      recommendedEnergy: recs.audioFeatureTargets?.mood || 'medium',
+      contextSummary: recs.basedOn ?
+        `Personalized based on ${recs.seedSource === 'user_top_tracks' ? 'your top tracks' : 'your listening history'}` : '',
+      personalized: recs.personalized,
+      seedSource: recs.seedSource,
+      basedOn: recs.basedOn
     });
   } catch (error) {
     console.error('[Twin API] Music error:', error);
@@ -776,6 +824,339 @@ router.get('/today-insights', authenticateUser, async (req, res) => {
     res.status(500).json({
       success: false,
       error: 'Failed to get today\'s insights',
+      message: error.message
+    });
+  }
+});
+
+/**
+ * GET /api/twin/science-analysis
+ * Get science-backed personality analysis with full research citations
+ *
+ * This endpoint uses specialist AI agents trained on peer-reviewed research:
+ * - MusicPsychologistAgent: Cambridge, Stanford, UT Austin research
+ * - BiometricsSpecialistAgent: Polyvagal Theory, Neurovisceral Integration
+ * - CalendarBehaviorAgent: Digital Phenotyping, Time Management Psychology
+ *
+ * Returns personality inferences with:
+ * - Effect sizes (r values) and sample sizes
+ * - Full citations to peer-reviewed studies
+ * - Confidence levels based on evidence strength
+ * - Methodology notes and limitations
+ */
+router.get('/science-analysis', authenticateUser, async (req, res) => {
+  try {
+    const userId = req.user?.id;
+    const { format = 'full' } = req.query; // 'full' or 'ui'
+
+    if (!userId) {
+      return res.status(401).json({
+        success: false,
+        error: 'User authentication required'
+      });
+    }
+
+    console.log(`🔬 [Twin API] Running science-backed analysis for user ${userId}`);
+
+    // Get aggregated context from all platforms
+    const context = await userContextAggregator.aggregateUserContext(userId);
+
+    // Prepare platform data for specialist agents
+    const platformData = {
+      spotify: context.spotify ? {
+        recentlyPlayed: context.spotify.recentTracks || [],
+        topArtists: context.spotify.topArtists || [],
+        topTracks: context.spotify.topTracks || [],
+        audioFeatures: context.spotify.audioFeatures || [],
+        playlists: context.spotify.playlists || []
+      } : null,
+      whoop: context.whoop ? {
+        recoveries: context.whoop.recoveries || [],
+        sleeps: context.whoop.sleeps || [],
+        workouts: context.whoop.workouts || [],
+        cycles: context.whoop.cycles || []
+      } : null,
+      calendar: context.calendar ? {
+        events: context.calendar.upcomingEvents || [],
+        calendars: context.calendar.calendars || []
+      } : null
+    };
+
+    // Run specialist orchestrator analysis
+    const analysisResult = await specialistOrchestrator.analyze(userId, platformData);
+
+    if (!analysisResult.success) {
+      return res.status(400).json({
+        success: false,
+        error: analysisResult.error || 'Analysis failed',
+        message: analysisResult.message || 'Connect platforms to get science-backed personality insights'
+      });
+    }
+
+    // Format based on requested format
+    if (format === 'ui') {
+      const uiResult = specialistOrchestrator.formatForUI(analysisResult);
+      return res.json({
+        success: true,
+        ...uiResult,
+        poweredBy: 'Science from Stanford, Cambridge, Berkeley, Johns Hopkins',
+        timestamp: new Date().toISOString()
+      });
+    }
+
+    // Full format with complete research details
+    res.json({
+      success: true,
+      userId,
+      personality: analysisResult.personality,
+      domains: analysisResult.domains,
+      methodology: {
+        ...analysisResult.methodology,
+        approach: 'Multi-agent specialist analysis with research-backed correlations',
+        poweredBy: 'Peer-reviewed research from Stanford, Cambridge, Berkeley, Johns Hopkins'
+      },
+      citations: analysisResult.citations,
+      agentStatus: specialistOrchestrator.getAgentStatus(),
+      duration: analysisResult.duration,
+      timestamp: new Date().toISOString()
+    });
+
+  } catch (error) {
+    console.error('[Twin API] Science analysis error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to run science-backed analysis',
+      message: error.message
+    });
+  }
+});
+
+/**
+ * GET /api/twin/science-analysis/agents
+ * Get status and capabilities of all specialist agents
+ */
+router.get('/science-analysis/agents', authenticateUser, async (req, res) => {
+  try {
+    const agentStatus = specialistOrchestrator.getAgentStatus();
+
+    res.json({
+      success: true,
+      agents: {
+        ...agentStatus,
+        description: {
+          musicAgent: 'Analyzes Spotify data using STOMP/MUSIC models and E-S framework from Cambridge/Stanford/UT Austin research',
+          biometricsAgent: 'Analyzes Whoop HRV/sleep/activity using Polyvagal Theory and Neurovisceral Integration models',
+          calendarAgent: 'Analyzes calendar patterns using Digital Phenotyping and Time Management psychology research'
+        }
+      },
+      researchFoundation: {
+        musicPsychology: [
+          'Rentfrow & Gosling 2003 - STOMP Model (n=3,500)',
+          'Rentfrow et al. 2011 - MUSIC Model (Cambridge)',
+          'Greenberg et al. 2015 - E-S Framework',
+          'Anderson et al. 2021 - Audio Features Study (n=5,808)'
+        ],
+        biometrics: [
+          'Porges - Polyvagal Theory (Indiana University)',
+          'Thayer & Lane - Neurovisceral Integration (Ohio State)',
+          'Sleep Meta-analysis 2024 (n=31,000, 51 studies)',
+          'Chronotype Meta-analysis (n=16,647, 44 samples)'
+        ],
+        calendarBehavior: [
+          'Torous & Onnela - Digital Phenotyping (Harvard)',
+          'Stachl et al. 2020 - Smartphone Behavior (n=624, 25M+ events)',
+          'Kosinski et al. 2013 - Digital Footprints (n=58,000)',
+          'Claessens et al. - Time Management Psychology'
+        ]
+      }
+    });
+  } catch (error) {
+    console.error('[Twin API] Agent status error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to get agent status',
+      message: error.message
+    });
+  }
+});
+
+// ============================================================================
+// PURPOSE LEARNING ENDPOINTS
+// Personalized purpose detection that learns from user behavior
+// ============================================================================
+
+/**
+ * GET /api/twin/purpose-suggestion
+ * Get personalized purpose suggestion based on current context and learned preferences
+ */
+router.get('/purpose-suggestion', authenticateUser, async (req, res) => {
+  try {
+    const userId = req.user?.id;
+
+    if (!userId) {
+      return res.status(401).json({
+        success: false,
+        error: 'User authentication required'
+      });
+    }
+
+    console.log(`🎯 [Twin API] Getting purpose suggestion for user ${userId}`);
+
+    // Get aggregated context
+    const context = await userContextAggregator.aggregateUserContext(userId);
+
+    // Get personalized suggestion from learning service
+    const suggestion = await purposeLearningService.detectOptimalPurpose(userId, context);
+
+    res.json({
+      success: true,
+      suggestion: suggestion.suggestion,
+      confidence: suggestion.confidence,
+      reason: suggestion.reason,
+      source: suggestion.source,
+      feedbackCount: suggestion.feedbackCount,
+      alternativeSuggestion: suggestion.alternativeSuggestion,
+      features: suggestion.features,
+      patternName: suggestion.patternName,
+      timestamp: new Date().toISOString()
+    });
+
+  } catch (error) {
+    console.error('[Twin API] Purpose suggestion error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to get purpose suggestion',
+      message: error.message
+    });
+  }
+});
+
+/**
+ * POST /api/twin/purpose-selection
+ * Record user's purpose selection for learning
+ * Called when user selects a purpose (whether following suggestion or overriding)
+ */
+router.post('/purpose-selection', authenticateUser, async (req, res) => {
+  try {
+    const userId = req.user?.id;
+    const {
+      suggestedPurpose,
+      suggestedConfidence,
+      selectedPurpose,
+      overrideReason
+    } = req.body;
+
+    if (!userId) {
+      return res.status(401).json({
+        success: false,
+        error: 'User authentication required'
+      });
+    }
+
+    if (!selectedPurpose) {
+      return res.status(400).json({
+        success: false,
+        error: 'selectedPurpose is required'
+      });
+    }
+
+    console.log(`📝 [Twin API] Recording purpose selection: suggested=${suggestedPurpose}, selected=${selectedPurpose}`);
+
+    // Get current context for snapshot
+    const context = await userContextAggregator.aggregateUserContext(userId);
+    const features = purposeLearningService.extractContextFeatures(context);
+
+    // Record selection
+    const result = await purposeLearningService.recordSelection(userId, {
+      suggestedPurpose: suggestedPurpose || 'unknown',
+      suggestedConfidence: suggestedConfidence || 0.5,
+      selectedPurpose,
+      contextSnapshot: {
+        features,
+        whoop: context.whoop ? {
+          recovery: context.whoop.recovery?.score,
+          strain: context.whoop.strain?.score,
+          sleepHours: context.whoop.sleep?.hours
+        } : null,
+        calendar: context.calendar ? {
+          eventsToday: context.calendar.events?.length || 0,
+          nextEvent: context.calendar.nextEvent?.title
+        } : null,
+        spotify: context.spotify ? {
+          mood: context.spotify.currentMood?.label,
+          energy: context.spotify.currentMood?.energy
+        } : null
+      },
+      overrideReason
+    });
+
+    if (!result.success) {
+      return res.status(500).json({
+        success: false,
+        error: 'Failed to record selection',
+        message: result.error
+      });
+    }
+
+    res.json({
+      success: true,
+      feedbackId: result.feedbackId,
+      wasOverride: result.wasOverride,
+      message: result.wasOverride
+        ? 'Override recorded - learning from your preference'
+        : 'Selection recorded'
+    });
+
+  } catch (error) {
+    console.error('[Twin API] Purpose selection error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to record purpose selection',
+      message: error.message
+    });
+  }
+});
+
+/**
+ * GET /api/twin/purpose-patterns
+ * Get user's discovered patterns and learning statistics
+ */
+router.get('/purpose-patterns', authenticateUser, async (req, res) => {
+  try {
+    const userId = req.user?.id;
+
+    if (!userId) {
+      return res.status(401).json({
+        success: false,
+        error: 'User authentication required'
+      });
+    }
+
+    console.log(`📊 [Twin API] Getting purpose patterns for user ${userId}`);
+
+    const stats = await purposeLearningService.getLearningStats(userId);
+
+    if (!stats.success) {
+      return res.status(500).json({
+        success: false,
+        error: 'Failed to get learning stats',
+        message: stats.error
+      });
+    }
+
+    res.json({
+      success: true,
+      stats: stats.stats,
+      patterns: stats.patterns,
+      recentSelections: stats.recentSelections,
+      timestamp: new Date().toISOString()
+    });
+
+  } catch (error) {
+    console.error('[Twin API] Purpose patterns error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to get purpose patterns',
       message: error.message
     });
   }

@@ -3,7 +3,9 @@ import { useAuth } from '../contexts/AuthContext';
 import { useTheme } from '../contexts/ThemeContext';
 import { usePlatformStatus } from '../hooks/usePlatformStatus';
 import { useTwinPipeline } from '../hooks/useTwinPipeline';
+import { useNavigate } from 'react-router-dom';
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from '../components/ui/tooltip';
+import { PageLayout, GlassPanel } from '../components/layout/PageLayout';
 import {
   DEMO_PERSONALITY_SCORES,
   DEMO_SOUL_ARCHETYPE,
@@ -13,7 +15,6 @@ import {
 import {
   Sparkles,
   Brain,
-  Shield,
   RefreshCw,
   ChevronRight,
   Sun,
@@ -24,12 +25,9 @@ import {
   Music,
   Calendar,
   Lightbulb,
-  TrendingUp,
   Zap,
   Users,
-  Clock,
   Eye,
-  Settings,
   Loader2,
   CheckCircle2,
   AlertCircle,
@@ -38,21 +36,21 @@ import {
   ArrowRight
 } from 'lucide-react';
 import { BigFiveRadarChart } from '@/components/PersonalityRadarChart';
+import BehavioralEvidencePanel from '@/components/BehavioralEvidencePanel';
+import AssessmentStatusCard from '@/components/AssessmentStatusCard';
 
 interface PersonalityScores {
   id: string;
-  // New MBTI dimensions (16personalities-style)
-  mind?: number;           // I/E: 0=Introversion, 100=Extraversion
-  energy?: number;         // S/N: 0=Sensing, 100=Intuition
-  nature?: number;         // T/F: 0=Thinking, 100=Feeling
-  tactics?: number;        // J/P: 0=Perceiving, 100=Judging
-  identity?: number;       // A/T: 0=Turbulent, 100=Assertive
+  mind?: number;
+  energy?: number;
+  nature?: number;
+  tactics?: number;
+  identity?: number;
   mind_ci?: number;
   energy_ci?: number;
   nature_ci?: number;
   tactics_ci?: number;
   identity_ci?: number;
-  // Legacy Big Five dimensions (for backward compatibility)
   openness: number;
   conscientiousness: number;
   extraversion: number;
@@ -63,13 +61,11 @@ interface PersonalityScores {
   extraversion_confidence: number;
   agreeableness_confidence: number;
   neuroticism_confidence: number;
-  // Archetype info
-  archetype_code?: string;  // e.g., "INTJ-A"
+  archetype_code?: string;
   analyzed_platforms: string[];
   sample_size: number;
 }
 
-// MBTI dimension display info with explanations
 const MBTI_DIMENSIONS = {
   mind: {
     name: 'Mind',
@@ -157,7 +153,6 @@ interface BehavioralFeature {
   confidence_score: number;
 }
 
-// Spotify-derived personality insights
 interface SpotifyPersonality {
   success: boolean;
   bigFive?: {
@@ -188,6 +183,42 @@ interface SpotifyPersonality {
   dataTimestamp?: string;
 }
 
+interface EvidenceItem {
+  platform: string;
+  feature: string;
+  value: number;
+  raw_value?: Record<string, unknown>;
+  correlation: number;
+  effect_size: 'small' | 'medium' | 'large';
+  description: string;
+  citation: string;
+}
+
+interface BehavioralEvidence {
+  openness: EvidenceItem[];
+  conscientiousness: EvidenceItem[];
+  extraversion: EvidenceItem[];
+  agreeableness: EvidenceItem[];
+  neuroticism: EvidenceItem[];
+}
+
+interface EvidenceConfidence {
+  overall: number;
+  by_dimension: {
+    openness: number;
+    conscientiousness: number;
+    extraversion: number;
+    agreeableness: number;
+    neuroticism: number;
+  };
+}
+
+interface BehavioralEvidenceData {
+  evidence: BehavioralEvidence;
+  confidence: EvidenceConfidence;
+  dataSources?: Record<string, { days: number; events: number }>;
+}
+
 const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
   sun: Sun,
   compass: Compass,
@@ -196,12 +227,10 @@ const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
   wave: Waves,
 };
 
-// Demo data imported from centralized demoDataService.ts
-// DEMO_PERSONALITY_SCORES, DEMO_SOUL_ARCHETYPE, DEMO_BEHAVIORAL_FEATURES, DEMO_SPOTIFY_PERSONALITY
-
 const SoulSignatureDashboard: React.FC = () => {
   const { user, isDemoMode } = useAuth();
   const { theme } = useTheme();
+  const navigate = useNavigate();
   const { connectedProviders, data: platformStatusData } = usePlatformStatus(user?.id);
   const {
     isPipelineRunning,
@@ -213,26 +242,36 @@ const SoulSignatureDashboard: React.FC = () => {
     isForming,
     formError
   } = useTwinPipeline(user?.id || null);
+
   const [loading, setLoading] = useState(true);
   const [generating, setGenerating] = useState(false);
   const [personalityScores, setPersonalityScores] = useState<PersonalityScores | null>(null);
   const [soulSignature, setSoulSignature] = useState<SoulSignature | null>(null);
   const [features, setFeatures] = useState<BehavioralFeature[]>([]);
   const [spotifyPersonality, setSpotifyPersonality] = useState<SpotifyPersonality | null>(null);
+  const [behavioralEvidence, setBehavioralEvidence] = useState<BehavioralEvidenceData | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const API_URL = import.meta.env.VITE_API_URL;
 
-  // Get active platforms (excluding expired tokens)
+  // Theme-aware colors (matching Dashboard)
+  const textColor = theme === 'dark' ? '#C1C0B6' : '#0c0a09';
+  const textSecondary = theme === 'dark' ? 'rgba(193, 192, 182, 0.7)' : '#57534e';
+  const textMuted = theme === 'dark' ? 'rgba(193, 192, 182, 0.6)' : '#78716c';
+  const textFaint = theme === 'dark' ? 'rgba(193, 192, 182, 0.5)' : '#a8a29e';
+  const cardBg = theme === 'dark' ? 'rgba(45, 45, 41, 0.5)' : 'rgba(255, 255, 255, 0.7)';
+  const cardBorder = theme === 'dark' ? '1px solid rgba(193, 192, 182, 0.1)' : '1px solid rgba(0, 0, 0, 0.06)';
+  const cardShadow = theme === 'dark' ? '0 8px 32px rgba(0, 0, 0, 0.3)' : '0 8px 32px rgba(0, 0, 0, 0.06)';
+  const hoverBg = theme === 'dark' ? 'rgba(193, 192, 182, 0.05)' : 'rgba(0, 0, 0, 0.02)';
+  const subtleBg = theme === 'dark' ? 'rgba(193, 192, 182, 0.1)' : 'rgba(0, 0, 0, 0.05)';
+
   const activeConnections = connectedProviders.filter(provider => {
     const status = platformStatusData[provider];
     return !status?.tokenExpired && status?.status !== 'token_expired';
   });
 
   const fetchData = async () => {
-    // In demo mode, use mock data but with actual connected platforms
     if (isDemoMode) {
-      // Use actual connected platforms if available, otherwise demo defaults
       const platformsToUse = connectedProviders.length > 0 ? connectedProviders : DEMO_PERSONALITY_SCORES.analyzed_platforms;
       setPersonalityScores({
         ...DEMO_PERSONALITY_SCORES,
@@ -241,7 +280,6 @@ const SoulSignatureDashboard: React.FC = () => {
       });
       setSoulSignature(DEMO_SOUL_ARCHETYPE);
       setFeatures(DEMO_BEHAVIORAL_FEATURES);
-      // Demo Spotify personality data from centralized service
       setSpotifyPersonality(DEMO_SPOTIFY_PERSONALITY);
       setLoading(false);
       return;
@@ -259,12 +297,12 @@ const SoulSignatureDashboard: React.FC = () => {
 
       const headers = { 'Authorization': `Bearer ${token}` };
 
-      // Fetch all data in parallel (including Spotify personality)
-      const [scoresRes, signatureRes, featuresRes, spotifyRes] = await Promise.all([
+      const [scoresRes, signatureRes, featuresRes, spotifyRes, evidenceRes] = await Promise.all([
         fetch(`${API_URL}/soul-signature/personality-scores`, { headers }),
         fetch(`${API_URL}/soul-signature/archetype`, { headers }),
         fetch(`${API_URL}/soul-signature/features`, { headers }),
-        fetch(`${API_URL}/soul-insights/${user?.id}/spotify-personality`, { headers }).catch(() => null)
+        fetch(`${API_URL}/soul-insights/${user?.id}/spotify-personality`, { headers }).catch(() => null),
+        fetch(`${API_URL}/personality-inference/evidence`, { headers }).catch(() => null)
       ]);
 
       const [scoresData, signatureData, featuresData] = await Promise.all([
@@ -277,13 +315,22 @@ const SoulSignatureDashboard: React.FC = () => {
         setPersonalityScores(scoresData.data);
       }
       if (signatureData.success && signatureData.data) {
-        setSoulSignature(signatureData.data);
+        const signatureWithColors = {
+          ...signatureData.data,
+          color_scheme: signatureData.data.color_scheme || {
+            primary: '#8B5CF6',
+            secondary: '#6366F1',
+            accent: '#A78BFA',
+            background: '#F5F3FF',
+            text: '#1F2937'
+          }
+        };
+        setSoulSignature(signatureWithColors);
       }
       if (featuresData.success && featuresData.data) {
         setFeatures(featuresData.data);
       }
 
-      // Handle Spotify personality data
       if (spotifyRes) {
         try {
           const spotifyData = await spotifyRes.json();
@@ -292,6 +339,21 @@ const SoulSignatureDashboard: React.FC = () => {
           }
         } catch (e) {
           console.log('No Spotify personality data available');
+        }
+      }
+
+      if (evidenceRes) {
+        try {
+          const evidenceData = await evidenceRes.json();
+          if (evidenceData.success) {
+            setBehavioralEvidence({
+              evidence: evidenceData.evidence,
+              confidence: evidenceData.confidence,
+              dataSources: evidenceData.data_sources
+            });
+          }
+        } catch (e) {
+          console.log('No behavioral evidence data available');
         }
       }
     } catch (err) {
@@ -303,7 +365,6 @@ const SoulSignatureDashboard: React.FC = () => {
   };
 
   const generateSoulSignature = async () => {
-    // In demo mode, just simulate generation
     if (isDemoMode) {
       setGenerating(true);
       await new Promise(resolve => setTimeout(resolve, 1500));
@@ -333,7 +394,6 @@ const SoulSignatureDashboard: React.FC = () => {
       const data = await response.json();
 
       if (data.success) {
-        // Refresh all data
         await fetchData();
       } else {
         setError(data.error || 'Failed to generate soul signature');
@@ -350,47 +410,7 @@ const SoulSignatureDashboard: React.FC = () => {
     fetchData();
   }, [isDemoMode, connectedProviders.length]);
 
-  const PersonalityBar = ({
-    label,
-    value,
-    confidence,
-    color
-  }: {
-    label: string;
-    value: number;
-    confidence: number;
-    color: string;
-  }) => (
-    <div className="space-y-2">
-      <div className="flex justify-between items-center">
-        <span className="text-sm font-medium" style={{ color: theme === 'dark' ? '#C1C0B6' : '#44403c' }}>
-          {label}
-        </span>
-        <span className="text-sm font-bold" style={{ color }}>
-          {Math.round(value)}%
-        </span>
-      </div>
-      <div className="relative h-2 rounded-full overflow-hidden" style={{
-        backgroundColor: theme === 'dark' ? 'rgba(193, 192, 182, 0.1)' : 'rgba(0, 0, 0, 0.05)'
-      }}>
-        <div
-          className="absolute h-full rounded-full transition-all duration-500"
-          style={{
-            width: `${value}%`,
-            backgroundColor: color,
-            opacity: 0.3 + (confidence / 100) * 0.7
-          }}
-        />
-      </div>
-      {confidence > 0 && (
-        <div className="text-xs" style={{ color: theme === 'dark' ? 'rgba(193, 192, 182, 0.5)' : '#a8a29e' }}>
-          {confidence}% confidence
-        </div>
-      )}
-    </div>
-  );
-
-  // MBTI dimension bar - shows polarity between two traits (e.g., I vs E)
+  // MBTI dimension bar component
   const MBTIDimensionBar = ({
     dimension,
     value,
@@ -404,7 +424,6 @@ const SoulSignatureDashboard: React.FC = () => {
     const isHigh = value >= 50;
     const percentage = isHigh ? value : 100 - value;
     const letter = isHigh ? info.highLetter : info.lowLetter;
-    const label = isHigh ? info.highLabel : info.lowLabel;
 
     return (
       <TooltipProvider>
@@ -412,9 +431,7 @@ const SoulSignatureDashboard: React.FC = () => {
           <div className="flex justify-between items-center">
             <Tooltip>
               <TooltipTrigger asChild>
-                <span className="text-xs font-medium uppercase tracking-wider cursor-help flex items-center gap-1" style={{
-                  color: theme === 'dark' ? 'rgba(193, 192, 182, 0.6)' : '#a8a29e'
-                }}>
+                <span className="text-xs font-medium uppercase tracking-wider cursor-help flex items-center gap-1" style={{ color: textMuted }}>
                   {info.name}
                   <HelpCircle className="w-3 h-3 opacity-50" />
                 </span>
@@ -427,17 +444,16 @@ const SoulSignatureDashboard: React.FC = () => {
               <span className="text-lg font-bold" style={{ color: info.color }}>
                 {letter}
               </span>
-              <span className="text-xs" style={{ color: theme === 'dark' ? 'rgba(193, 192, 182, 0.6)' : '#78716c' }}>
+              <span className="text-xs" style={{ color: textMuted }}>
                 {Math.round(percentage)}%
               </span>
             </div>
           </div>
           <div className="flex items-center gap-2">
-            {/* Low pole label */}
             <Tooltip>
               <TooltipTrigger asChild>
                 <span className="text-xs w-20 text-right cursor-help" style={{
-                  color: !isHigh ? info.color : (theme === 'dark' ? 'rgba(193, 192, 182, 0.4)' : '#d4d4d4'),
+                  color: !isHigh ? info.color : textFaint,
                   fontWeight: !isHigh ? 600 : 400
                 }}>
                   {info.lowLabel}
@@ -448,15 +464,10 @@ const SoulSignatureDashboard: React.FC = () => {
                 <p className="text-xs opacity-80">{info.lowDesc}</p>
               </TooltipContent>
             </Tooltip>
-            {/* Bar */}
-            <div className="flex-1 relative h-2 rounded-full overflow-hidden" style={{
-              backgroundColor: theme === 'dark' ? 'rgba(193, 192, 182, 0.1)' : 'rgba(0, 0, 0, 0.05)'
-            }}>
-              {/* Center marker */}
+            <div className="flex-1 relative h-2 rounded-full overflow-hidden" style={{ backgroundColor: subtleBg }}>
               <div className="absolute top-0 bottom-0 left-1/2 w-px" style={{
                 backgroundColor: theme === 'dark' ? 'rgba(193, 192, 182, 0.3)' : 'rgba(0, 0, 0, 0.1)'
               }} />
-              {/* Value indicator */}
               <div
                 className="absolute h-full rounded-full transition-all duration-500"
                 style={{
@@ -467,11 +478,10 @@ const SoulSignatureDashboard: React.FC = () => {
                 }}
               />
             </div>
-            {/* High pole label */}
             <Tooltip>
               <TooltipTrigger asChild>
                 <span className="text-xs w-20 cursor-help" style={{
-                  color: isHigh ? info.color : (theme === 'dark' ? 'rgba(193, 192, 182, 0.4)' : '#d4d4d4'),
+                  color: isHigh ? info.color : textFaint,
                   fontWeight: isHigh ? 600 : 400
                 }}>
                   {info.highLabel}
@@ -488,108 +498,94 @@ const SoulSignatureDashboard: React.FC = () => {
     );
   };
 
-  const FeatureCard = ({ feature }: { feature: BehavioralFeature }) => {
-    const platformIcons: Record<string, React.ReactNode> = {
-      spotify: <Music className="w-4 h-4" />,
-      calendar: <Calendar className="w-4 h-4" />
-    };
-
-    return (
+  // Section header component (matching Dashboard style)
+  const SectionHeader = ({ title }: { title: string }) => (
+    <div className="flex items-center gap-2 mb-4">
       <div
-        className="p-4 rounded-xl"
+        className="w-1 h-5 rounded-full"
         style={{
-          backgroundColor: theme === 'dark' ? 'rgba(45, 45, 41, 0.5)' : 'rgba(255, 255, 255, 0.7)',
-          border: theme === 'dark' ? '1px solid rgba(193, 192, 182, 0.1)' : '1px solid rgba(0, 0, 0, 0.05)'
+          background: theme === 'dark'
+            ? 'linear-gradient(to bottom, rgba(193, 192, 182, 0.6), rgba(193, 192, 182, 0.2))'
+            : 'linear-gradient(to bottom, rgba(0, 0, 0, 0.4), rgba(0, 0, 0, 0.1))'
         }}
+      />
+      <h3
+        className="text-sm uppercase tracking-wider"
+        style={{ color: textMuted }}
       >
-        <div className="flex items-center gap-2 mb-2">
-          <span style={{ color: theme === 'dark' ? '#C1C0B6' : '#44403c' }}>
-            {platformIcons[feature.platform] || <Sparkles className="w-4 h-4" />}
-          </span>
-          <span className="text-xs uppercase tracking-wider" style={{ color: theme === 'dark' ? 'rgba(193, 192, 182, 0.6)' : '#a8a29e' }}>
-            {feature.platform}
-          </span>
-        </div>
-        <div className="text-sm font-medium mb-1" style={{ color: theme === 'dark' ? '#C1C0B6' : '#0c0a09' }}>
-          {feature.feature_type.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
-        </div>
-        <div className="flex items-center justify-between">
-          <span className="text-lg font-bold" style={{ color: theme === 'dark' ? '#C1C0B6' : '#0c0a09' }}>
-            {Math.round(feature.feature_value)}%
-          </span>
-          <span className="text-xs px-2 py-1 rounded-full" style={{
-            backgroundColor: theme === 'dark' ? 'rgba(193, 192, 182, 0.1)' : 'rgba(0, 0, 0, 0.05)',
-            color: theme === 'dark' ? 'rgba(193, 192, 182, 0.8)' : '#57534e'
-          }}>
-            → {feature.contributes_to}
-          </span>
-        </div>
-      </div>
-    );
-  };
+        {title}
+      </h3>
+    </div>
+  );
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-[60vh]">
-        <div className="text-center">
-          <RefreshCw className="w-8 h-8 animate-spin mx-auto mb-4" style={{ color: theme === 'dark' ? '#C1C0B6' : '#57534e' }} />
-          <p style={{ color: theme === 'dark' ? 'rgba(193, 192, 182, 0.8)' : '#57534e' }}>
-            Loading your soul signature...
-          </p>
+      <PageLayout maxWidth="xl">
+        <div className="flex items-center justify-center min-h-[60vh]">
+          <div className="text-center">
+            <RefreshCw className="w-8 h-8 animate-spin mx-auto mb-4" style={{ color: textSecondary }} />
+            <p style={{ color: textSecondary }}>
+              Loading your soul signature...
+            </p>
+          </div>
         </div>
-      </div>
+      </PageLayout>
     );
   }
 
   const IconComponent = soulSignature ? iconMap[soulSignature.icon_type] || Sparkles : Sparkles;
 
   return (
-    <div className="p-6 max-w-6xl mx-auto space-y-8">
+    <PageLayout maxWidth="xl">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
         <div>
-          <h1 className="text-3xl font-normal tracking-tight font-garamond" style={{ color: theme === 'dark' ? '#C1C0B6' : '#0c0a09' }}>
+          <h1
+            className="text-3xl md:text-4xl mb-2"
+            style={{
+              fontFamily: 'var(--font-heading)',
+              fontWeight: 400,
+              color: textColor
+            }}
+          >
             Your Soul Signature
           </h1>
-          <p className="mt-1" style={{ color: theme === 'dark' ? 'rgba(193, 192, 182, 0.8)' : '#57534e' }}>
+          <p style={{ color: textSecondary }}>
             Discover what makes you authentically you
           </p>
         </div>
         <button
           onClick={generateSoulSignature}
           disabled={generating}
-          className="flex items-center gap-2 px-4 py-2 rounded-xl transition-all duration-200 disabled:opacity-50"
+          className="flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl transition-all duration-200 disabled:opacity-50 hover:scale-[1.02]"
           style={{
-            backgroundColor: theme === 'dark' ? 'rgba(193, 192, 182, 0.1)' : 'rgba(0, 0, 0, 0.05)',
-            color: theme === 'dark' ? '#C1C0B6' : '#0c0a09',
-            border: theme === 'dark' ? '1px solid rgba(193, 192, 182, 0.2)' : '1px solid rgba(0, 0, 0, 0.1)'
+            backgroundColor: subtleBg,
+            color: textColor,
+            border: cardBorder
           }}
         >
           <RefreshCw className={`w-4 h-4 ${generating ? 'animate-spin' : ''}`} />
-          {generating ? 'Generating...' : 'Regenerate'}
+          <span className="font-medium">{generating ? 'Generating...' : 'Regenerate'}</span>
         </button>
       </div>
 
       {error && (
-        <div className="p-4 rounded-xl" style={{
-          backgroundColor: theme === 'dark' ? 'rgba(220, 38, 38, 0.1)' : 'rgba(255, 235, 235, 0.5)',
-          border: '1px solid rgba(220, 38, 38, 0.2)',
-          color: theme === 'dark' ? '#fca5a5' : '#991b1b'
-        }}>
-          {error}
+        <div
+          className="mb-6 p-4 rounded-xl flex items-center gap-3"
+          style={{
+            backgroundColor: 'rgba(220, 38, 38, 0.08)',
+            border: '1px solid rgba(220, 38, 38, 0.2)'
+          }}
+        >
+          <AlertCircle className="w-5 h-5 flex-shrink-0" style={{ color: '#EF4444' }} />
+          <span style={{ color: theme === 'dark' ? '#fca5a5' : '#991b1b' }}>{error}</span>
         </div>
       )}
 
       {/* Pipeline Status Card */}
       {!isDemoMode && (
-        <div
-          className="rounded-2xl p-6"
-          style={{
-            backgroundColor: theme === 'dark' ? 'rgba(45, 45, 41, 0.5)' : 'rgba(255, 255, 255, 0.5)',
-            border: theme === 'dark' ? '1px solid rgba(193, 192, 182, 0.1)' : '1px solid rgba(0, 0, 0, 0.05)'
-          }}
-        >
-          <div className="flex items-center justify-between mb-4">
+        <GlassPanel className="!p-5 mb-6">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div className="flex items-center gap-3">
               <div
                 className="w-10 h-10 rounded-xl flex items-center justify-center"
@@ -610,10 +606,10 @@ const SoulSignatureDashboard: React.FC = () => {
                 )}
               </div>
               <div>
-                <h3 className="font-medium" style={{ color: theme === 'dark' ? '#C1C0B6' : '#0c0a09' }}>
+                <h3 style={{ fontFamily: 'var(--font-heading)', fontWeight: 500, color: textColor }}>
                   Twin Formation
                 </h3>
-                <p className="text-sm" style={{ color: theme === 'dark' ? 'rgba(193, 192, 182, 0.6)' : '#78716c' }}>
+                <p className="text-sm" style={{ color: textMuted }}>
                   {isPipelineRunning
                     ? `Stage: ${currentStage || 'Starting...'}`
                     : hasTwin
@@ -626,11 +622,11 @@ const SoulSignatureDashboard: React.FC = () => {
               <button
                 onClick={() => formTwin(false)}
                 disabled={isForming}
-                className="flex items-center gap-2 px-4 py-2 rounded-xl transition-all duration-200 disabled:opacity-50"
+                className="flex items-center gap-2 px-4 py-2 rounded-xl transition-all duration-200 disabled:opacity-50 hover:scale-[1.02]"
                 style={{
-                  backgroundColor: theme === 'dark' ? 'rgba(99, 102, 241, 0.2)' : 'rgba(99, 102, 241, 0.1)',
+                  backgroundColor: 'rgba(99, 102, 241, 0.1)',
                   color: '#6366F1',
-                  border: theme === 'dark' ? '1px solid rgba(99, 102, 241, 0.3)' : '1px solid rgba(99, 102, 241, 0.2)'
+                  border: '1px solid rgba(99, 102, 241, 0.2)'
                 }}
               >
                 <Play className="w-4 h-4" />
@@ -639,36 +635,42 @@ const SoulSignatureDashboard: React.FC = () => {
             )}
           </div>
 
-          {/* Platform Status */}
+          {/* Platform Status Grid */}
           {connectedCount > 0 && (
-            <div className="grid grid-cols-3 gap-3 mt-4">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mt-4">
               {['spotify', 'whoop', 'calendar'].map(platform => {
                 const platformData = platforms.find(p => p.platform === platform);
                 const isConnected = !!platformData;
                 const lastSync = platformData?.lastSync;
 
+                const platformColors: Record<string, string> = {
+                  spotify: '#1DB954',
+                  whoop: '#06B6D4',
+                  calendar: '#6366F1'
+                };
+
                 return (
                   <div
                     key={platform}
-                    className="p-3 rounded-xl"
+                    className="p-3 rounded-xl transition-all duration-200"
                     style={{
-                      backgroundColor: theme === 'dark' ? 'rgba(193, 192, 182, 0.05)' : 'rgba(0, 0, 0, 0.02)',
+                      backgroundColor: hoverBg,
                       border: isConnected
-                        ? theme === 'dark' ? '1px solid rgba(16, 185, 129, 0.2)' : '1px solid rgba(16, 185, 129, 0.15)'
-                        : theme === 'dark' ? '1px solid rgba(193, 192, 182, 0.1)' : '1px solid rgba(0, 0, 0, 0.05)'
+                        ? `1px solid ${platformColors[platform]}25`
+                        : '1px solid transparent'
                     }}
                   >
                     <div className="flex items-center gap-2 mb-1">
-                      {platform === 'spotify' && <Music className="w-4 h-4" style={{ color: isConnected ? '#1DB954' : (theme === 'dark' ? 'rgba(193, 192, 182, 0.4)' : '#d4d4d4') }} />}
-                      {platform === 'whoop' && <Heart className="w-4 h-4" style={{ color: isConnected ? '#06B6D4' : (theme === 'dark' ? 'rgba(193, 192, 182, 0.4)' : '#d4d4d4') }} />}
-                      {platform === 'calendar' && <Calendar className="w-4 h-4" style={{ color: isConnected ? '#6366F1' : (theme === 'dark' ? 'rgba(193, 192, 182, 0.4)' : '#d4d4d4') }} />}
+                      {platform === 'spotify' && <Music className="w-4 h-4" style={{ color: isConnected ? platformColors.spotify : textFaint }} />}
+                      {platform === 'whoop' && <Heart className="w-4 h-4" style={{ color: isConnected ? platformColors.whoop : textFaint }} />}
+                      {platform === 'calendar' && <Calendar className="w-4 h-4" style={{ color: isConnected ? platformColors.calendar : textFaint }} />}
                       <span className="text-xs font-medium capitalize" style={{
-                        color: isConnected ? (theme === 'dark' ? '#C1C0B6' : '#0c0a09') : (theme === 'dark' ? 'rgba(193, 192, 182, 0.4)' : '#d4d4d4')
+                        color: isConnected ? textColor : textFaint
                       }}>
                         {platform}
                       </span>
                     </div>
-                    <p className="text-xs" style={{ color: theme === 'dark' ? 'rgba(193, 192, 182, 0.5)' : '#a8a29e' }}>
+                    <p className="text-xs" style={{ color: textFaint }}>
                       {isConnected
                         ? lastSync
                           ? `Synced ${new Date(lastSync).toLocaleDateString()}`
@@ -683,126 +685,121 @@ const SoulSignatureDashboard: React.FC = () => {
 
           {formError && (
             <div className="mt-4 p-3 rounded-xl text-sm" style={{
-              backgroundColor: 'rgba(220, 38, 38, 0.1)',
-              border: '1px solid rgba(220, 38, 38, 0.2)',
+              backgroundColor: 'rgba(220, 38, 38, 0.08)',
+              border: '1px solid rgba(220, 38, 38, 0.15)',
               color: theme === 'dark' ? '#fca5a5' : '#991b1b'
             }}>
               Pipeline error: {formError.message}
             </div>
           )}
-        </div>
+        </GlassPanel>
       )}
+
+      {/* Assessment Status Card */}
+      <div className="mb-6">
+        <AssessmentStatusCard
+          quickAssessmentComplete={!!personalityScores?.archetype_code}
+          mbtiCode={personalityScores?.archetype_code || null}
+          bigFiveComplete={!!(personalityScores?.openness && personalityScores.openness > 0)}
+          bigFiveScores={personalityScores ? {
+            openness: personalityScores.openness,
+            conscientiousness: personalityScores.conscientiousness,
+            extraversion: personalityScores.extraversion,
+            agreeableness: personalityScores.agreeableness,
+            neuroticism: personalityScores.neuroticism
+          } : null}
+          hasBehavioralData={features.length > 0 || !!behavioralEvidence}
+          connectedPlatforms={connectedProviders.length}
+        />
+      </div>
 
       {/* Soul Signature Card */}
       {soulSignature ? (
         <div
-          className="rounded-3xl overflow-hidden"
+          className="rounded-2xl md:rounded-3xl overflow-hidden mb-6"
           style={{
-            background: theme === 'dark'
-              ? `linear-gradient(135deg, rgba(45, 45, 41, 0.8), rgba(45, 45, 41, 0.5))`
-              : `linear-gradient(135deg, ${soulSignature.color_scheme.background}, white)`,
-            border: theme === 'dark' ? '1px solid rgba(193, 192, 182, 0.1)' : `1px solid ${soulSignature.color_scheme.primary}20`,
-            boxShadow: theme === 'dark' ? '0 8px 32px rgba(0, 0, 0, 0.3)' : '0 8px 32px rgba(0, 0, 0, 0.05)'
+            backgroundColor: cardBg,
+            border: cardBorder,
+            boxShadow: cardShadow
           }}
         >
-          <div className="p-8">
-            <div className="flex items-start gap-6">
-              {/* Icon */}
+          <div className="p-6 md:p-8">
+            {/* Header */}
+            <div className="flex flex-col sm:flex-row items-start gap-4 sm:gap-6 mb-6">
               <div
-                className="w-20 h-20 rounded-2xl flex items-center justify-center flex-shrink-0"
+                className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl flex items-center justify-center flex-shrink-0"
                 style={{
-                  background: theme === 'dark'
-                    ? 'rgba(193, 192, 182, 0.1)'
-                    : `linear-gradient(135deg, ${soulSignature.color_scheme.primary}30, ${soulSignature.color_scheme.secondary}20)`,
-                  border: theme === 'dark'
-                    ? '1px solid rgba(193, 192, 182, 0.2)'
-                    : `1px solid ${soulSignature.color_scheme.primary}40`
+                  backgroundColor: 'rgba(139, 92, 246, 0.1)',
+                  border: '1px solid rgba(139, 92, 246, 0.2)'
                 }}
               >
-                <IconComponent
-                  className="w-10 h-10"
-                  style={{ color: theme === 'dark' ? '#C1C0B6' : soulSignature.color_scheme.primary }}
-                />
+                <IconComponent className="w-8 h-8 sm:w-10 sm:h-10" style={{ color: '#8B5CF6' }} />
               </div>
-
-              {/* Title & Subtitle */}
-              <div className="flex-1">
+              <div>
                 <h2
-                  className="text-4xl font-normal tracking-tight font-garamond mb-2"
-                  style={{ color: theme === 'dark' ? '#C1C0B6' : soulSignature.color_scheme.text }}
+                  className="text-3xl sm:text-4xl mb-2"
+                  style={{
+                    fontFamily: 'var(--font-heading)',
+                    fontWeight: 400,
+                    color: textColor
+                  }}
                 >
                   {soulSignature.archetype_name}
                 </h2>
-                <p
-                  className="text-lg italic"
-                  style={{ color: theme === 'dark' ? 'rgba(193, 192, 182, 0.7)' : soulSignature.color_scheme.primary }}
-                >
+                <p className="text-lg italic" style={{ color: '#8B5CF6' }}>
                   {soulSignature.archetype_subtitle}
                 </p>
               </div>
             </div>
 
-
-            {/* Visual Insight Cards */}
-            <div className="mt-6 grid grid-cols-1 md:grid-cols-3 gap-4">
-              {/* Core Drive Card */}
+            {/* Insight Cards */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+              {/* Core Drive */}
               <div className="p-4 rounded-xl" style={{
-                backgroundColor: theme === 'dark' ? 'rgba(139, 92, 246, 0.1)' : 'rgba(139, 92, 246, 0.05)',
-                border: theme === 'dark' ? '1px solid rgba(139, 92, 246, 0.2)' : '1px solid rgba(139, 92, 246, 0.15)'
+                backgroundColor: 'rgba(139, 92, 246, 0.08)',
+                border: '1px solid rgba(139, 92, 246, 0.15)'
               }}>
                 <div className="flex items-center gap-2 mb-3">
-                  <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{
-                    backgroundColor: theme === 'dark' ? 'rgba(139, 92, 246, 0.2)' : 'rgba(139, 92, 246, 0.1)'
-                  }}>
+                  <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ backgroundColor: 'rgba(139, 92, 246, 0.15)' }}>
                     <Lightbulb className="w-4 h-4" style={{ color: '#8B5CF6' }} />
                   </div>
-                  <span className="text-xs uppercase tracking-wider font-medium" style={{ color: '#8B5CF6' }}>
-                    Core Drive
-                  </span>
+                  <span className="text-xs uppercase tracking-wider font-medium" style={{ color: '#8B5CF6' }}>Core Drive</span>
                 </div>
-                <p className="text-sm leading-relaxed" style={{ color: theme === 'dark' ? '#C1C0B6' : '#44403c' }}>
+                <p className="text-sm leading-relaxed" style={{ color: textColor }}>
                   {soulSignature.defining_traits[0]?.trait || 'Curiosity'} shapes your choices - you seek {soulSignature.defining_traits[0]?.evidence.toLowerCase() || 'new experiences'}
                 </p>
               </div>
 
-              {/* Social Style Card */}
+              {/* Social Style */}
               <div className="p-4 rounded-xl" style={{
-                backgroundColor: theme === 'dark' ? 'rgba(99, 102, 241, 0.1)' : 'rgba(99, 102, 241, 0.05)',
-                border: theme === 'dark' ? '1px solid rgba(99, 102, 241, 0.2)' : '1px solid rgba(99, 102, 241, 0.15)'
+                backgroundColor: 'rgba(99, 102, 241, 0.08)',
+                border: '1px solid rgba(99, 102, 241, 0.15)'
               }}>
                 <div className="flex items-center gap-2 mb-3">
-                  <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{
-                    backgroundColor: theme === 'dark' ? 'rgba(99, 102, 241, 0.2)' : 'rgba(99, 102, 241, 0.1)'
-                  }}>
+                  <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ backgroundColor: 'rgba(99, 102, 241, 0.15)' }}>
                     <Users className="w-4 h-4" style={{ color: '#6366F1' }} />
                   </div>
-                  <span className="text-xs uppercase tracking-wider font-medium" style={{ color: '#6366F1' }}>
-                    Social Style
-                  </span>
+                  <span className="text-xs uppercase tracking-wider font-medium" style={{ color: '#6366F1' }}>Social Style</span>
                 </div>
-                <p className="text-sm leading-relaxed" style={{ color: theme === 'dark' ? '#C1C0B6' : '#44403c' }}>
+                <p className="text-sm leading-relaxed" style={{ color: textColor }}>
                   {personalityScores && personalityScores.extraversion > 60
                     ? 'You thrive in social settings and draw energy from connecting with others'
                     : 'You value deep connections over many, preferring meaningful one-on-one interactions'}
                 </p>
               </div>
 
-              {/* Creative Pattern Card */}
+              {/* Creative Pattern */}
               <div className="p-4 rounded-xl" style={{
-                backgroundColor: theme === 'dark' ? 'rgba(236, 72, 153, 0.1)' : 'rgba(236, 72, 153, 0.05)',
-                border: theme === 'dark' ? '1px solid rgba(236, 72, 153, 0.2)' : '1px solid rgba(236, 72, 153, 0.15)'
+                backgroundColor: 'rgba(236, 72, 153, 0.08)',
+                border: '1px solid rgba(236, 72, 153, 0.15)'
               }}>
                 <div className="flex items-center gap-2 mb-3">
-                  <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{
-                    backgroundColor: theme === 'dark' ? 'rgba(236, 72, 153, 0.2)' : 'rgba(236, 72, 153, 0.1)'
-                  }}>
+                  <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ backgroundColor: 'rgba(236, 72, 153, 0.15)' }}>
                     <Zap className="w-4 h-4" style={{ color: '#EC4899' }} />
                   </div>
-                  <span className="text-xs uppercase tracking-wider font-medium" style={{ color: '#EC4899' }}>
-                    Creative Pattern
-                  </span>
+                  <span className="text-xs uppercase tracking-wider font-medium" style={{ color: '#EC4899' }}>Creative Pattern</span>
                 </div>
-                <p className="text-sm leading-relaxed" style={{ color: theme === 'dark' ? '#C1C0B6' : '#44403c' }}>
+                <p className="text-sm leading-relaxed" style={{ color: textColor }}>
                   {soulSignature.defining_traits[2]?.trait || 'Creative expression'} is key - {soulSignature.defining_traits[2]?.evidence.toLowerCase() || 'you explore diverse artistic interests'}
                 </p>
               </div>
@@ -811,20 +808,16 @@ const SoulSignatureDashboard: React.FC = () => {
             {/* MBTI Type Display */}
             {personalityScores && (personalityScores.mind !== undefined || personalityScores.archetype_code) && (
               <div className="mt-6">
-                <h3 className="text-sm font-medium uppercase tracking-wider mb-4" style={{
-                  color: theme === 'dark' ? 'rgba(193, 192, 182, 0.5)' : '#a8a29e'
-                }}>
-                  Your Personality Type
-                </h3>
+                <SectionHeader title="Your Personality Type" />
 
-                {/* Type Code Display */}
-                <div className="flex items-center gap-4 mb-6 p-4 rounded-xl" style={{
-                  backgroundColor: theme === 'dark' ? 'rgba(139, 92, 246, 0.1)' : 'rgba(139, 92, 246, 0.05)',
-                  border: theme === 'dark' ? '1px solid rgba(139, 92, 246, 0.2)' : '1px solid rgba(139, 92, 246, 0.15)'
+                {/* Type Code */}
+                <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 mb-6 p-4 rounded-xl" style={{
+                  backgroundColor: 'rgba(139, 92, 246, 0.08)',
+                  border: '1px solid rgba(139, 92, 246, 0.15)'
                 }}>
                   <div className="flex items-center gap-1">
                     {(personalityScores.archetype_code || 'XXXX-X').split('').map((letter, i) => {
-                      if (letter === '-') return <span key={i} className="text-2xl font-light" style={{ color: theme === 'dark' ? 'rgba(193, 192, 182, 0.3)' : '#d4d4d4' }}>-</span>;
+                      if (letter === '-') return <span key={i} className="text-2xl font-light" style={{ color: textFaint }}>-</span>;
                       const colors = [
                         MBTI_DIMENSIONS.mind.color,
                         MBTI_DIMENSIONS.energy.color,
@@ -834,64 +827,36 @@ const SoulSignatureDashboard: React.FC = () => {
                       ];
                       const colorIndex = i > 4 ? 4 : i;
                       return (
-                        <span
-                          key={i}
-                          className="text-3xl font-bold"
-                          style={{ color: colors[colorIndex] }}
-                        >
+                        <span key={i} className="text-3xl font-bold" style={{ color: colors[colorIndex] }}>
                           {letter}
                         </span>
                       );
                     })}
                   </div>
                   <div className="flex-1">
-                    <div className="text-sm font-medium" style={{ color: theme === 'dark' ? '#C1C0B6' : '#0c0a09' }}>
+                    <div className="text-sm font-medium" style={{ color: textColor }}>
                       {soulSignature?.archetype_name || 'Your Unique Type'}
                     </div>
-                    <div className="text-xs" style={{ color: theme === 'dark' ? 'rgba(193, 192, 182, 0.6)' : '#78716c' }}>
-                      Based on your questionnaire and behavioral patterns
+                    <div className="text-xs" style={{ color: textMuted }}>
+                      Based on your assessment and behavioral patterns
                     </div>
                   </div>
                 </div>
 
                 {/* Dimension Bars */}
                 <div className="space-y-4">
-                  <MBTIDimensionBar
-                    dimension="mind"
-                    value={personalityScores.mind ?? personalityScores.extraversion ?? 50}
-                    confidence={personalityScores.mind_ci ?? personalityScores.extraversion_confidence}
-                  />
-                  <MBTIDimensionBar
-                    dimension="energy"
-                    value={personalityScores.energy ?? personalityScores.openness ?? 50}
-                    confidence={personalityScores.energy_ci ?? personalityScores.openness_confidence}
-                  />
-                  <MBTIDimensionBar
-                    dimension="nature"
-                    value={personalityScores.nature ?? personalityScores.agreeableness ?? 50}
-                    confidence={personalityScores.nature_ci ?? personalityScores.agreeableness_confidence}
-                  />
-                  <MBTIDimensionBar
-                    dimension="tactics"
-                    value={personalityScores.tactics ?? personalityScores.conscientiousness ?? 50}
-                    confidence={personalityScores.tactics_ci ?? personalityScores.conscientiousness_confidence}
-                  />
-                  <MBTIDimensionBar
-                    dimension="identity"
-                    value={personalityScores.identity ?? (100 - (personalityScores.neuroticism ?? 50))}
-                    confidence={personalityScores.identity_ci ?? personalityScores.neuroticism_confidence}
-                  />
+                  <MBTIDimensionBar dimension="mind" value={personalityScores.mind ?? personalityScores.extraversion ?? 50} confidence={personalityScores.mind_ci ?? personalityScores.extraversion_confidence} />
+                  <MBTIDimensionBar dimension="energy" value={personalityScores.energy ?? personalityScores.openness ?? 50} confidence={personalityScores.energy_ci ?? personalityScores.openness_confidence} />
+                  <MBTIDimensionBar dimension="nature" value={personalityScores.nature ?? personalityScores.agreeableness ?? 50} confidence={personalityScores.nature_ci ?? personalityScores.agreeableness_confidence} />
+                  <MBTIDimensionBar dimension="tactics" value={personalityScores.tactics ?? personalityScores.conscientiousness ?? 50} confidence={personalityScores.tactics_ci ?? personalityScores.conscientiousness_confidence} />
+                  <MBTIDimensionBar dimension="identity" value={personalityScores.identity ?? (100 - (personalityScores.neuroticism ?? 50))} confidence={personalityScores.identity_ci ?? personalityScores.neuroticism_confidence} />
                 </div>
               </div>
             )}
 
-            {/* Defining Traits - No percentages */}
+            {/* Defining Traits */}
             <div className="mt-6">
-              <h3 className="text-sm font-medium uppercase tracking-wider mb-4" style={{
-                color: theme === 'dark' ? 'rgba(193, 192, 182, 0.5)' : '#a8a29e'
-              }}>
-                What Makes You Unique
-              </h3>
+              <SectionHeader title="What Makes You Unique" />
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {soulSignature.defining_traits.map((trait, index) => {
                   const traitColors = ['#8B5CF6', '#6366F1', '#EC4899', '#10B981'];
@@ -900,26 +865,21 @@ const SoulSignatureDashboard: React.FC = () => {
                   return (
                     <div
                       key={index}
-                      className="p-4 rounded-xl flex items-center gap-4 group hover:scale-[1.02] transition-transform"
+                      className="p-4 rounded-xl flex items-center gap-4 transition-all duration-200 hover:scale-[1.01]"
                       style={{
-                        backgroundColor: theme === 'dark' ? 'rgba(193, 192, 182, 0.05)' : 'rgba(255, 255, 255, 0.8)',
-                        border: theme === 'dark' ? '1px solid rgba(193, 192, 182, 0.1)' : '1px solid rgba(0, 0, 0, 0.05)'
+                        backgroundColor: hoverBg,
+                        border: `1px solid ${theme === 'dark' ? 'rgba(193, 192, 182, 0.08)' : 'rgba(0, 0, 0, 0.04)'}`
                       }}
                     >
-                      {/* Icon instead of progress ring */}
                       <div
                         className="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0"
-                        style={{ backgroundColor: `${color}20` }}
+                        style={{ backgroundColor: `${color}15` }}
                       >
                         <Sparkles className="w-5 h-5" style={{ color }} />
                       </div>
                       <div className="flex-1 min-w-0">
-                        <div className="font-medium" style={{ color: theme === 'dark' ? '#C1C0B6' : '#0c0a09' }}>
-                          {trait.trait}
-                        </div>
-                        <div className="text-sm" style={{ color: theme === 'dark' ? 'rgba(193, 192, 182, 0.6)' : '#57534e' }}>
-                          {trait.evidence}
-                        </div>
+                        <div className="font-medium" style={{ color: textColor }}>{trait.trait}</div>
+                        <div className="text-sm" style={{ color: textSecondary }}>{trait.evidence}</div>
                       </div>
                     </div>
                   );
@@ -929,57 +889,51 @@ const SoulSignatureDashboard: React.FC = () => {
           </div>
         </div>
       ) : (
-        <div
-          className="rounded-3xl p-12 text-center"
-          style={{
-            backgroundColor: theme === 'dark' ? 'rgba(45, 45, 41, 0.5)' : 'rgba(255, 255, 255, 0.5)',
-            border: theme === 'dark' ? '1px solid rgba(193, 192, 182, 0.1)' : '1px solid rgba(0, 0, 0, 0.05)'
-          }}
-        >
-          <Sparkles className="w-16 h-16 mx-auto mb-4" style={{ color: theme === 'dark' ? 'rgba(193, 192, 182, 0.3)' : '#d4d4d4' }} />
-          <h3 className="text-xl font-medium mb-2" style={{ color: theme === 'dark' ? '#C1C0B6' : '#0c0a09' }}>
+        <GlassPanel className="mb-6 text-center py-12">
+          <Sparkles className="w-16 h-16 mx-auto mb-4" style={{ color: textFaint }} />
+          <h3
+            className="text-xl mb-2"
+            style={{ fontFamily: 'var(--font-heading)', fontWeight: 500, color: textColor }}
+          >
             No Soul Signature Yet
           </h3>
-          <p className="mb-6" style={{ color: theme === 'dark' ? 'rgba(193, 192, 182, 0.6)' : '#57534e' }}>
+          <p className="mb-6" style={{ color: textSecondary }}>
             Connect your platforms and generate your unique soul signature
           </p>
           <button
             onClick={generateSoulSignature}
             disabled={generating}
-            className="px-6 py-3 rounded-xl font-medium transition-all duration-200 disabled:opacity-50"
-            style={{
-              backgroundColor: theme === 'dark' ? '#C1C0B6' : '#0c0a09',
-              color: theme === 'dark' ? '#232320' : '#ffffff'
-            }}
+            className="px-6 py-3 rounded-xl font-medium transition-all duration-200 disabled:opacity-50 hover:scale-[1.02]"
+            style={{ backgroundColor: '#8B5CF6', color: '#ffffff' }}
           >
             {generating ? 'Generating...' : 'Generate Soul Signature'}
           </button>
-        </div>
+        </GlassPanel>
       )}
 
-
       {/* Big Five Scientific Assessment */}
-      <div
-        className="rounded-2xl p-6"
-        style={{
-          backgroundColor: theme === 'dark' ? 'rgba(45, 45, 41, 0.5)' : 'rgba(255, 255, 255, 0.5)',
-          border: theme === 'dark' ? '1px solid rgba(193, 192, 182, 0.1)' : '1px solid rgba(0, 0, 0, 0.05)'
-        }}
-      >
-        <div className="flex items-center justify-between mb-6">
-          <div className="flex items-center gap-2">
-            <Target className="w-5 h-5" style={{ color: '#8b5cf6' }} />
-            <h3 className="text-lg font-medium" style={{ color: theme === 'dark' ? '#C1C0B6' : '#0c0a09' }}>
-              Big Five Personality Profile
-            </h3>
+      <GlassPanel className="!p-5 md:!p-6 mb-6">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ backgroundColor: 'rgba(139, 92, 246, 0.1)' }}>
+              <Target className="w-5 h-5" style={{ color: '#8B5CF6' }} />
+            </div>
+            <div>
+              <h3 style={{ fontFamily: 'var(--font-heading)', fontWeight: 500, color: textColor }}>
+                Big Five Personality Profile
+              </h3>
+              <p className="text-xs" style={{ color: textMuted }}>
+                Scientific IPIP-NEO-120 assessment
+              </p>
+            </div>
           </div>
           <button
-            onClick={() => window.location.href = '/big-five'}
+            onClick={() => navigate('/big-five')}
             className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-all hover:scale-[1.02]"
             style={{
-              backgroundColor: theme === 'dark' ? 'rgba(139, 92, 246, 0.1)' : 'rgba(139, 92, 246, 0.05)',
-              color: '#8b5cf6',
-              border: theme === 'dark' ? '1px solid rgba(139, 92, 246, 0.2)' : '1px solid rgba(139, 92, 246, 0.15)'
+              backgroundColor: 'rgba(139, 92, 246, 0.1)',
+              color: '#8B5CF6',
+              border: '1px solid rgba(139, 92, 246, 0.2)'
             }}
           >
             Take Assessment
@@ -987,13 +941,12 @@ const SoulSignatureDashboard: React.FC = () => {
           </button>
         </div>
 
-        <p className="text-sm mb-6" style={{ color: theme === 'dark' ? 'rgba(193, 192, 182, 0.7)' : '#57534e' }}>
+        <p className="text-sm mb-6" style={{ color: textSecondary }}>
           The scientifically validated IPIP-NEO-120 assessment measures five core personality dimensions with T-score normalization against 619,000+ respondents.
         </p>
 
-        {/* Radar Chart and Scores */}
-        {personalityScores && (
-          <div className="grid md:grid-cols-2 gap-8 items-center">
+        {personalityScores ? (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-center">
             {/* Radar Chart */}
             <div className="flex justify-center">
               <BigFiveRadarChart
@@ -1011,139 +964,144 @@ const SoulSignatureDashboard: React.FC = () => {
             {/* Score Details */}
             <div className="space-y-4">
               {[
-                { name: 'Openness', value: personalityScores.openness, confidence: personalityScores.openness_confidence, color: '#8b5cf6', desc: 'Creativity & intellectual curiosity' },
-                { name: 'Conscientiousness', value: personalityScores.conscientiousness, confidence: personalityScores.conscientiousness_confidence, color: '#22c55e', desc: 'Organization & dependability' },
-                { name: 'Extraversion', value: personalityScores.extraversion, confidence: personalityScores.extraversion_confidence, color: '#f59e0b', desc: 'Sociability & positive emotions' },
-                { name: 'Agreeableness', value: personalityScores.agreeableness, confidence: personalityScores.agreeableness_confidence, color: '#06b6d4', desc: 'Cooperation & trust' },
-                { name: 'Neuroticism', value: personalityScores.neuroticism, confidence: personalityScores.neuroticism_confidence, color: '#ef4444', desc: 'Emotional sensitivity' },
+                { name: 'Openness', value: personalityScores.openness, color: '#8b5cf6', desc: 'Creativity & intellectual curiosity' },
+                { name: 'Conscientiousness', value: personalityScores.conscientiousness, color: '#22c55e', desc: 'Organization & dependability' },
+                { name: 'Extraversion', value: personalityScores.extraversion, color: '#f59e0b', desc: 'Sociability & positive emotions' },
+                { name: 'Agreeableness', value: personalityScores.agreeableness, color: '#06b6d4', desc: 'Cooperation & trust' },
+                { name: 'Neuroticism', value: personalityScores.neuroticism, color: '#ef4444', desc: 'Emotional sensitivity' },
               ].map((trait) => (
                 <div key={trait.name} className="space-y-1">
                   <div className="flex justify-between items-center">
                     <div className="flex items-center gap-2">
                       <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: trait.color }} />
-                      <span className="text-sm font-medium" style={{ color: theme === 'dark' ? '#C1C0B6' : '#0c0a09' }}>
-                        {trait.name}
-                      </span>
+                      <span className="text-sm font-medium" style={{ color: textColor }}>{trait.name}</span>
                     </div>
-                    <span className="text-sm font-bold" style={{ color: trait.color }}>
-                      {Math.round(trait.value || 50)}%
-                    </span>
+                    <span className="text-sm font-bold" style={{ color: trait.color }}>{Math.round(trait.value || 50)}%</span>
                   </div>
-                  <div className="h-1.5 rounded-full overflow-hidden" style={{
-                    backgroundColor: theme === 'dark' ? 'rgba(193, 192, 182, 0.1)' : 'rgba(0, 0, 0, 0.05)'
-                  }}>
+                  <div className="h-1.5 rounded-full overflow-hidden" style={{ backgroundColor: subtleBg }}>
                     <div
                       className="h-full rounded-full transition-all duration-500"
-                      style={{
-                        width: `${trait.value || 50}%`,
-                        backgroundColor: trait.color,
-                        opacity: 0.7
-                      }}
+                      style={{ width: `${trait.value || 50}%`, backgroundColor: trait.color, opacity: 0.7 }}
                     />
                   </div>
-                  <p className="text-xs" style={{ color: theme === 'dark' ? 'rgba(193, 192, 182, 0.5)' : '#a8a29e' }}>
-                    {trait.desc}
-                  </p>
+                  <p className="text-xs" style={{ color: textFaint }}>{trait.desc}</p>
                 </div>
               ))}
             </div>
           </div>
-        )}
-
-        {!personalityScores && (
+        ) : (
           <div className="text-center py-8">
-            <Target className="w-12 h-12 mx-auto mb-4" style={{ color: theme === 'dark' ? 'rgba(193, 192, 182, 0.3)' : '#d4d4d4' }} />
-            <p className="mb-4" style={{ color: theme === 'dark' ? 'rgba(193, 192, 182, 0.6)' : '#78716c' }}>
+            <Target className="w-12 h-12 mx-auto mb-4" style={{ color: textFaint }} />
+            <p className="mb-4" style={{ color: textMuted }}>
               Complete the assessment to see your Big Five personality profile
             </p>
             <button
-              onClick={() => window.location.href = '/big-five'}
+              onClick={() => navigate('/big-five')}
               className="px-6 py-3 rounded-xl font-medium transition-all hover:scale-[1.02]"
-              style={{
-                backgroundColor: '#8b5cf6',
-                color: '#fff'
-              }}
+              style={{ backgroundColor: '#8b5cf6', color: '#fff' }}
             >
               Start Big Five Assessment
             </button>
           </div>
         )}
-      </div>
+      </GlassPanel>
 
-      {/* Link to Insight Pages */}
-      <div
-        className="rounded-2xl p-6"
-        style={{
-          backgroundColor: theme === 'dark' ? 'rgba(45, 45, 41, 0.5)' : 'rgba(255, 255, 255, 0.5)',
-          border: theme === 'dark' ? '1px solid rgba(193, 192, 182, 0.1)' : '1px solid rgba(0, 0, 0, 0.05)'
-        }}
-      >
-        <div className="flex items-center gap-2 mb-6">
-          <Eye className="w-5 h-5" style={{ color: theme === 'dark' ? '#C1C0B6' : '#57534e' }} />
-          <h3 className="text-lg font-medium" style={{ color: theme === 'dark' ? '#C1C0B6' : '#0c0a09' }}>
-            Explore Your Twin Insights
-          </h3>
+      {/* Behavioral Evidence Panel */}
+      {behavioralEvidence && personalityScores && (
+        <div className="mb-6">
+          <BehavioralEvidencePanel
+            evidence={behavioralEvidence.evidence}
+            personality={{
+              openness: personalityScores.openness || 50,
+              conscientiousness: personalityScores.conscientiousness || 50,
+              extraversion: personalityScores.extraversion || 50,
+              agreeableness: personalityScores.agreeableness || 50,
+              neuroticism: personalityScores.neuroticism || 50
+            }}
+            confidence={behavioralEvidence.confidence}
+            dataSources={behavioralEvidence.dataSources}
+          />
         </div>
+      )}
 
-        <p className="text-sm mb-6" style={{ color: theme === 'dark' ? 'rgba(193, 192, 182, 0.7)' : '#57534e' }}>
-          Your digital twin has observations about you based on your connected platforms. Explore what it has noticed.
+      {/* Twin Insights Links */}
+      <div className="mb-6">
+        <SectionHeader title="Explore Your Twin Insights" />
+        <p className="text-sm mb-4" style={{ color: textSecondary }}>
+          Your digital twin has observations about you based on your connected platforms.
         </p>
-
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <button
-            onClick={() => window.location.href = '/insights/spotify'}
-            className="p-4 rounded-xl text-left transition-all hover:scale-[1.02]"
-            style={{
-              backgroundColor: theme === 'dark' ? 'rgba(29, 185, 84, 0.1)' : 'rgba(29, 185, 84, 0.05)',
-              border: theme === 'dark' ? '1px solid rgba(29, 185, 84, 0.2)' : '1px solid rgba(29, 185, 84, 0.15)'
-            }}
+          <GlassPanel
+            hover
+            className="cursor-pointer !p-4"
+            onClick={() => navigate('/insights/spotify')}
           >
-            <Music className="w-5 h-5 mb-2" style={{ color: '#1DB954' }} />
-            <h4 className="font-medium mb-1" style={{ color: theme === 'dark' ? '#C1C0B6' : '#0c0a09' }}>
-              Your Musical Soul
-            </h4>
-            <p className="text-xs" style={{ color: theme === 'dark' ? 'rgba(193, 192, 182, 0.6)' : '#a8a29e' }}>
-              What your listening reveals
-            </p>
-          </button>
+            <div className="flex items-start gap-3">
+              <div
+                className="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0"
+                style={{ backgroundColor: 'rgba(29, 185, 84, 0.1)' }}
+              >
+                <Music className="w-5 h-5" style={{ color: '#1DB954' }} />
+              </div>
+              <div>
+                <h4 className="text-sm mb-1" style={{ fontFamily: 'var(--font-heading)', fontWeight: 500, color: textColor }}>
+                  Your Musical Soul
+                </h4>
+                <p className="text-xs" style={{ color: textMuted }}>
+                  What your listening reveals
+                </p>
+              </div>
+            </div>
+          </GlassPanel>
 
-          <button
-            onClick={() => window.location.href = '/insights/whoop'}
-            className="p-4 rounded-xl text-left transition-all hover:scale-[1.02]"
-            style={{
-              backgroundColor: theme === 'dark' ? 'rgba(6, 182, 212, 0.1)' : 'rgba(6, 182, 212, 0.05)',
-              border: theme === 'dark' ? '1px solid rgba(6, 182, 212, 0.2)' : '1px solid rgba(6, 182, 212, 0.15)'
-            }}
+          <GlassPanel
+            hover
+            className="cursor-pointer !p-4"
+            onClick={() => navigate('/insights/whoop')}
           >
-            <Heart className="w-5 h-5 mb-2" style={{ color: '#06B6D4' }} />
-            <h4 className="font-medium mb-1" style={{ color: theme === 'dark' ? '#C1C0B6' : '#0c0a09' }}>
-              Body Stories
-            </h4>
-            <p className="text-xs" style={{ color: theme === 'dark' ? 'rgba(193, 192, 182, 0.6)' : '#a8a29e' }}>
-              What your body tells you
-            </p>
-          </button>
+            <div className="flex items-start gap-3">
+              <div
+                className="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0"
+                style={{ backgroundColor: 'rgba(6, 182, 212, 0.1)' }}
+              >
+                <Heart className="w-5 h-5" style={{ color: '#06B6D4' }} />
+              </div>
+              <div>
+                <h4 className="text-sm mb-1" style={{ fontFamily: 'var(--font-heading)', fontWeight: 500, color: textColor }}>
+                  Body Stories
+                </h4>
+                <p className="text-xs" style={{ color: textMuted }}>
+                  What your body tells you
+                </p>
+              </div>
+            </div>
+          </GlassPanel>
 
-          <button
-            onClick={() => window.location.href = '/insights/calendar'}
-            className="p-4 rounded-xl text-left transition-all hover:scale-[1.02]"
-            style={{
-              backgroundColor: theme === 'dark' ? 'rgba(99, 102, 241, 0.1)' : 'rgba(99, 102, 241, 0.05)',
-              border: theme === 'dark' ? '1px solid rgba(99, 102, 241, 0.2)' : '1px solid rgba(99, 102, 241, 0.15)'
-            }}
+          <GlassPanel
+            hover
+            className="cursor-pointer !p-4"
+            onClick={() => navigate('/insights/calendar')}
           >
-            <Calendar className="w-5 h-5 mb-2" style={{ color: '#6366F1' }} />
-            <h4 className="font-medium mb-1" style={{ color: theme === 'dark' ? '#C1C0B6' : '#0c0a09' }}>
-              Time Patterns
-            </h4>
-            <p className="text-xs" style={{ color: theme === 'dark' ? 'rgba(193, 192, 182, 0.6)' : '#a8a29e' }}>
-              How you structure your days
-            </p>
-          </button>
+            <div className="flex items-start gap-3">
+              <div
+                className="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0"
+                style={{ backgroundColor: 'rgba(99, 102, 241, 0.1)' }}
+              >
+                <Calendar className="w-5 h-5" style={{ color: '#6366F1' }} />
+              </div>
+              <div>
+                <h4 className="text-sm mb-1" style={{ fontFamily: 'var(--font-heading)', fontWeight: 500, color: textColor }}>
+                  Time Patterns
+                </h4>
+                <p className="text-xs" style={{ color: textMuted }}>
+                  How you structure your days
+                </p>
+              </div>
+            </div>
+          </GlassPanel>
         </div>
       </div>
-
-    </div>
+    </PageLayout>
   );
 };
 

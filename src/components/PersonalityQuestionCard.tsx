@@ -25,14 +25,15 @@ interface PersonalityQuestionCardProps {
 }
 
 // 7-point Likert scale (matching 16personalities methodology)
+// Using visual gradient colors instead of text abbreviations for cleaner UX
 const SCALE_OPTIONS = [
-  { value: 1, label: 'Strongly Disagree', shortLabel: 'SD' },
-  { value: 2, label: 'Disagree', shortLabel: 'D' },
-  { value: 3, label: 'Slightly Disagree', shortLabel: 'sd' },
-  { value: 4, label: 'Neutral', shortLabel: 'N' },
-  { value: 5, label: 'Slightly Agree', shortLabel: 'sa' },
-  { value: 6, label: 'Agree', shortLabel: 'A' },
-  { value: 7, label: 'Strongly Agree', shortLabel: 'SA' },
+  { value: 1, label: 'Strongly Disagree', color: '#E57373' },  // Warm red
+  { value: 2, label: 'Disagree', color: '#EF9A9A' },           // Light red
+  { value: 3, label: 'Slightly Disagree', color: '#FFCC80' },  // Orange
+  { value: 4, label: 'Neutral', color: '#E0E0E0' },            // Gray
+  { value: 5, label: 'Slightly Agree', color: '#A5D6A7' },     // Light green
+  { value: 6, label: 'Agree', color: '#81C784' },              // Green
+  { value: 7, label: 'Strongly Agree', color: '#66BB6A' },     // Strong green
 ];
 
 // MBTI dimension labels (16personalities-style)
@@ -144,60 +145,88 @@ export function PersonalityQuestionCard({
 
         {/* Likert scale */}
         <div className="space-y-4">
-          {/* Desktop: horizontal buttons - 7-point scale */}
-          <div className="hidden md:flex justify-center gap-2" role="radiogroup" aria-label="Answer scale from Strongly Disagree to Strongly Agree">
-            {SCALE_OPTIONS.map((option) => (
-              <button
-                key={option.value}
-                onClick={() => handleSelect(option.value)}
-                aria-label={`${option.label} (${option.value} of 7)`}
-                aria-pressed={selectedValue === option.value}
-                className="flex flex-col items-center justify-center w-16 h-16 rounded-xl transition-all duration-200 hover:scale-105"
-                style={{
-                  backgroundColor: selectedValue === option.value ? colors.accent : colors.buttonBg,
-                  border: `2px solid ${selectedValue === option.value ? colors.accent : colors.border}`,
-                  color: selectedValue === option.value
-                    ? (theme === 'dark' ? '#1a1a18' : '#fff')
-                    : colors.text,
-                }}
-              >
-                <span className="text-xl font-bold" aria-hidden="true">{option.value}</span>
-                <span className="text-[10px] mt-0.5 text-center" aria-hidden="true">{option.shortLabel}</span>
-              </button>
-            ))}
+          {/* Desktop: horizontal visual scale with color gradient */}
+          <div className="hidden md:flex flex-col items-center gap-4" role="radiogroup" aria-label="Answer scale from Strongly Disagree to Strongly Agree">
+            <div className="flex items-center gap-3">
+              {SCALE_OPTIONS.map((option) => {
+                const isSelected = selectedValue === option.value;
+                const size = option.value === 4 ? 'w-14 h-14' :
+                            (option.value === 3 || option.value === 5) ? 'w-12 h-12' :
+                            (option.value === 2 || option.value === 6) ? 'w-11 h-11' : 'w-10 h-10';
+
+                return (
+                  <div key={option.value} className="flex flex-col items-center group relative">
+                    <button
+                      onClick={() => handleSelect(option.value)}
+                      aria-label={`${option.label} (${option.value} of 7)`}
+                      aria-pressed={isSelected}
+                      className={`${size} rounded-full transition-all duration-200 hover:scale-110 flex items-center justify-center`}
+                      style={{
+                        backgroundColor: option.color,
+                        border: isSelected ? '3px solid currentColor' : '2px solid transparent',
+                        boxShadow: isSelected
+                          ? `0 0 0 3px ${theme === 'dark' ? '#C1C0B6' : '#44403c'}, 0 4px 12px rgba(0,0,0,0.15)`
+                          : '0 2px 8px rgba(0,0,0,0.1)',
+                        color: theme === 'dark' ? '#C1C0B6' : '#44403c',
+                      }}
+                    >
+                      {isSelected && (
+                        <svg className="w-5 h-5" fill="none" stroke={theme === 'dark' ? '#1a1a18' : '#fff'} strokeWidth="3" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                        </svg>
+                      )}
+                    </button>
+                    {/* Tooltip on hover */}
+                    <span
+                      className="absolute -bottom-8 opacity-0 group-hover:opacity-100 transition-opacity duration-200 text-xs whitespace-nowrap px-2 py-1 rounded-md"
+                      style={{
+                        backgroundColor: theme === 'dark' ? 'rgba(45, 45, 41, 0.95)' : 'rgba(0, 0, 0, 0.8)',
+                        color: '#fff',
+                      }}
+                    >
+                      {option.label}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
           </div>
 
-          {/* Mobile: vertical list */}
+          {/* Mobile: vertical list with color indicators */}
           <div className="md:hidden space-y-2" role="radiogroup" aria-label="Answer scale">
-            {SCALE_OPTIONS.map((option) => (
-              <button
-                key={option.value}
-                onClick={() => handleSelect(option.value)}
-                aria-label={`${option.label} (${option.value} of 7)`}
-                aria-pressed={selectedValue === option.value}
-                className="flex items-center justify-between w-full px-4 py-3 rounded-xl transition-all duration-200"
-                style={{
-                  backgroundColor: selectedValue === option.value ? colors.accent : colors.buttonBg,
-                  border: `2px solid ${selectedValue === option.value ? colors.accent : colors.border}`,
-                  color: selectedValue === option.value
-                    ? (theme === 'dark' ? '#1a1a18' : '#fff')
-                    : colors.text,
-                }}
-              >
-                <span className="font-medium">{option.label}</span>
-                <span
-                  className="w-8 h-8 rounded-full flex items-center justify-center font-bold"
-                  aria-hidden="true"
+            {SCALE_OPTIONS.map((option) => {
+              const isSelected = selectedValue === option.value;
+              return (
+                <button
+                  key={option.value}
+                  onClick={() => handleSelect(option.value)}
+                  aria-label={`${option.label} (${option.value} of 7)`}
+                  aria-pressed={isSelected}
+                  className="flex items-center gap-3 w-full px-4 py-3 rounded-xl transition-all duration-200"
                   style={{
-                    backgroundColor: selectedValue === option.value
-                      ? 'rgba(255, 255, 255, 0.2)'
-                      : colors.accentBg,
+                    backgroundColor: isSelected ? colors.accent : colors.buttonBg,
+                    border: `2px solid ${isSelected ? colors.accent : colors.border}`,
+                    color: isSelected ? (theme === 'dark' ? '#1a1a18' : '#fff') : colors.text,
                   }}
                 >
-                  {option.value}
-                </span>
-              </button>
-            ))}
+                  {/* Color indicator circle */}
+                  <span
+                    className="w-6 h-6 rounded-full flex-shrink-0 flex items-center justify-center"
+                    style={{
+                      backgroundColor: option.color,
+                      boxShadow: isSelected ? 'inset 0 0 0 2px rgba(255,255,255,0.5)' : 'none',
+                    }}
+                  >
+                    {isSelected && (
+                      <svg className="w-3 h-3" fill="none" stroke="#fff" strokeWidth="3" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                      </svg>
+                    )}
+                  </span>
+                  <span className="font-medium flex-1 text-left">{option.label}</span>
+                </button>
+              );
+            })}
           </div>
 
           {/* Scale labels for desktop */}

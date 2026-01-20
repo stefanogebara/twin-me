@@ -350,40 +350,40 @@ router.get('/:userId/personality-integrated', async (req, res) => {
     // 3. Get platform data for context
     const platformData = {};
 
-    // Get Spotify data if connected
+    // Get Spotify data if connected (column is 'metadata' not 'extracted_data')
     const { data: spotifyConn } = await supabaseAdmin
       .from('platform_connections')
-      .select('extracted_data')
+      .select('metadata')
       .eq('user_id', userId)
       .eq('platform', 'spotify')
       .single();
 
-    if (spotifyConn?.extracted_data) {
-      platformData.spotify = spotifyConn.extracted_data;
+    if (spotifyConn?.metadata) {
+      platformData.spotify = spotifyConn.metadata;
     }
 
     // Get Calendar data if connected
     const { data: calendarConn } = await supabaseAdmin
       .from('platform_connections')
-      .select('extracted_data')
+      .select('metadata')
       .eq('user_id', userId)
       .eq('platform', 'google_calendar')
       .single();
 
-    if (calendarConn?.extracted_data) {
-      platformData.calendar = calendarConn.extracted_data;
+    if (calendarConn?.metadata) {
+      platformData.calendar = calendarConn.metadata;
     }
 
     // Get Whoop data if connected
     const { data: whoopConn } = await supabaseAdmin
       .from('platform_connections')
-      .select('extracted_data')
+      .select('metadata')
       .eq('user_id', userId)
       .eq('platform', 'whoop')
       .single();
 
-    if (whoopConn?.extracted_data) {
-      platformData.whoop = whoopConn.extracted_data;
+    if (whoopConn?.metadata) {
+      platformData.whoop = whoopConn.metadata;
     }
 
     // 4. Generate integrated insights

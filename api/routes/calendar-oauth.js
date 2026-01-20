@@ -71,19 +71,23 @@ function classifyEventType(event) {
     return 'deadline';
   }
 
-  // Workout/fitness keywords
-  if (/workout|gym|run|running|exercise|yoga|fitness|training|hiit|cardio|weights|crossfit|spin|cycling|swimming|pilates/i.test(combined)) {
+  // Learning/education keywords - CHECK BEFORE workout to avoid "class exercises" misclassification
+  // "class exercises" = academic, "morning exercise" = workout
+  const isAcademicContext = /class|lecture|course|chapter|lesson|module|unit|homework|assignment|exam|quiz|test|study|seminar|tutorial|session|ses\.|sess\./i.test(combined);
+  if (isAcademicContext) {
+    return 'learning';
+  }
+
+  // Workout/fitness keywords - only match when NOT in academic context
+  // Removed standalone "exercise" to avoid "class exercises chapter 2" misclassification
+  // "exercise" only matches with fitness modifiers like "morning exercise", "daily exercise"
+  if (/workout|gym|\brun\b|running|yoga|fitness|hiit|cardio|weights|crossfit|spin class|cycling|swimming|pilates|morning\s+exercise|daily\s+exercise|physical\s+exercise/i.test(combined)) {
     return 'workout';
   }
 
   // Focus/deep work keywords
   if (/focus\s*time|deep\s*work|coding|writing|blocked|no\s*meetings|heads\s*down|concentration|solo\s*work/i.test(combined)) {
     return 'focus';
-  }
-
-  // Learning/education keywords
-  if (/class|lecture|session|course|workshop|training|seminar|webinar|tutorial|study|lesson|education/i.test(combined)) {
-    return 'learning';
   }
 
   // Social keywords

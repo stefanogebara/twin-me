@@ -12,6 +12,12 @@
  * - Social playlist sharing → Extraversion (r=0.45)
  * - Energy preferences → Extraversion (r=0.33)
  * - Emotional valence → Neuroticism (r=-0.28)
+ * - Liveness preference → Extraversion (r=0.18)
+ * - Mode preference → Neuroticism (r=-0.15)
+ * - Skip rate → Neuroticism (r=0.25)
+ * - Arousal preference → Extraversion (r=0.33)
+ * - Playlist curation style → Conscientiousness (r=0.38)
+ * - Musical sophistication → Openness (r=0.35)
  */
 
 import { supabaseAdmin } from '../database.js';
@@ -94,13 +100,16 @@ class SpotifyFeatureExtractor {
       }
 
       // 2. Genre Diversity (Openness)
-      const genreDiversity = this.calculateGenreDiversity(spotifyData);
-      if (genreDiversity !== null) {
-        features.push(this.createFeature(userId, 'genre_diversity', genreDiversity, {
+      const genreDiversityResult = this.calculateGenreDiversity(spotifyData);
+      if (genreDiversityResult !== null) {
+        const genreValue = typeof genreDiversityResult === 'object' ? genreDiversityResult.value : genreDiversityResult;
+        const genreRawValue = typeof genreDiversityResult === 'object' ? genreDiversityResult.rawValue : {};
+        features.push(this.createFeature(userId, 'genre_diversity', genreValue, {
           contributes_to: 'openness',
           contribution_weight: 0.38,
           description: 'Variety of music genres listened to',
-          evidence: { correlation: 0.38, citation: 'Rentfrow & Gosling (2003)' }
+          evidence: { correlation: 0.38, citation: 'Rentfrow & Gosling (2003)' },
+          raw_value: genreRawValue
         }));
       }
 
@@ -148,14 +157,85 @@ class SpotifyFeatureExtractor {
         }));
       }
 
-      // 7. Emotional Valence (Neuroticism - negative correlation)
+      // 7. Valence Preference (Neuroticism, Extraversion, Agreeableness)
       const emotionalValence = this.calculateEmotionalValence(spotifyData);
       if (emotionalValence !== null) {
-        features.push(this.createFeature(userId, 'emotional_valence', emotionalValence, {
+        features.push(this.createFeature(userId, 'valence_preference', emotionalValence, {
           contributes_to: 'neuroticism',
-          contribution_weight: -0.28,
-          description: 'Preference for positive vs negative emotional tone',
-          evidence: { correlation: -0.28, note: 'High valence = low neuroticism' }
+          contribution_weight: -0.30,
+          description: 'Preference for positive vs negative emotional tone in music',
+          evidence: { correlation: -0.30, note: 'High valence = low neuroticism, also correlates with extraversion (r=0.25) and agreeableness (r=0.15)' }
+        }));
+      }
+
+      // 8. Liveness Preference (Extraversion)
+      const livenessPreference = this.calculateLivenessPreference(spotifyData);
+      if (livenessPreference !== null) {
+        features.push(this.createFeature(userId, 'liveness_preference', livenessPreference.value, {
+          contributes_to: 'extraversion',
+          contribution_weight: 0.18,
+          description: 'Preference for live vs studio recordings',
+          evidence: { correlation: 0.18, citation: 'Anderson et al. (2020)' },
+          raw_value: livenessPreference.rawValue
+        }));
+      }
+
+      // 9. Mode Preference (Neuroticism - negative correlation)
+      const modePreference = this.calculateModePreference(spotifyData);
+      if (modePreference !== null) {
+        features.push(this.createFeature(userId, 'mode_preference', modePreference.value, {
+          contributes_to: 'neuroticism',
+          contribution_weight: -0.15,
+          description: 'Preference for major (positive) vs minor (melancholic) keys',
+          evidence: { correlation: -0.15, citation: 'Greenberg et al. (2016)', note: 'High major key preference = low neuroticism' },
+          raw_value: modePreference.rawValue
+        }));
+      }
+
+      // 10. Skip Rate (Neuroticism)
+      const skipRate = this.calculateSkipRate(spotifyData);
+      if (skipRate !== null) {
+        features.push(this.createFeature(userId, 'skip_rate', skipRate.value, {
+          contributes_to: 'neuroticism',
+          contribution_weight: 0.25,
+          description: 'Frequency of skipping tracks before completion',
+          evidence: { correlation: 0.25, citation: 'Hongpanarak et al. (2021)' },
+          raw_value: skipRate.rawValue
+        }));
+      }
+
+      // 11. Arousal Preference (Extraversion)
+      const arousalPreference = this.calculateArousalPreference(spotifyData);
+      if (arousalPreference !== null) {
+        features.push(this.createFeature(userId, 'arousal_preference', arousalPreference, {
+          contributes_to: 'extraversion',
+          contribution_weight: 0.33,
+          description: 'Preference for high-arousal, stimulating music',
+          evidence: { correlation: 0.33, citation: 'Cambridge myPersonality (2015)' }
+        }));
+      }
+
+      // 12. Playlist Curation Style (Conscientiousness)
+      const playlistCuration = this.calculatePlaylistCurationStyle(spotifyData);
+      if (playlistCuration !== null) {
+        features.push(this.createFeature(userId, 'playlist_curation_style', playlistCuration.value, {
+          contributes_to: 'conscientiousness',
+          contribution_weight: 0.38,
+          description: 'Quality and organization of playlists',
+          evidence: { correlation: 0.38, citation: 'Ferwerda et al. (2017)' },
+          raw_value: playlistCuration.rawValue
+        }));
+      }
+
+      // 13. Musical Sophistication (Openness)
+      const musicalSophistication = this.calculateMusicalSophistication(spotifyData);
+      if (musicalSophistication !== null) {
+        features.push(this.createFeature(userId, 'musical_sophistication', musicalSophistication.value, {
+          contributes_to: 'openness',
+          contribution_weight: 0.35,
+          description: 'Engagement with complex or niche music',
+          evidence: { correlation: 0.35, citation: 'Greenberg et al. (2016)' },
+          raw_value: musicalSophistication.rawValue
         }));
       }
 
@@ -238,6 +318,7 @@ class SpotifyFeatureExtractor {
 
   /**
    * Calculate genre diversity (Shannon entropy of genres)
+   * Returns { value, rawValue } for template interpolation
    */
   calculateGenreDiversity(spotifyData) {
     const genreCounts = {};
@@ -280,7 +361,8 @@ class SpotifyFeatureExtractor {
       }
     }
 
-    if (total === 0 || Object.keys(genreCounts).length === 0) return null;
+    const genreCount = Object.keys(genreCounts).length;
+    if (total === 0 || genreCount === 0) return null;
 
     // Calculate Shannon entropy
     let entropy = 0;
@@ -290,10 +372,13 @@ class SpotifyFeatureExtractor {
     }
 
     // Normalize to 0-100 (max entropy is log2(unique_genres))
-    const maxEntropy = Math.log2(Object.keys(genreCounts).length);
+    const maxEntropy = Math.log2(genreCount);
     const diversity = maxEntropy > 0 ? (entropy / maxEntropy) * 100 : 0;
 
-    return Math.round(diversity * 100) / 100;
+    return {
+      value: Math.round(diversity * 100) / 100,
+      rawValue: { genre_count: genreCount }
+    };
   }
 
   /**
@@ -469,6 +554,338 @@ class SpotifyFeatureExtractor {
   }
 
   /**
+   * Calculate liveness preference (live vs studio recordings)
+   * Research: Higher liveness correlates with extraversion (r=0.18)
+   */
+  calculateLivenessPreference(spotifyData) {
+    let totalLiveness = 0;
+    let count = 0;
+
+    for (const entry of spotifyData) {
+      const raw = entry.raw_data || {};
+
+      // From listening history with audio features
+      if (raw.track && raw.track.liveness !== undefined) {
+        totalLiveness += raw.track.liveness;
+        count++;
+      }
+
+      // From audio features entries
+      if (entry.data_type === 'audio_features' && raw.liveness !== undefined) {
+        totalLiveness += raw.liveness;
+        count++;
+      }
+    }
+
+    if (count === 0) return null;
+
+    const avgLiveness = (totalLiveness / count) * 100;
+    return {
+      value: Math.round(avgLiveness * 100) / 100,
+      rawValue: { liveness_percent: Math.round(avgLiveness) }
+    };
+  }
+
+  /**
+   * Calculate mode preference (major vs minor keys)
+   * Mode=1 (major) vs Mode=0 (minor)
+   * Research: Major key preference correlates negatively with neuroticism (r=-0.15)
+   */
+  calculateModePreference(spotifyData) {
+    let majorCount = 0;
+    let minorCount = 0;
+
+    for (const entry of spotifyData) {
+      const raw = entry.raw_data || {};
+
+      // From listening history with audio features
+      if (raw.track && raw.track.mode !== undefined) {
+        if (raw.track.mode === 1) majorCount++;
+        else minorCount++;
+      }
+
+      // From audio features entries
+      if (entry.data_type === 'audio_features' && raw.mode !== undefined) {
+        if (raw.mode === 1) majorCount++;
+        else minorCount++;
+      }
+    }
+
+    const total = majorCount + minorCount;
+    if (total === 0) return null;
+
+    const majorKeyPercent = (majorCount / total) * 100;
+    return {
+      value: Math.round(majorKeyPercent * 100) / 100,
+      rawValue: { major_key_percent: Math.round(majorKeyPercent), minor_key_percent: Math.round(100 - majorKeyPercent) }
+    };
+  }
+
+  /**
+   * Calculate skip rate (tracks skipped before completion)
+   * Research: Higher skip rate correlates with neuroticism (r=0.25)
+   * Note: Spotify API doesn't directly provide skip data, so we infer from listening patterns
+   */
+  calculateSkipRate(spotifyData) {
+    // We can approximate skip rate by looking at:
+    // 1. Time spent on tracks vs track duration (if available)
+    // 2. Recently played items that reappear quickly (potential skip-restart)
+
+    const recentlyPlayedEntries = spotifyData.filter(e =>
+      e.data_type === 'recently_played' || e.data_type === 'listening_history'
+    );
+
+    if (recentlyPlayedEntries.length === 0) return null;
+
+    // Collect all play events with timestamps
+    const playEvents = [];
+    for (const entry of recentlyPlayedEntries) {
+      const raw = entry.raw_data || {};
+
+      if (raw.items) {
+        raw.items.forEach(item => {
+          const track = item.track || item;
+          playEvents.push({
+            trackId: track.id || track.name,
+            duration: track.duration_ms,
+            playedAt: item.played_at
+          });
+        });
+      } else if (raw.track) {
+        playEvents.push({
+          trackId: raw.track.id || raw.track.name,
+          duration: raw.track.duration_ms,
+          playedAt: raw.played_at || entry.created_at
+        });
+      }
+    }
+
+    if (playEvents.length < 5) return null;
+
+    // Sort by played time
+    playEvents.sort((a, b) => new Date(a.playedAt) - new Date(b.playedAt));
+
+    // Estimate skips: if time between plays is much less than track duration
+    let estimatedSkips = 0;
+    for (let i = 1; i < playEvents.length; i++) {
+      const timeBetween = new Date(playEvents[i].playedAt) - new Date(playEvents[i-1].playedAt);
+      const prevDuration = playEvents[i-1].duration || 180000; // Default 3 min
+
+      // If time between is less than 50% of track duration, likely a skip
+      if (timeBetween < prevDuration * 0.5) {
+        estimatedSkips++;
+      }
+    }
+
+    const skipPercent = (estimatedSkips / (playEvents.length - 1)) * 100;
+    return {
+      value: Math.round(skipPercent * 100) / 100,
+      rawValue: { skip_percent: Math.round(skipPercent), total_plays: playEvents.length }
+    };
+  }
+
+  /**
+   * Calculate arousal preference (high-arousal, stimulating music)
+   * Research: Correlates with extraversion (r=0.33)
+   * Arousal = combination of energy + tempo + loudness
+   */
+  calculateArousalPreference(spotifyData) {
+    let totalArousal = 0;
+    let count = 0;
+
+    for (const entry of spotifyData) {
+      const raw = entry.raw_data || {};
+
+      const calculateArousal = (features) => {
+        // Arousal model: energy (0-1), tempo (normalized), loudness (normalized from -60 to 0)
+        const energy = features.energy !== undefined ? features.energy : null;
+        const tempo = features.tempo !== undefined ? Math.min(features.tempo / 200, 1) : null; // Normalize tempo to 0-1
+        const loudness = features.loudness !== undefined ? (features.loudness + 60) / 60 : null; // Normalize -60 to 0 => 0 to 1
+
+        const validValues = [energy, tempo, loudness].filter(v => v !== null);
+        if (validValues.length === 0) return null;
+
+        return validValues.reduce((a, b) => a + b, 0) / validValues.length;
+      };
+
+      // From track with audio features
+      if (raw.track) {
+        const arousal = calculateArousal(raw.track);
+        if (arousal !== null) {
+          totalArousal += arousal;
+          count++;
+        }
+      }
+
+      // From audio features entries
+      if (entry.data_type === 'audio_features') {
+        const arousal = calculateArousal(raw);
+        if (arousal !== null) {
+          totalArousal += arousal;
+          count++;
+        }
+      }
+    }
+
+    if (count === 0) return null;
+
+    const avgArousal = (totalArousal / count) * 100;
+    return Math.round(avgArousal * 100) / 100;
+  }
+
+  /**
+   * Calculate playlist curation style (quality and organization)
+   * Research: Correlates with conscientiousness (r=0.38)
+   */
+  calculatePlaylistCurationStyle(spotifyData) {
+    const playlistEntries = spotifyData.filter(e =>
+      e.data_type === 'playlists' || e.data_type === 'playlist'
+    );
+
+    if (playlistEntries.length === 0) return null;
+
+    let allPlaylists = [];
+    for (const entry of playlistEntries) {
+      const raw = entry.raw_data || {};
+      if (raw.items) {
+        allPlaylists.push(...raw.items);
+      } else if (raw.name) {
+        allPlaylists.push(raw);
+      }
+    }
+
+    if (allPlaylists.length === 0) return null;
+
+    // Curation factors:
+    // 1. Has descriptions
+    // 2. Reasonable playlist sizes (not empty, not overwhelming)
+    // 3. Named thoughtfully (not default names)
+
+    const withDescriptions = allPlaylists.filter(p => p.description && p.description.trim().length > 10).length;
+    const wellSized = allPlaylists.filter(p => {
+      const trackCount = p.tracks?.total || 0;
+      return trackCount >= 5 && trackCount <= 100;
+    }).length;
+    const thoughtfulNames = allPlaylists.filter(p => {
+      const name = (p.name || '').toLowerCase();
+      return !name.includes('playlist #') && !name.includes('my playlist') && name.length > 3;
+    }).length;
+
+    const total = allPlaylists.length;
+    const curationScore = (
+      (withDescriptions / total) * 35 +
+      (wellSized / total) * 35 +
+      (thoughtfulNames / total) * 30
+    );
+
+    return {
+      value: Math.round(curationScore * 100) / 100,
+      rawValue: {
+        playlist_count: total,
+        with_descriptions: withDescriptions,
+        well_sized: wellSized
+      }
+    };
+  }
+
+  /**
+   * Calculate musical sophistication (engagement with complex/niche music)
+   * Research: Correlates with openness (r=0.35)
+   */
+  calculateMusicalSophistication(spotifyData) {
+    // Sophistication factors:
+    // 1. Genre diversity (already calculated, but different weighting)
+    // 2. Instrumentalness preference
+    // 3. Complexity indicators (time signature variety, key variety)
+    // 4. Niche artist engagement (popularity < 50)
+
+    let instrumentalnessSum = 0;
+    let instrumentalnessCount = 0;
+    let nicheArtistCount = 0;
+    let totalArtists = 0;
+    const timeSignatures = new Set();
+    const keys = new Set();
+
+    for (const entry of spotifyData) {
+      const raw = entry.raw_data || {};
+      const dataType = entry.data_type || '';
+
+      // Instrumentalness from audio features
+      if (raw.instrumentalness !== undefined) {
+        instrumentalnessSum += raw.instrumentalness;
+        instrumentalnessCount++;
+      }
+      if (raw.track && raw.track.instrumentalness !== undefined) {
+        instrumentalnessSum += raw.track.instrumentalness;
+        instrumentalnessCount++;
+      }
+
+      // Time signature and key variety
+      if (raw.time_signature !== undefined) timeSignatures.add(raw.time_signature);
+      if (raw.key !== undefined) keys.add(raw.key);
+      if (raw.track) {
+        if (raw.track.time_signature !== undefined) timeSignatures.add(raw.track.time_signature);
+        if (raw.track.key !== undefined) keys.add(raw.track.key);
+      }
+
+      // Artist popularity (niche = < 50 popularity)
+      const isTopArtists = ['top_artists', 'top_artist', 'top_artists_short_term', 'top_artists_medium_term', 'top_artists_long_term'].includes(dataType);
+      if (isTopArtists) {
+        const items = raw.items || (raw.popularity !== undefined ? [raw] : []);
+        items.forEach(artist => {
+          totalArtists++;
+          if (artist.popularity !== undefined && artist.popularity < 50) {
+            nicheArtistCount++;
+          }
+        });
+      }
+    }
+
+    // Calculate sophistication score
+    let sophisticationScore = 0;
+    let factorsUsed = 0;
+
+    // Instrumentalness (0-1, higher = more sophisticated)
+    if (instrumentalnessCount > 0) {
+      const avgInstrumentalness = instrumentalnessSum / instrumentalnessCount;
+      sophisticationScore += avgInstrumentalness * 25;
+      factorsUsed++;
+    }
+
+    // Time signature variety (max 3 unique = 25 points)
+    if (timeSignatures.size > 0) {
+      sophisticationScore += Math.min(timeSignatures.size / 3, 1) * 25;
+      factorsUsed++;
+    }
+
+    // Key variety (max 8 unique keys = 25 points)
+    if (keys.size > 0) {
+      sophisticationScore += Math.min(keys.size / 8, 1) * 25;
+      factorsUsed++;
+    }
+
+    // Niche artist preference
+    if (totalArtists > 0) {
+      sophisticationScore += (nicheArtistCount / totalArtists) * 25;
+      factorsUsed++;
+    }
+
+    if (factorsUsed === 0) return null;
+
+    // Normalize to 0-100
+    const normalizedScore = (sophisticationScore / factorsUsed) * (100 / 25);
+
+    return {
+      value: Math.round(normalizedScore * 100) / 100,
+      rawValue: {
+        niche_artist_percent: totalArtists > 0 ? Math.round((nicheArtistCount / totalArtists) * 100) : 0,
+        unique_time_signatures: timeSignatures.size,
+        unique_keys: keys.size
+      }
+    };
+  }
+
+  /**
    * Create standardized feature object
    */
   createFeature(userId, featureType, featureValue, metadata = {}) {
@@ -482,11 +899,15 @@ class SpotifyFeatureExtractor {
       sample_size: 1,
       contributes_to: metadata.contributes_to || null,
       contribution_weight: metadata.contribution_weight || 0,
+      metadata: {
+        raw_value: metadata.raw_value || {}
+      },
       evidence: {
         description: metadata.description,
         correlation: metadata.evidence?.correlation,
         citation: metadata.evidence?.citation,
-        note: metadata.evidence?.note
+        note: metadata.evidence?.note,
+        raw_value: metadata.raw_value || {}
       }
     };
   }

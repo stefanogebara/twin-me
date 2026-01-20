@@ -282,8 +282,7 @@ router.post('/oauth/callback/whoop', oauthCallbackLimiter, async (req, res) => {
       clientSecretLength: process.env.WHOOP_CLIENT_SECRET?.length
     });
 
-    // WHOOP requires client credentials in the request BODY (not HTTP Basic Auth)
-    // See: https://developer.whoop.com/docs/developing/oauth/
+    // WHOOP requires client_secret_post (credentials in POST body, NOT Basic Auth header)
     const tokenParams = {
       grant_type: 'authorization_code',
       code,
@@ -619,8 +618,7 @@ router.post('/refresh/whoop', async (req, res) => {
     const config = PLATFORM_CONFIGS.whoop;
 
     // Exchange refresh token for new access token
-    // WHOOP requires client credentials in the request BODY (not HTTP Basic Auth)
-    // See: https://developer.whoop.com/docs/developing/oauth/
+    // WHOOP requires client_secret_post (credentials in POST body, NOT Basic Auth header)
     const tokenParams = {
       grant_type: 'refresh_token',
       refresh_token: refreshToken,
@@ -1545,28 +1543,83 @@ router.get('/whoop/current-state', async (req, res) => {
       latestRecovery = recoveryData.records?.[0] || null;
     }
 
-    // Fetch latest sleep
-    const sleepResponse = await fetch('https://api.prod.whoop.com/developer/v2/activity/sleep?limit=1', {
+    // Fetch recent sleeps (last 5 to capture main sleep + naps from today)
+    const sleepResponse = await fetch('https://api.prod.whoop.com/developer/v2/activity/sleep?limit=5', {
       headers: {
         'Authorization': `Bearer ${accessToken}`,
         'Content-Type': 'application/json'
       }
     });
 
+    let allSleeps = [];
     let latestSleep = null;
     if (sleepResponse.ok) {
       const sleepData = await sleepResponse.json();
-      latestSleep = sleepData.records?.[0] || null;
+      allSleeps = sleepData.records || [];
+      latestSleep = allSleeps[0] || null;
     }
+
+    // Aggregate all sleep from last 24 hours (includes main sleep + naps)
+    const now = new Date();
+    const yesterday = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+
+    const todaysSleeps = allSleeps.filter(sleep => {
+      const sleepEnd = new Date(sleep.end);
+      return sleepEnd >= yesterday;
+    });
+
+    // Sum up all sleep (use total_sleep_time_milli first, fallback to stage summary)
+    let totalSleepMs = 0;
+    let sleepBreakdown = { mainSleep: 0, naps: 0 };
+
+    todaysSleeps.forEach((sleep, index) => {
+      // Prefer total_sleep_time_milli (actual sleep), fallback to in_bed time minus awake time
+      const sleepMs = sleep.score?.total_sleep_time_milli ||
+                      (sleep.score?.stage_summary?.total_in_bed_time_milli -
+                       (sleep.score?.stage_summary?.total_awake_time_milli || 0)) ||
+                      sleep.score?.stage_summary?.total_in_bed_time_milli || 0;
+
+      totalSleepMs += sleepMs;
+
+      // First record is usually main sleep, rest are naps
+      if (index === todaysSleeps.length - 1) {
+        sleepBreakdown.mainSleep = sleepMs / (1000 * 60 * 60);
+      } else {
+        sleepBreakdown.naps += sleepMs / (1000 * 60 * 60);
+      }
+    });
+
+    const sleepHours = totalSleepMs ? totalSleepMs / (1000 * 60 * 60) : null;
+    console.log(`[Whoop Current State] Total sleep: ${sleepHours?.toFixed(1)}h from ${todaysSleeps.length} sleep records (main: ${sleepBreakdown.mainSleep.toFixed(1)}h, naps: ${sleepBreakdown.naps.toFixed(1)}h)`);
 
     // Build current state response
     const recovery = latestRecovery?.score?.recovery_score;
     const strain = currentCycle?.score?.strain;
     const hrv = latestRecovery?.score?.hrv_rmssd_milli;
     const rhr = latestRecovery?.score?.resting_heart_rate;
-    const sleepPerformance = latestSleep?.score?.stage_summary?.sleep_performance_percentage;
-    const totalSleepMs = latestSleep?.score?.stage_summary?.total_in_bed_time_milli;
-    const sleepHours = totalSleepMs ? totalSleepMs / (1000 * 60 * 60) : null;
+    const sleepPerformance = latestSleep?.score?.sleep_performance_percentage;
+
+    // New metrics from V2 API
+    const spo2 = latestRecovery?.score?.spo2_percentage;
+    const skinTemp = latestRecovery?.score?.skin_temp_celsius;
+    const respiratoryRate = latestSleep?.score?.respiratory_rate;
+    const sleepDisturbances = latestSleep?.score?.disturbance_count || latestSleep?.score?.stage_summary?.disturbance_count;
+
+    // Calculate stress level based on recovery and HRV
+    const getStressLevel = (recoveryScore, hrvValue) => {
+      if (!recoveryScore && !hrvValue) return null;
+      if (recoveryScore >= 67) return 'Low';
+      if (recoveryScore >= 50) return 'Moderate';
+      if (recoveryScore >= 34) return 'High';
+      return 'Very High';
+    };
+    const stressLevel = getStressLevel(recovery, hrv);
+
+    // Sleep stage breakdown
+    const deepSleepMs = latestSleep?.score?.stage_summary?.total_slow_wave_sleep_time_milli;
+    const remSleepMs = latestSleep?.score?.stage_summary?.total_rem_sleep_time_milli;
+    const lightSleepMs = latestSleep?.score?.stage_summary?.total_light_sleep_time_milli;
+    const awakeDuringMs = latestSleep?.score?.stage_summary?.total_awake_time_milli;
 
     // Helper functions for labels
     const getRecoveryLabel = (score) => {
@@ -1616,13 +1669,31 @@ router.get('/whoop/current-state', async (req, res) => {
         },
         sleep: {
           hours: sleepHours ? Math.round(sleepHours * 10) / 10 : null,
+          mainSleepHours: sleepBreakdown?.mainSleep ? Math.round(sleepBreakdown.mainSleep * 10) / 10 : null,
+          napHours: sleepBreakdown?.naps > 0 ? Math.round(sleepBreakdown.naps * 10) / 10 : null,
+          sleepCount: todaysSleeps?.length || 1,
           efficiency: sleepPerformance,
-          quality: sleepPerformance >= 85 ? 'excellent' : sleepPerformance >= 70 ? 'good' : sleepPerformance >= 50 ? 'fair' : 'poor'
+          quality: sleepPerformance >= 85 ? 'excellent' : sleepPerformance >= 70 ? 'good' : sleepPerformance >= 50 ? 'fair' : 'poor',
+          // Sleep stage breakdown (from main sleep)
+          breakdown: latestSleep?.score?.stage_summary ? {
+            deepSleep: deepSleepMs ? Math.round((deepSleepMs / (latestSleep.score.stage_summary.total_in_bed_time_milli || 1)) * 100) : null,
+            remSleep: remSleepMs ? Math.round((remSleepMs / (latestSleep.score.stage_summary.total_in_bed_time_milli || 1)) * 100) : null,
+            lightSleep: lightSleepMs ? Math.round((lightSleepMs / (latestSleep.score.stage_summary.total_in_bed_time_milli || 1)) * 100) : null,
+            awakeTime: awakeDuringMs ? Math.round(awakeDuringMs / (1000 * 60)) : null, // in minutes
+          } : null,
+          disturbances: sleepDisturbances,
+          respiratoryRate: respiratoryRate ? Math.round(respiratoryRate * 10) / 10 : null
         },
         strain: {
           current: strain ? Math.round(strain * 10) / 10 : null,
           max: 21,
           label: getStrainLabel(strain)
+        },
+        // New: Additional metrics
+        vitals: {
+          spo2: spo2 ? Math.round(spo2) : null,
+          skinTemp: skinTemp ? Math.round(skinTemp * 10) / 10 : null,
+          stressLevel: stressLevel
         },
         recommendations: {
           activityCapacity: calculateActivityCapacity(),
@@ -1655,8 +1726,7 @@ async function refreshWhoopToken(userId, encryptedRefreshToken) {
     const refreshToken = decryptToken(encryptedRefreshToken);
     const config = PLATFORM_CONFIGS.whoop;
 
-    // WHOOP requires client credentials in the request BODY (not HTTP Basic Auth)
-    // See: https://developer.whoop.com/docs/developing/oauth/
+    // WHOOP requires client_secret_post (credentials in POST body, NOT Basic Auth header)
     const response = await fetch(config.tokenUrl, {
       method: 'POST',
       headers: {

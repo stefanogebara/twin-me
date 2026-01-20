@@ -58,6 +58,37 @@ interface AssessmentResult {
 type AssessmentMode = 'quick_pulse' | 'deep' | 'full';
 type AssessmentPhase = 'intro' | 'questions' | 'calculating' | 'results' | 'deep-prompt';
 
+// Personality type color palettes (inspired by 16personalities)
+const TYPE_COLORS: Record<string, { primary: string; secondary: string }> = {
+  // Analysts - Purple
+  INTJ: { primary: '#88619A', secondary: '#9B6FA8' },
+  INTP: { primary: '#88619A', secondary: '#9B6FA8' },
+  ENTJ: { primary: '#88619A', secondary: '#9B6FA8' },
+  ENTP: { primary: '#88619A', secondary: '#9B6FA8' },
+  // Diplomats - Green
+  INFJ: { primary: '#33A474', secondary: '#4DB88A' },
+  INFP: { primary: '#33A474', secondary: '#4DB88A' },
+  ENFJ: { primary: '#33A474', secondary: '#4DB88A' },
+  ENFP: { primary: '#33A474', secondary: '#4DB88A' },
+  // Sentinels - Blue
+  ISTJ: { primary: '#4298B5', secondary: '#5AACCA' },
+  ISFJ: { primary: '#4298B5', secondary: '#5AACCA' },
+  ESTJ: { primary: '#4298B5', secondary: '#5AACCA' },
+  ESFJ: { primary: '#4298B5', secondary: '#5AACCA' },
+  // Explorers - Yellow/Orange
+  ISTP: { primary: '#DDA448', secondary: '#E5B86D' },
+  ISFP: { primary: '#DDA448', secondary: '#E5B86D' },
+  ESTP: { primary: '#DDA448', secondary: '#E5B86D' },
+  ESFP: { primary: '#DDA448', secondary: '#E5B86D' },
+};
+
+// Get color for personality type
+function getTypeColor(code: string): { primary: string; secondary: string } {
+  // Extract base type (e.g., "INFP" from "INFP-A")
+  const baseType = code?.replace(/-[AT]$/, '').toUpperCase() || '';
+  return TYPE_COLORS[baseType] || { primary: '#C1C0B6', secondary: '#A8A79E' };
+}
+
 // Demo questions imported from centralized demoDataService.ts
 // DEMO_MBTI_QUESTIONS, generateDemoPersonalityResult
 
@@ -110,9 +141,10 @@ export function PersonalityAssessment() {
     setLoading(true);
     setError(null);
 
+    const API_URL = import.meta.env.VITE_API_URL || 'http://127.0.0.1:3001/api';
     try {
       const response = await fetch(
-        `http://localhost:3001/api/personality/questions?mode=${assessmentMode}`,
+        `${API_URL}/personality/questions?mode=${assessmentMode}`,
         {
           headers: { Authorization: `Bearer ${authToken}` },
         }
@@ -165,7 +197,8 @@ export function PersonalityAssessment() {
         value,
       }));
 
-      const response = await fetch('http://localhost:3001/api/personality/responses', {
+      const API_URL = import.meta.env.VITE_API_URL || 'http://127.0.0.1:3001/api';
+      const response = await fetch(`${API_URL}/personality/responses`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -422,117 +455,296 @@ export function PersonalityAssessment() {
           {phase === 'deep-prompt' && result && (
             <motion.div
               key="deep-prompt"
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
+              className="relative"
             >
-              {/* Success header */}
-              <div className="text-center mb-6">
+              {/* Animated background gradient based on personality type */}
+              <div
+                className="absolute inset-0 -z-10 opacity-30 blur-3xl"
+                style={{
+                  background: `radial-gradient(ellipse at top, ${getTypeColor(result.archetype.code).primary}40, transparent 50%),
+                               radial-gradient(ellipse at bottom right, ${getTypeColor(result.archetype.code).secondary}30, transparent 50%)`
+                }}
+              />
+
+              {/* Success badge */}
+              <motion.div
+                initial={{ opacity: 0, y: -20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.2 }}
+                className="text-center mb-8"
+              >
                 <div
-                  className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm mb-4"
+                  className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full text-sm font-medium"
                   style={{
-                    backgroundColor: 'rgba(34, 197, 94, 0.15)',
-                    color: '#22c55e'
+                    background: 'linear-gradient(135deg, rgba(34, 197, 94, 0.2), rgba(16, 185, 129, 0.1))',
+                    color: '#22c55e',
+                    border: '1px solid rgba(34, 197, 94, 0.3)'
                   }}
                 >
-                  <Check className="w-4 h-4" />
+                  <motion.div
+                    initial={{ scale: 0 }}
+                    animate={{ scale: 1 }}
+                    transition={{ delay: 0.4, type: 'spring', stiffness: 500 }}
+                  >
+                    <Check className="w-4 h-4" />
+                  </motion.div>
                   Quick Pulse Complete!
                 </div>
-                <h2 className="text-3xl md:text-4xl mb-2" style={{ color: colors.text, fontFamily: 'var(--font-heading)', fontWeight: 500 }}>
-                  {result.archetype.fullCode || result.archetype.code}
-                </h2>
-                <h3 className="text-xl mb-1" style={{ color: colors.accent, fontFamily: 'var(--font-heading)', fontWeight: 500 }}>
-                  {result.archetype.name}
-                </h3>
-                <p className="italic" style={{ color: colors.textSecondary }}>
-                  {result.archetype.title}
-                </p>
-              </div>
+              </motion.div>
 
-              {/* Quick results preview card */}
-              <div
-                className="rounded-2xl p-6 mb-6"
+              {/* Personality Type Hero Section */}
+              <motion.div
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ delay: 0.3, duration: 0.5 }}
+                className="text-center mb-10"
+              >
+                {/* Large animated type code */}
+                <div className="relative inline-block mb-4">
+                  <motion.div
+                    className="text-6xl md:text-8xl font-bold tracking-wider"
+                    style={{
+                      background: `linear-gradient(135deg, ${getTypeColor(result.archetype.code).primary}, ${getTypeColor(result.archetype.code).secondary})`,
+                      WebkitBackgroundClip: 'text',
+                      WebkitTextFillColor: 'transparent',
+                      fontFamily: 'var(--font-heading)',
+                      textShadow: `0 0 60px ${getTypeColor(result.archetype.code).primary}40`
+                    }}
+                  >
+                    {result.archetype.fullCode || result.archetype.code}
+                  </motion.div>
+                  {/* Animated glow ring */}
+                  <motion.div
+                    className="absolute -inset-4 rounded-full -z-10"
+                    style={{
+                      background: `radial-gradient(circle, ${getTypeColor(result.archetype.code).primary}20, transparent 70%)`
+                    }}
+                    animate={{
+                      scale: [1, 1.1, 1],
+                      opacity: [0.5, 0.8, 0.5]
+                    }}
+                    transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }}
+                  />
+                </div>
+
+                {/* Type name and title */}
+                <motion.h2
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.5 }}
+                  className="text-2xl md:text-3xl mb-2"
+                  style={{
+                    color: getTypeColor(result.archetype.code).primary,
+                    fontFamily: 'var(--font-heading)',
+                    fontWeight: 600
+                  }}
+                >
+                  {result.archetype.name}
+                </motion.h2>
+                <motion.p
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ delay: 0.6 }}
+                  className="text-lg italic"
+                  style={{ color: colors.textSecondary }}
+                >
+                  "{result.archetype.title}"
+                </motion.p>
+              </motion.div>
+
+              {/* Animated Dimension Bars */}
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.5 }}
+                className="rounded-3xl p-6 md:p-8 mb-8"
+                style={{
+                  background: theme === 'dark'
+                    ? 'linear-gradient(135deg, rgba(45, 45, 41, 0.8), rgba(35, 35, 31, 0.6))'
+                    : 'linear-gradient(135deg, rgba(255, 255, 255, 0.95), rgba(250, 250, 249, 0.8))',
+                  border: `1px solid ${colors.border}`,
+                  backdropFilter: 'blur(10px)'
+                }}
+              >
+                <h3 className="text-lg font-medium mb-6 text-center" style={{ color: colors.text }}>
+                  Your Personality Spectrum
+                </h3>
+                <div className="space-y-6">
+                  {(() => {
+                    // Support both Big Five keys and MBTI keys
+                    const dimensionConfig: Array<{ key: string; altKey?: string; low: string; high: string; lowLabel: string; highLabel: string; color: string }> = [
+                      { key: 'extraversion', altKey: 'mind', low: 'I', high: 'E', lowLabel: 'Introverted', highLabel: 'Extraverted', color: '#4F9DA6' },
+                      { key: 'openness', altKey: 'energy', low: 'S', high: 'N', lowLabel: 'Observant', highLabel: 'Intuitive', color: '#E8B86D' },
+                      { key: 'agreeableness', altKey: 'nature', low: 'T', high: 'F', lowLabel: 'Thinking', highLabel: 'Feeling', color: '#00A878' },
+                      { key: 'conscientiousness', altKey: 'tactics', low: 'P', high: 'J', lowLabel: 'Prospecting', highLabel: 'Judging', color: '#7B68EE' },
+                      { key: 'neuroticism', altKey: 'identity', low: 'T', high: 'A', lowLabel: 'Turbulent', highLabel: 'Assertive', color: '#FF6B6B' }
+                    ];
+
+                    const scores = result.scores as Record<string, number>;
+
+                    return dimensionConfig.map((config, index) => {
+                      // Try primary key first, then alternative key
+                      let score = scores[config.key];
+                      if (score === undefined && config.altKey) {
+                        score = scores[config.altKey];
+                      }
+                      // Default to 50 if still undefined
+                      if (score === undefined) score = 50;
+                      const percentage = Math.round(score > 1 ? score : score * 100);
+                      const isHighPole = percentage >= 50;
+
+                      return (
+                        <motion.div
+                          key={config.key}
+                          initial={{ opacity: 0, x: -20 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          transition={{ delay: 0.6 + index * 0.1 }}
+                          className="relative"
+                        >
+                          {/* Labels */}
+                          <div className="flex justify-between items-center mb-2">
+                            <div className="flex items-center gap-2">
+                              <span
+                                className="w-8 h-8 rounded-lg flex items-center justify-center font-bold text-sm"
+                                style={{
+                                  backgroundColor: !isHighPole ? config.color : `${config.color}30`,
+                                  color: !isHighPole ? '#fff' : config.color
+                                }}
+                              >
+                                {config.low}
+                              </span>
+                              <span className="text-sm" style={{ color: !isHighPole ? colors.text : colors.textSecondary }}>
+                                {config.lowLabel}
+                              </span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <span className="text-sm" style={{ color: isHighPole ? colors.text : colors.textSecondary }}>
+                                {config.highLabel}
+                              </span>
+                              <span
+                                className="w-8 h-8 rounded-lg flex items-center justify-center font-bold text-sm"
+                                style={{
+                                  backgroundColor: isHighPole ? config.color : `${config.color}30`,
+                                  color: isHighPole ? '#fff' : config.color
+                                }}
+                              >
+                                {config.high}
+                              </span>
+                            </div>
+                          </div>
+
+                          {/* Progress bar with indicator */}
+                          <div className="relative">
+                            <div
+                              className="h-3 rounded-full overflow-hidden"
+                              style={{ backgroundColor: `${config.color}20` }}
+                            >
+                              {/* Center marker */}
+                              <div
+                                className="absolute left-1/2 top-0 bottom-0 w-0.5 -translate-x-1/2 z-10"
+                                style={{ backgroundColor: colors.border }}
+                              />
+                              {/* Filled bar from center */}
+                              <motion.div
+                                className="absolute h-full rounded-full"
+                                style={{
+                                  backgroundColor: config.color,
+                                  left: percentage >= 50 ? '50%' : `${percentage}%`,
+                                  right: percentage >= 50 ? `${100 - percentage}%` : '50%'
+                                }}
+                                initial={{ opacity: 0 }}
+                                animate={{ opacity: 1 }}
+                                transition={{ delay: 0.8 + index * 0.1, duration: 0.5 }}
+                              />
+                            </div>
+
+                            {/* Percentage indicator */}
+                            <motion.div
+                              className="absolute top-1/2 -translate-y-1/2 flex items-center justify-center"
+                              style={{ left: `${percentage}%`, transform: 'translate(-50%, -50%)' }}
+                              initial={{ scale: 0 }}
+                              animate={{ scale: 1 }}
+                              transition={{ delay: 1 + index * 0.1, type: 'spring', stiffness: 300 }}
+                            >
+                              <div
+                                className="w-6 h-6 rounded-full border-2 flex items-center justify-center text-[10px] font-bold"
+                                style={{
+                                  backgroundColor: theme === 'dark' ? '#1a1a18' : '#fff',
+                                  borderColor: config.color,
+                                  color: config.color
+                                }}
+                              >
+                                {percentage}
+                              </div>
+                            </motion.div>
+                          </div>
+                        </motion.div>
+                      );
+                    });
+                  })()}
+                </div>
+              </motion.div>
+
+              {/* Description card */}
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.8 }}
+                className="rounded-2xl p-6 mb-8"
                 style={{
                   backgroundColor: colors.cardBg,
                   border: `1px solid ${colors.border}`
                 }}
               >
-                <p className="leading-relaxed mb-4" style={{ color: colors.text }}>
+                <p className="text-base leading-relaxed" style={{ color: colors.text }}>
                   {result.archetype.description}
                 </p>
+              </motion.div>
 
-                {/* Quick MBTI dimension preview */}
-                <div className="grid grid-cols-5 gap-2">
-                  {Object.entries(result.scores || {})
-                    .filter(([dimension]) => !dimension.endsWith('_ci'))
-                    .slice(0, 5)
-                    .map(([dimension, score]) => {
-                      const percentage = Math.round((score as number) > 1 ? (score as number) : (score as number) * 100);
-                      // Get MBTI letter based on score (>50% = positive pole)
-                      const mbtiLetters: Record<string, { low: string; high: string }> = {
-                        mind: { low: 'I', high: 'E' },
-                        energy: { low: 'S', high: 'N' },
-                        nature: { low: 'T', high: 'F' },
-                        tactics: { low: 'P', high: 'J' },
-                        identity: { low: 'T', high: 'A' },
-                        // Legacy Big Five mapping
-                        extraversion: { low: 'I', high: 'E' },
-                        openness: { low: 'S', high: 'N' },
-                        agreeableness: { low: 'T', high: 'F' },
-                        conscientiousness: { low: 'P', high: 'J' },
-                        neuroticism: { low: 'T', high: 'A' },
-                      };
-                      const poles = mbtiLetters[dimension] || { low: '?', high: '?' };
-                      const letter = percentage >= 50 ? poles.high : poles.low;
-                      return (
-                        <div key={dimension} className="text-center">
-                          <div
-                            className="text-lg font-bold"
-                            style={{ color: colors.accent }}
-                          >
-                            {letter}
-                          </div>
-                          <div
-                            className="text-sm"
-                            style={{ color: colors.textSecondary }}
-                          >
-                            {percentage}%
-                          </div>
-                        </div>
-                      );
-                    })}
-                </div>
-              </div>
-
-              {/* Action buttons - Equal prominence */}
-              <div className="flex flex-col sm:flex-row gap-4 justify-center mb-6">
+              {/* Action buttons */}
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 1 }}
+                className="flex flex-col sm:flex-row gap-4 justify-center mb-8"
+              >
                 <button
                   onClick={() => setPhase('results')}
-                  className="px-6 py-3 rounded-xl font-medium transition-all hover:scale-[1.02]"
+                  className="group px-8 py-4 rounded-2xl font-medium transition-all hover:scale-[1.02] relative overflow-hidden"
                   style={{
-                    backgroundColor: colors.accent,
-                    color: theme === 'dark' ? '#1a1a18' : '#fff'
+                    background: `linear-gradient(135deg, ${getTypeColor(result.archetype.code).primary}, ${getTypeColor(result.archetype.code).secondary})`,
+                    color: '#fff',
+                    boxShadow: `0 4px 20px ${getTypeColor(result.archetype.code).primary}40`
                   }}
                 >
-                  See Full Results
+                  <span className="relative z-10">See Full Results</span>
                 </button>
                 <button
-                  onClick={() => navigate('/dashboard')}
-                  className="px-6 py-3 rounded-xl font-medium transition-all hover:scale-[1.02]"
+                  onClick={() => navigate('/soul-signature')}
+                  className="px-8 py-4 rounded-2xl font-medium transition-all hover:scale-[1.02]"
                   style={{
                     backgroundColor: colors.accentBg,
-                    color: colors.text
+                    color: colors.text,
+                    border: `1px solid ${colors.border}`
                   }}
                 >
-                  Continue to Dashboard
+                  View Soul Signature
                 </button>
-              </div>
+              </motion.div>
 
-              {/* Optional: Go deeper prompt */}
-              <div
-                className="rounded-xl p-4 text-center"
+              {/* Deep assessment prompt */}
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 1.2 }}
+                className="rounded-2xl p-5 text-center"
                 style={{
-                  backgroundColor: theme === 'dark' ? 'rgba(193, 192, 182, 0.05)' : 'rgba(0, 0, 0, 0.02)',
+                  background: theme === 'dark'
+                    ? 'linear-gradient(135deg, rgba(193, 192, 182, 0.05), rgba(193, 192, 182, 0.02))'
+                    : 'linear-gradient(135deg, rgba(0, 0, 0, 0.02), rgba(0, 0, 0, 0.01))',
                   border: `1px dashed ${colors.border}`
                 }}
               >
@@ -541,12 +753,12 @@ export function PersonalityAssessment() {
                 </p>
                 <button
                   onClick={continueDeepAssessment}
-                  className="text-sm font-medium transition-colors hover:underline"
-                  style={{ color: colors.accent }}
+                  className="text-sm font-medium transition-all hover:gap-3 inline-flex items-center gap-2"
+                  style={{ color: getTypeColor(result.archetype.code).primary }}
                 >
-                  Take Deep Assessment →
+                  Take Deep Assessment <ChevronRight className="w-4 h-4" />
                 </button>
-              </div>
+              </motion.div>
             </motion.div>
           )}
 
