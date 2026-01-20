@@ -380,8 +380,19 @@ class PlatformReflectionService {
    * Uses rich structure from userContextAggregator
    */
   getWhoopData(context) {
+    // Check for null/undefined OR explicit disconnected state
     if (!context.whoop) {
       return { success: false, error: 'Whoop not connected' };
+    }
+
+    // Handle case where token refresh failed (needsReauth) or connection marked as false
+    if (context.whoop.connected === false || context.whoop.needsReauth) {
+      return {
+        success: false,
+        error: context.whoop.needsReauth
+          ? 'Whoop connection expired. Please reconnect to see your body stories.'
+          : 'Whoop not connected'
+      };
     }
 
     const whoop = context.whoop;
@@ -488,8 +499,19 @@ class PlatformReflectionService {
    * Includes visualization data for charts
    */
   getCalendarData(context) {
+    // Check for null/undefined OR explicit disconnected state
     if (!context.calendar) {
       return { success: false, error: 'Calendar not connected' };
+    }
+
+    // Handle case where token refresh failed (needsReauth) or connection marked as false
+    if (context.calendar.connected === false || context.calendar.needsReauth) {
+      return {
+        success: false,
+        error: context.calendar.needsReauth
+          ? 'Calendar connection expired. Please reconnect to see your time patterns.'
+          : 'Calendar not connected'
+      };
     }
 
     const events = context.calendar.upcomingEvents || context.calendar.events || [];
