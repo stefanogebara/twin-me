@@ -16,7 +16,7 @@ export interface PreliminaryScores {
 }
 
 export interface OnboardingState {
-  currentStep: 1 | 2 | 3 | 4 | 5;
+  currentStep: 1 | 2 | 3 | 4 | 5 | 6;
   answers: OnboardingAnswer[];
   preliminaryScores: PreliminaryScores | null;
   connectedPlatforms: string[];
@@ -25,6 +25,7 @@ export interface OnboardingState {
     subtitle: string;
     description: string;
   } | null;
+  originDataCompleted: boolean;
   startedAt: Date | null;
   completedAt: Date | null;
 }
@@ -37,6 +38,7 @@ const initialState: OnboardingState = {
   preliminaryScores: null,
   connectedPlatforms: [],
   archetype: null,
+  originDataCompleted: false,
   startedAt: null,
   completedAt: null,
 };
@@ -179,19 +181,19 @@ export const useOnboardingState = () => {
 
   const nextStep = useCallback(() => {
     setState(prev => {
-      const next = Math.min(prev.currentStep + 1, 5) as 1 | 2 | 3 | 4 | 5;
+      const next = Math.min(prev.currentStep + 1, 6) as 1 | 2 | 3 | 4 | 5 | 6;
       return { ...prev, currentStep: next };
     });
   }, []);
 
   const prevStep = useCallback(() => {
     setState(prev => {
-      const next = Math.max(prev.currentStep - 1, 1) as 1 | 2 | 3 | 4 | 5;
+      const next = Math.max(prev.currentStep - 1, 1) as 1 | 2 | 3 | 4 | 5 | 6;
       return { ...prev, currentStep: next };
     });
   }, []);
 
-  const goToStep = useCallback((step: 1 | 2 | 3 | 4 | 5) => {
+  const goToStep = useCallback((step: 1 | 2 | 3 | 4 | 5 | 6) => {
     setState(prev => ({ ...prev, currentStep: step }));
   }, []);
 
@@ -230,6 +232,13 @@ export const useOnboardingState = () => {
     }));
   }, []);
 
+  const setOriginDataCompleted = useCallback((completed: boolean = true) => {
+    setState(prev => ({
+      ...prev,
+      originDataCompleted: completed
+    }));
+  }, []);
+
   const completeOnboarding = useCallback(() => {
     setState(prev => ({
       ...prev,
@@ -252,12 +261,14 @@ export const useOnboardingState = () => {
     calculateScores,
     addConnectedPlatform,
     removeConnectedPlatform,
+    setOriginDataCompleted,
     completeOnboarding,
     resetOnboarding,
     isComplete: state.completedAt !== null,
     progress: {
       questionsAnswered: state.answers.length,
       platformsConnected: state.connectedPlatforms.length,
+      originDataCompleted: state.originDataCompleted,
     }
   };
 };

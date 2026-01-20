@@ -15,21 +15,20 @@ interface FirstGlimpseStepProps {
   onBack: () => void;
 }
 
-// Radar chart component
+// Radar chart component - refined with warm grey aesthetic
 const RadarChart: React.FC<{ scores: PreliminaryScores }> = ({ scores }) => {
   const traits = [
     { key: 'openness', label: 'Openness', value: scores.openness },
     { key: 'conscientiousness', label: 'Conscientiousness', value: scores.conscientiousness },
     { key: 'extraversion', label: 'Extraversion', value: scores.extraversion },
     { key: 'agreeableness', label: 'Agreeableness', value: scores.agreeableness },
-    { key: 'neuroticism', label: 'Stability', value: 100 - scores.neuroticism }, // Invert for display
+    { key: 'neuroticism', label: 'Stability', value: 100 - scores.neuroticism },
   ];
 
   const centerX = 150;
   const centerY = 150;
   const maxRadius = 100;
 
-  // Calculate points for the polygon
   const points = traits.map((trait, i) => {
     const angle = (i * 2 * Math.PI) / traits.length - Math.PI / 2;
     const radius = (trait.value / 100) * maxRadius;
@@ -54,7 +53,7 @@ const RadarChart: React.FC<{ scores: PreliminaryScores }> = ({ scores }) => {
           cy={centerY}
           r={maxRadius * scale}
           fill="none"
-          stroke="rgba(255,255,255,0.1)"
+          stroke="rgba(193,192,182,0.1)"
           strokeWidth="1"
         />
       ))}
@@ -69,7 +68,7 @@ const RadarChart: React.FC<{ scores: PreliminaryScores }> = ({ scores }) => {
             y1={centerY}
             x2={centerX + maxRadius * Math.cos(angle)}
             y2={centerY + maxRadius * Math.sin(angle)}
-            stroke="rgba(255,255,255,0.1)"
+            stroke="rgba(193,192,182,0.1)"
             strokeWidth="1"
           />
         );
@@ -94,8 +93,8 @@ const RadarChart: React.FC<{ scores: PreliminaryScores }> = ({ scores }) => {
           cx={point.x}
           cy={point.y}
           r="4"
-          fill="#8B5CF6"
-          stroke="white"
+          fill="#C1C0B6"
+          stroke="#232320"
           strokeWidth="2"
           initial={{ opacity: 0, scale: 0 }}
           animate={{ opacity: 1, scale: 1 }}
@@ -111,7 +110,7 @@ const RadarChart: React.FC<{ scores: PreliminaryScores }> = ({ scores }) => {
           y={point.labelY}
           textAnchor="middle"
           dominantBaseline="middle"
-          fill="rgba(255,255,255,0.6)"
+          fill="rgba(193,192,182,0.6)"
           fontSize="10"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
@@ -121,15 +120,15 @@ const RadarChart: React.FC<{ scores: PreliminaryScores }> = ({ scores }) => {
         </motion.text>
       ))}
 
-      {/* Gradient definitions */}
+      {/* Gradient definitions - warm grey tones */}
       <defs>
         <linearGradient id="radarGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" stopColor="rgba(139, 92, 246, 0.4)" />
-          <stop offset="100%" stopColor="rgba(236, 72, 153, 0.4)" />
+          <stop offset="0%" stopColor="rgba(193,192,182,0.2)" />
+          <stop offset="100%" stopColor="rgba(193,192,182,0.1)" />
         </linearGradient>
         <linearGradient id="radarStroke" x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" stopColor="#8B5CF6" />
-          <stop offset="100%" stopColor="#EC4899" />
+          <stop offset="0%" stopColor="rgba(193,192,182,0.8)" />
+          <stop offset="100%" stopColor="rgba(193,192,182,0.5)" />
         </linearGradient>
       </defs>
     </svg>
@@ -151,12 +150,13 @@ export const FirstGlimpseStep: React.FC<FirstGlimpseStepProps> = ({
   }, []);
 
   return (
-    <div className="min-h-screen flex flex-col bg-gradient-to-br from-stone-950 via-violet-950/20 to-stone-950">
+    <div className="min-h-screen flex flex-col bg-[#232320]">
       {/* Header */}
       <div className="p-6 flex items-center justify-between">
         <button
           onClick={onBack}
-          className="text-white/60 hover:text-white flex items-center gap-1 transition-colors"
+          className="text-[rgba(193,192,182,0.5)] hover:text-[#C1C0B6] flex items-center gap-1 transition-colors"
+          style={{ fontFamily: 'var(--font-ui)' }}
         >
           <ChevronLeft className="w-4 h-4" />
           <span className="text-sm">Back</span>
@@ -164,7 +164,8 @@ export const FirstGlimpseStep: React.FC<FirstGlimpseStepProps> = ({
 
         <button
           onClick={onSkip}
-          className="text-white/60 hover:text-white text-sm transition-colors"
+          className="text-[rgba(193,192,182,0.5)] hover:text-[#C1C0B6] text-sm transition-colors"
+          style={{ fontFamily: 'var(--font-ui)' }}
         >
           Skip
         </button>
@@ -180,10 +181,15 @@ export const FirstGlimpseStep: React.FC<FirstGlimpseStepProps> = ({
             className="text-center mb-8"
           >
             <div className="flex items-center justify-center gap-2 mb-2">
-              <Sparkles className="w-5 h-5 text-violet-400" />
-              <span className="text-violet-400 text-sm font-medium">Your First Glimpse</span>
+              <Sparkles className="w-5 h-5 text-[#C1C0B6]" strokeWidth={1.5} />
+              <span className="text-[rgba(193,192,182,0.7)] text-sm" style={{ fontFamily: 'var(--font-ui)' }}>
+                Your First Glimpse
+              </span>
             </div>
-            <h1 className="text-2xl text-white/80 font-heading" style={{ fontWeight: 400 }}>
+            <h1
+              className="text-2xl text-[rgba(193,192,182,0.8)]"
+              style={{ fontFamily: 'var(--font-heading)', fontWeight: 400 }}
+            >
               Based on your answers, you might be...
             </h1>
           </motion.div>
@@ -196,19 +202,19 @@ export const FirstGlimpseStep: React.FC<FirstGlimpseStepProps> = ({
               transition={{ duration: 0.5 }}
               className="relative"
             >
-              {/* Glow effect */}
-              <div className="absolute inset-0 bg-gradient-to-r from-violet-500/20 via-pink-500/20 to-amber-500/20 rounded-3xl blur-2xl" />
+              {/* Subtle glow effect */}
+              <div className="absolute inset-0 bg-[rgba(193,192,182,0.03)] rounded-3xl blur-2xl" />
 
               {/* Card */}
-              <div className="relative bg-white/5 backdrop-blur-xl border border-white/10 rounded-3xl p-8 overflow-hidden">
+              <div className="relative bg-[rgba(45,45,41,0.5)] backdrop-blur-xl border border-[rgba(193,192,182,0.1)] rounded-3xl p-8 overflow-hidden">
                 {/* Archetype */}
                 <div className="text-center mb-8">
                   <motion.h2
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.3 }}
-                    className="text-3xl md:text-4xl text-white font-heading mb-2"
-                    style={{ fontWeight: 500 }}
+                    className="text-3xl md:text-4xl text-[#C1C0B6] mb-2"
+                    style={{ fontFamily: 'var(--font-heading)', fontWeight: 500 }}
                   >
                     {archetype.name}
                   </motion.h2>
@@ -216,7 +222,8 @@ export const FirstGlimpseStep: React.FC<FirstGlimpseStepProps> = ({
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     transition={{ delay: 0.5 }}
-                    className="text-violet-300 text-lg"
+                    className="text-[rgba(193,192,182,0.6)] text-lg"
+                    style={{ fontFamily: 'var(--font-ui)' }}
                   >
                     {archetype.subtitle}
                   </motion.p>
@@ -237,7 +244,8 @@ export const FirstGlimpseStep: React.FC<FirstGlimpseStepProps> = ({
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   transition={{ delay: 0.7 }}
-                  className="text-white/70 text-center text-sm leading-relaxed"
+                  className="text-[rgba(193,192,182,0.6)] text-center text-sm leading-relaxed"
+                  style={{ fontFamily: 'var(--font-ui)' }}
                 >
                   {archetype.description}
                 </motion.p>
@@ -247,9 +255,12 @@ export const FirstGlimpseStep: React.FC<FirstGlimpseStepProps> = ({
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   transition={{ delay: 0.9 }}
-                  className="mt-6 p-3 bg-amber-500/10 border border-amber-500/20 rounded-xl"
+                  className="mt-6 p-3 bg-[rgba(193,192,182,0.05)] border border-[rgba(193,192,182,0.1)] rounded-xl"
                 >
-                  <p className="text-amber-200/80 text-xs text-center flex items-center justify-center gap-2">
+                  <p
+                    className="text-[rgba(193,192,182,0.5)] text-xs text-center flex items-center justify-center gap-2"
+                    style={{ fontFamily: 'var(--font-ui)' }}
+                  >
                     <Clock className="w-3 h-3" />
                     This is just a preview. Connect your platforms for a deeper, more accurate analysis.
                   </p>
@@ -265,24 +276,29 @@ export const FirstGlimpseStep: React.FC<FirstGlimpseStepProps> = ({
             transition={{ delay: 1.2 }}
             className="mt-8 text-center"
           >
-            <p className="text-white/60 text-sm mb-4">
-              Want to discover your <span className="text-violet-400">full</span> signature?
+            <p
+              className="text-[rgba(193,192,182,0.5)] text-sm mb-4"
+              style={{ fontFamily: 'var(--font-ui)' }}
+            >
+              Want to discover your <span className="text-[#C1C0B6]">full</span> signature?
             </p>
 
             <div className="flex flex-col sm:flex-row gap-3 justify-center">
               <motion.button
                 onClick={onContinue}
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-                className="group px-6 py-3 bg-gradient-to-r from-violet-600 to-pink-600 text-white rounded-xl font-medium shadow-lg shadow-violet-500/25 flex items-center justify-center gap-2"
+                whileHover={{ scale: 1.01, y: -1 }}
+                whileTap={{ scale: 0.99 }}
+                className="group px-6 py-3 bg-[#C1C0B6] text-[#232320] rounded-xl font-medium shadow-[0_8px_32px_rgba(0,0,0,0.12)] flex items-center justify-center gap-2 hover:bg-[#D4D3CC] transition-all duration-300"
+                style={{ fontFamily: 'var(--font-ui)' }}
               >
                 Connect Your Platforms
-                <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform duration-300" />
               </motion.button>
 
               <button
                 onClick={onSkip}
-                className="px-6 py-3 text-white/60 hover:text-white hover:bg-white/5 rounded-xl transition-colors"
+                className="px-6 py-3 text-[rgba(193,192,182,0.5)] hover:text-[#C1C0B6] hover:bg-[rgba(193,192,182,0.05)] rounded-xl transition-colors"
+                style={{ fontFamily: 'var(--font-ui)' }}
               >
                 Maybe Later
               </button>

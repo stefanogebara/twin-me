@@ -50,7 +50,6 @@ export const QuickPulseStep: React.FC<QuickPulseStepProps> = ({ onComplete, onBa
   const handleOptionClick = (option: QuestionOption) => {
     answerQuestion(option);
     if (isLastQuestion) {
-      // Small delay before completing
       setTimeout(() => {
         onComplete(getAllAnswers());
       }, 500);
@@ -58,24 +57,29 @@ export const QuickPulseStep: React.FC<QuickPulseStepProps> = ({ onComplete, onBa
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-gradient-to-br from-stone-950 via-violet-950/20 to-stone-950">
+    <div className="min-h-screen flex flex-col bg-[#232320]">
       {/* Header */}
       <div className="p-6 flex items-center justify-between">
         <button
           onClick={onBack}
-          className="text-white/60 hover:text-white flex items-center gap-1 transition-colors"
+          className="text-[rgba(193,192,182,0.5)] hover:text-[#C1C0B6] flex items-center gap-1 transition-colors"
+          style={{ fontFamily: 'var(--font-ui)' }}
         >
           <ChevronLeft className="w-4 h-4" />
           <span className="text-sm">Back</span>
         </button>
 
-        <span className="text-white/60 text-sm">
+        <span
+          className="text-[rgba(193,192,182,0.5)] text-sm"
+          style={{ fontFamily: 'var(--font-ui)' }}
+        >
           Question {currentIndex + 1} of {totalQuestions}
         </span>
 
         <button
           onClick={onSkip}
-          className="text-white/60 hover:text-white flex items-center gap-1 transition-colors"
+          className="text-[rgba(193,192,182,0.5)] hover:text-[#C1C0B6] flex items-center gap-1 transition-colors"
+          style={{ fontFamily: 'var(--font-ui)' }}
         >
           <span className="text-sm">Skip</span>
           <SkipForward className="w-4 h-4" />
@@ -84,9 +88,9 @@ export const QuickPulseStep: React.FC<QuickPulseStepProps> = ({ onComplete, onBa
 
       {/* Progress bar */}
       <div className="px-6">
-        <div className="h-1 bg-white/10 rounded-full overflow-hidden">
+        <div className="h-0.5 bg-[rgba(193,192,182,0.1)] rounded-full overflow-hidden">
           <motion.div
-            className="h-full bg-gradient-to-r from-violet-500 to-pink-500"
+            className="h-full bg-[#C1C0B6]"
             initial={{ width: 0 }}
             animate={{ width: `${progress}%` }}
             transition={{ duration: 0.3 }}
@@ -112,13 +116,19 @@ export const QuickPulseStep: React.FC<QuickPulseStepProps> = ({ onComplete, onBa
                 animate={{ opacity: 1, y: 0 }}
                 className="flex justify-center"
               >
-                <span className="px-3 py-1 bg-violet-500/20 text-violet-300 text-xs font-medium rounded-full">
+                <span
+                  className="px-3 py-1 bg-[rgba(193,192,182,0.1)] text-[rgba(193,192,182,0.7)] text-xs font-medium rounded-full border border-[rgba(193,192,182,0.1)]"
+                  style={{ fontFamily: 'var(--font-ui)' }}
+                >
                   {currentQuestion.category}
                 </span>
               </motion.div>
 
               {/* Question */}
-              <h2 className="text-2xl md:text-3xl text-white text-center font-heading" style={{ fontWeight: 400 }}>
+              <h2
+                className="text-2xl md:text-3xl text-[#C1C0B6] text-center"
+                style={{ fontFamily: 'var(--font-heading)', fontWeight: 400 }}
+              >
                 {currentQuestion.text}
               </h2>
 
@@ -138,8 +148,8 @@ export const QuickPulseStep: React.FC<QuickPulseStepProps> = ({ onComplete, onBa
                         "w-full p-4 rounded-xl text-left transition-all duration-200",
                         "border backdrop-blur-sm",
                         isSelected
-                          ? "bg-gradient-to-r from-violet-500/30 to-pink-500/30 border-violet-500 text-white"
-                          : "bg-white/5 border-white/10 text-white/80 hover:bg-white/10 hover:border-white/20"
+                          ? "bg-[rgba(193,192,182,0.15)] border-[rgba(193,192,182,0.4)] text-[#C1C0B6]"
+                          : "bg-[rgba(45,45,41,0.5)] border-[rgba(193,192,182,0.1)] text-[rgba(193,192,182,0.7)] hover:bg-[rgba(45,45,41,0.7)] hover:border-[rgba(193,192,182,0.2)]"
                       )}
                     >
                       <div className="flex items-center gap-3">
@@ -147,19 +157,24 @@ export const QuickPulseStep: React.FC<QuickPulseStepProps> = ({ onComplete, onBa
                           className={cn(
                             "w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-all",
                             isSelected
-                              ? "border-violet-400 bg-violet-500"
-                              : "border-white/30"
+                              ? "border-[#C1C0B6] bg-[#C1C0B6]"
+                              : "border-[rgba(193,192,182,0.3)]"
                           )}
                         >
                           {isSelected && (
                             <motion.div
                               initial={{ scale: 0 }}
                               animate={{ scale: 1 }}
-                              className="w-2 h-2 bg-white rounded-full"
+                              className="w-2 h-2 bg-[#232320] rounded-full"
                             />
                           )}
                         </div>
-                        <span className="text-sm md:text-base">{option.text}</span>
+                        <span
+                          className="text-sm md:text-base"
+                          style={{ fontFamily: 'var(--font-ui)' }}
+                        >
+                          {option.text}
+                        </span>
                       </div>
                     </motion.button>
                   );
@@ -174,7 +189,6 @@ export const QuickPulseStep: React.FC<QuickPulseStepProps> = ({ onComplete, onBa
               <button
                 key={i}
                 onClick={() => {
-                  // Only allow going back to answered questions
                   if (i <= currentIndex) {
                     while (currentIndex > i) {
                       prevQuestion();
@@ -184,10 +198,10 @@ export const QuickPulseStep: React.FC<QuickPulseStepProps> = ({ onComplete, onBa
                 className={cn(
                   "w-2 h-2 rounded-full transition-all",
                   i === currentIndex
-                    ? "bg-violet-500 w-6"
+                    ? "bg-[#C1C0B6] w-6"
                     : i < currentIndex
-                    ? "bg-violet-500/50"
-                    : "bg-white/20"
+                    ? "bg-[rgba(193,192,182,0.4)]"
+                    : "bg-[rgba(193,192,182,0.15)]"
                 )}
               />
             ))}
@@ -203,9 +217,10 @@ export const QuickPulseStep: React.FC<QuickPulseStepProps> = ({ onComplete, onBa
           className={cn(
             "flex items-center gap-2 px-4 py-2 rounded-lg transition-colors",
             currentIndex === 0
-              ? "text-white/20 cursor-not-allowed"
-              : "text-white/60 hover:text-white hover:bg-white/10"
+              ? "text-[rgba(193,192,182,0.2)] cursor-not-allowed"
+              : "text-[rgba(193,192,182,0.5)] hover:text-[#C1C0B6] hover:bg-[rgba(193,192,182,0.05)]"
           )}
+          style={{ fontFamily: 'var(--font-ui)' }}
         >
           <ChevronLeft className="w-4 h-4" />
           Previous
@@ -216,7 +231,8 @@ export const QuickPulseStep: React.FC<QuickPulseStepProps> = ({ onComplete, onBa
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
             onClick={() => onComplete(getAllAnswers())}
-            className="flex items-center gap-2 px-6 py-2 bg-gradient-to-r from-violet-600 to-pink-600 text-white rounded-lg font-medium"
+            className="flex items-center gap-2 px-6 py-2 bg-[#C1C0B6] text-[#232320] rounded-xl font-medium shadow-[0_8px_32px_rgba(0,0,0,0.12)] hover:bg-[#D4D3CC] transition-all duration-300"
+            style={{ fontFamily: 'var(--font-ui)' }}
           >
             See Results
             <ChevronRight className="w-4 h-4" />

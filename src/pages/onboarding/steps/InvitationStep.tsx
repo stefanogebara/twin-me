@@ -32,35 +32,36 @@ export const InvitationStep: React.FC<InvitationStepProps> = ({ onContinue, onSk
   }, [currentPhraseIndex]);
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center relative overflow-hidden bg-gradient-to-br from-stone-950 via-violet-950/30 to-stone-950">
+    <div className="min-h-screen flex flex-col items-center justify-center relative overflow-hidden bg-[#232320]">
       {/* Skip button */}
       <motion.button
         initial={{ opacity: 0 }}
         animate={{ opacity: 0.5 }}
         whileHover={{ opacity: 1 }}
         onClick={onSkip}
-        className="absolute top-6 right-6 text-white/60 text-sm hover:text-white transition-colors"
+        className="absolute top-6 right-6 text-[rgba(193,192,182,0.5)] text-sm hover:text-[#C1C0B6] transition-colors font-ui"
+        style={{ fontFamily: 'var(--font-ui)' }}
       >
         Skip intro
       </motion.button>
 
-      {/* Animated particles/stars background */}
+      {/* Subtle animated particles/stars background */}
       <div className="absolute inset-0 overflow-hidden">
-        {Array.from({ length: 50 }).map((_, i) => (
+        {Array.from({ length: 40 }).map((_, i) => (
           <motion.div
             key={i}
-            className="absolute w-1 h-1 bg-violet-400/40 rounded-full"
+            className="absolute w-0.5 h-0.5 bg-[rgba(193,192,182,0.3)] rounded-full"
             initial={{
-              x: Math.random() * window.innerWidth,
-              y: Math.random() * window.innerHeight,
+              x: Math.random() * (typeof window !== 'undefined' ? window.innerWidth : 1280),
+              y: Math.random() * (typeof window !== 'undefined' ? window.innerHeight : 800),
               scale: Math.random() * 0.5 + 0.5,
             }}
             animate={{
-              y: [null, Math.random() * window.innerHeight],
-              opacity: [0.2, 0.8, 0.2],
+              y: [null, Math.random() * (typeof window !== 'undefined' ? window.innerHeight : 800)],
+              opacity: [0.1, 0.4, 0.1],
             }}
             transition={{
-              duration: Math.random() * 10 + 10,
+              duration: Math.random() * 15 + 15,
               repeat: Infinity,
               ease: "linear",
             }}
@@ -70,26 +71,26 @@ export const InvitationStep: React.FC<InvitationStepProps> = ({ onContinue, onSk
 
       {/* Main content */}
       <div className="relative z-10 text-center px-6 max-w-2xl">
-        {/* Animated constellation icon */}
+        {/* Refined icon - no garish gradient */}
         <motion.div
           initial={{ scale: 0, rotate: -180 }}
           animate={{ scale: 1, rotate: 0 }}
           transition={{ type: "spring", duration: 1.5, bounce: 0.4 }}
           className="mb-12"
         >
-          <div className="w-24 h-24 mx-auto relative">
+          <div className="w-20 h-20 mx-auto relative">
             <motion.div
               animate={{
                 boxShadow: [
-                  "0 0 30px rgba(139, 92, 246, 0.3)",
-                  "0 0 60px rgba(139, 92, 246, 0.5)",
-                  "0 0 30px rgba(139, 92, 246, 0.3)",
+                  "0 0 30px rgba(193,192,182,0.1)",
+                  "0 0 50px rgba(193,192,182,0.15)",
+                  "0 0 30px rgba(193,192,182,0.1)",
                 ]
               }}
-              transition={{ duration: 2, repeat: Infinity }}
-              className="w-full h-full rounded-full bg-gradient-to-br from-violet-500 via-pink-500 to-amber-500 flex items-center justify-center"
+              transition={{ duration: 3, repeat: Infinity }}
+              className="w-full h-full rounded-full bg-[rgba(193,192,182,0.12)] border border-[rgba(193,192,182,0.2)] flex items-center justify-center backdrop-blur-sm"
             >
-              <Sparkles className="w-12 h-12 text-white" />
+              <Sparkles className="w-9 h-9 text-[#C1C0B6]" strokeWidth={1.5} />
             </motion.div>
           </div>
         </motion.div>
@@ -103,15 +104,15 @@ export const InvitationStep: React.FC<InvitationStepProps> = ({ onContinue, onSk
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -20 }}
               transition={{ duration: 0.5 }}
-              className="text-3xl md:text-4xl lg:text-5xl font-heading text-white tracking-tight"
-              style={{ fontWeight: 400 }}
+              className="text-3xl md:text-4xl lg:text-5xl text-[#C1C0B6] tracking-tight"
+              style={{ fontFamily: 'var(--font-heading)', fontWeight: 400 }}
             >
               {phrases[currentPhraseIndex]}
             </motion.h1>
           </AnimatePresence>
         </div>
 
-        {/* CTA Button */}
+        {/* CTA Button - refined, no garish gradient */}
         <AnimatePresence>
           {showButton && (
             <motion.div
@@ -122,27 +123,29 @@ export const InvitationStep: React.FC<InvitationStepProps> = ({ onContinue, onSk
             >
               <motion.button
                 onClick={onContinue}
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.98 }}
-                className="group relative px-8 py-4 bg-gradient-to-r from-violet-600 to-pink-600 text-white rounded-full font-medium text-lg shadow-2xl shadow-violet-500/30 overflow-hidden"
+                whileHover={{ scale: 1.01, y: -1 }}
+                whileTap={{ scale: 0.99 }}
+                className="group relative px-8 py-4 bg-[#C1C0B6] text-[#232320] rounded-xl font-medium text-base overflow-hidden transition-all duration-300 flex items-center justify-center gap-2 hover:bg-[#D4D3CC] shadow-[0_8px_32px_rgba(0,0,0,0.12)]"
+                style={{ fontFamily: 'var(--font-ui)' }}
               >
+                <span className="relative z-10">Begin Discovery</span>
+                <ArrowRight className="w-5 h-5 relative z-10 group-hover:translate-x-1 transition-transform duration-300" strokeWidth={2} />
+
+                {/* Subtle shine effect on hover */}
                 <motion.div
-                  className="absolute inset-0 bg-gradient-to-r from-violet-500 to-pink-500"
-                  initial={{ x: "-100%" }}
-                  whileHover={{ x: 0 }}
-                  transition={{ duration: 0.3 }}
+                  className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent"
+                  initial={{ x: '-100%' }}
+                  whileHover={{ x: '100%' }}
+                  transition={{ duration: 0.6 }}
                 />
-                <span className="relative flex items-center gap-2">
-                  Begin Discovery
-                  <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
-                </span>
               </motion.button>
 
               <motion.p
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 transition={{ delay: 0.5 }}
-                className="mt-6 text-white/40 text-sm"
+                className="mt-6 text-[rgba(193,192,182,0.4)] text-sm"
+                style={{ fontFamily: 'var(--font-ui)' }}
               >
                 Takes about 2 minutes
               </motion.p>
@@ -151,8 +154,8 @@ export const InvitationStep: React.FC<InvitationStepProps> = ({ onContinue, onSk
         </AnimatePresence>
       </div>
 
-      {/* Gradient overlay at bottom */}
-      <div className="absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-stone-950 to-transparent" />
+      {/* Subtle gradient overlay at bottom */}
+      <div className="absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-[#1a1a18] to-transparent" />
     </div>
   );
 };

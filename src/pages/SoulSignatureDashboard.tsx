@@ -73,7 +73,7 @@ const MBTI_DIMENSIONS = {
     highLabel: 'Extraverted',
     lowLetter: 'I',
     highLetter: 'E',
-    color: '#8B5CF6',
+    color: '#C1C0B6',
     description: 'How you interact with the world and where you direct your energy',
     lowDesc: 'Prefer solitary activities, think before speaking, feel drained by social interaction',
     highDesc: 'Prefer group activities, think out loud, feel energized by social interaction'
@@ -84,7 +84,7 @@ const MBTI_DIMENSIONS = {
     highLabel: 'Intuitive',
     lowLetter: 'S',
     highLetter: 'N',
-    color: '#F59E0B',
+    color: '#A8A79E',
     description: 'How you see the world and process information',
     lowDesc: 'Focus on facts and details, prefer practical solutions, trust experience',
     highDesc: 'Focus on patterns and possibilities, prefer innovative solutions, trust intuition'
@@ -95,7 +95,7 @@ const MBTI_DIMENSIONS = {
     highLabel: 'Feeling',
     lowLetter: 'T',
     highLetter: 'F',
-    color: '#10B981',
+    color: '#8F8E86',
     description: 'How you make decisions and cope with emotions',
     lowDesc: 'Prioritize logic and objectivity, focus on truth over tact',
     highDesc: 'Prioritize empathy and harmony, focus on values and feelings'
@@ -106,7 +106,7 @@ const MBTI_DIMENSIONS = {
     highLabel: 'Judging',
     lowLetter: 'P',
     highLetter: 'J',
-    color: '#6366F1',
+    color: '#D4D3CC',
     description: 'How you approach work and planning',
     lowDesc: 'Prefer flexibility and spontaneity, keep options open, adapt easily',
     highDesc: 'Prefer structure and planning, like closure and completion'
@@ -117,7 +117,7 @@ const MBTI_DIMENSIONS = {
     highLabel: 'Assertive',
     lowLetter: 'T',
     highLetter: 'A',
-    color: '#EC4899',
+    color: '#B8B7AF',
     description: 'How confident you are in your abilities and decisions',
     lowDesc: 'Self-conscious, sensitive to stress, perfectionist, success-driven',
     highDesc: 'Self-assured, even-tempered, resistant to stress, confident'
@@ -318,11 +318,11 @@ const SoulSignatureDashboard: React.FC = () => {
         const signatureWithColors = {
           ...signatureData.data,
           color_scheme: signatureData.data.color_scheme || {
-            primary: '#8B5CF6',
-            secondary: '#6366F1',
-            accent: '#A78BFA',
-            background: '#F5F3FF',
-            text: '#1F2937'
+            primary: '#C1C0B6',
+            secondary: '#A8A79E',
+            accent: '#D4D3CC',
+            background: '#2D2D29',
+            text: '#C1C0B6'
           }
         };
         setSoulSignature(signatureWithColors);
@@ -729,11 +729,11 @@ const SoulSignatureDashboard: React.FC = () => {
               <div
                 className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl flex items-center justify-center flex-shrink-0"
                 style={{
-                  backgroundColor: 'rgba(139, 92, 246, 0.1)',
-                  border: '1px solid rgba(139, 92, 246, 0.2)'
+                  backgroundColor: 'rgba(193, 192, 182, 0.1)',
+                  border: '1px solid rgba(193, 192, 182, 0.2)'
                 }}
               >
-                <IconComponent className="w-8 h-8 sm:w-10 sm:h-10" style={{ color: '#8B5CF6' }} />
+                <IconComponent className="w-8 h-8 sm:w-10 sm:h-10" style={{ color: '#C1C0B6' }} />
               </div>
               <div>
                 <h2
@@ -746,7 +746,7 @@ const SoulSignatureDashboard: React.FC = () => {
                 >
                   {soulSignature.archetype_name}
                 </h2>
-                <p className="text-lg italic" style={{ color: '#8B5CF6' }}>
+                <p className="text-lg italic" style={{ color: textSecondary }}>
                   {soulSignature.archetype_subtitle}
                 </p>
               </div>
@@ -756,32 +756,32 @@ const SoulSignatureDashboard: React.FC = () => {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
               {/* Core Drive */}
               <div className="p-4 rounded-xl" style={{
-                backgroundColor: 'rgba(139, 92, 246, 0.08)',
-                border: '1px solid rgba(139, 92, 246, 0.15)'
+                backgroundColor: 'rgba(193, 192, 182, 0.08)',
+                border: '1px solid rgba(193, 192, 182, 0.15)'
               }}>
                 <div className="flex items-center gap-2 mb-3">
-                  <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ backgroundColor: 'rgba(139, 92, 246, 0.15)' }}>
-                    <Lightbulb className="w-4 h-4" style={{ color: '#8B5CF6' }} />
+                  <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ backgroundColor: 'rgba(193, 192, 182, 0.15)' }}>
+                    <Lightbulb className="w-4 h-4" style={{ color: '#C1C0B6' }} />
                   </div>
-                  <span className="text-xs uppercase tracking-wider font-medium" style={{ color: '#8B5CF6' }}>Core Drive</span>
+                  <span className="text-xs uppercase tracking-wider font-medium" style={{ color: textColor }}>Core Drive</span>
                 </div>
-                <p className="text-sm leading-relaxed" style={{ color: textColor }}>
+                <p className="text-sm leading-relaxed" style={{ color: textSecondary }}>
                   {soulSignature.defining_traits[0]?.trait || 'Curiosity'} shapes your choices - you seek {soulSignature.defining_traits[0]?.evidence.toLowerCase() || 'new experiences'}
                 </p>
               </div>
 
               {/* Social Style */}
               <div className="p-4 rounded-xl" style={{
-                backgroundColor: 'rgba(99, 102, 241, 0.08)',
-                border: '1px solid rgba(99, 102, 241, 0.15)'
+                backgroundColor: 'rgba(193, 192, 182, 0.08)',
+                border: '1px solid rgba(193, 192, 182, 0.15)'
               }}>
                 <div className="flex items-center gap-2 mb-3">
-                  <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ backgroundColor: 'rgba(99, 102, 241, 0.15)' }}>
-                    <Users className="w-4 h-4" style={{ color: '#6366F1' }} />
+                  <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ backgroundColor: 'rgba(193, 192, 182, 0.15)' }}>
+                    <Users className="w-4 h-4" style={{ color: '#C1C0B6' }} />
                   </div>
-                  <span className="text-xs uppercase tracking-wider font-medium" style={{ color: '#6366F1' }}>Social Style</span>
+                  <span className="text-xs uppercase tracking-wider font-medium" style={{ color: textColor }}>Social Style</span>
                 </div>
-                <p className="text-sm leading-relaxed" style={{ color: textColor }}>
+                <p className="text-sm leading-relaxed" style={{ color: textSecondary }}>
                   {personalityScores && personalityScores.extraversion > 60
                     ? 'You thrive in social settings and draw energy from connecting with others'
                     : 'You value deep connections over many, preferring meaningful one-on-one interactions'}
@@ -790,16 +790,16 @@ const SoulSignatureDashboard: React.FC = () => {
 
               {/* Creative Pattern */}
               <div className="p-4 rounded-xl" style={{
-                backgroundColor: 'rgba(236, 72, 153, 0.08)',
-                border: '1px solid rgba(236, 72, 153, 0.15)'
+                backgroundColor: 'rgba(193, 192, 182, 0.08)',
+                border: '1px solid rgba(193, 192, 182, 0.15)'
               }}>
                 <div className="flex items-center gap-2 mb-3">
-                  <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ backgroundColor: 'rgba(236, 72, 153, 0.15)' }}>
-                    <Zap className="w-4 h-4" style={{ color: '#EC4899' }} />
+                  <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ backgroundColor: 'rgba(193, 192, 182, 0.15)' }}>
+                    <Zap className="w-4 h-4" style={{ color: '#C1C0B6' }} />
                   </div>
-                  <span className="text-xs uppercase tracking-wider font-medium" style={{ color: '#EC4899' }}>Creative Pattern</span>
+                  <span className="text-xs uppercase tracking-wider font-medium" style={{ color: textColor }}>Creative Pattern</span>
                 </div>
-                <p className="text-sm leading-relaxed" style={{ color: textColor }}>
+                <p className="text-sm leading-relaxed" style={{ color: textSecondary }}>
                   {soulSignature.defining_traits[2]?.trait || 'Creative expression'} is key - {soulSignature.defining_traits[2]?.evidence.toLowerCase() || 'you explore diverse artistic interests'}
                 </p>
               </div>
@@ -812,8 +812,8 @@ const SoulSignatureDashboard: React.FC = () => {
 
                 {/* Type Code */}
                 <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 mb-6 p-4 rounded-xl" style={{
-                  backgroundColor: 'rgba(139, 92, 246, 0.08)',
-                  border: '1px solid rgba(139, 92, 246, 0.15)'
+                  backgroundColor: 'rgba(193, 192, 182, 0.08)',
+                  border: '1px solid rgba(193, 192, 182, 0.15)'
                 }}>
                   <div className="flex items-center gap-1">
                     {(personalityScores.archetype_code || 'XXXX-X').split('').map((letter, i) => {
@@ -859,7 +859,7 @@ const SoulSignatureDashboard: React.FC = () => {
               <SectionHeader title="What Makes You Unique" />
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {soulSignature.defining_traits.map((trait, index) => {
-                  const traitColors = ['#8B5CF6', '#6366F1', '#EC4899', '#10B981'];
+                  const traitColors = ['#C1C0B6', '#A8A79E', '#B8B7AF', '#8F8E86'];
                   const color = traitColors[index % traitColors.length];
 
                   return (
@@ -904,7 +904,7 @@ const SoulSignatureDashboard: React.FC = () => {
             onClick={generateSoulSignature}
             disabled={generating}
             className="px-6 py-3 rounded-xl font-medium transition-all duration-200 disabled:opacity-50 hover:scale-[1.02]"
-            style={{ backgroundColor: '#8B5CF6', color: '#ffffff' }}
+            style={{ backgroundColor: '#C1C0B6', color: '#232320' }}
           >
             {generating ? 'Generating...' : 'Generate Soul Signature'}
           </button>
@@ -915,8 +915,8 @@ const SoulSignatureDashboard: React.FC = () => {
       <GlassPanel className="!p-5 md:!p-6 mb-6">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ backgroundColor: 'rgba(139, 92, 246, 0.1)' }}>
-              <Target className="w-5 h-5" style={{ color: '#8B5CF6' }} />
+            <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ backgroundColor: 'rgba(193, 192, 182, 0.1)' }}>
+              <Target className="w-5 h-5" style={{ color: '#C1C0B6' }} />
             </div>
             <div>
               <h3 style={{ fontFamily: 'var(--font-heading)', fontWeight: 500, color: textColor }}>
@@ -931,9 +931,9 @@ const SoulSignatureDashboard: React.FC = () => {
             onClick={() => navigate('/big-five')}
             className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-all hover:scale-[1.02]"
             style={{
-              backgroundColor: 'rgba(139, 92, 246, 0.1)',
-              color: '#8B5CF6',
-              border: '1px solid rgba(139, 92, 246, 0.2)'
+              backgroundColor: 'rgba(193, 192, 182, 0.1)',
+              color: textColor,
+              border: '1px solid rgba(193, 192, 182, 0.2)'
             }}
           >
             Take Assessment
@@ -964,11 +964,11 @@ const SoulSignatureDashboard: React.FC = () => {
             {/* Score Details */}
             <div className="space-y-4">
               {[
-                { name: 'Openness', value: personalityScores.openness, color: '#8b5cf6', desc: 'Creativity & intellectual curiosity' },
-                { name: 'Conscientiousness', value: personalityScores.conscientiousness, color: '#22c55e', desc: 'Organization & dependability' },
-                { name: 'Extraversion', value: personalityScores.extraversion, color: '#f59e0b', desc: 'Sociability & positive emotions' },
-                { name: 'Agreeableness', value: personalityScores.agreeableness, color: '#06b6d4', desc: 'Cooperation & trust' },
-                { name: 'Neuroticism', value: personalityScores.neuroticism, color: '#ef4444', desc: 'Emotional sensitivity' },
+                { name: 'Openness', value: personalityScores.openness, color: '#C1C0B6', desc: 'Creativity & intellectual curiosity' },
+                { name: 'Conscientiousness', value: personalityScores.conscientiousness, color: '#A8A79E', desc: 'Organization & dependability' },
+                { name: 'Extraversion', value: personalityScores.extraversion, color: '#B8B7AF', desc: 'Sociability & positive emotions' },
+                { name: 'Agreeableness', value: personalityScores.agreeableness, color: '#8F8E86', desc: 'Cooperation & trust' },
+                { name: 'Neuroticism', value: personalityScores.neuroticism, color: '#D4D3CC', desc: 'Emotional sensitivity' },
               ].map((trait) => (
                 <div key={trait.name} className="space-y-1">
                   <div className="flex justify-between items-center">
@@ -998,7 +998,7 @@ const SoulSignatureDashboard: React.FC = () => {
             <button
               onClick={() => navigate('/big-five')}
               className="px-6 py-3 rounded-xl font-medium transition-all hover:scale-[1.02]"
-              style={{ backgroundColor: '#8b5cf6', color: '#fff' }}
+              style={{ backgroundColor: '#C1C0B6', color: '#232320' }}
             >
               Start Big Five Assessment
             </button>

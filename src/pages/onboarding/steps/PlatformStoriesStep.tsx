@@ -12,6 +12,7 @@ import {
   Mail,
   Calendar,
   Github,
+  Linkedin,
   Sparkles
 } from 'lucide-react';
 import { useTheme } from '@/contexts/ThemeContext';
@@ -105,6 +106,17 @@ const PLATFORMS: Platform[] = [
     description: 'Your code contributions show how you create and collaborate',
     discovers: ['Technical interests', 'Collaboration style', 'Project commitment', 'Learning patterns'],
     available: true
+  },
+  {
+    id: 'linkedin',
+    name: 'LinkedIn',
+    icon: Linkedin,
+    color: '#0A66C2',
+    category: 'professional',
+    tagline: 'Your professional identity',
+    description: 'Your career path reveals your ambitions, expertise, and professional network',
+    discovers: ['Career trajectory', 'Industry expertise', 'Professional network', 'Growth mindset'],
+    available: true
   }
 ];
 
@@ -114,6 +126,7 @@ interface PlatformStoriesStepProps {
   onContinue: () => void;
   onBack: () => void;
   onSkip: () => void;
+  isDemoMode?: boolean;
 }
 
 const PlatformCard: React.FC<{
@@ -122,7 +135,8 @@ const PlatformCard: React.FC<{
   isConnecting: boolean;
   onConnect: () => void;
   theme: string;
-}> = ({ platform, isConnected, isConnecting, onConnect, theme }) => {
+  isDemoMode?: boolean;
+}> = ({ platform, isConnected, isConnecting, onConnect, theme, isDemoMode }) => {
   const Icon = platform.icon;
 
   return (
@@ -199,6 +213,8 @@ const PlatformCard: React.FC<{
           >
             {isConnecting ? (
               <Loader2 className="w-4 h-4 animate-spin" />
+            ) : isDemoMode ? (
+              "Sign in to connect"
             ) : (
               "Connect"
             )}
@@ -214,7 +230,8 @@ export const PlatformStoriesStep: React.FC<PlatformStoriesStepProps> = ({
   onConnect,
   onContinue,
   onBack,
-  onSkip
+  onSkip,
+  isDemoMode = false
 }) => {
   const [connectingPlatform, setConnectingPlatform] = useState<string | null>(null);
   const [activeCategory, setActiveCategory] = useState<'all' | 'entertainment' | 'health' | 'professional'>('all');
@@ -279,7 +296,7 @@ export const PlatformStoriesStep: React.FC<PlatformStoriesStepProps> = ({
               color: theme === 'dark' ? 'rgba(193, 192, 182, 0.5)' : '#a8a29e'
             }}
           >
-            Step 4 of 5
+            Step 4 of 6
           </span>
         </div>
 
@@ -385,6 +402,7 @@ export const PlatformStoriesStep: React.FC<PlatformStoriesStepProps> = ({
                   isConnecting={connectingPlatform === platform.id}
                   onConnect={() => handleConnect(platform.id)}
                   theme={theme}
+                  isDemoMode={isDemoMode}
                 />
               </motion.div>
             ))}
@@ -409,7 +427,10 @@ export const PlatformStoriesStep: React.FC<PlatformStoriesStepProps> = ({
                   color: '#3b82f6'
                 }}
               >
-                Connect at least one platform to generate your Soul Signature.
+                {isDemoMode
+                  ? "Sign in to connect your platforms and generate your Soul Signature."
+                  : "Connect at least one platform to generate your Soul Signature."
+                }
               </p>
             </motion.div>
           )}

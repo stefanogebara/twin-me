@@ -6,6 +6,7 @@
 import { createClient } from '@supabase/supabase-js';
 import Anthropic from '@anthropic-ai/sdk';
 import wearableFeatureExtractor from './featureExtractors/wearableFeatureExtractor.js';
+import professionalUniverseBuilder from './professionalUniverseBuilder.js';
 
 // Use SUPABASE_URL (backend) - fallback to VITE_ prefix for compatibility
 // Lazy initialization to avoid crashes if env vars not loaded yet
@@ -69,6 +70,9 @@ class SoulSignatureBuilder {
       // 8. Analyze wearable/health data (Garmin, Polar, Suunto, Whoop, Apple Health)
       const wearableSignature = await this.analyzeWearableSignature(userId);
 
+      // 9. Build professional universe (LinkedIn + Origin + GitHub + Calendar)
+      const professionalUniverse = await professionalUniverseBuilder.buildProfessionalUniverse(userId);
+
       // 10. Use AI to generate personality insights
       const personalityInsights = await this.generatePersonalityInsights(
         extractedData,
@@ -77,7 +81,8 @@ class SoulSignatureBuilder {
         communicationSignature,
         viewingSignature,
         discussionSignature,
-        wearableSignature
+        wearableSignature,
+        professionalUniverse
       );
 
       // 9. Extract common phrases and analogies
@@ -91,12 +96,18 @@ class SoulSignatureBuilder {
         viewing_patterns: viewingSignature,
         discussion_style: discussionSignature,
         health_signature: wearableSignature,  // Wearable-derived insights
+        professional_universe: professionalUniverse?.available ? professionalUniverse : null,
+        origin_context: professionalUniverse?.origin_context || null,
         interests: interests,
         common_phrases: languagePatterns.phrases,
         favorite_analogies: languagePatterns.analogies,
         uniqueness_markers: personalityInsights.uniqueness_markers,
-        authenticity_score: this.calculateAuthenticityScore(extractedData, wearableSignature),
-        data_sources: [...Object.keys(extractedData), ...(wearableSignature?.available ? ['wearable'] : [])],
+        authenticity_score: this.calculateAuthenticityScore(extractedData, wearableSignature, professionalUniverse),
+        data_sources: [
+          ...Object.keys(extractedData),
+          ...(wearableSignature?.available ? ['wearable'] : []),
+          ...(professionalUniverse?.data_sources || [])
+        ],
         generated_at: new Date().toISOString()
       };
 
@@ -329,10 +340,10 @@ class SoulSignatureBuilder {
   /**
    * Generate personality insights using AI
    */
-  async generatePersonalityInsights(extractedData, styleProfile, musicSignature, communicationSignature) {
+  async generatePersonalityInsights(extractedData, styleProfile, musicSignature, communicationSignature, viewingSignature, discussionSignature, wearableSignature, professionalUniverse) {
     try {
       // Build context from data
-      const context = this.buildAIContext(extractedData, styleProfile, musicSignature, communicationSignature);
+      const context = this.buildAIContext(extractedData, styleProfile, musicSignature, communicationSignature, professionalUniverse);
 
       // Call Claude to generate insights
       const message = await anthropic.messages.create({
@@ -380,7 +391,7 @@ Respond ONLY with valid JSON, no explanation.`
   /**
    * Build context for AI analysis
    */
-  buildAIContext(extractedData, styleProfile, musicSignature, communicationSignature) {
+  buildAIContext(extractedData, styleProfile, musicSignature, communicationSignature, professionalUniverse = null) {
     let context = '';
 
     // Music taste
@@ -400,6 +411,42 @@ Respond ONLY with valid JSON, no explanation.`
       context += `Writing style: ${styleProfile.communication_style}. `;
       if (styleProfile.vocabulary_richness) {
         context += `Vocabulary richness: ${(styleProfile.vocabulary_richness * 100).toFixed(0)}%. `;
+      }
+    }
+
+    // Professional universe
+    if (professionalUniverse?.available) {
+      if (professionalUniverse.career_trajectory?.current_stage) {
+        context += `Career stage: ${professionalUniverse.career_trajectory.current_stage}. `;
+      }
+      if (professionalUniverse.career_trajectory?.industry) {
+        context += `Industry: ${professionalUniverse.career_trajectory.industry}. `;
+      }
+      if (professionalUniverse.professional_style?.work_preference) {
+        context += `Work style: ${professionalUniverse.professional_style.work_preference}. `;
+      }
+      if (professionalUniverse.industry_expertise?.technical_skills?.length > 0) {
+        context += `Technical skills: ${professionalUniverse.industry_expertise.technical_skills.join(', ')}. `;
+      }
+      if (professionalUniverse.growth_mindset?.overall) {
+        context += `Growth mindset: ${professionalUniverse.growth_mindset.overall}. `;
+      }
+    }
+
+    // Origin context (user-provided values and background)
+    if (professionalUniverse?.origin_context) {
+      const origin = professionalUniverse.origin_context;
+      if (origin.values?.core_values?.length > 0) {
+        context += `Core values: ${origin.values.core_values.join(', ')}. `;
+      }
+      if (origin.education?.learning_style) {
+        context += `Learning style: ${origin.education.learning_style}. `;
+      }
+      if (origin.geographic?.cultural_influences?.length > 0) {
+        context += `Cultural influences: ${origin.geographic.cultural_influences.join(', ')}. `;
+      }
+      if (origin.values?.life_motto) {
+        context += `Life motto: "${origin.values.life_motto}". `;
       }
     }
 
@@ -565,24 +612,36 @@ Respond ONLY with valid JSON, no explanation.`
   /**
    * Calculate authenticity score based on data breadth
    */
-  calculateAuthenticityScore(extractedData, wearableSignature = null) {
+  calculateAuthenticityScore(extractedData, wearableSignature = null, professionalUniverse = null) {
     const platformCount = Object.keys(extractedData).length;
     const totalDataPoints = Object.values(extractedData).reduce((sum, items) => sum + items.length, 0);
 
     // More platforms and data points = higher authenticity
     let score = 0.3; // Base score
 
-    if (platformCount >= 1) score += 0.15;
-    if (platformCount >= 2) score += 0.15;
-    if (platformCount >= 3) score += 0.1;
+    if (platformCount >= 1) score += 0.12;
+    if (platformCount >= 2) score += 0.12;
+    if (platformCount >= 3) score += 0.08;
 
-    if (totalDataPoints >= 50) score += 0.1;
-    if (totalDataPoints >= 200) score += 0.1;
+    if (totalDataPoints >= 50) score += 0.08;
+    if (totalDataPoints >= 200) score += 0.08;
 
     // Bonus for wearable/health data (adds physical dimension to digital twin)
     if (wearableSignature?.available) {
-      score += 0.15;
+      score += 0.12;
       console.log('[SoulSignature] Authenticity boosted by wearable data');
+    }
+
+    // Bonus for professional universe (adds career/professional dimension)
+    if (professionalUniverse?.available) {
+      score += 0.1;
+      console.log('[SoulSignature] Authenticity boosted by professional universe');
+
+      // Extra boost for origin data (user-provided context is valuable)
+      if (professionalUniverse.origin_context) {
+        score += 0.1;
+        console.log('[SoulSignature] Authenticity boosted by origin context');
+      }
     }
 
     return Math.min(score, 1.0);
@@ -599,6 +658,8 @@ Respond ONLY with valid JSON, no explanation.`
           user_id: userId,
           music_signature: soulSignature.music_taste,
           health_signature: soulSignature.health_signature,  // Wearable-derived insights
+          professional_universe: soulSignature.professional_universe,  // Professional context
+          origin_context: soulSignature.origin_context,  // User-provided origin data
           communication_signature: {
             style: soulSignature.communication_style,
             common_phrases: soulSignature.common_phrases
