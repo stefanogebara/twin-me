@@ -6,9 +6,11 @@ import { InvitationStep } from './steps/InvitationStep';
 import { QuickPulseStep } from './steps/QuickPulseStep';
 import { FirstGlimpseStep } from './steps/FirstGlimpseStep';
 import { PlatformStoriesStep } from './steps/PlatformStoriesStep';
+import { OriginStep } from './steps/OriginStep';
 import { RevealStep } from './steps/RevealStep';
 import { useAuth } from '@/contexts/AuthContext';
 import { useDemo } from '@/contexts/DemoContext';
+import { OriginData } from '@/services/originService';
 
 const SoulSignatureOnboarding: React.FC = () => {
   const navigate = useNavigate();
@@ -30,6 +32,7 @@ const SoulSignatureOnboarding: React.FC = () => {
     addAnswer,
     calculateScores,
     addConnectedPlatform,
+    setOriginDataCompleted,
     completeOnboarding,
     resetOnboarding,
   } = useOnboardingState();
@@ -73,10 +76,13 @@ const SoulSignatureOnboarding: React.FC = () => {
 
   // Handle platform connection
   const handlePlatformConnect = useCallback(async (platformId: string) => {
-    // In demo mode (no auth or URL param), simulate connection
+    // In demo mode (no auth), redirect to sign in first
     if (isDemoMode) {
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      addConnectedPlatform(platformId);
+      // Store the platform they wanted to connect for after auth
+      sessionStorage.setItem('onboarding-return', 'true');
+      sessionStorage.setItem('onboarding-platform', platformId);
+      // Redirect to auth with return URL
+      navigate('/auth?redirect=' + encodeURIComponent('/soul-onboarding'));
       return;
     }
 
@@ -110,7 +116,7 @@ const SoulSignatureOnboarding: React.FC = () => {
       await new Promise(resolve => setTimeout(resolve, 1000));
       addConnectedPlatform(platformId);
     }
-  }, [authToken, isDemoMode, addConnectedPlatform, user]);
+  }, [authToken, isDemoMode, addConnectedPlatform, user, navigate]);
 
   // Check for OAuth return
   useEffect(() => {
@@ -131,6 +137,18 @@ const SoulSignatureOnboarding: React.FC = () => {
       }
     }
   }, [addConnectedPlatform, goToStep, state.currentStep]);
+
+  // Handle origin step completion
+  const handleOriginComplete = useCallback((data: OriginData) => {
+    setOriginDataCompleted(true);
+    nextStep();
+  }, [setOriginDataCompleted, nextStep]);
+
+  // Handle origin step skip
+  const handleOriginSkip = useCallback(() => {
+    setOriginDataCompleted(false);
+    nextStep();
+  }, [setOriginDataCompleted, nextStep]);
 
   // Handle onboarding completion
   const handleComplete = useCallback(() => {
@@ -167,7 +185,7 @@ const SoulSignatureOnboarding: React.FC = () => {
             archetype={state.archetype}
             scores={state.preliminaryScores}
             onContinue={nextStep}
-            onSkip={handleSkip}
+            onSkip={nextStep}
             onBack={prevStep}
           />
         ) : (
@@ -189,14 +207,26 @@ const SoulSignatureOnboarding: React.FC = () => {
             onConnect={handlePlatformConnect}
             onContinue={nextStep}
             onBack={prevStep}
-            onSkip={handleSkip}
+            onSkip={nextStep}
+            isDemoMode={isDemoMode}
           />
         );
 
       case 5:
         return (
+          <OriginStep
+            userId={user?.id || ''}
+            onComplete={handleOriginComplete}
+            onBack={prevStep}
+            onSkip={handleOriginSkip}
+          />
+        );
+
+      case 6:
+        return (
           <RevealStep
             connectedPlatforms={state.connectedPlatforms}
+            questionsAnswered={state.answers.length}
             onComplete={handleComplete}
           />
         );

@@ -177,6 +177,19 @@ const AVAILABLE_CONNECTORS: ConnectorConfig[] = [
     privacyLevel: 'low',
     category: 'professional'
   },
+  // LinkedIn - Professional identity
+  {
+    provider: 'linkedin' as DataProvider,
+    name: 'LinkedIn',
+    description: 'Your career path reveals ambitions, expertise areas, and professional growth',
+    icon: <LinkedinLogo className="w-6 h-6" />,
+    color: '#0A66C2',
+    dataTypes: ['Career Trajectory', 'Industry Expertise', 'Professional Network'],
+    estimatedInsights: 10,
+    setupTime: '5 seconds',
+    privacyLevel: 'medium',
+    category: 'professional'
+  },
   // Health - Body signals and recovery
   {
     provider: 'whoop' as DataProvider,
@@ -360,6 +373,8 @@ const InstantTwinOnboarding = () => {
       const openWearablesProviders = ['garmin', 'polar', 'suunto', 'apple_health'];
       // Use health connector route for health platforms (whoop, oura)
       const healthPlatforms = ['whoop', 'oura'];
+      // Use professional connector route for professional platforms (linkedin)
+      const professionalPlatforms = ['linkedin'];
 
       let apiUrl: string;
       let fetchOptions: RequestInit = {
@@ -380,6 +395,8 @@ const InstantTwinOnboarding = () => {
         };
       } else if (healthPlatforms.includes(provider as string)) {
         apiUrl = `${baseUrl}/health/connect/${provider}?userId=${encodeURIComponent(userId)}`;
+      } else if (professionalPlatforms.includes(provider as string)) {
+        apiUrl = `${baseUrl}/professional/connect/${provider}?userId=${encodeURIComponent(userId)}`;
       } else {
         apiUrl = `${baseUrl}/arctic/connect/${provider}?userId=${encodeURIComponent(userId)}`;
       }

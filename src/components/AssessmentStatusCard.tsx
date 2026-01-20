@@ -57,7 +57,7 @@ const AssessmentStatusCard: React.FC<AssessmentStatusCardProps> = ({
 
   const textColor = theme === 'dark' ? '#C1C0B6' : '#0c0a09';
   const textSecondary = theme === 'dark' ? 'rgba(193, 192, 182, 0.6)' : '#a8a29e';
-  const accentColor = '#8B5CF6';
+  const accentColor = '#C1C0B6';
 
   // Determine overall assessment status
   const hasAnyAssessment = quickAssessmentComplete || bigFiveComplete;
@@ -65,10 +65,10 @@ const AssessmentStatusCard: React.FC<AssessmentStatusCardProps> = ({
 
   // Calculate a "data richness" score
   const getDataRichnessLabel = () => {
-    if (hasFullData && connectedPlatforms >= 2) return { label: 'Excellent', color: '#10B981' };
-    if (bigFiveComplete || (quickAssessmentComplete && hasBehavioralData)) return { label: 'Good', color: '#3B82F6' };
-    if (quickAssessmentComplete || hasBehavioralData) return { label: 'Basic', color: '#F59E0B' };
-    return { label: 'Not Started', color: '#EF4444' };
+    if (hasFullData && connectedPlatforms >= 2) return { label: 'Excellent', color: '#C1C0B6' };
+    if (bigFiveComplete || (quickAssessmentComplete && hasBehavioralData)) return { label: 'Good', color: '#A8A79E' };
+    if (quickAssessmentComplete || hasBehavioralData) return { label: 'Basic', color: '#8F8E86' };
+    return { label: 'Not Started', color: '#6E6D66' };
   };
 
   const dataRichness = getDataRichnessLabel();
@@ -81,7 +81,7 @@ const AssessmentStatusCard: React.FC<AssessmentStatusCardProps> = ({
           {/* Header */}
           <div
             className="w-16 h-16 mx-auto rounded-2xl flex items-center justify-center mb-4"
-            style={{ backgroundColor: 'rgba(139, 92, 246, 0.15)' }}
+            style={{ backgroundColor: 'rgba(193, 192, 182, 0.15)' }}
           >
             <Brain className="w-8 h-8" style={{ color: accentColor }} />
           </div>
@@ -109,8 +109,8 @@ const AssessmentStatusCard: React.FC<AssessmentStatusCardProps> = ({
               onClick={() => navigate('/personality-assessment')}
               className="p-4 rounded-xl text-left transition-all hover:scale-[1.02]"
               style={{
-                backgroundColor: 'rgba(139, 92, 246, 0.1)',
-                border: '1px solid rgba(139, 92, 246, 0.2)'
+                backgroundColor: 'rgba(193, 192, 182, 0.1)',
+                border: '1px solid rgba(193, 192, 182, 0.2)'
               }}
             >
               <div className="flex items-center gap-2 mb-2">
@@ -157,7 +157,7 @@ const AssessmentStatusCard: React.FC<AssessmentStatusCardProps> = ({
         <div className="flex items-center gap-3">
           <div
             className="w-10 h-10 rounded-xl flex items-center justify-center"
-            style={{ backgroundColor: 'rgba(139, 92, 246, 0.15)' }}
+            style={{ backgroundColor: 'rgba(193, 192, 182, 0.15)' }}
           >
             <Sparkles className="w-5 h-5" style={{ color: accentColor }} />
           </div>
@@ -188,9 +188,9 @@ const AssessmentStatusCard: React.FC<AssessmentStatusCardProps> = ({
         <div
           className="p-3 rounded-lg"
           style={{
-            backgroundColor: theme === 'dark' ? 'rgba(139, 92, 246, 0.08)' : 'rgba(139, 92, 246, 0.06)',
+            backgroundColor: theme === 'dark' ? 'rgba(193, 192, 182, 0.08)' : 'rgba(193, 192, 182, 0.06)',
             border: quickAssessmentComplete
-              ? '1px solid rgba(139, 92, 246, 0.2)'
+              ? '1px solid rgba(193, 192, 182, 0.2)'
               : '1px solid transparent'
           }}
         >
@@ -232,9 +232,9 @@ const AssessmentStatusCard: React.FC<AssessmentStatusCardProps> = ({
         <div
           className="p-3 rounded-lg"
           style={{
-            backgroundColor: theme === 'dark' ? 'rgba(139, 92, 246, 0.08)' : 'rgba(139, 92, 246, 0.06)',
+            backgroundColor: theme === 'dark' ? 'rgba(193, 192, 182, 0.08)' : 'rgba(193, 192, 182, 0.06)',
             border: bigFiveComplete
-              ? '1px solid rgba(139, 92, 246, 0.2)'
+              ? '1px solid rgba(193, 192, 182, 0.2)'
               : '1px solid transparent'
           }}
         >
@@ -288,9 +288,9 @@ const AssessmentStatusCard: React.FC<AssessmentStatusCardProps> = ({
       <div
         className="p-3 rounded-lg mb-4"
         style={{
-          backgroundColor: theme === 'dark' ? 'rgba(139, 92, 246, 0.08)' : 'rgba(139, 92, 246, 0.06)',
+          backgroundColor: theme === 'dark' ? 'rgba(193, 192, 182, 0.08)' : 'rgba(193, 192, 182, 0.06)',
           border: hasBehavioralData
-            ? '1px solid rgba(139, 92, 246, 0.2)'
+            ? '1px solid rgba(193, 192, 182, 0.2)'
             : '1px solid transparent'
         }}
       >
@@ -320,7 +320,7 @@ const AssessmentStatusCard: React.FC<AssessmentStatusCardProps> = ({
             className="flex-1"
             style={{
               backgroundColor: accentColor,
-              color: 'white'
+              color: '#232320'
             }}
           >
             <Zap className="w-4 h-4 mr-1" />
@@ -333,8 +333,8 @@ const AssessmentStatusCard: React.FC<AssessmentStatusCardProps> = ({
             size="sm"
             className="flex-1"
             style={{
-              backgroundColor: quickAssessmentComplete ? accentColor : 'rgba(139, 92, 246, 0.15)',
-              color: quickAssessmentComplete ? 'white' : accentColor,
+              backgroundColor: quickAssessmentComplete ? accentColor : 'rgba(193, 192, 182, 0.15)',
+              color: quickAssessmentComplete ? '#232320' : accentColor,
               border: 'none'
             }}
           >
@@ -348,7 +348,7 @@ const AssessmentStatusCard: React.FC<AssessmentStatusCardProps> = ({
             size="sm"
             className="flex-1"
             style={{
-              backgroundColor: 'rgba(139, 92, 246, 0.15)',
+              backgroundColor: 'rgba(193, 192, 182, 0.15)',
               color: accentColor,
               border: 'none'
             }}

@@ -16,7 +16,10 @@ import {
   Loader2,
   ExternalLink,
   RefreshCw,
-  AlertCircle
+  AlertCircle,
+  Sparkles,
+  RotateCcw,
+  Brain
 } from 'lucide-react';
 
 const Settings = () => {
@@ -638,6 +641,145 @@ const Settings = () => {
                 >
                   Manage Your Digital Twin
                   <ExternalLink className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+          </section>
+
+          {/* Soul Signature */}
+          <section
+            className="rounded-3xl p-6"
+            style={{
+              backgroundColor: theme === 'dark' ? 'rgba(45, 45, 41, 0.5)' : 'rgba(255, 255, 255, 0.5)',
+              backdropFilter: 'blur(16px) saturate(180%)',
+              WebkitBackdropFilter: 'blur(16px) saturate(180%)',
+              border: theme === 'dark' ? '1px solid rgba(193, 192, 182, 0.1)' : '1px solid rgba(0, 0, 0, 0.06)',
+              boxShadow: theme === 'dark' ? '0 8px 32px rgba(0, 0, 0, 0.3)' : '0 8px 32px rgba(0, 0, 0, 0.03)'
+            }}
+          >
+            <div className="flex items-center gap-3 mb-4">
+              <Sparkles className="w-5 h-5" style={{ color: theme === 'dark' ? '#C1C0B6' : '#0c0a09' }} />
+              <h2
+                className="text-xl"
+                style={{
+                  fontFamily: 'var(--font-heading)',
+                  fontWeight: 400,
+                  letterSpacing: '-0.02em',
+                  color: theme === 'dark' ? '#C1C0B6' : '#0c0a09'
+                }}
+              >
+                Soul Signature
+              </h2>
+            </div>
+
+            <p
+              className="text-sm mb-6"
+              style={{
+                fontFamily: 'var(--font-body)',
+                color: theme === 'dark' ? 'rgba(193, 192, 182, 0.7)' : '#57534e'
+              }}
+            >
+              Your Soul Signature is a unique profile built from your personality traits and connected platforms.
+            </p>
+
+            <div className="space-y-4">
+              <div>
+                <h3
+                  className="mb-2"
+                  style={{
+                    fontFamily: 'var(--font-body)',
+                    fontWeight: 500,
+                    color: theme === 'dark' ? '#C1C0B6' : '#0c0a09'
+                  }}
+                >
+                  Discover Your Signature
+                </h3>
+                <p
+                  className="text-sm mb-3"
+                  style={{
+                    fontFamily: 'var(--font-body)',
+                    color: theme === 'dark' ? 'rgba(193, 192, 182, 0.6)' : '#78716c'
+                  }}
+                >
+                  Take the guided onboarding to discover or refine your soul signature through personality questions and platform connections.
+                </p>
+                <button
+                  onClick={() => {
+                    // Clear onboarding state to start fresh
+                    localStorage.removeItem('soul-signature-onboarding');
+                    navigate('/soul-onboarding');
+                  }}
+                  className="flex items-center gap-2 px-4 py-2 rounded-xl transition-all hover:scale-[1.02]"
+                  style={{
+                    backgroundColor: theme === 'dark' ? 'rgba(193, 192, 182, 0.1)' : 'rgba(0, 0, 0, 0.05)',
+                    border: theme === 'dark' ? '1px solid rgba(193, 192, 182, 0.2)' : '1px solid rgba(0, 0, 0, 0.1)',
+                    color: theme === 'dark' ? '#C1C0B6' : '#0c0a09',
+                    fontFamily: 'var(--font-body)'
+                  }}
+                >
+                  <RotateCcw className="w-4 h-4" />
+                  Start Soul Signature Onboarding
+                </button>
+              </div>
+
+              <div>
+                <h3
+                  className="mb-2"
+                  style={{
+                    fontFamily: 'var(--font-body)',
+                    fontWeight: 500,
+                    color: theme === 'dark' ? '#C1C0B6' : '#0c0a09'
+                  }}
+                >
+                  View Your Signature
+                </h3>
+                <button
+                  onClick={() => navigate('/soul-signature')}
+                  className="flex items-center gap-2 px-4 py-2 rounded-xl transition-all hover:scale-[1.02]"
+                  style={{
+                    backgroundColor: theme === 'dark' ? 'rgba(193, 192, 182, 0.1)' : 'rgba(0, 0, 0, 0.05)',
+                    border: theme === 'dark' ? '1px solid rgba(193, 192, 182, 0.2)' : '1px solid rgba(0, 0, 0, 0.1)',
+                    color: theme === 'dark' ? '#C1C0B6' : '#0c0a09',
+                    fontFamily: 'var(--font-body)'
+                  }}
+                >
+                  Soul Signature Dashboard
+                  <ExternalLink className="w-4 h-4" />
+                </button>
+              </div>
+
+              <div>
+                <h3
+                  className="mb-2"
+                  style={{
+                    fontFamily: 'var(--font-body)',
+                    fontWeight: 500,
+                    color: theme === 'dark' ? '#C1C0B6' : '#0c0a09'
+                  }}
+                >
+                  Personality Assessment
+                </h3>
+                <p
+                  className="text-sm mb-3"
+                  style={{
+                    fontFamily: 'var(--font-body)',
+                    color: theme === 'dark' ? 'rgba(193, 192, 182, 0.6)' : '#78716c'
+                  }}
+                >
+                  Take the scientific Big Five (IPIP-NEO) personality assessment for a deeper understanding of your traits.
+                </p>
+                <button
+                  onClick={() => navigate('/big-five')}
+                  className="flex items-center gap-2 px-4 py-2 rounded-xl transition-all hover:scale-[1.02]"
+                  style={{
+                    backgroundColor: theme === 'dark' ? 'rgba(193, 192, 182, 0.1)' : 'rgba(0, 0, 0, 0.05)',
+                    border: theme === 'dark' ? '1px solid rgba(193, 192, 182, 0.2)' : '1px solid rgba(0, 0, 0, 0.1)',
+                    color: theme === 'dark' ? '#C1C0B6' : '#0c0a09',
+                    fontFamily: 'var(--font-body)'
+                  }}
+                >
+                  <Brain className="w-4 h-4" />
+                  Take Big Five Assessment
                 </button>
               </div>
             </div>

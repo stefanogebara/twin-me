@@ -327,8 +327,8 @@ const OAuthCallback = () => {
                 redirectPath = stateData.redirectAfterAuth;
                 console.log('✅ Using post-auth redirect from state:', redirectPath);
               } else if (data.isNewUser) {
-                // New users go to onboarding
-                redirectPath = '/onboarding';
+                // New users go to soul signature onboarding
+                redirectPath = '/soul-onboarding';
               }
 
               const welcomeMessage = data.isNewUser
@@ -405,7 +405,7 @@ const OAuthCallback = () => {
               setStatus('success');
 
               // Determine redirect based on whether user is new or existing
-              const redirectPath = data.isNewUser ? '/onboarding' : '/dashboard';
+              const redirectPath = data.isNewUser ? '/soul-onboarding' : '/dashboard';
               const welcomeMessage = data.isNewUser
                 ? 'Welcome! Let\'s set up your Soul Signature'
                 : 'Welcome back!';

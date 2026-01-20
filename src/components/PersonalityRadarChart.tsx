@@ -30,13 +30,13 @@ interface PersonalityRadarChartProps {
   subtitle?: string;
 }
 
-// Default colors for Big Five dimensions
+// Default colors for Big Five dimensions (warm grey palette)
 const DEFAULT_COLORS = [
-  '#8b5cf6', // Openness - Purple
-  '#22c55e', // Conscientiousness - Green
-  '#f59e0b', // Extraversion - Amber
-  '#06b6d4', // Agreeableness - Cyan
-  '#ef4444', // Neuroticism - Red
+  '#C1C0B6', // Openness - Warm grey
+  '#A8A79E', // Conscientiousness - Medium grey
+  '#B8B7AF', // Extraversion - Light grey
+  '#8F8E86', // Agreeableness - Dark grey
+  '#D4D3CC', // Neuroticism - Lightest grey
 ];
 
 export function PersonalityRadarChart({
@@ -254,11 +254,11 @@ export function BigFiveRadarChart({
   neuroticism: number;
 } & Omit<PersonalityRadarChartProps, 'scores'>) {
   const scores: PersonalityScore[] = [
-    { label: 'Openness', value: openness, color: '#8b5cf6' },
-    { label: 'Conscientiousness', value: conscientiousness, color: '#22c55e' },
-    { label: 'Extraversion', value: extraversion, color: '#f59e0b' },
-    { label: 'Agreeableness', value: agreeableness, color: '#06b6d4' },
-    { label: 'Neuroticism', value: neuroticism, color: '#ef4444' },
+    { label: 'Openness', value: openness, color: '#C1C0B6' },
+    { label: 'Conscientiousness', value: conscientiousness, color: '#A8A79E' },
+    { label: 'Extraversion', value: extraversion, color: '#B8B7AF' },
+    { label: 'Agreeableness', value: agreeableness, color: '#8F8E86' },
+    { label: 'Neuroticism', value: neuroticism, color: '#D4D3CC' },
   ];
 
   return <PersonalityRadarChart scores={scores} {...props} />;
@@ -279,17 +279,17 @@ export function MBTIRadarChart({
   identity?: number;
 } & Omit<PersonalityRadarChartProps, 'scores'>) {
   const scores: PersonalityScore[] = [
-    { label: mind >= 50 ? 'Extraverted' : 'Introverted', value: mind, color: '#8b5cf6' },
-    { label: energy >= 50 ? 'Intuitive' : 'Observant', value: energy, color: '#22c55e' },
-    { label: nature >= 50 ? 'Feeling' : 'Thinking', value: nature, color: '#f59e0b' },
-    { label: tactics >= 50 ? 'Judging' : 'Prospecting', value: tactics, color: '#06b6d4' },
+    { label: mind >= 50 ? 'Extraverted' : 'Introverted', value: mind, color: '#C1C0B6' },
+    { label: energy >= 50 ? 'Intuitive' : 'Observant', value: energy, color: '#A8A79E' },
+    { label: nature >= 50 ? 'Feeling' : 'Thinking', value: nature, color: '#B8B7AF' },
+    { label: tactics >= 50 ? 'Judging' : 'Prospecting', value: tactics, color: '#8F8E86' },
   ];
 
   if (identity !== undefined) {
     scores.push({
       label: identity >= 50 ? 'Assertive' : 'Turbulent',
       value: identity,
-      color: '#ef4444',
+      color: '#D4D3CC',
     });
   }
 
