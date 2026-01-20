@@ -719,11 +719,11 @@ export const DEMO_SOUL_ARCHETYPE: DemoSoulArchetype = {
     { trait: 'Emotional Depth', score: 74, evidence: 'Music choices reflect mood awareness' }
   ],
   color_scheme: {
-    primary: '#8B5CF6',
-    secondary: '#6366F1',
-    accent: '#A78BFA',
-    background: '#F5F3FF',
-    text: '#1F2937'
+    primary: '#C1C0B6',
+    secondary: '#A8A79E',
+    accent: '#D4D3CC',
+    background: '#2D2D29',
+    text: '#C1C0B6'
   },
   icon_type: 'compass'
 };
