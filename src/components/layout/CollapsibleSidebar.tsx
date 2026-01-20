@@ -60,12 +60,6 @@ const mainNavItems: NavItem[] = [
     path: '/soul-signature'
   },
   {
-    id: 'ritual-music',
-    label: 'Ritual Music',
-    icon: Music,
-    path: '/ritual-music'
-  },
-  {
     id: 'chat',
     label: 'Chat with Twin',
     icon: MessageCircle,

@@ -33,7 +33,6 @@ import SoulSignatureOnboarding from "./pages/onboarding/SoulSignatureOnboarding"
 import PersonalityAssessment from "./pages/PersonalityAssessment";
 import BigFiveAssessment from "./pages/BigFiveAssessment";
 import TalkToTwin from "./pages/TalkToTwin";
-import RitualMusicPage from "./pages/RitualMusicPage";
 
 const queryClient = new QueryClient();
 
@@ -191,20 +190,6 @@ const App = () => {
                 </SidebarLayout>
               </ProtectedRoute>
             } />
-
-            {/* Ritual Music - Context-aware music recommendations */}
-            <Route path="/ritual-music" element={
-              <ProtectedRoute>
-                <SidebarLayout>
-                  <ErrorBoundary>
-                    <RitualMusicPage />
-                  </ErrorBoundary>
-                </SidebarLayout>
-              </ProtectedRoute>
-            } />
-
-            {/* Ritual Start - Redirects to Ritual Music page */}
-            <Route path="/ritual/start" element={<Navigate to="/ritual-music" replace />} />
 
             {/* Catch-all */}
             <Route path="*" element={<NotFound />} />
