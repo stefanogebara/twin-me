@@ -46,15 +46,29 @@ class UserContextAggregator {
     }
 
     // Aggregate data from all platforms in parallel (including life context and personality quiz)
-    const [whoopContext, spotifyContext, calendarContext, personality, personalityQuiz, patterns, lifeContext] = await Promise.all([
-      platforms.includes('whoop') ? this.getWhoopContext(userId) : null,
-      platforms.includes('spotify') ? this.getSpotifyContext(userId) : null,
-      platforms.includes('calendar') ? this.getCalendarContext(userId) : null,
-      this.getPersonalityProfile(userId),
-      this.getPersonalityQuiz(userId),
-      this.getLearnedPatterns(userId),
-      this.getLifeContext(userId)
+    // Use Promise.allSettled to prevent one failure from crashing everything
+    const safeCall = async (fn, name) => {
+      try {
+        return await fn();
+      } catch (error) {
+        console.error(`❌ [Context Aggregator] ${name} failed:`, error.message);
+        return null;
+      }
+    };
+
+    const results = await Promise.allSettled([
+      platforms.includes('whoop') ? safeCall(() => this.getWhoopContext(userId), 'Whoop') : Promise.resolve(null),
+      platforms.includes('spotify') ? safeCall(() => this.getSpotifyContext(userId), 'Spotify') : Promise.resolve(null),
+      platforms.includes('calendar') ? safeCall(() => this.getCalendarContext(userId), 'Calendar') : Promise.resolve(null),
+      safeCall(() => this.getPersonalityProfile(userId), 'Personality'),
+      safeCall(() => this.getPersonalityQuiz(userId), 'PersonalityQuiz'),
+      safeCall(() => this.getLearnedPatterns(userId), 'Patterns'),
+      safeCall(() => this.getLifeContext(userId), 'LifeContext')
     ]);
+
+    // Extract values from settled results
+    const [whoopContext, spotifyContext, calendarContext, personality, personalityQuiz, patterns, lifeContext] =
+      results.map(r => r.status === 'fulfilled' ? r.value : null);
 
     const context = {
       success: true,

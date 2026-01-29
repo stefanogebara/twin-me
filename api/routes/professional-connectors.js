@@ -316,6 +316,7 @@ router.post('/oauth/callback/linkedin', oauthCallbackLimiter, async (req, res) =
     const encryptedAccessToken = encryptToken(accessToken);
     const encryptedRefreshToken = refreshToken ? encryptToken(refreshToken) : null;
 
+    // Note: We update last_sync_at on reconnection so the UI shows the correct sync time
     const { data: connectorData, error: connectorError } = await supabase
       .from('platform_connections')
       .upsert({
@@ -326,6 +327,7 @@ router.post('/oauth/callback/linkedin', oauthCallbackLimiter, async (req, res) =
         token_expires_at: tokenExpiresAt,
         status: 'connected',
         connected_at: new Date().toISOString(),
+        last_sync_at: new Date().toISOString(),
         last_sync_status: 'pending',
         updated_at: new Date().toISOString()
       }, {

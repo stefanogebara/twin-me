@@ -143,15 +143,9 @@ export function BigFiveAssessment() {
     accentBg: theme === 'dark' ? 'rgba(193, 192, 182, 0.1)' : 'rgba(68, 64, 60, 0.1)',
   };
 
-  // Fetch questions
+  // Fetch questions (works with or without auth - backend uses optionalAuth)
   const fetchQuestions = useCallback(async (assessmentVersion: AssessmentVersion) => {
     const authToken = token || localStorage.getItem('auth_token');
-
-    // Allow demo mode without authentication
-    if (!authToken && !isDemoMode) {
-      setError('Authentication required. Please log in.');
-      return;
-    }
 
     setLoading(true);
     setError(null);
@@ -198,20 +192,13 @@ export function BigFiveAssessment() {
     } finally {
       setLoading(false);
     }
-  }, [token, isDemoMode]);
+  }, [token]);
 
   // Submit responses
   const submitResponses = async (isFinal = false) => {
     setPhase('calculating');
 
     const authToken = token || localStorage.getItem('auth_token');
-
-    // In demo mode, use calculate-preview endpoint which doesn't save to database
-    if (!authToken && !isDemoMode) {
-      setError('Authentication required');
-      setPhase('questions');
-      return;
-    }
 
     try {
       const responsesArray = Array.from(responses.entries()).map(([questionId, value]) => ({
@@ -226,10 +213,11 @@ export function BigFiveAssessment() {
         headers['Authorization'] = `Bearer ${authToken}`;
       }
 
-      // Use calculate-preview for demo mode (or authenticated users can use responses endpoint)
-      const endpoint = isDemoMode && !authToken
-        ? `${API_URL}/big-five/calculate-preview`
-        : `${API_URL}/big-five/responses`;
+      // Use calculate-preview for unauthenticated users (no data saved to DB)
+      // Use responses endpoint for authenticated users (saves to DB)
+      const endpoint = authToken
+        ? `${API_URL}/big-five/responses`
+        : `${API_URL}/big-five/calculate-preview`;
 
       const response = await fetch(endpoint, {
         method: 'POST',

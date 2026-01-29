@@ -22,6 +22,7 @@ import { supabaseAdmin } from '../database.js';
 class CalendarFeatureExtractor {
   constructor() {
     this.LOOKBACK_DAYS = 90; // Analyze last 3 months
+    this.MAX_EVENTS = 2000; // Limit events for performance (O(n²) conflict detection)
   }
 
   /**
@@ -31,22 +32,51 @@ class CalendarFeatureExtractor {
     console.log(`📅 [Calendar Extractor] Extracting features for user ${userId}`);
 
     try {
-      // Fetch calendar events for the user
-      const { data: events, error } = await supabaseAdmin
-        .from('calendar_events')
-        .select('*')
+      // Fetch calendar data from user_platform_data (where raw data is stored)
+      const { data: platformData, error } = await supabaseAdmin
+        .from('user_platform_data')
+        .select('raw_data, extracted_at')
         .eq('user_id', userId)
-        .gte('start_time', new Date(Date.now() - this.LOOKBACK_DAYS * 24 * 60 * 60 * 1000).toISOString())
-        .order('start_time', { ascending: true });
+        .eq('platform', 'google_calendar')
+        .order('extracted_at', { ascending: false });
 
       if (error) throw error;
 
-      if (!events || events.length === 0) {
-        console.log('⚠️ [Calendar Extractor] No calendar events found for user');
+      if (!platformData || platformData.length === 0) {
+        console.log('⚠️ [Calendar Extractor] No calendar data found in user_platform_data');
         return [];
       }
 
-      console.log(`📊 [Calendar Extractor] Found ${events.length} calendar events`);
+      // Parse and flatten all events from raw_data
+      const cutoffDate = new Date(Date.now() - this.LOOKBACK_DAYS * 24 * 60 * 60 * 1000);
+      const allEvents = [];
+
+      for (const record of platformData) {
+        const rawItems = record.raw_data?.items || [];
+        for (const item of rawItems) {
+          // Transform Google Calendar API format to our expected format
+          const event = this.transformGoogleCalendarEvent(item);
+          if (event && new Date(event.start_time) >= cutoffDate) {
+            allEvents.push(event);
+          }
+        }
+      }
+
+      // Sort by start time
+      let events = allEvents.sort((a, b) => new Date(a.start_time) - new Date(b.start_time));
+
+      if (events.length === 0) {
+        console.log('⚠️ [Calendar Extractor] No calendar events found for user in lookback period');
+        return [];
+      }
+
+      console.log(`📊 [Calendar Extractor] Found ${events.length} calendar events from ${platformData.length} raw data records`);
+
+      // Sample if too many events (for performance - conflict detection is O(n²))
+      if (events.length > this.MAX_EVENTS) {
+        console.log(`⚠️ [Calendar Extractor] Sampling ${this.MAX_EVENTS} most recent events for performance`);
+        events = events.slice(-this.MAX_EVENTS);
+      }
 
       // Extract features
       const features = [];
@@ -202,6 +232,60 @@ class CalendarFeatureExtractor {
   }
 
   /**
+   * Transform Google Calendar API event format to our expected format
+   */
+  transformGoogleCalendarEvent(googleEvent) {
+    if (!googleEvent) return null;
+
+    try {
+      // Handle dateTime (timed events) or date (all-day events)
+      const startDateTime = googleEvent.start?.dateTime || googleEvent.start?.date;
+      const endDateTime = googleEvent.end?.dateTime || googleEvent.end?.date;
+
+      if (!startDateTime) return null;
+
+      return {
+        id: googleEvent.id,
+        title: googleEvent.summary || '',
+        summary: googleEvent.summary || '',
+        description: googleEvent.description || '',
+        start_time: startDateTime,
+        end_time: endDateTime || startDateTime,
+        attendees: googleEvent.attendees || [],
+        event_type: googleEvent.eventType || 'default',
+        location: googleEvent.location || '',
+        created_at: googleEvent.created,
+        updated_at: googleEvent.updated,
+        response_status: this.getUserResponseStatus(googleEvent.attendees),
+        is_work_related: this.isWorkEvent(googleEvent),
+        raw_data: googleEvent
+      };
+    } catch (error) {
+      console.warn('⚠️ [Calendar Extractor] Error transforming event:', error.message);
+      return null;
+    }
+  }
+
+  /**
+   * Get user's response status from attendees list
+   */
+  getUserResponseStatus(attendees) {
+    if (!attendees || attendees.length === 0) return null;
+    const self = attendees.find(a => a.self);
+    return self?.responseStatus || 'accepted';
+  }
+
+  /**
+   * Determine if event is work-related
+   */
+  isWorkEvent(googleEvent) {
+    const title = (googleEvent.summary || '').toLowerCase();
+    const workKeywords = ['meeting', 'standup', 'sync', 'call', 'review', '1:1', 'sprint',
+                          'planning', 'retrospective', 'demo', 'interview', 'workshop'];
+    return workKeywords.some(keyword => title.includes(keyword));
+  }
+
+  /**
    * Calculate social density (meetings per week)
    */
   calculateSocialDensity(events) {
@@ -317,28 +401,42 @@ class CalendarFeatureExtractor {
 
   /**
    * Calculate event conflicts and overlaps
+   * Optimized: O(n log n) using sweep line algorithm instead of O(n²)
    */
   calculateEventConflicts(events) {
+    if (events.length === 0) return null;
+
+    // Create sorted list of start/end points
+    const points = [];
+    events.forEach((event, idx) => {
+      const start = new Date(event.start_time).getTime();
+      const end = new Date(event.end_time).getTime();
+      if (start && end && end > start) {
+        points.push({ time: start, type: 'start', idx });
+        points.push({ time: end, type: 'end', idx });
+      }
+    });
+
+    // Sort by time (start before end at same time)
+    points.sort((a, b) => {
+      if (a.time !== b.time) return a.time - b.time;
+      return a.type === 'end' ? -1 : 1; // Ends before starts at same time
+    });
+
+    // Sweep line to count overlaps
+    let activeEvents = 0;
     let conflicts = 0;
 
-    for (let i = 0; i < events.length; i++) {
-      for (let j = i + 1; j < events.length; j++) {
-        const event1 = events[i];
-        const event2 = events[j];
-
-        const start1 = new Date(event1.start_time);
-        const end1 = new Date(event1.end_time);
-        const start2 = new Date(event2.start_time);
-        const end2 = new Date(event2.end_time);
-
-        // Check for overlap
-        if (start1 < end2 && start2 < end1) {
-          conflicts++;
+    for (const point of points) {
+      if (point.type === 'start') {
+        if (activeEvents > 0) {
+          conflicts++; // This event overlaps with at least one active event
         }
+        activeEvents++;
+      } else {
+        activeEvents--;
       }
     }
-
-    if (events.length === 0) return null;
 
     // Conflict rate as percentage
     const conflictRate = (conflicts / events.length) * 100;
@@ -460,15 +558,28 @@ class CalendarFeatureExtractor {
       factors++;
     }
 
-    // Factor 3: Low conflict rate
+    // Factor 3: Low conflict rate (use optimized sweep line)
+    const points = [];
+    events.forEach((event) => {
+      const start = new Date(event.start_time).getTime();
+      const end = new Date(event.end_time).getTime();
+      if (start && end && end > start) {
+        points.push({ time: start, type: 'start' });
+        points.push({ time: end, type: 'end' });
+      }
+    });
+    points.sort((a, b) => {
+      if (a.time !== b.time) return a.time - b.time;
+      return a.type === 'end' ? -1 : 1;
+    });
+    let activeEvents = 0;
     let conflicts = 0;
-    for (let i = 0; i < events.length; i++) {
-      for (let j = i + 1; j < events.length; j++) {
-        const start1 = new Date(events[i].start_time);
-        const end1 = new Date(events[i].end_time);
-        const start2 = new Date(events[j].start_time);
-        const end2 = new Date(events[j].end_time);
-        if (start1 < end2 && start2 < end1) conflicts++;
+    for (const point of points) {
+      if (point.type === 'start') {
+        if (activeEvents > 0) conflicts++;
+        activeEvents++;
+      } else {
+        activeEvents--;
       }
     }
     const conflictRate = conflicts / events.length;

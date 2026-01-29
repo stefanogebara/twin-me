@@ -293,8 +293,8 @@ const InstantTwinOnboarding = () => {
 
   const connectedServices = connectedProviders as DataProvider[];
 
-  // MVP platforms only - exclude non-MVP platforms like LinkedIn from count
-  const MVP_PLATFORMS = ['spotify', 'google_calendar', 'whoop'];
+  // Core platforms for connection count
+  const MVP_PLATFORMS = ['spotify', 'google_calendar', 'whoop', 'linkedin'];
 
   // Calculate truly active connections (excluding expired tokens AND non-MVP platforms)
   const activeConnections = connectedServices.filter(provider => {

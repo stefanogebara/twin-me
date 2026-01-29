@@ -65,7 +65,7 @@ class DataExtractionService {
 
     try {
       // Get connector for this platform
-      const { data: connector, error } = await supabase
+      const { data: connector, error } = await getSupabaseClient()
         .from('platform_connections')
         .select('*')
         .eq('user_id', userId)
@@ -77,7 +77,7 @@ class DataExtractionService {
       }
 
       // Create job record with 'pending' status
-      const { data: job, error: jobError } = await supabase
+      const { data: job, error: jobError } = await getSupabaseClient()
         .from('data_extraction_jobs')
         .insert({
           user_id: userId,
@@ -103,7 +103,7 @@ class DataExtractionService {
 
       // Update job to 'running' status
       if (jobId) {
-        await supabase
+        await getSupabaseClient()
           .from('data_extraction_jobs')
           .update({ status: 'running' })
           .eq('id', jobId);
@@ -121,7 +121,7 @@ class DataExtractionService {
 
         // Mark job as failed
         if (jobId) {
-          await supabase
+          await getSupabaseClient()
             .from('data_extraction_jobs')
             .update({
               status: 'failed',
@@ -191,7 +191,7 @@ class DataExtractionService {
           console.log(`[DataExtraction] Whoop uses direct API extraction via featureExtractor - skipping raw data storage`);
 
           if (jobId) {
-            await supabase
+            await getSupabaseClient()
               .from('data_extraction_jobs')
               .update({
                 status: 'completed',
@@ -213,7 +213,7 @@ class DataExtractionService {
 
           // Mark job as failed
           if (jobId) {
-            await supabase
+            await getSupabaseClient()
               .from('data_extraction_jobs')
               .update({
                 status: 'failed',
@@ -239,7 +239,7 @@ class DataExtractionService {
 
       // Update job with completion status
       if (jobId) {
-        await supabase
+        await getSupabaseClient()
           .from('data_extraction_jobs')
           .update({
             status: result.success ? 'completed' : 'failed',
@@ -279,7 +279,7 @@ class DataExtractionService {
 
       // Mark job as failed
       if (jobId) {
-        await supabase
+        await getSupabaseClient()
           .from('data_extraction_jobs')
           .update({
             status: 'failed',
@@ -298,7 +298,7 @@ class DataExtractionService {
 
         // Mark connector as disconnected
         try {
-          await supabase
+          await getSupabaseClient()
             .from('platform_connections')
             .update({
               metadata: {
@@ -338,7 +338,7 @@ class DataExtractionService {
 
     try {
       // Get all connected platforms
-      const { data: connectors, error } = await supabase
+      const { data: connectors, error } = await getSupabaseClient()
         .from('platform_connections')
         .select('platform')
         .eq('user_id', userId);
@@ -398,7 +398,7 @@ class DataExtractionService {
         last_sync_items: extractionResult.itemsExtracted || 0
       };
 
-      await supabase
+      await getSupabaseClient()
         .from('platform_connections')
         .update({
           last_synced_at: now,
@@ -418,7 +418,7 @@ class DataExtractionService {
 
     try {
       // Get all unprocessed data
-      const { data: unprocessedData, error } = await supabase
+      const { data: unprocessedData, error } = await getSupabaseClient()
         .from('user_platform_data')
         .select('id, platform, data_type')
         .eq('user_id', userId)
@@ -481,7 +481,7 @@ class DataExtractionService {
     console.log(`[DataExtraction] Scheduling ${platform} sync every ${intervalHours} hours`);
 
     // For now, store schedule in connector metadata
-    const { data: connector } = await supabase
+    const { data: connector } = await getSupabaseClient()
         .from('platform_connections')
         .select('metadata')
         .eq('user_id', userId)
@@ -496,7 +496,7 @@ class DataExtractionService {
         next_sync: new Date(Date.now() + intervalHours * 60 * 60 * 1000).toISOString()
       };
 
-      await supabase
+      await getSupabaseClient()
         .from('platform_connections')
         .update({ metadata })
         .eq('user_id', userId)

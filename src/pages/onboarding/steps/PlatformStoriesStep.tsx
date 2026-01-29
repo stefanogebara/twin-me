@@ -296,7 +296,7 @@ export const PlatformStoriesStep: React.FC<PlatformStoriesStepProps> = ({
               color: theme === 'dark' ? 'rgba(193, 192, 182, 0.5)' : '#a8a29e'
             }}
           >
-            Step 4 of 6
+            Step 2 of 3
           </span>
         </div>
 

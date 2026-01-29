@@ -32,7 +32,7 @@ let supabase = null;
 function getSupabaseClient() {
   if (!supabase) {
     supabase = createClient(
-      process.env.VITE_SUPABASE_URL,
+      process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL,
       process.env.SUPABASE_SERVICE_ROLE_KEY
     );
   }
@@ -72,11 +72,16 @@ const tokenRefreshJobHandler = async () => {
   try {
     const supabase = getSupabaseClient();
 
-    // Get all tokens expiring within the next 5 minutes
-    const { data: expiringTokens, error } = await supabase.rpc(
-      'get_expiring_platform_tokens',
-      { expiry_buffer_minutes: 5 }
-    );
+    // Get all tokens that need refresh:
+    // 1. Connected tokens expiring within 5 minutes
+    // 2. Already expired tokens (they may still have valid refresh tokens)
+    const fiveMinutesFromNow = new Date(Date.now() + 5 * 60 * 1000).toISOString();
+
+    const { data: expiringTokens, error } = await supabase
+      .from('platform_connections')
+      .select('user_id, platform, access_token, refresh_token, token_expires_at, status')
+      .not('refresh_token', 'is', null)
+      .or(`and(status.eq.connected,token_expires_at.lt.${fiveMinutesFromNow}),status.eq.expired`);
 
     if (error) {
       console.error('❌ [Token Lifecycle] Error fetching expiring tokens:', error.message);
@@ -84,13 +89,14 @@ const tokenRefreshJobHandler = async () => {
     }
 
     if (!expiringTokens || expiringTokens.length === 0) {
-      console.log('✅ [Token Lifecycle] No tokens expiring soon. Job complete.');
+      console.log('✅ [Token Lifecycle] No tokens need refresh. Job complete.');
       return;
     }
 
     // Try to refresh ALL tokens that have refresh_token - even 'expired' ones
     // The refresh token might still be valid. Only if refresh fails do we require re-authorization.
     const tokensToRefresh = expiringTokens;
+    console.log(`📊 [Token Lifecycle] Token states: ${tokensToRefresh.map(t => `${t.platform}(${t.status})`).join(', ')}`);
 
     console.log(`📊 [Token Lifecycle] Found ${tokensToRefresh.length} tokens to refresh`);
 
@@ -295,7 +301,12 @@ export function startBackgroundJobs() {
 
   console.log('✅ [Token Lifecycle] OAuth cleanup job scheduled (every 15 minutes)');
 
-  // Run initial cleanup immediately (token refresh will wait for first 5-minute interval)
+  // Run initial jobs immediately on startup
+  console.log('🔄 [Token Lifecycle] Running initial token refresh...');
+  tokenRefreshJobHandler().catch(error => {
+    console.error('❌ [Token Lifecycle] Initial token refresh failed:', error.message);
+  });
+
   oauthCleanupJobHandler().catch(error => {
     console.error('❌ [Token Lifecycle] Initial OAuth cleanup failed:', error.message);
   });

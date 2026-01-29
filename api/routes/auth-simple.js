@@ -3,6 +3,7 @@ import jwt from 'jsonwebtoken';
 import bcrypt from 'bcrypt';
 import supabase from '../config/supabase.js';
 import { encryptToken } from '../services/encryption.js';
+import profileEnrichmentService from '../services/profileEnrichmentService.js';
 
 const router = express.Router();
 
@@ -153,8 +154,11 @@ router.get('/verify', async (req, res) => {
   }
 });
 
-// OAuth routes - Google only
+// OAuth routes - Google only (updated: redirect parameter support)
 router.get('/oauth/google', (req, res) => {
+  console.log('🔵 [OAuth Google GET] Initiating OAuth flow - v2');
+  console.log('🔵 [OAuth Google GET] Redirect parameter:', req.query.redirect);
+
   const clientId = process.env.GOOGLE_CLIENT_ID;
 
   if (!clientId) {
@@ -179,14 +183,25 @@ router.get('/oauth/google', (req, res) => {
   const redirectUri = encodeURIComponent(`${appUrl}/oauth/callback`);
   // Only request basic profile scopes for authentication
   const scope = encodeURIComponent('email profile openid');
-  const state = Buffer.from(JSON.stringify({
+
+  // Build state data - include redirect parameter if provided
+  const stateData = {
     provider: 'google',
     isAuth: true, // Mark this as authentication flow
     timestamp: Date.now()
-  })).toString('base64');
+  };
+
+  // Include redirect parameter in state if provided
+  if (req.query.redirect) {
+    stateData.redirectAfterAuth = req.query.redirect;
+    console.log('🔵 [OAuth Google GET] Including post-auth redirect in state:', req.query.redirect);
+  }
+
+  const state = Buffer.from(JSON.stringify(stateData)).toString('base64');
 
   const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${clientId}&redirect_uri=${redirectUri}&scope=${scope}&response_type=code&access_type=offline&prompt=consent&state=${state}`;
 
+  console.log('🔵 [OAuth Google GET] Redirecting to Google OAuth...');
   res.redirect(authUrl);
 });
 
@@ -418,6 +433,18 @@ router.get('/oauth/callback', async (req, res) => {
       }
 
       user = newUser;
+
+      // Trigger background enrichment for new users
+      const fullName = `${userData.firstName || ''} ${userData.lastName || ''}`.trim();
+      console.log('🔍 Triggering background enrichment for new user:', user.email);
+      profileEnrichmentService.enrichFromEmail(userData.email, fullName)
+        .then(data => {
+          if (data) {
+            return profileEnrichmentService.saveEnrichment(user.id, userData.email, data);
+          }
+        })
+        .then(() => console.log('✅ Enrichment completed for:', user.email))
+        .catch(err => console.error('⚠️ Enrichment failed (non-blocking):', err.message));
     }
 
     // Handle redirect for connector OAuth flow
@@ -614,6 +641,18 @@ router.post('/oauth/callback', async (req, res) => {
 
         console.log('✅ New user created:', newUser.id);
         user = newUser;
+
+        // Trigger background enrichment for new users
+        const fullName = `${userData.firstName || ''} ${userData.lastName || ''}`.trim();
+        console.log('🔍 Triggering background enrichment for new user:', user.email);
+        profileEnrichmentService.enrichFromEmail(userData.email, fullName)
+          .then(data => {
+            if (data) {
+              return profileEnrichmentService.saveEnrichment(user.id, userData.email, data);
+            }
+          })
+          .then(() => console.log('✅ Enrichment completed for:', user.email))
+          .catch(err => console.error('⚠️ Enrichment failed (non-blocking):', err.message));
       } else {
         console.log('✅ Existing user found:', existingUser.id);
         user = existingUser;
@@ -641,7 +680,9 @@ router.post('/oauth/callback', async (req, res) => {
       );
 
       console.log('✅ Returning auth success with token');
-      res.json({
+
+      // Build response data
+      const responseData = {
         success: true,
         token,
         user: {
@@ -651,7 +692,15 @@ router.post('/oauth/callback', async (req, res) => {
           lastName: user.last_name,
           fullName: `${user.first_name} ${user.last_name}`.trim()
         }
-      });
+      };
+
+      // Include redirect parameter if present in state
+      if (stateData && stateData.redirectAfterAuth) {
+        responseData.redirectAfterAuth = stateData.redirectAfterAuth;
+        console.log('✅ Including redirect in response:', stateData.redirectAfterAuth);
+      }
+
+      res.json(responseData);
     } else {
       console.error('❌ No user and not connector flow - authentication failed');
       throw new Error('Authentication failed');

@@ -1,235 +1,128 @@
-import React, { useEffect, useCallback, useMemo } from 'react';
+import React, { useEffect, useCallback, useMemo, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
+import { Loader2 } from 'lucide-react';
 import { useOnboardingState } from './hooks/useOnboardingState';
 import { InvitationStep } from './steps/InvitationStep';
-import { QuickPulseStep } from './steps/QuickPulseStep';
-import { FirstGlimpseStep } from './steps/FirstGlimpseStep';
-import { PlatformStoriesStep } from './steps/PlatformStoriesStep';
-import { OriginStep } from './steps/OriginStep';
-import { RevealStep } from './steps/RevealStep';
+import { DiscoveryStep } from './steps/DiscoveryStep';
 import { useAuth } from '@/contexts/AuthContext';
 import { useDemo } from '@/contexts/DemoContext';
-import { OriginData } from '@/services/originService';
+import { ConfirmedData } from '@/services/enrichmentService';
 
 const SoulSignatureOnboarding: React.FC = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const { user, authToken } = useAuth();
+  const { user, authToken, isLoaded } = useAuth();
   const { isDemoMode: contextDemoMode } = useDemo();
+  const hasProcessedStepParam = useRef(false);
 
-  // Enable demo mode from URL param or context, or if not authenticated
+  // Enable demo mode from URL param or context, or if not authenticated (only after auth is loaded)
   const isDemoMode = useMemo(() => {
+    // Don't decide demo mode until auth is loaded
+    if (!isLoaded) return false;
     return contextDemoMode || searchParams.get('demo') === 'true' || !authToken;
-  }, [contextDemoMode, searchParams, authToken]);
+  }, [contextDemoMode, searchParams, authToken, isLoaded]);
 
   const {
     state,
     startOnboarding,
     nextStep,
-    prevStep,
     goToStep,
-    addAnswer,
-    calculateScores,
-    addConnectedPlatform,
-    setOriginDataCompleted,
+    setDiscoveryCompleted,
     completeOnboarding,
-    resetOnboarding,
   } = useOnboardingState();
 
-  // Start onboarding if not already started
+  // Handle step parameter and onboarding initialization (only after auth is loaded)
   useEffect(() => {
+    // Wait for auth to load before processing
+    if (!isLoaded || hasProcessedStepParam.current) return;
+
+    const stepParam = searchParams.get('step');
+
+    // Process step parameter first (takes priority)
+    if (stepParam) {
+      const step = parseInt(stepParam, 10);
+      if (step >= 1 && step <= 2) {
+        // If step=2 is requested and user is authenticated, go directly to discovery
+        if (step === 2 && authToken) {
+          hasProcessedStepParam.current = true;
+          goToStep(2);
+          // Clear the step param from URL to prevent it from overriding state changes
+          const newUrl = new URL(window.location.href);
+          newUrl.searchParams.delete('step');
+          window.history.replaceState({}, '', newUrl.toString());
+          return; // Don't call startOnboarding
+        } else if (step === 1) {
+          hasProcessedStepParam.current = true;
+          goToStep(1);
+          return;
+        }
+      }
+    }
+
+    // No step param or invalid step - start onboarding normally
+    hasProcessedStepParam.current = true;
     if (!state.startedAt) {
       startOnboarding();
     }
-  }, [state.startedAt, startOnboarding]);
+  }, [isLoaded, authToken, searchParams, goToStep, state.startedAt, startOnboarding]);
 
   // Handle skipping - go directly to soul signature dashboard
   const handleSkip = useCallback(() => {
     navigate('/soul-signature');
   }, [navigate]);
 
-  // Handle quick pulse completion
-  const handleQuickPulseComplete = useCallback((answers: { questionId: string; trait: 'O' | 'C' | 'E' | 'A' | 'N'; value: number }[]) => {
-    // Save all answers
-    answers.forEach(answer => addAnswer(answer));
-
-    // Calculate preliminary scores
-    calculateScores();
-
-    // Move to first glimpse
-    nextStep();
-  }, [addAnswer, calculateScores, nextStep]);
-
-  // Determine API route based on platform type
-  const getPlatformApiRoute = (platformId: string): string => {
-    const healthPlatforms = ['whoop', 'oura', 'fitbit', 'strava'];
-    const professionalPlatforms = ['github', 'gmail', 'google_calendar', 'slack', 'linkedin'];
-
-    if (healthPlatforms.includes(platformId)) {
-      return `/api/health/connect/${platformId}`;
-    } else if (professionalPlatforms.includes(platformId)) {
-      return `/api/entertainment/connect/${platformId}`; // Professional uses same route for now
-    }
-    return `/api/entertainment/connect/${platformId}`;
-  };
-
-  // Handle platform connection
-  const handlePlatformConnect = useCallback(async (platformId: string) => {
-    // In demo mode (no auth), redirect to sign in first
-    if (isDemoMode) {
-      // Store the platform they wanted to connect for after auth
-      sessionStorage.setItem('onboarding-return', 'true');
-      sessionStorage.setItem('onboarding-platform', platformId);
-      // Redirect to auth with return URL
-      navigate('/auth?redirect=' + encodeURIComponent('/soul-onboarding'));
+  // Handle "Begin Discovery" - requires authentication
+  const handleBeginDiscovery = useCallback(() => {
+    // If auth is still loading, wait for it
+    if (!isLoaded) {
       return;
     }
-
-    try {
-      // Get the OAuth URL from the backend using the correct API route
-      const apiRoute = getPlatformApiRoute(platformId);
-      const response = await fetch(apiRoute, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${authToken}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ userId: user?.id }),
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to initiate OAuth');
-      }
-
-      const { authUrl } = await response.json();
-
-      // Store current onboarding state before redirecting
-      sessionStorage.setItem('onboarding-return', 'true');
-      sessionStorage.setItem('onboarding-platform', platformId);
-
-      // Redirect to OAuth
-      window.location.href = authUrl;
-    } catch (error) {
-      console.error('Platform connection error:', error);
-      // Fallback to simulation on error
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      addConnectedPlatform(platformId);
+    if (!authToken) {
+      // Not logged in - redirect to auth with return URL
+      window.location.href = '/auth?redirect=' + encodeURIComponent('/soul-onboarding?step=2');
+      return;
     }
-  }, [authToken, isDemoMode, addConnectedPlatform, user, navigate]);
-
-  // Check for OAuth return
-  useEffect(() => {
-    const isReturning = sessionStorage.getItem('onboarding-return');
-    const platform = sessionStorage.getItem('onboarding-platform');
-
-    if (isReturning && platform) {
-      // Clear the session storage
-      sessionStorage.removeItem('onboarding-return');
-      sessionStorage.removeItem('onboarding-platform');
-
-      // Add the connected platform
-      addConnectedPlatform(platform);
-
-      // Make sure we're on the platform stories step
-      if (state.currentStep !== 4) {
-        goToStep(4);
-      }
-    }
-  }, [addConnectedPlatform, goToStep, state.currentStep]);
-
-  // Handle origin step completion
-  const handleOriginComplete = useCallback((data: OriginData) => {
-    setOriginDataCompleted(true);
+    // Logged in - proceed to discovery step
     nextStep();
-  }, [setOriginDataCompleted, nextStep]);
+  }, [authToken, nextStep, isLoaded]);
 
-  // Handle origin step skip
-  const handleOriginSkip = useCallback(() => {
-    setOriginDataCompleted(false);
-    nextStep();
-  }, [setOriginDataCompleted, nextStep]);
-
-  // Handle onboarding completion
-  const handleComplete = useCallback(() => {
+  // Handle discovery step completion - go directly to dashboard
+  const handleDiscoveryComplete = useCallback((data: ConfirmedData) => {
+    setDiscoveryCompleted(true, data);
     completeOnboarding();
-  }, [completeOnboarding]);
+    navigate('/soul-signature');
+  }, [setDiscoveryCompleted, completeOnboarding, navigate]);
+
+  // Handle discovery step skip - go directly to dashboard
+  const handleDiscoverySkip = useCallback(() => {
+    setDiscoveryCompleted(false);
+    completeOnboarding();
+    navigate('/soul-signature');
+  }, [setDiscoveryCompleted, completeOnboarding, navigate]);
 
   // Render current step
+  // Simplified flow: Invitation → Discovery (magic reveal) → Dashboard
   const renderStep = () => {
     switch (state.currentStep) {
       case 1:
         return (
           <InvitationStep
-            onContinue={nextStep}
+            onContinue={handleBeginDiscovery}
             onSkip={handleSkip}
           />
         );
 
       case 2:
+        // Discovery step - magic reveal using web research
+        // User must be authenticated to reach this step
         return (
-          <QuickPulseStep
-            onComplete={handleQuickPulseComplete}
-            onBack={prevStep}
-            onSkip={() => {
-              // Skip to first glimpse with default scores
-              calculateScores();
-              goToStep(3);
-            }}
-          />
-        );
-
-      case 3:
-        return state.archetype && state.preliminaryScores ? (
-          <FirstGlimpseStep
-            archetype={state.archetype}
-            scores={state.preliminaryScores}
-            onContinue={nextStep}
-            onSkip={nextStep}
-            onBack={prevStep}
-          />
-        ) : (
-          // If no scores yet, go back to questions
-          <QuickPulseStep
-            onComplete={handleQuickPulseComplete}
-            onBack={prevStep}
-            onSkip={() => {
-              calculateScores();
-              goToStep(3);
-            }}
-          />
-        );
-
-      case 4:
-        return (
-          <PlatformStoriesStep
-            connectedPlatforms={state.connectedPlatforms}
-            onConnect={handlePlatformConnect}
-            onContinue={nextStep}
-            onBack={prevStep}
-            onSkip={nextStep}
-            isDemoMode={isDemoMode}
-          />
-        );
-
-      case 5:
-        return (
-          <OriginStep
+          <DiscoveryStep
             userId={user?.id || ''}
-            onComplete={handleOriginComplete}
-            onBack={prevStep}
-            onSkip={handleOriginSkip}
-          />
-        );
-
-      case 6:
-        return (
-          <RevealStep
-            connectedPlatforms={state.connectedPlatforms}
-            questionsAnswered={state.answers.length}
-            archetype={state.archetype}
-            scores={state.preliminaryScores}
-            onComplete={handleComplete}
+            userEmail={user?.email || ''}
+            userName={user?.fullName || user?.firstName}
+            onComplete={handleDiscoveryComplete}
+            onSkip={handleDiscoverySkip}
           />
         );
 
@@ -237,6 +130,22 @@ const SoulSignatureOnboarding: React.FC = () => {
         return null;
     }
   };
+
+  // Show loading state while auth is loading
+  if (!isLoaded) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-[#232320]">
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          className="flex flex-col items-center gap-4"
+        >
+          <Loader2 className="w-8 h-8 text-[#C1C0B6] animate-spin" />
+          <p className="text-[#C1C0B6]/70 text-sm">Loading...</p>
+        </motion.div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen">

@@ -700,3 +700,20 @@
 .font-inter {
   font-family: var(--font-body);
 }
+
+/* Italic serif emphasis for onboarding messages */
+.text-emphasis {
+  font-family: var(--font-accent);
+  font-style: italic;
+  font-weight: 400;
+  font-size: 1.08em; /* Adjust to match Inter's visual size */
+}
+
+/* Inline emphasis span utility */
+.emphasis {
+  font-family: var(--font-accent);
+  font-style: italic;
+  font-weight: 400;
+  font-size: 1.08em; /* Adjust to match Inter's visual size */
+  display: inline;
+}
