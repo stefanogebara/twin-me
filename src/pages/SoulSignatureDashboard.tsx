@@ -33,7 +33,13 @@ import {
   AlertCircle,
   Play,
   HelpCircle,
-  ArrowRight
+  ArrowRight,
+  Briefcase,
+  Linkedin,
+  GraduationCap,
+  MapPin,
+  TrendingUp,
+  Building2
 } from 'lucide-react';
 import { BigFiveRadarChart } from '@/components/PersonalityRadarChart';
 import BehavioralEvidencePanel from '@/components/BehavioralEvidencePanel';
@@ -73,7 +79,7 @@ const MBTI_DIMENSIONS = {
     highLabel: 'Extraverted',
     lowLetter: 'I',
     highLetter: 'E',
-    color: '#C1C0B6',
+    color: '#4298B4', // Teal/Blue - 16personalities Mind color
     description: 'How you interact with the world and where you direct your energy',
     lowDesc: 'Prefer solitary activities, think before speaking, feel drained by social interaction',
     highDesc: 'Prefer group activities, think out loud, feel energized by social interaction'
@@ -84,7 +90,7 @@ const MBTI_DIMENSIONS = {
     highLabel: 'Intuitive',
     lowLetter: 'S',
     highLetter: 'N',
-    color: '#A8A79E',
+    color: '#E4AE3A', // Yellow/Gold - 16personalities Energy color
     description: 'How you see the world and process information',
     lowDesc: 'Focus on facts and details, prefer practical solutions, trust experience',
     highDesc: 'Focus on patterns and possibilities, prefer innovative solutions, trust intuition'
@@ -95,7 +101,7 @@ const MBTI_DIMENSIONS = {
     highLabel: 'Feeling',
     lowLetter: 'T',
     highLetter: 'F',
-    color: '#8F8E86',
+    color: '#33A474', // Green - 16personalities Nature color
     description: 'How you make decisions and cope with emotions',
     lowDesc: 'Prioritize logic and objectivity, focus on truth over tact',
     highDesc: 'Prioritize empathy and harmony, focus on values and feelings'
@@ -106,7 +112,7 @@ const MBTI_DIMENSIONS = {
     highLabel: 'Judging',
     lowLetter: 'P',
     highLetter: 'J',
-    color: '#D4D3CC',
+    color: '#88619A', // Purple - 16personalities Tactics color
     description: 'How you approach work and planning',
     lowDesc: 'Prefer flexibility and spontaneity, keep options open, adapt easily',
     highDesc: 'Prefer structure and planning, like closure and completion'
@@ -117,7 +123,7 @@ const MBTI_DIMENSIONS = {
     highLabel: 'Assertive',
     lowLetter: 'T',
     highLetter: 'A',
-    color: '#B8B7AF',
+    color: '#F25E62', // Coral/Red - 16personalities Identity color
     description: 'How confident you are in your abilities and decisions',
     lowDesc: 'Self-conscious, sensitive to stress, perfectionist, success-driven',
     highDesc: 'Self-assured, even-tempered, resistant to stress, confident'
@@ -859,7 +865,7 @@ const SoulSignatureDashboard: React.FC = () => {
               <SectionHeader title="What Makes You Unique" />
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {soulSignature.defining_traits.map((trait, index) => {
-                  const traitColors = ['#C1C0B6', '#A8A79E', '#B8B7AF', '#8F8E86'];
+                  const traitColors = ['#4298B4', '#E4AE3A', '#33A474', '#88619A'];
                   const color = traitColors[index % traitColors.length];
 
                   return (
@@ -910,6 +916,176 @@ const SoulSignatureDashboard: React.FC = () => {
           </button>
         </GlassPanel>
       )}
+
+      {/* Professional Cluster */}
+      <GlassPanel className="!p-5 md:!p-6 mb-6">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ backgroundColor: 'rgba(10, 102, 194, 0.1)' }}>
+              <Briefcase className="w-5 h-5" style={{ color: '#0A66C2' }} />
+            </div>
+            <div>
+              <h3 style={{ fontFamily: 'var(--font-heading)', fontWeight: 500, color: textColor }}>
+                Professional Universe
+              </h3>
+              <p className="text-xs" style={{ color: textMuted }}>
+                Your work identity and career patterns
+              </p>
+            </div>
+          </div>
+          <button
+            onClick={() => navigate('/get-started')}
+            className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-all hover:scale-[1.02]"
+            style={{
+              backgroundColor: 'rgba(10, 102, 194, 0.1)',
+              color: '#0A66C2',
+              border: '1px solid rgba(10, 102, 194, 0.2)'
+            }}
+          >
+            Add More Context
+            <ArrowRight className="w-4 h-4" />
+          </button>
+        </div>
+
+        <p className="text-sm mb-6" style={{ color: textSecondary }}>
+          Your professional identity combines LinkedIn profile, calendar patterns, and career context to understand your work style.
+        </p>
+
+        {/* Professional Data Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {/* LinkedIn Connection */}
+          <div className="p-4 rounded-xl" style={{
+            backgroundColor: connectedProviders.includes('linkedin')
+              ? 'rgba(10, 102, 194, 0.08)'
+              : 'rgba(193, 192, 182, 0.08)',
+            border: connectedProviders.includes('linkedin')
+              ? '1px solid rgba(10, 102, 194, 0.2)'
+              : '1px solid rgba(193, 192, 182, 0.15)'
+          }}>
+            <div className="flex items-center gap-3 mb-3">
+              <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{
+                backgroundColor: connectedProviders.includes('linkedin')
+                  ? 'rgba(10, 102, 194, 0.15)'
+                  : 'rgba(193, 192, 182, 0.15)'
+              }}>
+                <Linkedin className="w-4 h-4" style={{
+                  color: connectedProviders.includes('linkedin') ? '#0A66C2' : textMuted
+                }} />
+              </div>
+              <div>
+                <span className="text-xs uppercase tracking-wider font-medium" style={{ color: textColor }}>LinkedIn</span>
+                {connectedProviders.includes('linkedin') && (
+                  <div className="flex items-center gap-1 mt-0.5">
+                    <CheckCircle2 className="w-3 h-3" style={{ color: '#10B981' }} />
+                    <span className="text-xs" style={{ color: '#10B981' }}>Connected</span>
+                  </div>
+                )}
+              </div>
+            </div>
+            <p className="text-sm" style={{ color: textSecondary }}>
+              {connectedProviders.includes('linkedin')
+                ? 'Professional identity linked'
+                : 'Connect to add career context'}
+            </p>
+          </div>
+
+          {/* Calendar Work Patterns */}
+          <div className="p-4 rounded-xl" style={{
+            backgroundColor: connectedProviders.includes('google_calendar')
+              ? 'rgba(99, 102, 241, 0.08)'
+              : 'rgba(193, 192, 182, 0.08)',
+            border: connectedProviders.includes('google_calendar')
+              ? '1px solid rgba(99, 102, 241, 0.2)'
+              : '1px solid rgba(193, 192, 182, 0.15)'
+          }}>
+            <div className="flex items-center gap-3 mb-3">
+              <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{
+                backgroundColor: connectedProviders.includes('google_calendar')
+                  ? 'rgba(99, 102, 241, 0.15)'
+                  : 'rgba(193, 192, 182, 0.15)'
+              }}>
+                <Calendar className="w-4 h-4" style={{
+                  color: connectedProviders.includes('google_calendar') ? '#6366F1' : textMuted
+                }} />
+              </div>
+              <div>
+                <span className="text-xs uppercase tracking-wider font-medium" style={{ color: textColor }}>Work Patterns</span>
+                {connectedProviders.includes('google_calendar') && (
+                  <div className="flex items-center gap-1 mt-0.5">
+                    <CheckCircle2 className="w-3 h-3" style={{ color: '#10B981' }} />
+                    <span className="text-xs" style={{ color: '#10B981' }}>Analyzed</span>
+                  </div>
+                )}
+              </div>
+            </div>
+            <p className="text-sm" style={{ color: textSecondary }}>
+              {connectedProviders.includes('google_calendar')
+                ? 'Schedule insights extracted'
+                : 'Connect calendar for work insights'}
+            </p>
+          </div>
+
+          {/* Origin Context - Coming Soon */}
+          <div className="p-4 rounded-xl" style={{
+            backgroundColor: 'rgba(193, 192, 182, 0.08)',
+            border: '1px solid rgba(193, 192, 182, 0.15)'
+          }}>
+            <div className="flex items-center gap-3 mb-3">
+              <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ backgroundColor: 'rgba(193, 192, 182, 0.15)' }}>
+                <MapPin className="w-4 h-4" style={{ color: textMuted }} />
+              </div>
+              <div>
+                <span className="text-xs uppercase tracking-wider font-medium" style={{ color: textColor }}>Origin Story</span>
+                <div className="flex items-center gap-1 mt-0.5">
+                  <span className="text-xs px-1.5 py-0.5 rounded" style={{
+                    backgroundColor: 'rgba(228, 174, 58, 0.15)',
+                    color: '#E4AE3A'
+                  }}>Coming Soon</span>
+                </div>
+              </div>
+            </div>
+            <p className="text-sm" style={{ color: textSecondary }}>
+              Share your background, education, and values
+            </p>
+          </div>
+        </div>
+
+        {/* Professional Insights Preview */}
+        {(connectedProviders.includes('linkedin') || connectedProviders.includes('google_calendar')) && (
+          <div className="mt-6 pt-6" style={{ borderTop: `1px solid ${theme === 'dark' ? 'rgba(193, 192, 182, 0.1)' : 'rgba(0, 0, 0, 0.05)'}` }}>
+            <div className="flex items-center gap-2 mb-4">
+              <TrendingUp className="w-4 h-4" style={{ color: '#0A66C2' }} />
+              <span className="text-xs uppercase tracking-wider font-medium" style={{ color: textMuted }}>
+                Professional Insights
+              </span>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {connectedProviders.includes('google_calendar') && (
+                <div className="flex items-start gap-3 p-3 rounded-lg" style={{ backgroundColor: 'rgba(99, 102, 241, 0.05)' }}>
+                  <Building2 className="w-5 h-5 mt-0.5" style={{ color: '#6366F1' }} />
+                  <div>
+                    <div className="text-sm font-medium" style={{ color: textColor }}>Schedule-Driven</div>
+                    <div className="text-xs" style={{ color: textSecondary }}>
+                      Your calendar shows structured work patterns with dedicated focus blocks
+                    </div>
+                  </div>
+                </div>
+              )}
+              {connectedProviders.includes('linkedin') && (
+                <div className="flex items-start gap-3 p-3 rounded-lg" style={{ backgroundColor: 'rgba(10, 102, 194, 0.05)' }}>
+                  <GraduationCap className="w-5 h-5 mt-0.5" style={{ color: '#0A66C2' }} />
+                  <div>
+                    <div className="text-sm font-medium" style={{ color: textColor }}>Professional Identity</div>
+                    <div className="text-xs" style={{ color: textSecondary }}>
+                      LinkedIn profile connected - career trajectory available
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+      </GlassPanel>
 
       {/* Big Five Scientific Assessment */}
       <GlassPanel className="!p-5 md:!p-6 mb-6">
@@ -964,11 +1140,11 @@ const SoulSignatureDashboard: React.FC = () => {
             {/* Score Details */}
             <div className="space-y-4">
               {[
-                { name: 'Openness', value: personalityScores.openness, color: '#C1C0B6', desc: 'Creativity & intellectual curiosity' },
-                { name: 'Conscientiousness', value: personalityScores.conscientiousness, color: '#A8A79E', desc: 'Organization & dependability' },
-                { name: 'Extraversion', value: personalityScores.extraversion, color: '#B8B7AF', desc: 'Sociability & positive emotions' },
-                { name: 'Agreeableness', value: personalityScores.agreeableness, color: '#8F8E86', desc: 'Cooperation & trust' },
-                { name: 'Neuroticism', value: personalityScores.neuroticism, color: '#D4D3CC', desc: 'Emotional sensitivity' },
+                { name: 'Openness', value: personalityScores.openness, color: '#9B59B6', desc: 'Creativity & intellectual curiosity' },
+                { name: 'Conscientiousness', value: personalityScores.conscientiousness, color: '#3498DB', desc: 'Organization & dependability' },
+                { name: 'Extraversion', value: personalityScores.extraversion, color: '#E74C3C', desc: 'Sociability & positive emotions' },
+                { name: 'Agreeableness', value: personalityScores.agreeableness, color: '#2ECC71', desc: 'Cooperation & trust' },
+                { name: 'Neuroticism', value: personalityScores.neuroticism, color: '#F39C12', desc: 'Emotional sensitivity' },
               ].map((trait) => (
                 <div key={trait.name} className="space-y-1">
                   <div className="flex justify-between items-center">

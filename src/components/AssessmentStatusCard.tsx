@@ -106,7 +106,7 @@ const AssessmentStatusCard: React.FC<AssessmentStatusCardProps> = ({
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-w-lg mx-auto">
             {/* Quick Assessment */}
             <button
-              onClick={() => navigate('/personality-assessment')}
+              onClick={() => navigate('/personality')}
               className="p-4 rounded-xl text-left transition-all hover:scale-[1.02]"
               style={{
                 backgroundColor: 'rgba(193, 192, 182, 0.1)',
@@ -124,7 +124,7 @@ const AssessmentStatusCard: React.FC<AssessmentStatusCardProps> = ({
 
             {/* Full Assessment */}
             <button
-              onClick={() => navigate('/big-five-assessment')}
+              onClick={() => navigate('/big-five')}
               className="p-4 rounded-xl text-left transition-all hover:scale-[1.02]"
               style={{
                 backgroundColor: theme === 'dark' ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.02)',
@@ -207,7 +207,7 @@ const AssessmentStatusCard: React.FC<AssessmentStatusCardProps> = ({
             </div>
             {quickAssessmentComplete && (
               <button
-                onClick={() => navigate('/personality-assessment')}
+                onClick={() => navigate('/personality')}
                 className="flex items-center gap-1 text-xs hover:opacity-80 transition-opacity"
                 style={{ color: textSecondary }}
                 title="Retake assessment"
@@ -251,7 +251,7 @@ const AssessmentStatusCard: React.FC<AssessmentStatusCardProps> = ({
             </div>
             {bigFiveComplete && (
               <button
-                onClick={() => navigate('/big-five-assessment')}
+                onClick={() => navigate('/big-five')}
                 className="flex items-center gap-1 text-xs hover:opacity-80 transition-opacity"
                 style={{ color: textSecondary }}
                 title="Retake assessment"
@@ -315,7 +315,7 @@ const AssessmentStatusCard: React.FC<AssessmentStatusCardProps> = ({
       <div className="flex gap-2">
         {!quickAssessmentComplete && (
           <Button
-            onClick={() => navigate('/personality-assessment')}
+            onClick={() => navigate('/personality')}
             size="sm"
             className="flex-1"
             style={{
@@ -329,7 +329,7 @@ const AssessmentStatusCard: React.FC<AssessmentStatusCardProps> = ({
         )}
         {!bigFiveComplete && (
           <Button
-            onClick={() => navigate('/big-five-assessment')}
+            onClick={() => navigate('/big-five')}
             size="sm"
             className="flex-1"
             style={{

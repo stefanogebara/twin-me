@@ -27,6 +27,7 @@ interface User {
 
 interface AuthContextType {
   user: User | null;
+  authToken: string | null;
   isLoaded: boolean;
   isSignedIn: boolean;
   isLoading: boolean;
@@ -72,6 +73,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   };
 
   const [user, setUser] = useState<User | null>(getCachedUser());
+  const [authToken, setAuthToken] = useState<string | null>(localStorage.getItem('auth_token'));
   const [isLoaded, setIsLoaded] = useState(false); // Don't set true until verification completes
   const [isLoading, setIsLoading] = useState(false);
   const [isVerifying, setIsVerifying] = useState(false);
@@ -106,10 +108,14 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
     if (!token) {
       setUser(null);
+      setAuthToken(null);
       localStorage.removeItem('auth_user');
       setIsLoaded(true);
       return;
     }
+
+    // Sync authToken state with localStorage
+    setAuthToken(token);
 
     // If we have a cached user, use it for display while verifying
     // But don't set isLoaded until verification completes
@@ -138,6 +144,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         localStorage.removeItem('auth_token');
         localStorage.removeItem('auth_user');
         setUser(null);
+        setAuthToken(null);
       }
     } catch (error) {
       // Network error - keep cached state if we have one
@@ -147,6 +154,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         localStorage.removeItem('auth_token');
         localStorage.removeItem('auth_user');
         setUser(null);
+        setAuthToken(null);
       }
       // If we have cached user, keep them logged in despite network error
     } finally {
@@ -161,6 +169,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     localStorage.removeItem('auth_user');
     localStorage.removeItem('demo_mode'); // Also exit demo mode
     setUser(null);
+    setAuthToken(null);
   };
 
   const clearAuth = () => {
@@ -168,6 +177,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     localStorage.removeItem('refresh_token');
     localStorage.removeItem('auth_user');
     setUser(null);
+    setAuthToken(null);
   };
 
   // Refresh access token using refresh token
@@ -194,6 +204,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         localStorage.setItem('refresh_token', data.refreshToken);
         localStorage.setItem('auth_user', JSON.stringify(data.user));
         setUser(data.user);
+        setAuthToken(data.accessToken);
         return true;
       } else {
         // Refresh token is invalid or expired - force re-login
@@ -241,6 +252,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   const value: AuthContextType = {
     user,
+    authToken,
     isLoaded,
     isSignedIn: !!user,
     isLoading,

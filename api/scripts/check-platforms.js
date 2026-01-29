@@ -15,12 +15,11 @@ const supabase = createClient(
 );
 
 async function checkPlatforms() {
-  console.log('Checking YouTube and Spotify connections...\n');
+  console.log('Checking all platform connections...\n');
 
   const { data: connections, error } = await supabase
     .from('platform_connections')
-    .select('*')
-    .in('platform', ['spotify', 'youtube']);
+    .select('*');
 
   if (error) {
     console.error('Error:', error);
@@ -37,10 +36,15 @@ async function checkPlatforms() {
   connections.forEach(conn => {
     console.log(`Platform: ${conn.platform}`);
     console.log(`  User ID: ${conn.user_id?.substring(0, 8)}...`);
+    console.log(`  Status: ${conn.status}`);
     console.log(`  Connected: ${conn.connected}`);
-    console.log(`  Token expires at: ${conn.token_expires_at || conn.expires_at || 'not set'}`);
-    console.log(`  Last sync status: ${conn.last_sync_status}`);
-    console.log(`  Metadata:`, conn.metadata);
+    console.log(`  Has access_token: ${!!conn.access_token}`);
+    console.log(`  Has refresh_token: ${!!conn.refresh_token}`);
+    console.log(`  Token expires at: ${conn.token_expires_at || 'not set'}`);
+    console.log(`  Token expired: ${conn.token_expires_at ? new Date(conn.token_expires_at) < new Date() : 'N/A'}`);
+    console.log(`  Last sync: ${conn.last_sync_at || 'never'}`);
+    console.log(`  Last sync status: ${conn.last_sync_status || 'none'}`);
+    console.log(`  Last error: ${conn.last_sync_error || 'none'}`);
     console.log('---');
   });
 }

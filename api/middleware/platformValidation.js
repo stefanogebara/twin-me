@@ -141,12 +141,13 @@ export const requirePlatformConnection = asyncHandler(async (req, res, next) => 
   }
 
   // Check database for platform connection
+  // Note: The 'connected' column doesn't exist - use 'status' column instead
   const { data: connection, error } = await supabase
     .from('platform_connections')
     .select('*')
     .eq('user_id', userId)
     .eq('platform', platform)
-    .eq('connected', true)
+    .eq('status', 'connected')
     .single();
 
   if (error || !connection) {
@@ -231,10 +232,10 @@ export const validateMultiplePlatforms = asyncHandler(async (req, res, next) => 
 
   const { data: connections, error } = await supabase
     .from('platform_connections')
-    .select('platform, connected, token_expires_at')
+    .select('platform, connected_at, token_expires_at, status')
     .eq('user_id', userId)
     .in('platform', normalizedPlatforms)
-    .eq('connected', true);
+    .eq('status', 'connected');
 
   if (error) {
     console.error('Error checking platform connections:', error);

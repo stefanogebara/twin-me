@@ -9,7 +9,7 @@ export default defineConfig(({ mode }) => ({
     host: "::",
     port: 8086,
     strictPort: true, // Force this exact port, don't auto-increment
-    allowedHosts: ['061bae1b853e.ngrok-free.app', 'localhost', '127.0.0.1'],
+    allowedHosts: true, // Allow all hosts for development
     proxy: {
       '/api': {
         target: 'http://localhost:3001',
