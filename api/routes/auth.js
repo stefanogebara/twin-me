@@ -1,8 +1,12 @@
 import express from 'express';
 import jwt from 'jsonwebtoken';
 import { supabase } from '../config/supabase.js';
+import ProfileEnrichmentService from '../services/profileEnrichmentService.js';
 
 const router = express.Router();
+
+// Initialize enrichment service for new user discovery
+const enrichmentService = new ProfileEnrichmentService();
 
 // JWT secret - MUST be set in environment variables
 // This will throw an error on server startup if not configured (see server.js)
@@ -267,6 +271,23 @@ router.get('/callback', async (req, res) => {
       }
 
       user = newUser;
+
+      // Trigger profile enrichment for new user (fire and forget)
+      // This discovers career info from the web while user completes onboarding
+      const fullName = `${userData.firstName || ''} ${userData.lastName || ''}`.trim();
+      console.log(`[Auth] Starting background enrichment for new user: ${userData.email}`);
+      enrichmentService.enrichFromEmail(userData.email, fullName)
+        .then(async result => {
+          console.log(`[Auth] Enrichment complete for ${userData.email}:`, result.success ? 'Success' : 'Limited data');
+          // Save enrichment data with user_id
+          if (result.success) {
+            await enrichmentService.saveEnrichment(user.id, userData.email, result);
+            console.log(`[Auth] Enrichment saved for user ${user.id}`);
+          }
+        })
+        .catch(err => {
+          console.error(`[Auth] Enrichment failed for ${userData.email}:`, err.message);
+        });
     }
 
     // Generate access and refresh tokens
@@ -274,8 +295,15 @@ router.get('/callback', async (req, res) => {
 
     // Redirect to frontend with tokens and new user flag
     const frontendUrl = process.env.VITE_APP_URL || 'http://localhost:8086';
-    // Redirect to dashboard with tokens as URL parameters (frontend will store in localStorage)
-    res.redirect(`${frontendUrl}/auth/callback?token=${tokens.accessToken}&refreshToken=${tokens.refreshToken}&isNewUser=${isNewUser}`);
+    // Build redirect URL with tokens - include redirectAfterAuth if present in state
+    let redirectUrl = `${frontendUrl}/auth/callback?token=${tokens.accessToken}&refreshToken=${tokens.refreshToken}&isNewUser=${isNewUser}`;
+
+    if (stateData.redirectAfterAuth) {
+      redirectUrl += `&redirect=${encodeURIComponent(stateData.redirectAfterAuth)}`;
+      console.log('🟢 [Auth GET Callback] Including post-auth redirect:', stateData.redirectAfterAuth);
+    }
+
+    res.redirect(redirectUrl);
   } catch (error) {
     console.error('OAuth callback error:', error);
     res.redirect(`${process.env.VITE_APP_URL || 'http://localhost:8086'}/auth?error=server_error`);
@@ -387,6 +415,23 @@ router.post('/callback', async (req, res) => {
 
       user = newUser;
       console.log('✅ [Auth OAuth POST] New user created:', user.id);
+
+      // Trigger profile enrichment for new user (fire and forget)
+      // This discovers career info from the web while user completes onboarding
+      const fullName = `${userData.firstName || ''} ${userData.lastName || ''}`.trim();
+      console.log(`[Auth POST] Starting background enrichment for new user: ${userData.email}`);
+      enrichmentService.enrichFromEmail(userData.email, fullName)
+        .then(async result => {
+          console.log(`[Auth POST] Enrichment complete for ${userData.email}:`, result.success ? 'Success' : 'Limited data');
+          // Save enrichment data with user_id
+          if (result.success) {
+            await enrichmentService.saveEnrichment(user.id, userData.email, result);
+            console.log(`[Auth POST] Enrichment saved for user ${user.id}`);
+          }
+        })
+        .catch(err => {
+          console.error(`[Auth POST] Enrichment failed for ${userData.email}:`, err.message);
+        });
     } else {
       console.log('✅ [Auth OAuth POST] Existing user found:', user.id);
     }
@@ -397,7 +442,8 @@ router.post('/callback', async (req, res) => {
     console.log('✅ [Auth OAuth POST] JWT tokens generated for user:', user.id);
 
     // Return JSON response with both tokens
-    res.json({
+    // Include redirectAfterAuth from state if present
+    const responseData = {
       success: true,
       token: tokens.accessToken,  // Keep 'token' for backwards compatibility
       accessToken: tokens.accessToken,
@@ -411,7 +457,15 @@ router.post('/callback', async (req, res) => {
         fullName: `${user.first_name || ''} ${user.last_name || ''}`.trim(),
         pictureUrl: user.picture_url
       }
-    });
+    };
+
+    // Pass through redirect parameter if present in state
+    if (stateData.redirectAfterAuth) {
+      responseData.redirectAfterAuth = stateData.redirectAfterAuth;
+      console.log('✅ [Auth OAuth POST] Including redirect in response:', stateData.redirectAfterAuth);
+    }
+
+    res.json(responseData);
   } catch (error) {
     console.error('❌ [Auth OAuth POST] Error:', error);
     res.status(500).json({

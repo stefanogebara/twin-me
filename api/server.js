@@ -267,6 +267,8 @@ import extractionStatusRoutes from './routes/extraction-status.js';
 import researchRAGRoutes from './routes/research-rag.js';
 import personalityInferenceRoutes from './routes/personality-inference.js';
 import originDataRoutes from './routes/origin-data.js';
+import profileEnrichmentRoutes from './routes/profile-enrichment.js';
+import resumeUploadRoutes from './routes/resume-upload.js';
 import { serverDb } from './services/database.js';
 import { sanitizeInput, validateContentType } from './middleware/sanitization.js';
 import { /* handleAuthError, */ handleGeneralError, handle404 } from './middleware/errorHandler.js';
@@ -333,6 +335,8 @@ app.use('/api/webhooks/whoop', whoopWebhooksRoutes); // Whoop push notifications
 app.use('/api/research-rag', researchRAGRoutes); // Research paper RAG for evidence-backed personality inference
 app.use('/api/personality-inference', personalityInferenceRoutes); // Multi-agent personality inference pipeline
 app.use('/api/origin', originDataRoutes); // Origin data (hands-on user-provided context)
+app.use('/api/enrichment', profileEnrichmentRoutes); // Profile enrichment via Perplexity Sonar (enrichment-first onboarding)
+app.use('/api/resume', resumeUploadRoutes); // Resume/CV upload and parsing for enrichment
 
 // Vercel Cron Job endpoints (production automation)
 // These are called by Vercel Cron Jobs on schedule (configured in vercel.json)
@@ -486,6 +490,20 @@ if (process.env.NODE_ENV !== 'production') {
       process.exit(1);
     }, 10000);
   };
+
+  // Handle unhandled promise rejections to prevent server crashes
+  process.on('unhandledRejection', (reason, promise) => {
+    console.error('⚠️ Unhandled Promise Rejection:', reason);
+    console.error('Promise:', promise);
+    // Don't exit - just log and continue
+  });
+
+  process.on('uncaughtException', (error) => {
+    console.error('⚠️ Uncaught Exception:', error);
+    // For uncaught exceptions, we should exit as the app might be in an inconsistent state
+    // But give time for logging
+    setTimeout(() => process.exit(1), 1000);
+  });
 
   process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
   process.on('SIGINT', () => gracefulShutdown('SIGINT'));

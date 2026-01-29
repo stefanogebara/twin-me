@@ -319,16 +319,25 @@ const OAuthCallback = () => {
               console.log('✅ Authentication successful, token stored');
               setStatus('success');
 
-              // Determine redirect based on redirectAfterAuth in state, user type, or default
+              // Determine redirect based on URL param, response data, state, user type, or default
               let redirectPath = '/dashboard';  // Default
 
-              if (stateData?.redirectAfterAuth) {
-                // Use the redirect parameter from the auth flow (e.g., /extension-auth)
+              // First check URL param (from backend redirect)
+              const urlRedirectParam = searchParams.get('redirect');
+              if (urlRedirectParam) {
+                redirectPath = decodeURIComponent(urlRedirectParam);
+                console.log('✅ Using post-auth redirect from URL param:', redirectPath);
+              } else if (data.redirectAfterAuth) {
+                // Use the redirect parameter from the backend response
+                redirectPath = data.redirectAfterAuth;
+                console.log('✅ Using post-auth redirect from response data:', redirectPath);
+              } else if (stateData?.redirectAfterAuth) {
+                // Use the redirect parameter from the auth flow state
                 redirectPath = stateData.redirectAfterAuth;
                 console.log('✅ Using post-auth redirect from state:', redirectPath);
               } else if (data.isNewUser) {
-                // New users go to soul signature onboarding
-                redirectPath = '/soul-onboarding';
+                // New users go to enriched discovery flow (3-step onboarding)
+                redirectPath = '/discover';
               }
 
               const welcomeMessage = data.isNewUser
@@ -405,7 +414,7 @@ const OAuthCallback = () => {
               setStatus('success');
 
               // Determine redirect based on whether user is new or existing
-              const redirectPath = data.isNewUser ? '/soul-onboarding' : '/dashboard';
+              const redirectPath = data.isNewUser ? '/discover' : '/dashboard';
               const welcomeMessage = data.isNewUser
                 ? 'Welcome! Let\'s set up your Soul Signature'
                 : 'Welcome back!';

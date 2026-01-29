@@ -25,6 +25,7 @@ import Dashboard from "./pages/Dashboard";
 import DashboardDemo from "./pages/DashboardDemo";
 import { useExtensionSync } from "./hooks/useExtensionSync";
 import WelcomeFlow from "./pages/onboarding/WelcomeFlow";
+import EnrichedOnboardingFlow from "./pages/onboarding/EnrichedOnboardingFlow";
 import GmailCallback from "./pages/oauth/GmailCallback";
 import DemoBanner from "./components/DemoBanner";
 import { SpotifyInsightsPage, WhoopInsightsPage, CalendarInsightsPage } from "./pages/insights";
@@ -62,6 +63,7 @@ const App = () => {
             <Route path="/auth" element={<CustomAuth />} />
             <Route path="/custom-auth" element={<CustomAuth />} />
             <Route path="/oauth/callback" element={<OAuthCallback />} />
+            <Route path="/auth/callback" element={<OAuthCallback />} />
             <Route path="/oauth/gmail/callback" element={<GmailCallback />} />
 
             {/* Landing */}
@@ -127,13 +129,11 @@ const App = () => {
               </ProtectedRoute>
             } />
 
-            {/* Big Five Assessment - IPIP-NEO-120 scientific assessment */}
+            {/* Big Five Assessment - IPIP-NEO-120 scientific assessment (allows anonymous preview) */}
             <Route path="/big-five" element={
-              <ProtectedRoute>
-                <ErrorBoundary>
-                  <BigFiveAssessment />
-                </ErrorBoundary>
-              </ProtectedRoute>
+              <ErrorBoundary>
+                <BigFiveAssessment />
+              </ErrorBoundary>
             } />
 
             {/* Dashboard Demo - No Auth Required */}
@@ -172,6 +172,15 @@ const App = () => {
             {/* Onboarding Flow */}
             <Route path="/welcome" element={<WelcomeFlow initialStep={1} />} />
             <Route path="/onboarding" element={<WelcomeFlow initialStep={1} />} />
+
+            {/* Enriched Onboarding - 3-step discovery flow */}
+            <Route path="/discover" element={
+              <ProtectedRoute>
+                <ErrorBoundary>
+                  <EnrichedOnboardingFlow />
+                </ErrorBoundary>
+              </ProtectedRoute>
+            } />
 
             {/* Soul Signature Onboarding - Works in Demo Mode */}
             <Route path="/soul-onboarding" element={
