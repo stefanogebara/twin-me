@@ -158,65 +158,77 @@ export const DiscoveryStep: React.FC<DiscoveryStepProps> = ({
   };
 
   const buildNarrativeParagraph = (data: EnrichmentData, name: string): string => {
-    // PRIORITY 1: Use the backend's AI-generated summary if it's detailed (cofounder.co style)
-    // A detailed narrative typically has dates, multiple sentences, and specific details
-    if (data.discovered_summary) {
-      const summary = data.discovered_summary;
-      const hasDateRanges = /\b(19|20)\d{2}\s*[-–]\s*(19|20)?\d{2}\b/.test(summary);
-      const hasMoneyAmounts = /\$[\d,.]+[KMB]?/i.test(summary);
-      const isLongEnough = summary.length > 200;
-      const hasMultipleSentences = (summary.match(/\./g) || []).length >= 3;
+    // Build a comprehensive narrative showing ALL discovered data
+    const lines: string[] = [];
 
-      // If the summary looks comprehensive (has dates, money, or is detailed), use it directly
-      if (hasDateRanges || hasMoneyAmounts || (isLongEnough && hasMultipleSentences)) {
-        return summary;
-      }
-
-      // Even if not super detailed, if it starts with the name, use it
-      if (summary.toLowerCase().startsWith(name.toLowerCase().split(' ')[0])) {
-        return summary;
-      }
-    }
-
-    // PRIORITY 2: Build a basic narrative from structured fields
-    const parts: string[] = [];
-
+    // 1. Basic identity line
     if (data.discovered_title && data.discovered_company) {
       const titleLower = data.discovered_title.toLowerCase();
       const companyLower = data.discovered_company.toLowerCase();
+      const locationPart = data.discovered_location ? `, based in ${data.discovered_location}` : '';
 
       if (titleLower.includes(companyLower)) {
-        parts.push(`${name} is ${data.discovered_title}`);
+        lines.push(`${name} is ${data.discovered_title}${locationPart}.`);
       } else {
-        parts.push(`${name} is ${data.discovered_title} at ${data.discovered_company}`);
+        lines.push(`${name} is ${data.discovered_title} at ${data.discovered_company}${locationPart}.`);
       }
     } else if (data.discovered_title) {
-      parts.push(`${name} is ${data.discovered_title}`);
+      const locationPart = data.discovered_location ? `, based in ${data.discovered_location}` : '';
+      lines.push(`${name} is ${data.discovered_title}${locationPart}.`);
     } else if (data.discovered_company) {
-      parts.push(`${name} works at ${data.discovered_company}`);
+      const locationPart = data.discovered_location ? `, based in ${data.discovered_location}` : '';
+      lines.push(`${name} works at ${data.discovered_company}${locationPart}.`);
+    } else if (data.discovered_location) {
+      lines.push(`${name} is based in ${data.discovered_location}.`);
     }
 
-    if (data.discovered_location) {
-      if (parts.length > 0) {
-        parts[parts.length - 1] += `, based in ${data.discovered_location}`;
-      } else {
-        parts.push(`${name} is based in ${data.discovered_location}`);
+    // 2. Add career timeline if available (shows work history)
+    if (data.career_timeline && data.career_timeline.length > 20) {
+      // Format career timeline nicely
+      const careers = data.career_timeline.split('\n\n').filter(c => c.trim());
+      if (careers.length > 0) {
+        lines.push('');
+        lines.push('**Career History:**');
+        careers.slice(0, 3).forEach(career => {
+          // Extract just the role and company from each entry
+          const firstLine = career.split('\n')[0].trim();
+          lines.push(`• ${firstLine}`);
+        });
+        if (careers.length > 3) {
+          lines.push(`• ...and ${careers.length - 3} more positions`);
+        }
       }
     }
 
-    // Append the summary if we have basic parts
-    if (data.discovered_summary && parts.length > 0) {
-      return parts.join('. ') + '. ' + data.discovered_summary;
-    } else if (data.discovered_summary) {
-      return data.discovered_summary;
+    // 3. Add education if available
+    if (data.education && data.education.length > 10) {
+      lines.push('');
+      lines.push('**Education:**');
+      lines.push(`• ${data.education}`);
     }
 
-    // PRIORITY 3: Use career timeline and education if available
-    if (data.career_timeline) parts.push(data.career_timeline);
-    if (data.education) parts.push(data.education);
-    if (data.achievements) parts.push(data.achievements);
+    // 4. Add skills if available
+    if (data.skills && data.skills.length > 5) {
+      lines.push('');
+      lines.push('**Skills:**');
+      lines.push(`• ${data.skills}`);
+    }
 
-    return parts.join('. ') + (parts.length > 0 ? '.' : '');
+    // 5. Add bio/summary if available
+    if (data.discovered_bio && data.discovered_bio.length > 20) {
+      lines.push('');
+      lines.push(`**About:** ${data.discovered_bio}`);
+    } else if (data.discovered_summary && data.discovered_summary.length > 20) {
+      lines.push('');
+      lines.push(`**About:** ${data.discovered_summary}`);
+    }
+
+    // If we have nothing, return empty
+    if (lines.length === 0) {
+      return `I couldn't find much public information about ${name}.`;
+    }
+
+    return lines.join('\n');
   };
 
   const showNarrative = async (data: EnrichmentData, name: string) => {
