@@ -265,10 +265,41 @@ class ProfileEnrichmentService {
     }
 
     // Build comprehensive narrative prompt - cofounder.co style
-    // Filter out LinkedIn-specific data points
-    const filteredDataPoints = dataPoints.filter(dp =>
-      !dp.toLowerCase().includes('linkedin')
-    );
+    // Filter out LinkedIn URL data points, but keep career data that mentions LinkedIn
+    const filteredDataPoints = dataPoints.map(dp => {
+      // For career_timeline and other rich data, just remove LinkedIn references
+      if (dp.startsWith('Career history:') || dp.startsWith('Additional research findings:')) {
+        return dp
+          .replace(/No LinkedIn profile[^.]*\./gi, '')
+          .replace(/LinkedIn profile[^.]*\./gi, '')
+          .replace(/LinkedIn[^.]*appeared in results[^.]*\./gi, '')
+          .replace(/\bLinkedIn\b/gi, 'professional network')
+          .replace(/\s+/g, ' ')
+          .trim();
+      }
+      return dp;
+    }).filter(dp => {
+      // Only filter out pure LinkedIn URL data points
+      const dpLower = dp.toLowerCase();
+      return !dpLower.startsWith('linkedin url:') &&
+             !dpLower.startsWith('professional network:') &&
+             !(dpLower.includes('linkedin.com/in/') && dpLower.length < 100);
+    });
+
+    // Debug: Log what's being passed to the AI
+    console.log('[ProfileEnrichment] === DEBUG: Prompt Data ===');
+    console.log('[ProfileEnrichment] Total dataPoints:', dataPoints.length);
+    console.log('[ProfileEnrichment] Filtered dataPoints:', filteredDataPoints.length);
+    console.log('[ProfileEnrichment] Data keys:', Object.keys(data).filter(k => data[k] != null));
+    console.log('[ProfileEnrichment] Has career_timeline:', !!data.career_timeline);
+    if (data.career_timeline) {
+      console.log('[ProfileEnrichment] career_timeline length:', data.career_timeline.length);
+    }
+    // Log filtered dataPoints (first 500 chars of each)
+    console.log('[ProfileEnrichment] Filtered data points:');
+    filteredDataPoints.forEach((dp, i) => {
+      console.log(`  [${i}]: ${dp.substring(0, 300)}${dp.length > 300 ? '...' : ''}`);
+    });
 
     const prompt = `Write a comprehensive professional biography as ONE FLOWING PARAGRAPH. Use ALL the data provided.
 
@@ -296,41 +327,30 @@ EXAMPLE OUTPUT (PROFESSIONAL):
 STRICT RULES (VIOLATION = FAILURE):
 - ONE continuous paragraph, no line breaks
 - Include EVERY date, number, and metric from the data
-- NEVER fabricate specific facts (job titles, dates, degrees) not in the data
+- NEVER FABRICATE OR INVENT any information not explicitly provided in the DATA section above
+- If the data shows someone is a Professor, Co-founder, CEO, etc. - describe them as such, NOT as a student
 - NEVER mention "LinkedIn" - use "professional network" or "industry connections" instead
-- For well-known schools (IE, Stanford, MIT, Wharton, Harvard, etc.), briefly mention their specialty
-- NEVER use generic filler like "diverse environment", "international academic"
 
-**CRITICAL: FOR STUDENTS - YOU MUST WRITE 5-7 SENTENCES MINIMUM**
+**USING CAREER HISTORY DATA:**
+If the data includes "Career history:" - this is REAL VERIFIED DATA that you MUST use!
+Extract and include:
+- All job titles and companies mentioned
+- All education/specializations mentioned
+- Any achievements (Forbes Under 30, etc.)
+- Any company details (locations, focus areas)
+This data came from verified sources like company websites, news, and public records.
 
-Structure (use ALL elements even with minimal data):
-1. Name + university + city (e.g., "pursuing studies at IE University in Madrid, Spain")
-2. University specialty and reputation in ONE detailed clause
-3. Likely program focus and skills being developed based on university strengths
-4. Career trajectory and industry sectors the university prepares students for
-5. Professional network context (DO NOT mention LinkedIn - say "professional network" or "industry connections")
-6. Career outlook and positioning
-
-**REQUIRED STUDENT OUTPUT (5-7 sentences like this):**
-"Stefano Gebara is currently pursuing his studies at IE University, a globally recognized institution renowned for its innovative approach to business education, entrepreneurship, and technology management, located in Madrid, Spain. As a student at one of Europe's top business schools, Stefano is developing expertise in areas such as business strategy, startup development, digital transformation, and international management. IE University's strong emphasis on practical learning and its extensive corporate partnerships provide students with direct exposure to leading companies across sectors including consulting, finance, technology, and venture capital. With a growing professional network of over 220 industry connections, Stefano is actively positioning himself within the global business community. His academic journey at IE suggests a strong interest in innovation-driven environments and entrepreneurial ventures, preparing him for leadership roles in dynamic, international settings."
-
-**UNACCEPTABLE (too short - NEVER output this):**
-"Stefano Gebara is a student at IE University in Spain with 223 connections."
-
-**UNIVERSITY KNOWLEDGE (use this to add rich context):**
-- IE University (Madrid) → top European business school, known for entrepreneurship, tech management, innovation, startup incubation, diverse international student body, strong consulting/VC placement
-- Stanford → world-leading tech & engineering, Silicon Valley hub, AI/ML research, top startup founders
-- MIT → engineering excellence, computer science, AI research, innovation, tech entrepreneurship
-- Wharton → premier finance/business school, investment banking, consulting, leadership
-- INSEAD → global MBA powerhouse, international business, consulting, executive leadership
-- Harvard → leadership across fields, business, law, public policy, extensive alumni network
-- Oxford/Cambridge → research excellence, academia, finance, consulting, government
+**ANTI-FABRICATION RULES:**
+- If someone is listed as "Professor" or "Co-founder" - they are NOT a student
+- Do NOT assume someone is a student unless the data explicitly says "student"
+- Do NOT invent institutions, dates, or achievements not in the data
+- It is BETTER to write 3 accurate sentences from real data than 1 generic fabricated one
 
 CRITICAL:
 - Output ONLY the biography paragraph
 - NEVER mention LinkedIn
-- Write 5-7 sentences for students
-- Use university knowledge to add rich context
+- USE all the Career history data provided - it is verified
+- Do NOT be overly cautious - if data says "Professor at SingularityU", write that
 
 Write the biography:`;
 
@@ -404,6 +424,38 @@ Write the biography:`;
                  !lower.includes('i cannot provide');
         });
         cleanNarrative = cleanLines.join(' ').replace(/\s+/g, ' ').trim();
+
+        // ANTI-FABRICATION VALIDATION
+        // Check if the AI fabricated student content when we have professional data
+        const lowerNarrative = cleanNarrative.toLowerCase();
+
+        // Use regex for more flexible matching
+        const hasStudentClaims =
+          /pursuing\s+\w*\s*studies/.test(lowerNarrative) ||  // "pursuing his studies", "pursuing studies"
+          /currently\s+\w*\s*studying/.test(lowerNarrative) ||  // "currently studying"
+          /\bas\s+a\s+student\b/.test(lowerNarrative) ||  // "as a student"
+          /\bis\s+a\s+student\b/.test(lowerNarrative) ||  // "is a student at"
+          /\bstudies\s+at\b/.test(lowerNarrative) ||  // "studies at"
+          /\bstudent\s+at\b/.test(lowerNarrative) ||  // "student at IE University"
+          /\bie\s+university\b/.test(lowerNarrative);  // Specific common hallucination
+
+        // Check if we have clear professional data (Co-founder, Professor, CEO, etc.)
+        const rawDataLower = filteredDataPoints.join(' ').toLowerCase();
+        const hasProfessionalData = rawDataLower.includes('co-founder') ||
+                                     rawDataLower.includes('founder') ||
+                                     rawDataLower.includes('professor') ||
+                                     rawDataLower.includes('ceo') ||
+                                     rawDataLower.includes('director') ||
+                                     rawDataLower.includes('partner') ||
+                                     rawDataLower.includes('president') ||
+                                     rawDataLower.includes('vp ') ||
+                                     rawDataLower.includes('vice president');
+
+        // If AI wrote student content but data shows professional, reject and use fallback
+        if (hasStudentClaims && hasProfessionalData) {
+          console.log('[ProfileEnrichment] REJECTED: AI fabricated student content for a professional');
+          return this.buildFactualSummary(data);
+        }
 
         console.log('[ProfileEnrichment] Generated detailed narrative:', cleanNarrative.substring(0, 200) + '...');
         return cleanNarrative;
@@ -2014,10 +2066,37 @@ Format your response as JSON ONLY:
     const location = data.discovered_location || '';
     const industry = data.scrapin_industry || '';
     const summary = data.scrapin_summary || '';
+    const careerTimeline = data.career_timeline || '';
 
     // Start with LinkedIn summary if available (this is real user-written data)
     if (summary) {
       return summary;
+    }
+
+    // If we have career_timeline (from Perplexity), extract key info from it
+    if (careerTimeline && careerTimeline.length > 100) {
+      // Extract the first sentence or paragraph as the summary
+      // Clean up markdown formatting
+      let cleanCareer = careerTimeline
+        .replace(/\*\*/g, '')  // Remove bold markers
+        .replace(/\[[\d,]+\]/g, '')  // Remove citation markers like [1][2]
+        .replace(/\n#+\s+/g, ' ')  // Remove markdown headers
+        .replace(/\n-\s+/g, ' ')  // Remove list markers
+        .replace(/\n+/g, ' ')  // Replace newlines with spaces
+        .replace(/\s+/g, ' ')  // Normalize whitespace
+        .trim();
+
+      // Get the first few sentences (up to ~400 chars)
+      const sentences = cleanCareer.match(/[^.!?]+[.!?]+/g) || [cleanCareer];
+      let bio = '';
+      for (const sentence of sentences) {
+        if (bio.length + sentence.length > 400) break;
+        bio += sentence;
+      }
+
+      if (bio.length > 50) {
+        return bio.trim();
+      }
     }
 
     // Otherwise build from factual data only
