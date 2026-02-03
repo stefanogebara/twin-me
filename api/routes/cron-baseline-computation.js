@@ -85,15 +85,27 @@ export default async function handler(req, res) {
   console.log(`${'='.repeat(60)}`);
 
   // Security: Verify cron secret
+  // SECURITY FIX: Require CRON_SECRET in production (was previously bypassed if not set)
   const authHeader = req.headers.authorization;
   const cronSecret = process.env.CRON_SECRET;
+  const isDevelopment = process.env.NODE_ENV === 'development';
 
-  if (cronSecret && authHeader !== `Bearer ${cronSecret}`) {
-    console.error('Unauthorized cron request');
-    return res.status(401).json({
-      success: false,
-      error: 'Unauthorized',
-    });
+  if (!isDevelopment) {
+    if (!cronSecret) {
+      console.error('CRON_SECRET not configured in production');
+      return res.status(500).json({
+        success: false,
+        error: 'Configuration Error',
+        message: 'CRON_SECRET must be configured in production',
+      });
+    }
+    if (authHeader !== `Bearer ${cronSecret}`) {
+      console.error('Unauthorized cron request');
+      return res.status(401).json({
+        success: false,
+        error: 'Unauthorized',
+      });
+    }
   }
 
   try {

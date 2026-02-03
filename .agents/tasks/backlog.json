@@ -1,0 +1,79 @@
+{
+  "tasks": [
+    {
+      "id": "TWIN-001",
+      "title": "Analyze current codebase state",
+      "description": "Full analysis of twin-me codebase - what works, what's broken, what's demo vs real",
+      "type": "analysis",
+      "priority": "critical",
+      "assignee": "lead",
+      "status": "pending",
+      "created": "2025-01-28T12:00:00Z",
+      "dependencies": [],
+      "acceptance": [
+        "Complete inventory of all features",
+        "List of working vs broken functionality",
+        "Identification of demo/mock data",
+        "Technical debt assessment"
+      ]
+    },
+    {
+      "id": "TWIN-002",
+      "title": "Fix MVP platform focus",
+      "description": "Update codebase to focus on MVP platforms only: Spotify, Google Calendar, Whoop",
+      "type": "refactor",
+      "priority": "high",
+      "assignee": "tech",
+      "status": "pending",
+      "created": "2025-01-28T12:00:00Z",
+      "dependencies": ["TWIN-001"],
+      "acceptance": [
+        "Demo data shows only MVP platforms",
+        "Remove references to non-MVP platforms from UI",
+        "Update CLAUDE.md to reflect MVP focus"
+      ]
+    },
+    {
+      "id": "TWIN-003",
+      "title": "Security audit - OAuth flow",
+      "description": "Review all OAuth implementations for security issues",
+      "type": "security",
+      "priority": "high",
+      "assignee": "qa",
+      "status": "pending",
+      "created": "2025-01-28T12:00:00Z",
+      "dependencies": [],
+      "acceptance": [
+        "All OAuth flows reviewed",
+        "Token storage security verified",
+        "PKCE implementation checked",
+        "Security report generated"
+      ]
+    },
+    {
+      "id": "TWIN-004",
+      "title": "Clean up documentation files",
+      "description": "The repo has 200+ .md files - consolidate and organize",
+      "type": "maintenance",
+      "priority": "medium",
+      "assignee": "lead",
+      "status": "pending",
+      "created": "2025-01-28T12:00:00Z",
+      "dependencies": ["TWIN-001"],
+      "acceptance": [
+        "Docs organized into /docs folder",
+        "Redundant docs removed or merged",
+        "Clear navigation structure"
+      ]
+    }
+  ],
+  "metadata": {
+    "lastUpdated": "2025-01-28T12:00:00Z",
+    "totalTasks": 4,
+    "byPriority": {
+      "critical": 1,
+      "high": 2,
+      "medium": 1
+    }
+  }
+}

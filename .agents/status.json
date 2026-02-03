@@ -1,0 +1,60 @@
+{
+  "swarm": {
+    "version": "0.2.0",
+    "initialized": "2025-01-28T12:00:00Z",
+    "lastHeartbeat": null,
+    "state": "ready",
+    "humanCheckpointsEnabled": true
+  },
+  "agents": {
+    "orchestrator": {
+      "id": "moltbot-main",
+      "status": "active",
+      "lastActive": null,
+      "currentTask": null
+    },
+    "lead": {
+      "id": "lead-planner",
+      "status": "idle",
+      "lastActive": null,
+      "currentTask": null,
+      "subAgents": ["prd-writer", "project-task-planner"]
+    },
+    "tech": {
+      "id": "tech-builder",
+      "status": "idle",
+      "lastActive": null,
+      "currentTask": null,
+      "subAgents": ["frontend-designer", "code-refactorer", "vibe-coding-coach"]
+    },
+    "test": {
+      "id": "test-runner",
+      "status": "idle",
+      "lastActive": null,
+      "currentTask": null,
+      "tools": ["jest", "vitest", "playwright", "supertest"]
+    },
+    "qa": {
+      "id": "qa-quality",
+      "status": "idle",
+      "lastActive": null,
+      "currentTask": null,
+      "subAgents": ["code-review", "security-auditor", "design-review"]
+    }
+  },
+  "checkpoints": {
+    "awaitingHuman": [],
+    "lastApproved": null,
+    "lastRejected": null
+  },
+  "metrics": {
+    "tasksCompleted": 0,
+    "tasksInProgress": 0,
+    "tasksPending": 4,
+    "testsRun": 0,
+    "testsPassed": 0,
+    "testsFailed": 0,
+    "reviewsPassed": 0,
+    "reviewsFailed": 0
+  }
+}

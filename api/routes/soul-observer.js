@@ -44,7 +44,24 @@ console.log('[Soul Observer] supabaseAdmin client status:', {
 router.post('/activity', async (req, res) => {
   try {
     const { activities, insights, timestamp, source } = req.body;
-    const userId = req.body.userId || req.user?.id;
+    
+    // SECURITY FIX: Prioritize authenticated user, prevent IDOR attacks
+    // If user is authenticated via JWT, always use that ID (ignore body userId)
+    // Only allow body userId for browser extension with valid extension session
+    let userId;
+    
+    if (req.user?.id) {
+      // Authenticated user - always use JWT identity
+      userId = req.user.id;
+      if (req.body.userId && req.body.userId !== userId) {
+        console.warn(`[Soul Observer] ⚠️ SECURITY: Authenticated user ${userId} tried to submit as ${req.body.userId}`);
+      }
+    } else if (req.body.userId && isValidUUID(req.body.userId)) {
+      // Extension flow - validate the extension session exists
+      // TODO: Add proper extension session validation (e.g., check soul_observer_sessions table)
+      userId = req.body.userId;
+      console.log(`[Soul Observer] ⚠️ Using body userId (extension flow): ${userId}`);
+    }
 
     if (!userId) {
       console.log('[Soul Observer] ❌ No userId found in request');

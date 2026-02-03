@@ -7,6 +7,7 @@
 import express from 'express';
 import { createClient } from '@supabase/supabase-js';
 import { checkExpiringTokens } from '../services/tokenExpiryNotifier.js';
+import { authenticateUser } from '../middleware/auth.js';
 
 const router = express.Router();
 
@@ -18,17 +19,12 @@ const supabase = createClient(
 /**
  * GET /api/notifications
  * Get all notifications for the authenticated user
+ * SECURITY FIX: Now requires authentication
  */
-router.get('/', async (req, res) => {
+router.get('/', authenticateUser, async (req, res) => {
   try {
-    const userId = req.query.userId || req.headers['x-user-id'];
-
-    if (!userId) {
-      return res.status(400).json({
-        success: false,
-        error: 'userId is required'
-      });
-    }
+    // SECURITY FIX: Always use authenticated user ID to prevent IDOR
+    const userId = req.user.id;
 
     const { data: notifications, error } = await supabase
       .from('user_notifications')
@@ -74,17 +70,12 @@ router.get('/', async (req, res) => {
 /**
  * GET /api/notifications/unread
  * Get only unread notifications (for badge count)
+ * SECURITY FIX: Now requires authentication
  */
-router.get('/unread', async (req, res) => {
+router.get('/unread', authenticateUser, async (req, res) => {
   try {
-    const userId = req.query.userId || req.headers['x-user-id'];
-
-    if (!userId) {
-      return res.status(400).json({
-        success: false,
-        error: 'userId is required'
-      });
-    }
+    // SECURITY FIX: Always use authenticated user ID to prevent IDOR
+    const userId = req.user.id;
 
     const { data: notifications, error } = await supabase
       .from('user_notifications')
@@ -122,18 +113,13 @@ router.get('/unread', async (req, res) => {
 /**
  * POST /api/notifications/:id/read
  * Mark a notification as read
+ * SECURITY FIX: Now requires authentication
  */
-router.post('/:id/read', async (req, res) => {
+router.post('/:id/read', authenticateUser, async (req, res) => {
   try {
     const { id } = req.params;
-    const userId = req.body.userId || req.headers['x-user-id'];
-
-    if (!userId) {
-      return res.status(400).json({
-        success: false,
-        error: 'userId is required'
-      });
-    }
+    // SECURITY FIX: Always use authenticated user ID to prevent IDOR
+    const userId = req.user.id;
 
     const { error } = await supabase
       .from('user_notifications')
@@ -169,18 +155,13 @@ router.post('/:id/read', async (req, res) => {
 /**
  * POST /api/notifications/:id/dismiss
  * Dismiss a notification (hide it permanently)
+ * SECURITY FIX: Now requires authentication
  */
-router.post('/:id/dismiss', async (req, res) => {
+router.post('/:id/dismiss', authenticateUser, async (req, res) => {
   try {
     const { id } = req.params;
-    const userId = req.body.userId || req.headers['x-user-id'];
-
-    if (!userId) {
-      return res.status(400).json({
-        success: false,
-        error: 'userId is required'
-      });
-    }
+    // SECURITY FIX: Always use authenticated user ID to prevent IDOR
+    const userId = req.user.id;
 
     const { error } = await supabase
       .from('user_notifications')
@@ -217,17 +198,12 @@ router.post('/:id/dismiss', async (req, res) => {
 /**
  * POST /api/notifications/read-all
  * Mark all notifications as read
+ * SECURITY FIX: Now requires authentication
  */
-router.post('/read-all', async (req, res) => {
+router.post('/read-all', authenticateUser, async (req, res) => {
   try {
-    const userId = req.body.userId || req.headers['x-user-id'];
-
-    if (!userId) {
-      return res.status(400).json({
-        success: false,
-        error: 'userId is required'
-      });
-    }
+    // SECURITY FIX: Always use authenticated user ID to prevent IDOR
+    const userId = req.user.id;
 
     const { error } = await supabase
       .from('user_notifications')
