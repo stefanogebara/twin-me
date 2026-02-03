@@ -6,6 +6,46 @@ const supabase = createClient(
 );
 
 /**
+ * SECURITY UTILITIES
+ * Helper functions for PII protection and input sanitization
+ */
+
+// Redact email for logging (GDPR compliance)
+function redactEmail(email) {
+  if (!email || typeof email !== 'string') return '[no-email]';
+  const [local, domain] = email.split('@');
+  if (!domain) return '[invalid-email]';
+  return `${local.charAt(0)}***@${domain}`;
+}
+
+// Redact name for logging
+function redactName(name) {
+  if (!name || typeof name !== 'string') return '[no-name]';
+  const parts = name.trim().split(' ');
+  if (parts.length === 1) return `${parts[0].charAt(0)}***`;
+  return `${parts[0].charAt(0)}*** ${parts[parts.length-1].charAt(0)}***`;
+}
+
+// Sanitize name for AI prompts (prevent prompt injection)
+function sanitizeName(name) {
+  if (!name || typeof name !== 'string') return '';
+  // Remove potential prompt injection characters and limit length
+  return name
+    .replace(/[<>{}[\]\\|`$]/g, '') // Remove dangerous chars
+    .replace(/\b(ignore|system|assistant|user|human|instructions?|prompt)\b/gi, '') // Remove injection keywords
+    .replace(/\n/g, ' ') // No newlines
+    .trim()
+    .substring(0, 100); // Max 100 chars for a name
+}
+
+// Validate email format
+function isValidEmail(email) {
+  if (!email || typeof email !== 'string') return false;
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  return emailRegex.test(email) && email.length <= 254;
+}
+
+/**
  * Profile Enrichment Service
  *
  * Waterfall enrichment strategy for accurate profile discovery:
@@ -30,11 +70,17 @@ class ProfileEnrichmentService {
    * @returns {Promise<Object>} Enrichment data with discovered fields
    */
   async enrichFromEmail(email, name = null) {
-    console.log(`[ProfileEnrichment] Starting enrichment for: ${email}`);
-    console.log(`[ProfileEnrichment] API keys loaded:`, {
-      scrapin: !!process.env.SCRAPIN_API_KEY,
-      pdl: !!process.env.PDL_API_KEY
-    });
+    // SECURITY FIX: Validate inputs
+    if (!isValidEmail(email)) {
+      console.log('[ProfileEnrichment] Invalid email format provided');
+      return { success: false, error: 'Invalid email format' };
+    }
+
+    // SECURITY FIX: Redact PII in logs (GDPR compliance)
+    console.log(`[ProfileEnrichment] Starting enrichment for: ${redactEmail(email)}`);
+    
+    // Sanitize name for use in AI prompts
+    const sanitizedName = name ? sanitizeName(name) : null;
 
     // Try multiple providers in order of preference
     const scrapinKey = process.env.SCRAPIN_API_KEY;
@@ -104,7 +150,8 @@ class ProfileEnrichmentService {
           // Verify the profile name matches what we're looking for
           const profileName = fullProfile.data.discovered_name || '';
           const searchName = name || '';
-          console.log(`[ProfileEnrichment] NAME VERIFICATION: Profile="${profileName}" Search="${searchName}"`);
+          // SECURITY FIX: Redact PII in logs
+          console.log(`[ProfileEnrichment] NAME VERIFICATION: Profile="${redactName(profileName)}" Search="${redactName(searchName)}"`);
           const nameMatch = this.verifyNameMatch(profileName, searchName);
           console.log(`[ProfileEnrichment] NAME MATCH RESULT: ${nameMatch}`);
 
@@ -476,9 +523,12 @@ Write the biography:`;
   async comprehensivePersonSearch(name, email, existingData = {}) {
     const apiKey = process.env.OPENROUTER_API_KEY;
     if (!apiKey || !name) {
-      console.log('[ProfileEnrichment] Cannot do comprehensive search - no API key or name');
+      console.log('[ProfileEnrichment] Cannot do comprehensive search - missing requirements');
       return null;
     }
+
+    // SECURITY FIX: Sanitize name before using in AI prompts (prevent prompt injection)
+    name = sanitizeName(name);
 
     // Detect if this is a student/early-career person from Scrapin headline
     const headline = existingData?.scrapin_headline || existingData?.discovered_title || '';
@@ -638,7 +688,8 @@ CRITICAL: Search the ACTUAL LinkedIn profile page and extract the experience/edu
     }
 
     try {
-      console.log('[ProfileEnrichment] Running comprehensive Perplexity search for:', name);
+      // SECURITY FIX: Redact PII in logs
+      console.log('[ProfileEnrichment] Running comprehensive Perplexity search');
 
       const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
         method: 'POST',
@@ -757,9 +808,12 @@ CRITICAL: Search the ACTUAL LinkedIn profile page and extract the experience/edu
   async findLinkedInUrlViaWebSearch(email, name) {
     const apiKey = process.env.OPENROUTER_API_KEY;
     if (!apiKey) {
-      console.log('[ProfileEnrichment] No OpenRouter API key for web search');
+      console.log('[ProfileEnrichment] Missing API key for web search');
       return null;
     }
+
+    // SECURITY FIX: Sanitize name before using in AI prompts
+    const safeName = name ? sanitizeName(name) : '';
 
     // Extract company from email domain for better matching
     const emailDomain = email?.split('@')[1] || '';
@@ -769,8 +823,8 @@ CRITICAL: Search the ACTUAL LinkedIn profile page and extract the experience/edu
       : '';
 
     // Build a Google site: search query - this format works best with Gemini
-    const searchQuery = `site:linkedin.com/in "${name || email}"${companyHint ? ` ${companyHint}` : ''} Return ONLY the LinkedIn URL.`;
-    console.log('[ProfileEnrichment] LinkedIn URL search query:', searchQuery);
+    const searchQuery = `site:linkedin.com/in "${safeName || email}"${companyHint ? ` ${companyHint}` : ''} Return ONLY the LinkedIn URL.`;
+    console.log('[ProfileEnrichment] LinkedIn URL search initiated');
 
     try {
       const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
@@ -832,12 +886,19 @@ CRITICAL: Search the ACTUAL LinkedIn profile page and extract the experience/edu
   async searchWebForCareerHistory(name, currentCompany = null) {
     const apiKey = process.env.OPENROUTER_API_KEY;
     if (!apiKey) {
-      console.log('[ProfileEnrichment] No API key for career search');
+      console.log('[ProfileEnrichment] Missing API key for career search');
       return null;
     }
 
-    const companyHint = currentCompany ? ` (currently at ${currentCompany})` : '';
-    const query = `Search for ${name}${companyHint}'s complete career history and education background.
+    // SECURITY FIX: Sanitize name before using in AI prompts
+    const safeName = name ? sanitizeName(name) : '';
+    if (!safeName) {
+      console.log('[ProfileEnrichment] No valid name for career search');
+      return null;
+    }
+
+    const companyHint = currentCompany ? ` (currently at ${sanitizeName(currentCompany)})` : '';
+    const query = `Search for ${safeName}${companyHint}'s complete career history and education background.
 
 Find information from Wikipedia, company bios, Crunchbase, Bloomberg, news articles, and other reliable sources.
 
@@ -857,7 +918,8 @@ EDUCATION:
 Be thorough and accurate. Only include information you can verify from sources.`;
 
     try {
-      console.log('[ProfileEnrichment] Searching web for career history of:', name);
+      // SECURITY FIX: Redact PII in logs
+      console.log('[ProfileEnrichment] Searching web for career history');
 
       const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
         method: 'POST',
@@ -1082,17 +1144,21 @@ Be thorough and accurate. Only include information you can verify from sources.`
    * Returns a query that asks for BOTH a narrative summary AND structured data
    */
   buildSearchQuery(email, name, emailDomain) {
+    // SECURITY FIX: Sanitize inputs before using in AI prompts
+    const safeName = name ? sanitizeName(name) : null;
+    const safeEmailDomain = emailDomain ? emailDomain.replace(/[<>]/g, '') : '';
+    
     // Check if email is from a company domain (not gmail, hotmail, etc.)
     const personalDomains = ['gmail.com', 'hotmail.com', 'outlook.com', 'yahoo.com', 'icloud.com', 'protonmail.com', 'aol.com', 'live.com', 'msn.com'];
-    const isCompanyEmail = !personalDomains.includes(emailDomain.toLowerCase());
+    const isCompanyEmail = !personalDomains.includes(safeEmailDomain.toLowerCase());
 
     // Build context for more accurate search
     const emailHint = isCompanyEmail
-      ? `This person likely works at a company associated with the domain "${emailDomain}".`
-      : `This person uses a personal email (${emailDomain}).`;
+      ? `This person likely works at a company associated with the domain "${safeEmailDomain}".`
+      : `This person uses a personal email (${safeEmailDomain}).`;
 
-    if (name) {
-      return `I need to find information about a specific person named "${name}" with email address "${email}".
+    if (safeName) {
+      return `I need to find information about a specific person named "${safeName}" with email address "${email}".
 
 ${emailHint}
 
@@ -1602,7 +1668,8 @@ IMPORTANT: Write ONLY the summary. No prefixes, no "Based on...", no meta-commen
       }
 
       const person = result.data;
-      console.log('[ProfileEnrichment] PDL found person:', person.full_name);
+      // SECURITY FIX: Redact PII in logs
+      console.log('[ProfileEnrichment] PDL found person:', redactName(person.full_name));
 
       // Map PDL response to our enrichment format
       const enrichmentData = {
