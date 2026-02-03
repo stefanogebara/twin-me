@@ -110,7 +110,7 @@ async function computeMetricBaseline(userId, metricName, platform, windowDays) {
       values.push(value);
 
       // Track day of week
-      const dow = new Date(event.event_timestamp).toLocaleDateString('en-US', { weekday: 'lowercase' });
+      const dow = new Date(event.event_timestamp).toLocaleDateString('en-US', { weekday: 'long' }).toLowerCase();
       if (!dowValues[dow]) dowValues[dow] = [];
       dowValues[dow].push(value);
 
@@ -359,7 +359,7 @@ export async function getContextualBaseline(userId, metricName, timestamp = new 
 
   if (!baseline) return null;
 
-  const dow = timestamp.toLocaleDateString('en-US', { weekday: 'lowercase' });
+  const dow = timestamp.toLocaleDateString('en-US', { weekday: 'long' }).toLowerCase();
   const hour = timestamp.getHours();
 
   let tod = 'night';

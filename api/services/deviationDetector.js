@@ -261,7 +261,7 @@ function buildContext(event) {
   else if (hour >= 17 && hour < 21) timeOfDay = 'evening';
 
   return {
-    day_of_week: timestamp.toLocaleDateString('en-US', { weekday: 'lowercase' }),
+    day_of_week: timestamp.toLocaleDateString('en-US', { weekday: 'long' }).toLowerCase(),
     time_of_day: timeOfDay,
     hour,
     timestamp: timestamp.toISOString()

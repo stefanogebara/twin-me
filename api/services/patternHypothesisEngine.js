@@ -280,7 +280,7 @@ export async function getActiveHypotheses(userId, category = null, minConfidence
     .from('pl_pattern_hypotheses')
     .select(`
       *,
-      correlation:discovered_correlations(
+      correlation:pl_discovered_correlations(
         metric_a,
         metric_b,
         platform_a,
@@ -425,7 +425,7 @@ export async function getRelevantHypotheses(userId, metricName) {
     .from('pl_pattern_hypotheses')
     .select(`
       *,
-      correlation:discovered_correlations(
+      correlation:pl_discovered_correlations(
         metric_a,
         metric_b,
         direction,
@@ -458,7 +458,7 @@ export async function deactivateStaleHypotheses(userId) {
     .from('pl_pattern_hypotheses')
     .select(`
       id,
-      correlation:discovered_correlations!inner(
+      correlation:pl_discovered_correlations!inner(
         still_valid
       )
     `)
