@@ -2,21 +2,24 @@
  * Extraction Status API Routes
  *
  * Endpoints for checking extraction job status and history.
+ * SECURITY FIX: All endpoints now require authentication
  */
 
 import express from 'express';
 import extractionOrchestrator from '../services/extractionOrchestrator.js';
 import { supabaseAdmin } from '../services/database.js';
+import { authenticateUser } from '../middleware/auth.js';
 
 const router = express.Router();
 
 /**
- * GET /api/extraction/status/:userId
- * Get extraction status for all platforms
+ * GET /api/extraction/status
+ * Get extraction status for authenticated user
+ * SECURITY FIX: Removed :userId param, uses authenticated user
  */
-router.get('/status/:userId', async (req, res) => {
+router.get('/status', authenticateUser, async (req, res) => {
   try {
-    const { userId } = req.params;
+    const userId = req.user.id;
 
     const status = await extractionOrchestrator.getExtractionStatus(userId);
 
@@ -31,13 +34,37 @@ router.get('/status/:userId', async (req, res) => {
   }
 });
 
-/**
- * GET /api/extraction/jobs/:userId
- * Get extraction job history
- */
-router.get('/jobs/:userId', async (req, res) => {
+// Legacy route for backwards compatibility (still requires auth, validates ownership)
+router.get('/status/:userId', authenticateUser, async (req, res) => {
   try {
-    const { userId } = req.params;
+    // SECURITY: Only allow accessing own data
+    if (req.params.userId !== req.user.id) {
+      return res.status(403).json({
+        success: false,
+        error: 'Access denied'
+      });
+    }
+
+    const status = await extractionOrchestrator.getExtractionStatus(req.user.id);
+    res.json(status);
+
+  } catch (error) {
+    console.error('[Extraction API] Status error:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
+/**
+ * GET /api/extraction/jobs
+ * Get extraction job history for authenticated user
+ * SECURITY FIX: Removed :userId param, uses authenticated user
+ */
+router.get('/jobs', authenticateUser, async (req, res) => {
+  try {
+    const userId = req.user.id;
     const { limit = 20, platform } = req.query;
 
     let query = supabaseAdmin
@@ -70,21 +97,59 @@ router.get('/jobs/:userId', async (req, res) => {
   }
 });
 
+// Legacy route for backwards compatibility
+router.get('/jobs/:userId', authenticateUser, async (req, res) => {
+  try {
+    // SECURITY: Only allow accessing own data
+    if (req.params.userId !== req.user.id) {
+      return res.status(403).json({
+        success: false,
+        error: 'Access denied'
+      });
+    }
+
+    const { limit = 20, platform } = req.query;
+
+    let query = supabaseAdmin
+      .from('data_extraction_jobs')
+      .select('*')
+      .eq('user_id', req.user.id)
+      .order('started_at', { ascending: false })
+      .limit(parseInt(limit));
+
+    if (platform) {
+      query = query.eq('platform', platform);
+    }
+
+    const { data: jobs, error } = await query;
+
+    if (error) throw error;
+
+    res.json({
+      success: true,
+      jobs: jobs || [],
+      count: jobs?.length || 0
+    });
+
+  } catch (error) {
+    console.error('[Extraction API] Jobs error:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
 /**
  * POST /api/extraction/trigger/:platform
  * Manually trigger extraction for a platform
+ * SECURITY FIX: Now requires authentication
  */
-router.post('/trigger/:platform', async (req, res) => {
+router.post('/trigger/:platform', authenticateUser, async (req, res) => {
   try {
     const { platform } = req.params;
-    const userId = req.body.userId || req.user?.id;
-
-    if (!userId) {
-      return res.status(400).json({
-        success: false,
-        error: 'User ID required'
-      });
-    }
+    // SECURITY FIX: Always use authenticated user ID
+    const userId = req.user.id;
 
     const result = await extractionOrchestrator.extractPlatform(userId, platform);
 
@@ -102,17 +167,12 @@ router.post('/trigger/:platform', async (req, res) => {
 /**
  * POST /api/extraction/trigger-all
  * Trigger extraction for all connected platforms
+ * SECURITY FIX: Now requires authentication
  */
-router.post('/trigger-all', async (req, res) => {
+router.post('/trigger-all', authenticateUser, async (req, res) => {
   try {
-    const userId = req.body.userId || req.user?.id;
-
-    if (!userId) {
-      return res.status(400).json({
-        success: false,
-        error: 'User ID required'
-      });
-    }
+    // SECURITY FIX: Always use authenticated user ID
+    const userId = req.user.id;
 
     const result = await extractionOrchestrator.extractAllPlatforms(userId);
 
@@ -130,10 +190,12 @@ router.post('/trigger-all', async (req, res) => {
 /**
  * POST /api/extraction/retry-failed
  * Retry failed extractions
+ * SECURITY FIX: Now requires authentication
  */
-router.post('/retry-failed', async (req, res) => {
+router.post('/retry-failed', authenticateUser, async (req, res) => {
   try {
-    const userId = req.body.userId || req.user?.id;
+    // SECURITY FIX: Always use authenticated user ID
+    const userId = req.user.id;
 
     const result = await extractionOrchestrator.retryFailedExtractions(userId);
 
@@ -149,18 +211,72 @@ router.post('/retry-failed', async (req, res) => {
 });
 
 /**
- * GET /api/extraction/features/:userId
- * Get behavioral features for a user
+ * GET /api/extraction/features
+ * Get behavioral features for authenticated user
+ * SECURITY FIX: Removed :userId param, uses authenticated user
  */
-router.get('/features/:userId', async (req, res) => {
+router.get('/features', authenticateUser, async (req, res) => {
   try {
-    const { userId } = req.params;
+    const userId = req.user.id;
     const { platform, limit = 50 } = req.query;
 
     let query = supabaseAdmin
       .from('behavioral_features')
       .select('*')
       .eq('user_id', userId)
+      .order('extracted_at', { ascending: false })
+      .limit(parseInt(limit));
+
+    if (platform) {
+      query = query.eq('platform', platform);
+    }
+
+    const { data: features, error } = await query;
+
+    if (error) throw error;
+
+    // Group by platform for easier consumption
+    const byPlatform = {};
+    for (const feature of features || []) {
+      if (!byPlatform[feature.platform]) {
+        byPlatform[feature.platform] = [];
+      }
+      byPlatform[feature.platform].push(feature);
+    }
+
+    res.json({
+      success: true,
+      features: features || [],
+      byPlatform,
+      count: features?.length || 0
+    });
+
+  } catch (error) {
+    console.error('[Extraction API] Features error:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
+// Legacy route for backwards compatibility
+router.get('/features/:userId', authenticateUser, async (req, res) => {
+  try {
+    // SECURITY: Only allow accessing own data
+    if (req.params.userId !== req.user.id) {
+      return res.status(403).json({
+        success: false,
+        error: 'Access denied'
+      });
+    }
+
+    const { platform, limit = 50 } = req.query;
+
+    let query = supabaseAdmin
+      .from('behavioral_features')
+      .select('*')
+      .eq('user_id', req.user.id)
       .order('extracted_at', { ascending: false })
       .limit(parseInt(limit));
 

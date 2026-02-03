@@ -360,17 +360,20 @@ app.get('/api/health', async (req, res) => {
 });
 
 // TEMPORARY: Test endpoint to trigger evidence pipeline (for debugging)
-app.get('/api/test-evidence-pipeline/:userId', async (req, res) => {
-  try {
-    const { userId } = req.params;
-    console.log(`🧪 [Test] Triggering evidence pipeline for user ${userId}`);
-    const result = await behavioralEvidencePipeline.runPipeline(userId);
-    res.json(result);
-  } catch (error) {
-    console.error('Test pipeline error:', error);
-    res.status(500).json({ error: error.message });
-  }
-});
+// SECURITY FIX: Only available in development mode
+if (process.env.NODE_ENV === 'development') {
+  app.get('/api/test-evidence-pipeline/:userId', async (req, res) => {
+    try {
+      const { userId } = req.params;
+      console.log(`🧪 [Test] Triggering evidence pipeline for user ${userId}`);
+      const result = await behavioralEvidencePipeline.runPipeline(userId);
+      res.json(result);
+    } catch (error) {
+      console.error('Test pipeline error:', error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+}
 
 // Authentication error handling (must be before general error handler)
 // app.use(handleAuthError);
