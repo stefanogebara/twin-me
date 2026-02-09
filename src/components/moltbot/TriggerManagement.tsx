@@ -103,6 +103,58 @@ export const TriggerManagement: React.FC<TriggerManagementProps> = ({
   const [showCreateModal, setShowCreateModal] = useState(false);
 
   useEffect(() => {
+    const isDemoMode = localStorage.getItem('demo_mode') === 'true';
+    if (isDemoMode) {
+      // In demo mode, show sample triggers instead of fetching from API
+      setTriggers([
+        {
+          id: 'demo-trigger-1',
+          name: 'Morning Energy Check',
+          description: 'Check recovery score every morning to suggest optimal daily plan',
+          conditions: [{ type: 'time', value: '08:00' }],
+          actions: [{ type: 'log_event', category: 'morning_routine' }],
+          enabled: true,
+          cooldown_minutes: 1440,
+          priority: 75,
+          created_at: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
+          fire_count: 7,
+          last_triggered: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()
+        },
+        {
+          id: 'demo-trigger-2',
+          name: 'Low Recovery Alert',
+          description: 'Alert when Whoop recovery drops below 50%',
+          conditions: [{ type: 'metric', platform: 'whoop', field: 'recovery', operator: '<', value: 50 }],
+          actions: [{ type: 'notify', message: 'Your recovery is low. Consider lighter activities today.' }],
+          enabled: true,
+          cooldown_minutes: 720,
+          priority: 90,
+          created_at: new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString(),
+          fire_count: 3,
+        }
+      ]);
+      setTemplates([
+        {
+          id: 'template-1',
+          name: 'Focus Time Music',
+          description: 'Suggest ambient music when calendar shows a focus block',
+          conditions: [{ type: 'event', platform: 'google_calendar', check: 'focus_block_detected' }],
+          actions: [{ type: 'suggest', message: 'Start your ambient playlist for deep work' }],
+          research_basis: 'Music context switching improves focus by reducing cognitive load'
+        },
+        {
+          id: 'template-2',
+          name: 'High Strain Recovery',
+          description: 'Suggest relaxation after high strain days',
+          conditions: [{ type: 'metric', platform: 'whoop', field: 'strain', operator: '>', value: 15 }],
+          actions: [{ type: 'suggest', message: 'High strain day. Try relaxing music to aid recovery.' }],
+          research_basis: 'Downregulation music aids parasympathetic recovery'
+        }
+      ]);
+      setError(null);
+      setLoading(false);
+      return;
+    }
     fetchTriggers();
     fetchTemplates();
   }, [userId]);
