@@ -286,7 +286,16 @@ router.delete('/connections/:platform', authenticateUser, async (req, res) => {
 router.get('/extract/:platform', authenticateUser, async (req, res) => {
   try {
     const userId = req.user.id;
-    const { platform } = req.params;
+    let { platform } = req.params;
+
+    // Normalize platform names: frontend uses underscores, Nango uses hyphens
+    const platformNameMap = {
+      'google_calendar': 'google-calendar',
+      'google_mail': 'google-mail',
+      'google_gmail': 'google-mail',
+      'google_drive': 'google-drive',
+    };
+    platform = platformNameMap[platform] || platform;
 
     console.log(`[Nango API] Extracting data from ${platform} for user ${userId}`);
 

@@ -59,8 +59,14 @@ export const TokenExpiryBanner: React.FC<TokenExpiryBannerProps> = ({
     const fetchNotifications = async () => {
       setIsLoading(true);
       try {
+        const token = localStorage.getItem('auth_token') || localStorage.getItem('token');
         const response = await fetch(
-          `${API_URL}/notifications/unread?userId=${encodeURIComponent(user.id)}`
+          `${API_URL}/notifications/unread?userId=${encodeURIComponent(user.id)}`,
+          {
+            headers: {
+              ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
+            },
+          }
         );
         const data = await response.json();
 

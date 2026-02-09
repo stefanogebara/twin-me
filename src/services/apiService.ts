@@ -680,8 +680,7 @@ export const whoopAPI = {
    * Note: Now uses Nango for authentication. Token refresh is handled automatically by Nango.
    */
   getCurrentState: async (): Promise<WhoopCurrentState> => {
-    const userId = localStorage.getItem('user_id') || '';
-    const response = await fetch(`${API_URL}/health/whoop/current-state?userId=${encodeURIComponent(userId)}`, {
+    const response = await fetch(`${API_URL}/health/whoop/current-state`, {
       headers: getAuthHeaders(),
     });
 

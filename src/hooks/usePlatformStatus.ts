@@ -128,8 +128,10 @@ export const usePlatformStatus = (
   });
 
   // Set up Supabase Realtime subscription for instant updates
+  // Disabled by default - Realtime requires table-level replication to be enabled in Supabase.
+  // Polling (every 30s) is the reliable fallback. Enable explicitly with enableRealtime: true.
   useEffect(() => {
-    if (!userId || options?.enableRealtime === false) return;
+    if (!userId || options?.enableRealtime !== true) return;
 
     let channel: RealtimeChannel | null = null;
 
