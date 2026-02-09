@@ -513,10 +513,13 @@ router.get('/clusters', authenticateUser, async (req, res) => {
       availableClusters: Object.keys(CLUSTER_DEFINITIONS)
     });
   } catch (error) {
-    console.error('[Moltbot API] Error getting clusters:', error);
-    res.status(500).json({
-      success: false,
-      error: 'Failed to get cluster personalities'
+    console.error('[Moltbot API] Error getting clusters:', error.message);
+    // Return empty data instead of 500 - clusters are non-critical
+    res.json({
+      success: true,
+      clusters: {},
+      divergences: [],
+      availableClusters: Object.keys(CLUSTER_DEFINITIONS)
     });
   }
 });
