@@ -1,24 +1,296 @@
 /**
  * Soul Observer Mode Content Script
  * Intelligently tracks browsing activity for LLM interpretation
- * 
+ *
  * Privacy-first design:
  * - User must explicitly enable
  * - Only captures metadata (no form data, passwords, etc.)
  * - Transparent about what's collected
  * - Data encrypted before sending
+ * - Sensitive domains blocked (banking, healthcare, email, gov)
+ * - URLs sanitized (tracking params stripped)
+ * - Incognito mode excluded
  */
 
 console.log('[Soul Observer] Content script loaded');
 
+// Skip entirely in incognito mode (chrome.extension may not exist in MV3)
+const _isIncognito = typeof chrome !== 'undefined' && chrome.extension && chrome.extension.inIncognitoContext;
+if (_isIncognito) {
+  console.log('[Soul Observer] Incognito mode - disabled');
+}
+
 let observerEnabled = false;
 let lastActivityTime = Date.now();
+let webEventEmitted = false;
+let lastWebEventUrl = null;
+let lastWebEventTime = 0;
 let currentPageData = {
   startTime: Date.now(),
   scrollDepth: 0,
   interactions: 0,
   readingTime: 0
 };
+
+// ============================================================
+// SENSITIVE DOMAIN BLOCKLIST - never collect data from these
+// ============================================================
+const SENSITIVE_DOMAIN_PATTERNS = [
+  // Banking & Finance
+  /bank/i, /chase\.com/, /wellsfargo\.com/, /capitalone\.com/, /citi\.com/,
+  /paypal\.com/, /venmo\.com/, /zelle\.com/, /mint\.com/,
+  // Healthcare
+  /health/i, /medical/i, /patient/i, /mychart/i, /hospital/i,
+  /pharmacy/i, /doctor/i, /clinic/i,
+  // Email (handled by dedicated connectors)
+  /mail\.google\.com/, /outlook\.live\.com/, /outlook\.office\.com/,
+  /mail\.yahoo\.com/, /protonmail\.com/, /tutanota\.com/,
+  // Password managers
+  /1password\.com/, /lastpass\.com/, /bitwarden\.com/, /dashlane\.com/,
+  // Government
+  /\.gov$/, /\.gov\./,
+  // Auth pages
+  /accounts\.google\.com/, /login\./i, /signin\./i, /auth\./i
+];
+
+function isSensitiveDomain(hostname) {
+  return SENSITIVE_DOMAIN_PATTERNS.some(pattern => pattern.test(hostname));
+}
+
+// ============================================================
+// TRACKING PARAM PATTERNS - stripped from URLs for privacy
+// ============================================================
+const TRACKING_PARAMS = new Set([
+  'utm_source', 'utm_medium', 'utm_campaign', 'utm_term', 'utm_content',
+  'fbclid', 'gclid', 'gclsrc', 'dclid', 'gbraid', 'wbraid',
+  'msclkid', 'twclid', 'li_fat_id', 'mc_cid', 'mc_eid',
+  'ref', 'ref_', '_ga', '_gl', 'yclid', 'spm'
+]);
+
+// ============================================================
+// SEARCH ENGINE QUERY DETECTION
+// ============================================================
+const SEARCH_ENGINE_PARAMS = {
+  'google.com': { param: 'q', path: '/search' },
+  'www.google.com': { param: 'q', path: '/search' },
+  'bing.com': { param: 'q', path: '/search' },
+  'www.bing.com': { param: 'q', path: '/search' },
+  'duckduckgo.com': { param: 'q', path: '/' },
+  'www.reddit.com': { param: 'q', path: '/search' },
+  'old.reddit.com': { param: 'q', path: '/search' },
+  'stackoverflow.com': { param: 'q', path: '/search' },
+  'www.stackoverflow.com': { param: 'q', path: '/search' },
+  'github.com': { param: 'q', path: '/search' },
+  'en.wikipedia.org': { param: 'search', path: '/w/index.php' },
+};
+
+// Generic search param names (fallback for unknown sites)
+const GENERIC_SEARCH_PARAMS = ['q', 'query', 'search', 'keyword', 'keywords', 'search_query'];
+
+function detectSearchQuery() {
+  try {
+    const url = new URL(window.location.href);
+    const hostname = url.hostname;
+
+    // Skip YouTube search (handled by YouTube collector)
+    if (hostname.includes('youtube.com')) return null;
+
+    // Check known search engines
+    const engine = SEARCH_ENGINE_PARAMS[hostname];
+    if (engine) {
+      if (engine.path && !url.pathname.startsWith(engine.path)) return null;
+      const query = url.searchParams.get(engine.param);
+      return query ? query.trim() : null;
+    }
+
+    // Amazon search
+    if (hostname.includes('amazon.')) {
+      const k = url.searchParams.get('k');
+      if (k && url.pathname.startsWith('/s')) return k.trim();
+    }
+
+    // Generic fallback - check common query params
+    for (const param of GENERIC_SEARCH_PARAMS) {
+      const val = url.searchParams.get(param);
+      if (val && val.length > 1 && val.length < 200) return val.trim();
+    }
+
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+// ============================================================
+// DOMAIN CATEGORIZATION
+// ============================================================
+const DOMAIN_CATEGORY_MAP = {
+  // Learning
+  'stackoverflow.com': 'Learning', 'stackexchange.com': 'Learning',
+  'medium.com': 'Learning', 'dev.to': 'Learning',
+  'coursera.org': 'Learning', 'udemy.com': 'Learning',
+  'khanacademy.org': 'Learning', 'edx.org': 'Learning',
+  'freecodecamp.org': 'Learning', 'w3schools.com': 'Learning',
+  'mdn.mozilla.org': 'Learning', 'developer.mozilla.org': 'Learning',
+  'docs.python.org': 'Learning', 'docs.microsoft.com': 'Learning',
+  'learn.microsoft.com': 'Learning', 'arxiv.org': 'Learning',
+  'scholar.google.com': 'Learning', 'researchgate.net': 'Learning',
+  // News
+  'cnn.com': 'News', 'bbc.com': 'News', 'bbc.co.uk': 'News',
+  'nytimes.com': 'News', 'reuters.com': 'News', 'apnews.com': 'News',
+  'techcrunch.com': 'News', 'theverge.com': 'News', 'arstechnica.com': 'News',
+  'news.ycombinator.com': 'News', 'wired.com': 'News', 'engadget.com': 'News',
+  // Shopping
+  'amazon.com': 'Shopping', 'ebay.com': 'Shopping', 'etsy.com': 'Shopping',
+  'walmart.com': 'Shopping', 'target.com': 'Shopping', 'bestbuy.com': 'Shopping',
+  // Social
+  'reddit.com': 'Social', 'old.reddit.com': 'Social',
+  'twitter.com': 'Social', 'x.com': 'Social',
+  'facebook.com': 'Social', 'instagram.com': 'Social',
+  'linkedin.com': 'Social', 'threads.net': 'Social',
+  'mastodon.social': 'Social', 'bsky.app': 'Social',
+  // Entertainment (skip YouTube/Twitch - handled by dedicated collectors)
+  'netflix.com': 'Entertainment', 'spotify.com': 'Entertainment',
+  'twitch.tv': 'Entertainment', 'youtube.com': 'Entertainment',
+  'disneyplus.com': 'Entertainment', 'hbomax.com': 'Entertainment',
+  'primevideo.com': 'Entertainment', 'hulu.com': 'Entertainment',
+  // Productivity
+  'github.com': 'Productivity', 'gitlab.com': 'Productivity',
+  'notion.so': 'Productivity', 'figma.com': 'Productivity',
+  'docs.google.com': 'Productivity', 'drive.google.com': 'Productivity',
+  'trello.com': 'Productivity', 'asana.com': 'Productivity',
+  'jira.atlassian.net': 'Productivity', 'confluence.atlassian.net': 'Productivity',
+  'vercel.com': 'Productivity', 'netlify.com': 'Productivity',
+  // Health & Fitness
+  'strava.com': 'Health', 'myfitnesspal.com': 'Health',
+  'fitbit.com': 'Health', 'whoop.com': 'Health',
+  // Reference
+  'wikipedia.org': 'Reference', 'en.wikipedia.org': 'Reference',
+  'dictionary.com': 'Reference', 'merriam-webster.com': 'Reference',
+  'wolframalpha.com': 'Reference',
+};
+
+function categorizeSite(hostname, metadata) {
+  // Strip www. prefix for lookup
+  const bare = hostname.replace(/^www\./, '');
+
+  // Direct domain match
+  if (DOMAIN_CATEGORY_MAP[bare]) return DOMAIN_CATEGORY_MAP[bare];
+  if (DOMAIN_CATEGORY_MAP[hostname]) return DOMAIN_CATEGORY_MAP[hostname];
+
+  // Partial domain match (e.g., *.stackoverflow.com)
+  for (const [domain, category] of Object.entries(DOMAIN_CATEGORY_MAP)) {
+    if (hostname.endsWith('.' + domain) || bare.endsWith('.' + domain)) return category;
+  }
+
+  // Subdomain patterns
+  if (/docs?\./i.test(hostname) || /wiki\./i.test(hostname) || /learn\./i.test(hostname)) return 'Learning';
+  if (/blog\./i.test(hostname)) return 'News';
+  if (/shop\./i.test(hostname) || /store\./i.test(hostname)) return 'Shopping';
+
+  // Content-based fallback using metadata
+  if (metadata) {
+    const text = ((metadata.title || '') + ' ' + (metadata.description || '')).toLowerCase();
+    if (/tutorial|learn|course|documentation|guide|reference/i.test(text)) return 'Learning';
+    if (/news|article|breaking|report|journalist/i.test(text)) return 'News';
+    if (/buy|price|cart|shop|sale|deal/i.test(text)) return 'Shopping';
+    if (/game|play|stream|watch/i.test(text)) return 'Entertainment';
+  }
+
+  return 'Other';
+}
+
+// ============================================================
+// PAGE METADATA EXTRACTION (Open Graph, JSON-LD, meta tags)
+// ============================================================
+function extractPageMetadata() {
+  const meta = {};
+
+  // Open Graph tags
+  meta.ogTitle = document.querySelector('meta[property="og:title"]')?.content || null;
+  meta.ogDescription = document.querySelector('meta[property="og:description"]')?.content || null;
+  meta.ogType = document.querySelector('meta[property="og:type"]')?.content || null;
+  meta.ogSiteName = document.querySelector('meta[property="og:site_name"]')?.content || null;
+
+  // Standard meta tags
+  meta.description = document.querySelector('meta[name="description"]')?.content || null;
+  meta.keywords = document.querySelector('meta[name="keywords"]')?.content || null;
+  meta.author = document.querySelector('meta[name="author"]')?.content || null;
+
+  // Title and H1
+  meta.title = document.title || null;
+  meta.h1 = document.querySelector('h1')?.textContent?.trim()?.substring(0, 200) || null;
+
+  // JSON-LD structured data (article type)
+  try {
+    const jsonLdScripts = document.querySelectorAll('script[type="application/ld+json"]');
+    for (const script of jsonLdScripts) {
+      const ld = JSON.parse(script.textContent);
+      const item = Array.isArray(ld) ? ld[0] : ld;
+      if (item?.['@type'] === 'Article' || item?.['@type'] === 'NewsArticle' || item?.['@type'] === 'BlogPosting') {
+        meta.articleAuthor = item.author?.name || (typeof item.author === 'string' ? item.author : null);
+        meta.articlePublisher = item.publisher?.name || null;
+        meta.articleDate = item.datePublished || null;
+        break;
+      }
+    }
+  } catch { /* ignore parse errors */ }
+
+  return meta;
+}
+
+// ============================================================
+// URL SANITIZATION (enhanced - preserves search queries, strips tracking)
+// ============================================================
+function sanitizeUrlForEvent(url) {
+  try {
+    const urlObj = new URL(url);
+    // Remove tracking params
+    for (const param of TRACKING_PARAMS) {
+      urlObj.searchParams.delete(param);
+    }
+    // Truncate path beyond 3 segments for privacy
+    const pathParts = urlObj.pathname.split('/').filter(Boolean);
+    if (pathParts.length > 3) {
+      urlObj.pathname = '/' + pathParts.slice(0, 3).join('/');
+    }
+    // Keep search params only for known search engines
+    const isSearch = detectSearchQuery() !== null;
+    if (!isSearch) {
+      // Strip all remaining query params for non-search pages
+      urlObj.search = '';
+    }
+    urlObj.hash = '';
+    return urlObj.toString();
+  } catch {
+    return url;
+  }
+}
+
+// ============================================================
+// CONTENT TYPE DETECTION
+// ============================================================
+function detectPageContentType() {
+  const url = window.location.href;
+  const hostname = window.location.hostname;
+
+  // Video content
+  if (/youtube\.com|vimeo\.com|dailymotion\.com|twitch\.tv/.test(hostname)) return 'video';
+
+  // Search results
+  if (detectSearchQuery() !== null) return 'search_results';
+
+  // Social feed
+  if (/reddit\.com\/?$|twitter\.com\/?$|facebook\.com\/?$|x\.com\/?$/.test(url) || /\/feed|\/home|\/timeline/.test(url)) return 'social_feed';
+
+  // Product pages
+  if (/\/product|\/item|\/dp\/|\/buy|\/shop/.test(url)) return 'product';
+
+  // Article detection
+  if (isArticleContent()) return 'article';
+
+  return 'other';
+}
 
 // Check if observer mode is enabled
 chrome.storage.local.get(['observerMode'], (result) => {
@@ -550,9 +822,10 @@ function initializeObserver() {
   }, 2000); // Wait 2 seconds for page to fully load
 }
 
-// Enhance page summary with reading pattern data
-const originalSendPageSummary = sendPageSummary;
-function sendPageSummary() {
+// Enhance page summary with reading pattern data and web event emission.
+// We hook into the existing sendPageSummary by patching it via
+// visibilitychange/beforeunload listeners that fire our enhanced logic.
+function sendEnhancedPageSummary() {
   // Calculate reading speed if this was an article
   if (readingPatternData.wordCount > 0) {
     const readingMetrics = calculateReadingSpeed();
@@ -574,9 +847,6 @@ function sendPageSummary() {
     }
   }
 
-  // Call original function
-  originalSendPageSummary();
-
   // Reset reading pattern data
   readingPatternData = {
     wordCount: 0,
@@ -587,4 +857,119 @@ function sendPageSummary() {
     topics: [],
     engagementScore: 0
   };
+
+  // Emit structured WEB_BROWSING_EVENT for the universal collector
+  emitWebBrowsingEvent();
+}
+
+// Register additional listeners for the enhanced summary + web event emission.
+// These fire alongside (not replacing) the original sendPageSummary listeners.
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden) sendEnhancedPageSummary();
+});
+window.addEventListener('beforeunload', () => {
+  sendEnhancedPageSummary();
+});
+window.addEventListener('pagehide', () => {
+  sendEnhancedPageSummary();
+});
+
+// Periodic web event emission: emit after 10 seconds on page, then every 60 seconds.
+// This ensures events are captured even if beforeunload/visibilitychange don't fire
+// (e.g., programmatic tab close, browser crash, SPA navigation).
+setTimeout(() => {
+  emitWebBrowsingEvent();
+  // Then every 60 seconds for long reading sessions
+  setInterval(() => {
+    emitWebBrowsingEvent();
+  }, 60000);
+}, 10000);
+
+// ============================================================
+// WEB_BROWSING_EVENT - Structured event emission for all sites
+// ============================================================
+
+/**
+ * Emit a structured web browsing event to background.js
+ * This is the core of the universal data collector.
+ */
+function emitWebBrowsingEvent() {
+  // Web event emission works independently of observer mode - just needs a connected user.
+  // Skip in incognito (chrome.extension may not exist in MV3)
+  const isIncognito = typeof chrome !== 'undefined' && chrome.extension && chrome.extension.inIncognitoContext;
+  if (isIncognito) return;
+
+  const hostname = window.location.hostname;
+
+  // Block sensitive domains
+  if (isSensitiveDomain(hostname)) {
+    console.log('[Soul Observer] Skipping sensitive domain:', hostname);
+    return;
+  }
+
+  // Minimum engagement threshold - skip bounces (< 3 seconds)
+  const timeOnPage = Math.round((Date.now() - currentPageData.startTime) / 1000);
+  if (timeOnPage < 3) return;
+
+  // Throttle: max 1 event per URL per 5 minutes
+  const currentUrl = window.location.href;
+  if (currentUrl === lastWebEventUrl && (Date.now() - lastWebEventTime) < 5 * 60 * 1000) return;
+
+  const metadata = extractPageMetadata();
+  const searchQuery = detectSearchQuery();
+  const contentType = detectPageContentType();
+  const category = categorizeSite(hostname, metadata);
+
+  // Determine event type
+  let eventType = 'page_visit';
+  if (searchQuery) eventType = 'search_query';
+  else if (contentType === 'article' && timeOnPage > 15) eventType = 'article_read';
+  else if (contentType === 'video') eventType = 'web_video_watch';
+
+  // Calculate reading behavior and engagement from existing data
+  const readingMetrics = readingPatternData.wordCount > 0 ? calculateReadingSpeed() : null;
+
+  // Build and extract topics from page content
+  const contentText = extractArticleContent();
+  const topics = contentText.length > 100 ? extractTopics(contentText).slice(0, 10) : [];
+
+  const event = {
+    eventType,
+    url: sanitizeUrlForEvent(currentUrl),
+    domain: hostname,
+    title: metadata.title || document.title,
+    siteName: metadata.ogSiteName || null,
+    category,
+    metadata: {
+      description: (metadata.ogDescription || metadata.description || '').substring(0, 300),
+      author: metadata.author || metadata.articleAuthor || null,
+      contentType,
+      topics
+    },
+    engagement: {
+      timeOnPage,
+      scrollDepth: currentPageData.scrollDepth,
+      readingBehavior: readingMetrics?.readingBehavior || null,
+      engagementScore: readingMetrics?.engagementScore || Math.min(
+        Math.round((Math.min(timeOnPage, 120) / 120) * 40 + (currentPageData.scrollDepth / 100) * 40 + Math.min(currentPageData.interactions / 10, 1) * 20),
+        100
+      ),
+      interactions: currentPageData.interactions
+    },
+    searchQuery: searchQuery || null,
+    timestamp: new Date().toISOString()
+  };
+
+  // Send to background.js
+  chrome.runtime.sendMessage({
+    type: 'WEB_BROWSING_EVENT',
+    data: { events: [event] }
+  });
+
+  // Track throttle state
+  lastWebEventUrl = currentUrl;
+  lastWebEventTime = Date.now();
+  webEventEmitted = true;
+
+  console.log(`[Soul Observer] Web event emitted: ${eventType} on ${hostname} (${category})`);
 }

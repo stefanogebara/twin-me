@@ -550,7 +550,9 @@ router.get('/today-insights', authenticateUser, async (req, res) => {
     const sources = {
       whoop: !!context.whoop,
       calendar: !!context.calendar,
-      spotify: !!context.spotify
+      spotify: !!context.spotify,
+      youtube: !!context.youtube,
+      twitch: !!context.twitch
     };
 
     // 1. Health/Recovery Insight (from Whoop)
@@ -747,7 +749,47 @@ router.get('/today-insights', authenticateUser, async (req, res) => {
       });
     }
 
-    // 4. Cross-Platform Pattern Insight (if multiple sources)
+    // 4. YouTube Insight (from stored Nango data)
+    if (context.youtube?.connected) {
+      const yt = context.youtube;
+      const topChannelList = yt.topChannels?.slice(0, 3).join(', ') || 'various channels';
+      insights.push({
+        id: `youtube-${Date.now()}`,
+        type: 'content',
+        title: 'Your Content World',
+        summary: yt.subscriptionCount > 0
+          ? `${yt.subscriptionCount} subscriptions across ${yt.contentCategories?.length || 0} interest areas`
+          : `Following ${topChannelList}`,
+        detail: yt.contentProfile || 'Your YouTube activity reveals your curiosities and learning patterns.',
+        platforms: ['youtube'],
+        priority: 'low',
+        icon: 'video',
+        action: { label: 'Explore Content World', route: '/insights/youtube' }
+      });
+    }
+
+    // 5. Twitch Insight (from stored Nango data)
+    if (context.twitch?.connected) {
+      const tw = context.twitch;
+      const topGames = tw.gamingPreferences?.slice(0, 3).join(', ') || 'various games';
+      insights.push({
+        id: `twitch-${Date.now()}`,
+        type: 'gaming',
+        title: 'Your Gaming World',
+        summary: tw.followedChannelCount > 0
+          ? `Following ${tw.followedChannelCount} channels`
+          : `Engaged with ${topGames}`,
+        detail: tw.gamingPreferences?.length > 0
+          ? `Your Twitch activity shows interest in: ${topGames}`
+          : 'Your Twitch profile reveals your streaming and gaming preferences.',
+        platforms: ['twitch'],
+        priority: 'low',
+        icon: 'gamepad',
+        action: { label: 'Explore Gaming World', route: '/insights/twitch' }
+      });
+    }
+
+    // 6. Cross-Platform Pattern Insight (if multiple sources)
     const connectedCount = Object.values(sources).filter(Boolean).length;
     if (connectedCount >= 2) {
       let patternInsight = null;

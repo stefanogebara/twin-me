@@ -2,9 +2,12 @@
  * Platform Data Extraction Service
  * Extracts soul signature data from entertainment and social platforms
  * "We search in the branches for what we only find in the roots"
+ *
+ * Now integrated with Pattern Learning System for automatic pattern discovery!
  */
 
 import { serverDb } from './database.js';
+import patternLearningBridge from './patternLearningBridge.js';
 
 class PlatformDataExtraction {
   constructor() {
@@ -102,6 +105,14 @@ class PlatformDataExtraction {
             JSON.stringify(audioFeatures),
             track.artists[0]?.genres || []
           ]);
+
+          // Push to Pattern Learning System for automatic pattern discovery
+          await patternLearningBridge.pushSpotifyTrackPlay(
+            userId,
+            track,
+            audioFeatures,
+            item.played_at
+          );
 
           insights.totalTracks++;
         }

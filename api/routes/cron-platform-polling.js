@@ -62,6 +62,9 @@ const POLLING_CONFIGS = {
       },
     ],
   },
+  twitch: {
+    endpoints: [], // Handled by Nango
+  },
   discord: {
     endpoints: [
       {
@@ -222,7 +225,36 @@ async function pollAllUsers() {
 
       for (const connection of userConns) {
         try {
-          // Decrypt access token
+          // Handle Nango-managed tokens (YouTube, Twitch, etc.)
+          if (connection.access_token === 'NANGO_MANAGED') {
+            console.log(`📡 [CRON] Polling ${connection.platform} via Nango for user ${userId}`);
+            const nangoService = await import('../services/nangoService.js');
+            const nangoResult = await nangoService.extractPlatformData(userId, connection.platform);
+            if (nangoResult.success) {
+              await nangoService.storeNangoExtractionData(userId, connection.platform, nangoResult);
+              await getSupabaseClient()
+                .from('platform_connections')
+                .update({
+                  last_sync: new Date().toISOString(),
+                  last_sync_status: 'success',
+                  updated_at: new Date().toISOString(),
+                })
+                .eq('user_id', userId)
+                .eq('platform', connection.platform);
+            }
+
+            pollingResults.push({
+              userId,
+              platform: connection.platform,
+              success: nangoResult.success,
+              results: nangoResult.success ? [{ endpoint: 'nango', success: true }] : [{ endpoint: 'nango', success: false, error: nangoResult.error }],
+            });
+
+            await new Promise(resolve => setTimeout(resolve, 2000));
+            continue;
+          }
+
+          // Decrypt access token (legacy flow)
           const accessToken = decryptToken(connection.access_token);
 
           if (!accessToken) {

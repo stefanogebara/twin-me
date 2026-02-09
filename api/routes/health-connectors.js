@@ -27,8 +27,26 @@ const router = express.Router();
 // ============================================================================
 // WHOOP CONNECTOR - Physical Discipline & Recovery Patterns
 // ============================================================================
+//
+// ⚠️ DEPRECATED: Whoop now uses Nango for OAuth and automatic token refresh.
+// These routes are kept for backwards compatibility during transition.
+// New integrations should use the NangoConnect component and nangoService.
+// See: api/services/nangoService.js for the new Whoop implementation.
+//
+// Routes to be removed after verification:
+// - GET/POST /connect/whoop -> Use NangoConnect component
+// - POST /oauth/callback/whoop -> Nango handles callbacks
+// - DELETE /disconnect/whoop -> Use Nango disconnect
+// - GET /reconnect/whoop -> Not needed with Nango auto-refresh
+// - POST /refresh/whoop -> Nango handles refresh automatically
+//
+// Routes that remain (updated to use Nango):
+// - GET /whoop/status -> Still used by frontend
+// - GET /whoop/current-state -> Still used by Dashboard
+// ============================================================================
 
 /**
+ * @deprecated Use NangoConnect component instead. Nango handles OAuth automatically.
  * Whoop Connect - Initiate OAuth flow (GET version for frontend compatibility)
  * Discovers: strain patterns, recovery optimization, sleep consistency, workout intensity
  */
@@ -115,6 +133,7 @@ router.get('/connect/whoop', oauthAuthorizationLimiter, async (req, res) => {
 });
 
 /**
+ * @deprecated Use NangoConnect component instead. Nango handles OAuth automatically.
  * Whoop Connect - Initiate OAuth flow (POST version)
  * Discovers: strain patterns, recovery optimization, sleep consistency, workout intensity
  */
@@ -205,6 +224,7 @@ router.post('/connect/whoop', oauthAuthorizationLimiter, async (req, res) => {
 });
 
 /**
+ * @deprecated Nango handles OAuth callbacks automatically.
  * Whoop OAuth Callback - Exchange code for tokens
  */
 router.post('/oauth/callback/whoop', oauthCallbackLimiter, async (req, res) => {
@@ -348,6 +368,13 @@ router.post('/oauth/callback/whoop', oauthCallbackLimiter, async (req, res) => {
 
     console.log(`💾 Whoop tokens stored for user ${userId}`);
 
+    // Update last_sync_at to indicate connection is active
+    await supabase
+      .from('platform_connections')
+      .update({ last_sync_at: new Date().toISOString(), last_sync_status: 'connected' })
+      .eq('user_id', userId)
+      .eq('platform', 'whoop');
+
     // Invalidate platform status cache so the new token expiration is reflected
     await invalidatePlatformStatusCache(userId);
     console.log(`🗑️ [Whoop Callback] Invalidated platform status cache for user ${userId}`);
@@ -375,6 +402,7 @@ router.post('/oauth/callback/whoop', oauthCallbackLimiter, async (req, res) => {
 });
 
 /**
+ * @deprecated Use nangoService.extractPlatformData() instead.
  * Extract Whoop Physical Soul Signature
  */
 router.post('/extract/whoop', async (req, res) => {
@@ -447,6 +475,7 @@ router.post('/extract/whoop', async (req, res) => {
 });
 
 /**
+ * @deprecated Use Nango disconnect via NangoConnect component.
  * Disconnect Whoop - Remove platform connection
  */
 router.delete('/disconnect/whoop', async (req, res) => {
@@ -491,6 +520,7 @@ router.delete('/disconnect/whoop', async (req, res) => {
 });
 
 /**
+ * @deprecated Not needed - Nango handles token refresh automatically via proxy.
  * Reconnect Whoop - Initiate new OAuth flow for existing user
  * Use when token is expired and cannot be refreshed
  */
@@ -577,6 +607,7 @@ router.get('/reconnect/whoop', oauthAuthorizationLimiter, async (req, res) => {
 });
 
 /**
+ * @deprecated Not needed - Nango handles token refresh automatically via proxy.
  * Refresh Whoop Token - Manually refresh token using refresh_token
  */
 router.post('/refresh/whoop', async (req, res) => {
@@ -1366,10 +1397,16 @@ function determineWellnessArchetype(healthSoul) {
 // ============================================================================
 // WHOOP STATUS - Connection Status for Dashboard
 // ============================================================================
+// Note: These routes still use platform_connections table for backwards compatibility
+// with users who connected via the legacy OAuth flow. New connections via Nango
+// should be checked via the /api/nango/connections endpoint.
+// TODO: Update to check both Nango connections and platform_connections
+// ============================================================================
 
 /**
  * GET /api/health/whoop/status
  * Returns Whoop connection status for dashboard display
+ * Note: Still uses platform_connections table for legacy users.
  */
 router.get('/whoop/status', async (req, res) => {
   try {
@@ -1450,10 +1487,16 @@ router.get('/whoop/status', async (req, res) => {
 // ============================================================================
 // WHOOP CURRENT STATE - Real-time Health Context for Recommendations
 // ============================================================================
+// Note: This route still uses platform_connections table and manual token refresh
+// for backwards compatibility. New code should use userContextAggregator.getWhoopContext()
+// which now uses Nango for automatic token refresh.
+// TODO: Update to use Nango proxy like userContextAggregator
+// ============================================================================
 
 /**
  * GET /api/health/whoop/current-state
  * Returns real-time health context from Whoop for intelligent recommendations
+ * Note: Still uses platform_connections + manual refresh for legacy users.
  */
 router.get('/whoop/current-state', async (req, res) => {
   try {
@@ -1719,6 +1762,8 @@ router.get('/whoop/current-state', async (req, res) => {
 });
 
 /**
+ * @deprecated Nango handles token refresh automatically via proxy.
+ * This helper is kept for backwards compatibility with /whoop/current-state route.
  * Helper: Refresh Whoop access token
  */
 async function refreshWhoopToken(userId, encryptedRefreshToken) {

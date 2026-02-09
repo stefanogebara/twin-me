@@ -14,6 +14,9 @@
 
 import cron from 'node-cron';
 import { PatternLearningService } from './patternLearningService.js';
+import patternLearningBridge from './patternLearningBridge.js';
+import learnedTriggerGenerator from './learnedTriggerGenerator.js';
+import { supabaseAdmin } from './database.js';
 
 // =========================================================================
 // Job Storage
@@ -44,19 +47,74 @@ const patternLearningJobHandler = async () => {
   console.log(`${'='.repeat(60)}`);
 
   try {
-    const results = await PatternLearningService.runForAllUsers();
+    // Phase 1: Get all active users with platform connections
+    const { data: activeUsers } = await supabaseAdmin
+      .from('platform_connections')
+      .select('user_id')
+      .eq('is_active', true);
 
-    // Summary statistics
-    const successCount = results?.filter(r => r.success)?.length || 0;
-    const totalProcessed = results?.reduce((sum, r) => sum + (r.processed || 0), 0) || 0;
-    const totalInsights = results?.reduce((sum, r) => sum + (r.insightsGenerated || 0), 0) || 0;
+    const uniqueUserIds = [...new Set(activeUsers?.map(u => u.user_id) || [])];
+    console.log(`📊 [PatternLearningJob] Found ${uniqueUserIds.length} active users`);
 
-    console.log(`\n📊 [PatternLearningJob] Job summary:`);
-    console.log(`   - Users processed: ${results?.length || 0}`);
-    console.log(`   - Successful: ${successCount}`);
-    console.log(`   - Feedback items: ${totalProcessed}`);
-    console.log(`   - Insights generated: ${totalInsights}`);
+    // Phase 2: Run the 6-layer pattern learning pipeline for each user
+    const pipelineResults = [];
+    for (const userId of uniqueUserIds) {
+      try {
+        console.log(`\n🧠 [PatternLearningJob] Processing user ${userId}...`);
+
+        // Sync latest platform data to pattern learning
+        const syncResults = {};
+        for (const platform of ['spotify', 'calendar', 'whoop']) {
+          const result = await patternLearningBridge.syncExistingPlatformData(userId, platform, 7); // Last 7 days
+          syncResults[platform] = result.synced || 0;
+        }
+        console.log(`   📥 Synced: Spotify ${syncResults.spotify}, Calendar ${syncResults.calendar}, Whoop ${syncResults.whoop}`);
+
+        // Run full pipeline (baselines, correlations, hypotheses)
+        const pipelineResult = await learnedTriggerGenerator.runPatternLearningPipeline(userId);
+        console.log(`   📈 Baselines: ${pipelineResult.baselines?.computed || 0}, Correlations: ${pipelineResult.correlations?.discovered || 0}`);
+
+        // Generate learned triggers
+        const triggers = await learnedTriggerGenerator.generateLearnedTriggers(userId);
+        console.log(`   🎯 Learned triggers: ${triggers.length}`);
+
+        pipelineResults.push({
+          userId,
+          success: true,
+          synced: syncResults,
+          baselines: pipelineResult.baselines?.computed || 0,
+          correlations: pipelineResult.correlations?.discovered || 0,
+          triggers: triggers.length
+        });
+      } catch (err) {
+        console.error(`   ❌ Error for user ${userId}:`, err.message);
+        pipelineResults.push({ userId, success: false, error: err.message });
+      }
+    }
+
+    // Phase 3: Run the original feedback processing
+    const feedbackResults = await PatternLearningService.runForAllUsers();
+    const successCount = feedbackResults?.filter(r => r.success)?.length || 0;
+    const totalProcessed = feedbackResults?.reduce((sum, r) => sum + (r.processed || 0), 0) || 0;
+    const totalInsights = feedbackResults?.reduce((sum, r) => sum + (r.insightsGenerated || 0), 0) || 0;
+
+    // Summary
+    const totalBaselines = pipelineResults.reduce((sum, r) => sum + (r.baselines || 0), 0);
+    const totalCorrelations = pipelineResults.reduce((sum, r) => sum + (r.correlations || 0), 0);
+    const totalTriggers = pipelineResults.reduce((sum, r) => sum + (r.triggers || 0), 0);
+
+    console.log(`\n${'='.repeat(60)}`);
+    console.log(`📊 [PatternLearningJob] Job summary:`);
+    console.log(`   - Users processed: ${uniqueUserIds.length}`);
+    console.log(`   - Pattern Pipeline:`);
+    console.log(`     • Baselines computed: ${totalBaselines}`);
+    console.log(`     • Correlations discovered: ${totalCorrelations}`);
+    console.log(`     • Learned triggers generated: ${totalTriggers}`);
+    console.log(`   - Feedback Processing:`);
+    console.log(`     • Feedback items: ${totalProcessed}`);
+    console.log(`     • Insights generated: ${totalInsights}`);
     console.log(`   - Next run: In 6 hours`);
+    console.log(`${'='.repeat(60)}\n`);
 
   } catch (error) {
     console.error(`❌ [PatternLearningJob] Job failed:`, error.message);

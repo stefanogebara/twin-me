@@ -19,6 +19,21 @@ import { refreshAccessToken } from './tokenRefreshService.js';
 import { decryptToken, encryptToken } from './encryption.js';
 import { createClient } from '@supabase/supabase-js';
 
+// Nango-managed tokens use placeholder values - don't try to refresh them ourselves
+const NANGO_PLACEHOLDER_TOKENS = ['NANGO_MANAGED', 'nango_managed', 'managed_by_nango'];
+
+/**
+ * Check if a token value is a Nango placeholder (not a real encrypted token)
+ */
+function isNangoManagedToken(token) {
+  if (!token) return false;
+  // Nango placeholders are short strings, real encrypted tokens are 100+ chars
+  if (token.length < 50 && NANGO_PLACEHOLDER_TOKENS.some(p => token.toLowerCase().includes(p.toLowerCase()))) {
+    return true;
+  }
+  return false;
+}
+
 // =========================================================================
 // Supabase Client Initialization (Lazy)
 // =========================================================================
@@ -93,10 +108,21 @@ const tokenRefreshJobHandler = async () => {
       return;
     }
 
-    // Try to refresh ALL tokens that have refresh_token - even 'expired' ones
-    // The refresh token might still be valid. Only if refresh fails do we require re-authorization.
-    const tokensToRefresh = expiringTokens;
-    console.log(`📊 [Token Lifecycle] Token states: ${tokensToRefresh.map(t => `${t.platform}(${t.status})`).join(', ')}`);
+    // Filter out Nango-managed tokens - those are handled by Nango automatically
+    const tokensToRefresh = expiringTokens.filter(token => {
+      if (isNangoManagedToken(token.access_token) || isNangoManagedToken(token.refresh_token)) {
+        console.log(`ℹ️  [Token Lifecycle] Skipping ${token.platform} - Nango-managed token`);
+        return false;
+      }
+      return true;
+    });
+
+    console.log(`📊 [Token Lifecycle] Token states: ${expiringTokens.map(t => `${t.platform}(${t.status})`).join(', ')}`);
+
+    if (tokensToRefresh.length === 0) {
+      console.log('✅ [Token Lifecycle] No tokens need refresh (all Nango-managed). Job complete.');
+      return;
+    }
 
     console.log(`📊 [Token Lifecycle] Found ${tokensToRefresh.length} tokens to refresh`);
 

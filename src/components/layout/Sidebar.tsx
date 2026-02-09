@@ -52,11 +52,11 @@ const primaryNavItems: NavItem[] = [
     description: 'Interact with your twin'
   },
   {
-    id: 'training',
-    label: 'Model Training',
+    id: 'brain',
+    label: 'Twin\'s Brain',
     icon: Brain,
-    path: '/training',
-    description: 'Train your soul signature model'
+    path: '/brain',
+    description: 'Explore your knowledge graph'
   },
   {
     id: 'settings',

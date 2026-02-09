@@ -12,6 +12,8 @@
 import express from 'express';
 import { createClient } from '@supabase/supabase-js';
 import patternLearningService, { PatternLearningService } from '../services/patternLearningService.js';
+import patternLearningBridge from '../services/patternLearningBridge.js';
+import learnedTriggerGenerator from '../services/learnedTriggerGenerator.js';
 
 const router = express.Router();
 
@@ -279,6 +281,277 @@ router.get('/insights/:userId', async (req, res) => {
     });
   } catch (error) {
     console.error(`❌ [TestPatternLearning] Insights query error:`, error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// ============================================================================
+// 6-LAYER PATTERN LEARNING PIPELINE TEST ENDPOINTS
+// ============================================================================
+
+/**
+ * POST /api/test-pattern-learning/sync/:userId
+ * Sync platform data to pattern learning raw events
+ */
+router.post('/sync/:userId', async (req, res) => {
+  const { userId } = req.params;
+  const { platforms = ['spotify', 'calendar', 'whoop'], days = 90 } = req.body;
+
+  console.log(`\n${'='.repeat(60)}`);
+  console.log(`🔄 [TestPatternLearning] Syncing platform data for user ${userId}`);
+  console.log(`   Platforms: ${platforms.join(', ')}`);
+  console.log(`   Days: ${days}`);
+  console.log(`${'='.repeat(60)}`);
+
+  try {
+    const results = {};
+    for (const platform of platforms) {
+      const result = await patternLearningBridge.syncExistingPlatformData(userId, platform, days);
+      results[platform] = result;
+      console.log(`   ${platform}: ${result.synced || 0} events synced`);
+    }
+
+    console.log(`✅ [TestPatternLearning] Sync complete`);
+    res.json({ success: true, userId, results });
+  } catch (error) {
+    console.error(`❌ [TestPatternLearning] Sync error:`, error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+/**
+ * GET /api/test-pattern-learning/run-pipeline/:userId
+ * Run the full 6-layer pattern learning pipeline
+ */
+router.get('/run-pipeline/:userId', async (req, res) => {
+  const { userId } = req.params;
+  const { syncFirst = 'false' } = req.query;
+
+  console.log(`\n${'='.repeat(60)}`);
+  console.log(`🧠 [TestPatternLearning] Running FULL PIPELINE for user ${userId}`);
+  console.log(`${'='.repeat(60)}`);
+
+  try {
+    const startTime = Date.now();
+
+    // Optional: Sync platform data first
+    let syncResults = null;
+    if (syncFirst === 'true') {
+      console.log(`📥 Step 0: Syncing platform data...`);
+      syncResults = {};
+      for (const platform of ['spotify', 'calendar', 'whoop']) {
+        const result = await patternLearningBridge.syncExistingPlatformData(userId, platform, 90);
+        syncResults[platform] = result;
+      }
+      console.log(`   Sync complete`);
+    }
+
+    // Run the full pattern learning pipeline
+    console.log(`🔬 Running pattern discovery pipeline...`);
+    const pipelineResult = await learnedTriggerGenerator.runPatternLearningPipeline(userId);
+
+    // Get the discovered patterns summary
+    const learnedTriggers = await learnedTriggerGenerator.generateLearnedTriggers(userId);
+
+    const duration = Date.now() - startTime;
+    console.log(`\n✅ [TestPatternLearning] Pipeline complete in ${duration}ms`);
+    console.log(`${'='.repeat(60)}\n`);
+
+    res.json({
+      success: true,
+      userId,
+      duration: `${duration}ms`,
+      syncResults,
+      pipeline: pipelineResult,
+      learnedTriggers: {
+        count: learnedTriggers.length,
+        triggers: learnedTriggers
+      }
+    });
+  } catch (error) {
+    console.error(`❌ [TestPatternLearning] Pipeline error:`, error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+/**
+ * GET /api/test-pattern-learning/raw-events/:userId
+ * Get raw behavioral events for a user
+ */
+router.get('/raw-events/:userId', async (req, res) => {
+  const { userId } = req.params;
+  const { platform, limit = 50 } = req.query;
+
+  try {
+    let query = supabase
+      .from('pl_raw_behavioral_events')
+      .select('*')
+      .eq('user_id', userId)
+      .order('event_timestamp', { ascending: false })
+      .limit(parseInt(limit));
+
+    if (platform) {
+      query = query.eq('platform', platform);
+    }
+
+    const { data: events, error } = await query;
+    if (error) throw error;
+
+    // Get counts by platform
+    const { data: counts } = await supabase
+      .from('pl_raw_behavioral_events')
+      .select('platform')
+      .eq('user_id', userId);
+
+    const platformCounts = {};
+    for (const e of counts || []) {
+      platformCounts[e.platform] = (platformCounts[e.platform] || 0) + 1;
+    }
+
+    res.json({
+      success: true,
+      userId,
+      total: counts?.length || 0,
+      platformCounts,
+      showing: events?.length || 0,
+      events
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+/**
+ * GET /api/test-pattern-learning/baselines/:userId
+ * Get computed baselines for a user
+ */
+router.get('/baselines/:userId', async (req, res) => {
+  const { userId } = req.params;
+
+  try {
+    const { data: baselines, error } = await supabase
+      .from('pl_user_baselines')
+      .select('*')
+      .eq('user_id', userId)
+      .order('last_computed_at', { ascending: false });
+
+    if (error) throw error;
+
+    res.json({
+      success: true,
+      userId,
+      count: baselines?.length || 0,
+      baselines
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+/**
+ * GET /api/test-pattern-learning/correlations/:userId
+ * Get discovered correlations for a user
+ */
+router.get('/correlations/:userId', async (req, res) => {
+  const { userId } = req.params;
+  const { valid = 'true' } = req.query;
+
+  try {
+    let query = supabase
+      .from('pl_discovered_correlations')
+      .select('*')
+      .eq('user_id', userId)
+      .order('correlation_coefficient', { ascending: false });
+
+    if (valid === 'true') {
+      query = query.eq('still_valid', true);
+    }
+
+    const { data: correlations, error } = await query;
+    if (error) throw error;
+
+    res.json({
+      success: true,
+      userId,
+      count: correlations?.length || 0,
+      correlations
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+/**
+ * GET /api/test-pattern-learning/hypotheses/:userId
+ * Get pattern hypotheses for a user
+ */
+router.get('/hypotheses/:userId', async (req, res) => {
+  const { userId } = req.params;
+  const { active = 'true' } = req.query;
+
+  try {
+    let query = supabase
+      .from('pl_pattern_hypotheses')
+      .select('*')
+      .eq('user_id', userId)
+      .order('confidence_score', { ascending: false });
+
+    if (active === 'true') {
+      query = query.eq('is_active', true);
+    }
+
+    const { data: hypotheses, error } = await query;
+    if (error) throw error;
+
+    res.json({
+      success: true,
+      userId,
+      count: hypotheses?.length || 0,
+      hypotheses
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+/**
+ * GET /api/test-pattern-learning/learned-triggers/:userId
+ * Get generated learned triggers for a user
+ */
+router.get('/learned-triggers/:userId', async (req, res) => {
+  const { userId } = req.params;
+
+  try {
+    const triggers = await learnedTriggerGenerator.generateLearnedTriggers(userId);
+
+    res.json({
+      success: true,
+      userId,
+      count: triggers?.length || 0,
+      triggers
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+/**
+ * GET /api/test-pattern-learning/baseline-insights/:userId
+ * Get insights generated from baseline temporal patterns
+ */
+router.get('/baseline-insights/:userId', async (req, res) => {
+  const { userId } = req.params;
+
+  try {
+    const insights = await learnedTriggerGenerator.generateBaselineInsights(userId);
+
+    res.json({
+      success: true,
+      userId,
+      count: insights?.length || 0,
+      insights
+    });
+  } catch (error) {
     res.status(500).json({ success: false, error: error.message });
   }
 });

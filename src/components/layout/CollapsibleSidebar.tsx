@@ -24,7 +24,10 @@ import {
   Music,
   Activity,
   Calendar,
-  Eye
+  Eye,
+  Video,
+  Tv,
+  Globe
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -60,6 +63,12 @@ const mainNavItems: NavItem[] = [
     path: '/soul-signature'
   },
   {
+    id: 'brain',
+    label: 'Twin\'s Brain',
+    icon: Brain,
+    path: '/brain'
+  },
+  {
     id: 'chat',
     label: 'Chat with Twin',
     icon: MessageCircle,
@@ -86,6 +95,24 @@ const insightNavItems: NavItem[] = [
     label: 'Time Patterns',
     icon: Calendar,
     path: '/insights/calendar'
+  },
+  {
+    id: 'youtube-insights',
+    label: 'Content World',
+    icon: Video,
+    path: '/insights/youtube'
+  },
+  {
+    id: 'twitch-insights',
+    label: 'Gaming World',
+    icon: Tv,
+    path: '/insights/twitch'
+  },
+  {
+    id: 'web-insights',
+    label: 'Digital Life',
+    icon: Globe,
+    path: '/insights/web'
   }
 ];
 

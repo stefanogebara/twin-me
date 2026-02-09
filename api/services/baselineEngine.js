@@ -25,17 +25,19 @@ const METRIC_DEFINITIONS = {
   'sleep_hours': { platform: 'whoop', path: 'sleep.totalSleepHours', type: 'numeric' },
   'sleep_efficiency': { platform: 'whoop', path: 'sleep.efficiency', type: 'numeric' },
 
-  // Spotify metrics
+  // Spotify metrics (with audio features if available, fallback to duration)
   'music_valence': { platform: 'spotify', path: 'track.valence', type: 'numeric' },
   'music_energy': { platform: 'spotify', path: 'track.energy', type: 'numeric' },
   'music_tempo': { platform: 'spotify', path: 'track.tempo', type: 'numeric' },
   'music_danceability': { platform: 'spotify', path: 'track.danceability', type: 'numeric' },
-  'listening_duration_ms': { platform: 'spotify', path: 'duration_ms', type: 'numeric' },
+  'track_duration_ms': { platform: 'spotify', path: 'track.durationMs', type: 'numeric' },
 
-  // Calendar metrics
-  'meeting_count': { platform: 'calendar', path: 'daily_meeting_count', type: 'count' },
-  'meeting_hours': { platform: 'calendar', path: 'daily_meeting_hours', type: 'numeric' },
-  'focus_time_hours': { platform: 'calendar', path: 'daily_focus_hours', type: 'numeric' },
+  // Calendar metrics - support both 'calendar' and 'google_calendar' platforms
+  'meeting_count': { platform: 'google_calendar', path: 'daily_meeting_count', type: 'count' },
+  'meeting_hours': { platform: 'google_calendar', path: 'daily_meeting_hours', type: 'numeric' },
+  'focus_time_hours': { platform: 'google_calendar', path: 'daily_focus_hours', type: 'numeric' },
+  'event_duration_minutes': { platform: 'google_calendar', path: 'event.durationMinutes', type: 'numeric' },
+  'event_attendees': { platform: 'google_calendar', path: 'event.attendeeCount', type: 'count' },
 
   // Discord metrics
   'messages_sent': { platform: 'discord', path: 'daily_messages', type: 'count' },

@@ -3,78 +3,255 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Soul Signature</title>
+  <title>Twin Me - Digital Life</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <style>
     * {
       margin: 0;
       padding: 0;
       box-sizing: border-box;
     }
-    
+
     body {
-      width: 400px;
-      min-height: 500px;
-      font-family: 'DM Sans', -apple-system, sans-serif;
-      background: #FAF9F5;
-      color: #141413;
-      padding: 20px;
+      width: 380px;
+      min-height: 480px;
+      font-family: 'Inter', system-ui, sans-serif;
+      background: #1a1a1f;
+      color: #C1C0B6;
     }
-    
-    h1 {
-      font-family: 'Space Grotesk', sans-serif;
-      font-size: 24px;
-      font-weight: 500;
-      margin-bottom: 8px;
-      color: #141413;
-    }
-    
-    .subtitle {
-      font-size: 14px;
-      color: #8C8C8C;
-      margin-bottom: 24px;
-    }
-    
-    .section {
-      background: white;
-      border: 2px solid #E5E5E5;
-      border-radius: 12px;
-      padding: 16px;
-      margin-bottom: 16px;
-    }
-    
-    .section-title {
-      font-size: 16px;
-      font-weight: 600;
-      margin-bottom: 12px;
-      color: #141413;
-    }
-    
-    .toggle-container {
+
+    /* Header */
+    .header {
       display: flex;
       align-items: center;
       justify-content: space-between;
+      padding: 16px 20px;
+      border-bottom: 1px solid rgba(193, 192, 182, 0.1);
+      background: linear-gradient(180deg, rgba(45, 45, 41, 0.4) 0%, transparent 100%);
+    }
+
+    .header-left {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .logo {
+      width: 32px;
+      height: 32px;
+      background: linear-gradient(135deg, #6366f1, #8b5cf6);
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 16px;
+    }
+
+    .brand {
+      font-size: 15px;
+      font-weight: 600;
+      color: #e5e5e0;
+    }
+
+    .brand-sub {
+      font-size: 11px;
+      color: rgba(193, 192, 182, 0.5);
+      font-weight: 400;
+    }
+
+    .status-badge {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 10px;
+      border-radius: 20px;
+      font-size: 11px;
+      font-weight: 500;
+    }
+
+    .status-badge.connected {
+      background: rgba(16, 185, 129, 0.15);
+      color: #34d399;
+    }
+
+    .status-badge.disconnected {
+      background: rgba(239, 68, 68, 0.15);
+      color: #f87171;
+    }
+
+    .status-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+    }
+
+    .status-badge.connected .status-dot {
+      background: #34d399;
+      box-shadow: 0 0 6px rgba(52, 211, 153, 0.5);
+    }
+
+    .status-badge.disconnected .status-dot {
+      background: #f87171;
+    }
+
+    /* Content */
+    .content {
+      padding: 16px 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    /* Setup Section */
+    .setup-card {
+      background: rgba(45, 45, 41, 0.4);
+      border: 1px solid rgba(193, 192, 182, 0.1);
+      border-radius: 12px;
+      padding: 20px;
+      text-align: center;
+    }
+
+    .setup-card .icon {
+      font-size: 32px;
       margin-bottom: 12px;
     }
-    
-    .toggle-label {
+
+    .setup-card h3 {
       font-size: 14px;
-      color: #141413;
+      font-weight: 600;
+      color: #e5e5e0;
+      margin-bottom: 6px;
     }
-    
+
+    .setup-card p {
+      font-size: 12px;
+      color: rgba(193, 192, 182, 0.6);
+      margin-bottom: 16px;
+      line-height: 1.5;
+    }
+
+    .btn {
+      width: 100%;
+      padding: 10px 16px;
+      border: none;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+      font-family: inherit;
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, #6366f1, #8b5cf6);
+      color: white;
+    }
+
+    .btn-primary:hover {
+      opacity: 0.9;
+      transform: translateY(-1px);
+    }
+
+    .btn-secondary {
+      background: rgba(45, 45, 41, 0.6);
+      color: #C1C0B6;
+      border: 1px solid rgba(193, 192, 182, 0.15);
+    }
+
+    .btn-secondary:hover {
+      border-color: rgba(99, 102, 241, 0.4);
+      color: #e5e5e0;
+    }
+
+    .btn-sm {
+      padding: 8px 12px;
+      font-size: 12px;
+    }
+
+    /* Stats Grid */
+    .section-label {
+      font-size: 10px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 1.2px;
+      color: rgba(193, 192, 182, 0.4);
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .stats-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 8px;
+    }
+
+    .stat-card {
+      background: rgba(45, 45, 41, 0.4);
+      border: 1px solid rgba(193, 192, 182, 0.08);
+      border-radius: 10px;
+      padding: 12px;
+      text-align: center;
+    }
+
+    .stat-value {
+      font-size: 20px;
+      font-weight: 700;
+      color: #e5e5e0;
+      line-height: 1;
+      margin-bottom: 4px;
+    }
+
+    .stat-label {
+      font-size: 10px;
+      color: rgba(193, 192, 182, 0.5);
+      font-weight: 500;
+    }
+
+    /* Toggle */
+    .toggle-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: rgba(45, 45, 41, 0.4);
+      border: 1px solid rgba(193, 192, 182, 0.08);
+      border-radius: 10px;
+      padding: 12px 14px;
+    }
+
+    .toggle-info {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .toggle-title {
+      font-size: 13px;
+      font-weight: 500;
+      color: #e5e5e0;
+    }
+
+    .toggle-desc {
+      font-size: 11px;
+      color: rgba(193, 192, 182, 0.5);
+    }
+
     .toggle-switch {
       position: relative;
-      width: 48px;
+      width: 44px;
       height: 24px;
-      background: #E5E5E5;
+      background: rgba(193, 192, 182, 0.15);
       border-radius: 12px;
       cursor: pointer;
       transition: background 0.2s;
+      flex-shrink: 0;
     }
-    
+
     .toggle-switch.active {
-      background: #D97706;
+      background: linear-gradient(135deg, #6366f1, #8b5cf6);
     }
-    
+
     .toggle-slider {
       position: absolute;
       top: 2px;
@@ -84,198 +261,306 @@
       background: white;
       border-radius: 50%;
       transition: transform 0.2s;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.3);
     }
-    
+
     .toggle-switch.active .toggle-slider {
-      transform: translateX(24px);
+      transform: translateX(20px);
     }
-    
-    .stat {
+
+    /* Categories */
+    .categories {
       display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 8px 0;
-      border-bottom: 1px solid #F5F5F5;
+      flex-wrap: wrap;
+      gap: 6px;
     }
-    
-    .stat:last-child {
-      border-bottom: none;
-    }
-    
-    .stat-label {
-      font-size: 14px;
-      color: #595959;
-    }
-    
-    .stat-value {
-      font-size: 16px;
-      font-weight: 600;
-      color: #141413;
-    }
-    
-    .btn {
-      width: 100%;
-      padding: 12px;
-      border: none;
-      border-radius: 8px;
-      font-size: 14px;
-      font-weight: 600;
-      cursor: pointer;
-      transition: all 0.2s;
-      margin-bottom: 8px;
-    }
-    
-    .btn-primary {
-      background: #D97706;
-      color: white;
-    }
-    
-    .btn-primary:hover {
-      background: #B45309;
-    }
-    
-    .btn-secondary {
-      background: white;
-      color: #141413;
-      border: 2px solid #E5E5E5;
-    }
-    
-    .btn-secondary:hover {
-      border-color: #D97706;
-      color: #D97706;
-    }
-    
-    .status {
+
+    .category-tag {
       display: flex;
       align-items: center;
-      gap: 8px;
+      gap: 4px;
+      padding: 4px 10px;
+      border-radius: 20px;
+      font-size: 11px;
+      font-weight: 500;
+      background: rgba(45, 45, 41, 0.6);
+      border: 1px solid rgba(193, 192, 182, 0.08);
+    }
+
+    .category-tag .count {
+      color: rgba(193, 192, 182, 0.4);
+      font-size: 10px;
+    }
+
+    .cat-learning { color: #34d399; }
+    .cat-social { color: #f59e0b; }
+    .cat-reference { color: #60a5fa; }
+    .cat-news { color: #fb923c; }
+    .cat-productivity { color: #a78bfa; }
+    .cat-entertainment { color: #f472b6; }
+    .cat-other { color: rgba(193, 192, 182, 0.6); }
+
+    /* Recent Activity */
+    .activity-list {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .activity-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
       padding: 8px 12px;
-      border-radius: 6px;
+      background: rgba(45, 45, 41, 0.3);
+      border-radius: 8px;
+    }
+
+    .activity-favicon {
+      width: 20px;
+      height: 20px;
+      border-radius: 4px;
+      background: rgba(193, 192, 182, 0.1);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 10px;
+      flex-shrink: 0;
+    }
+
+    .activity-details {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .activity-title {
       font-size: 12px;
-      margin-bottom: 12px;
+      color: #e5e5e0;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
-    
-    .status-dot {
-      width: 8px;
-      height: 8px;
-      border-radius: 50%;
+
+    .activity-meta {
+      font-size: 10px;
+      color: rgba(193, 192, 182, 0.4);
     }
-    
-    .status-connected {
-      background: #ECFDF5;
-      color: #065F46;
+
+    .activity-time {
+      font-size: 10px;
+      color: rgba(193, 192, 182, 0.3);
+      flex-shrink: 0;
     }
-    
-    .status-connected .status-dot {
-      background: #10B981;
+
+    /* Actions */
+    .actions {
+      display: flex;
+      gap: 8px;
     }
-    
-    .status-disconnected {
-      background: #FEF2F2;
-      color: #991B1B;
+
+    .actions .btn {
+      flex: 1;
     }
-    
-    .status-disconnected .status-dot {
-      background: #EF4444;
+
+    /* Footer */
+    .footer {
+      padding: 12px 20px;
+      border-top: 1px solid rgba(193, 192, 182, 0.06);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
     }
-    
-    .warning {
-      background: #FEF3C7;
-      border-left: 3px solid #D97706;
-      padding: 12px;
-      border-radius: 6px;
+
+    .last-sync {
+      font-size: 10px;
+      color: rgba(193, 192, 182, 0.3);
+    }
+
+    .footer-link {
+      font-size: 11px;
+      color: #8b5cf6;
+      cursor: pointer;
+      border: none;
+      background: none;
+      font-family: inherit;
+      font-weight: 500;
+    }
+
+    .footer-link:hover {
+      color: #a78bfa;
+    }
+
+    /* Loading */
+    .loading {
+      text-align: center;
+      padding: 40px 20px;
+      color: rgba(193, 192, 182, 0.4);
       font-size: 13px;
-      color: #78350F;
-      margin-bottom: 12px;
     }
-    
-    .privacy-notice {
-      background: #F0F9FF;
-      border-left: 3px solid #3B82F6;
-      padding: 12px;
-      border-radius: 6px;
-      font-size: 12px;
-      color: #1E40AF;
-      margin-top: 8px;
+
+    .spinner {
+      width: 24px;
+      height: 24px;
+      border: 2px solid rgba(193, 192, 182, 0.1);
+      border-top-color: #8b5cf6;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      margin: 0 auto 12px;
     }
-    
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    /* Syncing animation */
+    .syncing {
+      animation: pulse 1.5s ease-in-out infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
+    }
+
+    /* Privacy notice */
+    .privacy-note {
+      background: rgba(99, 102, 241, 0.08);
+      border: 1px solid rgba(99, 102, 241, 0.15);
+      border-radius: 8px;
+      padding: 10px 12px;
+      font-size: 11px;
+      color: rgba(193, 192, 182, 0.6);
+      line-height: 1.5;
+      display: none;
+    }
+
+    .privacy-note strong {
+      color: #a78bfa;
+    }
+
+    /* Input */
     input[type="text"] {
       width: 100%;
-      padding: 10px;
-      border: 2px solid #E5E5E5;
-      border-radius: 6px;
-      font-size: 14px;
-      margin-bottom: 8px;
+      padding: 10px 12px;
+      background: rgba(45, 45, 41, 0.6);
+      border: 1px solid rgba(193, 192, 182, 0.15);
+      border-radius: 8px;
+      font-size: 13px;
+      color: #e5e5e0;
       font-family: inherit;
-    }
-    
-    input[type="text"]:focus {
+      margin-bottom: 10px;
       outline: none;
-      border-color: #D97706;
+      transition: border-color 0.2s;
     }
+
+    input[type="text"]::placeholder {
+      color: rgba(193, 192, 182, 0.3);
+    }
+
+    input[type="text"]:focus {
+      border-color: rgba(99, 102, 241, 0.5);
+    }
+
+    .hidden { display: none !important; }
   </style>
 </head>
 <body>
-  <h1>Soul Signature</h1>
-  <p class="subtitle">Digital Twin Collector</p>
-  
-  <!-- Connection Status -->
-  <div id="connection-status" class="status status-disconnected">
-    <div class="status-dot"></div>
-    <span>Not Connected</span>
-  </div>
-  
-  <!-- User ID Input -->
-  <div class="section" id="setup-section">
-    <div class="section-title">Setup</div>
-    <input type="text" id="user-id-input" placeholder="Enter your User ID">
-    <button class="btn btn-primary" id="connect-btn">Connect</button>
-  </div>
-  
-  <!-- Controls -->
-  <div class="section" id="controls-section" style="display: none;">
-    <div class="section-title">Data Collection</div>
-    
-    <div class="toggle-container">
-      <span class="toggle-label">Soul Observer Mode</span>
-      <div class="toggle-switch" id="observer-toggle">
-        <div class="toggle-slider"></div>
+  <!-- Header -->
+  <div class="header">
+    <div class="header-left">
+      <div class="logo">&#127760;</div>
+      <div>
+        <div class="brand">Twin Me</div>
+        <div class="brand-sub">Digital Life Observer</div>
       </div>
     </div>
-    
-    <div class="privacy-notice" id="privacy-notice" style="display: none;">
-      <strong>Privacy First:</strong> Soul Observer tracks your browsing patterns (pages visited, time spent, engagement) to understand your authentic interests. No passwords, form data, or personal information is collected. All data is encrypted and only visible to you.
-    </div>
-    
-    <button class="btn btn-primary" id="sync-btn">Sync Now</button>
-    <button class="btn btn-secondary" id="dashboard-btn">Open Dashboard</button>
-  </div>
-  
-  <!-- Stats -->
-  <div class="section" id="stats-section" style="display: none;">
-    <div class="section-title">Collection Stats</div>
-    
-    <div class="stat">
-      <span class="stat-label">Netflix Items</span>
-      <span class="stat-value" id="netflix-count">0</span>
-    </div>
-    
-    <div class="stat">
-      <span class="stat-label">Browsing Activities</span>
-      <span class="stat-value" id="activity-count">0</span>
-    </div>
-    
-    <div class="stat">
-      <span class="stat-label">Unsynced Items</span>
-      <span class="stat-value" id="unsynced-count">0</span>
-    </div>
-    
-    <div class="stat">
-      <span class="stat-label">Last Sync</span>
-      <span class="stat-value" id="last-sync">Never</span>
+    <div class="status-badge disconnected" id="status-badge">
+      <div class="status-dot"></div>
+      <span id="status-text">Not Connected</span>
     </div>
   </div>
-  
+
+  <!-- Content -->
+  <div class="content">
+    <!-- Setup (shown when not connected) -->
+    <div id="setup-section">
+      <div class="setup-card">
+        <div class="icon">&#127760;</div>
+        <h3>Connect to Twin Me</h3>
+        <p>Sign into Twin Me first, then click below to auto-detect your account.</p>
+        <button class="btn btn-primary" id="auto-detect-btn">Detect My Account</button>
+        <div id="detect-status" class="hidden" style="margin-top:10px;font-size:12px;color:rgba(193,192,182,0.5);"></div>
+        <div id="manual-fallback" class="hidden" style="margin-top:12px;">
+          <p style="font-size:11px;color:rgba(193,192,182,0.4);margin-bottom:8px;">Or enter your User ID manually:</p>
+          <input type="text" id="user-id-input" placeholder="Paste your User ID here">
+          <button class="btn btn-secondary btn-sm" id="connect-btn">Connect Manually</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Connected View -->
+    <div id="connected-section" class="hidden">
+      <!-- Collection Toggle -->
+      <div class="toggle-row">
+        <div class="toggle-info">
+          <div class="toggle-title">Soul Observer</div>
+          <div class="toggle-desc">Capture browsing patterns</div>
+        </div>
+        <div class="toggle-switch" id="observer-toggle">
+          <div class="toggle-slider"></div>
+        </div>
+      </div>
+
+      <!-- Privacy Note -->
+      <div class="privacy-note" id="privacy-notice">
+        <strong>Privacy First:</strong> Only page titles, domains, and time spent are tracked. No passwords, form data, or personal content is ever collected.
+      </div>
+
+      <!-- Stats -->
+      <div>
+        <div class="section-label">&#128202; Collection Stats</div>
+        <div class="stats-grid">
+          <div class="stat-card">
+            <div class="stat-value" id="pages-count">0</div>
+            <div class="stat-label">Pages</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-value" id="searches-count">0</div>
+            <div class="stat-label">Searches</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-value" id="unsynced-count">0</div>
+            <div class="stat-label">Pending</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Categories -->
+      <div id="categories-section" class="hidden">
+        <div class="section-label">&#10024; Top Interests</div>
+        <div class="categories" id="categories-list"></div>
+      </div>
+
+      <!-- Recent Activity -->
+      <div id="activity-section" class="hidden">
+        <div class="section-label">&#128337; Recent Activity</div>
+        <div class="activity-list" id="activity-list"></div>
+      </div>
+
+      <!-- Actions -->
+      <div class="actions">
+        <button class="btn btn-secondary btn-sm" id="sync-btn">Sync Now</button>
+        <button class="btn btn-primary btn-sm" id="dashboard-btn">View Digital Life</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <div class="footer">
+    <span class="last-sync" id="last-sync">Never synced</span>
+    <button class="footer-link" id="settings-btn">Settings</button>
+  </div>
+
   <script src="popup.js"></script>
 </body>
 </html>

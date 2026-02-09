@@ -39,11 +39,21 @@ import {
   GraduationCap,
   MapPin,
   TrendingUp,
-  Building2
+  Building2,
+  Layers,
+  Video,
+  Tv,
+  MessageCircle,
+  BookOpen,
+  Github,
+  Mail,
+  Activity
 } from 'lucide-react';
 import { BigFiveRadarChart } from '@/components/PersonalityRadarChart';
 import BehavioralEvidencePanel from '@/components/BehavioralEvidencePanel';
 import AssessmentStatusCard from '@/components/AssessmentStatusCard';
+import { ClusterPersonalityVisualization } from '@/components/moltbot/ClusterPersonalityVisualization';
+import { PlatformCategoryCard, PLATFORM_CATEGORIES } from '@/components/dashboard/PlatformCategoryCard';
 
 interface PersonalityScores {
   id: string;
@@ -642,47 +652,46 @@ const SoulSignatureDashboard: React.FC = () => {
           </div>
 
           {/* Platform Status Grid */}
-          {connectedCount > 0 && (
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mt-4">
-              {['spotify', 'whoop', 'calendar'].map(platform => {
-                const platformData = platforms.find(p => p.platform === platform);
-                const isConnected = !!platformData;
-                const lastSync = platformData?.lastSync;
-
-                const platformColors: Record<string, string> = {
-                  spotify: '#1DB954',
-                  whoop: '#06B6D4',
-                  calendar: '#6366F1'
+          {connectedProviders.length > 0 && (
+            <div className="flex flex-wrap gap-3 mt-4">
+              {connectedProviders.map(provider => {
+                const platformIcons: Record<string, React.ElementType> = {
+                  spotify: Music, whoop: Activity, google_calendar: Calendar,
+                  youtube: Video, twitch: Tv, discord: MessageCircle,
+                  reddit: BookOpen, github: Github, gmail: Mail,
+                  outlook: Mail, linkedin: Briefcase
                 };
+                const platformColors: Record<string, string> = {
+                  spotify: '#1DB954', whoop: '#06B6D4', google_calendar: '#6366F1',
+                  youtube: '#FF0000', twitch: '#9146FF', discord: '#5865F2',
+                  reddit: '#FF4500', github: '#333333', gmail: '#EA4335',
+                  outlook: '#0078D4', linkedin: '#0A66C2'
+                };
+                const platformNames: Record<string, string> = {
+                  spotify: 'spotify', whoop: 'whoop', google_calendar: 'calendar',
+                  youtube: 'youtube', twitch: 'twitch', discord: 'discord',
+                  reddit: 'reddit', github: 'github', gmail: 'gmail',
+                  outlook: 'outlook', linkedin: 'linkedin'
+                };
+                const Icon = platformIcons[provider] || Zap;
+                const color = platformColors[provider] || textFaint;
+                const name = platformNames[provider] || provider;
 
                 return (
                   <div
-                    key={platform}
+                    key={provider}
                     className="p-3 rounded-xl transition-all duration-200"
                     style={{
                       backgroundColor: hoverBg,
-                      border: isConnected
-                        ? `1px solid ${platformColors[platform]}25`
-                        : '1px solid transparent'
+                      border: `1px solid ${color}25`
                     }}
                   >
-                    <div className="flex items-center gap-2 mb-1">
-                      {platform === 'spotify' && <Music className="w-4 h-4" style={{ color: isConnected ? platformColors.spotify : textFaint }} />}
-                      {platform === 'whoop' && <Heart className="w-4 h-4" style={{ color: isConnected ? platformColors.whoop : textFaint }} />}
-                      {platform === 'calendar' && <Calendar className="w-4 h-4" style={{ color: isConnected ? platformColors.calendar : textFaint }} />}
-                      <span className="text-xs font-medium capitalize" style={{
-                        color: isConnected ? textColor : textFaint
-                      }}>
-                        {platform}
+                    <div className="flex items-center gap-2">
+                      <Icon className="w-4 h-4" style={{ color }} />
+                      <span className="text-xs font-medium capitalize" style={{ color: textColor }}>
+                        {name}
                       </span>
                     </div>
-                    <p className="text-xs" style={{ color: textFaint }}>
-                      {isConnected
-                        ? lastSync
-                          ? `Synced ${new Date(lastSync).toLocaleDateString()}`
-                          : 'Connected'
-                        : 'Not connected'}
-                    </p>
                   </div>
                 );
               })}
@@ -1087,6 +1096,41 @@ const SoulSignatureDashboard: React.FC = () => {
         )}
       </GlassPanel>
 
+      {/* Your Data Universe - Platform Category Cards */}
+      <div className="mb-6">
+        <div className="flex items-center gap-2 mb-4">
+          <div
+            className="w-1 h-5 rounded-full"
+            style={{
+              background: theme === 'dark'
+                ? 'linear-gradient(to bottom, rgba(193, 192, 182, 0.6), rgba(193, 192, 182, 0.2))'
+                : 'linear-gradient(to bottom, rgba(0, 0, 0, 0.4), rgba(0, 0, 0, 0.1))'
+            }}
+          />
+          <Layers className="w-5 h-5" style={{ color: textMuted }} />
+          <h3
+            className="text-sm uppercase tracking-wider"
+            style={{ color: textMuted }}
+          >
+            Your Data Universe
+          </h3>
+        </div>
+        <p className="text-sm mb-4" style={{ color: textSecondary }}>
+          Explore the digital footprints that reveal your soul signature
+        </p>
+
+        <div className="space-y-4">
+          {Object.entries(PLATFORM_CATEGORIES).map(([id, config]) => (
+            <PlatformCategoryCard
+              key={id}
+              categoryId={id}
+              connectedProviders={connectedProviders}
+              onPlatformClick={(p) => navigate(`/insights/${p}`)}
+            />
+          ))}
+        </div>
+      </div>
+
       {/* Big Five Scientific Assessment */}
       <GlassPanel className="!p-5 md:!p-6 mb-6">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
@@ -1181,6 +1225,15 @@ const SoulSignatureDashboard: React.FC = () => {
           </div>
         )}
       </GlassPanel>
+
+      {/* Cluster Personality Visualization */}
+      <div className="mb-6">
+        <SectionHeader title="Context-Aware Personality" />
+        <p className="text-sm mb-4" style={{ color: textSecondary }}>
+          Your personality varies across different life contexts. Compare how you show up in personal vs professional settings.
+        </p>
+        <ClusterPersonalityVisualization userId={user?.id} />
+      </div>
 
       {/* Behavioral Evidence Panel */}
       {behavioralEvidence && personalityScores && (

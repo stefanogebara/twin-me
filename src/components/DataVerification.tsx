@@ -42,7 +42,7 @@ interface DataVerificationProps {
   connectedServices: string[];
 }
 
-// Core Platforms: Spotify, Google Calendar, Whoop, LinkedIn
+// All supported platforms
 const platformConfig: Record<string, {
   name: string;
   icon: React.ReactNode;
@@ -67,6 +67,41 @@ const platformConfig: Record<string, {
     name: 'LinkedIn',
     icon: <LinkedInLogo />,
     color: '#0A66C2'
+  },
+  youtube: {
+    name: 'YouTube',
+    icon: <CalendarLogo />,
+    color: '#FF0000'
+  },
+  twitch: {
+    name: 'Twitch',
+    icon: <CalendarLogo />,
+    color: '#9146FF'
+  },
+  discord: {
+    name: 'Discord',
+    icon: <CalendarLogo />,
+    color: '#5865F2'
+  },
+  reddit: {
+    name: 'Reddit',
+    icon: <CalendarLogo />,
+    color: '#FF4500'
+  },
+  github: {
+    name: 'GitHub',
+    icon: <CalendarLogo />,
+    color: '#333333'
+  },
+  gmail: {
+    name: 'Gmail',
+    icon: <CalendarLogo />,
+    color: '#EA4335'
+  },
+  outlook: {
+    name: 'Outlook',
+    icon: <CalendarLogo />,
+    color: '#0078D4'
   }
 };
 
@@ -198,13 +233,6 @@ export const DataVerification: React.FC<DataVerificationProps> = ({ userId, conn
               >
                 {config.name}
               </h4>
-              {status.lastSync && (
-                <p className="text-xs mt-0.5" style={{
-                  color: theme === 'dark' ? 'rgba(193, 192, 182, 0.6)' : '#78716c'
-                }}>
-                  {formatDate(status.lastSync)}
-                </p>
-              )}
             </div>
           </div>
 
@@ -238,9 +266,8 @@ export const DataVerification: React.FC<DataVerificationProps> = ({ userId, conn
     );
   };
 
-  // Count only MVP platforms that are connected AND have valid (non-expired) tokens
-  const MVP_PLATFORMS = Object.keys(platformConfig);
-  const connectedCount = MVP_PLATFORMS.filter(p =>
+  // Count all platforms that are connected AND have valid (non-expired) tokens
+  const connectedCount = Object.keys(platformStatuses).filter(p =>
     platformStatuses[p]?.connected && !platformStatuses[p]?.tokenExpired
   ).length;
 

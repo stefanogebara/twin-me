@@ -28,7 +28,7 @@ async function testGitHubExtraction() {
     console.log(`📡 Fetching ${platform} connection for user ${userId}...`);
     const { data: connection, error } = await supabase
       .from('platform_connections')
-      .select('access_token, refresh_token, connected, token_expires_at')
+      .select('access_token, refresh_token, connected_at, token_expires_at')
       .eq('user_id', userId)
       .eq('platform', platform)
       .single();
@@ -43,7 +43,7 @@ async function testGitHubExtraction() {
       return;
     }
 
-    if (!connection.connected) {
+    if (!connection.connected_at) {
       console.error(`❌ ${platform} is disconnected`);
       return;
     }
@@ -54,7 +54,7 @@ async function testGitHubExtraction() {
     }
 
     console.log(`✅ Found ${platform} connection`);
-    console.log(`   Connected: ${connection.connected}`);
+    console.log(`   Connected: ${!!connection.connected_at}`);
     console.log(`   Token expires: ${connection.token_expires_at}`);
 
     // 2. Decrypt access token

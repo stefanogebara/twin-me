@@ -14,7 +14,7 @@
 
 import express from 'express';
 import { authenticateUser } from '../middleware/auth.js';
-import { getTriggerService, getDefaultTriggerTemplates } from '../services/moltbot/moltbotTriggerService.js';
+import { getTriggerService, getDefaultTriggerTemplates, getAllTriggerTemplates, runPatternLearningPipeline } from '../services/moltbot/moltbotTriggerService.js';
 import { getMemoryService } from '../services/moltbot/moltbotMemoryService.js';
 import { getAgentScheduler } from '../services/moltbot/agentScheduler.js';
 import { getClusterPersonalityBuilder, CLUSTER_DEFINITIONS } from '../services/clusterPersonalityBuilder.js';
@@ -28,6 +28,7 @@ import deviationDetector from '../services/deviationDetector.js';
 import correlationDiscoveryEngine from '../services/correlationDiscoveryEngine.js';
 import patternHypothesisEngine from '../services/patternHypothesisEngine.js';
 import proactiveInsightService from '../services/proactiveInsightService.js';
+import patternLearningBridge from '../services/patternLearningBridge.js';
 
 const router = express.Router();
 
@@ -152,21 +153,106 @@ router.get('/triggers', authenticateUser, async (req, res) => {
 });
 
 /**
- * GET /api/moltbot/triggers/templates - Get default trigger templates
- * Public endpoint - no auth required (read-only reference data)
+ * GET /api/moltbot/triggers/templates - Get trigger templates (learned + defaults)
+ * Returns learned patterns when available, falls back to defaults
+ * Requires auth to get personalized learned triggers
  */
-router.get('/triggers/templates', (req, res) => {
+router.get('/triggers/templates', authenticateUser, async (req, res) => {
   try {
-    const templates = getDefaultTriggerTemplates();
+    const userId = req.user.id;
+    const allTemplates = await getAllTriggerTemplates(userId);
+
     res.json({
       success: true,
-      templates
+      // Return learned triggers first, then defaults as examples
+      templates: allTemplates.hasLearnedPatterns
+        ? allTemplates.learned
+        : allTemplates.defaults,
+      learned: allTemplates.learned,
+      defaults: allTemplates.defaults,
+      hasLearnedPatterns: allTemplates.hasLearnedPatterns,
+      learnedCount: allTemplates.learnedCount,
+      defaultCount: allTemplates.defaultCount,
+      message: allTemplates.hasLearnedPatterns
+        ? `Found ${allTemplates.learnedCount} patterns learned from your data!`
+        : 'No learned patterns yet. Showing example templates. Run pattern learning to discover your unique patterns.'
     });
   } catch (error) {
     console.error('[Moltbot API] Error getting templates:', error);
     res.status(500).json({
       success: false,
       error: 'Failed to get trigger templates'
+    });
+  }
+});
+
+/**
+ * POST /api/moltbot/triggers/learn - Run pattern learning pipeline
+ * Syncs platform data, computes baselines, discovers correlations, generates triggers
+ */
+router.post('/triggers/learn', authenticateUser, async (req, res) => {
+  try {
+    const userId = req.user.id;
+    console.log(`[Moltbot API] Running pattern learning pipeline for user ${userId}`);
+
+    const results = await runPatternLearningPipeline(userId);
+
+    res.json({
+      success: true,
+      message: `Pattern learning complete! Discovered ${results.correlations?.discovered || 0} correlations and generated ${results.triggers?.length || 0} learned triggers.`,
+      results: {
+        dataSynced: results.dataSync,
+        baselinesComputed: results.baselines?.computed || 0,
+        correlationsDiscovered: results.correlations?.discovered || 0,
+        hypothesesGenerated: results.hypotheses?.generated || 0,
+        triggersGenerated: results.triggers?.length || 0
+      },
+      triggers: results.triggers
+    });
+  } catch (error) {
+    console.error('[Moltbot API] Error running pattern learning:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to run pattern learning pipeline',
+      details: error.message
+    });
+  }
+});
+
+/**
+ * POST /api/moltbot/sync-platform-data - Sync existing platform data to pattern learning
+ * Call this once to backfill historical data from connected platforms
+ */
+router.post('/sync-platform-data', authenticateUser, async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { platforms, days } = req.body;
+
+    // Default to all supported platforms and 90 days
+    const platformsToSync = platforms || ['spotify', 'whoop', 'google_calendar'];
+    const daysToSync = days || 90;
+
+    console.log(`[Moltbot API] Syncing ${daysToSync} days of platform data for user ${userId}`);
+
+    const results = {};
+    for (const platform of platformsToSync) {
+      results[platform] = await patternLearningBridge.syncExistingPlatformData(userId, platform, daysToSync);
+    }
+
+    const totalSynced = Object.values(results).reduce((sum, r) => sum + (r.synced || 0), 0);
+
+    res.json({
+      success: true,
+      message: `Synced ${totalSynced} events from ${platformsToSync.length} platforms`,
+      results,
+      nextStep: 'Now run POST /api/moltbot/triggers/learn to discover patterns in this data'
+    });
+  } catch (error) {
+    console.error('[Moltbot API] Error syncing platform data:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to sync platform data',
+      details: error.message
     });
   }
 });

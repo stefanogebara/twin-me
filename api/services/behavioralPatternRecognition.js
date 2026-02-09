@@ -50,12 +50,13 @@ export async function detectTemporalCorrelations(userId, timeWindowHours = 72) {
     const windowStart = new Date(now.getTime() - (timeWindowHours * 60 * 60 * 1000));
 
     // Step 1: Fetch calendar events in time window
+    // Support multiple calendar data formats: google_calendar/events, calendar/recent_event, calendar/upcoming_event
     const { data: calendarEvents, error: calendarError } = await supabase
       .from('user_platform_data')
       .select('*')
       .eq('user_id', userId)
-      .eq('platform', 'calendar')
-      .eq('data_type', 'event')
+      .in('platform', ['calendar', 'google_calendar'])
+      .in('data_type', ['event', 'events', 'recent_event', 'upcoming_event'])
       .gte('extracted_at', windowStart.toISOString())
       .order('extracted_at', { ascending: true });
 
@@ -91,7 +92,17 @@ export async function detectTemporalCorrelations(userId, timeWindowHours = 72) {
 
     for (const event of calendarEvents) {
       const eventData = event.raw_data;
-      const eventStart = new Date(eventData.start?.dateTime || eventData.start?.date);
+      // Handle multiple calendar data formats:
+      // - Google Calendar API: start.dateTime or start.date
+      // - Our stored format: start_time directly
+      const eventStartTime = eventData.start_time || eventData.start?.dateTime || eventData.start?.date;
+
+      if (!eventStartTime) {
+        console.log('⚠️ [Pattern Recognition] Skipping event without start time:', eventData.summary || 'Unknown');
+        continue;
+      }
+
+      const eventStart = new Date(eventStartTime);
 
       // Look for activities within ±3 hours of event
       const correlatedActivities = activities.filter(activity => {

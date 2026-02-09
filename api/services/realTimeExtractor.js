@@ -6,6 +6,7 @@
  */
 
 import PersonalityAnalyzer from './personalityAnalyzer.js';
+import { supabaseAdmin } from '../config/supabase.js';
 
 export class RealTimeExtractor {
   constructor() {
@@ -402,6 +403,143 @@ export class RealTimeExtractor {
         authenticityScore: 70,
         uniquenessMarkers: [`Shows ${platform} engagement patterns`],
         personalityTraits: ['engaged-consumer']
+      }
+    };
+  }
+
+  /**
+   * Aggregate web browsing signature from browser extension data
+   * No OAuth token required — data comes from user_platform_data table
+   */
+  async aggregateWebBrowsingSignature(userId) {
+    console.log(`[Web Extraction] Aggregating browsing signature for user ${userId}`);
+
+    const supabase = supabaseAdmin;
+
+    // Fetch web browsing events (last 30 days, limit 500)
+    const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
+    const { data: webEvents, error } = await supabase
+      .from('user_platform_data')
+      .select('data_type, raw_data, created_at')
+      .eq('user_id', userId)
+      .eq('platform', 'web')
+      .gte('created_at', thirtyDaysAgo)
+      .order('created_at', { ascending: false })
+      .limit(500);
+
+    if (error || !webEvents?.length) {
+      return {
+        success: false,
+        platform: 'web',
+        error: 'NO_DATA',
+        message: 'No web browsing data found. Install the browser extension to start collecting data.'
+      };
+    }
+
+    // Aggregate by category
+    const categories = {};
+    const domains = {};
+    const topics = {};
+    const searches = [];
+    let totalEngagement = 0;
+    let totalTimeOnPage = 0;
+    let pageCount = 0;
+
+    for (const event of webEvents) {
+      const raw = event.raw_data || {};
+
+      // Category aggregation
+      const category = raw.category || raw.metadata?.category || 'uncategorized';
+      categories[category] = (categories[category] || 0) + 1;
+
+      // Domain aggregation
+      const domain = raw.domain || raw.metadata?.domain;
+      if (domain) {
+        domains[domain] = (domains[domain] || 0) + 1;
+      }
+
+      // Topic aggregation
+      const eventTopics = raw.topics || raw.metadata?.topics || [];
+      for (const topic of eventTopics) {
+        topics[topic] = (topics[topic] || 0) + 1;
+      }
+
+      // Search queries
+      if (event.data_type === 'extension_search_query' && raw.query) {
+        searches.push({ query: raw.query, timestamp: event.created_at });
+      }
+
+      // Engagement metrics
+      const engagement = raw.engagement?.engagementScore || raw.engagementScore || 0;
+      totalEngagement += engagement;
+      const timeOnPage = raw.engagement?.timeOnPage || raw.timeOnPage || 0;
+      totalTimeOnPage += timeOnPage;
+      pageCount++;
+    }
+
+    // Sort and rank
+    const topCategories = Object.entries(categories)
+      .map(([category, count]) => ({ category, count }))
+      .sort((a, b) => b.count - a.count);
+
+    const topDomains = Object.entries(domains)
+      .map(([domain, count]) => ({ domain, count }))
+      .sort((a, b) => b.count - a.count);
+
+    const topTopics = Object.entries(topics)
+      .map(([topic, count]) => ({ topic, count }))
+      .sort((a, b) => b.count - a.count);
+
+    // Determine reading profile
+    const avgEngagement = pageCount > 0 ? totalEngagement / pageCount : 0;
+    const avgTimeOnPage = pageCount > 0 ? totalTimeOnPage / pageCount : 0;
+    let dominantBehavior = 'scanner';
+    if (avgTimeOnPage > 120) dominantBehavior = 'deep_reader';
+    else if (avgTimeOnPage > 60) dominantBehavior = 'engaged_reader';
+    else if (avgTimeOnPage > 30) dominantBehavior = 'skimmer';
+
+    // Digital lifestyle balance
+    const total = webEvents.length;
+    const lifestyleBalance = {
+      learning: ((categories['learning'] || 0) + (categories['reference'] || 0)) / total,
+      entertainment: ((categories['entertainment'] || 0) + (categories['gaming'] || 0)) / total,
+      social: ((categories['social'] || 0) + (categories['communication'] || 0)) / total,
+      productivity: ((categories['productivity'] || 0) + (categories['development'] || 0)) / total,
+      news: (categories['news'] || 0) / total,
+      shopping: (categories['shopping'] || 0) / total
+    };
+
+    return {
+      success: true,
+      platform: 'web',
+      extractedAt: new Date().toISOString(),
+      dataPointsCount: webEvents.length,
+      curiosityProfile: {
+        topicDiversity: Object.keys(topics).length,
+        categoryDiversity: Object.keys(categories).length,
+        searchFrequency: searches.length,
+        dominantInterests: topTopics.slice(0, 10).map(t => t.topic)
+      },
+      contentEngagement: {
+        dominantBehavior,
+        avgEngagement,
+        avgTimeOnPage,
+        readingStyle: dominantBehavior
+      },
+      interestGraph: {
+        topCategories: topCategories.slice(0, 10),
+        topDomains: topDomains.slice(0, 15),
+        topTopics: topTopics.slice(0, 20)
+      },
+      recentSearches: searches.slice(0, 20),
+      lifestyleBalance,
+      soulSignature: {
+        authenticityScore: Math.min(95, 50 + webEvents.length * 0.5),
+        uniquenessMarkers: topTopics.slice(0, 5).map(t => `Curious about: ${t.topic}`),
+        personalityTraits: [
+          dominantBehavior,
+          topCategories[0]?.category ? `${topCategories[0].category}-focused` : 'diverse-browser'
+        ]
       }
     };
   }

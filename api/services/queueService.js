@@ -26,6 +26,7 @@ import { invalidatePlatformStatusCache } from './redisClient.js';
  */
 let extractionQueue = null;
 let soulSignatureQueue = null;
+let conversationAnalysisQueue = null;
 
 /**
  * Queue configuration
@@ -71,13 +72,27 @@ function initializeQueues() {
       defaultJobOptions: QUEUE_CONFIG.defaultJobOptions,
     });
 
+    // Conversation Analysis Queue
+    conversationAnalysisQueue = new Bull('conversation-analysis', QUEUE_CONFIG.redis, {
+      defaultJobOptions: {
+        ...QUEUE_CONFIG.defaultJobOptions,
+        attempts: 2,  // Fewer retries for AI analysis
+        backoff: {
+          type: 'exponential',
+          delay: 2000,  // 2 second initial delay
+        },
+      },
+    });
+
     // Register processors
     registerExtractionProcessor();
     registerSoulSignatureProcessor();
+    registerConversationAnalysisProcessor();
 
     // Setup event handlers
     setupQueueEventHandlers(extractionQueue, 'extraction');
     setupQueueEventHandlers(soulSignatureQueue, 'soul-signature');
+    setupQueueEventHandlers(conversationAnalysisQueue, 'conversation-analysis');
 
     console.log('✅ Bull queues initialized successfully');
   } catch (error) {
@@ -178,6 +193,85 @@ function registerSoulSignatureProcessor() {
 }
 
 /**
+ * Register conversation analysis job processor
+ */
+function registerConversationAnalysisProcessor() {
+  conversationAnalysisQueue.process('analyze-conversation', async (job) => {
+    const { userId, conversationLogId, sessionId } = job.data;
+
+    console.log(`[Queue] Processing conversation analysis job ${job.id}`);
+
+    try {
+      await job.progress(0);
+
+      // Import AI analyzer dynamically to avoid circular dependency
+      const { default: aiAnalyzer } = await import('./conversationAIAnalyzer.js');
+
+      await job.progress(10);
+
+      // Run AI analysis
+      const result = await aiAnalyzer.analyzeAndUpdateConversationLog(conversationLogId);
+
+      await job.progress(90);
+
+      if (result.success) {
+        console.log(`[Queue] ✅ Conversation analysis job ${job.id} completed`);
+        await job.progress(100);
+
+        // If this completes a session (e.g., stale session), analyze the session too
+        if (sessionId) {
+          try {
+            const sessionAnalysisJob = await conversationAnalysisQueue.add('analyze-session', {
+              userId,
+              sessionId,
+            }, {
+              priority: 15,  // Lower priority than individual messages
+              delay: 5000,   // Wait 5 seconds before session analysis
+              jobId: `session-analysis:${sessionId}:${Date.now()}`,
+            });
+            console.log(`[Queue] Queued session analysis job ${sessionAnalysisJob.id}`);
+          } catch (error) {
+            console.warn(`[Queue] Failed to queue session analysis:`, error.message);
+          }
+        }
+
+        return result;
+      } else {
+        throw new Error(result.error || 'Analysis failed');
+      }
+    } catch (error) {
+      console.error(`[Queue] ❌ Conversation analysis job ${job.id} failed:`, error);
+      throw error;
+    }
+  });
+
+  // Register session analysis processor
+  conversationAnalysisQueue.process('analyze-session', async (job) => {
+    const { sessionId } = job.data;
+
+    console.log(`[Queue] Processing session analysis job ${job.id} for session ${sessionId}`);
+
+    try {
+      await job.progress(0);
+
+      const { default: aiAnalyzer } = await import('./conversationAIAnalyzer.js');
+
+      await job.progress(25);
+
+      const result = await aiAnalyzer.analyzeSession(sessionId);
+
+      await job.progress(100);
+
+      console.log(`[Queue] ✅ Session analysis job ${job.id} completed`);
+      return result;
+    } catch (error) {
+      console.error(`[Queue] ❌ Session analysis job ${job.id} failed:`, error);
+      throw error;
+    }
+  });
+}
+
+/**
  * Setup event handlers for queue monitoring
  */
 function setupQueueEventHandlers(queue, queueName) {
@@ -267,12 +361,94 @@ async function addSoulSignatureJob(userId, options = {}) {
 }
 
 /**
+ * Add conversation analysis job to queue
+ * @param {string} userId - User UUID
+ * @param {string} conversationLogId - Conversation log UUID
+ * @param {string} sessionId - Session UUID (optional)
+ * @param {Object} options - Job options (priority, delay, etc.)
+ * @returns {Promise<Object>} Bull job
+ */
+async function addConversationAnalysisJob(userId, conversationLogId, sessionId = null, options = {}) {
+  if (!conversationAnalysisQueue) {
+    console.warn('[Queue] Queue not initialized - running analysis synchronously');
+
+    // Fallback to synchronous execution
+    const { default: aiAnalyzer } = await import('./conversationAIAnalyzer.js');
+    return aiAnalyzer.analyzeAndUpdateConversationLog(conversationLogId);
+  }
+
+  try {
+    const job = await conversationAnalysisQueue.add('analyze-conversation', {
+      userId,
+      conversationLogId,
+      sessionId,
+    }, {
+      priority: options.priority || 5,
+      delay: options.delay || 1000,  // 1 second delay by default
+      jobId: `analysis:${userId}:${conversationLogId}`,
+    });
+
+    console.log(`[Queue] Added conversation analysis job ${job.id}`);
+    return job;
+  } catch (error) {
+    console.error('[Queue] Failed to add conversation analysis job:', error);
+    throw error;
+  }
+}
+
+/**
+ * Add session analysis job to queue
+ * @param {string} userId - User UUID
+ * @param {string} sessionId - Session UUID
+ * @param {Object} options - Job options
+ * @returns {Promise<Object>} Bull job
+ */
+async function addSessionAnalysisJob(userId, sessionId, options = {}) {
+  if (!conversationAnalysisQueue) {
+    console.warn('[Queue] Queue not initialized - running session analysis synchronously');
+
+    const { default: aiAnalyzer } = await import('./conversationAIAnalyzer.js');
+    return aiAnalyzer.analyzeSession(sessionId);
+  }
+
+  try {
+    const job = await conversationAnalysisQueue.add('analyze-session', {
+      userId,
+      sessionId,
+    }, {
+      priority: options.priority || 10,
+      delay: options.delay || 2000,
+      jobId: `session-analysis:${sessionId}:${Date.now()}`,
+    });
+
+    console.log(`[Queue] Added session analysis job ${job.id}`);
+    return job;
+  } catch (error) {
+    console.error('[Queue] Failed to add session analysis job:', error);
+    throw error;
+  }
+}
+
+/**
  * Get job status
  * @param {string} jobId - Bull job ID
- * @param {string} queueName - Queue name ('extraction' or 'soul-signature')
+ * @param {string} queueName - Queue name ('extraction', 'soul-signature', or 'conversation-analysis')
  */
 async function getJobStatus(jobId, queueName = 'extraction') {
-  const queue = queueName === 'extraction' ? extractionQueue : soulSignatureQueue;
+  let queue;
+  switch (queueName) {
+    case 'extraction':
+      queue = extractionQueue;
+      break;
+    case 'soul-signature':
+      queue = soulSignatureQueue;
+      break;
+    case 'conversation-analysis':
+      queue = conversationAnalysisQueue;
+      break;
+    default:
+      queue = extractionQueue;
+  }
 
   if (!queue) {
     return { error: 'Queue not initialized' };
@@ -325,6 +501,10 @@ async function getQueueStats() {
       soulActive,
       soulCompleted,
       soulFailed,
+      analysisWaiting,
+      analysisActive,
+      analysisCompleted,
+      analysisFailed,
     ] = await Promise.all([
       extractionQueue.getWaitingCount(),
       extractionQueue.getActiveCount(),
@@ -334,6 +514,10 @@ async function getQueueStats() {
       soulSignatureQueue.getActiveCount(),
       soulSignatureQueue.getCompletedCount(),
       soulSignatureQueue.getFailedCount(),
+      conversationAnalysisQueue?.getWaitingCount() || Promise.resolve(0),
+      conversationAnalysisQueue?.getActiveCount() || Promise.resolve(0),
+      conversationAnalysisQueue?.getCompletedCount() || Promise.resolve(0),
+      conversationAnalysisQueue?.getFailedCount() || Promise.resolve(0),
     ]);
 
     return {
@@ -349,6 +533,12 @@ async function getQueueStats() {
         active: soulActive,
         completed: soulCompleted,
         failed: soulFailed,
+      },
+      conversationAnalysis: {
+        waiting: analysisWaiting,
+        active: analysisActive,
+        completed: analysisCompleted,
+        failed: analysisFailed,
       },
     };
   } catch (error) {
@@ -376,6 +566,11 @@ async function cleanupOldJobs() {
     await soulSignatureQueue.clean(oneDayAgo, 'completed');
     await soulSignatureQueue.clean(oneDayAgo, 'failed');
 
+    if (conversationAnalysisQueue) {
+      await conversationAnalysisQueue.clean(oneDayAgo, 'completed');
+      await conversationAnalysisQueue.clean(oneDayAgo, 'failed');
+    }
+
     console.log('[Queue] ✅ Cleaned up old jobs');
   } catch (error) {
     console.error('[Queue] Error cleaning up jobs:', error);
@@ -386,7 +581,20 @@ async function cleanupOldJobs() {
  * Pause queue
  */
 async function pauseQueue(queueName = 'extraction') {
-  const queue = queueName === 'extraction' ? extractionQueue : soulSignatureQueue;
+  let queue;
+  switch (queueName) {
+    case 'extraction':
+      queue = extractionQueue;
+      break;
+    case 'soul-signature':
+      queue = soulSignatureQueue;
+      break;
+    case 'conversation-analysis':
+      queue = conversationAnalysisQueue;
+      break;
+    default:
+      queue = extractionQueue;
+  }
 
   if (!queue) {
     console.warn('[Queue] Queue not initialized');
@@ -401,7 +609,20 @@ async function pauseQueue(queueName = 'extraction') {
  * Resume queue
  */
 async function resumeQueue(queueName = 'extraction') {
-  const queue = queueName === 'extraction' ? extractionQueue : soulSignatureQueue;
+  let queue;
+  switch (queueName) {
+    case 'extraction':
+      queue = extractionQueue;
+      break;
+    case 'soul-signature':
+      queue = soulSignatureQueue;
+      break;
+    case 'conversation-analysis':
+      queue = conversationAnalysisQueue;
+      break;
+    default:
+      queue = extractionQueue;
+  }
 
   if (!queue) {
     console.warn('[Queue] Queue not initialized');
@@ -419,6 +640,7 @@ function getQueues() {
   return {
     extractionQueue,
     soulSignatureQueue,
+    conversationAnalysisQueue,
   };
 }
 
@@ -429,10 +651,19 @@ function areQueuesAvailable() {
   return !!(extractionQueue && soulSignatureQueue);
 }
 
+/**
+ * Check if conversation analysis queue is available
+ */
+function isAnalysisQueueAvailable() {
+  return !!conversationAnalysisQueue;
+}
+
 export {
   initializeQueues,
   addExtractionJob,
   addSoulSignatureJob,
+  addConversationAnalysisJob,
+  addSessionAnalysisJob,
   getJobStatus,
   getQueueStats,
   cleanupOldJobs,
@@ -440,12 +671,15 @@ export {
   resumeQueue,
   getQueues,
   areQueuesAvailable,
+  isAnalysisQueueAvailable,
 };
 
 export default {
   initializeQueues,
   addExtractionJob,
   addSoulSignatureJob,
+  addConversationAnalysisJob,
+  addSessionAnalysisJob,
   getJobStatus,
   getQueueStats,
   cleanupOldJobs,
@@ -453,4 +687,5 @@ export default {
   resumeQueue,
   getQueues,
   areQueuesAvailable,
+  isAnalysisQueueAvailable,
 };

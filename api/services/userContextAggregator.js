@@ -16,9 +16,9 @@ import { supabaseAdmin } from './database.js';
 import { decryptToken } from './encryption.js';
 import { ensureFreshToken } from './tokenRefreshService.js';
 import { lifeEventInferenceService } from './lifeEventInferenceService.js';
+import { whoop as nangoWhoop, getConnection as getNangoConnection } from './nangoService.js';
 import axios from 'axios';
 
-const WHOOP_API_BASE = 'https://api.prod.whoop.com/developer/v2';
 const SPOTIFY_API_BASE = 'https://api.spotify.com/v1';
 
 class UserContextAggregator {
@@ -33,7 +33,7 @@ class UserContextAggregator {
   async aggregateUserContext(userId, options = {}) {
     console.log(`🧠 [Context Aggregator] Building context for user ${userId}`);
 
-    const { forceRefresh = false, platforms = ['whoop', 'spotify', 'calendar'] } = options;
+    const { forceRefresh = false, platforms = ['whoop', 'spotify', 'calendar', 'youtube', 'twitch', 'web'] } = options;
 
     // Check cache first
     const cacheKey = `${userId}-${platforms.join('-')}`;
@@ -63,11 +63,14 @@ class UserContextAggregator {
       safeCall(() => this.getPersonalityProfile(userId), 'Personality'),
       safeCall(() => this.getPersonalityQuiz(userId), 'PersonalityQuiz'),
       safeCall(() => this.getLearnedPatterns(userId), 'Patterns'),
-      safeCall(() => this.getLifeContext(userId), 'LifeContext')
+      safeCall(() => this.getLifeContext(userId), 'LifeContext'),
+      platforms.includes('youtube') ? safeCall(() => this.getYouTubeContext(userId), 'YouTube') : Promise.resolve(null),
+      platforms.includes('twitch') ? safeCall(() => this.getTwitchContext(userId), 'Twitch') : Promise.resolve(null),
+      platforms.includes('web') ? safeCall(() => this.getWebBrowsingContext(userId), 'Web') : Promise.resolve(null)
     ]);
 
     // Extract values from settled results
-    const [whoopContext, spotifyContext, calendarContext, personality, personalityQuiz, patterns, lifeContext] =
+    const [whoopContext, spotifyContext, calendarContext, personality, personalityQuiz, patterns, lifeContext, youtubeContext, twitchContext, webContext] =
       results.map(r => r.status === 'fulfilled' ? r.value : null);
 
     const context = {
@@ -77,11 +80,14 @@ class UserContextAggregator {
       whoop: whoopContext,
       spotify: spotifyContext,
       calendar: calendarContext,
+      youtube: youtubeContext,
+      twitch: twitchContext,
+      web: webContext,
       lifeContext, // Life context (vacation, conferences, etc.)
       personality, // Big Five from personality_scores table
       personalityQuiz, // Onboarding quiz preferences from users table
       patterns,
-      summary: this.generateContextSummary(whoopContext, spotifyContext, calendarContext, lifeContext)
+      summary: this.generateContextSummary(whoopContext, spotifyContext, calendarContext, lifeContext, youtubeContext, twitchContext, webContext)
     };
 
     // Cache the context
@@ -97,49 +103,48 @@ class UserContextAggregator {
   /**
    * Get current Whoop health context
    * Returns: recovery score, sleep data, strain level, HRV
+   * Uses Nango for authentication when available, falls back to legacy platform_connections
    */
   async getWhoopContext(userId) {
     console.log(`💪 [Context Aggregator] Fetching Whoop context...`);
 
     try {
-      // Get Whoop connection
-      const { data: connection, error } = await supabaseAdmin
-        .from('platform_connections')
-        .select('access_token, refresh_token, token_expires_at')
-        .eq('user_id', userId)
-        .eq('platform', 'whoop')
-        .single();
+      // Check Nango connection status first
+      const connectionStatus = await getNangoConnection(userId, 'whoop');
+      if (!connectionStatus.connected) {
+        console.log(`⚠️ [Context Aggregator] Whoop not connected via Nango, checking legacy...`);
 
-      if (error || !connection) {
-        console.log(`⚠️ [Context Aggregator] Whoop not connected`);
+        // Fall back to legacy platform_connections table
+        const legacyResult = await this.getLegacyWhoopContext(userId);
+        if (legacyResult) {
+          return legacyResult;
+        }
+
         return null;
       }
 
-      // Use automatic token refresh instead of just returning needsReauth
-      let accessToken;
-      try {
-        accessToken = await ensureFreshToken(userId, 'whoop');
-        console.log(`✅ [Context Aggregator] Got fresh Whoop token`);
-      } catch (refreshError) {
-        console.log(`⚠️ [Context Aggregator] Whoop token refresh failed: ${refreshError.message}`);
+      // Fetch both cycle and recovery data in parallel using Nango proxy
+      // Nango handles token refresh automatically
+      const [cycleResult, recoveryResult] = await Promise.all([
+        nangoWhoop.getCycles(userId, 1).catch(err => {
+          console.log(`⚠️ [Context Aggregator] Cycle API error: ${err.message}`);
+          return { success: false, data: { records: [] } };
+        }),
+        nangoWhoop.getRecovery(userId, 7).catch(err => {
+          console.log(`⚠️ [Context Aggregator] Recovery API error: ${err.message}`);
+          return { success: false, data: { records: [] } };
+        })
+      ]);
+
+      // Handle auth errors from Nango
+      if (!cycleResult.success && cycleResult.status === 401) {
+        console.log(`⚠️ [Context Aggregator] Whoop auth expired`);
         return { connected: false, needsReauth: true };
       }
 
-      const headers = { 'Authorization': `Bearer ${accessToken}` };
-
-      // Fetch both cycle and recovery data in parallel for comprehensive health context
-      const [cycleRes, recoveryRes] = await Promise.all([
-        axios.get(`${WHOOP_API_BASE}/cycle`, { headers, params: { limit: 1 } })
-          .catch(err => {
-            console.log(`⚠️ [Context Aggregator] Cycle API error: ${err.message}`);
-            return { data: { records: [] } };
-          }),
-        axios.get(`${WHOOP_API_BASE}/recovery`, { headers, params: { limit: 7 } })
-          .catch(err => {
-            console.log(`⚠️ [Context Aggregator] Recovery API error: ${err.message}`);
-            return { data: { records: [] } };
-          })
-      ]);
+      // Extract data from Nango response format
+      const cycleRes = { data: cycleResult.success ? cycleResult.data : { records: [] } };
+      const recoveryRes = { data: recoveryResult.success ? recoveryResult.data : { records: [] } };
 
       // Log raw API responses for debugging
       console.log(`📊 [Context Aggregator] Cycle response:`, JSON.stringify(cycleRes.data).substring(0, 500));
@@ -236,7 +241,7 @@ class UserContextAggregator {
           spo2: spo2 ? Math.round(spo2) : null,
           skinTemp: skinTemp ? Math.round(skinTemp * 10) / 10 : null
         },
-        sleep: await this.getSleepContext(headers),
+        sleep: await this.getSleepContext(userId),
         history7Day: history7Day,
         lastUpdated: latestCycle.end || latestCycle.created_at,
         recommendations: this.generateWhoopRecommendations(recovery, strain)
@@ -249,17 +254,185 @@ class UserContextAggregator {
   }
 
   /**
-   * Get sleep data from Whoop
+   * Legacy Whoop context fetcher using platform_connections table
+   * Used as fallback when Nango connection is not available
    */
-  async getSleepContext(headers) {
-    try {
-      // Fetch last 5 sleep records to capture main sleep + naps
-      const sleepRes = await axios.get(`${WHOOP_API_BASE}/activity/sleep`, {
-        headers,
-        params: { limit: 5 }
-      });
+  async getLegacyWhoopContext(userId) {
+    console.log(`💪 [Context Aggregator] Trying legacy Whoop connection...`);
 
-      const allSleeps = sleepRes.data?.records || sleepRes.data || [];
+    try {
+      // Check platform_connections table
+      const { data: connection, error } = await supabaseAdmin
+        .from('platform_connections')
+        .select('*')
+        .eq('user_id', userId)
+        .eq('platform', 'whoop')
+        .eq('status', 'connected')
+        .single();
+
+      if (error || !connection) {
+        console.log(`⚠️ [Context Aggregator] No legacy Whoop connection found`);
+        return null;
+      }
+
+      // Access token is stored encrypted in the database
+      let accessToken = decryptToken(connection.access_token);
+      const tokenExpired = new Date(connection.token_expires_at) < new Date();
+
+      if (tokenExpired && connection.refresh_token) {
+        console.log(`🔄 [Context Aggregator] Legacy Whoop token expired, refreshing...`);
+        const refreshedToken = await ensureFreshToken(userId, 'whoop');
+        if (!refreshedToken) {
+          console.log(`❌ [Context Aggregator] Failed to refresh legacy Whoop token`);
+          return { connected: false, needsReauth: true };
+        }
+        accessToken = refreshedToken;
+      } else if (!accessToken) {
+        console.log(`❌ [Context Aggregator] No access token for Whoop`);
+        return null;
+      }
+
+      // Fetch data using direct API calls
+      const WHOOP_API_BASE = 'https://api.prod.whoop.com/developer/v2';
+
+      const [cycleRes, recoveryRes, sleepRes] = await Promise.all([
+        fetch(`${WHOOP_API_BASE}/cycle?limit=1`, {
+          headers: { 'Authorization': `Bearer ${accessToken}` }
+        }).then(r => r.ok ? r.json() : { records: [] }).catch(() => ({ records: [] })),
+        fetch(`${WHOOP_API_BASE}/recovery?limit=7`, {
+          headers: { 'Authorization': `Bearer ${accessToken}` }
+        }).then(r => r.ok ? r.json() : { records: [] }).catch(() => ({ records: [] })),
+        fetch(`${WHOOP_API_BASE}/activity/sleep?limit=5`, {
+          headers: { 'Authorization': `Bearer ${accessToken}` }
+        }).then(r => r.ok ? r.json() : { records: [] }).catch(() => ({ records: [] }))
+      ]);
+
+      const latestCycle = cycleRes.records?.[0];
+      const recoveries = recoveryRes.records || [];
+      const latestRecovery = recoveries[0];
+
+      if (!latestCycle && !latestRecovery) {
+        return { connected: true, noData: true };
+      }
+
+      // Extract recovery metrics
+      let recovery = null;
+      let hrv = null;
+      let rhr = null;
+
+      if (latestRecovery) {
+        recovery = latestRecovery.score?.recovery_score ?? null;
+        hrv = latestRecovery.score?.hrv_rmssd_milli ?? null;
+        rhr = latestRecovery.score?.resting_heart_rate ?? null;
+      }
+
+      if (recovery === null && latestCycle) {
+        recovery = latestCycle.score?.recovery_score ?? null;
+        hrv = hrv ?? latestCycle.score?.hrv_rmssd_milli ?? null;
+        rhr = rhr ?? latestCycle.score?.resting_heart_rate ?? null;
+      }
+
+      const strain = latestCycle?.score?.strain ?? 0;
+
+      // Calculate trends and labels
+      const hrvValues = recoveries.map(r => r.score?.hrv_rmssd_milli).filter(v => v != null);
+      const hrvTrend = this.calculateTrend(hrvValues);
+      const recoveryLabel = this.getRecoveryLabel(recovery);
+      const strainLabel = this.getStrainLabel(strain);
+
+      // Build 7-day history
+      const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+      const history7Day = recoveries.slice(0, 7).map((r) => {
+        const date = r.created_at ? new Date(r.created_at) : new Date();
+        return {
+          dayName: dayNames[date.getDay()],
+          recovery: Math.round(r.score?.recovery_score ?? 0),
+          hrv: Math.round(r.score?.hrv_rmssd_milli ?? 0)
+        };
+      }).reverse();
+
+      // Process sleep data
+      const sleepData = await this.processLegacySleepData(sleepRes.records || []);
+
+      console.log(`✅ [Context Aggregator] Legacy Whoop data retrieved: recovery=${recovery}%, strain=${strain}`);
+
+      return {
+        connected: true,
+        recovery: {
+          score: recovery,
+          label: recoveryLabel,
+          color: this.getRecoveryColor(recovery)
+        },
+        strain: {
+          score: Math.round(strain * 10) / 10,
+          max: 21,
+          label: strainLabel,
+          percentage: Math.round((strain / 21) * 100)
+        },
+        hrv: {
+          current: hrv ? Math.round(hrv) : null,
+          trend: hrvTrend,
+          unit: 'ms'
+        },
+        rhr: {
+          current: rhr ? Math.round(rhr) : null,
+          unit: 'bpm'
+        },
+        vitals: { spo2: null, skinTemp: null },
+        sleep: sleepData,
+        history7Day: history7Day,
+        lastUpdated: latestCycle?.end || latestCycle?.created_at,
+        recommendations: this.generateWhoopRecommendations(recovery, strain)
+      };
+
+    } catch (error) {
+      console.error(`❌ [Context Aggregator] Legacy Whoop error:`, error.message);
+      return null;
+    }
+  }
+
+  /**
+   * Process legacy sleep data from direct API response
+   */
+  processLegacySleepData(sleeps) {
+    if (!sleeps || sleeps.length === 0) return null;
+
+    const latestSleep = sleeps[0];
+    const stageSummary = latestSleep.score?.stage_summary || {};
+
+    const totalSleepMs = stageSummary.total_sleep_time_milli ||
+      ((stageSummary.total_in_bed_time_milli || 0) - (stageSummary.total_awake_time_milli || 0));
+    const sleepHours = totalSleepMs / 3600000;
+
+    return {
+      hours: Math.round(sleepHours * 10) / 10,
+      performance: latestSleep.score?.sleep_performance_percentage,
+      efficiency: latestSleep.score?.sleep_efficiency_percentage,
+      stages: {
+        deep: stageSummary.total_slow_wave_sleep_time_milli || 0,
+        rem: stageSummary.total_rem_sleep_time_milli || 0,
+        light: stageSummary.total_light_sleep_time_milli || 0
+      },
+      respiratoryRate: latestSleep.score?.respiratory_rate,
+      disturbances: stageSummary.disturbance_count
+    };
+  }
+
+  /**
+   * Get sleep data from Whoop
+   * Now uses Nango for authentication - automatic token refresh handled by Nango proxy
+   */
+  async getSleepContext(userId) {
+    try {
+      // Fetch last 5 sleep records to capture main sleep + naps via Nango
+      const sleepResult = await nangoWhoop.getSleep(userId, 5);
+
+      if (!sleepResult.success) {
+        console.log(`⚠️ [Context Aggregator] Sleep API error: ${sleepResult.error}`);
+        return null;
+      }
+
+      const allSleeps = sleepResult.data?.records || sleepResult.data || [];
       const latestSleep = allSleeps[0];
 
       if (!latestSleep) return null;
@@ -768,6 +941,352 @@ class UserContextAggregator {
   }
 
   /**
+   * Get YouTube context from stored platform data
+   * Returns: subscriptions, liked videos, content categories
+   */
+  async getYouTubeContext(userId) {
+    console.log(`📺 [Context Aggregator] Fetching YouTube context...`);
+
+    try {
+      const { data: youtubeData, error } = await supabaseAdmin
+        .from('user_platform_data')
+        .select('raw_data, data_type, extracted_at')
+        .eq('user_id', userId)
+        .eq('platform', 'youtube')
+        .order('extracted_at', { ascending: false });
+
+      if (error || !youtubeData || youtubeData.length === 0) {
+        return null;
+      }
+
+      // Extract subscription data (API-sourced)
+      const subsRow = youtubeData.find(d => d.data_type === 'subscriptions');
+      const subscriptions = subsRow?.raw_data?.items || [];
+      const topChannels = subscriptions
+        .slice(0, 10)
+        .map(s => s.snippet?.title)
+        .filter(Boolean);
+
+      // Extract liked videos data (API-sourced)
+      const likedRow = youtubeData.find(d => d.data_type === 'likedVideos');
+      const likedVideos = likedRow?.raw_data?.items || [];
+
+      // Extract channel info
+      const channelRow = youtubeData.find(d => d.data_type === 'channels');
+      const channelStats = channelRow?.raw_data?.items?.[0]?.statistics || {};
+
+      // Extension-sourced data: watch history, searches, recommendations
+      const extensionWatches = youtubeData
+        .filter(d => d.data_type === 'extension_video_watch')
+        .map(d => d.raw_data)
+        .filter(d => d.action === 'end' || d.action === 'start');
+
+      const extensionSearches = youtubeData
+        .filter(d => d.data_type === 'extension_search')
+        .map(d => d.raw_data);
+
+      // Recent watch history from extension (last 20)
+      const recentWatchHistory = extensionWatches
+        .filter(d => d.action === 'end' && d.videoId)
+        .slice(0, 20)
+        .map(d => ({
+          videoId: d.videoId,
+          title: d.title || null,
+          channel: d.channel || null,
+          watchDuration: d.watchDurationSeconds || 0,
+          watchPercentage: d.watchPercentage || 0,
+          completed: d.completed || false,
+          timestamp: d.timestamp
+        }));
+
+      // Recent search queries (last 10)
+      const searchQueries = extensionSearches
+        .slice(0, 10)
+        .map(d => ({ query: d.query, timestamp: d.timestamp }));
+
+      // Watch pattern stats from extension data
+      const watchDurations = extensionWatches
+        .filter(d => d.action === 'end' && d.watchDurationSeconds > 0)
+        .map(d => d.watchDurationSeconds);
+      const avgWatchDuration = watchDurations.length > 0
+        ? Math.round(watchDurations.reduce((a, b) => a + b, 0) / watchDurations.length)
+        : null;
+      const completionCount = extensionWatches.filter(d => d.completed).length;
+      const completionRate = watchDurations.length > 0
+        ? Math.round((completionCount / watchDurations.length) * 100)
+        : null;
+
+      // Derive content categories from liked video titles
+      const categories = new Set();
+      likedVideos.forEach(v => {
+        const title = (v.snippet?.title || '').toLowerCase();
+        if (/tutorial|learn|course|how to/i.test(title)) categories.add('Education');
+        if (/game|gaming|play/i.test(title)) categories.add('Gaming');
+        if (/music|song|album|concert/i.test(title)) categories.add('Music');
+        if (/tech|code|programming|dev/i.test(title)) categories.add('Technology');
+        if (/fitness|workout|health/i.test(title)) categories.add('Fitness');
+        if (/cook|recipe|food/i.test(title)) categories.add('Food');
+        if (/vlog|daily|life/i.test(title)) categories.add('Lifestyle');
+      });
+
+      const lastUpdated = youtubeData[0]?.extracted_at;
+
+      return {
+        connected: true,
+        subscriptionCount: subscriptions.length || parseInt(channelStats.subscriberCount) || 0,
+        likedVideoCount: likedVideos.length,
+        topChannels,
+        contentCategories: Array.from(categories),
+        contentProfile: categories.size > 0
+          ? `Interests: ${Array.from(categories).slice(0, 4).join(', ')}`
+          : 'Content explorer',
+        // Extension-sourced data
+        recentWatchHistory,
+        searchQueries,
+        watchPatterns: avgWatchDuration != null ? {
+          avgWatchDuration,
+          completionRate,
+          totalWatched: watchDurations.length
+        } : null,
+        hasExtensionData: extensionWatches.length > 0 || extensionSearches.length > 0,
+        lastUpdated
+      };
+    } catch (error) {
+      console.error(`❌ [Context Aggregator] YouTube error:`, error.message);
+      return null;
+    }
+  }
+
+  /**
+   * Get Twitch context from stored platform data
+   * Returns: followed channels, gaming preferences
+   */
+  async getTwitchContext(userId) {
+    console.log(`🎮 [Context Aggregator] Fetching Twitch context...`);
+
+    try {
+      const { data: twitchData, error } = await supabaseAdmin
+        .from('user_platform_data')
+        .select('raw_data, data_type, extracted_at')
+        .eq('user_id', userId)
+        .eq('platform', 'twitch')
+        .order('extracted_at', { ascending: false });
+
+      if (error || !twitchData || twitchData.length === 0) {
+        return null;
+      }
+
+      // Extract followed channels (API-sourced)
+      const followedRow = twitchData.find(d => d.data_type === 'followedChannels');
+      const followedChannels = followedRow?.raw_data?.data || [];
+      const topChannels = followedChannels
+        .slice(0, 10)
+        .map(c => c.broadcaster_name || c.broadcaster_login)
+        .filter(Boolean);
+
+      // Extract user data
+      const userRow = twitchData.find(d => d.data_type === 'user');
+      const twitchUser = userRow?.raw_data?.data?.[0] || {};
+
+      // Extension-sourced data: stream watches, browse history
+      const extensionStreamWatches = twitchData
+        .filter(d => d.data_type === 'extension_stream_watch')
+        .map(d => d.raw_data)
+        .filter(d => d.action === 'end' && d.watchDurationSeconds > 5);
+
+      const extensionBrowses = twitchData
+        .filter(d => d.data_type === 'extension_browse')
+        .map(d => d.raw_data);
+
+      // Recent stream watches (last 20)
+      const recentStreamWatches = extensionStreamWatches
+        .slice(0, 20)
+        .map(d => ({
+          channelName: d.channelName,
+          gameName: d.gameName || null,
+          watchDuration: d.watchDurationSeconds || 0,
+          timestamp: d.timestamp
+        }));
+
+      // Browse history (categories)
+      const browseHistory = extensionBrowses
+        .slice(0, 10)
+        .map(d => ({ category: d.category, timestamp: d.timestamp }));
+
+      // Stream watch pattern stats
+      const streamDurations = extensionStreamWatches
+        .map(d => d.watchDurationSeconds)
+        .filter(d => d > 0);
+      const avgStreamDuration = streamDurations.length > 0
+        ? Math.round(streamDurations.reduce((a, b) => a + b, 0) / streamDurations.length)
+        : null;
+
+      // Favorite games from extension watch data
+      const gameCounts = {};
+      extensionStreamWatches.forEach(d => {
+        if (d.gameName) gameCounts[d.gameName] = (gameCounts[d.gameName] || 0) + 1;
+      });
+      const favoriteGames = Object.entries(gameCounts)
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 5)
+        .map(([game]) => game);
+
+      // Derive gaming categories from followed channel game names
+      const gameCategories = new Set();
+      followedChannels.forEach(c => {
+        if (c.game_name) gameCategories.add(c.game_name);
+      });
+      // Also add games from extension watches
+      favoriteGames.forEach(g => gameCategories.add(g));
+
+      const lastUpdated = twitchData[0]?.extracted_at;
+
+      return {
+        connected: true,
+        followedChannelCount: followedChannels.length,
+        topChannels,
+        gamingPreferences: Array.from(gameCategories).slice(0, 10),
+        displayName: twitchUser.display_name || null,
+        // Extension-sourced data
+        recentStreamWatches,
+        browseHistory,
+        watchPatterns: avgStreamDuration != null ? {
+          avgStreamDuration,
+          favoriteGames,
+          totalWatched: streamDurations.length
+        } : null,
+        hasExtensionData: extensionStreamWatches.length > 0 || extensionBrowses.length > 0,
+        lastUpdated
+      };
+    } catch (error) {
+      console.error(`❌ [Context Aggregator] Twitch error:`, error.message);
+      return null;
+    }
+  }
+
+  /**
+   * Get web browsing context from extension-captured data
+   * Returns: top categories, recent searches, reading profile, top domains, top topics
+   */
+  async getWebBrowsingContext(userId) {
+    console.log(`[Context Aggregator] Fetching Web browsing context...`);
+
+    try {
+      const { data: webData, error } = await supabaseAdmin
+        .from('user_platform_data')
+        .select('raw_data, data_type, extracted_at')
+        .eq('user_id', userId)
+        .eq('platform', 'web')
+        .order('extracted_at', { ascending: false })
+        .limit(200);
+
+      if (error || !webData || webData.length === 0) {
+        return null;
+      }
+
+      // Page visits
+      const pageVisits = webData.filter(d =>
+        ['extension_page_visit', 'extension_article_read', 'extension_web_video'].includes(d.data_type)
+      );
+
+      // Search queries
+      const searchEvents = webData.filter(d => d.data_type === 'extension_search_query');
+      const recentSearches = searchEvents
+        .slice(0, 15)
+        .map(d => ({ query: d.raw_data?.searchQuery, timestamp: d.raw_data?.timestamp }))
+        .filter(s => s.query);
+
+      // Top categories by visit count
+      const categoryCounts = {};
+      pageVisits.forEach(d => {
+        const cat = d.raw_data?.category || 'Other';
+        categoryCounts[cat] = (categoryCounts[cat] || 0) + 1;
+      });
+      const topCategories = Object.entries(categoryCounts)
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 8)
+        .map(([category, count]) => ({ category, count }));
+
+      // Top domains
+      const domainCounts = {};
+      pageVisits.forEach(d => {
+        const domain = d.raw_data?.domain;
+        if (domain) domainCounts[domain] = (domainCounts[domain] || 0) + 1;
+      });
+      const topDomains = Object.entries(domainCounts)
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 15)
+        .map(([domain, count]) => ({ domain, count }));
+
+      // Top topics (aggregate from all page visit topics)
+      const topicCounts = {};
+      pageVisits.forEach(d => {
+        const topics = d.raw_data?.metadata?.topics || [];
+        topics.forEach(t => {
+          topicCounts[t] = (topicCounts[t] || 0) + 1;
+        });
+      });
+      const topTopics = Object.entries(topicCounts)
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 20)
+        .map(([topic, count]) => ({ topic, count }));
+
+      // Reading profile
+      const articleReads = webData.filter(d => d.data_type === 'extension_article_read');
+      const engagementScores = pageVisits
+        .map(d => d.raw_data?.engagement?.engagementScore)
+        .filter(s => s != null);
+      const avgEngagement = engagementScores.length > 0
+        ? Math.round(engagementScores.reduce((a, b) => a + b, 0) / engagementScores.length)
+        : null;
+
+      const readingBehaviors = {};
+      pageVisits.forEach(d => {
+        const behavior = d.raw_data?.engagement?.readingBehavior;
+        if (behavior) readingBehaviors[behavior] = (readingBehaviors[behavior] || 0) + 1;
+      });
+
+      const timeOnPages = pageVisits
+        .map(d => d.raw_data?.engagement?.timeOnPage)
+        .filter(t => t != null && t > 0);
+      const avgTimeOnPage = timeOnPages.length > 0
+        ? Math.round(timeOnPages.reduce((a, b) => a + b, 0) / timeOnPages.length)
+        : null;
+
+      // Content type distribution
+      const contentTypeCounts = {};
+      pageVisits.forEach(d => {
+        const ct = d.raw_data?.metadata?.contentType || 'other';
+        contentTypeCounts[ct] = (contentTypeCounts[ct] || 0) + 1;
+      });
+
+      const lastUpdated = webData[0]?.extracted_at;
+
+      return {
+        connected: true,
+        totalPageVisits: pageVisits.length,
+        totalSearches: searchEvents.length,
+        totalArticleReads: articleReads.length,
+        topCategories,
+        topDomains,
+        topTopics,
+        recentSearches,
+        readingProfile: {
+          avgEngagement,
+          avgTimeOnPage,
+          readingBehaviors,
+          contentTypeDistribution: contentTypeCounts
+        },
+        hasExtensionData: true,
+        lastUpdated
+      };
+    } catch (error) {
+      console.error(`[Context Aggregator] Web browsing error:`, error.message);
+      return null;
+    }
+  }
+
+  /**
    * Get learned behavioral patterns
    */
   async getLearnedPatterns(userId) {
@@ -797,7 +1316,7 @@ class UserContextAggregator {
   /**
    * Generate context summary for LLM
    */
-  generateContextSummary(whoop, spotify, calendar, lifeContext = null) {
+  generateContextSummary(whoop, spotify, calendar, lifeContext = null, youtube = null, twitch = null, web = null) {
     const parts = [];
 
     // Life context takes priority (vacation, conference, etc.)
@@ -832,6 +1351,18 @@ class UserContextAggregator {
     if (calendar?.nextImportantEvent) {
       const event = calendar.nextImportantEvent;
       parts.push(`Next: "${event.title}" in ${event.minutesUntil}min`);
+    }
+
+    if (youtube?.connected) {
+      parts.push(`YouTube: ${youtube.subscriptionCount} subs`);
+    }
+
+    if (twitch?.connected) {
+      parts.push(`Twitch: ${twitch.followedChannelCount} channels`);
+    }
+
+    if (web?.connected) {
+      parts.push(`Web: ${web.totalPageVisits} pages tracked`);
     }
 
     return parts.length > 0 ? parts.join(' | ') : 'No context available';
