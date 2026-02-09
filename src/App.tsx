@@ -28,12 +28,14 @@ import WelcomeFlow from "./pages/onboarding/WelcomeFlow";
 import EnrichedOnboardingFlow from "./pages/onboarding/EnrichedOnboardingFlow";
 import GmailCallback from "./pages/oauth/GmailCallback";
 import DemoBanner from "./components/DemoBanner";
-import { SpotifyInsightsPage, WhoopInsightsPage, CalendarInsightsPage } from "./pages/insights";
+import { SpotifyInsightsPage, WhoopInsightsPage, CalendarInsightsPage, YouTubeInsightsPage, TwitchInsightsPage, WebBrowsingInsightsPage } from "./pages/insights";
 import SoulSignatureDashboard from "./pages/SoulSignatureDashboard";
 import SoulSignatureOnboarding from "./pages/onboarding/SoulSignatureOnboarding";
 import PersonalityAssessment from "./pages/PersonalityAssessment";
+import BrainPage from "./pages/BrainPage";
 import BigFiveAssessment from "./pages/BigFiveAssessment";
 import TalkToTwin from "./pages/TalkToTwin";
+import PrivacyPolicy from "./pages/PrivacyPolicy";
 
 const queryClient = new QueryClient();
 
@@ -108,6 +110,33 @@ const App = () => {
                 </SidebarLayout>
               </ProtectedRoute>
             } />
+            <Route path="/insights/youtube" element={
+              <ProtectedRoute>
+                <SidebarLayout>
+                  <ErrorBoundary>
+                    <YouTubeInsightsPage />
+                  </ErrorBoundary>
+                </SidebarLayout>
+              </ProtectedRoute>
+            } />
+            <Route path="/insights/twitch" element={
+              <ProtectedRoute>
+                <SidebarLayout>
+                  <ErrorBoundary>
+                    <TwitchInsightsPage />
+                  </ErrorBoundary>
+                </SidebarLayout>
+              </ProtectedRoute>
+            } />
+            <Route path="/insights/web" element={
+              <ProtectedRoute>
+                <SidebarLayout>
+                  <ErrorBoundary>
+                    <WebBrowsingInsightsPage />
+                  </ErrorBoundary>
+                </SidebarLayout>
+              </ProtectedRoute>
+            } />
 
             {/* Soul Signature Dashboard */}
             <Route path="/soul-signature" element={
@@ -115,6 +144,17 @@ const App = () => {
                 <SidebarLayout>
                   <ErrorBoundary>
                     <SoulSignatureDashboard />
+                  </ErrorBoundary>
+                </SidebarLayout>
+              </ProtectedRoute>
+            } />
+
+            {/* Twins Brain Explorer */}
+            <Route path="/brain" element={
+              <ProtectedRoute>
+                <SidebarLayout>
+                  <ErrorBoundary>
+                    <BrainPage />
                   </ErrorBoundary>
                 </SidebarLayout>
               </ProtectedRoute>
@@ -199,6 +239,9 @@ const App = () => {
                 </SidebarLayout>
               </ProtectedRoute>
             } />
+
+            {/* Privacy Policy - Public, no auth required */}
+            <Route path="/privacy-policy" element={<PrivacyPolicy />} />
 
             {/* Catch-all */}
             <Route path="*" element={<NotFound />} />

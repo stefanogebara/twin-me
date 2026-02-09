@@ -11,20 +11,33 @@
     "webNavigation",
     "alarms"
   ],
+  "homepage_url": "https://twin-ai-learn.vercel.app",
   "host_permissions": [
+    "https://www.youtube.com/*",
+    "https://www.twitch.tv/*",
     "https://www.netflix.com/*",
     "https://www.hulu.com/*",
     "https://www.hbomax.com/*",
     "https://www.primevideo.com/*",
     "https://www.disneyplus.com/*",
-    "https://*/*",
-    "http://localhost:*/*"
+    "https://twin-ai-learn.vercel.app/*",
+    "https://*/*"
   ],
   "background": {
     "service_worker": "background.js",
     "type": "module"
   },
   "content_scripts": [
+    {
+      "matches": ["https://www.youtube.com/*"],
+      "js": ["collectors/youtube.js"],
+      "run_at": "document_idle"
+    },
+    {
+      "matches": ["https://www.twitch.tv/*"],
+      "js": ["collectors/twitch.js"],
+      "run_at": "document_idle"
+    },
     {
       "matches": ["https://www.netflix.com/*"],
       "js": ["collectors/netflix.js"],
