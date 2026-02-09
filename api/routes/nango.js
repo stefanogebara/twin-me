@@ -13,7 +13,12 @@ import { supabaseAdmin } from '../services/database.js';
 import { saveConnectionMapping, deleteConnectionMapping } from '../services/connectionMappingService.js';
 
 // Direct Nango client for connection lookups by end_user
-const nango = new Nango({ secretKey: process.env.NANGO_SECRET_KEY });
+let nango = null;
+if (process.env.NANGO_SECRET_KEY) {
+  nango = new Nango({ secretKey: process.env.NANGO_SECRET_KEY });
+} else {
+  console.warn('[Nango Routes] NANGO_SECRET_KEY not configured - Nango routes will return errors');
+}
 
 const router = express.Router();
 
@@ -94,6 +99,9 @@ router.post('/verify-connection', authenticateUser, async (req, res) => {
     // Query Nango for connections belonging to this end_user and integration
     // We use listConnections instead of getConnection because getConnection requires
     // the Nango connection_id, which we don't have yet for new connections.
+    if (!nango) {
+      return res.status(503).json({ success: false, error: 'Nango not configured (NANGO_SECRET_KEY missing)' });
+    }
     const { connections } = await nango.listConnections({ endUserId: userId });
     const match = connections.find(c => c.provider_config_key === integrationId);
 
