@@ -1,5 +1,6 @@
 import React, { ReactNode } from 'react';
 import { useAuth } from '../contexts/AuthContext';
+import { useDemo } from '../contexts/DemoContext';
 import { Navigate, useLocation } from 'react-router-dom';
 
 interface ProtectedRouteProps {
@@ -22,11 +23,14 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   children,
   fallbackPath = '/auth'
 }) => {
-  const { isSignedIn, isLoaded, isDemoMode } = useAuth();
+  const { isSignedIn, isLoaded, isDemoMode: authDemoMode } = useAuth();
+  const { isDemoMode: demoDemoMode } = useDemo();
   const location = useLocation();
 
-  // Quick check: If demo mode is active, always allow access
-  if (isDemoMode) {
+  // Quick check: If demo mode is active (from either context), always allow access
+  // We check both contexts because DemoContext state updates immediately on enterDemoMode(),
+  // while AuthContext's isDemoMode (which reads localStorage) may lag by one render cycle.
+  if (authDemoMode || demoDemoMode) {
     return <>{children}</>;
   }
 

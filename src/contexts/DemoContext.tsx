@@ -33,11 +33,14 @@ export const DemoProvider: React.FC<DemoProviderProps> = ({ children }) => {
   const enterDemoMode = () => {
     localStorage.setItem('demo_mode', 'true');
     setIsDemoMode(true);
+    // Notify AuthContext (same-tab localStorage changes don't fire 'storage' event)
+    window.dispatchEvent(new CustomEvent('demo-mode-change', { detail: { active: true } }));
   };
 
   const exitDemoMode = () => {
     localStorage.removeItem('demo_mode');
     setIsDemoMode(false);
+    window.dispatchEvent(new CustomEvent('demo-mode-change', { detail: { active: false } }));
   };
 
   const getDemoData = (key: string): any => {
