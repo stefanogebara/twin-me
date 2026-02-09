@@ -1,8 +1,11 @@
 /**
- * Talk to Twin Page
+ * Talk to Twin Page - Grok-inspired Design
  *
- * Chat interface for conversing with your digital twin.
- * Designed to match the visual style of the insights pages.
+ * A modern chat interface inspired by Grok's UI with:
+ * - Clean, centered layout
+ * - Context sidebar showing memories and data sources
+ * - Platform status indicators
+ * - Quick action chips
  */
 
 import { useState, useEffect, useRef } from 'react';
@@ -10,11 +13,12 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useTheme } from '../contexts/ThemeContext';
 import { usePlatformStatus } from '../hooks/usePlatformStatus';
-import { PageLayout, GlassPanel } from '@/components/layout/PageLayout';
 import {
-  MessageCircle, Sparkles, Send, Loader2, ArrowLeft,
-  Music, Activity, Calendar, Star, Check, X, RefreshCw,
-  Zap, Brain, Heart
+  MessageCircle, Send, Loader2, ArrowLeft, Settings,
+  Music, Activity, Calendar, Check, ChevronRight,
+  Sparkles, Brain, Clock, Database, Layers, User,
+  Mic, Paperclip, ChevronDown, X, MemoryStick,
+  Lightbulb, TrendingUp, Heart, Zap
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -23,25 +27,29 @@ interface Message {
   role: 'user' | 'assistant';
   content: string;
   timestamp: Date;
-  rating?: number;
-  isAccurate?: boolean;
+  contextUsed?: {
+    memories?: number;
+    platforms?: string[];
+    personality?: boolean;
+  };
 }
 
-interface Platform {
-  name: string;
-  icon: React.ReactNode;
-  connected: boolean;
-  key: string;
-  color: string;
+interface ContextItem {
+  type: 'memory' | 'fact' | 'platform' | 'personality';
+  label: string;
+  value: string;
+  timestamp?: string;
+  icon?: React.ReactNode;
 }
 
-const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
+const API_BASE = import.meta.env.VITE_API_URL || 'http://127.0.0.1:3004/api';
 
 const TalkToTwin = () => {
   const navigate = useNavigate();
   const { user, isSignedIn } = useAuth();
   const { theme } = useTheme();
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLTextAreaElement>(null);
 
   const {
     data: platformStatus,
@@ -53,46 +61,46 @@ const TalkToTwin = () => {
   const [inputMessage, setInputMessage] = useState('');
   const [isTyping, setIsTyping] = useState(false);
   const [conversationId, setConversationId] = useState<string | null>(null);
+  const [showContext, setShowContext] = useState(true);
+  const [contextItems, setContextItems] = useState<ContextItem[]>([]);
+  const [isLoadingContext, setIsLoadingContext] = useState(false);
 
-  // Theme colors
+  // Theme colors - Matching platform's warm color palette
   const colors = {
-    text: theme === 'dark' ? '#C1C0B6' : '#0c0a09',
-    textSecondary: theme === 'dark' ? 'rgba(193, 192, 182, 0.6)' : '#78716c',
     bg: theme === 'dark' ? '#232320' : '#FAFAFA',
-    cardBg: theme === 'dark' ? 'rgba(255,255,255,0.03)' : 'rgba(255,255,255,0.8)',
-    border: theme === 'dark' ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)',
-    accent: '#8B5CF6',
-    accentBg: theme === 'dark' ? 'rgba(139, 92, 246, 0.15)' : 'rgba(139, 92, 246, 0.1)',
-    userBubble: theme === 'dark' ? 'rgba(139, 92, 246, 0.2)' : 'rgba(139, 92, 246, 0.15)',
-    assistantBubble: theme === 'dark' ? 'rgba(255,255,255,0.05)' : 'rgba(255,255,255,0.9)',
+    bgSecondary: theme === 'dark' ? 'rgba(45, 45, 41, 0.5)' : 'rgba(255, 255, 255, 0.7)',
+    bgTertiary: theme === 'dark' ? 'rgba(45, 45, 41, 0.7)' : 'rgba(0, 0, 0, 0.05)',
+    text: theme === 'dark' ? '#C1C0B6' : '#0c0a09',
+    textSecondary: theme === 'dark' ? 'rgba(193, 192, 182, 0.8)' : '#57534e',
+    textMuted: theme === 'dark' ? 'rgba(193, 192, 182, 0.6)' : '#a8a29e',
+    border: theme === 'dark' ? 'rgba(193, 192, 182, 0.2)' : 'rgba(231, 229, 228, 0.6)',
+    accent: theme === 'dark' ? '#C1C0B6' : '#0c0a09',
+    accentHover: theme === 'dark' ? '#D4D3CC' : '#292524',
+    // User bubble: darker warm color with good contrast for light text
+    userBubble: theme === 'dark' ? 'rgba(193, 192, 182, 0.15)' : 'rgba(0, 0, 0, 0.06)',
+    userBubbleBg: theme === 'dark' ? 'rgba(80, 78, 70, 0.9)' : 'rgba(12, 10, 9, 0.85)',
+    userBubbleText: theme === 'dark' ? '#E8E7E3' : '#FAFAFA',
+    assistantBubble: 'transparent',
+    inputBg: theme === 'dark' ? 'rgba(45, 45, 41, 0.7)' : 'rgba(255, 255, 255, 0.9)',
+    inputBorder: theme === 'dark' ? 'rgba(193, 192, 182, 0.2)' : 'rgba(231, 229, 228, 0.6)',
   };
 
-  // MVP Platforms
-  const platforms: Platform[] = [
-    {
-      name: 'Spotify',
-      icon: <Music className="w-4 h-4" />,
-      connected: platformStatus?.spotify?.connected || false,
-      key: 'spotify',
-      color: '#1DB954'
-    },
-    {
-      name: 'Whoop',
-      icon: <Activity className="w-4 h-4" />,
-      connected: platformStatus?.whoop?.connected || false,
-      key: 'whoop',
-      color: '#00A5E0'
-    },
-    {
-      name: 'Calendar',
-      icon: <Calendar className="w-4 h-4" />,
-      connected: platformStatus?.google_calendar?.connected || false,
-      key: 'google_calendar',
-      color: '#4285F4'
-    }
+  // Platform configuration
+  const platforms = [
+    { name: 'Spotify', icon: <Music className="w-4 h-4" />, key: 'spotify', color: '#1DB954', connected: platformStatus?.spotify?.connected },
+    { name: 'Whoop', icon: <Activity className="w-4 h-4" />, key: 'whoop', color: '#00A5E0', connected: platformStatus?.whoop?.connected },
+    { name: 'Calendar', icon: <Calendar className="w-4 h-4" />, key: 'google_calendar', color: '#4285F4', connected: platformStatus?.google_calendar?.connected }
   ];
 
   const connectedPlatforms = platforms.filter(p => p.connected);
+
+  // Quick action chips - Grok style
+  const quickActions = [
+    { label: 'What patterns do you see?', icon: <TrendingUp className="w-4 h-4" /> },
+    { label: 'How am I doing today?', icon: <Heart className="w-4 h-4" /> },
+    { label: 'Recommend music for now', icon: <Music className="w-4 h-4" /> },
+    { label: 'Analyze my week', icon: <Lightbulb className="w-4 h-4" /> },
+  ];
 
   useEffect(() => {
     if (!isSignedIn) {
@@ -103,6 +111,98 @@ const TalkToTwin = () => {
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
+
+  // Load context when component mounts
+  useEffect(() => {
+    if (user?.id) {
+      loadContext();
+    }
+  }, [user?.id]);
+
+  const loadContext = async () => {
+    if (!user?.id) return;
+    setIsLoadingContext(true);
+
+    try {
+      const token = localStorage.getItem('auth_token');
+      const headers = { 'Authorization': `Bearer ${token}` };
+
+      // Fetch memory and context data in parallel (including Mem0 long-term memory)
+      const [memoriesRes, factsRes, clustersRes, mem0StatsRes] = await Promise.all([
+        fetch(`${API_BASE}/moltbot/memory/recent?limit=5`, { headers }).catch(() => null),
+        fetch(`${API_BASE}/moltbot/memory/facts?limit=5`, { headers }).catch(() => null),
+        fetch(`${API_BASE}/moltbot/clusters`, { headers }).catch(() => null),
+        fetch(`${API_BASE}/mem0/stats`, { headers }).catch(() => null),
+      ]);
+
+      const items: ContextItem[] = [];
+
+      // Add platform data
+      connectedPlatforms.forEach(p => {
+        items.push({
+          type: 'platform',
+          label: p.name,
+          value: 'Connected',
+          icon: p.icon
+        });
+      });
+
+      // Add memories if available
+      if (memoriesRes?.ok) {
+        const data = await memoriesRes.json();
+        data.events?.slice(0, 3).forEach((event: any) => {
+          items.push({
+            type: 'memory',
+            label: event.type || 'Event',
+            value: event.platform || 'Activity',
+            timestamp: event.created_at
+          });
+        });
+      }
+
+      // Add facts if available
+      if (factsRes?.ok) {
+        const data = await factsRes.json();
+        data.facts?.slice(0, 3).forEach((fact: any) => {
+          items.push({
+            type: 'fact',
+            label: fact.category || 'Learned',
+            value: fact.key || fact.value || 'Pattern detected'
+          });
+        });
+      }
+
+      // Add personality if available
+      if (clustersRes?.ok) {
+        const data = await clustersRes.json();
+        if (data.profiles?.length > 0) {
+          items.push({
+            type: 'personality',
+            label: 'Personality',
+            value: `${data.profiles.length} cluster profiles`
+          });
+        }
+      }
+
+      // Add Mem0 long-term memory stats if available
+      if (mem0StatsRes?.ok) {
+        const data = await mem0StatsRes.json();
+        if (data.stats?.total > 0) {
+          items.push({
+            type: 'memory',
+            label: 'Long-term Memory',
+            value: `${data.stats.total} memories stored`
+          });
+        }
+      }
+
+      setContextItems(items);
+    } catch (error) {
+      console.error('Error loading context:', error);
+    } finally {
+      setIsLoadingContext(false);
+    }
+  };
 
   const handleSendMessage = async () => {
     if (!inputMessage.trim() || !user?.id) return;
@@ -139,47 +239,32 @@ const TalkToTwin = () => {
           id: (Date.now() + 1).toString(),
           role: 'assistant',
           content: data.response || data.message || "I'm processing your request...",
-          timestamp: new Date()
+          timestamp: new Date(),
+          contextUsed: data.contextSources ? {
+            memories: (data.contextSources.moltbotMemory ? 1 : 0) + (data.contextSources.mem0Memory ? 1 : 0),
+            platforms: data.contextSources.platformData || [],
+            personality: data.contextSources.soulSignature
+          } : undefined
         };
         setMessages(prev => [...prev, assistantMessage]);
         if (data.conversationId) setConversationId(data.conversationId);
       } else {
-        const assistantMessage: Message = {
-          id: (Date.now() + 1).toString(),
-          role: 'assistant',
-          content: generateFallbackResponse(inputMessage),
-          timestamp: new Date()
-        };
-        setMessages(prev => [...prev, assistantMessage]);
+        throw new Error('Failed to send message');
       }
     } catch (error) {
       console.error('Chat error:', error);
       const assistantMessage: Message = {
         id: (Date.now() + 1).toString(),
         role: 'assistant',
-        content: generateFallbackResponse(inputMessage),
+        content: connectedPlatforms.length === 0
+          ? "Connect your platforms first so I can learn about you and provide personalized insights."
+          : "I'm having trouble connecting right now. Please try again.",
         timestamp: new Date()
       };
       setMessages(prev => [...prev, assistantMessage]);
     } finally {
       setIsTyping(false);
     }
-  };
-
-  const generateFallbackResponse = (question: string): string => {
-    if (connectedPlatforms.length === 0) {
-      return "I don't have any data to learn from yet! Connect at least one platform (Spotify, Whoop, or Calendar) so I can understand your patterns and give you personalized insights.";
-    }
-    const platformNames = connectedPlatforms.map(p => p.name).join(', ');
-    return `Based on your connected platforms (${platformNames}), I can see patterns emerging. My AI is analyzing your data to provide deeper insights. Try asking about your music taste, energy patterns, or schedule habits!`;
-  };
-
-  const handleRateResponse = (messageId: string, rating: number) => {
-    setMessages(prev => prev.map(msg => msg.id === messageId ? { ...msg, rating } : msg));
-  };
-
-  const handleMarkAccurate = (messageId: string, isAccurate: boolean) => {
-    setMessages(prev => prev.map(msg => msg.id === messageId ? { ...msg, isAccurate } : msg));
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
@@ -189,259 +274,215 @@ const TalkToTwin = () => {
     }
   };
 
-  const suggestedQuestions = [
-    { text: "What does my music reveal about me?", icon: <Music className="w-3.5 h-3.5" /> },
-    { text: "How's my energy this week?", icon: <Zap className="w-3.5 h-3.5" /> },
-    { text: "What patterns do you see in my schedule?", icon: <Calendar className="w-3.5 h-3.5" /> },
-    { text: "What should I listen to right now?", icon: <Heart className="w-3.5 h-3.5" /> }
-  ];
+  const handleQuickAction = (text: string) => {
+    setInputMessage(text);
+    inputRef.current?.focus();
+  };
+
+  // Format timestamp
+  const formatTime = (date: Date) => {
+    return new Intl.DateTimeFormat('en-US', {
+      hour: 'numeric',
+      minute: '2-digit',
+      hour12: true
+    }).format(date);
+  };
 
   return (
-    <PageLayout maxWidth="lg">
-      {/* Header */}
-      <div className="mb-8">
-        <button
-          onClick={() => navigate('/dashboard')}
-          className="inline-flex items-center gap-2 text-sm mb-6 transition-opacity hover:opacity-70"
-          style={{ color: colors.textSecondary }}
+    <div
+      className="min-h-screen flex"
+      style={{ backgroundColor: colors.bg }}
+    >
+      {/* Main Chat Area */}
+      <div className="flex-1 flex flex-col max-w-4xl mx-auto w-full">
+        {/* Header - Minimal like Grok */}
+        <header
+          className="flex items-center justify-between px-4 py-3 border-b"
+          style={{ borderColor: colors.border }}
         >
-          <ArrowLeft className="w-4 h-4" />
-          Back to Dashboard
-        </button>
+          <button
+            onClick={() => navigate('/dashboard')}
+            className="p-2 rounded-lg transition-colors hover:opacity-70"
+            style={{ color: colors.textSecondary }}
+          >
+            <ArrowLeft className="w-5 h-5" />
+          </button>
 
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-          <div>
-            <h1
-              className="text-3xl mb-2"
-              style={{
-                fontFamily: 'var(--font-heading)',
-                fontWeight: 400,
-                color: colors.text
-              }}
-            >
-              Chat with Your Twin
-            </h1>
-            <p
-              className="text-[15px]"
-              style={{
-                fontFamily: 'var(--font-body)',
-                color: colors.textSecondary
-              }}
-            >
-              Your digital soul in conversation
-            </p>
-          </div>
-
-          {/* Platform Pills */}
           <div className="flex items-center gap-2">
-            {platforms.map((platform) => (
-              <div
-                key={platform.key}
-                className="flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium transition-all"
-                style={{
-                  backgroundColor: platform.connected
-                    ? `${platform.color}15`
-                    : theme === 'dark' ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)',
-                  color: platform.connected ? platform.color : colors.textSecondary,
-                  border: `1px solid ${platform.connected ? `${platform.color}30` : 'transparent'}`
-                }}
-              >
-                {platform.icon}
-                <span>{platform.name}</span>
-                {platform.connected && <Check className="w-3 h-3" />}
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
-
-      {/* No platforms warning */}
-      {!isLoadingPlatforms && connectedPlatforms.length === 0 && (
-        <GlassPanel className="mb-6" style={{ borderColor: '#F59E0B30', backgroundColor: theme === 'dark' ? 'rgba(245,158,11,0.1)' : 'rgba(245,158,11,0.05)' }}>
-          <div className="flex items-start gap-4">
             <div
-              className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
-              style={{ backgroundColor: 'rgba(245,158,11,0.15)' }}
+              className="w-8 h-8 rounded-full flex items-center justify-center"
+              style={{ backgroundColor: colors.accent }}
             >
-              <Sparkles className="w-5 h-5" style={{ color: '#F59E0B' }} />
+              <Sparkles className="w-4 h-4 text-white" />
             </div>
-            <div className="flex-1">
-              <h3
-                className="text-base font-medium mb-1"
-                style={{ color: colors.text, fontFamily: 'var(--font-heading)' }}
-              >
-                Connect platforms to unlock your Twin
-              </h3>
-              <p
-                className="text-sm mb-4"
-                style={{ color: colors.textSecondary, fontFamily: 'var(--font-body)' }}
-              >
-                Your digital twin learns from your connected platforms. Connect Spotify, Whoop, or Calendar to start chatting!
-              </p>
-              <button
-                onClick={() => navigate('/get-started')}
-                className="px-4 py-2 rounded-xl text-sm font-medium transition-all hover:scale-[1.02]"
-                style={{
-                  backgroundColor: colors.accent,
-                  color: 'white',
-                  fontFamily: 'var(--font-heading)'
-                }}
-              >
-                Connect Platforms
-              </button>
-            </div>
+            <span
+              className="font-medium"
+              style={{ color: colors.text }}
+            >
+              Your Twin
+            </span>
           </div>
-        </GlassPanel>
-      )}
 
-      {/* Chat Interface */}
-      <GlassPanel className="overflow-hidden !p-0">
-        {/* Messages Container */}
-        <div
-          className="h-[500px] overflow-y-auto p-6"
-          style={{ backgroundColor: theme === 'dark' ? 'rgba(0,0,0,0.2)' : 'rgba(0,0,0,0.02)' }}
-        >
+          <button
+            onClick={() => setShowContext(!showContext)}
+            className="p-2 rounded-lg transition-colors hover:opacity-70 md:hidden"
+            style={{ color: colors.textSecondary }}
+          >
+            <Layers className="w-5 h-5" />
+          </button>
+        </header>
+
+        {/* Messages Area */}
+        <div className="flex-1 overflow-y-auto">
           {messages.length === 0 ? (
-            <div className="h-full flex flex-col items-center justify-center text-center px-4">
+            /* Empty State - Grok Style */
+            <div className="h-full flex flex-col items-center justify-center px-4 py-12">
               <div
-                className="w-16 h-16 rounded-2xl flex items-center justify-center mb-6"
-                style={{ backgroundColor: colors.accentBg }}
+                className="w-20 h-20 rounded-full flex items-center justify-center mb-8"
+                style={{ backgroundColor: colors.bgSecondary }}
               >
-                <Brain className="w-8 h-8" style={{ color: colors.accent }} />
+                <Brain className="w-10 h-10" style={{ color: colors.accent }} />
               </div>
-              <h3
-                className="text-xl mb-2"
-                style={{ fontFamily: 'var(--font-heading)', color: colors.text }}
-              >
-                {connectedPlatforms.length > 0 ? "Start a conversation" : "Connect platforms to chat"}
-              </h3>
-              <p
-                className="text-sm mb-8 max-w-md"
-                style={{ fontFamily: 'var(--font-body)', color: colors.textSecondary }}
+
+              <h1
+                className="text-2xl md:text-3xl font-medium mb-3 text-center"
+                style={{ color: colors.text }}
               >
                 {connectedPlatforms.length > 0
-                  ? "Ask me about your music taste, health patterns, schedule habits, or anything about your soul signature!"
-                  : "Your twin needs data from connected platforms to provide personalized insights."}
+                  ? "What do you want to know?"
+                  : "Connect platforms to unlock your Twin"
+                }
+              </h1>
+
+              <p
+                className="text-center mb-8 max-w-md"
+                style={{ color: colors.textSecondary }}
+              >
+                {connectedPlatforms.length > 0
+                  ? "Ask me about your patterns, preferences, or get personalized recommendations based on your connected data."
+                  : "Your twin learns from Spotify, Whoop, and Calendar to understand your soul signature."
+                }
               </p>
 
+              {/* Quick Actions - Grok Style Chips */}
               {connectedPlatforms.length > 0 && (
-                <div className="flex flex-wrap gap-2 justify-center max-w-lg">
-                  {suggestedQuestions.map((q, idx) => (
+                <div className="flex flex-wrap gap-2 justify-center max-w-lg mb-8">
+                  {quickActions.map((action, idx) => (
                     <button
                       key={idx}
-                      onClick={() => setInputMessage(q.text)}
-                      className="flex items-center gap-2 px-4 py-2 rounded-full text-sm transition-all hover:scale-[1.02]"
+                      onClick={() => handleQuickAction(action.label)}
+                      className="flex items-center gap-2 px-4 py-2.5 rounded-full text-sm transition-all hover:scale-[1.02] border"
                       style={{
-                        backgroundColor: colors.cardBg,
-                        border: `1px solid ${colors.border}`,
-                        color: colors.text,
-                        fontFamily: 'var(--font-body)'
+                        backgroundColor: colors.bgSecondary,
+                        borderColor: colors.border,
+                        color: colors.text
                       }}
                     >
-                      <span style={{ color: colors.accent }}>{q.icon}</span>
-                      {q.text}
+                      <span style={{ color: colors.accent }}>{action.icon}</span>
+                      {action.label}
                     </button>
                   ))}
                 </div>
               )}
+
+              {/* Platform Status Pills */}
+              <div className="flex items-center gap-2">
+                {platforms.map((platform) => (
+                  <div
+                    key={platform.key}
+                    onClick={() => !platform.connected && navigate('/get-started')}
+                    className={cn(
+                      "flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium transition-all",
+                      !platform.connected && "cursor-pointer hover:opacity-80"
+                    )}
+                    style={{
+                      backgroundColor: platform.connected
+                        ? `${platform.color}15`
+                        : colors.bgSecondary,
+                      color: platform.connected ? platform.color : colors.textMuted,
+                      border: `1px solid ${platform.connected ? `${platform.color}30` : colors.border}`
+                    }}
+                  >
+                    {platform.icon}
+                    <span>{platform.name}</span>
+                    {platform.connected && <Check className="w-3 h-3" />}
+                  </div>
+                ))}
+              </div>
             </div>
           ) : (
-            <div className="space-y-4">
+            /* Messages List */
+            <div className="px-4 py-6 space-y-6">
               {messages.map((message) => (
                 <div
                   key={message.id}
                   className={cn(
-                    "max-w-[85%] p-4 rounded-2xl",
-                    message.role === 'user' ? "ml-auto" : "mr-auto"
+                    "flex gap-3",
+                    message.role === 'user' ? "justify-end" : "justify-start"
                   )}
-                  style={{
-                    backgroundColor: message.role === 'user' ? colors.userBubble : colors.assistantBubble,
-                    border: message.role === 'assistant' ? `1px solid ${colors.border}` : 'none'
-                  }}
                 >
-                  {/* Header */}
-                  <div className="flex items-center gap-2 mb-2">
-                    {message.role === 'assistant' && (
-                      <div
-                        className="w-5 h-5 rounded-md flex items-center justify-center"
-                        style={{ backgroundColor: colors.accentBg }}
-                      >
-                        <Sparkles className="w-3 h-3" style={{ color: colors.accent }} />
-                      </div>
-                    )}
-                    <span
-                      className="text-xs font-medium uppercase tracking-wider"
-                      style={{ color: message.role === 'user' ? colors.accent : colors.textSecondary }}
-                    >
-                      {message.role === 'user' ? 'You' : 'Your Twin'}
-                    </span>
-                  </div>
-
-                  {/* Message Content */}
-                  <p
-                    className="text-[15px] leading-relaxed whitespace-pre-wrap"
-                    style={{ color: colors.text, fontFamily: 'var(--font-body)' }}
-                  >
-                    {message.content}
-                  </p>
-
-                  {/* Feedback for assistant */}
                   {message.role === 'assistant' && (
                     <div
-                      className="flex items-center gap-3 mt-4 pt-3"
-                      style={{ borderTop: `1px solid ${colors.border}` }}
+                      className="w-8 h-8 rounded-full flex-shrink-0 flex items-center justify-center"
+                      style={{ backgroundColor: colors.accent }}
                     >
-                      <div className="flex gap-0.5">
-                        {[1, 2, 3, 4, 5].map((star) => (
-                          <button
-                            key={star}
-                            onClick={() => handleRateResponse(message.id, star)}
-                            className="p-0.5 transition-transform hover:scale-110"
-                          >
-                            <Star
-                              className="w-4 h-4"
-                              style={{
-                                color: message.rating && star <= message.rating ? '#FBBF24' : colors.textSecondary,
-                                fill: message.rating && star <= message.rating ? '#FBBF24' : 'none'
-                              }}
-                            />
-                          </button>
-                        ))}
+                      <Sparkles className="w-4 h-4 text-white" />
+                    </div>
+                  )}
+
+                  <div className={cn("max-w-[80%]", message.role === 'user' && "order-first")}>
+                    {/* Message bubble */}
+                    <div
+                      className={cn(
+                        "px-4 py-3 rounded-2xl",
+                        message.role === 'user'
+                          ? "rounded-br-md"
+                          : "rounded-bl-md"
+                      )}
+                      style={{
+                        backgroundColor: message.role === 'user'
+                          ? colors.userBubbleBg
+                          : colors.userBubble,
+                        color: message.role === 'user' ? colors.userBubbleText : colors.text
+                      }}
+                    >
+                      <p className="text-[15px] leading-relaxed whitespace-pre-wrap">
+                        {message.content}
+                      </p>
+                    </div>
+
+                    {/* Context indicator for assistant */}
+                    {message.role === 'assistant' && message.contextUsed && (
+                      <div
+                        className="flex items-center gap-2 mt-2 text-xs"
+                        style={{ color: colors.textMuted }}
+                      >
+                        <Database className="w-3 h-3" />
+                        <span>
+                          Used: {message.contextUsed.platforms?.join(', ') || 'memories'}
+                          {message.contextUsed.personality && ' + personality'}
+                        </span>
                       </div>
-                      <div className="flex gap-1.5 ml-2">
-                        <button
-                          onClick={() => handleMarkAccurate(message.id, true)}
-                          className={cn(
-                            "flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs transition-all",
-                            message.isAccurate === true && "ring-1 ring-green-500"
-                          )}
-                          style={{
-                            backgroundColor: message.isAccurate === true
-                              ? theme === 'dark' ? 'rgba(34,197,94,0.2)' : 'rgba(34,197,94,0.1)'
-                              : 'transparent',
-                            color: colors.textSecondary
-                          }}
-                        >
-                          <Check className="w-3 h-3" />
-                          Accurate
-                        </button>
-                        <button
-                          onClick={() => handleMarkAccurate(message.id, false)}
-                          className={cn(
-                            "flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs transition-all",
-                            message.isAccurate === false && "ring-1 ring-red-500"
-                          )}
-                          style={{
-                            backgroundColor: message.isAccurate === false
-                              ? theme === 'dark' ? 'rgba(239,68,68,0.2)' : 'rgba(239,68,68,0.1)'
-                              : 'transparent',
-                            color: colors.textSecondary
-                          }}
-                        >
-                          <X className="w-3 h-3" />
-                          Not quite
-                        </button>
-                      </div>
+                    )}
+
+                    {/* Timestamp */}
+                    <div
+                      className={cn(
+                        "text-xs mt-1",
+                        message.role === 'user' ? "text-right" : "text-left"
+                      )}
+                      style={{ color: colors.textMuted }}
+                    >
+                      {formatTime(message.timestamp)}
+                    </div>
+                  </div>
+
+                  {message.role === 'user' && (
+                    <div
+                      className="w-8 h-8 rounded-full flex-shrink-0 flex items-center justify-center"
+                      style={{ backgroundColor: colors.bgTertiary }}
+                    >
+                      <User className="w-4 h-4" style={{ color: colors.textSecondary }} />
                     </div>
                   )}
                 </div>
@@ -449,21 +490,30 @@ const TalkToTwin = () => {
 
               {/* Typing Indicator */}
               {isTyping && (
-                <div
-                  className="max-w-[85%] mr-auto p-4 rounded-2xl"
-                  style={{ backgroundColor: colors.assistantBubble, border: `1px solid ${colors.border}` }}
-                >
-                  <div className="flex items-center gap-2">
-                    <div
-                      className="w-5 h-5 rounded-md flex items-center justify-center"
-                      style={{ backgroundColor: colors.accentBg }}
-                    >
-                      <Sparkles className="w-3 h-3" style={{ color: colors.accent }} />
-                    </div>
-                    <div className="flex gap-1">
-                      <div className="w-2 h-2 rounded-full animate-bounce" style={{ backgroundColor: colors.accent, animationDelay: '0ms' }} />
-                      <div className="w-2 h-2 rounded-full animate-bounce" style={{ backgroundColor: colors.accent, animationDelay: '150ms' }} />
-                      <div className="w-2 h-2 rounded-full animate-bounce" style={{ backgroundColor: colors.accent, animationDelay: '300ms' }} />
+                <div className="flex gap-3">
+                  <div
+                    className="w-8 h-8 rounded-full flex-shrink-0 flex items-center justify-center"
+                    style={{ backgroundColor: colors.accent }}
+                  >
+                    <Sparkles className="w-4 h-4 text-white" />
+                  </div>
+                  <div
+                    className="px-4 py-3 rounded-2xl rounded-bl-md"
+                    style={{ backgroundColor: colors.userBubble }}
+                  >
+                    <div className="flex gap-1.5">
+                      <div
+                        className="w-2 h-2 rounded-full animate-bounce"
+                        style={{ backgroundColor: colors.accent, animationDelay: '0ms' }}
+                      />
+                      <div
+                        className="w-2 h-2 rounded-full animate-bounce"
+                        style={{ backgroundColor: colors.accent, animationDelay: '150ms' }}
+                      />
+                      <div
+                        className="w-2 h-2 rounded-full animate-bounce"
+                        style={{ backgroundColor: colors.accent, animationDelay: '300ms' }}
+                      />
                     </div>
                   </div>
                 </div>
@@ -474,76 +524,239 @@ const TalkToTwin = () => {
           )}
         </div>
 
-        {/* Input Area */}
-        <div
-          className="p-4"
-          style={{ borderTop: `1px solid ${colors.border}`, backgroundColor: colors.cardBg }}
-        >
-          <div className="flex gap-3">
-            <input
-              type="text"
-              placeholder={connectedPlatforms.length > 0 ? "Ask your twin anything..." : "Connect platforms to start chatting..."}
+        {/* Input Area - Grok Style */}
+        <div className="p-4">
+          <div
+            className="rounded-2xl border shadow-sm overflow-hidden"
+            style={{
+              backgroundColor: colors.inputBg,
+              borderColor: colors.inputBorder
+            }}
+          >
+            <textarea
+              ref={inputRef}
+              placeholder={connectedPlatforms.length > 0
+                ? "Ask your twin anything..."
+                : "Connect platforms to start chatting..."
+              }
               value={inputMessage}
               onChange={(e) => setInputMessage(e.target.value)}
               onKeyDown={handleKeyPress}
               disabled={connectedPlatforms.length === 0}
-              className="flex-1 px-4 py-3 rounded-xl text-[15px] transition-all focus:outline-none focus:ring-2 disabled:opacity-50"
+              rows={1}
+              className="w-full px-4 py-3 resize-none focus:outline-none disabled:opacity-50 text-[15px]"
               style={{
-                backgroundColor: theme === 'dark' ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)',
-                border: `1px solid ${colors.border}`,
+                backgroundColor: 'transparent',
                 color: colors.text,
-                fontFamily: 'var(--font-body)'
+                minHeight: '48px',
+                maxHeight: '120px'
               }}
             />
-            <button
-              onClick={handleSendMessage}
-              disabled={!inputMessage.trim() || connectedPlatforms.length === 0 || isTyping}
-              className="px-5 py-3 rounded-xl transition-all hover:scale-[1.02] disabled:opacity-50 disabled:hover:scale-100"
-              style={{
-                backgroundColor: colors.accent,
-                color: 'white'
-              }}
+
+            <div
+              className="flex items-center justify-between px-3 py-2 border-t"
+              style={{ borderColor: colors.border }}
             >
-              {isTyping ? (
-                <Loader2 className="w-5 h-5 animate-spin" />
-              ) : (
-                <Send className="w-5 h-5" />
-              )}
-            </button>
+              <div className="flex items-center gap-1">
+                <button
+                  className="p-2 rounded-lg transition-colors hover:opacity-70"
+                  style={{ color: colors.textMuted }}
+                  title="Attach file"
+                >
+                  <Paperclip className="w-5 h-5" />
+                </button>
+                <button
+                  className="p-2 rounded-lg transition-colors hover:opacity-70"
+                  style={{ color: colors.textMuted }}
+                  title="Voice input"
+                >
+                  <Mic className="w-5 h-5" />
+                </button>
+              </div>
+
+              <div className="flex items-center gap-2">
+                {/* Model indicator like Grok */}
+                <div
+                  className="flex items-center gap-1 px-2 py-1 rounded-lg text-xs"
+                  style={{
+                    backgroundColor: colors.bgSecondary,
+                    color: colors.textSecondary
+                  }}
+                >
+                  <Sparkles className="w-3 h-3" />
+                  <span>Twin AI</span>
+                </div>
+
+                <button
+                  onClick={handleSendMessage}
+                  disabled={!inputMessage.trim() || connectedPlatforms.length === 0 || isTyping}
+                  className="p-2.5 rounded-xl transition-all hover:scale-[1.02] disabled:opacity-50 disabled:hover:scale-100"
+                  style={{
+                    backgroundColor: inputMessage.trim() ? colors.accent : colors.bgTertiary,
+                    color: inputMessage.trim() ? 'white' : colors.textMuted
+                  }}
+                >
+                  {isTyping ? (
+                    <Loader2 className="w-5 h-5 animate-spin" />
+                  ) : (
+                    <Send className="w-5 h-5" />
+                  )}
+                </button>
+              </div>
+            </div>
           </div>
         </div>
-      </GlassPanel>
-
-      {/* Quick Actions */}
-      <div className="mt-6 flex gap-4">
-        <button
-          onClick={() => navigate('/soul-signature')}
-          className="flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-xl text-sm font-medium transition-all hover:scale-[1.01]"
-          style={{
-            backgroundColor: colors.cardBg,
-            border: `1px solid ${colors.border}`,
-            color: colors.text,
-            fontFamily: 'var(--font-heading)'
-          }}
-        >
-          <Sparkles className="w-4 h-4" style={{ color: colors.accent }} />
-          View Soul Signature
-        </button>
-        <button
-          onClick={() => navigate('/get-started')}
-          className="flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-xl text-sm font-medium transition-all hover:scale-[1.01]"
-          style={{
-            backgroundColor: colors.cardBg,
-            border: `1px solid ${colors.border}`,
-            color: colors.text,
-            fontFamily: 'var(--font-heading)'
-          }}
-        >
-          <RefreshCw className="w-4 h-4" style={{ color: colors.accent }} />
-          Manage Platforms
-        </button>
       </div>
-    </PageLayout>
+
+      {/* Context Sidebar - Desktop */}
+      <aside
+        className={cn(
+          "w-72 border-l hidden md:block overflow-y-auto",
+          !showContext && "md:hidden"
+        )}
+        style={{
+          backgroundColor: colors.bgSecondary,
+          borderColor: colors.border
+        }}
+      >
+        <div className="p-4">
+          <div className="flex items-center justify-between mb-4">
+            <h3
+              className="font-medium flex items-center gap-2"
+              style={{ color: colors.text }}
+            >
+              <Database className="w-4 h-4" style={{ color: colors.accent }} />
+              Twin Context
+            </h3>
+            <button
+              onClick={() => setShowContext(false)}
+              className="p-1 rounded hover:opacity-70"
+              style={{ color: colors.textMuted }}
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+
+          {/* Connected Platforms Section */}
+          <div className="mb-6">
+            <h4
+              className="text-xs font-medium uppercase tracking-wider mb-2"
+              style={{ color: colors.textMuted }}
+            >
+              Data Sources
+            </h4>
+            <div className="space-y-2">
+              {platforms.map((platform) => (
+                <div
+                  key={platform.key}
+                  className="flex items-center justify-between p-2 rounded-lg"
+                  style={{ backgroundColor: colors.bgTertiary }}
+                >
+                  <div className="flex items-center gap-2">
+                    <span style={{ color: platform.connected ? platform.color : colors.textMuted }}>
+                      {platform.icon}
+                    </span>
+                    <span
+                      className="text-sm"
+                      style={{ color: platform.connected ? colors.text : colors.textMuted }}
+                    >
+                      {platform.name}
+                    </span>
+                  </div>
+                  {platform.connected ? (
+                    <div className="flex items-center gap-1">
+                      <div className="w-2 h-2 rounded-full bg-green-500" />
+                      <span className="text-xs" style={{ color: colors.textMuted }}>Live</span>
+                    </div>
+                  ) : (
+                    <button
+                      onClick={() => navigate('/get-started')}
+                      className="text-xs px-2 py-1 rounded"
+                      style={{ color: colors.accent }}
+                    >
+                      Connect
+                    </button>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Recent Context Section */}
+          <div className="mb-6">
+            <h4
+              className="text-xs font-medium uppercase tracking-wider mb-2"
+              style={{ color: colors.textMuted }}
+            >
+              Active Context
+            </h4>
+            {isLoadingContext ? (
+              <div className="flex items-center justify-center py-4">
+                <Loader2 className="w-5 h-5 animate-spin" style={{ color: colors.textMuted }} />
+              </div>
+            ) : contextItems.length > 0 ? (
+              <div className="space-y-2">
+                {contextItems.filter(i => i.type !== 'platform').map((item, idx) => (
+                  <div
+                    key={idx}
+                    className="p-2 rounded-lg"
+                    style={{ backgroundColor: colors.bgTertiary }}
+                  >
+                    <div className="flex items-center gap-2 mb-1">
+                      {item.type === 'memory' && <Clock className="w-3 h-3" style={{ color: colors.accent }} />}
+                      {item.type === 'fact' && <Lightbulb className="w-3 h-3" style={{ color: '#F59E0B' }} />}
+                      {item.type === 'personality' && <Brain className="w-3 h-3" style={{ color: '#EC4899' }} />}
+                      <span className="text-xs font-medium" style={{ color: colors.textSecondary }}>
+                        {item.label}
+                      </span>
+                    </div>
+                    <p className="text-sm" style={{ color: colors.text }}>
+                      {item.value}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-sm text-center py-4" style={{ color: colors.textMuted }}>
+                {connectedPlatforms.length > 0
+                  ? "Context loads when you chat"
+                  : "Connect platforms to build context"
+                }
+              </p>
+            )}
+          </div>
+
+          {/* Quick Stats */}
+          <div>
+            <h4
+              className="text-xs font-medium uppercase tracking-wider mb-2"
+              style={{ color: colors.textMuted }}
+            >
+              Twin Stats
+            </h4>
+            <div
+              className="p-3 rounded-lg"
+              style={{ backgroundColor: colors.bgTertiary }}
+            >
+              <div className="grid grid-cols-2 gap-3 text-center">
+                <div>
+                  <div className="text-lg font-semibold" style={{ color: colors.accent }}>
+                    {connectedCount || 0}
+                  </div>
+                  <div className="text-xs" style={{ color: colors.textMuted }}>Platforms</div>
+                </div>
+                <div>
+                  <div className="text-lg font-semibold" style={{ color: colors.accent }}>
+                    {messages.length}
+                  </div>
+                  <div className="text-xs" style={{ color: colors.textMuted }}>Messages</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </aside>
+    </div>
   );
 };
 

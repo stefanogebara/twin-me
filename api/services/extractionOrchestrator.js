@@ -14,6 +14,8 @@ import soulSignatureBuilder from './soulSignatureBuilder.js';
 import spotifyFeatureExtractor from './featureExtractors/spotifyExtractor.js';
 import whoopFeatureExtractor from './featureExtractors/whoopExtractor.js';
 import calendarFeatureExtractor from './featureExtractors/calendarExtractor.js';
+// Pattern Learning Bridge
+import patternLearningBridge from './patternLearningBridge.js';
 
 // Initialize Supabase client
 const supabase = createClient(
@@ -192,8 +194,22 @@ class ExtractionOrchestrator {
           itemsExtracted = result.itemsExtracted || 0;
           break;
 
-        // Platforms not yet implemented
         case 'youtube':
+        case 'twitch': {
+          // Use Nango extraction + storage for these platforms
+          const nangoService = await import('./nangoService.js');
+          const extractResult = await nangoService.extractPlatformData(userId, platform);
+          if (extractResult.success) {
+            await nangoService.storeNangoExtractionData(userId, platform, extractResult);
+            itemsExtracted = Object.keys(extractResult.data || {}).length;
+            result = { success: true };
+          } else {
+            result = { success: false, error: extractResult.error || 'Nango extraction failed' };
+          }
+          break;
+        }
+
+        // Platforms not yet implemented
         case 'reddit':
         case 'gmail':
           console.log(`⚠️ [Orchestrator] Extractor for ${platform} not yet implemented`);
@@ -209,6 +225,15 @@ class ExtractionOrchestrator {
       if (result.success) {
         await this.updateExtractionJob(jobId, 'completed', itemsExtracted, null);
         console.log(`✅ [Orchestrator] ${platform} extraction completed - ${itemsExtracted} items`);
+
+        // 4. Push to Pattern Learning System (async, don't wait)
+        patternLearningBridge.syncExistingPlatformData(userId, platform, 1).then(syncResult => {
+          if (syncResult.synced > 0) {
+            console.log(`🧠 [Orchestrator] Pattern Learning: Synced ${syncResult.synced} ${platform} events`);
+          }
+        }).catch(err => {
+          console.error(`⚠️ [Orchestrator] Pattern Learning sync error: ${err.message}`);
+        });
       } else {
         await this.updateExtractionJob(jobId, 'failed', 0, result.error || 'Extraction failed');
         console.log(`❌ [Orchestrator] ${platform} extraction failed: ${result.error}`);

@@ -38,7 +38,10 @@ export const SUPPORTED_PLATFORMS = {
 
   // Social platforms
   reddit: { name: 'Reddit', category: 'social', requiresAuth: true },
-  twitter: { name: 'Twitter/X', category: 'social', requiresAuth: true }
+  twitter: { name: 'Twitter/X', category: 'social', requiresAuth: true },
+
+  // Browser extension platforms
+  web: { name: 'Web Browsing', category: 'behavioral', requiresAuth: false }
 };
 
 /**

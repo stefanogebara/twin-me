@@ -981,7 +981,7 @@ router.get('/status/:userId', async (req, res) => {
     // IMPORTANT: Include 'status' column to check for token_expired status
     const { data: connections, error } = await supabaseAdmin
       .from('platform_connections')
-      .select('platform, connected_at, token_expires_at, metadata, last_sync_at, last_sync_status, status')
+      .select('platform, connected_at, token_expires_at, access_token, metadata, last_sync_at, last_sync_status, status')
       .eq('user_id', userUuid);
 
     if (error) {
@@ -995,9 +995,12 @@ router.get('/status/:userId', async (req, res) => {
 
     // Use for...of to handle async token refresh
     for (const connection of connections || []) {
+      // NANGO_MANAGED connections: Nango handles token lifecycle, skip expiry checks
+      const isNangoManaged = connection.access_token === 'NANGO_MANAGED';
+
       // Check if token is expired (check both possible expiration columns)
       const expiresAt = connection.token_expires_at;
-      let isTokenExpired = expiresAt && new Date(expiresAt) < now;
+      let isTokenExpired = !isNangoManaged && expiresAt && new Date(expiresAt) < now;
 
       // SPECIAL CASE: For Spotify and YouTube with encryption_key_mismatch,
       // force connected=true to show "Token Expired" badge instead of "Connect"
@@ -1010,9 +1013,8 @@ router.get('/status/:userId', async (req, res) => {
       }
 
       // AUTOMATIC TOKEN REFRESH: Attempt to refresh expired tokens
-      // Skip if already marked as expired (needs user re-authorization, don't spam logs)
-      const isAlreadyMarkedExpired = connection.status === 'expired';
-      if (isConnected && isTokenExpired && !isAlreadyMarkedExpired) {
+      // Skip for Nango-managed connections (Nango handles refresh automatically)
+      if (isConnected && isTokenExpired && !isNangoManaged) {
         console.log(`🔄 Attempting automatic token refresh for ${connection.platform}...`);
         try {
           await ensureFreshToken(userUuid, connection.platform);

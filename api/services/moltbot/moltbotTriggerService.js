@@ -20,6 +20,7 @@ import { getMoltbotClient } from './moltbotClient.js';
 import { getMemoryService } from './moltbotMemoryService.js';
 import config from '../../config/moltbotConfig.js';
 import { createClient } from '@supabase/supabase-js';
+import learnedTriggerGenerator from '../learnedTriggerGenerator.js';
 
 // Supabase client for database operations
 let supabase = null;
@@ -816,7 +817,8 @@ function inferMoodFromTrack(trackData) {
 }
 
 /**
- * Default trigger templates
+ * Default trigger templates (fallback/starter templates)
+ * These are used as examples until the system learns your patterns
  */
 function getDefaultTriggerTemplates() {
   return [
@@ -835,7 +837,9 @@ function getDefaultTriggerTemplates() {
       research_basis: 'Elevated HR + late hours correlates with social engagement (r=0.42)',
       correlation_strength: 0.42,
       cooldown_minutes: 120,
-      priority: 60
+      priority: 60,
+      is_learned: false,
+      source: 'default_template'
     },
     {
       name: 'morning_music_mood',
@@ -851,7 +855,9 @@ function getDefaultTriggerTemplates() {
       research_basis: 'Morning music valence predicts daily affect (r=0.38)',
       correlation_strength: 0.38,
       cooldown_minutes: 30,
-      priority: 50
+      priority: 50,
+      is_learned: false,
+      source: 'default_template'
     },
     {
       name: 'recovery_mismatch',
@@ -865,9 +871,57 @@ function getDefaultTriggerTemplates() {
         { type: 'update_pattern', layer: 'daily', pattern: 'recovery_ignorer', category: 'health' }
       ],
       cooldown_minutes: 240,
-      priority: 70
+      priority: 70,
+      is_learned: false,
+      source: 'default_template'
     }
   ];
+}
+
+/**
+ * Get trigger templates learned from your personal patterns
+ * These are dynamically generated from the Pattern Learning System
+ * @param {string} userId - User ID
+ * @returns {Promise<Object[]>} - Array of learned triggers
+ */
+async function getLearnedTriggerTemplates(userId) {
+  try {
+    const learnedTriggers = await learnedTriggerGenerator.generateLearnedTriggers(userId);
+    return learnedTriggers;
+  } catch (error) {
+    console.error('[TriggerService] Error getting learned triggers:', error);
+    return [];
+  }
+}
+
+/**
+ * Get ALL trigger templates (learned + defaults as fallback)
+ * Learned triggers take priority; defaults shown only if no learned patterns exist
+ * @param {string} userId - User ID
+ * @returns {Promise<Object>} - { learned: [], defaults: [], all: [] }
+ */
+async function getAllTriggerTemplates(userId) {
+  const defaults = getDefaultTriggerTemplates();
+  const learned = await getLearnedTriggerTemplates(userId);
+
+  return {
+    learned,
+    defaults,
+    all: [...learned, ...defaults],
+    hasLearnedPatterns: learned.length > 0,
+    learnedCount: learned.length,
+    defaultCount: defaults.length
+  };
+}
+
+/**
+ * Run the pattern learning pipeline for a user
+ * This syncs data, computes baselines, discovers correlations, and generates triggers
+ * @param {string} userId - User ID
+ * @returns {Promise<Object>} - Pipeline results
+ */
+async function runPatternLearningPipeline(userId) {
+  return learnedTriggerGenerator.runPatternLearningPipeline(userId);
 }
 
 /**
@@ -877,5 +931,11 @@ export function getTriggerService(userId) {
   return new MoltbotTriggerService(userId);
 }
 
-export { MoltbotTriggerService, getDefaultTriggerTemplates };
+export {
+  MoltbotTriggerService,
+  getDefaultTriggerTemplates,
+  getLearnedTriggerTemplates,
+  getAllTriggerTemplates,
+  runPatternLearningPipeline
+};
 export default MoltbotTriggerService;

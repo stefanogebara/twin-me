@@ -61,6 +61,10 @@ const POLLING_CONFIGS = {
       },
     ],
   },
+  twitch: {
+    interval: '0 */3 * * *', // Every 3 hours
+    endpoints: [], // Handled by Nango
+  },
   discord: {
     interval: '0 */4 * * *', // Every 4 hours
     endpoints: [
@@ -194,7 +198,28 @@ async function pollAllPlatformsForUser(userId) {
 
     const pollPromises = connections.map(async (connection) => {
       try {
-        // Ensure token is fresh
+        // Handle Nango-managed tokens (YouTube, Twitch, etc.)
+        if (connection.access_token === 'NANGO_MANAGED') {
+          console.log(`📡 Polling ${connection.platform} via Nango for user ${userId}`);
+          const nangoService = await import('./nangoService.js');
+          const result = await nangoService.extractPlatformData(userId, connection.platform);
+          if (result.success) {
+            await nangoService.storeNangoExtractionData(userId, connection.platform, result);
+            await getSupabaseClient()
+              .from('platform_connections')
+              .update({
+                last_sync: new Date().toISOString(),
+                updated_at: new Date().toISOString(),
+              })
+              .eq('id', connection.id);
+          }
+          return {
+            platform: connection.platform,
+            results: result.success ? [{ endpoint: 'nango', success: true }] : [{ endpoint: 'nango', success: false, error: result.error }],
+          };
+        }
+
+        // Ensure token is fresh (legacy flow)
         const accessToken = await ensureFreshToken(userId, connection.platform);
 
         if (!accessToken) {
@@ -317,6 +342,12 @@ function startPlatformPolling() {
     await pollPlatformForAllUsers('google_gmail');
   });
 
+  // Twitch - Every 3 hours
+  cron.schedule('0 */3 * * *', async () => {
+    console.log('⏰ Running Twitch polling job');
+    await pollPlatformForAllUsers('twitch');
+  });
+
   console.log('✅ Platform polling service started with multiple schedules');
 }
 
@@ -349,6 +380,33 @@ async function pollPlatformForAllUsers(platform) {
 
     for (const userId of uniqueUserIds) {
       try {
+        // Check if this user's connection is Nango-managed
+        const { data: conn } = await getSupabaseClient()
+          .from('platform_connections')
+          .select('id, access_token')
+          .eq('user_id', userId)
+          .eq('platform', platform)
+          .eq('status', 'connected')
+          .single();
+
+        if (conn?.access_token === 'NANGO_MANAGED') {
+          console.log(`📡 Polling ${platform} via Nango for user ${userId}`);
+          const nangoService = await import('./nangoService.js');
+          const result = await nangoService.extractPlatformData(userId, platform);
+          if (result.success) {
+            await nangoService.storeNangoExtractionData(userId, platform, result);
+            await getSupabaseClient()
+              .from('platform_connections')
+              .update({
+                last_sync: new Date().toISOString(),
+                updated_at: new Date().toISOString(),
+              })
+              .eq('id', conn.id);
+          }
+          await new Promise(resolve => setTimeout(resolve, 2000));
+          continue;
+        }
+
         const accessToken = await ensureFreshToken(userId, platform);
 
         if (!accessToken) {

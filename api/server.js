@@ -17,9 +17,11 @@ import { startPatternLearningJob, stopPatternLearningJob } from './services/patt
 import { startTokenExpiryNotifier, stopTokenExpiryNotifier } from './services/tokenExpiryNotifier.js';
 import { initializeRateLimiter, shutdownRateLimiter } from './middleware/oauthRateLimiter.js';
 import behavioralEvidencePipeline from './services/behavioralEvidencePipeline.js';
+import { getLocalScheduler } from './services/moltbot/agentScheduler.js';
 
 // Only use dotenv in development - Vercel provides env vars directly
 // Updated: Fixed SUPABASE_SERVICE_ROLE_KEY truncation issue
+// Hot reload trigger: 2026-02-03T00:02 - Cron Claude Sync routes added
 if (process.env.NODE_ENV !== 'production') {
   dotenv.config({ path: path.resolve(process.cwd(), '.env') });
 }
@@ -111,7 +113,7 @@ app.use(cors({
   },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'X-API-Key'],
   optionsSuccessStatus: 200,
 }));
 
@@ -269,6 +271,18 @@ import personalityInferenceRoutes from './routes/personality-inference.js';
 import originDataRoutes from './routes/origin-data.js';
 import profileEnrichmentRoutes from './routes/profile-enrichment.js';
 import resumeUploadRoutes from './routes/resume-upload.js';
+import moltbotRoutes from './routes/moltbot.js';
+import apiKeysRoutes from './routes/api-keys.js';
+import mcpApiRoutes from './routes/mcp-api.js';
+import claudeSyncRoutes from './routes/claude-sync.js';
+import cronClaudeSyncRoutes from './routes/cron-claude-sync.js';
+import twinsBrainRoutes from './routes/twins-brain.js';
+import mem0Routes from './routes/mem0.js';
+import mem0BrainSyncRoutes from './routes/mem0-brain-sync.js';
+import correlationsRoutes from './routes/correlations.js';
+import nangoRoutes from './routes/nango.js';
+import nangoWebhooksRoutes from './routes/nango-webhooks.js';
+import extensionDataRoutes from './routes/extension-data.js';
 import { serverDb } from './services/database.js';
 import { sanitizeInput, validateContentType } from './middleware/sanitization.js';
 import { /* handleAuthError, */ handleGeneralError, handle404 } from './middleware/errorHandler.js';
@@ -337,6 +351,18 @@ app.use('/api/personality-inference', personalityInferenceRoutes); // Multi-agen
 app.use('/api/origin', originDataRoutes); // Origin data (hands-on user-provided context)
 app.use('/api/enrichment', profileEnrichmentRoutes); // Profile enrichment via Perplexity Sonar (enrichment-first onboarding)
 app.use('/api/resume', resumeUploadRoutes); // Resume/CV upload and parsing for enrichment
+app.use('/api/moltbot', moltbotRoutes); // Moltbot proactive digital twin (triggers, clusters, memory, agents)
+app.use('/api/keys', apiKeysRoutes); // API key management for MCP server
+app.use('/api/mcp', mcpApiRoutes); // MCP API for LLM integrations (ChatGPT, Gemini, etc.)
+app.use('/api/claude-sync', claudeSyncRoutes); // Claude Desktop conversation sync
+app.use('/api/cron/claude-sync', cronClaudeSyncRoutes); // Claude Desktop cron sync and AI analysis processing
+app.use('/api/twins-brain', twinsBrainRoutes); // Twins Brain unified knowledge graph
+app.use('/api/mem0', mem0Routes); // Mem0 intelligent memory layer
+app.use('/api/mem0-sync', mem0BrainSyncRoutes); // Mem0 → Twins Brain sync
+app.use('/api/correlations', correlationsRoutes); // Cross-platform correlation detection (X Phoenix-inspired)
+app.use('/api/nango', nangoRoutes); // Nango unified API for 10 platform connections
+app.use('/api/nango-webhooks', nangoWebhooksRoutes); // Nango webhook receiver
+app.use('/api/extension', extensionDataRoutes); // Browser extension data capture (YouTube, Twitch, Netflix)
 
 // Vercel Cron Job endpoints (production automation)
 // These are called by Vercel Cron Jobs on schedule (configured in vercel.json)
@@ -446,6 +472,15 @@ if (process.env.NODE_ENV !== 'production') {
   // - Creates user notifications prompting reconnection before data flow interrupts
   startTokenExpiryNotifier();
 
+  // Moltbot Extraction Scheduler (Local fallback)
+  // - Runs scheduled platform extractions (Spotify, Calendar, Whoop)
+  // - Operates independently when OpenClaw gateway is unavailable
+  // - Uses cron expressions to poll platforms for new data
+  const extractionScheduler = getLocalScheduler();
+  extractionScheduler.start().catch(err => {
+    console.warn('⚠️ Extraction scheduler failed to start:', err.message);
+  });
+
   // Start HTTP server
   server.listen(PORT, () => {
     console.log(`🚀 Secure API server running on port ${PORT}`);
@@ -464,9 +499,14 @@ if (process.env.NODE_ENV !== 'production') {
     console.log(`     • GitHub: Every 6 hours`);
     console.log(`     • Discord: Every 4 hours`);
     console.log(`     • Gmail: Every 1 hour`);
+    console.log(`     • Twitch: Every 3 hours`);
     console.log(`   - Pattern Learning:`);
     console.log(`     • Feedback Processing: Every 6 hours`);
     console.log(`     • Test endpoint: http://localhost:${PORT}/api/test-pattern-learning/status`);
+    console.log(`   - Moltbot Extraction Scheduler:`);
+    console.log(`     • Spotify: Every 5 minutes`);
+    console.log(`     • Calendar: Every hour`);
+    console.log(`     • Whoop: Every 6 hours (+ webhooks)`);
   });
 
   // Graceful shutdown handlers
@@ -477,6 +517,7 @@ if (process.env.NODE_ENV !== 'production') {
     stopBackgroundJobs();
     stopPatternLearningJob();
     stopTokenExpiryNotifier();
+    getLocalScheduler().stop();
 
     // Shutdown rate limiter
     await shutdownRateLimiter();
@@ -513,6 +554,7 @@ if (process.env.NODE_ENV !== 'production') {
 }
 
 export default app;
+
 
 
 

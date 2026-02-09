@@ -4,6 +4,7 @@ import { User, Menu, X } from 'lucide-react';
 import { navigationConfig } from '../../config/navigation';
 import { cn } from '../../lib/utils';
 import { useTheme } from '../../contexts/ThemeContext';
+import { ProactiveNotifications } from '../moltbot/ProactiveNotifications';
 
 /**
  * Header Component
@@ -126,9 +127,13 @@ export const Header: React.FC<HeaderProps> = ({ user, onSignOut }) => {
           {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
         </button>
 
-        {/* User Section - Desktop */}
-        {user && (
-          <div className="hidden md:flex items-center gap-3">
+        {/* Notifications & User Section - Desktop */}
+        <div className="hidden md:flex items-center gap-3">
+          {/* Proactive Notifications Bell */}
+          {user && <ProactiveNotifications compact={true} maxItems={5} />}
+
+          {/* User Section */}
+          {user && (
             <div
               className="flex items-center gap-2 px-3 py-2 rounded-lg"
               style={{
@@ -302,21 +307,26 @@ export const Header: React.FC<HeaderProps> = ({ user, onSignOut }) => {
                   </div>
                 </div>
 
-                {onSignOut && (
-                  <button
-                    onClick={() => {
-                      setMobileMenuOpen(false);
-                      onSignOut();
-                    }}
-                    className="px-3 py-2 text-sm transition-colors rounded-lg"
-                    style={{
-                      fontFamily: 'var(--font-heading)',
-                      color: theme === 'dark' ? 'rgba(193, 192, 182, 0.7)' : 'rgba(12, 10, 9, 0.6)'
-                    }}
-                  >
-                    Sign Out
-                  </button>
-                )}
+                <div className="flex items-center gap-2">
+                  {/* Mobile Notifications */}
+                  <ProactiveNotifications compact={true} maxItems={5} />
+
+                  {onSignOut && (
+                    <button
+                      onClick={() => {
+                        setMobileMenuOpen(false);
+                        onSignOut();
+                      }}
+                      className="px-3 py-2 text-sm transition-colors rounded-lg"
+                      style={{
+                        fontFamily: 'var(--font-heading)',
+                        color: theme === 'dark' ? 'rgba(193, 192, 182, 0.7)' : 'rgba(12, 10, 9, 0.6)'
+                      }}
+                    >
+                      Sign Out
+                    </button>
+                  )}
+                </div>
               </div>
             </div>
           )}

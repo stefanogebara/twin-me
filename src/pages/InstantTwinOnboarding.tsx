@@ -79,11 +79,6 @@ const SlackLogo = ({ className = "w-6 h-6" }: { className?: string }) => (
   </svg>
 );
 
-const LinkedinLogo = ({ className = "w-6 h-6" }: { className?: string }) => (
-  <svg className={className} viewBox="0 0 24 24" fill="currentColor">
-    <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/>
-  </svg>
-);
 
 const GithubLogo = ({ className = "w-6 h-6" }: { className?: string }) => (
   <svg className={className} viewBox="0 0 24 24" fill="currentColor">
@@ -105,30 +100,18 @@ const OuraLogo = ({ className = "w-6 h-6" }: { className?: string }) => (
   </svg>
 );
 
-const GarminLogo = ({ className = "w-6 h-6" }: { className?: string }) => (
-  <svg className={className} viewBox="0 0 512 512" fill="currentColor">
-    <path d="M256 0C114.6 0 0 114.6 0 256s114.6 256 256 256 256-114.6 256-256S397.4 0 256 0zm0 472c-119.3 0-216-96.7-216-216S136.7 40 256 40s216 96.7 216 216-96.7 216-216 216zm0-392c-97.2 0-176 78.8-176 176s78.8 176 176 176 176-78.8 176-176S353.2 80 256 80zm0 312c-75.1 0-136-60.9-136-136s60.9-136 136-136 136 60.9 136 136-60.9 136-136 136z"/>
-    <path d="M256 168c-48.6 0-88 39.4-88 88s39.4 88 88 88 88-39.4 88-88-39.4-88-88-88zm0 136c-26.5 0-48-21.5-48-48s21.5-48 48-48 48 21.5 48 48-21.5 48-48 48z"/>
+const OutlookLogo = ({ className = "w-6 h-6" }: { className?: string }) => (
+  <svg className={className} viewBox="0 0 32 32" fill="none">
+    <path d="M19.484 7.937v5.477l1.916 1.205a.489.489 0 00.21.063.5.5 0 00.229-.063l5.677-3.416a.476.476 0 00-.026-.063.9.9 0 00-.379-.334l-6.417-3.326a1.837 1.837 0 00-1.21.457z" fill="currentColor"/>
+    <path d="M19.484 15.457l1.747 1.2a.522.522 0 00.543 0c-.3.181 5.947-3.627 5.947-3.627a1.149 1.149 0 00.479-.756v9.566a1.67 1.67 0 01-.485 1.16 1.678 1.678 0 01-1.167.489h-7.064v-8.032z" fill="currentColor"/>
+    <path d="M10.44 12.932a1.032 1.032 0 00-1.034 1.034v4.085a1.034 1.034 0 102.069 0v-4.085a1.032 1.032 0 00-1.035-1.034z" fill="currentColor"/>
+    <path d="M1.441 9.186v13.628a1.812 1.812 0 001.812 1.812h14.225V7.374H3.253a1.812 1.812 0 00-1.812 1.812zm9 11.812a3.1 3.1 0 01-3.1-3.1v-4.085a3.1 3.1 0 016.2 0v4.085a3.1 3.1 0 01-3.1 3.1z" fill="currentColor"/>
   </svg>
 );
 
-const PolarLogo = ({ className = "w-6 h-6" }: { className?: string }) => (
+const TwitchLogo = ({ className = "w-6 h-6" }: { className?: string }) => (
   <svg className={className} viewBox="0 0 24 24" fill="currentColor">
-    <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z"/>
-    <path d="M12 6c-3.31 0-6 2.69-6 6s2.69 6 6 6 6-2.69 6-6-2.69-6-6-6zm0 10c-2.21 0-4-1.79-4-4s1.79-4 4-4 4 1.79 4 4-1.79 4-4 4z"/>
-  </svg>
-);
-
-const SuuntoLogo = ({ className = "w-6 h-6" }: { className?: string }) => (
-  <svg className={className} viewBox="0 0 24 24" fill="currentColor">
-    <circle cx="12" cy="12" r="10" fill="none" stroke="currentColor" strokeWidth="2"/>
-    <path d="M12 6v6l4 2" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-  </svg>
-);
-
-const AppleHealthLogo = ({ className = "w-6 h-6" }: { className?: string }) => (
-  <svg className={className} viewBox="0 0 24 24" fill="currentColor">
-    <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
+    <path d="M11.571 4.714h1.715v5.143H11.57zm4.715 0H18v5.143h-1.714zM6 0L1.714 4.286v15.428h5.143V24l4.286-4.286h3.428L22.286 12V0zm14.571 11.143l-3.428 3.428h-3.429l-3 3v-3H6.857V1.714h13.714z"/>
   </svg>
 );
 
@@ -177,16 +160,16 @@ const AVAILABLE_CONNECTORS: ConnectorConfig[] = [
     privacyLevel: 'low',
     category: 'professional'
   },
-  // LinkedIn - Professional identity
+  // Outlook - Email and calendar communication
   {
-    provider: 'linkedin' as DataProvider,
-    name: 'LinkedIn',
-    description: 'Your career path reveals ambitions, expertise areas, and professional growth',
-    icon: <LinkedinLogo className="w-6 h-6" />,
-    color: '#0A66C2',
-    dataTypes: ['Career Trajectory', 'Industry Expertise', 'Professional Network'],
-    estimatedInsights: 10,
-    setupTime: '5 seconds',
+    provider: 'outlook' as DataProvider,
+    name: 'Microsoft Outlook',
+    description: 'Your email patterns reveal communication style, response habits, and calendar commitments',
+    icon: <OutlookLogo className="w-6 h-6" />,
+    color: '#0078D4',
+    dataTypes: ['Email Patterns', 'Calendar Events', 'Communication Style'],
+    estimatedInsights: 12,
+    setupTime: '10 seconds',
     privacyLevel: 'medium',
     category: 'professional'
   },
@@ -203,54 +186,80 @@ const AVAILABLE_CONNECTORS: ConnectorConfig[] = [
     privacyLevel: 'medium',
     category: 'health'
   },
-  // Open Wearables - Additional fitness trackers via Open Wearables
+  // Entertainment - Video content
   {
-    provider: 'garmin' as DataProvider,
-    name: 'Garmin',
-    description: 'Your Garmin data reveals training patterns, GPS activities, and physiological metrics',
-    icon: <GarminLogo className="w-6 h-6" />,
-    color: '#007CC3',
-    dataTypes: ['Activities', 'Heart Rate', 'Sleep'],
+    provider: 'youtube' as DataProvider,
+    name: 'YouTube',
+    description: 'Your viewing patterns reveal learning interests, entertainment preferences, and content curiosities',
+    icon: <YoutubeLogo className="w-6 h-6" />,
+    color: '#FF0000',
+    dataTypes: ['Watch History', 'Subscriptions', 'Liked Videos'],
+    estimatedInsights: 10,
+    setupTime: '10 seconds',
+    privacyLevel: 'low',
+    category: 'entertainment'
+  },
+  {
+    provider: 'twitch' as DataProvider,
+    name: 'Twitch',
+    description: 'Your streaming habits reveal gaming interests, community engagement, and entertainment preferences',
+    icon: <TwitchLogo className="w-6 h-6" />,
+    color: '#9146FF',
+    dataTypes: ['Followed Channels', 'Viewing Patterns', 'Communities'],
+    estimatedInsights: 8,
+    setupTime: '10 seconds',
+    privacyLevel: 'low',
+    category: 'entertainment'
+  },
+  // Social platforms
+  {
+    provider: 'discord' as DataProvider,
+    name: 'Discord',
+    description: 'Your communities reveal social connections, gaming circles, and communication style',
+    icon: <DiscordLogo className="w-6 h-6" />,
+    color: '#5865F2',
+    dataTypes: ['Server Memberships', 'Community Roles', 'Connections'],
+    estimatedInsights: 8,
+    setupTime: '10 seconds',
+    privacyLevel: 'medium',
+    category: 'social'
+  },
+  {
+    provider: 'reddit' as DataProvider,
+    name: 'Reddit',
+    description: 'Your subreddits and discussions reveal interests, expertise areas, and curiosity patterns',
+    icon: <RedditLogo className="w-6 h-6" />,
+    color: '#FF4500',
+    dataTypes: ['Subreddits', 'Saved Posts', 'Discussion Topics'],
     estimatedInsights: 12,
-    setupTime: '15 seconds',
+    setupTime: '10 seconds',
     privacyLevel: 'medium',
-    category: 'health'
+    category: 'social'
   },
+  // Professional platforms
   {
-    provider: 'polar' as DataProvider,
-    name: 'Polar',
-    description: 'Your Polar data reveals heart rate patterns, training load, and recovery insights',
-    icon: <PolarLogo className="w-6 h-6" />,
-    color: '#D32F2F',
-    dataTypes: ['Heart Rate', 'Training Load', 'Recovery'],
-    estimatedInsights: 10,
-    setupTime: '15 seconds',
-    privacyLevel: 'medium',
-    category: 'health'
-  },
-  {
-    provider: 'suunto' as DataProvider,
-    name: 'Suunto',
-    description: 'Your Suunto data reveals outdoor adventures, training metrics, and performance trends',
-    icon: <SuuntoLogo className="w-6 h-6" />,
-    color: '#1A1A1A',
-    dataTypes: ['Activities', 'GPS Tracks', 'Performance'],
-    estimatedInsights: 10,
-    setupTime: '15 seconds',
-    privacyLevel: 'medium',
-    category: 'health'
-  },
-  {
-    provider: 'apple_health' as DataProvider,
-    name: 'Apple Health',
-    description: 'Your Apple Health data reveals daily activity, workouts, and health metrics from your Apple Watch',
-    icon: <AppleHealthLogo className="w-6 h-6" />,
-    color: '#FF2D55',
-    dataTypes: ['Activity', 'Workouts', 'Health Metrics'],
+    provider: 'github' as DataProvider,
+    name: 'GitHub',
+    description: 'Your repositories and contributions reveal coding style, tech interests, and collaboration patterns',
+    icon: <GithubLogo className="w-6 h-6" />,
+    color: '#181717',
+    dataTypes: ['Repositories', 'Contributions', 'Tech Stack'],
     estimatedInsights: 15,
-    setupTime: '15 seconds',
-    privacyLevel: 'medium',
-    category: 'health'
+    setupTime: '10 seconds',
+    privacyLevel: 'low',
+    category: 'professional'
+  },
+  {
+    provider: 'gmail' as DataProvider,
+    name: 'Gmail',
+    description: 'Your email patterns reveal communication style, response habits, and contact network',
+    icon: <GmailLogo className="w-6 h-6" />,
+    color: '#EA4335',
+    dataTypes: ['Email Patterns', 'Response Time', 'Contact Network'],
+    estimatedInsights: 10,
+    setupTime: '10 seconds',
+    privacyLevel: 'high',
+    category: 'professional'
   }
 ];
 
@@ -293,21 +302,16 @@ const InstantTwinOnboarding = () => {
 
   const connectedServices = connectedProviders as DataProvider[];
 
-  // Core platforms for connection count
-  const MVP_PLATFORMS = ['spotify', 'google_calendar', 'whoop', 'linkedin'];
-
-  // Calculate truly active connections (excluding expired tokens AND non-MVP platforms)
+  // Calculate truly active connections (excluding expired tokens)
   const activeConnections = connectedServices.filter(provider => {
     const status = platformStatusData[provider];
     const isNotExpired = !status?.tokenExpired && status?.status !== 'token_expired';
-    const isMVPPlatform = MVP_PLATFORMS.includes(provider);
-    return isNotExpired && isMVPPlatform;
+    return isNotExpired;
   });
   const expiredConnections = connectedServices.filter(provider => {
     const status = platformStatusData[provider];
     const isExpired = status?.tokenExpired || status?.status === 'token_expired';
-    const isMVPPlatform = MVP_PLATFORMS.includes(provider);
-    return isExpired && isMVPPlatform;
+    return isExpired;
   });
 
   React.useEffect(() => {
@@ -369,12 +373,22 @@ const InstantTwinOnboarding = () => {
 
       const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
 
-      // Use wearables API for Open Wearables providers
-      const openWearablesProviders = ['garmin', 'polar', 'suunto', 'apple_health'];
-      // Use health connector route for health platforms (whoop, oura)
-      const healthPlatforms = ['whoop', 'oura'];
-      // Use professional connector route for professional platforms (linkedin)
-      const professionalPlatforms = ['linkedin'];
+      // Use health connector route for health platforms (oura only - whoop now uses Nango)
+      const healthPlatforms = ['oura'];
+      // Use Nango API for all Nango-managed platforms (including whoop for automatic token refresh)
+      const nangoPlatforms = ['outlook', 'discord', 'github', 'youtube', 'reddit', 'gmail', 'twitch', 'whoop', 'spotify', 'google_calendar'];
+
+      // Map frontend provider names to Nango integration IDs
+      const nangoProviderMap: Record<string, string> = {
+        'outlook': 'outlook',
+        'discord': 'discord',
+        'github': 'github',
+        'youtube': 'youtube',
+        'reddit': 'reddit',
+        'gmail': 'google-mail',  // Gmail uses 'google-mail' integration ID in Nango
+        'twitch': 'twitch',
+        'whoop': 'whoop'  // Whoop now uses Nango for automatic token refresh
+      };
 
       let apiUrl: string;
       let fetchOptions: RequestInit = {
@@ -382,21 +396,20 @@ const InstantTwinOnboarding = () => {
         headers: { 'Content-Type': 'application/json' },
       };
 
-      if (openWearablesProviders.includes(provider as string)) {
-        // Use Open Wearables API
-        apiUrl = `${baseUrl}/wearables/connect`;
+      if (nangoPlatforms.includes(provider as string)) {
+        // Use Nango connect session API
+        const nangoIntegrationId = nangoProviderMap[provider] || provider;
+        apiUrl = `${baseUrl}/nango/connect-session`;
         fetchOptions = {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
             'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
           },
-          body: JSON.stringify({ provider })
+          body: JSON.stringify({ integrationId: nangoIntegrationId })
         };
       } else if (healthPlatforms.includes(provider as string)) {
         apiUrl = `${baseUrl}/health/connect/${provider}?userId=${encodeURIComponent(userId)}`;
-      } else if (professionalPlatforms.includes(provider as string)) {
-        apiUrl = `${baseUrl}/professional/connect/${provider}?userId=${encodeURIComponent(userId)}`;
       } else {
         apiUrl = `${baseUrl}/arctic/connect/${provider}?userId=${encodeURIComponent(userId)}`;
       }
@@ -412,6 +425,64 @@ const InstantTwinOnboarding = () => {
       if (result.success && result.authUrl) {
         sessionStorage.setItem('connecting_provider', provider);
         window.location.href = result.authUrl;
+      } else if (result.success && result.connectUrl) {
+        // Open Nango Connect in a centered popup instead of full-page redirect
+        const width = 600, height = 700;
+        const left = window.screenX + (window.outerWidth - width) / 2;
+        const top = window.screenY + (window.outerHeight - height) / 2;
+
+        const popup = window.open(
+          result.connectUrl,
+          'nango-connect',
+          `width=${width},height=${height},left=${left},top=${top},toolbar=no,menubar=no`
+        );
+
+        if (!popup) {
+          // Popup was blocked - fall back to redirect
+          sessionStorage.setItem('connecting_provider', provider);
+          window.location.href = result.connectUrl;
+          return;
+        }
+
+        // Poll for popup close, then verify connection
+        const pollInterval = setInterval(async () => {
+          if (!popup || popup.closed) {
+            clearInterval(pollInterval);
+
+            const nangoIntegrationId = nangoProviderMap[provider] || provider;
+            try {
+              const verifyResponse = await fetch(`${baseUrl}/nango/verify-connection`, {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
+                },
+                body: JSON.stringify({ integrationId: nangoIntegrationId })
+              });
+              const verifyResult = await verifyResponse.json();
+
+              if (verifyResult.success && verifyResult.connected) {
+                toast({
+                  title: "Connected Successfully",
+                  description: `${AVAILABLE_CONNECTORS.find(c => c.provider === provider)?.name} is now connected`,
+                });
+                await refetchPlatformStatus();
+              } else {
+                toast({
+                  title: "Connection not completed",
+                  description: "The connection window was closed. Try again if needed.",
+                  variant: "default",
+                });
+              }
+            } catch (err) {
+              console.error('Failed to verify connection:', err);
+            } finally {
+              setConnectingProvider(null);
+            }
+          }
+        }, 500);
+
+        return; // Prevent finally block from clearing connectingProvider early
       } else if (result.success) {
         await refetchPlatformStatus();
         toast({
@@ -444,12 +515,32 @@ const InstantTwinOnboarding = () => {
     optimisticDisconnect(provider);
 
     try {
-      const userId = user?.id;
       const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
-      const response = await fetch(
-        `${baseUrl}/connectors/${provider}/${encodeURIComponent(userId)}`,
-        { method: 'DELETE', headers: { 'Content-Type': 'application/json' } }
-      );
+
+      // Nango-managed platforms use Nango disconnect endpoint (including whoop for auto token refresh)
+      const nangoPlatforms = ['outlook', 'discord', 'github', 'youtube', 'reddit', 'gmail', 'twitch', 'whoop'];
+      const nangoProviderMap: Record<string, string> = {
+        'gmail': 'google-mail',  // Gmail uses 'google-mail' integration ID in Nango
+        'whoop': 'whoop'  // Whoop now uses Nango for automatic token refresh
+      };
+
+      let apiUrl: string;
+      let fetchOptions: RequestInit = {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
+        }
+      };
+
+      if (nangoPlatforms.includes(provider as string)) {
+        const nangoProvider = nangoProviderMap[provider] || provider;
+        apiUrl = `${baseUrl}/nango/connections/${nangoProvider}`;
+      } else {
+        apiUrl = `${baseUrl}/connectors/${provider}/${encodeURIComponent(user.id)}`;
+      }
+
+      const response = await fetch(apiUrl, fetchOptions);
 
       if (!response.ok) {
         throw new Error(`HTTP ${response.status}: ${response.statusText}`);
@@ -722,11 +813,6 @@ const InstantTwinOnboarding = () => {
                   }}
                 >
                   Connected
-                  {providerStatus?.lastSync && (
-                    <span className="ml-2 opacity-70">
-                      · Synced {new Date(providerStatus.lastSync).toLocaleDateString()}
-                    </span>
-                  )}
                 </span>
               </div>
 

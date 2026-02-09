@@ -17,7 +17,7 @@ import platformReflectionService from '../services/platformReflectionService.js'
 const router = express.Router();
 
 // Valid platforms
-const VALID_PLATFORMS = ['spotify', 'whoop', 'calendar'];
+const VALID_PLATFORMS = ['spotify', 'whoop', 'calendar', 'youtube', 'twitch', 'web'];
 
 /**
  * GET /api/insights/:platform
@@ -105,19 +105,24 @@ router.get('/all/summary', authenticateUser, async (req, res) => {
     const results = await Promise.allSettled([
       platformReflectionService.getReflections(userId, 'spotify'),
       platformReflectionService.getReflections(userId, 'whoop'),
-      platformReflectionService.getReflections(userId, 'calendar')
+      platformReflectionService.getReflections(userId, 'calendar'),
+      platformReflectionService.getReflections(userId, 'youtube'),
+      platformReflectionService.getReflections(userId, 'twitch'),
+      platformReflectionService.getReflections(userId, 'web')
     ]);
 
+    const makeSummary = (result) =>
+      result.status === 'fulfilled' && result.value.success
+        ? { connected: true, preview: result.value.reflection?.text?.substring(0, 100) + '...' }
+        : { connected: false };
+
     const summary = {
-      spotify: results[0].status === 'fulfilled' && results[0].value.success
-        ? { connected: true, preview: results[0].value.reflection?.text?.substring(0, 100) + '...' }
-        : { connected: false },
-      whoop: results[1].status === 'fulfilled' && results[1].value.success
-        ? { connected: true, preview: results[1].value.reflection?.text?.substring(0, 100) + '...' }
-        : { connected: false },
-      calendar: results[2].status === 'fulfilled' && results[2].value.success
-        ? { connected: true, preview: results[2].value.reflection?.text?.substring(0, 100) + '...' }
-        : { connected: false }
+      spotify: makeSummary(results[0]),
+      whoop: makeSummary(results[1]),
+      calendar: makeSummary(results[2]),
+      youtube: makeSummary(results[3]),
+      twitch: makeSummary(results[4]),
+      web: makeSummary(results[5])
     };
 
     res.json({

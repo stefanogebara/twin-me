@@ -1,0 +1,717 @@
+/**
+ * NANGO API ROUTES
+ *
+ * Endpoints for managing platform connections and data extraction
+ * via Nango unified API
+ */
+
+import express from 'express';
+import { Nango } from '@nangohq/node';
+import { authenticateUser } from '../middleware/auth.js';
+import nangoService from '../services/nangoService.js';
+import { supabaseAdmin } from '../services/database.js';
+import { saveConnectionMapping, deleteConnectionMapping } from '../services/connectionMappingService.js';
+
+// Direct Nango client for connection lookups by end_user
+const nango = new Nango({ secretKey: process.env.NANGO_SECRET_KEY });
+
+const router = express.Router();
+
+/**
+ * GET /api/nango/platforms - Get list of supported platforms
+ */
+router.get('/platforms', (req, res) => {
+  const platforms = Object.entries(nangoService.PLATFORM_CONFIGS).map(([key, config]) => ({
+    id: key,
+    name: config.name,
+    category: config.category,
+    soulDataPoints: config.soulDataPoints
+  }));
+
+  res.json({
+    success: true,
+    count: platforms.length,
+    platforms
+  });
+});
+
+/**
+ * POST /api/nango/connect-session - Create OAuth connect session
+ */
+router.post('/connect-session', authenticateUser, async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const userEmail = req.user.email;
+    const { integrationId, allowedIntegrations } = req.body;
+
+    console.log(`[Nango API] Creating connect session for user ${userId}`);
+
+    const result = await nangoService.createConnectSession(userId, userEmail, {
+      integrationId,
+      allowedIntegrations
+    });
+
+    if (result.success) {
+      res.json({
+        success: true,
+        sessionToken: result.token,
+        connectUrl: result.connectLink || `https://connect.nango.dev?session_token=${result.token}`
+      });
+    } else {
+      res.status(400).json({
+        success: false,
+        error: result.error
+      });
+    }
+  } catch (error) {
+    console.error('[Nango API] Connect session error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to create connect session'
+    });
+  }
+});
+
+/**
+ * POST /api/nango/verify-connection - Verify and register a Nango connection after popup OAuth
+ *
+ * Called by the frontend after the Nango Connect popup is closed.
+ * Checks if the connection was actually established in Nango, and if so,
+ * registers it in our platform_connections DB (since the webhook can't reach localhost).
+ */
+router.post('/verify-connection', authenticateUser, async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const userEmail = req.user.email;
+    const { integrationId } = req.body;
+
+    if (!integrationId) {
+      return res.status(400).json({ success: false, error: 'integrationId is required' });
+    }
+
+    console.log(`[Nango API] Verifying connection for ${integrationId} (user: ${userId})`);
+
+    // Query Nango for connections belonging to this end_user and integration
+    // We use listConnections instead of getConnection because getConnection requires
+    // the Nango connection_id, which we don't have yet for new connections.
+    const { connections } = await nango.listConnections({ endUserId: userId });
+    const match = connections.find(c => c.provider_config_key === integrationId);
+
+    if (!match) {
+      // User cancelled or connection doesn't exist
+      return res.json({ success: true, connected: false });
+    }
+
+    const nangoConnectionId = match.connection_id;
+
+    // Map Nango integration IDs to our platform_connections platform keys
+    const platformKeyMap = {
+      'spotify': 'spotify',
+      'google-calendar': 'google_calendar',
+      'google-mail': 'google_gmail',
+      'discord': 'discord',
+      'github': 'github',
+      'youtube': 'youtube',
+      'reddit': 'reddit',
+      'twitch': 'twitch',
+      'whoop': 'whoop',
+      'outlook': 'outlook',
+      'linkedin': 'linkedin'
+    };
+
+    const platformKey = platformKeyMap[integrationId] || integrationId;
+
+    // Upsert into platform_connections with NANGO_MANAGED placeholder tokens
+    // (Nango manages the real tokens; we just need a record for status tracking)
+    // Clear token_expires_at so the status endpoint doesn't think the token is expired
+    // (Nango handles token refresh internally)
+    const { error: upsertError } = await supabaseAdmin
+      .from('platform_connections')
+      .upsert({
+        user_id: userId,
+        platform: platformKey,
+        access_token: 'NANGO_MANAGED',
+        refresh_token: 'NANGO_MANAGED',
+        token_expires_at: null,
+        status: 'connected',
+        connected_at: new Date().toISOString(),
+        metadata: {
+          source: 'nango',
+          nango_connection_id: nangoConnectionId,
+          email: userEmail
+        }
+      }, {
+        onConflict: 'user_id,platform'
+      });
+
+    if (upsertError) {
+      console.error(`[Nango API] DB upsert error for ${platformKey}:`, upsertError);
+      // Still return connected=true since Nango has the connection
+    } else {
+      console.log(`[Nango API] Registered ${platformKey} connection for user ${userId}`);
+    }
+
+    // Save connection mapping for Nango connection ID lookups
+    try {
+      await saveConnectionMapping(userId, integrationId, nangoConnectionId, integrationId);
+    } catch (mappingErr) {
+      console.error(`[Nango API] Connection mapping error:`, mappingErr);
+    }
+
+    // Trigger initial data extraction in background (non-blocking)
+    // After extraction, persist to user_platform_data for downstream systems
+    nangoService.extractPlatformData(userId, integrationId)
+      .then(async (result) => {
+        if (result.success) {
+          await nangoService.storeNangoExtractionData(userId, integrationId, result);
+          console.log(`[Nango API] Initial extraction stored for ${integrationId}`);
+        }
+      })
+      .catch(err => {
+        console.error(`[Nango API] Background extraction error for ${integrationId}:`, err.message);
+      });
+
+    res.json({
+      success: true,
+      connected: true,
+      platform: platformKey,
+      connectionId: nangoConnectionId
+    });
+  } catch (error) {
+    console.error('[Nango API] Verify connection error:', error);
+
+    // If the error is a "not found" type, the user likely cancelled
+    if (error.message?.includes('not found') || error.status === 404) {
+      return res.json({ success: true, connected: false });
+    }
+
+    res.status(500).json({
+      success: false,
+      error: 'Failed to verify connection'
+    });
+  }
+});
+
+/**
+ * GET /api/nango/connections - Get all platform connections
+ */
+router.get('/connections', authenticateUser, async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const connections = await nangoService.getAllConnections(userId);
+
+    // Count connected platforms
+    const connectedCount = Object.values(connections).filter(c => c.connected).length;
+
+    res.json({
+      success: true,
+      connectedCount,
+      totalPlatforms: Object.keys(nangoService.PLATFORM_CONFIGS).length,
+      connections
+    });
+  } catch (error) {
+    console.error('[Nango API] Get connections error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to get connections'
+    });
+  }
+});
+
+/**
+ * GET /api/nango/connections/:platform - Get specific platform connection
+ */
+router.get('/connections/:platform', authenticateUser, async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { platform } = req.params;
+
+    const connection = await nangoService.getConnection(userId, platform);
+
+    res.json(connection);
+  } catch (error) {
+    console.error(`[Nango API] Get connection error for ${req.params.platform}:`, error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to get connection'
+    });
+  }
+});
+
+/**
+ * DELETE /api/nango/connections/:platform - Disconnect a platform
+ */
+router.delete('/connections/:platform', authenticateUser, async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { platform } = req.params;
+
+    const result = await nangoService.deleteConnection(userId, platform);
+
+    if (result.success) {
+      // Also remove from our database
+      await supabaseAdmin
+        .from('platform_connections')
+        .delete()
+        .eq('user_id', userId)
+        .eq('platform', platform);
+
+      res.json({
+        success: true,
+        message: `Disconnected from ${platform}`
+      });
+    } else {
+      res.status(400).json(result);
+    }
+  } catch (error) {
+    console.error(`[Nango API] Disconnect error for ${req.params.platform}:`, error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to disconnect'
+    });
+  }
+});
+
+/**
+ * GET /api/nango/extract/:platform - Extract data from a specific platform
+ */
+router.get('/extract/:platform', authenticateUser, async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { platform } = req.params;
+
+    console.log(`[Nango API] Extracting data from ${platform} for user ${userId}`);
+
+    const result = await nangoService.extractPlatformData(userId, platform);
+
+    if (result.success) {
+      // Store extracted data to user_platform_data
+      await nangoService.storeNangoExtractionData(userId, platform, result);
+
+      // Also update platform_connections.last_sync_at so the frontend shows the correct sync date
+      const platformKey = platform === 'google-calendar' ? 'google_calendar' :
+                          platform === 'google-mail' ? 'gmail' : platform;
+      await supabaseAdmin
+        .from('platform_connections')
+        .update({ last_sync_at: new Date().toISOString() })
+        .eq('user_id', userId)
+        .eq('platform', platformKey);
+
+      res.json(result);
+    } else {
+      res.status(400).json(result);
+    }
+  } catch (error) {
+    console.error(`[Nango API] Extract error for ${req.params.platform}:`, error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to extract data'
+    });
+  }
+});
+
+/**
+ * GET /api/nango/extract-all - Extract data from all connected platforms
+ */
+router.get('/extract-all', authenticateUser, async (req, res) => {
+  try {
+    const userId = req.user.id;
+
+    console.log(`[Nango API] Extracting data from all platforms for user ${userId}`);
+
+    const result = await nangoService.extractAllPlatformData(userId);
+
+    // Update last_sync_at for all successfully extracted platforms
+    const now = new Date().toISOString();
+    for (const [platform, platformResult] of Object.entries(result.platforms || {})) {
+      if (platformResult.success) {
+        const platformKey = platform === 'google-calendar' ? 'google_calendar' :
+                            platform === 'google-mail' ? 'gmail' : platform;
+        await supabaseAdmin
+          .from('platform_connections')
+          .update({ last_sync_at: now })
+          .eq('user_id', userId)
+          .eq('platform', platformKey);
+      }
+    }
+
+    res.json({
+      success: true,
+      ...result
+    });
+  } catch (error) {
+    console.error('[Nango API] Extract all error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to extract data'
+    });
+  }
+});
+
+/**
+ * POST /api/nango/proxy/:platform - Make a proxy request to platform API
+ */
+router.post('/proxy/:platform', authenticateUser, async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { platform } = req.params;
+    const { endpoint, method = 'GET', params, data, headers } = req.body;
+
+    if (!endpoint) {
+      return res.status(400).json({
+        success: false,
+        error: 'Endpoint is required'
+      });
+    }
+
+    const result = await nangoService.proxyRequest(userId, platform, endpoint, {
+      method,
+      params,
+      data,
+      headers
+    });
+
+    if (result.success) {
+      res.json(result);
+    } else {
+      res.status(result.status || 400).json(result);
+    }
+  } catch (error) {
+    console.error(`[Nango API] Proxy error for ${req.params.platform}:`, error);
+    res.status(500).json({
+      success: false,
+      error: 'Proxy request failed'
+    });
+  }
+});
+
+// ============================================================================
+// PLATFORM-SPECIFIC CONVENIENCE ENDPOINTS
+// ============================================================================
+
+/**
+ * GET /api/nango/spotify/recent-tracks - Get recent Spotify tracks
+ */
+router.get('/spotify/recent-tracks', authenticateUser, async (req, res) => {
+  try {
+    const result = await nangoService.spotify.getRecentTracks(req.user.id);
+    res.json(result);
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+/**
+ * GET /api/nango/spotify/top-tracks - Get top Spotify tracks
+ */
+router.get('/spotify/top-tracks', authenticateUser, async (req, res) => {
+  try {
+    const { timeRange = 'medium_term' } = req.query;
+    const result = await nangoService.spotify.getTopTracks(req.user.id, timeRange);
+    res.json(result);
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+/**
+ * GET /api/nango/spotify/currently-playing - Get currently playing track
+ */
+router.get('/spotify/currently-playing', authenticateUser, async (req, res) => {
+  try {
+    const result = await nangoService.spotify.getCurrentlyPlaying(req.user.id);
+    res.json(result);
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+/**
+ * GET /api/nango/whoop/recovery - Get Whoop recovery data
+ */
+router.get('/whoop/recovery', authenticateUser, async (req, res) => {
+  try {
+    const { limit = 30 } = req.query;
+    const result = await nangoService.whoop.getRecovery(req.user.id, parseInt(limit));
+    res.json(result);
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+/**
+ * GET /api/nango/whoop/workouts - Get Whoop workouts
+ */
+router.get('/whoop/workouts', authenticateUser, async (req, res) => {
+  try {
+    const { limit = 30 } = req.query;
+    const result = await nangoService.whoop.getWorkouts(req.user.id, parseInt(limit));
+    res.json(result);
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+/**
+ * GET /api/nango/whoop/sleep - Get Whoop sleep data
+ */
+router.get('/whoop/sleep', authenticateUser, async (req, res) => {
+  try {
+    const { limit = 30 } = req.query;
+    const result = await nangoService.whoop.getSleep(req.user.id, parseInt(limit));
+    res.json(result);
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+/**
+ * GET /api/nango/calendar/events - Get calendar events
+ */
+router.get('/calendar/events', authenticateUser, async (req, res) => {
+  try {
+    const { maxResults = 100 } = req.query;
+    const result = await nangoService.calendar.getEvents(req.user.id, parseInt(maxResults));
+    res.json(result);
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+/**
+ * GET /api/nango/github/repos - Get GitHub repos
+ */
+router.get('/github/repos', authenticateUser, async (req, res) => {
+  try {
+    const result = await nangoService.github.getRepos(req.user.id);
+    res.json(result);
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+/**
+ * GET /api/nango/discord/guilds - Get Discord guilds/servers
+ */
+router.get('/discord/guilds', authenticateUser, async (req, res) => {
+  try {
+    const result = await nangoService.discord.getGuilds(req.user.id);
+    res.json(result);
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+/**
+ * GET /api/nango/youtube/subscriptions - Get YouTube subscriptions
+ */
+router.get('/youtube/subscriptions', authenticateUser, async (req, res) => {
+  try {
+    const result = await nangoService.youtube.getSubscriptions(req.user.id);
+    res.json(result);
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+/**
+ * GET /api/nango/reddit/subreddits - Get subscribed subreddits
+ */
+router.get('/reddit/subreddits', authenticateUser, async (req, res) => {
+  try {
+    const result = await nangoService.reddit.getSubreddits(req.user.id);
+    res.json(result);
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+/**
+ * GET /api/nango/outlook/profile - Get Microsoft/Outlook profile
+ */
+router.get('/outlook/profile', authenticateUser, async (req, res) => {
+  try {
+    const result = await nangoService.outlook.getProfile(req.user.id);
+    res.json(result);
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+/**
+ * GET /api/nango/outlook/messages - Get recent Outlook messages
+ */
+router.get('/outlook/messages', authenticateUser, async (req, res) => {
+  try {
+    const { limit = 50 } = req.query;
+    const result = await nangoService.outlook.getRecentMessages(req.user.id, parseInt(limit));
+    res.json(result);
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+/**
+ * GET /api/nango/outlook/calendar - Get Outlook calendar events
+ */
+router.get('/outlook/calendar', authenticateUser, async (req, res) => {
+  try {
+    const { limit = 100 } = req.query;
+    const result = await nangoService.outlook.getCalendarEvents(req.user.id, parseInt(limit));
+    res.json(result);
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+/**
+ * GET /api/nango/outlook/calendars - Get list of Outlook calendars
+ */
+router.get('/outlook/calendars', authenticateUser, async (req, res) => {
+  try {
+    const result = await nangoService.outlook.getCalendars(req.user.id);
+    res.json(result);
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+/**
+ * GET /api/nango/outlook/contacts - Get Outlook contacts
+ */
+router.get('/outlook/contacts', authenticateUser, async (req, res) => {
+  try {
+    const { limit = 100 } = req.query;
+    const result = await nangoService.outlook.getContacts(req.user.id, parseInt(limit));
+    res.json(result);
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+/**
+ * GET /api/nango/outlook/mail-folders - Get Outlook mail folders
+ */
+router.get('/outlook/mail-folders', authenticateUser, async (req, res) => {
+  try {
+    const result = await nangoService.outlook.getMailFolders(req.user.id);
+    res.json(result);
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+/**
+ * GET /api/nango/twitch/user - Get Twitch user info
+ */
+router.get('/twitch/user', authenticateUser, async (req, res) => {
+  try {
+    const result = await nangoService.twitch.getUser(req.user.id);
+    res.json(result);
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+/**
+ * GET /api/nango/twitch/followed - Get Twitch followed channels
+ */
+router.get('/twitch/followed', authenticateUser, async (req, res) => {
+  try {
+    // First get Twitch user ID
+    const userResult = await nangoService.twitch.getUser(req.user.id);
+    if (!userResult.success || !userResult.data?.data?.[0]?.id) {
+      return res.status(400).json({ success: false, error: 'Could not get Twitch user ID' });
+    }
+    const twitchUserId = userResult.data.data[0].id;
+
+    // Then get followed channels
+    const result = await nangoService.twitch.getFollowedChannels(req.user.id, twitchUserId);
+    res.json(result);
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+/**
+ * GET /api/nango/gmail/profile - Get Gmail profile
+ */
+router.get('/gmail/profile', authenticateUser, async (req, res) => {
+  try {
+    const result = await nangoService.proxyRequest(req.user.id, 'google-mail', '/users/me/profile');
+    res.json(result);
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+/**
+ * GET /api/nango/gmail/messages - Get recent Gmail messages
+ */
+router.get('/gmail/messages', authenticateUser, async (req, res) => {
+  try {
+    const { limit = 50 } = req.query;
+    const result = await nangoService.proxyRequest(req.user.id, 'google-mail', `/users/me/messages?maxResults=${limit}`);
+    res.json(result);
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+/**
+ * GET /api/nango/gmail/labels - Get Gmail labels
+ */
+router.get('/gmail/labels', authenticateUser, async (req, res) => {
+  try {
+    const result = await nangoService.proxyRequest(req.user.id, 'google-mail', '/users/me/labels');
+    res.json(result);
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// ============================================================================
+// WEBHOOK HANDLER FOR NANGO CONNECTION EVENTS
+// ============================================================================
+
+/**
+ * POST /api/nango/webhook - Handle Nango connection webhooks
+ * Configure in Nango Dashboard > Settings > Webhooks
+ */
+router.post('/webhook', async (req, res) => {
+  try {
+    const { type, connectionId, providerConfigKey, endUser } = req.body;
+
+    console.log(`[Nango Webhook] Received: ${type} for ${providerConfigKey}`);
+
+    if (type === 'connection.created' || type === 'connection.updated') {
+      // Extract user ID from endUser object
+      const userId = endUser?.id;
+
+      if (userId && connectionId && providerConfigKey) {
+        // Map provider config key to our platform key
+        const platform = providerConfigKey.replace('-getting-started', '');
+
+        await saveConnectionMapping(userId, platform, connectionId, providerConfigKey);
+        console.log(`[Nango Webhook] Saved connection mapping for ${platform}`);
+      }
+    }
+
+    if (type === 'connection.deleted') {
+      const userId = endUser?.id;
+      const platform = providerConfigKey?.replace('-getting-started', '');
+
+      if (userId && platform) {
+        await deleteConnectionMapping(userId, platform);
+        console.log(`[Nango Webhook] Deleted connection mapping for ${platform}`);
+      }
+    }
+
+    res.json({ success: true });
+  } catch (error) {
+    console.error('[Nango Webhook] Error:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+export default router;

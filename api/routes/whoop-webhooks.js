@@ -11,6 +11,7 @@
 import express from 'express';
 import crypto from 'crypto';
 import { supabaseAdmin } from '../services/database.js';
+import patternLearningBridge from '../services/patternLearningBridge.js';
 
 const router = express.Router();
 
@@ -122,26 +123,45 @@ router.post('/', express.json(), async (req, res) => {
 async function handleRecoveryUpdate(userId, cycleId, whoopUserId) {
   console.log(`📊 [Whoop Webhook] Processing recovery update for cycle ${cycleId}`);
 
-  // In a full implementation, you would:
-  // 1. Use stored refresh token to get new access token
-  // 2. Fetch full recovery data from Whoop API
-  // 3. Store in user_platform_data table
+  try {
+    // Fetch full recovery data from Whoop API
+    const recoveryData = await fetchWhoopRecovery(userId, cycleId);
 
-  // For now, just record the event
-  await supabaseAdmin.from('user_platform_data').upsert({
-    user_id: userId,
-    platform: 'whoop',
-    data_type: 'recovery_webhook',
-    raw_data: {
-      cycle_id: cycleId,
-      whoop_user_id: whoopUserId,
-      event_type: 'recovery.updated',
-      received_at: new Date().toISOString()
-    },
-    extracted_at: new Date().toISOString()
-  }, {
-    onConflict: 'user_id,platform,data_type'
-  });
+    if (recoveryData) {
+      // Store in user_platform_data
+      await supabaseAdmin.from('user_platform_data').upsert({
+        user_id: userId,
+        platform: 'whoop',
+        data_type: 'recovery',
+        raw_data: recoveryData,
+        extracted_at: new Date().toISOString()
+      }, {
+        onConflict: 'user_id,platform,data_type'
+      });
+
+      // Push to Pattern Learning System
+      await patternLearningBridge.pushWhoopRecovery(userId, recoveryData);
+      console.log(`✅ [Whoop Webhook] Recovery data pushed to pattern learning`);
+    }
+  } catch (err) {
+    console.error(`[Whoop Webhook] Error fetching recovery:`, err.message);
+    // Still record the webhook event
+    await supabaseAdmin.from('user_platform_data').upsert({
+      user_id: userId,
+      platform: 'whoop',
+      data_type: 'recovery_webhook',
+      raw_data: {
+        cycle_id: cycleId,
+        whoop_user_id: whoopUserId,
+        event_type: 'recovery.updated',
+        received_at: new Date().toISOString(),
+        fetch_error: err.message
+      },
+      extracted_at: new Date().toISOString()
+    }, {
+      onConflict: 'user_id,platform,data_type'
+    });
+  }
 }
 
 /**
@@ -150,20 +170,42 @@ async function handleRecoveryUpdate(userId, cycleId, whoopUserId) {
 async function handleSleepUpdate(userId, sleepId, whoopUserId) {
   console.log(`😴 [Whoop Webhook] Processing sleep update for sleep ${sleepId}`);
 
-  await supabaseAdmin.from('user_platform_data').upsert({
-    user_id: userId,
-    platform: 'whoop',
-    data_type: 'sleep_webhook',
-    raw_data: {
-      sleep_id: sleepId,
-      whoop_user_id: whoopUserId,
-      event_type: 'sleep.updated',
-      received_at: new Date().toISOString()
-    },
-    extracted_at: new Date().toISOString()
-  }, {
-    onConflict: 'user_id,platform,data_type'
-  });
+  try {
+    const sleepData = await fetchWhoopSleep(userId, sleepId);
+
+    if (sleepData) {
+      await supabaseAdmin.from('user_platform_data').upsert({
+        user_id: userId,
+        platform: 'whoop',
+        data_type: 'sleep',
+        raw_data: sleepData,
+        extracted_at: new Date().toISOString()
+      }, {
+        onConflict: 'user_id,platform,data_type'
+      });
+
+      // Push to Pattern Learning System
+      await patternLearningBridge.pushWhoopSleep(userId, sleepData);
+      console.log(`✅ [Whoop Webhook] Sleep data pushed to pattern learning`);
+    }
+  } catch (err) {
+    console.error(`[Whoop Webhook] Error fetching sleep:`, err.message);
+    await supabaseAdmin.from('user_platform_data').upsert({
+      user_id: userId,
+      platform: 'whoop',
+      data_type: 'sleep_webhook',
+      raw_data: {
+        sleep_id: sleepId,
+        whoop_user_id: whoopUserId,
+        event_type: 'sleep.updated',
+        received_at: new Date().toISOString(),
+        fetch_error: err.message
+      },
+      extracted_at: new Date().toISOString()
+    }, {
+      onConflict: 'user_id,platform,data_type'
+    });
+  }
 }
 
 /**
@@ -172,20 +214,198 @@ async function handleSleepUpdate(userId, sleepId, whoopUserId) {
 async function handleWorkoutUpdate(userId, workoutId, whoopUserId) {
   console.log(`💪 [Whoop Webhook] Processing workout update for workout ${workoutId}`);
 
-  await supabaseAdmin.from('user_platform_data').upsert({
-    user_id: userId,
-    platform: 'whoop',
-    data_type: 'workout_webhook',
-    raw_data: {
-      workout_id: workoutId,
-      whoop_user_id: whoopUserId,
-      event_type: 'workout.updated',
-      received_at: new Date().toISOString()
-    },
-    extracted_at: new Date().toISOString()
-  }, {
-    onConflict: 'user_id,platform,data_type'
+  try {
+    const workoutData = await fetchWhoopWorkout(userId, workoutId);
+
+    if (workoutData) {
+      await supabaseAdmin.from('user_platform_data').upsert({
+        user_id: userId,
+        platform: 'whoop',
+        data_type: 'workout',
+        raw_data: workoutData,
+        extracted_at: new Date().toISOString()
+      }, {
+        onConflict: 'user_id,platform,data_type'
+      });
+
+      // Push to Pattern Learning System
+      await patternLearningBridge.pushWhoopWorkout(userId, workoutData);
+      console.log(`✅ [Whoop Webhook] Workout data pushed to pattern learning`);
+    }
+  } catch (err) {
+    console.error(`[Whoop Webhook] Error fetching workout:`, err.message);
+    await supabaseAdmin.from('user_platform_data').upsert({
+      user_id: userId,
+      platform: 'whoop',
+      data_type: 'workout_webhook',
+      raw_data: {
+        workout_id: workoutId,
+        whoop_user_id: whoopUserId,
+        event_type: 'workout.updated',
+        received_at: new Date().toISOString(),
+        fetch_error: err.message
+      },
+      extracted_at: new Date().toISOString()
+    }, {
+      onConflict: 'user_id,platform,data_type'
+    });
+  }
+}
+
+// ============================================================================
+// WHOOP API FETCH FUNCTIONS
+// ============================================================================
+
+/**
+ * Get valid access token for user (refresh if needed)
+ */
+async function getWhoopAccessToken(userId) {
+  const { data: connection } = await supabaseAdmin
+    .from('platform_connections')
+    .select('access_token, refresh_token, token_expires_at')
+    .eq('user_id', userId)
+    .eq('platform', 'whoop')
+    .single();
+
+  if (!connection) {
+    throw new Error('No Whoop connection found');
+  }
+
+  // Check if token is expired
+  const expiresAt = new Date(connection.token_expires_at);
+  if (expiresAt <= new Date()) {
+    // Token expired, try to refresh
+    const newToken = await refreshWhoopToken(userId, connection.refresh_token);
+    return newToken;
+  }
+
+  return connection.access_token;
+}
+
+/**
+ * Refresh Whoop access token
+ */
+async function refreshWhoopToken(userId, refreshToken) {
+  const response = await fetch('https://api.prod.whoop.com/oauth/oauth2/token', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: new URLSearchParams({
+      grant_type: 'refresh_token',
+      refresh_token: refreshToken,
+      client_id: process.env.WHOOP_CLIENT_ID,
+      client_secret: process.env.WHOOP_CLIENT_SECRET
+    })
   });
+
+  if (!response.ok) {
+    throw new Error(`Token refresh failed: ${response.status}`);
+  }
+
+  const tokens = await response.json();
+
+  // Update stored tokens
+  await supabaseAdmin
+    .from('platform_connections')
+    .update({
+      access_token: tokens.access_token,
+      refresh_token: tokens.refresh_token || refreshToken,
+      token_expires_at: new Date(Date.now() + tokens.expires_in * 1000).toISOString()
+    })
+    .eq('user_id', userId)
+    .eq('platform', 'whoop');
+
+  return tokens.access_token;
+}
+
+/**
+ * Fetch recovery data from Whoop API
+ */
+async function fetchWhoopRecovery(userId, cycleId) {
+  const accessToken = await getWhoopAccessToken(userId);
+
+  const response = await fetch(`https://api.prod.whoop.com/developer/v1/cycle/${cycleId}`, {
+    headers: { 'Authorization': `Bearer ${accessToken}` }
+  });
+
+  if (!response.ok) {
+    throw new Error(`Whoop API error: ${response.status}`);
+  }
+
+  const cycle = await response.json();
+  return {
+    cycle_id: cycle.id,
+    recovery_score: cycle.score?.recovery,
+    hrv_rmssd_milli: cycle.score?.hrv?.rmssd_milli,
+    resting_heart_rate: cycle.score?.resting_heart_rate,
+    spo2_percentage: cycle.score?.spo2_percentage,
+    skin_temp_celsius: cycle.score?.skin_temp_celsius,
+    sleep_id: cycle.sleep_id,
+    start: cycle.start,
+    end: cycle.end
+  };
+}
+
+/**
+ * Fetch sleep data from Whoop API
+ */
+async function fetchWhoopSleep(userId, sleepId) {
+  const accessToken = await getWhoopAccessToken(userId);
+
+  const response = await fetch(`https://api.prod.whoop.com/developer/v1/activity/sleep/${sleepId}`, {
+    headers: { 'Authorization': `Bearer ${accessToken}` }
+  });
+
+  if (!response.ok) {
+    throw new Error(`Whoop API error: ${response.status}`);
+  }
+
+  const sleep = await response.json();
+  return {
+    id: sleep.id,
+    start: sleep.start,
+    end: sleep.end,
+    total_sleep_time_milli: sleep.score?.stage_summary?.total_in_bed_time_milli,
+    sleep_efficiency: sleep.score?.sleep_efficiency_percentage,
+    rem_sleep_time_milli: sleep.score?.stage_summary?.total_rem_sleep_time_milli,
+    slow_wave_sleep_time_milli: sleep.score?.stage_summary?.total_slow_wave_sleep_time_milli,
+    light_sleep_time_milli: sleep.score?.stage_summary?.total_light_sleep_time_milli,
+    awake_time_milli: sleep.score?.stage_summary?.total_awake_time_milli,
+    disturbance_count: sleep.score?.stage_summary?.disturbance_count,
+    respiratory_rate: sleep.score?.respiratory_rate
+  };
+}
+
+/**
+ * Fetch workout data from Whoop API
+ */
+async function fetchWhoopWorkout(userId, workoutId) {
+  const accessToken = await getWhoopAccessToken(userId);
+
+  const response = await fetch(`https://api.prod.whoop.com/developer/v1/activity/workout/${workoutId}`, {
+    headers: { 'Authorization': `Bearer ${accessToken}` }
+  });
+
+  if (!response.ok) {
+    throw new Error(`Whoop API error: ${response.status}`);
+  }
+
+  const workout = await response.json();
+  return {
+    id: workout.id,
+    sport_id: workout.sport_id,
+    start: workout.start,
+    end: workout.end,
+    strain: workout.score?.strain,
+    average_heart_rate: workout.score?.average_heart_rate,
+    max_heart_rate: workout.score?.max_heart_rate,
+    kilojoule: workout.score?.kilojoule,
+    duration_milli: workout.score?.duration_milli || (new Date(workout.end) - new Date(workout.start)),
+    zone_zero_milli: workout.score?.zone_duration?.zone_zero_milli,
+    zone_one_milli: workout.score?.zone_duration?.zone_one_milli,
+    zone_two_milli: workout.score?.zone_duration?.zone_two_milli,
+    zone_three_milli: workout.score?.zone_duration?.zone_three_milli,
+    zone_four_milli: workout.score?.zone_duration?.zone_four_milli
+  };
 }
 
 /**

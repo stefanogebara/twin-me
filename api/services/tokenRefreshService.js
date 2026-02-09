@@ -63,6 +63,7 @@ function getPlatformRefreshConfig(platform) {
       clientId: process.env.LINKEDIN_CLIENT_ID,
       clientSecret: process.env.LINKEDIN_CLIENT_SECRET,
     },
+    // Whoop: support legacy connections (not yet migrated to Nango)
     whoop: {
       tokenUrl: 'https://api.prod.whoop.com/oauth/oauth2/token',
       clientId: process.env.WHOOP_CLIENT_ID,
@@ -117,13 +118,26 @@ async function refreshAccessToken(platform, refreshToken, userId) {
       paramsObj.client_id = config.clientId;
       paramsObj.client_secret = config.clientSecret;
 
-      // Whoop requires scope in the body
+      // Whoop requires scope: 'offline' for refresh token requests
+      // Per docs: https://developer.whoop.com/docs/tutorials/refresh-token-javascript/
       if (platform === 'whoop') {
         paramsObj.scope = 'offline';
       }
     }
 
     const params = new URLSearchParams(paramsObj);
+
+    // Debug: log the exact params being sent (mask secrets)
+    console.log(`🔷 [Token Refresh] Request params for ${platform}:`, {
+      grant_type: paramsObj.grant_type,
+      has_refresh_token: !!paramsObj.refresh_token,
+      refresh_token_length: paramsObj.refresh_token?.length,
+      refresh_token_prefix: paramsObj.refresh_token?.substring(0, 10),
+      client_id: paramsObj.client_id,
+      has_client_secret: !!paramsObj.client_secret,
+      scope: paramsObj.scope,
+      redirect_uri: paramsObj.redirect_uri,
+    });
 
     const response = await axios.post(config.tokenUrl, params.toString(), {
       headers,
@@ -159,6 +173,21 @@ async function refreshAccessToken(platform, refreshToken, userId) {
   }
 }
 
+// Nango-managed tokens use placeholder values - don't try to refresh them ourselves
+const NANGO_PLACEHOLDER_TOKENS = ['NANGO_MANAGED', 'nango_managed', 'managed_by_nango'];
+
+/**
+ * Check if a token value is a Nango placeholder (not a real encrypted token)
+ */
+function isNangoManagedToken(token) {
+  if (!token) return false;
+  // Nango placeholders are short strings, real encrypted tokens are 100+ chars
+  if (token.length < 50 && NANGO_PLACEHOLDER_TOKENS.some(p => token.toLowerCase().includes(p.toLowerCase()))) {
+    return true;
+  }
+  return false;
+}
+
 /**
  * Check and refresh tokens that are about to expire
  * Runs every 5 minutes
@@ -188,10 +217,24 @@ async function checkAndRefreshExpiringTokens() {
       return;
     }
 
-    console.log(`⚠️  Found ${connections.length} tokens expiring soon`);
+    // Filter out Nango-managed connections
+    const refreshableConnections = connections.filter(conn => {
+      if (isNangoManagedToken(conn.refresh_token) || isNangoManagedToken(conn.access_token)) {
+        console.log(`ℹ️  Skipping ${conn.platform} - Nango-managed token`);
+        return false;
+      }
+      return true;
+    });
+
+    if (refreshableConnections.length === 0) {
+      console.log('✅ No tokens need refresh (all Nango-managed)');
+      return;
+    }
+
+    console.log(`⚠️  Found ${refreshableConnections.length} tokens expiring soon`);
 
     // Refresh each token
-    for (const connection of connections) {
+    for (const connection of refreshableConnections) {
       const decryptedRefreshToken = decryptToken(connection.refresh_token);
 
       if (!decryptedRefreshToken) {
@@ -308,6 +351,12 @@ async function ensureFreshToken(userId, platform) {
     const needsRefresh = isExpiredStatus || expiresAt <= fiveMinutesFromNow;
 
     if (needsRefresh) {
+      // Check if this is a Nango-managed connection - if so, we can't refresh it ourselves
+      if (isNangoManagedToken(connection.access_token) || isNangoManagedToken(connection.refresh_token)) {
+        console.log(`⚠️  ${platform} is Nango-managed - token refresh must happen through Nango`);
+        throw new Error(`${platform} token expired. This platform is managed by Nango - please reconnect.`);
+      }
+
       console.log(`🔄 Token ${isExpiredStatus ? 'expired' : 'expiring'} for ${platform}, attempting refresh...`);
 
       // Create a promise that we'll resolve when refresh completes

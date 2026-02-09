@@ -99,7 +99,7 @@ async function refreshAccessToken(platform, refreshToken, userId) {
       paramsObj.client_id = config.clientId;
       paramsObj.client_secret = config.clientSecret;
 
-      // Whoop requires scope
+      // Whoop requires scope: 'offline' for refresh token requests
       if (platform === 'whoop') {
         paramsObj.scope = 'offline';
       }

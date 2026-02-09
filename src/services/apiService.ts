@@ -660,6 +660,7 @@ export interface WhoopCurrentState {
 export const whoopAPI = {
   /**
    * Get Whoop connection status
+   * Note: Now uses Nango for connection management. Status is checked via Nango connections API.
    */
   getStatus: async (): Promise<WhoopStatus> => {
     const response = await fetch(`${API_URL}/health/whoop/status`, {
@@ -676,6 +677,7 @@ export const whoopAPI = {
 
   /**
    * Get current health state from Whoop
+   * Note: Now uses Nango for authentication. Token refresh is handled automatically by Nango.
    */
   getCurrentState: async (): Promise<WhoopCurrentState> => {
     const userId = localStorage.getItem('user_id') || '';
@@ -699,18 +701,22 @@ export const whoopAPI = {
   },
 
   /**
-   * Get OAuth connection URL
+   * @deprecated Use NangoConnect component instead. Whoop now uses Nango for OAuth.
+   * Legacy method - kept for backwards compatibility but not used.
    */
   connect: (returnUrl?: string): string => {
+    console.warn('whoopAPI.connect() is deprecated. Use NangoConnect component instead.');
     const userId = localStorage.getItem('user_id') || '';
     const baseUrl = `${API_URL}/health/connect/whoop?userId=${encodeURIComponent(userId)}`;
     return returnUrl ? `${baseUrl}&returnUrl=${encodeURIComponent(returnUrl)}` : baseUrl;
   },
 
   /**
-   * Disconnect Whoop
+   * @deprecated Use NangoConnect component's disconnect instead. Whoop now uses Nango.
+   * Legacy method - kept for backwards compatibility but not used.
    */
   disconnect: async (): Promise<void> => {
+    console.warn('whoopAPI.disconnect() is deprecated. Use NangoConnect component instead.');
     const userId = localStorage.getItem('user_id') || '';
     const response = await fetch(`${API_URL}/health/disconnect/whoop`, {
       method: 'DELETE',

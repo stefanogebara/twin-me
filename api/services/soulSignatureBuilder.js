@@ -67,6 +67,9 @@ class SoulSignatureBuilder {
       // 7. Analyze discussion patterns (Reddit)
       const discussionSignature = await this.analyzeDiscussionSignature(extractedData.reddit);
 
+      // 7b. Analyze streaming/gaming patterns (Twitch)
+      const twitchSignature = await this.analyzeTwitchSignature(extractedData.twitch);
+
       // 8. Analyze wearable/health data (Garmin, Polar, Suunto, Whoop, Apple Health)
       const wearableSignature = await this.analyzeWearableSignature(userId);
 
@@ -94,6 +97,7 @@ class SoulSignatureBuilder {
         communication_style: communicationSignature.style || styleProfile?.communication_style || 'balanced',
         music_taste: musicSignature,
         viewing_patterns: viewingSignature,
+        twitch_signature: twitchSignature,
         discussion_style: discussionSignature,
         health_signature: wearableSignature,  // Wearable-derived insights
         professional_universe: professionalUniverse?.available ? professionalUniverse : null,
@@ -323,15 +327,48 @@ class SoulSignatureBuilder {
       });
     }
 
-    // From YouTube
+    // From YouTube (handles both Nango format and legacy format)
     if (extractedData.youtube) {
-      const subscriptions = extractedData.youtube.filter(item => item.type === 'subscription').slice(0, 10);
-      subscriptions.forEach(item => {
-        const channel = item.data.channel_title;
-        if (channel && !interests.includes(channel)) {
-          interests.push(channel);
+      // Nango format: { type: 'subscriptions', data: { items: [...] } }
+      const subsRow = extractedData.youtube.find(item => item.type === 'subscriptions');
+      if (subsRow?.data?.items) {
+        subsRow.data.items.slice(0, 10).forEach(sub => {
+          const channel = sub.snippet?.title;
+          if (channel && !interests.includes(channel)) {
+            interests.push(channel);
+          }
+        });
+      } else {
+        // Legacy format: { type: 'subscription', data: { channel_title: '...' } }
+        const subscriptions = extractedData.youtube.filter(item => item.type === 'subscription').slice(0, 10);
+        subscriptions.forEach(item => {
+          const channel = item.data.channel_title;
+          if (channel && !interests.includes(channel)) {
+            interests.push(channel);
+          }
+        });
+      }
+    }
+
+    // From Twitch
+    if (extractedData.twitch) {
+      const followedRow = extractedData.twitch.find(item => item.type === 'followedChannels');
+      const followedChannels = followedRow?.data?.data || [];
+      const gameCounts = {};
+      followedChannels.forEach(c => {
+        if (c.game_name) {
+          gameCounts[c.game_name] = (gameCounts[c.game_name] || 0) + 1;
         }
       });
+      // Add top games as interests
+      Object.entries(gameCounts)
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 5)
+        .forEach(([game]) => {
+          if (!interests.includes(game)) {
+            interests.push(game);
+          }
+        });
     }
 
     return interests;
@@ -519,6 +556,56 @@ Respond ONLY with valid JSON, no explanation.`
       };
     } catch (error) {
       console.error('[SoulSignature] Error analyzing YouTube:', error);
+      return {};
+    }
+  }
+
+  /**
+   * Analyze Twitch streaming/gaming signature
+   */
+  async analyzeTwitchSignature(twitchData) {
+    if (!twitchData || twitchData.length === 0) {
+      return { no_data: true };
+    }
+
+    try {
+      // Extract followed channels
+      const followedRow = twitchData.find(item => item.type === 'followedChannels');
+      const followedChannels = followedRow?.data?.data || [];
+
+      // Extract user info
+      const userRow = twitchData.find(item => item.type === 'user');
+      const userData = userRow?.data?.data?.[0] || {};
+
+      // Collect unique game categories
+      const gameCounts = {};
+      followedChannels.forEach(c => {
+        if (c.game_name) {
+          gameCounts[c.game_name] = (gameCounts[c.game_name] || 0) + 1;
+        }
+      });
+
+      const topGames = Object.entries(gameCounts)
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 10)
+        .map(([game]) => game);
+
+      const channelNames = followedChannels
+        .map(c => c.broadcaster_name || c.broadcaster_login)
+        .filter(Boolean)
+        .slice(0, 15);
+
+      return {
+        followed_channel_count: followedChannels.length,
+        top_channels: channelNames,
+        top_games: topGames,
+        game_diversity: Object.keys(gameCounts).length,
+        is_broadcaster: !!userData.broadcaster_type,
+        streaming_style: followedChannels.length > 50 ? 'avid follower' :
+          followedChannels.length > 20 ? 'active follower' : 'selective follower'
+      };
+    } catch (error) {
+      console.error('[SoulSignature] Error analyzing Twitch:', error);
       return {};
     }
   }

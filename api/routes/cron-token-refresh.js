@@ -103,7 +103,7 @@ async function refreshAccessToken(platform, refreshToken, userId) {
       paramsObj.client_id = config.clientId;
       paramsObj.client_secret = config.clientSecret;
 
-      // Whoop requires scope
+      // Whoop requires scope: 'offline' for refresh token requests
       if (platform === 'whoop') {
         paramsObj.scope = 'offline';
       }
@@ -146,6 +146,21 @@ async function refreshAccessToken(platform, refreshToken, userId) {
   }
 }
 
+// Nango-managed tokens use placeholder values - don't try to refresh them ourselves
+const NANGO_PLACEHOLDER_TOKENS = ['NANGO_MANAGED', 'nango_managed', 'managed_by_nango'];
+
+/**
+ * Check if a token value is a Nango placeholder (not a real encrypted token)
+ */
+function isNangoManagedToken(token) {
+  if (!token) return false;
+  // Nango placeholders are short strings, real encrypted tokens are 100+ chars
+  if (token.length < 50 && NANGO_PLACEHOLDER_TOKENS.some(p => token.toLowerCase().includes(p.toLowerCase()))) {
+    return true;
+  }
+  return false;
+}
+
 /**
  * Check and refresh tokens that are about to expire
  */
@@ -173,12 +188,26 @@ async function checkAndRefreshExpiringTokens() {
       return { success: true, tokensRefreshed: 0, message: 'No tokens expiring soon' };
     }
 
-    console.log(`⚠️  Found ${connections.length} tokens expiring soon`);
+    // Filter out Nango-managed connections
+    const refreshableConnections = connections.filter(conn => {
+      if (isNangoManagedToken(conn.refresh_token) || isNangoManagedToken(conn.access_token)) {
+        console.log(`ℹ️  [CRON] Skipping ${conn.platform} - Nango-managed token`);
+        return false;
+      }
+      return true;
+    });
+
+    if (refreshableConnections.length === 0) {
+      console.log('✅ No tokens need refresh (all Nango-managed)');
+      return { success: true, tokensRefreshed: 0, message: 'All expiring tokens are Nango-managed' };
+    }
+
+    console.log(`⚠️  Found ${refreshableConnections.length} tokens expiring soon`);
 
     const refreshResults = [];
 
     // Refresh each token
-    for (const connection of connections) {
+    for (const connection of refreshableConnections) {
       const decryptedRefreshToken = decryptToken(connection.refresh_token);
 
       if (!decryptedRefreshToken) {

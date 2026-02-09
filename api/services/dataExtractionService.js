@@ -9,7 +9,6 @@ import DiscordExtractor from './extractors/discordExtractor.js';
 import LinkedInExtractor from './extractors/linkedinExtractor.js';
 import SpotifyExtractor from './extractors/spotifyExtractor.js';
 import RedditExtractor from './extractors/redditExtractor.js';
-import YouTubeExtractor from './extractors/youtubeExtractor.js';
 import GmailExtractor from './extractors/gmailExtractor.js';
 import SlackExtractor from './extractors/slackExtractor.js';
 import CalendarExtractor from './extractors/calendarExtractor.js';
@@ -25,6 +24,7 @@ import {
   notifyPlatformSync,
 } from './websocketService.js';
 import { invalidatePlatformStatusCache } from './redisClient.js';
+import { addPlatformMemory } from './mem0Service.js';
 
 // Use SUPABASE_URL (backend) - fallback to VITE_ prefix for compatibility
 // Lazy initialization to avoid crashes if env vars not loaded yet
@@ -112,14 +112,71 @@ class DataExtractionService {
         notifyExtractionStarted(userId, jobId, platform);
       }
 
-      // Get valid access token (auto-refresh if expired)
+      // --- Nango-managed platforms (no local token needed, return early) ---
+      if (platform === 'youtube') {
+        const { extractPlatformData: extractYT, storeNangoExtractionData: storeYT } = await import('./nangoService.js');
+        const ytResult = await extractYT(userId, 'youtube');
+        if (ytResult.success) {
+          await storeYT(userId, 'youtube', ytResult);
+          const ytItems = Object.keys(ytResult.data || {}).length;
+          if (jobId) {
+            await getSupabaseClient()
+              .from('data_extraction_jobs')
+              .update({ status: 'completed', items_extracted: ytItems, completed_at: new Date().toISOString() })
+              .eq('id', jobId);
+          }
+          return { success: true, platform, message: 'YouTube data extracted via Nango', itemsExtracted: ytItems, skipped: false };
+        }
+        if (jobId) {
+          await getSupabaseClient()
+            .from('data_extraction_jobs')
+            .update({ status: 'failed', error_message: ytResult.error || 'Nango extraction failed', completed_at: new Date().toISOString() })
+            .eq('id', jobId);
+        }
+        return { success: false, platform, message: ytResult.error || 'YouTube extraction failed', itemsExtracted: 0, skipped: false };
+      }
+
+      if (platform === 'twitch') {
+        const { extractPlatformData, storeNangoExtractionData } = await import('./nangoService.js');
+        const twitchResult = await extractPlatformData(userId, 'twitch');
+        if (twitchResult.success) {
+          await storeNangoExtractionData(userId, 'twitch', twitchResult);
+          const twitchItems = Object.keys(twitchResult.data || {}).length;
+          if (jobId) {
+            await getSupabaseClient()
+              .from('data_extraction_jobs')
+              .update({ status: 'completed', items_extracted: twitchItems, completed_at: new Date().toISOString() })
+              .eq('id', jobId);
+          }
+          return { success: true, platform, message: 'Twitch data extracted via Nango', itemsExtracted: twitchItems, skipped: false };
+        }
+        if (jobId) {
+          await getSupabaseClient()
+            .from('data_extraction_jobs')
+            .update({ status: 'failed', error_message: twitchResult.error || 'Nango extraction failed', completed_at: new Date().toISOString() })
+            .eq('id', jobId);
+        }
+        return { success: false, platform, message: twitchResult.error || 'Twitch extraction failed', itemsExtracted: 0, skipped: false };
+      }
+
+      if (platform === 'whoop') {
+        console.log(`[DataExtraction] Whoop uses direct API extraction via featureExtractor - skipping raw data storage`);
+        if (jobId) {
+          await getSupabaseClient()
+            .from('data_extraction_jobs')
+            .update({ status: 'completed', completed_at: new Date().toISOString() })
+            .eq('id', jobId);
+        }
+        return { success: true, platform, message: 'Whoop data will be extracted during soul signature generation', itemsExtracted: 0, skipped: false };
+      }
+
+      // --- Legacy platforms: get valid access token (auto-refresh if expired) ---
       console.log(`[DataExtraction] Getting valid access token for ${platform}...`);
       const tokenResult = await getValidAccessToken(userId, platform);
 
       if (!tokenResult.success) {
         console.warn(`[DataExtraction] Failed to get valid token for ${platform}: ${tokenResult.error}`);
 
-        // Mark job as failed
         if (jobId) {
           await getSupabaseClient()
             .from('data_extraction_jobs')
@@ -130,7 +187,6 @@ class DataExtractionService {
             })
             .eq('id', jobId);
 
-          // Notify user via WebSocket that extraction failed
           notifyExtractionFailed(userId, jobId, platform, new Error(tokenResult.error || 'Token refresh failed'));
           notifyConnectionStatus(userId, platform, 'needs_reauth', 'Please reconnect your account');
         }
@@ -148,7 +204,7 @@ class DataExtractionService {
       const accessToken = tokenResult.accessToken;
       console.log(`[DataExtraction] [OK] Valid access token obtained for ${platform}`);
 
-      // Create appropriate extractor
+      // Create appropriate extractor for legacy platforms
       let extractor;
       switch (platform) {
         case 'github':
@@ -166,9 +222,6 @@ class DataExtractionService {
         case 'reddit':
           extractor = new RedditExtractor(accessToken);
           break;
-        case 'youtube':
-          extractor = new YouTubeExtractor(userId, 'youtube');
-          break;
         case 'google_gmail':
           extractor = new GmailExtractor(accessToken);
           break;
@@ -185,51 +238,6 @@ class DataExtractionService {
         case 'tiktok':
           extractor = new TikTokExtractor(userId, 'tiktok');
           break;
-        case 'whoop':
-          // Whoop data is extracted directly via featureExtractor during soul signature generation
-          // No raw data storage needed - return success to avoid blocking OAuth flow
-          console.log(`[DataExtraction] Whoop uses direct API extraction via featureExtractor - skipping raw data storage`);
-
-          if (jobId) {
-            await getSupabaseClient()
-              .from('data_extraction_jobs')
-              .update({
-                status: 'completed',
-                completed_at: new Date().toISOString()
-              })
-              .eq('id', jobId);
-          }
-
-          return {
-            success: true,
-            platform,
-            message: 'Whoop data will be extracted during soul signature generation',
-            itemsExtracted: 0,
-            skipped: false
-          };
-        case 'twitch':
-          // This platform is defined but extractor not yet implemented
-          console.warn(`[DataExtraction] Extractor for ${platform} not yet implemented - skipping`);
-
-          // Mark job as failed
-          if (jobId) {
-            await getSupabaseClient()
-              .from('data_extraction_jobs')
-              .update({
-                status: 'failed',
-                error_message: 'Extractor not yet implemented',
-                completed_at: new Date().toISOString()
-              })
-              .eq('id', jobId);
-          }
-
-          return {
-            success: false,
-            platform,
-            message: `Extractor for ${platform} is not yet implemented`,
-            itemsExtracted: 0,
-            skipped: true
-          };
         default:
           throw new Error(`Unsupported platform: ${platform}`);
       }
@@ -262,6 +270,14 @@ class DataExtractionService {
         if (result.success) {
           notifyExtractionCompleted(userId, jobId, platform, result.itemsExtracted || 0);
           notifyPlatformSync(userId, platform, result);
+
+          // Store extraction summary in Mem0 for long-term memory
+          addPlatformMemory(userId, platform, 'extraction_summary', {
+            itemsExtracted: result.itemsExtracted || 0,
+            extractedAt: new Date().toISOString(),
+            jobId,
+            dataTypes: result.dataTypes || ['default']
+          }).catch(err => console.warn(`[DataExtraction] Failed to store in Mem0:`, err.message));
         } else {
           notifyExtractionFailed(userId, jobId, platform, new Error(result.error || result.message || 'Extraction failed'));
         }

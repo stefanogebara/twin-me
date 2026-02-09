@@ -16,6 +16,7 @@ import SlackExtractor from '../services/extractors/slackExtractor.js';
 import { createClient } from '@supabase/supabase-js';
 import { decryptToken } from '../services/encryption.js';
 import { getValidAccessToken } from '../services/tokenRefresh.js';
+import WebCuriosityAgent from '../services/agents/WebCuriosityAgent.js';
 import {
   asyncHandler,
   PlatformNotConnectedError,
@@ -60,6 +61,20 @@ router.post('/extract/platform/:platform',
     const { userId } = req.body;
 
     console.log(`🎭 Soul extraction request for ${platform} from user ${userId}`);
+
+    // Web browsing data comes from browser extension — no OAuth token needed
+    if (platform.toLowerCase() === 'web') {
+      const webExtraction = await extractor.aggregateWebBrowsingSignature(userId);
+      return res.json({
+        success: true,
+        platform: 'web',
+        extractionType: 'web-browsing-aggregation',
+        userId,
+        extractedAt: new Date().toISOString(),
+        data: webExtraction,
+        message: 'Web browsing signature aggregated from browser extension data'
+      });
+    }
 
     // Get valid access token (will auto-refresh if expired)
     const tokenResult = await getValidAccessToken(userId, platform);
@@ -350,6 +365,94 @@ router.post('/extract/youtube-deep/:userId', asyncHandler(async (req, res) => {
     dataQuality: enhancedProfile.dataQuality,
     data: enhancedProfile,
     message: '10+ behavioral dimensions extracted from YouTube'
+  });
+}));
+
+/**
+ * POST /api/soul/extract/web-deep/:userId
+ * Deep personality inference from web browsing data
+ *
+ * Uses the WebCuriosityAgent to run research-backed Big Five inference
+ * from browser extension data (page visits, searches, articles, engagement).
+ * No OAuth required — data comes from the browser extension pipeline.
+ */
+router.post('/extract/web-deep/:userId', asyncHandler(async (req, res) => {
+  const { userId } = req.params;
+
+  console.log(`[Web Deep] Personality inference request for user ${userId}`);
+
+  // Verify user has web browsing data
+  const { count } = await supabase
+    .from('user_platform_data')
+    .select('id', { count: 'exact', head: true })
+    .eq('user_id', userId)
+    .eq('platform', 'web');
+
+  if (!count || count < 5) {
+    throw new InsufficientDataError('web', 5, count || 0, {
+      message: 'Need more browsing data from the browser extension for meaningful analysis'
+    });
+  }
+
+  // Run WebCuriosityAgent for deep personality inference
+  const agent = new WebCuriosityAgent();
+  const analysisResult = await agent.analyzeWebData(userId);
+
+  if (!analysisResult.success) {
+    throw new PlatformAPIError('web', analysisResult.error || 'Web browsing analysis failed');
+  }
+
+  // Store behavioral features in database
+  try {
+    const features = analysisResult.features || {};
+    const featureEntries = Object.entries(features).map(([feature_name, feature_value]) => ({
+      user_id: userId,
+      platform: 'web',
+      feature_name,
+      feature_value: typeof feature_value === 'number' ? feature_value : 0,
+      confidence: analysisResult.data_quality?.quality_score || 0.5,
+      extracted_at: new Date().toISOString()
+    }));
+
+    if (featureEntries.length > 0) {
+      await supabase
+        .from('behavioral_features')
+        .upsert(featureEntries, { onConflict: 'user_id,platform,feature_name' });
+
+      console.log(`[Web Deep] Stored ${featureEntries.length} behavioral features`);
+    }
+  } catch (dbError) {
+    console.warn('[Web Deep] Failed to store behavioral features:', dbError.message);
+  }
+
+  // Store the full analysis result
+  try {
+    await supabase
+      .from('user_platform_data')
+      .insert({
+        user_id: userId,
+        platform: 'web',
+        data_type: 'deep_personality_analysis',
+        raw_data: analysisResult,
+        extracted_at: new Date().toISOString(),
+        processed: true
+      });
+  } catch (dbError) {
+    console.warn('[Web Deep] Failed to store analysis result:', dbError.message);
+  }
+
+  res.json({
+    success: true,
+    platform: 'web',
+    extractionType: 'deep-personality-inference',
+    userId,
+    extractedAt: new Date().toISOString(),
+    dataQuality: analysisResult.data_quality,
+    personality_adjustments: analysisResult.personality_adjustments,
+    evidence: analysisResult.evidence,
+    interpretation: analysisResult.interpretation,
+    features: analysisResult.features,
+    message: 'Big Five personality inference from web browsing patterns'
   });
 }));
 

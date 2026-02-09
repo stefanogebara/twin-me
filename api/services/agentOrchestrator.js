@@ -21,6 +21,7 @@
 import MusicPsychologyAgent from './agents/MusicPsychologyAgent.js';
 import BiometricAgent from './agents/BiometricAgent.js';
 import ChronotypeAgent from './agents/ChronotypeAgent.js';
+import WebCuriosityAgent from './agents/WebCuriosityAgent.js';
 import {
   generateAllEvidence,
   calculateConfidenceScores,
@@ -46,7 +47,8 @@ class AgentOrchestrator {
     this.agents = {
       music: null,
       biometric: null,
-      chronotype: null
+      chronotype: null,
+      web: null
     };
 
     this.initializeAgents();
@@ -75,6 +77,13 @@ class AgentOrchestrator {
       console.log('[AgentOrchestrator] ChronotypeAgent initialized');
     } catch (error) {
       console.error('[AgentOrchestrator] Failed to initialize ChronotypeAgent:', error);
+    }
+
+    try {
+      this.agents.web = new WebCuriosityAgent();
+      console.log('[AgentOrchestrator] WebCuriosityAgent initialized');
+    } catch (error) {
+      console.error('[AgentOrchestrator] Failed to initialize WebCuriosityAgent:', error);
     }
   }
 
@@ -153,7 +162,8 @@ class AgentOrchestrator {
     const sources = {
       spotify: { available: false, days: 0, events: 0 },
       whoop: { available: false, days: 0, events: 0 },
-      calendar: { available: false, days: 0, events: 0 }
+      calendar: { available: false, days: 0, events: 0 },
+      web: { available: false, days: 0, events: 0 }
     };
 
     try {
@@ -200,6 +210,21 @@ class AgentOrchestrator {
         sources.calendar.available = true;
         sources.calendar.events = calendarData[0].data?.events?.length || 0;
         sources.calendar.days = this.calculateDaysCovered(calendarData[0].extracted_at);
+      }
+
+      // Check for Web Browsing data (from browser extension)
+      const { data: webData, count: webCount } = await supabase
+        .from('user_platform_data')
+        .select('created_at', { count: 'exact' })
+        .eq('user_id', userId)
+        .eq('platform', 'web')
+        .order('created_at', { ascending: false })
+        .limit(1);
+
+      if (webData?.length > 0 && webCount > 0) {
+        sources.web.available = true;
+        sources.web.events = webCount;
+        sources.web.days = this.calculateDaysCovered(webData[0].created_at);
       }
 
     } catch (error) {
@@ -250,6 +275,14 @@ class AgentOrchestrator {
       );
     }
 
+    // Run Web Curiosity Agent if web browsing data available
+    if (dataSources.web.available && this.agents.web) {
+      promises.push(
+        this.runAgentSafe('web', () => this.agents.web.analyzeWebData(userId))
+          .then(result => { results.web = result; })
+      );
+    }
+
     // Wait for all agents to complete
     await Promise.all(promises);
 
@@ -289,9 +322,10 @@ class AgentOrchestrator {
 
     // Agent weights based on research validity
     const agentWeights = {
-      music: 0.35,      // Strong music-personality correlations
-      biometric: 0.35,  // Strong HRV/sleep correlations
-      chronotype: 0.30  // Good chronotype correlations
+      music: 0.30,      // Strong music-personality correlations
+      biometric: 0.30,  // Strong HRV/sleep correlations
+      chronotype: 0.20, // Good chronotype correlations
+      web: 0.20         // Moderate — high data volume but noisier signal
     };
 
     for (const [agentName, result] of Object.entries(agentResults)) {
@@ -530,6 +564,16 @@ class AgentOrchestrator {
         summary: agentResults.chronotype.interpretation.chronotype_summary ||
                 agentResults.chronotype.interpretation.key_insight ||
                 'Schedule patterns analyzed'
+      });
+    }
+
+    // Web browsing interpretation
+    if (agentResults.web?.interpretation) {
+      interpretations.push({
+        source: 'web',
+        summary: agentResults.web.interpretation.curiosity_summary ||
+                agentResults.web.interpretation.key_insight ||
+                'Web browsing patterns analyzed'
       });
     }
 
