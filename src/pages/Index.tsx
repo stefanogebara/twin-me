@@ -101,18 +101,7 @@ const Index = () => {
 
           <div className="flex items-center gap-3">
             <ThemeToggle />
-            {!isLoaded ? (
-              <button
-                disabled
-                className="px-5 py-2.5 rounded-full text-[14px] font-medium opacity-50"
-                style={{
-                  backgroundColor: theme === 'dark' ? '#C1C0B6' : '#0c0a09',
-                  color: theme === 'dark' ? '#232320' : '#ffffff'
-                }}
-              >
-                Loading...
-              </button>
-            ) : isSignedIn ? (
+            {isLoaded && isSignedIn ? (
               <button
                 onClick={() => navigate('/dashboard')}
                 className="px-5 py-2.5 rounded-full text-[14px] font-medium transition-all hover:opacity-90"
@@ -211,18 +200,7 @@ const Index = () => {
 
               {/* CTA Button */}
               <div className="flex justify-center">
-                {!isLoaded ? (
-                  <button
-                    disabled
-                    className="px-8 py-3.5 rounded-full text-[14px] font-medium opacity-50"
-                    style={{
-                      backgroundColor: theme === 'dark' ? '#C1C0B6' : '#0c0a09',
-                      color: theme === 'dark' ? '#232320' : '#ffffff'
-                    }}
-                  >
-                    Loading...
-                  </button>
-                ) : isSignedIn ? (
+                {isLoaded && isSignedIn ? (
                   <button
                     onClick={() => navigate('/dashboard')}
                     className="px-8 py-3.5 rounded-full text-[14px] font-medium transition-all hover:opacity-90"
@@ -292,18 +270,30 @@ const Index = () => {
               Our Trusted Platforms
             </span>
 
-            <div className="flex flex-wrap justify-center items-center gap-8 lg:gap-12">
-              {['Spotify', 'Google Calendar', 'Whoop'].map((company) => (
-                <span
-                  key={company}
-                  className="text-[14px] font-medium"
-                  style={{
-                    fontFamily: 'var(--font-body)',
-                    color: theme === 'dark' ? 'rgba(193, 192, 182, 0.4)' : '#a8a29e'
-                  }}
+            <div className="flex flex-wrap justify-center items-center gap-10 lg:gap-16">
+              {[
+                { name: 'Spotify', color: '#1DB954' },
+                { name: 'Google Calendar', color: '#4285F4' },
+                { name: 'Whoop', color: '#06B6D4' }
+              ].map((platform) => (
+                <div
+                  key={platform.name}
+                  className="flex items-center gap-2.5"
                 >
-                  {company}
-                </span>
+                  <span
+                    className="w-2 h-2 rounded-full"
+                    style={{ backgroundColor: platform.color }}
+                  />
+                  <span
+                    className="text-[14px] font-medium"
+                    style={{
+                      fontFamily: 'var(--font-body)',
+                      color: theme === 'dark' ? 'rgba(193, 192, 182, 0.5)' : '#a8a29e'
+                    }}
+                  >
+                    {platform.name}
+                  </span>
+                </div>
               ))}
             </div>
           </div>
@@ -429,7 +419,7 @@ const Index = () => {
               color: theme === 'dark' ? 'rgba(193, 192, 182, 0.7)' : '#57534e'
             }}
           >
-            Join thousands creating authentic digital twins that capture their true originality
+            Start creating an authentic digital twin that captures your true originality
           </p>
           {isSignedIn ? (
             <button
