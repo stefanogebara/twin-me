@@ -82,18 +82,24 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     // Check for existing session on mount
     checkAuth();
 
-    // Listen for demo mode changes
+    // Listen for demo mode changes (cross-tab via 'storage', same-tab via custom event)
     const handleDemoModeChange = () => {
       const demoActive = localStorage.getItem('demo_mode') === 'true';
       if (demoActive) {
         setUser(DEMO_USER);
+        setIsLoaded(true);
       } else {
+        setUser(null);
         checkAuth();
       }
     };
 
     window.addEventListener('storage', handleDemoModeChange);
-    return () => window.removeEventListener('storage', handleDemoModeChange);
+    window.addEventListener('demo-mode-change', handleDemoModeChange);
+    return () => {
+      window.removeEventListener('storage', handleDemoModeChange);
+      window.removeEventListener('demo-mode-change', handleDemoModeChange);
+    };
   }, []);
 
   const checkAuth = async () => {
