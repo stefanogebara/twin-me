@@ -24,10 +24,15 @@ import { withRetry } from './retryService.js';
 import { formatExtractionResult, categorizeError } from './extractionErrorHandler.js';
 import { supabaseAdmin } from './database.js';
 
-// Initialize Nango client
-const nango = new Nango({
-  secretKey: process.env.NANGO_SECRET_KEY
-});
+// Initialize Nango client (lazy - only if secret key is available)
+let nango = null;
+if (process.env.NANGO_SECRET_KEY) {
+  nango = new Nango({
+    secretKey: process.env.NANGO_SECRET_KEY
+  });
+} else {
+  console.warn('[NangoService] NANGO_SECRET_KEY not configured - Nango integrations disabled');
+}
 
 // Fallback connection IDs (for backwards compatibility during migration)
 // These are the actual connection IDs for the stefanogebara@gmail.com user
@@ -281,8 +286,16 @@ export const PLATFORM_CONFIGS = {
 /**
  * Create a connect session for OAuth flow
  */
+function requireNango() {
+  if (!nango) {
+    throw new Error('Nango is not configured (NANGO_SECRET_KEY missing)');
+  }
+  return nango;
+}
+
 export async function createConnectSession(userId, userEmail, options = {}) {
   try {
+    requireNango();
     // Build allowed integrations - if a specific integration is requested, only allow that one
     const allowedIntegrations = options.integrationId
       ? [options.integrationId]
