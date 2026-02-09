@@ -27,6 +27,7 @@ import { PageLayout, GlassPanel } from '@/components/layout/PageLayout';
 import { calendarAPI, spotifyAPI, whoopAPI, CalendarEvent } from '@/services/apiService';
 import { TodayInsights } from '@/components/TodayInsights';
 import { usePlatformStatus } from '@/hooks/usePlatformStatus';
+import { DEMO_CALENDAR_DATA } from '@/services/demoDataService';
 
 // Auto-refresh interval for calendar events (1 minute)
 const CALENDAR_REFRESH_INTERVAL = 60 * 1000;
@@ -141,10 +142,54 @@ export const Dashboard: React.FC = () => {
       const isDemoMode = localStorage.getItem('demo_mode') === 'true';
 
       if (isDemoMode) {
-        // In demo mode, show all MVP platforms as connected
+        // In demo mode, show all MVP platforms as connected with sample data
         setCalendarConnected(true);
         setSpotifyConnected(true);
         setWhoopConnected(true);
+
+        // Populate demo calendar events with real Date objects
+        const today = new Date();
+        const demoEvents: CalendarEvent[] = DEMO_CALENDAR_DATA.todayEvents.map((evt) => {
+          const [startH, startM] = evt.startTime.split(':').map(Number);
+          const [endH, endM] = evt.endTime.split(':').map(Number);
+          const start = new Date(today.getFullYear(), today.getMonth(), today.getDate(), startH, startM);
+          const end = new Date(today.getFullYear(), today.getMonth(), today.getDate(), endH, endM);
+          return {
+            id: evt.id,
+            title: evt.title,
+            startTime: start,
+            endTime: end,
+            type: (evt.type === 'focus' || evt.type === 'workout') ? 'personal' : evt.type as CalendarEvent['type'],
+            isImportant: (evt.attendees || 0) > 3,
+          };
+        });
+        // Add tomorrow's upcoming events
+        const tomorrow = new Date(today);
+        tomorrow.setDate(tomorrow.getDate() + 1);
+        DEMO_CALENDAR_DATA.upcomingEvents.forEach((evt) => {
+          const [h, m] = (evt.time || '10:00').split(':').map(Number);
+          const start = new Date(tomorrow.getFullYear(), tomorrow.getMonth(), tomorrow.getDate(), h, m);
+          const end = new Date(start.getTime() + 60 * 60 * 1000); // 1 hour duration
+          demoEvents.push({
+            id: evt.id,
+            title: evt.title,
+            startTime: start,
+            endTime: end,
+            type: evt.type as CalendarEvent['type'],
+            isImportant: (evt.attendees || 0) > 3,
+          });
+        });
+        setAllEvents(demoEvents);
+
+        // Set demo Whoop data
+        setWhoopData({
+          recovery: 72,
+          hrv: 58,
+          sleepHours: 7.2,
+          strain: 11.4,
+          recoveryLabel: 'Green'
+        });
+
         setLoading(false);
         return;
       }

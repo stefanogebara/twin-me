@@ -47,7 +47,7 @@ export const DemoBanner: React.FC<DemoBannerProps> = ({
     return (
       <div
         id="demo-banner"
-        className="fixed top-0 left-0 right-0 z-50 bg-gradient-to-r from-[hsl(var(--claude-accent))] to-[hsl(var(--claude-accent-hover))] text-white shadow-lg"
+        className="sticky top-0 left-0 right-0 z-[60] bg-gradient-to-r from-[hsl(var(--claude-accent))] to-[hsl(var(--claude-accent-hover))] text-white shadow-lg"
       >
         <div className="max-w-[1400px] mx-auto px-6 py-3 flex items-center justify-between gap-4">
           <div className="flex items-center gap-3">
