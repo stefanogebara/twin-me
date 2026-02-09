@@ -338,30 +338,13 @@ const GENRE_POOLS = [
 
 const PEAK_HOURS = ['10pm - 2am', '8pm - 11pm', '6am - 9am', '2pm - 5pm', '9pm - 12am'];
 
-// Generate timestamps for recent tracks
+// Generate timestamps for recent tracks (returns ISO string for proper parsing)
 const generateRecentTrackTime = (index: number): string => {
   const now = new Date();
   // Each track is spaced ~2-4 hours apart
   const hoursAgo = index * randomFloat(2, 4, 1);
   now.setHours(now.getHours() - hoursAgo);
-
-  const today = new Date();
-  const yesterday = new Date();
-  yesterday.setDate(yesterday.getDate() - 1);
-
-  const hours = now.getHours();
-  const minutes = now.getMinutes();
-  const ampm = hours >= 12 ? 'PM' : 'AM';
-  const displayHours = hours % 12 || 12;
-  const timeStr = `${displayHours}:${minutes.toString().padStart(2, '0')} ${ampm}`;
-
-  if (now.toDateString() === today.toDateString()) {
-    return `${timeStr} today`;
-  } else if (now.toDateString() === yesterday.toDateString()) {
-    return `Yesterday ${timeStr}`;
-  } else {
-    return `${now.toLocaleDateString('en-US', { weekday: 'short' })} ${timeStr}`;
-  }
+  return now.toISOString();
 };
 
 // Generate listening hours data for visualization
