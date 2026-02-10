@@ -61,6 +61,7 @@ interface ClusterDefinition {
 interface ClusterPersonalityVisualizationProps {
   userId?: string;
   onClusterSelect?: (cluster: string) => void;
+  connectedPlatformCount?: number;
 }
 
 const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3001';
@@ -97,7 +98,8 @@ const CLUSTER_COLORS: Record<string, { bg: string; text: string; border: string;
 
 export const ClusterPersonalityVisualization: React.FC<ClusterPersonalityVisualizationProps> = ({
   userId,
-  onClusterSelect
+  onClusterSelect,
+  connectedPlatformCount = 0
 }) => {
   const [clusters, setClusters] = useState<Record<string, ClusterProfile>>({});
   const [divergences, setDivergences] = useState<ClusterDivergence[]>([]);
@@ -107,12 +109,14 @@ export const ClusterPersonalityVisualization: React.FC<ClusterPersonalityVisuali
   const [loading, setLoading] = useState(true);
   const [rebuilding, setRebuilding] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [rebuildAttempted, setRebuildAttempted] = useState(false);
+  const [rebuildMessage, setRebuildMessage] = useState<string | null>(null);
 
   useEffect(() => {
     fetchClusterData();
   }, [userId]);
 
-  const fetchClusterData = async () => {
+  const fetchClusterData = async (autoRebuild = true) => {
     try {
       const token = localStorage.getItem('auth_token');
       if (!token) {
@@ -132,17 +136,27 @@ export const ClusterPersonalityVisualization: React.FC<ClusterPersonalityVisuali
       }
 
       const data = await response.json();
-      setClusters(data.clusters || {});
+      const fetchedClusters = data.clusters || {};
+      setClusters(fetchedClusters);
       setDivergences(data.divergences || []);
       setDefinitions(data.availableClusters?.reduce((acc: Record<string, ClusterDefinition>, c: string) => {
-        acc[c] = data.clusters?.[c]?.definition || { name: c, platforms: [], description: '' };
+        acc[c] = fetchedClusters[c]?.definition || { name: c, platforms: [], description: '' };
         return acc;
       }, {}) || {});
 
       // Auto-select first cluster with data
-      const firstCluster = Object.keys(data.clusters || {})[0];
+      const firstCluster = Object.keys(fetchedClusters)[0];
       if (firstCluster && !selectedCluster) {
         setSelectedCluster(firstCluster);
+      }
+
+      // Auto-trigger rebuild if clusters are empty and we haven't tried yet
+      const hasClusterData = Object.keys(fetchedClusters).length > 0;
+      if (!hasClusterData && autoRebuild && !rebuildAttempted) {
+        setRebuildAttempted(true);
+        console.log('[ClusterPersonality] No cluster data found, auto-triggering rebuild...');
+        await handleRebuild();
+        return; // handleRebuild will re-fetch
       }
 
       setError(null);
@@ -156,6 +170,7 @@ export const ClusterPersonalityVisualization: React.FC<ClusterPersonalityVisuali
 
   const handleRebuild = async () => {
     setRebuilding(true);
+    setRebuildMessage(null);
     try {
       const token = localStorage.getItem('auth_token');
       if (!token) return;
@@ -166,14 +181,23 @@ export const ClusterPersonalityVisualization: React.FC<ClusterPersonalityVisuali
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify({ platformData: [] }) // Server will fetch data
+        body: JSON.stringify({}) // Server auto-fetches behavioral_features from DB
       });
 
-      if (response.ok) {
-        await fetchClusterData();
+      const result = await response.json();
+
+      if (response.ok && result.success) {
+        if (result.message) {
+          // Server returned a message (e.g., no behavioral features found)
+          setRebuildMessage(result.message);
+        }
+        await fetchClusterData(false); // Don't auto-rebuild again
+      } else {
+        setRebuildMessage('Cluster analysis is temporarily unavailable. We will build your clusters when the service is ready.');
       }
     } catch (err) {
       console.error('[ClusterPersonality] Rebuild error:', err);
+      setRebuildMessage('Cluster analysis is temporarily unavailable. We will build your clusters when the service is ready.');
     } finally {
       setRebuilding(false);
     }
@@ -424,7 +448,9 @@ export const ClusterPersonalityVisualization: React.FC<ClusterPersonalityVisuali
                     </span>
                   </div>
                 ) : (
-                  <div className="text-xs text-gray-500">No data yet</div>
+                  <div className="text-xs text-gray-500">
+                    {rebuildAttempted ? 'Awaiting analysis' : 'No data yet'}
+                  </div>
                 )}
                 {(isSelected || isCompare) && (
                   <div className={`mt-2 text-[10px] font-medium ${colors.text}`}>
@@ -441,9 +467,17 @@ export const ClusterPersonalityVisualization: React.FC<ClusterPersonalityVisuali
       {error ? (
         <div className="p-6 text-center text-gray-500">
           <p>{error}</p>
-          <button onClick={fetchClusterData} className="mt-2 text-blue-400 text-sm hover:underline">
+          <button onClick={() => fetchClusterData()} className="mt-2 text-blue-400 text-sm hover:underline">
             Retry
           </button>
+        </div>
+      ) : rebuildMessage ? (
+        <div className="p-6 text-center">
+          <Info className="w-12 h-12 text-gray-600 mx-auto mb-3" />
+          <p className="text-gray-400">{rebuildMessage}</p>
+          <p className="text-xs text-gray-500 mt-2">
+            Your connected platforms will be analyzed to build personality clusters.
+          </p>
         </div>
       ) : !selectedProfile ? (
         <div className="p-6 text-center">

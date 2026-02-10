@@ -25,6 +25,13 @@ const supabase = supabaseUrl && supabaseKey ? createClient(supabaseUrl, supabase
 // Valid platforms
 const VALID_PLATFORMS = ['spotify', 'whoop', 'calendar', 'youtube', 'twitch', 'web'];
 
+// Map URL platform names to database platform names
+// Calendar is stored as 'google_calendar' in platform_connections
+const PLATFORM_DB_NAMES = {
+  'calendar': 'google_calendar',
+  'gmail': 'google_gmail',
+};
+
 /**
  * GET /api/insights/:platform
  * Get conversational reflections for a specific platform
@@ -45,12 +52,15 @@ router.get('/:platform', authenticateUser, async (req, res) => {
 
   try {
     // Pre-check: verify platform is actually connected before calling reflection service
+    // Map URL platform name to DB name (e.g. 'calendar' -> 'google_calendar')
+    const dbPlatformName = PLATFORM_DB_NAMES[platform] || platform;
+
     if (supabase) {
       const { data: connection } = await supabase
         .from('platform_connections')
         .select('id')
         .eq('user_id', userId)
-        .eq('platform', platform)
+        .eq('platform', dbPlatformName)
         .single();
 
       if (!connection) {
