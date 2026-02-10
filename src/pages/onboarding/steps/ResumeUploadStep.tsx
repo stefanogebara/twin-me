@@ -144,7 +144,7 @@ export const ResumeUploadStep: React.FC<ResumeUploadStepProps> = ({
         <div className="flex justify-between items-center px-8 py-6">
           <div
             className="text-xl tracking-tight"
-            style={{ fontFamily: "'Cormorant Garamond', serif", color: '#E8D5B7' }}
+            style={{ fontFamily: 'var(--font-heading)', color: '#E8D5B7' }}
           >
             Twin Me
           </div>
@@ -167,13 +167,13 @@ export const ResumeUploadStep: React.FC<ResumeUploadStepProps> = ({
                 <div>
                   <h2
                     className="text-2xl"
-                    style={{ fontFamily: "'Cormorant Garamond', serif", color: '#E8D5B7' }}
+                    style={{ fontFamily: 'var(--font-heading)', color: '#E8D5B7' }}
                   >
                     Resume Parsed Successfully
                   </h2>
                   <p
                     className="text-sm opacity-60"
-                    style={{ fontFamily: "'Space Grotesk', sans-serif", color: '#E8D5B7' }}
+                    style={{ fontFamily: 'var(--font-body)', color: '#E8D5B7' }}
                   >
                     Here's what I found
                   </p>
@@ -191,7 +191,7 @@ export const ResumeUploadStep: React.FC<ResumeUploadStepProps> = ({
                 >
                   <h3
                     className="text-lg mb-4"
-                    style={{ fontFamily: "'Cormorant Garamond', serif", color: '#E8D5B7' }}
+                    style={{ fontFamily: 'var(--font-heading)', color: '#E8D5B7' }}
                   >
                     {parsedData.summary.name || userName}
                   </h3>
@@ -199,7 +199,7 @@ export const ResumeUploadStep: React.FC<ResumeUploadStepProps> = ({
                   {parsedData.summary.current_role && (
                     <p
                       className="text-sm mb-2"
-                      style={{ fontFamily: "'Space Grotesk', sans-serif", color: 'rgba(232, 213, 183, 0.8)' }}
+                      style={{ fontFamily: 'var(--font-body)', color: 'rgba(232, 213, 183, 0.8)' }}
                     >
                       {parsedData.summary.current_role}
                       {parsedData.summary.current_company && ` at ${parsedData.summary.current_company}`}
@@ -209,7 +209,7 @@ export const ResumeUploadStep: React.FC<ResumeUploadStepProps> = ({
                   {parsedData.summary.education_summary && (
                     <p
                       className="text-sm mb-2"
-                      style={{ fontFamily: "'Space Grotesk', sans-serif", color: 'rgba(232, 213, 183, 0.6)' }}
+                      style={{ fontFamily: 'var(--font-body)', color: 'rgba(232, 213, 183, 0.6)' }}
                     >
                       {parsedData.summary.education_summary}
                     </p>
@@ -231,7 +231,7 @@ export const ResumeUploadStep: React.FC<ResumeUploadStepProps> = ({
                 <div>
                   <h4
                     className="text-sm uppercase tracking-wider mb-3"
-                    style={{ fontFamily: "'Space Grotesk', sans-serif", color: 'rgba(232, 213, 183, 0.5)', letterSpacing: '0.1em' }}
+                    style={{ fontFamily: 'var(--font-body)', color: 'rgba(232, 213, 183, 0.5)', letterSpacing: '0.1em' }}
                   >
                     Experience
                   </h4>
@@ -244,7 +244,7 @@ export const ResumeUploadStep: React.FC<ResumeUploadStepProps> = ({
                       >
                         <p
                           className="text-sm"
-                          style={{ fontFamily: "'Space Grotesk', sans-serif", color: '#E8D5B7' }}
+                          style={{ fontFamily: 'var(--font-body)', color: '#E8D5B7' }}
                         >
                           <span className="font-medium">{exp.title}</span>
                           {exp.company && <span className="opacity-60"> at {exp.company}</span>}
@@ -268,7 +268,7 @@ export const ResumeUploadStep: React.FC<ResumeUploadStepProps> = ({
                 <div>
                   <h4
                     className="text-sm uppercase tracking-wider mb-3"
-                    style={{ fontFamily: "'Space Grotesk', sans-serif", color: 'rgba(232, 213, 183, 0.5)', letterSpacing: '0.1em' }}
+                    style={{ fontFamily: 'var(--font-body)', color: 'rgba(232, 213, 183, 0.5)', letterSpacing: '0.1em' }}
                   >
                     Skills
                   </h4>
@@ -283,7 +283,7 @@ export const ResumeUploadStep: React.FC<ResumeUploadStepProps> = ({
                         style={{
                           backgroundColor: 'rgba(232, 213, 183, 0.08)',
                           color: 'rgba(232, 213, 183, 0.8)',
-                          fontFamily: "'Space Grotesk', sans-serif"
+                          fontFamily: 'var(--font-body)'
                         }}
                       >
                         {skill}
@@ -300,7 +300,7 @@ export const ResumeUploadStep: React.FC<ResumeUploadStepProps> = ({
                 style={{
                   background: 'linear-gradient(135deg, #E8D5B7 0%, #D4C4A8 100%)',
                   color: '#0C0C0C',
-                  fontFamily: "'Space Grotesk', sans-serif"
+                  fontFamily: 'var(--font-body)'
                 }}
               >
                 Continue
@@ -323,14 +323,14 @@ export const ResumeUploadStep: React.FC<ResumeUploadStepProps> = ({
       <div className="flex justify-between items-center px-8 py-6">
         <div
           className="text-xl tracking-tight"
-          style={{ fontFamily: "'Cormorant Garamond', serif", color: '#E8D5B7' }}
+          style={{ fontFamily: 'var(--font-heading)', color: '#E8D5B7' }}
         >
           Twin Me
         </div>
         <button
           onClick={onSkip}
           className="text-sm tracking-wide uppercase opacity-40 hover:opacity-80 transition-opacity"
-          style={{ fontFamily: "'Space Grotesk', sans-serif", color: '#E8D5B7', letterSpacing: '0.1em' }}
+          style={{ fontFamily: 'var(--font-body)', color: '#E8D5B7', letterSpacing: '0.1em' }}
         >
           Skip
         </button>
@@ -345,13 +345,13 @@ export const ResumeUploadStep: React.FC<ResumeUploadStepProps> = ({
           >
             <h1
               className="text-3xl md:text-4xl mb-4"
-              style={{ fontFamily: "'Cormorant Garamond', serif", color: '#E8D5B7' }}
+              style={{ fontFamily: 'var(--font-heading)', color: '#E8D5B7' }}
             >
               Share your resume
             </h1>
             <p
               className="text-base mb-8 opacity-70"
-              style={{ fontFamily: "'Space Grotesk', sans-serif", color: '#E8D5B7' }}
+              style={{ fontFamily: 'var(--font-body)', color: '#E8D5B7' }}
             >
               Help me understand your background better by sharing your resume or CV.
             </p>
@@ -386,7 +386,7 @@ export const ResumeUploadStep: React.FC<ResumeUploadStepProps> = ({
                     />
                     <p
                       className="text-base mb-2"
-                      style={{ fontFamily: "'Space Grotesk', sans-serif", color: '#E8D5B7' }}
+                      style={{ fontFamily: 'var(--font-body)', color: '#E8D5B7' }}
                     >
                       Drop your resume here or click to browse
                     </p>
@@ -432,7 +432,7 @@ export const ResumeUploadStep: React.FC<ResumeUploadStepProps> = ({
                     <div className="text-left">
                       <p
                         className="text-base"
-                        style={{ fontFamily: "'Space Grotesk', sans-serif", color: '#E8D5B7' }}
+                        style={{ fontFamily: 'var(--font-body)', color: '#E8D5B7' }}
                       >
                         Paste resume text
                       </p>
@@ -467,7 +467,7 @@ export const ResumeUploadStep: React.FC<ResumeUploadStepProps> = ({
                     <div className="flex-1">
                       <p
                         className="text-base truncate"
-                        style={{ fontFamily: "'Space Grotesk', sans-serif", color: '#E8D5B7' }}
+                        style={{ fontFamily: 'var(--font-body)', color: '#E8D5B7' }}
                       >
                         {selectedFile.name}
                       </p>
@@ -496,7 +496,7 @@ export const ResumeUploadStep: React.FC<ResumeUploadStepProps> = ({
                     style={{
                       background: 'linear-gradient(135deg, #E8D5B7 0%, #D4C4A8 100%)',
                       color: '#0C0C0C',
-                      fontFamily: "'Space Grotesk', sans-serif"
+                      fontFamily: 'var(--font-body)'
                     }}
                   >
                     {isUploading ? (
@@ -537,7 +537,7 @@ export const ResumeUploadStep: React.FC<ResumeUploadStepProps> = ({
                       backgroundColor: 'rgba(232, 213, 183, 0.05)',
                       border: '1px solid rgba(232, 213, 183, 0.15)',
                       color: '#E8D5B7',
-                      fontFamily: "'Space Grotesk', sans-serif"
+                      fontFamily: 'var(--font-body)'
                     }}
                   />
 
@@ -548,7 +548,7 @@ export const ResumeUploadStep: React.FC<ResumeUploadStepProps> = ({
                     style={{
                       background: 'linear-gradient(135deg, #E8D5B7 0%, #D4C4A8 100%)',
                       color: '#0C0C0C',
-                      fontFamily: "'Space Grotesk', sans-serif"
+                      fontFamily: 'var(--font-body)'
                     }}
                   >
                     {isParsing ? (

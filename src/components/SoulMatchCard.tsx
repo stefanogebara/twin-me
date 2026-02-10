@@ -44,7 +44,7 @@ const SoulMatchCard: React.FC<SoulMatchCardProps> = ({ match, onViewProfile, onC
           )}
 
           <div>
-            <h3 className="text-xl font-semibold text-slate-800" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
+            <h3 className="text-xl font-semibold text-slate-800" style={{ fontFamily: 'var(--font-heading)' }}>
               {userName}
             </h3>
             <div className={`inline-flex items-center gap-1 px-2 py-1 rounded-full ${compatLevel.bgColor} ${compatLevel.color} text-xs font-medium mt-1`}>
@@ -56,7 +56,7 @@ const SoulMatchCard: React.FC<SoulMatchCardProps> = ({ match, onViewProfile, onC
 
         {/* Compatibility Score */}
         <div className="text-center">
-          <div className="text-4xl font-bold text-orange-600" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
+          <div className="text-4xl font-bold text-orange-600" style={{ fontFamily: 'var(--font-heading)' }}>
             {compatibility}%
           </div>
           <div className="text-xs text-slate-500 mt-1">Compatibility</div>

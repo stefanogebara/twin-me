@@ -21,7 +21,8 @@ import {
   Github,
   Mail,
   Briefcase,
-  Globe
+  Globe,
+  Link2
 } from 'lucide-react';
 import { PageLayout, GlassPanel } from '@/components/layout/PageLayout';
 import { calendarAPI, spotifyAPI, whoopAPI, CalendarEvent } from '@/services/apiService';
@@ -433,6 +434,26 @@ export const Dashboard: React.FC = () => {
       actionPath: isCalendarConnected ? '/insights/calendar' : '/get-started'
     },
     {
+      id: 'content-world',
+      title: 'Content World',
+      description: 'Your YouTube universe and viewing patterns',
+      icon: Video,
+      color: 'text-red-500',
+      hasData: true,
+      actionLabel: 'Explore',
+      actionPath: '/insights/youtube'
+    },
+    {
+      id: 'gaming-world',
+      title: 'Gaming World',
+      description: 'Your Twitch streams and gaming identity',
+      icon: Tv,
+      color: 'text-purple-500',
+      hasData: true,
+      actionLabel: 'Explore',
+      actionPath: '/insights/twitch'
+    },
+    {
       id: 'digital-life',
       title: 'Digital Life',
       description: 'What your browsing reveals about you',
@@ -636,7 +657,13 @@ export const Dashboard: React.FC = () => {
                     style={{ color: theme === 'dark' ? 'rgba(193, 192, 182, 0.7)' : '#57534e' }}
                   >
                     <Clock className="w-4 h-4" />
-                    {formatTimeUntil(nextEvent.startTime, nextEvent.endTime) === 'now' ? 'happening now' : `in ${formatTimeUntil(nextEvent.startTime, nextEvent.endTime)}`}
+                    {(() => {
+                      const t = formatTimeUntil(nextEvent.startTime, nextEvent.endTime);
+                      if (t === 'now') return 'happening now';
+                      if (t === 'starting') return 'starting soon';
+                      if (t === 'ended') return 'just ended';
+                      return `in ${t}`;
+                    })()}
                   </span>
                   <span
                     className="px-2 py-0.5 rounded-full text-xs"
@@ -733,7 +760,7 @@ export const Dashboard: React.FC = () => {
             Twin Insights
           </h3>
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {insightLinks.map((insight) => {
             const Icon = insight.icon;
             return (
@@ -817,45 +844,71 @@ export const Dashboard: React.FC = () => {
           </button>
         </div>
 
-        <div className="flex gap-3 flex-wrap">
-          {platforms.map((platform) => {
-            const Icon = platform.icon;
-            return (
-              <button
-                key={platform.id}
-                onClick={() => navigate('/get-started')}
-                className="px-4 py-3 rounded-xl flex items-center gap-2 transition-all hover:scale-[1.02]"
-                style={{
-                  backgroundColor: theme === 'dark'
-                    ? platform.connected ? 'rgba(193, 192, 182, 0.15)' : 'rgba(193, 192, 182, 0.05)'
-                    : platform.connected ? 'rgba(0, 0, 0, 0.08)' : 'rgba(0, 0, 0, 0.03)',
-                  border: platform.expired
-                    ? '1px solid rgba(245, 158, 11, 0.4)'
-                    : theme === 'dark'
-                    ? '1px solid rgba(193, 192, 182, 0.1)'
-                    : '1px solid rgba(0, 0, 0, 0.06)'
-                }}
-              >
-                <Icon className={`w-4 h-4 ${platform.color}`} />
-                <span
-                  className="text-sm"
-                  style={{ color: theme === 'dark' ? '#C1C0B6' : '#0c0a09' }}
+        {platforms.length > 0 ? (
+          <div className="flex gap-3 flex-wrap">
+            {platforms.map((platform) => {
+              const Icon = platform.icon;
+              return (
+                <button
+                  key={platform.id}
+                  onClick={() => navigate('/get-started')}
+                  className="px-4 py-3 rounded-xl flex items-center gap-2 transition-all hover:scale-[1.02]"
+                  style={{
+                    backgroundColor: theme === 'dark'
+                      ? platform.connected ? 'rgba(193, 192, 182, 0.15)' : 'rgba(193, 192, 182, 0.05)'
+                      : platform.connected ? 'rgba(0, 0, 0, 0.08)' : 'rgba(0, 0, 0, 0.03)',
+                    border: platform.expired
+                      ? '1px solid rgba(245, 158, 11, 0.4)'
+                      : theme === 'dark'
+                      ? '1px solid rgba(193, 192, 182, 0.1)'
+                      : '1px solid rgba(0, 0, 0, 0.06)'
+                  }}
                 >
-                  {platform.name}
-                </span>
-                {platform.connected && !platform.expired ? (
-                  <CheckCircle2 className="w-4 h-4 text-green-500" />
-                ) : platform.expired ? (
-                  <svg className="w-4 h-4 text-amber-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                  </svg>
-                ) : (
-                  <Plus className="w-4 h-4 opacity-50" />
-                )}
-              </button>
-            );
-          })}
-        </div>
+                  <Icon className={`w-4 h-4 ${platform.color}`} />
+                  <span
+                    className="text-sm"
+                    style={{ color: theme === 'dark' ? '#C1C0B6' : '#0c0a09' }}
+                  >
+                    {platform.name}
+                  </span>
+                  {platform.connected && !platform.expired ? (
+                    <CheckCircle2 className="w-4 h-4 text-green-500" />
+                  ) : platform.expired ? (
+                    <svg className="w-4 h-4 text-amber-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                    </svg>
+                  ) : (
+                    <Plus className="w-4 h-4 opacity-50" />
+                  )}
+                </button>
+              );
+            })}
+          </div>
+        ) : (
+          <GlassPanel className="text-center py-8">
+            <Link2
+              className="w-10 h-10 mx-auto mb-3 opacity-30"
+              style={{ color: theme === 'dark' ? '#C1C0B6' : '#0c0a09' }}
+            />
+            <p
+              className="text-sm mb-4"
+              style={{ color: theme === 'dark' ? 'rgba(193, 192, 182, 0.6)' : '#a8a29e' }}
+            >
+              Connect your first platform to start building your digital twin
+            </p>
+            <button
+              onClick={() => navigate('/get-started')}
+              className="px-6 py-2.5 rounded-xl inline-flex items-center gap-2 text-sm font-medium transition-all hover:scale-[1.02]"
+              style={{
+                backgroundColor: theme === 'dark' ? 'rgba(193, 192, 182, 0.15)' : 'rgba(0, 0, 0, 0.08)',
+                color: theme === 'dark' ? '#C1C0B6' : '#0c0a09'
+              }}
+            >
+              <Plus className="w-4 h-4" />
+              Connect Platforms
+            </button>
+          </GlassPanel>
+        )}
       </div>
     </PageLayout>
   );

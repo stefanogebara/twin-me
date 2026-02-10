@@ -10,12 +10,14 @@ import { useNavigate } from 'react-router-dom';
 import BrainExplorer from '@/components/BrainExplorer';
 import { useAuth } from '@/contexts/AuthContext';
 import { useTheme } from '@/contexts/ThemeContext';
+import { useDemo } from '@/contexts/DemoContext';
 import { PageLayout, GlassPanel } from '@/components/layout/PageLayout';
-import { Brain, Sparkles } from 'lucide-react';
+import { Brain, Sparkles, Network, Zap, GitBranch, Layers } from 'lucide-react';
 
 const BrainPage: React.FC = () => {
   const { isSignedIn, isLoaded } = useAuth();
   const { theme } = useTheme();
+  const { isDemoMode } = useDemo();
   const navigate = useNavigate();
 
   // Theme-aware colors
@@ -79,6 +81,98 @@ const BrainPage: React.FC = () => {
             </button>
           </GlassPanel>
         </div>
+      </PageLayout>
+    );
+  }
+
+  if (isDemoMode) {
+    const demoNodes = [
+      { label: 'Music Taste', icon: '🎵', category: 'personality' },
+      { label: 'Work Patterns', icon: '💼', category: 'behavior' },
+      { label: 'Sleep Cycles', icon: '🌙', category: 'health' },
+      { label: 'Curiosity', icon: '🔍', category: 'personality' },
+      { label: 'Social Energy', icon: '💬', category: 'behavior' },
+      { label: 'Creativity', icon: '🎨', category: 'personality' },
+    ];
+
+    return (
+      <PageLayout maxWidth="xl">
+        <div className="text-center mb-8">
+          <div
+            className="w-20 h-20 rounded-2xl mx-auto mb-6 flex items-center justify-center"
+            style={{
+              background: 'linear-gradient(135deg, rgba(78, 205, 196, 0.2) 0%, rgba(69, 183, 209, 0.2) 100%)'
+            }}
+          >
+            <Brain className="w-10 h-10" style={{ color: '#4ECDC4' }} />
+          </div>
+          <h1
+            className="text-3xl mb-3"
+            style={{ fontFamily: 'var(--font-heading)', fontWeight: 400, color: textColor }}
+          >
+            Your Twin's Brain
+          </h1>
+          <p className="max-w-lg mx-auto" style={{ color: textSecondary }}>
+            A living 3D knowledge graph that maps everything unique about you - your interests, patterns, personality traits, and connections between them.
+          </p>
+        </div>
+
+        <GlassPanel className="!p-8 mb-6">
+          <div className="flex items-center gap-3 mb-6">
+            <Network className="w-5 h-5" style={{ color: '#4ECDC4' }} />
+            <h3 className="text-lg" style={{ fontFamily: 'var(--font-heading)', fontWeight: 400, color: textColor }}>
+              Knowledge Graph Preview
+            </h3>
+          </div>
+
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-8">
+            {demoNodes.map((node, i) => (
+              <div
+                key={i}
+                className="flex items-center gap-3 p-4 rounded-xl transition-all hover:scale-[1.02]"
+                style={{
+                  backgroundColor: subtleBg,
+                  border: `1px solid ${theme === 'dark' ? 'rgba(193, 192, 182, 0.08)' : 'rgba(0, 0, 0, 0.04)'}`
+                }}
+              >
+                <span className="text-2xl">{node.icon}</span>
+                <div>
+                  <p className="text-sm font-medium" style={{ color: textColor }}>{node.label}</p>
+                  <p className="text-xs" style={{ color: textMuted }}>{node.category}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <div className="flex flex-wrap items-center justify-center gap-6" style={{ color: textMuted }}>
+            <div className="flex items-center gap-2 text-sm">
+              <Layers className="w-4 h-4" />
+              <span>42 nodes</span>
+            </div>
+            <div className="flex items-center gap-2 text-sm">
+              <GitBranch className="w-4 h-4" />
+              <span>67 connections</span>
+            </div>
+            <div className="flex items-center gap-2 text-sm">
+              <Zap className="w-4 h-4" />
+              <span>6 clusters</span>
+            </div>
+          </div>
+        </GlassPanel>
+
+        <GlassPanel className="text-center !p-6">
+          <p className="text-sm mb-4" style={{ color: textSecondary }}>
+            Connect your real platforms to build a personalized 3D knowledge graph with interactive exploration.
+          </p>
+          <button
+            onClick={() => navigate('/get-started')}
+            className="flex items-center gap-2 px-6 py-3 rounded-xl mx-auto transition-all hover:scale-[1.02]"
+            style={{ backgroundColor: '#4ECDC4', color: '#232320' }}
+          >
+            <Sparkles className="w-4 h-4" />
+            Connect Platforms to Explore
+          </button>
+        </GlassPanel>
       </PageLayout>
     );
   }

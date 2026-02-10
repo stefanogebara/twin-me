@@ -55,7 +55,7 @@ export const SoulSignatureEssence: React.FC<SoulEssenceProps> = ({
                 </div>
                 <h1 className={`text-4xl font-medium ${
                   theme === 'dark' ? 'text-stone-50' : 'text-slate-900'
-                }`} style={{ fontFamily: 'var(--_typography---font--styrene-a)' }}>
+                }`} style={{ fontFamily: 'var(--font-heading)' }}>
                   Your Soul Signature
                 </h1>
               </div>
@@ -80,7 +80,7 @@ export const SoulSignatureEssence: React.FC<SoulEssenceProps> = ({
                 }`}>Authenticity</span>
                 <span className={`text-5xl font-medium ${
                   theme === 'dark' ? 'text-stone-100' : 'text-slate-900'
-                }`} style={{ fontFamily: 'var(--_typography---font--styrene-a)' }}>
+                }`} style={{ fontFamily: 'var(--font-heading)' }}>
                   {Math.round(uniquenessScore)}%
                 </span>
                 <span className={`text-xs mt-1 ${

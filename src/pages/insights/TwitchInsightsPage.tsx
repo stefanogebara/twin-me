@@ -8,12 +8,14 @@
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useTheme } from '@/contexts/ThemeContext';
+import { useDemo } from '@/contexts/DemoContext';
 import { PageLayout, GlassPanel } from '@/components/layout/PageLayout';
 import { TwinReflection, PatternObservation } from './components/TwinReflection';
 import { EvidenceSection } from './components/EvidenceSection';
 import { Tv, RefreshCw, Sparkles, ArrowLeft, AlertCircle, Users, Gamepad2, PieChart, History, Download, Eye } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { PieChart as RechartsPie, Pie, Cell, Tooltip as RechartsTooltip, ResponsiveContainer } from 'recharts';
+import { toast } from 'sonner';
 
 interface Reflection {
   id: string | null;
@@ -79,9 +81,58 @@ interface InsightsResponse {
 
 const GAME_COLORS = ['#9146FF', '#B380FF', '#60a5fa', '#4ade80', '#fbbf24', '#f87171', '#a78bfa', '#fb923c'];
 
+const getDemoTwitchInsights = (): InsightsResponse => ({
+  success: true,
+  reflection: {
+    id: 'demo-tw-1',
+    text: "Your Twitch world shows a fascinating blend of competitive gaming and creative community engagement. You're drawn to streamers who combine skill with personality - not just watching gameplay, but following stories. Your twin notices you often tune in to Just Chatting streams late at night, suggesting you value the social aspect of streaming as much as the gaming itself.",
+    generatedAt: new Date(Date.now() - 4 * 3600000).toISOString(),
+    expiresAt: null,
+    confidence: 'high',
+    themes: ['gaming', 'community', 'social']
+  },
+  patterns: [
+    { id: 'p1', text: 'You watch competitive FPS streams during peak hours but creative streams late at night', occurrences: 'often' },
+    { id: 'p2', text: 'You tend to follow smaller streamers with tight-knit communities', occurrences: 'sometimes' },
+    { id: 'p3', text: 'Your Just Chatting watch time has increased 40% over the last month', occurrences: 'noticed' }
+  ],
+  history: [
+    { id: 'h1', text: 'Your streaming taste reveals someone who values authenticity over production value.', generatedAt: new Date(Date.now() - 86400000 * 5).toISOString() }
+  ],
+  evidence: [
+    { id: 'e1', observation: 'Community-oriented viewer', dataPoints: ['75% of followed channels have under 5K avg viewers', 'High chat participation during streams'], confidence: 'high' }
+  ],
+  twitchChannels: [
+    { name: 'Shroud', gameName: 'Valorant' },
+    { name: 'Pokimane', gameName: 'Just Chatting' },
+    { name: 'CohhCarnage', gameName: 'Elden Ring' },
+    { name: 'summit1g', gameName: 'GTA V' },
+    { name: 'xQc', gameName: 'Just Chatting' },
+    { name: 'Lirik', gameName: 'Variety' }
+  ],
+  twitchFollowedCount: 47,
+  twitchGamingCategories: [
+    { game: 'FPS / Shooters', percentage: 30 },
+    { game: 'Just Chatting', percentage: 22 },
+    { game: 'RPG / Adventure', percentage: 18 },
+    { game: 'Strategy', percentage: 12 },
+    { game: 'Creative / Art', percentage: 10 },
+    { game: 'Music', percentage: 8 }
+  ],
+  twitchDisplayName: 'Alex',
+  hasExtensionData: true,
+  twitchStreamWatches: [
+    { channelName: 'Shroud', gameName: 'Valorant', watchDuration: 3600 },
+    { channelName: 'CohhCarnage', gameName: 'Elden Ring', watchDuration: 5400 },
+    { channelName: 'Pokimane', gameName: 'Just Chatting', watchDuration: 1800 }
+  ],
+  twitchBrowseCategories: ['Valorant', 'Just Chatting', 'Elden Ring', 'League of Legends', 'Art', 'Music', 'Minecraft']
+});
+
 const TwitchInsightsPage: React.FC = () => {
   const { theme } = useTheme();
   const { token } = useAuth();
+  const { isDemoMode } = useDemo();
   const navigate = useNavigate();
 
   const [insights, setInsights] = useState<InsightsResponse | null>(null);
@@ -100,9 +151,16 @@ const TwitchInsightsPage: React.FC = () => {
 
   useEffect(() => {
     fetchInsights();
-  }, []);
+  }, [isDemoMode]);
 
   const fetchInsights = async () => {
+    if (isDemoMode) {
+      setError(null);
+      setInsights(getDemoTwitchInsights());
+      setLoading(false);
+      return;
+    }
+
     const authToken = token || localStorage.getItem('auth_token');
     if (!authToken) {
       setError('Please sign in to see your gaming world');
@@ -133,6 +191,15 @@ const TwitchInsightsPage: React.FC = () => {
 
   const handleRefresh = async () => {
     setRefreshing(true);
+
+    if (isDemoMode) {
+      setTimeout(() => {
+        setInsights(getDemoTwitchInsights());
+        setRefreshing(false);
+      }, 1000);
+      return;
+    }
+
     const authToken = token || localStorage.getItem('auth_token');
 
     try {
@@ -143,6 +210,7 @@ const TwitchInsightsPage: React.FC = () => {
       await fetchInsights();
     } catch (err) {
       console.error('Failed to refresh insights:', err);
+      toast.error('Refresh failed', { description: 'Unable to refresh Twitch insights. Please try again.' });
     } finally {
       setRefreshing(false);
     }
@@ -246,10 +314,14 @@ const TwitchInsightsPage: React.FC = () => {
 
       {/* Extension Install Banner */}
       {!insights?.hasExtensionData && (
-        <GlassPanel className="!p-4 mb-6" style={{ borderLeft: `3px solid ${colors.twitchPurple}` }}>
+        <GlassPanel
+          className="!p-4 mb-6 cursor-pointer transition-opacity hover:opacity-80"
+          style={{ borderLeft: `3px solid ${colors.twitchPurple}` }}
+          onClick={() => navigate('/get-started')}
+        >
           <div className="flex items-center gap-3">
             <Download className="w-5 h-5 flex-shrink-0" style={{ color: colors.twitchPurple }} />
-            <div>
+            <div className="flex-1">
               <p className="text-sm font-medium" style={{ color: colors.text }}>
                 Get deeper Twitch insights
               </p>
@@ -257,6 +329,7 @@ const TwitchInsightsPage: React.FC = () => {
                 Install our browser extension to capture stream watch sessions, gaming patterns, and browsing activity that the Twitch API can't access.
               </p>
             </div>
+            <ArrowLeft className="w-4 h-4 rotate-180 flex-shrink-0" style={{ color: colors.textSecondary }} />
           </div>
         </GlassPanel>
       )}

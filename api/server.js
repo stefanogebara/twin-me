@@ -283,6 +283,7 @@ import correlationsRoutes from './routes/correlations.js';
 import nangoRoutes from './routes/nango.js';
 import nangoWebhooksRoutes from './routes/nango-webhooks.js';
 import extensionDataRoutes from './routes/extension-data.js';
+import journalRoutes from './routes/journal.js';
 import { serverDb } from './services/database.js';
 import { sanitizeInput, validateContentType } from './middleware/sanitization.js';
 import { /* handleAuthError, */ handleGeneralError, handle404 } from './middleware/errorHandler.js';
@@ -363,6 +364,7 @@ app.use('/api/correlations', correlationsRoutes); // Cross-platform correlation 
 app.use('/api/nango', nangoRoutes); // Nango unified API for 10 platform connections
 app.use('/api/nango-webhooks', nangoWebhooksRoutes); // Nango webhook receiver
 app.use('/api/extension', extensionDataRoutes); // Browser extension data capture (YouTube, Twitch, Netflix)
+app.use('/api/journal', journalRoutes); // Soul Journal - personal journaling with AI analysis
 
 // Vercel Cron Job endpoints (production automation)
 // These are called by Vercel Cron Jobs on schedule (configured in vercel.json)

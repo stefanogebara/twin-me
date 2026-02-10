@@ -18,6 +18,7 @@ import { Activity, RefreshCw, Sparkles, ArrowLeft, AlertCircle, Heart, Zap, Moon
 import { useNavigate } from 'react-router-dom';
 import { getDemoWhoopData } from '@/services/demoDataService';
 import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer, Cell, Tooltip as RechartsTooltip, AreaChart, Area } from 'recharts';
+import { toast } from 'sonner';
 
 interface Reflection {
   id: string | null;
@@ -281,6 +282,7 @@ const WhoopInsightsPage: React.FC = () => {
       await fetchInsights();
     } catch (err) {
       console.error('Failed to refresh insights:', err);
+      toast.error('Refresh failed', { description: 'Unable to refresh Whoop insights. Please try again.' });
     } finally {
       setRefreshing(false);
     }

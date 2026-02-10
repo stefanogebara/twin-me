@@ -110,7 +110,7 @@ const Index = () => {
                   color: theme === 'dark' ? '#232320' : '#ffffff'
                 }}
               >
-                Get a Demo
+                Dashboard
               </button>
             ) : (
               <>
@@ -274,7 +274,10 @@ const Index = () => {
               {[
                 { name: 'Spotify', color: '#1DB954' },
                 { name: 'Google Calendar', color: '#4285F4' },
-                { name: 'Whoop', color: '#06B6D4' }
+                { name: 'Whoop', color: '#06B6D4' },
+                { name: 'YouTube', color: '#FF0000' },
+                { name: 'Twitch', color: '#9146FF' },
+                { name: 'LinkedIn', color: '#0A66C2' }
               ].map((platform) => (
                 <div
                   key={platform.name}
@@ -350,7 +353,7 @@ const Index = () => {
               {
                 step: '01',
                 title: 'Connect',
-                desc: 'Link your core platforms - Spotify, Google Calendar, and Whoop'
+                desc: 'Link your platforms - Spotify, Calendar, Whoop, YouTube, and more'
               },
               {
                 step: '02',
@@ -559,7 +562,7 @@ const Index = () => {
               color: theme === 'dark' ? 'rgba(193, 192, 182, 0.5)' : '#a8a29e'
             }}
           >
-            {new Date().getFullYear()} Twin Me. All rights reserved.
+            &copy; {new Date().getFullYear()} Twin Me. All rights reserved.
           </span>
           <div className="flex gap-6">
             {['Privacy', 'Terms', 'Contact'].map((link) => (

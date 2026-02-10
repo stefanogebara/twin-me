@@ -110,7 +110,7 @@ export const BackButton: React.FC<BackButtonProps> = ({
       {showLabel && (
         <span
           style={{
-            fontFamily: 'var(--_typography---font--styrene-a)',
+            fontFamily: 'var(--font-heading)',
             letterSpacing: '-0.01em'
           }}
         >

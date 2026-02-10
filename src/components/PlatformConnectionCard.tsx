@@ -75,7 +75,7 @@ export const PlatformConnectionCard: React.FC<PlatformConnectionCardProps> = ({
           <div>
             <span
               style={{
-                fontFamily: 'var(--_typography---font--tiempos)',
+                fontFamily: 'var(--font-body)',
                 color: 'hsl(var(--claude-text))'
               }}
             >
@@ -132,7 +132,7 @@ export const PlatformConnectionCard: React.FC<PlatformConnectionCardProps> = ({
         <div>
           <span
             style={{
-              fontFamily: 'var(--_typography---font--tiempos)',
+              fontFamily: 'var(--font-body)',
               color: 'hsl(var(--claude-text))'
             }}
           >

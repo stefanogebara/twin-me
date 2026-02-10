@@ -18,6 +18,7 @@ import { Music, RefreshCw, Sparkles, ArrowLeft, AlertCircle, Disc3, Users, Clock
 import { useNavigate } from 'react-router-dom';
 import { getDemoSpotifyData } from '@/services/demoDataService';
 import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer, Cell, Tooltip as RechartsTooltip, PieChart as RechartsPie, Pie } from 'recharts';
+import { toast } from 'sonner';
 
 /**
  * Format a timestamp into a human-readable relative time string
@@ -280,6 +281,7 @@ const SpotifyInsightsPage: React.FC = () => {
       await fetchInsights();
     } catch (err) {
       console.error('Failed to refresh insights:', err);
+      toast.error('Refresh failed', { description: 'Unable to refresh Spotify insights. Please try again.' });
     } finally {
       setRefreshing(false);
     }

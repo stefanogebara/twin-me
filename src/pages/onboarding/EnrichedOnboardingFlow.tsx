@@ -78,7 +78,7 @@ const EnrichedOnboardingFlow: React.FC = () => {
       checkOnboardingStatus();
     } else if (!authLoading && !user) {
       // Not logged in, redirect to login
-      navigate('/login');
+      navigate('/auth');
     }
   }, [user, authLoading, navigate]);
 
@@ -169,7 +169,7 @@ const EnrichedOnboardingFlow: React.FC = () => {
             className="w-8 h-8 animate-spin mx-auto mb-4"
             style={{ color: '#E8D5B7' }}
           />
-          <p style={{ color: 'rgba(232, 213, 183, 0.6)', fontFamily: "'Space Grotesk', sans-serif" }}>
+          <p style={{ color: 'rgba(232, 213, 183, 0.6)', fontFamily: 'var(--font-body)' }}>
             Preparing your experience...
           </p>
         </div>
@@ -230,11 +230,11 @@ const EnrichedOnboardingFlow: React.FC = () => {
             </div>
             <h2
               className="text-2xl mb-2"
-              style={{ fontFamily: "'Cormorant Garamond', serif", color: '#E8D5B7' }}
+              style={{ fontFamily: 'var(--font-heading)', color: '#E8D5B7' }}
             >
               Setup Complete
             </h2>
-            <p style={{ color: 'rgba(232, 213, 183, 0.6)', fontFamily: "'Space Grotesk', sans-serif" }}>
+            <p style={{ color: 'rgba(232, 213, 183, 0.6)', fontFamily: 'var(--font-body)' }}>
               Taking you to your dashboard...
             </p>
           </div>

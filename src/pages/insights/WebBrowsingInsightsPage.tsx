@@ -14,6 +14,7 @@ import { TwinReflection, PatternObservation } from './components/TwinReflection'
 import { EvidenceSection } from './components/EvidenceSection';
 import { Globe, RefreshCw, Sparkles, ArrowLeft, AlertCircle, Search, BarChart3, BookOpen, Clock, Layout } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { toast } from 'sonner';
 
 interface Reflection {
   id: string | null;
@@ -278,6 +279,7 @@ const WebBrowsingInsightsPage: React.FC = () => {
       await fetchInsights();
     } catch (err) {
       console.error('Failed to refresh insights:', err);
+      toast.error('Refresh failed', { description: 'Unable to refresh Web Browsing insights. Please try again.' });
     } finally {
       setRefreshing(false);
     }
@@ -332,13 +334,22 @@ const WebBrowsingInsightsPage: React.FC = () => {
           <p className="text-sm text-center max-w-md" style={{ color: colors.textSecondary }}>
             Install the Soul Signature browser extension and browse the web to start capturing your digital life patterns.
           </p>
-          <button
-            onClick={() => navigate('/dashboard')}
-            className="px-4 py-2 rounded-lg glass-button"
-            style={{ color: colors.text }}
-          >
-            Back to Dashboard
-          </button>
+          <div className="flex gap-3">
+            <button
+              onClick={() => navigate('/get-started')}
+              className="px-4 py-2 rounded-lg glass-button"
+              style={{ color: colors.accent, borderColor: colors.accent, borderWidth: '1px' }}
+            >
+              Install Extension
+            </button>
+            <button
+              onClick={() => navigate('/dashboard')}
+              className="px-4 py-2 rounded-lg glass-button"
+              style={{ color: colors.text }}
+            >
+              Back to Dashboard
+            </button>
+          </div>
         </div>
       </PageLayout>
     );

@@ -79,7 +79,7 @@ export const SoulSignatureOrbs: React.FC<SoulSignatureOrbsProps> = ({ data }) =>
       <div className="mb-8 text-center relative z-10">
         <div className="flex items-center justify-center gap-3 mb-3">
           <Sparkles className="w-8 h-8 text-[#D97706]" />
-          <h2 className="text-3xl font-bold text-stone-900" style={{ fontFamily: 'var(--_typography---font--styrene-a)' }}>
+          <h2 className="text-3xl font-bold text-stone-900" style={{ fontFamily: 'var(--font-heading)' }}>
             Your Soul Signature
           </h2>
         </div>
@@ -96,7 +96,7 @@ export const SoulSignatureOrbs: React.FC<SoulSignatureOrbsProps> = ({ data }) =>
           <div>
             <div className="flex items-center gap-2 mb-4">
               <div className="w-3 h-3 rounded-full bg-[#F59E0B]"></div>
-              <h3 className="text-lg font-semibold text-stone-800" style={{ fontFamily: 'var(--_typography---font--styrene-a)' }}>
+              <h3 className="text-lg font-semibold text-stone-800" style={{ fontFamily: 'var(--font-heading)' }}>
                 Personal Life
               </h3>
             </div>
@@ -164,7 +164,7 @@ export const SoulSignatureOrbs: React.FC<SoulSignatureOrbsProps> = ({ data }) =>
           <div>
             <div className="flex items-center gap-2 mb-4">
               <div className="w-3 h-3 rounded-full bg-[#3B82F6]"></div>
-              <h3 className="text-lg font-semibold text-stone-800" style={{ fontFamily: 'var(--_typography---font--styrene-a)' }}>
+              <h3 className="text-lg font-semibold text-stone-800" style={{ fontFamily: 'var(--font-heading)' }}>
                 Professional Life
               </h3>
             </div>
@@ -230,7 +230,7 @@ export const SoulSignatureOrbs: React.FC<SoulSignatureOrbsProps> = ({ data }) =>
           <div>
             <div className="flex items-center gap-2 mb-4">
               <div className="w-3 h-3 rounded-full bg-[#8B5CF6]"></div>
-              <h3 className="text-lg font-semibold text-stone-800" style={{ fontFamily: 'var(--_typography---font--styrene-a)' }}>
+              <h3 className="text-lg font-semibold text-stone-800" style={{ fontFamily: 'var(--font-heading)' }}>
                 Creative Life
               </h3>
             </div>

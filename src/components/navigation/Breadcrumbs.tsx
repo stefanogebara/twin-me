@@ -60,7 +60,7 @@ export const Breadcrumbs: React.FC<BreadcrumbsProps> = ({ className = '' }) => {
                 <span
                   className="text-[hsl(var(--claude-text))] font-medium"
                   style={{
-                    fontFamily: 'var(--_typography---font--styrene-a)',
+                    fontFamily: 'var(--font-heading)',
                   }}
                   title={isTruncated ? crumb.label : undefined}
                   aria-current="page"
@@ -72,7 +72,7 @@ export const Breadcrumbs: React.FC<BreadcrumbsProps> = ({ className = '' }) => {
                   to={crumb.path}
                   className="text-[hsl(var(--claude-text-muted))] hover:text-[hsl(var(--claude-accent))] transition-colors"
                   style={{
-                    fontFamily: 'var(--_typography---font--tiempos)',
+                    fontFamily: 'var(--font-body)',
                   }}
                   title={isTruncated ? crumb.label : undefined}
                 >

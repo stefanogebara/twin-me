@@ -530,7 +530,7 @@ const OAuthCallback = () => {
             <Brain className="w-6 h-6" style={{ color: theme === 'dark' ? '#232320' : '#ffffff' }} />
           </div>
           <h1 className="text-2xl font-medium" style={{
-            fontFamily: 'var(--_typography---font--styrene-a)',
+            fontFamily: 'var(--font-heading)',
             letterSpacing: '-0.02em',
             color: theme === 'dark' ? '#C1C0B6' : '#0c0a09'
           }}>
@@ -550,7 +550,7 @@ const OAuthCallback = () => {
           return (
             <>
               <h2 className="text-xl mb-2 font-medium" style={{
-                fontFamily: 'var(--_typography---font--styrene-a)',
+                fontFamily: 'var(--font-heading)',
                 letterSpacing: '-0.02em',
                 color: theme === 'dark' ? '#C1C0B6' : '#0c0a09'
               }}>
@@ -560,7 +560,7 @@ const OAuthCallback = () => {
               </h2>
 
               <p className="text-sm" style={{
-                fontFamily: 'var(--_typography---font--tiempos)',
+                fontFamily: 'var(--font-body)',
                 color: theme === 'dark' ? 'rgba(193, 192, 182, 0.8)' : '#57534e'
               }}>
                 {displayMessage}
@@ -584,7 +584,7 @@ const OAuthCallback = () => {
             onClick={() => navigate('/auth')}
             className="mt-6 px-6 py-2 rounded-lg font-medium transition-all"
             style={{
-              fontFamily: 'var(--_typography---font--styrene-a)',
+              fontFamily: 'var(--font-heading)',
               letterSpacing: '-0.02em',
               backgroundColor: theme === 'dark' ? '#C1C0B6' : '#0c0a09',
               color: theme === 'dark' ? '#232320' : '#ffffff',

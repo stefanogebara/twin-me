@@ -34,7 +34,7 @@ export const MinimalTopBar: React.FC<MinimalTopBarProps> = ({ onMenuClick }) => 
           <button
             onClick={() => navigate('/dashboard')}
             className="text-2xl font-bold text-stone-900 hover:text-stone-700 transition-colors"
-            style={{ fontFamily: 'var(--_typography---font--styrene-a)', fontWeight: 500 }}
+            style={{ fontFamily: 'var(--font-heading)', fontWeight: 500 }}
           >
             Twin Me
           </button>

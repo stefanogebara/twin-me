@@ -27,7 +27,8 @@ import {
   Eye,
   Video,
   Tv,
-  Globe
+  Globe,
+  BookOpen
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -67,6 +68,18 @@ const mainNavItems: NavItem[] = [
     label: 'Twin\'s Brain',
     icon: Brain,
     path: '/brain'
+  },
+  {
+    id: 'journal',
+    label: 'Soul Journal',
+    icon: BookOpen,
+    path: '/journal'
+  },
+  {
+    id: 'personality',
+    label: 'Personality',
+    icon: TrendingUp,
+    path: '/personality'
   },
   {
     id: 'chat',

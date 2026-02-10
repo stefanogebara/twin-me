@@ -17,6 +17,7 @@ import { EvidenceSection } from './components/EvidenceSection';
 import { Calendar, RefreshCw, Sparkles, ArrowLeft, AlertCircle, Clock, CalendarDays, Users, Target, Presentation, Dumbbell, BookOpen } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { DEMO_CALENDAR_DATA } from '@/services/demoDataService';
+import { toast } from 'sonner';
 
 interface Reflection {
   id: string | null;
@@ -258,6 +259,7 @@ const CalendarInsightsPage: React.FC = () => {
       await fetchInsights();
     } catch (err) {
       console.error('Failed to refresh insights:', err);
+      toast.error('Refresh failed', { description: 'Unable to refresh Calendar insights. Please try again.' });
     } finally {
       setRefreshing(false);
     }

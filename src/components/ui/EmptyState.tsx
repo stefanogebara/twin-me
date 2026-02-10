@@ -134,7 +134,7 @@ export const EmptyState: React.FC<EmptyStateProps> = ({
         variants={animate ? textVariants : undefined}
       >
         <h3 className="text-2xl text-stone-900 mb-2"
-            style={{ fontFamily: 'var(--_typography---font--styrene-a)', fontWeight: 500 }}>
+            style={{ fontFamily: 'var(--font-heading)', fontWeight: 500 }}>
           {title}
         </h3>
         <p className="text-stone-600 text-base leading-relaxed">

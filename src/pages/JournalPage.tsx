@@ -1,0 +1,725 @@
+import React, { useState, useEffect, useCallback } from 'react';
+import { useTheme } from '@/contexts/ThemeContext';
+import { useAuth } from '@/contexts/AuthContext';
+import { useDemo } from '@/contexts/DemoContext';
+import { PageLayout, GlassPanel } from '@/components/layout/PageLayout';
+import { journalAPI } from '@/services/apiService';
+import type { JournalEntry, JournalAnalysis, JournalInsights } from '@/services/apiService';
+import { getDemoJournalData } from '@/services/demoDataService';
+import {
+  BookOpen,
+  Plus,
+  Sparkles,
+  Send,
+  X,
+  ChevronDown,
+  ChevronUp,
+  Trash2,
+  Edit3,
+  Brain,
+  Loader2,
+  Tag,
+  Zap,
+  TrendingUp,
+  Heart
+} from 'lucide-react';
+
+// Mood config with emoji and color
+const MOOD_CONFIG: Record<string, { emoji: string; label: string; color: string }> = {
+  happy: { emoji: '\u{1F60A}', label: 'Happy', color: '#4CAF50' },
+  calm: { emoji: '\u{1F60C}', label: 'Calm', color: '#2196F3' },
+  anxious: { emoji: '\u{1F630}', label: 'Anxious', color: '#FF9800' },
+  sad: { emoji: '\u{1F614}', label: 'Sad', color: '#9E9E9E' },
+  energized: { emoji: '\u{26A1}', label: 'Energized', color: '#FFEB3B' },
+  reflective: { emoji: '\u{1F914}', label: 'Reflective', color: '#9C27B0' },
+  grateful: { emoji: '\u{1F64F}', label: 'Grateful', color: '#E91E63' },
+  frustrated: { emoji: '\u{1F624}', label: 'Frustrated', color: '#F44336' },
+};
+
+const JournalPage: React.FC = () => {
+  const { theme } = useTheme();
+  const { user } = useAuth();
+  const { isDemoMode } = useDemo();
+
+  // State
+  const [entries, setEntries] = useState<JournalEntry[]>([]);
+  const [insights, setInsights] = useState<JournalInsights | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [showComposer, setShowComposer] = useState(false);
+  const [expandedEntry, setExpandedEntry] = useState<string | null>(null);
+  const [analyzingId, setAnalyzingId] = useState<string | null>(null);
+  const [editingId, setEditingId] = useState<string | null>(null);
+
+  // Composer state
+  const [title, setTitle] = useState('');
+  const [content, setContent] = useState('');
+  const [mood, setMood] = useState<string | null>(null);
+  const [energyLevel, setEnergyLevel] = useState<number>(3);
+  const [tags, setTags] = useState<string[]>([]);
+  const [tagInput, setTagInput] = useState('');
+  const [saving, setSaving] = useState(false);
+
+  const isDark = theme === 'dark';
+  const textPrimary = isDark ? '#C1C0B6' : '#0c0a09';
+  const textSecondary = isDark ? 'rgba(193, 192, 182, 0.7)' : '#57534e';
+  const borderColor = isDark ? 'rgba(193, 192, 182, 0.12)' : 'rgba(0, 0, 0, 0.08)';
+  const inputBg = isDark ? 'rgba(193, 192, 182, 0.06)' : 'rgba(0, 0, 0, 0.03)';
+
+  // Load data
+  const loadData = useCallback(async () => {
+    setLoading(true);
+    try {
+      if (isDemoMode) {
+        const demoData = getDemoJournalData();
+        setEntries(demoData.entries as unknown as JournalEntry[]);
+        setInsights(demoData.insights as JournalInsights);
+      } else {
+        const [entriesRes, insightsRes] = await Promise.all([
+          journalAPI.getEntries(1, 50),
+          journalAPI.getInsights().catch(() => ({ insights: null }))
+        ]);
+        setEntries(entriesRes.entries);
+        setInsights(insightsRes.insights);
+      }
+    } catch (err) {
+      console.error('Failed to load journal data:', err);
+    } finally {
+      setLoading(false);
+    }
+  }, [isDemoMode]);
+
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
+
+  // Reset composer
+  const resetComposer = () => {
+    setTitle('');
+    setContent('');
+    setMood(null);
+    setEnergyLevel(3);
+    setTags([]);
+    setTagInput('');
+    setShowComposer(false);
+    setEditingId(null);
+  };
+
+  // Save entry
+  const handleSave = async () => {
+    if (!content.trim()) return;
+    setSaving(true);
+    try {
+      if (isDemoMode) {
+        // In demo mode, add locally
+        const newEntry: JournalEntry = {
+          id: `demo-new-${Date.now()}`,
+          user_id: 'demo',
+          title: title.trim() || null,
+          content: content.trim(),
+          mood: mood as JournalEntry['mood'],
+          energy_level: energyLevel,
+          tags,
+          is_analyzed: false,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+          journal_analyses: []
+        };
+        setEntries(prev => [newEntry, ...prev]);
+        resetComposer();
+        return;
+      }
+
+      if (editingId) {
+        const result = await journalAPI.updateEntry(editingId, {
+          title: title.trim() || undefined,
+          content: content.trim(),
+          mood: mood || undefined,
+          energy_level: energyLevel,
+          tags
+        });
+        setEntries(prev => prev.map(e => e.id === editingId ? { ...e, ...result.entry } : e));
+      } else {
+        const result = await journalAPI.createEntry({
+          title: title.trim() || undefined,
+          content: content.trim(),
+          mood: mood || undefined,
+          energy_level: energyLevel,
+          tags
+        });
+        setEntries(prev => [result.entry, ...prev]);
+      }
+      resetComposer();
+    } catch (err) {
+      console.error('Failed to save entry:', err);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  // Delete entry
+  const handleDelete = async (id: string) => {
+    if (isDemoMode) {
+      setEntries(prev => prev.filter(e => e.id !== id));
+      return;
+    }
+    try {
+      await journalAPI.deleteEntry(id);
+      setEntries(prev => prev.filter(e => e.id !== id));
+    } catch (err) {
+      console.error('Failed to delete entry:', err);
+    }
+  };
+
+  // Analyze entry
+  const handleAnalyze = async (id: string) => {
+    if (isDemoMode) return;
+    setAnalyzingId(id);
+    try {
+      const result = await journalAPI.analyzeEntry(id);
+      setEntries(prev => prev.map(e =>
+        e.id === id
+          ? { ...e, is_analyzed: true, journal_analyses: [result.analysis] }
+          : e
+      ));
+    } catch (err) {
+      console.error('Failed to analyze entry:', err);
+    } finally {
+      setAnalyzingId(null);
+    }
+  };
+
+  // Edit entry
+  const handleEdit = (entry: JournalEntry) => {
+    setEditingId(entry.id);
+    setTitle(entry.title || '');
+    setContent(entry.content);
+    setMood(entry.mood);
+    setEnergyLevel(entry.energy_level || 3);
+    setTags(entry.tags || []);
+    setShowComposer(true);
+  };
+
+  // Add tag
+  const handleAddTag = () => {
+    const t = tagInput.trim().toLowerCase();
+    if (t && !tags.includes(t) && tags.length < 5) {
+      setTags(prev => [...prev, t]);
+      setTagInput('');
+    }
+  };
+
+  // Format date
+  const formatDate = (dateStr: string) => {
+    const date = new Date(dateStr);
+    const now = new Date();
+    const diffMs = now.getTime() - date.getTime();
+    const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+
+    if (diffDays === 0) return 'Today';
+    if (diffDays === 1) return 'Yesterday';
+    if (diffDays < 7) return `${diffDays} days ago`;
+    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  };
+
+  const formatFullDate = (dateStr: string) => {
+    return new Date(dateStr).toLocaleDateString('en-US', {
+      weekday: 'long',
+      month: 'long',
+      day: 'numeric',
+      year: 'numeric'
+    });
+  };
+
+  return (
+    <PageLayout title="Soul Journal" subtitle="Discover yourself through your own words">
+      <div className="space-y-6">
+
+        {/* AI Insight Card */}
+        {insights && insights.analyzedEntries > 0 && (
+          <GlassPanel className="relative overflow-hidden">
+            <div className="flex items-start gap-4">
+              <div className="w-10 h-10 rounded-full flex items-center justify-center" style={{ background: isDark ? 'rgba(193, 192, 182, 0.1)' : 'rgba(0,0,0,0.05)' }}>
+                <Brain className="w-5 h-5" style={{ color: textPrimary }} />
+              </div>
+              <div className="flex-1 min-w-0">
+                <h3 className="text-sm font-medium mb-2" style={{ color: textPrimary, fontFamily: 'var(--font-heading)' }}>
+                  Your Journal Patterns
+                </h3>
+                {insights.recentSummaries.length > 0 && (
+                  <p className="text-sm mb-3" style={{ color: textSecondary, fontFamily: 'var(--font-body)' }}>
+                    {insights.recentSummaries[0]}
+                  </p>
+                )}
+                <div className="flex flex-wrap gap-2">
+                  {insights.topThemes.slice(0, 4).map(t => (
+                    <span
+                      key={t.theme}
+                      className="px-2.5 py-1 rounded-full text-xs"
+                      style={{
+                        background: isDark ? 'rgba(193, 192, 182, 0.08)' : 'rgba(0,0,0,0.04)',
+                        color: textSecondary,
+                        border: `1px solid ${borderColor}`
+                      }}
+                    >
+                      {t.theme}
+                    </span>
+                  ))}
+                  {insights.avgEnergy !== null && (
+                    <span
+                      className="px-2.5 py-1 rounded-full text-xs flex items-center gap-1"
+                      style={{
+                        background: isDark ? 'rgba(193, 192, 182, 0.08)' : 'rgba(0,0,0,0.04)',
+                        color: textSecondary,
+                        border: `1px solid ${borderColor}`
+                      }}
+                    >
+                      <Zap className="w-3 h-3" /> Avg energy: {insights.avgEnergy}/5
+                    </span>
+                  )}
+                </div>
+              </div>
+            </div>
+          </GlassPanel>
+        )}
+
+        {/* New Entry Button */}
+        {!showComposer && (
+          <button
+            onClick={() => setShowComposer(true)}
+            className="w-full flex items-center gap-3 p-4 rounded-2xl transition-all duration-200 hover:scale-[1.01]"
+            style={{
+              background: isDark ? 'rgba(193, 192, 182, 0.06)' : 'rgba(0,0,0,0.03)',
+              border: `1px dashed ${borderColor}`,
+              color: textSecondary
+            }}
+          >
+            <Plus className="w-5 h-5" />
+            <span className="text-sm" style={{ fontFamily: 'var(--font-body)' }}>
+              Write about your day...
+            </span>
+          </button>
+        )}
+
+        {/* Composer */}
+        {showComposer && (
+          <GlassPanel>
+            <div className="space-y-4">
+              {/* Header */}
+              <div className="flex items-center justify-between">
+                <h3 className="text-sm font-medium" style={{ color: textPrimary, fontFamily: 'var(--font-heading)' }}>
+                  {editingId ? 'Edit Entry' : 'New Entry'}
+                </h3>
+                <button onClick={resetComposer} className="p-1 rounded-lg transition-colors hover:bg-black/5 dark:hover:bg-white/5">
+                  <X className="w-4 h-4" style={{ color: textSecondary }} />
+                </button>
+              </div>
+
+              {/* Title */}
+              <input
+                type="text"
+                placeholder="Title (optional)"
+                value={title}
+                onChange={e => setTitle(e.target.value)}
+                className="w-full px-3 py-2 rounded-xl text-sm outline-none transition-colors"
+                style={{
+                  background: inputBg,
+                  border: `1px solid ${borderColor}`,
+                  color: textPrimary,
+                  fontFamily: 'var(--font-heading)'
+                }}
+              />
+
+              {/* Content */}
+              <textarea
+                placeholder="How was your day? What's on your mind?"
+                value={content}
+                onChange={e => setContent(e.target.value)}
+                rows={5}
+                className="w-full px-3 py-2 rounded-xl text-sm outline-none resize-none transition-colors"
+                style={{
+                  background: inputBg,
+                  border: `1px solid ${borderColor}`,
+                  color: textPrimary,
+                  fontFamily: 'var(--font-body)'
+                }}
+                autoFocus
+              />
+
+              {/* Mood Selector */}
+              <div>
+                <label className="text-xs mb-2 block" style={{ color: textSecondary }}>How are you feeling?</label>
+                <div className="flex flex-wrap gap-2">
+                  {Object.entries(MOOD_CONFIG).map(([key, cfg]) => (
+                    <button
+                      key={key}
+                      onClick={() => setMood(mood === key ? null : key)}
+                      className="px-3 py-1.5 rounded-full text-xs transition-all"
+                      style={{
+                        background: mood === key ? `${cfg.color}20` : inputBg,
+                        border: `1px solid ${mood === key ? cfg.color : borderColor}`,
+                        color: mood === key ? cfg.color : textSecondary
+                      }}
+                    >
+                      {cfg.emoji} {cfg.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Energy Level */}
+              <div>
+                <label className="text-xs mb-2 block" style={{ color: textSecondary }}>
+                  Energy level: {energyLevel}/5
+                </label>
+                <div className="flex gap-2">
+                  {[1, 2, 3, 4, 5].map(level => (
+                    <button
+                      key={level}
+                      onClick={() => setEnergyLevel(level)}
+                      className="w-10 h-10 rounded-xl text-sm font-medium transition-all"
+                      style={{
+                        background: energyLevel >= level
+                          ? isDark ? 'rgba(193, 192, 182, 0.15)' : 'rgba(0,0,0,0.08)'
+                          : inputBg,
+                        border: `1px solid ${energyLevel >= level ? (isDark ? 'rgba(193,192,182,0.3)' : 'rgba(0,0,0,0.15)') : borderColor}`,
+                        color: textPrimary
+                      }}
+                    >
+                      {level}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Tags */}
+              <div>
+                <label className="text-xs mb-2 block" style={{ color: textSecondary }}>Tags</label>
+                <div className="flex flex-wrap gap-2 mb-2">
+                  {tags.map(t => (
+                    <span
+                      key={t}
+                      className="px-2 py-1 rounded-full text-xs flex items-center gap-1"
+                      style={{
+                        background: isDark ? 'rgba(193, 192, 182, 0.1)' : 'rgba(0,0,0,0.05)',
+                        color: textSecondary,
+                        border: `1px solid ${borderColor}`
+                      }}
+                    >
+                      <Tag className="w-3 h-3" />
+                      {t}
+                      <button onClick={() => setTags(prev => prev.filter(x => x !== t))} className="ml-0.5 hover:opacity-70">
+                        <X className="w-3 h-3" />
+                      </button>
+                    </span>
+                  ))}
+                </div>
+                {tags.length < 5 && (
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      placeholder="Add tag..."
+                      value={tagInput}
+                      onChange={e => setTagInput(e.target.value)}
+                      onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), handleAddTag())}
+                      className="flex-1 px-3 py-1.5 rounded-lg text-xs outline-none"
+                      style={{
+                        background: inputBg,
+                        border: `1px solid ${borderColor}`,
+                        color: textPrimary
+                      }}
+                    />
+                  </div>
+                )}
+              </div>
+
+              {/* Actions */}
+              <div className="flex items-center justify-end gap-2 pt-2">
+                <button
+                  onClick={resetComposer}
+                  className="px-4 py-2 rounded-xl text-sm transition-colors"
+                  style={{ color: textSecondary }}
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleSave}
+                  disabled={!content.trim() || saving}
+                  className="px-4 py-2 rounded-xl text-sm font-medium flex items-center gap-2 transition-all disabled:opacity-40"
+                  style={{
+                    background: isDark ? '#C1C0B6' : '#0c0a09',
+                    color: isDark ? '#232320' : '#FAFAFA'
+                  }}
+                >
+                  {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+                  {editingId ? 'Update' : 'Save Entry'}
+                </button>
+              </div>
+            </div>
+          </GlassPanel>
+        )}
+
+        {/* Entry List */}
+        {loading ? (
+          <div className="flex items-center justify-center py-20">
+            <Loader2 className="w-6 h-6 animate-spin" style={{ color: textSecondary }} />
+          </div>
+        ) : entries.length === 0 ? (
+          <div className="text-center py-20">
+            <BookOpen className="w-12 h-12 mx-auto mb-4" style={{ color: textSecondary, opacity: 0.4 }} />
+            <h3 className="text-lg mb-2" style={{ color: textPrimary, fontFamily: 'var(--font-heading)' }}>
+              Your journal is empty
+            </h3>
+            <p className="text-sm" style={{ color: textSecondary }}>
+              Start writing to discover patterns in how you see yourself.
+            </p>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {entries.map(entry => {
+              const isExpanded = expandedEntry === entry.id;
+              const analysis = entry.journal_analyses?.[0];
+              const moodCfg = entry.mood ? MOOD_CONFIG[entry.mood] : null;
+
+              return (
+                <GlassPanel key={entry.id} className="cursor-pointer transition-all hover:scale-[1.005]">
+                  {/* Entry Header */}
+                  <div
+                    className="flex items-start gap-3"
+                    onClick={() => setExpandedEntry(isExpanded ? null : entry.id)}
+                  >
+                    {/* Date Column */}
+                    <div className="text-center min-w-[48px]">
+                      <div className="text-xs" style={{ color: textSecondary }}>{formatDate(entry.created_at)}</div>
+                      {moodCfg && (
+                        <div className="text-lg mt-1">{moodCfg.emoji}</div>
+                      )}
+                    </div>
+
+                    {/* Content */}
+                    <div className="flex-1 min-w-0">
+                      {entry.title && (
+                        <h4 className="text-sm font-medium mb-1" style={{ color: textPrimary, fontFamily: 'var(--font-heading)' }}>
+                          {entry.title}
+                        </h4>
+                      )}
+                      <p
+                        className={`text-sm ${!isExpanded ? 'line-clamp-2' : ''}`}
+                        style={{ color: textSecondary, fontFamily: 'var(--font-body)' }}
+                      >
+                        {entry.content}
+                      </p>
+
+                      {/* Tags */}
+                      {entry.tags?.length > 0 && (
+                        <div className="flex flex-wrap gap-1.5 mt-2">
+                          {entry.tags.map(t => (
+                            <span
+                              key={t}
+                              className="px-2 py-0.5 rounded-full text-[10px]"
+                              style={{
+                                background: isDark ? 'rgba(193, 192, 182, 0.06)' : 'rgba(0,0,0,0.03)',
+                                color: textSecondary,
+                                border: `1px solid ${borderColor}`
+                              }}
+                            >
+                              {t}
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Expand icon */}
+                    <div className="flex items-center gap-1">
+                      {entry.is_analyzed && (
+                        <Sparkles className="w-3.5 h-3.5" style={{ color: '#9C27B0', opacity: 0.6 }} />
+                      )}
+                      {isExpanded
+                        ? <ChevronUp className="w-4 h-4" style={{ color: textSecondary }} />
+                        : <ChevronDown className="w-4 h-4" style={{ color: textSecondary }} />
+                      }
+                    </div>
+                  </div>
+
+                  {/* Expanded Content */}
+                  {isExpanded && (
+                    <div className="mt-4 pt-4" style={{ borderTop: `1px solid ${borderColor}` }}>
+                      {/* Entry metadata */}
+                      <div className="flex flex-wrap items-center gap-3 mb-4 text-xs" style={{ color: textSecondary }}>
+                        <span>{formatFullDate(entry.created_at)}</span>
+                        {moodCfg && (
+                          <span className="flex items-center gap-1">
+                            {moodCfg.emoji} {moodCfg.label}
+                          </span>
+                        )}
+                        {entry.energy_level && (
+                          <span className="flex items-center gap-1">
+                            <Zap className="w-3 h-3" /> Energy: {entry.energy_level}/5
+                          </span>
+                        )}
+                      </div>
+
+                      {/* AI Analysis */}
+                      {analysis ? (
+                        <div
+                          className="rounded-xl p-4 space-y-3"
+                          style={{
+                            background: isDark ? 'rgba(156, 39, 176, 0.06)' : 'rgba(156, 39, 176, 0.04)',
+                            border: `1px solid ${isDark ? 'rgba(156, 39, 176, 0.15)' : 'rgba(156, 39, 176, 0.1)'}`
+                          }}
+                        >
+                          <div className="flex items-center gap-2 mb-2">
+                            <Brain className="w-4 h-4" style={{ color: '#9C27B0' }} />
+                            <span className="text-xs font-medium" style={{ color: textPrimary }}>AI Analysis</span>
+                          </div>
+
+                          {/* Summary */}
+                          <p className="text-sm italic" style={{ color: textSecondary }}>
+                            "{analysis.summary}"
+                          </p>
+
+                          {/* Emotions */}
+                          {analysis.emotions?.length > 0 && (
+                            <div>
+                              <div className="text-xs font-medium mb-1.5 flex items-center gap-1" style={{ color: textPrimary }}>
+                                <Heart className="w-3 h-3" /> Emotions detected
+                              </div>
+                              <div className="flex flex-wrap gap-2">
+                                {analysis.emotions.map((em, i) => (
+                                  <div key={i} className="flex items-center gap-1.5">
+                                    <span className="text-xs" style={{ color: textSecondary }}>{em.emotion}</span>
+                                    <div className="w-16 h-1.5 rounded-full overflow-hidden" style={{ background: isDark ? 'rgba(193,192,182,0.1)' : 'rgba(0,0,0,0.06)' }}>
+                                      <div
+                                        className="h-full rounded-full"
+                                        style={{ width: `${em.intensity * 100}%`, background: '#9C27B0' }}
+                                      />
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Personality Signals */}
+                          {analysis.personality_signals?.length > 0 && (
+                            <div>
+                              <div className="text-xs font-medium mb-1.5 flex items-center gap-1" style={{ color: textPrimary }}>
+                                <TrendingUp className="w-3 h-3" /> Personality signals
+                              </div>
+                              <div className="space-y-1">
+                                {analysis.personality_signals.map((sig, i) => (
+                                  <div key={i} className="text-xs" style={{ color: textSecondary }}>
+                                    <span className="font-medium" style={{ color: textPrimary }}>
+                                      {sig.direction === 'high' ? '\u2191' : '\u2193'} {sig.trait}
+                                    </span>
+                                    {' \u2014 '}
+                                    {sig.evidence}
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Self-perception */}
+                          {analysis.self_perception?.how_they_see_themselves && (
+                            <div>
+                              <div className="text-xs font-medium mb-1 flex items-center gap-1" style={{ color: textPrimary }}>
+                                <Sparkles className="w-3 h-3" /> Self-perception
+                              </div>
+                              <p className="text-xs" style={{ color: textSecondary }}>
+                                {analysis.self_perception.how_they_see_themselves}
+                              </p>
+                              {analysis.self_perception.values_expressed?.length > 0 && (
+                                <div className="flex flex-wrap gap-1.5 mt-1.5">
+                                  {analysis.self_perception.values_expressed.map((v, i) => (
+                                    <span
+                                      key={i}
+                                      className="px-2 py-0.5 rounded-full text-[10px]"
+                                      style={{
+                                        background: 'rgba(156, 39, 176, 0.08)',
+                                        color: '#9C27B0',
+                                        border: '1px solid rgba(156, 39, 176, 0.15)'
+                                      }}
+                                    >
+                                      {v}
+                                    </span>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+                          )}
+
+                          {/* Themes */}
+                          {analysis.themes?.length > 0 && (
+                            <div className="flex flex-wrap gap-1.5">
+                              {analysis.themes.map((t, i) => (
+                                <span
+                                  key={i}
+                                  className="px-2 py-0.5 rounded-full text-[10px]"
+                                  style={{
+                                    background: isDark ? 'rgba(193, 192, 182, 0.06)' : 'rgba(0,0,0,0.03)',
+                                    color: textSecondary,
+                                    border: `1px solid ${borderColor}`
+                                  }}
+                                >
+                                  {t}
+                                </span>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      ) : (
+                        /* Analyze button */
+                        !isDemoMode && (
+                          <button
+                            onClick={(e) => { e.stopPropagation(); handleAnalyze(entry.id); }}
+                            disabled={analyzingId === entry.id}
+                            className="flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-medium transition-all disabled:opacity-40"
+                            style={{
+                              background: isDark ? 'rgba(156, 39, 176, 0.1)' : 'rgba(156, 39, 176, 0.06)',
+                              color: '#9C27B0',
+                              border: '1px solid rgba(156, 39, 176, 0.2)'
+                            }}
+                          >
+                            {analyzingId === entry.id
+                              ? <><Loader2 className="w-3.5 h-3.5 animate-spin" /> Analyzing...</>
+                              : <><Sparkles className="w-3.5 h-3.5" /> Analyze with AI</>
+                            }
+                          </button>
+                        )
+                      )}
+
+                      {/* Entry actions */}
+                      <div className="flex items-center gap-2 mt-3 pt-3" style={{ borderTop: `1px solid ${borderColor}` }}>
+                        {!isDemoMode && (
+                          <>
+                            <button
+                              onClick={(e) => { e.stopPropagation(); handleEdit(entry); }}
+                              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs transition-colors hover:bg-black/5 dark:hover:bg-white/5"
+                              style={{ color: textSecondary }}
+                            >
+                              <Edit3 className="w-3.5 h-3.5" /> Edit
+                            </button>
+                            <button
+                              onClick={(e) => { e.stopPropagation(); handleDelete(entry.id); }}
+                              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs transition-colors hover:bg-red-500/10"
+                              style={{ color: '#F44336' }}
+                            >
+                              <Trash2 className="w-3.5 h-3.5" /> Delete
+                            </button>
+                          </>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </GlassPanel>
+              );
+            })}
+          </div>
+        )}
+      </div>
+    </PageLayout>
+  );
+};
+
+export default JournalPage;
