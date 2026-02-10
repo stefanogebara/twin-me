@@ -7,6 +7,7 @@ import dotenv from 'dotenv';
 import { authenticateUser, userRateLimit } from '../middleware/auth.js';
 import { successResponse, errorResponse } from '../middleware/errorHandler.js';
 import { sanitizeUnicode } from '../utils/unicodeSanitizer.js';
+import { CLAUDE_MODEL } from '../config/aiModels.js';
 
 // Ensure environment variables are loaded
 dotenv.config();
@@ -355,7 +356,7 @@ router.post('/chat', authenticateUser, userRateLimit(30, 15 * 60 * 1000), valida
 
     // Call Claude API with enhanced context
     const response = await anthropic.messages.create({
-      model: 'claude-sonnet-4-5-20250929',
+      model: CLAUDE_MODEL,
       max_tokens: 1000,
       temperature: 0.7,
       system: systemPrompt,

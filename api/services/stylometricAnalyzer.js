@@ -6,6 +6,7 @@
 import { createClient } from '@supabase/supabase-js';
 import natural from 'natural';
 import Anthropic from '@anthropic-ai/sdk';
+import { CLAUDE_MODEL } from '../config/aiModels.js';
 
 // Use SUPABASE_URL (backend) - fallback to VITE_ prefix for compatibility
 // Lazy initialization to avoid crashes if env vars not loaded yet
@@ -265,7 +266,7 @@ class StylometricAnalyzer {
       const prompt = this.buildEnhancedPersonalityPrompt(textSample, behavioralData);
 
       const response = await anthropic.messages.create({
-        model: 'claude-sonnet-4-5-20250929',
+        model: CLAUDE_MODEL,
         max_tokens: 1500,
         temperature: 0.3,
         system: 'You are an expert personality psychologist analyzing both writing samples AND behavioral patterns to assess Big Five personality traits. Integrate insights from both text analysis and digital behavior for accurate personality assessment.',

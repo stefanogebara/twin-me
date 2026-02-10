@@ -9,6 +9,7 @@
 
 import Anthropic from '@anthropic-ai/sdk';
 import { analyzeCommunicationPatterns } from './gmail-extractor.js';
+import { CLAUDE_MODEL } from '../config/aiModels.js';
 
 // Initialize Anthropic client
 const anthropic = new Anthropic({
@@ -59,7 +60,7 @@ export async function analyzeEmailStyle(emailData) {
 
     // Call Claude API
     const response = await anthropic.messages.create({
-      model: 'claude-sonnet-4-5-20250929',
+      model: CLAUDE_MODEL,
       max_tokens: 2000,
       temperature: 0.7,
       messages: [
@@ -83,7 +84,7 @@ export async function analyzeEmailStyle(emailData) {
       metadata: {
         analyzedAt: new Date().toISOString(),
         emailCount: emailData.length,
-        model: 'claude-sonnet-4-5-20250929'
+        model: CLAUDE_MODEL
       }
     };
   } catch (error) {

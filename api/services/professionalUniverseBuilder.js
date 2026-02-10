@@ -6,6 +6,7 @@
 
 import { createClient } from '@supabase/supabase-js';
 import Anthropic from '@anthropic-ai/sdk';
+import { CLAUDE_MODEL } from '../config/aiModels.js';
 
 let supabase = null;
 function getSupabaseClient() {
@@ -561,7 +562,7 @@ class ProfessionalUniverseBuilder {
       }, null, 2);
 
       const message = await anthropic.messages.create({
-        model: 'claude-sonnet-4-5-20250929',
+        model: CLAUDE_MODEL,
         max_tokens: 1000,
         messages: [{
           role: 'user',

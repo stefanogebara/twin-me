@@ -9,6 +9,7 @@
 
 import Anthropic from '@anthropic-ai/sdk';
 import { calculateSchedulingPatterns } from './calendar-extractor.js';
+import { CLAUDE_MODEL } from '../config/aiModels.js';
 
 // Initialize Anthropic client
 const anthropic = new Anthropic({
@@ -53,7 +54,7 @@ export async function analyzeCalendarPatterns(calendarData) {
 
     // Call Claude API
     const response = await anthropic.messages.create({
-      model: 'claude-sonnet-4-5-20250929',
+      model: CLAUDE_MODEL,
       max_tokens: 2000,
       temperature: 0.7,
       messages: [
@@ -78,7 +79,7 @@ export async function analyzeCalendarPatterns(calendarData) {
         analyzedAt: new Date().toISOString(),
         eventCount: calendarData.events.length,
         daysAnalyzed: patterns.daysAnalyzed,
-        model: 'claude-sonnet-4-5-20250929'
+        model: CLAUDE_MODEL
       }
     };
   } catch (error) {

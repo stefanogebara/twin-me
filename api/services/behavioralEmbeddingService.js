@@ -7,6 +7,7 @@
 import Anthropic from '@anthropic-ai/sdk';
 import OpenAI from 'openai';
 import { createClient } from '@supabase/supabase-js';
+import { CLAUDE_MODEL } from '../config/aiModels.js';
 
 // Lazy initialization to avoid crashes if env vars not loaded yet
 let supabase = null;
@@ -197,7 +198,7 @@ class BehavioralEmbeddingService {
       // Use Claude to generate a semantic summary, then hash it to vector
       // This is a simplified approach - ideally use a dedicated embedding model
       const response = await anthropic.messages.create({
-        model: 'claude-sonnet-4-5-20250929',
+        model: CLAUDE_MODEL,
         max_tokens: 100,
         messages: [{
           role: 'user',

@@ -13,6 +13,7 @@
 
 import Anthropic from '@anthropic-ai/sdk';
 import { supabaseAdmin } from './database.js';
+import { CLAUDE_MODEL } from '../config/aiModels.js';
 
 // Initialize Anthropic client
 const anthropic = new Anthropic({
@@ -60,7 +61,7 @@ async function extractFacts(userMessage, assistantResponse) {
       .replace('{assistantResponse}', assistantResponse.substring(0, 1000));
 
     const response = await anthropic.messages.create({
-      model: 'claude-sonnet-4-5-20250929',
+      model: CLAUDE_MODEL,
       max_tokens: 500,
       temperature: 0,
       messages: [{ role: 'user', content: prompt }]

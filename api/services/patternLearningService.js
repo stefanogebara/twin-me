@@ -8,6 +8,7 @@
 
 import { createClient } from '@supabase/supabase-js';
 import Anthropic from '@anthropic-ai/sdk';
+import { CLAUDE_MODEL } from '../config/aiModels.js';
 
 // Lazy initialization to avoid crashes if env vars not loaded yet
 let supabase = null;
@@ -196,7 +197,7 @@ class PatternLearningService {
         .join('\n');
 
       const response = await getAnthropicClient().messages.create({
-        model: 'claude-sonnet-4-5-20250929',
+        model: CLAUDE_MODEL,
         max_tokens: 1024,
         messages: [{
           role: 'user',
@@ -365,7 +366,7 @@ Return as JSON:
 
       // Generate insights with Claude
       const response = await getAnthropicClient().messages.create({
-        model: 'claude-sonnet-4-5-20250929',
+        model: CLAUDE_MODEL,
         max_tokens: 2048,
         messages: [{
           role: 'user',
