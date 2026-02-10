@@ -8,6 +8,7 @@ import {
   oauthCallbackLimiter
 } from '../middleware/oauthRateLimiter.js';
 import { invalidatePlatformStatusCache } from '../services/redisClient.js';
+import { proxyRequest as nangoProxyRequest } from '../services/nangoService.js';
 
 const supabase = createClient(
   process.env.SUPABASE_URL,
@@ -1542,64 +1543,90 @@ router.get('/whoop/current-state', async (req, res) => {
       });
     }
 
-    // Check token expiration and refresh if needed
-    let accessToken = decryptToken(connection.access_token);
-
-    if (connection.token_expires_at && new Date(connection.token_expires_at) < new Date()) {
-      console.log('[Whoop Current State] Token expired, refreshing...');
-      const refreshedToken = await refreshWhoopToken(userId, connection.refresh_token);
-      if (!refreshedToken) {
-        return res.status(401).json({
-          success: false,
-          error: 'Failed to refresh Whoop token',
-          needsReconnect: true
-        });
-      }
-      accessToken = refreshedToken;
-    }
-
-    // Fetch current cycle (today's data)
-    const cycleResponse = await fetch('https://api.prod.whoop.com/developer/v2/cycle?limit=1', {
-      headers: {
-        'Authorization': `Bearer ${accessToken}`,
-        'Content-Type': 'application/json'
-      }
-    });
+    // Check if this is a Nango-managed connection (token is not encrypted, use proxy)
+    const isNangoManaged = connection.access_token === 'NANGO_MANAGED';
 
     let currentCycle = null;
-    if (cycleResponse.ok) {
-      const cycleData = await cycleResponse.json();
-      currentCycle = cycleData.records?.[0] || null;
-    }
-
-    // Fetch latest recovery
-    const recoveryResponse = await fetch('https://api.prod.whoop.com/developer/v2/recovery?limit=1', {
-      headers: {
-        'Authorization': `Bearer ${accessToken}`,
-        'Content-Type': 'application/json'
-      }
-    });
-
     let latestRecovery = null;
-    if (recoveryResponse.ok) {
-      const recoveryData = await recoveryResponse.json();
-      latestRecovery = recoveryData.records?.[0] || null;
-    }
-
-    // Fetch recent sleeps (last 5 to capture main sleep + naps from today)
-    const sleepResponse = await fetch('https://api.prod.whoop.com/developer/v2/activity/sleep?limit=5', {
-      headers: {
-        'Authorization': `Bearer ${accessToken}`,
-        'Content-Type': 'application/json'
-      }
-    });
-
     let allSleeps = [];
     let latestSleep = null;
-    if (sleepResponse.ok) {
-      const sleepData = await sleepResponse.json();
-      allSleeps = sleepData.records || [];
-      latestSleep = allSleeps[0] || null;
+
+    if (isNangoManaged) {
+      // Use Nango proxy for all Whoop API calls (handles token refresh automatically)
+      console.log('[Whoop Current State] Using Nango proxy for NANGO_MANAGED connection');
+
+      const [cycleResult, recoveryResult, sleepResult] = await Promise.all([
+        nangoProxyRequest(userId, 'whoop', '/developer/v2/cycle', { params: { limit: '1' } }).catch(e => ({ success: false, error: e.message })),
+        nangoProxyRequest(userId, 'whoop', '/developer/v2/recovery', { params: { limit: '1' } }).catch(e => ({ success: false, error: e.message })),
+        nangoProxyRequest(userId, 'whoop', '/developer/v2/activity/sleep', { params: { limit: '5' } }).catch(e => ({ success: false, error: e.message }))
+      ]);
+
+      if (cycleResult.success) {
+        currentCycle = cycleResult.data?.records?.[0] || null;
+      }
+      if (recoveryResult.success) {
+        latestRecovery = recoveryResult.data?.records?.[0] || null;
+      }
+      if (sleepResult.success) {
+        allSleeps = sleepResult.data?.records || [];
+        latestSleep = allSleeps[0] || null;
+      }
+    } else {
+      // Check token expiration and refresh if needed
+      let accessToken = decryptToken(connection.access_token);
+
+      if (connection.token_expires_at && new Date(connection.token_expires_at) < new Date()) {
+        console.log('[Whoop Current State] Token expired, refreshing...');
+        const refreshedToken = await refreshWhoopToken(userId, connection.refresh_token);
+        if (!refreshedToken) {
+          return res.status(401).json({
+            success: false,
+            error: 'Failed to refresh Whoop token',
+            needsReconnect: true
+          });
+        }
+        accessToken = refreshedToken;
+      }
+
+      // Fetch current cycle (today's data)
+      const cycleResponse = await fetch('https://api.prod.whoop.com/developer/v2/cycle?limit=1', {
+        headers: {
+          'Authorization': `Bearer ${accessToken}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (cycleResponse.ok) {
+        const cycleData = await cycleResponse.json();
+        currentCycle = cycleData.records?.[0] || null;
+      }
+
+      // Fetch latest recovery
+      const recoveryResponse = await fetch('https://api.prod.whoop.com/developer/v2/recovery?limit=1', {
+        headers: {
+          'Authorization': `Bearer ${accessToken}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (recoveryResponse.ok) {
+        const recoveryData = await recoveryResponse.json();
+        latestRecovery = recoveryData.records?.[0] || null;
+      }
+
+      // Fetch recent sleeps (last 5 to capture main sleep + naps from today)
+      const sleepResponse = await fetch('https://api.prod.whoop.com/developer/v2/activity/sleep?limit=5', {
+        headers: {
+          'Authorization': `Bearer ${accessToken}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (sleepResponse.ok) {
+        const sleepData = await sleepResponse.json();
+        allSleeps = sleepData.records || [];
+        latestSleep = allSleeps[0] || null;
+      }
     }
 
     // Aggregate all sleep from last 24 hours (includes main sleep + naps)

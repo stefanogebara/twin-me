@@ -38,8 +38,12 @@ const supabaseUrl = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
 const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY;
 const supabase = supabaseUrl && supabaseKey ? createClient(supabaseUrl, supabaseKey) : null;
 
+// Detect serverless environment (Vercel, AWS Lambda, etc.)
+const IS_SERVERLESS = !!(process.env.VERCEL || process.env.AWS_LAMBDA_FUNCTION_NAME);
+
 // Track Moltbot availability for AI operations
-let moltbotAvailable = null; // null = unknown, true = available, false = unavailable
+// In serverless, default to unavailable (WebSocket connections don't work)
+let moltbotAvailable = IS_SERVERLESS ? false : null;
 
 /**
  * Storage Strategy:
@@ -56,25 +60,43 @@ class MoltbotMemoryService {
       throw new Error('userId is required for MoltbotMemoryService');
     }
     this.userId = userId;
-    this.client = getMoltbotClient(userId);
-    // Always use Supabase for storage, OpenClaw for AI operations
-    this.useFallback = !supabase;
-    this.useOpenClawForAI = true; // Use OpenClaw for AI-powered memory operations
+    try {
+      this.client = getMoltbotClient(userId);
+    } catch (e) {
+      console.warn('[MoltbotMemory] Failed to create MoltbotClient:', e.message);
+      this.client = null;
+    }
+    // In serverless (Vercel), always use Supabase fallback (WebSocket won't work)
+    this.useFallback = !supabase || IS_SERVERLESS;
+    this.useOpenClawForAI = !IS_SERVERLESS; // Only use OpenClaw for AI in non-serverless
   }
 
   /**
    * Check if Moltbot is available, use Supabase fallback if not
    */
   async checkMoltbotAvailability() {
+    // In serverless, WebSocket connections are not possible
+    if (IS_SERVERLESS) {
+      moltbotAvailable = false;
+      this.useFallback = true;
+      return false;
+    }
+
     if (moltbotAvailable !== null) {
       return moltbotAvailable;
     }
 
+    if (!this.client) {
+      moltbotAvailable = false;
+      this.useFallback = true;
+      return false;
+    }
+
     try {
-      // Try to connect with a short timeout
+      // Try to connect with a short timeout (2s for faster failure)
       await Promise.race([
         this.client.connect(),
-        new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 5000))
+        new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 2000))
       ]);
 
       // Verify connection by calling health
