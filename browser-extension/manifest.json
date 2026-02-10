@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
   "name": "Soul Signature - Digital Twin Collector",
-  "version": "1.0.0",
-  "description": "Capture your authentic digital footprint from streaming platforms and browsing activity to build your Soul Signature",
+  "version": "1.1.0",
+  "description": "Capture your authentic digital footprint from YouTube, Twitch, streaming platforms, and browsing activity to build your Soul Signature",
   "permissions": [
     "storage",
     "tabs",

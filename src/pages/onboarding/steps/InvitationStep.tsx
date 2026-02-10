@@ -99,7 +99,7 @@ export const InvitationStep: React.FC<InvitationStepProps> = ({ onContinue, onSk
         whileHover={{ opacity: 0.8 }}
         onClick={onSkip}
         className="absolute top-8 right-8 text-[#8A8A8A] text-sm tracking-wide uppercase transition-colors"
-        style={{ fontFamily: "'Space Grotesk', sans-serif", letterSpacing: '0.1em' }}
+        style={{ fontFamily: 'var(--font-body)', letterSpacing: '0.1em' }}
       >
         Skip
       </motion.button>
@@ -142,7 +142,7 @@ export const InvitationStep: React.FC<InvitationStepProps> = ({ onContinue, onSk
               transition={{ duration: 0.6, ease: [0.25, 0.46, 0.45, 0.94] }}
               className="text-3xl md:text-5xl lg:text-6xl tracking-tight"
               style={{
-                fontFamily: "'Cormorant Garamond', Georgia, serif",
+                fontFamily: 'var(--font-heading)',
                 fontWeight: 300,
                 color: '#E8D5B7',
                 lineHeight: 1.2,
@@ -193,7 +193,7 @@ export const InvitationStep: React.FC<InvitationStepProps> = ({ onContinue, onSk
               >
                 <span
                   className="relative z-10 text-[#0C0C0C] text-lg tracking-wide"
-                  style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 500 }}
+                  style={{ fontFamily: 'var(--font-body)', fontWeight: 500 }}
                 >
                   Begin Discovery
                 </span>
@@ -209,7 +209,7 @@ export const InvitationStep: React.FC<InvitationStepProps> = ({ onContinue, onSk
                 transition={{ delay: 0.4 }}
                 className="mt-6 text-sm tracking-wide"
                 style={{
-                  fontFamily: "'Space Grotesk', sans-serif",
+                  fontFamily: 'var(--font-body)',
                   color: 'rgba(232,213,183,0.4)',
                 }}
               >

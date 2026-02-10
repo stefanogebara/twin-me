@@ -38,7 +38,7 @@ export const RootsVsBranches: React.FC<RootsVsBranchesProps> = ({
   return (
     <div className="mb-8">
       <div className="mb-6">
-        <h2 className="text-2xl text-[hsl(var(--claude-text))] mb-2" style={{ fontFamily: 'var(--_typography---font--styrene-a)', fontWeight: 500 }}>
+        <h2 className="text-2xl text-[hsl(var(--claude-text))] mb-2" style={{ fontFamily: 'var(--font-heading)', fontWeight: 500 }}>
           Roots vs Branches
         </h2>
         <p className="text-[hsl(var(--claude-text-secondary))]">
@@ -70,7 +70,7 @@ export const RootsVsBranches: React.FC<RootsVsBranchesProps> = ({
               <div>
                 <div className="flex items-center gap-2 mb-1">
                   <span className="text-3xl">🌱</span>
-                  <h3 className="text-xl text-[hsl(var(--claude-text))]" style={{ fontFamily: 'var(--_typography---font--styrene-a)', fontWeight: 500 }}>
+                  <h3 className="text-xl text-[hsl(var(--claude-text))]" style={{ fontFamily: 'var(--font-heading)', fontWeight: 500 }}>
                     The Roots
                   </h3>
                 </div>
@@ -83,7 +83,7 @@ export const RootsVsBranches: React.FC<RootsVsBranchesProps> = ({
 
             <div className="mb-6">
               <div className="flex items-baseline gap-2 mb-2">
-                <span className="text-4xl text-[hsl(var(--claude-text))]" style={{ fontFamily: 'var(--_typography---font--styrene-a)', fontWeight: 500 }}>
+                <span className="text-4xl text-[hsl(var(--claude-text))]" style={{ fontFamily: 'var(--font-heading)', fontWeight: 500 }}>
                   {personalDataPoints.toLocaleString()}
                 </span>
                 <span className="text-[hsl(var(--claude-text-secondary))]">authentic moments</span>
@@ -157,7 +157,7 @@ export const RootsVsBranches: React.FC<RootsVsBranchesProps> = ({
               <div>
                 <div className="flex items-center gap-2 mb-1">
                   <span className="text-3xl">🌳</span>
-                  <h3 className="text-xl text-[hsl(var(--claude-text))]" style={{ fontFamily: 'var(--_typography---font--styrene-a)', fontWeight: 500 }}>
+                  <h3 className="text-xl text-[hsl(var(--claude-text))]" style={{ fontFamily: 'var(--font-heading)', fontWeight: 500 }}>
                     The Branches
                   </h3>
                 </div>
@@ -170,7 +170,7 @@ export const RootsVsBranches: React.FC<RootsVsBranchesProps> = ({
 
             <div className="mb-6">
               <div className="flex items-baseline gap-2 mb-2">
-                <span className="text-4xl text-[hsl(var(--claude-text))]" style={{ fontFamily: 'var(--_typography---font--styrene-a)', fontWeight: 500 }}>
+                <span className="text-4xl text-[hsl(var(--claude-text))]" style={{ fontFamily: 'var(--font-heading)', fontWeight: 500 }}>
                   {professionalDataPoints.toLocaleString()}
                 </span>
                 <span className="text-[hsl(var(--claude-text-secondary))]">public signals</span>

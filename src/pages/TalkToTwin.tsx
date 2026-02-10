@@ -12,6 +12,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useTheme } from '../contexts/ThemeContext';
+import { useDemo } from '../contexts/DemoContext';
 import { usePlatformStatus } from '../hooks/usePlatformStatus';
 import {
   MessageCircle, Send, Loader2, ArrowLeft, Settings,
@@ -48,6 +49,7 @@ const TalkToTwin = () => {
   const navigate = useNavigate();
   const { user, isSignedIn } = useAuth();
   const { theme } = useTheme();
+  const { isDemoMode } = useDemo();
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
@@ -85,14 +87,50 @@ const TalkToTwin = () => {
     inputBorder: theme === 'dark' ? 'rgba(193, 192, 182, 0.2)' : 'rgba(231, 229, 228, 0.6)',
   };
 
-  // Platform configuration
+  // Platform configuration - in demo mode, show all as connected
   const platforms = [
-    { name: 'Spotify', icon: <Music className="w-4 h-4" />, key: 'spotify', color: '#1DB954', connected: platformStatus?.spotify?.connected },
-    { name: 'Whoop', icon: <Activity className="w-4 h-4" />, key: 'whoop', color: '#00A5E0', connected: platformStatus?.whoop?.connected },
-    { name: 'Calendar', icon: <Calendar className="w-4 h-4" />, key: 'google_calendar', color: '#4285F4', connected: platformStatus?.google_calendar?.connected }
+    { name: 'Spotify', icon: <Music className="w-4 h-4" />, key: 'spotify', color: '#1DB954', connected: isDemoMode || platformStatus?.spotify?.connected },
+    { name: 'Whoop', icon: <Activity className="w-4 h-4" />, key: 'whoop', color: '#00A5E0', connected: isDemoMode || platformStatus?.whoop?.connected },
+    { name: 'Calendar', icon: <Calendar className="w-4 h-4" />, key: 'google_calendar', color: '#4285F4', connected: isDemoMode || platformStatus?.google_calendar?.connected }
   ];
 
   const connectedPlatforms = platforms.filter(p => p.connected);
+
+  // Demo mode response handler
+  const DEMO_RESPONSES: Record<string, string> = {
+    'What patterns do you see?': "Based on Alex's data, I see some fascinating patterns:\n\n**Music & Energy Cycles**: You tend to listen to ambient/electronic music (Tycho, Boards of Canada) during deep work sessions, and shift to more energetic indie rock in the evenings. This correlates beautifully with your Whoop recovery scores.\n\n**Schedule Rhythm**: Your most productive blocks are 9-11 AM, followed by a creative burst around 3 PM. You're protecting your mornings well - only 2 meetings before noon this week.\n\n**Recovery Insight**: On days with HRV above 60ms, your listening shifts toward exploratory new artists. Lower recovery days? You return to comfort favorites.",
+    'How am I doing today?': "Looking at your data today, Alex:\n\n**Recovery**: 72% (Green zone) - Your body is well-recovered. HRV at 58ms is above your baseline.\n\n**Sleep**: 7.2 hours with good deep sleep. This sets you up for a productive day.\n\n**Schedule**: You have 4 events today, with your next meeting in about an hour. Your afternoon has a nice 2-hour focus block.\n\n**Music Mood**: Your recent listening (Nils Frahm, Olafur Arnalds) suggests you're in a reflective, creative headspace.\n\nOverall: You're in a great position to tackle creative or strategic work today.",
+    'Recommend music for now': "Based on your current state:\n\n**Recovery**: 72% (good energy available)\n**Time**: Afternoon focus block ahead\n**Recent mood**: Reflective/creative\n\nI'd recommend:\n1. **Tycho - Dive** (Album) - Perfect for sustained focus, matches your current energy\n2. **Kiasmos - Blurred** - Minimal techno that you've played during your most productive sessions\n3. **Bonobo - Migration** - Layered electronic that pairs well with your green recovery days\n\nThese artists appear in 78% of your high-productivity listening sessions.",
+    'Analyze my week': "Here's your week in review, Alex:\n\n**Energy**: Average recovery of 68%, with Thursday being your peak day (82%). Monday was the lowest at 54% - perhaps that intense weekend workout.\n\n**Schedule**: 12 meetings total, 3 deep work blocks. You're spending 40% of your time in collaborative mode, which aligns with your slight extraverted tendency.\n\n**Music Evolution**: Started the week with high-energy playlists (Monday motivation), transitioned to ambient mid-week, and ended with discovery mode on Friday - exploring 4 new artists.\n\n**Pattern**: Your best work sessions happen when recovery is above 65% AND you have at least a 90-minute uninterrupted block. This happened 3 times this week."
+  };
+
+  const handleDemoMessage = (message: string) => {
+    setIsTyping(true);
+    setTimeout(() => {
+      // Check for matching demo response or generate a generic one
+      const matchedKey = Object.keys(DEMO_RESPONSES).find(key =>
+        message.toLowerCase().includes(key.toLowerCase().slice(0, 20))
+      );
+
+      const responseText = matchedKey
+        ? DEMO_RESPONSES[matchedKey]
+        : `That's a great question! Based on Alex's connected platforms (Spotify, Whoop, Calendar), I can see patterns in your music taste, health metrics, and schedule.\n\nIn the full version, I'd analyze your actual data to give you personalized insights. For now, try asking me:\n- "What patterns do you see?"\n- "How am I doing today?"\n- "Recommend music for now"\n- "Analyze my week"`;
+
+      const assistantMessage: Message = {
+        id: (Date.now() + 1).toString(),
+        role: 'assistant',
+        content: responseText,
+        timestamp: new Date(),
+        contextUsed: {
+          memories: 3,
+          platforms: ['spotify', 'whoop', 'google_calendar'],
+          personality: true
+        }
+      };
+      setMessages(prev => [...prev, assistantMessage]);
+      setIsTyping(false);
+    }, 1200 + Math.random() * 800); // Simulate realistic response time
+  };
 
   // Quick action chips - Grok style
   const quickActions = [
@@ -103,10 +141,10 @@ const TalkToTwin = () => {
   ];
 
   useEffect(() => {
-    if (!isSignedIn) {
+    if (!isSignedIn && !isDemoMode) {
       navigate('/auth');
     }
-  }, [isSignedIn, navigate]);
+  }, [isSignedIn, isDemoMode, navigate]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -122,6 +160,22 @@ const TalkToTwin = () => {
   const loadContext = async () => {
     if (!user?.id) return;
     setIsLoadingContext(true);
+
+    // Demo mode: show sample context items
+    if (isDemoMode) {
+      const items: ContextItem[] = [
+        { type: 'platform', label: 'Spotify', value: 'Connected', icon: <Music className="w-4 h-4" /> },
+        { type: 'platform', label: 'Whoop', value: 'Connected', icon: <Activity className="w-4 h-4" /> },
+        { type: 'platform', label: 'Calendar', value: 'Connected', icon: <Calendar className="w-4 h-4" /> },
+        { type: 'memory', label: 'Long-term Memory', value: '24 memories stored' },
+        { type: 'fact', label: 'Music Taste', value: 'Prefers ambient and electronic' },
+        { type: 'fact', label: 'Schedule', value: 'Morning person, protects focus time' },
+        { type: 'personality', label: 'Personality', value: '3 cluster profiles' }
+      ];
+      setContextItems(items);
+      setIsLoadingContext(false);
+      return;
+    }
 
     try {
       const token = localStorage.getItem('auth_token');
@@ -215,7 +269,15 @@ const TalkToTwin = () => {
     };
 
     setMessages(prev => [...prev, userMessage]);
+    const currentInput = inputMessage;
     setInputMessage('');
+
+    // Demo mode: use local demo responses
+    if (isDemoMode) {
+      handleDemoMessage(currentInput);
+      return;
+    }
+
     setIsTyping(true);
 
     try {
@@ -535,14 +597,14 @@ const TalkToTwin = () => {
           >
             <textarea
               ref={inputRef}
-              placeholder={connectedPlatforms.length > 0
+              placeholder={connectedPlatforms.length > 0 || isDemoMode
                 ? "Ask your twin anything..."
                 : "Connect platforms to start chatting..."
               }
               value={inputMessage}
               onChange={(e) => setInputMessage(e.target.value)}
               onKeyDown={handleKeyPress}
-              disabled={connectedPlatforms.length === 0}
+              disabled={connectedPlatforms.length === 0 && !isDemoMode}
               rows={1}
               className="w-full px-4 py-3 resize-none focus:outline-none disabled:opacity-50 text-[15px]"
               style={{
@@ -589,7 +651,7 @@ const TalkToTwin = () => {
 
                 <button
                   onClick={handleSendMessage}
-                  disabled={!inputMessage.trim() || connectedPlatforms.length === 0 || isTyping}
+                  disabled={!inputMessage.trim() || (connectedPlatforms.length === 0 && !isDemoMode) || isTyping}
                   className="p-2.5 rounded-xl transition-all hover:scale-[1.02] disabled:opacity-50 disabled:hover:scale-100"
                   style={{
                     backgroundColor: inputMessage.trim() ? colors.accent : colors.bgTertiary,

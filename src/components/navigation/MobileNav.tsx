@@ -163,7 +163,7 @@ export const MobileNav: React.FC<MobileNavProps> = ({ user, onSignOut }) => {
                   <span
                     className="text-lg font-semibold text-[hsl(var(--claude-text))]"
                     style={{
-                      fontFamily: 'var(--_typography---font--styrene-a)',
+                      fontFamily: 'var(--font-heading)',
                       letterSpacing: '-0.02em'
                     }}
                   >
@@ -210,7 +210,7 @@ export const MobileNav: React.FC<MobileNavProps> = ({ user, onSignOut }) => {
                             <span
                               className="flex-1 text-left text-base font-medium"
                               style={{
-                                fontFamily: 'var(--_typography---font--styrene-a)',
+                                fontFamily: 'var(--font-heading)',
                                 letterSpacing: '-0.01em'
                               }}
                             >
@@ -240,7 +240,7 @@ export const MobileNav: React.FC<MobileNavProps> = ({ user, onSignOut }) => {
                             <span
                               className="text-base font-medium"
                               style={{
-                                fontFamily: 'var(--_typography---font--styrene-a)',
+                                fontFamily: 'var(--font-heading)',
                                 letterSpacing: '-0.01em'
                               }}
                             >
@@ -309,7 +309,7 @@ export const MobileNav: React.FC<MobileNavProps> = ({ user, onSignOut }) => {
                         <span
                           className="text-sm text-[hsl(var(--claude-text))] font-medium"
                           style={{
-                            fontFamily: 'var(--_typography---font--styrene-a)'
+                            fontFamily: 'var(--font-heading)'
                           }}
                         >
                           {user.name}
@@ -319,7 +319,7 @@ export const MobileNav: React.FC<MobileNavProps> = ({ user, onSignOut }) => {
                         <span
                           className="text-xs text-[hsl(var(--claude-text-muted))]"
                           style={{
-                            fontFamily: 'var(--_typography---font--tiempos)'
+                            fontFamily: 'var(--font-body)'
                           }}
                         >
                           {user.email}
@@ -340,7 +340,7 @@ export const MobileNav: React.FC<MobileNavProps> = ({ user, onSignOut }) => {
                         'transition-colors duration-200'
                       )}
                       style={{
-                        fontFamily: 'var(--_typography---font--styrene-a)'
+                        fontFamily: 'var(--font-heading)'
                       }}
                     >
                       Sign Out

@@ -338,7 +338,7 @@ export const DiscoveryStep: React.FC<DiscoveryStepProps> = ({
         <div
           className="text-xl tracking-tight"
           style={{
-            fontFamily: "'Cormorant Garamond', serif",
+            fontFamily: 'var(--font-heading)',
             color: '#E8D5B7'
           }}
         >
@@ -348,7 +348,7 @@ export const DiscoveryStep: React.FC<DiscoveryStepProps> = ({
           onClick={onSkip}
           className="text-sm tracking-wide uppercase opacity-40 hover:opacity-80 transition-opacity"
           style={{
-            fontFamily: "'Space Grotesk', sans-serif",
+            fontFamily: 'var(--font-body)',
             color: '#E8D5B7',
             letterSpacing: '0.1em'
           }}
@@ -373,7 +373,7 @@ export const DiscoveryStep: React.FC<DiscoveryStepProps> = ({
                   <p
                     className="text-xl md:text-2xl leading-relaxed"
                     style={{
-                      fontFamily: "'Cormorant Garamond', Georgia, serif",
+                      fontFamily: 'var(--font-heading)',
                       fontWeight: 400,
                       color: 'rgba(232, 213, 183, 0.9)',
                       maxWidth: '85%'
@@ -397,7 +397,7 @@ export const DiscoveryStep: React.FC<DiscoveryStepProps> = ({
                       backgroundColor: 'rgba(232, 213, 183, 0.1)',
                       border: '1px solid rgba(232, 213, 183, 0.2)',
                       color: '#E8D5B7',
-                      fontFamily: "'Space Grotesk', sans-serif"
+                      fontFamily: 'var(--font-body)'
                     }}
                   >
                     {message.content}
@@ -421,7 +421,7 @@ export const DiscoveryStep: React.FC<DiscoveryStepProps> = ({
                 style={{
                   background: 'linear-gradient(135deg, #E8D5B7 0%, #D4C4A8 100%)',
                   color: '#0C0C0C',
-                  fontFamily: "'Space Grotesk', sans-serif",
+                  fontFamily: 'var(--font-body)',
                   fontWeight: 500
                 }}
               >
@@ -434,7 +434,7 @@ export const DiscoveryStep: React.FC<DiscoveryStepProps> = ({
                   backgroundColor: 'transparent',
                   border: '1px solid rgba(232, 213, 183, 0.3)',
                   color: '#E8D5B7',
-                  fontFamily: "'Space Grotesk', sans-serif",
+                  fontFamily: 'var(--font-body)',
                   fontWeight: 500
                 }}
               >
@@ -455,7 +455,7 @@ export const DiscoveryStep: React.FC<DiscoveryStepProps> = ({
                   className="block text-sm mb-2 uppercase tracking-wider"
                   style={{
                     color: 'rgba(232, 213, 183, 0.5)',
-                    fontFamily: "'Space Grotesk', sans-serif",
+                    fontFamily: 'var(--font-body)',
                     letterSpacing: '0.1em'
                   }}
                 >
@@ -471,7 +471,7 @@ export const DiscoveryStep: React.FC<DiscoveryStepProps> = ({
                     backgroundColor: 'rgba(232, 213, 183, 0.05)',
                     border: '1px solid rgba(232, 213, 183, 0.15)',
                     color: '#E8D5B7',
-                    fontFamily: "'Space Grotesk', sans-serif"
+                    fontFamily: 'var(--font-body)'
                   }}
                 />
               </div>
@@ -481,7 +481,7 @@ export const DiscoveryStep: React.FC<DiscoveryStepProps> = ({
                   className="block text-sm mb-2 uppercase tracking-wider"
                   style={{
                     color: 'rgba(232, 213, 183, 0.5)',
-                    fontFamily: "'Space Grotesk', sans-serif",
+                    fontFamily: 'var(--font-body)',
                     letterSpacing: '0.1em'
                   }}
                 >
@@ -497,7 +497,7 @@ export const DiscoveryStep: React.FC<DiscoveryStepProps> = ({
                     backgroundColor: 'rgba(232, 213, 183, 0.05)',
                     border: '1px solid rgba(232, 213, 183, 0.15)',
                     color: '#E8D5B7',
-                    fontFamily: "'Space Grotesk', sans-serif"
+                    fontFamily: 'var(--font-body)'
                   }}
                 />
               </div>
@@ -509,7 +509,7 @@ export const DiscoveryStep: React.FC<DiscoveryStepProps> = ({
                 style={{
                   background: 'linear-gradient(135deg, #E8D5B7 0%, #D4C4A8 100%)',
                   color: '#0C0C0C',
-                  fontFamily: "'Space Grotesk', sans-serif"
+                  fontFamily: 'var(--font-body)'
                 }}
               >
                 {isLoading ? (
@@ -546,7 +546,7 @@ export const DiscoveryStep: React.FC<DiscoveryStepProps> = ({
                 className="w-full px-5 py-4 pr-14 text-base focus:outline-none bg-transparent"
                 style={{
                   color: '#E8D5B7',
-                  fontFamily: "'Space Grotesk', sans-serif"
+                  fontFamily: 'var(--font-body)'
                 }}
               />
               <button

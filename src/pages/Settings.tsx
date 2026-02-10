@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useTheme } from '../contexts/ThemeContext';
+import { useDemo } from '../contexts/DemoContext';
 import { usePlatformStatus } from '../hooks/usePlatformStatus';
 import {
   ArrowLeft,
@@ -25,6 +26,7 @@ const Settings = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { theme } = useTheme();
+  const { isDemoMode } = useDemo();
   const [disconnectingService, setDisconnectingService] = useState<string | null>(null);
   const [userIdCopied, setUserIdCopied] = useState(false);
   const [syncStats, setSyncStats] = useState<{
@@ -186,6 +188,22 @@ const Settings = () => {
       <main className="max-w-4xl mx-auto pt-8 pb-20 px-6">
         <div className="space-y-6">
 
+          {/* Demo Mode Notice */}
+          {isDemoMode && (
+            <div
+              className="rounded-2xl p-4 flex items-center gap-3"
+              style={{
+                backgroundColor: theme === 'dark' ? 'rgba(251, 191, 36, 0.1)' : 'rgba(251, 191, 36, 0.08)',
+                border: '1px solid rgba(251, 191, 36, 0.3)'
+              }}
+            >
+              <Info className="w-5 h-5 flex-shrink-0" style={{ color: '#FBBF24' }} />
+              <p className="text-sm" style={{ color: theme === 'dark' ? '#FCD34D' : '#B45309' }}>
+                You're in demo mode. Platform connections and sync features are simulated. Sign up to connect your real accounts.
+              </p>
+            </div>
+          )}
+
           {/* Account Information - Compact */}
           <section className="rounded-2xl p-5" style={cardStyle}>
             <div className="flex items-center gap-3 mb-4">
@@ -231,7 +249,7 @@ const Settings = () => {
               </div>
             )}
 
-            {isLoading ? (
+            {isLoading && !isDemoMode ? (
               <div className="flex items-center justify-center py-6">
                 <Loader2 className="w-5 h-5 animate-spin" style={{ color: theme === 'dark' ? '#C1C0B6' : '#0c0a09' }} />
               </div>
@@ -239,8 +257,8 @@ const Settings = () => {
               <div className="space-y-2">
                 {connectorConfig.map((connector) => {
                   const connectionInfo = connectorStatus[connector.id];
-                  const isConnected = connectionInfo?.connected;
-                  const isExpired = connectionInfo?.tokenExpired || connectionInfo?.status === 'expired';
+                  const isConnected = isDemoMode ? true : connectionInfo?.connected;
+                  const isExpired = isDemoMode ? false : (connectionInfo?.tokenExpired || connectionInfo?.status === 'expired');
                   const isActiveConnection = isConnected && !isExpired;
 
                   return (
@@ -264,14 +282,21 @@ const Settings = () => {
                         {isActiveConnection ? (
                           <>
                             <CheckCircle className="w-4 h-4" style={{ color: '#10B981' }} />
-                            <button
-                              onClick={() => handleDisconnectService(connector.id)}
-                              disabled={disconnectingService === connector.id}
-                              className="text-xs px-2 py-1 rounded-lg"
-                              style={{ color: '#ef4444', backgroundColor: 'rgba(239, 68, 68, 0.1)' }}
-                            >
-                              {disconnectingService === connector.id ? '...' : 'Disconnect'}
-                            </button>
+                            {!isDemoMode && (
+                              <button
+                                onClick={() => handleDisconnectService(connector.id)}
+                                disabled={disconnectingService === connector.id}
+                                className="text-xs px-2 py-1 rounded-lg"
+                                style={{ color: '#ef4444', backgroundColor: 'rgba(239, 68, 68, 0.1)' }}
+                              >
+                                {disconnectingService === connector.id ? '...' : 'Disconnect'}
+                              </button>
+                            )}
+                            {isDemoMode && (
+                              <span className="text-xs px-2 py-1 rounded-lg" style={{ color: '#10B981', backgroundColor: 'rgba(16, 185, 129, 0.1)' }}>
+                                Demo
+                              </span>
+                            )}
                           </>
                         ) : isExpired ? (
                           <>

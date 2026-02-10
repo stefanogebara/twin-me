@@ -8,7 +8,7 @@
 import React, { useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Sparkles, Brain, ChevronRight, Check, Loader2 } from 'lucide-react';
+import { Sparkles, Brain, ChevronRight, Check, Loader2, ArrowLeft } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useDemo } from '@/contexts/DemoContext';
@@ -273,6 +273,19 @@ export function PersonalityAssessment() {
       style={{ backgroundColor: colors.bg }}
     >
       <div className="max-w-4xl mx-auto">
+        {/* Back to dashboard link */}
+        <button
+          onClick={() => navigate('/dashboard')}
+          className="flex items-center gap-2 text-sm mb-6 transition-colors hover:opacity-80"
+          style={{
+            fontFamily: 'var(--font-body)',
+            color: colors.textSecondary
+          }}
+        >
+          <ArrowLeft className="w-4 h-4" />
+          Back to Dashboard
+        </button>
+
         <AnimatePresence mode="wait">
           {/* Intro Phase */}
           {phase === 'intro' && (

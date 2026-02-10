@@ -44,16 +44,16 @@ const UserProfile = () => {
         onClick={() => setIsOpen(!isOpen)}
         className="flex items-center gap-2 px-3 py-2 rounded-xl transition-all hover:shadow-md"
         style={{
-          backgroundColor: 'var(--_color-theme---surface)',
-          borderColor: 'var(--_color-theme---border)',
-          color: 'var(--_color-theme---text)'
+          backgroundColor: 'hsl(var(--card))',
+          borderColor: 'hsl(var(--border))',
+          color: 'hsl(var(--foreground))'
         }}
       >
         {/* User Avatar */}
         <div
           className="w-8 h-8 rounded-full flex items-center justify-center text-sm font-semibold"
           style={{
-            backgroundColor: 'var(--_color-theme---accent)',
+            backgroundColor: 'hsl(var(--primary))',
             color: 'white'
           }}
         >
@@ -76,7 +76,7 @@ const UserProfile = () => {
         {/* Dropdown Arrow */}
         <ChevronDown
           className={`w-4 h-4 transition-transform ${isOpen ? 'rotate-180' : ''}`}
-          style={{ color: 'var(--_color-theme---text-secondary)' }}
+          style={{ color: 'hsl(var(--muted-foreground))' }}
         />
       </button>
 
@@ -85,17 +85,17 @@ const UserProfile = () => {
         <div
           className="absolute right-0 top-full mt-2 w-56 rounded-xl border shadow-lg z-50 py-2"
           style={{
-            backgroundColor: 'var(--_color-theme---surface)',
-            borderColor: 'var(--_color-theme---border)'
+            backgroundColor: 'hsl(var(--card))',
+            borderColor: 'hsl(var(--border))'
           }}
         >
           {/* User Info Header */}
-          <div className="px-4 py-3 border-b" style={{ borderColor: 'var(--_color-theme---border)' }}>
+          <div className="px-4 py-3 border-b" style={{ borderColor: 'hsl(var(--border))' }}>
             <div className="flex items-center gap-3">
               <div
                 className="w-10 h-10 rounded-full flex items-center justify-center"
                 style={{
-                  backgroundColor: 'var(--_color-theme---accent)',
+                  backgroundColor: 'hsl(var(--primary))',
                   color: 'white'
                 }}
               >
@@ -112,13 +112,13 @@ const UserProfile = () => {
               <div className="flex-1 min-w-0">
                 <p
                   className="text-sm font-semibold truncate"
-                  style={{ color: 'var(--_color-theme---text)' }}
+                  style={{ color: 'hsl(var(--foreground))' }}
                 >
                   {user.fullName || `${user.firstName || ''} ${user.lastName || ''}`.trim() || 'User'}
                 </p>
                 <p
                   className="text-xs truncate"
-                  style={{ color: 'var(--_color-theme---text-secondary)' }}
+                  style={{ color: 'hsl(var(--muted-foreground))' }}
                 >
                   {user.email}
                 </p>
@@ -135,11 +135,11 @@ const UserProfile = () => {
               }}
               className="w-full px-4 py-2 text-left flex items-center gap-3 hover:bg-opacity-50 transition-colors"
               style={{
-                color: 'var(--_color-theme---text)',
+                color: 'hsl(var(--foreground))',
                 backgroundColor: 'transparent'
               }}
               onMouseEnter={(e) => {
-                e.currentTarget.style.backgroundColor = 'var(--_color-theme---surface-raised)';
+                e.currentTarget.style.backgroundColor = 'hsl(var(--muted))';
               }}
               onMouseLeave={(e) => {
                 e.currentTarget.style.backgroundColor = 'transparent';
@@ -153,11 +153,11 @@ const UserProfile = () => {
               onClick={handleSignOut}
               className="w-full px-4 py-2 text-left flex items-center gap-3 hover:bg-opacity-50 transition-colors"
               style={{
-                color: 'var(--_color-theme---text)',
+                color: 'hsl(var(--foreground))',
                 backgroundColor: 'transparent'
               }}
               onMouseEnter={(e) => {
-                e.currentTarget.style.backgroundColor = 'var(--_color-theme---surface-raised)';
+                e.currentTarget.style.backgroundColor = 'hsl(var(--muted))';
               }}
               onMouseLeave={(e) => {
                 e.currentTarget.style.backgroundColor = 'transparent';

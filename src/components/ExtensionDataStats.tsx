@@ -104,7 +104,7 @@ export const ExtensionDataStats: React.FC = () => {
             <h3
               className="text-lg font-medium"
               style={{
-                fontFamily: 'var(--_typography---font--styrene-a)',
+                fontFamily: 'var(--font-heading)',
                 color: theme === 'dark' ? '#C1C0B6' : '#0c0a09',
               }}
             >
@@ -152,7 +152,7 @@ export const ExtensionDataStats: React.FC = () => {
               <p
                 className="text-2xl font-semibold"
                 style={{
-                  fontFamily: 'var(--_typography---font--styrene-a)',
+                  fontFamily: 'var(--font-heading)',
                   color: theme === 'dark' ? '#C1C0B6' : '#0c0a09',
                 }}
               >
@@ -177,7 +177,7 @@ export const ExtensionDataStats: React.FC = () => {
               <p
                 className="text-2xl font-semibold"
                 style={{
-                  fontFamily: 'var(--_typography---font--styrene-a)',
+                  fontFamily: 'var(--font-heading)',
                   color: theme === 'dark' ? '#C1C0B6' : '#0c0a09',
                 }}
               >
@@ -202,7 +202,7 @@ export const ExtensionDataStats: React.FC = () => {
               <p
                 className="text-2xl font-semibold"
                 style={{
-                  fontFamily: 'var(--_typography---font--styrene-a)',
+                  fontFamily: 'var(--font-heading)',
                   color: theme === 'dark' ? '#C1C0B6' : '#0c0a09',
                 }}
               >
@@ -227,7 +227,7 @@ export const ExtensionDataStats: React.FC = () => {
               <p
                 className="text-2xl font-semibold"
                 style={{
-                  fontFamily: 'var(--_typography---font--styrene-a)',
+                  fontFamily: 'var(--font-heading)',
                   color: theme === 'dark' ? '#C1C0B6' : '#0c0a09',
                 }}
               >

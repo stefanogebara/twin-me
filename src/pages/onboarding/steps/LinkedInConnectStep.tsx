@@ -171,14 +171,14 @@ export const LinkedInConnectStep: React.FC<LinkedInConnectStepProps> = ({
       <div className="flex justify-between items-center px-8 py-6">
         <div
           className="text-xl tracking-tight"
-          style={{ fontFamily: "'Cormorant Garamond', serif", color: '#E8D5B7' }}
+          style={{ fontFamily: 'var(--font-heading)', color: '#E8D5B7' }}
         >
           Twin Me
         </div>
         <button
           onClick={onSkip}
           className="text-sm tracking-wide uppercase opacity-40 hover:opacity-80 transition-opacity"
-          style={{ fontFamily: "'Space Grotesk', sans-serif", color: '#E8D5B7', letterSpacing: '0.1em' }}
+          style={{ fontFamily: 'var(--font-body)', color: '#E8D5B7', letterSpacing: '0.1em' }}
         >
           Skip
         </button>
@@ -193,13 +193,13 @@ export const LinkedInConnectStep: React.FC<LinkedInConnectStepProps> = ({
           >
             <h1
               className="text-3xl md:text-4xl mb-4"
-              style={{ fontFamily: "'Cormorant Garamond', serif", color: '#E8D5B7' }}
+              style={{ fontFamily: 'var(--font-heading)', color: '#E8D5B7' }}
             >
               {status === 'connected' ? 'Connected to LinkedIn' : 'Connect your LinkedIn'}
             </h1>
             <p
               className="text-base mb-8 opacity-70"
-              style={{ fontFamily: "'Space Grotesk', sans-serif", color: '#E8D5B7' }}
+              style={{ fontFamily: 'var(--font-body)', color: '#E8D5B7' }}
             >
               {status === 'connected'
                 ? "Your professional identity is now part of your soul signature."
@@ -219,7 +219,7 @@ export const LinkedInConnectStep: React.FC<LinkedInConnectStepProps> = ({
               >
                 <h3
                   className="text-sm uppercase tracking-wider mb-4"
-                  style={{ fontFamily: "'Space Grotesk', sans-serif", color: 'rgba(232, 213, 183, 0.5)', letterSpacing: '0.1em' }}
+                  style={{ fontFamily: 'var(--font-body)', color: 'rgba(232, 213, 183, 0.5)', letterSpacing: '0.1em' }}
                 >
                   What we know so far
                 </h3>
@@ -228,7 +228,7 @@ export const LinkedInConnectStep: React.FC<LinkedInConnectStepProps> = ({
                   {enrichmentData.discovered_name && (
                     <div className="flex items-center gap-3">
                       <User className="w-4 h-4" style={{ color: 'rgba(232, 213, 183, 0.4)' }} />
-                      <span style={{ fontFamily: "'Space Grotesk', sans-serif", color: 'rgba(232, 213, 183, 0.8)' }}>
+                      <span style={{ fontFamily: 'var(--font-body)', color: 'rgba(232, 213, 183, 0.8)' }}>
                         {enrichmentData.discovered_name}
                       </span>
                     </div>
@@ -237,7 +237,7 @@ export const LinkedInConnectStep: React.FC<LinkedInConnectStepProps> = ({
                   {(enrichmentData.discovered_title || enrichmentData.discovered_company) && (
                     <div className="flex items-center gap-3">
                       <Briefcase className="w-4 h-4" style={{ color: 'rgba(232, 213, 183, 0.4)' }} />
-                      <span style={{ fontFamily: "'Space Grotesk', sans-serif", color: 'rgba(232, 213, 183, 0.8)' }}>
+                      <span style={{ fontFamily: 'var(--font-body)', color: 'rgba(232, 213, 183, 0.8)' }}>
                         {enrichmentData.discovered_title}
                         {enrichmentData.discovered_company && ` at ${enrichmentData.discovered_company}`}
                       </span>
@@ -249,7 +249,7 @@ export const LinkedInConnectStep: React.FC<LinkedInConnectStepProps> = ({
                       <GraduationCap className="w-4 h-4" style={{ color: 'rgba(232, 213, 183, 0.4)' }} />
                       <span
                         className="line-clamp-1"
-                        style={{ fontFamily: "'Space Grotesk', sans-serif", color: 'rgba(232, 213, 183, 0.8)' }}
+                        style={{ fontFamily: 'var(--font-body)', color: 'rgba(232, 213, 183, 0.8)' }}
                       >
                         {enrichmentData.education.split('\n')[0]}
                       </span>
@@ -259,7 +259,7 @@ export const LinkedInConnectStep: React.FC<LinkedInConnectStepProps> = ({
                   {enrichmentData.discovered_location && (
                     <div className="flex items-center gap-3">
                       <MapPin className="w-4 h-4" style={{ color: 'rgba(232, 213, 183, 0.4)' }} />
-                      <span style={{ fontFamily: "'Space Grotesk', sans-serif", color: 'rgba(232, 213, 183, 0.8)' }}>
+                      <span style={{ fontFamily: 'var(--font-body)', color: 'rgba(232, 213, 183, 0.8)' }}>
                         {enrichmentData.discovered_location}
                       </span>
                     </div>
@@ -292,13 +292,13 @@ export const LinkedInConnectStep: React.FC<LinkedInConnectStepProps> = ({
                   <div className="flex-1 text-left">
                     <p
                       className="text-base font-medium text-white"
-                      style={{ fontFamily: "'Space Grotesk', sans-serif" }}
+                      style={{ fontFamily: 'var(--font-body)' }}
                     >
                       Connect with LinkedIn
                     </p>
                     <p
                       className="text-sm text-white/60"
-                      style={{ fontFamily: "'Space Grotesk', sans-serif" }}
+                      style={{ fontFamily: 'var(--font-body)' }}
                     >
                       Import your professional profile
                     </p>
@@ -327,7 +327,7 @@ export const LinkedInConnectStep: React.FC<LinkedInConnectStepProps> = ({
                 />
                 <p
                   className="text-base"
-                  style={{ fontFamily: "'Space Grotesk', sans-serif", color: 'rgba(232, 213, 183, 0.8)' }}
+                  style={{ fontFamily: 'var(--font-body)', color: 'rgba(232, 213, 183, 0.8)' }}
                 >
                   Connecting to LinkedIn...
                 </p>
@@ -364,13 +364,13 @@ export const LinkedInConnectStep: React.FC<LinkedInConnectStepProps> = ({
                     <div>
                       <p
                         className="text-lg"
-                        style={{ fontFamily: "'Cormorant Garamond', serif", color: '#E8D5B7' }}
+                        style={{ fontFamily: 'var(--font-heading)', color: '#E8D5B7' }}
                       >
                         LinkedIn Connected
                       </p>
                       <p
                         className="text-sm"
-                        style={{ fontFamily: "'Space Grotesk', sans-serif", color: 'rgba(232, 213, 183, 0.6)' }}
+                        style={{ fontFamily: 'var(--font-body)', color: 'rgba(232, 213, 183, 0.6)' }}
                       >
                         Your professional identity is linked
                       </p>
@@ -397,7 +397,7 @@ export const LinkedInConnectStep: React.FC<LinkedInConnectStepProps> = ({
                       <div>
                         <p
                           className="text-base"
-                          style={{ fontFamily: "'Space Grotesk', sans-serif", color: '#E8D5B7' }}
+                          style={{ fontFamily: 'var(--font-body)', color: '#E8D5B7' }}
                         >
                           {profile.name || userName || 'Professional Profile'}
                         </p>
@@ -421,7 +421,7 @@ export const LinkedInConnectStep: React.FC<LinkedInConnectStepProps> = ({
                   style={{
                     background: 'linear-gradient(135deg, #E8D5B7 0%, #D4C4A8 100%)',
                     color: '#0C0C0C',
-                    fontFamily: "'Space Grotesk', sans-serif"
+                    fontFamily: 'var(--font-body)'
                   }}
                 >
                   Continue to Dashboard
@@ -454,7 +454,7 @@ export const LinkedInConnectStep: React.FC<LinkedInConnectStepProps> = ({
                     backgroundColor: 'rgba(232, 213, 183, 0.1)',
                     border: '1px solid rgba(232, 213, 183, 0.2)',
                     color: '#E8D5B7',
-                    fontFamily: "'Space Grotesk', sans-serif"
+                    fontFamily: 'var(--font-body)'
                   }}
                 >
                   Try Again

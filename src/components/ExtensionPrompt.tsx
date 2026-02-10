@@ -86,7 +86,7 @@ export const ExtensionPrompt: React.FC = () => {
                 className="text-lg font-semibold mb-1"
                 style={{
                   color: '#141413',
-                  fontFamily: 'var(--_typography---font--styrene-a)',
+                  fontFamily: 'var(--font-heading)',
                   letterSpacing: '-0.02em'
                 }}
               >
@@ -102,7 +102,7 @@ export const ExtensionPrompt: React.FC = () => {
                 className="text-sm"
                 style={{
                   color: '#6B7280',
-                  fontFamily: 'var(--_typography---font--tiempos)'
+                  fontFamily: 'var(--font-body)'
                 }}
               >
                 {extensionStatus === 'installed' ? (
@@ -136,7 +136,7 @@ export const ExtensionPrompt: React.FC = () => {
                   className="text-sm font-semibold mb-3"
                   style={{
                     color: '#141413',
-                    fontFamily: 'var(--_typography---font--styrene-a)',
+                    fontFamily: 'var(--font-heading)',
                     letterSpacing: '-0.02em'
                   }}
                 >
@@ -202,7 +202,7 @@ export const ExtensionPrompt: React.FC = () => {
                   style={{
                     backgroundColor: '#D97706',
                     color: 'white',
-                    fontFamily: 'var(--_typography---font--styrene-a)',
+                    fontFamily: 'var(--font-heading)',
                     letterSpacing: '-0.02em'
                   }}
                   onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#B45309'}
@@ -251,7 +251,7 @@ export const ExtensionPrompt: React.FC = () => {
                     style={{
                       backgroundColor: '#D97706',
                       color: 'white',
-                      fontFamily: 'var(--_typography---font--styrene-a)',
+                      fontFamily: 'var(--font-heading)',
                       letterSpacing: '-0.02em'
                     }}
                     onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#B45309'}
@@ -271,7 +271,7 @@ export const ExtensionPrompt: React.FC = () => {
                   className="text-sm font-semibold mb-3"
                   style={{
                     color: '#141413',
-                    fontFamily: 'var(--_typography---font--styrene-a)',
+                    fontFamily: 'var(--font-heading)',
                     letterSpacing: '-0.02em'
                   }}
                 >
@@ -320,7 +320,7 @@ export const ExtensionPrompt: React.FC = () => {
                 style={{
                   backgroundColor: '#F3F4F6',
                   color: '#141413',
-                  fontFamily: 'var(--_typography---font--styrene-a)',
+                  fontFamily: 'var(--font-heading)',
                   letterSpacing: '-0.02em'
                 }}
                 onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#E5E7EB'}

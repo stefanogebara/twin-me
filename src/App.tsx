@@ -35,6 +35,7 @@ import PersonalityAssessment from "./pages/PersonalityAssessment";
 import BrainPage from "./pages/BrainPage";
 import BigFiveAssessment from "./pages/BigFiveAssessment";
 import TalkToTwin from "./pages/TalkToTwin";
+import JournalPage from "./pages/JournalPage";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
 
 const queryClient = new QueryClient();
@@ -227,6 +228,17 @@ const App = () => {
               <ErrorBoundary>
                 <SoulSignatureOnboarding />
               </ErrorBoundary>
+            } />
+
+            {/* Soul Journal */}
+            <Route path="/journal" element={
+              <ProtectedRoute>
+                <SidebarLayout>
+                  <ErrorBoundary>
+                    <JournalPage />
+                  </ErrorBoundary>
+                </SidebarLayout>
+              </ProtectedRoute>
             } />
 
             {/* Chat with Twin */}

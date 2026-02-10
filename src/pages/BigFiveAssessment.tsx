@@ -22,7 +22,8 @@ import {
   TrendingUp,
   BookOpen,
   Zap,
-  RotateCcw
+  RotateCcw,
+  ArrowLeft
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useTheme } from '@/contexts/ThemeContext';
@@ -321,6 +322,14 @@ export function BigFiveAssessment() {
   return (
     <div className="min-h-screen py-8 px-4" style={{ backgroundColor: colors.bg }}>
       <div className="max-w-4xl mx-auto">
+        <button
+          onClick={() => navigate('/dashboard')}
+          className="flex items-center gap-2 text-sm mb-6 transition-colors hover:opacity-80"
+          style={{ fontFamily: 'var(--font-body)', color: colors.textSecondary }}
+        >
+          <ArrowLeft className="w-4 h-4" />
+          Back to Dashboard
+        </button>
         <AnimatePresence mode="wait">
           {/* Intro Phase */}
           {phase === 'intro' && (

@@ -9,6 +9,7 @@ import React, { useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useTheme } from '@/contexts/ThemeContext';
+import { useDemo } from '@/contexts/DemoContext';
 import { useToast } from '@/components/ui/use-toast';
 import { usePlatformStatus } from '../hooks/usePlatformStatus';
 import { PageLayout, GlassPanel } from '@/components/layout/PageLayout';
@@ -22,7 +23,8 @@ import {
   Eye,
   Plus,
   Fingerprint,
-  X
+  X,
+  Info
 } from 'lucide-react';
 
 import UserProfile from '../components/UserProfile';
@@ -271,6 +273,7 @@ const InstantTwinOnboarding = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { theme } = useTheme();
+  const { isDemoMode } = useDemo();
   const { toast } = useToast();
 
   // Lorix design system colors
@@ -363,6 +366,14 @@ const InstantTwinOnboarding = () => {
   }, []);
 
   const connectService = useCallback(async (provider: DataProvider) => {
+    if (isDemoMode) {
+      toast({
+        title: "Demo Mode",
+        description: "Sign up to connect real platforms",
+      });
+      return;
+    }
+
     setConnectingProvider(provider);
     try {
       const userId = user?.id || 'demo-user';
@@ -518,7 +529,7 @@ const InstantTwinOnboarding = () => {
       const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
 
       // Nango-managed platforms use Nango disconnect endpoint (including whoop for auto token refresh)
-      const nangoPlatforms = ['outlook', 'discord', 'github', 'youtube', 'reddit', 'gmail', 'twitch', 'whoop'];
+      const nangoPlatforms = ['outlook', 'discord', 'github', 'youtube', 'reddit', 'gmail', 'twitch', 'whoop', 'spotify', 'google_calendar'];
       const nangoProviderMap: Record<string, string> = {
         'gmail': 'google-mail',  // Gmail uses 'google-mail' integration ID in Nango
         'whoop': 'whoop'  // Whoop now uses Nango for automatic token refresh
@@ -639,10 +650,14 @@ const InstantTwinOnboarding = () => {
     }
   }, [user, connectedServices, navigate, toast]);
 
+  const DEMO_CONNECTED_PROVIDERS = ['spotify', 'google_calendar', 'whoop'];
+
   const renderConnectorCard = (connector: ConnectorConfig) => {
-    const isConnected = connectedServices.includes(connector.provider);
+    const isConnected = isDemoMode
+      ? DEMO_CONNECTED_PROVIDERS.includes(connector.provider as string)
+      : connectedServices.includes(connector.provider);
     const providerStatus = platformStatusData[connector.provider];
-    const needsReconnect = providerStatus?.tokenExpired || providerStatus?.status === 'token_expired';
+    const needsReconnect = isDemoMode ? false : (providerStatus?.tokenExpired || providerStatus?.status === 'token_expired');
 
     return (
       <GlassPanel
@@ -874,13 +889,28 @@ const InstantTwinOnboarding = () => {
       maxWidth="xl"
       padding="lg"
     >
+      {isDemoMode && (
+        <div
+          className="rounded-2xl p-4 flex items-center gap-3 mb-6"
+          style={{
+            backgroundColor: theme === 'dark' ? 'rgba(251, 191, 36, 0.1)' : 'rgba(251, 191, 36, 0.1)',
+            border: `1px solid ${theme === 'dark' ? 'rgba(251, 191, 36, 0.2)' : 'rgba(251, 191, 36, 0.3)'}`
+          }}
+        >
+          <Info className="w-5 h-5 flex-shrink-0" style={{ color: '#FBBF24' }} />
+          <p className="text-sm" style={{ color: colors.textSecondary, fontFamily: 'var(--font-body)' }}>
+            You're in demo mode. Spotify, Calendar, and Whoop are shown as connected with sample data. Sign up to connect your real platforms.
+          </p>
+        </div>
+      )}
+
       <div className="flex items-center justify-between mb-8">
         <button
           onClick={() => {
             if (currentStep > 1) {
               setCurrentStep(currentStep - 1);
             } else {
-              navigate('/');
+              navigate('/dashboard');
             }
           }}
           className="flex items-center gap-2 text-sm px-3 py-2 rounded-lg transition-opacity hover:opacity-80"
@@ -890,7 +920,7 @@ const InstantTwinOnboarding = () => {
           }}
         >
           <ArrowLeft className="w-4 h-4" />
-          {currentStep > 1 ? `Back to ${STEPS[currentStep - 2].name}` : 'Back to Home'}
+          {currentStep > 1 ? `Back to ${STEPS[currentStep - 2].name}` : 'Back to Dashboard'}
         </button>
 
         <div className="flex items-center gap-3">
