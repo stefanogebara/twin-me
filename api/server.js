@@ -342,7 +342,7 @@ app.use('/api/calendar', calendarOAuthRoutes); // Calendar events and sync endpo
 app.use('/api/oauth/spotify', spotifyOAuthRoutes); // Spotify OAuth connect endpoint (Ritual feature)
 app.use('/api/spotify', spotifyOAuthRoutes); // Spotify playback and playlist endpoints
 app.use('/api/presentation-ritual', presentationRitualRoutes); // MVP: Presentation ritual pattern detection
-app.use('/api/twin/engine', intelligentTwinRoutes); // Intelligent Twin Engine routes
+app.use('/api/twin', intelligentTwinRoutes); // Intelligent Twin Engine routes (context, today-insights, music)
 if (process.env.NODE_ENV === 'development') {
   app.use('/api/test-pattern-learning', testPatternLearningRoutes); // Pattern learning test/debug endpoints
 }
@@ -350,7 +350,7 @@ app.use('/api/onboarding', onboardingQuestionsRoutes); // Personality questionna
 app.use('/api/personality', personalityAssessmentRoutes); // Big Five personality assessment with 16personalities archetypes
 app.use('/api/big-five', bigFiveRoutes); // IPIP-NEO-120 Big Five assessment with T-score normalization
 app.use('/api/insights', platformInsightsRoutes); // Platform-specific conversational insights
-app.use('/api/twin/pipeline', twinPipelineRoutes); // Twin formation pipeline (form, status, profile, evolution)
+app.use('/api/twin', twinPipelineRoutes); // Twin formation pipeline (form, status, profile, evolution)
 app.use('/api/extraction', extractionStatusRoutes); // Extraction status and job history
 app.use('/api/notifications', notificationsRoutes); // User notifications (token expiry, sync issues)
 app.use('/api/research-rag', researchRAGRoutes); // Research paper RAG for evidence-backed personality inference
