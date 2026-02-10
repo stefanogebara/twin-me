@@ -538,7 +538,7 @@ router.post('/clusters/rebuild', authenticateUser, async (req, res) => {
       const { supabaseAdmin } = await import('../services/database.js');
       const { data: features, error: fetchError } = await supabaseAdmin
         .from('behavioral_features')
-        .select('platform, feature, value, raw_value')
+        .select('platform, feature_type, feature_value, normalized_value, evidence')
         .eq('user_id', userId);
 
       if (fetchError) {
@@ -561,9 +561,9 @@ router.post('/clusters/rebuild', authenticateUser, async (req, res) => {
       // Map DB columns to expected format
       platformData = features.map(f => ({
         platform: f.platform,
-        feature: f.feature,
-        value: f.value,
-        rawValue: f.raw_value
+        feature: f.feature_type,
+        value: f.normalized_value,
+        rawValue: f.feature_value
       }));
     }
 

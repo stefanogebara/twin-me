@@ -112,15 +112,34 @@ class UserContextAggregator {
       // Check Nango connection status first
       const connectionStatus = await getNangoConnection(userId, 'whoop');
       if (!connectionStatus.connected) {
-        console.log(`⚠️ [Context Aggregator] Whoop not connected via Nango, checking legacy...`);
+        console.log(`⚠️ [Context Aggregator] Whoop not connected via Nango (reason: ${connectionStatus.error || 'not found'}), trying Nango proxy directly...`);
 
-        // Fall back to legacy platform_connections table
-        const legacyResult = await this.getLegacyWhoopContext(userId);
-        if (legacyResult) {
-          return legacyResult;
+        // Even if getConnection fails, the Nango proxy might still work
+        // (e.g. when connection exists but status check had a transient error)
+        // Try Nango proxy before falling to legacy
+        try {
+          const [testCycle] = await Promise.all([
+            nangoWhoop.getCycles(userId, 1).catch(() => ({ success: false }))
+          ]);
+          if (testCycle.success) {
+            console.log(`✅ [Context Aggregator] Nango proxy works despite connection check failure, continuing...`);
+            // Fall through to the normal Nango proxy path below
+          } else {
+            // Nango proxy also failed, try legacy
+            const legacyResult = await this.getLegacyWhoopContext(userId);
+            if (legacyResult) {
+              return legacyResult;
+            }
+            return null;
+          }
+        } catch (proxyErr) {
+          console.log(`⚠️ [Context Aggregator] Nango proxy also failed: ${proxyErr.message}`);
+          const legacyResult = await this.getLegacyWhoopContext(userId);
+          if (legacyResult) {
+            return legacyResult;
+          }
+          return null;
         }
-
-        return null;
       }
 
       // Fetch both cycle and recovery data in parallel using Nango proxy
