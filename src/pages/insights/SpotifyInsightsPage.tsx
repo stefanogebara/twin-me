@@ -243,6 +243,7 @@ const SpotifyInsightsPage: React.FC = () => {
         headers: { 'Authorization': `Bearer ${authToken}` }
       });
 
+      if (!response.ok) throw new Error(`Server error: ${response.status}`);
       const data = await response.json();
 
       if (data.success) {
