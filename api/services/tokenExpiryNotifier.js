@@ -43,11 +43,13 @@ async function checkExpiringTokens() {
     const supabase = getSupabaseClient();
 
     // Get all connections - check both approaching expiry and already expired
+    // Exclude NANGO_MANAGED connections since Nango handles token refresh automatically
     const { data: connections, error } = await supabase
       .from('platform_connections')
-      .select('id, user_id, platform, last_sync_at, status, updated_at, token_expires_at')
+      .select('id, user_id, platform, last_sync_at, status, updated_at, token_expires_at, access_token')
       .in('status', ['connected', 'token_expired', 'expired'])
-      .not('refresh_token', 'is', null);
+      .not('refresh_token', 'is', null)
+      .neq('access_token', 'NANGO_MANAGED');
 
     if (error) {
       console.error('❌ [Token Notifier] Error fetching connections:', error.message);
