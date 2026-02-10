@@ -362,6 +362,35 @@ export async function getConnection(userId, platform) {
 }
 
 /**
+ * Get a valid access token from Nango for a NANGO_MANAGED connection.
+ * Nango handles token refresh automatically.
+ */
+export async function getAccessToken(userId, platform) {
+  try {
+    const config = PLATFORM_CONFIGS[platform];
+    if (!config) {
+      return { success: false, error: `Unknown platform: ${platform}` };
+    }
+
+    const connectionId = await getConnectionId(platform, userId);
+    const connection = await nango.getConnection(config.providerConfigKey, connectionId);
+
+    if (connection?.credentials?.access_token) {
+      return {
+        success: true,
+        accessToken: connection.credentials.access_token,
+        expiresAt: connection.credentials.expires_at
+      };
+    }
+
+    return { success: false, error: `No access token in Nango connection for ${platform}` };
+  } catch (error) {
+    console.error(`[Nango] Error getting access token for ${platform}:`, error.message);
+    return { success: false, error: error.message };
+  }
+}
+
+/**
  * Get all connections for a user
  */
 export async function getAllConnections(userId) {
@@ -802,6 +831,7 @@ export const fitbit = {
 export default {
   createConnectSession,
   getConnection,
+  getAccessToken,
   getAllConnections,
   deleteConnection,
   proxyRequest,
