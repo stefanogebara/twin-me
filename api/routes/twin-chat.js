@@ -886,7 +886,7 @@ router.post('/message', authenticateUser, async (req, res) => {
         return res.status(503).json({
           success: false,
           error: 'Chat is temporarily unavailable. Both AI providers are unreachable.',
-          details: process.env.NODE_ENV === 'development' ? claudeError.message : undefined
+          details: claudeError.message
         });
       }
     }
