@@ -13,8 +13,10 @@ const anthropic = new Anthropic({
 
 // Claude 3.5 Sonnet pricing (per million tokens)
 const PRICING = {
-  input: 3.00,  // $3 per 1M input tokens
-  output: 15.00  // $15 per 1M output tokens
+  input: 3.00,           // $3 per 1M input tokens
+  cache_write: 3.75,     // $3.75 per 1M cache write tokens (25% more)
+  cache_read: 0.30,      // $0.30 per 1M cache read tokens (90% less)
+  output: 15.00          // $15 per 1M output tokens
 };
 
 /**
@@ -80,12 +82,19 @@ async function generateNonStreamingResponse(options) {
   const usage = {
     input_tokens: response.usage.input_tokens,
     output_tokens: response.usage.output_tokens,
-    total_tokens: response.usage.input_tokens + response.usage.output_tokens
+    cache_creation_input_tokens: response.usage.cache_creation_input_tokens || 0,
+    cache_read_input_tokens: response.usage.cache_read_input_tokens || 0,
+    total_tokens: (response.usage.cache_read_input_tokens || 0) + (response.usage.cache_creation_input_tokens || 0) + response.usage.input_tokens + response.usage.output_tokens
   };
 
   const cost = calculateCost(usage);
 
-  console.log(`[AnthropicService] Response generated: ${usage.total_tokens} tokens, $${cost.toFixed(4)}`);
+  const cacheInfo = usage.cache_read_input_tokens > 0
+    ? ` (cache hit: ${usage.cache_read_input_tokens} tokens saved 90%)`
+    : usage.cache_creation_input_tokens > 0
+      ? ` (cache write: ${usage.cache_creation_input_tokens} tokens cached)`
+      : '';
+  console.log(`[AnthropicService] Response: ${usage.total_tokens} tokens, $${cost.toFixed(4)}${cacheInfo}`);
 
   return {
     content,
@@ -179,12 +188,14 @@ async function streamChatResponse(options) {
 }
 
 /**
- * Calculate cost based on token usage
+ * Calculate cost based on token usage (including prompt caching)
  */
 function calculateCost(usage) {
   const inputCost = (usage.input_tokens / 1_000_000) * PRICING.input;
   const outputCost = (usage.output_tokens / 1_000_000) * PRICING.output;
-  return inputCost + outputCost;
+  const cacheWriteCost = ((usage.cache_creation_input_tokens || 0) / 1_000_000) * PRICING.cache_write;
+  const cacheReadCost = ((usage.cache_read_input_tokens || 0) / 1_000_000) * PRICING.cache_read;
+  return inputCost + outputCost + cacheWriteCost + cacheReadCost;
 }
 
 /**
@@ -193,9 +204,15 @@ function calculateCost(usage) {
  */
 export function pruneConversationHistory(messages, systemPrompt, maxContextTokens = 100000) {
   // Rough estimate: 1 token ≈ 4 characters
-  const estimateTokens = (text) => Math.ceil(text.length / 4);
+  const estimateTokens = (text) => Math.ceil((text || '').length / 4);
 
-  let systemTokens = estimateTokens(systemPrompt);
+  // Handle both string and array-format system prompts
+  let systemTokens;
+  if (Array.isArray(systemPrompt)) {
+    systemTokens = systemPrompt.reduce((sum, block) => sum + estimateTokens(block.text || ''), 0);
+  } else {
+    systemTokens = estimateTokens(systemPrompt);
+  }
   let totalTokens = systemTokens;
   let prunedMessages = [];
 

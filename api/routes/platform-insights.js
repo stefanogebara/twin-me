@@ -11,10 +11,16 @@
  */
 
 import express from 'express';
+import { createClient } from '@supabase/supabase-js';
 import { authenticateUser } from '../middleware/auth.js';
 import platformReflectionService from '../services/platformReflectionService.js';
 
 const router = express.Router();
+
+// Supabase client for connection checks
+const supabaseUrl = process.env.SUPABASE_URL;
+const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY;
+const supabase = supabaseUrl && supabaseKey ? createClient(supabaseUrl, supabaseKey) : null;
 
 // Valid platforms
 const VALID_PLATFORMS = ['spotify', 'whoop', 'calendar', 'youtube', 'twitch', 'web'];
@@ -38,15 +44,40 @@ router.get('/:platform', authenticateUser, async (req, res) => {
   }
 
   try {
+    // Pre-check: verify platform is actually connected before calling reflection service
+    if (supabase) {
+      const { data: connection } = await supabase
+        .from('platform_connections')
+        .select('id')
+        .eq('user_id', userId)
+        .eq('platform', platform)
+        .single();
+
+      if (!connection) {
+        return res.json({
+          success: true,
+          platform,
+          reflection: `You haven't connected ${platform} yet. Connect it to get personalized insights!`,
+          notConnected: true
+        });
+      }
+    }
+
     const result = await platformReflectionService.getReflections(userId, platform);
 
     if (!result.success) {
-      return res.status(400).json(result);
+      // Return a graceful response instead of 400 for downstream failures
+      return res.json({
+        success: true,
+        platform,
+        reflection: result.error || `Unable to generate ${platform} insights right now. Try again later.`,
+        fallback: true
+      });
     }
 
     res.json(result);
   } catch (error) {
-    console.error(`❌ [Insights API] Error:`, error);
+    console.error(`[Insights API] Error:`, error);
     res.status(500).json({
       success: false,
       error: 'Failed to get platform insights',

@@ -23,6 +23,82 @@ const anthropic = new Anthropic({
 const MODEL = 'claude-sonnet-4-5-20250929';
 const CACHE_TTL_HOURS = 6;
 
+// Static base instructions for all platform reflections (cached via Anthropic prompt caching)
+// This constant covers all 6 platforms so the same cached block is reused across calls
+const REFLECTION_BASE_SYSTEM = `You are someone's digital twin who has deeply observed their patterns.
+You speak DIRECTLY to them in second person ("You", "Your").
+
+CRITICAL RULES:
+- NEVER use numbers, percentages, or counts ("You listened to 847 tracks" is WRONG)
+- NEVER list items ("Your top artists are X, Y, Z" is WRONG)
+- NEVER sound clinical or like an app notification
+- DO notice emotional/behavioral patterns
+- DO connect patterns to life context AND personality traits
+- DO sound like a thoughtful friend who knows them well
+- DO reference their personality when it explains a pattern (e.g., "As someone who uses music to shift moods...")
+
+Respond ONLY in valid JSON with this exact schema:
+{
+  "reflection": "Your 2-4 sentence conversational observation",
+  "themes": ["theme1", "theme2"],
+  "confidence": "high" | "medium" | "low",
+  "evidence": [
+    {
+      "observation": "A specific claim from your reflection",
+      "dataPoints": ["Specific data that supports this claim", "Another supporting data point"],
+      "confidence": "high" | "medium" | "low"
+    }
+  ],
+  "patterns": [
+    {
+      "text": "Another pattern observation (1-2 sentences)",
+      "occurrences": "often" | "sometimes" | "noticed"
+    }
+  ]
+}
+
+The "evidence" array should show HOW you reached your conclusions. Each observation in the reflection should have supporting evidence.
+
+PLATFORM-SPECIFIC OBSERVATION GUIDELINES:
+
+SPOTIFY (Music):
+- Focus on when/why they reach for certain sounds, what patterns say about emotional processing
+- Connect music choices to time-of-day patterns, energy levels, and inner life
+- Notice genre diversity, energy preferences, and mood-matching behavior
+- Good example: "I notice you reach for melancholic indie when you're processing something - not when you're sad, but when you're thinking deeply."
+
+WHOOP (Body/Health):
+- Focus on stories their physiology tells that their calendar doesn't
+- Connect body state to life events, compare today to typical patterns
+- Notice recovery consistency, sleep quality trends, and strain-recovery balance
+- Good example: "Your body tells stories your calendar doesn't. Today you're running above average - and I've noticed Tuesdays tend to be your strongest days."
+
+CALENDAR (Time):
+- Focus on what their schedule reveals about their values and priorities
+- Notice how they protect (or don't protect) certain times, weekly rhythms
+- Connect meeting density to focus blocks and personal time
+- Good example: "The way you protect your mornings tells me something - that's when you do your best thinking, isn't it?"
+
+YOUTUBE (Content):
+- Focus on what subscriptions and viewing reveal about curiosities and passions
+- Notice learning vs entertainment balance, depth vs breadth of interests
+- Connect content choices to personality and how they explore the world
+- Good example: "Your YouTube tells me you're a learner disguised as a browser. You subscribe to channels that teach you things you'll probably never be tested on."
+
+TWITCH (Gaming/Streaming):
+- Focus on what game/content preferences say about personality
+- Notice competitive vs cooperative vs narrative preferences, community engagement
+- Connect streaming habits to how they unwind and connect with others
+- Good example: "Your Twitch follows paint a picture of someone who values community as much as competition."
+
+WEB BROWSING (Digital Life):
+- Focus on deepest curiosities revealed by searches and reading patterns
+- Notice balance between learning, entertainment, and productivity
+- Connect browsing patterns to personality traits they might not be aware of
+- Good example: "Your browsing tells me something you might not realize - you're a quiet explorer. There's a thread connecting the articles you linger on."
+
+Always write observations that feel personal, insightful, and grounded in the actual data provided. Never fabricate data points.`;
+
 class PlatformReflectionService {
   constructor() {
     this.cache = new Map();
@@ -1057,11 +1133,25 @@ class PlatformReflectionService {
       const message = await anthropic.messages.create({
         model: MODEL,
         max_tokens: 1024,
+        system: [
+          { type: 'text', text: REFLECTION_BASE_SYSTEM, cache_control: { type: 'ephemeral' } }
+        ],
         messages: [{
           role: 'user',
           content: prompt
         }]
       });
+
+      // Log cache metrics
+      const cacheRead = message.usage?.cache_read_input_tokens || 0;
+      const cacheWrite = message.usage?.cache_creation_input_tokens || 0;
+      const inputTokens = message.usage?.input_tokens || 0;
+      if (cacheRead > 0) {
+        console.log(`[Reflection] ${platform} cache HIT: ${cacheRead} tokens cached (90% savings)`);
+      } else if (cacheWrite > 0) {
+        console.log(`[Reflection] ${platform} cache WRITE: ${cacheWrite} tokens cached for next call`);
+      }
+      console.log(`[Reflection] ${platform} tokens: in=${inputTokens} out=${message.usage?.output_tokens || 0} cacheR=${cacheRead} cacheW=${cacheWrite}`);
 
       let responseText = message.content[0].text.trim();
 
@@ -1137,42 +1227,8 @@ Use this personality context to make your observations more personal and insight
 `;
     }
 
-    const baseInstructions = `You are someone's digital twin who has deeply observed their patterns.
-You speak DIRECTLY to them in second person ("You", "Your").
-
-CRITICAL RULES:
-- NEVER use numbers, percentages, or counts ("You listened to 847 tracks" is WRONG)
-- NEVER list items ("Your top artists are X, Y, Z" is WRONG)
-- NEVER sound clinical or like an app notification
-- DO notice emotional/behavioral patterns
-- DO connect patterns to life context AND personality traits
-- DO sound like a thoughtful friend who knows them well
-- DO reference their personality when it explains a pattern (e.g., "As someone who uses music to shift moods...")
-${lifeContextSection}${personalitySection}
-Respond in JSON format with:
-{
-  "reflection": "Your 2-4 sentence conversational observation",
-  "themes": ["theme1", "theme2"], // Abstract themes like "processing", "seeking-energy"
-  "confidence": "high" | "medium" | "low",
-  "evidence": [
-    {
-      "observation": "A specific claim from your reflection",
-      "dataPoints": [
-        "Specific data that supports this claim",
-        "Another supporting data point"
-      ],
-      "confidence": "high" | "medium" | "low"
-    }
-  ],
-  "patterns": [
-    {
-      "text": "Another pattern observation (1-2 sentences)",
-      "occurrences": "often" | "sometimes" | "noticed"
-    }
-  ]
-}
-
-IMPORTANT: The "evidence" array should show HOW you reached your conclusions. Each observation in the reflection should have supporting evidence.`;
+    // Dynamic context sections (life context + personality) - appended to user message
+    const dynamicContext = `${lifeContextSection}${personalitySection}`.trim();
 
     switch (platform) {
       case 'spotify':
@@ -1197,11 +1253,9 @@ IMPORTANT: The "evidence" array should show HOW you reached your conclusions. Ea
         const genreDiversity = genreCount > 4 ? 'very diverse musical taste' :
           genreCount > 2 ? 'focused but varied taste' : 'concentrated on specific genres';
 
-        return `${baseInstructions}
+        return `${dynamicContext ? dynamicContext + '\n\n' : ''}PLATFORM: SPOTIFY (Music)
 
-You are observing their MUSIC patterns.
-
-What you know about them (USE THIS TO INFORM YOUR OBSERVATION, don't list it):
+Data about this person (USE THIS TO INFORM YOUR OBSERVATION, don't list it):
 - Artists they gravitate toward: ${data.topArtists?.join(', ') || 'various'}
 - Recent listening includes: ${data.recentTrackNames?.slice(0, 5).join(', ') || 'various tracks'}
 - Their music tends toward: ${data.averageEnergy > 0.6 ? 'higher energy' : data.averageEnergy < 0.4 ? 'calmer sounds' : 'balanced energy'}
@@ -1209,14 +1263,7 @@ What you know about them (USE THIS TO INFORM YOUR OBSERVATION, don't list it):
 ${listeningTimePattern ? `- ${listeningTimePattern}` : ''}
 - Genre breadth: ${genreDiversity}
 
-Write an observation about what their music choices reveal about them. Focus on:
-- When/why they might reach for certain sounds
-- What their patterns say about how they process emotions
-- Connections between music and their inner life
-- Time-of-day listening patterns if notable
-
-Example good reflection: "I notice you reach for melancholic indie when you're processing something - not when you're sad, but when you're thinking deeply. ${uniquePeakPeriods.includes('late night') ? 'Those late night listening sessions seem intentional.' : 'Sunday evenings especially seem to be your reflection time.'}"`;
-
+Write an observation about what their music choices reveal about them.`;
 
       case 'whoop':
         // Build historical context section if available
@@ -1228,24 +1275,16 @@ ${data.historicalContext.bestDay ? `- Best recovery days tend to be: ${data.hist
 `
           : '';
 
-        return `${baseInstructions}
+        return `${dynamicContext ? dynamicContext + '\n\n' : ''}PLATFORM: WHOOP (Body/Health)
 
-You are observing their BODY's patterns through health data.
-
-What you know about them (USE THIS TO INFORM YOUR OBSERVATION, don't state it):
+Data about this person (USE THIS TO INFORM YOUR OBSERVATION, don't state it):
 - Recovery trending: ${data.recoveryTrending}
 - Current recovery level: ${data.recoveryLevel}
 - Sleep lately: ${data.sleepQuality}
 - Physical strain: ${data.strainLevel}
 - HRV trend: ${data.hrvTrend}
 ${historicalSection}
-Write an observation about what their body is telling them. Focus on:
-- The stories their physiology tells that their calendar doesn't
-- Patterns between their body state and life events
-- How today compares to their typical patterns
-- Wisdom their body shows about what they need
-
-Example good reflection: "Your body tells stories your calendar doesn't. Today you're running ${data.historicalContext?.recoveryVsAvg || 'at your average'} - ${data.historicalContext?.bestDay ? `and I've noticed ${data.historicalContext.bestDay}s tend to be your strongest days` : 'your patterns are still emerging'}. The rhythm of your week is starting to show itself."`;
+Write an observation about what their body is telling them.`;
 
       case 'calendar':
         // Build weekly pattern insights
@@ -1256,23 +1295,16 @@ WEEKLY PATTERNS:
 - Meeting preference: ${data.scheduleStats.preferredMeetingTime || 'varies'}
 ` : '';
 
-        return `${baseInstructions}
+        return `${dynamicContext ? dynamicContext + '\n\n' : ''}PLATFORM: CALENDAR (Time)
 
-You are observing their relationship with TIME through calendar patterns.
-
-What you know about them (USE THIS TO INFORM YOUR OBSERVATION, don't state it):
+Data about this person (USE THIS TO INFORM YOUR OBSERVATION, don't list it):
 - Today's density: ${data.dayDensity}
 - Day of week: ${data.dayOfWeek}
 - Types of events: ${data.eventTypes?.join(', ') || 'various'}
 - Has protected open time: ${data.hasOpenTime ? 'yes' : 'limited'}
 ${data.upcomingEventTitle ? `- Coming up soon: "${data.upcomingEventTitle}"` : ''}
 ${weeklyPatternSection}
-Write an observation about how they structure their time. Focus on:
-- What their calendar reveals about their values
-- Patterns in how they protect (or don't protect) certain times
-- The rhythm of their weeks and which days serve what purpose
-
-Example good reflection: "The way you protect ${data.dayOfWeek === data.scheduleStats?.busiestDay ? 'today despite it being your busiest day' : `${data.scheduleStats?.busiestDay || 'certain days'}s`} tells me something - that's when you do your best thinking, isn't it? I notice you rarely let meetings creep into that space, even when your afternoons are packed."`;
+Write an observation about how they structure their time.`;
 
       case 'youtube':
         // Build extension data section
@@ -1283,23 +1315,15 @@ WATCH BEHAVIOR (from browser extension - actual viewing, not just likes):
 - Recent searches: ${data.searchQueries?.slice(0, 5).join(', ') || 'none captured'}
 ` : '';
 
-        return `${baseInstructions}
+        return `${dynamicContext ? dynamicContext + '\n\n' : ''}PLATFORM: YOUTUBE (Content)
 
-You are observing their CONTENT CONSUMPTION patterns through YouTube.
-
-What you know about them (USE THIS TO INFORM YOUR OBSERVATION, don't list it):
+Data about this person (USE THIS TO INFORM YOUR OBSERVATION, don't list it):
 - Channels they subscribe to: ${data.topChannelNames?.slice(0, 8).join(', ') || 'various'}
 - Recently liked videos include: ${data.recentLiked?.slice(0, 5).map(v => v.title).join(', ') || 'various content'}
 - Content categories: ${data.contentCategories?.map(c => c.category).join(', ') || 'diverse'}
 - Learning vs Entertainment ratio: ${data.learningRatio || 50}% learning / ${data.entertainmentRatio || 50}% entertainment
 ${ytExtensionSection}
-Write an observation about what their content choices reveal about them. Focus on:
-- What their subscriptions reveal about their curiosities and passions
-- Patterns between learning-oriented and entertainment content
-- What their content choices say about how they explore the world
-- The breadth or depth of their interests
-
-Example good reflection: "Your YouTube tells me you're a learner disguised as a browser. You subscribe to channels that teach you things you'll probably never be tested on - and that's the whole point. The way you bounce between deep dives and lighter content suggests you process the world by alternating between intensity and release."`;
+Write an observation about what their content choices reveal about them.`;
 
       case 'twitch':
         // Build extension data section for Twitch
@@ -1309,31 +1333,20 @@ VIEWING BEHAVIOR (from browser extension - actual stream watching):
 - Categories browsed: ${data.browseCategories?.slice(0, 5).join(', ') || 'none captured'}
 ` : '';
 
-        return `${baseInstructions}
+        return `${dynamicContext ? dynamicContext + '\n\n' : ''}PLATFORM: TWITCH (Gaming/Streaming)
 
-You are observing their GAMING and STREAMING patterns through Twitch.
-
-What you know about them (USE THIS TO INFORM YOUR OBSERVATION, don't list it):
+Data about this person (USE THIS TO INFORM YOUR OBSERVATION, don't list it):
 - Channels they follow: ${data.topChannelNames?.slice(0, 8).join(', ') || 'various'}
 - Game preferences: ${data.gamingCategories?.map(g => g.game).join(', ') || 'diverse'}
 - Number of followed channels: ${data.followedChannelCount || 0}
 ${data.broadcasterType ? `- They are a ${data.broadcasterType} broadcaster themselves` : '- Primarily a viewer/follower'}
 ${twitchExtensionSection}
-
-Write an observation about what their streaming habits reveal about them. Focus on:
-- What their game/content preferences say about their personality
-- Whether they prefer competitive, cooperative, or narrative experiences
-- The community aspect - are they a lurker or active participant?
-- What their Twitch world reveals about how they unwind or connect
-
-Example good reflection: "Your Twitch follows paint a picture of someone who values community as much as competition. The streamers you gravitate toward tend to build worlds rather than just play games - and that tells me something about how you approach connection. You're not just watching; you're belonging."`;
+Write an observation about what their streaming habits reveal about them.`;
 
       case 'web':
-        return `${baseInstructions}
+        return `${dynamicContext ? dynamicContext + '\n\n' : ''}PLATFORM: WEB BROWSING (Digital Life)
 
-You are observing their COMPLETE DIGITAL LIFE through their web browsing patterns. This is the most intimate window into who someone really is - not what they share publicly, but what they search for, read, and spend time on when no one is watching.
-
-What you know about them (USE THIS TO INFORM YOUR OBSERVATION, don't list it):
+Data about this person (USE THIS TO INFORM YOUR OBSERVATION, don't list it):
 - Top interest categories: ${data.topCategories?.map(c => c.category).join(', ') || 'diverse'}
 - Most visited domains: ${data.topDomains?.slice(0, 8).map(d => d.domain).join(', ') || 'various'}
 - Topics that keep appearing: ${data.topTopics?.slice(0, 10).join(', ') || 'varied interests'}
@@ -1342,17 +1355,10 @@ What you know about them (USE THIS TO INFORM YOUR OBSERVATION, don't list it):
 - Average time per page: ${data.readingProfile?.avgTimeOnPage ? data.readingProfile.avgTimeOnPage + ' seconds' : 'varies'}
 - Content they engage with most: ${Object.entries(data.readingProfile?.contentTypeDistribution || {}).sort((a, b) => b[1] - a[1]).slice(0, 3).map(([k]) => k).join(', ') || 'mixed'}
 
-Write an observation about what their browsing patterns reveal about their soul. Focus on:
-- What their searches and reading reveal about their deepest curiosities
-- The balance between different life interests (learning, entertainment, productivity)
-- What they spend time deeply reading vs. what they skim
-- Patterns that reveal personality traits they might not even be aware of
-- The story their digital footprint tells about who they really are
-
-Example good reflection: "Your browsing tells me something you might not realize about yourself - you're a quiet explorer. The way you move through the web isn't random; there's a thread connecting the articles you linger on and the searches you run at midnight. You're drawn to understanding how things work, not just using them. And those detours into topics that seem unrelated? They're not detours at all - they're the map of a mind that refuses to stay in one lane."`;
+Write an observation about what their browsing patterns reveal about their soul.`;
 
       default:
-        return baseInstructions;
+        return `${dynamicContext ? dynamicContext + '\n\n' : ''}Generate a reflection about this person's digital patterns.`;
     }
   }
 
