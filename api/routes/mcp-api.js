@@ -13,6 +13,7 @@ import { getValidAccessToken } from '../services/tokenRefresh.js';
 import { getMemoryService } from '../services/moltbot/moltbotMemoryService.js';
 import { getClusterPersonalityBuilder } from '../services/clusterPersonalityBuilder.js';
 import axios from 'axios';
+import { CLAUDE_MODEL } from '../config/aiModels.js';
 
 const router = express.Router();
 
@@ -127,7 +128,7 @@ router.post('/chat', authenticateApiKey, async (req, res) => {
 
     // Call Claude
     const response = await anthropic.messages.create({
-      model: 'claude-sonnet-4-5-20250929',
+      model: CLAUDE_MODEL,
       max_tokens: 1000,
       temperature: 0.7,
       system: systemPrompt,

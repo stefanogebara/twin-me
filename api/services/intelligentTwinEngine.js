@@ -15,6 +15,7 @@
 import Anthropic from '@anthropic-ai/sdk';
 import userContextAggregator from './userContextAggregator.js';
 import intelligentMusicService from './intelligentMusicService.js';
+import { CLAUDE_MODEL } from '../config/aiModels.js';
 
 const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY,
@@ -22,7 +23,7 @@ const anthropic = new Anthropic({
 
 class IntelligentTwinEngine {
   constructor() {
-    this.MODEL = 'claude-sonnet-4-5-20250929';
+    this.MODEL = CLAUDE_MODEL;
     this.cache = new Map();
     this.CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
   }

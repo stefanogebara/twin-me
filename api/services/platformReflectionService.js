@@ -15,12 +15,11 @@
 import Anthropic from '@anthropic-ai/sdk';
 import { supabaseAdmin } from '../config/supabase.js';
 import userContextAggregator from './userContextAggregator.js';
+import { CLAUDE_MODEL as MODEL } from '../config/aiModels.js';
 
 const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY,
 });
-
-const MODEL = 'claude-sonnet-4-5-20250929';
 const CACHE_TTL_HOURS = 6;
 
 // Static base instructions for all platform reflections (cached via Anthropic prompt caching)

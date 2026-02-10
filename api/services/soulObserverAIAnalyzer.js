@@ -5,6 +5,7 @@
 
 import Anthropic from '@anthropic-ai/sdk';
 import { createClient } from '@supabase/supabase-js';
+import { CLAUDE_MODEL } from '../config/aiModels.js';
 
 // Lazy initialization to avoid crashes if env vars not loaded yet
 let supabase = null;
@@ -44,7 +45,7 @@ class SoulObserverAIAnalyzer {
 
       // Call Claude API
       const response = await anthropic.messages.create({
-        model: 'claude-sonnet-4-5-20250929',
+        model: CLAUDE_MODEL,
         max_tokens: 2000,
         temperature: 0.7,
         messages: [{

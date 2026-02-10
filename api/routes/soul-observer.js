@@ -9,6 +9,7 @@ import { supabaseAdmin } from '../services/database.js';
 import patternDetectionEngine from '../services/patternDetectionEngine.js';
 import behavioralEmbeddingService from '../services/behavioralEmbeddingService.js';
 import Anthropic from '@anthropic-ai/sdk';
+import { CLAUDE_MODEL } from '../config/aiModels.js';
 
 // Initialize Anthropic client for LLM interpretation
 const anthropic = new Anthropic({
@@ -808,7 +809,7 @@ Please analyze this browsing activity and provide:
 Provide a thoughtful, insightful analysis that goes beyond surface-level observations. Focus on what makes this person uniquely themselves.`;
 
     const message = await anthropic.messages.create({
-      model: 'claude-sonnet-4-5-20250929',
+      model: CLAUDE_MODEL,
       max_tokens: 1500,
       messages: [
         {

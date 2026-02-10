@@ -15,6 +15,7 @@
 
 import Anthropic from '@anthropic-ai/sdk';
 import { supabaseAdmin } from './database.js';
+import { CLAUDE_MODEL } from '../config/aiModels.js';
 
 const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY
@@ -60,7 +61,7 @@ FACT TO CLASSIFY:
 async function classifyFact(factText) {
   try {
     const response = await anthropic.messages.create({
-      model: 'claude-sonnet-4-5-20250929',
+      model: CLAUDE_MODEL,
       max_tokens: 200,
       temperature: 0,
       messages: [{

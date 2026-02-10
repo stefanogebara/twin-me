@@ -10,6 +10,7 @@
 import { supabaseAdmin } from './database.js';
 import Anthropic from '@anthropic-ai/sdk';
 import patternLearningService from './patternLearningService.js';
+import { CLAUDE_MODEL } from '../config/aiModels.js';
 
 const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY,
@@ -164,7 +165,7 @@ export class CoreMemory {
         .join('\n');
 
       const response = await anthropic.messages.create({
-        model: 'claude-sonnet-4-5-20250929',
+        model: CLAUDE_MODEL,
         max_tokens: 1024,
         messages: [{
           role: 'user',
@@ -262,7 +263,7 @@ ${conversationText}`
         .join('\n');
 
       const response = await anthropic.messages.create({
-        model: 'claude-sonnet-4-5-20250929',
+        model: CLAUDE_MODEL,
         max_tokens: 512,
         messages: [{
           role: 'user',
@@ -313,7 +314,7 @@ export class LongTermMemory {
         .join('\n\n');
 
       const response = await anthropic.messages.create({
-        model: 'claude-sonnet-4-5-20250929',
+        model: CLAUDE_MODEL,
         max_tokens: 2048,
         messages: [{
           role: 'user',
@@ -424,7 +425,7 @@ ${platformSummary}`
     try {
       // Use Claude to generate search embedding/interpretation
       const response = await anthropic.messages.create({
-        model: 'claude-sonnet-4-5-20250929',
+        model: CLAUDE_MODEL,
         max_tokens: 256,
         messages: [{
           role: 'user',

@@ -302,6 +302,8 @@ app.use('/api/analytics', analyticsRoutes);
 app.use('/api/connectors', connectorsRoutes);
 app.use('/api/data-verification', dataVerificationRoutes);
 app.use('/api/mcp', mcpRoutes);
+// Both entertainment routers intentionally share the /api/entertainment path;
+// Express merges their handlers under the same mount point.
 app.use('/api/entertainment', entertainmentRoutes);
 app.use('/api/entertainment', additionalEntertainmentRoutes);
 app.use('/api/health', healthRoutes);
@@ -328,7 +330,10 @@ app.use('/api/pipedream', pipedreamRoutes); // Pipedream Connect OAuth integrati
 app.use('/api/arctic', arcticRoutes); // Arctic OAuth integration (Better Auth + Arctic)
 app.use('/api/soul-signature', soulSignatureRoutes); // Soul Signature Analysis with Claude AI
 app.use('/api/soul-insights', soulInsightsRoutes); // User-friendly insights from graph metrics
-app.use('/api/test-extraction', testExtractionRoutes); // Demo data extraction endpoints
+// Test/debug routes - only available in development
+if (process.env.NODE_ENV === 'development') {
+  app.use('/api/test-extraction', testExtractionRoutes); // Demo data extraction endpoints
+}
 app.use('/api/behavioral-patterns', behavioralPatternsRoutes); // Cross-platform behavioral pattern recognition
 app.use('/api/gnn-patterns', gnnPatternsRoutes); // GNN-based pattern detection with Neo4j and PyTorch Geometric
 app.use('/api/orchestrator', orchestratorRoutes); // Multi-agent AI orchestration system (Anthropic pattern)
@@ -337,16 +342,17 @@ app.use('/api/calendar', calendarOAuthRoutes); // Calendar events and sync endpo
 app.use('/api/oauth/spotify', spotifyOAuthRoutes); // Spotify OAuth connect endpoint (Ritual feature)
 app.use('/api/spotify', spotifyOAuthRoutes); // Spotify playback and playlist endpoints
 app.use('/api/presentation-ritual', presentationRitualRoutes); // MVP: Presentation ritual pattern detection
-app.use('/api/twin', intelligentTwinRoutes); // Intelligent Twin Engine routes
-app.use('/api/test-pattern-learning', testPatternLearningRoutes); // Pattern learning test/debug endpoints
+app.use('/api/twin/engine', intelligentTwinRoutes); // Intelligent Twin Engine routes
+if (process.env.NODE_ENV === 'development') {
+  app.use('/api/test-pattern-learning', testPatternLearningRoutes); // Pattern learning test/debug endpoints
+}
 app.use('/api/onboarding', onboardingQuestionsRoutes); // Personality questionnaire for personalization
 app.use('/api/personality', personalityAssessmentRoutes); // Big Five personality assessment with 16personalities archetypes
 app.use('/api/big-five', bigFiveRoutes); // IPIP-NEO-120 Big Five assessment with T-score normalization
 app.use('/api/insights', platformInsightsRoutes); // Platform-specific conversational insights
-app.use('/api/twin', twinPipelineRoutes); // Twin formation pipeline (form, status, profile, evolution)
+app.use('/api/twin/pipeline', twinPipelineRoutes); // Twin formation pipeline (form, status, profile, evolution)
 app.use('/api/extraction', extractionStatusRoutes); // Extraction status and job history
 app.use('/api/notifications', notificationsRoutes); // User notifications (token expiry, sync issues)
-app.use('/api/webhooks/whoop', whoopWebhooksRoutes); // Whoop push notifications (recovery, sleep, workout)
 app.use('/api/research-rag', researchRAGRoutes); // Research paper RAG for evidence-backed personality inference
 app.use('/api/personality-inference', personalityInferenceRoutes); // Multi-agent personality inference pipeline
 app.use('/api/origin', originDataRoutes); // Origin data (hands-on user-provided context)
@@ -354,7 +360,7 @@ app.use('/api/enrichment', profileEnrichmentRoutes); // Profile enrichment via P
 app.use('/api/resume', resumeUploadRoutes); // Resume/CV upload and parsing for enrichment
 app.use('/api/moltbot', moltbotRoutes); // Moltbot proactive digital twin (triggers, clusters, memory, agents)
 app.use('/api/keys', apiKeysRoutes); // API key management for MCP server
-app.use('/api/mcp', mcpApiRoutes); // MCP API for LLM integrations (ChatGPT, Gemini, etc.)
+app.use('/api/mcp-api', mcpApiRoutes); // MCP API for LLM integrations (ChatGPT, Gemini, etc.)
 app.use('/api/claude-sync', claudeSyncRoutes); // Claude Desktop conversation sync
 app.use('/api/cron/claude-sync', cronClaudeSyncRoutes); // Claude Desktop cron sync and AI analysis processing
 app.use('/api/twins-brain', twinsBrainRoutes); // Twins Brain unified knowledge graph

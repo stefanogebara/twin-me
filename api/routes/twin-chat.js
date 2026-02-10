@@ -13,6 +13,7 @@
 import express from 'express';
 import axios from 'axios';
 import Anthropic from '@anthropic-ai/sdk';
+import { CLAUDE_MODEL } from '../config/aiModels.js';
 import { authenticateUser } from '../middleware/auth.js';
 import { serverDb, supabaseAdmin } from '../services/database.js';
 import { getValidAccessToken } from '../services/tokenRefresh.js';
@@ -44,6 +45,20 @@ const router = express.Router();
 let openClawAvailable = null; // null = unknown, true = available, false = use Claude directly
 let openClawCheckTime = 0; // Last time we checked availability
 const OPENCLAW_CHECK_INTERVAL = 60000; // Re-check every 60 seconds
+
+// Platform data cache - prevents redundant API calls during conversations
+const platformDataCache = new Map();
+const PLATFORM_CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+
+// Periodic cleanup to prevent memory leaks from expired cache entries
+setInterval(() => {
+  const now = Date.now();
+  for (const [key, value] of platformDataCache.entries()) {
+    if (now - value.timestamp > PLATFORM_CACHE_TTL) {
+      platformDataCache.delete(key);
+    }
+  }
+}, 10 * 60 * 1000);
 
 /**
  * Check if OpenClaw gateway is available
@@ -108,7 +123,7 @@ async function chatViaOpenClaw(userId, message, systemPrompt, conversationHistor
     // chatSend(message, options) signature
     const response = await client.chatSend(fullMessage, {
       sessionKey,
-      model: 'claude-sonnet-4-5-20250929',
+      model: CLAUDE_MODEL,
       maxTokens: 1000,
       temperature: 0.7
     });
@@ -463,6 +478,14 @@ async function getSoulSignature(userId) {
  * ALWAYS fetches LIVE data - no stale cache
  */
 async function getPlatformData(userId, platforms) {
+  // Check cache first - avoid redundant API calls within 5 minutes
+  const cacheKey = userId;
+  const cached = platformDataCache.get(cacheKey);
+  if (cached && (Date.now() - cached.timestamp) < PLATFORM_CACHE_TTL) {
+    console.log('[Twin Chat] Using cached platform data (age: ' + Math.round((Date.now() - cached.timestamp) / 1000) + 's)');
+    return cached.data;
+  }
+
   const data = {};
   console.log(`[Twin Chat] getPlatformData called for user ${userId}, platforms:`, platforms);
 
@@ -677,6 +700,9 @@ async function getPlatformData(userId, platforms) {
     }
   }
 
+  // Store in cache before returning
+  platformDataCache.set(cacheKey, { data, timestamp: Date.now() });
+
   return data;
 }
 
@@ -800,7 +826,7 @@ router.post('/message', authenticateUser, async (req, res) => {
         }
         console.log('[Twin Chat] Using direct Claude API');
         const response = await anthropic.messages.create({
-          model: 'claude-sonnet-4-5-20250929',
+          model: CLAUDE_MODEL,
           max_tokens: 1000,
           temperature: 0.7,
           system: systemPrompt,
@@ -841,27 +867,6 @@ router.post('/message', authenticateUser, async (req, res) => {
         has_writing_profile: !!writingProfile
       }
     }).catch(err => console.warn('[Twin Chat] Failed to log conversation:', err.message));
-
-    // Also store in Moltbot episodic memory for backward compatibility
-    try {
-      const memoryService = getMemoryService(userId);
-      memoryService.storeEvent({
-        platform: 'twin_chat',
-        type: 'conversation',
-        data: {
-          user_message: message.substring(0, 500),
-          assistant_response: assistantMessage.substring(0, 500),
-          conversation_id: conversationId,
-          context_used: {
-            has_soul_signature: !!soulSignature,
-            has_moltbot_context: !!moltbotContext,
-            platforms_included: Object.keys(platformData)
-          }
-        }
-      }).catch(err => console.warn('[Twin Chat] Failed to store in memory:', err.message));
-    } catch (memErr) {
-      console.warn('[Twin Chat] Memory storage error:', memErr.message);
-    }
 
     // Store in Mem0 for intelligent long-term memory - non-blocking
     addConversationMemory(userId, message, assistantMessage, {

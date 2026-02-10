@@ -5,6 +5,7 @@
 
 import Anthropic from '@anthropic-ai/sdk';
 import { supabaseAdmin } from '../config/supabase.js';
+import { CLAUDE_MODEL } from '../config/aiModels.js';
 
 const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY,
@@ -121,7 +122,7 @@ async function analyzePlatformData(userId, platform, dataEntries) {
   try {
     // Call Claude for analysis
     const message = await anthropic.messages.create({
-      model: 'claude-3-7-sonnet-20250219',
+      model: CLAUDE_MODEL,
       max_tokens: 4000,
       temperature: 0.7,
       messages: [{
@@ -210,7 +211,7 @@ Make the insights feel authentic and meaningful - like something that would reso
 
   try {
     const message = await anthropic.messages.create({
-      model: 'claude-3-7-sonnet-20250219',
+      model: CLAUDE_MODEL,
       max_tokens: 4000,
       temperature: 0.7,
       messages: [{

@@ -26,6 +26,7 @@ import {
   getConfidenceLevel,
   getConfidenceDescription
 } from './behavioralPatternRecognition.js';
+import { CLAUDE_MODEL } from '../config/aiModels.js';
 
 const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY
@@ -175,7 +176,7 @@ async function generateInsightWithClaude(pattern, insightType) {
   const prompt = buildInsightPrompt(pattern, insightType);
 
   const response = await anthropic.messages.create({
-    model: 'claude-sonnet-4-5-20250929',
+    model: CLAUDE_MODEL,
     max_tokens: 800,
     temperature: 0.7,
     messages: [{

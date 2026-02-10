@@ -7,6 +7,7 @@ import { createClient } from '@supabase/supabase-js';
 import Anthropic from '@anthropic-ai/sdk';
 import wearableFeatureExtractor from './featureExtractors/wearableFeatureExtractor.js';
 import professionalUniverseBuilder from './professionalUniverseBuilder.js';
+import { CLAUDE_MODEL } from '../config/aiModels.js';
 
 // Use SUPABASE_URL (backend) - fallback to VITE_ prefix for compatibility
 // Lazy initialization to avoid crashes if env vars not loaded yet
@@ -445,7 +446,7 @@ class SoulSignatureBuilder {
 
       // Call Claude to generate insights
       const message = await anthropic.messages.create({
-        model: 'claude-sonnet-4-5-20250929',
+        model: CLAUDE_MODEL,
         max_tokens: 1500,
         messages: [{
           role: 'user',

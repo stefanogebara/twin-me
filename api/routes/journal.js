@@ -2,6 +2,7 @@ import express from 'express';
 import { createClient } from '@supabase/supabase-js';
 import Anthropic from '@anthropic-ai/sdk';
 import { authenticateUser } from '../middleware/auth.js';
+import { CLAUDE_MODEL } from '../config/aiModels.js';
 
 const router = express.Router();
 
@@ -203,7 +204,7 @@ router.post('/entries/:id/analyze', asyncHandler(async (req, res) => {
   if (entry.tags?.length > 0) contextParts.push(`Tags: ${entry.tags.join(', ')}`);
 
   const message = await anthropic.messages.create({
-    model: 'claude-sonnet-4-5-20250929',
+    model: CLAUDE_MODEL,
     max_tokens: 1024,
     system: `You are an expert personality psychologist analyzing a personal journal entry to understand who this person is at their core. Focus on what their words reveal about their personality, values, and self-perception. Be warm and insightful, not clinical.`,
     messages: [

@@ -6,6 +6,7 @@
  */
 
 import Anthropic from '@anthropic-ai/sdk';
+import { CLAUDE_MODEL } from '../config/aiModels.js';
 
 const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY,
@@ -71,7 +72,7 @@ async function generateNonStreamingResponse(options) {
   const { systemPrompt, messages, maxTokens, temperature } = options;
 
   const response = await anthropic.messages.create({
-    model: 'claude-sonnet-4-5-20250929',
+    model: CLAUDE_MODEL,
     max_tokens: maxTokens,
     temperature: temperature,
     system: systemPrompt,
@@ -116,7 +117,7 @@ async function streamChatResponse(options) {
   let outputTokens = 0;
 
   const stream = await anthropic.messages.create({
-    model: 'claude-sonnet-4-5-20250929',
+    model: CLAUDE_MODEL,
     max_tokens: maxTokens,
     temperature: temperature,
     system: systemPrompt,
@@ -182,7 +183,7 @@ async function streamChatResponse(options) {
     content: fullContent,
     usage,
     cost,
-    model: 'claude-sonnet-4-5-20250929',
+    model: CLAUDE_MODEL,
     stop_reason: 'end_turn'
   };
 }
@@ -249,7 +250,7 @@ export function pruneConversationHistory(messages, systemPrompt, maxContextToken
 export async function generateConversationTitle(firstMessage) {
   try {
     const response = await anthropic.messages.create({
-      model: 'claude-sonnet-4-5-20250929',
+      model: CLAUDE_MODEL,
       max_tokens: 20,
       temperature: 0.5,
       system: 'Generate a very short (2-5 words) title for this conversation. Just output the title, nothing else.',
@@ -334,7 +335,7 @@ setInterval(() => {
 export async function healthCheck() {
   try {
     const response = await anthropic.messages.create({
-      model: 'claude-sonnet-4-5-20250929',
+      model: CLAUDE_MODEL,
       max_tokens: 10,
       messages: [{ role: 'user', content: 'Hello' }]
     });

@@ -7,6 +7,7 @@
 
 import express from 'express';
 import Anthropic from '@anthropic-ai/sdk';
+import { CLAUDE_MODEL } from '../config/aiModels.js';
 
 const router = express.Router();
 
@@ -35,7 +36,7 @@ router.post('/research', async (req, res) => {
 
     // Call Claude with web search capability
     const message = await anthropic.messages.create({
-      model: 'claude-sonnet-4-5-20250929',
+      model: CLAUDE_MODEL,
       max_tokens: 1024,
       messages: [
         {
