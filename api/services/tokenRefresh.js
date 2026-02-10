@@ -351,6 +351,32 @@ export async function getValidAccessToken(userId, provider) {
       };
     }
 
+    // Handle NANGO_MANAGED connections - get token from Nango instead of decrypting
+    if (connection.access_token === 'NANGO_MANAGED') {
+      console.log(`🔄 [Token Refresh] ${provider} is NANGO_MANAGED, fetching token from Nango`);
+      try {
+        const nangoService = await import('./nangoService.js');
+        const nangoResult = await nangoService.getAccessToken(userId, provider);
+        if (nangoResult.success) {
+          return {
+            success: true,
+            accessToken: nangoResult.accessToken,
+            source: 'nango'
+          };
+        }
+        return {
+          success: false,
+          error: `Nango connection for ${provider} has no valid token: ${nangoResult.error}`
+        };
+      } catch (nangoErr) {
+        console.error(`❌ [Token Refresh] Nango token fetch failed for ${provider}:`, nangoErr.message);
+        return {
+          success: false,
+          error: `Failed to get ${provider} token from Nango: ${nangoErr.message}`
+        };
+      }
+    }
+
     // Decrypt current access token with error handling
     let currentAccessToken;
     try {
