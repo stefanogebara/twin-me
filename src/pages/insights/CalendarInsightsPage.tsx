@@ -745,7 +745,7 @@ const CalendarInsightsPage: React.FC = () => {
       )}
 
       {/* Primary Reflection */}
-      {insights?.reflection && (
+      {insights?.reflection?.text ? (
         <div className="mb-8">
           <TwinReflection
             reflection={insights.reflection.text}
@@ -762,7 +762,19 @@ const CalendarInsightsPage: React.FC = () => {
             />
           )}
         </div>
-      )}
+      ) : (insights?.todayEvents || insights?.upcomingEvents) ? (
+        <GlassPanel className="mb-8 !p-4">
+          <div className="flex items-center gap-2 mb-2">
+            <Sparkles className="w-4 h-4" style={{ color: colors.calendarBlue }} />
+            <span className="text-sm uppercase tracking-wider" style={{ color: colors.textSecondary }}>
+              Twin's Observation
+            </span>
+          </div>
+          <p className="text-sm leading-relaxed" style={{ color: colors.textSecondary }}>
+            Your twin is processing observations about your schedule. Check back soon for personalized insights about how you structure your time.
+          </p>
+        </GlassPanel>
+      ) : null}
 
       {/* Pattern Observations */}
       {insights?.patterns && insights.patterns.length > 0 && (
@@ -816,8 +828,8 @@ const CalendarInsightsPage: React.FC = () => {
         </div>
       )}
 
-      {/* Empty State */}
-      {!insights?.reflection && (
+      {/* Empty State - show when no reflection AND no calendar data */}
+      {!insights?.reflection?.text && !insights?.todayEvents?.length && !insights?.upcomingEvents?.length && (
         <GlassPanel className="text-center py-12">
           <Calendar className="w-12 h-12 mx-auto mb-4" style={{ color: colors.textSecondary }} />
           <h3 style={{ color: colors.text, fontFamily: 'var(--font-heading)' }}>

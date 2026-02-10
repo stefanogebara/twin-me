@@ -844,7 +844,7 @@ const WhoopInsightsPage: React.FC = () => {
       )}
 
       {/* Primary Reflection */}
-      {insights?.reflection && (
+      {insights?.reflection?.text ? (
         <div className="mb-8">
           <TwinReflection
             reflection={insights.reflection.text}
@@ -861,7 +861,19 @@ const WhoopInsightsPage: React.FC = () => {
             />
           )}
         </div>
-      )}
+      ) : insights?.currentMetrics ? (
+        <GlassPanel className="mb-8 !p-4">
+          <div className="flex items-center gap-2 mb-2">
+            <Sparkles className="w-4 h-4" style={{ color: colors.whoopTeal }} />
+            <span className="text-sm uppercase tracking-wider" style={{ color: colors.textSecondary }}>
+              Twin's Observation
+            </span>
+          </div>
+          <p className="text-sm leading-relaxed" style={{ color: colors.textSecondary }}>
+            Your twin is processing observations about your body data. Check back soon for personalized insights about your recovery and activity patterns.
+          </p>
+        </GlassPanel>
+      ) : null}
 
       {/* Pattern Observations */}
       {insights?.patterns && insights.patterns.length > 0 && (
@@ -915,8 +927,8 @@ const WhoopInsightsPage: React.FC = () => {
         </div>
       )}
 
-      {/* Empty State */}
-      {!insights?.reflection && (
+      {/* Empty State - show when no reflection AND no metrics data */}
+      {!insights?.reflection?.text && !insights?.currentMetrics && (
         <GlassPanel className="text-center py-12">
           <Activity className="w-12 h-12 mx-auto mb-4" style={{ color: colors.textSecondary }} />
           <h3 style={{ color: colors.text, fontFamily: 'var(--font-heading)' }}>

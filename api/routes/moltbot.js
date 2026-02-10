@@ -526,17 +526,45 @@ router.get('/clusters', authenticateUser, async (req, res) => {
 
 /**
  * POST /api/moltbot/clusters/rebuild - Rebuild cluster profiles
+ * Now auto-fetches behavioral_features from database if not provided
  */
 router.post('/clusters/rebuild', authenticateUser, async (req, res) => {
   try {
     const userId = req.user.id;
-    const { platformData } = req.body;
+    let { platformData } = req.body;
 
-    if (!platformData || !Array.isArray(platformData)) {
-      return res.status(400).json({
-        success: false,
-        error: 'platformData array is required'
-      });
+    // Auto-fetch from behavioral_features table if not provided or empty
+    if (!platformData || !Array.isArray(platformData) || platformData.length === 0) {
+      const { supabaseAdmin } = await import('../services/database.js');
+      const { data: features, error: fetchError } = await supabaseAdmin
+        .from('behavioral_features')
+        .select('platform, feature, value, raw_value')
+        .eq('user_id', userId);
+
+      if (fetchError) {
+        console.error('[Moltbot API] Error fetching behavioral features:', fetchError);
+        return res.status(500).json({
+          success: false,
+          error: 'Failed to fetch behavioral features from database'
+        });
+      }
+
+      if (!features || features.length === 0) {
+        return res.json({
+          success: true,
+          profiles: {},
+          divergences: [],
+          message: 'No behavioral features found. Connect platforms and extract data first.'
+        });
+      }
+
+      // Map DB columns to expected format
+      platformData = features.map(f => ({
+        platform: f.platform,
+        feature: f.feature,
+        value: f.value,
+        rawValue: f.raw_value
+      }));
     }
 
     const builder = getClusterPersonalityBuilder(userId);

@@ -243,6 +243,8 @@ const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
   wave: Waves,
 };
 
+type TabId = 'overview' | 'deep-dive' | 'data-sources';
+
 const SoulSignatureDashboard: React.FC = () => {
   const { user, isDemoMode } = useAuth();
   const { theme } = useTheme();
@@ -267,6 +269,7 @@ const SoulSignatureDashboard: React.FC = () => {
   const [spotifyPersonality, setSpotifyPersonality] = useState<SpotifyPersonality | null>(null);
   const [behavioralEvidence, setBehavioralEvidence] = useState<BehavioralEvidenceData | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<TabId>('overview');
 
   const API_URL = import.meta.env.VITE_API_URL;
 
@@ -551,6 +554,12 @@ const SoulSignatureDashboard: React.FC = () => {
 
   const IconComponent = soulSignature ? iconMap[soulSignature.icon_type] || Sparkles : Sparkles;
 
+  const TABS: { id: TabId; label: string; icon: React.ElementType }[] = [
+    { id: 'overview', label: 'Overview', icon: Eye },
+    { id: 'deep-dive', label: 'Deep Dive', icon: Brain },
+    { id: 'data-sources', label: 'Data Sources', icon: Layers },
+  ];
+
   return (
     <PageLayout maxWidth="xl">
       {/* Header */}
@@ -598,7 +607,7 @@ const SoulSignatureDashboard: React.FC = () => {
         </div>
       )}
 
-      {/* Pipeline Status Card */}
+      {/* Pipeline Status Card - Always visible above tabs */}
       {!isDemoMode && (
         <GlassPanel className="!p-5 mb-6">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -710,7 +719,7 @@ const SoulSignatureDashboard: React.FC = () => {
         </GlassPanel>
       )}
 
-      {/* Assessment Status Card */}
+      {/* Assessment Status Card - Always visible above tabs */}
       <div className="mb-6">
         <AssessmentStatusCard
           quickAssessmentComplete={!!personalityScores?.archetype_code}
@@ -728,6 +737,48 @@ const SoulSignatureDashboard: React.FC = () => {
         />
       </div>
 
+      {/* Sticky Tab Navigation */}
+      <div
+        className="sticky top-0 z-20 -mx-4 px-4 pt-2 pb-0 mb-6"
+        style={{
+          backgroundColor: theme === 'dark' ? 'rgba(35, 35, 32, 0.95)' : 'rgba(250, 250, 249, 0.95)',
+          backdropFilter: 'blur(12px)',
+        }}
+      >
+        <div
+          className="flex gap-1 p-1 rounded-xl"
+          style={{
+            backgroundColor: subtleBg,
+            border: cardBorder,
+          }}
+        >
+          {TABS.map((tab) => {
+            const TabIcon = tab.icon;
+            const isActive = activeTab === tab.id;
+            return (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
+                className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium transition-all duration-200"
+                style={{
+                  backgroundColor: isActive
+                    ? theme === 'dark' ? 'rgba(193, 192, 182, 0.15)' : 'rgba(255, 255, 255, 0.9)'
+                    : 'transparent',
+                  color: isActive ? textColor : textMuted,
+                  boxShadow: isActive ? (theme === 'dark' ? '0 2px 8px rgba(0,0,0,0.3)' : '0 2px 8px rgba(0,0,0,0.08)') : 'none',
+                }}
+              >
+                <TabIcon className="w-4 h-4" />
+                {tab.label}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* ==================== OVERVIEW TAB ==================== */}
+      {activeTab === 'overview' && (
+        <>
       {/* Soul Signature Card */}
       {soulSignature ? (
         <div
@@ -869,38 +920,6 @@ const SoulSignatureDashboard: React.FC = () => {
               </div>
             )}
 
-            {/* Defining Traits */}
-            <div className="mt-6">
-              <SectionHeader title="What Makes You Unique" />
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {soulSignature.defining_traits.map((trait, index) => {
-                  const traitColors = ['#4298B4', '#E4AE3A', '#33A474', '#88619A'];
-                  const color = traitColors[index % traitColors.length];
-
-                  return (
-                    <div
-                      key={index}
-                      className="p-4 rounded-xl flex items-center gap-4 transition-all duration-200 hover:scale-[1.01]"
-                      style={{
-                        backgroundColor: hoverBg,
-                        border: `1px solid ${theme === 'dark' ? 'rgba(193, 192, 182, 0.08)' : 'rgba(0, 0, 0, 0.04)'}`
-                      }}
-                    >
-                      <div
-                        className="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0"
-                        style={{ backgroundColor: `${color}15` }}
-                      >
-                        <Sparkles className="w-5 h-5" style={{ color }} />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="font-medium" style={{ color: textColor }}>{trait.trait}</div>
-                        <div className="text-sm" style={{ color: textSecondary }}>{trait.evidence}</div>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
           </div>
         </div>
       ) : (
@@ -925,8 +944,210 @@ const SoulSignatureDashboard: React.FC = () => {
           </button>
         </GlassPanel>
       )}
+        </>
+      )}
 
-      {/* Professional Cluster */}
+      {/* ==================== DEEP DIVE TAB ==================== */}
+      {activeTab === 'deep-dive' && (
+        <>
+      {/* Big Five Scientific Assessment */}
+      <GlassPanel className="!p-5 md:!p-6 mb-6">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ backgroundColor: 'rgba(193, 192, 182, 0.1)' }}>
+              <Target className="w-5 h-5" style={{ color: '#C1C0B6' }} />
+            </div>
+            <div>
+              <h3 style={{ fontFamily: 'var(--font-heading)', fontWeight: 500, color: textColor }}>
+                Big Five Personality Profile
+              </h3>
+              <p className="text-xs" style={{ color: textMuted }}>
+                Scientific IPIP-NEO-120 assessment
+              </p>
+            </div>
+          </div>
+          <button
+            onClick={() => navigate('/big-five')}
+            className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-all hover:scale-[1.02]"
+            style={{
+              backgroundColor: 'rgba(193, 192, 182, 0.1)',
+              color: textColor,
+              border: '1px solid rgba(193, 192, 182, 0.2)'
+            }}
+          >
+            Take Assessment
+            <ArrowRight className="w-4 h-4" />
+          </button>
+        </div>
+
+        <p className="text-sm mb-6" style={{ color: textSecondary }}>
+          The scientifically validated IPIP-NEO-120 assessment measures five core personality dimensions with T-score normalization against 619,000+ respondents.
+        </p>
+
+        {personalityScores ? (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-center">
+            {/* Radar Chart */}
+            <div className="flex justify-center">
+              <BigFiveRadarChart
+                openness={personalityScores.openness || 50}
+                conscientiousness={personalityScores.conscientiousness || 50}
+                extraversion={personalityScores.extraversion || 50}
+                agreeableness={personalityScores.agreeableness || 50}
+                neuroticism={personalityScores.neuroticism || 50}
+                size={280}
+                showValues={true}
+                animated={true}
+              />
+            </div>
+
+            {/* Score Details */}
+            <div className="space-y-4">
+              {[
+                { name: 'Openness', value: personalityScores.openness, color: '#9B59B6', desc: 'Creativity & intellectual curiosity' },
+                { name: 'Conscientiousness', value: personalityScores.conscientiousness, color: '#3498DB', desc: 'Organization & dependability' },
+                { name: 'Extraversion', value: personalityScores.extraversion, color: '#E74C3C', desc: 'Sociability & positive emotions' },
+                { name: 'Agreeableness', value: personalityScores.agreeableness, color: '#2ECC71', desc: 'Cooperation & trust' },
+                { name: 'Neuroticism', value: personalityScores.neuroticism, color: '#F39C12', desc: 'Emotional sensitivity' },
+              ].map((trait) => (
+                <div key={trait.name} className="space-y-1">
+                  <div className="flex justify-between items-center">
+                    <div className="flex items-center gap-2">
+                      <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: trait.color }} />
+                      <span className="text-sm font-medium" style={{ color: textColor }}>{trait.name}</span>
+                    </div>
+                    <span className="text-sm font-bold" style={{ color: trait.color }}>{Math.round(trait.value || 50)}%</span>
+                  </div>
+                  <div className="h-1.5 rounded-full overflow-hidden" style={{ backgroundColor: subtleBg }}>
+                    <div
+                      className="h-full rounded-full transition-all duration-500"
+                      style={{ width: `${trait.value || 50}%`, backgroundColor: trait.color, opacity: 0.7 }}
+                    />
+                  </div>
+                  <p className="text-xs" style={{ color: textFaint }}>{trait.desc}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        ) : (
+          <div className="text-center py-8">
+            <Target className="w-12 h-12 mx-auto mb-4" style={{ color: textFaint }} />
+            <p className="mb-4" style={{ color: textMuted }}>
+              Complete the assessment to see your Big Five personality profile
+            </p>
+            <button
+              onClick={() => navigate('/big-five')}
+              className="px-6 py-3 rounded-xl font-medium transition-all hover:scale-[1.02]"
+              style={{ backgroundColor: '#C1C0B6', color: '#232320' }}
+            >
+              Start Big Five Assessment
+            </button>
+          </div>
+        )}
+      </GlassPanel>
+
+      {/* Cluster Personality Visualization */}
+      <div className="mb-6">
+        <SectionHeader title="Context-Aware Personality" />
+        <p className="text-sm mb-4" style={{ color: textSecondary }}>
+          Your personality varies across different life contexts. Compare how you show up in personal vs professional settings.
+        </p>
+        <ClusterPersonalityVisualization userId={user?.id} connectedPlatformCount={connectedProviders.length} />
+      </div>
+
+      {/* What Makes You Unique - Full Traits */}
+      {soulSignature && (
+        <div className="mb-6">
+          <SectionHeader title="What Makes You Unique" />
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {soulSignature.defining_traits.map((trait, index) => {
+              const traitColors = ['#4298B4', '#E4AE3A', '#33A474', '#88619A'];
+              const color = traitColors[index % traitColors.length];
+
+              return (
+                <div
+                  key={index}
+                  className="p-4 rounded-xl flex items-center gap-4 transition-all duration-200 hover:scale-[1.01]"
+                  style={{
+                    backgroundColor: hoverBg,
+                    border: `1px solid ${theme === 'dark' ? 'rgba(193, 192, 182, 0.08)' : 'rgba(0, 0, 0, 0.04)'}`
+                  }}
+                >
+                  <div
+                    className="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0"
+                    style={{ backgroundColor: `${color}15` }}
+                  >
+                    <Sparkles className="w-5 h-5" style={{ color }} />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="font-medium" style={{ color: textColor }}>{trait.trait}</div>
+                    <div className="text-sm" style={{ color: textSecondary }}>{trait.evidence}</div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* Behavioral Evidence Panel */}
+      {behavioralEvidence && personalityScores && (
+        <div className="mb-6">
+          <BehavioralEvidencePanel
+            evidence={behavioralEvidence.evidence}
+            personality={{
+              openness: personalityScores.openness || 50,
+              conscientiousness: personalityScores.conscientiousness || 50,
+              extraversion: personalityScores.extraversion || 50,
+              agreeableness: personalityScores.agreeableness || 50,
+              neuroticism: personalityScores.neuroticism || 50
+            }}
+            confidence={behavioralEvidence.confidence}
+            dataSources={behavioralEvidence.dataSources}
+          />
+        </div>
+      )}
+        </>
+      )}
+
+      {/* ==================== DATA SOURCES TAB ==================== */}
+      {activeTab === 'data-sources' && (
+        <>
+      {/* Your Data Universe - Platform Category Cards */}
+      <div className="mb-6">
+        <div className="flex items-center gap-2 mb-4">
+          <div
+            className="w-1 h-5 rounded-full"
+            style={{
+              background: theme === 'dark'
+                ? 'linear-gradient(to bottom, rgba(193, 192, 182, 0.6), rgba(193, 192, 182, 0.2))'
+                : 'linear-gradient(to bottom, rgba(0, 0, 0, 0.4), rgba(0, 0, 0, 0.1))'
+            }}
+          />
+          <Layers className="w-5 h-5" style={{ color: textMuted }} />
+          <h3
+            className="text-sm uppercase tracking-wider"
+            style={{ color: textMuted }}
+          >
+            Your Data Universe
+          </h3>
+        </div>
+        <p className="text-sm mb-4" style={{ color: textSecondary }}>
+          Explore the digital footprints that reveal your soul signature
+        </p>
+
+        <div className="space-y-4">
+          {Object.entries(PLATFORM_CATEGORIES).map(([id, config]) => (
+            <PlatformCategoryCard
+              key={id}
+              categoryId={id}
+              connectedProviders={connectedProviders}
+              onPlatformClick={(p) => navigate(`/insights/${p}`)}
+            />
+          ))}
+        </div>
+      </div>
+
+      {/* Professional Universe */}
       <GlassPanel className="!p-5 md:!p-6 mb-6">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
           <div className="flex items-center gap-3">
@@ -1096,163 +1317,6 @@ const SoulSignatureDashboard: React.FC = () => {
         )}
       </GlassPanel>
 
-      {/* Your Data Universe - Platform Category Cards */}
-      <div className="mb-6">
-        <div className="flex items-center gap-2 mb-4">
-          <div
-            className="w-1 h-5 rounded-full"
-            style={{
-              background: theme === 'dark'
-                ? 'linear-gradient(to bottom, rgba(193, 192, 182, 0.6), rgba(193, 192, 182, 0.2))'
-                : 'linear-gradient(to bottom, rgba(0, 0, 0, 0.4), rgba(0, 0, 0, 0.1))'
-            }}
-          />
-          <Layers className="w-5 h-5" style={{ color: textMuted }} />
-          <h3
-            className="text-sm uppercase tracking-wider"
-            style={{ color: textMuted }}
-          >
-            Your Data Universe
-          </h3>
-        </div>
-        <p className="text-sm mb-4" style={{ color: textSecondary }}>
-          Explore the digital footprints that reveal your soul signature
-        </p>
-
-        <div className="space-y-4">
-          {Object.entries(PLATFORM_CATEGORIES).map(([id, config]) => (
-            <PlatformCategoryCard
-              key={id}
-              categoryId={id}
-              connectedProviders={connectedProviders}
-              onPlatformClick={(p) => navigate(`/insights/${p}`)}
-            />
-          ))}
-        </div>
-      </div>
-
-      {/* Big Five Scientific Assessment */}
-      <GlassPanel className="!p-5 md:!p-6 mb-6">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ backgroundColor: 'rgba(193, 192, 182, 0.1)' }}>
-              <Target className="w-5 h-5" style={{ color: '#C1C0B6' }} />
-            </div>
-            <div>
-              <h3 style={{ fontFamily: 'var(--font-heading)', fontWeight: 500, color: textColor }}>
-                Big Five Personality Profile
-              </h3>
-              <p className="text-xs" style={{ color: textMuted }}>
-                Scientific IPIP-NEO-120 assessment
-              </p>
-            </div>
-          </div>
-          <button
-            onClick={() => navigate('/big-five')}
-            className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-all hover:scale-[1.02]"
-            style={{
-              backgroundColor: 'rgba(193, 192, 182, 0.1)',
-              color: textColor,
-              border: '1px solid rgba(193, 192, 182, 0.2)'
-            }}
-          >
-            Take Assessment
-            <ArrowRight className="w-4 h-4" />
-          </button>
-        </div>
-
-        <p className="text-sm mb-6" style={{ color: textSecondary }}>
-          The scientifically validated IPIP-NEO-120 assessment measures five core personality dimensions with T-score normalization against 619,000+ respondents.
-        </p>
-
-        {personalityScores ? (
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-center">
-            {/* Radar Chart */}
-            <div className="flex justify-center">
-              <BigFiveRadarChart
-                openness={personalityScores.openness || 50}
-                conscientiousness={personalityScores.conscientiousness || 50}
-                extraversion={personalityScores.extraversion || 50}
-                agreeableness={personalityScores.agreeableness || 50}
-                neuroticism={personalityScores.neuroticism || 50}
-                size={280}
-                showValues={true}
-                animated={true}
-              />
-            </div>
-
-            {/* Score Details */}
-            <div className="space-y-4">
-              {[
-                { name: 'Openness', value: personalityScores.openness, color: '#9B59B6', desc: 'Creativity & intellectual curiosity' },
-                { name: 'Conscientiousness', value: personalityScores.conscientiousness, color: '#3498DB', desc: 'Organization & dependability' },
-                { name: 'Extraversion', value: personalityScores.extraversion, color: '#E74C3C', desc: 'Sociability & positive emotions' },
-                { name: 'Agreeableness', value: personalityScores.agreeableness, color: '#2ECC71', desc: 'Cooperation & trust' },
-                { name: 'Neuroticism', value: personalityScores.neuroticism, color: '#F39C12', desc: 'Emotional sensitivity' },
-              ].map((trait) => (
-                <div key={trait.name} className="space-y-1">
-                  <div className="flex justify-between items-center">
-                    <div className="flex items-center gap-2">
-                      <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: trait.color }} />
-                      <span className="text-sm font-medium" style={{ color: textColor }}>{trait.name}</span>
-                    </div>
-                    <span className="text-sm font-bold" style={{ color: trait.color }}>{Math.round(trait.value || 50)}%</span>
-                  </div>
-                  <div className="h-1.5 rounded-full overflow-hidden" style={{ backgroundColor: subtleBg }}>
-                    <div
-                      className="h-full rounded-full transition-all duration-500"
-                      style={{ width: `${trait.value || 50}%`, backgroundColor: trait.color, opacity: 0.7 }}
-                    />
-                  </div>
-                  <p className="text-xs" style={{ color: textFaint }}>{trait.desc}</p>
-                </div>
-              ))}
-            </div>
-          </div>
-        ) : (
-          <div className="text-center py-8">
-            <Target className="w-12 h-12 mx-auto mb-4" style={{ color: textFaint }} />
-            <p className="mb-4" style={{ color: textMuted }}>
-              Complete the assessment to see your Big Five personality profile
-            </p>
-            <button
-              onClick={() => navigate('/big-five')}
-              className="px-6 py-3 rounded-xl font-medium transition-all hover:scale-[1.02]"
-              style={{ backgroundColor: '#C1C0B6', color: '#232320' }}
-            >
-              Start Big Five Assessment
-            </button>
-          </div>
-        )}
-      </GlassPanel>
-
-      {/* Cluster Personality Visualization */}
-      <div className="mb-6">
-        <SectionHeader title="Context-Aware Personality" />
-        <p className="text-sm mb-4" style={{ color: textSecondary }}>
-          Your personality varies across different life contexts. Compare how you show up in personal vs professional settings.
-        </p>
-        <ClusterPersonalityVisualization userId={user?.id} />
-      </div>
-
-      {/* Behavioral Evidence Panel */}
-      {behavioralEvidence && personalityScores && (
-        <div className="mb-6">
-          <BehavioralEvidencePanel
-            evidence={behavioralEvidence.evidence}
-            personality={{
-              openness: personalityScores.openness || 50,
-              conscientiousness: personalityScores.conscientiousness || 50,
-              extraversion: personalityScores.extraversion || 50,
-              agreeableness: personalityScores.agreeableness || 50,
-              neuroticism: personalityScores.neuroticism || 50
-            }}
-            confidence={behavioralEvidence.confidence}
-            dataSources={behavioralEvidence.dataSources}
-          />
-        </div>
-      )}
-
       {/* Twin Insights Links */}
       <div className="mb-6">
         <SectionHeader title="Explore Your Twin Insights" />
@@ -1330,6 +1394,8 @@ const SoulSignatureDashboard: React.FC = () => {
           </GlassPanel>
         </div>
       </div>
+        </>
+      )}
     </PageLayout>
   );
 };
