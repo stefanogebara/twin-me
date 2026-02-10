@@ -1163,7 +1163,7 @@ export interface CreateJournalEntry {
 
 export const journalAPI = {
   getEntries: async (page: number = 1, limit: number = 20): Promise<{ entries: JournalEntry[]; pagination: { page: number; limit: number; total: number; totalPages: number } }> => {
-    const response = await fetch(`${API_URL}/api/journal/entries?page=${page}&limit=${limit}`, {
+    const response = await fetch(`${API_URL}/journal/entries?page=${page}&limit=${limit}`, {
       headers: getAuthHeaders(),
     });
     if (!response.ok) throw new Error(`Failed to fetch journal entries: ${response.statusText}`);
@@ -1171,7 +1171,7 @@ export const journalAPI = {
   },
 
   createEntry: async (entry: CreateJournalEntry): Promise<{ entry: JournalEntry }> => {
-    const response = await fetch(`${API_URL}/api/journal/entries`, {
+    const response = await fetch(`${API_URL}/journal/entries`, {
       method: 'POST',
       headers: getAuthHeaders(),
       body: JSON.stringify(entry),
@@ -1181,7 +1181,7 @@ export const journalAPI = {
   },
 
   updateEntry: async (id: string, entry: Partial<CreateJournalEntry>): Promise<{ entry: JournalEntry }> => {
-    const response = await fetch(`${API_URL}/api/journal/entries/${id}`, {
+    const response = await fetch(`${API_URL}/journal/entries/${id}`, {
       method: 'PUT',
       headers: getAuthHeaders(),
       body: JSON.stringify(entry),
@@ -1191,7 +1191,7 @@ export const journalAPI = {
   },
 
   deleteEntry: async (id: string): Promise<{ success: boolean }> => {
-    const response = await fetch(`${API_URL}/api/journal/entries/${id}`, {
+    const response = await fetch(`${API_URL}/journal/entries/${id}`, {
       method: 'DELETE',
       headers: getAuthHeaders(),
     });
@@ -1200,7 +1200,7 @@ export const journalAPI = {
   },
 
   analyzeEntry: async (id: string): Promise<{ analysis: JournalAnalysis }> => {
-    const response = await fetch(`${API_URL}/api/journal/entries/${id}/analyze`, {
+    const response = await fetch(`${API_URL}/journal/entries/${id}/analyze`, {
       method: 'POST',
       headers: getAuthHeaders(),
     });
@@ -1209,7 +1209,7 @@ export const journalAPI = {
   },
 
   getInsights: async (): Promise<{ insights: JournalInsights }> => {
-    const response = await fetch(`${API_URL}/api/journal/insights`, {
+    const response = await fetch(`${API_URL}/journal/insights`, {
       headers: getAuthHeaders(),
     });
     if (!response.ok) throw new Error(`Failed to fetch journal insights: ${response.statusText}`);
