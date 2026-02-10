@@ -883,10 +883,13 @@ router.post('/message', authenticateUser, async (req, res) => {
         assistantMessage = response.content[0]?.text || 'I apologize, I could not generate a response.';
       } catch (claudeError) {
         console.error('[Twin Chat] Direct Claude API failed:', claudeError.message);
+        const isBillingIssue = claudeError.message?.includes('credit balance') || claudeError.message?.includes('billing');
         return res.status(503).json({
           success: false,
-          error: 'Chat is temporarily unavailable. Both AI providers are unreachable.',
-          details: claudeError.message
+          error: isBillingIssue
+            ? 'Chat is temporarily unavailable due to API billing. Please contact the administrator.'
+            : 'Chat is temporarily unavailable. Both AI providers are unreachable.',
+          details: process.env.NODE_ENV === 'development' ? claudeError.message : undefined
         });
       }
     }
