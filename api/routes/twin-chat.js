@@ -587,43 +587,88 @@ async function getPlatformData(userId, platforms) {
       }
 
       if (platform === 'whoop') {
-        // ALWAYS fetch live Whoop data
+        // Fetch live Whoop data - use Nango proxy for NANGO_MANAGED connections
         try {
-          const tokenResult = await getValidAccessToken(userId, 'whoop');
-          if (tokenResult.success && tokenResult.accessToken) {
-            const headers = { Authorization: `Bearer ${tokenResult.accessToken}` };
-            const [recoveryRes, sleepRes] = await Promise.all([
-              axios.get('https://api.prod.whoop.com/developer/v2/recovery?limit=1', { headers }),
-              axios.get('https://api.prod.whoop.com/developer/v2/activity/sleep?limit=5', { headers })
+          // Check if connection is NANGO_MANAGED
+          const { data: whoopConn } = await supabaseAdmin
+            .from('platform_connections')
+            .select('access_token')
+            .eq('user_id', userId)
+            .eq('platform', 'whoop')
+            .single();
+
+          if (whoopConn?.access_token === 'NANGO_MANAGED') {
+            // Use Nango proxy - handles auth automatically
+            const nangoService = await import('../services/nangoService.js');
+            const [recoveryResult, sleepResult] = await Promise.all([
+              nangoService.whoop.getRecovery(userId, 1),
+              nangoService.whoop.getSleep(userId, 5)
             ]);
 
-            const latestRecovery = recoveryRes.data?.records?.[0];
-            const allSleeps = sleepRes.data?.records || [];
+            const latestRecovery = recoveryResult.success ? recoveryResult.data?.records?.[0] : null;
+            const allSleeps = sleepResult.success ? (sleepResult.data?.records || []) : [];
 
-            // Aggregate sleep from last 24 hours (main sleep + naps)
-            const now = new Date();
-            const yesterday = new Date(now.getTime() - 24 * 60 * 60 * 1000);
-            const todaysSleeps = allSleeps.filter(s => new Date(s.end) >= yesterday);
+            if (latestRecovery || allSleeps.length > 0) {
+              const now = new Date();
+              const yesterday = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+              const todaysSleeps = allSleeps.filter(s => new Date(s.end) >= yesterday);
 
-            let totalSleepMs = 0;
-            todaysSleeps.forEach(sleep => {
-              const stageSummary = sleep.score?.stage_summary || {};
-              totalSleepMs += sleep.score?.total_sleep_time_milli ||
-                             (stageSummary.total_in_bed_time_milli - (stageSummary.total_awake_time_milli || 0)) ||
-                             stageSummary.total_in_bed_time_milli || 0;
-            });
+              let totalSleepMs = 0;
+              todaysSleeps.forEach(sleep => {
+                const stageSummary = sleep.score?.stage_summary || {};
+                totalSleepMs += sleep.score?.total_sleep_time_milli ||
+                               (stageSummary.total_in_bed_time_milli - (stageSummary.total_awake_time_milli || 0)) ||
+                               stageSummary.total_in_bed_time_milli || 0;
+              });
 
-            const sleepHours = totalSleepMs / (1000 * 60 * 60);
-            data.whoop = {
-              recovery: latestRecovery?.score?.recovery_score || null,
-              strain: latestRecovery?.score?.user_calibrating ? 'calibrating' : null,
-              sleepHours: sleepHours > 0 ? sleepHours.toFixed(1) : null,
-              sleepDescription: sleepHours > 0 ? `${sleepHours.toFixed(1)} hours${todaysSleeps.length > 1 ? ` (incl. ${todaysSleeps.length - 1} nap${todaysSleeps.length > 2 ? 's' : ''})` : ''}` : null,
-              hrv: latestRecovery?.score?.hrv_rmssd_milli ? Math.round(latestRecovery.score.hrv_rmssd_milli) : null,
-              restingHR: latestRecovery?.score?.resting_heart_rate ? Math.round(latestRecovery.score.resting_heart_rate) : null,
-              fetchedAt: new Date().toISOString()
-            };
-            console.log(`[Twin Chat] Fetched live Whoop: recovery ${data.whoop.recovery}%, ${sleepHours.toFixed(1)}h sleep`);
+              const sleepHours = totalSleepMs / (1000 * 60 * 60);
+              data.whoop = {
+                recovery: latestRecovery?.score?.recovery_score || null,
+                strain: latestRecovery?.score?.user_calibrating ? 'calibrating' : null,
+                sleepHours: sleepHours > 0 ? sleepHours.toFixed(1) : null,
+                sleepDescription: sleepHours > 0 ? `${sleepHours.toFixed(1)} hours${todaysSleeps.length > 1 ? ` (incl. ${todaysSleeps.length - 1} nap${todaysSleeps.length > 2 ? 's' : ''})` : ''}` : null,
+                hrv: latestRecovery?.score?.hrv_rmssd_milli ? Math.round(latestRecovery.score.hrv_rmssd_milli) : null,
+                restingHR: latestRecovery?.score?.resting_heart_rate ? Math.round(latestRecovery.score.resting_heart_rate) : null,
+                fetchedAt: new Date().toISOString()
+              };
+              console.log(`[Twin Chat] Fetched live Whoop via Nango: recovery ${data.whoop.recovery}%, ${sleepHours.toFixed(1)}h sleep`);
+            }
+          } else {
+            // Self-managed token - use direct API
+            const tokenResult = await getValidAccessToken(userId, 'whoop');
+            if (tokenResult.success && tokenResult.accessToken) {
+              const headers = { Authorization: `Bearer ${tokenResult.accessToken}` };
+              const [recoveryRes, sleepRes] = await Promise.all([
+                axios.get('https://api.prod.whoop.com/developer/v2/recovery?limit=1', { headers }),
+                axios.get('https://api.prod.whoop.com/developer/v2/activity/sleep?limit=5', { headers })
+              ]);
+
+              const latestRecovery = recoveryRes.data?.records?.[0];
+              const allSleeps = sleepRes.data?.records || [];
+              const now = new Date();
+              const yesterday = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+              const todaysSleeps = allSleeps.filter(s => new Date(s.end) >= yesterday);
+
+              let totalSleepMs = 0;
+              todaysSleeps.forEach(sleep => {
+                const stageSummary = sleep.score?.stage_summary || {};
+                totalSleepMs += sleep.score?.total_sleep_time_milli ||
+                               (stageSummary.total_in_bed_time_milli - (stageSummary.total_awake_time_milli || 0)) ||
+                               stageSummary.total_in_bed_time_milli || 0;
+              });
+
+              const sleepHours = totalSleepMs / (1000 * 60 * 60);
+              data.whoop = {
+                recovery: latestRecovery?.score?.recovery_score || null,
+                strain: latestRecovery?.score?.user_calibrating ? 'calibrating' : null,
+                sleepHours: sleepHours > 0 ? sleepHours.toFixed(1) : null,
+                sleepDescription: sleepHours > 0 ? `${sleepHours.toFixed(1)} hours${todaysSleeps.length > 1 ? ` (incl. ${todaysSleeps.length - 1} nap${todaysSleeps.length > 2 ? 's' : ''})` : ''}` : null,
+                hrv: latestRecovery?.score?.hrv_rmssd_milli ? Math.round(latestRecovery.score.hrv_rmssd_milli) : null,
+                restingHR: latestRecovery?.score?.resting_heart_rate ? Math.round(latestRecovery.score.resting_heart_rate) : null,
+                fetchedAt: new Date().toISOString()
+              };
+              console.log(`[Twin Chat] Fetched live Whoop: recovery ${data.whoop.recovery}%, ${sleepHours.toFixed(1)}h sleep`);
+            }
           }
         } catch (whoopErr) {
           console.warn('[Twin Chat] Could not fetch live Whoop data:', whoopErr.message);
