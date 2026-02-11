@@ -338,7 +338,7 @@ export async function getConnection(userId, platform) {
     }
 
     // Use the connection ID mapping
-    const connectionId = getConnectionId(platform, userId);
+    const connectionId = await getConnectionId(platform, userId);
     const connection = await nango.getConnection(config.providerConfigKey, connectionId);
 
     return {
@@ -415,7 +415,7 @@ export async function deleteConnection(userId, platform) {
     }
 
     // Use the connection ID mapping
-    const connectionId = getConnectionId(platform, userId);
+    const connectionId = await getConnectionId(platform, userId);
     await nango.deleteConnection(config.providerConfigKey, connectionId);
     console.log(`[Nango] Deleted connection for ${platform} (user: ${userId})`);
     return { success: true };
