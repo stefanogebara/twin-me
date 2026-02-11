@@ -144,8 +144,9 @@ export const ClusterPersonalityVisualization: React.FC<ClusterPersonalityVisuali
         return acc;
       }, {}) || {});
 
-      // Auto-select first cluster with data
-      const firstCluster = Object.keys(fetchedClusters)[0];
+      // Auto-select first cluster that has personality data
+      const clusterWithData = Object.entries(fetchedClusters).find(([, c]) => c.personality)?.[0];
+      const firstCluster = clusterWithData || Object.keys(fetchedClusters)[0];
       if (firstCluster && !selectedCluster) {
         setSelectedCluster(firstCluster);
       }
@@ -233,7 +234,7 @@ export const ClusterPersonalityVisualization: React.FC<ClusterPersonalityVisuali
     // Calculate points for main profile
     const points = traits.map((trait, idx) => {
       const angle = idx * angleStep - Math.PI / 2;
-      const value = (profile.personality[trait] || 50) / 100;
+      const value = (profile.personality?.[trait] || 50) / 100;
       return {
         x: centerX + Math.cos(angle) * radius * value,
         y: centerY + Math.sin(angle) * radius * value
@@ -243,7 +244,7 @@ export const ClusterPersonalityVisualization: React.FC<ClusterPersonalityVisuali
     // Calculate points for comparison profile if exists
     const comparePoints = compareProfile ? traits.map((trait, idx) => {
       const angle = idx * angleStep - Math.PI / 2;
-      const value = (compareProfile.personality[trait] || 50) / 100;
+      const value = (compareProfile.personality?.[trait] || 50) / 100;
       return {
         x: centerX + Math.cos(angle) * radius * value,
         y: centerY + Math.sin(angle) * radius * value
@@ -512,8 +513,8 @@ export const ClusterPersonalityVisualization: React.FC<ClusterPersonalityVisuali
               {(Object.keys(TRAIT_LABELS) as (keyof BigFiveScores)[]).map(trait =>
                 renderTraitBar(
                   trait,
-                  selectedProfile.personality[trait] || 50,
-                  compareProfile?.personality[trait]
+                  selectedProfile.personality?.[trait] || 50,
+                  compareProfile?.personality?.[trait]
                 )
               )}
             </div>
