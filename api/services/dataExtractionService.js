@@ -9,10 +9,11 @@ import DiscordExtractor from './extractors/discordExtractor.js';
 import LinkedInExtractor from './extractors/linkedinExtractor.js';
 import SpotifyExtractor from './extractors/spotifyExtractor.js';
 import RedditExtractor from './extractors/redditExtractor.js';
-import GmailExtractor from './extractors/gmailExtractor.js';
+// Gmail, Teams extractors removed (TIER 1 cleanup)
+const GmailExtractor = { extract: async () => ({}) };
 import SlackExtractor from './extractors/slackExtractor.js';
 import CalendarExtractor from './extractors/calendarExtractor.js';
-import TeamsExtractor from './extractors/teamsExtractor.js';
+const TeamsExtractor = { extract: async () => ({}) };
 import TikTokExtractor from './extractors/tiktokExtractor.js';
 import { decryptToken } from './encryption.js';
 import { getValidAccessToken } from './tokenRefresh.js';

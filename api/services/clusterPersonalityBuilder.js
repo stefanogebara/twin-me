@@ -18,8 +18,9 @@
 
 import { createClient } from '@supabase/supabase-js';
 import { getCorrelationMatcherService } from './correlationMatcherService.js';
-import { getMemoryService } from './moltbot/moltbotMemoryService.js';
-import config from '../config/moltbotConfig.js';
+// Moltbot removed (TIER 1 cleanup)
+const getMemoryService = () => ({ getRecentMemories: async () => [], getLearnedFacts: async () => [] });
+const config = { clusters: {} };
 
 let supabase = null;
 function getSupabaseClient() {

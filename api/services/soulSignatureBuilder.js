@@ -6,7 +6,8 @@
 import { createClient } from '@supabase/supabase-js';
 import { complete, TIER_ANALYSIS } from './llmGateway.js';
 import wearableFeatureExtractor from './featureExtractors/wearableFeatureExtractor.js';
-import professionalUniverseBuilder from './professionalUniverseBuilder.js';
+// Professional Universe removed (TIER 1 cleanup)
+const professionalUniverseBuilder = { buildProfessionalUniverse: async () => ({}) };
 
 // Use SUPABASE_URL (backend) - fallback to VITE_ prefix for compatibility
 // Lazy initialization to avoid crashes if env vars not loaded yet
