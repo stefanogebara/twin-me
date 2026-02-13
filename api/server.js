@@ -17,7 +17,6 @@ import { startPatternLearningJob, stopPatternLearningJob } from './services/patt
 import { startTokenExpiryNotifier, stopTokenExpiryNotifier } from './services/tokenExpiryNotifier.js';
 import { initializeRateLimiter, shutdownRateLimiter } from './middleware/oauthRateLimiter.js';
 import behavioralEvidencePipeline from './services/behavioralEvidencePipeline.js';
-import { getLocalScheduler } from './services/moltbot/agentScheduler.js';
 
 // Only use dotenv in development - Vercel provides env vars directly
 // Updated: Fixed SUPABASE_SERVICE_ROLE_KEY truncation issue
@@ -227,7 +226,6 @@ import mcpRoutes from './routes/mcp.js';
 import entertainmentRoutes from './routes/entertainment-connectors.js';
 import additionalEntertainmentRoutes from './routes/additional-entertainment-connectors.js';
 import healthRoutes from './routes/health-connectors.js';
-import professionalRoutes from './routes/professional-connectors.js';
 import wearableRoutes from './routes/wearable-connectors.js';
 import soulExtractionRoutes from './routes/soul-extraction.js';
 import soulDataRoutes from './routes/soul-data.js';
@@ -272,7 +270,6 @@ import personalityInferenceRoutes from './routes/personality-inference.js';
 import originDataRoutes from './routes/origin-data.js';
 import profileEnrichmentRoutes from './routes/profile-enrichment.js';
 import resumeUploadRoutes from './routes/resume-upload.js';
-import moltbotRoutes from './routes/moltbot.js';
 import apiKeysRoutes from './routes/api-keys.js';
 import mcpApiRoutes from './routes/mcp-api.js';
 import claudeSyncRoutes from './routes/claude-sync.js';
@@ -321,7 +318,6 @@ app.use('/api/mcp', mcpRoutes);
 app.use('/api/entertainment', entertainmentRoutes);
 app.use('/api/entertainment', additionalEntertainmentRoutes);
 app.use('/api/health', healthRoutes);
-app.use('/api/professional', professionalRoutes); // LinkedIn and professional platform connectors
 app.use('/api/wearables', wearableRoutes);
 app.use('/api/soul', soulExtractionRoutes);
 app.use('/api/soul-data', soulDataRoutes);
@@ -377,7 +373,6 @@ app.use('/api/personality-inference', personalityInferenceRoutes); // Multi-agen
 app.use('/api/origin', originDataRoutes); // Origin data (hands-on user-provided context)
 app.use('/api/enrichment', profileEnrichmentRoutes); // Profile enrichment via Perplexity Sonar (enrichment-first onboarding)
 app.use('/api/resume', resumeUploadRoutes); // Resume/CV upload and parsing for enrichment
-app.use('/api/moltbot', moltbotRoutes); // Moltbot proactive digital twin (triggers, clusters, memory, agents)
 app.use('/api/keys', apiKeysRoutes); // API key management for MCP server
 app.use('/api/mcp-api', mcpApiRoutes); // MCP API for LLM integrations (ChatGPT, Gemini, etc.)
 app.use('/api/claude-sync', claudeSyncRoutes); // Claude Desktop conversation sync
@@ -500,14 +495,6 @@ if (process.env.NODE_ENV !== 'production') {
   // - Creates user notifications prompting reconnection before data flow interrupts
   startTokenExpiryNotifier();
 
-  // Moltbot Extraction Scheduler (Local fallback)
-  // - Runs scheduled platform extractions (Spotify, Calendar, Whoop)
-  // - Operates independently when OpenClaw gateway is unavailable
-  // - Uses cron expressions to poll platforms for new data
-  const extractionScheduler = getLocalScheduler();
-  extractionScheduler.start().catch(err => {
-    console.warn('⚠️ Extraction scheduler failed to start:', err.message);
-  });
 
   // Start HTTP server
   server.listen(PORT, () => {
@@ -531,10 +518,6 @@ if (process.env.NODE_ENV !== 'production') {
     console.log(`   - Pattern Learning:`);
     console.log(`     • Feedback Processing: Every 6 hours`);
     console.log(`     • Test endpoint: http://localhost:${PORT}/api/test-pattern-learning/status`);
-    console.log(`   - Moltbot Extraction Scheduler:`);
-    console.log(`     • Spotify: Every 5 minutes`);
-    console.log(`     • Calendar: Every hour`);
-    console.log(`     • Whoop: Every 6 hours (+ webhooks)`);
   });
 
   // Graceful shutdown handlers
@@ -545,7 +528,6 @@ if (process.env.NODE_ENV !== 'production') {
     stopBackgroundJobs();
     stopPatternLearningJob();
     stopTokenExpiryNotifier();
-    getLocalScheduler().stop();
 
     // Shutdown rate limiter
     await shutdownRateLimiter();

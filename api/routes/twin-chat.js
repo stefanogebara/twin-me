@@ -19,9 +19,9 @@ import { serverDb, supabaseAdmin } from '../services/database.js';
 import { getMonthlyUsage, FREE_TIER_LIMIT } from './chat-usage.js';
 import { getValidAccessToken } from '../services/tokenRefresh.js';
 
-// Moltbot services for enhanced chat
-import { getMemoryService } from '../services/moltbot/moltbotMemoryService.js';
-import { getMoltbotClient } from '../services/moltbot/moltbotClient.js';
+// Moltbot removed (TIER 1 cleanup) - stub out for backward compat
+const getMemoryService = () => ({ getRecentMemories: async () => [], getLearnedFacts: async () => [], storeConversation: async () => {} });
+const getMoltbotClient = () => null;
 import { getClusterPersonalityBuilder } from '../services/clusterPersonalityBuilder.js';
 
 // Shared conversation logging (unified with MCP server)

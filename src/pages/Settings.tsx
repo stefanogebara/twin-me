@@ -25,7 +25,6 @@ import {
   Database
 } from 'lucide-react';
 import { Clay3DIcon } from '@/components/Clay3DIcon';
-import { TriggerManagement } from '../components/moltbot/TriggerManagement';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
 
@@ -396,20 +395,6 @@ const Settings = () => {
             )}
           </section>
 
-          {/* Proactive Automations */}
-          <section className="rounded-2xl p-5" style={cardStyle}>
-            <div className="flex items-center gap-3 mb-2">
-              <Clay3DIcon name="lightning" size={20} />
-              <h2 style={{ fontFamily: 'var(--font-heading)', fontWeight: 400, color: theme === 'dark' ? '#C1C0B6' : '#0c0a09' }}>
-                Proactive Automations
-              </h2>
-            </div>
-            <p className="text-sm mb-4" style={{ fontFamily: 'var(--font-body)', color: theme === 'dark' ? 'rgba(193, 192, 182, 0.6)' : '#78716c' }}>
-              Set up triggers that automatically detect patterns in your data and take actions.
-              For example: "When my recovery is low and I have meetings, suggest calming music."
-            </p>
-            <TriggerManagement userId={user?.id} />
-          </section>
 
           {/* Claude Desktop Sync */}
           <section className="rounded-2xl p-5" style={cardStyle}>
