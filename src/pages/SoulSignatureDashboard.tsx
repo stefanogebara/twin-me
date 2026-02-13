@@ -52,7 +52,8 @@ import {
   Activity,
   Share2,
   Link,
-  Check
+  Check,
+  Download
 } from 'lucide-react';
 import { SpotifyLogo, GoogleCalendarLogo, getPlatformLogo } from '@/components/PlatformLogos';
 import { BigFiveRadarChart } from '@/components/PersonalityRadarChart';
@@ -280,6 +281,7 @@ const SoulSignatureDashboard: React.FC = () => {
   const [isPublic, setIsPublic] = useState(false);
   const [shareLoading, setShareLoading] = useState(false);
   const [linkCopied, setLinkCopied] = useState(false);
+  const [downloadLoading, setDownloadLoading] = useState(false);
 
   const API_URL = import.meta.env.VITE_API_URL;
 
@@ -425,10 +427,35 @@ const SoulSignatureDashboard: React.FC = () => {
 
   const copyShareLink = () => {
     if (!user?.id) return;
-    const url = `${window.location.origin}/s/${user.id}`;
+    const url = `${window.location.origin}/api/s/${user.id}`;
     navigator.clipboard.writeText(url);
     setLinkCopied(true);
     setTimeout(() => setLinkCopied(false), 2000);
+  };
+
+  const downloadCard = async () => {
+    if (!user?.id) return;
+    const token = localStorage.getItem('auth_token');
+    setDownloadLoading(true);
+    try {
+      const res = await fetch(`${API_URL}/og/soul-card?userId=${user.id}`, {
+        headers: token ? { 'Authorization': `Bearer ${token}` } : {},
+      });
+      if (!res.ok) throw new Error('Download failed');
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `soul-signature-${user.id.slice(0, 8)}.png`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error('Error downloading card:', err);
+    } finally {
+      setDownloadLoading(false);
+    }
   };
 
   const generateSoulSignature = async () => {
@@ -648,6 +675,19 @@ const SoulSignatureDashboard: React.FC = () => {
                   <span className="text-sm font-medium hidden sm:inline">{linkCopied ? 'Copied!' : 'Copy Link'}</span>
                 </button>
               )}
+              <button
+                onClick={downloadCard}
+                disabled={downloadLoading}
+                className="flex items-center gap-1.5 px-3 py-2.5 rounded-xl transition-all duration-200 disabled:opacity-50 hover:scale-[1.02]"
+                style={{
+                  backgroundColor: subtleBg,
+                  color: textColor,
+                  border: cardBorder
+                }}
+              >
+                <Download className={`w-4 h-4 ${downloadLoading ? 'animate-pulse' : ''}`} />
+                <span className="text-sm font-medium hidden sm:inline">{downloadLoading ? 'Saving...' : 'Download'}</span>
+              </button>
               <button
                 onClick={toggleShare}
                 disabled={shareLoading}
