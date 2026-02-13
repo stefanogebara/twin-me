@@ -15,6 +15,7 @@ import calendarFeatureExtractor from './featureExtractors/calendarExtractor.js';
 import whoopFeatureExtractor from './featureExtractors/whoopExtractor.js';
 // Gmail, Outlook, LinkedIn extractors removed (TIER 1 cleanup)
 const gmailFeatureExtractor = { extractFeatures: async () => ({}) };
+const outlookFeatureExtractor = { extractFeatures: async () => ({}) };
 const linkedinFeatureExtractor = { extractFeatures: async () => ({}) };
 import youtubeFeatureExtractor from './featureExtractors/youtubeFeatureExtractor.js';
 import twitchFeatureExtractor from './featureExtractors/twitchFeatureExtractor.js';
