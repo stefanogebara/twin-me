@@ -38,7 +38,7 @@ async function fetchSignatureData(userId) {
 
   const { data: user } = await supabaseAdmin
     .from('users')
-    .select('name, first_name')
+    .select('first_name')
     .eq('id', userId)
     .single();
 
@@ -48,7 +48,7 @@ async function fetchSignatureData(userId) {
     traits: sig.defining_traits || [],
     colorScheme: sig.color_scheme || {},
     isPublic: sig.is_public || false,
-    firstName: user?.first_name || user?.name?.split(' ')[0] || 'Someone',
+    firstName: user?.first_name || 'Someone',
   };
 
   await cacheSet(cacheKey, result, OG_DATA_TTL);
