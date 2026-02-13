@@ -29,4 +29,16 @@ export default defineConfig(({ mode }) => ({
     include: ['react', 'react-dom'],
     force: true,
   },
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          'vendor-react': ['react', 'react-dom', 'react-router-dom'],
+          'vendor-ui': ['framer-motion', 'lucide-react', 'recharts'],
+          'vendor-tanstack': ['@tanstack/react-query'],
+          'vendor-3d': ['three', 'react-force-graph-3d'],
+        },
+      },
+    },
+  },
 }));
