@@ -14,9 +14,10 @@ import soulSignatureBuilder from './soulSignatureBuilder.js';
 import spotifyFeatureExtractor from './featureExtractors/spotifyExtractor.js';
 import whoopFeatureExtractor from './featureExtractors/whoopExtractor.js';
 import calendarFeatureExtractor from './featureExtractors/calendarExtractor.js';
-import gmailFeatureExtractor from './featureExtractors/gmailFeatureExtractor.js';
-import outlookFeatureExtractor from './featureExtractors/outlookFeatureExtractor.js';
-import linkedinFeatureExtractor from './featureExtractors/linkedinFeatureExtractor.js';
+// Gmail, Outlook, LinkedIn extractors removed (TIER 1 cleanup)
+const gmailFeatureExtractor = { extractFeatures: async () => ({}), saveFeatures: async () => {} };
+const outlookFeatureExtractor = { extractFeatures: async () => ({}), saveFeatures: async () => {} };
+const linkedinFeatureExtractor = { extractFeatures: async () => ({}), saveFeatures: async () => {} };
 // Pattern Learning Bridge
 import patternLearningBridge from './patternLearningBridge.js';
 
