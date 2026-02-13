@@ -1,0 +1,623 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TwinMe MCP API</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,500;1,400&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --background: #232320;
+      --surface: rgba(45, 45, 41, 0.5);
+      --surface-solid: rgba(45, 45, 41, 0.7);
+      --text-primary: #C1C0B6;
+      --text-secondary: rgba(193, 192, 182, 0.8);
+      --text-muted: rgba(193, 192, 182, 0.6);
+      --border: rgba(193, 192, 182, 0.2);
+      --border-subtle: rgba(193, 192, 182, 0.1);
+      --accent: #C1C0B6;
+      --destructive: #dc2626;
+      --success: #22c55e;
+      --radius: 0.75rem;
+      --radius-lg: 1.5rem;
+      --glass-blur: 16px;
+      --shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Inter', system-ui, sans-serif;
+      background-color: var(--background);
+      color: var(--text-primary);
+      min-height: 100vh;
+      font-size: 15px;
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .font-serif {
+      font-family: 'EB Garamond', Georgia, serif;
+    }
+
+    /* Glass Card */
+    .glass {
+      background: var(--surface);
+      backdrop-filter: blur(var(--glass-blur));
+      -webkit-backdrop-filter: blur(var(--glass-blur));
+      border: 1px solid var(--border-subtle);
+      box-shadow: var(--shadow);
+    }
+
+    .glass-solid {
+      background: var(--surface-solid);
+      border: 1px solid var(--border);
+    }
+
+    /* Container */
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 0 1.5rem;
+    }
+
+    /* Header */
+    header {
+      border-bottom: 1px solid var(--border-subtle);
+      padding: 1rem 0;
+    }
+
+    header .inner {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+
+    .logo-text {
+      font-size: 1.25rem;
+      font-weight: 500;
+      letter-spacing: -0.01em;
+    }
+
+    .logo-badge {
+      color: var(--text-muted);
+      font-size: 0.875rem;
+      margin-left: 0.5rem;
+    }
+
+    .status {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 0.875rem;
+      color: var(--text-muted);
+    }
+
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--success);
+    }
+
+    .status-text {
+      color: var(--text-secondary);
+    }
+
+    /* Main Content */
+    main {
+      padding: 3rem 0;
+    }
+
+    /* Hero */
+    .hero {
+      text-align: center;
+      margin-bottom: 3rem;
+    }
+
+    .hero h1 {
+      font-family: 'EB Garamond', Georgia, serif;
+      font-size: clamp(2rem, 5vw, 2.75rem);
+      font-weight: 400;
+      font-style: italic;
+      letter-spacing: -0.01em;
+      margin-bottom: 1rem;
+      color: var(--text-primary);
+    }
+
+    .hero p {
+      color: var(--text-muted);
+      font-size: 1rem;
+      max-width: 600px;
+      margin: 0 auto;
+    }
+
+    /* API Key Card */
+    .api-key-card {
+      border-radius: var(--radius-lg);
+      padding: 1.5rem;
+      margin-bottom: 2.5rem;
+    }
+
+    .api-key-card .label {
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--text-muted);
+      margin-bottom: 0.5rem;
+    }
+
+    .api-key-card .key-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+    }
+
+    .api-key-card code {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.9rem;
+      color: var(--text-primary);
+    }
+
+    /* Buttons */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+      padding: 0.625rem 1.25rem;
+      font-size: 0.875rem;
+      font-weight: 500;
+      border-radius: var(--radius);
+      border: 1px solid var(--border);
+      background: var(--surface-solid);
+      color: var(--text-primary);
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .btn:hover {
+      background: var(--surface);
+      border-color: var(--text-muted);
+    }
+
+    .btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    .btn-primary {
+      background: var(--text-primary);
+      color: var(--background);
+      border-color: var(--text-primary);
+    }
+
+    .btn-primary:hover {
+      opacity: 0.9;
+    }
+
+    /* Section Headers */
+    .section-header {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 0.875rem;
+      font-weight: 500;
+      color: var(--text-secondary);
+      margin-bottom: 1rem;
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+    }
+
+    .section-header svg {
+      width: 16px;
+      height: 16px;
+      opacity: 0.7;
+    }
+
+    /* Tools Grid */
+    .tools-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 1rem;
+      margin-bottom: 2.5rem;
+    }
+
+    .tool-card {
+      border-radius: var(--radius);
+      padding: 1.25rem;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      text-align: left;
+      border: 1px solid var(--border-subtle);
+      background: var(--surface);
+    }
+
+    .tool-card:hover {
+      border-color: var(--border);
+      transform: translateY(-1px);
+    }
+
+    .tool-card .icon {
+      width: 36px;
+      height: 36px;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 0.75rem;
+      background: var(--surface-solid);
+      border: 1px solid var(--border-subtle);
+    }
+
+    .tool-card .icon svg {
+      width: 18px;
+      height: 18px;
+      color: var(--text-secondary);
+    }
+
+    .tool-card h3 {
+      font-size: 0.9375rem;
+      font-weight: 500;
+      margin-bottom: 0.25rem;
+      color: var(--text-primary);
+    }
+
+    .tool-card p {
+      font-size: 0.8125rem;
+      color: var(--text-muted);
+    }
+
+    .tool-card .badge {
+      display: inline-block;
+      font-size: 0.6875rem;
+      padding: 0.125rem 0.5rem;
+      border-radius: 4px;
+      background: var(--surface-solid);
+      color: var(--text-muted);
+      margin-left: 0.5rem;
+    }
+
+    /* Chat Section */
+    .chat-section {
+      margin-bottom: 2.5rem;
+    }
+
+    .chat-input-wrapper {
+      border-radius: var(--radius-lg);
+      padding: 1.25rem;
+    }
+
+    .chat-input-row {
+      display: flex;
+      gap: 1rem;
+    }
+
+    .chat-input {
+      flex: 1;
+      padding: 0.875rem 1rem;
+      font-size: 0.9375rem;
+      background: var(--surface-solid);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      color: var(--text-primary);
+      outline: none;
+      transition: all 0.2s ease;
+    }
+
+    .chat-input::placeholder {
+      color: var(--text-muted);
+    }
+
+    .chat-input:focus {
+      border-color: var(--text-muted);
+    }
+
+    /* Response Section */
+    .response-section {
+      border-radius: var(--radius-lg);
+      padding: 1.5rem;
+      min-height: 200px;
+    }
+
+    .response-section.loading {
+      opacity: 0.7;
+    }
+
+    .twin-response {
+      display: none;
+    }
+
+    .twin-response.visible {
+      display: block;
+    }
+
+    .twin-label {
+      font-size: 0.8125rem;
+      font-weight: 500;
+      color: var(--text-muted);
+      margin-bottom: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+    }
+
+    .twin-message {
+      font-size: 0.9375rem;
+      line-height: 1.7;
+      color: var(--text-primary);
+    }
+
+    .twin-context {
+      margin-top: 1.25rem;
+      padding-top: 1rem;
+      border-top: 1px solid var(--border-subtle);
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    .response-pre {
+      background: rgba(0, 0, 0, 0.2);
+      border-radius: var(--radius);
+      padding: 1rem;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.8125rem;
+      color: var(--text-secondary);
+      white-space: pre-wrap;
+      word-break: break-word;
+      max-height: 400px;
+      overflow-y: auto;
+      line-height: 1.5;
+    }
+
+    .response-pre.hidden {
+      display: none;
+    }
+
+    /* Scrollbar */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+
+    ::-webkit-scrollbar-track {
+      background: transparent;
+    }
+
+    ::-webkit-scrollbar-thumb {
+      background: var(--border);
+      border-radius: 3px;
+    }
+
+    ::-webkit-scrollbar-thumb:hover {
+      background: var(--text-muted);
+    }
+
+    /* Loading animation */
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
+    }
+
+    .loading .response-pre {
+      animation: pulse 1.5s ease-in-out infinite;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="container inner">
+      <div class="logo">
+        <span class="logo-text">Twin Me</span>
+        <span class="logo-badge">MCP API</span>
+      </div>
+      <div class="status">
+        <span>API Status:</span>
+        <span class="status-dot"></span>
+        <span class="status-text">Connected</span>
+      </div>
+    </div>
+  </header>
+
+  <main class="container">
+    <section class="hero">
+      <h1>Talk to Your Twin from Any LLM</h1>
+      <p>Connect Claude Desktop, ChatGPT, Gemini, or any MCP-compatible client to your digital twin.</p>
+    </section>
+
+    <div class="api-key-card glass">
+      <div class="label">Your API Key</div>
+      <div class="key-row">
+        <code id="apiKey">twm_CmjiO-xjr-RL8AabljmGJgm9SpJAkB-2</code>
+        <button onclick="copyKey()" class="btn">Copy Key</button>
+      </div>
+    </div>
+
+    <div class="section-header">
+      <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"/></svg>
+      Available Tools
+    </div>
+
+    <div class="tools-grid">
+      <button onclick="callTool('soul-signature')" class="tool-card">
+        <div class="icon">
+          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M5.121 17.804A13.937 13.937 0 0112 16c2.5 0 4.847.655 6.879 1.804M15 10a3 3 0 11-6 0 3 3 0 016 0zm6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+        </div>
+        <h3>Soul Signature</h3>
+        <p>Your unique personality profile</p>
+      </button>
+
+      <button onclick="callTool('live-data')" class="tool-card">
+        <div class="icon">
+          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+        </div>
+        <h3>Live Data</h3>
+        <p>Spotify, Calendar, Whoop</p>
+      </button>
+
+      <button onclick="callTool('insights')" class="tool-card">
+        <div class="icon">
+          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/></svg>
+        </div>
+        <h3>Insights</h3>
+        <p>AI-generated recommendations</p>
+      </button>
+
+      <button onclick="callTool('patterns')" class="tool-card">
+        <div class="icon">
+          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z"/></svg>
+        </div>
+        <h3>Patterns</h3>
+        <p>Behavioral patterns & routines</p>
+      </button>
+
+      <button onclick="callTool('predictions')" class="tool-card">
+        <div class="icon">
+          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
+        </div>
+        <h3>Predictions</h3>
+        <p>Forecast your day ahead</p>
+      </button>
+
+      <button onclick="callTool('tools')" class="tool-card">
+        <div class="icon">
+          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 6h16M4 12h16M4 18h16"/></svg>
+        </div>
+        <h3>List Tools</h3>
+        <p>View all available MCP tools</p>
+      </button>
+    </div>
+
+    <div class="section-header">
+      <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/></svg>
+      Chat with Your Twin
+    </div>
+
+    <div class="chat-section">
+      <div class="chat-input-wrapper glass">
+        <div class="chat-input-row">
+          <input
+            type="text"
+            id="message"
+            class="chat-input"
+            placeholder="Ask your twin anything..."
+            value="How am I doing today?"
+          >
+          <button onclick="sendChat()" id="sendBtn" class="btn btn-primary">Send</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="section-header">
+      <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+      Response
+    </div>
+
+    <div id="responseCard" class="response-section glass">
+      <div id="twinResponse" class="twin-response">
+        <div class="twin-label">Twin says</div>
+        <div id="twinMessage" class="twin-message"></div>
+        <div id="twinContext" class="twin-context"></div>
+      </div>
+      <pre id="response" class="response-pre">Click a tool or send a message to see the response...</pre>
+    </div>
+  </main>
+
+  <script>
+    const API_KEY = 'twm_CmjiO-xjr-RL8AabljmGJgm9SpJAkB-2';
+    const BASE_URL = 'http://localhost:3004/api/mcp';
+
+    function copyKey() {
+      navigator.clipboard.writeText(API_KEY);
+      const btn = event.target;
+      const original = btn.textContent;
+      btn.textContent = 'Copied!';
+      setTimeout(() => btn.textContent = original, 1500);
+    }
+
+    async function callTool(tool) {
+      const responseEl = document.getElementById('response');
+      const cardEl = document.getElementById('responseCard');
+      const twinResponseEl = document.getElementById('twinResponse');
+
+      twinResponseEl.classList.remove('visible');
+      responseEl.classList.remove('hidden');
+      responseEl.textContent = 'Loading...';
+      cardEl.classList.add('loading');
+
+      try {
+        const response = await fetch(BASE_URL + '/' + tool, {
+          headers: { 'X-API-Key': API_KEY }
+        });
+        const data = await response.json();
+        responseEl.textContent = JSON.stringify(data, null, 2);
+      } catch (error) {
+        responseEl.textContent = 'Error: ' + error.message;
+      }
+
+      cardEl.classList.remove('loading');
+    }
+
+    async function sendChat() {
+      const message = document.getElementById('message').value;
+      const responseEl = document.getElementById('response');
+      const cardEl = document.getElementById('responseCard');
+      const twinResponseEl = document.getElementById('twinResponse');
+      const twinMessageEl = document.getElementById('twinMessage');
+      const twinContextEl = document.getElementById('twinContext');
+      const btn = document.getElementById('sendBtn');
+
+      if (!message.trim()) return;
+
+      twinResponseEl.classList.remove('visible');
+      responseEl.classList.remove('hidden');
+      responseEl.textContent = 'Your twin is thinking...';
+      cardEl.classList.add('loading');
+      btn.disabled = true;
+
+      try {
+        const response = await fetch(BASE_URL + '/chat', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-API-Key': API_KEY
+          },
+          body: JSON.stringify({ message: message })
+        });
+        const data = await response.json();
+
+        if (data.success && data.response) {
+          responseEl.classList.add('hidden');
+          twinResponseEl.classList.add('visible');
+          twinMessageEl.textContent = data.response;
+          twinContextEl.textContent = 'Context: ' + JSON.stringify(data.context);
+        } else {
+          responseEl.textContent = JSON.stringify(data, null, 2);
+        }
+      } catch (error) {
+        responseEl.textContent = 'Error: ' + error.message;
+      }
+
+      cardEl.classList.remove('loading');
+      btn.disabled = false;
+    }
+
+    document.getElementById('message').addEventListener('keypress', function(e) {
+      if (e.key === 'Enter') sendChat();
+    });
+  </script>
+</body>
+</html>

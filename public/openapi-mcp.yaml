@@ -1,0 +1,192 @@
+openapi: 3.1.0
+info:
+  title: TwinMe MCP API
+  description: Talk to your digital twin from any LLM. Access your soul signature, live platform data, insights, patterns, and predictions.
+  version: 1.0.0
+servers:
+  - url: http://localhost:3004/api/mcp
+    description: Local development server
+
+paths:
+  /chat:
+    post:
+      operationId: chatWithTwin
+      summary: Chat with your digital twin
+      description: Have a conversation with your TwinMe digital twin. The twin knows your personality, habits, and current state from connected platforms.
+      security:
+        - ApiKeyAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - message
+              properties:
+                message:
+                  type: string
+                  description: Your message to the twin
+                platforms:
+                  type: array
+                  items:
+                    type: string
+                  default: ["spotify", "calendar", "whoop"]
+                  description: Platforms to include in context
+      responses:
+        '200':
+          description: Twin response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  response:
+                    type: string
+                    description: The twin's response message
+                  context:
+                    type: object
+                    description: Context used for the response
+
+  /soul-signature:
+    get:
+      operationId: getSoulSignature
+      summary: Get your soul signature
+      description: Retrieve your complete personality profile derived from your digital footprint across connected platforms.
+      security:
+        - ApiKeyAuth: []
+      responses:
+        '200':
+          description: Soul signature data
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                    description: Soul signature profile with archetype, traits, and interests
+
+  /live-data:
+    get:
+      operationId: getLiveData
+      summary: Get live platform data
+      description: Get current real-time data from connected platforms including Spotify (currently playing), Google Calendar (today's events), and Whoop (recovery/strain).
+      security:
+        - ApiKeyAuth: []
+      responses:
+        '200':
+          description: Live platform data
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                    properties:
+                      spotify:
+                        type: object
+                      calendar:
+                        type: object
+                      whoop:
+                        type: object
+
+  /patterns:
+    get:
+      operationId: getPatterns
+      summary: Get behavioral patterns
+      description: Get detected behavioral patterns and routines based on your platform data history.
+      security:
+        - ApiKeyAuth: []
+      responses:
+        '200':
+          description: Behavioral patterns
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+
+  /insights:
+    get:
+      operationId: getInsights
+      summary: Get AI-generated insights
+      description: Get AI-generated insights about your personality, habits, and personalized recommendations.
+      security:
+        - ApiKeyAuth: []
+      responses:
+        '200':
+          description: AI insights
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+
+  /predictions:
+    get:
+      operationId: getPredictions
+      summary: Get behavioral predictions
+      description: Get predictions about your behavior, mood forecasts, and schedule patterns for upcoming time periods.
+      security:
+        - ApiKeyAuth: []
+      responses:
+        '200':
+          description: Behavioral predictions
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+
+  /tools:
+    get:
+      operationId: listTools
+      summary: List all available tools
+      description: Get a list of all available MCP tools and their descriptions.
+      security:
+        - ApiKeyAuth: []
+      responses:
+        '200':
+          description: List of tools
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  tools:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        name:
+                          type: string
+                        description:
+                          type: string
+
+components:
+  securitySchemes:
+    ApiKeyAuth:
+      type: apiKey
+      in: header
+      name: X-API-Key
+      description: Your TwinMe API key (format twm_...)
