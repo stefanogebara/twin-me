@@ -216,13 +216,13 @@ const TalkToTwin = () => {
       const token = localStorage.getItem('auth_token');
       const headers = { 'Authorization': `Bearer ${token}` };
 
-      // Fetch memory and context data in parallel (including Mem0 long-term memory)
-      const [memoriesRes, factsRes, clustersRes, mem0StatsRes] = await Promise.all([
-        fetch(`${API_BASE}/moltbot/memory/recent?limit=5`, { headers }).catch(() => null),
-        fetch(`${API_BASE}/moltbot/memory/facts?limit=5`, { headers }).catch(() => null),
-        fetch(`${API_BASE}/moltbot/clusters`, { headers }).catch(() => null),
+      // Fetch memory and context data (Mem0 long-term memory)
+      const [mem0StatsRes] = await Promise.all([
         fetch(`${API_BASE}/mem0/stats`, { headers }).catch(() => null),
       ]);
+      const memoriesRes = null;
+      const factsRes = null;
+      const clustersRes = null;
 
       const items: ContextItem[] = [];
 

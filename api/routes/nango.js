@@ -177,9 +177,7 @@ router.post('/verify-connection', authenticateUser, async (req, res) => {
           // Run feature extraction after raw data is stored
           try {
             const featureExtractorMap = {
-              'google-mail': (await import('../services/featureExtractors/gmailFeatureExtractor.js')).default,
-              'outlook': (await import('../services/featureExtractors/outlookFeatureExtractor.js')).default,
-              'linkedin': (await import('../services/featureExtractors/linkedinFeatureExtractor.js')).default,
+              // Gmail, Outlook, LinkedIn extractors removed (TIER 1 cleanup)
               'spotify': (await import('../services/featureExtractors/spotifyExtractor.js')).default,
               'google-calendar': (await import('../services/featureExtractors/calendarExtractor.js')).default,
               'whoop': (await import('../services/featureExtractors/whoopExtractor.js')).default,
@@ -339,9 +337,7 @@ router.get('/extract/:platform', authenticateUser, async (req, res) => {
       // Run feature extraction after raw data is stored
       try {
         const featureExtractorMap = {
-          'google-mail': (await import('../services/featureExtractors/gmailFeatureExtractor.js')).default,
-          'outlook': (await import('../services/featureExtractors/outlookFeatureExtractor.js')).default,
-          'linkedin': (await import('../services/featureExtractors/linkedinFeatureExtractor.js')).default,
+          // Gmail, Outlook, LinkedIn extractors removed (TIER 1 cleanup)
           'spotify': (await import('../services/featureExtractors/spotifyExtractor.js')).default,
           'google-calendar': (await import('../services/featureExtractors/calendarExtractor.js')).default,
           'whoop': (await import('../services/featureExtractors/whoopExtractor.js')).default,

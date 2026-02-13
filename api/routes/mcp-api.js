@@ -9,7 +9,8 @@ import express from 'express';
 import crypto from 'crypto';
 import { supabaseAdmin } from '../services/database.js';
 import { getValidAccessToken } from '../services/tokenRefresh.js';
-import { getMemoryService } from '../services/moltbot/moltbotMemoryService.js';
+// Moltbot removed (TIER 1 cleanup) - stub out for backward compat
+const getMemoryService = () => ({ getRecentMemories: async () => [], getLearnedFacts: async () => [] });
 import { getClusterPersonalityBuilder } from '../services/clusterPersonalityBuilder.js';
 import axios from 'axios';
 import { complete, TIER_CHAT } from '../services/llmGateway.js';

@@ -59,7 +59,6 @@ import { SpotifyLogo, GoogleCalendarLogo, getPlatformLogo } from '@/components/P
 import { BigFiveRadarChart } from '@/components/PersonalityRadarChart';
 import BehavioralEvidencePanel from '@/components/BehavioralEvidencePanel';
 import AssessmentStatusCard from '@/components/AssessmentStatusCard';
-import { ClusterPersonalityVisualization } from '@/components/moltbot/ClusterPersonalityVisualization';
 import { PlatformCategoryCard, PLATFORM_CATEGORIES } from '@/components/dashboard/PlatformCategoryCard';
 
 interface PersonalityScores {
@@ -1196,14 +1195,6 @@ const SoulSignatureDashboard: React.FC = () => {
       </GlassPanel>
 
       {/* Cluster Personality Visualization */}
-      <div className="mb-6">
-        <SectionHeader title="Context-Aware Personality" />
-        <p className="text-sm mb-4" style={{ color: textSecondary }}>
-          Your personality varies across different life contexts. Compare how you show up in personal vs professional settings.
-        </p>
-        <ClusterPersonalityVisualization userId={user?.id} connectedPlatformCount={connectedProviders.length} />
-      </div>
-
       {/* What Makes You Unique - Full Traits */}
       {soulSignature && (
         <div className="mb-6">

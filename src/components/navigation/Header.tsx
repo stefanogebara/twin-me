@@ -4,7 +4,6 @@ import { User, Menu, X } from 'lucide-react';
 import { navigationConfig } from '../../config/navigation';
 import { cn } from '../../lib/utils';
 import { useTheme } from '../../contexts/ThemeContext';
-import { ProactiveNotifications } from '../moltbot/ProactiveNotifications';
 
 /**
  * Header Component
@@ -129,9 +128,6 @@ export const Header: React.FC<HeaderProps> = ({ user, onSignOut }) => {
 
         {/* Notifications & User Section - Desktop */}
         <div className="hidden md:flex items-center gap-3">
-          {/* Proactive Notifications Bell */}
-          {user && <ProactiveNotifications compact={true} maxItems={5} />}
-
           {/* User Section */}
           {user && (
             <div
@@ -308,9 +304,6 @@ export const Header: React.FC<HeaderProps> = ({ user, onSignOut }) => {
                 </div>
 
                 <div className="flex items-center gap-2">
-                  {/* Mobile Notifications */}
-                  <ProactiveNotifications compact={true} maxItems={5} />
-
                   {onSignOut && (
                     <button
                       onClick={() => {
