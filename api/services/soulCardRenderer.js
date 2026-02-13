@@ -138,7 +138,7 @@ export async function renderSoulCard(data) {
       color: 'rgba(193, 192, 182, 0.6)',
       letterSpacing: '0.08em',
       textTransform: 'uppercase',
-    }, `${firstName}'s Soul Signature`),
+    }, firstName.toLowerCase() === 'your' ? 'Your Soul Signature' : `${firstName}'s Soul Signature`),
     span({
       fontSize: 52,
       fontWeight: 700,
