@@ -445,6 +445,7 @@ Priority order: Discord -> GitHub -> Reddit -> LinkedIn deep -> Apple Music
 | 2026-02-13 | Public soul card at /s/:userId | Share toggle + copy link in dashboard header. No auth required to view |
 | 2026-02-13 | Service audit: 17 orphaned + 9 test files removed | Verified every file via grep before archival. Server loads correctly. |
 | 2026-02-13 | Dependency cleanup: 97 → 88 packages | Removed tesseract.js (10MB), phosphor-react, anthropic SDKs, unused parsers |
+| 2026-02-13 | Full UI testing: 10 pages, 0 errors | Dashboard, Soul Signature, Twin Chat, Brain, Journal, Personality, Connect, Settings, LLM Costs all clean. Fixed CORS (PATCH), chat-usage 500, node-fetch, pdf-parse |
 
 ---
 
