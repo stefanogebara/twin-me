@@ -14,10 +14,31 @@ import { fileURLToPath } from 'url';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Load fonts once at module init
-const fontsDir = path.join(__dirname, '..', 'fonts');
-const interRegular = fs.readFileSync(path.join(fontsDir, 'Inter-Regular.woff'));
-const interBold = fs.readFileSync(path.join(fontsDir, 'Inter-Bold.woff'));
+// Load fonts lazily - try multiple paths for Vercel compatibility
+let interRegular = null;
+let interBold = null;
+
+function loadFonts() {
+  if (interRegular) return;
+
+  const candidates = [
+    path.join(__dirname, '..', 'fonts'),
+    path.join(process.cwd(), 'api', 'fonts'),
+  ];
+
+  for (const dir of candidates) {
+    try {
+      interRegular = fs.readFileSync(path.join(dir, 'Inter-Regular.woff'));
+      interBold = fs.readFileSync(path.join(dir, 'Inter-Bold.woff'));
+      console.log(`[SoulCardRenderer] Fonts loaded from ${dir}`);
+      return;
+    } catch {
+      // try next
+    }
+  }
+
+  throw new Error('Could not find Inter font files in any expected location');
+}
 
 const CARD_WIDTH = 1200;
 const CARD_HEIGHT = 630;
@@ -41,6 +62,8 @@ function span(style, text) {
  * Render a soul signature card as PNG buffer.
  */
 export async function renderSoulCard(data) {
+  loadFonts();
+
   const {
     firstName = 'Someone',
     archetypeName = 'Soul Signature',

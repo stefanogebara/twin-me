@@ -8,7 +8,14 @@
 import express from 'express';
 import { supabaseAdmin } from '../services/database.js';
 import { authenticateUser } from '../middleware/auth.js';
-import { invalidateOgCache } from './og-image.js';
+// Lazy import to avoid crashing if OG image module fails to load
+let invalidateOgCache = async () => {};
+try {
+  const ogModule = await import('./og-image.js');
+  if (ogModule.invalidateOgCache) invalidateOgCache = ogModule.invalidateOgCache;
+} catch {
+  console.warn('[Soul Signature Public] OG image module not available, cache invalidation disabled');
+}
 
 const router = express.Router();
 

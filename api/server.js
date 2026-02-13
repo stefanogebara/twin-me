@@ -290,7 +290,13 @@ import onboardingCalibrationRoutes from './routes/onboarding-calibration.js';
 import onboardingSoulSignatureRoutes from './routes/onboarding-soul-signature.js';
 import accountRoutes from './routes/account.js';
 import soulSignaturePublicRoutes from './routes/soul-signature-public.js';
-import ogImageRoutes from './routes/og-image.js';
+// OG image routes loaded lazily to prevent font-loading crashes from taking down the whole server
+let ogImageRoutes = null;
+try {
+  ogImageRoutes = (await import('./routes/og-image.js')).default;
+} catch (err) {
+  console.warn('[OG Image] Failed to load OG image routes:', err.message);
+}
 import { serverDb } from './services/database.js';
 import { sanitizeInput, validateContentType } from './middleware/sanitization.js';
 import { /* handleAuthError, */ handleGeneralError, handle404 } from './middleware/errorHandler.js';
@@ -359,7 +365,7 @@ app.use('/api/onboarding', onboardingCalibrationRoutes); // AI-driven calibratio
 app.use('/api/onboarding', onboardingSoulSignatureRoutes); // Instant soul signature from enrichment + calibration
 app.use('/api/account', accountRoutes); // Account deletion + data export
 app.use('/api/soul-signature', soulSignaturePublicRoutes); // Public share + visibility toggle
-app.use('/api', ogImageRoutes); // OG image cards (/api/og/soul-card, /api/s/:userId)
+if (ogImageRoutes) app.use('/api', ogImageRoutes); // OG image cards (/api/og/soul-card, /api/s/:userId)
 app.use('/api/personality', personalityAssessmentRoutes); // Big Five personality assessment with 16personalities archetypes
 app.use('/api/big-five', bigFiveRoutes); // IPIP-NEO-120 Big Five assessment with T-score normalization
 app.use('/api/insights', platformInsightsRoutes); // Platform-specific conversational insights
