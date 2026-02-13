@@ -32,11 +32,18 @@ import {
   analyzeWritingStyle
 } from '../services/conversationLearning.js';
 
-// Mem0 memory service for intelligent memory layer
+// Unified memory stream (Generative Agents-inspired architecture)
 import {
-  addConversationMemory,
+  addConversationMemory as addConversationMemoryStream,
+  retrieveMemories,
+  getRecentImportanceSum,
+} from '../services/memoryStreamService.js';
+import { shouldTriggerReflection, generateReflections } from '../services/reflectionEngine.js';
+
+// Legacy mem0 - kept for backward compatibility on non-chat paths
+import {
+  addConversationMemory as addConversationMemoryLegacy,
   searchMemories,
-  addPlatformMemory,
   getMemoryStats
 } from '../services/mem0Service.js';
 
@@ -880,22 +887,20 @@ router.post('/message', authenticateUser, async (req, res) => {
 
     console.log(`[Twin Chat] Message from user ${userId}: "${message.substring(0, 50)}..."`);
 
-    // Fetch all context sources in parallel - richer context = better personality embodiment
-    const [soulSignature, platformData, moltbotContext, writingProfile, recentAllConversations, mem0Memories, personalityScores] = await Promise.all([
+    // Fetch context: structured data (soul sig, platform, personality) + unified memory stream
+    const [soulSignature, platformData, personalityScores, writingProfile, memories] = await Promise.all([
       getSoulSignature(userId),
       getPlatformData(userId, context?.platforms || ['spotify', 'calendar', 'whoop', 'web']),
-      getMoltbotContext(userId),
+      getPersonalityScores(userId),
       getUserWritingProfile(userId).catch(() => null),
-      getRecentMcpConversations(userId, 5).catch(() => []),
-      searchMemories(userId, message, 8).catch(() => []),
-      getPersonalityScores(userId)
+      retrieveMemories(userId, message, 15).catch(() => []),
     ]);
 
-    // Build personalized system prompt with all identity + context layers
+    // Build personalized system prompt with structured context layers
     // Returns array format for Anthropic prompt caching: [cached_base, dynamic_context]
-    let systemPrompt = buildTwinSystemPrompt(soulSignature, platformData, moltbotContext, personalityScores);
+    let systemPrompt = buildTwinSystemPrompt(soulSignature, platformData, null, personalityScores);
 
-    // Build additional dynamic context (writing profile, conversation history, memories)
+    // Build additional dynamic context (writing profile + unified memory stream)
     let additionalContext = '';
 
     // Add writing profile context so twin can match user's voice precisely
@@ -918,19 +923,17 @@ router.post('/message', authenticateUser, async (req, res) => {
       additionalContext += ` IMPORTANT: Your responses should sound like they could have been written by me.`;
     }
 
-    // Add recent conversation history for continuity
-    if (recentAllConversations.length > 0) {
-      additionalContext += `\n\nRecent conversations (most recent first): ${recentAllConversations.slice(0, 5).reverse().map((conv, i) =>
-        `"${conv.userMessage.substring(0, 120)}${conv.userMessage.length > 120 ? '...' : ''}" (${conv.source === 'claude_desktop' ? 'Desktop' : 'Web'})`
-      ).join('; ')}`;
-    }
+    // Add unified memory stream results (reflections + observations)
+    if (memories && memories.length > 0) {
+      const reflections = memories.filter(m => m.memory_type === 'reflection');
+      const observations = memories.filter(m => m.memory_type !== 'reflection');
 
-    // Add Mem0 long-term memories relevant to current message
-    if (mem0Memories && mem0Memories.length > 0) {
-      additionalContext += `\n\nRelevant memories from past conversations:\n${mem0Memories.slice(0, 8).map(mem => {
-        const text = mem.memory || mem.text || mem.content;
-        return text ? `- ${text.substring(0, 200)}` : '';
-      }).filter(Boolean).join('\n')}`;
+      if (reflections.length > 0) {
+        additionalContext += `\n\nDeep patterns I've noticed:\n${reflections.map(r => `- ${r.content.substring(0, 250)}`).join('\n')}`;
+      }
+      if (observations.length > 0) {
+        additionalContext += `\n\nRelevant memories:\n${observations.slice(0, 8).map(m => `- ${m.content.substring(0, 200)}`).join('\n')}`;
+      }
     }
 
     // Hard cap additional context to prevent token bloat
@@ -1049,18 +1052,28 @@ router.post('/message', authenticateUser, async (req, res) => {
       },
       brainStats: {
         has_soul_signature: !!soulSignature,
-        has_moltbot_context: !!moltbotContext,
+        has_memory_stream: memories?.length > 0,
         has_writing_profile: !!writingProfile
       }
     }).catch(err => console.warn('[Twin Chat] Failed to log conversation:', err.message));
 
-    // Store in Mem0 for intelligent long-term memory - non-blocking
-    addConversationMemory(userId, message, assistantMessage, {
+    // Store in unified memory stream - non-blocking
+    addConversationMemoryStream(userId, message, assistantMessage, {
       conversationId,
       platforms: Object.keys(platformData),
       hasSoulSignature: !!soulSignature,
       chatSource
-    }).catch(err => console.warn('[Twin Chat] Failed to store in Mem0:', err.message));
+    }).catch(err => console.warn('[Twin Chat] Failed to store in memory stream:', err.message));
+
+    // Trigger reflection if enough importance has accumulated - non-blocking
+    shouldTriggerReflection(userId).then(shouldReflect => {
+      if (shouldReflect) {
+        console.log(`[Twin Chat] Triggering background reflection for user ${userId}`);
+        generateReflections(userId).catch(err =>
+          console.warn('[Twin Chat] Background reflection failed:', err.message)
+        );
+      }
+    }).catch(() => {});
 
     // Return response
     res.json({
@@ -1070,8 +1083,8 @@ router.post('/message', authenticateUser, async (req, res) => {
       chatSource, // 'openclaw' or 'direct'
       contextSources: {
         soulSignature: !!soulSignature,
-        moltbotMemory: !!moltbotContext,
-        mem0Memory: mem0Memories?.length > 0,
+        memoryStream: memories?.length > 0,
+        reflections: memories?.filter(m => m.memory_type === 'reflection').length || 0,
         platformData: Object.keys(platformData),
         openClawEnabled: chatSource === 'openclaw'
       }
