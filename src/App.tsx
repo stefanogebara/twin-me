@@ -2,43 +2,77 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-router-dom";
+import { useEffect, useRef, lazy, Suspense } from "react";
 import ErrorBoundary from "@/components/ErrorBoundary";
 import { SidebarLayout } from "./components/layout/SidebarLayout";
 import { LoadingProvider } from "./contexts/LoadingContext";
 import { ErrorProvider } from "./contexts/ErrorContext";
-import { AnalyticsProvider } from "./contexts/AnalyticsContext";
+import { AnalyticsProvider, useAnalytics } from "./contexts/AnalyticsContext";
 import ErrorNotification from "./components/ui/ErrorNotification";
 import ProtectedRoute from "./components/ProtectedRoute";
-import Index from "./pages/Index";
-import NotFound from "./pages/NotFound";
-import Settings from "./pages/Settings";
-import InstantTwinOnboarding from "./pages/InstantTwinOnboarding";
-import OAuthCallback from "./pages/OAuthCallback";
-import CustomAuth from "./pages/CustomAuth";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import { DemoProvider } from "./contexts/DemoContext";
 import { NavigationProvider } from "./contexts/NavigationContext";
 import { PipedreamProvider } from "./contexts/PipedreamContext";
 import { SidebarProvider } from "./contexts/SidebarContext";
-import Dashboard from "./pages/Dashboard";
-import DashboardDemo from "./pages/DashboardDemo";
 import { useExtensionSync } from "./hooks/useExtensionSync";
-import WelcomeFlow from "./pages/onboarding/WelcomeFlow";
-import EnrichedOnboardingFlow from "./pages/onboarding/EnrichedOnboardingFlow";
-import GmailCallback from "./pages/oauth/GmailCallback";
 import DemoBanner from "./components/DemoBanner";
-import { SpotifyInsightsPage, WhoopInsightsPage, CalendarInsightsPage, YouTubeInsightsPage, TwitchInsightsPage, WebBrowsingInsightsPage } from "./pages/insights";
-import SoulSignatureDashboard from "./pages/SoulSignatureDashboard";
-import SoulSignatureOnboarding from "./pages/onboarding/SoulSignatureOnboarding";
-import PersonalityAssessment from "./pages/PersonalityAssessment";
-import BrainPage from "./pages/BrainPage";
-import BigFiveAssessment from "./pages/BigFiveAssessment";
-import TalkToTwin from "./pages/TalkToTwin";
-import JournalPage from "./pages/JournalPage";
-import PrivacyPolicy from "./pages/PrivacyPolicy";
+
+// Eager-loaded (critical path: landing, auth, 404)
+import Index from "./pages/Index";
+import CustomAuth from "./pages/CustomAuth";
+import OAuthCallback from "./pages/OAuthCallback";
+import NotFound from "./pages/NotFound";
+
+// Lazy-loaded pages (code-split into separate chunks)
+const Dashboard = lazy(() => import("./pages/Dashboard"));
+const DashboardDemo = lazy(() => import("./pages/DashboardDemo"));
+const Settings = lazy(() => import("./pages/Settings"));
+const InstantTwinOnboarding = lazy(() => import("./pages/InstantTwinOnboarding"));
+const SoulSignatureDashboard = lazy(() => import("./pages/SoulSignatureDashboard"));
+const BrainPage = lazy(() => import("./pages/BrainPage"));
+const PersonalityAssessment = lazy(() => import("./pages/PersonalityAssessment"));
+const BigFiveAssessment = lazy(() => import("./pages/BigFiveAssessment"));
+const TalkToTwin = lazy(() => import("./pages/TalkToTwin"));
+const JournalPage = lazy(() => import("./pages/JournalPage"));
+const AdminLLMCosts = lazy(() => import("./pages/AdminLLMCosts"));
+const PrivacyPolicy = lazy(() => import("./pages/PrivacyPolicy"));
+const PublicSoulCard = lazy(() => import("./pages/PublicSoulCard"));
+const WelcomeFlow = lazy(() => import("./pages/onboarding/WelcomeFlow"));
+const EnrichedOnboardingFlow = lazy(() => import("./pages/onboarding/EnrichedOnboardingFlow"));
+const SoulSignatureOnboarding = lazy(() => import("./pages/onboarding/SoulSignatureOnboarding"));
+const GmailCallback = lazy(() => import("./pages/oauth/GmailCallback"));
+const SpotifyInsightsPage = lazy(() => import("./pages/insights/SpotifyInsightsPage"));
+const WhoopInsightsPage = lazy(() => import("./pages/insights/WhoopInsightsPage"));
+const CalendarInsightsPage = lazy(() => import("./pages/insights/CalendarInsightsPage"));
+const YouTubeInsightsPage = lazy(() => import("./pages/insights/YouTubeInsightsPage"));
+const TwitchInsightsPage = lazy(() => import("./pages/insights/TwitchInsightsPage"));
+const WebBrowsingInsightsPage = lazy(() => import("./pages/insights/WebBrowsingInsightsPage"));
 
 const queryClient = new QueryClient();
+
+// Auto-track page views on route change
+const PostHogPageTracker = () => {
+  const location = useLocation();
+  const { trackPageView } = useAnalytics();
+  const prevPath = useRef(location.pathname);
+
+  useEffect(() => {
+    if (location.pathname !== prevPath.current) {
+      trackPageView(location.pathname);
+      prevPath.current = location.pathname;
+    }
+  }, [location.pathname, trackPageView]);
+
+  // Track initial page view
+  useEffect(() => {
+    trackPageView(location.pathname);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  return null;
+};
 
 const App = () => {
   // Automatically sync auth tokens to browser extension
@@ -58,9 +92,11 @@ const App = () => {
                     <Sonner />
                     <ErrorNotification />
                     <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+                      <PostHogPageTracker />
                       <SidebarProvider>
                       <NavigationProvider>
                       <DemoBanner variant="top" />
+          <Suspense fallback={<div className="min-h-screen flex items-center justify-center"><div className="w-6 h-6 border-2 border-current border-t-transparent rounded-full animate-spin opacity-40" /></div>}>
           <Routes>
             {/* Authentication */}
             <Route path="/auth" element={<CustomAuth />} />
@@ -161,12 +197,14 @@ const App = () => {
               </ProtectedRoute>
             } />
 
-            {/* Personality Assessment - Full-screen focused onboarding experience */}
+            {/* Personality Assessment */}
             <Route path="/personality" element={
               <ProtectedRoute>
-                <ErrorBoundary>
-                  <PersonalityAssessment />
-                </ErrorBoundary>
+                <SidebarLayout>
+                  <ErrorBoundary>
+                    <PersonalityAssessment />
+                  </ErrorBoundary>
+                </SidebarLayout>
               </ProtectedRoute>
             } />
 
@@ -230,6 +268,13 @@ const App = () => {
               </ErrorBoundary>
             } />
 
+            {/* Public Soul Card - Shareable link, no auth */}
+            <Route path="/s/:userId" element={
+              <ErrorBoundary>
+                <PublicSoulCard />
+              </ErrorBoundary>
+            } />
+
             {/* Soul Journal */}
             <Route path="/journal" element={
               <ProtectedRoute>
@@ -252,12 +297,24 @@ const App = () => {
               </ProtectedRoute>
             } />
 
+            {/* Admin: LLM Cost Monitor */}
+            <Route path="/admin/llm-costs" element={
+              <ProtectedRoute>
+                <SidebarLayout>
+                  <ErrorBoundary>
+                    <AdminLLMCosts />
+                  </ErrorBoundary>
+                </SidebarLayout>
+              </ProtectedRoute>
+            } />
+
             {/* Privacy Policy - Public, no auth required */}
             <Route path="/privacy-policy" element={<PrivacyPolicy />} />
 
             {/* Catch-all */}
             <Route path="*" element={<NotFound />} />
           </Routes>
+          </Suspense>
                     </NavigationProvider>
                       </SidebarProvider>
         </BrowserRouter>

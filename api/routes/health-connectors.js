@@ -1556,9 +1556,9 @@ router.get('/whoop/current-state', async (req, res) => {
       console.log('[Whoop Current State] Using Nango proxy for NANGO_MANAGED connection');
 
       const [cycleResult, recoveryResult, sleepResult] = await Promise.all([
-        nangoProxyRequest(userId, 'whoop', '/developer/v2/cycle', { params: { limit: '1' } }).catch(e => ({ success: false, error: e.message })),
-        nangoProxyRequest(userId, 'whoop', '/developer/v2/recovery', { params: { limit: '1' } }).catch(e => ({ success: false, error: e.message })),
-        nangoProxyRequest(userId, 'whoop', '/developer/v2/activity/sleep', { params: { limit: '5' } }).catch(e => ({ success: false, error: e.message }))
+        nangoProxyRequest(userId, 'whoop', '/cycle', { params: { limit: '1' } }).catch(e => ({ success: false, error: e.message })),
+        nangoProxyRequest(userId, 'whoop', '/recovery', { params: { limit: '1' } }).catch(e => ({ success: false, error: e.message })),
+        nangoProxyRequest(userId, 'whoop', '/activity/sleep', { params: { limit: '5' } }).catch(e => ({ success: false, error: e.message }))
       ]);
 
       if (cycleResult.success) {
@@ -1660,7 +1660,7 @@ router.get('/whoop/current-state', async (req, res) => {
     });
 
     const sleepHours = totalSleepMs ? totalSleepMs / (1000 * 60 * 60) : null;
-    console.log(`[Whoop Current State] Total sleep: ${sleepHours?.toFixed(1)}h from ${todaysSleeps.length} sleep records (main: ${sleepBreakdown.mainSleep.toFixed(1)}h, naps: ${sleepBreakdown.naps.toFixed(1)}h)`);
+    console.log(`[Whoop Current State] Total sleep: ${sleepHours !== null ? sleepHours.toFixed(1) : '0'}h from ${todaysSleeps.length} sleep records (main: ${sleepBreakdown.mainSleep.toFixed(1)}h, naps: ${sleepBreakdown.naps.toFixed(1)}h)`);
 
     // Build current state response
     const recovery = latestRecovery?.score?.recovery_score;

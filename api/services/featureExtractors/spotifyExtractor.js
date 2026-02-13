@@ -778,12 +778,20 @@ class SpotifyFeatureExtractor {
       (thoughtfulNames / total) * 30
     );
 
+    const descriptionPercent = Math.round((withDescriptions / total) * 100);
+    const wellSizedPercent = Math.round((wellSized / total) * 100);
+    const thoughtfulPercent = Math.round((thoughtfulNames / total) * 100);
+
     return {
       value: Math.round(curationScore * 100) / 100,
       rawValue: {
         playlist_count: total,
         with_descriptions: withDescriptions,
-        well_sized: wellSized
+        well_sized: wellSized,
+        thoughtful_names: thoughtfulNames,
+        description_percent: descriptionPercent,
+        well_sized_percent: wellSizedPercent,
+        thoughtful_percent: thoughtfulPercent
       }
     };
   }

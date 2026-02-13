@@ -2,6 +2,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { useEffect } from "react";
 import { useTheme } from "@/contexts/ThemeContext";
 import { Home, ArrowLeft } from "lucide-react";
+import { Clay3DIcon } from '@/components/Clay3DIcon';
 
 const NotFound = () => {
   const location = useLocation();
@@ -20,23 +21,8 @@ const NotFound = () => {
     <div className="min-h-screen" style={{ backgroundColor: bgColor }}>
       <div className="min-h-screen flex items-center justify-center px-6">
         <div className="text-center max-w-lg mx-auto">
-          <div
-            className="w-24 h-24 rounded-full flex items-center justify-center mx-auto mb-8"
-            style={{
-              backgroundColor: theme === 'dark' ? 'rgba(193, 192, 182, 0.1)' : 'rgba(0, 0, 0, 0.05)',
-              border: theme === 'dark' ? '1px solid rgba(193, 192, 182, 0.15)' : '1px solid rgba(0, 0, 0, 0.08)'
-            }}
-          >
-            <span
-              className="text-4xl"
-              style={{
-                fontFamily: 'var(--font-heading)',
-                fontWeight: 500,
-                color: textSecondary
-              }}
-            >
-              404
-            </span>
+          <div className="mx-auto mb-8 opacity-60">
+            <Clay3DIcon name="compass" size={80} />
           </div>
           <h1
             className="text-[clamp(2rem,4vw,3rem)] mb-4"

@@ -1,37 +1,17 @@
 import express from 'express';
 import { body, validationResult } from 'express-validator';
-import Anthropic from '@anthropic-ai/sdk';
-import OpenAI from 'openai';
+import { complete, TIER_CHAT, TIER_EXTRACTION } from '../services/llmGateway.js';
+// OpenAI SDK removed - all chat calls routed through llmGateway
 import dotenv from 'dotenv';
 // Removed static import of documentProcessor to avoid pdf-parse initialization in serverless
 import { authenticateUser, userRateLimit } from '../middleware/auth.js';
 import { successResponse, errorResponse } from '../middleware/errorHandler.js';
 import { sanitizeUnicode } from '../utils/unicodeSanitizer.js';
-import { CLAUDE_MODEL } from '../config/aiModels.js';
 
 // Ensure environment variables are loaded
 dotenv.config();
 
 const router = express.Router();
-
-// Initialize AI clients (server-side only)
-const anthropic = new Anthropic({
-  apiKey: process.env.ANTHROPIC_API_KEY,
-  // No dangerouslyAllowBrowser - this is server-side!
-});
-
-// OpenAI SDK initialization - conditional (only if API key exists)
-// Note: We've migrated to Azure OpenAI for most functionality
-let openai = null;
-if (process.env.OPENAI_API_KEY) {
-  openai = new OpenAI({
-    apiKey: process.env.OPENAI_API_KEY,
-    // No dangerouslyAllowBrowser - this is server-side!
-  });
-  console.log('[AI Routes] OpenAI SDK initialized');
-} else {
-  console.log('[AI Routes] OpenAI API key not found - OpenAI endpoints will be unavailable');
-}
 
 // Input validation middleware
 const validateChatRequest = [
@@ -355,31 +335,27 @@ router.post('/chat', authenticateUser, userRateLimit(30, 15 * 60 * 1000), valida
       : [];
 
     // Call Claude API with enhanced context
-    const response = await anthropic.messages.create({
-      model: CLAUDE_MODEL,
-      max_tokens: 1000,
-      temperature: 0.7,
+    const result = await complete({
+      tier: TIER_CHAT,
       system: systemPrompt,
       messages: [
         ...conversationMessages,
         { role: 'user', content: sanitizedMessage }
-      ]
+      ],
+      maxTokens: 1000,
+      temperature: 0.7,
+      serviceName: 'ai-chat'
     });
 
-    const content = response.content[0];
-    if (content.type === 'text') {
-      return successResponse(res, {
-        response: content.text,
-        usage: response.usage,
-        ragContext: relevantContext ? {
-          foundRelevantContent: relevantContext.contexts.length > 0,
-          sourcesUsed: relevantContext.sources.length,
-          sources: relevantContext.sources
-        } : null
-      }, 'AI response generated successfully');
-    } else {
-      throw new Error('Unexpected response format from Claude API');
-    }
+    return successResponse(res, {
+      response: result.content,
+      usage: result.usage,
+      ragContext: relevantContext ? {
+        foundRelevantContent: relevantContext.contexts.length > 0,
+        sourcesUsed: relevantContext.sources.length,
+        sources: relevantContext.sources
+      } : null
+    }, 'AI response generated successfully');
 
   } catch (error) {
     console.error('Claude API Error:', error);
@@ -419,30 +395,26 @@ router.post('/follow-up-questions', authenticateUser, userRateLimit(50, 15 * 60 
     const systemPrompt = `Based on the conversation history, suggest 3 relevant follow-up questions that would help the student deepen their understanding of the topic. Return as a JSON array of strings.`;
     const conversationMessages = formatConversationHistory(context.conversationHistory);
 
-    const response = await anthropic.messages.create({
-      model: 'claude-3-haiku-20240307',
-      max_tokens: 300,
-      temperature: 0.5,
+    const result = await complete({
+      tier: TIER_EXTRACTION,
       system: systemPrompt,
-      messages: conversationMessages
+      messages: conversationMessages,
+      maxTokens: 300,
+      temperature: 0.5,
+      serviceName: 'ai-follow-up-questions'
     });
 
-    const content = response.content[0];
-    if (content.type === 'text') {
-      try {
-        const questions = JSON.parse(content.text);
-        res.json({
-          questions: Array.isArray(questions) ? questions.slice(0, 3) : [],
-          timestamp: new Date().toISOString()
-        });
-      } catch (parseError) {
-        res.json({
-          questions: [],
-          timestamp: new Date().toISOString()
-        });
-      }
-    } else {
-      throw new Error('Unexpected response format from Claude API');
+    try {
+      const questions = JSON.parse(result.content);
+      res.json({
+        questions: Array.isArray(questions) ? questions.slice(0, 3) : [],
+        timestamp: new Date().toISOString()
+      });
+    } catch (parseError) {
+      res.json({
+        questions: [],
+        timestamp: new Date().toISOString()
+      });
     }
 
   } catch (error) {
@@ -477,30 +449,26 @@ router.post('/assess-understanding', authenticateUser, userRateLimit(20, 15 * 60
       "suggestions": ["specific suggestions for helping the student improve understanding"]
     }`);
 
-    const response = await anthropic.messages.create({
-      model: 'claude-3-haiku-20240307',
-      max_tokens: 400,
-      temperature: 0.3,
+    const result = await complete({
+      tier: TIER_EXTRACTION,
       system: systemPrompt,
-      messages: [{ role: 'user', content: sanitizeUnicode(studentResponse) }]
+      messages: [{ role: 'user', content: sanitizeUnicode(studentResponse) }],
+      maxTokens: 400,
+      temperature: 0.3,
+      serviceName: 'ai-assess-understanding'
     });
 
-    const content = response.content[0];
-    if (content.type === 'text') {
-      try {
-        const assessment = JSON.parse(content.text);
-        res.json({
-          assessment,
-          timestamp: new Date().toISOString()
-        });
-      } catch (parseError) {
-        res.json({
-          assessment: { understanding_level: 'medium' },
-          timestamp: new Date().toISOString()
-        });
-      }
-    } else {
-      throw new Error('Unexpected response format from Claude API');
+    try {
+      const assessment = JSON.parse(result.content);
+      res.json({
+        assessment,
+        timestamp: new Date().toISOString()
+      });
+    } catch (parseError) {
+      res.json({
+        assessment: { understanding_level: 'medium' },
+        timestamp: new Date().toISOString()
+      });
     }
 
   } catch (error) {
@@ -515,11 +483,6 @@ router.post('/assess-understanding', authenticateUser, userRateLimit(20, 15 * 60
 // POST /api/ai/openai-chat - Generate AI response using OpenAI (Requires authentication)
 router.post('/openai-chat', authenticateUser, userRateLimit(30, 15 * 60 * 1000), validateChatRequest, handleValidationErrors, async (req, res) => {
   try {
-    // Check if OpenAI is available
-    if (!openai) {
-      return errorResponse(res, 'SERVICE_UNAVAILABLE', 'OpenAI service is not configured. Please use Azure OpenAI endpoints instead.', 503);
-    }
-
     const { message, context } = req.body;
 
     // Validate required context
@@ -535,29 +498,28 @@ router.post('/openai-chat', authenticateUser, userRateLimit(30, 15 * 60 * 1000),
       ? formatConversationHistory(context.conversationHistory)
       : [];
 
-    // Call OpenAI API
-    const response = await openai.chat.completions.create({
-      model: 'gpt-4',
+    // Call via LLM Gateway
+    const result = await complete({
+      tier: TIER_CHAT,
+      system: systemPrompt,
       messages: [
-        { role: 'system', content: systemPrompt },
         ...conversationMessages,
         { role: 'user', content: message }
       ],
+      maxTokens: 1000,
       temperature: 0.7,
-      max_tokens: 1000,
-      presence_penalty: 0.1,
-      frequency_penalty: 0.1
+      userId: req.user?.id,
+      serviceName: 'ai:openai-chat'
     });
 
-    const content = response.choices[0]?.message?.content;
-    if (content) {
+    if (result.content) {
       return successResponse(res, {
-        response: content,
-        usage: response.usage,
-        model: 'gpt-4'
+        response: result.content,
+        usage: result.usage,
+        model: result.model
       }, 'AI response generated successfully');
     } else {
-      throw new Error('No content in OpenAI response');
+      throw new Error('No content in LLM response');
     }
 
   } catch (error) {
@@ -587,14 +549,6 @@ router.post('/openai-chat', authenticateUser, userRateLimit(30, 15 * 60 * 1000),
 // POST /api/ai/openai-follow-up-questions - Generate follow-up questions using OpenAI
 router.post('/openai-follow-up-questions', authenticateUser, userRateLimit(50, 15 * 60 * 1000), validateChatRequest, handleValidationErrors, async (req, res) => {
   try {
-    // Check if OpenAI is available
-    if (!openai) {
-      return res.status(503).json({
-        error: 'OpenAI service is not configured. Please use Azure OpenAI endpoints instead.',
-        questions: []
-      });
-    }
-
     const { context } = req.body;
 
     if (!context || !context.conversationHistory || context.conversationHistory.length === 0) {
@@ -606,20 +560,19 @@ router.post('/openai-follow-up-questions', authenticateUser, userRateLimit(50, 1
     const systemPrompt = `Based on the conversation history, suggest 3 relevant follow-up questions that would help the student deepen their understanding of the topic. Return as a JSON array of strings.`;
     const conversationMessages = formatConversationHistory(context.conversationHistory);
 
-    const response = await openai.chat.completions.create({
-      model: 'gpt-3.5-turbo',
-      messages: [
-        { role: 'system', content: systemPrompt },
-        ...conversationMessages
-      ],
+    const result = await complete({
+      tier: TIER_EXTRACTION,
+      system: systemPrompt,
+      messages: conversationMessages,
+      maxTokens: 200,
       temperature: 0.5,
-      max_tokens: 200
+      userId: req.user?.id,
+      serviceName: 'ai:follow-up-questions'
     });
 
-    const content = response.choices[0]?.message?.content;
-    if (content) {
+    if (result.content) {
       try {
-        const questions = JSON.parse(content);
+        const questions = JSON.parse(result.content);
         res.json({
           questions: Array.isArray(questions) ? questions.slice(0, 3) : [],
           timestamp: new Date().toISOString()
@@ -631,7 +584,7 @@ router.post('/openai-follow-up-questions', authenticateUser, userRateLimit(50, 1
         });
       }
     } else {
-      throw new Error('No content in OpenAI response');
+      throw new Error('No content in LLM response');
     }
 
   } catch (error) {
@@ -657,14 +610,6 @@ router.post('/openai-assess-understanding', authenticateUser, userRateLimit(20, 
     .escape(),
 ], handleValidationErrors, async (req, res) => {
   try {
-    // Check if OpenAI is available
-    if (!openai) {
-      return res.status(503).json({
-        error: 'OpenAI service is not configured. Please use Azure OpenAI endpoints instead.',
-        assessment: { understanding_level: 'medium' }
-      });
-    }
-
     const { studentResponse, topic } = req.body;
 
     const systemPrompt = `Analyze the student's response about "${topic}" and assess their understanding level. Return a JSON object with:
@@ -674,20 +619,19 @@ router.post('/openai-assess-understanding', authenticateUser, userRateLimit(20, 
       "suggestions": ["specific suggestions for helping the student improve understanding"]
     }`;
 
-    const response = await openai.chat.completions.create({
-      model: 'gpt-3.5-turbo',
-      messages: [
-        { role: 'system', content: systemPrompt },
-        { role: 'user', content: studentResponse }
-      ],
+    const result = await complete({
+      tier: TIER_EXTRACTION,
+      system: systemPrompt,
+      messages: [{ role: 'user', content: studentResponse }],
+      maxTokens: 300,
       temperature: 0.3,
-      max_tokens: 300
+      userId: req.user?.id,
+      serviceName: 'ai:understanding-assessment'
     });
 
-    const content = response.choices[0]?.message?.content;
-    if (content) {
+    if (result.content) {
       try {
-        const assessment = JSON.parse(content);
+        const assessment = JSON.parse(result.content);
         res.json({
           assessment,
           timestamp: new Date().toISOString()
@@ -699,7 +643,7 @@ router.post('/openai-assess-understanding', authenticateUser, userRateLimit(20, 
         });
       }
     } else {
-      throw new Error('No content in OpenAI response');
+      throw new Error('No content in LLM response');
     }
 
   } catch (error) {

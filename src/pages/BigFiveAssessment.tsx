@@ -13,18 +13,17 @@ import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Sparkles,
-  Brain,
   ChevronRight,
   ChevronLeft,
   Check,
   Loader2,
-  Target,
   TrendingUp,
   BookOpen,
   Zap,
   RotateCcw,
   ArrowLeft
 } from 'lucide-react';
+import { Clay3DIcon } from '@/components/Clay3DIcon';
 import { useAuth } from '@/contexts/AuthContext';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useDemo } from '@/contexts/DemoContext';
@@ -348,7 +347,7 @@ export function BigFiveAssessment() {
                     border: `1px solid ${colors.border}`
                   }}
                 >
-                  <Target className="w-12 h-12" style={{ color: colors.accent }} />
+                  <Clay3DIcon name="diamond" size={48} />
                 </div>
               </div>
 
@@ -633,7 +632,7 @@ export function BigFiveAssessment() {
                     border: `1px solid ${colors.border}`
                   }}
                 >
-                  <Brain className="w-12 h-12 animate-pulse" style={{ color: colors.accent }} />
+                  <div className="animate-pulse"><Clay3DIcon name="brain" size={48} /></div>
                 </div>
               </div>
               <h2

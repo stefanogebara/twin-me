@@ -2,30 +2,31 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { DiscoveryStep } from './steps/DiscoveryStep';
-import { ResumeUploadStep } from './steps/ResumeUploadStep';
-import { LinkedInConnectStep } from './steps/LinkedInConnectStep';
-import { enrichmentService, EnrichmentData, ConfirmedData, ResumeUploadResponse } from '@/services/enrichmentService';
+import { CalibrationStep, CalibrationResult } from './steps/CalibrationStep';
+import { PlatformConnectStep } from './steps/PlatformConnectStep';
+import { SoulSignatureRevealStep } from './steps/SoulSignatureRevealStep';
+import { enrichmentService, ConfirmedData } from '@/services/enrichmentService';
 import { Loader2 } from 'lucide-react';
 
 /**
  * EnrichedOnboardingFlow
  *
- * A 3-step onboarding flow that:
- * 1. Discovers information about the user from the web (Discovery)
- * 2. Optionally collects their resume/CV for more context (Resume Upload)
- * 3. Connects their LinkedIn for professional profile (LinkedIn Connect)
+ * Cofounder.co-style onboarding in 4 steps:
+ * 1. Discovery - Email enrichment + instant reveal (wow moment)
+ * 2. Calibration - AI-driven Q&A to understand personality (2-3 min)
+ * 3. Platform Connect - Quick OAuth for Spotify/Calendar/YouTube/Whoop
+ * 4. Soul Signature Reveal - AI-generated personality archetype card
  *
- * This creates a magical first impression by showing users
- * what we already know about them, then enriching with more data.
+ * Each step can be skipped. The soul signature improves as more data flows in.
  */
 
-type OnboardingStep = 'discovery' | 'resume' | 'linkedin' | 'complete';
+type OnboardingStep = 'discovery' | 'calibration' | 'platforms' | 'signature' | 'complete';
 
 interface OnboardingState {
   step: OnboardingStep;
   discoveryData: ConfirmedData | null;
-  resumeData: ResumeUploadResponse['data'] | null;
-  linkedInConnected: boolean;
+  calibrationData: CalibrationResult | null;
+  connectedPlatforms: string[];
 }
 
 const EnrichedOnboardingFlow: React.FC = () => {
@@ -35,11 +36,10 @@ const EnrichedOnboardingFlow: React.FC = () => {
   const [state, setState] = useState<OnboardingState>({
     step: 'discovery',
     discoveryData: null,
-    resumeData: null,
-    linkedInConnected: false
+    calibrationData: null,
+    connectedPlatforms: [],
   });
 
-  const [enrichmentData, setEnrichmentData] = useState<EnrichmentData | null>(null);
   const [loading, setLoading] = useState(true);
 
   // Check if user has already completed onboarding
@@ -59,14 +59,6 @@ const EnrichedOnboardingFlow: React.FC = () => {
           return;
         }
 
-        // Check if there's existing enrichment data
-        if (statusResult.hasEnrichment) {
-          const resultsResult = await enrichmentService.getResults(user.id);
-          if (resultsResult.data) {
-            setEnrichmentData(resultsResult.data);
-          }
-        }
-
         setLoading(false);
       } catch (error) {
         console.error('Error checking onboarding status:', error);
@@ -77,7 +69,6 @@ const EnrichedOnboardingFlow: React.FC = () => {
     if (!authLoading && user) {
       checkOnboardingStatus();
     } else if (!authLoading && !user) {
-      // Not logged in, redirect to login
       navigate('/auth');
     }
   }, [user, authLoading, navigate]);
@@ -86,78 +77,54 @@ const EnrichedOnboardingFlow: React.FC = () => {
   const handleDiscoveryComplete = async (data: ConfirmedData) => {
     setState(prev => ({
       ...prev,
-      step: 'resume',
-      discoveryData: data
+      step: 'calibration',
+      discoveryData: data,
     }));
 
-    // Fetch updated enrichment data
+    // Fetch updated enrichment data in background
     if (user?.id) {
       try {
-        const resultsResult = await enrichmentService.getResults(user.id);
-        if (resultsResult.data) {
-          setEnrichmentData(resultsResult.data);
-        }
+        await enrichmentService.getResults(user.id);
       } catch (error) {
         console.error('Error fetching enrichment results:', error);
       }
     }
   };
 
-  // Handle resume upload step completion
-  const handleResumeComplete = (data: ResumeUploadResponse['data']) => {
+  // Handle calibration step completion
+  const handleCalibrationComplete = (data: CalibrationResult) => {
     setState(prev => ({
       ...prev,
-      step: 'linkedin',
-      resumeData: data
-    }));
-
-    // Update enrichment data with resume info if available
-    if (data?.summary) {
-      setEnrichmentData(prev => prev ? {
-        ...prev,
-        discovered_name: data.summary?.name || prev.discovered_name,
-        discovered_title: data.summary?.current_role || prev.discovered_title,
-        discovered_company: data.summary?.current_company || prev.discovered_company,
-        education: data.summary?.education_summary || prev.education
-      } : null);
-    }
-  };
-
-  // Handle resume skip
-  const handleResumeSkip = () => {
-    setState(prev => ({
-      ...prev,
-      step: 'linkedin'
+      step: 'platforms',
+      calibrationData: data,
     }));
   };
 
-  // Handle LinkedIn connect step completion
-  const handleLinkedInComplete = (connected: boolean) => {
+  // Handle platform connect step completion
+  const handlePlatformConnectComplete = (connectedPlatforms: string[]) => {
     setState(prev => ({
       ...prev,
-      linkedInConnected: connected,
-      step: 'complete'
+      connectedPlatforms,
+      step: 'signature',
     }));
-
-    // Navigate to dashboard
-    setTimeout(() => {
-      navigate('/dashboard');
-    }, 500);
   };
 
-  // Handle LinkedIn skip
-  const handleLinkedInSkip = () => {
-    // Navigate to dashboard even without LinkedIn
-    navigate('/dashboard');
+  // Handle soul signature navigation choice
+  const handleSignatureNavigate = (destination: 'twin' | 'dashboard') => {
+    navigate(destination === 'twin' ? '/talk-to-twin' : '/dashboard');
   };
 
-  // Handle discovery skip
+  // Handle skips - each skip advances to the next step
   const handleDiscoverySkip = () => {
-    // Skip directly to resume
-    setState(prev => ({
-      ...prev,
-      step: 'resume'
-    }));
+    setState(prev => ({ ...prev, step: 'calibration' }));
+  };
+
+  const handleCalibrationSkip = () => {
+    setState(prev => ({ ...prev, step: 'platforms' }));
+  };
+
+  const handlePlatformConnectSkip = () => {
+    setState(prev => ({ ...prev, step: 'signature' }));
   };
 
   // Show loading while checking auth and onboarding status
@@ -195,50 +162,35 @@ const EnrichedOnboardingFlow: React.FC = () => {
         />
       );
 
-    case 'resume':
+    case 'calibration':
       return (
-        <ResumeUploadStep
+        <CalibrationStep
+          userId={user.id}
+          enrichmentContext={state.discoveryData || { name: user.name || user.email?.split('@')[0] }}
+          onComplete={handleCalibrationComplete}
+          onSkip={handleCalibrationSkip}
+        />
+      );
+
+    case 'platforms':
+      return (
+        <PlatformConnectStep
           userId={user.id}
           userName={state.discoveryData?.name || user.name || user.email?.split('@')[0]}
-          onComplete={handleResumeComplete}
-          onSkip={handleResumeSkip}
+          onComplete={handlePlatformConnectComplete}
+          onSkip={handlePlatformConnectSkip}
         />
       );
 
-    case 'linkedin':
+    case 'signature':
       return (
-        <LinkedInConnectStep
+        <SoulSignatureRevealStep
           userId={user.id}
-          userName={state.discoveryData?.name || user.name}
-          enrichmentData={enrichmentData}
-          onComplete={handleLinkedInComplete}
-          onSkip={handleLinkedInSkip}
+          enrichmentContext={state.discoveryData || { name: user.name || user.email?.split('@')[0] }}
+          calibrationData={state.calibrationData}
+          connectedPlatforms={state.connectedPlatforms}
+          onNavigate={handleSignatureNavigate}
         />
-      );
-
-    case 'complete':
-      return (
-        <div className="min-h-screen flex items-center justify-center bg-[#0C0C0C]">
-          <div className="text-center">
-            <div
-              className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4"
-              style={{ backgroundColor: 'rgba(34, 197, 94, 0.15)' }}
-            >
-              <svg className="w-8 h-8 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-              </svg>
-            </div>
-            <h2
-              className="text-2xl mb-2"
-              style={{ fontFamily: 'var(--font-heading)', color: '#E8D5B7' }}
-            >
-              Setup Complete
-            </h2>
-            <p style={{ color: 'rgba(232, 213, 183, 0.6)', fontFamily: 'var(--font-body)' }}>
-              Taking you to your dashboard...
-            </p>
-          </div>
-        </div>
       );
 
     default:

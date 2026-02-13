@@ -8,6 +8,7 @@
  */
 
 import React, { useEffect, useState } from 'react';
+import { motion } from 'framer-motion';
 import { useAuth } from '@/contexts/AuthContext';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useDemo } from '@/contexts/DemoContext';
@@ -396,23 +397,35 @@ const SpotifyInsightsPage: React.FC = () => {
       <div className="flex items-center justify-between mb-8">
         <div className="flex items-center gap-4">
           {/* Back Button */}
-          <button
+          <motion.button
             onClick={() => navigate('/dashboard')}
             className="p-2 rounded-lg glass-button"
+            initial={{ opacity: 0, x: -12 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.35, ease: [0.4, 0, 0.2, 1] }}
+            whileHover={{ scale: 1.08 }}
+            whileTap={{ scale: 0.95 }}
           >
             <ArrowLeft className="w-5 h-5" style={{ color: colors.text }} />
-          </button>
+          </motion.button>
 
           {/* Platform Icon */}
-          <div
+          <motion.div
             className="w-12 h-12 rounded-xl flex items-center justify-center"
             style={{ backgroundColor: colors.spotifyBg }}
+            initial={{ opacity: 0, scale: 0.5 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.5, delay: 0.1, ease: [0.4, 0, 0.2, 1] }}
           >
             <Music className="w-6 h-6" style={{ color: colors.spotifyGreen }} />
-          </div>
+          </motion.div>
 
           {/* Title */}
-          <div>
+          <motion.div
+            initial={{ opacity: 0, x: -12 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.45, delay: 0.15, ease: [0.4, 0, 0.2, 1] }}
+          >
             <h1
               className="text-2xl"
               style={{
@@ -429,26 +442,36 @@ const SpotifyInsightsPage: React.FC = () => {
             >
               What your listening reveals
             </p>
-          </div>
+          </motion.div>
         </div>
 
         {/* Refresh Button */}
-        <button
+        <motion.button
           onClick={handleRefresh}
           disabled={refreshing}
           className="p-2 rounded-lg glass-button"
           title="Get a fresh observation"
+          initial={{ opacity: 0, scale: 0.8 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.35, delay: 0.25, ease: [0.4, 0, 0.2, 1] }}
+          whileHover={{ scale: 1.1, rotate: 90 }}
+          whileTap={{ scale: 0.9 }}
         >
           <RefreshCw
             className={`w-5 h-5 ${refreshing ? 'animate-spin' : ''}`}
             style={{ color: colors.text }}
           />
-        </button>
+        </motion.button>
       </div>
 
       {/* Recent Tracks Section - With Timestamps */}
       {insights?.recentTracks && insights.recentTracks.length > 0 && (
-        <div className="mb-6">
+        <motion.div
+          className="mb-6"
+          initial={{ opacity: 0, y: 16 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.45, delay: 0.2, ease: [0.4, 0, 0.2, 1] }}
+        >
           <h3
             className="text-sm uppercase tracking-wider mb-3 flex items-center gap-2"
             style={{ color: colors.textSecondary }}
@@ -494,7 +517,7 @@ const SpotifyInsightsPage: React.FC = () => {
               </GlassPanel>
             ))}
           </div>
-        </div>
+        </motion.div>
       )}
 
       {/* Top Artists with Play Count Bars */}
@@ -803,15 +826,69 @@ const SpotifyInsightsPage: React.FC = () => {
 
       {/* Empty State - show when no reflection AND no music data */}
       {!insights?.reflection?.text && !insights?.recentTracks?.length && !insights?.topArtistsWithPlays?.length && (
-        <GlassPanel className="text-center py-12">
-          <Music className="w-12 h-12 mx-auto mb-4" style={{ color: colors.textSecondary }} />
-          <h3 style={{ color: colors.text, fontFamily: 'var(--font-heading)' }}>
-            Your twin is listening
-          </h3>
-          <p className="mt-2" style={{ color: colors.textSecondary }}>
-            As you listen to music, your twin will notice patterns and share observations.
-          </p>
-        </GlassPanel>
+        <div className="space-y-4">
+          <GlassPanel className="text-center py-10">
+            <Music className="w-12 h-12 mx-auto mb-4" style={{ color: colors.textSecondary }} />
+            <h3 style={{ color: colors.text, fontFamily: 'var(--font-heading)' }}>
+              Your twin is listening
+            </h3>
+            <p className="mt-2 mb-6 max-w-sm mx-auto" style={{ color: colors.textSecondary }}>
+              As you listen to music, your twin will notice patterns and share observations.
+            </p>
+            <button
+              onClick={() => navigate('/get-started')}
+              className="px-5 py-2.5 rounded-xl text-sm font-medium transition-all hover:scale-[1.02]"
+              style={{ backgroundColor: colors.spotifyGreen, color: '#fff' }}
+            >
+              Connect Spotify
+            </button>
+          </GlassPanel>
+
+          {/* Preview cards showing what insights will look like */}
+          <div className="opacity-50 pointer-events-none space-y-3">
+            <p className="text-xs uppercase tracking-wider" style={{ color: colors.textSecondary }}>
+              Preview of your insights
+            </p>
+            {/* Placeholder: Top Artists */}
+            <GlassPanel className="!p-4" style={{ border: '1px dashed' }}>
+              <div className="flex items-center gap-2 mb-3">
+                <Users className="w-4 h-4" style={{ color: colors.textSecondary }} />
+                <span className="text-sm" style={{ color: colors.textSecondary }}>Top Artists</span>
+              </div>
+              <div className="space-y-2">
+                {[80, 60, 40].map((width, i) => (
+                  <div key={i} className="flex items-center gap-3">
+                    <div className="w-20 h-3 rounded" style={{ backgroundColor: theme === 'dark' ? 'rgba(193,192,182,0.08)' : 'rgba(0,0,0,0.04)' }} />
+                    <div className="flex-1 h-4 rounded-lg overflow-hidden" style={{ backgroundColor: theme === 'dark' ? 'rgba(0,0,0,0.3)' : 'rgba(0,0,0,0.06)' }}>
+                      <div className="h-full rounded-lg" style={{ width: `${width}%`, backgroundColor: `${colors.spotifyGreen}40` }} />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </GlassPanel>
+            {/* Placeholder: Genre + Listening Hours */}
+            <div className="grid grid-cols-2 gap-3">
+              <GlassPanel className="!p-4" style={{ border: '1px dashed' }}>
+                <div className="flex items-center gap-2 mb-3">
+                  <PieChart className="w-4 h-4" style={{ color: colors.textSecondary }} />
+                  <span className="text-sm" style={{ color: colors.textSecondary }}>Genres</span>
+                </div>
+                <div className="w-16 h-16 mx-auto rounded-full" style={{ border: `3px dashed ${theme === 'dark' ? 'rgba(193,192,182,0.12)' : 'rgba(0,0,0,0.08)'}` }} />
+              </GlassPanel>
+              <GlassPanel className="!p-4" style={{ border: '1px dashed' }}>
+                <div className="flex items-center gap-2 mb-3">
+                  <BarChart3 className="w-4 h-4" style={{ color: colors.textSecondary }} />
+                  <span className="text-sm" style={{ color: colors.textSecondary }}>Peak Hours</span>
+                </div>
+                <div className="flex items-end gap-1 h-12">
+                  {[3, 5, 8, 6, 4, 7, 3].map((h, i) => (
+                    <div key={i} className="flex-1 rounded-t" style={{ height: `${h * 12}%`, backgroundColor: `${colors.spotifyGreen}20` }} />
+                  ))}
+                </div>
+              </GlassPanel>
+            </div>
+          </div>
+        </div>
       )}
     </PageLayout>
   );

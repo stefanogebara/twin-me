@@ -2,8 +2,12 @@ import { StrictMode } from 'react';
 import { createRoot } from "react-dom/client";
 import * as Sentry from "@sentry/react";
 import { AuthProvider } from './contexts/AuthContext';
+import { initPostHog } from './contexts/AnalyticsContext';
 import App from "./App.tsx";
 import "./index.css";
+
+// Initialize PostHog analytics (only if VITE_POSTHOG_KEY is configured)
+initPostHog();
 
 // Initialize Sentry for error tracking (only if SENTRY_DSN is configured)
 if (import.meta.env.VITE_SENTRY_DSN) {

@@ -33,7 +33,7 @@ const ARTIST_POOLS = [
 ];
 
 export const DEMO_USER = {
-  id: 'demo-0000-0000-0000-000000000001',  // Must NOT match any real user UUID!
+  id: '00000000-0000-0000-0000-000000000001',  // Valid UUID format - must NOT match any real user UUID!
   email: 'alex.rivera@demo.com',
   firstName: 'Alex',
   lastName: 'Rivera',

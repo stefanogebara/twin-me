@@ -49,7 +49,8 @@ interface PrivacyPreviewProps {
   className?: string;
 }
 
-// Platform icon mapping
+// Platform icon mapping - use real SVG logos with Lucide fallback
+import { getPlatformLogo } from '@/components/PlatformLogos';
 const PLATFORM_ICONS: Record<string, React.ElementType> = {
   spotify: Music,
   netflix: Film,
@@ -61,9 +62,9 @@ const PLATFORM_ICONS: Record<string, React.ElementType> = {
   calendar: Calendar,
 };
 
-// Get icon for platform or default
+// Get icon for platform or default - prefer real logo
 const getPlatformIcon = (platform: string): React.ElementType => {
-  return PLATFORM_ICONS[platform.toLowerCase()] || Sparkles;
+  return getPlatformLogo(platform.toLowerCase()) || PLATFORM_ICONS[platform.toLowerCase()] || Sparkles;
 };
 
 export const PrivacyPreview: React.FC<PrivacyPreviewProps> = ({

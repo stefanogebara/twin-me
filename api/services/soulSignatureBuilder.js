@@ -4,10 +4,9 @@
  */
 
 import { createClient } from '@supabase/supabase-js';
-import Anthropic from '@anthropic-ai/sdk';
+import { complete, TIER_ANALYSIS } from './llmGateway.js';
 import wearableFeatureExtractor from './featureExtractors/wearableFeatureExtractor.js';
 import professionalUniverseBuilder from './professionalUniverseBuilder.js';
-import { CLAUDE_MODEL } from '../config/aiModels.js';
 
 // Use SUPABASE_URL (backend) - fallback to VITE_ prefix for compatibility
 // Lazy initialization to avoid crashes if env vars not loaded yet
@@ -22,9 +21,6 @@ function getSupabaseClient() {
   return supabase;
 }
 
-const anthropic = new Anthropic({
-  apiKey: process.env.ANTHROPIC_API_KEY
-});
 
 class SoulSignatureBuilder {
   /**
@@ -445,9 +441,8 @@ class SoulSignatureBuilder {
       const context = this.buildAIContext(extractedData, styleProfile, musicSignature, communicationSignature, professionalUniverse, journalSignature, browsingSignature, viewingSignature);
 
       // Call Claude to generate insights
-      const message = await anthropic.messages.create({
-        model: CLAUDE_MODEL,
-        max_tokens: 1500,
+      const result = await complete({
+        tier: TIER_ANALYSIS,
         messages: [{
           role: 'user',
           content: `Analyze this person's digital footprint and provide personality insights in JSON format.
@@ -461,11 +456,13 @@ Provide a JSON response with:
 3. core_values: Array of 3-5 inferred core values
 
 Respond ONLY with valid JSON, no explanation.`
-        }]
+        }],
+        maxTokens: 1500,
+        serviceName: 'soulSignatureBuilder'
       });
 
       // Parse AI response - strip markdown code fences if present
-      let responseText = message.content[0].text.trim();
+      let responseText = result.content.trim();
       if (responseText.startsWith('```')) {
         responseText = responseText.replace(/^```(?:json)?\s*/, '').replace(/\s*```$/, '');
       }

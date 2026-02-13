@@ -123,6 +123,18 @@
         "citation": "Lipnevich, A.A., et al. (2021). Personality traits relate to chronotype at both the phenotypic and genetic level. Journal of Personality, 89(6), 1206-1222.",
         "sampleSize": 5000,
         "dataScale": "Genetic + phenotypic validation"
+      },
+      {
+        "id": "azucar2018",
+        "citation": "Azucar, D., Marengo, D., & Settanni, M. (2018). Predicting the Big 5 personality traits from digital footprints on social media: A meta-analysis. Personality and Individual Differences, 124, 150-159.",
+        "sampleSize": 12000,
+        "dataScale": "12 studies meta-analysis"
+      },
+      {
+        "id": "worth2014",
+        "citation": "Worth, N.C., & Book, A.S. (2014). Personality and behavior in a massively multiplayer online role-playing game. Computers in Human Behavior, 38, 322-330.",
+        "sampleSize": 900,
+        "dataScale": "Online gaming behavior analysis"
       }
     ]
   },
@@ -315,14 +327,14 @@
         "threshold": 0.5
       },
       "playlist_curation_style": {
-        "description": "Ratio of listening to own playlists vs others' playlists",
+        "description": "Quality and organization of playlist curation (descriptions, sizing, naming)",
         "correlations": {
           "extraversion": { "r": 0.20, "effectSize": "small", "source": "anderson2021" },
           "openness": { "r": -0.15, "effectSize": "small", "source": "anderson2021" }
         },
         "evidenceTemplates": {
-          "high": "You frequently listen to playlists curated by others ({rawValue.others_playlist_percent}% of listening). This social approach to music discovery reflects how you value others' perspectives and enjoy shared experiences.",
-          "low": "You're a curator at heart - {rawValue.own_playlist_percent}% of your listening comes from playlists you've created yourself. This independent approach to music reflects someone who trusts their own taste and enjoys the creative act of curation."
+          "high": "You're a thoughtful curator with {rawValue.playlist_count} playlists - {rawValue.description_percent}% have detailed descriptions and {rawValue.well_sized_percent}% are well-organized. This careful approach to music curation reflects conscientiousness and attention to detail.",
+          "low": "Your {rawValue.playlist_count} playlists tend toward casual organization. This spontaneous approach to music suggests you prioritize discovery and listening over meticulous curation - letting the music speak for itself."
         },
         "threshold": 0.4
       },
@@ -705,6 +717,291 @@
           "low": "Your stress markers remain stable even during demanding periods. This physiological resilience, validated across 73,540 participants in meta-analyses, suggests strong emotional regulation and adaptability."
         },
         "threshold": 0.4
+      }
+    },
+    "gmail": {
+      "email_volume": {
+        "description": "Volume of email communication activity",
+        "correlations": {
+          "extraversion": { "r": 0.30, "effectSize": "medium", "source": "stachl2020" }
+        },
+        "evidenceTemplates": {
+          "high": "Your high email volume suggests an active communicator who maintains many professional and personal connections.",
+          "low": "Your lower email volume suggests a more selective communicator who prefers focused, intentional correspondence."
+        },
+        "threshold": 0.5
+      },
+      "label_organization": {
+        "description": "Use of custom labels to organize email",
+        "correlations": {
+          "conscientiousness": { "r": 0.40, "effectSize": "medium", "source": "stachl2020" }
+        },
+        "evidenceTemplates": {
+          "high": "Your extensive use of email labels reveals a systematic approach to information management - a hallmark of conscientiousness.",
+          "low": "You rely more on search than labels for email organization, suggesting a more flexible, less structured approach."
+        },
+        "threshold": 0.5
+      },
+      "thread_engagement": {
+        "description": "Depth of engagement in email threads",
+        "correlations": {
+          "agreeableness": { "r": 0.25, "effectSize": "small", "source": "stachl2020" }
+        },
+        "evidenceTemplates": {
+          "high": "Your deep engagement in email threads shows you value thorough communication and follow-through in conversations.",
+          "low": "You tend toward brief, efficient email exchanges rather than extended thread discussions."
+        },
+        "threshold": 0.5
+      },
+      "communication_regularity": {
+        "description": "Regularity of email communication patterns across hours",
+        "correlations": {
+          "conscientiousness": { "r": 0.35, "effectSize": "medium", "source": "stachl2020" }
+        },
+        "evidenceTemplates": {
+          "high": "Your email activity follows a consistent daily pattern, suggesting structured work habits and routine adherence.",
+          "low": "Your email timing varies widely, suggesting a more spontaneous and flexible communication style."
+        },
+        "threshold": 0.5
+      },
+      "inbox_management": {
+        "description": "Ratio of read vs unread messages in inbox",
+        "correlations": {
+          "conscientiousness": { "r": 0.33, "effectSize": "medium", "source": "stachl2020" }
+        },
+        "evidenceTemplates": {
+          "high": "Your well-managed inbox with few unread messages reflects disciplined attention to communication.",
+          "low": "Your inbox accumulates unread messages, which may reflect a preference for addressing things on your own schedule."
+        },
+        "threshold": 0.5
+      }
+    },
+    "outlook": {
+      "email_volume": {
+        "description": "Volume of email communication in Outlook",
+        "correlations": {
+          "extraversion": { "r": 0.30, "effectSize": "medium", "source": "stachl2020" }
+        },
+        "evidenceTemplates": {
+          "high": "Your high Outlook email volume indicates active professional communication and wide-reaching connections.",
+          "low": "Your Outlook email volume suggests focused, targeted communication rather than high-volume correspondence."
+        },
+        "threshold": 0.5
+      },
+      "folder_organization": {
+        "description": "Use of custom mail folders in Outlook",
+        "correlations": {
+          "conscientiousness": { "r": 0.40, "effectSize": "medium", "source": "stachl2020" }
+        },
+        "evidenceTemplates": {
+          "high": "Your custom folder structure in Outlook reveals careful organization of professional communications.",
+          "low": "You keep a simpler folder structure, suggesting a preference for search over manual categorization."
+        },
+        "threshold": 0.5
+      },
+      "calendar_density": {
+        "description": "Density of calendar events per week in Outlook",
+        "correlations": {
+          "extraversion": { "r": 0.38, "effectSize": "medium", "source": "stachl2020" }
+        },
+        "evidenceTemplates": {
+          "high": "Your packed Outlook calendar reflects a socially and professionally engaged lifestyle with many scheduled interactions.",
+          "low": "Your lighter calendar suggests you value unstructured time and prefer fewer but more focused commitments."
+        },
+        "threshold": 0.5
+      },
+      "contact_network_size": {
+        "description": "Size of contact network in Outlook",
+        "correlations": {
+          "extraversion": { "r": 0.35, "effectSize": "medium", "source": "stachl2020" }
+        },
+        "evidenceTemplates": {
+          "high": "Your large Outlook contact network reflects broad social and professional connections.",
+          "low": "Your smaller contact list suggests you maintain a curated network of closer connections."
+        },
+        "threshold": 0.5
+      },
+      "work_hour_adherence": {
+        "description": "Percentage of messages during business hours (9-18)",
+        "correlations": {
+          "conscientiousness": { "r": 0.35, "effectSize": "medium", "source": "stachl2020" }
+        },
+        "evidenceTemplates": {
+          "high": "Most of your Outlook activity falls within business hours, reflecting structured work habits and boundary-setting.",
+          "low": "Your Outlook activity extends beyond typical business hours, suggesting flexible or boundary-blending work patterns."
+        },
+        "threshold": 0.5
+      },
+      "response_consistency": {
+        "description": "Consistency of message timing across days",
+        "correlations": {
+          "conscientiousness": { "r": 0.32, "effectSize": "medium", "source": "stachl2020" }
+        },
+        "evidenceTemplates": {
+          "high": "Your Outlook activity is consistent across days, reflecting reliable work patterns and routine adherence.",
+          "low": "Your message timing varies considerably, suggesting adaptability to changing schedules."
+        },
+        "threshold": 0.5
+      }
+    },
+    "linkedin": {
+      "profile_completeness": {
+        "description": "Completeness of LinkedIn profile fields",
+        "correlations": {
+          "conscientiousness": { "r": 0.30, "effectSize": "medium", "source": "stachl2020" }
+        },
+        "evidenceTemplates": {
+          "high": "Your complete LinkedIn profile shows attention to professional presentation and thoroughness.",
+          "low": "Your minimal LinkedIn profile suggests you prioritize substance over presentation, or simply haven't invested time in the platform."
+        },
+        "threshold": 0.5
+      },
+      "professional_presence": {
+        "description": "Professional presence indicators (picture, verified email)",
+        "correlations": {
+          "extraversion": { "r": 0.25, "effectSize": "small", "source": "stachl2020" }
+        },
+        "evidenceTemplates": {
+          "high": "Your polished LinkedIn presence with profile photo and verified email shows engagement with professional networking.",
+          "low": "Your minimal LinkedIn presence suggests you rely on other channels for professional networking."
+        },
+        "threshold": 0.5
+      }
+    },
+    "youtube": {
+      "yt_content_diversity": {
+        "description": "Diversity of YouTube channels and content categories consumed",
+        "correlations": {
+          "openness": { "r": 0.35, "effectSize": "medium", "source": "stachl2020" }
+        },
+        "evidenceTemplates": {
+          "high": "Your YouTube habits span {rawValue.channel_count} different channels across varied topics. This content diversity reflects intellectual curiosity and openness to new ideas - you don't just watch one type of content, you explore widely.",
+          "low": "You focus your YouTube time on a select few channels. This focused consumption reflects someone who values depth over breadth in their interests."
+        },
+        "threshold": 0.4
+      },
+      "yt_search_curiosity": {
+        "description": "Breadth and variety of YouTube search topics",
+        "correlations": {
+          "openness": { "r": 0.30, "effectSize": "medium", "source": "kosinski2013" }
+        },
+        "evidenceTemplates": {
+          "high": "You've searched for {rawValue.unique_topics} different topics on YouTube across {rawValue.search_count} searches. This active exploration reveals a mind that's constantly seeking new knowledge and perspectives.",
+          "low": null
+        },
+        "threshold": 0.4
+      },
+      "yt_watch_completion": {
+        "description": "Rate of finishing YouTube videos once started",
+        "correlations": {
+          "conscientiousness": { "r": 0.28, "effectSize": "small", "source": "azucar2018" }
+        },
+        "evidenceTemplates": {
+          "high": "You finish what you start - your average video completion rate is {rawValue.avg_completion_percent}% across {rawValue.videos_watched} videos. This follow-through extends beyond YouTube, reflecting conscientiousness and commitment.",
+          "low": "You tend to sample videos quickly, with an average completion of {rawValue.avg_completion_percent}%. This browsing style suggests you're efficient at finding exactly the content that resonates with you."
+        },
+        "threshold": 0.5
+      },
+      "yt_educational_ratio": {
+        "description": "Proportion of educational vs entertainment content consumed",
+        "correlations": {
+          "openness": { "r": 0.32, "effectSize": "medium", "source": "stachl2020" }
+        },
+        "evidenceTemplates": {
+          "high": "{rawValue.educational_percent}% of your YouTube content is educational - tutorials, courses, and learning material. This self-directed learning habit strongly correlates with intellectual openness and curiosity.",
+          "low": null
+        },
+        "threshold": 0.3
+      },
+      "yt_channel_loyalty": {
+        "description": "Tendency to return to the same YouTube creators repeatedly",
+        "correlations": {
+          "conscientiousness": { "r": 0.25, "effectSize": "small", "source": "azucar2018" }
+        },
+        "evidenceTemplates": {
+          "high": "You're a loyal viewer, regularly returning to {rawValue.top_channel} and your {rawValue.unique_channels} favorite channels. This consistency in viewing habits reflects reliability and routine - hallmarks of conscientiousness.",
+          "low": "You explore widely across {rawValue.unique_channels} different channels without strong favorites. This exploration-driven viewing style suggests openness and flexibility."
+        },
+        "threshold": 0.4
+      },
+      "yt_social_content": {
+        "description": "Preference for social/vlog content vs technical/solo content",
+        "correlations": {
+          "extraversion": { "r": 0.30, "effectSize": "medium", "source": "kosinski2013" }
+        },
+        "evidenceTemplates": {
+          "high": "{rawValue.social_percent}% of your YouTube viewing is social content - vlogs, podcasts, and commentary. This preference for people-centered content reflects your social nature and interest in human connection.",
+          "low": "You gravitate toward technical, educational, or solo-format content over vlogs and social videos. This preference for substance over personality reflects a more introspective, independent viewing style."
+        },
+        "threshold": 0.3
+      },
+      "yt_binge_pattern": {
+        "description": "Tendency for extended YouTube viewing sessions",
+        "correlations": {
+          "neuroticism": { "r": 0.20, "effectSize": "small", "source": "azucar2018" }
+        },
+        "evidenceTemplates": {
+          "high": "Your YouTube sessions average {rawValue.avg_session_minutes} minutes across {rawValue.video_count} videos ({rawValue.total_watch_hours}h total). Extended viewing sessions can indicate deep engagement or a tendency toward immersive escapism.",
+          "low": "Your YouTube sessions are brief and purposeful - averaging {rawValue.avg_session_minutes} minutes. This controlled viewing pattern suggests disciplined media consumption."
+        },
+        "threshold": 0.4
+      }
+    },
+    "twitch": {
+      "twitch_category_diversity": {
+        "description": "Variety of Twitch content categories browsed and watched",
+        "correlations": {
+          "openness": { "r": 0.30, "effectSize": "medium", "source": "stachl2020" }
+        },
+        "evidenceTemplates": {
+          "high": "You explore {rawValue.category_count} different categories on Twitch. This variety in streaming interests reflects intellectual curiosity and openness to new experiences.",
+          "low": "You tend to stick to a focused set of Twitch categories. This specialization reflects someone who values depth of knowledge in their interests."
+        },
+        "threshold": 0.3
+      },
+      "twitch_stream_engagement": {
+        "description": "Average duration of Twitch stream watching sessions",
+        "correlations": {
+          "conscientiousness": { "r": 0.22, "effectSize": "small", "source": "azucar2018" }
+        },
+        "evidenceTemplates": {
+          "high": "You average {rawValue.avg_session_minutes} minutes per stream across {rawValue.streams_watched} sessions ({rawValue.total_watch_hours}h total). This sustained attention reflects focus and commitment to content you choose to engage with.",
+          "low": "Your stream sessions average {rawValue.avg_session_minutes} minutes - quick check-ins rather than marathon viewing. This sampling approach suggests efficiency in content consumption."
+        },
+        "threshold": 0.4
+      },
+      "twitch_social_preference": {
+        "description": "Preference for social/chatting streams vs gameplay content",
+        "correlations": {
+          "extraversion": { "r": 0.35, "effectSize": "medium", "source": "worth2014" }
+        },
+        "evidenceTemplates": {
+          "high": "{rawValue.social_percent}% of your Twitch viewing is social content like Just Chatting and podcasts. This preference for personality-driven streams over pure gameplay reveals a social nature that values human connection even in digital entertainment.",
+          "low": "You prefer gameplay-focused streams over social content on Twitch. This content preference suggests you value skill and competition over social interaction in your viewing."
+        },
+        "threshold": 0.3
+      },
+      "twitch_competitive_ratio": {
+        "description": "Interest in competitive/esports content on Twitch",
+        "correlations": {
+          "extraversion": { "r": 0.25, "effectSize": "small", "source": "worth2014" }
+        },
+        "evidenceTemplates": {
+          "high": "{rawValue.competitive_percent}% of your Twitch viewing is competitive/esports content. Research shows competitive gaming interest correlates with assertiveness and drive for achievement.",
+          "low": null
+        },
+        "threshold": 0.3
+      },
+      "twitch_community_breadth": {
+        "description": "Number of different Twitch communities and channels engaged with",
+        "correlations": {
+          "extraversion": { "r": 0.28, "effectSize": "small", "source": "azucar2018" }
+        },
+        "evidenceTemplates": {
+          "high": "You engage with {rawValue.channel_count} different Twitch channels and communities. This broad social network in streaming mirrors how extraverts build wide connection networks in other areas of life.",
+          "low": "You follow a tight-knit circle of {rawValue.channel_count} Twitch channels. This focused community engagement suggests you prefer deep connections over broad networking."
+        },
+        "threshold": 0.3
       }
     }
   },

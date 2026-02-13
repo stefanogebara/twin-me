@@ -6,6 +6,7 @@
  */
 
 import React, { ReactNode } from 'react';
+import { motion } from 'framer-motion';
 import { useTheme } from '@/contexts/ThemeContext';
 import { TokenExpiryBanner } from '@/components/TokenExpiryBanner';
 
@@ -54,7 +55,12 @@ export const PageLayout: React.FC<PageLayoutProps> = ({
       {/* Token Expiry Banner - shows when tokens are expiring */}
       <TokenExpiryBanner />
 
-      <div className={`mx-auto ${maxWidthClasses[maxWidth]} ${paddingClasses[padding]}`}>
+      <motion.div
+        className={`mx-auto ${maxWidthClasses[maxWidth]} ${paddingClasses[padding]}`}
+        initial={{ opacity: 0, y: 12 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4, ease: [0.4, 0, 0.2, 1] }}
+      >
         {/* Page Header */}
         {(title || subtitle) && (
           <div className="mb-8">
@@ -86,7 +92,7 @@ export const PageLayout: React.FC<PageLayoutProps> = ({
 
         {/* Page Content */}
         {children}
-      </div>
+      </motion.div>
     </div>
   );
 };
@@ -94,7 +100,7 @@ export const PageLayout: React.FC<PageLayoutProps> = ({
 /**
  * GlassPanel Component
  *
- * Reusable glass morphism panel for consistent card styling
+ * Reusable glass morphism panel with Framer Motion hover and entrance animations
  */
 export const GlassPanel: React.FC<{
   children: ReactNode;
@@ -102,7 +108,8 @@ export const GlassPanel: React.FC<{
   hover?: boolean;
   variant?: 'default' | 'card' | 'shimmer' | 'liquid';
   onClick?: () => void;
-}> = ({ children, className = '', hover = false, variant = 'card', onClick }) => {
+  delay?: number;
+}> = ({ children, className = '', hover = false, variant = 'card', onClick, delay = 0 }) => {
   const { theme } = useTheme();
 
   const variantClasses = {
@@ -113,15 +120,29 @@ export const GlassPanel: React.FC<{
   };
 
   return (
-    <div
-      className={`${variantClasses[variant]} ${hover ? 'hover:scale-[1.02]' : ''} ${className} p-6`}
-      style={{
-        borderRadius: '20px'
+    <motion.div
+      className={`${variantClasses[variant]} ${className} p-6`}
+      style={{ borderRadius: '20px' }}
+      initial={{ opacity: 0, y: 16 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{
+        duration: 0.45,
+        delay,
+        ease: [0.4, 0, 0.2, 1]
       }}
+      whileHover={hover || onClick ? {
+        y: -4,
+        scale: 1.01,
+        boxShadow: theme === 'dark'
+          ? '0 20px 60px rgba(0, 0, 0, 0.3), 0 0 20px rgba(212, 168, 83, 0.06)'
+          : '0 20px 60px rgba(12, 10, 9, 0.12), 0 0 20px rgba(212, 168, 83, 0.08)',
+        transition: { duration: 0.25, ease: [0.4, 0, 0.2, 1] }
+      } : undefined}
+      whileTap={onClick ? { scale: 0.985, transition: { duration: 0.1 } } : undefined}
       onClick={onClick}
     >
       {children}
-    </div>
+    </motion.div>
   );
 };
 

@@ -7,20 +7,14 @@
 
 import express from 'express';
 import crypto from 'crypto';
-import Anthropic from '@anthropic-ai/sdk';
 import { supabaseAdmin } from '../services/database.js';
 import { getValidAccessToken } from '../services/tokenRefresh.js';
 import { getMemoryService } from '../services/moltbot/moltbotMemoryService.js';
 import { getClusterPersonalityBuilder } from '../services/clusterPersonalityBuilder.js';
 import axios from 'axios';
-import { CLAUDE_MODEL } from '../config/aiModels.js';
+import { complete, TIER_CHAT } from '../services/llmGateway.js';
 
 const router = express.Router();
-
-// Initialize Anthropic
-const anthropic = new Anthropic({
-  apiKey: process.env.ANTHROPIC_API_KEY
-});
 
 /**
  * Authenticate via API key
@@ -126,16 +120,17 @@ router.post('/chat', authenticateApiKey, async (req, res) => {
     // Build system prompt
     const systemPrompt = buildTwinSystemPrompt(soulSignature, platformData, moltbotContext);
 
-    // Call Claude
-    const response = await anthropic.messages.create({
-      model: CLAUDE_MODEL,
-      max_tokens: 1000,
-      temperature: 0.7,
+    // Call LLM Gateway
+    const result = await complete({
+      tier: TIER_CHAT,
       system: systemPrompt,
-      messages: [{ role: 'user', content: message }]
+      messages: [{ role: 'user', content: message }],
+      maxTokens: 1000,
+      temperature: 0.7,
+      serviceName: 'mcpChat'
     });
 
-    const assistantMessage = response.content[0]?.text || 'I could not generate a response.';
+    const assistantMessage = result.content || 'I could not generate a response.';
 
     res.json({
       success: true,

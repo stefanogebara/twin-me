@@ -5,16 +5,10 @@ import {
   ChevronRight,
   Check,
   Loader2,
-  Music,
-  Youtube,
   Heart,
-  Activity,
-  Mail,
-  Calendar,
-  Github,
-  Linkedin,
   Sparkles
 } from 'lucide-react';
+import { SpotifyLogo, YoutubeLogo, WhoopLogo, GoogleCalendarLogo, GmailLogo, GithubLogo, LinkedinLogo } from '@/components/PlatformLogos';
 import { useTheme } from '@/contexts/ThemeContext';
 
 interface Platform {
@@ -33,7 +27,7 @@ const PLATFORMS: Platform[] = [
   {
     id: 'spotify',
     name: 'Spotify',
-    icon: Music,
+    icon: SpotifyLogo,
     color: '#1DB954',
     category: 'entertainment',
     tagline: 'Your emotional soundtrack',
@@ -44,7 +38,7 @@ const PLATFORMS: Platform[] = [
   {
     id: 'youtube',
     name: 'YouTube',
-    icon: Youtube,
+    icon: YoutubeLogo,
     color: '#FF0000',
     category: 'entertainment',
     tagline: 'Your curiosity map',
@@ -55,7 +49,7 @@ const PLATFORMS: Platform[] = [
   {
     id: 'whoop',
     name: 'Whoop',
-    icon: Activity,
+    icon: WhoopLogo,
     color: '#00A7E1',
     category: 'health',
     tagline: 'Your body\'s rhythm',
@@ -77,7 +71,7 @@ const PLATFORMS: Platform[] = [
   {
     id: 'google_calendar',
     name: 'Calendar',
-    icon: Calendar,
+    icon: GoogleCalendarLogo,
     color: '#4285F4',
     category: 'professional',
     tagline: 'Your time priorities',
@@ -88,7 +82,7 @@ const PLATFORMS: Platform[] = [
   {
     id: 'gmail',
     name: 'Gmail',
-    icon: Mail,
+    icon: GmailLogo,
     color: '#EA4335',
     category: 'professional',
     tagline: 'Your communication style',
@@ -99,7 +93,7 @@ const PLATFORMS: Platform[] = [
   {
     id: 'github',
     name: 'GitHub',
-    icon: Github,
+    icon: GithubLogo,
     color: '#6e5494',
     category: 'professional',
     tagline: 'Your builder identity',
@@ -110,7 +104,7 @@ const PLATFORMS: Platform[] = [
   {
     id: 'linkedin',
     name: 'LinkedIn',
-    icon: Linkedin,
+    icon: LinkedinLogo,
     color: '#0A66C2',
     category: 'professional',
     tagline: 'Your professional identity',

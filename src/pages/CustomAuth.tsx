@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useTheme } from '../contexts/ThemeContext';
+import { useAnalytics } from '../contexts/AnalyticsContext';
 import { ArrowLeft, Loader2, Sparkles, X } from 'lucide-react';
 
 const CustomAuth = () => {
@@ -9,6 +10,7 @@ const CustomAuth = () => {
   const [searchParams] = useSearchParams();
   const { signInWithOAuth } = useAuth();
   const { theme } = useTheme();
+  const { trackFunnel } = useAnalytics();
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -17,6 +19,7 @@ const CustomAuth = () => {
   const handleGoogleSignIn = async () => {
     setLoading(true);
     setError('');
+    trackFunnel('auth_initiated', { provider: 'google' });
     try {
       // Get redirect parameter from URL if present
       const redirectAfterAuth = searchParams.get('redirect');

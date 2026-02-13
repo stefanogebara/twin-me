@@ -173,6 +173,28 @@ router.post('/verify-connection', authenticateUser, async (req, res) => {
         if (result.success) {
           await nangoService.storeNangoExtractionData(userId, integrationId, result);
           console.log(`[Nango API] Initial extraction stored for ${integrationId}`);
+
+          // Run feature extraction after raw data is stored
+          try {
+            const featureExtractorMap = {
+              'google-mail': (await import('../services/featureExtractors/gmailFeatureExtractor.js')).default,
+              'outlook': (await import('../services/featureExtractors/outlookFeatureExtractor.js')).default,
+              'linkedin': (await import('../services/featureExtractors/linkedinFeatureExtractor.js')).default,
+              'spotify': (await import('../services/featureExtractors/spotifyExtractor.js')).default,
+              'google-calendar': (await import('../services/featureExtractors/calendarExtractor.js')).default,
+              'whoop': (await import('../services/featureExtractors/whoopExtractor.js')).default,
+            };
+            const extractor = featureExtractorMap[integrationId];
+            if (extractor) {
+              const features = await extractor.extractFeatures(userId);
+              if (features.length > 0) {
+                await extractor.saveFeatures(features);
+                console.log(`[Nango API] Extracted ${features.length} behavioral features for ${integrationId}`);
+              }
+            }
+          } catch (featureErr) {
+            console.warn(`[Nango API] Feature extraction skipped for ${integrationId}:`, featureErr.message);
+          }
         }
       })
       .catch(err => {
@@ -313,6 +335,28 @@ router.get('/extract/:platform', authenticateUser, async (req, res) => {
         .update({ last_sync_at: new Date().toISOString() })
         .eq('user_id', userId)
         .eq('platform', platformKey);
+
+      // Run feature extraction after raw data is stored
+      try {
+        const featureExtractorMap = {
+          'google-mail': (await import('../services/featureExtractors/gmailFeatureExtractor.js')).default,
+          'outlook': (await import('../services/featureExtractors/outlookFeatureExtractor.js')).default,
+          'linkedin': (await import('../services/featureExtractors/linkedinFeatureExtractor.js')).default,
+          'spotify': (await import('../services/featureExtractors/spotifyExtractor.js')).default,
+          'google-calendar': (await import('../services/featureExtractors/calendarExtractor.js')).default,
+          'whoop': (await import('../services/featureExtractors/whoopExtractor.js')).default,
+        };
+        const extractor = featureExtractorMap[platform];
+        if (extractor) {
+          const features = await extractor.extractFeatures(userId);
+          if (features.length > 0) {
+            await extractor.saveFeatures(features);
+            console.log(`[Nango API] Extracted ${features.length} behavioral features for ${platform}`);
+          }
+        }
+      } catch (featureErr) {
+        console.warn(`[Nango API] Feature extraction skipped for ${platform}:`, featureErr.message);
+      }
 
       res.json(result);
     } else {

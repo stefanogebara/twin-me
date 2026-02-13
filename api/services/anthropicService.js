@@ -5,20 +5,7 @@
  * Supports streaming, context management, and token tracking.
  */
 
-import Anthropic from '@anthropic-ai/sdk';
-import { CLAUDE_MODEL } from '../config/aiModels.js';
-
-const anthropic = new Anthropic({
-  apiKey: process.env.ANTHROPIC_API_KEY,
-});
-
-// Claude 3.5 Sonnet pricing (per million tokens)
-const PRICING = {
-  input: 3.00,           // $3 per 1M input tokens
-  cache_write: 3.75,     // $3.75 per 1M cache write tokens (25% more)
-  cache_read: 0.30,      // $0.30 per 1M cache read tokens (90% less)
-  output: 15.00          // $15 per 1M output tokens
-};
+import { complete, stream as llmStream, TIER_CHAT, TIER_ANALYSIS, TIER_EXTRACTION } from './llmGateway.js';
 
 /**
  * Generate chat response using Claude API
@@ -71,38 +58,26 @@ export async function generateChatResponse(options) {
 async function generateNonStreamingResponse(options) {
   const { systemPrompt, messages, maxTokens, temperature } = options;
 
-  const response = await anthropic.messages.create({
-    model: CLAUDE_MODEL,
-    max_tokens: maxTokens,
-    temperature: temperature,
-    system: systemPrompt,
-    messages: messages
+  // Convert array-format system prompt to string for gateway
+  const systemString = Array.isArray(systemPrompt)
+    ? systemPrompt.map(b => b.text || b).join('\n')
+    : systemPrompt;
+
+  const result = await complete({
+    tier: TIER_ANALYSIS,
+    system: systemString,
+    messages,
+    maxTokens,
+    temperature,
+    serviceName: 'anthropicService'
   });
 
-  const content = response.content[0].text;
-  const usage = {
-    input_tokens: response.usage.input_tokens,
-    output_tokens: response.usage.output_tokens,
-    cache_creation_input_tokens: response.usage.cache_creation_input_tokens || 0,
-    cache_read_input_tokens: response.usage.cache_read_input_tokens || 0,
-    total_tokens: (response.usage.cache_read_input_tokens || 0) + (response.usage.cache_creation_input_tokens || 0) + response.usage.input_tokens + response.usage.output_tokens
-  };
-
-  const cost = calculateCost(usage);
-
-  const cacheInfo = usage.cache_read_input_tokens > 0
-    ? ` (cache hit: ${usage.cache_read_input_tokens} tokens saved 90%)`
-    : usage.cache_creation_input_tokens > 0
-      ? ` (cache write: ${usage.cache_creation_input_tokens} tokens cached)`
-      : '';
-  console.log(`[AnthropicService] Response: ${usage.total_tokens} tokens, $${cost.toFixed(4)}${cacheInfo}`);
-
   return {
-    content,
-    usage,
-    cost,
-    model: response.model,
-    stop_reason: response.stop_reason
+    content: result.content,
+    usage: result.usage,
+    cost: result.cost,
+    model: result.model,
+    stop_reason: 'end_turn'
   };
 }
 
@@ -112,92 +87,48 @@ async function generateNonStreamingResponse(options) {
 async function streamChatResponse(options) {
   const { systemPrompt, messages, maxTokens, temperature, onStream } = options;
 
-  let fullContent = '';
-  let inputTokens = 0;
-  let outputTokens = 0;
+  // Convert array-format system prompt to string for gateway
+  const systemString = Array.isArray(systemPrompt)
+    ? systemPrompt.map(b => b.text || b).join('\n')
+    : systemPrompt;
 
-  const stream = await anthropic.messages.create({
-    model: CLAUDE_MODEL,
-    max_tokens: maxTokens,
-    temperature: temperature,
-    system: systemPrompt,
-    messages: messages,
-    stream: true
-  });
-
-  for await (const event of stream) {
-    if (event.type === 'message_start') {
-      inputTokens = event.message.usage.input_tokens;
-    }
-
-    if (event.type === 'content_block_delta' && event.delta.type === 'text_delta') {
-      const chunk = event.delta.text;
-      fullContent += chunk;
-
-      // Call stream callback
+  const result = await llmStream({
+    tier: TIER_CHAT,
+    system: systemString,
+    messages,
+    maxTokens,
+    temperature,
+    serviceName: 'anthropicService-stream',
+    onChunk: (chunk) => {
       if (onStream) {
         onStream({
           type: 'chunk',
           content: chunk,
-          fullContent: fullContent
+          fullContent: '' // gateway accumulates internally
         });
       }
     }
+  });
 
-    if (event.type === 'message_delta') {
-      outputTokens = event.usage.output_tokens;
-    }
-
-    if (event.type === 'message_stop') {
-      const usage = {
-        input_tokens: inputTokens,
-        output_tokens: outputTokens,
-        total_tokens: inputTokens + outputTokens
-      };
-
-      const cost = calculateCost(usage);
-
-      console.log(`[AnthropicService] Streaming complete: ${usage.total_tokens} tokens, $${cost.toFixed(4)}`);
-
-      // Final callback
-      if (onStream) {
-        onStream({
-          type: 'complete',
-          content: fullContent,
-          usage,
-          cost
-        });
-      }
-    }
+  // Final callback
+  if (onStream) {
+    onStream({
+      type: 'complete',
+      content: result.content,
+      usage: result.usage,
+      cost: result.cost
+    });
   }
 
-  const usage = {
-    input_tokens: inputTokens,
-    output_tokens: outputTokens,
-    total_tokens: inputTokens + outputTokens
-  };
-
-  const cost = calculateCost(usage);
-
   return {
-    content: fullContent,
-    usage,
-    cost,
-    model: CLAUDE_MODEL,
+    content: result.content,
+    usage: result.usage,
+    cost: result.cost,
+    model: result.model,
     stop_reason: 'end_turn'
   };
 }
 
-/**
- * Calculate cost based on token usage (including prompt caching)
- */
-function calculateCost(usage) {
-  const inputCost = (usage.input_tokens / 1_000_000) * PRICING.input;
-  const outputCost = (usage.output_tokens / 1_000_000) * PRICING.output;
-  const cacheWriteCost = ((usage.cache_creation_input_tokens || 0) / 1_000_000) * PRICING.cache_write;
-  const cacheReadCost = ((usage.cache_read_input_tokens || 0) / 1_000_000) * PRICING.cache_read;
-  return inputCost + outputCost + cacheWriteCost + cacheReadCost;
-}
 
 /**
  * Manage conversation context to stay within token limits
@@ -249,17 +180,18 @@ export function pruneConversationHistory(messages, systemPrompt, maxContextToken
  */
 export async function generateConversationTitle(firstMessage) {
   try {
-    const response = await anthropic.messages.create({
-      model: CLAUDE_MODEL,
-      max_tokens: 20,
-      temperature: 0.5,
+    const result = await complete({
+      tier: TIER_EXTRACTION,
       system: 'Generate a very short (2-5 words) title for this conversation. Just output the title, nothing else.',
       messages: [
         { role: 'user', content: firstMessage }
-      ]
+      ],
+      maxTokens: 20,
+      temperature: 0.5,
+      serviceName: 'anthropicService-title'
     });
 
-    const title = response.content[0].text.trim();
+    const title = result.content.trim();
     console.log(`[AnthropicService] Generated title: "${title}"`);
 
     return title;
@@ -334,22 +266,23 @@ setInterval(() => {
  */
 export async function healthCheck() {
   try {
-    const response = await anthropic.messages.create({
-      model: CLAUDE_MODEL,
-      max_tokens: 10,
-      messages: [{ role: 'user', content: 'Hello' }]
+    const result = await complete({
+      tier: TIER_EXTRACTION,
+      messages: [{ role: 'user', content: 'Hello' }],
+      maxTokens: 10,
+      serviceName: 'anthropicService-health'
     });
 
     return {
       status: 'healthy',
-      model: response.model,
-      message: 'Anthropic API is responsive'
+      model: result.model,
+      message: 'LLM Gateway is responsive'
     };
   } catch (error) {
     return {
       status: 'unhealthy',
       error: error.message,
-      message: 'Anthropic API is not responding'
+      message: 'LLM Gateway is not responding'
     };
   }
 }

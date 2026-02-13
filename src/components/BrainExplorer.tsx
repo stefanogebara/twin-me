@@ -496,27 +496,37 @@ const BrainExplorer: React.FC = () => {
         ? `${API_BASE}/twins-brain/visualization?minConfidence=0.3`
         : `${API_BASE}/twins-brain/context/${context}/graph?minConfidence=0.3`;
 
+      // Fetch all endpoints independently - failures are handled gracefully
       const [vizRes, healthRes, gapsRes, suggestionsRes] = await Promise.all([
         fetch(vizEndpoint, {
           headers: { Authorization: `Bearer ${token}` }
-        }),
+        }).catch(err => { console.warn('[BrainExplorer] Visualization fetch failed:', err.message); return null; }),
         fetch(`${API_BASE}/twins-brain/health`, {
           headers: { Authorization: `Bearer ${token}` }
-        }),
+        }).catch(err => { console.warn('[BrainExplorer] Health fetch failed:', err.message); return null; }),
         fetch(`${API_BASE}/twins-brain/knowledge-gaps`, {
           headers: { Authorization: `Bearer ${token}` }
-        }),
+        }).catch(err => { console.warn('[BrainExplorer] Knowledge gaps fetch failed:', err.message); return null; }),
         fetch(`${API_BASE}/twins-brain/learning-suggestions`, {
           headers: { Authorization: `Bearer ${token}` }
-        })
+        }).catch(err => { console.warn('[BrainExplorer] Learning suggestions fetch failed:', err.message); return null; })
       ]);
 
-      if (!vizRes.ok || !healthRes.ok) {
-        throw new Error('Failed to fetch brain data');
+      // Handle visualization data - show empty brain if unavailable
+      let vizData: any = { visualization: { nodes: [], edges: [], clusters: [], stats: { nodeCount: 0, edgeCount: 0, clusterCount: 0 } } };
+      if (vizRes && vizRes.ok) {
+        vizData = await vizRes.json();
+      } else {
+        console.warn('[BrainExplorer] Visualization endpoint unavailable, showing empty brain');
       }
 
-      const vizData = await vizRes.json();
-      const healthData = await healthRes.json();
+      // Handle health data - use sensible defaults if unavailable
+      let healthData: any = { success: true, health: { total_nodes: 0, total_edges: 0, avg_confidence: 0, avg_edge_strength: 0, category_distribution: {}, health_score: 0 } };
+      if (healthRes && healthRes.ok) {
+        healthData = await healthRes.json();
+      } else {
+        console.warn('[BrainExplorer] Health endpoint unavailable, using defaults');
+      }
 
       // Transform context-specific response to match visualization format
       if (context !== 'global' && vizData.nodes) {
@@ -606,12 +616,12 @@ const BrainExplorer: React.FC = () => {
       setHealth(healthData.health);
 
       // Knowledge gaps might not be available if routes aren't updated yet
-      if (gapsRes.ok) {
+      if (gapsRes && gapsRes.ok) {
         const gapsData = await gapsRes.json();
         setKnowledgeGaps(gapsData);
       }
 
-      if (suggestionsRes.ok) {
+      if (suggestionsRes && suggestionsRes.ok) {
         const suggestionsData = await suggestionsRes.json();
         setSuggestions(suggestionsData.suggestions || []);
       }
@@ -1016,15 +1026,15 @@ const BrainExplorer: React.FC = () => {
     return (
       <GlassPanel className="text-center py-12">
         <div className="w-16 h-16 rounded-full mx-auto mb-4 flex items-center justify-center" style={{
-          backgroundColor: 'rgba(239, 68, 68, 0.1)'
+          backgroundColor: 'rgba(139, 92, 246, 0.1)'
         }}>
-          <Zap className="w-8 h-8" style={{ color: '#EF4444' }} />
+          <Brain className="w-8 h-8" style={{ color: '#8B5CF6' }} />
         </div>
         <h3 className="text-xl mb-2" style={{ fontFamily: 'var(--font-heading)', color: textColor }}>
-          Connection Lost
+          Your Twin's Brain is Empty
         </h3>
         <p className="mb-6" style={{ color: textSecondary }}>
-          {error}
+          Start chatting with your twin and connecting data sources to build knowledge.
         </p>
         <button
           onClick={() => fetchBrainData(selectedContext)}
@@ -1032,7 +1042,7 @@ const BrainExplorer: React.FC = () => {
           style={{ backgroundColor: subtleBg, color: textColor }}
         >
           <RefreshCw className="w-4 h-4" />
-          Reconnect
+          Try Again
         </button>
       </GlassPanel>
     );
@@ -1268,12 +1278,12 @@ const BrainExplorer: React.FC = () => {
                       <Icon className="w-4 h-4" style={{ color: colors.text }} />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-1">
-                        <h4 className="font-medium text-sm truncate" style={{ color: textColor }}>
+                      <div className="flex items-start gap-2 mb-1">
+                        <h4 className="font-medium text-sm leading-tight" style={{ color: textColor }}>
                           {suggestion.title}
                         </h4>
                         <span
-                          className="text-[10px] px-1.5 py-0.5 rounded uppercase tracking-wider"
+                          className="text-[10px] px-1.5 py-0.5 rounded uppercase tracking-wider flex-shrink-0"
                           style={{ backgroundColor: colors.border, color: colors.text }}
                         >
                           {suggestion.priority}

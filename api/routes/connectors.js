@@ -14,6 +14,29 @@ import {
 import { ensureFreshToken } from '../services/tokenRefreshService.js';
 const router = express.Router();
 
+// In-memory cache fallback for when Redis is unavailable
+const memoryCache = new Map();
+const MEMORY_CACHE_TTL = 3 * 60 * 1000; // 3 minutes
+
+function getMemoryCached(key) {
+  const entry = memoryCache.get(key);
+  if (entry && Date.now() - entry.ts < MEMORY_CACHE_TTL) return entry.data;
+  if (entry) memoryCache.delete(key);
+  return null;
+}
+
+function setMemoryCached(key, data) {
+  memoryCache.set(key, { data, ts: Date.now() });
+}
+
+/**
+ * Clear in-memory status cache for a user.
+ * Call after platform connect/disconnect in other route files.
+ */
+export function clearStatusMemoryCache(userId) {
+  memoryCache.delete(`status:${userId}`);
+}
+
 // ====================================================================
 // OAUTH CONFIGURATIONS
 // ====================================================================
@@ -959,7 +982,7 @@ router.get('/status/:userId', async (req, res) => {
     // Convert email to UUID if needed
     let userUuid = userId;
     if (userId && !userId.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i)) {
-      const { data: userData } = await supabase
+      const { data: userData } = await supabaseAdmin
         .from('users')
         .select('id')
         .eq('email', userId)
@@ -967,9 +990,20 @@ router.get('/status/:userId', async (req, res) => {
       if (userData) userUuid = userData.id;
     }
 
-    // Check Redis cache first
+    // Check in-memory cache first (fastest, no external deps)
+    const memoryCached = getMemoryCached(`status:${userUuid}`);
+    if (memoryCached) {
+      return res.json({
+        success: true,
+        data: memoryCached,
+        cached: true
+      });
+    }
+
+    // Check Redis cache second
     const cachedStatus = await getCachedPlatformStatus(userUuid);
     if (cachedStatus) {
+      setMemoryCached(`status:${userUuid}`, cachedStatus);
       return res.json({
         success: true,
         data: cachedStatus,
@@ -977,15 +1011,25 @@ router.get('/status/:userId', async (req, res) => {
       });
     }
 
-    // Cache miss - fetch from database
+    // Cache miss - fetch from database with retry
     // IMPORTANT: Include 'status' column to check for token_expired status
-    const { data: connections, error } = await supabaseAdmin
-      .from('platform_connections')
-      .select('platform, connected_at, token_expires_at, access_token, metadata, last_sync_at, last_sync_status, status')
-      .eq('user_id', userUuid);
+    let connections, error;
+    for (let attempt = 0; attempt < 2; attempt++) {
+      const result = await supabaseAdmin
+        .from('platform_connections')
+        .select('platform, connected_at, token_expires_at, access_token, metadata, last_sync_at, last_sync_status, status')
+        .eq('user_id', userUuid);
+      connections = result.data;
+      error = result.error;
+      if (!error) break;
+      if (attempt === 0) {
+        console.warn('Database error getting connections, retrying...', error.code);
+        await new Promise(r => setTimeout(r, 1000));
+      }
+    }
 
     if (error) {
-      console.error('Database error getting connections:', error);
+      console.error('Database error getting connections (after retry):', error);
       throw error;
     }
 
@@ -1065,7 +1109,8 @@ router.get('/status/:userId', async (req, res) => {
 
     console.log(`📊 Connection status for user ${userId}:`, connectionStatus);
 
-    // Cache the result in Redis (5-minute TTL)
+    // Cache the result in memory and Redis
+    setMemoryCached(`status:${userUuid}`, connectionStatus);
     await setCachedPlatformStatus(userUuid, connectionStatus);
 
     res.json({

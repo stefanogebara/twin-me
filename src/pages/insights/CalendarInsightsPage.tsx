@@ -8,6 +8,7 @@
  */
 
 import React, { useEffect, useState } from 'react';
+import { motion } from 'framer-motion';
 import { useAuth } from '@/contexts/AuthContext';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useDemo } from '@/contexts/DemoContext';
@@ -374,23 +375,35 @@ const CalendarInsightsPage: React.FC = () => {
       <div className="flex items-center justify-between mb-8">
         <div className="flex items-center gap-4">
           {/* Back Button */}
-          <button
+          <motion.button
             onClick={() => navigate('/dashboard')}
             className="p-2 rounded-lg glass-button"
+            initial={{ opacity: 0, x: -12 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.35, ease: [0.4, 0, 0.2, 1] }}
+            whileHover={{ scale: 1.08 }}
+            whileTap={{ scale: 0.95 }}
           >
             <ArrowLeft className="w-5 h-5" style={{ color: colors.text }} />
-          </button>
+          </motion.button>
 
           {/* Platform Icon */}
-          <div
+          <motion.div
             className="w-12 h-12 rounded-xl flex items-center justify-center"
             style={{ backgroundColor: colors.calendarBg }}
+            initial={{ opacity: 0, scale: 0.5 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.5, delay: 0.1, ease: [0.4, 0, 0.2, 1] }}
           >
             <Calendar className="w-6 h-6" style={{ color: colors.calendarBlue }} />
-          </div>
+          </motion.div>
 
           {/* Title */}
-          <div>
+          <motion.div
+            initial={{ opacity: 0, x: -12 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.45, delay: 0.15, ease: [0.4, 0, 0.2, 1] }}
+          >
             <h1
               className="text-2xl"
               style={{
@@ -407,21 +420,26 @@ const CalendarInsightsPage: React.FC = () => {
             >
               How you structure your days
             </p>
-          </div>
+          </motion.div>
         </div>
 
         {/* Refresh Button */}
-        <button
+        <motion.button
           onClick={handleRefresh}
           disabled={refreshing}
           className="p-2 rounded-lg glass-button"
           title="Get a fresh observation"
+          initial={{ opacity: 0, scale: 0.8 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.35, delay: 0.25, ease: [0.4, 0, 0.2, 1] }}
+          whileHover={{ scale: 1.1, rotate: 90 }}
+          whileTap={{ scale: 0.9 }}
         >
           <RefreshCw
             className={`w-5 h-5 ${refreshing ? 'animate-spin' : ''}`}
             style={{ color: colors.text }}
           />
-        </button>
+        </motion.button>
       </div>
 
       {/* Today's Schedule Timeline */}
@@ -830,15 +848,83 @@ const CalendarInsightsPage: React.FC = () => {
 
       {/* Empty State - show when no reflection AND no calendar data */}
       {!insights?.reflection?.text && !insights?.todayEvents?.length && !insights?.upcomingEvents?.length && (
-        <GlassPanel className="text-center py-12">
-          <Calendar className="w-12 h-12 mx-auto mb-4" style={{ color: colors.textSecondary }} />
-          <h3 style={{ color: colors.text, fontFamily: 'var(--font-heading)' }}>
-            Your twin is studying your schedule
-          </h3>
-          <p className="mt-2" style={{ color: colors.textSecondary }}>
-            As your calendar fills with events, your twin will notice patterns in how you structure your time.
-          </p>
-        </GlassPanel>
+        <div className="space-y-4">
+          <GlassPanel className="text-center py-10">
+            <Calendar className="w-12 h-12 mx-auto mb-4" style={{ color: colors.textSecondary }} />
+            <h3 style={{ color: colors.text, fontFamily: 'var(--font-heading)' }}>
+              Your twin is studying your schedule
+            </h3>
+            <p className="mt-2 mb-6 max-w-sm mx-auto" style={{ color: colors.textSecondary }}>
+              As your calendar fills with events, your twin will notice patterns in how you structure your time.
+            </p>
+            <button
+              onClick={() => navigate('/get-started')}
+              className="px-5 py-2.5 rounded-xl text-sm font-medium transition-all hover:scale-[1.02]"
+              style={{ backgroundColor: colors.calendarBlue, color: '#fff' }}
+            >
+              Connect Calendar
+            </button>
+          </GlassPanel>
+
+          {/* Preview cards showing what insights will look like */}
+          <div className="opacity-50 pointer-events-none space-y-3">
+            <p className="text-xs uppercase tracking-wider" style={{ color: colors.textSecondary }}>
+              Preview of your insights
+            </p>
+            {/* Placeholder: Today's Timeline */}
+            <GlassPanel className="!p-4" style={{ border: '1px dashed' }}>
+              <div className="flex items-center gap-2 mb-3">
+                <Clock className="w-4 h-4" style={{ color: colors.textSecondary }} />
+                <span className="text-sm" style={{ color: colors.textSecondary }}>Today's Schedule</span>
+              </div>
+              <div className="flex justify-between text-[10px] mb-1" style={{ color: colors.textSecondary }}>
+                {['9AM', '12PM', '3PM', '6PM'].map(t => <span key={t}>{t}</span>)}
+              </div>
+              <div className="h-8 rounded-lg flex gap-1 overflow-hidden" style={{ backgroundColor: theme === 'dark' ? 'rgba(0,0,0,0.3)' : 'rgba(0,0,0,0.06)' }}>
+                <div className="h-full rounded" style={{ width: '20%', marginLeft: '10%', backgroundColor: `${colors.calendarBlue}30` }} />
+                <div className="h-full rounded" style={{ width: '15%', marginLeft: '5%', backgroundColor: 'rgba(52,168,83,0.3)' }} />
+                <div className="h-full rounded" style={{ width: '10%', marginLeft: '8%', backgroundColor: 'rgba(251,188,5,0.3)' }} />
+              </div>
+            </GlassPanel>
+            {/* Placeholder: Stats + Heatmap */}
+            <div className="grid grid-cols-2 gap-3">
+              <GlassPanel className="!p-4" style={{ border: '1px dashed' }}>
+                <div className="flex items-center gap-2 mb-3">
+                  <CalendarDays className="w-4 h-4" style={{ color: colors.textSecondary }} />
+                  <span className="text-sm" style={{ color: colors.textSecondary }}>Time Split</span>
+                </div>
+                <div className="space-y-2">
+                  {['Meetings', 'Focus', 'Personal'].map((type, i) => (
+                    <div key={type} className="flex items-center gap-2">
+                      <span className="text-[10px] w-14" style={{ color: colors.textSecondary }}>{type}</span>
+                      <div className="flex-1 h-3 rounded" style={{ backgroundColor: theme === 'dark' ? 'rgba(193,192,182,0.06)' : 'rgba(0,0,0,0.03)' }}>
+                        <div className="h-full rounded" style={{
+                          width: `${[55, 30, 15][i]}%`,
+                          backgroundColor: [`${colors.calendarBlue}30`, 'rgba(52,168,83,0.3)', 'rgba(147,52,233,0.3)'][i],
+                        }} />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </GlassPanel>
+              <GlassPanel className="!p-4" style={{ border: '1px dashed' }}>
+                <div className="flex items-center gap-2 mb-3">
+                  <Clock className="w-4 h-4" style={{ color: colors.textSecondary }} />
+                  <span className="text-sm" style={{ color: colors.textSecondary }}>Busy Hours</span>
+                </div>
+                <div className="grid grid-cols-5 gap-0.5">
+                  {Array.from({ length: 25 }).map((_, i) => (
+                    <div key={i} className="h-3 rounded-sm" style={{
+                      backgroundColor: theme === 'dark'
+                        ? `rgba(193,192,182,${0.04 + Math.random() * 0.08})`
+                        : `rgba(0,0,0,${0.02 + Math.random() * 0.06})`,
+                    }} />
+                  ))}
+                </div>
+              </GlassPanel>
+            </div>
+          </div>
+        </div>
       )}
     </PageLayout>
   );

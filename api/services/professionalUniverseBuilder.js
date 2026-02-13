@@ -5,8 +5,7 @@
  */
 
 import { createClient } from '@supabase/supabase-js';
-import Anthropic from '@anthropic-ai/sdk';
-import { CLAUDE_MODEL } from '../config/aiModels.js';
+import { complete, TIER_ANALYSIS } from './llmGateway.js';
 
 let supabase = null;
 function getSupabaseClient() {
@@ -18,10 +17,6 @@ function getSupabaseClient() {
   }
   return supabase;
 }
-
-const anthropic = new Anthropic({
-  apiKey: process.env.ANTHROPIC_API_KEY
-});
 
 class ProfessionalUniverseBuilder {
   /**
@@ -561,9 +556,8 @@ class ProfessionalUniverseBuilder {
         origin: professionalUniverse.origin_context
       }, null, 2);
 
-      const message = await anthropic.messages.create({
-        model: CLAUDE_MODEL,
-        max_tokens: 1000,
+      const result = await complete({
+        tier: TIER_ANALYSIS,
         messages: [{
           role: 'user',
           content: `Based on this professional profile, provide 3 key insights about this person's professional identity and potential. Be specific and insightful.
@@ -580,10 +574,12 @@ Respond with a JSON object containing:
 }
 
 Respond ONLY with valid JSON.`
-        }]
+        }],
+        maxTokens: 1000,
+        serviceName: 'professionalUniverseBuilder'
       });
 
-      const responseText = message.content[0].text;
+      const responseText = result.content;
       return JSON.parse(responseText);
     } catch (error) {
       console.error('[ProfessionalUniverse] Error generating AI insights:', error);

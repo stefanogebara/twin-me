@@ -93,16 +93,18 @@ const DIMENSION_CONFIG = {
   },
 };
 
-// Platform icons
+// Platform icons - use real SVG logos with Lucide fallback
+import { getPlatformLogo } from '@/components/PlatformLogos';
 const PLATFORM_ICONS: Record<string, typeof Music> = {
   spotify: Music,
   calendar: Calendar,
   whoop: Activity,
 };
+const getPlatformIconComponent = (platform: string) => getPlatformLogo(platform) || PLATFORM_ICONS[platform] || Brain;
 
 // Evidence card component
 const EvidenceCard: React.FC<{ item: EvidenceItem; theme: string }> = ({ item, theme }) => {
-  const PlatformIcon = PLATFORM_ICONS[item.platform] || Brain;
+  const PlatformIcon = getPlatformIconComponent(item.platform);
   const correlationSign = item.correlation >= 0 ? '+' : '';
   const correlationPercent = Math.abs(item.correlation * 100).toFixed(0);
 

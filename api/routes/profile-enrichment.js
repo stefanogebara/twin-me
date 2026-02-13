@@ -15,6 +15,47 @@ const router = express.Router();
  */
 
 // ============================================================================
+// POST /api/enrichment/quick - Instant enrichment (FREE: Gravatar + GitHub)
+// Returns in < 1 second. Used for the onboarding "wow moment".
+// ============================================================================
+router.post('/quick', authenticateUser, async (req, res) => {
+  try {
+    const userId = req.user?.id;
+    const email = req.user?.email || req.body.email;
+    const name = req.user?.name || req.body.name;
+
+    if (!email) {
+      return res.status(400).json({ success: false, error: 'Email is required' });
+    }
+
+    console.log(`[Enrichment API] Quick enrichment for: ${email}`);
+    const result = await profileEnrichmentService.quickEnrich(email, name);
+
+    // Save to enriched_profiles if we found anything useful
+    if (result.success && result.data?.source !== 'none' && userId) {
+      try {
+        await profileEnrichmentService.saveEnrichment(userId, email, {
+          ...result.data,
+          email,
+          source: result.data.source,
+        });
+      } catch (saveErr) {
+        console.warn('[Enrichment API] Failed to save quick enrichment:', saveErr.message);
+      }
+    }
+
+    return res.json({
+      success: true,
+      data: result.data,
+      elapsed: result.elapsed,
+    });
+  } catch (err) {
+    console.error('[Enrichment API] Quick enrichment error:', err);
+    return res.json({ success: true, data: { source: 'error' }, elapsed: 0 });
+  }
+});
+
+// ============================================================================
 // POST /api/enrichment/search - Trigger enrichment search
 // ============================================================================
 router.post('/search', async (req, res) => {

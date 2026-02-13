@@ -497,19 +497,38 @@ router.get('/clusters', authenticateUser, async (req, res) => {
       builder.getStoredDivergences()
     ]);
 
-    // Transform profiles into cluster map
+    // Transform profiles into cluster map with nested personality object
     const clusters = {};
     for (const profile of profiles) {
       clusters[profile.cluster] = {
-        ...profile,
+        cluster: profile.cluster,
+        name: profile.name || CLUSTER_DEFINITIONS[profile.cluster]?.name || profile.cluster,
+        personality: {
+          openness: profile.openness || 50,
+          conscientiousness: profile.conscientiousness || 50,
+          extraversion: profile.extraversion || 50,
+          agreeableness: profile.agreeableness || 50,
+          neuroticism: profile.neuroticism || 50
+        },
+        confidence: profile.confidence || 0,
+        data_points_count: profile.data_points_count || 0,
         definition: CLUSTER_DEFINITIONS[profile.cluster]
       };
     }
 
+    // Flatten insights JSON into top-level fields for divergences
+    const formattedDivergences = divergences.slice(0, 5).map(div => ({
+      cluster_a: div.cluster_a,
+      cluster_b: div.cluster_b,
+      average_divergence: div.overall_divergence ?? div.insights?.average_divergence ?? 0,
+      trait_differences: div.trait_differences || div.insights?.trait_differences || {},
+      summary: div.summary || div.insights?.summary || ''
+    }));
+
     res.json({
       success: true,
       clusters,
-      divergences: divergences.slice(0, 5),
+      divergences: formattedDivergences,
       availableClusters: Object.keys(CLUSTER_DEFINITIONS)
     });
   } catch (error) {

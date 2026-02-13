@@ -21,7 +21,6 @@ class RecommendationAgent extends AgentBase {
     super({
       name: 'RecommendationAgent',
       role: 'Personalized content and activity recommendation specialist',
-      model: 'claude-sonnet-4-20250514', // Sonnet 4 for speed
       maxTokens: 3072,
       temperature: 0.8 // Higher temperature for creative recommendations
     });
@@ -283,96 +282,11 @@ Remember: Focus ONLY on recommendations. Do NOT detect patterns or analyze perso
     try {
       const response = await super.execute(prompt, options);
 
-      // Handle tool use
-      if (response.toolUses && response.toolUses.length > 0) {
-        const toolResults = await this.executeTools(response.toolUses, userId);
-
-        const followUpResponse = await this.continueWithToolResults(
-          prompt,
-          response,
-          toolResults,
-          options
-        );
-
-        return followUpResponse;
-      }
-
       return response;
 
     } finally {
       this._currentUserId = null;
     }
-  }
-
-  /**
-   * Execute tool calls
-   */
-  async executeTools(toolUses, userId) {
-    const results = [];
-
-    for (const toolUse of toolUses) {
-      console.log(`🔧 [RecommendationAgent] Executing tool: ${toolUse.name}`);
-
-      try {
-        let result;
-
-        switch (toolUse.name) {
-          case 'search_spotify_music':
-            result = await this.searchSpotifyMusic(userId, toolUse.input);
-            break;
-
-          case 'search_youtube_videos':
-            result = await this.searchYouTubeVideos(userId, toolUse.input);
-            break;
-
-          case 'get_user_top_content':
-            result = await this.getUserTopContent(userId, toolUse.input);
-            break;
-
-          default:
-            result = { error: `Unknown tool: ${toolUse.name}` };
-        }
-
-        results.push({
-          tool_use_id: toolUse.id,
-          type: 'tool_result',
-          content: JSON.stringify(result)
-        });
-
-      } catch (error) {
-        console.error(`❌ Tool ${toolUse.name} failed:`, error);
-        results.push({
-          tool_use_id: toolUse.id,
-          type: 'tool_result',
-          is_error: true,
-          content: error.message
-        });
-      }
-    }
-
-    return results;
-  }
-
-  /**
-   * Continue conversation with tool results
-   */
-  async continueWithToolResults(originalPrompt, firstResponse, toolResults, options) {
-    const messages = [
-      { role: 'user', content: originalPrompt },
-      { role: 'assistant', content: firstResponse.raw.content },
-      { role: 'user', content: toolResults }
-    ];
-
-    const response = await this.client.messages.create({
-      model: this.model,
-      max_tokens: this.maxTokens,
-      temperature: this.temperature,
-      system: this.systemPrompt,
-      messages,
-      tools: this.tools
-    });
-
-    return this.processResponse(response);
   }
 
   /**

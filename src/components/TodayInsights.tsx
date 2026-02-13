@@ -28,6 +28,7 @@ import {
   Loader2,
   RefreshCw
 } from 'lucide-react';
+import { getPlatformLogo } from '@/components/PlatformLogos';
 
 interface MoodData {
   label: string;
@@ -214,36 +215,45 @@ export const TodayInsights: React.FC = () => {
 
       {/* Data Sources Indicator - Uses real platform status with token expiry check */}
       <div className="flex items-center gap-4 text-xs" style={{ color: theme === 'dark' ? 'rgba(193, 192, 182, 0.5)' : '#a8a29e' }}>
-        <span className="flex items-center gap-1">
-          <Activity className="w-3 h-3" />
-          Whoop {isPlatformActive('whoop') ? (
-            <CheckCircle className="w-3 h-3 text-green-500" />
-          ) : platformStatus['whoop']?.tokenExpired ? (
-            <AlertCircle className="w-3 h-3 text-amber-500" title="Token expired" />
-          ) : (
-            <AlertCircle className="w-3 h-3 text-orange-500" />
-          )}
-        </span>
-        <span className="flex items-center gap-1">
-          <Calendar className="w-3 h-3" />
-          Calendar {isPlatformActive('google_calendar') ? (
-            <CheckCircle className="w-3 h-3 text-green-500" />
-          ) : platformStatus['google_calendar']?.tokenExpired ? (
-            <AlertCircle className="w-3 h-3 text-amber-500" title="Token expired" />
-          ) : (
-            <AlertCircle className="w-3 h-3 text-orange-500" />
-          )}
-        </span>
-        <span className="flex items-center gap-1">
-          <Music className="w-3 h-3" />
-          Spotify {isPlatformActive('spotify') ? (
-            <CheckCircle className="w-3 h-3 text-green-500" />
-          ) : platformStatus['spotify']?.tokenExpired ? (
-            <AlertCircle className="w-3 h-3 text-amber-500" title="Token expired" />
-          ) : (
-            <AlertCircle className="w-3 h-3 text-orange-500" />
-          )}
-        </span>
+        {(() => {
+          const WhoopIcon = getPlatformLogo('whoop') || Activity;
+          const CalendarIcon = getPlatformLogo('google_calendar') || Calendar;
+          const SpotifyIcon = getPlatformLogo('spotify') || Music;
+          return (
+            <>
+              <span className="flex items-center gap-1">
+                <WhoopIcon className="w-3 h-3" />
+                Whoop {isPlatformActive('whoop') ? (
+                  <CheckCircle className="w-3 h-3 text-green-500" />
+                ) : platformStatus['whoop']?.tokenExpired ? (
+                  <AlertCircle className="w-3 h-3 text-amber-500" title="Token expired" />
+                ) : (
+                  <AlertCircle className="w-3 h-3 text-orange-500" />
+                )}
+              </span>
+              <span className="flex items-center gap-1">
+                <CalendarIcon className="w-3 h-3" />
+                Calendar {isPlatformActive('google_calendar') ? (
+                  <CheckCircle className="w-3 h-3 text-green-500" />
+                ) : platformStatus['google_calendar']?.tokenExpired ? (
+                  <AlertCircle className="w-3 h-3 text-amber-500" title="Token expired" />
+                ) : (
+                  <AlertCircle className="w-3 h-3 text-orange-500" />
+                )}
+              </span>
+              <span className="flex items-center gap-1">
+                <SpotifyIcon className="w-3 h-3" />
+                Spotify {isPlatformActive('spotify') ? (
+                  <CheckCircle className="w-3 h-3 text-green-500" />
+                ) : platformStatus['spotify']?.tokenExpired ? (
+                  <AlertCircle className="w-3 h-3 text-amber-500" title="Token expired" />
+                ) : (
+                  <AlertCircle className="w-3 h-3 text-orange-500" />
+                )}
+              </span>
+            </>
+          );
+        })()}
       </div>
 
       {/* Insights List */}

@@ -217,6 +217,7 @@ import aiRoutes from './routes/ai.js';
 import documentRoutes from './routes/documents.js';
 import twinsRoutes from './routes/twins.js';
 import twinChatRoutes from './routes/twin-chat.js';
+import chatUsageRoutes from './routes/chat-usage.js';
 import conversationsRoutes from './routes/conversations.js';
 import voiceRoutes from './routes/voice.js';
 import analyticsRoutes from './routes/analytics.js';
@@ -251,7 +252,7 @@ import soulSignatureRoutes from './routes/soul-signature.js';
 import soulInsightsRoutes from './routes/soul-insights.js';
 import testExtractionRoutes from './routes/test-extraction.js';
 import behavioralPatternsRoutes from './routes/behavioral-patterns.js';
-import gnnPatternsRoutes from './routes/gnn-patterns.js';
+// import gnnPatternsRoutes from './routes/gnn-patterns.js'; // ARCHIVED: Neo4j/GNN not active
 import orchestratorRoutes from './routes/orchestrator.js';
 import calendarOAuthRoutes from './routes/calendar-oauth.js';
 import spotifyOAuthRoutes from './routes/spotify-oauth.js';
@@ -284,6 +285,11 @@ import nangoRoutes from './routes/nango.js';
 import nangoWebhooksRoutes from './routes/nango-webhooks.js';
 import extensionDataRoutes from './routes/extension-data.js';
 import journalRoutes from './routes/journal.js';
+import adminLlmCostsRoutes from './routes/admin-llm-costs.js';
+import onboardingCalibrationRoutes from './routes/onboarding-calibration.js';
+import onboardingSoulSignatureRoutes from './routes/onboarding-soul-signature.js';
+import accountRoutes from './routes/account.js';
+import soulSignaturePublicRoutes from './routes/soul-signature-public.js';
 import { serverDb } from './services/database.js';
 import { sanitizeInput, validateContentType } from './middleware/sanitization.js';
 import { /* handleAuthError, */ handleGeneralError, handle404 } from './middleware/errorHandler.js';
@@ -296,6 +302,7 @@ app.use('/api/documents', documentRoutes);
 app.use('/api/twins', twinsRoutes);
 app.use('/api/twin', twinChatRoutes); // Legacy placeholder
 app.use('/api/chat', twinChatRoutes); // Chat with Twin endpoint (POST /api/chat/message)
+app.use('/api/chat', chatUsageRoutes); // Chat usage tracking (GET /api/chat/usage)
 app.use('/api/conversations', conversationsRoutes);
 app.use('/api/voice', voiceRoutes);
 app.use('/api/analytics', analyticsRoutes);
@@ -335,7 +342,7 @@ if (process.env.NODE_ENV === 'development') {
   app.use('/api/test-extraction', testExtractionRoutes); // Demo data extraction endpoints
 }
 app.use('/api/behavioral-patterns', behavioralPatternsRoutes); // Cross-platform behavioral pattern recognition
-app.use('/api/gnn-patterns', gnnPatternsRoutes); // GNN-based pattern detection with Neo4j and PyTorch Geometric
+// app.use('/api/gnn-patterns', gnnPatternsRoutes); // ARCHIVED: Neo4j/GNN not active
 app.use('/api/orchestrator', orchestratorRoutes); // Multi-agent AI orchestration system (Anthropic pattern)
 app.use('/api/oauth/calendar', calendarOAuthRoutes); // Google Calendar OAuth connect endpoint
 app.use('/api/calendar', calendarOAuthRoutes); // Calendar events and sync endpoints
@@ -347,6 +354,10 @@ if (process.env.NODE_ENV === 'development') {
   app.use('/api/test-pattern-learning', testPatternLearningRoutes); // Pattern learning test/debug endpoints
 }
 app.use('/api/onboarding', onboardingQuestionsRoutes); // Personality questionnaire for personalization
+app.use('/api/onboarding', onboardingCalibrationRoutes); // AI-driven calibration Q&A for cofounder.co-style onboarding
+app.use('/api/onboarding', onboardingSoulSignatureRoutes); // Instant soul signature from enrichment + calibration
+app.use('/api/account', accountRoutes); // Account deletion + data export
+app.use('/api/soul-signature', soulSignaturePublicRoutes); // Public share + visibility toggle
 app.use('/api/personality', personalityAssessmentRoutes); // Big Five personality assessment with 16personalities archetypes
 app.use('/api/big-five', bigFiveRoutes); // IPIP-NEO-120 Big Five assessment with T-score normalization
 app.use('/api/insights', platformInsightsRoutes); // Platform-specific conversational insights
@@ -371,6 +382,7 @@ app.use('/api/nango', nangoRoutes); // Nango unified API for 10 platform connect
 app.use('/api/nango-webhooks', nangoWebhooksRoutes); // Nango webhook receiver
 app.use('/api/extension', extensionDataRoutes); // Browser extension data capture (YouTube, Twitch, Netflix)
 app.use('/api/journal', journalRoutes); // Soul Journal - personal journaling with AI analysis
+app.use('/api/admin', adminLlmCostsRoutes); // LLM cost tracking dashboard
 
 // Vercel Cron Job endpoints (production automation)
 // These are called by Vercel Cron Jobs on schedule (configured in vercel.json)

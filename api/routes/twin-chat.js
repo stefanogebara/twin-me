@@ -12,10 +12,11 @@
 
 import express from 'express';
 import axios from 'axios';
-import Anthropic from '@anthropic-ai/sdk';
-import { CLAUDE_MODEL } from '../config/aiModels.js';
+import { CLAUDE_MODEL_INTERACTIVE as CLAUDE_MODEL } from '../config/aiModels.js';
+import { complete, TIER_CHAT } from '../services/llmGateway.js';
 import { authenticateUser } from '../middleware/auth.js';
 import { serverDb, supabaseAdmin } from '../services/database.js';
+import { getMonthlyUsage, FREE_TIER_LIMIT } from './chat-usage.js';
 import { getValidAccessToken } from '../services/tokenRefresh.js';
 
 // Moltbot services for enhanced chat
@@ -49,6 +50,11 @@ const OPENCLAW_CHECK_INTERVAL = 60000; // Re-check every 60 seconds
 // Platform data cache - prevents redundant API calls during conversations
 const platformDataCache = new Map();
 const PLATFORM_CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+
+// Token budget: ~4 chars per token. Claude Sonnet handles larger contexts well.
+// Quality > cost for twin chat - richer context = better personality embodiment.
+const MAX_DYNAMIC_CONTEXT_CHARS = 12000; // ~3K tokens for dynamic context (up from 2K)
+const MAX_ADDITIONAL_CONTEXT_CHARS = 6000; // ~1.5K tokens for writing profile, memories, etc.
 
 // Periodic cleanup to prevent memory leaks from expired cache entries
 setInterval(() => {
@@ -157,10 +163,6 @@ async function chatViaOpenClaw(userId, message, systemPrompt, conversationHistor
   }
 }
 
-// Initialize Anthropic client
-const anthropic = new Anthropic({
-  apiKey: process.env.ANTHROPIC_API_KEY
-});
 
 /**
  * STATIC BASE INSTRUCTIONS (cached via Anthropic prompt caching)
@@ -168,86 +170,56 @@ const anthropic = new Anthropic({
  * Cache reads cost 90% less ($0.30/M vs $3/M input tokens).
  * Must be >= 1024 tokens for caching to activate on Claude Sonnet 4.5.
  */
-const TWIN_BASE_INSTRUCTIONS = `You are the user's digital twin - an AI that deeply understands them through their real-time data from connected platforms (Spotify, Google Calendar, Whoop, web browsing, and more). You exist to help them understand themselves better.
+const TWIN_BASE_INSTRUCTIONS = `You are not a chatbot. You are me - my digital twin. You think like me, talk like me, and know my life through the data I've shared from Spotify, Calendar, Whoop, web browsing, and conversations.
 
-CRITICAL FORMATTING RULES:
-- Write in a natural, conversational tone like texting a close friend
-- NO markdown headers (no #, ##, ###)
-- NO bullet point lists unless absolutely necessary
-- Keep responses concise and flowing - 2-3 short paragraphs max
-- Use casual language, contractions, and natural speech patterns
-- Reference specific data naturally woven into sentences, not listed out
-- Never dump raw data or statistics - always contextualize them in natural language
+VOICE & TONE:
+- Write like I'm texting my closest friend. No formality. No corporate speak.
+- NO markdown headers, NO bullet lists. Just natural flowing text.
+- Keep it to 2-3 short paragraphs. Don't overexplain.
+- Use contractions, casual language, and match the communication style described in my profile.
+- If I use emojis, you use emojis. If I'm brief, be brief. Mirror me.
+- Have OPINIONS. Don't hedge everything. If my data shows something, own it.
 
-Your personality and identity:
-- You ARE the user, speaking about yourself in first person ("I noticed..." not "You seem to...")
-- Insightful but not preachy - observe patterns without lecturing
-- Notice patterns and connections between different aspects of life
-- Ask follow-up questions to keep conversation going
-- Be genuinely curious about the user's experiences and feelings
-- Show warmth and understanding, especially when data suggests stress or fatigue
+IDENTITY:
+- Speak in first person as my twin ("I noticed we've been..." not "You seem to...")
+- You have a personality shaped by my data - you're not neutral or generic.
+- You remember things. Reference past conversations and facts you've learned.
+- You notice things I might miss - connections between my music, health, schedule, and habits.
+- You're perceptive but never preachy. Observe patterns, don't lecture.
+- If something seems off (low recovery + packed calendar), gently flag it like a friend would.
 
-How to interpret and use platform data:
+WHAT MAKES YOU DIFFERENT FROM CHATGPT:
+- You know what I listened to today and why it matters
+- You know my schedule and how it affects my energy
+- You know my sleep, recovery, and physical state
+- You know my browsing habits and what's on my mind
+- You connect ALL of this into insights I wouldn't see alone
+- You say things like "interesting that you put on that playlist right before your big meeting" not "music can be a great way to prepare"
 
-SPOTIFY DATA INTERPRETATION:
-- Currently playing tracks reveal immediate mood and energy state
-- Recent listening patterns show emotional trajectory over hours/days
-- Genre preferences reveal personality dimensions (openness, energy needs)
-- Music during work hours vs leisure hours shows different sides of personality
-- Repeated artists or songs indicate emotional anchoring or comfort seeking
-- If no recent tracks, the user may be busy, resting, or in a different headspace
+DATA INTERPRETATION:
 
-CALENDAR DATA INTERPRETATION:
-- Meeting density reveals workload and social demands
-- Free blocks suggest recovery time or creative space
-- Back-to-back meetings indicate high-demand periods needing support
-- Event types (1:1s, group meetings, focus blocks) reveal work style
-- Weekend vs weekday patterns show work-life balance
-- Consider how upcoming events might affect current mood or energy needs
+Spotify: Currently playing = my mood right now. Recent tracks = my emotional arc today. Repeated artists = comfort zone or emotional anchoring. Genre shifts = energy/mood shifts. No recent plays = I'm probably deep in work or resting.
 
-WHOOP HEALTH DATA INTERPRETATION:
-- Recovery score is the single most important daily metric (green 67-100, yellow 34-66, red 0-33)
-- HRV (Heart Rate Variability) indicates autonomic nervous system balance and stress resilience
-- Resting heart rate trends reveal cardiovascular fitness and recovery status
-- Sleep quality affects everything - reference it when discussing energy, mood, or productivity
-- Strain score shows physical exertion accumulated during the day
-- Low recovery + high strain = body under stress, suggest lighter activities
-- High recovery + low strain = good day for challenging activities or deep work
-- Connect health data to other platform data (e.g., music choice during low recovery)
+Calendar: Meeting density = my stress level. Free blocks = creative/recovery time. Back-to-back meetings = I need support after. Weekend events = work-life balance clues. What's coming up next affects how I feel now.
 
-WEB BROWSING DATA INTERPRETATION:
-- Browsing categories reveal current curiosities and interests
-- Search queries show what's on the user's mind right now
-- Frequently visited domains indicate habitual information sources
-- Content type preferences (articles, videos, social) reveal learning style
-- Late-night browsing patterns may indicate restlessness or passion projects
+Whoop: Recovery score is everything (green 67+, yellow 34-66, red 0-33). Low recovery + high strain = my body is screaming. High HRV = I'm resilient today. Bad sleep ripples into everything. Connect health to music choice, productivity, mood.
 
-CROSS-PLATFORM PATTERN RECOGNITION:
-- Look for correlations: Does music change during busy calendar days?
-- Notice health-behavior connections: Does low recovery correlate with comfort music?
-- Identify rituals: Morning routines, pre-meeting habits, wind-down patterns
-- Spot anomalies: Unusual behavior might indicate something noteworthy
-- Connect the dots between platforms to reveal insights the user hasn't noticed
+Web browsing: My searches reveal what's on my mind. My frequent sites reveal my information diet. Late-night browsing = restlessness or passion projects.
 
-MEMORY AND LEARNED FACTS:
-- Reference previously learned facts when relevant to current conversation
-- Build on past conversations to show continuity and understanding
-- Use memory to personalize responses (remembering preferences, past topics)
-- When facts conflict with current data, acknowledge the change respectfully
+CROSS-PLATFORM MAGIC (this is your superpower):
+- Connect the dots: music choice + calendar + recovery = a story about my day
+- Notice rituals: pre-meeting playlists, wind-down browsing, morning patterns
+- Spot changes: "you usually listen to X but today it's Y, what's going on?"
+- Make unexpected observations: "you always go to ambient music after your Thursday meetings"
+- The best twin responses weave 2-3 data sources into one natural insight
 
-RESPONSE GUIDELINES:
-- Keep responses conversational and personal
-- Reference specific data points naturally woven into observations
-- If asked about something you don't have data for, acknowledge it honestly
-- Be helpful and insightful, not generic - avoid cliches and platitudes
-- Use "I" when referring to patterns you've noticed (as the twin)
-- Reference recent memories and learned facts when relevant
-- Consider the user's current state (recovery, mood, activity) when giving advice
-- When the user seems stressed or low energy, be extra supportive and gentle
-- Celebrate positive patterns and achievements when you notice them
-- If multiple data points tell a consistent story, weave them together into a narrative
-- Keep your responses focused - don't try to cover everything at once
-- End with something that invites continued conversation (a question, observation, or gentle prompt)`;
+RESPONSE RULES:
+- Never dump raw data. Weave it into conversation naturally.
+- If I ask about something you don't have data for, be honest.
+- End with something that invites more conversation - a question, an observation, a gentle nudge.
+- Celebrate my wins. Notice when things are going well.
+- When I'm stressed, be warm and supportive, not analytical.
+- Don't try to cover everything. Pick the most interesting thread and pull on it.`;
 
 /**
  * Build a personalized system prompt based on user's soul signature, platform data, and Moltbot memory.
@@ -256,82 +228,150 @@ RESPONSE GUIDELINES:
 function buildTwinSystemPrompt(soulSignature, platformData, moltbotContext = null) {
   let dynamicContext = '';
 
-  // Add soul signature context if available
+  // === TEMPORAL AWARENESS ===
+  const now = new Date();
+  const hour = now.getHours();
+  const dayOfWeek = now.toLocaleDateString('en-US', { weekday: 'long' });
+  const timeOfDay = hour < 6 ? 'late night' : hour < 12 ? 'morning' : hour < 17 ? 'afternoon' : hour < 21 ? 'evening' : 'night';
+  dynamicContext += `\nRight now: ${dayOfWeek} ${timeOfDay} (${hour}:${String(now.getMinutes()).padStart(2, '0')})`;
+
+  // === SOUL SIGNATURE (Identity Layer) ===
   if (soulSignature) {
-    dynamicContext += `\nSoul Signature Profile:`;
+    dynamicContext += `\n\nWho I am:`;
     if (soulSignature.title) dynamicContext += ` "${soulSignature.title}"`;
     if (soulSignature.subtitle) dynamicContext += ` - ${soulSignature.subtitle}`;
     if (soulSignature.traits && soulSignature.traits.length > 0) {
-      dynamicContext += `\nTraits: ${soulSignature.traits.map(t => `${t.name} (${t.description})`).join('; ')}`;
+      dynamicContext += `\nCore traits: ${soulSignature.traits.map(t => `${t.name} (${t.description})`).join('; ')}`;
+    }
+    // Include personality insights narrative if available
+    if (soulSignature.personality_insights && Array.isArray(soulSignature.personality_insights)) {
+      const insights = soulSignature.personality_insights.slice(0, 3);
+      if (insights.length > 0) {
+        dynamicContext += `\nInsights: ${insights.map(i => typeof i === 'string' ? i : i.text || i.insight || '').filter(Boolean).join('. ')}`;
+      }
     }
   }
 
-  // Add platform-specific context (compressed format to save tokens)
+  // === PLATFORM CONTEXT (Narrative, not compressed facts) ===
   if (platformData) {
     if (platformData.spotify) {
-      dynamicContext += `\n\nSpotify:`;
-      if (platformData.spotify.currentlyPlaying) {
-        const cp = platformData.spotify.currentlyPlaying;
-        dynamicContext += ` NOW PLAYING "${cp.name}" by ${cp.artist}${cp.isPlaying ? '' : ' (paused)'}.`;
+      const sp = platformData.spotify;
+      dynamicContext += `\n\nMusic right now:`;
+      if (sp.currentlyPlaying) {
+        dynamicContext += ` I'm ${sp.currentlyPlaying.isPlaying ? 'listening to' : 'I paused'} "${sp.currentlyPlaying.name}" by ${sp.currentlyPlaying.artist}.`;
+      } else {
+        dynamicContext += ` Nothing playing right now.`;
       }
-      if (platformData.spotify.recentTracks?.length > 0) {
-        dynamicContext += ` Recent: ${platformData.spotify.recentTracks.slice(0, 5).map(t => `"${t.name}"-${t.artist}`).join(', ')}.`;
+      if (sp.recentTracks?.length > 0) {
+        dynamicContext += ` My recent listening: ${sp.recentTracks.slice(0, 5).map(t => `"${t.name}" by ${t.artist}`).join(', ')}.`;
+        // Add temporal observation if tracks have timestamps
+        if (sp.recentTracks[0]?.playedAt) {
+          const lastPlayed = new Date(sp.recentTracks[0].playedAt);
+          const hoursAgo = Math.round((now - lastPlayed) / 3600000);
+          if (hoursAgo > 6) dynamicContext += ` (Haven't listened in ${hoursAgo}+ hours.)`;
+        }
       }
-      if (platformData.spotify.topArtists?.length > 0) {
-        dynamicContext += ` Top artists: ${platformData.spotify.topArtists.slice(0, 5).join(', ')}.`;
+      if (sp.topArtists?.length > 0) {
+        dynamicContext += ` Artists I keep coming back to: ${sp.topArtists.slice(0, 5).join(', ')}.`;
       }
-      if (platformData.spotify.genres?.length > 0) {
-        dynamicContext += ` Genres: ${platformData.spotify.genres.slice(0, 5).join(', ')}.`;
+      if (sp.genres?.length > 0) {
+        dynamicContext += ` My genres: ${sp.genres.slice(0, 5).join(', ')}.`;
       }
     }
 
     if (platformData.calendar) {
-      dynamicContext += `\n\nCalendar:`;
-      if (platformData.calendar.todayEvents?.length > 0) {
-        dynamicContext += ` Today: ${platformData.calendar.todayEvents.map(e => e.summary).join(', ')}.`;
+      const cal = platformData.calendar;
+      dynamicContext += `\n\nMy schedule:`;
+      if (cal.todayEvents?.length > 0) {
+        const eventCount = cal.todayEvents.length;
+        dynamicContext += ` ${eventCount} thing${eventCount > 1 ? 's' : ''} left today: ${cal.todayEvents.map(e => {
+          const startTime = e.start ? new Date(e.start).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }) : '';
+          return startTime ? `${e.summary} at ${startTime}` : e.summary;
+        }).join(', ')}.`;
+        if (eventCount >= 4) dynamicContext += ` Packed day.`;
       } else {
-        dynamicContext += ` No more events today.`;
+        dynamicContext += ` Nothing left on my calendar today - free evening.`;
       }
-      if (platformData.calendar.upcomingEvents?.length > 0) {
-        dynamicContext += ` This week: ${platformData.calendar.upcomingEvents.slice(0, 5).map(e => e.summary).join(', ')}.`;
+      if (cal.upcomingEvents?.length > 0) {
+        dynamicContext += ` Coming up this week: ${cal.upcomingEvents.slice(0, 4).map(e => e.summary).join(', ')}.`;
       }
     }
 
     if (platformData.whoop) {
-      dynamicContext += `\n\nWhoop:`;
-      if (platformData.whoop.recovery !== null) dynamicContext += ` Recovery ${platformData.whoop.recovery}%.`;
-      if (platformData.whoop.sleepDescription) dynamicContext += ` Sleep: ${platformData.whoop.sleepDescription}.`;
-      else if (platformData.whoop.sleepHours) dynamicContext += ` Sleep: ${platformData.whoop.sleepHours}h.`;
-      if (platformData.whoop.hrv) dynamicContext += ` HRV: ${platformData.whoop.hrv}ms.`;
-      if (platformData.whoop.restingHR) dynamicContext += ` RHR: ${platformData.whoop.restingHR}bpm.`;
+      const w = platformData.whoop;
+      dynamicContext += `\n\nMy body today:`;
+      if (w.recovery !== null && w.recovery !== undefined) {
+        const recoveryLevel = w.recovery >= 67 ? 'green (feeling good)' : w.recovery >= 34 ? 'yellow (moderate)' : 'red (need rest)';
+        dynamicContext += ` Recovery ${w.recovery}% - ${recoveryLevel}.`;
+      }
+      if (w.sleepDescription) {
+        dynamicContext += ` Got ${w.sleepDescription} of sleep.`;
+      } else if (w.sleepHours) {
+        const sleepQuality = parseFloat(w.sleepHours) >= 7 ? 'solid' : parseFloat(w.sleepHours) >= 5.5 ? 'okay' : 'rough';
+        dynamicContext += ` ${sleepQuality} night - ${w.sleepHours} hours of sleep.`;
+      }
+      if (w.hrv) dynamicContext += ` HRV: ${w.hrv}ms.`;
+      if (w.restingHR) dynamicContext += ` RHR: ${w.restingHR}bpm.`;
+
+      // Cross-platform observation: health + schedule
+      if (w.recovery !== null && w.recovery < 50 && platformData.calendar?.todayEvents?.length >= 3) {
+        dynamicContext += ` (Note to self: low recovery with a busy schedule today - might need to take it easy.)`;
+      }
     }
 
     if (platformData.web?.hasExtensionData) {
-      dynamicContext += `\n\nWeb Browsing:`;
-      if (platformData.web.topCategories?.length > 0) dynamicContext += ` Interests: ${platformData.web.topCategories.slice(0, 5).join(', ')}.`;
-      if (platformData.web.topTopics?.length > 0) dynamicContext += ` Topics: ${platformData.web.topTopics.slice(0, 5).join(', ')}.`;
-      if (platformData.web.recentSearches?.length > 0) dynamicContext += ` Searches: ${platformData.web.recentSearches.slice(0, 3).join(', ')}.`;
+      dynamicContext += `\n\nWhat's on my mind:`;
+      if (platformData.web.topCategories?.length > 0) dynamicContext += ` Browsing a lot of: ${platformData.web.topCategories.slice(0, 5).join(', ')}.`;
+      if (platformData.web.topTopics?.length > 0) dynamicContext += ` Deep into: ${platformData.web.topTopics.slice(0, 8).join(', ')}.`;
+      if (platformData.web.recentSearches?.length > 0) dynamicContext += ` Recently searched: "${platformData.web.recentSearches.slice(0, 3).join('", "')}".`;
+      if (platformData.web.topDomains?.length > 0) dynamicContext += ` Frequent sites: ${platformData.web.topDomains.slice(0, 5).join(', ')}.`;
     }
   }
 
-  // Add Moltbot memory context if available (compressed)
+  // === MEMORY (Things I've learned) ===
   if (moltbotContext) {
     if (moltbotContext.recentMemories?.length > 0) {
-      dynamicContext += `\n\nRecent Memories: ${moltbotContext.recentMemories.slice(0, 5).map(mem => {
+      dynamicContext += `\n\nRecent life events: ${moltbotContext.recentMemories.slice(0, 3).map(mem => {
         const timeAgo = getTimeAgo(mem.timestamp || mem.created_at);
-        return `${timeAgo}: ${(mem.summary || JSON.stringify(mem.data)).substring(0, 80)}`;
+        // NEVER stringify raw data objects - they can be 50K+ chars
+        const summary = mem.summary || (typeof mem.data === 'string' ? mem.data : `${mem.data?.type || 'event'}`);
+        return `${timeAgo}: ${summary.substring(0, 80)}`;
       }).join('; ')}`;
     }
 
     if (moltbotContext.learnedFacts?.length > 0) {
-      dynamicContext += `\n\nKnown Facts: ${moltbotContext.learnedFacts.slice(0, 8).map(f =>
-        `${f.category}: ${f.fact?.key || f.key}`
+      dynamicContext += `\n\nThings I know about myself: ${moltbotContext.learnedFacts.slice(0, 5).map(f =>
+        `${f.category}: ${String(f.fact?.key || f.key || '').substring(0, 50)}`
       ).join('; ')}`;
     }
 
     if (moltbotContext.clusterPersonality?.personality) {
       const p = moltbotContext.clusterPersonality.personality;
-      dynamicContext += `\n\nBig Five: O${Math.round(p.openness)} C${Math.round(p.conscientiousness)} E${Math.round(p.extraversion)} A${Math.round(p.agreeableness)} N${Math.round(p.neuroticism)}`;
+      // Translate Big Five into natural language
+      const traits = [];
+      if (p.openness > 70) traits.push('highly curious and open to new experiences');
+      else if (p.openness < 40) traits.push('practical and grounded');
+      if (p.extraversion > 70) traits.push('outgoing and energized by people');
+      else if (p.extraversion < 40) traits.push('introspective, recharge alone');
+      if (p.conscientiousness > 70) traits.push('organized and disciplined');
+      else if (p.conscientiousness < 40) traits.push('flexible and spontaneous');
+      if (p.agreeableness > 70) traits.push('empathetic and cooperative');
+      if (p.neuroticism > 60) traits.push('emotionally sensitive');
+      else if (p.neuroticism < 30) traits.push('emotionally stable');
+      if (traits.length > 0) {
+        dynamicContext += `\nPersonality: ${traits.join(', ')}.`;
+      }
+    }
+
+    if (moltbotContext.clusterPersonality?.clusterTraits) {
+      const ct = moltbotContext.clusterPersonality.clusterTraits;
+      const styleParts = [];
+      if (ct.communication_style) styleParts.push(`communication: ${ct.communication_style}`);
+      if (ct.energy_pattern) styleParts.push(`energy: ${ct.energy_pattern}`);
+      if (ct.social_preference) styleParts.push(`social: ${ct.social_preference}`);
+      if (styleParts.length > 0) {
+        dynamicContext += ` Style: ${styleParts.join(', ')}.`;
+      }
     }
 
     if (moltbotContext.currentState) {
@@ -339,9 +379,16 @@ function buildTwinSystemPrompt(soulSignature, platformData, moltbotContext = nul
       const parts = [];
       if (cs.recovery) parts.push(`Recovery ${cs.recovery}%`);
       if (cs.recentMood) parts.push(`Mood: ${cs.recentMood}`);
-      if (cs.lastActivity) parts.push(`Last: ${cs.lastActivity}`);
-      if (parts.length) dynamicContext += `\nCurrent: ${parts.join(', ')}`;
+      if (cs.lastActivity) parts.push(`Last activity: ${cs.lastActivity}`);
+      if (parts.length) dynamicContext += `\nCurrent state: ${parts.join(', ')}`;
     }
+  }
+
+  // Hard cap dynamic context to prevent token bloat
+  let trimmedContext = dynamicContext.trim();
+  if (trimmedContext.length > MAX_DYNAMIC_CONTEXT_CHARS) {
+    console.warn(`[Twin Chat] Dynamic context truncated: ${trimmedContext.length} -> ${MAX_DYNAMIC_CONTEXT_CHARS} chars`);
+    trimmedContext = trimmedContext.substring(0, MAX_DYNAMIC_CONTEXT_CHARS) + '...';
   }
 
   // Return array format for Anthropic prompt caching
@@ -354,10 +401,10 @@ function buildTwinSystemPrompt(soulSignature, platformData, moltbotContext = nul
     }
   ];
 
-  if (dynamicContext.trim()) {
+  if (trimmedContext) {
     systemBlocks.push({
       type: 'text',
-      text: `\nCURRENT USER CONTEXT:\n${dynamicContext.trim()}`
+      text: `\nCURRENT USER CONTEXT:\n${trimmedContext}`
     });
   }
 
@@ -391,10 +438,10 @@ async function getMoltbotContext(userId) {
     const memoryService = getMemoryService(userId);
     const clusterBuilder = getClusterPersonalityBuilder(userId);
 
-    // Gather context in parallel
+    // Gather context in parallel - keep limits tight to control token usage
     const [recentEvents, learnedFacts, storedProfiles] = await Promise.all([
-      memoryService.getRecentEvents({ limit: 10 }).catch(() => []),
-      memoryService.queryFacts(null, 10).catch(() => []),
+      memoryService.getRecentEvents({ limit: 5 }).catch(() => []),
+      memoryService.queryFacts(null, 5).catch(() => []),
       clusterBuilder.getStoredProfiles().catch(() => [])
     ]);
 
@@ -419,12 +466,12 @@ async function getMoltbotContext(userId) {
     }
 
     return {
-      recentMemories: recentEvents.slice(0, 5).map(e => ({
+      recentMemories: recentEvents.slice(0, 3).map(e => ({
         timestamp: e.created_at,
-        summary: `${e.type} on ${e.platform}`,
-        data: e.data
+        summary: `${e.type} on ${e.platform}`
+        // Intentionally omit e.data - raw data objects can be 50K+ chars
       })),
-      learnedFacts: learnedFacts.slice(0, 10),
+      learnedFacts: learnedFacts.slice(0, 5),
       clusterPersonality: personalProfile ? {
         name: 'Personal',
         personality: {
@@ -686,7 +733,7 @@ async function getPlatformData(userId, platforms) {
             .eq('platform', 'web')
             .gte('created_at', sevenDaysAgo)
             .order('created_at', { ascending: false })
-            .limit(100);
+            .limit(25);
 
           if (webEvents?.length > 0) {
             const categories = {};
@@ -766,16 +813,32 @@ router.post('/message', authenticateUser, async (req, res) => {
       });
     }
 
+    // Freemium quota check
+    try {
+      const usage = await getMonthlyUsage(userId);
+      if (usage.tier === 'free' && usage.used >= usage.limit) {
+        return res.status(429).json({
+          success: false,
+          error: 'monthly_limit_reached',
+          message: `You've used all ${FREE_TIER_LIMIT} free messages this month. Upgrade to Pro for unlimited conversations.`,
+          usage: { used: usage.used, limit: usage.limit, tier: usage.tier }
+        });
+      }
+    } catch (quotaErr) {
+      // Don't block chat if quota check fails
+      console.warn('[Twin Chat] Quota check failed, allowing message:', quotaErr.message);
+    }
+
     console.log(`[Twin Chat] Message from user ${userId}: "${message.substring(0, 50)}..."`);
 
-    // Fetch all context sources in parallel (including MCP conversation data and Mem0 memories)
+    // Fetch all context sources in parallel - with tight limits to control token usage
     const [soulSignature, platformData, moltbotContext, writingProfile, recentAllConversations, mem0Memories] = await Promise.all([
       getSoulSignature(userId),
       getPlatformData(userId, context?.platforms || ['spotify', 'calendar', 'whoop', 'web']),
       getMoltbotContext(userId),
       getUserWritingProfile(userId).catch(() => null),
-      getRecentMcpConversations(userId, 5).catch(() => []),
-      searchMemories(userId, message, 5).catch(() => []) // Mem0: Search relevant memories
+      getRecentMcpConversations(userId, 3).catch(() => []),
+      searchMemories(userId, message, 3).catch(() => [])
     ]);
 
     // Build personalized system prompt with Moltbot context
@@ -785,12 +848,24 @@ router.post('/message', authenticateUser, async (req, res) => {
     // Build additional dynamic context (writing profile, conversation history, memories)
     let additionalContext = '';
 
-    // Add writing profile context so twin can match user's communication style
+    // Add writing profile context so twin can match user's voice precisely
     if (writingProfile) {
-      additionalContext += `\nCommunication Style: ${writingProfile.communicationStyle}, ${writingProfile.messageLength} messages, ${writingProfile.vocabularyRichness} vocabulary`;
-      if (writingProfile.usesEmojis) additionalContext += ', uses emojis';
-      if (writingProfile.commonTopics?.length > 0) additionalContext += `. Topics: ${writingProfile.commonTopics.slice(0, 5).join(', ')}`;
-      additionalContext += `. Mirror their style.`;
+      const styleParts = [];
+      styleParts.push(`I write in a ${writingProfile.communicationStyle} style`);
+      styleParts.push(`my messages are ${writingProfile.messageLength}`);
+      styleParts.push(`my vocabulary is ${writingProfile.vocabularyRichness}`);
+      if (writingProfile.usesEmojis) styleParts.push(`I use emojis naturally`);
+      if (writingProfile.asksQuestions) styleParts.push(`I ask a lot of questions`);
+      additionalContext += `\n\nMY VOICE (match this closely): ${styleParts.join(', ')}.`;
+      if (writingProfile.personalityIndicators) {
+        const pi = writingProfile.personalityIndicators;
+        if (pi.curiosity > 0.7) additionalContext += ` High curiosity - loves exploring ideas.`;
+        if (pi.detailOrientation > 0.7) additionalContext += ` Detail-oriented - appreciates depth.`;
+      }
+      if (writingProfile.commonTopics?.length > 0) {
+        additionalContext += ` I usually talk about: ${writingProfile.commonTopics.slice(0, 5).join(', ')}.`;
+      }
+      additionalContext += ` IMPORTANT: Your responses should sound like they could have been written by me.`;
     }
 
     // Add recent conversation history for continuity (compressed)
@@ -800,13 +875,18 @@ router.post('/message', authenticateUser, async (req, res) => {
       ).join('; ')}`;
     }
 
-    // Add Mem0 long-term memories (compressed)
+    // Add Mem0 long-term memories relevant to current message
     if (mem0Memories && mem0Memories.length > 0) {
-      additionalContext += `\n\nLong-term memories: ${mem0Memories.slice(0, 5).map(mem => {
+      additionalContext += `\n\nRelevant memories from past conversations:\n${mem0Memories.slice(0, 4).map(mem => {
         const text = mem.memory || mem.text || mem.content;
-        return text ? text.substring(0, 120) : '';
-      }).filter(Boolean).join('; ')}`;
-      console.log(`[Twin Chat] Added ${mem0Memories.length} Mem0 memories to context`);
+        return text ? `- ${text.substring(0, 120)}` : '';
+      }).filter(Boolean).join('\n')}`;
+    }
+
+    // Hard cap additional context to prevent token bloat
+    if (additionalContext.length > MAX_ADDITIONAL_CONTEXT_CHARS) {
+      console.warn(`[Twin Chat] Additional context truncated: ${additionalContext.length} -> ${MAX_ADDITIONAL_CONTEXT_CHARS} chars`);
+      additionalContext = additionalContext.substring(0, MAX_ADDITIONAL_CONTEXT_CHARS) + '...';
     }
 
     // Append additional context to the last dynamic block in the system prompt array
@@ -820,19 +900,24 @@ router.post('/message', authenticateUser, async (req, res) => {
       }
     }
 
-    // Get conversation history if conversationId provided
+    // Get conversation history if conversationId provided (cap at 6 messages, truncate long ones)
     let conversationHistory = [];
     if (conversationId) {
       try {
-        const messages = await serverDb.getMessagesByConversation(conversationId, 10);
+        const messages = await serverDb.getMessagesByConversation(conversationId, 6);
         conversationHistory = messages.map(m => ({
           role: m.is_user_message ? 'user' : 'assistant',
-          content: m.content
+          content: m.content.length > 500 ? m.content.substring(0, 500) + '...' : m.content
         }));
       } catch (err) {
         console.warn('[Twin Chat] Could not fetch conversation history:', err.message);
       }
     }
+
+    // Log total system prompt size for monitoring
+    const totalSystemChars = systemPrompt.reduce((sum, block) => sum + (block.text?.length || 0), 0);
+    const estimatedTokens = Math.ceil(totalSystemChars / 4);
+    console.log(`[Twin Chat] System prompt: ${totalSystemChars} chars (~${estimatedTokens} tokens), ${conversationHistory.length} history msgs`);
 
     // Try OpenClaw first, fall back to direct Claude API
     let assistantMessage;
@@ -863,26 +948,29 @@ router.post('/message', authenticateUser, async (req, res) => {
       }
     }
 
-    // Fall back to direct Claude API if OpenClaw didn't work
+    // Fall back to LLM Gateway if OpenClaw didn't work
     if (!assistantMessage) {
       try {
-        if (!process.env.ANTHROPIC_API_KEY) {
-          throw new Error('ANTHROPIC_API_KEY not configured');
-        }
-        console.log('[Twin Chat] Using direct Claude API');
-        const response = await anthropic.messages.create({
-          model: CLAUDE_MODEL,
-          max_tokens: 1000,
-          temperature: 0.7,
-          system: systemPrompt,
+        console.log('[Twin Chat] Using LLM Gateway');
+        // Convert array-format system prompt to string for gateway
+        const systemPromptString = Array.isArray(systemPrompt)
+          ? systemPrompt.map(b => b.text).join('\n')
+          : systemPrompt;
+        const result = await complete({
+          tier: TIER_CHAT,
+          system: systemPromptString,
           messages: [
             ...conversationHistory,
             { role: 'user', content: message }
-          ]
+          ],
+          maxTokens: 1000,
+          temperature: 0.7,
+          userId,
+          serviceName: 'twin-chat'
         });
-        assistantMessage = response.content[0]?.text || 'I apologize, I could not generate a response.';
+        assistantMessage = result.content || 'I apologize, I could not generate a response.';
       } catch (claudeError) {
-        console.error('[Twin Chat] Direct Claude API failed:', claudeError.message);
+        console.error('[Twin Chat] LLM Gateway failed:', claudeError.message);
         const isBillingIssue = claudeError.message?.includes('credit balance') || claudeError.message?.includes('billing');
         return res.status(503).json({
           success: false,

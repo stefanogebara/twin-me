@@ -2,6 +2,7 @@ import React from 'react';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Music, Film, Gamepad2, Book, Briefcase, Mail, Code, Linkedin } from 'lucide-react';
+import { getPlatformLogo } from '@/components/PlatformLogos';
 import { useTheme } from '@/contexts/ThemeContext';
 
 interface RootsVsBranchesProps {
@@ -24,13 +25,13 @@ export const RootsVsBranches: React.FC<RootsVsBranchesProps> = ({
 
   const getPlatformIcon = (platform: string) => {
     const lower = platform.toLowerCase();
-    if (lower.includes('spotify') || lower.includes('music')) return Music;
+    // Try real SVG logo first
+    const logo = getPlatformLogo(lower);
+    if (logo) return logo;
+    // Fallback to Lucide for unknown platforms
     if (lower.includes('netflix') || lower.includes('film')) return Film;
     if (lower.includes('game') || lower.includes('steam')) return Gamepad2;
     if (lower.includes('book') || lower.includes('read')) return Book;
-    if (lower.includes('linkedin')) return Linkedin;
-    if (lower.includes('mail') || lower.includes('gmail')) return Mail;
-    if (lower.includes('github') || lower.includes('code')) return Code;
     if (lower.includes('brief') || lower.includes('work')) return Briefcase;
     return Music;
   };

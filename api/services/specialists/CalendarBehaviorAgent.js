@@ -24,7 +24,6 @@ class CalendarBehaviorAgent extends SpecialistAgentBase {
       role: 'Calendar behavior analyst studying time management patterns',
       domain: 'calendar',
       domainLabel: 'Calendar Behavior Analysis',
-      model: 'claude-sonnet-4-20250514',
       maxTokens: 4096,
       temperature: 0.4,
       confidenceThreshold: 0.15

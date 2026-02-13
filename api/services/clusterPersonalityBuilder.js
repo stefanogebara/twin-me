@@ -45,7 +45,7 @@ const CLUSTER_DEFINITIONS = {
   professional: {
     name: 'Professional',
     description: 'Work, career, and professional development',
-    platforms: ['gmail', 'calendar', 'github', 'linkedin', 'slack', 'teams'],
+    platforms: ['gmail', 'calendar', 'github', 'linkedin', 'slack', 'teams', 'outlook'],
     traits: ['communication_style', 'work_pattern', 'collaboration_preference']
   },
   health: {

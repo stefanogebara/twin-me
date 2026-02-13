@@ -139,15 +139,18 @@ export const Sidebar: React.FC<SidebarProps> = ({ onNavigate }) => {
                 aria-current={active ? 'page' : undefined}
                 className={`
                   w-full flex items-center gap-3 px-3 py-2.5 rounded-lg
-                  transition-all duration-150 group
+                  transition-all duration-150 group relative
                   ${active
-                    ? 'bg-[hsl(var(--claude-surface-raised))] text-[hsl(var(--claude-accent))]'
-                    : 'text-[hsl(var(--claude-text-muted))] hover:bg-[hsl(var(--claude-surface-raised))] hover:text-[hsl(var(--claude-text))]'
+                    ? 'bg-[hsl(var(--claude-surface-raised))] text-[hsl(var(--claude-text))] shadow-sm'
+                    : 'text-[hsl(var(--claude-text-muted))] hover:bg-[hsl(var(--claude-surface-raised))]/60 hover:text-[hsl(var(--claude-text))]'
                   }
                 `}
               >
+                {active && (
+                  <div className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 rounded-r-full bg-[hsl(var(--claude-text))]" />
+                )}
                 <Icon
-                  className={`w-5 h-5 ${active ? 'text-[hsl(var(--claude-accent))]' : ''}`}
+                  className={`w-5 h-5 transition-colors ${active ? 'text-[hsl(var(--claude-text))]' : 'group-hover:text-[hsl(var(--claude-text))]'}`}
                   aria-hidden="true"
                 />
                 <span className="text-sm font-medium">{item.label}</span>
@@ -173,15 +176,18 @@ export const Sidebar: React.FC<SidebarProps> = ({ onNavigate }) => {
                 aria-current={active ? 'page' : undefined}
                 className={`
                   w-full flex items-center gap-3 px-3 py-2.5 rounded-lg
-                  transition-all duration-150
+                  transition-all duration-150 relative
                   ${active
-                    ? 'bg-[hsl(var(--claude-surface-raised))] text-[hsl(var(--claude-accent))]'
-                    : 'text-[hsl(var(--claude-text-muted))] hover:bg-[hsl(var(--claude-surface-raised))] hover:text-[hsl(var(--claude-text))]'
+                    ? 'bg-[hsl(var(--claude-surface-raised))] text-[hsl(var(--claude-text))] shadow-sm'
+                    : 'text-[hsl(var(--claude-text-muted))] hover:bg-[hsl(var(--claude-surface-raised))]/60 hover:text-[hsl(var(--claude-text))]'
                   }
                 `}
               >
+                {active && (
+                  <div className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 rounded-r-full bg-[hsl(var(--claude-text))]" />
+                )}
                 <Icon
-                  className={`w-5 h-5 ${active ? 'text-[hsl(var(--claude-accent))]' : ''}`}
+                  className={`w-5 h-5 ${active ? 'text-[hsl(var(--claude-text))]' : ''}`}
                   aria-hidden="true"
                 />
                 <span className="text-sm font-medium">{item.label}</span>

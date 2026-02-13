@@ -17,19 +17,11 @@
  * - Color scheme for visualization
  */
 
-import Anthropic from '@anthropic-ai/sdk';
+import { complete, TIER_ANALYSIS } from './llmGateway.js';
 import { supabaseAdmin } from './database.js';
 import personalityAnalyzerService from './personalityAnalyzerService.js';
-import { CLAUDE_MODEL } from '../config/aiModels.js';
-
-const anthropic = new Anthropic({
-  apiKey: process.env.ANTHROPIC_API_KEY,
-});
 
 class SoulSignatureGenerator {
-  constructor() {
-    this.MODEL = CLAUDE_MODEL;
-  }
 
   /**
    * Generate complete soul signature for a user
@@ -198,16 +190,17 @@ Respond ONLY with JSON in this exact format (no markdown):
 }`;
 
     try {
-      const message = await anthropic.messages.create({
-        model: this.MODEL,
-        max_tokens: 2048,
+      const result = await complete({
+        tier: TIER_ANALYSIS,
         messages: [{
           role: 'user',
           content: prompt
-        }]
+        }],
+        maxTokens: 2048,
+        serviceName: 'soulSignatureGenerator'
       });
 
-      let responseText = message.content[0].text.trim();
+      let responseText = result.content.trim();
       console.log(`📝 [Soul Signature] Claude generated archetype`);
 
       // Strip markdown code blocks if present

@@ -1,131 +1,119 @@
-import React, { createContext, useContext, useCallback, useEffect } from 'react';
+import React, { createContext, useContext, useCallback, useEffect, useRef } from 'react';
+import posthog from 'posthog-js';
 import { useAuth } from './AuthContext';
 
-export interface AnalyticsEvent {
-  event_type: string;
-  event_data: Record<string, unknown>;
-  user_id?: string;
-  session_id: string;
-  timestamp: Date;
-  page_url: string;
-  user_agent: string;
-  referrer?: string;
+// ─── PostHog Initialization ─────────────────────────────────────
+const POSTHOG_KEY = import.meta.env.VITE_POSTHOG_KEY;
+const POSTHOG_HOST = import.meta.env.VITE_POSTHOG_HOST || 'https://us.i.posthog.com';
+
+let posthogInitialized = false;
+
+export function initPostHog() {
+  if (posthogInitialized || !POSTHOG_KEY) return;
+  posthog.init(POSTHOG_KEY, {
+    api_host: POSTHOG_HOST,
+    capture_pageview: false,     // We handle pageviews via React Router
+    capture_pageleave: true,
+    autocapture: true,           // Auto-capture clicks, inputs, form submits
+    persistence: 'localStorage',
+    loaded: (ph) => {
+      if (import.meta.env.DEV) {
+        console.log('[PostHog] initialized');
+      }
+    },
+  });
+  posthogInitialized = true;
 }
 
+// ─── Context Interface ──────────────────────────────────────────
 interface AnalyticsContextType {
-  trackEvent: (eventType: string, eventData?: Record<string, unknown>) => Promise<void>;
-  trackPageView: (pagePath: string) => Promise<void>;
-  trackUserAction: (action: string, target: string, metadata?: Record<string, unknown>) => Promise<void>;
-  trackConversation: (twinId: string, messageCount: number, duration: number) => Promise<void>;
-  trackTwinInteraction: (twinId: string, interactionType: string, metadata?: Record<string, unknown>) => Promise<void>;
+  trackEvent: (eventType: string, eventData?: Record<string, unknown>) => void;
+  trackPageView: (pagePath: string) => void;
+  trackUserAction: (action: string, target: string, metadata?: Record<string, unknown>) => void;
+  trackConversation: (twinId: string, messageCount: number, duration: number) => void;
+  trackTwinInteraction: (twinId: string, interactionType: string, metadata?: Record<string, unknown>) => void;
+  trackFunnel: (step: string, metadata?: Record<string, unknown>) => void;
 }
 
 const AnalyticsContext = createContext<AnalyticsContextType | undefined>(undefined);
 
-let sessionId: string;
-
-const generateSessionId = (): string => {
-  return `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-};
-
-const getSessionId = (): string => {
-  if (!sessionId) {
-    sessionId = generateSessionId();
-  }
-  return sessionId;
-};
-
+// ─── Provider ───────────────────────────────────────────────────
 export const AnalyticsProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { user } = useAuth();
+  const { user, isDemoMode } = useAuth();
+  const identifiedRef = useRef<string | null>(null);
 
-  const sendAnalyticsEvent = async (event: Omit<AnalyticsEvent, 'timestamp' | 'session_id' | 'page_url' | 'user_agent' | 'referrer'>) => {
-    // Analytics temporarily disabled - no backend endpoints implemented yet
-    // TODO: Implement analytics backend endpoints before re-enabling
-    return;
-  };
-
-  const trackEvent = useCallback(async (eventType: string, eventData: Record<string, unknown> = {}) => {
-    await sendAnalyticsEvent({
-      event_type: eventType,
-      event_data: {
-        ...eventData,
-        timestamp: new Date().toISOString()
-      }
-    });
-  }, [user]);
-
-  const trackPageView = useCallback(async (pagePath: string) => {
-    await sendAnalyticsEvent({
-      event_type: 'page_view',
-      event_data: {
-        page: pagePath,
-        title: document.title
-      }
-    });
-  }, [user]);
-
-  const trackUserAction = useCallback(async (action: string, target: string, metadata: Record<string, unknown> = {}) => {
-    await sendAnalyticsEvent({
-      event_type: 'user_action',
-      event_data: {
-        action,
-        target,
-        ...metadata
-      }
-    });
-  }, [user]);
-
-  const trackConversation = useCallback(async (twinId: string, messageCount: number, duration: number) => {
-    await sendAnalyticsEvent({
-      event_type: 'conversation_session',
-      event_data: {
-        twin_id: twinId,
-        message_count: messageCount,
-        duration_seconds: duration,
-        engagement_level: messageCount > 10 ? 'high' : messageCount > 5 ? 'medium' : 'low'
-      }
-    });
-  }, [user]);
-
-  const trackTwinInteraction = useCallback(async (twinId: string, interactionType: string, metadata: Record<string, unknown> = {}) => {
-    await sendAnalyticsEvent({
-      event_type: 'twin_interaction',
-      event_data: {
-        twin_id: twinId,
-        interaction_type: interactionType,
-        ...metadata
-      }
-    });
-  }, [user]);
-
+  // Identify user in PostHog when auth changes
   useEffect(() => {
-    const currentPath = window.location.pathname;
-    trackPageView(currentPath);
+    if (!POSTHOG_KEY) return;
+    if (isDemoMode) return;
 
-    const handleBeforeUnload = () => {
-      // Use Blob with correct content type to avoid 415 Unsupported Media Type
-      const data = JSON.stringify({
-        session_id: getSessionId(),
-        user_id: user?.id,
-        end_time: new Date().toISOString()
+    if (user?.id && identifiedRef.current !== user.id) {
+      posthog.identify(user.id, {
+        email: user.email,
+        name: user.name || user.full_name,
+        created_at: user.created_at,
       });
-      const blob = new Blob([data], { type: 'application/json' });
-      navigator.sendBeacon('/api/analytics/session-end', blob);
-    };
+      identifiedRef.current = user.id;
+    } else if (!user?.id && identifiedRef.current) {
+      posthog.reset();
+      identifiedRef.current = null;
+    }
+  }, [user?.id, user?.email, user?.name, user?.full_name, user?.created_at, isDemoMode]);
 
-    window.addEventListener('beforeunload', handleBeforeUnload);
+  const isEnabled = useCallback(() => {
+    return !!POSTHOG_KEY && !isDemoMode;
+  }, [isDemoMode]);
 
-    return () => {
-      window.removeEventListener('beforeunload', handleBeforeUnload);
-    };
-  }, [trackPageView, user]);
+  const trackEvent = useCallback((eventType: string, eventData: Record<string, unknown> = {}) => {
+    if (!isEnabled()) return;
+    posthog.capture(eventType, eventData);
+  }, [isEnabled]);
+
+  const trackPageView = useCallback((pagePath: string) => {
+    if (!isEnabled()) return;
+    posthog.capture('$pageview', {
+      $current_url: window.location.origin + pagePath,
+      path: pagePath,
+      title: document.title,
+    });
+  }, [isEnabled]);
+
+  const trackUserAction = useCallback((action: string, target: string, metadata: Record<string, unknown> = {}) => {
+    if (!isEnabled()) return;
+    posthog.capture('user_action', { action, target, ...metadata });
+  }, [isEnabled]);
+
+  const trackConversation = useCallback((twinId: string, messageCount: number, duration: number) => {
+    if (!isEnabled()) return;
+    posthog.capture('conversation_session', {
+      twin_id: twinId,
+      message_count: messageCount,
+      duration_seconds: duration,
+      engagement_level: messageCount > 10 ? 'high' : messageCount > 5 ? 'medium' : 'low',
+    });
+  }, [isEnabled]);
+
+  const trackTwinInteraction = useCallback((twinId: string, interactionType: string, metadata: Record<string, unknown> = {}) => {
+    if (!isEnabled()) return;
+    posthog.capture('twin_interaction', {
+      twin_id: twinId,
+      interaction_type: interactionType,
+      ...metadata,
+    });
+  }, [isEnabled]);
+
+  const trackFunnel = useCallback((step: string, metadata: Record<string, unknown> = {}) => {
+    if (!isEnabled()) return;
+    posthog.capture(step, metadata);
+  }, [isEnabled]);
 
   const value: AnalyticsContextType = {
     trackEvent,
     trackPageView,
     trackUserAction,
     trackConversation,
-    trackTwinInteraction
+    trackTwinInteraction,
+    trackFunnel,
   };
 
   return (
@@ -135,6 +123,7 @@ export const AnalyticsProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   );
 };
 
+// ─── Hook ───────────────────────────────────────────────────────
 export const useAnalytics = () => {
   const context = useContext(AnalyticsContext);
   if (!context) {

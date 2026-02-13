@@ -14,6 +14,9 @@ import soulSignatureBuilder from './soulSignatureBuilder.js';
 import spotifyFeatureExtractor from './featureExtractors/spotifyExtractor.js';
 import whoopFeatureExtractor from './featureExtractors/whoopExtractor.js';
 import calendarFeatureExtractor from './featureExtractors/calendarExtractor.js';
+import gmailFeatureExtractor from './featureExtractors/gmailFeatureExtractor.js';
+import outlookFeatureExtractor from './featureExtractors/outlookFeatureExtractor.js';
+import linkedinFeatureExtractor from './featureExtractors/linkedinFeatureExtractor.js';
 // Pattern Learning Bridge
 import patternLearningBridge from './patternLearningBridge.js';
 
@@ -209,9 +212,63 @@ class ExtractionOrchestrator {
           break;
         }
 
+        case 'gmail':
+        case 'google_gmail':
+          // Use feature extractor for Gmail
+          try {
+            const gmailFeatures = await gmailFeatureExtractor.extractFeatures(userId);
+            if (gmailFeatures.length > 0) {
+              await gmailFeatureExtractor.saveFeatures(gmailFeatures);
+              itemsExtracted = gmailFeatures.length;
+              result = { success: true, itemsExtracted };
+              console.log(`   📊 Extracted ${gmailFeatures.length} Gmail behavioral features`);
+            } else {
+              result = { success: true, itemsExtracted: 0, message: 'No Gmail data available' };
+            }
+          } catch (gmailError) {
+            console.error(`   ❌ Gmail extraction error: ${gmailError.message}`);
+            result = { success: false, error: gmailError.message };
+          }
+          break;
+
+        case 'outlook':
+          // Use feature extractor for Outlook
+          try {
+            const outlookFeatures = await outlookFeatureExtractor.extractFeatures(userId);
+            if (outlookFeatures.length > 0) {
+              await outlookFeatureExtractor.saveFeatures(outlookFeatures);
+              itemsExtracted = outlookFeatures.length;
+              result = { success: true, itemsExtracted };
+              console.log(`   📊 Extracted ${outlookFeatures.length} Outlook behavioral features`);
+            } else {
+              result = { success: true, itemsExtracted: 0, message: 'No Outlook data available' };
+            }
+          } catch (outlookError) {
+            console.error(`   ❌ Outlook extraction error: ${outlookError.message}`);
+            result = { success: false, error: outlookError.message };
+          }
+          break;
+
+        case 'linkedin':
+          // Use feature extractor for LinkedIn
+          try {
+            const linkedinFeatures = await linkedinFeatureExtractor.extractFeatures(userId);
+            if (linkedinFeatures.length > 0) {
+              await linkedinFeatureExtractor.saveFeatures(linkedinFeatures);
+              itemsExtracted = linkedinFeatures.length;
+              result = { success: true, itemsExtracted };
+              console.log(`   📊 Extracted ${linkedinFeatures.length} LinkedIn behavioral features`);
+            } else {
+              result = { success: true, itemsExtracted: 0, message: 'No LinkedIn data available' };
+            }
+          } catch (linkedinError) {
+            console.error(`   ❌ LinkedIn extraction error: ${linkedinError.message}`);
+            result = { success: false, error: linkedinError.message };
+          }
+          break;
+
         // Platforms not yet implemented
         case 'reddit':
-        case 'gmail':
           console.log(`⚠️ [Orchestrator] Extractor for ${platform} not yet implemented`);
           result = { success: false, error: 'Extractor not implemented' };
           break;

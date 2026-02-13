@@ -29,6 +29,20 @@ const getAuthHeaders = (): AuthHeaders => {
 // TYPES
 // ============================================================================
 
+export interface QuickEnrichmentData {
+  discovered_name: string | null;
+  discovered_photo: string | null;
+  discovered_company: string | null;
+  discovered_location: string | null;
+  discovered_bio: string | null;
+  discovered_github_url: string | null;
+  discovered_twitter_url: string | null;
+  github_repos: number | null;
+  github_followers: number | null;
+  source: string;
+  social_links: Array<{ platform: string; url: string; username?: string }>;
+}
+
 export interface EnrichmentData {
   id?: string;
   email: string;
@@ -40,6 +54,7 @@ export interface EnrichmentData {
   discovered_twitter_url: string | null;
   discovered_github_url: string | null;
   discovered_bio: string | null;
+  discovered_photo: string | null;
   discovered_summary: string | null;  // Detailed narrative biography
   // Career data fields
   career_timeline: string | null;     // Full career history with roles/dates
@@ -219,6 +234,24 @@ interface SkipResponse {
 // ============================================================================
 
 export const enrichmentService = {
+  /**
+   * Instant enrichment using free APIs (Gravatar + GitHub).
+   * Returns in < 1 second with photo, name, bio, company.
+   * Used for the onboarding "wow moment".
+   */
+  quickEnrich: async (): Promise<{ success: boolean; data: QuickEnrichmentData; elapsed: number }> => {
+    const response = await fetch(`${API_URL}/enrichment/quick`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+    });
+
+    if (!response.ok) {
+      return { success: false, data: { source: 'error' } as QuickEnrichmentData, elapsed: 0 };
+    }
+
+    return response.json();
+  },
+
   /**
    * Trigger enrichment search for a user
    * This calls Perplexity Sonar API to find public information

@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Sparkles, ArrowRight, Check, Music, Calendar, Activity, User, Compass, Heart, Brain, Zap } from 'lucide-react';
+import { Sparkles, ArrowRight, Check, User, Compass, Heart, Brain, Zap } from 'lucide-react';
+import { SpotifyLogo, GoogleCalendarLogo, WhoopLogo, LinkedinLogo } from '@/components/PlatformLogos';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { PreliminaryScores } from '../hooks/useOnboardingState';
@@ -26,10 +27,10 @@ const processingSteps = [
 
 // Platform icons mapping
 const platformIcons: Record<string, React.ReactNode> = {
-  spotify: <Music className="w-4 h-4" />,
-  google_calendar: <Calendar className="w-4 h-4" />,
-  whoop: <Activity className="w-4 h-4" />,
-  linkedin: <User className="w-4 h-4" />,
+  spotify: <SpotifyLogo className="w-4 h-4" />,
+  google_calendar: <GoogleCalendarLogo className="w-4 h-4" />,
+  whoop: <WhoopLogo className="w-4 h-4" />,
+  linkedin: <LinkedinLogo className="w-4 h-4" />,
 };
 
 // Big Five trait info

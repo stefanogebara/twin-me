@@ -19,18 +19,13 @@
  * - Emotional context understanding
  */
 
-import Anthropic from '@anthropic-ai/sdk';
+import { complete, TIER_ANALYSIS } from './llmGateway.js';
 import { createClient } from '@supabase/supabase-js';
 import {
   getUserPatterns,
   getConfidenceLevel,
   getConfidenceDescription
 } from './behavioralPatternRecognition.js';
-import { CLAUDE_MODEL } from '../config/aiModels.js';
-
-const anthropic = new Anthropic({
-  apiKey: process.env.ANTHROPIC_API_KEY
-});
 
 const supabase = createClient(
   process.env.VITE_SUPABASE_URL,
@@ -175,17 +170,18 @@ function determineInsightType(pattern) {
 async function generateInsightWithClaude(pattern, insightType) {
   const prompt = buildInsightPrompt(pattern, insightType);
 
-  const response = await anthropic.messages.create({
-    model: CLAUDE_MODEL,
-    max_tokens: 800,
-    temperature: 0.7,
+  const result = await complete({
+    tier: TIER_ANALYSIS,
     messages: [{
       role: 'user',
       content: prompt
-    }]
+    }],
+    maxTokens: 800,
+    temperature: 0.7,
+    serviceName: 'patternInsightGenerator'
   });
 
-  const content = response.content[0].text;
+  const content = result.content;
 
   // Parse Claude's response (expecting JSON)
   try {

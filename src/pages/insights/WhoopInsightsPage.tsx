@@ -8,6 +8,7 @@
  */
 
 import React, { useEffect, useState } from 'react';
+import { motion } from 'framer-motion';
 import { useAuth } from '@/contexts/AuthContext';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useDemo } from '@/contexts/DemoContext';
@@ -85,6 +86,7 @@ interface SleepBreakdown {
   deepSleep: number;
   remSleep: number;
   lightSleep: number;
+  awakeDuring?: number;
   totalHours: number;
   efficiency: number;
   wakeTime?: string;
@@ -400,23 +402,35 @@ const WhoopInsightsPage: React.FC = () => {
       <div className="flex items-center justify-between mb-8">
         <div className="flex items-center gap-4">
           {/* Back Button */}
-          <button
+          <motion.button
             onClick={() => navigate('/dashboard')}
             className="p-2 rounded-lg glass-button"
+            initial={{ opacity: 0, x: -12 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.35, ease: [0.4, 0, 0.2, 1] }}
+            whileHover={{ scale: 1.08 }}
+            whileTap={{ scale: 0.95 }}
           >
             <ArrowLeft className="w-5 h-5" style={{ color: colors.text }} />
-          </button>
+          </motion.button>
 
           {/* Platform Icon */}
-          <div
+          <motion.div
             className="w-12 h-12 rounded-xl flex items-center justify-center"
             style={{ backgroundColor: colors.whoopBg }}
+            initial={{ opacity: 0, scale: 0.5 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.5, delay: 0.1, ease: [0.4, 0, 0.2, 1] }}
           >
             <Activity className="w-6 h-6" style={{ color: colors.whoopTeal }} />
-          </div>
+          </motion.div>
 
           {/* Title */}
-          <div>
+          <motion.div
+            initial={{ opacity: 0, x: -12 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.45, delay: 0.15, ease: [0.4, 0, 0.2, 1] }}
+          >
             <h1
               className="text-2xl"
               style={{
@@ -433,26 +447,36 @@ const WhoopInsightsPage: React.FC = () => {
             >
               What your body tells you
             </p>
-          </div>
+          </motion.div>
         </div>
 
         {/* Refresh Button */}
-        <button
+        <motion.button
           onClick={handleRefresh}
           disabled={refreshing}
           className="p-2 rounded-lg glass-button"
           title="Get a fresh observation"
+          initial={{ opacity: 0, scale: 0.8 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.35, delay: 0.25, ease: [0.4, 0, 0.2, 1] }}
+          whileHover={{ scale: 1.1, rotate: 90 }}
+          whileTap={{ scale: 0.9 }}
         >
           <RefreshCw
             className={`w-5 h-5 ${refreshing ? 'animate-spin' : ''}`}
             style={{ color: colors.text }}
           />
-        </button>
+        </motion.button>
       </div>
 
       {/* Expanded Metrics Grid with Timestamps */}
       {insights?.currentMetrics && (
-        <div className="mb-6">
+        <motion.div
+          className="mb-6"
+          initial={{ opacity: 0, y: 16 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.45, delay: 0.2, ease: [0.4, 0, 0.2, 1] }}
+        >
           <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
             {/* Recovery */}
             <GlassPanel className="!p-4">
@@ -556,7 +580,7 @@ const WhoopInsightsPage: React.FC = () => {
                 </div>
                 <div className="flex items-baseline gap-1">
                   <span className="text-2xl font-medium" style={{ color: colors.text }}>
-                    {insights.sleepBreakdown.totalHours}
+                    {insights.currentMetrics?.sleepHours || insights.sleepBreakdown.totalHours}
                   </span>
                   <span className="text-sm" style={{ color: colors.textSecondary }}>hours</span>
                 </div>
@@ -672,7 +696,7 @@ const WhoopInsightsPage: React.FC = () => {
               </GlassPanel>
             )}
           </div>
-        </div>
+        </motion.div>
       )}
 
       {/* 7-Day Recovery Chart */}
@@ -780,6 +804,24 @@ const WhoopInsightsPage: React.FC = () => {
                 {insights.sleepBreakdown.lightSleep}h ({Math.round((insights.sleepBreakdown.lightSleep / insights.sleepBreakdown.totalHours) * 100)}%)
               </span>
             </div>
+            {/* Awake During */}
+            {insights.sleepBreakdown.awakeDuring != null && insights.sleepBreakdown.awakeDuring > 0 && (
+              <div className="flex items-center gap-3">
+                <span className="text-xs w-16" style={{ color: colors.textSecondary }}>Awake</span>
+                <div className="flex-1 h-6 rounded-lg overflow-hidden" style={{ backgroundColor: theme === 'dark' ? 'rgba(0,0,0,0.3)' : 'rgba(0,0,0,0.1)' }}>
+                  <div
+                    className="h-full rounded-lg transition-all"
+                    style={{
+                      width: `${(insights.sleepBreakdown.awakeDuring / (insights.sleepBreakdown.totalHours + insights.sleepBreakdown.awakeDuring)) * 100}%`,
+                      backgroundColor: 'rgba(193, 192, 182, 0.4)'
+                    }}
+                  />
+                </div>
+                <span className="text-sm font-medium w-20 text-right" style={{ color: colors.textSecondary }}>
+                  {insights.sleepBreakdown.awakeDuring}h
+                </span>
+              </div>
+            )}
           </div>
         </GlassPanel>
       )}
@@ -929,15 +971,67 @@ const WhoopInsightsPage: React.FC = () => {
 
       {/* Empty State - show when no reflection AND no metrics data */}
       {!insights?.reflection?.text && !insights?.currentMetrics && (
-        <GlassPanel className="text-center py-12">
-          <Activity className="w-12 h-12 mx-auto mb-4" style={{ color: colors.textSecondary }} />
-          <h3 style={{ color: colors.text, fontFamily: 'var(--font-heading)' }}>
-            Your twin is learning your rhythms
-          </h3>
-          <p className="mt-2" style={{ color: colors.textSecondary }}>
-            As your Whoop tracks your recovery and strain, your twin will share what it notices.
-          </p>
-        </GlassPanel>
+        <div className="space-y-4">
+          <GlassPanel className="text-center py-10">
+            <Activity className="w-12 h-12 mx-auto mb-4" style={{ color: colors.textSecondary }} />
+            <h3 style={{ color: colors.text, fontFamily: 'var(--font-heading)' }}>
+              Your twin is learning your rhythms
+            </h3>
+            <p className="mt-2 mb-6 max-w-sm mx-auto" style={{ color: colors.textSecondary }}>
+              As your Whoop tracks your recovery and strain, your twin will share what it notices.
+            </p>
+            <button
+              onClick={() => navigate('/get-started')}
+              className="px-5 py-2.5 rounded-xl text-sm font-medium transition-all hover:scale-[1.02]"
+              style={{ backgroundColor: colors.whoopTeal, color: '#fff' }}
+            >
+              Connect Whoop
+            </button>
+          </GlassPanel>
+
+          {/* Preview cards showing what insights will look like */}
+          <div className="opacity-50 pointer-events-none space-y-3">
+            <p className="text-xs uppercase tracking-wider" style={{ color: colors.textSecondary }}>
+              Preview of your insights
+            </p>
+            {/* Placeholder: Metrics Grid */}
+            <div className="grid grid-cols-3 gap-3">
+              {[
+                { label: 'Recovery', value: '--%', icon: <Heart className="w-4 h-4" /> },
+                { label: 'Strain', value: '--', icon: <Zap className="w-4 h-4" /> },
+                { label: 'HRV', value: '-- ms', icon: <Activity className="w-4 h-4" /> },
+              ].map((metric, i) => (
+                <GlassPanel key={i} className="!p-4" style={{ border: '1px dashed' }}>
+                  <div className="flex items-center gap-2 mb-2">
+                    <span style={{ color: colors.textSecondary }}>{metric.icon}</span>
+                    <span className="text-xs uppercase tracking-wider" style={{ color: colors.textSecondary }}>{metric.label}</span>
+                  </div>
+                  <div className="text-xl font-medium" style={{ color: theme === 'dark' ? 'rgba(193,192,182,0.3)' : 'rgba(0,0,0,0.15)' }}>
+                    {metric.value}
+                  </div>
+                </GlassPanel>
+              ))}
+            </div>
+            {/* Placeholder: Recovery Chart */}
+            <GlassPanel className="!p-4" style={{ border: '1px dashed' }}>
+              <div className="flex items-center gap-2 mb-3">
+                <TrendingUp className="w-4 h-4" style={{ color: colors.textSecondary }} />
+                <span className="text-sm" style={{ color: colors.textSecondary }}>7-Day Recovery Trend</span>
+              </div>
+              <div className="flex items-end gap-2 h-20">
+                {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map((day, i) => (
+                  <div key={day} className="flex-1 flex flex-col items-center gap-1">
+                    <div className="w-full rounded-t" style={{
+                      height: `${30 + Math.random() * 50}%`,
+                      backgroundColor: theme === 'dark' ? 'rgba(193,192,182,0.08)' : 'rgba(0,0,0,0.04)',
+                    }} />
+                    <span className="text-[9px]" style={{ color: colors.textSecondary }}>{day}</span>
+                  </div>
+                ))}
+              </div>
+            </GlassPanel>
+          </div>
+        </div>
       )}
     </PageLayout>
   );

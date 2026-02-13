@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from 'react';
+import { motion } from 'framer-motion';
 import { useAuth } from '../contexts/AuthContext';
 import { useTheme } from '../contexts/ThemeContext';
+import { useAnalytics } from '../contexts/AnalyticsContext';
 import { usePlatformStatus } from '../hooks/usePlatformStatus';
 import { useTwinPipeline } from '../hooks/useTwinPipeline';
 import { useNavigate } from 'react-router-dom';
@@ -47,8 +49,12 @@ import {
   BookOpen,
   Github,
   Mail,
-  Activity
+  Activity,
+  Share2,
+  Link,
+  Check
 } from 'lucide-react';
+import { SpotifyLogo, GoogleCalendarLogo, getPlatformLogo } from '@/components/PlatformLogos';
 import { BigFiveRadarChart } from '@/components/PersonalityRadarChart';
 import BehavioralEvidencePanel from '@/components/BehavioralEvidencePanel';
 import AssessmentStatusCard from '@/components/AssessmentStatusCard';
@@ -248,6 +254,7 @@ type TabId = 'overview' | 'deep-dive' | 'data-sources';
 const SoulSignatureDashboard: React.FC = () => {
   const { user, isDemoMode } = useAuth();
   const { theme } = useTheme();
+  const { trackFunnel } = useAnalytics();
   const navigate = useNavigate();
   const { connectedProviders, data: platformStatusData } = usePlatformStatus(user?.id);
   const {
@@ -270,6 +277,9 @@ const SoulSignatureDashboard: React.FC = () => {
   const [behavioralEvidence, setBehavioralEvidence] = useState<BehavioralEvidenceData | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<TabId>('overview');
+  const [isPublic, setIsPublic] = useState(false);
+  const [shareLoading, setShareLoading] = useState(false);
+  const [linkCopied, setLinkCopied] = useState(false);
 
   const API_URL = import.meta.env.VITE_API_URL;
 
@@ -383,6 +393,44 @@ const SoulSignatureDashboard: React.FC = () => {
     }
   };
 
+  // Fetch share status on mount
+  useEffect(() => {
+    if (isDemoMode) return;
+    const token = localStorage.getItem('auth_token');
+    if (!token) return;
+    fetch(`${API_URL}/soul-signature/share-status`, {
+      headers: { 'Authorization': `Bearer ${token}` }
+    })
+      .then(r => r.json())
+      .then(data => { if (data.success) setIsPublic(data.is_public || false); })
+      .catch(() => {});
+  }, [isDemoMode, API_URL]);
+
+  const toggleShare = async () => {
+    if (isDemoMode) return;
+    const token = localStorage.getItem('auth_token');
+    if (!token) return;
+    setShareLoading(true);
+    try {
+      const res = await fetch(`${API_URL}/soul-signature/visibility`, {
+        method: 'PATCH',
+        headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ is_public: !isPublic })
+      });
+      const data = await res.json();
+      if (data.success) setIsPublic(data.is_public);
+    } catch { /* ignore */ }
+    finally { setShareLoading(false); }
+  };
+
+  const copyShareLink = () => {
+    if (!user?.id) return;
+    const url = `${window.location.origin}/s/${user.id}`;
+    navigator.clipboard.writeText(url);
+    setLinkCopied(true);
+    setTimeout(() => setLinkCopied(false), 2000);
+  };
+
   const generateSoulSignature = async () => {
     if (isDemoMode) {
       setGenerating(true);
@@ -413,6 +461,9 @@ const SoulSignatureDashboard: React.FC = () => {
       const data = await response.json();
 
       if (data.success) {
+        trackFunnel('soul_signature_generated', {
+          platforms_connected: connectedProviders.length,
+        });
         await fetchData();
       } else {
         setError(data.error || 'Failed to generate soul signature');
@@ -579,19 +630,54 @@ const SoulSignatureDashboard: React.FC = () => {
             Discover what makes you authentically you
           </p>
         </div>
-        <button
-          onClick={generateSoulSignature}
-          disabled={generating}
-          className="flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl transition-all duration-200 disabled:opacity-50 hover:scale-[1.02]"
-          style={{
-            backgroundColor: subtleBg,
-            color: textColor,
-            border: cardBorder
-          }}
-        >
-          <RefreshCw className={`w-4 h-4 ${generating ? 'animate-spin' : ''}`} />
-          <span className="font-medium">{generating ? 'Generating...' : 'Regenerate'}</span>
-        </button>
+        <div className="flex items-center gap-2">
+          {/* Share Toggle */}
+          {soulSignature && !isDemoMode && (
+            <div className="flex items-center gap-2">
+              {isPublic && (
+                <button
+                  onClick={copyShareLink}
+                  className="flex items-center gap-1.5 px-3 py-2.5 rounded-xl transition-all duration-200 hover:scale-[1.02]"
+                  style={{
+                    backgroundColor: linkCopied ? 'rgba(16, 185, 129, 0.1)' : subtleBg,
+                    color: linkCopied ? '#10B981' : textColor,
+                    border: linkCopied ? '1px solid rgba(16, 185, 129, 0.3)' : cardBorder
+                  }}
+                >
+                  {linkCopied ? <Check className="w-4 h-4" /> : <Link className="w-4 h-4" />}
+                  <span className="text-sm font-medium hidden sm:inline">{linkCopied ? 'Copied!' : 'Copy Link'}</span>
+                </button>
+              )}
+              <button
+                onClick={toggleShare}
+                disabled={shareLoading}
+                className="flex items-center gap-1.5 px-3 py-2.5 rounded-xl transition-all duration-200 disabled:opacity-50 hover:scale-[1.02]"
+                style={{
+                  backgroundColor: isPublic ? 'rgba(99, 102, 241, 0.1)' : subtleBg,
+                  color: isPublic ? '#6366F1' : textColor,
+                  border: isPublic ? '1px solid rgba(99, 102, 241, 0.3)' : cardBorder
+                }}
+              >
+                <Share2 className="w-4 h-4" />
+                <span className="text-sm font-medium hidden sm:inline">{isPublic ? 'Public' : 'Share'}</span>
+              </button>
+            </div>
+          )}
+
+          <button
+            onClick={generateSoulSignature}
+            disabled={generating}
+            className="flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl transition-all duration-200 disabled:opacity-50 hover:scale-[1.02]"
+            style={{
+              backgroundColor: subtleBg,
+              color: textColor,
+              border: cardBorder
+            }}
+          >
+            <RefreshCw className={`w-4 h-4 ${generating ? 'animate-spin' : ''}`} />
+            <span className="font-medium">{generating ? 'Generating...' : 'Regenerate'}</span>
+          </button>
+        </div>
       </div>
 
       {error && (
@@ -664,12 +750,6 @@ const SoulSignatureDashboard: React.FC = () => {
           {connectedProviders.length > 0 && (
             <div className="flex flex-wrap gap-3 mt-4">
               {connectedProviders.map(provider => {
-                const platformIcons: Record<string, React.ElementType> = {
-                  spotify: Music, whoop: Activity, google_calendar: Calendar,
-                  youtube: Video, twitch: Tv, discord: MessageCircle,
-                  reddit: BookOpen, github: Github, gmail: Mail,
-                  outlook: Mail, linkedin: Briefcase
-                };
                 const platformColors: Record<string, string> = {
                   spotify: '#1DB954', whoop: '#06B6D4', google_calendar: '#6366F1',
                   youtube: '#FF0000', twitch: '#9146FF', discord: '#5865F2',
@@ -682,9 +762,9 @@ const SoulSignatureDashboard: React.FC = () => {
                   reddit: 'reddit', github: 'github', gmail: 'gmail',
                   outlook: 'outlook', linkedin: 'linkedin'
                 };
-                const Icon = platformIcons[provider] || Zap;
                 const color = platformColors[provider] || textFaint;
                 const name = platformNames[provider] || provider;
+                const LogoComponent = getPlatformLogo(provider);
 
                 return (
                   <div
@@ -696,7 +776,11 @@ const SoulSignatureDashboard: React.FC = () => {
                     }}
                   >
                     <div className="flex items-center gap-2">
-                      <Icon className="w-4 h-4" style={{ color }} />
+                      {LogoComponent ? (
+                        <LogoComponent className="w-4 h-4" />
+                      ) : (
+                        <Zap className="w-4 h-4" style={{ color }} />
+                      )}
                       <span className="text-xs font-medium capitalize" style={{ color: textColor }}>
                         {name}
                       </span>
@@ -733,7 +817,11 @@ const SoulSignatureDashboard: React.FC = () => {
             neuroticism: personalityScores.neuroticism
           } : null}
           hasBehavioralData={features.length > 0 || !!behavioralEvidence}
-          connectedPlatforms={connectedProviders.length}
+          connectedPlatforms={Math.max(
+            connectedProviders.length,
+            new Set(features.map(f => f.platform)).size,
+            personalityScores?.analyzed_platforms?.length || 0
+          )}
         />
       </div>
 
@@ -781,27 +869,37 @@ const SoulSignatureDashboard: React.FC = () => {
         <>
       {/* Soul Signature Card */}
       {soulSignature ? (
-        <div
+        <motion.div
           className="rounded-2xl md:rounded-3xl overflow-hidden mb-6"
           style={{
             backgroundColor: cardBg,
             border: cardBorder,
             boxShadow: cardShadow
           }}
+          initial={{ opacity: 0, y: 20, scale: 0.98 }}
+          animate={{ opacity: 1, y: 0, scale: 1 }}
+          transition={{ duration: 0.5, ease: [0.4, 0, 0.2, 1] }}
         >
           <div className="p-6 md:p-8">
             {/* Header */}
             <div className="flex flex-col sm:flex-row items-start gap-4 sm:gap-6 mb-6">
-              <div
+              <motion.div
                 className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl flex items-center justify-center flex-shrink-0"
                 style={{
                   backgroundColor: 'rgba(193, 192, 182, 0.1)',
                   border: '1px solid rgba(193, 192, 182, 0.2)'
                 }}
+                initial={{ opacity: 0, scale: 0.5, rotate: -10 }}
+                animate={{ opacity: 1, scale: 1, rotate: 0 }}
+                transition={{ duration: 0.6, delay: 0.2, ease: [0.4, 0, 0.2, 1] }}
               >
                 <IconComponent className="w-8 h-8 sm:w-10 sm:h-10" style={{ color: '#C1C0B6' }} />
-              </div>
-              <div>
+              </motion.div>
+              <motion.div
+                initial={{ opacity: 0, x: -12 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ duration: 0.5, delay: 0.3, ease: [0.4, 0, 0.2, 1] }}
+              >
                 <h2
                   className="text-3xl sm:text-4xl mb-2"
                   style={{
@@ -815,16 +913,20 @@ const SoulSignatureDashboard: React.FC = () => {
                 <p className="text-lg italic" style={{ color: textSecondary }}>
                   {soulSignature.archetype_subtitle}
                 </p>
-              </div>
+              </motion.div>
             </div>
 
             {/* Insight Cards */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
               {/* Core Drive */}
-              <div className="p-4 rounded-xl" style={{
+              <motion.div className="p-4 rounded-xl" style={{
                 backgroundColor: 'rgba(193, 192, 182, 0.08)',
                 border: '1px solid rgba(193, 192, 182, 0.15)'
-              }}>
+              }}
+                initial={{ opacity: 0, y: 12 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.4, delay: 0.4, ease: [0.4, 0, 0.2, 1] }}
+              >
                 <div className="flex items-center gap-2 mb-3">
                   <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ backgroundColor: 'rgba(193, 192, 182, 0.15)' }}>
                     <Lightbulb className="w-4 h-4" style={{ color: '#C1C0B6' }} />
@@ -832,15 +934,19 @@ const SoulSignatureDashboard: React.FC = () => {
                   <span className="text-xs uppercase tracking-wider font-medium" style={{ color: textColor }}>Core Drive</span>
                 </div>
                 <p className="text-sm leading-relaxed" style={{ color: textSecondary }}>
-                  {soulSignature.defining_traits[0]?.trait || 'Curiosity'} shapes your choices - you seek {soulSignature.defining_traits[0]?.evidence.toLowerCase() || 'new experiences'}
+                  {soulSignature.defining_traits[0]?.trait || 'Curiosity'} shapes your choices{soulSignature.defining_traits[0]?.evidence ? `, reflected in ${soulSignature.defining_traits[0].evidence.toLowerCase()}` : ''}
                 </p>
-              </div>
+              </motion.div>
 
               {/* Social Style */}
-              <div className="p-4 rounded-xl" style={{
+              <motion.div className="p-4 rounded-xl" style={{
                 backgroundColor: 'rgba(193, 192, 182, 0.08)',
                 border: '1px solid rgba(193, 192, 182, 0.15)'
-              }}>
+              }}
+                initial={{ opacity: 0, y: 12 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.4, delay: 0.5, ease: [0.4, 0, 0.2, 1] }}
+              >
                 <div className="flex items-center gap-2 mb-3">
                   <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ backgroundColor: 'rgba(193, 192, 182, 0.15)' }}>
                     <Users className="w-4 h-4" style={{ color: '#C1C0B6' }} />
@@ -852,13 +958,17 @@ const SoulSignatureDashboard: React.FC = () => {
                     ? 'You thrive in social settings and draw energy from connecting with others'
                     : 'You value deep connections over many, preferring meaningful one-on-one interactions'}
                 </p>
-              </div>
+              </motion.div>
 
               {/* Creative Pattern */}
-              <div className="p-4 rounded-xl" style={{
+              <motion.div className="p-4 rounded-xl" style={{
                 backgroundColor: 'rgba(193, 192, 182, 0.08)',
                 border: '1px solid rgba(193, 192, 182, 0.15)'
-              }}>
+              }}
+                initial={{ opacity: 0, y: 12 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.4, delay: 0.6, ease: [0.4, 0, 0.2, 1] }}
+              >
                 <div className="flex items-center gap-2 mb-3">
                   <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ backgroundColor: 'rgba(193, 192, 182, 0.15)' }}>
                     <Zap className="w-4 h-4" style={{ color: '#C1C0B6' }} />
@@ -868,7 +978,7 @@ const SoulSignatureDashboard: React.FC = () => {
                 <p className="text-sm leading-relaxed" style={{ color: textSecondary }}>
                   {soulSignature.defining_traits[2]?.trait || 'Creative expression'} is key - {soulSignature.defining_traits[2]?.evidence.toLowerCase() || 'you explore diverse artistic interests'}
                 </p>
-              </div>
+              </motion.div>
             </div>
 
             {/* MBTI Type Display */}
@@ -921,10 +1031,10 @@ const SoulSignatureDashboard: React.FC = () => {
             )}
 
           </div>
-        </div>
+        </motion.div>
       ) : (
         <GlassPanel className="mb-6 text-center py-12">
-          <Sparkles className="w-16 h-16 mx-auto mb-4" style={{ color: textFaint }} />
+          <img src="/icons/3d/sparkle.png" alt="Soul Signature" className="w-20 h-20 mx-auto mb-4 opacity-60" />
           <h3
             className="text-xl mb-2"
             style={{ fontFamily: 'var(--font-heading)', fontWeight: 500, color: textColor }}
@@ -938,7 +1048,7 @@ const SoulSignatureDashboard: React.FC = () => {
             onClick={generateSoulSignature}
             disabled={generating}
             className="px-6 py-3 rounded-xl font-medium transition-all duration-200 disabled:opacity-50 hover:scale-[1.02]"
-            style={{ backgroundColor: '#C1C0B6', color: '#232320' }}
+            style={{ background: 'linear-gradient(135deg, var(--accent-vibrant), var(--accent-vibrant-hover))', color: '#1a1a17', boxShadow: '0 2px 12px var(--accent-vibrant-glow)' }}
           >
             {generating ? 'Generating...' : 'Generate Soul Signature'}
           </button>
@@ -1037,7 +1147,7 @@ const SoulSignatureDashboard: React.FC = () => {
             <button
               onClick={() => navigate('/big-five')}
               className="px-6 py-3 rounded-xl font-medium transition-all hover:scale-[1.02]"
-              style={{ backgroundColor: '#C1C0B6', color: '#232320' }}
+              style={{ background: 'linear-gradient(135deg, var(--accent-vibrant), var(--accent-vibrant-hover))', color: '#1a1a17', boxShadow: '0 2px 12px var(--accent-vibrant-glow)' }}
             >
               Start Big Five Assessment
             </button>
@@ -1089,8 +1199,10 @@ const SoulSignatureDashboard: React.FC = () => {
         </div>
       )}
 
-      {/* Behavioral Evidence Panel */}
-      {behavioralEvidence && personalityScores && (
+      {/* Behavioral Evidence Panel - only show when there's actual evidence */}
+      {behavioralEvidence && personalityScores &&
+       behavioralEvidence.evidence &&
+       Object.values(behavioralEvidence.evidence).some((arr: unknown) => Array.isArray(arr) && arr.length > 0) && (
         <div className="mb-6">
           <BehavioralEvidencePanel
             evidence={behavioralEvidence.evidence}
@@ -1234,9 +1346,7 @@ const SoulSignatureDashboard: React.FC = () => {
                   ? 'rgba(99, 102, 241, 0.15)'
                   : 'rgba(193, 192, 182, 0.15)'
               }}>
-                <Calendar className="w-4 h-4" style={{
-                  color: connectedProviders.includes('google_calendar') ? '#6366F1' : textMuted
-                }} />
+                <GoogleCalendarLogo className="w-4 h-4" />
               </div>
               <div>
                 <span className="text-xs uppercase tracking-wider font-medium" style={{ color: textColor }}>Work Patterns</span>
@@ -1334,7 +1444,7 @@ const SoulSignatureDashboard: React.FC = () => {
                 className="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0"
                 style={{ backgroundColor: 'rgba(29, 185, 84, 0.1)' }}
               >
-                <Music className="w-5 h-5" style={{ color: '#1DB954' }} />
+                <SpotifyLogo className="w-5 h-5" />
               </div>
               <div>
                 <h4 className="text-sm mb-1" style={{ fontFamily: 'var(--font-heading)', fontWeight: 500, color: textColor }}>
@@ -1380,7 +1490,7 @@ const SoulSignatureDashboard: React.FC = () => {
                 className="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0"
                 style={{ backgroundColor: 'rgba(99, 102, 241, 0.1)' }}
               >
-                <Calendar className="w-5 h-5" style={{ color: '#6366F1' }} />
+                <GoogleCalendarLogo className="w-5 h-5" />
               </div>
               <div>
                 <h4 className="text-sm mb-1" style={{ fontFamily: 'var(--font-heading)', fontWeight: 500, color: textColor }}>

@@ -8,13 +8,8 @@
  */
 
 import { supabaseAdmin } from './database.js';
-import Anthropic from '@anthropic-ai/sdk';
+import { complete, TIER_ANALYSIS, TIER_EXTRACTION } from './llmGateway.js';
 import patternLearningService from './patternLearningService.js';
-import { CLAUDE_MODEL } from '../config/aiModels.js';
-
-const anthropic = new Anthropic({
-  apiKey: process.env.ANTHROPIC_API_KEY,
-});
 
 /**
  * WORKING MEMORY - Session-level
@@ -164,9 +159,8 @@ export class CoreMemory {
         .map(m => `${m.role}: ${m.content}`)
         .join('\n');
 
-      const response = await anthropic.messages.create({
-        model: CLAUDE_MODEL,
-        max_tokens: 1024,
+      const result = await complete({
+        tier: TIER_EXTRACTION,
         messages: [{
           role: 'user',
           content: `Analyze this conversation and extract user preferences, communication style, and behavioral patterns. Return as JSON:
@@ -180,10 +174,12 @@ export class CoreMemory {
 
 Conversation:
 ${conversationText}`
-        }]
+        }],
+        maxTokens: 1024,
+        serviceName: 'memoryArchitecture'
       });
 
-      const preferences = JSON.parse(response.content[0].text);
+      const preferences = JSON.parse(result.content);
 
       // Store in core memory
       await this.updatePreference('extracted_from_conversation', preferences, preferences.confidence_score);
@@ -262,18 +258,19 @@ ${conversationText}`
         .map(m => `${m.role}: ${m.content}`)
         .join('\n');
 
-      const response = await anthropic.messages.create({
-        model: CLAUDE_MODEL,
-        max_tokens: 512,
+      const result = await complete({
+        tier: TIER_EXTRACTION,
         messages: [{
           role: 'user',
           content: `Create a concise summary of this conversation highlighting key topics, decisions, and insights. Keep it under 200 words:
 
 ${conversationText}`
-        }]
+        }],
+        maxTokens: 512,
+        serviceName: 'memoryArchitecture'
       });
 
-      const summary = response.content[0].text;
+      const summary = result.content;
 
       // Store summary in core memory
       await supabaseAdmin
@@ -313,9 +310,8 @@ export class LongTermMemory {
         .map(([platform, data]) => `${platform}: ${JSON.stringify(data).substring(0, 500)}`)
         .join('\n\n');
 
-      const response = await anthropic.messages.create({
-        model: CLAUDE_MODEL,
-        max_tokens: 2048,
+      const result = await complete({
+        tier: TIER_ANALYSIS,
         messages: [{
           role: 'user',
           content: `Analyze this user's data from multiple platforms and create a comprehensive soul signature. Extract:
@@ -331,10 +327,12 @@ Return as structured JSON.
 
 Platform Data:
 ${platformSummary}`
-        }]
+        }],
+        maxTokens: 2048,
+        serviceName: 'memoryArchitecture'
       });
 
-      const soulSignature = JSON.parse(response.content[0].text);
+      const soulSignature = JSON.parse(result.content);
 
       // Store in long-term memory
       const { error } = await supabaseAdmin
@@ -424,9 +422,8 @@ ${platformSummary}`
   async search(query, limit = 10) {
     try {
       // Use Claude to generate search embedding/interpretation
-      const response = await anthropic.messages.create({
-        model: CLAUDE_MODEL,
-        max_tokens: 256,
+      const result = await complete({
+        tier: TIER_EXTRACTION,
         messages: [{
           role: 'user',
           content: `Given this search query about a user's soul signature, extract key concepts and categories to search for:
@@ -434,10 +431,12 @@ ${platformSummary}`
 Query: "${query}"
 
 Return as JSON array of search terms.`
-        }]
+        }],
+        maxTokens: 256,
+        serviceName: 'memoryArchitecture'
       });
 
-      const searchTerms = JSON.parse(response.content[0].text);
+      const searchTerms = JSON.parse(result.content);
 
       // Search soul_data table with hybrid ranking
       const { data, error } = await supabaseAdmin

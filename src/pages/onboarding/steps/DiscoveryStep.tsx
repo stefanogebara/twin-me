@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Loader2, Send } from 'lucide-react';
-import { enrichmentService, EnrichmentData, ConfirmedData } from '@/services/enrichmentService';
+import { enrichmentService, EnrichmentData, QuickEnrichmentData, ConfirmedData } from '@/services/enrichmentService';
 
 interface DiscoveryStepProps {
   userId: string;
@@ -31,6 +31,7 @@ export const DiscoveryStep: React.FC<DiscoveryStepProps> = ({
   const [messages, setMessages] = useState<Message[]>([]);
   const [userInput, setUserInput] = useState('');
   const [enrichmentData, setEnrichmentData] = useState<EnrichmentData | null>(null);
+  const [quickData, setQuickData] = useState<QuickEnrichmentData | null>(null);
   const [confirmedName, setConfirmedName] = useState(userName || '');
   const [isLoading, setIsLoading] = useState(false);
   const [showYesNo, setShowYesNo] = useState(false);
@@ -114,8 +115,29 @@ export const DiscoveryStep: React.FC<DiscoveryStepProps> = ({
     setIsLoading(true);
 
     try {
-      const statusResult = await enrichmentService.getStatus(userId);
+      // ─── Phase 1: Instant free lookup (Gravatar + GitHub) ───
+      // Returns in < 1 second with photo + basic info
+      const quickResult = await enrichmentService.quickEnrich();
+      const q = quickResult?.data;
+      const hasQuickData = q && q.source !== 'none' && q.source !== 'error';
 
+      if (hasQuickData) {
+        setQuickData(q);
+        // Show instant reveal with whatever we found
+        const revealParts: string[] = [];
+        if (q.discovered_bio) revealParts.push(q.discovered_bio);
+        if (q.discovered_company) revealParts.push(`Works at ${q.discovered_company}`);
+        if (q.discovered_location) revealParts.push(`Based in ${q.discovered_location}`);
+        if (q.github_repos && q.github_repos > 5) revealParts.push(`${q.github_repos} public repos on GitHub`);
+
+        if (revealParts.length > 0) {
+          await typeMessage(`Here's what I found about you:\n\n${revealParts.join('\n')}`, 20);
+          await new Promise(resolve => setTimeout(resolve, 400));
+        }
+      }
+
+      // ─── Phase 2: Check for existing full enrichment data ───
+      const statusResult = await enrichmentService.getStatus(userId);
       if (statusResult.hasEnrichment) {
         const resultsResult = await enrichmentService.getResults(userId);
         if (resultsResult.data && hasUsefulData(resultsResult.data)) {
@@ -125,11 +147,21 @@ export const DiscoveryStep: React.FC<DiscoveryStepProps> = ({
         }
       }
 
+      // ─── Phase 3: Full AI-powered enrichment (slower) ───
+      if (hasQuickData && !q?.discovered_company) {
+        await typeMessage("Let me dig a bit deeper...", 25);
+      }
+
       const searchResult = await enrichmentService.search(userId, userEmail, name);
 
       if (searchResult.data && hasUsefulData(searchResult.data)) {
         setEnrichmentData(searchResult.data);
         await showNarrative(searchResult.data, name);
+      } else if (hasQuickData) {
+        // We have quick data but no deep data - still ask for confirmation
+        await typeMessage("Does this sound like you?", 30);
+        setStep('narrative');
+        setShowYesNo(true);
       } else {
         await typeMessage("I found a few people with your name, but I want to make sure I have the right one. Could you share your LinkedIn profile?", 25);
         setStep('correction-form');
@@ -252,11 +284,12 @@ export const DiscoveryStep: React.FC<DiscoveryStepProps> = ({
     await typeMessage("Perfect. Let's continue building your soul signature.", 25);
 
     const confirmedData: ConfirmedData = {
-      name: enrichmentData?.discovered_name || confirmedName,
-      company: enrichmentData?.discovered_company,
+      name: enrichmentData?.discovered_name || quickData?.discovered_name || confirmedName,
+      company: enrichmentData?.discovered_company || quickData?.discovered_company || undefined,
       title: enrichmentData?.discovered_title,
-      location: enrichmentData?.discovered_location,
-      bio: enrichmentData?.discovered_bio || enrichmentData?.discovered_summary
+      location: enrichmentData?.discovered_location || quickData?.discovered_location || undefined,
+      bio: enrichmentData?.discovered_bio || enrichmentData?.discovered_summary || quickData?.discovered_bio || undefined,
+      github_url: enrichmentData?.discovered_github_url || quickData?.discovered_github_url || undefined,
     };
 
     if (enrichmentData) {
@@ -356,6 +389,23 @@ export const DiscoveryStep: React.FC<DiscoveryStepProps> = ({
           Skip
         </button>
       </div>
+
+      {/* Profile Photo Reveal */}
+      {quickData?.discovered_photo && (
+        <motion.div
+          initial={{ opacity: 0, scale: 0.8 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.6, ease: [0.25, 0.46, 0.45, 0.94] }}
+          className="flex justify-center pt-4 pb-2"
+        >
+          <img
+            src={quickData.discovered_photo}
+            alt=""
+            className="w-20 h-20 rounded-full object-cover"
+            style={{ border: '2px solid rgba(232, 213, 183, 0.3)' }}
+          />
+        </motion.div>
+      )}
 
       {/* Chat area */}
       <div className="flex-1 overflow-y-auto px-6 md:px-8">

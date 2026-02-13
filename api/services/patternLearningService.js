@@ -7,12 +7,10 @@
  */
 
 import { createClient } from '@supabase/supabase-js';
-import Anthropic from '@anthropic-ai/sdk';
-import { CLAUDE_MODEL } from '../config/aiModels.js';
+import { complete, TIER_EXTRACTION } from './llmGateway.js';
 
 // Lazy initialization to avoid crashes if env vars not loaded yet
 let supabase = null;
-let anthropic = null;
 
 function getSupabaseClient() {
   if (!supabase) {
@@ -22,15 +20,6 @@ function getSupabaseClient() {
     );
   }
   return supabase;
-}
-
-function getAnthropicClient() {
-  if (!anthropic) {
-    anthropic = new Anthropic({
-      apiKey: process.env.ANTHROPIC_API_KEY,
-    });
-  }
-  return anthropic;
 }
 
 class PatternLearningService {
@@ -196,9 +185,8 @@ class PatternLearningService {
         .map(c => `[${c.type}] (${c.rating || 'no rating'}/5): "${c.comment}"`)
         .join('\n');
 
-      const response = await getAnthropicClient().messages.create({
-        model: CLAUDE_MODEL,
-        max_tokens: 1024,
+      const result = await complete({
+        tier: TIER_EXTRACTION,
         messages: [{
           role: 'user',
           content: `Analyze this user feedback on personalized recommendations and identify:
@@ -224,10 +212,12 @@ Return as JSON:
   "adjustmentSuggestions": ["suggestion1", "suggestion2"],
   "confidence": 0.0-1.0
 }`
-        }]
+        }],
+        maxTokens: 1024,
+        serviceName: 'patternLearningService'
       });
 
-      return JSON.parse(response.content[0].text);
+      return JSON.parse(result.content);
     } catch (error) {
       console.error('[PatternLearning] Error analyzing with Claude:', error);
       return null;
@@ -365,9 +355,8 @@ Return as JSON:
       };
 
       // Generate insights with Claude
-      const response = await getAnthropicClient().messages.create({
-        model: CLAUDE_MODEL,
-        max_tokens: 2048,
+      const result = await complete({
+        tier: TIER_EXTRACTION,
         messages: [{
           role: 'user',
           content: `Based on user feedback patterns and their data context, generate 2-3 personalized insights.
@@ -399,10 +388,12 @@ Return as JSON array:
     "suggestedAction": "optional action"
   }
 ]`
-        }]
+        }],
+        maxTokens: 2048,
+        serviceName: 'patternLearningService'
       });
 
-      const insights = JSON.parse(response.content[0].text);
+      const insights = JSON.parse(result.content);
       return Array.isArray(insights) ? insights : [];
 
     } catch (error) {
