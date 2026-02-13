@@ -32,7 +32,7 @@ export { TIER_CHAT, TIER_ANALYSIS, TIER_EXTRACTION };
 // ====================================================================
 const openrouter = new OpenAI({
   baseURL: 'https://openrouter.ai/api/v1',
-  apiKey: process.env.OPENROUTER_API_KEY,
+  apiKey: process.env.OPENROUTER_API_KEY || 'sk-placeholder-will-fail-at-call-time',
   defaultHeaders: {
     'HTTP-Referer': process.env.APP_URL || 'http://localhost:8086',
     'X-Title': 'TwinMe',
