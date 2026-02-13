@@ -39,7 +39,6 @@ const JournalPage = lazy(() => import("./pages/JournalPage"));
 const AdminLLMCosts = lazy(() => import("./pages/AdminLLMCosts"));
 const PrivacyPolicy = lazy(() => import("./pages/PrivacyPolicy"));
 const PublicSoulCard = lazy(() => import("./pages/PublicSoulCard"));
-const WelcomeFlow = lazy(() => import("./pages/onboarding/WelcomeFlow"));
 const EnrichedOnboardingFlow = lazy(() => import("./pages/onboarding/EnrichedOnboardingFlow"));
 const SoulSignatureOnboarding = lazy(() => import("./pages/onboarding/SoulSignatureOnboarding"));
 const GmailCallback = lazy(() => import("./pages/oauth/GmailCallback"));
@@ -248,9 +247,9 @@ const App = () => {
               </ProtectedRoute>
             } />
 
-            {/* Onboarding Flow */}
-            <Route path="/welcome" element={<WelcomeFlow initialStep={1} />} />
-            <Route path="/onboarding" element={<WelcomeFlow initialStep={1} />} />
+            {/* Legacy onboarding routes → redirect to enriched flow */}
+            <Route path="/welcome" element={<Navigate to="/discover" replace />} />
+            <Route path="/onboarding" element={<Navigate to="/discover" replace />} />
 
             {/* Enriched Onboarding - 3-step discovery flow */}
             <Route path="/discover" element={

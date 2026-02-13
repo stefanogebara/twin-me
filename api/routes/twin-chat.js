@@ -54,7 +54,7 @@ const PLATFORM_CACHE_TTL = 5 * 60 * 1000; // 5 minutes
 // Token budget: ~4 chars per token. Claude Sonnet handles larger contexts well.
 // Quality > cost for twin chat - richer context = better personality embodiment.
 const MAX_DYNAMIC_CONTEXT_CHARS = 12000; // ~3K tokens for dynamic context (up from 2K)
-const MAX_ADDITIONAL_CONTEXT_CHARS = 6000; // ~1.5K tokens for writing profile, memories, etc.
+const MAX_ADDITIONAL_CONTEXT_CHARS = 8000; // ~2K tokens for writing profile, memories, history
 
 // Periodic cleanup to prevent memory leaks from expired cache entries
 setInterval(() => {
@@ -130,7 +130,7 @@ async function chatViaOpenClaw(userId, message, systemPrompt, conversationHistor
     const response = await client.chatSend(fullMessage, {
       sessionKey,
       model: CLAUDE_MODEL,
-      maxTokens: 1000,
+      maxTokens: 2048,
       temperature: 0.7
     });
 
@@ -215,17 +215,26 @@ CROSS-PLATFORM MAGIC (this is your superpower):
 
 RESPONSE RULES:
 - Never dump raw data. Weave it into conversation naturally.
-- If I ask about something you don't have data for, be honest.
+- If I ask about something you don't have data for, be honest but pivot to what you DO know.
 - End with something that invites more conversation - a question, an observation, a gentle nudge.
 - Celebrate my wins. Notice when things are going well.
 - When I'm stressed, be warm and supportive, not analytical.
-- Don't try to cover everything. Pick the most interesting thread and pull on it.`;
+- Don't try to cover everything. Pick the most interesting thread and pull on it.
+- Give responses with substance. Longer, thoughtful replies beat short generic ones.
+
+HANDLING INCOMPLETE DATA:
+- Some platforms may not have data yet - that's fine. Work with what you have.
+- If only Spotify is connected, you're a music-savvy twin. Own it.
+- If personality scores are available, they shape WHO you are. Use them to inform your tone and perspective.
+- Never say "I don't have access to that data." Instead say something like "I haven't noticed that yet" or "that's not something I've picked up on."
+- When memories from past conversations exist, weave them in naturally: "last time we talked about X..."
+- The more data available, the richer your observations. But even with one platform, be insightful.`;
 
 /**
  * Build a personalized system prompt based on user's soul signature, platform data, and Moltbot memory.
  * Returns an array format for Anthropic prompt caching - static base is cached, dynamic context is not.
  */
-function buildTwinSystemPrompt(soulSignature, platformData, moltbotContext = null) {
+function buildTwinSystemPrompt(soulSignature, platformData, moltbotContext = null, personalityScores = null) {
   let dynamicContext = '';
 
   // === TEMPORAL AWARENESS ===
@@ -249,6 +258,26 @@ function buildTwinSystemPrompt(soulSignature, platformData, moltbotContext = nul
       if (insights.length > 0) {
         dynamicContext += `\nInsights: ${insights.map(i => typeof i === 'string' ? i : i.text || i.insight || '').filter(Boolean).join('. ')}`;
       }
+    }
+  }
+
+  // === PERSONALITY PROFILE (from behavioral evidence) ===
+  if (personalityScores) {
+    const p = personalityScores;
+    const traits = [];
+    // Translate Big Five scores into natural personality description
+    if (p.openness >= 65) traits.push('highly curious and open to new experiences');
+    else if (p.openness <= 35) traits.push('practical and grounded, prefer the familiar');
+    if (p.conscientiousness >= 65) traits.push('organized and goal-driven');
+    else if (p.conscientiousness <= 35) traits.push('flexible and spontaneous');
+    if (p.extraversion >= 65) traits.push('energized by social interaction');
+    else if (p.extraversion <= 35) traits.push('introspective, recharge with alone time');
+    if (p.agreeableness >= 65) traits.push('empathetic and cooperative');
+    else if (p.agreeableness <= 35) traits.push('direct and competitive');
+    if (p.neuroticism >= 60) traits.push('emotionally sensitive and reactive');
+    else if (p.neuroticism <= 30) traits.push('emotionally steady and calm under pressure');
+    if (traits.length > 0) {
+      dynamicContext += `\n\nMy personality (based on ${p.analyzed_platforms?.length || 0} platforms): ${traits.join(', ')}.`;
     }
   }
 
@@ -516,6 +545,26 @@ async function getSoulSignature(userId) {
     return data;
   } catch (err) {
     console.error('[Twin Chat] Error fetching soul signature:', err);
+    return null;
+  }
+}
+
+/**
+ * Fetch behavioral personality scores from database
+ * Returns Big Five scores + confidence levels from behavioral evidence pipeline
+ */
+async function getPersonalityScores(userId) {
+  try {
+    const { data, error } = await supabaseAdmin
+      .from('personality_scores')
+      .select('openness, conscientiousness, extraversion, agreeableness, neuroticism, openness_confidence, conscientiousness_confidence, extraversion_confidence, agreeableness_confidence, neuroticism_confidence, analyzed_platforms, source_type')
+      .eq('user_id', userId)
+      .single();
+
+    if (error || !data) return null;
+    return data;
+  } catch (err) {
+    console.warn('[Twin Chat] Could not fetch personality scores:', err.message);
     return null;
   }
 }
@@ -831,19 +880,20 @@ router.post('/message', authenticateUser, async (req, res) => {
 
     console.log(`[Twin Chat] Message from user ${userId}: "${message.substring(0, 50)}..."`);
 
-    // Fetch all context sources in parallel - with tight limits to control token usage
-    const [soulSignature, platformData, moltbotContext, writingProfile, recentAllConversations, mem0Memories] = await Promise.all([
+    // Fetch all context sources in parallel - richer context = better personality embodiment
+    const [soulSignature, platformData, moltbotContext, writingProfile, recentAllConversations, mem0Memories, personalityScores] = await Promise.all([
       getSoulSignature(userId),
       getPlatformData(userId, context?.platforms || ['spotify', 'calendar', 'whoop', 'web']),
       getMoltbotContext(userId),
       getUserWritingProfile(userId).catch(() => null),
-      getRecentMcpConversations(userId, 3).catch(() => []),
-      searchMemories(userId, message, 3).catch(() => [])
+      getRecentMcpConversations(userId, 5).catch(() => []),
+      searchMemories(userId, message, 8).catch(() => []),
+      getPersonalityScores(userId)
     ]);
 
-    // Build personalized system prompt with Moltbot context
+    // Build personalized system prompt with all identity + context layers
     // Returns array format for Anthropic prompt caching: [cached_base, dynamic_context]
-    let systemPrompt = buildTwinSystemPrompt(soulSignature, platformData, moltbotContext);
+    let systemPrompt = buildTwinSystemPrompt(soulSignature, platformData, moltbotContext, personalityScores);
 
     // Build additional dynamic context (writing profile, conversation history, memories)
     let additionalContext = '';
@@ -868,18 +918,18 @@ router.post('/message', authenticateUser, async (req, res) => {
       additionalContext += ` IMPORTANT: Your responses should sound like they could have been written by me.`;
     }
 
-    // Add recent conversation history for continuity (compressed)
+    // Add recent conversation history for continuity
     if (recentAllConversations.length > 0) {
-      additionalContext += `\n\nRecent conversations: ${recentAllConversations.slice(0, 3).reverse().map((conv, i) =>
-        `"${conv.userMessage.substring(0, 60)}${conv.userMessage.length > 60 ? '...' : ''}" (${conv.source === 'claude_desktop' ? 'Desktop' : 'Web'})`
+      additionalContext += `\n\nRecent conversations (most recent first): ${recentAllConversations.slice(0, 5).reverse().map((conv, i) =>
+        `"${conv.userMessage.substring(0, 120)}${conv.userMessage.length > 120 ? '...' : ''}" (${conv.source === 'claude_desktop' ? 'Desktop' : 'Web'})`
       ).join('; ')}`;
     }
 
     // Add Mem0 long-term memories relevant to current message
     if (mem0Memories && mem0Memories.length > 0) {
-      additionalContext += `\n\nRelevant memories from past conversations:\n${mem0Memories.slice(0, 4).map(mem => {
+      additionalContext += `\n\nRelevant memories from past conversations:\n${mem0Memories.slice(0, 8).map(mem => {
         const text = mem.memory || mem.text || mem.content;
-        return text ? `- ${text.substring(0, 120)}` : '';
+        return text ? `- ${text.substring(0, 200)}` : '';
       }).filter(Boolean).join('\n')}`;
     }
 
@@ -900,14 +950,14 @@ router.post('/message', authenticateUser, async (req, res) => {
       }
     }
 
-    // Get conversation history if conversationId provided (cap at 6 messages, truncate long ones)
+    // Get conversation history if conversationId provided (cap at 10 messages for rich continuity)
     let conversationHistory = [];
     if (conversationId) {
       try {
-        const messages = await serverDb.getMessagesByConversation(conversationId, 6);
+        const messages = await serverDb.getMessagesByConversation(conversationId, 10);
         conversationHistory = messages.map(m => ({
           role: m.is_user_message ? 'user' : 'assistant',
-          content: m.content.length > 500 ? m.content.substring(0, 500) + '...' : m.content
+          content: m.content.length > 800 ? m.content.substring(0, 800) + '...' : m.content
         }));
       } catch (err) {
         console.warn('[Twin Chat] Could not fetch conversation history:', err.message);
@@ -963,7 +1013,7 @@ router.post('/message', authenticateUser, async (req, res) => {
             ...conversationHistory,
             { role: 'user', content: message }
           ],
-          maxTokens: 1000,
+          maxTokens: 2048,
           temperature: 0.7,
           userId,
           serviceName: 'twin-chat'
