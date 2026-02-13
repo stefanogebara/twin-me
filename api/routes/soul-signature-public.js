@@ -8,6 +8,7 @@
 import express from 'express';
 import { supabaseAdmin } from '../services/database.js';
 import { authenticateUser } from '../middleware/auth.js';
+import { invalidateOgCache } from './og-image.js';
 
 const router = express.Router();
 
@@ -91,6 +92,11 @@ router.patch('/visibility', authenticateUser, async (req, res) => {
       return res.status(500).json({ success: false, error: 'Failed to update visibility' });
     }
 
+    // Invalidate OG card cache when visibility changes
+    await invalidateOgCache(userId).catch(err =>
+      console.warn('[Signature Visibility] Cache invalidation failed:', err.message)
+    );
+
     return res.json({
       success: true,
       is_public: data.is_public,
@@ -128,7 +134,7 @@ router.get('/share-status', authenticateUser, async (req, res) => {
       success: true,
       is_public: data.is_public || false,
       has_signature: true,
-      share_url: data.is_public ? `/s/${userId}` : null,
+      share_url: data.is_public ? `/api/s/${userId}` : null,
     });
   } catch (error) {
     console.error('[Share Status] Error:', error);
