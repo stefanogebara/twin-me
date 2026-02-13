@@ -1,7 +1,7 @@
 # TWIN ME - EXECUTION PLAN
 
 > Last updated: 2026-02-13
-> Status: TIER 1 COMPLETE, TIER 2 COMPLETE (2.1D memory upgrade deferred), TIER 3 COMPLETE
+> Status: TIER 1 COMPLETE, TIER 2 COMPLETE, TIER 3 COMPLETE
 
 ---
 
@@ -169,7 +169,7 @@ Ship a focused, polished product where:
 ## TIER 2: FIX THE CORE PRODUCT
 
 ### 2.1 Fix Twin Chat Quality
-**Status:** IN PROGRESS (A, B, C complete. D remaining.)
+**Status:** COMPLETE
 **Priority:** CRITICAL - the core engagement mechanic
 **Effort:** 1-2 weeks
 
@@ -203,18 +203,24 @@ The twin feels like "ChatGPT with a fact sheet" - generic personality, shallow m
 - Writing profile enhanced with explicit voice matching instructions
 - Mem0 memories shown as bullet list, not compressed string
 
-**Remaining:**
-
-**D. Upgrade Memory System (Days 5-10)**
-- [ ] Layered memory with narrative understanding
-- [ ] Episodic memory: Specific conversations and outcomes
-- [ ] Temporal memory: How user changes over time
-- [ ] Better memory retrieval based on conversation context
+**D. Cognitive Architecture Upgrade (Memory System)** ✅
+- Unified memory stream (`memoryStreamService.js`) inspired by Generative Agents (Park et al., UIST 2023)
+- All observations flow into `user_memories` table with 1536-dim vector embeddings (pgvector, HNSW index)
+- Embedding via OpenRouter text-embedding-3-small (`embeddingService.js`)
+- Three-factor retrieval scoring: `0.3 * recency_decay + 0.3 * importance/10 + 0.4 * cosine_similarity`
+- LLM-rated importance (1-10) for every memory via cheapest model tier
+- Reflection engine (`reflectionEngine.js`): generates higher-level insights from raw observations
+  - Asks 3 salient questions about recent memories, retrieves evidence via vector search, synthesizes insights
+  - Reflections stored back as `memory_type='reflection'` with high importance (7-9)
+  - Triggered when accumulated importance > 25, with 1-hour cooldown per user
+- Backfill script (`api/scripts/backfillMemoryEmbeddings.js`): 1,692 memories backfilled with embeddings + importance scores
+- 3 initial reflections seeded
+- Twin chat now retrieves from unified memory stream (replaced flat Mem0 lookup)
 
 **Acceptance Criteria:**
-- Twin uses vocabulary and references consistent with user's data
-- Twin makes unexpected connections between platforms
-- Twin has opinions and personality, not just facts
+- ✅ Twin uses vocabulary and references consistent with user's data
+- ✅ Twin makes unexpected connections between platforms
+- ✅ Twin has opinions and personality, not just facts
 - Blind test: user can't easily distinguish twin from a knowledgeable friend
 
 ---
@@ -316,8 +322,15 @@ Waterfall strategy (Gravatar + GitHub now live, Generect for future):
 4. [x] Route registered in App.tsx at `/s/:userId`
 5. [x] TypeScript compiles cleanly
 
-**Deferred to TIER 3:**
-- OG meta tags for social media previews (requires server-side rendering or edge function)
+**OG Cards & Social Sharing:** ✅ (implemented in TIER 4.2 sprint)
+- `api/routes/og-image.js`: PNG card generation + OG HTML meta tag page
+- `api/services/soulCardRenderer.js`: 1200x630 card via satori + @resvg/resvg-js
+- `/api/og/soul-card?userId=X` → PNG with archetype, traits, score bars
+- `/api/s/:userId` → OG HTML with meta tags + meta-refresh redirect to SPA
+- Inter fonts bundled at `api/fonts/`
+- Privacy-aware: private signatures return fallback card unless owner requests
+
+**Deferred:**
 - "New insight unlocked!" changelog notifications
 
 ---
@@ -446,6 +459,8 @@ Priority order: Discord -> GitHub -> Reddit -> LinkedIn deep -> Apple Music
 | 2026-02-13 | Service audit: 17 orphaned + 9 test files removed | Verified every file via grep before archival. Server loads correctly. |
 | 2026-02-13 | Dependency cleanup: 97 → 88 packages | Removed tesseract.js (10MB), phosphor-react, anthropic SDKs, unused parsers |
 | 2026-02-13 | Full UI testing: 10 pages, 0 errors | Dashboard, Soul Signature, Twin Chat, Brain, Journal, Personality, Connect, Settings, LLM Costs all clean. Fixed CORS (PATCH), chat-usage 500, node-fetch, pdf-parse |
+| 2026-02-13 | Cognitive architecture upgrade (TIER 2.1D) | Unified memory stream with pgvector HNSW, three-factor retrieval, reflection engine. 1,692 memories backfilled, 3 reflections seeded. Twin chat now retrieves from vector-indexed memory stream |
+| 2026-02-13 | OG card system verified | satori+resvg-js rendering, /api/og/soul-card PNG, /api/s/:userId OG HTML with meta-refresh. Inter fonts bundled. No new code needed |
 
 ---
 
