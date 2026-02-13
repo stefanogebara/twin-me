@@ -6,8 +6,17 @@
  */
 
 import { complete, TIER_EXTRACTION } from './llmGateway.js';
-import pdf from 'pdf-parse/lib/pdf-parse.js';
 import fs from 'fs';
+
+// Lazy-load pdf-parse only when needed (optional dependency)
+let pdf;
+async function getPdfParser() {
+  if (!pdf) {
+    try { pdf = (await import('pdf-parse/lib/pdf-parse.js')).default; }
+    catch { throw new Error('pdf-parse not installed. Run: npm install pdf-parse'); }
+  }
+  return pdf;
+}
 
 class ResumeParserService {
 
@@ -26,7 +35,8 @@ class ResumeParserService {
     // Extract text from PDF if needed
     if (fileType === 'pdf') {
       try {
-        const pdfData = await pdf(fileContent);
+        const pdfParser = await getPdfParser();
+        const pdfData = await pdfParser(fileContent);
         textContent = pdfData.text;
         console.log(`[ResumeParser] Extracted ${textContent.length} chars from PDF`);
       } catch (error) {
