@@ -323,7 +323,8 @@ async function refreshWhoopToken(userId, refreshToken) {
 async function fetchWhoopRecovery(userId, cycleId) {
   const accessToken = await getWhoopAccessToken(userId);
 
-  const response = await fetch(`https://api.prod.whoop.com/developer/v1/cycle/${cycleId}`, {
+  // V2 API: Get recovery by cycle ID
+  const response = await fetch(`https://api.prod.whoop.com/developer/v2/cycle/${cycleId}`, {
     headers: { 'Authorization': `Bearer ${accessToken}` }
   });
 
@@ -334,8 +335,8 @@ async function fetchWhoopRecovery(userId, cycleId) {
   const cycle = await response.json();
   return {
     cycle_id: cycle.id,
-    recovery_score: cycle.score?.recovery,
-    hrv_rmssd_milli: cycle.score?.hrv?.rmssd_milli,
+    recovery_score: cycle.score?.recovery_score ?? cycle.score?.recovery,
+    hrv_rmssd_milli: cycle.score?.hrv_rmssd_milli ?? cycle.score?.hrv?.rmssd_milli,
     resting_heart_rate: cycle.score?.resting_heart_rate,
     spo2_percentage: cycle.score?.spo2_percentage,
     skin_temp_celsius: cycle.score?.skin_temp_celsius,
@@ -351,7 +352,8 @@ async function fetchWhoopRecovery(userId, cycleId) {
 async function fetchWhoopSleep(userId, sleepId) {
   const accessToken = await getWhoopAccessToken(userId);
 
-  const response = await fetch(`https://api.prod.whoop.com/developer/v1/activity/sleep/${sleepId}`, {
+  // V2 API: Get sleep by ID
+  const response = await fetch(`https://api.prod.whoop.com/developer/v2/activity/sleep/${sleepId}`, {
     headers: { 'Authorization': `Bearer ${accessToken}` }
   });
 
@@ -381,7 +383,8 @@ async function fetchWhoopSleep(userId, sleepId) {
 async function fetchWhoopWorkout(userId, workoutId) {
   const accessToken = await getWhoopAccessToken(userId);
 
-  const response = await fetch(`https://api.prod.whoop.com/developer/v1/activity/workout/${workoutId}`, {
+  // V2 API: Get workout by ID
+  const response = await fetch(`https://api.prod.whoop.com/developer/v2/activity/workout/${workoutId}`, {
     headers: { 'Authorization': `Bearer ${accessToken}` }
   });
 

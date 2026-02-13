@@ -13,6 +13,11 @@
 import spotifyFeatureExtractor from './featureExtractors/spotifyExtractor.js';
 import calendarFeatureExtractor from './featureExtractors/calendarExtractor.js';
 import whoopFeatureExtractor from './featureExtractors/whoopExtractor.js';
+import gmailFeatureExtractor from './featureExtractors/gmailFeatureExtractor.js';
+import outlookFeatureExtractor from './featureExtractors/outlookFeatureExtractor.js';
+import linkedinFeatureExtractor from './featureExtractors/linkedinFeatureExtractor.js';
+import youtubeFeatureExtractor from './featureExtractors/youtubeFeatureExtractor.js';
+import twitchFeatureExtractor from './featureExtractors/twitchFeatureExtractor.js';
 import {
   generateAllEvidence,
   calculateConfidenceScores,
@@ -27,7 +32,13 @@ class BehavioralEvidencePipeline {
       spotify: spotifyFeatureExtractor,
       google_calendar: calendarFeatureExtractor,
       calendar: calendarFeatureExtractor, // alias
-      whoop: whoopFeatureExtractor
+      whoop: whoopFeatureExtractor,
+      gmail: gmailFeatureExtractor,
+      google_gmail: gmailFeatureExtractor, // alias for Nango DB key
+      outlook: outlookFeatureExtractor,
+      linkedin: linkedinFeatureExtractor,
+      youtube: youtubeFeatureExtractor,
+      twitch: twitchFeatureExtractor
     };
   }
 
@@ -111,14 +122,15 @@ class BehavioralEvidencePipeline {
       }
 
       // 7. Update personality scores based on behavioral evidence
-      await this.updateBehavioralPersonality(userId, evidence, confidence);
+      const processedPlatforms = Object.keys(platformFeatures);
+      await this.updateBehavioralPersonality(userId, evidence, confidence, processedPlatforms);
 
       return {
         success: true,
         evidence,
         confidence,
         dataSources,
-        platformsProcessed: Object.keys(platformFeatures),
+        platformsProcessed: processedPlatforms,
         featuresExtracted: totalFeatures,
         evidenceGenerated: evidenceCount
       };
@@ -187,7 +199,7 @@ class BehavioralEvidencePipeline {
   /**
    * Update personality scores based on behavioral evidence
    */
-  async updateBehavioralPersonality(userId, evidence, confidence) {
+  async updateBehavioralPersonality(userId, evidence, confidence, processedPlatforms = []) {
     try {
       // Calculate dimension scores from evidence
       const scores = {};
@@ -200,24 +212,29 @@ class BehavioralEvidencePipeline {
           continue;
         }
 
-        // Weighted average based on correlation strength and feature value
-        let weightedSum = 0;
+        // Effect-size-scaled scoring:
+        // Correlations of r=0.2-0.4 explain only 4-16% of personality variance.
+        // Max deviation from 50 is proportional to the correlation strength.
+        // With r=0.35 (strong for behavioral), max deviation is ±17.5 points.
+        let totalDeviation = 0;
         let totalWeight = 0;
 
         for (const e of dimEvidence) {
-          const weight = Math.abs(e.correlation);
-          // Feature value is 0-1, correlation can be positive or negative
-          // Positive correlation: high feature = high dimension
-          // Negative correlation: high feature = low dimension
-          const contribution = e.correlation > 0 ? e.value : (1 - e.value);
-          weightedSum += contribution * weight;
-          totalWeight += weight;
+          const r = Math.abs(e.correlation);
+          // Direction: positive correlation → high value pushes score up
+          const direction = e.correlation > 0 ? (e.value - 0.5) : (0.5 - e.value);
+          // Max contribution scaled by effect size: r=0.4 → max ±20 points
+          const maxDeviation = r * 50; // r=0.35 → ±17.5 max
+          totalDeviation += direction * 2 * maxDeviation * r; // Weight by r too
+          totalWeight += r;
         }
 
-        // Convert to 0-100 scale
-        scores[dim] = totalWeight > 0
-          ? Math.round((weightedSum / totalWeight) * 100)
-          : 50;
+        // Average deviation, plus confidence dampening
+        const avgDeviation = totalWeight > 0 ? totalDeviation / totalWeight : 0;
+        const dimConfidence = confidence.by_dimension[dim] || 0;
+        const dampeningFactor = Math.min(dimConfidence, 0.85);
+
+        scores[dim] = Math.round(Math.max(15, Math.min(85, 50 + avgDeviation * dampeningFactor)));
       }
 
       // Upsert personality scores
@@ -237,6 +254,8 @@ class BehavioralEvidencePipeline {
           neuroticism_confidence: Math.round(confidence.by_dimension.neuroticism * 100),
           source: 'behavioral',
           source_type: 'behavioral',
+          analyzed_platforms: processedPlatforms,
+          sample_size: Object.values(evidence).reduce((sum, arr) => sum + arr.length, 0),
           updated_at: new Date().toISOString()
         }, {
           onConflict: 'user_id'

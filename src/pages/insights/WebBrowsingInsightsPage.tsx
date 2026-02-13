@@ -6,6 +6,7 @@
  */
 
 import React, { useEffect, useState } from 'react';
+import { motion } from 'framer-motion';
 import { useAuth } from '@/contexts/AuthContext';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useDemo } from '@/contexts/DemoContext';
@@ -330,29 +331,99 @@ const WebBrowsingInsightsPage: React.FC = () => {
   if (error) {
     return (
       <PageLayout>
-        <div className="flex flex-col items-center justify-center min-h-[400px] gap-4">
-          <AlertCircle className="w-12 h-12" style={{ color: colors.textSecondary }} />
-          <p className="text-center" style={{ color: colors.textSecondary }}>{error}</p>
-          <p className="text-sm text-center max-w-md" style={{ color: colors.textSecondary }}>
-            Install the Soul Signature browser extension and browse the web to start capturing your digital life patterns.
-          </p>
-          <div className="flex gap-3">
-            <button
-              onClick={() => navigate('/get-started')}
-              className="px-4 py-2 rounded-lg glass-button"
-              style={{ color: colors.accent, borderColor: colors.accent, borderWidth: '1px' }}
-            >
-              Install Extension
+        {/* Header */}
+        <div className="flex items-center justify-between mb-8">
+          <div className="flex items-center gap-4">
+            <button onClick={() => navigate('/dashboard')} className="p-2 rounded-lg glass-button">
+              <ArrowLeft className="w-5 h-5" style={{ color: colors.text }} />
             </button>
-            <button
-              onClick={() => navigate('/dashboard')}
-              className="px-4 py-2 rounded-lg glass-button"
-              style={{ color: colors.text }}
+            <div
+              className="w-12 h-12 rounded-xl flex items-center justify-center"
+              style={{ backgroundColor: colors.webBg }}
             >
-              Back to Dashboard
-            </button>
+              <Globe className="w-6 h-6" style={{ color: colors.webAccent }} />
+            </div>
+            <div>
+              <h1
+                className="text-2xl"
+                style={{ fontFamily: 'var(--font-heading)', fontWeight: 500, color: colors.text }}
+              >
+                Your Digital Life
+              </h1>
+              <p className="text-sm mt-0.5" style={{ color: colors.textSecondary }}>
+                What your browsing reveals about you
+              </p>
+            </div>
           </div>
         </div>
+
+        {/* Extension Install Banner */}
+        <GlassPanel
+          className="!p-4 mb-6 cursor-pointer transition-opacity hover:opacity-80"
+          style={{ borderLeft: `3px solid ${colors.webAccent}` }}
+          onClick={() => navigate('/get-started')}
+        >
+          <div className="flex items-center gap-3">
+            <Layout className="w-5 h-5 flex-shrink-0" style={{ color: colors.webAccent }} />
+            <div className="flex-1">
+              <p className="text-sm font-medium" style={{ color: colors.text }}>
+                Install the browser extension to unlock your digital life
+              </p>
+              <p className="text-xs mt-0.5" style={{ color: colors.textSecondary }}>
+                Capture browsing patterns, reading habits, search queries, and content preferences to discover what your digital footprint reveals about you.
+              </p>
+            </div>
+            <ArrowLeft className="w-4 h-4 rotate-180 flex-shrink-0" style={{ color: colors.textSecondary }} />
+          </div>
+        </GlassPanel>
+
+        {/* Preview sections */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+          <GlassPanel className="!p-5">
+            <div className="flex items-center gap-2 mb-3">
+              <BarChart3 className="w-4 h-4" style={{ color: colors.textSecondary }} />
+              <span className="text-sm uppercase tracking-wider" style={{ color: colors.textSecondary }}>Interest Categories</span>
+            </div>
+            <p className="text-xs" style={{ color: colors.textSecondary, opacity: 0.6 }}>
+              See what topics dominate your browsing - from technology to entertainment, health to news.
+            </p>
+          </GlassPanel>
+          <GlassPanel className="!p-5">
+            <div className="flex items-center gap-2 mb-3">
+              <Search className="w-4 h-4" style={{ color: colors.textSecondary }} />
+              <span className="text-sm uppercase tracking-wider" style={{ color: colors.textSecondary }}>Search Patterns</span>
+            </div>
+            <p className="text-xs" style={{ color: colors.textSecondary, opacity: 0.6 }}>
+              Discover what questions drive your curiosity and how your interests evolve over time.
+            </p>
+          </GlassPanel>
+          <GlassPanel className="!p-5">
+            <div className="flex items-center gap-2 mb-3">
+              <BookOpen className="w-4 h-4" style={{ color: colors.textSecondary }} />
+              <span className="text-sm uppercase tracking-wider" style={{ color: colors.textSecondary }}>Reading Profile</span>
+            </div>
+            <p className="text-xs" style={{ color: colors.textSecondary, opacity: 0.6 }}>
+              Your reading depth, engagement patterns, and the type of content that captures your attention.
+            </p>
+          </GlassPanel>
+          <GlassPanel className="!p-5">
+            <div className="flex items-center gap-2 mb-3">
+              <Clock className="w-4 h-4" style={{ color: colors.textSecondary }} />
+              <span className="text-sm uppercase tracking-wider" style={{ color: colors.textSecondary }}>Digital Rhythms</span>
+            </div>
+            <p className="text-xs" style={{ color: colors.textSecondary, opacity: 0.6 }}>
+              When you browse, what pulls you in at different times of day, and your online activity patterns.
+            </p>
+          </GlassPanel>
+        </div>
+
+        {/* Twin observation placeholder */}
+        <GlassPanel className="!p-5 text-center">
+          <Sparkles className="w-8 h-8 mx-auto mb-3" style={{ color: colors.textSecondary, opacity: 0.4 }} />
+          <p className="text-sm" style={{ color: colors.textSecondary }}>
+            Once your browsing data flows in, your twin will discover patterns and share observations about your digital life.
+          </p>
+        </GlassPanel>
       </PageLayout>
     );
   }
@@ -362,16 +433,31 @@ const WebBrowsingInsightsPage: React.FC = () => {
       {/* Header */}
       <div className="flex items-center justify-between mb-8">
         <div className="flex items-center gap-4">
-          <button onClick={() => navigate('/dashboard')} className="p-2 rounded-lg glass-button">
+          <motion.button
+            onClick={() => navigate('/dashboard')}
+            className="p-2 rounded-lg glass-button"
+            initial={{ opacity: 0, x: -12 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.35, ease: [0.4, 0, 0.2, 1] }}
+            whileHover={{ scale: 1.08 }}
+            whileTap={{ scale: 0.95 }}
+          >
             <ArrowLeft className="w-5 h-5" style={{ color: colors.text }} />
-          </button>
-          <div
+          </motion.button>
+          <motion.div
             className="w-12 h-12 rounded-xl flex items-center justify-center"
             style={{ backgroundColor: colors.webBg }}
+            initial={{ opacity: 0, scale: 0.5 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.4, delay: 0.1, ease: [0.4, 0, 0.2, 1] }}
           >
             <Globe className="w-6 h-6" style={{ color: colors.webAccent }} />
-          </div>
-          <div>
+          </motion.div>
+          <motion.div
+            initial={{ opacity: 0, x: -12 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.4, delay: 0.15, ease: [0.4, 0, 0.2, 1] }}
+          >
             <h1
               className="text-2xl"
               style={{ fontFamily: 'var(--font-heading)', fontWeight: 500, color: colors.text }}
@@ -381,17 +467,44 @@ const WebBrowsingInsightsPage: React.FC = () => {
             <p className="text-sm" style={{ color: colors.textSecondary }}>
               What your browsing reveals about you
             </p>
-          </div>
+          </motion.div>
         </div>
-        <button
+        <motion.button
           onClick={handleRefresh}
           disabled={refreshing}
           className="p-2 rounded-lg glass-button"
           title="Get a fresh observation"
+          initial={{ opacity: 0, scale: 0.8 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.35, delay: 0.25, ease: [0.4, 0, 0.2, 1] }}
+          whileHover={{ scale: 1.1, rotate: 90 }}
+          whileTap={{ scale: 0.95 }}
         >
           <RefreshCw className={`w-5 h-5 ${refreshing ? 'animate-spin' : ''}`} style={{ color: colors.text }} />
-        </button>
+        </motion.button>
       </div>
+
+      {/* Extension Install Banner */}
+      {!insights?.hasExtensionData && (
+        <GlassPanel
+          className="!p-4 mb-6 cursor-pointer transition-opacity hover:opacity-80"
+          style={{ borderLeft: `3px solid ${colors.webAccent}` }}
+          onClick={() => navigate('/get-started')}
+        >
+          <div className="flex items-center gap-3">
+            <Layout className="w-5 h-5 flex-shrink-0" style={{ color: colors.webAccent }} />
+            <div className="flex-1">
+              <p className="text-sm font-medium" style={{ color: colors.text }}>
+                Install the browser extension to unlock your digital life
+              </p>
+              <p className="text-xs mt-0.5" style={{ color: colors.textSecondary }}>
+                Capture browsing patterns, reading habits, search queries, and content preferences to discover what your digital footprint reveals about you.
+              </p>
+            </div>
+            <ArrowLeft className="w-4 h-4 rotate-180 flex-shrink-0" style={{ color: colors.textSecondary }} />
+          </div>
+        </GlassPanel>
+      )}
 
       {/* Interest Categories */}
       {insights?.webTopCategories && insights.webTopCategories.length > 0 && (

@@ -23,7 +23,6 @@ class MusicPsychologistAgent extends SpecialistAgentBase {
       role: 'Music psychology specialist analyzing listening patterns',
       domain: 'spotify',
       domainLabel: 'Music Psychology',
-      model: 'claude-sonnet-4-20250514',
       maxTokens: 4096,
       temperature: 0.4,
       confidenceThreshold: 0.15

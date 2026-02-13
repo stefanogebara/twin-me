@@ -3,13 +3,8 @@
  * Uses Claude AI to analyze extracted platform data and generate deep personality insights
  */
 
-import Anthropic from '@anthropic-ai/sdk';
+import { complete, TIER_ANALYSIS } from './llmGateway.js';
 import { supabaseAdmin } from '../config/supabase.js';
-import { CLAUDE_MODEL } from '../config/aiModels.js';
-
-const anthropic = new Anthropic({
-  apiKey: process.env.ANTHROPIC_API_KEY,
-});
 
 /**
  * Main function: Analyze user's soul data and generate insights
@@ -121,17 +116,18 @@ async function analyzePlatformData(userId, platform, dataEntries) {
 
   try {
     // Call Claude for analysis
-    const message = await anthropic.messages.create({
-      model: CLAUDE_MODEL,
-      max_tokens: 4000,
-      temperature: 0.7,
+    const result = await complete({
+      tier: TIER_ANALYSIS,
       messages: [{
         role: 'user',
         content: prompt
-      }]
+      }],
+      maxTokens: 4000,
+      temperature: 0.7,
+      serviceName: 'soulSignatureAnalysis'
     });
 
-    const analysis = message.content[0].text;
+    const analysis = result.content;
 
     // Parse Claude's response and create structured insights
     const parsedInsights = parseClaudeAnalysis(analysis, platform);
@@ -210,17 +206,18 @@ Respond in JSON format with an array of insights:
 Make the insights feel authentic and meaningful - like something that would resonate deeply with the person.`;
 
   try {
-    const message = await anthropic.messages.create({
-      model: CLAUDE_MODEL,
-      max_tokens: 4000,
-      temperature: 0.7,
+    const result = await complete({
+      tier: TIER_ANALYSIS,
       messages: [{
         role: 'user',
         content: prompt
-      }]
+      }],
+      maxTokens: 4000,
+      temperature: 0.7,
+      serviceName: 'soulSignatureAnalysis'
     });
 
-    const analysis = message.content[0].text;
+    const analysis = result.content;
     const parsedInsights = parseClaudeAnalysis(analysis, platforms.join('+'));
 
     for (const insight of parsedInsights) {

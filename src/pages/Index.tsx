@@ -5,6 +5,7 @@ import { useTheme } from '../contexts/ThemeContext';
 import { useDemo } from '../contexts/DemoContext';
 import { ThemeToggle } from '../components/ThemeToggle';
 import { X } from 'lucide-react';
+import { SpotifyLogo, GoogleCalendarLogo, WhoopLogo, YoutubeLogo, TwitchLogo, LinkedinLogo } from '@/components/PlatformLogos';
 
 const Index = () => {
   const navigate = useNavigate();
@@ -59,6 +60,46 @@ const Index = () => {
         color: theme === 'dark' ? '#C1C0B6' : '#0c0a09'
       }}
     >
+      {/* Aurora animation keyframes */}
+      <style>{`
+        @keyframes aurora {
+          0% { background-position: 0% 50%, 50% 50%; }
+          25% { background-position: 100% 50%, 0% 50%; }
+          50% { background-position: 50% 100%, 100% 0%; }
+          75% { background-position: 0% 0%, 50% 100%; }
+          100% { background-position: 0% 50%, 50% 50%; }
+        }
+        @keyframes float {
+          0%, 100% { transform: translateY(0px) scale(1); }
+          50% { transform: translateY(-20px) scale(1.05); }
+        }
+        .aurora-bg {
+          background:
+            radial-gradient(ellipse 80% 60% at 30% 40%, rgba(16, 185, 129, 0.15) 0%, transparent 60%),
+            radial-gradient(ellipse 60% 80% at 70% 60%, rgba(139, 92, 246, 0.12) 0%, transparent 60%),
+            radial-gradient(ellipse 70% 50% at 50% 30%, rgba(20, 184, 166, 0.1) 0%, transparent 50%);
+          background-size: 200% 200%, 200% 200%;
+          animation: aurora 12s ease-in-out infinite;
+        }
+        .aurora-bg-light {
+          background:
+            radial-gradient(ellipse 80% 60% at 30% 40%, rgba(16, 185, 129, 0.1) 0%, transparent 60%),
+            radial-gradient(ellipse 60% 80% at 70% 60%, rgba(139, 92, 246, 0.08) 0%, transparent 60%),
+            radial-gradient(ellipse 70% 50% at 50% 30%, rgba(20, 184, 166, 0.06) 0%, transparent 50%);
+          background-size: 200% 200%, 200% 200%;
+          animation: aurora 12s ease-in-out infinite;
+        }
+        .cta-gradient {
+          background: linear-gradient(135deg, #10b981, #14b8a6, #0d9488);
+          background-size: 200% 200%;
+          transition: all 0.3s ease;
+        }
+        .cta-gradient:hover {
+          transform: scale(1.05);
+          box-shadow: 0 8px 30px rgba(16, 185, 129, 0.4);
+          background-position: 100% 100%;
+        }
+      `}</style>
       {/* Navigation */}
       <nav
         className="fixed top-0 w-full z-50 px-6 lg:px-[60px] py-4"
@@ -71,31 +112,61 @@ const Index = () => {
       >
         <div className="max-w-[1200px] mx-auto flex justify-between items-center">
           <div
-            className="text-[24px]"
-            style={{
-              fontFamily: 'var(--font-heading)',
-              fontWeight: 400,
-              color: theme === 'dark' ? '#C1C0B6' : '#0c0a09'
-            }}
+            className="flex items-center gap-2.5"
           >
-            Twin Me
+            <img src="/icons/3d/diamond.png" alt="Twin Me" className="w-8 h-8 object-contain drop-shadow-sm" />
+            <span
+              className="text-[24px]"
+              style={{
+                fontFamily: 'var(--font-heading)',
+                fontWeight: 400,
+                color: theme === 'dark' ? '#C1C0B6' : '#0c0a09'
+              }}
+            >
+              Twin Me
+            </span>
           </div>
 
-          {/* Nav Links - Pill Style */}
+          {/* Nav Links - Smooth scroll anchors */}
           <div className="hidden md:flex items-center gap-2">
-            {['Product', 'Solutions', 'Company', 'FAQ'].map((item) => (
-              <button
-                key={item}
-                onClick={() => handleNavClick(item)}
-                className="px-4 py-2 rounded-full text-[14px] font-medium transition-colors hover:opacity-80"
-                style={{
-                  backgroundColor: theme === 'dark' ? 'rgba(193, 192, 182, 0.08)' : 'rgba(0, 0, 0, 0.04)',
-                  color: theme === 'dark' ? '#C1C0B6' : '#0c0a09',
-                  fontFamily: 'var(--font-body)'
-                }}
-              >
-                {item}
-              </button>
+            {[
+              { label: 'Platforms', href: '#platforms' },
+              { label: 'How It Works', href: '#how-it-works' },
+              { label: 'Company', action: 'Company' },
+              { label: 'FAQ', action: 'FAQ' }
+            ].map((item) => (
+              item.href ? (
+                <a
+                  key={item.label}
+                  href={item.href}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    document.querySelector(item.href!)?.scrollIntoView({ behavior: 'smooth' });
+                  }}
+                  className="px-4 py-2 rounded-full text-[14px] font-medium transition-colors hover:opacity-80"
+                  style={{
+                    backgroundColor: theme === 'dark' ? 'rgba(193, 192, 182, 0.08)' : 'rgba(0, 0, 0, 0.04)',
+                    color: theme === 'dark' ? '#C1C0B6' : '#0c0a09',
+                    fontFamily: 'var(--font-body)',
+                    textDecoration: 'none'
+                  }}
+                >
+                  {item.label}
+                </a>
+              ) : (
+                <button
+                  key={item.label}
+                  onClick={() => setActiveModal(item.action!)}
+                  className="px-4 py-2 rounded-full text-[14px] font-medium transition-colors hover:opacity-80"
+                  style={{
+                    backgroundColor: theme === 'dark' ? 'rgba(193, 192, 182, 0.08)' : 'rgba(0, 0, 0, 0.04)',
+                    color: theme === 'dark' ? '#C1C0B6' : '#0c0a09',
+                    fontFamily: 'var(--font-body)'
+                  }}
+                >
+                  {item.label}
+                </button>
+              )
             ))}
           </div>
 
@@ -142,16 +213,11 @@ const Index = () => {
         </div>
       </nav>
 
-      {/* Hero Section - Lorix Style */}
-      <section className="min-h-screen flex items-center justify-center relative pt-[100px] pb-20 px-6 lg:px-[60px]">
-        {/* Gradient Background */}
+      {/* Hero Section */}
+      <section className="min-h-screen flex items-center justify-center relative pt-[100px] pb-12 px-6 lg:px-[60px]">
+        {/* Animated Aurora Background */}
         <div
-          className="absolute inset-0 pointer-events-none"
-          style={{
-            background: theme === 'dark'
-              ? 'radial-gradient(ellipse at top, rgba(193, 192, 182, 0.08) 0%, transparent 50%)'
-              : 'radial-gradient(ellipse at top, rgba(200, 180, 220, 0.15) 0%, transparent 50%)'
-          }}
+          className={`absolute inset-0 pointer-events-none ${theme === 'dark' ? 'aurora-bg' : 'aurora-bg-light'}`}
         />
 
         <div className="max-w-[1200px] mx-auto w-full">
@@ -198,27 +264,19 @@ const Index = () => {
                 AI-powered discovery reveals your authentic digital identity through your curiosities, passions, and unique patterns.
               </p>
 
-              {/* CTA Button */}
+              {/* CTA Button - Gradient */}
               <div className="flex justify-center">
                 {isLoaded && isSignedIn ? (
                   <button
                     onClick={() => navigate('/dashboard')}
-                    className="px-8 py-3.5 rounded-full text-[14px] font-medium transition-all hover:opacity-90"
-                    style={{
-                      backgroundColor: theme === 'dark' ? '#C1C0B6' : '#0c0a09',
-                      color: theme === 'dark' ? '#232320' : '#ffffff'
-                    }}
+                    className="cta-gradient px-8 py-4 rounded-full text-lg font-semibold text-white shadow-lg"
                   >
                     Start Free
                   </button>
                 ) : (
                   <SignInButton mode="modal" fallbackRedirectUrl="/get-started" forceRedirectUrl="/get-started">
                     <button
-                      className="px-8 py-3.5 rounded-full text-[14px] font-medium transition-all hover:opacity-90"
-                      style={{
-                        backgroundColor: theme === 'dark' ? '#C1C0B6' : '#0c0a09',
-                        color: theme === 'dark' ? '#232320' : '#ffffff'
-                      }}
+                      className="cta-gradient px-8 py-4 rounded-full text-lg font-semibold text-white shadow-lg"
                     >
                       Start Free
                     </button>
@@ -229,7 +287,7 @@ const Index = () => {
           </div>
 
           {/* Feature Tagline */}
-          <div className="mt-20 lg:mt-32">
+          <div className="mt-14 lg:mt-20">
             <h2
               className="text-[clamp(1.5rem,3vw,2rem)] mb-4"
               style={{
@@ -255,12 +313,12 @@ const Index = () => {
         </div>
       </section>
 
-      {/* Features/Product Section */}
-      <section ref={featuresRef} className="py-16 px-6 lg:px-[60px]">
+      {/* Trusted Platforms Section */}
+      <section ref={featuresRef} id="platforms" className="py-10 px-6 lg:px-[60px]">
         <div className="max-w-[1200px] mx-auto">
           <div className="flex flex-col items-center">
             <span
-              className="px-4 py-2 rounded-full text-[12px] font-medium mb-10"
+              className="px-4 py-2 rounded-full text-[12px] font-medium mb-8"
               style={{
                 backgroundColor: theme === 'dark' ? 'rgba(193, 192, 182, 0.08)' : 'rgba(0, 0, 0, 0.04)',
                 color: theme === 'dark' ? 'rgba(193, 192, 182, 0.6)' : '#78716c',
@@ -270,43 +328,49 @@ const Index = () => {
               Our Trusted Platforms
             </span>
 
-            <div className="flex flex-wrap justify-center items-center gap-10 lg:gap-16">
+            <div className="flex flex-wrap justify-center items-center gap-8 lg:gap-14">
               {[
-                { name: 'Spotify', color: '#1DB954' },
-                { name: 'Google Calendar', color: '#4285F4' },
-                { name: 'Whoop', color: '#06B6D4' },
-                { name: 'YouTube', color: '#FF0000' },
-                { name: 'Twitch', color: '#9146FF' },
-                { name: 'LinkedIn', color: '#0A66C2' }
+                { name: 'Spotify', color: '#1DB954', Logo: SpotifyLogo },
+                { name: 'Google Calendar', color: '#4285F4', Logo: GoogleCalendarLogo },
+                { name: 'Whoop', color: '#06B6D4', Logo: WhoopLogo },
+                { name: 'YouTube', color: '#FF0000', Logo: YoutubeLogo },
+                { name: 'Twitch', color: '#9146FF', Logo: TwitchLogo },
+                { name: 'LinkedIn', color: '#0A66C2', Logo: LinkedinLogo }
               ].map((platform) => (
-                <div
-                  key={platform.name}
-                  className="flex items-center gap-2.5"
-                >
-                  <span
-                    className="w-2 h-2 rounded-full"
-                    style={{ backgroundColor: platform.color }}
-                  />
-                  <span
-                    className="text-[14px] font-medium"
-                    style={{
-                      fontFamily: 'var(--font-body)',
-                      color: theme === 'dark' ? 'rgba(193, 192, 182, 0.5)' : '#a8a29e'
-                    }}
+                  <div
+                    key={platform.name}
+                    className="flex items-center gap-3 group"
                   >
-                    {platform.name}
-                  </span>
-                </div>
-              ))}
+                    <div
+                      className="w-9 h-9 rounded-lg flex items-center justify-center transition-transform group-hover:scale-110"
+                      style={{
+                        backgroundColor: `${platform.color}18`,
+                      }}
+                    >
+                      <platform.Logo
+                        className="w-[18px] h-[18px]"
+                      />
+                    </div>
+                    <span
+                      className="text-[14px] font-medium"
+                      style={{
+                        fontFamily: 'var(--font-body)',
+                        color: theme === 'dark' ? 'rgba(193, 192, 182, 0.7)' : '#78716c'
+                      }}
+                    >
+                      {platform.name}
+                    </span>
+                  </div>
+                ))}
             </div>
           </div>
         </div>
       </section>
 
       {/* The Problem Section */}
-      <section className="py-20 px-6 lg:px-[60px]">
+      <section className="py-14 px-6 lg:px-[60px]">
         <div className="max-w-[1200px] mx-auto">
-          <div className="flex flex-col items-center mb-16">
+          <div className="flex flex-col items-center mb-10">
             <span
               className="px-4 py-2 rounded-full text-[12px] font-medium"
               style={{
@@ -346,66 +410,89 @@ const Index = () => {
       </section>
 
       {/* How It Works */}
-      <section ref={howItWorksRef} className="py-20 px-6 lg:px-[60px]">
+      <section ref={howItWorksRef} id="how-it-works" className="py-14 px-6 lg:px-[60px]">
         <div className="max-w-[1200px] mx-auto">
-          <div className="grid md:grid-cols-3 gap-12 lg:gap-16">
+          <div className="grid md:grid-cols-3 gap-8 lg:gap-12">
             {[
               {
                 step: '01',
                 title: 'Connect',
-                desc: 'Link your platforms - Spotify, Calendar, Whoop, YouTube, and more'
+                desc: 'Link your platforms - Spotify, Calendar, Whoop, YouTube, and more',
+                clay3d: 'globe',
+                iconColor: '#10b981'
               },
               {
                 step: '02',
                 title: 'Discover',
-                desc: 'AI reveals patterns and insights you didn\'t know about yourself'
+                desc: 'AI reveals patterns and insights you didn\'t know about yourself',
+                clay3d: 'sparkle',
+                iconColor: '#8b5cf6'
               },
               {
                 step: '03',
                 title: 'Control',
-                desc: 'Set privacy levels for each life cluster - share what you want'
+                desc: 'Set privacy levels for each life cluster - share what you want',
+                clay3d: 'shield',
+                iconColor: '#14b8a6'
               }
-            ].map((item) => (
-              <div key={item.step} className="text-center md:text-left">
-                <span
-                  className="text-[48px] lg:text-[64px] font-light"
+            ].map((item) => {
+              return (
+                <div
+                  key={item.step}
+                  className="text-center md:text-left rounded-2xl p-6 transition-all hover:scale-[1.02]"
                   style={{
-                    fontFamily: 'var(--font-heading)',
-                    color: theme === 'dark' ? 'rgba(193, 192, 182, 0.15)' : 'rgba(0, 0, 0, 0.06)'
+                    backgroundColor: theme === 'dark' ? 'rgba(193, 192, 182, 0.03)' : 'rgba(0, 0, 0, 0.02)',
+                    border: `1px solid ${theme === 'dark' ? 'rgba(193, 192, 182, 0.06)' : 'rgba(0, 0, 0, 0.04)'}`
                   }}
                 >
-                  {item.step}
-                </span>
-                <h3
-                  className="text-[20px] mb-3 -mt-4"
-                  style={{
-                    fontFamily: 'var(--font-heading)',
-                    fontWeight: 400,
-                    color: theme === 'dark' ? '#C1C0B6' : '#0c0a09'
-                  }}
-                >
-                  {item.title}
-                </h3>
-                <p
-                  className="text-[15px] leading-[1.6]"
-                  style={{
-                    fontFamily: 'var(--font-body)',
-                    color: theme === 'dark' ? 'rgba(193, 192, 182, 0.6)' : '#78716c'
-                  }}
-                >
-                  {item.desc}
-                </p>
-              </div>
-            ))}
+                  <div className="flex items-center gap-3 mb-4 justify-center md:justify-start">
+                    <img
+                      src={`/icons/3d/${item.clay3d}.png`}
+                      alt={item.title}
+                      className="w-12 h-12 object-contain drop-shadow-md"
+                    />
+                    <span
+                      className="text-[36px] lg:text-[48px] font-light"
+                      style={{
+                        fontFamily: 'var(--font-heading)',
+                        color: theme === 'dark' ? 'rgba(193, 192, 182, 0.12)' : 'rgba(0, 0, 0, 0.06)'
+                      }}
+                    >
+                      {item.step}
+                    </span>
+                  </div>
+                  <h3
+                    className="text-[20px] mb-3"
+                    style={{
+                      fontFamily: 'var(--font-heading)',
+                      fontWeight: 400,
+                      color: theme === 'dark' ? '#C1C0B6' : '#0c0a09'
+                    }}
+                  >
+                    {item.title}
+                  </h3>
+                  <p
+                    className="text-[15px] leading-[1.6]"
+                    style={{
+                      fontFamily: 'var(--font-body)',
+                      color: theme === 'dark' ? 'rgba(193, 192, 182, 0.6)' : '#78716c'
+                    }}
+                  >
+                    {item.desc}
+                  </p>
+                </div>
+              );
+            })}
           </div>
         </div>
       </section>
 
       {/* Final CTA */}
-      <section className="py-24 px-6 lg:px-[60px]">
+      <section id="cta" className="py-16 px-6 lg:px-[60px]">
         <div className="max-w-[600px] mx-auto text-center">
+          <img src="/icons/3d/rocket.png" alt="" className="w-16 h-16 mx-auto mb-6 drop-shadow-lg" />
           <h2
-            className="text-[clamp(1.75rem,4vw,2.5rem)] mb-6"
+            className="text-[clamp(1.75rem,4vw,2.5rem)] mb-5"
             style={{
               fontFamily: 'var(--font-heading)',
               fontWeight: 400,
@@ -416,7 +503,7 @@ const Index = () => {
             Ready to discover your soul signature?
           </h2>
           <p
-            className="text-[16px] mb-10"
+            className="text-[16px] mb-8"
             style={{
               fontFamily: 'var(--font-body)',
               color: theme === 'dark' ? 'rgba(193, 192, 182, 0.7)' : '#57534e'
@@ -427,22 +514,14 @@ const Index = () => {
           {isSignedIn ? (
             <button
               onClick={() => navigate('/dashboard')}
-              className="px-8 py-3.5 rounded-full text-[14px] font-medium transition-all hover:opacity-90"
-              style={{
-                backgroundColor: theme === 'dark' ? '#C1C0B6' : '#0c0a09',
-                color: theme === 'dark' ? '#232320' : '#ffffff'
-              }}
+              className="cta-gradient px-8 py-4 rounded-full text-lg font-semibold text-white shadow-lg"
             >
               Get Started Today
             </button>
           ) : (
             <SignInButton mode="modal" fallbackRedirectUrl="/get-started" forceRedirectUrl="/get-started">
               <button
-                className="px-8 py-3.5 rounded-full text-[14px] font-medium transition-all hover:opacity-90"
-                style={{
-                  backgroundColor: theme === 'dark' ? '#C1C0B6' : '#0c0a09',
-                  color: theme === 'dark' ? '#232320' : '#ffffff'
-                }}
+                className="cta-gradient px-8 py-4 rounded-full text-lg font-semibold text-white shadow-lg"
               >
                 Get Started Today
               </button>
@@ -554,30 +633,74 @@ const Index = () => {
       <footer className="py-8 px-6 lg:px-[60px] border-t" style={{
         borderColor: theme === 'dark' ? 'rgba(193, 192, 182, 0.1)' : 'rgba(0, 0, 0, 0.06)'
       }}>
-        <div className="max-w-[1200px] mx-auto flex justify-between items-center">
-          <span
-            className="text-[14px]"
-            style={{
-              fontFamily: 'var(--font-body)',
-              color: theme === 'dark' ? 'rgba(193, 192, 182, 0.5)' : '#a8a29e'
-            }}
-          >
-            &copy; {new Date().getFullYear()} Twin Me. All rights reserved.
-          </span>
-          <div className="flex gap-6">
-            {['Privacy', 'Terms', 'Contact'].map((link) => (
-              <button
-                key={link}
-                onClick={() => handleFooterClick(link)}
-                className="text-[14px] hover:opacity-70 transition-opacity"
+        <div className="max-w-[1200px] mx-auto">
+          <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
+            <div className="flex items-center gap-2">
+              <img src="/icons/3d/diamond.png" alt="" className="w-5 h-5 object-contain opacity-60" />
+              <span
+                className="text-[14px]"
                 style={{
                   fontFamily: 'var(--font-body)',
                   color: theme === 'dark' ? 'rgba(193, 192, 182, 0.5)' : '#a8a29e'
                 }}
               >
-                {link}
-              </button>
-            ))}
+                &copy; {new Date().getFullYear()} Twin Me. All rights reserved.
+              </span>
+            </div>
+
+            <div className="flex items-center gap-6">
+              {/* Legal links */}
+              {[
+                { label: 'Privacy', action: 'Privacy' },
+                { label: 'Terms', action: 'Terms' },
+                { label: 'Contact', action: 'Contact' }
+              ].map((link) => (
+                <a
+                  key={link.label}
+                  href="#"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    handleFooterClick(link.action);
+                  }}
+                  className="text-[14px] hover:opacity-70 transition-opacity"
+                  style={{
+                    fontFamily: 'var(--font-body)',
+                    color: theme === 'dark' ? 'rgba(193, 192, 182, 0.5)' : '#a8a29e',
+                    textDecoration: 'none'
+                  }}
+                >
+                  {link.label}
+                </a>
+              ))}
+
+              {/* Social media separator */}
+              <span
+                className="hidden sm:block w-px h-4"
+                style={{
+                  backgroundColor: theme === 'dark' ? 'rgba(193, 192, 182, 0.15)' : 'rgba(0, 0, 0, 0.1)'
+                }}
+              />
+
+              {/* Social media placeholder links */}
+              {[
+                { label: 'Twitter', href: '#' },
+                { label: 'GitHub', href: '#' },
+                { label: 'LinkedIn', href: '#' }
+              ].map((social) => (
+                <a
+                  key={social.label}
+                  href={social.href}
+                  className="text-[13px] hover:opacity-70 transition-opacity"
+                  style={{
+                    fontFamily: 'var(--font-body)',
+                    color: theme === 'dark' ? 'rgba(193, 192, 182, 0.4)' : '#a8a29e',
+                    textDecoration: 'none'
+                  }}
+                >
+                  {social.label}
+                </a>
+              ))}
+            </div>
           </div>
         </div>
       </footer>

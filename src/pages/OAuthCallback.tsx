@@ -4,11 +4,13 @@ import { Brain, CheckCircle, XCircle, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { ARCTIC_PROVIDERS } from '@/services/arcticService';
 import { useTheme } from '@/contexts/ThemeContext';
+import { useAnalytics } from '@/contexts/AnalyticsContext';
 
 const OAuthCallback = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const { theme } = useTheme();
+  const { trackFunnel } = useAnalytics();
   const [status, setStatus] = useState<'loading' | 'success' | 'error'>('loading');
   const [message, setMessage] = useState('Processing authentication...');
   const [showError, setShowError] = useState(false); // Delay error visibility to prevent 401 flash
@@ -102,6 +104,7 @@ const OAuthCallback = () => {
         let stateData = null;
         let isConnectorOAuth = false;
         let isAuthOAuth = false;
+        let isEncryptedState = false; // true when state uses encryptState() from entertainment-connectors
 
         console.log('🔍 Raw state parameter:', state);
         console.log('🔍 State type:', typeof state);
@@ -160,20 +163,45 @@ const OAuthCallback = () => {
             }
           }
         } catch (e) {
-          console.error('❌ State decoding failed:', e);
+          console.error('❌ State decoding failed (likely encrypted entertainment state):', e);
           console.log('🔍 Raw state for debugging:', state);
-          // If we can't decode state, try to determine from the error response later
+
+          // If atob/JSON.parse failed but state exists, it's encrypted from entertainment-connectors
+          // (Spotify, Discord, YouTube, Netflix, Twitch, etc. all use encryptState())
+          // Only entertainment-connectors.js uses encrypted state; all other OAuth flows use base64 JSON
+          if (state) {
+            console.log('🔄 Detected encrypted state - routing to entertainment connector callback');
+            isEncryptedState = true;
+            isConnectorOAuth = true;
+
+            // Try to get provider info from sessionStorage for UI display
+            const connectingProvider = sessionStorage.getItem('connecting_provider') || sessionStorage.getItem('reconnecting_platform');
+            if (connectingProvider) {
+              stateData = { provider: connectingProvider, platform: connectingProvider };
+              console.log('📦 Using sessionStorage provider for UI:', connectingProvider);
+            }
+          }
         }
 
         console.log('🔍 OAuth type detected:', { isConnectorOAuth, isAuthOAuth, stateData });
 
         let response;
         if (isConnectorOAuth) {
-          // Check if this is an Arctic OAuth callback
+          // Determine the correct callback endpoint based on state format
           const platformOrProvider = stateData?.provider || stateData?.platform;
           const isArcticProvider = platformOrProvider && ARCTIC_PROVIDERS.includes(platformOrProvider);
 
-          const callbackEndpoint = isArcticProvider ? '/arctic/callback' : '/connectors/callback';
+          let callbackEndpoint;
+          if (isEncryptedState) {
+            // Encrypted state = entertainment connector (Spotify, Discord, YouTube, Netflix, Twitch, etc.)
+            // These use encryptState() and their callback handler is at /entertainment/oauth/callback
+            callbackEndpoint = '/entertainment/oauth/callback';
+            console.log('🎵 Routing to entertainment connector callback (encrypted state)');
+          } else if (isArcticProvider) {
+            callbackEndpoint = '/arctic/callback';
+          } else {
+            callbackEndpoint = '/connectors/callback';
+          }
 
           // Handle connector OAuth callback
           response = await fetch(`${import.meta.env.VITE_API_URL}${callbackEndpoint}`, {
@@ -233,6 +261,11 @@ const OAuthCallback = () => {
               sessionStorage.setItem(`oauth_provider_${code.substring(0, 32)}`, stateData?.provider || '');
               console.log('✅ Marked OAuth code as successfully processed');
             }
+
+            // Track platform connection in analytics
+            trackFunnel('platform_connected', {
+              platform: stateData?.provider || stateData?.platform || 'unknown',
+            });
 
             setStatus('success');
 
@@ -317,6 +350,13 @@ const OAuthCallback = () => {
               }
 
               console.log('✅ Authentication successful, token stored');
+
+              // Track signup/signin in analytics
+              trackFunnel(data.isNewUser ? 'user_signed_up' : 'user_signed_in', {
+                provider: 'google',
+                is_new_user: !!data.isNewUser,
+              });
+
               setStatus('success');
 
               // Determine redirect based on URL param, response data, state, user type, or default

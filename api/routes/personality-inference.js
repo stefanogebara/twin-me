@@ -89,7 +89,7 @@ router.get('/evidence', authenticateUser, async (req, res) => {
     // Get stored evidence
     const evidence = await getUserEvidence(userId);
 
-    // Get personality scores
+    // Get personality scores - try assessment first, then behavioral scores
     const { data: assessment } = await supabase
       .from('personality_assessments')
       .select('big_five_scores')
@@ -97,13 +97,24 @@ router.get('/evidence', authenticateUser, async (req, res) => {
       .order('created_at', { ascending: false })
       .limit(1);
 
-    const personality = assessment?.[0]?.big_five_scores || {
-      openness: 50,
-      conscientiousness: 50,
-      extraversion: 50,
-      agreeableness: 50,
-      neuroticism: 50
-    };
+    let personality = assessment?.[0]?.big_five_scores;
+
+    // Fallback to behavioral personality_scores if no assessment
+    if (!personality) {
+      const { data: behavioralScores } = await supabase
+        .from('personality_scores')
+        .select('openness, conscientiousness, extraversion, agreeableness, neuroticism')
+        .eq('user_id', userId)
+        .single();
+
+      personality = behavioralScores || {
+        openness: 50,
+        conscientiousness: 50,
+        extraversion: 50,
+        agreeableness: 50,
+        neuroticism: 50
+      };
+    }
 
     // Get data source info
     const dataSources = await getDataSourceInfo(userId);
@@ -142,7 +153,7 @@ router.get('/evidence/:userId', async (req, res) => {
     // Get stored evidence
     const evidence = await getUserEvidence(userId);
 
-    // Get personality scores
+    // Get personality scores - try assessment first, then behavioral scores
     const { data: assessment } = await supabase
       .from('personality_assessments')
       .select('big_five_scores')
@@ -150,13 +161,24 @@ router.get('/evidence/:userId', async (req, res) => {
       .order('created_at', { ascending: false })
       .limit(1);
 
-    const personality = assessment?.[0]?.big_five_scores || {
-      openness: 50,
-      conscientiousness: 50,
-      extraversion: 50,
-      agreeableness: 50,
-      neuroticism: 50
-    };
+    let personality = assessment?.[0]?.big_five_scores;
+
+    // Fallback to behavioral personality_scores if no assessment
+    if (!personality) {
+      const { data: behavioralScores } = await supabase
+        .from('personality_scores')
+        .select('openness, conscientiousness, extraversion, agreeableness, neuroticism')
+        .eq('user_id', userId)
+        .single();
+
+      personality = behavioralScores || {
+        openness: 50,
+        conscientiousness: 50,
+        extraversion: 50,
+        agreeableness: 50,
+        neuroticism: 50
+      };
+    }
 
     // Get data source info
     const dataSources = await getDataSourceInfo(userId);

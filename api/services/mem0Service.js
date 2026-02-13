@@ -11,14 +11,8 @@
  * 3. User preferences - learning patterns from behavior
  */
 
-import Anthropic from '@anthropic-ai/sdk';
+import { complete, TIER_EXTRACTION } from './llmGateway.js';
 import { supabaseAdmin } from './database.js';
-import { CLAUDE_MODEL } from '../config/aiModels.js';
-
-// Initialize Anthropic client
-const anthropic = new Anthropic({
-  apiKey: process.env.ANTHROPIC_API_KEY
-});
 
 // Memory extraction prompt
 const MEMORY_EXTRACTION_PROMPT = `You are a memory extraction system. Analyze the conversation and extract key facts, preferences, and insights about the user.
@@ -50,24 +44,20 @@ Return ONLY the JSON array, no other text.`;
  * Extract facts from a conversation using Claude
  */
 async function extractFacts(userMessage, assistantResponse) {
-  if (!process.env.ANTHROPIC_API_KEY) {
-    console.warn('[Memory] No ANTHROPIC_API_KEY - skipping fact extraction');
-    return [];
-  }
-
   try {
     const prompt = MEMORY_EXTRACTION_PROMPT
-      .replace('{userMessage}', userMessage.substring(0, 1000))
-      .replace('{assistantResponse}', assistantResponse.substring(0, 1000));
+      .replace('{userMessage}', userMessage.substring(0, 300))
+      .replace('{assistantResponse}', assistantResponse.substring(0, 300));
 
-    const response = await anthropic.messages.create({
-      model: CLAUDE_MODEL,
-      max_tokens: 500,
+    const result = await complete({
+      tier: TIER_EXTRACTION,
+      messages: [{ role: 'user', content: prompt }],
+      maxTokens: 300,
       temperature: 0,
-      messages: [{ role: 'user', content: prompt }]
+      serviceName: 'mem0Service'
     });
 
-    const text = response.content[0]?.text || '[]';
+    const text = result.content || '[]';
 
     // Parse JSON from response
     const jsonMatch = text.match(/\[[\s\S]*\]/);

@@ -1,10 +1,9 @@
 import React, { useEffect, useState, useCallback, useMemo } from 'react';
+import { motion } from 'framer-motion';
 import { useAuth } from '@/contexts/AuthContext';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useNavigate } from 'react-router-dom';
 import {
-  Calendar,
-  Music,
   Clock,
   CheckCircle2,
   ChevronRight,
@@ -13,22 +12,17 @@ import {
   Target,
   RefreshCw,
   AlertCircle,
-  Activity,
-  Video,
-  Tv,
-  MessageCircle,
-  BookOpen,
-  Github,
-  Mail,
-  Briefcase,
   Globe,
-  Link2
+  Link2,
+  Award
 } from 'lucide-react';
+import { PlatformLogo, getPlatformLogo } from '@/components/PlatformLogos';
 import { PageLayout, GlassPanel } from '@/components/layout/PageLayout';
 import { calendarAPI, spotifyAPI, whoopAPI, CalendarEvent } from '@/services/apiService';
 import { TodayInsights } from '@/components/TodayInsights';
 import { usePlatformStatus } from '@/hooks/usePlatformStatus';
 import { DEMO_CALENDAR_DATA } from '@/services/demoDataService';
+import { Clay3DIcon } from '@/components/Clay3DIcon';
 
 // Auto-refresh interval for calendar events (1 minute)
 const CALENDAR_REFRESH_INTERVAL = 60 * 1000;
@@ -38,7 +32,6 @@ interface PlatformStatus {
   name: string;
   connected: boolean;
   expired?: boolean;
-  icon: React.ElementType;
   color: string;
 }
 
@@ -63,18 +56,18 @@ interface WhoopData {
 }
 
 // Platform configuration for icons and colors (MVP platforms only)
-const PLATFORM_CONFIG: Record<string, { name: string; icon: React.ElementType; color: string }> = {
-  spotify: { name: 'Spotify', icon: Music, color: 'text-green-500' },
-  google_calendar: { name: 'Calendar', icon: Calendar, color: 'text-blue-500' },
-  whoop: { name: 'Whoop', icon: Activity, color: 'text-cyan-500' },
-  youtube: { name: 'YouTube', icon: Video, color: 'text-red-500' },
-  twitch: { name: 'Twitch', icon: Tv, color: 'text-purple-500' },
-  discord: { name: 'Discord', icon: MessageCircle, color: 'text-indigo-500' },
-  reddit: { name: 'Reddit', icon: BookOpen, color: 'text-orange-500' },
-  github: { name: 'GitHub', icon: Github, color: 'text-gray-500' },
-  gmail: { name: 'Gmail', icon: Mail, color: 'text-red-400' },
-  outlook: { name: 'Outlook', icon: Mail, color: 'text-blue-400' },
-  linkedin: { name: 'LinkedIn', icon: Briefcase, color: 'text-blue-600' },
+const PLATFORM_CONFIG: Record<string, { name: string; color: string; brandColor: string }> = {
+  spotify: { name: 'Spotify', color: 'text-green-500', brandColor: '#1DB954' },
+  google_calendar: { name: 'Calendar', color: 'text-blue-500', brandColor: '#4285F4' },
+  whoop: { name: 'Whoop', color: 'text-cyan-500', brandColor: '#00A5E0' },
+  youtube: { name: 'YouTube', color: 'text-red-500', brandColor: '#FF0000' },
+  twitch: { name: 'Twitch', color: 'text-purple-500', brandColor: '#9146FF' },
+  discord: { name: 'Discord', color: 'text-indigo-500', brandColor: '#5865F2' },
+  reddit: { name: 'Reddit', color: 'text-orange-500', brandColor: '#FF4500' },
+  github: { name: 'GitHub', color: 'text-gray-500', brandColor: '#6e6e6e' },
+  gmail: { name: 'Gmail', color: 'text-red-400', brandColor: '#EA4335' },
+  outlook: { name: 'Outlook', color: 'text-blue-400', brandColor: '#0078D4' },
+  linkedin: { name: 'LinkedIn', color: 'text-blue-600', brandColor: '#0A66C2' },
 };
 
 export const Dashboard: React.FC = () => {
@@ -371,7 +364,14 @@ export const Dashboard: React.FC = () => {
   };
 
   // Build dynamic platforms list from all connected providers
-  const platforms: PlatformStatus[] = connectedProviders
+  // Merge connectedProviders (from usePlatformStatus hook) with individually-checked states
+  // This ensures platforms show even if one data source is unavailable
+  const allConnectedIds = new Set<string>(connectedProviders);
+  if (calendarConnected) allConnectedIds.add('google_calendar');
+  if (spotifyConnected) allConnectedIds.add('spotify');
+  if (whoopConnected) allConnectedIds.add('whoop');
+
+  const platforms: PlatformStatus[] = Array.from(allConnectedIds)
     .map(provider => {
       const config = PLATFORM_CONFIG[provider];
       if (!config) return null;
@@ -384,7 +384,6 @@ export const Dashboard: React.FC = () => {
         name: config.name,
         connected: true,
         expired: isExpired,
-        icon: config.icon,
         color: config.color
       };
     })
@@ -395,6 +394,9 @@ export const Dashboard: React.FC = () => {
   const isSpotifyConnected = connectedProviders.includes('spotify') || spotifyConnected;
   const isWhoopConnected = connectedProviders.includes('whoop') || whoopConnected;
   const isCalendarConnected = connectedProviders.includes('google_calendar') || calendarConnected;
+  const isYouTubeConnected = connectedProviders.includes('youtube');
+  const isTwitchConnected = connectedProviders.includes('twitch');
+  const isDiscordConnected = connectedProviders.includes('discord');
 
   const insightLinks: Pattern[] = [
     {
@@ -403,7 +405,7 @@ export const Dashboard: React.FC = () => {
       description: isSpotifyConnected
         ? 'What your listening reveals about you'
         : 'Connect Spotify to discover your musical soul',
-      icon: Music,
+      icon: Globe,
       color: isSpotifyConnected ? 'text-green-500' : 'text-gray-500',
       hasData: isSpotifyConnected,
       actionLabel: isSpotifyConnected ? 'Explore' : 'Connect',
@@ -415,7 +417,7 @@ export const Dashboard: React.FC = () => {
       description: isWhoopConnected
         ? 'What your body tells you'
         : 'Connect Whoop to hear your body stories',
-      icon: Activity,
+      icon: Globe,
       color: isWhoopConnected ? 'text-cyan-500' : 'text-gray-500',
       hasData: isWhoopConnected,
       actionLabel: isWhoopConnected ? 'Explore' : 'Connect',
@@ -427,7 +429,7 @@ export const Dashboard: React.FC = () => {
       description: isCalendarConnected
         ? 'How you structure your days'
         : 'Connect Calendar to see your time patterns',
-      icon: Calendar,
+      icon: Globe,
       color: isCalendarConnected ? 'text-blue-500' : 'text-gray-500',
       hasData: isCalendarConnected,
       actionLabel: isCalendarConnected ? 'Explore' : 'Connect',
@@ -436,32 +438,38 @@ export const Dashboard: React.FC = () => {
     {
       id: 'content-world',
       title: 'Content World',
-      description: 'Your YouTube universe and viewing patterns',
-      icon: Video,
-      color: 'text-red-500',
-      hasData: true,
-      actionLabel: 'Explore',
-      actionPath: '/insights/youtube'
+      description: isYouTubeConnected
+        ? 'Your YouTube universe and viewing patterns'
+        : 'Connect YouTube to discover your content world',
+      icon: Globe,
+      color: isYouTubeConnected ? 'text-red-500' : 'text-gray-500',
+      hasData: isYouTubeConnected,
+      actionLabel: isYouTubeConnected ? 'Explore' : 'Connect',
+      actionPath: isYouTubeConnected ? '/insights/youtube' : '/get-started'
     },
     {
       id: 'gaming-world',
       title: 'Gaming World',
-      description: 'Your Twitch streams and gaming identity',
-      icon: Tv,
-      color: 'text-purple-500',
-      hasData: true,
-      actionLabel: 'Explore',
-      actionPath: '/insights/twitch'
+      description: isTwitchConnected
+        ? 'Your Twitch streams and gaming identity'
+        : 'Connect Twitch to reveal your gaming world',
+      icon: Globe,
+      color: isTwitchConnected ? 'text-purple-500' : 'text-gray-500',
+      hasData: isTwitchConnected,
+      actionLabel: isTwitchConnected ? 'Explore' : 'Connect',
+      actionPath: isTwitchConnected ? '/insights/twitch' : '/get-started'
     },
     {
       id: 'digital-life',
       title: 'Digital Life',
-      description: 'What your browsing reveals about you',
+      description: isDiscordConnected
+        ? 'What your digital communities reveal about you'
+        : 'Connect Discord to explore your digital life',
       icon: Globe,
-      color: 'text-indigo-500',
-      hasData: true,
-      actionLabel: 'Explore',
-      actionPath: '/insights/web'
+      color: isDiscordConnected ? 'text-indigo-500' : 'text-gray-500',
+      hasData: isDiscordConnected,
+      actionLabel: isDiscordConnected ? 'Explore' : 'Connect',
+      actionPath: isDiscordConnected ? '/insights/web' : '/get-started'
     }
   ];
 
@@ -580,7 +588,12 @@ export const Dashboard: React.FC = () => {
         </div>
       )}
 
-      <div className="mb-8">
+      <motion.div
+        className="mb-8"
+        initial={{ opacity: 0, y: -8 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, ease: [0.4, 0, 0.2, 1] }}
+      >
         <h1
           className="text-3xl mb-2"
           style={{
@@ -600,7 +613,7 @@ export const Dashboard: React.FC = () => {
             : 'Your day awaits'
           }
         </p>
-      </div>
+      </motion.div>
 
       {/* Today's Insights Section */}
       <div className="mb-8">
@@ -609,12 +622,9 @@ export const Dashboard: React.FC = () => {
 
 
       {nextEvent ? (
-        <GlassPanel className="mb-8 relative overflow-hidden">
+        <GlassPanel className="mb-8 relative overflow-hidden" variant="card">
           <div
-            className="absolute top-0 left-0 right-0 h-1"
-            style={{
-              backgroundColor: theme === 'dark' ? 'rgba(193, 192, 182, 0.2)' : 'rgba(0, 0, 0, 0.1)'
-            }}
+            className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-purple-500 via-blue-500 to-green-500"
           />
 
           <div className="pt-4">
@@ -687,59 +697,58 @@ export const Dashboard: React.FC = () => {
               </div>
             </div>
 
-            <button
+            <motion.button
               onClick={() => navigate('/insights/calendar')}
-              className="w-full glass-button py-4 flex items-center justify-center gap-3"
+              className="w-full py-4 flex items-center justify-center gap-3 rounded-xl glow-accent"
+              style={{
+                background: `linear-gradient(135deg, var(--accent-vibrant), var(--accent-vibrant-hover))`,
+                color: '#1a1a17',
+                fontWeight: 600,
+                boxShadow: '0 2px 12px var(--accent-vibrant-glow)',
+              }}
+              whileHover={{ scale: 1.015, boxShadow: '0 4px 20px var(--accent-vibrant-glow)' }}
+              whileTap={{ scale: 0.985 }}
+              transition={{ duration: 0.2 }}
             >
               <Sparkles className="w-5 h-5" />
               <span
                 className="text-base"
-                style={{ fontFamily: 'var(--font-heading)', fontWeight: 500 }}
+                style={{ fontFamily: 'var(--font-heading)', fontWeight: 600 }}
               >
                 View Time Patterns
               </span>
-            </button>
+            </motion.button>
           </div>
         </GlassPanel>
       ) : (
-        <GlassPanel className="mb-8 text-center py-12">
+        <div
+          className="mb-8 px-4 py-3 rounded-xl flex items-center gap-3"
+          style={{
+            backgroundColor: theme === 'dark' ? 'rgba(45, 45, 41, 0.5)' : 'rgba(255, 255, 255, 0.7)',
+            border: theme === 'dark' ? '1px solid rgba(193, 192, 182, 0.1)' : '1px solid rgba(0, 0, 0, 0.06)'
+          }}
+        >
           <Calendar
-            className="w-12 h-12 mx-auto mb-4 opacity-30"
+            className="w-5 h-5 flex-shrink-0 opacity-40"
             style={{ color: theme === 'dark' ? '#C1C0B6' : '#0c0a09' }}
           />
-          <h2
-            className="text-xl mb-2"
+          <span
+            className="text-sm flex-1"
+            style={{ color: theme === 'dark' ? 'rgba(193, 192, 182, 0.7)' : '#57534e' }}
+          >
+            {isCalendarConnected ? 'No upcoming events' : 'Connect your calendar to see events'}
+          </span>
+          <button
+            onClick={() => navigate(isCalendarConnected ? '/insights/calendar' : '/get-started')}
+            className="px-3 py-1.5 rounded-lg text-xs font-medium transition-colors hover:opacity-80 flex-shrink-0"
             style={{
-              fontFamily: 'var(--font-heading)',
-              fontWeight: 500,
-              color: theme === 'dark' ? '#C1C0B6' : '#0c0a09'
+              backgroundColor: theme === 'dark' ? 'rgba(193, 192, 182, 0.12)' : 'rgba(0, 0, 0, 0.06)',
+              color: theme === 'dark' ? '#C1C0B6' : '#44403c'
             }}
           >
-            No upcoming events
-          </h2>
-          <p
-            className="text-sm mb-6"
-            style={{ color: theme === 'dark' ? 'rgba(193, 192, 182, 0.6)' : '#a8a29e' }}
-          >
-            {isCalendarConnected
-              ? 'Your calendar is empty. Add events to start preparing for them.'
-              : 'Connect your calendar to see your events here'
-            }
-          </p>
-          {!isCalendarConnected && (
-            <button
-              onClick={() => navigate('/get-started')}
-              className="px-6 py-3 rounded-xl inline-flex items-center gap-2 transition-all hover:scale-[1.02]"
-              style={{
-                backgroundColor: theme === 'dark' ? 'rgba(193, 192, 182, 0.1)' : 'rgba(0, 0, 0, 0.05)',
-                color: theme === 'dark' ? '#C1C0B6' : '#0c0a09'
-              }}
-            >
-              <Plus className="w-4 h-4" />
-              Connect Calendar
-            </button>
-          )}
-        </GlassPanel>
+            {isCalendarConnected ? 'View Calendar' : 'Connect Calendar'}
+          </button>
+        </div>
       )}
 
       {/* Twin Insights - Links to platform insight pages */}
@@ -749,8 +758,8 @@ export const Dashboard: React.FC = () => {
             className="w-1 h-5 rounded-full"
             style={{
               background: theme === 'dark'
-                ? 'linear-gradient(to bottom, rgba(193, 192, 182, 0.6), rgba(193, 192, 182, 0.2))'
-                : 'linear-gradient(to bottom, rgba(0, 0, 0, 0.4), rgba(0, 0, 0, 0.1))'
+                ? 'linear-gradient(to bottom, var(--accent-vibrant), rgba(193, 192, 182, 0.2))'
+                : 'linear-gradient(to bottom, var(--accent-vibrant), rgba(0, 0, 0, 0.1))'
             }}
           />
           <h3
@@ -761,25 +770,47 @@ export const Dashboard: React.FC = () => {
           </h3>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {insightLinks.map((insight) => {
+          {insightLinks.map((insight, idx) => {
             const Icon = insight.icon;
             return (
               <GlassPanel
                 key={insight.id}
                 hover
                 className="cursor-pointer"
+                delay={0.05 + idx * 0.06}
                 onClick={() => navigate(insight.actionPath!)}
               >
                 <div className="flex items-start gap-3">
                   <div
-                    className="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0"
+                    className={`w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0`}
                     style={{
                       backgroundColor: insight.hasData
-                        ? (theme === 'dark' ? 'rgba(34, 197, 94, 0.1)' : 'rgba(34, 197, 94, 0.05)')
-                        : (theme === 'dark' ? 'rgba(193, 192, 182, 0.1)' : 'rgba(0, 0, 0, 0.05)')
+                        ? undefined
+                        : (theme === 'dark' ? 'rgba(193, 192, 182, 0.08)' : 'rgba(0, 0, 0, 0.04)'),
+                      ...(insight.hasData && insight.id === 'music-soul' ? { backgroundColor: theme === 'dark' ? 'rgba(29, 185, 84, 0.15)' : 'rgba(29, 185, 84, 0.1)' } : {}),
+                      ...(insight.hasData && insight.id === 'body-stories' ? { backgroundColor: theme === 'dark' ? 'rgba(0, 165, 224, 0.15)' : 'rgba(0, 165, 224, 0.1)' } : {}),
+                      ...(insight.hasData && insight.id === 'time-patterns' ? { backgroundColor: theme === 'dark' ? 'rgba(66, 133, 244, 0.15)' : 'rgba(66, 133, 244, 0.1)' } : {}),
+                      ...(insight.hasData && insight.id === 'content-world' ? { backgroundColor: theme === 'dark' ? 'rgba(255, 0, 0, 0.12)' : 'rgba(255, 0, 0, 0.08)' } : {}),
+                      ...(insight.hasData && insight.id === 'gaming-world' ? { backgroundColor: theme === 'dark' ? 'rgba(145, 70, 255, 0.15)' : 'rgba(145, 70, 255, 0.1)' } : {}),
+                      ...(insight.hasData && insight.id === 'digital-life' ? { backgroundColor: theme === 'dark' ? 'rgba(88, 101, 242, 0.15)' : 'rgba(88, 101, 242, 0.1)' } : {}),
                     }}
                   >
-                    <Icon className={`w-5 h-5 ${insight.color}`} />
+                    {(() => {
+                      const clay3dMap: Record<string, string> = {
+                        'music-soul': 'headphones',
+                        'body-stories': 'lightning',
+                        'time-patterns': 'compass',
+                        'content-world': 'star',
+                        'gaming-world': 'game-controller',
+                        'digital-life': 'globe',
+                      };
+                      const clayIcon = clay3dMap[insight.id];
+                      return clayIcon ? (
+                        <Clay3DIcon name={clayIcon} size={24} className={insight.hasData ? '' : 'opacity-50 grayscale'} />
+                      ) : (
+                        <Icon className={`w-5 h-5 ${insight.color}`} />
+                      );
+                    })()}
                   </div>
                   <div className="flex-1">
                     <h4
@@ -799,10 +830,14 @@ export const Dashboard: React.FC = () => {
                       {insight.description}
                     </p>
                     <span
-                      className="text-xs px-3 py-1 rounded-full inline-block"
+                      className="text-xs px-3 py-1 rounded-full inline-block font-medium"
                       style={{
-                        backgroundColor: theme === 'dark' ? 'rgba(193, 192, 182, 0.15)' : 'rgba(0, 0, 0, 0.08)',
-                        color: theme === 'dark' ? '#C1C0B6' : '#44403c'
+                        backgroundColor: insight.hasData
+                          ? (theme === 'dark' ? 'rgba(224, 184, 96, 0.15)' : 'rgba(212, 168, 83, 0.12)')
+                          : (theme === 'dark' ? 'rgba(193, 192, 182, 0.12)' : 'rgba(0, 0, 0, 0.06)'),
+                        color: insight.hasData
+                          ? (theme === 'dark' ? '#E0B860' : '#B8942E')
+                          : (theme === 'dark' ? 'rgba(193, 192, 182, 0.7)' : '#78716c')
                       }}
                     >
                       {insight.actionLabel} →
@@ -814,6 +849,90 @@ export const Dashboard: React.FC = () => {
           })}
         </div>
       </div>
+
+      {/* Your Patterns - data-driven patterns section */}
+      {platforms.length > 0 && (
+        <div className="mb-8">
+          <div className="flex items-center gap-2 mb-4">
+            <div
+              className="w-1 h-5 rounded-full"
+              style={{
+                background: theme === 'dark'
+                  ? 'linear-gradient(to bottom, rgba(193, 192, 182, 0.6), rgba(193, 192, 182, 0.2))'
+                  : 'linear-gradient(to bottom, rgba(0, 0, 0, 0.4), rgba(0, 0, 0, 0.1))'
+              }}
+            />
+            <h3
+              className="text-sm uppercase tracking-wider"
+              style={{ color: theme === 'dark' ? 'rgba(193, 192, 182, 0.6)' : '#78716c' }}
+            >
+              Your Patterns
+            </h3>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {isCalendarConnected && (
+              <GlassPanel variant="shimmer" hover className="cursor-pointer" onClick={() => navigate('/insights/calendar')}>
+                <div className="flex items-start gap-3">
+                  <div className="w-10 h-10 rounded-lg flex items-center justify-center" style={{
+                    backgroundColor: theme === 'dark' ? 'rgba(139, 92, 246, 0.1)' : 'rgba(139, 92, 246, 0.05)'
+                  }}>
+                    <Clock className="w-5 h-5 text-purple-500" />
+                  </div>
+                  <div>
+                    <h4 className="text-sm mb-1" style={{
+                      fontFamily: 'var(--font-heading)', fontWeight: 500,
+                      color: theme === 'dark' ? '#C1C0B6' : '#0c0a09'
+                    }}>Optimal Prep Time</h4>
+                    <p className="text-xs" style={{ color: theme === 'dark' ? 'rgba(193, 192, 182, 0.6)' : '#a8a29e' }}>
+                      {todayEvents.length > 0 ? `${todayEvents.length} events shaping your day` : 'Your schedule patterns'}
+                    </p>
+                  </div>
+                </div>
+              </GlassPanel>
+            )}
+            {isSpotifyConnected && (
+              <GlassPanel variant="shimmer" hover className="cursor-pointer" onClick={() => navigate('/insights/spotify')}>
+                <div className="flex items-start gap-3">
+                  <div className="w-10 h-10 rounded-lg flex items-center justify-center" style={{
+                    backgroundColor: theme === 'dark' ? 'rgba(34, 197, 94, 0.1)' : 'rgba(34, 197, 94, 0.05)'
+                  }}>
+                    <Clay3DIcon name="headphones" size={20} />
+                  </div>
+                  <div>
+                    <h4 className="text-sm mb-1" style={{
+                      fontFamily: 'var(--font-heading)', fontWeight: 500,
+                      color: theme === 'dark' ? '#C1C0B6' : '#0c0a09'
+                    }}>Focus Music</h4>
+                    <p className="text-xs" style={{ color: theme === 'dark' ? 'rgba(193, 192, 182, 0.6)' : '#a8a29e' }}>
+                      Your listening shapes your flow
+                    </p>
+                  </div>
+                </div>
+              </GlassPanel>
+            )}
+            {platforms.length >= 2 && (
+              <GlassPanel variant="shimmer" hover className="cursor-pointer" onClick={() => navigate('/soul-signature')}>
+                <div className="flex items-start gap-3">
+                  <div className="w-10 h-10 rounded-lg flex items-center justify-center" style={{
+                    backgroundColor: theme === 'dark' ? 'rgba(245, 158, 11, 0.1)' : 'rgba(245, 158, 11, 0.05)'
+                  }}>
+                    <Award className="w-5 h-5 text-amber-500" />
+                  </div>
+                  <div>
+                    <h4 className="text-sm mb-1" style={{
+                      fontFamily: 'var(--font-heading)', fontWeight: 500,
+                      color: theme === 'dark' ? '#C1C0B6' : '#0c0a09'
+                    }}>{platforms.length} Platforms Connected</h4>
+                    <p className="text-xs" style={{ color: theme === 'dark' ? 'rgba(193, 192, 182, 0.6)' : '#a8a29e' }}>
+                      Building your soul signature
+                    </p>
+                  </div>
+                </div>
+              </GlassPanel>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* DASH 2.5: Visual hierarchy improvement */}
       <div>
@@ -847,7 +966,8 @@ export const Dashboard: React.FC = () => {
         {platforms.length > 0 ? (
           <div className="flex gap-3 flex-wrap">
             {platforms.map((platform) => {
-              const Icon = platform.icon;
+              const config = PLATFORM_CONFIG[platform.id];
+              const brandColor = config?.brandColor || (theme === 'dark' ? '#C1C0B6' : '#0c0a09');
               return (
                 <button
                   key={platform.id}
@@ -855,16 +975,28 @@ export const Dashboard: React.FC = () => {
                   className="px-4 py-3 rounded-xl flex items-center gap-2 transition-all hover:scale-[1.02]"
                   style={{
                     backgroundColor: theme === 'dark'
-                      ? platform.connected ? 'rgba(193, 192, 182, 0.15)' : 'rgba(193, 192, 182, 0.05)'
-                      : platform.connected ? 'rgba(0, 0, 0, 0.08)' : 'rgba(0, 0, 0, 0.03)',
+                      ? platform.connected ? 'rgba(193, 192, 182, 0.1)' : 'rgba(193, 192, 182, 0.05)'
+                      : platform.connected ? 'rgba(0, 0, 0, 0.05)' : 'rgba(0, 0, 0, 0.03)',
+                    borderLeft: platform.connected && !platform.expired
+                      ? `3px solid ${brandColor}`
+                      : undefined,
                     border: platform.expired
                       ? '1px solid rgba(245, 158, 11, 0.4)'
-                      : theme === 'dark'
-                      ? '1px solid rgba(193, 192, 182, 0.1)'
-                      : '1px solid rgba(0, 0, 0, 0.06)'
+                      : !platform.connected
+                      ? (theme === 'dark' ? '1px solid rgba(193, 192, 182, 0.1)' : '1px solid rgba(0, 0, 0, 0.06)')
+                      : undefined,
+                    borderTop: platform.connected && !platform.expired
+                      ? (theme === 'dark' ? '1px solid rgba(193, 192, 182, 0.1)' : '1px solid rgba(0, 0, 0, 0.06)')
+                      : undefined,
+                    borderRight: platform.connected && !platform.expired
+                      ? (theme === 'dark' ? '1px solid rgba(193, 192, 182, 0.1)' : '1px solid rgba(0, 0, 0, 0.06)')
+                      : undefined,
+                    borderBottom: platform.connected && !platform.expired
+                      ? (theme === 'dark' ? '1px solid rgba(193, 192, 182, 0.1)' : '1px solid rgba(0, 0, 0, 0.06)')
+                      : undefined,
                   }}
                 >
-                  <Icon className={`w-4 h-4 ${platform.color}`} />
+                  <PlatformLogo platform={platform.id} className="w-4 h-4" />
                   <span
                     className="text-sm"
                     style={{ color: theme === 'dark' ? '#C1C0B6' : '#0c0a09' }}
@@ -898,11 +1030,7 @@ export const Dashboard: React.FC = () => {
             </p>
             <button
               onClick={() => navigate('/get-started')}
-              className="px-6 py-2.5 rounded-xl inline-flex items-center gap-2 text-sm font-medium transition-all hover:scale-[1.02]"
-              style={{
-                backgroundColor: theme === 'dark' ? 'rgba(193, 192, 182, 0.15)' : 'rgba(0, 0, 0, 0.08)',
-                color: theme === 'dark' ? '#C1C0B6' : '#0c0a09'
-              }}
+              className="btn btn-accent rounded-xl inline-flex items-center gap-2 text-sm transition-all hover:scale-[1.02]"
             >
               <Plus className="w-4 h-4" />
               Connect Platforms

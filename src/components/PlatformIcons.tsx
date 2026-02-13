@@ -49,6 +49,7 @@ import {
   Instagram,
   Facebook
 } from 'lucide-react';
+import { getPlatformLogo } from './PlatformLogos';
 
 // Platform to Icon mapping
 export const platformIconMap: Record<string, React.ElementType> = {
@@ -213,8 +214,11 @@ export const platformIconMap: Record<string, React.ElementType> = {
   default: Sparkles
 };
 
-// Get icon for a platform
+// Get icon for a platform - prefers real SVG logos, falls back to Lucide icons
 export const getPlatformIcon = (platform: string): React.ElementType => {
+  // Try real SVG logo first
+  const logo = getPlatformLogo(platform);
+  if (logo) return logo;
   // Normalize platform name (lowercase, remove spaces)
   const normalized = platform.toLowerCase().replace(/\s+/g, '-');
   return platformIconMap[normalized] || platformIconMap[platform] || Sparkles;

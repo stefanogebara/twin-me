@@ -37,12 +37,22 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   // Wait for auth verification to complete before making any decisions
   // This prevents showing content then redirecting (the "session expired" feeling)
   if (!isLoaded) {
-    // Show a subtle loading state while verifying
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="flex flex-col items-center gap-3">
-          <div className="w-8 h-8 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
-          <p className="text-sm text-muted-foreground">Verifying session...</p>
+      <div className="min-h-screen flex items-center justify-center bg-[#FAFAFA] dark:bg-[#232320]">
+        <div className="flex flex-col items-center gap-5">
+          {/* Pulsing brand mark */}
+          <div className="relative">
+            <div className="w-12 h-12 rounded-2xl bg-[#0c0a09] dark:bg-[#C1C0B6] flex items-center justify-center animate-pulse">
+              <span className="text-lg font-semibold text-[#FAFAFA] dark:text-[#232320]" style={{ fontFamily: 'var(--font-heading)' }}>
+                T
+              </span>
+            </div>
+          </div>
+          {/* Skeleton content shimmer */}
+          <div className="flex flex-col items-center gap-2">
+            <div className="h-2 w-24 rounded-full bg-[#0c0a09]/10 dark:bg-[#C1C0B6]/10 animate-pulse" />
+            <div className="h-2 w-16 rounded-full bg-[#0c0a09]/5 dark:bg-[#C1C0B6]/5 animate-pulse" style={{ animationDelay: '150ms' }} />
+          </div>
         </div>
       </div>
     );

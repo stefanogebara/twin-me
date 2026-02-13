@@ -516,7 +516,7 @@ class CalendarExtractionAgent extends BaseExtractionAgent {
 class WhoopExtractionAgent extends BaseExtractionAgent {
   constructor(userId) {
     super(userId, 'whoop');
-    this.baseUrl = 'https://api.prod.whoop.com/developer/v1';
+    this.baseUrl = 'https://api.prod.whoop.com/developer/v2';
   }
 
   async extract() {

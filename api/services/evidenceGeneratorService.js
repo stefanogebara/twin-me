@@ -63,6 +63,12 @@ function deriveRawValue(featureName, normalizedValue) {
     case 'acousticness_preference':
       raw.avg_acousticness = val.toFixed(2);
       break;
+    case 'playlist_curation_style':
+      raw.playlist_count = Math.round(5 + val * 25); // 5-30 playlists
+      raw.description_percent = Math.round(val * 60); // 0-60%
+      raw.well_sized_percent = Math.round(30 + val * 50); // 30-80%
+      raw.thoughtful_percent = Math.round(val * 80); // 0-80%
+      break;
 
     // Calendar features
     case 'meeting_density':
@@ -105,6 +111,65 @@ function deriveRawValue(featureName, normalizedValue) {
       break;
     case 'hrv_baseline':
       raw.hrv_avg = Math.round(30 + val * 70); // 30-100ms range
+      break;
+
+    // YouTube features
+    case 'yt_content_diversity':
+      raw.channel_count = Math.round(2 + val * 18); // 2-20 channels
+      raw.category_count = Math.round(1 + val * 9); // 1-10 categories
+      break;
+    case 'yt_search_curiosity':
+      raw.search_count = Math.round(1 + val * 15); // 1-16 searches
+      raw.unique_topics = Math.round(2 + val * 18); // 2-20 topics
+      break;
+    case 'yt_watch_completion':
+      raw.videos_watched = Math.round(3 + val * 20); // 3-23 videos
+      raw.videos_completed = Math.round(val * raw.videos_watched);
+      raw.avg_completion_percent = Math.round(val * 100);
+      break;
+    case 'yt_educational_ratio':
+      raw.educational_percent = Math.round(val * 100);
+      raw.total_count = 10;
+      raw.educational_count = Math.round(val * 10);
+      break;
+    case 'yt_channel_loyalty':
+      raw.unique_channels = Math.round(2 + (1 - val) * 15); // Inverse: high loyalty = fewer channels
+      raw.total_watches = Math.round(5 + val * 30);
+      raw.top_channel = 'your favorite creator';
+      raw.top_channel_watches = Math.round(val * 10);
+      break;
+    case 'yt_social_content':
+      raw.social_percent = Math.round(val * 100);
+      raw.social_videos = Math.round(val * 10);
+      raw.total_videos = 10;
+      break;
+    case 'yt_binge_pattern':
+      raw.avg_session_minutes = Math.round(10 + val * 50); // 10-60 min
+      raw.total_watch_hours = Math.round(val * 10 * 10) / 10;
+      raw.video_count = Math.round(3 + val * 15);
+      break;
+
+    // Twitch features
+    case 'twitch_category_diversity':
+      raw.category_count = Math.round(1 + val * 9); // 1-10 categories
+      break;
+    case 'twitch_stream_engagement':
+      raw.streams_watched = Math.round(2 + val * 10);
+      raw.avg_session_minutes = Math.round(5 + val * 40); // 5-45 min
+      raw.total_watch_hours = Math.round(val * 8 * 10) / 10;
+      break;
+    case 'twitch_social_preference':
+      raw.social_percent = Math.round(val * 100);
+      raw.social_streams = Math.round(val * 10);
+      raw.total_streams = 10;
+      break;
+    case 'twitch_competitive_ratio':
+      raw.competitive_percent = Math.round(val * 100);
+      raw.competitive_count = Math.round(val * 8);
+      raw.total_count = 8;
+      break;
+    case 'twitch_community_breadth':
+      raw.channel_count = Math.round(2 + val * 18); // 2-20 channels
       break;
   }
 

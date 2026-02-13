@@ -4,6 +4,7 @@
 
 import express from 'express';
 import { supabase } from '../config/supabase.js';
+import { supabaseAdmin } from '../services/database.js';
 import { authenticateUser, optionalAuth } from '../middleware/auth.js';
 
 const router = express.Router();
@@ -30,7 +31,7 @@ router.get('/connected', optionalAuth, async (req, res) => {
     // Convert email to UUID if needed
     let userUuid = targetUserId;
     if (targetUserId && !targetUserId.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i)) {
-      const { data: userData } = await supabase
+      const { data: userData } = await supabaseAdmin
         .from('users')
         .select('id')
         .eq('email', targetUserId)
@@ -47,7 +48,7 @@ router.get('/connected', optionalAuth, async (req, res) => {
     }
 
     // Get connection status from database
-    const { data: connections, error } = await supabase
+    const { data: connections, error } = await supabaseAdmin
       .from('platform_connections')
       .select('platform, connected_at, metadata, last_sync_at, created_at')
       .eq('user_id', userUuid)
@@ -101,7 +102,7 @@ router.get('/status/:userId', async (req, res) => {
     // Convert email to UUID if needed
     let userUuid = userId;
     if (userId && !userId.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i)) {
-      const { data: userData } = await supabase
+      const { data: userData } = await supabaseAdmin
         .from('users')
         .select('id')
         .eq('email', userId)
@@ -109,7 +110,7 @@ router.get('/status/:userId', async (req, res) => {
       if (userData) userUuid = userData.id;
     }
 
-    const { data: connections, error } = await supabase
+    const { data: connections, error } = await supabaseAdmin
       .from('platform_connections')
       .select('platform, connected_at, metadata, last_sync_at')
       .eq('user_id', userUuid)

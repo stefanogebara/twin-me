@@ -11,6 +11,9 @@ import { authenticateToken } from '../middleware/auth.js';
 import spotifyFeatureExtractor from '../services/featureExtractors/spotifyExtractor.js';
 import calendarFeatureExtractor from '../services/featureExtractors/calendarExtractor.js';
 import whoopFeatureExtractor from '../services/featureExtractors/whoopExtractor.js';
+import gmailFeatureExtractor from '../services/featureExtractors/gmailFeatureExtractor.js';
+import outlookFeatureExtractor from '../services/featureExtractors/outlookFeatureExtractor.js';
+import linkedinFeatureExtractor from '../services/featureExtractors/linkedinFeatureExtractor.js';
 import personalityAnalyzerService from '../services/personalityAnalyzerService.js';
 import soulSignatureGenerator from '../services/soulSignatureGenerator.js';
 import uniquePatternDetector from '../services/uniquePatternDetector.js';
@@ -22,7 +25,10 @@ const router = express.Router();
 const platformExtractors = {
   spotify: spotifyFeatureExtractor,
   calendar: calendarFeatureExtractor,
-  whoop: whoopFeatureExtractor
+  whoop: whoopFeatureExtractor,
+  gmail: gmailFeatureExtractor,
+  outlook: outlookFeatureExtractor,
+  linkedin: linkedinFeatureExtractor
 };
 
 // ====================================================================

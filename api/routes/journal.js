@@ -1,8 +1,7 @@
 import express from 'express';
 import { createClient } from '@supabase/supabase-js';
-import Anthropic from '@anthropic-ai/sdk';
+import { complete, TIER_ANALYSIS } from '../services/llmGateway.js';
 import { authenticateUser } from '../middleware/auth.js';
-import { CLAUDE_MODEL } from '../config/aiModels.js';
 
 const router = express.Router();
 
@@ -190,22 +189,14 @@ router.post('/entries/:id/analyze', asyncHandler(async (req, res) => {
     return res.status(404).json({ error: 'Journal entry not found' });
   }
 
-  // Call Claude AI for analysis
-  const apiKey = process.env.ANTHROPIC_API_KEY;
-  if (!apiKey) {
-    return res.status(500).json({ error: 'AI service not configured' });
-  }
-
-  const anthropic = new Anthropic({ apiKey });
-
+  // Call LLM Gateway for analysis
   const contextParts = [];
   if (entry.mood) contextParts.push(`User-reported mood: ${entry.mood}`);
   if (entry.energy_level) contextParts.push(`Self-reported energy level: ${entry.energy_level}/5`);
   if (entry.tags?.length > 0) contextParts.push(`Tags: ${entry.tags.join(', ')}`);
 
-  const message = await anthropic.messages.create({
-    model: CLAUDE_MODEL,
-    max_tokens: 1024,
+  const llmResult = await complete({
+    tier: TIER_ANALYSIS,
     system: `You are an expert personality psychologist analyzing a personal journal entry to understand who this person is at their core. Focus on what their words reveal about their personality, values, and self-perception. Be warm and insightful, not clinical.`,
     messages: [
       {
@@ -234,12 +225,14 @@ Return a JSON object with exactly this structure (no markdown, just raw JSON):
   "summary": "One warm, insightful sentence summarizing what this entry reveals about the person"
 }`
       }
-    ]
+    ],
+    maxTokens: 1024,
+    serviceName: 'journalAnalysis'
   });
 
   let analysis;
   try {
-    const responseText = message.content[0].text.trim();
+    const responseText = llmResult.content.trim();
     // Strip markdown code fences if present
     const jsonStr = responseText.replace(/^```(?:json)?\s*/, '').replace(/\s*```$/, '');
     analysis = JSON.parse(jsonStr);

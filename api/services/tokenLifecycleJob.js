@@ -327,15 +327,20 @@ export function startBackgroundJobs() {
 
   console.log('✅ [Token Lifecycle] OAuth cleanup job scheduled (every 15 minutes)');
 
-  // Run initial jobs immediately on startup
-  console.log('🔄 [Token Lifecycle] Running initial token refresh...');
-  tokenRefreshJobHandler().catch(error => {
-    console.error('❌ [Token Lifecycle] Initial token refresh failed:', error.message);
-  });
+  // Defer initial jobs to avoid blocking server startup
+  console.log('🔄 [Token Lifecycle] Deferring initial jobs by 60s to let server start...');
+  setTimeout(() => {
+    console.log('🔄 [Token Lifecycle] Running deferred initial token refresh...');
+    tokenRefreshJobHandler().catch(error => {
+      console.error('❌ [Token Lifecycle] Initial token refresh failed:', error.message);
+    });
+  }, 60000);
 
-  oauthCleanupJobHandler().catch(error => {
-    console.error('❌ [Token Lifecycle] Initial OAuth cleanup failed:', error.message);
-  });
+  setTimeout(() => {
+    oauthCleanupJobHandler().catch(error => {
+      console.error('❌ [Token Lifecycle] Initial OAuth cleanup failed:', error.message);
+    });
+  }, 65000);
 
   console.log('✅ [Token Lifecycle] All background jobs started successfully');
   console.log('📋 [Token Lifecycle] Job schedule:');

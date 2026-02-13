@@ -26,11 +26,20 @@ export const Navigation = () => {
           </div>
 
           {/* Center Logo */}
-          <div 
-            className="text-2xl font-serif text-stone-500 cursor-pointer italic"
+          <div
+            className="flex items-center gap-2.5 cursor-pointer group"
             onClick={() => navigate('/')}
           >
-            Twin Me & <span className="text-slate-900">Artemis</span>
+            <img
+              src="/icons/3d/diamond.png"
+              alt="Twin Me"
+              className="w-9 h-9 object-contain drop-shadow-sm group-hover:scale-105 transition-transform"
+            />
+            <span
+              className="text-2xl font-serif text-stone-500 italic"
+            >
+              Twin Me
+            </span>
           </div>
 
           {/* Right Menu */}

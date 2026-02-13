@@ -5,8 +5,7 @@
 
 import { createClient } from '@supabase/supabase-js';
 import natural from 'natural';
-import Anthropic from '@anthropic-ai/sdk';
-import { CLAUDE_MODEL } from '../config/aiModels.js';
+import { complete, TIER_ANALYSIS } from './llmGateway.js';
 
 // Use SUPABASE_URL (backend) - fallback to VITE_ prefix for compatibility
 // Lazy initialization to avoid crashes if env vars not loaded yet
@@ -250,33 +249,30 @@ class StylometricAnalyzer {
     }
 
     try {
-      const anthropic = new Anthropic({
-        apiKey: process.env.ANTHROPIC_API_KEY
-      });
-
       // Get user ID from text content (assume all samples have same user_id)
       const userId = textContent[0]?.user_id;
 
       // Fetch behavioral data from Soul Observer extension
       const behavioralData = userId ? await this.getBehavioralData(userId) : null;
 
-      console.log('[Stylometric] Analyzing personality with Claude AI (text + behavioral data)...');
+      console.log('[Stylometric] Analyzing personality with LLM Gateway (text + behavioral data)...');
 
       // Build enhanced prompt with behavioral data
       const prompt = this.buildEnhancedPersonalityPrompt(textSample, behavioralData);
 
-      const response = await anthropic.messages.create({
-        model: CLAUDE_MODEL,
-        max_tokens: 1500,
-        temperature: 0.3,
+      const llmResult = await complete({
+        tier: TIER_ANALYSIS,
         system: 'You are an expert personality psychologist analyzing both writing samples AND behavioral patterns to assess Big Five personality traits. Integrate insights from both text analysis and digital behavior for accurate personality assessment.',
         messages: [{
           role: 'user',
           content: prompt
-        }]
+        }],
+        maxTokens: 1500,
+        temperature: 0.3,
+        serviceName: 'stylometricAnalyzer'
       });
 
-      const result = JSON.parse(response.content[0].text);
+      const result = JSON.parse(llmResult.content);
 
       console.log('[Stylometric] Claude personality analysis complete (with behavioral integration)');
 

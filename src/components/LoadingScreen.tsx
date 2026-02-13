@@ -29,22 +29,36 @@ const LoadingScreen = ({
   return (
     <div className={`min-h-screen flex items-center justify-center ${className}`} style={{ backgroundColor: 'var(--background)' }}>
       <div className="text-center max-w-md mx-auto px-6">
-        {/* Simple animated loading icon */}
+        {/* TwinMe Logo + Animated loading */}
         <div className="relative mb-8">
-          <div className="w-24 h-24 mx-auto relative">
-            <div className="absolute inset-0 rounded-full border-4" style={{ borderColor: 'var(--border)' }}></div>
-            <div className="absolute inset-0 rounded-full border-4 border-transparent animate-spin" style={{ borderTopColor: 'var(--accent)' }}></div>
+          <div className="w-28 h-28 mx-auto relative">
+            {/* Spinning ring */}
+            <div className="absolute inset-0 rounded-full border-4 border-transparent animate-spin" style={{ borderTopColor: 'var(--accent)', borderRightColor: 'rgba(var(--accent-rgb, 99, 102, 241), 0.2)' }}></div>
 
-            {/* Center dot */}
-            <div className="absolute inset-6 rounded-full animate-pulse flex items-center justify-center" style={{ backgroundColor: 'var(--accent)' }}>
-              <div className="w-3 h-3 bg-card rounded-full animate-bounce"></div>
+            {/* Diamond logo in center */}
+            <div className="absolute inset-2 flex items-center justify-center">
+              <img
+                src="/icons/3d/diamond.png"
+                alt="Twin Me"
+                className="w-16 h-16 object-contain animate-pulse drop-shadow-lg"
+              />
             </div>
           </div>
         </div>
 
-        {/* Loading text */}
+        {/* Brand + Loading text */}
         <div className="space-y-3">
-          <h2 className="text-2xl font-medium" style={{ fontFamily: 'var(--font-heading)', color: 'var(--foreground)' }}>
+          <h1
+            className="text-3xl"
+            style={{
+              fontFamily: 'var(--font-heading)',
+              fontWeight: 400,
+              color: 'var(--foreground)'
+            }}
+          >
+            Twin Me
+          </h1>
+          <h2 className="text-lg font-medium" style={{ color: 'var(--foreground)', opacity: 0.8 }}>
             {message}{dots}
           </h2>
           <p className="text-sm" style={{ color: 'var(--muted-foreground)' }}>
@@ -72,7 +86,7 @@ const LoadingScreen = ({
 
         {/* Subtle hint text */}
         <div className="mt-8 text-xs" style={{ color: 'var(--muted-foreground)', opacity: 0.7 }}>
-          <p>Building your personalized AI experience</p>
+          <p>Discover your authentic soul signature</p>
         </div>
       </div>
 

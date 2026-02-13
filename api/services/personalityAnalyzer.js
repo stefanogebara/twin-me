@@ -5,19 +5,7 @@
  * using AI-powered pattern recognition and psychological profiling.
  */
 
-import OpenAI from 'openai';
-
-// OpenAI SDK initialization - conditional (only if API key exists)
-// Note: We've migrated to Azure OpenAI for most functionality
-let openai = null;
-if (process.env.OPENAI_API_KEY) {
-  openai = new OpenAI({
-    apiKey: process.env.OPENAI_API_KEY,
-  });
-  console.log('[Personality Analyzer] OpenAI SDK initialized');
-} else {
-  console.log('[Personality Analyzer] OpenAI API key not found - using fallback personality analysis');
-}
+import { complete, TIER_ANALYSIS } from './llmGateway.js';
 
 export class PersonalityAnalyzer {
   constructor() {
@@ -365,32 +353,19 @@ export class PersonalityAnalyzer {
    * Generate AI-powered personality insights using OpenAI
    */
   async generateAIPersonalityInsights(domain, data) {
-    // Use fallback if OpenAI is not available
-    if (!openai) {
-      console.log('[Personality Analyzer] Using fallback insights (OpenAI not configured)');
-      return this.generateFallbackInsights(domain, data);
-    }
-
     try {
       const prompt = this.createPersonalityAnalysisPrompt(domain, data);
 
-      const response = await openai.chat.completions.create({
-        model: "gpt-4",
-        messages: [
-          {
-            role: "system",
-            content: "You are a psychological profiler specializing in personality analysis through entertainment preferences. Provide deep, nuanced insights into personality traits based on the data provided."
-          },
-          {
-            role: "user",
-            content: prompt
-          }
-        ],
+      const result = await complete({
+        tier: TIER_ANALYSIS,
+        system: "You are a psychological profiler specializing in personality analysis through entertainment preferences. Provide deep, nuanced insights into personality traits based on the data provided.",
+        messages: [{ role: 'user', content: prompt }],
+        maxTokens: 800,
         temperature: 0.7,
-        max_tokens: 800
+        serviceName: 'personalityAnalyzer'
       });
 
-      return this.parseAIResponse(response.choices[0].message.content);
+      return this.parseAIResponse(result.content);
 
     } catch (error) {
       console.error('AI personality analysis error:', error);

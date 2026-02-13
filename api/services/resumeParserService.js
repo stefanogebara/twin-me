@@ -5,16 +5,11 @@
  * Supports PDF and text-based formats
  */
 
-import Anthropic from '@anthropic-ai/sdk';
+import { complete, TIER_EXTRACTION } from './llmGateway.js';
 import pdf from 'pdf-parse/lib/pdf-parse.js';
 import fs from 'fs';
 
 class ResumeParserService {
-  constructor() {
-    this.anthropic = new Anthropic({
-      apiKey: process.env.ANTHROPIC_API_KEY
-    });
-  }
 
   /**
    * Parse a resume file and extract structured data
@@ -157,13 +152,14 @@ IMPORTANT:
 - Return ONLY the JSON object, no other text`;
 
     try {
-      const response = await this.anthropic.messages.create({
-        model: 'claude-sonnet-4-20250514',
-        max_tokens: 8000,
-        messages: [{ role: 'user', content: prompt }]
+      const result = await complete({
+        tier: TIER_EXTRACTION,
+        messages: [{ role: 'user', content: prompt }],
+        maxTokens: 8000,
+        serviceName: 'resumeParser'
       });
 
-      const content = response.content[0].text;
+      const content = result.content;
 
       // Extract JSON from response
       const jsonMatch = content.match(/\{[\s\S]*\}/);

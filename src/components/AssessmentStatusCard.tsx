@@ -306,7 +306,12 @@ const AssessmentStatusCard: React.FC<AssessmentStatusCardProps> = ({
             </span>
           </div>
           <span className="text-xs" style={{ color: hasBehavioralData ? accentColor : textSecondary }}>
-            {connectedPlatforms} platform{connectedPlatforms !== 1 ? 's' : ''} connected
+            {connectedPlatforms > 0
+              ? `${connectedPlatforms} data source${connectedPlatforms !== 1 ? 's' : ''}`
+              : hasBehavioralData
+                ? 'Assessment data available'
+                : 'No platforms connected'
+            }
           </span>
         </div>
       </div>

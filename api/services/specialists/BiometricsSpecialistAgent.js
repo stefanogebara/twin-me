@@ -25,7 +25,6 @@ class BiometricsSpecialistAgent extends SpecialistAgentBase {
       role: 'Biometrics specialist analyzing HRV, sleep, and activity patterns',
       domain: 'whoop',
       domainLabel: 'Biometrics & Psychophysiology',
-      model: 'claude-sonnet-4-20250514',
       maxTokens: 4096,
       temperature: 0.3, // Lower temperature for health data precision
       confidenceThreshold: 0.15

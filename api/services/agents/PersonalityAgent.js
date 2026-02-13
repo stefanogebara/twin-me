@@ -18,7 +18,6 @@ class PersonalityAgent extends AgentBase {
     super({
       name: 'PersonalityAgent',
       role: '16 Personalities (MBTI) assessment and pattern validation specialist',
-      model: 'claude-sonnet-4-20250514', // Sonnet 4 for speed
       maxTokens: 3072,
       temperature: 0.4 // Lower temperature for consistent assessment
     });
@@ -380,92 +379,11 @@ Remember: Focus ONLY on personality assessment and validation. Do NOT detect pat
     try {
       const response = await super.execute(prompt, options);
 
-      // Handle tool use
-      if (response.toolUses && response.toolUses.length > 0) {
-        const toolResults = await this.executeTools(response.toolUses, userId);
-
-        const followUpResponse = await this.continueWithToolResults(
-          prompt,
-          response,
-          toolResults,
-          options
-        );
-
-        return followUpResponse;
-      }
-
       return response;
 
     } finally {
       this._currentUserId = null;
     }
-  }
-
-  /**
-   * Execute tool calls
-   */
-  async executeTools(toolUses, userId) {
-    const results = [];
-
-    for (const toolUse of toolUses) {
-      console.log(`🔧 [PersonalityAgent] Executing tool: ${toolUse.name}`);
-
-      try {
-        let result;
-
-        switch (toolUse.name) {
-          case 'get_personality_type':
-            result = await this.getPersonalityType(userId);
-            break;
-
-          case 'validate_pattern_alignment':
-            result = await this.validatePatternAlignment(toolUse.input);
-            break;
-
-          default:
-            result = { error: `Unknown tool: ${toolUse.name}` };
-        }
-
-        results.push({
-          tool_use_id: toolUse.id,
-          type: 'tool_result',
-          content: JSON.stringify(result)
-        });
-
-      } catch (error) {
-        console.error(`❌ Tool ${toolUse.name} failed:`, error);
-        results.push({
-          tool_use_id: toolUse.id,
-          type: 'tool_result',
-          is_error: true,
-          content: error.message
-        });
-      }
-    }
-
-    return results;
-  }
-
-  /**
-   * Continue conversation with tool results
-   */
-  async continueWithToolResults(originalPrompt, firstResponse, toolResults, options) {
-    const messages = [
-      { role: 'user', content: originalPrompt },
-      { role: 'assistant', content: firstResponse.raw.content },
-      { role: 'user', content: toolResults }
-    ];
-
-    const response = await this.client.messages.create({
-      model: this.model,
-      max_tokens: this.maxTokens,
-      temperature: this.temperature,
-      system: this.systemPrompt,
-      messages,
-      tools: this.tools
-    });
-
-    return this.processResponse(response);
   }
 
   /**

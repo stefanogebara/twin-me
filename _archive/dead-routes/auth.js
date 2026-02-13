@@ -1,6 +1,7 @@
 import express from 'express';
 import jwt from 'jsonwebtoken';
 import { supabase } from '../config/supabase.js';
+import { supabaseAdmin } from '../services/database.js';
 import ProfileEnrichmentService from '../services/profileEnrichmentService.js';
 
 const router = express.Router();
@@ -65,8 +66,8 @@ router.post('/refresh', async (req, res) => {
       return res.status(401).json({ error: 'Invalid token type' });
     }
 
-    // Get user data to ensure user still exists
-    const { data: user, error } = await supabase
+    // Get user data to ensure user still exists (admin bypasses RLS)
+    const { data: user, error } = await supabaseAdmin
       .from('users')
       .select('*')
       .eq('id', decoded.id)
@@ -107,15 +108,23 @@ router.get('/verify', async (req, res) => {
     }
 
     const decoded = jwt.verify(token, JWT_SECRET);
+    console.log('[Auth Verify] Token decoded for user:', decoded.id);
 
-    // Get user data
-    const { data: user, error } = await supabase
+    // Get user data with timeout to prevent hanging
+    const userQuery = supabaseAdmin
       .from('users')
-      .select('*')
+      .select('id, email, first_name, last_name, picture_url')
       .eq('id', decoded.id)
       .single();
 
+    const timeoutPromise = new Promise((_, reject) =>
+      setTimeout(() => reject(new Error('DB query timeout')), 15000)
+    );
+
+    const { data: user, error } = await Promise.race([userQuery, timeoutPromise]);
+
     if (error || !user) {
+      console.warn('[Auth Verify] User lookup failed:', error?.message || 'not found');
       return res.status(401).json({ error: 'Invalid token' });
     }
 
@@ -130,7 +139,7 @@ router.get('/verify', async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('Token verification error:', error);
+    console.error('Token verification error:', error.message);
     res.status(401).json({ error: 'Invalid token' });
   }
 });
@@ -240,8 +249,8 @@ router.get('/callback', async (req, res) => {
       return res.redirect(`${process.env.VITE_APP_URL || 'http://localhost:8086'}/auth?error=authentication_failed`);
     }
 
-    // Check if user exists or create new user
-    let { data: user } = await supabase
+    // Check if user exists or create new user (admin bypasses RLS)
+    let { data: user } = await supabaseAdmin
       .from('users')
       .select('*')
       .eq('email', userData.email)
@@ -252,7 +261,7 @@ router.get('/callback', async (req, res) => {
     if (!user) {
       // Create new user
       isNewUser = true;
-      const { data: newUser, error } = await supabase
+      const { data: newUser, error } = await supabaseAdmin
         .from('users')
         .insert({
           email: userData.email,
@@ -379,8 +388,8 @@ router.post('/callback', async (req, res) => {
       hasName: !!(userData.firstName || userData.lastName)
     });
 
-    // Check if user exists or create new user
-    let { data: user } = await supabase
+    // Check if user exists or create new user (admin bypasses RLS)
+    let { data: user } = await supabaseAdmin
       .from('users')
       .select('*')
       .eq('email', userData.email)
@@ -392,7 +401,7 @@ router.post('/callback', async (req, res) => {
       console.log('🔵 [Auth OAuth POST] Creating new user for:', userData.email);
       isNewUser = true;
       // Create new user
-      const { data: newUser, error } = await supabase
+      const { data: newUser, error } = await supabaseAdmin
         .from('users')
         .insert({
           email: userData.email,

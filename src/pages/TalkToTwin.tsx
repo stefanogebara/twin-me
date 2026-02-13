@@ -9,18 +9,22 @@
  */
 
 import { useState, useEffect, useRef } from 'react';
+import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useTheme } from '../contexts/ThemeContext';
 import { useDemo } from '../contexts/DemoContext';
+import { useAnalytics } from '../contexts/AnalyticsContext';
 import { usePlatformStatus } from '../hooks/usePlatformStatus';
 import {
   MessageCircle, Send, Loader2, ArrowLeft, Settings,
-  Music, Activity, Calendar, Check, ChevronRight,
-  Sparkles, Brain, Clock, Database, Layers, User,
+  Check, ChevronRight,
+  Sparkles, Clock, Database, Layers, User,
   Mic, Paperclip, ChevronDown, X, MemoryStick,
   Lightbulb, TrendingUp, Heart, Zap
 } from 'lucide-react';
+import { PlatformLogo, SpotifyLogo, WhoopLogo, GoogleCalendarLogo, YoutubeLogo, TwitchLogo, LinkedinLogo, DiscordLogo, RedditLogo, GithubLogo } from '@/components/PlatformLogos';
+import { Clay3DIcon } from '@/components/Clay3DIcon';
 import { cn } from '@/lib/utils';
 
 interface Message {
@@ -50,6 +54,7 @@ const TalkToTwin = () => {
   const { user, isSignedIn } = useAuth();
   const { theme } = useTheme();
   const { isDemoMode } = useDemo();
+  const { trackFunnel } = useAnalytics();
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
@@ -66,6 +71,8 @@ const TalkToTwin = () => {
   const [showContext, setShowContext] = useState(true);
   const [contextItems, setContextItems] = useState<ContextItem[]>([]);
   const [isLoadingContext, setIsLoadingContext] = useState(false);
+  const [chatUsage, setChatUsage] = useState<{ used: number; limit: number; remaining: number; tier: string } | null>(null);
+  const [limitReached, setLimitReached] = useState(false);
 
   // Theme colors - Matching platform's warm color palette
   const colors = {
@@ -87,11 +94,17 @@ const TalkToTwin = () => {
     inputBorder: theme === 'dark' ? 'rgba(193, 192, 182, 0.2)' : 'rgba(231, 229, 228, 0.6)',
   };
 
-  // Platform configuration - in demo mode, show all as connected
+  // Platform configuration - in demo mode, show core 3 as connected
   const platforms = [
-    { name: 'Spotify', icon: <Music className="w-4 h-4" />, key: 'spotify', color: '#1DB954', connected: isDemoMode || platformStatus?.spotify?.connected },
-    { name: 'Whoop', icon: <Activity className="w-4 h-4" />, key: 'whoop', color: '#00A5E0', connected: isDemoMode || platformStatus?.whoop?.connected },
-    { name: 'Calendar', icon: <Calendar className="w-4 h-4" />, key: 'google_calendar', color: '#4285F4', connected: isDemoMode || platformStatus?.google_calendar?.connected }
+    { name: 'Spotify', icon: <SpotifyLogo className="w-4 h-4" />, key: 'spotify', color: '#1DB954', connected: isDemoMode || platformStatus?.spotify?.connected },
+    { name: 'Whoop', icon: <WhoopLogo className="w-4 h-4" />, key: 'whoop', color: '#00A5E0', connected: isDemoMode || platformStatus?.whoop?.connected },
+    { name: 'Calendar', icon: <GoogleCalendarLogo className="w-4 h-4" />, key: 'google_calendar', color: '#4285F4', connected: isDemoMode || platformStatus?.google_calendar?.connected },
+    { name: 'YouTube', icon: <YoutubeLogo className="w-4 h-4" />, key: 'youtube', color: '#FF0000', connected: platformStatus?.youtube?.connected },
+    { name: 'Twitch', icon: <TwitchLogo className="w-4 h-4" />, key: 'twitch', color: '#9146FF', connected: platformStatus?.twitch?.connected },
+    { name: 'LinkedIn', icon: <LinkedinLogo className="w-4 h-4" />, key: 'linkedin', color: '#0A66C2', connected: platformStatus?.linkedin?.connected },
+    { name: 'Discord', icon: <DiscordLogo className="w-4 h-4" />, key: 'discord', color: '#5865F2', connected: platformStatus?.discord?.connected },
+    { name: 'Reddit', icon: <RedditLogo className="w-4 h-4" />, key: 'reddit', color: '#FF4500', connected: platformStatus?.reddit?.connected },
+    { name: 'GitHub', icon: <GithubLogo className="w-4 h-4" />, key: 'github', color: '#333333', connected: platformStatus?.github?.connected },
   ];
 
   const connectedPlatforms = platforms.filter(p => p.connected);
@@ -136,7 +149,7 @@ const TalkToTwin = () => {
   const quickActions = [
     { label: 'What patterns do you see?', icon: <TrendingUp className="w-4 h-4" /> },
     { label: 'How am I doing today?', icon: <Heart className="w-4 h-4" /> },
-    { label: 'Recommend music for now', icon: <Music className="w-4 h-4" /> },
+    { label: 'Recommend music for now', icon: <Clay3DIcon name="headphones" size={16} /> },
     { label: 'Analyze my week', icon: <Lightbulb className="w-4 h-4" /> },
   ];
 
@@ -157,6 +170,28 @@ const TalkToTwin = () => {
     }
   }, [user?.id]);
 
+  // Fetch chat usage for freemium gating
+  const fetchUsage = async () => {
+    if (isDemoMode || !user?.id) return;
+    try {
+      const token = localStorage.getItem('auth_token');
+      const res = await fetch(`${API_BASE}/chat/usage`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (data.success) {
+          setChatUsage({ used: data.used, limit: data.limit, remaining: data.remaining, tier: data.tier });
+          setLimitReached(data.remaining <= 0 && data.tier === 'free');
+        }
+      }
+    } catch { /* non-blocking */ }
+  };
+
+  useEffect(() => {
+    fetchUsage();
+  }, [user?.id, isDemoMode]);
+
   const loadContext = async () => {
     if (!user?.id) return;
     setIsLoadingContext(true);
@@ -164,9 +199,9 @@ const TalkToTwin = () => {
     // Demo mode: show sample context items
     if (isDemoMode) {
       const items: ContextItem[] = [
-        { type: 'platform', label: 'Spotify', value: 'Connected', icon: <Music className="w-4 h-4" /> },
-        { type: 'platform', label: 'Whoop', value: 'Connected', icon: <Activity className="w-4 h-4" /> },
-        { type: 'platform', label: 'Calendar', value: 'Connected', icon: <Calendar className="w-4 h-4" /> },
+        { type: 'platform', label: 'Spotify', value: 'Connected', icon: <SpotifyLogo className="w-4 h-4" /> },
+        { type: 'platform', label: 'Whoop', value: 'Connected', icon: <WhoopLogo className="w-4 h-4" /> },
+        { type: 'platform', label: 'Calendar', value: 'Connected', icon: <GoogleCalendarLogo className="w-4 h-4" /> },
         { type: 'memory', label: 'Long-term Memory', value: '24 memories stored' },
         { type: 'fact', label: 'Music Taste', value: 'Prefers ambient and electronic' },
         { type: 'fact', label: 'Schedule', value: 'Morning person, protects focus time' },
@@ -261,6 +296,12 @@ const TalkToTwin = () => {
   const handleSendMessage = async () => {
     if (!inputMessage.trim() || !user?.id) return;
 
+    const msgCount = messages.filter(m => m.role === 'user').length + 1;
+    trackFunnel('twin_chat_message_sent', {
+      message_number: msgCount,
+      is_first_message: msgCount === 1,
+    });
+
     const userMessage: Message = {
       id: Date.now().toString(),
       role: 'user',
@@ -310,6 +351,15 @@ const TalkToTwin = () => {
         };
         setMessages(prev => [...prev, assistantMessage]);
         if (data.conversationId) setConversationId(data.conversationId);
+        // Refresh usage after successful message
+        fetchUsage();
+      } else if (response.status === 429) {
+        const data = await response.json();
+        setLimitReached(true);
+        if (data.usage) setChatUsage({ used: data.usage.used, limit: data.usage.limit, remaining: 0, tier: data.usage.tier });
+        // Remove the user message we optimistically added
+        setMessages(prev => prev.filter(m => m.id !== userMessage.id));
+        setInputMessage(currentInput);
       } else {
         throw new Error('Failed to send message');
       }
@@ -399,50 +449,64 @@ const TalkToTwin = () => {
           {messages.length === 0 ? (
             /* Empty State - Grok Style */
             <div className="h-full flex flex-col items-center justify-center px-4 py-12">
-              <div
+              <motion.div
                 className="w-20 h-20 rounded-full flex items-center justify-center mb-8"
                 style={{ backgroundColor: colors.bgSecondary }}
+                initial={{ opacity: 0, scale: 0.6 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ duration: 0.5, ease: [0.4, 0, 0.2, 1] }}
               >
-                <Brain className="w-10 h-10" style={{ color: colors.accent }} />
-              </div>
+                <Clay3DIcon name="brain" size={40} />
+              </motion.div>
 
-              <h1
+              <motion.h1
                 className="text-2xl md:text-3xl font-medium mb-3 text-center"
                 style={{ color: colors.text }}
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.4, delay: 0.15, ease: [0.4, 0, 0.2, 1] }}
               >
                 {connectedPlatforms.length > 0
                   ? "What do you want to know?"
                   : "Connect platforms to unlock your Twin"
                 }
-              </h1>
+              </motion.h1>
 
-              <p
+              <motion.p
                 className="text-center mb-8 max-w-md"
                 style={{ color: colors.textSecondary }}
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.4, delay: 0.25, ease: [0.4, 0, 0.2, 1] }}
               >
                 {connectedPlatforms.length > 0
                   ? "Ask me about your patterns, preferences, or get personalized recommendations based on your connected data."
-                  : "Your twin learns from Spotify, Whoop, and Calendar to understand your soul signature."
+                  : "Your twin learns from your platforms -- music, health, calendar, social, and more -- to understand your soul signature."
                 }
-              </p>
+              </motion.p>
 
               {/* Quick Actions - Grok Style Chips */}
               {connectedPlatforms.length > 0 && (
                 <div className="flex flex-wrap gap-2 justify-center max-w-lg mb-8">
                   {quickActions.map((action, idx) => (
-                    <button
+                    <motion.button
                       key={idx}
                       onClick={() => handleQuickAction(action.label)}
-                      className="flex items-center gap-2 px-4 py-2.5 rounded-full text-sm transition-all hover:scale-[1.02] border"
+                      className="flex items-center gap-2 px-4 py-2.5 rounded-full text-sm transition-colors border"
                       style={{
                         backgroundColor: colors.bgSecondary,
                         borderColor: colors.border,
                         color: colors.text
                       }}
+                      initial={{ opacity: 0, y: 12 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.35, delay: 0.35 + idx * 0.08, ease: [0.4, 0, 0.2, 1] }}
+                      whileHover={{ scale: 1.04, y: -2 }}
+                      whileTap={{ scale: 0.97 }}
                     >
                       <span style={{ color: colors.accent }}>{action.icon}</span>
                       {action.label}
-                    </button>
+                    </motion.button>
                   ))}
                 </div>
               )}
@@ -586,6 +650,44 @@ const TalkToTwin = () => {
           )}
         </div>
 
+        {/* Upgrade Banner - shown when free tier limit reached */}
+        {limitReached && !isDemoMode && (
+          <div
+            className="mx-4 mb-2 p-4 rounded-2xl flex flex-col sm:flex-row items-center justify-between gap-3"
+            style={{
+              background: theme === 'dark'
+                ? 'linear-gradient(135deg, rgba(99, 102, 241, 0.15), rgba(168, 85, 247, 0.1))'
+                : 'linear-gradient(135deg, rgba(99, 102, 241, 0.08), rgba(168, 85, 247, 0.05))',
+              border: '1px solid rgba(99, 102, 241, 0.25)',
+            }}
+          >
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ backgroundColor: 'rgba(99, 102, 241, 0.15)' }}>
+                <Zap className="w-5 h-5" style={{ color: '#6366F1' }} />
+              </div>
+              <div>
+                <p className="text-sm font-medium" style={{ color: colors.text }}>
+                  You've used all 10 free messages this month
+                </p>
+                <p className="text-xs" style={{ color: colors.textMuted }}>
+                  Resets on {chatUsage ? new Date(new Date().getFullYear(), new Date().getMonth() + 1, 1).toLocaleDateString('en-US', { month: 'long', day: 'numeric' }) : 'next month'}
+                </p>
+              </div>
+            </div>
+            <button
+              className="px-5 py-2 rounded-xl text-sm font-medium transition-all hover:scale-[1.02] whitespace-nowrap"
+              style={{
+                background: 'linear-gradient(135deg, #6366F1, #8B5CF6)',
+                color: '#fff',
+                boxShadow: '0 2px 12px rgba(99, 102, 241, 0.3)'
+              }}
+              onClick={() => {/* Future: navigate to upgrade page */}}
+            >
+              Upgrade to Pro - Coming Soon
+            </button>
+          </div>
+        )}
+
         {/* Input Area - Grok Style */}
         <div className="p-4">
           <div
@@ -604,7 +706,7 @@ const TalkToTwin = () => {
               value={inputMessage}
               onChange={(e) => setInputMessage(e.target.value)}
               onKeyDown={handleKeyPress}
-              disabled={connectedPlatforms.length === 0 && !isDemoMode}
+              disabled={(connectedPlatforms.length === 0 && !isDemoMode) || limitReached}
               rows={1}
               className="w-full px-4 py-3 resize-none focus:outline-none disabled:opacity-50 text-[15px]"
               style={{
@@ -637,6 +739,24 @@ const TalkToTwin = () => {
               </div>
 
               <div className="flex items-center gap-2">
+                {/* Usage counter */}
+                {chatUsage && chatUsage.tier === 'free' && !isDemoMode && (
+                  <div
+                    className="flex items-center gap-1 px-2 py-1 rounded-lg text-xs"
+                    style={{
+                      backgroundColor: chatUsage.remaining <= 2
+                        ? 'rgba(239, 68, 68, 0.1)'
+                        : colors.bgSecondary,
+                      color: chatUsage.remaining <= 2
+                        ? '#ef4444'
+                        : colors.textSecondary
+                    }}
+                  >
+                    <MessageCircle className="w-3 h-3" />
+                    <span>{chatUsage.used}/{chatUsage.limit}</span>
+                  </div>
+                )}
+
                 {/* Model indicator like Grok */}
                 <div
                   className="flex items-center gap-1 px-2 py-1 rounded-lg text-xs"
@@ -651,7 +771,7 @@ const TalkToTwin = () => {
 
                 <button
                   onClick={handleSendMessage}
-                  disabled={!inputMessage.trim() || (connectedPlatforms.length === 0 && !isDemoMode) || isTyping}
+                  disabled={!inputMessage.trim() || (connectedPlatforms.length === 0 && !isDemoMode) || isTyping || limitReached}
                   className="p-2.5 rounded-xl transition-all hover:scale-[1.02] disabled:opacity-50 disabled:hover:scale-100"
                   style={{
                     backgroundColor: inputMessage.trim() ? colors.accent : colors.bgTertiary,
@@ -687,7 +807,7 @@ const TalkToTwin = () => {
               className="font-medium flex items-center gap-2"
               style={{ color: colors.text }}
             >
-              <Database className="w-4 h-4" style={{ color: colors.accent }} />
+              <Clay3DIcon name="diamond" size={16} />
               Twin Context
             </h3>
             <button
@@ -767,7 +887,7 @@ const TalkToTwin = () => {
                     <div className="flex items-center gap-2 mb-1">
                       {item.type === 'memory' && <Clock className="w-3 h-3" style={{ color: colors.accent }} />}
                       {item.type === 'fact' && <Lightbulb className="w-3 h-3" style={{ color: '#F59E0B' }} />}
-                      {item.type === 'personality' && <Brain className="w-3 h-3" style={{ color: '#EC4899' }} />}
+                      {item.type === 'personality' && <Clay3DIcon name="brain" size={12} />}
                       <span className="text-xs font-medium" style={{ color: colors.textSecondary }}>
                         {item.label}
                       </span>

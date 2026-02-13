@@ -12,18 +12,12 @@
  * platforms and uses LLM reasoning to provide intelligent guidance.
  */
 
-import Anthropic from '@anthropic-ai/sdk';
+import { complete, TIER_ANALYSIS } from './llmGateway.js';
 import userContextAggregator from './userContextAggregator.js';
 import intelligentMusicService from './intelligentMusicService.js';
-import { CLAUDE_MODEL } from '../config/aiModels.js';
-
-const anthropic = new Anthropic({
-  apiKey: process.env.ANTHROPIC_API_KEY,
-});
 
 class IntelligentTwinEngine {
   constructor() {
-    this.MODEL = CLAUDE_MODEL;
     this.cache = new Map();
     this.CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
   }
@@ -150,16 +144,17 @@ Important guidelines:
 Respond ONLY with valid JSON, no markdown code blocks:`;
 
     try {
-      const message = await anthropic.messages.create({
-        model: this.MODEL,
-        max_tokens: 2048,
+      const result = await complete({
+        tier: TIER_ANALYSIS,
         messages: [{
           role: 'user',
           content: prompt
-        }]
+        }],
+        maxTokens: 2048,
+        serviceName: 'intelligentTwinEngine'
       });
 
-      let responseText = message.content[0].text.trim();
+      let responseText = result.content.trim();
       console.log('🧠 [IntelligentTwin] Claude response received');
 
       // Strip markdown code blocks if present

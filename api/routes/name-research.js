@@ -6,15 +6,9 @@
  */
 
 import express from 'express';
-import Anthropic from '@anthropic-ai/sdk';
-import { CLAUDE_MODEL } from '../config/aiModels.js';
+import { complete, TIER_EXTRACTION } from '../services/llmGateway.js';
 
 const router = express.Router();
-
-// Initialize Anthropic client
-const anthropic = new Anthropic({
-  apiKey: process.env.ANTHROPIC_API_KEY
-});
 
 /**
  * Research a person's name using Claude + web search
@@ -34,10 +28,9 @@ router.post('/research', async (req, res) => {
 
     console.log('🔍 [Name Research] Researching:', fullName);
 
-    // Call Claude with web search capability
-    const message = await anthropic.messages.create({
-      model: CLAUDE_MODEL,
-      max_tokens: 1024,
+    // Call LLM Gateway
+    const result = await complete({
+      tier: TIER_EXTRACTION,
       messages: [
         {
           role: 'user',
@@ -56,10 +49,12 @@ Example outputs:
 - For "John Smith": "I couldn't find specific public information about you, but that's okay! Your digital footprint will tell your unique story."
 - For "Malala Yousafzai": "You share a name with the Pakistani education activist and youngest Nobel Prize laureate, known for advocating for girls' education rights worldwide."`
         }
-      ]
+      ],
+      maxTokens: 1024,
+      serviceName: 'nameResearch'
     });
 
-    const summary = message.content[0].text;
+    const summary = result.content;
 
     console.log('✅ [Name Research] Research complete');
 

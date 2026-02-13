@@ -6,10 +6,12 @@ import mcpClient from '../services/mcp-client.js';
 import dataExtractionService from '../services/dataExtractionService.js';
 import behavioralEvidencePipeline from '../services/behavioralEvidencePipeline.js';
 import { encryptToken, decryptToken, encryptState, decryptState } from '../services/encryption.js';
-import { createClient } from '@supabase/supabase-js';
+import { supabaseAdmin } from '../config/supabase.js';
 import fs from 'fs/promises';
 import path from 'path';
 import PLATFORM_CONFIGS from '../config/platformConfigs.js';
+import { clearStatusMemoryCache } from './connectors.js';
+import { invalidatePlatformStatusCache } from '../services/redisClient.js';
 import { generatePKCEParams } from '../services/pkce.js';
 import {
   oauthAuthorizationLimiter,
@@ -17,10 +19,7 @@ import {
   globalOAuthLimiter
 } from '../middleware/oauthRateLimiter.js';
 
-const supabase = createClient(
-  process.env.SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+const supabase = supabaseAdmin;
 
 const router = express.Router();
 const soulService = new SoulSignatureService();
@@ -99,7 +98,7 @@ router.post('/connect/spotify', oauthAuthorizationLimiter, async (req, res) => {
     });
 
     // Store state + code_verifier in Supabase (CSRF protection + PKCE)
-    await supabase
+    const { error: stateInsertError } = await supabase
       .from('oauth_states')
       .insert({
         state,
@@ -107,6 +106,11 @@ router.post('/connect/spotify', oauthAuthorizationLimiter, async (req, res) => {
         data: { userId, platform: 'spotify' },
         expires_at: new Date(Date.now() + 1800000) // 30 minutes
       });
+
+    if (stateInsertError) {
+      console.error('❌ Failed to store OAuth state:', stateInsertError);
+      throw new Error(`Failed to store OAuth state: ${stateInsertError.message}`);
+    }
 
     const authUrl = `${config.authUrl}?` +
       `client_id=${process.env.SPOTIFY_CLIENT_ID}&` +
@@ -283,7 +287,7 @@ router.post('/connect/youtube', oauthAuthorizationLimiter, async (req, res) => {
 
     // YouTube/Google OAuth
     const clientId = process.env.GOOGLE_CLIENT_ID || '851806289280-k0v833noqjk02r43m45cjr7prnhg24gr.apps.googleusercontent.com';
-    const redirectUri = encodeURIComponent(`${process.env.APP_URL || process.env.VITE_APP_URL || 'http://localhost:8086'}/oauth/callback`);
+    const redirectUri = encodeURIComponent(`${process.env.APP_URL || process.env.VITE_APP_URL || 'http://127.0.0.1:8086'}/oauth/callback`);
     const scope = encodeURIComponent(
       'https://www.googleapis.com/auth/youtube.readonly ' +
       'https://www.googleapis.com/auth/youtube.force-ssl'
@@ -300,7 +304,7 @@ router.post('/connect/youtube', oauthAuthorizationLimiter, async (req, res) => {
     });
 
     // Store state + code_verifier in Supabase (CSRF protection + PKCE)
-    await supabase
+    const { error: stateInsertError } = await supabase
       .from('oauth_states')
       .insert({
         state,
@@ -308,6 +312,11 @@ router.post('/connect/youtube', oauthAuthorizationLimiter, async (req, res) => {
         data: { userId, platform: 'youtube' },
         expires_at: new Date(Date.now() + 1800000) // 30 minutes
       });
+
+    if (stateInsertError) {
+      console.error('❌ Failed to store OAuth state:', stateInsertError);
+      throw new Error(`Failed to store OAuth state: ${stateInsertError.message}`);
+    }
 
     const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?` +
       `client_id=${clientId}&redirect_uri=${redirectUri}&` +
@@ -420,7 +429,7 @@ router.post('/oauth/callback', oauthCallbackLimiter, async (req, res) => {
           body: new URLSearchParams({
             grant_type: 'authorization_code',
             code,
-            redirect_uri: `${process.env.VITE_APP_URL || 'http://localhost:8086'}/oauth/callback`,
+            redirect_uri: `${process.env.VITE_APP_URL || 'http://127.0.0.1:8086'}/oauth/callback`,
             code_verifier: codeVerifier // PKCE verification
           })
         });
@@ -460,7 +469,7 @@ router.post('/oauth/callback', oauthCallbackLimiter, async (req, res) => {
             client_secret: process.env.DISCORD_CLIENT_SECRET,
             grant_type: 'authorization_code',
             code,
-            redirect_uri: `${process.env.VITE_APP_URL || 'http://localhost:8086'}/oauth/callback`
+            redirect_uri: `${process.env.VITE_APP_URL || 'http://127.0.0.1:8086'}/oauth/callback`
           })
         });
 
@@ -487,7 +496,7 @@ router.post('/oauth/callback', oauthCallbackLimiter, async (req, res) => {
             client_id: process.env.GITHUB_CLIENT_ID,
             client_secret: process.env.GITHUB_CLIENT_SECRET,
             code,
-            redirect_uri: `${process.env.VITE_APP_URL || 'http://localhost:8086'}/oauth/callback`,
+            redirect_uri: `${process.env.VITE_APP_URL || 'http://127.0.0.1:8086'}/oauth/callback`,
             code_verifier: codeVerifier // PKCE verification
           })
         });
@@ -519,7 +528,7 @@ router.post('/oauth/callback', oauthCallbackLimiter, async (req, res) => {
             code,
             client_id: process.env.GOOGLE_CLIENT_ID,
             client_secret: process.env.GOOGLE_CLIENT_SECRET,
-            redirect_uri: `${process.env.APP_URL || process.env.VITE_APP_URL || 'http://localhost:8086'}/oauth/callback`,
+            redirect_uri: `${process.env.APP_URL || process.env.VITE_APP_URL || 'http://127.0.0.1:8086'}/oauth/callback`,
             grant_type: 'authorization_code',
             code_verifier: codeVerifier // PKCE verification
           })
@@ -548,7 +557,7 @@ router.post('/oauth/callback', oauthCallbackLimiter, async (req, res) => {
           body: new URLSearchParams({
             grant_type: 'authorization_code',
             code,
-            redirect_uri: `${process.env.VITE_APP_URL || 'http://localhost:8086'}/oauth/callback`,
+            redirect_uri: `${process.env.VITE_APP_URL || 'http://127.0.0.1:8086'}/oauth/callback`,
             client_id: process.env.WHOOP_CLIENT_ID,
             client_secret: process.env.WHOOP_CLIENT_SECRET,
             scope: 'offline'
@@ -577,7 +586,7 @@ router.post('/oauth/callback', oauthCallbackLimiter, async (req, res) => {
             code,
             client_id: process.env.OURA_CLIENT_ID,
             client_secret: process.env.OURA_CLIENT_SECRET,
-            redirect_uri: `${process.env.VITE_APP_URL || 'http://localhost:8086'}/oauth/callback`
+            redirect_uri: `${process.env.VITE_APP_URL || 'http://127.0.0.1:8086'}/oauth/callback`
           })
         });
 
@@ -632,6 +641,11 @@ router.post('/oauth/callback', oauthCallbackLimiter, async (req, res) => {
     }
 
     console.log(`💾 Tokens stored for ${platform} - User: ${userId}`);
+
+    // Invalidate platform status cache so frontend gets fresh status immediately
+    clearStatusMemoryCache(userId);
+    await invalidatePlatformStatusCache(userId);
+    console.log(`🗑️ Status cache cleared for user ${userId} after ${platform} reconnect`);
 
     // Trigger data extraction in background (non-blocking)
     console.log(`📊 Starting background data extraction for ${platform}...`);
@@ -1344,7 +1358,7 @@ router.post('/connect/github', oauthAuthorizationLimiter, async (req, res) => {
 
     // GitHub OAuth Configuration
     const clientId = process.env.GITHUB_CLIENT_ID;
-    const redirectUri = encodeURIComponent(`${process.env.APP_URL || process.env.VITE_APP_URL || 'http://localhost:8086'}/oauth/callback`);
+    const redirectUri = encodeURIComponent(`${process.env.APP_URL || process.env.VITE_APP_URL || 'http://127.0.0.1:8086'}/oauth/callback`);
     const scope = encodeURIComponent('read:user repo read:org');
 
     // Generate PKCE parameters (RFC 7636 - recommended for GitHub)
@@ -1358,7 +1372,7 @@ router.post('/connect/github', oauthAuthorizationLimiter, async (req, res) => {
     });
 
     // Store state + code_verifier in Supabase (CSRF protection + PKCE)
-    await supabase
+    const { error: stateInsertError } = await supabase
       .from('oauth_states')
       .insert({
         state,
@@ -1366,6 +1380,11 @@ router.post('/connect/github', oauthAuthorizationLimiter, async (req, res) => {
         data: { userId, platform: 'github' },
         expires_at: new Date(Date.now() + 1800000) // 30 minutes
       });
+
+    if (stateInsertError) {
+      console.error('❌ Failed to store OAuth state:', stateInsertError);
+      throw new Error(`Failed to store OAuth state: ${stateInsertError.message}`);
+    }
 
     const authUrl = `https://github.com/login/oauth/authorize?` +
       `client_id=${clientId}&redirect_uri=${redirectUri}&scope=${scope}&state=${state}`;
@@ -1401,7 +1420,7 @@ router.post('/connect/discord', oauthAuthorizationLimiter, async (req, res) => {
     // Discord OAuth Configuration
     const config = PLATFORM_CONFIGS.discord;
     const clientId = process.env.DISCORD_CLIENT_ID;
-    const redirectUri = `${process.env.VITE_APP_URL || 'http://localhost:8086'}/oauth/callback`;
+    const redirectUri = `${process.env.VITE_APP_URL || 'http://127.0.0.1:8086'}/oauth/callback`;
     const scope = config.scopes.join(' ');
 
     // Note: Discord doesn't officially support PKCE yet, but we'll use state for CSRF protection
@@ -1415,7 +1434,7 @@ router.post('/connect/discord', oauthAuthorizationLimiter, async (req, res) => {
     });
 
     // Store state in Supabase (CSRF protection)
-    await supabase
+    const { error: stateInsertError } = await supabase
       .from('oauth_states')
       .insert({
         state,
@@ -1423,6 +1442,11 @@ router.post('/connect/discord', oauthAuthorizationLimiter, async (req, res) => {
         data: { userId, platform: 'discord' },
         expires_at: new Date(Date.now() + 1800000) // 30 minutes
       });
+
+    if (stateInsertError) {
+      console.error('❌ Failed to store OAuth state:', stateInsertError);
+      throw new Error(`Failed to store OAuth state: ${stateInsertError.message}`);
+    }
 
     const authUrl = `${config.authUrl}?` +
       `client_id=${clientId}&` +
@@ -1463,7 +1487,7 @@ router.post('/connect/gmail', oauthAuthorizationLimiter, async (req, res) => {
 
     // Gmail uses Google OAuth
     const clientId = process.env.GOOGLE_CLIENT_ID;
-    const appUrl = process.env.APP_URL || process.env.APP_URL || process.env.VITE_APP_URL || 'http://localhost:8086';
+    const appUrl = process.env.APP_URL || process.env.APP_URL || process.env.VITE_APP_URL || 'http://127.0.0.1:8086';
     const redirectUri = encodeURIComponent(`${appUrl}/oauth/callback`);
 
     // Gmail scopes for reading email metadata and labels
@@ -1485,7 +1509,7 @@ router.post('/connect/gmail', oauthAuthorizationLimiter, async (req, res) => {
     });
 
     // Store state + code_verifier in Supabase (CSRF protection + PKCE)
-    await supabase
+    const { error: stateInsertError } = await supabase
       .from('oauth_states')
       .insert({
         state,
@@ -1493,6 +1517,11 @@ router.post('/connect/gmail', oauthAuthorizationLimiter, async (req, res) => {
         data: { userId, platform: 'google_gmail' },
         expires_at: new Date(Date.now() + 1800000) // 30 minutes
       });
+
+    if (stateInsertError) {
+      console.error('❌ Failed to store OAuth state:', stateInsertError);
+      throw new Error(`Failed to store OAuth state: ${stateInsertError.message}`);
+    }
 
     const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?` +
       `client_id=${clientId}&response_type=code&` +
@@ -1530,7 +1559,7 @@ router.post('/connect/google_calendar', oauthAuthorizationLimiter, async (req, r
     }
 
     const clientId = process.env.GOOGLE_CLIENT_ID;
-    const appUrl = process.env.APP_URL || process.env.VITE_APP_URL || 'http://localhost:8086';
+    const appUrl = process.env.APP_URL || process.env.VITE_APP_URL || 'http://127.0.0.1:8086';
     const redirectUri = encodeURIComponent(`${appUrl}/oauth/callback`);
 
     // Calendar scopes
@@ -1550,7 +1579,7 @@ router.post('/connect/google_calendar', oauthAuthorizationLimiter, async (req, r
     });
 
     // Store state + code_verifier in Supabase
-    await supabase
+    const { error: stateInsertError } = await supabase
       .from('oauth_states')
       .insert({
         state,
@@ -1558,6 +1587,11 @@ router.post('/connect/google_calendar', oauthAuthorizationLimiter, async (req, r
         data: { userId, platform: 'google_calendar' },
         expires_at: new Date(Date.now() + 1800000) // 30 minutes
       });
+
+    if (stateInsertError) {
+      console.error('❌ Failed to store OAuth state:', stateInsertError);
+      throw new Error(`Failed to store OAuth state: ${stateInsertError.message}`);
+    }
 
     const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?` +
       `client_id=${clientId}&response_type=code&` +
@@ -1596,7 +1630,7 @@ router.post('/connect/whoop', oauthAuthorizationLimiter, async (req, res) => {
 
     const config = PLATFORM_CONFIGS.whoop;
     const clientId = process.env.WHOOP_CLIENT_ID;
-    const appUrl = process.env.APP_URL || process.env.VITE_APP_URL || 'http://localhost:8086';
+    const appUrl = process.env.APP_URL || process.env.VITE_APP_URL || 'http://127.0.0.1:8086';
     const redirectUri = `${appUrl}/oauth/callback`;
     const scope = config.scopes.join(' ');
 
@@ -1607,13 +1641,18 @@ router.post('/connect/whoop', oauthAuthorizationLimiter, async (req, res) => {
     });
 
     // Store state in Supabase
-    await supabase
+    const { error: stateInsertError } = await supabase
       .from('oauth_states')
       .insert({
         state,
         data: { userId, platform: 'whoop' },
         expires_at: new Date(Date.now() + 1800000) // 30 minutes
       });
+
+    if (stateInsertError) {
+      console.error('❌ Failed to store OAuth state:', stateInsertError);
+      throw new Error(`Failed to store OAuth state: ${stateInsertError.message}`);
+    }
 
     const authUrl = `${config.authUrl}?` +
       `client_id=${clientId}&` +
@@ -1653,7 +1692,7 @@ router.post('/connect/oura', oauthAuthorizationLimiter, async (req, res) => {
 
     const config = PLATFORM_CONFIGS.oura;
     const clientId = process.env.OURA_CLIENT_ID;
-    const appUrl = process.env.APP_URL || process.env.VITE_APP_URL || 'http://localhost:8086';
+    const appUrl = process.env.APP_URL || process.env.VITE_APP_URL || 'http://127.0.0.1:8086';
     const redirectUri = `${appUrl}/oauth/callback`;
     const scope = config.scopes.join(' ');
 
@@ -1663,13 +1702,18 @@ router.post('/connect/oura', oauthAuthorizationLimiter, async (req, res) => {
     });
 
     // Store state in Supabase
-    await supabase
+    const { error: stateInsertError } = await supabase
       .from('oauth_states')
       .insert({
         state,
         data: { userId, platform: 'oura' },
         expires_at: new Date(Date.now() + 1800000)
       });
+
+    if (stateInsertError) {
+      console.error('❌ Failed to store OAuth state:', stateInsertError);
+      throw new Error(`Failed to store OAuth state: ${stateInsertError.message}`);
+    }
 
     const authUrl = `${config.authUrl}?` +
       `client_id=${clientId}&` +
@@ -1731,7 +1775,7 @@ router.get('/oauth/debug', async (req, res) => {
     };
 
     const encryptionConfigured = !!process.env.ENCRYPTION_KEY;
-    const appUrl = process.env.APP_URL || process.env.VITE_APP_URL || 'http://localhost:8086';
+    const appUrl = process.env.APP_URL || process.env.VITE_APP_URL || 'http://127.0.0.1:8086';
     const callbackUrl = `${appUrl}/oauth/callback`;
 
     res.json({

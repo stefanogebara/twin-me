@@ -3,9 +3,8 @@
  * Uses Claude API to generate deep personality insights from behavioral patterns
  */
 
-import Anthropic from '@anthropic-ai/sdk';
 import { createClient } from '@supabase/supabase-js';
-import { CLAUDE_MODEL } from '../config/aiModels.js';
+import { complete, TIER_ANALYSIS } from './llmGateway.js';
 
 // Lazy initialization to avoid crashes if env vars not loaded yet
 let supabase = null;
@@ -19,21 +18,12 @@ function getSupabaseClient() {
   return supabase;
 }
 
-const anthropic = process.env.ANTHROPIC_API_KEY ? new Anthropic({
-  apiKey: process.env.ANTHROPIC_API_KEY
-}) : null;
-
 class SoulObserverAIAnalyzer {
 
   /**
-   * Generate deep psychological insights using Claude
+   * Generate deep psychological insights using LLM Gateway
    */
   async analyzeSessionWithClaude(userId, sessionId) {
-    if (!anthropic) {
-      console.warn('[AI Analyzer] Anthropic API key not configured, skipping AI analysis');
-      return null;
-    }
-
     try {
       // Get session data and detected patterns
       const sessionData = await this.gatherSessionData(sessionId);
@@ -41,20 +31,21 @@ class SoulObserverAIAnalyzer {
       // Build prompt for Claude
       const prompt = this.buildAnalysisPrompt(sessionData);
 
-      console.log('[AI Analyzer] Requesting Claude analysis...');
+      console.log('[AI Analyzer] Requesting LLM analysis...');
 
-      // Call Claude API
-      const response = await anthropic.messages.create({
-        model: CLAUDE_MODEL,
-        max_tokens: 2000,
-        temperature: 0.7,
+      // Call LLM Gateway
+      const result = await complete({
+        tier: TIER_ANALYSIS,
         messages: [{
           role: 'user',
           content: prompt
-        }]
+        }],
+        maxTokens: 2000,
+        temperature: 0.7,
+        serviceName: 'soulObserverAIAnalyzer'
       });
 
-      const analysis = response.content[0].text;
+      const analysis = result.content;
 
       console.log('[AI Analyzer] Claude analysis received');
 

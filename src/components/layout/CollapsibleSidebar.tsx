@@ -18,7 +18,6 @@ import {
   ChevronsLeft,
   ChevronsRight,
   X,
-  User,
   Settings,
   LogOut,
   Music,
@@ -28,9 +27,11 @@ import {
   Video,
   Tv,
   Globe,
-  BookOpen
+  BookOpen,
+  BarChart3
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { Clay3DIcon, CLAY_ICON_MAP } from '@/components/Clay3DIcon';
 
 interface NavItem {
   id: string;
@@ -140,7 +141,6 @@ export const CollapsibleSidebar: React.FC<CollapsibleSidebarProps> = ({
   const { isCollapsed, toggleSidebar } = useSidebar();
   const isExpanded = !isCollapsed; // Use context state for sidebar expand/collapse
   const [showInsights, setShowInsights] = useState(true); // Keep Insights section open by default
-  const [showUserMenu, setShowUserMenu] = useState(false);
 
   // Persist Insights section state in localStorage
   useEffect(() => {
@@ -240,21 +240,28 @@ export const CollapsibleSidebar: React.FC<CollapsibleSidebarProps> = ({
         </button>
 
         {/* Logo */}
-        <div className="p-8 pb-6 flex items-center justify-center border-b border-sidebar-border">
+        <div className="p-6 pb-5 flex items-center justify-center border-b border-sidebar-border">
           <button
             onClick={() => handleNavigate('/dashboard')}
             className={cn(
-              "hover:opacity-80 transition-all duration-200",
-              isExpanded ? "text-2xl" : "text-xl"
+              "hover:opacity-80 transition-all duration-200 flex items-center gap-2.5",
+              isExpanded ? "" : "justify-center"
             )}
-            style={{
-              fontFamily: 'var(--font-heading)',
-              fontWeight: 400,
-              color: theme === 'dark' ? '#C1C0B6' : '#0c0a09'
-            }}
             title="Twin Me"
           >
-            {isExpanded ? 'Twin Me' : 'TM'}
+            <Clay3DIcon name="diamond" size={isExpanded ? 36 : 32} className="drop-shadow-sm" />
+            {isExpanded && (
+              <span
+                className="text-2xl"
+                style={{
+                  fontFamily: 'var(--font-heading)',
+                  fontWeight: 400,
+                  color: theme === 'dark' ? '#C1C0B6' : '#0c0a09'
+                }}
+              >
+                Twin Me
+              </span>
+            )}
           </button>
         </div>
 
@@ -274,13 +281,17 @@ export const CollapsibleSidebar: React.FC<CollapsibleSidebarProps> = ({
                   "w-full flex items-center gap-3 rounded-lg transition-all duration-200",
                   isExpanded ? "px-4 py-3" : "px-3 py-3 justify-center",
                   active
-                    ? 'bg-sidebar-primary text-sidebar-primary-foreground shadow-md'
-                    : 'text-sidebar-foreground hover:bg-sidebar-accent'
+                    ? 'bg-sidebar-accent border-l-[3px] border-l-emerald-500 text-sidebar-accent-foreground font-semibold'
+                    : 'text-sidebar-foreground hover:bg-sidebar-accent border-l-[3px] border-l-transparent'
                 )}
                 title={item.label}
               >
-                <Icon className="w-5 h-5" aria-hidden="true" />
-                {isExpanded && <span className="text-sm font-medium">{item.label}</span>}
+                {CLAY_ICON_MAP[item.id] ? (
+                  <Clay3DIcon name={CLAY_ICON_MAP[item.id]} size="sm" className={cn("transition-transform", active && "scale-110")} />
+                ) : (
+                  <Icon className={cn("w-5 h-5", active && "text-emerald-500")} aria-hidden="true" />
+                )}
+                {isExpanded && <span className="text-sm">{item.label}</span>}
               </button>
             );
           })}
@@ -321,12 +332,16 @@ export const CollapsibleSidebar: React.FC<CollapsibleSidebarProps> = ({
                         className={cn(
                           "w-full flex items-center gap-3 px-4 py-2 rounded-lg transition-all duration-200",
                           active
-                            ? 'bg-sidebar-primary text-sidebar-primary-foreground shadow-md'
-                            : 'text-sidebar-foreground opacity-80 hover:bg-sidebar-accent hover:opacity-100'
+                            ? 'bg-sidebar-accent border-l-[3px] border-l-emerald-500 text-sidebar-accent-foreground font-semibold'
+                            : 'text-sidebar-foreground opacity-80 hover:bg-sidebar-accent hover:opacity-100 border-l-[3px] border-l-transparent'
                         )}
                         title={item.label}
                       >
-                        <Icon className="w-4 h-4" aria-hidden="true" />
+                        {CLAY_ICON_MAP[item.id] ? (
+                          <Clay3DIcon name={CLAY_ICON_MAP[item.id]} size="xs" className={cn("transition-transform", active && "scale-110")} />
+                        ) : (
+                          <Icon className={cn("w-4 h-4", active && "text-emerald-500")} aria-hidden="true" />
+                        )}
                         <span className="text-sm">{item.label}</span>
                       </button>
                     );
@@ -350,12 +365,16 @@ export const CollapsibleSidebar: React.FC<CollapsibleSidebarProps> = ({
                     className={cn(
                       "w-full flex items-center justify-center px-3 py-3 rounded-lg transition-all duration-200",
                       active
-                        ? 'bg-sidebar-primary text-sidebar-primary-foreground shadow-md'
-                        : 'text-sidebar-foreground opacity-80 hover:bg-sidebar-accent hover:opacity-100'
+                        ? 'bg-sidebar-accent border-l-[3px] border-l-emerald-500'
+                        : 'text-sidebar-foreground opacity-80 hover:bg-sidebar-accent hover:opacity-100 border-l-[3px] border-l-transparent'
                     )}
                     title={item.label}
                   >
-                    <Icon className="w-4 h-4" />
+                    {CLAY_ICON_MAP[item.id] ? (
+                      <Clay3DIcon name={CLAY_ICON_MAP[item.id]} size="xs" className={cn("transition-transform", active && "scale-110")} />
+                    ) : (
+                      <Icon className={cn("w-4 h-4", active ? "text-emerald-500" : "")} />
+                    )}
                   </button>
                 );
               })}
@@ -363,73 +382,67 @@ export const CollapsibleSidebar: React.FC<CollapsibleSidebarProps> = ({
           )}
         </nav>
 
-        {/* User Menu at Bottom */}
-        <div className="border-t border-sidebar-border p-4">
-          <div className="relative">
-            <button
-              onClick={() => setShowUserMenu(!showUserMenu)}
-              className={cn(
-                "w-full flex items-center gap-3 rounded-lg hover:bg-sidebar-accent transition-colors",
-                isExpanded ? "px-4 py-3" : "px-2 py-3 justify-center"
-              )}
-              title={user?.firstName || user?.email || 'User Menu'}
-            >
-              <div className="w-8 h-8 bg-sidebar-primary rounded-full flex items-center justify-center text-sidebar-primary-foreground text-sm font-bold">
-                {user?.firstName?.charAt(0) || user?.email?.charAt(0) || 'U'}
-              </div>
-              {isExpanded && (
-                <>
-                  <div className="flex-1 text-left min-w-0">
-                    <div className="text-sm font-medium text-sidebar-foreground truncate">
-                      {user?.firstName || 'User'}
-                    </div>
-                    <div
-                      className="text-xs text-sidebar-foreground opacity-60 truncate"
-                      title={user?.email}
-                    >
-                      {user?.email}
-                    </div>
-                  </div>
-                  <ChevronDown className={cn(
-                    "w-4 h-4 text-sidebar-foreground opacity-60 transition-transform",
-                    showUserMenu && "rotate-180"
-                  )} />
-                </>
-              )}
-            </button>
-
-            {showUserMenu && (
-              <>
-                <div
-                  className="fixed inset-0 z-10"
-                  onClick={() => setShowUserMenu(false)}
-                />
-                <div className="absolute bottom-full left-0 right-0 mb-2 bg-sidebar-accent border border-sidebar-border rounded-xl shadow-lg z-20 overflow-hidden">
-                  <button
-                    onClick={() => {
-                      setShowUserMenu(false);
-                      handleNavigate('/settings');
-                    }}
-                    className="w-full flex items-center gap-3 px-4 py-3 text-sidebar-foreground hover:bg-sidebar-primary hover:text-sidebar-primary-foreground transition-colors text-left"
-                  >
-                    <Settings className="w-4 h-4" />
-                    <span className="text-sm">Settings</span>
-                  </button>
-
-                  <button
-                    onClick={() => {
-                      setShowUserMenu(false);
-                      handleSignOut();
-                    }}
-                    className="w-full flex items-center gap-3 px-4 py-3 text-destructive hover:bg-destructive/10 transition-colors text-left border-t border-sidebar-border"
-                  >
-                    <LogOut className="w-4 h-4" />
-                    <span className="text-sm">Sign Out</span>
-                  </button>
-                </div>
-              </>
+        {/* Admin Section */}
+        <div className="px-4 pb-2">
+          <button
+            onClick={() => handleNavigate('/admin/llm-costs')}
+            aria-label="Navigate to LLM Costs"
+            aria-current={isActive('/admin/llm-costs') ? 'page' : undefined}
+            className={cn(
+              "w-full flex items-center gap-3 rounded-lg transition-all duration-200",
+              isExpanded ? "px-4 py-3" : "px-3 py-3 justify-center",
+              isActive('/admin/llm-costs')
+                ? 'bg-sidebar-accent border-l-[3px] border-l-emerald-500 text-sidebar-accent-foreground font-semibold'
+                : 'text-sidebar-foreground opacity-70 hover:bg-sidebar-accent hover:opacity-100 border-l-[3px] border-l-transparent'
             )}
-          </div>
+            title="LLM Costs"
+          >
+            <BarChart3 className={cn("w-5 h-5", isActive('/admin/llm-costs') && "text-emerald-500")} aria-hidden="true" />
+            {isExpanded && <span className="text-sm">LLM Costs</span>}
+          </button>
+        </div>
+
+        {/* Sign Out + User at Bottom */}
+        <div className="border-t border-sidebar-border p-4 space-y-1">
+          {/* Sign Out button - always visible */}
+          <button
+            onClick={handleSignOut}
+            className={cn(
+              "w-full flex items-center gap-3 rounded-lg text-sidebar-foreground opacity-70 hover:opacity-100 hover:bg-sidebar-accent transition-all duration-200",
+              isExpanded ? "px-4 py-3" : "px-3 py-3 justify-center"
+            )}
+            title="Sign Out"
+          >
+            <LogOut className="w-5 h-5" aria-hidden="true" />
+            {isExpanded && <span className="text-sm">Sign Out</span>}
+          </button>
+
+          {/* User profile */}
+          <button
+            onClick={() => handleNavigate('/settings')}
+            className={cn(
+              "w-full flex items-center gap-3 rounded-lg hover:bg-sidebar-accent transition-colors",
+              isExpanded ? "px-4 py-3" : "px-2 py-3 justify-center"
+            )}
+            title={user?.firstName || user?.email || 'Settings'}
+          >
+            <div className="w-8 h-8 bg-sidebar-primary rounded-full flex items-center justify-center text-sidebar-primary-foreground text-sm font-bold">
+              {user?.firstName?.charAt(0) || user?.email?.charAt(0) || 'U'}
+            </div>
+            {isExpanded && (
+              <div className="flex-1 text-left min-w-0">
+                <div className="text-sm font-medium text-sidebar-foreground truncate">
+                  {user?.firstName || 'User'}
+                </div>
+                <div
+                  className="text-xs text-sidebar-foreground opacity-60 truncate"
+                  title={user?.email}
+                >
+                  {user?.email}
+                </div>
+              </div>
+            )}
+          </button>
         </div>
         </div>
       </div>

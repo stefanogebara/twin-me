@@ -11,21 +11,15 @@
  * - Observable decision logging
  */
 
-import Anthropic from '@anthropic-ai/sdk';
+import { complete, TIER_ANALYSIS } from '../../services/llmGateway.js';
 
 class AgentBase {
   constructor(config = {}) {
     this.name = config.name || 'BaseAgent';
     this.role = config.role || 'Assistant';
-    this.model = config.model || 'claude-sonnet-4-20250514'; // Default to Sonnet 4
     this.maxTokens = config.maxTokens || 4096;
     this.temperature = config.temperature || 0.7;
     this.tools = config.tools || [];
-
-    // Initialize Anthropic client
-    this.client = new Anthropic({
-      apiKey: process.env.ANTHROPIC_API_KEY
-    });
 
     // Agent-specific system prompt (to be overridden)
     this.systemPrompt = this.buildSystemPrompt();
@@ -83,40 +77,32 @@ Remember: You are part of a multi-agent system. Focus on YOUR specific task.`;
         messages.unshift(...options.conversationHistory);
       }
 
-      // Prepare API call parameters
-      const apiParams = {
-        model: this.model,
-        max_tokens: this.maxTokens,
-        temperature: this.temperature,
+      // Execute via LLM Gateway
+      const gatewayResult = await complete({
+        tier: TIER_ANALYSIS,
         system: this.systemPrompt,
-        messages
+        messages,
+        maxTokens: this.maxTokens,
+        temperature: this.temperature,
+        serviceName: `agent:${this.name}`
+      });
+
+      // Build a response-like object for metrics and processing
+      const response = {
+        content: [{ type: 'text', text: gatewayResult.content }],
+        usage: gatewayResult.usage || { input_tokens: 0, output_tokens: 0 },
+        stop_reason: 'end_turn'
       };
-
-      // Add tools if available
-      if (this.tools.length > 0) {
-        apiParams.tools = this.tools;
-      }
-
-      // Add extended thinking for complex reasoning (Opus only)
-      if (this.model.includes('opus') && options.useExtendedThinking) {
-        apiParams.thinking = {
-          type: 'enabled',
-          budget_tokens: 10000
-        };
-      }
-
-      // Execute Claude API call
-      const response = await this.client.messages.create(apiParams);
 
       // Update metrics
       this.updateMetrics(response, Date.now() - startTime, true);
 
       // Log observable decision (metadata only, not content)
       this.logDecision({
-        model: this.model,
+        model: gatewayResult.model || 'llmGateway',
         inputTokens: response.usage.input_tokens,
         outputTokens: response.usage.output_tokens,
-        toolsUsed: this.extractToolsUsed(response),
+        toolsUsed: [],
         latencyMs: Date.now() - startTime
       });
 

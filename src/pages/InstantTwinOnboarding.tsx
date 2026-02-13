@@ -6,10 +6,12 @@
  */
 
 import React, { useState, useCallback } from 'react';
+import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useDemo } from '@/contexts/DemoContext';
+import { useAnalytics } from '@/contexts/AnalyticsContext';
 import { useToast } from '@/components/ui/use-toast';
 import { usePlatformStatus } from '../hooks/usePlatformStatus';
 import { PageLayout, GlassPanel } from '@/components/layout/PageLayout';
@@ -17,19 +19,11 @@ import {
   ArrowLeft,
   ArrowRight,
   CheckCircle2,
-  Shield,
-  Sparkles,
-  Settings,
-  Eye,
-  Plus,
-  Fingerprint,
   X,
   Info
 } from 'lucide-react';
 
-import UserProfile from '../components/UserProfile';
 import { DataVerification } from '../components/DataVerification';
-import ThemeToggle from '../components/ThemeToggle';
 
 import {
   DataProvider
@@ -81,6 +75,12 @@ const SlackLogo = ({ className = "w-6 h-6" }: { className?: string }) => (
   </svg>
 );
 
+
+const LinkedInLogo = ({ className = "w-6 h-6" }: { className?: string }) => (
+  <svg className={className} viewBox="0 0 24 24" fill="currentColor">
+    <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/>
+  </svg>
+);
 
 const GithubLogo = ({ className = "w-6 h-6" }: { className?: string }) => (
   <svg className={className} viewBox="0 0 24 24" fill="currentColor">
@@ -262,6 +262,18 @@ const AVAILABLE_CONNECTORS: ConnectorConfig[] = [
     setupTime: '10 seconds',
     privacyLevel: 'high',
     category: 'professional'
+  },
+  {
+    provider: 'linkedin' as DataProvider,
+    name: 'LinkedIn',
+    description: 'Your professional trajectory reveals career evolution, networking patterns, and industry expertise',
+    icon: <LinkedInLogo className="w-6 h-6" />,
+    color: '#0A66C2',
+    dataTypes: ['Professional Profile', 'Connections', 'Career Trajectory'],
+    estimatedInsights: 10,
+    setupTime: '10 seconds',
+    privacyLevel: 'medium',
+    category: 'professional'
   }
 ];
 
@@ -274,6 +286,7 @@ const InstantTwinOnboarding = () => {
   const { user } = useAuth();
   const { theme } = useTheme();
   const { isDemoMode } = useDemo();
+  const { trackFunnel } = useAnalytics();
   const { toast } = useToast();
 
   // Lorix design system colors
@@ -384,22 +397,14 @@ const InstantTwinOnboarding = () => {
 
       const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
 
-      // Use health connector route for health platforms (oura only - whoop now uses Nango)
+      // Use health connector route for health platforms (oura only - whoop uses Arctic)
       const healthPlatforms = ['oura'];
-      // Use Nango API for all Nango-managed platforms (including whoop for automatic token refresh)
-      const nangoPlatforms = ['outlook', 'discord', 'github', 'youtube', 'reddit', 'gmail', 'twitch', 'whoop', 'spotify', 'google_calendar'];
-
-      // Map frontend provider names to Nango integration IDs
-      const nangoProviderMap: Record<string, string> = {
-        'outlook': 'outlook',
-        'discord': 'discord',
-        'github': 'github',
-        'youtube': 'youtube',
-        'reddit': 'reddit',
-        'gmail': 'google-mail',  // Gmail uses 'google-mail' integration ID in Nango
-        'twitch': 'twitch',
-        'whoop': 'whoop'  // Whoop now uses Nango for automatic token refresh
-      };
+      // Entertainment platforms use direct OAuth via entertainment-connectors endpoints
+      const entertainmentPlatforms = ['spotify', 'discord', 'youtube', 'twitch', 'netflix', 'hbo_max', 'prime_video', 'disney_plus', 'apple_music', 'apple_tv'];
+      // Professional platforms that use Google OAuth scopes via entertainment-connectors
+      const googlePlatforms = ['google_calendar', 'gmail'];
+      // Arctic-managed platforms with built-in OAuth
+      const arcticPlatforms = ['whoop', 'github', 'reddit', 'linkedin'];
 
       let apiUrl: string;
       let fetchOptions: RequestInit = {
@@ -407,21 +412,23 @@ const InstantTwinOnboarding = () => {
         headers: { 'Content-Type': 'application/json' },
       };
 
-      if (nangoPlatforms.includes(provider as string)) {
-        // Use Nango connect session API
-        const nangoIntegrationId = nangoProviderMap[provider] || provider;
-        apiUrl = `${baseUrl}/nango/connect-session`;
+      if (entertainmentPlatforms.includes(provider as string) || googlePlatforms.includes(provider as string)) {
+        // Use direct entertainment-connectors OAuth (PKCE + encrypted state)
+        apiUrl = `${baseUrl}/entertainment/connect/${provider}`;
         fetchOptions = {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
             'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
           },
-          body: JSON.stringify({ integrationId: nangoIntegrationId })
+          body: JSON.stringify({ userId })
         };
       } else if (healthPlatforms.includes(provider as string)) {
         apiUrl = `${baseUrl}/health/connect/${provider}?userId=${encodeURIComponent(userId)}`;
+      } else if (arcticPlatforms.includes(provider as string)) {
+        apiUrl = `${baseUrl}/arctic/connect/${provider}?userId=${encodeURIComponent(userId)}`;
       } else {
+        // Fallback to arctic connector
         apiUrl = `${baseUrl}/arctic/connect/${provider}?userId=${encodeURIComponent(userId)}`;
       }
 
@@ -434,6 +441,7 @@ const InstantTwinOnboarding = () => {
       const result = await response.json();
 
       if (result.success && result.authUrl) {
+        trackFunnel('platform_connect_initiated', { platform: provider });
         sessionStorage.setItem('connecting_provider', provider);
         window.location.href = result.authUrl;
       } else if (result.success && result.connectUrl) {
@@ -528,13 +536,6 @@ const InstantTwinOnboarding = () => {
     try {
       const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
 
-      // Nango-managed platforms use Nango disconnect endpoint (including whoop for auto token refresh)
-      const nangoPlatforms = ['outlook', 'discord', 'github', 'youtube', 'reddit', 'gmail', 'twitch', 'whoop', 'spotify', 'google_calendar'];
-      const nangoProviderMap: Record<string, string> = {
-        'gmail': 'google-mail',  // Gmail uses 'google-mail' integration ID in Nango
-        'whoop': 'whoop'  // Whoop now uses Nango for automatic token refresh
-      };
-
       let apiUrl: string;
       let fetchOptions: RequestInit = {
         method: 'DELETE',
@@ -544,12 +545,8 @@ const InstantTwinOnboarding = () => {
         }
       };
 
-      if (nangoPlatforms.includes(provider as string)) {
-        const nangoProvider = nangoProviderMap[provider] || provider;
-        apiUrl = `${baseUrl}/nango/connections/${nangoProvider}`;
-      } else {
-        apiUrl = `${baseUrl}/connectors/${provider}/${encodeURIComponent(user.id)}`;
-      }
+      // Use standard connectors endpoint for disconnect
+      apiUrl = `${baseUrl}/connectors/${provider}/${encodeURIComponent(user.id)}`;
 
       const response = await fetch(apiUrl, fetchOptions);
 
@@ -904,30 +901,21 @@ const InstantTwinOnboarding = () => {
         </div>
       )}
 
-      <div className="flex items-center justify-between mb-8">
-        <button
-          onClick={() => {
-            if (currentStep > 1) {
-              setCurrentStep(currentStep - 1);
-            } else {
-              navigate('/dashboard');
-            }
-          }}
-          className="flex items-center gap-2 text-sm px-3 py-2 rounded-lg transition-opacity hover:opacity-80"
-          style={{
-            backgroundColor: theme === 'dark' ? 'rgba(45, 45, 41, 0.5)' : 'rgba(0, 0, 0, 0.05)',
-            color: colors.textPrimary
-          }}
-        >
-          <ArrowLeft className="w-4 h-4" />
-          {currentStep > 1 ? `Back to ${STEPS[currentStep - 2].name}` : 'Back to Dashboard'}
-        </button>
-
-        <div className="flex items-center gap-3">
-          <ThemeToggle />
-          <UserProfile />
+      {currentStep > 1 && (
+        <div className="mb-8">
+          <button
+            onClick={() => setCurrentStep(currentStep - 1)}
+            className="flex items-center gap-2 text-sm px-3 py-2 rounded-lg transition-opacity hover:opacity-80"
+            style={{
+              backgroundColor: theme === 'dark' ? 'rgba(45, 45, 41, 0.5)' : 'rgba(0, 0, 0, 0.05)',
+              color: colors.textPrimary
+            }}
+          >
+            <ArrowLeft className="w-4 h-4" />
+            Back to {STEPS[currentStep - 2].name}
+          </button>
         </div>
-      </div>
+      )}
 
       {connectedServices.length > 0 && (
         <GlassPanel className="mb-8">
@@ -967,7 +955,7 @@ const InstantTwinOnboarding = () => {
                 </p>
               </div>
             </div>
-            <button
+            <motion.button
               onClick={() => navigate('/dashboard')}
               className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm transition-all"
               style={{
@@ -976,10 +964,12 @@ const InstantTwinOnboarding = () => {
                 fontFamily: 'var(--font-body)',
                 fontWeight: 500
               }}
+              whileHover={{ scale: 1.05, y: -1 }}
+              whileTap={{ scale: 0.97 }}
             >
               Continue to Dashboard
               <ArrowRight className="w-4 h-4" />
-            </button>
+            </motion.button>
           </div>
         </GlassPanel>
       )}
@@ -988,11 +978,18 @@ const InstantTwinOnboarding = () => {
         <div className="space-y-8">
           {/* PLAT 3.3: Only show categories that have connectors */}
           {entertainmentConnectors.length > 0 && (
-            <div>
+            <motion.div
+              initial={{ opacity: 0, y: 16 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.45, delay: 0.1, ease: [0.4, 0, 0.2, 1] }}
+            >
               <div className="flex items-center gap-2 mb-4">
-                <div
+                <motion.div
                   className="w-3 h-3 rounded-full"
                   style={{ backgroundColor: colors.categoryEntertainment }}
+                  initial={{ scale: 0 }}
+                  animate={{ scale: 1 }}
+                  transition={{ duration: 0.4, delay: 0.2, ease: [0.4, 0, 0.2, 1] }}
                 />
                 <h3
                   className="text-lg"
@@ -1014,15 +1011,22 @@ const InstantTwinOnboarding = () => {
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {entertainmentConnectors.map(renderConnectorCard)}
               </div>
-            </div>
+            </motion.div>
           )}
 
           {healthConnectors.length > 0 && (
-            <div>
+            <motion.div
+              initial={{ opacity: 0, y: 16 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.45, delay: 0.2, ease: [0.4, 0, 0.2, 1] }}
+            >
               <div className="flex items-center gap-2 mb-4">
-                <div
+                <motion.div
                   className="w-3 h-3 rounded-full"
                   style={{ backgroundColor: colors.categoryHealth }}
+                  initial={{ scale: 0 }}
+                  animate={{ scale: 1 }}
+                  transition={{ duration: 0.4, delay: 0.3, ease: [0.4, 0, 0.2, 1] }}
                 />
                 <h3
                   className="text-lg"
@@ -1044,15 +1048,22 @@ const InstantTwinOnboarding = () => {
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {healthConnectors.map(renderConnectorCard)}
               </div>
-            </div>
+            </motion.div>
           )}
 
           {socialConnectors.length > 0 && (
-            <div>
+            <motion.div
+              initial={{ opacity: 0, y: 16 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.45, delay: 0.3, ease: [0.4, 0, 0.2, 1] }}
+            >
               <div className="flex items-center gap-2 mb-4">
-                <div
+                <motion.div
                   className="w-3 h-3 rounded-full"
                   style={{ backgroundColor: colors.categorySocial }}
+                  initial={{ scale: 0 }}
+                  animate={{ scale: 1 }}
+                  transition={{ duration: 0.4, delay: 0.4, ease: [0.4, 0, 0.2, 1] }}
                 />
                 <h3
                   className="text-lg"
@@ -1074,16 +1085,23 @@ const InstantTwinOnboarding = () => {
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {socialConnectors.map(renderConnectorCard)}
               </div>
-            </div>
+            </motion.div>
           )}
 
           {professionalConnectors.length > 0 && (
-            <div>
+            <motion.div
+              initial={{ opacity: 0, y: 16 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.45, delay: 0.4, ease: [0.4, 0, 0.2, 1] }}
+            >
               <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center gap-2">
-                  <div
+                  <motion.div
                     className="w-3 h-3 rounded-full"
                     style={{ backgroundColor: colors.categoryProfessional }}
+                    initial={{ scale: 0 }}
+                    animate={{ scale: 1 }}
+                    transition={{ duration: 0.4, delay: 0.5, ease: [0.4, 0, 0.2, 1] }}
                   />
                   <h3
                     className="text-lg"
@@ -1106,7 +1124,7 @@ const InstantTwinOnboarding = () => {
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {professionalConnectors.map(renderConnectorCard)}
               </div>
-            </div>
+            </motion.div>
           )}
 
           {connectedServices.length > 0 && (

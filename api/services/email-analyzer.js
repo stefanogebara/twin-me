@@ -7,14 +7,8 @@
  * PRIVACY: Analyzes communication STYLE, not content
  */
 
-import Anthropic from '@anthropic-ai/sdk';
 import { analyzeCommunicationPatterns } from './gmail-extractor.js';
-import { CLAUDE_MODEL } from '../config/aiModels.js';
-
-// Initialize Anthropic client
-const anthropic = new Anthropic({
-  apiKey: process.env.ANTHROPIC_API_KEY
-});
+import { complete, TIER_ANALYSIS } from './llmGateway.js';
 
 /**
  * Analyze email writing style using Claude
@@ -58,20 +52,21 @@ export async function analyzeEmailStyle(emailData) {
 
     console.log('🤖 [Email Analyzer] Sending request to Claude...');
 
-    // Call Claude API
-    const response = await anthropic.messages.create({
-      model: CLAUDE_MODEL,
-      max_tokens: 2000,
-      temperature: 0.7,
+    // Call LLM Gateway
+    const result = await complete({
+      tier: TIER_ANALYSIS,
       messages: [
         {
           role: 'user',
           content: prompt
         }
-      ]
+      ],
+      maxTokens: 2000,
+      temperature: 0.7,
+      serviceName: 'email-analyzer'
     });
 
-    const analysisText = response.content[0].text;
+    const analysisText = result.content;
 
     console.log('✅ [Email Analyzer] Claude analysis complete');
 
@@ -84,7 +79,7 @@ export async function analyzeEmailStyle(emailData) {
       metadata: {
         analyzedAt: new Date().toISOString(),
         emailCount: emailData.length,
-        model: CLAUDE_MODEL
+        model: 'llmGateway'
       }
     };
   } catch (error) {

@@ -1,30 +1,44 @@
 import React, { useState, useEffect } from 'react';
+import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useTheme } from '../contexts/ThemeContext';
 import { useDemo } from '../contexts/DemoContext';
 import { usePlatformStatus } from '../hooks/usePlatformStatus';
 import {
-  ArrowLeft,
-  User,
-  Link,
   CheckCircle,
   XCircle,
   Loader2,
   RefreshCw,
   AlertCircle,
-  Zap,
   MessageSquare,
   Copy,
-  Clock,
   Play,
-  Info
+  Info,
+  Download,
+  Trash2,
+  Shield,
+  ExternalLink,
+  Lock,
+  Eye,
+  ServerCrash,
+  Database
 } from 'lucide-react';
+import { Clay3DIcon } from '@/components/Clay3DIcon';
 import { TriggerManagement } from '../components/moltbot/TriggerManagement';
+
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
+
+const getAuthHeaders = () => {
+  const token = localStorage.getItem('auth_token') || localStorage.getItem('token');
+  const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+  if (token) headers['Authorization'] = `Bearer ${token}`;
+  return headers;
+};
 
 const Settings = () => {
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, signOut } = useAuth();
   const { theme } = useTheme();
   const { isDemoMode } = useDemo();
   const [disconnectingService, setDisconnectingService] = useState<string | null>(null);
@@ -37,6 +51,13 @@ const Settings = () => {
   const [loadingSyncStats, setLoadingSyncStats] = useState(false);
   const [syncing, setSyncing] = useState(false);
   const [syncMessage, setSyncMessage] = useState<{ type: 'success' | 'error' | 'info'; text: string } | null>(null);
+
+  // Data management state
+  const [exporting, setExporting] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [deleteConfirmText, setDeleteConfirmText] = useState('');
+  const [deleting, setDeleting] = useState(false);
+  const [dataMessage, setDataMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
   // Use unified platform status hook
   const {
@@ -56,7 +77,7 @@ const Settings = () => {
       if (!user?.id) return;
       setLoadingSyncStats(true);
       try {
-        const response = await fetch(`${import.meta.env.VITE_API_URL}/conversations/stats/${user.id}`);
+        const response = await fetch(`${API_URL}/conversations/stats/${user.id}`);
         if (response.ok) {
           const data = await response.json();
           setSyncStats(data);
@@ -89,7 +110,7 @@ const Settings = () => {
     setSyncMessage({ type: 'info', text: 'Starting sync... Make sure Claude Desktop is closed.' });
 
     try {
-      const response = await fetch(`${import.meta.env.VITE_API_URL}/claude-sync/run`, {
+      const response = await fetch(`${API_URL}/claude-sync/run`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ userId: user.id })
@@ -98,8 +119,7 @@ const Settings = () => {
       if (response.ok) {
         const data = await response.json();
         setSyncMessage({ type: 'success', text: `Synced ${data.conversationsSynced || 0} new conversations!` });
-        // Refresh stats
-        const statsResponse = await fetch(`${import.meta.env.VITE_API_URL}/conversations/stats/${user.id}`);
+        const statsResponse = await fetch(`${API_URL}/conversations/stats/${user.id}`);
         if (statsResponse.ok) {
           setSyncStats(await statsResponse.json());
         }
@@ -120,7 +140,7 @@ const Settings = () => {
       setDisconnectingService(provider);
       optimisticDisconnect(provider);
 
-      const response = await fetch(`${import.meta.env.VITE_API_URL}/connectors/${provider}/${user?.id}`, {
+      const response = await fetch(`${API_URL}/connectors/${provider}/${user?.id}`, {
         method: 'DELETE'
       });
 
@@ -138,7 +158,62 @@ const Settings = () => {
     }
   };
 
-  // MVP platforms - cleaner without emojis
+  // Export user data
+  const handleExportData = async () => {
+    setExporting(true);
+    setDataMessage(null);
+    try {
+      const response = await fetch(`${API_URL}/account/export`, {
+        headers: getAuthHeaders(),
+      });
+
+      if (!response.ok) throw new Error('Export failed');
+
+      const result = await response.json();
+
+      // Download as JSON file
+      const blob = new Blob([JSON.stringify(result.data, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `twin-me-export-${new Date().toISOString().split('T')[0]}.json`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+
+      setDataMessage({ type: 'success', text: 'Your data has been exported successfully.' });
+    } catch (err) {
+      setDataMessage({ type: 'error', text: 'Failed to export data. Please try again.' });
+    } finally {
+      setExporting(false);
+      setTimeout(() => setDataMessage(null), 5000);
+    }
+  };
+
+  // Delete account
+  const handleDeleteAccount = async () => {
+    if (deleteConfirmText !== 'DELETE') return;
+
+    setDeleting(true);
+    try {
+      const response = await fetch(`${API_URL}/account`, {
+        method: 'DELETE',
+        headers: getAuthHeaders(),
+      });
+
+      if (!response.ok) throw new Error('Deletion failed');
+
+      // Sign out and redirect
+      await signOut();
+      navigate('/auth');
+    } catch (err) {
+      setDataMessage({ type: 'error', text: 'Failed to delete account. Please try again.' });
+      setDeleting(false);
+    }
+  };
+
+  // MVP platforms
   const connectorConfig = [
     { id: 'spotify', name: 'Spotify', description: 'Music preferences and listening patterns' },
     { id: 'google_calendar', name: 'Google Calendar', description: 'Schedule and event patterns' },
@@ -155,38 +230,31 @@ const Settings = () => {
   };
 
   return (
-    <div className="min-h-screen" style={{ backgroundColor: theme === 'dark' ? '#232320' : '#FAFAFA' }}>
-      {/* Header */}
-      <div
-        className="px-6 py-4 border-b"
-        style={{
-          backgroundColor: theme === 'dark' ? 'rgba(45, 45, 41, 0.6)' : 'rgba(255, 255, 255, 0.9)',
-          borderColor: theme === 'dark' ? 'rgba(193, 192, 182, 0.15)' : 'rgba(0, 0, 0, 0.06)',
-          backdropFilter: 'blur(12px)'
-        }}
-      >
-        <div className="max-w-4xl mx-auto flex items-center gap-4">
-          <button
-            onClick={() => navigate('/dashboard')}
-            className="inline-flex items-center gap-2 text-sm transition-colors"
-            style={{ fontFamily: 'var(--font-body)', color: theme === 'dark' ? 'rgba(193, 192, 182, 0.7)' : '#57534e' }}
-          >
-            <ArrowLeft className="w-4 h-4" />
-            Back
-          </button>
-          <div>
-            <h1
-              className="text-2xl"
-              style={{ fontFamily: 'var(--font-heading)', fontWeight: 400, letterSpacing: '-0.02em', color: theme === 'dark' ? '#C1C0B6' : '#0c0a09' }}
-            >
-              Settings
-            </h1>
-          </div>
-        </div>
-      </div>
-
+    <div
+      className="min-h-screen"
+      style={{ backgroundColor: theme === 'dark' ? '#232320' : '#FAFAFA' }}
+    >
       <main className="max-w-4xl mx-auto pt-8 pb-20 px-6">
-        <div className="space-y-6">
+        {/* Page title */}
+        <motion.div
+          className="mb-8"
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4, ease: [0.4, 0, 0.2, 1] }}
+        >
+          <h1
+            className="text-2xl"
+            style={{ fontFamily: 'var(--font-heading)', fontWeight: 400, letterSpacing: '-0.02em', color: theme === 'dark' ? '#C1C0B6' : '#0c0a09' }}
+          >
+            Settings
+          </h1>
+        </motion.div>
+        <motion.div
+          className="space-y-6"
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.45, delay: 0.1, ease: [0.4, 0, 0.2, 1] }}
+        >
 
           {/* Demo Mode Notice */}
           {isDemoMode && (
@@ -204,10 +272,10 @@ const Settings = () => {
             </div>
           )}
 
-          {/* Account Information - Compact */}
+          {/* Account Information */}
           <section className="rounded-2xl p-5" style={cardStyle}>
             <div className="flex items-center gap-3 mb-4">
-              <User className="w-5 h-5" style={{ color: theme === 'dark' ? '#C1C0B6' : '#0c0a09' }} />
+              <Clay3DIcon name="robot" size={20} />
               <h2 style={{ fontFamily: 'var(--font-heading)', fontWeight: 400, color: theme === 'dark' ? '#C1C0B6' : '#0c0a09' }}>
                 Account
               </h2>
@@ -224,14 +292,22 @@ const Settings = () => {
             </div>
           </section>
 
-          {/* Connected Services - Cleaner */}
+          {/* Connected Services */}
           <section className="rounded-2xl p-5" style={cardStyle}>
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-3">
-                <Link className="w-5 h-5" style={{ color: theme === 'dark' ? '#C1C0B6' : '#0c0a09' }} />
+                <Clay3DIcon name="globe" size={20} />
                 <h2 style={{ fontFamily: 'var(--font-heading)', fontWeight: 400, color: theme === 'dark' ? '#C1C0B6' : '#0c0a09' }}>
                   Connected Platforms
                 </h2>
+                <span className="flex items-center gap-1 text-xs px-2 py-0.5 rounded-full" style={{
+                  backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                  color: '#10B981',
+                  border: '1px solid rgba(16, 185, 129, 0.15)'
+                }}>
+                  <Lock className="w-3 h-3" />
+                  OAuth
+                </span>
               </div>
               <button
                 onClick={() => refetch()}
@@ -320,10 +396,10 @@ const Settings = () => {
             )}
           </section>
 
-          {/* Proactive Automations - User was interested */}
+          {/* Proactive Automations */}
           <section className="rounded-2xl p-5" style={cardStyle}>
             <div className="flex items-center gap-3 mb-2">
-              <Zap className="w-5 h-5" style={{ color: '#FBBF24' }} />
+              <Clay3DIcon name="lightning" size={20} />
               <h2 style={{ fontFamily: 'var(--font-heading)', fontWeight: 400, color: theme === 'dark' ? '#C1C0B6' : '#0c0a09' }}>
                 Proactive Automations
               </h2>
@@ -335,7 +411,7 @@ const Settings = () => {
             <TriggerManagement userId={user?.id} />
           </section>
 
-          {/* Claude Desktop Sync - Made Actionable */}
+          {/* Claude Desktop Sync */}
           <section className="rounded-2xl p-5" style={cardStyle}>
             <div className="flex items-center gap-3 mb-2">
               <MessageSquare className="w-5 h-5" style={{ color: '#A78BFA' }} />
@@ -347,7 +423,6 @@ const Settings = () => {
               Import your Claude Desktop conversations so your twin can learn your writing style and topics you care about.
             </p>
 
-            {/* Sync Status */}
             {loadingSyncStats ? (
               <div className="flex items-center gap-2 mb-4">
                 <Loader2 className="w-4 h-4 animate-spin" style={{ color: theme === 'dark' ? '#C1C0B6' : '#0c0a09' }} />
@@ -372,7 +447,6 @@ const Settings = () => {
               </div>
             ) : null}
 
-            {/* Sync Message */}
             {syncMessage && (
               <div
                 className="flex items-center gap-2 p-3 rounded-xl mb-4 text-sm"
@@ -389,9 +463,7 @@ const Settings = () => {
               </div>
             )}
 
-            {/* Actions */}
             <div className="space-y-3">
-              {/* Sync Now Button */}
               <button
                 onClick={handleManualSync}
                 disabled={syncing}
@@ -405,15 +477,10 @@ const Settings = () => {
                   opacity: syncing ? 0.7 : 1
                 }}
               >
-                {syncing ? (
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                ) : (
-                  <Play className="w-4 h-4" />
-                )}
+                {syncing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Play className="w-4 h-4" />}
                 {syncing ? 'Syncing...' : 'Sync Now'}
               </button>
 
-              {/* User ID for advanced users */}
               <div
                 className="p-3 rounded-xl"
                 style={{
@@ -442,14 +509,197 @@ const Settings = () => {
                 </code>
               </div>
 
-              {/* Info note */}
               <p className="text-xs" style={{ color: theme === 'dark' ? 'rgba(193, 192, 182, 0.4)' : '#a8a29e' }}>
                 <strong>Note:</strong> Close Claude Desktop before syncing. Your conversations are analyzed locally to learn your writing patterns.
               </p>
             </div>
           </section>
 
-        </div>
+          {/* How Your Data is Protected */}
+          <section className="rounded-2xl p-5" style={cardStyle}>
+            <div className="flex items-center gap-3 mb-2">
+              <Shield className="w-5 h-5" style={{ color: '#10B981' }} />
+              <h2 style={{ fontFamily: 'var(--font-heading)', fontWeight: 400, color: theme === 'dark' ? '#C1C0B6' : '#0c0a09' }}>
+                How Your Data is Protected
+              </h2>
+            </div>
+            <p className="text-sm mb-4" style={{ fontFamily: 'var(--font-body)', color: theme === 'dark' ? 'rgba(193, 192, 182, 0.6)' : '#78716c' }}>
+              Your privacy is fundamental to Twin Me. Here's how we protect you.
+            </p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {[
+                { icon: Lock, label: 'OAuth-only connections', desc: 'We never see or store your platform passwords' },
+                { icon: Database, label: 'Encrypted at rest', desc: 'All data stored in encrypted Supabase (PostgreSQL)' },
+                { icon: Eye, label: 'No data selling', desc: 'Your data is never sold, shared, or used for ads' },
+                { icon: ServerCrash, label: 'Complete deletion', desc: 'Delete your account and ALL data is removed instantly' },
+              ].map(({ icon: Icon, label, desc }) => (
+                <div
+                  key={label}
+                  className="flex items-start gap-3 p-3 rounded-xl"
+                  style={{
+                    backgroundColor: theme === 'dark' ? 'rgba(16, 185, 129, 0.05)' : 'rgba(16, 185, 129, 0.03)',
+                    border: theme === 'dark' ? '1px solid rgba(16, 185, 129, 0.1)' : '1px solid rgba(16, 185, 129, 0.08)',
+                  }}
+                >
+                  <Icon className="w-4 h-4 mt-0.5 flex-shrink-0" style={{ color: '#10B981' }} />
+                  <div>
+                    <div className="text-sm font-medium" style={{ color: theme === 'dark' ? '#C1C0B6' : '#0c0a09' }}>{label}</div>
+                    <div className="text-xs" style={{ color: theme === 'dark' ? 'rgba(193, 192, 182, 0.5)' : '#78716c' }}>{desc}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </section>
+
+          {/* Privacy & Data Management */}
+          <section className="rounded-2xl p-5" style={cardStyle}>
+            <div className="flex items-center gap-3 mb-2">
+              <Download className="w-5 h-5" style={{ color: theme === 'dark' ? '#C1C0B6' : '#0c0a09' }} />
+              <h2 style={{ fontFamily: 'var(--font-heading)', fontWeight: 400, color: theme === 'dark' ? '#C1C0B6' : '#0c0a09' }}>
+                Your Data
+              </h2>
+            </div>
+            <p className="text-sm mb-4" style={{ fontFamily: 'var(--font-body)', color: theme === 'dark' ? 'rgba(193, 192, 182, 0.6)' : '#78716c' }}>
+              You own your data. Export it anytime, or delete your account to permanently remove everything.
+            </p>
+
+            {/* Data message */}
+            {dataMessage && (
+              <div
+                className="flex items-center gap-2 p-3 rounded-xl mb-4 text-sm"
+                style={{
+                  backgroundColor: dataMessage.type === 'success' ? 'rgba(16, 185, 129, 0.1)' : 'rgba(239, 68, 68, 0.1)',
+                  color: dataMessage.type === 'success' ? '#10B981' : '#ef4444'
+                }}
+              >
+                {dataMessage.type === 'success' ? <CheckCircle className="w-4 h-4" /> : <AlertCircle className="w-4 h-4" />}
+                {dataMessage.text}
+              </div>
+            )}
+
+            <div className="space-y-3">
+              {/* Privacy Policy link */}
+              <button
+                onClick={() => navigate('/privacy-policy')}
+                className="w-full flex items-center justify-between px-4 py-3 rounded-xl transition-all hover:scale-[1.01]"
+                style={{
+                  backgroundColor: theme === 'dark' ? 'rgba(193, 192, 182, 0.05)' : 'rgba(0, 0, 0, 0.02)',
+                  border: theme === 'dark' ? '1px solid rgba(193, 192, 182, 0.08)' : '1px solid rgba(0, 0, 0, 0.04)',
+                  color: theme === 'dark' ? '#C1C0B6' : '#0c0a09',
+                  fontFamily: 'var(--font-body)',
+                }}
+              >
+                <span className="text-sm">Privacy Policy</span>
+                <ExternalLink className="w-4 h-4 opacity-40" />
+              </button>
+
+              {/* Export Data */}
+              <button
+                onClick={handleExportData}
+                disabled={exporting || isDemoMode}
+                className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl transition-all hover:scale-[1.01]"
+                style={{
+                  backgroundColor: theme === 'dark' ? 'rgba(59, 130, 246, 0.1)' : 'rgba(59, 130, 246, 0.08)',
+                  border: '1px solid rgba(59, 130, 246, 0.2)',
+                  color: '#3B82F6',
+                  fontFamily: 'var(--font-body)',
+                  fontWeight: 500,
+                  opacity: (exporting || isDemoMode) ? 0.5 : 1,
+                }}
+              >
+                {exporting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
+                {exporting ? 'Exporting...' : 'Download My Data'}
+              </button>
+
+              {/* Delete Account */}
+              {!showDeleteConfirm ? (
+                <button
+                  onClick={() => !isDemoMode && setShowDeleteConfirm(true)}
+                  disabled={isDemoMode}
+                  className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl transition-all hover:scale-[1.01]"
+                  style={{
+                    backgroundColor: 'rgba(239, 68, 68, 0.08)',
+                    border: '1px solid rgba(239, 68, 68, 0.2)',
+                    color: '#ef4444',
+                    fontFamily: 'var(--font-body)',
+                    fontWeight: 500,
+                    opacity: isDemoMode ? 0.5 : 1,
+                  }}
+                >
+                  <Trash2 className="w-4 h-4" />
+                  Delete My Account
+                </button>
+              ) : (
+                <div
+                  className="p-4 rounded-xl space-y-3"
+                  style={{
+                    backgroundColor: theme === 'dark' ? 'rgba(239, 68, 68, 0.08)' : 'rgba(239, 68, 68, 0.04)',
+                    border: '1px solid rgba(239, 68, 68, 0.2)',
+                  }}
+                >
+                  <p className="text-sm font-medium" style={{ color: '#ef4444' }}>
+                    This will permanently delete:
+                  </p>
+                  <ul className="text-xs space-y-1" style={{ color: theme === 'dark' ? 'rgba(239, 68, 68, 0.8)' : '#dc2626' }}>
+                    <li>- Your profile and account data</li>
+                    <li>- All platform connections and extracted data</li>
+                    <li>- Your soul signature and personality analysis</li>
+                    <li>- All twin conversations and memories</li>
+                    <li>- Behavioral patterns and insights</li>
+                  </ul>
+                  <p className="text-xs" style={{ color: theme === 'dark' ? 'rgba(193, 192, 182, 0.6)' : '#78716c' }}>
+                    Type <strong style={{ color: '#ef4444' }}>DELETE</strong> to confirm:
+                  </p>
+                  <input
+                    type="text"
+                    value={deleteConfirmText}
+                    onChange={(e) => setDeleteConfirmText(e.target.value)}
+                    placeholder="Type DELETE"
+                    className="w-full px-3 py-2 rounded-lg text-sm outline-none"
+                    style={{
+                      backgroundColor: theme === 'dark' ? 'rgba(0, 0, 0, 0.3)' : 'rgba(255, 255, 255, 0.8)',
+                      border: '1px solid rgba(239, 68, 68, 0.3)',
+                      color: theme === 'dark' ? '#C1C0B6' : '#0c0a09',
+                      fontFamily: 'var(--font-body)',
+                    }}
+                  />
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => { setShowDeleteConfirm(false); setDeleteConfirmText(''); }}
+                      className="flex-1 px-4 py-2 rounded-lg text-sm"
+                      style={{
+                        backgroundColor: theme === 'dark' ? 'rgba(193, 192, 182, 0.1)' : 'rgba(0, 0, 0, 0.05)',
+                        color: theme === 'dark' ? '#C1C0B6' : '#0c0a09',
+                        fontFamily: 'var(--font-body)',
+                      }}
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      onClick={handleDeleteAccount}
+                      disabled={deleteConfirmText !== 'DELETE' || deleting}
+                      className="flex-1 px-4 py-2 rounded-lg text-sm font-medium flex items-center justify-center gap-2"
+                      style={{
+                        backgroundColor: deleteConfirmText === 'DELETE' ? '#ef4444' : 'rgba(239, 68, 68, 0.3)',
+                        color: '#fff',
+                        fontFamily: 'var(--font-body)',
+                        opacity: deleteConfirmText !== 'DELETE' ? 0.5 : 1,
+                      }}
+                    >
+                      {deleting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
+                      {deleting ? 'Deleting...' : 'Delete Forever'}
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              <p className="text-xs" style={{ color: theme === 'dark' ? 'rgba(193, 192, 182, 0.4)' : '#a8a29e' }}>
+                Account deletion is immediate and irreversible. We recommend exporting your data first.
+              </p>
+            </div>
+          </section>
+
+        </motion.div>
       </main>
     </div>
   );

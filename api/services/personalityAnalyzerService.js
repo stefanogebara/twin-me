@@ -11,18 +11,10 @@
  * 4. Saves results to personality_scores table
  */
 
-import Anthropic from '@anthropic-ai/sdk';
+import { complete, TIER_ANALYSIS } from './llmGateway.js';
 import { supabaseAdmin } from './database.js';
-import { CLAUDE_MODEL } from '../config/aiModels.js';
-
-const anthropic = new Anthropic({
-  apiKey: process.env.ANTHROPIC_API_KEY,
-});
 
 class PersonalityAnalyzerService {
-  constructor() {
-    this.MODEL = CLAUDE_MODEL;
-  }
 
   /**
    * Analyze user's personality from behavioral features
@@ -217,16 +209,17 @@ Respond ONLY with a JSON object in this exact format (no markdown, no explanatio
 }`;
 
     try {
-      const message = await anthropic.messages.create({
-        model: this.MODEL,
-        max_tokens: 1024,
+      const result = await complete({
+        tier: TIER_ANALYSIS,
         messages: [{
           role: 'user',
           content: prompt
-        }]
+        }],
+        maxTokens: 1024,
+        serviceName: 'personalityAnalyzerService'
       });
 
-      let responseText = message.content[0].text.trim();
+      let responseText = result.content.trim();
       console.log(`📝 [Personality Analyzer] Claude response:`, responseText);
 
       // Strip markdown code blocks if present

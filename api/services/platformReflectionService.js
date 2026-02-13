@@ -12,14 +12,9 @@
  * - Sound like a thoughtful friend, not a fitness app
  */
 
-import Anthropic from '@anthropic-ai/sdk';
+import { complete, TIER_ANALYSIS } from './llmGateway.js';
 import { supabaseAdmin } from '../config/supabase.js';
 import userContextAggregator from './userContextAggregator.js';
-import { CLAUDE_MODEL as MODEL } from '../config/aiModels.js';
-
-const anthropic = new Anthropic({
-  apiKey: process.env.ANTHROPIC_API_KEY,
-});
 const CACHE_TTL_HOURS = 6;
 
 // Static base instructions for all platform reflections (cached via Anthropic prompt caching)
@@ -515,13 +510,21 @@ class PlatformReflectionService {
 
     // Calculate sleep breakdown (in hours from milliseconds if available)
     const msToHours = (ms) => ms ? Math.round((ms / 3600000) * 10) / 10 : 0;
-    const sleepBreakdown = sleepStages ? {
-      deepSleep: msToHours(sleepStages.deep),
-      remSleep: msToHours(sleepStages.rem),
-      lightSleep: msToHours(sleepStages.light),
-      totalHours: Math.round(sleepHours * 10) / 10,
-      efficiency: sleepEfficiency || 0
-    } : null;
+    const sleepBreakdown = sleepStages ? (() => {
+      const deep = msToHours(sleepStages.deep);
+      const rem = msToHours(sleepStages.rem);
+      const light = msToHours(sleepStages.light);
+      const awake = msToHours(sleepStages.awake);
+      const stagesTotal = Math.round((deep + rem + light) * 10) / 10;
+      return {
+        deepSleep: deep,
+        remSleep: rem,
+        lightSleep: light,
+        awakeDuring: awake,
+        totalHours: stagesTotal > 0 ? stagesTotal : Math.round(sleepHours * 10) / 10,
+        efficiency: sleepEfficiency || 0
+      };
+    })() : null;
 
     // Current metrics for visualization
     const currentMetrics = {
@@ -530,6 +533,7 @@ class PlatformReflectionService {
       sleepPerformance: sleepPerformance,
       hrv: hrvCurrent,
       restingHR: rhrCurrent,
+      sleepHours: Math.round(sleepHours * 10) / 10,
       // New vitals from Whoop V2 API
       spo2: spo2,
       skinTemp: skinTemp,
@@ -1129,44 +1133,32 @@ class PlatformReflectionService {
     const prompt = this.getPromptForPlatform(platform, data, lifeContext, personalityQuiz);
 
     try {
-      const message = await anthropic.messages.create({
-        model: MODEL,
-        max_tokens: 1024,
-        system: [
-          { type: 'text', text: REFLECTION_BASE_SYSTEM, cache_control: { type: 'ephemeral' } }
-        ],
+      const result = await complete({
+        tier: TIER_ANALYSIS,
+        system: REFLECTION_BASE_SYSTEM,
         messages: [{
           role: 'user',
           content: prompt
-        }]
+        }],
+        maxTokens: 1024,
+        serviceName: 'platformReflection'
       });
 
-      // Log cache metrics
-      const cacheRead = message.usage?.cache_read_input_tokens || 0;
-      const cacheWrite = message.usage?.cache_creation_input_tokens || 0;
-      const inputTokens = message.usage?.input_tokens || 0;
-      if (cacheRead > 0) {
-        console.log(`[Reflection] ${platform} cache HIT: ${cacheRead} tokens cached (90% savings)`);
-      } else if (cacheWrite > 0) {
-        console.log(`[Reflection] ${platform} cache WRITE: ${cacheWrite} tokens cached for next call`);
-      }
-      console.log(`[Reflection] ${platform} tokens: in=${inputTokens} out=${message.usage?.output_tokens || 0} cacheR=${cacheRead} cacheW=${cacheWrite}`);
-
-      let responseText = message.content[0].text.trim();
+      let responseText = result.content.trim();
 
       // Strip markdown code blocks if present
       if (responseText.startsWith('```')) {
         responseText = responseText.replace(/^```(?:json)?[\s\n]*/i, '').replace(/[\s\n]*```$/i, '');
       }
 
-      const result = JSON.parse(responseText);
+      const parsed = JSON.parse(responseText);
 
       return {
-        text: result.reflection,
-        themes: result.themes || [],
-        confidence: result.confidence || 'medium',
-        evidence: result.evidence || [],
-        patterns: result.patterns || [],
+        text: parsed.reflection,
+        themes: parsed.themes || [],
+        confidence: parsed.confidence || 'medium',
+        evidence: parsed.evidence || [],
+        patterns: parsed.patterns || [],
         // Store the context used to generate this reflection
         contextSnapshot: {
           lifeContext: lifeContext ? {
@@ -1926,8 +1918,8 @@ Write an observation about what their browsing patterns reveal about their soul.
       } : contextSnapshot?.lifeContext || null
     };
 
-    // Extract visual data from contextSnapshot if available
-    const rawData = contextSnapshot?.rawDataUsed || visualData || {};
+    // Prefer fresh visualData over cached snapshot for up-to-date metrics
+    const rawData = visualData || contextSnapshot?.rawDataUsed || {};
 
     return {
       success: true,

@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { useDemo } from '@/contexts/DemoContext';
@@ -7,7 +8,6 @@ import { journalAPI } from '@/services/apiService';
 import type { JournalEntry, JournalAnalysis, JournalInsights } from '@/services/apiService';
 import { getDemoJournalData } from '@/services/demoDataService';
 import {
-  BookOpen,
   Plus,
   Sparkles,
   Send,
@@ -16,13 +16,13 @@ import {
   ChevronUp,
   Trash2,
   Edit3,
-  Brain,
   Loader2,
   Tag,
   Zap,
   TrendingUp,
   Heart
 } from 'lucide-react';
+import { Clay3DIcon } from '@/components/Clay3DIcon';
 
 // Mood config with emoji and color
 const MOOD_CONFIG: Record<string, { emoji: string; label: string; color: string }> = {
@@ -239,7 +239,7 @@ const JournalPage: React.FC = () => {
           <GlassPanel className="relative overflow-hidden">
             <div className="flex items-start gap-4">
               <div className="w-10 h-10 rounded-full flex items-center justify-center" style={{ background: isDark ? 'rgba(193, 192, 182, 0.1)' : 'rgba(0,0,0,0.05)' }}>
-                <Brain className="w-5 h-5" style={{ color: textPrimary }} />
+                <Clay3DIcon name="brain" size={20} />
               </div>
               <div className="flex-1 min-w-0">
                 <h3 className="text-sm font-medium mb-2" style={{ color: textPrimary, fontFamily: 'var(--font-heading)' }}>
@@ -284,24 +284,36 @@ const JournalPage: React.FC = () => {
 
         {/* New Entry Button */}
         {!showComposer && (
-          <button
+          <motion.button
             onClick={() => setShowComposer(true)}
-            className="w-full flex items-center gap-3 p-4 rounded-2xl transition-all duration-200 hover:scale-[1.01]"
+            className="w-full flex items-center gap-3 p-4 rounded-2xl transition-colors duration-200"
             style={{
               background: isDark ? 'rgba(193, 192, 182, 0.06)' : 'rgba(0,0,0,0.03)',
               border: `1px dashed ${borderColor}`,
               color: textSecondary
             }}
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.35, ease: [0.4, 0, 0.2, 1] }}
+            whileHover={{ scale: 1.01 }}
+            whileTap={{ scale: 0.99 }}
           >
             <Plus className="w-5 h-5" />
             <span className="text-sm" style={{ fontFamily: 'var(--font-body)' }}>
               Write about your day...
             </span>
-          </button>
+          </motion.button>
         )}
 
         {/* Composer */}
+        <AnimatePresence>
         {showComposer && (
+          <motion.div
+            initial={{ opacity: 0, y: -12, scale: 0.98 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -12, scale: 0.98 }}
+            transition={{ duration: 0.3, ease: [0.4, 0, 0.2, 1] }}
+          >
           <GlassPanel>
             <div className="space-y-4">
               {/* Header */}
@@ -456,7 +468,9 @@ const JournalPage: React.FC = () => {
               </div>
             </div>
           </GlassPanel>
+          </motion.div>
         )}
+        </AnimatePresence>
 
         {/* Entry List */}
         {loading ? (
@@ -464,24 +478,82 @@ const JournalPage: React.FC = () => {
             <Loader2 className="w-6 h-6 animate-spin" style={{ color: textSecondary }} />
           </div>
         ) : entries.length === 0 ? (
-          <div className="text-center py-20">
-            <BookOpen className="w-12 h-12 mx-auto mb-4" style={{ color: textSecondary, opacity: 0.4 }} />
-            <h3 className="text-lg mb-2" style={{ color: textPrimary, fontFamily: 'var(--font-heading)' }}>
+          <div className="text-center py-16">
+            <motion.div
+              className="mx-auto mb-4 opacity-50"
+              initial={{ opacity: 0, scale: 0.5 }}
+              animate={{ opacity: 0.5, scale: 1 }}
+              transition={{ duration: 0.5, ease: [0.4, 0, 0.2, 1] }}
+            >
+              <Clay3DIcon name="light-bulb" size={48} />
+            </motion.div>
+            <motion.h3
+              className="text-lg mb-2"
+              style={{ color: textPrimary, fontFamily: 'var(--font-heading)' }}
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.4, delay: 0.1, ease: [0.4, 0, 0.2, 1] }}
+            >
               Your journal is empty
-            </h3>
-            <p className="text-sm" style={{ color: textSecondary }}>
+            </motion.h3>
+            <motion.p
+              className="text-sm mb-8"
+              style={{ color: textSecondary }}
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.4, delay: 0.2, ease: [0.4, 0, 0.2, 1] }}
+            >
               Start writing to discover patterns in how you see yourself.
-            </p>
+            </motion.p>
+
+            {/* Suggested writing prompts */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-w-lg mx-auto">
+              {[
+                { prompt: 'How are you feeling right now?', mood: 'reflective' },
+                { prompt: "What's on your mind today?", mood: null },
+                { prompt: 'Describe your ideal day', mood: 'happy' },
+                { prompt: 'What are you grateful for?', mood: 'grateful' },
+              ].map(({ prompt, mood: suggestedMood }, i) => (
+                <motion.button
+                  key={prompt}
+                  onClick={() => {
+                    setContent(prompt);
+                    if (suggestedMood) setMood(suggestedMood);
+                    setShowComposer(true);
+                  }}
+                  className="text-left p-4 rounded-xl transition-colors duration-200 group"
+                  style={{
+                    background: isDark ? 'rgba(193, 192, 182, 0.04)' : 'rgba(0,0,0,0.02)',
+                    border: `1px dashed ${borderColor}`,
+                  }}
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.35, delay: 0.3 + i * 0.08, ease: [0.4, 0, 0.2, 1] }}
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                >
+                  <span className="text-sm" style={{ color: textSecondary, fontFamily: 'var(--font-body)' }}>
+                    {prompt}
+                  </span>
+                </motion.button>
+              ))}
+            </div>
           </div>
         ) : (
           <div className="space-y-3">
-            {entries.map(entry => {
+            {entries.map((entry, i) => {
               const isExpanded = expandedEntry === entry.id;
               const analysis = entry.journal_analyses?.[0];
               const moodCfg = entry.mood ? MOOD_CONFIG[entry.mood] : null;
 
               return (
-                <GlassPanel key={entry.id} className="cursor-pointer transition-all hover:scale-[1.005]">
+                <motion.div
+                  key={entry.id}
+                  initial={{ opacity: 0, y: 12 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.35, delay: Math.min(i * 0.06, 0.4), ease: [0.4, 0, 0.2, 1] }}
+                >
+                <GlassPanel className="cursor-pointer transition-all hover:scale-[1.005]">
                   {/* Entry Header */}
                   <div
                     className="flex items-start gap-3"
@@ -569,7 +641,7 @@ const JournalPage: React.FC = () => {
                           }}
                         >
                           <div className="flex items-center gap-2 mb-2">
-                            <Brain className="w-4 h-4" style={{ color: '#9C27B0' }} />
+                            <Clay3DIcon name="brain" size={16} />
                             <span className="text-xs font-medium" style={{ color: textPrimary }}>AI Analysis</span>
                           </div>
 
@@ -713,6 +785,7 @@ const JournalPage: React.FC = () => {
                     </div>
                   )}
                 </GlassPanel>
+                </motion.div>
               );
             })}
           </div>

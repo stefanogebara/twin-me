@@ -113,7 +113,6 @@ class ChronotypeAgent extends AgentBase {
     super({
       name: 'ChronotypeAgent',
       role: 'Calendar and Schedule Pattern Analysis Specialist for Big Five Personality Inference',
-      model: config.model || 'claude-sonnet-4-20250514',
       maxTokens: config.maxTokens || 4096,
       temperature: 0.3, // Lower temperature for analytical consistency
       ...config

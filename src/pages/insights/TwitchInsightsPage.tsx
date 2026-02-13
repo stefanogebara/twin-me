@@ -6,6 +6,7 @@
  */
 
 import React, { useEffect, useState } from 'react';
+import { motion } from 'framer-motion';
 import { useAuth } from '@/contexts/AuthContext';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useDemo } from '@/contexts/DemoContext';
@@ -280,16 +281,31 @@ const TwitchInsightsPage: React.FC = () => {
       {/* Header */}
       <div className="flex items-center justify-between mb-8">
         <div className="flex items-center gap-4">
-          <button onClick={() => navigate('/dashboard')} className="p-2 rounded-lg glass-button">
+          <motion.button
+            onClick={() => navigate('/dashboard')}
+            className="p-2 rounded-lg glass-button"
+            initial={{ opacity: 0, x: -12 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.35, ease: [0.4, 0, 0.2, 1] }}
+            whileHover={{ scale: 1.08 }}
+            whileTap={{ scale: 0.95 }}
+          >
             <ArrowLeft className="w-5 h-5" style={{ color: colors.text }} />
-          </button>
-          <div
+          </motion.button>
+          <motion.div
             className="w-12 h-12 rounded-xl flex items-center justify-center"
             style={{ backgroundColor: colors.twitchBg }}
+            initial={{ opacity: 0, scale: 0.5 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.5, delay: 0.1, ease: [0.4, 0, 0.2, 1] }}
           >
             <Tv className="w-6 h-6" style={{ color: colors.twitchPurple }} />
-          </div>
-          <div>
+          </motion.div>
+          <motion.div
+            initial={{ opacity: 0, x: -12 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.45, delay: 0.15, ease: [0.4, 0, 0.2, 1] }}
+          >
             <h1
               className="text-2xl"
               style={{ fontFamily: 'var(--font-heading)', fontWeight: 500, color: colors.text }}
@@ -301,16 +317,21 @@ const TwitchInsightsPage: React.FC = () => {
                 ? `${insights.twitchDisplayName}'s streaming patterns`
                 : 'What your streaming reveals'}
             </p>
-          </div>
+          </motion.div>
         </div>
-        <button
+        <motion.button
           onClick={handleRefresh}
           disabled={refreshing}
           className="p-2 rounded-lg glass-button"
           title="Get a fresh observation"
+          initial={{ opacity: 0, scale: 0.8 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.35, delay: 0.25, ease: [0.4, 0, 0.2, 1] }}
+          whileHover={{ scale: 1.1, rotate: 90 }}
+          whileTap={{ scale: 0.9 }}
         >
           <RefreshCw className={`w-5 h-5 ${refreshing ? 'animate-spin' : ''}`} style={{ color: colors.text }} />
-        </button>
+        </motion.button>
       </div>
 
       {/* Extension Install Banner */}

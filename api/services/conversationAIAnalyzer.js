@@ -12,22 +12,8 @@
  * Cost: ~$0.003 per conversation analysis with Claude Sonnet
  */
 
-import Anthropic from '@anthropic-ai/sdk';
+import { complete, TIER_ANALYSIS } from './llmGateway.js';
 import { supabaseAdmin } from './database.js';
-
-// Initialize Anthropic client
-let anthropicClient = null;
-
-function getAnthropicClient() {
-  if (!anthropicClient) {
-    const apiKey = process.env.ANTHROPIC_API_KEY;
-    if (!apiKey) {
-      throw new Error('Missing ANTHROPIC_API_KEY');
-    }
-    anthropicClient = new Anthropic({ apiKey });
-  }
-  return anthropicClient;
-}
 
 /**
  * Analysis prompt template for Claude Sonnet
@@ -103,8 +89,6 @@ export async function analyzeConversation(userMessage, context = {}) {
   const startTime = Date.now();
 
   try {
-    const client = getAnthropicClient();
-
     // Build context section if we have previous messages
     let contextSection = '';
     if (context.previousMessages && context.previousMessages.length > 0) {
@@ -123,18 +107,19 @@ export async function analyzeConversation(userMessage, context = {}) {
       .replace('{user_message}', userMessage)
       .replace('{context_section}', contextSection);
 
-    const response = await client.messages.create({
-      model: 'claude-sonnet-4-20250514',
-      max_tokens: 1024,
+    const result = await complete({
+      tier: TIER_ANALYSIS,
       messages: [
         {
           role: 'user',
           content: prompt
         }
-      ]
+      ],
+      maxTokens: 1024,
+      serviceName: 'conversationAIAnalyzer'
     });
 
-    const responseText = response.content[0].text.trim();
+    const responseText = result.content.trim();
 
     // Parse JSON response
     let analysis;
@@ -151,7 +136,7 @@ export async function analyzeConversation(userMessage, context = {}) {
     }
 
     const processingTimeMs = Date.now() - startTime;
-    const tokensUsed = response.usage?.input_tokens + response.usage?.output_tokens;
+    const tokensUsed = result.usage?.input_tokens + result.usage?.output_tokens;
 
     console.log('[ConversationAIAnalyzer] Analysis completed:', {
       engagement: analysis.engagement?.level,
@@ -166,7 +151,7 @@ export async function analyzeConversation(userMessage, context = {}) {
       success: true,
       analysis,
       metadata: {
-        model: 'claude-sonnet-4-20250514',
+        model: result.model,
         processingTimeMs,
         tokensUsed,
         analyzedAt: new Date().toISOString()
@@ -278,8 +263,6 @@ export async function analyzeAndUpdateConversationLog(conversationLogId) {
  */
 export async function analyzeSession(sessionId) {
   try {
-    const client = getAnthropicClient();
-
     // Fetch all messages in the session
     const { data: messages, error } = await supabaseAdmin
       .from('mcp_conversation_logs')
@@ -315,13 +298,14 @@ Respond with ONLY a valid JSON object:
   "keyInsights": ["list of 1-3 key insights about the user from this session"]
 }`;
 
-    const response = await client.messages.create({
-      model: 'claude-sonnet-4-20250514',
-      max_tokens: 512,
-      messages: [{ role: 'user', content: prompt }]
+    const sessionResult = await complete({
+      tier: TIER_ANALYSIS,
+      messages: [{ role: 'user', content: prompt }],
+      maxTokens: 512,
+      serviceName: 'conversationAIAnalyzer'
     });
 
-    const responseText = response.content[0].text.trim();
+    const responseText = sessionResult.content.trim();
     let analysis;
 
     try {

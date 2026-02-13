@@ -4,10 +4,9 @@
  * Enables semantic similarity search for behavioral patterns
  */
 
-import Anthropic from '@anthropic-ai/sdk';
 import OpenAI from 'openai';
 import { createClient } from '@supabase/supabase-js';
-import { CLAUDE_MODEL } from '../config/aiModels.js';
+import { complete, TIER_EXTRACTION } from './llmGateway.js';
 
 // Lazy initialization to avoid crashes if env vars not loaded yet
 let supabase = null;
@@ -21,11 +20,7 @@ function getSupabaseClient() {
   return supabase;
 }
 
-// Initialize AI clients
-const anthropic = process.env.ANTHROPIC_API_KEY ? new Anthropic({
-  apiKey: process.env.ANTHROPIC_API_KEY
-}) : null;
-
+// Initialize OpenAI client for embeddings
 const openai = process.env.OPENAI_API_KEY ? new OpenAI({
   apiKey: process.env.OPENAI_API_KEY
 }) : null;
@@ -186,27 +181,24 @@ class BehavioralEmbeddingService {
   }
 
   /**
-   * Generate embedding using Claude (fallback)
+   * Generate embedding using LLM Gateway (fallback)
    * Note: Claude doesn't have native embeddings, so we use a workaround
    */
   async generateEmbeddingClaude(text) {
-    if (!anthropic) {
-      throw new Error('Anthropic API key not configured');
-    }
-
     try {
-      // Use Claude to generate a semantic summary, then hash it to vector
+      // Use LLM Gateway to generate a semantic summary, then hash it to vector
       // This is a simplified approach - ideally use a dedicated embedding model
-      const response = await anthropic.messages.create({
-        model: CLAUDE_MODEL,
-        max_tokens: 100,
+      const result = await complete({
+        tier: TIER_EXTRACTION,
         messages: [{
           role: 'user',
           content: `Generate a brief semantic summary of this behavioral pattern (max 50 words): ${text}`
-        }]
+        }],
+        maxTokens: 100,
+        serviceName: 'behavioralEmbedding'
       });
 
-      const summary = response.content[0].text;
+      const summary = result.content;
 
       // Convert summary to pseudo-embedding (simplified)
       // In production, use a proper embedding model
@@ -256,9 +248,9 @@ class BehavioralEmbeddingService {
       if (openai) {
         embedding = await this.generateEmbeddingOpenAI(fingerprintText);
         console.log('[Behavioral Embedding] Generated OpenAI embedding (1536 dimensions)');
-      } else if (anthropic) {
+      } else if (process.env.OPENROUTER_API_KEY) {
         embedding = await this.generateEmbeddingClaude(fingerprintText);
-        console.log('[Behavioral Embedding] Generated Claude-based embedding (1536 dimensions)');
+        console.log('[Behavioral Embedding] Generated LLM Gateway-based embedding (1536 dimensions)');
       } else {
         embedding = this.textToVector(fingerprintText);
         console.log('[Behavioral Embedding] Generated fallback embedding (1536 dimensions)');

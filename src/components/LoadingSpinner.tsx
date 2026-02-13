@@ -25,14 +25,15 @@ const LoadingSpinner: React.FC<LoadingSpinnerProps> = ({
 
   const getIcon = () => {
     const baseClasses = `${sizeClasses[size]} animate-spin text-[#FF5722]`;
+    const clay3dSize = size === 'sm' ? 16 : size === 'md' ? 24 : size === 'lg' ? 32 : 48;
 
     switch (variant) {
       case 'brain':
-        return <Brain className={baseClasses} />;
+        return <img src="/icons/3d/brain.png" alt="Loading" className="animate-pulse" style={{ width: clay3dSize, height: clay3dSize }} />;
       case 'upload':
-        return <Upload className={baseClasses} />;
+        return <img src="/icons/3d/rocket.png" alt="Uploading" className="animate-bounce" style={{ width: clay3dSize, height: clay3dSize }} />;
       case 'chat':
-        return <MessageSquare className={baseClasses} />;
+        return <img src="/icons/3d/chat-bubble.png" alt="Loading chat" className="animate-pulse" style={{ width: clay3dSize, height: clay3dSize }} />;
       default:
         return <Loader2 className={baseClasses} />;
     }

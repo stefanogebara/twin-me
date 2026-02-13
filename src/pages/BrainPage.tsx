@@ -6,13 +6,15 @@
  */
 
 import React from 'react';
+import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import BrainExplorer from '@/components/BrainExplorer';
 import { useAuth } from '@/contexts/AuthContext';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useDemo } from '@/contexts/DemoContext';
 import { PageLayout, GlassPanel } from '@/components/layout/PageLayout';
-import { Brain, Sparkles, Network, Zap, GitBranch, Layers } from 'lucide-react';
+import { Sparkles, Zap, GitBranch, Layers } from 'lucide-react';
+import { Clay3DIcon } from '@/components/Clay3DIcon';
 
 const BrainPage: React.FC = () => {
   const { isSignedIn, isLoaded } = useAuth();
@@ -35,7 +37,9 @@ const BrainPage: React.FC = () => {
             <div className="w-16 h-16 rounded-full animate-pulse" style={{
               background: 'linear-gradient(135deg, rgba(193, 192, 182, 0.2) 0%, rgba(193, 192, 182, 0.1) 100%)'
             }} />
-            <Brain className="w-8 h-8 absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 animate-pulse" style={{ color: textSecondary }} />
+            <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 animate-pulse">
+              <Clay3DIcon name="brain" size={32} />
+            </div>
           </div>
           <p style={{ color: textSecondary }}>
             Loading...
@@ -53,7 +57,7 @@ const BrainPage: React.FC = () => {
             <div className="w-20 h-20 rounded-2xl mx-auto mb-6 flex items-center justify-center" style={{
               background: 'linear-gradient(135deg, rgba(78, 205, 196, 0.2) 0%, rgba(69, 183, 209, 0.2) 100%)'
             }}>
-              <Brain className="w-10 h-10" style={{ color: '#4ECDC4' }} />
+              <Clay3DIcon name="brain" size={40} />
             </div>
             <h1
               className="text-2xl mb-3"
@@ -98,28 +102,40 @@ const BrainPage: React.FC = () => {
     return (
       <PageLayout maxWidth="xl">
         <div className="text-center mb-8">
-          <div
+          <motion.div
             className="w-20 h-20 rounded-2xl mx-auto mb-6 flex items-center justify-center"
             style={{
               background: 'linear-gradient(135deg, rgba(78, 205, 196, 0.2) 0%, rgba(69, 183, 209, 0.2) 100%)'
             }}
+            initial={{ opacity: 0, scale: 0.5, rotate: -10 }}
+            animate={{ opacity: 1, scale: 1, rotate: 0 }}
+            transition={{ duration: 0.6, ease: [0.4, 0, 0.2, 1] }}
           >
-            <Brain className="w-10 h-10" style={{ color: '#4ECDC4' }} />
-          </div>
-          <h1
+            <Clay3DIcon name="brain" size={40} />
+          </motion.div>
+          <motion.h1
             className="text-3xl mb-3"
             style={{ fontFamily: 'var(--font-heading)', fontWeight: 400, color: textColor }}
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.45, delay: 0.15, ease: [0.4, 0, 0.2, 1] }}
           >
             Your Twin's Brain
-          </h1>
-          <p className="max-w-lg mx-auto" style={{ color: textSecondary }}>
+          </motion.h1>
+          <motion.p
+            className="max-w-lg mx-auto"
+            style={{ color: textSecondary }}
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4, delay: 0.25, ease: [0.4, 0, 0.2, 1] }}
+          >
             A living 3D knowledge graph that maps everything unique about you - your interests, patterns, personality traits, and connections between them.
-          </p>
+          </motion.p>
         </div>
 
         <GlassPanel className="!p-8 mb-6">
           <div className="flex items-center gap-3 mb-6">
-            <Network className="w-5 h-5" style={{ color: '#4ECDC4' }} />
+            <Clay3DIcon name="diamond" size={20} />
             <h3 className="text-lg" style={{ fontFamily: 'var(--font-heading)', fontWeight: 400, color: textColor }}>
               Knowledge Graph Preview
             </h3>

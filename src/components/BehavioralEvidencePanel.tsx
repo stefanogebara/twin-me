@@ -118,13 +118,15 @@ const DIMENSION_CONFIG = {
   }
 };
 
-// Platform icons
+// Platform icons - use real SVG logos with Lucide fallback
+import { getPlatformLogo } from '@/components/PlatformLogos';
 const PLATFORM_ICONS: Record<string, React.ComponentType<{ className?: string; style?: React.CSSProperties }>> = {
   spotify: Music,
   calendar: Calendar,
   google_calendar: Calendar,
   whoop: Activity
 };
+const getPlatformIconComponent = (platform: string) => getPlatformLogo(platform) || PLATFORM_ICONS[platform] || BookOpen;
 
 // Effect size badges
 const EFFECT_SIZE_CONFIG = {
@@ -167,7 +169,7 @@ const EvidenceCard: React.FC<{
   theme: string;
 }> = ({ item, dimensionColor, theme }) => {
   const [showFullCitation, setShowFullCitation] = useState(false);
-  const PlatformIcon = PLATFORM_ICONS[item.platform] || BookOpen;
+  const PlatformIcon = getPlatformIconComponent(item.platform);
   const effectConfig = EFFECT_SIZE_CONFIG[item.effect_size] || EFFECT_SIZE_CONFIG.small;
   const parsedCitation = parseCitation(item.citation);
 

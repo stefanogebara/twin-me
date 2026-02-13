@@ -8,13 +8,7 @@ import express from 'express';
 import { supabaseAdmin } from '../services/database.js';
 import patternDetectionEngine from '../services/patternDetectionEngine.js';
 import behavioralEmbeddingService from '../services/behavioralEmbeddingService.js';
-import Anthropic from '@anthropic-ai/sdk';
-import { CLAUDE_MODEL } from '../config/aiModels.js';
-
-// Initialize Anthropic client for LLM interpretation
-const anthropic = new Anthropic({
-  apiKey: process.env.ANTHROPIC_API_KEY,
-});
+import { complete, TIER_ANALYSIS } from '../services/llmGateway.js';
 
 const router = express.Router();
 
@@ -808,18 +802,19 @@ Please analyze this browsing activity and provide:
 
 Provide a thoughtful, insightful analysis that goes beyond surface-level observations. Focus on what makes this person uniquely themselves.`;
 
-    const message = await anthropic.messages.create({
-      model: CLAUDE_MODEL,
-      max_tokens: 1500,
+    const result = await complete({
+      tier: TIER_ANALYSIS,
       messages: [
         {
           role: 'user',
           content: prompt,
         },
       ],
+      maxTokens: 1500,
+      serviceName: 'soulObserverInterpret'
     });
 
-    const interpretationText = message.content[0].text;
+    const interpretationText = result.content;
     console.log('[Soul Observer] Claude interpretation generated');
 
     return interpretationText;

@@ -13,13 +13,8 @@
  * 6. Mark facts as synced
  */
 
-import Anthropic from '@anthropic-ai/sdk';
+import { complete, TIER_EXTRACTION } from './llmGateway.js';
 import { supabaseAdmin } from './database.js';
-import { CLAUDE_MODEL } from '../config/aiModels.js';
-
-const anthropic = new Anthropic({
-  apiKey: process.env.ANTHROPIC_API_KEY
-});
 
 // Classification prompt for Claude
 const CLASSIFICATION_PROMPT = `You are a knowledge classifier for a personal digital twin system.
@@ -60,17 +55,18 @@ FACT TO CLASSIFY:
  */
 async function classifyFact(factText) {
   try {
-    const response = await anthropic.messages.create({
-      model: CLAUDE_MODEL,
-      max_tokens: 200,
-      temperature: 0,
+    const result = await complete({
+      tier: TIER_EXTRACTION,
       messages: [{
         role: 'user',
         content: CLASSIFICATION_PROMPT + factText
-      }]
+      }],
+      maxTokens: 200,
+      temperature: 0,
+      serviceName: 'mem0BrainSync'
     });
 
-    const text = response.content[0]?.text || '{}';
+    const text = result.content || '{}';
     const jsonMatch = text.match(/\{[\s\S]*\}/);
     if (jsonMatch) {
       return JSON.parse(jsonMatch[0]);

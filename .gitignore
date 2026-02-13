@@ -45,3 +45,18 @@ test-results/
 playwright-report/
 .vercel
 AZURE_CREDENTIALS.txt
+
+# Test artifacts & debug files
+auth-test-screenshots/
+oauth-test-screenshots/
+ui-test-screenshots/
+tests/screenshots/
+test-output.json
+oauth-test-report.json
+debug-check.js
+start_server.bat
+
+# One-off test scripts (keep tests/ dir for real tests)
+api/test-*.js
+test-*.mjs
+playwright-*-test.js

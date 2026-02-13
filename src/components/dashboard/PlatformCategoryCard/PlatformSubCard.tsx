@@ -24,6 +24,7 @@ import {
   ExternalLink,
   Sparkles
 } from 'lucide-react';
+import { getPlatformLogo } from '@/components/PlatformLogos';
 import { PLATFORM_INFO } from './categoryConfig';
 import { AnimatedCounter } from './AnimatedCounter';
 import type { PlatformData } from '../hooks/usePlatformCategoryData';
@@ -36,7 +37,7 @@ interface PlatformSubCardProps {
   onNavigate?: () => void;
 }
 
-const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
+const lucideIconMap: Record<string, React.ComponentType<{ className?: string }>> = {
   Music,
   Youtube,
   Twitch,
@@ -68,7 +69,8 @@ export const PlatformSubCard: React.FC<PlatformSubCardProps> = ({
   const cardBg = theme === 'dark' ? 'rgba(45, 45, 41, 0.5)' : 'rgba(255, 255, 255, 0.6)';
   const hoverBg = theme === 'dark' ? 'rgba(193, 192, 182, 0.05)' : 'rgba(0, 0, 0, 0.02)';
 
-  const IconComponent = iconMap[platformInfo.icon] || Activity;
+  // Prefer real SVG logo, fall back to Lucide icon
+  const IconComponent = getPlatformLogo(platform) || lucideIconMap[platformInfo.icon] || Activity;
 
   const handleClick = () => {
     if (onNavigate) {
