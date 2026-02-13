@@ -70,7 +70,7 @@ export const CofounderHero = () => {
                 Dashboard
               </button>
             ) : (
-              <SignInButton mode="modal" fallbackRedirectUrl="/get-started" forceRedirectUrl="/get-started">
+              <SignInButton mode="modal" fallbackRedirectUrl="/discover" forceRedirectUrl="/discover">
                 <button className="px-6 py-2 rounded-full bg-neutral-900 text-white hover:bg-neutral-800 transition-all text-sm font-medium shadow-lg">
                   Get Started
                 </button>
@@ -117,7 +117,7 @@ export const CofounderHero = () => {
                 <ArrowRight className="w-5 h-5" />
               </button>
             ) : (
-              <SignInButton mode="modal" fallbackRedirectUrl="/get-started" forceRedirectUrl="/get-started">
+              <SignInButton mode="modal" fallbackRedirectUrl="/discover" forceRedirectUrl="/discover">
                 <button className="px-8 py-4 rounded-full bg-neutral-900 text-white hover:bg-neutral-800 transition-all text-base font-medium shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 flex items-center gap-2 w-full sm:w-auto justify-center">
                   Try Twin Me yourself
                   <ArrowRight className="w-5 h-5" />
@@ -228,7 +228,7 @@ export const CofounderHero = () => {
               <ArrowRight className="w-5 h-5" />
             </button>
           ) : (
-            <SignInButton mode="modal" fallbackRedirectUrl="/get-started" forceRedirectUrl="/get-started">
+            <SignInButton mode="modal" fallbackRedirectUrl="/discover" forceRedirectUrl="/discover">
               <button className="px-10 py-5 rounded-full bg-white text-neutral-900 hover:bg-neutral-100 transition-all text-lg font-medium shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 inline-flex items-center gap-2">
                 Get Started Now
                 <ArrowRight className="w-5 h-5" />

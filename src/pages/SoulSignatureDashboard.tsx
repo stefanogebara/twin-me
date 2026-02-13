@@ -36,12 +36,6 @@ import {
   Play,
   HelpCircle,
   ArrowRight,
-  Briefcase,
-  Linkedin,
-  GraduationCap,
-  MapPin,
-  TrendingUp,
-  Building2,
   Layers,
   Video,
   Tv,
@@ -1020,53 +1014,22 @@ const SoulSignatureDashboard: React.FC = () => {
               </motion.div>
             </div>
 
-            {/* MBTI Type Display */}
-            {personalityScores && (personalityScores.mind !== undefined || personalityScores.archetype_code) && (
-              <div className="mt-6">
-                <SectionHeader title="Your Personality Type" />
-
-                {/* Type Code */}
-                <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 mb-6 p-4 rounded-xl" style={{
-                  backgroundColor: 'rgba(193, 192, 182, 0.08)',
-                  border: '1px solid rgba(193, 192, 182, 0.15)'
-                }}>
-                  <div className="flex items-center gap-1">
-                    {(personalityScores.archetype_code || 'XXXX-X').split('').map((letter, i) => {
-                      if (letter === '-') return <span key={i} className="text-2xl font-light" style={{ color: textFaint }}>-</span>;
-                      const colors = [
-                        MBTI_DIMENSIONS.mind.color,
-                        MBTI_DIMENSIONS.energy.color,
-                        MBTI_DIMENSIONS.nature.color,
-                        MBTI_DIMENSIONS.tactics.color,
-                        MBTI_DIMENSIONS.identity.color
-                      ];
-                      const colorIndex = i > 4 ? 4 : i;
-                      return (
-                        <span key={i} className="text-3xl font-bold" style={{ color: colors[colorIndex] }}>
-                          {letter}
-                        </span>
-                      );
-                    })}
-                  </div>
-                  <div className="flex-1">
-                    <div className="text-sm font-medium" style={{ color: textColor }}>
-                      {soulSignature?.archetype_name || 'Your Unique Type'}
-                    </div>
-                    <div className="text-xs" style={{ color: textMuted }}>
-                      Based on your assessment and behavioral patterns
-                    </div>
-                  </div>
-                </div>
-
-                {/* Dimension Bars */}
-                <div className="space-y-4">
-                  <MBTIDimensionBar dimension="mind" value={personalityScores.mind ?? personalityScores.extraversion ?? 50} confidence={personalityScores.mind_ci ?? personalityScores.extraversion_confidence} />
-                  <MBTIDimensionBar dimension="energy" value={personalityScores.energy ?? personalityScores.openness ?? 50} confidence={personalityScores.energy_ci ?? personalityScores.openness_confidence} />
-                  <MBTIDimensionBar dimension="nature" value={personalityScores.nature ?? personalityScores.agreeableness ?? 50} confidence={personalityScores.nature_ci ?? personalityScores.agreeableness_confidence} />
-                  <MBTIDimensionBar dimension="tactics" value={personalityScores.tactics ?? personalityScores.conscientiousness ?? 50} confidence={personalityScores.tactics_ci ?? personalityScores.conscientiousness_confidence} />
-                  <MBTIDimensionBar dimension="identity" value={personalityScores.identity ?? (100 - (personalityScores.neuroticism ?? 50))} confidence={personalityScores.identity_ci ?? personalityScores.neuroticism_confidence} />
-                </div>
-              </div>
+            {/* Narrative */}
+            {soulSignature.narrative && (
+              <motion.div
+                className="mt-6 p-5 rounded-xl"
+                style={{
+                  backgroundColor: 'rgba(193, 192, 182, 0.06)',
+                  border: '1px solid rgba(193, 192, 182, 0.12)'
+                }}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ duration: 0.5, delay: 0.7 }}
+              >
+                <p className="text-sm leading-relaxed" style={{ color: textSecondary }}>
+                  {soulSignature.narrative}
+                </p>
+              </motion.div>
             )}
 
           </div>
@@ -1194,7 +1157,67 @@ const SoulSignatureDashboard: React.FC = () => {
         )}
       </GlassPanel>
 
-      {/* Cluster Personality Visualization */}
+      {/* MBTI Type Display - moved from Overview for clarity */}
+      {personalityScores && (personalityScores.mind !== undefined || personalityScores.archetype_code) && (
+        <GlassPanel className="!p-5 md:!p-6 mb-6">
+          <div className="flex items-center gap-3 mb-6">
+            <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ backgroundColor: 'rgba(193, 192, 182, 0.1)' }}>
+              <Compass className="w-5 h-5" style={{ color: '#C1C0B6' }} />
+            </div>
+            <div>
+              <h3 style={{ fontFamily: 'var(--font-heading)', fontWeight: 500, color: textColor }}>
+                Personality Type
+              </h3>
+              <p className="text-xs" style={{ color: textMuted }}>
+                16personalities-style type from your behavioral patterns
+              </p>
+            </div>
+          </div>
+
+          {/* Type Code */}
+          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 mb-6 p-4 rounded-xl" style={{
+            backgroundColor: 'rgba(193, 192, 182, 0.08)',
+            border: '1px solid rgba(193, 192, 182, 0.15)'
+          }}>
+            <div className="flex items-center gap-1">
+              {(personalityScores.archetype_code || 'XXXX-X').split('').map((letter: string, i: number) => {
+                if (letter === '-') return <span key={i} className="text-2xl font-light" style={{ color: textFaint }}>-</span>;
+                const colors = [
+                  MBTI_DIMENSIONS.mind.color,
+                  MBTI_DIMENSIONS.energy.color,
+                  MBTI_DIMENSIONS.nature.color,
+                  MBTI_DIMENSIONS.tactics.color,
+                  MBTI_DIMENSIONS.identity.color
+                ];
+                const colorIndex = i > 4 ? 4 : i;
+                return (
+                  <span key={i} className="text-3xl font-bold" style={{ color: colors[colorIndex] }}>
+                    {letter}
+                  </span>
+                );
+              })}
+            </div>
+            <div className="flex-1">
+              <div className="text-sm font-medium" style={{ color: textColor }}>
+                {soulSignature?.archetype_name || 'Your Unique Type'}
+              </div>
+              <div className="text-xs" style={{ color: textMuted }}>
+                Based on your assessment and behavioral patterns
+              </div>
+            </div>
+          </div>
+
+          {/* Dimension Bars */}
+          <div className="space-y-4">
+            <MBTIDimensionBar dimension="mind" value={personalityScores.mind ?? personalityScores.extraversion ?? 50} confidence={personalityScores.mind_ci ?? personalityScores.extraversion_confidence} />
+            <MBTIDimensionBar dimension="energy" value={personalityScores.energy ?? personalityScores.openness ?? 50} confidence={personalityScores.energy_ci ?? personalityScores.openness_confidence} />
+            <MBTIDimensionBar dimension="nature" value={personalityScores.nature ?? personalityScores.agreeableness ?? 50} confidence={personalityScores.nature_ci ?? personalityScores.agreeableness_confidence} />
+            <MBTIDimensionBar dimension="tactics" value={personalityScores.tactics ?? personalityScores.conscientiousness ?? 50} confidence={personalityScores.tactics_ci ?? personalityScores.conscientiousness_confidence} />
+            <MBTIDimensionBar dimension="identity" value={personalityScores.identity ?? (100 - (personalityScores.neuroticism ?? 50))} confidence={personalityScores.identity_ci ?? personalityScores.neuroticism_confidence} />
+          </div>
+        </GlassPanel>
+      )}
+
       {/* What Makes You Unique - Full Traits */}
       {soulSignature && (
         <div className="mb-6">
@@ -1290,173 +1313,7 @@ const SoulSignatureDashboard: React.FC = () => {
         </div>
       </div>
 
-      {/* Professional Universe */}
-      <GlassPanel className="!p-5 md:!p-6 mb-6">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ backgroundColor: 'rgba(10, 102, 194, 0.1)' }}>
-              <Briefcase className="w-5 h-5" style={{ color: '#0A66C2' }} />
-            </div>
-            <div>
-              <h3 style={{ fontFamily: 'var(--font-heading)', fontWeight: 500, color: textColor }}>
-                Professional Universe
-              </h3>
-              <p className="text-xs" style={{ color: textMuted }}>
-                Your work identity and career patterns
-              </p>
-            </div>
-          </div>
-          <button
-            onClick={() => navigate('/get-started')}
-            className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-all hover:scale-[1.02]"
-            style={{
-              backgroundColor: 'rgba(10, 102, 194, 0.1)',
-              color: '#0A66C2',
-              border: '1px solid rgba(10, 102, 194, 0.2)'
-            }}
-          >
-            Add More Context
-            <ArrowRight className="w-4 h-4" />
-          </button>
-        </div>
-
-        <p className="text-sm mb-6" style={{ color: textSecondary }}>
-          Your professional identity combines LinkedIn profile, calendar patterns, and career context to understand your work style.
-        </p>
-
-        {/* Professional Data Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {/* LinkedIn Connection */}
-          <div className="p-4 rounded-xl" style={{
-            backgroundColor: connectedProviders.includes('linkedin')
-              ? 'rgba(10, 102, 194, 0.08)'
-              : 'rgba(193, 192, 182, 0.08)',
-            border: connectedProviders.includes('linkedin')
-              ? '1px solid rgba(10, 102, 194, 0.2)'
-              : '1px solid rgba(193, 192, 182, 0.15)'
-          }}>
-            <div className="flex items-center gap-3 mb-3">
-              <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{
-                backgroundColor: connectedProviders.includes('linkedin')
-                  ? 'rgba(10, 102, 194, 0.15)'
-                  : 'rgba(193, 192, 182, 0.15)'
-              }}>
-                <Linkedin className="w-4 h-4" style={{
-                  color: connectedProviders.includes('linkedin') ? '#0A66C2' : textMuted
-                }} />
-              </div>
-              <div>
-                <span className="text-xs uppercase tracking-wider font-medium" style={{ color: textColor }}>LinkedIn</span>
-                {connectedProviders.includes('linkedin') && (
-                  <div className="flex items-center gap-1 mt-0.5">
-                    <CheckCircle2 className="w-3 h-3" style={{ color: '#10B981' }} />
-                    <span className="text-xs" style={{ color: '#10B981' }}>Connected</span>
-                  </div>
-                )}
-              </div>
-            </div>
-            <p className="text-sm" style={{ color: textSecondary }}>
-              {connectedProviders.includes('linkedin')
-                ? 'Professional identity linked'
-                : 'Connect to add career context'}
-            </p>
-          </div>
-
-          {/* Calendar Work Patterns */}
-          <div className="p-4 rounded-xl" style={{
-            backgroundColor: connectedProviders.includes('google_calendar')
-              ? 'rgba(99, 102, 241, 0.08)'
-              : 'rgba(193, 192, 182, 0.08)',
-            border: connectedProviders.includes('google_calendar')
-              ? '1px solid rgba(99, 102, 241, 0.2)'
-              : '1px solid rgba(193, 192, 182, 0.15)'
-          }}>
-            <div className="flex items-center gap-3 mb-3">
-              <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{
-                backgroundColor: connectedProviders.includes('google_calendar')
-                  ? 'rgba(99, 102, 241, 0.15)'
-                  : 'rgba(193, 192, 182, 0.15)'
-              }}>
-                <GoogleCalendarLogo className="w-4 h-4" />
-              </div>
-              <div>
-                <span className="text-xs uppercase tracking-wider font-medium" style={{ color: textColor }}>Work Patterns</span>
-                {connectedProviders.includes('google_calendar') && (
-                  <div className="flex items-center gap-1 mt-0.5">
-                    <CheckCircle2 className="w-3 h-3" style={{ color: '#10B981' }} />
-                    <span className="text-xs" style={{ color: '#10B981' }}>Analyzed</span>
-                  </div>
-                )}
-              </div>
-            </div>
-            <p className="text-sm" style={{ color: textSecondary }}>
-              {connectedProviders.includes('google_calendar')
-                ? 'Schedule insights extracted'
-                : 'Connect calendar for work insights'}
-            </p>
-          </div>
-
-          {/* Origin Context - Coming Soon */}
-          <div className="p-4 rounded-xl" style={{
-            backgroundColor: 'rgba(193, 192, 182, 0.08)',
-            border: '1px solid rgba(193, 192, 182, 0.15)'
-          }}>
-            <div className="flex items-center gap-3 mb-3">
-              <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ backgroundColor: 'rgba(193, 192, 182, 0.15)' }}>
-                <MapPin className="w-4 h-4" style={{ color: textMuted }} />
-              </div>
-              <div>
-                <span className="text-xs uppercase tracking-wider font-medium" style={{ color: textColor }}>Origin Story</span>
-                <div className="flex items-center gap-1 mt-0.5">
-                  <span className="text-xs px-1.5 py-0.5 rounded" style={{
-                    backgroundColor: 'rgba(228, 174, 58, 0.15)',
-                    color: '#E4AE3A'
-                  }}>Coming Soon</span>
-                </div>
-              </div>
-            </div>
-            <p className="text-sm" style={{ color: textSecondary }}>
-              Share your background, education, and values
-            </p>
-          </div>
-        </div>
-
-        {/* Professional Insights Preview */}
-        {(connectedProviders.includes('linkedin') || connectedProviders.includes('google_calendar')) && (
-          <div className="mt-6 pt-6" style={{ borderTop: `1px solid ${theme === 'dark' ? 'rgba(193, 192, 182, 0.1)' : 'rgba(0, 0, 0, 0.05)'}` }}>
-            <div className="flex items-center gap-2 mb-4">
-              <TrendingUp className="w-4 h-4" style={{ color: '#0A66C2' }} />
-              <span className="text-xs uppercase tracking-wider font-medium" style={{ color: textMuted }}>
-                Professional Insights
-              </span>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {connectedProviders.includes('google_calendar') && (
-                <div className="flex items-start gap-3 p-3 rounded-lg" style={{ backgroundColor: 'rgba(99, 102, 241, 0.05)' }}>
-                  <Building2 className="w-5 h-5 mt-0.5" style={{ color: '#6366F1' }} />
-                  <div>
-                    <div className="text-sm font-medium" style={{ color: textColor }}>Schedule-Driven</div>
-                    <div className="text-xs" style={{ color: textSecondary }}>
-                      Your calendar shows structured work patterns with dedicated focus blocks
-                    </div>
-                  </div>
-                </div>
-              )}
-              {connectedProviders.includes('linkedin') && (
-                <div className="flex items-start gap-3 p-3 rounded-lg" style={{ backgroundColor: 'rgba(10, 102, 194, 0.05)' }}>
-                  <GraduationCap className="w-5 h-5 mt-0.5" style={{ color: '#0A66C2' }} />
-                  <div>
-                    <div className="text-sm font-medium" style={{ color: textColor }}>Professional Identity</div>
-                    <div className="text-xs" style={{ color: textSecondary }}>
-                      LinkedIn profile connected - career trajectory available
-                    </div>
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-        )}
-      </GlassPanel>
+      {/* Professional Universe removed - LinkedIn/Gmail/Teams cut in TIER 1 */}
 
       {/* Twin Insights Links */}
       <div className="mb-6">

@@ -118,7 +118,7 @@ export const AdvancedHero = () => {
                   Dashboard
                 </motion.button>
               ) : (
-                <SignInButton mode="modal" fallbackRedirectUrl="/get-started" forceRedirectUrl="/get-started">
+                <SignInButton mode="modal" fallbackRedirectUrl="/discover" forceRedirectUrl="/discover">
                   <motion.button
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
@@ -191,7 +191,7 @@ export const AdvancedHero = () => {
                   <ArrowRight className="w-5 h-5" />
                 </motion.button>
               ) : (
-                <SignInButton mode="modal" fallbackRedirectUrl="/get-started" forceRedirectUrl="/get-started">
+                <SignInButton mode="modal" fallbackRedirectUrl="/discover" forceRedirectUrl="/discover">
                   <motion.button
                     whileHover={{ scale: 1.05, boxShadow: "0 20px 40px rgba(168, 85, 247, 0.4)" }}
                     whileTap={{ scale: 0.95 }}

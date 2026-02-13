@@ -98,7 +98,7 @@ export const IllustrationHero = ({ variant = 'tech-forward' }: IllustrationHeroP
               Dashboard
             </button>
           ) : (
-            <SignInButton mode="modal" fallbackRedirectUrl="/get-started" forceRedirectUrl="/get-started">
+            <SignInButton mode="modal" fallbackRedirectUrl="/discover" forceRedirectUrl="/discover">
               <button className="ml-auto px-6 py-2 rounded-full bg-white text-stone-900 hover:bg-white/90 transition-all text-sm font-bold shadow-lg">
                 Get Started
               </button>
@@ -156,7 +156,7 @@ export const IllustrationHero = ({ variant = 'tech-forward' }: IllustrationHeroP
                   Launch Dashboard →
                 </button>
               ) : (
-                <SignInButton mode="modal" fallbackRedirectUrl="/get-started" forceRedirectUrl="/get-started">
+                <SignInButton mode="modal" fallbackRedirectUrl="/discover" forceRedirectUrl="/discover">
                   <button
                     className="px-10 py-5 rounded-2xl text-lg font-bold shadow-2xl transition-all transform hover:scale-105 hover:shadow-3xl"
                     style={{

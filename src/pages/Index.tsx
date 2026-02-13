@@ -196,7 +196,7 @@ const Index = () => {
                 >
                   Try Demo
                 </button>
-                <SignInButton mode="modal" fallbackRedirectUrl="/get-started" forceRedirectUrl="/get-started">
+                <SignInButton mode="modal" fallbackRedirectUrl="/discover" forceRedirectUrl="/discover">
                   <button
                     className="px-5 py-2.5 rounded-full text-[14px] font-medium transition-all hover:opacity-90"
                     style={{
@@ -274,7 +274,7 @@ const Index = () => {
                     Start Free
                   </button>
                 ) : (
-                  <SignInButton mode="modal" fallbackRedirectUrl="/get-started" forceRedirectUrl="/get-started">
+                  <SignInButton mode="modal" fallbackRedirectUrl="/discover" forceRedirectUrl="/discover">
                     <button
                       className="cta-gradient px-8 py-4 rounded-full text-lg font-semibold text-white shadow-lg"
                     >
@@ -519,7 +519,7 @@ const Index = () => {
               Get Started Today
             </button>
           ) : (
-            <SignInButton mode="modal" fallbackRedirectUrl="/get-started" forceRedirectUrl="/get-started">
+            <SignInButton mode="modal" fallbackRedirectUrl="/discover" forceRedirectUrl="/discover">
               <button
                 className="cta-gradient px-8 py-4 rounded-full text-lg font-semibold text-white shadow-lg"
               >
