@@ -23,66 +23,29 @@ async function getMonthlyUsage(userId) {
   monthStart.setDate(1);
   monthStart.setHours(0, 0, 0, 0);
 
-  // Count user messages (role = 'user') in twin_messages for this month
-  // Join through twin_conversations to get the user's conversations
-  const { count, error } = await supabaseAdmin
+  // Step 1: Get user's conversation IDs
+  const { data: convos } = await supabaseAdmin
+    .from('twin_conversations')
+    .select('id')
+    .eq('user_id', userId);
+
+  if (!convos || convos.length === 0) {
+    return { used: 0, limit: FREE_TIER_LIMIT, tier: 'free' };
+  }
+
+  // Step 2: Count user messages in those conversations this month
+  const convoIds = convos.map(c => c.id);
+  const { count } = await supabaseAdmin
     .from('twin_messages')
     .select('id', { count: 'exact', head: true })
     .eq('role', 'user')
     .gte('created_at', monthStart.toISOString())
-    .in('conversation_id',
-      supabaseAdmin
-        .from('twin_conversations')
-        .select('id')
-        .eq('user_id', userId)
-    );
-
-  // If the subquery doesn't work, use a simpler approach
-  if (error) {
-    // Fallback: get conversation IDs first, then count messages
-    const { data: convos } = await supabaseAdmin
-      .from('twin_conversations')
-      .select('id')
-      .eq('user_id', userId);
-
-    if (!convos || convos.length === 0) {
-      return { used: 0, limit: FREE_TIER_LIMIT, tier: 'free' };
-    }
-
-    const convoIds = convos.map(c => c.id);
-    const { count: fallbackCount } = await supabaseAdmin
-      .from('twin_messages')
-      .select('id', { count: 'exact', head: true })
-      .eq('role', 'user')
-      .gte('created_at', monthStart.toISOString())
-      .in('conversation_id', convoIds);
-
-    return {
-      used: fallbackCount || 0,
-      limit: FREE_TIER_LIMIT,
-      tier: 'free'
-    };
-  }
-
-  // Check if user has pro tier (if column exists)
-  let tier = 'free';
-  try {
-    const { data: userData } = await supabaseAdmin
-      .from('users')
-      .select('subscription_tier')
-      .eq('id', userId)
-      .single();
-    if (userData?.subscription_tier) {
-      tier = userData.subscription_tier;
-    }
-  } catch {
-    // Column doesn't exist yet, default to free
-  }
+    .in('conversation_id', convoIds);
 
   return {
     used: count || 0,
-    limit: tier === 'pro' ? Infinity : FREE_TIER_LIMIT,
-    tier
+    limit: FREE_TIER_LIMIT,
+    tier: 'free'
   };
 }
 

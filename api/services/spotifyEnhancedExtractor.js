@@ -6,7 +6,7 @@
  * revealing deep personality insights through musical choices and listening behavior.
  */
 
-import fetch from 'node-fetch';
+// Node.js 18+ has built-in fetch
 
 class SpotifyEnhancedExtractor {
   constructor() {

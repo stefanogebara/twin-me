@@ -7,7 +7,7 @@
  */
 
 import { google } from 'googleapis';
-import fetch from 'node-fetch';
+// Node.js 18+ has built-in fetch
 import dotenv from 'dotenv';
 
 dotenv.config();
