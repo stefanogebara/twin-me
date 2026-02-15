@@ -394,25 +394,10 @@ router.post('/from-linkedin', async (req, res) => {
 
     console.log(`[Enrichment API] Enriching from LinkedIn URL for user ${userId}: ${linkedinUrl}`);
 
-    // First, try to fetch full profile from Scrapin.io (for REAL career data)
-    let fullProfileData = null;
-    const scrapinKey = process.env.SCRAPIN_API_KEY;
-
-    if (scrapinKey) {
-      console.log('[Enrichment API] Fetching full LinkedIn profile from Scrapin.io...');
-      const fullProfile = await profileEnrichmentService.fetchScrapinFullProfile(linkedinUrl, scrapinKey);
-      if (fullProfile.success && fullProfile.data) {
-        console.log('[Enrichment API] Got full profile with positions/education!');
-        fullProfileData = fullProfile.data;
-      } else {
-        console.log('[Enrichment API] Scrapin full profile fetch failed, falling back to web search');
-      }
-    }
-
-    // Also use the enrichment service for web search (for bio and social links)
+    // Use the enrichment service for web search via Sonar Pro
     const enrichmentResult = await profileEnrichmentService.enrichFromLinkedIn(linkedinUrl, name);
 
-    if (!enrichmentResult.success && !fullProfileData) {
+    if (!enrichmentResult.success) {
       console.warn(`[Enrichment API] LinkedIn enrichment failed:`, enrichmentResult.error);
       return res.json({
         success: true,
@@ -425,48 +410,10 @@ router.post('/from-linkedin', async (req, res) => {
       });
     }
 
-    // Combine Scrapin full profile data with web search results
-    // IMPORTANT: Prefer Scrapin data over web search (which might fail)
-    // Don't use Perplexity error messages as profile data
-    const webSearchData = enrichmentResult.data || {};
-
-    // Debug logging
-    console.log('[Enrichment API] DEBUG - webSearchData.discovered_summary:', webSearchData.discovered_summary?.substring(0, 100));
-    console.log('[Enrichment API] DEBUG - fullProfileData keys:', fullProfileData ? Object.keys(fullProfileData) : 'null');
-
-    const isPerplexityError = webSearchData.discovered_summary?.includes('unable to retrieve') ||
-                              webSearchData.discovered_summary?.includes('could not be accessed') ||
-                              webSearchData.discovered_summary?.includes('no matches') ||
-                              webSearchData.discovered_summary?.includes('was unable to') ||
-                              webSearchData.discovered_summary?.includes('search attempts');
-
-    // If web search failed, don't use its summary
-    if (isPerplexityError) {
-      delete webSearchData.discovered_summary;
-      console.log('[Enrichment API] Web search failed, using only Scrapin data');
-    }
-
-    // Extract title and company from Scrapin headline if not already set
-    let extractedTitle = fullProfileData?.discovered_title;
-    let extractedCompany = fullProfileData?.discovered_company;
-    const headline = fullProfileData?.scrapin_headline || '';
-
-    if (!extractedTitle && headline) {
-      // Parse "Student at IE University" or "Software Engineer at Google"
-      const headlineMatch = headline.match(/^(.+?)\s+at\s+(.+)$/i);
-      if (headlineMatch) {
-        extractedTitle = headlineMatch[1].trim();
-        extractedCompany = headlineMatch[2].trim();
-      }
-    }
-
     const combinedData = {
-      ...(webSearchData),
-      ...(fullProfileData || {}),
-      discovered_title: extractedTitle || webSearchData.discovered_title,
-      discovered_company: extractedCompany || webSearchData.discovered_company,
+      ...(enrichmentResult.data || {}),
       discovered_linkedin_url: linkedinUrl,
-      source: fullProfileData ? 'scrapin_full' : 'linkedin_url'
+      source: 'linkedin_url'
     };
 
     const saveResult = await profileEnrichmentService.saveEnrichment(
@@ -483,19 +430,11 @@ router.post('/from-linkedin', async (req, res) => {
     const hasResults = !!(
       combinedData.discovered_company ||
       combinedData.discovered_title ||
-      combinedData.career_timeline ||
-      combinedData.scrapin_headline
+      combinedData.career_timeline
     );
 
     // Generate AI narrative for a nice summary
-    // ALWAYS generate for students/profiles with limited data
-    let discoveredSummary = combinedData.scrapin_summary;
-
-    // Don't use error messages as summaries
-    if (discoveredSummary?.includes('unable to retrieve') ||
-        discoveredSummary?.includes('could not be accessed')) {
-      discoveredSummary = null;
-    }
+    let discoveredSummary = null;
 
     // Always generate a narrative if we have any profile data
     if (!discoveredSummary && (hasResults || combinedData.discovered_name)) {
@@ -518,7 +457,6 @@ router.post('/from-linkedin', async (req, res) => {
         discovered_linkedin_url: linkedinUrl,
         discovered_bio: combinedData.discovered_bio,
         discovered_summary: discoveredSummary,
-        // Career data fields from Scrapin full profile
         career_timeline: combinedData.career_timeline,
         education: combinedData.education,
         skills: combinedData.skills,
