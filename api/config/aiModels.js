@@ -15,10 +15,10 @@
  */
 
 // Interactive/chat model - used when user is waiting for a response
-export const CLAUDE_MODEL_INTERACTIVE = 'claude-sonnet-4-5-20250929';
+export const CLAUDE_MODEL_INTERACTIVE = 'claude-sonnet-4.5';
 
 // Background/analysis model - used for scheduled jobs, feature extraction, pattern analysis
-export const CLAUDE_MODEL_BACKGROUND = 'claude-haiku-4-5-20251001';
+export const CLAUDE_MODEL_BACKGROUND = 'claude-haiku-4.5';
 
 // Default model - switched to Haiku to prevent credit burn
 // Only twin-chat and direct conversation endpoints should use INTERACTIVE
@@ -38,7 +38,7 @@ export const TIER_ANALYSIS = 'analysis';
 export const TIER_EXTRACTION = 'extraction';
 
 export const OPENROUTER_MODELS = {
-  [TIER_CHAT]: 'anthropic/claude-sonnet-4-5-20250929', // $3.00/$15.00 per M — quality is critical for twin personality
+  [TIER_CHAT]: 'anthropic/claude-sonnet-4.5', // $3.00/$15.00 per M — quality is critical for twin personality
   [TIER_ANALYSIS]: 'deepseek/deepseek-v3.2',          // $0.25/$0.38 per M — 90% cheaper than Haiku
   [TIER_EXTRACTION]: 'mistralai/mistral-small-creative', // $0.10/$0.30 per M — replaces deprecated gemini-2.0-flash
   // NOTE: Kimi K2.5 is a reasoning model (wastes tokens on chain-of-thought).
@@ -50,8 +50,8 @@ export const MODEL_PRICING = {
   'deepseek/deepseek-v3.2': { input: 0.25, output: 0.38, cachedInput: 0.025 },
   'mistralai/mistral-small-creative': { input: 0.10, output: 0.30, cachedInput: 0.01 },
   // Fallback models (kept for cost tracking if manually overridden)
-  'anthropic/claude-sonnet-4-5-20250929': { input: 3.00, output: 15.00, cachedInput: 0.30 },
-  'anthropic/claude-haiku-4-5-20251001': { input: 0.80, output: 4.00, cachedInput: 0.08 },
+  'anthropic/claude-sonnet-4.5': { input: 3.00, output: 15.00, cachedInput: 0.30 },
+  'anthropic/claude-haiku-4.5': { input: 0.80, output: 4.00, cachedInput: 0.08 },
   'google/gemini-3-flash-preview': { input: 0.50, output: 3.00, cachedInput: 0.05 },
   default: { input: 0.25, output: 0.38, cachedInput: 0.025 },
 };

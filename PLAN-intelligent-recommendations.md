@@ -176,7 +176,7 @@ class IntelligentMusicService {
 class IntelligentTwinEngine {
   constructor() {
     this.anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
-    this.MODEL = 'claude-sonnet-4-5-20250929';
+    this.MODEL = 'claude-sonnet-4.5';
   }
 
   // Generate contextual recommendations with Claude

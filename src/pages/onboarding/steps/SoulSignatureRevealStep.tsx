@@ -38,6 +38,7 @@ export const SoulSignatureRevealStep: React.FC<SoulSignatureRevealStepProps> = (
 }) => {
   const { trackFunnel } = useAnalytics();
   const [signature, setSignature] = useState<SoulSignature | null>(null);
+  const [twinIntro, setTwinIntro] = useState<string>('');
   const [isLoading, setIsLoading] = useState(true);
   const [revealed, setRevealed] = useState(false);
   const hasStartedRef = useRef(false);
@@ -64,6 +65,7 @@ export const SoulSignatureRevealStep: React.FC<SoulSignatureRevealStepProps> = (
         const result = await response.json();
         if (result.success && result.signature) {
           setSignature(result.signature);
+          if (result.twinIntro) setTwinIntro(result.twinIntro);
           trackFunnel('soul_signature_generated', {
             source: 'onboarding',
             has_calibration: !!(calibrationData?.insights?.length),
@@ -258,11 +260,32 @@ export const SoulSignatureRevealStep: React.FC<SoulSignatureRevealStepProps> = (
             )}
           </motion.div>
 
+          {/* Twin Introduction */}
+          {twinIntro && (
+            <motion.div
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: revealed ? 1 : 0, y: revealed ? 0 : 8 }}
+              transition={{ delay: 1.4, duration: 0.8 }}
+              className="rounded-xl p-5 mb-6"
+              style={{
+                border: '1px solid rgba(232, 213, 183, 0.2)',
+                background: 'rgba(232, 213, 183, 0.04)',
+              }}
+            >
+              <p
+                className="text-sm italic leading-relaxed text-center"
+                style={{ fontFamily: 'var(--font-body)', color: 'rgba(232, 213, 183, 0.75)' }}
+              >
+                "{twinIntro}"
+              </p>
+            </motion.div>
+          )}
+
           {/* Draft notice */}
           <motion.p
             initial={{ opacity: 0 }}
             animate={{ opacity: revealed ? 1 : 0 }}
-            transition={{ delay: 1.2 }}
+            transition={{ delay: 1.6 }}
             className="text-center text-xs mb-8 opacity-30"
             style={{ fontFamily: 'var(--font-body)', color: '#E8D5B7' }}
           >
@@ -286,7 +309,7 @@ export const SoulSignatureRevealStep: React.FC<SoulSignatureRevealStepProps> = (
               }}
             >
               <MessageCircle className="w-4 h-4" />
-              Talk to Your Twin
+              Let's keep talking
             </button>
             <button
               onClick={() => onNavigate('dashboard')}

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { motion } from 'framer-motion';
 import { useAuth } from '@/contexts/AuthContext';
 import { DiscoveryStep } from './steps/DiscoveryStep';
 import { CalibrationStep, CalibrationResult } from './steps/CalibrationStep';
@@ -21,6 +22,54 @@ import { Loader2 } from 'lucide-react';
  */
 
 type OnboardingStep = 'discovery' | 'calibration' | 'platforms' | 'signature' | 'complete';
+
+const STEP_PROGRESS: Record<OnboardingStep, number> = {
+  discovery: 12,
+  calibration: 37,
+  platforms: 62,
+  signature: 87,
+  complete: 100,
+};
+
+/** Fixed top bar showing twin "materializing" as the user progresses through onboarding. */
+const TwinFormationBar: React.FC<{ step: OnboardingStep }> = ({ step }) => {
+  const percent = STEP_PROGRESS[step];
+
+  return (
+    <div
+      className="fixed top-0 left-0 right-0 z-50"
+      style={{ height: '6px', backgroundColor: 'rgba(232, 213, 183, 0.08)' }}
+    >
+      <motion.div
+        className="h-full"
+        initial={{ width: '0%' }}
+        animate={{ width: `${percent}%` }}
+        transition={{ type: 'spring', stiffness: 60, damping: 20 }}
+        style={{
+          background: 'linear-gradient(90deg, #E8D5B7 0%, #D4C4A8 60%, rgba(232, 213, 183, 0.6) 100%)',
+          boxShadow: '0 0 12px rgba(232, 213, 183, 0.3)',
+        }}
+      />
+      <div
+        className="absolute right-3 flex items-center gap-2"
+        style={{ top: '10px' }}
+      >
+        <span
+          className="text-[10px] uppercase tracking-widest"
+          style={{ color: 'rgba(232, 213, 183, 0.4)', fontFamily: 'var(--font-body)' }}
+        >
+          Twin Formation
+        </span>
+        <span
+          className="text-[10px] tabular-nums"
+          style={{ color: 'rgba(232, 213, 183, 0.5)', fontFamily: 'var(--font-body)' }}
+        >
+          {percent}%
+        </span>
+      </div>
+    </div>
+  );
+};
 
 interface OnboardingState {
   step: OnboardingStep;
@@ -149,53 +198,64 @@ const EnrichedOnboardingFlow: React.FC = () => {
     return null;
   }
 
-  // Render current step
-  switch (state.step) {
-    case 'discovery':
-      return (
-        <DiscoveryStep
-          userId={user.id}
-          userEmail={user.email || ''}
-          userName={user.name || user.email?.split('@')[0]}
-          onComplete={handleDiscoveryComplete}
-          onSkip={handleDiscoverySkip}
-        />
-      );
+  // Render current step with Twin Formation bar
+  const renderStep = () => {
+    switch (state.step) {
+      case 'discovery':
+        return (
+          <DiscoveryStep
+            userId={user.id}
+            userEmail={user.email || ''}
+            userName={user.fullName || undefined}
+            onComplete={handleDiscoveryComplete}
+            onSkip={handleDiscoverySkip}
+          />
+        );
 
-    case 'calibration':
-      return (
-        <CalibrationStep
-          userId={user.id}
-          enrichmentContext={state.discoveryData || { name: user.name || user.email?.split('@')[0] }}
-          onComplete={handleCalibrationComplete}
-          onSkip={handleCalibrationSkip}
-        />
-      );
+      case 'calibration':
+        return (
+          <CalibrationStep
+            userId={user.id}
+            enrichmentContext={state.discoveryData || { name: user.fullName || '' }}
+            onComplete={handleCalibrationComplete}
+            onSkip={handleCalibrationSkip}
+          />
+        );
 
-    case 'platforms':
-      return (
-        <PlatformConnectStep
-          userId={user.id}
-          userName={state.discoveryData?.name || user.name || user.email?.split('@')[0]}
-          onComplete={handlePlatformConnectComplete}
-          onSkip={handlePlatformConnectSkip}
-        />
-      );
+      case 'platforms':
+        return (
+          <PlatformConnectStep
+            userId={user.id}
+            userName={state.discoveryData?.name || user.fullName || ''}
+            onComplete={handlePlatformConnectComplete}
+            onSkip={handlePlatformConnectSkip}
+          />
+        );
 
-    case 'signature':
-      return (
-        <SoulSignatureRevealStep
-          userId={user.id}
-          enrichmentContext={state.discoveryData || { name: user.name || user.email?.split('@')[0] }}
-          calibrationData={state.calibrationData}
-          connectedPlatforms={state.connectedPlatforms}
-          onNavigate={handleSignatureNavigate}
-        />
-      );
+      case 'signature':
+        return (
+          <SoulSignatureRevealStep
+            userId={user.id}
+            enrichmentContext={state.discoveryData || { name: user.fullName || '' }}
+            calibrationData={state.calibrationData}
+            connectedPlatforms={state.connectedPlatforms}
+            onNavigate={handleSignatureNavigate}
+          />
+        );
 
-    default:
-      return null;
-  }
+      default:
+        return null;
+    }
+  };
+
+  return (
+    <>
+      <TwinFormationBar step={state.step} />
+      <div style={{ paddingTop: '40px' }}>
+        {renderStep()}
+      </div>
+    </>
+  );
 };
 
 export default EnrichedOnboardingFlow;

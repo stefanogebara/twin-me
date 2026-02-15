@@ -799,6 +799,11 @@ export async function getPlatformData(
 }
 
 /**
+ * @deprecated Use `fetchTwinContext()` from `api/services/twinContextBuilder.js` instead.
+ * This function is superseded by the shared context builder which provides unified
+ * memory stream retrieval, reflections, and proactive insights. Kept alive for
+ * non-chat HTTP server endpoints that still reference it.
+ *
  * Get Moltbot memory context for a user - THE FULL BRAIN
  * This includes:
  * - Episodic Memory: Recent events and experiences
@@ -1077,6 +1082,10 @@ export async function getMoltbotContext(userId: string): Promise<MoltbotContext 
 }
 
 /**
+ * @deprecated Use `fetchTwinContext()` from `api/services/twinContextBuilder.js` for data fetching,
+ * then build prompts in the caller. The MCP server's handleChat() now uses fetchTwinContext()
+ * directly. This function is kept alive for non-chat HTTP server endpoints that still use it.
+ *
  * Build twin system prompt (adapted from twin-chat.js)
  * Now includes the FULL Moltbot brain context for deep personalization
  */
@@ -1125,9 +1134,9 @@ Your personality:
     }
 
     // Add defining traits with evidence
-    if ('defining_traits' in enhancedSoul && enhancedSoul.defining_traits?.length) {
+    if ('defining_traits' in enhancedSoul && (enhancedSoul.defining_traits as any[])?.length) {
       prompt += `\nDefining Traits:\n`;
-      enhancedSoul.defining_traits.forEach((trait: { name: string; description: string; evidence?: string[]; confidence?: number }) => {
+      (enhancedSoul.defining_traits as any[]).forEach((trait: { name: string; description: string; evidence?: string[]; confidence?: number }) => {
         prompt += `- ${trait.name}: ${trait.description}`;
         if (trait.confidence) {
           prompt += ` (${Math.round(trait.confidence * 100)}% confidence)`;
@@ -2033,20 +2042,21 @@ async function storeLearnedFacts(
       const factValue = match[1].trim();
       if (factValue.length > 3 && factValue.length < 200) {
         // Store as a learned fact
-        await supabase
-          .from('learned_facts')
-          .insert({
-            user_id: userId,
-            category,
-            key: category,
-            value: factValue,
-            source: 'mcp_conversation',
-            confidence: 0.7,
-            created_at: new Date().toISOString()
-          })
-          .catch(() => {
-            // Ignore duplicates or errors
-          });
+        try {
+          await supabase
+            .from('learned_facts')
+            .insert({
+              user_id: userId,
+              category,
+              key: category,
+              value: factValue,
+              source: 'mcp_conversation',
+              confidence: 0.7,
+              created_at: new Date().toISOString()
+            });
+        } catch {
+          // Ignore duplicates or errors
+        }
       }
     }
   }
@@ -2054,20 +2064,21 @@ async function storeLearnedFacts(
   // Store topics as interests
   if (topics.length > 0 && topics[0] !== 'general') {
     for (const topic of topics.slice(0, 2)) {
-      await supabase
-        .from('learned_facts')
-        .insert({
-          user_id: userId,
-          category: 'interest',
-          key: 'topic_discussed',
-          value: topic,
-          source: 'mcp_conversation',
-          confidence: 0.5,
-          created_at: new Date().toISOString()
-        })
-        .catch(() => {
-          // Ignore duplicates or errors
-        });
+      try {
+        await supabase
+          .from('learned_facts')
+          .insert({
+            user_id: userId,
+            category: 'interest',
+            key: 'topic_discussed',
+            value: topic,
+            source: 'mcp_conversation',
+            confidence: 0.5,
+            created_at: new Date().toISOString()
+          });
+      } catch {
+        // Ignore duplicates or errors
+      }
     }
   }
 }

@@ -32,20 +32,21 @@ import {
   analyzeWritingStyle
 } from '../services/conversationLearning.js';
 
+// Shared context builder (unified with MCP server)
+import { fetchTwinContext, buildContextSourcesMeta } from '../services/twinContextBuilder.js';
+
 // Unified memory stream (Generative Agents-inspired architecture)
 import {
   addConversationMemory as addConversationMemoryStream,
   retrieveMemories,
   getRecentImportanceSum,
+  extractConversationFacts,
+  getMemoryStats,
 } from '../services/memoryStreamService.js';
 import { shouldTriggerReflection, generateReflections } from '../services/reflectionEngine.js';
+import { getTwinSummary } from '../services/twinSummaryService.js';
+import { getUndeliveredInsights, markInsightsDelivered } from '../services/proactiveInsights.js';
 
-// Legacy mem0 - kept for backward compatibility on non-chat paths
-import {
-  addConversationMemory as addConversationMemoryLegacy,
-  searchMemories,
-  getMemoryStats
-} from '../services/mem0Service.js';
 
 const router = express.Router();
 
@@ -235,13 +236,30 @@ HANDLING INCOMPLETE DATA:
 - If personality scores are available, they shape WHO you are. Use them to inform your tone and perspective.
 - Never say "I don't have access to that data." Instead say something like "I haven't noticed that yet" or "that's not something I've picked up on."
 - When memories from past conversations exist, weave them in naturally: "last time we talked about X..."
-- The more data available, the richer your observations. But even with one platform, be insightful.`;
+- The more data available, the richer your observations. But even with one platform, be insightful.
+
+INTERNAL REASONING (do this mentally before every response):
+Before writing your response, silently review:
+1. What specific data do I have about this person right now? (platform data, memories, reflections)
+2. What is the user actually asking or feeling? (read between the lines)
+3. What connections can I draw between different data sources?
+4. What's the most interesting or useful thread to pull on?
+5. What do I NOT know? (so I don't accidentally make things up)
+Then compose your response grounded in this reasoning. Never output this reasoning - just use it internally to produce a more thoughtful, grounded reply.
+
+DATA GROUNDING (critical - prevents hallucination):
+- ONLY reference facts, events, and patterns that appear in the context provided to you.
+- If a memory says "listened to Radiohead at 11pm", you can reference that. If no music data exists, do NOT invent what I listened to.
+- Never fabricate specific songs, artists, events, meetings, health metrics, or facts about me.
+- If you're unsure whether something is real data vs your inference, phrase it as a question: "I feel like you've been into ambient stuff lately - am I right?"
+- It is MUCH better to say less with real data than to say more with invented data.
+- Your credibility as my twin depends on accuracy. One wrong fact destroys trust.`;
 
 /**
  * Build a personalized system prompt based on user's soul signature, platform data, and Moltbot memory.
  * Returns an array format for Anthropic prompt caching - static base is cached, dynamic context is not.
  */
-function buildTwinSystemPrompt(soulSignature, platformData, moltbotContext = null, personalityScores = null) {
+function buildTwinSystemPrompt(soulSignature, platformData, moltbotContext = null, personalityScores = null, twinSummary = null, proactiveInsights = null) {
   let dynamicContext = '';
 
   // === TEMPORAL AWARENESS ===
@@ -251,8 +269,22 @@ function buildTwinSystemPrompt(soulSignature, platformData, moltbotContext = nul
   const timeOfDay = hour < 6 ? 'late night' : hour < 12 ? 'morning' : hour < 17 ? 'afternoon' : hour < 21 ? 'evening' : 'night';
   dynamicContext += `\nRight now: ${dayOfWeek} ${timeOfDay} (${hour}:${String(now.getMinutes()).padStart(2, '0')})`;
 
-  // === SOUL SIGNATURE (Identity Layer) ===
-  if (soulSignature) {
+  // === DYNAMIC TWIN SUMMARY (Primary Identity - from memory stream) ===
+  if (twinSummary) {
+    dynamicContext += `\n\nWho I am (based on everything I've shared and experienced):\n${twinSummary}`;
+  }
+
+  // === PROACTIVE INSIGHTS (Things I noticed - mention naturally if relevant) ===
+  if (proactiveInsights && proactiveInsights.length > 0) {
+    dynamicContext += '\n\nTHINGS I NOTICED (mention naturally if relevant to the conversation):';
+    for (const insight of proactiveInsights) {
+      const urgencyMarker = insight.urgency === 'high' ? ' [important]' : '';
+      dynamicContext += `\n- ${insight.insight}${urgencyMarker}`;
+    }
+  }
+
+  // === SOUL SIGNATURE (Identity Layer - fallback if no twin summary) ===
+  if (soulSignature && !twinSummary) {
     dynamicContext += `\n\nWho I am:`;
     if (soulSignature.title) dynamicContext += ` "${soulSignature.title}"`;
     if (soulSignature.subtitle) dynamicContext += ` - ${soulSignature.subtitle}`;
@@ -887,18 +919,15 @@ router.post('/message', authenticateUser, async (req, res) => {
 
     console.log(`[Twin Chat] Message from user ${userId}: "${message.substring(0, 50)}..."`);
 
-    // Fetch context: structured data (soul sig, platform, personality) + unified memory stream
-    const [soulSignature, platformData, personalityScores, writingProfile, memories] = await Promise.all([
-      getSoulSignature(userId),
-      getPlatformData(userId, context?.platforms || ['spotify', 'calendar', 'whoop', 'web']),
-      getPersonalityScores(userId),
-      getUserWritingProfile(userId).catch(() => null),
-      retrieveMemories(userId, message, 15).catch(() => []),
-    ]);
+    // Fetch all context layers via shared builder (unified with MCP server)
+    const twinContext = await fetchTwinContext(userId, message, {
+      platforms: context?.platforms || ['spotify', 'calendar', 'whoop', 'web'],
+    });
+    const { soulSignature, platformData, personalityScores, writingProfile, memories, twinSummary, proactiveInsights } = twinContext;
 
     // Build personalized system prompt with structured context layers
     // Returns array format for Anthropic prompt caching: [cached_base, dynamic_context]
-    let systemPrompt = buildTwinSystemPrompt(soulSignature, platformData, null, personalityScores);
+    let systemPrompt = buildTwinSystemPrompt(soulSignature, platformData, null, personalityScores, twinSummary, proactiveInsights);
 
     // Build additional dynamic context (writing profile + unified memory stream)
     let additionalContext = '';
@@ -929,7 +958,11 @@ router.post('/message', authenticateUser, async (req, res) => {
       const observations = memories.filter(m => m.memory_type !== 'reflection');
 
       if (reflections.length > 0) {
-        additionalContext += `\n\nDeep patterns I've noticed:\n${reflections.map(r => `- ${r.content.substring(0, 250)}`).join('\n')}`;
+        // Label expert reflections with their domain for richer context
+        additionalContext += `\n\nDeep patterns I've noticed (from analyzing my data):\n${reflections.map(r => {
+          const expertLabel = r.metadata?.expertName ? `[${r.metadata.expertName}] ` : '';
+          return `- ${expertLabel}${r.content.substring(0, 250)}`;
+        }).join('\n')}`;
       }
       if (observations.length > 0) {
         additionalContext += `\n\nRelevant memories:\n${observations.slice(0, 8).map(m => `- ${m.content.substring(0, 200)}`).join('\n')}`;
@@ -1065,6 +1098,9 @@ router.post('/message', authenticateUser, async (req, res) => {
       chatSource
     }).catch(err => console.warn('[Twin Chat] Failed to store in memory stream:', err.message));
 
+    // Extract facts from user message - non-blocking
+    extractConversationFacts(userId, message).catch(err => console.error('[TWIN-CHAT] Fact extraction failed:', err.message));
+
     // Trigger reflection if enough importance has accumulated - non-blocking
     shouldTriggerReflection(userId).then(shouldReflect => {
       if (shouldReflect) {
@@ -1075,19 +1111,21 @@ router.post('/message', authenticateUser, async (req, res) => {
       }
     }).catch(() => {});
 
+    // Mark proactive insights as delivered (non-blocking)
+    if (proactiveInsights && proactiveInsights.length > 0) {
+      const insightIds = proactiveInsights.map(i => i.id);
+      markInsightsDelivered(insightIds).catch(err =>
+        console.warn('[Twin Chat] Failed to mark insights delivered:', err.message)
+      );
+    }
+
     // Return response
     res.json({
       success: true,
       message: assistantMessage,
       conversationId: conversationId || null,
       chatSource, // 'openclaw' or 'direct'
-      contextSources: {
-        soulSignature: !!soulSignature,
-        memoryStream: memories?.length > 0,
-        reflections: memories?.filter(m => m.memory_type === 'reflection').length || 0,
-        platformData: Object.keys(platformData),
-        openClawEnabled: chatSource === 'openclaw'
-      }
+      contextSources: buildContextSourcesMeta(twinContext)
     });
 
   } catch (error) {
@@ -1142,6 +1180,43 @@ router.get('/history', authenticateUser, async (req, res) => {
     res.status(500).json({
       success: false,
       error: 'Failed to fetch conversation history'
+    });
+  }
+});
+
+/**
+ * GET /api/chat/context - Get twin context for the sidebar
+ * Returns twin summary, memory stats, and pending proactive insights.
+ */
+router.get('/context', authenticateUser, async (req, res) => {
+  try {
+    const userId = req.user.id;
+
+    const [twinSummary, memoryStats, insightsResult] = await Promise.all([
+      getTwinSummary(userId).catch(() => null),
+      getMemoryStats(userId).catch(() => ({ total: 0, byType: {} })),
+      supabaseAdmin
+        .from('proactive_insights')
+        .select('id, insight, category, urgency, created_at')
+        .eq('user_id', userId)
+        .is('delivered_at', null)
+        .order('created_at', { ascending: false })
+        .limit(10)
+        .then(r => r.data || [])
+        .catch(() => []),
+    ]);
+
+    res.json({
+      success: true,
+      twinSummary: twinSummary || null,
+      memoryStats,
+      pendingInsights: insightsResult,
+    });
+  } catch (error) {
+    console.error('[Twin Chat] Context endpoint error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch twin context',
     });
   }
 });

@@ -143,100 +143,90 @@ Just chat naturally. Ask things like:
     const { getPublicUserId } = await import('./utils/service-adapters.js');
     const userId = await getPublicUserId(authUserId);
 
-    // Fetch ALL context in parallel
+    // Fetch ALL context via shared builder (unified with twin-chat.js)
     console.error('[TwinMe MCP] Fetching data for user:', userId, '(auth:', authUserId, ')');
 
-    const [soulSignature, platformData, moltbotContext, connectedPlatforms, writingProfile, recentConversations] = await Promise.all([
-      getSoulSignature(userId).catch(err => {
-        console.error('[TwinMe MCP] Soul signature fetch error:', err);
-        return null;
-      }),
-      getPlatformData(userId, ['spotify', 'calendar', 'whoop']).catch(err => {
-        console.error('[TwinMe MCP] Platform data fetch error:', err);
-        return {};
-      }),
-      getMoltbotContext(userId).catch(err => {
-        console.error('[TwinMe MCP] Moltbot context fetch error:', err);
-        return null;
-      }),
-      getConnectedPlatforms(userId).catch(err => {
-        console.error('[TwinMe MCP] Connected platforms fetch error:', err);
-        return [];
-      }),
-      getUserWritingProfile(userId).catch(err => {
-        console.error('[TwinMe MCP] Writing profile fetch error:', err);
-        return null;
-      }),
-      getRecentConversations(userId, 5).catch(err => {
-        console.error('[TwinMe MCP] Recent conversations fetch error:', err);
-        return [];
-      }),
-    ]);
+    // @ts-expect-error Dynamic import of JS service (runs via tsx, not tsc)
+    const { fetchTwinContext } = await import('../../services/twinContextBuilder.js');
+    const twinContext = await fetchTwinContext(userId, parsed.message, {
+      platforms: ['spotify', 'calendar', 'whoop', 'web'],
+    });
+
+    const { soulSignature, platformData, personalityScores, writingProfile, memories, twinSummary, proactiveInsights } = twinContext;
 
     // Log what data we have
     console.error('[TwinMe MCP] Data fetched:', {
       hasSoulSignature: !!soulSignature,
       platforms: Object.keys(platformData),
-      connectedPlatforms: connectedPlatforms.map(p => p.platform),
-      hasMemory: !!moltbotContext,
+      hasPersonality: !!personalityScores,
       hasWritingProfile: !!writingProfile,
-      recentConversationCount: recentConversations.length,
-      spotifyData: platformData.spotify ? {
-        currentlyPlaying: !!platformData.spotify.currentlyPlaying,
-        recentTracks: platformData.spotify.recentTracks?.length || 0,
-        topArtists: platformData.spotify.topArtists?.length || 0,
-      } : null,
-      calendarData: platformData.calendar ? {
-        todayEvents: platformData.calendar.todayEvents?.length || 0,
-        upcomingEvents: platformData.calendar.upcomingEvents?.length || 0,
-      } : null,
-      whoopData: platformData.whoop ? {
-        recovery: platformData.whoop.recovery,
-        sleepHours: platformData.whoop.sleepHours,
-      } : null,
+      memoryCount: memories?.length || 0,
+      hasTwinSummary: !!twinSummary,
+      proactiveInsightCount: proactiveInsights?.length || 0,
     });
 
-    // Build system prompt with all context
-    const systemPrompt = buildTwinSystemPrompt(soulSignature, platformData, moltbotContext);
-
-    // Add data availability note to help the twin respond appropriately
-    const dataNote = this.buildDataAvailabilityNote(platformData, soulSignature, connectedPlatforms);
+    // Build system prompt using legacy adapter (still works for MCP string format)
+    const systemPrompt = buildTwinSystemPrompt(soulSignature, platformData, null);
 
     // Add writing profile context so twin can match user's communication style
-    let writingContext = '';
+    let additionalContext = '';
     if (writingProfile) {
-      writingContext = `\n## User's Communication Style (learned from ${writingProfile.totalConversations || 0} conversations)\n`;
-      writingContext += `- Style: ${writingProfile.communicationStyle}\n`;
-      writingContext += `- Message length: ${writingProfile.messageLength}\n`;
-      writingContext += `- Vocabulary: ${writingProfile.vocabularyRichness}\n`;
-      if (writingProfile.usesEmojis) writingContext += `- Uses emojis\n`;
-      if (writingProfile.asksQuestions) writingContext += `- Frequently asks questions\n`;
-      if (writingProfile.commonTopics && Array.isArray(writingProfile.commonTopics) && writingProfile.commonTopics.length > 0) {
-        writingContext += `- Common topics: ${writingProfile.commonTopics.slice(0, 5).join(', ')}\n`;
+      additionalContext += `\n## User's Communication Style (learned from ${(writingProfile as Record<string, unknown>).totalConversations || 0} conversations)\n`;
+      additionalContext += `- Style: ${(writingProfile as Record<string, unknown>).communicationStyle}\n`;
+      additionalContext += `- Message length: ${(writingProfile as Record<string, unknown>).messageLength}\n`;
+      additionalContext += `- Vocabulary: ${(writingProfile as Record<string, unknown>).vocabularyRichness}\n`;
+      if ((writingProfile as Record<string, unknown>).usesEmojis) additionalContext += `- Uses emojis\n`;
+      if ((writingProfile as Record<string, unknown>).asksQuestions) additionalContext += `- Frequently asks questions\n`;
+      const commonTopics = (writingProfile as Record<string, unknown>).commonTopics;
+      if (commonTopics && Array.isArray(commonTopics) && commonTopics.length > 0) {
+        additionalContext += `- Common topics: ${commonTopics.slice(0, 5).join(', ')}\n`;
       }
-      writingContext += `\nIMPORTANT: Mirror the user's communication style - if they're casual, be casual. If they're formal, be more formal.\n`;
+      additionalContext += `\nIMPORTANT: Mirror the user's communication style - if they're casual, be casual. If they're formal, be more formal.\n`;
     }
 
-    // Add recent conversation history for continuity
-    let conversationHistory = '';
-    if (recentConversations.length > 0) {
-      conversationHistory = `\n## Recent Conversation History\n`;
-      conversationHistory += `The user has had ${recentConversations.length} recent conversations with you. Here are the last few:\n\n`;
-      recentConversations.slice(0, 3).reverse().forEach((conv, i) => {
-        conversationHistory += `[${i + 1}] User: "${conv.userMessage.substring(0, 100)}${conv.userMessage.length > 100 ? '...' : ''}"\n`;
-        conversationHistory += `    Twin: "${conv.twinResponse.substring(0, 100)}${conv.twinResponse.length > 100 ? '...' : ''}"\n\n`;
+    // Add twin summary for high-level personality overview
+    if (twinSummary) {
+      additionalContext += `\n## Twin Summary\n${twinSummary}\n`;
+    }
+
+    // Add unified memory stream results (reflections + observations)
+    if (memories && memories.length > 0) {
+      const reflections = memories.filter((m: { memory_type?: string }) => m.memory_type === 'reflection');
+      const observations = memories.filter((m: { memory_type?: string }) => m.memory_type !== 'reflection');
+
+      if (reflections.length > 0) {
+        additionalContext += `\n## Deep Patterns I've Noticed\n${reflections.map((r: { content: string }) => `- ${r.content.substring(0, 250)}`).join('\n')}\n`;
+      }
+      if (observations.length > 0) {
+        additionalContext += `\n## Relevant Memories\n${observations.slice(0, 8).map((m: { content: string }) => `- ${m.content.substring(0, 200)}`).join('\n')}\n`;
+      }
+    }
+
+    // Add proactive insights
+    if (proactiveInsights && proactiveInsights.length > 0) {
+      additionalContext += `\n## Things I Noticed (bring up naturally)\n`;
+      proactiveInsights.forEach((insight: { insight: string; urgency?: string }) => {
+        additionalContext += `- ${insight.insight}${insight.urgency === 'high' ? ' [important]' : ''}\n`;
       });
-      conversationHistory += `Use this history to maintain continuity and reference past discussions when relevant.\n`;
     }
 
-    const enhancedPrompt = systemPrompt + '\n\n' + writingContext + conversationHistory + dataNote;
+    // Add personality scores context
+    if (personalityScores) {
+      const ps = personalityScores as Record<string, number>;
+      additionalContext += `\n## Personality Profile (Big Five)\n`;
+      additionalContext += `Openness: ${Math.round(ps.openness || 0)}, Conscientiousness: ${Math.round(ps.conscientiousness || 0)}, `;
+      additionalContext += `Extraversion: ${Math.round(ps.extraversion || 0)}, Agreeableness: ${Math.round(ps.agreeableness || 0)}, `;
+      additionalContext += `Neuroticism: ${Math.round(ps.neuroticism || 0)}\n`;
+    }
+
+    const enhancedPrompt = systemPrompt + '\n\n' + additionalContext;
 
     // Call Claude API
     const anthropic = getAnthropicClient();
 
     console.error('[TwinMe MCP] Sending to Claude...');
     const response = await anthropic.messages.create({
-      model: 'claude-sonnet-4-5-20250929',
+      model: 'claude-sonnet-4.5',
       max_tokens: 1000,
       temperature: 0.7,
       system: enhancedPrompt,
@@ -249,7 +239,7 @@ Just chat naturally. Ask things like:
 
     console.error('[TwinMe MCP] Response generated successfully');
 
-    // Log the conversation for learning (async, don't block response)
+    // Log the conversation for MCP analytics (async, don't block response)
     logConversation({
       userId,
       userMessage: parsed.message,
@@ -258,12 +248,52 @@ Just chat naturally. Ask things like:
         spotify: !!platformData.spotify,
         calendar: !!platformData.calendar,
         whoop: !!platformData.whoop,
-        connectedPlatforms: connectedPlatforms.map(p => p.platform),
+        platforms_included: Object.keys(platformData),
       },
-      brainStats: moltbotContext?.stats || {},
+      brainStats: {
+        has_soul_signature: !!soulSignature,
+        has_memory_stream: memories?.length > 0,
+        has_writing_profile: !!writingProfile,
+      },
     }).catch(err => {
       console.error('[TwinMe MCP] Failed to log conversation:', err);
     });
+
+    // Store in unified memory stream (async, don't block response)
+    // @ts-expect-error Dynamic import of JS service (runs via tsx, not tsc)
+    import('../../services/memoryStreamService.js').then(({ addConversationMemory }: any) => {
+      addConversationMemory(userId, parsed.message, assistantMessage, {
+        chatSource: 'mcp',
+        platforms: Object.keys(platformData),
+        hasSoulSignature: !!soulSignature,
+      }).catch((err: Error) => {
+        console.error('[TwinMe MCP] Failed to store in memory stream:', err.message);
+      });
+    }).catch(() => {});
+
+    // Trigger reflection check (async, don't block response)
+    // @ts-expect-error Dynamic import of JS service (runs via tsx, not tsc)
+    import('../../services/reflectionEngine.js').then(({ shouldTriggerReflection, generateReflections }: any) => {
+      shouldTriggerReflection(userId).then((shouldReflect: boolean) => {
+        if (shouldReflect) {
+          console.error('[TwinMe MCP] Triggering background reflection for user', userId);
+          generateReflections(userId).catch((err: Error) =>
+            console.error('[TwinMe MCP] Background reflection failed:', err.message)
+          );
+        }
+      }).catch(() => {});
+    }).catch(() => {});
+
+    // Mark proactive insights as delivered (async, don't block response)
+    if (proactiveInsights && proactiveInsights.length > 0) {
+      // @ts-expect-error Dynamic import of JS service (runs via tsx, not tsc)
+      import('../../services/proactiveInsights.js').then(({ markInsightsDelivered }: any) => {
+        const insightIds = proactiveInsights.map((i: { id: string }) => i.id);
+        markInsightsDelivered(insightIds).catch((err: Error) =>
+          console.error('[TwinMe MCP] Failed to mark insights delivered:', err.message)
+        );
+      }).catch(() => {});
+    }
 
     return {
       content: [

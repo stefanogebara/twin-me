@@ -6,8 +6,10 @@
  * Architecture:
  *   - All observations (conversations, platform data, facts) flow into a single
  *     memory stream in `user_memories` with vector embeddings.
- *   - Retrieval uses three-factor scoring:
- *       score = 0.3 * recency_decay + 0.3 * importance/10 + 0.4 * cosine_similarity
+ *   - Retrieval uses three-factor scoring with equal weights and min-max
+ *     normalization (Park et al., Generative Agents, UIST 2023):
+ *       score = norm(recency) + norm(importance) + norm(relevance)
+ *     where norm() applies min-max normalization to [0,1] across all candidate memories.
  *   - Reflections (higher-level insights) are stored back as memories and become
  *     retrievable in future queries, creating a recursive self-improvement loop.
  *
@@ -118,17 +120,29 @@ async function addMemory(userId, content, memoryType = 'observation', metadata =
 }
 
 /**
- * Store a conversation exchange as a memory.
- * Generates a natural-language summary for embedding.
+ * Store a conversation exchange as two separate per-utterance memories.
+ *
+ * Inspired by Generative Agents (Park et al.) where each utterance is stored
+ * as its own observation so that individual statements get distinct importance
+ * scores and can be retrieved independently for better semantic matching.
+ *
+ * @returns {{ userMemory, twinMemory }} - Both memory records (or null on failure)
  */
 async function addConversationMemory(userId, userMessage, assistantResponse, metadata = {}) {
-  const summary = `User said: "${userMessage.substring(0, 200)}". Twin responded about: ${assistantResponse.substring(0, 150)}`;
-  return addMemory(userId, summary, 'conversation', {
-    source: 'twin_chat',
-    userMessage: userMessage.substring(0, 500),
-    assistantResponse: assistantResponse.substring(0, 500),
-    ...metadata,
-  });
+  const [userMemory, twinMemory] = await Promise.all([
+    addMemory(userId, `User said: "${userMessage.substring(0, 500)}"`, 'conversation', {
+      role: 'user',
+      source: 'twin_chat',
+      ...metadata,
+    }),
+    addMemory(userId, `Twin responded: "${assistantResponse.substring(0, 500)}"`, 'conversation', {
+      role: 'assistant',
+      source: 'twin_chat',
+      ...metadata,
+    }),
+  ]);
+
+  return { userMemory, twinMemory };
 }
 
 /**
@@ -158,22 +172,66 @@ async function addReflection(userId, content, evidenceIds = [], metadata = {}) {
 }
 
 // ====================================================================
+// Retrieval Weight Presets
+// ====================================================================
+
+/**
+ * Context-dependent retrieval weights inspired by Paper 2 (Park et al., 2024).
+ *
+ * Paper 2 uses [recency=0, relevance=1, importance=0.5] — relevance dominant,
+ * recency disabled — because interview data doesn't age meaningfully.
+ *
+ * For TwinMe, different query contexts benefit from different weight balances:
+ * - Identity queries (who is this person) → relevance dominant, recency low
+ * - Recent activity queries (what just happened) → recency dominant
+ * - Reflection queries (deeper patterns) → relevance + importance, recency off
+ * - General conversation (default) → balanced weights
+ */
+const RETRIEVAL_WEIGHTS = {
+  // Default: equal weights (original Generative Agents behavior)
+  default: { recency: 1.0, importance: 1.0, relevance: 1.0 },
+
+  // Identity: who is this person? Relevance dominant, recency low.
+  // Used by: twin summary generation, personality queries
+  identity: { recency: 0.2, importance: 0.8, relevance: 1.0 },
+
+  // Recent: what's happening now? Recency dominant, relevance still matters.
+  // Used by: proactive insights, "how are you?" type queries
+  recent: { recency: 1.0, importance: 0.5, relevance: 0.7 },
+
+  // Reflection: deep pattern analysis. Paper 2 style — no recency bias.
+  // Used by: reflection engine expert personas
+  reflection: { recency: 0.0, importance: 0.5, relevance: 1.0 },
+};
+
+// ====================================================================
 // Read Path
 // ====================================================================
 
 /**
- * Retrieve memories using three-factor scoring:
- *   score = 0.3 * recency + 0.3 * importance + 0.4 * relevance
+ * Retrieve memories using three-factor scoring with min-max normalization
+ * and context-dependent weights:
+ *   score = w_recency * norm(recency) + w_importance * norm(importance) + w_relevance * norm(relevance)
+ *
+ * Each factor is normalized to [0,1] via min-max across all candidate memories.
+ * Weights can be customized per-call or via named presets.
  *
  * Uses the `search_memory_stream` RPC function in Supabase.
  *
  * @param {string} userId - User UUID
  * @param {string} query - Natural language query for semantic search
  * @param {number} limit - Max results to return (default 10)
+ * @param {object|string} weights - Weight preset name ('identity'|'recent'|'reflection'|'default')
+ *                                   or object { recency, importance, relevance }
  * @returns {Array} Scored and ranked memories
  */
-async function retrieveMemories(userId, query, limit = 10) {
+async function retrieveMemories(userId, query, limit = 10, weights = 'default') {
   if (!userId || !query) return [];
+
+  // Resolve weight preset
+  const w = typeof weights === 'string'
+    ? (RETRIEVAL_WEIGHTS[weights] || RETRIEVAL_WEIGHTS.default)
+    : { ...RETRIEVAL_WEIGHTS.default, ...weights };
 
   try {
     // Generate query embedding for semantic search
@@ -184,12 +242,15 @@ async function retrieveMemories(userId, query, limit = 10) {
       return fallbackKeywordSearch(userId, query, limit);
     }
 
-    // Call the three-factor scoring RPC function
+    // Call the three-factor scoring RPC function with weights
     const { data, error } = await supabaseAdmin.rpc('search_memory_stream', {
       p_user_id: userId,
       p_query_embedding: vectorToString(queryEmbedding),
       p_limit: limit,
       p_decay_factor: 0.995,
+      p_weight_recency: w.recency,
+      p_weight_importance: w.importance,
+      p_weight_relevance: w.relevance,
     });
 
     if (error) {
@@ -207,7 +268,8 @@ async function retrieveMemories(userId, query, limit = 10) {
       .then(() => {})
       .catch(err => console.warn('[MemoryStream] Failed to touch memories:', err.message));
 
-    console.log(`[MemoryStream] Retrieved ${data.length} memories (top score: ${data[0].score?.toFixed(3)})`);
+    const weightLabel = typeof weights === 'string' ? weights : 'custom';
+    console.log(`[MemoryStream] Retrieved ${data.length} memories (weights=${weightLabel}, top score: ${data[0].score?.toFixed(3)})`);
     return data;
   } catch (error) {
     console.error('[MemoryStream] retrieveMemories error:', error.message);
@@ -296,6 +358,115 @@ async function getRecentMemories(userId, limit = 50) {
   }
 }
 
+// ====================================================================
+// Conversation Fact Extraction
+// ====================================================================
+
+const FACT_EXTRACTION_PROMPT = `Extract 0-3 factual statements about this person from their message. Return a JSON array of strings. Only include clear facts, not opinions or greetings.
+
+Message: "{message}"
+
+JSON array:`;
+
+/**
+ * Extract factual statements from a user's chat message and store them as memories.
+ * Uses TIER_EXTRACTION (Mistral Small) for cheap, fast extraction.
+ * Skips messages shorter than 20 characters.
+ *
+ * @param {string} userId - User UUID
+ * @param {string} userMessage - The user's chat message
+ * @returns {Array} Array of stored fact memory records (or empty)
+ */
+async function extractConversationFacts(userId, userMessage) {
+  if (!userId || !userMessage || userMessage.length < 20) return [];
+
+  try {
+    const result = await complete({
+      tier: TIER_EXTRACTION,
+      messages: [{
+        role: 'user',
+        content: FACT_EXTRACTION_PROMPT.replace('{message}', userMessage.substring(0, 500))
+      }],
+      maxTokens: 200,
+      temperature: 0,
+      serviceName: 'memoryStream-factExtraction'
+    });
+
+    const text = (result.content || '').trim();
+
+    // Parse the JSON array from the response
+    let facts;
+    try {
+      // Handle cases where the LLM wraps in markdown code blocks
+      const cleaned = text.replace(/^```json?\s*/i, '').replace(/\s*```$/i, '').trim();
+      facts = JSON.parse(cleaned);
+    } catch {
+      console.warn('[MemoryStream] Could not parse fact extraction response:', text.substring(0, 100));
+      return [];
+    }
+
+    if (!Array.isArray(facts) || facts.length === 0) return [];
+
+    // Store each fact as a memory (max 3)
+    const stored = [];
+    for (const fact of facts.slice(0, 3)) {
+      if (typeof fact === 'string' && fact.trim().length > 0) {
+        const mem = await addMemory(userId, fact.trim(), 'fact', { source: 'conversation_extraction' });
+        if (mem) stored.push(mem);
+      }
+    }
+
+    if (stored.length > 0) {
+      console.log(`[MemoryStream] Extracted ${stored.length} facts from conversation for user ${userId}`);
+    }
+
+    return stored;
+  } catch (error) {
+    console.error('[MemoryStream] extractConversationFacts error:', error.message);
+    return [];
+  }
+}
+
+// ====================================================================
+// Memory Stats Helper
+// ====================================================================
+
+/**
+ * Get memory statistics for a user, grouped by memory type.
+ *
+ * @param {string} userId - User UUID
+ * @returns {{ total: number, byType: { fact, reflection, platform_data, conversation, observation } }}
+ */
+async function getMemoryStats(userId) {
+  const defaultStats = { total: 0, byType: { fact: 0, reflection: 0, platform_data: 0, conversation: 0, observation: 0 } };
+  if (!userId) return defaultStats;
+
+  try {
+    const { data, error } = await supabaseAdmin
+      .from('user_memories')
+      .select('memory_type')
+      .eq('user_id', userId);
+
+    if (error || !data) {
+      console.warn('[MemoryStream] getMemoryStats query failed:', error?.message);
+      return defaultStats;
+    }
+
+    const byType = { fact: 0, reflection: 0, platform_data: 0, conversation: 0, observation: 0 };
+    for (const row of data) {
+      const t = row.memory_type;
+      if (t in byType) {
+        byType[t]++;
+      }
+    }
+
+    return { total: data.length, byType };
+  } catch (error) {
+    console.error('[MemoryStream] getMemoryStats error:', error.message);
+    return defaultStats;
+  }
+}
+
 export {
   addMemory,
   addConversationMemory,
@@ -305,4 +476,7 @@ export {
   getRecentImportanceSum,
   getRecentMemories,
   rateImportance,
+  extractConversationFacts,
+  getMemoryStats,
+  RETRIEVAL_WEIGHTS,
 };

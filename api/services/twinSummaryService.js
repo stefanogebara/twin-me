@@ -1,0 +1,167 @@
+/**
+ * Twin Summary Service
+ * ====================
+ * Dynamically generates an evolving personality summary for the user's twin,
+ * inspired by the "Agent Summary Description" from Generative Agents (Park et al., UIST 2023)
+ * and enhanced with expert reflection domains from Paper 2 (Park et al., 2024).
+ *
+ * Architecture:
+ *   - Five parallel retrieval queries probe the memory stream, aligned with the
+ *     expert reflection domains (personality, lifestyle, cultural identity,
+ *     social dynamics, motivation).
+ *   - Each set of memories is summarized by LLM (TIER_ANALYSIS / DeepSeek)
+ *   - The five summaries are combined into a single natural paragraph
+ *   - Cached in `twin_summaries` table; regenerated if older than 4 hours
+ *
+ * Usage:
+ *   import { getTwinSummary } from './twinSummaryService.js';
+ *   const summary = await getTwinSummary(userId);
+ */
+
+import { retrieveMemories } from './memoryStreamService.js';
+import { complete, TIER_ANALYSIS } from './llmGateway.js';
+import { supabaseAdmin } from './database.js';
+
+const SUMMARY_MAX_AGE_MS = 4 * 60 * 60 * 1000; // 4 hours
+
+/**
+ * Summarize a set of retrieved memories into a concise description for a given aspect.
+ *
+ * @param {Array} memories - Retrieved memories from the memory stream
+ * @param {string} aspect - What aspect to summarize (e.g., "core characteristics")
+ * @param {string} userName - The user's name for context
+ * @returns {string} A concise summary sentence
+ */
+async function summarizeMemories(memories, aspect, userName) {
+  if (!memories || memories.length === 0) {
+    return '';
+  }
+
+  const memoryText = memories
+    .map(m => m.content)
+    .join('\n- ');
+
+  try {
+    const result = await complete({
+      tier: TIER_ANALYSIS,
+      system: `You summarize memories about a person into a concise, natural-sounding description. Write in third person. Be specific and use details from the memories. Output 1-2 sentences only, no bullet points. Only state things supported by the evidence.`,
+      messages: [{
+        role: 'user',
+        content: `Based on these memories about ${userName}, write a concise summary of their ${aspect}:\n\n- ${memoryText}`
+      }],
+      maxTokens: 200,
+      temperature: 0.5,
+      serviceName: 'twinSummary-summarize'
+    });
+
+    return (result.content || '').trim();
+  } catch (error) {
+    console.warn(`[TwinSummary] Failed to summarize ${aspect}:`, error.message);
+    return '';
+  }
+}
+
+/**
+ * Generate a fresh twin summary by querying the memory stream with five
+ * parallel retrieval queries aligned to the expert reflection domains.
+ *
+ * @param {string} userId - User UUID
+ * @param {string} userName - User's display name (defaults to 'This person')
+ * @returns {object} { summary, personality, lifestyle, culturalIdentity, socialDynamics, motivation }
+ */
+async function generateTwinSummary(userId, userName = 'This person') {
+  console.log(`[TwinSummary] Generating fresh summary for user ${userId}`);
+
+  // Five parallel retrieval queries aligned to expert reflection domains
+  // Using 'identity' weights: relevance dominant, low recency bias — who this person IS, not just what happened recently
+  const [personalityMemories, lifestyleMemories, culturalMemories, socialMemories, motivationMemories] = await Promise.all([
+    retrieveMemories(userId, `${userName}'s emotional patterns, personality traits, coping mechanisms, and psychological tendencies`, 15, 'identity'),
+    retrieveMemories(userId, `${userName}'s daily routines, energy patterns, sleep habits, health metrics, and lifestyle rhythms`, 15, 'identity'),
+    retrieveMemories(userId, `${userName}'s music taste, content preferences, aesthetic choices, cultural identity, and creative interests`, 15, 'identity'),
+    retrieveMemories(userId, `${userName}'s communication style, social interactions, relationship patterns, and social energy`, 15, 'identity'),
+    retrieveMemories(userId, `${userName}'s work patterns, goals, ambitions, motivation, productivity, and decision-making style`, 15, 'identity'),
+  ]);
+
+  // Summarize each domain in parallel
+  const [personality, lifestyle, culturalIdentity, socialDynamics, motivation] = await Promise.all([
+    summarizeMemories(personalityMemories, 'emotional patterns and personality', userName),
+    summarizeMemories(lifestyleMemories, 'daily rhythms and lifestyle patterns', userName),
+    summarizeMemories(culturalMemories, 'cultural identity and aesthetic preferences', userName),
+    summarizeMemories(socialMemories, 'social dynamics and communication style', userName),
+    summarizeMemories(motivationMemories, 'motivations and work patterns', userName),
+  ]);
+
+  // Combine into a single natural paragraph
+  const parts = [personality, lifestyle, culturalIdentity, socialDynamics, motivation].filter(Boolean);
+  const summary = parts.length > 0
+    ? parts.join(' ')
+    : '';
+
+  if (!summary) {
+    console.log('[TwinSummary] No memories available to generate summary');
+    return null;
+  }
+
+  // Persist to database (upsert)
+  try {
+    const { error } = await supabaseAdmin
+      .from('twin_summaries')
+      .upsert({
+        user_id: userId,
+        summary,
+        core_traits: personality || null,
+        current_focus: lifestyle || null,
+        recent_feelings: culturalIdentity || null,
+        generated_at: new Date().toISOString(),
+      }, { onConflict: 'user_id' });
+
+    if (error) {
+      console.warn('[TwinSummary] Failed to persist summary:', error.message);
+    } else {
+      console.log(`[TwinSummary] Summary persisted (${summary.length} chars, ${parts.length} domains)`);
+    }
+  } catch (err) {
+    console.warn('[TwinSummary] DB upsert error:', err.message);
+  }
+
+  return { summary, personality, lifestyle, culturalIdentity, socialDynamics, motivation };
+}
+
+/**
+ * Get the twin summary for a user. Returns cached version if fresh enough
+ * (< 4 hours old), otherwise generates a new one.
+ *
+ * @param {string} userId - User UUID
+ * @param {string} userName - User's display name
+ * @returns {string|null} The summary paragraph, or null if no data available
+ */
+async function getTwinSummary(userId, userName = 'This person') {
+  if (!supabaseAdmin) return null;
+
+  try {
+    // Check for cached summary
+    const { data: cached, error } = await supabaseAdmin
+      .from('twin_summaries')
+      .select('summary, generated_at')
+      .eq('user_id', userId)
+      .single();
+
+    if (!error && cached && cached.summary) {
+      const age = Date.now() - new Date(cached.generated_at).getTime();
+      if (age < SUMMARY_MAX_AGE_MS) {
+        console.log(`[TwinSummary] Using cached summary (age: ${Math.round(age / 60000)}m)`);
+        return cached.summary;
+      }
+      console.log(`[TwinSummary] Cached summary stale (age: ${Math.round(age / 3600000)}h), regenerating`);
+    }
+
+    // Generate fresh summary
+    const result = await generateTwinSummary(userId, userName);
+    return result?.summary || null;
+  } catch (err) {
+    console.warn('[TwinSummary] getTwinSummary error:', err.message);
+    return null;
+  }
+}
+
+export { generateTwinSummary, getTwinSummary };
