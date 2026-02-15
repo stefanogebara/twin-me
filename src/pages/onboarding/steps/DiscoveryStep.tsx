@@ -174,6 +174,7 @@ export const DiscoveryStep: React.FC<DiscoveryStepProps> = ({
   // Correction form state
   const [formName, setFormName] = useState('');
   const [formLinkedIn, setFormLinkedIn] = useState('');
+  const [rejectionCount, setRejectionCount] = useState(0);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -444,14 +445,25 @@ export const DiscoveryStep: React.FC<DiscoveryStepProps> = ({
   };
 
   const handleNo = async () => {
+    const newCount = rejectionCount + 1;
+    setRejectionCount(newCount);
     setShowYesNo(false);
     addMessage('user', "Not quite");
 
     await new Promise(resolve => setTimeout(resolve, 400));
-    await typeMessage("No problem. Share your LinkedIn and I'll try again.", 25);
 
-    setStep('correction-form');
-    setFormName(enrichmentData?.discovered_name || confirmedName);
+    if (newCount >= 2) {
+      // After 2 failed attempts, skip research and move on
+      await typeMessage("Sorry about that. Let's skip the research and move on.", 25);
+      const confirmedData: ConfirmedData = {
+        name: enrichmentData?.discovered_name || confirmedName,
+      };
+      setTimeout(() => onComplete(confirmedData), 1200);
+    } else {
+      await typeMessage("No problem. Share your LinkedIn and I'll try again.", 25);
+      setStep('correction-form');
+      setFormName(enrichmentData?.discovered_name || confirmedName);
+    }
   };
 
   const handleResearchAgain = async () => {

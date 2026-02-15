@@ -344,56 +344,10 @@ class ProfileEnrichmentService {
     }
 
     // =================================================================
-    // STEP 2: SCRAPIN - Get LinkedIn profile for professional details
-    // This provides: company, title, connections, professional summary
-    // =================================================================
-    if (scrapinKey) {
-      console.log('[ProfileEnrichment] Step 2: Trying Scrapin.io for LinkedIn data...');
-      const scrapinResult = await this.callScrapinAPI(email, name, scrapinKey);
-      if (scrapinResult.success && scrapinResult.data) {
-        console.log('[ProfileEnrichment] Scrapin.io found LinkedIn data!');
-        let linkedInData = scrapinResult.data;
-
-        // Fetch full profile if we have LinkedIn URL
-        if (linkedInData.discovered_linkedin_url) {
-          console.log('[ProfileEnrichment] Fetching full LinkedIn profile...');
-          const fullProfile = await this.fetchScrapinFullProfile(linkedInData.discovered_linkedin_url, scrapinKey);
-          if (fullProfile.success && fullProfile.data) {
-            console.log('[ProfileEnrichment] Got full LinkedIn profile!');
-            linkedInData = { ...linkedInData, ...fullProfile.data };
-          }
-        }
-
-        // Merge LinkedIn data with Gemini data (LinkedIn takes priority for professional fields)
-        enrichedData = {
-          ...enrichedData,
-          discovered_company: linkedInData.discovered_company || enrichedData.discovered_company,
-          discovered_title: linkedInData.discovered_title || enrichedData.discovered_title,
-          discovered_location: linkedInData.discovered_location || enrichedData.discovered_location,
-          discovered_linkedin_url: linkedInData.discovered_linkedin_url,
-          // Keep Gemini's broader findings for these
-          career_timeline: enrichedData.career_timeline || linkedInData.career_timeline,
-          education: enrichedData.education || linkedInData.education,
-          // Add Scrapin-specific fields
-          scrapin_summary: linkedInData.scrapin_summary,
-          scrapin_headline: linkedInData.scrapin_headline,
-          scrapin_industry: linkedInData.scrapin_industry,
-          scrapin_connection_count: linkedInData.scrapin_connection_count,
-          scrapin_follower_count: linkedInData.scrapin_follower_count,
-          scrapin_profile_picture_url: linkedInData.scrapin_profile_picture_url,
-          scrapin_background_url: linkedInData.scrapin_background_url
-        };
-        enrichmentSource = enrichmentSource !== 'none' ? enrichmentSource + '+scrapin' : 'scrapin';
-      } else {
-        console.log('[ProfileEnrichment] Scrapin.io: no match found');
-      }
-    }
-
-    // =================================================================
-    // STEP 3: PDL - Additional database lookup (if configured)
+    // STEP 2: PDL - Additional database lookup (if configured)
     // =================================================================
     if (pdlKey && !enrichedData.discovered_company) {
-      console.log('[ProfileEnrichment] Step 3: Trying People Data Labs...');
+      console.log('[ProfileEnrichment] Step 2: Trying People Data Labs...');
       const pdlResult = await this.callPeopleDataLabsAPI(email, name, pdlKey);
       if (pdlResult.success && pdlResult.data) {
         console.log('[ProfileEnrichment] PDL found profile!');
@@ -409,18 +363,18 @@ class ProfileEnrichmentService {
     }
 
     // =================================================================
-    // STEP 4: Search for additional social profiles (Twitter, GitHub, etc.)
+    // STEP 3: Search for additional social profiles (Twitter, GitHub, etc.)
     // =================================================================
-    console.log('[ProfileEnrichment] Step 4: Searching for additional social profiles...');
+    console.log('[ProfileEnrichment] Step 3: Searching for additional social profiles...');
     const webSearchResult = await this.searchWebForSocialProfiles(email, name, enrichedData);
 
     // Combine all enrichment sources
     const combinedData = this.combineEnrichmentSources(enrichedData, webSearchResult, email, name);
 
     // =================================================================
-    // STEP 5: Generate narrative summary
+    // STEP 4: Generate narrative summary
     // =================================================================
-    console.log('[ProfileEnrichment] Step 5: Generating narrative summary...');
+    console.log('[ProfileEnrichment] Step 4: Generating narrative summary...');
     const detailedNarrative = await this.generateDetailedNarrative(combinedData, name);
     const summary = detailedNarrative || this.buildFactualSummary(combinedData);
 
@@ -2751,10 +2705,10 @@ Return the findings in JSON format.`;
       ? 'https://openrouter.ai/api/v1/chat/completions'
       : 'https://api.perplexity.ai/chat/completions';
 
-    // Use Gemini 2.0 Flash for best person search results
-    const model = useOpenRouter ? 'google/gemini-2.0-flash-001' : 'sonar';
+    // Use Sonar Pro for web search (has native built-in search)
+    const model = useOpenRouter ? 'perplexity/sonar-pro' : 'sonar';
 
-    console.log(`[ProfileEnrichment] Using ${useOpenRouter ? 'OpenRouter (Gemini 2.0 Flash)' : 'Perplexity'} API`);
+    console.log(`[ProfileEnrichment] Using ${useOpenRouter ? 'OpenRouter (Sonar Pro)' : 'Perplexity'} API`);
 
     try {
       const headers = {
