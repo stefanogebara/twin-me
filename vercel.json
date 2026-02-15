@@ -1,6 +1,11 @@
 {
   "version": 2,
   "buildCommand": "npm run build",
+  "functions": {
+    "api/index.js": {
+      "maxDuration": 60
+    }
+  },
   "routes": [
     {
       "src": "/api/(.*)",
