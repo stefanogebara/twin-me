@@ -89,12 +89,30 @@ export const PlatformConnectStep: React.FC<PlatformConnectStepProps> = ({
   const { trackFunnel } = useAnalytics();
   const [connecting, setConnecting] = useState<string | null>(null);
   const [connected, setConnected] = useState<string[]>([]);
+  const [consented, setConsented] = useState<Record<string, boolean>>({});
+  const [platformInsights, setPlatformInsights] = useState<Record<string, string>>({});
 
   const handleConnect = useCallback(async (platform: PlatformCard) => {
     if (connecting || connected.includes(platform.id)) return;
+    if (!consented[platform.id]) return;
 
     setConnecting(platform.id);
     try {
+      // Record consent before initiating platform connection
+      const token = localStorage.getItem('auth_token') || localStorage.getItem('token');
+      await fetch(`${API_URL}/consent`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify({
+          consent_type: 'platform_connect',
+          platform: platform.id,
+          consent_version: '1.0',
+        }),
+      });
+
       let apiUrl: string;
       let fetchOptions: RequestInit;
 
@@ -134,7 +152,7 @@ export const PlatformConnectStep: React.FC<PlatformConnectStepProps> = ({
     } finally {
       setConnecting(null);
     }
-  }, [connecting, connected, userId]);
+  }, [connecting, connected, consented, userId]);
 
   // Check if returning from OAuth
   React.useEffect(() => {
@@ -142,6 +160,22 @@ export const PlatformConnectStep: React.FC<PlatformConnectStepProps> = ({
     if (justConnected) {
       sessionStorage.removeItem('onboarding_platform_connect');
       setConnected(prev => [...prev, justConnected]);
+
+      // Fetch platform preview insight
+      const token = localStorage.getItem('auth_token') || localStorage.getItem('token');
+      fetch(`${API_URL}/onboarding/platform-preview/${justConnected}`, {
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
+        },
+      })
+        .then(res => res.json())
+        .then(data => {
+          if (data.success && data.insight) {
+            setPlatformInsights(prev => ({ ...prev, [justConnected]: data.insight }));
+          }
+        })
+        .catch(err => console.warn('[PlatformConnect] Preview fetch failed:', err.message));
     }
   }, []);
 
@@ -201,16 +235,15 @@ export const PlatformConnectStep: React.FC<PlatformConnectStepProps> = ({
             {PLATFORMS.map((platform, index) => {
               const isConnected = connected.includes(platform.id);
               const isConnecting = connecting === platform.id;
+              const hasConsent = !!consented[platform.id];
 
               return (
-                <motion.button
+                <motion.div
                   key={platform.id}
                   initial={{ opacity: 0, x: -20 }}
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ duration: 0.4, delay: index * 0.1 }}
-                  onClick={() => handleConnect(platform)}
-                  disabled={isConnecting || isConnected}
-                  className="w-full flex items-center gap-4 px-5 py-4 rounded-xl transition-all duration-200 hover:scale-[1.01] disabled:opacity-70"
+                  className="rounded-xl overflow-hidden"
                   style={{
                     backgroundColor: isConnected
                       ? 'rgba(232, 213, 183, 0.08)'
@@ -220,44 +253,86 @@ export const PlatformConnectStep: React.FC<PlatformConnectStepProps> = ({
                       : '1px solid rgba(232, 213, 183, 0.1)',
                   }}
                 >
-                  {/* Platform icon */}
-                  <div
-                    className="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0"
-                    style={{
-                      backgroundColor: `${platform.color}20`,
-                      color: platform.color,
-                    }}
+                  <button
+                    onClick={() => handleConnect(platform)}
+                    disabled={isConnecting || isConnected || !hasConsent}
+                    className="w-full flex items-center gap-4 px-5 py-4 transition-all duration-200 hover:scale-[1.01] disabled:opacity-70"
                   >
-                    {platform.icon}
-                  </div>
-
-                  {/* Text */}
-                  <div className="flex-1 text-left">
+                    {/* Platform icon */}
                     <div
-                      className="text-base font-medium"
-                      style={{ color: '#E8D5B7', fontFamily: 'var(--font-body)' }}
+                      className="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0"
+                      style={{
+                        backgroundColor: `${platform.color}20`,
+                        color: platform.color,
+                      }}
                     >
-                      {platform.name}
+                      {platform.icon}
                     </div>
-                    <div
-                      className="text-sm opacity-50"
-                      style={{ color: '#E8D5B7', fontFamily: 'var(--font-body)' }}
-                    >
-                      {platform.description}
-                    </div>
-                  </div>
 
-                  {/* Status */}
-                  <div className="flex-shrink-0">
-                    {isConnecting ? (
-                      <Loader2 className="w-5 h-5 animate-spin" style={{ color: '#E8D5B7' }} />
-                    ) : isConnected ? (
-                      <CheckCircle2 className="w-5 h-5 text-green-400" />
-                    ) : (
-                      <ExternalLink className="w-4 h-4 opacity-30" style={{ color: '#E8D5B7' }} />
-                    )}
-                  </div>
-                </motion.button>
+                    {/* Text */}
+                    <div className="flex-1 text-left">
+                      <div
+                        className="text-base font-medium"
+                        style={{ color: '#E8D5B7', fontFamily: 'var(--font-body)' }}
+                      >
+                        {platform.name}
+                      </div>
+                      <div
+                        className="text-sm opacity-50"
+                        style={{ color: '#E8D5B7', fontFamily: 'var(--font-body)' }}
+                      >
+                        {platform.description}
+                      </div>
+                    </div>
+
+                    {/* Status */}
+                    <div className="flex-shrink-0">
+                      {isConnecting ? (
+                        <Loader2 className="w-5 h-5 animate-spin" style={{ color: '#E8D5B7' }} />
+                      ) : isConnected ? (
+                        <CheckCircle2 className="w-5 h-5 text-green-400" />
+                      ) : (
+                        <ExternalLink className="w-4 h-4 opacity-30" style={{ color: '#E8D5B7' }} />
+                      )}
+                    </div>
+                  </button>
+
+                  {/* Consent checkbox - shown only when not yet connected */}
+                  {!isConnected && (
+                    <label
+                      className="flex items-start gap-3 px-5 pb-4 pt-0 cursor-pointer select-none"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={hasConsent}
+                        onChange={(e) =>
+                          setConsented((prev) => ({ ...prev, [platform.id]: e.target.checked }))
+                        }
+                        className="mt-0.5 w-4 h-4 rounded accent-[#E8D5B7] flex-shrink-0"
+                      />
+                      <span
+                        className="text-xs leading-relaxed opacity-50"
+                        style={{ color: '#E8D5B7', fontFamily: 'var(--font-body)' }}
+                      >
+                        I consent to Twin Me accessing my {platform.name} data to build my soul signature
+                      </span>
+                    </label>
+                  )}
+
+                  {/* Platform insight - shown after connection */}
+                  {isConnected && platformInsights[platform.id] && (
+                    <motion.p
+                      initial={{ opacity: 0, y: 4 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.5 }}
+                      className="px-5 pb-4 text-xs leading-relaxed"
+                      style={{ color: 'rgba(232, 213, 183, 0.6)', fontFamily: 'var(--font-body)' }}
+                    >
+                      Your twin learned: {platformInsights[platform.id]}
+                    </motion.p>
+                  )}
+                </motion.div>
               );
             })}
           </div>

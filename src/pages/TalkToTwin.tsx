@@ -33,9 +33,12 @@ interface Message {
   content: string;
   timestamp: Date;
   contextUsed?: {
-    memories?: number;
-    platforms?: string[];
-    personality?: boolean;
+    soulSignature?: boolean;
+    twinSummary?: string | null;
+    memoryStream?: { total: number; reflections: number; facts: number };
+    proactiveInsights?: Array<{ insight: string; category: string; urgency: string }>;
+    platformData?: string[];
+    personalityProfile?: boolean;
   };
 }
 
@@ -216,17 +219,11 @@ const TalkToTwin = () => {
       const token = localStorage.getItem('auth_token');
       const headers = { 'Authorization': `Bearer ${token}` };
 
-      // Fetch memory and context data (Mem0 long-term memory)
-      const [mem0StatsRes] = await Promise.all([
-        fetch(`${API_BASE}/mem0/stats`, { headers }).catch(() => null),
-      ]);
-      const memoriesRes = null;
-      const factsRes = null;
-      const clustersRes = null;
+      const res = await fetch(`${API_BASE}/chat/context`, { headers }).catch(() => null);
 
       const items: ContextItem[] = [];
 
-      // Add platform data
+      // Add connected platform items
       connectedPlatforms.forEach(p => {
         items.push({
           type: 'platform',
@@ -236,51 +233,38 @@ const TalkToTwin = () => {
         });
       });
 
-      // Add memories if available
-      if (memoriesRes?.ok) {
-        const data = await memoriesRes.json();
-        data.events?.slice(0, 3).forEach((event: any) => {
-          items.push({
-            type: 'memory',
-            label: event.type || 'Event',
-            value: event.platform || 'Activity',
-            timestamp: event.created_at
-          });
-        });
-      }
+      if (res?.ok) {
+        const data = await res.json();
 
-      // Add facts if available
-      if (factsRes?.ok) {
-        const data = await factsRes.json();
-        data.facts?.slice(0, 3).forEach((fact: any) => {
-          items.push({
-            type: 'fact',
-            label: fact.category || 'Learned',
-            value: fact.key || fact.value || 'Pattern detected'
-          });
-        });
-      }
-
-      // Add personality if available
-      if (clustersRes?.ok) {
-        const data = await clustersRes.json();
-        if (data.profiles?.length > 0) {
+        // Twin Identity preview
+        if (data.twinSummary) {
           items.push({
             type: 'personality',
-            label: 'Personality',
-            value: `${data.profiles.length} cluster profiles`
+            label: 'Twin Identity',
+            value: data.twinSummary.length > 120 ? data.twinSummary.substring(0, 120) + '...' : data.twinSummary
           });
         }
-      }
 
-      // Add Mem0 long-term memory stats if available
-      if (mem0StatsRes?.ok) {
-        const data = await mem0StatsRes.json();
-        if (data.stats?.total > 0) {
+        // Memory Stream stats
+        if (data.memoryStats && data.memoryStats.total > 0) {
+          const ms = data.memoryStats;
+          const parts = [`${ms.total} total`];
+          if (ms.byType?.reflection) parts.push(`${ms.byType.reflection} reflections`);
+          if (ms.byType?.fact) parts.push(`${ms.byType.fact} facts`);
+          if (ms.byType?.conversation) parts.push(`${ms.byType.conversation} conversations`);
           items.push({
             type: 'memory',
-            label: 'Long-term Memory',
-            value: `${data.stats.total} memories stored`
+            label: 'Memory Stream',
+            value: parts.join(', ')
+          });
+        }
+
+        // Pending proactive insights
+        if (data.pendingInsights && data.pendingInsights.length > 0) {
+          items.push({
+            type: 'fact',
+            label: 'Pending Insights',
+            value: `${data.pendingInsights.length} insight${data.pendingInsights.length > 1 ? 's' : ''} ready`
           });
         }
       }
@@ -344,9 +328,12 @@ const TalkToTwin = () => {
           content: data.response || data.message || "I'm processing your request...",
           timestamp: new Date(),
           contextUsed: data.contextSources ? {
-            memories: (data.contextSources.moltbotMemory ? 1 : 0) + (data.contextSources.mem0Memory ? 1 : 0),
-            platforms: data.contextSources.platformData || [],
-            personality: data.contextSources.soulSignature
+            soulSignature: data.contextSources.soulSignature,
+            twinSummary: data.contextSources.twinSummary,
+            memoryStream: data.contextSources.memoryStream,
+            proactiveInsights: data.contextSources.proactiveInsights,
+            platformData: data.contextSources.platformData,
+            personalityProfile: data.contextSources.personalityProfile,
           } : undefined
         };
         setMessages(prev => [...prev, assistantMessage]);
@@ -512,7 +499,7 @@ const TalkToTwin = () => {
               )}
 
               {/* Platform Status Pills */}
-              <div className="flex items-center gap-2">
+              <div className="flex flex-wrap items-center justify-center gap-2 max-w-lg">
                 {platforms.map((platform) => (
                   <div
                     key={platform.key}
@@ -577,17 +564,52 @@ const TalkToTwin = () => {
                       </p>
                     </div>
 
-                    {/* Context indicator for assistant */}
+                    {/* Context pills for assistant */}
                     {message.role === 'assistant' && message.contextUsed && (
-                      <div
-                        className="flex items-center gap-2 mt-2 text-xs"
-                        style={{ color: colors.textMuted }}
-                      >
-                        <Database className="w-3 h-3" />
-                        <span>
-                          Used: {message.contextUsed.platforms?.join(', ') || 'memories'}
-                          {message.contextUsed.personality && ' + personality'}
-                        </span>
+                      <div className="flex flex-wrap items-center gap-1.5 mt-2">
+                        {message.contextUsed.memoryStream && message.contextUsed.memoryStream.total > 0 && (
+                          <span
+                            className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs"
+                            style={{ backgroundColor: 'rgba(139, 92, 246, 0.12)', color: '#8B5CF6' }}
+                          >
+                            <Database className="w-3 h-3" />
+                            {message.contextUsed.memoryStream.total} memories
+                          </span>
+                        )}
+                        {message.contextUsed.platformData?.map(p => {
+                          const platformColors: Record<string, string> = {
+                            spotify: '#1DB954', whoop: '#00A5E0', calendar: '#4285F4',
+                            google_calendar: '#4285F4', youtube: '#FF0000', twitch: '#9146FF',
+                          };
+                          const color = platformColors[p] || colors.textMuted;
+                          return (
+                            <span
+                              key={p}
+                              className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs capitalize"
+                              style={{ backgroundColor: `${color}15`, color }}
+                            >
+                              {p.replace('google_', '')}
+                            </span>
+                          );
+                        })}
+                        {message.contextUsed.soulSignature && (
+                          <span
+                            className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs"
+                            style={{ backgroundColor: 'rgba(245, 158, 11, 0.12)', color: '#F59E0B' }}
+                          >
+                            <Sparkles className="w-3 h-3" />
+                            Identity
+                          </span>
+                        )}
+                        {message.contextUsed.proactiveInsights && message.contextUsed.proactiveInsights.length > 0 && (
+                          <span
+                            className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs"
+                            style={{ backgroundColor: 'rgba(16, 185, 129, 0.12)', color: '#10B981' }}
+                          >
+                            <Lightbulb className="w-3 h-3" />
+                            {message.contextUsed.proactiveInsights.length} insight{message.contextUsed.proactiveInsights.length > 1 ? 's' : ''}
+                          </span>
+                        )}
                       </div>
                     )}
 

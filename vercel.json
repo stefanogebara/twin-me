@@ -33,6 +33,10 @@
       "schedule": "0 */6 * * *"
     },
     {
+      "path": "/api/cron/ingest-observations",
+      "schedule": "*/30 * * * *"
+    },
+    {
       "path": "/api/cron/claude-sync",
       "schedule": "0 4 * * *"
     },

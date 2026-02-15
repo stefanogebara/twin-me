@@ -179,7 +179,7 @@ The twin feels like "ChatGPT with a fact sheet" - generic personality, shallow m
 **Completed:**
 
 **A. Upgrade Model for Chat** ✅
-- Changed TIER_CHAT in `aiModels.js` to `anthropic/claude-sonnet-4-5-20250929`
+- Changed TIER_CHAT in `aiModels.js` to `anthropic/claude-sonnet-4.5`
 - Analysis stays on DeepSeek V3.2, Extraction on Mistral Small
 - Cost: ~$0.01-0.03 per message (acceptable for freemium)
 

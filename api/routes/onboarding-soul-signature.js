@@ -123,9 +123,32 @@ Respond in this exact JSON format:
         });
     }
 
+    // Generate a first-person twin introduction
+    let twinIntro = '';
+    try {
+      const introResult = await complete({
+        tier: TIER_CHAT,
+        system: `You are ${enrichmentContext.name || 'someone'}'s digital twin that just came to life. Write a 2-3 sentence first-person introduction. Be warm, a little playful, and reference their archetype and personality. Speak as if you ARE them - not about them. Don't use quotes around your response.
+
+Their archetype: ${signature.archetype_name}
+Their signature quote: ${signature.signature_quote}
+Their first impression: ${signature.first_impression}`,
+        messages: [{ role: 'user', content: 'Introduce yourself as my twin.' }],
+        maxTokens: 150,
+        temperature: 0.8,
+        userId,
+        serviceName: 'onboarding-twin-intro',
+      });
+      twinIntro = introResult.content;
+    } catch (introErr) {
+      console.warn('[Instant Signature] Twin intro generation failed:', introErr.message);
+      twinIntro = `Hey, I'm your twin. I'm ${signature.archetype_name} - ${signature.signature_quote}. Want to keep talking?`;
+    }
+
     return res.json({
       success: true,
       signature,
+      twinIntro,
     });
   } catch (error) {
     console.error('[Instant Signature] Error:', error);

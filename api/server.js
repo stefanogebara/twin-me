@@ -17,6 +17,7 @@ import { startPatternLearningJob, stopPatternLearningJob } from './services/patt
 import { startTokenExpiryNotifier, stopTokenExpiryNotifier } from './services/tokenExpiryNotifier.js';
 import { initializeRateLimiter, shutdownRateLimiter } from './middleware/oauthRateLimiter.js';
 import behavioralEvidencePipeline from './services/behavioralEvidencePipeline.js';
+import { startObservationIngestion, stopObservationIngestion } from './services/observationIngestion.js';
 
 // Only use dotenv in development - Vercel provides env vars directly
 // Updated: Fixed SUPABASE_SERVICE_ROLE_KEY truncation issue
@@ -244,6 +245,7 @@ import queueDashboardRoutes from './routes/queue-dashboard.js';
 import cronTokenRefreshHandler from './routes/cron-token-refresh.js';
 import cronPlatformPollingHandler from './routes/cron-platform-polling.js';
 import cronPatternLearningHandler from './routes/cron-pattern-learning.js';
+import cronObservationIngestionHandler from './routes/cron-observation-ingestion.js';
 import pipedreamRoutes from './routes/pipedream.js';
 import arcticRoutes from './routes/arctic-connectors.js';
 import soulSignatureRoutes from './routes/soul-signature.js';
@@ -285,7 +287,9 @@ import journalRoutes from './routes/journal.js';
 import adminLlmCostsRoutes from './routes/admin-llm-costs.js';
 import onboardingCalibrationRoutes from './routes/onboarding-calibration.js';
 import onboardingSoulSignatureRoutes from './routes/onboarding-soul-signature.js';
+import onboardingPlatformPreviewRoutes from './routes/onboarding-platform-preview.js';
 import accountRoutes from './routes/account.js';
+import consentRoutes from './routes/consent.js';
 import soulSignaturePublicRoutes from './routes/soul-signature-public.js';
 // OG image routes loaded lazily to prevent font-loading crashes from taking down the whole server
 let ogImageRoutes = null;
@@ -294,11 +298,78 @@ try {
 } catch (err) {
   console.warn('[OG Image] Failed to load OG image routes:', err.message);
 }
-import { serverDb } from './services/database.js';
+import { serverDb, supabaseAdmin } from './services/database.js';
 import { sanitizeInput, validateContentType } from './middleware/sanitization.js';
 import { /* handleAuthError, */ handleGeneralError, handle404 } from './middleware/errorHandler.js';
 import { errorHandler, notFoundHandler } from './middleware/errors.js';
 import { authenticateUser } from './middleware/auth.js';
+
+// System health check endpoint (4A - Production Hardening)
+app.get('/api/system/health', async (req, res) => {
+  const checks = {
+    status: 'ok',
+    timestamp: new Date().toISOString(),
+    uptime: process.uptime(),
+    database: { connected: false },
+    memoryStreamCount: 0,
+    ingestionLastRun: null,
+    llmCallsLastHour: 0,
+  };
+
+  try {
+    // 1. Database connectivity check (SELECT 1 equivalent)
+    if (!supabaseAdmin) {
+      checks.database.connected = false;
+      checks.database.error = 'supabaseAdmin not initialized';
+    } else {
+      const { error: dbError } = await supabaseAdmin
+        .from('users')
+        .select('id')
+        .limit(1);
+      checks.database.connected = !dbError;
+      if (dbError) checks.database.error = dbError.message;
+    }
+  } catch (e) {
+    checks.database.connected = false;
+    checks.database.error = e.message;
+  }
+
+  // If database is not connected, return 503 early
+  if (!checks.database.connected) {
+    checks.status = 'unhealthy';
+    return res.status(503).json(checks);
+  }
+
+  try {
+    // 2. Memory stream count
+    const { count, error: memError } = await supabaseAdmin
+      .from('user_memories')
+      .select('*', { count: 'exact', head: true });
+    if (!memError) checks.memoryStreamCount = count || 0;
+
+    // 3. Ingestion last-run
+    const { data: lastRun, error: ingError } = await supabaseAdmin
+      .from('ingestion_health_log')
+      .select('run_at, duration_ms, users_processed, observations_stored, errors')
+      .order('run_at', { ascending: false })
+      .limit(1)
+      .single();
+    if (!ingError && lastRun) checks.ingestionLastRun = lastRun;
+
+    // 4. LLM calls last hour
+    const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString();
+    const { count: llmCount, error: llmError } = await supabaseAdmin
+      .from('llm_usage_log')
+      .select('*', { count: 'exact', head: true })
+      .gte('created_at', oneHourAgo);
+    if (!llmError) checks.llmCallsLastHour = llmCount || 0;
+  } catch (e) {
+    // Non-fatal: database is connected but some queries failed
+    checks.queryError = e.message;
+  }
+
+  res.status(200).json(checks);
+});
 
 // API routes
 app.use('/api/ai', aiRoutes);
@@ -359,7 +430,9 @@ if (process.env.NODE_ENV === 'development') {
 app.use('/api/onboarding', onboardingQuestionsRoutes); // Personality questionnaire for personalization
 app.use('/api/onboarding', onboardingCalibrationRoutes); // AI-driven calibration Q&A for cofounder.co-style onboarding
 app.use('/api/onboarding', onboardingSoulSignatureRoutes); // Instant soul signature from enrichment + calibration
+app.use('/api/onboarding', onboardingPlatformPreviewRoutes); // Platform preview insights during onboarding
 app.use('/api/account', accountRoutes); // Account deletion + data export
+app.use('/api/consent', consentRoutes); // User consent management (GDPR/privacy)
 app.use('/api/soul-signature', soulSignaturePublicRoutes); // Public share + visibility toggle
 if (ogImageRoutes) app.use('/api', ogImageRoutes); // OG image cards (/api/og/soul-card, /api/s/:userId)
 app.use('/api/personality', personalityAssessmentRoutes); // Big Five personality assessment with 16personalities archetypes
@@ -392,6 +465,7 @@ app.use('/api/admin', adminLlmCostsRoutes); // LLM cost tracking dashboard
 app.use('/api/cron/token-refresh', cronTokenRefreshHandler); // Every 5 minutes
 app.use('/api/cron/platform-polling', cronPlatformPollingHandler); // Every 30 minutes
 app.use('/api/cron/pattern-learning', cronPatternLearningHandler); // Every 6 hours
+app.use('/api/cron/ingest-observations', cronObservationIngestionHandler); // Every 30 minutes
 
 // Health check endpoint
 app.get('/api/health', async (req, res) => {
@@ -495,6 +569,13 @@ if (process.env.NODE_ENV !== 'production') {
   // - Creates user notifications prompting reconnection before data flow interrupts
   startTokenExpiryNotifier();
 
+  // Observation ingestion service
+  // - Pulls platform data (Spotify, Calendar, Whoop) every 30 minutes
+  // - Converts to natural-language observations in the memory stream
+  // - Triggers reflection engine when importance accumulates
+  // Production equivalent: Vercel Cron → /api/cron/ingest-observations
+  startObservationIngestion();
+
 
   // Start HTTP server
   server.listen(PORT, () => {
@@ -518,6 +599,9 @@ if (process.env.NODE_ENV !== 'production') {
     console.log(`   - Pattern Learning:`);
     console.log(`     • Feedback Processing: Every 6 hours`);
     console.log(`     • Test endpoint: http://localhost:${PORT}/api/test-pattern-learning/status`);
+    console.log(`   - Observation Ingestion:`);
+    console.log(`     • Spotify/Calendar/Whoop: Every 30 minutes`);
+    console.log(`     • Cron endpoint: /api/cron/ingest-observations`);
   });
 
   // Graceful shutdown handlers
@@ -528,6 +612,7 @@ if (process.env.NODE_ENV !== 'production') {
     stopBackgroundJobs();
     stopPatternLearningJob();
     stopTokenExpiryNotifier();
+    stopObservationIngestion();
 
     // Shutdown rate limiter
     await shutdownRateLimiter();

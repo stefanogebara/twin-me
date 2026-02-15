@@ -3,6 +3,140 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Loader2, Send } from 'lucide-react';
 import { enrichmentService, EnrichmentData, QuickEnrichmentData, ConfirmedData } from '@/services/enrichmentService';
 
+// Staggered container for message groups
+const messageContainerVariants = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: { staggerChildren: 0.15 },
+  },
+};
+
+const messageItemVariants = {
+  hidden: { opacity: 0, y: 12 },
+  visible: {
+    opacity: 1,
+    y: 0,
+    transition: { duration: 0.5, ease: [0.25, 0.46, 0.45, 0.94] },
+  },
+  exit: {
+    opacity: 0,
+    y: -8,
+    transition: { duration: 0.3, ease: [0.25, 0.46, 0.45, 0.94] },
+  },
+};
+
+// Staggered data field reveals
+const dataFieldContainerVariants = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: { staggerChildren: 0.12, delayChildren: 0.2 },
+  },
+};
+
+const dataFieldItemVariants = {
+  hidden: { opacity: 0, x: -8 },
+  visible: {
+    opacity: 1,
+    x: 0,
+    transition: { duration: 0.4, ease: [0.25, 0.46, 0.45, 0.94] },
+  },
+};
+
+/**
+ * Infer a full name from an email address.
+ * Handles many real-world patterns:
+ *   "stefanogebara@gmail.com"     → "Stefano Gebara"
+ *   "john.doe@company.com"        → "John Doe"
+ *   "jane_smith123@mail.com"      → "Jane Smith"
+ *   "j.doe@work.com"              → "J Doe"
+ *   "mr.john.doe@mail.com"        → "John Doe"
+ *   "JohnDoe@gmail.com"           → "John Doe"
+ *   "john.doe.jr@gmail.com"       → "John Doe Jr"
+ *   "maría.garcía@correo.com"     → "María García"
+ *   "info@acme-corp.com"          → "Acme Corp" (generic → domain)
+ *   "jean-pierre.dupont@mail.com" → "Jean-Pierre Dupont"
+ */
+const inferNameFromEmail = (email: string): string => {
+  const [local, domain] = email.split('@');
+
+  // Generic/role prefixes — fall back to domain name
+  const genericPrefixes = new Set([
+    'info', 'admin', 'hello', 'contact', 'support', 'noreply', 'no-reply',
+    'sales', 'team', 'office', 'mail', 'webmaster', 'postmaster', 'help',
+    'billing', 'accounts', 'enquiries', 'service', 'marketing', 'press',
+  ]);
+  if (genericPrefixes.has(local.toLowerCase())) {
+    // Use domain: "acme-corp.com" → "Acme Corp"
+    const domainName = (domain || '').split('.')[0];
+    return domainName
+      .replace(/[_-]/g, ' ')
+      .split(/\s+/)
+      .map(p => p.charAt(0).toUpperCase() + p.slice(1).toLowerCase())
+      .join(' ');
+  }
+
+  // Honorific prefixes and suffixes to strip/preserve
+  const honorifics = new Set(['mr', 'mrs', 'ms', 'dr', 'prof', 'sir', 'rev']);
+  const nameSuffixes = new Set(['jr', 'sr', 'ii', 'iii', 'iv', 'phd', 'md', 'esq']);
+
+  // Step 1: Detect if local part uses separators (dots, underscores)
+  const hasSeparators = /[._]/.test(local);
+
+  let tokens: string[];
+
+  if (hasSeparators) {
+    // "john.doe", "jane_smith", "j.doe.smith" — split on separators
+    // But preserve hyphens within tokens: "jean-pierre.dupont" → ["jean-pierre", "dupont"]
+    tokens = local.split(/[._]/).filter(t => t.length > 0);
+  } else {
+    // No separators: try camelCase split, then consonant-vowel heuristic
+    // "JohnDoe" → "John Doe", "stefanogebara" → attempt split
+    let expanded = local
+      .replace(/([a-z])([A-Z])/g, '$1 $2')   // camelCase: johnDoe → john Doe
+      .replace(/([A-Z]+)([A-Z][a-z])/g, '$1 $2'); // XMLParser → XML Parser
+    tokens = expanded.split(/\s+/).filter(t => t.length > 0);
+  }
+
+  // Step 2: Clean each token — strip numbers, normalize
+  tokens = tokens
+    .map(t => t.replace(/^\d+|\d+$/g, ''))   // strip leading/trailing numbers
+    .map(t => t.replace(/\d+/g, ''))          // strip embedded numbers
+    .filter(t => t.length > 0);
+
+  // Step 3: Strip honorific prefixes
+  if (tokens.length > 1 && honorifics.has(tokens[0].toLowerCase())) {
+    tokens = tokens.slice(1);
+  }
+
+  // Step 4: Capitalize properly
+  const capitalize = (s: string): string => {
+    // Handle hyphenated names: "jean-pierre" → "Jean-Pierre"
+    return s.split('-').map(part =>
+      part.charAt(0).toUpperCase() + part.slice(1).toLowerCase()
+    ).join('-');
+  };
+
+  const result = tokens.map((t, i) => {
+    const lower = t.toLowerCase();
+    // Preserve suffixes as-is (Jr, Sr, III)
+    if (nameSuffixes.has(lower)) {
+      if (lower === 'ii' || lower === 'iii' || lower === 'iv') return t.toUpperCase();
+      return t.charAt(0).toUpperCase() + t.slice(1).toLowerCase();
+    }
+    // Single letter — keep uppercase (initial)
+    if (t.length === 1) return t.toUpperCase();
+    return capitalize(t);
+  });
+
+  if (result.length === 0) {
+    return local.charAt(0).toUpperCase() + local.slice(1);
+  }
+
+  return result.join(' ');
+};
+
 interface DiscoveryStepProps {
   userId: string;
   userEmail: string;
@@ -88,7 +222,7 @@ export const DiscoveryStep: React.FC<DiscoveryStepProps> = ({
     await typeMessage("Hey there. I'm going to learn a bit about you.", 25);
     await new Promise(resolve => setTimeout(resolve, 600));
 
-    const detectedName = userName || userEmail.split('@')[0];
+    const detectedName = userName || inferNameFromEmail(userEmail);
     await typeMessage(`It looks like your name is ${detectedName}. Should I call you that?`, 25);
 
     setStep('name-confirm');
@@ -190,81 +324,91 @@ export const DiscoveryStep: React.FC<DiscoveryStepProps> = ({
   };
 
   const buildNarrativeParagraph = (data: EnrichmentData, name: string): string => {
-    // Build a comprehensive narrative showing ALL discovered data
-    const lines: string[] = [];
+    // Build clean prose sentences — no markdown, no bullets, just flowing text
+    const sentences: string[] = [];
 
-    // 1. Basic identity line
+    // Identity
     if (data.discovered_title && data.discovered_company) {
       const titleLower = data.discovered_title.toLowerCase();
       const companyLower = data.discovered_company.toLowerCase();
-      const locationPart = data.discovered_location ? `, based in ${data.discovered_location}` : '';
-
+      const loc = data.discovered_location ? `, based in ${data.discovered_location}` : '';
       if (titleLower.includes(companyLower)) {
-        lines.push(`${name} is ${data.discovered_title}${locationPart}.`);
+        sentences.push(`${name} is ${data.discovered_title}${loc}.`);
       } else {
-        lines.push(`${name} is ${data.discovered_title} at ${data.discovered_company}${locationPart}.`);
+        sentences.push(`${name} is ${data.discovered_title} at ${data.discovered_company}${loc}.`);
       }
     } else if (data.discovered_title) {
-      const locationPart = data.discovered_location ? `, based in ${data.discovered_location}` : '';
-      lines.push(`${name} is ${data.discovered_title}${locationPart}.`);
+      const loc = data.discovered_location ? `, based in ${data.discovered_location}` : '';
+      sentences.push(`${name} is ${data.discovered_title}${loc}.`);
     } else if (data.discovered_company) {
-      const locationPart = data.discovered_location ? `, based in ${data.discovered_location}` : '';
-      lines.push(`${name} works at ${data.discovered_company}${locationPart}.`);
+      const loc = data.discovered_location ? `, based in ${data.discovered_location}` : '';
+      sentences.push(`${name} works at ${data.discovered_company}${loc}.`);
     } else if (data.discovered_location) {
-      lines.push(`${name} is based in ${data.discovered_location}.`);
+      sentences.push(`${name} is based in ${data.discovered_location}.`);
     }
 
-    // 2. Add career timeline if available (shows work history)
+    // Career (strip markdown, extract clean sentences)
     if (data.career_timeline && data.career_timeline.length > 20) {
-      // Format career timeline nicely
-      const careers = data.career_timeline.split('\n\n').filter(c => c.trim());
-      if (careers.length > 0) {
-        lines.push('');
-        lines.push('**Career History:**');
-        careers.slice(0, 3).forEach(career => {
-          // Extract just the role and company from each entry
-          const firstLine = career.split('\n')[0].trim();
-          lines.push(`• ${firstLine}`);
-        });
-        if (careers.length > 3) {
-          lines.push(`• ...and ${careers.length - 3} more positions`);
-        }
+      const clean = data.career_timeline
+        .replace(/\*\*/g, '')
+        .replace(/^[•\-*]\s*/gm, '')
+        .replace(/^#+\s*/gm, '')
+        .replace(/\[[\d,\s]+\]/g, '')
+        .replace(/\n+/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim();
+      const extracted = clean.match(/[^.!?]+[.!?]+/g);
+      if (extracted && extracted.length > 0) {
+        sentences.push(extracted.slice(0, 2).join(' ').trim());
       }
     }
 
-    // 3. Add education if available
+    // Education (clean)
     if (data.education && data.education.length > 10) {
-      lines.push('');
-      lines.push('**Education:**');
-      lines.push(`• ${data.education}`);
+      const clean = data.education
+        .replace(/\*\*/g, '')
+        .replace(/^[•\-*]\s*/gm, '')
+        .replace(/\n+/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim();
+      if (clean.length > 5) {
+        sentences.push(clean.endsWith('.') ? clean : clean + '.');
+      }
     }
 
-    // 4. Add skills if available
-    if (data.skills && data.skills.length > 5) {
-      lines.push('');
-      lines.push('**Skills:**');
-      lines.push(`• ${data.skills}`);
-    }
-
-    // 5. Add bio/summary if available
+    // Bio
     if (data.discovered_bio && data.discovered_bio.length > 20) {
-      lines.push('');
-      lines.push(`**About:** ${data.discovered_bio}`);
-    } else if (data.discovered_summary && data.discovered_summary.length > 20) {
-      lines.push('');
-      lines.push(`**About:** ${data.discovered_summary}`);
+      const cleanBio = data.discovered_bio
+        .replace(/\*\*/g, '')
+        .replace(/^[•\-*]\s*/gm, '')
+        .replace(/\n+/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim();
+      if (cleanBio.length > 10) {
+        sentences.push(cleanBio.endsWith('.') ? cleanBio : cleanBio + '.');
+      }
     }
 
-    // If we have nothing, return empty
-    if (lines.length === 0) {
+    if (sentences.length === 0) {
       return `I couldn't find much public information about ${name}.`;
     }
 
-    return lines.join('\n');
+    return sentences.join(' ');
   };
 
   const showNarrative = async (data: EnrichmentData, name: string) => {
-    const narrative = buildNarrativeParagraph(data, data.discovered_name || name);
+    // Prefer backend's AI-generated narrative (Claude paragraph) over rebuilding from raw fields
+    let narrative = '';
+    if (data.discovered_summary && data.discovered_summary.length > 80) {
+      narrative = data.discovered_summary;
+      // Strip wrapping quotes if present (AI sometimes returns bio in "quotes")
+      if ((narrative.startsWith('"') && narrative.endsWith('"')) ||
+          (narrative.startsWith("'") && narrative.endsWith("'"))) {
+        narrative = narrative.slice(1, -1).trim();
+      }
+    } else {
+      narrative = buildNarrativeParagraph(data, data.discovered_name || name);
+    }
 
     await new Promise(resolve => setTimeout(resolve, 600));
     await typeMessage(narrative, 20);
@@ -391,32 +535,42 @@ export const DiscoveryStep: React.FC<DiscoveryStepProps> = ({
       </div>
 
       {/* Profile Photo Reveal */}
-      {quickData?.discovered_photo && (
-        <motion.div
-          initial={{ opacity: 0, scale: 0.8 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 0.6, ease: [0.25, 0.46, 0.45, 0.94] }}
-          className="flex justify-center pt-4 pb-2"
-        >
-          <img
-            src={quickData.discovered_photo}
-            alt=""
-            className="w-20 h-20 rounded-full object-cover"
-            style={{ border: '2px solid rgba(232, 213, 183, 0.3)' }}
-          />
-        </motion.div>
-      )}
+      <AnimatePresence>
+        {quickData?.discovered_photo && (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.8 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.9, transition: { duration: 0.3 } }}
+            transition={{ type: 'spring', stiffness: 300, damping: 25 }}
+            className="flex justify-center pt-4 pb-2"
+          >
+            <img
+              src={quickData.discovered_photo}
+              alt=""
+              className="w-20 h-20 rounded-full object-cover"
+              style={{ border: '2px solid rgba(232, 213, 183, 0.3)' }}
+            />
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Chat area */}
       <div className="flex-1 overflow-y-auto px-6 md:px-8">
-        <div className="max-w-2xl mx-auto py-8">
-          <AnimatePresence>
+        <motion.div
+          className="max-w-2xl mx-auto py-8"
+          variants={messageContainerVariants}
+          initial="hidden"
+          animate="visible"
+        >
+          <AnimatePresence mode="popLayout">
             {messages.map((message) => (
               <motion.div
                 key={message.id}
-                initial={{ opacity: 0, y: 12 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.4, ease: [0.25, 0.46, 0.45, 0.94] }}
+                variants={messageItemVariants}
+                initial="hidden"
+                animate="visible"
+                exit="exit"
+                layout
                 className={`mb-6 ${message.type === 'user' ? 'flex justify-end' : ''}`}
               >
                 {message.type === 'bot' ? (
@@ -462,6 +616,7 @@ export const DiscoveryStep: React.FC<DiscoveryStepProps> = ({
             <motion.div
               initial={{ opacity: 0, y: 12 }}
               animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -8 }}
               transition={{ duration: 0.4, delay: 0.2 }}
               className="flex gap-4 mt-8"
             >
@@ -498,6 +653,8 @@ export const DiscoveryStep: React.FC<DiscoveryStepProps> = ({
             <motion.div
               initial={{ opacity: 0, y: 12 }}
               animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -8 }}
+              transition={{ duration: 0.4, ease: [0.25, 0.46, 0.45, 0.94] }}
               className="mt-8 space-y-5"
             >
               <div>
@@ -572,12 +729,19 @@ export const DiscoveryStep: React.FC<DiscoveryStepProps> = ({
           )}
 
           <div ref={messagesEndRef} />
-        </div>
+        </motion.div>
       </div>
 
       {/* Input area - only show during name confirmation */}
+      <AnimatePresence>
       {step === 'name-confirm' && !isTyping && (
-        <div className="p-6 md:p-8">
+        <motion.div
+          className="p-6 md:p-8"
+          initial={{ opacity: 0, y: 16 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: 8 }}
+          transition={{ duration: 0.4, ease: [0.25, 0.46, 0.45, 0.94] }}
+        >
           <div className="max-w-2xl mx-auto">
             <div
               className="relative rounded-2xl overflow-hidden transition-all duration-200"
@@ -615,8 +779,9 @@ export const DiscoveryStep: React.FC<DiscoveryStepProps> = ({
               </button>
             </div>
           </div>
-        </div>
+        </motion.div>
       )}
+      </AnimatePresence>
     </div>
   );
 };

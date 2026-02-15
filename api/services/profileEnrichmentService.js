@@ -35,6 +35,90 @@ const getGoogleAI = () => {
  */
 class ProfileEnrichmentService {
 
+  /**
+   * Infer a full name from an email address.
+   * Handles many real-world patterns:
+   *   "stefanogebara@gmail.com"     → "Stefano Gebara"
+   *   "john.doe@company.com"        → "John Doe"
+   *   "jane_smith123@mail.com"      → "Jane Smith"
+   *   "j.doe@work.com"              → "J Doe"
+   *   "mr.john.doe@mail.com"        → "John Doe"
+   *   "JohnDoe@gmail.com"           → "John Doe"
+   *   "john.doe.jr@gmail.com"       → "John Doe Jr"
+   *   "info@acme-corp.com"          → "Acme Corp" (generic → domain)
+   *   "jean-pierre.dupont@mail.com" → "Jean-Pierre Dupont"
+   */
+  inferNameFromEmail(email) {
+    const [local, domain] = email.split('@');
+
+    // Generic/role prefixes — fall back to domain name
+    const genericPrefixes = new Set([
+      'info', 'admin', 'hello', 'contact', 'support', 'noreply', 'no-reply',
+      'sales', 'team', 'office', 'mail', 'webmaster', 'postmaster', 'help',
+      'billing', 'accounts', 'enquiries', 'service', 'marketing', 'press',
+    ]);
+    if (genericPrefixes.has(local.toLowerCase())) {
+      const domainName = (domain || '').split('.')[0];
+      return domainName
+        .replace(/[_-]/g, ' ')
+        .split(/\s+/)
+        .map(p => p.charAt(0).toUpperCase() + p.slice(1).toLowerCase())
+        .join(' ');
+    }
+
+    const honorifics = new Set(['mr', 'mrs', 'ms', 'dr', 'prof', 'sir', 'rev']);
+    const nameSuffixes = new Set(['jr', 'sr', 'ii', 'iii', 'iv', 'phd', 'md', 'esq']);
+
+    // Detect separators
+    const hasSeparators = /[._]/.test(local);
+    let tokens;
+
+    if (hasSeparators) {
+      // "john.doe", "jane_smith", "jean-pierre.dupont" → split on dots/underscores, preserve hyphens
+      tokens = local.split(/[._]/).filter(t => t.length > 0);
+    } else {
+      // No separators: camelCase split
+      let expanded = local
+        .replace(/([a-z])([A-Z])/g, '$1 $2')
+        .replace(/([A-Z]+)([A-Z][a-z])/g, '$1 $2');
+      tokens = expanded.split(/\s+/).filter(t => t.length > 0);
+    }
+
+    // Clean tokens — strip numbers
+    tokens = tokens
+      .map(t => t.replace(/^\d+|\d+$/g, ''))
+      .map(t => t.replace(/\d+/g, ''))
+      .filter(t => t.length > 0);
+
+    // Strip honorific prefixes
+    if (tokens.length > 1 && honorifics.has(tokens[0].toLowerCase())) {
+      tokens = tokens.slice(1);
+    }
+
+    // Capitalize properly
+    const capitalize = (s) => {
+      return s.split('-').map(part =>
+        part.charAt(0).toUpperCase() + part.slice(1).toLowerCase()
+      ).join('-');
+    };
+
+    const result = tokens.map((t) => {
+      const lower = t.toLowerCase();
+      if (nameSuffixes.has(lower)) {
+        if (lower === 'ii' || lower === 'iii' || lower === 'iv') return t.toUpperCase();
+        return t.charAt(0).toUpperCase() + t.slice(1).toLowerCase();
+      }
+      if (t.length === 1) return t.toUpperCase();
+      return capitalize(t);
+    });
+
+    if (result.length === 0) {
+      return local.charAt(0).toUpperCase() + local.slice(1);
+    }
+
+    return result.join(' ');
+  }
+
   // =================================================================
   // INSTANT ENRICHMENT (FREE APIs - < 1 second)
   // Gravatar + GitHub = photo, name, bio, company, social links
@@ -193,6 +277,14 @@ class ProfileEnrichmentService {
    * @returns {Promise<Object>} Enrichment data with discovered fields
    */
   async enrichFromEmail(email, name = null) {
+    // If no name provided, or name looks like a raw email prefix (no spaces), infer from email
+    if (!name || !name.includes(' ')) {
+      const inferred = this.inferNameFromEmail(email);
+      if (inferred.includes(' ')) {
+        console.log(`[ProfileEnrichment] Inferred full name from email: "${inferred}" (was: "${name || 'null'}")`);
+        name = inferred;
+      }
+    }
     console.log(`[ProfileEnrichment] Starting enrichment for: ${email}`);
     console.log(`[ProfileEnrichment] API keys loaded:`, {
       scrapin: !!process.env.SCRAPIN_API_KEY,
@@ -379,9 +471,19 @@ class ProfileEnrichmentService {
     if (data.scrapin_connection_count) dataPoints.push(`Professional network connections: ${data.scrapin_connection_count}`);
     if (data.scrapin_follower_count) dataPoints.push(`Professional followers: ${data.scrapin_follower_count}`);
 
-    // If we have raw comprehensive search data, include it
+    // If we have raw comprehensive search data, include it (CLEANED)
     if (data.raw_comprehensive && data.raw_comprehensive.length > 200) {
-      dataPoints.push(`\nAdditional research findings:\n${data.raw_comprehensive}`);
+      let cleanRaw = data.raw_comprehensive
+        .replace(/\*\*/g, '')                           // Remove bold markers
+        .replace(/^#+\s+.*$/gm, '')                     // Remove markdown headers
+        .replace(/^[•\-*]\s*/gm, '')                    // Remove bullet markers
+        .replace(/\[[\d,\s]+\]/g, '')                   // Remove citation markers [1][2]
+        .replace(/^(Note|Disclaimer|Important|Caveat|Further Research|I hope this helps)[:\s].*$/gim, '') // Remove AI commentary lines
+        .replace(/\n{3,}/g, '\n\n')                     // Collapse excess newlines
+        .trim();
+      if (cleanRaw.length > 100) {
+        dataPoints.push(`\nAdditional research findings:\n${cleanRaw}`);
+      }
     }
 
     // Check if we have ACTUAL career data (job titles with dates, $amounts, degrees with years)
@@ -555,6 +657,12 @@ Write the biography:`;
         // Clean up AI meta-commentary
         let cleanNarrative = narrative.trim();
 
+        // Remove wrapping quotes (AI often returns the bio in "quotes" because the prompt example has them)
+        if ((cleanNarrative.startsWith('"') && cleanNarrative.endsWith('"')) ||
+            (cleanNarrative.startsWith("'") && cleanNarrative.endsWith("'"))) {
+          cleanNarrative = cleanNarrative.slice(1, -1).trim();
+        }
+
         // Remove "Note:" sections and anything after
         cleanNarrative = cleanNarrative.split(/\n\s*Note:/i)[0].trim();
         cleanNarrative = cleanNarrative.split(/\n\s*\(Note:/i)[0].trim();
@@ -570,6 +678,27 @@ Write the biography:`;
                  !lower.includes('i cannot provide');
         });
         cleanNarrative = cleanLines.join(' ').replace(/\s+/g, ' ').trim();
+
+        // Remove markdown formatting that slipped through
+        cleanNarrative = cleanNarrative
+          .replace(/\*\*/g, '')                     // Bold markers
+          .replace(/\*([^*]+)\*/g, '$1')            // Italic markers
+          .replace(/^[•\-*]\s*/gm, '')              // Bullet points
+          .replace(/^#+\s+/gm, '')                  // Headers
+          .replace(/\[[\d,\s]+\]/g, '');            // Citation markers
+
+        // Remove common AI filler patterns
+        const fillerPatterns = [
+          /I hope this helps[.!]?\s*/gi,
+          /Let me know if you need[^.]*\.\s*/gi,
+          /Further Research Suggestions[:\s].*$/gim,
+          /Important Considerations[:\s].*$/gim,
+          /Please note that[^.]*\.\s*/gi,
+          /It'?s important to note[^.]*\.\s*/gi,
+          /Based on (?:the |my )(?:available |)(?:information|research|data)[,\s]*/gi,
+        ];
+        fillerPatterns.forEach(p => { cleanNarrative = cleanNarrative.replace(p, ''); });
+        cleanNarrative = cleanNarrative.replace(/\s+/g, ' ').trim();
 
         // ANTI-FABRICATION VALIDATION
         // Check if the AI fabricated student content when we have professional data
@@ -603,6 +732,31 @@ Write the biography:`;
           return this.buildFactualSummary(data);
         }
 
+        // Detect filler narratives — AI produced a paragraph but it says "no info"
+        const fillerNarrativePatterns = [
+          'details and achievements remain private',
+          'career details remain private',
+          'remain private at this time',
+          'whose career details',
+          'whose professional details',
+          'information is not publicly available',
+          'not publicly available',
+          'limited public presence',
+          'minimal public presence',
+          'no widely recognized public',
+          'does not appear to have a significant public',
+          'maintains a private professional profile',
+          'keeps a low public profile',
+          'specific details about',
+          'details about their career are not',
+          'a professional whose',
+        ];
+        const isFillerNarrative = fillerNarrativePatterns.some(p => lowerNarrative.includes(p));
+        if (isFillerNarrative) {
+          console.log('[ProfileEnrichment] REJECTED: AI generated filler "no info" narrative');
+          return null;
+        }
+
         console.log('[ProfileEnrichment] Generated detailed narrative:', cleanNarrative.substring(0, 200) + '...');
         return cleanNarrative;
       }
@@ -615,10 +769,16 @@ Write the biography:`;
   }
 
   /**
-   * Comprehensive person search using Gemini 2.0 Flash via OpenRouter
-   * This is the key to cofounder.co-style detailed narratives
-   * Searches across LinkedIn, sports federations, GitHub, news, company bios, etc.
-   * Gemini provides better person disambiguation than Perplexity
+   * Comprehensive person search using web-search-capable models via OpenRouter.
+   *
+   * Strategy:
+   *   1. Perplexity Sonar (has built-in web search) — best for real-time lookup
+   *   2. Google Gemini with Search Grounding — good fallback
+   *   3. Gemini via OpenRouter — last resort (no grounding)
+   *
+   * Uses a natural, conversational prompt that gets much better results than
+   * rigid structured prompts. The raw response is stored as-is and the
+   * narrative generation step handles cleanup.
    */
   async comprehensivePersonSearch(name, email, existingData = {}) {
     if (!name) {
@@ -626,131 +786,243 @@ Write the biography:`;
       return null;
     }
 
-    // Try Google AI with grounding first (best results)
-    const googleAI = getGoogleAI();
-    if (googleAI) {
-      console.log('[ProfileEnrichment] Using Google AI with Search Grounding for:', { name, email });
+    const openRouterKey = process.env.OPENROUTER_API_KEY;
+
+    // Build a natural research prompt
+    const inferredName = this.inferNameFromEmail(email);
+    const searchName = (name && name.includes(' ')) ? name : inferredName;
+    const emailDomain = email.split('@')[1] || '';
+
+    const prompt = `Search for the person with email ${email}. Their name is likely ${searchName}.
+${emailDomain && !emailDomain.includes('gmail') && !emailDomain.includes('hotmail') && !emailDomain.includes('yahoo') && !emailDomain.includes('outlook') ? `The email domain "${emailDomain}" is likely their company or organization.` : ''}
+
+Find ONLY verified, factual information about THIS specific person:
+- Current job title and company
+- Career history (previous roles, companies, dates)
+- Education (degrees, schools, years)
+- Location (city, country)
+- Notable achievements or projects
+
+CRITICAL RULES:
+1. ONLY report facts you can verify from search results. Do NOT guess, infer, or fill gaps.
+2. If you find multiple people with this name, ONLY describe the one matching the email address or domain. If unsure which person matches, say so.
+3. Do NOT invent universities, degrees, job titles, or companies. If you cannot find it, skip it entirely.
+4. Do NOT include disclaimers, notes, meta-commentary, or suggestions for further research.
+5. Write in plain text — no markdown, no bullet points, no headers, no bold/italic formatting.
+6. Write as concise flowing prose. Only state facts, no filler.`;
+
+    // Try 1: Perplexity Sonar via OpenRouter (has built-in web search)
+    if (openRouterKey) {
+      console.log('[ProfileEnrichment] Trying Perplexity Sonar Pro for:', { searchName, email });
       try {
-        const result = await this.searchWithGoogleGrounding(googleAI, name, email);
+        const result = await this.searchWithSonar(searchName, email, prompt, openRouterKey);
         if (result) return result;
       } catch (error) {
-        console.error('[ProfileEnrichment] Google AI grounding failed, falling back:', error.message);
+        console.error('[ProfileEnrichment] Sonar search failed:', error.message);
       }
     }
 
-    // Fallback to OpenRouter if Google AI not available
-    const openRouterKey = process.env.OPENROUTER_API_KEY;
-    if (openRouterKey) {
-      console.log('[ProfileEnrichment] Falling back to OpenRouter for:', { name, email });
-      return this.searchWithOpenRouter(name, email, openRouterKey);
+    // Try 2: Google AI with Search Grounding (direct API)
+    const googleAI = getGoogleAI();
+    if (googleAI) {
+      console.log('[ProfileEnrichment] Trying Google AI with Search Grounding for:', { searchName, email });
+      try {
+        const result = await this.searchWithGoogleGrounding(googleAI, searchName, email, prompt);
+        if (result) return result;
+      } catch (error) {
+        console.error('[ProfileEnrichment] Google AI grounding failed:', error.message);
+      }
     }
 
-    console.log('[ProfileEnrichment] No API keys available for comprehensive search');
+    // Try 3: Gemini via OpenRouter WITH web search plugin
+    if (openRouterKey) {
+      console.log('[ProfileEnrichment] Falling back to Gemini + OpenRouter web search for:', { searchName, email });
+      try {
+        return await this.searchWithOpenRouter(searchName, email, prompt, openRouterKey);
+      } catch (error) {
+        console.error('[ProfileEnrichment] OpenRouter Gemini + web search failed:', error.message);
+      }
+    }
+
+    console.log('[ProfileEnrichment] All search tiers exhausted — returning null');
     return null;
   }
 
   /**
-   * Search using Google AI with Google Search grounding
-   * This provides real-time web search results
+   * Search using Perplexity Sonar Pro via OpenRouter — has proper built-in web search.
+   * Note: base `perplexity/sonar` is lightweight and often skips web search.
+   * `sonar-pro` does multi-step search and returns real results.
    */
-  async searchWithGoogleGrounding(googleAI, name, email) {
-    // Simple, effective query - tested and proven to work well
-    const query = `Help me research about ${email}. Who is ${name}? What do they do in life?
-
-Please find everything you can about this person:
-- Their current job/studies and company/university
-- Their career history or education background
-- Any sports, hobbies, or extracurricular activities
-- Their location (city/country)
-- Social profiles (LinkedIn, GitHub, Twitter, YouTube, etc.)
-- Any notable achievements, projects, or public mentions
-
-Search thoroughly across LinkedIn, university records, sports federations, news articles, GitHub, and any other public sources.
-
-Return the information in a structured format with sections for:
-- CAREER/EDUCATION
-- HOBBIES & INTERESTS
-- LOCATION
-- SOCIAL PROFILES
-- ACHIEVEMENTS`;
-
-    console.log('[ProfileEnrichment] Running Google AI with grounding for:', name);
-
-    // Use Gemini with Google Search grounding
-    const model = googleAI.getGenerativeModel({
-      model: 'gemini-2.0-flash',
-      tools: [{ googleSearch: {} }]  // Enable Google Search grounding
+  async searchWithSonar(name, email, prompt, apiKey) {
+    const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${apiKey}`,
+        'Content-Type': 'application/json',
+        'HTTP-Referer': 'https://twinme.app'
+      },
+      body: JSON.stringify({
+        model: 'perplexity/sonar-pro',
+        messages: [{ role: 'user', content: prompt }],
+        temperature: 0.3,
+        max_tokens: 4000
+      })
     });
 
-    const result = await model.generateContent(query);
+    if (!response.ok) {
+      console.log('[ProfileEnrichment] Sonar search failed:', response.status);
+      return null;
+    }
+
+    const data = await response.json();
+    const content = data.choices?.[0]?.message?.content || '';
+    console.log('[ProfileEnrichment] Sonar result length:', content.length);
+    console.log('[ProfileEnrichment] Sonar preview:', content.substring(0, 500));
+
+    if (content.length < 50) return null;
+    return this.parseComprehensiveSearchResult(content);
+  }
+
+  /**
+   * Search using Google AI with Google Search grounding (direct API)
+   */
+  async searchWithGoogleGrounding(googleAI, name, email, prompt) {
+    console.log('[ProfileEnrichment] Running Google AI with grounding for:', name);
+
+    const model = googleAI.getGenerativeModel({
+      model: 'gemini-2.5-flash',
+      tools: [{ googleSearch: {} }]
+    });
+
+    const result = await model.generateContent(prompt);
     const response = result.response;
     const content = response.text();
 
     console.log('[ProfileEnrichment] Google grounding result length:', content.length);
     console.log('[ProfileEnrichment] Google grounding preview:', content.substring(0, 500));
 
-    // Parse the structured response into data fields
+    if (content.length < 50) return null;
     return this.parseComprehensiveSearchResult(content);
   }
 
   /**
-   * Fallback search using OpenRouter (no grounding)
+   * Fallback search using Gemini via OpenRouter WITH web search plugin.
+   * OpenRouter's `web_search_options` adds web search to any model.
    */
-  async searchWithOpenRouter(name, email, apiKey) {
-    const query = `Help me research about ${email}. Who is ${name}? What do they do in life?
+  async searchWithOpenRouter(name, email, prompt, apiKey) {
+    console.log('[ProfileEnrichment] Running Gemini via OpenRouter (with web search) for:', name);
 
-Please find everything you can about this person:
-- Their current job/studies and company/university
-- Their career history or education background
-- Any sports, hobbies, or extracurricular activities
-- Their location (city/country)
-- Social profiles (LinkedIn, GitHub, Twitter, YouTube, etc.)
-- Any notable achievements, projects, or public mentions
+    const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${apiKey}`,
+        'Content-Type': 'application/json',
+        'HTTP-Referer': 'https://twinme.app'
+      },
+      body: JSON.stringify({
+        model: 'google/gemini-2.5-flash',
+        messages: [{ role: 'user', content: prompt }],
+        temperature: 0.3,
+        max_tokens: 4000,
+        web_search_options: {
+          search_context_size: 'high'
+        }
+      })
+    });
 
-Return the information in a structured format.`;
-
-    try {
-      console.log('[ProfileEnrichment] Running OpenRouter search for:', name);
-
-      const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${apiKey}`,
-          'Content-Type': 'application/json',
-          'HTTP-Referer': 'https://twinme.app'
-        },
-        body: JSON.stringify({
-          model: 'google/gemini-2.0-flash-001',
-          messages: [{ role: 'user', content: query }],
-          temperature: 0.3,
-          max_tokens: 8000
-        })
-      });
-
-      if (!response.ok) {
-        console.log('[ProfileEnrichment] OpenRouter search failed:', response.status);
-        return null;
-      }
-
-      const data = await response.json();
-      const content = data.choices?.[0]?.message?.content || '';
-      console.log('[ProfileEnrichment] OpenRouter result length:', content.length);
-
-      return this.parseComprehensiveSearchResult(content);
-
-    } catch (error) {
-      console.error('[ProfileEnrichment] OpenRouter search error:', error);
+    if (!response.ok) {
+      console.log('[ProfileEnrichment] OpenRouter search failed:', response.status);
       return null;
     }
+
+    const data = await response.json();
+    const content = data.choices?.[0]?.message?.content || '';
+    console.log('[ProfileEnrichment] OpenRouter result length:', content.length);
+
+    if (content.length < 50) return null;
+    return this.parseComprehensiveSearchResult(content);
   }
 
   /**
-   * Parse the comprehensive search result into structured data
+   * Parse the comprehensive search result into structured data.
+   *
+   * Since our prompt now asks for flowing prose, the response may not have
+   * structured CAREER/EDUCATION sections. We handle both formats:
+   *   1. If structured sections found → extract them
+   *   2. If prose → clean it up and store as raw_comprehensive + career_timeline
    */
   parseComprehensiveSearchResult(content) {
-    if (!content || content.toLowerCase().includes('no information found') && content.length < 200) {
+    if (!content || content.length < 30) {
       return null;
     }
+
+    // Detect refusal / "found nothing" responses — these are useless regardless of length
+    const lower = content.toLowerCase();
+    const refusalPatterns = [
+      'no public information',
+      'no information found',
+      'no information matching',
+      'no information available',
+      'no information about',
+      'no relevant information',
+      'no specific information',
+      'no detailed information',
+      'no verifiable information',
+      'could not find any information',
+      'couldn\'t find any information',
+      'could not find any specific',
+      'couldn\'t find any specific',
+      'cannot provide the information',
+      'i cannot provide',
+      'no results were found',
+      'no results found',
+      'no data found',
+      'no matching results',
+      'unable to find information',
+      'unable to find any',
+      'i was unable to find',
+      'i could not find',
+      'i couldn\'t find',
+      'i did not find',
+      'i didn\'t find',
+      'none of which matched',
+      'none matched the query',
+      'raises privacy concerns',
+      'privacy concerns',
+      'not currently accessible',
+      'cannot be comprehensively detailed',
+      'details and achievements remain private',
+      'career details remain private',
+      'remain private at this time',
+      'information is not publicly available',
+      'not publicly available',
+      'does not appear to have a significant public',
+      'does not have a significant public',
+      'no prominent public presence',
+      'limited public presence',
+      'minimal public presence',
+      'no widely recognized public',
+      'not a widely recognized public',
+    ];
+    const isRefusal = refusalPatterns.some(p => lower.includes(p));
+    if (isRefusal) {
+      console.log('[ProfileEnrichment] Detected refusal/no-data response, skipping');
+      return null;
+    }
+
+    // Clean the raw content: strip markdown, citations, AI filler
+    const cleanContent = content
+      .replace(/\*\*/g, '')
+      .replace(/\*([^*]+)\*/g, '$1')
+      .replace(/^#+\s+.*$/gm, '')
+      .replace(/^[•\-*]\s*/gm, '')
+      .replace(/\[[\d,\s]+\]/g, '')
+      .replace(/^(Note|Disclaimer|Important|Caveat|I hope this helps|Further Research|Please note)[:\s].*$/gim, '')
+      .replace(/I hope this helps[.!]?\s*/gi, '')
+      .replace(/Let me know if you need[^.]*\.\s*/gi, '')
+      .replace(/Based on (?:the |my )(?:available |)(?:information|research|data)[,\s]*/gi, '')
+      .replace(/\n{3,}/g, '\n\n')
+      .trim();
 
     const result = {
       career_timeline: null,
@@ -760,60 +1032,57 @@ Return the information in a structured format.`;
       languages: null,
       certifications: null,
       publications: null,
-      raw_comprehensive: content
+      raw_comprehensive: cleanContent
     };
 
-    // Extract career section
-    const careerMatch = content.match(/(?:CAREER HISTORY|Career|CAREER|Work Experience|Employment)[:\s]*\n?([\s\S]*?)(?=\n(?:EDUCATION|Education|ACHIEVEMENTS|Skills|SKILLS|CERTIFICATIONS|PUBLICATIONS|PERSONAL|$))/i);
-    if (careerMatch && careerMatch[1] && !careerMatch[1].toLowerCase().includes('no information found')) {
+    // Try structured section extraction (works if model used CAREER/EDUCATION headers)
+    const careerMatch = cleanContent.match(/(?:CAREER HISTORY|Career|CAREER|Work Experience|Employment)[:\s]*\n?([\s\S]*?)(?=\n(?:EDUCATION|Education|ACHIEVEMENTS|Skills|SKILLS|CERTIFICATIONS|PUBLICATIONS|PERSONAL|LOCATION|$))/i);
+    if (careerMatch && careerMatch[1] && !careerMatch[1].toLowerCase().includes('not found')) {
       result.career_timeline = careerMatch[1].trim();
     }
 
-    // Extract education section
-    const eduMatch = content.match(/(?:EDUCATION|Education)[:\s]*\n?([\s\S]*?)(?=\n(?:ACHIEVEMENTS|Skills|SKILLS|CERTIFICATIONS|PUBLICATIONS|PERSONAL|CAREER|$))/i);
-    if (eduMatch && eduMatch[1] && !eduMatch[1].toLowerCase().includes('no information found')) {
+    const eduMatch = cleanContent.match(/(?:EDUCATION|Education)[:\s]*\n?([\s\S]*?)(?=\n(?:ACHIEVEMENTS|Skills|SKILLS|CERTIFICATIONS|PUBLICATIONS|PERSONAL|CAREER|LOCATION|$))/i);
+    if (eduMatch && eduMatch[1] && !eduMatch[1].toLowerCase().includes('not found')) {
       result.education = eduMatch[1].trim();
     }
 
-    // Extract achievements
-    const achieveMatch = content.match(/(?:ACHIEVEMENTS|Achievements|Accomplishments)[:\s]*\n?([\s\S]*?)(?=\n(?:SKILLS|Skills|CERTIFICATIONS|PUBLICATIONS|PERSONAL|EDUCATION|CAREER|$))/i);
-    if (achieveMatch && achieveMatch[1] && !achieveMatch[1].toLowerCase().includes('no information found')) {
+    const achieveMatch = cleanContent.match(/(?:ACHIEVEMENTS|Achievements|Accomplishments)[:\s]*\n?([\s\S]*?)(?=\n(?:SKILLS|Skills|CERTIFICATIONS|PUBLICATIONS|PERSONAL|EDUCATION|CAREER|$))/i);
+    if (achieveMatch && achieveMatch[1] && !achieveMatch[1].toLowerCase().includes('not found')) {
       result.achievements = achieveMatch[1].trim();
     }
 
-    // Extract skills
-    const skillsMatch = content.match(/(?:SKILLS|Skills|Expertise|EXPERTISE)[:\s]*\n?([\s\S]*?)(?=\n(?:CERTIFICATIONS|PUBLICATIONS|PERSONAL|ACHIEVEMENTS|EDUCATION|CAREER|$))/i);
-    if (skillsMatch && skillsMatch[1] && !skillsMatch[1].toLowerCase().includes('no information found')) {
+    const skillsMatch = cleanContent.match(/(?:SKILLS|Skills|Expertise|EXPERTISE)[:\s]*\n?([\s\S]*?)(?=\n(?:CERTIFICATIONS|PUBLICATIONS|PERSONAL|ACHIEVEMENTS|EDUCATION|CAREER|$))/i);
+    if (skillsMatch && skillsMatch[1] && !skillsMatch[1].toLowerCase().includes('not found')) {
       result.skills = skillsMatch[1].trim();
     }
 
-    // Extract certifications
-    const certMatch = content.match(/(?:CERTIFICATIONS|Certifications)[:\s]*\n?([\s\S]*?)(?=\n(?:PUBLICATIONS|PERSONAL|SKILLS|ACHIEVEMENTS|EDUCATION|CAREER|$))/i);
-    if (certMatch && certMatch[1] && !certMatch[1].toLowerCase().includes('no information found')) {
-      result.certifications = certMatch[1].trim();
-    }
-
-    // Extract publications
-    const pubMatch = content.match(/(?:PUBLICATIONS|Publications)[:\s]*\n?([\s\S]*?)(?=\n(?:PERSONAL|CERTIFICATIONS|SKILLS|ACHIEVEMENTS|EDUCATION|CAREER|$))/i);
-    if (pubMatch && pubMatch[1] && !pubMatch[1].toLowerCase().includes('no information found')) {
-      result.publications = pubMatch[1].trim();
-    }
-
-    // Extract languages from personal or skills
-    const langMatch = content.match(/(?:languages?[:\s]+|fluent in[:\s]+)([\w\s,and]+)/i);
+    const langMatch = cleanContent.match(/(?:languages?[:\s]+|fluent in[:\s]+)([\w\s,and]+)/i);
     if (langMatch) {
       result.languages = langMatch[1].trim();
     }
 
-    // Check if we found anything useful
-    const hasData = result.career_timeline || result.education || result.achievements || result.skills;
-    if (!hasData) {
-      // If structured parsing failed, store the raw content for narrative generation
-      if (content.length > 200) {
-        result.career_timeline = content; // Use entire response as career data
-      } else {
-        return null;
+    // If structured parsing found nothing, the response is likely prose — use it directly
+    const hasStructuredData = result.career_timeline || result.education || result.achievements || result.skills;
+    if (!hasStructuredData && cleanContent.length > 100) {
+      // Extract clean flowing sentences from the prose response
+      const prose = cleanContent
+        .replace(/\n+/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim();
+      const sentences = prose.match(/[^.!?]+[.!?]+/g) || [];
+      let summary = '';
+      for (const s of sentences) {
+        if (summary.length + s.length > 800) break;
+        summary += s;
       }
+      if (summary.length > 50) {
+        result.career_timeline = summary.trim();
+      }
+    }
+
+    // Must have at least something useful
+    if (!result.career_timeline && !result.education && !result.achievements) {
+      return null;
     }
 
     return result;

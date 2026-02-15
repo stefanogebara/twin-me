@@ -111,7 +111,7 @@ app.post('/tools/:toolName', authenticate, async (req, res) => {
 
         const anthropic = getAnthropicClient();
         const response = await anthropic.messages.create({
-          model: 'claude-sonnet-4-5-20250929',
+          model: 'claude-sonnet-4.5',
           max_tokens: 1000,
           temperature: 0.7,
           system: systemPrompt,

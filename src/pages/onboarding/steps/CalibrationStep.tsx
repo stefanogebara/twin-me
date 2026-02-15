@@ -4,6 +4,28 @@ import { Loader2, Send, ArrowRight } from 'lucide-react';
 import { ConfirmedData } from '@/services/enrichmentService';
 import { useAnalytics } from '@/contexts/AnalyticsContext';
 
+const messageContainerVariants = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: { staggerChildren: 0.15 },
+  },
+};
+
+const messageItemVariants = {
+  hidden: { opacity: 0, y: 12 },
+  visible: {
+    opacity: 1,
+    y: 0,
+    transition: { duration: 0.5, ease: [0.25, 0.46, 0.45, 0.94] },
+  },
+  exit: {
+    opacity: 0,
+    y: -8,
+    transition: { duration: 0.3, ease: [0.25, 0.46, 0.45, 0.94] },
+  },
+};
+
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
 
 interface CalibrationStepProps {
@@ -27,6 +49,24 @@ interface Message {
   isTyping?: boolean;
 }
 
+interface DomainProgress {
+  [key: string]: { asked: number; covered: boolean };
+}
+
+const PHASE_LABELS: Record<string, string> = {
+  warmup: 'Getting to know you',
+  deepdive: 'Going deeper',
+  integration: 'Wrapping up',
+};
+
+const DOMAIN_NAMES: Record<string, string> = {
+  motivation: 'Drive',
+  lifestyle: 'Rhythms',
+  personality: 'Inner world',
+  cultural: 'Taste',
+  social: 'Connections',
+};
+
 const getAuthHeaders = () => {
   const token = localStorage.getItem('auth_token') || localStorage.getItem('token');
   const headers: Record<string, string> = { 'Content-Type': 'application/json' };
@@ -46,9 +86,11 @@ export const CalibrationStep: React.FC<CalibrationStepProps> = ({
   const [isTyping, setIsTyping] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [questionNumber, setQuestionNumber] = useState(1);
-  const [totalQuestions] = useState(5);
+  const [totalQuestions, setTotalQuestions] = useState(12);
   const [conversationHistory, setConversationHistory] = useState<Array<{ role: string; content: string }>>([]);
   const [isDone, setIsDone] = useState(false);
+  const [phase, setPhase] = useState<string>('warmup');
+  const [domainProgress, setDomainProgress] = useState<DomainProgress>({});
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -78,7 +120,11 @@ export const CalibrationStep: React.FC<CalibrationStepProps> = ({
     setIsTyping(false);
   }, []);
 
-  const fetchNextQuestion = useCallback(async (history: Array<{ role: string; content: string }>, qNum: number) => {
+  const fetchNextQuestion = useCallback(async (
+    history: Array<{ role: string; content: string }>,
+    qNum: number,
+    dp?: DomainProgress,
+  ) => {
     setIsLoading(true);
     try {
       const response = await fetch(`${API_URL}/onboarding/calibrate`, {
@@ -88,6 +134,7 @@ export const CalibrationStep: React.FC<CalibrationStepProps> = ({
           enrichmentContext,
           conversationHistory: history,
           questionNumber: qNum,
+          domainProgress: dp || domainProgress,
         }),
       });
 
@@ -97,17 +144,25 @@ export const CalibrationStep: React.FC<CalibrationStepProps> = ({
 
       const result = await response.json();
 
+      // Update tracking state from server
+      if (result.totalQuestions) setTotalQuestions(result.totalQuestions);
+      if (result.phase) setPhase(result.phase);
+      if (result.domainProgress) setDomainProgress(result.domainProgress);
+
       if (result.done) {
         setIsDone(true);
         trackFunnel('calibration_completed', {
           questions_answered: qNum - 1,
           has_insights: (result.insights || []).length > 0,
+          domains_covered: Object.values(result.domainProgress || {}).filter(
+            (d: any) => d.asked >= 2
+          ).length,
         });
 
-        // Show a brief closing message
+        // Show closing message
         await typeMessage(
-          result.summary || "Thanks for sharing. I've got a good sense of who you are now.",
-          20
+          result.summary || "Thanks for sharing all of that. I feel like I really know you now.",
+          18
         );
 
         setTimeout(() => {
@@ -127,7 +182,6 @@ export const CalibrationStep: React.FC<CalibrationStepProps> = ({
       await typeMessage(result.message, 20);
       setQuestionNumber(qNum + 1);
 
-      // Focus input after question appears
       setTimeout(() => inputRef.current?.focus(), 100);
     } catch (error) {
       console.error('Calibration error:', error);
@@ -143,9 +197,9 @@ export const CalibrationStep: React.FC<CalibrationStepProps> = ({
     } finally {
       setIsLoading(false);
     }
-  }, [enrichmentContext, onComplete, typeMessage]);
+  }, [enrichmentContext, onComplete, typeMessage, domainProgress, trackFunnel]);
 
-  // Start the calibration conversation
+  // Start the interview
   useEffect(() => {
     if (hasStartedRef.current) return;
     hasStartedRef.current = true;
@@ -153,17 +207,16 @@ export const CalibrationStep: React.FC<CalibrationStepProps> = ({
     const start = async () => {
       const firstName = (enrichmentContext.name || '').split(' ')[0] || 'there';
       await typeMessage(
-        `Now I'd like to get to know you a bit deeper, ${firstName}. Just a few quick questions.`,
-        22
+        `I'd love to really get to know you, ${firstName}. Not the resume version — the real you. This should take about 5 minutes.`,
+        20
       );
       await new Promise(resolve => setTimeout(resolve, 600));
 
-      // Fetch first question with empty history
       const initialHistory = [
         { role: 'user', content: `Hi, I'm ${enrichmentContext.name || 'here'}. Ask me your first question.` },
       ];
       setConversationHistory(initialHistory);
-      await fetchNextQuestion(initialHistory, 1);
+      await fetchNextQuestion(initialHistory, 1, {});
     };
 
     start();
@@ -173,18 +226,14 @@ export const CalibrationStep: React.FC<CalibrationStepProps> = ({
     const answer = userInput.trim();
     if (!answer || isTyping || isLoading || isDone) return;
 
-    // Add user message to chat
     const id = Date.now().toString();
     setMessages(prev => [...prev, { id, type: 'user', content: answer }]);
     setUserInput('');
 
-    // Update conversation history
     const newHistory = [...conversationHistory, { role: 'user', content: answer }];
     setConversationHistory(newHistory);
 
     await new Promise(resolve => setTimeout(resolve, 400));
-
-    // Fetch next question
     await fetchNextQuestion(newHistory, questionNumber);
   };
 
@@ -195,7 +244,13 @@ export const CalibrationStep: React.FC<CalibrationStepProps> = ({
     }
   };
 
-  const progress = Math.min(((questionNumber - 1) / totalQuestions) * 100, 100);
+  // Progress calculation: smooth bar based on questions answered vs estimated total
+  const answeredCount = questionNumber - 1;
+  const progress = Math.min((answeredCount / totalQuestions) * 100, 95);
+
+  // Domain coverage dots
+  const domainEntries = Object.entries(domainProgress);
+  const domainsActive = domainEntries.filter(([, d]) => d.asked > 0).length;
 
   return (
     <div className="min-h-screen flex flex-col bg-[#0C0C0C]">
@@ -208,29 +263,70 @@ export const CalibrationStep: React.FC<CalibrationStepProps> = ({
         `}
       </style>
 
-      {/* Header with progress */}
+      {/* Header */}
       <div className="flex justify-between items-center px-8 py-6">
-        <div
-          className="text-xl tracking-tight"
-          style={{ fontFamily: 'var(--font-heading)', color: '#E8D5B7' }}
-        >
-          Twin Me
+        <div className="flex items-center gap-3">
+          <div
+            className="text-xl tracking-tight"
+            style={{ fontFamily: 'var(--font-heading)', color: '#E8D5B7' }}
+          >
+            Twin Me
+          </div>
+          {/* Phase label */}
+          <AnimatePresence mode="wait">
+            <motion.span
+              key={phase}
+              initial={{ opacity: 0, x: -8 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: 8 }}
+              className="text-xs uppercase tracking-widest"
+              style={{ color: 'rgba(232, 213, 183, 0.35)', fontFamily: 'var(--font-body)' }}
+            >
+              {PHASE_LABELS[phase] || ''}
+            </motion.span>
+          </AnimatePresence>
         </div>
         <div className="flex items-center gap-4">
-          {/* Progress dots */}
-          <div className="flex gap-1.5">
-            {Array.from({ length: totalQuestions }).map((_, i) => (
-              <div
-                key={i}
-                className="w-2 h-2 rounded-full transition-all duration-500"
-                style={{
-                  backgroundColor: i < questionNumber - 1
-                    ? '#E8D5B7'
-                    : 'rgba(232, 213, 183, 0.15)',
-                }}
-              />
-            ))}
-          </div>
+          {/* Domain coverage indicators */}
+          {domainsActive > 0 && (
+            <div className="flex gap-1">
+              {Object.entries(DOMAIN_NAMES).map(([key, name]) => {
+                const dp = domainProgress[key];
+                const filled = dp && dp.asked >= 2;
+                const partial = dp && dp.asked > 0 && dp.asked < 2;
+                return (
+                  <motion.div
+                    key={key}
+                    className="relative group"
+                  >
+                    <motion.div
+                      className="w-1.5 h-1.5 rounded-full"
+                      animate={{
+                        backgroundColor: filled
+                          ? '#E8D5B7'
+                          : partial
+                            ? 'rgba(232, 213, 183, 0.4)'
+                            : 'rgba(232, 213, 183, 0.1)',
+                      }}
+                      transition={{ duration: 0.5 }}
+                    />
+                    <div
+                      className="absolute -bottom-5 left-1/2 -translate-x-1/2 text-[8px] uppercase tracking-wider whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity"
+                      style={{ color: 'rgba(232, 213, 183, 0.4)', fontFamily: 'var(--font-body)' }}
+                    >
+                      {name}
+                    </div>
+                  </motion.div>
+                );
+              })}
+            </div>
+          )}
+          <span
+            className="text-xs tabular-nums"
+            style={{ color: 'rgba(232, 213, 183, 0.3)', fontFamily: 'var(--font-body)' }}
+          >
+            {answeredCount}/{totalQuestions}
+          </span>
           <button
             onClick={onSkip}
             className="text-sm tracking-wide uppercase opacity-40 hover:opacity-80 transition-opacity"
@@ -256,21 +352,28 @@ export const CalibrationStep: React.FC<CalibrationStepProps> = ({
             style={{ backgroundColor: 'rgba(232, 213, 183, 0.4)' }}
             initial={{ width: 0 }}
             animate={{ width: `${progress}%` }}
-            transition={{ duration: 0.6, ease: 'easeOut' }}
+            transition={{ type: 'spring', stiffness: 300, damping: 25 }}
           />
         </div>
       </div>
 
       {/* Chat area */}
       <div className="flex-1 overflow-y-auto px-6 md:px-8">
-        <div className="max-w-2xl mx-auto py-8">
-          <AnimatePresence>
+        <motion.div
+          className="max-w-2xl mx-auto py-8"
+          variants={messageContainerVariants}
+          initial="hidden"
+          animate="visible"
+        >
+          <AnimatePresence mode="popLayout">
             {messages.map((message) => (
               <motion.div
                 key={message.id}
-                initial={{ opacity: 0, y: 12 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.4, ease: [0.25, 0.46, 0.45, 0.94] }}
+                variants={messageItemVariants}
+                initial="hidden"
+                animate="visible"
+                exit="exit"
+                layout
                 className={`mb-6 ${message.type === 'user' ? 'flex justify-end' : ''}`}
               >
                 {message.type === 'bot' ? (
@@ -311,12 +414,19 @@ export const CalibrationStep: React.FC<CalibrationStepProps> = ({
             ))}
           </AnimatePresence>
           <div ref={messagesEndRef} />
-        </div>
+        </motion.div>
       </div>
 
       {/* Input area */}
+      <AnimatePresence>
       {!isDone && !isTyping && (
-        <div className="p-6 md:p-8">
+        <motion.div
+          className="p-6 md:p-8"
+          initial={{ opacity: 0, y: 16 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: 8 }}
+          transition={{ duration: 0.4, ease: [0.25, 0.46, 0.45, 0.94] }}
+        >
           <div className="max-w-2xl mx-auto">
             <div
               className="relative rounded-2xl overflow-hidden transition-all duration-200"
@@ -355,15 +465,18 @@ export const CalibrationStep: React.FC<CalibrationStepProps> = ({
               </button>
             </div>
           </div>
-        </div>
+        </motion.div>
       )}
+      </AnimatePresence>
 
       {/* Done state - continue button */}
+      <AnimatePresence>
       {isDone && !isTyping && (
         <motion.div
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.5 }}
+          exit={{ opacity: 0, y: 8 }}
+          transition={{ delay: 0.5, duration: 0.5, ease: [0.25, 0.46, 0.45, 0.94] }}
           className="p-6 md:p-8"
         >
           <div className="max-w-2xl mx-auto">
@@ -387,6 +500,7 @@ export const CalibrationStep: React.FC<CalibrationStepProps> = ({
           </div>
         </motion.div>
       )}
+      </AnimatePresence>
     </div>
   );
 };

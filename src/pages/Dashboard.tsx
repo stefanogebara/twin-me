@@ -20,6 +20,7 @@ import { PlatformLogo, getPlatformLogo } from '@/components/PlatformLogos';
 import { PageLayout, GlassPanel } from '@/components/layout/PageLayout';
 import { calendarAPI, spotifyAPI, whoopAPI, CalendarEvent } from '@/services/apiService';
 import { TodayInsights } from '@/components/TodayInsights';
+import { ProactiveInsightsPanel } from '@/components/ProactiveInsightsPanel';
 import { usePlatformStatus } from '@/hooks/usePlatformStatus';
 import { DEMO_CALENDAR_DATA } from '@/services/demoDataService';
 import { Clay3DIcon } from '@/components/Clay3DIcon';
@@ -620,6 +621,10 @@ export const Dashboard: React.FC = () => {
         <TodayInsights />
       </div>
 
+      {/* Proactive Insights - What the twin has noticed */}
+      <div className="mb-8">
+        <ProactiveInsightsPanel />
+      </div>
 
       {nextEvent ? (
         <GlassPanel className="mb-8 relative overflow-hidden" variant="card">
