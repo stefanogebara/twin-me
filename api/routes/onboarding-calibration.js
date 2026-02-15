@@ -479,7 +479,12 @@ router.post('/calibrate', authenticateUser, async (req, res) => {
     });
   } catch (error) {
     console.error('[Calibration] Error:', error);
-    return res.status(500).json({ success: false, error: 'Calibration failed' });
+    return res.status(500).json({
+      success: false,
+      error: 'Calibration failed',
+      message: error?.message || 'Unknown error',
+      stack: process.env.NODE_ENV !== 'production' ? error?.stack : undefined,
+    });
   }
 });
 
