@@ -1,5 +1,4 @@
 import { createClient } from '@supabase/supabase-js';
-import { GoogleGenAI } from '@google/genai';
 
 const supabase = createClient(
   process.env.SUPABASE_URL,
@@ -7,10 +6,17 @@ const supabase = createClient(
 );
 
 // Initialize Google AI with grounding capability (new SDK)
-const getGoogleAI = () => {
+// Dynamic import to prevent server crash if @google/genai is unavailable
+const getGoogleAI = async () => {
   const apiKey = process.env.GOOGLE_AI_API_KEY || process.env.GEMINI_API_KEY;
   if (!apiKey) return null;
-  return new GoogleGenAI({ apiKey });
+  try {
+    const { GoogleGenAI } = await import('@google/genai');
+    return new GoogleGenAI({ apiKey });
+  } catch (err) {
+    console.warn('[ProfileEnrichment] @google/genai not available:', err.message);
+    return null;
+  }
 };
 
 /**
@@ -861,7 +867,7 @@ IMPORTANT: The username "${emailUsername}" is the primary identifier for THIS sp
     }
 
     // Try 1: Google AI with Search Grounding (direct API, uses business/entity framing)
-    const googleAI = getGoogleAI();
+    const googleAI = await getGoogleAI();
     if (googleAI) {
       console.log('[ProfileEnrichment] Trying Google AI with Search Grounding for:', { searchName, email });
       try {
