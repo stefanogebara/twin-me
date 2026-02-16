@@ -1,4 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
+import { complete, TIER_EXTRACTION } from './llmGateway.js';
 
 const supabase = createClient(
   process.env.SUPABASE_URL,
@@ -367,44 +368,61 @@ class ProfileEnrichmentService {
     }
 
     // =================================================================
-    // STEP 1: GEMINI - Comprehensive web search for everything
-    // This finds public info: sports, hobbies, social profiles, news
+    // STEP 1: Brave Search → Gemini/Sonar fallback
+    // Brave: real search results + LLM extraction (most reliable)
+    // Gemini/Sonar: LLM-based web search (fallback)
     // =================================================================
-    console.log('[ProfileEnrichment] Step 1: Running Gemini comprehensive search...');
+    console.log('[ProfileEnrichment] Step 1: Running comprehensive search (Brave → Gemini fallback)...');
     const comprehensiveData = await this.comprehensivePersonSearch(name, email, {});
     if (comprehensiveData) {
-      console.log('[ProfileEnrichment] Gemini found comprehensive data!');
-      // Try to extract full name and location from the raw prose
-      const raw = comprehensiveData.raw_comprehensive || comprehensiveData.career_timeline || '';
-      // Match "STEFANO CHAP CHAP GEBARA" after "registered under the name" or in CNPJ records
-      // The name must be 2-5 capitalized words (not long sentences)
-      const fullNameMatch = raw.match(/(?:registered under (?:the name )?|name[:\s]+)[""]?([A-ZÀ-Ý][A-ZÀ-Ýa-záàâãéèêíóôõúç]+(?:\s+[A-ZÀ-Ýa-záàâãéèêíóôõúç]+){1,4})[""]?/);
-      // Match "São Paulo, SP" or "São Paulo, SP, Brazil"
-      const locationMatch = raw.match(/(?:located in|address[:\s]+|location[:\s]+)\s*([A-ZÀ-Ýa-záàâãéèêíóôõúç]+(?:\s+[A-ZÀ-Ýa-záàâãéèêíóôõúç]+)*,?\s*[A-Z]{2}(?:,?\s*Brazi[l]?)?)/i);
-      // Convert ALL CAPS name to Title Case
-      const toTitleCase = (str) => str.toLowerCase().replace(/\b\w/g, c => c.toUpperCase());
-      let extractedName = fullNameMatch ? fullNameMatch[1].trim() : null;
-      // Validate: name must be 2-5 words, not a sentence
-      if (extractedName && (extractedName.split(/\s+/).length > 5 || extractedName.length > 60)) {
-        extractedName = null;
+      // Determine source based on whether Brave returned structured fields
+      const isBraveResult = !!comprehensiveData.discovered_title || !!comprehensiveData.discovered_company;
+      console.log(`[ProfileEnrichment] ${isBraveResult ? 'Brave Search' : 'Gemini'} found comprehensive data!`);
+
+      if (isBraveResult) {
+        // Brave Search returned structured fields — use them directly
+        enrichedData = {
+          ...enrichedData,
+          discovered_name: comprehensiveData.discovered_name || enrichedData.discovered_name || name,
+          discovered_title: comprehensiveData.discovered_title || enrichedData.discovered_title,
+          discovered_company: comprehensiveData.discovered_company || enrichedData.discovered_company,
+          discovered_location: comprehensiveData.discovered_location || enrichedData.discovered_location,
+          discovered_linkedin_url: comprehensiveData.discovered_linkedin_url || enrichedData.discovered_linkedin_url,
+          career_timeline: comprehensiveData.career_timeline,
+          education: comprehensiveData.education,
+          achievements: comprehensiveData.achievements,
+          skills: comprehensiveData.skills,
+          comprehensive_source: 'brave'
+        };
+        enrichmentSource = 'brave';
+      } else {
+        // Gemini/Sonar fallback — extract from raw prose
+        const raw = comprehensiveData.raw_comprehensive || comprehensiveData.career_timeline || '';
+        const fullNameMatch = raw.match(/(?:registered under (?:the name )?|name[:\s]+)[""]?([A-ZÀ-Ý][A-ZÀ-Ýa-záàâãéèêíóôõúç]+(?:\s+[A-ZÀ-Ýa-záàâãéèêíóôõúç]+){1,4})[""]?/);
+        const locationMatch = raw.match(/(?:located in|address[:\s]+|location[:\s]+)\s*([A-ZÀ-Ýa-záàâãéèêíóôõúç]+(?:\s+[A-ZÀ-Ýa-záàâãéèêíóôõúç]+)*,?\s*[A-Z]{2}(?:,?\s*Brazi[l]?)?)/i);
+        const toTitleCase = (str) => str.toLowerCase().replace(/\b\w/g, c => c.toUpperCase());
+        let extractedName = fullNameMatch ? fullNameMatch[1].trim() : null;
+        if (extractedName && (extractedName.split(/\s+/).length > 5 || extractedName.length > 60)) {
+          extractedName = null;
+        }
+        const displayName = extractedName
+          ? (extractedName === extractedName.toUpperCase() ? toTitleCase(extractedName) : extractedName)
+          : name;
+        enrichedData = {
+          ...enrichedData,
+          discovered_name: displayName || enrichedData.discovered_name,
+          discovered_location: locationMatch ? locationMatch[1].trim() : enrichedData.discovered_location,
+          career_timeline: comprehensiveData.career_timeline,
+          education: comprehensiveData.education,
+          achievements: comprehensiveData.achievements,
+          skills: comprehensiveData.skills,
+          languages: comprehensiveData.languages,
+          certifications: comprehensiveData.certifications,
+          publications: comprehensiveData.publications,
+          comprehensive_source: 'gemini'
+        };
+        enrichmentSource = 'gemini';
       }
-      const displayName = extractedName
-        ? (extractedName === extractedName.toUpperCase() ? toTitleCase(extractedName) : extractedName)
-        : name;
-      enrichedData = {
-        ...enrichedData,  // Preserve quickEnrich data (photo, bio, github stats)
-        discovered_name: displayName || enrichedData.discovered_name,
-        discovered_location: locationMatch ? locationMatch[1].trim() : enrichedData.discovered_location,
-        career_timeline: comprehensiveData.career_timeline,
-        education: comprehensiveData.education,
-        achievements: comprehensiveData.achievements,
-        skills: comprehensiveData.skills,
-        languages: comprehensiveData.languages,
-        certifications: comprehensiveData.certifications,
-        publications: comprehensiveData.publications,
-        comprehensive_source: 'gemini'
-      };
-      enrichmentSource = 'gemini';
     }
 
     // =================================================================
@@ -772,9 +790,97 @@ Write the biography:`;
   }
 
   /**
+   * Single Brave Search API call. Returns array of web results.
+   */
+  async braveWebSearch(query, apiKey) {
+    const url = new URL('https://api.search.brave.com/res/v1/web/search');
+    url.searchParams.set('q', query);
+    url.searchParams.set('count', '5');
+    url.searchParams.set('extra_snippets', 'true');
+
+    const response = await fetch(url.toString(), {
+      headers: { 'X-Subscription-Token': apiKey }
+    });
+
+    if (!response.ok) return null;
+    const data = await response.json();
+    return data.web?.results || [];
+  }
+
+  /**
+   * Run 3-5 targeted Brave queries in parallel and collect all snippets.
+   */
+  async searchWithBrave(name, email) {
+    const apiKey = process.env.BRAVE_SEARCH_API_KEY;
+    if (!apiKey) return null;
+
+    const emailUsername = email.split('@')[0];
+    const queries = [
+      `"${name}" site:linkedin.com/in`,
+      `"${name}" (CEO OR founder OR engineer OR professor OR director)`,
+      `"${name}" (university OR degree OR graduated OR MBA)`,
+    ];
+
+    if (!name.toLowerCase().includes(emailUsername.toLowerCase())) {
+      queries.push(`"${emailUsername}" "${name}"`);
+    }
+
+    const results = await Promise.allSettled(
+      queries.map(q => this.braveWebSearch(q, apiKey))
+    );
+
+    const allSnippets = results
+      .filter(r => r.status === 'fulfilled' && r.value)
+      .flatMap(r => r.value)
+      .map(r => `[${r.title}] ${r.description}${r.extra_snippets ? ' ' + r.extra_snippets.join(' ') : ''}`)
+      .join('\n');
+
+    if (allSnippets.length < 50) return null;
+    return allSnippets;
+  }
+
+  /**
+   * Use cheap LLM (Mistral Small via TIER_EXTRACTION) to extract structured
+   * profile JSON from raw Brave Search snippets.
+   */
+  async extractStructuredProfile(snippets, name, email) {
+    const prompt = `Extract facts about "${name}" (${email}) from these search results.
+Return ONLY a JSON object. Only include fields where you found real evidence. Do not guess or invent.
+
+SEARCH RESULTS:
+${snippets}
+
+Return JSON:
+{
+  "name": "full name if found",
+  "title": "current job title",
+  "company": "current company",
+  "location": "city, country",
+  "education": "degree, school, year",
+  "career_summary": "1-2 sentence career summary from real facts only",
+  "linkedin_url": "linkedin.com/in/... if found",
+  "skills": "key skills if mentioned"
+}
+
+RULES: Only use facts from the search results above. If a field has no evidence, set it to null.`;
+
+    const result = await complete({
+      tier: TIER_EXTRACTION,
+      messages: [{ role: 'user', content: prompt }],
+      maxTokens: 1024,
+      temperature: 0.1,
+      serviceName: 'brave-profile-extraction',
+    });
+
+    const text = result.content.replace(/```json\n?|\n?```/g, '').trim();
+    return JSON.parse(text);
+  }
+
+  /**
    * Comprehensive person search using web-search-capable models via OpenRouter.
    *
    * Strategy:
+   *   0. Brave Search API (most reliable — real search results + LLM extraction)
    *   1. Perplexity Sonar (has built-in web search) — best for real-time lookup
    *   2. Google Gemini with Search Grounding — good fallback
    *   3. Gemini via OpenRouter — last resort (no grounding)
@@ -787,6 +893,33 @@ Write the biography:`;
     if (!name) {
       console.log('[ProfileEnrichment] Cannot do comprehensive search - no name provided');
       return null;
+    }
+
+    // Tier 0: Brave Search API (most reliable — real search results)
+    if (process.env.BRAVE_SEARCH_API_KEY) {
+      console.log('[ProfileEnrichment] Trying Brave Search API for:', { name, email });
+      try {
+        const snippets = await this.searchWithBrave(name, email);
+        if (snippets) {
+          const extracted = await this.extractStructuredProfile(snippets, name, email);
+          if (extracted) {
+            return {
+              career_timeline: extracted.career_summary || null,
+              education: extracted.education || null,
+              achievements: null,
+              skills: extracted.skills || null,
+              discovered_title: extracted.title || null,
+              discovered_company: extracted.company || null,
+              discovered_location: extracted.location || null,
+              discovered_linkedin_url: extracted.linkedin_url || null,
+              discovered_name: extracted.name || null,
+              raw_comprehensive: snippets,
+            };
+          }
+        }
+      } catch (error) {
+        console.error('[ProfileEnrichment] Brave Search failed:', error.message);
+      }
     }
 
     const openRouterKey = process.env.OPENROUTER_API_KEY;
