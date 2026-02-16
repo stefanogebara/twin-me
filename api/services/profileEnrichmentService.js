@@ -350,8 +350,9 @@ class ProfileEnrichmentService {
         social_links: q.social_links,
       };
       enrichmentSource = q.source;
-      // Update name from free sources if we got a better one
-      if (q.discovered_name && q.discovered_name !== name) {
+      // Only update name from free sources if we didn't have a real name already
+      // (e.g. Google OAuth provides ground-truth name; don't overwrite with Gravatar guess)
+      if (q.discovered_name && (!name || !name.includes(' '))) {
         name = q.discovered_name;
       }
     }

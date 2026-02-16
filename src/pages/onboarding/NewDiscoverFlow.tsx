@@ -130,7 +130,9 @@ const NewDiscoverFlow: React.FC = () => {
 
     try {
       // Phase 1: Quick enrichment (< 1 second)
-      const quickResult = await enrichmentService.quickEnrich();
+      // Pass Google OAuth name so backend can use it for better results
+      const oauthName = user.fullName || undefined;
+      const quickResult = await enrichmentService.quickEnrich(oauthName);
       const q = quickResult?.data;
 
       if (q && q.source !== 'none' && q.source !== 'error') {
@@ -160,7 +162,8 @@ const NewDiscoverFlow: React.FC = () => {
       }
 
       // Phase 3: Full enrichment search
-      const name = q?.discovered_name || user.fullName || inferNameFromEmail(user.email);
+      // Prefer Google OAuth name (ground truth) over Gravatar/GitHub discovered name
+      const name = user.fullName || q?.discovered_name || inferNameFromEmail(user.email);
       const searchResult = await enrichmentService.search(user.id, user.email, name);
 
       if (searchResult.data) {
