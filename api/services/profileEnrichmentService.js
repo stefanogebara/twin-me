@@ -375,8 +375,8 @@ class ProfileEnrichmentService {
     console.log('[ProfileEnrichment] Step 1: Running comprehensive search (Brave → Gemini fallback)...');
     const comprehensiveData = await this.comprehensivePersonSearch(name, email, {});
     if (comprehensiveData) {
-      // Determine source based on whether Brave returned structured fields
-      const isBraveResult = !!comprehensiveData.discovered_title || !!comprehensiveData.discovered_company;
+      // Determine source based on explicit _source flag from comprehensivePersonSearch
+      const isBraveResult = comprehensiveData._source === 'brave';
       console.log(`[ProfileEnrichment] ${isBraveResult ? 'Brave Search' : 'Gemini'} found comprehensive data!`);
 
       if (isBraveResult) {
@@ -919,6 +919,7 @@ RULES: Only use facts from the search results above. If a field has no evidence,
               discovered_linkedin_url: extracted.linkedin_url || null,
               discovered_name: extracted.name || null,
               raw_comprehensive: snippets,
+              _source: 'brave',
             };
           }
         }
