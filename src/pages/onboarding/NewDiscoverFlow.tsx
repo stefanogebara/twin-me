@@ -117,12 +117,17 @@ const NewDiscoverFlow: React.FC = () => {
   }, [phase]);
 
   const isLLMJunk = (text: string): boolean => {
-    const lower = text.toLowerCase();
-    return /^(okay|sure|alright|let me|i will|i'll|here's (the|my) plan)/i.test(text.trim())
-      || lower.includes('conduct the searches')
-      || lower.includes('compile a detailed report')
-      || lower.includes('execute the search queries')
-      || lower.includes('gather information from');
+    const lower = text.toLowerCase().trim();
+    // LLM planning/preamble patterns
+    if (/^(okay|sure|alright|let me|i will|i'll|here's (the|my) plan)/i.test(lower)) return true;
+    if (/^this report (compiles|summarizes|presents|covers|contains)/i.test(lower)) return true;
+    if (/^(below is|here is|the following) (a |the )?(compiled|detailed|comprehensive)/i.test(lower)) return true;
+    const junkPhrases = [
+      'conduct the searches', 'compile a detailed report', 'execute the search queries',
+      'gather information from', 'i will search', 'i will now search',
+      'compiles information found through', 'based on the search results',
+    ];
+    return junkPhrases.some(p => lower.includes(p));
   };
 
   const addDataPoint = useCallback((dp: DataPoint) => {

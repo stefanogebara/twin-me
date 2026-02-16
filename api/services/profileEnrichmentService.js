@@ -1108,6 +1108,9 @@ IMPORTANT: The username "${emailUsername}" is the primary identifier for THIS sp
       // Strip LLM planning/chain-of-thought preamble
       .replace(/^(?:Okay|Sure|Alright|Let me|I will|I'll|Here's (?:the|my) plan)[^.]*\.[^]*?(?=(?:[A-Z][a-z]+ (?:is|was|has|holds|serves|currently|works|founded|graduated|earned|studied|joined|started|received|became)))/i, '')
       .replace(/^(?:I (?:will|shall|am going to) (?:conduct|execute|search|run|perform|compile)[^.]*\.[\s\n]*)+/gi, '')
+      .replace(/^(?:This report (?:compiles|summarizes|presents|covers|contains)[^.]*\.[\s\n]*)+/gi, '')
+      .replace(/^(?:Below is|Here is|The following)[^.]*(?:compiled|detailed|comprehensive)[^.]*\.[\s\n]*/gi, '')
+      .replace(/^(?:Based on (?:the |my )?search results)[^.]*\.[\s\n]*/gi, '')
       .replace(/\n{3,}/g, '\n\n')
       .trim();
 
