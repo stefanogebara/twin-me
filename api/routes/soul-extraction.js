@@ -32,6 +32,7 @@ import {
   requirePlatformConnection,
   validateMultiplePlatforms
 } from '../middleware/platformValidation.js';
+import { authenticateUser } from '../middleware/auth.js';
 
 const router = express.Router();
 const extractor = new RealTimeExtractor();
@@ -201,8 +202,11 @@ case 'github':
  * - Musical sophistication analysis
  * - Overall personality metrics (openness, conscientiousness, authenticity)
  */
-router.post('/extract/spotify-deep/:userId', asyncHandler(async (req, res) => {
+router.post('/extract/spotify-deep/:userId', authenticateUser, asyncHandler(async (req, res) => {
   const { userId } = req.params;
+    if (userId !== req.user.id) {
+      return res.status(403).json({ error: 'Forbidden', message: 'Access denied' });
+    }
 
   console.log(`🎵 [Spotify Enhanced] Deep extraction request for user ${userId}`);
 
@@ -293,8 +297,11 @@ router.post('/extract/spotify-deep/:userId', asyncHandler(async (req, res) => {
  * - Educational depth (learning commitment level)
  * - Overall personality metrics (openness, conscientiousness, intellectual curiosity)
  */
-router.post('/extract/youtube-deep/:userId', asyncHandler(async (req, res) => {
+router.post('/extract/youtube-deep/:userId', authenticateUser, asyncHandler(async (req, res) => {
   const { userId } = req.params;
+    if (userId !== req.user.id) {
+      return res.status(403).json({ error: 'Forbidden', message: 'Access denied' });
+    }
 
   console.log(`📺 [YouTube Enhanced] Deep extraction request for user ${userId}`);
 
@@ -376,8 +383,11 @@ router.post('/extract/youtube-deep/:userId', asyncHandler(async (req, res) => {
  * from browser extension data (page visits, searches, articles, engagement).
  * No OAuth required — data comes from the browser extension pipeline.
  */
-router.post('/extract/web-deep/:userId', asyncHandler(async (req, res) => {
+router.post('/extract/web-deep/:userId', authenticateUser, asyncHandler(async (req, res) => {
   const { userId } = req.params;
+    if (userId !== req.user.id) {
+      return res.status(403).json({ error: 'Forbidden', message: 'Access denied' });
+    }
 
   console.log(`[Web Deep] Personality inference request for user ${userId}`);
 
@@ -600,9 +610,12 @@ router.post('/analyze/patterns', async (req, res) => {
  * GET /api/soul/insights/:userId
  * Get comprehensive personality insights for a user
  */
-router.get('/insights/:userId', async (req, res) => {
+router.get('/insights/:userId', authenticateUser, async (req, res) => {
   try {
     const { userId } = req.params;
+    if (userId !== req.user.id) {
+      return res.status(403).json({ error: 'Forbidden', message: 'Access denied' });
+    }
     const { includeRaw = false } = req.query;
 
     console.log(`💎 Retrieving soul insights for user ${userId}`);
@@ -666,9 +679,12 @@ router.post('/synthesize', async (req, res) => {
  * GET /api/soul/extract/gmail/:userId
  * Extract communication personality patterns from Gmail data
  */
-router.get('/extract/gmail/:userId', async (req, res) => {
+router.get('/extract/gmail/:userId', authenticateUser, async (req, res) => {
   try {
     const { userId } = req.params;
+    if (userId !== req.user.id) {
+      return res.status(403).json({ error: 'Forbidden', message: 'Access denied' });
+    }
 
     console.log('🧠 Extracting Gmail personality patterns for soul signature...');
 
@@ -901,9 +917,12 @@ router.get('/extract/gmail/:userId', async (req, res) => {
  * GET /api/soul/extract/calendar/:userId
  * Extract time management and work patterns from Calendar data
  */
-router.get('/extract/calendar/:userId', async (req, res) => {
+router.get('/extract/calendar/:userId', authenticateUser, async (req, res) => {
   try {
     const { userId } = req.params;
+    if (userId !== req.user.id) {
+      return res.status(403).json({ error: 'Forbidden', message: 'Access denied' });
+    }
 
     console.log('🗓️ Extracting Calendar patterns for soul signature...');
 
@@ -1087,9 +1106,12 @@ router.get('/extract/calendar/:userId', async (req, res) => {
  * GET /api/soul/extract/professional/:userId
  * Generate complete professional soul signature from Gmail + Calendar
  */
-router.get('/extract/professional/:userId', async (req, res) => {
+router.get('/extract/professional/:userId', authenticateUser, async (req, res) => {
   try {
     const { userId } = req.params;
+    if (userId !== req.user.id) {
+      return res.status(403).json({ error: 'Forbidden', message: 'Access denied' });
+    }
 
     console.log('💼 Generating complete professional soul signature...');
 
@@ -1294,9 +1316,12 @@ async function performSoulSynthesis(userId, platforms, preferences) {
  * POST /api/soul/trigger-extraction/:platform/:userId
  * Manually trigger data extraction for a specific platform
  */
-router.post('/trigger-extraction/:platform/:userId', async (req, res) => {
+router.post('/trigger-extraction/:platform/:userId', authenticateUser, async (req, res) => {
   try {
     const { platform, userId } = req.params;
+    if (userId !== req.user.id) {
+      return res.status(403).json({ error: 'Forbidden', message: 'Access denied' });
+    }
 
     console.log(`[Manual Extraction] Triggering extraction for ${platform}, user: ${userId}`);
 
@@ -1344,9 +1369,12 @@ router.post('/trigger-extraction/:platform/:userId', async (req, res) => {
  * POST /api/soul/trigger-extraction-all/:userId
  * Manually trigger data extraction for all connected platforms
  */
-router.post('/trigger-extraction-all/:userId', async (req, res) => {
+router.post('/trigger-extraction-all/:userId', authenticateUser, async (req, res) => {
   try {
     const { userId } = req.params;
+    if (userId !== req.user.id) {
+      return res.status(403).json({ error: 'Forbidden', message: 'Access denied' });
+    }
 
     console.log(`[Manual Extraction] Triggering extraction for ALL platforms, user: ${userId}`);
 
@@ -1388,9 +1416,12 @@ router.post('/trigger-extraction-all/:userId', async (req, res) => {
  * GET /api/soul/extraction-status/:userId
  * Get extraction status for all platforms
  */
-router.get('/extraction-status/:userId', async (req, res) => {
+router.get('/extraction-status/:userId', authenticateUser, async (req, res) => {
   try {
     const { userId } = req.params;
+    if (userId !== req.user.id) {
+      return res.status(403).json({ error: 'Forbidden', message: 'Access denied' });
+    }
 
     console.log(`[Extraction Status] Getting status for user: ${userId}`);
 
@@ -1460,9 +1491,12 @@ router.get('/extraction-status/:userId', async (req, res) => {
  * POST /api/soul/build-signature/:userId
  * Analyzes extracted platform data and builds soul signature, then updates all user's twins
  */
-router.post('/build-signature/:userId', async (req, res) => {
+router.post('/build-signature/:userId', authenticateUser, async (req, res) => {
   try {
     const { userId } = req.params;
+    if (userId !== req.user.id) {
+      return res.status(403).json({ error: 'Forbidden', message: 'Access denied' });
+    }
 
     console.log(`[SoulSignature] Building soul signature for user: ${userId}`);
 

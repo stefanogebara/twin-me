@@ -9,6 +9,7 @@ import multer from 'multer';
 import { resumeParserService } from '../services/resumeParserService.js';
 import { profileEnrichmentService } from '../services/profileEnrichmentService.js';
 import { createClient } from '@supabase/supabase-js';
+import { authenticateUser } from '../middleware/auth.js';
 
 const router = express.Router();
 
@@ -234,9 +235,13 @@ router.post('/parse-text', async (req, res) => {
  * GET /api/resume/data/:userId
  * Get parsed resume data for a user
  */
-router.get('/data/:userId', async (req, res) => {
+router.get('/data/:userId', authenticateUser, async (req, res) => {
   try {
     const { userId } = req.params;
+
+    if (userId !== req.user.id) {
+      return res.status(403).json({ error: 'Forbidden', message: 'Access denied' });
+    }
 
     const enrichment = await profileEnrichmentService.getEnrichment(userId);
 

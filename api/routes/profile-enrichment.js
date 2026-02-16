@@ -150,9 +150,13 @@ router.post('/search', async (req, res) => {
 // ============================================================================
 // GET /api/enrichment/results/:userId - Get enrichment results
 // ============================================================================
-router.get('/results/:userId', async (req, res) => {
+router.get('/results/:userId', authenticateUser, async (req, res) => {
   try {
     const { userId } = req.params;
+
+    if (userId !== req.user.id) {
+      return res.status(403).json({ error: 'Forbidden', message: 'Access denied' });
+    }
 
     if (!userId) {
       return res.status(400).json({
@@ -291,9 +295,13 @@ router.post('/confirm', async (req, res) => {
 // ============================================================================
 // GET /api/enrichment/status/:userId - Check enrichment status
 // ============================================================================
-router.get('/status/:userId', async (req, res) => {
+router.get('/status/:userId', authenticateUser, async (req, res) => {
   try {
     const { userId } = req.params;
+
+    if (userId !== req.user.id) {
+      return res.status(403).json({ error: 'Forbidden', message: 'Access denied' });
+    }
 
     if (!userId) {
       return res.status(400).json({
@@ -329,9 +337,13 @@ router.get('/status/:userId', async (req, res) => {
 // ============================================================================
 // DELETE /api/enrichment/clear/:userId - Clear enrichment data for re-search
 // ============================================================================
-router.delete('/clear/:userId', async (req, res) => {
+router.delete('/clear/:userId', authenticateUser, async (req, res) => {
   try {
     const { userId } = req.params;
+
+    if (userId !== req.user.id) {
+      return res.status(403).json({ error: 'Forbidden', message: 'Access denied' });
+    }
 
     if (!userId) {
       return res.status(400).json({

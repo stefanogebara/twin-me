@@ -12,6 +12,7 @@ import {
   refreshAccessToken
 } from '../services/arcticOAuth.js';
 import { encryptToken } from '../services/encryption.js';
+import { authenticateUser } from '../middleware/auth.js';
 
 const router = express.Router();
 
@@ -301,9 +302,13 @@ router.post('/callback', async (req, res) => {
  * GET /api/arctic/status/:userId
  * Get connection status for all platforms
  */
-router.get('/status/:userId', async (req, res) => {
+router.get('/status/:userId', authenticateUser, async (req, res) => {
   try {
     const { userId } = req.params;
+
+    if (userId !== req.user.id) {
+      return res.status(403).json({ error: 'Forbidden', message: 'Access denied' });
+    }
 
     console.log(`[Arctic Connector] Fetching connection status for user ${userId}`);
 
@@ -350,9 +355,13 @@ router.get('/status/:userId', async (req, res) => {
  * DELETE /api/arctic/disconnect/:userId/:provider
  * Disconnect a platform
  */
-router.delete('/disconnect/:userId/:provider', async (req, res) => {
+router.delete('/disconnect/:userId/:provider', authenticateUser, async (req, res) => {
   try {
     const { userId, provider } = req.params;
+
+    if (userId !== req.user.id) {
+      return res.status(403).json({ error: 'Forbidden', message: 'Access denied' });
+    }
 
     console.log(`[Arctic Connector] Disconnecting ${provider} for user ${userId}`);
 
@@ -387,9 +396,13 @@ router.delete('/disconnect/:userId/:provider', async (req, res) => {
  * POST /api/arctic/refresh/:userId/:provider
  * Manually refresh tokens for a platform
  */
-router.post('/refresh/:userId/:provider', async (req, res) => {
+router.post('/refresh/:userId/:provider', authenticateUser, async (req, res) => {
   try {
     const { userId, provider } = req.params;
+
+    if (userId !== req.user.id) {
+      return res.status(403).json({ error: 'Forbidden', message: 'Access denied' });
+    }
 
     console.log(`[Arctic Connector] Refreshing tokens for ${provider}, user ${userId}`);
 

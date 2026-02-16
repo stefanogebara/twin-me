@@ -6,6 +6,7 @@ import express from 'express';
 import { supabase } from '../config/supabase.js';
 import { supabaseAdmin } from '../services/database.js';
 import { encryptToken, decryptToken } from '../services/encryption.js';
+import { authenticateUser } from '../middleware/auth.js';
 import {
   getCachedPlatformStatus,
   setCachedPlatformStatus,
@@ -975,9 +976,13 @@ router.post('/callback', async (req, res) => {
  * - Cache MISS: ~200ms response time (database query)
  * - Cache invalidated on connect/disconnect/reset
  */
-router.get('/status/:userId', async (req, res) => {
+router.get('/status/:userId', authenticateUser, async (req, res) => {
   try {
     const { userId } = req.params;
+
+    if (userId !== req.user.id) {
+      return res.status(403).json({ error: 'Forbidden', message: 'Access denied' });
+    }
 
     // Convert email to UUID if needed
     let userUuid = userId;
@@ -1132,9 +1137,13 @@ router.get('/status/:userId', async (req, res) => {
  * POST /api/connectors/reset/:userId
  * Reset all connections for a user (for fresh page loads)
  */
-router.post('/reset/:userId', async (req, res) => {
+router.post('/reset/:userId', authenticateUser, async (req, res) => {
   try {
     const { userId } = req.params;
+
+    if (userId !== req.user.id) {
+      return res.status(403).json({ error: 'Forbidden', message: 'Access denied' });
+    }
 
     console.log(`🔄 Resetting connections for user ${userId}`);
     console.warn(`⚠️ RESET ENDPOINT CALLED - This should only be called on fresh page loads!`);
@@ -1201,9 +1210,13 @@ router.post('/reset/:userId', async (req, res) => {
  * DELETE /api/connectors/:provider/:userId
  * Disconnect a provider for a user
  */
-router.delete('/:provider/:userId', async (req, res) => {
+router.delete('/:provider/:userId', authenticateUser, async (req, res) => {
   try {
     const { provider, userId } = req.params;
+
+    if (userId !== req.user.id) {
+      return res.status(403).json({ error: 'Forbidden', message: 'Access denied' });
+    }
 
     console.log(`🔌 Disconnect request for ${provider} from user ${userId}`);
 

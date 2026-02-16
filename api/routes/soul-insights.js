@@ -9,6 +9,7 @@ import { serverDb } from '../services/database.js';
 import graphProcessor from '../services/graphProcessor.js';
 import insightCache from '../services/insightCache.js';
 import spotifyInsightGenerator from '../services/spotifyInsightGenerator.js';
+import { authenticateUser } from '../middleware/auth.js';
 
 const router = express.Router();
 
@@ -16,9 +17,12 @@ const router = express.Router();
  * GET /api/soul-insights/:userId
  * Generate and return user-friendly insights
  */
-router.get('/:userId', async (req, res) => {
+router.get('/:userId', authenticateUser, async (req, res) => {
   try {
     const { userId } = req.params;
+    if (userId !== req.user.id) {
+      return res.status(403).json({ error: 'Forbidden', message: 'Access denied' });
+    }
     console.log(`[SoulInsights] Generating insights for user ${userId}`);
 
     // Check cache first
@@ -170,9 +174,12 @@ router.get('/:userId', async (req, res) => {
  * GET /api/soul-insights/:userId/compatibility/:targetUserId
  * Calculate compatibility between two users
  */
-router.get('/:userId/compatibility/:targetUserId', async (req, res) => {
+router.get('/:userId/compatibility/:targetUserId', authenticateUser, async (req, res) => {
   try {
     const { userId, targetUserId } = req.params;
+    if (userId !== req.user.id) {
+      return res.status(403).json({ error: 'Forbidden', message: 'Access denied' });
+    }
 
     // Mock compatibility calculation
     const compatibility = {
@@ -208,9 +215,12 @@ router.get('/:userId/compatibility/:targetUserId', async (req, res) => {
  * POST /api/soul-insights/:userId/share
  * Control what insights to share
  */
-router.post('/:userId/share', async (req, res) => {
+router.post('/:userId/share', authenticateUser, async (req, res) => {
   try {
     const { userId } = req.params;
+    if (userId !== req.user.id) {
+      return res.status(403).json({ error: 'Forbidden', message: 'Access denied' });
+    }
     const { insightId, share } = req.body;
 
     // In production, this would update database
@@ -234,9 +244,12 @@ router.post('/:userId/share', async (req, res) => {
  * GET /api/soul-insights/:userId/spotify-personality
  * Get Spotify-derived personality insights (Big Five, archetype, etc.)
  */
-router.get('/:userId/spotify-personality', async (req, res) => {
+router.get('/:userId/spotify-personality', authenticateUser, async (req, res) => {
   try {
     const { userId } = req.params;
+    if (userId !== req.user.id) {
+      return res.status(403).json({ error: 'Forbidden', message: 'Access denied' });
+    }
     console.log(`[SoulInsights] Getting Spotify personality for user ${userId}`);
 
     // Check cache first
@@ -278,9 +291,12 @@ router.get('/:userId/spotify-personality', async (req, res) => {
  * GET /api/soul-insights/:userId/spotify-mood
  * Get current mood based on recent Spotify listening
  */
-router.get('/:userId/spotify-mood', async (req, res) => {
+router.get('/:userId/spotify-mood', authenticateUser, async (req, res) => {
   try {
     const { userId } = req.params;
+    if (userId !== req.user.id) {
+      return res.status(403).json({ error: 'Forbidden', message: 'Access denied' });
+    }
     console.log(`[SoulInsights] Getting Spotify mood for user ${userId}`);
 
     // Get current mood from Spotify data
@@ -315,9 +331,12 @@ router.get('/:userId/spotify-mood', async (req, res) => {
  * Get insights that combine Big Five personality assessment with behavioral platform data
  * This is the core endpoint for personality-driven learning
  */
-router.get('/:userId/personality-integrated', async (req, res) => {
+router.get('/:userId/personality-integrated', authenticateUser, async (req, res) => {
   try {
     const { userId } = req.params;
+    if (userId !== req.user.id) {
+      return res.status(403).json({ error: 'Forbidden', message: 'Access denied' });
+    }
     console.log(`[SoulInsights] Getting personality-integrated insights for user ${userId}`);
 
     // Dynamic import for CommonJS module in ESM context

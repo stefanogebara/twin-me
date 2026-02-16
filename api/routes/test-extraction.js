@@ -25,8 +25,13 @@ const supabase = createClient(
  * POST /api/test-extraction/spotify/:userId
  * Generate and store realistic Spotify test data
  */
-router.post('/spotify/:userId', async (req, res) => {
+router.post('/spotify/:userId', authenticateUser, async (req, res) => {
   const { userId } = req.params;
+
+  if (userId !== req.user.id) {
+    return res.status(403).json({ error: 'Forbidden', message: 'Access denied' });
+  }
+
   console.log(`🧪 [TEST MODE] Generating Spotify test data for user: ${userId}`);
 
   try {
@@ -218,8 +223,13 @@ router.post('/spotify/:userId', async (req, res) => {
  * GET /api/test-extraction/soul-data/:userId
  * Retrieve all extracted soul data for a user
  */
-router.get('/soul-data/:userId', async (req, res) => {
+router.get('/soul-data/:userId', authenticateUser, async (req, res) => {
   const { userId } = req.params;
+
+  if (userId !== req.user.id) {
+    return res.status(403).json({ error: 'Forbidden', message: 'Access denied' });
+  }
+
   const { platform, dataType } = req.query;
 
   try {
@@ -275,8 +285,12 @@ router.get('/soul-data/:userId', async (req, res) => {
  * GET /api/test-extraction/data-counts/:userId
  * Get count of extracted data points per platform
  */
-router.get('/data-counts/:userId', async (req, res) => {
+router.get('/data-counts/:userId', authenticateUser, async (req, res) => {
   const { userId } = req.params;
+
+  if (userId !== req.user.id) {
+    return res.status(403).json({ error: 'Forbidden', message: 'Access denied' });
+  }
 
   try {
     const { data, error } = await supabase
@@ -535,8 +549,12 @@ router.get('/youtube-insights/:userId',
  * DELETE /api/test-extraction/soul-data/:userId
  * Clear all soul data for a user (useful for testing)
  */
-router.delete('/soul-data/:userId', async (req, res) => {
+router.delete('/soul-data/:userId', authenticateUser, async (req, res) => {
   const { userId } = req.params;
+
+  if (userId !== req.user.id) {
+    return res.status(403).json({ error: 'Forbidden', message: 'Access denied' });
+  }
 
   try {
     const { error } = await supabase
