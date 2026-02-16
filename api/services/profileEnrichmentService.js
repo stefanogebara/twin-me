@@ -815,10 +815,19 @@ Write the biography:`;
     if (!apiKey) return null;
 
     const emailUsername = email.split('@')[0];
+    const emailDomain = email.split('@')[1] || '';
+    const isGenericEmail = ['gmail.com', 'hotmail.com', 'yahoo.com', 'outlook.com', 'icloud.com', 'protonmail.com', 'aol.com', 'live.com'].includes(emailDomain.toLowerCase());
+
+    // For corporate emails, the domain is a strong disambiguator
+    const domainName = !isGenericEmail ? emailDomain.split('.')[0] : null;
+
     const queries = [
-      `"${name}"`,                                              // Broadest: just the name
-      `"${emailUsername}" site:github.com OR site:linkedin.com`, // Username on major platforms
-      `"${name}" site:linkedin.com/in`,                         // LinkedIn profile
+      // Query 1: name + company (best disambiguator for corporate emails)
+      domainName ? `"${name}" "${domainName}"` : `"${name}"`,
+      // Query 2: username on platforms
+      `"${emailUsername}" site:github.com OR site:linkedin.com`,
+      // Query 3: LinkedIn profile
+      `"${name}" site:linkedin.com/in`,
     ];
 
     const results = await Promise.allSettled(
