@@ -451,7 +451,7 @@ router.get('/oauth/callback', async (req, res) => {
     if (isConnectorFlow && userId) {
       console.log('🔗 Processing connector OAuth in backend GET route');
       // Redirect back to get-started page with connected=true
-      const redirectUrl = `http://localhost:8086/get-started?connected=true&provider=${provider}`;
+      const redirectUrl = `${appUrl}/get-started?connected=true&provider=${provider}`;
       return res.redirect(redirectUrl);
     }
 
