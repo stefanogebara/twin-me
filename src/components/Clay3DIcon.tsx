@@ -1,4 +1,11 @@
-import { icons, type LucideIcon } from 'lucide-react';
+/**
+ * Clay3DIcon - Renders 3D clay-style icons from thiings.co
+ *
+ * Icons are stored locally in /public/icons/3d/
+ * Available icons: brain, headphones, robot, diamond, game-controller,
+ * lightning, shield, sparkle, heart, globe, star, chat-bubble,
+ * light-bulb, magnifying-glass, compass, trophy, rocket
+ */
 
 interface Clay3DIconProps {
   name: string;
@@ -15,54 +22,23 @@ const SIZE_MAP: Record<string, number> = {
   xl: 64,
 };
 
-/** Explicit remap for icon names that don't auto-convert to PascalCase Lucide names */
-const REMAP: Record<string, string> = {
-  'chat-bubble': 'MessageCircle',
-  'game-controller': 'Gamepad2',
-  'light-bulb': 'Lightbulb',
-  'magnifying-glass': 'Search',
-  brain: 'Brain',
-  compass: 'Compass',
-  diamond: 'Gem',
-  globe: 'Globe',
-  headphones: 'Headphones',
-  heart: 'Heart',
-  lightning: 'Zap',
-  robot: 'Bot',
-  rocket: 'Rocket',
-  shield: 'Shield',
-  sparkle: 'Sparkles',
-  star: 'Star',
-  trophy: 'Trophy',
-};
-
-function toPascalCase(s: string): string {
-  return s
-    .split('-')
-    .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
-    .join('');
-}
-
-function resolve(name: string): LucideIcon | undefined {
-  const mapped = REMAP[name] ?? toPascalCase(name);
-  return (icons as Record<string, LucideIcon>)[mapped];
-}
-
-export const Clay3DIcon = ({ name, size = 'md', className = '' }: Clay3DIconProps) => {
+export const Clay3DIcon = ({ name, size = 'md', className = '', alt }: Clay3DIconProps) => {
   const px = typeof size === 'number' ? size : SIZE_MAP[size] || 28;
-  const IconComponent = resolve(name);
 
-  if (!IconComponent) {
-    if (import.meta.env.DEV) {
-      console.warn(`[Clay3DIcon] No Lucide mapping for "${name}"`);
-    }
-    return <span data-missing-icon={name} style={{ width: px, height: px }} className="inline-block shrink-0" />;
-  }
-
-  return <IconComponent size={px} className={`inline-block shrink-0 ${className}`} />;
+  return (
+    <img
+      src={`/icons/3d/${name}.png`}
+      alt={alt || name}
+      width={px}
+      height={px}
+      className={`inline-block object-contain ${className}`}
+      style={{ width: px, height: px }}
+      loading="lazy"
+    />
+  );
 };
 
-// Mapping of nav/feature concepts to icon names
+// Mapping of nav/feature concepts to 3D icon names
 export const CLAY_ICON_MAP: Record<string, string> = {
   // Main nav
   dashboard: 'rocket',

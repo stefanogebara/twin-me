@@ -1,5 +1,7 @@
+import { useState } from 'react';
+import { Button } from '@/components/ui/button';
 import { useNavigate } from 'react-router-dom';
-import { Gem } from 'lucide-react';
+import { Menu, X } from 'lucide-react';
 
 export const Navigation = () => {
   const navigate = useNavigate();
@@ -28,7 +30,11 @@ export const Navigation = () => {
             className="flex items-center gap-2.5 cursor-pointer group"
             onClick={() => navigate('/')}
           >
-            <Gem className="w-9 h-9 shrink-0 group-hover:scale-105 transition-transform" />
+            <img
+              src="/icons/3d/diamond.png"
+              alt="Twin Me"
+              className="w-9 h-9 object-contain drop-shadow-sm group-hover:scale-105 transition-transform"
+            />
             <span
               className="text-2xl font-serif text-stone-500 italic"
             >

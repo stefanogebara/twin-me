@@ -1036,7 +1036,7 @@ const SoulSignatureDashboard: React.FC = () => {
         </motion.div>
       ) : (
         <GlassPanel className="mb-6 text-center py-12">
-          <Sparkles className="w-20 h-20 mx-auto mb-4 opacity-60" />
+          <img src="/icons/3d/sparkle.png" alt="Soul Signature" className="w-20 h-20 mx-auto mb-4 opacity-60" loading="lazy" />
           <h3
             className="text-xl mb-2"
             style={{ fontFamily: 'var(--font-heading)', fontWeight: 500, color: textColor }}
