@@ -1,7 +1,7 @@
 import express from 'express';
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcrypt';
-import supabase from '../config/supabase.js';
+import { supabase, supabaseAdmin } from '../config/supabase.js';
 import { encryptToken } from '../services/encryption.js';
 import profileEnrichmentService from '../services/profileEnrichmentService.js';
 
@@ -16,7 +16,7 @@ router.post('/signup', async (req, res) => {
     const { email, password, firstName, lastName } = req.body;
 
     // Check if user exists
-    const { data: existingUser } = await supabase
+    const { data: existingUser } = await supabaseAdmin
       .from('users')
       .select('id')
       .eq('email', email)
@@ -30,7 +30,7 @@ router.post('/signup', async (req, res) => {
     const hashedPassword = await bcrypt.hash(password, 10);
 
     // Create user
-    const { data: newUser, error: insertError } = await supabase
+    const { data: newUser, error: insertError } = await supabaseAdmin
       .from('users')
       .insert({
         email,
@@ -76,7 +76,7 @@ router.post('/signin', async (req, res) => {
     const { email, password } = req.body;
 
     // Get user
-    const { data: user, error: fetchError } = await supabase
+    const { data: user, error: fetchError } = await supabaseAdmin
       .from('users')
       .select('*')
       .eq('email', email)
@@ -128,7 +128,7 @@ router.get('/verify', async (req, res) => {
     const decoded = jwt.verify(token, JWT_SECRET);
 
     // Get user data
-    const { data: user, error: fetchError } = await supabase
+    const { data: user, error: fetchError } = await supabaseAdmin
       .from('users')
       .select('*')
       .eq('id', decoded.id)
@@ -380,7 +380,7 @@ router.get('/oauth/callback', async (req, res) => {
             }
           };
 
-          const { error: dbError } = await supabase
+          const { error: dbError } = await supabaseAdmin
             .from('platform_connections')
             .upsert(connectionData, {
               onConflict: 'user_id,platform'
@@ -407,7 +407,7 @@ router.get('/oauth/callback', async (req, res) => {
     }
 
     // Check if user exists or create new
-    let { data: user, error: userFetchError } = await supabase
+    let { data: user, error: userFetchError } = await supabaseAdmin
       .from('users')
       .select('*')
       .eq('email', userData.email)
@@ -415,7 +415,7 @@ router.get('/oauth/callback', async (req, res) => {
 
     if (!user) {
       // Create new user with encrypted tokens
-      const { data: newUser, error: insertError } = await supabase
+      const { data: newUser, error: insertError } = await supabaseAdmin
         .from('users')
         .insert({
           email: userData.email,
@@ -566,7 +566,7 @@ router.post('/oauth/callback', async (req, res) => {
             }
           };
 
-          const { error: dbError } = await supabase
+          const { error: dbError } = await supabaseAdmin
             .from('platform_connections')
             .upsert(connectionData, {
               onConflict: 'user_id,platform'
@@ -599,7 +599,7 @@ router.post('/oauth/callback', async (req, res) => {
 
     if (!isConnectorFlow && userData) {
       console.log('🔵 Querying for existing user with email:', userData.email);
-      const { data: existingUser, error: userFetchError } = await supabase
+      const { data: existingUser, error: userFetchError } = await supabaseAdmin
         .from('users')
         .select('*')
         .eq('email', userData.email)
@@ -610,7 +610,7 @@ router.post('/oauth/callback', async (req, res) => {
       if (!existingUser) {
         // Create new user
         console.log('🔵 Creating new user');
-        const { data: newUser, error: insertError } = await supabase
+        const { data: newUser, error: insertError } = await supabaseAdmin
           .from('users')
           .insert({
             email: userData.email,
