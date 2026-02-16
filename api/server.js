@@ -8,16 +8,8 @@ import path from 'path';
 import http from 'http';
 import * as Sentry from '@sentry/node';
 
-// Background services
-import { startPlatformPolling } from './services/platformPollingService.js';
-import { initializeWebSocketServer } from './services/websocketService.js';
-import { initializeQueues } from './services/queueService.js';
-import { startBackgroundJobs, stopBackgroundJobs } from './services/tokenLifecycleJob.js';
-import { startPatternLearningJob, stopPatternLearningJob } from './services/patternLearningJob.js';
-import { startTokenExpiryNotifier, stopTokenExpiryNotifier } from './services/tokenExpiryNotifier.js';
-import { initializeRateLimiter, shutdownRateLimiter } from './middleware/oauthRateLimiter.js';
-import behavioralEvidencePipeline from './services/behavioralEvidencePipeline.js';
-import { startObservationIngestion, stopObservationIngestion } from './services/observationIngestion.js';
+// Background services — loaded dynamically in the dev-only block below
+// (Bull, Redis, WebSocket, node-cron are not needed in Vercel serverless)
 
 // Only use dotenv in development - Vercel provides env vars directly
 // Updated: Fixed SUPABASE_SERVICE_ROLE_KEY truncation issue
@@ -212,97 +204,18 @@ const handleValidationErrors = (req, res, next) => {
   next();
 };
 
-// Import routes
-import aiRoutes from './routes/ai.js';
-import documentRoutes from './routes/documents.js';
-import twinsRoutes from './routes/twins.js';
-import twinChatRoutes from './routes/twin-chat.js';
-import chatUsageRoutes from './routes/chat-usage.js';
-import conversationsRoutes from './routes/conversations.js';
-import voiceRoutes from './routes/voice.js';
-import analyticsRoutes from './routes/analytics.js';
-import connectorsRoutes from './routes/connectors.js';
-import dataVerificationRoutes from './routes/data-verification.js';
-import mcpRoutes from './routes/mcp.js';
-import entertainmentRoutes from './routes/entertainment-connectors.js';
-import additionalEntertainmentRoutes from './routes/additional-entertainment-connectors.js';
-import healthRoutes from './routes/health-connectors.js';
-import wearableRoutes from './routes/wearable-connectors.js';
-import soulExtractionRoutes from './routes/soul-extraction.js';
-import soulDataRoutes from './routes/soul-data.js';
-import soulMatchingRoutes from './routes/soul-matching.js';
-import authRoutes from './routes/auth-simple.js';
-import oauthCallbackRoutes from './routes/oauth-callback.js';
-import dashboardRoutes from './routes/dashboard.js';
-import trainingRoutes from './routes/training.js';
-import diagnosticsRoutes from './routes/diagnostics.js';
-import dataSourcesRoutes from './routes/data-sources.js';
-import allPlatformRoutes from './routes/all-platform-connectors.js';
-import soulObserverRoutes from './routes/soul-observer.js';
-import webhookRoutes from './routes/webhooks.js';
-import sseRoutes from './routes/sse.js';
-import queueDashboardRoutes from './routes/queue-dashboard.js';
-import cronTokenRefreshHandler from './routes/cron-token-refresh.js';
-import cronPlatformPollingHandler from './routes/cron-platform-polling.js';
-import cronPatternLearningHandler from './routes/cron-pattern-learning.js';
-import cronObservationIngestionHandler from './routes/cron-observation-ingestion.js';
-import pipedreamRoutes from './routes/pipedream.js';
-import arcticRoutes from './routes/arctic-connectors.js';
-import soulSignatureRoutes from './routes/soul-signature.js';
-import soulInsightsRoutes from './routes/soul-insights.js';
-import testExtractionRoutes from './routes/test-extraction.js';
-import behavioralPatternsRoutes from './routes/behavioral-patterns.js';
-// import gnnPatternsRoutes from './routes/gnn-patterns.js'; // ARCHIVED: Neo4j/GNN not active
-import orchestratorRoutes from './routes/orchestrator.js';
-import calendarOAuthRoutes from './routes/calendar-oauth.js';
-import spotifyOAuthRoutes from './routes/spotify-oauth.js';
-import presentationRitualRoutes from './routes/presentation-ritual.js';
-import intelligentTwinRoutes from './routes/intelligent-twin.js';
-import testPatternLearningRoutes from './routes/test-pattern-learning.js';
-import onboardingQuestionsRoutes from './routes/onboarding-questions.js';
-import personalityAssessmentRoutes from './routes/personality-assessment.js';
-import bigFiveRoutes from './routes/big-five.js';
-import platformInsightsRoutes from './routes/platform-insights.js';
-import twinPipelineRoutes from './routes/twin-pipeline.js';
-import notificationsRoutes from './routes/notifications.js';
-import whoopWebhooksRoutes from './routes/whoop-webhooks.js';
-import extractionStatusRoutes from './routes/extraction-status.js';
-import researchRAGRoutes from './routes/research-rag.js';
-import personalityInferenceRoutes from './routes/personality-inference.js';
-import originDataRoutes from './routes/origin-data.js';
-import profileEnrichmentRoutes from './routes/profile-enrichment.js';
-import resumeUploadRoutes from './routes/resume-upload.js';
-import apiKeysRoutes from './routes/api-keys.js';
-import mcpApiRoutes from './routes/mcp-api.js';
-import claudeSyncRoutes from './routes/claude-sync.js';
-import cronClaudeSyncRoutes from './routes/cron-claude-sync.js';
-import twinsBrainRoutes from './routes/twins-brain.js';
-import mem0Routes from './routes/mem0.js';
-import mem0BrainSyncRoutes from './routes/mem0-brain-sync.js';
-import correlationsRoutes from './routes/correlations.js';
-import nangoRoutes from './routes/nango.js';
-import nangoWebhooksRoutes from './routes/nango-webhooks.js';
-import extensionDataRoutes from './routes/extension-data.js';
-import journalRoutes from './routes/journal.js';
-import adminLlmCostsRoutes from './routes/admin-llm-costs.js';
-import onboardingCalibrationRoutes from './routes/onboarding-calibration.js';
-import onboardingSoulSignatureRoutes from './routes/onboarding-soul-signature.js';
-import onboardingPlatformPreviewRoutes from './routes/onboarding-platform-preview.js';
-import accountRoutes from './routes/account.js';
-import consentRoutes from './routes/consent.js';
-import soulSignaturePublicRoutes from './routes/soul-signature-public.js';
-// OG image routes loaded lazily to prevent font-loading crashes from taking down the whole server
-let ogImageRoutes = null;
-try {
-  ogImageRoutes = (await import('./routes/og-image.js')).default;
-} catch (err) {
-  console.warn('[OG Image] Failed to load OG image routes:', err.message);
+// Lazy route loader — module is imported on first request, then cached by Node
+function lazy(loader) {
+  let mod;
+  return async (req, res, next) => {
+    if (!mod) mod = (await loader()).default;
+    mod(req, res, next);
+  };
 }
-import { serverDb, supabaseAdmin } from './services/database.js';
+
+import { supabaseAdmin } from './services/database.js';
 import { sanitizeInput, validateContentType } from './middleware/sanitization.js';
-import { /* handleAuthError, */ handleGeneralError, handle404 } from './middleware/errorHandler.js';
 import { errorHandler, notFoundHandler } from './middleware/errors.js';
-import { authenticateUser } from './middleware/auth.js';
 
 // System health check endpoint (4A - Production Hardening)
 app.get('/api/system/health', async (req, res) => {
@@ -371,115 +284,99 @@ app.get('/api/system/health', async (req, res) => {
   res.status(200).json(checks);
 });
 
-// API routes
-app.use('/api/ai', aiRoutes);
-app.use('/api/documents', documentRoutes);
-app.use('/api/twins', twinsRoutes);
-app.use('/api/twin', twinChatRoutes); // Legacy placeholder
-app.use('/api/chat', twinChatRoutes); // Chat with Twin endpoint (POST /api/chat/message)
-app.use('/api/chat', chatUsageRoutes); // Chat usage tracking (GET /api/chat/usage)
-app.use('/api/conversations', conversationsRoutes);
-app.use('/api/voice', voiceRoutes);
-app.use('/api/analytics', analyticsRoutes);
-app.use('/api/connectors', connectorsRoutes);
-app.use('/api/data-verification', dataVerificationRoutes);
-app.use('/api/mcp', mcpRoutes);
-// Both entertainment routers intentionally share the /api/entertainment path;
-// Express merges their handlers under the same mount point.
-app.use('/api/entertainment', entertainmentRoutes);
-app.use('/api/entertainment', additionalEntertainmentRoutes);
-app.use('/api/health', healthRoutes);
-app.use('/api/wearables', wearableRoutes);
-app.use('/api/soul', soulExtractionRoutes);
-app.use('/api/soul-data', soulDataRoutes);
-app.use('/api/soul-matching', soulMatchingRoutes);
-app.use('/api/data-sources', dataSourcesRoutes);
-app.use('/api/auth', authRoutes);
-app.use('/oauth', oauthCallbackRoutes); // Unified OAuth callback handler
-app.use('/api/dashboard', dashboardRoutes);
-app.use('/api/training', trainingRoutes);
-app.use('/api/diagnostics', diagnosticsRoutes); // Supabase connection diagnostics
-app.use('/api/platforms', allPlatformRoutes); // Comprehensive 56-platform integration
-// Soul Observer uses optional auth - allows both authenticated and unauthenticated requests
-// Extension sends userId in body when not authenticated
-app.use('/api/soul-observer', soulObserverRoutes); // Soul Observer Mode - behavioral tracking
-app.use('/api/webhooks', webhookRoutes); // Real-time webhook receivers (GitHub, Gmail, Slack)
-app.use('/api/webhooks/whoop', whoopWebhooksRoutes); // Whoop push notifications (recovery, sleep, workout)
-app.use('/api/sse', sseRoutes); // Server-Sent Events for real-time updates
-app.use('/api/queues', queueDashboardRoutes); // Bull Board job queue dashboard
-app.use('/api/pipedream', pipedreamRoutes); // Pipedream Connect OAuth integration
-app.use('/api/arctic', arcticRoutes); // Arctic OAuth integration (Better Auth + Arctic)
-app.use('/api/soul-signature', soulSignatureRoutes); // Soul Signature Analysis with Claude AI
-app.use('/api/soul-insights', soulInsightsRoutes); // User-friendly insights from graph metrics
-// Test/debug routes - only available in development
+// API routes — lazy-loaded on first request instead of on cold start
+app.use('/api/ai', lazy(() => import('./routes/ai.js')));
+app.use('/api/documents', lazy(() => import('./routes/documents.js')));
+app.use('/api/twins', lazy(() => import('./routes/twins.js')));
+app.use('/api/twin', lazy(() => import('./routes/twin-chat.js')));
+app.use('/api/chat', lazy(() => import('./routes/twin-chat.js')));
+app.use('/api/chat', lazy(() => import('./routes/chat-usage.js')));
+app.use('/api/conversations', lazy(() => import('./routes/conversations.js')));
+app.use('/api/voice', lazy(() => import('./routes/voice.js')));
+app.use('/api/analytics', lazy(() => import('./routes/analytics.js')));
+app.use('/api/connectors', lazy(() => import('./routes/connectors.js')));
+app.use('/api/data-verification', lazy(() => import('./routes/data-verification.js')));
+app.use('/api/mcp', lazy(() => import('./routes/mcp.js')));
+app.use('/api/entertainment', lazy(() => import('./routes/entertainment-connectors.js')));
+app.use('/api/entertainment', lazy(() => import('./routes/additional-entertainment-connectors.js')));
+app.use('/api/health', lazy(() => import('./routes/health-connectors.js')));
+app.use('/api/wearables', lazy(() => import('./routes/wearable-connectors.js')));
+app.use('/api/soul', lazy(() => import('./routes/soul-extraction.js')));
+app.use('/api/soul-data', lazy(() => import('./routes/soul-data.js')));
+app.use('/api/soul-matching', lazy(() => import('./routes/soul-matching.js')));
+app.use('/api/data-sources', lazy(() => import('./routes/data-sources.js')));
+app.use('/api/auth', lazy(() => import('./routes/auth-simple.js')));
+app.use('/oauth', lazy(() => import('./routes/oauth-callback.js')));
+app.use('/api/dashboard', lazy(() => import('./routes/dashboard.js')));
+app.use('/api/training', lazy(() => import('./routes/training.js')));
+app.use('/api/diagnostics', lazy(() => import('./routes/diagnostics.js')));
+app.use('/api/platforms', lazy(() => import('./routes/all-platform-connectors.js')));
+app.use('/api/soul-observer', lazy(() => import('./routes/soul-observer.js')));
+app.use('/api/webhooks', lazy(() => import('./routes/webhooks.js')));
+app.use('/api/webhooks/whoop', lazy(() => import('./routes/whoop-webhooks.js')));
+app.use('/api/sse', lazy(() => import('./routes/sse.js')));
+app.use('/api/queues', lazy(() => import('./routes/queue-dashboard.js')));
+app.use('/api/pipedream', lazy(() => import('./routes/pipedream.js')));
+app.use('/api/arctic', lazy(() => import('./routes/arctic-connectors.js')));
+app.use('/api/soul-signature', lazy(() => import('./routes/soul-signature.js')));
+app.use('/api/soul-insights', lazy(() => import('./routes/soul-insights.js')));
 if (process.env.NODE_ENV === 'development') {
-  app.use('/api/test-extraction', testExtractionRoutes); // Demo data extraction endpoints
+  app.use('/api/test-extraction', lazy(() => import('./routes/test-extraction.js')));
 }
-app.use('/api/behavioral-patterns', behavioralPatternsRoutes); // Cross-platform behavioral pattern recognition
-// app.use('/api/gnn-patterns', gnnPatternsRoutes); // ARCHIVED: Neo4j/GNN not active
-app.use('/api/orchestrator', orchestratorRoutes); // Multi-agent AI orchestration system (Anthropic pattern)
-app.use('/api/oauth/calendar', calendarOAuthRoutes); // Google Calendar OAuth connect endpoint
-app.use('/api/calendar', calendarOAuthRoutes); // Calendar events and sync endpoints
-app.use('/api/oauth/spotify', spotifyOAuthRoutes); // Spotify OAuth connect endpoint (Ritual feature)
-app.use('/api/spotify', spotifyOAuthRoutes); // Spotify playback and playlist endpoints
-app.use('/api/presentation-ritual', presentationRitualRoutes); // MVP: Presentation ritual pattern detection
-app.use('/api/twin', intelligentTwinRoutes); // Intelligent Twin Engine routes (context, today-insights, music)
+app.use('/api/behavioral-patterns', lazy(() => import('./routes/behavioral-patterns.js')));
+app.use('/api/orchestrator', lazy(() => import('./routes/orchestrator.js')));
+app.use('/api/oauth/calendar', lazy(() => import('./routes/calendar-oauth.js')));
+app.use('/api/calendar', lazy(() => import('./routes/calendar-oauth.js')));
+app.use('/api/oauth/spotify', lazy(() => import('./routes/spotify-oauth.js')));
+app.use('/api/spotify', lazy(() => import('./routes/spotify-oauth.js')));
+app.use('/api/presentation-ritual', lazy(() => import('./routes/presentation-ritual.js')));
+app.use('/api/twin', lazy(() => import('./routes/intelligent-twin.js')));
 if (process.env.NODE_ENV === 'development') {
-  app.use('/api/test-pattern-learning', testPatternLearningRoutes); // Pattern learning test/debug endpoints
+  app.use('/api/test-pattern-learning', lazy(() => import('./routes/test-pattern-learning.js')));
 }
-app.use('/api/onboarding', onboardingQuestionsRoutes); // Personality questionnaire for personalization
-app.use('/api/onboarding', onboardingCalibrationRoutes); // AI-driven calibration Q&A for cofounder.co-style onboarding
-app.use('/api/onboarding', onboardingSoulSignatureRoutes); // Instant soul signature from enrichment + calibration
-app.use('/api/onboarding', onboardingPlatformPreviewRoutes); // Platform preview insights during onboarding
-app.use('/api/account', accountRoutes); // Account deletion + data export
-app.use('/api/consent', consentRoutes); // User consent management (GDPR/privacy)
-app.use('/api/soul-signature', soulSignaturePublicRoutes); // Public share + visibility toggle
-if (ogImageRoutes) app.use('/api', ogImageRoutes); // OG image cards (/api/og/soul-card, /api/s/:userId)
-app.use('/api/personality', personalityAssessmentRoutes); // Big Five personality assessment with 16personalities archetypes
-app.use('/api/big-five', bigFiveRoutes); // IPIP-NEO-120 Big Five assessment with T-score normalization
-app.use('/api/insights', platformInsightsRoutes); // Platform-specific conversational insights
-app.use('/api/twin', twinPipelineRoutes); // Twin formation pipeline (form, status, profile, evolution)
-app.use('/api/extraction', extractionStatusRoutes); // Extraction status and job history
-app.use('/api/notifications', notificationsRoutes); // User notifications (token expiry, sync issues)
-app.use('/api/research-rag', researchRAGRoutes); // Research paper RAG for evidence-backed personality inference
-app.use('/api/personality-inference', personalityInferenceRoutes); // Multi-agent personality inference pipeline
-app.use('/api/origin', originDataRoutes); // Origin data (hands-on user-provided context)
-app.use('/api/enrichment', profileEnrichmentRoutes); // Profile enrichment via Perplexity Sonar (enrichment-first onboarding)
-app.use('/api/resume', resumeUploadRoutes); // Resume/CV upload and parsing for enrichment
-app.use('/api/keys', apiKeysRoutes); // API key management for MCP server
-app.use('/api/mcp-api', mcpApiRoutes); // MCP API for LLM integrations (ChatGPT, Gemini, etc.)
-app.use('/api/claude-sync', claudeSyncRoutes); // Claude Desktop conversation sync
-app.use('/api/cron/claude-sync', cronClaudeSyncRoutes); // Claude Desktop cron sync and AI analysis processing
-app.use('/api/twins-brain', twinsBrainRoutes); // Twins Brain unified knowledge graph
-app.use('/api/mem0', mem0Routes); // Mem0 intelligent memory layer
-app.use('/api/mem0-sync', mem0BrainSyncRoutes); // Mem0 → Twins Brain sync
-app.use('/api/correlations', correlationsRoutes); // Cross-platform correlation detection (X Phoenix-inspired)
-app.use('/api/nango', nangoRoutes); // Nango unified API for 10 platform connections
-app.use('/api/nango-webhooks', nangoWebhooksRoutes); // Nango webhook receiver
-app.use('/api/extension', extensionDataRoutes); // Browser extension data capture (YouTube, Twitch, Netflix)
-app.use('/api/journal', journalRoutes); // Soul Journal - personal journaling with AI analysis
-app.use('/api/admin', adminLlmCostsRoutes); // LLM cost tracking dashboard
+app.use('/api/onboarding', lazy(() => import('./routes/onboarding-questions.js')));
+app.use('/api/onboarding', lazy(() => import('./routes/onboarding-calibration.js')));
+app.use('/api/onboarding', lazy(() => import('./routes/onboarding-soul-signature.js')));
+app.use('/api/onboarding', lazy(() => import('./routes/onboarding-platform-preview.js')));
+app.use('/api/account', lazy(() => import('./routes/account.js')));
+app.use('/api/consent', lazy(() => import('./routes/consent.js')));
+app.use('/api/soul-signature', lazy(() => import('./routes/soul-signature-public.js')));
+app.use('/api', lazy(() => import('./routes/og-image.js')));
+app.use('/api/personality', lazy(() => import('./routes/personality-assessment.js')));
+app.use('/api/big-five', lazy(() => import('./routes/big-five.js')));
+app.use('/api/insights', lazy(() => import('./routes/platform-insights.js')));
+app.use('/api/twin', lazy(() => import('./routes/twin-pipeline.js')));
+app.use('/api/extraction', lazy(() => import('./routes/extraction-status.js')));
+app.use('/api/notifications', lazy(() => import('./routes/notifications.js')));
+app.use('/api/research-rag', lazy(() => import('./routes/research-rag.js')));
+app.use('/api/personality-inference', lazy(() => import('./routes/personality-inference.js')));
+app.use('/api/origin', lazy(() => import('./routes/origin-data.js')));
+app.use('/api/enrichment', lazy(() => import('./routes/profile-enrichment.js')));
+app.use('/api/resume', lazy(() => import('./routes/resume-upload.js')));
+app.use('/api/keys', lazy(() => import('./routes/api-keys.js')));
+app.use('/api/mcp-api', lazy(() => import('./routes/mcp-api.js')));
+app.use('/api/claude-sync', lazy(() => import('./routes/claude-sync.js')));
+app.use('/api/cron/claude-sync', lazy(() => import('./routes/cron-claude-sync.js')));
+app.use('/api/twins-brain', lazy(() => import('./routes/twins-brain.js')));
+app.use('/api/mem0', lazy(() => import('./routes/mem0.js')));
+app.use('/api/mem0-sync', lazy(() => import('./routes/mem0-brain-sync.js')));
+app.use('/api/correlations', lazy(() => import('./routes/correlations.js')));
+app.use('/api/nango', lazy(() => import('./routes/nango.js')));
+app.use('/api/nango-webhooks', lazy(() => import('./routes/nango-webhooks.js')));
+app.use('/api/extension', lazy(() => import('./routes/extension-data.js')));
+app.use('/api/journal', lazy(() => import('./routes/journal.js')));
+app.use('/api/admin', lazy(() => import('./routes/admin-llm-costs.js')));
 
-// Vercel Cron Job endpoints (production automation)
-// These are called by Vercel Cron Jobs on schedule (configured in vercel.json)
-app.use('/api/cron/token-refresh', cronTokenRefreshHandler); // Every 5 minutes
-app.use('/api/cron/platform-polling', cronPlatformPollingHandler); // Every 30 minutes
-app.use('/api/cron/pattern-learning', cronPatternLearningHandler); // Every 6 hours
-app.use('/api/cron/ingest-observations', cronObservationIngestionHandler); // Every 30 minutes
+// Vercel Cron Job endpoints (lazy-loaded like all other routes)
+app.use('/api/cron/token-refresh', lazy(() => import('./routes/cron-token-refresh.js')));
+app.use('/api/cron/platform-polling', lazy(() => import('./routes/cron-platform-polling.js')));
+app.use('/api/cron/pattern-learning', lazy(() => import('./routes/cron-pattern-learning.js')));
+app.use('/api/cron/ingest-observations', lazy(() => import('./routes/cron-observation-ingestion.js')));
 
-// Health check endpoint
-app.get('/api/health', async (req, res) => {
-  const dbHealth = await serverDb.healthCheck();
-
-  res.json({
-    status: dbHealth.healthy ? 'ok' : 'degraded',
-    timestamp: new Date().toISOString(),
-    environment: process.env.NODE_ENV || 'development',
-    database: {
-      connected: dbHealth.healthy,
-      error: dbHealth.error?.message || null
-    }
-  });
+// Health check endpoint — lightweight, no DB call (proves the function is alive)
+// For detailed checks, use /api/system/health
+app.get('/api/health', (req, res) => {
+  res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
 // TEMPORARY: Test endpoint to trigger evidence pipeline (for debugging)
@@ -489,6 +386,7 @@ if (process.env.NODE_ENV === 'development') {
     try {
       const { userId } = req.params;
       console.log(`🧪 [Test] Triggering evidence pipeline for user ${userId}`);
+      const { default: behavioralEvidencePipeline } = await import('./services/behavioralEvidencePipeline.js');
       const result = await behavioralEvidencePipeline.runPipeline(userId);
       res.json(result);
     } catch (error) {
@@ -532,6 +430,17 @@ console.log(`🔍 Condition result: ${process.env.NODE_ENV !== 'production'}`);
 
 if (process.env.NODE_ENV !== 'production') {
   console.log('✅ Entering development server initialization block...');
+
+  // Dynamically import background services (avoids loading Bull, Redis, WebSocket, node-cron at module level)
+  const { initializeWebSocketServer } = await import('./services/websocketService.js');
+  const { initializeQueues } = await import('./services/queueService.js');
+  const { initializeRateLimiter, shutdownRateLimiter } = await import('./middleware/oauthRateLimiter.js');
+  const { startPlatformPolling } = await import('./services/platformPollingService.js');
+  const { startBackgroundJobs, stopBackgroundJobs } = await import('./services/tokenLifecycleJob.js');
+  const { startPatternLearningJob, stopPatternLearningJob } = await import('./services/patternLearningJob.js');
+  const { startTokenExpiryNotifier, stopTokenExpiryNotifier } = await import('./services/tokenExpiryNotifier.js');
+  const { startObservationIngestion, stopObservationIngestion } = await import('./services/observationIngestion.js');
+
   // Create HTTP server for WebSocket support
   const server = http.createServer(app);
 
@@ -549,33 +458,19 @@ if (process.env.NODE_ENV !== 'production') {
   await initializeRateLimiter();
 
   // Platform polling service - platform-specific schedules
-  // Production equivalent: Vercel Cron → /api/cron/platform-polling
   startPlatformPolling();
 
   // Token lifecycle background jobs (token refresh + OAuth state cleanup)
-  // - Token refresh: Every 5 minutes (prevents token expiration)
-  // - OAuth cleanup: Every 15 minutes (removes expired/used states)
-  // Production equivalent: Vercel Cron → /api/cron/token-refresh
   startBackgroundJobs();
 
   // Pattern learning job (feedback processing + insight generation)
-  // - Processes user feedback every 6 hours
-  // - Generates personalized insights using Claude AI
-  // Production equivalent: Vercel Cron → /api/cron/pattern-learning
   startPatternLearningJob();
 
   // Token expiry notification service
-  // - Checks daily for tokens about to expire (especially Whoop with 7-day refresh token)
-  // - Creates user notifications prompting reconnection before data flow interrupts
   startTokenExpiryNotifier();
 
   // Observation ingestion service
-  // - Pulls platform data (Spotify, Calendar, Whoop) every 30 minutes
-  // - Converts to natural-language observations in the memory stream
-  // - Triggers reflection engine when importance accumulates
-  // Production equivalent: Vercel Cron → /api/cron/ingest-observations
   startObservationIngestion();
-
 
   // Start HTTP server
   server.listen(PORT, () => {
@@ -583,25 +478,7 @@ if (process.env.NODE_ENV !== 'production') {
     console.log(`📝 Environment: ${process.env.NODE_ENV || 'development'}`);
     console.log(`🔐 CORS origin: ${process.env.VITE_APP_URL || 'http://localhost:8080'}`);
     console.log(`🔌 WebSocket server enabled on ws://localhost:${PORT}/ws`);
-    console.log(`⏰ Background services active:`);
-    console.log(`   - Bull Job Queue: ${process.env.REDIS_URL || process.env.UPSTASH_REDIS_URL ? 'Enabled' : 'Disabled (using fallback)'}`);
-    console.log(`   - Queue Dashboard: http://localhost:${PORT}/api/queues/dashboard`);
-    console.log(`   - Token Lifecycle Jobs:`);
-    console.log(`     • Token Refresh: Every 5 minutes (prevents token expiration)`);
-    console.log(`     • OAuth Cleanup: Every 15 minutes (removes expired states)`);
-    console.log(`   - Platform Polling:`);
-    console.log(`     • Spotify: Every 30 minutes`);
-    console.log(`     • YouTube: Every 2 hours`);
-    console.log(`     • GitHub: Every 6 hours`);
-    console.log(`     • Discord: Every 4 hours`);
-    console.log(`     • Gmail: Every 1 hour`);
-    console.log(`     • Twitch: Every 3 hours`);
-    console.log(`   - Pattern Learning:`);
-    console.log(`     • Feedback Processing: Every 6 hours`);
-    console.log(`     • Test endpoint: http://localhost:${PORT}/api/test-pattern-learning/status`);
-    console.log(`   - Observation Ingestion:`);
-    console.log(`     • Spotify/Calendar/Whoop: Every 30 minutes`);
-    console.log(`     • Cron endpoint: /api/cron/ingest-observations`);
+    console.log(`⏰ Background services active`);
   });
 
   // Graceful shutdown handlers
