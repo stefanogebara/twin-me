@@ -816,9 +816,9 @@ Write the biography:`;
 
     const emailUsername = email.split('@')[0];
     const queries = [
+      `"${name}" "${emailUsername}"`,
       `"${name}" site:linkedin.com/in`,
       `"${name}" (CEO OR founder OR engineer OR professor OR director)`,
-      `"${name}" (university OR degree OR graduated OR MBA)`,
     ];
 
     if (!name.toLowerCase().includes(emailUsername.toLowerCase())) {
@@ -835,7 +835,7 @@ Write the biography:`;
       .map(r => `[${r.title}] ${r.description}${r.extra_snippets ? ' ' + r.extra_snippets.join(' ') : ''}`)
       .join('\n');
 
-    if (allSnippets.length < 50) return null;
+    if (allSnippets.length < 10) return null;
     return allSnippets;
   }
 
@@ -872,8 +872,13 @@ RULES: Only use facts from the search results above. If a field has no evidence,
       serviceName: 'brave-profile-extraction',
     });
 
-    const text = result.content.replace(/```json\n?|\n?```/g, '').trim();
-    return JSON.parse(text);
+    try {
+      const text = result.content.replace(/```json\n?|\n?```/g, '').trim();
+      return JSON.parse(text);
+    } catch (parseError) {
+      console.error('[ProfileEnrichment] Failed to parse Brave extraction JSON:', parseError.message);
+      return null;
+    }
   }
 
   /**
@@ -920,6 +925,11 @@ RULES: Only use facts from the search results above. If a field has no evidence,
       } catch (error) {
         console.error('[ProfileEnrichment] Brave Search failed:', error.message);
       }
+
+      // If Brave Search is configured, don't fall through to Gemini/Sonar
+      // (they hallucinate garbage for non-famous people)
+      console.log('[ProfileEnrichment] Brave returned no usable results, skipping LLM-based search (produces garbage for non-famous people)');
+      return null;
     }
 
     const openRouterKey = process.env.OPENROUTER_API_KEY;
