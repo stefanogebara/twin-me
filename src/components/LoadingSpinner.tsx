@@ -1,5 +1,5 @@
 import React from 'react';
-import { Loader2, Brain, Upload, MessageSquare } from 'lucide-react';
+import { Loader2, Brain, Rocket, MessageCircle } from 'lucide-react';
 
 interface LoadingSpinnerProps {
   size?: 'sm' | 'md' | 'lg' | 'xl';
@@ -29,11 +29,11 @@ const LoadingSpinner: React.FC<LoadingSpinnerProps> = ({
 
     switch (variant) {
       case 'brain':
-        return <img src="/icons/3d/brain.png" alt="Loading" className="animate-pulse" style={{ width: clay3dSize, height: clay3dSize }} />;
+        return <Brain className="animate-pulse" style={{ width: clay3dSize, height: clay3dSize }} />;
       case 'upload':
-        return <img src="/icons/3d/rocket.png" alt="Uploading" className="animate-bounce" style={{ width: clay3dSize, height: clay3dSize }} />;
+        return <Rocket className="animate-bounce" style={{ width: clay3dSize, height: clay3dSize }} />;
       case 'chat':
-        return <img src="/icons/3d/chat-bubble.png" alt="Loading chat" className="animate-pulse" style={{ width: clay3dSize, height: clay3dSize }} />;
+        return <MessageCircle className="animate-pulse" style={{ width: clay3dSize, height: clay3dSize }} />;
       default:
         return <Loader2 className={baseClasses} />;
     }
