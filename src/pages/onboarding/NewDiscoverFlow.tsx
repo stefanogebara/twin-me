@@ -181,6 +181,12 @@ const NewDiscoverFlow: React.FC = () => {
     }
   };
 
+  const extractFirstLine = (text: string, maxLen = 60): string => {
+    // Get first meaningful line/sentence from a block of text
+    const line = text.split(/[\n•\-]/).map(s => s.trim()).find(s => s.length > 5) || text;
+    return line.length > maxLen ? line.slice(0, maxLen).replace(/\s+\S*$/, '') + '...' : line;
+  };
+
   const addFullEnrichmentPoints = (data: EnrichmentData) => {
     if (data.discovered_name) addDataPoint({ icon: 'name', label: 'Name', value: data.discovered_name });
     if (data.discovered_company) addDataPoint({ icon: 'company', label: 'Company', value: data.discovered_company });
@@ -188,13 +194,13 @@ const NewDiscoverFlow: React.FC = () => {
     if (data.discovered_location) addDataPoint({ icon: 'location', label: 'Location', value: data.discovered_location });
     if (data.discovered_bio) addDataPoint({ icon: 'bio', label: 'Bio', value: data.discovered_bio });
     if (data.career_timeline && data.career_timeline.length > 20) {
-      addDataPoint({ icon: 'career', label: 'Career', value: 'Career history found' });
+      addDataPoint({ icon: 'career', label: 'Career', value: extractFirstLine(data.career_timeline) });
     }
     if (data.education && data.education.length > 10) {
-      addDataPoint({ icon: 'education', label: 'Education', value: 'Education history found' });
+      addDataPoint({ icon: 'education', label: 'Education', value: extractFirstLine(data.education) });
     }
     if (data.skills && data.skills.length > 5) {
-      addDataPoint({ icon: 'skills', label: 'Skills', value: 'Skills identified' });
+      addDataPoint({ icon: 'skills', label: 'Skills', value: extractFirstLine(data.skills) });
     }
     if (data.discovered_github_url) addDataPoint({ icon: 'github', label: 'GitHub', value: 'Profile found' });
     if (data.discovered_twitter_url) addDataPoint({ icon: 'twitter', label: 'Twitter', value: 'Profile found' });
@@ -419,7 +425,7 @@ const NewDiscoverFlow: React.FC = () => {
                       fontStyle: 'italic',
                     }}
                   >
-                    {narrative.length > 200 ? narrative.slice(0, 200) + '...' : narrative}
+                    {narrative}
                   </motion.p>
                 )}
               </AnimatePresence>

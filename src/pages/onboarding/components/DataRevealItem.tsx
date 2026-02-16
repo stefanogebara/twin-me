@@ -55,7 +55,7 @@ const DataRevealItem: React.FC<DataRevealItemProps> = ({ icon, label, value }) =
           {label}
         </span>
         <span
-          className="text-sm block truncate"
+          className="text-sm block"
           style={{
             color: 'rgba(232, 213, 183, 0.9)',
             fontFamily: 'var(--font-body)',
