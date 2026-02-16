@@ -110,7 +110,8 @@ router.post('/search', async (req, res) => {
     const hasResults = !!(
       enrichmentResult.data.discovered_company ||
       enrichmentResult.data.discovered_title ||
-      enrichmentResult.data.discovered_linkedin_url
+      enrichmentResult.data.discovered_linkedin_url ||
+      enrichmentResult.data.career_timeline
     );
 
     res.json({
@@ -199,6 +200,13 @@ router.get('/results/:userId', async (req, res) => {
         education: result.data.education,
         achievements: result.data.achievements,
         skills: result.data.skills,
+        languages: result.data.languages,
+        certifications: result.data.certifications,
+        publications: result.data.publications,
+        discovered_photo: result.data.discovered_photo,
+        github_repos: result.data.github_repos,
+        github_followers: result.data.github_followers,
+        social_links: result.data.social_links,
         source: result.data.source,
         user_confirmed: result.data.user_confirmed,
         confirmed_data: result.data.confirmed_data,

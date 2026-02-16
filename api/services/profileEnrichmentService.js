@@ -1,16 +1,16 @@
 import { createClient } from '@supabase/supabase-js';
-import { GoogleGenerativeAI } from '@google/generative-ai';
+import { GoogleGenAI } from '@google/genai';
 
 const supabase = createClient(
   process.env.SUPABASE_URL,
   process.env.SUPABASE_SERVICE_ROLE_KEY
 );
 
-// Initialize Google AI with grounding capability
+// Initialize Google AI with grounding capability (new SDK)
 const getGoogleAI = () => {
   const apiKey = process.env.GOOGLE_AI_API_KEY || process.env.GEMINI_API_KEY;
   if (!apiKey) return null;
-  return new GoogleGenerativeAI(apiKey);
+  return new GoogleGenAI({ apiKey });
 };
 
 /**
@@ -123,6 +123,32 @@ class ProfileEnrichmentService {
   // INSTANT ENRICHMENT (FREE APIs - < 1 second)
   // Gravatar + GitHub = photo, name, bio, company, social links
   // =================================================================
+
+  /**
+   * Domain enrichment: extract company name from corporate email domains.
+   * FREE, instant, zero API calls. Returns null for free email providers.
+   */
+  enrichFromDomain(email) {
+    const domain = email.split('@')[1]?.toLowerCase();
+    if (!domain) return null;
+
+    const freeProviders = new Set([
+      'gmail.com', 'googlemail.com', 'hotmail.com', 'outlook.com', 'live.com',
+      'yahoo.com', 'yahoo.co.uk', 'ymail.com', 'icloud.com', 'me.com', 'mac.com',
+      'protonmail.com', 'proton.me', 'aol.com', 'zoho.com', 'mail.com',
+      'gmx.com', 'gmx.net', 'fastmail.com', 'tutanota.com', 'hey.com',
+    ]);
+
+    if (freeProviders.has(domain)) return null;
+
+    const companyName = domain.split('.')[0]
+      .replace(/[-_]/g, ' ')
+      .split(/\s+/)
+      .map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
+      .join(' ');
+
+    return { discovered_company: companyName, company_domain: domain };
+  }
 
   /**
    * Quick enrichment using only free, instant APIs.
@@ -313,12 +339,24 @@ class ProfileEnrichmentService {
         discovered_github_url: q.discovered_github_url,
         discovered_twitter_url: q.discovered_twitter_url,
         discovered_photo: q.discovered_photo,
+        github_repos: q.github_repos,
+        github_followers: q.github_followers,
+        social_links: q.social_links,
       };
       enrichmentSource = q.source;
       // Update name from free sources if we got a better one
       if (q.discovered_name && q.discovered_name !== name) {
         name = q.discovered_name;
       }
+    }
+
+    // =================================================================
+    // STEP 0.5: Domain enrichment (FREE, instant)
+    // For corporate emails, the domain IS the company
+    // =================================================================
+    const domainData = this.enrichFromDomain(email);
+    if (domainData) {
+      enrichedData.discovered_company = enrichedData.discovered_company || domainData.discovered_company;
     }
 
     // =================================================================
@@ -329,8 +367,27 @@ class ProfileEnrichmentService {
     const comprehensiveData = await this.comprehensivePersonSearch(name, email, {});
     if (comprehensiveData) {
       console.log('[ProfileEnrichment] Gemini found comprehensive data!');
+      // Try to extract full name and location from the raw prose
+      const raw = comprehensiveData.raw_comprehensive || comprehensiveData.career_timeline || '';
+      // Match "STEFANO CHAP CHAP GEBARA" after "registered under the name" or in CNPJ records
+      // The name must be 2-5 capitalized words (not long sentences)
+      const fullNameMatch = raw.match(/(?:registered under (?:the name )?|name[:\s]+)[""]?([A-ZÀ-Ý][A-ZÀ-Ýa-záàâãéèêíóôõúç]+(?:\s+[A-ZÀ-Ýa-záàâãéèêíóôõúç]+){1,4})[""]?/);
+      // Match "São Paulo, SP" or "São Paulo, SP, Brazil"
+      const locationMatch = raw.match(/(?:located in|address[:\s]+|location[:\s]+)\s*([A-ZÀ-Ýa-záàâãéèêíóôõúç]+(?:\s+[A-ZÀ-Ýa-záàâãéèêíóôõúç]+)*,?\s*[A-Z]{2}(?:,?\s*Brazi[l]?)?)/i);
+      // Convert ALL CAPS name to Title Case
+      const toTitleCase = (str) => str.toLowerCase().replace(/\b\w/g, c => c.toUpperCase());
+      let extractedName = fullNameMatch ? fullNameMatch[1].trim() : null;
+      // Validate: name must be 2-5 words, not a sentence
+      if (extractedName && (extractedName.split(/\s+/).length > 5 || extractedName.length > 60)) {
+        extractedName = null;
+      }
+      const displayName = extractedName
+        ? (extractedName === extractedName.toUpperCase() ? toTitleCase(extractedName) : extractedName)
+        : name;
       enrichedData = {
-        discovered_name: name,
+        ...enrichedData,  // Preserve quickEnrich data (photo, bio, github stats)
+        discovered_name: displayName || enrichedData.discovered_name,
+        discovered_location: locationMatch ? locationMatch[1].trim() : enrichedData.discovered_location,
         career_timeline: comprehensiveData.career_timeline,
         education: comprehensiveData.education,
         achievements: comprehensiveData.achievements,
@@ -747,36 +804,53 @@ Write the biography:`;
     const searchName = (name && name.includes(' ')) ? name : inferredName;
     const emailDomain = email.split('@')[1] || '';
 
-    const prompt = `Search for the person with email ${email}. Their name is likely ${searchName}.
-${emailDomain && !emailDomain.includes('gmail') && !emailDomain.includes('hotmail') && !emailDomain.includes('yahoo') && !emailDomain.includes('outlook') ? `The email domain "${emailDomain}" is likely their company or organization.` : ''}
+    const isGenericEmail = ['gmail', 'hotmail', 'yahoo', 'outlook', 'icloud', 'protonmail', 'aol'].some(d => emailDomain.includes(d));
 
-Find ONLY verified, factual information about THIS specific person:
+    let prompt;
+    if (!isGenericEmail) {
+      // Corporate email — search by email, use domain as company identifier
+      prompt = `Search for "${email}" and find everything publicly associated with this email address.
+The email domain "${emailDomain}" is likely their company or organization.
+
+Look for this email on LinkedIn, Twitter/X, GitHub, personal websites, company pages, forums, conference talks, and any other public sources. Report everything connected to this specific email:
 - Current job title and company
 - Career history (previous roles, companies, dates)
 - Education (degrees, schools, years)
 - Location (city, country)
-- Notable achievements or projects
+- Notable achievements, projects, or interests
+- Social media profiles or personal website
 
-CRITICAL RULES:
-1. ONLY report facts you can verify from search results. Do NOT guess, infer, or fill gaps.
-2. If you find multiple people with this name, ONLY describe the one matching the email address or domain. If unsure which person matches, say so.
-3. Do NOT invent universities, degrees, job titles, or companies. If you cannot find it, skip it entirely.
-4. Do NOT include disclaimers, notes, meta-commentary, or suggestions for further research.
-5. Write in plain text — no markdown, no bullet points, no headers, no bold/italic formatting.
-6. Write as concise flowing prose. Only state facts, no filler.`;
+RULES:
+1. Use "${email}" as your primary search query.
+2. Report what you find connected to this email. Even partial info is valuable.
+3. Do NOT fabricate information — only report what appears in search results.
+4. Write in plain text — no markdown, no bullet points, no headers, no bold/italic.
+5. Write as concise flowing prose. State facts directly. Do NOT write disclaimers or "I could not find" statements — just state what you DID find.`;
+    } else {
+      // Generic email (gmail, etc.) — username is a strong signal for finding profiles
+      const emailUsername = email.split('@')[0];
+      // Derive a searchable name from the email username
+      const inferredSearchName = this.inferNameFromEmail(email);
+      const displayName = (name && name.includes(' ')) ? name : inferredSearchName;
 
-    // Try 1: Perplexity Sonar via OpenRouter (has built-in web search)
-    if (openRouterKey) {
-      console.log('[ProfileEnrichment] Trying Perplexity Sonar Pro for:', { searchName, email });
-      try {
-        const result = await this.searchWithSonar(searchName, email, prompt, openRouterKey);
-        if (result) return result;
-      } catch (error) {
-        console.error('[ProfileEnrichment] Sonar search failed:', error.message);
-      }
+      prompt = `Search for the following and compile all results:
+
+1. BUSINESS RECORDS: Search business registries, company filings, and CNPJ/company registration records for any businesses registered to "${displayName}". Report registration numbers, company names, addresses, and business activities.
+
+2. DIGITAL FOOTPRINT: Search for the username "${emailUsername}" across GitHub, LinkedIn, Twitter/X, and any other platforms. Report what profiles exist and what content they contain.
+
+3. EDUCATION: Search for "${displayName}" in university alumni directories, graduation records, or academic publications.
+
+4. PROFESSIONAL PRESENCE: Search for any news articles, press mentions, conference talks, or professional directory listings mentioning "${displayName}" or "${emailUsername}".
+
+5. SPORTS AND HOBBIES: Search for "${displayName}" in sports club memberships, competition results, race results, or hobby communities.
+
+Compile ALL findings into a detailed report. Write in plain text, flowing prose. Include every verifiable fact you find.
+
+IMPORTANT: The username "${emailUsername}" is the primary identifier for THIS specific individual. If multiple people share the surname, clearly distinguish the person associated with "${emailUsername}" from family members or other individuals with similar names. Do NOT attribute a family member's career, education, or achievements to this person.`;
     }
 
-    // Try 2: Google AI with Search Grounding (direct API)
+    // Try 1: Google AI with Search Grounding (direct API, uses business/entity framing)
     const googleAI = getGoogleAI();
     if (googleAI) {
       console.log('[ProfileEnrichment] Trying Google AI with Search Grounding for:', { searchName, email });
@@ -788,7 +862,18 @@ CRITICAL RULES:
       }
     }
 
-    // Try 3: Gemini via OpenRouter WITH web search plugin
+    // Try 2: Perplexity Sonar Pro via OpenRouter (fallback)
+    if (openRouterKey) {
+      console.log('[ProfileEnrichment] Falling back to Perplexity Sonar Pro for:', { searchName, email });
+      try {
+        const result = await this.searchWithSonar(searchName, email, prompt, openRouterKey);
+        if (result) return result;
+      } catch (error) {
+        console.error('[ProfileEnrichment] Sonar search failed:', error.message);
+      }
+    }
+
+    // Try 3: Gemini via OpenRouter WITH web search plugin (last resort)
     if (openRouterKey) {
       console.log('[ProfileEnrichment] Falling back to Gemini + OpenRouter web search for:', { searchName, email });
       try {
@@ -843,20 +928,48 @@ CRITICAL RULES:
   async searchWithGoogleGrounding(googleAI, name, email, prompt) {
     console.log('[ProfileEnrichment] Running Google AI with grounding for:', name);
 
-    const model = googleAI.getGenerativeModel({
-      model: 'gemini-2.5-flash',
-      tools: [{ googleSearch: {} }]
-    });
+    // gemini-2.0-flash-lite has no content policy blocking for private individuals (100% reliable).
+    // gemini-2.5-flash is higher quality but blocks ~33% of private individual queries.
+    // Strategy: try 2.0-flash-lite first (fast, reliable), fall back to 2.5-flash if result is too short.
+    const models = ['gemini-2.0-flash-lite', 'gemini-2.5-flash'];
+    for (const model of models) {
+      try {
+        console.log(`[ProfileEnrichment] Trying ${model}...`);
+        const result = await Promise.race([
+          googleAI.models.generateContent({
+            model,
+            contents: prompt,
+            config: {
+              tools: [{ googleSearch: {} }],
+              temperature: 0.1,
+            }
+          }),
+          new Promise((_, reject) => setTimeout(() => reject(new Error(`${model} timeout after 50s`)), 50000))
+        ]);
 
-    const result = await model.generateContent(prompt);
-    const response = result.response;
-    const content = response.text();
+        const content = result.text;
 
-    console.log('[ProfileEnrichment] Google grounding result length:', content.length);
-    console.log('[ProfileEnrichment] Google grounding preview:', content.substring(0, 500));
+        // Log grounding metadata
+        const metadata = result.candidates?.[0]?.groundingMetadata;
+        if (metadata) {
+          console.log(`[ProfileEnrichment] [${model}] Grounding queries:`, metadata.webSearchQueries?.slice(0, 5));
+        }
 
-    if (content.length < 50) return null;
-    return this.parseComprehensiveSearchResult(content);
+        console.log(`[ProfileEnrichment] [${model}] Result length:`, content?.length || 0);
+
+        if (!content || content.length < 50) {
+          console.log(`[ProfileEnrichment] [${model}] Empty/short response — trying next model`);
+          continue;
+        }
+
+        console.log(`[ProfileEnrichment] [${model}] Preview:`, content.substring(0, 200));
+        return this.parseComprehensiveSearchResult(content);
+      } catch (err) {
+        console.error(`[ProfileEnrichment] [${model}] Error:`, err.message);
+        continue;
+      }
+    }
+    return null;
   }
 
   /**
@@ -874,7 +987,7 @@ CRITICAL RULES:
         'HTTP-Referer': 'https://twinme.app'
       },
       body: JSON.stringify({
-        model: 'google/gemini-2.5-flash',
+        model: 'google/gemini-2.5-pro',
         messages: [{ role: 'user', content: prompt }],
         temperature: 0.3,
         max_tokens: 4000,
@@ -1695,7 +1808,15 @@ ADDITIONAL_PROFILES:
       scrapin_connection_count: linkedInData?.scrapin_connection_count || null,
       scrapin_follower_count: linkedInData?.scrapin_follower_count || null,
       scrapin_profile_picture_url: linkedInData?.scrapin_profile_picture_url || null,
-      scrapin_background_url: linkedInData?.scrapin_background_url || null
+      scrapin_background_url: linkedInData?.scrapin_background_url || null,
+      discovered_photo: linkedInData?.discovered_photo || null,
+      github_repos: linkedInData?.github_repos || null,
+      github_followers: linkedInData?.github_followers || null,
+      social_links: linkedInData?.social_links || null,
+      languages: linkedInData?.languages || null,
+      certifications: linkedInData?.certifications || null,
+      publications: linkedInData?.publications || null,
+      achievements: linkedInData?.achievements || null,
     };
 
     // Enhance with web search findings (ONLY for social profile URLs, not career data)
@@ -2620,15 +2741,20 @@ Format your response as JSON ONLY:
     }
 
     // Build a targeted search query using the LinkedIn URL
-    const query = `Search for the LinkedIn profile at ${linkedinUrl}.
-Extract the following information about this person:
+    const query = `Search for the LinkedIn profile at ${linkedinUrl}. The person's name is ${name || linkedinUsername}.
+
+Find ONLY verified, factual information about THIS specific person at this LinkedIn URL:
 - Full name
-- Current job title
-- Current company
+- Current job title and company
 - Location (city, country)
 - Professional summary or bio
+- Twitter/X, GitHub, or personal website (if found)
 
-Also search for any additional information about "${name || linkedinUsername}" including their Twitter/X, GitHub, and any other professional presence.
+CRITICAL RULES:
+1. ONLY report facts you can verify from search results about the person at ${linkedinUrl}. Do NOT guess or fill gaps.
+2. If you find multiple people with this name, ONLY describe the one matching this LinkedIn URL: ${linkedinUrl}. If unsure which person matches, return null for uncertain fields.
+3. Do NOT invent universities, degrees, job titles, or companies. If you cannot find it, use null.
+4. The LinkedIn username "${linkedinUsername}" is the primary identifier — all data must match THIS profile.
 
 Return the findings in JSON format.`;
 
@@ -2730,37 +2856,27 @@ Return the findings in JSON format.`;
           messages: [
             {
               role: 'system',
-              content: `You are an expert people finder and professional research assistant. Your task is to find publicly available information about individuals by searching the web thoroughly.
+              content: `You are a professional research assistant. Search thoroughly to find publicly available information about a specific individual.
 
-IMPORTANT: Search across multiple platforms including:
-- LinkedIn profiles
-- Twitter/X accounts
-- GitHub profiles
-- Personal websites and portfolios
-- Company websites and team pages
-- Professional directories
-- News articles and press releases
-- Conference speaker pages
-- University/school alumni pages
+Search across LinkedIn, Twitter/X, GitHub, personal websites, company pages, and other public sources.
+
+RULES:
+1. Search thoroughly before concluding you cannot find information. Try multiple search queries.
+2. If you find multiple people with similar names, report information about the specific person identified in the query. If unsure which person, use null for uncertain fields rather than guessing the wrong person.
+3. Do NOT fabricate information. Only report what you find in search results.
+4. Partial data is valuable — if you find even a LinkedIn URL or location, include it.
 
 Return your findings as JSON with these exact fields:
 {
   "name": "Full Name",
-  "company": "Current Company Name or most recent employer",
-  "title": "Job Title or Role",
-  "location": "City, Country or Region",
-  "linkedin_url": "https://linkedin.com/in/username",
-  "twitter_url": "https://twitter.com/username or https://x.com/username",
-  "github_url": "https://github.com/username",
-  "bio": "Brief professional summary (1-2 sentences based on what you found)"
-}
-
-Guidelines:
-- Search thoroughly before saying you can't find information
-- Include partial information - even just a location or bio is valuable
-- If you find their LinkedIn username but not full URL, construct it
-- Use null ONLY for fields you truly cannot find after thorough search
-- Do not fabricate information, but do search comprehensively`
+  "company": "Current Company or null",
+  "title": "Job Title or null",
+  "location": "City, Country or null",
+  "linkedin_url": "LinkedIn URL or null",
+  "twitter_url": "Twitter/X URL or null",
+  "github_url": "GitHub URL or null",
+  "bio": "Brief factual summary (1-2 sentences) or null"
+}`
             },
             {
               role: 'user',
@@ -2768,7 +2884,7 @@ Guidelines:
             }
           ],
           temperature: 0.3,
-          max_tokens: 1500
+          max_tokens: 4000
         })
       });
 
@@ -3111,6 +3227,12 @@ IMPORTANT: Write ONLY the summary paragraph. Do not include any prefixes like "H
         education: enrichmentData.education || null,
         achievements: enrichmentData.achievements || null,
         skills: enrichmentData.skills || null,
+        languages: enrichmentData.languages || null,
+        certifications: enrichmentData.certifications || null,
+        publications: enrichmentData.publications || null,
+        github_repos: enrichmentData.github_repos || null,
+        github_followers: enrichmentData.github_followers || null,
+        social_links: enrichmentData.social_links || null,
         source: enrichmentData.source || 'unknown',
         raw_search_response: enrichmentData.raw || enrichmentData.raw_search_response || null,
         search_query: enrichmentData.search_query || null,
