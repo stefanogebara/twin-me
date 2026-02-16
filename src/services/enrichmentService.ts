@@ -239,10 +239,11 @@ export const enrichmentService = {
    * Returns in < 1 second with photo, name, bio, company.
    * Used for the onboarding "wow moment".
    */
-  quickEnrich: async (): Promise<{ success: boolean; data: QuickEnrichmentData; elapsed: number }> => {
+  quickEnrich: async (name?: string): Promise<{ success: boolean; data: QuickEnrichmentData; elapsed: number }> => {
     const response = await fetch(`${API_URL}/enrichment/quick`, {
       method: 'POST',
       headers: getAuthHeaders(),
+      ...(name ? { body: JSON.stringify({ name }) } : {}),
     });
 
     if (!response.ok) {
