@@ -816,22 +816,25 @@ Write the biography:`;
 
     const emailUsername = email.split('@')[0];
     const queries = [
-      `"${name}" "${emailUsername}"`,
-      `"${name}" site:linkedin.com/in`,
-      `"${name}" (CEO OR founder OR engineer OR professor OR director)`,
+      `"${name}"`,                                              // Broadest: just the name
+      `"${emailUsername}" site:github.com OR site:linkedin.com`, // Username on major platforms
+      `"${name}" site:linkedin.com/in`,                         // LinkedIn profile
     ];
-
-    if (!name.toLowerCase().includes(emailUsername.toLowerCase())) {
-      queries.push(`"${emailUsername}" "${name}"`);
-    }
 
     const results = await Promise.allSettled(
       queries.map(q => this.braveWebSearch(q, apiKey))
     );
 
-    const allSnippets = results
+    // Deduplicate by URL, then build snippet text
+    const seen = new Set();
+    const uniqueResults = results
       .filter(r => r.status === 'fulfilled' && r.value)
       .flatMap(r => r.value)
+      .filter(r => { if (seen.has(r.url)) return false; seen.add(r.url); return true; });
+
+    console.log(`[ProfileEnrichment] Brave: ${uniqueResults.length} unique results from ${queries.length} queries`);
+
+    const allSnippets = uniqueResults
       .map(r => `[${r.title}] ${r.description}${r.extra_snippets ? ' ' + r.extra_snippets.join(' ') : ''}`)
       .join('\n');
 
