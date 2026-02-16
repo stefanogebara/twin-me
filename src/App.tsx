@@ -40,7 +40,6 @@ const AdminLLMCosts = lazy(() => import("./pages/AdminLLMCosts"));
 const PrivacyPolicy = lazy(() => import("./pages/PrivacyPolicy"));
 const PublicSoulCard = lazy(() => import("./pages/PublicSoulCard"));
 const EnrichedOnboardingFlow = lazy(() => import("./pages/onboarding/EnrichedOnboardingFlow"));
-const NewDiscoverFlow = lazy(() => import("./pages/onboarding/NewDiscoverFlow"));
 const SoulSignatureOnboarding = lazy(() => import("./pages/onboarding/SoulSignatureOnboarding"));
 const GmailCallback = lazy(() => import("./pages/oauth/GmailCallback"));
 const SpotifyInsightsPage = lazy(() => import("./pages/insights/SpotifyInsightsPage"));
@@ -252,17 +251,8 @@ const App = () => {
             <Route path="/welcome" element={<Navigate to="/discover" replace />} />
             <Route path="/onboarding" element={<Navigate to="/discover" replace />} />
 
-            {/* Cinematic Discover - "The Reveal" flow */}
+            {/* Enriched Onboarding - 3-step discovery flow */}
             <Route path="/discover" element={
-              <ProtectedRoute>
-                <ErrorBoundary>
-                  <NewDiscoverFlow />
-                </ErrorBoundary>
-              </ProtectedRoute>
-            } />
-
-            {/* Legacy enriched onboarding (kept for rollback) */}
-            <Route path="/discover-legacy" element={
               <ProtectedRoute>
                 <ErrorBoundary>
                   <EnrichedOnboardingFlow />
