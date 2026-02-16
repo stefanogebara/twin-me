@@ -1094,7 +1094,7 @@ IMPORTANT: The username "${emailUsername}" is the primary identifier for THIS sp
       return null;
     }
 
-    // Clean the raw content: strip markdown, citations, AI filler
+    // Clean the raw content: strip markdown, citations, AI filler, and LLM preamble/planning
     const cleanContent = content
       .replace(/\*\*/g, '')
       .replace(/\*([^*]+)\*/g, '$1')
@@ -1105,6 +1105,9 @@ IMPORTANT: The username "${emailUsername}" is the primary identifier for THIS sp
       .replace(/I hope this helps[.!]?\s*/gi, '')
       .replace(/Let me know if you need[^.]*\.\s*/gi, '')
       .replace(/Based on (?:the |my )(?:available |)(?:information|research|data)[,\s]*/gi, '')
+      // Strip LLM planning/chain-of-thought preamble
+      .replace(/^(?:Okay|Sure|Alright|Let me|I will|I'll|Here's (?:the|my) plan)[^.]*\.[^]*?(?=(?:[A-Z][a-z]+ (?:is|was|has|holds|serves|currently|works|founded|graduated|earned|studied|joined|started|received|became)))/i, '')
+      .replace(/^(?:I (?:will|shall|am going to) (?:conduct|execute|search|run|perform|compile)[^.]*\.[\s\n]*)+/gi, '')
       .replace(/\n{3,}/g, '\n\n')
       .trim();
 

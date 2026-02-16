@@ -116,6 +116,15 @@ const NewDiscoverFlow: React.FC = () => {
     return () => clearTimeout(timer);
   }, [phase]);
 
+  const isLLMJunk = (text: string): boolean => {
+    const lower = text.toLowerCase();
+    return /^(okay|sure|alright|let me|i will|i'll|here's (the|my) plan)/i.test(text.trim())
+      || lower.includes('conduct the searches')
+      || lower.includes('compile a detailed report')
+      || lower.includes('execute the search queries')
+      || lower.includes('gather information from');
+  };
+
   const addDataPoint = useCallback((dp: DataPoint) => {
     setDataPoints(prev => {
       if (prev.some(p => p.label === dp.label)) return prev;
@@ -153,7 +162,7 @@ const NewDiscoverFlow: React.FC = () => {
         if (resultsResult.data) {
           enrichmentDataRef.current = resultsResult.data;
           addFullEnrichmentPoints(resultsResult.data);
-          if (resultsResult.data.discovered_summary) {
+          if (resultsResult.data.discovered_summary && !isLLMJunk(resultsResult.data.discovered_summary)) {
             setNarrative(resultsResult.data.discovered_summary);
           }
           setOrbPhase('alive');
@@ -169,7 +178,7 @@ const NewDiscoverFlow: React.FC = () => {
       if (searchResult.data) {
         enrichmentDataRef.current = searchResult.data;
         addFullEnrichmentPoints(searchResult.data);
-        if (searchResult.data.discovered_summary) {
+        if (searchResult.data.discovered_summary && !isLLMJunk(searchResult.data.discovered_summary)) {
           setNarrative(searchResult.data.discovered_summary);
         }
       }
@@ -182,6 +191,7 @@ const NewDiscoverFlow: React.FC = () => {
   };
 
   const extractFirstLine = (text: string, maxLen = 60): string => {
+    if (isLLMJunk(text)) return '';
     // Get first meaningful line/sentence from a block of text
     const line = text.split(/[\n•\-]/).map(s => s.trim()).find(s => s.length > 5) || text;
     return line.length > maxLen ? line.slice(0, maxLen).replace(/\s+\S*$/, '') + '...' : line;
@@ -194,13 +204,16 @@ const NewDiscoverFlow: React.FC = () => {
     if (data.discovered_location) addDataPoint({ icon: 'location', label: 'Location', value: data.discovered_location });
     if (data.discovered_bio) addDataPoint({ icon: 'bio', label: 'Bio', value: data.discovered_bio });
     if (data.career_timeline && data.career_timeline.length > 20) {
-      addDataPoint({ icon: 'career', label: 'Career', value: extractFirstLine(data.career_timeline) });
+      const careerValue = extractFirstLine(data.career_timeline);
+      if (careerValue) addDataPoint({ icon: 'career', label: 'Career', value: careerValue });
     }
     if (data.education && data.education.length > 10) {
-      addDataPoint({ icon: 'education', label: 'Education', value: extractFirstLine(data.education) });
+      const eduValue = extractFirstLine(data.education);
+      if (eduValue) addDataPoint({ icon: 'education', label: 'Education', value: eduValue });
     }
     if (data.skills && data.skills.length > 5) {
-      addDataPoint({ icon: 'skills', label: 'Skills', value: extractFirstLine(data.skills) });
+      const skillsValue = extractFirstLine(data.skills);
+      if (skillsValue) addDataPoint({ icon: 'skills', label: 'Skills', value: skillsValue });
     }
     if (data.discovered_github_url) addDataPoint({ icon: 'github', label: 'GitHub', value: 'Profile found' });
     if (data.discovered_twitter_url) addDataPoint({ icon: 'twitter', label: 'Twitter', value: 'Profile found' });
