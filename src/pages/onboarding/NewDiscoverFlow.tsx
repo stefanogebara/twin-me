@@ -208,17 +208,14 @@ const NewDiscoverFlow: React.FC = () => {
     if (data.discovered_title) addDataPoint({ icon: 'title', label: 'Title', value: data.discovered_title });
     if (data.discovered_location) addDataPoint({ icon: 'location', label: 'Location', value: data.discovered_location });
     if (data.discovered_bio) addDataPoint({ icon: 'bio', label: 'Bio', value: data.discovered_bio });
-    if (data.career_timeline && data.career_timeline.length > 20) {
+    // Only show Career row if we don't already have Company/Title and the data is clean
+    if (data.career_timeline && data.career_timeline.length > 20 && !data.discovered_company && !data.discovered_title) {
       const careerValue = extractFirstLine(data.career_timeline);
       if (careerValue) addDataPoint({ icon: 'career', label: 'Career', value: careerValue });
     }
     if (data.education && data.education.length > 10) {
       const eduValue = extractFirstLine(data.education);
       if (eduValue) addDataPoint({ icon: 'education', label: 'Education', value: eduValue });
-    }
-    if (data.skills && data.skills.length > 5) {
-      const skillsValue = extractFirstLine(data.skills);
-      if (skillsValue) addDataPoint({ icon: 'skills', label: 'Skills', value: skillsValue });
     }
     if (data.discovered_github_url) addDataPoint({ icon: 'github', label: 'GitHub', value: 'Profile found' });
     if (data.discovered_twitter_url) addDataPoint({ icon: 'twitter', label: 'Twitter', value: 'Profile found' });
@@ -443,7 +440,7 @@ const NewDiscoverFlow: React.FC = () => {
                       fontStyle: 'italic',
                     }}
                   >
-                    {narrative}
+                    {narrative.length > 500 ? narrative.slice(0, 500).replace(/\s+\S*$/, '') + '...' : narrative}
                   </motion.p>
                 )}
               </AnimatePresence>

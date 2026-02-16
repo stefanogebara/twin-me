@@ -567,52 +567,27 @@ class ProfileEnrichmentService {
       console.log(`  [${i}]: ${dp.substring(0, 300)}${dp.length > 300 ? '...' : ''}`);
     });
 
-    const prompt = `Write a comprehensive professional biography as ONE FLOWING PARAGRAPH. Use ALL the data provided.
+    const prompt = `Write a SHORT biography (3-4 sentences max) covering only verified facts.
 
 DATA:
 ${filteredDataPoints.join('\n')}
 
-STYLE GUIDE (follow this exactly):
-Write like cofounder.co - a rich, detailed narrative covering:
-1. Professional identity and years of experience
-2. Current role with company name and start date
-3. Previous roles in reverse chronological order with dates, companies, and specific achievements (include $ amounts, percentages, team sizes)
-4. Any ventures founded/co-founded with dates and metrics
-5. Areas of expertise
-6. Education with degree names, schools, and years
-7. Nationality and languages spoken
-8. Certifications
-9. Location and professional network size
-10. End with personal values or what drives them (if available)
+FORMAT: One short paragraph. Cover ONLY:
+- Current role and company (if known)
+- Education (degree, school, if known)
+- Location
+- One notable fact or area of expertise
 
-IMPORTANT: Do NOT mention "LinkedIn" anywhere in the output. Use phrases like "professional network" or "industry connections" instead.
+EXAMPLE: "Sebastián Izurieta is a finance professional currently serving as Principal Financial Analyst at NextEra Energy Resources. He holds an MBA from University of Virginia Darden School of Business and a Bachelor's from ITAM. Based in Madrid, Spain, he specializes in private investments and complex financial modeling."
 
-EXAMPLE OUTPUT (PROFESSIONAL):
-"Sebastián Izurieta is a finance-driven investment professional with over 11 years of experience in private investments, complex financial modeling, and long-term value strategy across global markets. Currently serving as Principal Financial Analyst at NextEra Energy Resources (since September 2025), he previously held the position of Vice President at Albright Capital (May 2023 - August 2025), where he led valuation analyses and strategic assessments on four portfolio investments totaling $125M in assets under management, achieving a +1.4x increase in value in two holdings. He holds an MBA from University of Virginia Darden School of Business (2021-2023) and a Bachelor's degree in Accounting and Financial Strategy from Instituto Tecnológico Autónomo de México (2011-2016). A dual U.S.-Mexico citizen fluent in English and Spanish, he holds certifications in Renewable Energy Project Finance Modeling. Based in Madrid, Spain, with an extensive professional network of over 500 connections, he is driven by analytical rigor and long-term value creation."
-
-STRICT RULES:
-- ONE continuous paragraph, no line breaks
-- Include EVERY date, number, and metric from the data
+RULES:
+- Maximum 3-4 sentences. Be concise.
 - Only use information explicitly provided in the DATA section above
-- If the data shows someone is a Professor, Co-founder, CEO, etc. - describe them as such
-- NEVER mention "LinkedIn" - use "professional network" or "industry connections" instead
-
-**USING CAREER HISTORY DATA:**
-If the data includes "Career history:" - this is REAL VERIFIED DATA that you MUST use!
-Extract and include all job titles, companies, education, achievements, and dates mentioned.
-
-**HANDLING LIMITED DATA:**
-- You MUST ALWAYS produce a biography, even if data is sparse
-- If only a name and one or two facts are available, write a shorter 2-3 sentence biography using those facts
-- NEVER refuse to write. NEVER say "I cannot", "no verified information", or "insufficient data"
-- A short accurate biography is always better than no biography
-- Example with limited data: "Stefano Gebara is a technology professional based in London. He holds a degree in Computer Science from Imperial College London and has built his career across leading technology companies in the software engineering space."
-
-CRITICAL:
-- Output ONLY the biography paragraph - no meta-commentary, no caveats, no notes
-- NEVER mention LinkedIn
-- USE all the Career history data provided - it is verified
-- Do NOT refuse - always write something with whatever data is available
+- Do NOT invent, extrapolate, or assume any facts not in the data
+- If data is limited, write 1-2 sentences with just what you know
+- Output ONLY the biography - no meta-commentary, no caveats
+- NEVER mention "LinkedIn" - use "professional network" instead
+- NEVER refuse - always write something with available data
 
 Write the biography:`;
 
