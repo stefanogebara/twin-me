@@ -9,6 +9,7 @@ import { supabaseAdmin } from '../services/database.js';
 import patternDetectionEngine from '../services/patternDetectionEngine.js';
 import behavioralEmbeddingService from '../services/behavioralEmbeddingService.js';
 import { complete, TIER_ANALYSIS } from '../services/llmGateway.js';
+import { authenticateUser } from '../middleware/auth.js';
 
 const router = express.Router();
 
@@ -287,9 +288,13 @@ router.post('/session', async (req, res) => {
  * GET /api/soul-observer/insights/:userId
  * Get behavioral insights for a user
  */
-router.get('/insights/:userId', async (req, res) => {
+router.get('/insights/:userId', authenticateUser, async (req, res) => {
   try {
     const { userId } = req.params;
+
+    if (userId !== req.user.id) {
+      return res.status(403).json({ error: 'Forbidden', message: 'Access denied' });
+    }
 
     // Validate UUID format to prevent database errors
     if (!isValidUUID(userId)) {
@@ -339,9 +344,13 @@ router.get('/insights/:userId', async (req, res) => {
  * GET /api/soul-observer/patterns/:userId
  * Get detected behavioral patterns for a user
  */
-router.get('/patterns/:userId', async (req, res) => {
+router.get('/patterns/:userId', authenticateUser, async (req, res) => {
   try {
     const { userId } = req.params;
+
+    if (userId !== req.user.id) {
+      return res.status(403).json({ error: 'Forbidden', message: 'Access denied' });
+    }
 
     // Validate UUID format to prevent database errors
     if (!isValidUUID(userId)) {
@@ -389,9 +398,13 @@ router.get('/patterns/:userId', async (req, res) => {
  * GET /api/soul-observer/behavioral-summary/:userId
  * Get comprehensive behavioral summary using database function
  */
-router.get('/behavioral-summary/:userId', async (req, res) => {
+router.get('/behavioral-summary/:userId', authenticateUser, async (req, res) => {
   try {
     const { userId } = req.params;
+
+    if (userId !== req.user.id) {
+      return res.status(403).json({ error: 'Forbidden', message: 'Access denied' });
+    }
 
     // Validate UUID format to prevent database errors
     if (!isValidUUID(userId)) {
@@ -437,9 +450,13 @@ router.get('/behavioral-summary/:userId', async (req, res) => {
  * GET /api/soul-observer/sessions/:userId
  * Get browsing sessions for a user
  */
-router.get('/sessions/:userId', async (req, res) => {
+router.get('/sessions/:userId', authenticateUser, async (req, res) => {
   try {
     const { userId } = req.params;
+
+    if (userId !== req.user.id) {
+      return res.status(403).json({ error: 'Forbidden', message: 'Access denied' });
+    }
 
     // Validate UUID format to prevent database errors
     if (!isValidUUID(userId)) {

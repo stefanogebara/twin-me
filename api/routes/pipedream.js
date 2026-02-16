@@ -6,6 +6,7 @@
 import express from 'express';
 import { createClient } from '@supabase/supabase-js';
 import { encryptToken } from '../services/encryption.js';
+import { authenticateUser } from '../middleware/auth.js';
 
 const router = express.Router();
 
@@ -180,9 +181,13 @@ router.post('/webhooks/account-disconnected', async (req, res) => {
  * GET /api/pipedream/accounts/:userId
  * Get all connected accounts for a user
  */
-router.get('/accounts/:userId', async (req, res) => {
+router.get('/accounts/:userId', authenticateUser, async (req, res) => {
   try {
     const { userId } = req.params;
+
+    if (userId !== req.user.id) {
+      return res.status(403).json({ error: 'Forbidden', message: 'Access denied' });
+    }
 
     console.log(`[Pipedream] Fetching connected accounts for user ${userId}`);
 
@@ -216,9 +221,13 @@ router.get('/accounts/:userId', async (req, res) => {
  * DELETE /api/pipedream/accounts/:userId/:platform
  * Disconnect a platform for a user
  */
-router.delete('/accounts/:userId/:platform', async (req, res) => {
+router.delete('/accounts/:userId/:platform', authenticateUser, async (req, res) => {
   try {
     const { userId, platform } = req.params;
+
+    if (userId !== req.user.id) {
+      return res.status(403).json({ error: 'Forbidden', message: 'Access denied' });
+    }
 
     console.log(`[Pipedream] Disconnecting ${platform} for user ${userId}`);
 
@@ -277,9 +286,13 @@ router.delete('/accounts/:userId/:platform', async (req, res) => {
  * POST /api/pipedream/trigger-extraction/:userId/:platform
  * Manually trigger data extraction for a platform
  */
-router.post('/trigger-extraction/:userId/:platform', async (req, res) => {
+router.post('/trigger-extraction/:userId/:platform', authenticateUser, async (req, res) => {
   try {
     const { userId, platform } = req.params;
+
+    if (userId !== req.user.id) {
+      return res.status(403).json({ error: 'Forbidden', message: 'Access denied' });
+    }
 
     console.log(`[Pipedream] Triggering extraction for ${platform}, user ${userId}`);
 

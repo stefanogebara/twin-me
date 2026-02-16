@@ -95,9 +95,13 @@ router.get('/connected', optionalAuth, async (req, res) => {
  * GET /api/data-sources/status/:userId
  * Get connection status for a specific user (alias for compatibility)
  */
-router.get('/status/:userId', async (req, res) => {
+router.get('/status/:userId', authenticateUser, async (req, res) => {
   try {
     const { userId } = req.params;
+
+    if (userId !== req.user.id) {
+      return res.status(403).json({ error: 'Forbidden', message: 'Access denied' });
+    }
 
     // Convert email to UUID if needed
     let userUuid = userId;

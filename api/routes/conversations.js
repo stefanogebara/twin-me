@@ -285,12 +285,16 @@ router.post('/:id/messages', authenticateUser, userRateLimit(100, 15 * 60 * 1000
 });
 
 // GET /api/conversation-stats/:userId - Get conversation sync stats for Claude Desktop sync
-router.get('/stats/:userId', async (req, res) => {
+router.get('/stats/:userId', authenticateUser, async (req, res) => {
   try {
     const { userId } = req.params;
 
     if (!userId) {
       return res.status(400).json({ error: 'User ID required' });
+    }
+
+    if (userId !== req.user.id) {
+      return res.status(403).json({ error: 'Forbidden', message: 'Access denied' });
     }
 
     const stats = await getConversationStats(userId);

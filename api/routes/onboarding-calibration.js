@@ -550,6 +550,10 @@ router.get('/calibration-data/:userId', authenticateUser, async (req, res) => {
   try {
     const userId = req.params.userId;
 
+    if (userId !== req.user.id) {
+      return res.status(403).json({ error: 'Forbidden', message: 'Access denied' });
+    }
+
     if (!supabaseAdmin) {
       return res.json({ success: true, data: null });
     }

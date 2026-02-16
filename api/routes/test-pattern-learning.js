@@ -11,6 +11,7 @@
 
 import express from 'express';
 import { createClient } from '@supabase/supabase-js';
+import { authenticateUser } from '../middleware/auth.js';
 import patternLearningService, { PatternLearningService } from '../services/patternLearningService.js';
 import patternLearningBridge from '../services/patternLearningBridge.js';
 import learnedTriggerGenerator from '../services/learnedTriggerGenerator.js';
@@ -27,8 +28,11 @@ const supabase = createClient(
  * GET /api/test-pattern-learning/trigger/:userId
  * Manually trigger pattern learning for a specific user
  */
-router.get('/trigger/:userId', async (req, res) => {
+router.get('/trigger/:userId', authenticateUser, async (req, res) => {
   const { userId } = req.params;
+  if (userId !== req.user.id) {
+    return res.status(403).json({ error: 'Forbidden', message: 'Access denied' });
+  }
   console.log(`\n${'='.repeat(60)}`);
   console.log(`🧪 [TestPatternLearning] Manual trigger for user ${userId}`);
   console.log(`${'='.repeat(60)}`);
@@ -99,8 +103,11 @@ router.get('/trigger-all', async (req, res) => {
  * GET /api/test-pattern-learning/metrics/:userId
  * Get learning metrics for a user
  */
-router.get('/metrics/:userId', async (req, res) => {
+router.get('/metrics/:userId', authenticateUser, async (req, res) => {
   const { userId } = req.params;
+  if (userId !== req.user.id) {
+    return res.status(403).json({ error: 'Forbidden', message: 'Access denied' });
+  }
   console.log(`📊 [TestPatternLearning] Getting metrics for user ${userId}`);
 
   try {
@@ -203,8 +210,11 @@ router.get('/status', async (req, res) => {
  * GET /api/test-pattern-learning/feedback/:userId
  * Get all feedback for a user (for debugging)
  */
-router.get('/feedback/:userId', async (req, res) => {
+router.get('/feedback/:userId', authenticateUser, async (req, res) => {
   const { userId } = req.params;
+  if (userId !== req.user.id) {
+    return res.status(403).json({ error: 'Forbidden', message: 'Access denied' });
+  }
   const { processed = 'all' } = req.query;
 
   console.log(`📋 [TestPatternLearning] Getting feedback for user ${userId} (filter: ${processed})`);
@@ -247,8 +257,11 @@ router.get('/feedback/:userId', async (req, res) => {
  * GET /api/test-pattern-learning/insights/:userId
  * Get generated insights for a user (for debugging)
  */
-router.get('/insights/:userId', async (req, res) => {
+router.get('/insights/:userId', authenticateUser, async (req, res) => {
   const { userId } = req.params;
+  if (userId !== req.user.id) {
+    return res.status(403).json({ error: 'Forbidden', message: 'Access denied' });
+  }
   const { active = 'true' } = req.query;
 
   console.log(`💡 [TestPatternLearning] Getting insights for user ${userId} (active only: ${active})`);
@@ -293,8 +306,11 @@ router.get('/insights/:userId', async (req, res) => {
  * POST /api/test-pattern-learning/sync/:userId
  * Sync platform data to pattern learning raw events
  */
-router.post('/sync/:userId', async (req, res) => {
+router.post('/sync/:userId', authenticateUser, async (req, res) => {
   const { userId } = req.params;
+  if (userId !== req.user.id) {
+    return res.status(403).json({ error: 'Forbidden', message: 'Access denied' });
+  }
   const { platforms = ['spotify', 'calendar', 'whoop'], days = 90 } = req.body;
 
   console.log(`\n${'='.repeat(60)}`);
@@ -323,8 +339,11 @@ router.post('/sync/:userId', async (req, res) => {
  * GET /api/test-pattern-learning/run-pipeline/:userId
  * Run the full 6-layer pattern learning pipeline
  */
-router.get('/run-pipeline/:userId', async (req, res) => {
+router.get('/run-pipeline/:userId', authenticateUser, async (req, res) => {
   const { userId } = req.params;
+  if (userId !== req.user.id) {
+    return res.status(403).json({ error: 'Forbidden', message: 'Access denied' });
+  }
   const { syncFirst = 'false' } = req.query;
 
   console.log(`\n${'='.repeat(60)}`);
@@ -378,8 +397,11 @@ router.get('/run-pipeline/:userId', async (req, res) => {
  * GET /api/test-pattern-learning/raw-events/:userId
  * Get raw behavioral events for a user
  */
-router.get('/raw-events/:userId', async (req, res) => {
+router.get('/raw-events/:userId', authenticateUser, async (req, res) => {
   const { userId } = req.params;
+  if (userId !== req.user.id) {
+    return res.status(403).json({ error: 'Forbidden', message: 'Access denied' });
+  }
   const { platform, limit = 50 } = req.query;
 
   try {
@@ -425,8 +447,11 @@ router.get('/raw-events/:userId', async (req, res) => {
  * GET /api/test-pattern-learning/baselines/:userId
  * Get computed baselines for a user
  */
-router.get('/baselines/:userId', async (req, res) => {
+router.get('/baselines/:userId', authenticateUser, async (req, res) => {
   const { userId } = req.params;
+  if (userId !== req.user.id) {
+    return res.status(403).json({ error: 'Forbidden', message: 'Access denied' });
+  }
 
   try {
     const { data: baselines, error } = await supabase
@@ -452,8 +477,11 @@ router.get('/baselines/:userId', async (req, res) => {
  * GET /api/test-pattern-learning/correlations/:userId
  * Get discovered correlations for a user
  */
-router.get('/correlations/:userId', async (req, res) => {
+router.get('/correlations/:userId', authenticateUser, async (req, res) => {
   const { userId } = req.params;
+  if (userId !== req.user.id) {
+    return res.status(403).json({ error: 'Forbidden', message: 'Access denied' });
+  }
   const { valid = 'true' } = req.query;
 
   try {
@@ -485,8 +513,11 @@ router.get('/correlations/:userId', async (req, res) => {
  * GET /api/test-pattern-learning/hypotheses/:userId
  * Get pattern hypotheses for a user
  */
-router.get('/hypotheses/:userId', async (req, res) => {
+router.get('/hypotheses/:userId', authenticateUser, async (req, res) => {
   const { userId } = req.params;
+  if (userId !== req.user.id) {
+    return res.status(403).json({ error: 'Forbidden', message: 'Access denied' });
+  }
   const { active = 'true' } = req.query;
 
   try {
@@ -518,8 +549,11 @@ router.get('/hypotheses/:userId', async (req, res) => {
  * GET /api/test-pattern-learning/learned-triggers/:userId
  * Get generated learned triggers for a user
  */
-router.get('/learned-triggers/:userId', async (req, res) => {
+router.get('/learned-triggers/:userId', authenticateUser, async (req, res) => {
   const { userId } = req.params;
+  if (userId !== req.user.id) {
+    return res.status(403).json({ error: 'Forbidden', message: 'Access denied' });
+  }
 
   try {
     const triggers = await learnedTriggerGenerator.generateLearnedTriggers(userId);
@@ -539,8 +573,11 @@ router.get('/learned-triggers/:userId', async (req, res) => {
  * GET /api/test-pattern-learning/baseline-insights/:userId
  * Get insights generated from baseline temporal patterns
  */
-router.get('/baseline-insights/:userId', async (req, res) => {
+router.get('/baseline-insights/:userId', authenticateUser, async (req, res) => {
   const { userId } = req.params;
+  if (userId !== req.user.id) {
+    return res.status(403).json({ error: 'Forbidden', message: 'Access denied' });
+  }
 
   try {
     const insights = await learnedTriggerGenerator.generateBaselineInsights(userId);

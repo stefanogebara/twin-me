@@ -5,15 +5,16 @@
 import express from 'express';
 import supabase from '../config/supabase.js';
 import { decryptToken } from '../services/encryption.js';
+import { authenticateUser } from '../middleware/auth.js';
 const router = express.Router();
 
 /**
  * GET /api/data-verification/gmail/:userId
  * Fetch sample Gmail messages to verify access
  */
-router.get('/gmail/:userId', async (req, res) => {
+router.get('/gmail', authenticateUser, async (req, res) => {
   try {
-    const { userId } = req.params;
+    const userId = req.user.id;
 
     // Get connection from database
     const { data: connection, error } = await supabase
@@ -169,9 +170,9 @@ router.get('/gmail/:userId', async (req, res) => {
  * GET /api/data-verification/calendar/:userId
  * Fetch sample calendar events to verify access
  */
-router.get('/calendar/:userId', async (req, res) => {
+router.get('/calendar', authenticateUser, async (req, res) => {
   try {
-    const { userId } = req.params;
+    const userId = req.user.id;
 
     // Get connection from database
     const { data: connection, error } = await supabase
@@ -496,9 +497,9 @@ async function verifyCalendarAccess(userId) {
  * GET /api/data-verification/all/:userId
  * Fetch verification data for all connected services
  */
-router.get('/all/:userId', async (req, res) => {
+router.get('/all', authenticateUser, async (req, res) => {
   try {
-    const { userId } = req.params;
+    const userId = req.user.id;
     const verificationResults = {};
 
     // Check Gmail - query database for active connection

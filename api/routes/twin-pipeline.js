@@ -9,6 +9,7 @@ import twinPipelineOrchestrator from '../services/twinPipelineOrchestrator.js';
 import twinFormationService from '../services/twinFormationService.js';
 import twinEvolutionService from '../services/twinEvolutionService.js';
 import personalityAggregator from '../services/personalityAggregator.js';
+import { authenticateUser } from '../middleware/auth.js';
 
 const router = express.Router();
 
@@ -48,9 +49,13 @@ router.post('/form', async (req, res) => {
  * GET /api/twin/status/:userId
  * Get current pipeline and twin status
  */
-router.get('/status/:userId', async (req, res) => {
+router.get('/status/:userId', authenticateUser, async (req, res) => {
   try {
     const { userId } = req.params;
+
+    if (userId !== req.user.id) {
+      return res.status(403).json({ error: 'Forbidden', message: 'Access denied' });
+    }
 
     const status = await twinPipelineOrchestrator.getFullTwinStatus(userId);
 
@@ -69,9 +74,13 @@ router.get('/status/:userId', async (req, res) => {
  * GET /api/twin/profile/:userId
  * Get the complete twin profile
  */
-router.get('/profile/:userId', async (req, res) => {
+router.get('/profile/:userId', authenticateUser, async (req, res) => {
   try {
     const { userId } = req.params;
+
+    if (userId !== req.user.id) {
+      return res.status(403).json({ error: 'Forbidden', message: 'Access denied' });
+    }
 
     const twinResult = await twinFormationService.getTwin(userId);
 
@@ -134,9 +143,14 @@ router.post('/refresh/:platform', async (req, res) => {
  * GET /api/twin/evolution/:userId
  * Get evolution history and timeline
  */
-router.get('/evolution/:userId', async (req, res) => {
+router.get('/evolution/:userId', authenticateUser, async (req, res) => {
   try {
     const { userId } = req.params;
+
+    if (userId !== req.user.id) {
+      return res.status(403).json({ error: 'Forbidden', message: 'Access denied' });
+    }
+
     const { limit = 10, timeRange } = req.query;
 
     const [historyResult, timelineResult, summaryResult] = await Promise.all([
@@ -169,9 +183,13 @@ router.get('/evolution/:userId', async (req, res) => {
  * GET /api/twin/personality/:userId
  * Get just the personality scores with confidence
  */
-router.get('/personality/:userId', async (req, res) => {
+router.get('/personality/:userId', authenticateUser, async (req, res) => {
   try {
     const { userId } = req.params;
+
+    if (userId !== req.user.id) {
+      return res.status(403).json({ error: 'Forbidden', message: 'Access denied' });
+    }
 
     const result = await personalityAggregator.getPersonalityProfile(userId);
 
@@ -200,9 +218,13 @@ router.get('/personality/:userId', async (req, res) => {
  * GET /api/twin/pipeline-status/:userId
  * Get real-time pipeline execution status
  */
-router.get('/pipeline-status/:userId', async (req, res) => {
+router.get('/pipeline-status/:userId', authenticateUser, async (req, res) => {
   try {
     const { userId } = req.params;
+
+    if (userId !== req.user.id) {
+      return res.status(403).json({ error: 'Forbidden', message: 'Access denied' });
+    }
 
     const status = twinPipelineOrchestrator.getPipelineStatus(userId);
 

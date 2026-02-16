@@ -139,7 +139,7 @@ router.get('/evidence', authenticateUser, async (req, res) => {
  * Get stored evidence for a user's personality inferences (by userId param).
  * Returns evidence grouped by Big Five dimension with research citations.
  */
-router.get('/evidence/:userId', async (req, res) => {
+router.get('/evidence/:userId', authenticateUser, async (req, res) => {
   try {
     const { userId } = req.params;
 
@@ -148,6 +148,10 @@ router.get('/evidence/:userId', async (req, res) => {
         success: false,
         error: 'userId is required'
       });
+    }
+
+    if (userId !== req.user.id) {
+      return res.status(403).json({ error: 'Forbidden', message: 'Access denied' });
     }
 
     // Get stored evidence
@@ -202,7 +206,7 @@ router.get('/evidence/:userId', async (req, res) => {
  *
  * Check which data sources are available for a user.
  */
-router.get('/data-sources/:userId', async (req, res) => {
+router.get('/data-sources/:userId', authenticateUser, async (req, res) => {
   try {
     const { userId } = req.params;
 
@@ -211,6 +215,10 @@ router.get('/data-sources/:userId', async (req, res) => {
         success: false,
         error: 'userId is required'
       });
+    }
+
+    if (userId !== req.user.id) {
+      return res.status(403).json({ error: 'Forbidden', message: 'Access denied' });
     }
 
     const dataSources = await orchestrator.checkDataSources(userId);
