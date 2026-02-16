@@ -583,33 +583,29 @@ IMPORTANT: Do NOT mention "LinkedIn" anywhere in the output. Use phrases like "p
 EXAMPLE OUTPUT (PROFESSIONAL):
 "Sebastián Izurieta is a finance-driven investment professional with over 11 years of experience in private investments, complex financial modeling, and long-term value strategy across global markets. Currently serving as Principal Financial Analyst at NextEra Energy Resources (since September 2025), he previously held the position of Vice President at Albright Capital (May 2023 - August 2025), where he led valuation analyses and strategic assessments on four portfolio investments totaling $125M in assets under management, achieving a +1.4x increase in value in two holdings. He holds an MBA from University of Virginia Darden School of Business (2021-2023) and a Bachelor's degree in Accounting and Financial Strategy from Instituto Tecnológico Autónomo de México (2011-2016). A dual U.S.-Mexico citizen fluent in English and Spanish, he holds certifications in Renewable Energy Project Finance Modeling. Based in Madrid, Spain, with an extensive professional network of over 500 connections, he is driven by analytical rigor and long-term value creation."
 
-STRICT RULES (VIOLATION = FAILURE):
+STRICT RULES:
 - ONE continuous paragraph, no line breaks
 - Include EVERY date, number, and metric from the data
-- NEVER FABRICATE OR INVENT any information not explicitly provided in the DATA section above
-- If the data shows someone is a Professor, Co-founder, CEO, etc. - describe them as such, NOT as a student
+- Only use information explicitly provided in the DATA section above
+- If the data shows someone is a Professor, Co-founder, CEO, etc. - describe them as such
 - NEVER mention "LinkedIn" - use "professional network" or "industry connections" instead
 
 **USING CAREER HISTORY DATA:**
 If the data includes "Career history:" - this is REAL VERIFIED DATA that you MUST use!
-Extract and include:
-- All job titles and companies mentioned
-- All education/specializations mentioned
-- Any achievements (Forbes Under 30, etc.)
-- Any company details (locations, focus areas)
-This data came from verified sources like company websites, news, and public records.
+Extract and include all job titles, companies, education, achievements, and dates mentioned.
 
-**ANTI-FABRICATION RULES:**
-- If someone is listed as "Professor" or "Co-founder" - they are NOT a student
-- Do NOT assume someone is a student unless the data explicitly says "student"
-- Do NOT invent institutions, dates, or achievements not in the data
-- It is BETTER to write 3 accurate sentences from real data than 1 generic fabricated one
+**HANDLING LIMITED DATA:**
+- You MUST ALWAYS produce a biography, even if data is sparse
+- If only a name and one or two facts are available, write a shorter 2-3 sentence biography using those facts
+- NEVER refuse to write. NEVER say "I cannot", "no verified information", or "insufficient data"
+- A short accurate biography is always better than no biography
+- Example with limited data: "Stefano Gebara is a technology professional based in London. He holds a degree in Computer Science from Imperial College London and has built his career across leading technology companies in the software engineering space."
 
 CRITICAL:
-- Output ONLY the biography paragraph
+- Output ONLY the biography paragraph - no meta-commentary, no caveats, no notes
 - NEVER mention LinkedIn
 - USE all the Career history data provided - it is verified
-- Do NOT be overly cautious - if data says "Professor at SingularityU", write that
+- Do NOT refuse - always write something with whatever data is available
 
 Write the biography:`;
 
@@ -678,17 +674,31 @@ Write the biography:`;
         cleanNarrative = cleanNarrative.split(/\n\s*Note:/i)[0].trim();
         cleanNarrative = cleanNarrative.split(/\n\s*\(Note:/i)[0].trim();
 
-        // Remove any lines that are clearly meta-commentary
+        // Remove any lines that are clearly meta-commentary or refusals
         const lines = cleanNarrative.split('\n');
         const cleanLines = lines.filter(line => {
           const lower = line.toLowerCase();
           return !lower.startsWith('note:') &&
                  !lower.startsWith('i\'ve kept') &&
                  !lower.startsWith('following the') &&
+                 !lower.startsWith('based on the provided data, i cannot') &&
+                 !lower.startsWith('based on the limited') &&
                  !lower.includes('the provided data only') &&
-                 !lower.includes('i cannot provide');
+                 !lower.includes('i cannot provide') &&
+                 !lower.includes('i cannot write') &&
+                 !lower.includes('no verified information') &&
+                 !lower.includes('no verifiable information') &&
+                 !lower.includes('insufficient data') &&
+                 !lower.includes('would violate the strict guidelines') &&
+                 !lower.includes('creating a biography with unverified');
         });
         cleanNarrative = cleanLines.join(' ').replace(/\s+/g, ' ').trim();
+
+        // If the entire narrative was a refusal, return null so fallback kicks in
+        if (cleanNarrative.length < 30) {
+          console.log('[ProfileEnrichment] Narrative was a refusal, falling back to factual summary');
+          return null;
+        }
 
         // Remove markdown formatting that slipped through
         cleanNarrative = cleanNarrative
