@@ -4,7 +4,7 @@ import { useAuth, SignInButton } from '../contexts/AuthContext';
 import { useTheme } from '../contexts/ThemeContext';
 import { useDemo } from '../contexts/DemoContext';
 import { ThemeToggle } from '../components/ThemeToggle';
-import { X, Gem, Rocket, Globe, Sparkles, Shield } from 'lucide-react';
+import { X } from 'lucide-react';
 import { SpotifyLogo, GoogleCalendarLogo, WhoopLogo, YoutubeLogo, TwitchLogo, LinkedinLogo } from '@/components/PlatformLogos';
 
 const Index = () => {
@@ -114,7 +114,7 @@ const Index = () => {
           <div
             className="flex items-center gap-2.5"
           >
-            <Gem className="w-8 h-8 shrink-0" />
+            <img src="/icons/3d/diamond.png" alt="Twin Me" className="w-8 h-8 object-contain drop-shadow-sm" />
             <span
               className="text-[24px]"
               style={{
@@ -418,21 +418,21 @@ const Index = () => {
                 step: '01',
                 title: 'Connect',
                 desc: 'Link your platforms - Spotify, Calendar, Whoop, YouTube, and more',
-                Icon: Globe,
+                clay3d: 'globe',
                 iconColor: '#10b981'
               },
               {
                 step: '02',
                 title: 'Discover',
                 desc: 'AI reveals patterns and insights you didn\'t know about yourself',
-                Icon: Sparkles,
+                clay3d: 'sparkle',
                 iconColor: '#8b5cf6'
               },
               {
                 step: '03',
                 title: 'Control',
                 desc: 'Set privacy levels for each life cluster - share what you want',
-                Icon: Shield,
+                clay3d: 'shield',
                 iconColor: '#14b8a6'
               }
             ].map((item) => {
@@ -446,7 +446,11 @@ const Index = () => {
                   }}
                 >
                   <div className="flex items-center gap-3 mb-4 justify-center md:justify-start">
-                    <item.Icon className="w-12 h-12 shrink-0" />
+                    <img
+                      src={`/icons/3d/${item.clay3d}.png`}
+                      alt={item.title}
+                      className="w-12 h-12 object-contain drop-shadow-md"
+                    />
                     <span
                       className="text-[36px] lg:text-[48px] font-light"
                       style={{
@@ -486,7 +490,7 @@ const Index = () => {
       {/* Final CTA */}
       <section id="cta" className="py-16 px-6 lg:px-[60px]">
         <div className="max-w-[600px] mx-auto text-center">
-          <Rocket className="w-16 h-16 mx-auto mb-6" />
+          <img src="/icons/3d/rocket.png" alt="" className="w-16 h-16 mx-auto mb-6 drop-shadow-lg" loading="lazy" />
           <h2
             className="text-[clamp(1.75rem,4vw,2.5rem)] mb-5"
             style={{
@@ -632,7 +636,7 @@ const Index = () => {
         <div className="max-w-[1200px] mx-auto">
           <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
             <div className="flex items-center gap-2">
-              <Gem className="w-5 h-5 shrink-0 opacity-60" />
+              <img src="/icons/3d/diamond.png" alt="" className="w-5 h-5 object-contain opacity-60" loading="lazy" />
               <span
                 className="text-[14px]"
                 style={{
