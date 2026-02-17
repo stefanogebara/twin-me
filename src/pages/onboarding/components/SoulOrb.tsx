@@ -30,7 +30,7 @@ const SoulOrb: React.FC<SoulOrbProps> = ({ phase, dataPointCount }) => {
   });
 
   return (
-    <div className="relative flex items-center justify-center">
+    <div className="relative flex items-center justify-center soul-orb-container">
       {/* Outer glow */}
       <motion.div
         className="absolute rounded-full"
