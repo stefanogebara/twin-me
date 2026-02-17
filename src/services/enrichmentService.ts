@@ -357,6 +357,21 @@ export const enrichmentService = {
   },
 
   /**
+   * Clear enrichment data for a user (allows re-search)
+   */
+  clear: async (userId: string): Promise<{ success: boolean; message?: string }> => {
+    const response = await fetch(`${API_URL}/enrichment/clear/${encodeURIComponent(userId)}`, {
+      method: 'DELETE',
+      headers: getAuthHeaders(),
+    });
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.error || `Failed to clear enrichment: ${response.statusText}`);
+    }
+    return response.json();
+  },
+
+  /**
    * Skip the enrichment step
    */
   skip: async (userId: string): Promise<SkipResponse> => {
