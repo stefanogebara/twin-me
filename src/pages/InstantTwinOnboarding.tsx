@@ -19,7 +19,6 @@ import {
   ArrowLeft,
   ArrowRight,
   CheckCircle2,
-  X,
   Info
 } from 'lucide-react';
 
@@ -29,253 +28,8 @@ import {
   DataProvider
 } from '@/types/data-integration';
 
-// ====================================================================
-// SVG LOGO COMPONENTS
-// ====================================================================
-
-const SpotifyLogo = ({ className = "w-6 h-6" }: { className?: string }) => (
-  <svg className={className} viewBox="0 0 24 24" fill="currentColor">
-    <path d="M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.66 0 12 0zm5.521 17.34c-.24.359-.66.48-1.021.24-2.82-1.74-6.36-2.101-10.561-1.141-.418.122-.779-.179-.899-.539-.12-.421.18-.78.54-.9 4.56-1.021 8.52-.6 11.64 1.32.42.18.479.659.301 1.02zm1.44-3.3c-.301.42-.841.6-1.262.3-3.239-1.98-8.159-2.58-11.939-1.38-.479.12-1.02-.12-1.14-.6-.12-.48.12-1.021.6-1.141C9.6 9.9 15 10.561 18.72 12.84c.361.181.54.78.241 1.2zm.12-3.36C15.24 8.4 8.82 8.16 5.16 9.301c-.6.179-1.2-.181-1.38-.721-.18-.601.18-1.2.72-1.381 4.26-1.26 11.28-1.02 15.721 1.621.539.3.719 1.02.419 1.56-.299.421-1.02.599-1.559.3z"/>
-  </svg>
-);
-
-const YoutubeLogo = ({ className = "w-6 h-6" }: { className?: string }) => (
-  <svg className={className} viewBox="0 0 24 24" fill="currentColor">
-    <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/>
-  </svg>
-);
-
-const DiscordLogo = ({ className = "w-6 h-6" }: { className?: string }) => (
-  <svg className={className} viewBox="0 0 24 24" fill="currentColor">
-    <path d="M20.317 4.37a19.791 19.791 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 0 0 .031.057 19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028 14.09 14.09 0 0 0 1.226-1.994.076.076 0 0 0-.041-.106 13.107 13.107 0 0 1-1.872-.892.077.077 0 0 1-.008-.128 10.2 10.2 0 0 0 .372-.292.074.074 0 0 1 .077-.01c3.928 1.793 8.18 1.793 12.062 0a.074.074 0 0 1 .078.01c.12.098.246.198.373.292a.077.077 0 0 1-.006.127 12.299 12.299 0 0 1-1.873.892.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.839 19.839 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.03zM8.02 15.33c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.956-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.956 2.418-2.157 2.418zm7.975 0c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.955-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.946 2.418-2.157 2.418z"/>
-  </svg>
-);
-
-const RedditLogo = ({ className = "w-6 h-6" }: { className?: string }) => (
-  <svg className={className} viewBox="0 0 24 24" fill="currentColor">
-    <path d="M12 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0zm5.01 4.744c.688 0 1.25.561 1.25 1.249a1.25 1.25 0 0 1-2.498.056l-2.597-.547-.8 3.747c1.824.07 3.48.632 4.674 1.488.308-.309.73-.491 1.207-.491.968 0 1.754.786 1.754 1.754 0 .716-.435 1.333-1.01 1.614a3.111 3.111 0 0 1 .042.52c0 2.694-3.13 4.87-7.004 4.87-3.874 0-7.004-2.176-7.004-4.87 0-.183.015-.366.043-.534A1.748 1.748 0 0 1 4.028 12c0-.968.786-1.754 1.754-1.754.463 0 .898.196 1.207.49 1.207-.883 2.878-1.43 4.744-1.487l.885-4.182a.342.342 0 0 1 .14-.197.35.35 0 0 1 .238-.042l2.906.617a1.214 1.214 0 0 1 1.108-.701zM9.25 12C8.561 12 8 12.562 8 13.25c0 .687.561 1.248 1.25 1.248.687 0 1.248-.561 1.248-1.249 0-.688-.561-1.249-1.249-1.249zm5.5 0c-.687 0-1.248.561-1.248 1.25 0 .687.561 1.248 1.249 1.248.688 0 1.249-.561 1.249-1.249 0-.687-.562-1.249-1.25-1.249zm-5.466 3.99a.327.327 0 0 0-.231.094.33.33 0 0 0 0 .463c.842.842 2.484.913 2.961.913.477 0 2.105-.056 2.961-.913a.361.361 0 0 0 .029-.463.33.33 0 0 0-.464 0c-.547.533-1.684.73-2.512.73-.828 0-1.979-.196-2.512-.73a.326.326 0 0 0-.232-.095z"/>
-  </svg>
-);
-
-const GmailLogo = ({ className = "w-6 h-6" }: { className?: string }) => (
-  <svg className={className} viewBox="0 0 24 24" fill="currentColor">
-    <path d="M24 5.457v13.909c0 .904-.732 1.636-1.636 1.636h-3.819V11.73L12 16.64l-6.545-4.91v9.273H1.636A1.636 1.636 0 0 1 0 19.366V5.457c0-2.023 2.309-3.178 3.927-1.964L5.455 4.64 12 9.548l6.545-4.91 1.528-1.145C21.69 2.28 24 3.434 24 5.457z"/>
-  </svg>
-);
-
-const CalendarLogo = ({ className = "w-6 h-6" }: { className?: string }) => (
-  <svg className={className} viewBox="0 0 24 24" fill="currentColor">
-    <path d="M19 3h-1V1h-2v2H8V1H6v2H5c-1.11 0-1.99.9-1.99 2L3 19c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V8h14v11zM7 10h5v5H7z"/>
-  </svg>
-);
-
-const SlackLogo = ({ className = "w-6 h-6" }: { className?: string }) => (
-  <svg className={className} viewBox="0 0 24 24" fill="currentColor">
-    <path d="M5.042 15.165a2.528 2.528 0 0 1-2.52 2.523A2.528 2.528 0 0 1 0 15.165a2.527 2.527 0 0 1 2.522-2.52h2.52v2.52zM6.313 15.165a2.527 2.527 0 0 1 2.521-2.52 2.527 2.527 0 0 1 2.521 2.52v6.313A2.528 2.528 0 0 1 8.834 24a2.528 2.528 0 0 1-2.521-2.522v-6.313zM8.834 5.042a2.528 2.528 0 0 1-2.521-2.52A2.528 2.528 0 0 1 8.834 0a2.528 2.528 0 0 1 2.521 2.522v2.52H8.834zM8.834 6.313a2.528 2.528 0 0 1 2.521 2.521 2.528 2.528 0 0 1-2.521 2.521H2.522A2.528 2.528 0 0 1 0 8.834a2.528 2.528 0 0 1 2.522-2.521h6.312zM18.956 8.834a2.528 2.528 0 0 1 2.522-2.521A2.528 2.528 0 0 1 24 8.834a2.528 2.528 0 0 1-2.522 2.521h-2.522V8.834zM17.688 8.834a2.528 2.528 0 0 1-2.523 2.521 2.527 2.527 0 0 1-2.52-2.521V2.522A2.527 2.527 0 0 1 15.165 0a2.528 2.528 0 0 1 2.523 2.522v6.312zM15.165 18.956a2.528 2.528 0 0 1 2.523 2.522A2.528 2.528 0 0 1 15.165 24a2.527 2.527 0 0 1-2.52-2.522v-2.522h2.52zM15.165 17.688a2.527 2.527 0 0 1-2.52-2.523 2.526 2.526 0 0 1 2.52-2.52h6.313A2.527 2.527 0 0 1 24 15.165a2.528 2.528 0 0 1-2.522 2.523h-6.313z"/>
-  </svg>
-);
-
-
-const LinkedInLogo = ({ className = "w-6 h-6" }: { className?: string }) => (
-  <svg className={className} viewBox="0 0 24 24" fill="currentColor">
-    <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/>
-  </svg>
-);
-
-const GithubLogo = ({ className = "w-6 h-6" }: { className?: string }) => (
-  <svg className={className} viewBox="0 0 24 24" fill="currentColor">
-    <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
-  </svg>
-);
-
-const WhoopLogo = ({ className = "w-6 h-6" }: { className?: string }) => (
-  <svg className={className} viewBox="0 0 1332 999" fill="currentColor">
-    <path d="m969.3 804.3l-129.4-426.3h-118.7l189.2 620.8h117.8l303.7-998h-118.7zm-851.3-803.5h-117.9l188.4 620.7h118.6zm488.6 0l-302.8 997.9h117.8l303.7-997.9z"/>
-  </svg>
-);
-
-const OuraLogo = ({ className = "w-6 h-6" }: { className?: string }) => (
-  <svg className={className} viewBox="0 0 24 24" fill="currentColor">
-    <circle cx="12" cy="12" r="10" fill="none" stroke="currentColor" strokeWidth="2"/>
-    <circle cx="12" cy="12" r="6" fill="none" stroke="currentColor" strokeWidth="2"/>
-    <circle cx="12" cy="12" r="2"/>
-  </svg>
-);
-
-const OutlookLogo = ({ className = "w-6 h-6" }: { className?: string }) => (
-  <svg className={className} viewBox="0 0 32 32" fill="none">
-    <path d="M19.484 7.937v5.477l1.916 1.205a.489.489 0 00.21.063.5.5 0 00.229-.063l5.677-3.416a.476.476 0 00-.026-.063.9.9 0 00-.379-.334l-6.417-3.326a1.837 1.837 0 00-1.21.457z" fill="currentColor"/>
-    <path d="M19.484 15.457l1.747 1.2a.522.522 0 00.543 0c-.3.181 5.947-3.627 5.947-3.627a1.149 1.149 0 00.479-.756v9.566a1.67 1.67 0 01-.485 1.16 1.678 1.678 0 01-1.167.489h-7.064v-8.032z" fill="currentColor"/>
-    <path d="M10.44 12.932a1.032 1.032 0 00-1.034 1.034v4.085a1.034 1.034 0 102.069 0v-4.085a1.032 1.032 0 00-1.035-1.034z" fill="currentColor"/>
-    <path d="M1.441 9.186v13.628a1.812 1.812 0 001.812 1.812h14.225V7.374H3.253a1.812 1.812 0 00-1.812 1.812zm9 11.812a3.1 3.1 0 01-3.1-3.1v-4.085a3.1 3.1 0 016.2 0v4.085a3.1 3.1 0 01-3.1 3.1z" fill="currentColor"/>
-  </svg>
-);
-
-const TwitchLogo = ({ className = "w-6 h-6" }: { className?: string }) => (
-  <svg className={className} viewBox="0 0 24 24" fill="currentColor">
-    <path d="M11.571 4.714h1.715v5.143H11.57zm4.715 0H18v5.143h-1.714zM6 0L1.714 4.286v15.428h5.143V24l4.286-4.286h3.428L22.286 12V0zm14.571 11.143l-3.428 3.428h-3.429l-3 3v-3H6.857V1.714h13.714z"/>
-  </svg>
-);
-
-// ====================================================================
-// CONNECTOR CONFIGURATION
-// ====================================================================
-
-interface ConnectorConfig {
-  provider: DataProvider;
-  name: string;
-  description: string;
-  icon: React.ReactNode;
-  color: string;
-  dataTypes: string[];
-  estimatedInsights: number;
-  setupTime: string;
-  privacyLevel: 'low' | 'medium' | 'high';
-  category: 'entertainment' | 'social' | 'professional' | 'health';
-}
-
-// MVP Platforms Only: Spotify, Google Calendar, Whoop
-const AVAILABLE_CONNECTORS: ConnectorConfig[] = [
-  // Music - Personal insights from listening patterns
-  {
-    provider: 'spotify',
-    name: 'Spotify',
-    description: 'Your music reveals your mood patterns, energy levels, and authentic taste',
-    icon: <SpotifyLogo className="w-6 h-6" />,
-    color: '#1DB954',
-    dataTypes: ['Music Taste', 'Mood Patterns', 'Energy Levels'],
-    estimatedInsights: 12,
-    setupTime: '5 seconds',
-    privacyLevel: 'low',
-    category: 'entertainment'
-  },
-  // Calendar - Work and life patterns
-  {
-    provider: 'google_calendar',
-    name: 'Google Calendar',
-    description: 'Your schedule reveals work patterns, social habits, and how you manage time',
-    icon: <CalendarLogo className="w-6 h-6" />,
-    color: '#4285F4',
-    dataTypes: ['Work Patterns', 'Time Management', 'Event Context'],
-    estimatedInsights: 8,
-    setupTime: '5 seconds',
-    privacyLevel: 'low',
-    category: 'professional'
-  },
-  // Outlook - Email and calendar communication
-  {
-    provider: 'outlook' as DataProvider,
-    name: 'Microsoft Outlook',
-    description: 'Your email patterns reveal communication style, response habits, and calendar commitments',
-    icon: <OutlookLogo className="w-6 h-6" />,
-    color: '#0078D4',
-    dataTypes: ['Email Patterns', 'Calendar Events', 'Communication Style'],
-    estimatedInsights: 12,
-    setupTime: '10 seconds',
-    privacyLevel: 'medium',
-    category: 'professional'
-  },
-  // Health - Body signals and recovery
-  {
-    provider: 'whoop' as DataProvider,
-    name: 'Whoop',
-    description: 'Your body signals reveal recovery, strain, and optimal performance windows',
-    icon: <WhoopLogo className="w-6 h-6" />,
-    color: '#00A7E1',
-    dataTypes: ['Recovery Score', 'Sleep Quality', 'Strain Level'],
-    estimatedInsights: 15,
-    setupTime: '10 seconds',
-    privacyLevel: 'medium',
-    category: 'health'
-  },
-  // Entertainment - Video content
-  {
-    provider: 'youtube' as DataProvider,
-    name: 'YouTube',
-    description: 'Your viewing patterns reveal learning interests, entertainment preferences, and content curiosities',
-    icon: <YoutubeLogo className="w-6 h-6" />,
-    color: '#FF0000',
-    dataTypes: ['Watch History', 'Subscriptions', 'Liked Videos'],
-    estimatedInsights: 10,
-    setupTime: '10 seconds',
-    privacyLevel: 'low',
-    category: 'entertainment'
-  },
-  {
-    provider: 'twitch' as DataProvider,
-    name: 'Twitch',
-    description: 'Your streaming habits reveal gaming interests, community engagement, and entertainment preferences',
-    icon: <TwitchLogo className="w-6 h-6" />,
-    color: '#9146FF',
-    dataTypes: ['Followed Channels', 'Viewing Patterns', 'Communities'],
-    estimatedInsights: 8,
-    setupTime: '10 seconds',
-    privacyLevel: 'low',
-    category: 'entertainment'
-  },
-  // Social platforms
-  {
-    provider: 'discord' as DataProvider,
-    name: 'Discord',
-    description: 'Your communities reveal social connections, gaming circles, and communication style',
-    icon: <DiscordLogo className="w-6 h-6" />,
-    color: '#5865F2',
-    dataTypes: ['Server Memberships', 'Community Roles', 'Connections'],
-    estimatedInsights: 8,
-    setupTime: '10 seconds',
-    privacyLevel: 'medium',
-    category: 'social'
-  },
-  {
-    provider: 'reddit' as DataProvider,
-    name: 'Reddit',
-    description: 'Your subreddits and discussions reveal interests, expertise areas, and curiosity patterns',
-    icon: <RedditLogo className="w-6 h-6" />,
-    color: '#FF4500',
-    dataTypes: ['Subreddits', 'Saved Posts', 'Discussion Topics'],
-    estimatedInsights: 12,
-    setupTime: '10 seconds',
-    privacyLevel: 'medium',
-    category: 'social'
-  },
-  // Professional platforms
-  {
-    provider: 'github' as DataProvider,
-    name: 'GitHub',
-    description: 'Your repositories and contributions reveal coding style, tech interests, and collaboration patterns',
-    icon: <GithubLogo className="w-6 h-6" />,
-    color: '#181717',
-    dataTypes: ['Repositories', 'Contributions', 'Tech Stack'],
-    estimatedInsights: 15,
-    setupTime: '10 seconds',
-    privacyLevel: 'low',
-    category: 'professional'
-  },
-  {
-    provider: 'gmail' as DataProvider,
-    name: 'Gmail',
-    description: 'Your email patterns reveal communication style, response habits, and contact network',
-    icon: <GmailLogo className="w-6 h-6" />,
-    color: '#EA4335',
-    dataTypes: ['Email Patterns', 'Response Time', 'Contact Network'],
-    estimatedInsights: 10,
-    setupTime: '10 seconds',
-    privacyLevel: 'high',
-    category: 'professional'
-  },
-  {
-    provider: 'linkedin' as DataProvider,
-    name: 'LinkedIn',
-    description: 'Your professional trajectory reveals career evolution, networking patterns, and industry expertise',
-    icon: <LinkedInLogo className="w-6 h-6" />,
-    color: '#0A66C2',
-    dataTypes: ['Professional Profile', 'Connections', 'Career Trajectory'],
-    estimatedInsights: 10,
-    setupTime: '10 seconds',
-    privacyLevel: 'medium',
-    category: 'professional'
-  }
-];
+import { AVAILABLE_CONNECTORS } from './onboarding/components/connectorConfig';
+import { PlatformCategorySection } from './onboarding/components/PlatformCategorySection';
 
 // ====================================================================
 // MAIN COMPONENT
@@ -649,222 +403,8 @@ const InstantTwinOnboarding = () => {
 
   const DEMO_CONNECTED_PROVIDERS = ['spotify', 'google_calendar', 'whoop'];
 
-  const renderConnectorCard = (connector: ConnectorConfig) => {
-    const isConnected = isDemoMode
-      ? DEMO_CONNECTED_PROVIDERS.includes(connector.provider as string)
-      : connectedServices.includes(connector.provider);
-    const providerStatus = platformStatusData[connector.provider];
-    const needsReconnect = isDemoMode ? false : (providerStatus?.tokenExpired || providerStatus?.status === 'token_expired');
-
-    return (
-      <GlassPanel
-        key={connector.provider}
-        hover
-        className="relative transition-all"
-      >
-
-        <div className="relative flex items-center gap-4 mb-3">
-          <div
-            className="w-12 h-12 rounded-xl flex items-center justify-center"
-            style={{ backgroundColor: connector.color, color: 'white' }}
-          >
-            {connector.icon}
-          </div>
-          <div className="flex-1">
-            <h3
-              className="text-lg"
-              style={{
-                color: colors.textPrimary,
-                fontFamily: 'var(--font-heading)',
-                fontWeight: 400
-              }}
-            >
-              {connector.name}
-            </h3>
-            <p
-              className="text-xs"
-              style={{
-                color: colors.muted,
-                fontFamily: 'var(--font-body)'
-              }}
-            >
-              {connector.setupTime} setup
-            </p>
-          </div>
-        </div>
-
-        <p
-          className="text-sm mb-3 leading-relaxed"
-          style={{
-            color: colors.textSecondary,
-            fontFamily: 'var(--font-body)'
-          }}
-        >
-          {connector.description}
-        </p>
-
-        <div className="mb-3">
-          <div className="flex flex-wrap gap-1">
-            {connector.dataTypes.slice(0, 2).map((type, idx) => (
-              <span
-                key={idx}
-                className="text-xs px-2 py-1 rounded-full"
-                style={{
-                  backgroundColor: theme === 'dark' ? 'rgba(45, 45, 41, 0.8)' : 'rgba(0, 0, 0, 0.05)',
-                  color: colors.muted,
-                  fontFamily: 'var(--font-body)'
-                }}
-              >
-                {type}
-              </span>
-            ))}
-            {connector.dataTypes.length > 2 && (
-              <span
-                className="text-xs px-2 py-1 rounded-full"
-                style={{
-                  backgroundColor: theme === 'dark' ? 'rgba(45, 45, 41, 0.8)' : 'rgba(0, 0, 0, 0.05)',
-                  color: colors.muted,
-                  fontFamily: 'var(--font-body)'
-                }}
-              >
-                +{connector.dataTypes.length - 2} more
-              </span>
-            )}
-          </div>
-        </div>
-
-        {!isConnected && (
-          <div className="mt-3">
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                connectService(connector.provider);
-              }}
-              disabled={connectingProvider === connector.provider}
-              className="w-full flex items-center justify-center gap-2 px-4 py-2 rounded-xl text-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-              style={{
-                backgroundColor: theme === 'dark' ? 'rgba(193, 192, 182, 0.1)' : 'rgba(0, 0, 0, 0.05)',
-                color: colors.textPrimary,
-                fontFamily: 'var(--font-body)',
-                fontWeight: 500
-              }}
-            >
-              {connectingProvider === connector.provider ? (
-                <>
-                  <svg className="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                  </svg>
-                  Connecting...
-                </>
-              ) : (
-                'Connect'
-              )}
-            </button>
-          </div>
-        )}
-
-        {isConnected && needsReconnect && (
-          <div className="mt-3">
-            <div className="flex items-center justify-between mb-2">
-              <div className="flex items-center gap-2">
-                <svg className="w-4 h-4" style={{ color: '#C1C0B6' }} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                </svg>
-                <span
-                  className="text-sm"
-                  style={{
-                    color: '#f59e0b',
-                    fontFamily: 'var(--font-body)'
-                  }}
-                >
-                  Token Expired
-                </span>
-              </div>
-            </div>
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                connectService(connector.provider);
-              }}
-              disabled={connectingProvider === connector.provider}
-              className="w-full flex items-center justify-center gap-2 px-4 py-2 rounded-xl text-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-              style={{
-                backgroundColor: 'rgba(193, 192, 182, 0.15)',
-                color: '#C1C0B6',
-                border: '1px solid rgba(193, 192, 182, 0.3)',
-                fontFamily: 'var(--font-body)',
-                fontWeight: 500
-              }}
-            >
-              {connectingProvider === connector.provider ? (
-                <>
-                  <svg className="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                  </svg>
-                  Reconnecting...
-                </>
-              ) : (
-                'Reconnect'
-              )}
-            </button>
-          </div>
-        )}
-
-        {isConnected && !needsReconnect && (
-          <div className="mt-3">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <CheckCircle2 className="w-4 h-4" style={{ color: colors.muted }} />
-                <span
-                  className="text-sm"
-                  style={{
-                    color: colors.muted,
-                    fontFamily: 'var(--font-body)'
-                  }}
-                >
-                  Connected
-                </span>
-              </div>
-
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  disconnectService(connector.provider);
-                }}
-                disabled={disconnectingProvider === connector.provider}
-                className="flex items-center gap-1 px-2 py-1 rounded-lg text-xs transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                style={{
-                  backgroundColor: 'transparent',
-                  color: colors.muted,
-                  fontFamily: 'var(--font-body)'
-                }}
-              >
-                  {disconnectingProvider === connector.provider ? (
-                    <>
-                      <svg className="animate-spin h-3 w-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                      </svg>
-                      Disconnecting
-                    </>
-                  ) : (
-                    <>
-                      <X className="w-3 h-3" />
-                      Disconnect
-                    </>
-                  )}
-                </button>
-              </div>
-          </div>
-        )}
-      </GlassPanel>
-    );
-  };
-
   // Sort connectors - connected ones first
-  const sortConnectors = (connectors: ConnectorConfig[]) => {
+  const sortConnectors = (connectors: typeof AVAILABLE_CONNECTORS) => {
     return [...connectors].sort((a, b) => {
       const aConnected = connectedServices.includes(a.provider);
       const bConnected = connectedServices.includes(b.provider);
@@ -878,6 +418,19 @@ const InstantTwinOnboarding = () => {
   const healthConnectors = sortConnectors(AVAILABLE_CONNECTORS.filter(c => c.category === 'health'));
   const socialConnectors = sortConnectors(AVAILABLE_CONNECTORS.filter(c => c.category === 'social'));
   const professionalConnectors = sortConnectors(AVAILABLE_CONNECTORS.filter(c => c.category === 'professional'));
+
+  const categoryProps = {
+    connectedServices,
+    isDemoMode,
+    demoConnectedProviders: DEMO_CONNECTED_PROVIDERS,
+    platformStatusData,
+    connectingProvider,
+    disconnectingProvider,
+    theme,
+    colors,
+    onConnect: connectService,
+    onDisconnect: disconnectService,
+  };
 
   return (
     <PageLayout
@@ -976,156 +529,45 @@ const InstantTwinOnboarding = () => {
 
       {currentStep === 1 && (
         <div className="space-y-8">
-          {/* PLAT 3.3: Only show categories that have connectors */}
-          {entertainmentConnectors.length > 0 && (
-            <motion.div
-              initial={{ opacity: 0, y: 16 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.45, delay: 0.1, ease: [0.4, 0, 0.2, 1] }}
-            >
-              <div className="flex items-center gap-2 mb-4">
-                <motion.div
-                  className="w-3 h-3 rounded-full"
-                  style={{ backgroundColor: colors.categoryEntertainment }}
-                  initial={{ scale: 0 }}
-                  animate={{ scale: 1 }}
-                  transition={{ duration: 0.4, delay: 0.2, ease: [0.4, 0, 0.2, 1] }}
-                />
-                <h3
-                  className="text-lg"
-                  style={{
-                    color: colors.textPrimary,
-                    fontFamily: 'var(--font-heading)',
-                    fontWeight: 400
-                  }}
-                >
-                  Entertainment
-                </h3>
-                <span
-                  className="text-xs"
-                  style={{ color: colors.muted, fontFamily: 'var(--font-body)' }}
-                >
-                  Music, videos, streaming
-                </span>
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {entertainmentConnectors.map(renderConnectorCard)}
-              </div>
-            </motion.div>
-          )}
+          <PlatformCategorySection
+            categoryName="Entertainment"
+            categorySubtext="Music, videos, streaming"
+            categoryColor={colors.categoryEntertainment}
+            connectors={entertainmentConnectors}
+            animationDelay={0.1}
+            dotDelay={0.2}
+            {...categoryProps}
+          />
 
-          {healthConnectors.length > 0 && (
-            <motion.div
-              initial={{ opacity: 0, y: 16 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.45, delay: 0.2, ease: [0.4, 0, 0.2, 1] }}
-            >
-              <div className="flex items-center gap-2 mb-4">
-                <motion.div
-                  className="w-3 h-3 rounded-full"
-                  style={{ backgroundColor: colors.categoryHealth }}
-                  initial={{ scale: 0 }}
-                  animate={{ scale: 1 }}
-                  transition={{ duration: 0.4, delay: 0.3, ease: [0.4, 0, 0.2, 1] }}
-                />
-                <h3
-                  className="text-lg"
-                  style={{
-                    color: colors.textPrimary,
-                    fontFamily: 'var(--font-heading)',
-                    fontWeight: 400
-                  }}
-                >
-                  Health
-                </h3>
-                <span
-                  className="text-xs"
-                  style={{ color: colors.muted, fontFamily: 'var(--font-body)' }}
-                >
-                  Recovery, sleep, fitness
-                </span>
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {healthConnectors.map(renderConnectorCard)}
-              </div>
-            </motion.div>
-          )}
+          <PlatformCategorySection
+            categoryName="Health"
+            categorySubtext="Recovery, sleep, fitness"
+            categoryColor={colors.categoryHealth}
+            connectors={healthConnectors}
+            animationDelay={0.2}
+            dotDelay={0.3}
+            {...categoryProps}
+          />
 
-          {socialConnectors.length > 0 && (
-            <motion.div
-              initial={{ opacity: 0, y: 16 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.45, delay: 0.3, ease: [0.4, 0, 0.2, 1] }}
-            >
-              <div className="flex items-center gap-2 mb-4">
-                <motion.div
-                  className="w-3 h-3 rounded-full"
-                  style={{ backgroundColor: colors.categorySocial }}
-                  initial={{ scale: 0 }}
-                  animate={{ scale: 1 }}
-                  transition={{ duration: 0.4, delay: 0.4, ease: [0.4, 0, 0.2, 1] }}
-                />
-                <h3
-                  className="text-lg"
-                  style={{
-                    color: colors.textPrimary,
-                    fontFamily: 'var(--font-heading)',
-                    fontWeight: 400
-                  }}
-                >
-                  Social
-                </h3>
-                <span
-                  className="text-xs"
-                  style={{ color: colors.muted, fontFamily: 'var(--font-body)' }}
-                >
-                  Communities, discussions
-                </span>
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {socialConnectors.map(renderConnectorCard)}
-              </div>
-            </motion.div>
-          )}
+          <PlatformCategorySection
+            categoryName="Social"
+            categorySubtext="Communities, discussions"
+            categoryColor={colors.categorySocial}
+            connectors={socialConnectors}
+            animationDelay={0.3}
+            dotDelay={0.4}
+            {...categoryProps}
+          />
 
-          {professionalConnectors.length > 0 && (
-            <motion.div
-              initial={{ opacity: 0, y: 16 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.45, delay: 0.4, ease: [0.4, 0, 0.2, 1] }}
-            >
-              <div className="flex items-center justify-between mb-4">
-                <div className="flex items-center gap-2">
-                  <motion.div
-                    className="w-3 h-3 rounded-full"
-                    style={{ backgroundColor: colors.categoryProfessional }}
-                    initial={{ scale: 0 }}
-                    animate={{ scale: 1 }}
-                    transition={{ duration: 0.4, delay: 0.5, ease: [0.4, 0, 0.2, 1] }}
-                  />
-                  <h3
-                    className="text-lg"
-                    style={{
-                      color: colors.textPrimary,
-                      fontFamily: 'var(--font-heading)',
-                      fontWeight: 400
-                    }}
-                  >
-                    Professional
-                  </h3>
-                  <span
-                    className="text-xs"
-                    style={{ color: colors.muted, fontFamily: 'var(--font-body)' }}
-                  >
-                    Work, coding, email
-                  </span>
-                </div>
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {professionalConnectors.map(renderConnectorCard)}
-              </div>
-            </motion.div>
-          )}
+          <PlatformCategorySection
+            categoryName="Professional"
+            categorySubtext="Work, coding, email"
+            categoryColor={colors.categoryProfessional}
+            connectors={professionalConnectors}
+            animationDelay={0.4}
+            dotDelay={0.5}
+            {...categoryProps}
+          />
 
           {connectedServices.length > 0 && (
             <DataVerification
