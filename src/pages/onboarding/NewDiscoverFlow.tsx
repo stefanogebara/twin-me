@@ -149,7 +149,12 @@ const NewDiscoverFlow: React.FC = () => {
 
   const addDataPoint = useCallback((dp: DataPoint) => {
     setDataPoints(prev => {
-      if (prev.some(p => p.label === dp.label)) return prev;
+      const idx = prev.findIndex(p => p.label === dp.label);
+      if (idx >= 0) {
+        // Update existing entry with newer (likely richer) value
+        if (prev[idx].value === dp.value) return prev;
+        return prev.map((p, i) => i === idx ? dp : p);
+      }
       return [...prev, dp];
     });
   }, []);
@@ -554,6 +559,25 @@ const NewDiscoverFlow: React.FC = () => {
                     }}
                   >
                     {enrichError}
+                  </motion.p>
+                )}
+              </AnimatePresence>
+
+              {/* Empty state — enrichment found nothing */}
+              <AnimatePresence>
+                {revealSubView === 'data' && orbPhase === 'alive' && dataPoints.length === 0 && !enrichError && (
+                  <motion.p
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: 0.4 }}
+                    className="text-sm text-center mt-6 max-w-sm"
+                    style={{
+                      color: 'rgba(232, 213, 183, 0.5)',
+                      fontFamily: 'var(--font-body)',
+                    }}
+                  >
+                    We couldn't find much yet — no worries, let's build your profile together.
                   </motion.p>
                 )}
               </AnimatePresence>

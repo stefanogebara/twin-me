@@ -62,12 +62,40 @@ const CompactPlatformConnect: React.FC<CompactPlatformConnectProps> = ({
   const [connecting, setConnecting] = useState<string | null>(null);
   const [connected, setConnected] = useState<string[]>([]);
 
+  // Fetch already-connected platforms on mount
+  useEffect(() => {
+    const fetchExisting = async () => {
+      try {
+        const token = localStorage.getItem('auth_token') || localStorage.getItem('token');
+        const response = await fetch(`${API_URL}/connectors/status/${encodeURIComponent(userId)}`, {
+          headers: {
+            'Content-Type': 'application/json',
+            ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
+          },
+        });
+        if (!response.ok) return;
+        const result = await response.json();
+        if (result.success && result.data) {
+          const alreadyConnected = Object.entries(result.data)
+            .filter(([, info]) => (info as { connected: boolean }).connected)
+            .map(([platform]) => platform);
+          if (alreadyConnected.length > 0) {
+            setConnected(prev => [...new Set([...prev, ...alreadyConnected])]);
+          }
+        }
+      } catch {
+        // Silent — not critical for onboarding
+      }
+    };
+    fetchExisting();
+  }, [userId]);
+
   // Check if returning from OAuth
   useEffect(() => {
     const justConnected = sessionStorage.getItem('onboarding_platform_connect');
     if (justConnected) {
       sessionStorage.removeItem('onboarding_platform_connect');
-      setConnected(prev => [...prev, justConnected]);
+      setConnected(prev => [...new Set([...prev, justConnected])]);
       onPlatformConnected?.(justConnected);
     }
   }, [onPlatformConnected]);
