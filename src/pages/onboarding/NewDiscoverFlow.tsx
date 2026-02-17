@@ -109,12 +109,19 @@ const NewDiscoverFlow: React.FC = () => {
     startReveal();
   }, [loading, user]);
 
-  // Show continue button after 5s in reveal phase
+  // Show continue button only after full enrichment completes (orbPhase === 'alive')
+  // with a safety fallback of 30s in case enrichment hangs
   useEffect(() => {
     if (phase !== 'reveal') return;
-    const timer = setTimeout(() => setShowContinue(true), 5000);
-    return () => clearTimeout(timer);
-  }, [phase]);
+    if (orbPhase === 'alive') {
+      // Small delay so data points animate in first
+      const timer = setTimeout(() => setShowContinue(true), 1500);
+      return () => clearTimeout(timer);
+    }
+    // Safety fallback — don't leave user stuck if enrichment takes too long
+    const fallback = setTimeout(() => setShowContinue(true), 30000);
+    return () => clearTimeout(fallback);
+  }, [phase, orbPhase]);
 
   const isLLMJunk = (text: string): boolean => {
     const lower = text.toLowerCase().trim();

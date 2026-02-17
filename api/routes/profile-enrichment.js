@@ -134,7 +134,17 @@ router.post('/search', async (req, res) => {
         achievements: enrichmentResult.data.achievements,
         skills: enrichmentResult.data.skills,
         source: enrichmentResult.data.source,
-        hasResults
+        hasResults,
+        // Personal life fields
+        interests_and_hobbies: enrichmentResult.data.interests_and_hobbies || null,
+        causes_and_values: enrichmentResult.data.causes_and_values || null,
+        notable_quotes: enrichmentResult.data.notable_quotes || null,
+        public_appearances: enrichmentResult.data.public_appearances || null,
+        personality_traits: enrichmentResult.data.personality_traits || null,
+        life_story: enrichmentResult.data.life_story || null,
+        social_media_presence: enrichmentResult.data.social_media_presence || null,
+        discovered_instagram_url: enrichmentResult.data.discovered_instagram_url || null,
+        discovered_personal_website: enrichmentResult.data.discovered_personal_website || null
       }
     });
   } catch (error) {
@@ -216,7 +226,17 @@ router.get('/results/:userId', authenticateUser, async (req, res) => {
         confirmed_data: result.data.confirmed_data,
         corrections: result.data.corrections,
         enriched_at: result.data.enriched_at,
-        confirmed_at: result.data.confirmed_at
+        confirmed_at: result.data.confirmed_at,
+        // Personal life fields
+        interests_and_hobbies: result.data.interests_and_hobbies || null,
+        causes_and_values: result.data.causes_and_values || null,
+        notable_quotes: result.data.notable_quotes || null,
+        public_appearances: result.data.public_appearances || null,
+        personality_traits: result.data.personality_traits || null,
+        life_story: result.data.life_story || null,
+        social_media_presence: result.data.social_media_presence || null,
+        discovered_instagram_url: result.data.discovered_instagram_url || null,
+        discovered_personal_website: result.data.discovered_personal_website || null
       },
       hasResults: !!(
         result.data.discovered_company ||

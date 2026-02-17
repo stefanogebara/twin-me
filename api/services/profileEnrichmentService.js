@@ -1,5 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
-import { complete, TIER_EXTRACTION } from './llmGateway.js';
+import { complete, TIER_EXTRACTION, TIER_ANALYSIS } from './llmGateway.js';
 
 const supabase = createClient(
   process.env.SUPABASE_URL,
@@ -388,10 +388,23 @@ class ProfileEnrichmentService {
           discovered_company: comprehensiveData.discovered_company || enrichedData.discovered_company,
           discovered_location: comprehensiveData.discovered_location || enrichedData.discovered_location,
           discovered_linkedin_url: comprehensiveData.discovered_linkedin_url || enrichedData.discovered_linkedin_url,
+          discovered_twitter_url: comprehensiveData.discovered_twitter_url || enrichedData.discovered_twitter_url,
+          discovered_github_url: comprehensiveData.discovered_github_url || enrichedData.discovered_github_url,
+          discovered_instagram_url: comprehensiveData.discovered_instagram_url || null,
+          discovered_personal_website: comprehensiveData.discovered_personal_website || null,
+          discovered_bio: comprehensiveData.discovered_bio || enrichedData.discovered_bio,
           career_timeline: comprehensiveData.career_timeline,
           education: comprehensiveData.education,
           achievements: comprehensiveData.achievements,
           skills: comprehensiveData.skills,
+          // Personal life fields
+          interests_and_hobbies: comprehensiveData.interests_and_hobbies || null,
+          causes_and_values: comprehensiveData.causes_and_values || null,
+          notable_quotes: comprehensiveData.notable_quotes || null,
+          public_appearances: comprehensiveData.public_appearances || null,
+          personality_traits: comprehensiveData.personality_traits || null,
+          life_story: comprehensiveData.life_story || null,
+          social_media_presence: comprehensiveData.social_media_presence || null,
           comprehensive_source: 'brave'
         };
         enrichmentSource = 'brave';
@@ -810,6 +823,48 @@ Write the biography:`;
   /**
    * Run 3-5 targeted Brave queries in parallel and collect all snippets.
    */
+  /**
+   * Fetch and extract text content from a URL (for deep scraping top results).
+   * Returns cleaned text, truncated to maxChars.
+   */
+  async fetchPageText(url, maxChars = 5000) {
+    try {
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 8000);
+      const response = await fetch(url, {
+        signal: controller.signal,
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (compatible; TwinMe/1.0; +https://twinme.app)',
+          'Accept': 'text/html',
+        },
+        redirect: 'follow',
+      });
+      clearTimeout(timeout);
+
+      if (!response.ok) return null;
+      const contentType = response.headers.get('content-type') || '';
+      if (!contentType.includes('text/html')) return null;
+
+      const html = await response.text();
+
+      // Strip HTML to plain text
+      const text = html
+        .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '')
+        .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '')
+        .replace(/<nav[^>]*>[\s\S]*?<\/nav>/gi, '')
+        .replace(/<footer[^>]*>[\s\S]*?<\/footer>/gi, '')
+        .replace(/<header[^>]*>[\s\S]*?<\/header>/gi, '')
+        .replace(/<[^>]+>/g, ' ')
+        .replace(/&[a-z]+;/gi, ' ')
+        .replace(/\s+/g, ' ')
+        .trim();
+
+      return text.length > 50 ? text.substring(0, maxChars) : null;
+    } catch {
+      return null;
+    }
+  }
+
   async searchWithBrave(name, email) {
     const apiKey = process.env.BRAVE_SEARCH_API_KEY;
     if (!apiKey) return null;
@@ -820,21 +875,26 @@ Write the biography:`;
 
     // For corporate emails, the domain is a strong disambiguator
     const domainName = !isGenericEmail ? emailDomain.split('.')[0] : null;
+    const nameQuery = domainName ? `"${name}" "${domainName}"` : `"${name}"`;
 
     const queries = [
-      // Query 1: name + company (best disambiguator for corporate emails)
-      domainName ? `"${name}" "${domainName}"` : `"${name}"`,
-      // Query 2: username on platforms
-      `"${emailUsername}" site:github.com OR site:linkedin.com`,
+      // Query 1: name + company (best disambiguator)
+      nameQuery,
+      // Query 2: username on social/professional platforms
+      `"${emailUsername}" site:github.com OR site:linkedin.com OR site:twitter.com OR site:instagram.com`,
       // Query 3: LinkedIn profile
       `"${name}" site:linkedin.com/in`,
+      // Query 4: personal life — interviews, podcasts, personal content
+      `${nameQuery} (interview OR podcast OR TEDx OR personal OR profile OR biography)`,
+      // Query 5: social media and personal presence
+      `"${name}" site:twitter.com OR site:instagram.com OR site:facebook.com OR site:medium.com`,
     ];
 
     const results = await Promise.allSettled(
       queries.map(q => this.braveWebSearch(q, apiKey))
     );
 
-    // Deduplicate by URL, then build snippet text
+    // Deduplicate by URL
     const seen = new Set();
     const uniqueResults = results
       .filter(r => r.status === 'fulfilled' && r.value)
@@ -843,52 +903,195 @@ Write the biography:`;
 
     console.log(`[ProfileEnrichment] Brave: ${uniqueResults.length} unique results from ${queries.length} queries`);
 
+    // Build snippet text from search results
     const allSnippets = uniqueResults
       .map(r => `[${r.title}] ${r.description}${r.extra_snippets ? ' ' + r.extra_snippets.join(' ') : ''}`)
       .join('\n');
 
     if (allSnippets.length < 10) return null;
-    return allSnippets;
+
+    // Deep scrape: fetch actual page content from the most promising results
+    // Score results to prioritize personal/interview content over corporate boilerplate
+    const blockedDomains = ['linkedin.com', 'facebook.com', 'instagram.com']; // require auth
+    const corporateBoilerplate = ['sec.gov', 'bloomberg.com', 'reuters.com', 'marketwatch.com', 'finance.yahoo.com', 'crunchbase.com', 'dnb.com', 'zoominfo.com', 'opencorporates.com'];
+    const personalGoldmine = ['medium.com', 'substack.com', 'wordpress.com', 'blogspot.com', 'ted.com', 'youtube.com', 'github.com', 'twitter.com', 'x.com', 'about.me', 'behance.net', 'dribbble.com'];
+    const interviewKeywords = ['interview', 'podcast', 'profile', 'meet', 'conversation', 'about', 'story', 'journey', 'speaker', 'bio', 'who is'];
+
+    const scoredResults = uniqueResults
+      .filter(r => !blockedDomains.some(d => r.url.includes(d)))
+      .map(r => {
+        let score = 0;
+        const urlLower = r.url.toLowerCase();
+        const titleLower = (r.title || '').toLowerCase();
+        const descLower = (r.description || '').toLowerCase();
+        // Penalize corporate boilerplate
+        if (corporateBoilerplate.some(d => urlLower.includes(d))) score -= 3;
+        // Boost personal/media pages
+        if (personalGoldmine.some(d => urlLower.includes(d))) score += 3;
+        // Boost pages with interview/personal keywords in title or description
+        interviewKeywords.forEach(kw => {
+          if (titleLower.includes(kw)) score += 2;
+          if (descLower.includes(kw)) score += 1;
+        });
+        return { ...r, _score: score };
+      })
+      .sort((a, b) => b._score - a._score)
+      .slice(0, 6);
+
+    const scrapeTargets = scoredResults;
+
+    console.log(`[ProfileEnrichment] Deep scraping ${scrapeTargets.length} pages (scored, personal-first):`);
+    scrapeTargets.forEach(r => console.log(`  [score:${r._score}] ${r.title} — ${r.url}`));
+    const pageContents = await Promise.allSettled(
+      scrapeTargets.map(r => this.fetchPageText(r.url))
+    );
+
+    // Only keep pages that actually mention the person's name (filter false positives)
+    const nameParts = name.toLowerCase().split(' ').filter(p => p.length > 2);
+    const scrapedPages = pageContents
+      .map((r, i) => ({ result: r, target: scrapeTargets[i] }))
+      .filter(({ result }) => result.status === 'fulfilled' && result.value)
+      .filter(({ result }) => {
+        const text = result.value.toLowerCase();
+        // Page must mention at least the last name
+        return nameParts.some(part => text.includes(part));
+      });
+
+    const scrapedText = scrapedPages
+      .map(({ result, target }) => `--- PAGE: ${target.title} (${target.url}) ---\n${result.value}`)
+      .join('\n\n');
+
+    console.log(`[ProfileEnrichment] Scraped ${scrapedPages.length} relevant pages out of ${pageContents.filter(r => r.status === 'fulfilled' && r.value).length} fetched (${scrapedText.length} chars)`);
+
+    // Return both snippets and scraped content separately
+    // so we can do targeted extraction on each
+    const combined = `=== SEARCH SNIPPETS ===\n${allSnippets}\n\n=== FULL PAGE CONTENT ===\n${scrapedText}`;
+    return { combined, snippetsOnly: allSnippets, scrapedOnly: scrapedText };
   }
 
   /**
-   * Use cheap LLM (Mistral Small via TIER_EXTRACTION) to extract structured
-   * profile JSON from raw Brave Search snippets.
+   * Second-pass extraction: focus ONLY on personal life details
+   * from scraped page content. Uses a prompt that ignores career/title
+   * and looks specifically for personal details.
+   */
+  async extractPersonalLife(scrapedContent, name) {
+    if (!scrapedContent || scrapedContent.length < 50) return null;
+
+    const prompt = `You are analyzing web content about "${name}" to understand them as a PERSON, not as an employee.
+IGNORE job titles, companies, and career history — that's already captured separately.
+
+Focus ONLY on personal, human details. Look for ANY of these:
+- Hobbies, sports, personal interests
+- Causes they care about, philanthropy, volunteering
+- How they speak, their personality, communication style
+- Personal anecdotes or stories they've shared
+- Opinions they've expressed (not business strategy — personal views)
+- Family background, origin story, where they grew up
+- Books, music, travel, food preferences mentioned anywhere
+- Awards or recognition for non-work things
+- Social media behavior — what they post about beyond work
+- Languages they speak
+- Direct quotes from interviews that reveal personality
+
+WEB CONTENT:
+${scrapedContent.substring(0, 12000)}
+
+Return ONLY a JSON object. Set fields to null if NO evidence found:
+{
+  "interests_and_hobbies": "any hobbies, sports, personal interests mentioned",
+  "causes_and_values": "causes, philanthropy, values they advocate for",
+  "personality_traits": "how they communicate, lead, what others say about them",
+  "personal_bio": "2-3 sentences about who they are as a PERSON (not resume)",
+  "notable_quotes": ["any direct quote that reveals personality"],
+  "public_appearances": "non-corporate: podcasts, interviews, talks, panels",
+  "life_story": "origin, formative experiences, personal journey",
+  "social_media_presence": "what platforms, what they post about, their voice/tone"
+}`;
+
+    try {
+      const result = await complete({
+        tier: TIER_ANALYSIS,
+        messages: [{ role: 'user', content: prompt }],
+        maxTokens: 1024,
+        temperature: 0.3,
+        serviceName: 'brave-personal-extraction',
+      });
+
+      const text = result.content.replace(/```json\n?|\n?```/g, '').trim();
+      const parsed = JSON.parse(text);
+      const fields = Object.keys(parsed).filter(k => parsed[k] && parsed[k] !== null && parsed[k] !== 'null');
+      console.log(`[ProfileEnrichment] Personal life extraction: ${fields.length} fields found: [${fields.join(', ')}]`);
+      return parsed;
+    } catch (err) {
+      console.error('[ProfileEnrichment] Personal life extraction failed:', err.message);
+      return null;
+    }
+  }
+
+  /**
+   * Use ANALYSIS tier (DeepSeek) to extract structured profile JSON from
+   * Brave Search snippets + scraped page content. Needs a smarter model
+   * to extract personal details from noisy web content.
    */
   async extractStructuredProfile(snippets, name, email) {
-    const prompt = `Extract facts about "${name}" (${email}) from these search results.
+    const prompt = `You are extracting a COMPLETE profile of "${name}" (${email}) to build their digital twin.
+A digital twin needs the WHOLE person — not just their job title. Look for personality, interests, values, opinions, life story.
+
 Return ONLY a JSON object. Only include fields where you found real evidence. Do not guess or invent.
 
-SEARCH RESULTS:
-${snippets}
+SOURCE MATERIAL:
+${snippets.substring(0, 8000)}
 
 Return JSON:
 {
-  "name": "full name if found",
+  "name": "full name",
   "title": "current job title",
-  "company": "current company",
+  "company": "current company or organization",
   "location": "city, country",
-  "education": "degree, school, year",
-  "career_summary": "1-2 sentence career summary from real facts only",
-  "linkedin_url": "linkedin.com/in/... if found",
-  "skills": "key skills if mentioned"
+  "education": [{"degree": "...", "school": "...", "year": ...}],
+  "career_summary": "2-3 sentence career trajectory from real facts",
+  "linkedin_url": "linkedin profile URL if found",
+  "twitter_url": "twitter/X profile URL if found",
+  "github_url": "github profile URL if found",
+  "instagram_url": "instagram profile URL if found",
+  "personal_website": "personal blog or website URL if found",
+  "skills": ["skill1", "skill2"],
+  "interests_and_hobbies": "personal interests, hobbies, sports, passions — anything beyond work",
+  "causes_and_values": "social causes, philanthropy, values, beliefs they advocate for",
+  "personality_traits": "communication style, leadership approach, how others describe them",
+  "personal_bio": "3-4 sentence bio covering BOTH professional AND personal life — who they are as a human being",
+  "notable_quotes": ["direct quote 1", "direct quote 2"],
+  "public_appearances": "talks, podcasts, TEDx, conferences, media interviews, panels",
+  "life_story": "key life events, origin story, formative experiences, transitions — what shaped them as a person",
+  "social_media_presence": "what platforms they are active on, what they post about, their online voice"
 }
 
-RULES: Only use facts from the search results above. If a field has no evidence, set it to null.`;
+RULES:
+- Only use facts from the source material above. If a field has no evidence, set it to null.
+- We are building a digital twin — a person is MORE than their resume.
+- Look for: opinions expressed in interviews, personal anecdotes, hobbies mentioned in bios, causes they support, how they describe themselves.
+- Even small personal details matter: favorite books, sports they play, cities they love, languages they speak.`;
 
     const result = await complete({
-      tier: TIER_EXTRACTION,
+      tier: TIER_ANALYSIS,
       messages: [{ role: 'user', content: prompt }],
-      maxTokens: 1024,
-      temperature: 0.1,
+      maxTokens: 2048,
+      temperature: 0.2,
       serviceName: 'brave-profile-extraction',
     });
 
     try {
       const text = result.content.replace(/```json\n?|\n?```/g, '').trim();
-      return JSON.parse(text);
+      const parsed = JSON.parse(text);
+      // Log personal fields extraction results
+      const personalFields = ['interests_and_hobbies', 'causes_and_values', 'personality_traits', 'personal_bio', 'notable_quotes', 'public_appearances', 'life_story', 'social_media_presence'];
+      const found = personalFields.filter(f => parsed[f] && parsed[f] !== null && parsed[f] !== 'null');
+      console.log(`[ProfileEnrichment] Extraction: ${found.length}/${personalFields.length} personal fields populated: [${found.join(', ')}]`);
+      if (found.length === 0) console.log(`[ProfileEnrichment] Raw extraction keys: ${Object.keys(parsed).filter(k => parsed[k] !== null).join(', ')}`);
+      return parsed;
     } catch (parseError) {
       console.error('[ProfileEnrichment] Failed to parse Brave extraction JSON:', parseError.message);
+      console.error('[ProfileEnrichment] Raw LLM output:', result.content?.substring(0, 500));
       return null;
     }
   }
@@ -916,21 +1119,56 @@ RULES: Only use facts from the search results above. If a field has no evidence,
     if (process.env.BRAVE_SEARCH_API_KEY) {
       console.log('[ProfileEnrichment] Trying Brave Search API for:', { name, email });
       try {
-        const snippets = await this.searchWithBrave(name, email);
-        if (snippets) {
-          const extracted = await this.extractStructuredProfile(snippets, name, email);
-          if (extracted) {
+        const braveResult = await this.searchWithBrave(name, email);
+        if (braveResult) {
+          // Run Pass 1 (career) and Pass 2 (personal) in PARALLEL
+          const hasScrapedContent = braveResult.scrapedOnly && braveResult.scrapedOnly.length > 100;
+          console.log(`[ProfileEnrichment] Running extraction: Pass 1 (career) + ${hasScrapedContent ? 'Pass 2 (personal)' : 'no Pass 2 (no scraped content)'}`);
+
+          const [pass1Result, pass2Result] = await Promise.allSettled([
+            // Pass 1 uses snippets only (fast, reliable — career data lives in search snippets)
+            // Pass 2 handles deep scraped content separately for personal fields
+            this.extractStructuredProfile(braveResult.snippetsOnly, name, email),
+            hasScrapedContent
+              ? this.extractPersonalLife(braveResult.scrapedOnly, name)
+              : Promise.resolve(null),
+          ]);
+
+          const extracted = pass1Result.status === 'fulfilled' ? pass1Result.value : null;
+          const personal = pass2Result.status === 'fulfilled' ? pass2Result.value : null;
+
+          if (pass1Result.status === 'rejected') {
+            console.error('[ProfileEnrichment] Pass 1 (career extraction) failed:', pass1Result.reason?.message);
+          }
+          if (pass2Result.status === 'rejected') {
+            console.error('[ProfileEnrichment] Pass 2 (personal extraction) failed:', pass2Result.reason?.message);
+          }
+
+          // Return results if EITHER pass succeeded
+          if (extracted || personal) {
             return {
-              career_timeline: extracted.career_summary || null,
-              education: extracted.education || null,
+              career_timeline: extracted?.career_summary || null,
+              education: extracted?.education || null,
               achievements: null,
-              skills: extracted.skills || null,
-              discovered_title: extracted.title || null,
-              discovered_company: extracted.company || null,
-              discovered_location: extracted.location || null,
-              discovered_linkedin_url: extracted.linkedin_url || null,
-              discovered_name: extracted.name || null,
-              raw_comprehensive: snippets,
+              skills: extracted?.skills || null,
+              discovered_title: extracted?.title || null,
+              discovered_company: extracted?.company || null,
+              discovered_location: extracted?.location || null,
+              discovered_linkedin_url: extracted?.linkedin_url || null,
+              discovered_twitter_url: extracted?.twitter_url || null,
+              discovered_github_url: extracted?.github_url || null,
+              discovered_name: extracted?.name || name || null,
+              discovered_bio: personal?.personal_bio || extracted?.personal_bio || null,
+              interests_and_hobbies: personal?.interests_and_hobbies || extracted?.interests_and_hobbies || null,
+              causes_and_values: personal?.causes_and_values || extracted?.causes_and_values || null,
+              notable_quotes: personal?.notable_quotes || extracted?.notable_quotes || null,
+              public_appearances: personal?.public_appearances || extracted?.public_appearances || null,
+              personality_traits: personal?.personality_traits || extracted?.personality_traits || null,
+              life_story: personal?.life_story || extracted?.life_story || null,
+              social_media_presence: personal?.social_media_presence || extracted?.social_media_presence || null,
+              discovered_instagram_url: extracted?.instagram_url || null,
+              discovered_personal_website: extracted?.personal_website || null,
+              raw_comprehensive: braveResult.combined,
               _source: 'brave',
             };
           }
@@ -3387,6 +3625,16 @@ IMPORTANT: Write ONLY the summary paragraph. Do not include any prefixes like "H
         github_repos: enrichmentData.github_repos || null,
         github_followers: enrichmentData.github_followers || null,
         social_links: enrichmentData.social_links || null,
+        // Personal life fields
+        interests_and_hobbies: enrichmentData.interests_and_hobbies || null,
+        causes_and_values: enrichmentData.causes_and_values || null,
+        notable_quotes: enrichmentData.notable_quotes || null,
+        public_appearances: enrichmentData.public_appearances || null,
+        personality_traits: enrichmentData.personality_traits || null,
+        life_story: enrichmentData.life_story || null,
+        social_media_presence: enrichmentData.social_media_presence || null,
+        discovered_instagram_url: enrichmentData.discovered_instagram_url || null,
+        discovered_personal_website: enrichmentData.discovered_personal_website || null,
         source: enrichmentData.source || 'unknown',
         raw_search_response: enrichmentData.raw || enrichmentData.raw_search_response || null,
         search_query: enrichmentData.search_query || null,
