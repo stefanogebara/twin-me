@@ -50,6 +50,56 @@ import { getUndeliveredInsights, markInsightsDelivered } from '../services/proac
 
 const router = express.Router();
 
+// ====================================================================
+// Per-user chat rate limit: 50 messages per user per hour
+// ====================================================================
+const CHAT_RATE_LIMIT_MAX = 50;
+const CHAT_RATE_LIMIT_WINDOW_MS = 60 * 60 * 1000; // 1 hour
+
+// Map<userId, { timestamps: number[] }>
+const chatRateLimitMap = new Map();
+
+// Periodic cleanup of expired entries to prevent memory leaks
+setInterval(() => {
+  const now = Date.now();
+  for (const [userId, entry] of chatRateLimitMap.entries()) {
+    const fresh = entry.timestamps.filter(ts => now - ts < CHAT_RATE_LIMIT_WINDOW_MS);
+    if (fresh.length === 0) {
+      chatRateLimitMap.delete(userId);
+    } else {
+      entry.timestamps = fresh;
+    }
+  }
+}, 10 * 60 * 1000); // Clean up every 10 minutes
+
+/**
+ * Check if a user has exceeded the per-hour chat rate limit.
+ * Returns { allowed: boolean, used: number, limit: number, retryAfterMs: number | null }
+ */
+function checkChatRateLimit(userId) {
+  const now = Date.now();
+  const entry = chatRateLimitMap.get(userId);
+
+  if (!entry) {
+    chatRateLimitMap.set(userId, { timestamps: [now] });
+    return { allowed: true, used: 1, limit: CHAT_RATE_LIMIT_MAX, retryAfterMs: null };
+  }
+
+  // Remove timestamps outside the window (immutable-style: create new array)
+  const fresh = entry.timestamps.filter(ts => now - ts < CHAT_RATE_LIMIT_WINDOW_MS);
+
+  if (fresh.length >= CHAT_RATE_LIMIT_MAX) {
+    // Find the oldest timestamp in the window to calculate retry-after
+    const oldestInWindow = Math.min(...fresh);
+    const retryAfterMs = CHAT_RATE_LIMIT_WINDOW_MS - (now - oldestInWindow);
+    return { allowed: false, used: fresh.length, limit: CHAT_RATE_LIMIT_MAX, retryAfterMs };
+  }
+
+  // Record this request
+  chatRateLimitMap.set(userId, { timestamps: [...fresh, now] });
+  return { allowed: true, used: fresh.length + 1, limit: CHAT_RATE_LIMIT_MAX, retryAfterMs: null };
+}
+
 // Track OpenClaw availability
 let openClawAvailable = null; // null = unknown, true = available, false = use Claude directly
 let openClawCheckTime = 0; // Last time we checked availability
@@ -915,6 +965,19 @@ router.post('/message', authenticateUser, async (req, res) => {
     } catch (quotaErr) {
       // Don't block chat if quota check fails
       console.warn('[Twin Chat] Quota check failed, allowing message:', quotaErr.message);
+    }
+
+    // Per-user hourly rate limit (50 messages/hour)
+    const rateLimit = checkChatRateLimit(userId);
+    if (!rateLimit.allowed) {
+      const retryAfterSec = Math.ceil((rateLimit.retryAfterMs || 0) / 1000);
+      console.warn(`[Twin Chat] Rate limit exceeded for user ${userId}: ${rateLimit.used}/${rateLimit.limit} per hour`);
+      return res.status(429).json({
+        success: false,
+        error: 'hourly_rate_limit',
+        message: `You've sent ${rateLimit.limit} messages in the last hour. Please wait before sending more.`,
+        retryAfter: retryAfterSec,
+      });
     }
 
     console.log(`[Twin Chat] Message from user ${userId}: "${message.substring(0, 50)}..."`);
