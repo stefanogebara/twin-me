@@ -46,8 +46,8 @@ import {
 } from './memoryStreamService.js';
 
 // Reflection threshold: trigger when sum of recent importance scores exceeds this
-// Paper triggers at ~150 (roughly 2-3 reflections per day)
-const IMPORTANCE_THRESHOLD = 150;
+// Lowered from 150 to 50 so new users trigger reflections earlier (~10 memories rated 5)
+const IMPORTANCE_THRESHOLD = 50;
 
 // Max recursive reflection depth (paper allows reflections on reflections)
 const MAX_REFLECTION_DEPTH = 3;
@@ -297,7 +297,7 @@ async function generateReflections(userId, depth = 0) {
 
     // Step 1: Gather recent memories
     const recentMemories = await getRecentMemories(userId, 100);
-    if (recentMemories.length < 5) {
+    if (recentMemories.length < 3) {
       console.log(`[Reflection] Not enough memories (${recentMemories.length}) to reflect`);
       return 0;
     }
