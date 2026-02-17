@@ -11,6 +11,8 @@ import {
   ChevronDown,
   ChevronUp,
   ArrowUpDown,
+  TrendingUp,
+  Users,
 } from 'lucide-react';
 
 // --- Type definitions ---
@@ -26,12 +28,34 @@ interface CostBreakdownItem {
   cache_hits: number;
 }
 
+interface TierSummary {
+  calls: number;
+  cost_usd: number;
+}
+
 interface CostSummary {
   period_days: number;
   total_calls: number;
   total_cost_usd: number;
+  daily_average_usd: number;
+  monthly_projection_usd: number;
   cache_hit_rate: number;
+  by_tier: Record<string, TierSummary>;
   breakdown: CostBreakdownItem[];
+}
+
+interface UserCost {
+  user_id: string;
+  email: string;
+  call_count: number;
+  total_cost_usd: number;
+  total_tokens: number;
+  by_tier: Record<string, TierSummary>;
+}
+
+interface UserCostData {
+  period_days: number;
+  users: UserCost[];
 }
 
 interface DailyTierBreakdown {
@@ -127,6 +151,7 @@ const AdminLLMCosts: React.FC = () => {
   const [summary, setSummary] = useState<CostSummary | null>(null);
   const [daily, setDaily] = useState<DailyData | null>(null);
   const [realtime, setRealtime] = useState<RealtimeData | null>(null);
+  const [userCosts, setUserCosts] = useState<UserCostData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [autoRefresh, setAutoRefresh] = useState(false);
@@ -138,25 +163,32 @@ const AdminLLMCosts: React.FC = () => {
 
   const fetchData = useCallback(async () => {
     try {
-      const [summaryRes, dailyRes, realtimeRes] = await Promise.all([
-        fetch('/api/admin/llm-costs'),
-        fetch('/api/admin/llm-costs/daily'),
-        fetch('/api/admin/llm-costs/realtime'),
+      const token = localStorage.getItem('auth_token');
+      const headers: Record<string, string> = token ? { Authorization: `Bearer ${token}` } : {};
+      const apiUrl = import.meta.env.VITE_API_URL || '';
+
+      const [summaryRes, dailyRes, realtimeRes, userRes] = await Promise.all([
+        fetch(`${apiUrl}/admin/llm-costs`, { headers }),
+        fetch(`${apiUrl}/admin/llm-costs/daily`, { headers }),
+        fetch(`${apiUrl}/admin/llm-costs/realtime`, { headers }),
+        fetch(`${apiUrl}/admin/llm-costs/by-user`, { headers }),
       ]);
 
       if (!summaryRes.ok || !dailyRes.ok || !realtimeRes.ok) {
         throw new Error('Failed to fetch cost data');
       }
 
-      const [summaryData, dailyData, realtimeData] = await Promise.all([
+      const [summaryData, dailyData, realtimeData, userData] = await Promise.all([
         summaryRes.json(),
         dailyRes.json(),
         realtimeRes.json(),
+        userRes.ok ? userRes.json() : null,
       ]);
 
       setSummary(summaryData);
       setDaily(dailyData);
       setRealtime(realtimeData);
+      setUserCosts(userData);
       setLastRefresh(new Date());
       setError(null);
     } catch (err) {
@@ -313,7 +345,7 @@ const AdminLLMCosts: React.FC = () => {
 
       {/* Summary Cards */}
       <motion.div
-        className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8"
+        className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-8"
         initial={{ opacity: 0, y: 16 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.45, delay: 0.1, ease: [0.4, 0, 0.2, 1] }}
@@ -381,6 +413,38 @@ const AdminLLMCosts: React.FC = () => {
             Recent calls
           </p>
         </div>
+
+        {/* Daily Average */}
+        <div className="p-5 rounded-2xl" style={{ backgroundColor: cardBg, border: cardBorder }}>
+          <div className="flex items-center gap-3 mb-3">
+            <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-cyan-500/10">
+              <DollarSign className="w-5 h-5 text-cyan-400" />
+            </div>
+            <span className="text-xs uppercase tracking-wider" style={{ color: textMuted }}>Daily Avg</span>
+          </div>
+          <p className="text-2xl font-semibold" style={{ color: textPrimary }}>
+            ${(summary?.daily_average_usd || 0).toFixed(4)}
+          </p>
+          <p className="text-xs mt-1" style={{ color: textMuted }}>
+            Per day average
+          </p>
+        </div>
+
+        {/* Monthly Projection */}
+        <div className="p-5 rounded-2xl" style={{ backgroundColor: cardBg, border: cardBorder }}>
+          <div className="flex items-center gap-3 mb-3">
+            <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-red-500/10">
+              <TrendingUp className="w-5 h-5 text-red-400" />
+            </div>
+            <span className="text-xs uppercase tracking-wider" style={{ color: textMuted }}>Monthly Projection</span>
+          </div>
+          <p className="text-2xl font-semibold" style={{ color: textPrimary }}>
+            ${(summary?.monthly_projection_usd || 0).toFixed(2)}
+          </p>
+          <p className="text-xs mt-1" style={{ color: textMuted }}>
+            At current rate
+          </p>
+        </div>
       </motion.div>
 
       {/* Breakdown by Tier/Model/Service */}
@@ -425,6 +489,65 @@ const AdminLLMCosts: React.FC = () => {
                       <td className="px-4 py-3 font-mono text-xs" style={{ color: textMuted }}>{formatNumber(row.total_output_tokens)}</td>
                       <td className="px-4 py-3 font-mono" style={{ color: textPrimary }}>{formatCost(row.total_cost_usd)}</td>
                       <td className="px-4 py-3" style={{ color: textMuted }}>{row.cache_hits}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Per-User Cost Breakdown */}
+      {userCosts && userCosts.users.length > 0 && (
+        <div className="mb-8">
+          <h2
+            className="text-lg mb-4 flex items-center gap-2"
+            style={{ fontFamily: 'var(--font-heading)', fontWeight: 500, color: textPrimary }}
+          >
+            <Users className="w-5 h-5" />
+            Cost by User
+          </h2>
+          <div className="rounded-2xl overflow-hidden" style={{ backgroundColor: tableBg, border: cardBorder }}>
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr style={{ borderBottom: cardBorder }}>
+                    {['User', 'Calls', 'Tokens', 'Chat', 'Analysis', 'Extraction', 'Total Cost'].map(h => (
+                      <th
+                        key={h}
+                        className="px-4 py-3 text-left text-xs uppercase tracking-wider font-medium"
+                        style={{ color: textMuted }}
+                      >
+                        {h}
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {userCosts.users.map((user, i) => (
+                    <tr
+                      key={user.user_id}
+                      className="transition-colors"
+                      style={{ borderBottom: i < userCosts.users.length - 1 ? cardBorder : undefined }}
+                      onMouseEnter={e => (e.currentTarget.style.backgroundColor = rowHover)}
+                      onMouseLeave={e => (e.currentTarget.style.backgroundColor = 'transparent')}
+                    >
+                      <td className="px-4 py-3 text-xs" style={{ color: textPrimary }}>{user.email}</td>
+                      <td className="px-4 py-3" style={{ color: textPrimary }}>{user.call_count}</td>
+                      <td className="px-4 py-3 font-mono text-xs" style={{ color: textMuted }}>{formatNumber(user.total_tokens)}</td>
+                      <td className="px-4 py-3 font-mono text-xs" style={{ color: textMuted }}>
+                        {user.by_tier.chat ? formatCost(user.by_tier.chat.cost_usd) : '--'}
+                      </td>
+                      <td className="px-4 py-3 font-mono text-xs" style={{ color: textMuted }}>
+                        {user.by_tier.analysis ? formatCost(user.by_tier.analysis.cost_usd) : '--'}
+                      </td>
+                      <td className="px-4 py-3 font-mono text-xs" style={{ color: textMuted }}>
+                        {user.by_tier.extraction ? formatCost(user.by_tier.extraction.cost_usd) : '--'}
+                      </td>
+                      <td className="px-4 py-3 font-mono font-semibold" style={{ color: textPrimary }}>
+                        {formatCost(user.total_cost_usd)}
+                      </td>
                     </tr>
                   ))}
                 </tbody>
