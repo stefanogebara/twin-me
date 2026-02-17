@@ -70,7 +70,7 @@ function recordCircuitBreakerSuccess() {
 // ====================================================================
 const TIER_TIMEOUTS = {
   [TIER_CHAT]: 30000,
-  [TIER_ANALYSIS]: 60000,
+  [TIER_ANALYSIS]: 90000,
   [TIER_EXTRACTION]: 15000,
 };
 
