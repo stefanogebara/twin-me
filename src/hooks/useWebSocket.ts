@@ -63,20 +63,17 @@ export function useWebSocket(onMessage?: (message: WebSocketMessage) => void): U
 
   const connect = useCallback(() => {
     if (!user?.id) {
-      console.log('[WebSocket] No user ID, skipping connection');
       return;
     }
 
     // Circuit breaker: Stop after 10 failed attempts
     const MAX_ATTEMPTS = 10;
     if (reconnectAttemptsRef.current >= MAX_ATTEMPTS) {
-      console.warn(`[WebSocket] 🛑 Max reconnection attempts (${MAX_ATTEMPTS}) reached. Giving up. Use reconnect() to try again manually.`);
       return;
     }
 
     // Skip if already connected
     if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
-      console.log('[WebSocket] Already connected, skipping connection attempt');
       return;
     }
 
@@ -86,11 +83,9 @@ export function useWebSocket(onMessage?: (message: WebSocketMessage) => void): U
     }
 
     try {
-      console.log(`[WebSocket] Connecting to ${WS_URL}... (attempt ${reconnectAttemptsRef.current + 1}/${MAX_ATTEMPTS})`);
       const ws = new WebSocket(WS_URL);
 
       ws.onopen = () => {
-        console.log('[WebSocket] ✅ Connected');
         setConnected(true);
         reconnectAttemptsRef.current = 0; // Reset on successful connection
 
@@ -115,7 +110,6 @@ export function useWebSocket(onMessage?: (message: WebSocketMessage) => void): U
       ws.onmessage = (event) => {
         try {
           const message: WebSocketMessage = JSON.parse(event.data);
-          console.log('[WebSocket] 📩 Message received:', message.type, message);
 
           setLastMessage(message);
           onMessageRef.current?.(message);
@@ -125,7 +119,6 @@ export function useWebSocket(onMessage?: (message: WebSocketMessage) => void): U
       };
 
       ws.onclose = () => {
-        console.log('[WebSocket] ❌ Disconnected');
         setConnected(false);
 
         // Increment retry counter
@@ -133,13 +126,11 @@ export function useWebSocket(onMessage?: (message: WebSocketMessage) => void): U
 
         // Circuit breaker check
         if (reconnectAttemptsRef.current >= MAX_ATTEMPTS) {
-          console.warn('[WebSocket] 🛑 Circuit breaker activated - max attempts reached');
           return;
         }
 
         // Exponential backoff reconnection
         const delay = getReconnectDelay(reconnectAttemptsRef.current - 1);
-        console.log(`[WebSocket] 🔄 Reconnecting in ${delay/1000}s... (attempt ${reconnectAttemptsRef.current}/${MAX_ATTEMPTS})`);
 
         reconnectTimeoutRef.current = setTimeout(() => {
           connect();
@@ -170,13 +161,10 @@ export function useWebSocket(onMessage?: (message: WebSocketMessage) => void): U
   const sendMessage = useCallback((message: any) => {
     if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
       wsRef.current.send(JSON.stringify(message));
-    } else {
-      console.warn('[WebSocket] Cannot send message - not connected');
     }
   }, []);
 
   const reconnect = useCallback(() => {
-    console.log('[WebSocket] Manual reconnect requested - resetting circuit breaker');
     reconnectAttemptsRef.current = 0; // Reset attempts on manual reconnect
     connect();
   }, [connect]);
@@ -185,7 +173,6 @@ export function useWebSocket(onMessage?: (message: WebSocketMessage) => void): U
     connect();
 
     return () => {
-      console.log('[WebSocket] Cleaning up connection');
       if (reconnectTimeoutRef.current) {
         clearTimeout(reconnectTimeoutRef.current);
       }

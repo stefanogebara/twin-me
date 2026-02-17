@@ -44,7 +44,7 @@ export default function ErrorHandlingExample() {
   // Example 2: Network error with retry
   const handleNetworkErrorExample = () => {
     const retryFn = () => {
-      console.log('Retrying network request...');
+      // Action handled
       handleNetworkErrorExample();
     };
 
@@ -77,7 +77,7 @@ export default function ErrorHandlingExample() {
   // Example 6: Using pre-configured error notification with retry
   const handleErrorNotificationWithRetry = () => {
     errorNotifications.platformConnectionFailed('YouTube', () => {
-      console.log('Retrying platform connection...');
+      // Action handled
     });
   };
 
@@ -122,7 +122,6 @@ export default function ErrorHandlingExample() {
     try {
       const stats = await dashboardAPI.getStats();
       showSuccess('Dashboard stats loaded successfully!');
-      console.log('Stats:', stats);
     } catch (error) {
       handleError(error, {
         customMessage: 'Failed to load dashboard stats',
@@ -133,11 +132,7 @@ export default function ErrorHandlingExample() {
 
   // Example 11: View error logs
   const handleViewErrorLogs = () => {
-    const logs = errorService.getErrorLogs();
     const stats = errorService.getErrorStats();
-
-    console.log('Error Logs:', logs);
-    console.log('Error Stats:', stats);
 
     showSuccess(`Found ${stats.total} errors (${stats.recent} in last hour)`);
   };

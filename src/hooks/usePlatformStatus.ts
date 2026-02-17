@@ -147,9 +147,7 @@ export const usePlatformStatus = (
             table: 'platform_connections',
             filter: `user_id=eq.${userId}`,
           },
-          async (payload) => {
-            console.log('[Realtime] Platform connection change detected:', payload);
-
+          async () => {
             // Invalidate and refetch the platform status query
             await queryClient.invalidateQueries({
               queryKey: ['platformStatus', userId]
@@ -164,15 +162,7 @@ export const usePlatformStatus = (
             });
           }
         )
-        .subscribe((status) => {
-          if (status === 'SUBSCRIBED') {
-            console.log('[Realtime] Subscribed to platform connections for user:', userId);
-          } else if (status === 'CHANNEL_ERROR') {
-            // This is not critical - polling still works as a fallback
-            // Realtime may fail if not enabled for the table or due to RLS policies
-            console.warn('[Realtime] Could not subscribe to platform connections. Using polling fallback.');
-          }
-        });
+        .subscribe();
     };
 
     setupRealtimeSubscription();
@@ -180,7 +170,6 @@ export const usePlatformStatus = (
     // Cleanup subscription on unmount
     return () => {
       if (channel) {
-        console.log('[Realtime] Unsubscribing from platform connections');
         supabase.removeChannel(channel);
       }
     };
@@ -215,8 +204,6 @@ export const usePlatformStatus = (
 
       // Immediately update the cache for instant UI response
       queryClient.setQueryData(['platformStatus', userId], newData);
-
-      console.log('[usePlatformStatus] Optimistic disconnect:', provider);
     }
   }, [queryClient, userId]);
 

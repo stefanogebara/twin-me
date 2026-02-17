@@ -258,7 +258,7 @@ const NewDiscoverFlow: React.FC = () => {
         location: data.discovered_location || quickDataRef.current?.discovered_location || undefined,
         bio: data.discovered_bio || data.discovered_summary || quickDataRef.current?.discovered_bio || undefined,
         github_url: data.discovered_github_url || quickDataRef.current?.discovered_github_url || undefined,
-      }).catch(err => console.warn('Confirm error:', err));
+      }).catch(() => {});
     }
     setPhase('deepening');
   };
@@ -332,8 +332,8 @@ const NewDiscoverFlow: React.FC = () => {
     if (!user) return;
     try {
       await enrichmentService.skip(user.id);
-    } catch (error) {
-      console.warn('Skip enrichment error:', error);
+    } catch {
+      // Skip enrichment failed silently
     }
     enrichmentDataRef.current = null;
     setPhase('deepening');

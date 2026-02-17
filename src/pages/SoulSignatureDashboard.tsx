@@ -174,8 +174,8 @@ const SoulSignatureDashboard: React.FC = () => {
           if (spotifyData.success && spotifyData.spotify) {
             setSpotifyPersonality(spotifyData.spotify);
           }
-        } catch (e) {
-          console.log('No Spotify personality data available');
+        } catch {
+          // No Spotify personality data available
         }
       }
 
@@ -189,8 +189,8 @@ const SoulSignatureDashboard: React.FC = () => {
               dataSources: evidenceData.data_sources
             });
           }
-        } catch (e) {
-          console.log('No behavioral evidence data available');
+        } catch {
+          // No behavioral evidence data available
         }
       }
     } catch (err) {

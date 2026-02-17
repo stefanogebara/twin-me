@@ -72,8 +72,6 @@ export class RealTimeDataSyncEngine {
   }
 
   async setupWebhooksForUser(userId: string, connectors: DataConnector[]) {
-    console.log(`🔗 Setting up real-time webhooks for user ${userId}`);
-
     const setupPromises = connectors.map(async (connector) => {
       try {
         const connectorImpl = dataConnectorRegistry.getConnector(connector.provider);
@@ -81,8 +79,6 @@ export class RealTimeDataSyncEngine {
         if (connectorImpl.setupWebhook) {
           const webhookUrl = `${import.meta.env.VITE_API_URL}${this.webhookEndpoints.get(connector.provider)}`;
           await connectorImpl.setupWebhook(connector.id, webhookUrl);
-
-          console.log(`✅ Webhook setup complete for ${connector.provider}`);
 
           // Add to monitoring queue
           this.addToQueue(userId, {
@@ -113,8 +109,6 @@ export class RealTimeDataSyncEngine {
     provider: DataProvider,
     webhookData: WebhookData
   ): Promise<void> {
-    console.log(`📡 Received webhook from ${provider}`);
-
     try {
       const connectorImpl = dataConnectorRegistry.getConnector(provider);
 
@@ -139,8 +133,6 @@ export class RealTimeDataSyncEngine {
     userId: string,
     newDataPoints: RawDataPoint[]
   ): Promise<void> {
-    console.log(`🔄 Processing incremental update for user ${userId} (${newDataPoints.length} data points)`);
-
     // 1. Analyze new data for immediate insights
     const newInsights = await personalityAnalysisEngine.analyzePersonality(userId, newDataPoints);
 
@@ -158,8 +150,6 @@ export class RealTimeDataSyncEngine {
 
     // 5. Update data quality metrics
     await this.updateDataQualityMetrics(userId, newDataPoints);
-
-    console.log(`✅ Incremental update complete for user ${userId}`);
   }
 
   private async detectPersonalityChanges(
@@ -243,8 +233,6 @@ export class RealTimeDataSyncEngine {
   // ====================================================================
 
   private startSyncWorkers() {
-    console.log('🔄 Starting continuous sync workers...');
-
     // Primary worker - processes high-priority items every 30 seconds
     this.activeWorkers.set('primary', setInterval(() => {
       this.processSyncQueue('primary', 1, 3); // Priority 1-3 (highest)
@@ -271,8 +259,6 @@ export class RealTimeDataSyncEngine {
     minPriority: number,
     maxPriority: number
   ) {
-    console.log(`⚡ ${workerType} worker processing queue (priority ${minPriority}-${maxPriority})`);
-
     // Get all queues and process items within priority range
     for (const [userId, queue] of this.syncQueues) {
       const itemsToProcess = queue.filter(item =>
@@ -294,8 +280,6 @@ export class RealTimeDataSyncEngine {
       item.startedAt = new Date();
       item.attempts++;
 
-      console.log(`🔄 Processing ${item.queueType} for user ${item.userId}`);
-
       switch (item.queueType) {
         case 'incremental_sync':
           await this.performIncrementalSync(item);
@@ -310,7 +294,6 @@ export class RealTimeDataSyncEngine {
           await this.processWebhookEvent(item);
           break;
         default:
-          console.warn(`Unknown queue type: ${item.queueType}`);
       }
 
       item.status = 'completed';
@@ -349,8 +332,6 @@ export class RealTimeDataSyncEngine {
   }
 
   private async performDriftAnalysis(item: SyncQueueItem) {
-    console.log(`🔍 Performing personality drift analysis for user ${item.userId}`);
-
     // Get recent data for analysis
     const recentData = await this.getRecentUserData(item.userId, 7); // Last 7 days
     const existingInsights = await this.getExistingInsights(item.userId);
@@ -379,8 +360,6 @@ export class RealTimeDataSyncEngine {
   // ====================================================================
 
   async generatePersonalityTrends(userId: string): Promise<PersonalityTrend[]> {
-    console.log(`📊 Generating personality trends for user ${userId}`);
-
     const historicalInsights = await this.getHistoricalInsights(userId, 30); // Last 30 days
     const trends: PersonalityTrend[] = [];
 
@@ -453,14 +432,6 @@ export class RealTimeDataSyncEngine {
     );
 
     if (significantChanges.length > 0) {
-      console.log(`📢 Notifying user ${userId} of ${significantChanges.length} significant changes`);
-
-      // In production, would send real notifications
-      // For now, just log the changes
-      for (const change of significantChanges) {
-        console.log(`  - ${change.changeSummary} (confidence impact: ${change.confidenceImpact.toFixed(2)})`);
-      }
-
       // Queue user engagement follow-up
       this.addToQueue(userId, {
         id: crypto.randomUUID(),
@@ -483,8 +454,6 @@ export class RealTimeDataSyncEngine {
   // ====================================================================
 
   private startHealthMonitoring() {
-    console.log('🏥 Starting health monitoring...');
-
     // Monitor queue sizes and processing rates
     setInterval(() => {
       this.monitorQueueHealth();
@@ -513,12 +482,8 @@ export class RealTimeDataSyncEngine {
       totalFailed += failed;
 
       // Alert if user has too many failed items
-      if (failed > 10) {
-        console.warn(`⚠️ User ${userId} has ${failed} failed sync items`);
-      }
     }
 
-    console.log(`📊 Queue Health: ${totalPending} pending, ${totalFailed} failed`);
   }
 
   private cleanupCompletedItems() {
@@ -534,9 +499,6 @@ export class RealTimeDataSyncEngine {
 
       this.syncQueues.set(userId, cleanedQueue);
 
-      if (beforeCount !== cleanedQueue.length) {
-        console.log(`🧹 Cleaned up ${beforeCount - cleanedQueue.length} old items for user ${userId}`);
-      }
     }
   }
 
@@ -584,12 +546,10 @@ export class RealTimeDataSyncEngine {
 
   private async updateTwinPersonality(userId: string, changes: TwinEvolutionEntry[]) {
     // Would update database
-    console.log(`📝 Updated twin personality for user ${userId}`);
   }
 
   private async updateTwinEvolution(userId: string, entries: TwinEvolutionEntry[]) {
     // Would insert evolution entries into database
-    console.log(`📈 Logged ${entries.length} evolution entries for user ${userId}`);
   }
 
   private extractNumericValue(insightData: unknown): number {
@@ -632,9 +592,7 @@ export class RealTimeDataSyncEngine {
   }
 
   private async runPersonalityDriftAnalysis() {
-    console.log('🔍 Running personality drift analysis for all users');
     // Would iterate through all active users
-    // For now, just log
   }
 
   // Additional mock methods...
@@ -655,11 +613,8 @@ export class RealTimeDataSyncEngine {
 
   // Cleanup on shutdown
   shutdown() {
-    console.log('🛑 Shutting down Real-Time Data Sync Engine...');
-
     for (const [name, worker] of this.activeWorkers) {
       clearInterval(worker);
-      console.log(`✅ Stopped ${name} worker`);
     }
 
     this.activeWorkers.clear();

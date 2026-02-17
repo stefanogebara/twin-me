@@ -268,7 +268,7 @@ export function ToastExamples() {
             description: 'Discord integration is now ready',
             action: {
               label: 'Connect Now',
-              onClick: () => console.log('Connecting to Discord...'),
+              onClick: () => { /* Action handled */ },
             },
           })
         }

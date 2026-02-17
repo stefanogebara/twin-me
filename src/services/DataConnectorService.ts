@@ -107,14 +107,12 @@ export class GoogleWorkspaceConnector implements IDataConnector {
     return connector;
   }
 
-  async refreshToken(connectorId: string): Promise<void> {
+  async refreshToken(_connectorId: string): Promise<void> {
     // Implementation for token refresh
-    console.log('Refreshing token for connector:', connectorId);
   }
 
-  async disconnect(connectorId: string): Promise<void> {
+  async disconnect(_connectorId: string): Promise<void> {
     // Revoke tokens and mark connector as inactive
-    console.log('Disconnecting connector:', connectorId);
   }
 
   async fetchInitialData(
@@ -516,9 +514,6 @@ export class InstantTwinGenerator {
   private async updateProgress(progress: TwinGenerationProgress, percentage: number) {
     progress.progress = percentage;
     progress.estimatedTimeRemaining = Math.max(0, (100 - percentage) * 0.6); // rough estimate
-
-    // In real app, emit real-time update to frontend
-    console.log(`Progress: ${percentage}% - ${progress.currentTask}`);
 
     // Simulate processing time
     await new Promise(resolve => setTimeout(resolve, 100));

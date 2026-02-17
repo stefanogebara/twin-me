@@ -68,15 +68,12 @@ export const PLATFORM_DEFINITIONS: Record<string, Omit<PlatformStatus, 'connecte
 export async function fetchPlatformConnections(userId?: string): Promise<PlatformStatus[]> {
   // DEMO MODE: Fetch real data counts from database and merge with demo connections
   if (isDemoMode()) {
-    console.log('[platformSync] 🎭 Demo mode active - fetching real data counts');
-
     try {
       const demoUserId = localStorage.getItem('demo_user_id') || 'a483a979-cf85-481d-b65b-af396c2c513a';
       const response = await fetch(`${API_URL}/test-extraction/data-counts/${demoUserId}`);
 
       if (response.ok) {
-        const { platformCounts, totalDataPoints } = await response.json();
-        console.log('[platformSync] ✅ Real data counts fetched:', platformCounts);
+        const { platformCounts } = await response.json();
 
         // Transform demo data and merge with real counts
         const demoStatuses = transformDemoPlatformData(DEMO_PLATFORM_CONNECTIONS);
@@ -233,8 +230,6 @@ export function getPlatformsNeedingSync(statuses: PlatformStatus[]): PlatformSta
 export async function syncPlatform(platform: string): Promise<boolean> {
   // DEMO MODE: Call test-extraction endpoint to generate and store real data
   if (isDemoMode()) {
-    console.log(`[platformSync] 🎭 Demo mode active - triggering test extraction for ${platform}`);
-
     try {
       // Get demo user ID from localStorage or use default
       const demoUserId = localStorage.getItem('demo_user_id') || 'a483a979-cf85-481d-b65b-af396c2c513a';
@@ -242,7 +237,6 @@ export async function syncPlatform(platform: string): Promise<boolean> {
       // Only Spotify, YouTube, and GitHub have test extraction endpoints (for now)
       const supportedTestPlatforms = ['spotify', 'youtube', 'github'];
       if (!supportedTestPlatforms.includes(platform.toLowerCase())) {
-        console.log(`[platformSync] ⚠️ Test extraction not yet implemented for ${platform}`);
         return true; // Return success for unsupported platforms in demo
       }
 
@@ -258,12 +252,6 @@ export async function syncPlatform(platform: string): Promise<boolean> {
         console.error(`[platformSync] ❌ Test extraction failed for ${platform}:`, errorData);
         return false;
       }
-
-      const result = await response.json();
-      console.log(`[platformSync] ✅ Test extraction succeeded for ${platform}:`, {
-        itemsExtracted: result.itemsExtracted,
-        jobId: result.jobId
-      });
 
       return true;
     } catch (error) {

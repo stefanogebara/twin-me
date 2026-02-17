@@ -71,8 +71,6 @@ export class PersonalityAnalysisEngine {
     userId: string,
     rawData: RawDataPoint[]
   ): Promise<PersonalityInsight[]> {
-    console.log(`🧠 Starting personality analysis for user ${userId} with ${rawData.length} data points`);
-
     const insights: PersonalityInsight[] = [];
 
     // 1. Analyze writing style from text content
@@ -111,7 +109,6 @@ export class PersonalityAnalysisEngine {
     const emotionalProfile = await this.analyzeEmotionalTone(textData);
     insights.push(this.createInsight(userId, 'emotional_tone', emotionalProfile, textData.length));
 
-    console.log(`✅ Generated ${insights.length} personality insights`);
     return insights;
   }
 
@@ -130,8 +127,7 @@ export class PersonalityAnalysisEngine {
       );
 
       return this.parseWritingStyleResponse(analysis);
-    } catch (error) {
-      console.warn('Claude analysis failed, using fallback analysis:', error);
+    } catch {
       return this.fallbackWritingStyleAnalysis(sampleTexts);
     }
   }
@@ -572,8 +568,6 @@ Return your analysis as a JSON object with these exact fields:
     oldInsights: PersonalityInsight[],
     newData: RawDataPoint[]
   ): Promise<TwinEvolutionEntry[]> {
-    console.log(`🔄 Analyzing personality drift for user ${userId}`);
-
     const newInsights = await this.analyzePersonality(userId, newData);
     const driftEntries: TwinEvolutionEntry[] = [];
 

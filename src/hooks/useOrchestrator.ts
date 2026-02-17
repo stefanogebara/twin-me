@@ -123,8 +123,6 @@ export interface OrchestratorError {
  * Processes complex queries through multi-agent system
  */
 async function queryOrchestrator(request: OrchestratorRequest): Promise<OrchestratorResponse> {
-  console.log('[useOrchestrator] Querying orchestrator:', request.query);
-
   const response = await fetch(`${API_URL}/orchestrator/query`, {
     method: 'POST',
     headers: getAuthHeaders(),
@@ -137,10 +135,6 @@ async function queryOrchestrator(request: OrchestratorRequest): Promise<Orchestr
   }
 
   const data: OrchestratorResponse = await response.json();
-  console.log('✅ [useOrchestrator] Query succeeded:', {
-    latency: data.latencyMs,
-    agentsUsed: data.metadata?.totalAgentsUsed
-  });
 
   return data;
 }
@@ -150,8 +144,6 @@ async function queryOrchestrator(request: OrchestratorRequest): Promise<Orchestr
  * Fast content recommendations without complex query
  */
 async function getRecommendations(request: OrchestratorRecommendRequest): Promise<OrchestratorResponse> {
-  console.log('[useOrchestrator] Getting recommendations:', request.type);
-
   const response = await fetch(`${API_URL}/orchestrator/recommend`, {
     method: 'POST',
     headers: getAuthHeaders(),
@@ -164,7 +156,6 @@ async function getRecommendations(request: OrchestratorRecommendRequest): Promis
   }
 
   const data: OrchestratorResponse = await response.json();
-  console.log('✅ [useOrchestrator] Recommendations retrieved');
 
   return data;
 }
@@ -174,8 +165,6 @@ async function getRecommendations(request: OrchestratorRecommendRequest): Promis
  * Analytics and pattern insights from user data
  */
 async function getInsights(): Promise<OrchestratorInsightsResponse> {
-  console.log('[useOrchestrator] Getting behavioral insights');
-
   const response = await fetch(`${API_URL}/orchestrator/insights`, {
     method: 'POST',
     headers: getAuthHeaders(),
@@ -187,7 +176,6 @@ async function getInsights(): Promise<OrchestratorInsightsResponse> {
   }
 
   const data: OrchestratorInsightsResponse = await response.json();
-  console.log('✅ [useOrchestrator] Insights retrieved');
 
   return data;
 }
@@ -230,13 +218,7 @@ export function useOrchestrator() {
   // Main query mutation
   const queryMutation = useMutation({
     mutationFn: queryOrchestrator,
-    onSuccess: (data) => {
-      console.log('🎭 [useOrchestrator] Query succeeded:', {
-        synthesis: data.synthesis.substring(0, 100) + '...',
-        insights: data.keyInsights.length,
-        recommendations: data.recommendations.length,
-        latency: data.latencyMs
-      });
+    onSuccess: () => {
     },
     onError: (error: Error) => {
       console.error('❌ [useOrchestrator] Query failed:', error.message);
@@ -246,10 +228,7 @@ export function useOrchestrator() {
   // Recommendation mutation
   const recommendMutation = useMutation({
     mutationFn: getRecommendations,
-    onSuccess: (data) => {
-      console.log('🎵 [useOrchestrator] Recommendations succeeded:', {
-        recommendations: data.recommendations.length
-      });
+    onSuccess: () => {
     },
     onError: (error: Error) => {
       console.error('❌ [useOrchestrator] Recommendations failed:', error.message);
@@ -259,11 +238,7 @@ export function useOrchestrator() {
   // Insights mutation
   const insightsMutation = useMutation({
     mutationFn: getInsights,
-    onSuccess: (data) => {
-      console.log('📊 [useOrchestrator] Insights succeeded:', {
-        insights: data.keyInsights?.length,
-        metrics: data.metrics
-      });
+    onSuccess: () => {
     },
     onError: (error: Error) => {
       console.error('❌ [useOrchestrator] Insights failed:', error.message);

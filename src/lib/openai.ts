@@ -3,8 +3,7 @@
 import { secureApi } from '@/lib/secureApi';
 import type { DigitalTwin, Message, StudentProfile } from '@/types/database';
 
-// Legacy warning
-console.warn('WARNING: Using deprecated OpenAI client. Please migrate to secureApi.');
+// Legacy warning: This file is deprecated. Please migrate to secureApi.
 
 // Type guards for JSONB fields
 interface PersonalityTraits {

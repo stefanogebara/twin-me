@@ -289,7 +289,6 @@ export const Dashboard: React.FC = () => {
     if (!calendarConnected) return;
 
     const refreshInterval = setInterval(() => {
-      console.log('[Dashboard] Auto-refreshing calendar events...');
       fetchCalendarEvents();
     }, CALENDAR_REFRESH_INTERVAL);
 

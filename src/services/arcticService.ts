@@ -58,8 +58,6 @@ export async function connectPlatform(
   userId: string
 ): Promise<void> {
   try {
-    console.log(`[Arctic Service] Initiating ${provider} OAuth for user ${userId}`);
-
     // Get authorization URL from backend
     const response = await fetch(
       `${API_BASE_URL}/arctic/connect/${provider}?userId=${userId}`
@@ -74,22 +72,6 @@ export async function connectPlatform(
     if (!data.success || !data.authUrl) {
       throw new Error('Invalid authorization URL response');
     }
-
-    // Parse and log the state parameter from the URL for debugging
-    try {
-      const url = new URL(data.authUrl);
-      const stateParam = url.searchParams.get('state');
-      if (stateParam) {
-        const decodedState = JSON.parse(atob(stateParam));
-        console.log(`[Arctic Service] 🔐 OAuth URL generated for ${provider}`);
-        console.log(`[Arctic Service] 📊 State parameter decoded:`, decodedState);
-        console.log(`[Arctic Service] 🔗 Full auth URL: ${data.authUrl.substring(0, 150)}...`);
-      }
-    } catch (e) {
-      console.warn(`[Arctic Service] ⚠️  Could not decode state parameter:`, e);
-    }
-
-    console.log(`[Arctic Service] 🪟 Opening OAuth popup for ${provider}`);
 
     // Open OAuth in popup window
     const width = 600;
@@ -122,7 +104,6 @@ export async function connectPlatform(
         }
 
         if (event.data.type === 'ARCTIC_OAUTH_SUCCESS') {
-          console.log(`[Arctic Service] OAuth success for ${provider}`);
           window.removeEventListener('message', messageHandler);
           popup?.close();
           resolve();
@@ -159,8 +140,6 @@ export async function handleOAuthCallback(
   state: string
 ): Promise<ArcticCallbackResponse> {
   try {
-    console.log('[Arctic Service] Processing OAuth callback');
-
     const response = await fetch(`${API_BASE_URL}/arctic/callback`, {
       method: 'POST',
       headers: {
@@ -179,7 +158,6 @@ export async function handleOAuthCallback(
       throw new Error('OAuth callback unsuccessful');
     }
 
-    console.log(`[Arctic Service] OAuth callback successful for ${data.provider}`);
     return data;
   } catch (error) {
     console.error('[Arctic Service] OAuth callback error:', error);
@@ -216,8 +194,6 @@ export async function disconnectPlatform(
   provider: ArcticProvider
 ): Promise<void> {
   try {
-    console.log(`[Arctic Service] Disconnecting ${provider} for user ${userId}`);
-
     const response = await fetch(
       `${API_BASE_URL}/arctic/disconnect/${userId}/${provider}`,
       { method: 'DELETE' }
@@ -233,7 +209,6 @@ export async function disconnectPlatform(
       throw new Error(data.message || 'Failed to disconnect platform');
     }
 
-    console.log(`[Arctic Service] ${provider} disconnected successfully`);
   } catch (error) {
     console.error(`[Arctic Service] Failed to disconnect ${provider}:`, error);
     throw error;
@@ -248,8 +223,6 @@ export async function refreshTokens(
   provider: ArcticProvider
 ): Promise<void> {
   try {
-    console.log(`[Arctic Service] Refreshing tokens for ${provider}`);
-
     const response = await fetch(
       `${API_BASE_URL}/arctic/refresh/${userId}/${provider}`,
       { method: 'POST' }
@@ -265,7 +238,6 @@ export async function refreshTokens(
       throw new Error(data.message || 'Failed to refresh tokens');
     }
 
-    console.log(`[Arctic Service] Tokens refreshed for ${provider}`);
   } catch (error) {
     console.error(`[Arctic Service] Failed to refresh tokens for ${provider}:`, error);
     throw error;

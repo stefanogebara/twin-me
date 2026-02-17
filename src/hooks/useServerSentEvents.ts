@@ -49,12 +49,10 @@ export function useServerSentEvents(
 
   const connect = useCallback(() => {
     if (!userId) {
-      console.warn('⚠️  Cannot connect to SSE: userId is null');
       return;
     }
 
     if (eventSourceRef.current) {
-      console.log('🔌 Already connected to SSE');
       return;
     }
 
@@ -63,11 +61,8 @@ export function useServerSentEvents(
 
     eventSourceRef.current = eventSource;
 
-    console.log(`📡 Connecting to SSE for user: ${userId}`);
-
     // Handle connection open
     eventSource.onopen = () => {
-      console.log('✅ SSE connection established');
       setConnected(true);
       setError(null);
       setReconnectCount(0);
@@ -77,8 +72,6 @@ export function useServerSentEvents(
     eventSource.onmessage = (event) => {
       try {
         const data: SSEEvent = JSON.parse(event.data);
-
-        console.log('📨 SSE message received:', data.type);
 
         setLastEvent(data);
         setEvents((prev) => [...prev.slice(-maxEvents + 1), data]);
@@ -107,8 +100,6 @@ export function useServerSentEvents(
         try {
           const data: SSEEvent = JSON.parse(event.data);
 
-          console.log(`📨 SSE event received: ${eventType}`,  data);
-
           setLastEvent(data);
           setEvents((prev) => [...prev.slice(-maxEvents + 1), data]);
 
@@ -136,8 +127,6 @@ export function useServerSentEvents(
 
         const delay = Math.min(1000 * 2 ** reconnectCount, 30000); // Exponential backoff, max 30s
 
-        console.log(`🔄 Reconnecting in ${delay / 1000}s... (attempt ${reconnectCount + 1})`);
-
         reconnectTimeoutRef.current = setTimeout(() => {
           connect();
         }, delay);
@@ -146,8 +135,6 @@ export function useServerSentEvents(
   }, [userId, maxEvents, autoReconnect, onEvent, reconnectCount]);
 
   const disconnect = useCallback(() => {
-    console.log('🔌 Disconnecting from SSE');
-
     if (eventSourceRef.current) {
       eventSourceRef.current.close();
       eventSourceRef.current = null;

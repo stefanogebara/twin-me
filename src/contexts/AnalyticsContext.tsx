@@ -16,11 +16,7 @@ export function initPostHog() {
     capture_pageleave: true,
     autocapture: true,           // Auto-capture clicks, inputs, form submits
     persistence: 'localStorage',
-    loaded: (ph) => {
-      if (import.meta.env.DEV) {
-        console.log('[PostHog] initialized');
-      }
-    },
+    loaded: () => {},
   });
   posthogInitialized = true;
 }

@@ -284,7 +284,6 @@ export const twinApi = {
     // DEMO MODE: Return demo twin statistics
     const isDemoMode = localStorage.getItem('demo_mode') === 'true';
     if (isDemoMode) {
-      console.log('[soulApi.getTwinStats] 🎭 Demo mode active - returning demo twin stats');
       const { DEMO_TWIN_STATS } = await import('@/services/demoDataService');
       return DEMO_TWIN_STATS;
     }

@@ -1,5 +1,4 @@
-import { useEffect } from 'react';
-import { Navigate, useLocation } from 'react-router-dom';
+import { Navigate } from 'react-router-dom';
 import { navigationConfig } from '../../config/navigation';
 
 /**
@@ -14,16 +13,6 @@ interface DefaultRedirectProps {
 }
 
 export const DefaultRedirect: React.FC<DefaultRedirectProps> = ({ isAuthenticated }) => {
-  const location = useLocation();
-
-  useEffect(() => {
-    console.log('🔀 DefaultRedirect:', {
-      path: location.pathname,
-      isAuthenticated,
-      redirectTo: isAuthenticated ? navigationConfig.defaultRoute : '/auth'
-    });
-  }, [location.pathname, isAuthenticated]);
-
   if (isAuthenticated) {
     return <Navigate to={navigationConfig.defaultRoute} replace />;
   }
