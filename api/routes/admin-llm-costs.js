@@ -3,12 +3,17 @@
  *
  * Provides endpoints for monitoring LLM usage and costs.
  * Data comes from the llm_usage_log table populated by llmGateway.js.
+ * All endpoints require authentication.
  */
 
 import express from 'express';
 import { supabaseAdmin } from '../services/database.js';
+import { authenticateUser } from '../middleware/auth.js';
 
 const router = express.Router();
+
+// All admin routes require authentication
+router.use(authenticateUser);
 
 /**
  * GET /api/admin/llm-costs
@@ -56,11 +61,29 @@ router.get('/llm-costs', async (req, res) => {
       if (row.cache_hit) totalCacheHits++;
     }
 
+    // Calculate monthly projection from daily average
+    const periodDays = parseInt(days);
+    const dailyAvg = periodDays > 0 ? totalCost / periodDays : 0;
+    const monthlyProjection = dailyAvg * 30;
+
+    // Calculate cost by tier for quick breakdown
+    const byTier = {};
+    for (const row of Object.values(summary)) {
+      if (!byTier[row.tier]) {
+        byTier[row.tier] = { calls: 0, cost_usd: 0 };
+      }
+      byTier[row.tier].calls += row.call_count;
+      byTier[row.tier].cost_usd += row.total_cost_usd;
+    }
+
     res.json({
-      period_days: parseInt(days),
+      period_days: periodDays,
       total_calls: totalCalls,
       total_cost_usd: Math.round(totalCost * 10000) / 10000,
+      daily_average_usd: Math.round(dailyAvg * 10000) / 10000,
+      monthly_projection_usd: Math.round(monthlyProjection * 100) / 100,
       cache_hit_rate: totalCalls > 0 ? Math.round((totalCacheHits / totalCalls) * 100) : 0,
+      by_tier: byTier,
       breakdown: Object.values(summary).sort((a, b) => b.total_cost_usd - a.total_cost_usd),
     });
   } catch (error) {
@@ -139,6 +162,73 @@ router.get('/llm-costs/realtime', async (req, res) => {
     });
   } catch (error) {
     console.error('[Admin LLM Costs] Realtime error:', error.message);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+/**
+ * GET /api/admin/llm-costs/by-user
+ * Cost breakdown by user — shows who's driving spend
+ */
+router.get('/llm-costs/by-user', async (req, res) => {
+  try {
+    const { days = 7 } = req.query;
+    const since = new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString();
+
+    const { data, error } = await supabaseAdmin
+      .from('llm_usage_log')
+      .select('user_id, tier, cost_usd, input_tokens, output_tokens')
+      .gte('created_at', since);
+
+    if (error) throw error;
+
+    // Aggregate by user
+    const users = {};
+    for (const row of data || []) {
+      const uid = row.user_id || 'system';
+      if (!users[uid]) {
+        users[uid] = { user_id: uid, call_count: 0, total_cost_usd: 0, total_tokens: 0, by_tier: {} };
+      }
+      users[uid].call_count++;
+      users[uid].total_cost_usd += parseFloat(row.cost_usd) || 0;
+      users[uid].total_tokens += (row.input_tokens || 0) + (row.output_tokens || 0);
+
+      if (!users[uid].by_tier[row.tier]) {
+        users[uid].by_tier[row.tier] = { calls: 0, cost_usd: 0 };
+      }
+      users[uid].by_tier[row.tier].calls++;
+      users[uid].by_tier[row.tier].cost_usd += parseFloat(row.cost_usd) || 0;
+    }
+
+    // Fetch user emails for display
+    const userIds = Object.keys(users).filter(id => id !== 'system');
+    let userEmails = {};
+    if (userIds.length > 0) {
+      const { data: usersData } = await supabaseAdmin
+        .from('users')
+        .select('id, email, first_name')
+        .in('id', userIds);
+
+      for (const u of usersData || []) {
+        userEmails[u.id] = u.email || u.first_name || u.id.substring(0, 8);
+      }
+    }
+
+    // Attach email and sort by cost
+    const result = Object.values(users)
+      .map(u => ({
+        ...u,
+        email: userEmails[u.user_id] || (u.user_id === 'system' ? 'system' : u.user_id.substring(0, 8)),
+        total_cost_usd: Math.round(u.total_cost_usd * 10000) / 10000,
+      }))
+      .sort((a, b) => b.total_cost_usd - a.total_cost_usd);
+
+    res.json({
+      period_days: parseInt(days),
+      users: result,
+    });
+  } catch (error) {
+    console.error('[Admin LLM Costs] By-user error:', error.message);
     res.status(500).json({ error: error.message });
   }
 });
