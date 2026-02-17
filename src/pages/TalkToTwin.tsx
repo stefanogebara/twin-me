@@ -1,15 +1,4 @@
-/**
- * Talk to Twin Page - Grok-inspired Design
- *
- * A modern chat interface inspired by Grok's UI with:
- * - Clean, centered layout
- * - Context sidebar showing memories and data sources
- * - Platform status indicators
- * - Quick action chips
- */
-
 import { useState, useEffect, useRef } from 'react';
-import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useTheme } from '../contexts/ThemeContext';
@@ -17,15 +6,16 @@ import { useDemo } from '../contexts/DemoContext';
 import { useAnalytics } from '../contexts/AnalyticsContext';
 import { usePlatformStatus } from '../hooks/usePlatformStatus';
 import {
-  MessageCircle, Send, Loader2, ArrowLeft, Settings,
-  Check, ChevronRight,
-  Sparkles, Clock, Database, Layers, User,
-  Mic, Paperclip, ChevronDown, X, MemoryStick,
+  ArrowLeft,
+  Sparkles, Layers,
   Lightbulb, TrendingUp, Heart, Zap
 } from 'lucide-react';
-import { PlatformLogo, SpotifyLogo, WhoopLogo, GoogleCalendarLogo, YoutubeLogo, TwitchLogo, LinkedinLogo, DiscordLogo, RedditLogo, GithubLogo } from '@/components/PlatformLogos';
+import { SpotifyLogo, WhoopLogo, GoogleCalendarLogo, YoutubeLogo, TwitchLogo, LinkedinLogo, DiscordLogo, RedditLogo, GithubLogo } from '@/components/PlatformLogos';
 import { Clay3DIcon } from '@/components/Clay3DIcon';
-import { cn } from '@/lib/utils';
+import { ChatEmptyState } from '@/components/chat/ChatEmptyState';
+import { MessageList } from '@/components/chat/MessageList';
+import { ChatInputArea } from '@/components/chat/ChatInputArea';
+import { ContextSidebar } from '@/components/chat/ContextSidebar';
 
 interface Message {
   id: string;
@@ -77,7 +67,6 @@ const TalkToTwin = () => {
   const [chatUsage, setChatUsage] = useState<{ used: number; limit: number; remaining: number; tier: string } | null>(null);
   const [limitReached, setLimitReached] = useState(false);
 
-  // Theme colors - Matching platform's warm color palette
   const colors = {
     bg: theme === 'dark' ? '#232320' : '#FAFAFA',
     bgSecondary: theme === 'dark' ? 'rgba(45, 45, 41, 0.5)' : 'rgba(255, 255, 255, 0.7)',
@@ -88,7 +77,6 @@ const TalkToTwin = () => {
     border: theme === 'dark' ? 'rgba(193, 192, 182, 0.2)' : 'rgba(231, 229, 228, 0.6)',
     accent: theme === 'dark' ? '#C1C0B6' : '#0c0a09',
     accentHover: theme === 'dark' ? '#D4D3CC' : '#292524',
-    // User bubble: darker warm color with good contrast for light text
     userBubble: theme === 'dark' ? 'rgba(193, 192, 182, 0.15)' : 'rgba(0, 0, 0, 0.06)',
     userBubbleBg: theme === 'dark' ? 'rgba(80, 78, 70, 0.9)' : 'rgba(12, 10, 9, 0.85)',
     userBubbleText: theme === 'dark' ? '#E8E7E3' : '#FAFAFA',
@@ -97,7 +85,6 @@ const TalkToTwin = () => {
     inputBorder: theme === 'dark' ? 'rgba(193, 192, 182, 0.2)' : 'rgba(231, 229, 228, 0.6)',
   };
 
-  // Platform configuration - in demo mode, show core 3 as connected
   const platforms = [
     { name: 'Spotify', icon: <SpotifyLogo className="w-4 h-4" />, key: 'spotify', color: '#1DB954', connected: isDemoMode || platformStatus?.spotify?.connected },
     { name: 'Whoop', icon: <WhoopLogo className="w-4 h-4" />, key: 'whoop', color: '#00A5E0', connected: isDemoMode || platformStatus?.whoop?.connected },
@@ -112,7 +99,6 @@ const TalkToTwin = () => {
 
   const connectedPlatforms = platforms.filter(p => p.connected);
 
-  // Demo mode response handler
   const DEMO_RESPONSES: Record<string, string> = {
     'What patterns do you see?': "Based on Alex's data, I see some fascinating patterns:\n\n**Music & Energy Cycles**: You tend to listen to ambient/electronic music (Tycho, Boards of Canada) during deep work sessions, and shift to more energetic indie rock in the evenings. This correlates beautifully with your Whoop recovery scores.\n\n**Schedule Rhythm**: Your most productive blocks are 9-11 AM, followed by a creative burst around 3 PM. You're protecting your mornings well - only 2 meetings before noon this week.\n\n**Recovery Insight**: On days with HRV above 60ms, your listening shifts toward exploratory new artists. Lower recovery days? You return to comfort favorites.",
     'How am I doing today?': "Looking at your data today, Alex:\n\n**Recovery**: 72% (Green zone) - Your body is well-recovered. HRV at 58ms is above your baseline.\n\n**Sleep**: 7.2 hours with good deep sleep. This sets you up for a productive day.\n\n**Schedule**: You have 4 events today, with your next meeting in about an hour. Your afternoon has a nice 2-hour focus block.\n\n**Music Mood**: Your recent listening (Nils Frahm, Olafur Arnalds) suggests you're in a reflective, creative headspace.\n\nOverall: You're in a great position to tackle creative or strategic work today.",
@@ -123,7 +109,6 @@ const TalkToTwin = () => {
   const handleDemoMessage = (message: string) => {
     setIsTyping(true);
     setTimeout(() => {
-      // Check for matching demo response or generate a generic one
       const matchedKey = Object.keys(DEMO_RESPONSES).find(key =>
         message.toLowerCase().includes(key.toLowerCase().slice(0, 20))
       );
@@ -145,10 +130,9 @@ const TalkToTwin = () => {
       };
       setMessages(prev => [...prev, assistantMessage]);
       setIsTyping(false);
-    }, 1200 + Math.random() * 800); // Simulate realistic response time
+    }, 1200 + Math.random() * 800);
   };
 
-  // Quick action chips - Grok style
   const quickActions = [
     { label: 'What patterns do you see?', icon: <TrendingUp className="w-4 h-4" /> },
     { label: 'How am I doing today?', icon: <Heart className="w-4 h-4" /> },
@@ -166,14 +150,12 @@ const TalkToTwin = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
-  // Load context when component mounts
   useEffect(() => {
     if (user?.id) {
       loadContext();
     }
   }, [user?.id]);
 
-  // Fetch chat usage for freemium gating
   const fetchUsage = async () => {
     if (isDemoMode || !user?.id) return;
     try {
@@ -199,7 +181,6 @@ const TalkToTwin = () => {
     if (!user?.id) return;
     setIsLoadingContext(true);
 
-    // Demo mode: show sample context items
     if (isDemoMode) {
       const items: ContextItem[] = [
         { type: 'platform', label: 'Spotify', value: 'Connected', icon: <SpotifyLogo className="w-4 h-4" /> },
@@ -218,25 +199,16 @@ const TalkToTwin = () => {
     try {
       const token = localStorage.getItem('auth_token');
       const headers = { 'Authorization': `Bearer ${token}` };
-
       const res = await fetch(`${API_BASE}/chat/context`, { headers }).catch(() => null);
-
       const items: ContextItem[] = [];
 
-      // Add connected platform items
       connectedPlatforms.forEach(p => {
-        items.push({
-          type: 'platform',
-          label: p.name,
-          value: 'Connected',
-          icon: p.icon
-        });
+        items.push({ type: 'platform', label: p.name, value: 'Connected', icon: p.icon });
       });
 
       if (res?.ok) {
         const data = await res.json();
 
-        // Twin Identity preview
         if (data.twinSummary) {
           items.push({
             type: 'personality',
@@ -245,21 +217,15 @@ const TalkToTwin = () => {
           });
         }
 
-        // Memory Stream stats
         if (data.memoryStats && data.memoryStats.total > 0) {
           const ms = data.memoryStats;
           const parts = [`${ms.total} total`];
           if (ms.byType?.reflection) parts.push(`${ms.byType.reflection} reflections`);
           if (ms.byType?.fact) parts.push(`${ms.byType.fact} facts`);
           if (ms.byType?.conversation) parts.push(`${ms.byType.conversation} conversations`);
-          items.push({
-            type: 'memory',
-            label: 'Memory Stream',
-            value: parts.join(', ')
-          });
+          items.push({ type: 'memory', label: 'Memory Stream', value: parts.join(', ') });
         }
 
-        // Pending proactive insights
         if (data.pendingInsights && data.pendingInsights.length > 0) {
           items.push({
             type: 'fact',
@@ -297,7 +263,6 @@ const TalkToTwin = () => {
     const currentInput = inputMessage;
     setInputMessage('');
 
-    // Demo mode: use local demo responses
     if (isDemoMode) {
       handleDemoMessage(currentInput);
       return;
@@ -338,13 +303,11 @@ const TalkToTwin = () => {
         };
         setMessages(prev => [...prev, assistantMessage]);
         if (data.conversationId) setConversationId(data.conversationId);
-        // Refresh usage after successful message
         fetchUsage();
       } else if (response.status === 429) {
         const data = await response.json();
         setLimitReached(true);
         if (data.usage) setChatUsage({ used: data.usage.used, limit: data.usage.limit, remaining: 0, tier: data.usage.tier });
-        // Remove the user message we optimistically added
         setMessages(prev => prev.filter(m => m.id !== userMessage.id));
         setInputMessage(currentInput);
       } else {
@@ -378,7 +341,6 @@ const TalkToTwin = () => {
     inputRef.current?.focus();
   };
 
-  // Format timestamp
   const formatTime = (date: Date) => {
     return new Intl.DateTimeFormat('en-US', {
       hour: 'numeric',
@@ -392,9 +354,7 @@ const TalkToTwin = () => {
       className="min-h-screen flex"
       style={{ backgroundColor: colors.bg }}
     >
-      {/* Main Chat Area */}
       <div className="flex-1 flex flex-col max-w-4xl mx-auto w-full">
-        {/* Header - Minimal like Grok */}
         <header
           className="flex items-center justify-between px-4 py-3 border-b"
           style={{ borderColor: colors.border }}
@@ -431,248 +391,26 @@ const TalkToTwin = () => {
           </button>
         </header>
 
-        {/* Messages Area */}
         <div className="flex-1 overflow-y-auto">
           {messages.length === 0 ? (
-            /* Empty State - Grok Style */
-            <div className="h-full flex flex-col items-center justify-center px-4 py-12">
-              <motion.div
-                className="w-20 h-20 rounded-full flex items-center justify-center mb-8"
-                style={{ backgroundColor: colors.bgSecondary }}
-                initial={{ opacity: 0, scale: 0.6 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ duration: 0.5, ease: [0.4, 0, 0.2, 1] }}
-              >
-                <Clay3DIcon name="brain" size={40} />
-              </motion.div>
-
-              <motion.h1
-                className="text-2xl md:text-3xl font-medium mb-3 text-center"
-                style={{ color: colors.text }}
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.4, delay: 0.15, ease: [0.4, 0, 0.2, 1] }}
-              >
-                {connectedPlatforms.length > 0
-                  ? "What do you want to know?"
-                  : "Connect platforms to unlock your Twin"
-                }
-              </motion.h1>
-
-              <motion.p
-                className="text-center mb-8 max-w-md"
-                style={{ color: colors.textSecondary }}
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.4, delay: 0.25, ease: [0.4, 0, 0.2, 1] }}
-              >
-                {connectedPlatforms.length > 0
-                  ? "Ask me about your patterns, preferences, or get personalized recommendations based on your connected data."
-                  : "Your twin learns from your platforms -- music, health, calendar, social, and more -- to understand your soul signature."
-                }
-              </motion.p>
-
-              {/* Quick Actions - Grok Style Chips */}
-              {connectedPlatforms.length > 0 && (
-                <div className="flex flex-wrap gap-2 justify-center max-w-lg mb-8">
-                  {quickActions.map((action, idx) => (
-                    <motion.button
-                      key={idx}
-                      onClick={() => handleQuickAction(action.label)}
-                      className="flex items-center gap-2 px-4 py-2.5 rounded-full text-sm transition-colors border"
-                      style={{
-                        backgroundColor: colors.bgSecondary,
-                        borderColor: colors.border,
-                        color: colors.text
-                      }}
-                      initial={{ opacity: 0, y: 12 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ duration: 0.35, delay: 0.35 + idx * 0.08, ease: [0.4, 0, 0.2, 1] }}
-                      whileHover={{ scale: 1.04, y: -2 }}
-                      whileTap={{ scale: 0.97 }}
-                    >
-                      <span style={{ color: colors.accent }}>{action.icon}</span>
-                      {action.label}
-                    </motion.button>
-                  ))}
-                </div>
-              )}
-
-              {/* Platform Status Pills */}
-              <div className="flex flex-wrap items-center justify-center gap-2 max-w-lg">
-                {platforms.map((platform) => (
-                  <div
-                    key={platform.key}
-                    onClick={() => !platform.connected && navigate('/get-started')}
-                    className={cn(
-                      "flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium transition-all",
-                      !platform.connected && "cursor-pointer hover:opacity-80"
-                    )}
-                    style={{
-                      backgroundColor: platform.connected
-                        ? `${platform.color}15`
-                        : colors.bgSecondary,
-                      color: platform.connected ? platform.color : colors.textMuted,
-                      border: `1px solid ${platform.connected ? `${platform.color}30` : colors.border}`
-                    }}
-                  >
-                    {platform.icon}
-                    <span>{platform.name}</span>
-                    {platform.connected && <Check className="w-3 h-3" />}
-                  </div>
-                ))}
-              </div>
-            </div>
+            <ChatEmptyState
+              connectedPlatforms={connectedPlatforms}
+              platforms={platforms}
+              quickActions={quickActions}
+              colors={colors}
+              onQuickAction={handleQuickAction}
+            />
           ) : (
-            /* Messages List */
-            <div className="px-4 py-6 space-y-6">
-              {messages.map((message) => (
-                <div
-                  key={message.id}
-                  className={cn(
-                    "flex gap-3",
-                    message.role === 'user' ? "justify-end" : "justify-start"
-                  )}
-                >
-                  {message.role === 'assistant' && (
-                    <div
-                      className="w-8 h-8 rounded-full flex-shrink-0 flex items-center justify-center"
-                      style={{ backgroundColor: colors.accent }}
-                    >
-                      <Sparkles className="w-4 h-4 text-white" />
-                    </div>
-                  )}
-
-                  <div className={cn("max-w-[80%]", message.role === 'user' && "order-first")}>
-                    {/* Message bubble */}
-                    <div
-                      className={cn(
-                        "px-4 py-3 rounded-2xl",
-                        message.role === 'user'
-                          ? "rounded-br-md"
-                          : "rounded-bl-md"
-                      )}
-                      style={{
-                        backgroundColor: message.role === 'user'
-                          ? colors.userBubbleBg
-                          : colors.userBubble,
-                        color: message.role === 'user' ? colors.userBubbleText : colors.text
-                      }}
-                    >
-                      <p className="text-[15px] leading-relaxed whitespace-pre-wrap">
-                        {message.content}
-                      </p>
-                    </div>
-
-                    {/* Context pills for assistant */}
-                    {message.role === 'assistant' && message.contextUsed && (
-                      <div className="flex flex-wrap items-center gap-1.5 mt-2">
-                        {message.contextUsed.memoryStream && message.contextUsed.memoryStream.total > 0 && (
-                          <span
-                            className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs"
-                            style={{ backgroundColor: 'rgba(139, 92, 246, 0.12)', color: '#8B5CF6' }}
-                          >
-                            <Database className="w-3 h-3" />
-                            {message.contextUsed.memoryStream.total} memories
-                          </span>
-                        )}
-                        {message.contextUsed.platformData?.map(p => {
-                          const platformColors: Record<string, string> = {
-                            spotify: '#1DB954', whoop: '#00A5E0', calendar: '#4285F4',
-                            google_calendar: '#4285F4', youtube: '#FF0000', twitch: '#9146FF',
-                          };
-                          const color = platformColors[p] || colors.textMuted;
-                          return (
-                            <span
-                              key={p}
-                              className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs capitalize"
-                              style={{ backgroundColor: `${color}15`, color }}
-                            >
-                              {p.replace('google_', '')}
-                            </span>
-                          );
-                        })}
-                        {message.contextUsed.soulSignature && (
-                          <span
-                            className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs"
-                            style={{ backgroundColor: 'rgba(245, 158, 11, 0.12)', color: '#F59E0B' }}
-                          >
-                            <Sparkles className="w-3 h-3" />
-                            Identity
-                          </span>
-                        )}
-                        {message.contextUsed.proactiveInsights && message.contextUsed.proactiveInsights.length > 0 && (
-                          <span
-                            className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs"
-                            style={{ backgroundColor: 'rgba(16, 185, 129, 0.12)', color: '#10B981' }}
-                          >
-                            <Lightbulb className="w-3 h-3" />
-                            {message.contextUsed.proactiveInsights.length} insight{message.contextUsed.proactiveInsights.length > 1 ? 's' : ''}
-                          </span>
-                        )}
-                      </div>
-                    )}
-
-                    {/* Timestamp */}
-                    <div
-                      className={cn(
-                        "text-xs mt-1",
-                        message.role === 'user' ? "text-right" : "text-left"
-                      )}
-                      style={{ color: colors.textMuted }}
-                    >
-                      {formatTime(message.timestamp)}
-                    </div>
-                  </div>
-
-                  {message.role === 'user' && (
-                    <div
-                      className="w-8 h-8 rounded-full flex-shrink-0 flex items-center justify-center"
-                      style={{ backgroundColor: colors.bgTertiary }}
-                    >
-                      <User className="w-4 h-4" style={{ color: colors.textSecondary }} />
-                    </div>
-                  )}
-                </div>
-              ))}
-
-              {/* Typing Indicator */}
-              {isTyping && (
-                <div className="flex gap-3">
-                  <div
-                    className="w-8 h-8 rounded-full flex-shrink-0 flex items-center justify-center"
-                    style={{ backgroundColor: colors.accent }}
-                  >
-                    <Sparkles className="w-4 h-4 text-white" />
-                  </div>
-                  <div
-                    className="px-4 py-3 rounded-2xl rounded-bl-md"
-                    style={{ backgroundColor: colors.userBubble }}
-                  >
-                    <div className="flex gap-1.5">
-                      <div
-                        className="w-2 h-2 rounded-full animate-bounce"
-                        style={{ backgroundColor: colors.accent, animationDelay: '0ms' }}
-                      />
-                      <div
-                        className="w-2 h-2 rounded-full animate-bounce"
-                        style={{ backgroundColor: colors.accent, animationDelay: '150ms' }}
-                      />
-                      <div
-                        className="w-2 h-2 rounded-full animate-bounce"
-                        style={{ backgroundColor: colors.accent, animationDelay: '300ms' }}
-                      />
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              <div ref={messagesEndRef} />
-            </div>
+            <MessageList
+              ref={messagesEndRef}
+              messages={messages}
+              isTyping={isTyping}
+              colors={colors}
+              formatTime={formatTime}
+            />
           )}
         </div>
 
-        {/* Upgrade Banner - shown when free tier limit reached */}
         {limitReached && !isDemoMode && (
           <div
             className="mx-4 mb-2 p-4 rounded-2xl flex flex-col sm:flex-row items-center justify-between gap-3"
@@ -710,256 +448,33 @@ const TalkToTwin = () => {
           </div>
         )}
 
-        {/* Input Area - Grok Style */}
-        <div className="p-4">
-          <div
-            className="rounded-2xl border shadow-sm overflow-hidden"
-            style={{
-              backgroundColor: colors.inputBg,
-              borderColor: colors.inputBorder
-            }}
-          >
-            <textarea
-              ref={inputRef}
-              placeholder={connectedPlatforms.length > 0 || isDemoMode
-                ? "Ask your twin anything..."
-                : "Connect platforms to start chatting..."
-              }
-              value={inputMessage}
-              onChange={(e) => setInputMessage(e.target.value)}
-              onKeyDown={handleKeyPress}
-              disabled={(connectedPlatforms.length === 0 && !isDemoMode) || limitReached}
-              rows={1}
-              className="w-full px-4 py-3 resize-none focus:outline-none disabled:opacity-50 text-[15px]"
-              style={{
-                backgroundColor: 'transparent',
-                color: colors.text,
-                minHeight: '48px',
-                maxHeight: '120px'
-              }}
-            />
-
-            <div
-              className="flex items-center justify-between px-3 py-2 border-t"
-              style={{ borderColor: colors.border }}
-            >
-              <div className="flex items-center gap-1">
-                <button
-                  className="p-2 rounded-lg transition-colors hover:opacity-70"
-                  style={{ color: colors.textMuted }}
-                  title="Attach file"
-                >
-                  <Paperclip className="w-5 h-5" />
-                </button>
-                <button
-                  className="p-2 rounded-lg transition-colors hover:opacity-70"
-                  style={{ color: colors.textMuted }}
-                  title="Voice input"
-                >
-                  <Mic className="w-5 h-5" />
-                </button>
-              </div>
-
-              <div className="flex items-center gap-2">
-                {/* Usage counter */}
-                {chatUsage && chatUsage.tier === 'free' && !isDemoMode && (
-                  <div
-                    className="flex items-center gap-1 px-2 py-1 rounded-lg text-xs"
-                    style={{
-                      backgroundColor: chatUsage.remaining <= 2
-                        ? 'rgba(239, 68, 68, 0.1)'
-                        : colors.bgSecondary,
-                      color: chatUsage.remaining <= 2
-                        ? '#ef4444'
-                        : colors.textSecondary
-                    }}
-                  >
-                    <MessageCircle className="w-3 h-3" />
-                    <span>{chatUsage.used}/{chatUsage.limit}</span>
-                  </div>
-                )}
-
-                {/* Model indicator like Grok */}
-                <div
-                  className="flex items-center gap-1 px-2 py-1 rounded-lg text-xs"
-                  style={{
-                    backgroundColor: colors.bgSecondary,
-                    color: colors.textSecondary
-                  }}
-                >
-                  <Sparkles className="w-3 h-3" />
-                  <span>Twin AI</span>
-                </div>
-
-                <button
-                  onClick={handleSendMessage}
-                  disabled={!inputMessage.trim() || (connectedPlatforms.length === 0 && !isDemoMode) || isTyping || limitReached}
-                  className="p-2.5 rounded-xl transition-all hover:scale-[1.02] disabled:opacity-50 disabled:hover:scale-100"
-                  style={{
-                    backgroundColor: inputMessage.trim() ? colors.accent : colors.bgTertiary,
-                    color: inputMessage.trim() ? 'white' : colors.textMuted
-                  }}
-                >
-                  {isTyping ? (
-                    <Loader2 className="w-5 h-5 animate-spin" />
-                  ) : (
-                    <Send className="w-5 h-5" />
-                  )}
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
+        <ChatInputArea
+          ref={inputRef}
+          inputMessage={inputMessage}
+          onInputChange={setInputMessage}
+          onKeyDown={handleKeyPress}
+          onSend={handleSendMessage}
+          isTyping={isTyping}
+          isDisabled={connectedPlatforms.length === 0 && !isDemoMode}
+          limitReached={limitReached}
+          isDemoMode={isDemoMode}
+          hasConnectedPlatforms={connectedPlatforms.length > 0}
+          chatUsage={chatUsage}
+          colors={colors}
+        />
       </div>
 
-      {/* Context Sidebar - Desktop */}
-      <aside
-        className={cn(
-          "w-72 border-l hidden md:block overflow-y-auto",
-          !showContext && "md:hidden"
-        )}
-        style={{
-          backgroundColor: colors.bgSecondary,
-          borderColor: colors.border
-        }}
-      >
-        <div className="p-4">
-          <div className="flex items-center justify-between mb-4">
-            <h3
-              className="font-medium flex items-center gap-2"
-              style={{ color: colors.text }}
-            >
-              <Clay3DIcon name="diamond" size={16} />
-              Twin Context
-            </h3>
-            <button
-              onClick={() => setShowContext(false)}
-              className="p-1 rounded hover:opacity-70"
-              style={{ color: colors.textMuted }}
-            >
-              <X className="w-4 h-4" />
-            </button>
-          </div>
-
-          {/* Connected Platforms Section */}
-          <div className="mb-6">
-            <h4
-              className="text-xs font-medium uppercase tracking-wider mb-2"
-              style={{ color: colors.textMuted }}
-            >
-              Data Sources
-            </h4>
-            <div className="space-y-2">
-              {platforms.map((platform) => (
-                <div
-                  key={platform.key}
-                  className="flex items-center justify-between p-2 rounded-lg"
-                  style={{ backgroundColor: colors.bgTertiary }}
-                >
-                  <div className="flex items-center gap-2">
-                    <span style={{ color: platform.connected ? platform.color : colors.textMuted }}>
-                      {platform.icon}
-                    </span>
-                    <span
-                      className="text-sm"
-                      style={{ color: platform.connected ? colors.text : colors.textMuted }}
-                    >
-                      {platform.name}
-                    </span>
-                  </div>
-                  {platform.connected ? (
-                    <div className="flex items-center gap-1">
-                      <div className="w-2 h-2 rounded-full bg-green-500" />
-                      <span className="text-xs" style={{ color: colors.textMuted }}>Live</span>
-                    </div>
-                  ) : (
-                    <button
-                      onClick={() => navigate('/get-started')}
-                      className="text-xs px-2 py-1 rounded"
-                      style={{ color: colors.accent }}
-                    >
-                      Connect
-                    </button>
-                  )}
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Recent Context Section */}
-          <div className="mb-6">
-            <h4
-              className="text-xs font-medium uppercase tracking-wider mb-2"
-              style={{ color: colors.textMuted }}
-            >
-              Active Context
-            </h4>
-            {isLoadingContext ? (
-              <div className="flex items-center justify-center py-4">
-                <Loader2 className="w-5 h-5 animate-spin" style={{ color: colors.textMuted }} />
-              </div>
-            ) : contextItems.length > 0 ? (
-              <div className="space-y-2">
-                {contextItems.filter(i => i.type !== 'platform').map((item, idx) => (
-                  <div
-                    key={idx}
-                    className="p-2 rounded-lg"
-                    style={{ backgroundColor: colors.bgTertiary }}
-                  >
-                    <div className="flex items-center gap-2 mb-1">
-                      {item.type === 'memory' && <Clock className="w-3 h-3" style={{ color: colors.accent }} />}
-                      {item.type === 'fact' && <Lightbulb className="w-3 h-3" style={{ color: '#F59E0B' }} />}
-                      {item.type === 'personality' && <Clay3DIcon name="brain" size={12} />}
-                      <span className="text-xs font-medium" style={{ color: colors.textSecondary }}>
-                        {item.label}
-                      </span>
-                    </div>
-                    <p className="text-sm" style={{ color: colors.text }}>
-                      {item.value}
-                    </p>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <p className="text-sm text-center py-4" style={{ color: colors.textMuted }}>
-                {connectedPlatforms.length > 0
-                  ? "Context loads when you chat"
-                  : "Connect platforms to build context"
-                }
-              </p>
-            )}
-          </div>
-
-          {/* Quick Stats */}
-          <div>
-            <h4
-              className="text-xs font-medium uppercase tracking-wider mb-2"
-              style={{ color: colors.textMuted }}
-            >
-              Twin Stats
-            </h4>
-            <div
-              className="p-3 rounded-lg"
-              style={{ backgroundColor: colors.bgTertiary }}
-            >
-              <div className="grid grid-cols-2 gap-3 text-center">
-                <div>
-                  <div className="text-lg font-semibold" style={{ color: colors.accent }}>
-                    {connectedCount || 0}
-                  </div>
-                  <div className="text-xs" style={{ color: colors.textMuted }}>Platforms</div>
-                </div>
-                <div>
-                  <div className="text-lg font-semibold" style={{ color: colors.accent }}>
-                    {messages.length}
-                  </div>
-                  <div className="text-xs" style={{ color: colors.textMuted }}>Messages</div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </aside>
+      <ContextSidebar
+        showContext={showContext}
+        onClose={() => setShowContext(false)}
+        platforms={platforms}
+        connectedPlatforms={connectedPlatforms}
+        contextItems={contextItems}
+        isLoadingContext={isLoadingContext}
+        connectedCount={connectedCount}
+        messageCount={messages.length}
+        colors={colors}
+      />
     </div>
   );
 };
