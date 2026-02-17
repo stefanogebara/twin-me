@@ -24,17 +24,17 @@ const SCREENSHOTS_DIR = path.join(__dirname, 'enrichment-test-screenshots');
 // Generate a fresh JWT at runtime
 dotenv.config({ path: path.join(__dirname, 'api', '.env') });
 const JWT_TOKEN = jwt.sign(
-  { id: 'cd9534c0-44fe-4659-a1c9-7ec9ab136962', email: 'cmgebara@gmail.com', userId: 'cd9534c0-44fe-4659-a1c9-7ec9ab136962' },
+  { id: '167c27b5-a40b-49fb-8d00-deb1b1c57f4d', email: 'stefanogebara@gmail.com', userId: '167c27b5-a40b-49fb-8d00-deb1b1c57f4d' },
   process.env.JWT_SECRET,
   { expiresIn: '2h' }
 );
 
 const TEST_USER = {
-  id: 'cd9534c0-44fe-4659-a1c9-7ec9ab136962',
-  email: 'cmgebara@gmail.com',
-  firstName: 'Christian',
+  id: '167c27b5-a40b-49fb-8d00-deb1b1c57f4d',
+  email: 'stefanogebara@gmail.com',
+  firstName: 'Stefano',
   lastName: 'Gebara',
-  fullName: 'Christian Gebara'
+  fullName: 'Stefano Gebara'
 };
 
 if (!fs.existsSync(SCREENSHOTS_DIR)) {
@@ -70,7 +70,7 @@ async function clearExistingEnrichment() {
 
 async function runEnrichmentTest() {
   console.log('\n' + '='.repeat(70));
-  console.log('   ENRICHMENT FLOW E2E TEST — Christian Gebara (cmgebara@gmail.com)');
+  console.log('   ENRICHMENT FLOW E2E TEST — Stefano Gebara (stefanogebara@gmail.com)');
   console.log('='.repeat(70) + '\n');
 
   log(`JWT Token (first 50 chars): ${JWT_TOKEN.substring(0, 50)}...`, 'info');
@@ -206,13 +206,11 @@ async function runEnrichmentTest() {
 
     // Check what's visible on the page
     const checks = {
-      'CEO': /CEO/i.test(bodyText),
-      'Telefonica/Vivo': /telefon|vivo/i.test(bodyText),
-      'Stanford': /stanford/i.test(bodyText),
-      'McKinsey': /mckinsey/i.test(bodyText),
-      'Christian Gebara': /christian.*gebara/i.test(bodyText),
+      'Stefano Gebara': /stefano.*gebara/i.test(bodyText),
       'Continue button': /Continue/i.test(bodyText),
       'Hello': /Hello/i.test(bodyText),
+      'Name field': /NAME/i.test(bodyText),
+      'Company or Title': /COMPANY|TITLE/i.test(bodyText),
     };
 
     console.log('\n--- Page Content Checks ---');
