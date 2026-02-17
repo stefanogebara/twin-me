@@ -174,7 +174,6 @@ const NewDiscoverFlow: React.FC = () => {
       if (q && q.source !== 'none' && q.source !== 'error') {
         quickDataRef.current = q;
         if (q.discovered_name) addDataPoint({ icon: 'name', label: 'Name', value: q.discovered_name });
-        if (q.discovered_photo) addDataPoint({ icon: 'photo', label: 'Photo', value: 'Found your photo' });
         if (q.discovered_company) addDataPoint({ icon: 'company', label: 'Company', value: q.discovered_company });
         if (q.discovered_location) addDataPoint({ icon: 'location', label: 'Location', value: q.discovered_location });
         if (q.discovered_bio) addDataPoint({ icon: 'bio', label: 'Bio', value: q.discovered_bio });
@@ -182,11 +181,11 @@ const NewDiscoverFlow: React.FC = () => {
         if (q.discovered_twitter_url) addDataPoint({ icon: 'twitter', label: 'Twitter', value: 'Profile found' });
       }
 
-      // Phase 2: Check existing full enrichment
+      // Phase 2: Check existing full enrichment (skip if only gravatar/shallow data)
       const statusResult = await enrichmentService.getStatus(user.id);
       if (statusResult.hasEnrichment) {
         const resultsResult = await enrichmentService.getResults(user.id);
-        if (resultsResult.data) {
+        if (resultsResult.data && enrichmentService.hasResults(resultsResult.data)) {
           enrichmentDataRef.current = resultsResult.data;
           addFullEnrichmentPoints(resultsResult.data);
           if (resultsResult.data.discovered_summary && !isLLMJunk(resultsResult.data.discovered_summary)) {
@@ -230,7 +229,11 @@ const NewDiscoverFlow: React.FC = () => {
     if (data.discovered_company) addDataPoint({ icon: 'company', label: 'Company', value: data.discovered_company });
     if (data.discovered_title) addDataPoint({ icon: 'title', label: 'Title', value: data.discovered_title });
     if (data.discovered_location) addDataPoint({ icon: 'location', label: 'Location', value: data.discovered_location });
-    if (data.discovered_bio) addDataPoint({ icon: 'bio', label: 'Bio', value: data.discovered_bio });
+    // Only show bio data point if there's no narrative summary (avoids redundancy)
+    if (data.discovered_bio && !data.discovered_summary) {
+      const bioValue = extractFirstLine(data.discovered_bio, 120);
+      if (bioValue) addDataPoint({ icon: 'bio', label: 'Bio', value: bioValue });
+    }
     // Only show Career row if we don't already have Company/Title and the data is clean
     if (data.career_timeline && data.career_timeline.length > 20 && !data.discovered_company && !data.discovered_title) {
       const careerValue = extractFirstLine(data.career_timeline);
@@ -478,28 +481,9 @@ const NewDiscoverFlow: React.FC = () => {
                 {orbPhase === 'alive' && `Hello, ${userName.split(' ')[0]}`}
               </motion.p>
 
-              {/* Soul Orb + photo overlay */}
-              <div className="relative mb-8 flex items-center justify-center">
+              {/* Soul Orb */}
+              <div className="mb-8">
                 <SoulOrb phase={orbPhase} dataPointCount={dataPoints.length} />
-
-                {/* Profile photo centered on orb (hidden during correction) */}
-                <AnimatePresence>
-                  {revealSubView === 'data' && quickDataRef.current?.discovered_photo && (
-                    <motion.div
-                      initial={{ opacity: 0, scale: 0.5 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      transition={{ type: 'spring', stiffness: 300, damping: 25 }}
-                      className="absolute inset-0 flex items-center justify-center pointer-events-none"
-                    >
-                      <img
-                        src={quickDataRef.current.discovered_photo}
-                        alt=""
-                        className="w-16 h-16 rounded-full object-cover"
-                        style={{ border: '2px solid rgba(232, 213, 183, 0.3)' }}
-                      />
-                    </motion.div>
-                  )}
-                </AnimatePresence>
               </div>
 
               {/* Data points reveal (hidden during correction) */}
@@ -750,7 +734,7 @@ const NewDiscoverFlow: React.FC = () => {
                         fontStyle: 'italic',
                       }}
                     >
-                      "{signature.signature_quote}"
+                      "{signature.signature_quote.replace(/^["'"]+|["'"]+$/g, '')}"
                     </p>
                     <p
                       className="text-sm leading-relaxed"
