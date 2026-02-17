@@ -175,7 +175,7 @@ export const PlatformConnectStep: React.FC<PlatformConnectStepProps> = ({
             setPlatformInsights(prev => ({ ...prev, [justConnected]: data.insight }));
           }
         })
-        .catch(err => console.warn('[PlatformConnect] Preview fetch failed:', err.message));
+        .catch(() => {});
     }
   }, []);
 

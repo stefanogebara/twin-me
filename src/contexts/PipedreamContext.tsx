@@ -49,7 +49,7 @@ export const PipedreamProvider: React.FC<PipedreamProviderProps> = ({ children }
   const [error] = useState<string | null>(null);
 
   const openConnect = useCallback(async (_appNameSlug?: string) => {
-    console.warn('[Pipedream] SDK not installed - openConnect is a no-op');
+    // No-op: Pipedream SDK not installed
   }, []);
 
   const fetchConnectedAccounts = useCallback(async () => {

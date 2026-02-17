@@ -175,13 +175,10 @@ export function SoulChatInterface({
 
   const handleSave = () => {
     // In production, save to backend
-    console.log('Saving conversation...', messages);
     setIsSaved(true);
   };
 
   const handleExport = (format: 'pdf' | 'text' | 'json') => {
-    console.log(`Exporting conversation as ${format}...`, messages);
-
     if (format === 'text') {
       const text = messages.map(m =>
         `${m.role === 'assistant' ? 'Soul Twin' : 'You'} (${m.timestamp.toLocaleString()}):\n${m.content}\n\n`

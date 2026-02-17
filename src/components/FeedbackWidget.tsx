@@ -57,16 +57,8 @@ export const FeedbackWidget: React.FC<FeedbackWidgetProps> = ({
   };
 
   const submitFeedback = async (feedback: FeedbackData) => {
-    console.log(`\n📤 [FeedbackWidget] Submitting feedback:`);
-    console.log(`   - Recommendation: ${recommendationId}`);
-    console.log(`   - Type: ${recommendationType} -> ${getApiType(recommendationType)}`);
-    console.log(`   - Vote: ${feedback.thumbsVote || 'none'}`);
-    console.log(`   - Stars: ${feedback.starRating || 'none'}`);
-    if (feedback.comment) console.log(`   - Comment: "${feedback.comment.substring(0, 30)}..."`);
-
     if (isDemoMode) {
       // Demo mode - just simulate success
-      console.log(`🎭 [FeedbackWidget] Demo mode - feedback simulated (not persisted to database)`);
       setSubmitted(true);
       onFeedbackSubmitted?.(feedback);
       return;
@@ -74,7 +66,6 @@ export const FeedbackWidget: React.FC<FeedbackWidgetProps> = ({
 
     setIsSubmitting(true);
     try {
-      console.log(`🔄 [FeedbackWidget] Sending to API...`);
       const token = localStorage.getItem('auth_token');
       const response = await fetch(`${import.meta.env.VITE_API_URL}/twin/feedback`, {
         method: 'POST',
@@ -98,10 +89,7 @@ export const FeedbackWidget: React.FC<FeedbackWidgetProps> = ({
         throw new Error(errorData.error || 'Failed to submit feedback');
       }
 
-      const result = await response.json();
-      console.log(`✅ [FeedbackWidget] Feedback submitted successfully!`);
-      console.log(`   - Feedback ID: ${result.feedbackId}`);
-      console.log(`   - Will be processed by PatternLearningService in next cron run`);
+      await response.json();
 
       setSubmitted(true);
       onFeedbackSubmitted?.(feedback);

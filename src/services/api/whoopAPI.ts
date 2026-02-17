@@ -87,7 +87,6 @@ export const whoopAPI = {
    * Legacy method - kept for backwards compatibility but not used.
    */
   connect: (returnUrl?: string): string => {
-    console.warn('whoopAPI.connect() is deprecated. Use NangoConnect component instead.');
     const userId = localStorage.getItem('user_id') || '';
     const baseUrl = `${API_URL}/health/connect/whoop?userId=${encodeURIComponent(userId)}`;
     return returnUrl ? `${baseUrl}&returnUrl=${encodeURIComponent(returnUrl)}` : baseUrl;
@@ -98,7 +97,6 @@ export const whoopAPI = {
    * Legacy method - kept for backwards compatibility but not used.
    */
   disconnect: async (): Promise<void> => {
-    console.warn('whoopAPI.disconnect() is deprecated. Use NangoConnect component instead.');
     const userId = localStorage.getItem('user_id') || '';
     const response = await fetch(`${API_URL}/health/disconnect/whoop`, {
       method: 'DELETE',

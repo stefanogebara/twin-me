@@ -38,7 +38,6 @@ export const PlatformCategoryCard: React.FC<PlatformCategoryCardProps> = ({
 
   const category = PLATFORM_CATEGORIES[categoryId];
   if (!category) {
-    console.warn(`Unknown category: ${categoryId}`);
     return null;
   }
 

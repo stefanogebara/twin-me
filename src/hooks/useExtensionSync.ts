@@ -16,7 +16,6 @@ export const useExtensionSync = () => {
       const token = localStorage.getItem('auth_token');
 
       if (!token) {
-        console.log('[Extension Sync] No auth token found in localStorage');
         return;
       }
 
@@ -25,17 +24,10 @@ export const useExtensionSync = () => {
         chrome.runtime.sendMessage(
           'acnofcjjfjaikcfnalggkkbghjaijepc', // Extension ID
           { type: 'SET_AUTH_TOKEN', token },
-          (response) => {
-            if (chrome.runtime.lastError) {
-              // Extension not installed or not responding - this is normal
-              console.log('[Extension Sync] Extension not available:', chrome.runtime.lastError.message);
-            } else {
-              console.log('[Extension Sync] ✅ Token synced to extension successfully');
-            }
+          () => {
           }
         );
-      } catch (error) {
-        console.log('[Extension Sync] Could not sync to extension:', error);
+      } catch {
       }
     };
 
@@ -45,7 +37,6 @@ export const useExtensionSync = () => {
     // Also sync when localStorage changes (e.g., user logs in/out)
     const handleStorageChange = (e: StorageEvent) => {
       if (e.key === 'auth_token') {
-        console.log('[Extension Sync] Auth token changed, syncing to extension...');
         syncTokenToExtension();
       }
     };

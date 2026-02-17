@@ -132,9 +132,9 @@ export function transformToClusterData(soulSignature: any): ClusterData[] {
  * ❌ DEPRECATED: This function used fake activity pattern generators
  * TODO: Replace with real activity data from platform APIs when available
  */
-export function transformToTimelineData(platforms: any[]): TimelineActivity[] {
+export function transformToTimelineData(_platforms: any[]): TimelineActivity[] {
   // Return empty array until we have real activity data from platforms
-  console.warn('transformToTimelineData: Returning empty data - fake generators have been removed. Implement real activity tracking.');
+  // Fake generators have been removed. Implement real activity tracking.
   return [];
 }
 
@@ -148,8 +148,8 @@ export function transformToTimelineData(platforms: any[]): TimelineActivity[] {
  * Real patterns should come from Claude soul signature analysis API
  * TODO: Replace with real pattern detection from /api/soul-signature/insights
  */
-export function transformToPatternData(soulSignature: any): PatternData[] {
-  console.warn('transformToPatternData: Returning empty data - hardcoded patterns have been removed. Use Claude soul insights API instead.');
+export function transformToPatternData(_soulSignature: any): PatternData[] {
+  // Hardcoded patterns have been removed. Use Claude soul insights API instead.
   return [];
 }
 
@@ -159,8 +159,8 @@ export function transformToPatternData(soulSignature: any): PatternData[] {
  * The LifeJourneyTimeline component has been removed from the dashboard
  * TODO: If timeline is needed, rebuild based on real Claude insights timeline
  */
-export function transformToJourneyEvents(platforms: any[], soulSignature: any): JourneyEvent[] {
-  console.warn('transformToJourneyEvents: Deprecated - LifeJourneyTimeline component has been removed.');
+export function transformToJourneyEvents(_platforms: any[], _soulSignature: any): JourneyEvent[] {
+  // Deprecated - LifeJourneyTimeline component has been removed.
   return [];
 }
 

@@ -28,10 +28,6 @@ if (import.meta.env.VITE_SENTRY_DSN) {
     replaysOnErrorSampleRate: 1.0, // 100% of sessions with errors
   });
 
-  console.log('✅ Sentry error tracking initialized (frontend)');
-} else if (import.meta.env.MODE === 'production') {
-  // Only warn in production - in development, Sentry is typically not needed
-  console.log('⚠️  Sentry DSN not configured - frontend error tracking disabled');
 }
 
 createRoot(document.getElementById("root")!).render(

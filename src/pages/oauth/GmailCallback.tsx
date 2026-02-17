@@ -27,12 +27,6 @@ const GmailCallback: React.FC = () => {
       const error = searchParams.get('error');
       const errorDescription = searchParams.get('error_description');
 
-      console.log('📧 [Gmail Callback] Received OAuth callback:', {
-        hasAccountId: !!accountId,
-        hasState: !!state,
-        hasError: !!error
-      });
-
       // Handle OAuth errors
       if (error) {
         console.error('❌ [Gmail Callback] OAuth error:', error, errorDescription);
@@ -68,8 +62,6 @@ const GmailCallback: React.FC = () => {
         throw new Error('Authentication required. Please sign in.');
       }
 
-      console.log('📧 [Gmail Callback] Sending callback to backend...');
-
       const response = await fetch(`${apiUrl}/pipedream-gmail/callback`, {
         method: 'POST',
         headers: {
@@ -88,8 +80,6 @@ const GmailCallback: React.FC = () => {
       }
 
       const data = await response.json();
-
-      console.log('✅ [Gmail Callback] Connection successful!');
 
       setStatus('success');
       setMessage('Gmail connected successfully!');

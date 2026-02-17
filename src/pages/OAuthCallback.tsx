@@ -31,7 +31,6 @@ const OAuthCallback = () => {
   useEffect(() => {
     // Guard against double execution in React 18 Strict Mode
     if (hasRun.current) {
-      console.log('⏭️  OAuth callback already processed, skipping duplicate execution');
       return;
     }
     hasRun.current = true;
@@ -42,11 +41,6 @@ const OAuthCallback = () => {
         let state = searchParams.get('state');  // Changed to let so we can reassign for fallback
         const error = searchParams.get('error');
 
-        console.log('🔄 OAuth callback received:', { code: !!code, state: !!state, error });
-        console.log('🔄 Full URL:', window.location.href);
-        console.log('🔄 Search params:', searchParams.toString());
-        console.log('🔄 All URL params:', Object.fromEntries(searchParams.entries()));
-
         // CRITICAL: Prevent duplicate API calls using sessionStorage
         // This handles cases where component remounts or React Strict Mode causes re-execution
         if (code) {
@@ -54,7 +48,6 @@ const OAuthCallback = () => {
           const alreadyProcessed = sessionStorage.getItem(processedKey);
 
           if (alreadyProcessed) {
-            console.log('✅ OAuth code already processed successfully, redirecting...');
             setStatus('success');
             setMessage('Connection successful! Redirecting...');
 
@@ -77,7 +70,6 @@ const OAuthCallback = () => {
 
           // Mark this code as being processed BEFORE making API call
           sessionStorage.setItem(processedKey, 'processing');
-          console.log('🔒 Marked OAuth code as processing to prevent duplicates');
         }
 
         if (error) {
@@ -98,26 +90,17 @@ const OAuthCallback = () => {
           return;
         }
 
-        console.log('📤 Exchanging code for token...');
-
         // Determine if this is a connector OAuth or auth OAuth by checking state
         let stateData = null;
         let isConnectorOAuth = false;
         let isAuthOAuth = false;
         let isEncryptedState = false; // true when state uses encryptState() from entertainment-connectors
 
-        console.log('🔍 Raw state parameter:', state);
-        console.log('🔍 State type:', typeof state);
-        console.log('🔍 State length:', state?.length);
-
         try {
           if (state) {
-            console.log('🔄 Attempting to decode state...');
             // Use atob instead of Buffer for browser compatibility
             const decodedState = atob(state);
-            console.log('🔄 Decoded state string:', decodedState);
             stateData = JSON.parse(decodedState);
-            console.log('🔄 Parsed state data:', stateData);
 
             // Check if this is a connector OAuth (has userId or specific provider/platform)
             const platformOrProvider = stateData.provider || stateData.platform;
@@ -135,17 +118,12 @@ const OAuthCallback = () => {
             // Check if this is an authentication OAuth
             isAuthOAuth = stateData.isAuth === true;
 
-            console.log('🔍 Flow detection results:', { isConnectorOAuth, isAuthOAuth, hasUserId: !!stateData.userId, provider: stateData.provider, platform: stateData.platform });
           } else {
-            console.log('❌ No state parameter found');
             // Fallback: Check sessionStorage for connecting_provider
             const connectingProvider = sessionStorage.getItem('connecting_provider');
             const currentUser = localStorage.getItem('userId') || sessionStorage.getItem('userId');
 
             if (connectingProvider) {
-              console.log('📦 Found connecting_provider in sessionStorage:', connectingProvider);
-              console.log('📦 Found userId:', currentUser);
-
               // Reconstruct state data from sessionStorage
               stateData = {
                 provider: connectingProvider === 'google_calendar' ? 'google' : connectingProvider,
@@ -159,18 +137,15 @@ const OAuthCallback = () => {
 
               // Create a fake state for the backend
               state = btoa(JSON.stringify(stateData));
-              console.log('📦 Reconstructed state:', stateData);
             }
           }
         } catch (e) {
           console.error('❌ State decoding failed (likely encrypted entertainment state):', e);
-          console.log('🔍 Raw state for debugging:', state);
 
           // If atob/JSON.parse failed but state exists, it's encrypted from entertainment-connectors
           // (Spotify, Discord, YouTube, Netflix, Twitch, etc. all use encryptState())
           // Only entertainment-connectors.js uses encrypted state; all other OAuth flows use base64 JSON
           if (state) {
-            console.log('🔄 Detected encrypted state - routing to entertainment connector callback');
             isEncryptedState = true;
             isConnectorOAuth = true;
 
@@ -178,12 +153,9 @@ const OAuthCallback = () => {
             const connectingProvider = sessionStorage.getItem('connecting_provider') || sessionStorage.getItem('reconnecting_platform');
             if (connectingProvider) {
               stateData = { provider: connectingProvider, platform: connectingProvider };
-              console.log('📦 Using sessionStorage provider for UI:', connectingProvider);
             }
           }
         }
-
-        console.log('🔍 OAuth type detected:', { isConnectorOAuth, isAuthOAuth, stateData });
 
         let response;
         if (isConnectorOAuth) {
@@ -196,7 +168,6 @@ const OAuthCallback = () => {
             // Encrypted state = entertainment connector (Spotify, Discord, YouTube, Netflix, Twitch, etc.)
             // These use encryptState() and their callback handler is at /entertainment/oauth/callback
             callbackEndpoint = '/entertainment/oauth/callback';
-            console.log('🎵 Routing to entertainment connector callback (encrypted state)');
           } else if (isArcticProvider) {
             callbackEndpoint = '/arctic/callback';
           } else {
@@ -234,14 +205,6 @@ const OAuthCallback = () => {
         }
 
         const data = await response.json();
-        console.log('📥 Token exchange response:', {
-          success: data.success,
-          isConnector: isConnectorOAuth,
-          data: data,
-          hasToken: !!data.token,
-          hasUser: !!data.user,
-          error: data.error
-        });
 
         if (data.success) {
           // Clear any pending error timeout on success
@@ -252,14 +215,12 @@ const OAuthCallback = () => {
 
           if (isConnectorOAuth) {
             // Handle connector OAuth success
-            console.log('✅ Connector OAuth successful');
 
             // Mark the OAuth code as successfully processed in sessionStorage
             if (code) {
               const processedKey = `oauth_processed_${code.substring(0, 32)}`;
               sessionStorage.setItem(processedKey, 'success');
               sessionStorage.setItem(`oauth_provider_${code.substring(0, 32)}`, stateData?.provider || '');
-              console.log('✅ Marked OAuth code as successfully processed');
             }
 
             // Track platform connection in analytics
@@ -336,20 +297,14 @@ const OAuthCallback = () => {
                   chrome.runtime.sendMessage(
                     'acnofcjjfjaikcfnalggkkbghjaijepc', // Extension ID
                     { type: 'SET_AUTH_TOKEN', token: data.token },
-                    (response) => {
-                      if (chrome.runtime.lastError) {
-                        console.log('Extension not available:', chrome.runtime.lastError.message);
-                      } else {
-                        console.log('✅ Token synced to extension:', response);
-                      }
+                    () => {
+                      // Chrome extension sync callback
                     }
                   );
-                } catch (error) {
-                  console.log('Could not sync to extension:', error);
+                } catch {
+                  // Could not sync to extension
                 }
               }
-
-              console.log('✅ Authentication successful, token stored');
 
               // Track signup/signin in analytics
               trackFunnel(data.isNewUser ? 'user_signed_up' : 'user_signed_in', {
@@ -366,15 +321,12 @@ const OAuthCallback = () => {
               const urlRedirectParam = searchParams.get('redirect');
               if (urlRedirectParam) {
                 redirectPath = decodeURIComponent(urlRedirectParam);
-                console.log('✅ Using post-auth redirect from URL param:', redirectPath);
               } else if (data.redirectAfterAuth) {
                 // Use the redirect parameter from the backend response
                 redirectPath = data.redirectAfterAuth;
-                console.log('✅ Using post-auth redirect from response data:', redirectPath);
               } else if (stateData?.redirectAfterAuth) {
                 // Use the redirect parameter from the auth flow state
                 redirectPath = stateData.redirectAfterAuth;
-                console.log('✅ Using post-auth redirect from state:', redirectPath);
               } else if (data.isNewUser) {
                 // New users go to enriched discovery flow (3-step onboarding)
                 redirectPath = '/discover';
@@ -398,7 +350,6 @@ const OAuthCallback = () => {
               }, 1500);
             } else if (!data.token && stateData?.userId) {
               // This is likely a connector flow that was misidentified
-              console.log('✅ Connector OAuth successful (fallback detection)');
               setStatus('success');
               setMessage(`Service connected successfully! Redirecting...`);
 
@@ -437,20 +388,15 @@ const OAuthCallback = () => {
                   chrome.runtime.sendMessage(
                     'acnofcjjfjaikcfnalggkkbghjaijepc', // Extension ID
                     { type: 'SET_AUTH_TOKEN', token: data.token },
-                    (response) => {
-                      if (chrome.runtime.lastError) {
-                        console.log('Extension not available:', chrome.runtime.lastError.message);
-                      } else {
-                        console.log('✅ Token synced to extension:', response);
-                      }
+                    () => {
+                      // Chrome extension sync callback
                     }
                   );
-                } catch (error) {
-                  console.log('Could not sync to extension:', error);
+                } catch {
+                  // Could not sync to extension
                 }
               }
 
-              console.log('✅ OAuth successful, token stored');
               setStatus('success');
 
               // Determine redirect based on whether user is new or existing
@@ -473,7 +419,6 @@ const OAuthCallback = () => {
             } else {
               // Check if this might be a connector flow based on the response data structure
               if (data.success && (data.provider || data.connected || data.hasAccess)) {
-                console.log('✅ Detected connector OAuth based on response data');
                 setStatus('success');
                 setMessage(`Service connected successfully! Redirecting...`);
 
@@ -517,7 +462,6 @@ const OAuthCallback = () => {
         if (code) {
           const processedKey = `oauth_processed_${code.substring(0, 32)}`;
           sessionStorage.removeItem(processedKey);
-          console.log('🔄 Cleared OAuth processing marker for retry');
         }
 
         setStatus('error');

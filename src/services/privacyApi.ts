@@ -300,7 +300,6 @@ export function createDebouncedUpdate(userId: string, delayMs: number = 500) {
   return debounce(async (clusterId: string, value: number) => {
     try {
       await updateClusterPrivacy(userId, clusterId, value);
-      console.log(`Updated ${clusterId} to ${value}%`);
     } catch (error) {
       console.error('Error updating cluster:', error);
       throw error;

@@ -200,18 +200,18 @@ export function AnimationShowcase() {
                 <IconButtonWithTooltip
                   icon={<Settings className="w-5 h-5" />}
                   tooltip="Settings"
-                  onClick={() => console.log('Settings')}
+                  onClick={() => { /* Action handled */ }}
                 />
                 <IconButtonWithTooltip
                   icon={<Edit className="w-5 h-5" />}
                   tooltip="Edit"
-                  onClick={() => console.log('Edit')}
+                  onClick={() => { /* Action handled */ }}
                   variant="ghost"
                 />
                 <IconButtonWithTooltip
                   icon={<Trash2 className="w-5 h-5" />}
                   tooltip="Delete"
-                  onClick={() => console.log('Delete')}
+                  onClick={() => { /* Action handled */ }}
                   variant="destructive"
                 />
               </div>

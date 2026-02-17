@@ -77,30 +77,26 @@ export function useBrainGraphData() {
       const [vizRes, healthRes, gapsRes, suggestionsRes] = await Promise.all([
         fetch(vizEndpoint, {
           headers: { Authorization: `Bearer ${token}` }
-        }).catch(err => { console.warn('[BrainExplorer] Visualization fetch failed:', err.message); return null; }),
+        }).catch(() => null),
         fetch(`${API_BASE}/twins-brain/health`, {
           headers: { Authorization: `Bearer ${token}` }
-        }).catch(err => { console.warn('[BrainExplorer] Health fetch failed:', err.message); return null; }),
+        }).catch(() => null),
         fetch(`${API_BASE}/twins-brain/knowledge-gaps`, {
           headers: { Authorization: `Bearer ${token}` }
-        }).catch(err => { console.warn('[BrainExplorer] Knowledge gaps fetch failed:', err.message); return null; }),
+        }).catch(() => null),
         fetch(`${API_BASE}/twins-brain/learning-suggestions`, {
           headers: { Authorization: `Bearer ${token}` }
-        }).catch(err => { console.warn('[BrainExplorer] Learning suggestions fetch failed:', err.message); return null; })
+        }).catch(() => null)
       ]);
 
       let vizData: any = { visualization: { nodes: [], edges: [], clusters: [], stats: { nodeCount: 0, edgeCount: 0, clusterCount: 0 } } };
       if (vizRes && vizRes.ok) {
         vizData = await vizRes.json();
-      } else {
-        console.warn('[BrainExplorer] Visualization endpoint unavailable, showing empty brain');
       }
 
       let healthData: any = { success: true, health: { total_nodes: 0, total_edges: 0, avg_confidence: 0, avg_edge_strength: 0, category_distribution: {}, health_score: 0 } };
       if (healthRes && healthRes.ok) {
         healthData = await healthRes.json();
-      } else {
-        console.warn('[BrainExplorer] Health endpoint unavailable, using defaults');
       }
 
       if (context !== 'global' && vizData.nodes) {
@@ -309,7 +305,6 @@ export function useBrainGraphData() {
         break;
       case 'refresh_knowledge':
         if (suggestion.action.platform) {
-          console.log(`Refreshing data for platform: ${suggestion.action.platform}`);
           alert(`Refreshing ${suggestion.action.platform} data... This feature will sync your latest data.`);
         }
         break;
@@ -320,7 +315,7 @@ export function useBrainGraphData() {
         navigate('/questions');
         break;
       default:
-        console.log('Unknown suggestion type:', suggestion.type);
+        break;
     }
   }, [navigate]);
 
