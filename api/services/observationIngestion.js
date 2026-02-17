@@ -633,9 +633,9 @@ function startObservationIngestion() {
     return;
   }
 
-  const INTERVAL_MS = 30 * 60 * 1000; // 30 minutes
+  const INTERVAL_MS = 10 * 60 * 1000; // 10 minutes
 
-  console.log('[ObservationIngestion] Starting background ingestion (every 30 minutes)');
+  console.log('[ObservationIngestion] Starting background ingestion (every 10 minutes)');
 
   // Run once on startup after a short delay (let tokens warm up)
   setTimeout(() => {

@@ -72,7 +72,7 @@ async function fetchTwinContext(userId, userMessage, options = {}) {
       return null;
     }),
 
-    retrieveMemories(userId, userMessage, 15).catch(err => {
+    retrieveMemories(userId, userMessage, 30).catch(err => {
       console.warn('[TwinContext] Memory retrieval failed:', err.message);
       return [];
     }),

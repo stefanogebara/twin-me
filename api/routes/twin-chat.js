@@ -19,9 +19,7 @@ import { serverDb, supabaseAdmin } from '../services/database.js';
 import { getMonthlyUsage, FREE_TIER_LIMIT } from './chat-usage.js';
 import { getValidAccessToken } from '../services/tokenRefresh.js';
 
-// Moltbot removed (TIER 1 cleanup) - stub out for backward compat
-const getMemoryService = () => ({ getRecentMemories: async () => [], getLearnedFacts: async () => [], storeConversation: async () => {} });
-const getMoltbotClient = () => null;
+// Moltbot replaced by unified memory stream — getMemoryService no longer needed
 import { getClusterPersonalityBuilder } from '../services/clusterPersonalityBuilder.js';
 
 // Shared conversation logging (unified with MCP server)
@@ -39,11 +37,12 @@ import { fetchTwinContext, buildContextSourcesMeta } from '../services/twinConte
 import {
   addConversationMemory as addConversationMemoryStream,
   retrieveMemories,
+  getRecentMemories,
   getRecentImportanceSum,
   extractConversationFacts,
   getMemoryStats,
 } from '../services/memoryStreamService.js';
-import { shouldTriggerReflection, generateReflections } from '../services/reflectionEngine.js';
+import { shouldTriggerReflection, generateReflections, seedReflections } from '../services/reflectionEngine.js';
 import { getTwinSummary } from '../services/twinSummaryService.js';
 import { getUndeliveredInsights, markInsightsDelivered } from '../services/proactiveInsights.js';
 
@@ -111,8 +110,8 @@ const PLATFORM_CACHE_TTL = 5 * 60 * 1000; // 5 minutes
 
 // Token budget: ~4 chars per token. Claude Sonnet handles larger contexts well.
 // Quality > cost for twin chat - richer context = better personality embodiment.
-const MAX_DYNAMIC_CONTEXT_CHARS = 12000; // ~3K tokens for dynamic context (up from 2K)
-const MAX_ADDITIONAL_CONTEXT_CHARS = 8000; // ~2K tokens for writing profile, memories, history
+const MAX_DYNAMIC_CONTEXT_CHARS = 20000; // ~5K tokens for dynamic context (richer personality embodiment)
+const MAX_ADDITIONAL_CONTEXT_CHARS = 12000; // ~3K tokens for writing profile, memories, history
 
 // Periodic cleanup to prevent memory leaks from expired cache entries
 setInterval(() => {
@@ -553,43 +552,49 @@ function getTimeAgo(timestamp) {
  */
 async function getMoltbotContext(userId) {
   try {
-    const memoryService = getMemoryService(userId);
     const clusterBuilder = getClusterPersonalityBuilder(userId);
 
-    // Gather context in parallel - keep limits tight to control token usage
-    const [recentEvents, learnedFacts, storedProfiles] = await Promise.all([
-      memoryService.getRecentEvents({ limit: 5 }).catch(() => []),
-      memoryService.queryFacts(null, 5).catch(() => []),
+    // Gather context in parallel from unified memory stream + cluster personality
+    const [recentMemories, storedProfiles] = await Promise.all([
+      getRecentMemories(userId, 20).catch(() => []),
       clusterBuilder.getStoredProfiles().catch(() => [])
     ]);
+
+    // Split memories by type for structured context
+    const recentEvents = recentMemories.filter(m => m.memory_type === 'observation');
+    const learnedFacts = recentMemories.filter(m => m.memory_type === 'fact');
 
     // Get primary cluster personality (personal by default)
     const personalProfile = storedProfiles.find(p => p.cluster === 'personal');
 
-    // Extract current state from recent events
+    // Extract current state from recent memories
     const currentState = {};
-    const recoveryEvent = recentEvents.find(e => e.type === 'recovery_updated' || e.platform === 'whoop');
-    if (recoveryEvent?.data?.recovery_score) {
-      currentState.recovery = recoveryEvent.data.recovery_score;
+    const recoveryMem = recentEvents.find(e => e.content?.toLowerCase().includes('recovery') || e.content?.toLowerCase().includes('whoop'));
+    if (recoveryMem) {
+      const match = recoveryMem.content.match(/(\d+)%?\s*recovery/i);
+      if (match) currentState.recovery = parseInt(match[1]);
     }
 
-    const moodFact = learnedFacts.find(f => f.category === 'current_mood' || f.key?.includes('mood'));
-    if (moodFact?.fact) {
-      currentState.recentMood = moodFact.fact.mood || moodFact.fact.value;
+    const moodMem = recentMemories.find(m => m.content?.toLowerCase().includes('mood') || m.content?.toLowerCase().includes('feeling'));
+    if (moodMem) {
+      currentState.recentMood = moodMem.content.substring(0, 100);
     }
 
     const lastActivity = recentEvents[0];
     if (lastActivity) {
-      currentState.lastActivity = `${lastActivity.type} on ${lastActivity.platform}`;
+      currentState.lastActivity = lastActivity.content?.substring(0, 100) || 'recent activity';
     }
 
     return {
-      recentMemories: recentEvents.slice(0, 3).map(e => ({
+      recentMemories: recentEvents.slice(0, 5).map(e => ({
         timestamp: e.created_at,
-        summary: `${e.type} on ${e.platform}`
-        // Intentionally omit e.data - raw data objects can be 50K+ chars
+        summary: e.content?.substring(0, 150) || 'observation'
       })),
-      learnedFacts: learnedFacts.slice(0, 5),
+      learnedFacts: learnedFacts.slice(0, 8).map(f => ({
+        category: f.metadata?.category || 'general',
+        key: f.content?.substring(0, 80) || '',
+        fact: { key: f.content?.substring(0, 80) || '' }
+      })),
       clusterPersonality: personalProfile ? {
         name: 'Personal',
         personality: {
@@ -988,9 +993,15 @@ router.post('/message', authenticateUser, async (req, res) => {
     });
     const { soulSignature, platformData, personalityScores, writingProfile, memories, twinSummary, proactiveInsights } = twinContext;
 
+    // Fetch learned facts + cluster personality from memory stream (was previously stubbed)
+    const moltbotContext = await getMoltbotContext(userId).catch(err => {
+      console.warn('[Twin Chat] moltbotContext fetch failed:', err.message);
+      return null;
+    });
+
     // Build personalized system prompt with structured context layers
     // Returns array format for Anthropic prompt caching: [cached_base, dynamic_context]
-    let systemPrompt = buildTwinSystemPrompt(soulSignature, platformData, null, personalityScores, twinSummary, proactiveInsights);
+    let systemPrompt = buildTwinSystemPrompt(soulSignature, platformData, moltbotContext, personalityScores, twinSummary, proactiveInsights);
 
     // Build additional dynamic context (writing profile + unified memory stream)
     let additionalContext = '';
@@ -1028,7 +1039,7 @@ router.post('/message', authenticateUser, async (req, res) => {
         }).join('\n')}`;
       }
       if (observations.length > 0) {
-        additionalContext += `\n\nRelevant memories:\n${observations.slice(0, 8).map(m => `- ${m.content.substring(0, 200)}`).join('\n')}`;
+        additionalContext += `\n\nRelevant memories:\n${observations.slice(0, 15).map(m => `- ${m.content.substring(0, 200)}`).join('\n')}`;
       }
     }
 
@@ -1053,7 +1064,7 @@ router.post('/message', authenticateUser, async (req, res) => {
     let conversationHistory = [];
     if (conversationId) {
       try {
-        const messages = await serverDb.getMessagesByConversation(conversationId, 10);
+        const messages = await serverDb.getMessagesByConversation(conversationId, 20);
         conversationHistory = messages.map(m => ({
           role: m.is_user_message ? 'user' : 'assistant',
           content: m.content.length > 800 ? m.content.substring(0, 800) + '...' : m.content
@@ -1165,12 +1176,23 @@ router.post('/message', authenticateUser, async (req, res) => {
     extractConversationFacts(userId, message).catch(err => console.error('[TWIN-CHAT] Fact extraction failed:', err.message));
 
     // Trigger reflection if enough importance has accumulated - non-blocking
-    shouldTriggerReflection(userId).then(shouldReflect => {
+    shouldTriggerReflection(userId).then(async (shouldReflect) => {
       if (shouldReflect) {
         console.log(`[Twin Chat] Triggering background reflection for user ${userId}`);
         generateReflections(userId).catch(err =>
           console.warn('[Twin Chat] Background reflection failed:', err.message)
         );
+      } else {
+        // Auto-seed reflections for new users: if they have 3+ memories but 0 reflections
+        try {
+          const stats = await getMemoryStats(userId);
+          if (stats.total >= 3 && stats.byType.reflection === 0) {
+            console.log(`[Twin Chat] Auto-seeding reflections for new user ${userId} (${stats.total} memories, 0 reflections)`);
+            seedReflections(userId).catch(err =>
+              console.warn('[Twin Chat] Auto-seed reflections failed:', err.message)
+            );
+          }
+        } catch { /* ignore stats check failure */ }
       }
     }).catch(() => {});
 
