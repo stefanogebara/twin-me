@@ -24,19 +24,15 @@ import {
   SOURCE_TYPE_INFO,
   createNodeThreeObject,
 } from '@/components/brain/BrainNodeRenderer';
-import {
-  useBrainThemeColors,
-  BrainHeader,
-  BrainStatsRow,
-  CausalStatsPanel,
-  LearningSuggestionsPanel,
-  CategoryFilters,
-  ContextSelector,
-  FullscreenToggle,
-  GraphInstructions,
-  CategoryDistribution,
-  UnderstandingSection,
-} from '@/components/brain/BrainControls';
+import { useBrainThemeColors } from '@/components/brain/BrainTheme';
+import { BrainHeader } from '@/components/brain/BrainHeader';
+import { BrainStatsRow } from '@/components/brain/BrainStatsRow';
+import { CausalStatsPanel } from '@/components/brain/CausalStatsPanel';
+import { LearningSuggestionsPanel } from '@/components/brain/LearningSuggestionsPanel';
+import { CategoryFilters, CategoryDistribution } from '@/components/brain/CategoryFilters';
+import { ContextSelector } from '@/components/brain/ContextSelector';
+import { FullscreenToggle, GraphInstructions } from '@/components/brain/BrainOverlays';
+import { UnderstandingSection } from '@/components/brain/UnderstandingSection';
 import { NodeDetailsPanel } from '@/components/brain/NodeDetailsPanel';
 import { RelationshipsPanel } from '@/components/brain/RelationshipsPanel';
 import { ContextExpressionPanel } from '@/components/brain/ContextExpressionPanel';
