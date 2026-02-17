@@ -85,6 +85,7 @@ const NewDiscoverFlow: React.FC = () => {
   const [correctionLinkedIn, setCorrectionLinkedIn] = useState('');
   const [retryCount, setRetryCount] = useState(0);
   const [isRetrying, setIsRetrying] = useState(false);
+  const [enrichError, setEnrichError] = useState<string | null>(null);
 
   // Refs to prevent double-fire
   const hasStartedRef = useRef(false);
@@ -207,6 +208,7 @@ const NewDiscoverFlow: React.FC = () => {
       setOrbPhase('alive');
     } catch (error) {
       console.error('Enrichment error:', error);
+      setEnrichError("We couldn't find your info right now — no worries, let's keep going.");
       setOrbPhase('alive');
     }
   };
@@ -278,6 +280,8 @@ const NewDiscoverFlow: React.FC = () => {
     setDataPoints([]);
     setNarrative('');
     setShowContinue(false);
+    setEnrichError(null);
+    quickDataRef.current = null;
 
     try {
       await enrichmentService.clear(user.id);
@@ -309,6 +313,7 @@ const NewDiscoverFlow: React.FC = () => {
       setRetryCount(prev => prev + 1);
     } catch (error) {
       console.error('Re-search error:', error);
+      setEnrichError('Search failed — you can try again or skip this step.');
       setOrbPhase('alive');
     } finally {
       setIsRetrying(false);
@@ -474,9 +479,9 @@ const NewDiscoverFlow: React.FC = () => {
                 <SoulOrb phase={orbPhase} dataPointCount={dataPoints.length} />
               </div>
 
-              {/* Profile photo overlay */}
+              {/* Profile photo overlay (hidden during correction) */}
               <AnimatePresence>
-                {quickDataRef.current?.discovered_photo && (
+                {revealSubView === 'data' && quickDataRef.current?.discovered_photo && (
                   <motion.div
                     initial={{ opacity: 0, scale: 0.5 }}
                     animate={{ opacity: 1, scale: 1 }}
@@ -534,9 +539,28 @@ const NewDiscoverFlow: React.FC = () => {
                 )}
               </AnimatePresence>
 
+              {/* Error message */}
+              <AnimatePresence>
+                {revealSubView === 'data' && enrichError && dataPoints.length === 0 && (
+                  <motion.p
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: 0.4 }}
+                    className="text-sm text-center mt-6 max-w-sm"
+                    style={{
+                      color: 'rgba(232, 213, 183, 0.5)',
+                      fontFamily: 'var(--font-body)',
+                    }}
+                  >
+                    {enrichError}
+                  </motion.p>
+                )}
+              </AnimatePresence>
+
               {/* Continue button + "This isn't me" OR Correction form */}
               <AnimatePresence mode="wait">
-                {revealSubView === 'data' && (showContinue || orbPhase === 'alive') && (
+                {revealSubView === 'data' && showContinue && (
                   <motion.div
                     key="data-actions"
                     initial={{ opacity: 0, y: 10 }}
