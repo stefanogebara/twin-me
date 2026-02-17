@@ -420,9 +420,8 @@ const NewDiscoverFlow: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-[#0C0C0C] relative overflow-hidden">
-      {/* Google Fonts */}
+      {/* Scrollbar utility (fonts loaded via index.html) */}
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,400&family=Space+Grotesk:wght@300;400;500&display=swap');
         .scrollbar-hide::-webkit-scrollbar { display: none; }
         .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
       `}</style>
@@ -479,33 +478,29 @@ const NewDiscoverFlow: React.FC = () => {
                 {orbPhase === 'alive' && `Hello, ${userName.split(' ')[0]}`}
               </motion.p>
 
-              {/* Soul Orb */}
-              <div className="mb-8">
+              {/* Soul Orb + photo overlay */}
+              <div className="relative mb-8 flex items-center justify-center">
                 <SoulOrb phase={orbPhase} dataPointCount={dataPoints.length} />
-              </div>
 
-              {/* Profile photo overlay (hidden during correction) */}
-              <AnimatePresence>
-                {revealSubView === 'data' && quickDataRef.current?.discovered_photo && (
-                  <motion.div
-                    initial={{ opacity: 0, scale: 0.5 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    transition={{ type: 'spring', stiffness: 300, damping: 25 }}
-                    className="absolute flex items-center justify-center"
-                    style={{
-                      top: '50%',
-                      transform: 'translateY(-80px)',
-                    }}
-                  >
-                    <img
-                      src={quickDataRef.current.discovered_photo}
-                      alt=""
-                      className="w-16 h-16 rounded-full object-cover"
-                      style={{ border: '2px solid rgba(232, 213, 183, 0.3)' }}
-                    />
-                  </motion.div>
-                )}
-              </AnimatePresence>
+                {/* Profile photo centered on orb (hidden during correction) */}
+                <AnimatePresence>
+                  {revealSubView === 'data' && quickDataRef.current?.discovered_photo && (
+                    <motion.div
+                      initial={{ opacity: 0, scale: 0.5 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      transition={{ type: 'spring', stiffness: 300, damping: 25 }}
+                      className="absolute inset-0 flex items-center justify-center pointer-events-none"
+                    >
+                      <img
+                        src={quickDataRef.current.discovered_photo}
+                        alt=""
+                        className="w-16 h-16 rounded-full object-cover"
+                        style={{ border: '2px solid rgba(232, 213, 183, 0.3)' }}
+                      />
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
 
               {/* Data points reveal (hidden during correction) */}
               {revealSubView === 'data' && dataPoints.length > 0 && (
@@ -539,7 +534,13 @@ const NewDiscoverFlow: React.FC = () => {
                       fontStyle: 'italic',
                     }}
                   >
-                    {narrative.length > 500 ? narrative.slice(0, 500).replace(/\s+\S*$/, '') + '...' : narrative}
+                    {narrative.length > 500
+                      ? (() => {
+                          const chunk = narrative.slice(0, 500);
+                          const lastPeriod = chunk.lastIndexOf('.');
+                          return lastPeriod > 200 ? chunk.slice(0, lastPeriod + 1) : chunk.replace(/\s+\S*$/, '') + '...';
+                        })()
+                      : narrative}
                   </motion.p>
                 )}
               </AnimatePresence>
