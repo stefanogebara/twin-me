@@ -1,4 +1,5 @@
 import express from 'express';
+import crypto from 'crypto';
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcrypt';
 import { supabase, supabaseAdmin } from '../config/supabase.js';
@@ -7,8 +8,27 @@ import profileEnrichmentService from '../services/profileEnrichmentService.js';
 
 const router = express.Router();
 
-// JWT secret - in production use environment variable
-const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-this-in-production';
+// JWT secret - required environment variable
+const JWT_SECRET = process.env.JWT_SECRET;
+if (!JWT_SECRET) {
+  throw new Error('JWT_SECRET environment variable is required');
+}
+
+function generateTokenPair(user) {
+  const accessToken = jwt.sign(
+    { id: user.id, email: user.email },
+    JWT_SECRET,
+    { expiresIn: '1h' }
+  );
+
+  const refreshToken = crypto.randomBytes(64).toString('hex');
+
+  return { accessToken, refreshToken };
+}
+
+function hashToken(token) {
+  return crypto.createHash('sha256').update(token).digest('hex');
+}
 
 // Sign up
 router.post('/signup', async (req, res) => {
@@ -46,16 +66,20 @@ router.post('/signup', async (req, res) => {
       return res.status(500).json({ error: 'Failed to create user' });
     }
 
-    // Generate JWT token
-    const token = jwt.sign(
-      { id: newUser.id, email: newUser.email },
-      JWT_SECRET,
-      { expiresIn: '7d' }
-    );
+    // Generate token pair
+    const { accessToken, refreshToken } = generateTokenPair(newUser);
+    const refreshTokenHash = hashToken(refreshToken);
+
+    // Store refresh token hash
+    await supabaseAdmin
+      .from('users')
+      .update({ refresh_token_hash: refreshTokenHash })
+      .eq('id', newUser.id);
 
     res.json({
       success: true,
-      token,
+      token: accessToken,
+      refreshToken,
       user: {
         id: newUser.id,
         email: newUser.email,
@@ -92,16 +116,20 @@ router.post('/signin', async (req, res) => {
       return res.status(400).json({ error: 'Invalid credentials' });
     }
 
-    // Generate JWT token
-    const token = jwt.sign(
-      { id: user.id, email: user.email },
-      JWT_SECRET,
-      { expiresIn: '7d' }
-    );
+    // Generate token pair
+    const { accessToken, refreshToken } = generateTokenPair(user);
+    const refreshTokenHash = hashToken(refreshToken);
+
+    // Store refresh token hash
+    await supabaseAdmin
+      .from('users')
+      .update({ refresh_token_hash: refreshTokenHash })
+      .eq('id', user.id);
 
     res.json({
       success: true,
-      token,
+      token: accessToken,
+      refreshToken,
       user: {
         id: user.id,
         email: user.email,
@@ -151,6 +179,77 @@ router.get('/verify', async (req, res) => {
   } catch (error) {
     console.error('Token verification error:', error);
     res.status(401).json({ error: 'Invalid token' });
+  }
+});
+
+// Refresh access token
+router.post('/refresh', async (req, res) => {
+  try {
+    const { refreshToken } = req.body;
+
+    if (!refreshToken) {
+      return res.status(400).json({ error: 'Refresh token required' });
+    }
+
+    const tokenHash = hashToken(refreshToken);
+
+    // Find user by refresh token hash
+    const { data: user, error: fetchError } = await supabaseAdmin
+      .from('users')
+      .select('id, email, first_name, last_name')
+      .eq('refresh_token_hash', tokenHash)
+      .single();
+
+    if (fetchError || !user) {
+      return res.status(401).json({ error: 'Invalid refresh token' });
+    }
+
+    // Generate new token pair (rotate refresh token)
+    const { accessToken: newAccessToken, refreshToken: newRefreshToken } = generateTokenPair(user);
+    const newHash = hashToken(newRefreshToken);
+
+    // Update stored hash (token rotation)
+    await supabaseAdmin
+      .from('users')
+      .update({ refresh_token_hash: newHash })
+      .eq('id', user.id);
+
+    res.json({
+      success: true,
+      accessToken: newAccessToken,
+      refreshToken: newRefreshToken,
+      user: {
+        id: user.id,
+        email: user.email,
+        firstName: user.first_name,
+        lastName: user.last_name,
+        fullName: `${user.first_name} ${user.last_name}`.trim()
+      }
+    });
+  } catch (error) {
+    console.error('Token refresh error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Logout - invalidate refresh token
+router.post('/logout', async (req, res) => {
+  try {
+    const token = req.headers.authorization?.split(' ')[1];
+    if (token) {
+      try {
+        const decoded = jwt.verify(token, JWT_SECRET);
+        await supabaseAdmin
+          .from('users')
+          .update({ refresh_token_hash: null })
+          .eq('id', decoded.id);
+      } catch {
+        // Token expired or invalid — still clear on best effort
+      }
+    }
+    res.json({ success: true });
+  } catch (error) {
+    res.status(500).json({ error: 'Internal server error' });
   }
 });
 
@@ -455,15 +554,18 @@ router.get('/oauth/callback', async (req, res) => {
       return res.redirect(redirectUrl);
     }
 
-    // Generate JWT token for regular user authentication
-    const token = jwt.sign(
-      { id: user.id, email: user.email },
-      JWT_SECRET,
-      { expiresIn: '7d' }
-    );
+    // Generate token pair for regular user authentication
+    const { accessToken, refreshToken } = generateTokenPair(user);
+    const refreshTokenHash = hashToken(refreshToken);
 
-    // Redirect to frontend with token
-    const redirectUrl = `${appUrl}/oauth/callback?token=${token}&provider=${provider}`;
+    // Store refresh token hash
+    await supabaseAdmin
+      .from('users')
+      .update({ refresh_token_hash: refreshTokenHash })
+      .eq('id', user.id);
+
+    // Redirect to frontend with tokens
+    const redirectUrl = `${appUrl}/oauth/callback?token=${accessToken}&refreshToken=${refreshToken}&provider=${provider}`;
     res.redirect(redirectUrl);
   } catch (error) {
     console.error('OAuth callback error:', error);
@@ -671,20 +773,24 @@ router.post('/oauth/callback', async (req, res) => {
         provider: provider
       });
     } else if (user) {
-      // Generate JWT token for auth flows
-      console.log('✅ Generating JWT token for user:', user.id);
-      const token = jwt.sign(
-        { id: user.id, email: user.email },
-        JWT_SECRET,
-        { expiresIn: '7d' }
-      );
+      // Generate token pair for auth flows
+      console.log('✅ Generating token pair for user:', user.id);
+      const { accessToken, refreshToken } = generateTokenPair(user);
+      const refreshTokenHash = hashToken(refreshToken);
+
+      // Store refresh token hash
+      await supabaseAdmin
+        .from('users')
+        .update({ refresh_token_hash: refreshTokenHash })
+        .eq('id', user.id);
 
       console.log('✅ Returning auth success with token');
 
       // Build response data
       const responseData = {
         success: true,
-        token,
+        token: accessToken,
+        refreshToken,
         user: {
           id: user.id,
           email: user.email,

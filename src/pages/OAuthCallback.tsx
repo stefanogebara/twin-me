@@ -81,6 +81,32 @@ const OAuthCallback = () => {
           return;
         }
 
+        // Handle direct token from GET redirect (backend sends token in URL)
+        const directToken = searchParams.get('token');
+        if (directToken && !code) {
+          localStorage.setItem('auth_token', directToken);
+          localStorage.setItem('auth_provider', searchParams.get('provider') || 'google');
+
+          // Store refresh token from URL if provided
+          const urlRefreshToken = searchParams.get('refreshToken');
+          if (urlRefreshToken) {
+            localStorage.setItem('refresh_token', urlRefreshToken);
+          }
+
+          setStatus('success');
+          setMessage('Authentication successful! Redirecting...');
+
+          toast.success('Welcome!', {
+            description: 'Successfully signed in',
+            duration: 3000
+          });
+
+          setTimeout(() => {
+            window.location.href = '/dashboard';
+          }, 1500);
+          return;
+        }
+
         if (!code) {
           setStatus('error');
           setMessage('No authorization code received');

@@ -274,12 +274,12 @@ export async function complete({
     throw new Error(`[LLM Gateway] Circuit breaker is OPEN - LLM calls temporarily disabled. Resets in ${Math.ceil((circuitBreaker.resetTimeout - (Date.now() - circuitBreaker.lastFailure)) / 1000)}s`);
   }
 
-  // Budget guard (4D) - exempt CHAT tier (user-facing should never be blocked)
-  if (tier !== TIER_CHAT) {
+  // Budget guard (4D) - ALL tiers are budget-checked
+  {
     const dailyCost = await getDailyCost();
     const budget = parseFloat(process.env.LLM_DAILY_BUDGET_USD) || 10;
     if (dailyCost >= budget) {
-      throw new Error(`[LLM Gateway] Daily LLM budget exceeded: $${dailyCost.toFixed(2)} >= $${budget.toFixed(2)} limit. CHAT tier is exempt. Resets at midnight UTC.`);
+      throw new Error(`[LLM Gateway] Daily LLM budget exceeded: $${dailyCost.toFixed(2)} >= $${budget.toFixed(2)} limit. Resets at midnight UTC.`);
     }
   }
 
