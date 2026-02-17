@@ -9,6 +9,7 @@ import ParticleField from './components/ParticleField';
 import DataRevealItem from './components/DataRevealItem';
 import QuickQuestionCard, { QUICK_QUESTIONS } from './components/QuickQuestionCard';
 import CompactPlatformConnect from './components/CompactPlatformConnect';
+import CorrectionForm from './components/CorrectionForm';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
 
@@ -76,6 +77,14 @@ const NewDiscoverFlow: React.FC = () => {
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [signature, setSignature] = useState<SoulSignature | null>(null);
   const [generatingSignature, setGeneratingSignature] = useState(false);
+
+  // Correction flow state
+  type RevealSubView = 'data' | 'correction';
+  const [revealSubView, setRevealSubView] = useState<RevealSubView>('data');
+  const [correctionName, setCorrectionName] = useState('');
+  const [correctionLinkedIn, setCorrectionLinkedIn] = useState('');
+  const [retryCount, setRetryCount] = useState(0);
+  const [isRetrying, setIsRetrying] = useState(false);
 
   // Refs to prevent double-fire
   const hasStartedRef = useRef(false);
@@ -241,6 +250,79 @@ const NewDiscoverFlow: React.FC = () => {
         github_url: data.discovered_github_url || quickDataRef.current?.discovered_github_url || undefined,
       }).catch(err => console.warn('Confirm error:', err));
     }
+    setPhase('deepening');
+  };
+
+  const handleNotMe = () => {
+    const currentName = enrichmentDataRef.current?.discovered_name
+      || quickDataRef.current?.discovered_name
+      || user?.fullName
+      || '';
+    setCorrectionName(currentName);
+    setCorrectionLinkedIn('');
+    setRevealSubView('correction');
+  };
+
+  const handleSearchAgain = async () => {
+    if (!user) return;
+
+    // Auto-skip after 2 failed retries
+    if (retryCount >= 2) {
+      handleSkipEnrichment();
+      return;
+    }
+
+    setIsRetrying(true);
+    setRevealSubView('data');
+    setOrbPhase('awakening');
+    setDataPoints([]);
+    setNarrative('');
+    setShowContinue(false);
+
+    try {
+      await enrichmentService.clear(user.id);
+
+      let searchResult;
+      if (correctionLinkedIn.trim()) {
+        searchResult = await enrichmentService.enrichFromLinkedIn(
+          user.id,
+          correctionLinkedIn.trim(),
+          correctionName.trim() || undefined,
+        );
+      } else {
+        searchResult = await enrichmentService.search(
+          user.id,
+          user.email,
+          correctionName.trim() || undefined,
+        );
+      }
+
+      if (searchResult.data) {
+        enrichmentDataRef.current = searchResult.data;
+        addFullEnrichmentPoints(searchResult.data);
+        if (searchResult.data.discovered_summary && !isLLMJunk(searchResult.data.discovered_summary)) {
+          setNarrative(searchResult.data.discovered_summary);
+        }
+      }
+
+      setOrbPhase('alive');
+      setRetryCount(prev => prev + 1);
+    } catch (error) {
+      console.error('Re-search error:', error);
+      setOrbPhase('alive');
+    } finally {
+      setIsRetrying(false);
+    }
+  };
+
+  const handleSkipEnrichment = async () => {
+    if (!user) return;
+    try {
+      await enrichmentService.skip(user.id);
+    } catch (error) {
+      console.warn('Skip enrichment error:', error);
+    }
+    enrichmentDataRef.current = null;
     setPhase('deepening');
   };
 
@@ -415,8 +497,8 @@ const NewDiscoverFlow: React.FC = () => {
                 )}
               </AnimatePresence>
 
-              {/* Data points reveal */}
-              {dataPoints.length > 0 && (
+              {/* Data points reveal (hidden during correction) */}
+              {revealSubView === 'data' && dataPoints.length > 0 && (
                 <motion.div
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
@@ -433,9 +515,9 @@ const NewDiscoverFlow: React.FC = () => {
                 </motion.div>
               )}
 
-              {/* Narrative */}
+              {/* Narrative (hidden during correction) */}
               <AnimatePresence>
-                {narrative && (
+                {revealSubView === 'data' && narrative && (
                   <motion.p
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
@@ -452,26 +534,63 @@ const NewDiscoverFlow: React.FC = () => {
                 )}
               </AnimatePresence>
 
-              {/* Continue button */}
-              <AnimatePresence>
-                {(showContinue || orbPhase === 'alive') && (
-                  <motion.button
+              {/* Continue button + "This isn't me" OR Correction form */}
+              <AnimatePresence mode="wait">
+                {revealSubView === 'data' && (showContinue || orbPhase === 'alive') && (
+                  <motion.div
+                    key="data-actions"
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0 }}
                     transition={{ duration: 0.4 }}
-                    onClick={handleAdvanceToDeepening}
-                    className="mt-8 px-8 py-3 rounded-full text-base flex items-center gap-2 transition-all duration-200 hover:scale-[1.03]"
-                    style={{
-                      background: 'linear-gradient(135deg, #E8D5B7 0%, #D4C4A8 100%)',
-                      color: '#0C0C0C',
-                      fontFamily: 'var(--font-body)',
-                      fontWeight: 500,
-                    }}
+                    className="flex flex-col items-center mt-8"
                   >
-                    Continue
-                    <ArrowRight className="w-4 h-4" />
-                  </motion.button>
+                    <motion.button
+                      onClick={handleAdvanceToDeepening}
+                      className="px-8 py-3 rounded-full text-base flex items-center gap-2 transition-all duration-200 hover:scale-[1.03]"
+                      style={{
+                        background: 'linear-gradient(135deg, #E8D5B7 0%, #D4C4A8 100%)',
+                        color: '#0C0C0C',
+                        fontFamily: 'var(--font-body)',
+                        fontWeight: 500,
+                      }}
+                    >
+                      Continue
+                      <ArrowRight className="w-4 h-4" />
+                    </motion.button>
+
+                    {dataPoints.length > 0 && (
+                      <button
+                        onClick={handleNotMe}
+                        className="mt-4 text-xs transition-opacity hover:opacity-70"
+                        style={{
+                          color: 'rgba(232, 213, 183, 0.35)',
+                          fontFamily: 'var(--font-body)',
+                          background: 'none',
+                          border: 'none',
+                          cursor: 'pointer',
+                          textDecoration: 'underline',
+                          textUnderlineOffset: '3px',
+                        }}
+                      >
+                        This isn't me
+                      </button>
+                    )}
+                  </motion.div>
+                )}
+
+                {revealSubView === 'correction' && (
+                  <CorrectionForm
+                    key="correction-form"
+                    name={correctionName}
+                    linkedIn={correctionLinkedIn}
+                    onNameChange={setCorrectionName}
+                    onLinkedInChange={setCorrectionLinkedIn}
+                    onSearchAgain={handleSearchAgain}
+                    onSkip={handleSkipEnrichment}
+                    isRetrying={isRetrying}
+                    retryCount={retryCount}
+                  />
                 )}
               </AnimatePresence>
             </motion.div>
