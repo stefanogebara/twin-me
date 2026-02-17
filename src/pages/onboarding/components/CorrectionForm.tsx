@@ -13,6 +13,11 @@ interface CorrectionFormProps {
   retryCount: number;
 }
 
+const isValidLinkedInUrl = (url: string): boolean => {
+  if (!url.trim()) return true; // empty is fine (optional field)
+  return /^https?:\/\/(www\.)?linkedin\.com\/in\/[\w-]+\/?$/i.test(url.trim());
+};
+
 const CorrectionForm: React.FC<CorrectionFormProps> = ({
   name,
   linkedIn,
@@ -26,6 +31,15 @@ const CorrectionForm: React.FC<CorrectionFormProps> = ({
   const message = retryCount === 0
     ? 'No problem. Help us find the right you.'
     : 'Still not right? Try adding your LinkedIn.';
+
+  const linkedInValid = isValidLinkedInUrl(linkedIn);
+  const canSubmit = !isRetrying && name.trim().length > 0 && linkedInValid;
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' && canSubmit) {
+      onSearchAgain();
+    }
+  };
 
   return (
     <motion.div
@@ -61,6 +75,7 @@ const CorrectionForm: React.FC<CorrectionFormProps> = ({
           type="text"
           value={name}
           onChange={(e) => onNameChange(e.target.value)}
+          onKeyDown={handleKeyDown}
           className="w-full px-4 py-3 rounded-xl text-sm outline-none transition-colors"
           style={{
             backgroundColor: 'rgba(232, 213, 183, 0.06)',
@@ -88,22 +103,31 @@ const CorrectionForm: React.FC<CorrectionFormProps> = ({
           type="url"
           value={linkedIn}
           onChange={(e) => onLinkedInChange(e.target.value)}
+          onKeyDown={handleKeyDown}
           className="w-full px-4 py-3 rounded-xl text-sm outline-none transition-colors"
           style={{
             backgroundColor: 'rgba(232, 213, 183, 0.06)',
-            border: '1px solid rgba(232, 213, 183, 0.15)',
+            border: `1px solid ${linkedIn && !linkedInValid ? 'rgba(239, 68, 68, 0.5)' : 'rgba(232, 213, 183, 0.15)'}`,
             color: '#E8D5B7',
             fontFamily: 'var(--font-body)',
           }}
           placeholder="https://linkedin.com/in/yourprofile"
         />
+        {linkedIn && !linkedInValid && (
+          <p
+            className="text-xs mt-1.5"
+            style={{ color: 'rgba(239, 68, 68, 0.7)', fontFamily: 'var(--font-body)' }}
+          >
+            Enter a valid LinkedIn profile URL
+          </p>
+        )}
       </div>
 
       {/* Buttons */}
       <div className="flex flex-col gap-3">
         <button
           onClick={onSearchAgain}
-          disabled={isRetrying || !name.trim()}
+          disabled={!canSubmit}
           className="w-full px-6 py-3 rounded-xl text-sm font-medium flex items-center justify-center gap-2 transition-all duration-200 hover:scale-[1.01] disabled:opacity-40 disabled:cursor-not-allowed"
           style={{
             background: 'linear-gradient(135deg, #E8D5B7 0%, #D4C4A8 100%)',
