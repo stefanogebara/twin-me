@@ -135,7 +135,7 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
                   <span className="text-xs uppercase tracking-wider font-medium" style={{ color: textColor }}>Creative Pattern</span>
                 </div>
                 <p className="text-sm leading-relaxed" style={{ color: textSecondary }}>
-                  {soulSignature.defining_traits[2]?.trait || 'Creative expression'} is key - {soulSignature.defining_traits[2]?.evidence.toLowerCase() || 'you explore diverse artistic interests'}
+                  {soulSignature.defining_traits[2]?.trait || 'Creative expression'} is key - {soulSignature.defining_traits[2]?.evidence?.toLowerCase() || 'you explore diverse artistic interests'}
                 </p>
               </motion.div>
             </div>
