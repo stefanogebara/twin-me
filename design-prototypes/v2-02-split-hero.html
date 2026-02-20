@@ -1,0 +1,501 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=1440">
+<title>Template B: Split Hero - TwinMe Portfolio</title>
+<script src="https://mcp.figma.com/mcp/html-to-design/capture.js" async></script>
+<link href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,500;0,600;1,400&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Inter', system-ui, sans-serif;
+    background: #232320;
+    color: #C1C0B6;
+    width: 1440px;
+    overflow-x: hidden;
+  }
+
+  /* === HEADER === */
+  .header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 24px 60px;
+    border-bottom: 1px solid rgba(193, 192, 182, 0.06);
+  }
+  .wordmark {
+    font-size: 20px;
+    font-weight: 400;
+    color: #C1C0B6;
+    text-decoration: none;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .header-right {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .share-btn {
+    padding: 8px 20px;
+    border-radius: 12px;
+    background: rgba(193, 192, 182, 0.08);
+    border: 1px solid rgba(193, 192, 182, 0.1);
+    color: rgba(193, 192, 182, 0.6);
+    font-size: 13px;
+    font-weight: 500;
+  }
+
+  /* === HERO SPLIT === */
+  .hero {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    min-height: 480px;
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 60px 60px 0;
+    gap: 80px;
+  }
+  .hero-left {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+  }
+  .hero-eyebrow {
+    font-size: 12px;
+    letter-spacing: 0.08em;
+    color: rgba(193, 192, 182, 0.45);
+    margin-bottom: 16px;
+    text-transform: uppercase;
+  }
+  .hero-name {
+    font-size: 48px;
+    font-weight: 400;
+    color: #E8D5B7;
+    letter-spacing: -0.03em;
+    line-height: 1.1;
+    margin-bottom: 12px;
+  }
+  .hero-subtitle {
+    font-family: 'EB Garamond', Georgia, serif;
+    font-size: 20px;
+    font-style: italic;
+    color: rgba(193, 192, 182, 0.5);
+    margin-bottom: 32px;
+  }
+  .hero-platforms {
+    display: flex;
+    gap: 8px;
+  }
+  .hero-platform-pill {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 14px;
+    border-radius: 10px;
+    background: rgba(193, 192, 182, 0.04);
+    border: 1px solid rgba(193, 192, 182, 0.06);
+    font-size: 12px;
+    color: rgba(193, 192, 182, 0.5);
+  }
+  .hero-platform-pill .dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+  }
+
+  .hero-right {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .avatar-container {
+    position: relative;
+  }
+  .avatar-circle {
+    width: 200px;
+    height: 200px;
+    border-radius: 50%;
+    background: rgba(232, 213, 183, 0.06);
+    border: 2px solid rgba(232, 213, 183, 0.12);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 64px;
+    color: #E8D5B7;
+    font-weight: 300;
+  }
+  .avatar-ring {
+    position: absolute;
+    inset: -16px;
+    border-radius: 50%;
+    border: 1px solid rgba(232, 213, 183, 0.06);
+  }
+  .avatar-badge {
+    position: absolute;
+    bottom: -8px;
+    left: 50%;
+    transform: translateX(-50%);
+    padding: 6px 16px;
+    border-radius: 10px;
+    background: rgba(35, 35, 32, 0.95);
+    border: 1px solid rgba(232, 213, 183, 0.15);
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 2px;
+    color: #E8D5B7;
+    white-space: nowrap;
+  }
+
+  /* === CONTENT AREA === */
+  .content {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 48px 60px;
+  }
+
+  /* === SECTION LABEL === */
+  .section-label {
+    font-size: 11px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: rgba(193, 192, 182, 0.35);
+    margin-bottom: 20px;
+  }
+
+  /* === BIG FIVE PANEL === */
+  .bigfive-panel {
+    background: rgba(193, 192, 182, 0.03);
+    border: 1px solid rgba(193, 192, 182, 0.06);
+    border-radius: 20px;
+    padding: 36px 40px;
+    margin-bottom: 16px;
+  }
+  .bf-rows {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+  .bf-row {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+  .bf-label {
+    width: 140px;
+    font-size: 13px;
+    color: rgba(193, 192, 182, 0.5);
+    text-align: right;
+  }
+  .bf-track {
+    flex: 1;
+    height: 6px;
+    border-radius: 6px;
+    background: rgba(193, 192, 182, 0.06);
+    overflow: hidden;
+  }
+  .bf-fill {
+    height: 100%;
+    border-radius: 6px;
+    background: linear-gradient(90deg, rgba(232, 213, 183, 0.5), #E8D5B7);
+  }
+  .bf-val {
+    width: 36px;
+    font-size: 14px;
+    font-weight: 500;
+    color: rgba(193, 192, 182, 0.65);
+    text-align: right;
+  }
+
+  /* === TRAITS BENTO GRID === */
+  .traits-bento {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+    margin-bottom: 16px;
+  }
+  .trait-tile {
+    background: rgba(193, 192, 182, 0.03);
+    border: 1px solid rgba(193, 192, 182, 0.06);
+    border-radius: 20px;
+    padding: 28px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    min-height: 150px;
+  }
+  .trait-top {}
+  .trait-score {
+    font-size: 32px;
+    font-weight: 600;
+    color: #E8D5B7;
+    margin-bottom: 4px;
+    letter-spacing: -0.02em;
+  }
+  .trait-name {
+    font-size: 14px;
+    font-weight: 500;
+    color: #C1C0B6;
+    margin-bottom: 8px;
+  }
+  .trait-evidence {
+    font-size: 12px;
+    color: rgba(193, 192, 182, 0.4);
+    line-height: 1.5;
+  }
+
+  /* === NARRATIVE === */
+  .narrative-section {
+    background: rgba(193, 192, 182, 0.03);
+    border: 1px solid rgba(193, 192, 182, 0.06);
+    border-radius: 20px;
+    padding: 56px 64px;
+    margin-bottom: 16px;
+    text-align: center;
+  }
+  .quote-mark {
+    font-family: 'EB Garamond', Georgia, serif;
+    font-size: 80px;
+    line-height: 0.5;
+    color: rgba(232, 213, 183, 0.15);
+    margin-bottom: 16px;
+  }
+  .narrative-text {
+    font-family: 'EB Garamond', Georgia, serif;
+    font-size: 20px;
+    line-height: 1.8;
+    color: rgba(193, 192, 182, 0.6);
+    max-width: 640px;
+    margin: 0 auto;
+  }
+  .narrative-text strong {
+    color: rgba(193, 192, 182, 0.9);
+    font-weight: 500;
+  }
+
+  /* === PLATFORMS ROW === */
+  .platforms-row {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 16px;
+    margin-bottom: 16px;
+  }
+  .platform-tile {
+    background: rgba(193, 192, 182, 0.03);
+    border: 1px solid rgba(193, 192, 182, 0.06);
+    border-radius: 20px;
+    padding: 24px;
+    text-align: center;
+  }
+  .platform-icon-circle {
+    width: 40px;
+    height: 40px;
+    border-radius: 12px;
+    margin: 0 auto 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+    font-weight: 700;
+  }
+  .platform-name {
+    font-size: 13px;
+    font-weight: 500;
+    color: #C1C0B6;
+    margin-bottom: 4px;
+  }
+  .platform-stat {
+    font-size: 11px;
+    color: rgba(193, 192, 182, 0.35);
+  }
+
+  /* === FOOTER === */
+  .footer {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 32px 60px 48px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-top: 1px solid rgba(193, 192, 182, 0.06);
+  }
+  .footer-text {
+    font-size: 12px;
+    color: rgba(193, 192, 182, 0.3);
+  }
+  .cta-btn {
+    display: inline-block;
+    padding: 14px 32px;
+    border-radius: 14px;
+    background: linear-gradient(135deg, #E8D5B7 0%, #D4C4A8 100%);
+    color: #232320;
+    font-size: 14px;
+    font-weight: 500;
+    text-decoration: none;
+    border: none;
+  }
+</style>
+</head>
+<body>
+
+  <!-- Header -->
+  <div class="header">
+    <a class="wordmark" href="#">Twin Me</a>
+    <div class="header-right">
+      <button class="share-btn">Share</button>
+    </div>
+  </div>
+
+  <!-- Hero Split -->
+  <div class="hero">
+    <div class="hero-left">
+      <div class="hero-eyebrow">Alex's Soul Signature</div>
+      <div class="hero-name">The Curious<br>Navigator</div>
+      <div class="hero-subtitle">"Charting paths others haven't imagined"</div>
+      <div class="hero-platforms">
+        <div class="hero-platform-pill"><span class="dot" style="background: #1DB954;"></span>Spotify</div>
+        <div class="hero-platform-pill"><span class="dot" style="background: #FF0000;"></span>YouTube</div>
+        <div class="hero-platform-pill"><span class="dot" style="background: #00A5E0;"></span>Whoop</div>
+        <div class="hero-platform-pill"><span class="dot" style="background: #4285F4;"></span>Calendar</div>
+        <div class="hero-platform-pill"><span class="dot" style="background: #9146FF;"></span>Twitch</div>
+      </div>
+    </div>
+    <div class="hero-right">
+      <div class="avatar-container">
+        <div class="avatar-ring"></div>
+        <div class="avatar-circle">A</div>
+        <div class="avatar-badge">ENFP</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Content -->
+  <div class="content">
+
+    <!-- Big Five -->
+    <div class="bigfive-panel">
+      <div class="section-label">Personality Profile</div>
+      <div class="bf-rows">
+        <div class="bf-row">
+          <div class="bf-label">Openness</div>
+          <div class="bf-track"><div class="bf-fill" style="width: 82%;"></div></div>
+          <div class="bf-val">82</div>
+        </div>
+        <div class="bf-row">
+          <div class="bf-label">Conscientiousness</div>
+          <div class="bf-track"><div class="bf-fill" style="width: 65%;"></div></div>
+          <div class="bf-val">65</div>
+        </div>
+        <div class="bf-row">
+          <div class="bf-label">Extraversion</div>
+          <div class="bf-track"><div class="bf-fill" style="width: 71%;"></div></div>
+          <div class="bf-val">71</div>
+        </div>
+        <div class="bf-row">
+          <div class="bf-label">Agreeableness</div>
+          <div class="bf-track"><div class="bf-fill" style="width: 78%;"></div></div>
+          <div class="bf-val">78</div>
+        </div>
+        <div class="bf-row">
+          <div class="bf-label">Emotional Stability</div>
+          <div class="bf-track"><div class="bf-fill" style="width: 65%;"></div></div>
+          <div class="bf-val">65</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Traits -->
+    <div class="traits-bento">
+      <div class="trait-tile">
+        <div class="trait-top">
+          <div class="trait-score">91</div>
+          <div class="trait-name">Creative Curiosity</div>
+        </div>
+        <div class="trait-evidence">Explores 12+ music genres weekly across 40 curated playlists</div>
+      </div>
+      <div class="trait-tile">
+        <div class="trait-top">
+          <div class="trait-score">85</div>
+          <div class="trait-name">Empathetic Listener</div>
+        </div>
+        <div class="trait-evidence">Consistently gravitates toward emotionally rich content</div>
+      </div>
+      <div class="trait-tile">
+        <div class="trait-top">
+          <div class="trait-score">88</div>
+          <div class="trait-name">Pattern Seeker</div>
+        </div>
+        <div class="trait-evidence">Systematic exploration of interconnected topics</div>
+      </div>
+      <div class="trait-tile">
+        <div class="trait-top">
+          <div class="trait-score">76</div>
+          <div class="trait-name">Night Owl</div>
+        </div>
+        <div class="trait-evidence">Peak creative activity between 10pm and 2am</div>
+      </div>
+      <div class="trait-tile">
+        <div class="trait-top">
+          <div class="trait-score">82</div>
+          <div class="trait-name">Deep Diver</div>
+        </div>
+        <div class="trait-evidence">Average watch time 3x higher than casual viewers</div>
+      </div>
+      <div class="trait-tile">
+        <div class="trait-top">
+          <div class="trait-score">79</div>
+          <div class="trait-name">Social Catalyst</div>
+        </div>
+        <div class="trait-evidence">Bridges communities across platforms and interests</div>
+      </div>
+    </div>
+
+    <!-- Narrative -->
+    <div class="narrative-section">
+      <div class="quote-mark">&ldquo;</div>
+      <div class="narrative-text">
+        Alex moves through the world like a <strong>collector of invisible threads</strong>, connecting music to mood, ideas to action, and people to possibility. Their digital footprint reveals someone who thrives at the <strong>intersection of creativity and analysis</strong> &mdash; equally at home in a late-night coding session as they are curating a playlist that tells a story.
+      </div>
+    </div>
+
+    <!-- Platforms -->
+    <div class="platforms-row">
+      <div class="platform-tile">
+        <div class="platform-icon-circle" style="background: rgba(29, 185, 84, 0.12); color: #1DB954;">S</div>
+        <div class="platform-name">Spotify</div>
+        <div class="platform-stat">420 artists</div>
+      </div>
+      <div class="platform-tile">
+        <div class="platform-icon-circle" style="background: rgba(255, 0, 0, 0.1); color: #FF4444;">Y</div>
+        <div class="platform-name">YouTube</div>
+        <div class="platform-stat">850 videos</div>
+      </div>
+      <div class="platform-tile">
+        <div class="platform-icon-circle" style="background: rgba(0, 165, 224, 0.1); color: #00A5E0;">W</div>
+        <div class="platform-name">Whoop</div>
+        <div class="platform-stat">72% recovery</div>
+      </div>
+      <div class="platform-tile">
+        <div class="platform-icon-circle" style="background: rgba(66, 133, 244, 0.1); color: #4285F4;">C</div>
+        <div class="platform-name">Calendar</div>
+        <div class="platform-stat">28 events/wk</div>
+      </div>
+      <div class="platform-tile">
+        <div class="platform-icon-circle" style="background: rgba(145, 70, 255, 0.1); color: #9146FF;">T</div>
+        <div class="platform-name">Twitch</div>
+        <div class="platform-stat">15 channels</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <div class="footer">
+    <div class="footer-text">Powered by Twin Me &middot; Updated Feb 18, 2026</div>
+    <a href="#" class="cta-btn">Discover Your Soul Signature</a>
+  </div>
+
+</body>
+</html>

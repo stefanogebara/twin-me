@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=1440">
+<title>Bento Template - Soul Signature Portfolio</title>
+<script src="https://mcp.figma.com/mcp/html-to-design/capture.js" async></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Inter', sans-serif;
+    background: #0a0a0a;
+    color: #fafafa;
+    width: 1440px;
+    overflow-x: hidden;
+  }
+
+  .page {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 40px 48px;
+  }
+
+  /* === HEADER === */
+  .header {
+    display: flex; justify-content: space-between; align-items: center;
+    margin-bottom: 40px;
+  }
+  .wordmark {
+    font-size: 16px; font-weight: 600; letter-spacing: -0.3px;
+    color: rgba(250, 250, 250, 0.5);
+    text-decoration: none;
+  }
+  .header-right {
+    display: flex; gap: 12px; align-items: center;
+  }
+  .share-pill {
+    padding: 8px 18px; border-radius: 10px;
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.1);
+    color: rgba(250, 250, 250, 0.6);
+    font-size: 13px;
+    cursor: pointer;
+  }
+
+  /* === BENTO GRID === */
+  .bento {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    grid-auto-rows: minmax(100px, auto);
+    gap: 16px;
+  }
+  .tile {
+    border-radius: 20px;
+    overflow: hidden;
+    position: relative;
+  }
+  .tile-dark {
+    background: #141414;
+    border: 1px solid rgba(255,255,255,0.06);
+  }
+
+  /* === HERO TILE (spans 2 cols, 2 rows) === */
+  .tile-hero {
+    grid-column: span 2;
+    grid-row: span 2;
+    padding: 48px 40px;
+    display: flex; flex-direction: column; justify-content: flex-end;
+    background: linear-gradient(145deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+    min-height: 360px;
+    position: relative;
+    overflow: hidden;
+  }
+  .tile-hero::before {
+    content: '';
+    position: absolute;
+    top: -40px; right: -40px;
+    width: 200px; height: 200px;
+    background: radial-gradient(circle, rgba(99, 102, 241, 0.3), transparent 70%);
+    border-radius: 50%;
+  }
+  .hero-pre {
+    font-size: 11px; letter-spacing: 2.5px; text-transform: uppercase;
+    color: rgba(250, 250, 250, 0.4);
+    margin-bottom: 12px;
+  }
+  .hero-name {
+    font-size: 44px; font-weight: 700; letter-spacing: -1.5px;
+    line-height: 1.1;
+    margin-bottom: 12px;
+  }
+  .hero-subtitle {
+    font-size: 16px; font-weight: 300;
+    color: rgba(250, 250, 250, 0.55);
+    font-style: italic;
+  }
+
+  /* === AVATAR TILE === */
+  .tile-avatar {
+    grid-column: span 1;
+    aspect-ratio: 1;
+    display: flex; align-items: center; justify-content: center;
+    background: linear-gradient(135deg, #667eea33, #764ba233);
+    border: 1px solid rgba(255,255,255,0.08);
+  }
+  .avatar-circle {
+    width: 100px; height: 100px; border-radius: 50%;
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 36px; font-weight: 300; color: white;
+    box-shadow: 0 12px 40px rgba(102, 126, 234, 0.3);
+  }
+
+  /* === MBTI TILE === */
+  .tile-mbti {
+    grid-column: span 1;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    background: linear-gradient(135deg, #141414 0%, #1a1a2e 100%);
+    border: 1px solid rgba(102, 126, 234, 0.2);
+    padding: 24px;
+  }
+  .mbti-code {
+    font-size: 32px; font-weight: 800; letter-spacing: 3px;
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    margin-bottom: 4px;
+  }
+  .mbti-label {
+    font-size: 11px; color: rgba(250,250,250,0.35);
+    letter-spacing: 1px; text-transform: uppercase;
+  }
+
+  /* === BIG FIVE TILE (spans 2 cols) === */
+  .tile-bigfive {
+    grid-column: span 2;
+    padding: 32px;
+  }
+  .tile-label {
+    font-size: 10px; letter-spacing: 2px; text-transform: uppercase;
+    color: rgba(250,250,250,0.3);
+    margin-bottom: 24px;
+  }
+  .bigfive-bars {
+    display: flex; flex-direction: column; gap: 16px;
+  }
+  .bf-row {
+    display: flex; align-items: center; gap: 16px;
+  }
+  .bf-label {
+    width: 130px; font-size: 12px; color: rgba(250,250,250,0.5);
+    text-align: right;
+  }
+  .bf-track {
+    flex: 1; height: 8px; border-radius: 8px;
+    background: rgba(255,255,255,0.06);
+    overflow: hidden;
+  }
+  .bf-fill {
+    height: 100%; border-radius: 8px;
+  }
+  .bf-val {
+    width: 32px; font-size: 13px; font-weight: 600;
+    color: rgba(250,250,250,0.7);
+  }
+
+  /* === TRAIT TILE === */
+  .tile-trait {
+    padding: 24px;
+    display: flex; flex-direction: column; justify-content: space-between;
+  }
+  .trait-score {
+    font-size: 36px; font-weight: 700; letter-spacing: -1px;
+    margin-bottom: 4px;
+  }
+  .trait-name {
+    font-size: 13px; font-weight: 500;
+    color: rgba(250,250,250,0.8);
+    margin-bottom: 8px;
+  }
+  .trait-desc {
+    font-size: 11px; color: rgba(250,250,250,0.35);
+    line-height: 1.5;
+  }
+
+  /* === NARRATIVE TILE (spans 2 cols) === */
+  .tile-narrative {
+    grid-column: span 2;
+    padding: 40px;
+    display: flex; align-items: center;
+    background: #141414;
+    border: 1px solid rgba(255,255,255,0.06);
+  }
+  .narrative-text {
+    font-size: 16px; line-height: 1.8; font-weight: 300;
+    color: rgba(250,250,250,0.6);
+  }
+  .narrative-text strong {
+    color: rgba(250,250,250,0.9);
+    font-weight: 500;
+  }
+
+  /* === PLATFORM TILES === */
+  .tile-platform {
+    padding: 24px;
+    display: flex; flex-direction: column; justify-content: space-between;
+  }
+  .platform-icon {
+    width: 36px; height: 36px; border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 16px; font-weight: 700;
+    margin-bottom: 16px;
+  }
+  .platform-name {
+    font-size: 14px; font-weight: 500;
+    margin-bottom: 4px;
+  }
+  .platform-stat {
+    font-size: 11px; color: rgba(250,250,250,0.35);
+  }
+
+  /* === CTA TILE (spans 4 cols) === */
+  .tile-cta {
+    grid-column: span 4;
+    padding: 40px;
+    display: flex; justify-content: space-between; align-items: center;
+    background: linear-gradient(135deg, #667eea15, #764ba215);
+    border: 1px solid rgba(102, 126, 234, 0.15);
+  }
+  .cta-text {
+    font-size: 11px; color: rgba(250,250,250,0.3);
+    letter-spacing: 1px;
+  }
+  .cta-btn {
+    padding: 12px 28px; border-radius: 12px;
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    color: white; font-size: 13px; font-weight: 500;
+    text-decoration: none;
+    border: none;
+  }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <div class="header">
+    <a class="wordmark" href="#">TwinMe</a>
+    <div class="header-right">
+      <button class="share-pill">Share</button>
+    </div>
+  </div>
+
+  <div class="bento">
+
+    <!-- Hero -->
+    <div class="tile tile-hero">
+      <div class="hero-pre">Alex's Soul Signature</div>
+      <div class="hero-name">The Curious<br>Navigator</div>
+      <div class="hero-subtitle">"Charting paths others haven't imagined"</div>
+    </div>
+
+    <!-- Avatar -->
+    <div class="tile tile-dark tile-avatar">
+      <div class="avatar-circle">A</div>
+    </div>
+
+    <!-- MBTI -->
+    <div class="tile tile-mbti">
+      <div class="mbti-code">ENFP</div>
+      <div class="mbti-label">Personality Type</div>
+    </div>
+
+    <!-- Big Five -->
+    <div class="tile tile-dark tile-bigfive">
+      <div class="tile-label">Big Five Personality</div>
+      <div class="bigfive-bars">
+        <div class="bf-row">
+          <div class="bf-label">Openness</div>
+          <div class="bf-track"><div class="bf-fill" style="width:82%; background: linear-gradient(90deg, #667eea, #a78bfa);"></div></div>
+          <div class="bf-val">82</div>
+        </div>
+        <div class="bf-row">
+          <div class="bf-label">Conscientiousness</div>
+          <div class="bf-track"><div class="bf-fill" style="width:65%; background: linear-gradient(90deg, #06b6d4, #67e8f9);"></div></div>
+          <div class="bf-val">65</div>
+        </div>
+        <div class="bf-row">
+          <div class="bf-label">Extraversion</div>
+          <div class="bf-track"><div class="bf-fill" style="width:71%; background: linear-gradient(90deg, #10b981, #6ee7b7);"></div></div>
+          <div class="bf-val">71</div>
+        </div>
+        <div class="bf-row">
+          <div class="bf-label">Agreeableness</div>
+          <div class="bf-track"><div class="bf-fill" style="width:78%; background: linear-gradient(90deg, #f472b6, #fda4af);"></div></div>
+          <div class="bf-val">78</div>
+        </div>
+        <div class="bf-row">
+          <div class="bf-label">Stability</div>
+          <div class="bf-track"><div class="bf-fill" style="width:65%; background: linear-gradient(90deg, #f59e0b, #fcd34d);"></div></div>
+          <div class="bf-val">65</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Trait Tiles -->
+    <div class="tile tile-dark tile-trait">
+      <div>
+        <div class="trait-score" style="color: #a78bfa;">91</div>
+        <div class="trait-name">Creative Curiosity</div>
+      </div>
+      <div class="trait-desc">Explores 12+ genres weekly</div>
+    </div>
+    <div class="tile tile-dark tile-trait">
+      <div>
+        <div class="trait-score" style="color: #f472b6;">85</div>
+        <div class="trait-name">Empathetic Listener</div>
+      </div>
+      <div class="trait-desc">Drawn to emotional content</div>
+    </div>
+
+    <!-- Narrative -->
+    <div class="tile tile-narrative">
+      <div class="narrative-text">
+        Alex moves through the world like a <strong>collector of invisible threads</strong>, connecting music to mood, ideas to action, and people to possibility. Their digital footprint reveals someone who thrives at the <strong>intersection of creativity and analysis</strong> &mdash; equally at home in a late-night coding session as they are curating a playlist that tells a story.
+      </div>
+    </div>
+
+    <!-- More Traits -->
+    <div class="tile tile-dark tile-trait">
+      <div>
+        <div class="trait-score" style="color: #67e8f9;">88</div>
+        <div class="trait-name">Pattern Seeker</div>
+      </div>
+      <div class="trait-desc">Systematic topic exploration</div>
+    </div>
+    <div class="tile tile-dark tile-trait">
+      <div>
+        <div class="trait-score" style="color: #6ee7b7;">76</div>
+        <div class="trait-name">Night Owl</div>
+      </div>
+      <div class="trait-desc">Peak activity 10pm - 2am</div>
+    </div>
+
+    <!-- Platform tiles -->
+    <div class="tile tile-dark tile-platform">
+      <div class="platform-icon" style="background: #1DB95420; color: #1DB954;">S</div>
+      <div>
+        <div class="platform-name" style="color: #1DB954;">Spotify</div>
+        <div class="platform-stat">420 artists &middot; 12 genres</div>
+      </div>
+    </div>
+    <div class="tile tile-dark tile-platform">
+      <div class="platform-icon" style="background: #FF000020; color: #FF0000;">Y</div>
+      <div>
+        <div class="platform-name" style="color: #FF4444;">YouTube</div>
+        <div class="platform-stat">850 videos watched</div>
+      </div>
+    </div>
+    <div class="tile tile-dark tile-platform">
+      <div class="platform-icon" style="background: #44D62C20; color: #44D62C;">W</div>
+      <div>
+        <div class="platform-name" style="color: #44D62C;">Whoop</div>
+        <div class="platform-stat">72% avg recovery</div>
+      </div>
+    </div>
+    <div class="tile tile-dark tile-platform">
+      <div class="platform-icon" style="background: #9146FF20; color: #9146FF;">T</div>
+      <div>
+        <div class="platform-name" style="color: #9146FF;">Twitch</div>
+        <div class="platform-stat">15 channels &middot; 8h/wk</div>
+      </div>
+    </div>
+
+    <!-- CTA -->
+    <div class="tile tile-cta">
+      <div class="cta-text">Powered by TwinMe &middot; Updated Feb 18, 2026</div>
+      <a href="#" class="cta-btn">Discover Your Soul Signature</a>
+    </div>
+
+  </div>
+</div>
+</body>
+</html>

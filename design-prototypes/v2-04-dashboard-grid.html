@@ -1,0 +1,521 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=1440">
+<title>Template D: Dashboard Grid - TwinMe Portfolio</title>
+<script src="https://mcp.figma.com/mcp/html-to-design/capture.js" async></script>
+<link href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,500;0,600;1,400&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Inter', system-ui, sans-serif;
+    background: #232320;
+    color: #C1C0B6;
+    width: 1440px;
+    overflow-x: hidden;
+  }
+
+  /* === HEADER === */
+  .header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px 48px;
+    border-bottom: 1px solid rgba(193, 192, 182, 0.06);
+  }
+  .wordmark {
+    font-size: 18px;
+    font-weight: 400;
+    color: #C1C0B6;
+    text-decoration: none;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .header-right {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .header-btn {
+    padding: 7px 16px;
+    border-radius: 10px;
+    border: 1px solid rgba(193, 192, 182, 0.08);
+    background: rgba(193, 192, 182, 0.04);
+    color: rgba(193, 192, 182, 0.5);
+    font-size: 13px;
+    font-weight: 500;
+  }
+  .header-cta {
+    padding: 7px 16px;
+    border-radius: 10px;
+    border: none;
+    background: linear-gradient(135deg, #E8D5B7, #D4C4A8);
+    color: #232320;
+    font-size: 13px;
+    font-weight: 500;
+  }
+
+  /* === MAIN LAYOUT: SIDEBAR + CONTENT === */
+  .layout {
+    display: grid;
+    grid-template-columns: 340px 1fr;
+    min-height: calc(100vh - 60px);
+  }
+
+  /* === LEFT SIDEBAR === */
+  .sidebar {
+    padding: 36px 32px;
+    border-right: 1px solid rgba(193, 192, 182, 0.06);
+    display: flex;
+    flex-direction: column;
+    gap: 28px;
+  }
+
+  /* Profile card */
+  .profile-card {
+    text-align: center;
+    padding: 32px 24px;
+    background: rgba(193, 192, 182, 0.03);
+    border: 1px solid rgba(193, 192, 182, 0.06);
+    border-radius: 20px;
+  }
+  .profile-avatar {
+    width: 72px;
+    height: 72px;
+    border-radius: 50%;
+    background: rgba(232, 213, 183, 0.06);
+    border: 2px solid rgba(232, 213, 183, 0.12);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 28px;
+    color: #E8D5B7;
+    font-weight: 300;
+    margin: 0 auto 16px;
+  }
+  .profile-name {
+    font-size: 13px;
+    color: rgba(193, 192, 182, 0.5);
+    margin-bottom: 4px;
+  }
+  .profile-archetype {
+    font-size: 22px;
+    font-weight: 400;
+    color: #E8D5B7;
+    letter-spacing: -0.02em;
+    margin-bottom: 6px;
+  }
+  .profile-subtitle {
+    font-family: 'EB Garamond', Georgia, serif;
+    font-size: 15px;
+    font-style: italic;
+    color: rgba(193, 192, 182, 0.4);
+    margin-bottom: 16px;
+  }
+  .profile-mbti {
+    display: inline-flex;
+    padding: 5px 14px;
+    border-radius: 8px;
+    background: rgba(232, 213, 183, 0.08);
+    border: 1px solid rgba(232, 213, 183, 0.1);
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 2px;
+    color: #E8D5B7;
+  }
+
+  /* Sidebar section */
+  .sidebar-section {}
+  .sidebar-label {
+    font-size: 10px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: rgba(193, 192, 182, 0.3);
+    margin-bottom: 14px;
+  }
+
+  /* Big Five mini */
+  .bf-mini-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  .bf-mini-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .bf-mini-label {
+    width: 90px;
+    font-size: 12px;
+    color: rgba(193, 192, 182, 0.45);
+    text-align: right;
+  }
+  .bf-mini-track {
+    flex: 1;
+    height: 4px;
+    border-radius: 4px;
+    background: rgba(193, 192, 182, 0.06);
+    overflow: hidden;
+  }
+  .bf-mini-fill {
+    height: 100%;
+    border-radius: 4px;
+    background: linear-gradient(90deg, rgba(232, 213, 183, 0.5), #E8D5B7);
+  }
+  .bf-mini-val {
+    width: 24px;
+    font-size: 12px;
+    color: rgba(193, 192, 182, 0.5);
+    text-align: right;
+  }
+
+  /* Platforms mini */
+  .platforms-mini {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .platform-mini-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 12px;
+    border-radius: 10px;
+    background: rgba(193, 192, 182, 0.02);
+    border: 1px solid rgba(193, 192, 182, 0.04);
+  }
+  .platform-mini-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+  .platform-mini-name {
+    font-size: 12px;
+    color: rgba(193, 192, 182, 0.6);
+    flex: 1;
+  }
+  .platform-mini-stat {
+    font-size: 11px;
+    color: rgba(193, 192, 182, 0.3);
+  }
+
+  /* === RIGHT CONTENT === */
+  .main-content {
+    padding: 36px 40px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+  }
+
+  /* Content card */
+  .content-card {
+    background: rgba(193, 192, 182, 0.03);
+    border: 1px solid rgba(193, 192, 182, 0.06);
+    border-radius: 20px;
+    padding: 32px;
+  }
+  .card-label {
+    font-size: 10px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: rgba(193, 192, 182, 0.3);
+    margin-bottom: 20px;
+  }
+
+  /* Narrative card */
+  .narrative-card {
+    padding: 40px 48px;
+  }
+  .narrative-quote {
+    font-family: 'EB Garamond', Georgia, serif;
+    font-size: 64px;
+    line-height: 0.5;
+    color: rgba(232, 213, 183, 0.12);
+    margin-bottom: 16px;
+  }
+  .narrative-text {
+    font-family: 'EB Garamond', Georgia, serif;
+    font-size: 18px;
+    line-height: 1.8;
+    color: rgba(193, 192, 182, 0.55);
+  }
+  .narrative-text strong {
+    color: rgba(193, 192, 182, 0.85);
+    font-weight: 500;
+  }
+
+  /* Traits grid */
+  .traits-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+  }
+  .trait-tile {
+    padding: 24px;
+    background: rgba(193, 192, 182, 0.02);
+    border: 1px solid rgba(193, 192, 182, 0.04);
+    border-radius: 16px;
+  }
+  .trait-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 10px;
+  }
+  .trait-name {
+    font-size: 14px;
+    font-weight: 500;
+    color: #C1C0B6;
+  }
+  .trait-score {
+    font-size: 24px;
+    font-weight: 600;
+    color: #E8D5B7;
+    line-height: 1;
+  }
+  .trait-evidence {
+    font-size: 12px;
+    color: rgba(193, 192, 182, 0.35);
+    line-height: 1.5;
+  }
+  .trait-bar {
+    height: 3px;
+    border-radius: 3px;
+    background: rgba(193, 192, 182, 0.06);
+    margin-top: 12px;
+    overflow: hidden;
+  }
+  .trait-bar-fill {
+    height: 100%;
+    border-radius: 3px;
+    background: linear-gradient(90deg, rgba(232, 213, 183, 0.4), #E8D5B7);
+  }
+
+  /* Stats row */
+  .stats-row {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 16px;
+  }
+  .stat-card {
+    background: rgba(193, 192, 182, 0.03);
+    border: 1px solid rgba(193, 192, 182, 0.06);
+    border-radius: 16px;
+    padding: 24px;
+    text-align: center;
+  }
+  .stat-value {
+    font-size: 28px;
+    font-weight: 500;
+    color: #E8D5B7;
+    margin-bottom: 4px;
+    letter-spacing: -0.02em;
+  }
+  .stat-label {
+    font-size: 12px;
+    color: rgba(193, 192, 182, 0.4);
+  }
+
+  /* Footer */
+  .footer-bar {
+    padding: 20px 48px;
+    display: flex;
+    justify-content: center;
+    border-top: 1px solid rgba(193, 192, 182, 0.04);
+  }
+  .footer-text {
+    font-size: 11px;
+    color: rgba(193, 192, 182, 0.25);
+  }
+</style>
+</head>
+<body>
+
+  <!-- Header -->
+  <div class="header">
+    <a class="wordmark" href="#">Twin Me</a>
+    <div class="header-right">
+      <button class="header-btn">Share</button>
+      <button class="header-cta">Get Your Signature</button>
+    </div>
+  </div>
+
+  <!-- Main Layout -->
+  <div class="layout">
+
+    <!-- Left Sidebar -->
+    <div class="sidebar">
+      <!-- Profile Card -->
+      <div class="profile-card">
+        <div class="profile-avatar">A</div>
+        <div class="profile-name">Alex's Soul Signature</div>
+        <div class="profile-archetype">The Curious Navigator</div>
+        <div class="profile-subtitle">"Charting paths others haven't imagined"</div>
+        <div class="profile-mbti">ENFP</div>
+      </div>
+
+      <!-- Big Five -->
+      <div class="sidebar-section">
+        <div class="sidebar-label">Personality</div>
+        <div class="bf-mini-list">
+          <div class="bf-mini-row">
+            <div class="bf-mini-label">Openness</div>
+            <div class="bf-mini-track"><div class="bf-mini-fill" style="width: 82%;"></div></div>
+            <div class="bf-mini-val">82</div>
+          </div>
+          <div class="bf-mini-row">
+            <div class="bf-mini-label">Conscientiousness</div>
+            <div class="bf-mini-track"><div class="bf-mini-fill" style="width: 65%;"></div></div>
+            <div class="bf-mini-val">65</div>
+          </div>
+          <div class="bf-mini-row">
+            <div class="bf-mini-label">Extraversion</div>
+            <div class="bf-mini-track"><div class="bf-mini-fill" style="width: 71%;"></div></div>
+            <div class="bf-mini-val">71</div>
+          </div>
+          <div class="bf-mini-row">
+            <div class="bf-mini-label">Agreeableness</div>
+            <div class="bf-mini-track"><div class="bf-mini-fill" style="width: 78%;"></div></div>
+            <div class="bf-mini-val">78</div>
+          </div>
+          <div class="bf-mini-row">
+            <div class="bf-mini-label">Stability</div>
+            <div class="bf-mini-track"><div class="bf-mini-fill" style="width: 65%;"></div></div>
+            <div class="bf-mini-val">65</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Connected Platforms -->
+      <div class="sidebar-section">
+        <div class="sidebar-label">Data Sources</div>
+        <div class="platforms-mini">
+          <div class="platform-mini-row">
+            <div class="platform-mini-dot" style="background: #1DB954;"></div>
+            <div class="platform-mini-name">Spotify</div>
+            <div class="platform-mini-stat">420 artists</div>
+          </div>
+          <div class="platform-mini-row">
+            <div class="platform-mini-dot" style="background: #FF0000;"></div>
+            <div class="platform-mini-name">YouTube</div>
+            <div class="platform-mini-stat">850 videos</div>
+          </div>
+          <div class="platform-mini-row">
+            <div class="platform-mini-dot" style="background: #00A5E0;"></div>
+            <div class="platform-mini-name">Whoop</div>
+            <div class="platform-mini-stat">72% recovery</div>
+          </div>
+          <div class="platform-mini-row">
+            <div class="platform-mini-dot" style="background: #4285F4;"></div>
+            <div class="platform-mini-name">Calendar</div>
+            <div class="platform-mini-stat">28 events/wk</div>
+          </div>
+          <div class="platform-mini-row">
+            <div class="platform-mini-dot" style="background: #9146FF;"></div>
+            <div class="platform-mini-name">Twitch</div>
+            <div class="platform-mini-stat">15 channels</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Right Content -->
+    <div class="main-content">
+
+      <!-- Narrative -->
+      <div class="content-card narrative-card">
+        <div class="narrative-quote">&ldquo;</div>
+        <div class="narrative-text">
+          Alex moves through the world like a <strong>collector of invisible threads</strong>, connecting music to mood, ideas to action, and people to possibility. Their digital footprint reveals someone who thrives at the <strong>intersection of creativity and analysis</strong> &mdash; equally at home in a late-night coding session as they are curating a playlist that tells a story.
+        </div>
+      </div>
+
+      <!-- Stats Row -->
+      <div class="stats-row">
+        <div class="stat-card">
+          <div class="stat-value">5</div>
+          <div class="stat-label">Platforms</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value">82</div>
+          <div class="stat-label">Openness</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value">6</div>
+          <div class="stat-label">Defining Traits</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value">91</div>
+          <div class="stat-label">Top Score</div>
+        </div>
+      </div>
+
+      <!-- Traits Grid -->
+      <div class="content-card">
+        <div class="card-label">What Makes You, You</div>
+        <div class="traits-grid">
+          <div class="trait-tile">
+            <div class="trait-header">
+              <div class="trait-name">Creative Curiosity</div>
+              <div class="trait-score">91</div>
+            </div>
+            <div class="trait-evidence">Explores 12+ music genres weekly across 40 curated playlists</div>
+            <div class="trait-bar"><div class="trait-bar-fill" style="width: 91%;"></div></div>
+          </div>
+          <div class="trait-tile">
+            <div class="trait-header">
+              <div class="trait-name">Empathetic Listener</div>
+              <div class="trait-score">85</div>
+            </div>
+            <div class="trait-evidence">Consistently gravitates toward emotionally rich content</div>
+            <div class="trait-bar"><div class="trait-bar-fill" style="width: 85%;"></div></div>
+          </div>
+          <div class="trait-tile">
+            <div class="trait-header">
+              <div class="trait-name">Pattern Seeker</div>
+              <div class="trait-score">88</div>
+            </div>
+            <div class="trait-evidence">Systematic exploration of interconnected topics</div>
+            <div class="trait-bar"><div class="trait-bar-fill" style="width: 88%;"></div></div>
+          </div>
+          <div class="trait-tile">
+            <div class="trait-header">
+              <div class="trait-name">Night Owl</div>
+              <div class="trait-score">76</div>
+            </div>
+            <div class="trait-evidence">Peak creative activity between 10pm and 2am</div>
+            <div class="trait-bar"><div class="trait-bar-fill" style="width: 76%;"></div></div>
+          </div>
+          <div class="trait-tile">
+            <div class="trait-header">
+              <div class="trait-name">Deep Diver</div>
+              <div class="trait-score">82</div>
+            </div>
+            <div class="trait-evidence">Average watch time 3x higher than casual viewers</div>
+            <div class="trait-bar"><div class="trait-bar-fill" style="width: 82%;"></div></div>
+          </div>
+          <div class="trait-tile">
+            <div class="trait-header">
+              <div class="trait-name">Social Catalyst</div>
+              <div class="trait-score">79</div>
+            </div>
+            <div class="trait-evidence">Bridges communities across platforms and interests</div>
+            <div class="trait-bar"><div class="trait-bar-fill" style="width: 79%;"></div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <div class="footer-bar">
+    <div class="footer-text">Powered by Twin Me &middot; Updated Feb 18, 2026</div>
+  </div>
+
+</body>
+</html>

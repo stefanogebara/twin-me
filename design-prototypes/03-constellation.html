@@ -1,0 +1,420 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=1440">
+<title>Constellation Template - Soul Signature Portfolio</title>
+<script src="https://mcp.figma.com/mcp/html-to-design/capture.js" async></script>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,300;1,400&family=JetBrains+Mono:wght@300;400;500&family=Inter:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Inter', sans-serif;
+    background: #050510;
+    color: #d4d0e8;
+    width: 1440px;
+    overflow-x: hidden;
+  }
+
+  /* === STARFIELD === */
+  .starfield {
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    z-index: 0;
+    background:
+      radial-gradient(1px 1px at 100px 50px, rgba(255,255,255,0.4), transparent),
+      radial-gradient(1px 1px at 300px 150px, rgba(255,255,255,0.3), transparent),
+      radial-gradient(1px 1px at 500px 80px, rgba(255,255,255,0.2), transparent),
+      radial-gradient(1px 1px at 700px 200px, rgba(255,255,255,0.35), transparent),
+      radial-gradient(1px 1px at 900px 120px, rgba(255,255,255,0.25), transparent),
+      radial-gradient(1px 1px at 1100px 300px, rgba(255,255,255,0.3), transparent),
+      radial-gradient(1px 1px at 1300px 60px, rgba(255,255,255,0.2), transparent),
+      radial-gradient(1px 1px at 200px 400px, rgba(255,255,255,0.15), transparent),
+      radial-gradient(1px 1px at 400px 350px, rgba(255,255,255,0.3), transparent),
+      radial-gradient(1px 1px at 600px 500px, rgba(255,255,255,0.2), transparent),
+      radial-gradient(1px 1px at 800px 450px, rgba(255,255,255,0.25), transparent),
+      radial-gradient(1px 1px at 1000px 380px, rgba(255,255,255,0.3), transparent),
+      radial-gradient(1px 1px at 1200px 520px, rgba(255,255,255,0.15), transparent),
+      radial-gradient(1.5px 1.5px at 150px 600px, rgba(255,255,255,0.4), transparent),
+      radial-gradient(1px 1px at 350px 700px, rgba(255,255,255,0.2), transparent),
+      radial-gradient(1.5px 1.5px at 550px 650px, rgba(255,255,255,0.35), transparent),
+      radial-gradient(1px 1px at 750px 750px, rgba(255,255,255,0.2), transparent),
+      radial-gradient(1px 1px at 950px 680px, rgba(255,255,255,0.3), transparent),
+      radial-gradient(1.5px 1.5px at 1150px 720px, rgba(255,255,255,0.25), transparent),
+      radial-gradient(1px 1px at 1350px 600px, rgba(255,255,255,0.15), transparent),
+      radial-gradient(2px 2px at 250px 850px, rgba(200,180,255,0.5), transparent),
+      radial-gradient(1px 1px at 450px 900px, rgba(255,255,255,0.2), transparent),
+      radial-gradient(2px 2px at 650px 820px, rgba(180,200,255,0.4), transparent),
+      radial-gradient(1px 1px at 850px 950px, rgba(255,255,255,0.25), transparent),
+      radial-gradient(1px 1px at 1050px 870px, rgba(255,255,255,0.3), transparent);
+    background-color: #050510;
+  }
+  .nebula {
+    position: fixed; top: 50%; left: 50%; transform: translate(-50%,-50%);
+    width: 800px; height: 800px; border-radius: 50%;
+    background: radial-gradient(circle, rgba(100, 60, 180, 0.06) 0%, transparent 60%);
+    filter: blur(60px);
+    z-index: 0;
+  }
+
+  .page { position: relative; z-index: 1; }
+
+  /* === HEADER === */
+  .header {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 40px 80px;
+  }
+  .wordmark {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 14px; font-weight: 400; letter-spacing: 1px;
+    color: rgba(212, 208, 232, 0.35);
+    text-decoration: none;
+  }
+  .coordinates {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px; color: rgba(212, 208, 232, 0.2);
+    letter-spacing: 1px;
+  }
+
+  /* === HERO === */
+  .hero {
+    text-align: center;
+    padding: 100px 80px 40px;
+  }
+  .hero-pre {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px; letter-spacing: 4px; text-transform: uppercase;
+    color: rgba(212, 208, 232, 0.3);
+    margin-bottom: 24px;
+  }
+  .hero-name {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 72px; font-weight: 300;
+    color: #e8e4f0;
+    line-height: 1.05;
+    margin-bottom: 16px;
+    letter-spacing: -1px;
+  }
+  .hero-subtitle {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 22px; font-weight: 300; font-style: italic;
+    color: rgba(212, 208, 232, 0.45);
+  }
+  .hero-divider {
+    width: 1px; height: 60px;
+    background: linear-gradient(180deg, rgba(150, 120, 255, 0.4), transparent);
+    margin: 40px auto;
+  }
+
+  /* === CONSTELLATION MAP === */
+  .constellation-section {
+    padding: 0 80px 80px;
+    display: flex; justify-content: center;
+  }
+  .constellation-map {
+    width: 900px; height: 500px;
+    position: relative;
+  }
+  .constellation-map svg {
+    width: 100%; height: 100%;
+  }
+  .star-node {
+    cursor: default;
+  }
+  .star-glow {
+    filter: drop-shadow(0 0 6px rgba(150, 120, 255, 0.6));
+  }
+  .star-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    fill: rgba(212, 208, 232, 0.5);
+    letter-spacing: 1px;
+  }
+  .star-value {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 18px; font-weight: 500;
+    fill: rgba(212, 208, 232, 0.9);
+  }
+
+  /* === TRAITS === */
+  .traits-section {
+    padding: 60px 80px;
+    display: flex; justify-content: center;
+  }
+  .traits-list {
+    width: 700px;
+  }
+  .section-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px; letter-spacing: 4px; text-transform: uppercase;
+    color: rgba(212, 208, 232, 0.25);
+    margin-bottom: 40px;
+    text-align: center;
+  }
+  .trait-item {
+    display: flex; align-items: center; gap: 32px;
+    padding: 20px 0;
+    border-bottom: 1px solid rgba(212, 208, 232, 0.06);
+  }
+  .trait-index {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px; color: rgba(150, 120, 255, 0.4);
+    width: 32px;
+  }
+  .trait-name {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 22px; font-weight: 400;
+    color: rgba(212, 208, 232, 0.85);
+    flex: 1;
+  }
+  .trait-bar-container {
+    width: 200px; display: flex; align-items: center; gap: 12px;
+  }
+  .trait-bar {
+    flex: 1; height: 2px;
+    background: rgba(212, 208, 232, 0.08);
+    position: relative; overflow: hidden;
+  }
+  .trait-bar-fill {
+    height: 100%; position: absolute; left: 0; top: 0;
+    background: linear-gradient(90deg, rgba(150, 120, 255, 0.8), rgba(150, 120, 255, 0.3));
+  }
+  .trait-score {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px; color: rgba(212, 208, 232, 0.5);
+    width: 28px; text-align: right;
+  }
+
+  /* === NARRATIVE === */
+  .narrative-section {
+    padding: 80px 80px;
+    display: flex; justify-content: center;
+  }
+  .narrative-block {
+    width: 600px; text-align: center;
+    position: relative;
+  }
+  .narrative-line-top, .narrative-line-bottom {
+    width: 1px; height: 40px;
+    background: linear-gradient(180deg, transparent, rgba(150, 120, 255, 0.2), transparent);
+    margin: 0 auto 32px;
+  }
+  .narrative-line-bottom { margin: 32px auto 0; }
+  .narrative-text {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 22px; line-height: 1.9; font-weight: 300;
+    color: rgba(212, 208, 232, 0.6);
+  }
+
+  /* === DATA SOURCES === */
+  .sources-section {
+    padding: 40px 80px 60px;
+    display: flex; flex-direction: column; align-items: center;
+  }
+  .sources-row {
+    display: flex; gap: 2px; width: 700px;
+  }
+  .source-item {
+    flex: 1; padding: 20px 16px;
+    text-align: center;
+    border: 1px solid rgba(212, 208, 232, 0.04);
+    border-radius: 2px;
+  }
+  .source-dot {
+    width: 6px; height: 6px; border-radius: 50%;
+    margin: 0 auto 10px;
+  }
+  .source-name {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px; letter-spacing: 1px;
+    color: rgba(212, 208, 232, 0.5);
+    margin-bottom: 4px;
+  }
+  .source-stat {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px; color: rgba(212, 208, 232, 0.25);
+  }
+
+  /* === FOOTER === */
+  .footer {
+    padding: 80px;
+    text-align: center;
+  }
+  .cta-btn {
+    display: inline-block; padding: 14px 40px;
+    border: 1px solid rgba(150, 120, 255, 0.3);
+    border-radius: 2px;
+    color: rgba(212, 208, 232, 0.7);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px; letter-spacing: 2px; text-transform: uppercase;
+    text-decoration: none;
+    transition: all 0.3s;
+  }
+  .footer-meta {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px; color: rgba(212, 208, 232, 0.15);
+    margin-top: 24px; letter-spacing: 1px;
+  }
+</style>
+</head>
+<body>
+
+<div class="starfield"></div>
+<div class="nebula"></div>
+
+<div class="page">
+
+  <div class="header">
+    <a class="wordmark" href="#">TWINME</a>
+    <div class="coordinates">SOUL_SIG :: 2026.02.18</div>
+  </div>
+
+  <div class="hero">
+    <div class="hero-pre">// Alex's Soul Signature</div>
+    <div class="hero-name">The Curious<br>Navigator</div>
+    <div class="hero-subtitle">Charting paths others haven't imagined</div>
+    <div class="hero-divider"></div>
+  </div>
+
+  <!-- Constellation Map -->
+  <div class="constellation-section">
+    <div class="constellation-map">
+      <svg viewBox="0 0 900 500">
+        <!-- Connecting lines -->
+        <line x1="180" y1="120" x2="400" y2="80" stroke="rgba(150,120,255,0.15)" stroke-width="1"/>
+        <line x1="400" y1="80" x2="680" y2="150" stroke="rgba(150,120,255,0.15)" stroke-width="1"/>
+        <line x1="680" y1="150" x2="750" y2="320" stroke="rgba(150,120,255,0.15)" stroke-width="1"/>
+        <line x1="750" y1="320" x2="500" y2="400" stroke="rgba(150,120,255,0.15)" stroke-width="1"/>
+        <line x1="500" y1="400" x2="180" y2="120" stroke="rgba(150,120,255,0.08)" stroke-width="1" stroke-dasharray="4 4"/>
+        <line x1="400" y1="80" x2="500" y2="400" stroke="rgba(150,120,255,0.06)" stroke-width="1" stroke-dasharray="4 4"/>
+        <line x1="180" y1="120" x2="750" y2="320" stroke="rgba(150,120,255,0.04)" stroke-width="1" stroke-dasharray="2 6"/>
+
+        <!-- Star nodes -->
+        <!-- Openness -->
+        <circle cx="180" cy="120" r="8" fill="rgba(150,120,255,0.8)" class="star-glow"/>
+        <circle cx="180" cy="120" r="3" fill="white"/>
+        <text x="180" y="100" text-anchor="middle" class="star-label">OPENNESS</text>
+        <text x="180" y="155" text-anchor="middle" class="star-value">82</text>
+
+        <!-- Conscientiousness -->
+        <circle cx="400" cy="80" r="6" fill="rgba(100,180,255,0.7)" class="star-glow"/>
+        <circle cx="400" cy="80" r="2.5" fill="white"/>
+        <text x="400" y="60" text-anchor="middle" class="star-label">CONSCIENTIOUSNESS</text>
+        <text x="400" y="115" text-anchor="middle" class="star-value">65</text>
+
+        <!-- Extraversion -->
+        <circle cx="680" cy="150" r="7" fill="rgba(100,255,180,0.7)" class="star-glow"/>
+        <circle cx="680" cy="150" r="2.5" fill="white"/>
+        <text x="680" y="130" text-anchor="middle" class="star-label">EXTRAVERSION</text>
+        <text x="680" y="185" text-anchor="middle" class="star-value">71</text>
+
+        <!-- Agreeableness -->
+        <circle cx="750" cy="320" r="7.5" fill="rgba(255,150,200,0.7)" class="star-glow"/>
+        <circle cx="750" cy="320" r="3" fill="white"/>
+        <text x="750" y="300" text-anchor="middle" class="star-label">AGREEABLENESS</text>
+        <text x="750" y="355" text-anchor="middle" class="star-value">78</text>
+
+        <!-- Emotional Stability -->
+        <circle cx="500" cy="400" r="6" fill="rgba(255,200,100,0.7)" class="star-glow"/>
+        <circle cx="500" cy="400" r="2.5" fill="white"/>
+        <text x="500" y="380" text-anchor="middle" class="star-label">STABILITY</text>
+        <text x="500" y="435" text-anchor="middle" class="star-value">65</text>
+
+        <!-- ENFP badge -->
+        <rect x="370" y="230" width="90" height="32" rx="2" fill="none" stroke="rgba(150,120,255,0.25)" stroke-width="1"/>
+        <text x="415" y="251" text-anchor="middle" font-family="'JetBrains Mono', monospace" font-size="12" font-weight="500" fill="rgba(150,120,255,0.7)" letter-spacing="3">ENFP</text>
+      </svg>
+    </div>
+  </div>
+
+  <!-- Traits -->
+  <div class="traits-section">
+    <div class="traits-list">
+      <div class="section-label">// Defining Traits</div>
+      <div class="trait-item">
+        <div class="trait-index">01</div>
+        <div class="trait-name">Creative Curiosity</div>
+        <div class="trait-bar-container">
+          <div class="trait-bar"><div class="trait-bar-fill" style="width: 91%;"></div></div>
+          <div class="trait-score">91</div>
+        </div>
+      </div>
+      <div class="trait-item">
+        <div class="trait-index">02</div>
+        <div class="trait-name">Empathetic Listener</div>
+        <div class="trait-bar-container">
+          <div class="trait-bar"><div class="trait-bar-fill" style="width: 85%;"></div></div>
+          <div class="trait-score">85</div>
+        </div>
+      </div>
+      <div class="trait-item">
+        <div class="trait-index">03</div>
+        <div class="trait-name">Pattern Seeker</div>
+        <div class="trait-bar-container">
+          <div class="trait-bar"><div class="trait-bar-fill" style="width: 88%;"></div></div>
+          <div class="trait-score">88</div>
+        </div>
+      </div>
+      <div class="trait-item">
+        <div class="trait-index">04</div>
+        <div class="trait-name">Night Owl</div>
+        <div class="trait-bar-container">
+          <div class="trait-bar"><div class="trait-bar-fill" style="width: 76%;"></div></div>
+          <div class="trait-score">76</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Narrative -->
+  <div class="narrative-section">
+    <div class="narrative-block">
+      <div class="narrative-line-top"></div>
+      <div class="narrative-text">
+        Alex moves through the world like a collector of invisible threads, connecting music to mood, ideas to action, and people to possibility. Their digital footprint reveals someone who thrives at the intersection of creativity and analysis &mdash; equally at home in a late-night coding session as they are curating a playlist that tells a story.
+      </div>
+      <div class="narrative-line-bottom"></div>
+    </div>
+  </div>
+
+  <!-- Data Sources -->
+  <div class="sources-section">
+    <div class="section-label" style="margin-bottom: 24px;">// Data Sources</div>
+    <div class="sources-row">
+      <div class="source-item">
+        <div class="source-dot" style="background: #1DB954;"></div>
+        <div class="source-name">Spotify</div>
+        <div class="source-stat">420 artists</div>
+      </div>
+      <div class="source-item">
+        <div class="source-dot" style="background: #FF0000;"></div>
+        <div class="source-name">YouTube</div>
+        <div class="source-stat">850 videos</div>
+      </div>
+      <div class="source-item">
+        <div class="source-dot" style="background: #44D62C;"></div>
+        <div class="source-name">Whoop</div>
+        <div class="source-stat">72% recovery</div>
+      </div>
+      <div class="source-item">
+        <div class="source-dot" style="background: #4285F4;"></div>
+        <div class="source-name">Calendar</div>
+        <div class="source-stat">28 events/wk</div>
+      </div>
+      <div class="source-item">
+        <div class="source-dot" style="background: #9146FF;"></div>
+        <div class="source-name">Twitch</div>
+        <div class="source-stat">15 channels</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <div class="footer">
+    <a href="#" class="cta-btn">Discover Your Constellation</a>
+    <div class="footer-meta">TWINME :: UPDATED 2026.02.18</div>
+  </div>
+
+</div>
+</body>
+</html>

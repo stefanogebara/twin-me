@@ -1,0 +1,760 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=1440">
+<title>TwinMe - Discover Your Soul Signature</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #1C1917;
+    --bg-raised: #252220;
+    --bg-elevated: #2D2A27;
+    --surface: #302D2A;
+
+    --text-primary: #F5F0EB;
+    --text-secondary: rgba(245, 240, 235, 0.55);
+    --text-tertiary: rgba(245, 240, 235, 0.35);
+
+    --accent: #D4A574;
+    --accent-hover: #E0B88A;
+    --accent-muted: rgba(212, 165, 116, 0.15);
+    --accent-glow: rgba(212, 165, 116, 0.10);
+
+    --glass-fill: rgba(37, 34, 32, 0.65);
+    --glass-border: rgba(245, 240, 235, 0.08);
+    --glass-border-hover: rgba(245, 240, 235, 0.14);
+
+    --radius-card: 16px;
+    --radius-button: 10px;
+
+    --font-display: 'DM Serif Display', Georgia, serif;
+    --font-body: 'Inter', -apple-system, sans-serif;
+  }
+
+  *, *::before, *::after {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+  }
+
+  html {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  body {
+    font-family: var(--font-body);
+    color: var(--text-primary);
+    background:
+      radial-gradient(ellipse 60% 50% at 50% 30%, rgba(212, 165, 116, 0.06) 0%, transparent 70%),
+      var(--bg);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* ===== NAVIGATION ===== */
+  .nav {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 100;
+    height: 60px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 48px;
+    background: rgba(28, 25, 23, 0.80);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border-bottom: 1px solid rgba(245, 240, 235, 0.06);
+    transition: box-shadow 0.3s ease;
+  }
+
+  .nav.scrolled {
+    box-shadow: 0 2px 20px rgba(0, 0, 0, 0.3);
+  }
+
+  .nav-logo {
+    font-family: var(--font-body);
+    font-weight: 600;
+    font-size: 18px;
+    color: var(--text-primary);
+    text-decoration: none;
+    letter-spacing: -0.01em;
+  }
+
+  .nav-links {
+    display: flex;
+    align-items: center;
+    gap: 32px;
+  }
+
+  .nav-link {
+    font-family: var(--font-body);
+    font-weight: 400;
+    font-size: 14px;
+    color: var(--text-secondary);
+    text-decoration: none;
+    transition: color 0.2s ease;
+  }
+
+  .nav-link:hover {
+    color: var(--text-primary);
+  }
+
+  .nav-actions {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+  }
+
+  .nav-signin {
+    font-family: var(--font-body);
+    font-weight: 400;
+    font-size: 14px;
+    color: var(--text-secondary);
+    text-decoration: none;
+    transition: color 0.2s ease;
+  }
+
+  .nav-signin:hover {
+    color: var(--text-primary);
+  }
+
+  .btn-primary {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--accent);
+    color: #1C1917;
+    font-family: var(--font-body);
+    font-weight: 500;
+    font-size: 14px;
+    padding: 10px 22px;
+    border-radius: var(--radius-button);
+    border: none;
+    cursor: pointer;
+    text-decoration: none;
+    transition: background 0.2s ease;
+  }
+
+  .btn-primary:hover {
+    background: var(--accent-hover);
+  }
+
+  .btn-primary-lg {
+    font-size: 15px;
+    padding: 14px 28px;
+  }
+
+  .btn-secondary {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: transparent;
+    color: var(--text-secondary);
+    font-family: var(--font-body);
+    font-weight: 500;
+    font-size: 15px;
+    padding: 14px 28px;
+    border-radius: var(--radius-button);
+    border: 1px solid var(--glass-border-hover);
+    cursor: pointer;
+    text-decoration: none;
+    transition: color 0.2s ease, border-color 0.2s ease;
+  }
+
+  .btn-secondary:hover {
+    color: var(--text-primary);
+    border-color: rgba(245, 240, 235, 0.22);
+  }
+
+  /* ===== CONTAINER ===== */
+  .container {
+    max-width: 1080px;
+    margin: 0 auto;
+    padding: 0 40px;
+  }
+
+  /* ===== SECTION LABEL ===== */
+  .section-label {
+    font-family: var(--font-body);
+    font-weight: 500;
+    font-size: 11px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--accent);
+    text-align: center;
+    margin-bottom: 16px;
+  }
+
+  /* ===== HERO SECTION ===== */
+  .hero {
+    text-align: center;
+    padding-top: 160px;
+  }
+
+  .hero-label {
+    font-family: var(--font-body);
+    font-weight: 500;
+    font-size: 11px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 24px;
+  }
+
+  .hero-headline {
+    font-family: var(--font-display);
+    font-weight: 400;
+    font-size: 52px;
+    line-height: 1.2;
+    letter-spacing: -0.01em;
+    color: var(--text-primary);
+  }
+
+  .hero-subtitle {
+    font-family: var(--font-body);
+    font-weight: 400;
+    font-size: 17px;
+    line-height: 1.7;
+    color: var(--text-secondary);
+    max-width: 520px;
+    margin: 24px auto 0;
+  }
+
+  .hero-buttons {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 14px;
+    margin-top: 40px;
+  }
+
+  /* ===== ORBITAL VISUALIZATION ===== */
+  .orbital-section {
+    display: flex;
+    justify-content: center;
+    padding-top: 80px;
+    padding-bottom: 0;
+  }
+
+  .orbital-container {
+    width: 280px;
+    height: 280px;
+    position: relative;
+    opacity: 0.7;
+  }
+
+  .orbital-ring {
+    position: absolute;
+    border: 1px solid rgba(245, 240, 235, 0.06);
+    border-radius: 50%;
+  }
+
+  .orbital-ring-1 {
+    width: 200px;
+    height: 200px;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    animation: orbit-slow 50s linear infinite;
+  }
+
+  .orbital-ring-2 {
+    width: 280px;
+    height: 280px;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    animation: orbit-fast 35s linear infinite reverse;
+  }
+
+  @keyframes orbit-slow {
+    from { transform: translate(-50%, -50%) rotate(0deg); }
+    to { transform: translate(-50%, -50%) rotate(360deg); }
+  }
+
+  @keyframes orbit-fast {
+    from { transform: translate(-50%, -50%) rotate(0deg); }
+    to { transform: translate(-50%, -50%) rotate(360deg); }
+  }
+
+  .orbital-dot {
+    position: absolute;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+  }
+
+  /* Dots on ring 1 (100px radius from center of ring) */
+  .dot-spotify {
+    background: #1DB954;
+    top: -4px;
+    left: 50%;
+    margin-left: -4px;
+  }
+
+  .dot-calendar {
+    background: #4285F4;
+    bottom: -4px;
+    left: 50%;
+    margin-left: -4px;
+  }
+
+  /* Dots on ring 2 (140px radius from center of ring) */
+  .dot-whoop {
+    background: #00A5E0;
+    top: 50%;
+    right: -4px;
+    margin-top: -4px;
+  }
+
+  .dot-youtube {
+    background: #FF0000;
+    top: 50%;
+    left: -4px;
+    margin-top: -4px;
+  }
+
+  .orbital-center {
+    position: absolute;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: var(--accent);
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    box-shadow: 0 0 20px rgba(212, 165, 116, 0.3), 0 0 40px rgba(212, 165, 116, 0.1);
+  }
+
+  /* ===== TRUST STRIP ===== */
+  .trust-strip {
+    text-align: center;
+    padding-top: 100px;
+  }
+
+  .trust-divider {
+    width: 100%;
+    max-width: 480px;
+    height: 1px;
+    background: rgba(245, 240, 235, 0.06);
+    margin: 0 auto 32px;
+  }
+
+  .trust-text {
+    font-family: var(--font-body);
+    font-weight: 400;
+    font-size: 13px;
+    color: var(--text-tertiary);
+    margin-bottom: 14px;
+  }
+
+  .trust-platforms {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    font-family: var(--font-body);
+    font-weight: 400;
+    font-size: 13px;
+    color: var(--text-secondary);
+  }
+
+  .trust-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    display: inline-block;
+    flex-shrink: 0;
+  }
+
+  .trust-separator {
+    color: var(--text-tertiary);
+    margin: 0 4px;
+  }
+
+  /* ===== QUOTE SECTION ===== */
+  .quote-section {
+    text-align: center;
+    padding-top: 110px;
+    max-width: 640px;
+    margin: 0 auto;
+  }
+
+  .quote-line {
+    width: 40px;
+    height: 2px;
+    background: var(--accent);
+    margin: 0 auto 32px;
+  }
+
+  .quote-text {
+    font-family: var(--font-display);
+    font-style: italic;
+    font-weight: 400;
+    font-size: 24px;
+    line-height: 1.7;
+    color: var(--text-primary);
+  }
+
+  .quote-attribution {
+    font-family: var(--font-body);
+    font-weight: 400;
+    font-size: 14px;
+    color: var(--accent);
+    margin-top: 20px;
+  }
+
+  .quote-body {
+    font-family: var(--font-body);
+    font-weight: 400;
+    font-size: 15px;
+    line-height: 1.7;
+    color: var(--text-secondary);
+    margin-top: 24px;
+  }
+
+  /* ===== HOW IT WORKS ===== */
+  .how-section {
+    padding-top: 120px;
+  }
+
+  .how-title {
+    font-family: var(--font-display);
+    font-weight: 400;
+    font-size: 36px;
+    color: var(--text-primary);
+    text-align: center;
+    margin-top: 16px;
+    letter-spacing: -0.01em;
+  }
+
+  .how-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 24px;
+    margin-top: 60px;
+  }
+
+  .how-card {
+    background: var(--glass-fill);
+    backdrop-filter: blur(12px) saturate(150%);
+    -webkit-backdrop-filter: blur(12px) saturate(150%);
+    border: 1px solid var(--glass-border);
+    border-radius: var(--radius-card);
+    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.2);
+    padding: 32px;
+    transition: border-color 0.3s ease;
+  }
+
+  .how-card:hover {
+    border-color: var(--glass-border-hover);
+  }
+
+  .how-step {
+    font-family: var(--font-body);
+    font-weight: 600;
+    font-size: 13px;
+    color: var(--accent);
+    margin-bottom: 20px;
+  }
+
+  .how-icon-wrap {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    background: var(--accent-muted);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .how-icon-wrap svg {
+    width: 20px;
+    height: 20px;
+    stroke: var(--accent);
+    fill: none;
+    stroke-width: 1.75;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+
+  .how-card-title {
+    font-family: var(--font-body);
+    font-weight: 600;
+    font-size: 17px;
+    color: var(--text-primary);
+    margin-top: 20px;
+  }
+
+  .how-card-desc {
+    font-family: var(--font-body);
+    font-weight: 400;
+    font-size: 14px;
+    line-height: 1.6;
+    color: var(--text-secondary);
+    margin-top: 10px;
+  }
+
+  /* ===== CTA SECTION ===== */
+  .cta-section {
+    padding: 100px 0;
+  }
+
+  .cta-card {
+    max-width: 680px;
+    margin: 0 auto;
+    background: var(--glass-fill);
+    backdrop-filter: blur(12px) saturate(150%);
+    -webkit-backdrop-filter: blur(12px) saturate(150%);
+    border: 1px solid var(--glass-border);
+    border-radius: var(--radius-card);
+    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.2), 0 0 80px rgba(212, 165, 116, 0.06);
+    padding: 56px 48px;
+    text-align: center;
+  }
+
+  .cta-title {
+    font-family: var(--font-display);
+    font-weight: 400;
+    font-size: 32px;
+    color: var(--text-primary);
+    letter-spacing: -0.01em;
+  }
+
+  .cta-subtitle {
+    font-family: var(--font-body);
+    font-weight: 400;
+    font-size: 15px;
+    color: var(--text-secondary);
+    margin-top: 12px;
+  }
+
+  .cta-button {
+    margin-top: 32px;
+  }
+
+  /* ===== FOOTER ===== */
+  .footer {
+    border-top: 1px solid rgba(245, 240, 235, 0.06);
+    padding: 32px 0;
+  }
+
+  .footer-inner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .footer-copyright {
+    font-family: var(--font-body);
+    font-weight: 400;
+    font-size: 13px;
+    color: var(--text-tertiary);
+  }
+
+  .footer-links {
+    display: flex;
+    gap: 24px;
+  }
+
+  .footer-link {
+    font-family: var(--font-body);
+    font-weight: 400;
+    font-size: 13px;
+    color: var(--text-tertiary);
+    text-decoration: none;
+    transition: color 0.2s ease;
+  }
+
+  .footer-link:hover {
+    color: var(--text-secondary);
+  }
+</style>
+</head>
+<body>
+
+<!-- Navigation -->
+<nav class="nav" id="nav">
+  <a href="#" class="nav-logo">TwinMe</a>
+  <div class="nav-links">
+    <a href="#how" class="nav-link">How it Works</a>
+    <a href="#platforms" class="nav-link">Platforms</a>
+  </div>
+  <div class="nav-actions">
+    <a href="#" class="nav-signin">Sign In</a>
+    <a href="#" class="btn-primary">Get Started</a>
+  </div>
+</nav>
+
+<!-- Hero Section -->
+<section class="hero">
+  <div class="container">
+    <div class="hero-label">Soul Signature Platform</div>
+    <h1 class="hero-headline">
+      Discover what makes you<br>authentically you
+    </h1>
+    <p class="hero-subtitle">
+      Your digital footprint tells a story about who you really are. TwinMe reads it and reveals patterns you never noticed.
+    </p>
+    <div class="hero-buttons">
+      <a href="#" class="btn-primary btn-primary-lg">Get Started Free</a>
+      <a href="#" class="btn-secondary">Learn More</a>
+    </div>
+  </div>
+</section>
+
+<!-- Orbital Visualization -->
+<section class="orbital-section">
+  <div class="orbital-container">
+    <div class="orbital-ring orbital-ring-1">
+      <span class="orbital-dot dot-spotify"></span>
+      <span class="orbital-dot dot-calendar"></span>
+    </div>
+    <div class="orbital-ring orbital-ring-2">
+      <span class="orbital-dot dot-whoop"></span>
+      <span class="orbital-dot dot-youtube"></span>
+    </div>
+    <div class="orbital-center"></div>
+  </div>
+</section>
+
+<!-- Trust Strip -->
+<section class="trust-strip" id="platforms">
+  <div class="container">
+    <div class="trust-divider"></div>
+    <p class="trust-text">Trusted by people who value authenticity</p>
+    <div class="trust-platforms">
+      <span class="trust-dot" style="background: #1DB954;"></span>
+      <span>Spotify</span>
+      <span class="trust-separator">&middot;</span>
+      <span class="trust-dot" style="background: #4285F4;"></span>
+      <span>Google Calendar</span>
+      <span class="trust-separator">&middot;</span>
+      <span class="trust-dot" style="background: #00A5E0;"></span>
+      <span>Whoop</span>
+      <span class="trust-separator">&middot;</span>
+      <span class="trust-dot" style="background: #FF0000;"></span>
+      <span>YouTube</span>
+      <span class="trust-separator">&middot;</span>
+      <span class="trust-dot" style="background: #9146FF;"></span>
+      <span>Twitch</span>
+    </div>
+  </div>
+</section>
+
+<!-- Quote Section -->
+<section class="quote-section">
+  <div class="quote-line"></div>
+  <blockquote class="quote-text">
+    Perhaps we are searching in the branches for what we only find in the roots.
+  </blockquote>
+  <p class="quote-attribution">&mdash; Rumi</p>
+  <p class="quote-body">
+    Public information is easy to clone, but it lacks soul. We go beyond your resume to discover what makes you authentically you.
+  </p>
+</section>
+
+<!-- How It Works -->
+<section class="how-section" id="how">
+  <div class="container">
+    <div class="section-label">How It Works</div>
+    <h2 class="how-title">Three steps to your soul signature</h2>
+    <div class="how-grid">
+
+      <!-- Card 1 -->
+      <div class="how-card">
+        <div class="how-step">01</div>
+        <div class="how-icon-wrap">
+          <!-- Lucide Link2 -->
+          <svg viewBox="0 0 24 24">
+            <path d="M9 17H7A5 5 0 0 1 7 7h2"></path>
+            <path d="M15 7h2a5 5 0 1 1 0 10h-2"></path>
+            <line x1="8" y1="12" x2="16" y2="12"></line>
+          </svg>
+        </div>
+        <h3 class="how-card-title">Connect your platforms</h3>
+        <p class="how-card-desc">Link Spotify, Calendar, Whoop, YouTube and more. Each connection adds depth to your portrait.</p>
+      </div>
+
+      <!-- Card 2 -->
+      <div class="how-card">
+        <div class="how-step">02</div>
+        <div class="how-icon-wrap">
+          <!-- Lucide Sparkles -->
+          <svg viewBox="0 0 24 24">
+            <path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"></path>
+            <path d="M5 3v4"></path>
+            <path d="M19 17v4"></path>
+            <path d="M3 5h4"></path>
+            <path d="M17 19h4"></path>
+          </svg>
+        </div>
+        <h3 class="how-card-title">Discover your patterns</h3>
+        <p class="how-card-desc">Our AI analyzes cross-platform data to find personality patterns you never knew existed.</p>
+      </div>
+
+      <!-- Card 3 -->
+      <div class="how-card">
+        <div class="how-step">03</div>
+        <div class="how-icon-wrap">
+          <!-- Lucide MessageCircle -->
+          <svg viewBox="0 0 24 24">
+            <path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z"></path>
+          </svg>
+        </div>
+        <h3 class="how-card-title">Meet your digital twin</h3>
+        <p class="how-card-desc">An AI twin that doesn't just know facts about you &mdash; it understands who you are.</p>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- CTA Section -->
+<section class="cta-section">
+  <div class="container">
+    <div class="cta-card">
+      <h2 class="cta-title">Ready to discover your soul signature?</h2>
+      <p class="cta-subtitle">Join thousands learning what makes them authentically unique</p>
+      <div class="cta-button">
+        <a href="#" class="btn-primary btn-primary-lg">Get Started Free</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Footer -->
+<footer class="footer">
+  <div class="container">
+    <div class="footer-inner">
+      <span class="footer-copyright">&copy; 2026 TwinMe</span>
+      <div class="footer-links">
+        <a href="#" class="footer-link">Privacy</a>
+        <a href="#" class="footer-link">Terms</a>
+        <a href="#" class="footer-link">Contact</a>
+      </div>
+    </div>
+  </div>
+</footer>
+
+<script>
+  // Navigation scroll shadow
+  const nav = document.getElementById('nav');
+  window.addEventListener('scroll', function() {
+    if (window.scrollY > 10) {
+      nav.classList.add('scrolled');
+    } else {
+      nav.classList.remove('scrolled');
+    }
+  });
+</script>
+
+</body>
+</html>

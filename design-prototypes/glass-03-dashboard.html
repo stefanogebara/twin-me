@@ -1,0 +1,1161 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=1440">
+<title>TwinMe - Dashboard (Liquid Glass)</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=Inter:wght@300;400;500;600;700&family=EB+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0A0A0A;
+    --surface: #111111;
+    --raised: #171717;
+    --overlay: #1C1C1C;
+    --text-primary: rgba(255, 255, 255, 0.92);
+    --text-secondary: rgba(255, 255, 255, 0.55);
+    --text-tertiary: rgba(255, 255, 255, 0.30);
+    --accent: #10B981;
+    --accent-teal: #14B8A6;
+    --accent-light: #6EE7B7;
+    --accent-cyan: #06B6D4;
+    --glass-border: rgba(255, 255, 255, 0.10);
+    --glass-border-subtle: rgba(255, 255, 255, 0.05);
+    --glass-fill: rgba(17, 17, 17, 0.65);
+    --radius-lg: 20px;
+    --radius-md: 16px;
+    --radius-sm: 12px;
+    --radius-pill: 999px;
+    --font-display: 'Syne', sans-serif;
+    --font-body: 'Inter', -apple-system, sans-serif;
+    --font-accent: 'EB Garamond', Georgia, serif;
+    --sidebar-width: 240px;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: var(--font-body);
+    background:
+      radial-gradient(ellipse 50% 40% at 15% 10%, rgba(16, 185, 129, 0.15) 0%, transparent 100%),
+      radial-gradient(ellipse 40% 50% at 85% 80%, rgba(6, 182, 212, 0.10) 0%, transparent 100%),
+      radial-gradient(ellipse 60% 40% at 50% 50%, rgba(20, 184, 166, 0.05) 0%, transparent 100%),
+      #0A0A0A;
+    color: var(--text-primary);
+    -webkit-font-smoothing: antialiased;
+    overflow-x: hidden;
+    min-height: 100vh;
+  }
+
+  .glass-card {
+    background: rgba(17, 17, 17, 0.65);
+    backdrop-filter: blur(16px) saturate(180%);
+    -webkit-backdrop-filter: blur(16px) saturate(180%);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 20px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.06);
+    position: relative;
+    overflow: hidden;
+  }
+
+  /* ========== SIDEBAR ========== */
+  .sidebar {
+    position: fixed;
+    top: 0; left: 0;
+    width: var(--sidebar-width);
+    height: 100vh;
+    background: rgba(10, 10, 10, 0.80);
+    backdrop-filter: blur(24px) saturate(180%);
+    -webkit-backdrop-filter: blur(24px) saturate(180%);
+    border-right: 1px solid rgba(255, 255, 255, 0.06);
+    padding: 20px 0;
+    z-index: 50;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .sidebar-header {
+    display: flex;
+    align-items: center;
+    padding: 0 16px 20px;
+    gap: 10px;
+  }
+
+  .sidebar-logo {
+    width: 28px;
+    height: 28px;
+    border-radius: 6px;
+    background: linear-gradient(135deg, #10B981, #14B8A6);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+
+  .sidebar-logo-diamond {
+    width: 10px;
+    height: 10px;
+    background: white;
+    border-radius: 2px;
+    transform: rotate(45deg);
+  }
+
+  .sidebar-title {
+    font-family: var(--font-body);
+    font-weight: 600;
+    font-size: 17px;
+    color: var(--text-primary);
+    flex: 1;
+  }
+
+  .sidebar-collapse {
+    width: 24px;
+    height: 24px;
+    border-radius: 6px;
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    color: var(--text-tertiary);
+  }
+
+  .sidebar-nav {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding: 0 8px;
+    flex: 1;
+  }
+
+  .nav-item {
+    display: flex;
+    align-items: center;
+    padding: 10px 16px;
+    border-radius: 10px;
+    gap: 12px;
+    cursor: pointer;
+    position: relative;
+    text-decoration: none;
+    transition: background 0.15s;
+  }
+
+  .nav-item:hover {
+    background: rgba(255, 255, 255, 0.04);
+  }
+
+  .nav-item.active {
+    background: rgba(16, 185, 129, 0.08);
+  }
+
+  .nav-item.active::before {
+    content: '';
+    position: absolute;
+    left: -8px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 3px;
+    height: 20px;
+    border-radius: 0 4px 4px 0;
+    background: #10B981;
+  }
+
+  .nav-item-icon {
+    width: 20px;
+    height: 20px;
+    flex-shrink: 0;
+    color: var(--text-secondary);
+  }
+
+  .nav-item.active .nav-item-icon {
+    color: var(--text-primary);
+  }
+
+  .nav-item-label {
+    font-family: var(--font-body);
+    font-weight: 500;
+    font-size: 14px;
+    color: var(--text-secondary);
+  }
+
+  .nav-item.active .nav-item-label {
+    color: var(--text-primary);
+  }
+
+  .sidebar-divider {
+    height: 1px;
+    background: rgba(255, 255, 255, 0.06);
+    margin: 12px 16px;
+  }
+
+  .submenu-label {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 16px 6px;
+    font-family: var(--font-body);
+    font-weight: 500;
+    font-size: 12px;
+    color: var(--text-secondary);
+    cursor: pointer;
+  }
+
+  .submenu-label svg {
+    width: 12px;
+    height: 12px;
+  }
+
+  .submenu-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 7px 16px 7px 28px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+
+  .submenu-item:hover {
+    background: rgba(255, 255, 255, 0.04);
+  }
+
+  .submenu-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: #10B981;
+    flex-shrink: 0;
+  }
+
+  .submenu-item-label {
+    font-family: var(--font-body);
+    font-weight: 400;
+    font-size: 13px;
+    color: var(--text-secondary);
+  }
+
+  /* ========== MAIN CONTENT ========== */
+  .main-content {
+    margin-left: var(--sidebar-width);
+    padding: 32px 40px;
+    max-width: 1200px;
+  }
+
+  /* ========== GREETING ========== */
+  .greeting {
+    margin-bottom: 28px;
+  }
+
+  .greeting-title {
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: 28px;
+    color: var(--text-primary);
+    margin-bottom: 4px;
+  }
+
+  .greeting-sub {
+    font-family: var(--font-body);
+    font-weight: 400;
+    font-size: 14px;
+    color: var(--text-secondary);
+  }
+
+  /* ========== SECTION HEADERS ========== */
+  .section-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 16px;
+  }
+
+  .section-header-icon {
+    width: 20px;
+    height: 20px;
+    color: var(--text-primary);
+  }
+
+  .section-header-title {
+    font-family: var(--font-body);
+    font-weight: 600;
+    font-size: 16px;
+    color: var(--text-primary);
+    flex: 1;
+  }
+
+  .refresh-btn {
+    width: 28px;
+    height: 28px;
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    color: var(--text-secondary);
+  }
+
+  .refresh-btn:hover {
+    background: rgba(255, 255, 255, 0.10);
+  }
+
+  /* ========== PLATFORM BADGES ========== */
+  .platform-badges {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 16px;
+    flex-wrap: wrap;
+  }
+
+  .platform-badge {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    border-radius: var(--radius-pill);
+    font-family: var(--font-body);
+    font-weight: 500;
+    font-size: 12px;
+    border: 1px solid transparent;
+  }
+
+  .platform-badge svg {
+    width: 10px;
+    height: 10px;
+  }
+
+  .badge-whoop {
+    background: rgba(0, 165, 224, 0.08);
+    color: #00A5E0;
+    border-color: rgba(0, 165, 224, 0.15);
+  }
+
+  .badge-calendar {
+    background: rgba(66, 133, 244, 0.08);
+    color: #4285F4;
+    border-color: rgba(66, 133, 244, 0.15);
+  }
+
+  .badge-spotify {
+    background: rgba(29, 185, 84, 0.08);
+    color: #1DB954;
+    border-color: rgba(29, 185, 84, 0.15);
+  }
+
+  /* ========== INSIGHTS CARD ========== */
+  .insights-card {
+    margin-bottom: 16px;
+  }
+
+  .insight-row {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 16px 20px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+
+  .insight-row:last-child {
+    border-bottom: none;
+  }
+
+  .insight-row:hover {
+    background: rgba(255, 255, 255, 0.03);
+  }
+
+  .insight-icon-wrap {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+
+  .insight-icon-wrap svg {
+    width: 20px;
+    height: 20px;
+  }
+
+  .insight-body {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .insight-title-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 3px;
+    flex-wrap: wrap;
+  }
+
+  .insight-title {
+    font-family: var(--font-body);
+    font-weight: 600;
+    font-size: 14px;
+    color: var(--text-primary);
+  }
+
+  .insight-tag {
+    display: inline-flex;
+    padding: 2px 8px;
+    border-radius: var(--radius-pill);
+    background: rgba(255, 255, 255, 0.06);
+    font-family: var(--font-body);
+    font-weight: 500;
+    font-size: 10px;
+    color: var(--text-secondary);
+  }
+
+  .insight-desc {
+    font-family: var(--font-body);
+    font-weight: 400;
+    font-size: 13px;
+    color: var(--text-secondary);
+    line-height: 1.4;
+  }
+
+  .insight-chevron {
+    width: 16px;
+    height: 16px;
+    color: var(--text-tertiary);
+    flex-shrink: 0;
+  }
+
+  /* ========== VIEW SOUL SIGNATURE LINK ========== */
+  .soul-sig-link {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 20px;
+  }
+
+  .soul-sig-link a {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 20px;
+    border-radius: var(--radius-pill);
+    background: rgba(16, 185, 129, 0.08);
+    border: 1px solid rgba(16, 185, 129, 0.15);
+    color: #10B981;
+    font-family: var(--font-body);
+    font-weight: 500;
+    font-size: 13px;
+    text-decoration: none;
+    transition: background 0.15s;
+  }
+
+  .soul-sig-link a:hover {
+    background: rgba(16, 185, 129, 0.14);
+  }
+
+  /* ========== OBSERVING CARD ========== */
+  .observing-card {
+    text-align: center;
+    padding: 28px 20px;
+    margin-bottom: 32px;
+  }
+
+  .observing-card svg {
+    width: 24px;
+    height: 24px;
+    color: var(--text-tertiary);
+    margin-bottom: 10px;
+  }
+
+  .observing-card p {
+    font-family: var(--font-body);
+    font-weight: 400;
+    font-size: 14px;
+    color: var(--text-secondary);
+  }
+
+  /* ========== NEXT EVENT CARD ========== */
+  .next-event-card {
+    padding: 0;
+    margin-bottom: 36px;
+  }
+
+  .next-event-bar {
+    height: 4px;
+    background: linear-gradient(90deg, #a855f7, #6366f1, #3b82f6, #10b981);
+    border-radius: 20px 20px 0 0;
+  }
+
+  .next-event-content {
+    padding: 20px 24px 24px;
+  }
+
+  .next-event-label {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-family: var(--font-body);
+    font-weight: 600;
+    font-size: 11px;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: var(--text-secondary);
+    margin-bottom: 10px;
+  }
+
+  .next-event-label svg {
+    width: 14px;
+    height: 14px;
+  }
+
+  .next-event-title {
+    font-family: var(--font-body);
+    font-weight: 600;
+    font-size: 24px;
+    color: var(--text-primary);
+    margin-bottom: 10px;
+  }
+
+  .next-event-meta {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 18px;
+  }
+
+  .next-event-time {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-family: var(--font-body);
+    font-weight: 400;
+    font-size: 14px;
+    color: var(--text-secondary);
+  }
+
+  .next-event-time svg {
+    width: 14px;
+    height: 14px;
+  }
+
+  .next-event-tag {
+    display: inline-flex;
+    padding: 3px 10px;
+    border-radius: var(--radius-pill);
+    background: rgba(255, 255, 255, 0.06);
+    font-family: var(--font-body);
+    font-weight: 500;
+    font-size: 11px;
+    color: var(--text-secondary);
+  }
+
+  .next-event-cta {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 10px 20px;
+    border-radius: var(--radius-pill);
+    background: rgba(16, 185, 129, 0.15);
+    border: 1px solid rgba(16, 185, 129, 0.25);
+    color: #10B981;
+    font-family: var(--font-body);
+    font-weight: 500;
+    font-size: 14px;
+    cursor: pointer;
+    text-decoration: none;
+    transition: background 0.15s;
+  }
+
+  .next-event-cta:hover {
+    background: rgba(16, 185, 129, 0.22);
+  }
+
+  .next-event-cta svg {
+    width: 16px;
+    height: 16px;
+  }
+
+  /* ========== SECTION LABEL (emerald bar style) ========== */
+  .section-label {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 16px;
+  }
+
+  .section-label-bar {
+    width: 3px;
+    height: 16px;
+    border-radius: 2px;
+    background: #10B981;
+    flex-shrink: 0;
+  }
+
+  .section-label-text {
+    font-family: var(--font-body);
+    font-weight: 600;
+    font-size: 12px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--text-secondary);
+  }
+
+  /* ========== TWIN INSIGHTS GRID ========== */
+  .twin-insights-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+    margin-bottom: 36px;
+  }
+
+  .twin-insight-card {
+    padding: 20px;
+    border-left: 3px solid transparent;
+    border-radius: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+
+  .twin-insight-icon-wrap {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+
+  .twin-insight-icon-wrap svg {
+    width: 20px;
+    height: 20px;
+  }
+
+  .twin-insight-title {
+    font-family: var(--font-body);
+    font-weight: 600;
+    font-size: 15px;
+    color: var(--text-primary);
+    margin-bottom: 2px;
+  }
+
+  .twin-insight-desc {
+    font-family: var(--font-body);
+    font-weight: 400;
+    font-size: 13px;
+    color: var(--text-secondary);
+    line-height: 1.4;
+  }
+
+  .explore-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 7px 16px;
+    border-radius: var(--radius-pill);
+    background: rgba(16, 185, 129, 0.12);
+    border: 1px solid rgba(16, 185, 129, 0.25);
+    color: #10B981;
+    font-family: var(--font-body);
+    font-weight: 500;
+    font-size: 13px;
+    cursor: pointer;
+    text-decoration: none;
+    transition: background 0.15s;
+    align-self: flex-start;
+  }
+
+  .explore-pill:hover {
+    background: rgba(16, 185, 129, 0.20);
+  }
+
+  .connect-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 7px 16px;
+    border-radius: var(--radius-pill);
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    color: var(--text-secondary);
+    font-family: var(--font-body);
+    font-weight: 500;
+    font-size: 13px;
+    cursor: pointer;
+    text-decoration: none;
+    transition: background 0.15s;
+    align-self: flex-start;
+  }
+
+  .connect-pill:hover {
+    background: rgba(255, 255, 255, 0.10);
+  }
+
+  /* ========== YOUR PATTERNS ========== */
+  .patterns-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+    margin-bottom: 36px;
+  }
+
+  .pattern-card {
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .pattern-icon-wrap {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+
+  .pattern-icon-wrap svg {
+    width: 20px;
+    height: 20px;
+  }
+
+  .pattern-title {
+    font-family: var(--font-body);
+    font-weight: 600;
+    font-size: 14px;
+    color: var(--text-primary);
+  }
+
+  .pattern-desc {
+    font-family: var(--font-body);
+    font-weight: 400;
+    font-size: 13px;
+    color: var(--text-secondary);
+    line-height: 1.4;
+  }
+
+  /* ========== CONNECTED PLATFORMS ========== */
+  .connected-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 14px;
+  }
+
+  .connected-manage {
+    margin-left: auto;
+    font-family: var(--font-body);
+    font-weight: 500;
+    font-size: 13px;
+    color: var(--text-secondary);
+    text-decoration: none;
+    cursor: pointer;
+    transition: color 0.15s;
+  }
+
+  .connected-manage:hover {
+    color: var(--text-primary);
+  }
+
+  .connected-chips {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-bottom: 40px;
+  }
+
+  .connected-chip {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 16px;
+    border-radius: var(--radius-pill);
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    font-family: var(--font-body);
+    font-weight: 500;
+    font-size: 13px;
+    color: var(--text-primary);
+  }
+
+  .connected-chip-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  .connected-chip svg {
+    width: 14px;
+    height: 14px;
+    color: #10B981;
+  }
+</style>
+</head>
+<body>
+
+<!-- ========== SIDEBAR ========== -->
+<nav class="sidebar">
+  <div class="sidebar-header">
+    <div class="sidebar-logo">
+      <div class="sidebar-logo-diamond"></div>
+    </div>
+    <span class="sidebar-title">Twin Me</span>
+    <div class="sidebar-collapse">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+    </div>
+  </div>
+
+  <div class="sidebar-nav">
+    <!-- Dashboard (Active) -->
+    <a class="nav-item active" href="#">
+      <svg class="nav-item-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+      <span class="nav-item-label">Dashboard</span>
+    </a>
+
+    <!-- Connect Data -->
+    <a class="nav-item" href="#">
+      <svg class="nav-item-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 5V19A9 3 0 0 0 21 19V5"/><path d="M3 12A9 3 0 0 0 21 12"/></svg>
+      <span class="nav-item-label">Connect Data</span>
+    </a>
+
+    <!-- Soul Signature -->
+    <a class="nav-item" href="#">
+      <svg class="nav-item-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+      <span class="nav-item-label">Soul Signature</span>
+    </a>
+
+    <!-- Twin's Brain -->
+    <a class="nav-item" href="#">
+      <svg class="nav-item-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5a3 3 0 1 0-5.997.125 4 4 0 0 0-2.526 5.77 4 4 0 0 0 .556 6.588A4 4 0 1 0 12 18Z"/><path d="M12 5a3 3 0 1 1 5.997.125 4 4 0 0 1 2.526 5.77 4 4 0 0 1-.556 6.588A4 4 0 1 1 12 18Z"/><path d="M15 13a4.5 4.5 0 0 1-3-4 4.5 4.5 0 0 1-3 4"/></svg>
+      <span class="nav-item-label">Twin's Brain</span>
+    </a>
+
+    <!-- Soul Journal -->
+    <a class="nav-item" href="#">
+      <svg class="nav-item-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
+      <span class="nav-item-label">Soul Journal</span>
+    </a>
+
+    <!-- Personality -->
+    <a class="nav-item" href="#">
+      <svg class="nav-item-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg>
+      <span class="nav-item-label">Personality</span>
+    </a>
+
+    <!-- Chat with Twin -->
+    <a class="nav-item" href="#">
+      <svg class="nav-item-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z"/></svg>
+      <span class="nav-item-label">Chat with Twin</span>
+    </a>
+
+    <div class="sidebar-divider"></div>
+
+    <!-- Twin Insights submenu -->
+    <div class="submenu-label">
+      Twin Insights
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+    </div>
+
+    <div class="submenu-item">
+      <div class="submenu-dot"></div>
+      <span class="submenu-item-label">Music Soul</span>
+    </div>
+    <div class="submenu-item">
+      <div class="submenu-dot"></div>
+      <span class="submenu-item-label">Body Stories</span>
+    </div>
+    <div class="submenu-item">
+      <div class="submenu-dot"></div>
+      <span class="submenu-item-label">Time Patterns</span>
+    </div>
+    <div class="submenu-item">
+      <div class="submenu-dot"></div>
+      <span class="submenu-item-label">Content World</span>
+    </div>
+  </div>
+</nav>
+
+<!-- ========== MAIN CONTENT ========== -->
+<main class="main-content">
+
+  <!-- Greeting -->
+  <div class="greeting">
+    <h1 class="greeting-title">Good evening, Alex</h1>
+    <p class="greeting-sub">4 events today</p>
+  </div>
+
+  <!-- Today's Insights Section -->
+  <div class="section-header">
+    <svg class="section-header-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/><path d="M5 3v4"/><path d="M19 17v4"/><path d="M3 5h4"/><path d="M17 19h4"/></svg>
+    <span class="section-header-title">Today's Insights</span>
+    <div class="refresh-btn">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"/><path d="M16 16h5v5"/></svg>
+    </div>
+  </div>
+
+  <!-- Platform Badges -->
+  <div class="platform-badges">
+    <div class="platform-badge badge-whoop">
+      Whoop
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+    </div>
+    <div class="platform-badge badge-calendar">
+      Calendar
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+    </div>
+    <div class="platform-badge badge-spotify">
+      Spotify
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+    </div>
+  </div>
+
+  <!-- Insights Card -->
+  <div class="glass-card insights-card">
+    <!-- Row 1: Good Recovery Day -->
+    <div class="insight-row">
+      <div class="insight-icon-wrap" style="background: rgba(0, 165, 224, 0.1);">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#00A5E0" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-2.48a2 2 0 0 0-1.93 1.46l-2.35 8.36a.25.25 0 0 1-.48 0L9.24 2.18a.25.25 0 0 0-.48 0l-2.35 8.36A2 2 0 0 1 4.49 12H2"/></svg>
+      </div>
+      <div class="insight-body">
+        <div class="insight-title-row">
+          <span class="insight-title">Good Recovery Day</span>
+          <span class="insight-tag">whoop</span>
+        </div>
+        <p class="insight-desc">Your recovery is at 72% - perfect for moderate activity</p>
+      </div>
+      <svg class="insight-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+    </div>
+
+    <!-- Row 2: Your Day Ahead -->
+    <div class="insight-row">
+      <div class="insight-icon-wrap" style="background: rgba(66, 133, 244, 0.1);">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#4285F4" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2v4"/><path d="M16 2v4"/><rect width="18" height="18" x="3" y="4" rx="2"/><path d="M3 10h18"/></svg>
+      </div>
+      <div class="insight-body">
+        <div class="insight-title-row">
+          <span class="insight-title">Your Day Ahead</span>
+          <span class="insight-tag">calendar</span>
+        </div>
+        <p class="insight-desc">Check your calendar to see upcoming events</p>
+      </div>
+      <svg class="insight-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+    </div>
+
+    <!-- Row 3: Morning Focus Playlist -->
+    <div class="insight-row">
+      <div class="insight-icon-wrap" style="background: rgba(29, 185, 84, 0.1);">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#1DB954" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 14h3a2 2 0 0 1 2 2v3a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-7a9 9 0 0 1 18 0v7a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3"/></svg>
+      </div>
+      <div class="insight-body">
+        <div class="insight-title-row">
+          <span class="insight-title">Morning Focus Playlist</span>
+          <span class="insight-tag">spotify</span>
+          <span class="insight-tag">calendar</span>
+        </div>
+        <p class="insight-desc">Based on your listening, ambient music helps you focus</p>
+      </div>
+      <svg class="insight-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+    </div>
+
+    <!-- Row 4: Energy Pattern Detected -->
+    <div class="insight-row">
+      <div class="insight-icon-wrap" style="background: rgba(16, 185, 129, 0.1);">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#10B981" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg>
+      </div>
+      <div class="insight-body">
+        <div class="insight-title-row">
+          <span class="insight-title">Energy Pattern Detected</span>
+          <span class="insight-tag">whoop</span>
+          <span class="insight-tag">calendar</span>
+          <span class="insight-tag">spotify</span>
+        </div>
+        <p class="insight-desc">You tend to crash around 3pm - schedule important work earlier</p>
+      </div>
+      <svg class="insight-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+    </div>
+  </div>
+
+  <!-- View Your Full Soul Signature -->
+  <div class="soul-sig-link">
+    <a href="#">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+      View Your Full Soul Signature
+    </a>
+  </div>
+
+  <!-- Observing Card -->
+  <div class="glass-card observing-card">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
+    <p>Your twin is observing. Insights will appear as patterns emerge.</p>
+  </div>
+
+  <!-- Next Important Event Card -->
+  <div class="glass-card next-event-card">
+    <div class="next-event-bar"></div>
+    <div class="next-event-content">
+      <div class="next-event-label">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+        NEXT IMPORTANT EVENT
+      </div>
+      <h2 class="next-event-title">Product Review</h2>
+      <div class="next-event-meta">
+        <span class="next-event-time">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+          in 11h 31m
+        </span>
+        <span class="next-event-tag">meeting</span>
+      </div>
+      <a href="#" class="next-event-cta">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/><path d="M5 3v4"/><path d="M19 17v4"/><path d="M3 5h4"/><path d="M17 19h4"/></svg>
+        View Time Patterns
+      </a>
+    </div>
+  </div>
+
+  <!-- Twin Insights Section -->
+  <div class="section-label">
+    <div class="section-label-bar"></div>
+    <span class="section-label-text">Twin Insights</span>
+  </div>
+
+  <div class="twin-insights-grid">
+    <!-- Music Soul -->
+    <div class="glass-card twin-insight-card" style="border-left-color: #1DB954;">
+      <div class="twin-insight-icon-wrap" style="background: rgba(29, 185, 84, 0.12);">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#1DB954" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 14h3a2 2 0 0 1 2 2v3a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-7a9 9 0 0 1 18 0v7a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3"/></svg>
+      </div>
+      <div>
+        <div class="twin-insight-title">Your Musical Soul</div>
+        <p class="twin-insight-desc">What your listening reveals about you</p>
+      </div>
+      <a href="#" class="explore-pill">Explore
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+      </a>
+    </div>
+
+    <!-- Body Stories -->
+    <div class="glass-card twin-insight-card" style="border-left-color: #00A5E0;">
+      <div class="twin-insight-icon-wrap" style="background: rgba(0, 165, 224, 0.12);">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#00A5E0" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 14a1 1 0 0 1-.78-1.63l9.9-10.2a.5.5 0 0 1 .86.46l-1.92 6.02A1 1 0 0 0 13 10h7a1 1 0 0 1 .78 1.63l-9.9 10.2a.5.5 0 0 1-.86-.46l1.92-6.02A1 1 0 0 0 11 14z"/></svg>
+      </div>
+      <div>
+        <div class="twin-insight-title">Body Stories</div>
+        <p class="twin-insight-desc">What your body tells you</p>
+      </div>
+      <a href="#" class="explore-pill">Explore
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+      </a>
+    </div>
+
+    <!-- Time Patterns -->
+    <div class="glass-card twin-insight-card" style="border-left-color: #F59E0B;">
+      <div class="twin-insight-icon-wrap" style="background: rgba(245, 158, 11, 0.12);">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#F59E0B" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+      </div>
+      <div>
+        <div class="twin-insight-title">Time Patterns</div>
+        <p class="twin-insight-desc">How you structure your days</p>
+      </div>
+      <a href="#" class="explore-pill">Explore
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+      </a>
+    </div>
+
+    <!-- Content World -->
+    <div class="glass-card twin-insight-card" style="border-left-color: #FF0000;">
+      <div class="twin-insight-icon-wrap" style="background: rgba(255, 0, 0, 0.10);">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#FF0000" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+      </div>
+      <div>
+        <div class="twin-insight-title">Content World</div>
+        <p class="twin-insight-desc">Connect YouTube to discover your content world</p>
+      </div>
+      <a href="#" class="connect-pill">Connect
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+      </a>
+    </div>
+
+    <!-- Gaming World -->
+    <div class="glass-card twin-insight-card" style="border-left-color: #9146FF;">
+      <div class="twin-insight-icon-wrap" style="background: rgba(145, 70, 255, 0.12);">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#9146FF" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><line x1="6" x2="10" y1="11" y2="11"/><line x1="8" x2="8" y1="9" y2="13"/><line x1="15" x2="15.01" y1="12" y2="12"/><line x1="18" x2="18.01" y1="10" y2="10"/><path d="M17.32 5H6.68a4 4 0 0 0-3.978 3.59c-.006.052-.01.101-.017.152C2.604 9.416 2 14.456 2 16a3 3 0 0 0 3 3c1 0 1.5-.5 2-1l1.414-1.414A2 2 0 0 1 9.828 16h4.344a2 2 0 0 1 1.414.586L17 18c.5.5 1 1 2 1a3 3 0 0 0 3-3c0-1.545-.604-6.584-.685-7.258-.007-.05-.011-.1-.017-.151A4 4 0 0 0 17.32 5z"/></svg>
+      </div>
+      <div>
+        <div class="twin-insight-title">Gaming World</div>
+        <p class="twin-insight-desc">Connect Twitch to reveal your gaming world</p>
+      </div>
+      <a href="#" class="connect-pill">Connect
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+      </a>
+    </div>
+  </div>
+
+  <!-- Your Patterns Section -->
+  <div class="section-label">
+    <div class="section-label-bar"></div>
+    <span class="section-label-text">Your Patterns</span>
+  </div>
+
+  <div class="patterns-grid">
+    <!-- Optimal Prep Time -->
+    <div class="glass-card pattern-card">
+      <div class="pattern-icon-wrap" style="background: rgba(168, 85, 247, 0.12);">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#a855f7" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+      </div>
+      <div class="pattern-title">Optimal Prep Time</div>
+      <p class="pattern-desc">4 events shaping your day</p>
+    </div>
+
+    <!-- Focus Music -->
+    <div class="glass-card pattern-card">
+      <div class="pattern-icon-wrap" style="background: rgba(29, 185, 84, 0.12);">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#1DB954" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 14h3a2 2 0 0 1 2 2v3a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-7a9 9 0 0 1 18 0v7a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3"/></svg>
+      </div>
+      <div class="pattern-title">Focus Music</div>
+      <p class="pattern-desc">Your listening shapes your flow</p>
+    </div>
+
+    <!-- 3 Platforms Connected -->
+    <div class="glass-card pattern-card">
+      <div class="pattern-icon-wrap" style="background: rgba(16, 185, 129, 0.12);">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#10B981" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+      </div>
+      <div class="pattern-title">3 Platforms Connected</div>
+      <p class="pattern-desc">Building your soul signature</p>
+    </div>
+  </div>
+
+  <!-- Connected Platforms Section -->
+  <div class="connected-header">
+    <div class="section-label-bar"></div>
+    <span class="section-label-text">Connected Platforms</span>
+    <a href="#" class="connected-manage">Manage &#8250;</a>
+  </div>
+
+  <div class="connected-chips">
+    <div class="connected-chip">
+      <div class="connected-chip-dot" style="background: #1DB954;"></div>
+      Spotify
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+    </div>
+    <div class="connected-chip">
+      <div class="connected-chip-dot" style="background: #4285F4;"></div>
+      Calendar
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+    </div>
+    <div class="connected-chip">
+      <div class="connected-chip-dot" style="background: #00A5E0;"></div>
+      Whoop
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+    </div>
+  </div>
+
+</main>
+
+</body>
+</html>

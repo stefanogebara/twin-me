@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=1440">
+<title>TwinMe - Login (Liquid Glass)</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=Inter:wght@300;400;500;600;700&family=EB+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0A0A0A;
+    --surface: #111111;
+    --text-primary: rgba(255, 255, 255, 0.92);
+    --text-secondary: rgba(255, 255, 255, 0.55);
+    --text-tertiary: rgba(255, 255, 255, 0.30);
+    --accent: #10B981;
+    --accent-teal: #14B8A6;
+    --accent-light: #6EE7B7;
+    --accent-cyan: #06B6D4;
+    --glass-border: rgba(255, 255, 255, 0.10);
+    --glass-border-subtle: rgba(255, 255, 255, 0.05);
+    --glass-fill: rgba(17, 17, 17, 0.65);
+    --radius-lg: 20px;
+    --radius-md: 16px;
+    --radius-sm: 12px;
+    --radius-pill: 999px;
+    --font-display: 'Syne', sans-serif;
+    --font-body: 'Inter', -apple-system, sans-serif;
+    --font-accent: 'EB Garamond', Georgia, serif;
+  }
+
+  *, *::before, *::after {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+  }
+
+  body {
+    font-family: var(--font-body);
+    background:
+      radial-gradient(ellipse 50% 40% at 15% 10%, rgba(16, 185, 129, 0.15) 0%, transparent 100%),
+      radial-gradient(ellipse 40% 50% at 85% 80%, rgba(6, 182, 212, 0.10) 0%, transparent 100%),
+      radial-gradient(ellipse 60% 40% at 50% 50%, rgba(20, 184, 166, 0.05) 0%, transparent 100%),
+      #0A0A0A;
+    color: var(--text-primary);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    -webkit-font-smoothing: antialiased;
+    overflow: hidden;
+    position: relative;
+  }
+
+  /* ── Back Button ── */
+  .back-button {
+    position: fixed;
+    top: 24px;
+    left: 24px;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 18px;
+    background: rgba(17, 17, 17, 0.65);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 999px;
+    color: var(--text-secondary);
+    font-family: var(--font-body);
+    font-size: 14px;
+    font-weight: 400;
+    text-decoration: none;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    z-index: 100;
+  }
+
+  .back-button:hover {
+    color: var(--text-primary);
+    border-color: rgba(255, 255, 255, 0.15);
+    background: rgba(17, 17, 17, 0.8);
+  }
+
+  .back-button svg {
+    width: 16px;
+    height: 16px;
+    flex-shrink: 0;
+  }
+
+  /* ── Center Content ── */
+  .auth-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0;
+    width: 100%;
+    max-width: 480px;
+    padding: 0 24px;
+  }
+
+  /* ── Sparkles Icon ── */
+  .sparkles-icon {
+    width: 64px;
+    height: 64px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(17, 17, 17, 0.65);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 18px;
+    margin-bottom: 28px;
+  }
+
+  .sparkles-icon svg {
+    width: 28px;
+    height: 28px;
+    color: var(--text-secondary);
+  }
+
+  /* ── Title ── */
+  .title {
+    text-align: center;
+    margin-bottom: 12px;
+    line-height: 1.2;
+  }
+
+  .title-discover {
+    display: block;
+    font-family: var(--font-accent);
+    font-size: 36px;
+    font-weight: 400;
+    color: var(--text-primary);
+  }
+
+  .title-soul {
+    display: block;
+    font-family: var(--font-display);
+    font-size: 40px;
+    font-weight: 800;
+    color: var(--text-primary);
+    text-shadow: 0 0 30px rgba(16, 185, 129, 0.2);
+  }
+
+  /* ── Subtitle ── */
+  .subtitle {
+    font-family: var(--font-body);
+    font-size: 15px;
+    font-weight: 400;
+    color: var(--text-secondary);
+    text-align: center;
+    line-height: 1.6;
+    margin-bottom: 36px;
+    max-width: 380px;
+  }
+
+  /* ── Auth Glass Card ── */
+  .auth-card {
+    width: 100%;
+    background: rgba(17, 17, 17, 0.65);
+    backdrop-filter: blur(24px) saturate(200%);
+    -webkit-backdrop-filter: blur(24px) saturate(200%);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: var(--radius-lg);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.06);
+    padding: 40px;
+    position: relative;
+    overflow: hidden;
+    transition: border-color 0.4s ease;
+  }
+
+  .auth-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+    pointer-events: none;
+  }
+
+  .auth-card:hover {
+    border-color: rgba(16, 185, 129, 0.2);
+  }
+
+  /* ── Google Sign-in Button ── */
+  .google-button {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    padding: 14px 24px;
+    background: rgba(17, 17, 17, 0.45);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 999px;
+    color: var(--text-primary);
+    font-family: var(--font-body);
+    font-size: 16px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-decoration: none;
+  }
+
+  .google-button:hover {
+    border-color: rgba(255, 255, 255, 0.18);
+    background: rgba(17, 17, 17, 0.6);
+  }
+
+  .google-logo {
+    font-size: 20px;
+    font-weight: 700;
+    background: linear-gradient(135deg, #4285F4, #DB4437, #F4B400, #0F9D58);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    line-height: 1;
+  }
+
+  /* ── Glass Divider ── */
+  .glass-divider {
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(16, 185, 129, 0.3) 50%, transparent);
+    margin: 28px 0;
+  }
+
+  /* ── Benefits ── */
+  .benefits-label {
+    font-family: var(--font-body);
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--text-secondary);
+    margin-bottom: 20px;
+  }
+
+  .benefits-list {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .benefit-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  .benefit-item svg {
+    width: 18px;
+    height: 18px;
+    flex-shrink: 0;
+    color: #10B981;
+    margin-top: 1px;
+  }
+
+  .benefit-item span {
+    font-family: var(--font-body);
+    font-size: 14px;
+    font-weight: 400;
+    color: var(--text-primary);
+    line-height: 1.5;
+  }
+
+  /* ── Terms ── */
+  .terms {
+    font-family: var(--font-body);
+    font-size: 13px;
+    font-weight: 400;
+    color: var(--text-secondary);
+    text-align: center;
+    margin-top: 28px;
+    line-height: 1.6;
+  }
+
+  .terms a {
+    color: #10B981;
+    text-decoration: none;
+    border-bottom: 1px solid rgba(16, 185, 129, 0.3);
+    transition: border-color 0.2s ease;
+  }
+
+  .terms a:hover {
+    border-bottom-color: #10B981;
+  }
+</style>
+</head>
+<body>
+
+  <!-- Back Button -->
+  <a href="#" class="back-button">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+      <path d="m15 18-6-6 6-6"/>
+    </svg>
+    Back to Home
+  </a>
+
+  <!-- Auth Container -->
+  <div class="auth-container">
+
+    <!-- Sparkles Icon -->
+    <div class="sparkles-icon">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+        <path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/>
+        <path d="M5 3v4"/><path d="M19 17v4"/><path d="M3 5h4"/><path d="M17 19h4"/>
+      </svg>
+    </div>
+
+    <!-- Title -->
+    <div class="title">
+      <span class="title-discover">Discover Your</span>
+      <span class="title-soul">Soul Signature</span>
+    </div>
+
+    <!-- Subtitle -->
+    <p class="subtitle">Sign in with Google to begin your journey of authentic self-discovery</p>
+
+    <!-- Auth Glass Card -->
+    <div class="auth-card">
+
+      <!-- Google Sign-in Button -->
+      <button class="google-button">
+        <span class="google-logo">G</span>
+        Continue with Google
+      </button>
+
+      <!-- Glass Divider -->
+      <div class="glass-divider"></div>
+
+      <!-- Benefits -->
+      <div class="benefits-label">WHAT YOU'LL GET</div>
+
+      <div class="benefits-list">
+        <div class="benefit-item">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M20 6 9 17l-5-5"/>
+          </svg>
+          <span>Personalized soul signature based on your digital footprint</span>
+        </div>
+        <div class="benefit-item">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M20 6 9 17l-5-5"/>
+          </svg>
+          <span>Privacy controls - you decide what to reveal</span>
+        </div>
+        <div class="benefit-item">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M20 6 9 17l-5-5"/>
+          </svg>
+          <span>Connect multiple platforms for deeper insights</span>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Terms -->
+    <p class="terms">By continuing, you agree to our <a href="#">Terms of Service</a> and <a href="#">Privacy Policy</a></p>
+
+  </div>
+
+</body>
+</html>

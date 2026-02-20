@@ -68,3 +68,9 @@ playwright-*-test.js
 
 # Claude Code local settings
 .claude/settings.local.json
+
+# Test screenshots and artifacts
+enrichment-test-screenshots/
+
+# Supabase temp files
+supabase/.temp/
