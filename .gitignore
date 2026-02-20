@@ -62,3 +62,9 @@ start_server.bat
 api/test-*.js
 test-*.mjs
 playwright-*-test.js
+
+# Claude Code worktrees (parallel sessions)
+.claude/worktrees/
+
+# Claude Code local settings
+.claude/settings.local.json
