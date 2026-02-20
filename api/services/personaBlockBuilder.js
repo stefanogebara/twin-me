@@ -286,26 +286,65 @@ function hasConfidence(scores, trait) {
 
 /**
  * Convert 3rd person text to 1st person via common patterns.
+ * Handles verb deconjugation: "This person treats" -> "I treat" (not "I treats").
  */
 function convertToFirstPerson(text) {
+  // Adverb pattern: -ly words + common non-ly adverbs (0-2 allowed between subject and verb)
+  const adverbGroup = '(?:(?:\\w+ly|often|always|sometimes|usually|never|also|still|just|even|quite|rather|generally|typically)\\s+){0,2}';
+  const verbDeconj = (_, adverbs, verb, andVerb) => {
+    let result = `I ${adverbs}${deconjugateThirdPerson(verb)}`;
+    if (andVerb) result += ` and ${deconjugateThirdPerson(andVerb)}`;
+    return result;
+  };
+
   return text
+    // Subject + irregular verb (must come before generic subject+verb pattern)
     .replace(/\bThis person is\b/gi, 'I am')
     .replace(/\bThis person has\b/gi, 'I have')
+    .replace(/\bThis person was\b/gi, 'I was')
+    // Subject + [adverbs] + verb (+ optional "and verb") -> deconjugate
+    .replace(new RegExp(`\\bThis person (${adverbGroup})(\\w+s)(?:\\s+and\\s+(\\w+s))?\\b`, 'gi'), verbDeconj)
     .replace(/\bThis person\b/gi, 'I')
     .replace(/\bThis user is\b/gi, 'I am')
     .replace(/\bThis user has\b/gi, 'I have')
+    .replace(/\bThis user was\b/gi, 'I was')
+    .replace(new RegExp(`\\bThis user (${adverbGroup})(\\w+s)(?:\\s+and\\s+(\\w+s))?\\b`, 'gi'), verbDeconj)
     .replace(/\bThis user\b/gi, 'I')
     .replace(/\bThe user is\b/gi, 'I am')
     .replace(/\bThe user has\b/gi, 'I have')
+    .replace(new RegExp(`\\bThe user (${adverbGroup})(\\w+s)(?:\\s+and\\s+(\\w+s))?\\b`, 'gi'), verbDeconj)
     .replace(/\bThe user\b/gi, 'I')
     .replace(/\bThey are\b/gi, 'I am')
     .replace(/\bThey have\b/gi, 'I have')
     .replace(/\bThey were\b/gi, 'I was')
+    .replace(new RegExp(`\\bThey (${adverbGroup})(\\w+s)(?:\\s+and\\s+(\\w+s))?\\b`, 'g'), verbDeconj)
     .replace(/\bThey (\w+)\b/g, 'I $1')
     .replace(/\bTheir\b/g, 'My')
     .replace(/\btheir\b/g, 'my')
     .replace(/\bThem\b/g, 'Me')
     .replace(/\bthem\b/g, 'me');
+}
+
+/**
+ * Convert 3rd person singular verb to base form.
+ * "intellectualizes" -> "intellectualize", "treats" -> "treat"
+ */
+function deconjugateThirdPerson(verb) {
+  const v = verb.toLowerCase();
+  if (v === 'is') return 'am';
+  if (v === 'has') return 'have';
+  if (v === 'does') return 'do';
+  if (v === 'goes') return 'go';
+  // -ies -> -y for multi-syllable words (tries->try, not dies->die)
+  if (v.endsWith('ies') && v.length > 4) return verb.slice(0, -3) + 'y';
+  // Sibilant + es: only specific double-consonant/digraph patterns where base has no trailing 'e'
+  // watches->watch, pushes->push, passes->pass, buzzes->buzz, waltzes->waltz, fixes->fix
+  // Does NOT match -izes/-ases/-oses (intellectualizes, erases, closes) — those just drop 's'
+  if (/(?:sh|ch|ss|zz|tz)es$/.test(v)) return verb.slice(0, -2);
+  if (/[^aeiou]xes$/.test(v)) return verb.slice(0, -2);
+  // Default: remove trailing "s" (treats->treat, intellectualizes->intellectualize)
+  if (v.endsWith('s')) return verb.slice(0, -1);
+  return verb;
 }
 
 /**
