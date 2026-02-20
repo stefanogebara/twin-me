@@ -195,7 +195,7 @@ export async function refreshAccessToken(userId, provider) {
     const supabase = await getSupabaseClient();
     const { data: connection, error: dbError } = await supabase
       .from('platform_connections')
-      .select('refresh_token, token_expires_at, access_token')
+      .select('refresh_token, token_expires_at, access_token, metadata')
       .eq('user_id', userId)
       .eq('platform', provider)
       .not('connected_at', 'is', null)
@@ -289,23 +289,20 @@ export async function refreshAccessToken(userId, provider) {
   } catch (error) {
     console.error(`❌ Token refresh error for ${provider}:`, error.message);
 
-    // Update error count in database
+    // Update error status in database
     try {
       const supabaseClient = await getSupabaseClient();
       await supabaseClient
         .from('platform_connections')
         .update({
-          error_count: supabase.raw('COALESCE(error_count, 0) + 1'),
           last_sync_status: 'token_refresh_failed',
-          metadata: {
-            last_error: error.message,
-            last_error_at: new Date().toISOString()
-          }
+          error_message: error.message,
+          updated_at: new Date().toISOString()
         })
         .eq('user_id', userId)
         .eq('platform', provider);
     } catch (updateError) {
-      console.error(`Failed to update error count:`, updateError);
+      console.error(`Failed to update error status:`, updateError);
     }
 
     return {

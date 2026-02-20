@@ -10,7 +10,7 @@ import {
   Sparkles, Layers,
   Lightbulb, TrendingUp, Heart, Zap
 } from 'lucide-react';
-import { SpotifyLogo, WhoopLogo, GoogleCalendarLogo, YoutubeLogo, TwitchLogo, LinkedinLogo, DiscordLogo, RedditLogo, GithubLogo } from '@/components/PlatformLogos';
+import { SpotifyLogo, WhoopLogo, GoogleCalendarLogo, YoutubeLogo, TwitchLogo } from '@/components/PlatformLogos';
 import { Clay3DIcon } from '@/components/Clay3DIcon';
 import { ChatEmptyState } from '@/components/chat/ChatEmptyState';
 import { MessageList } from '@/components/chat/MessageList';
@@ -91,10 +91,6 @@ const TalkToTwin = () => {
     { name: 'Calendar', icon: <GoogleCalendarLogo className="w-4 h-4" />, key: 'google_calendar', color: '#4285F4', connected: isDemoMode || platformStatus?.google_calendar?.connected },
     { name: 'YouTube', icon: <YoutubeLogo className="w-4 h-4" />, key: 'youtube', color: '#FF0000', connected: platformStatus?.youtube?.connected },
     { name: 'Twitch', icon: <TwitchLogo className="w-4 h-4" />, key: 'twitch', color: '#9146FF', connected: platformStatus?.twitch?.connected },
-    { name: 'LinkedIn', icon: <LinkedinLogo className="w-4 h-4" />, key: 'linkedin', color: '#0A66C2', connected: platformStatus?.linkedin?.connected },
-    { name: 'Discord', icon: <DiscordLogo className="w-4 h-4" />, key: 'discord', color: '#5865F2', connected: platformStatus?.discord?.connected },
-    { name: 'Reddit', icon: <RedditLogo className="w-4 h-4" />, key: 'reddit', color: '#FF4500', connected: platformStatus?.reddit?.connected },
-    { name: 'GitHub', icon: <GithubLogo className="w-4 h-4" />, key: 'github', color: '#333333', connected: platformStatus?.github?.connected },
   ];
 
   const connectedPlatforms = platforms.filter(p => p.connected);
@@ -118,7 +114,7 @@ const TalkToTwin = () => {
         : `That's a great question! Based on Alex's connected platforms (Spotify, Whoop, Calendar), I can see patterns in your music taste, health metrics, and schedule.\n\nIn the full version, I'd analyze your actual data to give you personalized insights. For now, try asking me:\n- "What patterns do you see?"\n- "How am I doing today?"\n- "Recommend music for now"\n- "Analyze my week"`;
 
       const assistantMessage: Message = {
-        id: (Date.now() + 1).toString(),
+        id: crypto.randomUUID(),
         role: 'assistant',
         content: responseText,
         timestamp: new Date(),
@@ -253,7 +249,7 @@ const TalkToTwin = () => {
     });
 
     const userMessage: Message = {
-      id: Date.now().toString(),
+      id: crypto.randomUUID(),
       role: 'user',
       content: inputMessage,
       timestamp: new Date()
@@ -279,7 +275,7 @@ const TalkToTwin = () => {
           'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify({
-          message: inputMessage,
+          message: currentInput,
           conversationId,
           context: { platforms: connectedPlatforms.map(p => p.key) }
         })
@@ -288,7 +284,7 @@ const TalkToTwin = () => {
       if (response.ok) {
         const data = await response.json();
         const assistantMessage: Message = {
-          id: (Date.now() + 1).toString(),
+          id: crypto.randomUUID(),
           role: 'assistant',
           content: data.response || data.message || "I'm processing your request...",
           timestamp: new Date(),
@@ -316,7 +312,7 @@ const TalkToTwin = () => {
     } catch (error) {
       console.error('Chat error:', error);
       const assistantMessage: Message = {
-        id: (Date.now() + 1).toString(),
+        id: crypto.randomUUID(),
         role: 'assistant',
         content: connectedPlatforms.length === 0
           ? "Connect your platforms first so I can learn about you and provide personalized insights."
@@ -435,13 +431,16 @@ const TalkToTwin = () => {
               </div>
             </div>
             <button
-              className="px-5 py-2 rounded-xl text-sm font-medium transition-all hover:scale-[1.02] whitespace-nowrap"
+              className="px-5 py-2 rounded-xl text-sm font-medium whitespace-nowrap"
+              disabled
               style={{
                 background: 'linear-gradient(135deg, #6366F1, #8B5CF6)',
                 color: '#fff',
-                boxShadow: '0 2px 12px rgba(99, 102, 241, 0.3)'
+                boxShadow: '0 2px 12px rgba(99, 102, 241, 0.3)',
+                opacity: 0.6,
+                cursor: 'not-allowed'
               }}
-              onClick={() => {/* Future: navigate to upgrade page */}}
+              title="Upgrade feature coming soon"
             >
               Upgrade to Pro - Coming Soon
             </button>

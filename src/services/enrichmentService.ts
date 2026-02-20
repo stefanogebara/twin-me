@@ -62,6 +62,7 @@ export interface EnrichmentData {
   achievements: string | null;        // Notable achievements, projects, awards
   skills: string | null;              // Technical and professional skills
   source?: string;                    // Data source (scrapin+web, web, etc.)
+  identity_confidence?: number | null; // 0-1 confidence that search results match this person
   user_confirmed?: boolean;
   confirmed_data?: ConfirmedData | null;
   corrections?: Corrections | null;
@@ -179,6 +180,7 @@ export interface EnrichmentStatus {
   confirmedAt?: string;
   hasCompany?: boolean;
   hasTitle?: boolean;
+  identityConfidence?: number | null;
 }
 
 // ============================================================================

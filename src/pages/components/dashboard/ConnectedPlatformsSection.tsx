@@ -23,12 +23,6 @@ const PLATFORM_CONFIG: Record<string, { name: string; color: string; brandColor:
   whoop: { name: 'Whoop', color: 'text-cyan-500', brandColor: '#00A5E0' },
   youtube: { name: 'YouTube', color: 'text-red-500', brandColor: '#FF0000' },
   twitch: { name: 'Twitch', color: 'text-purple-500', brandColor: '#9146FF' },
-  discord: { name: 'Discord', color: 'text-indigo-500', brandColor: '#5865F2' },
-  reddit: { name: 'Reddit', color: 'text-orange-500', brandColor: '#FF4500' },
-  github: { name: 'GitHub', color: 'text-gray-500', brandColor: '#6e6e6e' },
-  gmail: { name: 'Gmail', color: 'text-red-400', brandColor: '#EA4335' },
-  outlook: { name: 'Outlook', color: 'text-blue-400', brandColor: '#0078D4' },
-  linkedin: { name: 'LinkedIn', color: 'text-blue-600', brandColor: '#0A66C2' },
 };
 
 interface ConnectedPlatformsSectionProps {

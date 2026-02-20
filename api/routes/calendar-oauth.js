@@ -12,7 +12,7 @@ import express from 'express';
 import { google } from 'googleapis';
 import { supabaseAdmin } from '../services/database.js';
 import { authenticateUser } from '../middleware/auth.js';
-import { decryptToken, encryptToken } from '../services/encryption.js';
+import { decryptToken, encryptToken, encryptState } from '../services/encryption.js';
 import { invalidatePlatformStatusCache } from '../services/redisClient.js';
 import { lifeEventInferenceService } from '../services/lifeEventInferenceService.js';
 // Use centralized token refresh system (proactive 5-minute buffer, same as Spotify)
@@ -143,12 +143,12 @@ router.get('/connect', authenticateUser, async (req, res) => {
     const appUrl = process.env.APP_URL || process.env.VITE_APP_URL || 'http://localhost:8086';
     const redirectUri = `${appUrl}/oauth/callback`;
 
-    const state = Buffer.from(JSON.stringify({
+    const state = encryptState({
       provider: 'google_calendar',
       userId,
       timestamp: Date.now(),
       returnUrl
-    })).toString('base64');
+    }, 'connector');
 
     const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?` +
       `client_id=${encodeURIComponent(process.env.GOOGLE_CLIENT_ID)}&` +

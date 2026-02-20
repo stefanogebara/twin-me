@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, lazy, Suspense } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth, SignInButton } from '../contexts/AuthContext';
 import { useTheme } from '../contexts/ThemeContext';
@@ -6,6 +6,9 @@ import { useDemo } from '../contexts/DemoContext';
 import { ThemeToggle } from '../components/ThemeToggle';
 import { X } from 'lucide-react';
 import { SpotifyLogo, GoogleCalendarLogo, WhoopLogo, YoutubeLogo, TwitchLogo, LinkedinLogo } from '@/components/PlatformLogos';
+
+const ShaderGradientCanvas = lazy(() => import('@shadergradient/react').then(m => ({ default: m.ShaderGradientCanvas })));
+const ShaderGradient = lazy(() => import('@shadergradient/react').then(m => ({ default: m.ShaderGradient })));
 
 const Index = () => {
   const navigate = useNavigate();
@@ -215,12 +218,54 @@ const Index = () => {
 
       {/* Hero Section */}
       <section className="min-h-screen flex items-center justify-center relative pt-[100px] pb-12 px-6 lg:px-[60px]">
-        {/* Animated Aurora Background */}
-        <div
-          className={`absolute inset-0 pointer-events-none ${theme === 'dark' ? 'aurora-bg' : 'aurora-bg-light'}`}
-        />
+        {/* Animated Shader Gradient Background */}
+        <div className="absolute inset-0 pointer-events-none overflow-hidden">
+          <Suspense fallback={
+            <div className={`absolute inset-0 ${theme === 'dark' ? 'aurora-bg' : 'aurora-bg-light'}`} />
+          }>
+            <ShaderGradientCanvas
+              style={{
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                width: '100%',
+                height: '100%',
+                pointerEvents: 'none',
+              }}
+            >
+              <ShaderGradient
+                animate="on"
+                brightness={1.2}
+                cAzimuthAngle={180}
+                cDistance={3.6}
+                cPolarAngle={90}
+                cameraZoom={1}
+                color1="#ff5005"
+                color2="#dbba95"
+                color3="#d0bce1"
+                envPreset="city"
+                grain="on"
+                lightType="3d"
+                positionX={-1.4}
+                positionY={0.3}
+                positionZ={0}
+                reflection={0.1}
+                rotationX={10}
+                rotationY={10}
+                rotationZ={50}
+                type="waterPlane"
+                uAmplitude={0}
+                uDensity={2}
+                uFrequency={5.5}
+                uSpeed={0.4}
+                uStrength={3}
+                uTime={0}
+              />
+            </ShaderGradientCanvas>
+          </Suspense>
+        </div>
 
-        <div className="max-w-[1200px] mx-auto w-full">
+        <div className="max-w-[1200px] mx-auto w-full relative z-10">
           <div className="max-w-[600px] mx-auto">
             {/* Hero Content - Centered */}
             <div className="text-center">
@@ -488,8 +533,54 @@ const Index = () => {
       </section>
 
       {/* Final CTA */}
-      <section id="cta" className="py-16 px-6 lg:px-[60px]">
-        <div className="max-w-[600px] mx-auto text-center">
+      <section id="cta" className="py-16 px-6 lg:px-[60px] relative overflow-hidden">
+        {/* Mint Shader Gradient Background */}
+        <div className="absolute inset-0 pointer-events-none">
+          <Suspense fallback={null}>
+            <ShaderGradientCanvas
+              style={{
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                width: '100%',
+                height: '100%',
+                pointerEvents: 'none',
+              }}
+              fov={45}
+              pixelDensity={1}
+            >
+              <ShaderGradient
+                animate="on"
+                brightness={1.2}
+                cAzimuthAngle={170}
+                cDistance={4.4}
+                cPolarAngle={70}
+                cameraZoom={1}
+                color1="#94ffd1"
+                color2="#6bf5ff"
+                color3="#ffffff"
+                envPreset="city"
+                grain="off"
+                lightType="3d"
+                positionX={0}
+                positionY={0.9}
+                positionZ={-0.3}
+                reflection={0.1}
+                rotationX={45}
+                rotationY={0}
+                rotationZ={0}
+                type="waterPlane"
+                uAmplitude={0}
+                uDensity={1.2}
+                uFrequency={0}
+                uSpeed={0.2}
+                uStrength={3.4}
+                uTime={0}
+              />
+            </ShaderGradientCanvas>
+          </Suspense>
+        </div>
+        <div className="max-w-[600px] mx-auto text-center relative z-10">
           <img src="/icons/3d/rocket.png" alt="" className="w-16 h-16 mx-auto mb-6 drop-shadow-lg" loading="lazy" />
           <h2
             className="text-[clamp(1.75rem,4vw,2.5rem)] mb-5"

@@ -14,6 +14,7 @@ import {
   fetchCalendarObservations,
   fetchWhoopObservations,
 } from '../services/observationIngestion.js';
+import { addPlatformObservation } from '../services/memoryStreamService.js';
 
 const router = express.Router();
 
@@ -92,6 +93,25 @@ ${sample.join('\n')}`,
       console.warn(`[PlatformPreview] LLM error for ${platform}:`, llmErr.message);
       insight = sample[0] || 'Connected! Your twin is learning from your data.';
     }
+
+    // Fire-and-forget: store observations in memory stream
+    const obsToStore = observations.slice(0, 5);
+    Promise.all(
+      obsToStore.map(obs => {
+        const content = typeof obs === 'string' ? obs : obs.content;
+        if (!content) return null;
+        return addPlatformObservation(userId, content, platform, {
+          source_phase: 'onboarding',
+        });
+      }).filter(Boolean)
+    ).then(results => {
+      const stored = results.filter(Boolean).length;
+      if (stored > 0) {
+        console.log(`[PlatformPreview] Stored ${stored} ${platform} observations for user ${userId}`);
+      }
+    }).catch(err => {
+      console.warn(`[PlatformPreview] Observation storage failed (non-blocking):`, err.message);
+    });
 
     return res.json({
       success: true,

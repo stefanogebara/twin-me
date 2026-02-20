@@ -11,7 +11,7 @@ import {
   getUserInfo,
   refreshAccessToken
 } from '../services/arcticOAuth.js';
-import { encryptToken } from '../services/encryption.js';
+import { encryptToken, decryptState } from '../services/encryption.js';
 import { authenticateUser } from '../middleware/auth.js';
 
 const router = express.Router();
@@ -105,16 +105,12 @@ router.post('/callback', async (req, res) => {
 
     console.log(`[Arctic Connector] Processing OAuth callback with state: ${state.substring(0, 50)}...`);
 
-    // Decode state to get user ID and provider
+    // Decrypt state to get user ID and provider
     let stateData;
     try {
-      const decodedStateString = Buffer.from(state, 'base64').toString();
-      stateData = JSON.parse(decodedStateString);
-      console.log(`[Arctic Connector] ✅ State decoded successfully`);
-      console.log(`[Arctic Connector] 📊 Decoded state:`, JSON.stringify(stateData, null, 2));
+      stateData = decryptState(state);
+      console.log(`[Arctic Connector] ✅ State decrypted successfully`);
       console.log(`[Arctic Connector] 🔑 Provider: ${stateData.provider}`);
-      console.log(`[Arctic Connector] 👤 User ID: ${stateData.userId?.substring(0, 12)}...`);
-      console.log(`[Arctic Connector] ⏰ Timestamp: ${new Date(stateData.timestamp).toISOString()}`);
       console.log(`[Arctic Connector] 🎯 This is an Arctic connector OAuth flow (userId present: ${!!stateData.userId})`);
     } catch (decodeError) {
       console.log(`[Arctic Connector] ❌ Failed to decode state parameter:`, decodeError.message);
@@ -182,7 +178,7 @@ router.post('/callback', async (req, res) => {
     let userInfo;
     try {
       userInfo = await getUserInfo(provider, tokens.accessToken);
-      console.log(`[Arctic Connector] ✅ User info retrieved: ${userInfo.name || userInfo.email}`);
+      console.log(`[Arctic Connector] ✅ User info retrieved: ${userInfo.name || 'no name'}`);
       console.log(`[Arctic Connector] Platform user ID: ${userInfo.id}`);
     } catch (userInfoError) {
       console.log(`[Arctic Connector] ❌ Failed to fetch user info:`, userInfoError.message);
@@ -193,7 +189,7 @@ router.post('/callback', async (req, res) => {
     console.log(`[Arctic Connector] Encrypting tokens for secure storage...`);
     const encryptedAccessToken = encryptToken(tokens.accessToken);
     const encryptedRefreshToken = tokens.refreshToken ? encryptToken(tokens.refreshToken) : null;
-    console.log(`[Arctic Connector] ✅ Tokens encrypted - access token: ${encryptedAccessToken.substring(0, 20)}..., refresh token: ${encryptedRefreshToken ? 'present' : 'none'}`);
+    console.log(`[Arctic Connector] ✅ Tokens encrypted, refresh token: ${encryptedRefreshToken ? 'present' : 'none'}`);
 
     // Save to platform_connections table
     console.log(`[Arctic Connector] Saving connection to platform_connections table...`);

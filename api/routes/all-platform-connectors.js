@@ -17,7 +17,7 @@ import { extractYouTubeData } from '../services/youtubeExtraction.js';
 import { extractRedditData } from '../services/redditExtraction.js';
 import { extractGitHubData } from '../services/githubExtraction.js';
 import { extractDiscordData } from '../services/discordExtraction.js';
-import { encryptToken, decryptToken } from '../services/encryption.js';
+import { encryptToken, decryptToken, encryptState } from '../services/encryption.js';
 
 const router = express.Router();
 
@@ -37,7 +37,7 @@ router.get('/all', authenticateToken, async (req, res) => {
     // Get user's connected platforms
     const { data: connections } = await supabase
       .from('platform_connections')
-      .select('*')
+      .select('id, platform, status, connected_at, last_sync_at')
       .eq('user_id', userId);
 
     const connectedPlatforms = new Set(connections?.map(c => c.platform) || []);
@@ -181,11 +181,11 @@ async function handleOAuthConnection(userId, platformId, platformConfig, req, re
     }
 
     // Generate state for CSRF protection with embedded user data
-    const state = Buffer.from(JSON.stringify({
+    const state = encryptState({
       platform: platformId,
       userId,
       timestamp: Date.now()
-    })).toString('base64');
+    }, 'connector');
 
     // Store state in session/database
     await supabase
@@ -329,7 +329,7 @@ router.post('/extract/:platform', authenticateToken, async (req, res) => {
     // Check if connected
     const { data: connection } = await supabase
       .from('platform_connections')
-      .select('*')
+      .select('id, user_id, platform, access_token, refresh_token, token_expires_at, status')
       .eq('user_id', userId)
       .eq('platform', platformId)
       .single();

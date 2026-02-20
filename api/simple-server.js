@@ -3,6 +3,7 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import multer from 'multer';
 import fs from 'fs';
+import { encryptState, decryptState } from './services/encryption.js';
 
 dotenv.config();
 
@@ -139,11 +140,11 @@ app.get('/api/connectors/auth/:provider', (req, res) => {
     }
 
     // Generate state parameter for security
-    const state = Buffer.from(JSON.stringify({
+    const state = encryptState({
       provider,
       userId,
       timestamp: Date.now()
-    })).toString('base64');
+    });
 
     // Build authorization URL
     const params = new URLSearchParams({
@@ -194,8 +195,8 @@ app.post('/api/connectors/callback', async (req, res) => {
     // Decode and verify state
     let stateData;
     try {
-      stateData = JSON.parse(Buffer.from(state, 'base64').toString());
-      console.log('🔍 State data decoded:', stateData);
+      stateData = decryptState(state);
+      console.log('🔍 State decrypted for provider:', stateData.provider);
     } catch (e) {
       console.log('❌ State decode error:', e.message);
       return res.status(400).json({

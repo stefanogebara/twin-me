@@ -262,7 +262,7 @@ class UserContextAggregator {
         },
         sleep: await this.getSleepContext(userId),
         history7Day: history7Day,
-        lastUpdated: latestCycle.end || latestCycle.created_at,
+        lastUpdated: latestCycle?.end || latestCycle?.created_at || latestRecovery?.created_at,
         recommendations: this.generateWhoopRecommendations(recovery, strain)
       };
 
@@ -461,6 +461,7 @@ class UserContextAggregator {
       const yesterday = new Date(now.getTime() - 24 * 60 * 60 * 1000);
 
       const todaysSleeps = allSleeps.filter(sleep => {
+        if (!sleep?.end) return false;
         const sleepEnd = new Date(sleep.end);
         return sleepEnd >= yesterday;
       });

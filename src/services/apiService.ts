@@ -58,3 +58,12 @@ export type {
   JournalInsights,
   CreateJournalEntry,
 } from './api/journalAPI';
+
+// Goals
+export { goalsAPI } from './api/goalsAPI';
+export type {
+  Goal,
+  GoalProgress,
+  GoalWithProgress,
+  GoalSummary,
+} from './api/goalsAPI';

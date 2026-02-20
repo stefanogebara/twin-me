@@ -85,6 +85,19 @@ class ExtractionOrchestrator {
         console.error('❌ [Orchestrator] Soul signature building failed:', soulError);
       }
 
+      // 3b. Invalidate stale twin_summaries so a fresh one regenerates on next chat
+      try {
+        const { error: invalidateErr } = await supabase
+          .from('twin_summaries')
+          .delete()
+          .eq('user_id', userId);
+        if (!invalidateErr) {
+          console.log('🗑️ [Orchestrator] Invalidated twin_summaries for fresh regeneration');
+        }
+      } catch (invalidateErr) {
+        console.warn('[Orchestrator] twin_summaries invalidation failed (non-blocking):', invalidateErr.message);
+      }
+
       // 4. Return summary
       const successful = results.filter(r => r.success).length;
       const failed = results.filter(r => !r.success).length;

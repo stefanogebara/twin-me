@@ -6,7 +6,12 @@ import { body, validationResult } from 'express-validator';
 import dotenv from 'dotenv';
 import path from 'path';
 import http from 'http';
+import https from 'https';
 import * as Sentry from '@sentry/node';
+
+// Increase default max sockets to prevent background jobs from blocking API requests
+http.globalAgent.maxSockets = 50;
+https.globalAgent.maxSockets = 50;
 
 // Background services
 import { startPlatformPolling } from './services/platformPollingService.js';
@@ -134,6 +139,19 @@ const apiLimiter = rateLimit({
   }
 });
 
+// Stricter rate limiting for authentication endpoints (brute-force protection)
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 10,
+  message: { error: 'Too many authentication attempts, please try again later.' },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+// Apply auth rate limiter before general API limiter
+app.use('/api/auth/signin', authLimiter);
+app.use('/api/auth/signup', authLimiter);
+
 // Apply rate limiting to all API routes (except skipped ones)
 app.use('/api/', apiLimiter);
 
@@ -148,6 +166,21 @@ const aiLimiter = rateLimit({
 });
 
 app.use('/api/ai/', aiLimiter);
+
+// Global request timeout to prevent hanging on DB outages
+// Longer timeout in dev when Cloudflare workaround adds latency per query
+const DEFAULT_TIMEOUT = process.env.USE_CURL_FETCH === 'true' ? 120000 : 30000;
+app.use((req, res, next) => {
+  // Chat message endpoint needs extra time for context building + LLM call
+  const timeout = req.path.includes('/chat/message') ? 300000 : DEFAULT_TIMEOUT;
+  req.setTimeout(timeout);
+  res.setTimeout(timeout, () => {
+    if (!res.headersSent) {
+      res.status(504).json({ error: 'Request timeout - database may be unavailable' });
+    }
+  });
+  next();
+});
 
 // Parse JSON bodies
 app.use(express.json({ limit: '10mb' }));
@@ -235,7 +268,6 @@ import authRoutes from './routes/auth-simple.js';
 import oauthCallbackRoutes from './routes/oauth-callback.js';
 import dashboardRoutes from './routes/dashboard.js';
 import trainingRoutes from './routes/training.js';
-import diagnosticsRoutes from './routes/diagnostics.js';
 import dataSourcesRoutes from './routes/data-sources.js';
 import allPlatformRoutes from './routes/all-platform-connectors.js';
 import soulObserverRoutes from './routes/soul-observer.js';
@@ -291,6 +323,8 @@ import onboardingPlatformPreviewRoutes from './routes/onboarding-platform-previe
 import accountRoutes from './routes/account.js';
 import consentRoutes from './routes/consent.js';
 import soulSignaturePublicRoutes from './routes/soul-signature-public.js';
+import portfolioPublicRoutes from './routes/portfolio-public.js';
+import goalsRoutes from './routes/goals.js';
 // OG image routes loaded lazily to prevent font-loading crashes from taking down the whole server
 let ogImageRoutes = null;
 try {
@@ -398,7 +432,6 @@ app.use('/api/auth', authRoutes);
 app.use('/oauth', oauthCallbackRoutes); // Unified OAuth callback handler
 app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/training', trainingRoutes);
-app.use('/api/diagnostics', diagnosticsRoutes); // Supabase connection diagnostics
 app.use('/api/platforms', allPlatformRoutes); // Comprehensive 56-platform integration
 // Soul Observer uses optional auth - allows both authenticated and unauthenticated requests
 // Extension sends userId in body when not authenticated
@@ -434,10 +467,12 @@ app.use('/api/onboarding', onboardingPlatformPreviewRoutes); // Platform preview
 app.use('/api/account', accountRoutes); // Account deletion + data export
 app.use('/api/consent', consentRoutes); // User consent management (GDPR/privacy)
 app.use('/api/soul-signature', soulSignaturePublicRoutes); // Public share + visibility toggle
+app.use('/api/portfolio', portfolioPublicRoutes); // Public portfolio page aggregated endpoint
 if (ogImageRoutes) app.use('/api', ogImageRoutes); // OG image cards (/api/og/soul-card, /api/s/:userId)
 app.use('/api/personality', personalityAssessmentRoutes); // Big Five personality assessment with 16personalities archetypes
 app.use('/api/big-five', bigFiveRoutes); // IPIP-NEO-120 Big Five assessment with T-score normalization
 app.use('/api/insights', platformInsightsRoutes); // Platform-specific conversational insights
+app.use('/api/goals', goalsRoutes); // Twin-driven goal tracking (suggestions, progress, accountability)
 app.use('/api/twin', twinPipelineRoutes); // Twin formation pipeline (form, status, profile, evolution)
 app.use('/api/extraction', extractionStatusRoutes); // Extraction status and job history
 app.use('/api/notifications', notificationsRoutes); // User notifications (token expiry, sync issues)
@@ -467,9 +502,17 @@ app.use('/api/cron/platform-polling', cronPlatformPollingHandler); // Every 30 m
 app.use('/api/cron/pattern-learning', cronPatternLearningHandler); // Every 6 hours
 app.use('/api/cron/ingest-observations', cronObservationIngestionHandler); // Every 30 minutes
 
-// Health check endpoint
+// Health check endpoint (non-blocking with timeout)
 app.get('/api/health', async (req, res) => {
-  const dbHealth = await serverDb.healthCheck();
+  let dbHealth = { healthy: false, error: null };
+  try {
+    const timeout = new Promise((_, reject) =>
+      setTimeout(() => reject(new Error('DB health check timeout')), 3000)
+    );
+    dbHealth = await Promise.race([serverDb.healthCheck(), timeout]);
+  } catch (e) {
+    dbHealth = { healthy: false, error: e };
+  }
 
   res.json({
     status: dbHealth.healthy ? 'ok' : 'degraded',

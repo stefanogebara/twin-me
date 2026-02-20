@@ -25,6 +25,7 @@ import { getValidAccessToken } from './tokenRefresh.js';
 import { addPlatformObservation } from './memoryStreamService.js';
 import { shouldTriggerReflection, generateReflections } from './reflectionEngine.js';
 import { generateProactiveInsights } from './proactiveInsights.js';
+import { trackGoalProgress, generateGoalSuggestions } from './goalTrackingService.js';
 
 // Lazy-load to avoid circular dependency
 let supabaseAdmin = null;
@@ -569,6 +570,16 @@ async function runObservationIngestion() {
           // After reflection trigger, also generate proactive insights
           generateProactiveInsights(userId).catch(err =>
             console.warn(`[ObservationIngestion] Proactive insights failed for ${userId}:`, err.message)
+          );
+
+          // Track goal progress from ingested platform data (non-blocking)
+          trackGoalProgress(userId, null).catch(err =>
+            console.warn(`[ObservationIngestion] Goal tracking failed for ${userId}:`, err.message)
+          );
+
+          // Generate goal suggestions based on observed patterns (throttled: max once/24h)
+          generateGoalSuggestions(userId).catch(err =>
+            console.warn(`[ObservationIngestion] Goal suggestions failed for ${userId}:`, err.message)
           );
         }
       } catch (userErr) {

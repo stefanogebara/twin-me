@@ -28,6 +28,8 @@ const INSIGHT_GENERATION_PROMPT = `Based on these recent observations about a pe
 - Trends (things getting better or worse over time)
 - Anomalies (unusual behavior compared to their patterns)
 - Supportive observations (celebrating wins, flagging burnout)
+- Goal progress (if active goals exist, celebrate streaks or encourage when falling behind)
+- Goal suggestions (if patterns suggest a achievable goal the person could try)
 
 Each insight should be conversational and feel like a friend noticing something, not a report.
 
@@ -37,7 +39,7 @@ Recent observations:
 Known patterns:
 {reflections}
 
-Return as JSON array: [{"insight": "...", "urgency": "low|medium|high", "category": "trend|anomaly|celebration|concern"}]
+Return as JSON array: [{"insight": "...", "urgency": "low|medium|high", "category": "trend|anomaly|celebration|concern|goal_progress|goal_suggestion"}]
 Only return the JSON array, no other text.`;
 
 /**
@@ -111,7 +113,7 @@ async function generateProactiveInsights(userId) {
           user_id: userId,
           insight: item.insight.substring(0, 500),
           urgency: ['low', 'medium', 'high'].includes(item.urgency) ? item.urgency : 'low',
-          category: item.category || null,
+          category: ['trend', 'anomaly', 'celebration', 'concern', 'goal_progress', 'goal_suggestion'].includes(item.category) ? item.category : (item.category || null),
         });
 
       if (!error) {

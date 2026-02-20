@@ -13,6 +13,7 @@ import express from 'express';
 import { complete, TIER_CHAT } from '../services/llmGateway.js';
 import { authenticateUser } from '../middleware/auth.js';
 import { supabaseAdmin } from '../services/database.js';
+import { addMemory } from '../services/memoryStreamService.js';
 
 const router = express.Router();
 
@@ -121,6 +122,39 @@ Respond in this exact JSON format:
         .then(({ error }) => {
           if (error) console.warn('[Instant Signature] Save error:', error.message);
         });
+    }
+
+    // Fire-and-forget: store calibration insights + signature as memories
+    if (userId && signature) {
+      const memoryPromises = [];
+
+      // Store each calibration insight as a fact memory
+      for (const insight of insights) {
+        if (insight) {
+          memoryPromises.push(
+            addMemory(userId, insight, 'fact', { source: 'onboarding_calibration' }, {
+              skipImportance: true,
+              importanceScore: 6,
+            })
+          );
+        }
+      }
+
+      // Store the signature itself
+      const sigContent = `Soul Signature: ${signature.archetype_name} — ${signature.first_impression || signature.signature_quote}`;
+      memoryPromises.push(
+        addMemory(userId, sigContent, 'fact', { source: 'onboarding_signature' }, {
+          skipImportance: true,
+          importanceScore: 8,
+        })
+      );
+
+      Promise.all(memoryPromises).then(results => {
+        const stored = results.filter(Boolean).length;
+        console.log(`[Instant Signature] Stored ${stored} calibration/signature memories for user ${userId}`);
+      }).catch(err => {
+        console.warn('[Instant Signature] Memory storage failed (non-blocking):', err.message);
+      });
     }
 
     // Generate a first-person twin introduction

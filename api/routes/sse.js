@@ -7,6 +7,7 @@
  */
 
 import express from 'express';
+import { authenticateUser } from '../middleware/auth.js';
 import {
   initializeSSEConnection,
   sendSSE,
@@ -25,8 +26,8 @@ const router = express.Router();
  *
  * Opens a persistent SSE connection for real-time updates
  */
-router.get('/stream', (req, res) => {
-  const { userId } = req.query;
+router.get('/stream', authenticateUser, (req, res) => {
+  const userId = req.user.id;
 
   if (!userId) {
     return res.status(400).json({
@@ -53,8 +54,9 @@ router.get('/stream', (req, res) => {
  *
  * Allows backend services to send custom messages to specific users
  */
-router.post('/send', express.json(), (req, res) => {
-  const { userId, type, message, data } = req.body;
+router.post('/send', express.json(), authenticateUser, (req, res) => {
+  const { type, message, data } = req.body;
+  const userId = req.user.id;
 
   if (!userId) {
     return res.status(400).json({
@@ -95,7 +97,7 @@ router.post('/send', express.json(), (req, res) => {
  *
  * Send a message to all connected clients
  */
-router.post('/broadcast', express.json(), (req, res) => {
+router.post('/broadcast', express.json(), authenticateUser, (req, res) => {
   const { type, message, data } = req.body;
 
   const count = broadcastSSE({
@@ -117,8 +119,8 @@ router.post('/broadcast', express.json(), (req, res) => {
  *
  * Manually close SSE connection for a user
  */
-router.post('/close', express.json(), (req, res) => {
-  const { userId } = req.body;
+router.post('/close', express.json(), authenticateUser, (req, res) => {
+  const userId = req.user.id;
 
   if (!userId) {
     return res.status(400).json({
@@ -182,8 +184,12 @@ router.get('/health', (req, res) => {
  *
  * Check if a specific user has an active SSE connection
  */
-router.get('/status/:userId', (req, res) => {
+router.get('/status/:userId', authenticateUser, (req, res) => {
   const { userId } = req.params;
+
+  if (userId !== req.user.id) {
+    return res.status(403).json({ error: 'Forbidden', message: 'Access denied' });
+  }
 
   const hasConnection = hasActiveConnection(userId);
 

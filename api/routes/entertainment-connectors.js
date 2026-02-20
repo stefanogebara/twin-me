@@ -95,7 +95,7 @@ router.post('/connect/spotify', oauthAuthorizationLimiter, async (req, res) => {
       platform: 'spotify',
       userId,
       codeVerifier: pkce.codeVerifier
-    });
+    }, 'entertainment');
 
     // Store state + code_verifier in Supabase (CSRF protection + PKCE)
     const { error: stateInsertError } = await supabase
@@ -301,7 +301,7 @@ router.post('/connect/youtube', oauthAuthorizationLimiter, async (req, res) => {
       platform: 'youtube',
       userId,
       codeVerifier: pkce.codeVerifier
-    });
+    }, 'entertainment');
 
     // Store state + code_verifier in Supabase (CSRF protection + PKCE)
     const { error: stateInsertError } = await supabase
@@ -1369,7 +1369,7 @@ router.post('/connect/github', oauthAuthorizationLimiter, async (req, res) => {
       platform: 'github',
       userId,
       codeVerifier: pkce.codeVerifier
-    });
+    }, 'entertainment');
 
     // Store state + code_verifier in Supabase (CSRF protection + PKCE)
     const { error: stateInsertError } = await supabase
@@ -1431,7 +1431,7 @@ router.post('/connect/discord', oauthAuthorizationLimiter, async (req, res) => {
       platform: 'discord',
       userId,
       codeVerifier: pkce.codeVerifier
-    });
+    }, 'entertainment');
 
     // Store state in Supabase (CSRF protection)
     const { error: stateInsertError } = await supabase
@@ -1506,7 +1506,7 @@ router.post('/connect/gmail', oauthAuthorizationLimiter, async (req, res) => {
       platform: 'google_gmail',
       userId,
       codeVerifier: pkce.codeVerifier
-    });
+    }, 'entertainment');
 
     // Store state + code_verifier in Supabase (CSRF protection + PKCE)
     const { error: stateInsertError } = await supabase
@@ -1576,7 +1576,7 @@ router.post('/connect/google_calendar', oauthAuthorizationLimiter, async (req, r
       platform: 'google_calendar',
       userId,
       codeVerifier: pkce.codeVerifier
-    });
+    }, 'entertainment');
 
     // Store state + code_verifier in Supabase
     const { error: stateInsertError } = await supabase
@@ -1638,7 +1638,7 @@ router.post('/connect/whoop', oauthAuthorizationLimiter, async (req, res) => {
     const state = encryptState({
       platform: 'whoop',
       userId
-    });
+    }, 'entertainment');
 
     // Store state in Supabase
     const { error: stateInsertError } = await supabase
@@ -1699,7 +1699,7 @@ router.post('/connect/oura', oauthAuthorizationLimiter, async (req, res) => {
     const state = encryptState({
       platform: 'oura',
       userId
-    });
+    }, 'entertainment');
 
     // Store state in Supabase
     const { error: stateInsertError } = await supabase

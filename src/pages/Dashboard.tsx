@@ -3,7 +3,8 @@ import { motion } from 'framer-motion';
 import { useAuth } from '@/contexts/AuthContext';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useNavigate } from 'react-router-dom';
-import { AlertCircle, Globe } from 'lucide-react';
+import { AlertCircle, Globe, Target, Flame, Trophy, ChevronRight } from 'lucide-react';
+import { goalsAPI, GoalSummary } from '@/services/api/goalsAPI';
 import { PageLayout } from '@/components/layout/PageLayout';
 import { calendarAPI, spotifyAPI, whoopAPI, CalendarEvent } from '@/services/apiService';
 import { TodayInsights } from '@/components/TodayInsights';
@@ -54,12 +55,6 @@ const PLATFORM_CONFIG: Record<string, { name: string; color: string; brandColor:
   whoop: { name: 'Whoop', color: 'text-cyan-500', brandColor: '#00A5E0' },
   youtube: { name: 'YouTube', color: 'text-red-500', brandColor: '#FF0000' },
   twitch: { name: 'Twitch', color: 'text-purple-500', brandColor: '#9146FF' },
-  discord: { name: 'Discord', color: 'text-indigo-500', brandColor: '#5865F2' },
-  reddit: { name: 'Reddit', color: 'text-orange-500', brandColor: '#FF4500' },
-  github: { name: 'GitHub', color: 'text-gray-500', brandColor: '#6e6e6e' },
-  gmail: { name: 'Gmail', color: 'text-red-400', brandColor: '#EA4335' },
-  outlook: { name: 'Outlook', color: 'text-blue-400', brandColor: '#0078D4' },
-  linkedin: { name: 'LinkedIn', color: 'text-blue-600', brandColor: '#0A66C2' },
 };
 
 export const Dashboard: React.FC = () => {
@@ -73,6 +68,7 @@ export const Dashboard: React.FC = () => {
   const [whoopConnected, setWhoopConnected] = useState(false);
   // DASH 2.4: Whoop data state
   const [whoopData, setWhoopData] = useState<WhoopData | null>(null);
+  const [goalSummary, setGoalSummary] = useState<GoalSummary | null>(null);
   const [error, setError] = useState<{ message: string; type?: 'auth' | 'general' } | null>(null);
   const [syncing, setSyncing] = useState(false);
   const [currentTime, setCurrentTime] = useState(new Date()); // For live updates
@@ -181,12 +177,18 @@ export const Dashboard: React.FC = () => {
       }
 
       try {
-        // Fetch platform statuses in parallel
-        const [calendarStatus, spotifyStatus, whoopStatus] = await Promise.allSettled([
+        // Fetch platform statuses + goal summary in parallel
+        const [calendarStatus, spotifyStatus, whoopStatus, goalResult] = await Promise.allSettled([
           calendarAPI.getStatus(),
           spotifyAPI.getStatus(),
-          whoopAPI.getStatus()
+          whoopAPI.getStatus(),
+          goalsAPI.getSummary()
         ]);
+
+        // Update goal summary
+        if (goalResult.status === 'fulfilled') {
+          setGoalSummary(goalResult.value);
+        }
 
         // Update calendar connection status
         if (calendarStatus.status === 'fulfilled') {
@@ -384,7 +386,6 @@ export const Dashboard: React.FC = () => {
   const isCalendarConnected = connectedProviders.includes('google_calendar') || calendarConnected;
   const isYouTubeConnected = connectedProviders.includes('youtube');
   const isTwitchConnected = connectedProviders.includes('twitch');
-  const isDiscordConnected = connectedProviders.includes('discord');
 
   const insightLinks: Pattern[] = [
     {
@@ -447,18 +448,6 @@ export const Dashboard: React.FC = () => {
       actionLabel: isTwitchConnected ? 'Explore' : 'Connect',
       actionPath: isTwitchConnected ? '/insights/twitch' : '/get-started'
     },
-    {
-      id: 'digital-life',
-      title: 'Digital Life',
-      description: isDiscordConnected
-        ? 'What your digital communities reveal about you'
-        : 'Connect Discord to explore your digital life',
-      icon: Globe,
-      color: isDiscordConnected ? 'text-indigo-500' : 'text-gray-500',
-      hasData: isDiscordConnected,
-      actionLabel: isDiscordConnected ? 'Explore' : 'Connect',
-      actionPath: isDiscordConnected ? '/insights/web' : '/get-started'
-    }
   ];
 
   if (loading) {
@@ -539,6 +528,71 @@ export const Dashboard: React.FC = () => {
       <div className="mb-8">
         <ProactiveInsightsPanel />
       </div>
+
+      {/* Goal Tracking Summary Widget */}
+      {goalSummary && (goalSummary.active > 0 || goalSummary.suggested > 0) && (
+        <motion.div
+          className="mb-8"
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4, delay: 0.2 }}
+        >
+          <button
+            onClick={() => navigate('/goals')}
+            className="w-full text-left rounded-xl p-5 transition-all hover:scale-[1.01]"
+            style={{
+              backgroundColor: theme === 'dark' ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.02)',
+              border: theme === 'dark' ? '1px solid rgba(255,255,255,0.08)' : '1px solid rgba(0,0,0,0.06)',
+            }}
+          >
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-2">
+                <Target className="w-4 h-4" style={{ color: theme === 'dark' ? '#C1C0B6' : '#44403c' }} />
+                <span className="text-sm font-medium" style={{ color: theme === 'dark' ? '#C1C0B6' : '#0c0a09' }}>
+                  Goals
+                </span>
+                {goalSummary.suggested > 0 && (
+                  <span className="inline-flex items-center justify-center w-5 h-5 text-xs font-medium rounded-full bg-blue-500/20 text-blue-400">
+                    {goalSummary.suggested}
+                  </span>
+                )}
+              </div>
+              <ChevronRight className="w-4 h-4" style={{ color: theme === 'dark' ? 'rgba(193,192,182,0.5)' : '#a8a29e' }} />
+            </div>
+            <div className="flex items-center gap-6">
+              {goalSummary.active > 0 && (
+                <div className="flex items-center gap-1.5">
+                  <div className="w-2 h-2 rounded-full bg-emerald-500" />
+                  <span className="text-sm" style={{ color: theme === 'dark' ? 'rgba(193,192,182,0.7)' : '#57534e' }}>
+                    {goalSummary.active} active
+                  </span>
+                </div>
+              )}
+              {goalSummary.bestStreak > 0 && (
+                <div className="flex items-center gap-1.5">
+                  <Flame className="w-3.5 h-3.5 text-orange-400" />
+                  <span className="text-sm" style={{ color: theme === 'dark' ? 'rgba(193,192,182,0.7)' : '#57534e' }}>
+                    {goalSummary.bestStreak}d best streak
+                  </span>
+                </div>
+              )}
+              {goalSummary.completed > 0 && (
+                <div className="flex items-center gap-1.5">
+                  <Trophy className="w-3.5 h-3.5 text-amber-400" />
+                  <span className="text-sm" style={{ color: theme === 'dark' ? 'rgba(193,192,182,0.7)' : '#57534e' }}>
+                    {goalSummary.completed} completed
+                  </span>
+                </div>
+              )}
+              {goalSummary.suggested > 0 && goalSummary.active === 0 && (
+                <span className="text-sm" style={{ color: theme === 'dark' ? 'rgba(147,197,253,0.8)' : '#3b82f6' }}>
+                  Your twin has {goalSummary.suggested} suggestion{goalSummary.suggested > 1 ? 's' : ''} for you
+                </span>
+              )}
+            </div>
+          </button>
+        </motion.div>
+      )}
 
       <NextEventCard
         nextEvent={nextEvent}

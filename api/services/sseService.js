@@ -153,9 +153,9 @@ function broadcastSSE(data) {
  */
 async function sendPlatformStatus(userId) {
   try {
-    const { data: platformConnections, error } = await supabase
+    const { data: platformConnections, error } = await getSupabaseClient()
       .from('platform_connections')
-      .select('*')
+      .select('id, user_id, platform, status, connected_at, last_sync_at')
       .eq('user_id', userId);
 
     if (error) {
@@ -296,8 +296,6 @@ function getLastEventId(userId) {
 function getServiceStats() {
   return {
     activeConnections: connections.size,
-    userIds: Array.from(connections.keys()),
-    lastEventIds: Object.fromEntries(lastEventIds),
     uptime: process.uptime(),
   };
 }

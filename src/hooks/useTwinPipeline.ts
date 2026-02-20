@@ -146,7 +146,13 @@ const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
  * Fetch twin status from API
  */
 async function fetchTwinStatus(userId: string): Promise<TwinStatus> {
-  const response = await fetch(`${API_BASE}/twin/status/${userId}`);
+  const token = localStorage.getItem('auth_token') || localStorage.getItem('token');
+  const response = await fetch(`${API_BASE}/twin/status/${userId}`, {
+    headers: {
+      'Content-Type': 'application/json',
+      ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
+    },
+  });
   if (!response.ok) {
     throw new Error('Failed to fetch twin status');
   }
@@ -157,9 +163,13 @@ async function fetchTwinStatus(userId: string): Promise<TwinStatus> {
  * Trigger full pipeline
  */
 async function triggerPipeline(userId: string, forceRefresh = false): Promise<PipelineResult> {
+  const token = localStorage.getItem('auth_token') || localStorage.getItem('token');
   const response = await fetch(`${API_BASE}/twin/form`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: {
+      'Content-Type': 'application/json',
+      ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
+    },
     body: JSON.stringify({ userId, forceRefresh }),
   });
   if (!response.ok) {
@@ -172,9 +182,13 @@ async function triggerPipeline(userId: string, forceRefresh = false): Promise<Pi
  * Refresh single platform
  */
 async function refreshPlatform(userId: string, platform: string): Promise<unknown> {
+  const token = localStorage.getItem('auth_token') || localStorage.getItem('token');
   const response = await fetch(`${API_BASE}/twin/refresh/${platform}`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: {
+      'Content-Type': 'application/json',
+      ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
+    },
     body: JSON.stringify({ userId }),
   });
   if (!response.ok) {
@@ -187,7 +201,13 @@ async function refreshPlatform(userId: string, platform: string): Promise<unknow
  * Fetch evolution history
  */
 async function fetchEvolution(userId: string) {
-  const response = await fetch(`${API_BASE}/twin/evolution/${userId}`);
+  const token = localStorage.getItem('auth_token') || localStorage.getItem('token');
+  const response = await fetch(`${API_BASE}/twin/evolution/${userId}`, {
+    headers: {
+      'Content-Type': 'application/json',
+      ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
+    },
+  });
   if (!response.ok) {
     throw new Error('Failed to fetch evolution data');
   }
@@ -315,7 +335,13 @@ export function useExtractionStatus(userId: string | null) {
   return useQuery({
     queryKey: ['extractionStatus', userId],
     queryFn: async () => {
-      const response = await fetch(`${API_BASE}/extraction/status/${userId}`);
+      const token = localStorage.getItem('auth_token') || localStorage.getItem('token');
+      const response = await fetch(`${API_BASE}/extraction/status/${userId}`, {
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
+        },
+      });
       if (!response.ok) throw new Error('Failed to fetch extraction status');
       return response.json();
     },
@@ -331,7 +357,13 @@ export function usePersonalityProfile(userId: string | null) {
   return useQuery({
     queryKey: ['personalityProfile', userId],
     queryFn: async () => {
-      const response = await fetch(`${API_BASE}/twin/personality/${userId}`);
+      const token = localStorage.getItem('auth_token') || localStorage.getItem('token');
+      const response = await fetch(`${API_BASE}/twin/personality/${userId}`, {
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
+        },
+      });
       if (!response.ok) throw new Error('Failed to fetch personality profile');
       return response.json();
     },

@@ -14,7 +14,7 @@ dotenv.config({ path: path.resolve(__dirname, '../../.env') });
 
 const token = jwt.sign(
   {
-    userId: '167c27b5-a40b-49fb-8d00-deb1b1c57f4d',
+    id: '167c27b5-a40b-49fb-8d00-deb1b1c57f4d',
     email: 'stefanogebara@gmail.com'
   },
   process.env.JWT_SECRET,

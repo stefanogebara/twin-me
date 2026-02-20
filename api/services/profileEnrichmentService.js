@@ -98,6 +98,9 @@ import {
   resetConfirmation,
 } from './enrichment/enrichmentStore.js';
 
+// Identity verification
+import { computeIdentityConfidence } from './enrichment/identityVerifier.js';
+
 
 class ProfileEnrichmentService {
 
@@ -233,8 +236,8 @@ class ProfileEnrichmentService {
     return extractStructuredProfile(snippets, name, email);
   }
 
-  async extractPersonalLife(scrapedContent, name) {
-    return extractPersonalLife(scrapedContent, name);
+  async extractPersonalLife(scrapedContent, name, email = null) {
+    return extractPersonalLife(scrapedContent, name, email);
   }
 
   async braveWebSearch(query, apiKey) {
@@ -365,11 +368,11 @@ class ProfileEnrichmentService {
     if (!name || !name.includes(' ')) {
       const inferred = inferNameFromEmail(email);
       if (inferred.includes(' ')) {
-        console.log(`[ProfileEnrichment] Inferred full name from email: "${inferred}" (was: "${name || 'null'}")`);
+        console.log(`[ProfileEnrichment] Inferred full name from email pattern`);
         name = inferred;
       }
     }
-    console.log(`[ProfileEnrichment] Starting enrichment for: ${email}`);
+    console.log(`[ProfileEnrichment] Starting enrichment`);
     console.log(`[ProfileEnrichment] API keys loaded:`, {
       scrapin: !!process.env.SCRAPIN_API_KEY,
       pdl: !!process.env.PDL_API_KEY,
@@ -424,15 +427,17 @@ class ProfileEnrichmentService {
       console.log(`[ProfileEnrichment] ${isBraveResult ? 'Brave Search' : 'Gemini'} found comprehensive data!`);
 
       if (isBraveResult) {
+        // Verified sources (Gravatar/GitHub) take priority for identity fields.
+        // Brave-only fields (title, company, LinkedIn) keep Brave priority.
         enrichedData = {
           ...enrichedData,
-          discovered_name: comprehensiveData.discovered_name || enrichedData.discovered_name || name,
+          discovered_name: enrichedData.discovered_name || comprehensiveData.discovered_name || name,
           discovered_title: comprehensiveData.discovered_title || enrichedData.discovered_title,
           discovered_company: comprehensiveData.discovered_company || enrichedData.discovered_company,
-          discovered_location: comprehensiveData.discovered_location || enrichedData.discovered_location,
+          discovered_location: enrichedData.discovered_location || comprehensiveData.discovered_location,
           discovered_linkedin_url: comprehensiveData.discovered_linkedin_url || enrichedData.discovered_linkedin_url,
-          discovered_twitter_url: comprehensiveData.discovered_twitter_url || enrichedData.discovered_twitter_url,
-          discovered_github_url: comprehensiveData.discovered_github_url || enrichedData.discovered_github_url,
+          discovered_twitter_url: enrichedData.discovered_twitter_url || comprehensiveData.discovered_twitter_url,
+          discovered_github_url: enrichedData.discovered_github_url || comprehensiveData.discovered_github_url,
           discovered_instagram_url: comprehensiveData.discovered_instagram_url || null,
           discovered_personal_website: comprehensiveData.discovered_personal_website || null,
           discovered_bio: comprehensiveData.discovered_bio || enrichedData.discovered_bio,
@@ -514,13 +519,25 @@ class ProfileEnrichmentService {
     const detailedNarrative = await generateDetailedNarrative(combinedData, name);
     const summary = detailedNarrative || buildFactualSummary(combinedData);
 
+    // =================================================================
+    // STEP 5: Compute identity confidence score
+    // =================================================================
+    const confidenceResult = computeIdentityConfidence({
+      quickData: quickResult?.data || null,
+      braveData: comprehensiveData?._source === 'brave' ? comprehensiveData : null,
+      email,
+      searchName: name,
+    });
+    console.log(`[ProfileEnrichment] Identity confidence: ${confidenceResult.score} | signals: ${JSON.stringify(confidenceResult.signals)} | flags: [${confidenceResult.flags.join(', ')}]`);
+
     return {
       success: true,
       data: {
         ...combinedData,
         discovered_summary: summary,
         source: enrichmentSource !== 'none' ? enrichmentSource : 'gemini',
-        raw_search_response: webSearchResult?.rawContent || null
+        raw_search_response: webSearchResult?.rawContent || null,
+        identity_confidence: confidenceResult.score,
       }
     };
   }

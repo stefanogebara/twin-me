@@ -23,8 +23,8 @@ function verifyWebhookSignature(req) {
   const webhookSecret = process.env.NANGO_WEBHOOK_SECRET;
 
   if (!webhookSecret) {
-    console.warn('[Nango Webhooks] NANGO_WEBHOOK_SECRET not set, skipping verification');
-    return true;
+    console.warn('[Nango Webhooks] NANGO_WEBHOOK_SECRET not set, rejecting webhook');
+    return false;
   }
 
   if (!signature) {

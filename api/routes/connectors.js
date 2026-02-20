@@ -5,7 +5,7 @@
 import express from 'express';
 import { supabase } from '../config/supabase.js';
 import { supabaseAdmin } from '../services/database.js';
-import { encryptToken, decryptToken } from '../services/encryption.js';
+import { encryptToken, decryptToken, encryptState, decryptState } from '../services/encryption.js';
 import { authenticateUser } from '../middleware/auth.js';
 import {
   getCachedPlatformStatus,
@@ -265,11 +265,11 @@ router.get('/connect/:provider', async (req, res) => {
 
       // Generate OAuth URL for fresh authentication
       const redirectUri = `${process.env.VITE_APP_URL || 'http://localhost:8086'}/oauth/callback`;
-      const state = Buffer.from(JSON.stringify({
+      const state = encryptState({
         provider,
         userId,
         timestamp: Date.now()
-      })).toString('base64');
+      }, 'connector');
 
       // Store state for CSRF protection
       await supabaseAdmin
@@ -397,12 +397,12 @@ router.get('/connect/:provider', async (req, res) => {
 
         // Refresh failed, need to re-authenticate
         const redirectUri = `${process.env.VITE_APP_URL || 'http://localhost:8086'}/oauth/callback`;
-        const state = Buffer.from(JSON.stringify({
+        const state = encryptState({
           provider,
           userId,
           timestamp: Date.now(),
           isReconnect: true
-        })).toString('base64');
+        }, 'connector');
 
         // Store state for CSRF protection
         await supabaseAdmin
@@ -447,12 +447,12 @@ router.get('/connect/:provider', async (req, res) => {
       console.log(`🔐 No refresh token available for ${provider}, requiring re-authentication`);
 
       const redirectUri = `${process.env.VITE_APP_URL || 'http://localhost:8086'}/oauth/callback`;
-      const state = Buffer.from(JSON.stringify({
+      const state = encryptState({
         provider,
         userId,
         timestamp: Date.now(),
         isReconnect: true
-      })).toString('base64');
+      }, 'connector');
 
       // Store state for CSRF protection
       await supabaseAdmin
@@ -542,9 +542,9 @@ router.get('/auth/:provider', (req, res) => {
       userId,
       timestamp: Date.now()
     };
-    console.log('🔗 Creating state object for connector OAuth:', stateObject);
-    const state = Buffer.from(JSON.stringify(stateObject)).toString('base64');
-    console.log('🔗 Encoded state:', state);
+    console.log('🔗 Creating state object for connector OAuth');
+    const state = encryptState(stateObject);
+    console.log('🔗 State encrypted successfully');
 
     // Build authorization URL - Use unified callback for all platforms
     const appUrl = process.env.APP_URL || process.env.VITE_APP_URL || 'http://localhost:8086';
@@ -614,10 +614,10 @@ router.post('/callback', async (req, res) => {
     // Decode and verify state
     let stateData;
     try {
-      stateData = JSON.parse(Buffer.from(state, 'base64').toString());
-      console.log('🔵 [Connector Callback] Decoded state:', stateData);
+      stateData = decryptState(state);
+      console.log('🔵 [Connector Callback] State decrypted for provider:', stateData.provider);
     } catch (e) {
-      console.error('❌ [Connector Callback] Failed to decode state:', e);
+      console.error('❌ [Connector Callback] Failed to decrypt state:', e.message);
       return res.status(400).json({
         success: false,
         error: 'Invalid state parameter'
@@ -703,7 +703,7 @@ router.post('/callback', async (req, res) => {
         });
       }
       userUuid = userData.id;
-      console.log(`🔄 Converted email ${userId} to UUID ${userUuid}`);
+      console.log(`🔄 Converted email-based userId to UUID ${userUuid}`);
     }
 
     // Exchange authorization code for tokens
@@ -1400,7 +1400,7 @@ router.post('/connect/:platform', async (req, res) => {
       timestamp: Date.now()
     };
 
-    const state = Buffer.from(JSON.stringify(stateObject)).toString('base64');
+    const state = encryptState(stateObject);
 
     // Build authorization URL
     const appUrl = process.env.APP_URL || process.env.VITE_APP_URL || 'http://localhost:8086';

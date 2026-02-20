@@ -11,11 +11,26 @@ import { getValidAccessToken } from './tokenRefresh.js';
 import { retrieveMemories } from './memoryStreamService.js';
 import { getTwinSummary } from './twinSummaryService.js';
 import { getUndeliveredInsights } from './proactiveInsights.js';
+import { getEnrichment } from './enrichment/enrichmentStore.js';
+import { getActiveGoalContext } from './goalTrackingService.js';
 import axios from 'axios';
 
 // Short-lived platform data cache to avoid redundant API calls within 5 minutes
 const platformDataCache = new Map();
 const PLATFORM_CACHE_TTL = 5 * 60 * 1000;
+
+// In-memory cache for stable data that rarely changes (avoids repeated proxy calls)
+const stableDataCache = new Map();
+const STABLE_CACHE_TTL = 10 * 60 * 1000; // 10 minutes
+
+function getCached(key) {
+  const entry = stableDataCache.get(key);
+  if (entry && (Date.now() - entry.ts) < STABLE_CACHE_TTL) return entry.data;
+  return undefined;
+}
+function setCache(key, data) {
+  stableDataCache.set(key, { data, ts: Date.now() });
+}
 
 /**
  * Fetch all twin context layers in parallel.
@@ -37,6 +52,12 @@ async function fetchTwinContext(userId, userMessage, options = {}) {
     getPersonalityScores: fetchPersonality = true,
   } = options;
 
+  const ctxStart = Date.now();
+  const ctxLog = (label) => console.log(`[TwinContext] ${label} (${Date.now() - ctxStart}ms)`);
+
+  // Wrap each fetch with timing
+  const timed = (label, promise) => promise.then(r => { ctxLog(`${label} done`); return r; });
+
   const [
     soulSignature,
     platformData,
@@ -45,48 +66,95 @@ async function fetchTwinContext(userId, userMessage, options = {}) {
     memories,
     twinSummary,
     proactiveInsights,
+    enrichmentProfile,
+    voiceExamples,
+    activeGoals,
   ] = await Promise.all([
     fetchSoul
-      ? _fetchSoulSignature(userId).catch(err => {
+      ? timed('soulSignature', _fetchSoulSignature(userId).catch(err => {
           console.warn('[TwinContext] Soul signature fetch failed:', err.message);
           return null;
-        })
+        }))
       : Promise.resolve(null),
 
     fetchPlatforms
-      ? _fetchPlatformData(userId, platforms).catch(err => {
+      ? timed('platformData', _fetchPlatformData(userId, platforms).catch(err => {
           console.warn('[TwinContext] Platform data fetch failed:', err.message);
           return {};
-        })
+        }))
       : Promise.resolve({}),
 
     fetchPersonality
-      ? _fetchPersonalityScores(userId).catch(err => {
+      ? timed('personalityScores', _fetchPersonalityScores(userId).catch(err => {
           console.warn('[TwinContext] Personality scores fetch failed:', err.message);
           return null;
-        })
+        }))
       : Promise.resolve(null),
 
-    _fetchWritingProfile(userId).catch(err => {
+    timed('writingProfile', _fetchWritingProfile(userId).catch(err => {
       console.warn('[TwinContext] Writing profile fetch failed:', err.message);
       return null;
-    }),
+    })),
 
-    retrieveMemories(userId, userMessage, 30).catch(err => {
+    timed('memories', retrieveMemories(userId, userMessage, 30).catch(err => {
       console.warn('[TwinContext] Memory retrieval failed:', err.message);
       return [];
-    }),
+    })),
 
-    getTwinSummary(userId).catch(err => {
+    timed('twinSummary', getTwinSummary(userId).catch(err => {
       console.warn('[TwinContext] Twin summary fetch failed:', err.message);
       return null;
-    }),
+    })),
 
-    getUndeliveredInsights(userId).catch(err => {
+    timed('proactiveInsights', getUndeliveredInsights(userId).catch(err => {
       console.warn('[TwinContext] Proactive insights fetch failed:', err.message);
       return [];
-    }),
+    })),
+
+    // Enrichment fallback: fetch enriched_profiles for thin memory streams
+    timed('enrichment', getEnrichment(userId).catch(err => {
+      console.warn('[TwinContext] Enrichment fetch failed:', err.message);
+      return { success: false, data: null };
+    })),
+
+    // Voice examples: actual user messages for style mirroring
+    timed('voiceExamples', _fetchVoiceExamples(userId).catch(err => {
+      console.warn('[TwinContext] Voice examples fetch failed:', err.message);
+      return [];
+    })),
+
+    // Active goals: formatted context for goal accountability
+    timed('activeGoals', getActiveGoalContext(userId).catch(err => {
+      console.warn('[TwinContext] Active goals fetch failed:', err.message);
+      return null;
+    })),
   ]);
+
+  ctxLog('All parallel fetches complete');
+
+  // Belt-and-suspenders: if memory stream is thin (< 5 memories), inject enrichment
+  // data directly so the twin has context even if memory seeding hasn't finished
+  let enrichmentContext = null;
+  if ((memories?.length || 0) < 5 && enrichmentProfile?.success && enrichmentProfile?.data) {
+    const ep = enrichmentProfile.data;
+    if (ep.source !== 'user_skipped') {
+      const parts = [];
+      if (ep.discovered_name) parts.push(`Name: ${ep.discovered_name}`);
+      if (ep.discovered_title) parts.push(`Title: ${ep.discovered_title}`);
+      if (ep.discovered_company) parts.push(`Company: ${ep.discovered_company}`);
+      if (ep.discovered_location) parts.push(`Location: ${ep.discovered_location}`);
+      if (ep.discovered_bio) parts.push(`Bio: ${ep.discovered_bio}`);
+      if (ep.career_timeline) parts.push(`Career: ${typeof ep.career_timeline === 'string' ? ep.career_timeline : JSON.stringify(ep.career_timeline)}`);
+      if (ep.education) parts.push(`Education: ${typeof ep.education === 'string' ? ep.education : JSON.stringify(ep.education)}`);
+      if (ep.interests_and_hobbies) parts.push(`Interests: ${typeof ep.interests_and_hobbies === 'string' ? ep.interests_and_hobbies : JSON.stringify(ep.interests_and_hobbies)}`);
+      if (ep.personality_traits) parts.push(`Personality: ${typeof ep.personality_traits === 'string' ? ep.personality_traits : JSON.stringify(ep.personality_traits)}`);
+      if (ep.life_story) parts.push(`Life story: ${typeof ep.life_story === 'string' ? ep.life_story : JSON.stringify(ep.life_story)}`);
+      if (parts.length > 0) {
+        enrichmentContext = parts.join('\n');
+        console.log(`[TwinContext] Injecting enrichment fallback (${parts.length} fields) for user ${userId}`);
+      }
+    }
+  }
 
   return {
     soulSignature,
@@ -96,6 +164,9 @@ async function fetchTwinContext(userId, userMessage, options = {}) {
     memories,
     twinSummary,
     proactiveInsights,
+    enrichmentContext,
+    voiceExamples,
+    activeGoals,
   };
 }
 
@@ -107,7 +178,7 @@ async function fetchTwinContext(userId, userMessage, options = {}) {
  * @returns {object} contextSources metadata
  */
 function buildContextSourcesMeta(context) {
-  const { soulSignature, platformData, personalityScores, memories, twinSummary, proactiveInsights } = context;
+  const { soulSignature, platformData, personalityScores, memories, twinSummary, proactiveInsights, enrichmentContext, voiceExamples, activeGoals } = context;
 
   return {
     soulSignature: !!soulSignature,
@@ -120,8 +191,11 @@ function buildContextSourcesMeta(context) {
     proactiveInsights: proactiveInsights?.map(i => ({
       insight: i.insight, category: i.category, urgency: i.urgency
     })) || [],
+    voiceExamples: voiceExamples?.length || 0,
     platformData: Object.keys(platformData || {}),
     personalityProfile: !!personalityScores,
+    enrichmentFallback: !!enrichmentContext,
+    activeGoals: !!activeGoals,
   };
 }
 
@@ -129,42 +203,151 @@ function buildContextSourcesMeta(context) {
 // Internal helpers - replicate the same fetching logic from twin-chat.js
 // ---------------------------------------------------------------------------
 
+/**
+ * Fetch diverse voice examples from the user's conversation history.
+ * Returns 5-8 representative messages that capture the user's authentic voice:
+ * their slang, rhythm, formality, sentence structure, and emotional expression.
+ *
+ * Strategy: Fetch a larger sample and select diverse messages (short + long,
+ * questions + statements, emotional + factual) for best style coverage.
+ */
+async function _fetchVoiceExamples(userId) {
+  const cacheKey = `voice_${userId}`;
+  const cached = getCached(cacheKey);
+  if (cached !== undefined) return cached;
+
+  // Fetch real user messages from twin chat conversations (not dev/MCP logs)
+  const { data: memories, error } = await supabaseAdmin
+    .from('user_memories')
+    .select('content, metadata, created_at')
+    .eq('user_id', userId)
+    .eq('memory_type', 'conversation')
+    .eq('metadata->>role', 'user')
+    .eq('metadata->>source', 'twin_chat')
+    .order('created_at', { ascending: false })
+    .limit(40);
+
+  if (error || !memories || memories.length === 0) {
+    setCache(cacheKey, []);
+    return [];
+  }
+
+  // Extract actual user messages, strip "User said: " prefix if present
+  const validMessages = memories
+    .map(m => {
+      let text = m.content || '';
+      if (text.startsWith('User said: ')) text = text.slice(11);
+      if (text.startsWith('"') && text.endsWith('"')) text = text.slice(1, -1);
+      return text.trim();
+    })
+    .filter(m => m.length >= 15 && !m.startsWith('/') && !m.startsWith('['));
+
+  if (validMessages.length === 0) {
+    setCache(cacheKey, []);
+    return [];
+  }
+
+  // Select diverse examples for maximum style coverage
+  const examples = _selectDiverseExamples(validMessages, 8);
+
+  console.log(`[TwinContext] Selected ${examples.length} voice examples from ${validMessages.length} valid messages`);
+  setCache(cacheKey, examples);
+  return examples;
+}
+
+/**
+ * Select diverse message examples that cover different aspects of the user's voice.
+ * Picks a mix of: short/long, questions/statements, emotional/factual.
+ */
+function _selectDiverseExamples(messages, targetCount) {
+  if (messages.length <= targetCount) return messages;
+
+  const selected = [];
+  const remaining = [...messages];
+
+  // 1. Pick the shortest non-trivial message (shows brevity style)
+  const shortIdx = remaining.reduce((best, m, i) =>
+    m.length < remaining[best].length ? i : best, 0);
+  selected.push(remaining.splice(shortIdx, 1)[0]);
+
+  // 2. Pick the longest message (shows detail/depth style)
+  const longIdx = remaining.reduce((best, m, i) =>
+    m.length > remaining[best].length ? i : best, 0);
+  selected.push(remaining.splice(longIdx, 1)[0]);
+
+  // 3. Pick a question if available (shows curiosity style)
+  const questionIdx = remaining.findIndex(m => m.includes('?'));
+  if (questionIdx >= 0) {
+    selected.push(remaining.splice(questionIdx, 1)[0]);
+  }
+
+  // 4. Pick an emotional message if available
+  const emotionalIdx = remaining.findIndex(m =>
+    /(!{2,}|\.{3}|feel|love|hate|excited|stressed|happy|sad|frustrated)/i.test(m));
+  if (emotionalIdx >= 0) {
+    selected.push(remaining.splice(emotionalIdx, 1)[0]);
+  }
+
+  // 5. Fill remaining slots with evenly spaced messages (for variety)
+  const neededMore = targetCount - selected.length;
+  if (neededMore > 0 && remaining.length > 0) {
+    const step = Math.max(1, Math.floor(remaining.length / neededMore));
+    for (let i = 0; i < remaining.length && selected.length < targetCount; i += step) {
+      selected.push(remaining[i]);
+    }
+  }
+
+  return selected;
+}
+
 async function _fetchSoulSignature(userId) {
+  const cacheKey = `soul_${userId}`;
+  const cached = getCached(cacheKey);
+  if (cached !== undefined) return cached;
+
   const { data, error } = await supabaseAdmin
     .from('soul_signatures')
-    .select('*')
+    .select('archetype_name, archetype_subtitle, narrative, defining_traits, created_at, updated_at')
     .eq('user_id', userId)
     .order('created_at', { ascending: false })
     .limit(1)
     .single();
 
-  if (error || !data) {
-    return null;
-  }
-  return data;
+  const result = (error || !data) ? null : data;
+  setCache(cacheKey, result);
+  return result;
 }
 
 async function _fetchPersonalityScores(userId) {
+  const cacheKey = `personality_${userId}`;
+  const cached = getCached(cacheKey);
+  if (cached !== undefined) return cached;
+
   const { data, error } = await supabaseAdmin
     .from('personality_scores')
     .select('openness, conscientiousness, extraversion, agreeableness, neuroticism, openness_confidence, conscientiousness_confidence, extraversion_confidence, agreeableness_confidence, neuroticism_confidence, analyzed_platforms, source_type')
     .eq('user_id', userId)
     .single();
 
-  if (error || !data) return null;
-  return data;
+  const result = (error || !data) ? null : data;
+  setCache(cacheKey, result);
+  return result;
 }
 
 async function _fetchWritingProfile(userId) {
+  const cacheKey = `writing_${userId}`;
+  const cached = getCached(cacheKey);
+  if (cached !== undefined) return cached;
+
   const { data, error } = await supabaseAdmin
     .from('user_writing_patterns')
-    .select('*')
+    .select('formality_score, emoji_frequency, question_frequency, avg_message_length, vocabulary_richness, curiosity_score, detail_orientation, assertiveness_score, common_topics, total_conversations, total_words_analyzed')
     .eq('user_id', userId)
     .single();
 
-  if (error || !data) return null;
+  if (error || !data) { setCache(cacheKey, null); return null; }
 
-  return {
+  const result = {
     communicationStyle: data.formality_score >= 60 ? 'formal' : data.formality_score >= 40 ? 'balanced' : 'casual',
     formalityScore: data.formality_score,
     usesEmojis: data.emoji_frequency > 0.5,
@@ -180,6 +363,8 @@ async function _fetchWritingProfile(userId) {
     totalConversations: data.total_conversations,
     totalWordsAnalyzed: data.total_words_analyzed,
   };
+  setCache(cacheKey, result);
+  return result;
 }
 
 /**
@@ -195,9 +380,28 @@ async function _fetchPlatformData(userId, platforms) {
 
   const data = {};
 
-  for (const platform of platforms) {
-    try {
-      if (platform === 'spotify') {
+  // Fetch all platforms in parallel instead of sequentially
+  const platformFetchers = platforms.map(platform => _fetchSinglePlatform(userId, platform).catch(err => {
+    console.warn(`[TwinContext] Error fetching ${platform} data:`, err.message);
+    return null;
+  }));
+
+  const results = await Promise.all(platformFetchers);
+  results.forEach((result, i) => {
+    if (result) {
+      Object.assign(data, result);
+    }
+  });
+
+  platformDataCache.set(cacheKey, { data, timestamp: Date.now() });
+  return data;
+}
+
+async function _fetchSinglePlatform(userId, platform) {
+  const data = {};
+
+  try {
+    if (platform === 'spotify') {
         try {
           const tokenResult = await getValidAccessToken(userId, 'spotify');
           if (tokenResult.success && tokenResult.accessToken) {
@@ -412,13 +616,11 @@ async function _fetchPlatformData(userId, platforms) {
           console.warn('[TwinContext] Web browsing fetch failed:', webErr.message);
         }
       }
-    } catch (err) {
-      console.warn(`[TwinContext] Error fetching ${platform} data:`, err.message);
-    }
+  } catch (err) {
+    console.warn(`[TwinContext] Error fetching ${platform} data:`, err.message);
   }
 
-  platformDataCache.set(cacheKey, { data, timestamp: Date.now() });
-  return data;
+  return Object.keys(data).length > 0 ? data : null;
 }
 
 export { fetchTwinContext, buildContextSourcesMeta };

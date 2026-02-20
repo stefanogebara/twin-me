@@ -7,11 +7,13 @@
 
 import express from 'express';
 import { platformAPIMappings } from '../services/platformAPIMappings.js';
+import { encryptState } from '../services/encryption.js';
+import { authenticateUser } from '../middleware/auth.js';
 
 const router = express.Router();
 
 // Apple Music Connector
-router.post('/connect/apple-music', async (req, res) => {
+router.post('/connect/apple-music', authenticateUser, async (req, res) => {
   try {
     const { userId } = req.body;
 
@@ -33,17 +35,17 @@ router.post('/connect/apple-music', async (req, res) => {
 });
 
 // TikTok Connector
-router.post('/connect/tiktok', async (req, res) => {
+router.post('/connect/tiktok', authenticateUser, async (req, res) => {
   try {
     const { userId } = req.body;
 
     const clientKey = process.env.TIKTOK_CLIENT_KEY || 'your-tiktok-client-key';
     const redirectUri = encodeURIComponent(`${process.env.VITE_APP_URL}/oauth/callback`);
-    const state = Buffer.from(JSON.stringify({
+    const state = encryptState({
       platform: 'tiktok',
       userId,
       timestamp: Date.now()
-    })).toString('base64');
+    }, 'entertainment');
 
     const authUrl = `https://www.tiktok.com/auth/authorize/?` +
       `client_key=${clientKey}&scope=user.info.basic,video.list&` +
@@ -62,18 +64,18 @@ router.post('/connect/tiktok', async (req, res) => {
 });
 
 // Twitch Connector
-router.post('/connect/twitch', async (req, res) => {
+router.post('/connect/twitch', authenticateUser, async (req, res) => {
   try {
     const { userId } = req.body;
 
     const clientId = process.env.TWITCH_CLIENT_ID || 'your-twitch-client-id';
     const redirectUri = encodeURIComponent(`${process.env.VITE_APP_URL}/oauth/callback`);
     const scope = encodeURIComponent('user:read:follows user:read:subscriptions');
-    const state = Buffer.from(JSON.stringify({
+    const state = encryptState({
       platform: 'twitch',
       userId,
       timestamp: Date.now()
-    })).toString('base64');
+    }, 'entertainment');
 
     const authUrl = `https://id.twitch.tv/oauth2/authorize?` +
       `client_id=${clientId}&redirect_uri=${redirectUri}&` +
@@ -92,18 +94,18 @@ router.post('/connect/twitch', async (req, res) => {
 });
 
 // Discord Connector
-router.post('/connect/discord', async (req, res) => {
+router.post('/connect/discord', authenticateUser, async (req, res) => {
   try {
     const { userId } = req.body;
 
     const clientId = process.env.DISCORD_CLIENT_ID || 'your-discord-client-id';
     const redirectUri = encodeURIComponent(`${process.env.VITE_APP_URL}/oauth/callback`);
     const scope = encodeURIComponent('identify guilds activities.read');
-    const state = Buffer.from(JSON.stringify({
+    const state = encryptState({
       platform: 'discord',
       userId,
       timestamp: Date.now()
-    })).toString('base64');
+    }, 'entertainment');
 
     const authUrl = `https://discord.com/api/oauth2/authorize?` +
       `client_id=${clientId}&redirect_uri=${redirectUri}&` +
@@ -122,17 +124,17 @@ router.post('/connect/discord', async (req, res) => {
 });
 
 // Reddit Connector
-router.post('/connect/reddit', async (req, res) => {
+router.post('/connect/reddit', authenticateUser, async (req, res) => {
   try {
     const { userId } = req.body;
 
     const clientId = process.env.REDDIT_CLIENT_ID || 'your-reddit-client-id';
     const redirectUri = encodeURIComponent(`${process.env.VITE_APP_URL}/oauth/callback`);
-    const state = Buffer.from(JSON.stringify({
+    const state = encryptState({
       platform: 'reddit',
       userId,
       timestamp: Date.now()
-    })).toString('base64');
+    }, 'entertainment');
 
     const authUrl = `https://www.reddit.com/api/v1/authorize?` +
       `client_id=${clientId}&response_type=code&` +
@@ -152,18 +154,18 @@ router.post('/connect/reddit', async (req, res) => {
 });
 
 // GitHub Connector (for developers)
-router.post('/connect/github', async (req, res) => {
+router.post('/connect/github', authenticateUser, async (req, res) => {
   try {
     const { userId } = req.body;
 
     const clientId = process.env.GITHUB_CLIENT_ID || 'your-github-client-id';
     const redirectUri = encodeURIComponent(`${process.env.VITE_APP_URL}/oauth/callback`);
     const scope = encodeURIComponent('read:user repo read:org');
-    const state = Buffer.from(JSON.stringify({
+    const state = encryptState({
       platform: 'github',
       userId,
       timestamp: Date.now()
-    })).toString('base64');
+    }, 'entertainment');
 
     const authUrl = `https://github.com/login/oauth/authorize?` +
       `client_id=${clientId}&redirect_uri=${redirectUri}&` +
@@ -182,18 +184,18 @@ router.post('/connect/github', async (req, res) => {
 });
 
 // Instagram Connector
-router.post('/connect/instagram', async (req, res) => {
+router.post('/connect/instagram', authenticateUser, async (req, res) => {
   try {
     const { userId } = req.body;
 
     const clientId = process.env.INSTAGRAM_CLIENT_ID || 'your-instagram-client-id';
     const redirectUri = encodeURIComponent(`${process.env.VITE_APP_URL}/oauth/callback`);
     const scope = encodeURIComponent('user_profile,user_media');
-    const state = Buffer.from(JSON.stringify({
+    const state = encryptState({
       platform: 'instagram',
       userId,
       timestamp: Date.now()
-    })).toString('base64');
+    }, 'entertainment');
 
     const authUrl = `https://api.instagram.com/oauth/authorize?` +
       `client_id=${clientId}&redirect_uri=${redirectUri}&` +
@@ -212,18 +214,18 @@ router.post('/connect/instagram', async (req, res) => {
 });
 
 // Twitter/X Connector
-router.post('/connect/twitter', async (req, res) => {
+router.post('/connect/twitter', authenticateUser, async (req, res) => {
   try {
     const { userId } = req.body;
 
     const clientId = process.env.TWITTER_CLIENT_ID || 'your-twitter-client-id';
     const redirectUri = encodeURIComponent(`${process.env.VITE_APP_URL}/oauth/callback`);
     const scope = encodeURIComponent('tweet.read users.read follows.read');
-    const state = Buffer.from(JSON.stringify({
+    const state = encryptState({
       platform: 'twitter',
       userId,
       timestamp: Date.now()
-    })).toString('base64');
+    }, 'entertainment');
 
     // Twitter OAuth 2.0
     const authUrl = `https://twitter.com/i/oauth2/authorize?` +
@@ -244,18 +246,18 @@ router.post('/connect/twitter', async (req, res) => {
 });
 
 // Medium Connector
-router.post('/connect/medium', async (req, res) => {
+router.post('/connect/medium', authenticateUser, async (req, res) => {
   try {
     const { userId } = req.body;
 
     const clientId = process.env.MEDIUM_CLIENT_ID || 'your-medium-client-id';
     const redirectUri = encodeURIComponent(`${process.env.VITE_APP_URL}/oauth/callback`);
     const scope = encodeURIComponent('basicProfile listPublications');
-    const state = Buffer.from(JSON.stringify({
+    const state = encryptState({
       platform: 'medium',
       userId,
       timestamp: Date.now()
-    })).toString('base64');
+    }, 'entertainment');
 
     const authUrl = `https://medium.com/m/oauth/authorize?` +
       `client_id=${clientId}&scope=${scope}&` +
@@ -275,17 +277,17 @@ router.post('/connect/medium', async (req, res) => {
 });
 
 // Strava Connector (fitness personality)
-router.post('/connect/strava', async (req, res) => {
+router.post('/connect/strava', authenticateUser, async (req, res) => {
   try {
     const { userId } = req.body;
 
     const clientId = process.env.STRAVA_CLIENT_ID || 'your-strava-client-id';
     const redirectUri = encodeURIComponent(`${process.env.VITE_APP_URL}/oauth/callback`);
-    const state = Buffer.from(JSON.stringify({
+    const state = encryptState({
       platform: 'strava',
       userId,
       timestamp: Date.now()
-    })).toString('base64');
+    }, 'entertainment');
 
     const authUrl = `https://www.strava.com/oauth/authorize?` +
       `client_id=${clientId}&response_type=code&` +

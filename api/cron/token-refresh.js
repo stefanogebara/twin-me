@@ -158,7 +158,7 @@ async function checkAndRefreshExpiringTokens() {
 
     const { data: connections, error } = await client
       .from('platform_connections')
-      .select('*')
+      .select('id, user_id, platform, refresh_token, token_expires_at, status')
       .in('status', ['connected', 'token_expired', 'expired'])
       .not('refresh_token', 'is', null)
       .lt('token_expires_at', tenMinutesFromNow);
