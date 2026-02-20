@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=1440">
+<title>Editorial Template - Soul Signature Portfolio</title>
+<script src="https://mcp.figma.com/mcp/html-to-design/capture.js" async></script>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;0,700;1,400&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Inter', sans-serif;
+    background: #f5f0eb;
+    color: #1a1a1a;
+    width: 1440px;
+    overflow-x: hidden;
+  }
+
+  /* === ACCENT COLOR SYSTEM === */
+  :root {
+    --accent: #c2452e;
+    --accent-light: #c2452e20;
+  }
+
+  /* === HEADER === */
+  .header {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 32px 80px;
+    border-bottom: 1px solid rgba(0,0,0,0.08);
+  }
+  .wordmark {
+    font-family: 'Playfair Display', serif;
+    font-size: 20px; font-weight: 500;
+    color: #1a1a1a;
+    text-decoration: none;
+    letter-spacing: -0.5px;
+  }
+  .header-right {
+    display: flex; align-items: center; gap: 24px;
+  }
+  .share-link {
+    font-size: 12px; color: rgba(0,0,0,0.4);
+    text-decoration: none;
+    letter-spacing: 1px; text-transform: uppercase;
+  }
+
+  /* === HERO SPLIT === */
+  .hero {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    min-height: 600px;
+  }
+  .hero-left {
+    padding: 80px 80px;
+    display: flex; flex-direction: column; justify-content: center;
+    border-right: 1px solid rgba(0,0,0,0.08);
+  }
+  .hero-eyebrow {
+    font-size: 11px; letter-spacing: 3px; text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 24px;
+    font-weight: 500;
+  }
+  .hero-name {
+    font-family: 'Playfair Display', serif;
+    font-size: 80px; font-weight: 400;
+    line-height: 0.95;
+    letter-spacing: -3px;
+    margin-bottom: 24px;
+    color: #1a1a1a;
+  }
+  .hero-subtitle {
+    font-family: 'Playfair Display', serif;
+    font-size: 22px; font-weight: 400; font-style: italic;
+    color: rgba(0,0,0,0.45);
+    line-height: 1.4;
+  }
+  .hero-right {
+    display: flex; align-items: center; justify-content: center;
+    background: #ede8e1;
+    position: relative;
+  }
+  .hero-avatar {
+    width: 260px; height: 260px; border-radius: 50%;
+    background: linear-gradient(135deg, var(--accent-light), #ede8e1);
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'Playfair Display', serif;
+    font-size: 96px; font-weight: 400; color: var(--accent);
+    border: 1px solid rgba(0,0,0,0.06);
+  }
+  .hero-right-tag {
+    position: absolute; bottom: 40px; right: 40px;
+    font-size: 10px; letter-spacing: 2px; text-transform: uppercase;
+    color: rgba(0,0,0,0.25);
+  }
+
+  /* === THIN DIVIDER === */
+  .divider {
+    height: 1px; background: rgba(0,0,0,0.08);
+  }
+
+  /* === PERSONALITY SECTION === */
+  .personality {
+    display: grid;
+    grid-template-columns: 280px 1fr;
+  }
+  .personality-sidebar {
+    padding: 60px 40px 60px 80px;
+    border-right: 1px solid rgba(0,0,0,0.08);
+  }
+  .section-label {
+    font-size: 10px; letter-spacing: 3px; text-transform: uppercase;
+    color: rgba(0,0,0,0.35);
+    margin-bottom: 24px;
+  }
+  .mbti-display {
+    font-family: 'Playfair Display', serif;
+    font-size: 48px; font-weight: 400;
+    color: #1a1a1a;
+    letter-spacing: 4px;
+    margin-bottom: 8px;
+  }
+  .mbti-desc {
+    font-size: 12px; color: rgba(0,0,0,0.35);
+  }
+  .personality-main {
+    padding: 60px 80px 60px 60px;
+  }
+  .bigfive-rows {
+    display: flex; flex-direction: column; gap: 24px;
+  }
+  .bf-row {
+    display: grid;
+    grid-template-columns: 160px 1fr 40px;
+    align-items: center; gap: 24px;
+  }
+  .bf-label {
+    font-size: 13px; color: rgba(0,0,0,0.5);
+    text-align: right;
+  }
+  .bf-track {
+    height: 3px; background: rgba(0,0,0,0.06);
+    position: relative; overflow: hidden;
+  }
+  .bf-fill {
+    height: 100%; position: absolute; left: 0; top: 0;
+    background: var(--accent);
+  }
+  .bf-val {
+    font-size: 24px; font-weight: 300;
+    color: #1a1a1a;
+    font-family: 'Playfair Display', serif;
+  }
+
+  /* === TRAITS === */
+  .traits {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    border-top: 1px solid rgba(0,0,0,0.08);
+  }
+  .trait-cell {
+    padding: 48px 40px;
+    border-right: 1px solid rgba(0,0,0,0.08);
+    border-bottom: 1px solid rgba(0,0,0,0.08);
+  }
+  .trait-cell:nth-child(3n) { border-right: none; }
+  .trait-number {
+    font-family: 'Playfair Display', serif;
+    font-size: 56px; font-weight: 400;
+    color: var(--accent);
+    opacity: 0.7;
+    margin-bottom: 8px;
+    line-height: 1;
+  }
+  .trait-name {
+    font-size: 16px; font-weight: 500;
+    color: #1a1a1a;
+    margin-bottom: 8px;
+  }
+  .trait-evidence {
+    font-size: 13px; color: rgba(0,0,0,0.4);
+    line-height: 1.6;
+  }
+
+  /* === NARRATIVE === */
+  .narrative {
+    padding: 80px 200px;
+    text-align: center;
+    border-top: 1px solid rgba(0,0,0,0.08);
+  }
+  .narrative-quote-mark {
+    font-family: 'Playfair Display', serif;
+    font-size: 120px; line-height: 0.6;
+    color: var(--accent);
+    opacity: 0.2;
+    margin-bottom: 16px;
+  }
+  .narrative-text {
+    font-family: 'Playfair Display', serif;
+    font-size: 24px; line-height: 1.8;
+    color: rgba(0,0,0,0.6);
+    font-weight: 400;
+  }
+
+  /* === PLATFORMS === */
+  .platforms {
+    display: flex;
+    border-top: 1px solid rgba(0,0,0,0.08);
+  }
+  .platform-cell {
+    flex: 1; padding: 40px 32px;
+    text-align: center;
+    border-right: 1px solid rgba(0,0,0,0.08);
+  }
+  .platform-cell:last-child { border-right: none; }
+  .platform-dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    margin: 0 auto 12px;
+  }
+  .platform-name {
+    font-size: 12px; font-weight: 500;
+    color: #1a1a1a;
+    margin-bottom: 4px;
+  }
+  .platform-stat {
+    font-size: 11px; color: rgba(0,0,0,0.3);
+  }
+
+  /* === FOOTER === */
+  .footer {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 40px 80px;
+    border-top: 1px solid rgba(0,0,0,0.08);
+  }
+  .footer-left {
+    font-size: 11px; color: rgba(0,0,0,0.3);
+    letter-spacing: 0.5px;
+  }
+  .cta-btn {
+    display: inline-block; padding: 14px 36px;
+    background: var(--accent);
+    color: white;
+    font-size: 12px; font-weight: 500;
+    letter-spacing: 1px; text-transform: uppercase;
+    text-decoration: none;
+    border: none;
+  }
+</style>
+</head>
+<body>
+
+  <!-- Header -->
+  <div class="header">
+    <a class="wordmark" href="#">TwinMe</a>
+    <div class="header-right">
+      <a class="share-link" href="#">Share</a>
+    </div>
+  </div>
+
+  <!-- Hero -->
+  <div class="hero">
+    <div class="hero-left">
+      <div class="hero-eyebrow">Alex's Soul Signature</div>
+      <div class="hero-name">The<br>Curious<br>Navigator</div>
+      <div class="hero-subtitle">"Charting paths others<br>haven't imagined"</div>
+    </div>
+    <div class="hero-right">
+      <div class="hero-avatar">A</div>
+      <div class="hero-right-tag">Soul Signature &mdash; 2026</div>
+    </div>
+  </div>
+
+  <div class="divider"></div>
+
+  <!-- Personality -->
+  <div class="personality">
+    <div class="personality-sidebar">
+      <div class="section-label">Type</div>
+      <div class="mbti-display">ENFP</div>
+      <div class="mbti-desc">The Campaigner</div>
+    </div>
+    <div class="personality-main">
+      <div class="section-label">Big Five Personality</div>
+      <div class="bigfive-rows">
+        <div class="bf-row">
+          <div class="bf-label">Openness</div>
+          <div class="bf-track"><div class="bf-fill" style="width: 82%;"></div></div>
+          <div class="bf-val">82</div>
+        </div>
+        <div class="bf-row">
+          <div class="bf-label">Conscientiousness</div>
+          <div class="bf-track"><div class="bf-fill" style="width: 65%;"></div></div>
+          <div class="bf-val">65</div>
+        </div>
+        <div class="bf-row">
+          <div class="bf-label">Extraversion</div>
+          <div class="bf-track"><div class="bf-fill" style="width: 71%;"></div></div>
+          <div class="bf-val">71</div>
+        </div>
+        <div class="bf-row">
+          <div class="bf-label">Agreeableness</div>
+          <div class="bf-track"><div class="bf-fill" style="width: 78%;"></div></div>
+          <div class="bf-val">78</div>
+        </div>
+        <div class="bf-row">
+          <div class="bf-label">Emotional Stability</div>
+          <div class="bf-track"><div class="bf-fill" style="width: 65%;"></div></div>
+          <div class="bf-val">65</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Traits -->
+  <div class="traits">
+    <div class="trait-cell">
+      <div class="trait-number">91</div>
+      <div class="trait-name">Creative Curiosity</div>
+      <div class="trait-evidence">Explores 12+ music genres weekly across 40 curated playlists</div>
+    </div>
+    <div class="trait-cell">
+      <div class="trait-number">85</div>
+      <div class="trait-name">Empathetic Listener</div>
+      <div class="trait-evidence">Consistently gravitates toward emotionally rich content</div>
+    </div>
+    <div class="trait-cell">
+      <div class="trait-number">88</div>
+      <div class="trait-name">Pattern Seeker</div>
+      <div class="trait-evidence">Data shows systematic exploration of interconnected topics</div>
+    </div>
+    <div class="trait-cell">
+      <div class="trait-number">76</div>
+      <div class="trait-name">Night Owl</div>
+      <div class="trait-evidence">Peak creative activity between 10pm and 2am consistently</div>
+    </div>
+    <div class="trait-cell">
+      <div class="trait-number">82</div>
+      <div class="trait-name">Deep Diver</div>
+      <div class="trait-evidence">Average watch time 3x higher than casual viewers</div>
+    </div>
+    <div class="trait-cell">
+      <div class="trait-number">79</div>
+      <div class="trait-name">Social Catalyst</div>
+      <div class="trait-evidence">Bridges communities across platforms and interests</div>
+    </div>
+  </div>
+
+  <!-- Narrative -->
+  <div class="narrative">
+    <div class="narrative-quote-mark">&ldquo;</div>
+    <div class="narrative-text">
+      Alex moves through the world like a collector of invisible threads, connecting music to mood, ideas to action, and people to possibility. Their digital footprint reveals someone who thrives at the intersection of creativity and analysis &mdash; equally at home in a late-night coding session as they are curating a playlist that tells a story.
+    </div>
+  </div>
+
+  <!-- Platforms -->
+  <div class="platforms">
+    <div class="platform-cell">
+      <div class="platform-dot" style="background: #1DB954;"></div>
+      <div class="platform-name">Spotify</div>
+      <div class="platform-stat">420 artists &middot; 12 genres</div>
+    </div>
+    <div class="platform-cell">
+      <div class="platform-dot" style="background: #FF0000;"></div>
+      <div class="platform-name">YouTube</div>
+      <div class="platform-stat">850 videos</div>
+    </div>
+    <div class="platform-cell">
+      <div class="platform-dot" style="background: #44D62C;"></div>
+      <div class="platform-name">Whoop</div>
+      <div class="platform-stat">72% recovery</div>
+    </div>
+    <div class="platform-cell">
+      <div class="platform-dot" style="background: #4285F4;"></div>
+      <div class="platform-name">Calendar</div>
+      <div class="platform-stat">28 events/wk</div>
+    </div>
+    <div class="platform-cell">
+      <div class="platform-dot" style="background: #9146FF;"></div>
+      <div class="platform-name">Twitch</div>
+      <div class="platform-stat">15 channels</div>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <div class="footer">
+    <div class="footer-left">Powered by TwinMe &middot; Updated Feb 18, 2026</div>
+    <a href="#" class="cta-btn">Discover Your Soul Signature</a>
+  </div>
+
+</body>
+</html>

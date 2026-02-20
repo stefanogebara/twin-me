@@ -1,0 +1,1828 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=1440">
+<title>TwinMe — Liquid Soul Concept</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@300;400;500;600&family=EB+Garamond:ital,wght@0,400;0,500;1,400;1,500&display=swap" rel="stylesheet">
+<style>
+/* ============================================
+   VARIABLES & RESET
+   ============================================ */
+:root {
+  --bg: #0C0A09;
+  --surface: #1C1917;
+  --accent-gold: #D4A853;
+  --accent-gold-bright: #E0B860;
+  --accent-gold-glow: rgba(212, 168, 83, 0.4);
+  --text-primary: #F5F0E8;
+  --text-secondary: rgba(245, 240, 232, 0.6);
+  --font-display: 'Space Grotesk', sans-serif;
+  --font-body: 'Inter', sans-serif;
+  --font-accent: 'EB Garamond', serif;
+}
+
+*, *::before, *::after {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  font-family: var(--font-body);
+  background: var(--bg);
+  color: var(--text-primary);
+  overflow-x: hidden;
+  line-height: 1.6;
+  min-height: 100vh;
+}
+
+a {
+  text-decoration: none;
+  color: inherit;
+}
+
+/* ============================================
+   MORPHING LIQUID BLOBS — THE LIVING CANVAS
+   ============================================ */
+.liquid-canvas {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 0;
+  overflow: hidden;
+}
+
+.blob {
+  position: absolute;
+  filter: blur(60px);
+  will-change: transform, border-radius;
+}
+
+.blob-1 {
+  width: 600px;
+  height: 600px;
+  top: -10%;
+  right: -5%;
+  background: linear-gradient(135deg, rgba(212, 168, 83, 0.4), rgba(224, 184, 96, 0.2));
+  opacity: 0.18;
+  border-radius: 40% 60% 70% 30% / 40% 50% 60% 50%;
+  animation: morph-1 15s ease-in-out infinite;
+}
+
+.blob-2 {
+  width: 550px;
+  height: 550px;
+  bottom: -8%;
+  left: -8%;
+  background: linear-gradient(225deg, rgba(225, 29, 72, 0.15), rgba(212, 168, 83, 0.2));
+  opacity: 0.15;
+  border-radius: 60% 40% 30% 70% / 60% 30% 70% 40%;
+  animation: morph-2 20s ease-in-out infinite;
+}
+
+.blob-3 {
+  width: 500px;
+  height: 500px;
+  top: 35%;
+  left: 30%;
+  background: linear-gradient(45deg, rgba(20, 184, 166, 0.1), rgba(212, 168, 83, 0.15));
+  opacity: 0.12;
+  border-radius: 50% 50% 40% 60% / 40% 60% 50% 50%;
+  animation: morph-3 25s ease-in-out infinite;
+}
+
+.blob-4 {
+  width: 400px;
+  height: 400px;
+  top: 60%;
+  right: 10%;
+  background: linear-gradient(180deg, rgba(212, 168, 83, 0.2), rgba(139, 92, 246, 0.1));
+  opacity: 0.1;
+  border-radius: 30% 70% 60% 40% / 50% 40% 60% 50%;
+  animation: morph-4 18s ease-in-out infinite;
+}
+
+/* ============================================
+   MORPH KEYFRAMES — ORGANIC LIVING MOTION
+   ============================================ */
+@keyframes morph-1 {
+  0%, 100% {
+    border-radius: 40% 60% 70% 30% / 40% 50% 60% 50%;
+    transform: translate(0, 0) rotate(0deg) scale(1);
+  }
+  25% {
+    border-radius: 70% 30% 50% 50% / 30% 30% 70% 70%;
+    transform: translate(20px, -30px) rotate(5deg) scale(1.05);
+  }
+  50% {
+    border-radius: 50% 60% 30% 70% / 60% 40% 60% 40%;
+    transform: translate(-10px, 20px) rotate(-3deg) scale(0.97);
+  }
+  75% {
+    border-radius: 30% 70% 60% 40% / 50% 60% 30% 70%;
+    transform: translate(15px, 10px) rotate(2deg) scale(1.02);
+  }
+}
+
+@keyframes morph-2 {
+  0%, 100% {
+    border-radius: 60% 40% 30% 70% / 60% 30% 70% 40%;
+    transform: translate(0, 0) rotate(0deg) scale(1);
+  }
+  20% {
+    border-radius: 40% 60% 50% 50% / 50% 50% 50% 50%;
+    transform: translate(-25px, 15px) rotate(-4deg) scale(1.03);
+  }
+  40% {
+    border-radius: 70% 30% 60% 40% / 40% 70% 30% 60%;
+    transform: translate(15px, -20px) rotate(6deg) scale(0.96);
+  }
+  60% {
+    border-radius: 50% 50% 70% 30% / 30% 60% 40% 70%;
+    transform: translate(-10px, -10px) rotate(-2deg) scale(1.04);
+  }
+  80% {
+    border-radius: 30% 70% 40% 60% / 70% 40% 60% 30%;
+    transform: translate(20px, 25px) rotate(3deg) scale(0.98);
+  }
+}
+
+@keyframes morph-3 {
+  0%, 100% {
+    border-radius: 50% 50% 40% 60% / 40% 60% 50% 50%;
+    transform: translate(0, 0) rotate(0deg) scale(1);
+  }
+  33% {
+    border-radius: 30% 70% 70% 30% / 70% 30% 30% 70%;
+    transform: translate(30px, -15px) rotate(8deg) scale(1.06);
+  }
+  66% {
+    border-radius: 70% 30% 30% 70% / 30% 70% 70% 30%;
+    transform: translate(-20px, 25px) rotate(-5deg) scale(0.94);
+  }
+}
+
+@keyframes morph-4 {
+  0%, 100% {
+    border-radius: 30% 70% 60% 40% / 50% 40% 60% 50%;
+    transform: translate(0, 0) rotate(0deg);
+  }
+  30% {
+    border-radius: 60% 40% 40% 60% / 40% 60% 40% 60%;
+    transform: translate(-15px, 20px) rotate(-6deg);
+  }
+  60% {
+    border-radius: 40% 60% 70% 30% / 60% 30% 70% 40%;
+    transform: translate(25px, -10px) rotate(4deg);
+  }
+}
+
+/* ============================================
+   GOLD FLOW — ANIMATED GRADIENT TEXT
+   ============================================ */
+@keyframes gold-flow {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+/* ============================================
+   FADE IN UP — STAGGERED ENTRANCE
+   ============================================ */
+@keyframes fade-in-up {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ============================================
+   FLOAT — GENTLE BREATHING MOTION
+   ============================================ */
+@keyframes float {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-8px); }
+}
+
+/* ============================================
+   PULSE GLOW — SUBTLE RADIANCE
+   ============================================ */
+@keyframes pulse-glow {
+  0%, 100% { box-shadow: 0 0 20px rgba(212, 168, 83, 0.2), 0 0 60px rgba(212, 168, 83, 0.05); }
+  50% { box-shadow: 0 0 30px rgba(212, 168, 83, 0.35), 0 0 80px rgba(212, 168, 83, 0.1); }
+}
+
+/* ============================================
+   SHIMMER — LIGHT PASSING ACROSS SURFACES
+   ============================================ */
+@keyframes shimmer {
+  0% { transform: translateX(-100%) rotate(12deg); }
+  100% { transform: translateX(200%) rotate(12deg); }
+}
+
+/* ============================================
+   SPIN SLOW — FOR DECORATIVE ELEMENTS
+   ============================================ */
+@keyframes spin-slow {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+/* ============================================
+   NAV UNDERLINE SLIDE
+   ============================================ */
+@keyframes underline-in {
+  from { transform: scaleX(0); }
+  to { transform: scaleX(1); }
+}
+
+/* ============================================
+   PAGE WRAPPER
+   ============================================ */
+.page-wrapper {
+  position: relative;
+  z-index: 1;
+  width: 1440px;
+  margin: 0 auto;
+}
+
+/* ============================================
+   GLASS NAV BAR — FLOATING PILL
+   ============================================ */
+.nav-glass {
+  position: fixed;
+  top: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 16px 12px 24px;
+  background: rgba(12, 10, 9, 0.25);
+  backdrop-filter: blur(40px) brightness(120%) saturate(200%);
+  -webkit-backdrop-filter: blur(40px) brightness(120%) saturate(200%);
+  border: 1px solid rgba(245, 240, 232, 0.1);
+  border-radius: 60px;
+  box-shadow:
+    0 12px 40px rgba(0, 0, 0, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1),
+    inset 0 -1px 0 rgba(255, 255, 255, 0.03);
+  animation: fade-in-up 0.8s ease-out both;
+}
+
+.nav-logo {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 18px;
+  color: var(--text-primary);
+  margin-right: 24px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.nav-logo-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--accent-gold);
+  box-shadow: 0 0 12px var(--accent-gold-glow);
+  animation: pulse-glow 3s ease-in-out infinite;
+}
+
+.nav-links {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.nav-link {
+  font-family: var(--font-body);
+  font-weight: 400;
+  font-size: 14px;
+  color: var(--text-secondary);
+  padding: 8px 16px;
+  border-radius: 30px;
+  transition: color 0.3s ease, background 0.3s ease;
+  position: relative;
+  cursor: pointer;
+}
+
+.nav-link::after {
+  content: '';
+  position: absolute;
+  bottom: 4px;
+  left: 16px;
+  right: 16px;
+  height: 1px;
+  background: var(--accent-gold);
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform 0.4s cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+.nav-link:hover {
+  color: var(--text-primary);
+}
+
+.nav-link:hover::after {
+  transform: scaleX(1);
+}
+
+.nav-cta {
+  font-family: var(--font-body);
+  font-weight: 500;
+  font-size: 13px;
+  color: var(--bg);
+  background: linear-gradient(135deg, var(--accent-gold), var(--accent-gold-bright));
+  padding: 8px 20px;
+  border-radius: 30px;
+  margin-left: 12px;
+  cursor: pointer;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  border: none;
+  box-shadow: 0 4px 16px rgba(212, 168, 83, 0.25);
+}
+
+.nav-cta:hover {
+  transform: scale(1.04);
+  box-shadow: 0 6px 24px rgba(212, 168, 83, 0.4);
+}
+
+/* ============================================
+   HERO SECTION — MAXIMUM DRAMATIC IMPACT
+   ============================================ */
+.hero {
+  position: relative;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 120px 80px 80px;
+}
+
+.hero-label {
+  font-family: var(--font-body);
+  font-weight: 600;
+  font-size: 11px;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--accent-gold);
+  margin-bottom: 32px;
+  opacity: 0;
+  animation: fade-in-up 0.8s ease-out 0.2s both;
+  position: relative;
+  padding: 0 20px;
+}
+
+.hero-label::before,
+.hero-label::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  width: 40px;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(212, 168, 83, 0.4));
+}
+
+.hero-label::before {
+  right: 100%;
+  background: linear-gradient(90deg, transparent, rgba(212, 168, 83, 0.4));
+}
+
+.hero-label::after {
+  left: 100%;
+  background: linear-gradient(270deg, transparent, rgba(212, 168, 83, 0.4));
+}
+
+.hero-headline {
+  margin-bottom: 28px;
+  opacity: 0;
+  animation: fade-in-up 0.8s ease-out 0.4s both;
+}
+
+.hero-headline-top {
+  display: block;
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 68px;
+  line-height: 1.1;
+  color: var(--text-primary);
+}
+
+.hero-headline-bottom {
+  display: block;
+  font-family: var(--font-accent);
+  font-style: italic;
+  font-weight: 400;
+  font-size: 72px;
+  line-height: 1.15;
+  background: linear-gradient(90deg, #D4A853, #F0D78C, #D4A853, #E0B860, #D4A853);
+  background-size: 200% 100%;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  animation: gold-flow 4s ease-in-out infinite;
+}
+
+.hero-subtitle {
+  font-family: var(--font-body);
+  font-weight: 300;
+  font-size: 18px;
+  line-height: 1.7;
+  color: var(--text-secondary);
+  max-width: 560px;
+  margin: 0 auto 48px;
+  opacity: 0;
+  animation: fade-in-up 0.8s ease-out 0.6s both;
+}
+
+.hero-actions {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  opacity: 0;
+  animation: fade-in-up 0.8s ease-out 0.8s both;
+}
+
+/* ============================================
+   GLASS BUTTONS
+   ============================================ */
+.btn-gold-glass {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--font-body);
+  font-weight: 500;
+  font-size: 15px;
+  padding: 16px 36px;
+  border-radius: 60px;
+  border: none;
+  cursor: pointer;
+  background: linear-gradient(135deg, rgba(212, 168, 83, 0.85), rgba(224, 184, 96, 0.9));
+  color: var(--bg);
+  box-shadow:
+    0 8px 32px rgba(212, 168, 83, 0.3),
+    0 2px 8px rgba(0, 0, 0, 0.2),
+    inset 0 1px 0 rgba(255, 255, 255, 0.3),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.1);
+  transition: all 0.4s cubic-bezier(0.23, 1, 0.32, 1);
+  overflow: hidden;
+}
+
+.btn-gold-glass::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 60%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.25), transparent);
+  transform: rotate(12deg);
+  animation: shimmer 4s ease-in-out infinite;
+}
+
+.btn-gold-glass:hover {
+  transform: translateY(-2px) scale(1.02);
+  box-shadow:
+    0 12px 44px rgba(212, 168, 83, 0.45),
+    0 4px 12px rgba(0, 0, 0, 0.25),
+    inset 0 1px 0 rgba(255, 255, 255, 0.35),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.1);
+}
+
+.btn-ghost-glass {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--font-body);
+  font-weight: 400;
+  font-size: 15px;
+  padding: 16px 32px;
+  border-radius: 60px;
+  cursor: pointer;
+  background: rgba(245, 240, 232, 0.04);
+  backdrop-filter: blur(20px) brightness(110%);
+  -webkit-backdrop-filter: blur(20px) brightness(110%);
+  color: var(--text-primary);
+  border: 1px solid rgba(245, 240, 232, 0.1);
+  box-shadow:
+    0 4px 16px rgba(0, 0, 0, 0.2),
+    inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  transition: all 0.4s cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+.btn-ghost-glass:hover {
+  transform: translateY(-2px);
+  background: rgba(245, 240, 232, 0.08);
+  border-color: rgba(245, 240, 232, 0.18);
+  box-shadow:
+    0 8px 28px rgba(0, 0, 0, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1);
+}
+
+/* ============================================
+   SCROLL INDICATOR
+   ============================================ */
+.scroll-indicator {
+  position: absolute;
+  bottom: 40px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  opacity: 0;
+  animation: fade-in-up 0.8s ease-out 1.2s both;
+}
+
+.scroll-indicator span {
+  font-family: var(--font-body);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+}
+
+.scroll-line {
+  width: 1px;
+  height: 40px;
+  background: linear-gradient(to bottom, var(--accent-gold), transparent);
+  animation: float 2s ease-in-out infinite;
+}
+
+/* ============================================
+   SECTION STYLING
+   ============================================ */
+.section {
+  position: relative;
+  padding: 100px 120px;
+}
+
+.section-label {
+  font-family: var(--font-body);
+  font-weight: 600;
+  font-size: 11px;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--accent-gold);
+  margin-bottom: 16px;
+}
+
+.section-title {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 48px;
+  line-height: 1.15;
+  color: var(--text-primary);
+  margin-bottom: 16px;
+}
+
+.section-title .accent {
+  font-family: var(--font-accent);
+  font-style: italic;
+  font-weight: 400;
+  color: var(--accent-gold);
+}
+
+.section-subtitle {
+  font-family: var(--font-body);
+  font-weight: 300;
+  font-size: 17px;
+  line-height: 1.7;
+  color: var(--text-secondary);
+  max-width: 520px;
+}
+
+/* ============================================
+   LIQUID DIVIDER — ANIMATED WAVE
+   ============================================ */
+.liquid-divider {
+  width: 100%;
+  padding: 0 120px;
+  overflow: visible;
+}
+
+.liquid-divider svg {
+  width: 100%;
+  height: 60px;
+  overflow: visible;
+}
+
+/* ============================================
+   FEATURE CARDS — OVERLAPPING CASCADE
+   ============================================ */
+.features-section {
+  padding: 80px 120px 100px;
+}
+
+.features-header {
+  text-align: center;
+  margin-bottom: 80px;
+}
+
+.features-header .section-subtitle {
+  margin: 0 auto;
+}
+
+.cascade-container {
+  position: relative;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  height: 420px;
+  perspective: 1200px;
+}
+
+.feature-card {
+  position: absolute;
+  width: 300px;
+  padding: 36px 32px;
+  background: rgba(28, 25, 23, 0.3);
+  backdrop-filter: blur(30px) brightness(115%) saturate(170%);
+  -webkit-backdrop-filter: blur(30px) brightness(115%) saturate(170%);
+  border: 1px solid rgba(245, 240, 232, 0.08);
+  border-radius: 24px;
+  box-shadow:
+    0 20px 60px rgba(0, 0, 0, 0.4),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  transition: all 0.5s cubic-bezier(0.23, 1, 0.32, 1);
+  cursor: default;
+  overflow: hidden;
+}
+
+.feature-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  border-radius: 24px 24px 0 0;
+}
+
+.feature-card:hover {
+  transform: translateY(-12px) rotate(0deg) !important;
+  box-shadow:
+    0 30px 80px rgba(0, 0, 0, 0.5),
+    inset 0 1px 0 rgba(255, 255, 255, 0.15);
+  border-color: rgba(245, 240, 232, 0.15);
+  z-index: 20 !important;
+}
+
+/* Card positions — overlapping cascade */
+.feature-card:nth-child(1) {
+  left: 40px;
+  top: 20px;
+  transform: rotate(-3deg);
+  z-index: 5;
+}
+.feature-card:nth-child(2) {
+  left: 230px;
+  top: 0px;
+  transform: rotate(-1.5deg);
+  z-index: 8;
+}
+.feature-card:nth-child(3) {
+  left: 440px;
+  top: 10px;
+  transform: rotate(0.5deg);
+  z-index: 10;
+}
+.feature-card:nth-child(4) {
+  left: 660px;
+  top: 5px;
+  transform: rotate(2deg);
+  z-index: 8;
+}
+.feature-card:nth-child(5) {
+  left: 870px;
+  top: 25px;
+  transform: rotate(3.5deg);
+  z-index: 5;
+}
+
+/* Platform accent colors */
+.feature-card.spotify::before { background: linear-gradient(90deg, #1DB954, #1ed760); }
+.feature-card.calendar::before { background: linear-gradient(90deg, #4285F4, #669DF6); }
+.feature-card.whoop::before { background: linear-gradient(90deg, #FF3E3E, #FF6B6B); }
+.feature-card.youtube::before { background: linear-gradient(90deg, #FF0000, #FF4444); }
+.feature-card.twitch::before { background: linear-gradient(90deg, #9146FF, #A970FF); }
+
+.card-icon-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.card-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.card-icon svg {
+  width: 20px;
+  height: 20px;
+}
+
+.spotify .card-icon { background: rgba(29, 185, 84, 0.15); }
+.calendar .card-icon { background: rgba(66, 133, 244, 0.15); }
+.whoop .card-icon { background: rgba(255, 62, 62, 0.15); }
+.youtube .card-icon { background: rgba(255, 0, 0, 0.12); }
+.twitch .card-icon { background: rgba(145, 70, 255, 0.15); }
+
+.card-platform {
+  font-family: var(--font-body);
+  font-weight: 600;
+  font-size: 13px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.spotify .card-platform { color: #1DB954; }
+.calendar .card-platform { color: #4285F4; }
+.whoop .card-platform { color: #FF3E3E; }
+.youtube .card-platform { color: #FF0000; }
+.twitch .card-platform { color: #9146FF; }
+
+.card-title {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 20px;
+  color: var(--text-primary);
+  margin-bottom: 12px;
+  line-height: 1.3;
+}
+
+.card-desc {
+  font-family: var(--font-body);
+  font-weight: 400;
+  font-size: 15px;
+  line-height: 1.7;
+  color: rgba(245, 240, 232, 0.72);
+}
+
+.card-traits {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 16px;
+}
+
+.card-trait {
+  font-family: var(--font-body);
+  font-weight: 400;
+  font-size: 11px;
+  padding: 4px 10px;
+  border-radius: 20px;
+  background: rgba(245, 240, 232, 0.05);
+  color: var(--text-secondary);
+  border: 1px solid rgba(245, 240, 232, 0.06);
+}
+
+/* ============================================
+   SOUL SIGNATURE SHOWCASE
+   ============================================ */
+.showcase-section {
+  padding: 80px 120px 100px;
+}
+
+.showcase-layout {
+  display: flex;
+  align-items: center;
+  gap: 80px;
+}
+
+.showcase-text {
+  flex: 1;
+  min-width: 0;
+}
+
+.showcase-panel {
+  flex: 1.1;
+  min-width: 0;
+  position: relative;
+}
+
+/* Outer glass panel */
+.glass-showcase {
+  position: relative;
+  background: rgba(28, 25, 23, 0.25);
+  backdrop-filter: blur(40px) brightness(115%) saturate(180%);
+  -webkit-backdrop-filter: blur(40px) brightness(115%) saturate(180%);
+  border: 1px solid rgba(245, 240, 232, 0.08);
+  border-radius: 32px;
+  padding: 40px;
+  box-shadow:
+    0 24px 80px rgba(0, 0, 0, 0.4),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08),
+    inset 0 -1px 0 rgba(255, 255, 255, 0.02);
+}
+
+/* Inner glow decorative line */
+.glass-showcase::before {
+  content: '';
+  position: absolute;
+  top: -1px;
+  left: 40px;
+  right: 40px;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(212, 168, 83, 0.3), transparent);
+}
+
+.showcase-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 32px;
+}
+
+.showcase-archetype {
+  font-family: var(--font-accent);
+  font-style: italic;
+  font-size: 22px;
+  color: var(--accent-gold);
+}
+
+.showcase-badge {
+  font-family: var(--font-body);
+  font-weight: 500;
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 6px 14px;
+  border-radius: 20px;
+  background: rgba(212, 168, 83, 0.1);
+  color: var(--accent-gold);
+  border: 1px solid rgba(212, 168, 83, 0.2);
+}
+
+/* Radar Chart Container */
+.radar-container {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 32px;
+}
+
+.radar-chart {
+  position: relative;
+  width: 260px;
+  height: 260px;
+}
+
+.radar-chart svg {
+  width: 100%;
+  height: 100%;
+}
+
+/* Trait Pills */
+.trait-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: center;
+}
+
+.trait-pill {
+  font-family: var(--font-body);
+  font-weight: 500;
+  font-size: 13px;
+  padding: 8px 16px;
+  border-radius: 20px;
+  border: 1px solid rgba(245, 240, 232, 0.08);
+  background: rgba(28, 25, 23, 0.4);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  color: var(--text-primary);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+
+.trait-pill .trait-value {
+  color: var(--accent-gold);
+  margin-left: 6px;
+  font-weight: 600;
+}
+
+/* Score bars inside showcase */
+.score-bars {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  margin-top: 24px;
+  padding: 20px;
+  background: rgba(12, 10, 9, 0.3);
+  border-radius: 20px;
+  border: 1px solid rgba(245, 240, 232, 0.05);
+}
+
+.score-bar-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.score-label {
+  font-family: var(--font-body);
+  font-weight: 500;
+  font-size: 12px;
+  color: var(--text-secondary);
+  min-width: 90px;
+}
+
+.score-track {
+  flex: 1;
+  height: 6px;
+  background: rgba(245, 240, 232, 0.06);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.score-fill {
+  height: 100%;
+  border-radius: 3px;
+  background: linear-gradient(90deg, var(--accent-gold), var(--accent-gold-bright));
+  transition: width 1.5s cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+.score-value {
+  font-family: var(--font-body);
+  font-weight: 600;
+  font-size: 12px;
+  color: var(--accent-gold);
+  min-width: 32px;
+  text-align: right;
+}
+
+/* ============================================
+   TESTIMONIAL / QUOTE SECTION
+   ============================================ */
+.quote-section {
+  padding: 60px 120px 80px;
+  display: flex;
+  justify-content: center;
+}
+
+.quote-card {
+  position: relative;
+  max-width: 720px;
+  padding: 48px 56px;
+  background: rgba(28, 25, 23, 0.2);
+  backdrop-filter: blur(30px) brightness(112%) saturate(160%);
+  -webkit-backdrop-filter: blur(30px) brightness(112%) saturate(160%);
+  border: 1px solid rgba(245, 240, 232, 0.06);
+  border-radius: 28px;
+  box-shadow:
+    0 16px 48px rgba(0, 0, 0, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  text-align: center;
+}
+
+/* Gold glass dividers */
+.quote-card::before,
+.quote-card::after {
+  content: '';
+  position: absolute;
+  left: 56px;
+  right: 56px;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(212, 168, 83, 0.25), transparent);
+}
+
+.quote-card::before { top: 24px; }
+.quote-card::after { bottom: 24px; }
+
+.quote-mark {
+  font-family: var(--font-accent);
+  font-size: 64px;
+  color: var(--accent-gold);
+  opacity: 0.3;
+  line-height: 1;
+  margin-bottom: -16px;
+}
+
+.quote-text {
+  font-family: var(--font-accent);
+  font-style: italic;
+  font-size: 22px;
+  line-height: 1.65;
+  color: var(--text-primary);
+  margin-bottom: 20px;
+}
+
+.quote-author {
+  font-family: var(--font-body);
+  font-weight: 500;
+  font-size: 14px;
+  color: var(--accent-gold);
+  letter-spacing: 0.04em;
+}
+
+/* ============================================
+   FINAL CTA SECTION
+   ============================================ */
+.cta-section {
+  position: relative;
+  padding: 120px 120px 140px;
+  text-align: center;
+  overflow: hidden;
+}
+
+/* CTA blob behind */
+.cta-blob {
+  position: absolute;
+  width: 500px;
+  height: 500px;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: radial-gradient(circle, rgba(212, 168, 83, 0.2), rgba(212, 168, 83, 0.05), transparent 70%);
+  border-radius: 50%;
+  filter: blur(40px);
+  animation: morph-3 20s ease-in-out infinite;
+  pointer-events: none;
+}
+
+.cta-headline {
+  position: relative;
+  margin-bottom: 20px;
+}
+
+.cta-headline-main {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 52px;
+  line-height: 1.15;
+  color: var(--text-primary);
+  display: block;
+}
+
+.cta-headline-accent {
+  font-family: var(--font-accent);
+  font-style: italic;
+  font-weight: 400;
+  font-size: 56px;
+  display: block;
+  background: linear-gradient(90deg, #D4A853, #F0D78C, #D4A853, #E0B860, #D4A853);
+  background-size: 200% 100%;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  animation: gold-flow 4s ease-in-out infinite;
+}
+
+.cta-subtitle {
+  font-family: var(--font-body);
+  font-weight: 300;
+  font-size: 17px;
+  color: var(--text-secondary);
+  margin-bottom: 44px;
+  max-width: 480px;
+  margin-left: auto;
+  margin-right: auto;
+  line-height: 1.7;
+}
+
+.cta-button-wrap {
+  position: relative;
+  display: inline-block;
+  animation: float 4s ease-in-out infinite;
+}
+
+/* ============================================
+   FOOTER
+   ============================================ */
+.footer {
+  padding: 40px 120px 48px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-top: 1px solid rgba(245, 240, 232, 0.05);
+}
+
+.footer-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.footer-logo {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 16px;
+  color: var(--text-primary);
+}
+
+.footer-copy {
+  font-family: var(--font-body);
+  font-weight: 300;
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.footer-links {
+  display: flex;
+  gap: 24px;
+}
+
+.footer-link {
+  font-family: var(--font-body);
+  font-weight: 400;
+  font-size: 13px;
+  color: var(--text-secondary);
+  transition: color 0.3s ease;
+  cursor: pointer;
+}
+
+.footer-link:hover {
+  color: var(--accent-gold);
+}
+
+/* ============================================
+   DECORATIVE ORNAMENTS
+   ============================================ */
+.ornament-ring {
+  position: absolute;
+  border: 1px solid rgba(212, 168, 83, 0.06);
+  border-radius: 50%;
+  pointer-events: none;
+  animation: spin-slow 60s linear infinite;
+}
+
+.ornament-ring.ring-1 {
+  width: 300px;
+  height: 300px;
+  top: 20%;
+  right: -100px;
+}
+
+.ornament-ring.ring-2 {
+  width: 200px;
+  height: 200px;
+  top: 22%;
+  right: -50px;
+  animation-direction: reverse;
+  animation-duration: 45s;
+}
+
+/* ============================================
+   SCROLL REVEAL — INTERSECTION OBSERVER
+   ============================================ */
+.reveal {
+  opacity: 0;
+  transform: translateY(24px);
+  transition: opacity 0.8s ease-out, transform 0.8s ease-out;
+}
+
+.reveal.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.reveal-delay-1 { transition-delay: 0.1s; }
+.reveal-delay-2 { transition-delay: 0.2s; }
+.reveal-delay-3 { transition-delay: 0.3s; }
+.reveal-delay-4 { transition-delay: 0.4s; }
+.reveal-delay-5 { transition-delay: 0.5s; }
+
+/* ============================================
+   GRAIN TEXTURE OVERLAY
+   ============================================ */
+.grain-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 999;
+  opacity: 0.025;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+  background-repeat: repeat;
+  background-size: 128px 128px;
+}
+
+/* ============================================
+   HOW IT WORKS — FLOWING STEPS
+   ============================================ */
+.how-section {
+  padding: 80px 120px 60px;
+}
+
+.how-header {
+  text-align: center;
+  margin-bottom: 64px;
+}
+
+.how-header .section-subtitle {
+  margin: 0 auto;
+}
+
+.how-steps {
+  display: flex;
+  justify-content: center;
+  gap: 24px;
+}
+
+.how-step {
+  flex: 1;
+  max-width: 260px;
+  text-align: center;
+  padding: 36px 28px;
+  background: rgba(28, 25, 23, 0.2);
+  backdrop-filter: blur(20px) brightness(110%);
+  -webkit-backdrop-filter: blur(20px) brightness(110%);
+  border: 1px solid rgba(245, 240, 232, 0.06);
+  border-radius: 24px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+  transition: all 0.4s ease;
+}
+
+.how-step:hover {
+  transform: translateY(-4px);
+  border-color: rgba(245, 240, 232, 0.1);
+}
+
+.step-number {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 32px;
+  background: linear-gradient(135deg, var(--accent-gold), var(--accent-gold-bright));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  margin-bottom: 16px;
+}
+
+.step-title {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 17px;
+  color: var(--text-primary);
+  margin-bottom: 8px;
+}
+
+.step-desc {
+  font-family: var(--font-body);
+  font-weight: 300;
+  font-size: 14px;
+  color: var(--text-secondary);
+  line-height: 1.6;
+}
+
+/* Flow connectors between steps */
+.how-steps .how-step:not(:last-child) {
+  position: relative;
+}
+
+.how-steps .how-step:not(:last-child)::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  right: -15px;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: rgba(212, 168, 83, 0.3);
+}
+</style>
+</head>
+<body>
+
+<!-- Film Grain Texture -->
+<div class="grain-overlay"></div>
+
+<!-- Living Canvas — Morphing Blobs -->
+<div class="liquid-canvas">
+  <div class="blob blob-1"></div>
+  <div class="blob blob-2"></div>
+  <div class="blob blob-3"></div>
+  <div class="blob blob-4"></div>
+</div>
+
+<!-- Decorative Rings -->
+<div class="ornament-ring ring-1"></div>
+<div class="ornament-ring ring-2"></div>
+
+<div class="page-wrapper">
+
+  <!-- ============ GLASS NAV BAR ============ -->
+  <nav class="nav-glass">
+    <div class="nav-logo">
+      <span class="nav-logo-dot"></span>
+      TwinMe
+    </div>
+    <div class="nav-links">
+      <a class="nav-link" href="#features">Features</a>
+      <a class="nav-link" href="#how">How it Works</a>
+      <a class="nav-link" href="#soul">Soul Signature</a>
+      <a class="nav-link" href="#philosophy">Philosophy</a>
+    </div>
+    <button class="nav-cta">Get Started</button>
+  </nav>
+
+  <!-- ============ HERO SECTION ============ -->
+  <section class="hero" id="hero">
+    <div class="hero-label">Your Personal Foundation Model</div>
+    <h1 class="hero-headline">
+      <span class="hero-headline-top">Know who you truly are.</span>
+      <span class="hero-headline-bottom">Become who you want to be.</span>
+    </h1>
+    <p class="hero-subtitle">
+      TwinMe learns your voice, your values, your rhythms. It writes like you,
+      recommends what resonates with you, and guides your growth with interventions
+      that respect who you are at your core.
+    </p>
+    <div class="hero-actions">
+      <button class="btn-gold-glass">
+        Start Your Journey
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </button>
+      <button class="btn-ghost-glass">
+        See How It Works
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M6 4l6 4-6 4V4z" fill="currentColor" opacity="0.8"/></svg>
+      </button>
+    </div>
+    <div class="scroll-indicator">
+      <span>Scroll</span>
+      <div class="scroll-line"></div>
+    </div>
+  </section>
+
+  <!-- ============ LIQUID DIVIDER ============ -->
+  <div class="liquid-divider">
+    <svg viewBox="0 0 1200 60" preserveAspectRatio="none">
+      <path d="M0,30 C200,10 400,50 600,30 C800,10 1000,50 1200,30" stroke="rgba(212,168,83,0.25)" fill="none" stroke-width="1">
+        <animate attributeName="d" dur="6s" repeatCount="indefinite"
+          values="M0,30 C200,10 400,50 600,30 C800,10 1000,50 1200,30;
+                  M0,30 C200,50 400,10 600,30 C800,50 1000,10 1200,30;
+                  M0,30 C200,10 400,50 600,30 C800,10 1000,50 1200,30"/>
+      </path>
+      <path d="M0,30 C300,15 500,45 700,30 C900,15 1100,45 1200,30" stroke="rgba(212,168,83,0.12)" fill="none" stroke-width="0.5">
+        <animate attributeName="d" dur="8s" repeatCount="indefinite"
+          values="M0,30 C300,15 500,45 700,30 C900,15 1100,45 1200,30;
+                  M0,30 C300,45 500,15 700,30 C900,45 1100,15 1200,30;
+                  M0,30 C300,15 500,45 700,30 C900,15 1100,45 1200,30"/>
+      </path>
+    </svg>
+  </div>
+
+  <!-- ============ FEATURE CARDS CASCADE ============ -->
+  <section class="features-section" id="features">
+    <div class="features-header">
+      <div class="section-label reveal">Voluntary Data, Real Value</div>
+      <h2 class="section-title reveal reveal-delay-1">You share. You benefit. <span class="accent">Always.</span></h2>
+      <p class="section-subtitle reveal reveal-delay-2">
+        Your data is your treasure. We never sell it. We use it to serve you better --
+        personalized recommendations, content in your voice, and growth that feels natural.
+      </p>
+    </div>
+
+    <div class="cascade-container reveal reveal-delay-3">
+      <!-- Spotify -->
+      <div class="feature-card spotify">
+        <div class="card-icon-row">
+          <div class="card-icon">
+            <svg viewBox="0 0 24 24" fill="#1DB954"><path d="M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.66 0 12 0zm5.521 17.34c-.24.359-.66.48-1.021.24-2.82-1.74-6.36-2.101-10.561-1.141-.418.122-.779-.179-.899-.539-.12-.421.18-.78.54-.9 4.56-1.021 8.52-.6 11.64 1.32.42.18.479.659.301 1.02zm1.44-3.3c-.301.42-.841.6-1.262.3-3.239-1.98-8.159-2.58-11.939-1.38-.479.12-1.02-.12-1.14-.6-.12-.48.12-1.021.6-1.141C9.6 9.9 15 10.561 18.72 12.84c.361.181.54.78.241 1.2zm.12-3.36C15.24 8.4 8.82 8.16 5.16 9.301c-.6.179-1.2-.181-1.38-.721-.18-.601.18-1.2.72-1.381C8.64 5.801 15.6 6.06 20.04 8.94c.6.301.72 1.02.42 1.56-.299.421-1.02.599-1.559.3z"/></svg>
+          </div>
+          <span class="card-platform">Spotify</span>
+        </div>
+        <div class="card-title">Musical Soul</div>
+        <div class="card-desc">Your listening patterns reveal emotional landscapes, hidden moods, and the rhythms that move you.</div>
+        <div class="card-traits">
+          <span class="card-trait">Mood</span>
+          <span class="card-trait">Energy</span>
+          <span class="card-trait">Taste</span>
+        </div>
+      </div>
+
+      <!-- Calendar -->
+      <div class="feature-card calendar">
+        <div class="card-icon-row">
+          <div class="card-icon">
+            <svg viewBox="0 0 24 24" fill="#4285F4"><path d="M19 4h-1V2h-2v2H8V2H6v2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 16H5V9h14v11zM7 11h5v5H7v-5z"/></svg>
+          </div>
+          <span class="card-platform">Calendar</span>
+        </div>
+        <div class="card-title">Time Patterns</div>
+        <div class="card-desc">How you spend your hours tells the story of what truly matters to you.</div>
+        <div class="card-traits">
+          <span class="card-trait">Rhythm</span>
+          <span class="card-trait">Priorities</span>
+          <span class="card-trait">Flow</span>
+        </div>
+      </div>
+
+      <!-- Whoop -->
+      <div class="feature-card whoop">
+        <div class="card-icon-row">
+          <div class="card-icon">
+            <svg viewBox="0 0 24 24" fill="#FF3E3E"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
+          </div>
+          <span class="card-platform">Whoop</span>
+        </div>
+        <div class="card-title">Body Wisdom</div>
+        <div class="card-desc">Recovery, strain, and sleep data paint the portrait of your physical being.</div>
+        <div class="card-traits">
+          <span class="card-trait">Recovery</span>
+          <span class="card-trait">HRV</span>
+          <span class="card-trait">Sleep</span>
+        </div>
+      </div>
+
+      <!-- YouTube -->
+      <div class="feature-card youtube">
+        <div class="card-icon-row">
+          <div class="card-icon">
+            <svg viewBox="0 0 24 24" fill="#FF0000"><path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/></svg>
+          </div>
+          <span class="card-platform">YouTube</span>
+        </div>
+        <div class="card-title">Curiosity Map</div>
+        <div class="card-desc">The content you consume reveals the questions that drive your mind forward.</div>
+        <div class="card-traits">
+          <span class="card-trait">Interests</span>
+          <span class="card-trait">Depth</span>
+          <span class="card-trait">Growth</span>
+        </div>
+      </div>
+
+      <!-- Twitch -->
+      <div class="feature-card twitch">
+        <div class="card-icon-row">
+          <div class="card-icon">
+            <svg viewBox="0 0 24 24" fill="#9146FF"><path d="M11.571 4.714h1.715v5.143H11.57zm4.715 0H18v5.143h-1.714zM6 0L1.714 4.286v15.428h5.143V24l4.286-4.286h3.428L22.286 12V0zm14.571 11.143l-3.428 3.428h-3.429l-3 3v-3H6.857V1.714h13.714z"/></svg>
+          </div>
+          <span class="card-platform">Twitch</span>
+        </div>
+        <div class="card-title">Play Identity</div>
+        <div class="card-desc">Gaming and streaming choices expose your tribal connections and competitive spirit.</div>
+        <div class="card-traits">
+          <span class="card-trait">Community</span>
+          <span class="card-trait">Style</span>
+          <span class="card-trait">Tribe</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ LIQUID DIVIDER ============ -->
+  <div class="liquid-divider">
+    <svg viewBox="0 0 1200 60" preserveAspectRatio="none">
+      <path d="M0,30 C150,45 350,15 600,30 C850,45 1050,15 1200,30" stroke="rgba(212,168,83,0.2)" fill="none" stroke-width="1">
+        <animate attributeName="d" dur="7s" repeatCount="indefinite"
+          values="M0,30 C150,45 350,15 600,30 C850,45 1050,15 1200,30;
+                  M0,30 C150,15 350,45 600,30 C850,15 1050,45 1200,30;
+                  M0,30 C150,45 350,15 600,30 C850,45 1050,15 1200,30"/>
+      </path>
+    </svg>
+  </div>
+
+  <!-- ============ HOW IT WORKS ============ -->
+  <section class="how-section" id="how">
+    <div class="how-header">
+      <div class="section-label reveal">How It Works</div>
+      <h2 class="section-title reveal reveal-delay-1">Simple for you. <span class="accent">Powerful underneath.</span></h2>
+      <p class="section-subtitle reveal reveal-delay-2">
+        Complexity lives in the back-end. You just get a twin that knows you.
+      </p>
+    </div>
+
+    <div class="how-steps">
+      <div class="how-step reveal reveal-delay-1">
+        <div class="step-number">01</div>
+        <div class="step-title">Share Your World</div>
+        <div class="step-desc">Connect platforms you already use. Journal your thoughts. Every signal builds your foundation.</div>
+      </div>
+      <div class="how-step reveal reveal-delay-2">
+        <div class="step-number">02</div>
+        <div class="step-title">TwinMe Learns You</div>
+        <div class="step-desc">Your voice, your values, your rhythms. The AI builds a model of who you truly are -- and who you want to become.</div>
+      </div>
+      <div class="how-step reveal reveal-delay-3">
+        <div class="step-number">03</div>
+        <div class="step-title">It Works For You</div>
+        <div class="step-desc">Writes emails in your tone. Recommends with your taste. Nudges you toward your goals. Always on your side.</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ LIQUID DIVIDER ============ -->
+  <div class="liquid-divider">
+    <svg viewBox="0 0 1200 60" preserveAspectRatio="none">
+      <path d="M0,30 C200,10 400,50 600,30 C800,10 1000,50 1200,30" stroke="rgba(212,168,83,0.2)" fill="none" stroke-width="1">
+        <animate attributeName="d" dur="5s" repeatCount="indefinite"
+          values="M0,30 C200,10 400,50 600,30 C800,10 1000,50 1200,30;
+                  M0,30 C200,50 400,10 600,30 C800,50 1000,10 1200,30;
+                  M0,30 C200,10 400,50 600,30 C800,10 1000,50 1200,30"/>
+      </path>
+    </svg>
+  </div>
+
+  <!-- ============ SOUL SIGNATURE SHOWCASE ============ -->
+  <section class="showcase-section" id="soul">
+    <div class="showcase-layout">
+      <div class="showcase-text">
+        <div class="section-label reveal">Your Foundation</div>
+        <h2 class="section-title reveal reveal-delay-1">Who you are. <span class="accent">Who you can be.</span></h2>
+        <p class="section-subtitle reveal reveal-delay-2">
+          Your soul signature captures the patterns that make you irreplaceable.
+          Five dimensions, infinite depth -- a living model that evolves as you do.
+        </p>
+        <div class="score-bars reveal reveal-delay-3">
+          <div class="score-bar-item">
+            <span class="score-label">Creativity</span>
+            <div class="score-track"><div class="score-fill" style="width: 87%"></div></div>
+            <span class="score-value">87</span>
+          </div>
+          <div class="score-bar-item">
+            <span class="score-label">Curiosity</span>
+            <div class="score-track"><div class="score-fill" style="width: 92%"></div></div>
+            <span class="score-value">92</span>
+          </div>
+          <div class="score-bar-item">
+            <span class="score-label">Empathy</span>
+            <div class="score-track"><div class="score-fill" style="width: 78%"></div></div>
+            <span class="score-value">78</span>
+          </div>
+          <div class="score-bar-item">
+            <span class="score-label">Resilience</span>
+            <div class="score-track"><div class="score-fill" style="width: 84%"></div></div>
+            <span class="score-value">84</span>
+          </div>
+          <div class="score-bar-item">
+            <span class="score-label">Playfulness</span>
+            <div class="score-track"><div class="score-fill" style="width: 71%"></div></div>
+            <span class="score-value">71</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="showcase-panel reveal reveal-delay-2">
+        <div class="glass-showcase">
+          <div class="showcase-header">
+            <span class="showcase-archetype">The Luminous Explorer</span>
+            <span class="showcase-badge">Soul Archetype</span>
+          </div>
+
+          <div class="radar-container">
+            <div class="radar-chart">
+              <svg viewBox="0 0 260 260">
+                <!-- Radar grid rings -->
+                <polygon points="130,30 220,95 195,200 65,200 40,95" fill="none" stroke="rgba(245,240,232,0.06)" stroke-width="1"/>
+                <polygon points="130,55 195,105 177,180 83,180 65,105" fill="none" stroke="rgba(245,240,232,0.05)" stroke-width="1"/>
+                <polygon points="130,80 170,115 159,160 101,160 90,115" fill="none" stroke="rgba(245,240,232,0.04)" stroke-width="1"/>
+
+                <!-- Axis lines -->
+                <line x1="130" y1="130" x2="130" y2="30" stroke="rgba(245,240,232,0.06)" stroke-width="1"/>
+                <line x1="130" y1="130" x2="220" y2="95" stroke="rgba(245,240,232,0.06)" stroke-width="1"/>
+                <line x1="130" y1="130" x2="195" y2="200" stroke="rgba(245,240,232,0.06)" stroke-width="1"/>
+                <line x1="130" y1="130" x2="65" y2="200" stroke="rgba(245,240,232,0.06)" stroke-width="1"/>
+                <line x1="130" y1="130" x2="40" y2="95" stroke="rgba(245,240,232,0.06)" stroke-width="1"/>
+
+                <!-- Data polygon (filled) -->
+                <polygon
+                  points="130,42 205,100 182,192 72,185 52,102"
+                  fill="rgba(212,168,83,0.12)"
+                  stroke="rgba(212,168,83,0.6)"
+                  stroke-width="1.5"
+                  stroke-linejoin="round"
+                />
+
+                <!-- Data points -->
+                <circle cx="130" cy="42" r="4" fill="#D4A853" opacity="0.9"/>
+                <circle cx="205" cy="100" r="4" fill="#D4A853" opacity="0.9"/>
+                <circle cx="182" cy="192" r="4" fill="#D4A853" opacity="0.9"/>
+                <circle cx="72" cy="185" r="4" fill="#D4A853" opacity="0.9"/>
+                <circle cx="52" cy="102" r="4" fill="#D4A853" opacity="0.9"/>
+
+                <!-- Labels -->
+                <text x="130" y="18" text-anchor="middle" fill="rgba(245,240,232,0.6)" font-family="Inter, sans-serif" font-size="11" font-weight="500">Creativity</text>
+                <text x="232" y="98" text-anchor="start" fill="rgba(245,240,232,0.6)" font-family="Inter, sans-serif" font-size="11" font-weight="500">Curiosity</text>
+                <text x="200" y="215" text-anchor="start" fill="rgba(245,240,232,0.6)" font-family="Inter, sans-serif" font-size="11" font-weight="500">Empathy</text>
+                <text x="55" y="215" text-anchor="end" fill="rgba(245,240,232,0.6)" font-family="Inter, sans-serif" font-size="11" font-weight="500">Resilience</text>
+                <text x="28" y="98" text-anchor="end" fill="rgba(245,240,232,0.6)" font-family="Inter, sans-serif" font-size="11" font-weight="500">Playfulness</text>
+              </svg>
+            </div>
+          </div>
+
+          <div class="trait-pills">
+            <span class="trait-pill">Night Owl <span class="trait-value">94%</span></span>
+            <span class="trait-pill">Deep Listener <span class="trait-value">88%</span></span>
+            <span class="trait-pill">Pattern Seeker <span class="trait-value">91%</span></span>
+            <span class="trait-pill">Gentle Rebel <span class="trait-value">82%</span></span>
+            <span class="trait-pill">Flow State <span class="trait-value">87%</span></span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ LIQUID DIVIDER ============ -->
+  <div class="liquid-divider">
+    <svg viewBox="0 0 1200 60" preserveAspectRatio="none">
+      <path d="M0,30 C200,10 400,50 600,30 C800,10 1000,50 1200,30" stroke="rgba(212,168,83,0.2)" fill="none" stroke-width="1">
+        <animate attributeName="d" dur="6s" repeatCount="indefinite"
+          values="M0,30 C200,10 400,50 600,30 C800,10 1000,50 1200,30;
+                  M0,30 C200,50 400,10 600,30 C800,50 1000,10 1200,30;
+                  M0,30 C200,10 400,50 600,30 C800,10 1000,50 1200,30"/>
+      </path>
+    </svg>
+  </div>
+
+  <!-- ============ QUOTE SECTION ============ -->
+  <section class="quote-section" id="philosophy">
+    <div class="quote-card reveal">
+      <div class="quote-mark">"</div>
+      <div class="quote-text">
+        Perhaps you are searching in the branches<br>
+        for what only appears in the roots.
+      </div>
+      <div class="quote-author">-- Rumi</div>
+    </div>
+  </section>
+
+  <!-- ============ FINAL CTA ============ -->
+  <section class="cta-section">
+    <div class="cta-blob"></div>
+    <div class="cta-headline reveal">
+      <span class="cta-headline-main">Your data is your treasure.</span>
+      <span class="cta-headline-accent">We help you use it.</span>
+    </div>
+    <p class="cta-subtitle reveal reveal-delay-1">
+      Free forever. Your data stays yours. We never sell it.<br>
+      We just help you understand yourself better.
+    </p>
+    <div class="cta-button-wrap reveal reveal-delay-2">
+      <button class="btn-gold-glass" style="font-size: 16px; padding: 18px 44px;">
+        Get Started Free
+        <svg width="18" height="18" viewBox="0 0 16 16" fill="none"><path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </button>
+    </div>
+  </section>
+
+  <!-- ============ FOOTER ============ -->
+  <footer class="footer">
+    <div class="footer-left">
+      <span class="footer-logo">TwinMe</span>
+      <span class="footer-copy">-- The Authentic Soul Signature Platform</span>
+    </div>
+    <div class="footer-links">
+      <a class="footer-link" href="#">Privacy</a>
+      <a class="footer-link" href="#">Terms</a>
+      <a class="footer-link" href="#">Contact</a>
+    </div>
+  </footer>
+
+</div><!-- /page-wrapper -->
+
+<!-- ============================================
+     JAVASCRIPT — SCROLL REVEAL & INTERACTIONS
+     ============================================ -->
+<script>
+(function() {
+  'use strict';
+
+  // ---- Intersection Observer for scroll reveals ----
+  const revealElements = document.querySelectorAll('.reveal');
+
+  const revealObserver = new IntersectionObserver(function(entries) {
+    entries.forEach(function(entry) {
+      if (entry.isIntersecting) {
+        entry.target.classList.add('visible');
+        // Unobserve after reveal for performance
+        revealObserver.unobserve(entry.target);
+      }
+    });
+  }, {
+    threshold: 0.15,
+    rootMargin: '0px 0px -40px 0px'
+  });
+
+  revealElements.forEach(function(el) {
+    revealObserver.observe(el);
+  });
+
+  // ---- Parallax movement for blobs on mouse move ----
+  var blobs = document.querySelectorAll('.blob');
+  var parallaxStrengths = [0.02, 0.015, 0.025, 0.01];
+
+  document.addEventListener('mousemove', function(e) {
+    var centerX = window.innerWidth / 2;
+    var centerY = window.innerHeight / 2;
+    var deltaX = (e.clientX - centerX) / centerX;
+    var deltaY = (e.clientY - centerY) / centerY;
+
+    blobs.forEach(function(blob, i) {
+      var strength = parallaxStrengths[i] || 0.015;
+      var moveX = deltaX * 30 * strength * (i % 2 === 0 ? 1 : -1);
+      var moveY = deltaY * 30 * strength * (i % 2 === 0 ? -1 : 1);
+      // Apply a subtle extra translation on top of the CSS animation
+      blob.style.marginLeft = (moveX * 10) + 'px';
+      blob.style.marginTop = (moveY * 10) + 'px';
+    });
+  });
+
+  // ---- Smooth scroll for nav links ----
+  document.querySelectorAll('.nav-link[href^="#"]').forEach(function(link) {
+    link.addEventListener('click', function(e) {
+      e.preventDefault();
+      var targetId = this.getAttribute('href').slice(1);
+      var target = document.getElementById(targetId);
+      if (target) {
+        target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    });
+  });
+
+  // ---- Nav glass background on scroll ----
+  var navGlass = document.querySelector('.nav-glass');
+  var lastScroll = 0;
+
+  window.addEventListener('scroll', function() {
+    var scrollY = window.scrollY || window.pageYOffset;
+
+    // Increase nav opacity on scroll
+    if (scrollY > 60) {
+      navGlass.style.background = 'rgba(12, 10, 9, 0.55)';
+      navGlass.style.borderColor = 'rgba(245, 240, 232, 0.12)';
+    } else {
+      navGlass.style.background = 'rgba(12, 10, 9, 0.25)';
+      navGlass.style.borderColor = 'rgba(245, 240, 232, 0.1)';
+    }
+
+    lastScroll = scrollY;
+  });
+
+  // ---- Animated score bars on reveal ----
+  var scoreFills = document.querySelectorAll('.score-fill');
+  var scoreObserver = new IntersectionObserver(function(entries) {
+    entries.forEach(function(entry) {
+      if (entry.isIntersecting) {
+        // The widths are set inline; we animate from 0
+        var fills = entry.target.querySelectorAll('.score-fill');
+        fills.forEach(function(fill) {
+          var targetWidth = fill.style.width;
+          fill.style.width = '0%';
+          requestAnimationFrame(function() {
+            requestAnimationFrame(function() {
+              fill.style.width = targetWidth;
+            });
+          });
+        });
+        scoreObserver.unobserve(entry.target);
+      }
+    });
+  }, { threshold: 0.3 });
+
+  var scoreBars = document.querySelector('.score-bars');
+  if (scoreBars) {
+    scoreObserver.observe(scoreBars);
+  }
+
+  // ---- Feature card hover z-index management ----
+  var featureCards = document.querySelectorAll('.feature-card');
+  var originalZIndices = [];
+  featureCards.forEach(function(card, i) {
+    originalZIndices.push(window.getComputedStyle(card).zIndex);
+  });
+
+  featureCards.forEach(function(card, i) {
+    card.addEventListener('mouseenter', function() {
+      card.style.zIndex = '20';
+    });
+    card.addEventListener('mouseleave', function() {
+      card.style.zIndex = originalZIndices[i];
+    });
+  });
+
+})();
+</script>
+</body>
+</html>

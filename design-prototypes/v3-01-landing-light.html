@@ -1,0 +1,964 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=1440">
+  <title>TwinMe - Discover What Makes You Authentically You</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      /* Backgrounds */
+      --bg: #FAFAFA;
+      --bg-card: #FFFFFF;
+      --bg-elevated: #FFFFFF;
+
+      /* Text */
+      --text-primary: #0c0a09;
+      --text-secondary: #57534e;
+      --text-tertiary: #a8a29e;
+
+      /* Accent — TwinMe's warm gold */
+      --accent: #D4A853;
+      --accent-hover: #C49A45;
+      --accent-light: rgba(212, 168, 83, 0.10);
+      --accent-glow: rgba(212, 168, 83, 0.15);
+
+      /* Borders */
+      --border: rgba(0, 0, 0, 0.06);
+      --border-strong: rgba(0, 0, 0, 0.10);
+
+      /* Glass (nav/chrome ONLY) */
+      --glass-fill: rgba(255, 255, 255, 0.12);
+      --glass-border: rgba(255, 255, 255, 0.3);
+      --glass-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+      --glass-specular: inset 0 1px 0 rgba(255, 255, 255, 0.5);
+
+      /* Radius */
+      --radius-sm: 10px;
+      --radius-md: 14px;
+      --radius-lg: 16px;
+      --radius-xl: 20px;
+      --radius-pill: 60px;
+
+      /* Fonts */
+      --font-display: 'Space Grotesk', system-ui, sans-serif;
+      --font-body: 'Inter', -apple-system, sans-serif;
+
+      /* Shadows (soft, Apple-like) */
+      --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.04);
+      --shadow-md: 0 2px 8px rgba(0, 0, 0, 0.06);
+      --shadow-lg: 0 4px 16px rgba(0, 0, 0, 0.08);
+      --shadow-xl: 0 8px 32px rgba(0, 0, 0, 0.10);
+    }
+
+    *, *::before, *::after {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    html {
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+      text-rendering: optimizeLegibility;
+    }
+
+    body {
+      font-family: var(--font-body);
+      background: var(--bg);
+      color: var(--text-primary);
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* ===================== NAV BAR — LIQUID GLASS ===================== */
+    .nav {
+      position: fixed;
+      top: 16px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 1000;
+      display: flex;
+      align-items: center;
+      gap: 32px;
+      height: 48px;
+      padding: 6px 8px 6px 20px;
+      border-radius: var(--radius-pill);
+      background: rgba(255, 255, 255, 0.15);
+      backdrop-filter: blur(12px) brightness(130%) saturate(150%);
+      -webkit-backdrop-filter: blur(12px) brightness(130%) saturate(150%);
+      border: 1px solid rgba(255, 255, 255, 0.35);
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.5);
+      transition: box-shadow 0.3s ease;
+    }
+
+    .nav.scrolled {
+      box-shadow: 0 4px 24px rgba(0, 0, 0, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.5);
+    }
+
+    .nav-brand {
+      font-family: var(--font-display);
+      font-weight: 600;
+      font-size: 17px;
+      color: var(--text-primary);
+      text-decoration: none;
+      white-space: nowrap;
+    }
+
+    .nav-links {
+      display: flex;
+      align-items: center;
+      gap: 24px;
+    }
+
+    .nav-links a {
+      font-family: var(--font-body);
+      font-weight: 400;
+      font-size: 14px;
+      color: var(--text-secondary);
+      text-decoration: none;
+      white-space: nowrap;
+      transition: color 0.2s ease;
+    }
+
+    .nav-links a:hover {
+      color: var(--text-primary);
+    }
+
+    .nav-actions {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      margin-left: auto;
+    }
+
+    .nav-signin {
+      font-family: var(--font-body);
+      font-weight: 400;
+      font-size: 14px;
+      color: var(--text-secondary);
+      text-decoration: none;
+      white-space: nowrap;
+      transition: color 0.2s ease;
+    }
+
+    .nav-signin:hover {
+      color: var(--text-primary);
+    }
+
+    .btn-primary {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-family: var(--font-body);
+      font-weight: 500;
+      font-size: 14px;
+      color: #FFFFFF;
+      background: var(--accent);
+      border: none;
+      border-radius: var(--radius-pill);
+      padding: 8px 20px;
+      cursor: pointer;
+      text-decoration: none;
+      white-space: nowrap;
+      transition: background 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
+    }
+
+    .btn-primary:hover {
+      background: var(--accent-hover);
+      box-shadow: 0 4px 16px rgba(212, 168, 83, 0.3);
+      transform: translateY(-1px);
+    }
+
+    /* ===================== CONTAINER ===================== */
+    .container {
+      max-width: 1120px;
+      margin: 0 auto;
+      padding: 0 40px;
+    }
+
+    /* ===================== HERO ===================== */
+    .hero {
+      padding-top: 160px;
+      padding-bottom: 80px;
+      text-align: center;
+    }
+
+    .hero-inner {
+      max-width: 680px;
+      margin: 0 auto;
+    }
+
+    .hero-label {
+      font-family: var(--font-body);
+      font-weight: 500;
+      font-size: 11px;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--accent);
+      margin-bottom: 20px;
+    }
+
+    .hero-title {
+      font-family: var(--font-display);
+      font-weight: 600;
+      font-size: clamp(2.5rem, 5vw, 3.5rem);
+      color: var(--text-primary);
+      letter-spacing: -0.02em;
+      line-height: 1.15;
+    }
+
+    .hero-subtitle {
+      font-family: var(--font-body);
+      font-weight: 400;
+      font-size: 17px;
+      color: var(--text-secondary);
+      max-width: 520px;
+      margin: 20px auto 0;
+      line-height: 1.7;
+    }
+
+    .hero-buttons {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      margin-top: 36px;
+    }
+
+    .btn-hero-primary {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-family: var(--font-body);
+      font-weight: 500;
+      font-size: 15px;
+      color: #FFFFFF;
+      background: var(--accent);
+      border: none;
+      border-radius: var(--radius-pill);
+      padding: 13px 28px;
+      cursor: pointer;
+      text-decoration: none;
+      box-shadow: 0 2px 8px rgba(212, 168, 83, 0.25);
+      transition: box-shadow 0.2s ease, transform 0.2s ease, background 0.2s ease;
+    }
+
+    .btn-hero-primary:hover {
+      background: var(--accent-hover);
+      box-shadow: 0 6px 20px rgba(212, 168, 83, 0.35);
+      transform: translateY(-1px);
+    }
+
+    .btn-hero-secondary {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-family: var(--font-body);
+      font-weight: 500;
+      font-size: 15px;
+      color: var(--text-secondary);
+      background: transparent;
+      border: 1px solid var(--border-strong);
+      border-radius: var(--radius-pill);
+      padding: 13px 28px;
+      cursor: pointer;
+      text-decoration: none;
+      transition: border-color 0.2s ease, color 0.2s ease, transform 0.2s ease;
+    }
+
+    .btn-hero-secondary:hover {
+      border-color: rgba(0, 0, 0, 0.20);
+      color: var(--text-primary);
+      transform: translateY(-1px);
+    }
+
+    /* ===================== PLATFORM DOTS ===================== */
+    .platform-dots {
+      width: 200px;
+      margin: 40px auto;
+      display: flex;
+      justify-content: center;
+    }
+
+    .platform-dots svg {
+      display: block;
+    }
+
+    /* ===================== TRUST LINE ===================== */
+    .trust-line {
+      text-align: center;
+      margin-top: 48px;
+    }
+
+    .trust-line p {
+      font-family: var(--font-body);
+      font-weight: 400;
+      font-size: 13px;
+      color: var(--text-tertiary);
+    }
+
+    /* ===================== SECTION COMMON ===================== */
+    .section-label {
+      font-family: var(--font-body);
+      font-weight: 500;
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--accent);
+      text-align: center;
+    }
+
+    .section-title {
+      font-family: var(--font-display);
+      font-weight: 600;
+      font-size: 32px;
+      color: var(--text-primary);
+      text-align: center;
+      letter-spacing: -0.01em;
+      margin-top: 12px;
+    }
+
+    .section-subtitle {
+      font-family: var(--font-body);
+      font-weight: 400;
+      font-size: 15px;
+      color: var(--text-secondary);
+      text-align: center;
+      margin-top: 8px;
+    }
+
+    /* ===================== HOW IT WORKS ===================== */
+    .how-it-works {
+      margin-top: 120px;
+    }
+
+    .steps-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 24px;
+      margin-top: 56px;
+    }
+
+    .step-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 32px;
+      box-shadow: var(--shadow-sm);
+      transition: box-shadow 0.2s ease, transform 0.2s ease;
+    }
+
+    .step-card:hover {
+      box-shadow: var(--shadow-md);
+      transform: translateY(-2px);
+    }
+
+    .step-number {
+      font-family: var(--font-body);
+      font-weight: 600;
+      font-size: 13px;
+      color: var(--accent);
+    }
+
+    .step-icon {
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      background: var(--accent-light);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-top: 16px;
+    }
+
+    .step-icon svg {
+      width: 20px;
+      height: 20px;
+      stroke: var(--accent);
+      stroke-width: 1.5;
+      fill: none;
+    }
+
+    .step-title {
+      font-family: var(--font-display);
+      font-weight: 500;
+      font-size: 18px;
+      color: var(--text-primary);
+      margin-top: 16px;
+    }
+
+    .step-desc {
+      font-family: var(--font-body);
+      font-weight: 400;
+      font-size: 14px;
+      color: var(--text-secondary);
+      line-height: 1.6;
+      margin-top: 8px;
+    }
+
+    /* ===================== SOUL SIGNATURE PREVIEW ===================== */
+    .soul-signature {
+      margin-top: 120px;
+    }
+
+    .soul-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 64px;
+      align-items: center;
+    }
+
+    .soul-text .soul-label {
+      font-family: var(--font-body);
+      font-weight: 500;
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--accent);
+    }
+
+    .soul-text .soul-title {
+      font-family: var(--font-display);
+      font-weight: 600;
+      font-size: 28px;
+      color: var(--text-primary);
+      margin-top: 12px;
+      letter-spacing: -0.01em;
+    }
+
+    .soul-text .soul-desc {
+      font-family: var(--font-body);
+      font-weight: 400;
+      font-size: 15px;
+      color: var(--text-secondary);
+      line-height: 1.7;
+      margin-top: 16px;
+    }
+
+    .soul-features {
+      margin-top: 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .soul-feature {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+    }
+
+    .soul-feature-check {
+      width: 20px;
+      height: 20px;
+      min-width: 20px;
+      border-radius: 50%;
+      background: var(--accent);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-top: 1px;
+    }
+
+    .soul-feature-check svg {
+      width: 12px;
+      height: 12px;
+      stroke: #FFFFFF;
+      stroke-width: 2;
+      fill: none;
+    }
+
+    .soul-feature span {
+      font-family: var(--font-body);
+      font-weight: 400;
+      font-size: 14px;
+      color: var(--text-primary);
+      line-height: 1.5;
+    }
+
+    /* Soul Signature Card Mockup */
+    .soul-card {
+      background: var(--bg-card);
+      border-radius: var(--radius-xl);
+      border: 1px solid var(--border);
+      box-shadow: var(--shadow-lg);
+      padding: 32px;
+    }
+
+    .soul-card-label {
+      font-family: var(--font-body);
+      font-weight: 500;
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--accent);
+    }
+
+    .soul-card-name {
+      font-family: var(--font-display);
+      font-weight: 500;
+      font-size: 14px;
+      color: var(--text-secondary);
+      margin-top: 12px;
+    }
+
+    .soul-card-archetype {
+      font-family: var(--font-display);
+      font-weight: 600;
+      font-size: 22px;
+      color: var(--text-primary);
+      margin-top: 4px;
+      letter-spacing: -0.01em;
+    }
+
+    .soul-card-chart {
+      display: flex;
+      justify-content: center;
+      margin-top: 24px;
+    }
+
+    .soul-card-badge-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-top: 20px;
+    }
+
+    .soul-card-badge {
+      display: inline-flex;
+      align-items: center;
+      font-family: var(--font-body);
+      font-weight: 500;
+      font-size: 12px;
+      color: var(--accent);
+      background: var(--accent-light);
+      border-radius: var(--radius-pill);
+      padding: 5px 14px;
+    }
+
+    .soul-card-traits {
+      margin-top: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .trait-row {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .trait-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .trait-name {
+      font-family: var(--font-body);
+      font-weight: 400;
+      font-size: 13px;
+      color: var(--text-secondary);
+    }
+
+    .trait-value {
+      font-family: var(--font-body);
+      font-weight: 500;
+      font-size: 13px;
+      color: var(--text-primary);
+    }
+
+    .trait-bar {
+      height: 4px;
+      border-radius: 2px;
+      background: rgba(0, 0, 0, 0.04);
+      overflow: hidden;
+    }
+
+    .trait-bar-fill {
+      height: 100%;
+      border-radius: 2px;
+      background: linear-gradient(90deg, var(--accent), var(--accent-hover));
+      transition: width 0.6s ease;
+    }
+
+    /* ===================== QUOTE SECTION ===================== */
+    .quote-section {
+      margin-top: 120px;
+      text-align: center;
+    }
+
+    .quote-inner {
+      max-width: 600px;
+      margin: 0 auto;
+    }
+
+    .quote-line {
+      width: 40px;
+      height: 2px;
+      background: var(--accent);
+      margin: 0 auto 28px;
+    }
+
+    .quote-text {
+      font-family: var(--font-body);
+      font-weight: 400;
+      font-style: italic;
+      font-size: 20px;
+      color: var(--text-primary);
+      line-height: 1.8;
+    }
+
+    .quote-attribution {
+      font-family: var(--font-body);
+      font-weight: 400;
+      font-size: 13px;
+      color: var(--accent);
+      margin-top: 12px;
+    }
+
+    .quote-below {
+      font-family: var(--font-body);
+      font-weight: 400;
+      font-size: 15px;
+      color: var(--text-secondary);
+      margin-top: 20px;
+    }
+
+    /* ===================== CTA SECTION ===================== */
+    .cta-section {
+      margin-top: 120px;
+      margin-bottom: 80px;
+    }
+
+    .cta-card {
+      max-width: 640px;
+      margin: 0 auto;
+      background: var(--bg-card);
+      border-radius: var(--radius-xl);
+      border: 1px solid var(--border);
+      box-shadow: var(--shadow-lg);
+      padding: 56px 48px;
+      text-align: center;
+    }
+
+    .cta-title {
+      font-family: var(--font-display);
+      font-weight: 600;
+      font-size: 28px;
+      color: var(--text-primary);
+      letter-spacing: -0.01em;
+    }
+
+    .cta-subtitle {
+      font-family: var(--font-body);
+      font-weight: 400;
+      font-size: 15px;
+      color: var(--text-secondary);
+      margin-top: 10px;
+    }
+
+    .cta-button {
+      margin-top: 28px;
+    }
+
+    /* ===================== FOOTER ===================== */
+    .footer {
+      border-top: 1px solid var(--border);
+      padding: 28px 0;
+    }
+
+    .footer-inner {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .footer-copy {
+      font-family: var(--font-body);
+      font-weight: 400;
+      font-size: 13px;
+      color: var(--text-tertiary);
+    }
+
+    .footer-links {
+      display: flex;
+      gap: 20px;
+    }
+
+    .footer-links a {
+      font-family: var(--font-body);
+      font-weight: 400;
+      font-size: 13px;
+      color: var(--text-tertiary);
+      text-decoration: none;
+      transition: color 0.2s ease;
+    }
+
+    .footer-links a:hover {
+      color: var(--text-secondary);
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ======================== NAV BAR — LIQUID GLASS ======================== -->
+  <nav class="nav" id="nav">
+    <a href="#" class="nav-brand">TwinMe</a>
+    <div class="nav-links">
+      <a href="#how-it-works">How it Works</a>
+      <a href="#platforms">Platforms</a>
+    </div>
+    <div class="nav-actions">
+      <a href="#" class="nav-signin">Sign In</a>
+      <a href="#" class="btn-primary">Get Started</a>
+    </div>
+  </nav>
+
+  <!-- ======================== HERO ======================== -->
+  <section class="hero">
+    <div class="container">
+      <div class="hero-inner">
+        <p class="hero-label">SOUL SIGNATURE PLATFORM</p>
+        <h1 class="hero-title">Discover what makes you<br>authentically you</h1>
+        <p class="hero-subtitle">Your digital footprint tells a story about who you really are. TwinMe reveals the patterns &mdash; creating an AI twin that truly knows you.</p>
+        <div class="hero-buttons">
+          <a href="#" class="btn-hero-primary">Get Started Free</a>
+          <a href="#" class="btn-hero-secondary">Learn More</a>
+        </div>
+      </div>
+
+      <!-- Platform Dots -->
+      <div class="platform-dots">
+        <svg width="200" height="40" viewBox="0 0 200 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <!-- Connecting arc -->
+          <path d="M 20 28 Q 60 8, 100 20 Q 140 32, 180 12" stroke="rgba(0,0,0,0.06)" stroke-width="1" fill="none"/>
+          <!-- Spotify green -->
+          <circle cx="20" cy="28" r="4" fill="#1DB954" opacity="0.5"/>
+          <!-- Calendar blue -->
+          <circle cx="65" cy="16" r="4" fill="#4285F4" opacity="0.5"/>
+          <!-- Whoop teal -->
+          <circle cx="100" cy="20" r="4" fill="#00B4AB" opacity="0.5"/>
+          <!-- YouTube red -->
+          <circle cx="135" cy="28" r="4" fill="#FF0000" opacity="0.5"/>
+          <!-- Twitch purple -->
+          <circle cx="180" cy="12" r="4" fill="#9146FF" opacity="0.5"/>
+        </svg>
+      </div>
+
+      <!-- Trust Line -->
+      <div class="trust-line" id="platforms">
+        <p>Works with Spotify, Google Calendar, Whoop, YouTube &amp; more</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ======================== HOW IT WORKS ======================== -->
+  <section class="how-it-works" id="how-it-works">
+    <div class="container">
+      <p class="section-label">HOW IT WORKS</p>
+      <h2 class="section-title">Three simple steps</h2>
+      <p class="section-subtitle">Connect, discover, and meet the AI that knows you</p>
+
+      <div class="steps-grid">
+        <!-- Card 1 -->
+        <div class="step-card">
+          <span class="step-number">01</span>
+          <div class="step-icon">
+            <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+              <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </div>
+          <h3 class="step-title">Connect your platforms</h3>
+          <p class="step-desc">Link Spotify, Calendar, Whoop, YouTube and more. Each connection adds depth to your portrait.</p>
+        </div>
+
+        <!-- Card 2 -->
+        <div class="step-card">
+          <span class="step-number">02</span>
+          <div class="step-icon">
+            <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+              <path d="M12 3l1.912 5.813L20 10.5l-4.588 3.687L17.124 20 12 16.5 6.876 20l1.712-5.813L4 10.5l6.088-1.687L12 3z" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </div>
+          <h3 class="step-title">Discover patterns</h3>
+          <p class="step-desc">AI reveals cross-platform personality patterns you never noticed about yourself.</p>
+        </div>
+
+        <!-- Card 3 -->
+        <div class="step-card">
+          <span class="step-number">03</span>
+          <div class="step-icon">
+            <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+              <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </div>
+          <h3 class="step-title">Meet your twin</h3>
+          <p class="step-desc">An AI that doesn't just know facts &mdash; it understands who you are and speaks like you.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ======================== SOUL SIGNATURE PREVIEW ======================== -->
+  <section class="soul-signature">
+    <div class="container">
+      <div class="soul-grid">
+        <!-- Left: Text -->
+        <div class="soul-text">
+          <p class="soul-label">YOUR SOUL SIGNATURE</p>
+          <h2 class="soul-title">A portrait of your authentic self</h2>
+          <p class="soul-desc">Not a personality quiz. Not a horoscope. A data-driven portrait based on your real digital behavior across platforms.</p>
+          <div class="soul-features">
+            <div class="soul-feature">
+              <div class="soul-feature-check">
+                <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                  <polyline points="20 6 9 17 4 12" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+              </div>
+              <span>Personality patterns from real behavior</span>
+            </div>
+            <div class="soul-feature">
+              <div class="soul-feature-check">
+                <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                  <polyline points="20 6 9 17 4 12" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+              </div>
+              <span>Cross-platform insights connecting music, schedule, and health</span>
+            </div>
+            <div class="soul-feature">
+              <div class="soul-feature-check">
+                <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                  <polyline points="20 6 9 17 4 12" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+              </div>
+              <span>Full privacy control &mdash; you decide what's shared</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Right: Card Mockup -->
+        <div class="soul-card">
+          <p class="soul-card-label">SOUL SIGNATURE</p>
+          <p class="soul-card-name">Alex</p>
+          <p class="soul-card-archetype">The Creative Explorer</p>
+
+          <!-- Radar / Pentagon Chart -->
+          <div class="soul-card-chart">
+            <svg width="160" height="160" viewBox="0 0 160 160" xmlns="http://www.w3.org/2000/svg">
+              <!-- Pentagon grid -->
+              <polygon points="80,16 144,52 132,124 28,124 16,52" fill="none" stroke="rgba(0,0,0,0.06)" stroke-width="1"/>
+              <polygon points="80,32 128,58 120,112 40,112 32,58" fill="none" stroke="rgba(0,0,0,0.04)" stroke-width="1"/>
+              <polygon points="80,48 112,64 108,100 52,100 48,64" fill="none" stroke="rgba(0,0,0,0.04)" stroke-width="1"/>
+              <!-- Data polygon -->
+              <polygon points="80,22 138,56 118,118 38,108 24,54" fill="rgba(212,168,83,0.10)" stroke="#D4A853" stroke-width="1.5"/>
+              <!-- Axis labels -->
+              <text x="80" y="10" text-anchor="middle" font-family="Inter, sans-serif" font-size="9" font-weight="500" fill="#a8a29e">O</text>
+              <text x="152" y="54" text-anchor="start" font-family="Inter, sans-serif" font-size="9" font-weight="500" fill="#a8a29e">C</text>
+              <text x="138" y="132" text-anchor="start" font-family="Inter, sans-serif" font-size="9" font-weight="500" fill="#a8a29e">E</text>
+              <text x="16" y="132" text-anchor="end" font-family="Inter, sans-serif" font-size="9" font-weight="500" fill="#a8a29e">A</text>
+              <text x="8" y="54" text-anchor="end" font-family="Inter, sans-serif" font-size="9" font-weight="500" fill="#a8a29e">N</text>
+            </svg>
+          </div>
+
+          <div class="soul-card-badge-row">
+            <span class="soul-card-badge">ENTJ-A</span>
+          </div>
+
+          <div class="soul-card-traits">
+            <div class="trait-row">
+              <div class="trait-header">
+                <span class="trait-name">Intellectual Curiosity</span>
+                <span class="trait-value">92%</span>
+              </div>
+              <div class="trait-bar">
+                <div class="trait-bar-fill" style="width: 92%"></div>
+              </div>
+            </div>
+            <div class="trait-row">
+              <div class="trait-header">
+                <span class="trait-name">Physical Resilience</span>
+                <span class="trait-value">78%</span>
+              </div>
+              <div class="trait-bar">
+                <div class="trait-bar-fill" style="width: 78%"></div>
+              </div>
+            </div>
+            <div class="trait-row">
+              <div class="trait-header">
+                <span class="trait-name">Creative Fluency</span>
+                <span class="trait-value">88%</span>
+              </div>
+              <div class="trait-bar">
+                <div class="trait-bar-fill" style="width: 88%"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ======================== QUOTE ======================== -->
+  <section class="quote-section">
+    <div class="container">
+      <div class="quote-inner">
+        <div class="quote-line"></div>
+        <p class="quote-text">"Perhaps we are searching in the branches for what we only find in the roots."</p>
+        <p class="quote-attribution">&mdash; Rumi</p>
+        <p class="quote-below">We go beyond your resume to discover what makes you authentically you.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ======================== CTA ======================== -->
+  <section class="cta-section">
+    <div class="container">
+      <div class="cta-card">
+        <h2 class="cta-title">Ready to discover yourself?</h2>
+        <p class="cta-subtitle">Join thousands learning what makes them unique</p>
+        <div class="cta-button">
+          <a href="#" class="btn-hero-primary">Get Started Free</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ======================== FOOTER ======================== -->
+  <footer class="footer">
+    <div class="container">
+      <div class="footer-inner">
+        <span class="footer-copy">&copy; 2026 TwinMe</span>
+        <div class="footer-links">
+          <a href="#">Privacy</a>
+          <a href="#">Terms</a>
+          <a href="#">Contact</a>
+        </div>
+      </div>
+    </div>
+  </footer>
+
+  <!-- Nav scroll shadow -->
+  <script>
+    (function() {
+      var nav = document.getElementById('nav');
+      var scrolled = false;
+      window.addEventListener('scroll', function() {
+        if (window.scrollY > 20 && !scrolled) {
+          nav.classList.add('scrolled');
+          scrolled = true;
+        } else if (window.scrollY <= 20 && scrolled) {
+          nav.classList.remove('scrolled');
+          scrolled = false;
+        }
+      });
+    })();
+  </script>
+
+</body>
+</html>

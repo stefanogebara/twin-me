@@ -1,0 +1,907 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=1440">
+<title>TwinMe - Discover What Makes You Authentically You</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+  }
+
+  :root {
+    /* Backgrounds */
+    --bg: #1A1816;
+    --bg-card: #242220;
+    --bg-elevated: #2D2A27;
+
+    /* Text */
+    --text-primary: #F0EBE3;
+    --text-secondary: rgba(240, 235, 227, 0.60);
+    --text-tertiary: rgba(240, 235, 227, 0.35);
+
+    /* Accent */
+    --accent: #E0B860;
+    --accent-hover: #D4A853;
+    --accent-light: rgba(224, 184, 96, 0.12);
+    --accent-glow: rgba(224, 184, 96, 0.15);
+
+    /* Borders */
+    --border: rgba(240, 235, 227, 0.08);
+    --border-strong: rgba(240, 235, 227, 0.14);
+
+    /* Glass (nav/chrome ONLY) */
+    --glass-fill: rgba(26, 24, 22, 0.60);
+    --glass-border: rgba(240, 235, 227, 0.12);
+    --glass-shadow: 0 4px 24px rgba(0, 0, 0, 0.3);
+    --glass-specular: inset 0 1px 0 rgba(255, 255, 255, 0.08);
+
+    /* Radius */
+    --radius-sm: 10px;
+    --radius-md: 14px;
+    --radius-lg: 16px;
+    --radius-xl: 20px;
+    --radius-pill: 60px;
+
+    /* Fonts */
+    --font-display: 'Space Grotesk', system-ui, sans-serif;
+    --font-body: 'Inter', -apple-system, sans-serif;
+
+    /* Shadows */
+    --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.2);
+    --shadow-md: 0 2px 10px rgba(0, 0, 0, 0.25);
+    --shadow-lg: 0 4px 20px rgba(0, 0, 0, 0.3);
+    --shadow-xl: 0 8px 40px rgba(0, 0, 0, 0.35);
+  }
+
+  html {
+    font-size: 16px;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  body {
+    font-family: var(--font-body);
+    background-color: var(--bg);
+    color: var(--text-primary);
+    line-height: 1.6;
+    overflow-x: hidden;
+    background-image: radial-gradient(ellipse 50% 40% at 50% 20%, rgba(224, 184, 96, 0.04) 0%, transparent 70%);
+    background-repeat: no-repeat;
+    background-attachment: fixed;
+  }
+
+  a {
+    text-decoration: none;
+    color: inherit;
+  }
+
+  /* ========== NAV BAR (LIQUID GLASS) ========== */
+  .nav {
+    position: fixed;
+    top: 16px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+    gap: 0;
+    height: 48px;
+    padding: 6px 8px 6px 20px;
+    background: rgba(26, 24, 22, 0.65);
+    backdrop-filter: blur(12px) brightness(110%) saturate(140%);
+    -webkit-backdrop-filter: blur(12px) brightness(110%) saturate(140%);
+    border: 1px solid rgba(240, 235, 227, 0.10);
+    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.06);
+    border-radius: var(--radius-pill);
+  }
+
+  .nav-logo {
+    font-family: var(--font-display);
+    font-weight: 600;
+    font-size: 17px;
+    color: var(--text-primary);
+    margin-right: 32px;
+    white-space: nowrap;
+  }
+
+  .nav-links {
+    display: flex;
+    align-items: center;
+    gap: 24px;
+    margin-right: 24px;
+  }
+
+  .nav-links a {
+    font-family: var(--font-body);
+    font-weight: 400;
+    font-size: 14px;
+    color: var(--text-secondary);
+    transition: color 0.2s ease;
+    white-space: nowrap;
+  }
+
+  .nav-links a:hover {
+    color: var(--text-primary);
+  }
+
+  .nav-actions {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-left: auto;
+  }
+
+  .nav-sign-in {
+    font-family: var(--font-body);
+    font-weight: 400;
+    font-size: 14px;
+    color: var(--text-secondary);
+    transition: color 0.2s ease;
+    white-space: nowrap;
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 0 8px;
+  }
+
+  .nav-sign-in:hover {
+    color: var(--text-primary);
+  }
+
+  .nav-cta {
+    font-family: var(--font-body);
+    font-weight: 500;
+    font-size: 14px;
+    color: #1A1816;
+    background: var(--accent);
+    border: none;
+    border-radius: var(--radius-pill);
+    padding: 8px 20px;
+    cursor: pointer;
+    transition: background 0.2s ease;
+    white-space: nowrap;
+  }
+
+  .nav-cta:hover {
+    background: var(--accent-hover);
+  }
+
+  /* ========== HERO ========== */
+  .hero {
+    padding-top: 160px;
+    padding-bottom: 60px;
+    text-align: center;
+    max-width: 680px;
+    margin: 0 auto;
+    padding-left: 24px;
+    padding-right: 24px;
+  }
+
+  .hero-label {
+    font-family: var(--font-body);
+    font-weight: 500;
+    font-size: 11px;
+    color: var(--accent);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    margin-bottom: 20px;
+  }
+
+  .hero-title {
+    font-family: var(--font-display);
+    font-weight: 600;
+    font-size: clamp(2.5rem, 5vw, 3.5rem);
+    color: var(--text-primary);
+    letter-spacing: -0.02em;
+    line-height: 1.15;
+    margin-bottom: 20px;
+  }
+
+  .hero-subtitle {
+    font-family: var(--font-body);
+    font-weight: 400;
+    font-size: 17px;
+    color: var(--text-secondary);
+    max-width: 520px;
+    margin: 0 auto 36px;
+    line-height: 1.65;
+  }
+
+  .hero-buttons {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+  }
+
+  .btn-primary {
+    font-family: var(--font-body);
+    font-weight: 500;
+    font-size: 15px;
+    color: #1A1816;
+    background: var(--accent);
+    border: none;
+    border-radius: var(--radius-pill);
+    padding: 13px 28px;
+    cursor: pointer;
+    transition: background 0.2s ease, transform 0.15s ease;
+  }
+
+  .btn-primary:hover {
+    background: var(--accent-hover);
+    transform: translateY(-1px);
+  }
+
+  .btn-secondary {
+    font-family: var(--font-body);
+    font-weight: 400;
+    font-size: 15px;
+    color: var(--text-secondary);
+    background: transparent;
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius-pill);
+    padding: 12px 28px;
+    cursor: pointer;
+    transition: border-color 0.2s ease, color 0.2s ease, transform 0.15s ease;
+  }
+
+  .btn-secondary:hover {
+    border-color: rgba(240, 235, 227, 0.25);
+    color: var(--text-primary);
+    transform: translateY(-1px);
+  }
+
+  /* ========== PLATFORM DOTS ========== */
+  .platform-dots {
+    display: flex;
+    justify-content: center;
+    padding: 40px 0 24px;
+  }
+
+  .platform-dots svg {
+    width: 200px;
+    height: 48px;
+  }
+
+  /* ========== TRUST LINE ========== */
+  .trust-line {
+    text-align: center;
+    padding-bottom: 0;
+  }
+
+  .trust-line p {
+    font-family: var(--font-body);
+    font-weight: 400;
+    font-size: 13px;
+    color: var(--text-tertiary);
+  }
+
+  /* ========== SECTIONS ========== */
+  .section {
+    padding: 120px 24px;
+    max-width: 1120px;
+    margin: 0 auto;
+  }
+
+  .section-label {
+    font-family: var(--font-body);
+    font-weight: 500;
+    font-size: 11px;
+    color: var(--accent);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    text-align: center;
+    margin-bottom: 12px;
+  }
+
+  .section-title {
+    font-family: var(--font-display);
+    font-weight: 600;
+    font-size: clamp(1.75rem, 3vw, 2.25rem);
+    color: var(--text-primary);
+    letter-spacing: -0.02em;
+    text-align: center;
+    margin-bottom: 12px;
+  }
+
+  .section-subtitle {
+    font-family: var(--font-body);
+    font-weight: 400;
+    font-size: 16px;
+    color: var(--text-secondary);
+    text-align: center;
+    max-width: 520px;
+    margin: 0 auto 56px;
+    line-height: 1.6;
+  }
+
+  /* ========== HOW IT WORKS CARDS ========== */
+  .cards-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 24px;
+  }
+
+  .card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 32px;
+    box-shadow: var(--shadow-sm);
+    transition: box-shadow 0.3s ease, transform 0.3s ease;
+  }
+
+  .card:hover {
+    box-shadow: var(--shadow-lg);
+    transform: translateY(-2px);
+  }
+
+  .card-step {
+    font-family: var(--font-body);
+    font-weight: 500;
+    font-size: 12px;
+    color: var(--text-tertiary);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin-bottom: 20px;
+  }
+
+  .card-icon {
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
+    background: var(--accent-light);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 20px;
+  }
+
+  .card-icon svg {
+    width: 22px;
+    height: 22px;
+    stroke: var(--accent);
+    fill: none;
+    stroke-width: 1.8;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+
+  .card-title {
+    font-family: var(--font-display);
+    font-weight: 600;
+    font-size: 18px;
+    color: var(--text-primary);
+    margin-bottom: 10px;
+    letter-spacing: -0.01em;
+  }
+
+  .card-desc {
+    font-family: var(--font-body);
+    font-weight: 400;
+    font-size: 14px;
+    color: var(--text-secondary);
+    line-height: 1.6;
+  }
+
+  /* ========== SOUL SIGNATURE SECTION ========== */
+  .soul-section {
+    padding: 120px 24px;
+    max-width: 1120px;
+    margin: 0 auto;
+  }
+
+  .soul-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 64px;
+    align-items: center;
+  }
+
+  .soul-text .section-label,
+  .soul-text .section-title,
+  .soul-text .section-subtitle {
+    text-align: left;
+    margin-left: 0;
+  }
+
+  .soul-text .section-subtitle {
+    margin-bottom: 36px;
+  }
+
+  .soul-features {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .soul-feature {
+    display: flex;
+    align-items: flex-start;
+    gap: 14px;
+  }
+
+  .soul-feature-check {
+    width: 24px;
+    height: 24px;
+    min-width: 24px;
+    border-radius: 50%;
+    background: var(--accent-light);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-top: 1px;
+  }
+
+  .soul-feature-check svg {
+    width: 13px;
+    height: 13px;
+    stroke: var(--accent);
+    fill: none;
+    stroke-width: 2.2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+
+  .soul-feature-text {
+    font-family: var(--font-body);
+    font-weight: 400;
+    font-size: 15px;
+    color: var(--text-secondary);
+    line-height: 1.55;
+  }
+
+  .soul-feature-text strong {
+    color: var(--text-primary);
+    font-weight: 500;
+  }
+
+  /* ========== SOUL MOCKUP CARD ========== */
+  .soul-mockup {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-xl);
+    padding: 32px;
+    box-shadow: var(--shadow-lg);
+  }
+
+  .mockup-label {
+    font-family: var(--font-body);
+    font-weight: 500;
+    font-size: 11px;
+    color: var(--accent);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin-bottom: 16px;
+  }
+
+  .mockup-name {
+    font-family: var(--font-display);
+    font-weight: 600;
+    font-size: 22px;
+    color: var(--text-primary);
+    margin-bottom: 4px;
+  }
+
+  .mockup-archetype {
+    font-family: var(--font-body);
+    font-weight: 400;
+    font-size: 14px;
+    color: var(--text-secondary);
+    margin-bottom: 28px;
+  }
+
+  .mockup-radar {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 24px;
+  }
+
+  .mockup-radar svg {
+    width: 180px;
+    height: 180px;
+  }
+
+  .mockup-badge-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 24px;
+  }
+
+  .mockup-badge {
+    font-family: var(--font-body);
+    font-weight: 500;
+    font-size: 12px;
+    color: var(--accent);
+    background: var(--accent-light);
+    border-radius: var(--radius-pill);
+    padding: 5px 14px;
+    letter-spacing: 0.03em;
+  }
+
+  .mockup-traits {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+
+  .mockup-trait {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .mockup-trait-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .mockup-trait-label {
+    font-family: var(--font-body);
+    font-weight: 400;
+    font-size: 13px;
+    color: var(--text-secondary);
+  }
+
+  .mockup-trait-value {
+    font-family: var(--font-body);
+    font-weight: 500;
+    font-size: 13px;
+    color: var(--text-primary);
+  }
+
+  .mockup-trait-bar {
+    width: 100%;
+    height: 6px;
+    background: rgba(240, 235, 227, 0.06);
+    border-radius: 3px;
+    overflow: hidden;
+  }
+
+  .mockup-trait-fill {
+    height: 100%;
+    background: var(--accent);
+    border-radius: 3px;
+    transition: width 0.6s ease;
+  }
+
+  /* ========== QUOTE ========== */
+  .quote-section {
+    padding: 120px 24px;
+    max-width: 680px;
+    margin: 0 auto;
+    text-align: center;
+  }
+
+  .quote-line {
+    width: 40px;
+    height: 2px;
+    background: var(--accent);
+    margin: 0 auto 32px;
+    border-radius: 1px;
+  }
+
+  .quote-text {
+    font-family: var(--font-body);
+    font-weight: 300;
+    font-size: 22px;
+    color: var(--text-primary);
+    font-style: italic;
+    line-height: 1.6;
+    margin-bottom: 20px;
+    letter-spacing: -0.01em;
+  }
+
+  .quote-attribution {
+    font-family: var(--font-body);
+    font-weight: 400;
+    font-size: 14px;
+    color: var(--text-tertiary);
+  }
+
+  /* ========== CTA ========== */
+  .cta-section {
+    padding: 0 24px 120px;
+    max-width: 800px;
+    margin: 0 auto;
+  }
+
+  .cta-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-xl);
+    padding: 64px 48px;
+    text-align: center;
+    box-shadow: var(--shadow-lg), 0 0 60px rgba(224, 184, 96, 0.04);
+  }
+
+  .cta-title {
+    font-family: var(--font-display);
+    font-weight: 600;
+    font-size: clamp(1.5rem, 3vw, 2rem);
+    color: var(--text-primary);
+    letter-spacing: -0.02em;
+    margin-bottom: 12px;
+  }
+
+  .cta-subtitle {
+    font-family: var(--font-body);
+    font-weight: 400;
+    font-size: 16px;
+    color: var(--text-secondary);
+    max-width: 420px;
+    margin: 0 auto 32px;
+    line-height: 1.6;
+  }
+
+  /* ========== FOOTER ========== */
+  .footer {
+    border-top: 1px solid var(--border);
+    padding: 32px 24px;
+    max-width: 1120px;
+    margin: 0 auto;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .footer-copy {
+    font-family: var(--font-body);
+    font-weight: 400;
+    font-size: 13px;
+    color: var(--text-tertiary);
+  }
+
+  .footer-links {
+    display: flex;
+    gap: 24px;
+  }
+
+  .footer-links a {
+    font-family: var(--font-body);
+    font-weight: 400;
+    font-size: 13px;
+    color: var(--text-tertiary);
+    transition: color 0.2s ease;
+  }
+
+  .footer-links a:hover {
+    color: var(--text-secondary);
+  }
+</style>
+</head>
+<body>
+
+<!-- ==================== NAV (LIQUID GLASS) ==================== -->
+<nav class="nav">
+  <span class="nav-logo">TwinMe</span>
+  <div class="nav-links">
+    <a href="#">How It Works</a>
+    <a href="#">Soul Signature</a>
+    <a href="#">Integrations</a>
+    <a href="#">Pricing</a>
+  </div>
+  <div class="nav-actions">
+    <button class="nav-sign-in">Sign In</button>
+    <button class="nav-cta">Get Started</button>
+  </div>
+</nav>
+
+<!-- ==================== HERO ==================== -->
+<section class="hero">
+  <p class="hero-label">SOUL SIGNATURE PLATFORM</p>
+  <h1 class="hero-title">Discover what makes you<br>authentically you</h1>
+  <p class="hero-subtitle">Your digital footprint tells a story that goes far beyond your resume. TwinMe reads between the lines to reveal the patterns, passions, and quirks that make you irreplaceable.</p>
+  <div class="hero-buttons">
+    <button class="btn-primary">Get Started Free</button>
+    <button class="btn-secondary">Learn More</button>
+  </div>
+</section>
+
+<!-- ==================== PLATFORM DOTS ==================== -->
+<div class="platform-dots">
+  <svg viewBox="0 0 200 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <!-- Connecting arc -->
+    <path d="M 24 30 Q 60 12, 100 10 Q 140 12, 176 30" stroke="rgba(240,235,227,0.08)" stroke-width="1" fill="none"/>
+    <!-- Spotify -->
+    <circle cx="24" cy="30" r="4" fill="#1DB954" opacity="0.4"/>
+    <!-- Google Calendar -->
+    <circle cx="62" cy="16" r="4" fill="#4285F4" opacity="0.4"/>
+    <!-- Whoop -->
+    <circle cx="100" cy="10" r="4" fill="#2DD4BF" opacity="0.4"/>
+    <!-- YouTube -->
+    <circle cx="138" cy="16" r="4" fill="#FF0000" opacity="0.4"/>
+    <!-- Twitch -->
+    <circle cx="176" cy="30" r="4" fill="#9146FF" opacity="0.4"/>
+  </svg>
+</div>
+
+<!-- ==================== TRUST LINE ==================== -->
+<div class="trust-line">
+  <p>Works with Spotify, Google Calendar, Whoop, YouTube &amp; more</p>
+</div>
+
+<!-- ==================== HOW IT WORKS ==================== -->
+<section class="section">
+  <p class="section-label">HOW IT WORKS</p>
+  <h2 class="section-title">Three steps to your soul signature</h2>
+  <p class="section-subtitle">We analyze the digital footprints you already leave behind to discover what makes you uniquely you.</p>
+
+  <div class="cards-grid">
+    <!-- Card 1 -->
+    <div class="card">
+      <p class="card-step">Step 01</p>
+      <div class="card-icon">
+        <svg viewBox="0 0 24 24">
+          <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/>
+          <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>
+        </svg>
+      </div>
+      <h3 class="card-title">Connect your world</h3>
+      <p class="card-desc">Link the platforms you already use daily. Spotify, Calendar, Whoop, YouTube, Twitch, and more. Each one reveals a different facet of who you are.</p>
+    </div>
+
+    <!-- Card 2 -->
+    <div class="card">
+      <p class="card-step">Step 02</p>
+      <div class="card-icon">
+        <svg viewBox="0 0 24 24">
+          <circle cx="12" cy="12" r="3"/>
+          <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>
+        </svg>
+      </div>
+      <h3 class="card-title">We find the patterns</h3>
+      <p class="card-desc">Our AI reads between the lines of your digital footprint, discovering the genuine curiosities, rhythms, and characteristics that define your authentic self.</p>
+    </div>
+
+    <!-- Card 3 -->
+    <div class="card">
+      <p class="card-step">Step 03</p>
+      <div class="card-icon">
+        <svg viewBox="0 0 24 24">
+          <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+        </svg>
+      </div>
+      <h3 class="card-title">Meet your twin</h3>
+      <p class="card-desc">Your soul signature emerges: a living digital twin that captures not just what you do, but who you truly are. Authentic, nuanced, and unmistakably you.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ==================== SOUL SIGNATURE PREVIEW ==================== -->
+<section class="soul-section">
+  <div class="soul-grid">
+    <!-- Left: Text -->
+    <div class="soul-text">
+      <p class="section-label">YOUR SOUL SIGNATURE</p>
+      <h2 class="section-title">More than a profile.<br>A portrait of your soul.</h2>
+      <p class="section-subtitle">Your soul signature is a multi-dimensional map of your authentic self, generated from the patterns hidden in your everyday digital life.</p>
+      <div class="soul-features">
+        <div class="soul-feature">
+          <div class="soul-feature-check">
+            <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+          </div>
+          <p class="soul-feature-text"><strong>Personality archetype</strong> derived from real behavioral patterns, not self-reported quizzes</p>
+        </div>
+        <div class="soul-feature">
+          <div class="soul-feature-check">
+            <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+          </div>
+          <p class="soul-feature-text"><strong>Trait dimensions</strong> mapped across creativity, discipline, curiosity, empathy, and energy</p>
+        </div>
+        <div class="soul-feature">
+          <div class="soul-feature-check">
+            <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+          </div>
+          <p class="soul-feature-text"><strong>Privacy controls</strong> at every level, you decide exactly what your twin reveals</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Right: Mockup -->
+    <div class="soul-mockup">
+      <p class="mockup-label">SOUL SIGNATURE</p>
+      <p class="mockup-name">Alexandra Chen</p>
+      <p class="mockup-archetype">The Midnight Architect</p>
+
+      <!-- Radar Chart -->
+      <div class="mockup-radar">
+        <svg viewBox="0 0 180 180" xmlns="http://www.w3.org/2000/svg">
+          <!-- Grid levels -->
+          <polygon points="90,18 153.5,65.1 129.2,140.9 50.8,140.9 26.5,65.1" fill="none" stroke="rgba(240,235,227,0.06)" stroke-width="0.8"/>
+          <polygon points="90,36 135.3,72.6 118.4,130.4 61.6,130.4 44.7,72.6" fill="none" stroke="rgba(240,235,227,0.05)" stroke-width="0.8"/>
+          <polygon points="90,54 117.1,80.1 107.6,120.0 72.4,120.0 62.9,80.1" fill="none" stroke="rgba(240,235,227,0.04)" stroke-width="0.8"/>
+          <!-- Data polygon -->
+          <polygon points="90,26 147.0,70.8 115.0,136.0 58.0,125.0 38.0,68.0" fill="rgba(224,184,96,0.10)" stroke="#E0B860" stroke-width="1.5"/>
+          <!-- Data points -->
+          <circle cx="90" cy="26" r="3" fill="#E0B860"/>
+          <circle cx="147" cy="70.8" r="3" fill="#E0B860"/>
+          <circle cx="115" cy="136" r="3" fill="#E0B860"/>
+          <circle cx="58" cy="125" r="3" fill="#E0B860"/>
+          <circle cx="38" cy="68" r="3" fill="#E0B860"/>
+          <!-- Labels -->
+          <text x="90" y="12" text-anchor="middle" fill="rgba(240,235,227,0.35)" font-family="Inter, sans-serif" font-size="9">Creativity</text>
+          <text x="163" y="68" text-anchor="start" fill="rgba(240,235,227,0.35)" font-family="Inter, sans-serif" font-size="9">Discipline</text>
+          <text x="136" y="150" text-anchor="start" fill="rgba(240,235,227,0.35)" font-family="Inter, sans-serif" font-size="9">Curiosity</text>
+          <text x="44" y="150" text-anchor="end" fill="rgba(240,235,227,0.35)" font-family="Inter, sans-serif" font-size="9">Empathy</text>
+          <text x="17" y="68" text-anchor="end" fill="rgba(240,235,227,0.35)" font-family="Inter, sans-serif" font-size="9">Energy</text>
+        </svg>
+      </div>
+
+      <!-- Badge -->
+      <div class="mockup-badge-row">
+        <span class="mockup-badge">ENTJ-A</span>
+        <span class="mockup-badge">Night Owl</span>
+        <span class="mockup-badge">Deep Diver</span>
+      </div>
+
+      <!-- Trait Bars -->
+      <div class="mockup-traits">
+        <div class="mockup-trait">
+          <div class="mockup-trait-header">
+            <span class="mockup-trait-label">Creativity</span>
+            <span class="mockup-trait-value">92%</span>
+          </div>
+          <div class="mockup-trait-bar">
+            <div class="mockup-trait-fill" style="width: 92%"></div>
+          </div>
+        </div>
+        <div class="mockup-trait">
+          <div class="mockup-trait-header">
+            <span class="mockup-trait-label">Discipline</span>
+            <span class="mockup-trait-value">78%</span>
+          </div>
+          <div class="mockup-trait-bar">
+            <div class="mockup-trait-fill" style="width: 78%"></div>
+          </div>
+        </div>
+        <div class="mockup-trait">
+          <div class="mockup-trait-header">
+            <span class="mockup-trait-label">Curiosity</span>
+            <span class="mockup-trait-value">95%</span>
+          </div>
+          <div class="mockup-trait-bar">
+            <div class="mockup-trait-fill" style="width: 95%"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ==================== QUOTE ==================== -->
+<section class="quote-section">
+  <div class="quote-line"></div>
+  <p class="quote-text">"Perhaps you are searching in the branches for what only appears in the roots."</p>
+  <p class="quote-attribution">Rumi</p>
+</section>
+
+<!-- ==================== CTA ==================== -->
+<section class="cta-section">
+  <div class="cta-card">
+    <h2 class="cta-title">Ready to discover your soul signature?</h2>
+    <p class="cta-subtitle">Join the growing community of people who are moving beyond the resume to understand what truly makes them unique.</p>
+    <button class="btn-primary">Get Started Free</button>
+  </div>
+</section>
+
+<!-- ==================== FOOTER ==================== -->
+<footer class="footer">
+  <p class="footer-copy">2026 TwinMe. All rights reserved.</p>
+  <div class="footer-links">
+    <a href="#">Privacy</a>
+    <a href="#">Terms</a>
+    <a href="#">Contact</a>
+  </div>
+</footer>
+
+</body>
+</html>

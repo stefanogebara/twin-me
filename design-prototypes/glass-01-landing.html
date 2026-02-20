@@ -1,0 +1,916 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=1440">
+<title>TwinMe - Discover Your Soul Signature</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=Inter:wght@300;400;500;600;700&family=EB+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0A0A0A;
+    --surface: #111111;
+    --raised: #171717;
+    --overlay: #1C1C1C;
+    --text-primary: rgba(255, 255, 255, 0.92);
+    --text-secondary: rgba(255, 255, 255, 0.55);
+    --text-tertiary: rgba(255, 255, 255, 0.30);
+    --accent: #10B981;
+    --accent-teal: #14B8A6;
+    --accent-light: #6EE7B7;
+    --accent-cyan: #06B6D4;
+    --glass-border: rgba(255, 255, 255, 0.10);
+    --glass-border-subtle: rgba(255, 255, 255, 0.05);
+    --glass-fill: rgba(17, 17, 17, 0.65);
+    --radius-lg: 20px;
+    --radius-md: 16px;
+    --radius-sm: 12px;
+    --radius-pill: 999px;
+    --font-display: 'Syne', sans-serif;
+    --font-body: 'Inter', -apple-system, sans-serif;
+    --font-accent: 'EB Garamond', Georgia, serif;
+  }
+
+  * {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+  }
+
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    font-family: var(--font-body);
+    background:
+      radial-gradient(ellipse 50% 40% at 15% 10%, rgba(16, 185, 129, 0.15) 0%, transparent 100%),
+      radial-gradient(ellipse 40% 50% at 85% 80%, rgba(6, 182, 212, 0.10) 0%, transparent 100%),
+      radial-gradient(ellipse 60% 40% at 50% 50%, rgba(20, 184, 166, 0.05) 0%, transparent 100%),
+      #0A0A0A;
+    color: var(--text-primary);
+    -webkit-font-smoothing: antialiased;
+    overflow-x: hidden;
+    min-height: 100vh;
+  }
+
+  /* ========================================
+     FLOATING PILL NAV BAR
+     ======================================== */
+  .nav {
+    position: fixed;
+    top: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 100;
+    display: flex;
+    align-items: center;
+    gap: 32px;
+    padding: 10px 12px 10px 20px;
+    background: rgba(17, 17, 17, 0.60);
+    backdrop-filter: blur(24px) saturate(200%);
+    -webkit-backdrop-filter: blur(24px) saturate(200%);
+    border: 1px solid rgba(255, 255, 255, 0.10);
+    border-radius: 999px;
+    box-shadow: 0 16px 48px rgba(0, 0, 0, 0.4), 0 0 60px rgba(16, 185, 129, 0.08);
+    width: auto;
+    max-width: 860px;
+  }
+
+  .nav-brand {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    text-decoration: none;
+    flex-shrink: 0;
+  }
+
+  .nav-logo {
+    width: 28px;
+    height: 28px;
+    border-radius: 7px;
+    background: linear-gradient(135deg, #10B981, #14B8A6);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    flex-shrink: 0;
+  }
+
+  .nav-logo-diamond {
+    width: 10px;
+    height: 10px;
+    background: white;
+    transform: rotate(45deg);
+    border-radius: 2px;
+  }
+
+  .nav-brand-text {
+    font-family: var(--font-body);
+    font-weight: 600;
+    font-size: 15px;
+    color: var(--text-primary);
+    letter-spacing: -0.01em;
+    white-space: nowrap;
+  }
+
+  .nav-pills {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    flex-shrink: 0;
+  }
+
+  .nav-pill {
+    padding: 8px 16px;
+    border-radius: 999px;
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--text-secondary);
+    text-decoration: none;
+    transition: all 0.25s ease;
+    white-space: nowrap;
+    letter-spacing: -0.01em;
+    border: 1px solid transparent;
+  }
+
+  .nav-pill:hover {
+    color: var(--text-primary);
+    box-shadow: 0 0 20px rgba(16, 185, 129, 0.15);
+    background: rgba(16, 185, 129, 0.08);
+  }
+
+  .nav-pill.active {
+    background: rgba(16, 185, 129, 0.15);
+    color: var(--accent-light);
+    border-color: rgba(16, 185, 129, 0.15);
+  }
+
+  .nav-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
+  }
+
+  .btn-demo {
+    padding: 8px 18px;
+    border-radius: 999px;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-secondary);
+    text-decoration: none;
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    transition: all 0.25s ease;
+    white-space: nowrap;
+    cursor: pointer;
+  }
+
+  .btn-demo:hover {
+    color: var(--text-primary);
+    border-color: rgba(255, 255, 255, 0.15);
+    background: rgba(255, 255, 255, 0.10);
+  }
+
+  .btn-signin {
+    padding: 8px 20px;
+    border-radius: 999px;
+    font-size: 13px;
+    font-weight: 600;
+    color: white;
+    text-decoration: none;
+    background: linear-gradient(135deg, #10B981, #14B8A6);
+    border: none;
+    transition: all 0.25s ease;
+    white-space: nowrap;
+    cursor: pointer;
+    box-shadow: 0 2px 12px rgba(16, 185, 129, 0.3);
+  }
+
+  .btn-signin:hover {
+    box-shadow: 0 4px 20px rgba(16, 185, 129, 0.45);
+    transform: translateY(-1px);
+  }
+
+  /* ========================================
+     HERO SECTION
+     ======================================== */
+  .hero {
+    min-height: 90vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 120px 40px 60px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  /* Animated gradient mesh orbs */
+  .hero-orb {
+    position: absolute;
+    border-radius: 50%;
+    filter: blur(80px);
+    pointer-events: none;
+    opacity: 0.6;
+  }
+
+  .hero-orb-1 {
+    width: 500px;
+    height: 500px;
+    background: radial-gradient(circle, rgba(16, 185, 129, 0.25) 0%, transparent 70%);
+    animation: orb-drift-1 20s ease-in-out infinite;
+    top: 5%;
+    left: 10%;
+  }
+
+  .hero-orb-2 {
+    width: 450px;
+    height: 450px;
+    background: radial-gradient(circle, rgba(20, 184, 166, 0.20) 0%, transparent 70%);
+    animation: orb-drift-2 25s ease-in-out infinite;
+    top: 30%;
+    right: 5%;
+  }
+
+  .hero-orb-3 {
+    width: 400px;
+    height: 400px;
+    background: radial-gradient(circle, rgba(6, 182, 212, 0.18) 0%, transparent 70%);
+    animation: orb-drift-3 22s ease-in-out infinite;
+    bottom: 10%;
+    left: 30%;
+  }
+
+  @keyframes orb-drift-1 {
+    0%, 100% { transform: translate(0, 0) scale(1); }
+    25% { transform: translate(60px, 40px) scale(1.05); }
+    50% { transform: translate(30px, -30px) scale(0.95); }
+    75% { transform: translate(-40px, 20px) scale(1.02); }
+  }
+
+  @keyframes orb-drift-2 {
+    0%, 100% { transform: translate(0, 0) scale(1); }
+    25% { transform: translate(-50px, 30px) scale(0.97); }
+    50% { transform: translate(-20px, -50px) scale(1.04); }
+    75% { transform: translate(40px, -20px) scale(0.98); }
+  }
+
+  @keyframes orb-drift-3 {
+    0%, 100% { transform: translate(0, 0) scale(1); }
+    25% { transform: translate(30px, -40px) scale(1.03); }
+    50% { transform: translate(-40px, 20px) scale(0.96); }
+    75% { transform: translate(20px, 50px) scale(1.01); }
+  }
+
+  .hero-content {
+    position: relative;
+    z-index: 2;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0;
+  }
+
+  .hero-eyebrow {
+    font-family: var(--font-body);
+    font-weight: 500;
+    font-size: 20px;
+    color: var(--text-secondary);
+    margin-bottom: 8px;
+    letter-spacing: -0.01em;
+  }
+
+  .hero-headline {
+    font-family: var(--font-display);
+    font-weight: 800;
+    font-size: 64px;
+    color: var(--text-primary);
+    letter-spacing: -0.03em;
+    line-height: 1.1;
+    text-shadow: 0 0 40px rgba(16, 185, 129, 0.3), 0 0 80px rgba(16, 185, 129, 0.1);
+    margin-bottom: 20px;
+  }
+
+  .hero-subtitle {
+    font-family: var(--font-accent);
+    font-style: italic;
+    font-weight: 400;
+    font-size: 20px;
+    color: var(--text-secondary);
+    max-width: 520px;
+    line-height: 1.55;
+    margin-bottom: 36px;
+  }
+
+  .btn-cta {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 14px 36px;
+    border-radius: 999px;
+    font-family: var(--font-body);
+    font-size: 16px;
+    font-weight: 600;
+    color: white;
+    background: linear-gradient(135deg, #10B981, #14B8A6, #0d9488);
+    border: none;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 24px rgba(16, 185, 129, 0.35), 0 0 60px rgba(16, 185, 129, 0.12);
+    text-decoration: none;
+    letter-spacing: -0.01em;
+  }
+
+  .btn-cta:hover {
+    box-shadow: 0 6px 32px rgba(16, 185, 129, 0.5), 0 0 80px rgba(16, 185, 129, 0.2);
+    transform: translateY(-2px);
+  }
+
+  /* Orbital Rings Visualization */
+  .orbital-container {
+    position: relative;
+    width: 280px;
+    height: 280px;
+    margin-top: 56px;
+  }
+
+  .orbital-ring {
+    position: absolute;
+    border-radius: 50%;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    box-shadow: 0 0 15px rgba(16, 185, 129, 0.04);
+    top: 50%;
+    left: 50%;
+  }
+
+  .orbital-ring-outer {
+    width: 280px;
+    height: 280px;
+    margin-left: -140px;
+    margin-top: -140px;
+    animation: orbit-spin 60s linear infinite;
+  }
+
+  .orbital-ring-middle {
+    width: 200px;
+    height: 200px;
+    margin-left: -100px;
+    margin-top: -100px;
+    animation: orbit-spin-reverse 45s linear infinite;
+  }
+
+  .orbital-ring-inner {
+    width: 120px;
+    height: 120px;
+    margin-left: -60px;
+    margin-top: -60px;
+    animation: orbit-spin 30s linear infinite;
+  }
+
+  @keyframes orbit-spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+  }
+
+  @keyframes orbit-spin-reverse {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(-360deg); }
+  }
+
+  .orbital-dot {
+    position: absolute;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    box-shadow: 0 0 8px currentColor;
+  }
+
+  /* Outer ring dots - positioned relative to ring center */
+  .dot-spotify {
+    color: #1DB954;
+    background: #1DB954;
+    top: -4px;
+    left: 50%;
+    margin-left: -4px;
+  }
+
+  .dot-youtube {
+    color: #FF0000;
+    background: #FF0000;
+    bottom: -4px;
+    left: 50%;
+    margin-left: -4px;
+  }
+
+  /* Middle ring dots */
+  .dot-calendar {
+    color: #4285F4;
+    background: #4285F4;
+    top: 50%;
+    right: -4px;
+    margin-top: -4px;
+  }
+
+  .dot-twitch {
+    color: #9146FF;
+    background: #9146FF;
+    top: 50%;
+    left: -4px;
+    margin-top: -4px;
+  }
+
+  /* Inner ring dot */
+  .dot-whoop {
+    color: #00A5E0;
+    background: #00A5E0;
+    top: -4px;
+    left: 50%;
+    margin-left: -4px;
+  }
+
+  /* Center glow */
+  .orbital-center {
+    position: absolute;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: var(--accent);
+    top: 50%;
+    left: 50%;
+    margin-left: -6px;
+    margin-top: -6px;
+    box-shadow: 0 0 20px rgba(16, 185, 129, 0.5), 0 0 40px rgba(16, 185, 129, 0.2);
+  }
+
+  /* ========================================
+     TRUST PLATFORMS STRIP
+     ======================================== */
+  .trust-strip {
+    display: flex;
+    justify-content: center;
+    padding: 24px 40px;
+    margin-top: -10px;
+  }
+
+  .trust-pill {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 12px 28px;
+    background: rgba(17, 17, 17, 0.65);
+    backdrop-filter: blur(16px) saturate(180%);
+    -webkit-backdrop-filter: blur(16px) saturate(180%);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 999px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+  }
+
+  .platform-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  .platform-dot-spotify { background: #1DB954; box-shadow: 0 0 6px rgba(29, 185, 84, 0.5); }
+  .platform-dot-calendar { background: #4285F4; box-shadow: 0 0 6px rgba(66, 133, 244, 0.5); }
+  .platform-dot-whoop { background: #00A5E0; box-shadow: 0 0 6px rgba(0, 165, 224, 0.5); }
+  .platform-dot-youtube { background: #FF0000; box-shadow: 0 0 6px rgba(255, 0, 0, 0.5); }
+  .platform-dot-twitch { background: #9146FF; box-shadow: 0 0 6px rgba(145, 70, 255, 0.5); }
+
+  /* ========================================
+     QUOTE SECTION
+     ======================================== */
+  .quote-section {
+    display: flex;
+    justify-content: center;
+    padding: 80px 40px;
+  }
+
+  .quote-card {
+    max-width: 700px;
+    width: 100%;
+    background: rgba(17, 17, 17, 0.65);
+    backdrop-filter: blur(16px) saturate(180%);
+    -webkit-backdrop-filter: blur(16px) saturate(180%);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: var(--radius-lg);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.06);
+    padding: 48px;
+    text-align: center;
+  }
+
+  .glass-divider {
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(16, 185, 129, 0.3) 50%, transparent);
+    margin: 0 auto;
+    width: 100%;
+  }
+
+  .quote-label {
+    font-family: var(--font-body);
+    font-weight: 600;
+    font-size: 11px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--text-secondary);
+    margin-top: 28px;
+    margin-bottom: 20px;
+  }
+
+  .quote-text {
+    font-family: var(--font-accent);
+    font-style: italic;
+    font-weight: 400;
+    font-size: 28px;
+    color: var(--text-primary);
+    line-height: 1.45;
+    margin-bottom: 20px;
+  }
+
+  .quote-context {
+    font-family: var(--font-body);
+    font-weight: 400;
+    font-size: 15px;
+    color: var(--text-secondary);
+    line-height: 1.65;
+    margin-bottom: 28px;
+    max-width: 560px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+
+  /* ========================================
+     HOW IT WORKS
+     ======================================== */
+  .how-section {
+    padding: 60px 40px 80px;
+    max-width: 1100px;
+    margin: 0 auto;
+  }
+
+  .section-header {
+    font-family: var(--font-body);
+    font-weight: 600;
+    font-size: 24px;
+    letter-spacing: -0.02em;
+    color: var(--text-primary);
+    text-align: center;
+    margin-bottom: 48px;
+  }
+
+  .how-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 24px;
+  }
+
+  .how-card {
+    background: rgba(17, 17, 17, 0.65);
+    backdrop-filter: blur(16px) saturate(180%);
+    -webkit-backdrop-filter: blur(16px) saturate(180%);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: var(--radius-lg);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.06);
+    padding: 36px 32px;
+    position: relative;
+    overflow: hidden;
+    transition: border-color 0.3s ease, box-shadow 0.3s ease;
+  }
+
+  .how-card:hover {
+    border-color: rgba(16, 185, 129, 0.15);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.06), 0 0 40px rgba(16, 185, 129, 0.06);
+  }
+
+  .how-card-number {
+    position: absolute;
+    top: 16px;
+    right: 24px;
+    font-family: var(--font-display);
+    font-weight: 800;
+    font-size: 48px;
+    color: rgba(255, 255, 255, 0.06);
+    line-height: 1;
+    letter-spacing: -0.03em;
+    pointer-events: none;
+    user-select: none;
+  }
+
+  .how-card-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 20px;
+  }
+
+  .how-card-icon svg {
+    width: 24px;
+    height: 24px;
+    color: var(--text-secondary);
+  }
+
+  .how-card-title {
+    font-family: var(--font-body);
+    font-weight: 600;
+    font-size: 18px;
+    color: var(--text-primary);
+    margin-bottom: 10px;
+    letter-spacing: -0.01em;
+  }
+
+  .how-card-desc {
+    font-family: var(--font-body);
+    font-weight: 400;
+    font-size: 14px;
+    color: var(--text-secondary);
+    line-height: 1.6;
+    letter-spacing: 0.01em;
+  }
+
+  /* ========================================
+     CTA SECTION
+     ======================================== */
+  .cta-section {
+    display: flex;
+    justify-content: center;
+    padding: 40px 40px 80px;
+  }
+
+  .cta-card-wrapper {
+    position: relative;
+    max-width: 700px;
+    width: 100%;
+  }
+
+  .cta-glow {
+    position: absolute;
+    inset: -40px;
+    background: radial-gradient(ellipse at center, rgba(16, 185, 129, 0.12) 0%, transparent 70%);
+    border-radius: 40px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .cta-card {
+    position: relative;
+    z-index: 1;
+    background: rgba(17, 17, 17, 0.65);
+    backdrop-filter: blur(16px) saturate(180%);
+    -webkit-backdrop-filter: blur(16px) saturate(180%);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: var(--radius-lg);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.06);
+    padding: 56px 48px;
+    text-align: center;
+  }
+
+  .cta-headline {
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: 36px;
+    color: var(--text-primary);
+    letter-spacing: -0.03em;
+    line-height: 1.2;
+    margin-bottom: 16px;
+  }
+
+  .cta-subtitle {
+    font-family: var(--font-body);
+    font-weight: 400;
+    font-size: 16px;
+    color: var(--text-secondary);
+    line-height: 1.6;
+    margin-bottom: 32px;
+    max-width: 440px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+
+  /* ========================================
+     FOOTER
+     ======================================== */
+  .footer {
+    padding: 0 40px 40px;
+    max-width: 1100px;
+    margin: 0 auto;
+  }
+
+  .footer-divider {
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(16, 185, 129, 0.3) 50%, transparent);
+    margin-bottom: 32px;
+  }
+
+  .footer-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .footer-copyright {
+    font-family: var(--font-body);
+    font-weight: 400;
+    font-size: 13px;
+    color: var(--text-tertiary);
+  }
+
+  .footer-links {
+    display: flex;
+    align-items: center;
+    gap: 24px;
+  }
+
+  .footer-link {
+    font-family: var(--font-body);
+    font-weight: 400;
+    font-size: 13px;
+    color: var(--text-tertiary);
+    text-decoration: none;
+    transition: color 0.2s ease;
+  }
+
+  .footer-link:hover {
+    color: var(--text-secondary);
+  }
+</style>
+</head>
+<body>
+
+<!-- ============================================
+     FLOATING PILL NAV BAR
+     ============================================ -->
+<nav class="nav">
+  <a href="#" class="nav-brand">
+    <div class="nav-logo">
+      <div class="nav-logo-diamond"></div>
+    </div>
+    <span class="nav-brand-text">Twin Me</span>
+  </a>
+
+  <div class="nav-pills">
+    <a href="#platforms" class="nav-pill active">Platforms</a>
+    <a href="#how" class="nav-pill">How it Works</a>
+    <a href="#" class="nav-pill">Company</a>
+    <a href="#" class="nav-pill">FAQ</a>
+  </div>
+
+  <div class="nav-actions">
+    <a href="#" class="btn-demo">Try Demo</a>
+    <a href="#" class="btn-signin">Sign In</a>
+  </div>
+</nav>
+
+<!-- ============================================
+     HERO SECTION
+     ============================================ -->
+<section class="hero">
+  <!-- Animated gradient mesh orbs -->
+  <div class="hero-orb hero-orb-1"></div>
+  <div class="hero-orb hero-orb-2"></div>
+  <div class="hero-orb hero-orb-3"></div>
+
+  <div class="hero-content">
+    <p class="hero-eyebrow">Discover your</p>
+    <h1 class="hero-headline">soul signature</h1>
+    <p class="hero-subtitle">AI-powered discovery that explores your digital footprint to uncover your authentic patterns</p>
+    <a href="#" class="btn-cta">Start Free</a>
+
+    <!-- Orbital Rings Visualization -->
+    <div class="orbital-container">
+      <!-- Center glow -->
+      <div class="orbital-center"></div>
+
+      <!-- Outer ring (280px) -->
+      <div class="orbital-ring orbital-ring-outer">
+        <div class="orbital-dot dot-spotify"></div>
+        <div class="orbital-dot dot-youtube"></div>
+      </div>
+
+      <!-- Middle ring (200px) -->
+      <div class="orbital-ring orbital-ring-middle">
+        <div class="orbital-dot dot-calendar"></div>
+        <div class="orbital-dot dot-twitch"></div>
+      </div>
+
+      <!-- Inner ring (120px) -->
+      <div class="orbital-ring orbital-ring-inner">
+        <div class="orbital-dot dot-whoop"></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================
+     TRUST PLATFORMS STRIP
+     ============================================ -->
+<section class="trust-strip" id="platforms">
+  <div class="trust-pill">
+    <div class="platform-dot platform-dot-spotify"></div>
+    <div class="platform-dot platform-dot-calendar"></div>
+    <div class="platform-dot platform-dot-whoop"></div>
+    <div class="platform-dot platform-dot-youtube"></div>
+    <div class="platform-dot platform-dot-twitch"></div>
+  </div>
+</section>
+
+<!-- ============================================
+     QUOTE SECTION
+     ============================================ -->
+<section class="quote-section">
+  <div class="quote-card">
+    <div class="glass-divider"></div>
+    <p class="quote-label">OUR MISSION</p>
+    <p class="quote-text">"Perhaps we are searching in the branches for what we only find in the roots."</p>
+    <p class="quote-context">Public information is easy to clone, but it lacks soul. We go beyond your resume and public persona to discover what makes you authentically YOU.</p>
+    <div class="glass-divider"></div>
+  </div>
+</section>
+
+<!-- ============================================
+     HOW IT WORKS
+     ============================================ -->
+<section class="how-section" id="how">
+  <h2 class="section-header">How It Works</h2>
+
+  <div class="how-grid">
+    <!-- Card 1: Connect -->
+    <div class="how-card">
+      <span class="how-card-number">01</span>
+      <div class="how-card-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/>
+          <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>
+        </svg>
+      </div>
+      <h3 class="how-card-title">Connect</h3>
+      <p class="how-card-desc">Link your platforms - Spotify, Calendar, Whoop, YouTube, and more</p>
+    </div>
+
+    <!-- Card 2: Discover -->
+    <div class="how-card">
+      <span class="how-card-number">02</span>
+      <div class="how-card-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/>
+          <path d="M5 3v4"/><path d="M19 17v4"/><path d="M3 5h4"/><path d="M17 19h4"/>
+        </svg>
+      </div>
+      <h3 class="how-card-title">Discover</h3>
+      <p class="how-card-desc">AI reveals patterns and insights you didn't know about yourself</p>
+    </div>
+
+    <!-- Card 3: Control -->
+    <div class="how-card">
+      <span class="how-card-number">03</span>
+      <div class="how-card-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/>
+        </svg>
+      </div>
+      <h3 class="how-card-title">Control</h3>
+      <p class="how-card-desc">Set privacy levels for each data source. Share what you want</p>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================
+     CTA SECTION
+     ============================================ -->
+<section class="cta-section">
+  <div class="cta-card-wrapper">
+    <div class="cta-glow"></div>
+    <div class="cta-card">
+      <h2 class="cta-headline">Ready to discover your soul signature?</h2>
+      <p class="cta-subtitle">Start creating an authentic digital twin that captures your true originality</p>
+      <a href="#" class="btn-cta">Get Started Today</a>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================
+     FOOTER
+     ============================================ -->
+<footer class="footer">
+  <div class="footer-divider"></div>
+  <div class="footer-row">
+    <span class="footer-copyright">&copy; 2026 Twin Me. All rights reserved.</span>
+    <div class="footer-links">
+      <a href="#" class="footer-link">Privacy</a>
+      <a href="#" class="footer-link">Terms</a>
+      <a href="#" class="footer-link">Contact</a>
+      <a href="#" class="footer-link">Docs</a>
+      <a href="#" class="footer-link">Status</a>
+    </div>
+  </div>
+</footer>
+
+</body>
+</html>

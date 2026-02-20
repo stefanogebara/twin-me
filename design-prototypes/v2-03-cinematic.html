@@ -1,0 +1,466 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=1440">
+<title>Template C: Cinematic - TwinMe Portfolio</title>
+<script src="https://mcp.figma.com/mcp/html-to-design/capture.js" async></script>
+<link href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,500;0,600;1,400&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Inter', system-ui, sans-serif;
+    background: #0C0C0C;
+    color: #E8D5B7;
+    width: 1440px;
+    overflow-x: hidden;
+  }
+
+  /* === HEADER === */
+  .header {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 32px 80px;
+  }
+  .wordmark {
+    font-size: 18px;
+    font-weight: 400;
+    color: #E8D5B7;
+    text-decoration: none;
+    opacity: 0.6;
+  }
+
+  /* === HERO - FULL SCREEN === */
+  .hero {
+    min-height: 640px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 40px 80px 80px;
+    position: relative;
+  }
+  .hero::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 600px;
+    height: 600px;
+    background: radial-gradient(circle, rgba(232, 213, 183, 0.04) 0%, transparent 70%);
+    border-radius: 50%;
+    pointer-events: none;
+  }
+  .hero-avatar {
+    width: 96px;
+    height: 96px;
+    border-radius: 50%;
+    background: rgba(232, 213, 183, 0.06);
+    border: 2px solid rgba(232, 213, 183, 0.12);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 36px;
+    color: #E8D5B7;
+    font-weight: 300;
+    margin-bottom: 32px;
+  }
+  .hero-eyebrow {
+    font-size: 12px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: rgba(232, 213, 183, 0.4);
+    margin-bottom: 20px;
+  }
+  .hero-name {
+    font-size: 64px;
+    font-weight: 400;
+    color: #E8D5B7;
+    letter-spacing: -0.03em;
+    line-height: 1.05;
+    margin-bottom: 16px;
+  }
+  .hero-subtitle {
+    font-family: 'EB Garamond', Georgia, serif;
+    font-size: 22px;
+    font-style: italic;
+    color: rgba(232, 213, 183, 0.45);
+    margin-bottom: 40px;
+  }
+  .hero-divider {
+    width: 80px;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(232, 213, 183, 0.25), transparent);
+    margin-bottom: 40px;
+  }
+  .platform-dots {
+    display: flex;
+    gap: 12px;
+  }
+  .p-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    opacity: 0.7;
+  }
+
+  /* === FULL-WIDTH SECTIONS === */
+  .section {
+    padding: 80px 200px;
+  }
+  .section-alt {
+    background: rgba(232, 213, 183, 0.02);
+    border-top: 1px solid rgba(232, 213, 183, 0.04);
+    border-bottom: 1px solid rgba(232, 213, 183, 0.04);
+  }
+  .section-label {
+    font-size: 11px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: rgba(232, 213, 183, 0.3);
+    margin-bottom: 40px;
+    text-align: center;
+  }
+
+  /* === PERSONALITY - HORIZONTAL === */
+  .personality-layout {
+    display: flex;
+    gap: 80px;
+    align-items: flex-start;
+  }
+  .personality-left {
+    flex-shrink: 0;
+    text-align: center;
+  }
+  .mbti-large {
+    font-size: 56px;
+    font-weight: 300;
+    letter-spacing: 6px;
+    color: #E8D5B7;
+    margin-bottom: 8px;
+  }
+  .mbti-subtitle {
+    font-size: 12px;
+    color: rgba(232, 213, 183, 0.35);
+    letter-spacing: 0.05em;
+  }
+  .personality-right {
+    flex: 1;
+  }
+  .bf-rows {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+  }
+  .bf-row {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+  }
+  .bf-label {
+    width: 150px;
+    font-size: 13px;
+    color: rgba(232, 213, 183, 0.45);
+    text-align: right;
+  }
+  .bf-track {
+    flex: 1;
+    height: 2px;
+    background: rgba(232, 213, 183, 0.06);
+    position: relative;
+    overflow: hidden;
+  }
+  .bf-fill {
+    height: 100%;
+    background: #E8D5B7;
+    opacity: 0.6;
+  }
+  .bf-val {
+    width: 36px;
+    font-size: 20px;
+    font-weight: 300;
+    color: rgba(232, 213, 183, 0.5);
+    text-align: right;
+  }
+
+  /* === TRAITS - NUMBER LIST === */
+  .traits-list {
+    max-width: 800px;
+    margin: 0 auto;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0;
+  }
+  .trait-item {
+    padding: 32px 0;
+    border-bottom: 1px solid rgba(232, 213, 183, 0.05);
+    display: flex;
+    gap: 20px;
+    align-items: flex-start;
+  }
+  .trait-item:nth-child(odd) {
+    padding-right: 40px;
+    border-right: 1px solid rgba(232, 213, 183, 0.05);
+  }
+  .trait-item:nth-child(even) {
+    padding-left: 40px;
+  }
+  .trait-number {
+    font-size: 36px;
+    font-weight: 300;
+    color: #E8D5B7;
+    opacity: 0.5;
+    line-height: 1;
+    flex-shrink: 0;
+    width: 48px;
+  }
+  .trait-content {}
+  .trait-name {
+    font-size: 15px;
+    font-weight: 500;
+    color: #E8D5B7;
+    margin-bottom: 6px;
+  }
+  .trait-evidence {
+    font-size: 13px;
+    color: rgba(232, 213, 183, 0.35);
+    line-height: 1.5;
+  }
+
+  /* === NARRATIVE - CINEMATIC === */
+  .narrative-section {
+    padding: 100px 280px;
+    text-align: center;
+  }
+  .narrative-quote {
+    font-family: 'EB Garamond', Georgia, serif;
+    font-size: 96px;
+    line-height: 0.5;
+    color: rgba(232, 213, 183, 0.1);
+    margin-bottom: 24px;
+  }
+  .narrative-text {
+    font-family: 'EB Garamond', Georgia, serif;
+    font-size: 22px;
+    line-height: 1.9;
+    color: rgba(232, 213, 183, 0.55);
+  }
+  .narrative-text strong {
+    color: rgba(232, 213, 183, 0.85);
+    font-weight: 500;
+  }
+
+  /* === PLATFORMS - MINIMAL STRIP === */
+  .platforms-strip {
+    display: flex;
+    justify-content: center;
+    gap: 48px;
+    padding: 40px 80px;
+    border-top: 1px solid rgba(232, 213, 183, 0.04);
+  }
+  .platform-item {
+    text-align: center;
+  }
+  .platform-dot-lg {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    margin: 0 auto 10px;
+  }
+  .platform-name {
+    font-size: 12px;
+    font-weight: 500;
+    color: rgba(232, 213, 183, 0.5);
+    margin-bottom: 2px;
+  }
+  .platform-stat {
+    font-size: 11px;
+    color: rgba(232, 213, 183, 0.25);
+  }
+
+  /* === FOOTER === */
+  .footer {
+    padding: 48px 80px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-top: 1px solid rgba(232, 213, 183, 0.04);
+  }
+  .footer-text {
+    font-size: 11px;
+    color: rgba(232, 213, 183, 0.25);
+  }
+  .cta-btn {
+    display: inline-block;
+    padding: 14px 36px;
+    border-radius: 14px;
+    background: linear-gradient(135deg, #E8D5B7, #D4C4A8);
+    color: #0C0C0C;
+    font-size: 14px;
+    font-weight: 500;
+    text-decoration: none;
+    border: none;
+  }
+</style>
+</head>
+<body>
+
+  <!-- Header -->
+  <div class="header">
+    <a class="wordmark" href="#">Twin Me</a>
+  </div>
+
+  <!-- Hero -->
+  <div class="hero">
+    <div class="hero-avatar">A</div>
+    <div class="hero-eyebrow">Alex's Soul Signature</div>
+    <div class="hero-name">The Curious<br>Navigator</div>
+    <div class="hero-subtitle">"Charting paths others haven't imagined"</div>
+    <div class="hero-divider"></div>
+    <div class="platform-dots">
+      <div class="p-dot" style="background: #1DB954;"></div>
+      <div class="p-dot" style="background: #FF0000;"></div>
+      <div class="p-dot" style="background: #00A5E0;"></div>
+      <div class="p-dot" style="background: #4285F4;"></div>
+      <div class="p-dot" style="background: #9146FF;"></div>
+    </div>
+  </div>
+
+  <!-- Personality -->
+  <div class="section section-alt">
+    <div class="section-label">Personality Profile</div>
+    <div class="personality-layout">
+      <div class="personality-left">
+        <div class="mbti-large">ENFP</div>
+        <div class="mbti-subtitle">The Campaigner</div>
+      </div>
+      <div class="personality-right">
+        <div class="bf-rows">
+          <div class="bf-row">
+            <div class="bf-label">Openness</div>
+            <div class="bf-track"><div class="bf-fill" style="width: 82%;"></div></div>
+            <div class="bf-val">82</div>
+          </div>
+          <div class="bf-row">
+            <div class="bf-label">Conscientiousness</div>
+            <div class="bf-track"><div class="bf-fill" style="width: 65%;"></div></div>
+            <div class="bf-val">65</div>
+          </div>
+          <div class="bf-row">
+            <div class="bf-label">Extraversion</div>
+            <div class="bf-track"><div class="bf-fill" style="width: 71%;"></div></div>
+            <div class="bf-val">71</div>
+          </div>
+          <div class="bf-row">
+            <div class="bf-label">Agreeableness</div>
+            <div class="bf-track"><div class="bf-fill" style="width: 78%;"></div></div>
+            <div class="bf-val">78</div>
+          </div>
+          <div class="bf-row">
+            <div class="bf-label">Emotional Stability</div>
+            <div class="bf-track"><div class="bf-fill" style="width: 65%;"></div></div>
+            <div class="bf-val">65</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Traits -->
+  <div class="section">
+    <div class="section-label">What Makes You, You</div>
+    <div class="traits-list">
+      <div class="trait-item">
+        <div class="trait-number">91</div>
+        <div class="trait-content">
+          <div class="trait-name">Creative Curiosity</div>
+          <div class="trait-evidence">Explores 12+ music genres weekly across 40 curated playlists</div>
+        </div>
+      </div>
+      <div class="trait-item">
+        <div class="trait-number">85</div>
+        <div class="trait-content">
+          <div class="trait-name">Empathetic Listener</div>
+          <div class="trait-evidence">Consistently gravitates toward emotionally rich content</div>
+        </div>
+      </div>
+      <div class="trait-item">
+        <div class="trait-number">88</div>
+        <div class="trait-content">
+          <div class="trait-name">Pattern Seeker</div>
+          <div class="trait-evidence">Systematic exploration of interconnected topics</div>
+        </div>
+      </div>
+      <div class="trait-item">
+        <div class="trait-number">76</div>
+        <div class="trait-content">
+          <div class="trait-name">Night Owl</div>
+          <div class="trait-evidence">Peak creative activity between 10pm and 2am</div>
+        </div>
+      </div>
+      <div class="trait-item">
+        <div class="trait-number">82</div>
+        <div class="trait-content">
+          <div class="trait-name">Deep Diver</div>
+          <div class="trait-evidence">Average watch time 3x higher than casual viewers</div>
+        </div>
+      </div>
+      <div class="trait-item">
+        <div class="trait-number">79</div>
+        <div class="trait-content">
+          <div class="trait-name">Social Catalyst</div>
+          <div class="trait-evidence">Bridges communities across platforms and interests</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Narrative -->
+  <div class="narrative-section">
+    <div class="narrative-quote">&ldquo;</div>
+    <div class="narrative-text">
+      Alex moves through the world like a <strong>collector of invisible threads</strong>, connecting music to mood, ideas to action, and people to possibility. Their digital footprint reveals someone who thrives at the <strong>intersection of creativity and analysis</strong> &mdash; equally at home in a late-night coding session as they are curating a playlist that tells a story.
+    </div>
+  </div>
+
+  <!-- Platforms -->
+  <div class="platforms-strip">
+    <div class="platform-item">
+      <div class="platform-dot-lg" style="background: #1DB954;"></div>
+      <div class="platform-name">Spotify</div>
+      <div class="platform-stat">420 artists</div>
+    </div>
+    <div class="platform-item">
+      <div class="platform-dot-lg" style="background: #FF0000;"></div>
+      <div class="platform-name">YouTube</div>
+      <div class="platform-stat">850 videos</div>
+    </div>
+    <div class="platform-item">
+      <div class="platform-dot-lg" style="background: #00A5E0;"></div>
+      <div class="platform-name">Whoop</div>
+      <div class="platform-stat">72% recovery</div>
+    </div>
+    <div class="platform-item">
+      <div class="platform-dot-lg" style="background: #4285F4;"></div>
+      <div class="platform-name">Calendar</div>
+      <div class="platform-stat">28 events/wk</div>
+    </div>
+    <div class="platform-item">
+      <div class="platform-dot-lg" style="background: #9146FF;"></div>
+      <div class="platform-name">Twitch</div>
+      <div class="platform-stat">15 channels</div>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <div class="footer">
+    <div class="footer-text">Powered by Twin Me &middot; Updated Feb 18, 2026</div>
+    <a href="#" class="cta-btn">Discover Your Soul Signature</a>
+  </div>
+
+</body>
+</html>

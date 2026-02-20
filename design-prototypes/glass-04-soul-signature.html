@@ -1,0 +1,940 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=1440">
+<title>TwinMe - Soul Signature (Liquid Glass)</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=Inter:wght@300;400;500;600;700&family=EB+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0A0A0A;
+    --surface: #111111;
+    --raised: #171717;
+    --overlay: #1C1C1C;
+    --text-primary: rgba(255, 255, 255, 0.92);
+    --text-secondary: rgba(255, 255, 255, 0.55);
+    --text-tertiary: rgba(255, 255, 255, 0.30);
+    --accent: #10B981;
+    --accent-teal: #14B8A6;
+    --accent-light: #6EE7B7;
+    --accent-cyan: #06B6D4;
+    --glass-border: rgba(255, 255, 255, 0.10);
+    --glass-border-subtle: rgba(255, 255, 255, 0.05);
+    --glass-fill: rgba(17, 17, 17, 0.65);
+    --radius-lg: 20px;
+    --radius-md: 16px;
+    --radius-sm: 12px;
+    --radius-pill: 999px;
+    --font-display: 'Syne', sans-serif;
+    --font-body: 'Inter', -apple-system, sans-serif;
+    --font-accent: 'EB Garamond', Georgia, serif;
+    --sidebar-width: 240px;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: var(--font-body);
+    background:
+      radial-gradient(ellipse 50% 40% at 15% 10%, rgba(16, 185, 129, 0.15) 0%, transparent 100%),
+      radial-gradient(ellipse 40% 50% at 85% 80%, rgba(6, 182, 212, 0.10) 0%, transparent 100%),
+      radial-gradient(ellipse 60% 40% at 50% 50%, rgba(20, 184, 166, 0.05) 0%, transparent 100%),
+      #0A0A0A;
+    color: var(--text-primary);
+    -webkit-font-smoothing: antialiased;
+    overflow-x: hidden;
+  }
+
+  /* ========== SIDEBAR ========== */
+  .sidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: var(--sidebar-width);
+    height: 100vh;
+    background: rgba(10, 10, 10, 0.85);
+    backdrop-filter: blur(24px) saturate(180%);
+    -webkit-backdrop-filter: blur(24px) saturate(180%);
+    border-right: 1px solid var(--glass-border-subtle);
+    padding: 20px 0;
+    z-index: 50;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .sidebar-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 0 20px 24px;
+    border-bottom: 1px solid var(--glass-border-subtle);
+    margin-bottom: 8px;
+  }
+
+  .sidebar-logo {
+    width: 28px;
+    height: 28px;
+    background: linear-gradient(135deg, #10B981, #06B6D4);
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .sidebar-logo::after {
+    content: '';
+    width: 10px;
+    height: 10px;
+    background: rgba(255,255,255,0.3);
+    border-radius: 2px;
+    transform: rotate(45deg);
+  }
+
+  .sidebar-brand {
+    font-size: 17px;
+    font-weight: 600;
+    color: var(--text-primary);
+  }
+
+  .sidebar-collapse {
+    width: 24px;
+    height: 24px;
+    border-radius: 6px;
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid var(--glass-border-subtle);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-left: auto;
+    cursor: pointer;
+    color: var(--text-secondary);
+  }
+
+  .sidebar-collapse svg {
+    width: 14px;
+    height: 14px;
+  }
+
+  .nav-items {
+    flex: 1;
+    padding: 8px 8px;
+    overflow-y: auto;
+  }
+
+  .nav-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 16px;
+    border-radius: 10px;
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: all 0.2s ease;
+    position: relative;
+    margin-bottom: 2px;
+  }
+
+  .nav-item:hover {
+    background: rgba(255, 255, 255, 0.04);
+    color: var(--text-primary);
+  }
+
+  .nav-item.active {
+    color: var(--text-primary);
+    background: rgba(16, 185, 129, 0.08);
+  }
+
+  .nav-item.active::before {
+    content: '';
+    position: absolute;
+    left: -8px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 3px;
+    height: 20px;
+    border-radius: 0 4px 4px 0;
+    background: var(--accent);
+  }
+
+  .nav-item svg {
+    width: 18px;
+    height: 18px;
+    flex-shrink: 0;
+    stroke: currentColor;
+    fill: none;
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+
+  .nav-divider {
+    height: 1px;
+    background: var(--glass-border-subtle);
+    margin: 12px 16px;
+  }
+
+  .nav-section-label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 16px 4px;
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--text-secondary);
+    cursor: pointer;
+  }
+
+  .nav-section-label svg {
+    width: 14px;
+    height: 14px;
+    stroke: currentColor;
+    fill: none;
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+
+  .nav-section-label .chevron-icon {
+    width: 12px;
+    height: 12px;
+    margin-left: auto;
+  }
+
+  .nav-sub-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 7px 16px 7px 32px;
+    font-size: 13px;
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: color 0.2s;
+    border-radius: 8px;
+  }
+
+  .nav-sub-item:hover { color: var(--text-primary); }
+
+  .nav-sub-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--accent);
+    flex-shrink: 0;
+  }
+
+  /* ========== MAIN CONTENT ========== */
+  .main {
+    margin-left: var(--sidebar-width);
+    padding: 32px 40px 80px;
+    min-height: 100vh;
+  }
+
+  /* Glass card system */
+  .glass-card {
+    background: var(--glass-fill);
+    backdrop-filter: blur(16px) saturate(180%);
+    -webkit-backdrop-filter: blur(16px) saturate(180%);
+    border: 1px solid var(--glass-border);
+    border-radius: var(--radius-lg);
+    position: relative;
+    overflow: hidden;
+    transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .glass-card::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    background: linear-gradient(135deg,
+      rgba(255,255,255,0.05) 0%,
+      rgba(255,255,255,0.015) 50%,
+      rgba(0,0,0,0.02) 100%);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .glass-card > * { position: relative; z-index: 1; }
+
+  .glass-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 16px 48px rgba(0,0,0,0.3);
+  }
+
+  /* ========== PAGE HEADER ========== */
+  .page-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    margin-bottom: 32px;
+  }
+
+  .page-title {
+    font-family: var(--font-display);
+    font-size: 32px;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin-bottom: 4px;
+  }
+
+  .page-subtitle {
+    font-family: var(--font-body);
+    font-size: 14px;
+    font-weight: 400;
+    color: var(--text-secondary);
+  }
+
+  .btn-regenerate {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 20px;
+    border-radius: var(--radius-pill);
+    background: var(--glass-fill);
+    border: 1px solid var(--glass-border);
+    color: var(--text-secondary);
+    font-family: var(--font-body);
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+  }
+
+  .btn-regenerate:hover {
+    color: var(--text-primary);
+    background: rgba(255,255,255,0.06);
+    border-color: rgba(255,255,255,0.15);
+  }
+
+  .btn-regenerate svg {
+    width: 16px;
+    height: 16px;
+    stroke: currentColor;
+    fill: none;
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+
+  /* ========== ASSESSMENT PROFILE CARD ========== */
+  .assessment-card {
+    padding: 32px;
+    margin-bottom: 32px;
+  }
+
+  .assessment-card::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 120px;
+    background: radial-gradient(ellipse at 50% 0%, rgba(16, 185, 129, 0.08), transparent 60%);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .assessment-header {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin-bottom: 24px;
+  }
+
+  .assessment-icon-circle {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: rgba(16, 185, 129, 0.12);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+
+  .assessment-icon-circle svg {
+    width: 20px;
+    height: 20px;
+    stroke: var(--accent);
+    fill: none;
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+
+  .assessment-title {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--text-primary);
+  }
+
+  .assessment-richness {
+    font-size: 13px;
+    color: var(--text-secondary);
+    margin-top: 2px;
+  }
+
+  .assessment-richness strong {
+    color: var(--accent);
+    font-weight: 600;
+  }
+
+  .assessment-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-bottom: 16px;
+  }
+
+  .assessment-sub-card {
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid var(--glass-border-subtle);
+    border-radius: var(--radius-md);
+    padding: 20px;
+  }
+
+  .assessment-sub-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 14px;
+  }
+
+  .assessment-sub-header svg {
+    width: 16px;
+    height: 16px;
+    stroke: var(--accent);
+    fill: none;
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    flex-shrink: 0;
+  }
+
+  .assessment-sub-label {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-secondary);
+    flex: 1;
+  }
+
+  .assessment-retake {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--text-tertiary);
+    cursor: pointer;
+    background: none;
+    border: none;
+    font-family: var(--font-body);
+    padding: 4px 10px;
+    border-radius: var(--radius-pill);
+    transition: all 0.2s;
+  }
+
+  .assessment-retake:hover {
+    color: var(--text-secondary);
+    background: rgba(255,255,255,0.04);
+  }
+
+  .assessment-retake svg {
+    width: 12px;
+    height: 12px;
+    stroke: currentColor;
+    fill: none;
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+
+  .assessment-value {
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--text-primary);
+  }
+
+  .big-five-pills {
+    display: flex;
+    gap: 8px;
+  }
+
+  .big-five-pill {
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid var(--glass-border-subtle);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .big-five-pill:hover {
+    background: rgba(16, 185, 129, 0.1);
+    border-color: rgba(16, 185, 129, 0.2);
+    color: var(--accent-light);
+  }
+
+  .assessment-behavioral {
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid var(--glass-border-subtle);
+    border-radius: var(--radius-md);
+    padding: 20px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 16px;
+  }
+
+  .assessment-behavioral svg {
+    width: 16px;
+    height: 16px;
+    stroke: var(--accent);
+    fill: none;
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    flex-shrink: 0;
+  }
+
+  .assessment-behavioral-label {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-secondary);
+    flex: 1;
+  }
+
+  .assessment-behavioral-value {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-primary);
+  }
+
+  .connect-more-link {
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--accent);
+    cursor: pointer;
+    transition: color 0.2s;
+    text-decoration: none;
+  }
+
+  .connect-more-link:hover {
+    color: var(--accent-light);
+  }
+
+  /* ========== TAB BAR ========== */
+  .tab-bar {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    background: var(--glass-fill);
+    border: 1px solid var(--glass-border);
+    border-radius: var(--radius-md);
+    padding: 4px;
+    margin-bottom: 32px;
+  }
+
+  .tab-item {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 12px 16px;
+    border-radius: var(--radius-sm);
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .tab-item:hover {
+    color: var(--text-primary);
+  }
+
+  .tab-item.active {
+    background: rgba(16, 185, 129, 0.12);
+    color: var(--text-primary);
+  }
+
+  .tab-item svg {
+    width: 16px;
+    height: 16px;
+    stroke: currentColor;
+    fill: none;
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+
+  /* ========== ARCHETYPE DISPLAY ========== */
+  .archetype-card {
+    padding: 40px;
+    text-align: center;
+    margin-bottom: 32px;
+  }
+
+  .archetype-icon-wrapper {
+    width: 72px;
+    height: 72px;
+    border-radius: 50%;
+    background: rgba(17, 17, 17, 0.8);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 24px;
+    position: relative;
+  }
+
+  .archetype-icon-wrapper::after {
+    content: '';
+    position: absolute;
+    inset: -2px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #10B981, #06B6D4);
+    z-index: -1;
+  }
+
+  .archetype-icon-wrapper svg {
+    width: 32px;
+    height: 32px;
+    stroke: var(--accent-light);
+    fill: none;
+    stroke-width: 1.5;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+
+  .archetype-name {
+    font-family: var(--font-display);
+    font-size: 40px;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin-bottom: 8px;
+  }
+
+  .archetype-tagline {
+    font-family: var(--font-accent);
+    font-style: italic;
+    font-size: 20px;
+    color: var(--text-secondary);
+  }
+
+  /* ========== INFO PANELS ========== */
+  .info-panels {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 20px;
+    margin-bottom: 32px;
+  }
+
+  .info-panel {
+    padding: 32px;
+    overflow: hidden;
+  }
+
+  .info-panel-accent {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    z-index: 2;
+  }
+
+  .info-panel-accent.emerald { background: var(--accent); }
+  .info-panel-accent.cyan { background: var(--accent-cyan); }
+  .info-panel-accent.teal { background: var(--accent-teal); }
+
+  .info-panel-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 16px;
+  }
+
+  .info-panel-icon {
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid var(--glass-border-subtle);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+
+  .info-panel-icon svg {
+    width: 18px;
+    height: 18px;
+    stroke: currentColor;
+    fill: none;
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+
+  .info-panel-icon.emerald { color: var(--accent); }
+  .info-panel-icon.cyan { color: var(--accent-cyan); }
+  .info-panel-icon.teal { color: var(--accent-teal); }
+
+  .info-panel-label {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--text-secondary);
+  }
+
+  .info-panel-text {
+    font-size: 14px;
+    font-weight: 400;
+    color: var(--text-primary);
+    line-height: 1.6;
+  }
+
+  /* ========== NARRATIVE CARD ========== */
+  .narrative-card {
+    padding: 40px 48px;
+    margin-bottom: 32px;
+  }
+
+  .narrative-divider {
+    width: 40px;
+    height: 2px;
+    background: linear-gradient(90deg, var(--accent), var(--accent-cyan));
+    border-radius: 2px;
+    margin-bottom: 24px;
+  }
+
+  .narrative-text {
+    font-family: var(--font-accent);
+    font-size: 19px;
+    line-height: 1.8;
+    color: var(--text-primary);
+  }
+</style>
+</head>
+<body>
+
+<!-- SIDEBAR -->
+<aside class="sidebar">
+  <div class="sidebar-header">
+    <div class="sidebar-logo"></div>
+    <span class="sidebar-brand">Twin Me</span>
+    <div class="sidebar-collapse">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+    </div>
+  </div>
+  <div class="nav-items">
+    <!-- Dashboard -->
+    <div class="nav-item">
+      <svg viewBox="0 0 24 24"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+      Dashboard
+    </div>
+    <!-- Connect Data -->
+    <div class="nav-item">
+      <svg viewBox="0 0 24 24"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 5V19A9 3 0 0 0 21 19V5"/><path d="M3 12A9 3 0 0 0 21 12"/></svg>
+      Connect Data
+    </div>
+    <!-- Soul Signature (ACTIVE) -->
+    <div class="nav-item active">
+      <svg viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+      Soul Signature
+    </div>
+    <!-- Twin's Brain -->
+    <div class="nav-item">
+      <svg viewBox="0 0 24 24"><path d="M12 5a3 3 0 1 0-5.997.125 4 4 0 0 0-2.526 5.77 4 4 0 0 0 .556 6.588A4 4 0 1 0 12 18Z"/><path d="M12 5a3 3 0 1 1 5.997.125 4 4 0 0 1 2.526 5.77 4 4 0 0 1-.556 6.588A4 4 0 1 1 12 18Z"/><path d="M15 13a4.5 4.5 0 0 1-3-4 4.5 4.5 0 0 1-3 4"/></svg>
+      Twin's Brain
+    </div>
+    <!-- Soul Journal -->
+    <div class="nav-item">
+      <svg viewBox="0 0 24 24"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
+      Soul Journal
+    </div>
+    <!-- Personality -->
+    <div class="nav-item">
+      <svg viewBox="0 0 24 24"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg>
+      Personality
+    </div>
+    <!-- Chat with Twin -->
+    <div class="nav-item">
+      <svg viewBox="0 0 24 24"><path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z"/></svg>
+      Chat with Twin
+    </div>
+
+    <div class="nav-divider"></div>
+
+    <!-- Twin Insights Section -->
+    <div class="nav-section-label">
+      <svg viewBox="0 0 24 24"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
+      Twin Insights
+      <svg class="chevron-icon" viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg>
+    </div>
+    <div class="nav-sub-item"><span class="nav-sub-dot"></span> Music Soul</div>
+    <div class="nav-sub-item"><span class="nav-sub-dot"></span> Body Stories</div>
+    <div class="nav-sub-item"><span class="nav-sub-dot"></span> Time Patterns</div>
+    <div class="nav-sub-item"><span class="nav-sub-dot"></span> Content World</div>
+  </div>
+</aside>
+
+<!-- MAIN CONTENT -->
+<main class="main">
+
+  <!-- Page Header -->
+  <div class="page-header">
+    <div>
+      <h1 class="page-title">Your Soul Signature</h1>
+      <p class="page-subtitle">Discover what makes you authentically you</p>
+    </div>
+    <button class="btn-regenerate">
+      <svg viewBox="0 0 24 24"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/></svg>
+      Regenerate
+    </button>
+  </div>
+
+  <!-- Assessment Profile Card -->
+  <div class="glass-card assessment-card">
+    <!-- Header -->
+    <div class="assessment-header">
+      <div class="assessment-icon-circle">
+        <svg viewBox="0 0 24 24"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/><path d="M5 3v4"/><path d="M19 17v4"/><path d="M3 5h4"/><path d="M17 19h4"/></svg>
+      </div>
+      <div>
+        <div class="assessment-title">Your Assessment Profile</div>
+        <div class="assessment-richness">Data richness: <strong>Excellent</strong></div>
+      </div>
+    </div>
+
+    <!-- 2-column grid -->
+    <div class="assessment-grid">
+      <!-- Quick Assessment -->
+      <div class="assessment-sub-card">
+        <div class="assessment-sub-header">
+          <svg viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></svg>
+          <span class="assessment-sub-label">Quick Assessment</span>
+          <button class="assessment-retake">
+            <svg viewBox="0 0 24 24"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/></svg>
+            Retake
+          </button>
+        </div>
+        <div class="assessment-value">ENTJ-A</div>
+      </div>
+
+      <!-- Big Five -->
+      <div class="assessment-sub-card">
+        <div class="assessment-sub-header">
+          <svg viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></svg>
+          <span class="assessment-sub-label">Big Five (IPIP-120)</span>
+          <button class="assessment-retake">
+            <svg viewBox="0 0 24 24"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/></svg>
+            Retake
+          </button>
+        </div>
+        <div class="big-five-pills">
+          <div class="big-five-pill">O</div>
+          <div class="big-five-pill">C</div>
+          <div class="big-five-pill">E</div>
+          <div class="big-five-pill">A</div>
+          <div class="big-five-pill">N</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Behavioral Data -->
+    <div class="assessment-behavioral">
+      <svg viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></svg>
+      <span class="assessment-behavioral-label">Behavioral Data</span>
+      <span class="assessment-behavioral-value">3 data sources</span>
+    </div>
+
+    <!-- Connect More Link -->
+    <a class="connect-more-link">Connect More Platforms &#8250;</a>
+  </div>
+
+  <!-- Tab Bar -->
+  <div class="tab-bar">
+    <div class="tab-item active">
+      <svg viewBox="0 0 24 24"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
+      Overview
+    </div>
+    <div class="tab-item">
+      <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+      Deep Dive
+    </div>
+    <div class="tab-item">
+      <svg viewBox="0 0 24 24"><line x1="18" x2="18" y1="20" y2="10"/><line x1="12" x2="12" y1="20" y2="4"/><line x1="6" x2="6" y1="20" y2="14"/></svg>
+      Data Sources
+    </div>
+  </div>
+
+  <!-- Archetype Display -->
+  <div class="glass-card archetype-card">
+    <div class="archetype-icon-wrapper">
+      <svg viewBox="0 0 24 24"><path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5"/><path d="M9 18h6"/><path d="M10 22h4"/></svg>
+    </div>
+    <h2 class="archetype-name">The Creative Explorer</h2>
+    <p class="archetype-tagline">Curious mind with a passion for discovery</p>
+  </div>
+
+  <!-- Info Panels -->
+  <div class="info-panels">
+    <!-- Core Drive -->
+    <div class="glass-card info-panel">
+      <div class="info-panel-accent emerald"></div>
+      <div class="info-panel-header">
+        <div class="info-panel-icon emerald">
+          <svg viewBox="0 0 24 24"><path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5"/><path d="M9 18h6"/><path d="M10 22h4"/></svg>
+        </div>
+        <span class="info-panel-label">Core Drive</span>
+      </div>
+      <p class="info-panel-text">Intellectual Curiosity shapes your choices, reflected in diverse music genres in spotify history</p>
+    </div>
+
+    <!-- Social Style -->
+    <div class="glass-card info-panel">
+      <div class="info-panel-accent cyan"></div>
+      <div class="info-panel-header">
+        <div class="info-panel-icon cyan">
+          <svg viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+        </div>
+        <span class="info-panel-label">Social Style</span>
+      </div>
+      <p class="info-panel-text">You thrive in social settings and draw energy from connecting with others</p>
+    </div>
+
+    <!-- Creative Pattern -->
+    <div class="glass-card info-panel">
+      <div class="info-panel-accent teal"></div>
+      <div class="info-panel-header">
+        <div class="info-panel-icon teal">
+          <svg viewBox="0 0 24 24"><path d="M4 14a1 1 0 0 1-.78-1.63l9.9-10.2a.5.5 0 0 1 .86.46l-1.92 6.02A1 1 0 0 0 13 10h7a1 1 0 0 1 .78 1.63l-9.9 10.2a.5.5 0 0 1-.86-.46l1.92-6.02A1 1 0 0 0 11 14z"/></svg>
+        </div>
+        <span class="info-panel-label">Creative Pattern</span>
+      </div>
+      <p class="info-panel-text">Health Conscious is key - consistent recovery tracking on whoop</p>
+    </div>
+  </div>
+
+  <!-- Narrative Card -->
+  <div class="glass-card narrative-card">
+    <div class="narrative-divider"></div>
+    <p class="narrative-text">You are driven by an insatiable curiosity and a desire to understand the world around you. Your eclectic taste in music and content reveals a mind that thrives on variety and novelty. You connect deeply with others while maintaining your unique perspective, making you both relatable and distinctively original.</p>
+  </div>
+
+</main>
+
+</body>
+</html>

@@ -1,0 +1,498 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=1440">
+<title>Template A: Card Stack - TwinMe Portfolio</title>
+<script src="https://mcp.figma.com/mcp/html-to-design/capture.js" async></script>
+<link href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,500;0,600;1,400&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Inter', system-ui, sans-serif;
+    background: #232320;
+    color: #C1C0B6;
+    width: 1440px;
+    overflow-x: hidden;
+  }
+
+  /* === CENTERED COLUMN === */
+  .page {
+    max-width: 640px;
+    margin: 0 auto;
+    padding: 48px 24px 80px;
+  }
+
+  /* === HEADER === */
+  .header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 24px 80px;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 50;
+    background: rgba(35, 35, 32, 0.85);
+    backdrop-filter: blur(16px);
+    border-bottom: 1px solid rgba(193, 192, 182, 0.06);
+  }
+  .wordmark {
+    font-size: 20px;
+    font-weight: 400;
+    color: #C1C0B6;
+    text-decoration: none;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .wordmark-icon {
+    width: 24px;
+    height: 24px;
+    background: linear-gradient(135deg, rgba(193, 192, 182, 0.15), rgba(193, 192, 182, 0.05));
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+  }
+  .share-btn {
+    padding: 8px 20px;
+    border-radius: 12px;
+    background: rgba(193, 192, 182, 0.08);
+    border: 1px solid rgba(193, 192, 182, 0.1);
+    color: rgba(193, 192, 182, 0.6);
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+  }
+
+  /* === SPACER FOR FIXED HEADER === */
+  .header-spacer { height: 80px; }
+
+  /* === GLASS CARD === */
+  .glass-card {
+    background: rgba(193, 192, 182, 0.04);
+    border: 1px solid rgba(193, 192, 182, 0.08);
+    border-radius: 20px;
+    backdrop-filter: blur(20px);
+    padding: 40px;
+    margin-bottom: 16px;
+  }
+
+  /* === PRE-CARD LABEL === */
+  .pre-label {
+    text-align: center;
+    font-size: 13px;
+    color: rgba(193, 192, 182, 0.5);
+    margin-bottom: 24px;
+    letter-spacing: 0.02em;
+  }
+
+  /* === HERO CARD === */
+  .hero-card {
+    text-align: center;
+    padding: 56px 40px;
+  }
+  .avatar-circle {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    margin: 0 auto 20px;
+    background: rgba(232, 213, 183, 0.08);
+    border: 2px solid rgba(232, 213, 183, 0.15);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 28px;
+    color: #E8D5B7;
+    font-weight: 300;
+  }
+  .archetype-name {
+    font-size: 36px;
+    font-weight: 400;
+    color: #E8D5B7;
+    margin-bottom: 8px;
+    letter-spacing: -0.02em;
+  }
+  .archetype-subtitle {
+    font-family: 'EB Garamond', Georgia, serif;
+    font-size: 18px;
+    font-style: italic;
+    color: rgba(193, 192, 182, 0.5);
+    margin-bottom: 24px;
+  }
+  .divider-line {
+    width: 48px;
+    height: 1px;
+    margin: 0 auto 24px;
+    background: linear-gradient(90deg, transparent, rgba(232, 213, 183, 0.3), transparent);
+  }
+  .platform-dots {
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+  }
+  .platform-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+  }
+
+  /* === PERSONALITY CARD === */
+  .section-label {
+    font-size: 11px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: rgba(193, 192, 182, 0.4);
+    margin-bottom: 20px;
+  }
+  .personality-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 28px;
+  }
+  .mbti-badge {
+    display: inline-flex;
+    padding: 6px 16px;
+    border-radius: 10px;
+    background: rgba(232, 213, 183, 0.08);
+    border: 1px solid rgba(232, 213, 183, 0.12);
+    font-size: 14px;
+    font-weight: 600;
+    letter-spacing: 2px;
+    color: #E8D5B7;
+  }
+  .bf-rows {
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+  }
+  .bf-row {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+  .bf-label {
+    width: 130px;
+    font-size: 13px;
+    color: rgba(193, 192, 182, 0.5);
+    text-align: right;
+  }
+  .bf-track {
+    flex: 1;
+    height: 4px;
+    border-radius: 4px;
+    background: rgba(193, 192, 182, 0.06);
+    overflow: hidden;
+  }
+  .bf-fill {
+    height: 100%;
+    border-radius: 4px;
+    background: linear-gradient(90deg, rgba(232, 213, 183, 0.6), #E8D5B7);
+  }
+  .bf-val {
+    width: 32px;
+    font-size: 14px;
+    font-weight: 500;
+    color: rgba(193, 192, 182, 0.7);
+    text-align: right;
+  }
+
+  /* === TRAITS CARD === */
+  .traits-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+  }
+  .trait-item {
+    padding: 20px;
+    border-radius: 16px;
+    background: rgba(193, 192, 182, 0.03);
+    border: 1px solid rgba(193, 192, 182, 0.05);
+  }
+  .trait-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 8px;
+  }
+  .trait-score {
+    font-size: 20px;
+    font-weight: 600;
+    color: #E8D5B7;
+  }
+  .trait-name {
+    font-size: 14px;
+    font-weight: 500;
+    color: #C1C0B6;
+  }
+  .trait-evidence {
+    font-size: 12px;
+    color: rgba(193, 192, 182, 0.4);
+    line-height: 1.5;
+  }
+
+  /* === NARRATIVE CARD === */
+  .narrative-card {
+    text-align: center;
+    padding: 48px 40px;
+  }
+  .quote-mark {
+    font-family: 'EB Garamond', Georgia, serif;
+    font-size: 72px;
+    line-height: 0.6;
+    color: rgba(232, 213, 183, 0.2);
+    margin-bottom: 12px;
+  }
+  .narrative-text {
+    font-family: 'EB Garamond', Georgia, serif;
+    font-size: 18px;
+    line-height: 1.8;
+    color: rgba(193, 192, 182, 0.6);
+  }
+  .narrative-text strong {
+    color: rgba(193, 192, 182, 0.9);
+    font-weight: 500;
+  }
+
+  /* === PLATFORMS CARD === */
+  .platforms-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  .platform-row {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 14px 16px;
+    border-radius: 14px;
+    background: rgba(193, 192, 182, 0.03);
+    border: 1px solid rgba(193, 192, 182, 0.04);
+  }
+  .platform-icon {
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    font-weight: 700;
+  }
+  .platform-info { flex: 1; }
+  .platform-name {
+    font-size: 14px;
+    font-weight: 500;
+    color: #C1C0B6;
+    margin-bottom: 2px;
+  }
+  .platform-stat {
+    font-size: 12px;
+    color: rgba(193, 192, 182, 0.4);
+  }
+
+  /* === FOOTER === */
+  .footer-card {
+    text-align: center;
+    padding: 32px 40px;
+    background: rgba(232, 213, 183, 0.04);
+    border: 1px solid rgba(232, 213, 183, 0.08);
+  }
+  .footer-text {
+    font-size: 12px;
+    color: rgba(193, 192, 182, 0.35);
+    margin-bottom: 16px;
+  }
+  .cta-btn {
+    display: inline-block;
+    padding: 14px 32px;
+    border-radius: 14px;
+    background: linear-gradient(135deg, #E8D5B7 0%, #D4C4A8 100%);
+    color: #232320;
+    font-size: 14px;
+    font-weight: 500;
+    text-decoration: none;
+    border: none;
+  }
+</style>
+</head>
+<body>
+
+  <!-- Fixed Header -->
+  <div class="header">
+    <a class="wordmark" href="#">
+      <span class="wordmark-icon">&#9830;</span>
+      Twin Me
+    </a>
+    <button class="share-btn">Share</button>
+  </div>
+
+  <div class="header-spacer"></div>
+
+  <div class="page">
+    <!-- Pre-label -->
+    <div class="pre-label">Alex's Soul Signature</div>
+
+    <!-- Hero Card -->
+    <div class="glass-card hero-card">
+      <div class="avatar-circle">A</div>
+      <div class="archetype-name">The Curious Navigator</div>
+      <div class="archetype-subtitle">"Charting paths others haven't imagined"</div>
+      <div class="divider-line"></div>
+      <div class="platform-dots">
+        <div class="platform-dot" style="background: #1DB954;"></div>
+        <div class="platform-dot" style="background: #FF0000;"></div>
+        <div class="platform-dot" style="background: #00A5E0;"></div>
+        <div class="platform-dot" style="background: #4285F4;"></div>
+        <div class="platform-dot" style="background: #9146FF;"></div>
+      </div>
+    </div>
+
+    <!-- Personality Card -->
+    <div class="glass-card">
+      <div class="personality-header">
+        <div class="section-label">Personality Profile</div>
+        <div class="mbti-badge">ENFP</div>
+      </div>
+      <div class="bf-rows">
+        <div class="bf-row">
+          <div class="bf-label">Openness</div>
+          <div class="bf-track"><div class="bf-fill" style="width: 82%;"></div></div>
+          <div class="bf-val">82</div>
+        </div>
+        <div class="bf-row">
+          <div class="bf-label">Conscientiousness</div>
+          <div class="bf-track"><div class="bf-fill" style="width: 65%;"></div></div>
+          <div class="bf-val">65</div>
+        </div>
+        <div class="bf-row">
+          <div class="bf-label">Extraversion</div>
+          <div class="bf-track"><div class="bf-fill" style="width: 71%;"></div></div>
+          <div class="bf-val">71</div>
+        </div>
+        <div class="bf-row">
+          <div class="bf-label">Agreeableness</div>
+          <div class="bf-track"><div class="bf-fill" style="width: 78%;"></div></div>
+          <div class="bf-val">78</div>
+        </div>
+        <div class="bf-row">
+          <div class="bf-label">Emotional Stability</div>
+          <div class="bf-track"><div class="bf-fill" style="width: 65%;"></div></div>
+          <div class="bf-val">65</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Traits Card -->
+    <div class="glass-card">
+      <div class="section-label">What Makes You, You</div>
+      <div class="traits-grid">
+        <div class="trait-item">
+          <div class="trait-header">
+            <span class="trait-score">91</span>
+            <span class="trait-name">Creative Curiosity</span>
+          </div>
+          <div class="trait-evidence">Explores 12+ music genres weekly across 40 curated playlists</div>
+        </div>
+        <div class="trait-item">
+          <div class="trait-header">
+            <span class="trait-score">85</span>
+            <span class="trait-name">Empathetic Listener</span>
+          </div>
+          <div class="trait-evidence">Consistently gravitates toward emotionally rich content</div>
+        </div>
+        <div class="trait-item">
+          <div class="trait-header">
+            <span class="trait-score">88</span>
+            <span class="trait-name">Pattern Seeker</span>
+          </div>
+          <div class="trait-evidence">Systematic exploration of interconnected topics</div>
+        </div>
+        <div class="trait-item">
+          <div class="trait-header">
+            <span class="trait-score">76</span>
+            <span class="trait-name">Night Owl</span>
+          </div>
+          <div class="trait-evidence">Peak creative activity between 10pm and 2am</div>
+        </div>
+        <div class="trait-item">
+          <div class="trait-header">
+            <span class="trait-score">82</span>
+            <span class="trait-name">Deep Diver</span>
+          </div>
+          <div class="trait-evidence">Average watch time 3x higher than casual viewers</div>
+        </div>
+        <div class="trait-item">
+          <div class="trait-header">
+            <span class="trait-score">79</span>
+            <span class="trait-name">Social Catalyst</span>
+          </div>
+          <div class="trait-evidence">Bridges communities across platforms and interests</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Narrative Card -->
+    <div class="glass-card narrative-card">
+      <div class="quote-mark">&ldquo;</div>
+      <div class="narrative-text">
+        Alex moves through the world like a <strong>collector of invisible threads</strong>, connecting music to mood, ideas to action, and people to possibility. Their digital footprint reveals someone who thrives at the <strong>intersection of creativity and analysis</strong> &mdash; equally at home in a late-night coding session as they are curating a playlist that tells a story.
+      </div>
+    </div>
+
+    <!-- Platforms Card -->
+    <div class="glass-card">
+      <div class="section-label">Data Sources</div>
+      <div class="platforms-list">
+        <div class="platform-row">
+          <div class="platform-icon" style="background: rgba(29, 185, 84, 0.12); color: #1DB954;">S</div>
+          <div class="platform-info">
+            <div class="platform-name">Spotify</div>
+            <div class="platform-stat">420 artists &middot; 12 genres &middot; 40 playlists</div>
+          </div>
+        </div>
+        <div class="platform-row">
+          <div class="platform-icon" style="background: rgba(255, 0, 0, 0.1); color: #FF4444;">Y</div>
+          <div class="platform-info">
+            <div class="platform-name">YouTube</div>
+            <div class="platform-stat">850 videos watched &middot; 24 subscriptions</div>
+          </div>
+        </div>
+        <div class="platform-row">
+          <div class="platform-icon" style="background: rgba(0, 165, 224, 0.1); color: #00A5E0;">W</div>
+          <div class="platform-info">
+            <div class="platform-name">Whoop</div>
+            <div class="platform-stat">72% avg recovery &middot; 58 HRV</div>
+          </div>
+        </div>
+        <div class="platform-row">
+          <div class="platform-icon" style="background: rgba(66, 133, 244, 0.1); color: #4285F4;">C</div>
+          <div class="platform-info">
+            <div class="platform-name">Calendar</div>
+            <div class="platform-stat">28 events/week</div>
+          </div>
+        </div>
+        <div class="platform-row">
+          <div class="platform-icon" style="background: rgba(145, 70, 255, 0.1); color: #9146FF;">T</div>
+          <div class="platform-info">
+            <div class="platform-name">Twitch</div>
+            <div class="platform-stat">15 channels &middot; 8h/week</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Footer Card -->
+    <div class="glass-card footer-card">
+      <div class="footer-text">Powered by Twin Me &middot; Updated Feb 18, 2026</div>
+      <a href="#" class="cta-btn">Discover Your Soul Signature</a>
+    </div>
+  </div>
+
+</body>
+</html>

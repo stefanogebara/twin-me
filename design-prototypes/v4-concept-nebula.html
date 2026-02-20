@@ -1,0 +1,1388 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=1440">
+<title>TwinMe — Your Soul in the Stars</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@300;400;500;600&family=EB+Garamond:ital,wght@0,400;1,400;1,500&display=swap" rel="stylesheet">
+<style>
+/* ============================================
+   CSS CUSTOM PROPERTIES
+   ============================================ */
+:root {
+  --bg: #0C0A09;
+  --surface: #1C1917;
+  --accent-gold: #D4A853;
+  --accent-gold-bright: #E0B860;
+  --accent-gold-light: #F0D78C;
+  --text-primary: #F5F0E8;
+  --text-secondary: rgba(245, 240, 232, 0.6);
+  --text-muted: rgba(245, 240, 232, 0.35);
+}
+
+/* ============================================
+   RESET & BASE
+   ============================================ */
+*, *::before, *::after {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  background: var(--bg);
+  color: var(--text-primary);
+  font-family: 'Inter', sans-serif;
+  font-weight: 400;
+  line-height: 1.6;
+  overflow-x: hidden;
+  min-height: 100vh;
+  position: relative;
+}
+
+/* ============================================
+   ANIMATED COSMIC NEBULA BACKGROUND
+   ============================================ */
+.nebula-bg {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+}
+
+/* Layer 1: Deep purple nebula cloud */
+.nebula-bg::before {
+  content: '';
+  position: absolute;
+  inset: -50%;
+  width: 200%;
+  height: 200%;
+  background:
+    radial-gradient(ellipse 600px 500px at 20% 30%, rgba(88, 28, 135, 0.18), transparent 70%),
+    radial-gradient(ellipse 500px 600px at 75% 60%, rgba(88, 28, 135, 0.12), transparent 70%),
+    radial-gradient(ellipse 400px 350px at 50% 80%, rgba(88, 28, 135, 0.1), transparent 65%);
+  animation: nebula-drift-1 28s ease-in-out infinite alternate;
+}
+
+/* Layer 2: Warm gold nebula */
+.nebula-bg::after {
+  content: '';
+  position: absolute;
+  inset: -50%;
+  width: 200%;
+  height: 200%;
+  background:
+    radial-gradient(ellipse 550px 450px at 65% 25%, rgba(212, 168, 83, 0.14), transparent 65%),
+    radial-gradient(ellipse 450px 500px at 30% 70%, rgba(212, 168, 83, 0.1), transparent 60%),
+    radial-gradient(ellipse 350px 300px at 80% 85%, rgba(224, 184, 96, 0.08), transparent 60%);
+  animation: nebula-drift-2 35s ease-in-out infinite alternate;
+}
+
+.nebula-layer-teal {
+  position: absolute;
+  inset: -50%;
+  width: 200%;
+  height: 200%;
+  background:
+    radial-gradient(ellipse 500px 400px at 45% 40%, rgba(20, 184, 166, 0.1), transparent 65%),
+    radial-gradient(ellipse 400px 450px at 80% 20%, rgba(20, 184, 166, 0.06), transparent 60%),
+    radial-gradient(ellipse 300px 350px at 15% 75%, rgba(20, 184, 166, 0.08), transparent 55%);
+  animation: nebula-drift-3 22s ease-in-out infinite alternate;
+}
+
+.nebula-layer-rose {
+  position: absolute;
+  inset: -50%;
+  width: 200%;
+  height: 200%;
+  background:
+    radial-gradient(ellipse 400px 350px at 55% 55%, rgba(225, 29, 72, 0.07), transparent 60%),
+    radial-gradient(ellipse 350px 400px at 20% 45%, rgba(225, 29, 72, 0.05), transparent 55%);
+  animation: nebula-drift-4 40s ease-in-out infinite alternate;
+}
+
+.nebula-layer-deep {
+  position: absolute;
+  inset: -30%;
+  width: 160%;
+  height: 160%;
+  background:
+    radial-gradient(ellipse 800px 700px at 50% 50%, rgba(88, 28, 135, 0.08), transparent 70%),
+    radial-gradient(ellipse 600px 500px at 30% 30%, rgba(212, 168, 83, 0.06), transparent 65%),
+    radial-gradient(ellipse 700px 600px at 70% 70%, rgba(20, 184, 166, 0.05), transparent 65%);
+  animation: nebula-drift-5 18s ease-in-out infinite alternate;
+}
+
+/* Noise/grain overlay */
+.noise-overlay {
+  position: absolute;
+  inset: 0;
+  opacity: 0.035;
+  background-image:
+    repeating-conic-gradient(rgba(245, 240, 232, 0.8) 0% 25%, transparent 0% 50%);
+  background-size: 3px 3px;
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* Vignette for depth */
+.vignette {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse 70% 60% at 50% 45%, transparent 30%, rgba(12, 10, 9, 0.5) 100%);
+  pointer-events: none;
+  z-index: 2;
+}
+
+/* ============================================
+   NEBULA DRIFT KEYFRAMES
+   ============================================ */
+@keyframes nebula-drift-1 {
+  0% { transform: translate(0%, 0%) rotate(0deg); }
+  33% { transform: translate(3%, -2%) rotate(0.5deg); }
+  66% { transform: translate(-2%, 3%) rotate(-0.3deg); }
+  100% { transform: translate(4%, -1%) rotate(0.8deg); }
+}
+
+@keyframes nebula-drift-2 {
+  0% { transform: translate(0%, 0%) rotate(0deg); }
+  25% { transform: translate(-3%, 2%) rotate(-0.4deg); }
+  50% { transform: translate(2%, -3%) rotate(0.6deg); }
+  75% { transform: translate(-1%, 4%) rotate(-0.2deg); }
+  100% { transform: translate(3%, -2%) rotate(0.5deg); }
+}
+
+@keyframes nebula-drift-3 {
+  0% { transform: translate(0%, 0%) scale(1); }
+  50% { transform: translate(-4%, 3%) scale(1.05); }
+  100% { transform: translate(3%, -4%) scale(0.97); }
+}
+
+@keyframes nebula-drift-4 {
+  0% { transform: translate(0%, 0%) rotate(0deg) scale(1); }
+  50% { transform: translate(5%, -3%) rotate(1deg) scale(1.08); }
+  100% { transform: translate(-3%, 5%) rotate(-0.5deg) scale(0.95); }
+}
+
+@keyframes nebula-drift-5 {
+  0% { transform: translate(0%, 0%); }
+  100% { transform: translate(-2%, 2%); }
+}
+
+/* ============================================
+   GLOWING ORBS
+   ============================================ */
+.orb {
+  position: fixed;
+  border-radius: 50%;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.orb--gold {
+  width: 120px;
+  height: 120px;
+  top: 15%;
+  left: 8%;
+  background: radial-gradient(circle, rgba(212, 168, 83, 0.35), rgba(212, 168, 83, 0.08) 40%, transparent 70%);
+  filter: blur(40px);
+  animation: pulse-glow-1 10s ease-in-out infinite;
+}
+
+.orb--purple {
+  width: 90px;
+  height: 90px;
+  top: 55%;
+  right: 12%;
+  background: radial-gradient(circle, rgba(88, 28, 135, 0.3), rgba(88, 28, 135, 0.06) 40%, transparent 70%);
+  filter: blur(35px);
+  animation: pulse-glow-2 13s ease-in-out infinite;
+}
+
+.orb--teal {
+  width: 80px;
+  height: 80px;
+  bottom: 20%;
+  left: 20%;
+  background: radial-gradient(circle, rgba(20, 184, 166, 0.2), rgba(20, 184, 166, 0.04) 40%, transparent 70%);
+  filter: blur(45px);
+  animation: pulse-glow-3 8s ease-in-out infinite;
+}
+
+.orb--gold-sm {
+  width: 60px;
+  height: 60px;
+  top: 35%;
+  right: 25%;
+  background: radial-gradient(circle, rgba(240, 215, 140, 0.25), transparent 70%);
+  filter: blur(30px);
+  animation: pulse-glow-1 15s ease-in-out infinite reverse;
+}
+
+@keyframes pulse-glow-1 {
+  0%, 100% { transform: scale(1); opacity: 0.7; }
+  50% { transform: scale(1.4); opacity: 1; }
+}
+
+@keyframes pulse-glow-2 {
+  0%, 100% { transform: scale(1.1); opacity: 0.6; }
+  50% { transform: scale(0.8); opacity: 1; }
+}
+
+@keyframes pulse-glow-3 {
+  0%, 100% { transform: scale(0.9); opacity: 0.8; }
+  50% { transform: scale(1.3); opacity: 0.5; }
+}
+
+/* ============================================
+   CONTENT WRAPPER
+   ============================================ */
+.content {
+  position: relative;
+  z-index: 10;
+  max-width: 1440px;
+  margin: 0 auto;
+}
+
+/* ============================================
+   GLASS NAV BAR
+   ============================================ */
+.nav-glass {
+  position: fixed;
+  top: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  gap: 40px;
+  padding: 14px 36px;
+  background: rgba(12, 10, 9, 0.35);
+  backdrop-filter: blur(30px) brightness(115%) saturate(180%);
+  -webkit-backdrop-filter: blur(30px) brightness(115%) saturate(180%);
+  border: 1px solid rgba(245, 240, 232, 0.06);
+  border-radius: 60px;
+  box-shadow:
+    0 8px 32px rgba(0, 0, 0, 0.35),
+    inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  animation: fade-down 1s ease 0.2s both;
+}
+
+.nav-logo {
+  font-family: 'Space Grotesk', sans-serif;
+  font-weight: 600;
+  font-size: 18px;
+  color: var(--accent-gold);
+  letter-spacing: -0.02em;
+  text-decoration: none;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.nav-logo-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--accent-gold);
+  box-shadow: 0 0 12px rgba(212, 168, 83, 0.6);
+  animation: pulse-glow-1 4s ease-in-out infinite;
+}
+
+.nav-links {
+  display: flex;
+  gap: 32px;
+  list-style: none;
+}
+
+.nav-links a {
+  font-family: 'Inter', sans-serif;
+  font-weight: 400;
+  font-size: 14px;
+  color: var(--text-secondary);
+  text-decoration: none;
+  letter-spacing: 0.02em;
+  transition: color 0.3s ease, transform 0.3s ease;
+  display: inline-block;
+}
+
+.nav-links a:hover {
+  color: var(--text-primary);
+  transform: scale(1.05);
+}
+
+.nav-cta {
+  font-family: 'Inter', sans-serif;
+  font-weight: 500;
+  font-size: 13px;
+  color: var(--accent-gold);
+  text-decoration: none;
+  padding: 8px 20px;
+  border: 1px solid rgba(212, 168, 83, 0.25);
+  border-radius: 40px;
+  transition: all 0.3s ease;
+  letter-spacing: 0.03em;
+}
+
+.nav-cta:hover {
+  background: rgba(212, 168, 83, 0.12);
+  border-color: rgba(212, 168, 83, 0.4);
+  box-shadow: 0 0 20px rgba(212, 168, 83, 0.15);
+}
+
+/* ============================================
+   HERO SECTION
+   ============================================ */
+.hero {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+  padding: 120px 80px 80px;
+  position: relative;
+}
+
+.hero-text-block {
+  max-width: 900px;
+}
+
+.hero-line-1 {
+  font-family: 'Space Grotesk', sans-serif;
+  font-weight: 700;
+  font-size: 82px;
+  line-height: 1.05;
+  color: var(--text-primary);
+  letter-spacing: -0.03em;
+  animation: fade-up 0.9s ease 0.4s both;
+}
+
+.hero-line-2 {
+  font-family: 'EB Garamond', serif;
+  font-style: italic;
+  font-weight: 400;
+  font-size: 74px;
+  line-height: 1.15;
+  color: var(--accent-gold);
+  letter-spacing: -0.01em;
+  text-shadow:
+    0 0 40px rgba(212, 168, 83, 0.3),
+    0 0 80px rgba(212, 168, 83, 0.15);
+  margin-top: 4px;
+  animation: fade-up 0.9s ease 0.6s both;
+}
+
+.hero-subtitle {
+  font-family: 'Inter', sans-serif;
+  font-weight: 300;
+  font-size: 18px;
+  line-height: 1.7;
+  color: var(--text-muted);
+  max-width: 520px;
+  margin: 32px auto 0;
+  letter-spacing: 0.01em;
+  animation: fade-up 0.9s ease 0.8s both;
+}
+
+.hero-cta-wrapper {
+  margin-top: 48px;
+  animation: fade-up 0.9s ease 1s both;
+}
+
+.hero-cta {
+  display: inline-block;
+  font-family: 'Inter', sans-serif;
+  font-weight: 500;
+  font-size: 16px;
+  color: var(--text-primary);
+  text-decoration: none;
+  padding: 18px 44px;
+  background: rgba(212, 168, 83, 0.15);
+  backdrop-filter: blur(20px) brightness(120%) saturate(150%);
+  -webkit-backdrop-filter: blur(20px) brightness(120%) saturate(150%);
+  border: 1px solid rgba(212, 168, 83, 0.3);
+  border-radius: 60px;
+  box-shadow:
+    0 8px 32px rgba(0, 0, 0, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.15),
+    0 0 60px rgba(212, 168, 83, 0.08);
+  letter-spacing: 0.04em;
+  transition: all 0.4s ease;
+  animation: float-cta 4s ease-in-out infinite;
+  position: relative;
+  overflow: hidden;
+}
+
+.hero-cta::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 60px;
+  background: linear-gradient(135deg, rgba(255,255,255,0.1) 0%, transparent 50%, rgba(212, 168, 83, 0.05) 100%);
+  pointer-events: none;
+}
+
+.hero-cta:hover {
+  background: rgba(212, 168, 83, 0.25);
+  border-color: rgba(212, 168, 83, 0.5);
+  box-shadow:
+    0 12px 48px rgba(0, 0, 0, 0.35),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2),
+    0 0 80px rgba(212, 168, 83, 0.15);
+  transform: translateY(-2px);
+}
+
+.hero-cta-text {
+  position: relative;
+  z-index: 1;
+}
+
+/* Scroll hint */
+.scroll-hint {
+  position: absolute;
+  bottom: 40px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  animation: fade-up 0.9s ease 1.4s both;
+}
+
+.scroll-hint-line {
+  width: 1px;
+  height: 40px;
+  background: linear-gradient(to bottom, rgba(212, 168, 83, 0.4), transparent);
+  animation: scroll-pulse 2s ease-in-out infinite;
+}
+
+.scroll-hint-text {
+  font-family: 'Inter', sans-serif;
+  font-weight: 400;
+  font-size: 11px;
+  color: var(--text-muted);
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+}
+
+@keyframes scroll-pulse {
+  0%, 100% { opacity: 0.3; transform: scaleY(1); }
+  50% { opacity: 0.8; transform: scaleY(1.2); }
+}
+
+/* ============================================
+   SHIMMER DIVIDER
+   ============================================ */
+.glass-divider {
+  width: 100%;
+  max-width: 800px;
+  margin: 0 auto;
+  height: 1px;
+  background: linear-gradient(90deg,
+    transparent 0%,
+    rgba(212, 168, 83, 0.05) 10%,
+    rgba(212, 168, 83, 0.4) 30%,
+    rgba(20, 184, 166, 0.3) 50%,
+    rgba(88, 28, 135, 0.2) 70%,
+    rgba(212, 168, 83, 0.05) 90%,
+    transparent 100%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 4s ease-in-out infinite;
+  position: relative;
+}
+
+.glass-divider::after {
+  content: '';
+  position: absolute;
+  inset: -4px 0;
+  background: linear-gradient(90deg,
+    transparent 0%,
+    rgba(212, 168, 83, 0.08) 30%,
+    rgba(20, 184, 166, 0.06) 70%,
+    transparent 100%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 4s ease-in-out infinite;
+  filter: blur(4px);
+}
+
+@keyframes shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+/* ============================================
+   FLOATING GLASS CARDS — ASYMMETRIC
+   ============================================ */
+.cards-section {
+  padding: 80px 80px 120px;
+  position: relative;
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+}
+
+.cards-canvas {
+  position: relative;
+  width: 100%;
+  height: 700px;
+}
+
+.glass-card {
+  position: absolute;
+  background: rgba(28, 25, 23, 0.4);
+  backdrop-filter: blur(24px) brightness(110%) saturate(160%);
+  -webkit-backdrop-filter: blur(24px) brightness(110%) saturate(160%);
+  border: 1px solid rgba(245, 240, 232, 0.08);
+  border-radius: 24px;
+  box-shadow:
+    0 16px 64px rgba(0, 0, 0, 0.4),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  padding: 40px 36px;
+  transition: transform 0.5s ease, box-shadow 0.5s ease;
+  overflow: hidden;
+}
+
+.glass-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.12) 30%, rgba(255, 255, 255, 0.06) 70%, transparent);
+}
+
+.glass-card:hover {
+  box-shadow:
+    0 20px 80px rgba(0, 0, 0, 0.5),
+    inset 0 1px 0 rgba(255, 255, 255, 0.12),
+    0 0 40px rgba(212, 168, 83, 0.05);
+}
+
+/* Card 1 — Large, top-left */
+.glass-card--1 {
+  width: 420px;
+  left: 40px;
+  top: 20px;
+  transform: rotate(-2deg);
+  animation: float-1 7s ease-in-out infinite;
+}
+
+/* Card 2 — Medium, center-right */
+.glass-card--2 {
+  width: 380px;
+  right: 60px;
+  top: 80px;
+  transform: rotate(1.5deg);
+  animation: float-2 9s ease-in-out infinite;
+}
+
+/* Card 3 — Tall, bottom-center-left */
+.glass-card--3 {
+  width: 350px;
+  left: 280px;
+  bottom: 20px;
+  transform: rotate(0.8deg);
+  animation: float-3 11s ease-in-out infinite;
+}
+
+/* Card 4 — Small accent, far right bottom */
+.glass-card--4 {
+  width: 300px;
+  right: 140px;
+  bottom: 40px;
+  transform: rotate(-1.2deg);
+  animation: float-1 8s ease-in-out infinite reverse;
+}
+
+@keyframes float-1 {
+  0%, 100% { transform: rotate(-2deg) translateY(0px); }
+  50% { transform: rotate(-2deg) translateY(-14px); }
+}
+
+@keyframes float-2 {
+  0%, 100% { transform: rotate(1.5deg) translateY(0px); }
+  50% { transform: rotate(1.5deg) translateY(-18px); }
+}
+
+@keyframes float-3 {
+  0%, 100% { transform: rotate(0.8deg) translateY(0px); }
+  50% { transform: rotate(0.8deg) translateY(-10px); }
+}
+
+@keyframes float-cta {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-6px); }
+}
+
+.card-icon {
+  width: 40px;
+  height: 40px;
+  margin-bottom: 20px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.card-icon--gold {
+  background: rgba(212, 168, 83, 0.12);
+  border: 1px solid rgba(212, 168, 83, 0.2);
+  box-shadow: 0 0 20px rgba(212, 168, 83, 0.1);
+}
+
+.card-icon--teal {
+  background: rgba(20, 184, 166, 0.12);
+  border: 1px solid rgba(20, 184, 166, 0.2);
+  box-shadow: 0 0 20px rgba(20, 184, 166, 0.1);
+}
+
+.card-icon--purple {
+  background: rgba(88, 28, 135, 0.15);
+  border: 1px solid rgba(88, 28, 135, 0.25);
+  box-shadow: 0 0 20px rgba(88, 28, 135, 0.1);
+}
+
+.card-icon--rose {
+  background: rgba(225, 29, 72, 0.1);
+  border: 1px solid rgba(225, 29, 72, 0.18);
+  box-shadow: 0 0 20px rgba(225, 29, 72, 0.08);
+}
+
+.card-title {
+  font-family: 'Space Grotesk', sans-serif;
+  font-weight: 600;
+  font-size: 20px;
+  color: var(--text-primary);
+  margin-bottom: 12px;
+  letter-spacing: -0.01em;
+}
+
+.card-body {
+  font-family: 'Inter', sans-serif;
+  font-weight: 300;
+  font-size: 15px;
+  line-height: 1.65;
+  color: var(--text-secondary);
+}
+
+.card-accent-line {
+  width: 32px;
+  height: 2px;
+  margin-top: 20px;
+  border-radius: 2px;
+}
+
+.card-accent-line--gold { background: rgba(212, 168, 83, 0.5); }
+.card-accent-line--teal { background: rgba(20, 184, 166, 0.4); }
+.card-accent-line--purple { background: rgba(88, 28, 135, 0.5); }
+.card-accent-line--rose { background: rgba(225, 29, 72, 0.4); }
+
+/* Radar chart mockup */
+.radar-chart {
+  margin-top: 24px;
+  display: flex;
+  justify-content: center;
+}
+
+.radar-chart svg {
+  width: 140px;
+  height: 140px;
+  opacity: 0.9;
+}
+
+/* ============================================
+   SECTION TITLE — QUOTE STYLE
+   ============================================ */
+.section-quote {
+  text-align: center;
+  padding: 60px 80px;
+}
+
+.section-quote-text {
+  font-family: 'EB Garamond', serif;
+  font-style: italic;
+  font-weight: 400;
+  font-size: 24px;
+  color: var(--text-secondary);
+  max-width: 600px;
+  margin: 0 auto;
+  line-height: 1.6;
+}
+
+.section-quote-text em {
+  color: var(--accent-gold);
+  font-style: italic;
+}
+
+/* ============================================
+   PLATFORMS SECTION
+   ============================================ */
+.platforms-section {
+  padding: 80px 80px 100px;
+  text-align: center;
+}
+
+.platforms-label {
+  font-family: 'Space Grotesk', sans-serif;
+  font-weight: 500;
+  font-size: 13px;
+  color: var(--text-muted);
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  margin-bottom: 48px;
+}
+
+.platform-dots {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 48px;
+  margin-bottom: 48px;
+}
+
+.platform-dot-wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+}
+
+.platform-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  position: relative;
+}
+
+.platform-dot::after {
+  content: '';
+  position: absolute;
+  inset: -6px;
+  border-radius: 50%;
+  filter: blur(6px);
+  opacity: 0.6;
+}
+
+.platform-dot--spotify {
+  background: #1DB954;
+  box-shadow: 0 0 16px rgba(29, 185, 84, 0.5);
+}
+.platform-dot--spotify::after { background: #1DB954; }
+
+.platform-dot--youtube {
+  background: #FF0000;
+  box-shadow: 0 0 16px rgba(255, 0, 0, 0.4);
+}
+.platform-dot--youtube::after { background: #FF0000; }
+
+.platform-dot--calendar {
+  background: #4285F4;
+  box-shadow: 0 0 16px rgba(66, 133, 244, 0.5);
+}
+.platform-dot--calendar::after { background: #4285F4; }
+
+.platform-dot--whoop {
+  background: #14B8A6;
+  box-shadow: 0 0 16px rgba(20, 184, 166, 0.5);
+}
+.platform-dot--whoop::after { background: #14B8A6; }
+
+.platform-dot--twitch {
+  background: #9146FF;
+  box-shadow: 0 0 16px rgba(145, 70, 255, 0.5);
+}
+.platform-dot--twitch::after { background: #9146FF; }
+
+.platform-name {
+  font-family: 'Inter', sans-serif;
+  font-weight: 400;
+  font-size: 12px;
+  color: var(--text-muted);
+  letter-spacing: 0.03em;
+}
+
+.platforms-tagline {
+  font-family: 'Inter', sans-serif;
+  font-weight: 500;
+  font-size: 15px;
+  color: var(--text-secondary);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.platforms-tagline span {
+  color: var(--accent-gold);
+}
+
+/* ============================================
+   SOUL SPECTRUM — VISUALIZATION
+   ============================================ */
+.spectrum-section {
+  padding: 40px 80px 100px;
+  display: flex;
+  justify-content: center;
+}
+
+.spectrum-glass {
+  background: rgba(28, 25, 23, 0.35);
+  backdrop-filter: blur(24px) brightness(108%) saturate(140%);
+  -webkit-backdrop-filter: blur(24px) brightness(108%) saturate(140%);
+  border: 1px solid rgba(245, 240, 232, 0.06);
+  border-radius: 28px;
+  box-shadow:
+    0 20px 80px rgba(0, 0, 0, 0.35),
+    inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  padding: 56px 64px;
+  max-width: 800px;
+  width: 100%;
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+}
+
+.spectrum-glass::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(212, 168, 83, 0.15) 20%, rgba(255, 255, 255, 0.08) 50%, rgba(20, 184, 166, 0.1) 80%, transparent);
+}
+
+.spectrum-title {
+  font-family: 'Space Grotesk', sans-serif;
+  font-weight: 700;
+  font-size: 36px;
+  color: var(--text-primary);
+  letter-spacing: -0.02em;
+  margin-bottom: 12px;
+}
+
+.spectrum-subtitle {
+  font-family: 'Inter', sans-serif;
+  font-weight: 300;
+  font-size: 16px;
+  color: var(--text-muted);
+  margin-bottom: 40px;
+}
+
+.spectrum-bar-container {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 0 auto;
+  max-width: 560px;
+}
+
+.spectrum-bar {
+  flex: 1;
+  height: 4px;
+  border-radius: 4px;
+  background: rgba(245, 240, 232, 0.06);
+  overflow: hidden;
+  position: relative;
+}
+
+.spectrum-bar-fill {
+  height: 100%;
+  border-radius: 4px;
+  position: relative;
+}
+
+.spectrum-bar-fill::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 4px;
+  animation: spectrum-glow 3s ease-in-out infinite;
+}
+
+@keyframes spectrum-glow {
+  0%, 100% { opacity: 0.6; }
+  50% { opacity: 1; }
+}
+
+.spectrum-bar-fill--1 {
+  width: 85%;
+  background: linear-gradient(90deg, rgba(212, 168, 83, 0.6), rgba(212, 168, 83, 0.9));
+}
+.spectrum-bar-fill--1::after { box-shadow: 0 0 12px rgba(212, 168, 83, 0.4); }
+
+.spectrum-bar-fill--2 {
+  width: 72%;
+  background: linear-gradient(90deg, rgba(20, 184, 166, 0.5), rgba(20, 184, 166, 0.8));
+}
+.spectrum-bar-fill--2::after { box-shadow: 0 0 12px rgba(20, 184, 166, 0.3); animation-delay: 0.5s; }
+
+.spectrum-bar-fill--3 {
+  width: 91%;
+  background: linear-gradient(90deg, rgba(88, 28, 135, 0.5), rgba(88, 28, 135, 0.85));
+}
+.spectrum-bar-fill--3::after { box-shadow: 0 0 12px rgba(88, 28, 135, 0.35); animation-delay: 1s; }
+
+.spectrum-bar-fill--4 {
+  width: 68%;
+  background: linear-gradient(90deg, rgba(225, 29, 72, 0.4), rgba(225, 29, 72, 0.75));
+}
+.spectrum-bar-fill--4::after { box-shadow: 0 0 12px rgba(225, 29, 72, 0.3); animation-delay: 1.5s; }
+
+.spectrum-bar-fill--5 {
+  width: 78%;
+  background: linear-gradient(90deg, rgba(240, 215, 140, 0.5), rgba(240, 215, 140, 0.85));
+}
+.spectrum-bar-fill--5::after { box-shadow: 0 0 12px rgba(240, 215, 140, 0.3); animation-delay: 2s; }
+
+.spectrum-label {
+  font-family: 'Inter', sans-serif;
+  font-weight: 400;
+  font-size: 11px;
+  color: var(--text-muted);
+  min-width: 80px;
+  text-align: right;
+  letter-spacing: 0.03em;
+}
+
+.spectrum-bars {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.spectrum-cta {
+  margin-top: 40px;
+  font-family: 'EB Garamond', serif;
+  font-style: italic;
+  font-size: 20px;
+  color: var(--accent-gold-light);
+  opacity: 0.7;
+}
+
+/* ============================================
+   FOOTER
+   ============================================ */
+.footer {
+  padding: 40px 80px 48px;
+  text-align: center;
+}
+
+.footer-brand {
+  font-family: 'Space Grotesk', sans-serif;
+  font-weight: 600;
+  font-size: 16px;
+  color: var(--text-secondary);
+  letter-spacing: -0.01em;
+}
+
+.footer-copy {
+  font-family: 'Inter', sans-serif;
+  font-weight: 300;
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-top: 8px;
+}
+
+/* ============================================
+   ENTRANCE ANIMATIONS
+   ============================================ */
+@keyframes fade-up {
+  0% {
+    opacity: 0;
+    transform: translateY(24px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fade-down {
+  0% {
+    opacity: 0;
+    transform: translateX(-50%) translateY(-16px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+}
+
+/* Scroll-triggered fade-in (JS toggles .is-visible) */
+.reveal {
+  opacity: 0;
+  transform: translateY(30px);
+  transition: opacity 0.8s ease, transform 0.8s ease;
+}
+
+.reveal.is-visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* Stagger children */
+.reveal-stagger > * {
+  opacity: 0;
+  transform: translateY(20px);
+  transition: opacity 0.6s ease, transform 0.6s ease;
+}
+
+.reveal-stagger.is-visible > *:nth-child(1) { transition-delay: 0s; opacity: 1; transform: translateY(0); }
+.reveal-stagger.is-visible > *:nth-child(2) { transition-delay: 0.1s; opacity: 1; transform: translateY(0); }
+.reveal-stagger.is-visible > *:nth-child(3) { transition-delay: 0.2s; opacity: 1; transform: translateY(0); }
+.reveal-stagger.is-visible > *:nth-child(4) { transition-delay: 0.3s; opacity: 1; transform: translateY(0); }
+.reveal-stagger.is-visible > *:nth-child(5) { transition-delay: 0.4s; opacity: 1; transform: translateY(0); }
+.reveal-stagger.is-visible > *:nth-child(6) { transition-delay: 0.5s; opacity: 1; transform: translateY(0); }
+
+/* ============================================
+   CUSTOM SCROLLBAR
+   ============================================ */
+::-webkit-scrollbar {
+  width: 6px;
+}
+::-webkit-scrollbar-track {
+  background: var(--bg);
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(212, 168, 83, 0.2);
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(212, 168, 83, 0.35);
+}
+
+/* ============================================
+   SELECTION
+   ============================================ */
+::selection {
+  background: rgba(212, 168, 83, 0.25);
+  color: var(--text-primary);
+}
+</style>
+</head>
+<body>
+
+<!-- ======== ANIMATED COSMIC NEBULA BACKGROUND ======== -->
+<div class="nebula-bg">
+  <div class="nebula-layer-teal"></div>
+  <div class="nebula-layer-rose"></div>
+  <div class="nebula-layer-deep"></div>
+  <div class="noise-overlay"></div>
+  <div class="vignette"></div>
+</div>
+
+<!-- ======== GLOWING ORBS ======== -->
+<div class="orb orb--gold"></div>
+<div class="orb orb--purple"></div>
+<div class="orb orb--teal"></div>
+<div class="orb orb--gold-sm"></div>
+
+<!-- ======== CONTENT ======== -->
+<div class="content">
+
+  <!-- ======== GLASS NAV BAR ======== -->
+  <nav class="nav-glass">
+    <a href="#" class="nav-logo">
+      <span class="nav-logo-dot"></span>
+      TwinMe
+    </a>
+    <ul class="nav-links">
+      <li><a href="#soul">Soul</a></li>
+      <li><a href="#discover">Discover</a></li>
+      <li><a href="#platforms">Platforms</a></li>
+      <li><a href="#spectrum">Spectrum</a></li>
+    </ul>
+    <a href="#" class="nav-cta">Begin Journey</a>
+  </nav>
+
+  <!-- ======== HERO SECTION ======== -->
+  <section class="hero" id="soul">
+    <div class="hero-text-block">
+      <h1 class="hero-line-1">Your soul</h1>
+      <h2 class="hero-line-2">has a signature</h2>
+      <p class="hero-subtitle">
+        Not your resume. Not your bio. The real you &mdash; hidden in your
+        midnight playlists, your calendar rhythms, your heartbeat at 3 AM.
+        We find it. We twin it.
+      </p>
+      <div class="hero-cta-wrapper">
+        <a href="#" class="hero-cta">
+          <span class="hero-cta-text">Discover Your Signature</span>
+        </a>
+      </div>
+    </div>
+    <div class="scroll-hint">
+      <div class="scroll-hint-line"></div>
+      <span class="scroll-hint-text">Scroll</span>
+    </div>
+  </section>
+
+  <!-- ======== SHIMMER DIVIDER ======== -->
+  <div class="glass-divider reveal"></div>
+
+  <!-- ======== QUOTE ======== -->
+  <section class="section-quote reveal">
+    <p class="section-quote-text">
+      &ldquo;Perhaps we are searching in the branches<br>
+      for what we only find in <em>the roots</em>.&rdquo;
+    </p>
+  </section>
+
+  <!-- ======== FLOATING GLASS CARDS ======== -->
+  <section class="cards-section" id="discover">
+    <div class="cards-canvas">
+
+      <!-- Card 1: Music -->
+      <div class="glass-card glass-card--1 reveal">
+        <div class="card-icon card-icon--gold">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="rgba(212, 168, 83, 0.9)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M9 18V5l12-2v13"/>
+            <circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/>
+          </svg>
+        </div>
+        <h3 class="card-title">Emotional Landscape</h3>
+        <p class="card-body">
+          Your music patterns reveal the emotional terrain you inhabit &mdash;
+          the frequencies that resonate with your deepest self. Late-night jazz
+          sessions, high-energy morning runs, melancholy Sunday afternoons.
+        </p>
+        <div class="card-accent-line card-accent-line--gold"></div>
+      </div>
+
+      <!-- Card 2: Calendar -->
+      <div class="glass-card glass-card--2 reveal">
+        <div class="card-icon card-icon--teal">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="rgba(20, 184, 166, 0.9)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="4" width="18" height="18" rx="2"/>
+            <line x1="16" y1="2" x2="16" y2="6"/>
+            <line x1="8" y1="2" x2="8" y2="6"/>
+            <line x1="3" y1="10" x2="21" y2="10"/>
+          </svg>
+        </div>
+        <h3 class="card-title">Priority Architecture</h3>
+        <p class="card-body">
+          Your calendar tells the story of what matters. The gaps between
+          meetings, the events that never move, the time you protect fiercely
+          &mdash; that's where your values live.
+        </p>
+        <div class="card-accent-line card-accent-line--teal"></div>
+      </div>
+
+      <!-- Card 3: Sleep / Body (with radar chart) -->
+      <div class="glass-card glass-card--3 reveal">
+        <div class="card-icon card-icon--purple">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="rgba(88, 28, 135, 0.9)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+          </svg>
+        </div>
+        <h3 class="card-title">Deepest Rhythms</h3>
+        <p class="card-body">
+          Sleep data, recovery patterns, heart rate variability &mdash; the body
+          keeps its own diary.
+        </p>
+        <div class="radar-chart">
+          <svg viewBox="0 0 140 140">
+            <!-- Pentagon grid lines -->
+            <polygon points="70,15 120,48 100,105 40,105 20,48" fill="none" stroke="rgba(245,240,232,0.06)" stroke-width="0.5"/>
+            <polygon points="70,30 105,53 92,95 48,95 35,53" fill="none" stroke="rgba(245,240,232,0.05)" stroke-width="0.5"/>
+            <polygon points="70,45 90,60 83,85 57,85 50,60" fill="none" stroke="rgba(245,240,232,0.04)" stroke-width="0.5"/>
+            <!-- Data shape -->
+            <polygon points="70,22 115,55 88,100 45,90 28,50"
+              fill="rgba(212, 168, 83, 0.12)"
+              stroke="rgba(212, 168, 83, 0.5)"
+              stroke-width="1"/>
+            <!-- Data dots -->
+            <circle cx="70" cy="22" r="2.5" fill="rgba(212, 168, 83, 0.8)"/>
+            <circle cx="115" cy="55" r="2.5" fill="rgba(212, 168, 83, 0.8)"/>
+            <circle cx="88" cy="100" r="2.5" fill="rgba(212, 168, 83, 0.8)"/>
+            <circle cx="45" cy="90" r="2.5" fill="rgba(212, 168, 83, 0.8)"/>
+            <circle cx="28" cy="50" r="2.5" fill="rgba(212, 168, 83, 0.8)"/>
+            <!-- Labels -->
+            <text x="70" y="10" text-anchor="middle" fill="rgba(245,240,232,0.3)" font-family="Inter" font-size="8">Energy</text>
+            <text x="130" y="55" text-anchor="start" fill="rgba(245,240,232,0.3)" font-family="Inter" font-size="8">Recovery</text>
+            <text x="100" y="118" text-anchor="middle" fill="rgba(245,240,232,0.3)" font-family="Inter" font-size="8">Strain</text>
+            <text x="30" y="118" text-anchor="middle" fill="rgba(245,240,232,0.3)" font-family="Inter" font-size="8">Sleep</text>
+            <text x="10" y="55" text-anchor="end" fill="rgba(245,240,232,0.3)" font-family="Inter" font-size="8">HRV</text>
+          </svg>
+        </div>
+        <div class="card-accent-line card-accent-line--purple"></div>
+      </div>
+
+      <!-- Card 4: Content Identity -->
+      <div class="glass-card glass-card--4 reveal">
+        <div class="card-icon card-icon--rose">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="rgba(225, 29, 72, 0.8)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <polygon points="23 7 16 12 23 17 23 7"/>
+            <rect x="1" y="5" width="15" height="14" rx="2"/>
+          </svg>
+        </div>
+        <h3 class="card-title">Content DNA</h3>
+        <p class="card-body">
+          What you watch, what you skip, what you rewatch &mdash; your content
+          choices are fingerprints of curiosity.
+        </p>
+        <div class="card-accent-line card-accent-line--rose"></div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ======== SHIMMER DIVIDER ======== -->
+  <div class="glass-divider reveal"></div>
+
+  <!-- ======== PLATFORMS SECTION ======== -->
+  <section class="platforms-section reveal" id="platforms">
+    <p class="platforms-label">Platforms that reveal you</p>
+    <div class="platform-dots reveal-stagger">
+      <div class="platform-dot-wrapper">
+        <div class="platform-dot platform-dot--spotify"></div>
+        <span class="platform-name">Spotify</span>
+      </div>
+      <div class="platform-dot-wrapper">
+        <div class="platform-dot platform-dot--youtube"></div>
+        <span class="platform-name">YouTube</span>
+      </div>
+      <div class="platform-dot-wrapper">
+        <div class="platform-dot platform-dot--calendar"></div>
+        <span class="platform-name">Calendar</span>
+      </div>
+      <div class="platform-dot-wrapper">
+        <div class="platform-dot platform-dot--whoop"></div>
+        <span class="platform-name">Whoop</span>
+      </div>
+      <div class="platform-dot-wrapper">
+        <div class="platform-dot platform-dot--twitch"></div>
+        <span class="platform-name">Twitch</span>
+      </div>
+    </div>
+    <p class="platforms-tagline">5 platforms. <span>One soul.</span></p>
+  </section>
+
+  <!-- ======== SHIMMER DIVIDER ======== -->
+  <div class="glass-divider reveal"></div>
+
+  <!-- ======== SOUL SPECTRUM SECTION ======== -->
+  <section class="spectrum-section reveal" id="spectrum">
+    <div class="spectrum-glass">
+      <h2 class="spectrum-title">Your Soul Spectrum</h2>
+      <p class="spectrum-subtitle">Every dimension of you, illuminated</p>
+      <div class="spectrum-bars">
+        <div class="spectrum-bar-container">
+          <span class="spectrum-label">Creativity</span>
+          <div class="spectrum-bar"><div class="spectrum-bar-fill spectrum-bar-fill--1"></div></div>
+        </div>
+        <div class="spectrum-bar-container">
+          <span class="spectrum-label">Discipline</span>
+          <div class="spectrum-bar"><div class="spectrum-bar-fill spectrum-bar-fill--2"></div></div>
+        </div>
+        <div class="spectrum-bar-container">
+          <span class="spectrum-label">Curiosity</span>
+          <div class="spectrum-bar"><div class="spectrum-bar-fill spectrum-bar-fill--3"></div></div>
+        </div>
+        <div class="spectrum-bar-container">
+          <span class="spectrum-label">Intensity</span>
+          <div class="spectrum-bar"><div class="spectrum-bar-fill spectrum-bar-fill--4"></div></div>
+        </div>
+        <div class="spectrum-bar-container">
+          <span class="spectrum-label">Warmth</span>
+          <div class="spectrum-bar"><div class="spectrum-bar-fill spectrum-bar-fill--5"></div></div>
+        </div>
+      </div>
+      <p class="spectrum-cta">What will your signature reveal?</p>
+    </div>
+  </section>
+
+  <!-- ======== SHIMMER DIVIDER ======== -->
+  <div class="glass-divider reveal" style="margin-top: 40px;"></div>
+
+  <!-- ======== FOOTER ======== -->
+  <footer class="footer reveal">
+    <p class="footer-brand">TwinMe</p>
+    <p class="footer-copy">&copy; 2026 TwinMe. Your soul, digitally twinned.</p>
+  </footer>
+
+</div>
+
+<!-- ======== INTERSECTION OBSERVER FOR REVEAL ANIMATIONS ======== -->
+<script>
+(function() {
+  'use strict';
+
+  // Reveal on scroll
+  const revealElements = document.querySelectorAll('.reveal, .reveal-stagger');
+
+  const observer = new IntersectionObserver(function(entries) {
+    entries.forEach(function(entry) {
+      if (entry.isIntersecting) {
+        entry.target.classList.add('is-visible');
+      }
+    });
+  }, {
+    threshold: 0.15,
+    rootMargin: '0px 0px -40px 0px'
+  });
+
+  revealElements.forEach(function(el) {
+    observer.observe(el);
+  });
+
+  // Parallax effect on orbs based on scroll
+  var orbs = document.querySelectorAll('.orb');
+  var ticking = false;
+
+  window.addEventListener('scroll', function() {
+    if (!ticking) {
+      window.requestAnimationFrame(function() {
+        var scrollY = window.pageYOffset;
+        orbs.forEach(function(orb, i) {
+          var speed = 0.02 + (i * 0.015);
+          var yOffset = scrollY * speed;
+          orb.style.transform = 'translateY(' + (-yOffset) + 'px)';
+        });
+        ticking = false;
+      });
+      ticking = true;
+    }
+  });
+
+  // Subtle mouse-follow effect on nebula background
+  var nebulaBg = document.querySelector('.nebula-bg');
+  var mouseX = 0;
+  var mouseY = 0;
+  var currentX = 0;
+  var currentY = 0;
+
+  document.addEventListener('mousemove', function(e) {
+    mouseX = (e.clientX / window.innerWidth - 0.5) * 20;
+    mouseY = (e.clientY / window.innerHeight - 0.5) * 20;
+  });
+
+  function animateNebula() {
+    currentX += (mouseX - currentX) * 0.03;
+    currentY += (mouseY - currentY) * 0.03;
+
+    if (nebulaBg) {
+      nebulaBg.style.transform = 'translate(' + currentX + 'px, ' + currentY + 'px)';
+    }
+
+    requestAnimationFrame(animateNebula);
+  }
+
+  animateNebula();
+})();
+</script>
+
+</body>
+</html>

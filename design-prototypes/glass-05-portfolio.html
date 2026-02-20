@@ -1,0 +1,989 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=1440">
+<title>TwinMe - Soul Card Portfolio</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=Inter:wght@300;400;500;600;700&family=EB+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #060606;
+    --surface: #111111;
+    --raised: #171717;
+    --text-primary: rgba(255, 255, 255, 0.92);
+    --text-secondary: rgba(255, 255, 255, 0.55);
+    --text-tertiary: rgba(255, 255, 255, 0.30);
+    --accent: #10B981;
+    --accent-teal: #14B8A6;
+    --accent-light: #6EE7B7;
+    --accent-cyan: #06B6D4;
+    --glass-border: rgba(255, 255, 255, 0.10);
+    --glass-border-subtle: rgba(255, 255, 255, 0.05);
+    --glass-fill: rgba(17, 17, 17, 0.65);
+    --radius-lg: 20px;
+    --radius-md: 16px;
+    --radius-sm: 12px;
+    --radius-pill: 999px;
+    --font-display: 'Syne', sans-serif;
+    --font-body: 'Inter', -apple-system, sans-serif;
+    --font-accent: 'EB Garamond', Georgia, serif;
+  }
+
+  *, *::before, *::after {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+  }
+
+  body {
+    font-family: var(--font-body);
+    background: #060606;
+    color: var(--text-primary);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    overflow-x: hidden;
+    position: relative;
+    min-height: 100vh;
+  }
+
+  /* ── Animated ambient glow orbs ── */
+  .ambient-orb {
+    position: fixed;
+    border-radius: 50%;
+    pointer-events: none;
+    z-index: 0;
+    filter: blur(120px);
+  }
+
+  .ambient-orb--1 {
+    width: 600px;
+    height: 600px;
+    background: radial-gradient(circle, rgba(16, 185, 129, 0.14) 0%, transparent 70%);
+    top: -100px;
+    left: -150px;
+    animation: drift-1 25s ease-in-out infinite;
+  }
+
+  .ambient-orb--2 {
+    width: 500px;
+    height: 500px;
+    background: radial-gradient(circle, rgba(6, 182, 212, 0.12) 0%, transparent 70%);
+    top: 40%;
+    right: -200px;
+    animation: drift-2 30s ease-in-out infinite;
+  }
+
+  .ambient-orb--3 {
+    width: 450px;
+    height: 450px;
+    background: radial-gradient(circle, rgba(20, 184, 166, 0.10) 0%, transparent 70%);
+    bottom: -100px;
+    left: 30%;
+    animation: drift-3 22s ease-in-out infinite;
+  }
+
+  @keyframes drift-1 {
+    0%, 100% { transform: translate(0, 0) scale(1); }
+    33% { transform: translate(80px, 60px) scale(1.05); }
+    66% { transform: translate(-40px, 120px) scale(0.95); }
+  }
+
+  @keyframes drift-2 {
+    0%, 100% { transform: translate(0, 0) scale(1); }
+    33% { transform: translate(-60px, -80px) scale(1.08); }
+    66% { transform: translate(40px, 60px) scale(0.92); }
+  }
+
+  @keyframes drift-3 {
+    0%, 100% { transform: translate(0, 0) scale(1); }
+    33% { transform: translate(50px, -50px) scale(1.06); }
+    66% { transform: translate(-70px, -30px) scale(0.96); }
+  }
+
+  /* ── Glass Card Base ── */
+  .glass-card {
+    background: rgba(17, 17, 17, 0.65);
+    backdrop-filter: blur(16px) saturate(180%);
+    -webkit-backdrop-filter: blur(16px) saturate(180%);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 20px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.06);
+    position: relative;
+    overflow: hidden;
+  }
+
+  /* ── Section Label ── */
+  .section-label {
+    font-family: var(--font-body);
+    font-weight: 600;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--text-secondary);
+    text-align: center;
+    margin-bottom: 24px;
+  }
+
+  /* ── Emerald Glass Divider ── */
+  .emerald-divider {
+    width: 48px;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, rgba(16, 185, 129, 0.5), transparent);
+    margin: 24px auto;
+    border-radius: 1px;
+  }
+
+  /* ── Page wrapper ── */
+  .page-wrapper {
+    position: relative;
+    z-index: 1;
+  }
+
+  /* ═══════════════════════════════════════════════
+     SECTION 1: HERO — The Grand Reveal
+     ═══════════════════════════════════════════════ */
+  .hero {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    padding: 60px 24px;
+  }
+
+  .hero__glow {
+    position: absolute;
+    width: 700px;
+    height: 700px;
+    background: radial-gradient(ellipse, rgba(16, 185, 129, 0.15) 0%, transparent 60%);
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .hero__card {
+    max-width: 560px;
+    width: 100%;
+    padding: 56px 48px;
+    text-align: center;
+    position: relative;
+    z-index: 1;
+  }
+
+  .hero__avatar {
+    width: 96px;
+    height: 96px;
+    border-radius: 50%;
+    border: 2px solid rgba(16, 185, 129, 0.3);
+    background: linear-gradient(135deg, rgba(16, 185, 129, 0.15), rgba(6, 182, 212, 0.1));
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 20px;
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+  }
+
+  .hero__avatar svg {
+    width: 40px;
+    height: 40px;
+    stroke: rgba(255, 255, 255, 0.6);
+    stroke-width: 1.5;
+    fill: none;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+
+  .hero__name {
+    font-family: var(--font-body);
+    font-weight: 500;
+    font-size: 16px;
+    color: var(--text-secondary);
+    margin-bottom: 12px;
+  }
+
+  .hero__archetype {
+    font-family: var(--font-display);
+    font-weight: 800;
+    font-size: 48px;
+    color: var(--text-primary);
+    letter-spacing: -0.03em;
+    line-height: 1.1;
+    margin-bottom: 16px;
+  }
+
+  .hero__subtitle {
+    font-family: var(--font-accent);
+    font-style: italic;
+    font-weight: 400;
+    font-size: 20px;
+    color: var(--text-secondary);
+    line-height: 1.5;
+    margin-bottom: 8px;
+  }
+
+  .hero__platforms {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    margin-top: 8px;
+  }
+
+  .platform-dot {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: var(--font-body);
+    font-weight: 700;
+    font-size: 14px;
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    transition: transform 0.2s ease;
+  }
+
+  .platform-dot:hover {
+    transform: scale(1.1);
+  }
+
+  .platform-dot--spotify {
+    background: rgba(29, 185, 84, 0.15);
+    border: 1px solid rgba(29, 185, 84, 0.3);
+    color: #1DB954;
+  }
+
+  .platform-dot--calendar {
+    background: rgba(66, 133, 244, 0.15);
+    border: 1px solid rgba(66, 133, 244, 0.3);
+    color: #4285F4;
+  }
+
+  .platform-dot--whoop {
+    background: rgba(0, 165, 224, 0.15);
+    border: 1px solid rgba(0, 165, 224, 0.3);
+    color: #00A5E0;
+  }
+
+  /* ═══════════════════════════════════════════════
+     SECTION 2: Personality Radar
+     ═══════════════════════════════════════════════ */
+  .radar-section {
+    padding: 40px 24px 80px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .radar-card {
+    max-width: 560px;
+    width: 100%;
+    padding: 40px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .radar-chart {
+    width: 420px;
+    height: 280px;
+    margin-bottom: 28px;
+  }
+
+  .radar-chart .ring {
+    fill: none;
+    stroke: rgba(255, 255, 255, 0.08);
+    stroke-width: 1;
+  }
+
+  .radar-chart .axis {
+    stroke: rgba(255, 255, 255, 0.06);
+    stroke-width: 1;
+  }
+
+  .radar-chart .data-polygon {
+    fill: rgba(16, 185, 129, 0.15);
+    stroke: #10B981;
+    stroke-width: 2;
+    stroke-linejoin: round;
+  }
+
+  .radar-chart .data-dot {
+    fill: #10B981;
+    filter: drop-shadow(0 0 6px rgba(16, 185, 129, 0.7));
+  }
+
+  .radar-chart .label {
+    font-family: var(--font-body);
+    font-weight: 500;
+    font-size: 11px;
+    fill: var(--text-secondary);
+    text-anchor: middle;
+  }
+
+  .mbti-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: rgba(16, 185, 129, 0.12);
+    border: 1px solid rgba(16, 185, 129, 0.25);
+    border-radius: var(--radius-pill);
+    padding: 8px 20px;
+    margin-bottom: 12px;
+  }
+
+  .mbti-badge__text {
+    font-family: var(--font-body);
+    font-weight: 700;
+    font-size: 15px;
+    color: #10B981;
+    letter-spacing: 0.02em;
+  }
+
+  .radar-footnote {
+    font-family: var(--font-body);
+    font-weight: 400;
+    font-size: 12px;
+    color: var(--text-secondary);
+  }
+
+  /* ═══════════════════════════════════════════════
+     SECTION 3: Defining Traits — Bento Grid
+     ═══════════════════════════════════════════════ */
+  .traits-section {
+    padding: 40px 24px 80px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .traits-grid {
+    max-width: 900px;
+    width: 100%;
+    display: grid;
+    gap: 16px;
+  }
+
+  .traits-row {
+    display: grid;
+    gap: 16px;
+  }
+
+  .traits-row--wide-left {
+    grid-template-columns: 3fr 2fr;
+  }
+
+  .traits-row--wide-right {
+    grid-template-columns: 2fr 3fr;
+  }
+
+  .trait-card {
+    padding: 28px 24px;
+  }
+
+  .trait-card__header {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    margin-bottom: 14px;
+  }
+
+  .trait-card__name {
+    font-family: var(--font-body);
+    font-weight: 600;
+    font-size: 15px;
+    color: var(--text-primary);
+  }
+
+  .trait-card__pct {
+    font-family: var(--font-body);
+    font-weight: 600;
+    font-size: 13px;
+    color: var(--accent);
+  }
+
+  .trait-card__bar-track {
+    width: 100%;
+    height: 6px;
+    background: rgba(255, 255, 255, 0.06);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+    border-radius: 3px;
+    margin-bottom: 14px;
+    overflow: hidden;
+  }
+
+  .trait-card__bar-fill {
+    height: 100%;
+    border-radius: 3px;
+    background: linear-gradient(90deg, #10B981, #06B6D4);
+    box-shadow: 0 0 12px rgba(16, 185, 129, 0.6);
+    transition: width 0.8s ease;
+  }
+
+  .trait-card__evidence {
+    font-family: var(--font-body);
+    font-weight: 400;
+    font-size: 13px;
+    color: var(--text-secondary);
+    line-height: 1.6;
+    margin-bottom: 12px;
+  }
+
+  .trait-card__source {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .trait-card__source-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  .trait-card__source-name {
+    font-family: var(--font-body);
+    font-weight: 500;
+    font-size: 11px;
+    color: var(--text-secondary);
+  }
+
+  /* ═══════════════════════════════════════════════
+     SECTION 4: Narrative — Immersive Quote
+     ═══════════════════════════════════════════════ */
+  .narrative-section {
+    padding: 40px 24px 80px;
+    display: flex;
+    justify-content: center;
+  }
+
+  .narrative-card {
+    max-width: 680px;
+    width: 100%;
+    padding: 64px 48px;
+    text-align: center;
+  }
+
+  .narrative-card .emerald-divider {
+    width: 64px;
+    margin: 0 auto 40px;
+  }
+
+  .narrative-card .emerald-divider--bottom {
+    margin: 40px auto 0;
+  }
+
+  .narrative-text {
+    font-family: var(--font-accent);
+    font-weight: 400;
+    font-size: 20px;
+    line-height: 1.9;
+    color: var(--text-primary);
+  }
+
+  /* ═══════════════════════════════════════════════
+     SECTION 5: Data Sources — Glass Strip
+     ═══════════════════════════════════════════════ */
+  .sources-section {
+    padding: 20px 24px 60px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .sources-row {
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    gap: 32px;
+  }
+
+  .source-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .source-circle {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: var(--font-body);
+    font-weight: 700;
+    font-size: 18px;
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    transition: transform 0.2s ease;
+  }
+
+  .source-circle:hover {
+    transform: scale(1.08);
+  }
+
+  .source-circle--spotify {
+    background: rgba(29, 185, 84, 0.15);
+    border: 1px solid rgba(29, 185, 84, 0.3);
+    color: #1DB954;
+  }
+
+  .source-circle--calendar {
+    background: rgba(66, 133, 244, 0.15);
+    border: 1px solid rgba(66, 133, 244, 0.3);
+    color: #4285F4;
+  }
+
+  .source-circle--whoop {
+    background: rgba(0, 165, 224, 0.15);
+    border: 1px solid rgba(0, 165, 224, 0.3);
+    color: #00A5E0;
+  }
+
+  .source-name {
+    font-family: var(--font-body);
+    font-weight: 500;
+    font-size: 12px;
+    color: var(--text-secondary);
+  }
+
+  /* ═══════════════════════════════════════════════
+     SECTION 6: Footer
+     ═══════════════════════════════════════════════ */
+  .footer {
+    padding: 60px 40px;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 20px;
+  }
+
+  .footer__headline {
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: 20px;
+    color: var(--text-primary);
+    margin-bottom: 4px;
+  }
+
+  .footer__cta {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, #10B981, #14B8A6);
+    color: #fff;
+    font-family: var(--font-body);
+    font-weight: 600;
+    font-size: 15px;
+    padding: 14px 32px;
+    border-radius: var(--radius-pill);
+    border: none;
+    cursor: pointer;
+    text-decoration: none;
+    box-shadow: 0 4px 20px rgba(16, 185, 129, 0.4), 0 0 40px rgba(16, 185, 129, 0.15);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+  }
+
+  .footer__cta:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 28px rgba(16, 185, 129, 0.5), 0 0 60px rgba(16, 185, 129, 0.2);
+  }
+
+  .footer__powered {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    font-family: var(--font-body);
+    font-weight: 400;
+    font-size: 13px;
+    color: var(--text-secondary);
+    margin-top: 8px;
+  }
+
+  .footer__powered svg {
+    width: 16px;
+    height: 16px;
+    stroke: var(--accent);
+    stroke-width: 1.5;
+    fill: none;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+
+  .footer__share {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: rgba(17, 17, 17, 0.65);
+    backdrop-filter: blur(12px) saturate(180%);
+    -webkit-backdrop-filter: blur(12px) saturate(180%);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: var(--radius-pill);
+    padding: 10px 20px;
+    cursor: pointer;
+    text-decoration: none;
+    transition: border-color 0.2s ease;
+  }
+
+  .footer__share:hover {
+    border-color: rgba(255, 255, 255, 0.18);
+  }
+
+  .footer__share svg {
+    width: 16px;
+    height: 16px;
+    stroke: var(--text-secondary);
+    stroke-width: 2;
+    fill: none;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+
+  .footer__share-text {
+    font-family: var(--font-body);
+    font-weight: 500;
+    font-size: 13px;
+    color: var(--text-secondary);
+  }
+
+  .footer__date {
+    font-family: var(--font-body);
+    font-weight: 400;
+    font-size: 12px;
+    color: var(--text-tertiary);
+    margin-top: 4px;
+  }
+</style>
+</head>
+<body>
+
+<!-- Animated ambient glow orbs -->
+<div class="ambient-orb ambient-orb--1"></div>
+<div class="ambient-orb ambient-orb--2"></div>
+<div class="ambient-orb ambient-orb--3"></div>
+
+<div class="page-wrapper">
+
+  <!-- ═══════════════════════════════════════════════
+       SECTION 1: HERO — The Grand Reveal
+       ═══════════════════════════════════════════════ -->
+  <section class="hero">
+    <div class="hero__glow"></div>
+    <div class="glass-card hero__card">
+
+      <!-- Avatar -->
+      <div class="hero__avatar">
+        <svg viewBox="0 0 24 24">
+          <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/>
+          <circle cx="12" cy="7" r="4"/>
+        </svg>
+      </div>
+
+      <!-- Name -->
+      <div class="hero__name">Alex</div>
+
+      <!-- Archetype -->
+      <h1 class="hero__archetype">The Creative Explorer</h1>
+
+      <!-- Subtitle -->
+      <p class="hero__subtitle">Curious mind with a passion for discovery</p>
+
+      <!-- Emerald divider -->
+      <div class="emerald-divider"></div>
+
+      <!-- Platform dots -->
+      <div class="hero__platforms">
+        <div class="platform-dot platform-dot--spotify">S</div>
+        <div class="platform-dot platform-dot--calendar">C</div>
+        <div class="platform-dot platform-dot--whoop">W</div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ═══════════════════════════════════════════════
+       SECTION 2: Personality Radar — Glass Observatory
+       ═══════════════════════════════════════════════ -->
+  <section class="radar-section">
+    <div class="section-label">Personality Profile</div>
+    <div class="glass-card radar-card">
+
+      <!--
+        Pentagon radar chart (300x300)
+        Center: (150, 150), Radius: 120
+        Pentagon vertices (top = -90 degrees, going clockwise):
+          Top:          150 + 120*cos(-90) , 150 + 120*sin(-90)  = (150, 30)
+          Top-right:    150 + 120*cos(-18) , 150 + 120*sin(-18)  = (264.1, 112.9)
+          Bottom-right: 150 + 120*cos(54)  , 150 + 120*sin(54)   = (220.6, 247.1)
+          Bottom-left:  150 + 120*cos(126) , 150 + 120*sin(126)  = (79.4, 247.1)
+          Top-left:     150 + 120*cos(198) , 150 + 120*sin(198)  = (35.9, 112.9)
+
+        Ring scales at 0.2, 0.4, 0.6, 0.8, 1.0 of radius
+      -->
+      <svg class="radar-chart" viewBox="-60 0 420 280" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <filter id="glow">
+            <feGaussianBlur stdDeviation="2" result="coloredBlur"/>
+            <feMerge>
+              <feMergeNode in="coloredBlur"/>
+              <feMergeNode in="SourceGraphic"/>
+            </feMerge>
+          </filter>
+        </defs>
+        <!-- Concentric pentagon rings -->
+        <!-- Scale 0.2 (r=24) -->
+        <polygon class="ring" points="150,126 172.8,142.6 164.1,169.4 135.9,169.4 127.2,142.6"/>
+        <!-- Scale 0.4 (r=48) -->
+        <polygon class="ring" points="150,102 195.7,135.2 178.2,188.8 121.8,188.8 104.3,135.2"/>
+        <!-- Scale 0.6 (r=72) -->
+        <polygon class="ring" points="150,78 218.5,127.8 192.3,208.2 107.7,208.2 81.5,127.8"/>
+        <!-- Scale 0.8 (r=96) -->
+        <polygon class="ring" points="150,54 241.3,120.3 206.4,227.7 93.6,227.7 58.7,120.3"/>
+        <!-- Scale 1.0 (r=120) -->
+        <polygon class="ring" points="150,30 264.1,112.9 220.5,247.1 79.5,247.1 35.9,112.9"/>
+
+        <!-- Axis lines from center to vertices -->
+        <line class="axis" x1="150" y1="150" x2="150" y2="30"/>
+        <line class="axis" x1="150" y1="150" x2="264.1" y2="112.9"/>
+        <line class="axis" x1="150" y1="150" x2="220.5" y2="247.1"/>
+        <line class="axis" x1="150" y1="150" x2="79.5" y2="247.1"/>
+        <line class="axis" x1="150" y1="150" x2="35.9" y2="112.9"/>
+
+        <!--
+          Data polygon (asymmetric values):
+            Openness (top): 93%                -> r=111.6 -> (150, 38.4)
+            Conscientiousness (top-right): 80% -> r=96    -> (241.3, 114.9)
+            Extraversion (bottom-right): 65%   -> r=78    -> (194.6, 210.2)
+            Agreeableness (bottom-left): 72%   -> r=86.4  -> (99.2, 230.0)
+            Emotional Stability (top-left): 58%-> r=69.6  -> (83.8, 123.8)
+        -->
+        <polygon class="data-polygon" points="
+          150,38.4
+          241.3,120.3
+          195.8,213.1
+          99.2,219.9
+          83.8,128.5
+        "/>
+
+        <!-- Data dots at vertices -->
+        <circle class="data-dot" cx="150" cy="38.4" r="4.5" filter="url(#glow)"/>
+        <circle class="data-dot" cx="241.3" cy="120.3" r="4.5" filter="url(#glow)"/>
+        <circle class="data-dot" cx="195.8" cy="213.1" r="4.5" filter="url(#glow)"/>
+        <circle class="data-dot" cx="99.2" cy="219.9" r="4.5" filter="url(#glow)"/>
+        <circle class="data-dot" cx="83.8" cy="128.5" r="4.5" filter="url(#glow)"/>
+
+        <!-- Axis labels -->
+        <text class="label" x="150" y="14">Openness</text>
+        <text class="label" x="280" y="110" text-anchor="start">Conscientiousness</text>
+        <text class="label" x="232" y="266">Extraversion</text>
+        <text class="label" x="68" y="266">Agreeableness</text>
+        <text class="label" x="12" y="110" text-anchor="end">Emotional Stability</text>
+      </svg>
+
+      <!-- MBTI Badge -->
+      <div class="mbti-badge">
+        <span class="mbti-badge__text">ENTJ-A</span>
+      </div>
+
+      <!-- Footnote -->
+      <p class="radar-footnote">Based on 3 platforms</p>
+
+    </div>
+  </section>
+
+  <!-- ═══════════════════════════════════════════════
+       SECTION 3: Defining Traits — Asymmetric Bento Grid
+       ═══════════════════════════════════════════════ -->
+  <section class="traits-section">
+    <div class="section-label">What Makes You, You</div>
+
+    <div class="traits-grid">
+
+      <!-- Row 1: 60% + 40% -->
+      <div class="traits-row traits-row--wide-left">
+        <!-- Trait 1: Intellectual Curiosity -->
+        <div class="glass-card trait-card">
+          <div class="trait-card__header">
+            <span class="trait-card__name">Intellectual Curiosity</span>
+            <span class="trait-card__pct">92%</span>
+          </div>
+          <div class="trait-card__bar-track">
+            <div class="trait-card__bar-fill" style="width: 92%"></div>
+          </div>
+          <p class="trait-card__evidence">Diverse music genres spanning classical to electronic reveal an explorer's mind</p>
+          <div class="trait-card__source">
+            <span class="trait-card__source-dot" style="background: #1DB954;"></span>
+            <span class="trait-card__source-name">Spotify</span>
+          </div>
+        </div>
+
+        <!-- Trait 2: Structured Ambition -->
+        <div class="glass-card trait-card">
+          <div class="trait-card__header">
+            <span class="trait-card__name">Structured Ambition</span>
+            <span class="trait-card__pct">85%</span>
+          </div>
+          <div class="trait-card__bar-track">
+            <div class="trait-card__bar-fill" style="width: 85%"></div>
+          </div>
+          <p class="trait-card__evidence">Consistent early morning deep work blocks with strategic calendar patterns</p>
+          <div class="trait-card__source">
+            <span class="trait-card__source-dot" style="background: #4285F4;"></span>
+            <span class="trait-card__source-name">Calendar</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Row 2: 40% + 60% -->
+      <div class="traits-row traits-row--wide-right">
+        <!-- Trait 3: Physical Resilience -->
+        <div class="glass-card trait-card">
+          <div class="trait-card__header">
+            <span class="trait-card__name">Physical Resilience</span>
+            <span class="trait-card__pct">78%</span>
+          </div>
+          <div class="trait-card__bar-track">
+            <div class="trait-card__bar-fill" style="width: 78%"></div>
+          </div>
+          <p class="trait-card__evidence">High recovery consistency with disciplined sleep and recovery habits</p>
+          <div class="trait-card__source">
+            <span class="trait-card__source-dot" style="background: #00A5E0;"></span>
+            <span class="trait-card__source-name">Whoop</span>
+          </div>
+        </div>
+
+        <!-- Trait 4: Creative Fluency -->
+        <div class="glass-card trait-card">
+          <div class="trait-card__header">
+            <span class="trait-card__name">Creative Fluency</span>
+            <span class="trait-card__pct">88%</span>
+          </div>
+          <div class="trait-card__bar-track">
+            <div class="trait-card__bar-fill" style="width: 88%"></div>
+          </div>
+          <p class="trait-card__evidence">Seamless transitions between analytical and creative content consumption</p>
+          <div class="trait-card__source">
+            <span class="trait-card__source-dot" style="background: #1DB954;"></span>
+            <span class="trait-card__source-name" style="margin-right: 4px;">Spotify</span>
+            <span class="trait-card__source-dot" style="background: #4285F4;"></span>
+            <span class="trait-card__source-name">Calendar</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Row 3: 60% + 40% -->
+      <div class="traits-row traits-row--wide-left">
+        <!-- Trait 5: Social Connector -->
+        <div class="glass-card trait-card">
+          <div class="trait-card__header">
+            <span class="trait-card__name">Social Connector</span>
+            <span class="trait-card__pct">75%</span>
+          </div>
+          <div class="trait-card__bar-track">
+            <div class="trait-card__bar-fill" style="width: 75%"></div>
+          </div>
+          <p class="trait-card__evidence">Regular social events balanced with deep work periods</p>
+          <div class="trait-card__source">
+            <span class="trait-card__source-dot" style="background: #4285F4;"></span>
+            <span class="trait-card__source-name">Calendar</span>
+          </div>
+        </div>
+
+        <!-- Trait 6: Mindful Recovery -->
+        <div class="glass-card trait-card">
+          <div class="trait-card__header">
+            <span class="trait-card__name">Mindful Recovery</span>
+            <span class="trait-card__pct">82%</span>
+          </div>
+          <div class="trait-card__bar-track">
+            <div class="trait-card__bar-fill" style="width: 82%"></div>
+          </div>
+          <p class="trait-card__evidence">Intentional recovery days aligned with high-strain performance periods</p>
+          <div class="trait-card__source">
+            <span class="trait-card__source-dot" style="background: #00A5E0;"></span>
+            <span class="trait-card__source-name">Whoop</span>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ═══════════════════════════════════════════════
+       SECTION 4: Narrative — Immersive Quote
+       ═══════════════════════════════════════════════ -->
+  <section class="narrative-section">
+    <div class="glass-card narrative-card">
+      <div class="emerald-divider"></div>
+      <p class="narrative-text">
+        You are driven by an insatiable curiosity and a desire to understand the world around you. Your eclectic taste in music and content reveals a mind that thrives on variety and novelty. You connect deeply with others while maintaining your unique perspective, making you both relatable and distinctively original.
+      </p>
+      <div class="emerald-divider emerald-divider--bottom"></div>
+    </div>
+  </section>
+
+  <!-- ═══════════════════════════════════════════════
+       SECTION 5: Data Sources — Glass Strip
+       ═══════════════════════════════════════════════ -->
+  <section class="sources-section">
+    <div class="section-label">Data Sources</div>
+    <div class="sources-row">
+      <div class="source-item">
+        <div class="source-circle source-circle--spotify">S</div>
+        <span class="source-name">Spotify</span>
+      </div>
+      <div class="source-item">
+        <div class="source-circle source-circle--calendar">C</div>
+        <span class="source-name">Google Calendar</span>
+      </div>
+      <div class="source-item">
+        <div class="source-circle source-circle--whoop">W</div>
+        <span class="source-name">Whoop</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════════════════════════════════════════
+       SECTION 6: Footer
+       ═══════════════════════════════════════════════ -->
+  <footer class="footer">
+    <p class="footer__headline">Discover your soul signature</p>
+    <a href="#" class="footer__cta">Create Your Twin</a>
+
+    <div class="footer__powered">
+      <!-- Diamond icon -->
+      <svg viewBox="0 0 24 24">
+        <path d="M2.7 10.3a2.41 2.41 0 0 0 0 3.41l7.59 7.59a2.41 2.41 0 0 0 3.41 0l7.59-7.59a2.41 2.41 0 0 0 0-3.41L13.7 2.71a2.41 2.41 0 0 0-3.41 0z"/>
+      </svg>
+      Powered by TwinMe
+    </div>
+
+    <a href="#" class="footer__share">
+      <!-- Share icon -->
+      <svg viewBox="0 0 24 24">
+        <circle cx="18" cy="5" r="3"/>
+        <circle cx="6" cy="12" r="3"/>
+        <circle cx="18" cy="19" r="3"/>
+        <line x1="8.59" x2="15.42" y1="13.51" y2="17.49"/>
+        <line x1="15.41" x2="8.59" y1="6.51" y2="10.49"/>
+      </svg>
+      <span class="footer__share-text">Share</span>
+    </a>
+
+    <p class="footer__date">Updated February 2026</p>
+  </footer>
+
+</div>
+
+</body>
+</html>
