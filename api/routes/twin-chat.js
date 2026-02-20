@@ -43,6 +43,7 @@ import {
 import { shouldTriggerReflection, generateReflections, seedReflections } from '../services/reflectionEngine.js';
 import { getTwinSummary } from '../services/twinSummaryService.js';
 import { getUndeliveredInsights, markInsightsDelivered } from '../services/proactiveInsights.js';
+import { buildPersonaBlock } from '../services/personaBlockBuilder.js';
 
 
 const router = express.Router();
@@ -893,6 +894,13 @@ router.post('/message', authenticateUser, async (req, res) => {
     // Returns array format for Anthropic prompt caching: [cached_base, dynamic_context]
     let systemPrompt = buildTwinSystemPrompt(soulSignature, platformData, moltbotContext, personalityScores, twinSummary, proactiveInsights);
 
+    // Inject persona block: translates personality data into prescriptive behavioral rules
+    const personaBlock = buildPersonaBlock({ personalityScores, soulSignature, twinSummary, writingProfile, platformData });
+    if (personaBlock) {
+      systemPrompt.splice(1, 0, { type: 'text', text: `\n${personaBlock}` });
+      console.log(`[Twin Chat] Persona block (${personaBlock.length} chars)`);
+    }
+
     // Build additional dynamic context (writing profile + unified memory stream)
     let additionalContext = '';
 
@@ -1086,7 +1094,10 @@ router.post('/message', authenticateUser, async (req, res) => {
       message: assistantMessage,
       conversationId: conversationId || null,
       chatSource,
-      contextSources: buildContextSourcesMeta(twinContext)
+      contextSources: {
+        ...buildContextSourcesMeta(twinContext),
+        personaBlock: personaBlock ? personaBlock.length : 0,
+      }
     });
 
   } catch (error) {
