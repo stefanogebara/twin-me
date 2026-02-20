@@ -81,15 +81,28 @@ TwinMe's equivalent of the paper's Planning system - the twin notices things and
 - Marked `delivered` after being included in a twin response
 - High urgency sorted first for delivery priority
 
+### Twin-Driven Goal Tracking (`goalTrackingService.js`)
+The twin observes platform data patterns and SUGGESTS achievable goals. Once accepted, progress is auto-tracked from platform data and the twin weaves accountability into conversations naturally.
+
+**Tables**: `twin_goals`, `goal_progress_log` (migration: `20260220_create_twin_goals.sql`)
+**API**: `api/routes/goals.js` (7 endpoints under `/api/goals`)
+**Frontend**: `src/pages/GoalsPage.tsx` + components in `src/pages/components/goals/`
+
+Flow: Observation ingestion -> `generateGoalSuggestions()` -> user accepts -> `trackGoalProgress()` auto-tracks -> twin references in chat -> celebration on completion
+
+**Metric extraction**: Primary from structured platform data, fallback to regex on memory stream text (reflections dominate recent memories ~90%, so scan 200+ entries to find platform_data).
+
 ### Key Architecture Files
 - `api/services/memoryStreamService.js` - Write/read path for memory stream (per-utterance storage)
 - `api/services/reflectionEngine.js` - Reflection generation pipeline (recursive, depth 3)
 - `api/services/twinSummaryService.js` - Dynamic twin summary generation + caching
 - `api/services/proactiveInsights.js` - Proactive insight generation + delivery tracking
-- `api/services/observationIngestion.js` - Background platform data -> observation pipeline
+- `api/services/observationIngestion.js` - Background platform data -> observation pipeline + goal tracking hooks
+- `api/services/goalTrackingService.js` - Goal CRUD, suggestion engine, auto-progress tracking, metric extraction
 - `api/services/embeddingService.js` - Vector embeddings (text-embedding-3-small, 1536d)
 - `api/services/llmGateway.js` - Unified LLM gateway (OpenRouter + caching + cost tracking)
 - `api/routes/twin-chat.js` - Twin chat endpoint with full context pipeline
+- `api/routes/goals.js` - Goal tracking API endpoints
 - `api/config/aiModels.js` - Model tiers, pricing, OpenRouter config
 - `api/services/extractionOrchestrator.js` - Platform data extraction coordinator
 
@@ -162,10 +175,34 @@ WHOOP_CLIENT_ID, WHOOP_CLIENT_SECRET
 - **The Twin Must Have Soul**: Not ChatGPT with facts - it must EMBODY the user's personality
 - **Memory Is Everything**: The twin's quality is directly proportional to how well its memory stream works
 
+## Critical Gotchas
+
+### User IDs: public.users NOT auth.users
+The app uses `public.users.id` everywhere (user_memories, twin_goals, etc.), NOT `auth.users.id`. These are DIFFERENT UUIDs. All FK constraints reference `public.users(id)`. The test user is `167c27b5-4a30-49e1-aa79-9973d1e4e06f`.
+
+### JWT Token Format
+Auth middleware reads `payload.id || payload.userId`. The verify endpoint uses `decoded.id`. ALWAYS use `id` field when generating test tokens.
+
+### Frontend API Base URL
+`VITE_API_URL=http://127.0.0.1:3004/api` already includes `/api`. Frontend API clients use paths like `/goals` not `/api/goals` to avoid double prefix.
+
+### Memory Stream Composition
+Recent memories are dominated by reflections (~90 of last 100). Platform data observations are sparse (~4 in 200). When scanning for platform data, fetch 200+ memories and filter by `memory_type === 'platform_data'`.
+
+### Windows Process Management on Git Bash
+`taskkill /PID 12345 /F` fails in Git Bash due to path expansion (`/PID` -> `C:/Program Files/Git/PID`). Use `cmd.exe //c "taskkill /PID 12345 /F"` instead.
+
 ## NODE PROCESS MANAGEMENT
 **NEVER kill ALL node processes (crashes the CLI):**
 - `taskkill /F /IM node.exe` - NEVER
 - `pkill node` - NEVER
 
 **OK to kill specific processes by PID:**
-- `taskkill /PID 12345 /F` - OK when you know the specific PID
+- `cmd.exe //c "taskkill /PID 12345 /F"` - OK when you know the specific PID
+
+## Custom Slash Commands
+- `/verify-app` - TypeScript check + Vite build + server health
+- `/test-api <endpoint>` - Test API endpoints with auth
+- `/test-twin <message>` - Test twin chat context pipeline
+- `/code-review` - Full code review of current branch
+- `/design-review` - Design review with browser testing
