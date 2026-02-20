@@ -2,7 +2,6 @@ import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useTheme } from '../contexts/ThemeContext';
-import { useDemo } from '../contexts/DemoContext';
 import { useAnalytics } from '../contexts/AnalyticsContext';
 import { usePlatformStatus } from '../hooks/usePlatformStatus';
 import {
@@ -11,7 +10,6 @@ import {
   Lightbulb, TrendingUp, Heart, Zap
 } from 'lucide-react';
 import { SpotifyLogo, WhoopLogo, GoogleCalendarLogo, YoutubeLogo, TwitchLogo } from '@/components/PlatformLogos';
-import { Clay3DIcon } from '@/components/Clay3DIcon';
 import { ChatEmptyState } from '@/components/chat/ChatEmptyState';
 import { MessageList } from '@/components/chat/MessageList';
 import { ChatInputArea } from '@/components/chat/ChatInputArea';
@@ -46,7 +44,6 @@ const TalkToTwin = () => {
   const navigate = useNavigate();
   const { user, isSignedIn } = useAuth();
   const { theme } = useTheme();
-  const { isDemoMode } = useDemo();
   const { trackFunnel } = useAnalytics();
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
@@ -86,61 +83,27 @@ const TalkToTwin = () => {
   };
 
   const platforms = [
-    { name: 'Spotify', icon: <SpotifyLogo className="w-4 h-4" />, key: 'spotify', color: '#1DB954', connected: isDemoMode || platformStatus?.spotify?.connected },
-    { name: 'Whoop', icon: <WhoopLogo className="w-4 h-4" />, key: 'whoop', color: '#00A5E0', connected: isDemoMode || platformStatus?.whoop?.connected },
-    { name: 'Calendar', icon: <GoogleCalendarLogo className="w-4 h-4" />, key: 'google_calendar', color: '#4285F4', connected: isDemoMode || platformStatus?.google_calendar?.connected },
+    { name: 'Spotify', icon: <SpotifyLogo className="w-4 h-4" />, key: 'spotify', color: '#1DB954', connected: platformStatus?.spotify?.connected },
+    { name: 'Whoop', icon: <WhoopLogo className="w-4 h-4" />, key: 'whoop', color: '#00A5E0', connected: platformStatus?.whoop?.connected },
+    { name: 'Calendar', icon: <GoogleCalendarLogo className="w-4 h-4" />, key: 'calendar', color: '#4285F4', connected: platformStatus?.google_calendar?.connected },
     { name: 'YouTube', icon: <YoutubeLogo className="w-4 h-4" />, key: 'youtube', color: '#FF0000', connected: platformStatus?.youtube?.connected },
     { name: 'Twitch', icon: <TwitchLogo className="w-4 h-4" />, key: 'twitch', color: '#9146FF', connected: platformStatus?.twitch?.connected },
   ];
 
   const connectedPlatforms = platforms.filter(p => p.connected);
 
-  const DEMO_RESPONSES: Record<string, string> = {
-    'What patterns do you see?': "Based on Alex's data, I see some fascinating patterns:\n\n**Music & Energy Cycles**: You tend to listen to ambient/electronic music (Tycho, Boards of Canada) during deep work sessions, and shift to more energetic indie rock in the evenings. This correlates beautifully with your Whoop recovery scores.\n\n**Schedule Rhythm**: Your most productive blocks are 9-11 AM, followed by a creative burst around 3 PM. You're protecting your mornings well - only 2 meetings before noon this week.\n\n**Recovery Insight**: On days with HRV above 60ms, your listening shifts toward exploratory new artists. Lower recovery days? You return to comfort favorites.",
-    'How am I doing today?': "Looking at your data today, Alex:\n\n**Recovery**: 72% (Green zone) - Your body is well-recovered. HRV at 58ms is above your baseline.\n\n**Sleep**: 7.2 hours with good deep sleep. This sets you up for a productive day.\n\n**Schedule**: You have 4 events today, with your next meeting in about an hour. Your afternoon has a nice 2-hour focus block.\n\n**Music Mood**: Your recent listening (Nils Frahm, Olafur Arnalds) suggests you're in a reflective, creative headspace.\n\nOverall: You're in a great position to tackle creative or strategic work today.",
-    'Recommend music for now': "Based on your current state:\n\n**Recovery**: 72% (good energy available)\n**Time**: Afternoon focus block ahead\n**Recent mood**: Reflective/creative\n\nI'd recommend:\n1. **Tycho - Dive** (Album) - Perfect for sustained focus, matches your current energy\n2. **Kiasmos - Blurred** - Minimal techno that you've played during your most productive sessions\n3. **Bonobo - Migration** - Layered electronic that pairs well with your green recovery days\n\nThese artists appear in 78% of your high-productivity listening sessions.",
-    'Analyze my week': "Here's your week in review, Alex:\n\n**Energy**: Average recovery of 68%, with Thursday being your peak day (82%). Monday was the lowest at 54% - perhaps that intense weekend workout.\n\n**Schedule**: 12 meetings total, 3 deep work blocks. You're spending 40% of your time in collaborative mode, which aligns with your slight extraverted tendency.\n\n**Music Evolution**: Started the week with high-energy playlists (Monday motivation), transitioned to ambient mid-week, and ended with discovery mode on Friday - exploring 4 new artists.\n\n**Pattern**: Your best work sessions happen when recovery is above 65% AND you have at least a 90-minute uninterrupted block. This happened 3 times this week."
-  };
-
-  const handleDemoMessage = (message: string) => {
-    setIsTyping(true);
-    setTimeout(() => {
-      const matchedKey = Object.keys(DEMO_RESPONSES).find(key =>
-        message.toLowerCase().includes(key.toLowerCase().slice(0, 20))
-      );
-
-      const responseText = matchedKey
-        ? DEMO_RESPONSES[matchedKey]
-        : `That's a great question! Based on Alex's connected platforms (Spotify, Whoop, Calendar), I can see patterns in your music taste, health metrics, and schedule.\n\nIn the full version, I'd analyze your actual data to give you personalized insights. For now, try asking me:\n- "What patterns do you see?"\n- "How am I doing today?"\n- "Recommend music for now"\n- "Analyze my week"`;
-
-      const assistantMessage: Message = {
-        id: crypto.randomUUID(),
-        role: 'assistant',
-        content: responseText,
-        timestamp: new Date(),
-        contextUsed: {
-          memories: 3,
-          platforms: ['spotify', 'whoop', 'google_calendar'],
-          personality: true
-        }
-      };
-      setMessages(prev => [...prev, assistantMessage]);
-      setIsTyping(false);
-    }, 1200 + Math.random() * 800);
-  };
-
   const quickActions = [
-    { label: 'What patterns do you see?', icon: <TrendingUp className="w-4 h-4" /> },
     { label: 'How am I doing today?', icon: <Heart className="w-4 h-4" /> },
-    { label: 'Recommend music for now', icon: <Clay3DIcon name="headphones" size={16} /> },
-    { label: 'Analyze my week', icon: <Lightbulb className="w-4 h-4" /> },
+    { label: 'What have you noticed about me lately?', icon: <TrendingUp className="w-4 h-4" /> },
+    { label: 'What should I do this evening?', icon: <Lightbulb className="w-4 h-4" /> },
+    { label: "What's on my mind right now?", icon: <Zap className="w-4 h-4" /> },
   ];
 
   useEffect(() => {
-    if (!isSignedIn && !isDemoMode) {
+    if (!isSignedIn) {
       navigate('/auth');
     }
-  }, [isSignedIn, isDemoMode, navigate]);
+  }, [isSignedIn, navigate]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -153,7 +116,7 @@ const TalkToTwin = () => {
   }, [user?.id]);
 
   const fetchUsage = async () => {
-    if (isDemoMode || !user?.id) return;
+    if (!user?.id) return;
     try {
       const token = localStorage.getItem('auth_token');
       const res = await fetch(`${API_BASE}/chat/usage`, {
@@ -171,26 +134,11 @@ const TalkToTwin = () => {
 
   useEffect(() => {
     fetchUsage();
-  }, [user?.id, isDemoMode]);
+  }, [user?.id]);
 
   const loadContext = async () => {
     if (!user?.id) return;
     setIsLoadingContext(true);
-
-    if (isDemoMode) {
-      const items: ContextItem[] = [
-        { type: 'platform', label: 'Spotify', value: 'Connected', icon: <SpotifyLogo className="w-4 h-4" /> },
-        { type: 'platform', label: 'Whoop', value: 'Connected', icon: <WhoopLogo className="w-4 h-4" /> },
-        { type: 'platform', label: 'Calendar', value: 'Connected', icon: <GoogleCalendarLogo className="w-4 h-4" /> },
-        { type: 'memory', label: 'Long-term Memory', value: '24 memories stored' },
-        { type: 'fact', label: 'Music Taste', value: 'Prefers ambient and electronic' },
-        { type: 'fact', label: 'Schedule', value: 'Morning person, protects focus time' },
-        { type: 'personality', label: 'Personality', value: '3 cluster profiles' }
-      ];
-      setContextItems(items);
-      setIsLoadingContext(false);
-      return;
-    }
 
     try {
       const token = localStorage.getItem('auth_token');
@@ -258,11 +206,6 @@ const TalkToTwin = () => {
     setMessages(prev => [...prev, userMessage]);
     const currentInput = inputMessage;
     setInputMessage('');
-
-    if (isDemoMode) {
-      handleDemoMessage(currentInput);
-      return;
-    }
 
     setIsTyping(true);
 
@@ -407,7 +350,7 @@ const TalkToTwin = () => {
           )}
         </div>
 
-        {limitReached && !isDemoMode && (
+        {limitReached && (
           <div
             className="mx-4 mb-2 p-4 rounded-2xl flex flex-col sm:flex-row items-center justify-between gap-3"
             style={{
@@ -454,9 +397,8 @@ const TalkToTwin = () => {
           onKeyDown={handleKeyPress}
           onSend={handleSendMessage}
           isTyping={isTyping}
-          isDisabled={connectedPlatforms.length === 0 && !isDemoMode}
+          isDisabled={connectedPlatforms.length === 0}
           limitReached={limitReached}
-          isDemoMode={isDemoMode}
           hasConnectedPlatforms={connectedPlatforms.length > 0}
           chatUsage={chatUsage}
           colors={colors}

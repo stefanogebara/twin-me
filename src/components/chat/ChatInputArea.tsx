@@ -31,7 +31,6 @@ interface ChatInputAreaProps {
   isTyping: boolean;
   isDisabled: boolean;
   limitReached: boolean;
-  isDemoMode: boolean;
   hasConnectedPlatforms: boolean;
   chatUsage: ChatUsage | null;
   colors: Colors;
@@ -46,7 +45,6 @@ export const ChatInputArea = forwardRef<HTMLTextAreaElement, ChatInputAreaProps>
     isTyping,
     isDisabled,
     limitReached,
-    isDemoMode,
     hasConnectedPlatforms,
     chatUsage,
     colors,
@@ -62,7 +60,7 @@ export const ChatInputArea = forwardRef<HTMLTextAreaElement, ChatInputAreaProps>
         >
           <textarea
             ref={ref}
-            placeholder={hasConnectedPlatforms || isDemoMode
+            placeholder={hasConnectedPlatforms
               ? "Ask your twin anything..."
               : "Connect platforms to start chatting..."
             }
@@ -104,7 +102,7 @@ export const ChatInputArea = forwardRef<HTMLTextAreaElement, ChatInputAreaProps>
             </div>
 
             <div className="flex items-center gap-2">
-              {chatUsage && chatUsage.tier === 'free' && !isDemoMode && (
+              {chatUsage && chatUsage.tier === 'free' && (
                 <div
                   className="flex items-center gap-1 px-2 py-1 rounded-lg text-xs"
                   style={{
