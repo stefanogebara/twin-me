@@ -14,6 +14,8 @@ import { complete, TIER_CHAT } from '../services/llmGateway.js';
 import { authenticateUser } from '../middleware/auth.js';
 import { supabaseAdmin } from '../services/database.js';
 import { addMemory } from '../services/memoryStreamService.js';
+import { shouldTriggerReflection, generateReflections } from '../services/reflectionEngine.js';
+import { generateGoalSuggestions } from '../services/goalTrackingService.js';
 
 const router = express.Router();
 
@@ -124,34 +126,99 @@ Respond in this exact JSON format:
         });
     }
 
-    // Fire-and-forget: store calibration insights + signature as memories
+    // Fire-and-forget: store calibration insights + signature as memories with domain tags
     if (userId && signature) {
       const memoryPromises = [];
 
-      // Store each calibration insight as a fact memory
+      // Store each calibration insight as a domain-tagged fact memory
       for (const insight of insights) {
-        if (insight) {
-          memoryPromises.push(
-            addMemory(userId, insight, 'fact', { source: 'onboarding_calibration' }, {
-              skipImportance: true,
-              importanceScore: 6,
-            })
-          );
-        }
+        if (!insight) continue;
+        // Parse domain tag if present: "[motivation] Some insight"
+        const domainMatch = insight.match(/^\[(\w+)\]\s*/);
+        const domain = domainMatch ? domainMatch[1] : 'personality';
+        const cleanInsight = domainMatch ? insight.replace(domainMatch[0], '') : insight;
+
+        memoryPromises.push(
+          addMemory(userId, cleanInsight, 'fact', {
+            source: 'onboarding_calibration',
+            domain,
+            expertPersona: domain === 'motivation' ? 'Motivation Analyst'
+              : domain === 'lifestyle' ? 'Lifestyle Analyst'
+              : domain === 'cultural' ? 'Cultural Identity Expert'
+              : domain === 'social' ? 'Social Dynamics Analyst'
+              : 'Personality Psychologist',
+          }, {
+            skipImportance: true,
+            importanceScore: 7,
+          })
+        );
+      }
+
+      // Store enrichment facts as high-importance memories
+      const enrichFacts = [];
+      if (enrichmentContext.company) enrichFacts.push(`Works at ${enrichmentContext.company}`);
+      if (enrichmentContext.title) enrichFacts.push(`Role: ${enrichmentContext.title}`);
+      if (enrichmentContext.location) enrichFacts.push(`Based in ${enrichmentContext.location}`);
+      if (enrichmentContext.bio && enrichmentContext.bio.length > 20) {
+        enrichFacts.push(`Bio: ${enrichmentContext.bio.substring(0, 300)}`);
+      }
+
+      for (const fact of enrichFacts) {
+        memoryPromises.push(
+          addMemory(userId, fact, 'fact', {
+            source: 'onboarding_enrichment',
+            domain: 'motivation',
+          }, {
+            skipImportance: true,
+            importanceScore: 8,
+          })
+        );
       }
 
       // Store the signature itself
       const sigContent = `Soul Signature: ${signature.archetype_name} — ${signature.first_impression || signature.signature_quote}`;
       memoryPromises.push(
-        addMemory(userId, sigContent, 'fact', { source: 'onboarding_signature' }, {
+        addMemory(userId, sigContent, 'fact', {
+          source: 'onboarding_signature',
+          domain: 'personality',
+        }, {
           skipImportance: true,
           importanceScore: 8,
         })
       );
 
-      Promise.all(memoryPromises).then(results => {
+      Promise.all(memoryPromises).then(async (results) => {
         const stored = results.filter(Boolean).length;
         console.log(`[Instant Signature] Stored ${stored} calibration/signature memories for user ${userId}`);
+
+        // Post-onboarding hooks: trigger reflections + goal suggestions
+        try {
+          const shouldReflect = await shouldTriggerReflection(userId);
+          if (shouldReflect) {
+            console.log(`[Instant Signature] Triggering post-onboarding reflections for user ${userId}`);
+            generateReflections(userId).catch(err =>
+              console.warn(`[Instant Signature] Reflection error:`, err.message)
+            );
+          }
+        } catch (reflErr) {
+          console.warn('[Instant Signature] Reflection check failed:', reflErr.message);
+        }
+
+        // Generate first goal suggestion
+        generateGoalSuggestions(userId).catch(err =>
+          console.warn(`[Instant Signature] Goal suggestion error:`, err.message)
+        );
+
+        // Set onboarding_completed_at
+        if (supabaseAdmin) {
+          supabaseAdmin
+            .from('users')
+            .update({ onboarding_completed_at: new Date().toISOString() })
+            .eq('id', userId)
+            .then(({ error }) => {
+              if (error) console.warn('[Instant Signature] onboarding_completed_at update error:', error.message);
+            });
+        }
       }).catch(err => {
         console.warn('[Instant Signature] Memory storage failed (non-blocking):', err.message);
       });

@@ -1,15 +1,16 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowRight, Loader2 } from 'lucide-react';
+import { ArrowRight, Loader2, Sparkles } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
-import { enrichmentService, QuickEnrichmentData, EnrichmentData } from '@/services/enrichmentService';
+import { enrichmentService, QuickEnrichmentData, EnrichmentData, PersonalizedQuestion } from '@/services/enrichmentService';
 import SoulOrb from './components/SoulOrb';
 import ParticleField from './components/ParticleField';
 import DataRevealItem from './components/DataRevealItem';
-import QuickQuestionCard, { QUICK_QUESTIONS } from './components/QuickQuestionCard';
+import PersonalizedQuestions from './components/PersonalizedQuestion';
 import CompactPlatformConnect from './components/CompactPlatformConnect';
 import CorrectionForm from './components/CorrectionForm';
+import DeepInterview from './components/DeepInterview';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
 
@@ -45,7 +46,7 @@ const inferNameFromEmail = (email: string): string => {
   return result.length === 0 ? local.charAt(0).toUpperCase() + local.slice(1) : result.join(' ');
 };
 
-type FlowPhase = 'entry' | 'reveal' | 'deepening' | 'complete';
+type FlowPhase = 'entry' | 'reveal' | 'deepening' | 'deep-interview' | 'complete';
 type OrbPhase = 'dormant' | 'awakening' | 'alive';
 
 interface DataPoint {
@@ -74,9 +75,14 @@ const NewDiscoverFlow: React.FC = () => {
   const [loading, setLoading] = useState(true);
 
   // Deepening state
+  const [personalizedQuestions, setPersonalizedQuestions] = useState<PersonalizedQuestion[]>([]);
+  const [loadingQuestions, setLoadingQuestions] = useState(false);
   const [answers, setAnswers] = useState<Record<string, string>>({});
+  const [questionDomains, setQuestionDomains] = useState<Record<string, string>>({});
+  const [allQAnswered, setAllQAnswered] = useState(false);
   const [signature, setSignature] = useState<SoulSignature | null>(null);
   const [generatingSignature, setGeneratingSignature] = useState(false);
+  const [twinIntro, setTwinIntro] = useState('');
 
   // Correction flow state
   type RevealSubView = 'data' | 'correction';
@@ -250,7 +256,7 @@ const NewDiscoverFlow: React.FC = () => {
     if (data.discovered_twitter_url) addDataPoint({ icon: 'twitter', label: 'Twitter', value: 'Profile found' });
   };
 
-  const handleAdvanceToDeepening = () => {
+  const handleAdvanceToDeepening = async () => {
     // Confirm enrichment data if we have it
     if (user && enrichmentDataRef.current) {
       const data = enrichmentDataRef.current;
@@ -263,7 +269,31 @@ const NewDiscoverFlow: React.FC = () => {
         github_url: data.discovered_github_url || quickDataRef.current?.discovered_github_url || undefined,
       }).catch(() => {});
     }
+
     setPhase('deepening');
+
+    // Fetch personalized questions from backend
+    setLoadingQuestions(true);
+    try {
+      const enrichment = enrichmentDataRef.current;
+      const quick = quickDataRef.current;
+      const enrichmentContext = {
+        name: enrichment?.discovered_name || quick?.discovered_name || user?.fullName || undefined,
+        company: enrichment?.discovered_company || quick?.discovered_company || undefined,
+        title: enrichment?.discovered_title || undefined,
+        bio: enrichment?.discovered_bio || enrichment?.discovered_summary || quick?.discovered_bio || undefined,
+        location: enrichment?.discovered_location || quick?.discovered_location || undefined,
+      };
+
+      const result = await enrichmentService.fetchQuickQuestions(enrichmentContext);
+      if (result.success && result.questions?.length > 0) {
+        setPersonalizedQuestions(result.questions);
+      }
+    } catch {
+      // Fallback handled by component — empty array means show nothing until loaded
+    } finally {
+      setLoadingQuestions(false);
+    }
   };
 
   const handleNotMe = () => {
@@ -343,17 +373,20 @@ const NewDiscoverFlow: React.FC = () => {
     setPhase('deepening');
   };
 
-  const handleQuestionAnswer = (questionId: string, answer: string) => {
+  const handleQuestionAnswer = (questionId: string, answer: string, domain: string) => {
     setAnswers(prev => ({ ...prev, [questionId]: answer }));
+    setQuestionDomains(prev => ({ ...prev, [questionId]: domain }));
   };
 
-  const allQuestionsAnswered = QUICK_QUESTIONS.every(q => answers[q.id]);
+  const handleAllQuestionsAnswered = () => {
+    setAllQAnswered(true);
+  };
 
   // Generate soul signature when all questions are answered
   useEffect(() => {
-    if (!allQuestionsAnswered || generatingSignature || signature) return;
+    if (!allQAnswered || generatingSignature || signature) return;
     generateSignature();
-  }, [allQuestionsAnswered]);
+  }, [allQAnswered]);
 
   const generateSignature = async () => {
     if (!user) return;
@@ -372,10 +405,11 @@ const NewDiscoverFlow: React.FC = () => {
         bio: enrichment?.discovered_bio || enrichment?.discovered_summary || quick?.discovered_bio || undefined,
       };
 
-      // Convert question answers to calibration insights
+      // Convert question answers to calibration insights with domain tags
       const calibrationInsights = Object.entries(answers).map(([qId, answer]) => {
-        const question = QUICK_QUESTIONS.find(q => q.id === qId);
-        return question ? `${question.question} "${answer}"` : '';
+        const question = personalizedQuestions.find(q => q.id === qId);
+        const domain = questionDomains[qId] || 'personality';
+        return question ? `[${domain}] ${question.text} "${answer}"` : '';
       }).filter(Boolean);
 
       const response = await fetch(`${API_URL}/onboarding/instant-signature`, {
@@ -395,6 +429,9 @@ const NewDiscoverFlow: React.FC = () => {
         const result = await response.json();
         if (result.success && result.signature) {
           setSignature(result.signature);
+          if (result.twinIntro) {
+            setTwinIntro(result.twinIntro);
+          }
         }
       }
     } catch (error) {
@@ -661,28 +698,46 @@ const NewDiscoverFlow: React.FC = () => {
                   className="text-2xl md:text-3xl mb-2"
                   style={{ fontFamily: 'var(--font-heading)', color: '#E8D5B7' }}
                 >
-                  A few quick taps
+                  {signature ? 'Your Soul Signature' : 'A few quick taps'}
                 </h2>
-                <p
-                  className="text-sm opacity-50"
-                  style={{ fontFamily: 'var(--font-body)', color: '#E8D5B7' }}
-                >
-                  Help us understand your vibe
-                </p>
+                {!signature && (
+                  <p
+                    className="text-sm opacity-50"
+                    style={{ fontFamily: 'var(--font-body)', color: '#E8D5B7' }}
+                  >
+                    Help your twin understand who you are
+                  </p>
+                )}
               </motion.div>
 
-              {/* Quick Questions */}
-              {QUICK_QUESTIONS.map((q, i) => (
-                <QuickQuestionCard
-                  key={q.id}
-                  question={q}
-                  selectedAnswer={answers[q.id] || null}
-                  onAnswer={handleQuestionAnswer}
-                  index={i}
-                />
-              ))}
+              {/* Personalized Questions — show while not yet all answered */}
+              {!allQAnswered && (
+                <>
+                  {loadingQuestions ? (
+                    <motion.div
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      className="flex items-center justify-center gap-3 py-12"
+                    >
+                      <Loader2 className="w-5 h-5 animate-spin" style={{ color: '#E8D5B7' }} />
+                      <span
+                        className="text-sm"
+                        style={{ color: 'rgba(232, 213, 183, 0.6)', fontFamily: 'var(--font-body)' }}
+                      >
+                        Preparing your questions...
+                      </span>
+                    </motion.div>
+                  ) : personalizedQuestions.length > 0 ? (
+                    <PersonalizedQuestions
+                      questions={personalizedQuestions}
+                      onAnswer={handleQuestionAnswer}
+                      onAllAnswered={handleAllQuestionsAnswered}
+                    />
+                  ) : null}
+                </>
+              )}
 
-              {/* Platform Connect */}
+              {/* Platform Connect — always visible */}
               <motion.div
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
@@ -760,31 +815,92 @@ const NewDiscoverFlow: React.FC = () => {
                 )}
               </AnimatePresence>
 
-              {/* CTA Button */}
-              <motion.button
-                initial={{ opacity: 0 }}
-                animate={{ opacity: allQuestionsAnswered ? 1 : 0.4 }}
-                onClick={handleComplete}
-                disabled={!allQuestionsAnswered && !signature}
-                className="w-full px-6 py-4 rounded-xl text-base font-medium transition-all duration-200 hover:scale-[1.01] flex items-center justify-center gap-2 mb-8"
-                style={{
-                  background: allQuestionsAnswered
-                    ? 'linear-gradient(135deg, #E8D5B7 0%, #D4C4A8 100%)'
-                    : 'transparent',
-                  color: allQuestionsAnswered ? '#0C0C0C' : '#E8D5B7',
-                  border: allQuestionsAnswered ? 'none' : '1px solid rgba(232, 213, 183, 0.2)',
-                  fontFamily: 'var(--font-body)',
-                }}
-              >
-                {generatingSignature ? (
-                  <Loader2 className="w-5 h-5 animate-spin" />
-                ) : (
-                  <>
+              {/* Post-signature: Go Deeper or Enter World */}
+              {signature && (
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.3 }}
+                  className="flex flex-col gap-3 mb-8"
+                >
+                  {/* Primary CTA — Enter My World */}
+                  <motion.button
+                    onClick={handleComplete}
+                    className="w-full px-6 py-4 rounded-xl text-base font-medium transition-all duration-200 hover:scale-[1.01] flex items-center justify-center gap-2"
+                    style={{
+                      background: 'linear-gradient(135deg, #E8D5B7 0%, #D4C4A8 100%)',
+                      color: '#0C0C0C',
+                      fontFamily: 'var(--font-body)',
+                    }}
+                  >
                     Enter My World
                     <ArrowRight className="w-4 h-4" />
-                  </>
-                )}
-              </motion.button>
+                  </motion.button>
+
+                  {/* Secondary CTA — Go Deeper */}
+                  <motion.button
+                    onClick={() => setPhase('deep-interview')}
+                    className="w-full px-6 py-3 rounded-xl text-sm transition-all duration-200 hover:scale-[1.01] flex items-center justify-center gap-2"
+                    style={{
+                      background: 'transparent',
+                      border: '1px solid rgba(232, 213, 183, 0.2)',
+                      color: 'rgba(232, 213, 183, 0.7)',
+                      fontFamily: 'var(--font-body)',
+                    }}
+                  >
+                    <Sparkles className="w-4 h-4" />
+                    Go Deeper — Let your twin really know you
+                  </motion.button>
+                </motion.div>
+              )}
+
+              {/* Pre-signature CTA (questions not done yet) */}
+              {!signature && !generatingSignature && allQAnswered && (
+                <motion.button
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 0.4 }}
+                  onClick={handleComplete}
+                  disabled
+                  className="w-full px-6 py-4 rounded-xl text-base font-medium flex items-center justify-center gap-2 mb-8"
+                  style={{
+                    background: 'transparent',
+                    color: '#E8D5B7',
+                    border: '1px solid rgba(232, 213, 183, 0.2)',
+                    fontFamily: 'var(--font-body)',
+                  }}
+                >
+                  <Loader2 className="w-5 h-5 animate-spin" />
+                </motion.button>
+              )}
+            </motion.div>
+          )}
+
+          {/* ===== PHASE: DEEP INTERVIEW ===== */}
+          {phase === 'deep-interview' && (
+            <motion.div
+              key="deep-interview"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              transition={{ duration: 0.6 }}
+              className="w-full max-w-lg"
+            >
+              <DeepInterview
+                enrichmentContext={{
+                  name: enrichmentDataRef.current?.discovered_name || quickDataRef.current?.discovered_name || user.fullName || inferNameFromEmail(user.email),
+                  company: enrichmentDataRef.current?.discovered_company || quickDataRef.current?.discovered_company || undefined,
+                  title: enrichmentDataRef.current?.discovered_title || undefined,
+                  location: enrichmentDataRef.current?.discovered_location || quickDataRef.current?.discovered_location || undefined,
+                  bio: enrichmentDataRef.current?.discovered_bio || enrichmentDataRef.current?.discovered_summary || quickDataRef.current?.discovered_bio || undefined,
+                }}
+                onComplete={(enhancedSignature) => {
+                  if (enhancedSignature) {
+                    setSignature(enhancedSignature);
+                  }
+                  handleComplete();
+                }}
+                onSkip={handleComplete}
+              />
             </motion.div>
           )}
         </AnimatePresence>
