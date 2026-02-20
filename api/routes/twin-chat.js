@@ -2,8 +2,7 @@
  * Twin Chat API Routes
  * Provides the /api/chat/message endpoint for the Chat with Twin feature
  *
- * Enhanced with Moltbot integration:
- * - Memory-aware responses from episodic/semantic layers
+ * - Memory-aware responses via unified memory stream (Generative Agents architecture)
  * - Cluster personality context
  * - Research-backed trait evidence
  * - Conversation storage in episodic memory
@@ -12,7 +11,6 @@
 
 import express from 'express';
 import axios from 'axios';
-import { CLAUDE_MODEL_INTERACTIVE as CLAUDE_MODEL } from '../config/aiModels.js';
 import { complete, TIER_CHAT } from '../services/llmGateway.js';
 import { authenticateUser } from '../middleware/auth.js';
 import { serverDb, supabaseAdmin } from '../services/database.js';
@@ -99,11 +97,6 @@ function checkChatRateLimit(userId) {
   return { allowed: true, used: fresh.length + 1, limit: CHAT_RATE_LIMIT_MAX, retryAfterMs: null };
 }
 
-// Track OpenClaw availability
-let openClawAvailable = null; // null = unknown, true = available, false = use Claude directly
-let openClawCheckTime = 0; // Last time we checked availability
-const OPENCLAW_CHECK_INTERVAL = 60000; // Re-check every 60 seconds
-
 // Platform data cache - prevents redundant API calls during conversations
 const platformDataCache = new Map();
 const PLATFORM_CACHE_TTL = 5 * 60 * 1000; // 5 minutes
@@ -122,104 +115,6 @@ setInterval(() => {
     }
   }
 }, 10 * 60 * 1000);
-
-/**
- * Check if OpenClaw gateway is available
- * Caches result for 60 seconds to avoid constant checks
- */
-async function checkOpenClawAvailability() {
-  const now = Date.now();
-
-  // Use cached result if recent
-  if (openClawAvailable !== null && (now - openClawCheckTime) < OPENCLAW_CHECK_INTERVAL) {
-    return openClawAvailable;
-  }
-
-  try {
-    // Get a client and check health
-    const client = getMoltbotClient('health-check');
-    await client.connect();
-    const health = await client.getHealth();
-
-    openClawAvailable = health?.ok === true;
-    openClawCheckTime = now;
-
-    if (openClawAvailable) {
-      console.log('[Twin Chat] OpenClaw gateway available');
-    }
-
-    return openClawAvailable;
-  } catch (error) {
-    console.warn('[Twin Chat] OpenClaw not available:', error.message);
-    openClawAvailable = false;
-    openClawCheckTime = now;
-    return false;
-  }
-}
-
-/**
- * Send chat message via OpenClaw gateway
- * Uses persistent sessions for conversation continuity
- */
-async function chatViaOpenClaw(userId, message, systemPrompt, conversationHistory, conversationId) {
-  const client = getMoltbotClient(userId);
-
-  try {
-    await client.connect();
-
-    // Build session key from conversation ID or create new one
-    const sessionKey = conversationId || `twin_chat_${userId}_${Date.now()}`;
-
-    // For OpenClaw, we include context in the message itself for new conversations
-    // For ongoing conversations, OpenClaw maintains session history
-    let fullMessage;
-
-    if (conversationHistory.length === 0) {
-      // First message: include system context
-      fullMessage = `[Context for this conversation - respond in character]\n\n${systemPrompt}\n\n---\n\nUser's message:\n\n${message}`;
-    } else {
-      // Continuing conversation - OpenClaw has session history
-      fullMessage = message;
-    }
-
-    // Use OpenClaw's chat.send method
-    // chatSend(message, options) signature
-    const response = await client.chatSend(fullMessage, {
-      sessionKey,
-      model: CLAUDE_MODEL,
-      maxTokens: 2048,
-      temperature: 0.7
-    });
-
-    // Extract the response text from OpenClaw's response format
-    let responseText;
-    if (typeof response === 'string') {
-      responseText = response;
-    } else if (response?.content) {
-      // Claude format: { content: [{ text: "..." }] }
-      responseText = Array.isArray(response.content)
-        ? response.content[0]?.text || response.content[0]
-        : response.content;
-    } else if (response?.message) {
-      responseText = response.message;
-    } else if (response?.text) {
-      responseText = response.text;
-    } else {
-      responseText = JSON.stringify(response);
-    }
-
-    return {
-      success: true,
-      message: responseText,
-      sessionKey,
-      source: 'openclaw'
-    };
-  } catch (error) {
-    console.error('[Twin Chat] OpenClaw chat error:', error.message);
-    throw error;
-  }
-}
-
 
 /**
  * STATIC BASE INSTRUCTIONS (cached via Anthropic prompt caching)
@@ -295,6 +190,14 @@ Before writing your response, silently review:
 4. What's the most interesting or useful thread to pull on?
 5. What do I NOT know? (so I don't accidentally make things up)
 Then compose your response grounded in this reasoning. Never output this reasoning - just use it internally to produce a more thoughtful, grounded reply.
+
+GOAL ACCOUNTABILITY (when active goals are present):
+- Reference active goals naturally in conversation - don't force them into every message.
+- Celebrate streaks genuinely ("nice, 5 days in a row!")
+- When someone is falling behind, be supportive not nagging ("yesterday was tough, but today's a new day")
+- Connect goals to other data ("your recovery jumped after you started sleeping more - the goal is working!")
+- If a goal is close to completion, build excitement about it
+- Never shame or guilt-trip about missed days
 
 DATA GROUNDING (critical - prevents hallucination):
 - ONLY reference facts, events, and patterns that appear in the context provided to you.
@@ -625,16 +528,13 @@ async function getSoulSignature(userId) {
   try {
     const { data, error } = await supabaseAdmin
       .from('soul_signatures')
-      .select('*')
+      .select('archetype_name, archetype_subtitle, narrative, defining_traits, created_at, updated_at')
       .eq('user_id', userId)
       .order('created_at', { ascending: false })
       .limit(1)
       .single();
 
-    if (error || !data) {
-      console.log('[Twin Chat] No soul signature found for user');
-      return null;
-    }
+    if (error || !data) return null;
 
     return data;
   } catch (err) {
@@ -672,267 +572,31 @@ async function getPlatformData(userId, platforms) {
   const cacheKey = userId;
   const cached = platformDataCache.get(cacheKey);
   if (cached && (Date.now() - cached.timestamp) < PLATFORM_CACHE_TTL) {
-    console.log('[Twin Chat] Using cached platform data (age: ' + Math.round((Date.now() - cached.timestamp) / 1000) + 's)');
     return cached.data;
   }
 
   const data = {};
-  console.log(`[Twin Chat] getPlatformData called for user ${userId}, platforms:`, platforms);
 
-  for (const platform of platforms) {
-    try {
-      console.log(`[Twin Chat] Processing platform: ${platform}`);
-      if (platform === 'spotify') {
-        // ALWAYS fetch live Spotify data for freshness
-        try {
-          const tokenResult = await getValidAccessToken(userId, 'spotify');
-          console.log('[Twin Chat] Spotify token result:', { success: tokenResult?.success, hasToken: !!tokenResult?.accessToken });
-          if (tokenResult.success && tokenResult.accessToken) {
-            const headers = { Authorization: `Bearer ${tokenResult.accessToken}` };
+  // Build platform fetch functions for parallel execution
+  const fetchFns = platforms.map(platform => {
+    if (platform === 'spotify') return fetchSpotifyData(userId);
+    if (platform === 'calendar' || platform === 'google_calendar') return fetchCalendarData(userId);
+    if (platform === 'whoop') return fetchWhoopData(userId);
+    if (platform === 'web') return fetchWebData(userId);
+    return Promise.resolve(null);
+  });
 
-            // Check currently playing FIRST
-            let currentlyPlaying = null;
-            try {
-              const currentRes = await axios.get('https://api.spotify.com/v1/me/player/currently-playing', { headers });
-              if (currentRes.data?.item) {
-                currentlyPlaying = {
-                  name: currentRes.data.item.name,
-                  artist: currentRes.data.item.artists?.[0]?.name,
-                  isPlaying: currentRes.data.is_playing
-                };
-                console.log('[Twin Chat] Currently playing:', currentlyPlaying.name);
-              }
-            } catch (e) {
-              // No current playback - that's fine
-            }
+  const results = await Promise.all(fetchFns);
 
-            // Get recent tracks with timestamps
-            const [recentRes, topRes] = await Promise.all([
-              axios.get('https://api.spotify.com/v1/me/player/recently-played?limit=10', { headers }),
-              axios.get('https://api.spotify.com/v1/me/top/artists?limit=5&time_range=short_term', { headers })
-            ]);
-
-            // Filter recent tracks to last 24 hours only
-            const oneDayAgo = Date.now() - 24 * 60 * 60 * 1000;
-            const recentTracks = recentRes.data?.items?.filter(item => {
-              const playedAt = new Date(item.played_at).getTime();
-              return playedAt > oneDayAgo;
-            }).map(item => ({
-              name: item.track?.name,
-              artist: item.track?.artists?.[0]?.name,
-              playedAt: item.played_at
-            })) || [];
-
-            data.spotify = {
-              currentlyPlaying,
-              recentTracks: recentTracks.slice(0, 5),
-              topArtists: topRes.data?.items?.map(a => a.name) || [],
-              genres: topRes.data?.items?.flatMap(a => a.genres?.slice(0, 2) || []).slice(0, 5) || [],
-              fetchedAt: new Date().toISOString()
-            };
-            console.log(`[Twin Chat] Fetched live Spotify: ${currentlyPlaying ? 'playing now' : 'not playing'}, ${recentTracks.length} tracks in last 24h`);
-          }
-        } catch (spotifyErr) {
-          console.warn('[Twin Chat] Could not fetch live Spotify data:', spotifyErr.message);
-        }
-      }
-
-      if (platform === 'calendar' || platform === 'google_calendar') {
-        // ALWAYS fetch live Calendar data
-        try {
-          const tokenResult = await getValidAccessToken(userId, 'google_calendar');
-          if (tokenResult.success && tokenResult.accessToken) {
-            const now = new Date();
-            const todayEnd = new Date(now);
-            todayEnd.setHours(23, 59, 59, 999);
-            const weekFromNow = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
-
-            const calRes = await axios.get('https://www.googleapis.com/calendar/v3/calendars/primary/events', {
-              headers: { Authorization: `Bearer ${tokenResult.accessToken}` },
-              params: {
-                timeMin: now.toISOString(),
-                timeMax: weekFromNow.toISOString(),
-                maxResults: 15,
-                singleEvents: true,
-                orderBy: 'startTime'
-              }
-            });
-
-            const events = calRes.data?.items?.map(e => ({
-              summary: e.summary,
-              start: e.start?.dateTime || e.start?.date,
-              isToday: new Date(e.start?.dateTime || e.start?.date) <= todayEnd
-            })) || [];
-
-            data.calendar = {
-              todayEvents: events.filter(e => e.isToday).slice(0, 5),
-              upcomingEvents: events.filter(e => !e.isToday).slice(0, 5),
-              fetchedAt: new Date().toISOString()
-            };
-            console.log(`[Twin Chat] Fetched live Calendar: ${data.calendar.todayEvents.length} today, ${data.calendar.upcomingEvents.length} upcoming`);
-          }
-        } catch (calErr) {
-          console.warn('[Twin Chat] Could not fetch live Calendar data:', calErr.message);
-        }
-      }
-
-      if (platform === 'whoop') {
-        // Fetch live Whoop data - use Nango proxy for NANGO_MANAGED connections
-        try {
-          // Check if connection is NANGO_MANAGED
-          const { data: whoopConn } = await supabaseAdmin
-            .from('platform_connections')
-            .select('access_token')
-            .eq('user_id', userId)
-            .eq('platform', 'whoop')
-            .single();
-
-          if (whoopConn?.access_token === 'NANGO_MANAGED') {
-            // Use Nango proxy - handles auth automatically
-            const nangoService = await import('../services/nangoService.js');
-            const [recoveryResult, sleepResult] = await Promise.all([
-              nangoService.whoop.getRecovery(userId, 1),
-              nangoService.whoop.getSleep(userId, 5)
-            ]);
-
-            const latestRecovery = recoveryResult.success ? recoveryResult.data?.records?.[0] : null;
-            const allSleeps = sleepResult.success ? (sleepResult.data?.records || []) : [];
-
-            if (latestRecovery || allSleeps.length > 0) {
-              const now = new Date();
-              const yesterday = new Date(now.getTime() - 24 * 60 * 60 * 1000);
-              const todaysSleeps = allSleeps.filter(s => new Date(s.end) >= yesterday);
-
-              let totalSleepMs = 0;
-              todaysSleeps.forEach(sleep => {
-                const stageSummary = sleep.score?.stage_summary || {};
-                totalSleepMs += sleep.score?.total_sleep_time_milli ||
-                               (stageSummary.total_in_bed_time_milli - (stageSummary.total_awake_time_milli || 0)) ||
-                               stageSummary.total_in_bed_time_milli || 0;
-              });
-
-              const sleepHours = totalSleepMs / (1000 * 60 * 60);
-              data.whoop = {
-                recovery: latestRecovery?.score?.recovery_score || null,
-                strain: latestRecovery?.score?.user_calibrating ? 'calibrating' : null,
-                sleepHours: sleepHours > 0 ? sleepHours.toFixed(1) : null,
-                sleepDescription: sleepHours > 0 ? `${sleepHours.toFixed(1)} hours${todaysSleeps.length > 1 ? ` (incl. ${todaysSleeps.length - 1} nap${todaysSleeps.length > 2 ? 's' : ''})` : ''}` : null,
-                hrv: latestRecovery?.score?.hrv_rmssd_milli ? Math.round(latestRecovery.score.hrv_rmssd_milli) : null,
-                restingHR: latestRecovery?.score?.resting_heart_rate ? Math.round(latestRecovery.score.resting_heart_rate) : null,
-                fetchedAt: new Date().toISOString()
-              };
-              console.log(`[Twin Chat] Fetched live Whoop via Nango: recovery ${data.whoop.recovery}%, ${sleepHours.toFixed(1)}h sleep`);
-            }
-          } else {
-            // Self-managed token - use direct API
-            const tokenResult = await getValidAccessToken(userId, 'whoop');
-            if (tokenResult.success && tokenResult.accessToken) {
-              const headers = { Authorization: `Bearer ${tokenResult.accessToken}` };
-              const [recoveryRes, sleepRes] = await Promise.all([
-                axios.get('https://api.prod.whoop.com/developer/v2/recovery?limit=1', { headers }),
-                axios.get('https://api.prod.whoop.com/developer/v2/activity/sleep?limit=5', { headers })
-              ]);
-
-              const latestRecovery = recoveryRes.data?.records?.[0];
-              const allSleeps = sleepRes.data?.records || [];
-              const now = new Date();
-              const yesterday = new Date(now.getTime() - 24 * 60 * 60 * 1000);
-              const todaysSleeps = allSleeps.filter(s => new Date(s.end) >= yesterday);
-
-              let totalSleepMs = 0;
-              todaysSleeps.forEach(sleep => {
-                const stageSummary = sleep.score?.stage_summary || {};
-                totalSleepMs += sleep.score?.total_sleep_time_milli ||
-                               (stageSummary.total_in_bed_time_milli - (stageSummary.total_awake_time_milli || 0)) ||
-                               stageSummary.total_in_bed_time_milli || 0;
-              });
-
-              const sleepHours = totalSleepMs / (1000 * 60 * 60);
-              data.whoop = {
-                recovery: latestRecovery?.score?.recovery_score || null,
-                strain: latestRecovery?.score?.user_calibrating ? 'calibrating' : null,
-                sleepHours: sleepHours > 0 ? sleepHours.toFixed(1) : null,
-                sleepDescription: sleepHours > 0 ? `${sleepHours.toFixed(1)} hours${todaysSleeps.length > 1 ? ` (incl. ${todaysSleeps.length - 1} nap${todaysSleeps.length > 2 ? 's' : ''})` : ''}` : null,
-                hrv: latestRecovery?.score?.hrv_rmssd_milli ? Math.round(latestRecovery.score.hrv_rmssd_milli) : null,
-                restingHR: latestRecovery?.score?.resting_heart_rate ? Math.round(latestRecovery.score.resting_heart_rate) : null,
-                fetchedAt: new Date().toISOString()
-              };
-              console.log(`[Twin Chat] Fetched live Whoop: recovery ${data.whoop.recovery}%, ${sleepHours.toFixed(1)}h sleep`);
-            }
-          }
-        } catch (whoopErr) {
-          console.warn('[Twin Chat] Could not fetch live Whoop data:', whoopErr.message);
-        }
-      }
-
-      if (platform === 'web') {
-        // Fetch web browsing data from browser extension (no OAuth needed)
-        try {
-          const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
-          const { data: webEvents } = await supabaseAdmin
-            .from('user_platform_data')
-            .select('data_type, raw_data, created_at')
-            .eq('user_id', userId)
-            .eq('platform', 'web')
-            .gte('created_at', sevenDaysAgo)
-            .order('created_at', { ascending: false })
-            .limit(25);
-
-          if (webEvents?.length > 0) {
-            const categories = {};
-            const topics = {};
-            const searches = [];
-            const domains = {};
-
-            for (const event of webEvents) {
-              const raw = event.raw_data || {};
-              const category = raw.category || raw.metadata?.category;
-              if (category) categories[category] = (categories[category] || 0) + 1;
-
-              const domain = raw.domain || raw.metadata?.domain;
-              if (domain) domains[domain] = (domains[domain] || 0) + 1;
-
-              const eventTopics = raw.topics || raw.metadata?.topics || [];
-              for (const t of eventTopics) topics[t] = (topics[t] || 0) + 1;
-
-              if (event.data_type === 'extension_search_query' && raw.query) {
-                searches.push(raw.query);
-              }
-            }
-
-            const topCategories = Object.entries(categories)
-              .sort((a, b) => b[1] - a[1])
-              .slice(0, 5)
-              .map(([c]) => c);
-
-            const topTopics = Object.entries(topics)
-              .sort((a, b) => b[1] - a[1])
-              .slice(0, 8)
-              .map(([t]) => t);
-
-            const topDomains = Object.entries(domains)
-              .sort((a, b) => b[1] - a[1])
-              .slice(0, 5)
-              .map(([d]) => d);
-
-            data.web = {
-              hasExtensionData: true,
-              totalEvents: webEvents.length,
-              topCategories,
-              topTopics,
-              topDomains,
-              recentSearches: searches.slice(0, 5),
-              fetchedAt: new Date().toISOString()
-            };
-            console.log(`[Twin Chat] Fetched web browsing: ${webEvents.length} events, ${topCategories.length} categories`);
-          }
-        } catch (webErr) {
-          console.warn('[Twin Chat] Could not fetch web browsing data:', webErr.message);
-        }
-      }
-    } catch (err) {
-      console.warn(`[Twin Chat] Error fetching ${platform} data:`, err.message);
-    }
+  // Merge results into data object
+  for (let i = 0; i < platforms.length; i++) {
+    const result = results[i];
+    if (!result) continue;
+    const platform = platforms[i];
+    if (platform === 'spotify') data.spotify = result;
+    else if (platform === 'calendar' || platform === 'google_calendar') data.calendar = result;
+    else if (platform === 'whoop') data.whoop = result;
+    else if (platform === 'web') data.web = result;
   }
 
   // Store in cache before returning
@@ -941,13 +605,239 @@ async function getPlatformData(userId, platforms) {
   return data;
 }
 
+/** Fetch live Spotify data */
+async function fetchSpotifyData(userId) {
+  try {
+    const tokenResult = await getValidAccessToken(userId, 'spotify');
+    if (!tokenResult.success || !tokenResult.accessToken) return null;
+
+    const headers = { Authorization: `Bearer ${tokenResult.accessToken}` };
+
+    // Check currently playing FIRST
+    let currentlyPlaying = null;
+    try {
+      const currentRes = await axios.get('https://api.spotify.com/v1/me/player/currently-playing', { headers });
+      if (currentRes.data?.item) {
+        currentlyPlaying = {
+          name: currentRes.data.item.name,
+          artist: currentRes.data.item.artists?.[0]?.name,
+          isPlaying: currentRes.data.is_playing
+        };
+      }
+    } catch {
+      // No current playback - that's fine
+    }
+
+    // Get recent tracks with timestamps
+    const [recentRes, topRes] = await Promise.all([
+      axios.get('https://api.spotify.com/v1/me/player/recently-played?limit=10', { headers }),
+      axios.get('https://api.spotify.com/v1/me/top/artists?limit=5&time_range=short_term', { headers })
+    ]);
+
+    // Filter recent tracks to last 24 hours only
+    const oneDayAgo = Date.now() - 24 * 60 * 60 * 1000;
+    const recentTracks = recentRes.data?.items?.filter(item => {
+      const playedAt = new Date(item.played_at).getTime();
+      return playedAt > oneDayAgo;
+    }).map(item => ({
+      name: item.track?.name,
+      artist: item.track?.artists?.[0]?.name,
+      playedAt: item.played_at
+    })) || [];
+
+    return {
+      currentlyPlaying,
+      recentTracks: recentTracks.slice(0, 5),
+      topArtists: topRes.data?.items?.map(a => a.name) || [],
+      genres: topRes.data?.items?.flatMap(a => a.genres?.slice(0, 2) || []).slice(0, 5) || [],
+      fetchedAt: new Date().toISOString()
+    };
+  } catch (err) {
+    console.warn('[Twin Chat] Could not fetch live Spotify data:', err.message);
+    return null;
+  }
+}
+
+/** Fetch live Google Calendar data */
+async function fetchCalendarData(userId) {
+  try {
+    const tokenResult = await getValidAccessToken(userId, 'google_calendar');
+    if (!tokenResult.success || !tokenResult.accessToken) return null;
+
+    const now = new Date();
+    const todayEnd = new Date(now);
+    todayEnd.setHours(23, 59, 59, 999);
+    const weekFromNow = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+
+    const calRes = await axios.get('https://www.googleapis.com/calendar/v3/calendars/primary/events', {
+      headers: { Authorization: `Bearer ${tokenResult.accessToken}` },
+      params: {
+        timeMin: now.toISOString(),
+        timeMax: weekFromNow.toISOString(),
+        maxResults: 15,
+        singleEvents: true,
+        orderBy: 'startTime'
+      }
+    });
+
+    const events = calRes.data?.items?.map(e => ({
+      summary: e.summary,
+      start: e.start?.dateTime || e.start?.date,
+      isToday: new Date(e.start?.dateTime || e.start?.date) <= todayEnd
+    })) || [];
+
+    return {
+      todayEvents: events.filter(e => e.isToday).slice(0, 5),
+      upcomingEvents: events.filter(e => !e.isToday).slice(0, 5),
+      fetchedAt: new Date().toISOString()
+    };
+  } catch (err) {
+    console.warn('[Twin Chat] Could not fetch live Calendar data:', err.message);
+    return null;
+  }
+}
+
+/** Fetch live Whoop data - supports both Nango and direct API */
+async function fetchWhoopData(userId) {
+  try {
+    // Check if connection is NANGO_MANAGED
+    const { data: whoopConn } = await supabaseAdmin
+      .from('platform_connections')
+      .select('access_token')
+      .eq('user_id', userId)
+      .eq('platform', 'whoop')
+      .single();
+
+    let latestRecovery = null;
+    let allSleeps = [];
+
+    if (whoopConn?.access_token === 'NANGO_MANAGED') {
+      const nangoService = await import('../services/nangoService.js');
+      const [recoveryResult, sleepResult] = await Promise.all([
+        nangoService.whoop.getRecovery(userId, 1),
+        nangoService.whoop.getSleep(userId, 5)
+      ]);
+      latestRecovery = recoveryResult.success ? recoveryResult.data?.records?.[0] : null;
+      allSleeps = sleepResult.success ? (sleepResult.data?.records || []) : [];
+    } else {
+      const tokenResult = await getValidAccessToken(userId, 'whoop');
+      if (!tokenResult.success || !tokenResult.accessToken) return null;
+
+      const headers = { Authorization: `Bearer ${tokenResult.accessToken}` };
+      const [recoveryRes, sleepRes] = await Promise.all([
+        axios.get('https://api.prod.whoop.com/developer/v2/recovery?limit=1', { headers }),
+        axios.get('https://api.prod.whoop.com/developer/v2/activity/sleep?limit=5', { headers })
+      ]);
+      latestRecovery = recoveryRes.data?.records?.[0];
+      allSleeps = sleepRes.data?.records || [];
+    }
+
+    if (!latestRecovery && allSleeps.length === 0) return null;
+
+    const now = new Date();
+    const yesterday = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+    const todaysSleeps = allSleeps.filter(s => new Date(s.end) >= yesterday);
+
+    let totalSleepMs = 0;
+    todaysSleeps.forEach(sleep => {
+      const stageSummary = sleep.score?.stage_summary || {};
+      totalSleepMs += sleep.score?.total_sleep_time_milli ||
+                     (stageSummary.total_in_bed_time_milli - (stageSummary.total_awake_time_milli || 0)) ||
+                     stageSummary.total_in_bed_time_milli || 0;
+    });
+
+    const sleepHours = totalSleepMs / (1000 * 60 * 60);
+    return {
+      recovery: latestRecovery?.score?.recovery_score || null,
+      strain: latestRecovery?.score?.user_calibrating ? 'calibrating' : null,
+      sleepHours: sleepHours > 0 ? sleepHours.toFixed(1) : null,
+      sleepDescription: sleepHours > 0 ? `${sleepHours.toFixed(1)} hours${todaysSleeps.length > 1 ? ` (incl. ${todaysSleeps.length - 1} nap${todaysSleeps.length > 2 ? 's' : ''})` : ''}` : null,
+      hrv: latestRecovery?.score?.hrv_rmssd_milli ? Math.round(latestRecovery.score.hrv_rmssd_milli) : null,
+      restingHR: latestRecovery?.score?.resting_heart_rate ? Math.round(latestRecovery.score.resting_heart_rate) : null,
+      fetchedAt: new Date().toISOString()
+    };
+  } catch (err) {
+    console.warn('[Twin Chat] Could not fetch live Whoop data:', err.message);
+    return null;
+  }
+}
+
+/** Fetch web browsing data from browser extension */
+async function fetchWebData(userId) {
+  try {
+    const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+    const { data: webEvents } = await supabaseAdmin
+      .from('user_platform_data')
+      .select('data_type, raw_data, created_at')
+      .eq('user_id', userId)
+      .eq('platform', 'web')
+      .gte('created_at', sevenDaysAgo)
+      .order('created_at', { ascending: false })
+      .limit(25);
+
+    if (!webEvents?.length) return null;
+
+    const categories = {};
+    const topics = {};
+    const searches = [];
+    const domains = {};
+
+    for (const event of webEvents) {
+      const raw = event.raw_data || {};
+      const category = raw.category || raw.metadata?.category;
+      if (category) categories[category] = (categories[category] || 0) + 1;
+
+      const domain = raw.domain || raw.metadata?.domain;
+      if (domain) domains[domain] = (domains[domain] || 0) + 1;
+
+      const eventTopics = raw.topics || raw.metadata?.topics || [];
+      for (const t of eventTopics) topics[t] = (topics[t] || 0) + 1;
+
+      if (event.data_type === 'extension_search_query' && raw.query) {
+        searches.push(raw.query);
+      }
+    }
+
+    const topCategories = Object.entries(categories)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 5)
+      .map(([c]) => c);
+
+    const topTopics = Object.entries(topics)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 8)
+      .map(([t]) => t);
+
+    const topDomains = Object.entries(domains)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 5)
+      .map(([d]) => d);
+
+    return {
+      hasExtensionData: true,
+      totalEvents: webEvents.length,
+      topCategories,
+      topTopics,
+      topDomains,
+      recentSearches: searches.slice(0, 5),
+      fetchedAt: new Date().toISOString()
+    };
+  } catch (err) {
+    console.warn('[Twin Chat] Could not fetch web browsing data:', err.message);
+    return null;
+  }
+}
+
 /**
  * POST /api/chat/message - Send a message to your digital twin
  */
 router.post('/message', authenticateUser, async (req, res) => {
+  const chatStartTime = Date.now();
+  const chatLog = (label) => console.log(`[Twin Chat] ${label} (${Date.now() - chatStartTime}ms)`);
   try {
     const userId = req.user.id;
     const { message, conversationId, context } = req.body;
+    chatLog(`Message received from ${userId}: "${message?.substring(0, 50)}..."`);
 
     if (!message || !message.trim()) {
       return res.status(400).json({
@@ -985,19 +875,19 @@ router.post('/message', authenticateUser, async (req, res) => {
       });
     }
 
-    console.log(`[Twin Chat] Message from user ${userId}: "${message.substring(0, 50)}..."`);
-
-    // Fetch all context layers via shared builder (unified with MCP server)
-    const twinContext = await fetchTwinContext(userId, message, {
-      platforms: context?.platforms || ['spotify', 'calendar', 'whoop', 'web'],
-    });
-    const { soulSignature, platformData, personalityScores, writingProfile, memories, twinSummary, proactiveInsights } = twinContext;
-
-    // Fetch learned facts + cluster personality from memory stream (was previously stubbed)
-    const moltbotContext = await getMoltbotContext(userId).catch(err => {
-      console.warn('[Twin Chat] moltbotContext fetch failed:', err.message);
-      return null;
-    });
+    chatLog('Starting fetchTwinContext + getMoltbotContext in parallel');
+    // Fetch all context layers AND moltbot context in parallel (not sequentially)
+    const [twinContext, moltbotContext] = await Promise.all([
+      fetchTwinContext(userId, message, {
+        platforms: context?.platforms || ['spotify', 'calendar', 'whoop', 'web'],
+      }),
+      getMoltbotContext(userId).catch(err => {
+        console.warn('[Twin Chat] moltbotContext fetch failed:', err.message);
+        return null;
+      }),
+    ]);
+    chatLog('fetchTwinContext + getMoltbotContext complete');
+    const { soulSignature, platformData, personalityScores, writingProfile, memories, twinSummary, proactiveInsights, enrichmentContext, voiceExamples, activeGoals } = twinContext;
 
     // Build personalized system prompt with structured context layers
     // Returns array format for Anthropic prompt caching: [cached_base, dynamic_context]
@@ -1026,6 +916,12 @@ router.post('/message', authenticateUser, async (req, res) => {
       additionalContext += ` IMPORTANT: Your responses should sound like they could have been written by me.`;
     }
 
+    // Add voice examples: actual user messages so the LLM can pattern-match their real voice
+    // This is the most impactful style signal — LLMs mirror examples far better than descriptions
+    if (voiceExamples && voiceExamples.length > 0) {
+      additionalContext += `\n\nHOW I ACTUALLY WRITE (mirror this exact style, tone, and rhythm):\n${voiceExamples.map(m => `> "${m.substring(0, 200)}"`).join('\n')}`;
+    }
+
     // Add unified memory stream results (reflections + observations)
     if (memories && memories.length > 0) {
       const reflections = memories.filter(m => m.memory_type === 'reflection');
@@ -1041,6 +937,16 @@ router.post('/message', authenticateUser, async (req, res) => {
       if (observations.length > 0) {
         additionalContext += `\n\nRelevant memories:\n${observations.slice(0, 15).map(m => `- ${m.content.substring(0, 200)}`).join('\n')}`;
       }
+    }
+
+    // Add enrichment fallback for brand-new users with thin memory streams
+    if (enrichmentContext) {
+      additionalContext += `\n\nWhat I know about myself (from profile discovery):\n${enrichmentContext}`;
+    }
+
+    // Add active goal context for natural accountability in conversation
+    if (activeGoals) {
+      additionalContext += `\n\n${activeGoals}`;
     }
 
     // Hard cap additional context to prevent token bloat
@@ -1079,70 +985,40 @@ router.post('/message', authenticateUser, async (req, res) => {
     const estimatedTokens = Math.ceil(totalSystemChars / 4);
     console.log(`[Twin Chat] System prompt: ${totalSystemChars} chars (~${estimatedTokens} tokens), ${conversationHistory.length} history msgs`);
 
-    // Try OpenClaw first, fall back to direct Claude API
+    // Send message via LLM Gateway
     let assistantMessage;
-    let chatSource = 'direct';
+    const chatSource = 'direct';
 
-    const useOpenClaw = await checkOpenClawAvailability();
-
-    if (useOpenClaw) {
-      try {
-        console.log('[Twin Chat] Using OpenClaw gateway for chat');
-        // OpenClaw needs a string prompt, not array format
-        const systemPromptString = Array.isArray(systemPrompt)
-          ? systemPrompt.map(b => b.text).join('\n')
-          : systemPrompt;
-        const openClawResult = await chatViaOpenClaw(
-          userId,
-          message,
-          systemPromptString,
-          conversationHistory,
-          conversationId
-        );
-        assistantMessage = openClawResult.message;
-        chatSource = 'openclaw';
-        console.log('[Twin Chat] OpenClaw response received');
-      } catch (openClawError) {
-        console.warn('[Twin Chat] OpenClaw failed, falling back to direct Claude:', openClawError.message);
-        // Fall through to direct Claude call
-      }
+    try {
+      chatLog('Starting LLM call');
+      const systemPromptString = Array.isArray(systemPrompt)
+        ? systemPrompt.map(b => b.text).join('\n')
+        : systemPrompt;
+      const result = await complete({
+        tier: TIER_CHAT,
+        system: systemPromptString,
+        messages: [
+          ...conversationHistory,
+          { role: 'user', content: message }
+        ],
+        maxTokens: 2048,
+        temperature: 0.7,
+        userId,
+        serviceName: 'twin-chat'
+      });
+      chatLog('LLM call complete');
+      assistantMessage = result.content || 'I apologize, I could not generate a response.';
+    } catch (llmError) {
+      console.error('[Twin Chat] LLM Gateway failed:', llmError.message);
+      const isBillingIssue = llmError.message?.includes('credit balance') || llmError.message?.includes('billing');
+      return res.status(503).json({
+        success: false,
+        error: isBillingIssue
+          ? 'Chat is temporarily unavailable due to API billing. Please contact the administrator.'
+          : 'Chat is temporarily unavailable. The AI provider is unreachable.',
+        details: process.env.NODE_ENV === 'development' ? llmError.message : undefined
+      });
     }
-
-    // Fall back to LLM Gateway if OpenClaw didn't work
-    if (!assistantMessage) {
-      try {
-        console.log('[Twin Chat] Using LLM Gateway');
-        // Convert array-format system prompt to string for gateway
-        const systemPromptString = Array.isArray(systemPrompt)
-          ? systemPrompt.map(b => b.text).join('\n')
-          : systemPrompt;
-        const result = await complete({
-          tier: TIER_CHAT,
-          system: systemPromptString,
-          messages: [
-            ...conversationHistory,
-            { role: 'user', content: message }
-          ],
-          maxTokens: 2048,
-          temperature: 0.7,
-          userId,
-          serviceName: 'twin-chat'
-        });
-        assistantMessage = result.content || 'I apologize, I could not generate a response.';
-      } catch (claudeError) {
-        console.error('[Twin Chat] LLM Gateway failed:', claudeError.message);
-        const isBillingIssue = claudeError.message?.includes('credit balance') || claudeError.message?.includes('billing');
-        return res.status(503).json({
-          success: false,
-          error: isBillingIssue
-            ? 'Chat is temporarily unavailable due to API billing. Please contact the administrator.'
-            : 'Chat is temporarily unavailable. Both AI providers are unreachable.',
-          details: process.env.NODE_ENV === 'development' ? claudeError.message : undefined
-        });
-      }
-    }
-
-    console.log(`[Twin Chat] Generated response for user ${userId}`);
 
     // Store conversation in UNIFIED database (shared with MCP) - non-blocking
     logConversationToDatabase({
@@ -1209,7 +1085,7 @@ router.post('/message', authenticateUser, async (req, res) => {
       success: true,
       message: assistantMessage,
       conversationId: conversationId || null,
-      chatSource, // 'openclaw' or 'direct'
+      chatSource,
       contextSources: buildContextSourcesMeta(twinContext)
     });
 
@@ -1291,6 +1167,7 @@ router.get('/context', authenticateUser, async (req, res) => {
         .catch(() => []),
     ]);
 
+    if (res.headersSent) return;
     res.json({
       success: true,
       twinSummary: twinSummary || null,
@@ -1299,6 +1176,7 @@ router.get('/context', authenticateUser, async (req, res) => {
     });
   } catch (error) {
     console.error('[Twin Chat] Context endpoint error:', error);
+    if (res.headersSent) return;
     res.status(500).json({
       success: false,
       error: 'Failed to fetch twin context',

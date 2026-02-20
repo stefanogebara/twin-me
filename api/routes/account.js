@@ -68,7 +68,7 @@ router.delete('/', authenticateUser, async (req, res) => {
       return res.status(500).json({ success: false, error: 'Failed to delete account' });
     }
 
-    console.log(`[Account Delete] User ${userId} (${user.email}) account deleted successfully`);
+    console.log(`[Account Delete] User ${userId} account deleted successfully`);
 
     return res.json({
       success: true,

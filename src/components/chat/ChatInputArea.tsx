@@ -86,16 +86,18 @@ export const ChatInputArea = forwardRef<HTMLTextAreaElement, ChatInputAreaProps>
           >
             <div className="flex items-center gap-1">
               <button
-                className="p-2 rounded-lg transition-colors hover:opacity-70"
+                disabled
+                className="p-2 rounded-lg transition-colors opacity-30 cursor-not-allowed"
                 style={{ color: colors.textMuted }}
-                title="Attach file"
+                title="File attachments coming soon"
               >
                 <Paperclip className="w-5 h-5" />
               </button>
               <button
-                className="p-2 rounded-lg transition-colors hover:opacity-70"
+                disabled
+                className="p-2 rounded-lg transition-colors opacity-30 cursor-not-allowed"
                 style={{ color: colors.textMuted }}
-                title="Voice input"
+                title="Voice input coming soon"
               >
                 <Mic className="w-5 h-5" />
               </button>
@@ -115,7 +117,7 @@ export const ChatInputArea = forwardRef<HTMLTextAreaElement, ChatInputAreaProps>
                   }}
                 >
                   <MessageCircle className="w-3 h-3" />
-                  <span>{chatUsage.used}/{chatUsage.limit}</span>
+                  <span>{chatUsage.used} of {chatUsage.limit}</span>
                 </div>
               )}
 

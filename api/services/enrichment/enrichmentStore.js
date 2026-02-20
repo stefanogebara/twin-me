@@ -60,6 +60,7 @@ export async function saveEnrichment(userId, email, enrichmentData) {
       source: enrichmentData.source || 'unknown',
       raw_search_response: enrichmentData.raw || enrichmentData.raw_search_response || null,
       search_query: enrichmentData.search_query || null,
+      identity_confidence: enrichmentData.identity_confidence ?? null,
       enriched_at: new Date().toISOString()
     };
 
@@ -145,7 +146,7 @@ export async function getEnrichmentStatus(userId) {
   try {
     const { data, error } = await supabase
       .from('enriched_profiles')
-      .select('id, enriched_at, user_confirmed, confirmed_at, discovered_company, discovered_title')
+      .select('id, enriched_at, user_confirmed, confirmed_at, discovered_company, discovered_title, identity_confidence')
       .eq('user_id', userId)
       .single();
 
@@ -170,7 +171,8 @@ export async function getEnrichmentStatus(userId) {
       enrichedAt: data.enriched_at,
       confirmedAt: data.confirmed_at,
       hasCompany: !!data.discovered_company,
-      hasTitle: !!data.discovered_title
+      hasTitle: !!data.discovered_title,
+      identityConfidence: data.identity_confidence,
     };
   } catch (error) {
     console.error('[ProfileEnrichment] Status error:', error);

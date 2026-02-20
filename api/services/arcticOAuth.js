@@ -5,6 +5,7 @@
  */
 
 import { Spotify, Discord, GitHub, Reddit, Twitch, Google } from 'arctic';
+import { encryptState } from './encryption.js';
 
 // Initialize Arctic OAuth providers
 // Use APP_URL or VITE_APP_URL as fallback
@@ -76,10 +77,9 @@ export async function generateAuthorizationURL(provider, userId, scopes = []) {
     provider,
     timestamp: Date.now()
   };
-  const state = Buffer.from(JSON.stringify(stateData)).toString('base64');
+  const state = encryptState(stateData, 'arctic');
 
-  console.log(`[Arctic] 🔐 Generated state for ${provider}:`, JSON.stringify(stateData, null, 2));
-  console.log(`[Arctic] 📊 State base64: ${state.substring(0, 50)}...`);
+  console.log(`[Arctic] State encrypted for ${provider}, userId present: ${!!userId}`);
 
   // Generate code verifier for PKCE (if supported)
   const codeVerifier = generateCodeVerifier();

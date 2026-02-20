@@ -28,6 +28,7 @@ import {
   Tv,
   Globe,
   BookOpen,
+  Target,
   BarChart3
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -75,6 +76,12 @@ const mainNavItems: NavItem[] = [
     label: 'Soul Journal',
     icon: BookOpen,
     path: '/journal'
+  },
+  {
+    id: 'goals',
+    label: 'Goals',
+    icon: Target,
+    path: '/goals'
   },
   {
     id: 'personality',

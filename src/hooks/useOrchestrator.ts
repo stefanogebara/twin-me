@@ -20,14 +20,9 @@ import { useMutation } from '@tanstack/react-query';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://127.0.0.1:3001/api';
 
-interface AuthHeaders {
-  'Content-Type': string;
-  'Authorization'?: string;
-}
-
-const getAuthHeaders = (): AuthHeaders => {
+const getAuthHeaders = (): Record<string, string> => {
   const token = localStorage.getItem('auth_token') || localStorage.getItem('token');
-  const headers: AuthHeaders = {
+  const headers: Record<string, string> = {
     'Content-Type': 'application/json',
   };
 

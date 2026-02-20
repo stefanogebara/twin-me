@@ -91,6 +91,7 @@ const NewDiscoverFlow: React.FC = () => {
   const hasStartedRef = useRef(false);
   const enrichmentDataRef = useRef<EnrichmentData | null>(null);
   const quickDataRef = useRef<QuickEnrichmentData | null>(null);
+  const confidenceRef = useRef<number | null>(null);
 
   // Check auth and existing enrichment
   useEffect(() => {
@@ -187,6 +188,7 @@ const NewDiscoverFlow: React.FC = () => {
         const resultsResult = await enrichmentService.getResults(user.id);
         if (resultsResult.data && enrichmentService.hasResults(resultsResult.data)) {
           enrichmentDataRef.current = resultsResult.data;
+          confidenceRef.current = resultsResult.data.identity_confidence ?? null;
           addFullEnrichmentPoints(resultsResult.data);
           if (resultsResult.data.discovered_summary && !isLLMJunk(resultsResult.data.discovered_summary)) {
             setNarrative(resultsResult.data.discovered_summary);
@@ -203,6 +205,7 @@ const NewDiscoverFlow: React.FC = () => {
 
       if (searchResult.data) {
         enrichmentDataRef.current = searchResult.data;
+        confidenceRef.current = searchResult.data.identity_confidence ?? null;
         addFullEnrichmentPoints(searchResult.data);
         if (searchResult.data.discovered_summary && !isLLMJunk(searchResult.data.discovered_summary)) {
           setNarrative(searchResult.data.discovered_summary);
@@ -311,6 +314,7 @@ const NewDiscoverFlow: React.FC = () => {
 
       if (searchResult.data) {
         enrichmentDataRef.current = searchResult.data;
+        confidenceRef.current = searchResult.data.identity_confidence ?? null;
         addFullEnrichmentPoints(searchResult.data);
         if (searchResult.data.discovered_summary && !isLLMJunk(searchResult.data.discovered_summary)) {
           setNarrative(searchResult.data.discovered_summary);
@@ -478,7 +482,11 @@ const NewDiscoverFlow: React.FC = () => {
               >
                 {orbPhase === 'dormant' && 'Discovering you...'}
                 {orbPhase === 'awakening' && 'Piecing together your story...'}
-                {orbPhase === 'alive' && `Hello, ${userName.split(' ')[0]}`}
+                {orbPhase === 'alive' && (
+                  confidenceRef.current !== null && confidenceRef.current < 0.5
+                    ? `We found someone named ${userName.split(' ')[0]} — is this you?`
+                    : `Hello, ${userName.split(' ')[0]}`
+                )}
               </motion.p>
 
               {/* Soul Orb */}
@@ -592,23 +600,26 @@ const NewDiscoverFlow: React.FC = () => {
                       <ArrowRight className="w-4 h-4" />
                     </motion.button>
 
-                    {dataPoints.length > 0 && (
-                      <button
-                        onClick={handleNotMe}
-                        className="mt-4 text-xs transition-opacity hover:opacity-70"
-                        style={{
-                          color: 'rgba(232, 213, 183, 0.35)',
-                          fontFamily: 'var(--font-body)',
-                          background: 'none',
-                          border: 'none',
-                          cursor: 'pointer',
-                          textDecoration: 'underline',
-                          textUnderlineOffset: '3px',
-                        }}
-                      >
-                        This isn't me
-                      </button>
-                    )}
+                    {dataPoints.length > 0 && (() => {
+                      const isLowConfidence = confidenceRef.current !== null && confidenceRef.current < 0.5;
+                      return (
+                        <button
+                          onClick={handleNotMe}
+                          className={`mt-4 transition-opacity hover:opacity-70 ${isLowConfidence ? 'text-sm' : 'text-xs'}`}
+                          style={{
+                            color: isLowConfidence ? 'rgba(232, 213, 183, 0.7)' : 'rgba(232, 213, 183, 0.35)',
+                            fontFamily: 'var(--font-body)',
+                            background: 'none',
+                            border: 'none',
+                            cursor: 'pointer',
+                            textDecoration: 'underline',
+                            textUnderlineOffset: '3px',
+                          }}
+                        >
+                          {isLowConfidence ? "This isn't me — search again" : 'This isn\'t me'}
+                        </button>
+                      );
+                    })()}
                   </motion.div>
                 )}
 

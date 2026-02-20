@@ -8,12 +8,12 @@
 
 import express from 'express';
 import { supabaseAdmin } from '../services/database.js';
-import { authenticateUser } from '../middleware/auth.js';
+import { authenticateUser, requireProfessor } from '../middleware/auth.js';
 
 const router = express.Router();
 
-// All admin routes require authentication
-router.use(authenticateUser);
+// All admin routes require authentication and admin/professor role
+router.use(authenticateUser, requireProfessor);
 
 /**
  * GET /api/admin/llm-costs

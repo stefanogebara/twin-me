@@ -147,7 +147,7 @@ export const requirePlatformConnection = asyncHandler(async (req, res, next) => 
   // Note: The 'connected' column doesn't exist - use 'status' column instead
   const { data: connection, error } = await supabase
     .from('platform_connections')
-    .select('*')
+    .select('id, user_id, platform, status, token_expires_at, access_token')
     .eq('user_id', userId)
     .eq('platform', platform)
     .eq('status', 'connected')

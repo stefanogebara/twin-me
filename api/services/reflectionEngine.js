@@ -175,10 +175,10 @@ Return each observation on a new line, prefixed with a number (1., 2., 3.). No o
   {
     id: 'motivation_analyst',
     name: 'Motivation Analyst',
-    retrievalQuery: "work patterns, goals, ambitions, decision making, career interests, what drives them, productivity patterns, focus sessions",
+    retrievalQuery: "work patterns, goals, ambitions, decision making, career interests, what drives them, productivity patterns, focus sessions, goal streaks, commitment patterns",
     prompt: `You are a motivation analyst studying a person's drive patterns and decision-making to understand what moves them.
 
-Your domain: work patterns, goal orientation, intrinsic vs extrinsic motivation, decision-making style, how they allocate their most productive time, what they prioritize when constrained.
+Your domain: work patterns, goal orientation, intrinsic vs extrinsic motivation, decision-making style, how they allocate their most productive time, what they prioritize when constrained, goal commitment and follow-through patterns.
 
 Recent observations about this person:
 {observations}
@@ -192,7 +192,7 @@ Based on this evidence, generate 2-3 specific motivation observations about this
 - In third person ("This person...")
 - A genuine motivational pattern, NOT a surface description
 
-Focus on: what they do when they have free time (reveals intrinsic motivation), how they handle competing priorities, patterns in when they're most engaged, what their browsing and content consumption reveal about aspirations.
+Focus on: what they do when they have free time (reveals intrinsic motivation), how they handle competing priorities, patterns in when they're most engaged, what their browsing and content consumption reveal about aspirations. If goal-related data exists, analyze their commitment patterns - do they maintain streaks? What triggers falling off track?
 
 If the evidence is insufficient for your domain, return "INSUFFICIENT_EVIDENCE".
 

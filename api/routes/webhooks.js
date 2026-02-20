@@ -91,7 +91,7 @@ router.post('/gmail', express.json(), async (req, res) => {
     // TODO: Implement email-to-userId lookup from database
     // For now, we'll need to store this mapping when setting up push notifications
 
-    console.log(`📧 Gmail push notification received for ${emailAddress}`);
+    console.log(`📧 Gmail push notification received`);
 
     // Handle the push notification
     // We need the userId here - this should be stored when registering the webhook

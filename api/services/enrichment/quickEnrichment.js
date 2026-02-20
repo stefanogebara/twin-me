@@ -11,7 +11,7 @@
  * Used for the "wow moment" during onboarding.
  */
 export async function quickEnrich(email, name = null) {
-  console.log(`[ProfileEnrichment] Quick enrichment for: ${email}`);
+  console.log(`[ProfileEnrichment] Quick enrichment starting`);
   const startTime = Date.now();
 
   // Run Gravatar + GitHub in parallel (both are free and fast)

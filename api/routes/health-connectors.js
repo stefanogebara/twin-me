@@ -2,7 +2,7 @@ import express from 'express';
 import { createClient } from '@supabase/supabase-js';
 import PLATFORM_CONFIGS from '../config/platformConfigs.js';
 import { generatePKCEParams } from '../services/pkce.js';
-import { encryptToken, decryptToken } from '../services/encryption.js';
+import { encryptToken, decryptToken, encryptState, decryptState } from '../services/encryption.js';
 import {
   oauthAuthorizationLimiter,
   oauthCallbackLimiter
@@ -69,7 +69,7 @@ router.get('/connect/whoop', oauthAuthorizationLimiter, async (req, res) => {
     // Generate PKCE parameters (RFC 7636 - OAuth 2.1 mandatory)
     const pkce = generatePKCEParams();
 
-    // Generate base64-encoded OAuth state (frontend-compatible format)
+    // Generate encrypted OAuth state (prevents leaking userId/platform in URL)
     // codeVerifier is stored encrypted in DB, not in state
     const stateData = {
       platform: 'whoop',
@@ -77,7 +77,7 @@ router.get('/connect/whoop', oauthAuthorizationLimiter, async (req, res) => {
       userId,
       timestamp: Date.now()
     };
-    const state = Buffer.from(JSON.stringify(stateData)).toString('base64');
+    const state = encryptState(stateData, 'health');
 
     // Store state + code_verifier in Supabase (CSRF protection + PKCE)
     // Use same timestamp for both created_at and expires_at calculation to satisfy check constraint
@@ -163,7 +163,7 @@ router.post('/connect/whoop', oauthAuthorizationLimiter, async (req, res) => {
     // Generate PKCE parameters (RFC 7636 - OAuth 2.1 mandatory)
     const pkce = generatePKCEParams();
 
-    // Generate base64-encoded OAuth state (frontend-compatible format)
+    // Generate encrypted OAuth state (prevents leaking userId/platform in URL)
     // codeVerifier is stored encrypted in DB, not in state
     const stateData = {
       platform: 'whoop',
@@ -171,7 +171,7 @@ router.post('/connect/whoop', oauthAuthorizationLimiter, async (req, res) => {
       userId,
       timestamp: Date.now()
     };
-    const state = Buffer.from(JSON.stringify(stateData)).toString('base64');
+    const state = encryptState(stateData, 'health');
 
     // Store state + code_verifier in Supabase (CSRF protection + PKCE)
     // Use same timestamp for both created_at and expires_at calculation to satisfy check constraint
@@ -255,11 +255,10 @@ router.post('/oauth/callback/whoop', oauthCallbackLimiter, async (req, res) => {
       });
     }
 
-    // Decode base64 state (frontend-compatible format)
+    // Decrypt encrypted state (matches encryptState used during connect)
     let stateData;
     try {
-      const decodedState = Buffer.from(state, 'base64').toString('utf8');
-      stateData = JSON.parse(decodedState);
+      stateData = decryptState(state);
       console.log('🔷 [Whoop Callback] State decoded:', { platform: stateData.platform, userId: stateData.userId });
     } catch (error) {
       console.warn(`🔷 [Whoop Callback] State decoding failed:`, error.message);
@@ -562,7 +561,7 @@ router.get('/reconnect/whoop', oauthAuthorizationLimiter, async (req, res) => {
     // Generate PKCE parameters
     const pkce = generatePKCEParams();
 
-    // Generate base64-encoded OAuth state
+    // Generate encrypted OAuth state (prevents leaking userId/platform in URL)
     const stateData = {
       platform: 'whoop',
       provider: 'whoop',
@@ -570,7 +569,7 @@ router.get('/reconnect/whoop', oauthAuthorizationLimiter, async (req, res) => {
       reconnect: true,
       timestamp: Date.now()
     };
-    const state = Buffer.from(JSON.stringify(stateData)).toString('base64');
+    const state = encryptState(stateData, 'health');
 
     // Store state + code_verifier in Supabase
     await supabase
@@ -753,14 +752,14 @@ router.get('/connect/oura', oauthAuthorizationLimiter, async (req, res) => {
     // Generate PKCE parameters
     const pkce = generatePKCEParams();
 
-    // Generate base64-encoded OAuth state (frontend-compatible format)
+    // Generate encrypted OAuth state (prevents leaking userId/platform in URL)
     const stateData = {
       platform: 'oura',
       provider: 'oura',
       userId,
       timestamp: Date.now()
     };
-    const state = Buffer.from(JSON.stringify(stateData)).toString('base64');
+    const state = encryptState(stateData, 'health');
 
     // Store state + code_verifier in Supabase
     await supabase
@@ -827,7 +826,7 @@ router.post('/connect/oura', oauthAuthorizationLimiter, async (req, res) => {
     // Generate PKCE parameters
     const pkce = generatePKCEParams();
 
-    // Generate base64-encoded OAuth state (frontend-compatible format)
+    // Generate encrypted OAuth state (prevents leaking userId/platform in URL)
     // codeVerifier is stored encrypted in DB, not in state
     const stateData = {
       platform: 'oura',
@@ -835,7 +834,7 @@ router.post('/connect/oura', oauthAuthorizationLimiter, async (req, res) => {
       userId,
       timestamp: Date.now()
     };
-    const state = Buffer.from(JSON.stringify(stateData)).toString('base64');
+    const state = encryptState(stateData, 'health');
 
     // Store state + code_verifier in Supabase
     await supabase
@@ -894,11 +893,10 @@ router.post('/oauth/callback/oura', oauthCallbackLimiter, async (req, res) => {
       });
     }
 
-    // Decode base64 state (frontend-compatible format)
+    // Decrypt encrypted state (matches encryptState used during connect)
     let stateData;
     try {
-      const decodedState = Buffer.from(state, 'base64').toString('utf8');
-      stateData = JSON.parse(decodedState);
+      stateData = decryptState(state);
     } catch (error) {
       console.warn(`⚠️ State decoding failed:`, error.message);
       return res.status(400).json({

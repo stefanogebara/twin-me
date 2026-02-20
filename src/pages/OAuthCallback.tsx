@@ -2,7 +2,6 @@ import { useEffect, useState, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Brain, CheckCircle, XCircle, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
-import { ARCTIC_PROVIDERS } from '@/services/arcticService';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useAnalytics } from '@/contexts/AnalyticsContext';
 
@@ -116,91 +115,71 @@ const OAuthCallback = () => {
           return;
         }
 
-        // Determine if this is a connector OAuth or auth OAuth by checking state
+        // Determine OAuth flow type from encrypted state prefix or sessionStorage
+        // All state is now encrypted with a flow type prefix: "auth.", "arctic.", "connector.", "entertainment.", "health."
         let stateData = null;
         let isConnectorOAuth = false;
         let isAuthOAuth = false;
-        let isEncryptedState = false; // true when state uses encryptState() from entertainment-connectors
+        let flowType: string | null = null;
 
-        try {
-          if (state) {
-            // Use atob instead of Buffer for browser compatibility
-            const decodedState = atob(state);
-            stateData = JSON.parse(decodedState);
-
-            // Check if this is a connector OAuth (has userId or specific provider/platform)
-            const platformOrProvider = stateData.provider || stateData.platform;
-
-            // Check if this is an Arctic OAuth provider
-            const isArcticProvider = platformOrProvider && ARCTIC_PROVIDERS.includes(platformOrProvider);
-
-            // Health platforms need special handling
-            const isHealthProvider = platformOrProvider && ['whoop', 'oura'].includes(platformOrProvider);
-
-            isConnectorOAuth = !!stateData.userId ||
-              isArcticProvider ||
-              isHealthProvider ||
-              (platformOrProvider && ['youtube', 'netflix', 'google_gmail', 'google_calendar', 'google_drive', 'slack', 'teams', 'linkedin', 'whoop', 'oura'].includes(platformOrProvider));
-            // Check if this is an authentication OAuth
-            isAuthOAuth = stateData.isAuth === true;
-
-          } else {
-            // Fallback: Check sessionStorage for connecting_provider
-            const connectingProvider = sessionStorage.getItem('connecting_provider');
-            const currentUser = localStorage.getItem('userId') || sessionStorage.getItem('userId');
-
-            if (connectingProvider) {
-              // Reconstruct state data from sessionStorage
-              stateData = {
-                provider: connectingProvider === 'google_calendar' ? 'google' : connectingProvider,
-                platform: connectingProvider,
-                userId: currentUser,
-                timestamp: Date.now()
-              };
-
-              // Mark as connector OAuth
-              isConnectorOAuth = true;
-
-              // Create a fake state for the backend
-              state = btoa(JSON.stringify(stateData));
-            }
+        if (state) {
+          // Extract flow type from prefix (e.g. "auth.iv:encrypted:tag" → "auth")
+          const dotIdx = state.indexOf('.');
+          if (dotIdx > 0 && dotIdx < 20) {
+            flowType = state.substring(0, dotIdx);
           }
-        } catch (e) {
-          console.error('❌ State decoding failed (likely encrypted entertainment state):', e);
 
-          // If atob/JSON.parse failed but state exists, it's encrypted from entertainment-connectors
-          // (Spotify, Discord, YouTube, Netflix, Twitch, etc. all use encryptState())
-          // Only entertainment-connectors.js uses encrypted state; all other OAuth flows use base64 JSON
-          if (state) {
-            isEncryptedState = true;
+          if (flowType === 'auth') {
+            isAuthOAuth = true;
+          } else if (flowType) {
             isConnectorOAuth = true;
+          }
 
-            // Try to get provider info from sessionStorage for UI display
-            const connectingProvider = sessionStorage.getItem('connecting_provider') || sessionStorage.getItem('reconnecting_platform');
-            if (connectingProvider) {
-              stateData = { provider: connectingProvider, platform: connectingProvider };
-            }
+          // Try to get provider info from sessionStorage for UI display
+          const connectingProvider = sessionStorage.getItem('connecting_provider') || sessionStorage.getItem('reconnecting_platform');
+          if (connectingProvider) {
+            stateData = { provider: connectingProvider, platform: connectingProvider };
+          }
+        } else {
+          // No state parameter — check sessionStorage fallback
+          const connectingProvider = sessionStorage.getItem('connecting_provider');
+          const currentUser = localStorage.getItem('userId') || sessionStorage.getItem('userId');
+
+          if (connectingProvider) {
+            stateData = {
+              provider: connectingProvider === 'google_calendar' ? 'google' : connectingProvider,
+              platform: connectingProvider,
+              userId: currentUser,
+              timestamp: Date.now()
+            };
+            isConnectorOAuth = true;
           }
         }
 
+        // Determine the correct callback endpoint based on flow type prefix
         let response;
         if (isConnectorOAuth) {
-          // Determine the correct callback endpoint based on state format
-          const platformOrProvider = stateData?.provider || stateData?.platform;
-          const isArcticProvider = platformOrProvider && ARCTIC_PROVIDERS.includes(platformOrProvider);
+          let callbackEndpoint: string;
+          // Get provider from sessionStorage for endpoint routing
+          const sessionProvider = sessionStorage.getItem('connecting_provider') || sessionStorage.getItem('reconnecting_platform') || '';
 
-          let callbackEndpoint;
-          if (isEncryptedState) {
-            // Encrypted state = entertainment connector (Spotify, Discord, YouTube, Netflix, Twitch, etc.)
-            // These use encryptState() and their callback handler is at /entertainment/oauth/callback
-            callbackEndpoint = '/entertainment/oauth/callback';
-          } else if (isArcticProvider) {
-            callbackEndpoint = '/arctic/callback';
-          } else {
-            callbackEndpoint = '/connectors/callback';
+          switch (flowType) {
+            case 'entertainment':
+              callbackEndpoint = '/entertainment/oauth/callback';
+              break;
+            case 'arctic':
+              callbackEndpoint = '/arctic/callback';
+              break;
+            case 'health':
+              // Health callbacks are provider-specific: /health/oauth/callback/whoop or /health/oauth/callback/oura
+              callbackEndpoint = `/health/oauth/callback/${sessionProvider || 'whoop'}`;
+              break;
+            case 'connector':
+            default:
+              callbackEndpoint = '/connectors/callback';
+              break;
           }
 
-          // Handle connector OAuth callback
           response = await fetch(`${import.meta.env.VITE_API_URL}${callbackEndpoint}`, {
             method: 'POST',
             headers: {
@@ -273,31 +252,28 @@ const OAuthCallback = () => {
             // Remove any stale localStorage data
             localStorage.removeItem('connectedServices');
 
-            // Check if this is an Arctic OAuth callback
-            const platformOrProvider = stateData?.provider || stateData?.platform;
-            const isArcticProvider = platformOrProvider && ARCTIC_PROVIDERS.includes(platformOrProvider);
-
             // If we're in a popup, close it; otherwise redirect
+            // Use provider from backend response first, then sessionStorage fallback
+            const connectedProvider = data.provider || stateData?.provider || '';
+
             setTimeout(() => {
               if (window.opener) {
                 // We're in a popup - notify parent and close
-                if (isArcticProvider) {
-                  // Arctic OAuth uses specific message format
+                if (flowType === 'arctic') {
                   window.opener.postMessage({
                     type: 'ARCTIC_OAUTH_SUCCESS',
-                    provider: stateData?.provider
+                    provider: connectedProvider
                   }, window.location.origin);
                 } else {
-                  // Other OAuth connectors use generic format
                   window.opener.postMessage({
                     type: 'oauth-success',
-                    provider: stateData?.provider
+                    provider: connectedProvider
                   }, window.location.origin);
                 }
                 window.close();
               } else {
                 // We're in the main window - redirect
-                window.location.href = '/get-started?connected=true&provider=' + (stateData?.provider || '');
+                window.location.href = '/get-started?connected=true&provider=' + connectedProvider;
               }
             }, 1500);
           } else {
@@ -344,14 +320,14 @@ const OAuthCallback = () => {
               let redirectPath = '/dashboard';  // Default
 
               // First check URL param (from backend redirect)
+              // Only allow relative paths to prevent open redirect attacks
               const urlRedirectParam = searchParams.get('redirect');
-              if (urlRedirectParam) {
+              const isRelativePath = (path: string) => path.startsWith('/') && !path.startsWith('//');
+              if (urlRedirectParam && isRelativePath(decodeURIComponent(urlRedirectParam))) {
                 redirectPath = decodeURIComponent(urlRedirectParam);
-              } else if (data.redirectAfterAuth) {
-                // Use the redirect parameter from the backend response
+              } else if (data.redirectAfterAuth && isRelativePath(data.redirectAfterAuth)) {
                 redirectPath = data.redirectAfterAuth;
-              } else if (stateData?.redirectAfterAuth) {
-                // Use the redirect parameter from the auth flow state
+              } else if (stateData?.redirectAfterAuth && isRelativePath(stateData.redirectAfterAuth)) {
                 redirectPath = stateData.redirectAfterAuth;
               } else if (data.isNewUser) {
                 // New users go to enriched discovery flow (3-step onboarding)

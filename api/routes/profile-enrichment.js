@@ -1,6 +1,7 @@
 import express from 'express';
 import { profileEnrichmentService } from '../services/profileEnrichmentService.js';
 import { authenticateUser } from '../middleware/auth.js';
+import { seedMemoriesFromEnrichment } from '../services/enrichmentMemoryBridge.js';
 
 const router = express.Router();
 
@@ -28,7 +29,7 @@ router.post('/quick', authenticateUser, async (req, res) => {
       return res.status(400).json({ success: false, error: 'Email is required' });
     }
 
-    console.log(`[Enrichment API] Quick enrichment for: ${email}`);
+    console.log(`[Enrichment API] Quick enrichment for user: ${userId || 'anonymous'}`);
     const result = await profileEnrichmentService.quickEnrich(email, name);
 
     // Save to enriched_profiles if we found anything useful
@@ -58,9 +59,10 @@ router.post('/quick', authenticateUser, async (req, res) => {
 // ============================================================================
 // POST /api/enrichment/search - Trigger enrichment search
 // ============================================================================
-router.post('/search', async (req, res) => {
+router.post('/search', authenticateUser, async (req, res) => {
   try {
-    const { userId, email, name } = req.body;
+    const { email, name } = req.body;
+    const userId = req.user?.id || req.body.userId;
 
     if (!userId || !email) {
       return res.status(400).json({
@@ -69,13 +71,13 @@ router.post('/search', async (req, res) => {
       });
     }
 
-    console.log(`[Enrichment API] Starting search for user ${userId}: ${email}`);
+    console.log(`[Enrichment API] Starting search for user ${userId}`);
 
     // Perform enrichment
     const enrichmentResult = await profileEnrichmentService.enrichFromEmail(email, name);
 
     if (!enrichmentResult.success) {
-      console.warn(`[Enrichment API] Enrichment failed for ${email}:`, enrichmentResult.error);
+      console.warn(`[Enrichment API] Enrichment failed for user ${userId}:`, enrichmentResult.error);
       // Still save partial result for tracking
       await profileEnrichmentService.saveEnrichment(userId, email, {
         email,
@@ -135,6 +137,8 @@ router.post('/search', async (req, res) => {
         skills: enrichmentResult.data.skills,
         source: enrichmentResult.data.source,
         hasResults,
+        // Identity confidence
+        identity_confidence: enrichmentResult.data.identity_confidence ?? null,
         // Personal life fields
         interests_and_hobbies: enrichmentResult.data.interests_and_hobbies || null,
         causes_and_values: enrichmentResult.data.causes_and_values || null,
@@ -236,7 +240,8 @@ router.get('/results/:userId', authenticateUser, async (req, res) => {
         life_story: result.data.life_story || null,
         social_media_presence: result.data.social_media_presence || null,
         discovered_instagram_url: result.data.discovered_instagram_url || null,
-        discovered_personal_website: result.data.discovered_personal_website || null
+        discovered_personal_website: result.data.discovered_personal_website || null,
+        identity_confidence: result.data.identity_confidence ?? null,
       },
       hasResults: !!(
         result.data.discovered_company ||
@@ -257,9 +262,10 @@ router.get('/results/:userId', authenticateUser, async (req, res) => {
 // ============================================================================
 // POST /api/enrichment/confirm - Confirm/correct discovered data
 // ============================================================================
-router.post('/confirm', async (req, res) => {
+router.post('/confirm', authenticateUser, async (req, res) => {
   try {
-    const { userId, confirmedData, corrections } = req.body;
+    const { confirmedData, corrections } = req.body;
+    const userId = req.user?.id || req.body.userId;
 
     if (!userId) {
       return res.status(400).json({
@@ -290,6 +296,15 @@ router.post('/confirm', async (req, res) => {
         details: result.error
       });
     }
+
+    // Fire-and-forget: seed memories from enrichment data
+    seedMemoriesFromEnrichment(userId).then(seedResult => {
+      if (seedResult.memoriesStored > 0) {
+        console.log(`[Enrichment API] Seeded ${seedResult.memoriesStored} memories for user ${userId}`);
+      }
+    }).catch(err => {
+      console.warn('[Enrichment API] Memory seeding failed (non-blocking):', err.message);
+    });
 
     res.json({
       success: true,
@@ -342,7 +357,8 @@ router.get('/status/:userId', authenticateUser, async (req, res) => {
 
     res.json({
       success: true,
-      ...result
+      ...result,
+      identityConfidence: result.identityConfidence ?? null,
     });
   } catch (error) {
     console.error('[Enrichment API] Status error:', error);
@@ -412,9 +428,10 @@ router.delete('/clear/:userId', authenticateUser, async (req, res) => {
 // ============================================================================
 // POST /api/enrichment/from-linkedin - Enrich from LinkedIn URL
 // ============================================================================
-router.post('/from-linkedin', async (req, res) => {
+router.post('/from-linkedin', authenticateUser, async (req, res) => {
   try {
-    const { userId, linkedinUrl, name } = req.body;
+    const { linkedinUrl, name } = req.body;
+    const userId = req.user?.id || req.body.userId;
 
     if (!userId || !linkedinUrl) {
       return res.status(400).json({
@@ -516,9 +533,9 @@ router.post('/from-linkedin', async (req, res) => {
 // ============================================================================
 // POST /api/enrichment/skip - Skip enrichment step
 // ============================================================================
-router.post('/skip', async (req, res) => {
+router.post('/skip', authenticateUser, async (req, res) => {
   try {
-    const { userId } = req.body;
+    const userId = req.user?.id || req.body.userId;
 
     if (!userId) {
       return res.status(400).json({
@@ -528,6 +545,15 @@ router.post('/skip', async (req, res) => {
     }
 
     console.log(`[Enrichment API] User ${userId} skipped enrichment`);
+
+    // Fire-and-forget: seed whatever was already discovered before skipping
+    seedMemoriesFromEnrichment(userId).then(seedResult => {
+      if (seedResult.memoriesStored > 0) {
+        console.log(`[Enrichment API] Seeded ${seedResult.memoriesStored} memories (skip path) for user ${userId}`);
+      }
+    }).catch(err => {
+      console.warn('[Enrichment API] Memory seeding on skip failed (non-blocking):', err.message);
+    });
 
     // Save a record indicating the user skipped
     const skipResult = await profileEnrichmentService.saveEnrichment(userId, 'skipped@user.action', {
@@ -557,6 +583,10 @@ router.post('/skip', async (req, res) => {
 // POST /api/enrichment/reset - Reset confirmation for testing (DEV ONLY)
 // ============================================================================
 router.post('/reset', async (req, res) => {
+  if (process.env.NODE_ENV === 'production') {
+    return res.status(404).json({ error: 'Not found' });
+  }
+
   try {
     const { userId } = req.body;
 

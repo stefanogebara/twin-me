@@ -23,6 +23,25 @@ export const getAuthHeaders = (): AuthHeaders => {
 };
 
 /**
+ * Authenticated fetch wrapper.
+ * - Auto-injects auth headers from getAuthHeaders()
+ * - Prepends API_URL when the path starts with "/"
+ * - Merges any additional headers from the caller
+ * - Returns the raw Response without parsing
+ */
+export const authFetch = async (url: string, options?: RequestInit): Promise<Response> => {
+  const fullUrl = url.startsWith('/') ? `${API_URL}${url}` : url;
+  const authHeaders = getAuthHeaders();
+  return fetch(fullUrl, {
+    ...options,
+    headers: {
+      ...authHeaders,
+      ...(options?.headers || {}),
+    },
+  });
+};
+
+/**
  * Generic API error handler
  */
 export const handleAPIError = (error: unknown): string => {

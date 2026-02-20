@@ -173,7 +173,7 @@ async function checkAndRefreshExpiringTokens() {
 
     const { data: connections, error } = await getSupabaseClient()
       .from('platform_connections')
-      .select('*')
+      .select('id, user_id, platform, access_token, refresh_token, token_expires_at, status')
       .in('status', ['connected', 'token_expired'])
       .not('refresh_token', 'is', null)
       .lt('token_expires_at', tenMinutesFromNow);

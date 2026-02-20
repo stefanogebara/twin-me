@@ -39,6 +39,7 @@ const JournalPage = lazy(() => import("./pages/JournalPage"));
 const AdminLLMCosts = lazy(() => import("./pages/AdminLLMCosts"));
 const PrivacyPolicy = lazy(() => import("./pages/PrivacyPolicy"));
 const PublicSoulCard = lazy(() => import("./pages/PublicSoulCard"));
+const PortfolioPage = lazy(() => import("./pages/PortfolioPage"));
 const EnrichedOnboardingFlow = lazy(() => import("./pages/onboarding/EnrichedOnboardingFlow"));
 const NewDiscoverFlow = lazy(() => import("./pages/onboarding/NewDiscoverFlow"));
 const SoulSignatureOnboarding = lazy(() => import("./pages/onboarding/SoulSignatureOnboarding"));
@@ -49,6 +50,7 @@ const CalendarInsightsPage = lazy(() => import("./pages/insights/CalendarInsight
 const YouTubeInsightsPage = lazy(() => import("./pages/insights/YouTubeInsightsPage"));
 const TwitchInsightsPage = lazy(() => import("./pages/insights/TwitchInsightsPage"));
 const WebBrowsingInsightsPage = lazy(() => import("./pages/insights/WebBrowsingInsightsPage"));
+const GoalsPage = lazy(() => import("./pages/GoalsPage"));
 
 const queryClient = new QueryClient();
 
@@ -284,12 +286,30 @@ const App = () => {
               </ErrorBoundary>
             } />
 
+            {/* Public Portfolio Page - Premium shareable profile */}
+            <Route path="/p/:userId" element={
+              <ErrorBoundary>
+                <PortfolioPage />
+              </ErrorBoundary>
+            } />
+
             {/* Soul Journal */}
             <Route path="/journal" element={
               <ProtectedRoute>
                 <SidebarLayout>
                   <ErrorBoundary>
                     <JournalPage />
+                  </ErrorBoundary>
+                </SidebarLayout>
+              </ProtectedRoute>
+            } />
+
+            {/* Goal Tracking */}
+            <Route path="/goals" element={
+              <ProtectedRoute>
+                <SidebarLayout>
+                  <ErrorBoundary>
+                    <GoalsPage />
                   </ErrorBoundary>
                 </SidebarLayout>
               </ProtectedRoute>

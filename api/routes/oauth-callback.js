@@ -5,18 +5,22 @@
 
 import express from 'express';
 import crypto from 'crypto';
+import { authenticateUser } from '../middleware/auth.js';
 import { serverDb } from '../services/database.js';
 import dataExtractionService from '../services/dataExtractionService.js';
 import {
   registerGitHubWebhook,
   setupGmailPushNotifications,
 } from '../services/webhookReceiverService.js';
-import { encryptToken, decryptToken } from '../services/encryption.js';
+import { encryptToken, decryptToken, decryptState } from '../services/encryption.js';
 
 const router = express.Router();
 
-// Encryption key for OAuth tokens (should be in env in production)
-const ENCRYPTION_KEY = process.env.TOKEN_ENCRYPTION_KEY || crypto.randomBytes(32).toString('hex');
+// Encryption key for OAuth tokens
+const ENCRYPTION_KEY = process.env.TOKEN_ENCRYPTION_KEY;
+if (!ENCRYPTION_KEY) {
+  console.error('[OAuth Callback] TOKEN_ENCRYPTION_KEY environment variable is required');
+}
 
 /**
  * Unified OAuth Callback Endpoint
@@ -38,12 +42,12 @@ router.get('/callback', async (req, res) => {
       return res.redirect(`${appUrl}/soul-signature?error=missing_params`);
     }
 
-    // Decode state to get provider and userId
+    // Decrypt state to get provider and userId
     let stateData;
     try {
-      stateData = JSON.parse(Buffer.from(state, 'base64').toString('utf8'));
+      stateData = decryptState(state);
     } catch (err) {
-      console.error('Failed to decode state:', err);
+      console.error('Failed to decrypt state:', err);
       return res.redirect(`${appUrl}/soul-signature?error=invalid_state`);
     }
 
@@ -459,14 +463,10 @@ async function extractDataInBackground(userId, provider, accessToken, connectorI
  * Manual data extraction trigger endpoint
  * Allows users to manually trigger data extraction for a connected platform
  */
-router.post('/extract/:provider', async (req, res) => {
+router.post('/extract/:provider', authenticateUser, async (req, res) => {
   try {
     const { provider } = req.params;
-    const { userId } = req.body;
-
-    if (!userId) {
-      return res.status(400).json({ error: 'userId is required' });
-    }
+    const userId = req.user.id;
 
     console.log(`🔄 Manual extraction requested for ${provider} - User: ${userId}`);
 
@@ -537,9 +537,13 @@ router.post('/extract/:provider', async (req, res) => {
 /**
  * Get extraction status for a user
  */
-router.get('/status/:userId', async (req, res) => {
+router.get('/status/:userId', authenticateUser, async (req, res) => {
   try {
     const { userId } = req.params;
+
+    if (userId !== req.user.id) {
+      return res.status(403).json({ error: 'Forbidden', message: 'Access denied' });
+    }
 
     const status = await serverDb.query(`
       SELECT
@@ -575,14 +579,10 @@ router.get('/status/:userId', async (req, res) => {
 /**
  * Disconnect a platform (delete connector and stop syncing)
  */
-router.delete('/disconnect/:provider', async (req, res) => {
+router.delete('/disconnect/:provider', authenticateUser, async (req, res) => {
   try {
     const { provider } = req.params;
-    const { userId } = req.body;
-
-    if (!userId) {
-      return res.status(400).json({ error: 'userId is required' });
-    }
+    const userId = req.user.id;
 
     // Soft delete - mark as inactive instead of deleting
     await serverDb.query(`

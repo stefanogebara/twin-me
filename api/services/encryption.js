@@ -166,23 +166,34 @@ if (process.env.NODE_ENV === 'development') {
 
 
 /**
- * Encrypt OAuth state parameter
+ * Encrypt OAuth state parameter with flow type prefix.
+ * The prefix allows the frontend to route to the correct callback
+ * endpoint without needing to decrypt the state.
+ *
  * @param {string|object} state - State to encrypt (object will be JSON.stringified)
- * @returns {string} - Encrypted state
+ * @param {string} flowType - OAuth flow type prefix: 'auth', 'arctic', 'connector', 'entertainment', 'health'
+ * @returns {string} - Prefixed encrypted state (e.g. "auth.iv:encrypted:tag")
  */
-export function encryptState(state) {
+export function encryptState(state, flowType = 'connector') {
   const stateString = typeof state === 'object' ? JSON.stringify(state) : state;
-  return encryptToken(stateString);
+  const encrypted = encryptToken(stateString);
+  return `${flowType}.${encrypted}`;
 }
 
 /**
- * Decrypt OAuth state parameter
- * @param {string} encryptedState - Encrypted state
+ * Decrypt OAuth state parameter, stripping flow type prefix if present.
+ * @param {string} encryptedState - Encrypted state (optionally prefixed with flow type)
  * @param {boolean} parseJson - If true, parse the decrypted string as JSON (default: true)
  * @returns {string|object} - Decrypted state
  */
 export function decryptState(encryptedState, parseJson = true) {
-  const decrypted = decryptToken(encryptedState);
+  // Strip flow type prefix if present (e.g. "auth.iv:encrypted:tag" → "iv:encrypted:tag")
+  let stateStr = encryptedState;
+  const dotIdx = stateStr.indexOf('.');
+  if (dotIdx > 0 && dotIdx < 20) {
+    stateStr = stateStr.substring(dotIdx + 1);
+  }
+  const decrypted = decryptToken(stateStr);
   if (parseJson) {
     try {
       return JSON.parse(decrypted);

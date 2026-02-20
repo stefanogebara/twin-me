@@ -3,7 +3,7 @@ import crypto from 'crypto';
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcrypt';
 import { supabase, supabaseAdmin } from '../config/supabase.js';
-import { encryptToken } from '../services/encryption.js';
+import { encryptToken, encryptState, decryptState } from '../services/encryption.js';
 import profileEnrichmentService from '../services/profileEnrichmentService.js';
 
 const router = express.Router();
@@ -102,7 +102,7 @@ router.post('/signin', async (req, res) => {
     // Get user
     const { data: user, error: fetchError } = await supabaseAdmin
       .from('users')
-      .select('*')
+      .select('id, email, first_name, last_name, password_hash')
       .eq('email', email)
       .single();
 
@@ -158,7 +158,7 @@ router.get('/verify', async (req, res) => {
     // Get user data
     const { data: user, error: fetchError } = await supabaseAdmin
       .from('users')
-      .select('*')
+      .select('id, email, first_name, last_name')
       .eq('id', decoded.id)
       .single();
 
@@ -296,9 +296,9 @@ router.get('/oauth/google', (req, res) => {
     console.log('🔵 [OAuth Google GET] Including post-auth redirect in state:', req.query.redirect);
   }
 
-  const state = Buffer.from(JSON.stringify(stateData)).toString('base64');
+  const state = encryptState(stateData, 'auth');
 
-  const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${clientId}&redirect_uri=${redirectUri}&scope=${scope}&response_type=code&access_type=offline&prompt=consent&state=${state}`;
+  const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${clientId}&redirect_uri=${redirectUri}&scope=${scope}&response_type=code&access_type=offline&prompt=consent&state=${encodeURIComponent(state)}`;
 
   console.log('🔵 [OAuth Google GET] Redirecting to Google OAuth...');
   res.redirect(authUrl);
@@ -314,8 +314,6 @@ async function exchangeGoogleCode(code, appUrl) {
     const clientId = process.env.GOOGLE_CLIENT_ID;
     const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
 
-    console.log('🟢 GOOGLE_CLIENT_ID:', clientId);
-    console.log('🟢 GOOGLE_CLIENT_SECRET length:', clientSecret?.length);
     console.log('🟢 JWT_SECRET defined:', !!process.env.JWT_SECRET);
 
     if (!clientId || !clientSecret) {
@@ -366,7 +364,7 @@ async function exchangeGoogleCode(code, appUrl) {
     }
 
     const userData = await userResponse.json();
-    console.log('✅ User info received:', { email: userData.email, hasGivenName: !!userData.given_name });
+    console.log('✅ User info received, hasGivenName:', !!userData.given_name);
 
     const result = {
       email: userData.email,
@@ -423,8 +421,8 @@ router.get('/oauth/callback', async (req, res) => {
     console.log('🔍 Auth GET callback - raw state:', state);
 
     try {
-      stateData = JSON.parse(Buffer.from(state, 'base64').toString());
-      console.log('🔍 Auth GET callback - decoded state:', stateData);
+      stateData = decryptState(state);
+      console.log('🔍 Auth GET callback - decoded state provider:', stateData.provider);
       provider = stateData.provider || 'google';
       userId = stateData.userId;
       isConnectorFlow = !!userId; // If userId exists, this is a connector OAuth flow
@@ -508,7 +506,7 @@ router.get('/oauth/callback', async (req, res) => {
     // Check if user exists or create new
     let { data: user, error: userFetchError } = await supabaseAdmin
       .from('users')
-      .select('*')
+      .select('id, email, first_name, last_name, picture_url, oauth_provider')
       .eq('email', userData.email)
       .single();
 
@@ -535,14 +533,14 @@ router.get('/oauth/callback', async (req, res) => {
 
       // Trigger background enrichment for new users
       const fullName = `${userData.firstName || ''} ${userData.lastName || ''}`.trim();
-      console.log('🔍 Triggering background enrichment for new user:', user.email);
+      console.log('🔍 Triggering background enrichment for new user:', user.id);
       profileEnrichmentService.enrichFromEmail(userData.email, fullName)
         .then(data => {
           if (data) {
             return profileEnrichmentService.saveEnrichment(user.id, userData.email, data);
           }
         })
-        .then(() => console.log('✅ Enrichment completed for:', user.email))
+        .then(() => console.log('✅ Enrichment completed for user:', user.id))
         .catch(err => console.error('⚠️ Enrichment failed (non-blocking):', err.message));
     }
 
@@ -575,13 +573,7 @@ router.get('/oauth/callback', async (req, res) => {
 
 // OAuth callback handler (POST for API calls)
 router.post('/oauth/callback', async (req, res) => {
-  console.log('🟡 ========== POST /oauth/callback ENTRY POINT ==========');
-  console.log('🟡 Headers:', JSON.stringify(req.headers, null, 2));
-  console.log('🟡 Body:', JSON.stringify(req.body, null, 2));
-  console.log('🟡 Query:', JSON.stringify(req.query, null, 2));
-  console.log('🟡 Method:', req.method);
-  console.log('🟡 URL:', req.url);
-  console.log('🟡 Original URL:', req.originalUrl);
+  console.log('🟡 POST /oauth/callback received');
 
   try {
     const { code, state, provider } = req.body;
@@ -608,9 +600,9 @@ router.post('/oauth/callback', async (req, res) => {
     let isConnectorFlow = false;
     try {
       if (state) {
-        stateData = JSON.parse(Buffer.from(state, 'base64').toString());
+        stateData = decryptState(state);
         isConnectorFlow = !!stateData.userId;
-        console.log('🔵 Decoded state:', stateData);
+        console.log('🔵 Decoded state provider:', stateData.provider);
         console.log('🔵 isConnectorFlow:', isConnectorFlow);
       }
     } catch (e) {
@@ -700,10 +692,10 @@ router.post('/oauth/callback', async (req, res) => {
     console.log('🔵 Checking user:', { isConnectorFlow, hasUserData: !!userData });
 
     if (!isConnectorFlow && userData) {
-      console.log('🔵 Querying for existing user with email:', userData.email);
+      console.log('🔵 Querying for existing user');
       const { data: existingUser, error: userFetchError } = await supabaseAdmin
         .from('users')
-        .select('*')
+        .select('id, email, first_name, last_name, picture_url, oauth_provider, created_at')
         .eq('email', userData.email)
         .single();
 
@@ -746,14 +738,14 @@ router.post('/oauth/callback', async (req, res) => {
 
         // Trigger background enrichment for new users
         const fullName = `${userData.firstName || ''} ${userData.lastName || ''}`.trim();
-        console.log('🔍 Triggering background enrichment for new user:', user.email);
+        console.log('🔍 Triggering background enrichment for new user:', user.id);
         profileEnrichmentService.enrichFromEmail(userData.email, fullName)
           .then(data => {
             if (data) {
               return profileEnrichmentService.saveEnrichment(user.id, userData.email, data);
             }
           })
-          .then(() => console.log('✅ Enrichment completed for:', user.email))
+          .then(() => console.log('✅ Enrichment completed for user:', user.id))
           .catch(err => console.error('⚠️ Enrichment failed (non-blocking):', err.message));
       } else {
         console.log('✅ Existing user found:', existingUser.id);

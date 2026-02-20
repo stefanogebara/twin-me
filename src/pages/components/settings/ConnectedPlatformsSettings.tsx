@@ -117,7 +117,7 @@ const ConnectedPlatformsSettings: React.FC<ConnectedPlatformsSettingsProps> = ({
                           className="text-xs px-2 py-1 rounded-lg"
                           style={{ color: '#ef4444', backgroundColor: 'rgba(239, 68, 68, 0.1)' }}
                         >
-                          {disconnectingService === connector.id ? '...' : 'Disconnect'}
+                          {disconnectingService === connector.id ? 'Disconnecting...' : 'Disconnect'}
                         </button>
                       )}
                       {isDemoMode && (

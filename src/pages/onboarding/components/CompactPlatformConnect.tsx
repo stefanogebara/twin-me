@@ -61,6 +61,7 @@ const CompactPlatformConnect: React.FC<CompactPlatformConnectProps> = ({
 }) => {
   const [connecting, setConnecting] = useState<string | null>(null);
   const [connected, setConnected] = useState<string[]>([]);
+  const [platformInsights, setPlatformInsights] = useState<Record<string, string>>({});
 
   // Fetch already-connected platforms on mount
   useEffect(() => {
@@ -90,13 +91,31 @@ const CompactPlatformConnect: React.FC<CompactPlatformConnectProps> = ({
     fetchExisting();
   }, [userId]);
 
-  // Check if returning from OAuth
+  // Check if returning from OAuth and fetch instant insight
   useEffect(() => {
     const justConnected = sessionStorage.getItem('onboarding_platform_connect');
     if (justConnected) {
       sessionStorage.removeItem('onboarding_platform_connect');
       setConnected(prev => [...new Set([...prev, justConnected])]);
       onPlatformConnected?.(justConnected);
+
+      // Fetch platform preview insight
+      const token = localStorage.getItem('auth_token') || localStorage.getItem('token');
+      fetch(`${API_URL}/onboarding/platform-preview/${justConnected}`, {
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
+        },
+      })
+        .then(r => r.json())
+        .then(result => {
+          if (result.success && result.insight && result.rawCount > 0) {
+            setPlatformInsights(prev => ({ ...prev, [justConnected]: result.insight }));
+          }
+        })
+        .catch(() => {
+          // Silent — insight is a nice-to-have
+        });
     }
   }, [onPlatformConnected]);
 
@@ -208,6 +227,25 @@ const CompactPlatformConnect: React.FC<CompactPlatformConnectProps> = ({
           );
         })}
       </div>
+      {/* Show instant insights after platform connect */}
+      {Object.entries(platformInsights).map(([platformId, insight]) => (
+        <motion.div
+          key={platformId}
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5 }}
+          className="mt-2 px-3 py-2 rounded-lg text-xs"
+          style={{
+            backgroundColor: 'rgba(232, 213, 183, 0.06)',
+            border: '1px solid rgba(232, 213, 183, 0.15)',
+            color: '#E8D5B7',
+            fontFamily: 'var(--font-body)',
+          }}
+        >
+          <span className="opacity-50">Your twin noticed: </span>
+          <span className="opacity-80">{insight}</span>
+        </motion.div>
+      ))}
       <p
         className="text-xs mt-2 opacity-30"
         style={{ color: '#E8D5B7', fontFamily: 'var(--font-body)' }}

@@ -339,7 +339,7 @@ async function storeLearnedFacts(userId, message, topics, intent) {
   // Store topics as interests
   if (topics.length > 0 && topics[0] !== 'general') {
     for (const topic of topics.slice(0, 2)) {
-      await supabaseAdmin
+      const { error: insertErr } = await supabaseAdmin
         .from('learned_facts')
         .insert({
           user_id: userId,
@@ -349,8 +349,9 @@ async function storeLearnedFacts(userId, message, topics, intent) {
           source: 'conversation',
           confidence: 0.5,
           created_at: new Date().toISOString()
-        })
-        .catch(() => { /* Ignore duplicates */ });
+        });
+      // Ignore duplicates
+      if (insertErr) { /* expected for duplicate topics */ }
     }
   }
 }

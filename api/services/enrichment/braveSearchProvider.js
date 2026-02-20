@@ -153,12 +153,19 @@ export async function searchWithBrave(name, email) {
   );
 
   const nameParts = name.toLowerCase().split(' ').filter(p => p.length > 2);
+  const emailUsernameLower = emailUsername.toLowerCase();
   const scrapedPages = pageContents
     .map((r, i) => ({ result: r, target: scoredResults[i] }))
     .filter(({ result }) => result.status === 'fulfilled' && result.value)
     .filter(({ result }) => {
       const text = result.value.toLowerCase();
       return nameParts.some(part => text.includes(part));
+    })
+    .sort((a, b) => {
+      // Prioritize pages that mention the email username
+      const aHasEmail = a.result.value.toLowerCase().includes(emailUsernameLower) ? 1 : 0;
+      const bHasEmail = b.result.value.toLowerCase().includes(emailUsernameLower) ? 1 : 0;
+      return bHasEmail - aHasEmail;
     });
 
   const scrapedText = scrapedPages
@@ -168,16 +175,25 @@ export async function searchWithBrave(name, email) {
   console.log(`[ProfileEnrichment] Scraped ${scrapedPages.length} relevant pages out of ${pageContents.filter(r => r.status === 'fulfilled' && r.value).length} fetched (${scrapedText.length} chars)`);
 
   const combined = `=== SEARCH SNIPPETS ===\n${allSnippets}\n\n=== FULL PAGE CONTENT ===\n${scrapedText}`;
-  return { combined, snippetsOnly: allSnippets, scrapedOnly: scrapedText };
+  const _emailUsernameFound = emailUsernameLower.length >= 3 && (
+    allSnippets.toLowerCase().includes(emailUsernameLower) ||
+    scrapedText.toLowerCase().includes(emailUsernameLower)
+  );
+  return { combined, snippetsOnly: allSnippets, scrapedOnly: scrapedText, _emailUsernameFound };
 }
 
 /**
  * Second-pass extraction: focus ONLY on personal life details from scraped content.
  */
-export async function extractPersonalLife(scrapedContent, name) {
+export async function extractPersonalLife(scrapedContent, name, email = null) {
   if (!scrapedContent || scrapedContent.length < 50) return null;
 
-  const prompt = `You are analyzing web content about "${name}" to understand them as a PERSON, not as an employee.
+  const emailUsername = email ? email.split('@')[0] : null;
+  const disambiguationNote = emailUsername
+    ? `\nCRITICAL: The name "${name}" may match multiple people. Only extract details about the "${name}" associated with email username "${emailUsername}". If the content describes a different person with the same name, return all fields as null.\n`
+    : '';
+
+  const prompt = `You are analyzing web content about "${name}" to understand them as a PERSON, not as an employee.${disambiguationNote}
 IGNORE job titles, companies, and career history — that's already captured separately.
 
 Focus ONLY on personal, human details. Look for ANY of these:
@@ -269,7 +285,8 @@ RULES:
 - Only use facts from the source material above. If a field has no evidence, set it to null.
 - We are building a digital twin — a person is MORE than their resume.
 - Look for: opinions expressed in interviews, personal anecdotes, hobbies mentioned in bios, causes they support, how they describe themselves.
-- Even small personal details matter: favorite books, sports they play, cities they love, languages they speak.`;
+- Even small personal details matter: favorite books, sports they play, cities they love, languages they speak.
+- CRITICAL: The name "${name}" may match multiple people. Only extract information about the person associated with email "${email}" (username: "${email.split('@')[0]}"). If uncertain which person matches, set fields to null.`;
 
   const result = await complete({
     tier: TIER_ANALYSIS,
@@ -315,7 +332,7 @@ export async function comprehensivePersonSearch(name, email, existingData = {}) 
 
   // Tier 0: Brave Search API
   if (process.env.BRAVE_SEARCH_API_KEY) {
-    console.log('[ProfileEnrichment] Trying Brave Search API for:', { name, email });
+    console.log('[ProfileEnrichment] Trying Brave Search API for:', { name, hasEmail: !!email });
     try {
       const braveResult = await searchWithBrave(name, email);
       if (braveResult) {
@@ -324,7 +341,7 @@ export async function comprehensivePersonSearch(name, email, existingData = {}) 
 
         const [pass1Result, pass2Result] = await Promise.allSettled([
           extractStructuredProfile(braveResult.snippetsOnly, name, email),
-          hasScrapedContent ? extractPersonalLife(braveResult.scrapedOnly, name) : Promise.resolve(null),
+          hasScrapedContent ? extractPersonalLife(braveResult.scrapedOnly, name, email) : Promise.resolve(null),
         ]);
 
         const extracted = pass1Result.status === 'fulfilled' ? pass1Result.value : null;
@@ -418,7 +435,7 @@ IMPORTANT: The username "${emailUsername}" is the primary identifier for THIS sp
   // Try 1: Google AI with Search Grounding
   const googleAI = await getGoogleAI();
   if (googleAI) {
-    console.log('[ProfileEnrichment] Trying Google AI with Search Grounding for:', { searchName, email });
+    console.log('[ProfileEnrichment] Trying Google AI with Search Grounding for:', { searchName, hasEmail: !!email });
     try {
       const result = await searchWithGoogleGrounding(googleAI, searchName, email, prompt);
       if (result) return result;
@@ -429,7 +446,7 @@ IMPORTANT: The username "${emailUsername}" is the primary identifier for THIS sp
 
   // Try 2: Perplexity Sonar Pro via OpenRouter
   if (openRouterKey) {
-    console.log('[ProfileEnrichment] Falling back to Perplexity Sonar Pro for:', { searchName, email });
+    console.log('[ProfileEnrichment] Falling back to Perplexity Sonar Pro for:', { searchName, hasEmail: !!email });
     try {
       const result = await searchWithSonar(searchName, email, prompt, openRouterKey);
       if (result) return result;
@@ -440,7 +457,7 @@ IMPORTANT: The username "${emailUsername}" is the primary identifier for THIS sp
 
   // Try 3: Gemini via OpenRouter WITH web search plugin
   if (openRouterKey) {
-    console.log('[ProfileEnrichment] Falling back to Gemini + OpenRouter web search for:', { searchName, email });
+    console.log('[ProfileEnrichment] Falling back to Gemini + OpenRouter web search for:', { searchName, hasEmail: !!email });
     try {
       return await searchWithOpenRouter(searchName, email, prompt, openRouterKey);
     } catch (error) {

@@ -78,7 +78,7 @@ router.get('/connect', authenticateUser, oauthAuthorizationLimiter, async (req, 
       userId,
       codeVerifier: pkce.codeVerifier,
       returnUrl: req.query.returnUrl || '/ritual'
-    });
+    }, 'entertainment');
 
     // Store state + code_verifier in Supabase (CSRF protection + PKCE)
     await supabaseAdmin

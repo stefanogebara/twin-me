@@ -83,7 +83,9 @@ const Settings = () => {
       if (!user?.id) return;
       setLoadingSyncStats(true);
       try {
-        const response = await fetch(`${API_URL}/conversations/stats/${user.id}`);
+        const response = await fetch(`${API_URL}/conversations/stats/${user.id}`, {
+          headers: getAuthHeaders(),
+        });
         if (response.ok) {
           const data = await response.json();
           setSyncStats(data);
@@ -168,7 +170,9 @@ const Settings = () => {
       if (response.ok) {
         const data = await response.json();
         setSyncMessage({ type: 'success', text: `Synced ${data.conversationsSynced || 0} new conversations!` });
-        const statsResponse = await fetch(`${API_URL}/conversations/stats/${user.id}`);
+        const statsResponse = await fetch(`${API_URL}/conversations/stats/${user.id}`, {
+          headers: getAuthHeaders(),
+        });
         if (statsResponse.ok) {
           setSyncStats(await statsResponse.json());
         }

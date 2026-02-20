@@ -5,8 +5,12 @@
 
 import express from 'express';
 import { createClient } from '@supabase/supabase-js';
+import { authenticateUser } from '../middleware/auth.js';
 
 const router = express.Router();
+
+// Protect ALL routes in this file
+router.use(authenticateUser);
 
 // Use SUPABASE_URL (backend) - fallback to VITE_ prefix for compatibility
 const supabase = createClient(
@@ -28,7 +32,7 @@ import soulSignatureBuilder from '../services/soulSignatureBuilder.js';
 router.post('/extract/:platform', async (req, res) => {
   try {
     const { platform } = req.params;
-    const userId = req.body.userId || req.query.userId;
+    const userId = req.user.id;
 
     if (!userId) {
       return res.status(400).json({
@@ -70,7 +74,7 @@ router.post('/extract/:platform', async (req, res) => {
  */
 router.post('/extract-all', async (req, res) => {
   try {
-    const userId = req.body.userId || req.query.userId;
+    const userId = req.user.id;
 
     if (!userId) {
       return res.status(400).json({
@@ -100,7 +104,7 @@ router.post('/extract-all', async (req, res) => {
  */
 router.get('/extraction-status', async (req, res) => {
   try {
-    const userId = req.query.userId;
+    const userId = req.user.id;
 
     if (!userId) {
       return res.status(400).json({
@@ -130,7 +134,7 @@ router.get('/extraction-status', async (req, res) => {
  */
 router.post('/process', async (req, res) => {
   try {
-    const userId = req.body.userId || req.query.userId;
+    const userId = req.user.id;
     const limit = parseInt(req.body.limit || req.query.limit || '100');
 
     if (!userId) {
@@ -163,7 +167,7 @@ router.post('/process', async (req, res) => {
  */
 router.get('/processing-stats', async (req, res) => {
   try {
-    const userId = req.query.userId;
+    const userId = req.user.id;
 
     if (!userId) {
       return res.status(400).json({
@@ -193,7 +197,7 @@ router.get('/processing-stats', async (req, res) => {
  */
 router.post('/analyze-style', async (req, res) => {
   try {
-    const userId = req.body.userId || req.query.userId;
+    const userId = req.user.id;
 
     if (!userId) {
       return res.status(400).json({
@@ -248,7 +252,7 @@ router.post('/analyze-style', async (req, res) => {
  */
 router.get('/style-profile', async (req, res) => {
   try {
-    const userId = req.query.userId;
+    const userId = req.user.id;
 
     if (!userId) {
       return res.status(400).json({
@@ -285,7 +289,7 @@ router.get('/style-profile', async (req, res) => {
  */
 router.post('/generate-embeddings', async (req, res) => {
   try {
-    const userId = req.body.userId || req.query.userId;
+    const userId = req.user.id;
     const limit = parseInt(req.body.limit || req.query.limit || '100');
 
     if (!userId) {
@@ -315,7 +319,7 @@ router.post('/generate-embeddings', async (req, res) => {
  */
 router.get('/embedding-stats', async (req, res) => {
   try {
-    const userId = req.query.userId;
+    const userId = req.user.id;
 
     if (!userId) {
       return res.status(400).json({
@@ -345,7 +349,8 @@ router.get('/embedding-stats', async (req, res) => {
  */
 router.post('/rag/chat', async (req, res) => {
   try {
-    const { userId, twinId, message, conversationHistory } = req.body;
+    const { twinId, message, conversationHistory } = req.body;
+    const userId = req.user.id;
 
     if (!userId || !message) {
       return res.status(400).json({
@@ -392,7 +397,8 @@ router.post('/rag/chat', async (req, res) => {
  */
 router.get('/rag/conversation-history', async (req, res) => {
   try {
-    const { userId, twinId } = req.query;
+    const { twinId } = req.query;
+    const userId = req.user.id;
     const limit = parseInt(req.query.limit || '10');
 
     if (!userId || !twinId) {
@@ -423,7 +429,7 @@ router.get('/rag/conversation-history', async (req, res) => {
  */
 router.post('/full-pipeline', async (req, res) => {
   try {
-    const userId = req.body.userId || req.query.userId;
+    const userId = req.user.id;
     const platform = req.body.platform || req.query.platform;
 
     if (!userId) {
@@ -481,7 +487,7 @@ router.post('/full-pipeline', async (req, res) => {
  */
 router.post('/build-soul-signature', async (req, res) => {
   try {
-    const userId = req.body.userId || req.query.userId;
+    const userId = req.user.id;
 
     if (!userId) {
       return res.status(400).json({
@@ -510,7 +516,7 @@ router.post('/build-soul-signature', async (req, res) => {
  */
 router.get('/soul-signature', async (req, res) => {
   try {
-    const userId = req.query.userId;
+    const userId = req.user.id;
 
     if (!userId) {
       return res.status(400).json({
@@ -595,7 +601,7 @@ router.get('/debug-env', (req, res) => {
  */
 router.post('/trigger-extraction', async (req, res) => {
   try {
-    const userId = req.body.userId || req.query.userId;
+    const userId = req.user.id;
 
     if (!userId) {
       return res.status(400).json({
@@ -634,7 +640,7 @@ router.post('/trigger-extraction', async (req, res) => {
  */
 router.get('/check-extracted-data', async (req, res) => {
   try {
-    const userId = req.query.userId;
+    const userId = req.user.id;
 
     if (!userId) {
       return res.status(400).json({
