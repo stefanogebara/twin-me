@@ -28,10 +28,12 @@
  */
 
 import express from 'express';
-import { complete, TIER_CHAT, TIER_ANALYSIS } from '../services/llmGateway.js';
+import { complete, TIER_CHAT, TIER_ANALYSIS, TIER_EXTRACTION } from '../services/llmGateway.js';
 import { authenticateUser } from '../middleware/auth.js';
 import { supabaseAdmin } from '../services/database.js';
 import { addMemory, addConversationMemory } from '../services/memoryStreamService.js';
+import { shouldTriggerReflection, generateReflections } from '../services/reflectionEngine.js';
+import { generateGoalSuggestions } from '../services/goalTrackingService.js';
 
 const router = express.Router();
 
@@ -305,6 +307,137 @@ RULES:
 }
 
 // ====================================================================
+// Quick Questions — Personalized 5-question fast path
+// ====================================================================
+
+/**
+ * Fallback questions when LLM generation fails.
+ * These are enriched versions of the original hardcoded questions,
+ * each mapped to an expert domain.
+ */
+const FALLBACK_QUICK_QUESTIONS = [
+  {
+    id: 'motivation_q',
+    text: "What pulls you out of bed on the days you're most excited?",
+    options: ['A creative project', 'Solving a hard problem', 'Connecting with people', 'Exploring something new'],
+    domain: 'motivation',
+  },
+  {
+    id: 'lifestyle_q',
+    text: "It's Saturday morning, you...",
+    options: ['Sleep in', 'Go for a run', 'Start a project', 'Brunch with friends'],
+    domain: 'lifestyle',
+  },
+  {
+    id: 'personality_q',
+    text: 'When something stresses you out, your first instinct is to...',
+    options: ['Process it alone', 'Talk it through', 'Physical activity', 'Distract yourself'],
+    domain: 'personality',
+  },
+  {
+    id: 'cultural_q',
+    text: 'The content you reach for to feel something is...',
+    options: ['Music that matches my mood', 'A gripping podcast or book', 'A cinematic experience', 'Something I can create'],
+    domain: 'cultural',
+  },
+  {
+    id: 'social_q',
+    text: 'After a long social event, you need...',
+    options: ['Quiet alone time', 'One close friend to decompress', 'More energy — keep going', 'A creative outlet'],
+    domain: 'social',
+  },
+];
+
+/**
+ * POST /api/onboarding/quick-questions
+ *
+ * Generates 5 personalized questions based on enrichment data.
+ * Fast path: Uses TIER_EXTRACTION for speed and cost efficiency.
+ *
+ * Request:  { enrichmentContext: { name, company, title, bio, location } }
+ * Response: { questions: [{ id, text, options: [4 strings], domain }] }
+ */
+router.post('/quick-questions', authenticateUser, async (req, res) => {
+  try {
+    const { enrichmentContext } = req.body;
+
+    if (!enrichmentContext) {
+      return res.json({ success: true, questions: FALLBACK_QUICK_QUESTIONS });
+    }
+
+    // Build context string from enrichment data
+    const contextParts = [];
+    if (enrichmentContext.name) contextParts.push(`Name: ${enrichmentContext.name}`);
+    if (enrichmentContext.company) contextParts.push(`Company: ${enrichmentContext.company}`);
+    if (enrichmentContext.title) contextParts.push(`Title: ${enrichmentContext.title}`);
+    if (enrichmentContext.bio) contextParts.push(`Bio: ${enrichmentContext.bio}`);
+    if (enrichmentContext.location) contextParts.push(`Location: ${enrichmentContext.location}`);
+
+    // If we have no enrichment data at all, return enriched fallback
+    if (contextParts.length === 0) {
+      return res.json({ success: true, questions: FALLBACK_QUICK_QUESTIONS });
+    }
+
+    const prompt = `Generate 5 quick personality questions for someone during onboarding. Each question should feel personal and reference their actual context where possible.
+
+PERSON CONTEXT:
+${contextParts.join('\n')}
+
+RULES:
+- Each question should map to exactly one domain: motivation, lifestyle, personality, cultural, social
+- One question per domain, in that order
+- Questions should be SHORT (under 15 words) and feel conversational
+- Each question gets exactly 4 answer options (3-5 words each)
+- Reference their company/title/location naturally when relevant (e.g. "As a ${enrichmentContext.title || 'professional'} at ${enrichmentContext.company || 'your company'}...")
+- Questions should make them think, not just pick the obvious answer
+- Don't start every question with "As someone who..."
+
+Return ONLY this JSON array (no markdown, no explanation):
+[
+  {"id":"motivation_q","text":"question text","options":["opt1","opt2","opt3","opt4"],"domain":"motivation"},
+  {"id":"lifestyle_q","text":"question text","options":["opt1","opt2","opt3","opt4"],"domain":"lifestyle"},
+  {"id":"personality_q","text":"question text","options":["opt1","opt2","opt3","opt4"],"domain":"personality"},
+  {"id":"cultural_q","text":"question text","options":["opt1","opt2","opt3","opt4"],"domain":"cultural"},
+  {"id":"social_q","text":"question text","options":["opt1","opt2","opt3","opt4"],"domain":"social"}
+]`;
+
+    const result = await complete({
+      tier: TIER_EXTRACTION,
+      messages: [{ role: 'user', content: prompt }],
+      maxTokens: 600,
+      temperature: 0.8,
+      userId: req.user?.id,
+      serviceName: 'onboarding-quick-questions',
+    });
+
+    // Parse the JSON response
+    const jsonMatch = (result.content || '').match(/\[[\s\S]*\]/);
+    if (jsonMatch) {
+      const questions = JSON.parse(jsonMatch[0]);
+      // Validate structure
+      const validDomains = new Set(['motivation', 'lifestyle', 'personality', 'cultural', 'social']);
+      const isValid = Array.isArray(questions) &&
+        questions.length === 5 &&
+        questions.every(q =>
+          q.id && q.text && Array.isArray(q.options) &&
+          q.options.length === 4 && validDomains.has(q.domain)
+        );
+
+      if (isValid) {
+        return res.json({ success: true, questions });
+      }
+    }
+
+    // Fallback if LLM output is malformed
+    console.warn('[QuickQuestions] LLM output malformed, using fallback');
+    return res.json({ success: true, questions: FALLBACK_QUICK_QUESTIONS });
+  } catch (error) {
+    console.error('[QuickQuestions] Error:', error);
+    return res.json({ success: true, questions: FALLBACK_QUICK_QUESTIONS });
+  }
+});
+
+// ====================================================================
 // Route Handlers
 // ====================================================================
 
@@ -538,6 +671,24 @@ async function storeInterviewMemories(userId, history, domainInsights, archetype
     }
 
     console.log(`[Calibration] Stored interview memories for user ${userId}`);
+
+    // Post-interview hooks: trigger reflections + goal suggestions
+    try {
+      const shouldReflect = await shouldTriggerReflection(userId);
+      if (shouldReflect) {
+        console.log(`[Calibration] Triggering post-interview reflections for user ${userId}`);
+        generateReflections(userId).catch(err =>
+          console.warn(`[Calibration] Post-interview reflection error:`, err.message)
+        );
+      }
+    } catch (reflErr) {
+      console.warn('[Calibration] Reflection trigger failed:', reflErr.message);
+    }
+
+    // Generate goal suggestions from interview insights
+    generateGoalSuggestions(userId).catch(err =>
+      console.warn(`[Calibration] Goal suggestion error:`, err.message)
+    );
   } catch (err) {
     console.warn('[Calibration] Memory storage failed:', err.message);
   }

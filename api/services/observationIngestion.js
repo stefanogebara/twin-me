@@ -674,6 +674,88 @@ function stopObservationIngestion() {
   }
 }
 
+/**
+ * Post-onboarding trigger: runs a single ingestion pass for a user
+ * who just completed onboarding. This ensures platform data is immediately
+ * available for the twin to use in the first conversation.
+ */
+async function runPostOnboardingIngestion(userId) {
+  console.log(`[ObservationIngestion] Running post-onboarding ingestion for user ${userId}`);
+
+  try {
+    const supabase = await getSupabase();
+    if (!supabase) return { observationsStored: 0 };
+
+    // Find connected platforms for this user
+    const { data: connections } = await supabase
+      .from('platform_connections')
+      .select('platform')
+      .eq('user_id', userId)
+      .not('connected_at', 'is', null)
+      .in('platform', SUPPORTED_PLATFORMS);
+
+    if (!connections || connections.length === 0) {
+      return { observationsStored: 0 };
+    }
+
+    let totalStored = 0;
+    for (const conn of connections) {
+      try {
+        let observations = [];
+        switch (conn.platform) {
+          case 'spotify':
+            observations = await fetchSpotifyObservations(userId);
+            break;
+          case 'google_calendar':
+            observations = await fetchCalendarObservations(userId);
+            break;
+          case 'whoop':
+            observations = await fetchWhoopObservations(userId);
+            break;
+        }
+
+        for (const obs of observations) {
+          const content = typeof obs === 'string' ? obs : obs.content;
+          const contentType = typeof obs === 'string' ? undefined : obs.contentType;
+          const dup = await isDuplicate(userId, conn.platform, content, contentType);
+          if (dup) continue;
+
+          const result = await addPlatformObservation(userId, content, conn.platform, {
+            ingestion_source: 'post_onboarding',
+            ingested_at: new Date().toISOString(),
+            ...(contentType ? { content_type: contentType } : {}),
+          });
+          if (result) totalStored++;
+        }
+      } catch (err) {
+        console.warn(`[ObservationIngestion] Post-onboarding ${conn.platform} error:`, err.message);
+      }
+    }
+
+    // Trigger reflections if enough data
+    if (totalStored > 0) {
+      try {
+        const shouldReflect = await shouldTriggerReflection(userId);
+        if (shouldReflect) {
+          generateReflections(userId).catch(err =>
+            console.warn(`[ObservationIngestion] Post-onboarding reflection error:`, err.message)
+          );
+        }
+      } catch { /* non-critical */ }
+
+      generateGoalSuggestions(userId).catch(err =>
+        console.warn(`[ObservationIngestion] Post-onboarding goal suggestion error:`, err.message)
+      );
+    }
+
+    console.log(`[ObservationIngestion] Post-onboarding: stored ${totalStored} observations for user ${userId}`);
+    return { observationsStored: totalStored };
+  } catch (err) {
+    console.error(`[ObservationIngestion] Post-onboarding error:`, err.message);
+    return { observationsStored: 0 };
+  }
+}
+
 export {
   runObservationIngestion,
   startObservationIngestion,
@@ -681,4 +763,5 @@ export {
   fetchSpotifyObservations,
   fetchCalendarObservations,
   fetchWhoopObservations,
+  runPostOnboardingIngestion,
 };

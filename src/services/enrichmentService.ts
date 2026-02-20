@@ -235,7 +235,89 @@ interface SkipResponse {
 // ENRICHMENT SERVICE
 // ============================================================================
 
+// ============================================================================
+// QUICK QUESTIONS TYPES
+// ============================================================================
+
+export interface PersonalizedQuestion {
+  id: string;
+  text: string;
+  options: string[];
+  domain: 'motivation' | 'lifestyle' | 'personality' | 'cultural' | 'social';
+}
+
+export interface QuickQuestionsResponse {
+  success: boolean;
+  questions: PersonalizedQuestion[];
+}
+
+// ============================================================================
+// PLATFORM PREVIEW TYPES
+// ============================================================================
+
+export interface PlatformDataPoint {
+  label: string;
+  value: string;
+  icon: string;
+}
+
+export interface PlatformPreviewResponse {
+  success: boolean;
+  insight: string;
+  dataPoints: PlatformDataPoint[];
+  twinReaction: string;
+  rawCount: number;
+}
+
 export const enrichmentService = {
+  /**
+   * Fetch personalized quick questions based on enrichment context.
+   * Falls back to hardcoded questions if LLM generation fails.
+   */
+  fetchQuickQuestions: async (enrichmentContext: {
+    name?: string;
+    company?: string;
+    title?: string;
+    bio?: string;
+    location?: string;
+  }): Promise<QuickQuestionsResponse> => {
+    try {
+      const response = await fetch(`${API_URL}/onboarding/quick-questions`, {
+        method: 'POST',
+        headers: getAuthHeaders(),
+        body: JSON.stringify({ enrichmentContext }),
+      });
+
+      if (!response.ok) {
+        return { success: false, questions: [] };
+      }
+
+      return response.json();
+    } catch {
+      return { success: false, questions: [] };
+    }
+  },
+
+  /**
+   * Fetch rich platform preview after OAuth connection.
+   * Returns structured data points, insight, and twin reaction.
+   */
+  fetchPlatformPreview: async (platform: string): Promise<PlatformPreviewResponse> => {
+    try {
+      const response = await fetch(`${API_URL}/onboarding/platform-preview/${platform}`, {
+        headers: getAuthHeaders(),
+      });
+
+      if (!response.ok) {
+        return { success: false, insight: '', dataPoints: [], twinReaction: '', rawCount: 0 };
+      }
+
+      return response.json();
+    } catch {
+      return { success: false, insight: '', dataPoints: [], twinReaction: '', rawCount: 0 };
+    }
+  },
+
   /**
    * Instant enrichment using free APIs (Gravatar + GitHub).
    * Returns in < 1 second with photo, name, bio, company.
