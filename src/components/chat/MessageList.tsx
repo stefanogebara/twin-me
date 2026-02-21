@@ -1,4 +1,7 @@
-import { forwardRef } from 'react';
+import { forwardRef, useMemo } from 'react';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
+import type { Components } from 'react-markdown';
 import {
   Sparkles, Database, User,
   Lightbulb
@@ -40,6 +43,72 @@ interface MessageListProps {
 
 export const MessageList = forwardRef<HTMLDivElement, MessageListProps>(
   ({ messages, isTyping, colors, formatTime }, ref) => {
+    const mdComponents = useMemo<Components>(() => ({
+      p: ({ children }) => (
+        <p className="text-[15px] leading-relaxed mb-2 last:mb-0">{children}</p>
+      ),
+      strong: ({ children }) => (
+        <strong className="font-semibold">{children}</strong>
+      ),
+      em: ({ children }) => (
+        <em className="italic" style={{ color: colors.textSecondary }}>{children}</em>
+      ),
+      ul: ({ children }) => (
+        <ul className="text-[15px] leading-relaxed list-disc pl-5 mb-2 space-y-1">{children}</ul>
+      ),
+      ol: ({ children }) => (
+        <ol className="text-[15px] leading-relaxed list-decimal pl-5 mb-2 space-y-1">{children}</ol>
+      ),
+      li: ({ children }) => (
+        <li className="text-[15px] leading-relaxed">{children}</li>
+      ),
+      code: ({ children, className }) => {
+        const isBlock = className?.includes('language-');
+        if (isBlock) {
+          return (
+            <code
+              className="block text-[13px] leading-relaxed rounded-lg p-3 my-2 overflow-x-auto"
+              style={{ backgroundColor: colors.bgTertiary, color: colors.text }}
+            >
+              {children}
+            </code>
+          );
+        }
+        return (
+          <code
+            className="text-[13px] px-1.5 py-0.5 rounded-md"
+            style={{ backgroundColor: colors.bgTertiary, color: colors.text }}
+          >
+            {children}
+          </code>
+        );
+      },
+      pre: ({ children }) => <pre className="my-2">{children}</pre>,
+      blockquote: ({ children }) => (
+        <blockquote
+          className="border-l-2 pl-3 my-2 italic"
+          style={{ borderColor: colors.accent, color: colors.textSecondary }}
+        >
+          {children}
+        </blockquote>
+      ),
+      a: ({ href, children }) => (
+        <a
+          href={href}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="underline underline-offset-2 hover:opacity-80 transition-opacity"
+          style={{ color: colors.accent }}
+        >
+          {children}
+        </a>
+      ),
+      h1: ({ children }) => <h3 className="text-base font-semibold mb-1 mt-3 first:mt-0">{children}</h3>,
+      h2: ({ children }) => <h4 className="text-[15px] font-semibold mb-1 mt-3 first:mt-0">{children}</h4>,
+      h3: ({ children }) => <h5 className="text-[15px] font-medium mb-1 mt-2 first:mt-0">{children}</h5>,
+      hr: () => <hr className="my-3 border-t" style={{ borderColor: colors.bgTertiary }} />,
+    }), [colors]);
+
     return (
       <div className="px-4 py-6 space-y-6">
         {messages.map((message) => (
@@ -74,9 +143,15 @@ export const MessageList = forwardRef<HTMLDivElement, MessageListProps>(
                   color: message.role === 'user' ? colors.userBubbleText : colors.text
                 }}
               >
-                <p className="text-[15px] leading-relaxed whitespace-pre-wrap">
-                  {message.content}
-                </p>
+                {message.role === 'assistant' ? (
+                  <ReactMarkdown remarkPlugins={[remarkGfm]} components={mdComponents}>
+                    {message.content}
+                  </ReactMarkdown>
+                ) : (
+                  <p className="text-[15px] leading-relaxed whitespace-pre-wrap">
+                    {message.content}
+                  </p>
+                )}
               </div>
 
               {message.role === 'assistant' && message.contextUsed && (
