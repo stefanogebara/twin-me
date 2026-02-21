@@ -87,14 +87,35 @@ router.get('/portrait', authenticateUser, async (req, res) => {
         .then(({ data }) => data || null)
         .catch(() => null),
 
-      // 8. Connected platforms
-      supabaseAdmin
-        .from('platform_connections')
-        .select('platform, status, last_sync_at')
-        .eq('user_id', userId)
-        .eq('status', 'connected')
-        .then(({ data }) => data || [])
-        .catch(() => []),
+      // 8. Connected platforms — check both platform_connections AND nango_connection_mappings
+      //    so that Nango-based connections are reflected even if platform_connections is empty
+      Promise.all([
+        supabaseAdmin
+          .from('platform_connections')
+          .select('platform, status, last_sync_at')
+          .eq('user_id', userId)
+          .eq('status', 'connected')
+          .then(({ data }) => data || [])
+          .catch(() => []),
+        supabaseAdmin
+          .from('nango_connection_mappings')
+          .select('platform, status, connected_at, last_synced_at')
+          .eq('user_id', userId)
+          .eq('status', 'connected')
+          .then(({ data }) => data || [])
+          .catch(() => []),
+      ]).then(([pcRows, nangoRows]) => {
+        // Merge: use platform_connections as primary, supplement with nango entries
+        const seen = new Set(pcRows.map(r => r.platform));
+        const nangoExtras = nangoRows
+          .filter(r => !seen.has(r.platform))
+          .map(r => ({
+            platform: r.platform,
+            status: 'connected',
+            last_sync_at: r.last_synced_at || r.connected_at,
+          }));
+        return [...pcRows, ...nangoExtras];
+      }),
 
       // 9. First memory date (twin age)
       supabaseAdmin

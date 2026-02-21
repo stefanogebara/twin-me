@@ -34,6 +34,17 @@ export const SpotifyEmptyState: React.FC<SpotifyEmptyStateProps> = ({
         >
           Connect Spotify
         </button>
+        <div
+          className="mt-4 inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm"
+          style={{
+            backgroundColor: theme === 'dark' ? 'rgba(29, 185, 84, 0.08)' : 'rgba(29, 185, 84, 0.05)',
+            color: colors.spotifyGreen,
+            border: '1px solid rgba(29, 185, 84, 0.2)',
+          }}
+        >
+          <div className="w-2 h-2 rounded-full animate-pulse" style={{ backgroundColor: colors.spotifyGreen }} />
+          Your twin is collecting data... check back soon
+        </div>
       </GlassPanel>
 
       {/* Preview cards showing what insights will look like */}
@@ -50,8 +61,8 @@ export const SpotifyEmptyState: React.FC<SpotifyEmptyStateProps> = ({
           <div className="space-y-2">
             {[80, 60, 40].map((width, i) => (
               <div key={i} className="flex items-center gap-3">
-                <div className="w-20 h-3 rounded" style={{ backgroundColor: theme === 'dark' ? 'rgba(193,192,182,0.08)' : 'rgba(0,0,0,0.04)' }} />
-                <div className="flex-1 h-4 rounded-lg overflow-hidden" style={{ backgroundColor: theme === 'dark' ? 'rgba(0,0,0,0.3)' : 'rgba(0,0,0,0.06)' }}>
+                <div className="w-20 h-3 rounded animate-pulse" style={{ backgroundColor: theme === 'dark' ? 'rgba(193,192,182,0.08)' : 'rgba(0,0,0,0.04)' }} />
+                <div className="flex-1 h-4 rounded-lg overflow-hidden animate-pulse" style={{ backgroundColor: theme === 'dark' ? 'rgba(0,0,0,0.3)' : 'rgba(0,0,0,0.06)' }}>
                   <div className="h-full rounded-lg" style={{ width: `${width}%`, backgroundColor: `${colors.spotifyGreen}40` }} />
                 </div>
               </div>

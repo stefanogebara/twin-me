@@ -11,7 +11,8 @@ import {
   Lock,
   Eye,
   ServerCrash,
-  Database
+  Database,
+  LogOut
 } from 'lucide-react';
 import { Clay3DIcon } from '@/components/Clay3DIcon';
 import ConnectedPlatformsSettings from './components/settings/ConnectedPlatformsSettings';
@@ -320,11 +321,25 @@ const Settings = () => {
 
           {/* Account Information */}
           <section className="rounded-2xl p-5" style={cardStyle}>
-            <div className="flex items-center gap-3 mb-4">
-              <Clay3DIcon name="robot" size={20} />
-              <h2 style={{ fontFamily: 'var(--font-heading)', fontWeight: 400, color: theme === 'dark' ? '#C1C0B6' : '#0c0a09' }}>
-                Account
-              </h2>
+            <div className="flex items-center justify-between gap-3 mb-4">
+              <div className="flex items-center gap-3">
+                <Clay3DIcon name="robot" size={20} />
+                <h2 style={{ fontFamily: 'var(--font-heading)', fontWeight: 400, color: theme === 'dark' ? '#C1C0B6' : '#0c0a09' }}>
+                  Account
+                </h2>
+              </div>
+              <button
+                onClick={async () => { await signOut(); navigate('/auth'); }}
+                className="flex items-center gap-2 px-3 py-1.5 rounded-xl text-sm font-medium transition-all hover:scale-[1.02]"
+                style={{
+                  backgroundColor: theme === 'dark' ? 'rgba(239, 68, 68, 0.1)' : 'rgba(239, 68, 68, 0.08)',
+                  color: '#EF4444',
+                  border: '1px solid rgba(239, 68, 68, 0.2)',
+                }}
+              >
+                <LogOut className="w-4 h-4" />
+                Sign Out
+              </button>
             </div>
             <div className="flex flex-wrap gap-6 text-sm" style={{ fontFamily: 'var(--font-body)', color: theme === 'dark' ? 'rgba(193, 192, 182, 0.8)' : '#44403c' }}>
               <div>

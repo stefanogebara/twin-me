@@ -116,7 +116,9 @@ const SoulSignatureDashboard: React.FC = () => {
     portrait.twinSummary ||
     portrait.reflections.length > 0 ||
     portrait.insights.length > 0 ||
-    portrait.memoryStats.total > 0
+    portrait.memoryStats.total > 0 ||
+    portrait.connectedPlatforms.length > 0 ||
+    portrait.personalityScores !== null
   );
 
   // Determine which platforms are connected and have a known config

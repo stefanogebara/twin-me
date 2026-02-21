@@ -34,6 +34,17 @@ export const WhoopEmptyState: React.FC<WhoopEmptyStateProps> = ({
         >
           Connect Whoop
         </button>
+        <div
+          className="mt-4 inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm"
+          style={{
+            backgroundColor: theme === 'dark' ? 'rgba(0, 180, 216, 0.08)' : 'rgba(0, 180, 216, 0.05)',
+            color: colors.whoopTeal,
+            border: '1px solid rgba(0, 180, 216, 0.2)',
+          }}
+        >
+          <div className="w-2 h-2 rounded-full animate-pulse" style={{ backgroundColor: colors.whoopTeal }} />
+          Your twin is collecting data... check back soon
+        </div>
       </GlassPanel>
 
       {/* Preview cards showing what insights will look like */}
@@ -53,9 +64,7 @@ export const WhoopEmptyState: React.FC<WhoopEmptyStateProps> = ({
                 <span style={{ color: colors.textSecondary }}>{metric.icon}</span>
                 <span className="text-xs uppercase tracking-wider" style={{ color: colors.textSecondary }}>{metric.label}</span>
               </div>
-              <div className="text-xl font-medium" style={{ color: theme === 'dark' ? 'rgba(193,192,182,0.3)' : 'rgba(0,0,0,0.15)' }}>
-                {metric.value}
-              </div>
+              <div className="h-6 rounded animate-pulse" style={{ backgroundColor: theme === 'dark' ? 'rgba(193,192,182,0.08)' : 'rgba(0,0,0,0.04)' }} />
             </GlassPanel>
           ))}
         </div>
@@ -66,13 +75,13 @@ export const WhoopEmptyState: React.FC<WhoopEmptyStateProps> = ({
             <span className="text-sm" style={{ color: colors.textSecondary }}>7-Day Recovery Trend</span>
           </div>
           <div className="flex items-end gap-2 h-20">
-            {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map((day) => (
-              <div key={day} className="flex-1 flex flex-col items-center gap-1">
-                <div className="w-full rounded-t" style={{
-                  height: `${30 + Math.random() * 50}%`,
+            {[45, 70, 35, 60, 55, 80, 50].map((h, i) => (
+              <div key={i} className="flex-1 flex flex-col items-center gap-1">
+                <div className="w-full rounded-t animate-pulse" style={{
+                  height: `${h}%`,
                   backgroundColor: theme === 'dark' ? 'rgba(193,192,182,0.08)' : 'rgba(0,0,0,0.04)',
                 }} />
-                <span className="text-[9px]" style={{ color: colors.textSecondary }}>{day}</span>
+                <span className="text-[9px]" style={{ color: colors.textSecondary }}>{['M','T','W','T','F','S','S'][i]}</span>
               </div>
             ))}
           </div>

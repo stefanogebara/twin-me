@@ -34,7 +34,7 @@ export const PortraitEmptyState: React.FC = () => {
 
       <div className="flex flex-col sm:flex-row gap-3 justify-center">
         <button
-          onClick={() => navigate('/dashboard')}
+          onClick={() => navigate('/get-started')}
           className="flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl font-medium transition-all hover:scale-[1.02]"
           style={{
             background: 'linear-gradient(135deg, var(--accent-vibrant), var(--accent-vibrant-hover))',
