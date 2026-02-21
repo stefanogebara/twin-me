@@ -462,6 +462,11 @@ router.post('/calibrate', authenticateUser, async (req, res) => {
       return res.status(400).json({ success: false, error: 'enrichmentContext and questionNumber required' });
     }
 
+    // Cap conversation history to prevent oversized LLM payloads
+    if (Array.isArray(conversationHistory) && conversationHistory.length > 30) {
+      conversationHistory.length = 30;
+    }
+
     const currentQ = Math.min(questionNumber, MAX_QUESTIONS);
 
     // Classify the last answer's domain (if we have a new answer)

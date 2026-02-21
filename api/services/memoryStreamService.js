@@ -233,6 +233,12 @@ async function retrieveMemories(userId, query, limit = 10, weights = 'default') 
     ? (RETRIEVAL_WEIGHTS[weights] || RETRIEVAL_WEIGHTS.default)
     : { ...RETRIEVAL_WEIGHTS.default, ...weights };
 
+  // Validate weight values to prevent NaN/division-by-zero in scoring
+  if (typeof w.recency !== 'number' || typeof w.importance !== 'number' || typeof w.relevance !== 'number') {
+    console.warn('[MemoryStream] Invalid weight types, falling back to defaults');
+    Object.assign(w, RETRIEVAL_WEIGHTS.default);
+  }
+
   try {
     // Generate query embedding for semantic search
     const queryEmbedding = await generateEmbedding(query);
