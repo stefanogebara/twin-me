@@ -30,6 +30,17 @@ export const CalendarEmptyState: React.FC<CalendarEmptyStateProps> = ({ theme, c
         >
           Connect Calendar
         </button>
+        <div
+          className="mt-4 inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm"
+          style={{
+            backgroundColor: theme === 'dark' ? 'rgba(66, 133, 244, 0.08)' : 'rgba(66, 133, 244, 0.05)',
+            color: colors.calendarBlue,
+            border: '1px solid rgba(66, 133, 244, 0.2)',
+          }}
+        >
+          <div className="w-2 h-2 rounded-full animate-pulse" style={{ backgroundColor: colors.calendarBlue }} />
+          Your twin is collecting data... check back soon
+        </div>
       </GlassPanel>
 
       <div className="opacity-50 pointer-events-none space-y-3">
@@ -44,7 +55,7 @@ export const CalendarEmptyState: React.FC<CalendarEmptyStateProps> = ({ theme, c
           <div className="flex justify-between text-[10px] mb-1" style={{ color: colors.textSecondary }}>
             {['9AM', '12PM', '3PM', '6PM'].map(t => <span key={t}>{t}</span>)}
           </div>
-          <div className="h-8 rounded-lg flex gap-1 overflow-hidden" style={{ backgroundColor: theme === 'dark' ? 'rgba(0,0,0,0.3)' : 'rgba(0,0,0,0.06)' }}>
+          <div className="h-8 rounded-lg flex gap-1 overflow-hidden animate-pulse" style={{ backgroundColor: theme === 'dark' ? 'rgba(0,0,0,0.3)' : 'rgba(0,0,0,0.06)' }}>
             <div className="h-full rounded" style={{ width: '20%', marginLeft: '10%', backgroundColor: `${colors.calendarBlue}30` }} />
             <div className="h-full rounded" style={{ width: '15%', marginLeft: '5%', backgroundColor: 'rgba(52,168,83,0.3)' }} />
             <div className="h-full rounded" style={{ width: '10%', marginLeft: '8%', backgroundColor: 'rgba(251,188,5,0.3)' }} />

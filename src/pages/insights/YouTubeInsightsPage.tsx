@@ -668,15 +668,74 @@ const YouTubeInsightsPage: React.FC = () => {
 
       {/* Empty State */}
       {!insights?.reflection && (
-        <GlassPanel className="text-center py-12">
-          <Video className="w-12 h-12 mx-auto mb-4" style={{ color: colors.textSecondary }} />
-          <h3 style={{ color: colors.text, fontFamily: 'var(--font-heading)' }}>
-            Your twin is exploring
-          </h3>
-          <p className="mt-2" style={{ color: colors.textSecondary }}>
-            As your YouTube data syncs, your twin will discover patterns and share observations about your content world.
-          </p>
-        </GlassPanel>
+        <div className="space-y-4">
+          <GlassPanel className="text-center py-10">
+            <Video className="w-12 h-12 mx-auto mb-4" style={{ color: colors.textSecondary }} />
+            <h3 style={{ color: colors.text, fontFamily: 'var(--font-heading)' }}>
+              Your twin is exploring
+            </h3>
+            <p className="mt-2 mb-4 max-w-sm mx-auto" style={{ color: colors.textSecondary }}>
+              As your YouTube data syncs, your twin will discover patterns and share observations about your content world.
+            </p>
+            <div
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm"
+              style={{
+                backgroundColor: theme === 'dark' ? 'rgba(255, 0, 0, 0.08)' : 'rgba(255, 0, 0, 0.05)',
+                color: colors.youtubeRed,
+                border: '1px solid rgba(255, 0, 0, 0.15)',
+              }}
+            >
+              <div className="w-2 h-2 rounded-full animate-pulse" style={{ backgroundColor: colors.youtubeRed }} />
+              Your twin is collecting data... check back soon
+            </div>
+          </GlassPanel>
+
+          {/* Skeleton preview of what insights will look like */}
+          <div className="opacity-50 pointer-events-none space-y-3">
+            <p className="text-xs uppercase tracking-wider" style={{ color: colors.textSecondary }}>
+              Preview of your insights
+            </p>
+            {/* Placeholder: Top Subscriptions */}
+            <GlassPanel className="!p-4" style={{ border: '1px dashed' }}>
+              <div className="flex items-center gap-2 mb-3">
+                <Users className="w-4 h-4" style={{ color: colors.textSecondary }} />
+                <span className="text-sm" style={{ color: colors.textSecondary }}>Top Subscriptions</span>
+              </div>
+              <div className="space-y-2">
+                {[85, 65, 45].map((width, i) => (
+                  <div key={i} className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-full animate-pulse" style={{ backgroundColor: theme === 'dark' ? 'rgba(193,192,182,0.1)' : 'rgba(0,0,0,0.06)' }} />
+                    <div className="flex-1">
+                      <div className="h-3 rounded animate-pulse mb-1" style={{ width: `${width}%`, backgroundColor: theme === 'dark' ? 'rgba(193,192,182,0.1)' : 'rgba(0,0,0,0.06)' }} />
+                      <div className="h-2 rounded animate-pulse" style={{ width: `${width - 20}%`, backgroundColor: theme === 'dark' ? 'rgba(193,192,182,0.06)' : 'rgba(0,0,0,0.04)' }} />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </GlassPanel>
+            {/* Placeholder: Content Categories */}
+            <div className="grid grid-cols-2 gap-3">
+              <GlassPanel className="!p-4" style={{ border: '1px dashed' }}>
+                <div className="flex items-center gap-2 mb-3">
+                  <PieChart className="w-4 h-4" style={{ color: colors.textSecondary }} />
+                  <span className="text-sm" style={{ color: colors.textSecondary }}>Categories</span>
+                </div>
+                <div className="w-16 h-16 mx-auto rounded-full animate-pulse" style={{ border: `3px dashed ${theme === 'dark' ? 'rgba(193,192,182,0.12)' : 'rgba(0,0,0,0.08)'}` }} />
+              </GlassPanel>
+              <GlassPanel className="!p-4" style={{ border: '1px dashed' }}>
+                <div className="flex items-center gap-2 mb-3">
+                  <ThumbsUp className="w-4 h-4" style={{ color: colors.textSecondary }} />
+                  <span className="text-sm" style={{ color: colors.textSecondary }}>Liked Videos</span>
+                </div>
+                <div className="space-y-2">
+                  {[70, 50, 35].map((w, i) => (
+                    <div key={i} className="h-3 rounded animate-pulse" style={{ width: `${w}%`, backgroundColor: `${colors.youtubeRed}20` }} />
+                  ))}
+                </div>
+              </GlassPanel>
+            </div>
+          </div>
+        </div>
       )}
     </PageLayout>
   );
