@@ -42,13 +42,13 @@ export const WhoopEmptyState: React.FC<WhoopEmptyStateProps> = ({
             border: '1px solid rgba(0, 180, 216, 0.2)',
           }}
         >
-          <div className="w-2 h-2 rounded-full animate-pulse" style={{ backgroundColor: colors.whoopTeal }} />
+          <div aria-hidden="true" className="w-2 h-2 rounded-full animate-pulse" style={{ backgroundColor: colors.whoopTeal }} />
           Your twin is collecting data... check back soon
         </div>
       </GlassPanel>
 
       {/* Preview cards showing what insights will look like */}
-      <div className="opacity-50 pointer-events-none space-y-3">
+      <div aria-hidden="true" className="opacity-50 pointer-events-none space-y-3">
         <p className="text-xs uppercase tracking-wider" style={{ color: colors.textSecondary }}>
           Preview of your insights
         </p>

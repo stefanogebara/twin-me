@@ -42,13 +42,13 @@ export const SpotifyEmptyState: React.FC<SpotifyEmptyStateProps> = ({
             border: '1px solid rgba(29, 185, 84, 0.2)',
           }}
         >
-          <div className="w-2 h-2 rounded-full animate-pulse" style={{ backgroundColor: colors.spotifyGreen }} />
+          <div aria-hidden="true" className="w-2 h-2 rounded-full animate-pulse" style={{ backgroundColor: colors.spotifyGreen }} />
           Your twin is collecting data... check back soon
         </div>
       </GlassPanel>
 
       {/* Preview cards showing what insights will look like */}
-      <div className="opacity-50 pointer-events-none space-y-3">
+      <div aria-hidden="true" className="opacity-50 pointer-events-none space-y-3">
         <p className="text-xs uppercase tracking-wider" style={{ color: colors.textSecondary }}>
           Preview of your insights
         </p>
