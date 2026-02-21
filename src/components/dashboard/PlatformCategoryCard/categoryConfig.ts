@@ -36,24 +36,8 @@ export const PLATFORM_CATEGORIES: Record<string, CategoryConfig> = {
     name: 'Time & Productivity',
     icon: 'Calendar',
     color: '#6366F1',
-    platforms: ['google_calendar', 'outlook'],
+    platforms: ['google_calendar'],
     description: 'How you structure your days'
-  },
-  tribes: {
-    id: 'tribes',
-    name: 'Digital Tribes',
-    icon: 'Users',
-    color: '#8B5CF6',
-    platforms: ['discord', 'reddit'],
-    description: 'Your communities and conversations'
-  },
-  work: {
-    id: 'work',
-    name: 'Work Identity',
-    icon: 'Briefcase',
-    color: '#0A66C2',
-    platforms: ['github', 'gmail'],
-    description: 'Professional patterns and contributions'
   }
 } as const;
 
@@ -85,9 +69,4 @@ export const PLATFORM_INFO: Record<string, { name: string; icon: string; color: 
   twitch: { name: 'Twitch', icon: 'Twitch', color: '#9146FF' },
   whoop: { name: 'Whoop', icon: 'Activity', color: '#06B6D4' },
   google_calendar: { name: 'Google Calendar', icon: 'Calendar', color: '#4285F4' },
-  outlook: { name: 'Outlook', icon: 'Mail', color: '#0078D4' },
-  discord: { name: 'Discord', icon: 'MessageCircle', color: '#5865F2' },
-  reddit: { name: 'Reddit', icon: 'MessageSquare', color: '#FF4500' },
-  github: { name: 'GitHub', icon: 'Github', color: '#333333' },
-  gmail: { name: 'Gmail', icon: 'Mail', color: '#EA4335' }
 };

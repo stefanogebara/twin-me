@@ -87,14 +87,12 @@ async function generateProactiveInsights(userId) {
 
     const text = (result.content || '').trim();
 
-    // Parse JSON response
+    // Parse JSON response — robust extraction for various LLM output formats
     let insights;
     try {
-      // Handle possible markdown code block wrapping
-      const jsonStr = text.replace(/^```json?\s*\n?/, '').replace(/\n?```\s*$/, '');
-      insights = JSON.parse(jsonStr);
+      insights = _parseInsightsJSON(text);
     } catch (parseError) {
-      console.warn('[ProactiveInsights] Failed to parse LLM response:', text.substring(0, 100));
+      console.warn('[ProactiveInsights] Failed to parse LLM response:', text.substring(0, 200));
       return 0;
     }
 
@@ -183,6 +181,63 @@ async function markInsightsDelivered(insightIds) {
   } catch (err) {
     console.warn('[ProactiveInsights] markDelivered error:', err.message);
   }
+}
+
+/**
+ * Robustly extract a JSON array of insights from LLM output.
+ * Handles: markdown code blocks, text before/after JSON, nested objects,
+ * trailing commas, and single-object (non-array) responses.
+ *
+ * @param {string} text - Raw LLM output
+ * @returns {Array} Parsed insights array
+ * @throws {Error} If no valid JSON array can be extracted
+ */
+function _parseInsightsJSON(text) {
+  // Strategy 1: Direct parse (cleanest case)
+  try {
+    const parsed = JSON.parse(text);
+    if (Array.isArray(parsed)) return parsed;
+    if (parsed && typeof parsed === 'object' && parsed.insight) return [parsed];
+  } catch { /* continue */ }
+
+  // Strategy 2: Strip markdown code block wrappers
+  const stripped = text.replace(/^```(?:json)?\s*\n?/m, '').replace(/\n?```\s*$/m, '').trim();
+  try {
+    const parsed = JSON.parse(stripped);
+    if (Array.isArray(parsed)) return parsed;
+    if (parsed && typeof parsed === 'object' && parsed.insight) return [parsed];
+  } catch { /* continue */ }
+
+  // Strategy 3: Find first [ ... ] bracket pair in the text
+  const bracketStart = text.indexOf('[');
+  const bracketEnd = text.lastIndexOf(']');
+  if (bracketStart !== -1 && bracketEnd > bracketStart) {
+    const jsonCandidate = text.substring(bracketStart, bracketEnd + 1);
+    try {
+      const parsed = JSON.parse(jsonCandidate);
+      if (Array.isArray(parsed)) return parsed;
+    } catch {
+      // Strategy 3b: Try fixing trailing commas (common LLM mistake)
+      const fixed = jsonCandidate.replace(/,\s*([}\]])/g, '$1');
+      try {
+        const parsed = JSON.parse(fixed);
+        if (Array.isArray(parsed)) return parsed;
+      } catch { /* continue */ }
+    }
+  }
+
+  // Strategy 4: Find first { ... } (single object response)
+  const braceStart = text.indexOf('{');
+  const braceEnd = text.lastIndexOf('}');
+  if (braceStart !== -1 && braceEnd > braceStart) {
+    const objCandidate = text.substring(braceStart, braceEnd + 1);
+    try {
+      const parsed = JSON.parse(objCandidate);
+      if (parsed && typeof parsed === 'object' && parsed.insight) return [parsed];
+    } catch { /* continue */ }
+  }
+
+  throw new Error('No valid JSON insights found in LLM response');
 }
 
 export { generateProactiveInsights, getUndeliveredInsights, markInsightsDelivered };
