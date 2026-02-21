@@ -120,9 +120,14 @@ const SoulSignatureDashboard: React.FC = () => {
   );
 
   // Determine which platforms are connected and have a known config
+  // DB stores 'google_calendar' but we reference it as 'calendar' in the UI
+  const PLATFORM_ALIAS: Record<string, string> = { google_calendar: 'calendar' };
   const knownPlatforms = ['spotify', 'calendar', 'whoop', 'youtube', 'twitch'];
   const activePlatforms = portrait?.connectedPlatforms
-    .map(p => p.platform.toLowerCase())
+    .map(p => {
+      const key = p.platform.toLowerCase();
+      return PLATFORM_ALIAS[key] ?? key;
+    })
     .filter(p => knownPlatforms.includes(p)) ?? [];
 
   return (
@@ -218,7 +223,7 @@ const SoulSignatureDashboard: React.FC = () => {
             />
           </div>
 
-          {/* ── Row 2: Domain tiles (personality + lifestyle + spotify) ── */}
+          {/* ── Row 2: Personality + Lifestyle + Spotify/Cultural Identity ── */}
           {portrait.twinSummary && (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-4">
               <BentoDomainTile
@@ -248,35 +253,21 @@ const SoulSignatureDashboard: React.FC = () => {
             </div>
           )}
 
-          {/* ── Row 3: Cultural Identity + Social Dynamics + Whoop ── */}
+          {/* ── Row 3: Cultural Identity + Social Dynamics + Motivation/Whoop ── */}
           {portrait.twinSummary && (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-4">
-              {activePlatforms.includes('spotify') ? (
+              {activePlatforms.includes('spotify') && (
                 <BentoDomainTile
                   domainKey="culturalIdentity"
                   domains={portrait.twinSummary.domains}
                   animationDelay={0.1}
                 />
-              ) : (
-                <BentoDomainTile
-                  domainKey="socialDynamics"
-                  domains={portrait.twinSummary.domains}
-                  animationDelay={0.1}
-                />
               )}
-              {activePlatforms.includes('spotify') ? (
-                <BentoDomainTile
-                  domainKey="socialDynamics"
-                  domains={portrait.twinSummary.domains}
-                  animationDelay={0.15}
-                />
-              ) : (
-                <BentoDomainTile
-                  domainKey="motivation"
-                  domains={portrait.twinSummary.domains}
-                  animationDelay={0.15}
-                />
-              )}
+              <BentoDomainTile
+                domainKey="socialDynamics"
+                domains={portrait.twinSummary.domains}
+                animationDelay={0.15}
+              />
               {activePlatforms.includes('whoop') ? (
                 <BentoPlatformTile
                   platform="whoop"
@@ -285,13 +276,30 @@ const SoulSignatureDashboard: React.FC = () => {
                   animationDelay={0.2}
                 />
               ) : (
-                activePlatforms.includes('spotify') && (
-                  <BentoDomainTile
-                    domainKey="motivation"
-                    domains={portrait.twinSummary.domains}
-                    animationDelay={0.2}
-                  />
-                )
+                <BentoDomainTile
+                  domainKey="motivation"
+                  domains={portrait.twinSummary.domains}
+                  animationDelay={0.2}
+                />
+              )}
+            </div>
+          )}
+
+          {/* ── Row 3b: Motivation + Calendar (when both Spotify and Whoop are connected) ── */}
+          {portrait.twinSummary && activePlatforms.includes('whoop') && (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-4">
+              <BentoDomainTile
+                domainKey="motivation"
+                domains={portrait.twinSummary.domains}
+                animationDelay={0.1}
+              />
+              {activePlatforms.includes('calendar') && (
+                <BentoPlatformTile
+                  platform="calendar"
+                  platformData={portrait.platformData}
+                  connectedPlatforms={portrait.connectedPlatforms}
+                  animationDelay={0.15}
+                />
               )}
             </div>
           )}
@@ -328,20 +336,12 @@ const SoulSignatureDashboard: React.FC = () => {
                     animationDelay={0.12}
                   />
                 )}
-                {activePlatforms.includes('calendar') && (
-                  <BentoPlatformTile
-                    platform="calendar"
-                    platformData={portrait.platformData}
-                    connectedPlatforms={portrait.connectedPlatforms}
-                    animationDelay={0.16}
-                  />
-                )}
                 {activePlatforms.includes('twitch') && (
                   <BentoPlatformTile
                     platform="twitch"
                     platformData={portrait.platformData}
                     connectedPlatforms={portrait.connectedPlatforms}
-                    animationDelay={0.2}
+                    animationDelay={0.16}
                   />
                 )}
               </div>
