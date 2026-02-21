@@ -516,6 +516,14 @@ export const Dashboard: React.FC = () => {
             ? `${todayEvents.length} event${todayEvents.length !== 1 ? 's' : ''} today`
             : 'Your day awaits'
           }
+          {platforms.length > 0 && (
+            <span style={{ color: theme === 'dark' ? 'rgba(193, 192, 182, 0.45)' : '#a8a29e' }}>
+              {' '}&bull;{' '}
+              <span style={{ color: theme === 'dark' ? 'rgba(224, 184, 96, 0.9)' : '#B8942E' }}>
+                {platforms.length} platform{platforms.length !== 1 ? 's' : ''} connected
+              </span>
+            </span>
+          )}
         </p>
       </motion.div>
 
