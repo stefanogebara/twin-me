@@ -60,10 +60,9 @@ export const SidebarLayout: React.FC<SidebarLayoutProps> = ({ children }) => {
 
       {/* Main Content Area - margin adjusts based on sidebar collapsed state */}
       <main
-        className="flex-1 overflow-y-auto transition-all duration-300"
+        className="relative flex-1 overflow-y-auto transition-all duration-300"
         style={{
           marginLeft: window.innerWidth >= 1024 ? `${sidebarWidth}px` : '0',
-          position: 'relative',
           zIndex: 0,
           isolation: 'isolate',
         }}

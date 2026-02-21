@@ -218,6 +218,17 @@ const InstantTwinOnboarding = () => {
         }
 
         // Poll for popup close, then verify connection
+        const nangoProviderMap: Record<string, string> = {
+          'linkedin': 'linkedin',
+          'github': 'github',
+          'reddit': 'reddit',
+          'whoop': 'whoop',
+          'spotify': 'spotify',
+          'youtube': 'youtube',
+          'twitch': 'twitch',
+          'google-calendar': 'google-calendar',
+        };
+
         const pollInterval = setInterval(async () => {
           if (!popup || popup.closed) {
             clearInterval(pollInterval);
