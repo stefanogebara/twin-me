@@ -340,15 +340,15 @@ const Index = () => {
         </motion.div>
       </section>
 
-      {/* ── Slide 3: Ecosystem — RAINFOREST BACKGROUND with SVG platform icons ── */}
+      {/* ── Slide 3: Ecosystem — OCEAN BACKGROUND with SVG platform icons ── */}
       <section id="platform" className="slide-section relative">
         <img
-          src={FOREST_BG}
+          src={OCEAN_BG}
           alt=""
           className="absolute inset-0 w-full h-full object-cover"
           style={{ zIndex: 0 }}
         />
-        <div className="absolute inset-0 bg-black/20" style={{ zIndex: 1 }} />
+        <div className="absolute inset-0 bg-black/25" style={{ zIndex: 1 }} />
 
         <div className="relative z-10 px-8 lg:px-[80px]">
           <div className="max-w-[1200px] mx-auto w-full flex flex-col lg:flex-row gap-12 items-center">
@@ -402,15 +402,15 @@ const Index = () => {
         </div>
       </section>
 
-      {/* ── Slide 4: Features — OCEAN BACKGROUND (tighter card padding) ── */}
+      {/* ── Slide 4: Features — RAINFOREST BACKGROUND ── */}
       <section id="features" className="slide-section relative">
         <img
-          src={OCEAN_BG}
+          src={FOREST_BG}
           alt=""
           className="absolute inset-0 w-full h-full object-cover"
           style={{ zIndex: 0 }}
         />
-        <div className="absolute inset-0 bg-[#F5F5F0]/15" style={{ zIndex: 1 }} />
+        <div className="absolute inset-0 bg-black/20" style={{ zIndex: 1 }} />
 
         <div className="relative z-10 px-8 lg:px-[80px]">
           <div className="max-w-[1200px] mx-auto w-full">
@@ -429,9 +429,9 @@ const Index = () => {
                   className="photo-glass-card p-8 lg:p-10 transition-transform duration-500 hover:-translate-y-2"
                   style={{ marginTop: idx === 1 ? '32px' : idx === 2 ? '64px' : '0' }}
                 >
-                  <div className="text-[13px] font-bold text-[#8A857D] mb-5 tracking-widest">{item.step}</div>
-                  <h3 className="heading-serif text-[28px] mb-3 text-[#1F1C18]">{item.title}</h3>
-                  <p className="text-[15px] leading-[1.6] text-[#5C5851]">{item.desc}</p>
+                  <div className="text-[13px] font-bold text-white/50 mb-5 tracking-widest">{item.step}</div>
+                  <h3 className="heading-serif text-[28px] mb-3 text-white">{item.title}</h3>
+                  <p className="text-[15px] leading-[1.6] text-white/75">{item.desc}</p>
                 </motion.div>
               ))}
             </div>
