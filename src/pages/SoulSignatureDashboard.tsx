@@ -114,8 +114,8 @@ const SoulSignatureDashboard: React.FC = () => {
 
   const hasData = portrait && (
     portrait.twinSummary ||
-    portrait.reflections.length > 0 ||
-    portrait.insights.length > 0 ||
+    (portrait.reflections?.length ?? 0) > 0 ||
+    (portrait.insights?.length ?? 0) > 0 ||
     portrait.memoryStats.total > 0 ||
     portrait.connectedPlatforms.length > 0 ||
     portrait.personalityScores !== null
@@ -131,6 +131,12 @@ const SoulSignatureDashboard: React.FC = () => {
       return PLATFORM_ALIAS[key] ?? key;
     })
     .filter(p => knownPlatforms.includes(p)) ?? [];
+
+  // Whitelist for BentoStatsTile — filters out unknown/internal platform entries
+  const STATS_PLATFORM_WHITELIST = ['spotify', 'google-calendar', 'whoop', 'youtube', 'twitch', 'linkedin', 'github', 'reddit'];
+  const whitelistedPlatforms = portrait?.connectedPlatforms.filter(p =>
+    STATS_PLATFORM_WHITELIST.includes(p.platform.toLowerCase())
+  ) ?? [];
 
   return (
     <PageLayout maxWidth="xl">
@@ -221,7 +227,7 @@ const SoulSignatureDashboard: React.FC = () => {
             <BentoStatsTile
               stats={portrait.memoryStats}
               firstMemoryAt={portrait.firstMemoryAt}
-              connectedPlatforms={portrait.connectedPlatforms}
+              connectedPlatforms={whitelistedPlatforms}
             />
           </div>
 

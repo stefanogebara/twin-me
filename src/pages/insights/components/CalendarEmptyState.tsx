@@ -2,6 +2,14 @@ import React from 'react';
 import { GlassPanel } from '@/components/layout/PageLayout';
 import { Calendar, Clock, CalendarDays } from 'lucide-react';
 
+const HEATMAP_OPACITIES = [
+  0.04, 0.08, 0.06, 0.10, 0.05,
+  0.09, 0.07, 0.11, 0.04, 0.08,
+  0.06, 0.05, 0.10, 0.07, 0.09,
+  0.04, 0.11, 0.06, 0.08, 0.05,
+  0.10, 0.07, 0.04, 0.09, 0.06,
+];
+
 interface CalendarEmptyStateProps {
   theme: string;
   colors: {
@@ -38,12 +46,12 @@ export const CalendarEmptyState: React.FC<CalendarEmptyStateProps> = ({ theme, c
             border: '1px solid rgba(66, 133, 244, 0.2)',
           }}
         >
-          <div className="w-2 h-2 rounded-full animate-pulse" style={{ backgroundColor: colors.calendarBlue }} />
+          <div aria-hidden="true" className="w-2 h-2 rounded-full animate-pulse" style={{ backgroundColor: colors.calendarBlue }} />
           Your twin is collecting data... check back soon
         </div>
       </GlassPanel>
 
-      <div className="opacity-50 pointer-events-none space-y-3">
+      <div aria-hidden="true" className="opacity-50 pointer-events-none space-y-3">
         <p className="text-xs uppercase tracking-wider" style={{ color: colors.textSecondary }}>
           Preview of your insights
         </p>
@@ -90,8 +98,8 @@ export const CalendarEmptyState: React.FC<CalendarEmptyStateProps> = ({ theme, c
               {Array.from({ length: 25 }).map((_, i) => (
                 <div key={i} className="h-3 rounded-sm" style={{
                   backgroundColor: theme === 'dark'
-                    ? `rgba(193,192,182,${0.04 + Math.random() * 0.08})`
-                    : `rgba(0,0,0,${0.02 + Math.random() * 0.06})`,
+                    ? `rgba(193,192,182,${HEATMAP_OPACITIES[i % HEATMAP_OPACITIES.length]})`
+                    : `rgba(0,0,0,${HEATMAP_OPACITIES[i % HEATMAP_OPACITIES.length] * 0.75})`,
                 }} />
               ))}
             </div>

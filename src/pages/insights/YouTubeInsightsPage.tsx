@@ -685,13 +685,13 @@ const YouTubeInsightsPage: React.FC = () => {
                 border: '1px solid rgba(255, 0, 0, 0.15)',
               }}
             >
-              <div className="w-2 h-2 rounded-full animate-pulse" style={{ backgroundColor: colors.youtubeRed }} />
+              <div aria-hidden="true" className="w-2 h-2 rounded-full animate-pulse" style={{ backgroundColor: colors.youtubeRed }} />
               Your twin is collecting data... check back soon
             </div>
           </GlassPanel>
 
           {/* Skeleton preview of what insights will look like */}
-          <div className="opacity-50 pointer-events-none space-y-3">
+          <div aria-hidden="true" className="opacity-50 pointer-events-none space-y-3">
             <p className="text-xs uppercase tracking-wider" style={{ color: colors.textSecondary }}>
               Preview of your insights
             </p>

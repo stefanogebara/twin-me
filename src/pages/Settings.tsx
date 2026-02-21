@@ -329,7 +329,7 @@ const Settings = () => {
                 </h2>
               </div>
               <button
-                onClick={async () => { await signOut(); navigate('/auth'); }}
+                onClick={async () => { try { await signOut(); } catch { /* ignore */ } navigate('/auth'); }}
                 className="flex items-center gap-2 px-3 py-1.5 rounded-xl text-sm font-medium transition-all hover:scale-[1.02]"
                 style={{
                   backgroundColor: theme === 'dark' ? 'rgba(239, 68, 68, 0.1)' : 'rgba(239, 68, 68, 0.08)',
