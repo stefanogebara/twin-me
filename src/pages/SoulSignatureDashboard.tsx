@@ -17,6 +17,9 @@ import { BentoInsightsTile } from './components/soul-portrait/BentoInsightsTile'
 import { BentoExpertSpotlight } from './components/soul-portrait/BentoExpertSpotlight';
 import { BentoGoalsTile } from './components/soul-portrait/BentoGoalsTile';
 
+// Whitelist for BentoStatsTile — filters out unknown/internal platform entries
+const STATS_PLATFORM_WHITELIST = ['spotify', 'google-calendar', 'whoop', 'youtube', 'twitch', 'linkedin', 'github', 'reddit'];
+
 const SoulSignatureDashboard: React.FC = () => {
   const { user } = useAuth();
   const { theme } = useTheme();
@@ -116,8 +119,8 @@ const SoulSignatureDashboard: React.FC = () => {
     portrait.twinSummary ||
     (portrait.reflections?.length ?? 0) > 0 ||
     (portrait.insights?.length ?? 0) > 0 ||
-    portrait.memoryStats.total > 0 ||
-    portrait.connectedPlatforms.length > 0 ||
+    (portrait.memoryStats?.total ?? 0) > 0 ||
+    (portrait.connectedPlatforms?.length ?? 0) > 0 ||
     portrait.personalityScores !== null
   );
 
@@ -132,8 +135,6 @@ const SoulSignatureDashboard: React.FC = () => {
     })
     .filter(p => knownPlatforms.includes(p)) ?? [];
 
-  // Whitelist for BentoStatsTile — filters out unknown/internal platform entries
-  const STATS_PLATFORM_WHITELIST = ['spotify', 'google-calendar', 'whoop', 'youtube', 'twitch', 'linkedin', 'github', 'reddit'];
   const whitelistedPlatforms = portrait?.connectedPlatforms.filter(p =>
     STATS_PLATFORM_WHITELIST.includes(p.platform.toLowerCase())
   ) ?? [];

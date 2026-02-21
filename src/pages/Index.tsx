@@ -11,7 +11,7 @@ import {
   TwitchLogo,
 } from '../components/PlatformLogos';
 
-const FOREST_BG = '/images/backgrounds/rainforest.jpg';
+const RAINFOREST_BG = '/images/backgrounds/rainforest.jpg';
 const OCEAN_BG = '/images/backgrounds/ocean.jpg';
 const DESERT_BG = '/images/backgrounds/desert.jpg';
 const MOUNTAIN_BG = '/images/backgrounds/mountain.jpg';
@@ -309,6 +309,7 @@ const Index = () => {
               src="/images/backgrounds/flower-hero.png"
               alt="Soul Signature"
               className="w-[480px] h-auto object-contain"
+              fetchPriority="high"
             />
           </motion.div>
         </div>
@@ -321,6 +322,7 @@ const Index = () => {
           alt=""
           className="absolute inset-0 w-full h-full object-cover"
           style={{ zIndex: 0, objectPosition: 'center 30%' }}
+          loading="lazy"
         />
         <div className="absolute inset-0 bg-black/40" style={{ zIndex: 1 }} />
 
@@ -349,6 +351,7 @@ const Index = () => {
           alt=""
           className="absolute inset-0 w-full h-full object-cover"
           style={{ zIndex: 0 }}
+          loading="lazy"
         />
         <div className="absolute inset-0 bg-black/25" style={{ zIndex: 1 }} />
 
@@ -407,10 +410,11 @@ const Index = () => {
       {/* ── Slide 4: Features — RAINFOREST BACKGROUND ── */}
       <section id="features" className="slide-section relative">
         <img
-          src={FOREST_BG}
+          src={RAINFOREST_BG}
           alt=""
           className="absolute inset-0 w-full h-full object-cover"
           style={{ zIndex: 0 }}
+          loading="lazy"
         />
         <div className="absolute inset-0 bg-black/20" style={{ zIndex: 1 }} />
 
@@ -452,6 +456,7 @@ const Index = () => {
           alt=""
           className="absolute inset-0 w-full h-full object-cover"
           style={{ zIndex: 0, objectPosition: 'center 60%' }}
+          loading="lazy"
         />
         <div className="absolute inset-0" style={{
           zIndex: 1,
@@ -495,7 +500,7 @@ const Index = () => {
           <div className="flex items-center justify-between text-[#8A857D] text-[13px] font-medium tracking-wide">
             <div className="heading-serif text-[18px] text-[#1F1C18]">Twin Me</div>
             <div className="flex items-center gap-8">
-              <a href="/privacy-policy" className="hover:text-[#1F1C18] transition-colors">Privacy</a>
+              <a href="/privacy-policy" className="hover:text-[#1F1C18] transition-colors">Privacy & Terms</a>
               <a href="https://github.com/twinme-ai" target="_blank" rel="noopener noreferrer" className="hover:text-[#1F1C18] transition-colors">GitHub</a>
               <a href="mailto:hello@twinme.ai" className="hover:text-[#1F1C18] transition-colors">Contact</a>
             </div>
