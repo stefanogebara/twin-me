@@ -249,6 +249,7 @@ const handleValidationErrors = (req, res, next) => {
 import aiRoutes from './routes/ai.js';
 import documentRoutes from './routes/documents.js';
 import twinsRoutes from './routes/twins.js';
+import twinPortraitRoutes from './routes/twin-portrait.js';
 import twinChatRoutes from './routes/twin-chat.js';
 import chatUsageRoutes from './routes/chat-usage.js';
 import conversationsRoutes from './routes/conversations.js';
@@ -409,6 +410,7 @@ app.get('/api/system/health', async (req, res) => {
 app.use('/api/ai', aiRoutes);
 app.use('/api/documents', documentRoutes);
 app.use('/api/twins', twinsRoutes);
+app.use('/api/twin', twinPortraitRoutes); // Twin portrait for Soul Signature page
 app.use('/api/twin', twinChatRoutes); // Legacy placeholder
 app.use('/api/chat', twinChatRoutes); // Chat with Twin endpoint (POST /api/chat/message)
 app.use('/api/chat', chatUsageRoutes); // Chat usage tracking (GET /api/chat/usage)
