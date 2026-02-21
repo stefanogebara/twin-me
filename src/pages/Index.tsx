@@ -11,7 +11,7 @@ import {
   TwitchLogo,
 } from '../components/PlatformLogos';
 
-const FOREST_BG = '/images/backgrounds/forest.jpg';
+const FOREST_BG = '/images/backgrounds/rainforest.jpg';
 const OCEAN_BG = '/images/backgrounds/ocean.jpg';
 const DESERT_BG = '/images/backgrounds/desert.jpg';
 
@@ -67,23 +67,21 @@ const Index = () => {
           justify-content: center;
           position: relative;
           z-index: 10;
+          contain: layout style paint;
+          will-change: transform;
         }
 
         .slide-glass-card {
-          background: rgba(255, 255, 255, 0.4);
-          backdrop-filter: blur(40px);
-          -webkit-backdrop-filter: blur(40px);
+          background: rgba(255, 255, 255, 0.88);
           border: 1px solid rgba(255, 255, 255, 0.8);
           box-shadow: 0 20px 40px rgba(0, 0, 0, 0.05), inset 0 1px 0 rgba(255, 255, 255, 1);
           border-radius: 2.5rem;
         }
 
         .photo-glass-card {
-          background: rgba(255, 255, 255, 0.55);
-          backdrop-filter: blur(50px) saturate(1.4);
-          -webkit-backdrop-filter: blur(50px) saturate(1.4);
-          border: 1px solid rgba(255, 255, 255, 0.7);
-          box-shadow: 0 20px 60px rgba(0, 0, 0, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.9);
+          background: rgba(255, 255, 255, 0.92);
+          border: 1px solid rgba(255, 255, 255, 0.85);
+          box-shadow: 0 12px 40px rgba(0, 0, 0, 0.06), inset 0 1px 0 rgba(255, 255, 255, 0.95);
           border-radius: 2rem;
         }
 
@@ -135,7 +133,6 @@ const Index = () => {
           align-items: center;
           gap: 8px;
           border: 1px solid rgba(255, 255, 255, 0.5);
-          backdrop-filter: blur(12px);
         }
         .btn-light:hover { background-color: rgba(255, 255, 255, 0.8); transform: translateY(-1px); }
 
@@ -153,7 +150,6 @@ const Index = () => {
         .aurora-blob {
           position: absolute;
           border-radius: 50%;
-          filter: blur(80px);
           animation: aurora-drift 18s ease-in-out infinite, aurora-pulse 6s ease-in-out infinite;
           pointer-events: none;
         }
@@ -171,18 +167,13 @@ const Index = () => {
         }
       `}</style>
 
-      {/* Background base */}
-      <div className="fixed inset-0 z-0 pointer-events-none bg-[#F5F5F0]">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,transparent_50%,rgba(0,0,0,0.03)_100%)]" />
-      </div>
-
       {/* ── Simplified Nav: Logo | Sign In + Start Free ── */}
       <div className="absolute top-6 left-0 right-0 z-50 px-4 md:px-8 flex justify-center mt-2">
         <motion.nav
           initial={{ y: -20, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
           transition={{ duration: 0.7 }}
-          className="w-full max-w-[1200px] flex items-center justify-between bg-[#FCFAF8]/90 backdrop-blur-md border border-[#EBE9E0] shadow-[0_4px_20px_rgba(0,0,0,0.03)] rounded-[32px] px-6 py-3"
+          className="w-full max-w-[1200px] flex items-center justify-between bg-[#FCFAF8] border border-[#EBE9E0] shadow-[0_4px_20px_rgba(0,0,0,0.03)] rounded-[32px] px-6 py-3"
         >
           <div
             className="heading-serif text-[26px] cursor-pointer font-medium text-[#1F1C18]"
@@ -308,9 +299,13 @@ const Index = () => {
             transition={{ duration: 1, delay: 0.3 }}
           >
             <img
-              src="/images/backgrounds/flower-hero.png"
+              src="/images/backgrounds/flower.png"
               alt="Soul Signature"
-              className="w-[420px] h-auto object-contain drop-shadow-[0_10px_40px_rgba(0,0,0,0.08)]"
+              className="w-[420px] h-auto object-contain"
+              style={{
+                maskImage: 'radial-gradient(ellipse 70% 70% at center, black 40%, transparent 100%)',
+                WebkitMaskImage: 'radial-gradient(ellipse 70% 70% at center, black 40%, transparent 100%)',
+              }}
             />
           </motion.div>
         </div>
@@ -336,47 +331,33 @@ const Index = () => {
         </motion.div>
       </section>
 
-      {/* ── Slide 3: Ecosystem — FOREST BACKGROUND with SVG platform icons ── */}
-      <section id="platform" className="slide-section relative overflow-hidden">
-        <div
-          className="absolute inset-0 z-0"
-          style={{
-            backgroundImage: `url('${FOREST_BG}')`,
-            backgroundSize: 'cover',
-            backgroundPosition: 'center',
-          }}
+      {/* ── Slide 3: Ecosystem — RAINFOREST BACKGROUND with SVG platform icons ── */}
+      <section id="platform" className="slide-section relative">
+        <img
+          src={FOREST_BG}
+          alt=""
+          className="absolute inset-0 w-full h-full object-cover"
+          style={{ zIndex: 0 }}
         />
-        <div className="absolute inset-0 z-[1] bg-[#F5F5F0]/30" />
+        <div className="absolute inset-0 bg-black/20" style={{ zIndex: 1 }} />
 
         <div className="relative z-10 px-8 lg:px-[80px]">
           <div className="max-w-[1200px] mx-auto w-full flex flex-col lg:flex-row gap-12 items-center">
-            <motion.div
-              initial={{ opacity: 0, y: 30 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.7 }}
-              viewport={{ once: true, amount: 0.4 }}
-              className="lg:w-1/2"
-            >
-              <h2 className="heading-serif text-[clamp(2.2rem,3.5vw,3.2rem)] mb-5 text-white drop-shadow-[0_2px_8px_rgba(0,0,0,0.3)]">
+            <div className="lg:w-1/2">
+              <h2 className="heading-serif text-[clamp(2.2rem,3.5vw,3.2rem)] mb-5 text-white" style={{ textShadow: '0 2px 8px rgba(0,0,0,0.3)' }}>
                 Connect deeply, <br />
                 <span className="heading-serif-italic !text-white/80">live simply.</span>
               </h2>
-              <p className="text-[17px] text-white/90 max-w-[400px] leading-relaxed mb-7 drop-shadow-[0_1px_4px_rgba(0,0,0,0.2)]">
+              <p className="text-[17px] text-white/90 max-w-[400px] leading-relaxed mb-7" style={{ textShadow: '0 1px 4px rgba(0,0,0,0.2)' }}>
                 Link your digital environment with effortless, secure integrations. You maintain total control over your data boundaries while Twin Me securely processes your unique signature.
               </p>
               <button className="btn-light">
                 View Privacy Standards
               </button>
-            </motion.div>
+            </div>
 
             {/* Platform cards with real SVG icons */}
-            <motion.div
-              initial={{ opacity: 0, y: 30 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.7, delay: 0.15 }}
-              viewport={{ once: true, amount: 0.4 }}
-              className="lg:w-1/2 w-full"
-            >
+            <div className="lg:w-1/2 w-full">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 {[
                   { Icon: SpotifyLogo,          iconColor: '#1DB954', iconBg: 'rgba(29,185,84,0.15)',   title: 'Spotify',          desc: 'Acoustic patterns & vibes' },
@@ -403,7 +384,7 @@ const Index = () => {
                   </div>
                 ))}
               </div>
-            </motion.div>
+            </div>
           </div>
         </div>
 
@@ -413,16 +394,14 @@ const Index = () => {
       </section>
 
       {/* ── Slide 4: Features — OCEAN BACKGROUND (tighter card padding) ── */}
-      <section id="features" className="slide-section relative overflow-hidden">
-        <div
-          className="absolute inset-0 z-0"
-          style={{
-            backgroundImage: `url('${OCEAN_BG}')`,
-            backgroundSize: 'cover',
-            backgroundPosition: 'center 40%',
-          }}
+      <section id="features" className="slide-section relative">
+        <img
+          src={OCEAN_BG}
+          alt=""
+          className="absolute inset-0 w-full h-full object-cover"
+          style={{ zIndex: 0 }}
         />
-        <div className="absolute inset-0 z-[1] bg-[#F5F5F0]/15" />
+        <div className="absolute inset-0 bg-[#F5F5F0]/15" style={{ zIndex: 1 }} />
 
         <div className="relative z-10 px-8 lg:px-[80px]">
           <div className="max-w-[1200px] mx-auto w-full">
@@ -456,16 +435,15 @@ const Index = () => {
       </section>
 
       {/* ── Slide 5: Final CTA ── */}
-      <section id="security" className="slide-section relative flex flex-col justify-between w-full overflow-hidden">
-        <div
-          className="absolute inset-0 z-0"
-          style={{
-            backgroundImage: `url('${DESERT_BG}')`,
-            backgroundSize: 'cover',
-            backgroundPosition: 'center 60%',
-          }}
+      <section id="security" className="slide-section relative flex flex-col justify-between w-full">
+        <img
+          src={DESERT_BG}
+          alt=""
+          className="absolute inset-0 w-full h-full object-cover"
+          style={{ zIndex: 0, objectPosition: 'center 60%' }}
         />
-        <div className="absolute inset-0 z-[1]" style={{
+        <div className="absolute inset-0" style={{
+          zIndex: 1,
           background: 'linear-gradient(180deg, rgba(245,245,240,0.1) 0%, rgba(245,245,240,0.5) 60%, rgba(245,245,240,0.85) 100%)',
         }} />
 
