@@ -102,6 +102,8 @@ async function generateTwinSummary(userId, userName = 'This person') {
     return null;
   }
 
+  const domains = { personality, lifestyle, culturalIdentity, socialDynamics, motivation };
+
   // Persist to database (upsert)
   try {
     const { error } = await supabaseAdmin
@@ -112,6 +114,7 @@ async function generateTwinSummary(userId, userName = 'This person') {
         core_traits: personality || null,
         current_focus: lifestyle || null,
         recent_feelings: culturalIdentity || null,
+        domains,
         generated_at: new Date().toISOString(),
       }, { onConflict: 'user_id' });
 
@@ -164,4 +167,55 @@ async function getTwinSummary(userId, userName = 'This person') {
   }
 }
 
-export { generateTwinSummary, getTwinSummary };
+/**
+ * Get the twin summary with domain breakdowns.
+ * Returns cached version if fresh (< 4h), otherwise generates new.
+ *
+ * @param {string} userId - User UUID
+ * @param {string} userName - User's display name
+ * @returns {{ summary: string, domains: object, generatedAt: string } | null}
+ */
+async function getTwinSummaryWithDomains(userId, userName = 'This person') {
+  if (!supabaseAdmin) return null;
+
+  try {
+    const { data: cached, error } = await supabaseAdmin
+      .from('twin_summaries')
+      .select('summary, domains, generated_at')
+      .eq('user_id', userId)
+      .single();
+
+    if (!error && cached && cached.summary) {
+      const age = Date.now() - new Date(cached.generated_at).getTime();
+      const hasDomains = cached.domains && Object.keys(cached.domains).length > 0;
+      if (age < SUMMARY_MAX_AGE_MS && hasDomains) {
+        return {
+          summary: cached.summary,
+          domains: cached.domains,
+          generatedAt: cached.generated_at,
+        };
+      }
+    }
+
+    // Generate fresh
+    const result = await generateTwinSummary(userId, userName);
+    if (!result) return null;
+
+    return {
+      summary: result.summary,
+      domains: {
+        personality: result.personality,
+        lifestyle: result.lifestyle,
+        culturalIdentity: result.culturalIdentity,
+        socialDynamics: result.socialDynamics,
+        motivation: result.motivation,
+      },
+      generatedAt: new Date().toISOString(),
+    };
+  } catch (err) {
+    console.warn('[TwinSummary] getTwinSummaryWithDomains error:', err.message);
+    return null;
+  }
+}
+
+export { generateTwinSummary, getTwinSummary, getTwinSummaryWithDomains };
