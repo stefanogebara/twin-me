@@ -196,7 +196,7 @@ async function importConversationsForUser(userId, conversations) {
                 priority: 10, // Lower priority for historical imports
                 queued_at: new Date().toISOString(),
               })
-              .catch(() => {}); // Ignore analysis job errors
+              .catch(err => console.warn('[CronSync] Analysis job queue error:', err.message));
           }
         }
       }

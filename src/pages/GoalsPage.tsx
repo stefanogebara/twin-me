@@ -9,6 +9,7 @@ import React, { useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
+import { toast } from 'sonner';
 import { useTheme } from '@/contexts/ThemeContext';
 import { PageLayout, GlassPanel } from '@/components/layout/PageLayout';
 import { goalsAPI } from '@/services/api/goalsAPI';
@@ -149,6 +150,7 @@ const GoalsPage: React.FC = () => {
       ]);
     } catch (err) {
       console.error('Failed to accept goal:', err);
+      toast.error('Failed to accept goal. Please try again.');
     } finally {
       setActionLoadingId(null);
       setActionType(null);
@@ -166,6 +168,7 @@ const GoalsPage: React.FC = () => {
       ]);
     } catch (err) {
       console.error('Failed to dismiss goal:', err);
+      toast.error('Failed to dismiss goal. Please try again.');
     } finally {
       setActionLoadingId(null);
       setActionType(null);
@@ -183,6 +186,7 @@ const GoalsPage: React.FC = () => {
       ]);
     } catch (err) {
       console.error('Failed to abandon goal:', err);
+      toast.error('Failed to abandon goal. Please try again.');
     } finally {
       setActionLoadingId(null);
       setActionType(null);

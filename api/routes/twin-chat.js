@@ -847,6 +847,15 @@ router.post('/message', authenticateUser, async (req, res) => {
       });
     }
 
+    // Cap message length to prevent LLM API failures from oversized payloads
+    const MAX_MESSAGE_LENGTH = 8000;
+    if (message.length > MAX_MESSAGE_LENGTH) {
+      return res.status(400).json({
+        success: false,
+        error: `Message too long (${message.length} chars). Maximum is ${MAX_MESSAGE_LENGTH} characters.`
+      });
+    }
+
     // Freemium quota check
     try {
       const usage = await getMonthlyUsage(userId);
@@ -1076,9 +1085,9 @@ router.post('/message', authenticateUser, async (req, res) => {
               console.warn('[Twin Chat] Auto-seed reflections failed:', err.message)
             );
           }
-        } catch { /* ignore stats check failure */ }
+        } catch (statsErr) { console.warn('[Twin Chat] Stats check for auto-seed failed:', statsErr.message); }
       }
-    }).catch(() => {});
+    }).catch(err => console.warn('[Twin Chat] Reflection trigger check failed:', err.message));
 
     // Mark proactive insights as delivered (non-blocking)
     if (proactiveInsights && proactiveInsights.length > 0) {

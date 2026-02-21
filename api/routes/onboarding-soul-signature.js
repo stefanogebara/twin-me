@@ -30,8 +30,29 @@ router.post('/instant-signature', authenticateUser, async (req, res) => {
     const userId = req.user?.id;
     const { enrichmentContext, calibrationInsights, connectedPlatforms } = req.body;
 
-    if (!enrichmentContext) {
+    if (!enrichmentContext || typeof enrichmentContext !== 'object') {
       return res.status(400).json({ success: false, error: 'enrichmentContext required' });
+    }
+
+    // Input length validation to prevent template injection and LLM payload bloat
+    const MAX_FIELD = 500;
+    if (enrichmentContext.name && enrichmentContext.name.length > MAX_FIELD) {
+      enrichmentContext.name = enrichmentContext.name.substring(0, MAX_FIELD);
+    }
+    if (enrichmentContext.bio && enrichmentContext.bio.length > MAX_FIELD) {
+      enrichmentContext.bio = enrichmentContext.bio.substring(0, MAX_FIELD);
+    }
+    if (enrichmentContext.company && enrichmentContext.company.length > 200) {
+      enrichmentContext.company = enrichmentContext.company.substring(0, 200);
+    }
+    if (enrichmentContext.title && enrichmentContext.title.length > 200) {
+      enrichmentContext.title = enrichmentContext.title.substring(0, 200);
+    }
+    if (enrichmentContext.location && enrichmentContext.location.length > 200) {
+      enrichmentContext.location = enrichmentContext.location.substring(0, 200);
+    }
+    if (Array.isArray(connectedPlatforms) && connectedPlatforms.length > 10) {
+      connectedPlatforms.length = 10;
     }
 
     // Fetch calibration data from DB if not provided
@@ -109,9 +130,9 @@ Respond in this exact JSON format:
       };
     }
 
-    // Save initial signature to database (matches existing soul_signatures schema)
+    // Save initial signature to database (awaited — critical for onboarding)
     if (userId && supabaseAdmin && signature) {
-      supabaseAdmin
+      const { error: sigError } = await supabaseAdmin
         .from('soul_signatures')
         .upsert({
           user_id: userId,
@@ -120,10 +141,10 @@ Respond in this exact JSON format:
           narrative: signature.first_impression,
           defining_traits: signature.core_traits,
           updated_at: new Date().toISOString(),
-        }, { onConflict: 'user_id' })
-        .then(({ error }) => {
-          if (error) console.warn('[Instant Signature] Save error:', error.message);
-        });
+        }, { onConflict: 'user_id' });
+      if (sigError) {
+        console.error('[Instant Signature] Failed to save signature:', sigError.message);
+      }
     }
 
     // Fire-and-forget: store calibration insights + signature as memories with domain tags
@@ -187,11 +208,12 @@ Respond in this exact JSON format:
         })
       );
 
+      // Fire-and-forget: store memories, then trigger reflections + goals
       Promise.all(memoryPromises).then(async (results) => {
         const stored = results.filter(Boolean).length;
         console.log(`[Instant Signature] Stored ${stored} calibration/signature memories for user ${userId}`);
 
-        // Post-onboarding hooks: trigger reflections + goal suggestions
+        // Post-onboarding hooks: trigger reflections + goal suggestions (non-blocking)
         try {
           const shouldReflect = await shouldTriggerReflection(userId);
           if (shouldReflect) {
@@ -208,20 +230,20 @@ Respond in this exact JSON format:
         generateGoalSuggestions(userId).catch(err =>
           console.warn(`[Instant Signature] Goal suggestion error:`, err.message)
         );
-
-        // Set onboarding_completed_at
-        if (supabaseAdmin) {
-          supabaseAdmin
-            .from('users')
-            .update({ onboarding_completed_at: new Date().toISOString() })
-            .eq('id', userId)
-            .then(({ error }) => {
-              if (error) console.warn('[Instant Signature] onboarding_completed_at update error:', error.message);
-            });
-        }
       }).catch(err => {
-        console.warn('[Instant Signature] Memory storage failed (non-blocking):', err.message);
+        console.error('[Instant Signature] Memory storage failed:', err.message);
       });
+    }
+
+    // Mark onboarding complete synchronously (before response) to avoid race condition
+    if (userId && supabaseAdmin) {
+      const { error: completionError } = await supabaseAdmin
+        .from('users')
+        .update({ onboarding_completed_at: new Date().toISOString() })
+        .eq('id', userId);
+      if (completionError) {
+        console.error('[Instant Signature] onboarding_completed_at update error:', completionError.message);
+      }
     }
 
     // Generate a first-person twin introduction

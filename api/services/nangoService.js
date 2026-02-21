@@ -602,7 +602,7 @@ export async function extractPlatformData(userId, platform) {
   }
 
   // Update last synced timestamp in nango_connection_mappings
-  await updateLastSynced(userId, platform).catch(() => {});
+  await updateLastSynced(userId, platform).catch(err => console.warn(`[NangoService] updateLastSynced failed for ${platform}:`, err.message));
 
   // Also update platform_connections.last_sync_at so the status endpoint reflects the sync
   const platformKeyMap = {
