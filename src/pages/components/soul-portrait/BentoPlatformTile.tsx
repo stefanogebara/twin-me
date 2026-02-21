@@ -104,10 +104,17 @@ export const BentoPlatformTile: React.FC<Props> = ({
   const meta = PLATFORM_META[platform.toLowerCase()];
   if (!meta) return null;
 
-  const connected = connectedPlatforms.find(p => p.platform.toLowerCase() === platform.toLowerCase());
+  // Platform names may differ between UI key and DB key (e.g. 'calendar' vs 'google_calendar')
+  const PLATFORM_DB_KEY: Record<string, string> = { calendar: 'google_calendar' };
+  const dbKey = PLATFORM_DB_KEY[platform.toLowerCase()] ?? platform.toLowerCase();
+
+  const connected = connectedPlatforms.find(p =>
+    p.platform.toLowerCase() === platform.toLowerCase() ||
+    p.platform.toLowerCase() === dbKey
+  );
   if (!connected) return null;
 
-  const pData = platformData?.[platform.toLowerCase()];
+  const pData = platformData?.[platform.toLowerCase()] ?? platformData?.[dbKey];
   const metric = pData?.recentObservations && pData.recentObservations.length > 0
     ? meta.extractMetric(pData.recentObservations)
     : null;
