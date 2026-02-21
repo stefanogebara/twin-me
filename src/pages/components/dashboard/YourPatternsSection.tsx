@@ -37,14 +37,12 @@ export const YourPatternsSection: React.FC<YourPatternsSectionProps> = ({
         <div
           className="w-1 h-5 rounded-full"
           style={{
-            background: theme === 'dark'
-              ? 'linear-gradient(to bottom, rgba(193, 192, 182, 0.6), rgba(193, 192, 182, 0.2))'
-              : 'linear-gradient(to bottom, rgba(0, 0, 0, 0.4), rgba(0, 0, 0, 0.1))'
+            background: 'linear-gradient(to bottom, var(--accent-vibrant), rgba(212, 168, 83, 0.2))'
           }}
         />
         <h3
-          className="text-sm uppercase tracking-wider"
-          style={{ color: theme === 'dark' ? 'rgba(193, 192, 182, 0.6)' : '#78716c' }}
+          className="text-sm uppercase tracking-wider font-semibold"
+          style={{ color: theme === 'dark' ? 'rgba(193, 192, 182, 0.8)' : '#57534e' }}
         >
           Your Patterns
         </h3>

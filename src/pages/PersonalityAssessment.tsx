@@ -8,7 +8,7 @@
 import React, { useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Loader2, ArrowLeft } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
 import { Clay3DIcon } from '@/components/Clay3DIcon';
 import { useAuth } from '@/contexts/AuthContext';
 import { useTheme } from '@/contexts/ThemeContext';
@@ -263,17 +263,6 @@ export function PersonalityAssessment() {
       style={{ backgroundColor: colors.bg }}
     >
       <div className="max-w-4xl mx-auto">
-        <button
-          onClick={() => navigate('/dashboard')}
-          className="flex items-center gap-2 text-sm mb-6 transition-colors hover:opacity-80"
-          style={{
-            fontFamily: 'var(--font-body)',
-            color: colors.textSecondary
-          }}
-        >
-          <ArrowLeft className="w-4 h-4" />
-          Back to Dashboard
-        </button>
 
         <AnimatePresence mode="wait">
           {phase === 'intro' && (
