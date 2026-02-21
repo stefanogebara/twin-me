@@ -14,6 +14,7 @@ import {
 const FOREST_BG = '/images/backgrounds/rainforest.jpg';
 const OCEAN_BG = '/images/backgrounds/ocean.jpg';
 const DESERT_BG = '/images/backgrounds/desert.jpg';
+const MOUNTAIN_BG = '/images/backgrounds/mountain.jpg';
 
 const Index = () => {
   const navigate = useNavigate();
@@ -72,16 +73,16 @@ const Index = () => {
         }
 
         .slide-glass-card {
-          background: rgba(255, 255, 255, 0.88);
-          border: 1px solid rgba(255, 255, 255, 0.8);
-          box-shadow: 0 20px 40px rgba(0, 0, 0, 0.05), inset 0 1px 0 rgba(255, 255, 255, 1);
+          background: rgba(255, 255, 255, 0.18);
+          border: 1px solid rgba(255, 255, 255, 0.45);
+          box-shadow: 0 8px 32px rgba(0, 0, 0, 0.18), inset 0 1px 0 rgba(255, 255, 255, 0.6);
           border-radius: 2.5rem;
         }
 
         .photo-glass-card {
-          background: rgba(255, 255, 255, 0.92);
-          border: 1px solid rgba(255, 255, 255, 0.85);
-          box-shadow: 0 12px 40px rgba(0, 0, 0, 0.06), inset 0 1px 0 rgba(255, 255, 255, 0.95);
+          background: rgba(255, 255, 255, 0.18);
+          border: 1px solid rgba(255, 255, 255, 0.45);
+          box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15), inset 0 1px 0 rgba(255, 255, 255, 0.5);
           border-radius: 2rem;
         }
 
@@ -311,20 +312,28 @@ const Index = () => {
         </div>
       </section>
 
-      {/* ── Slide 2: Philosophy Quote (tighter padding) ── */}
-      <section className="slide-section px-8 lg:px-[80px]">
+      {/* ── Slide 2: Philosophy Quote — MOUNTAIN BACKGROUND ── */}
+      <section className="slide-section relative px-8 lg:px-[80px]">
+        <img
+          src={MOUNTAIN_BG}
+          alt=""
+          className="absolute inset-0 w-full h-full object-cover"
+          style={{ zIndex: 0, objectPosition: 'center 30%' }}
+        />
+        <div className="absolute inset-0 bg-black/40" style={{ zIndex: 1 }} />
+
         <motion.div
           variants={staggerContainer}
           initial="hidden"
           whileInView="visible"
           viewport={{ once: true, amount: 0.5 }}
-          className="max-w-[1000px] mx-auto text-center"
+          className="max-w-[1000px] mx-auto text-center relative z-10"
         >
-          <div className="slide-glass-card p-10 lg:p-16 relative overflow-hidden">
-            <motion.h2 variants={fadeUp} className="text-[clamp(1.8rem,3.5vw,3rem)] mb-8 text-[#1F1C18] leading-tight">
+          <div className="slide-glass-card p-10 lg:p-16">
+            <motion.h2 variants={fadeUp} className="text-[clamp(1.8rem,3.5vw,3rem)] mb-8 text-white leading-tight">
               <span className="heading-serif-italic">"Perhaps we are searching in the branches for what we only find in the roots."</span>
             </motion.h2>
-            <motion.p variants={fadeUp} className="text-[16px] lg:text-[18px] leading-[1.7] text-[#5C5851] max-w-[680px] mx-auto relative z-10">
+            <motion.p variants={fadeUp} className="text-[16px] lg:text-[18px] leading-[1.7] text-white/80 max-w-[680px] mx-auto">
               Public information is easy to clone, but it lacks soul. We go beyond your resume and public persona to discover what makes you authentically YOU through your private choices, curiosities, and patterns.
             </motion.p>
           </div>
@@ -378,8 +387,8 @@ const Index = () => {
                       <item.Icon className="w-5 h-5" />
                     </div>
                     <div>
-                      <h4 className="text-[15px] font-semibold text-[#1F1C18] mb-0.5">{item.title}</h4>
-                      <p className="text-[13px] text-[#5C5851]">{item.desc}</p>
+                      <h4 className="text-[15px] font-semibold text-white mb-0.5">{item.title}</h4>
+                      <p className="text-[13px] text-white/70">{item.desc}</p>
                     </div>
                   </div>
                 ))}
