@@ -3,48 +3,17 @@ import { useNavigate } from 'react-router-dom';
 import { ArrowRight, PlayCircle } from 'lucide-react';
 import { useAuth, SignInButton } from '../contexts/AuthContext';
 import { motion } from 'framer-motion';
+import {
+  SpotifyLogo,
+  GoogleCalendarLogo,
+  WhoopLogo,
+  YoutubeLogo,
+  TwitchLogo,
+} from '../components/PlatformLogos';
 
-const FOREST_BG = 'https://images.unsplash.com/photo-1448375240586-882707db888b?w=1920&q=80&auto=format';
-const OCEAN_BG = 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=1920&q=80&auto=format';
-
-// ── Inline SVG platform icons ──────────────────────────────────────────────
-
-const SpotifyIcon = ({ className = 'w-6 h-6', style }: { className?: string; style?: React.CSSProperties }) => (
-  <svg className={className} style={style} viewBox="0 0 24 24" fill="currentColor">
-    <path d="M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.66 0 12 0zm5.521 17.34c-.24.359-.66.48-1.021.24-2.82-1.74-6.36-2.101-10.561-1.141-.418.122-.779-.179-.899-.539-.12-.421.18-.78.54-.9 4.56-1.021 8.52-.6 11.64 1.32.42.18.479.659.301 1.02zm1.44-3.3c-.301.42-.841.6-1.262.3-3.239-1.98-8.159-2.58-11.939-1.38-.479.12-1.02-.12-1.14-.6-.12-.48.12-1.021.6-1.141C9.6 9.9 15 10.561 18.72 12.84c.361.181.54.78.241 1.2zm.12-3.36C15.24 8.4 8.82 8.16 5.16 9.301c-.6.179-1.2-.181-1.38-.721-.18-.601.18-1.2.72-1.381 4.26-1.26 11.28-1.02 15.721 1.621.539.3.719 1.02.419 1.56-.299.421-1.02.599-1.559.3z" />
-  </svg>
-);
-
-const GoogleCalendarIcon = ({ className = 'w-6 h-6', style }: { className?: string; style?: React.CSSProperties }) => (
-  <svg className={className} style={style} viewBox="0 0 24 24" fill="none">
-    <rect x="2" y="4" width="20" height="18" rx="2" fill="#4285F4" fillOpacity="0.15" />
-    <rect x="2" y="4" width="20" height="18" rx="2" stroke="#4285F4" strokeWidth="1.5" fill="none" />
-    <rect x="7" y="2" width="2" height="4" rx="1" fill="#4285F4" />
-    <rect x="15" y="2" width="2" height="4" rx="1" fill="#4285F4" />
-    <line x1="2" y1="10" x2="22" y2="10" stroke="#4285F4" strokeWidth="1.5" />
-    <rect x="6" y="13" width="3" height="3" rx="0.5" fill="#4285F4" />
-    <rect x="10.5" y="13" width="3" height="3" rx="0.5" fill="#4285F4" />
-    <rect x="15" y="13" width="3" height="3" rx="0.5" fill="#4285F4" />
-  </svg>
-);
-
-const WhoopIcon = ({ className = 'w-6 h-6', style }: { className?: string; style?: React.CSSProperties }) => (
-  <svg className={className} style={style} viewBox="0 0 1332 999" fill="#00c9b1">
-    <path d="m969.3 804.3l-129.4-426.3h-118.7l189.2 620.8h117.8l303.7-998h-118.7zm-851.3-803.5h-117.9l188.4 620.7h118.6zm488.6 0l-302.8 997.9h117.8l303.7-997.9z" />
-  </svg>
-);
-
-const YouTubeIcon = ({ className = 'w-6 h-6', style }: { className?: string; style?: React.CSSProperties }) => (
-  <svg className={className} style={style} viewBox="0 0 24 24" fill="currentColor">
-    <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z" />
-  </svg>
-);
-
-const TwitchIcon = ({ className = 'w-6 h-6', style }: { className?: string; style?: React.CSSProperties }) => (
-  <svg className={className} style={style} viewBox="0 0 24 24" fill="currentColor">
-    <path d="M11.571 4.714h1.715v5.143H11.57zm4.715 0H18v5.143h-1.714zM6 0L1.714 4.286v15.428h5.143V24l4.286-4.286h3.428L22.286 12V0zm14.571 11.143l-3.428 3.428h-3.429l-3 3v-3H6.857V1.714h13.714Z" />
-  </svg>
-);
+const FOREST_BG = '/images/backgrounds/forest.jpg';
+const OCEAN_BG = '/images/backgrounds/ocean.jpg';
+const DESERT_BG = '/images/backgrounds/desert.jpg';
 
 const Index = () => {
   const navigate = useNavigate();
@@ -69,8 +38,6 @@ const Index = () => {
   return (
     <div className="h-screen w-full overflow-y-auto overflow-x-hidden snap-y snap-mandatory relative landing-root font-sans bg-[#F7F7F3] text-[#1F1C18]">
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;0,600;1,400;1,500;1,600&family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap');
-
         .landing-root::-webkit-scrollbar { display: none; }
         .landing-root {
           -ms-overflow-style: none;
@@ -120,10 +87,10 @@ const Index = () => {
           border-radius: 2rem;
         }
 
-        /* Gradient CTA button */
+        /* CTA button — warm dark, matches palette */
         .btn-cta {
-          background: linear-gradient(135deg, #7C3AED 0%, #2563EB 100%);
-          color: #ffffff;
+          background-color: #2D2722;
+          color: #F7F7F3;
           border-radius: 9999px;
           padding: 16px 36px;
           font-size: 16px;
@@ -132,12 +99,13 @@ const Index = () => {
           display: inline-flex;
           align-items: center;
           gap: 8px;
-          box-shadow: 0 4px 20px rgba(124, 58, 237, 0.35);
+          box-shadow: 0 4px 20px rgba(45, 39, 34, 0.25);
           letter-spacing: -0.01em;
         }
         .btn-cta:hover {
+          background-color: #1F1C18;
           transform: translateY(-2px);
-          box-shadow: 0 8px 28px rgba(124, 58, 237, 0.45);
+          box-shadow: 0 8px 28px rgba(45, 39, 34, 0.35);
         }
         .btn-cta:active { transform: translateY(0); }
 
@@ -190,11 +158,9 @@ const Index = () => {
           pointer-events: none;
         }
 
-        @keyframes orb-float {
-          0%, 100% { transform: translateY(0px) scale(1); }
-          50%       { transform: translateY(-18px) scale(1.04); }
+        @media (prefers-reduced-motion: reduce) {
+          .aurora-blob { animation: none; }
         }
-        .hero-orb { animation: orb-float 7s ease-in-out infinite; }
 
         .platform-card {
           transition: transform 0.25s ease, box-shadow 0.25s ease;
@@ -250,12 +216,12 @@ const Index = () => {
 
       {/* ── Slide 1: Hero with Aurora Background ── */}
       <section id="about" className="slide-section px-8 lg:px-[120px] relative overflow-hidden">
-        {/* Aurora blobs */}
+        {/* Warm ambient blobs */}
         <div
           className="aurora-blob"
           style={{
             width: '520px', height: '520px',
-            background: 'radial-gradient(circle, rgba(124,58,237,0.22) 0%, rgba(37,99,235,0.12) 60%, transparent 100%)',
+            background: 'radial-gradient(circle, rgba(200,180,150,0.15) 0%, rgba(180,160,130,0.08) 60%, transparent 100%)',
             top: '-80px', right: '-100px',
             animationDelay: '0s',
           }}
@@ -264,7 +230,7 @@ const Index = () => {
           className="aurora-blob"
           style={{
             width: '380px', height: '380px',
-            background: 'radial-gradient(circle, rgba(16,185,129,0.15) 0%, rgba(37,99,235,0.08) 60%, transparent 100%)',
+            background: 'radial-gradient(circle, rgba(160,140,120,0.12) 0%, rgba(140,130,110,0.06) 60%, transparent 100%)',
             bottom: '60px', left: '-80px',
             animationDelay: '-6s',
             animationDuration: '22s',
@@ -274,7 +240,7 @@ const Index = () => {
           className="aurora-blob"
           style={{
             width: '260px', height: '260px',
-            background: 'radial-gradient(circle, rgba(245,158,11,0.12) 0%, transparent 70%)',
+            background: 'radial-gradient(circle, rgba(210,190,160,0.10) 0%, transparent 70%)',
             top: '30%', right: '30%',
             animationDelay: '-12s',
             animationDuration: '28s',
@@ -325,77 +291,27 @@ const Index = () => {
                   </button>
                 </SignInButton>
               )}
-              <button className="bg-[#FCFAF8]/80 text-[#1F1C18] border border-[#EBE9E0] rounded-[32px] py-4 px-6 text-[15px] font-medium transition-colors hover:bg-[#EBE9E0] flex items-center shadow-sm">
+              <button
+                className="bg-[#FCFAF8]/80 text-[#1F1C18] border border-[#EBE9E0] rounded-[32px] py-4 px-6 text-[15px] font-medium transition-colors hover:bg-[#EBE9E0] flex items-center shadow-sm"
+                onClick={() => document.getElementById('features')?.scrollIntoView({ behavior: 'smooth' })}
+              >
                 How we work <PlayCircle className="w-5 h-5 ml-2 text-[#5C5851]" />
               </button>
             </motion.div>
           </motion.div>
 
-          {/* Hero visual: floating glass orb with satellite platform dots */}
+          {/* Hero visual: flower image */}
           <motion.div
             className="hidden lg:flex flex-1 items-center justify-center relative"
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 1.2, delay: 0.3 }}
+            initial={{ opacity: 0, y: 30 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 1, delay: 0.3 }}
           >
-            <div className="hero-orb relative w-[340px] h-[340px]">
-              {/* Outer glow ring */}
-              <div
-                className="absolute inset-0 rounded-full"
-                style={{
-                  background: 'conic-gradient(from 0deg, rgba(124,58,237,0.3), rgba(37,99,235,0.2), rgba(16,185,129,0.25), rgba(124,58,237,0.3))',
-                  filter: 'blur(2px)',
-                }}
-              />
-              {/* Inner glass sphere */}
-              <div
-                className="absolute inset-6 rounded-full flex flex-col items-center justify-center"
-                style={{
-                  background: 'radial-gradient(circle at 35% 35%, rgba(255,255,255,0.9) 0%, rgba(247,247,243,0.5) 50%, rgba(235,233,224,0.3) 100%)',
-                  backdropFilter: 'blur(20px)',
-                  border: '1px solid rgba(255,255,255,0.8)',
-                  boxShadow: '0 20px 60px rgba(124,58,237,0.2), inset 0 1px 0 rgba(255,255,255,0.9)',
-                }}
-              >
-                <div className="heading-serif text-[#1F1C18] text-[20px] mb-1 opacity-90">Soul</div>
-                <div className="heading-serif-italic text-[16px] opacity-70">Signature</div>
-                <div className="mt-3 flex flex-col items-center gap-1.5">
-                  {[100, 70, 85, 55, 90].map((w, i) => (
-                    <div
-                      key={i}
-                      className="h-[3px] rounded-full"
-                      style={{
-                        width: `${w * 0.75}px`,
-                        background: `linear-gradient(90deg, rgba(124,58,237,${0.3 + i * 0.08}), rgba(37,99,235,${0.2 + i * 0.06}))`,
-                        opacity: 0.7,
-                      }}
-                    />
-                  ))}
-                </div>
-              </div>
-              {/* Satellite platform dots */}
-              {[
-                { top: '6%',  left: '50%', color: '#1DB954', label: 'Spotify' },
-                { top: '50%', left: '94%', color: '#4285F4', label: 'Calendar' },
-                { top: '90%', left: '65%', color: '#00c9b1', label: 'Whoop' },
-                { top: '76%', left: '6%',  color: '#FF0000', label: 'YouTube' },
-                { top: '18%', left: '4%',  color: '#9146FF', label: 'Twitch' },
-              ].map((dot, i) => (
-                <div
-                  key={i}
-                  className="absolute w-9 h-9 rounded-full flex items-center justify-center shadow-md"
-                  style={{
-                    top: dot.top, left: dot.left,
-                    transform: 'translate(-50%, -50%)',
-                    backgroundColor: `${dot.color}22`,
-                    border: `2px solid ${dot.color}55`,
-                    backdropFilter: 'blur(8px)',
-                  }}
-                >
-                  <div className="w-3 h-3 rounded-full" style={{ backgroundColor: dot.color }} />
-                </div>
-              ))}
-            </div>
+            <img
+              src="/images/backgrounds/flower-hero.png"
+              alt="Soul Signature"
+              className="w-[420px] h-auto object-contain drop-shadow-[0_10px_40px_rgba(0,0,0,0.08)]"
+            />
           </motion.div>
         </div>
       </section>
@@ -433,14 +349,14 @@ const Index = () => {
         <div className="absolute inset-0 z-[1] bg-[#F5F5F0]/30" />
 
         <div className="relative z-10 px-8 lg:px-[80px]">
-          <motion.div
-            variants={staggerContainer}
-            initial="hidden"
-            whileInView="visible"
-            viewport={{ once: true, amount: 0.4 }}
-            className="max-w-[1200px] mx-auto w-full flex flex-col lg:flex-row gap-12 items-center"
-          >
-            <motion.div variants={fadeUp} className="lg:w-1/2">
+          <div className="max-w-[1200px] mx-auto w-full flex flex-col lg:flex-row gap-12 items-center">
+            <motion.div
+              initial={{ opacity: 0, y: 30 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.7 }}
+              viewport={{ once: true, amount: 0.4 }}
+              className="lg:w-1/2"
+            >
               <h2 className="heading-serif text-[clamp(2.2rem,3.5vw,3.2rem)] mb-5 text-white drop-shadow-[0_2px_8px_rgba(0,0,0,0.3)]">
                 Connect deeply, <br />
                 <span className="heading-serif-italic !text-white/80">live simply.</span>
@@ -454,14 +370,20 @@ const Index = () => {
             </motion.div>
 
             {/* Platform cards with real SVG icons */}
-            <motion.div variants={fadeUp} className="lg:w-1/2 w-full">
+            <motion.div
+              initial={{ opacity: 0, y: 30 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.7, delay: 0.15 }}
+              viewport={{ once: true, amount: 0.4 }}
+              className="lg:w-1/2 w-full"
+            >
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 {[
-                  { Icon: SpotifyIcon,       iconColor: '#1DB954', iconBg: 'rgba(29,185,84,0.15)',   title: 'Spotify',          desc: 'Acoustic patterns & vibes' },
-                  { Icon: GoogleCalendarIcon, iconColor: '#4285F4', iconBg: 'rgba(66,133,244,0.12)',  title: 'Google Calendar',  desc: 'Time & priority rhythms' },
-                  { Icon: WhoopIcon,          iconColor: '#00c9b1', iconBg: 'rgba(0,201,177,0.12)',   title: 'Whoop',            desc: 'Energy & recovery states' },
-                  { Icon: YouTubeIcon,        iconColor: '#FF0000', iconBg: 'rgba(255,0,0,0.12)',     title: 'YouTube',          desc: 'Curiosity & learning' },
-                  { Icon: TwitchIcon,         iconColor: '#9146FF', iconBg: 'rgba(145,70,255,0.12)', title: 'Twitch',           desc: 'Gaming identity & streams' },
+                  { Icon: SpotifyLogo,          iconColor: '#1DB954', iconBg: 'rgba(29,185,84,0.15)',   title: 'Spotify',          desc: 'Acoustic patterns & vibes' },
+                  { Icon: GoogleCalendarLogo,    iconColor: '#4285F4', iconBg: 'rgba(66,133,244,0.12)',  title: 'Google Calendar',  desc: 'Time & priority rhythms' },
+                  { Icon: WhoopLogo,             iconColor: '#00c9b1', iconBg: 'rgba(0,201,177,0.12)',   title: 'Whoop',            desc: 'Energy & recovery states' },
+                  { Icon: YoutubeLogo,           iconColor: '#FF0000', iconBg: 'rgba(255,0,0,0.12)',     title: 'YouTube',          desc: 'Curiosity & learning' },
+                  { Icon: TwitchLogo,            iconColor: '#9146FF', iconBg: 'rgba(145,70,255,0.12)', title: 'Twitch',           desc: 'Gaming identity & streams' },
                 ].map((item, idx) => (
                   <div
                     key={idx}
@@ -469,9 +391,10 @@ const Index = () => {
                   >
                     <div
                       className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
-                      style={{ backgroundColor: item.iconBg, border: `1.5px solid ${item.iconColor}40` }}
+                      style={{ backgroundColor: item.iconBg, border: `1.5px solid ${item.iconColor}40`, color: item.iconColor }}
+                      aria-hidden="true"
                     >
-                      <item.Icon className="w-5 h-5" style={{ color: item.iconColor }} />
+                      <item.Icon className="w-5 h-5" />
                     </div>
                     <div>
                       <h4 className="text-[15px] font-semibold text-[#1F1C18] mb-0.5">{item.title}</h4>
@@ -481,7 +404,7 @@ const Index = () => {
                 ))}
               </div>
             </motion.div>
-          </motion.div>
+          </div>
         </div>
 
         <div className="absolute bottom-6 right-8 z-10 opacity-50">
@@ -490,7 +413,7 @@ const Index = () => {
       </section>
 
       {/* ── Slide 4: Features — OCEAN BACKGROUND (tighter card padding) ── */}
-      <section className="slide-section relative overflow-hidden">
+      <section id="features" className="slide-section relative overflow-hidden">
         <div
           className="absolute inset-0 z-0"
           style={{
@@ -537,7 +460,7 @@ const Index = () => {
         <div
           className="absolute inset-0 z-0"
           style={{
-            backgroundImage: `url('${OCEAN_BG}')`,
+            backgroundImage: `url('${DESERT_BG}')`,
             backgroundSize: 'cover',
             backgroundPosition: 'center 60%',
           }}

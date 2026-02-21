@@ -155,54 +155,55 @@ export const TodayInsights: React.FC = () => {
     }
   };
 
-  // ── Empty state when no platforms are connected ──────────────────────────
-  if (!isLoading && !platformStatusLoading && !isDemoMode) {
-    const isWhoopActive    = isPlatformActive('whoop');
-    const isCalendarActive = isPlatformActive('google_calendar');
-    const isSpotifyActive  = isPlatformActive('spotify');
-    const noneConnected    = !isWhoopActive && !isCalendarActive && !isSpotifyActive;
+  // ── Per-platform connect rows for any platform that is NOT connected ─────
+  const disconnectedPlatforms = !isLoading && !platformStatusLoading && !isDemoMode
+    ? [
+        { platform: 'Whoop',    platformKey: 'whoop',           desc: 'Connect Whoop to unlock health & recovery insights',   active: isPlatformActive('whoop') },
+        { platform: 'Calendar', platformKey: 'google_calendar', desc: 'Connect Google Calendar to unlock schedule insights',   active: isPlatformActive('google_calendar') },
+        { platform: 'Spotify',  platformKey: 'spotify',         desc: 'Connect Spotify to unlock music mood insights',         active: isPlatformActive('spotify') },
+      ].filter(p => !p.active)
+    : [];
 
-    if (noneConnected) {
-      return (
-        <div className="space-y-3">
-          <div className="flex items-center gap-2">
-            <Sparkles className="w-5 h-5" style={{ color: theme === 'dark' ? '#C1C0B6' : '#57534e' }} />
-            <h2 className="text-lg font-medium" style={{ fontFamily: 'var(--font-heading)', color: theme === 'dark' ? '#C1C0B6' : '#0c0a09' }}>
-              Today's Insights
-            </h2>
-          </div>
-          <div
-            className="rounded-xl p-5 space-y-3"
-            style={{
-              backgroundColor: theme === 'dark' ? 'rgba(45, 45, 41, 0.5)' : 'rgba(255, 255, 255, 0.7)',
-              border: theme === 'dark' ? '1px solid rgba(193, 192, 182, 0.1)' : '1px solid rgba(0, 0, 0, 0.05)',
-            }}
-          >
-            {[
-              { platform: 'Whoop', key: 'whoop', desc: 'Connect Whoop to unlock health & recovery insights' },
-              { platform: 'Calendar', key: 'calendar', desc: 'Connect Google Calendar to unlock schedule insights' },
-              { platform: 'Spotify', key: 'spotify', desc: 'Connect Spotify to unlock music mood insights' },
-            ].map(({ platform, desc }) => (
-              <div key={platform} className="flex items-center justify-between gap-3">
-                <span className="text-sm" style={{ color: theme === 'dark' ? 'rgba(193,192,182,0.7)' : '#57534e' }}>
-                  {desc}
-                </span>
-                <button
-                  onClick={() => navigate('/get-started')}
-                  className="flex-shrink-0 text-xs px-3 py-1.5 rounded-lg font-medium transition-colors hover:opacity-80"
-                  style={{
-                    backgroundColor: theme === 'dark' ? 'rgba(193,192,182,0.12)' : 'rgba(0,0,0,0.06)',
-                    color: theme === 'dark' ? '#C1C0B6' : '#44403c',
-                  }}
-                >
-                  Connect
-                </button>
-              </div>
-            ))}
-          </div>
+  // Show connect rows alongside real content when some (but not necessarily all) platforms are disconnected
+  // If ALL three are disconnected and there's no data yet, show only the connect state
+  const allDisconnected = disconnectedPlatforms.length === 3;
+
+  if (allDisconnected && !isLoading && !platformStatusLoading && !isDemoMode) {
+    return (
+      <div className="space-y-3">
+        <div className="flex items-center gap-2">
+          <Sparkles className="w-5 h-5" style={{ color: theme === 'dark' ? '#C1C0B6' : '#57534e' }} />
+          <h2 className="text-lg font-medium" style={{ fontFamily: 'var(--font-heading)', color: theme === 'dark' ? '#C1C0B6' : '#0c0a09' }}>
+            Today's Insights
+          </h2>
         </div>
-      );
-    }
+        <div
+          className="rounded-xl p-5 space-y-3"
+          style={{
+            backgroundColor: theme === 'dark' ? 'rgba(45, 45, 41, 0.5)' : 'rgba(255, 255, 255, 0.7)',
+            border: theme === 'dark' ? '1px solid rgba(193, 192, 182, 0.1)' : '1px solid rgba(0, 0, 0, 0.05)',
+          }}
+        >
+          {disconnectedPlatforms.map(({ platform, desc }) => (
+            <div key={platform} className="flex items-center justify-between gap-3">
+              <span className="text-sm" style={{ color: theme === 'dark' ? 'rgba(193,192,182,0.7)' : '#57534e' }}>
+                {desc}
+              </span>
+              <button
+                onClick={() => navigate('/get-started')}
+                className="flex-shrink-0 text-xs px-3 py-1.5 rounded-lg font-medium transition-colors hover:opacity-80"
+                style={{
+                  backgroundColor: theme === 'dark' ? 'rgba(193,192,182,0.12)' : 'rgba(0,0,0,0.06)',
+                  color: theme === 'dark' ? '#C1C0B6' : '#44403c',
+                }}
+              >
+                Connect
+              </button>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
   }
 
   if (isLoading) {
@@ -228,8 +229,8 @@ export const TodayInsights: React.FC = () => {
         border: theme === 'dark' ? '1px solid rgba(193, 192, 182, 0.1)' : '1px solid rgba(0, 0, 0, 0.05)'
       }}>
         <div className="flex items-center gap-3" style={{ color: theme === 'dark' ? 'rgba(193,192,182,0.7)' : '#57534e' }}>
-          <Loader2 className="w-5 h-5 animate-spin" />
-          <span className="text-sm">Analyzing your data...</span>
+          <AlertCircle className="w-5 h-5 flex-shrink-0" style={{ color: theme === 'dark' ? '#f87171' : '#ef4444' }} />
+          <span className="text-sm">Unable to load insights. Try refreshing.</span>
         </div>
       </div>
     );
@@ -519,6 +520,35 @@ export const TodayInsights: React.FC = () => {
           );
         })}
       </div>
+
+      {/* Per-platform "Connect" rows for any platform that is not yet connected */}
+      {disconnectedPlatforms.length > 0 && (
+        <div
+          className="rounded-xl p-4 space-y-3"
+          style={{
+            backgroundColor: theme === 'dark' ? 'rgba(45, 45, 41, 0.4)' : 'rgba(255, 255, 255, 0.6)',
+            border: theme === 'dark' ? '1px solid rgba(193, 192, 182, 0.08)' : '1px solid rgba(0, 0, 0, 0.04)',
+          }}
+        >
+          {disconnectedPlatforms.map(({ platform, desc }) => (
+            <div key={platform} className="flex items-center justify-between gap-3">
+              <span className="text-sm" style={{ color: theme === 'dark' ? 'rgba(193,192,182,0.7)' : '#57534e' }}>
+                {desc}
+              </span>
+              <button
+                onClick={() => navigate('/get-started')}
+                className="flex-shrink-0 text-xs px-3 py-1.5 rounded-lg font-medium transition-colors hover:opacity-80"
+                style={{
+                  backgroundColor: theme === 'dark' ? 'rgba(193,192,182,0.12)' : 'rgba(0,0,0,0.06)',
+                  color: theme === 'dark' ? '#C1C0B6' : '#44403c',
+                }}
+              >
+                Connect
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
 
       {/* Only show the Soul Signature link when there are actual insights to explore */}
       {insights.length > 0 && (
