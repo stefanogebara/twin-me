@@ -148,7 +148,7 @@ export const NextEventCard: React.FC<NextEventCardProps> = ({
         className="text-sm flex-1"
         style={{ color: theme === 'dark' ? 'rgba(193, 192, 182, 0.7)' : '#57534e' }}
       >
-        {isCalendarConnected ? 'No upcoming events' : 'Connect your calendar to see events'}
+        {isCalendarConnected ? 'No events today' : 'Connect your calendar to see events'}
       </span>
       <button
         onClick={() => onNavigate(isCalendarConnected ? '/insights/calendar' : '/get-started')}
