@@ -49,8 +49,8 @@ export const LearningSuggestionsPanel: React.FC<{
                   <Icon className="w-4 h-4" style={{ color: colors.text }} />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <div className="flex items-start gap-2 mb-1">
-                    <h4 className="font-medium text-sm leading-tight" style={{ color: textColor }}>
+                  <div className="flex items-center gap-2 mb-1 flex-wrap">
+                    <h4 className="font-medium text-xs leading-snug" style={{ color: textColor }}>
                       {suggestion.title}
                     </h4>
                     <span

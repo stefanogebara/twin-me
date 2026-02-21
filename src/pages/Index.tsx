@@ -77,6 +77,8 @@ const Index = () => {
           border: 1px solid rgba(255, 255, 255, 0.45);
           box-shadow: 0 8px 32px rgba(0, 0, 0, 0.18), inset 0 1px 0 rgba(255, 255, 255, 0.6);
           border-radius: 2.5rem;
+          backdrop-filter: blur(10px) saturate(140%);
+          -webkit-backdrop-filter: blur(10px) saturate(140%);
         }
 
         .photo-glass-card {
@@ -84,6 +86,8 @@ const Index = () => {
           border: 1px solid rgba(255, 255, 255, 0.45);
           box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15), inset 0 1px 0 rgba(255, 255, 255, 0.5);
           border-radius: 2rem;
+          backdrop-filter: blur(10px) saturate(140%);
+          -webkit-backdrop-filter: blur(10px) saturate(140%);
         }
 
         /* CTA button — warm dark, matches palette */
@@ -134,6 +138,8 @@ const Index = () => {
           align-items: center;
           gap: 8px;
           border: 1px solid rgba(255, 255, 255, 0.5);
+          backdrop-filter: blur(10px) saturate(140%);
+          -webkit-backdrop-filter: blur(10px) saturate(140%);
         }
         .btn-light:hover { background-color: rgba(255, 255, 255, 0.8); transform: translateY(-1px); }
 
@@ -300,13 +306,9 @@ const Index = () => {
             transition={{ duration: 1, delay: 0.3 }}
           >
             <img
-              src="/images/backgrounds/flower.png"
+              src="/images/backgrounds/flower-hero.png"
               alt="Soul Signature"
-              className="w-[420px] h-auto object-contain"
-              style={{
-                maskImage: 'radial-gradient(ellipse 70% 70% at center, black 40%, transparent 100%)',
-                WebkitMaskImage: 'radial-gradient(ellipse 70% 70% at center, black 40%, transparent 100%)',
-              }}
+              className="w-[480px] h-auto object-contain"
             />
           </motion.div>
         </div>
@@ -493,9 +495,9 @@ const Index = () => {
           <div className="flex items-center justify-between text-[#8A857D] text-[13px] font-medium tracking-wide">
             <div className="heading-serif text-[18px] text-[#1F1C18]">Twin Me</div>
             <div className="flex items-center gap-8">
-              <a href="#" className="hover:text-[#1F1C18] transition-colors">Privacy</a>
-              <a href="#" className="hover:text-[#1F1C18] transition-colors">Terms</a>
-              <a href="#" className="hover:text-[#1F1C18] transition-colors">Contact</a>
+              <a href="/privacy-policy" className="hover:text-[#1F1C18] transition-colors">Privacy</a>
+              <a href="https://github.com/twinme-ai" target="_blank" rel="noopener noreferrer" className="hover:text-[#1F1C18] transition-colors">GitHub</a>
+              <a href="mailto:hello@twinme.ai" className="hover:text-[#1F1C18] transition-colors">Contact</a>
             </div>
           </div>
         </footer>
