@@ -131,18 +131,6 @@ export const AVAILABLE_CONNECTORS: ConnectorConfig[] = [
     category: 'professional'
   },
   {
-    provider: 'outlook' as DataProvider,
-    name: 'Microsoft Outlook',
-    description: 'Your email patterns reveal communication style, response habits, and calendar commitments',
-    icon: <OutlookLogo className="w-6 h-6" />,
-    color: '#0078D4',
-    dataTypes: ['Email Patterns', 'Calendar Events', 'Communication Style'],
-    estimatedInsights: 12,
-    setupTime: '10 seconds',
-    privacyLevel: 'medium',
-    category: 'professional'
-  },
-  {
     provider: 'whoop' as DataProvider,
     name: 'Whoop',
     description: 'Your body signals reveal recovery, strain, and optimal performance windows',
@@ -178,64 +166,4 @@ export const AVAILABLE_CONNECTORS: ConnectorConfig[] = [
     privacyLevel: 'low',
     category: 'entertainment'
   },
-  {
-    provider: 'discord' as DataProvider,
-    name: 'Discord',
-    description: 'Your communities reveal social connections, gaming circles, and communication style',
-    icon: <DiscordLogo className="w-6 h-6" />,
-    color: '#5865F2',
-    dataTypes: ['Server Memberships', 'Community Roles', 'Connections'],
-    estimatedInsights: 8,
-    setupTime: '10 seconds',
-    privacyLevel: 'medium',
-    category: 'social'
-  },
-  {
-    provider: 'reddit' as DataProvider,
-    name: 'Reddit',
-    description: 'Your subreddits and discussions reveal interests, expertise areas, and curiosity patterns',
-    icon: <RedditLogo className="w-6 h-6" />,
-    color: '#FF4500',
-    dataTypes: ['Subreddits', 'Saved Posts', 'Discussion Topics'],
-    estimatedInsights: 12,
-    setupTime: '10 seconds',
-    privacyLevel: 'medium',
-    category: 'social'
-  },
-  {
-    provider: 'github' as DataProvider,
-    name: 'GitHub',
-    description: 'Your repositories and contributions reveal coding style, tech interests, and collaboration patterns',
-    icon: <GithubLogo className="w-6 h-6" />,
-    color: '#181717',
-    dataTypes: ['Repositories', 'Contributions', 'Tech Stack'],
-    estimatedInsights: 15,
-    setupTime: '10 seconds',
-    privacyLevel: 'low',
-    category: 'professional'
-  },
-  {
-    provider: 'gmail' as DataProvider,
-    name: 'Gmail',
-    description: 'Your email patterns reveal communication style, response habits, and contact network',
-    icon: <GmailLogo className="w-6 h-6" />,
-    color: '#EA4335',
-    dataTypes: ['Email Patterns', 'Response Time', 'Contact Network'],
-    estimatedInsights: 10,
-    setupTime: '10 seconds',
-    privacyLevel: 'high',
-    category: 'professional'
-  },
-  {
-    provider: 'linkedin' as DataProvider,
-    name: 'LinkedIn',
-    description: 'Your professional trajectory reveals career evolution, networking patterns, and industry expertise',
-    icon: <LinkedInLogo className="w-6 h-6" />,
-    color: '#0A66C2',
-    dataTypes: ['Professional Profile', 'Connections', 'Career Trajectory'],
-    estimatedInsights: 10,
-    setupTime: '10 seconds',
-    privacyLevel: 'medium',
-    category: 'professional'
-  }
 ];
