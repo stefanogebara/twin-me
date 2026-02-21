@@ -166,4 +166,16 @@ export const AVAILABLE_CONNECTORS: ConnectorConfig[] = [
     privacyLevel: 'low',
     category: 'entertainment'
   },
+  {
+    provider: 'linkedin' as DataProvider,
+    name: 'LinkedIn',
+    description: 'Your professional network reveals career trajectory, skills, and how you present yourself professionally',
+    icon: <LinkedInLogo className="w-6 h-6" />,
+    color: '#0077B5',
+    dataTypes: ['Career History', 'Skills', 'Professional Network'],
+    estimatedInsights: 9,
+    setupTime: '10 seconds',
+    privacyLevel: 'medium',
+    category: 'professional'
+  },
 ];

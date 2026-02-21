@@ -50,14 +50,12 @@ export const TwinInsightsGrid: React.FC<TwinInsightsGridProps> = ({
         <div
           className="w-1 h-5 rounded-full"
           style={{
-            background: theme === 'dark'
-              ? 'linear-gradient(to bottom, var(--accent-vibrant), rgba(193, 192, 182, 0.2))'
-              : 'linear-gradient(to bottom, var(--accent-vibrant), rgba(0, 0, 0, 0.1))'
+            background: 'linear-gradient(to bottom, var(--accent-vibrant), rgba(212, 168, 83, 0.2))'
           }}
         />
         <h3
-          className="text-sm uppercase tracking-wider"
-          style={{ color: theme === 'dark' ? 'rgba(193, 192, 182, 0.6)' : '#78716c' }}
+          className="text-sm uppercase tracking-wider font-semibold"
+          style={{ color: theme === 'dark' ? 'rgba(193, 192, 182, 0.8)' : '#57534e' }}
         >
           Twin Insights
         </h3>
@@ -76,7 +74,7 @@ export const TwinInsightsGrid: React.FC<TwinInsightsGridProps> = ({
             <GlassPanel
               key={insight.id}
               hover
-              className="cursor-pointer"
+              className={`cursor-pointer ${insight.hasData ? 'gradient-accent-bar' : ''}`}
               delay={0.05 + idx * 0.06}
               onClick={() => onNavigate(insight.actionPath!)}
             >
