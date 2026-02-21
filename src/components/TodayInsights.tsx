@@ -155,6 +155,56 @@ export const TodayInsights: React.FC = () => {
     }
   };
 
+  // ── Empty state when no platforms are connected ──────────────────────────
+  if (!isLoading && !platformStatusLoading && !isDemoMode) {
+    const isWhoopActive    = isPlatformActive('whoop');
+    const isCalendarActive = isPlatformActive('google_calendar');
+    const isSpotifyActive  = isPlatformActive('spotify');
+    const noneConnected    = !isWhoopActive && !isCalendarActive && !isSpotifyActive;
+
+    if (noneConnected) {
+      return (
+        <div className="space-y-3">
+          <div className="flex items-center gap-2">
+            <Sparkles className="w-5 h-5" style={{ color: theme === 'dark' ? '#C1C0B6' : '#57534e' }} />
+            <h2 className="text-lg font-medium" style={{ fontFamily: 'var(--font-heading)', color: theme === 'dark' ? '#C1C0B6' : '#0c0a09' }}>
+              Today's Insights
+            </h2>
+          </div>
+          <div
+            className="rounded-xl p-5 space-y-3"
+            style={{
+              backgroundColor: theme === 'dark' ? 'rgba(45, 45, 41, 0.5)' : 'rgba(255, 255, 255, 0.7)',
+              border: theme === 'dark' ? '1px solid rgba(193, 192, 182, 0.1)' : '1px solid rgba(0, 0, 0, 0.05)',
+            }}
+          >
+            {[
+              { platform: 'Whoop', key: 'whoop', desc: 'Connect Whoop to unlock health & recovery insights' },
+              { platform: 'Calendar', key: 'calendar', desc: 'Connect Google Calendar to unlock schedule insights' },
+              { platform: 'Spotify', key: 'spotify', desc: 'Connect Spotify to unlock music mood insights' },
+            ].map(({ platform, desc }) => (
+              <div key={platform} className="flex items-center justify-between gap-3">
+                <span className="text-sm" style={{ color: theme === 'dark' ? 'rgba(193,192,182,0.7)' : '#57534e' }}>
+                  {desc}
+                </span>
+                <button
+                  onClick={() => navigate('/get-started')}
+                  className="flex-shrink-0 text-xs px-3 py-1.5 rounded-lg font-medium transition-colors hover:opacity-80"
+                  style={{
+                    backgroundColor: theme === 'dark' ? 'rgba(193,192,182,0.12)' : 'rgba(0,0,0,0.06)',
+                    color: theme === 'dark' ? '#C1C0B6' : '#44403c',
+                  }}
+                >
+                  Connect
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+      );
+    }
+  }
+
   if (isLoading) {
     return (
       <div className="rounded-2xl p-6" style={{
@@ -173,19 +223,45 @@ export const TodayInsights: React.FC = () => {
 
   if (error || !data?.success) {
     return (
-      <div className="rounded-2xl p-6" style={{
+      <div className="rounded-2xl p-5" style={{
         backgroundColor: theme === 'dark' ? 'rgba(45, 45, 41, 0.5)' : 'rgba(255, 255, 255, 0.7)',
         border: theme === 'dark' ? '1px solid rgba(193, 192, 182, 0.1)' : '1px solid rgba(0, 0, 0, 0.05)'
       }}>
-        <div className="flex items-center gap-3 text-red-500">
-          <AlertCircle className="w-5 h-5" />
-          <span>Unable to load insights. Please try again.</span>
+        <div className="flex items-center gap-3" style={{ color: theme === 'dark' ? 'rgba(193,192,182,0.7)' : '#57534e' }}>
+          <Loader2 className="w-5 h-5 animate-spin" />
+          <span className="text-sm">Analyzing your data...</span>
         </div>
       </div>
     );
   }
 
   const insights = data.insights;
+
+  // ── Connected but no insights yet ────────────────────────────────────────
+  if (insights.length === 0 && !isDemoMode) {
+    return (
+      <div className="space-y-3">
+        <div className="flex items-center gap-2">
+          <Sparkles className="w-5 h-5" style={{ color: theme === 'dark' ? '#C1C0B6' : '#57534e' }} />
+          <h2 className="text-lg font-medium" style={{ fontFamily: 'var(--font-heading)', color: theme === 'dark' ? '#C1C0B6' : '#0c0a09' }}>
+            Today's Insights
+          </h2>
+        </div>
+        <div
+          className="rounded-xl p-5 flex items-center gap-3"
+          style={{
+            backgroundColor: theme === 'dark' ? 'rgba(45, 45, 41, 0.5)' : 'rgba(255, 255, 255, 0.7)',
+            border: theme === 'dark' ? '1px solid rgba(193, 192, 182, 0.1)' : '1px solid rgba(0, 0, 0, 0.05)',
+          }}
+        >
+          <Loader2 className="w-5 h-5 animate-spin flex-shrink-0" style={{ color: theme === 'dark' ? 'rgba(193,192,182,0.6)' : '#a8a29e' }} />
+          <span className="text-sm" style={{ color: theme === 'dark' ? 'rgba(193,192,182,0.7)' : '#57534e' }}>
+            Analyzing your data — insights will appear here once your platforms sync.
+          </span>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-4">
@@ -444,19 +520,21 @@ export const TodayInsights: React.FC = () => {
         })}
       </div>
 
-      {/* View All Link */}
-      <button
-        onClick={() => navigate('/soul-signature')}
-        className="w-full py-3 text-sm font-medium rounded-xl transition-colors flex items-center justify-center gap-2"
-        style={{
-          backgroundColor: theme === 'dark' ? 'rgba(193, 192, 182, 0.05)' : 'rgba(0, 0, 0, 0.03)',
-          color: theme === 'dark' ? 'rgba(193, 192, 182, 0.7)' : '#57534e',
-          border: theme === 'dark' ? '1px solid rgba(193, 192, 182, 0.1)' : '1px solid rgba(0, 0, 0, 0.05)'
-        }}
-      >
-        View Your Full Soul Signature
-        <ChevronRight className="w-4 h-4" />
-      </button>
+      {/* Only show the Soul Signature link when there are actual insights to explore */}
+      {insights.length > 0 && (
+        <button
+          onClick={() => navigate('/soul-signature')}
+          className="w-full py-3 text-sm font-medium rounded-xl transition-colors flex items-center justify-center gap-2"
+          style={{
+            backgroundColor: theme === 'dark' ? 'rgba(193, 192, 182, 0.05)' : 'rgba(0, 0, 0, 0.03)',
+            color: theme === 'dark' ? 'rgba(193, 192, 182, 0.7)' : '#57534e',
+            border: theme === 'dark' ? '1px solid rgba(193, 192, 182, 0.1)' : '1px solid rgba(0, 0, 0, 0.05)'
+          }}
+        >
+          View Your Full Soul Signature
+          <ChevronRight className="w-4 h-4" />
+        </button>
+      )}
     </div>
   );
 };
