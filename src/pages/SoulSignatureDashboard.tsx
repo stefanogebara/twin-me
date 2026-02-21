@@ -7,13 +7,15 @@ import { RefreshCw, AlertCircle, Share2, Link, Check, Download } from 'lucide-re
 import { useTwinPortrait } from '../hooks/useTwinPortrait';
 import { ThemeColors } from './components/soul-signature/types';
 import { BigFivePanel } from './components/soul-signature/BigFivePanel';
-import { TwinSummaryHero } from './components/soul-portrait/TwinSummaryHero';
-import { ExpertReflections } from './components/soul-portrait/ExpertReflections';
-import { InsightsSection } from './components/soul-portrait/InsightsSection';
-import { ActiveGoalsStrip } from './components/soul-portrait/ActiveGoalsStrip';
-import { LivePlatformPulse } from './components/soul-portrait/LivePlatformPulse';
 import { MemoryStreamFooter } from './components/soul-portrait/MemoryStreamFooter';
 import { PortraitEmptyState } from './components/soul-portrait/PortraitEmptyState';
+import { BentoHero } from './components/soul-portrait/BentoHero';
+import { BentoStatsTile } from './components/soul-portrait/BentoStatsTile';
+import { BentoDomainTile } from './components/soul-portrait/BentoDomainTile';
+import { BentoPlatformTile } from './components/soul-portrait/BentoPlatformTile';
+import { BentoInsightsTile } from './components/soul-portrait/BentoInsightsTile';
+import { BentoExpertSpotlight } from './components/soul-portrait/BentoExpertSpotlight';
+import { BentoGoalsTile } from './components/soul-portrait/BentoGoalsTile';
 
 const SoulSignatureDashboard: React.FC = () => {
   const { user } = useAuth();
@@ -117,9 +119,15 @@ const SoulSignatureDashboard: React.FC = () => {
     portrait.memoryStats.total > 0
   );
 
+  // Determine which platforms are connected and have a known config
+  const knownPlatforms = ['spotify', 'calendar', 'whoop', 'youtube', 'twitch'];
+  const activePlatforms = portrait?.connectedPlatforms
+    .map(p => p.platform.toLowerCase())
+    .filter(p => knownPlatforms.includes(p)) ?? [];
+
   return (
     <PageLayout maxWidth="xl">
-      {/* Header */}
+      {/* Page header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
         <div>
           <h1
@@ -191,52 +199,182 @@ const SoulSignatureDashboard: React.FC = () => {
       {/* Empty state */}
       {!hasData && !error && <PortraitEmptyState />}
 
-      {/* Portrait content - single scrollable page */}
+      {/* Bento grid layout */}
       {hasData && portrait && (
         <>
-          {/* Twin Summary Hero — 5-domain narrative (centerpiece) */}
-          {portrait.twinSummary && <TwinSummaryHero data={portrait.twinSummary} />}
-
-          {/* Proactive Insights — "What Your Twin Noticed" */}
-          <InsightsSection insights={portrait.insights} />
-
-          {/* Expert Reflections — Top observations from 5 expert personas */}
-          <ExpertReflections reflections={portrait.reflections} />
-
-          {/* Active Goals — with progress */}
-          <ActiveGoalsStrip goals={portrait.goals} />
-
-          {/* Live Platform Pulse — connected platform data */}
-          <LivePlatformPulse
-            platformData={portrait.platformData}
-            connectedPlatforms={portrait.connectedPlatforms}
-          />
-
-          {/* Big Five — collapsible, secondary */}
-          {portrait.personalityScores && (
-            <BigFivePanel
-              personalityScores={{
-                id: user.id,
-                openness: portrait.personalityScores.openness,
-                conscientiousness: portrait.personalityScores.conscientiousness,
-                extraversion: portrait.personalityScores.extraversion,
-                agreeableness: portrait.personalityScores.agreeableness,
-                neuroticism: portrait.personalityScores.neuroticism,
-                openness_confidence: 0,
-                conscientiousness_confidence: 0,
-                extraversion_confidence: 0,
-                agreeableness_confidence: 0,
-                neuroticism_confidence: 0,
-                archetype_code: portrait.personalityScores.archetype_code,
-                analyzed_platforms: portrait.personalityScores.analyzed_platforms || [],
-                sample_size: 0,
-              }}
-              onNavigateToBigFive={() => navigate('/big-five')}
-              colors={colors}
+          {/* ── Row 1: Hero (2/3) + Stats (1/3) ── */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-4">
+            {portrait.twinSummary ? (
+              <div className="lg:col-span-2">
+                <BentoHero data={portrait.twinSummary} />
+              </div>
+            ) : (
+              <div className="lg:col-span-2" />
+            )}
+            <BentoStatsTile
+              stats={portrait.memoryStats}
+              firstMemoryAt={portrait.firstMemoryAt}
+              connectedPlatforms={portrait.connectedPlatforms}
             />
+          </div>
+
+          {/* ── Row 2: Domain tiles (personality + lifestyle + spotify) ── */}
+          {portrait.twinSummary && (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-4">
+              <BentoDomainTile
+                domainKey="personality"
+                domains={portrait.twinSummary.domains}
+                animationDelay={0.05}
+              />
+              <BentoDomainTile
+                domainKey="lifestyle"
+                domains={portrait.twinSummary.domains}
+                animationDelay={0.1}
+              />
+              {activePlatforms.includes('spotify') ? (
+                <BentoPlatformTile
+                  platform="spotify"
+                  platformData={portrait.platformData}
+                  connectedPlatforms={portrait.connectedPlatforms}
+                  animationDelay={0.15}
+                />
+              ) : (
+                <BentoDomainTile
+                  domainKey="culturalIdentity"
+                  domains={portrait.twinSummary.domains}
+                  animationDelay={0.15}
+                />
+              )}
+            </div>
           )}
 
-          {/* Memory Stream Footer — stats bar */}
+          {/* ── Row 3: Cultural Identity + Social Dynamics + Whoop ── */}
+          {portrait.twinSummary && (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-4">
+              {activePlatforms.includes('spotify') ? (
+                <BentoDomainTile
+                  domainKey="culturalIdentity"
+                  domains={portrait.twinSummary.domains}
+                  animationDelay={0.1}
+                />
+              ) : (
+                <BentoDomainTile
+                  domainKey="socialDynamics"
+                  domains={portrait.twinSummary.domains}
+                  animationDelay={0.1}
+                />
+              )}
+              {activePlatforms.includes('spotify') ? (
+                <BentoDomainTile
+                  domainKey="socialDynamics"
+                  domains={portrait.twinSummary.domains}
+                  animationDelay={0.15}
+                />
+              ) : (
+                <BentoDomainTile
+                  domainKey="motivation"
+                  domains={portrait.twinSummary.domains}
+                  animationDelay={0.15}
+                />
+              )}
+              {activePlatforms.includes('whoop') ? (
+                <BentoPlatformTile
+                  platform="whoop"
+                  platformData={portrait.platformData}
+                  connectedPlatforms={portrait.connectedPlatforms}
+                  animationDelay={0.2}
+                />
+              ) : (
+                activePlatforms.includes('spotify') && (
+                  <BentoDomainTile
+                    domainKey="motivation"
+                    domains={portrait.twinSummary.domains}
+                    animationDelay={0.2}
+                  />
+                )
+              )}
+            </div>
+          )}
+
+          {/* ── Row 4: Insights (2/3) + Goals (1/3) ── */}
+          {(portrait.insights.length > 0 || portrait.goals.length > 0) && (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-4">
+              {portrait.insights.length > 0 && (
+                <div className="lg:col-span-2">
+                  <BentoInsightsTile insights={portrait.insights} animationDelay={0.1} />
+                </div>
+              )}
+              {portrait.goals.length > 0 && (
+                <BentoGoalsTile goals={portrait.goals} animationDelay={0.15} />
+              )}
+            </div>
+          )}
+
+          {/* ── Row 5: Expert Spotlight (2/3) + Platform tiles (1/3 each) ── */}
+          {portrait.reflections.length > 0 && (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-4">
+              <div className="lg:col-span-2">
+                <BentoExpertSpotlight
+                  reflections={portrait.reflections}
+                  animationDelay={0.08}
+                />
+              </div>
+              <div className="flex flex-col gap-4">
+                {activePlatforms.includes('youtube') && (
+                  <BentoPlatformTile
+                    platform="youtube"
+                    platformData={portrait.platformData}
+                    connectedPlatforms={portrait.connectedPlatforms}
+                    animationDelay={0.12}
+                  />
+                )}
+                {activePlatforms.includes('calendar') && (
+                  <BentoPlatformTile
+                    platform="calendar"
+                    platformData={portrait.platformData}
+                    connectedPlatforms={portrait.connectedPlatforms}
+                    animationDelay={0.16}
+                  />
+                )}
+                {activePlatforms.includes('twitch') && (
+                  <BentoPlatformTile
+                    platform="twitch"
+                    platformData={portrait.platformData}
+                    connectedPlatforms={portrait.connectedPlatforms}
+                    animationDelay={0.2}
+                  />
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* ── Big Five — collapsible, secondary ── */}
+          {portrait.personalityScores && (
+            <div className="mb-4">
+              <BigFivePanel
+                personalityScores={{
+                  id: user.id,
+                  openness: portrait.personalityScores.openness,
+                  conscientiousness: portrait.personalityScores.conscientiousness,
+                  extraversion: portrait.personalityScores.extraversion,
+                  agreeableness: portrait.personalityScores.agreeableness,
+                  neuroticism: portrait.personalityScores.neuroticism,
+                  openness_confidence: 0,
+                  conscientiousness_confidence: 0,
+                  extraversion_confidence: 0,
+                  agreeableness_confidence: 0,
+                  neuroticism_confidence: 0,
+                  archetype_code: portrait.personalityScores.archetype_code,
+                  analyzed_platforms: portrait.personalityScores.analyzed_platforms || [],
+                  sample_size: 0,
+                }}
+                onNavigateToBigFive={() => navigate('/big-five')}
+                colors={colors}
+              />
+            </div>
+          )}
+
+          {/* ── Memory stream footer — full width ── */}
           <MemoryStreamFooter
             stats={portrait.memoryStats}
             firstMemoryAt={portrait.firstMemoryAt}

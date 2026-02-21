@@ -22,13 +22,15 @@ const router = express.Router();
  */
 router.get('/portrait', authenticateUser, async (req, res) => {
   const userId = req.user.id;
-  const userName = req.user.name || req.user.email || 'This person';
+
+  // Fetch actual display name from users table (JWT only carries id + email)
+  const userName = await _getUserDisplayName(userId, req.user.email);
 
   try {
     // 9 parallel queries — fail-safe, each returns null/[] on error
     const [
       twinSummary,
-      reflections,
+      rawReflections,
       insights,
       memoryStats,
       goals,
@@ -43,7 +45,8 @@ router.get('/portrait', authenticateUser, async (req, res) => {
         return null;
       }),
 
-      // 2. Top reflections from expert personas
+      // 2. Top reflections from expert personas — fetch enough to guarantee
+      //    coverage across all 5 experts, then distribute evenly (top 3 per expert)
       supabaseAdmin
         .from('user_memories')
         .select('id, content, importance_score, metadata, created_at')
@@ -51,7 +54,7 @@ router.get('/portrait', authenticateUser, async (req, res) => {
         .eq('memory_type', 'reflection')
         .not('metadata->expert', 'is', null)
         .order('importance_score', { ascending: false })
-        .limit(15)
+        .limit(50)
         .then(({ data }) => data || [])
         .catch(() => []),
 
@@ -105,6 +108,9 @@ router.get('/portrait', authenticateUser, async (req, res) => {
         .catch(() => null),
     ]);
 
+    // Distribute reflections evenly across experts (top 3 per expert)
+    const reflections = _distributeReflectionsByExpert(rawReflections, 3);
+
     res.json({
       success: true,
       portrait: {
@@ -149,12 +155,72 @@ async function _getLatestPlatformSummary(userId) {
         recentObservations: [],
       };
     }
-    if (platforms[source].recentObservations.length < 3) {
-      platforms[source].recentObservations.push(mem.content);
+    // Deduplicate: skip if this exact content string is already present
+    const observations = platforms[source].recentObservations;
+    if (observations.length < 3 && !observations.includes(mem.content)) {
+      observations.push(mem.content);
     }
   }
 
   return platforms;
+}
+
+/**
+ * Fetch the user's display name from the users table.
+ * Falls back to email prefix, then 'This person'.
+ */
+async function _getUserDisplayName(userId, fallbackEmail) {
+  try {
+    const { data } = await supabaseAdmin
+      .from('users')
+      .select('first_name, last_name')
+      .eq('id', userId)
+      .single();
+
+    if (data?.first_name) {
+      const parts = [data.first_name, data.last_name].filter(Boolean);
+      return parts.join(' ');
+    }
+  } catch {
+    // Fall through to fallback
+  }
+
+  // Use the part before @ as a reasonable fallback
+  if (fallbackEmail) {
+    return fallbackEmail.split('@')[0];
+  }
+
+  return 'This person';
+}
+
+/**
+ * Distribute reflections evenly across experts.
+ * Takes the top N reflections per expert, then merges and sorts by importance.
+ * This ensures every expert (including lifestyle_analyst) is represented
+ * even if their reflections have lower importance scores.
+ *
+ * @param {Array} rawReflections - All fetched reflections (sorted by importance desc)
+ * @param {number} perExpert - Maximum reflections to keep per expert
+ * @returns {Array} Balanced reflections sorted by importance desc
+ */
+function _distributeReflectionsByExpert(rawReflections, perExpert = 3) {
+  const byExpert = {};
+
+  for (const reflection of rawReflections) {
+    const expert = reflection.metadata?.expert || 'unknown';
+    if (!byExpert[expert]) {
+      byExpert[expert] = [];
+    }
+    if (byExpert[expert].length < perExpert) {
+      byExpert[expert].push(reflection);
+    }
+  }
+
+  // Merge all selected reflections and sort by importance desc
+  const distributed = Object.values(byExpert).flat();
+  distributed.sort((a, b) => (b.importance_score || 0) - (a.importance_score || 0));
+
+  return distributed;
 }
 
 export default router;
