@@ -31,16 +31,10 @@ const supabase = supabaseAdmin;
  * - confidence: Confidence scores
  * - interpretation: AI-generated insights
  */
-router.post('/infer', async (req, res) => {
+router.post('/infer', authenticateUser, async (req, res) => {
   try {
-    const { user_id, force_refresh = false } = req.body;
-
-    if (!user_id) {
-      return res.status(400).json({
-        success: false,
-        error: 'user_id is required'
-      });
-    }
+    const user_id = req.user.id;
+    const { force_refresh = false } = req.body;
 
     console.log(`[PersonalityAPI] Starting inference for user ${user_id}`);
 
@@ -269,16 +263,10 @@ router.get('/health', async (req, res) => {
  *
  * Run only the Music Psychology agent for Spotify data analysis.
  */
-router.post('/analyze/spotify', async (req, res) => {
+router.post('/analyze/spotify', authenticateUser, async (req, res) => {
   try {
-    const { user_id, spotify_data } = req.body;
-
-    if (!user_id) {
-      return res.status(400).json({
-        success: false,
-        error: 'user_id is required'
-      });
-    }
+    const user_id = req.user.id;
+    const { spotify_data } = req.body;
 
     const agent = orchestrator.agents.music;
     if (!agent) {
@@ -305,16 +293,10 @@ router.post('/analyze/spotify', async (req, res) => {
  *
  * Run only the Biometric agent for Whoop data analysis.
  */
-router.post('/analyze/whoop', async (req, res) => {
+router.post('/analyze/whoop', authenticateUser, async (req, res) => {
   try {
-    const { user_id, whoop_data } = req.body;
-
-    if (!user_id) {
-      return res.status(400).json({
-        success: false,
-        error: 'user_id is required'
-      });
-    }
+    const user_id = req.user.id;
+    const { whoop_data } = req.body;
 
     const agent = orchestrator.agents.biometric;
     if (!agent) {
@@ -341,16 +323,10 @@ router.post('/analyze/whoop', async (req, res) => {
  *
  * Run only the Chronotype agent for Calendar data analysis.
  */
-router.post('/analyze/calendar', async (req, res) => {
+router.post('/analyze/calendar', authenticateUser, async (req, res) => {
   try {
-    const { user_id, calendar_data } = req.body;
-
-    if (!user_id) {
-      return res.status(400).json({
-        success: false,
-        error: 'user_id is required'
-      });
-    }
+    const user_id = req.user.id;
+    const { calendar_data } = req.body;
 
     const agent = orchestrator.agents.chronotype;
     if (!agent) {

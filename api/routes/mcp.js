@@ -5,6 +5,7 @@
 
 import express from 'express';
 import mcpClient from '../services/mcp-client.js';
+import { authenticateUser } from '../middleware/auth.js';
 
 const router = express.Router();
 
@@ -79,15 +80,16 @@ router.get('/platform/:platform/status', async (req, res) => {
  * POST /api/mcp/extract/:platform
  * Extract data from a platform using MCP
  */
-router.post('/extract/:platform', async (req, res) => {
+router.post('/extract/:platform', authenticateUser, async (req, res) => {
   try {
     const { platform } = req.params;
-    const { userId, accessToken } = req.body;
+    const userId = req.user.id;
+    const { accessToken } = req.body;
 
-    if (!userId || !accessToken) {
+    if (!accessToken) {
       return res.status(400).json({
         success: false,
-        error: 'userId and accessToken are required'
+        error: 'accessToken is required'
       });
     }
 
