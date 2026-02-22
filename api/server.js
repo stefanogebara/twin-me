@@ -166,6 +166,8 @@ const aiLimiter = rateLimit({
 });
 
 app.use('/api/ai/', aiLimiter);
+app.use('/api/chat/', aiLimiter); // Twin chat is the most expensive AI endpoint
+app.use('/api/soul-extraction/', aiLimiter); // LLM-powered extraction endpoints
 
 // Global request timeout to prevent hanging on DB outages
 // Longer timeout in dev when Cloudflare workaround adds latency per query
