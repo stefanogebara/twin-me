@@ -1139,6 +1139,8 @@ router.post('/message', authenticateUser, async (req, res) => {
 /**
  * GET /api/chat/history - Get conversation history
  */
+const CONVERSATION_UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 router.get('/history', authenticateUser, async (req, res) => {
   try {
     const userId = req.user.id;
@@ -1149,6 +1151,22 @@ router.get('/history', authenticateUser, async (req, res) => {
         success: false,
         error: 'Conversation ID is required'
       });
+    }
+
+    if (!CONVERSATION_UUID_RE.test(conversationId)) {
+      return res.status(400).json({ success: false, error: 'Invalid conversation ID' });
+    }
+
+    // Verify ownership: only return messages for conversations belonging to this user
+    const { data: convo, error: convoErr } = await supabaseAdmin
+      .from('twin_conversations')
+      .select('id')
+      .eq('id', conversationId)
+      .eq('user_id', userId)
+      .single();
+
+    if (convoErr || !convo) {
+      return res.status(404).json({ success: false, error: 'Conversation not found' });
     }
 
     const messages = await serverDb.getMessagesByConversation(conversationId, 50);
@@ -1187,7 +1205,7 @@ router.get('/context', authenticateUser, async (req, res) => {
         .from('proactive_insights')
         .select('id, insight, category, urgency, created_at')
         .eq('user_id', userId)
-        .is('delivered_at', null)
+        .eq('delivered', false)
         .order('created_at', { ascending: false })
         .limit(10)
         .then(r => r.data || [])
