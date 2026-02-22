@@ -12,6 +12,7 @@ import fs from 'fs';
 import path from 'path';
 import os from 'os';
 import { supabaseAdmin } from '../services/database.js';
+import { authenticateUser } from '../middleware/auth.js';
 
 const router = express.Router();
 
@@ -284,13 +285,9 @@ function detectTopics(message) {
  * POST /api/claude-sync/run
  * Trigger a manual sync of Claude Desktop conversations
  */
-router.post('/run', async (req, res) => {
+router.post('/run', authenticateUser, async (req, res) => {
   try {
-    const { userId } = req.body;
-
-    if (!userId) {
-      return res.status(400).json({ error: 'User ID required' });
-    }
+    const userId = req.user.id;
 
     console.log(`[Claude Sync] Starting sync for user ${userId}`);
 
@@ -425,7 +422,7 @@ router.post('/run', async (req, res) => {
  * GET /api/claude-sync/status
  * Check if Claude Desktop or Claude Code is accessible
  */
-router.get('/status', async (req, res) => {
+router.get('/status', authenticateUser, async (req, res) => {
   const claudeDesktopInstalled = fs.existsSync(CLAUDE_DESKTOP_PATH);
   const claudeCodeInstalled = fs.existsSync(CLAUDE_CODE_PATH);
   const localStorageExists = fs.existsSync(LOCAL_STORAGE_PATH);
@@ -437,9 +434,6 @@ router.get('/status', async (req, res) => {
     claudeCodeInstalled,
     localStorageExists,
     historyExists,
-    desktopPath: CLAUDE_DESKTOP_PATH,
-    codePath: CLAUDE_CODE_PATH,
-    historyPath: CLAUDE_HISTORY_PATH,
     platform: process.platform
   });
 });
