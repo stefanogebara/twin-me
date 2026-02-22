@@ -1,6 +1,7 @@
 import express from 'express';
 import { createClient } from '@supabase/supabase-js';
 import { originQuestionsService } from '../services/originQuestionsService.js';
+import { authenticateUser } from '../middleware/auth.js';
 
 const supabase = createClient(
   process.env.SUPABASE_URL,
@@ -49,9 +50,9 @@ router.get('/questions', async (req, res) => {
 // ============================================================================
 // GET /api/origin/data - Fetch user's origin data
 // ============================================================================
-router.get('/data', async (req, res) => {
+router.get('/data', authenticateUser, async (req, res) => {
   try {
-    const { userId } = req.query;
+    const userId = req.user.id;
 
     if (!userId) {
       return res.status(400).json({
@@ -90,15 +91,10 @@ router.get('/data', async (req, res) => {
 // ============================================================================
 // POST /api/origin/data - Save origin data (create or update)
 // ============================================================================
-router.post('/data', async (req, res) => {
+router.post('/data', authenticateUser, async (req, res) => {
   try {
-    const { userId, ...originFields } = req.body;
-
-    if (!userId) {
-      return res.status(400).json({
-        success: false,
-        error: 'userId is required in request body'
-      });
+    const userId = req.user.id;
+    const { ...originFields } = req.body;
     }
 
     // Validate core_values (max 5)
@@ -168,16 +164,10 @@ router.post('/data', async (req, res) => {
 // ============================================================================
 // PATCH /api/origin/data - Partial update of origin data
 // ============================================================================
-router.patch('/data', async (req, res) => {
+router.patch('/data', authenticateUser, async (req, res) => {
   try {
-    const { userId, section, ...sectionFields } = req.body;
-
-    if (!userId) {
-      return res.status(400).json({
-        success: false,
-        error: 'userId is required in request body'
-      });
-    }
+    const userId = req.user.id;
+    const { section, ...sectionFields } = req.body;
 
     // Ensure origin data exists for user
     const { data: existing } = await supabase
@@ -238,16 +228,9 @@ router.patch('/data', async (req, res) => {
 // ============================================================================
 // DELETE /api/origin/data - Delete user's origin data
 // ============================================================================
-router.delete('/data', async (req, res) => {
+router.delete('/data', authenticateUser, async (req, res) => {
   try {
-    const { userId } = req.body;
-
-    if (!userId) {
-      return res.status(400).json({
-        success: false,
-        error: 'userId is required in request body'
-      });
-    }
+    const userId = req.user.id;
 
     const { error } = await supabase
       .from('origin_data')
@@ -275,16 +258,9 @@ router.delete('/data', async (req, res) => {
 // ============================================================================
 // GET /api/origin/summary - Get a summary of origin data for soul signature
 // ============================================================================
-router.get('/summary', async (req, res) => {
+router.get('/summary', authenticateUser, async (req, res) => {
   try {
-    const { userId } = req.query;
-
-    if (!userId) {
-      return res.status(400).json({
-        success: false,
-        error: 'userId is required in query params'
-      });
-    }
+    const userId = req.user.id;
 
     const { data: originData, error } = await supabase
       .from('origin_data')
