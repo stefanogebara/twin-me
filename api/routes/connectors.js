@@ -185,17 +185,11 @@ console.log('🔍 LinkedIn config on file load:', {
  * Reconnect/Refresh OAuth tokens for a provider
  * This is called when tokens are expired and need refresh
  */
-router.get('/connect/:provider', async (req, res) => {
+router.get('/connect/:provider', authenticateUser, async (req, res) => {
   try {
     const { provider } = req.params;
-    const { userId } = req.query;
-
-    if (!userId) {
-      return res.status(400).json({
-        success: false,
-        error: 'userId is required'
-      });
-    }
+    // Always use the authenticated user's ID — never trust userId from query params
+    const userId = req.user.id;
 
     // Health platforms handled by health-connectors (use platform-specific redirect URIs)
     const healthPlatforms = ['whoop', 'oura'];
@@ -236,7 +230,6 @@ router.get('/connect/:provider', async (req, res) => {
         return res.status(500).json({
           success: false,
           error: `Failed to initiate ${provider} reconnection`,
-          details: healthError.message
         });
       }
     }

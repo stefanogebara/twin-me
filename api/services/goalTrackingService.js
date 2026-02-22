@@ -293,8 +293,11 @@ function extractMetricFromPlatformData(metricType, platformData) {
       const meetingHours = events.reduce((sum, e) => {
         if (!e.start) return sum;
         const start = new Date(e.start);
+        if (isNaN(start.getTime())) return sum; // skip events with invalid start dates
         const end = e.end ? new Date(e.end) : new Date(start.getTime() + 60 * 60 * 1000);
-        return sum + (end - start) / (60 * 60 * 1000);
+        if (isNaN(end.getTime())) return sum; // skip events with invalid end dates
+        const hours = (end - start) / (60 * 60 * 1000);
+        return sum + (hours > 0 ? hours : 0); // guard against negative durations
       }, 0);
       return Math.max(0, 9 - meetingHours);
     }
