@@ -443,6 +443,9 @@ Return JSON array only:
  */
 async function generateGoalSuggestions(userId) {
   try {
+    // Prune expired cooldown entries to prevent unbounded map growth
+    pruneSuggestionCooldowns();
+
     // Check cooldown
     const lastSuggestion = suggestionCooldowns.get(userId);
     if (lastSuggestion && (Date.now() - lastSuggestion) < SUGGESTION_COOLDOWN_MS) {
