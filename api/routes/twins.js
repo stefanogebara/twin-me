@@ -413,9 +413,7 @@ router.delete('/:id', authenticateUser, userRateLimit(20, 15 * 60 * 1000), async
 // GET /api/twins/public/active - Get all active professor twins (public endpoint)
 router.get('/public/active', userRateLimit(100, 15 * 60 * 1000), async (req, res) => {
   try {
-    const { data: twins, error } = await serverDb.getDigitalTwinsByCreator(''); // This will be modified to get active professor twins
-
-    // For now, let's create a direct query for active professor twins
+    // Get active professor twins directly
     const { data, error: queryError } = await supabaseAdmin
       .from('digital_twins')
       .select('id, name, description, subject_area, creator_id, created_at')
