@@ -40,9 +40,7 @@ const AdminLLMCosts = lazy(() => import("./pages/AdminLLMCosts"));
 const PrivacyPolicy = lazy(() => import("./pages/PrivacyPolicy"));
 const PublicSoulCard = lazy(() => import("./pages/PublicSoulCard"));
 const PortfolioPage = lazy(() => import("./pages/PortfolioPage"));
-const EnrichedOnboardingFlow = lazy(() => import("./pages/onboarding/EnrichedOnboardingFlow"));
 const NewDiscoverFlow = lazy(() => import("./pages/onboarding/NewDiscoverFlow"));
-const SoulSignatureOnboarding = lazy(() => import("./pages/onboarding/SoulSignatureOnboarding"));
 const GmailCallback = lazy(() => import("./pages/oauth/GmailCallback"));
 const SpotifyInsightsPage = lazy(() => import("./pages/insights/SpotifyInsightsPage"));
 const CalendarInsightsPage = lazy(() => import("./pages/insights/CalendarInsightsPage"));
@@ -243,21 +241,9 @@ const App = () => {
               </ProtectedRoute>
             } />
 
-            {/* Legacy enriched onboarding (kept for rollback) */}
-            <Route path="/discover-legacy" element={
-              <ProtectedRoute>
-                <ErrorBoundary>
-                  <EnrichedOnboardingFlow />
-                </ErrorBoundary>
-              </ProtectedRoute>
-            } />
-
-            {/* Soul Signature Onboarding - Works in Demo Mode */}
-            <Route path="/soul-onboarding" element={
-              <ErrorBoundary>
-                <SoulSignatureOnboarding />
-              </ErrorBoundary>
-            } />
+            {/* Legacy onboarding routes → primary flow */}
+            <Route path="/discover-legacy" element={<Navigate to="/discover" replace />} />
+            <Route path="/soul-onboarding" element={<Navigate to="/discover" replace />} />
 
             {/* Public Soul Card - Shareable link, no auth */}
             <Route path="/s/:userId" element={
