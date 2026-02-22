@@ -694,6 +694,26 @@ async function runObservationIngestion() {
                 break;
             }
 
+            // Batch de-duplication: pre-fetch recent memories once per platform
+            // instead of one DB query per observation (N+1 fix).
+            // Use the longest dedup window (weekly_summary = 7 days) to be conservative.
+            const maxWindowMs = Math.max(...Object.values(DEDUP_WINDOWS_MS));
+            const batchCutoff = new Date(Date.now() - maxWindowMs).toISOString();
+            const dedupSupabase = await getSupabase();
+            const existingHashes = new Set();
+            if (dedupSupabase) {
+              const { data: recentMems } = await dedupSupabase
+                .from('user_memories')
+                .select('content')
+                .eq('user_id', userId)
+                .eq('memory_type', 'platform_data')
+                .gte('created_at', batchCutoff)
+                .limit(200);
+              for (const mem of (recentMems || [])) {
+                existingHashes.add(contentHash(platform, mem.content || ''));
+              }
+            }
+
             // Store each observation (with de-duplication)
             // Observations can be strings (legacy) or { content, contentType } objects (richer templates)
             for (const obs of observations) {
@@ -705,8 +725,9 @@ async function runObservationIngestion() {
                 continue;
               }
 
-              const duplicate = await isDuplicate(userId, platform, content, contentType);
-              if (duplicate) {
+              // Check pre-fetched hash set instead of per-observation DB query
+              const hash = contentHash(platform, content);
+              if (existingHashes.has(hash)) {
                 continue;
               }
 
@@ -719,6 +740,8 @@ async function runObservationIngestion() {
               if (result) {
                 userObsCount++;
                 stats.observationsStored++;
+                // Track newly stored hashes to prevent within-batch duplicates
+                existingHashes.add(hash);
               }
             }
           } catch (platformErr) {

@@ -211,13 +211,15 @@ export async function reinforceNodesFromPlatform(userId, platform, nodeLabels, r
     console.warn('[TwinsBrain] Error fetching nodes for reinforcement:', nodesErr.message);
   }
 
-  for (const node of (nodes || [])) {
-    await reinforceNodeFn(userId, node.id, {
-      evidenceSource: `platform_data:${platform}`,
-      confidenceBoost: 0.05
-    });
-    stats.reinforced++;
-  }
+  const reinforceResults = await Promise.all(
+    (nodes || []).map(node =>
+      reinforceNodeFn(userId, node.id, {
+        evidenceSource: `platform_data:${platform}`,
+        confidenceBoost: 0.05
+      })
+    )
+  );
+  stats.reinforced = reinforceResults.length;
 
   stats.notFound = Math.max(nodeLabels.length - stats.reinforced, 0);
 
