@@ -63,7 +63,7 @@ router.post('/extract/:platform', async (req, res) => {
     console.error('[API] Error in /extract/:platform:', error);
     res.status(500).json({
       success: false,
-      error: error.message
+      error: process.env.NODE_ENV !== 'production' ? error.message : 'Internal server error'
     });
   }
 });
@@ -93,7 +93,7 @@ router.post('/extract-all', async (req, res) => {
     console.error('[API] Error in /extract-all:', error);
     res.status(500).json({
       success: false,
-      error: error.message
+      error: process.env.NODE_ENV !== 'production' ? error.message : 'Internal server error'
     });
   }
 });
@@ -123,7 +123,7 @@ router.get('/extraction-status', async (req, res) => {
     console.error('[API] Error in /extraction-status:', error);
     res.status(500).json({
       success: false,
-      error: error.message
+      error: process.env.NODE_ENV !== 'production' ? error.message : 'Internal server error'
     });
   }
 });
@@ -156,7 +156,7 @@ router.post('/process', async (req, res) => {
     console.error('[API] Error in /process:', error);
     res.status(500).json({
       success: false,
-      error: error.message
+      error: process.env.NODE_ENV !== 'production' ? error.message : 'Internal server error'
     });
   }
 });
@@ -186,7 +186,7 @@ router.get('/processing-stats', async (req, res) => {
     console.error('[API] Error in /processing-stats:', error);
     res.status(500).json({
       success: false,
-      error: error.message
+      error: process.env.NODE_ENV !== 'production' ? error.message : 'Internal server error'
     });
   }
 });
@@ -278,7 +278,7 @@ router.get('/style-profile', async (req, res) => {
     console.error('[API] Error in /style-profile:', error);
     res.status(500).json({
       success: false,
-      error: error.message
+      error: process.env.NODE_ENV !== 'production' ? error.message : 'Internal server error'
     });
   }
 });
@@ -308,7 +308,7 @@ router.post('/generate-embeddings', async (req, res) => {
     console.error('[API] Error in /generate-embeddings:', error);
     res.status(500).json({
       success: false,
-      error: error.message
+      error: process.env.NODE_ENV !== 'production' ? error.message : 'Internal server error'
     });
   }
 });
@@ -338,7 +338,7 @@ router.get('/embedding-stats', async (req, res) => {
     console.error('[API] Error in /embedding-stats:', error);
     res.status(500).json({
       success: false,
-      error: error.message
+      error: process.env.NODE_ENV !== 'production' ? error.message : 'Internal server error'
     });
   }
 });
@@ -418,7 +418,7 @@ router.get('/rag/conversation-history', async (req, res) => {
     console.error('[API] Error in /rag/conversation-history:', error);
     res.status(500).json({
       success: false,
-      error: error.message
+      error: process.env.NODE_ENV !== 'production' ? error.message : 'Internal server error'
     });
   }
 });
@@ -476,7 +476,7 @@ router.post('/full-pipeline', async (req, res) => {
     console.error('[API] Error in /full-pipeline:', error);
     res.status(500).json({
       success: false,
-      error: error.message
+      error: process.env.NODE_ENV !== 'production' ? error.message : 'Internal server error'
     });
   }
 });
@@ -505,7 +505,7 @@ router.post('/build-soul-signature', async (req, res) => {
     console.error('[API] Error in /build-soul-signature:', error);
     res.status(500).json({
       success: false,
-      error: error.message
+      error: process.env.NODE_ENV !== 'production' ? error.message : 'Internal server error'
     });
   }
 });

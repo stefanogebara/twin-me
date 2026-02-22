@@ -158,7 +158,7 @@ export default async function handler(req, res) {
 
     return res.status(500).json({
       success: false,
-      error: error.message,
+      error: process.env.NODE_ENV !== 'production' ? error.message : 'Internal server error',
       timestamp: new Date().toISOString(),
       cronType: 'pattern-learning',
       executionTime: `${executionTime}ms`,

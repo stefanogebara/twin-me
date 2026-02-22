@@ -29,7 +29,7 @@ router.get('/status', authenticateUser, async (req, res) => {
     console.error('[Extraction API] Status error:', error);
     res.status(500).json({
       success: false,
-      error: error.message
+      error: process.env.NODE_ENV !== 'production' ? error.message : 'Internal server error'
     });
   }
 });
@@ -52,7 +52,7 @@ router.get('/status/:userId', authenticateUser, async (req, res) => {
     console.error('[Extraction API] Status error:', error);
     res.status(500).json({
       success: false,
-      error: error.message
+      error: process.env.NODE_ENV !== 'production' ? error.message : 'Internal server error'
     });
   }
 });
@@ -92,7 +92,7 @@ router.get('/jobs', authenticateUser, async (req, res) => {
     console.error('[Extraction API] Jobs error:', error);
     res.status(500).json({
       success: false,
-      error: error.message
+      error: process.env.NODE_ENV !== 'production' ? error.message : 'Internal server error'
     });
   }
 });
@@ -135,7 +135,7 @@ router.get('/jobs/:userId', authenticateUser, async (req, res) => {
     console.error('[Extraction API] Jobs error:', error);
     res.status(500).json({
       success: false,
-      error: error.message
+      error: process.env.NODE_ENV !== 'production' ? error.message : 'Internal server error'
     });
   }
 });
@@ -159,7 +159,7 @@ router.post('/trigger/:platform', authenticateUser, async (req, res) => {
     console.error('[Extraction API] Trigger error:', error);
     res.status(500).json({
       success: false,
-      error: error.message
+      error: process.env.NODE_ENV !== 'production' ? error.message : 'Internal server error'
     });
   }
 });
@@ -182,7 +182,7 @@ router.post('/trigger-all', authenticateUser, async (req, res) => {
     console.error('[Extraction API] Trigger all error:', error);
     res.status(500).json({
       success: false,
-      error: error.message
+      error: process.env.NODE_ENV !== 'production' ? error.message : 'Internal server error'
     });
   }
 });
@@ -205,7 +205,7 @@ router.post('/retry-failed', authenticateUser, async (req, res) => {
     console.error('[Extraction API] Retry error:', error);
     res.status(500).json({
       success: false,
-      error: error.message
+      error: process.env.NODE_ENV !== 'production' ? error.message : 'Internal server error'
     });
   }
 });
@@ -255,7 +255,7 @@ router.get('/features', authenticateUser, async (req, res) => {
     console.error('[Extraction API] Features error:', error);
     res.status(500).json({
       success: false,
-      error: error.message
+      error: process.env.NODE_ENV !== 'production' ? error.message : 'Internal server error'
     });
   }
 });
@@ -308,7 +308,7 @@ router.get('/features/:userId', authenticateUser, async (req, res) => {
     console.error('[Extraction API] Features error:', error);
     res.status(500).json({
       success: false,
-      error: error.message
+      error: process.env.NODE_ENV !== 'production' ? error.message : 'Internal server error'
     });
   }
 });

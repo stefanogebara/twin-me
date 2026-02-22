@@ -376,7 +376,7 @@ router.post('/', async (req, res) => {
     console.error('[Claude Sync Cron] Error:', error);
     return res.status(500).json({
       success: false,
-      error: error.message,
+      error: process.env.NODE_ENV !== 'production' ? error.message : 'Internal server error',
     });
   }
 });
@@ -403,7 +403,7 @@ router.post('/run', async (req, res) => {
     console.error('[Claude Sync] Error:', error);
     return res.status(500).json({
       success: false,
-      error: error.message,
+      error: process.env.NODE_ENV !== 'production' ? error.message : 'Internal server error',
     });
   }
 });
@@ -447,7 +447,7 @@ router.get('/status', authenticateUser, async (req, res) => {
     console.error('[Claude Sync] Status error:', error);
     return res.status(500).json({
       success: false,
-      error: error.message,
+      error: process.env.NODE_ENV !== 'production' ? error.message : 'Internal server error',
     });
   }
 });
@@ -469,7 +469,7 @@ router.post('/process-analysis', async (req, res) => {
     console.error('[Claude Sync] Analysis processing error:', error);
     return res.status(500).json({
       success: false,
-      error: error.message,
+      error: process.env.NODE_ENV !== 'production' ? error.message : 'Internal server error',
     });
   }
 });

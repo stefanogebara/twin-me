@@ -554,7 +554,7 @@ router.post('/sync', authenticateUser, async (req, res) => {
         metadata: {
           last_sync: new Date().toISOString(),
           last_sync_status: 'failed',
-          error: error.message
+          error: process.env.NODE_ENV !== 'production' ? error.message : 'Internal server error'
         }
       })
       .eq('user_id', req.user.id)

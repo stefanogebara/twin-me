@@ -180,7 +180,7 @@ async function checkAndRefreshExpiringTokens() {
 
     if (error) {
       console.error('❌ Error fetching connections:', error);
-      return { success: false, error: error.message };
+      return { success: false, error: process.env.NODE_ENV !== 'production' ? error.message : 'Internal server error' };
     }
 
     if (!connections || connections.length === 0) {
@@ -273,7 +273,7 @@ async function checkAndRefreshExpiringTokens() {
     };
   } catch (error) {
     console.error('❌ Error in token refresh check:', error);
-    return { success: false, error: error.message };
+    return { success: false, error: process.env.NODE_ENV !== 'production' ? error.message : 'Internal server error' };
   }
 }
 
@@ -379,7 +379,7 @@ export default async function handler(req, res) {
 
     return res.status(500).json({
       success: false,
-      error: error.message,
+      error: process.env.NODE_ENV !== 'production' ? error.message : 'Internal server error',
       timestamp: new Date().toISOString(),
       cronType: 'token-refresh',
       executionTime: `${executionTime}ms`,

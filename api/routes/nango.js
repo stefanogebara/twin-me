@@ -484,7 +484,7 @@ router.get('/spotify/recent-tracks', authenticateUser, async (req, res) => {
     const result = await nangoService.spotify.getRecentTracks(req.user.id);
     res.json(result);
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    res.status(500).json({ success: false, error: process.env.NODE_ENV !== 'production' ? error.message : 'Internal server error' });
   }
 });
 
@@ -497,7 +497,7 @@ router.get('/spotify/top-tracks', authenticateUser, async (req, res) => {
     const result = await nangoService.spotify.getTopTracks(req.user.id, timeRange);
     res.json(result);
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    res.status(500).json({ success: false, error: process.env.NODE_ENV !== 'production' ? error.message : 'Internal server error' });
   }
 });
 
@@ -509,7 +509,7 @@ router.get('/spotify/currently-playing', authenticateUser, async (req, res) => {
     const result = await nangoService.spotify.getCurrentlyPlaying(req.user.id);
     res.json(result);
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    res.status(500).json({ success: false, error: process.env.NODE_ENV !== 'production' ? error.message : 'Internal server error' });
   }
 });
 
@@ -522,7 +522,7 @@ router.get('/whoop/recovery', authenticateUser, async (req, res) => {
     const result = await nangoService.whoop.getRecovery(req.user.id, parseInt(limit));
     res.json(result);
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    res.status(500).json({ success: false, error: process.env.NODE_ENV !== 'production' ? error.message : 'Internal server error' });
   }
 });
 
@@ -535,7 +535,7 @@ router.get('/whoop/workouts', authenticateUser, async (req, res) => {
     const result = await nangoService.whoop.getWorkouts(req.user.id, parseInt(limit));
     res.json(result);
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    res.status(500).json({ success: false, error: process.env.NODE_ENV !== 'production' ? error.message : 'Internal server error' });
   }
 });
 
@@ -548,7 +548,7 @@ router.get('/whoop/sleep', authenticateUser, async (req, res) => {
     const result = await nangoService.whoop.getSleep(req.user.id, parseInt(limit));
     res.json(result);
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    res.status(500).json({ success: false, error: process.env.NODE_ENV !== 'production' ? error.message : 'Internal server error' });
   }
 });
 
@@ -561,7 +561,7 @@ router.get('/calendar/events', authenticateUser, async (req, res) => {
     const result = await nangoService.calendar.getEvents(req.user.id, parseInt(maxResults));
     res.json(result);
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    res.status(500).json({ success: false, error: process.env.NODE_ENV !== 'production' ? error.message : 'Internal server error' });
   }
 });
 
@@ -573,7 +573,7 @@ router.get('/github/repos', authenticateUser, async (req, res) => {
     const result = await nangoService.github.getRepos(req.user.id);
     res.json(result);
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    res.status(500).json({ success: false, error: process.env.NODE_ENV !== 'production' ? error.message : 'Internal server error' });
   }
 });
 
@@ -585,7 +585,7 @@ router.get('/discord/guilds', authenticateUser, async (req, res) => {
     const result = await nangoService.discord.getGuilds(req.user.id);
     res.json(result);
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    res.status(500).json({ success: false, error: process.env.NODE_ENV !== 'production' ? error.message : 'Internal server error' });
   }
 });
 
@@ -597,7 +597,7 @@ router.get('/youtube/subscriptions', authenticateUser, async (req, res) => {
     const result = await nangoService.youtube.getSubscriptions(req.user.id);
     res.json(result);
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    res.status(500).json({ success: false, error: process.env.NODE_ENV !== 'production' ? error.message : 'Internal server error' });
   }
 });
 
@@ -609,7 +609,7 @@ router.get('/reddit/subreddits', authenticateUser, async (req, res) => {
     const result = await nangoService.reddit.getSubreddits(req.user.id);
     res.json(result);
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    res.status(500).json({ success: false, error: process.env.NODE_ENV !== 'production' ? error.message : 'Internal server error' });
   }
 });
 
@@ -621,7 +621,7 @@ router.get('/outlook/profile', authenticateUser, async (req, res) => {
     const result = await nangoService.outlook.getProfile(req.user.id);
     res.json(result);
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    res.status(500).json({ success: false, error: process.env.NODE_ENV !== 'production' ? error.message : 'Internal server error' });
   }
 });
 
@@ -634,7 +634,7 @@ router.get('/outlook/messages', authenticateUser, async (req, res) => {
     const result = await nangoService.outlook.getRecentMessages(req.user.id, parseInt(limit));
     res.json(result);
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    res.status(500).json({ success: false, error: process.env.NODE_ENV !== 'production' ? error.message : 'Internal server error' });
   }
 });
 
@@ -647,7 +647,7 @@ router.get('/outlook/calendar', authenticateUser, async (req, res) => {
     const result = await nangoService.outlook.getCalendarEvents(req.user.id, parseInt(limit));
     res.json(result);
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    res.status(500).json({ success: false, error: process.env.NODE_ENV !== 'production' ? error.message : 'Internal server error' });
   }
 });
 
@@ -659,7 +659,7 @@ router.get('/outlook/calendars', authenticateUser, async (req, res) => {
     const result = await nangoService.outlook.getCalendars(req.user.id);
     res.json(result);
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    res.status(500).json({ success: false, error: process.env.NODE_ENV !== 'production' ? error.message : 'Internal server error' });
   }
 });
 
@@ -672,7 +672,7 @@ router.get('/outlook/contacts', authenticateUser, async (req, res) => {
     const result = await nangoService.outlook.getContacts(req.user.id, parseInt(limit));
     res.json(result);
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    res.status(500).json({ success: false, error: process.env.NODE_ENV !== 'production' ? error.message : 'Internal server error' });
   }
 });
 
@@ -684,7 +684,7 @@ router.get('/outlook/mail-folders', authenticateUser, async (req, res) => {
     const result = await nangoService.outlook.getMailFolders(req.user.id);
     res.json(result);
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    res.status(500).json({ success: false, error: process.env.NODE_ENV !== 'production' ? error.message : 'Internal server error' });
   }
 });
 
@@ -696,7 +696,7 @@ router.get('/twitch/user', authenticateUser, async (req, res) => {
     const result = await nangoService.twitch.getUser(req.user.id);
     res.json(result);
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    res.status(500).json({ success: false, error: process.env.NODE_ENV !== 'production' ? error.message : 'Internal server error' });
   }
 });
 
@@ -716,7 +716,7 @@ router.get('/twitch/followed', authenticateUser, async (req, res) => {
     const result = await nangoService.twitch.getFollowedChannels(req.user.id, twitchUserId);
     res.json(result);
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    res.status(500).json({ success: false, error: process.env.NODE_ENV !== 'production' ? error.message : 'Internal server error' });
   }
 });
 
@@ -728,7 +728,7 @@ router.get('/gmail/profile', authenticateUser, async (req, res) => {
     const result = await nangoService.proxyRequest(req.user.id, 'google-mail', '/users/me/profile');
     res.json(result);
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    res.status(500).json({ success: false, error: process.env.NODE_ENV !== 'production' ? error.message : 'Internal server error' });
   }
 });
 
@@ -741,7 +741,7 @@ router.get('/gmail/messages', authenticateUser, async (req, res) => {
     const result = await nangoService.proxyRequest(req.user.id, 'google-mail', `/users/me/messages?maxResults=${limit}`);
     res.json(result);
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    res.status(500).json({ success: false, error: process.env.NODE_ENV !== 'production' ? error.message : 'Internal server error' });
   }
 });
 
@@ -753,7 +753,7 @@ router.get('/gmail/labels', authenticateUser, async (req, res) => {
     const result = await nangoService.proxyRequest(req.user.id, 'google-mail', '/users/me/labels');
     res.json(result);
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    res.status(500).json({ success: false, error: process.env.NODE_ENV !== 'production' ? error.message : 'Internal server error' });
   }
 });
 
@@ -818,7 +818,7 @@ router.post('/webhook', async (req, res) => {
     res.json({ success: true });
   } catch (error) {
     console.error('[Nango Webhook] Error:', error);
-    res.status(500).json({ success: false, error: error.message });
+    res.status(500).json({ success: false, error: process.env.NODE_ENV !== 'production' ? error.message : 'Internal server error' });
   }
 });
 

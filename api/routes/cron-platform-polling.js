@@ -155,7 +155,7 @@ async function pollPlatform(userId, platform, accessToken) {
       results.push({
         endpoint: endpoint.name,
         success: false,
-        error: error.message,
+        error: process.env.NODE_ENV !== 'production' ? error.message : 'Internal server error',
       });
 
       // If unauthorized, mark connection as needs_reauth
@@ -195,7 +195,7 @@ async function pollAllUsers() {
 
     if (error) {
       console.error('❌ Error fetching users:', error);
-      return { success: false, error: error.message };
+      return { success: false, error: process.env.NODE_ENV !== 'production' ? error.message : 'Internal server error' };
     }
 
     if (!connections || connections.length === 0) {
@@ -299,7 +299,7 @@ async function pollAllUsers() {
             userId,
             platform: connection.platform,
             success: false,
-            error: error.message,
+            error: process.env.NODE_ENV !== 'production' ? error.message : 'Internal server error',
           });
         }
       }
@@ -322,7 +322,7 @@ async function pollAllUsers() {
     };
   } catch (error) {
     console.error('❌ Error in background polling:', error);
-    return { success: false, error: error.message };
+    return { success: false, error: process.env.NODE_ENV !== 'production' ? error.message : 'Internal server error' };
   }
 }
 
