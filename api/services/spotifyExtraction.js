@@ -129,7 +129,7 @@ export async function extractSpotifyData(userId) {
     }
 
     // Update connection status
-    await getSupabaseClient()
+    const { error: syncSuccessErr } = await getSupabaseClient()
       .from('platform_connections')
       .update({
         last_sync_at: new Date(),
@@ -137,6 +137,7 @@ export async function extractSpotifyData(userId) {
       })
       .eq('user_id', userId)
       .eq('platform', 'spotify');
+    if (syncSuccessErr) console.warn('[Spotify] Failed to update sync status:', syncSuccessErr.message);
 
     return {
       success: true,
@@ -151,13 +152,14 @@ export async function extractSpotifyData(userId) {
 
     // Handle token expiration
     if (error.response?.status === 401) {
-      await getSupabaseClient()
+      const { error: reauthErr } = await getSupabaseClient()
         .from('platform_connections')
         .update({
           last_sync_status: 'requires_reauth'
         })
         .eq('user_id', userId)
         .eq('platform', 'spotify');
+      if (reauthErr) console.warn('[Spotify] Failed to update reauth status:', reauthErr.message);
 
       return {
         success: false,
@@ -178,13 +180,14 @@ export async function extractSpotifyData(userId) {
     }
 
     // Update connection with error status
-    await getSupabaseClient()
+    const { error: failedErr } = await getSupabaseClient()
       .from('platform_connections')
       .update({
         last_sync_status: 'failed'
       })
       .eq('user_id', userId)
       .eq('platform', 'spotify');
+    if (failedErr) console.warn('[Spotify] Failed to update failed sync status:', failedErr.message);
 
     throw error;
   }

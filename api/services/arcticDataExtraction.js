@@ -660,52 +660,43 @@ async function fetchRedditAPI(url, accessToken) {
  * Store extracted data in soul_data table
  */
 async function storeSoulData(userId, platform, dataType, rawData) {
-  try {
-    const { error } = await getSupabase()
-      .from('soul_data')
-      .upsert({
-        user_id: userId,
-        platform,
-        data_type: dataType,
-        raw_data: rawData,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
-      }, {
-        onConflict: 'user_id,platform,data_type'
-      });
+  const { error } = await getSupabase()
+    .from('soul_data')
+    .upsert({
+      user_id: userId,
+      platform,
+      data_type: dataType,
+      raw_data: rawData,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    }, {
+      onConflict: 'user_id,platform,data_type'
+    });
 
-    if (error) {
-      console.error(`[Storage] Error storing ${platform} ${dataType}:`, error);
-      throw error;
-    }
-
-    console.log(`[Storage] ✅ Stored ${platform} ${dataType}`);
-  } catch (error) {
-    console.error(`[Storage] Failed to store ${platform} ${dataType}:`, error);
-    throw error;
+  if (error) {
+    console.error(`[Storage] Error storing ${platform} ${dataType}:`, error);
+    throw new Error(`Storage failed: ${error.message}`);
   }
+
+  console.log(`[Storage] ✅ Stored ${platform} ${dataType}`);
 }
 
 /**
  * Update last sync timestamp for platform connection
  */
 async function updateLastSync(userId, platform) {
-  try {
-    const { error } = await getSupabase()
-      .from('platform_connections')
-      .update({
-        last_sync: new Date().toISOString()
-      })
-      .eq('user_id', userId)
-      .eq('platform', platform);
+  const { error } = await getSupabase()
+    .from('platform_connections')
+    .update({
+      last_sync: new Date().toISOString()
+    })
+    .eq('user_id', userId)
+    .eq('platform', platform);
 
-    if (error) {
-      console.error(`[Update Sync] Error updating ${platform}:`, error);
-    } else {
-      console.log(`[Update Sync] ✅ Updated ${platform} last_sync`);
-    }
-  } catch (error) {
-    console.error(`[Update Sync] Failed for ${platform}:`, error);
+  if (error) {
+    console.error(`[Update Sync] Error updating ${platform}:`, error);
+  } else {
+    console.log(`[Update Sync] ✅ Updated ${platform} last_sync`);
   }
 }
 

@@ -792,16 +792,18 @@ export async function getStoredCorrelations(userId, options = {}) {
 export async function getCorrelationStats(userId) {
   try {
     // Count total correlations
-    const { count: totalCorrelations } = await supabaseAdmin
+    const { count: totalCorrelations, error: totalErr } = await supabaseAdmin
       .from('discovered_correlations')
       .select('*', { count: 'exact', head: true })
       .eq('user_id', userId);
+    if (totalErr) console.warn('[CorrelationEngine] Failed to count correlations:', totalErr.message);
 
     // Count by correlation type
-    const { data: byType } = await supabaseAdmin
+    const { data: byType, error: byTypeErr } = await supabaseAdmin
       .from('discovered_correlations')
       .select('correlation_type')
       .eq('user_id', userId);
+    if (byTypeErr) console.warn('[CorrelationEngine] Failed to fetch correlation types:', byTypeErr.message);
 
     const typeCounts = (byType || []).reduce((acc, c) => {
       acc[c.correlation_type] = (acc[c.correlation_type] || 0) + 1;
@@ -809,26 +811,29 @@ export async function getCorrelationStats(userId) {
     }, {});
 
     // Count high confidence correlations
-    const { count: highConfidence } = await supabaseAdmin
+    const { count: highConfidence, error: highConfErr } = await supabaseAdmin
       .from('discovered_correlations')
       .select('*', { count: 'exact', head: true })
       .eq('user_id', userId)
       .gte('confidence', 0.7);
+    if (highConfErr) console.warn('[CorrelationEngine] Failed to count high confidence correlations:', highConfErr.message);
 
     // Count brain nodes from correlations
-    const { count: brainNodes } = await supabaseAdmin
+    const { count: brainNodes, error: brainErr } = await supabaseAdmin
       .from('brain_nodes')
       .select('*', { count: 'exact', head: true })
       .eq('user_id', userId)
       .eq('source_type', 'correlation_engine');
+    if (brainErr) console.warn('[CorrelationEngine] Failed to count brain nodes:', brainErr.message);
 
     // Get most recent analysis date
-    const { data: latest } = await supabaseAdmin
+    const { data: latest, error: latestErr } = await supabaseAdmin
       .from('discovered_correlations')
       .select('discovered_at')
       .eq('user_id', userId)
       .order('discovered_at', { ascending: false })
       .limit(1);
+    if (latestErr) console.warn('[CorrelationEngine] Failed to fetch latest correlation date:', latestErr.message);
 
     return {
       totalCorrelations: totalCorrelations || 0,

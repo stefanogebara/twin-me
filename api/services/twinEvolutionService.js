@@ -32,13 +32,14 @@ class TwinEvolutionService {
   async recordSnapshot(userId, scores, metadata = {}) {
     try {
       // Check if we already have a recent snapshot
-      const { data: recentSnapshot } = await supabaseAdmin
+      const { data: recentSnapshot, error: recentSnapshotErr } = await supabaseAdmin
         .from('personality_scores')
         .select('*')
         .eq('user_id', userId)
         .order('calculated_at', { ascending: false })
         .limit(1)
         .single();
+      if (recentSnapshotErr && recentSnapshotErr.code !== 'PGRST116') console.warn('[TwinEvolution] Failed to fetch recent snapshot:', recentSnapshotErr.message);
 
       const now = new Date();
 
@@ -365,13 +366,14 @@ Consider behavioral factors like lifestyle changes, new habits, or life circumst
       const timelineResult = await this.getScoreTimeline(userId, { limit: 10 });
 
       // Get latest snapshot
-      const { data: latestSnapshot } = await supabaseAdmin
+      const { data: latestSnapshot, error: latestSnapshotErr } = await supabaseAdmin
         .from('personality_scores')
         .select('*')
         .eq('user_id', userId)
         .order('calculated_at', { ascending: false })
         .limit(1)
         .single();
+      if (latestSnapshotErr && latestSnapshotErr.code !== 'PGRST116') console.warn('[TwinEvolution] Failed to fetch latest snapshot:', latestSnapshotErr.message);
 
       const summary = {
         hasEvolutionData: historyResult.events.length > 0 || timelineResult.hasData,

@@ -149,11 +149,12 @@ class BehavioralEvidencePipeline {
    * Get connected platforms for a user
    */
   async getConnectedPlatforms(userId) {
-    const { data: connections } = await supabaseAdmin
+    const { data: connections, error: connErr } = await supabaseAdmin
       .from('platform_connections')
       .select('platform')
       .eq('user_id', userId)
       .in('status', ['connected', 'token_refreshed', 'pending']);
+    if (connErr) console.warn('[BehavioralEvidencePipeline] Failed to fetch connected platforms:', connErr.message);
 
     if (!connections || connections.length === 0) {
       return [];
