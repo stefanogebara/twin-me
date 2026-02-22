@@ -123,8 +123,8 @@ export const MessageList = forwardRef<HTMLDivElement, MessageListProps>(
                   )}
                   {message.contextUsed.platformData?.map(p => {
                     const platformColors: Record<string, string> = {
-                      spotify: '#1DB954', whoop: '#00A5E0', calendar: '#4285F4',
-                      google_calendar: '#4285F4', youtube: '#FF0000', twitch: '#9146FF',
+                      spotify: '#1DB954', calendar: '#4285F4',
+                      google_calendar: '#4285F4', youtube: '#FF0000',
                     };
                     const color = platformColors[p] || '#8A857D';
                     return (

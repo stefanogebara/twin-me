@@ -75,7 +75,7 @@ export function SoulChatInterface({
         body: JSON.stringify({
           message: content,
           context: {
-            platforms: ['spotify', 'calendar', 'whoop']
+            platforms: ['spotify', 'calendar', 'youtube']
           }
         })
       });

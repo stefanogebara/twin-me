@@ -11,7 +11,6 @@ import { useNavigate } from 'react-router-dom';
 import {
   Music,
   Youtube,
-  Twitch,
   Activity,
   Calendar,
   Mail,
@@ -39,7 +38,6 @@ interface PlatformSubCardProps {
 const lucideIconMap: Record<string, React.ComponentType<{ className?: string }>> = {
   Music,
   Youtube,
-  Twitch,
   Activity,
   Calendar,
   Mail,
