@@ -484,28 +484,24 @@ function calculateTitleSimilarity(title1, title2) {
  */
 async function storeInsights(userId, insights) {
   for (const insight of insights) {
-    try {
-      const { error } = await supabaseAdmin
-        .from('soul_insights')
-        .insert({
-          user_id: insight.userId,
-          platforms: insight.platforms,
-          insight_type: insight.insightType,
-          title: insight.title,
-          description: insight.description,
-          analysis: insight.analysis,
-          confidence_score: insight.confidenceScore,
-          evidence: insight.evidence,
-          analyzed_at: new Date().toISOString()
-        });
+    const { error: insertErr } = await supabaseAdmin
+      .from('soul_insights')
+      .insert({
+        user_id: insight.userId,
+        platforms: insight.platforms,
+        insight_type: insight.insightType,
+        title: insight.title,
+        description: insight.description,
+        analysis: insight.analysis,
+        confidence_score: insight.confidenceScore,
+        evidence: insight.evidence,
+        analyzed_at: new Date().toISOString()
+      });
 
-      if (error) {
-        console.error('[Soul Analysis] Error storing insight:', error);
-      } else {
-        console.log(`[Soul Analysis] ✅ Stored insight: ${insight.title}`);
-      }
-    } catch (error) {
-      console.error('[Soul Analysis] Error storing insight:', error);
+    if (insertErr) {
+      console.error('[Soul Analysis] Error storing insight:', insertErr);
+    } else {
+      console.log(`[Soul Analysis] ✅ Stored insight: ${insight.title}`);
     }
   }
 }
@@ -535,11 +531,12 @@ export async function reanalyzePlatforms(userId, platforms) {
   console.log(`[Soul Analysis] Re-analyzing platforms: ${platforms.join(', ')}`);
 
   // Delete old insights for these platforms
-  await supabaseAdmin
+  const { error: deleteErr } = await supabaseAdmin
     .from('soul_insights')
     .delete()
     .eq('user_id', userId)
     .contains('platforms', platforms);
+  if (deleteErr) console.warn('[Soul Analysis] Failed to delete old insights:', deleteErr.message);
 
   // Run fresh analysis
   return await analyzeSoulSignature(userId);

@@ -291,9 +291,10 @@ What does this reveal about their personality or habits?`;
           generated_at: r.generatedAt
         }));
 
-        await supabaseAdmin
+        const { error: reflectionErr } = await supabaseAdmin
           .from('reflection_history')
           .upsert(reflectionRecords, { onConflict: 'user_id,platform' });
+        if (reflectionErr) console.warn('[TwinFormationService] Failed to upsert reflection history:', reflectionErr.message);
       }
 
       // Also update personality_scores table
@@ -351,13 +352,13 @@ What does this reveal about their personality or habits?`;
    * Helper: Get platform features from database
    */
   async getPlatformFeatures(userId, platform) {
-    const { data } = await supabaseAdmin
+    const { data, error } = await supabaseAdmin
       .from('behavioral_features')
       .select('*')
       .eq('user_id', userId)
       .eq('platform', platform)
       .order('extracted_at', { ascending: false });
-
+    if (error) console.warn('[TwinFormationService] Failed to fetch platform features:', error.message);
     return data || [];
   }
 

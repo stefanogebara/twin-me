@@ -290,20 +290,17 @@ export async function refreshAccessToken(userId, provider) {
     console.error(`❌ Token refresh error for ${provider}:`, error.message);
 
     // Update error status in database
-    try {
-      const supabaseClient = await getSupabaseClient();
-      await supabaseClient
-        .from('platform_connections')
-        .update({
-          last_sync_status: 'token_refresh_failed',
-          error_message: error.message,
-          updated_at: new Date().toISOString()
-        })
-        .eq('user_id', userId)
-        .eq('platform', provider);
-    } catch (updateError) {
-      console.error(`Failed to update error status:`, updateError);
-    }
+    const supabaseClient = await getSupabaseClient();
+    const { error: statusErr } = await supabaseClient
+      .from('platform_connections')
+      .update({
+        last_sync_status: 'token_refresh_failed',
+        error_message: error.message,
+        updated_at: new Date().toISOString()
+      })
+      .eq('user_id', userId)
+      .eq('platform', provider);
+    if (statusErr) console.warn(`Failed to update error status:`, statusErr.message);
 
     return {
       success: false,

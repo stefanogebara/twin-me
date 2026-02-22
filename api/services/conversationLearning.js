@@ -276,7 +276,7 @@ async function updateUserWritingPatterns(userId, analysis) {
   const assertiveness = 100 - analysis.questionCount * 5 + analysis.exclamationCount * 5;
 
   // Upsert the patterns
-  await supabaseAdmin
+  const { error: patternsErr } = await supabaseAdmin
     .from('user_writing_patterns')
     .upsert({
       user_id: userId,
@@ -296,6 +296,7 @@ async function updateUserWritingPatterns(userId, analysis) {
     }, {
       onConflict: 'user_id'
     });
+  if (patternsErr) console.warn('[ConversationLearning] Failed to upsert writing patterns:', patternsErr.message);
 }
 
 /**
@@ -320,7 +321,7 @@ async function storeLearnedFacts(userId, message, topics, intent) {
     if (match && match[1]) {
       const factValue = match[1].trim();
       if (factValue.length > 3 && factValue.length < 200) {
-        await supabaseAdmin
+        const { error: factInsertErr } = await supabaseAdmin
           .from('learned_facts')
           .insert({
             user_id: userId,
@@ -330,8 +331,10 @@ async function storeLearnedFacts(userId, message, topics, intent) {
             source: 'conversation',
             confidence: 0.7,
             created_at: new Date().toISOString()
-          })
-          .catch(() => { /* Ignore duplicates */ });
+          });
+        if (factInsertErr && !factInsertErr.message?.includes('duplicate')) {
+          console.warn('[ConversationLearning] Failed to insert learned fact:', factInsertErr.message);
+        }
       }
     }
   }
@@ -417,10 +420,11 @@ export async function getUserWritingProfile(userId) {
  * Get conversation statistics for a user
  */
 export async function getConversationStats(userId) {
-  const { data: logs } = await supabaseAdmin
+  const { data: logs, error: logsErr } = await supabaseAdmin
     .from('mcp_conversation_logs')
     .select('mcp_client, topics_detected, intent, created_at')
     .eq('user_id', userId);
+  if (logsErr) console.error('[ConversationLearning] Failed to fetch conversation logs:', logsErr.message);
 
   if (!logs || logs.length === 0) {
     return {

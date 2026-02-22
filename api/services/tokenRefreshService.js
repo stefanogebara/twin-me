@@ -316,12 +316,13 @@ async function ensureFreshToken(userId, platform) {
     try {
       await refreshLocks.get(lockKey);
       // After waiting, re-fetch the connection to get the updated token
-      const { data: updatedConnection } = await getSupabaseClient()
+      const { data: updatedConnection, error: updConnErr } = await getSupabaseClient()
         .from('platform_connections')
         .select('access_token, status')
         .eq('user_id', userId)
         .eq('platform', platform)
         .single();
+      if (updConnErr && updConnErr.code !== 'PGRST116') console.warn('[Token Refresh] Failed to re-fetch connection after lock:', updConnErr.message);
 
       if (updatedConnection?.status === 'connected') {
         console.log(`✅ [Token Refresh] Using token from completed ${platform} refresh`);
