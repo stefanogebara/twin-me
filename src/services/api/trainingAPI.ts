@@ -25,12 +25,8 @@ export const trainingAPI = {
   /**
    * Get current training status and metrics
    */
-  getStatus: async (userId?: string): Promise<TrainingMetrics> => {
-    const url = userId
-      ? `${API_URL}/training/status?userId=${encodeURIComponent(userId)}`
-      : `${API_URL}/training/status`;
-
-    const response = await fetch(url, {
+  getStatus: async (): Promise<TrainingMetrics> => {
+    const response = await fetch(`${API_URL}/training/status`, {
       headers: getAuthHeaders(),
     });
 
@@ -45,11 +41,11 @@ export const trainingAPI = {
   /**
    * Start training the model
    */
-  startTraining: async (userId?: string, epochs: number = 10): Promise<TrainingStartResponse> => {
+  startTraining: async (epochs: number = 10): Promise<TrainingStartResponse> => {
     const response = await fetch(`${API_URL}/training/start`, {
       method: 'POST',
       headers: getAuthHeaders(),
-      body: JSON.stringify({ userId, epochs }),
+      body: JSON.stringify({ epochs }),
     });
 
     if (!response.ok) {
@@ -62,11 +58,10 @@ export const trainingAPI = {
   /**
    * Stop ongoing training
    */
-  stopTraining: async (userId?: string): Promise<{ success: boolean }> => {
+  stopTraining: async (): Promise<{ success: boolean }> => {
     const response = await fetch(`${API_URL}/training/stop`, {
       method: 'POST',
       headers: getAuthHeaders(),
-      body: JSON.stringify({ userId }),
     });
 
     if (!response.ok) {
@@ -79,11 +74,10 @@ export const trainingAPI = {
   /**
    * Reset the model
    */
-  resetModel: async (userId?: string): Promise<{ success: boolean }> => {
+  resetModel: async (): Promise<{ success: boolean }> => {
     const response = await fetch(`${API_URL}/training/reset`, {
       method: 'POST',
       headers: getAuthHeaders(),
-      body: JSON.stringify({ userId }),
     });
 
     if (!response.ok) {
