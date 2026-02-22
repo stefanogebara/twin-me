@@ -493,7 +493,7 @@ Compiled from comprehensive codebase audit. All items confirmed with user via al
 | # | Task | Status | Notes |
 |---|------|--------|-------|
 | P1 | Fix prompt caching bug in twin-chat.js | ✅ DONE | `buildTwinSystemPrompt()` returns array with `cache_control` blocks, but at lines 1120-1122 it got `.map(b => b.text).join('\n')` before being passed to `complete()`. Stripped caching metadata — Anthropic prompt caching never activated. Fix: removed stringification, pass array directly. `formatMessages()` in llmGateway already handles arrays correctly (`{ role: 'system', content: arrayOrString }`). OpenRouter forwards array format to Anthropic with cache_control intact. |
-| P2 | Remove getMoltbotContext() from twin-chat.js | PENDING | Lines 529-598. Redundant with twinContextBuilder.js — creates duplicate DB queries on every chat. twinContextBuilder already retrieves memories. |
+| P2 | Remove getMoltbotContext() from twin-chat.js | ✅ DONE | Removed function + getClusterPersonalityBuilder import + getRecentMemories import. Personality → already from personalityScores. Memories → already from twinContext.memories. Recovery → already from platformData.whoop. Simplified parallel fetch to single fetchTwinContext call. |
 
 ### User Experience (P1)
 
