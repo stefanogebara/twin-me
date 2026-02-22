@@ -63,7 +63,7 @@ router.get('/trigger/:userId', authenticateUser, async (req, res) => {
  * GET /api/test-pattern-learning/trigger-all
  * Trigger pattern learning for all users with pending feedback
  */
-router.get('/trigger-all', async (req, res) => {
+router.get('/trigger-all', authenticateUser, async (req, res) => {
   console.log(`\n${'='.repeat(60)}`);
   console.log(`🧪 [TestPatternLearning] Manual trigger for ALL users`);
   console.log(`${'='.repeat(60)}`);
@@ -129,7 +129,7 @@ router.get('/metrics/:userId', authenticateUser, async (req, res) => {
  * GET /api/test-pattern-learning/status
  * Check service status and database connectivity
  */
-router.get('/status', async (req, res) => {
+router.get('/status', authenticateUser, async (req, res) => {
   console.log(`🔍 [TestPatternLearning] Status check requested`);
 
   try {
