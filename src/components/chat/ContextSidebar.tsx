@@ -43,6 +43,13 @@ interface ContextSidebarProps {
   colors: Colors;
 }
 
+const glassRowStyle = {
+  backgroundColor: 'rgba(255, 255, 255, 0.18)',
+  backdropFilter: 'blur(10px) saturate(140%)',
+  WebkitBackdropFilter: 'blur(10px) saturate(140%)',
+  border: '1px solid rgba(255, 255, 255, 0.45)',
+} as React.CSSProperties;
+
 export const ContextSidebar = ({
   showContext,
   onClose,
@@ -63,23 +70,23 @@ export const ContextSidebar = ({
         !showContext && "md:hidden"
       )}
       style={{
-        backgroundColor: colors.bgSecondary,
-        borderColor: colors.border
+        backgroundColor: '#F7F7F3',
+        borderColor: 'rgba(255, 255, 255, 0.45)',
       }}
     >
       <div className="p-4">
         <div className="flex items-center justify-between mb-4">
           <h3
             className="font-medium flex items-center gap-2"
-            style={{ color: colors.text }}
+            style={{ color: '#1F1C18' }}
           >
-            <Clay3DIcon name="diamond" size={16} />
+            <img src="/images/backgrounds/flower-hero.png" alt="" className="w-4 h-4 object-contain" />
             Twin Context
           </h3>
           <button
             onClick={onClose}
             className="p-1 rounded hover:opacity-70"
-            style={{ color: colors.textMuted }}
+            style={{ color: '#8A857D' }}
           >
             <X className="w-4 h-4" />
           </button>
@@ -88,7 +95,7 @@ export const ContextSidebar = ({
         <div className="mb-6">
           <h4
             className="text-xs font-medium uppercase tracking-wider mb-2"
-            style={{ color: colors.textMuted }}
+            style={{ color: '#8A857D' }}
           >
             Data Sources
           </h4>
@@ -96,16 +103,16 @@ export const ContextSidebar = ({
             {platforms.map((platform) => (
               <div
                 key={platform.key}
-                className="flex items-center justify-between p-2 rounded-lg"
-                style={{ backgroundColor: colors.bgTertiary }}
+                className="flex items-center justify-between p-2 rounded-xl"
+                style={glassRowStyle}
               >
                 <div className="flex items-center gap-2">
-                  <span style={{ color: platform.connected ? platform.color : colors.textMuted }}>
+                  <span style={{ color: platform.connected ? platform.color : '#8A857D' }}>
                     {platform.icon}
                   </span>
                   <span
                     className="text-sm"
-                    style={{ color: platform.connected ? colors.text : colors.textMuted }}
+                    style={{ color: platform.connected ? '#1F1C18' : '#8A857D' }}
                   >
                     {platform.name}
                   </span>
@@ -113,13 +120,13 @@ export const ContextSidebar = ({
                 {platform.connected ? (
                   <div className="flex items-center gap-1">
                     <div className="w-2 h-2 rounded-full bg-green-500" />
-                    <span className="text-xs" style={{ color: colors.textMuted }}>Live</span>
+                    <span className="text-xs" style={{ color: '#8A857D' }}>Live</span>
                   </div>
                 ) : (
                   <button
                     onClick={() => navigate('/get-started')}
                     className="text-xs px-2 py-1 rounded"
-                    style={{ color: colors.accent }}
+                    style={{ color: '#2D2722', fontWeight: 500 }}
                   >
                     Connect
                   </button>
@@ -132,38 +139,38 @@ export const ContextSidebar = ({
         <div className="mb-6">
           <h4
             className="text-xs font-medium uppercase tracking-wider mb-2"
-            style={{ color: colors.textMuted }}
+            style={{ color: '#8A857D' }}
           >
             Active Context
           </h4>
           {isLoadingContext ? (
             <div className="flex items-center justify-center py-4">
-              <Loader2 className="w-5 h-5 animate-spin" style={{ color: colors.textMuted }} />
+              <Loader2 className="w-5 h-5 animate-spin" style={{ color: '#8A857D' }} />
             </div>
           ) : contextItems.length > 0 ? (
             <div className="space-y-2">
               {contextItems.filter(i => i.type !== 'platform').map((item, idx) => (
                 <div
                   key={idx}
-                  className="p-2 rounded-lg"
-                  style={{ backgroundColor: colors.bgTertiary }}
+                  className="p-2 rounded-xl"
+                  style={glassRowStyle}
                 >
                   <div className="flex items-center gap-2 mb-1">
-                    {item.type === 'memory' && <Clock className="w-3 h-3" style={{ color: colors.accent }} />}
+                    {item.type === 'memory' && <Clock className="w-3 h-3" style={{ color: '#2D2722' }} />}
                     {item.type === 'fact' && <Lightbulb className="w-3 h-3" style={{ color: '#F59E0B' }} />}
                     {item.type === 'personality' && <Clay3DIcon name="brain" size={12} />}
-                    <span className="text-xs font-medium" style={{ color: colors.textSecondary }}>
+                    <span className="text-xs font-medium" style={{ color: '#8A857D' }}>
                       {item.label}
                     </span>
                   </div>
-                  <p className="text-sm" style={{ color: colors.text }}>
+                  <p className="text-sm" style={{ color: '#1F1C18' }}>
                     {item.value}
                   </p>
                 </div>
               ))}
             </div>
           ) : (
-            <p className="text-sm text-center py-4" style={{ color: colors.textMuted }}>
+            <p className="text-sm text-center py-4" style={{ color: '#8A857D' }}>
               {connectedPlatforms.length > 0
                 ? "Context loads when you chat"
                 : "Connect platforms to build context"
@@ -175,26 +182,26 @@ export const ContextSidebar = ({
         <div>
           <h4
             className="text-xs font-medium uppercase tracking-wider mb-2"
-            style={{ color: colors.textMuted }}
+            style={{ color: '#8A857D' }}
           >
             Twin Stats
           </h4>
           <div
-            className="p-3 rounded-lg"
-            style={{ backgroundColor: colors.bgTertiary }}
+            className="p-3 rounded-2xl"
+            style={glassRowStyle}
           >
             <div className="grid grid-cols-2 gap-3 text-center">
               <div>
-                <div className="text-lg font-semibold" style={{ color: colors.accent }}>
+                <div className="text-lg font-semibold" style={{ color: '#2D2722' }}>
                   {connectedCount || 0}
                 </div>
-                <div className="text-xs" style={{ color: colors.textMuted }}>Platforms</div>
+                <div className="text-xs" style={{ color: '#8A857D' }}>Platforms</div>
               </div>
               <div>
-                <div className="text-lg font-semibold" style={{ color: colors.accent }}>
+                <div className="text-lg font-semibold" style={{ color: '#2D2722' }}>
                   {messageCount}
                 </div>
-                <div className="text-xs" style={{ color: colors.textMuted }}>Messages</div>
+                <div className="text-xs" style={{ color: '#8A857D' }}>Messages</div>
               </div>
             </div>
           </div>

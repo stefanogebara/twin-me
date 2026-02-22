@@ -7,7 +7,6 @@
 
 import React from 'react';
 import { motion } from 'framer-motion';
-import { useTheme } from '@/contexts/ThemeContext';
 import {
   Moon,
   Dumbbell,
@@ -20,6 +19,11 @@ import {
   Loader2,
 } from 'lucide-react';
 import type { Goal } from '@/services/api/goalsAPI';
+
+// Design tokens
+const TEXT_PRIMARY = '#1F1C18';
+const TEXT_SECONDARY = '#8A857D';
+const BORDER_COLOR = 'rgba(0, 0, 0, 0.08)';
 
 // Category to icon mapping
 const CATEGORY_ICONS: Record<string, React.ElementType> = {
@@ -76,13 +80,6 @@ const GoalSuggestionCard: React.FC<GoalSuggestionCardProps> = ({
   isDismissing,
   index,
 }) => {
-  const { theme } = useTheme();
-  const isDark = theme === 'dark';
-
-  const textPrimary = isDark ? '#C1C0B6' : '#0c0a09';
-  const textSecondary = isDark ? 'rgba(193, 192, 182, 0.7)' : '#57534e';
-  const borderColor = isDark ? 'rgba(193, 192, 182, 0.12)' : 'rgba(0, 0, 0, 0.08)';
-
   const CategoryIcon = CATEGORY_ICONS[goal.category] ?? Sparkles;
   const categoryColor = CATEGORY_COLORS[goal.category] ?? CATEGORY_COLORS.balance;
   const isLoading = isAccepting || isDismissing;
@@ -103,19 +100,19 @@ const GoalSuggestionCard: React.FC<GoalSuggestionCardProps> = ({
       <div
         className="w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 mt-1"
         style={{
-          background: isDark ? 'rgba(193, 192, 182, 0.1)' : 'rgba(0, 0, 0, 0.05)',
-          border: `1px solid ${borderColor}`,
+          background: 'rgba(0, 0, 0, 0.05)',
+          border: `1px solid ${BORDER_COLOR}`,
         }}
       >
-        <Sparkles className="w-4 h-4" style={{ color: textSecondary }} />
+        <Sparkles className="w-4 h-4" style={{ color: TEXT_SECONDARY }} />
       </div>
 
       {/* Message bubble */}
       <div
         className="flex-1 rounded-2xl rounded-tl-md p-4 space-y-3"
         style={{
-          background: isDark ? 'rgba(193, 192, 182, 0.06)' : 'rgba(0, 0, 0, 0.03)',
-          border: `1px solid ${borderColor}`,
+          background: 'rgba(0, 0, 0, 0.03)',
+          border: `1px solid ${BORDER_COLOR}`,
         }}
       >
         {/* Category badge + title */}
@@ -132,14 +129,14 @@ const GoalSuggestionCard: React.FC<GoalSuggestionCardProps> = ({
           <div className="flex-1 min-w-0">
             <h4
               className="text-sm font-medium leading-snug"
-              style={{ color: textPrimary, fontFamily: 'var(--font-heading)' }}
+              style={{ color: TEXT_PRIMARY, fontFamily: 'var(--font-heading)' }}
             >
               {goal.title}
             </h4>
             {goal.description && (
               <p
                 className="text-sm mt-1 leading-relaxed"
-                style={{ color: textSecondary, fontFamily: 'var(--font-body)' }}
+                style={{ color: TEXT_SECONDARY, fontFamily: 'var(--font-body)' }}
               >
                 {goal.description}
               </p>
@@ -151,7 +148,7 @@ const GoalSuggestionCard: React.FC<GoalSuggestionCardProps> = ({
         {goal.source_observation && (
           <p
             className="text-xs italic pl-9"
-            style={{ color: isDark ? 'rgba(193, 192, 182, 0.45)' : 'rgba(0, 0, 0, 0.35)' }}
+            style={{ color: 'rgba(0, 0, 0, 0.35)' }}
           >
             Based on: {goal.source_observation}
           </p>
@@ -175,9 +172,9 @@ const GoalSuggestionCard: React.FC<GoalSuggestionCardProps> = ({
           <span
             className="px-2 py-0.5 rounded-full text-[10px]"
             style={{
-              background: isDark ? 'rgba(193, 192, 182, 0.06)' : 'rgba(0, 0, 0, 0.03)',
-              color: textSecondary,
-              border: `1px solid ${borderColor}`,
+              background: 'rgba(0, 0, 0, 0.03)',
+              color: TEXT_SECONDARY,
+              border: `1px solid ${BORDER_COLOR}`,
             }}
           >
             {goal.duration_days} days
@@ -186,9 +183,9 @@ const GoalSuggestionCard: React.FC<GoalSuggestionCardProps> = ({
             <span
               className="px-2 py-0.5 rounded-full text-[10px] capitalize"
               style={{
-                background: isDark ? 'rgba(193, 192, 182, 0.06)' : 'rgba(0, 0, 0, 0.03)',
-                color: textSecondary,
-                border: `1px solid ${borderColor}`,
+                background: 'rgba(0, 0, 0, 0.03)',
+                color: TEXT_SECONDARY,
+                border: `1px solid ${BORDER_COLOR}`,
               }}
             >
               via {goal.source_platform}
@@ -201,11 +198,7 @@ const GoalSuggestionCard: React.FC<GoalSuggestionCardProps> = ({
           <button
             onClick={() => onAccept(goal.id)}
             disabled={isLoading}
-            className="flex items-center gap-1.5 px-4 py-1.5 rounded-xl text-xs font-medium transition-all disabled:opacity-40"
-            style={{
-              background: isDark ? '#C1C0B6' : '#0c0a09',
-              color: isDark ? '#232320' : '#FAFAFA',
-            }}
+            className="btn-cta-app flex items-center gap-1.5 px-4 py-1.5 text-xs font-medium transition-all disabled:opacity-40"
           >
             {isAccepting ? (
               <Loader2 className="w-3.5 h-3.5 animate-spin" />
@@ -217,8 +210,8 @@ const GoalSuggestionCard: React.FC<GoalSuggestionCardProps> = ({
           <button
             onClick={() => onDismiss(goal.id)}
             disabled={isLoading}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs transition-all hover:bg-black/5 dark:hover:bg-white/5 disabled:opacity-40"
-            style={{ color: textSecondary }}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs transition-all hover:bg-black/5 disabled:opacity-40"
+            style={{ color: TEXT_SECONDARY }}
           >
             {isDismissing ? (
               <Loader2 className="w-3.5 h-3.5 animate-spin" />

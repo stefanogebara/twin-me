@@ -7,8 +7,10 @@
  */
 
 import React from 'react';
-import { useTheme } from '@/contexts/ThemeContext';
 import type { GoalProgress } from '@/services/api/goalsAPI';
+
+// Design tokens
+const TEXT_MUTED = '#8A857D';
 
 interface GoalProgressChartProps {
   progress: GoalProgress[];
@@ -21,9 +23,6 @@ const GoalProgressChart: React.FC<GoalProgressChartProps> = ({
   durationDays,
   startDate,
 }) => {
-  const { theme } = useTheme();
-  const isDark = theme === 'dark';
-
   // Build a map of tracked_date -> target_met for fast lookup
   const progressMap = new Map<string, boolean>();
   for (const entry of progress) {
@@ -62,11 +61,11 @@ const GoalProgressChart: React.FC<GoalProgressChartProps> = ({
   const getColor = (status: 'met' | 'missed' | 'future'): string => {
     switch (status) {
       case 'met':
-        return isDark ? '#34d399' : '#10b981';
+        return '#10b981';
       case 'missed':
-        return isDark ? '#f87171' : '#ef4444';
+        return '#ef4444';
       case 'future':
-        return isDark ? 'rgba(193, 192, 182, 0.12)' : 'rgba(0, 0, 0, 0.06)';
+        return 'rgba(0, 0, 0, 0.06)';
     }
   };
 
@@ -85,7 +84,7 @@ const GoalProgressChart: React.FC<GoalProgressChartProps> = ({
     return (
       <div
         className="text-xs py-2"
-        style={{ color: isDark ? 'rgba(193, 192, 182, 0.5)' : '#78716c' }}
+        style={{ color: TEXT_MUTED }}
       >
         No progress data yet
       </div>
@@ -113,7 +112,7 @@ const GoalProgressChart: React.FC<GoalProgressChartProps> = ({
           />
           <span
             className="text-[10px]"
-            style={{ color: isDark ? 'rgba(193, 192, 182, 0.5)' : '#78716c' }}
+            style={{ color: TEXT_MUTED }}
           >
             Met
           </span>
@@ -125,7 +124,7 @@ const GoalProgressChart: React.FC<GoalProgressChartProps> = ({
           />
           <span
             className="text-[10px]"
-            style={{ color: isDark ? 'rgba(193, 192, 182, 0.5)' : '#78716c' }}
+            style={{ color: TEXT_MUTED }}
           >
             Missed
           </span>
@@ -137,7 +136,7 @@ const GoalProgressChart: React.FC<GoalProgressChartProps> = ({
           />
           <span
             className="text-[10px]"
-            style={{ color: isDark ? 'rgba(193, 192, 182, 0.5)' : '#78716c' }}
+            style={{ color: TEXT_MUTED }}
           >
             Not tracked
           </span>

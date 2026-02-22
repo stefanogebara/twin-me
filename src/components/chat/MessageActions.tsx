@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { Copy, Check, Share2, RotateCcw, ThumbsUp, ThumbsDown } from 'lucide-react';
-import { useTheme } from '@/contexts/ThemeContext';
 
 interface MessageActionsProps {
   message: {
@@ -10,16 +9,21 @@ interface MessageActionsProps {
   };
   onRegenerate?: () => void;
   onRate?: (rating: number) => void;
+  // Legacy prop from ChatMessage - single content string
+  messageContent?: string;
 }
 
-export function MessageActions({ message, onRegenerate, onRate }: MessageActionsProps) {
-  const { theme } = useTheme();
+export function MessageActions({ message, onRegenerate, onRate, messageContent }: MessageActionsProps) {
   const [copied, setCopied] = useState(false);
   const [shared, setShared] = useState(false);
 
+  // Support both usage patterns: message object or messageContent string
+  const content = message?.content ?? messageContent ?? '';
+  const role = message?.role ?? 'assistant';
+
   const handleCopy = async () => {
     try {
-      await navigator.clipboard.writeText(message.content);
+      await navigator.clipboard.writeText(content);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     } catch (error) {
@@ -32,7 +36,7 @@ export function MessageActions({ message, onRegenerate, onRate }: MessageActions
       try {
         await navigator.share({
           title: 'Soul Signature Conversation',
-          text: message.content
+          text: content
         });
         setShared(true);
         setTimeout(() => setShared(false), 2000);
@@ -45,16 +49,18 @@ export function MessageActions({ message, onRegenerate, onRate }: MessageActions
     }
   };
 
+  const btnStyle = {
+    backgroundColor: 'rgba(12, 10, 9, 0.04)',
+    color: 'rgba(12, 10, 9, 0.5)'
+  };
+
   return (
     <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
       {/* Copy Button */}
       <button
         onClick={handleCopy}
         className="p-1.5 rounded-md transition-all hover:scale-105"
-        style={{
-          backgroundColor: theme === 'dark' ? 'rgba(193, 192, 182, 0.08)' : 'rgba(12, 10, 9, 0.04)',
-          color: theme === 'dark' ? 'rgba(193, 192, 182, 0.7)' : 'rgba(12, 10, 9, 0.5)'
-        }}
+        style={btnStyle}
         title={copied ? "Copied!" : "Copy"}
       >
         {copied ? (
@@ -68,24 +74,18 @@ export function MessageActions({ message, onRegenerate, onRate }: MessageActions
       <button
         onClick={handleShare}
         className="p-1.5 rounded-md transition-all hover:scale-105"
-        style={{
-          backgroundColor: theme === 'dark' ? 'rgba(193, 192, 182, 0.08)' : 'rgba(12, 10, 9, 0.04)',
-          color: theme === 'dark' ? 'rgba(193, 192, 182, 0.7)' : 'rgba(12, 10, 9, 0.5)'
-        }}
+        style={btnStyle}
         title="Share"
       >
         <Share2 className="w-3.5 h-3.5" />
       </button>
 
       {/* Regenerate Button (Assistant messages only) */}
-      {message.role === 'assistant' && onRegenerate && (
+      {role === 'assistant' && onRegenerate && (
         <button
           onClick={onRegenerate}
           className="p-1.5 rounded-md transition-all hover:scale-105"
-          style={{
-            backgroundColor: theme === 'dark' ? 'rgba(193, 192, 182, 0.08)' : 'rgba(12, 10, 9, 0.04)',
-            color: theme === 'dark' ? 'rgba(193, 192, 182, 0.7)' : 'rgba(12, 10, 9, 0.5)'
-          }}
+          style={btnStyle}
           title="Regenerate"
         >
           <RotateCcw className="w-3.5 h-3.5" />
@@ -93,19 +93,14 @@ export function MessageActions({ message, onRegenerate, onRate }: MessageActions
       )}
 
       {/* Rating Buttons (Assistant messages only) */}
-      {message.role === 'assistant' && onRate && (
+      {role === 'assistant' && onRate && (
         <>
-          <div className="w-px h-4 mx-1" style={{
-            backgroundColor: theme === 'dark' ? 'rgba(193, 192, 182, 0.1)' : 'rgba(12, 10, 9, 0.08)'
-          }} />
+          <div className="w-px h-4 mx-1" style={{ backgroundColor: 'rgba(12, 10, 9, 0.08)' }} />
 
           <button
             onClick={() => onRate(1)}
             className="p-1.5 rounded-md transition-all hover:scale-105"
-            style={{
-              backgroundColor: theme === 'dark' ? 'rgba(193, 192, 182, 0.08)' : 'rgba(12, 10, 9, 0.04)',
-              color: theme === 'dark' ? 'rgba(193, 192, 182, 0.7)' : 'rgba(12, 10, 9, 0.5)'
-            }}
+            style={btnStyle}
             title="Helpful"
           >
             <ThumbsUp className="w-3.5 h-3.5" />
@@ -114,10 +109,7 @@ export function MessageActions({ message, onRegenerate, onRate }: MessageActions
           <button
             onClick={() => onRate(-1)}
             className="p-1.5 rounded-md transition-all hover:scale-105"
-            style={{
-              backgroundColor: theme === 'dark' ? 'rgba(193, 192, 182, 0.08)' : 'rgba(12, 10, 9, 0.04)',
-              color: theme === 'dark' ? 'rgba(193, 192, 182, 0.7)' : 'rgba(12, 10, 9, 0.5)'
-            }}
+            style={btnStyle}
             title="Not helpful"
           >
             <ThumbsDown className="w-3.5 h-3.5" />

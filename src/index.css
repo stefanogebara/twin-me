@@ -5,7 +5,7 @@
  */
 
 /* ===== FONTS ===== */
-@import url('https://fonts.googleapis.com/css2?family=EB+Garamond:wght@400;500;600&family=Inter:wght@300;400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500&family=Inter:wght@300;400;500;600;700&display=swap');
 
 /* ===== GLASS MORPHISM EFFECTS ===== */
 @import './styles/glassmorphism.css';
@@ -16,73 +16,73 @@
 /* ===== DESIGN TOKENS - LOGIN PAGE PALETTE ===== */
 @layer base {
   :root {
-    /* Background Colors */
-    --background: #FAFAFA;
-    --surface: rgba(255, 255, 255, 0.5);
+    /* Background Colors — cream palette matching landing page */
+    --background: #F7F7F3;
+    --surface: rgba(255, 255, 255, 0.18);
     --surface-solid: rgba(255, 255, 255, 0.7);
 
     /* Claude Theme Variables - Light Mode */
-    --claude-bg: #FAFAFA;
-    --claude-surface: rgba(255, 255, 255, 0.7);
-    --claude-surface-raised: rgba(255, 255, 255, 0.9);
-    --claude-text: #0c0a09;
-    --claude-text-muted: #57534e;
-    --claude-accent: #0c0a09;
-    --claude-accent-hover: #292524;
-    --claude-border: rgba(231, 229, 228, 0.6);
+    --claude-bg: #F7F7F3;
+    --claude-surface: rgba(255, 255, 255, 0.18);
+    --claude-surface-raised: rgba(255, 255, 255, 0.7);
+    --claude-text: #1F1C18;
+    --claude-text-muted: #8A857D;
+    --claude-accent: #2D2722;
+    --claude-accent-hover: #1F1C18;
+    --claude-border: rgba(255, 255, 255, 0.45);
 
     /* Text Colors */
-    --foreground: #0c0a09;
-    --text-primary: #0c0a09;
-    --text-secondary: #57534e;
-    --text-muted: #44403c;
+    --foreground: #1F1C18;
+    --text-primary: #1F1C18;
+    --text-secondary: #8A857D;
+    --text-muted: #8A857D;
     --text-placeholder: #a8a29e;
 
     /* Border Colors */
-    --border: rgba(231, 229, 228, 0.6);
-    --border-glass: rgba(0, 0, 0, 0.06);
+    --border: rgba(0, 0, 0, 0.08);
+    --border-glass: rgba(255, 255, 255, 0.45);
 
     /* Interactive Colors */
-    --primary: #0c0a09;
-    --primary-foreground: #ffffff;
-    --ring: rgba(12, 10, 9, 0.3);
+    --primary: #2D2722;
+    --primary-foreground: #F7F7F3;
+    --ring: rgba(45, 39, 34, 0.25);
 
     /* Component Colors */
-    --card: rgba(255, 255, 255, 0.5);
-    --card-foreground: #0c0a09;
-    --popover: rgba(255, 255, 255, 0.9);
-    --popover-foreground: #0c0a09;
-    --secondary: rgba(255, 255, 255, 0.7);
-    --secondary-foreground: #0c0a09;
-    --muted: rgba(250, 250, 250, 0.8);
-    --muted-foreground: #57534e;
-    --accent: rgba(255, 255, 255, 0.7);
-    --accent-foreground: #0c0a09;
+    --card: rgba(255, 255, 255, 0.18);
+    --card-foreground: #1F1C18;
+    --popover: rgba(255, 255, 255, 0.95);
+    --popover-foreground: #1F1C18;
+    --secondary: rgba(255, 255, 255, 0.5);
+    --secondary-foreground: #1F1C18;
+    --muted: rgba(247, 247, 243, 0.8);
+    --muted-foreground: #8A857D;
+    --accent: rgba(255, 255, 255, 0.4);
+    --accent-foreground: #1F1C18;
     --destructive: #dc2626;
     --destructive-foreground: #ffffff;
-    --input: rgba(255, 255, 255, 0.7);
+    --input: rgba(255, 255, 255, 0.5);
 
     /* Sidebar Colors */
-    --sidebar: rgba(255, 255, 255, 0.5);
-    --sidebar-foreground: #57534e;
-    --sidebar-primary: #0c0a09;
-    --sidebar-primary-foreground: #ffffff;
-    --sidebar-accent: rgba(255, 255, 255, 0.7);
-    --sidebar-accent-foreground: #0c0a09;
-    --sidebar-border: rgba(231, 229, 228, 0.6);
-    --sidebar-ring: rgba(12, 10, 9, 0.3);
+    --sidebar: rgba(255, 255, 255, 0.18);
+    --sidebar-foreground: #8A857D;
+    --sidebar-primary: #2D2722;
+    --sidebar-primary-foreground: #F7F7F3;
+    --sidebar-accent: rgba(255, 255, 255, 0.3);
+    --sidebar-accent-foreground: #1F1C18;
+    --sidebar-border: rgba(255, 255, 255, 0.45);
+    --sidebar-ring: rgba(45, 39, 34, 0.25);
 
-    /* Glass Effects */
-    --glass-blur: 16px;
-    --glass-shadow: 0 8px 32px rgba(0, 0, 0, 0.03);
-    --glass-shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.08);
+    /* Glass Effects — landing page spec */
+    --glass-blur: 10px;
+    --glass-shadow: 0 8px 32px rgba(0, 0, 0, 0.18), inset 0 1px 0 rgba(255, 255, 255, 0.6);
+    --glass-shadow-lg: 0 12px 40px rgba(0, 0, 0, 0.22), inset 0 1px 0 rgba(255, 255, 255, 0.6);
 
-    /* Typography - Sans-serif primary, serif for rare emphasis only */
-    --font-heading: 'Inter', system-ui, sans-serif;
-    --font-accent: 'EB Garamond', Georgia, serif;
+    /* Typography — Playfair Display for headings, Inter for body */
+    --font-heading: 'Playfair Display', Georgia, serif;
+    --font-accent: 'Playfair Display', Georgia, serif;
     --font-body: 'Inter', system-ui, sans-serif;
     --font-sans: 'Inter', system-ui, sans-serif;
-    --font-serif: 'EB Garamond', Georgia, serif;
+    --font-serif: 'Playfair Display', Georgia, serif;
     --font-mono: ui-monospace, monospace;
 
     /* Vibrant Accent for CTAs */
@@ -90,9 +90,9 @@
     --accent-vibrant-hover: #C49A45;
     --accent-vibrant-glow: rgba(212, 168, 83, 0.25);
 
-    /* Spacing & Radius */
-    --radius: 0.75rem;
-    --radius-lg: 1.5rem;
+    /* Spacing & Radius — larger, rounder to match landing page */
+    --radius: 1rem;
+    --radius-lg: 2rem;
     --spacing-unit: 0.25rem;
   }
 
@@ -228,25 +228,33 @@
     -moz-osx-font-smoothing: grayscale;
   }
 
-  /* Headings - Inter (sans-serif) */
-  h1, h2, h3, h4, h5, h6 {
-    font-family: var(--font-heading);
+  /* Headings — Playfair Display for major titles, Inter for UI headers */
+  h1, h2 {
+    font-family: 'Playfair Display', Georgia, serif;
+    font-weight: 500;
+    letter-spacing: -0.03em;
+    line-height: 1.1;
+    color: var(--text-primary);
+  }
+
+  h3, h4, h5, h6 {
+    font-family: var(--font-body);
     font-weight: 500;
     letter-spacing: -0.01em;
-    line-height: 1.2;
+    line-height: 1.3;
     color: var(--text-primary);
   }
 
   h1 {
-    font-size: clamp(2rem, 5vw, 2.5rem);
+    font-size: clamp(2rem, 5vw, 2.75rem);
   }
 
   h2 {
-    font-size: clamp(1.75rem, 4vw, 2rem);
+    font-size: clamp(1.5rem, 4vw, 2rem);
   }
 
   h3 {
-    font-size: clamp(1.25rem, 3vw, 1.5rem);
+    font-size: clamp(1.125rem, 3vw, 1.375rem);
   }
 
   h4 {
@@ -824,8 +832,26 @@
   font-family: var(--font-accent);
 }
 
+.font-playfair {
+  font-family: 'Playfair Display', Georgia, serif;
+}
+
 .font-inter {
   font-family: var(--font-body);
+}
+
+/* Landing page heading classes — mirrors Index.tsx */
+.heading-serif {
+  font-family: 'Playfair Display', Georgia, serif;
+  letter-spacing: -0.03em;
+  line-height: 1.05;
+}
+
+.heading-serif-italic {
+  font-family: 'Playfair Display', Georgia, serif;
+  font-style: italic;
+  color: #8A857D;
+  letter-spacing: -0.04em;
 }
 
 /* Italic serif emphasis for onboarding messages */
@@ -833,7 +859,6 @@
   font-family: var(--font-accent);
   font-style: italic;
   font-weight: 400;
-  font-size: 1.08em; /* Adjust to match Inter's visual size */
 }
 
 /* Inline emphasis span utility */
@@ -841,6 +866,49 @@
   font-family: var(--font-accent);
   font-style: italic;
   font-weight: 400;
-  font-size: 1.08em; /* Adjust to match Inter's visual size */
   display: inline;
+}
+
+/* Landing page CTA button — dark warm pill */
+.btn-cta-app {
+  background-color: #2D2722;
+  color: #F7F7F3;
+  border-radius: 9999px;
+  padding: 12px 28px;
+  font-size: 15px;
+  font-weight: 600;
+  transition: all 0.3s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  box-shadow: 0 4px 20px rgba(45, 39, 34, 0.25);
+  letter-spacing: -0.01em;
+}
+
+.btn-cta-app:hover {
+  background-color: #1F1C18;
+  transform: translateY(-2px);
+  box-shadow: 0 8px 28px rgba(45, 39, 34, 0.35);
+}
+
+/* Frosted light glass button */
+.btn-glass-app {
+  background-color: rgba(255, 255, 255, 0.6);
+  color: #2D2722;
+  border-radius: 9999px;
+  padding: 12px 24px;
+  font-size: 15px;
+  font-weight: 500;
+  transition: all 0.3s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  backdrop-filter: blur(10px) saturate(140%);
+  -webkit-backdrop-filter: blur(10px) saturate(140%);
+}
+
+.btn-glass-app:hover {
+  background-color: rgba(255, 255, 255, 0.8);
+  transform: translateY(-1px);
 }

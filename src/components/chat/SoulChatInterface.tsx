@@ -13,7 +13,6 @@ import { ChatMessage } from './ChatMessage';
 import { ConversationControls } from './ConversationControls';
 import { Send, Loader, Sparkles } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
-import { useTheme } from '@/contexts/ThemeContext';
 
 interface Message {
   id: string;
@@ -33,7 +32,6 @@ export function SoulChatInterface({
   className = '',
   conversationTopic = 'general'
 }: SoulChatInterfaceProps) {
-  const { theme } = useTheme();
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputValue, setInputValue] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -205,18 +203,27 @@ export function SoulChatInterface({
   };
 
   return (
-    <div className={`flex flex-col h-full ${className}`}>
+    <div
+      className={`flex flex-col h-full ${className}`}
+      style={{ backgroundColor: '#F7F7F3' }}
+    >
       {/* Header with Conversation Controls */}
-      <div className="flex items-center justify-between p-4 border-b border-stone-200 dark:border-stone-700">
+      <div
+        className="flex items-center justify-between p-4 border-b"
+        style={{ borderColor: 'rgba(255, 255, 255, 0.45)' }}
+      >
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-full bg-gradient-to-br from-stone-400 to-stone-600 flex items-center justify-center">
-            <Sparkles className="w-6 h-6 text-white" />
+          <div
+            className="w-10 h-10 rounded-full flex items-center justify-center overflow-hidden"
+            style={{ backgroundColor: 'rgba(255,255,255,0.6)', border: '1px solid rgba(255,255,255,0.45)' }}
+          >
+            <img src="/images/backgrounds/flower-hero.png" alt="Twin" className="w-9 h-9 object-contain" />
           </div>
           <div>
-            <h2 className="font-semibold text-slate-900 dark:text-slate-100">
+            <h2 className="font-semibold" style={{ color: '#1F1C18' }}>
               Chat with Your Soul Twin
             </h2>
-            <p className="text-sm text-slate-600 dark:text-slate-400">
+            <p className="text-sm" style={{ color: '#8A857D' }}>
               Ask me anything about your authentic self
             </p>
           </div>
@@ -239,11 +246,11 @@ export function SoulChatInterface({
               animate={{ opacity: 1, y: 0 }}
               className="flex flex-col items-center justify-center h-full text-center py-12"
             >
-              <Sparkles className="w-16 h-16 text-stone-500 mb-4" />
-              <h3 className="text-xl font-semibold text-slate-900 dark:text-slate-100 mb-2">
+              <img src="/images/backgrounds/flower-hero.png" alt="" className="w-16 h-16 object-contain mb-4 drop-shadow-md opacity-80" />
+              <h3 className="text-xl font-semibold mb-2 heading-serif">
                 Start a Conversation
               </h3>
-              <p className="text-slate-600 dark:text-slate-400 max-w-md mb-6">
+              <p className="max-w-md mb-6" style={{ color: '#8A857D' }}>
                 Ask me about your music taste, viewing habits, learning patterns, or anything else from your soul signature.
               </p>
               <div className="flex flex-wrap gap-2 justify-center">
@@ -261,7 +268,13 @@ export function SoulChatInterface({
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
                     onClick={() => sendMessage(suggestion)}
-                    className="px-4 py-2 rounded-full bg-stone-100 dark:bg-stone-800 hover:bg-stone-200 dark:hover:bg-stone-700 text-sm transition-colors"
+                    className="px-4 py-2 rounded-full text-sm transition-colors"
+                    style={{
+                      backgroundColor: 'rgba(255, 255, 255, 0.18)',
+                      backdropFilter: 'blur(10px)',
+                      border: '1px solid rgba(255, 255, 255, 0.45)',
+                      color: '#1F1C18'
+                    }}
                   >
                     {suggestion}
                   </motion.button>
@@ -290,10 +303,13 @@ export function SoulChatInterface({
             animate={{ opacity: 1 }}
             className="flex items-center gap-3 px-6 py-4"
           >
-            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-stone-400 to-stone-600 flex items-center justify-center">
-              <Loader className="w-5 h-5 text-white animate-spin" />
+            <div
+              className="w-8 h-8 rounded-full flex items-center justify-center"
+              style={{ background: 'linear-gradient(135deg, #2D2722, #4a3f38)' }}
+            >
+              <Loader className="w-5 h-5 animate-spin" style={{ color: '#F7F7F3' }} />
             </div>
-            <span className="text-slate-600 dark:text-slate-400">Thinking...</span>
+            <span style={{ color: '#8A857D' }}>Thinking...</span>
           </motion.div>
         )}
 
@@ -301,7 +317,10 @@ export function SoulChatInterface({
       </div>
 
       {/* Input Area */}
-      <div className="p-4 border-t border-stone-200 dark:border-stone-700">
+      <div
+        className="p-4 border-t"
+        style={{ borderColor: 'rgba(255, 255, 255, 0.45)' }}
+      >
         <form onSubmit={handleSubmit} className="flex gap-2">
           <textarea
             ref={inputRef}
@@ -310,15 +329,21 @@ export function SoulChatInterface({
             onKeyDown={handleKeyDown}
             placeholder="Ask about your soul signature..."
             rows={1}
-            className="flex-1 px-4 py-3 rounded-lg border border-stone-300 dark:border-stone-600 bg-white dark:bg-stone-800 text-slate-900 dark:text-slate-100 placeholder-slate-500 dark:placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-stone-500 resize-none"
-            style={{ minHeight: '48px', maxHeight: '120px' }}
+            className="flex-1 px-4 py-3 rounded-2xl focus:outline-none resize-none text-sm"
+            style={{
+              backgroundColor: 'rgba(255, 255, 255, 0.6)',
+              border: '1px solid rgba(255, 255, 255, 0.45)',
+              color: '#1F1C18',
+              minHeight: '48px',
+              maxHeight: '120px'
+            }}
           />
           <motion.button
             type="submit"
             disabled={!inputValue.trim() || isLoading}
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
-            className="px-6 py-3 rounded-lg bg-stone-500 hover:bg-stone-600 disabled:bg-stone-300 dark:disabled:bg-stone-700 text-white font-medium transition-colors flex items-center gap-2 disabled:cursor-not-allowed"
+            className="btn-cta-app px-6 py-3 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <Send className="w-5 h-5" />
           </motion.button>

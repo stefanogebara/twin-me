@@ -16,7 +16,6 @@ interface SyncStats {
 }
 
 interface ClaudeDesktopSyncProps {
-  theme: string;
   user: { id: string } | null | undefined;
   syncStats: SyncStats | null;
   loadingSyncStats: boolean;
@@ -29,7 +28,6 @@ interface ClaudeDesktopSyncProps {
 }
 
 const ClaudeDesktopSync: React.FC<ClaudeDesktopSyncProps> = ({
-  theme,
   user,
   syncStats,
   loadingSyncStats,
@@ -41,34 +39,34 @@ const ClaudeDesktopSync: React.FC<ClaudeDesktopSyncProps> = ({
   cardStyle,
 }) => {
   return (
-    <section className="rounded-2xl p-5" style={cardStyle}>
+    <section className="p-5" style={cardStyle}>
       <div className="flex items-center gap-3 mb-2">
         <MessageSquare className="w-5 h-5" style={{ color: '#A78BFA' }} />
-        <h2 style={{ fontFamily: 'var(--font-heading)', fontWeight: 400, color: theme === 'dark' ? '#C1C0B6' : '#0c0a09' }}>
+        <h2 className="heading-serif text-base">
           Claude Desktop Sync
         </h2>
       </div>
-      <p className="text-sm mb-4" style={{ fontFamily: 'var(--font-body)', color: theme === 'dark' ? 'rgba(193, 192, 182, 0.6)' : '#78716c' }}>
+      <p className="text-sm mb-4" style={{ fontFamily: 'var(--font-body)', color: '#8A857D' }}>
         Import your Claude Desktop conversations so your twin can learn your writing style and topics you care about.
       </p>
 
       {loadingSyncStats ? (
         <div className="flex items-center gap-2 mb-4">
-          <Loader2 className="w-4 h-4 animate-spin" style={{ color: theme === 'dark' ? '#C1C0B6' : '#0c0a09' }} />
-          <span className="text-sm" style={{ color: theme === 'dark' ? 'rgba(193, 192, 182, 0.6)' : '#78716c' }}>Loading...</span>
+          <Loader2 className="w-4 h-4 animate-spin" style={{ color: '#1F1C18' }} />
+          <span className="text-sm" style={{ color: '#8A857D' }}>Loading...</span>
         </div>
       ) : syncStats && syncStats.claudeDesktopConversations > 0 ? (
         <div
           className="flex items-center gap-4 p-3 rounded-xl mb-4"
-          style={{ backgroundColor: theme === 'dark' ? 'rgba(16, 185, 129, 0.1)' : 'rgba(16, 185, 129, 0.05)' }}
+          style={{ backgroundColor: 'rgba(16, 185, 129, 0.05)' }}
         >
           <CheckCircle className="w-5 h-5" style={{ color: '#10B981' }} />
           <div className="flex-1">
-            <span className="text-sm font-medium" style={{ color: theme === 'dark' ? '#C1C0B6' : '#0c0a09' }}>
+            <span className="text-sm font-medium" style={{ color: '#1F1C18' }}>
               {syncStats.claudeDesktopConversations} conversations imported
             </span>
             {syncStats.lastSyncAt && (
-              <span className="text-xs ml-2" style={{ color: theme === 'dark' ? 'rgba(193, 192, 182, 0.5)' : '#78716c' }}>
+              <span className="text-xs ml-2" style={{ color: '#8A857D' }}>
                 · Last sync: {new Date(syncStats.lastSyncAt).toLocaleDateString()}
               </span>
             )}
@@ -98,7 +96,7 @@ const ClaudeDesktopSync: React.FC<ClaudeDesktopSyncProps> = ({
           disabled={syncing}
           className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl transition-all hover:scale-[1.01]"
           style={{
-            backgroundColor: theme === 'dark' ? 'rgba(167, 139, 250, 0.15)' : 'rgba(124, 58, 237, 0.1)',
+            backgroundColor: 'rgba(124, 58, 237, 0.1)',
             border: '1px solid rgba(167, 139, 250, 0.3)',
             color: '#A78BFA',
             fontFamily: 'var(--font-body)',
@@ -113,12 +111,12 @@ const ClaudeDesktopSync: React.FC<ClaudeDesktopSyncProps> = ({
         <div
           className="p-3 rounded-xl"
           style={{
-            backgroundColor: theme === 'dark' ? 'rgba(193, 192, 182, 0.03)' : 'rgba(0, 0, 0, 0.02)',
-            border: theme === 'dark' ? '1px solid rgba(193, 192, 182, 0.08)' : '1px solid rgba(0, 0, 0, 0.04)'
+            backgroundColor: 'rgba(0, 0, 0, 0.02)',
+            border: '1px solid rgba(0, 0, 0, 0.04)'
           }}
         >
           <div className="flex items-center justify-between mb-1">
-            <span className="text-xs" style={{ color: theme === 'dark' ? 'rgba(193, 192, 182, 0.5)' : '#78716c' }}>
+            <span className="text-xs" style={{ color: '#8A857D' }}>
               Your User ID (for manual setup)
             </span>
             <button
@@ -126,19 +124,19 @@ const ClaudeDesktopSync: React.FC<ClaudeDesktopSyncProps> = ({
               className="flex items-center gap-1 text-xs px-2 py-1 rounded-lg transition-colors"
               style={{
                 backgroundColor: userIdCopied ? 'rgba(16, 185, 129, 0.1)' : 'transparent',
-                color: userIdCopied ? '#10B981' : (theme === 'dark' ? 'rgba(193, 192, 182, 0.5)' : '#78716c')
+                color: userIdCopied ? '#10B981' : '#8A857D'
               }}
             >
               {userIdCopied ? <CheckCircle className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
               {userIdCopied ? 'Copied!' : 'Copy'}
             </button>
           </div>
-          <code className="text-xs break-all" style={{ color: theme === 'dark' ? 'rgba(193, 192, 182, 0.7)' : '#57534e' }}>
+          <code className="text-xs break-all" style={{ color: '#57534e' }}>
             {user?.id || 'Loading...'}
           </code>
         </div>
 
-        <p className="text-xs" style={{ color: theme === 'dark' ? 'rgba(193, 192, 182, 0.4)' : '#a8a29e' }}>
+        <p className="text-xs" style={{ color: '#8A857D' }}>
           <strong>Note:</strong> Close Claude Desktop before syncing. Your conversations are analyzed locally to learn your writing patterns.
         </p>
       </div>

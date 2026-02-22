@@ -226,10 +226,17 @@ export function ContextualQuickActions({
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
             onClick={action.action}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-stone-50 dark:bg-stone-800 hover:bg-stone-100 dark:hover:bg-stone-700 transition-all whitespace-nowrap text-sm font-medium group"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-full transition-all whitespace-nowrap text-sm font-medium group"
+            style={{
+              backgroundColor: 'rgba(255, 255, 255, 0.18)',
+              backdropFilter: 'blur(10px) saturate(140%)',
+              WebkitBackdropFilter: 'blur(10px) saturate(140%)',
+              border: '1px solid rgba(255, 255, 255, 0.45)',
+              color: '#1F1C18'
+            }}
           >
-            <Icon className={`w-4 h-4 ${action.color || 'text-slate-600 dark:text-slate-300'}`} />
-            <span className="text-slate-700 dark:text-slate-200">{action.label}</span>
+            <Icon className={`w-4 h-4 ${action.color || ''}`} style={!action.color ? { color: '#8A857D' } : undefined} />
+            <span>{action.label}</span>
           </motion.button>
         );
       })}

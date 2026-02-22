@@ -14,7 +14,6 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { ArrowLeft } from 'lucide-react';
 import { Clay3DIcon } from '@/components/Clay3DIcon';
 import { useAuth } from '@/contexts/AuthContext';
-import { useTheme } from '@/contexts/ThemeContext';
 import { useDemo } from '@/contexts/DemoContext';
 
 import type {
@@ -30,9 +29,19 @@ import { BigFiveResults } from './components/big-five/BigFiveResults';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
 
+// Design system colors — light mode only
+const colors = {
+  bg: '#F7F7F3',
+  cardBg: 'rgba(255, 255, 255, 0.18)',
+  border: 'rgba(255, 255, 255, 0.45)',
+  text: '#1F1C18',
+  textSecondary: '#8A857D',
+  accent: '#2D2722',
+  accentBg: 'rgba(45, 39, 34, 0.08)',
+};
+
 export function BigFiveAssessment() {
   const { token } = useAuth();
-  const { theme } = useTheme();
   const { isDemoMode } = useDemo();
   const navigate = useNavigate();
 
@@ -46,17 +55,6 @@ export function BigFiveAssessment() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [questionsAnswered, setQuestionsAnswered] = useState(0);
-
-  // Theme-aware colors
-  const colors = {
-    bg: theme === 'dark' ? '#1a1a18' : '#fafaf9',
-    cardBg: theme === 'dark' ? 'rgba(45, 45, 41, 0.5)' : 'rgba(255, 255, 255, 0.9)',
-    border: theme === 'dark' ? 'rgba(193, 192, 182, 0.1)' : 'rgba(0, 0, 0, 0.05)',
-    text: theme === 'dark' ? '#C1C0B6' : '#0c0a09',
-    textSecondary: theme === 'dark' ? 'rgba(193, 192, 182, 0.6)' : '#78716c',
-    accent: theme === 'dark' ? '#C1C0B6' : '#44403c',
-    accentBg: theme === 'dark' ? 'rgba(193, 192, 182, 0.1)' : 'rgba(68, 64, 60, 0.1)',
-  };
 
   // Fetch questions (works with or without auth - backend uses optionalAuth)
   const fetchQuestions = useCallback(async (assessmentVersion: AssessmentVersion) => {
@@ -258,7 +256,7 @@ export function BigFiveAssessment() {
           {phase === 'questions' && (
             <BigFiveQuestions
               colors={colors}
-              theme={theme}
+              theme="light"
               loading={loading}
               error={error}
               currentQuestion={currentQuestion}
@@ -296,8 +294,7 @@ export function BigFiveAssessment() {
                 </div>
               </div>
               <h2
-                className="text-2xl mb-2"
-                style={{ color: colors.text, fontFamily: 'var(--font-heading)', fontWeight: 500 }}
+                className="heading-serif text-2xl mb-2"
               >
                 Calculating Your Profile
               </h2>
@@ -311,7 +308,7 @@ export function BigFiveAssessment() {
           {phase === 'results' && scores && (
             <BigFiveResults
               colors={colors}
-              theme={theme}
+              theme="light"
               scores={scores}
               facets={facets}
               questionsAnswered={questionsAnswered}

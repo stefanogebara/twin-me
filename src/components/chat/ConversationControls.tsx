@@ -40,6 +40,10 @@ export function ConversationControls({
     }
   };
 
+  const iconBtnStyle = {
+    color: '#8A857D'
+  };
+
   return (
     <div className={`flex items-center gap-2 ${className}`}>
       {/* New Chat Button - Prominent */}
@@ -47,7 +51,7 @@ export function ConversationControls({
         whileHover={{ scale: 1.02 }}
         whileTap={{ scale: 0.98 }}
         onClick={onNewChat}
-        className="flex items-center gap-2 px-4 py-2 rounded-lg bg-stone-500 hover:bg-stone-600 text-white font-medium transition-colors shadow-sm hover:shadow-md"
+        className="btn-cta-app flex items-center gap-2 px-4 py-2 font-medium shadow-sm"
       >
         <Plus className="w-4 h-4" />
         <span>New Chat</span>
@@ -59,13 +63,14 @@ export function ConversationControls({
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
           onClick={handleSave}
-          className="p-2 rounded-lg hover:bg-stone-100 dark:hover:bg-stone-800 transition-colors group relative"
+          className="p-2 rounded-lg transition-colors"
+          style={{ backgroundColor: 'rgba(255, 255, 255, 0.18)' }}
           title={isSaved ? 'Conversation saved' : 'Save conversation'}
         >
           {savedRecently || isSaved ? (
             <Check className="w-5 h-5 text-green-600" />
           ) : (
-            <Save className="w-5 h-5 text-slate-600 dark:text-slate-300 group-hover:text-slate-900 dark:group-hover:text-white" />
+            <Save className="w-5 h-5" style={iconBtnStyle} />
           )}
         </motion.button>
       )}
@@ -77,10 +82,11 @@ export function ConversationControls({
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
             onClick={() => setShowExportMenu(!showExportMenu)}
-            className="p-2 rounded-lg hover:bg-stone-100 dark:hover:bg-stone-800 transition-colors group"
+            className="p-2 rounded-lg transition-colors"
+            style={{ backgroundColor: 'rgba(255, 255, 255, 0.18)' }}
             title="Export conversation"
           >
-            <Download className="w-5 h-5 text-slate-600 dark:text-slate-300 group-hover:text-slate-900 dark:group-hover:text-white" />
+            <Download className="w-5 h-5" style={iconBtnStyle} />
           </motion.button>
 
           {/* Export Menu */}
@@ -89,27 +95,37 @@ export function ConversationControls({
               initial={{ opacity: 0, y: -10 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -10 }}
-              className="absolute right-0 mt-2 w-48 rounded-lg shadow-lg bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-700 overflow-hidden z-10"
+              className="absolute right-0 mt-2 w-48 rounded-2xl overflow-hidden z-10"
+              style={{
+                backgroundColor: 'rgba(255, 255, 255, 0.18)',
+                backdropFilter: 'blur(10px) saturate(140%)',
+                WebkitBackdropFilter: 'blur(10px) saturate(140%)',
+                border: '1px solid rgba(255, 255, 255, 0.45)',
+                boxShadow: '0 8px 32px rgba(0, 0, 0, 0.18)'
+              }}
             >
               <button
                 onClick={() => handleExport('pdf')}
-                className="w-full px-4 py-2 text-left hover:bg-stone-50 dark:hover:bg-stone-800 flex items-center gap-2 text-sm"
+                className="w-full px-4 py-2 text-left flex items-center gap-2 text-sm transition-colors hover:bg-white/20"
+                style={{ color: '#1F1C18' }}
               >
-                <FileText className="w-4 h-4 text-red-600" />
+                <FileText className="w-4 h-4 text-red-500" />
                 <span>Export as PDF</span>
               </button>
               <button
                 onClick={() => handleExport('text')}
-                className="w-full px-4 py-2 text-left hover:bg-stone-50 dark:hover:bg-stone-800 flex items-center gap-2 text-sm"
+                className="w-full px-4 py-2 text-left flex items-center gap-2 text-sm transition-colors hover:bg-white/20"
+                style={{ color: '#1F1C18' }}
               >
-                <FileText className="w-4 h-4 text-blue-600" />
+                <FileText className="w-4 h-4 text-blue-500" />
                 <span>Export as Text</span>
               </button>
               <button
                 onClick={() => handleExport('json')}
-                className="w-full px-4 py-2 text-left hover:bg-stone-50 dark:hover:bg-stone-800 flex items-center gap-2 text-sm"
+                className="w-full px-4 py-2 text-left flex items-center gap-2 text-sm transition-colors hover:bg-white/20"
+                style={{ color: '#1F1C18' }}
               >
-                <FileText className="w-4 h-4 text-green-600" />
+                <FileText className="w-4 h-4 text-green-500" />
                 <span>Export as JSON</span>
               </button>
             </motion.div>

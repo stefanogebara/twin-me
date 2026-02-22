@@ -54,8 +54,11 @@ export const ChatInputArea = forwardRef<HTMLTextAreaElement, ChatInputAreaProps>
         <div
           className="rounded-2xl border shadow-sm overflow-hidden"
           style={{
-            backgroundColor: colors.inputBg,
-            borderColor: colors.inputBorder
+            backgroundColor: 'rgba(255, 255, 255, 0.6)',
+            borderColor: 'rgba(255, 255, 255, 0.45)',
+            backdropFilter: 'blur(10px) saturate(140%)',
+            WebkitBackdropFilter: 'blur(10px) saturate(140%)',
+            boxShadow: '0 8px 32px rgba(0, 0, 0, 0.18), inset 0 1px 0 rgba(255, 255, 255, 0.6)',
           }}
         >
           <textarea
@@ -72,7 +75,7 @@ export const ChatInputArea = forwardRef<HTMLTextAreaElement, ChatInputAreaProps>
             className="w-full px-4 py-3 resize-none focus:outline-none disabled:opacity-50 text-[15px]"
             style={{
               backgroundColor: 'transparent',
-              color: colors.text,
+              color: '#1F1C18',
               minHeight: '48px',
               maxHeight: '120px'
             }}
@@ -80,13 +83,13 @@ export const ChatInputArea = forwardRef<HTMLTextAreaElement, ChatInputAreaProps>
 
           <div
             className="flex items-center justify-between px-3 py-2 border-t"
-            style={{ borderColor: colors.border }}
+            style={{ borderColor: 'rgba(255, 255, 255, 0.45)' }}
           >
             <div className="flex items-center gap-1">
               <button
                 disabled
                 className="p-2 rounded-lg transition-colors opacity-30 cursor-not-allowed"
-                style={{ color: colors.textMuted }}
+                style={{ color: '#8A857D' }}
                 title="File attachments coming soon"
               >
                 <Paperclip className="w-5 h-5" />
@@ -94,7 +97,7 @@ export const ChatInputArea = forwardRef<HTMLTextAreaElement, ChatInputAreaProps>
               <button
                 disabled
                 className="p-2 rounded-lg transition-colors opacity-30 cursor-not-allowed"
-                style={{ color: colors.textMuted }}
+                style={{ color: '#8A857D' }}
                 title="Voice input coming soon"
               >
                 <Mic className="w-5 h-5" />
@@ -108,10 +111,10 @@ export const ChatInputArea = forwardRef<HTMLTextAreaElement, ChatInputAreaProps>
                   style={{
                     backgroundColor: chatUsage.remaining <= 2
                       ? 'rgba(239, 68, 68, 0.1)'
-                      : colors.bgSecondary,
+                      : 'rgba(255, 255, 255, 0.3)',
                     color: chatUsage.remaining <= 2
                       ? '#ef4444'
-                      : colors.textSecondary
+                      : '#8A857D'
                   }}
                 >
                   <MessageCircle className="w-3 h-3" />
@@ -122,8 +125,8 @@ export const ChatInputArea = forwardRef<HTMLTextAreaElement, ChatInputAreaProps>
               <div
                 className="flex items-center gap-1 px-2 py-1 rounded-lg text-xs"
                 style={{
-                  backgroundColor: colors.bgSecondary,
-                  color: colors.textSecondary
+                  backgroundColor: 'rgba(255, 255, 255, 0.3)',
+                  color: '#8A857D'
                 }}
               >
                 <Sparkles className="w-3 h-3" />
@@ -135,8 +138,8 @@ export const ChatInputArea = forwardRef<HTMLTextAreaElement, ChatInputAreaProps>
                 disabled={!inputMessage.trim() || isDisabled || isTyping || limitReached}
                 className="p-2.5 rounded-xl transition-all hover:scale-[1.02] disabled:opacity-50 disabled:hover:scale-100"
                 style={{
-                  backgroundColor: inputMessage.trim() ? colors.accent : colors.bgTertiary,
-                  color: inputMessage.trim() ? 'white' : colors.textMuted
+                  backgroundColor: inputMessage.trim() ? '#2D2722' : 'rgba(255, 255, 255, 0.3)',
+                  color: inputMessage.trim() ? '#F7F7F3' : '#8A857D'
                 }}
               >
                 {isTyping ? (

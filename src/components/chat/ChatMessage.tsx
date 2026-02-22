@@ -41,18 +41,27 @@ export function ChatMessage({
       transition={{ duration: 0.3 }}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
-      className={`group flex gap-4 ${isAssistant ? 'bg-stone-50 dark:bg-stone-900' : ''} px-6 py-4 rounded-xl`}
+      className={`group flex gap-4 px-6 py-4 rounded-xl`}
+      style={{
+        backgroundColor: isAssistant ? 'rgba(255, 255, 255, 0.18)' : 'transparent',
+        backdropFilter: isAssistant ? 'blur(10px) saturate(140%)' : undefined,
+        WebkitBackdropFilter: isAssistant ? 'blur(10px) saturate(140%)' : undefined,
+        border: isAssistant ? '1px solid rgba(255, 255, 255, 0.45)' : undefined,
+      }}
     >
       {/* Avatar */}
-      <div className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center ${
-        isAssistant
-          ? 'bg-gradient-to-br from-stone-400 to-stone-600'
-          : 'bg-gradient-to-br from-blue-400 to-blue-600'
-      }`}>
+      <div
+        className="flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center"
+        style={{
+          background: isAssistant
+            ? 'linear-gradient(135deg, #2D2722, #4a3f38)'
+            : 'linear-gradient(135deg, #6b7280, #4b5563)'
+        }}
+      >
         {isAssistant ? (
-          <Bot className="w-5 h-5 text-white" />
+          <Bot className="w-5 h-5" style={{ color: '#F7F7F3' }} />
         ) : (
-          <User className="w-5 h-5 text-white" />
+          <User className="w-5 h-5" style={{ color: '#F7F7F3' }} />
         )}
       </div>
 
@@ -60,11 +69,11 @@ export function ChatMessage({
       <div className="flex-1 min-w-0">
         <div className="flex items-start justify-between mb-2">
           <div className="flex items-center gap-2">
-            <span className="font-semibold text-slate-900 dark:text-slate-100">
+            <span className="font-semibold" style={{ color: '#1F1C18' }}>
               {isAssistant ? 'Your Soul Twin' : 'You'}
             </span>
             {timestamp && (
-              <span className="text-xs text-slate-500 dark:text-slate-400">
+              <span className="text-xs" style={{ color: '#8A857D' }}>
                 {timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
               </span>
             )}
@@ -89,8 +98,8 @@ export function ChatMessage({
         </div>
 
         {/* Message Content */}
-        <div className="prose prose-sm dark:prose-invert max-w-none">
-          <p className="text-slate-700 dark:text-slate-300 whitespace-pre-wrap">
+        <div className="prose prose-sm max-w-none">
+          <p className="whitespace-pre-wrap" style={{ color: '#1F1C18' }}>
             {content}
           </p>
         </div>

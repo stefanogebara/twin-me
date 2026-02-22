@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
-import { useTheme } from '@/contexts/ThemeContext';
 import { useSidebar } from '@/contexts/SidebarContext';
 import {
   Home,
@@ -144,7 +143,6 @@ export const CollapsibleSidebar: React.FC<CollapsibleSidebarProps> = ({
   const navigate = useNavigate();
   const location = useLocation();
   const { user, signOut } = useAuth();
-  const { theme } = useTheme();
   const { isCollapsed, toggleSidebar } = useSidebar();
   const isExpanded = !isCollapsed; // Use context state for sidebar expand/collapse
   const [showInsights, setShowInsights] = useState(true); // Keep Insights section open by default
@@ -256,14 +254,18 @@ export const CollapsibleSidebar: React.FC<CollapsibleSidebarProps> = ({
             )}
             title="Twin Me"
           >
-            <Clay3DIcon name="diamond" size={isExpanded ? 36 : 32} className="drop-shadow-sm" />
+            <img
+              src="/images/backgrounds/flower-hero.png"
+              alt="Twin Me"
+              className="object-contain drop-shadow-sm flex-shrink-0"
+              style={{ width: isExpanded ? 36 : 32, height: isExpanded ? 36 : 32 }}
+            />
             {isExpanded && (
               <span
-                className="text-2xl"
+                className="text-2xl heading-serif"
                 style={{
-                  fontFamily: 'var(--font-heading)',
-                  fontWeight: 400,
-                  color: theme === 'dark' ? '#C1C0B6' : '#0c0a09'
+                  fontWeight: 500,
+                  color: '#1F1C18'
                 }}
               >
                 Twin Me

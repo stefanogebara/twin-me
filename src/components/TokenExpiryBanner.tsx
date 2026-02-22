@@ -8,7 +8,6 @@
 import React, { useEffect, useState } from 'react';
 import { useLocation } from 'react-router-dom';
 import { AlertTriangle, X, RefreshCw, Bell } from 'lucide-react';
-import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
 import { usePlatformStatus } from '@/hooks/usePlatformStatus';
 import { cn } from '@/lib/utils';
@@ -44,15 +43,12 @@ export const TokenExpiryBanner: React.FC<TokenExpiryBannerProps> = ({
 
   const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
 
-  // Get real-time platform connection status
   const { data: platformStatus } = usePlatformStatus(user?.id);
 
-  // Check if we just completed a connection (URL has ?connected=true)
   const searchParams = new URLSearchParams(location.search);
   const justConnected = searchParams.get('connected') === 'true';
   const connectedProvider = searchParams.get('provider');
 
-  // Fetch notifications on mount and after successful connections
   useEffect(() => {
     if (!user?.id || isDemoMode) return;
 
@@ -71,7 +67,6 @@ export const TokenExpiryBanner: React.FC<TokenExpiryBannerProps> = ({
         const data = await response.json();
 
         if (data.success && data.notifications) {
-          // Filter for token-related notifications only
           const tokenNotifications = data.notifications.filter(
             (n: TokenNotification) =>
               n.type === 'token_expiring' || n.type === 'token_expired'
@@ -87,12 +82,10 @@ export const TokenExpiryBanner: React.FC<TokenExpiryBannerProps> = ({
 
     fetchNotifications();
 
-    // Poll every 5 minutes
     const interval = setInterval(fetchNotifications, 5 * 60 * 1000);
     return () => clearInterval(interval);
   }, [user?.id, isDemoMode, API_URL]);
 
-  // Dismiss a notification
   const handleDismiss = async (notificationId: string) => {
     setDismissedIds(prev => new Set([...prev, notificationId]));
 
@@ -107,27 +100,21 @@ export const TokenExpiryBanner: React.FC<TokenExpiryBannerProps> = ({
     }
   };
 
-  // Handle reconnect action
   const handleReconnect = (platform: string) => {
     if (onReconnect) {
       onReconnect(platform);
     } else {
-      // Default: navigate to get-started page
       window.location.href = '/get-started';
     }
   };
 
-  // Filter out dismissed notifications AND notifications for platforms that are now connected
   const visibleNotifications = notifications.filter(n => {
-    // Skip if dismissed
     if (dismissedIds.has(n.id)) return false;
 
-    // Skip if we just connected this platform via URL params
     if (justConnected && connectedProvider?.toLowerCase() === n.platform.toLowerCase()) {
       return false;
     }
 
-    // Skip if platform status shows it's connected and NOT expired
     const status = platformStatus[n.platform.toLowerCase()];
     if (status && status.connected && !status.tokenExpired) {
       return false;
@@ -136,12 +123,10 @@ export const TokenExpiryBanner: React.FC<TokenExpiryBannerProps> = ({
     return true;
   });
 
-  // Don't render if no notifications or in demo mode
   if (isDemoMode || visibleNotifications.length === 0) {
     return null;
   }
 
-  // Get the most urgent notification to display
   const urgentNotification = visibleNotifications.find(n => n.type === 'token_expired')
     || visibleNotifications[0];
 
@@ -152,69 +137,74 @@ export const TokenExpiryBanner: React.FC<TokenExpiryBannerProps> = ({
     <div
       className={cn(
         "w-full px-4 py-3 flex items-center justify-between gap-4",
-        isExpired
-          ? "bg-red-500/10 border-b border-red-500/20"
-          : "bg-yellow-500/10 border-b border-yellow-500/20",
         className
       )}
+      style={{
+        backgroundColor: isExpired
+          ? 'rgba(239, 68, 68, 0.08)'
+          : 'rgba(245, 158, 11, 0.08)',
+        borderBottom: isExpired
+          ? '1px solid rgba(239, 68, 68, 0.2)'
+          : '1px solid rgba(245, 158, 11, 0.2)',
+      }}
     >
       <div className="flex items-center gap-3">
-        <div className={cn(
-          "p-2 rounded-full",
-          isExpired ? "bg-red-500/20" : "bg-yellow-500/20"
-        )}>
+        <div
+          className="p-2 rounded-full"
+          style={{
+            backgroundColor: isExpired
+              ? 'rgba(239, 68, 68, 0.12)'
+              : 'rgba(245, 158, 11, 0.12)',
+          }}
+        >
           {isExpired ? (
-            <AlertTriangle className={cn("w-4 h-4", isExpired ? "text-red-500" : "text-yellow-500")} />
+            <AlertTriangle className="w-4 h-4 text-red-500" />
           ) : (
-            <Bell className="w-4 h-4 text-yellow-500" />
+            <Bell className="w-4 h-4 text-amber-500" />
           )}
         </div>
 
         <div>
-          <p className={cn(
-            "font-medium text-sm",
-            isExpired ? "text-red-600" : "text-yellow-600"
-          )}>
+          <p
+            className="font-medium text-sm"
+            style={{ color: isExpired ? '#dc2626' : '#d97706' }}
+          >
             {isExpired
               ? `${platformName} connection expired`
               : `${platformName} connection expiring soon`}
           </p>
-          <p className="text-xs text-gray-500">
+          <p className="text-xs" style={{ color: '#8A857D' }}>
             {urgentNotification.message}
           </p>
         </div>
       </div>
 
       <div className="flex items-center gap-2">
-        <Button
+        <button
           onClick={() => handleReconnect(urgentNotification.platform)}
-          size="sm"
-          className={cn(
-            "h-8 px-3 text-xs",
-            isExpired
-              ? "bg-red-500 hover:bg-red-600 text-white"
-              : "bg-yellow-500 hover:bg-yellow-600 text-white"
-          )}
+          className="h-8 px-3 text-xs rounded-lg flex items-center gap-1.5 font-medium transition-opacity hover:opacity-90"
+          style={{
+            backgroundColor: isExpired ? '#dc2626' : '#d97706',
+            color: '#F7F7F3',
+          }}
         >
-          <RefreshCw className="w-3 h-3 mr-1.5" />
+          <RefreshCw className="w-3 h-3" />
           Reconnect
-        </Button>
+        </button>
 
-        <Button
+        <button
           onClick={() => handleDismiss(urgentNotification.id)}
-          size="sm"
-          variant="ghost"
-          className="h-8 w-8 p-0"
+          className="h-8 w-8 p-0 flex items-center justify-center rounded-lg hover:bg-black/5 transition-colors"
           title="Dismiss"
+          style={{ color: '#8A857D' }}
         >
           <X className="w-4 h-4" />
-        </Button>
+        </button>
       </div>
 
-      {/* Badge for multiple notifications */}
       {visibleNotifications.length > 1 && (
         <div className="absolute right-16 top-1/2 -translate-y-1/2">
-          <span className="text-xs text-gray-500">
+          <span className="text-xs" style={{ color: '#8A857D' }}>
             +{visibleNotifications.length - 1} more
           </span>
         </div>

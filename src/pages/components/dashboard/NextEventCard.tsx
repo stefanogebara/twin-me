@@ -1,6 +1,5 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { useTheme } from '@/contexts/ThemeContext';
 import {
   Clock,
   Sparkles,
@@ -27,8 +26,6 @@ export const NextEventCard: React.FC<NextEventCardProps> = ({
   onNavigate,
   formatTimeUntil,
 }) => {
-  const { theme } = useTheme();
-
   if (nextEvent) {
     return (
       <GlassPanel className="mb-8 relative overflow-hidden" variant="card">
@@ -42,7 +39,7 @@ export const NextEventCard: React.FC<NextEventCardProps> = ({
               <div className="flex items-center gap-2 mb-2">
                 <span
                   className="text-xs uppercase tracking-wider"
-                  style={{ color: theme === 'dark' ? 'rgba(193, 192, 182, 0.5)' : '#a8a29e' }}
+                  style={{ color: '#8A857D' }}
                 >
                   Next Important Event
                 </span>
@@ -50,12 +47,12 @@ export const NextEventCard: React.FC<NextEventCardProps> = ({
                   <button
                     onClick={onSync}
                     disabled={syncing}
-                    className="p-1 rounded hover:bg-black/5 dark:hover:bg-white/5 transition-colors"
+                    className="p-1 rounded hover:bg-black/5 transition-colors"
                     title="Sync calendar"
                   >
                     <RefreshCw
                       className={`w-3 h-3 ${syncing ? 'animate-spin' : ''}`}
-                      style={{ color: theme === 'dark' ? 'rgba(193, 192, 182, 0.5)' : '#a8a29e' }}
+                      style={{ color: '#8A857D' }}
                     />
                   </button>
                 )}
@@ -65,7 +62,7 @@ export const NextEventCard: React.FC<NextEventCardProps> = ({
                 style={{
                   fontFamily: 'var(--font-heading)',
                   fontWeight: 500,
-                  color: theme === 'dark' ? '#C1C0B6' : '#0c0a09'
+                  color: '#1F1C18'
                 }}
               >
                 {nextEvent.title}
@@ -73,7 +70,7 @@ export const NextEventCard: React.FC<NextEventCardProps> = ({
               <div className="flex items-center gap-4">
                 <span
                   className="flex items-center gap-1.5 text-sm"
-                  style={{ color: theme === 'dark' ? 'rgba(193, 192, 182, 0.7)' : '#57534e' }}
+                  style={{ color: '#8A857D' }}
                 >
                   <Clock className="w-4 h-4" />
                   {(() => {
@@ -87,8 +84,8 @@ export const NextEventCard: React.FC<NextEventCardProps> = ({
                 <span
                   className="px-2 py-0.5 rounded-full text-xs"
                   style={{
-                    backgroundColor: theme === 'dark' ? 'rgba(193, 192, 182, 0.15)' : 'rgba(0, 0, 0, 0.08)',
-                    color: theme === 'dark' ? 'rgba(193, 192, 182, 0.8)' : '#57534e'
+                    backgroundColor: 'rgba(0, 0, 0, 0.08)',
+                    color: '#8A857D'
                   }}
                 >
                   {nextEvent.type}
@@ -99,23 +96,17 @@ export const NextEventCard: React.FC<NextEventCardProps> = ({
             <div
               className="w-12 h-12 rounded-xl flex items-center justify-center"
               style={{
-                backgroundColor: theme === 'dark' ? 'rgba(193, 192, 182, 0.1)' : 'rgba(0, 0, 0, 0.05)'
+                backgroundColor: 'rgba(0, 0, 0, 0.05)'
               }}
             >
-              <Target className="w-6 h-6" style={{ color: theme === 'dark' ? 'rgba(193, 192, 182, 0.8)' : '#57534e' }} />
+              <Target className="w-6 h-6" style={{ color: '#8A857D' }} />
             </div>
           </div>
 
           <motion.button
             onClick={() => onNavigate('/insights/calendar')}
-            className="w-full py-4 flex items-center justify-center gap-3 rounded-xl glow-accent"
-            style={{
-              background: `linear-gradient(135deg, var(--accent-vibrant), var(--accent-vibrant-hover))`,
-              color: '#1a1a17',
-              fontWeight: 600,
-              boxShadow: '0 2px 12px var(--accent-vibrant-glow)',
-            }}
-            whileHover={{ scale: 1.015, boxShadow: '0 4px 20px var(--accent-vibrant-glow)' }}
+            className="btn-cta-app w-full py-4 flex items-center justify-center gap-3"
+            whileHover={{ scale: 1.015 }}
             whileTap={{ scale: 0.985 }}
             transition={{ duration: 0.2 }}
           >
@@ -136,17 +127,17 @@ export const NextEventCard: React.FC<NextEventCardProps> = ({
     <div
       className="mb-8 px-4 py-3 rounded-xl flex items-center gap-3"
       style={{
-        backgroundColor: theme === 'dark' ? 'rgba(45, 45, 41, 0.5)' : 'rgba(255, 255, 255, 0.7)',
-        border: theme === 'dark' ? '1px solid rgba(193, 192, 182, 0.1)' : '1px solid rgba(0, 0, 0, 0.06)'
+        backgroundColor: 'rgba(255, 255, 255, 0.7)',
+        border: '1px solid rgba(0, 0, 0, 0.06)'
       }}
     >
       <Clock
         className="w-5 h-5 flex-shrink-0 opacity-40"
-        style={{ color: theme === 'dark' ? '#C1C0B6' : '#0c0a09' }}
+        style={{ color: '#1F1C18' }}
       />
       <span
         className="text-sm flex-1"
-        style={{ color: theme === 'dark' ? 'rgba(193, 192, 182, 0.7)' : '#57534e' }}
+        style={{ color: '#8A857D' }}
       >
         {isCalendarConnected ? 'No events today' : 'Connect your calendar to see events'}
       </span>
@@ -154,8 +145,8 @@ export const NextEventCard: React.FC<NextEventCardProps> = ({
         onClick={() => onNavigate(isCalendarConnected ? '/insights/calendar' : '/get-started')}
         className="px-3 py-1.5 rounded-lg text-xs font-medium transition-colors hover:opacity-80 flex-shrink-0"
         style={{
-          backgroundColor: theme === 'dark' ? 'rgba(193, 192, 182, 0.12)' : 'rgba(0, 0, 0, 0.06)',
-          color: theme === 'dark' ? '#C1C0B6' : '#44403c'
+          backgroundColor: 'rgba(0, 0, 0, 0.06)',
+          color: '#1F1C18'
         }}
       >
         {isCalendarConnected ? 'View Calendar' : 'Connect Calendar'}

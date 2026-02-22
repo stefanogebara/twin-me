@@ -1,5 +1,4 @@
 import React from 'react';
-import { useTheme } from '@/contexts/ThemeContext';
 import {
   CheckCircle2,
   ChevronRight,
@@ -34,8 +33,6 @@ export const ConnectedPlatformsSection: React.FC<ConnectedPlatformsSectionProps>
   platforms,
   onNavigate,
 }) => {
-  const { theme } = useTheme();
-
   return (
     <div>
       <div className="flex items-center justify-between mb-4">
@@ -43,14 +40,12 @@ export const ConnectedPlatformsSection: React.FC<ConnectedPlatformsSectionProps>
           <div
             className="w-1 h-5 rounded-full"
             style={{
-              background: theme === 'dark'
-                ? 'linear-gradient(to bottom, rgba(193, 192, 182, 0.6), rgba(193, 192, 182, 0.2))'
-                : 'linear-gradient(to bottom, rgba(0, 0, 0, 0.4), rgba(0, 0, 0, 0.1))'
+              background: 'linear-gradient(to bottom, rgba(0, 0, 0, 0.4), rgba(0, 0, 0, 0.1))'
             }}
           />
           <h3
             className="text-sm uppercase tracking-wider"
-            style={{ color: theme === 'dark' ? 'rgba(193, 192, 182, 0.6)' : '#78716c' }}
+            style={{ color: '#8A857D' }}
           >
             Connected Platforms
           </h3>
@@ -58,7 +53,7 @@ export const ConnectedPlatformsSection: React.FC<ConnectedPlatformsSectionProps>
         <button
           onClick={() => onNavigate('/get-started')}
           className="text-sm flex items-center gap-1 transition-colors hover:opacity-80"
-          style={{ color: theme === 'dark' ? 'rgba(193, 192, 182, 0.7)' : '#57534e' }}
+          style={{ color: '#8A857D' }}
         >
           Manage
           <ChevronRight className="w-4 h-4" />
@@ -69,39 +64,37 @@ export const ConnectedPlatformsSection: React.FC<ConnectedPlatformsSectionProps>
         <div className="flex gap-3 flex-wrap">
           {platforms.map((platform) => {
             const config = PLATFORM_CONFIG[platform.id];
-            const brandColor = config?.brandColor || (theme === 'dark' ? '#C1C0B6' : '#0c0a09');
+            const brandColor = config?.brandColor || '#1F1C18';
             return (
               <button
                 key={platform.id}
                 onClick={() => onNavigate('/get-started')}
                 className="px-4 py-3 rounded-xl flex items-center gap-2 transition-all hover:scale-[1.02]"
                 style={{
-                  backgroundColor: theme === 'dark'
-                    ? platform.connected ? 'rgba(193, 192, 182, 0.1)' : 'rgba(193, 192, 182, 0.05)'
-                    : platform.connected ? 'rgba(0, 0, 0, 0.05)' : 'rgba(0, 0, 0, 0.03)',
+                  backgroundColor: platform.connected ? 'rgba(0, 0, 0, 0.05)' : 'rgba(0, 0, 0, 0.03)',
                   borderLeft: platform.connected && !platform.expired
                     ? `3px solid ${brandColor}`
                     : undefined,
                   border: platform.expired
                     ? '1px solid rgba(245, 158, 11, 0.4)'
                     : !platform.connected
-                    ? (theme === 'dark' ? '1px solid rgba(193, 192, 182, 0.1)' : '1px solid rgba(0, 0, 0, 0.06)')
+                    ? '1px solid rgba(0, 0, 0, 0.06)'
                     : undefined,
                   borderTop: platform.connected && !platform.expired
-                    ? (theme === 'dark' ? '1px solid rgba(193, 192, 182, 0.1)' : '1px solid rgba(0, 0, 0, 0.06)')
+                    ? '1px solid rgba(0, 0, 0, 0.06)'
                     : undefined,
                   borderRight: platform.connected && !platform.expired
-                    ? (theme === 'dark' ? '1px solid rgba(193, 192, 182, 0.1)' : '1px solid rgba(0, 0, 0, 0.06)')
+                    ? '1px solid rgba(0, 0, 0, 0.06)'
                     : undefined,
                   borderBottom: platform.connected && !platform.expired
-                    ? (theme === 'dark' ? '1px solid rgba(193, 192, 182, 0.1)' : '1px solid rgba(0, 0, 0, 0.06)')
+                    ? '1px solid rgba(0, 0, 0, 0.06)'
                     : undefined,
                 }}
               >
                 <PlatformLogo platform={platform.id} className="w-4 h-4" />
                 <span
                   className="text-sm"
-                  style={{ color: theme === 'dark' ? '#C1C0B6' : '#0c0a09' }}
+                  style={{ color: '#1F1C18' }}
                 >
                   {platform.name}
                 </span>
@@ -122,17 +115,17 @@ export const ConnectedPlatformsSection: React.FC<ConnectedPlatformsSectionProps>
         <GlassPanel className="text-center py-8">
           <Link2
             className="w-10 h-10 mx-auto mb-3 opacity-30"
-            style={{ color: theme === 'dark' ? '#C1C0B6' : '#0c0a09' }}
+            style={{ color: '#1F1C18' }}
           />
           <p
             className="text-sm mb-4"
-            style={{ color: theme === 'dark' ? 'rgba(193, 192, 182, 0.6)' : '#a8a29e' }}
+            style={{ color: '#8A857D' }}
           >
             Connect your first platform to start building your digital twin
           </p>
           <button
             onClick={() => onNavigate('/get-started')}
-            className="btn btn-accent rounded-xl inline-flex items-center gap-2 text-sm transition-all hover:scale-[1.02]"
+            className="btn-cta-app inline-flex items-center gap-2 text-sm"
           >
             <Plus className="w-4 h-4" />
             Connect Platforms

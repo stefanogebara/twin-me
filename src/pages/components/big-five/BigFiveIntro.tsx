@@ -34,7 +34,7 @@ export function BigFiveIntro({ colors, questionsAnswered, startAssessment }: Big
             border: `1px solid ${colors.border}`
           }}
         >
-          <Clay3DIcon name="diamond" size={48} />
+          <img src="/images/backgrounds/flower-hero.png" alt="Twin Me" className="w-12 h-12 object-contain drop-shadow-md" />
         </div>
       </div>
 
