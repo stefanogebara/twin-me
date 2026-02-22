@@ -990,15 +990,31 @@ router.post('/message', authenticateUser, async (req, res) => {
       }
     }
 
-    // Get conversation history if conversationId provided (cap at 10 messages for rich continuity)
+    // Get conversation history if conversationId provided (cap at 20 messages for rich continuity)
     let conversationHistory = [];
     if (conversationId) {
       try {
-        const messages = await serverDb.getMessagesByConversation(conversationId, 20);
-        conversationHistory = messages.map(m => ({
-          role: m.is_user_message ? 'user' : 'assistant',
-          content: m.content.length > 800 ? m.content.substring(0, 800) + '...' : m.content
-        }));
+        // Verify ownership before fetching history — prevents IDOR leaking another user's messages
+        if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(conversationId)) {
+          console.warn(`[Twin Chat] Invalid conversationId format from user ${userId}`);
+        } else {
+          const { data: convoCheck } = await supabaseAdmin
+            .from('twin_conversations')
+            .select('id')
+            .eq('id', conversationId)
+            .eq('user_id', userId)
+            .single();
+
+          if (convoCheck) {
+            const { data: messages } = await serverDb.getMessagesByConversation(conversationId, 20);
+            conversationHistory = (messages || []).map(m => ({
+              role: m.is_user_message ? 'user' : 'assistant',
+              content: m.content.length > 800 ? m.content.substring(0, 800) + '...' : m.content
+            }));
+          } else {
+            console.warn(`[Twin Chat] conversationId ${conversationId} not owned by user ${userId}, ignoring history`);
+          }
+        }
       } catch (err) {
         console.warn('[Twin Chat] Could not fetch conversation history:', err.message);
       }
@@ -1312,12 +1328,17 @@ Write a short, warm, genuinely curious greeting (2-3 sentences max).
 - No fluff, no "I'm an AI" disclaimers, no corporate language
 - Sound like someone who already knows them a little and is eager to know them better`;
 
-    const intro = await complete(
-      [{ role: 'user', content: greetingPrompt }],
-      { model: TIER_CHAT, maxTokens: 150, temperature: 0.8 }
-    );
+    const result = await complete({
+      tier: TIER_CHAT,
+      messages: [{ role: 'user', content: greetingPrompt }],
+      maxTokens: 150,
+      temperature: 0.8,
+      userId,
+      serviceName: 'twin-chat-intro',
+    });
+    const intro = result?.content?.trim() || null;
 
-    res.json({ success: true, intro: intro?.trim() || null });
+    res.json({ success: true, intro });
   } catch (err) {
     console.error('[Twin Chat] /intro error:', err.message);
     res.json({ success: true, intro: null }); // Non-fatal — just show empty state
