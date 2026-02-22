@@ -77,7 +77,7 @@ function initializeOrchestrator() {
  */
 router.post('/query', authenticateUser, async (req, res) => {
   try {
-    const userId = req.user.userId;
+    const userId = req.user.id;
     const { query, context = {} } = req.body;
 
     if (!query) {
@@ -131,7 +131,7 @@ router.post('/query', authenticateUser, async (req, res) => {
  */
 router.post('/recommend', authenticateUser, async (req, res) => {
   try {
-    const userId = req.user.userId;
+    const userId = req.user.id;
     const { type = 'music', context = {} } = req.body;
 
     console.log(`🎵 [Orchestrator API] Quick recommendation: ${type}`);
@@ -176,7 +176,7 @@ router.post('/recommend', authenticateUser, async (req, res) => {
  */
 router.post('/insights', authenticateUser, async (req, res) => {
   try {
-    const userId = req.user.userId;
+    const userId = req.user.id;
 
     console.log(`📊 [Orchestrator API] Generating insights for user ${userId}`);
 
