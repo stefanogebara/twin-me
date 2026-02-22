@@ -14,10 +14,6 @@ export type { AuthHeaders } from './api/apiBase';
 export { dashboardAPI } from './api/dashboardAPI';
 export type { DashboardStats, ActivityItem } from './api/dashboardAPI';
 
-// Training
-export { trainingAPI } from './api/trainingAPI';
-export type { TrainingMetrics, TrainingStartResponse } from './api/trainingAPI';
-
 // Calendar
 export { calendarAPI } from './api/calendarAPI';
 export type { CalendarEvent, CalendarEventsResponse, CalendarStatus } from './api/calendarAPI';
