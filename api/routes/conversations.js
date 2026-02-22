@@ -209,7 +209,7 @@ router.delete('/:id', authenticateUser, userRateLimit(20, 15 * 60 * 1000), async
 router.get('/:id/messages', authenticateUser, userRateLimit(200, 15 * 60 * 1000), async (req, res) => {
   try {
     const { id } = req.params;
-    const limit = parseInt(req.query.limit) || 50;
+    const limit = Math.min(parseInt(req.query.limit) || 50, 200);
 
     const { data: messages, error } = await serverDb.getMessagesByConversation(id, limit);
 
