@@ -154,7 +154,7 @@ const tokenRefreshJobHandler = async () => {
             const encryptedRefreshToken = encryptToken(newTokens.refreshToken);
             const newExpiryTime = new Date(Date.now() + newTokens.expiresIn * 1000).toISOString();
 
-            await getSupabaseClient()
+            const { error: tokenUpdateErr } = await getSupabaseClient()
               .from('platform_connections')
               .update({
                 access_token: encryptedAccessToken,
@@ -165,6 +165,8 @@ const tokenRefreshJobHandler = async () => {
               })
               .eq('user_id', token.user_id)
               .eq('platform', token.platform);
+
+            if (tokenUpdateErr) console.error('[TokenLifecycle] Error saving refreshed token:', tokenUpdateErr.message);
 
             console.log(`✅ [Token Lifecycle] Successfully refreshed ${token.platform} token`);
           } else {
@@ -180,8 +182,8 @@ const tokenRefreshJobHandler = async () => {
           console.error(`❌ [Token Lifecycle] Failed to refresh ${token.platform} token:`, error.message);
 
           // Mark connection as expired if refresh fails
-          try {
-            await getSupabaseClient()
+          {
+            const { error: expiredUpdateErr } = await getSupabaseClient()
               .from('platform_connections')
               .update({
                 status: 'expired',
@@ -189,8 +191,7 @@ const tokenRefreshJobHandler = async () => {
               })
               .eq('user_id', token.user_id)
               .eq('platform', token.platform);
-          } catch (updateError) {
-            console.error(`❌ [Token Lifecycle] Failed to mark connection as expired:`, updateError.message);
+            if (expiredUpdateErr) console.error('[TokenLifecycle] Error marking token as expired:', expiredUpdateErr.message);
           }
 
           return {

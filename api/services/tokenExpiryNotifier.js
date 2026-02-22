@@ -194,7 +194,7 @@ async function keepTokenAlive(userId, platform) {
     }
 
     // Update last_sync_at to extend the "activity" window
-    await supabase
+    const { error: keepAliveErr } = await supabase
       .from('platform_connections')
       .update({
         last_sync_at: new Date().toISOString(),
@@ -202,6 +202,8 @@ async function keepTokenAlive(userId, platform) {
       })
       .eq('user_id', userId)
       .eq('platform', platform);
+
+    if (keepAliveErr) console.warn('[TokenExpiry] Error updating keep-alive:', keepAliveErr.message);
 
     console.log(`✅ [Token Notifier] Token activity updated for ${platform}`);
     return true;
