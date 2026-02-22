@@ -392,8 +392,6 @@ export interface PrivacySettings {
   // Processing preferences
   allowAIAnalysis: boolean;
   allowPersonalityInference: boolean;
-  allowAutomatedActions: boolean;
-
   // Retention settings
   maxDataRetentionDays: number;
   autoDeleteSensitiveData: boolean;
@@ -420,92 +418,6 @@ export interface WebhookEvent {
   processingError?: string;
 }
 
-export interface RealTimeUpdate {
-  userId: string;
-  updateType: 'new_data' | 'insight_change' | 'twin_evolution' | 'automation_trigger';
-  data: Record<string, unknown>;
-  timestamp: Date;
-  priority: 'low' | 'medium' | 'high';
-}
-
-// ====================================================================
-// ENHANCED AUTOMATED ACTIONS SYSTEM
-// ====================================================================
-
-export type ActionType =
-  | 'send_notification'
-  | 'schedule_review'
-  | 'suggest_content'
-  | 'initiate_conversation'
-  | 'update_learning_path'
-  | 'request_feedback'
-  | 'sync_external_data'
-  | 'generate_insight_report'
-  | 'recommend_connections';
-
-export type TriggerType =
-  | 'personality_change'
-  | 'learning_milestone'
-  | 'engagement_pattern'
-  | 'time_based'
-  | 'data_quality'
-  | 'conversation_analysis';
-
-export interface TriggerCondition {
-  field: string;
-  operator: 'equals' | 'greater_than' | 'less_than' | 'contains' | 'not_equals';
-  value: string;
-}
-
-export interface ActionTrigger {
-  type: TriggerType;
-  conditions: TriggerCondition[];
-}
-
-export interface AutomationAction {
-  type: ActionType;
-  payload: Record<string, unknown>;
-  delay?: number; // milliseconds
-  maxRetries?: number;
-}
-
-export interface EnhancedAutomationRule {
-  id: string;
-  userId: string;
-  twinId?: string;
-  name: string;
-  description: string;
-  isActive: boolean;
-  priority: number; // 1-10, lower = higher priority
-  trigger: ActionTrigger;
-  action: AutomationAction;
-  cooldownPeriod: number; // milliseconds
-
-  lastTriggered?: Date;
-  triggerCount?: number;
-  createdAt?: Date;
-  updatedAt?: Date;
-}
-
-export interface AutomatedAction {
-  id: string;
-  userId: string;
-  twinId: string;
-  ruleId?: string;
-  actionType: ActionType;
-  payload: Record<string, unknown>;
-  priority: number;
-  status: 'pending' | 'executing' | 'completed' | 'failed';
-  scheduledFor: Date;
-  executedAt?: Date;
-  completedAt?: Date;
-  errorMessage?: string;
-  retryCount: number;
-  maxRetries: number;
-  createdAt: Date;
-}
-
-// Additional types for the enhanced system
 export interface DataQualityMetric {
   metricType: 'completeness' | 'accuracy' | 'freshness' | 'consistency';
   score: number; // 0-1
