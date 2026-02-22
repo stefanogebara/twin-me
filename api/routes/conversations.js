@@ -86,6 +86,7 @@ router.get('/', authenticateUser, userRateLimit(100, 15 * 60 * 1000), async (req
 router.get('/:id', authenticateUser, userRateLimit(200, 15 * 60 * 1000), async (req, res) => {
   try {
     const { id } = req.params;
+    const userId = req.user.id;
     const { data: conversation, error } = await serverDb.getConversation(id);
 
     if (error) {
@@ -99,6 +100,11 @@ router.get('/:id', authenticateUser, userRateLimit(200, 15 * 60 * 1000), async (
       return res.status(404).json({
         error: 'Conversation not found'
       });
+    }
+
+    // IDOR guard: only the conversation owner may read it
+    if (conversation.user_id !== userId) {
+      return res.status(403).json({ error: 'Access denied' });
     }
 
     res.json({
@@ -180,6 +186,19 @@ router.post('/', authenticateUser, userRateLimit(50, 15 * 60 * 1000), validateCo
 router.delete('/:id', authenticateUser, userRateLimit(20, 15 * 60 * 1000), async (req, res) => {
   try {
     const { id } = req.params;
+    const userId = req.user.id;
+
+    // IDOR guard: verify ownership before deleting
+    const { data: conversation, error: fetchError } = await serverDb.getConversation(id);
+    if (fetchError) {
+      return res.status(500).json({ error: 'Failed to verify conversation ownership' });
+    }
+    if (!conversation) {
+      return res.status(404).json({ error: 'Conversation not found' });
+    }
+    if (conversation.user_id !== userId) {
+      return res.status(403).json({ error: 'Access denied' });
+    }
 
     // Delete conversation (this will cascade delete messages due to foreign key constraint)
     const { success, error } = await serverDb.deleteConversation(id);
@@ -209,7 +228,20 @@ router.delete('/:id', authenticateUser, userRateLimit(20, 15 * 60 * 1000), async
 router.get('/:id/messages', authenticateUser, userRateLimit(200, 15 * 60 * 1000), async (req, res) => {
   try {
     const { id } = req.params;
+    const userId = req.user.id;
     const limit = Math.min(parseInt(req.query.limit) || 50, 200);
+
+    // IDOR guard: verify conversation ownership before fetching messages
+    const { data: conversation, error: fetchError } = await serverDb.getConversation(id);
+    if (fetchError) {
+      return res.status(500).json({ error: 'Failed to verify conversation ownership' });
+    }
+    if (!conversation) {
+      return res.status(404).json({ error: 'Conversation not found' });
+    }
+    if (conversation.user_id !== userId) {
+      return res.status(403).json({ error: 'Access denied' });
+    }
 
     const { data: messages, error } = await serverDb.getMessagesByConversation(id, limit);
 
