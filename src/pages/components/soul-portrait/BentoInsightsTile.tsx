@@ -1,7 +1,6 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { Lightbulb, TrendingUp, AlertTriangle, PartyPopper, Target } from 'lucide-react';
-import { useTheme } from '@/contexts/ThemeContext';
 import type { ProactiveInsight } from './types';
 
 const URGENCY_DOT: Record<string, string> = {
@@ -27,9 +26,6 @@ interface Props {
 }
 
 export const BentoInsightsTile: React.FC<Props> = ({ insights, animationDelay = 0 }) => {
-  const { theme } = useTheme();
-  const isDark = theme === 'dark';
-
   if (insights.length === 0) return null;
 
   const sorted = [...insights].sort(
@@ -42,9 +38,11 @@ export const BentoInsightsTile: React.FC<Props> = ({ insights, animationDelay = 
     <motion.div
       className="rounded-2xl p-5 h-full flex flex-col"
       style={{
-        backgroundColor: isDark ? 'rgba(30, 30, 26, 0.7)' : 'rgba(255, 255, 255, 0.8)',
-        border: isDark ? '1px solid rgba(193, 192, 182, 0.07)' : '1px solid rgba(0, 0, 0, 0.05)',
-        boxShadow: isDark ? '0 4px 20px rgba(0, 0, 0, 0.3)' : '0 4px 20px rgba(0, 0, 0, 0.04)',
+        background: 'rgba(255, 255, 255, 0.18)',
+        backdropFilter: 'blur(10px) saturate(140%)',
+        WebkitBackdropFilter: 'blur(10px) saturate(140%)',
+        border: '1px solid rgba(255, 255, 255, 0.45)',
+        boxShadow: '0 8px 32px rgba(0, 0, 0, 0.18), inset 0 1px 0 rgba(255, 255, 255, 0.6)',
       }}
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
@@ -60,7 +58,7 @@ export const BentoInsightsTile: React.FC<Props> = ({ insights, animationDelay = 
         </div>
         <p
           className="text-xs font-semibold uppercase tracking-wider"
-          style={{ color: isDark ? 'rgba(193, 192, 182, 0.5)' : '#a8a29e' }}
+          style={{ color: '#8A857D' }}
         >
           What Your Twin Noticed
         </p>
@@ -70,7 +68,6 @@ export const BentoInsightsTile: React.FC<Props> = ({ insights, animationDelay = 
       <div className="space-y-2.5 flex-1">
         {top3.map((insight, i) => {
           const dotColor = URGENCY_DOT[insight.urgency] ?? '#3498DB';
-          const config = CATEGORY_CONFIG[insight.category] ?? CATEGORY_CONFIG.trend;
           const truncated = insight.insight.length > 90
             ? insight.insight.slice(0, 90).trim() + '…'
             : insight.insight;
@@ -95,14 +92,14 @@ export const BentoInsightsTile: React.FC<Props> = ({ insights, animationDelay = 
                 {i < top3.length - 1 && (
                   <span
                     className="w-px flex-1 mt-1 min-h-[12px]"
-                    style={{ backgroundColor: isDark ? 'rgba(193, 192, 182, 0.08)' : 'rgba(0,0,0,0.06)' }}
+                    style={{ backgroundColor: 'rgba(0, 0, 0, 0.06)' }}
                   />
                 )}
               </div>
 
               <p
                 className="text-xs leading-relaxed"
-                style={{ color: isDark ? 'rgba(193, 192, 182, 0.72)' : '#4a4540' }}
+                style={{ color: '#4a4540' }}
               >
                 {truncated}
               </p>
@@ -115,7 +112,7 @@ export const BentoInsightsTile: React.FC<Props> = ({ insights, animationDelay = 
       {remaining > 0 && (
         <p
           className="text-xs mt-3 font-medium"
-          style={{ color: isDark ? 'rgba(52, 152, 219, 0.7)' : '#3498DB' }}
+          style={{ color: '#3498DB' }}
         >
           +{remaining} more insight{remaining > 1 ? 's' : ''}
         </p>

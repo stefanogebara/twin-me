@@ -1,5 +1,4 @@
 import React, { useState } from 'react';
-import { useTheme } from '@/contexts/ThemeContext';
 import { useNavigate } from 'react-router-dom';
 import {
   Calendar,
@@ -40,7 +39,6 @@ interface CalendarEvent {
 }
 
 export const DashboardDemo: React.FC = () => {
-  const { theme } = useTheme();
   const navigate = useNavigate();
   const [syncing, setSyncing] = useState(false);
 
@@ -118,18 +116,13 @@ export const DashboardDemo: React.FC = () => {
     <PageLayout>
       <div className="mb-8">
         <h1
-          className="text-3xl mb-2"
-          style={{
-            fontFamily: 'var(--font-heading)',
-            fontWeight: 500,
-            color: theme === 'dark' ? '#C1C0B6' : '#0c0a09'
-          }}
+          className="heading-serif text-3xl mb-2"
         >
           {getGreeting()}, Demo User
         </h1>
         <p
           className="text-base"
-          style={{ color: theme === 'dark' ? 'rgba(193, 192, 182, 0.7)' : '#57534e' }}
+          style={{ color: '#8A857D' }}
         >
           {todayEvents.length} event{todayEvents.length !== 1 ? 's' : ''} today • Focus Score: {focusScore}%
         </p>
@@ -146,7 +139,7 @@ export const DashboardDemo: React.FC = () => {
               <div className="flex items-center gap-2 mb-2">
                 <span
                   className="text-xs uppercase tracking-wider"
-                  style={{ color: theme === 'dark' ? 'rgba(193, 192, 182, 0.5)' : '#a8a29e' }}
+                  style={{ color: '#8A857D' }}
                 >
                   Next Important Event
                 </span>
@@ -158,24 +151,19 @@ export const DashboardDemo: React.FC = () => {
                 >
                   <RefreshCw
                     className={`w-3 h-3 ${syncing ? 'animate-spin' : ''}`}
-                    style={{ color: theme === 'dark' ? 'rgba(193, 192, 182, 0.5)' : '#a8a29e' }}
+                    style={{ color: '#8A857D' }}
                   />
                 </button>
               </div>
               <h2
-                className="text-2xl mb-2"
-                style={{
-                  fontFamily: 'var(--font-heading)',
-                  fontWeight: 500,
-                  color: theme === 'dark' ? '#C1C0B6' : '#0c0a09'
-                }}
+                className="heading-serif text-2xl mb-2"
               >
                 {nextEvent.title}
               </h2>
               <div className="flex items-center gap-4">
                 <span
                   className="flex items-center gap-1.5 text-sm"
-                  style={{ color: theme === 'dark' ? 'rgba(193, 192, 182, 0.7)' : '#57534e' }}
+                  style={{ color: '#8A857D' }}
                 >
                   <Clock className="w-4 h-4" />
                   in {formatTimeUntil(nextEvent.startTime)}
@@ -197,12 +185,11 @@ export const DashboardDemo: React.FC = () => {
 
           <button
             onClick={() => navigate('/ritual/start')}
-            className="w-full glass-button py-4 flex items-center justify-center gap-3"
+            className="btn-cta-app w-full py-4 flex items-center justify-center gap-3"
           >
             <Play className="w-5 h-5" />
             <span
-              className="text-base"
-              style={{ fontFamily: 'var(--font-heading)', fontWeight: 500 }}
+              className="text-base font-medium"
             >
               Start Preparation Ritual
             </span>
@@ -213,7 +200,7 @@ export const DashboardDemo: React.FC = () => {
       <div className="mb-8">
         <h3
           className="text-sm uppercase tracking-wider mb-4"
-          style={{ color: theme === 'dark' ? 'rgba(193, 192, 182, 0.5)' : '#a8a29e' }}
+          style={{ color: '#8A857D' }}
         >
           Your Patterns
         </h3>
@@ -230,18 +217,14 @@ export const DashboardDemo: React.FC = () => {
                   </div>
                   <div>
                     <h4
-                      className="text-sm mb-1"
-                      style={{
-                        fontFamily: 'var(--font-heading)',
-                        fontWeight: 500,
-                        color: theme === 'dark' ? '#C1C0B6' : '#0c0a09'
-                      }}
+                      className="heading-serif text-sm mb-1"
+                      style={{ fontWeight: 500 }}
                     >
                       {pattern.title}
                     </h4>
                     <p
                       className="text-xs"
-                      style={{ color: theme === 'dark' ? 'rgba(193, 192, 182, 0.6)' : '#a8a29e' }}
+                      style={{ color: '#8A857D' }}
                     >
                       {pattern.description}
                     </p>
@@ -257,14 +240,14 @@ export const DashboardDemo: React.FC = () => {
         <div className="flex items-center justify-between mb-4">
           <h3
             className="text-sm uppercase tracking-wider"
-            style={{ color: theme === 'dark' ? 'rgba(193, 192, 182, 0.5)' : '#a8a29e' }}
+            style={{ color: '#8A857D' }}
           >
             Connected Platforms
           </h3>
           <button
             onClick={() => navigate('/get-started')}
             className="text-sm flex items-center gap-1 transition-colors hover:opacity-80"
-            style={{ color: theme === 'dark' ? 'rgba(193, 192, 182, 0.7)' : '#57534e' }}
+            style={{ color: '#8A857D' }}
           >
             Manage
             <ChevronRight className="w-4 h-4" />
@@ -283,7 +266,7 @@ export const DashboardDemo: React.FC = () => {
                 <Icon className={`w-4 h-4 ${platform.color}`} />
                 <span
                   className="text-sm"
-                  style={{ color: theme === 'dark' ? '#C1C0B6' : '#0c0a09' }}
+                  style={{ color: '#1F1C18' }}
                 >
                   {platform.name}
                 </span>

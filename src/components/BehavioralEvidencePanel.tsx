@@ -6,7 +6,6 @@
  */
 
 import React, { useState } from 'react';
-import { useTheme } from '@/contexts/ThemeContext';
 import { GlassPanel } from '@/components/layout/PageLayout';
 import {
   ChevronDown,
@@ -166,22 +165,18 @@ const parseCitation = (citation: string) => {
 const EvidenceCard: React.FC<{
   item: EvidenceItem;
   dimensionColor: string;
-  theme: string;
-}> = ({ item, dimensionColor, theme }) => {
+}> = ({ item, dimensionColor }) => {
   const [showFullCitation, setShowFullCitation] = useState(false);
   const PlatformIcon = getPlatformIconComponent(item.platform);
   const effectConfig = EFFECT_SIZE_CONFIG[item.effect_size] || EFFECT_SIZE_CONFIG.small;
   const parsedCitation = parseCitation(item.citation);
 
-  const textColor = theme === 'dark' ? '#C1C0B6' : '#0c0a09';
-  const textSecondary = theme === 'dark' ? 'rgba(193, 192, 182, 0.7)' : '#57534e';
-
   return (
     <div
       className="p-4 rounded-xl transition-all hover:scale-[1.01]"
       style={{
-        backgroundColor: theme === 'dark' ? 'rgba(0,0,0,0.2)' : 'rgba(255,255,255,0.5)',
-        border: `1px solid ${theme === 'dark' ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)'}`
+        backgroundColor: 'rgba(255, 255, 255, 0.5)',
+        border: '1px solid rgba(0, 0, 0, 0.05)'
       }}
     >
       {/* Header: Platform + Effect Size */}
@@ -195,7 +190,7 @@ const EvidenceCard: React.FC<{
           </div>
           <span
             className="text-xs uppercase tracking-wider font-medium"
-            style={{ color: textSecondary }}
+            style={{ color: '#8A857D' }}
           >
             {item.platform.replace('_', ' ')}
           </span>
@@ -214,7 +209,7 @@ const EvidenceCard: React.FC<{
       {/* Description */}
       <p
         className="text-sm leading-relaxed mb-3"
-        style={{ color: textColor }}
+        style={{ color: '#1F1C18' }}
       >
         {item.description}
       </p>
@@ -224,7 +219,7 @@ const EvidenceCard: React.FC<{
         <button
           onClick={() => setShowFullCitation(!showFullCitation)}
           className="flex items-center gap-1.5 text-xs hover:opacity-80 transition-opacity"
-          style={{ color: textSecondary }}
+          style={{ color: '#8A857D' }}
           title="Click to see research details"
         >
           <BookOpen className="w-3 h-3" />
@@ -238,8 +233,8 @@ const EvidenceCard: React.FC<{
           <div
             className="mt-2 p-2 rounded-lg text-xs"
             style={{
-              backgroundColor: theme === 'dark' ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)',
-              color: textSecondary
+              backgroundColor: 'rgba(0, 0, 0, 0.03)',
+              color: '#8A857D'
             }}
           >
             <div className="grid grid-cols-2 gap-2">
@@ -270,15 +265,11 @@ const DimensionSection: React.FC<{
   evidence: EvidenceItem[];
   score: number;
   confidence: number;
-  theme: string;
   defaultExpanded?: boolean;
-}> = ({ dimension, evidence, score, confidence, theme, defaultExpanded = false }) => {
+}> = ({ dimension, evidence, score, confidence, defaultExpanded = false }) => {
   const [isExpanded, setIsExpanded] = useState(defaultExpanded);
   const config = DIMENSION_CONFIG[dimension];
   const Icon = config.Icon;
-
-  const textColor = theme === 'dark' ? '#C1C0B6' : '#0c0a09';
-  const textSecondary = theme === 'dark' ? 'rgba(193, 192, 182, 0.6)' : '#a8a29e';
 
   // Skip dimensions with no evidence
   if (evidence.length === 0) return null;
@@ -308,7 +299,7 @@ const DimensionSection: React.FC<{
             <div className="flex items-center gap-2">
               <span
                 className="font-medium"
-                style={{ color: textColor }}
+                style={{ color: '#1F1C18' }}
               >
                 {config.label}
               </span>
@@ -321,7 +312,7 @@ const DimensionSection: React.FC<{
             </div>
             <span
               className="text-xs"
-              style={{ color: textSecondary }}
+              style={{ color: '#8A857D' }}
             >
               {evidence.length} evidence point{evidence.length !== 1 ? 's' : ''} &middot; {Math.round(confidence * 100)}% confident
             </span>
@@ -331,9 +322,9 @@ const DimensionSection: React.FC<{
         {/* Expand/Collapse */}
         <div className="flex items-center gap-2">
           {isExpanded ? (
-            <ChevronUp className="w-5 h-5" style={{ color: textSecondary }} />
+            <ChevronUp className="w-5 h-5" style={{ color: '#8A857D' }} />
           ) : (
-            <ChevronDown className="w-5 h-5" style={{ color: textSecondary }} />
+            <ChevronDown className="w-5 h-5" style={{ color: '#8A857D' }} />
           )}
         </div>
       </button>
@@ -346,7 +337,6 @@ const DimensionSection: React.FC<{
               key={`${item.platform}-${item.feature}-${index}`}
               item={item}
               dimensionColor={config.color}
-              theme={theme}
             />
           ))}
         </div>
@@ -360,9 +350,7 @@ const DimensionSection: React.FC<{
  */
 const ConfidenceMeter: React.FC<{
   confidence: number;
-  theme: string;
-}> = ({ confidence, theme }) => {
-  const textSecondary = theme === 'dark' ? 'rgba(193, 192, 182, 0.6)' : '#a8a29e';
+}> = ({ confidence }) => {
   const percentage = Math.round(confidence * 100);
 
   let label = 'Low';
@@ -377,12 +365,12 @@ const ConfidenceMeter: React.FC<{
 
   return (
     <div className="flex items-center gap-3">
-      <span className="text-xs" style={{ color: textSecondary }}>
+      <span className="text-xs" style={{ color: '#8A857D' }}>
         Overall Confidence
       </span>
       <div
         className="flex-1 h-2 rounded-full overflow-hidden"
-        style={{ backgroundColor: theme === 'dark' ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)' }}
+        style={{ backgroundColor: 'rgba(0, 0, 0, 0.08)' }}
       >
         <div
           className="h-full rounded-full transition-all duration-500"
@@ -412,10 +400,6 @@ const BehavioralEvidencePanel: React.FC<BehavioralEvidencePanelProps> = ({
   dataSources,
   className = ''
 }) => {
-  const { theme } = useTheme();
-  const textColor = theme === 'dark' ? '#C1C0B6' : '#0c0a09';
-  const textSecondary = theme === 'dark' ? 'rgba(193, 192, 182, 0.6)' : '#a8a29e';
-
   // Count total evidence items
   const totalEvidence = Object.values(evidence).reduce((sum, items) => sum + items.length, 0);
 
@@ -427,11 +411,11 @@ const BehavioralEvidencePanel: React.FC<BehavioralEvidencePanelProps> = ({
     return (
       <GlassPanel className={className}>
         <div className="text-center py-8">
-          <BookOpen className="w-12 h-12 mx-auto mb-4" style={{ color: textSecondary }} />
-          <h3 style={{ color: textColor, fontFamily: 'var(--font-heading)' }}>
+          <BookOpen className="w-12 h-12 mx-auto mb-4" style={{ color: '#8A857D' }} />
+          <h3 style={{ color: '#1F1C18', fontFamily: 'var(--font-heading)' }}>
             No Evidence Yet
           </h3>
-          <p className="mt-2 text-sm" style={{ color: textSecondary }}>
+          <p className="mt-2 text-sm" style={{ color: '#8A857D' }}>
             Connect more platforms to see the research-backed evidence behind your personality profile.
           </p>
         </div>
@@ -457,12 +441,12 @@ const BehavioralEvidencePanel: React.FC<BehavioralEvidencePanelProps> = ({
                 style={{
                   fontFamily: 'var(--font-heading)',
                   fontWeight: 500,
-                  color: textColor
+                  color: '#1F1C18'
                 }}
               >
                 Why These Scores?
               </h3>
-              <p className="text-xs" style={{ color: textSecondary }}>
+              <p className="text-xs" style={{ color: '#8A857D' }}>
                 {totalEvidence} research-backed insights from your data
               </p>
             </div>
@@ -470,7 +454,7 @@ const BehavioralEvidencePanel: React.FC<BehavioralEvidencePanelProps> = ({
         </div>
 
         {/* Confidence Meter */}
-        <ConfidenceMeter confidence={confidence.overall} theme={theme} />
+        <ConfidenceMeter confidence={confidence.overall} />
       </GlassPanel>
 
       {/* Dimension Sections */}
@@ -482,7 +466,6 @@ const BehavioralEvidencePanel: React.FC<BehavioralEvidencePanelProps> = ({
             evidence={evidence[dim]}
             score={personality[dim]}
             confidence={confidence.by_dimension[dim]}
-            theme={theme}
             defaultExpanded={dim === dimensionWithMostEvidence}
           />
         ))}
@@ -492,10 +475,10 @@ const BehavioralEvidencePanel: React.FC<BehavioralEvidencePanelProps> = ({
       <div
         className="mt-4 p-3 rounded-lg text-center"
         style={{
-          backgroundColor: theme === 'dark' ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.02)'
+          backgroundColor: 'rgba(0, 0, 0, 0.02)'
         }}
       >
-        <p className="text-xs" style={{ color: textSecondary }}>
+        <p className="text-xs" style={{ color: '#8A857D' }}>
           All correlations are based on peer-reviewed research. Effect sizes indicate how strongly each behavior predicts personality traits.
         </p>
       </div>

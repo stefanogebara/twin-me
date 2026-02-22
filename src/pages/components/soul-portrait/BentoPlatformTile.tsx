@@ -1,7 +1,6 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { Music, Calendar, Heart, Tv, Gamepad2 } from 'lucide-react';
-import { useTheme } from '@/contexts/ThemeContext';
 import type { PlatformSummary, ConnectedPlatform } from './types';
 
 interface PlatformMeta {
@@ -98,9 +97,6 @@ export const BentoPlatformTile: React.FC<Props> = ({
   connectedPlatforms,
   animationDelay = 0,
 }) => {
-  const { theme } = useTheme();
-  const isDark = theme === 'dark';
-
   const meta = PLATFORM_META[platform.toLowerCase()];
   if (!meta) return null;
 
@@ -126,10 +122,12 @@ export const BentoPlatformTile: React.FC<Props> = ({
     <motion.div
       className="rounded-2xl p-4 h-full"
       style={{
-        backgroundColor: isDark ? 'rgba(30, 30, 26, 0.7)' : 'rgba(255, 255, 255, 0.8)',
-        border: isDark ? '1px solid rgba(193, 192, 182, 0.07)' : '1px solid rgba(0, 0, 0, 0.05)',
+        background: 'rgba(255, 255, 255, 0.18)',
+        backdropFilter: 'blur(10px) saturate(140%)',
+        WebkitBackdropFilter: 'blur(10px) saturate(140%)',
+        border: '1px solid rgba(255, 255, 255, 0.45)',
         borderLeft: `3px solid ${meta.color}`,
-        boxShadow: isDark ? '0 4px 16px rgba(0, 0, 0, 0.25)' : '0 4px 16px rgba(0, 0, 0, 0.04)',
+        boxShadow: '0 8px 32px rgba(0, 0, 0, 0.18), inset 0 1px 0 rgba(255, 255, 255, 0.6)',
       }}
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
@@ -146,7 +144,7 @@ export const BentoPlatformTile: React.FC<Props> = ({
           </div>
           <span
             className="text-xs font-semibold"
-            style={{ color: isDark ? '#C1C0B6' : '#1a1714' }}
+            style={{ color: '#1F1C18' }}
           >
             {meta.label}
           </span>
@@ -154,7 +152,7 @@ export const BentoPlatformTile: React.FC<Props> = ({
         {syncLabel && (
           <span
             className="text-xs"
-            style={{ color: isDark ? 'rgba(193, 192, 182, 0.3)' : '#c4bfba' }}
+            style={{ color: '#c4bfba' }}
           >
             {syncLabel}
           </span>
@@ -164,7 +162,7 @@ export const BentoPlatformTile: React.FC<Props> = ({
       {/* Metric line */}
       <p
         className="text-xs leading-relaxed"
-        style={{ color: isDark ? 'rgba(193, 192, 182, 0.6)' : '#6b635e' }}
+        style={{ color: '#6b635e' }}
       >
         {metric ?? 'Data collecting…'}
       </p>
@@ -177,7 +175,7 @@ export const BentoPlatformTile: React.FC<Props> = ({
         />
         <span
           className="text-xs"
-          style={{ color: isDark ? 'rgba(193, 192, 182, 0.3)' : '#c4bfba' }}
+          style={{ color: '#c4bfba' }}
         >
           Connected
         </span>

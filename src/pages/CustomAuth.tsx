@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { useTheme } from '../contexts/ThemeContext';
 import { useAnalytics } from '../contexts/AnalyticsContext';
 import { ArrowLeft, Loader2, Sparkles, X } from 'lucide-react';
 
@@ -9,7 +8,6 @@ const CustomAuth = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { signInWithOAuth } = useAuth();
-  const { theme } = useTheme();
   const { trackFunnel } = useAnalytics();
 
   const [loading, setLoading] = useState(false);
@@ -117,18 +115,12 @@ For privacy concerns: privacy@twinailearn.com`
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center px-6 py-20" style={{ backgroundColor: theme === 'dark' ? '#232320' : '#FAFAFA' }}>
+    <div className="min-h-screen flex items-center justify-center px-6 py-20" style={{ backgroundColor: '#F7F7F3' }}>
       {/* Back button - top left */}
       <div className="fixed top-6 left-6 z-50">
         <button
           onClick={() => navigate('/')}
-          className="flex items-center gap-2 px-4 py-2 text-sm font-medium backdrop-blur-md rounded-lg transition-all duration-200"
-          style={{
-            color: theme === 'dark' ? 'rgba(193, 192, 182, 0.8)' : '#57534e',
-            backgroundColor: theme === 'dark' ? 'rgba(45, 45, 41, 0.6)' : 'rgba(255, 255, 255, 0.6)',
-            borderWidth: '1px',
-            borderColor: theme === 'dark' ? 'rgba(193, 192, 182, 0.1)' : 'rgba(231, 229, 228, 0.6)'
-          }}
+          className="btn-glass-app flex items-center gap-2 px-4 py-2 text-sm font-medium"
         >
           <ArrowLeft className="w-4 h-4" />
           Back to Home
@@ -142,19 +134,17 @@ For privacy concerns: privacy@twinailearn.com`
             <div
               className="w-16 h-16 rounded-2xl flex items-center justify-center"
               style={{
-                background: theme === 'dark'
-                  ? 'linear-gradient(135deg, rgba(193, 192, 182, 0.2), rgba(193, 192, 182, 0.1))'
-                  : 'linear-gradient(135deg, rgba(12, 10, 9, 0.1), rgba(12, 10, 9, 0.05))',
-                border: theme === 'dark' ? '1px solid rgba(193, 192, 182, 0.2)' : '1px solid rgba(12, 10, 9, 0.1)'
+                background: 'linear-gradient(135deg, rgba(12, 10, 9, 0.1), rgba(12, 10, 9, 0.05))',
+                border: '1px solid rgba(12, 10, 9, 0.1)'
               }}
             >
-              <Sparkles className="w-8 h-8" style={{ color: theme === 'dark' ? '#C1C0B6' : '#0c0a09' }} />
+              <Sparkles className="w-8 h-8" style={{ color: '#1F1C18' }} />
             </div>
           </div>
-          <h1 className="text-4xl font-normal tracking-tight font-garamond" style={{ color: theme === 'dark' ? '#C1C0B6' : '#0c0a09' }}>
+          <h1 className="heading-serif text-4xl font-normal tracking-tight">
             Discover Your Soul Signature
           </h1>
-          <p className="mt-3 text-[15px] leading-6" style={{ color: theme === 'dark' ? 'rgba(193, 192, 182, 0.8)' : '#57534e' }}>
+          <p className="mt-3 text-[15px] leading-6" style={{ color: '#8A857D' }}>
             Sign in with Google to begin your journey of authentic self-discovery
           </p>
         </div>
@@ -164,27 +154,18 @@ For privacy concerns: privacy@twinailearn.com`
           <div
             className="flex items-center gap-3 p-4 rounded-xl"
             style={{
-              background: theme === 'dark' ? 'rgba(220, 38, 38, 0.1)' : 'rgba(255, 235, 235, 0.5)',
+              background: 'rgba(255, 235, 235, 0.5)',
               backdropFilter: 'blur(16px)',
               WebkitBackdropFilter: 'blur(16px)',
               border: '1px solid rgba(220, 38, 38, 0.2)',
             }}
           >
-            <p className="text-sm" style={{ color: theme === 'dark' ? '#fca5a5' : '#991b1b' }}>{error}</p>
+            <p className="text-sm" style={{ color: '#991b1b' }}>{error}</p>
           </div>
         )}
 
         {/* Liquid Glass Card Container */}
-        <div
-          className="rounded-3xl overflow-hidden"
-          style={{
-            background: theme === 'dark' ? 'rgba(45, 45, 41, 0.5)' : 'rgba(255, 255, 255, 0.5)',
-            backdropFilter: 'blur(16px)',
-            WebkitBackdropFilter: 'blur(16px)',
-            border: theme === 'dark' ? '1px solid rgba(193, 192, 182, 0.1)' : '1px solid rgba(0, 0, 0, 0.06)',
-            boxShadow: theme === 'dark' ? '0 8px 32px rgba(0, 0, 0, 0.3)' : '0 8px 32px rgba(0, 0, 0, 0.03)',
-          }}
-        >
+        <div className="glass-card overflow-hidden">
           <div className="p-8 space-y-6">
             {/* Google Sign In Button */}
             <button
@@ -192,9 +173,9 @@ For privacy concerns: privacy@twinailearn.com`
               disabled={loading}
               className="w-full flex items-center justify-center gap-3 px-6 py-4 text-[15px] leading-5 font-medium border rounded-xl transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed backdrop-blur-sm hover:scale-[1.02] active:scale-[0.98]"
               style={{
-                backgroundColor: theme === 'dark' ? 'rgba(45, 45, 41, 0.7)' : 'rgba(255, 255, 255, 0.9)',
-                borderColor: theme === 'dark' ? 'rgba(193, 192, 182, 0.2)' : 'rgba(231, 229, 228, 0.6)',
-                color: theme === 'dark' ? '#C1C0B6' : '#0c0a09'
+                backgroundColor: 'rgba(255, 255, 255, 0.9)',
+                borderColor: 'rgba(231, 229, 228, 0.6)',
+                color: '#1F1C18'
               }}
             >
               {loading ? (
@@ -217,7 +198,7 @@ For privacy concerns: privacy@twinailearn.com`
 
             {/* Benefits list */}
             <div className="pt-4 space-y-3">
-              <p className="text-xs font-medium uppercase tracking-wider" style={{ color: theme === 'dark' ? 'rgba(193, 192, 182, 0.5)' : '#a8a29e' }}>
+              <p className="text-xs font-medium uppercase tracking-wider" style={{ color: '#8A857D' }}>
                 What you'll get
               </p>
               <ul className="space-y-2">
@@ -226,7 +207,7 @@ For privacy concerns: privacy@twinailearn.com`
                   'Privacy controls - you decide what to reveal',
                   'Connect multiple platforms for deeper insights'
                 ].map((benefit, index) => (
-                  <li key={index} className="flex items-start gap-2 text-[13px] leading-5" style={{ color: theme === 'dark' ? 'rgba(193, 192, 182, 0.8)' : '#57534e' }}>
+                  <li key={index} className="flex items-start gap-2 text-[13px] leading-5" style={{ color: '#8A857D' }}>
                     <span className="text-green-500 mt-0.5">✓</span>
                     {benefit}
                   </li>
@@ -237,12 +218,12 @@ For privacy concerns: privacy@twinailearn.com`
         </div>
 
         {/* Footer note */}
-        <p className="text-center text-xs" style={{ color: theme === 'dark' ? 'rgba(193, 192, 182, 0.5)' : '#a8a29e' }}>
+        <p className="text-center text-xs" style={{ color: '#8A857D' }}>
           By continuing, you agree to our{' '}
           <button
             onClick={() => setActiveModal('terms')}
             className="underline hover:opacity-80 transition-opacity"
-            style={{ color: theme === 'dark' ? 'rgba(193, 192, 182, 0.7)' : '#78716c' }}
+            style={{ color: '#78716c' }}
           >
             Terms of Service
           </button>
@@ -250,7 +231,7 @@ For privacy concerns: privacy@twinailearn.com`
           <button
             onClick={() => setActiveModal('privacy')}
             className="underline hover:opacity-80 transition-opacity"
-            style={{ color: theme === 'dark' ? 'rgba(193, 192, 182, 0.7)' : '#78716c' }}
+            style={{ color: '#78716c' }}
           >
             Privacy Policy
           </button>
@@ -267,7 +248,7 @@ For privacy concerns: privacy@twinailearn.com`
           <div
             className="absolute inset-0"
             style={{
-              backgroundColor: theme === 'dark' ? 'rgba(0, 0, 0, 0.7)' : 'rgba(0, 0, 0, 0.5)',
+              backgroundColor: 'rgba(0, 0, 0, 0.5)',
               backdropFilter: 'blur(4px)',
               WebkitBackdropFilter: 'blur(4px)'
             }}
@@ -276,8 +257,8 @@ For privacy concerns: privacy@twinailearn.com`
           <div
             className="relative w-full max-w-2xl max-h-[80vh] overflow-hidden rounded-2xl"
             style={{
-              backgroundColor: theme === 'dark' ? '#2d2d29' : '#ffffff',
-              border: theme === 'dark' ? '1px solid rgba(193, 192, 182, 0.1)' : '1px solid rgba(0, 0, 0, 0.1)',
+              backgroundColor: '#ffffff',
+              border: '1px solid rgba(0, 0, 0, 0.1)',
               boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)'
             }}
             onClick={(e) => e.stopPropagation()}
@@ -285,15 +266,15 @@ For privacy concerns: privacy@twinailearn.com`
             {/* Header */}
             <div
               className="flex items-center justify-between px-6 py-4 border-b"
-              style={{ borderColor: theme === 'dark' ? 'rgba(193, 192, 182, 0.1)' : 'rgba(0, 0, 0, 0.1)' }}
+              style={{ borderColor: 'rgba(0, 0, 0, 0.1)' }}
             >
-              <h2 className="text-xl font-medium" style={{ color: theme === 'dark' ? '#C1C0B6' : '#0c0a09' }}>
+              <h2 className="heading-serif text-xl">
                 {modalContent[activeModal].title}
               </h2>
               <button
                 onClick={() => setActiveModal(null)}
                 className="p-2 rounded-lg hover:opacity-70 transition-opacity"
-                style={{ color: theme === 'dark' ? '#C1C0B6' : '#0c0a09' }}
+                style={{ color: '#1F1C18' }}
               >
                 <X className="w-5 h-5" />
               </button>
@@ -302,7 +283,7 @@ For privacy concerns: privacy@twinailearn.com`
             <div className="p-6 overflow-y-auto max-h-[60vh]">
               <pre
                 className="whitespace-pre-wrap font-sans text-sm leading-relaxed"
-                style={{ color: theme === 'dark' ? 'rgba(193, 192, 182, 0.8)' : '#57534e' }}
+                style={{ color: '#8A857D' }}
               >
                 {modalContent[activeModal].content}
               </pre>

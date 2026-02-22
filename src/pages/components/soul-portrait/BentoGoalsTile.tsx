@@ -1,7 +1,6 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { Target, CheckCircle2, Zap } from 'lucide-react';
-import { useTheme } from '@/contexts/ThemeContext';
 import type { Goal } from './types';
 
 interface Props {
@@ -10,9 +9,6 @@ interface Props {
 }
 
 export const BentoGoalsTile: React.FC<Props> = ({ goals, animationDelay = 0 }) => {
-  const { theme } = useTheme();
-  const isDark = theme === 'dark';
-
   const active = goals.filter(g => g.status === 'active' || g.status === 'suggested');
   const recentCompleted = goals.filter(g => g.status === 'completed').slice(0, 1);
   const displayGoals = [...active, ...recentCompleted].slice(0, 4);
@@ -23,9 +19,11 @@ export const BentoGoalsTile: React.FC<Props> = ({ goals, animationDelay = 0 }) =
     <motion.div
       className="rounded-2xl p-5 h-full flex flex-col"
       style={{
-        backgroundColor: isDark ? 'rgba(30, 30, 26, 0.7)' : 'rgba(255, 255, 255, 0.8)',
-        border: isDark ? '1px solid rgba(193, 192, 182, 0.07)' : '1px solid rgba(0, 0, 0, 0.05)',
-        boxShadow: isDark ? '0 4px 20px rgba(0, 0, 0, 0.3)' : '0 4px 20px rgba(0, 0, 0, 0.04)',
+        background: 'rgba(255, 255, 255, 0.18)',
+        backdropFilter: 'blur(10px) saturate(140%)',
+        WebkitBackdropFilter: 'blur(10px) saturate(140%)',
+        border: '1px solid rgba(255, 255, 255, 0.45)',
+        boxShadow: '0 8px 32px rgba(0, 0, 0, 0.18), inset 0 1px 0 rgba(255, 255, 255, 0.6)',
       }}
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
@@ -41,7 +39,7 @@ export const BentoGoalsTile: React.FC<Props> = ({ goals, animationDelay = 0 }) =
         </div>
         <p
           className="text-xs font-semibold uppercase tracking-wider"
-          style={{ color: isDark ? 'rgba(193, 192, 182, 0.5)' : '#a8a29e' }}
+          style={{ color: '#8A857D' }}
         >
           Goals
         </p>
@@ -75,7 +73,7 @@ export const BentoGoalsTile: React.FC<Props> = ({ goals, animationDelay = 0 }) =
                 }
                 <p
                   className="text-xs font-medium leading-tight truncate flex-1"
-                  style={{ color: isDark ? '#C1C0B6' : '#1a1714' }}
+                  style={{ color: '#1F1C18' }}
                 >
                   {goal.title}
                 </p>
@@ -93,9 +91,7 @@ export const BentoGoalsTile: React.FC<Props> = ({ goals, animationDelay = 0 }) =
               {!isCompleted && !isSuggested && (
                 <div
                   className="h-1 rounded-full overflow-hidden"
-                  style={{
-                    backgroundColor: isDark ? 'rgba(193, 192, 182, 0.08)' : 'rgba(0, 0, 0, 0.06)',
-                  }}
+                  style={{ backgroundColor: 'rgba(0, 0, 0, 0.06)' }}
                 >
                   <motion.div
                     className="h-full rounded-full"

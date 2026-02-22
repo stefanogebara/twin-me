@@ -1,7 +1,6 @@
 import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { useAuth } from '@/contexts/AuthContext';
-import { useTheme } from '@/contexts/ThemeContext';
 import { useNavigate } from 'react-router-dom';
 import { AlertCircle, Globe, Target, Flame, Trophy, ChevronRight } from 'lucide-react';
 import { goalsAPI, GoalSummary } from '@/services/api/goalsAPI';
@@ -59,7 +58,6 @@ const PLATFORM_CONFIG: Record<string, { name: string; color: string; brandColor:
 
 export const Dashboard: React.FC = () => {
   const { user } = useAuth();
-  const { theme } = useTheme();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [allEvents, setAllEvents] = useState<CalendarEvent[]>([]); // Store all events from API
@@ -461,8 +459,8 @@ export const Dashboard: React.FC = () => {
           className="mb-4 p-4 rounded-xl flex items-center justify-between"
           style={{
             backgroundColor: error.type === 'auth'
-              ? (theme === 'dark' ? 'rgba(245, 158, 11, 0.1)' : 'rgba(245, 158, 11, 0.1)')
-              : (theme === 'dark' ? 'rgba(239, 68, 68, 0.1)' : 'rgba(239, 68, 68, 0.1)'),
+              ? 'rgba(245, 158, 11, 0.1)'
+              : 'rgba(239, 68, 68, 0.1)',
             border: error.type === 'auth'
               ? '1px solid rgba(245, 158, 11, 0.3)'
               : '1px solid rgba(239, 68, 68, 0.3)'
@@ -470,10 +468,7 @@ export const Dashboard: React.FC = () => {
         >
           <div className="flex items-center gap-3">
             <AlertCircle className={`w-5 h-5 ${error.type === 'auth' ? 'text-amber-500' : 'text-red-500'}`} />
-            <span style={{ color: error.type === 'auth'
-              ? (theme === 'dark' ? '#fcd34d' : '#d97706')
-              : (theme === 'dark' ? '#fca5a5' : '#dc2626')
-            }}>
+            <span style={{ color: error.type === 'auth' ? '#d97706' : '#dc2626' }}>
               {error.message}
             </span>
           </div>
@@ -482,8 +477,8 @@ export const Dashboard: React.FC = () => {
               onClick={() => navigate('/get-started')}
               className="px-4 py-2 rounded-lg text-sm font-medium transition-colors"
               style={{
-                backgroundColor: theme === 'dark' ? 'rgba(245, 158, 11, 0.2)' : 'rgba(245, 158, 11, 0.15)',
-                color: theme === 'dark' ? '#fcd34d' : '#d97706'
+                backgroundColor: 'rgba(245, 158, 11, 0.15)',
+                color: '#d97706'
               }}
             >
               Reconnect
@@ -499,18 +494,13 @@ export const Dashboard: React.FC = () => {
         transition={{ duration: 0.5, ease: [0.4, 0, 0.2, 1] }}
       >
         <h1
-          className="text-3xl mb-2"
-          style={{
-            fontFamily: 'var(--font-heading)',
-            fontWeight: 500,
-            color: theme === 'dark' ? '#C1C0B6' : '#0c0a09'
-          }}
+          className="heading-serif text-3xl mb-2"
         >
           {getGreeting()}, {user?.firstName || 'there'}
         </h1>
         <p
           className="text-base"
-          style={{ color: theme === 'dark' ? 'rgba(193, 192, 182, 0.7)' : '#57534e' }}
+          style={{ color: '#8A857D' }}
         >
           {todayEvents.length > 0
             ? `${todayEvents.length} event${todayEvents.length !== 1 ? 's' : ''} today`
@@ -541,14 +531,14 @@ export const Dashboard: React.FC = () => {
             onClick={() => navigate('/goals')}
             className="w-full text-left rounded-xl p-5 transition-all hover:scale-[1.01]"
             style={{
-              backgroundColor: theme === 'dark' ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.02)',
-              border: theme === 'dark' ? '1px solid rgba(255,255,255,0.08)' : '1px solid rgba(0,0,0,0.06)',
+              backgroundColor: 'rgba(0,0,0,0.02)',
+              border: '1px solid rgba(0,0,0,0.06)',
             }}
           >
             <div className="flex items-center justify-between mb-3">
               <div className="flex items-center gap-2">
-                <Target className="w-4 h-4" style={{ color: theme === 'dark' ? '#C1C0B6' : '#44403c' }} />
-                <span className="text-sm font-medium" style={{ color: theme === 'dark' ? '#C1C0B6' : '#0c0a09' }}>
+                <Target className="w-4 h-4" style={{ color: '#44403c' }} />
+                <span className="text-sm font-medium" style={{ color: '#1F1C18' }}>
                   Goals
                 </span>
                 {goalSummary.suggested > 0 && (
@@ -557,13 +547,13 @@ export const Dashboard: React.FC = () => {
                   </span>
                 )}
               </div>
-              <ChevronRight className="w-4 h-4" style={{ color: theme === 'dark' ? 'rgba(193,192,182,0.5)' : '#a8a29e' }} />
+              <ChevronRight className="w-4 h-4" style={{ color: '#8A857D' }} />
             </div>
             <div className="flex items-center gap-6">
               {goalSummary.active > 0 && (
                 <div className="flex items-center gap-1.5">
                   <div className="w-2 h-2 rounded-full bg-emerald-500" />
-                  <span className="text-sm" style={{ color: theme === 'dark' ? 'rgba(193,192,182,0.7)' : '#57534e' }}>
+                  <span className="text-sm" style={{ color: '#8A857D' }}>
                     {goalSummary.active} active
                   </span>
                 </div>
@@ -571,7 +561,7 @@ export const Dashboard: React.FC = () => {
               {goalSummary.bestStreak > 0 && (
                 <div className="flex items-center gap-1.5">
                   <Flame className="w-3.5 h-3.5 text-orange-400" />
-                  <span className="text-sm" style={{ color: theme === 'dark' ? 'rgba(193,192,182,0.7)' : '#57534e' }}>
+                  <span className="text-sm" style={{ color: '#8A857D' }}>
                     {goalSummary.bestStreak}d best streak
                   </span>
                 </div>
@@ -579,13 +569,13 @@ export const Dashboard: React.FC = () => {
               {goalSummary.completed > 0 && (
                 <div className="flex items-center gap-1.5">
                   <Trophy className="w-3.5 h-3.5 text-amber-400" />
-                  <span className="text-sm" style={{ color: theme === 'dark' ? 'rgba(193,192,182,0.7)' : '#57534e' }}>
+                  <span className="text-sm" style={{ color: '#8A857D' }}>
                     {goalSummary.completed} completed
                   </span>
                 </div>
               )}
               {goalSummary.suggested > 0 && goalSummary.active === 0 && (
-                <span className="text-sm" style={{ color: theme === 'dark' ? 'rgba(147,197,253,0.8)' : '#3b82f6' }}>
+                <span className="text-sm" style={{ color: '#3b82f6' }}>
                   Your twin has {goalSummary.suggested} suggestion{goalSummary.suggested > 1 ? 's' : ''} for you
                 </span>
               )}

@@ -1,7 +1,6 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { Database, Layers, Zap } from 'lucide-react';
-import { useTheme } from '@/contexts/ThemeContext';
 import type { MemoryStats, ConnectedPlatform } from './types';
 
 interface Props {
@@ -11,9 +10,6 @@ interface Props {
 }
 
 export const BentoStatsTile: React.FC<Props> = ({ stats, firstMemoryAt, connectedPlatforms }) => {
-  const { theme } = useTheme();
-  const isDark = theme === 'dark';
-
   const twinAge = firstMemoryAt
     ? Math.max(1, Math.floor((Date.now() - new Date(firstMemoryAt).getTime()) / (1000 * 60 * 60 * 24)))
     : null;
@@ -45,9 +41,11 @@ export const BentoStatsTile: React.FC<Props> = ({ stats, firstMemoryAt, connecte
     <motion.div
       className="rounded-2xl p-5 h-full flex flex-col justify-between"
       style={{
-        backgroundColor: isDark ? 'rgba(30, 30, 26, 0.7)' : 'rgba(255, 255, 255, 0.8)',
-        border: isDark ? '1px solid rgba(193, 192, 182, 0.08)' : '1px solid rgba(0, 0, 0, 0.06)',
-        boxShadow: isDark ? '0 4px 20px rgba(0, 0, 0, 0.3)' : '0 4px 20px rgba(0, 0, 0, 0.04)',
+        background: 'rgba(255, 255, 255, 0.18)',
+        backdropFilter: 'blur(10px) saturate(140%)',
+        WebkitBackdropFilter: 'blur(10px) saturate(140%)',
+        border: '1px solid rgba(255, 255, 255, 0.45)',
+        boxShadow: '0 8px 32px rgba(0, 0, 0, 0.18), inset 0 1px 0 rgba(255, 255, 255, 0.6)',
       }}
       initial={{ opacity: 0, y: 16 }}
       animate={{ opacity: 1, y: 0 }}
@@ -55,7 +53,7 @@ export const BentoStatsTile: React.FC<Props> = ({ stats, firstMemoryAt, connecte
     >
       <p
         className="text-xs uppercase tracking-widest font-medium mb-4"
-        style={{ color: isDark ? 'rgba(193, 192, 182, 0.4)' : '#a8a29e' }}
+        style={{ color: '#8A857D' }}
       >
         Twin Stats
       </p>
@@ -72,13 +70,13 @@ export const BentoStatsTile: React.FC<Props> = ({ stats, firstMemoryAt, connecte
             <div>
               <p
                 className="text-lg font-semibold leading-none mb-0.5"
-                style={{ color: isDark ? '#E8E6D9' : '#1a1714' }}
+                style={{ color: '#1F1C18' }}
               >
                 {value}
               </p>
               <p
                 className="text-xs"
-                style={{ color: isDark ? 'rgba(193, 192, 182, 0.4)' : '#a8a29e' }}
+                style={{ color: '#8A857D' }}
               >
                 {label}
               </p>

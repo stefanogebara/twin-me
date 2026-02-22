@@ -8,7 +8,6 @@ import React from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { useTheme } from '../contexts/ThemeContext';
 import { useAuth } from '../contexts/AuthContext';
 import {
   TrendingUp,
@@ -63,7 +62,6 @@ function formatRelativeTime(dateStr: string): string {
 }
 
 export const ProactiveInsightsPanel: React.FC = () => {
-  const { theme } = useTheme();
   const { isDemoMode } = useAuth();
   const navigate = useNavigate();
 
@@ -91,12 +89,15 @@ export const ProactiveInsightsPanel: React.FC = () => {
   if (isLoading) {
     return (
       <div className="rounded-2xl p-6" style={{
-        backgroundColor: theme === 'dark' ? 'rgba(45, 45, 41, 0.5)' : 'rgba(255, 255, 255, 0.7)',
-        border: theme === 'dark' ? '1px solid rgba(193, 192, 182, 0.1)' : '1px solid rgba(0, 0, 0, 0.05)',
+        background: 'rgba(255, 255, 255, 0.18)',
+        backdropFilter: 'blur(10px) saturate(140%)',
+        WebkitBackdropFilter: 'blur(10px) saturate(140%)',
+        border: '1px solid rgba(255, 255, 255, 0.45)',
+        boxShadow: '0 8px 32px rgba(0, 0, 0, 0.18), inset 0 1px 0 rgba(255, 255, 255, 0.6)',
       }}>
         <div className="flex items-center justify-center py-4">
-          <Loader2 className="w-5 h-5 animate-spin" style={{ color: theme === 'dark' ? '#C1C0B6' : '#57534e' }} />
-          <span className="ml-2 text-sm" style={{ color: theme === 'dark' ? 'rgba(193, 192, 182, 0.8)' : '#57534e' }}>
+          <Loader2 className="w-5 h-5 animate-spin" style={{ color: '#8A857D' }} />
+          <span className="ml-2 text-sm" style={{ color: '#8A857D' }}>
             Checking for insights...
           </span>
         </div>
@@ -110,11 +111,11 @@ export const ProactiveInsightsPanel: React.FC = () => {
       <GlassPanel className="text-center py-6">
         <Eye
           className="w-8 h-8 mx-auto mb-3 opacity-30"
-          style={{ color: theme === 'dark' ? '#C1C0B6' : '#78716c' }}
+          style={{ color: '#78716c' }}
         />
         <p
           className="text-sm"
-          style={{ color: theme === 'dark' ? 'rgba(193, 192, 182, 0.6)' : '#a8a29e' }}
+          style={{ color: '#8A857D' }}
         >
           Your twin is observing. Insights will appear as patterns emerge.
         </p>
@@ -129,23 +130,21 @@ export const ProactiveInsightsPanel: React.FC = () => {
         <div
           className="w-1 h-5 rounded-full"
           style={{
-            background: theme === 'dark'
-              ? 'linear-gradient(to bottom, #E0B860, rgba(193, 192, 182, 0.2))'
-              : 'linear-gradient(to bottom, #B8942E, rgba(0, 0, 0, 0.1))',
+            background: 'linear-gradient(to bottom, #B8942E, rgba(0, 0, 0, 0.1))',
           }}
         />
-        <Eye className="w-4 h-4" style={{ color: theme === 'dark' ? 'rgba(224, 184, 96, 0.8)' : '#B8942E' }} />
+        <Eye className="w-4 h-4" style={{ color: '#B8942E' }} />
         <h3
           className="text-sm uppercase tracking-wider"
-          style={{ color: theme === 'dark' ? 'rgba(193, 192, 182, 0.6)' : '#78716c' }}
+          style={{ color: '#78716c' }}
         >
           Twin Noticed
         </h3>
         <span
           className="text-xs px-2 py-0.5 rounded-full"
           style={{
-            backgroundColor: theme === 'dark' ? 'rgba(224, 184, 96, 0.15)' : 'rgba(212, 168, 83, 0.12)',
-            color: theme === 'dark' ? '#E0B860' : '#B8942E',
+            backgroundColor: 'rgba(212, 168, 83, 0.12)',
+            color: '#B8942E',
           }}
         >
           {insights.length}
@@ -173,12 +172,12 @@ export const ProactiveInsightsPanel: React.FC = () => {
                     <div
                       className="w-10 h-10 rounded-lg flex items-center justify-center"
                       style={{
-                        backgroundColor: theme === 'dark' ? 'rgba(224, 184, 96, 0.1)' : 'rgba(212, 168, 83, 0.08)',
+                        backgroundColor: 'rgba(212, 168, 83, 0.08)',
                       }}
                     >
                       <Icon
                         className="w-5 h-5"
-                        style={{ color: theme === 'dark' ? '#E0B860' : '#B8942E' }}
+                        style={{ color: '#B8942E' }}
                       />
                     </div>
                     {/* Urgency dot */}
@@ -186,7 +185,7 @@ export const ProactiveInsightsPanel: React.FC = () => {
                       className="absolute -top-1 -right-1 w-3 h-3 rounded-full border-2"
                       style={{
                         backgroundColor: colors.dot,
-                        borderColor: theme === 'dark' ? '#2d2d29' : '#ffffff',
+                        borderColor: '#F7F7F3',
                       }}
                     />
                   </div>
@@ -196,20 +195,20 @@ export const ProactiveInsightsPanel: React.FC = () => {
                     <div className="flex items-center gap-2 mb-1">
                       <span
                         className="text-[10px] uppercase tracking-wider font-medium"
-                        style={{ color: theme === 'dark' ? 'rgba(193, 192, 182, 0.5)' : '#a8a29e' }}
+                        style={{ color: '#8A857D' }}
                       >
                         {config.label}
                       </span>
                       <span
                         className="text-[10px]"
-                        style={{ color: theme === 'dark' ? 'rgba(193, 192, 182, 0.4)' : '#d6d3d1' }}
+                        style={{ color: '#d6d3d1' }}
                       >
                         {formatRelativeTime(insight.created_at)}
                       </span>
                     </div>
                     <p
                       className="text-sm leading-relaxed"
-                      style={{ color: theme === 'dark' ? 'rgba(193, 192, 182, 0.85)' : '#44403c' }}
+                      style={{ color: '#44403c' }}
                     >
                       {insight.insight}
                     </p>
@@ -221,9 +220,9 @@ export const ProactiveInsightsPanel: React.FC = () => {
                   onClick={() => navigate('/talk-to-twin')}
                   className="mt-3 w-full py-2 flex items-center justify-center gap-2 rounded-lg text-xs font-medium transition-colors"
                   style={{
-                    backgroundColor: theme === 'dark' ? 'rgba(224, 184, 96, 0.1)' : 'rgba(212, 168, 83, 0.08)',
-                    color: theme === 'dark' ? '#E0B860' : '#B8942E',
-                    border: theme === 'dark' ? '1px solid rgba(224, 184, 96, 0.15)' : '1px solid rgba(212, 168, 83, 0.12)',
+                    backgroundColor: 'rgba(212, 168, 83, 0.08)',
+                    color: '#B8942E',
+                    border: '1px solid rgba(212, 168, 83, 0.12)',
                   }}
                 >
                   <MessageCircle className="w-3.5 h-3.5" />
