@@ -232,27 +232,32 @@ const SoulSignatureDashboard: React.FC = () => {
         <>
           {/* Archetype Card — visible immediately after onboarding, before reflections accumulate */}
           {displaySoulSignature && (
-            <div className="mb-6 rounded-2xl border border-stone-200 bg-white/80 p-6 shadow-sm backdrop-blur-sm">
-              <p className="mb-1 text-xs font-semibold uppercase tracking-widest text-stone-400">
+            <div
+              className="mb-6 rounded-2xl p-6 backdrop-blur-sm"
+              style={{ background: colors.cardBg, border: colors.cardBorder, boxShadow: colors.cardShadow }}
+            >
+              <p className="mb-1 text-xs font-semibold uppercase tracking-widest" style={{ color: colors.textFaint }}>
                 Your Archetype
               </p>
-              <h2 className="mb-2 text-2xl font-bold text-stone-900">
+              <h2 className="mb-2 text-2xl font-bold" style={{ color: colors.textColor }}>
                 {displaySoulSignature.archetype_name}
               </h2>
               {/* signature_quote is the sessionStorage field, archetype_subtitle is the DB field */}
               {(displaySoulSignature.signature_quote || displaySoulSignature.archetype_subtitle) && (
-                <p className="mb-3 italic text-stone-500">
+                <p className="mb-3 italic" style={{ color: colors.textSecondary }}>
                   "{displaySoulSignature.signature_quote ?? displaySoulSignature.archetype_subtitle}"
                 </p>
               )}
               {/* core_traits is sessionStorage field, defining_traits is DB field */}
               {(() => {
-                const traits = displaySoulSignature.core_traits ?? displaySoulSignature.defining_traits ?? [];
-                const traitList = traits.map((t: any) => typeof t === 'string' ? t : t.trait).filter(Boolean);
+                const raw = displaySoulSignature.core_traits ?? displaySoulSignature.defining_traits ?? [];
+                const traitList: string[] = (Array.isArray(raw) ? raw : [])
+                  .map((t: unknown) => (typeof t === 'string' ? t : (t as { trait?: string })?.trait ?? ''))
+                  .filter(Boolean);
                 return traitList.length > 0 ? (
                   <div className="flex flex-wrap gap-2">
                     {traitList.map((trait: string) => (
-                      <span key={trait} className="rounded-full bg-stone-100 px-3 py-1 text-xs font-medium text-stone-700">
+                      <span key={trait} className="rounded-full px-3 py-1 text-xs font-medium" style={{ background: colors.subtleBg, color: colors.textSecondary }}>
                         {trait}
                       </span>
                     ))}
@@ -261,7 +266,7 @@ const SoulSignatureDashboard: React.FC = () => {
               })()}
               {/* first_impression is sessionStorage field, narrative is DB field */}
               {(displaySoulSignature.first_impression || displaySoulSignature.narrative) && (
-                <p className="mt-3 text-sm text-stone-600">
+                <p className="mt-3 text-sm" style={{ color: colors.textMuted }}>
                   {displaySoulSignature.first_impression ?? displaySoulSignature.narrative}
                 </p>
               )}
