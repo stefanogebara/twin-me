@@ -136,7 +136,7 @@ export async function extractGitHubData(userId) {
     }
 
     // Update connection status
-    await supabase
+    const { error: syncSuccessErr } = await supabase
       .from('platform_connections')
       .update({
         last_synced_at: new Date(),
@@ -144,6 +144,7 @@ export async function extractGitHubData(userId) {
       })
       .eq('user_id', userId)
       .eq('platform', 'github');
+    if (syncSuccessErr) console.warn('[GitHub] Error updating connection status:', syncSuccessErr.message);
 
     return {
       success: true,
@@ -158,13 +159,14 @@ export async function extractGitHubData(userId) {
 
     // Handle token expiration
     if (error.response?.status === 401) {
-      await supabase
+      const { error: reauthErr } = await supabase
         .from('platform_connections')
         .update({
           last_sync_status: 'requires_reauth'
         })
         .eq('user_id', userId)
         .eq('platform', 'github');
+      if (reauthErr) console.warn('[GitHub] Error updating connection status:', reauthErr.message);
 
       return {
         success: false,
@@ -185,13 +187,14 @@ export async function extractGitHubData(userId) {
     }
 
     // Update connection with error status
-    await supabase
+    const { error: failedErr } = await supabase
       .from('platform_connections')
       .update({
         last_sync_status: 'failed'
       })
       .eq('user_id', userId)
       .eq('platform', 'github');
+    if (failedErr) console.warn('[GitHub] Error updating connection status:', failedErr.message);
 
     throw error;
   }

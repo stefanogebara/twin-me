@@ -903,7 +903,7 @@ class IntelligentMusicService {
       const expiresAt = new Date(Date.now() + tokens.expires_in * 1000);
 
       // Update stored tokens
-      await supabaseAdmin
+      const { error: tokenUpdateErr } = await supabaseAdmin
         .from('platform_connections')
         .update({
           access_token: encryptToken(newAccessToken),
@@ -912,6 +912,7 @@ class IntelligentMusicService {
         })
         .eq('user_id', userId)
         .eq('platform', 'spotify');
+      if (tokenUpdateErr) console.warn('[IntelligentMusic] Error updating connection status:', tokenUpdateErr.message);
 
       console.log('🎵 [IntelligentMusic] Token refreshed successfully');
       return newAccessToken;
