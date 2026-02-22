@@ -139,22 +139,7 @@ export async function validateAuthorizationCode(provider, code, codeVerifier) {
     // Exchange code for tokens
     const tokens = await arcticProvider.validateAuthorizationCode(code, codeVerifier);
 
-    console.log(`[Arctic] ✅ Tokens obtained for ${provider}`);
-
-    // CRITICAL DEBUGGING: Log the raw token data object to see what Google actually returns
-    console.log(`[Arctic] 🔍 Raw token object type: ${typeof tokens}`);
-    console.log(`[Arctic] 🔍 Token object keys:`, Object.keys(tokens));
-    console.log(`[Arctic] 🔍 Token has data property:`, 'data' in tokens);
-
-    // Arctic stores the raw response in tokens.data
-    if (tokens.data) {
-      console.log(`[Arctic] 🔍 Raw token data from Google:`, JSON.stringify(tokens.data, null, 2));
-      console.log(`[Arctic] 🔍 Fields in token data:`, Object.keys(tokens.data));
-      console.log(`[Arctic] 🔍 Has refresh_token field in data:`, 'refresh_token' in tokens.data);
-    }
-
-    // Use Arctic's hasRefreshToken() method to check BEFORE accessing
-    console.log(`[Arctic] 🔍 hasRefreshToken() returns:`, tokens.hasRefreshToken());
+    console.log(`[Arctic] ✅ Tokens obtained for ${provider}, hasRefreshToken: ${tokens.hasRefreshToken()}`);
 
     // Extract tokens safely using Arctic's methods
     const accessTokenValue = tokens.accessToken(); // This should always exist
