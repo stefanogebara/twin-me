@@ -312,7 +312,7 @@ router.get('/events', authenticateUser, async (req, res) => {
     }
 
     // Update last sync time in platform_connections
-    await supabaseAdmin
+    const { error: syncUpdateErr } = await supabaseAdmin
       .from('platform_connections')
       .update({
         last_sync: new Date().toISOString(),
@@ -325,6 +325,10 @@ router.get('/events', authenticateUser, async (req, res) => {
       })
       .eq('user_id', userId)
       .eq('platform', 'google_calendar');
+
+    if (syncUpdateErr) {
+      console.warn('[Calendar Events] Failed to update last_sync:', syncUpdateErr.message);
+    }
 
     res.json({
       success: true,
@@ -505,7 +509,7 @@ router.post('/sync', authenticateUser, async (req, res) => {
     }
 
     // Update platform connection
-    await supabaseAdmin
+    const { error: manualSyncErr } = await supabaseAdmin
       .from('platform_connections')
       .update({
         last_sync: new Date().toISOString(),
@@ -519,6 +523,10 @@ router.post('/sync', authenticateUser, async (req, res) => {
       })
       .eq('user_id', userId)
       .eq('platform', 'google_calendar');
+
+    if (manualSyncErr) {
+      console.warn('[Calendar Sync] Failed to update connection after sync:', manualSyncErr.message);
+    }
 
     // AUTO-INFER life events from calendar (vacation, conferences, etc.)
     let inferredLifeEvents = [];
@@ -546,7 +554,7 @@ router.post('/sync', authenticateUser, async (req, res) => {
     console.error('[Calendar Sync] Error:', error);
 
     // Update sync status to failed
-    await supabaseAdmin
+    const { error: failStatusErr } = await supabaseAdmin
       .from('platform_connections')
       .update({
         last_sync: new Date().toISOString(),
@@ -559,6 +567,10 @@ router.post('/sync', authenticateUser, async (req, res) => {
       })
       .eq('user_id', req.user.id)
       .eq('platform', 'google_calendar');
+
+    if (failStatusErr) {
+      console.warn('[Calendar Sync] Failed to mark sync as failed:', failStatusErr.message);
+    }
 
     res.status(500).json({
       success: false,
@@ -632,11 +644,16 @@ router.delete('/disconnect', authenticateUser, async (req, res) => {
     console.log(`[Calendar Disconnect] Disconnecting for user: ${userId}`);
 
     // Update connection status
-    await supabaseAdmin
+    const { error: disconnectErr } = await supabaseAdmin
       .from('platform_connections')
       .update({ connected: false })
       .eq('user_id', userId)
       .eq('platform', 'google_calendar');
+
+    if (disconnectErr) {
+      console.error('[Calendar Disconnect] Failed to update connection status:', disconnectErr.message);
+      return res.status(500).json({ success: false, error: 'Failed to disconnect calendar' });
+    }
 
     // Invalidate cache
     await invalidatePlatformStatusCache(userId);

@@ -62,7 +62,12 @@ async function extractFacts(userMessage, assistantResponse) {
     // Parse JSON from response
     const jsonMatch = text.match(/\[[\s\S]*\]/);
     if (jsonMatch) {
-      return JSON.parse(jsonMatch[0]);
+      try {
+        return JSON.parse(jsonMatch[0]);
+      } catch {
+        console.warn('[Memory] Failed to parse fact extraction JSON:', jsonMatch[0].substring(0, 100));
+        return [];
+      }
     }
     return [];
   } catch (error) {
@@ -103,13 +108,16 @@ async function addConversationMemory(userId, userMessage, assistantResponse, met
         console.warn('[Memory] user_memories table not found - creating...');
         await createMemoryTable();
         // Retry insert
-        await supabaseAdmin.from('user_memories').insert({
+        const { error: retryErr } = await supabaseAdmin.from('user_memories').insert({
           user_id: userId,
           memory_type: 'conversation',
           content: userMessage.substring(0, 500),
           response: assistantResponse.substring(0, 500),
           metadata: { ...metadata, extracted_facts: facts.length }
         });
+        if (retryErr) {
+          console.error('[Memory] Retry insert failed after table creation:', retryErr.message);
+        }
       } else {
         console.error('[Memory] Failed to store conversation:', convError);
       }
@@ -127,8 +135,12 @@ async function addConversationMemory(userId, userMessage, assistantResponse, met
         }
       }));
 
-      await supabaseAdmin.from('user_memories').insert(factRecords);
-      console.log(`[Memory] Stored ${facts.length} facts for user ${userId}`);
+      const { error: factsErr } = await supabaseAdmin.from('user_memories').insert(factRecords);
+      if (factsErr) {
+        console.error('[Memory] Failed to store facts batch:', factsErr.message);
+      } else {
+        console.log(`[Memory] Stored ${facts.length} facts for user ${userId}`);
+      }
     }
 
     return { success: true, factsExtracted: facts.length };
@@ -215,8 +227,8 @@ async function addPlatformMemory(userId, platform, dataType, data) {
         }
       });
 
-    if (error && error.code !== '42P01') {
-      console.error('[Memory] Failed to store platform data:', error);
+    if (error) {
+      console.error('[Memory] Failed to store platform data:', error.message);
       return null;
     }
 
@@ -313,8 +325,8 @@ async function addUserFact(userId, fact, category = 'general') {
         }
       });
 
-    if (error && error.code !== '42P01') {
-      console.error('[Memory] Failed to add fact:', error);
+    if (error) {
+      console.error('[Memory] Failed to add fact:', error.message);
       return null;
     }
 
