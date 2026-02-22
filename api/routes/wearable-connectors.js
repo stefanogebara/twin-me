@@ -21,7 +21,8 @@ const PROVIDERS = ['garmin', 'polar', 'suunto', 'whoop', 'apple_health'];
  */
 router.post('/connect', authenticateUser, async (req, res) => {
   try {
-    const { userId, email } = req.user;
+    const userId = req.user.id;
+    const { email } = req.user;
     const { provider } = req.body;
 
     console.log('[Wearables] Connect request:', { userId, provider });
@@ -45,12 +46,16 @@ router.post('/connect', authenticateUser, async (req, res) => {
     }
 
     // Store Open Wearables user ID mapping in platform_connections
-    await supabaseAdmin.from('platform_connections').upsert({
+    const { error: upsertErr } = await supabaseAdmin.from('platform_connections').upsert({
       user_id: userId,
       platform: 'open_wearables',
       metadata: { ow_user_id: owUser.id },
       status: 'pending'
     }, { onConflict: 'user_id,platform' });
+    if (upsertErr) {
+      console.error('[Wearables] Failed to store connection record:', upsertErr.message);
+      return res.status(500).json({ error: 'Failed to store connection' });
+    }
 
     // Generate connection link
     const callbackUrl = `${process.env.CLIENT_URL}/connect-data?wearable=success&provider=${provider}`;
@@ -75,7 +80,7 @@ router.post('/connect', authenticateUser, async (req, res) => {
  */
 router.get('/status', authenticateUser, async (req, res) => {
   try {
-    const { userId } = req.user;
+    const userId = req.user.id;
 
     // Get Open Wearables user ID from platform_connections
     const { data: connection, error: connError } = await supabaseAdmin
@@ -113,7 +118,7 @@ router.get('/status', authenticateUser, async (req, res) => {
  */
 router.post('/disconnect', authenticateUser, async (req, res) => {
   try {
-    const { userId } = req.user;
+    const userId = req.user.id;
     const { provider } = req.body;
 
     console.log('[Wearables] Disconnect request:', { userId, provider });
@@ -152,7 +157,7 @@ router.post('/disconnect', authenticateUser, async (req, res) => {
  */
 router.post('/sync', authenticateUser, async (req, res) => {
   try {
-    const { userId } = req.user;
+    const userId = req.user.id;
     const { days = 30 } = req.body;
 
     console.log('[Wearables] Sync request:', { userId, days });
@@ -257,7 +262,7 @@ router.post('/sync', authenticateUser, async (req, res) => {
  */
 router.get('/data', authenticateUser, async (req, res) => {
   try {
-    const { userId } = req.user;
+    const userId = req.user.id;
     const { type, days = 30 } = req.query;
 
     const startDate = new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString();

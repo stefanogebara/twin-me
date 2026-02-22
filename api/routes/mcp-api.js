@@ -49,10 +49,13 @@ async function authenticateApiKey(req, res, next) {
   }
 
   // Update last_used_at
-  await supabaseAdmin
+  const { error: updateErr } = await supabaseAdmin
     .from('api_keys')
     .update({ last_used_at: new Date().toISOString() })
     .eq('id', data.id);
+  if (updateErr) {
+    console.error('[MCP API] Failed to update key last_used_at:', updateErr.message);
+  }
 
   req.userId = data.user_id;
   next();
@@ -213,13 +216,16 @@ router.get('/predictions', authenticateApiKey, async (req, res) => {
 // ============ Helper Functions ============
 
 async function getSoulSignature(userId) {
-  const { data } = await supabaseAdmin
+  const { data, error } = await supabaseAdmin
     .from('soul_signatures')
     .select('*')
     .eq('user_id', userId)
     .order('created_at', { ascending: false })
     .limit(1)
     .single();
+  if (error && error.code !== 'PGRST116') {
+    console.error('[MCP API] Failed to fetch soul signature:', error.message);
+  }
   return data;
 }
 
@@ -415,12 +421,15 @@ Write naturally like texting a close friend. Keep responses concise (2-3 paragra
 }
 
 async function getPatterns(userId) {
-  const { data: events } = await supabaseAdmin
+  const { data: events, error: eventsErr } = await supabaseAdmin
     .from('realtime_events')
     .select('*')
     .eq('user_id', userId)
     .order('created_at', { ascending: false })
     .limit(100);
+  if (eventsErr) {
+    console.error('[MCP API] Failed to fetch patterns:', eventsErr.message);
+  }
 
   const patterns = { timePatterns: [], platformPatterns: [] };
 
