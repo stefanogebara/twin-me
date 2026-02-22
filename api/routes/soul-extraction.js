@@ -160,19 +160,15 @@ case 'github':
     }
 
     // Update last_sync timestamp in database
-    try {
-      await supabase
-        .from('platform_connections')
-        .update({
-          last_sync: new Date().toISOString(),
-          last_sync_status: extraction.success !== false ? 'success' : 'failed'
-        })
-        .eq('user_id', userId)
-        .eq('platform', platform);
-    } catch (dbError) {
-      console.warn('⚠️ Failed to update last_sync timestamp:', dbError.message);
-      // Don't throw - extraction succeeded even if sync timestamp update failed
-    }
+    const { error: syncErr } = await supabase
+      .from('platform_connections')
+      .update({
+        last_sync: new Date().toISOString(),
+        last_sync_status: extraction.success !== false ? 'success' : 'failed'
+      })
+      .eq('user_id', userId)
+      .eq('platform', platform);
+    if (syncErr) console.warn('⚠️ Failed to update last_sync timestamp:', syncErr.message);
 
     res.json({
       success: true,
@@ -228,43 +224,35 @@ router.post('/extract/spotify-deep/:userId', authenticateUser, asyncHandler(asyn
   }
 
   // Store enhanced data in database for later analysis
-  try {
-    await supabase
-      .from('user_platform_data')
-      .insert({
-        user_id: userId,
-        platform: 'spotify',
-        data_type: 'enhanced_profile',
-        raw_data: enhancedProfile,
-        extracted_at: new Date().toISOString(),
-        processed: false
-      });
-
-    console.log(`✅ [Spotify Enhanced] Profile stored in database`);
-  } catch (dbError) {
-    console.warn('⚠️ [Spotify Enhanced] Failed to store in database:', dbError.message);
-    // Continue even if database storage fails
-  }
+  const { error: spotifyStoreErr } = await supabase
+    .from('user_platform_data')
+    .insert({
+      user_id: userId,
+      platform: 'spotify',
+      data_type: 'enhanced_profile',
+      raw_data: enhancedProfile,
+      extracted_at: new Date().toISOString(),
+      processed: false
+    });
+  if (spotifyStoreErr) console.warn('⚠️ [Spotify Enhanced] Failed to store in database:', spotifyStoreErr.message);
+  else console.log(`✅ [Spotify Enhanced] Profile stored in database`);
 
   // Update last_sync timestamp
-  try {
-    await supabase
-      .from('platform_connections')
-      .update({
-        last_sync: new Date().toISOString(),
-        last_sync_status: 'success',
-        metadata: {
-          enhanced_extraction: true,
-          data_quality: enhancedProfile.dataQuality?.quality || 'unknown',
-          analyses_performed: 8,
-          last_enhanced_sync: new Date().toISOString()
-        }
-      })
-      .eq('user_id', userId)
-      .eq('platform', 'spotify');
-  } catch (dbError) {
-    console.warn('⚠️ Failed to update connector metadata:', dbError.message);
-  }
+  const { error: spotifyMetaErr } = await supabase
+    .from('platform_connections')
+    .update({
+      last_sync: new Date().toISOString(),
+      last_sync_status: 'success',
+      metadata: {
+        enhanced_extraction: true,
+        data_quality: enhancedProfile.dataQuality?.quality || 'unknown',
+        analyses_performed: 8,
+        last_enhanced_sync: new Date().toISOString()
+      }
+    })
+    .eq('user_id', userId)
+    .eq('platform', 'spotify');
+  if (spotifyMetaErr) console.warn('⚠️ Failed to update connector metadata:', spotifyMetaErr.message);
 
   res.json({
     success: true,
@@ -323,43 +311,35 @@ router.post('/extract/youtube-deep/:userId', authenticateUser, asyncHandler(asyn
   }
 
   // Store enhanced data in database for later analysis
-  try {
-    await supabase
-      .from('user_platform_data')
-      .insert({
-        user_id: userId,
-        platform: 'youtube',
-        data_type: 'enhanced_profile',
-        raw_data: enhancedProfile,
-        extracted_at: new Date().toISOString(),
-        processed: false
-      });
-
-    console.log(`✅ [YouTube Enhanced] Profile stored in database`);
-  } catch (dbError) {
-    console.warn('⚠️ [YouTube Enhanced] Failed to store in database:', dbError.message);
-    // Continue even if database storage fails
-  }
+  const { error: youtubeStoreErr } = await supabase
+    .from('user_platform_data')
+    .insert({
+      user_id: userId,
+      platform: 'youtube',
+      data_type: 'enhanced_profile',
+      raw_data: enhancedProfile,
+      extracted_at: new Date().toISOString(),
+      processed: false
+    });
+  if (youtubeStoreErr) console.warn('⚠️ [YouTube Enhanced] Failed to store in database:', youtubeStoreErr.message);
+  else console.log(`✅ [YouTube Enhanced] Profile stored in database`);
 
   // Update last_sync timestamp
-  try {
-    await supabase
-      .from('platform_connections')
-      .update({
-        last_sync: new Date().toISOString(),
-        last_sync_status: 'success',
-        metadata: {
-          enhanced_extraction: true,
-          data_quality: enhancedProfile.dataQuality?.quality || 'unknown',
-          analyses_performed: 10,
-          last_enhanced_sync: new Date().toISOString()
-        }
-      })
-      .eq('user_id', userId)
-      .eq('platform', 'youtube');
-  } catch (dbError) {
-    console.warn('⚠️ Failed to update connector metadata:', dbError.message);
-  }
+  const { error: youtubeMetaErr } = await supabase
+    .from('platform_connections')
+    .update({
+      last_sync: new Date().toISOString(),
+      last_sync_status: 'success',
+      metadata: {
+        enhanced_extraction: true,
+        data_quality: enhancedProfile.dataQuality?.quality || 'unknown',
+        analyses_performed: 10,
+        last_enhanced_sync: new Date().toISOString()
+      }
+    })
+    .eq('user_id', userId)
+    .eq('platform', 'youtube');
+  if (youtubeMetaErr) console.warn('⚠️ Failed to update connector metadata:', youtubeMetaErr.message);
 
   res.json({
     success: true,
@@ -390,11 +370,12 @@ router.post('/extract/web-deep/:userId', authenticateUser, asyncHandler(async (r
   console.log(`[Web Deep] Personality inference request for user ${userId}`);
 
   // Verify user has web browsing data
-  const { count } = await supabase
+  const { count, error: webCountErr } = await supabase
     .from('user_platform_data')
     .select('id', { count: 'exact', head: true })
     .eq('user_id', userId)
     .eq('platform', 'web');
+  if (webCountErr) console.error('[Web Deep] Failed to count web data:', webCountErr.message);
 
   if (!count || count < 5) {
     throw new InsufficientDataError('web', 5, count || 0, {
@@ -411,43 +392,36 @@ router.post('/extract/web-deep/:userId', authenticateUser, asyncHandler(async (r
   }
 
   // Store behavioral features in database
-  try {
-    const features = analysisResult.features || {};
-    const featureEntries = Object.entries(features).map(([feature_name, feature_value]) => ({
-      user_id: userId,
-      platform: 'web',
-      feature_name,
-      feature_value: typeof feature_value === 'number' ? feature_value : 0,
-      confidence: analysisResult.data_quality?.quality_score || 0.5,
-      extracted_at: new Date().toISOString()
-    }));
+  const features = analysisResult.features || {};
+  const featureEntries = Object.entries(features).map(([feature_name, feature_value]) => ({
+    user_id: userId,
+    platform: 'web',
+    feature_name,
+    feature_value: typeof feature_value === 'number' ? feature_value : 0,
+    confidence: analysisResult.data_quality?.quality_score || 0.5,
+    extracted_at: new Date().toISOString()
+  }));
 
-    if (featureEntries.length > 0) {
-      await supabase
-        .from('behavioral_features')
-        .upsert(featureEntries, { onConflict: 'user_id,platform,feature_name' });
-
-      console.log(`[Web Deep] Stored ${featureEntries.length} behavioral features`);
-    }
-  } catch (dbError) {
-    console.warn('[Web Deep] Failed to store behavioral features:', dbError.message);
+  if (featureEntries.length > 0) {
+    const { error: featuresErr } = await supabase
+      .from('behavioral_features')
+      .upsert(featureEntries, { onConflict: 'user_id,platform,feature_name' });
+    if (featuresErr) console.warn('[Web Deep] Failed to store behavioral features:', featuresErr.message);
+    else console.log(`[Web Deep] Stored ${featureEntries.length} behavioral features`);
   }
 
   // Store the full analysis result
-  try {
-    await supabase
-      .from('user_platform_data')
-      .insert({
-        user_id: userId,
-        platform: 'web',
-        data_type: 'deep_personality_analysis',
-        raw_data: analysisResult,
-        extracted_at: new Date().toISOString(),
-        processed: true
-      });
-  } catch (dbError) {
-    console.warn('[Web Deep] Failed to store analysis result:', dbError.message);
-  }
+  const { error: webStoreErr } = await supabase
+    .from('user_platform_data')
+    .insert({
+      user_id: userId,
+      platform: 'web',
+      data_type: 'deep_personality_analysis',
+      raw_data: analysisResult,
+      extracted_at: new Date().toISOString(),
+      processed: true
+    });
+  if (webStoreErr) console.warn('[Web Deep] Failed to store analysis result:', webStoreErr.message);
 
   res.json({
     success: true,
