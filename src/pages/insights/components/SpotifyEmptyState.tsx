@@ -8,13 +8,11 @@ interface SpotifyEmptyStateProps {
     textSecondary: string;
     spotifyGreen: string;
   };
-  theme: string;
   navigate: (path: string) => void;
 }
 
 export const SpotifyEmptyState: React.FC<SpotifyEmptyStateProps> = ({
   colors,
-  theme,
   navigate,
 }) => {
   return (
@@ -37,7 +35,7 @@ export const SpotifyEmptyState: React.FC<SpotifyEmptyStateProps> = ({
         <div
           className="mt-4 inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm"
           style={{
-            backgroundColor: theme === 'dark' ? 'rgba(29, 185, 84, 0.08)' : 'rgba(29, 185, 84, 0.05)',
+            backgroundColor: 'rgba(29, 185, 84, 0.05)',
             color: colors.spotifyGreen,
             border: '1px solid rgba(29, 185, 84, 0.2)',
           }}
@@ -61,8 +59,8 @@ export const SpotifyEmptyState: React.FC<SpotifyEmptyStateProps> = ({
           <div className="space-y-2">
             {[80, 60, 40].map((width, i) => (
               <div key={i} className="flex items-center gap-3">
-                <div className="w-20 h-3 rounded animate-pulse" style={{ backgroundColor: theme === 'dark' ? 'rgba(193,192,182,0.08)' : 'rgba(0,0,0,0.04)' }} />
-                <div className="flex-1 h-4 rounded-lg overflow-hidden animate-pulse" style={{ backgroundColor: theme === 'dark' ? 'rgba(0,0,0,0.3)' : 'rgba(0,0,0,0.06)' }}>
+                <div className="w-20 h-3 rounded animate-pulse" style={{ backgroundColor: 'rgba(0,0,0,0.04)' }} />
+                <div className="flex-1 h-4 rounded-lg overflow-hidden animate-pulse" style={{ backgroundColor: 'rgba(0,0,0,0.06)' }}>
                   <div className="h-full rounded-lg" style={{ width: `${width}%`, backgroundColor: `${colors.spotifyGreen}40` }} />
                 </div>
               </div>
@@ -76,7 +74,7 @@ export const SpotifyEmptyState: React.FC<SpotifyEmptyStateProps> = ({
               <PieChart className="w-4 h-4" style={{ color: colors.textSecondary }} />
               <span className="text-sm" style={{ color: colors.textSecondary }}>Genres</span>
             </div>
-            <div className="w-16 h-16 mx-auto rounded-full" style={{ border: `3px dashed ${theme === 'dark' ? 'rgba(193,192,182,0.12)' : 'rgba(0,0,0,0.08)'}` }} />
+            <div className="w-16 h-16 mx-auto rounded-full" style={{ border: `3px dashed rgba(0,0,0,0.08)` }} />
           </GlassPanel>
           <GlassPanel className="!p-4" style={{ border: '1px dashed' }}>
             <div className="flex items-center gap-2 mb-3">

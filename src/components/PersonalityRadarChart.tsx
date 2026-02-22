@@ -5,12 +5,11 @@
  * - Animated radar chart with customizable colors
  * - Works with both Big Five (5 dimensions) and MBTI (4 dimensions)
  * - Hover tooltips with detailed scores
- * - Theme-aware styling
+ * - Light-mode styling using design tokens
  */
 
 import React, { useMemo } from 'react';
 import { motion } from 'framer-motion';
-import { useTheme } from '@/contexts/ThemeContext';
 
 interface PersonalityScore {
   label: string;
@@ -39,6 +38,14 @@ const DEFAULT_COLORS = [
   '#D4D3CC', // Neuroticism - Lightest grey
 ];
 
+// Light-mode design tokens for chart
+const chartColors = {
+  text: '#1F1C18',
+  textSecondary: '#8A857D',
+  gridLine: 'rgba(45, 39, 34, 0.1)',
+  accent: '#2D2722',
+};
+
 export function PersonalityRadarChart({
   scores,
   size = 300,
@@ -49,15 +56,6 @@ export function PersonalityRadarChart({
   title,
   subtitle,
 }: PersonalityRadarChartProps) {
-  const { theme } = useTheme();
-
-  const colors = {
-    text: theme === 'dark' ? '#C1C0B6' : '#0c0a09',
-    textSecondary: theme === 'dark' ? 'rgba(193, 192, 182, 0.6)' : '#78716c',
-    gridLine: theme === 'dark' ? 'rgba(193, 192, 182, 0.1)' : 'rgba(0, 0, 0, 0.08)',
-    accent: theme === 'dark' ? '#C1C0B6' : '#44403c',
-  };
-
   const center = size / 2;
   const radius = size * 0.28; // Smaller radius to leave more room for labels
   const n = scores.length;
@@ -102,12 +100,12 @@ export function PersonalityRadarChart({
         <div className="text-center mb-4">
           <h3
             className="text-lg font-medium"
-            style={{ color: colors.text, fontFamily: 'var(--font-heading)' }}
+            style={{ color: chartColors.text, fontFamily: 'var(--font-heading)' }}
           >
             {title}
           </h3>
           {subtitle && (
-            <p className="text-sm" style={{ color: colors.textSecondary }}>
+            <p className="text-sm" style={{ color: chartColors.textSecondary }}>
               {subtitle}
             </p>
           )}
@@ -123,7 +121,7 @@ export function PersonalityRadarChart({
             cy={center}
             r={(radius * percent) / 100}
             fill="none"
-            stroke={colors.gridLine}
+            stroke={chartColors.gridLine}
             strokeWidth={1}
           />
         ))}
@@ -136,7 +134,7 @@ export function PersonalityRadarChart({
             y1={center}
             x2={center + radius * Math.cos(point.angle)}
             y2={center + radius * Math.sin(point.angle)}
-            stroke={colors.gridLine}
+            stroke={chartColors.gridLine}
             strokeWidth={1}
           />
         ))}
@@ -162,7 +160,7 @@ export function PersonalityRadarChart({
             cy={point.y}
             r={5}
             fill={point.score.color || DEFAULT_COLORS[i % DEFAULT_COLORS.length]}
-            stroke={theme === 'dark' ? '#1a1a18' : '#fff'}
+            stroke="#fff"
             strokeWidth={2}
             initial={animated ? { scale: 0 } : undefined}
             animate={animated ? { scale: 1 } : undefined}
@@ -207,7 +205,7 @@ export function PersonalityRadarChart({
                     y={point.labelY + dy + 14}
                     textAnchor={textAnchor}
                     fontSize={11}
-                    fill={colors.textSecondary}
+                    fill={chartColors.textSecondary}
                   >
                     {Math.round(point.score.value)}%
                   </text>
@@ -226,8 +224,8 @@ export function PersonalityRadarChart({
                 className="w-3 h-3 rounded-full"
                 style={{ backgroundColor: score.color || DEFAULT_COLORS[i % DEFAULT_COLORS.length] }}
               />
-              <span style={{ color: colors.text }}>{score.label}</span>
-              <span style={{ color: colors.textSecondary }} className="ml-auto">
+              <span style={{ color: chartColors.text }}>{score.label}</span>
+              <span style={{ color: chartColors.textSecondary }} className="ml-auto">
                 {Math.round(score.value)}%
               </span>
             </div>

@@ -7,7 +7,6 @@
 
 import React from 'react';
 import { motion } from 'framer-motion';
-import { useTheme } from '@/contexts/ThemeContext';
 
 interface PersonalityQuestionCardProps {
   questionId: string;
@@ -52,6 +51,19 @@ const DIMENSION_LABELS: Record<string, string> = {
   neuroticism: 'Identity (A/T)',
 };
 
+// Light-mode design tokens
+const colors = {
+  bg: '#F7F7F3',
+  cardBg: 'rgba(255, 255, 255, 0.9)',
+  border: 'rgba(0, 0, 0, 0.05)',
+  text: '#1F1C18',
+  textSecondary: '#8A857D',
+  accent: '#44403c',
+  accentBg: 'rgba(45, 39, 34, 0.08)',
+  buttonBg: 'rgba(255, 255, 255, 0.9)',
+  progressBg: 'rgba(0, 0, 0, 0.05)',
+};
+
 export function PersonalityQuestionCard({
   questionId,
   questionNumber,
@@ -66,22 +78,7 @@ export function PersonalityQuestionCard({
   isLast = false,
   showProgress = true,
 }: PersonalityQuestionCardProps) {
-  const { theme } = useTheme();
   const progress = (questionNumber / totalQuestions) * 100;
-
-  // Theme-aware colors
-  const colors = {
-    bg: theme === 'dark' ? '#1a1a18' : '#fafaf9',
-    cardBg: theme === 'dark' ? 'rgba(45, 45, 41, 0.5)' : 'rgba(255, 255, 255, 0.9)',
-    border: theme === 'dark' ? 'rgba(193, 192, 182, 0.1)' : 'rgba(0, 0, 0, 0.05)',
-    text: theme === 'dark' ? '#C1C0B6' : '#0c0a09',
-    textSecondary: theme === 'dark' ? 'rgba(193, 192, 182, 0.6)' : '#78716c',
-    accent: theme === 'dark' ? '#C1C0B6' : '#44403c',
-    accentBg: theme === 'dark' ? 'rgba(193, 192, 182, 0.1)' : 'rgba(68, 64, 60, 0.1)',
-    buttonBg: theme === 'dark' ? 'rgba(45, 45, 41, 0.8)' : 'rgba(255, 255, 255, 0.9)',
-    buttonHover: theme === 'dark' ? 'rgba(193, 192, 182, 0.15)' : 'rgba(68, 64, 60, 0.1)',
-    progressBg: theme === 'dark' ? 'rgba(193, 192, 182, 0.1)' : 'rgba(0, 0, 0, 0.05)',
-  };
 
   const handleSelect = (value: number) => {
     onAnswer(questionId, value);
@@ -165,13 +162,13 @@ export function PersonalityQuestionCard({
                         backgroundColor: option.color,
                         border: isSelected ? '3px solid currentColor' : '2px solid transparent',
                         boxShadow: isSelected
-                          ? `0 0 0 3px ${theme === 'dark' ? '#C1C0B6' : '#44403c'}, 0 4px 12px rgba(0,0,0,0.15)`
+                          ? `0 0 0 3px #44403c, 0 4px 12px rgba(0,0,0,0.15)`
                           : '0 2px 8px rgba(0,0,0,0.1)',
-                        color: theme === 'dark' ? '#C1C0B6' : '#44403c',
+                        color: '#44403c',
                       }}
                     >
                       {isSelected && (
-                        <svg className="w-5 h-5" fill="none" stroke={theme === 'dark' ? '#1a1a18' : '#fff'} strokeWidth="3" viewBox="0 0 24 24">
+                        <svg className="w-5 h-5" fill="none" stroke="#fff" strokeWidth="3" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
                         </svg>
                       )}
@@ -180,7 +177,7 @@ export function PersonalityQuestionCard({
                     <span
                       className="absolute -bottom-8 opacity-0 group-hover:opacity-100 transition-opacity duration-200 text-xs whitespace-nowrap px-2 py-1 rounded-md"
                       style={{
-                        backgroundColor: theme === 'dark' ? 'rgba(45, 45, 41, 0.95)' : 'rgba(0, 0, 0, 0.8)',
+                        backgroundColor: 'rgba(0, 0, 0, 0.8)',
                         color: '#fff',
                       }}
                     >
@@ -206,7 +203,7 @@ export function PersonalityQuestionCard({
                   style={{
                     backgroundColor: isSelected ? colors.accent : colors.buttonBg,
                     border: `2px solid ${isSelected ? colors.accent : colors.border}`,
-                    color: isSelected ? (theme === 'dark' ? '#1a1a18' : '#fff') : colors.text,
+                    color: isSelected ? '#fff' : colors.text,
                   }}
                 >
                   {/* Color indicator circle */}
@@ -268,9 +265,7 @@ export function PersonalityQuestionCard({
               className="px-6 py-2 rounded-lg text-sm font-medium transition-all"
               style={{
                 backgroundColor: selectedValue === null ? colors.accentBg : colors.accent,
-                color: selectedValue === null
-                  ? colors.textSecondary
-                  : (theme === 'dark' ? '#1a1a18' : '#fff'),
+                color: selectedValue === null ? colors.textSecondary : '#fff',
                 cursor: selectedValue === null ? 'not-allowed' : 'pointer',
               }}
             >

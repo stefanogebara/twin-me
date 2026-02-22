@@ -26,7 +26,7 @@ interface AssessmentResult {
 
 interface QuickPulseResultsProps {
   result: AssessmentResult;
-  theme: string;
+  theme?: string; // kept for backward compat with parent, unused (light-mode only)
   colors: Record<string, string>;
   typeColor: { primary: string; secondary: string };
   onSeeFullResults: () => void;
@@ -35,7 +35,6 @@ interface QuickPulseResultsProps {
 
 export function QuickPulseResults({
   result,
-  theme,
   colors,
   typeColor,
   onSeeFullResults,
@@ -171,9 +170,7 @@ export function QuickPulseResults({
         transition={{ delay: 0.5 }}
         className="rounded-3xl p-6 md:p-8 mb-8"
         style={{
-          background: theme === 'dark'
-            ? 'linear-gradient(135deg, rgba(45, 45, 41, 0.8), rgba(35, 35, 31, 0.6))'
-            : 'linear-gradient(135deg, rgba(255, 255, 255, 0.95), rgba(250, 250, 249, 0.8))',
+          background: 'linear-gradient(135deg, rgba(255, 255, 255, 0.95), rgba(250, 250, 249, 0.8))',
           border: `1px solid ${colors.border}`,
           backdropFilter: 'blur(10px)'
         }}
@@ -267,7 +264,7 @@ export function QuickPulseResults({
                     <div
                       className="w-6 h-6 rounded-full border-2 flex items-center justify-center text-[10px] font-bold"
                       style={{
-                        backgroundColor: theme === 'dark' ? '#1a1a18' : '#fff',
+                        backgroundColor: '#fff',
                         borderColor: config.color,
                         color: config.color
                       }}
@@ -336,9 +333,7 @@ export function QuickPulseResults({
         transition={{ delay: 1.2 }}
         className="rounded-2xl p-5 text-center"
         style={{
-          background: theme === 'dark'
-            ? 'linear-gradient(135deg, rgba(193, 192, 182, 0.05), rgba(193, 192, 182, 0.02))'
-            : 'linear-gradient(135deg, rgba(0, 0, 0, 0.02), rgba(0, 0, 0, 0.01))',
+          background: 'linear-gradient(135deg, rgba(0, 0, 0, 0.02), rgba(0, 0, 0, 0.01))',
           border: `1px dashed ${colors.border}`
         }}
       >

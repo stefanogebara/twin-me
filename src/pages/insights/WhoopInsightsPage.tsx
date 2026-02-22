@@ -9,7 +9,6 @@
 
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import { useTheme } from '@/contexts/ThemeContext';
 import { useDemo } from '@/contexts/DemoContext';
 import { PageLayout, GlassPanel } from '@/components/layout/PageLayout';
 import { TwinReflection, PatternObservation, DataHighlight } from './components/TwinReflection';
@@ -84,7 +83,6 @@ interface InsightsResponse {
 }
 
 const WhoopInsightsPage: React.FC = () => {
-  const { theme } = useTheme();
   const { token } = useAuth();
   const { isDemoMode } = useDemo();
   const navigate = useNavigate();
@@ -97,10 +95,10 @@ const WhoopInsightsPage: React.FC = () => {
   const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3001';
 
   const colors = {
-    text: theme === 'dark' ? '#C1C0B6' : '#0c0a09',
-    textSecondary: theme === 'dark' ? 'rgba(193, 192, 182, 0.6)' : '#a8a29e',
+    text: '#1F1C18',
+    textSecondary: '#8A857D',
     whoopTeal: '#00B4D8',
-    whoopBg: theme === 'dark' ? 'rgba(0, 180, 216, 0.15)' : 'rgba(0, 180, 216, 0.1)'
+    whoopBg: 'rgba(0, 180, 216, 0.1)'
   };
 
   const getDemoInsights = (): InsightsResponse => {
@@ -281,7 +279,7 @@ const WhoopInsightsPage: React.FC = () => {
               className="w-20 h-20 rounded-2xl flex items-center justify-center"
               style={{
                 backgroundColor: isTokenExpired
-                  ? theme === 'dark' ? 'rgba(239, 68, 68, 0.15)' : 'rgba(239, 68, 68, 0.1)'
+                  ? 'rgba(239, 68, 68, 0.1)'
                   : colors.whoopBg
               }}
             >
@@ -328,7 +326,7 @@ const WhoopInsightsPage: React.FC = () => {
               onClick={() => navigate('/dashboard')}
               className="px-6 py-3 rounded-xl font-medium transition-colors"
               style={{
-                backgroundColor: theme === 'dark' ? 'rgba(193, 192, 182, 0.1)' : 'rgba(0, 0, 0, 0.05)',
+                backgroundColor: 'rgba(0, 0, 0, 0.05)',
                 color: colors.text
               }}
             >
@@ -369,7 +367,6 @@ const WhoopInsightsPage: React.FC = () => {
           metrics={insights.currentMetrics}
           sleepBreakdown={insights.sleepBreakdown}
           colors={colors}
-          theme={theme}
         />
       )}
 
@@ -377,7 +374,6 @@ const WhoopInsightsPage: React.FC = () => {
         history7Day={insights?.history7Day}
         sleepBreakdown={insights?.sleepBreakdown}
         colors={colors}
-        theme={theme}
       />
 
       {/* Recent Trends */}
@@ -459,7 +455,7 @@ const WhoopInsightsPage: React.FC = () => {
               <GlassPanel key={past.id} variant="default" className="!p-4">
                 <p
                   className="text-sm leading-relaxed"
-                  style={{ color: theme === 'dark' ? 'rgba(193, 192, 182, 0.7)' : '#57534e' }}
+                  style={{ color: '#57534e' }}
                 >
                   {past.text}
                 </p>
@@ -479,7 +475,6 @@ const WhoopInsightsPage: React.FC = () => {
       {!insights?.reflection?.text && !insights?.currentMetrics && (
         <WhoopEmptyState
           colors={colors}
-          theme={theme}
           onConnect={() => navigate('/get-started')}
         />
       )}

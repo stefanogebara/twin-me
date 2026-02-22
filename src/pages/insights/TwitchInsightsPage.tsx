@@ -8,7 +8,6 @@
 import React, { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { useAuth } from '@/contexts/AuthContext';
-import { useTheme } from '@/contexts/ThemeContext';
 import { useDemo } from '@/contexts/DemoContext';
 import { PageLayout, GlassPanel } from '@/components/layout/PageLayout';
 import { TwinReflection, PatternObservation } from './components/TwinReflection';
@@ -131,7 +130,6 @@ const getDemoTwitchInsights = (): InsightsResponse => ({
 });
 
 const TwitchInsightsPage: React.FC = () => {
-  const { theme } = useTheme();
   const { token } = useAuth();
   const { isDemoMode } = useDemo();
   const navigate = useNavigate();
@@ -144,10 +142,10 @@ const TwitchInsightsPage: React.FC = () => {
   const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3001';
 
   const colors = {
-    text: theme === 'dark' ? '#C1C0B6' : '#0c0a09',
-    textSecondary: theme === 'dark' ? 'rgba(193, 192, 182, 0.6)' : '#a8a29e',
+    text: '#1F1C18',
+    textSecondary: '#8A857D',
     twitchPurple: '#9146FF',
-    twitchBg: theme === 'dark' ? 'rgba(145, 70, 255, 0.15)' : 'rgba(145, 70, 255, 0.1)'
+    twitchBg: 'rgba(145, 70, 255, 0.1)'
   };
 
   useEffect(() => {
@@ -222,7 +220,7 @@ const TwitchInsightsPage: React.FC = () => {
     <div
       className={`animate-pulse rounded ${className}`}
       style={{
-        backgroundColor: theme === 'dark' ? 'rgba(193, 192, 182, 0.1)' : 'rgba(0, 0, 0, 0.06)',
+        backgroundColor: 'rgba(0, 0, 0, 0.06)',
         ...style
       }}
     />
@@ -497,7 +495,7 @@ const TwitchInsightsPage: React.FC = () => {
                   </Pie>
                   <RechartsTooltip
                     contentStyle={{
-                      backgroundColor: theme === 'dark' ? '#1c1917' : '#ffffff',
+                      backgroundColor: '#ffffff',
                       border: 'none',
                       borderRadius: '8px',
                     }}
@@ -576,7 +574,7 @@ const TwitchInsightsPage: React.FC = () => {
               <GlassPanel key={past.id} variant="default" className="!p-4">
                 <p
                   className="text-sm leading-relaxed"
-                  style={{ color: theme === 'dark' ? 'rgba(193, 192, 182, 0.7)' : '#57534e' }}
+                  style={{ color: '#57534e' }}
                 >
                   {past.text}
                 </p>

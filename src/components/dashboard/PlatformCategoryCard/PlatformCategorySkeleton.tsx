@@ -6,7 +6,6 @@
 
 import React from 'react';
 import { motion } from 'framer-motion';
-import { useTheme } from '@/contexts/ThemeContext';
 import { shimmer, respectReducedMotion } from '@/lib/animations';
 
 interface PlatformCategorySkeletonProps {
@@ -16,11 +15,8 @@ interface PlatformCategorySkeletonProps {
 export const PlatformCategorySkeleton: React.FC<PlatformCategorySkeletonProps> = ({
   platformCount = 3
 }) => {
-  const { theme } = useTheme();
-  const skeletonBg = theme === 'dark' ? 'rgba(193, 192, 182, 0.1)' : 'rgba(0, 0, 0, 0.06)';
-  const shimmerBg = theme === 'dark'
-    ? 'linear-gradient(90deg, transparent, rgba(193, 192, 182, 0.15), transparent)'
-    : 'linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent)';
+  const skeletonBg = 'rgba(0, 0, 0, 0.06)';
+  const shimmerBg = 'linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent)';
 
   const SkeletonBar = ({ width, height = 12 }: { width: string; height?: number }) => (
     <div
@@ -53,12 +49,8 @@ export const PlatformCategorySkeleton: React.FC<PlatformCategorySkeletonProps> =
           transition={{ delay: index * 0.08, duration: 0.2 }}
           className="p-4 rounded-xl"
           style={{
-            backgroundColor: theme === 'dark'
-              ? 'rgba(45, 45, 41, 0.5)'
-              : 'rgba(255, 255, 255, 0.5)',
-            border: theme === 'dark'
-              ? '1px solid rgba(193, 192, 182, 0.08)'
-              : '1px solid rgba(0, 0, 0, 0.04)'
+            backgroundColor: 'rgba(255, 255, 255, 0.5)',
+            border: '1px solid rgba(0, 0, 0, 0.04)'
           }}
         >
           {/* Platform header skeleton */}
@@ -98,8 +90,7 @@ export const PlatformCategorySkeleton: React.FC<PlatformCategorySkeletonProps> =
  * Mini skeleton for collapsed card summary
  */
 export const CategorySummarySkeleton: React.FC = () => {
-  const { theme } = useTheme();
-  const skeletonBg = theme === 'dark' ? 'rgba(193, 192, 182, 0.1)' : 'rgba(0, 0, 0, 0.06)';
+  const skeletonBg = 'rgba(0, 0, 0, 0.06)';
 
   return (
     <div className="flex items-center gap-2 mt-2">

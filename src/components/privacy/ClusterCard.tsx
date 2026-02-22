@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { LucideIcon, ChevronDown, Eye, Sparkles, Clock } from 'lucide-react';
-import { useTheme } from '@/contexts/ThemeContext';
 import * as Slider from '@radix-ui/react-slider';
 
 export interface LifeCluster {
@@ -24,11 +23,11 @@ interface ClusterCardProps {
   onToggleExpand?: () => void;
 }
 
-const getIntensityColor = (level: number, theme: string) => {
+const getIntensityColor = (level: number) => {
   // Clean, minimal colors - no flashy gradients
-  if (level === 0) return theme === 'dark' ? '#57534e' : '#d6d3d1';
-  if (level <= 33) return theme === 'dark' ? '#78716c' : '#a8a29e';
-  if (level <= 66) return theme === 'dark' ? '#a8a29e' : '#78716c';
+  if (level === 0) return '#d6d3d1';
+  if (level <= 33) return '#a8a29e';
+  if (level <= 66) return '#78716c';
   return '#D97706'; // Claude accent color
 };
 
@@ -46,7 +45,6 @@ export const ClusterCard: React.FC<ClusterCardProps> = ({
   isExpanded = false,
   onToggleExpand,
 }) => {
-  const { theme } = useTheme();
   const [isHovered, setIsHovered] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
   const Icon = cluster.icon;
@@ -66,8 +64,8 @@ export const ClusterCard: React.FC<ClusterCardProps> = ({
       onMouseLeave={() => setIsHovered(false)}
       className="relative overflow-hidden rounded-xl border transition-all duration-200"
       style={{
-        backgroundColor: theme === 'dark' ? '#2D2D29' : '#FFFFFF',
-        borderColor: theme === 'dark' ? 'rgba(193, 192, 182, 0.2)' : 'rgba(0, 0, 0, 0.1)',
+        backgroundColor: '#FFFFFF',
+        borderColor: 'rgba(0, 0, 0, 0.1)',
       }}
     >
       <div className="p-6">
@@ -77,10 +75,10 @@ export const ClusterCard: React.FC<ClusterCardProps> = ({
             <div
               className="p-2.5 rounded-lg"
               style={{
-                backgroundColor: theme === 'dark' ? 'rgba(193, 192, 182, 0.1)' : '#F5F5F4',
+                backgroundColor: '#F5F5F4',
               }}
             >
-              <Icon className="w-5 h-5" style={{ color: theme === 'dark' ? '#C1C0B6' : '#57534e' }} />
+              <Icon className="w-5 h-5" style={{ color: '#57534e' }} />
             </div>
 
             <div className="flex-1">
@@ -127,12 +125,12 @@ export const ClusterCard: React.FC<ClusterCardProps> = ({
         {/* Intensity Slider */}
         <div className="space-y-3">
           <div className="flex items-center justify-between">
-            <label className="text-sm font-ui font-medium" style={{ color: theme === 'dark' ? '#C1C0B6' : '#0c0a09' }}>
+            <label className="text-sm font-ui font-medium" style={{ color: '#1F1C18' }}>
               Reveal Level
             </label>
             <span
               className="text-2xl font-heading font-medium tabular-nums"
-              style={{ color: getIntensityColor(cluster.revealLevel, theme) }}
+              style={{ color: getIntensityColor(cluster.revealLevel) }}
             >
               {cluster.revealLevel}%
             </span>
@@ -152,20 +150,20 @@ export const ClusterCard: React.FC<ClusterCardProps> = ({
             <Slider.Track
               className="relative grow rounded-full h-2"
               style={{
-                backgroundColor: theme === 'dark' ? 'rgba(193, 192, 182, 0.2)' : '#e7e5e4',
+                backgroundColor: '#e7e5e4',
               }}
             >
               <Slider.Range
                 className="absolute h-full rounded-full transition-all duration-300"
                 style={{
-                  backgroundColor: getIntensityColor(cluster.revealLevel, theme),
+                  backgroundColor: getIntensityColor(cluster.revealLevel),
                 }}
               />
             </Slider.Track>
             <Slider.Thumb
               className="block w-6 h-6 bg-white rounded-full shadow-md border-2 transition-all duration-200 cursor-grab active:cursor-grabbing focus:outline-none"
               style={{
-                borderColor: isDragging ? '#D97706' : theme === 'dark' ? 'rgba(193, 192, 182, 0.3)' : '#d6d3d1',
+                borderColor: isDragging ? '#D97706' : '#d6d3d1',
               }}
             />
           </Slider.Root>

@@ -8,7 +8,6 @@
  */
 
 import React, { useState } from 'react';
-import { useTheme } from '@/contexts/ThemeContext';
 import { ChevronRight, ChevronDown, Eye, Plane, Activity, Calendar } from 'lucide-react';
 import {
   Collapsible,
@@ -44,19 +43,18 @@ export const EvidenceSection: React.FC<EvidenceSectionProps> = ({
   crossPlatformContext,
   className = ''
 }) => {
-  const { theme } = useTheme();
   const [isOpen, setIsOpen] = useState(false);
 
-  // Theme-aware colors
+  // Light-mode only colors
   const colors = {
-    text: theme === 'dark' ? '#C1C0B6' : '#44403c',
-    textMuted: theme === 'dark' ? 'rgba(193, 192, 182, 0.5)' : '#a8a29e',
-    textSecondary: theme === 'dark' ? 'rgba(193, 192, 182, 0.7)' : '#57534e',
-    border: theme === 'dark' ? 'rgba(193, 192, 182, 0.1)' : 'rgba(0, 0, 0, 0.05)',
-    bgSubtle: theme === 'dark' ? 'rgba(193, 192, 182, 0.03)' : 'rgba(0, 0, 0, 0.02)',
-    confidenceHigh: theme === 'dark' ? '#4ade80' : '#22c55e',
-    confidenceMedium: theme === 'dark' ? '#fbbf24' : '#f59e0b',
-    confidenceLow: theme === 'dark' ? '#94a3b8' : '#64748b'
+    text: '#44403c',
+    textMuted: '#8A857D',
+    textSecondary: '#57534e',
+    border: 'rgba(0, 0, 0, 0.05)',
+    bgSubtle: 'rgba(0, 0, 0, 0.02)',
+    confidenceHigh: '#22c55e',
+    confidenceMedium: '#f59e0b',
+    confidenceLow: '#64748b'
   };
 
   // Don't render if no evidence
@@ -106,8 +104,8 @@ export const EvidenceSection: React.FC<EvidenceSectionProps> = ({
                 <span
                   className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium"
                   style={{
-                    backgroundColor: theme === 'dark' ? 'rgba(251, 191, 36, 0.15)' : 'rgba(251, 191, 36, 0.1)',
-                    color: theme === 'dark' ? '#fbbf24' : '#d97706'
+                    backgroundColor: 'rgba(251, 191, 36, 0.1)',
+                    color: '#d97706'
                   }}
                 >
                   <Plane className="h-3 w-3" />
@@ -122,8 +120,8 @@ export const EvidenceSection: React.FC<EvidenceSectionProps> = ({
                 <span
                   className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium"
                   style={{
-                    backgroundColor: theme === 'dark' ? 'rgba(0, 180, 216, 0.15)' : 'rgba(0, 180, 216, 0.1)',
-                    color: theme === 'dark' ? '#00B4D8' : '#0284c7'
+                    backgroundColor: 'rgba(0, 180, 216, 0.1)',
+                    color: '#0284c7'
                   }}
                 >
                   <Activity className="h-3 w-3" />
@@ -135,8 +133,8 @@ export const EvidenceSection: React.FC<EvidenceSectionProps> = ({
                 <span
                   className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium"
                   style={{
-                    backgroundColor: theme === 'dark' ? 'rgba(66, 133, 244, 0.15)' : 'rgba(66, 133, 244, 0.1)',
-                    color: theme === 'dark' ? '#4285F4' : '#2563eb'
+                    backgroundColor: 'rgba(66, 133, 244, 0.1)',
+                    color: '#2563eb'
                   }}
                 >
                   <Calendar className="h-3 w-3" />

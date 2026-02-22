@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useTheme } from '@/contexts/ThemeContext';
 import {
   Database,
   Download,
@@ -57,7 +56,6 @@ export const DataTransparencyPanel: React.FC<DataTransparencyPanelProps> = ({
   onDeleteData,
   onViewRawData,
 }) => {
-  const { theme } = useTheme();
   const [expandedPlatform, setExpandedPlatform] = useState<string | null>(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | null>(null);
 
@@ -116,20 +114,20 @@ export const DataTransparencyPanel: React.FC<DataTransparencyPanelProps> = ({
           transition={{ delay: 0.1 }}
           className="p-5 rounded-xl border"
           style={{
-            backgroundColor: theme === 'dark' ? '#2D2D29' : '#FFFFFF',
-            borderColor: theme === 'dark' ? 'rgba(193, 192, 182, 0.2)' : 'rgba(0, 0, 0, 0.1)',
+            backgroundColor: '#FFFFFF',
+            borderColor: 'rgba(0, 0, 0, 0.1)',
           }}
         >
           <div className="flex items-center gap-3 mb-2">
-            <Database className="w-5 h-5" style={{ color: theme === 'dark' ? '#C1C0B6' : '#57534e' }} />
-            <span className="text-xs font-medium font-ui uppercase tracking-wide" style={{ color: theme === 'dark' ? 'rgba(193, 192, 182, 0.7)' : '#78716c' }}>
+            <Database className="w-5 h-5" style={{ color: '#57534e' }} />
+            <span className="text-xs font-medium font-ui uppercase tracking-wide" style={{ color: '#78716c' }}>
               Connected
             </span>
           </div>
-          <p className="text-3xl font-heading font-bold" style={{ color: theme === 'dark' ? '#C1C0B6' : '#0c0a09' }}>
+          <p className="text-3xl font-heading font-bold" style={{ color: '#1F1C18' }}>
             {connectedSources.length}
           </p>
-          <p className="text-xs mt-1 font-ui" style={{ color: theme === 'dark' ? 'rgba(193, 192, 182, 0.6)' : '#78716c' }}>
+          <p className="text-xs mt-1 font-ui" style={{ color: '#8A857D' }}>
             platforms synced
           </p>
         </motion.div>
@@ -140,20 +138,20 @@ export const DataTransparencyPanel: React.FC<DataTransparencyPanelProps> = ({
           transition={{ delay: 0.2 }}
           className="p-5 rounded-xl border"
           style={{
-            backgroundColor: theme === 'dark' ? '#2D2D29' : '#FFFFFF',
-            borderColor: theme === 'dark' ? 'rgba(193, 192, 182, 0.2)' : 'rgba(0, 0, 0, 0.1)',
+            backgroundColor: '#FFFFFF',
+            borderColor: 'rgba(0, 0, 0, 0.1)',
           }}
         >
           <div className="flex items-center gap-3 mb-2">
-            <Sparkles className="w-5 h-5" style={{ color: theme === 'dark' ? '#C1C0B6' : '#57534e' }} />
-            <span className="text-xs font-medium font-ui uppercase tracking-wide" style={{ color: theme === 'dark' ? 'rgba(193, 192, 182, 0.7)' : '#78716c' }}>
+            <Sparkles className="w-5 h-5" style={{ color: '#57534e' }} />
+            <span className="text-xs font-medium font-ui uppercase tracking-wide" style={{ color: '#78716c' }}>
               Data Points
             </span>
           </div>
-          <p className="text-3xl font-heading font-bold" style={{ color: theme === 'dark' ? '#C1C0B6' : '#0c0a09' }}>
+          <p className="text-3xl font-heading font-bold" style={{ color: '#1F1C18' }}>
             {totalDataPoints.toLocaleString()}
           </p>
-          <p className="text-xs mt-1 font-ui" style={{ color: theme === 'dark' ? 'rgba(193, 192, 182, 0.6)' : '#78716c' }}>
+          <p className="text-xs mt-1 font-ui" style={{ color: '#8A857D' }}>
             moments captured
           </p>
         </motion.div>
@@ -164,20 +162,20 @@ export const DataTransparencyPanel: React.FC<DataTransparencyPanelProps> = ({
           transition={{ delay: 0.3 }}
           className="p-5 rounded-xl border"
           style={{
-            backgroundColor: theme === 'dark' ? '#2D2D29' : '#FFFFFF',
-            borderColor: theme === 'dark' ? 'rgba(193, 192, 182, 0.2)' : 'rgba(0, 0, 0, 0.1)',
+            backgroundColor: '#FFFFFF',
+            borderColor: 'rgba(0, 0, 0, 0.1)',
           }}
         >
           <div className="flex items-center gap-3 mb-2">
-            <TrendingUp className="w-5 h-5" style={{ color: theme === 'dark' ? '#C1C0B6' : '#57534e' }} />
-            <span className="text-xs font-medium font-ui uppercase tracking-wide" style={{ color: theme === 'dark' ? 'rgba(193, 192, 182, 0.7)' : '#78716c' }}>
+            <TrendingUp className="w-5 h-5" style={{ color: '#57534e' }} />
+            <span className="text-xs font-medium font-ui uppercase tracking-wide" style={{ color: '#78716c' }}>
               Quality
             </span>
           </div>
-          <p className="text-3xl font-heading font-bold" style={{ color: theme === 'dark' ? '#C1C0B6' : '#0c0a09' }}>
+          <p className="text-3xl font-heading font-bold" style={{ color: '#1F1C18' }}>
             {totalQuality}%
           </p>
-          <p className="text-xs mt-1 font-ui" style={{ color: theme === 'dark' ? 'rgba(193, 192, 182, 0.6)' : '#78716c' }}>
+          <p className="text-xs mt-1 font-ui" style={{ color: '#8A857D' }}>
             {getQualityLabel(totalQuality).toLowerCase()}
           </p>
         </motion.div>
@@ -188,20 +186,20 @@ export const DataTransparencyPanel: React.FC<DataTransparencyPanelProps> = ({
           transition={{ delay: 0.4 }}
           className="p-5 rounded-xl border"
           style={{
-            backgroundColor: theme === 'dark' ? '#2D2D29' : '#FFFFFF',
-            borderColor: theme === 'dark' ? 'rgba(193, 192, 182, 0.2)' : 'rgba(0, 0, 0, 0.1)',
+            backgroundColor: '#FFFFFF',
+            borderColor: 'rgba(0, 0, 0, 0.1)',
           }}
         >
           <div className="flex items-center gap-3 mb-2">
-            <HardDrive className="w-5 h-5" style={{ color: theme === 'dark' ? '#C1C0B6' : '#57534e' }} />
-            <span className="text-xs font-medium font-ui uppercase tracking-wide" style={{ color: theme === 'dark' ? 'rgba(193, 192, 182, 0.7)' : '#78716c' }}>
+            <HardDrive className="w-5 h-5" style={{ color: '#57534e' }} />
+            <span className="text-xs font-medium font-ui uppercase tracking-wide" style={{ color: '#78716c' }}>
               Storage
             </span>
           </div>
-          <p className="text-3xl font-heading font-bold" style={{ color: theme === 'dark' ? '#C1C0B6' : '#0c0a09' }}>
+          <p className="text-3xl font-heading font-bold" style={{ color: '#1F1C18' }}>
             {totalSize}
           </p>
-          <p className="text-xs mt-1 font-ui" style={{ color: theme === 'dark' ? 'rgba(193, 192, 182, 0.6)' : '#78716c' }}>
+          <p className="text-xs mt-1 font-ui" style={{ color: '#8A857D' }}>
             total data size
           </p>
         </motion.div>

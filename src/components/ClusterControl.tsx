@@ -20,7 +20,6 @@ import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { IntensitySlider } from './IntensitySlider';
 import { cn } from '@/lib/utils';
-import { useTheme } from '../contexts/ThemeContext';
 
 export interface Platform {
   name: string;
@@ -81,7 +80,6 @@ export const ClusterControl: React.FC<ClusterControlProps> = ({
   onSubclusterChange,
   className
 }) => {
-  const { theme } = useTheme();
   const [isExpanded, setIsExpanded] = useState(false);
   const [showAdvanced, setShowAdvanced] = useState(false);
 
@@ -217,8 +215,8 @@ export const ClusterControl: React.FC<ClusterControlProps> = ({
               <div className="p-5 pt-0 space-y-6 bg-stone-50">
                 {/* Main Privacy Control */}
                 <div className="p-4 rounded-lg backdrop-blur-[16px] shadow-[0_4px_16px_rgba(0,0,0,0.03)]" style={{
-                  backgroundColor: theme === 'dark' ? 'rgba(45, 45, 41, 0.7)' : 'rgba(255, 255, 255, 0.5)',
-                  borderColor: theme === 'dark' ? 'rgba(193, 192, 182, 0.2)' : 'rgba(0, 0, 0, 0.06)',
+                  backgroundColor: 'rgba(255, 255, 255, 0.5)',
+                  borderColor: 'rgba(0, 0, 0, 0.06)',
                   borderWidth: '1px',
                   borderStyle: 'solid'
                 }}>
@@ -245,8 +243,8 @@ export const ClusterControl: React.FC<ClusterControlProps> = ({
                         key={subcluster.id}
                         className="p-4 rounded-lg backdrop-blur-[16px] shadow-[0_4px_16px_rgba(0,0,0,0.03)]"
                         style={{
-                          backgroundColor: theme === 'dark' ? 'rgba(45, 45, 41, 0.7)' : 'rgba(255, 255, 255, 0.5)',
-                          borderColor: theme === 'dark' ? 'rgba(193, 192, 182, 0.2)' : 'rgba(0, 0, 0, 0.06)',
+                          backgroundColor: 'rgba(255, 255, 255, 0.5)',
+                          borderColor: 'rgba(0, 0, 0, 0.06)',
                           borderWidth: '1px',
                           borderStyle: 'solid'
                         }}
@@ -338,8 +336,8 @@ export const ClusterControl: React.FC<ClusterControlProps> = ({
                       >
                         {/* Time-Based Rules */}
                         <div className="p-4 rounded-lg backdrop-blur-[16px] shadow-[0_4px_16px_rgba(0,0,0,0.03)]" style={{
-                          backgroundColor: theme === 'dark' ? 'rgba(45, 45, 41, 0.7)' : 'rgba(255, 255, 255, 0.5)',
-                          borderColor: theme === 'dark' ? 'rgba(193, 192, 182, 0.2)' : 'rgba(0, 0, 0, 0.06)',
+                          backgroundColor: 'rgba(255, 255, 255, 0.5)',
+                          borderColor: 'rgba(0, 0, 0, 0.06)',
                           borderWidth: '1px',
                           borderStyle: 'solid'
                         }}>
@@ -371,8 +369,8 @@ export const ClusterControl: React.FC<ClusterControlProps> = ({
 
                         {/* Conditional Rules */}
                         <div className="p-4 rounded-lg backdrop-blur-[16px] shadow-[0_4px_16px_rgba(0,0,0,0.03)]" style={{
-                          backgroundColor: theme === 'dark' ? 'rgba(45, 45, 41, 0.7)' : 'rgba(255, 255, 255, 0.5)',
-                          borderColor: theme === 'dark' ? 'rgba(193, 192, 182, 0.2)' : 'rgba(0, 0, 0, 0.06)',
+                          backgroundColor: 'rgba(255, 255, 255, 0.5)',
+                          borderColor: 'rgba(0, 0, 0, 0.06)',
                           borderWidth: '1px',
                           borderStyle: 'solid'
                         }}>
@@ -402,8 +400,8 @@ export const ClusterControl: React.FC<ClusterControlProps> = ({
 
                         {/* Data Expiry */}
                         <div className="p-4 rounded-lg backdrop-blur-[16px] shadow-[0_4px_16px_rgba(0,0,0,0.03)]" style={{
-                          backgroundColor: theme === 'dark' ? 'rgba(45, 45, 41, 0.7)' : 'rgba(255, 255, 255, 0.5)',
-                          borderColor: theme === 'dark' ? 'rgba(193, 192, 182, 0.2)' : 'rgba(0, 0, 0, 0.06)',
+                          backgroundColor: 'rgba(255, 255, 255, 0.5)',
+                          borderColor: 'rgba(0, 0, 0, 0.06)',
                           borderWidth: '1px',
                           borderStyle: 'solid'
                         }}>

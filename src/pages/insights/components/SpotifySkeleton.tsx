@@ -1,16 +1,12 @@
 import React from 'react';
 import { PageLayout, GlassPanel } from '@/components/layout/PageLayout';
 
-interface SpotifySkeletonProps {
-  theme: string;
-}
-
-export const SpotifySkeleton: React.FC<SpotifySkeletonProps> = ({ theme }) => {
+export const SpotifySkeleton: React.FC = () => {
   const SkeletonPulse = ({ className = '', style = {} }: { className?: string; style?: React.CSSProperties }) => (
     <div
       className={`animate-pulse rounded ${className}`}
       style={{
-        backgroundColor: theme === 'dark' ? 'rgba(193, 192, 182, 0.1)' : 'rgba(0, 0, 0, 0.06)',
+        backgroundColor: 'rgba(0, 0, 0, 0.06)',
         ...style
       }}
     />

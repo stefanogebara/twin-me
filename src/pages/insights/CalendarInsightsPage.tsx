@@ -9,7 +9,6 @@
 
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import { useTheme } from '@/contexts/ThemeContext';
 import { useDemo } from '@/contexts/DemoContext';
 import { PageLayout, GlassPanel } from '@/components/layout/PageLayout';
 import { TwinReflection, PatternObservation, StatCard } from './components/TwinReflection';
@@ -117,7 +116,6 @@ interface InsightsResponse {
 }
 
 const CalendarInsightsPage: React.FC = () => {
-  const { theme } = useTheme();
   const { token } = useAuth();
   const { isDemoMode } = useDemo();
   const navigate = useNavigate();
@@ -130,10 +128,10 @@ const CalendarInsightsPage: React.FC = () => {
   const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3001';
 
   const colors = {
-    text: theme === 'dark' ? '#C1C0B6' : '#0c0a09',
-    textSecondary: theme === 'dark' ? 'rgba(193, 192, 182, 0.6)' : '#a8a29e',
+    text: '#1F1C18',
+    textSecondary: '#8A857D',
     calendarBlue: '#4285F4',
-    calendarBg: theme === 'dark' ? 'rgba(66, 133, 244, 0.15)' : 'rgba(66, 133, 244, 0.1)'
+    calendarBg: 'rgba(66, 133, 244, 0.1)'
   };
 
   const getDemoInsights = (): InsightsResponse => {
@@ -270,7 +268,7 @@ const CalendarInsightsPage: React.FC = () => {
   if (loading) {
     return (
       <PageLayout>
-        <CalendarSkeleton theme={theme} />
+        <CalendarSkeleton />
       </PageLayout>
     );
   }
@@ -314,7 +312,6 @@ const CalendarInsightsPage: React.FC = () => {
       {insights?.todayEvents && insights.todayEvents.length > 0 && (
         <TodayTimeline
           events={insights.todayEvents}
-          theme={theme}
           colors={colors}
         />
       )}
@@ -344,7 +341,7 @@ const CalendarInsightsPage: React.FC = () => {
                 </span>
                 <div
                   className="flex-1 h-5 rounded-lg overflow-hidden"
-                  style={{ backgroundColor: theme === 'dark' ? 'rgba(0,0,0,0.3)' : 'rgba(0,0,0,0.1)' }}
+                  style={{ backgroundColor: 'rgba(0,0,0,0.1)' }}
                 >
                   <div
                     className="h-full rounded-lg transition-all"
@@ -369,7 +366,6 @@ const CalendarInsightsPage: React.FC = () => {
       {insights?.weeklyHeatmap && insights.weeklyHeatmap.length > 0 && (
         <WeeklyHeatmap
           heatmap={insights.weeklyHeatmap}
-          theme={theme}
           colors={colors}
         />
       )}
@@ -463,7 +459,7 @@ const CalendarInsightsPage: React.FC = () => {
               <GlassPanel key={past.id} variant="default" className="!p-4">
                 <p
                   className="text-sm leading-relaxed"
-                  style={{ color: theme === 'dark' ? 'rgba(193, 192, 182, 0.7)' : '#57534e' }}
+                  style={{ color: '#57534e' }}
                 >
                   {past.text}
                 </p>
@@ -482,7 +478,6 @@ const CalendarInsightsPage: React.FC = () => {
       {/* Empty State */}
       {!insights?.reflection?.text && !insights?.todayEvents?.length && !insights?.upcomingEvents?.length && (
         <CalendarEmptyState
-          theme={theme}
           colors={colors}
           onConnect={() => navigate('/get-started')}
         />

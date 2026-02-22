@@ -7,7 +7,6 @@
 
 import React from 'react';
 import { motion } from 'framer-motion';
-import { useTheme } from '@/contexts/ThemeContext';
 import { useNavigate } from 'react-router-dom';
 import {
   Music,
@@ -55,7 +54,6 @@ export const PlatformSubCard: React.FC<PlatformSubCardProps> = ({
   categoryColor,
   onNavigate
 }) => {
-  const { theme } = useTheme();
   const navigate = useNavigate();
   const platformInfo = PLATFORM_INFO[platform] || {
     name: platform,
@@ -63,11 +61,11 @@ export const PlatformSubCard: React.FC<PlatformSubCardProps> = ({
     color: categoryColor
   };
 
-  const textColor = theme === 'dark' ? '#C1C0B6' : '#0c0a09';
-  const textSecondary = theme === 'dark' ? 'rgba(193, 192, 182, 0.7)' : '#57534e';
-  const textMuted = theme === 'dark' ? 'rgba(193, 192, 182, 0.6)' : '#78716c';
-  const cardBg = theme === 'dark' ? 'rgba(45, 45, 41, 0.5)' : 'rgba(255, 255, 255, 0.6)';
-  const hoverBg = theme === 'dark' ? 'rgba(193, 192, 182, 0.05)' : 'rgba(0, 0, 0, 0.02)';
+  const textColor = '#1F1C18';
+  const textSecondary = '#57534e';
+  const textMuted = '#8A857D';
+  const cardBg = 'rgba(255, 255, 255, 0.6)';
+  const hoverBg = 'rgba(0, 0, 0, 0.02)';
 
   // Prefer real SVG logo, fall back to Lucide icon
   const IconComponent = getPlatformLogo(platform) || lucideIconMap[platformInfo.icon] || Activity;
@@ -107,9 +105,7 @@ export const PlatformSubCard: React.FC<PlatformSubCardProps> = ({
         backgroundColor: cardBg,
         border: data.connected
           ? `1px solid ${platformInfo.color}25`
-          : theme === 'dark'
-            ? '1px solid rgba(193, 192, 182, 0.08)'
-            : '1px solid rgba(0, 0, 0, 0.04)'
+          : '1px solid rgba(0, 0, 0, 0.04)'
       }}
       onClick={handleClick}
       whileHover={respectReducedMotion() ? {} : {
@@ -126,9 +122,7 @@ export const PlatformSubCard: React.FC<PlatformSubCardProps> = ({
             style={{
               backgroundColor: data.connected
                 ? `${platformInfo.color}15`
-                : theme === 'dark'
-                  ? 'rgba(193, 192, 182, 0.1)'
-                  : 'rgba(0, 0, 0, 0.05)'
+                : 'rgba(0, 0, 0, 0.05)'
             }}
           >
             <IconComponent
@@ -190,9 +184,7 @@ export const PlatformSubCard: React.FC<PlatformSubCardProps> = ({
         <div
           className="pt-3 flex items-start gap-2"
           style={{
-            borderTop: theme === 'dark'
-              ? '1px solid rgba(193, 192, 182, 0.08)'
-              : '1px solid rgba(0, 0, 0, 0.04)'
+            borderTop: '1px solid rgba(0, 0, 0, 0.04)'
           }}
         >
           <Sparkles className="w-3.5 h-3.5 flex-shrink-0 mt-0.5" style={{ color: categoryColor }} />
@@ -208,7 +200,7 @@ export const PlatformSubCard: React.FC<PlatformSubCardProps> = ({
           className="mt-2 p-2 rounded-lg text-xs"
           style={{
             backgroundColor: 'rgba(220, 38, 38, 0.08)',
-            color: theme === 'dark' ? '#fca5a5' : '#991b1b'
+            color: '#991b1b'
           }}
         >
           {data.error}

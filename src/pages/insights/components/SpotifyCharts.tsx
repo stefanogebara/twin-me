@@ -14,13 +14,11 @@ interface SpotifyChartsProps {
     spotifyGreen: string;
     spotifyBg: string;
   };
-  theme: string;
 }
 
 export const SpotifyCharts: React.FC<SpotifyChartsProps> = ({
   insights,
   colors,
-  theme,
 }) => {
   return (
     <>
@@ -102,7 +100,7 @@ export const SpotifyCharts: React.FC<SpotifyChartsProps> = ({
                   >
                     {artist.name}
                   </span>
-                  <div className="flex-1 h-5 rounded-lg overflow-hidden" style={{ backgroundColor: theme === 'dark' ? 'rgba(0,0,0,0.3)' : 'rgba(0,0,0,0.1)' }}>
+                  <div className="flex-1 h-5 rounded-lg overflow-hidden" style={{ backgroundColor: 'rgba(0,0,0,0.1)' }}>
                     <div
                       className="h-full rounded-lg transition-all"
                       style={{
@@ -158,7 +156,7 @@ export const SpotifyCharts: React.FC<SpotifyChartsProps> = ({
                   </Pie>
                   <RechartsTooltip
                     contentStyle={{
-                      backgroundColor: theme === 'dark' ? '#1c1917' : '#ffffff',
+                      backgroundColor: '#ffffff',
                       border: 'none',
                       borderRadius: '8px',
                     }}
@@ -212,7 +210,7 @@ export const SpotifyCharts: React.FC<SpotifyChartsProps> = ({
                 <YAxis hide />
                 <RechartsTooltip
                   contentStyle={{
-                    backgroundColor: theme === 'dark' ? '#1c1917' : '#ffffff',
+                    backgroundColor: '#ffffff',
                     border: 'none',
                     borderRadius: '8px',
                   }}
@@ -264,7 +262,7 @@ export const SpotifyCharts: React.FC<SpotifyChartsProps> = ({
                 </div>
                 <div
                   className="w-12 h-2 rounded-full overflow-hidden"
-                  style={{ backgroundColor: 'rgba(193, 192, 182, 0.1)' }}
+                  style={{ backgroundColor: 'rgba(0, 0, 0, 0.08)' }}
                 >
                   <div
                     className="h-full rounded-full"
@@ -284,7 +282,7 @@ export const SpotifyCharts: React.FC<SpotifyChartsProps> = ({
                 </div>
                 <div
                   className="w-12 h-2 rounded-full overflow-hidden"
-                  style={{ backgroundColor: 'rgba(193, 192, 182, 0.1)' }}
+                  style={{ backgroundColor: 'rgba(0, 0, 0, 0.08)' }}
                 >
                   <div
                     className="h-full rounded-full"

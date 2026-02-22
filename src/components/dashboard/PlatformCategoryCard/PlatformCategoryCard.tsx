@@ -7,7 +7,6 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useTheme } from '@/contexts/ThemeContext';
 import { useNavigate } from 'react-router-dom';
 import { GlassPanel } from '@/components/layout/PageLayout';
 import { StaggerContainer, StaggerItem } from '@/components/ui/AnimatedWrapper';
@@ -29,7 +28,6 @@ export const PlatformCategoryCard: React.FC<PlatformCategoryCardProps> = ({
   connectedProviders,
   onPlatformClick
 }) => {
-  const { theme } = useTheme();
   const navigate = useNavigate();
   const [isExpanded, setIsExpanded] = useState(false);
   const [hasLoadedOnce, setHasLoadedOnce] = useState(false);
@@ -82,10 +80,7 @@ export const PlatformCategoryCard: React.FC<PlatformCategoryCardProps> = ({
     }
   };
 
-  // Theme colors
-  const cardBorder = theme === 'dark'
-    ? '1px solid rgba(193, 192, 182, 0.08)'
-    : '1px solid rgba(0, 0, 0, 0.04)';
+  const cardBorder = '1px solid rgba(0, 0, 0, 0.04)';
 
   // Animation variants
   const expandVariants = {
@@ -138,9 +133,7 @@ export const PlatformCategoryCard: React.FC<PlatformCategoryCardProps> = ({
             <div
               className="px-5 pb-5"
               style={{
-                borderTop: theme === 'dark'
-                  ? '1px solid rgba(193, 192, 182, 0.06)'
-                  : '1px solid rgba(0, 0, 0, 0.03)'
+                borderTop: '1px solid rgba(0, 0, 0, 0.03)'
               }}
             >
               {/* Loading State */}

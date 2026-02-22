@@ -14,7 +14,6 @@
 import React, { useEffect, useState, useCallback, useRef } from 'react';
 import ForceGraph3D, { ForceGraph3DInstance } from 'react-force-graph-3d';
 import { Brain, RefreshCw, Star } from 'lucide-react';
-import { useTheme } from '@/contexts/ThemeContext';
 import { GlassPanel } from '@/components/layout/PageLayout';
 
 import {
@@ -39,7 +38,6 @@ import { ContextExpressionPanel } from '@/components/brain/ContextExpressionPane
 import { useBrainGraphData } from '@/hooks/useBrainGraphData';
 
 const BrainExplorer: React.FC = () => {
-  const { theme } = useTheme();
   const graphRef = useRef<ForceGraph3DInstance>();
   const containerRef = useRef<HTMLDivElement>(null);
 

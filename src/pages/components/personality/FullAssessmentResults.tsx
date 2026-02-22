@@ -26,7 +26,7 @@ interface AssessmentResult {
 
 interface FullAssessmentResultsProps {
   result: AssessmentResult;
-  theme: string;
+  theme?: string; // kept for backward compat with parent, unused (light-mode only)
   colors: Record<string, string>;
   onContinueDeep: () => void;
 }
@@ -76,7 +76,7 @@ function DimensionBar({ dimension, score, colors }: { dimension: string; score: 
 
 export function FullAssessmentResults({
   result,
-  theme,
+  theme: _theme,
   colors,
   onContinueDeep,
 }: FullAssessmentResultsProps) {
@@ -101,7 +101,7 @@ export function FullAssessmentResults({
           <Sparkles className="w-4 h-4" />
           Your Soul Signature
         </div>
-        <h1 className="text-4xl md:text-5xl mb-2" style={{ color: colors.text, fontFamily: 'var(--font-heading)', fontWeight: 500 }}>
+        <h1 className="text-4xl md:text-5xl mb-2 heading-serif" style={{ color: colors.text, fontFamily: 'var(--font-heading)', fontWeight: 500 }}>
           {result.archetype.fullCode || result.archetype.code}
         </h1>
         <h2 className="text-xl mb-2" style={{ color: colors.accent, fontFamily: 'var(--font-heading)', fontWeight: 500 }}>
@@ -202,7 +202,7 @@ export function FullAssessmentResults({
           className="px-6 py-3 rounded-xl font-medium transition-all hover:scale-[1.02]"
           style={{
             backgroundColor: colors.accent,
-            color: theme === 'dark' ? '#1a1a18' : '#fff'
+            color: '#fff'
           }}
         >
           Continue to Dashboard

@@ -167,29 +167,29 @@ export const TodayInsights: React.FC = () => {
     return (
       <div className="space-y-3">
         <div className="flex items-center gap-2">
-          <Sparkles className="w-5 h-5" style={{ color: theme === 'dark' ? '#C1C0B6' : '#57534e' }} />
-          <h2 className="text-lg font-medium" style={{ fontFamily: 'var(--font-heading)', color: theme === 'dark' ? '#C1C0B6' : '#0c0a09' }}>
+          <Sparkles className="w-5 h-5" style={{ color: '#57534e' }} />
+          <h2 className="text-lg font-medium" style={{ fontFamily: 'var(--font-heading)', color: '#1F1C18' }}>
             Today's Insights
           </h2>
         </div>
         <div
           className="rounded-xl p-5 space-y-3"
           style={{
-            backgroundColor: theme === 'dark' ? 'rgba(45, 45, 41, 0.5)' : 'rgba(255, 255, 255, 0.7)',
-            border: theme === 'dark' ? '1px solid rgba(193, 192, 182, 0.1)' : '1px solid rgba(0, 0, 0, 0.05)',
+            backgroundColor: 'rgba(255, 255, 255, 0.7)',
+            border: '1px solid rgba(0, 0, 0, 0.05)',
           }}
         >
           {disconnectedPlatforms.map(({ platform, desc }) => (
             <div key={platform} className="flex items-center justify-between gap-3">
-              <span className="text-sm" style={{ color: theme === 'dark' ? 'rgba(193,192,182,0.7)' : '#57534e' }}>
+              <span className="text-sm" style={{ color: '#57534e' }}>
                 {desc}
               </span>
               <button
                 onClick={() => navigate('/get-started')}
                 className="flex-shrink-0 text-xs px-3 py-1.5 rounded-lg font-medium transition-colors hover:opacity-80"
                 style={{
-                  backgroundColor: theme === 'dark' ? 'rgba(193,192,182,0.12)' : 'rgba(0,0,0,0.06)',
-                  color: theme === 'dark' ? '#C1C0B6' : '#44403c',
+                  backgroundColor: 'rgba(0,0,0,0.06)',
+                  color: '#44403c',
                 }}
               >
                 Connect
@@ -229,8 +229,8 @@ export const TodayInsights: React.FC = () => {
         border: '1px solid rgba(255, 255, 255, 0.45)',
         boxShadow: '0 8px 32px rgba(0, 0, 0, 0.18), inset 0 1px 0 rgba(255, 255, 255, 0.6)',
       }}>
-        <div className="flex items-center gap-3" style={{ color: theme === 'dark' ? 'rgba(193,192,182,0.7)' : '#57534e' }}>
-          <AlertCircle className="w-5 h-5 flex-shrink-0" style={{ color: theme === 'dark' ? '#f87171' : '#ef4444' }} />
+        <div className="flex items-center gap-3" style={{ color: '#57534e' }}>
+          <AlertCircle className="w-5 h-5 flex-shrink-0" style={{ color: '#ef4444' }} />
           <span className="text-sm">Unable to load insights. Try refreshing.</span>
         </div>
       </div>
@@ -244,20 +244,20 @@ export const TodayInsights: React.FC = () => {
     return (
       <div className="space-y-3">
         <div className="flex items-center gap-2">
-          <Sparkles className="w-5 h-5" style={{ color: theme === 'dark' ? '#C1C0B6' : '#57534e' }} />
-          <h2 className="text-lg font-medium" style={{ fontFamily: 'var(--font-heading)', color: theme === 'dark' ? '#C1C0B6' : '#0c0a09' }}>
+          <Sparkles className="w-5 h-5" style={{ color: '#57534e' }} />
+          <h2 className="text-lg font-medium" style={{ fontFamily: 'var(--font-heading)', color: '#1F1C18' }}>
             Today's Insights
           </h2>
         </div>
         <div
           className="rounded-xl p-5 flex items-center gap-3"
           style={{
-            backgroundColor: theme === 'dark' ? 'rgba(45, 45, 41, 0.5)' : 'rgba(255, 255, 255, 0.7)',
-            border: theme === 'dark' ? '1px solid rgba(193, 192, 182, 0.1)' : '1px solid rgba(0, 0, 0, 0.05)',
+            backgroundColor: 'rgba(255, 255, 255, 0.7)',
+            border: '1px solid rgba(0, 0, 0, 0.05)',
           }}
         >
-          <Loader2 className="w-5 h-5 animate-spin flex-shrink-0" style={{ color: theme === 'dark' ? 'rgba(193,192,182,0.6)' : '#a8a29e' }} />
-          <span className="text-sm" style={{ color: theme === 'dark' ? 'rgba(193,192,182,0.7)' : '#57534e' }}>
+          <Loader2 className="w-5 h-5 animate-spin flex-shrink-0" style={{ color: '#a8a29e' }} />
+          <span className="text-sm" style={{ color: '#57534e' }}>
             Analyzing your data — insights will appear here once your platforms sync.
           </span>
         </div>

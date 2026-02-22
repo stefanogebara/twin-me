@@ -3,7 +3,6 @@ import { NavLink } from 'react-router-dom';
 import { User, Menu, X } from 'lucide-react';
 import { navigationConfig } from '../../config/navigation';
 import { cn } from '../../lib/utils';
-import { useTheme } from '../../contexts/ThemeContext';
 
 /**
  * Header Component
@@ -13,7 +12,7 @@ import { useTheme } from '../../contexts/ThemeContext';
  * - Liquid glass morphism styling
  * - Active state with accent color
  * - User profile section
- * - Theme-aware design
+ * - Light-mode only design
  * - Mobile responsive with menu
  */
 
@@ -26,7 +25,6 @@ interface HeaderProps {
 }
 
 export const Header: React.FC<HeaderProps> = ({ user, onSignOut }) => {
-  const { theme } = useTheme();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const mainRoutes = navigationConfig.routes.filter(route => route.showInHeader);
 
@@ -34,17 +32,11 @@ export const Header: React.FC<HeaderProps> = ({ user, onSignOut }) => {
     <header
       className="fixed top-0 left-0 right-0 z-50 m-4 rounded-2xl"
       style={{
-        backgroundColor: theme === 'dark'
-          ? 'rgba(45, 45, 41, 0.8)'
-          : 'rgba(255, 255, 255, 0.8)',
+        backgroundColor: 'rgba(247, 247, 243, 0.9)',
         backdropFilter: 'blur(16px) saturate(180%)',
         WebkitBackdropFilter: 'blur(16px) saturate(180%)',
-        border: theme === 'dark'
-          ? '1px solid rgba(193, 192, 182, 0.1)'
-          : '1px solid rgba(0, 0, 0, 0.06)',
-        boxShadow: theme === 'dark'
-          ? '0 8px 32px rgba(0, 0, 0, 0.3)'
-          : '0 8px 32px rgba(0, 0, 0, 0.08)'
+        border: '1px solid rgba(0, 0, 0, 0.06)',
+        boxShadow: '0 8px 32px rgba(0, 0, 0, 0.08)'
       }}
     >
       <div className="h-16 px-6 flex items-center justify-between">
@@ -67,7 +59,7 @@ export const Header: React.FC<HeaderProps> = ({ user, onSignOut }) => {
               fontWeight: 400,
               letterSpacing: '-0.02em',
               fontSize: '1.125rem',
-              color: theme === 'dark' ? '#C1C0B6' : '#0c0a09'
+              color: '#1F1C18'
             }}
           >
             Twin Me
@@ -89,11 +81,11 @@ export const Header: React.FC<HeaderProps> = ({ user, onSignOut }) => {
                 }
                 style={({ isActive }) => ({
                   backgroundColor: isActive
-                    ? (theme === 'dark' ? 'rgba(193, 192, 182, 0.1)' : 'rgba(0, 0, 0, 0.05)')
+                    ? 'rgba(0, 0, 0, 0.05)'
                     : 'transparent',
                   color: isActive
-                    ? (theme === 'dark' ? '#C1C0B6' : '#0c0a09')
-                    : (theme === 'dark' ? 'rgba(193, 192, 182, 0.7)' : 'rgba(12, 10, 9, 0.6)')
+                    ? '#1F1C18'
+                    : 'rgba(31, 28, 24, 0.6)'
                 })}
               >
                 {Icon && <Icon className="w-4 h-4" />}
@@ -116,9 +108,9 @@ export const Header: React.FC<HeaderProps> = ({ user, onSignOut }) => {
           className="md:hidden p-2 rounded-lg transition-colors"
           onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
           style={{
-            color: theme === 'dark' ? '#C1C0B6' : '#0c0a09',
+            color: '#1F1C18',
             backgroundColor: mobileMenuOpen
-              ? (theme === 'dark' ? 'rgba(193, 192, 182, 0.1)' : 'rgba(0, 0, 0, 0.05)')
+              ? 'rgba(0, 0, 0, 0.05)'
               : 'transparent'
           }}
           aria-label="Toggle menu"
@@ -133,9 +125,7 @@ export const Header: React.FC<HeaderProps> = ({ user, onSignOut }) => {
             <div
               className="flex items-center gap-2 px-3 py-2 rounded-lg"
               style={{
-                backgroundColor: theme === 'dark'
-                  ? 'rgba(193, 192, 182, 0.1)'
-                  : 'rgba(0, 0, 0, 0.05)'
+                backgroundColor: 'rgba(0, 0, 0, 0.05)'
               }}
             >
               <div
@@ -159,7 +149,7 @@ export const Header: React.FC<HeaderProps> = ({ user, onSignOut }) => {
                     style={{
                       fontFamily: 'var(--font-heading)',
                       fontWeight: 500,
-                      color: theme === 'dark' ? '#C1C0B6' : '#0c0a09'
+                      color: '#1F1C18'
                     }}
                   >
                     {user.name}
@@ -170,7 +160,7 @@ export const Header: React.FC<HeaderProps> = ({ user, onSignOut }) => {
                     className="text-xs"
                     style={{
                       fontFamily: 'var(--font-body)',
-                      color: theme === 'dark' ? 'rgba(193, 192, 182, 0.7)' : 'rgba(12, 10, 9, 0.6)'
+                      color: '#8A857D'
                     }}
                   >
                     {user.email}
@@ -178,29 +168,27 @@ export const Header: React.FC<HeaderProps> = ({ user, onSignOut }) => {
                 )}
               </div>
             </div>
+          )}
 
-            {onSignOut && (
-              <button
-                onClick={onSignOut}
-                className="px-3 py-2 text-sm transition-colors rounded-lg"
-                style={{
-                  fontFamily: 'var(--font-heading)',
-                  color: theme === 'dark' ? 'rgba(193, 192, 182, 0.7)' : 'rgba(12, 10, 9, 0.6)'
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.color = '#78716c';
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.color = theme === 'dark'
-                    ? 'rgba(193, 192, 182, 0.7)'
-                    : 'rgba(12, 10, 9, 0.6)';
-                }}
-              >
-                Sign Out
-              </button>
-            )}
-          </div>
-        )}
+          {user && onSignOut && (
+            <button
+              onClick={onSignOut}
+              className="px-3 py-2 text-sm transition-colors rounded-lg"
+              style={{
+                fontFamily: 'var(--font-heading)',
+                color: '#8A857D'
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.color = '#78716c';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.color = '#8A857D';
+              }}
+            >
+              Sign Out
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Mobile Menu */}
@@ -208,9 +196,7 @@ export const Header: React.FC<HeaderProps> = ({ user, onSignOut }) => {
         <div
           className="md:hidden px-4 pb-4"
           style={{
-            borderTop: theme === 'dark'
-              ? '1px solid rgba(193, 192, 182, 0.1)'
-              : '1px solid rgba(0, 0, 0, 0.06)'
+            borderTop: '1px solid rgba(0, 0, 0, 0.06)'
           }}
         >
           <nav className="flex flex-col gap-1 pt-4" aria-label="Mobile navigation">
@@ -228,11 +214,11 @@ export const Header: React.FC<HeaderProps> = ({ user, onSignOut }) => {
                   }
                   style={({ isActive }) => ({
                     backgroundColor: isActive
-                      ? (theme === 'dark' ? 'rgba(193, 192, 182, 0.1)' : 'rgba(0, 0, 0, 0.05)')
+                      ? 'rgba(0, 0, 0, 0.05)'
                       : 'transparent',
                     color: isActive
-                      ? (theme === 'dark' ? '#C1C0B6' : '#0c0a09')
-                      : (theme === 'dark' ? 'rgba(193, 192, 182, 0.7)' : 'rgba(12, 10, 9, 0.6)')
+                      ? '#1F1C18'
+                      : 'rgba(31, 28, 24, 0.6)'
                   })}
                 >
                   {Icon && <Icon className="w-4 h-4" />}
@@ -255,9 +241,7 @@ export const Header: React.FC<HeaderProps> = ({ user, onSignOut }) => {
             <div
               className="mt-4 pt-4"
               style={{
-                borderTop: theme === 'dark'
-                  ? '1px solid rgba(193, 192, 182, 0.1)'
-                  : '1px solid rgba(0, 0, 0, 0.06)'
+                borderTop: '1px solid rgba(0, 0, 0, 0.06)'
               }}
             >
               <div className="flex items-center justify-between">
@@ -283,7 +267,7 @@ export const Header: React.FC<HeaderProps> = ({ user, onSignOut }) => {
                         style={{
                           fontFamily: 'var(--font-heading)',
                           fontWeight: 500,
-                          color: theme === 'dark' ? '#C1C0B6' : '#0c0a09'
+                          color: '#1F1C18'
                         }}
                       >
                         {user.name}
@@ -294,7 +278,7 @@ export const Header: React.FC<HeaderProps> = ({ user, onSignOut }) => {
                         className="text-xs"
                         style={{
                           fontFamily: 'var(--font-body)',
-                          color: theme === 'dark' ? 'rgba(193, 192, 182, 0.7)' : 'rgba(12, 10, 9, 0.6)'
+                          color: '#8A857D'
                         }}
                       >
                         {user.email}
@@ -313,7 +297,7 @@ export const Header: React.FC<HeaderProps> = ({ user, onSignOut }) => {
                       className="px-3 py-2 text-sm transition-colors rounded-lg"
                       style={{
                         fontFamily: 'var(--font-heading)',
-                        color: theme === 'dark' ? 'rgba(193, 192, 182, 0.7)' : 'rgba(12, 10, 9, 0.6)'
+                        color: '#8A857D'
                       }}
                     >
                       Sign Out
