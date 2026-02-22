@@ -17,9 +17,6 @@ import { serverDb, supabaseAdmin } from '../services/database.js';
 import { getMonthlyUsage, FREE_TIER_LIMIT } from './chat-usage.js';
 import { getValidAccessToken } from '../services/tokenRefresh.js';
 
-// Moltbot replaced by unified memory stream — getMemoryService no longer needed
-import { getClusterPersonalityBuilder } from '../services/clusterPersonalityBuilder.js';
-
 // Shared conversation logging (unified with MCP server)
 import {
   logConversationToDatabase,
@@ -35,7 +32,6 @@ import { fetchTwinContext, buildContextSourcesMeta } from '../services/twinConte
 import {
   addConversationMemory as addConversationMemoryStream,
   retrieveMemories,
-  getRecentMemories,
   getRecentImportanceSum,
   extractConversationFacts,
   getMemoryStats,
@@ -277,7 +273,7 @@ DATA GROUNDING (critical - prevents hallucination):
  * Build a personalized system prompt based on user's soul signature, platform data, and Moltbot memory.
  * Returns an array format for Anthropic prompt caching - static base is cached, dynamic context is not.
  */
-function buildTwinSystemPrompt(soulSignature, platformData, moltbotContext = null, personalityScores = null, twinSummary = null, proactiveInsights = null) {
+function buildTwinSystemPrompt(soulSignature, platformData, personalityScores = null, twinSummary = null, proactiveInsights = null) {
   let dynamicContext = '';
 
   // === TEMPORAL AWARENESS ===
@@ -423,62 +419,6 @@ function buildTwinSystemPrompt(soulSignature, platformData, moltbotContext = nul
     }
   }
 
-  // === MEMORY (Things I've learned) ===
-  if (moltbotContext) {
-    if (moltbotContext.recentMemories?.length > 0) {
-      dynamicContext += `\n\nRecent life events: ${moltbotContext.recentMemories.slice(0, 3).map(mem => {
-        const timeAgo = getTimeAgo(mem.timestamp || mem.created_at);
-        // NEVER stringify raw data objects - they can be 50K+ chars
-        const summary = mem.summary || (typeof mem.data === 'string' ? mem.data : `${mem.data?.type || 'event'}`);
-        return `${timeAgo}: ${summary.substring(0, 80)}`;
-      }).join('; ')}`;
-    }
-
-    if (moltbotContext.learnedFacts?.length > 0) {
-      dynamicContext += `\n\nThings I know about myself: ${moltbotContext.learnedFacts.slice(0, 5).map(f =>
-        `${f.category}: ${String(f.fact?.key || f.key || '').substring(0, 50)}`
-      ).join('; ')}`;
-    }
-
-    if (moltbotContext.clusterPersonality?.personality) {
-      const p = moltbotContext.clusterPersonality.personality;
-      // Translate Big Five into natural language
-      const traits = [];
-      if (p.openness > 70) traits.push('highly curious and open to new experiences');
-      else if (p.openness < 40) traits.push('practical and grounded');
-      if (p.extraversion > 70) traits.push('outgoing and energized by people');
-      else if (p.extraversion < 40) traits.push('introspective, recharge alone');
-      if (p.conscientiousness > 70) traits.push('organized and disciplined');
-      else if (p.conscientiousness < 40) traits.push('flexible and spontaneous');
-      if (p.agreeableness > 70) traits.push('empathetic and cooperative');
-      if (p.neuroticism > 60) traits.push('emotionally sensitive');
-      else if (p.neuroticism < 30) traits.push('emotionally stable');
-      if (traits.length > 0) {
-        dynamicContext += `\nPersonality: ${traits.join(', ')}.`;
-      }
-    }
-
-    if (moltbotContext.clusterPersonality?.clusterTraits) {
-      const ct = moltbotContext.clusterPersonality.clusterTraits;
-      const styleParts = [];
-      if (ct.communication_style) styleParts.push(`communication: ${ct.communication_style}`);
-      if (ct.energy_pattern) styleParts.push(`energy: ${ct.energy_pattern}`);
-      if (ct.social_preference) styleParts.push(`social: ${ct.social_preference}`);
-      if (styleParts.length > 0) {
-        dynamicContext += ` Style: ${styleParts.join(', ')}.`;
-      }
-    }
-
-    if (moltbotContext.currentState) {
-      const cs = moltbotContext.currentState;
-      const parts = [];
-      if (cs.recovery) parts.push(`Recovery ${cs.recovery}%`);
-      if (cs.recentMood) parts.push(`Mood: ${cs.recentMood}`);
-      if (cs.lastActivity) parts.push(`Last activity: ${cs.lastActivity}`);
-      if (parts.length) dynamicContext += `\nCurrent state: ${parts.join(', ')}`;
-    }
-  }
-
   // Hard cap dynamic context to prevent token bloat
   let trimmedContext = dynamicContext.trim();
   if (trimmedContext.length > MAX_DYNAMIC_CONTEXT_CHARS) {
@@ -523,80 +463,6 @@ function getTimeAgo(timestamp) {
   if (diffHours < 24) return `${diffHours}h ago`;
   if (diffDays < 7) return `${diffDays}d ago`;
   return then.toLocaleDateString();
-}
-
-/**
- * Fetch Moltbot context for enhanced chat
- */
-async function getMoltbotContext(userId) {
-  try {
-    const clusterBuilder = getClusterPersonalityBuilder(userId);
-
-    // Gather context in parallel from unified memory stream + cluster personality
-    const [recentMemories, storedProfiles] = await Promise.all([
-      getRecentMemories(userId, 20).catch(() => []),
-      clusterBuilder.getStoredProfiles().catch(() => [])
-    ]);
-
-    // Split memories by type for structured context
-    const recentEvents = recentMemories.filter(m => m.memory_type === 'observation');
-    const learnedFacts = recentMemories.filter(m => m.memory_type === 'fact');
-
-    // Get primary cluster personality (personal by default)
-    const personalProfile = storedProfiles.find(p => p.cluster === 'personal');
-
-    // Extract current state from recent memories
-    const currentState = {};
-    const recoveryMem = recentEvents.find(e => e.content?.toLowerCase().includes('recovery') || e.content?.toLowerCase().includes('whoop'));
-    if (recoveryMem) {
-      const match = recoveryMem.content.match(/(\d+)%?\s*recovery/i);
-      if (match) {
-        const parsed = parseInt(match[1], 10);
-        if (!isNaN(parsed)) currentState.recovery = Math.max(0, Math.min(100, parsed));
-      }
-    }
-
-    const moodMem = recentMemories.find(m => m.content?.toLowerCase().includes('mood') || m.content?.toLowerCase().includes('feeling'));
-    if (moodMem) {
-      currentState.recentMood = moodMem.content.substring(0, 100);
-    }
-
-    const lastActivity = recentEvents[0];
-    if (lastActivity) {
-      currentState.lastActivity = lastActivity.content?.substring(0, 100) || 'recent activity';
-    }
-
-    return {
-      recentMemories: recentEvents.slice(0, 5).map(e => ({
-        timestamp: e.created_at,
-        summary: e.content?.substring(0, 150) || 'observation'
-      })),
-      learnedFacts: learnedFacts.slice(0, 8).map(f => ({
-        category: f.metadata?.category || 'general',
-        key: f.content?.substring(0, 80) || '',
-        fact: { key: f.content?.substring(0, 80) || '' }
-      })),
-      clusterPersonality: personalProfile ? {
-        name: 'Personal',
-        personality: {
-          openness: personalProfile.openness,
-          conscientiousness: personalProfile.conscientiousness,
-          extraversion: personalProfile.extraversion,
-          agreeableness: personalProfile.agreeableness,
-          neuroticism: personalProfile.neuroticism
-        },
-        clusterTraits: {
-          communication_style: personalProfile.communication_style,
-          energy_pattern: personalProfile.energy_pattern,
-          social_preference: personalProfile.social_preference
-        }
-      } : null,
-      currentState
-    };
-  } catch (error) {
-    console.warn('[Twin Chat] Could not fetch Moltbot context:', error.message);
-    return null;
-  }
 }
 
 /**
@@ -971,23 +837,16 @@ router.post('/message', authenticateUser, async (req, res) => {
       });
     }
 
-    chatLog('Starting fetchTwinContext + getMoltbotContext in parallel');
-    // Fetch all context layers AND moltbot context in parallel (not sequentially)
-    const [twinContext, moltbotContext] = await Promise.all([
-      fetchTwinContext(userId, message, {
-        platforms: context?.platforms || ['spotify', 'calendar', 'whoop', 'web'],
-      }),
-      getMoltbotContext(userId).catch(err => {
-        console.warn('[Twin Chat] moltbotContext fetch failed:', err.message);
-        return null;
-      }),
-    ]);
-    chatLog('fetchTwinContext + getMoltbotContext complete');
+    chatLog('Starting fetchTwinContext');
+    const twinContext = await fetchTwinContext(userId, message, {
+      platforms: context?.platforms || ['spotify', 'calendar', 'whoop', 'web'],
+    });
+    chatLog('fetchTwinContext complete');
     const { soulSignature, platformData, personalityScores, writingProfile, memories, twinSummary, proactiveInsights, enrichmentContext, voiceExamples, activeGoals } = twinContext;
 
     // Build personalized system prompt with structured context layers
     // Returns array format for Anthropic prompt caching: [cached_base, dynamic_context]
-    let systemPrompt = buildTwinSystemPrompt(soulSignature, platformData, moltbotContext, personalityScores, twinSummary, proactiveInsights);
+    let systemPrompt = buildTwinSystemPrompt(soulSignature, platformData, personalityScores, twinSummary, proactiveInsights);
 
     // Inject persona block: translates personality data into prescriptive behavioral rules
     const personaBlock = buildPersonaBlock({ personalityScores, soulSignature, twinSummary, writingProfile, platformData });
