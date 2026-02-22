@@ -225,12 +225,13 @@ router.delete('/accounts/:userId/:platform', authenticateUser, async (req, res) 
     console.log(`[Pipedream] Disconnecting ${platform} for user ${userId}`);
 
     // Get Pipedream account ID from database
-    const { data: connection } = await supabase
+    const { data: connection, error: connErr } = await supabase
       .from('platform_connections')
       .select('pipedream_account_id')
       .eq('user_id', userId)
       .eq('platform', platform)
       .single();
+    if (connErr && connErr.code !== 'PGRST116') console.error('[Pipedream] Connection fetch error:', connErr.message);
 
     if (!connection || !connection.pipedream_account_id) {
       return res.status(404).json({
