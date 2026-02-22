@@ -39,10 +39,8 @@ const NANGO_PROVIDER_MAP: Record<string, string> = {
   'linkedin': 'linkedin',
   'github': 'github',
   'reddit': 'reddit',
-  'whoop': 'whoop',
   'spotify': 'spotify',
   'youtube': 'youtube',
-  'twitch': 'twitch',
   'google-calendar': 'google-calendar',
 };
 
@@ -171,14 +169,13 @@ const InstantTwinOnboarding = () => {
 
       const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
 
-      // Use health connector route for health platforms (oura only - whoop uses Arctic)
       const healthPlatforms = ['oura'];
       // Entertainment platforms use direct OAuth via entertainment-connectors endpoints
-      const entertainmentPlatforms = ['spotify', 'discord', 'youtube', 'twitch', 'netflix', 'hbo_max', 'prime_video', 'disney_plus', 'apple_music', 'apple_tv'];
+      const entertainmentPlatforms = ['spotify', 'discord', 'youtube', 'netflix', 'hbo_max', 'prime_video', 'disney_plus', 'apple_music', 'apple_tv'];
       // Professional platforms that use Google OAuth scopes via entertainment-connectors
       const googlePlatforms = ['google_calendar', 'gmail'];
       // Arctic-managed platforms with built-in OAuth
-      const arcticPlatforms = ['whoop', 'github', 'reddit', 'linkedin'];
+      const arcticPlatforms = ['github', 'reddit', 'linkedin'];
 
       let apiUrl: string;
       let fetchOptions: RequestInit = {
@@ -447,7 +444,7 @@ const InstantTwinOnboarding = () => {
     }
   }, [user, connectedServices, navigate, toast]);
 
-  const DEMO_CONNECTED_PROVIDERS = ['spotify', 'google_calendar', 'whoop'];
+  const DEMO_CONNECTED_PROVIDERS = ['spotify', 'google_calendar'];
 
   // Sort connectors - connected ones first
   const sortConnectors = (connectors: typeof AVAILABLE_CONNECTORS) => {
@@ -495,7 +492,7 @@ const InstantTwinOnboarding = () => {
         >
           <Info className="w-5 h-5 flex-shrink-0" style={{ color: '#FBBF24' }} />
           <p className="text-sm" style={{ color: colors.textSecondary, fontFamily: 'var(--font-body)' }}>
-            You're in demo mode. Spotify, Calendar, and Whoop are shown as connected with sample data. Sign up to connect your real platforms.
+            You're in demo mode. Spotify and Calendar are shown as connected with sample data. Sign up to connect your real platforms.
           </p>
         </div>
       )}

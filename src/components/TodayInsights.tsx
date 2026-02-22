@@ -119,7 +119,7 @@ export const TodayInsights: React.FC = () => {
           success: true,
           insights: DEMO_TODAY_INSIGHTS,
           dataTimestamp: new Date().toISOString(),
-          sources: { whoop: true, calendar: true, spotify: true }
+          sources: { calendar: true, spotify: true }
         };
       }
 
@@ -153,15 +153,14 @@ export const TodayInsights: React.FC = () => {
   // ── Per-platform connect rows for any platform that is NOT connected ─────
   const disconnectedPlatforms = !isLoading && !platformStatusLoading && !isDemoMode
     ? [
-        { platform: 'Whoop',    platformKey: 'whoop',           desc: 'Connect Whoop to unlock health & recovery insights',   active: isPlatformActive('whoop') },
         { platform: 'Calendar', platformKey: 'google_calendar', desc: 'Connect Google Calendar to unlock schedule insights',   active: isPlatformActive('google_calendar') },
         { platform: 'Spotify',  platformKey: 'spotify',         desc: 'Connect Spotify to unlock music mood insights',         active: isPlatformActive('spotify') },
       ].filter(p => !p.active)
     : [];
 
   // Show connect rows alongside real content when some (but not necessarily all) platforms are disconnected
-  // If ALL three are disconnected and there's no data yet, show only the connect state
-  const allDisconnected = disconnectedPlatforms.length === 3;
+  // If ALL platforms are disconnected and there's no data yet, show only the connect state
+  const allDisconnected = disconnectedPlatforms.length === 2;
 
   if (allDisconnected && !isLoading && !platformStatusLoading && !isDemoMode) {
     return (
@@ -294,21 +293,10 @@ export const TodayInsights: React.FC = () => {
       {/* Data Sources Indicator - Uses real platform status with token expiry check */}
       <div className="flex items-center gap-4 text-xs" style={{ color: '#8A857D' }}>
         {(() => {
-          const WhoopIcon = getPlatformLogo('whoop') || Activity;
           const CalendarIcon = getPlatformLogo('google_calendar') || Calendar;
           const SpotifyIcon = getPlatformLogo('spotify') || Music;
           return (
             <>
-              <span className="flex items-center gap-1">
-                <WhoopIcon className="w-3 h-3" />
-                Whoop {isPlatformActive('whoop') ? (
-                  <CheckCircle className="w-3 h-3 text-green-500" />
-                ) : platformStatus['whoop']?.tokenExpired ? (
-                  <AlertCircle className="w-3 h-3 text-amber-500" title="Token expired" />
-                ) : (
-                  <AlertCircle className="w-3 h-3 text-orange-500" />
-                )}
-              </span>
               <span className="flex items-center gap-1">
                 <CalendarIcon className="w-3 h-3" />
                 Calendar {isPlatformActive('google_calendar') ? (

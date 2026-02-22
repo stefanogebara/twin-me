@@ -34,8 +34,6 @@ export type {
   MusicSession,
 } from './api/spotifyAPI';
 
-// Whoop
-
 // Soul Signature
 export { soulSignatureAPI } from './api/soulSignatureAPI';
 

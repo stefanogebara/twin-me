@@ -33,24 +33,10 @@ const YouTubeIcon = () => (
   </svg>
 );
 
-const WhoopIcon = () => (
-  <svg className="w-5 h-5" viewBox="0 0 1332 999" fill="currentColor">
-    <path d="m969.3 804.3l-129.4-426.3h-118.7l189.2 620.8h117.8l303.7-998h-118.7zm-851.3-803.5h-117.9l188.4 620.7h118.6zm488.6 0l-302.8 997.9h117.8l303.7-997.9z"/>
-  </svg>
-);
-
-const TwitchIcon = () => (
-  <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
-    <path d="M11.571 4.714h1.715v5.143H11.57zm4.715 0H18v5.143h-1.714zM6 0L1.714 4.286v15.428h5.143V24l4.286-4.286h3.428L22.286 12V0zm14.571 11.143l-3.428 3.428h-3.429l-3 3v-3H6.857V1.714h13.714z"/>
-  </svg>
-);
-
 const PLATFORMS: Platform[] = [
   { id: 'spotify', name: 'Spotify', color: '#1DB954', icon: <SpotifyIcon />, category: 'entertainment' },
   { id: 'youtube', name: 'YouTube', color: '#FF0000', icon: <YouTubeIcon />, category: 'entertainment' },
   { id: 'google_calendar', name: 'Calendar', color: '#4285F4', icon: <CalendarIcon />, category: 'google' },
-  { id: 'whoop', name: 'Whoop', color: '#00B388', icon: <WhoopIcon />, category: 'arctic' },
-  { id: 'twitch', name: 'Twitch', color: '#9146FF', icon: <TwitchIcon />, category: 'entertainment' },
 ];
 
 interface CompactPlatformConnectProps {

@@ -95,18 +95,6 @@ const extractMetrics = (platform: string, data: any): PlatformData['metrics'] =>
         { label: 'Watch Time', value: `${data.watchHours || 0}h`, type: 'text' },
         { label: 'Top Category', value: data.topCategory || 'Unknown', type: 'text' }
       ];
-    case 'twitch':
-      return [
-        { label: 'Following', value: data.followingCount || 0, type: 'number' },
-        { label: 'Watch Time', value: `${data.watchHours || 0}h`, type: 'text' },
-        { label: 'Top Game', value: data.topGame || 'Unknown', type: 'text' }
-      ];
-    case 'whoop':
-      return [
-        { label: 'Recovery', value: `${data.recoveryScore || 0}%`, type: 'percentage' },
-        { label: 'Strain', value: data.strain?.toFixed(1) || '0', type: 'number' },
-        { label: 'Sleep', value: `${data.sleepHours?.toFixed(1) || 0}h`, type: 'text' }
-      ];
     case 'google_calendar':
     case 'outlook':
       return [
@@ -157,16 +145,6 @@ const generateInsight = (platform: string, data: any): string => {
       return data.topCategory
         ? `You gravitate toward ${data.topCategory.toLowerCase()} content`
         : 'Your viewing patterns reveal curiosity';
-    case 'twitch':
-      return data.topGame
-        ? `${data.topGame} is your streaming home`
-        : 'Your streaming preferences are unique';
-    case 'whoop':
-      return data.recoveryScore >= 70
-        ? 'Your body is well-recovered and ready for action'
-        : data.recoveryScore >= 50
-        ? 'Moderate recovery - balance activity and rest'
-        : 'Low recovery detected - prioritize rest today';
     case 'google_calendar':
     case 'outlook':
       return data.busyPercentage >= 70
