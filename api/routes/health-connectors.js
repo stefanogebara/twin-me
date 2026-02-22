@@ -7,6 +7,7 @@ import {
   oauthAuthorizationLimiter,
   oauthCallbackLimiter
 } from '../middleware/oauthRateLimiter.js';
+import { authenticateUser } from '../middleware/auth.js';
 import { invalidatePlatformStatusCache } from '../services/redisClient.js';
 import { proxyRequest as nangoProxyRequest } from '../services/nangoService.js';
 
@@ -128,7 +129,7 @@ router.get('/connect/whoop', oauthAuthorizationLimiter, async (req, res) => {
     res.status(500).json({
       success: false,
       error: 'Failed to initialize Whoop connection',
-      details: error.message
+      ...(process.env.NODE_ENV !== 'production' && { details: error.message }),
     });
   }
 });
@@ -219,7 +220,7 @@ router.post('/connect/whoop', oauthAuthorizationLimiter, async (req, res) => {
     res.status(500).json({
       success: false,
       error: 'Failed to initialize Whoop connection',
-      details: error.message
+      ...(process.env.NODE_ENV !== 'production' && { details: error.message }),
     });
   }
 });
@@ -396,7 +397,7 @@ router.post('/oauth/callback/whoop', oauthCallbackLimiter, async (req, res) => {
     res.status(500).json({
       success: false,
       error: 'Failed to complete Whoop OAuth flow',
-      details: error.message
+      ...(process.env.NODE_ENV !== 'production' && { details: error.message }),
     });
   }
 });
@@ -405,11 +406,12 @@ router.post('/oauth/callback/whoop', oauthCallbackLimiter, async (req, res) => {
  * @deprecated Use nangoService.extractPlatformData() instead.
  * Extract Whoop Physical Soul Signature
  */
-router.post('/extract/whoop', async (req, res) => {
+router.post('/extract/whoop', authenticateUser, async (req, res) => {
   try {
-    const { userId, accessToken } = req.body;
+    const userId = req.user.id;
+    const { accessToken } = req.body;
 
-    if (!userId || !accessToken) {
+    if (!accessToken) {
       return res.status(400).json({
         success: false,
         error: 'userId and accessToken are required'
@@ -469,7 +471,7 @@ router.post('/extract/whoop', async (req, res) => {
     res.status(500).json({
       success: false,
       error: 'Failed to extract Whoop data',
-      details: error.message
+      ...(process.env.NODE_ENV !== 'production' && { details: error.message }),
     });
   }
 });
@@ -478,16 +480,9 @@ router.post('/extract/whoop', async (req, res) => {
  * @deprecated Use Nango disconnect via NangoConnect component.
  * Disconnect Whoop - Remove platform connection
  */
-router.delete('/disconnect/whoop', async (req, res) => {
+router.delete('/disconnect/whoop', authenticateUser, async (req, res) => {
   try {
-    const { userId } = req.body;
-
-    if (!userId) {
-      return res.status(400).json({
-        success: false,
-        error: 'userId is required'
-      });
-    }
+    const userId = req.user.id;
 
     // Delete the platform connection
     const { error: deleteError } = await supabase
@@ -514,7 +509,7 @@ router.delete('/disconnect/whoop', async (req, res) => {
     res.status(500).json({
       success: false,
       error: 'Failed to disconnect Whoop',
-      details: error.message
+      ...(process.env.NODE_ENV !== 'production' && { details: error.message }),
     });
   }
 });
@@ -601,7 +596,7 @@ router.get('/reconnect/whoop', oauthAuthorizationLimiter, async (req, res) => {
     res.status(500).json({
       success: false,
       error: 'Failed to initialize Whoop reconnection',
-      details: error.message
+      ...(process.env.NODE_ENV !== 'production' && { details: error.message }),
     });
   }
 });
@@ -610,16 +605,9 @@ router.get('/reconnect/whoop', oauthAuthorizationLimiter, async (req, res) => {
  * @deprecated Not needed - Nango handles token refresh automatically via proxy.
  * Refresh Whoop Token - Manually refresh token using refresh_token
  */
-router.post('/refresh/whoop', async (req, res) => {
+router.post('/refresh/whoop', authenticateUser, async (req, res) => {
   try {
-    const { userId } = req.body;
-
-    if (!userId) {
-      return res.status(400).json({
-        success: false,
-        error: 'userId is required'
-      });
-    }
+    const userId = req.user.id;
 
     // Get the existing connection
     const { data: connection, error: fetchError } = await supabase
@@ -721,7 +709,7 @@ router.post('/refresh/whoop', async (req, res) => {
     res.status(500).json({
       success: false,
       error: 'Failed to refresh Whoop token',
-      details: error.message
+      ...(process.env.NODE_ENV !== 'production' && { details: error.message }),
     });
   }
 });
@@ -792,7 +780,7 @@ router.get('/connect/oura', oauthAuthorizationLimiter, async (req, res) => {
     res.status(500).json({
       success: false,
       error: 'Failed to initialize Oura connection',
-      details: error.message
+      ...(process.env.NODE_ENV !== 'production' && { details: error.message }),
     });
   }
 });
@@ -867,7 +855,7 @@ router.post('/connect/oura', oauthAuthorizationLimiter, async (req, res) => {
     res.status(500).json({
       success: false,
       error: 'Failed to initialize Oura connection',
-      details: error.message
+      ...(process.env.NODE_ENV !== 'production' && { details: error.message }),
     });
   }
 });
@@ -1015,7 +1003,7 @@ router.post('/oauth/callback/oura', oauthCallbackLimiter, async (req, res) => {
     res.status(500).json({
       success: false,
       error: 'Failed to complete Oura OAuth flow',
-      details: error.message
+      ...(process.env.NODE_ENV !== 'production' && { details: error.message }),
     });
   }
 });
@@ -1023,14 +1011,15 @@ router.post('/oauth/callback/oura', oauthCallbackLimiter, async (req, res) => {
 /**
  * Extract Oura Recovery Soul Signature
  */
-router.post('/extract/oura', async (req, res) => {
+router.post('/extract/oura', authenticateUser, async (req, res) => {
   try {
-    const { userId, accessToken } = req.body;
+    const userId = req.user.id;
+    const { accessToken } = req.body;
 
-    if (!userId || !accessToken) {
+    if (!accessToken) {
       return res.status(400).json({
         success: false,
-        error: 'userId and accessToken are required'
+        error: 'accessToken is required'
       });
     }
 
@@ -1091,7 +1080,7 @@ router.post('/extract/oura', async (req, res) => {
     res.status(500).json({
       success: false,
       error: 'Failed to extract Oura data',
-      details: error.message
+      ...(process.env.NODE_ENV !== 'production' && { details: error.message }),
     });
   }
 });
@@ -1262,9 +1251,10 @@ function analyzeOuraPatterns({ personalInfo, sleepData, activityData, readinessD
 /**
  * Aggregate health data from all connected health platforms
  */
-router.post('/aggregate-health', async (req, res) => {
+router.post('/aggregate-health', authenticateUser, async (req, res) => {
   try {
-    const { userId, connectedPlatforms } = req.body;
+    const { connectedPlatforms } = req.body;
+    const userId = req.user.id;
 
     const aggregatedHealthSoul = {
       physicalDiscipline: {},
@@ -1325,7 +1315,7 @@ router.post('/aggregate-health', async (req, res) => {
     res.status(500).json({
       success: false,
       error: 'Failed to aggregate health data',
-      details: error.message
+      ...(process.env.NODE_ENV !== 'production' && { details: error.message }),
     });
   }
 });
@@ -1407,37 +1397,9 @@ function determineWellnessArchetype(healthSoul) {
  * Returns Whoop connection status for dashboard display
  * Note: Still uses platform_connections table for legacy users.
  */
-router.get('/whoop/status', async (req, res) => {
+router.get('/whoop/status', authenticateUser, async (req, res) => {
   try {
-    // Get userId from JWT token
-    const authHeader = req.headers.authorization;
-    if (!authHeader) {
-      return res.status(401).json({
-        success: false,
-        error: 'Authorization header required'
-      });
-    }
-
-    // Extract userId from JWT (simple decode for now)
-    const token = authHeader.replace('Bearer ', '');
-    let userId;
-    try {
-      const payload = JSON.parse(Buffer.from(token.split('.')[1], 'base64').toString());
-      // Check all common JWT userId field names (our tokens use 'id')
-      userId = payload.id || payload.sub || payload.userId || payload.user_id;
-    } catch (e) {
-      return res.status(401).json({
-        success: false,
-        error: 'Invalid token'
-      });
-    }
-
-    if (!userId) {
-      return res.status(400).json({
-        success: false,
-        error: 'userId could not be extracted from token'
-      });
-    }
+    const userId = req.user.id;
 
     // Check for Whoop connection
     const { data: connection, error: connError } = await supabase
@@ -1497,31 +1459,9 @@ router.get('/whoop/status', async (req, res) => {
  * Returns real-time health context from Whoop for intelligent recommendations
  * Note: Still uses platform_connections + manual refresh for legacy users.
  */
-router.get('/whoop/current-state', async (req, res) => {
+router.get('/whoop/current-state', authenticateUser, async (req, res) => {
   try {
-    // Get userId from query param or JWT token
-    let userId = req.query.userId;
-
-    // If no userId in query, try to extract from JWT
-    if (!userId) {
-      const authHeader = req.headers.authorization;
-      if (authHeader) {
-        try {
-          const token = authHeader.replace('Bearer ', '');
-          const payload = JSON.parse(Buffer.from(token.split('.')[1], 'base64').toString());
-          userId = payload.id || payload.sub || payload.userId || payload.user_id;
-        } catch (e) {
-          // Token parsing failed
-        }
-      }
-    }
-
-    if (!userId) {
-      return res.status(400).json({
-        success: false,
-        error: 'userId is required (via query param or JWT token)'
-      });
-    }
+    const userId = req.user.id;
 
     console.log(`[Whoop Current State] Getting real-time health data for user ${userId}`);
 
