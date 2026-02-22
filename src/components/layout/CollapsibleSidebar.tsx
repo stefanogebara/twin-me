@@ -81,12 +81,6 @@ const mainNavItems: NavItem[] = [
     path: '/goals'
   },
   {
-    id: 'personality',
-    label: 'Personality',
-    icon: TrendingUp,
-    path: '/personality'
-  },
-  {
     id: 'chat',
     label: 'Chat with Twin',
     icon: MessageCircle,
