@@ -486,7 +486,7 @@ Compiled from comprehensive codebase audit. All items confirmed with user via al
 | # | Task | Status | Notes |
 |---|------|--------|-------|
 | S1 | Fix cron-claude-sync.js weak CRON_SECRET check | ✅ DONE | Main POST / and /process-analysis routes allowed through when CRON_SECRET not set. Fixed to match robust pattern used by other 4 cron files. |
-| S2 | Verify CRON_SECRET is set in Vercel env vars | PENDING | Check vercel env ls, add if missing. All 5 cron routes now fail-closed in production. |
+| S2 | Verify CRON_SECRET is set in Vercel env vars | ✅ DONE | Confirmed present in Development, Preview, Production (set 123d ago). All 5 cron routes protected. |
 
 ### Performance (P1)
 
