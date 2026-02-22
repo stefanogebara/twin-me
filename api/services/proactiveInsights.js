@@ -111,7 +111,7 @@ async function generateProactiveInsights(userId) {
           user_id: userId,
           insight: item.insight.substring(0, 500),
           urgency: ['low', 'medium', 'high'].includes(item.urgency) ? item.urgency : 'low',
-          category: ['trend', 'anomaly', 'celebration', 'concern', 'goal_progress', 'goal_suggestion'].includes(item.category) ? item.category : (item.category || null),
+          category: ['trend', 'anomaly', 'celebration', 'concern', 'goal_progress', 'goal_suggestion'].includes(item.category) ? item.category : null,
         });
 
       if (!error) {

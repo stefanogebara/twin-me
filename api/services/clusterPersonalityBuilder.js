@@ -18,9 +18,6 @@
 
 import { createClient } from '@supabase/supabase-js';
 import { getCorrelationMatcherService } from './correlationMatcherService.js';
-// Moltbot removed (TIER 1 cleanup)
-const getMemoryService = () => ({ getRecentMemories: async () => [], getLearnedFacts: async () => [] });
-const config = { clusters: {} };
 
 let supabase = null;
 function getSupabaseClient() {
@@ -73,7 +70,6 @@ class ClusterPersonalityBuilder {
     }
     this.userId = userId;
     this.correlationMatcher = getCorrelationMatcherService();
-    this.memoryService = getMemoryService(userId);
   }
 
   /**
