@@ -167,6 +167,18 @@ export const AVAILABLE_CONNECTORS: ConnectorConfig[] = [
     category: 'entertainment'
   },
   {
+    provider: 'discord' as DataProvider,
+    name: 'Discord',
+    description: 'Your server activity reveals community interests, communication style, and social identity',
+    icon: <DiscordLogo className="w-6 h-6" />,
+    color: '#5865F2',
+    dataTypes: ['Server Activity', 'Interests', 'Community'],
+    estimatedInsights: 7,
+    setupTime: '5 seconds',
+    privacyLevel: 'low',
+    category: 'social'
+  },
+  {
     provider: 'linkedin' as DataProvider,
     name: 'LinkedIn',
     description: 'Your professional network reveals career trajectory, skills, and how you present yourself professionally',
