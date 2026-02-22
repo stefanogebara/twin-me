@@ -56,12 +56,13 @@ router.get('/:platform', authenticateUser, async (req, res) => {
     const dbPlatformName = PLATFORM_DB_NAMES[platform] || platform;
 
     if (supabase) {
-      const { data: connection } = await supabase
+      const { data: connection, error: connErr } = await supabase
         .from('platform_connections')
         .select('id')
         .eq('user_id', userId)
         .eq('platform', dbPlatformName)
         .single();
+      if (connErr && connErr.code !== 'PGRST116') console.error('[PlatformInsights] Connection fetch error:', connErr.message);
 
       if (!connection) {
         return res.json({

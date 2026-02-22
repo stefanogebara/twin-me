@@ -661,11 +661,12 @@ router.get('/evidence/status', authenticateToken, async (req, res) => {
     }
 
     // Get connected platforms
-    const { data: connections } = await supabaseAdmin
+    const { data: connections, error: connErr } = await supabaseAdmin
       .from('platform_connections')
       .select('platform, status, last_sync_at')
       .eq('user_id', userId)
       .in('status', ['connected', 'token_refreshed', 'pending']);
+    if (connErr) console.error('[PersonalityAssessment] Connections fetch error:', connErr.message);
 
     res.json({
       success: true,

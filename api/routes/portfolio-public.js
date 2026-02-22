@@ -77,6 +77,12 @@ router.get('/public/:userId', async (req, res) => {
         .eq('status', 'active'),
     ]);
 
+    if (userResult.error) console.error('[Portfolio] User fetch error:', userResult.error.message);
+    if (personalityResult.error && personalityResult.error.code !== 'PGRST116') console.error('[Portfolio] Personality fetch error:', personalityResult.error.message);
+    if (featuresResult.error) console.error('[Portfolio] Features fetch error:', featuresResult.error.message);
+    if (enrichedResult.error && enrichedResult.error.code !== 'PGRST116') console.error('[Portfolio] Enriched profile fetch error:', enrichedResult.error.message);
+    if (platformsResult.error) console.error('[Portfolio] Platforms fetch error:', platformsResult.error.message);
+
     const user = userResult.data;
     const personality = personalityResult.data;
     const features = featuresResult.data || [];
