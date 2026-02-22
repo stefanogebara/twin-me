@@ -113,6 +113,61 @@ const PLATFORM_CACHE_TTL = 5 * 60 * 1000; // 5 minutes
 const MAX_DYNAMIC_CONTEXT_CHARS = 20000; // ~5K tokens for dynamic context (richer personality embodiment)
 const MAX_ADDITIONAL_CONTEXT_CHARS = 12000; // ~3K tokens for writing profile, memories, history
 
+/**
+ * Deduplicate items by thematic similarity using bigram Jaccard index.
+ * Keeps the first (highest-priority) item from each theme cluster.
+ *
+ * @param {Array} items - Items to deduplicate (ordered by priority)
+ * @param {Function} getText - Extracts the text to compare from each item
+ * @param {object} [options]
+ * @param {number} [options.threshold=0.35] - Jaccard similarity threshold (0-1). Higher = more aggressive dedup.
+ * @param {number} [options.maxItems=3] - Maximum items to return
+ * @returns {Array} Deduplicated items preserving original order
+ */
+function deduplicateByTheme(items, getText, options = {}) {
+  const { threshold = 0.35, maxItems = 3 } = options;
+  if (!items || items.length <= 1) return items || [];
+
+  const bigramSets = items.map(item => {
+    const text = getText(item).toLowerCase().replace(/[^a-z0-9\s]/g, '');
+    const words = text.split(/\s+/).filter(w => w.length > 2);
+    const bigrams = new Set();
+    for (let i = 0; i < words.length - 1; i++) {
+      bigrams.add(`${words[i]} ${words[i + 1]}`);
+    }
+    return bigrams;
+  });
+
+  const selected = [];
+  const selectedBigrams = [];
+
+  for (let i = 0; i < items.length && selected.length < maxItems; i++) {
+    const candidateBigrams = bigramSets[i];
+    if (candidateBigrams.size === 0) {
+      selected.push(items[i]);
+      selectedBigrams.push(candidateBigrams);
+      continue;
+    }
+    let tooSimilar = false;
+    for (const existingBigrams of selectedBigrams) {
+      if (existingBigrams.size === 0) continue;
+      let intersection = 0;
+      for (const bg of candidateBigrams) {
+        if (existingBigrams.has(bg)) intersection++;
+      }
+      const union = candidateBigrams.size + existingBigrams.size - intersection;
+      const jaccard = union > 0 ? intersection / union : 0;
+      if (jaccard > threshold) { tooSimilar = true; break; }
+    }
+    if (!tooSimilar) {
+      selected.push(items[i]);
+      selectedBigrams.push(candidateBigrams);
+    }
+  }
+
+  return selected;
+}
+
 // Periodic cleanup to prevent memory leaks from expired cache entries
 if (!_platformCacheCleanupInterval) {
   _platformCacheCleanupInterval = setInterval(() => {
@@ -237,8 +292,12 @@ function buildTwinSystemPrompt(soulSignature, platformData, moltbotContext = nul
 
   // === PROACTIVE INSIGHTS (Things I noticed - mention naturally if relevant) ===
   if (proactiveInsights && proactiveInsights.length > 0) {
+    const diverseInsights = deduplicateByTheme(proactiveInsights, i => i.insight, { threshold: 0.35, maxItems: 3 });
+    if (diverseInsights.length < proactiveInsights.length) {
+      console.log(`[Twin Chat] Insights deduped: ${proactiveInsights.length} -> ${diverseInsights.length}`);
+    }
     dynamicContext += '\n\nTHINGS I NOTICED (mention naturally if relevant to the conversation):';
-    for (const insight of proactiveInsights) {
+    for (const insight of diverseInsights) {
       const urgencyMarker = insight.urgency === 'high' ? ' [important]' : '';
       dynamicContext += `\n- ${insight.insight}${urgencyMarker}`;
     }
@@ -970,8 +1029,12 @@ router.post('/message', authenticateUser, async (req, res) => {
       const observations = memories.filter(m => m.memory_type !== 'reflection');
 
       if (reflections.length > 0) {
-        // Label expert reflections with their domain for richer context
-        additionalContext += `\n\nDeep patterns I've noticed (from analyzing my data):\n${reflections.map(r => {
+        // Deduplicate reflections: keep diverse themes, prefer higher-scored (already sorted by retrieval score)
+        const diverseReflections = deduplicateByTheme(reflections, r => r.content, { threshold: 0.40, maxItems: 8 });
+        if (diverseReflections.length < reflections.length) {
+          console.log(`[Twin Chat] Reflections deduped: ${reflections.length} -> ${diverseReflections.length}`);
+        }
+        additionalContext += `\n\nDeep patterns I've noticed (from analyzing my data):\n${diverseReflections.map(r => {
           const expertLabel = r.metadata?.expertName ? `[${r.metadata.expertName}] ` : '';
           return `- ${expertLabel}${r.content.substring(0, 250)}`;
         }).join('\n')}`;
@@ -1245,9 +1308,10 @@ router.get('/context', authenticateUser, async (req, res) => {
           .eq('user_id', userId)
           .eq('delivered', false)
           .order('created_at', { ascending: false })
-          .limit(10);
+          .limit(20); // Fetch more so dedup has a wider pool
         if (insightsErr) console.warn('[Twin Chat] Failed to fetch pending insights:', insightsErr.message);
-        return data || [];
+        const raw = data || [];
+        return deduplicateByTheme(raw, i => i.insight, { threshold: 0.35, maxItems: 10 });
       })(),
     ]);
 
