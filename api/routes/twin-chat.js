@@ -1117,12 +1117,9 @@ router.post('/message', authenticateUser, async (req, res) => {
 
     try {
       chatLog('Starting LLM call');
-      const systemPromptString = Array.isArray(systemPrompt)
-        ? systemPrompt.map(b => b.text).join('\n')
-        : systemPrompt;
       const result = await complete({
         tier: TIER_CHAT,
-        system: systemPromptString,
+        system: systemPrompt,
         messages: [
           ...conversationHistory,
           { role: 'user', content: message }

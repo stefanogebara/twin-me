@@ -492,7 +492,7 @@ Compiled from comprehensive codebase audit. All items confirmed with user via al
 
 | # | Task | Status | Notes |
 |---|------|--------|-------|
-| P1 | Fix prompt caching bug in twin-chat.js | PENDING | `buildTwinSystemPrompt()` returns array with `cache_control` blocks, but at lines 1120-1122 it gets `.map(b => b.text).join('\n')` before being passed to `complete()`. This strips the caching metadata — Anthropic prompt caching never activates. Fix: pass the array through to llmGateway directly, update `complete()` to accept array system prompts. Cost: ~10x per chat message. |
+| P1 | Fix prompt caching bug in twin-chat.js | ✅ DONE | `buildTwinSystemPrompt()` returns array with `cache_control` blocks, but at lines 1120-1122 it got `.map(b => b.text).join('\n')` before being passed to `complete()`. Stripped caching metadata — Anthropic prompt caching never activated. Fix: removed stringification, pass array directly. `formatMessages()` in llmGateway already handles arrays correctly (`{ role: 'system', content: arrayOrString }`). OpenRouter forwards array format to Anthropic with cache_control intact. |
 | P2 | Remove getMoltbotContext() from twin-chat.js | PENDING | Lines 529-598. Redundant with twinContextBuilder.js — creates duplicate DB queries on every chat. twinContextBuilder already retrieves memories. |
 
 ### User Experience (P1)
@@ -520,3 +520,4 @@ Compiled from comprehensive codebase audit. All items confirmed with user via al
 |------|------|-------|
 | 2026-02-22 | Fix Whoop-anchor bias | Changed "Recovery score is everything" in TWIN_BASE_INSTRUCTIONS to "Recovery gives physical context... Don't anchor every response". Added PLATFORM DIVERSITY and HEALTH DATA IS CONTEXT response rules. Commit 2c1c34f. |
 | 2026-02-22 | Fix cron-claude-sync.js security (S1) | Hardened two endpoint auth checks to fail-closed when CRON_SECRET not configured. |
+| 2026-02-22 | Fix prompt caching bug (P1) | Removed stringification at twin-chat.js:1120. System prompt array now passed directly to complete(), enabling Anthropic prompt caching for TWIN_BASE_INSTRUCTIONS (~1024 tokens). |
