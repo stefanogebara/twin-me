@@ -42,6 +42,32 @@ async function getSupabase() {
 const SUPPORTED_PLATFORMS = ['spotify', 'google_calendar', 'whoop', 'youtube', 'twitch'];
 
 // ====================================================================
+// Prompt injection defense
+// ====================================================================
+
+/**
+ * Sanitize a string from an external (untrusted) API before embedding
+ * it in an LLM prompt. Truncates to maxLen chars and strips common
+ * prompt injection starters so injected content cannot override instructions.
+ *
+ * @param {string} str - Raw external API string (channel name, video title, etc.)
+ * @param {number} maxLen - Max character length (default 100)
+ * @returns {string} Sanitized, truncated string safe for LLM context
+ */
+function sanitizeExternal(str, maxLen = 100) {
+  if (typeof str !== 'string') return '';
+  // Truncate first to avoid processing huge strings
+  let s = str.slice(0, maxLen * 2);
+  // Strip potential prompt injection markers — characters that could
+  // start new instructions: newlines, and common injection prefixes
+  s = s.replace(/[\r\n]+/g, ' ');
+  // Remove common injection patterns (case-insensitive)
+  s = s.replace(/\b(ignore|disregard|forget|override)\s+(previous|prior|above|all)\b/gi, '[filtered]');
+  s = s.replace(/\bsystem\s*prompt\b/gi, '[filtered]');
+  return s.slice(0, maxLen).trim();
+}
+
+// ====================================================================
 // De-duplication
 // ====================================================================
 
@@ -473,12 +499,8 @@ async function fetchYouTubeObservations(userId) {
     );
     const items = subsRes.data?.items || [];
     if (items.length > 0) {
-      const channelNames = items.map(i => i.snippet?.title).filter(Boolean).slice(0, 10);
-      const categories = [...new Set(items.map(i => i.snippet?.description).filter(Boolean).slice(0, 5))];
+      const channelNames = items.map(i => sanitizeExternal(i.snippet?.title)).filter(Boolean).slice(0, 10);
       let obs = `Subscribed to YouTube channels: ${channelNames.join(', ')}`;
-      if (categories.length > 0) {
-        obs += ` — revealing interests in content from these creators`;
-      }
       observations.push({ content: obs, contentType: 'weekly_summary' });
     }
   } catch (e) {
@@ -493,8 +515,8 @@ async function fetchYouTubeObservations(userId) {
     );
     const videos = likedRes.data?.items || [];
     if (videos.length > 0) {
-      const titles = videos.map(v => v.snippet?.title).filter(Boolean).slice(0, 5);
-      const channelsSeen = [...new Set(videos.map(v => v.snippet?.channelTitle).filter(Boolean))].slice(0, 5);
+      const titles = videos.map(v => sanitizeExternal(v.snippet?.title, 80)).filter(Boolean).slice(0, 5);
+      const channelsSeen = [...new Set(videos.map(v => sanitizeExternal(v.snippet?.channelTitle)).filter(Boolean))].slice(0, 5);
       observations.push({
         content: `Recently liked YouTube videos: "${titles.join('", "')}" — from channels: ${channelsSeen.join(', ')}`,
         contentType: 'daily_summary',
@@ -513,7 +535,7 @@ async function fetchYouTubeObservations(userId) {
     const activities = actRes.data?.items || [];
     const watchItems = activities.filter(a => a.snippet?.type === 'watch');
     if (watchItems.length > 0) {
-      const recentTitles = watchItems.map(a => a.snippet?.title).filter(Boolean).slice(0, 3);
+      const recentTitles = watchItems.map(a => sanitizeExternal(a.snippet?.title, 80)).filter(Boolean).slice(0, 3);
       observations.push({
         content: `Recently watched on YouTube: ${recentTitles.map(t => `"${t}"`).join(', ')}`,
         contentType: 'current_state',
@@ -567,7 +589,7 @@ async function fetchTwitchObservations(userId) {
     );
     const follows = followsRes.data?.data || [];
     if (follows.length > 0) {
-      const channelNames = follows.map(f => f.broadcaster_name).filter(Boolean).slice(0, 15);
+      const channelNames = follows.map(f => sanitizeExternal(f.broadcaster_name)).filter(Boolean).slice(0, 15);
       observations.push({
         content: `Follows Twitch channels: ${channelNames.join(', ')} — streams in gaming and entertainment categories`,
         contentType: 'weekly_summary',
@@ -585,7 +607,7 @@ async function fetchTwitchObservations(userId) {
     );
     const liveStreams = streamsRes.data?.data || [];
     if (liveStreams.length > 0) {
-      const streamDescs = liveStreams.slice(0, 5).map(s => `${s.user_name} (${s.game_name || 'Unknown'})`);
+      const streamDescs = liveStreams.slice(0, 5).map(s => `${sanitizeExternal(s.user_name)} (${sanitizeExternal(s.game_name, 50) || 'Unknown'})`);
       observations.push({
         content: `Twitch channels currently live that I follow: ${streamDescs.join(', ')}`,
         contentType: 'current_state',
@@ -842,7 +864,13 @@ function stopObservationIngestion() {
  * who just completed onboarding. This ensures platform data is immediately
  * available for the twin to use in the first conversation.
  */
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 async function runPostOnboardingIngestion(userId) {
+  if (!userId || !UUID_RE.test(userId)) {
+    console.warn('[ObservationIngestion] runPostOnboardingIngestion: invalid userId', userId);
+    return { observationsStored: 0 };
+  }
   console.log(`[ObservationIngestion] Running post-onboarding ingestion for user ${userId}`);
 
   try {
