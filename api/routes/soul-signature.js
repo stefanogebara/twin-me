@@ -38,7 +38,7 @@ const platformExtractors = {
 // ====================================================================
 router.get('/profile', authenticateToken, async (req, res) => {
   try {
-    const userId = req.query.userId || req.user.id;
+    const userId = req.user.id;
 
     console.log(`📊 [Soul Signature] Fetching profile for user ${userId}`);
 
@@ -82,7 +82,7 @@ router.get('/profile', authenticateToken, async (req, res) => {
     res.status(500).json({
       success: false,
       error: 'Failed to fetch soul signature profile',
-      message: error.message
+      message: process.env.NODE_ENV === 'development' ? error.message : 'An unexpected error occurred'
     });
   }
 });
@@ -93,7 +93,7 @@ router.get('/profile', authenticateToken, async (req, res) => {
 // ====================================================================
 router.get('/personality-scores', authenticateToken, async (req, res) => {
   try {
-    const userId = req.query.userId || req.user.id;
+    const userId = req.user.id;
 
     console.log(`🧠 [Soul Signature] Fetching personality scores for user ${userId}`);
 
@@ -229,7 +229,7 @@ router.get('/personality-scores', authenticateToken, async (req, res) => {
     res.status(500).json({
       success: false,
       error: 'Failed to fetch personality scores',
-      message: error.message
+      message: process.env.NODE_ENV === 'development' ? error.message : 'An unexpected error occurred'
     });
   }
 });
@@ -240,7 +240,7 @@ router.get('/personality-scores', authenticateToken, async (req, res) => {
 // ====================================================================
 router.get('/archetype', authenticateToken, async (req, res) => {
   try {
-    const userId = req.query.userId || req.user.id;
+    const userId = req.user.id;
 
     console.log(`✨ [Soul Signature] Fetching archetype for user ${userId}`);
 
@@ -300,7 +300,7 @@ router.get('/archetype', authenticateToken, async (req, res) => {
     res.status(500).json({
       success: false,
       error: 'Failed to fetch soul signature',
-      message: error.message
+      message: process.env.NODE_ENV === 'development' ? error.message : 'An unexpected error occurred'
     });
   }
 });
@@ -336,7 +336,7 @@ function generateArchetypeNarrative(code, archetype, estimates) {
 // ====================================================================
 router.get('/patterns', authenticateToken, async (req, res) => {
   try {
-    const userId = req.query.userId || req.user.id;
+    const userId = req.user.id;
     const definingOnly = req.query.defining === 'true';
 
     console.log(`🔍 [Soul Signature] Fetching patterns for user ${userId}`);
@@ -366,7 +366,7 @@ router.get('/patterns', authenticateToken, async (req, res) => {
     res.status(500).json({
       success: false,
       error: 'Failed to fetch unique patterns',
-      message: error.message
+      message: process.env.NODE_ENV === 'development' ? error.message : 'An unexpected error occurred'
     });
   }
 });
@@ -377,7 +377,7 @@ router.get('/patterns', authenticateToken, async (req, res) => {
 // ====================================================================
 router.get('/features', authenticateToken, async (req, res) => {
   try {
-    const userId = req.query.userId || req.user.id;
+    const userId = req.user.id;
     const platform = req.query.platform;
 
     console.log(`📈 [Soul Signature] Fetching features for user ${userId}`);
@@ -407,7 +407,7 @@ router.get('/features', authenticateToken, async (req, res) => {
     res.status(500).json({
       success: false,
       error: 'Failed to fetch behavioral features',
-      message: error.message
+      message: process.env.NODE_ENV === 'development' ? error.message : 'An unexpected error occurred'
     });
   }
 });
@@ -418,7 +418,7 @@ router.get('/features', authenticateToken, async (req, res) => {
 // ====================================================================
 router.get('/privacy', authenticateToken, async (req, res) => {
   try {
-    const userId = req.query.userId || req.user.id;
+    const userId = req.user.id;
 
     console.log(`🔒 [Soul Signature] Fetching privacy settings for user ${userId}`);
 
@@ -470,7 +470,7 @@ router.get('/privacy', authenticateToken, async (req, res) => {
     res.status(500).json({
       success: false,
       error: 'Failed to fetch privacy settings',
-      message: error.message
+      message: process.env.NODE_ENV === 'development' ? error.message : 'An unexpected error occurred'
     });
   }
 });
@@ -542,7 +542,7 @@ router.put('/privacy', authenticateToken, async (req, res) => {
     res.status(500).json({
       success: false,
       error: 'Failed to update privacy settings',
-      message: error.message
+      message: process.env.NODE_ENV === 'development' ? error.message : 'An unexpected error occurred'
     });
   }
 });
@@ -634,7 +634,7 @@ router.post('/generate', authenticateToken, async (req, res) => {
     res.status(500).json({
       success: false,
       error: 'Failed to generate soul signature',
-      message: error.message
+      message: process.env.NODE_ENV === 'development' ? error.message : 'An unexpected error occurred'
     });
   }
 });
@@ -695,7 +695,7 @@ router.post('/extract-features', authenticateToken, async (req, res) => {
     res.status(500).json({
       success: false,
       error: 'Failed to extract features',
-      message: error.message
+      message: process.env.NODE_ENV === 'development' ? error.message : 'An unexpected error occurred'
     });
   }
 });
@@ -730,7 +730,7 @@ router.get('/extraction-progress', authenticateToken, async (req, res) => {
     res.status(500).json({
       success: false,
       error: 'Failed to check extraction progress',
-      message: error.message
+      message: process.env.NODE_ENV === 'development' ? error.message : 'An unexpected error occurred'
     });
   }
 });
