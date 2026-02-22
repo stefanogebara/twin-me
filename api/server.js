@@ -207,45 +207,9 @@ app.use('/api/', (req, res, next) => {
   sanitizeInput(req, res, next);
 });
 
-// Input validation middleware
-const validateChatRequest = [
-  body('message')
-    .trim()
-    .isLength({ min: 1, max: 5000 })
-    .withMessage('Message must be between 1 and 5000 characters')
-    .escape(), // Sanitize HTML
-  body('twinId')
-    .isUUID()
-    .withMessage('Invalid twin ID format'),
-  body('conversationId')
-    .optional()
-    .isUUID()
-    .withMessage('Invalid conversation ID format'),
-  body('context')
-    .optional()
-    .isObject()
-    .withMessage('Context must be an object'),
-  body('context.twin')
-    .optional()
-    .isObject()
-    .withMessage('Twin context must be an object'),
-  body('context.studentProfile')
-    .optional()
-    .isObject()
-    .withMessage('Student profile must be an object'),
-];
-
-// Error handling middleware
-const handleValidationErrors = (req, res, next) => {
-  const errors = validationResult(req);
-  if (!errors.isEmpty()) {
-    return res.status(400).json({
-      error: 'Validation failed',
-      details: errors.array()
-    });
-  }
-  next();
-};
+// Note: validateChatRequest / handleValidationErrors are defined per-route in
+// api/routes/ai.js (which handles /api/ai/chat). Twin-chat (/api/chat/message)
+// has its own inline validation. No middleware needed at the server level.
 
 // Import routes
 import aiRoutes from './routes/ai.js';

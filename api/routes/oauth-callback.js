@@ -51,7 +51,14 @@ router.get('/callback', async (req, res) => {
       return res.redirect(`${appUrl}/soul-signature?error=invalid_state`);
     }
 
-    const { provider, userId } = stateData;
+    const { provider, userId, timestamp } = stateData;
+
+    // Validate state is fresh to prevent replay attacks (10-minute window)
+    const STATE_MAX_AGE_MS = 10 * 60 * 1000;
+    if (timestamp && (Date.now() - timestamp) > STATE_MAX_AGE_MS) {
+      console.warn('[OAuth Callback] State parameter too old, possible replay attack');
+      return res.redirect(`${appUrl}/soul-signature?error=state_expired`);
+    }
 
     console.log(`📥 OAuth callback received for ${provider} - User: ${userId}`);
 
