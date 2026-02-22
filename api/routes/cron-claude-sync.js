@@ -131,17 +131,20 @@ async function importConversationsForUser(userId, conversations) {
   let skipped = 0;
   let messagesImported = 0;
 
+  // Batch-check which conversations are already imported
+  const allExternalIds = conversations.map(c => `claude-desktop:${c.id}`);
+  const { data: alreadyImported, error: existingErr } = await supabaseAdmin
+    .from('mcp_conversation_logs')
+    .select('external_id')
+    .eq('user_id', userId)
+    .in('external_id', allExternalIds);
+  if (existingErr) console.warn('[CronSync] Error checking existing conversations:', existingErr.message);
+  const importedIds = new Set((alreadyImported || []).map(r => r.external_id));
+
   for (const conversation of conversations) {
     try {
-      // Check if already imported (by external_id)
-      const { data: existing } = await supabaseAdmin
-        .from('mcp_conversation_logs')
-        .select('id')
-        .eq('user_id', userId)
-        .eq('external_id', `claude-desktop:${conversation.id}`)
-        .limit(1);
-
-      if (existing && existing.length > 0) {
+      // Skip if already imported (checked in batch above)
+      if (importedIds.has(`claude-desktop:${conversation.id}`)) {
         skipped++;
         continue;
       }
