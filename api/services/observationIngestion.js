@@ -172,18 +172,17 @@ async function fetchSpotifyObservations(userId) {
     // No current playback — that's fine
   }
 
-  // Recently played (last hour only to avoid re-ingesting old data)
+  // Recently played — fetch once, reuse for observations, discovery, and session density
+  let recentItems = [];
+  let recentTracks = [];
   try {
     const recentRes = await axios.get(
       'https://api.spotify.com/v1/me/player/recently-played?limit=10',
       { headers, timeout: 10000 }
     );
-
+    recentItems = recentRes.data?.items || [];
     const oneHourAgo = Date.now() - 60 * 60 * 1000;
-    const recentTracks = (recentRes.data?.items || []).filter(item => {
-      return new Date(item.played_at).getTime() > oneHourAgo;
-    });
-
+    recentTracks = recentItems.filter(item => new Date(item.played_at).getTime() > oneHourAgo);
     for (const item of recentTracks) {
       const track = item.track?.name;
       const artist = item.track?.artists?.[0]?.name || 'Unknown';
@@ -223,42 +222,21 @@ async function fetchSpotifyObservations(userId) {
     }
   }
 
-  // New artist discovery: compare recent track artists vs top artists
-  if (topArtistNames.length > 0) {
-    try {
-      const recentRes = await axios.get(
-        'https://api.spotify.com/v1/me/player/recently-played?limit=10',
-        { headers, timeout: 10000 }
-      );
-      const recentItems = recentRes.data?.items || [];
-      const recentArtists = recentItems.map(item => item.track?.artists?.[0]?.name).filter(Boolean);
-      const topSet = new Set(topArtistNames.map(n => n.toLowerCase()));
-      for (const artist of recentArtists) {
-        if (!topSet.has(artist.toLowerCase())) {
-          observations.push({ content: `Discovered new artist: ${artist}`, contentType: 'daily_summary' });
-          break; // Only report one new discovery per ingestion
-        }
+  // New artist discovery: compare recent track artists vs top artists (reuse cached recentItems)
+  if (topArtistNames.length > 0 && recentItems.length > 0) {
+    const recentArtists = recentItems.map(item => item.track?.artists?.[0]?.name).filter(Boolean);
+    const topSet = new Set(topArtistNames.map(n => n.toLowerCase()));
+    for (const artist of recentArtists) {
+      if (!topSet.has(artist.toLowerCase())) {
+        observations.push({ content: `Discovered new artist: ${artist}`, contentType: 'daily_summary' });
+        break; // Only report one new discovery per ingestion
       }
-    } catch (e) {
-      // Ignore - we already fetched recent tracks above
     }
   }
 
-  // Session density: if multiple tracks in recent list
-  try {
-    const oneHourAgo = Date.now() - 60 * 60 * 1000;
-    const recentRes = await axios.get(
-      'https://api.spotify.com/v1/me/player/recently-played?limit=10',
-      { headers, timeout: 10000 }
-    );
-    const recentTracks = (recentRes.data?.items || []).filter(item =>
-      new Date(item.played_at).getTime() > oneHourAgo
-    );
-    if (recentTracks.length >= 4) {
-      observations.push({ content: `Extended listening session (${recentTracks.length} tracks recently)`, contentType: 'current_state' });
-    }
-  } catch (e) {
-    // Ignore
+  // Session density: reuse cached recentTracks (already filtered to last hour)
+  if (recentTracks.length >= 4) {
+    observations.push({ content: `Extended listening session (${recentTracks.length} tracks recently)`, contentType: 'current_state' });
   }
 
   return observations;
