@@ -132,7 +132,7 @@ router.get('/portrait', authenticateUser, async (req, res) => {
       // 10. Soul signature archetype (from instant-signature onboarding step)
       supabaseAdmin
         .from('soul_signatures')
-        .select('archetype_name, core_traits, signature_quote, first_impression, created_at')
+        .select('archetype_name, archetype_subtitle, narrative, defining_traits, created_at')
         .eq('user_id', userId)
         .order('created_at', { ascending: false })
         .limit(1)

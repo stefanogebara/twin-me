@@ -91,6 +91,14 @@ export interface ConnectedPlatform {
   last_sync_at: string | null;
 }
 
+export interface SoulSignatureData {
+  archetype_name: string;
+  archetype_subtitle: string | null;
+  narrative: string;
+  defining_traits: Array<{ trait: string; source?: string }> | string[] | null;
+  created_at: string;
+}
+
 export interface TwinPortraitData {
   twinSummary: TwinSummaryData | null;
   reflections: ExpertReflection[];
@@ -101,4 +109,5 @@ export interface TwinPortraitData {
   personalityScores: PersonalityScoresData | null;
   connectedPlatforms: ConnectedPlatform[];
   firstMemoryAt: string | null;
+  soulSignature?: SoulSignatureData | null;
 }

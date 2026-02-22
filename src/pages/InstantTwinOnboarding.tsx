@@ -401,34 +401,30 @@ const InstantTwinOnboarding = () => {
           description: "Navigate to the dashboard to begin extraction.",
         });
 
-        // Generate instant soul signature archetype (non-blocking — failure doesn't block navigation)
-        try {
-          const instantSigRes = await fetch(`${import.meta.env.VITE_API_URL}/onboarding/instant-signature`, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              Authorization: `Bearer ${token}`,
-            },
-            body: JSON.stringify({
-              enrichmentContext: {
-                answers: [],
-                writingSamples: [],
-              },
-              calibrationInsights: '',
-              connectedPlatforms: connectedServices,
-            }),
-          });
-
-          if (instantSigRes.ok) {
-            const sigData = await instantSigRes.json();
-            if (sigData.archetype?.archetype_name) {
-              sessionStorage.setItem('instant_archetype', JSON.stringify(sigData.archetype));
+        // Fire-and-forget — navigation happens immediately, archetype populates in background
+        const VITE_API_URL = import.meta.env.VITE_API_URL;
+        fetch(`${VITE_API_URL}/onboarding/instant-signature`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            enrichmentContext: { answers: [], writingSamples: [] },
+            calibrationInsights: '',
+            connectedPlatforms: connectedServices,
+          }),
+        })
+          .then(res => (res.ok ? res.json() : null))
+          .then(sigData => {
+            const sig = sigData?.signature ?? sigData?.archetype;
+            if (sig?.archetype_name) {
+              sessionStorage.setItem('instant_archetype', JSON.stringify(sig));
             }
-          }
-        } catch (err) {
-          console.warn('[Onboarding] instant-signature failed (non-blocking):', err);
-        }
+          })
+          .catch(err => console.warn('[Onboarding] instant-signature failed:', err));
 
+        // Navigate immediately — don't wait for archetype LLM call
         setTimeout(() => navigate('/soul-signature'), 500);
       } else {
         throw new Error(`Failed to create soul signature structure: ${result.error || result.message || 'Unknown error'}`);
