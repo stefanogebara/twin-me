@@ -46,9 +46,10 @@ async function logCronExecution(jobName, status, executionTimeMs, result, errorM
       executed_at: new Date().toISOString(),
     };
 
-    await getSupabaseClient()
+    const { error: logErr } = await getSupabaseClient()
       .from('cron_executions')
       .insert(logEntry);
+    if (logErr) throw logErr;
 
     console.log(`📊 [CRON] Execution logged to database`);
   } catch (error) {

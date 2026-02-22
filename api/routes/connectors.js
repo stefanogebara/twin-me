@@ -1177,10 +1177,11 @@ router.post('/reset/:userId', authenticateUser, async (req, res) => {
     // Mark all connections as inactive in database (old schema uses 'connected')
     // BUT preserve connected=true for platforms with encryption_key_mismatch
     // First, get current connections to check their status
-    const { data: currentConnections } = await supabase
+    const { data: currentConnections, error: currentConnErr } = await supabase
       .from('platform_connections')
       .select('id, platform, last_sync_status')
       .eq('user_id', userUuid);
+    if (currentConnErr) console.error('[Connectors] Failed to get current connections:', currentConnErr.message);
 
     // Only reset connections that don't have encryption_key_mismatch
     // Since we don't have a 'connected' column, we'll update the last_sync_status instead
