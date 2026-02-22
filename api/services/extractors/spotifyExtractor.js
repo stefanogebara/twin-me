@@ -432,7 +432,7 @@ class SpotifyExtractor {
    * Complete extraction job
    */
   async completeExtractionJob(jobId, totalItems) {
-    await supabase
+    const { error: updateErr } = await supabase
       .from('data_extraction_jobs')
       .update({
         status: 'completed',
@@ -442,25 +442,22 @@ class SpotifyExtractor {
         results: { message: 'Extraction completed successfully' }
       })
       .eq('id', jobId);
+    if (updateErr) console.warn('[Spotify] Error completing extraction job:', updateErr.message);
   }
 
   /**
    * Mark extraction job as failed
    */
   async failExtractionJob(jobId, errorMessage) {
-    try {
-      await supabase
-        .from('data_extraction_jobs')
-        .update({
-          status: 'failed',
-          completed_at: new Date().toISOString(),
-          error_message: errorMessage
-        })
-        .eq('id', jobId);
-    } catch (error) {
-      console.error('[Spotify] Error marking job as failed:', error);
-      // Don't throw - we're already in error handling
-    }
+    const { error: failErr } = await supabase
+      .from('data_extraction_jobs')
+      .update({
+        status: 'failed',
+        completed_at: new Date().toISOString(),
+        error_message: errorMessage
+      })
+      .eq('id', jobId);
+    if (failErr) console.warn('[Spotify] Error marking job as failed:', failErr.message);
   }
 }
 

@@ -613,13 +613,14 @@ async function triggerAIAnalysis(userId, sessionId) {
 
     // Step 3: Update session with personality insights
     if (personalityInsights) {
-      await supabase
+      const { error: personalityUpdateErr } = await supabase
         .from('soul_observer_sessions')
         .update({
           personality_indicators: personalityInsights.bigFive,
           ai_analyzed: true
         })
         .eq('session_id', sessionId);
+      if (personalityUpdateErr) console.warn('[Soul Observer] Error updating session personality insights:', personalityUpdateErr.message);
 
       console.log('[Soul Observer] Personality insights:', JSON.stringify(personalityInsights.bigFive, null, 2));
     }
@@ -636,9 +637,10 @@ async function triggerAIAnalysis(userId, sessionId) {
     }));
 
     if (insights.length > 0) {
-      await supabase
+      const { error: insightsInsertErr } = await supabase
         .from('soul_observer_insights')
         .insert(insights);
+      if (insightsInsertErr) console.warn('[Soul Observer] Error storing pattern insights:', insightsInsertErr.message);
 
       console.log(`[Soul Observer] Stored ${insights.length} insights`);
     }
@@ -760,7 +762,7 @@ router.post('/interpret', async (req, res) => {
       // Store interpretation in database
       if (interpretation) {
         const sessionId = `interpret_${Date.now()}`;
-        await supabase
+        const { error: interpInsertErr } = await supabase
           .from('soul_observer_insights')
           .insert({
             user_id: userId,
@@ -771,6 +773,7 @@ router.post('/interpret', async (req, res) => {
             confidence: 0.8,
             evidence_count: activities.length,
           });
+        if (interpInsertErr) console.warn('[Soul Observer] Error storing LLM interpretation:', interpInsertErr.message);
       }
     }
 

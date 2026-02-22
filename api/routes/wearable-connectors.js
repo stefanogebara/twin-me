@@ -229,7 +229,7 @@ router.post('/sync', authenticateUser, async (req, res) => {
     }
 
     // Update last_sync on platform_connections
-    await supabaseAdmin
+    const { error: wearableSyncErr } = await supabaseAdmin
       .from('platform_connections')
       .update({
         last_sync: new Date().toISOString(),
@@ -237,6 +237,7 @@ router.post('/sync', authenticateUser, async (req, res) => {
       })
       .eq('user_id', userId)
       .eq('platform', 'open_wearables');
+    if (wearableSyncErr) console.warn('[Wearables] Error updating last_sync:', wearableSyncErr.message);
 
     console.log('[Wearables] Sync complete:', { stored, total: dataToStore.length });
 
