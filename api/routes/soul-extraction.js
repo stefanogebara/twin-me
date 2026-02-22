@@ -771,7 +771,7 @@ router.get('/extract/gmail/:userId', authenticateUser, async (req, res) => {
           emailFrequency: sentEmails.length,
           averageEmailLength,
           formalityScore: Math.round(formalityScore * 100),
-          peakActivityHour: parseInt(peakHour),
+          peakActivityHour: Math.max(0, Math.min(23, parseInt(peakHour, 10))),
           communicationTone: formalityScore > 0.6 ? 'Professional' :
                             formalityScore > 0.3 ? 'Mixed' : 'Casual',
           responsePattern: peakHour < 9 ? 'Early Bird' :
@@ -1021,7 +1021,7 @@ router.get('/extract/calendar/:userId', authenticateUser, async (req, res) => {
             averageMeetingsPerWeek: Math.round(meetingCount / 2),
             averageMeetingLength,
             busiestDay: ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'][busiestDay] || 'Unknown',
-            peakMeetingHour: parseInt(peakHour),
+            peakMeetingHour: Math.max(0, Math.min(23, parseInt(peakHour, 10))),
             calendarDensity: Math.round((meetingCount / 14) * 100),
             timeManagementStyle: averageMeetingLength > 60 ? 'Long-form Deep Dives' :
                                 averageMeetingLength > 30 ? 'Standard Meeting Rhythm' : 'Quick Sync Preference'
