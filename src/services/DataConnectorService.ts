@@ -32,6 +32,7 @@ export interface IDataConnector {
 
   // Real-time updates
   setupWebhook?(connectorId: string, callbackUrl: string): Promise<void>;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- webhook events have dynamic shapes per platform
   handleWebhookEvent?(event: any): Promise<RawDataPoint[]>;
 
   // Metadata
@@ -500,6 +501,7 @@ export class InstantTwinGenerator {
     ];
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- insights have dynamic shape from analysis
   private async createTwin(userId: string, insights: any[]) {
     // Create the digital twin in the database using the insights
     return {

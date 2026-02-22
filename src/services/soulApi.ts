@@ -74,19 +74,19 @@ export interface SoulSignatureResponse {
     music?: {
       music_diversity: number;
       top_genres: string[];
-      listening_patterns: any;
+      listening_patterns: unknown;
     };
     communication?: {
       engagement_level: number;
-      response_patterns: any;
+      response_patterns: unknown;
     };
     coding?: {
       expertise_level: number;
       languages: string[];
-      contribution_patterns: any;
+      contribution_patterns: unknown;
     };
-    personality_traits?: any;
-    interests?: any;
+    personality_traits?: unknown;
+    interests?: unknown;
     created_at: string;
     updated_at: string;
   };
@@ -280,6 +280,7 @@ export const twinApi = {
    * Get twin statistics
    * DEMO MODE SUPPORT: Returns demo data when in demo mode
    */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- dynamic twin stats response shape
   getTwinStats: async (userId: string): Promise<any> => {
     // DEMO MODE: Return demo twin statistics
     const isDemoMode = localStorage.getItem('demo_mode') === 'true';
@@ -316,6 +317,7 @@ export const twinApi = {
     usage: { total_tokens: number };
     cost: number;
   }> => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- payload assembled dynamically with optional fields
     const payload: any = {
       message,
       mode: 'twin',

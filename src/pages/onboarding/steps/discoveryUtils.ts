@@ -98,7 +98,7 @@ export const inferNameFromEmail = (email: string): string => {
   } else {
     // No separators: try camelCase split, then consonant-vowel heuristic
     // "JohnDoe" → "John Doe", "stefanogebara" → attempt split
-    let expanded = local
+    const expanded = local
       .replace(/([a-z])([A-Z])/g, '$1 $2')   // camelCase: johnDoe → john Doe
       .replace(/([A-Z]+)([A-Z][a-z])/g, '$1 $2'); // XMLParser → XML Parser
     tokens = expanded.split(/\s+/).filter(t => t.length > 0);

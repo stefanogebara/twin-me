@@ -39,13 +39,13 @@ const getAuthHeaders = (): Record<string, string> => {
 
 export interface OrchestratorRequest {
   query: string;
-  context?: Record<string, any>;
+  context?: Record<string, unknown>;
   sessionId?: string;
 }
 
 export interface OrchestratorRecommendRequest {
   type?: 'music' | 'video';
-  context?: Record<string, any>;
+  context?: Record<string, unknown>;
 }
 
 export interface OrchestratorRecommendation {
@@ -80,7 +80,7 @@ export interface OrchestratorResponse {
   recommendations: OrchestratorRecommendation[];
   metadata: {
     latencyMs: number;
-    decomposition?: any;
+    decomposition?: unknown;
     agentContributions?: Record<string, string>;
     totalAgentsUsed?: number;
   };
@@ -106,7 +106,7 @@ export interface OrchestratorInsightsResponse extends OrchestratorResponse {
 export interface OrchestratorError {
   error: string;
   message: string;
-  details?: any;
+  details?: unknown;
 }
 
 // ====================================================================
@@ -178,6 +178,7 @@ async function getInsights(): Promise<OrchestratorInsightsResponse> {
 /**
  * Check orchestrator health
  */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any -- dynamic health response shape
 async function checkHealth(): Promise<any> {
   const response = await fetch(`${API_URL}/orchestrator/health`, {
     headers: getAuthHeaders(),
@@ -193,6 +194,7 @@ async function checkHealth(): Promise<any> {
 /**
  * Get orchestrator metrics
  */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any -- dynamic metrics response shape
 async function getMetrics(): Promise<any> {
   const response = await fetch(`${API_URL}/orchestrator/metrics`, {
     headers: getAuthHeaders(),

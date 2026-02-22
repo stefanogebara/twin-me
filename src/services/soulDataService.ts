@@ -18,7 +18,7 @@ export interface ExtractionStatus {
     completed_at: string | null;
     error_message: string | null;
   }>;
-  statistics: Record<string, any>;
+  statistics: Record<string, unknown>;
   lastSync: string | null;
 }
 
@@ -81,6 +81,7 @@ class SoulDataService {
   /**
    * Extract data from specific platform
    */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- dynamic platform API response
   async extractPlatform(userId: string, platform: string): Promise<any> {
     const response = await fetch(`${API_URL}/soul-data/extract/${platform}`, {
       method: 'POST',
@@ -103,6 +104,7 @@ class SoulDataService {
   /**
    * Extract data from all connected platforms
    */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- dynamic API response
   async extractAll(userId: string): Promise<any> {
     const response = await fetch(`${API_URL}/soul-data/extract-all`, {
       method: 'POST',
@@ -133,6 +135,7 @@ class SoulDataService {
   /**
    * Trigger text processing
    */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- dynamic API response
   async processText(userId: string, limit: number = 100): Promise<any> {
     const response = await fetch(`${API_URL}/soul-data/process`, {
       method: 'POST',
@@ -153,6 +156,7 @@ class SoulDataService {
   /**
    * Trigger stylometric analysis
    */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- dynamic API response
   async analyzeStyle(userId: string): Promise<any> {
     const response = await fetch(`${API_URL}/soul-data/analyze-style`, {
       method: 'POST',
@@ -184,6 +188,7 @@ class SoulDataService {
   /**
    * Generate embeddings
    */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- dynamic API response
   async generateEmbeddings(userId: string, limit: number = 100): Promise<any> {
     const response = await fetch(`${API_URL}/soul-data/generate-embeddings`, {
       method: 'POST',
@@ -225,6 +230,7 @@ class SoulDataService {
     userId: string,
     twinId: string,
     limit: number = 10
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- dynamic API response
   ): Promise<any> {
     const response = await fetch(
       `${API_URL}/soul-data/rag/conversation-history?userId=${userId}&twinId=${twinId}&limit=${limit}`
@@ -235,6 +241,7 @@ class SoulDataService {
   /**
    * Run full pipeline (extract → process → analyze → embed)
    */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- dynamic API response
   async runFullPipeline(userId: string, platform?: string): Promise<any> {
     const response = await fetch(`${API_URL}/soul-data/full-pipeline`, {
       method: 'POST',

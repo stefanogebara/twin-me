@@ -89,17 +89,20 @@ export function useBrainGraphData() {
         }).catch(() => null)
       ]);
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- dynamic API response shape
       let vizData: any = { visualization: { nodes: [], edges: [], clusters: [], stats: { nodeCount: 0, edgeCount: 0, clusterCount: 0 } } };
       if (vizRes && vizRes.ok) {
         vizData = await vizRes.json();
       }
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- dynamic API response shape
       let healthData: any = { success: true, health: { total_nodes: 0, total_edges: 0, avg_confidence: 0, avg_edge_strength: 0, category_distribution: {}, health_score: 0 } };
       if (healthRes && healthRes.ok) {
         healthData = await healthRes.json();
       }
 
       if (context !== 'global' && vizData.nodes) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any -- node shape comes from dynamic API
         const contextNodes = vizData.nodes.map((node: any) => ({
           ...node,
           id: node.id,
@@ -125,6 +128,7 @@ export function useBrainGraphData() {
           isContextRelevant: node.isContextRelevant
         }));
 
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any -- edge shape comes from dynamic API
         const contextEdges = (vizData.edges || []).map((edge: any) => ({
           id: edge.id,
           source: edge.from_node_id,
@@ -138,7 +142,9 @@ export function useBrainGraphData() {
           isCorrelational: ['correlates_with', 'similar_to'].includes(edge.relationship_type)
         }));
 
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any -- cluster accumulator with dynamic node props
         const clusters: Record<string, any> = {};
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any -- node shape comes from dynamic API
         contextNodes.forEach((node: any) => {
           if (!clusters[node.category]) {
             clusters[node.category] = {
@@ -152,6 +158,7 @@ export function useBrainGraphData() {
           clusters[node.category].nodeCount++;
           clusters[node.category].avgConfidence += node.confidence;
         });
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any -- cluster accumulator with dynamic shape
         Object.values(clusters).forEach((cluster: any) => {
           cluster.avgConfidence = cluster.nodeCount > 0 ? cluster.avgConfidence / cluster.nodeCount : 0;
         });
@@ -166,10 +173,14 @@ export function useBrainGraphData() {
             clusterCount: Object.keys(clusters).length,
             temporal: vizData.stats?.temporal,
             causal: {
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any -- edge shape comes from dynamic API
               causalEdges: contextEdges.filter((e: any) => e.isCausal).length,
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any -- edge shape comes from dynamic API
               correlationalEdges: contextEdges.filter((e: any) => e.isCorrelational).length,
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any -- edge shape comes from dynamic API
               otherEdges: contextEdges.filter((e: any) => !e.isCausal && !e.isCorrelational).length,
               causalRatio: contextEdges.length > 0
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any -- edge shape comes from dynamic API
                 ? contextEdges.filter((e: any) => e.isCausal).length / contextEdges.length
                 : 0,
               byType: {}

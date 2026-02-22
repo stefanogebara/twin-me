@@ -1,9 +1,11 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { DEMO_DATA } from '../services/demoDataService';
 
 interface DemoContextType {
   isDemoMode: boolean;
   enterDemoMode: () => void;
   exitDemoMode: () => void;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- demo data can be any shape
   getDemoData: (key: string) => any;
 }
 
@@ -43,10 +45,9 @@ export const DemoProvider: React.FC<DemoProviderProps> = ({ children }) => {
     window.dispatchEvent(new CustomEvent('demo-mode-change', { detail: { active: false } }));
   };
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- demo data can be any shape
   const getDemoData = (key: string): any => {
-    // Import demo data service
-    const demoData = require('../services/demoDataService').DEMO_DATA;
-    return demoData[key];
+    return DEMO_DATA[key];
   };
 
   const value: DemoContextType = {

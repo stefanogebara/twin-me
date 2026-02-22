@@ -21,8 +21,8 @@ export interface DigitalTwin {
   twin_type: 'professor' | 'personal';
   is_active: boolean;
   voice_profile_id?: string;
-  personality_traits: Record<string, any>;
-  teaching_style: Record<string, any>;
+  personality_traits: Record<string, unknown>;
+  teaching_style: Record<string, unknown>;
   common_phrases?: string[];
   favorite_analogies?: string[];
   knowledge_base_status: 'empty' | 'processing' | 'ready' | 'updating';
@@ -40,7 +40,7 @@ export interface TrainingMaterial {
   processing_status: 'pending' | 'processing' | 'completed' | 'failed';
   content_summary?: string;
   extracted_text?: string;
-  metadata: Record<string, any>;
+  metadata: Record<string, unknown>;
   uploaded_at: string;
 }
 
@@ -60,16 +60,16 @@ export interface Message {
   is_user_message: boolean;
   message_type: 'text' | 'voice' | 'image';
   audio_url?: string;
-  metadata: Record<string, any>;
+  metadata: Record<string, unknown>;
   created_at: string;
 }
 
 export interface StudentProfile {
   id: string;
-  learning_style: Record<string, any>;
-  cognitive_preferences: Record<string, any>;
-  interaction_history: Record<string, any>;
-  performance_metrics: Record<string, any>;
+  learning_style: Record<string, unknown>;
+  cognitive_preferences: Record<string, unknown>;
+  interaction_history: Record<string, unknown>;
+  performance_metrics: Record<string, unknown>;
   assessment_completed: boolean;
   created_at: string;
   updated_at: string;

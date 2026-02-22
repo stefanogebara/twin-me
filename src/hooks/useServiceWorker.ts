@@ -68,11 +68,12 @@ export function useServiceWorker(): UseServiceWorkerReturn {
               window.dispatchEvent(new CustomEvent('sw:extraction_complete'));
               break;
 
-            case 'GET_USER_ID':
+            case 'GET_USER_ID': {
               // Service Worker is requesting userId
               const userId = localStorage.getItem('userId');
               event.ports[0].postMessage({ userId });
               break;
+            }
 
             default:
               break;
@@ -145,10 +146,12 @@ export function useServiceWorker(): UseServiceWorkerReturn {
 
       try {
         const status = await navigator.permissions.query({
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any -- non-standard permission name not in TS types
           name: 'periodic-background-sync' as any,
         });
 
         if (status.state === 'granted') {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any -- periodicSync is non-standard API
           await (registration as any).periodicSync.register(tag, {
             minInterval: interval, // in milliseconds
           });

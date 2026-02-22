@@ -13,7 +13,7 @@ interface SSEEvent {
   type: string;
   message: string;
   timestamp: string;
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 interface UseServerSentEventsReturn {
@@ -96,6 +96,7 @@ export function useServerSentEvents(
     ];
 
     eventTypes.forEach((eventType) => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- EventSource typed as any for custom event types
       eventSource.addEventListener(eventType, (event: any) => {
         try {
           const data: SSEEvent = JSON.parse(event.data);

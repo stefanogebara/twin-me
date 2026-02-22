@@ -273,6 +273,7 @@ export async function checkDataRevelation(
 /**
  * Debounce function for slider changes
  */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any -- generic debounce utility requires any for variadic args
 export function debounce<T extends (...args: any[]) => any>(
   func: T,
   wait: number

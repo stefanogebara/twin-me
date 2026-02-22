@@ -187,6 +187,7 @@ export const PrivacyPreview: React.FC<PrivacyPreviewProps> = ({
       {/* View Controls */}
       <div className="flex items-center justify-between gap-4">
         {/* Category Filter */}
+        {/* eslint-disable-next-line @typescript-eslint/no-explicit-any -- Tabs onValueChange returns string, cast to enum type */}
         <Tabs value={selectedCategory} onValueChange={(v) => setSelectedCategory(v as any)} className="flex-1">
           <TabsList className="grid w-full grid-cols-4">
             <TabsTrigger value="all" className="text-xs">All</TabsTrigger>

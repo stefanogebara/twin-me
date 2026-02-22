@@ -216,7 +216,9 @@ export const StaggerItem: React.FC<AnimatedProps> = ({ children, ...props }) => 
 // ===== LIST ANIMATIONS =====
 
 interface AnimatedListProps extends AnimatedProps {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- list items can be any renderable type
   items: any[];
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- list items can be any renderable type
   renderItem: (item: any, index: number) => ReactNode;
   staggerDelay?: number;
 }

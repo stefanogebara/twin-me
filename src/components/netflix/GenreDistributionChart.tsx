@@ -34,6 +34,7 @@ export const GenreDistributionChart: React.FC<GenreDistributionChartProps> = ({
     color: GENRE_COLORS[index % GENRE_COLORS.length],
   }));
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Recharts tooltip props have dynamic shape
   const CustomTooltip = ({ active, payload }: any) => {
     if (active && payload && payload.length) {
       return (

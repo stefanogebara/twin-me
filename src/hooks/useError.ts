@@ -36,7 +36,7 @@ export interface ErrorOptions {
   /**
    * Additional context for error logging
    */
-  context?: Record<string, any>;
+  context?: Record<string, unknown>;
 
   /**
    * Toast duration in milliseconds (default: 5000)
