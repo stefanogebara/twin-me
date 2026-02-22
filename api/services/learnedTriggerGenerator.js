@@ -188,11 +188,12 @@ async function hypothesisToTrigger(hypothesis, baselineMap, userId) {
   // Get the underlying correlation if available
   let correlation = null;
   if (correlation_id) {
-    const { data } = await supabaseAdmin
+    const { data, error } = await supabaseAdmin
       .from('pl_discovered_correlations')
       .select('*')
       .eq('id', correlation_id)
       .single();
+    if (error && error.code !== 'PGRST116') console.warn('[LearnedTrigger] Error fetching correlation:', error.message);
     correlation = data;
   }
 

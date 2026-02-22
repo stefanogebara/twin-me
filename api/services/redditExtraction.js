@@ -123,7 +123,7 @@ export async function extractRedditData(userId) {
     }
 
     // Update connection status
-    await supabase
+    const { error: syncSuccessErr } = await supabase
       .from('platform_connections')
       .update({
         last_synced_at: new Date(),
@@ -131,6 +131,7 @@ export async function extractRedditData(userId) {
       })
       .eq('user_id', userId)
       .eq('platform', 'reddit');
+    if (syncSuccessErr) console.warn('[Reddit] Error updating connection status:', syncSuccessErr.message);
 
     return {
       success: true,
@@ -145,13 +146,14 @@ export async function extractRedditData(userId) {
 
     // Handle token expiration
     if (error.response?.status === 401) {
-      await supabase
+      const { error: reauthErr } = await supabase
         .from('platform_connections')
         .update({
           last_sync_status: 'requires_reauth'
         })
         .eq('user_id', userId)
         .eq('platform', 'reddit');
+      if (reauthErr) console.warn('[Reddit] Error updating connection status:', reauthErr.message);
 
       return {
         success: false,
@@ -172,13 +174,14 @@ export async function extractRedditData(userId) {
     }
 
     // Update connection with error status
-    await supabase
+    const { error: failedErr } = await supabase
       .from('platform_connections')
       .update({
         last_sync_status: 'failed'
       })
       .eq('user_id', userId)
       .eq('platform', 'reddit');
+    if (failedErr) console.warn('[Reddit] Error updating connection status:', failedErr.message);
 
     throw error;
   }
