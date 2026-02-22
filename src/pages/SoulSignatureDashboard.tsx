@@ -239,26 +239,30 @@ const SoulSignatureDashboard: React.FC = () => {
               <h2 className="mb-2 text-2xl font-bold text-stone-900">
                 {displaySoulSignature.archetype_name}
               </h2>
-              {displaySoulSignature.signature_quote && (
+              {/* signature_quote is the sessionStorage field, archetype_subtitle is the DB field */}
+              {(displaySoulSignature.signature_quote || displaySoulSignature.archetype_subtitle) && (
                 <p className="mb-3 italic text-stone-500">
-                  "{displaySoulSignature.signature_quote}"
+                  "{displaySoulSignature.signature_quote ?? displaySoulSignature.archetype_subtitle}"
                 </p>
               )}
-              {displaySoulSignature.core_traits?.length > 0 && (
-                <div className="flex flex-wrap gap-2">
-                  {displaySoulSignature.core_traits.map((trait: string) => (
-                    <span
-                      key={trait}
-                      className="rounded-full bg-stone-100 px-3 py-1 text-xs font-medium text-stone-700"
-                    >
-                      {trait}
-                    </span>
-                  ))}
-                </div>
-              )}
-              {displaySoulSignature.first_impression && (
+              {/* core_traits is sessionStorage field, defining_traits is DB field */}
+              {(() => {
+                const traits = displaySoulSignature.core_traits ?? displaySoulSignature.defining_traits ?? [];
+                const traitList = traits.map((t: any) => typeof t === 'string' ? t : t.trait).filter(Boolean);
+                return traitList.length > 0 ? (
+                  <div className="flex flex-wrap gap-2">
+                    {traitList.map((trait: string) => (
+                      <span key={trait} className="rounded-full bg-stone-100 px-3 py-1 text-xs font-medium text-stone-700">
+                        {trait}
+                      </span>
+                    ))}
+                  </div>
+                ) : null;
+              })()}
+              {/* first_impression is sessionStorage field, narrative is DB field */}
+              {(displaySoulSignature.first_impression || displaySoulSignature.narrative) && (
                 <p className="mt-3 text-sm text-stone-600">
-                  {displaySoulSignature.first_impression}
+                  {displaySoulSignature.first_impression ?? displaySoulSignature.narrative}
                 </p>
               )}
             </div>

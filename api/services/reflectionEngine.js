@@ -26,7 +26,7 @@
  *   3. Reflections become retrievable in future queries (recursive improvement)
  *
  * Trigger conditions:
- *   - After twin chat when accumulated importance > 150
+ *   - After twin chat when accumulated importance > 15
  *   - After platform data sync completes
  *   - Can be called manually for seeding initial reflections
  *
@@ -46,7 +46,7 @@ import {
 } from './memoryStreamService.js';
 
 // Reflection threshold: trigger when sum of recent importance scores exceeds this
-// Lowered from 150 to 50 so new users trigger reflections earlier (~10 memories rated 5)
+// Lowered from 50 to 15 so new users trigger reflections earlier (~3 memories rated 5)
 export const IMPORTANCE_THRESHOLD = 15;
 
 // Max recursive reflection depth (paper allows reflections on reflections)
