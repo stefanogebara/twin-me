@@ -1214,22 +1214,18 @@ router.delete('/:provider/:userId', authenticateUser, async (req, res) => {
   try {
     const { provider, userId } = req.params;
 
-    if (userId !== req.user.id) {
-      return res.status(403).json({ error: 'Forbidden', message: 'Access denied' });
+    // Reject non-UUID user IDs — auth tokens always contain UUID
+    if (!userId || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(userId)) {
+      return res.status(400).json({ error: 'Invalid user ID format' });
     }
+
+    if (userId !== req.user.id) {
+      return res.status(403).json({ error: 'Forbidden' });
+    }
+
+    const userUuid = userId;
 
     console.log(`🔌 Disconnect request for ${provider} from user ${userId}`);
-
-    // Convert email to UUID if needed
-    let userUuid = userId;
-    if (userId && !userId.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i)) {
-      const { data: userData } = await supabase
-        .from('users')
-        .select('id')
-        .eq('email', userId)
-        .single();
-      if (userData) userUuid = userData.id;
-    }
 
     // Use supabaseAdmin to bypass RLS policies for server-side operations
     // First check if connection exists
