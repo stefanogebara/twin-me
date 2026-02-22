@@ -553,10 +553,14 @@ class ExtractionOrchestrator {
       updates.error_message = errorMessage;
     }
 
-    await supabase
+    const { error } = await supabase
       .from('data_extraction_jobs')
       .update(updates)
       .eq('id', jobId);
+
+    if (error) {
+      console.error(`[Orchestrator] Failed to update job ${jobId} status to ${status}:`, error.message);
+    }
   }
 }
 
