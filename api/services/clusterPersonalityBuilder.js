@@ -497,44 +497,34 @@ class ClusterPersonalityBuilder {
    * Get stored cluster profiles
    */
   async getStoredProfiles() {
-    try {
-      const { data, error } = await getSupabaseClient()
-        .from('cluster_personalities')
-        .select('*')
-        .eq('user_id', this.userId);
+    const { data, error } = await getSupabaseClient()
+      .from('cluster_personalities')
+      .select('*')
+      .eq('user_id', this.userId);
 
-      if (error) {
-        console.warn('[ClusterPersonality] Failed to fetch profiles:', error.message);
-        return [];
-      }
-      return data || [];
-    } catch (err) {
-      console.warn('[ClusterPersonality] Error fetching profiles:', err.message);
+    if (error) {
+      console.warn('[ClusterPersonality] Failed to fetch profiles:', error.message);
       return [];
     }
+    return data || [];
   }
 
   /**
    * Get stored divergences
    */
   async getStoredDivergences() {
-    try {
-      const { data, error } = await getSupabaseClient()
-        .from('cluster_divergence')
-        .select('*')
-        .eq('user_id', this.userId)
-        .order('calculated_at', { ascending: false })
-        .limit(10);
+    const { data, error } = await getSupabaseClient()
+      .from('cluster_divergence')
+      .select('*')
+      .eq('user_id', this.userId)
+      .order('calculated_at', { ascending: false })
+      .limit(10);
 
-      if (error) {
-        console.warn('[ClusterPersonality] Failed to fetch divergences:', error.message);
-        return [];
-      }
-      return data || [];
-    } catch (err) {
-      console.warn('[ClusterPersonality] Error fetching divergences:', err.message);
+    if (error) {
+      console.warn('[ClusterPersonality] Failed to fetch divergences:', error.message);
       return [];
     }
+    return data || [];
   }
 }
 
