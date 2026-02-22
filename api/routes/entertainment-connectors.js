@@ -134,7 +134,7 @@ router.post('/connect/spotify', oauthAuthorizationLimiter, async (req, res) => {
     res.status(500).json({
       success: false,
       error: 'Failed to initialize Spotify connection',
-      details: error.message
+      ...(process.env.NODE_ENV !== 'production' && { details: error.message }),
     });
   }
 });
@@ -268,7 +268,7 @@ router.post('/upload/netflix-csv', csvUpload.single('csvFile'), async (req, res)
     res.status(500).json({
       success: false,
       error: 'Failed to process Netflix CSV',
-      details: error.message
+      ...(process.env.NODE_ENV !== 'production' && { details: error.message }),
     });
   }
 });
@@ -337,7 +337,7 @@ router.post('/connect/youtube', oauthAuthorizationLimiter, async (req, res) => {
     res.status(500).json({
       success: false,
       error: 'Failed to initialize YouTube connection',
-      details: error.message
+      ...(process.env.NODE_ENV !== 'production' && { details: error.message }),
     });
   }
 });
@@ -692,7 +692,7 @@ router.post('/oauth/callback', oauthCallbackLimiter, async (req, res) => {
     res.status(500).json({
       success: false,
       error: 'Failed to complete OAuth flow',
-      details: error.message
+      ...(process.env.NODE_ENV !== 'production' && { details: error.message }),
     });
   }
 });
@@ -832,7 +832,7 @@ router.post('/extract/spotify', async (req, res) => {
     res.status(500).json({
       success: false,
       error: 'Failed to extract Spotify data',
-      details: error.message
+      ...(process.env.NODE_ENV !== 'production' && { details: error.message }),
     });
   }
 });
@@ -942,7 +942,7 @@ router.post('/extract/youtube', async (req, res) => {
     res.status(500).json({
       success: false,
       error: 'Failed to extract YouTube data',
-      details: error.message
+      ...(process.env.NODE_ENV !== 'production' && { details: error.message }),
     });
   }
 });
@@ -1468,7 +1468,7 @@ router.post('/connect/discord', oauthAuthorizationLimiter, async (req, res) => {
     res.status(500).json({
       success: false,
       error: 'Failed to initialize Discord connection',
-      details: error.message
+      ...(process.env.NODE_ENV !== 'production' && { details: error.message }),
     });
   }
 });
@@ -1541,7 +1541,7 @@ router.post('/connect/gmail', oauthAuthorizationLimiter, async (req, res) => {
     res.status(500).json({
       success: false,
       error: 'Failed to initialize Gmail connection',
-      details: error.message
+      ...(process.env.NODE_ENV !== 'production' && { details: error.message }),
     });
   }
 });
@@ -1611,7 +1611,7 @@ router.post('/connect/google_calendar', oauthAuthorizationLimiter, async (req, r
     res.status(500).json({
       success: false,
       error: 'Failed to initialize Google Calendar connection',
-      details: error.message
+      ...(process.env.NODE_ENV !== 'production' && { details: error.message }),
     });
   }
 });
@@ -1673,7 +1673,7 @@ router.post('/connect/whoop', oauthAuthorizationLimiter, async (req, res) => {
     res.status(500).json({
       success: false,
       error: 'Failed to initialize Whoop connection',
-      details: error.message
+      ...(process.env.NODE_ENV !== 'production' && { details: error.message }),
     });
   }
 });
@@ -1734,7 +1734,7 @@ router.post('/connect/oura', oauthAuthorizationLimiter, async (req, res) => {
     res.status(500).json({
       success: false,
       error: 'Failed to initialize Oura connection',
-      details: error.message
+      ...(process.env.NODE_ENV !== 'production' && { details: error.message }),
     });
   }
 });
@@ -1797,7 +1797,7 @@ router.get('/oauth/debug', async (req, res) => {
     res.status(500).json({
       success: false,
       error: 'Failed to check OAuth configuration',
-      details: error.message
+      ...(process.env.NODE_ENV !== 'production' && { details: error.message }),
     });
   }
 });

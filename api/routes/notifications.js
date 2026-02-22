@@ -255,7 +255,7 @@ router.post('/check-expiring', async (req, res) => {
     res.status(500).json({
       success: false,
       error: 'Failed to check expiring tokens',
-      details: error.message
+      ...(process.env.NODE_ENV !== 'production' && { details: error.message }),
     });
   }
 });

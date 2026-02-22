@@ -172,7 +172,7 @@ router.get('/connect', authenticateUser, async (req, res) => {
     res.status(500).json({
       success: false,
       error: 'Failed to initiate calendar OAuth',
-      details: error.message
+      ...(process.env.NODE_ENV !== 'production' && { details: error.message }),
     });
   }
 });
@@ -372,7 +372,7 @@ router.get('/events', authenticateUser, async (req, res) => {
     res.status(500).json({
       success: false,
       error: 'Failed to fetch calendar events',
-      details: error.message
+      ...(process.env.NODE_ENV !== 'production' && { details: error.message }),
     });
   }
 });
@@ -563,7 +563,7 @@ router.post('/sync', authenticateUser, async (req, res) => {
     res.status(500).json({
       success: false,
       error: 'Failed to sync calendar',
-      details: error.message
+      ...(process.env.NODE_ENV !== 'production' && { details: error.message }),
     });
   }
 });
@@ -616,7 +616,7 @@ router.get('/status', authenticateUser, async (req, res) => {
     res.status(500).json({
       success: false,
       error: 'Failed to get calendar status',
-      details: error.message
+      ...(process.env.NODE_ENV !== 'production' && { details: error.message }),
     });
   }
 });
@@ -662,7 +662,7 @@ router.delete('/disconnect', authenticateUser, async (req, res) => {
     res.status(500).json({
       success: false,
       error: 'Failed to disconnect calendar',
-      details: error.message
+      ...(process.env.NODE_ENV !== 'production' && { details: error.message }),
     });
   }
 });

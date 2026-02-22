@@ -149,7 +149,7 @@ router.post('/upload', upload.single('resume'), async (req, res) => {
     res.status(500).json({
       success: false,
       error: 'Failed to process resume',
-      details: error.message
+      ...(process.env.NODE_ENV !== 'production' && { details: error.message }),
     });
   }
 });
@@ -226,7 +226,7 @@ router.post('/parse-text', async (req, res) => {
     res.status(500).json({
       success: false,
       error: 'Failed to parse resume text',
-      details: error.message
+      ...(process.env.NODE_ENV !== 'production' && { details: error.message }),
     });
   }
 });

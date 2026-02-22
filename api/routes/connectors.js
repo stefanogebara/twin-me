@@ -491,7 +491,7 @@ router.get('/connect/:provider', authenticateUser, async (req, res) => {
     res.status(500).json({
       success: false,
       error: 'Failed to reconnect',
-      details: error.message
+      ...(process.env.NODE_ENV !== 'production' && { details: error.message }),
     });
   }
 });
@@ -1422,7 +1422,7 @@ router.post('/connect/:platform', async (req, res) => {
     res.status(500).json({
       success: false,
       error: 'Failed to initiate OAuth connection',
-      details: error.message
+      ...(process.env.NODE_ENV !== 'production' && { details: error.message }),
     });
   }
 });
