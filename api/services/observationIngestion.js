@@ -649,28 +649,45 @@ async function runObservationIngestion() {
       return stats;
     }
 
-    // Find all users with at least one active platform connection
-    const { data: connections, error: connErr } = await supabase
-      .from('platform_connections')
-      .select('user_id, platform')
-      .not('connected_at', 'is', null)
-      .in('platform', SUPPORTED_PLATFORMS);
+    // Find all users with at least one active platform connection.
+    // Check both platform_connections (direct OAuth) AND nango_connection_mappings (Nango-managed).
+    const [pcResult, nangoResult] = await Promise.all([
+      supabase
+        .from('platform_connections')
+        .select('user_id, platform')
+        .not('connected_at', 'is', null)
+        .in('platform', SUPPORTED_PLATFORMS)
+        .then(r => r.data || [])
+        .catch(() => []),
+      supabase
+        .from('nango_connection_mappings')
+        .select('user_id, platform')
+        .eq('status', 'active')
+        .in('platform', SUPPORTED_PLATFORMS)
+        .then(r => r.data || [])
+        .catch(() => []),
+    ]);
 
-    if (connErr || !connections || connections.length === 0) {
+    const allConnections = [...pcResult, ...nangoResult];
+    if (allConnections.length === 0) {
       console.log('[ObservationIngestion] No active platform connections found');
       return stats;
     }
 
-    // Group connections by user
+    // Group connections by user — deduplicate per user+platform
     const userPlatforms = new Map();
-    for (const conn of connections) {
+    for (const conn of allConnections) {
       if (!userPlatforms.has(conn.user_id)) {
-        userPlatforms.set(conn.user_id, []);
+        userPlatforms.set(conn.user_id, new Set());
       }
-      userPlatforms.get(conn.user_id).push(conn.platform);
+      userPlatforms.get(conn.user_id).add(conn.platform);
+    }
+    // Convert Sets to Arrays for iteration
+    for (const [uid, set] of userPlatforms) {
+      userPlatforms.set(uid, [...set]);
     }
 
-    console.log(`[ObservationIngestion] Found ${userPlatforms.size} users with ${connections.length} connections`);
+    console.log(`[ObservationIngestion] Found ${userPlatforms.size} users with ${allConnections.length} connections (pc: ${pcResult.length}, nango: ${nangoResult.length})`);
 
     // Process each user
     for (const [userId, platforms] of userPlatforms) {
@@ -878,23 +895,41 @@ async function runPostOnboardingIngestion(userId) {
     const supabase = await getSupabase();
     if (!supabase) return { observationsStored: 0 };
 
-    // Find connected platforms for this user
-    const { data: connections } = await supabase
-      .from('platform_connections')
-      .select('platform')
-      .eq('user_id', userId)
-      .not('connected_at', 'is', null)
-      .in('platform', SUPPORTED_PLATFORMS);
+    // Find connected platforms for this user — check both platform_connections (legacy)
+    // and nango_connection_mappings (primary OAuth flow via Nango)
+    const [pcConns, nangoConns] = await Promise.all([
+      supabase
+        .from('platform_connections')
+        .select('platform')
+        .eq('user_id', userId)
+        .not('connected_at', 'is', null)
+        .in('platform', SUPPORTED_PLATFORMS)
+        .then(r => r.data || [])
+        .catch(() => []),
+      supabase
+        .from('nango_connection_mappings')
+        .select('platform')
+        .eq('user_id', userId)
+        .eq('status', 'active')
+        .in('platform', SUPPORTED_PLATFORMS)
+        .then(r => r.data || [])
+        .catch(() => []),
+    ]);
 
-    if (!connections || connections.length === 0) {
+    const platforms = [...new Set([
+      ...pcConns.map(c => c.platform),
+      ...nangoConns.map(c => c.platform),
+    ])];
+
+    if (platforms.length === 0) {
       return { observationsStored: 0 };
     }
 
     let totalStored = 0;
-    for (const conn of connections) {
+    for (const platform of platforms) {
       try {
         let observations = [];
-        switch (conn.platform) {
+        switch (platform) {
           case 'spotify':
             observations = await fetchSpotifyObservations(userId);
             break;
@@ -915,10 +950,10 @@ async function runPostOnboardingIngestion(userId) {
         for (const obs of observations) {
           const content = typeof obs === 'string' ? obs : obs.content;
           const contentType = typeof obs === 'string' ? undefined : obs.contentType;
-          const dup = await isDuplicate(userId, conn.platform, content, contentType);
+          const dup = await isDuplicate(userId, platform, content, contentType);
           if (dup) continue;
 
-          const result = await addPlatformObservation(userId, content, conn.platform, {
+          const result = await addPlatformObservation(userId, content, platform, {
             ingestion_source: 'post_onboarding',
             ingested_at: new Date().toISOString(),
             ...(contentType ? { content_type: contentType } : {}),
@@ -926,7 +961,7 @@ async function runPostOnboardingIngestion(userId) {
           if (result) totalStored++;
         }
       } catch (err) {
-        console.warn(`[ObservationIngestion] Post-onboarding ${conn.platform} error:`, err.message);
+        console.warn(`[ObservationIngestion] Post-onboarding ${platform} error:`, err.message);
       }
     }
 
