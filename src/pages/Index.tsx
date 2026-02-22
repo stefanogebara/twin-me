@@ -6,9 +6,7 @@ import { motion } from 'framer-motion';
 import {
   SpotifyLogo,
   GoogleCalendarLogo,
-  WhoopLogo,
   YoutubeLogo,
-  TwitchLogo,
 } from '../components/PlatformLogos';
 
 const RAINFOREST_BG = '/images/backgrounds/rainforest.jpg';
@@ -390,9 +388,7 @@ const Index = () => {
                 {[
                   { Icon: SpotifyLogo,          iconColor: '#1DB954', iconBg: 'rgba(29,185,84,0.15)',   title: 'Spotify',          desc: 'Acoustic patterns & vibes' },
                   { Icon: GoogleCalendarLogo,    iconColor: '#4285F4', iconBg: 'rgba(66,133,244,0.12)',  title: 'Google Calendar',  desc: 'Time & priority rhythms' },
-                  { Icon: WhoopLogo,             iconColor: '#00c9b1', iconBg: 'rgba(0,201,177,0.12)',   title: 'Whoop',            desc: 'Energy & recovery states' },
                   { Icon: YoutubeLogo,           iconColor: '#FF0000', iconBg: 'rgba(255,0,0,0.12)',     title: 'YouTube',          desc: 'Curiosity & learning' },
-                  { Icon: TwitchLogo,            iconColor: '#9146FF', iconBg: 'rgba(145,70,255,0.12)', title: 'Twitch',           desc: 'Gaming identity & streams' },
                 ].map((item, idx) => (
                   <div
                     key={idx}

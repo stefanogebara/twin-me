@@ -15,12 +15,6 @@ const CalendarLogo = () => (
   </svg>
 );
 
-const WhoopLogo = () => (
-  <svg viewBox="0 0 1332 999" className="w-5 h-5" fill="#00A7E1">
-    <path d="m969.3 804.3l-129.4-426.3h-118.7l189.2 620.8h117.8l303.7-998h-118.7zm-851.3-803.5h-117.9l188.4 620.7h118.6zm488.6 0l-302.8 997.9h117.8l303.7-997.9z"/>
-  </svg>
-);
-
 const LinkedInLogo = () => (
   <svg viewBox="0 0 24 24" className="w-5 h-5" fill="#0A66C2">
     <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/>
@@ -57,11 +51,6 @@ const platformConfig: Record<string, {
     icon: <CalendarLogo />,
     color: '#4285F4'
   },
-  whoop: {
-    name: 'Whoop',
-    icon: <WhoopLogo />,
-    color: '#00A7E1'
-  },
   linkedin: {
     name: 'LinkedIn',
     icon: <LinkedInLogo />,
@@ -71,11 +60,6 @@ const platformConfig: Record<string, {
     name: 'YouTube',
     icon: <CalendarLogo />,
     color: '#FF0000'
-  },
-  twitch: {
-    name: 'Twitch',
-    icon: <CalendarLogo />,
-    color: '#9146FF'
   },
   discord: {
     name: 'Discord',

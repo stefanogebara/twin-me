@@ -10,8 +10,7 @@ import { supabaseAdmin } from '../services/database.js';
 import { authenticateToken } from '../middleware/auth.js';
 import spotifyFeatureExtractor from '../services/featureExtractors/spotifyExtractor.js';
 import calendarFeatureExtractor from '../services/featureExtractors/calendarExtractor.js';
-import whoopFeatureExtractor from '../services/featureExtractors/whoopExtractor.js';
-// Gmail, Outlook, LinkedIn extractors removed (TIER 1 cleanup - Professional Universe cut)
+// Gmail, Outlook, LinkedIn, Whoop extractors removed
 const gmailFeatureExtractor = { extractFeatures: async () => ({}) };
 const outlookFeatureExtractor = { extractFeatures: async () => ({}) };
 const linkedinFeatureExtractor = { extractFeatures: async () => ({}) };
@@ -26,7 +25,6 @@ const router = express.Router();
 const platformExtractors = {
   spotify: spotifyFeatureExtractor,
   calendar: calendarFeatureExtractor,
-  whoop: whoopFeatureExtractor,
   gmail: gmailFeatureExtractor,
   outlook: outlookFeatureExtractor,
   linkedin: linkedinFeatureExtractor

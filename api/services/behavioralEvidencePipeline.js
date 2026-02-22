@@ -12,13 +12,11 @@
 
 import spotifyFeatureExtractor from './featureExtractors/spotifyExtractor.js';
 import calendarFeatureExtractor from './featureExtractors/calendarExtractor.js';
-import whoopFeatureExtractor from './featureExtractors/whoopExtractor.js';
-// Gmail, Outlook, LinkedIn extractors removed (TIER 1 cleanup)
+// Gmail, Outlook, LinkedIn, Whoop, Twitch extractors removed
 const gmailFeatureExtractor = { extractFeatures: async () => ({}) };
 const outlookFeatureExtractor = { extractFeatures: async () => ({}) };
 const linkedinFeatureExtractor = { extractFeatures: async () => ({}) };
 import youtubeFeatureExtractor from './featureExtractors/youtubeFeatureExtractor.js';
-import twitchFeatureExtractor from './featureExtractors/twitchFeatureExtractor.js';
 import {
   generateAllEvidence,
   calculateConfidenceScores,
@@ -33,13 +31,11 @@ class BehavioralEvidencePipeline {
       spotify: spotifyFeatureExtractor,
       google_calendar: calendarFeatureExtractor,
       calendar: calendarFeatureExtractor, // alias
-      whoop: whoopFeatureExtractor,
       gmail: gmailFeatureExtractor,
       google_gmail: gmailFeatureExtractor, // alias for Nango DB key
       outlook: outlookFeatureExtractor,
       linkedin: linkedinFeatureExtractor,
       youtube: youtubeFeatureExtractor,
-      twitch: twitchFeatureExtractor
     };
   }
 

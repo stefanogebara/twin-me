@@ -12,8 +12,6 @@ const PLATFORM_COLORS: Record<string, string> = {
   'google calendar': '#4285F4',
   'google-calendar': '#4285F4',
   google_calendar: '#4285F4',
-  whoop: '#44D62C',
-  twitch: '#9146FF',
   github: '#FFFFFF',
   discord: '#5865F2',
   gmail: '#EA4335',

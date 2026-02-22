@@ -28,9 +28,6 @@ export {
 // User
 export { DEMO_USER, DEMO_PLATFORM_CONNECTIONS } from './demo/demoUser';
 
-// Whoop
-export { generate7DayHistory, getDemoWhoopData, DEMO_WHOOP_DATA } from './demo/demoWhoop';
-
 // Calendar
 export { generateEventTypeDistribution, generateWeeklyHeatmap, DEMO_CALENDAR_DATA } from './demo/demoCalendar';
 

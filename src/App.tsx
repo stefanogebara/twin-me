@@ -45,10 +45,8 @@ const NewDiscoverFlow = lazy(() => import("./pages/onboarding/NewDiscoverFlow"))
 const SoulSignatureOnboarding = lazy(() => import("./pages/onboarding/SoulSignatureOnboarding"));
 const GmailCallback = lazy(() => import("./pages/oauth/GmailCallback"));
 const SpotifyInsightsPage = lazy(() => import("./pages/insights/SpotifyInsightsPage"));
-const WhoopInsightsPage = lazy(() => import("./pages/insights/WhoopInsightsPage"));
 const CalendarInsightsPage = lazy(() => import("./pages/insights/CalendarInsightsPage"));
 const YouTubeInsightsPage = lazy(() => import("./pages/insights/YouTubeInsightsPage"));
-const TwitchInsightsPage = lazy(() => import("./pages/insights/TwitchInsightsPage"));
 const WebBrowsingInsightsPage = lazy(() => import("./pages/insights/WebBrowsingInsightsPage"));
 const GoalsPage = lazy(() => import("./pages/GoalsPage"));
 
@@ -131,15 +129,6 @@ const App = () => {
                 </SidebarLayout>
               </ProtectedRoute>
             } />
-            <Route path="/insights/whoop" element={
-              <ProtectedRoute>
-                <SidebarLayout>
-                  <ErrorBoundary>
-                    <WhoopInsightsPage />
-                  </ErrorBoundary>
-                </SidebarLayout>
-              </ProtectedRoute>
-            } />
             <Route path="/insights/calendar" element={
               <ProtectedRoute>
                 <SidebarLayout>
@@ -154,15 +143,6 @@ const App = () => {
                 <SidebarLayout>
                   <ErrorBoundary>
                     <YouTubeInsightsPage />
-                  </ErrorBoundary>
-                </SidebarLayout>
-              </ProtectedRoute>
-            } />
-            <Route path="/insights/twitch" element={
-              <ProtectedRoute>
-                <SidebarLayout>
-                  <ErrorBoundary>
-                    <TwitchInsightsPage />
                   </ErrorBoundary>
                 </SidebarLayout>
               </ProtectedRoute>

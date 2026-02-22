@@ -6,25 +6,22 @@
 import { randomInRange, randomFromArray } from './demoHelpers';
 import { DEMO_USER } from './demoUser';
 import { DEMO_PLATFORM_CONNECTIONS } from './demoUser';
-import { getDemoWhoopData, DEMO_WHOOP_DATA } from './demoWhoop';
 import { DEMO_CALENDAR_DATA } from './demoCalendar';
 import { getDemoSpotifyData, DEMO_SPOTIFY_DATA } from './demoSpotify';
 import { DEMO_SOUL_SIGNATURE, DEMO_INSIGHTS } from './demoSoulSignature';
 
 // Dynamic context with randomization
 export const getDemoContext = () => {
-  const whoopData = getDemoWhoopData();
   const spotifyData = getDemoSpotifyData();
 
   const summaryOptions = [
-    `${whoopData.recovery.label} recovery (${whoopData.recovery.score}%) with a busy day ahead including a client presentation. Consider calm, focused music for preparation.`,
-    `Great recovery day (${whoopData.recovery.score}%)! Your energy is ${whoopData.recovery.label.toLowerCase()}. Perfect time for challenging tasks.`,
-    `Recovery at ${whoopData.recovery.score}% - ${whoopData.recovery.label}. Sleep quality was ${whoopData.sleep.quality.toLowerCase()}. Match your music to your energy.`,
-    `${whoopData.recovery.label} recovery (${whoopData.recovery.score}%) with ${whoopData.strain.label.toLowerCase()} strain. Consider ${spotifyData.recentMood} music to optimize your day.`,
+    `A great day ahead with a client presentation. Consider calm, focused music for preparation.`,
+    `Your energy is high today. Perfect time for challenging tasks.`,
+    `Match your music to your energy and make the most of your day.`,
+    `Consider ${spotifyData.recentMood} music to optimize your day.`,
   ];
 
   return {
-    whoop: whoopData.recovery,
     calendar: DEMO_CALENDAR_DATA.todayEvents[0],
     upcomingEvents: DEMO_CALENDAR_DATA.todayEvents,
     spotify: {
@@ -32,7 +29,6 @@ export const getDemoContext = () => {
       averageEnergy: spotifyData.averageEnergy,
     },
     connectedPlatforms: {
-      whoop: true,
       spotify: true,
       calendar: true,
     },
@@ -58,7 +54,6 @@ export const getDemoData = () => ({
   soulSignature: DEMO_SOUL_SIGNATURE,
   spotifyData: getDemoSpotifyData(),
   calendarData: DEMO_CALENDAR_DATA,
-  whoopData: getDemoWhoopData(),
   context: getDemoContext(),
   insights: DEMO_INSIGHTS,
   twinStats: DEMO_TWIN_STATS,
@@ -71,7 +66,6 @@ export const DEMO_DATA = {
   soulSignature: DEMO_SOUL_SIGNATURE,
   spotifyData: DEMO_SPOTIFY_DATA,
   calendarData: DEMO_CALENDAR_DATA,
-  whoopData: DEMO_WHOOP_DATA,
   context: DEMO_CONTEXT,
   insights: DEMO_INSIGHTS,
   twinStats: DEMO_TWIN_STATS,

@@ -187,46 +187,6 @@ export const PLATFORM_CONFIGS = {
   },
 
   // Health & Fitness Platforms
-  whoop: {
-    name: 'Whoop',
-    authUrl: 'https://api.prod.whoop.com/oauth/oauth2/auth',
-    tokenUrl: 'https://api.prod.whoop.com/oauth/oauth2/token',
-    scopes: [
-      'offline',         // Required for refresh tokens
-      'read:profile',
-      'read:recovery',
-      'read:cycles',
-      'read:workout',
-      'read:sleep',
-      'read:body_measurement'
-    ],
-    apiBaseUrl: 'https://api.prod.whoop.com/developer/v2',
-
-    endpoints: {
-      userProfile: '/user/profile/basic',
-      recovery: '/recovery',
-      cycles: '/cycle',
-      workouts: '/activity/workout',
-      sleep: '/activity/sleep',
-      bodyMeasurements: '/user/measurement/body'
-    },
-
-    tokenType: 'Bearer',
-    refreshable: true,
-
-    rateLimit: {
-      requests: 100,
-      window: 60 // per minute
-    },
-
-    // Personality correlations for soul signature extraction
-    personalityCorrelations: {
-      conscientiousness: ['sleep consistency', 'workout regularity', 'recovery adherence'],
-      neuroticism: ['HRV variability', 'stress indicators', 'recovery fluctuations'],
-      extraversion: ['workout frequency', 'strain levels', 'activity diversity']
-    }
-  },
-
   oura: {
     name: 'Oura',
     authUrl: 'https://cloud.ouraring.com/oauth/authorize',

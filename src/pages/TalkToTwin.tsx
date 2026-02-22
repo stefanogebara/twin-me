@@ -8,7 +8,7 @@ import {
   Sparkles, Layers,
   Lightbulb, TrendingUp, Heart, Zap
 } from 'lucide-react';
-import { SpotifyLogo, WhoopLogo, GoogleCalendarLogo, YoutubeLogo, TwitchLogo } from '@/components/PlatformLogos';
+import { SpotifyLogo, GoogleCalendarLogo, YoutubeLogo } from '@/components/PlatformLogos';
 import { ChatEmptyState } from '@/components/chat/ChatEmptyState';
 import { MessageList } from '@/components/chat/MessageList';
 import { ChatInputArea } from '@/components/chat/ChatInputArea';
@@ -85,10 +85,8 @@ const TalkToTwin = () => {
 
   const platforms = [
     { name: 'Spotify', icon: <SpotifyLogo className="w-4 h-4" />, key: 'spotify', color: '#1DB954', connected: platformStatus?.spotify?.connected },
-    { name: 'Whoop', icon: <WhoopLogo className="w-4 h-4" />, key: 'whoop', color: '#00A5E0', connected: platformStatus?.whoop?.connected },
     { name: 'Calendar', icon: <GoogleCalendarLogo className="w-4 h-4" />, key: 'calendar', color: '#4285F4', connected: platformStatus?.google_calendar?.connected },
     { name: 'YouTube', icon: <YoutubeLogo className="w-4 h-4" />, key: 'youtube', color: '#FF0000', connected: platformStatus?.youtube?.connected },
-    { name: 'Twitch', icon: <TwitchLogo className="w-4 h-4" />, key: 'twitch', color: '#9146FF', connected: platformStatus?.twitch?.connected },
   ];
 
   const connectedPlatforms = platforms.filter(p => p.connected);

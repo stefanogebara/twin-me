@@ -20,11 +20,9 @@ import {
   Settings,
   LogOut,
   Music,
-  Activity,
   Calendar,
   Eye,
   Video,
-  Tv,
   Globe,
   BookOpen,
   Target,
@@ -105,12 +103,6 @@ const insightNavItems: NavItem[] = [
     path: '/insights/spotify'
   },
   {
-    id: 'whoop-insights',
-    label: 'Body Stories',
-    icon: Activity,
-    path: '/insights/whoop'
-  },
-  {
     id: 'calendar-insights',
     label: 'Time Patterns',
     icon: Calendar,
@@ -121,12 +113,6 @@ const insightNavItems: NavItem[] = [
     label: 'Content World',
     icon: Video,
     path: '/insights/youtube'
-  },
-  {
-    id: 'twitch-insights',
-    label: 'Gaming World',
-    icon: Tv,
-    path: '/insights/twitch'
   },
   {
     id: 'web-insights',

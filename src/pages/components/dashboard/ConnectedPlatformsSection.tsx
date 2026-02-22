@@ -19,9 +19,7 @@ interface PlatformStatus {
 const PLATFORM_CONFIG: Record<string, { name: string; color: string; brandColor: string }> = {
   spotify: { name: 'Spotify', color: 'text-green-500', brandColor: '#1DB954' },
   google_calendar: { name: 'Calendar', color: 'text-blue-500', brandColor: '#4285F4' },
-  whoop: { name: 'Whoop', color: 'text-cyan-500', brandColor: '#00A5E0' },
   youtube: { name: 'YouTube', color: 'text-red-500', brandColor: '#FF0000' },
-  twitch: { name: 'Twitch', color: 'text-purple-500', brandColor: '#9146FF' },
 };
 
 interface ConnectedPlatformsSectionProps {

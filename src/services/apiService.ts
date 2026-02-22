@@ -35,8 +35,6 @@ export type {
 } from './api/spotifyAPI';
 
 // Whoop
-export { whoopAPI } from './api/whoopAPI';
-export type { WhoopStatus, WhoopCurrentState } from './api/whoopAPI';
 
 // Soul Signature
 export { soulSignatureAPI } from './api/soulSignatureAPI';

@@ -100,9 +100,7 @@ router.post('/verify-connection', authenticateUser, async (req, res) => {
     const ALLOWED_INTEGRATION_IDS = new Set([
       'spotify', 'spotify-getting-started',
       'google-calendar', 'google-calendar-getting-started',
-      'whoop', 'whoop-getting-started',
       'youtube', 'youtube-getting-started',
-      'twitch', 'twitch-getting-started',
       'discord', 'discord-getting-started',
     ]);
     if (!ALLOWED_INTEGRATION_IDS.has(integrationId)) {
@@ -137,8 +135,6 @@ router.post('/verify-connection', authenticateUser, async (req, res) => {
       'github': 'github',
       'youtube': 'youtube',
       'reddit': 'reddit',
-      'twitch': 'twitch',
-      'whoop': 'whoop',
       'outlook': 'outlook',
       'linkedin': 'linkedin'
     };
@@ -198,12 +194,10 @@ router.post('/verify-connection', authenticateUser, async (req, res) => {
           // Run feature extraction after raw data is stored
           try {
             const featureExtractorMap = {
-              // Gmail, Outlook, LinkedIn extractors removed (TIER 1 cleanup)
+              // Gmail, Outlook, LinkedIn, Whoop, Twitch extractors removed
               'spotify': (await import('../services/featureExtractors/spotifyExtractor.js')).default,
               'google-calendar': (await import('../services/featureExtractors/calendarExtractor.js')).default,
-              'whoop': (await import('../services/featureExtractors/whoopExtractor.js')).default,
               'youtube': (await import('../services/featureExtractors/youtubeFeatureExtractor.js')).default,
-              'twitch': (await import('../services/featureExtractors/twitchFeatureExtractor.js')).default,
             };
             const extractor = featureExtractorMap[integrationId];
             if (extractor) {
@@ -373,12 +367,10 @@ router.get('/extract/:platform', authenticateUser, async (req, res) => {
       // Run feature extraction after raw data is stored
       try {
         const featureExtractorMap = {
-          // Gmail, Outlook, LinkedIn extractors removed (TIER 1 cleanup)
+          // Gmail, Outlook, LinkedIn, Whoop, Twitch extractors removed
           'spotify': (await import('../services/featureExtractors/spotifyExtractor.js')).default,
           'google-calendar': (await import('../services/featureExtractors/calendarExtractor.js')).default,
-          'whoop': (await import('../services/featureExtractors/whoopExtractor.js')).default,
           'youtube': (await import('../services/featureExtractors/youtubeFeatureExtractor.js')).default,
-          'twitch': (await import('../services/featureExtractors/twitchFeatureExtractor.js')).default,
         };
         const extractor = featureExtractorMap[platform];
         if (extractor) {

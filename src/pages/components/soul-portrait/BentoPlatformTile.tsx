@@ -1,6 +1,6 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { Music, Calendar, Heart, Tv, Gamepad2 } from 'lucide-react';
+import { Music, Calendar, Tv } from 'lucide-react';
 import type { PlatformSummary, ConnectedPlatform } from './types';
 
 interface PlatformMeta {
@@ -34,24 +34,6 @@ const PLATFORM_META: Record<string, PlatformMeta> = {
       return 'Schedule synced';
     },
   },
-  whoop: {
-    label: 'Whoop',
-    icon: Heart,
-    color: '#FF4444',
-    extractMetric: (obs) => {
-      const text = obs.join(' ');
-      const recoveryMatch = text.match(/(\d+)%\s*recovery/i);
-      const hrvMatch = text.match(/(\d+(?:\.\d+)?)\s*ms\s*HRV/i);
-      const sleepMatch = text.match(/(\d+(?:\.\d+)?)\s*h(?:ours?)?\s*(?:of\s*)?sleep/i);
-      const parts: string[] = [];
-      if (recoveryMatch) parts.push(`${recoveryMatch[1]}% recovery`);
-      if (hrvMatch) parts.push(`${hrvMatch[1]}ms HRV`);
-      if (sleepMatch) parts.push(`${sleepMatch[1]}h sleep`);
-      if (parts.length > 0) return parts.join(' · ');
-      const first = obs[0] || '';
-      return first.length > 0 ? first.slice(0, 52) + (first.length > 52 ? '…' : '') : 'Health data synced';
-    },
-  },
   youtube: {
     label: 'YouTube',
     icon: Tv,
@@ -60,16 +42,6 @@ const PLATFORM_META: Record<string, PlatformMeta> = {
       const first = obs[0] || '';
       if (first.length > 0) return first.slice(0, 52) + (first.length > 52 ? '…' : '');
       return 'Content synced';
-    },
-  },
-  twitch: {
-    label: 'Twitch',
-    icon: Gamepad2,
-    color: '#9146FF',
-    extractMetric: (obs) => {
-      const first = obs[0] || '';
-      if (first.length > 0) return first.slice(0, 52) + (first.length > 52 ? '…' : '');
-      return 'Channels synced';
     },
   },
 };

@@ -23,7 +23,6 @@ interface ConnectedPlatformsSettingsProps {
 const connectorConfig = [
   { id: 'spotify', name: 'Spotify', description: 'Music preferences and listening patterns' },
   { id: 'google_calendar', name: 'Google Calendar', description: 'Schedule and event patterns' },
-  { id: 'whoop', name: 'Whoop', description: 'Health, recovery, and strain data' }
 ];
 
 // Glass card style matching the design system

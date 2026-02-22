@@ -33,12 +33,6 @@ export const RedditLogo: React.FC<{ className?: string }> = ({ className = "w-8 
   </svg>
 );
 
-export const TwitchLogo: React.FC<{ className?: string }> = ({ className = "w-8 h-8" }) => (
-  <svg className={className} viewBox="0 0 24 24" fill="currentColor">
-    <path d="M11.571 4.714h1.715v5.143H11.57zm4.715 0H18v5.143h-1.714zM6 0L1.714 4.286v15.428h5.143V24l4.286-4.286h3.428L22.286 12V0zm14.571 11.143l-3.428 3.428h-3.429l-3 3v-3H6.857V1.714h13.714Z"/>
-  </svg>
-);
-
 export const NetflixLogo: React.FC<{ className?: string }> = ({ className = "w-8 h-8" }) => (
   <svg className={className} viewBox="0 0 24 24" fill="currentColor">
     <path d="M5.398 0v.006c3.028 8.556 5.37 15.175 8.348 23.596 2.344.058 4.85.398 4.854.398-2.8-7.924-5.923-16.747-8.487-24zm8.489 0v9.63L18.6 22.951c-.043-7.86-.004-15.913.002-22.95zM5.398 1.05V24c1.873-.225 2.81-.312 4.715-.398v-9.22z"/>
@@ -119,13 +113,6 @@ export const GoogleDriveLogo: React.FC<{ className?: string }> = ({ className = 
   </svg>
 );
 
-// Whoop logo
-export const WhoopLogo: React.FC<{ className?: string }> = ({ className = "w-8 h-8" }) => (
-  <svg className={className} viewBox="0 0 1332 999" fill="currentColor">
-    <path d="m969.3 804.3l-129.4-426.3h-118.7l189.2 620.8h117.8l303.7-998h-118.7zm-851.3-803.5h-117.9l188.4 620.7h118.6zm488.6 0l-302.8 997.9h117.8l303.7-997.9z"/>
-  </svg>
-);
-
 // Apple Music logo
 export const AppleMusicLogo: React.FC<{ className?: string }> = ({ className = "w-8 h-8" }) => (
   <svg className={className} viewBox="0 0 24 24" fill="currentColor">
@@ -143,7 +130,6 @@ export const PlatformLogos: Record<string, React.FC<{ className?: string }>> = {
   github: GithubLogo,
   discord: DiscordLogo,
   reddit: RedditLogo,
-  twitch: TwitchLogo,
   netflix: NetflixLogo,
   linkedin: LinkedinLogo,
   google: GoogleLogo,
@@ -169,7 +155,6 @@ export const PlatformLogos: Record<string, React.FC<{ className?: string }>> = {
   tiktok: TikTokLogo,
   steam: SteamLogo,
   goodreads: GoodreadsLogo,
-  whoop: WhoopLogo,
   apple_music: AppleMusicLogo,
   applemusic: AppleMusicLogo,
   'apple-music': AppleMusicLogo,

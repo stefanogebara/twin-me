@@ -55,12 +55,6 @@ const PLATFORM_REFRESH_CONFIGS = {
     clientId: process.env.LINKEDIN_CLIENT_ID,
     clientSecret: process.env.LINKEDIN_CLIENT_SECRET,
   },
-  // Whoop OAuth refresh configuration
-  whoop: {
-    tokenUrl: 'https://api.prod.whoop.com/oauth/oauth2/token',
-    clientId: process.env.WHOOP_CLIENT_ID,
-    clientSecret: process.env.WHOOP_CLIENT_SECRET,
-  },
 };
 
 /**
@@ -95,14 +89,9 @@ async function refreshAccessToken(platform, refreshToken, userId) {
       ).toString('base64');
       headers['Authorization'] = `Basic ${basicAuth}`;
     } else {
-      // Whoop and other platforms use client_secret_post (credentials in body)
+      // Other platforms use client_secret_post (credentials in body)
       paramsObj.client_id = config.clientId;
       paramsObj.client_secret = config.clientSecret;
-
-      // Whoop requires scope: 'offline' for refresh token requests
-      if (platform === 'whoop') {
-        paramsObj.scope = 'offline';
-      }
     }
 
     const params = new URLSearchParams(paramsObj);
