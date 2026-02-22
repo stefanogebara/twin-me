@@ -106,7 +106,6 @@ router.get('/export', authenticateUser, async (req, res) => {
       soulSignaturesResult,
       personalityScoresResult,
       twinConversationsResult,
-      twinMessagesResult,
       enrichedProfilesResult,
       calibrationResult,
       memoriesResult,
@@ -127,8 +126,6 @@ router.get('/export', authenticateUser, async (req, res) => {
       supabaseAdmin.from('personality_scores').select('openness, conscientiousness, extraversion, agreeableness, neuroticism, data_sources, created_at').eq('user_id', userId),
       // Twin conversations
       supabaseAdmin.from('twin_conversations').select('id, title, context_type, message_count, created_at, updated_at').eq('user_id', userId).order('created_at', { ascending: false }),
-      // Twin messages (last 1000)
-      supabaseAdmin.from('twin_messages').select('conversation_id, role, content, created_at').eq('conversation_id', supabaseAdmin.from('twin_conversations').select('id').eq('user_id', userId)).order('created_at', { ascending: false }).limit(1000),
       // Enriched profile
       supabaseAdmin.from('enriched_profiles').select('full_name, company, title, location, bio, interests, social_links, discovered_photo, is_confirmed, created_at').eq('user_id', userId),
       // Onboarding calibration
