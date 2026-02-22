@@ -417,22 +417,34 @@ router.delete('/reset', authenticateToken, async (req, res) => {
     const { supabaseAdmin } = await import('../config/supabase.js');
 
     // Delete responses
-    await supabaseAdmin
+    const { error: responsesErr } = await supabaseAdmin
       .from('big_five_responses')
       .delete()
       .eq('user_id', userId);
+    if (responsesErr) {
+      console.error('[BigFive] Failed to delete responses:', responsesErr.message);
+      return res.status(500).json({ success: false, error: 'Failed to reset assessment' });
+    }
 
     // Delete scores
-    await supabaseAdmin
+    const { error: scoresErr } = await supabaseAdmin
       .from('big_five_scores')
       .delete()
       .eq('user_id', userId);
+    if (scoresErr) {
+      console.error('[BigFive] Failed to delete scores:', scoresErr.message);
+      return res.status(500).json({ success: false, error: 'Failed to reset assessment' });
+    }
 
     // Delete facet scores
-    await supabaseAdmin
+    const { error: facetErr } = await supabaseAdmin
       .from('facet_scores')
       .delete()
       .eq('user_id', userId);
+    if (facetErr) {
+      console.error('[BigFive] Failed to delete facet scores:', facetErr.message);
+      return res.status(500).json({ success: false, error: 'Failed to reset assessment' });
+    }
 
     console.log(`[BigFive] Reset assessment for user ${userId}`);
 
