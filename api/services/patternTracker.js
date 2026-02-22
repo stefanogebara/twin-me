@@ -479,10 +479,11 @@ export async function predictNextPatternOccurrence(userId, patternId) {
     );
 
     // Update pattern with prediction
-    await supabase
+    const { error: predictionErr } = await supabase
       .from('behavioral_patterns')
       .update({ next_predicted_occurrence: executionTime.toISOString() })
       .eq('id', patternId);
+    if (predictionErr) console.error('Error updating pattern prediction:', predictionErr.message);
 
     return {
       predicted: true,

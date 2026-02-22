@@ -85,7 +85,7 @@ export async function generatePatternInsights(userId) {
 async function generateSinglePatternInsight(userId, pattern) {
   try {
     // Check if insight already exists for this pattern (created in last 7 days)
-    const { data: existingInsight } = await supabase
+    const { data: existingInsight, error: existingErr } = await supabase
       .from('pattern_insights')
       .select('id')
       .eq('pattern_id', pattern.id)
@@ -93,6 +93,7 @@ async function generateSinglePatternInsight(userId, pattern) {
       .gte('generated_at', new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString())
       .is('dismissed_at', null)
       .single();
+    if (existingErr && existingErr.code !== 'PGRST116') console.warn('[PatternInsight] Error checking existing insight:', existingErr.message);
 
     if (existingInsight) {
       console.log(`⚠️ [Insight Generator] Insight already exists for pattern ${pattern.id}`);

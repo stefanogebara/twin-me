@@ -205,12 +205,13 @@ export async function generateHypotheses(userId, useAI = true) {
       }
 
       // Check if hypothesis already exists
-      const { data: existing } = await supabaseAdmin
+      const { data: existing, error: existingErr } = await supabaseAdmin
         .from('pl_pattern_hypotheses')
         .select('id, hypothesis_text')
         .eq('correlation_id', correlation.id)
         .eq('is_active', true)
         .single();
+      if (existingErr && existingErr.code !== 'PGRST116') console.warn('[PatternHypothesis] Error checking existing hypothesis:', existingErr.message);
 
       // Generate hypothesis text
       const hypothesisText = useAI
@@ -473,7 +474,7 @@ export async function deactivateStaleHypotheses(userId) {
 
   if (toDeactivate.length === 0) return 0;
 
-  await supabaseAdmin
+  const { error: deactivateErr } = await supabaseAdmin
     .from('pl_pattern_hypotheses')
     .update({
       is_active: false,
@@ -481,6 +482,7 @@ export async function deactivateStaleHypotheses(userId) {
       deactivation_reason: 'correlation_invalidated'
     })
     .in('id', toDeactivate);
+  if (deactivateErr) console.error('[PatternHypothesis] Error deactivating hypotheses:', deactivateErr.message);
 
   return toDeactivate.length;
 }

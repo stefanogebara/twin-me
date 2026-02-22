@@ -95,10 +95,11 @@ class PatternLearningService {
       // 6. Mark feedback as processed
       console.log(`✓ [PatternLearning] Marking ${feedbackItems.length} feedback items as processed...`);
       const feedbackIds = feedbackItems.map(f => f.id);
-      await getSupabaseClient()
+      const { error: markErr } = await getSupabaseClient()
         .from('recommendation_feedback')
         .update({ processed_at: new Date().toISOString() })
         .in('id', feedbackIds);
+      if (markErr) console.error('Error marking feedback processed:', markErr.message);
 
       const processingDuration = Date.now() - processingStartTime;
       console.log(`\n✅ [PatternLearning] Processing complete for user ${userId}`);
@@ -279,13 +280,14 @@ Return as JSON:
       const newConfidence = Math.max(0, Math.min(1, (pattern.confidence_score || 0.5) + adjustment));
 
       // Update
-      await getSupabaseClient()
+      const { error: confidenceErr } = await getSupabaseClient()
         .from('behavioral_patterns')
         .update({
           confidence_score: newConfidence,
           updated_at: new Date().toISOString()
         })
         .eq('id', patternId);
+      if (confidenceErr) console.error('Error updating pattern confidence:', confidenceErr.message);
 
     } catch (error) {
       console.error('[PatternLearning] Error adjusting pattern confidence:', error);
@@ -310,7 +312,7 @@ Return as JSON:
       const currentConfidence = existing?.confidence_score || 0.5;
       const newConfidence = Math.max(0, Math.min(1, currentConfidence + adjustment));
 
-      await getSupabaseClient()
+      const { error: upsertErr } = await getSupabaseClient()
         .from('core_memory')
         .upsert({
           user_id: userId,
@@ -325,6 +327,7 @@ Return as JSON:
         }, {
           onConflict: 'user_id,preference_type'
         });
+      if (upsertErr) console.error('Error upserting core memory preference:', upsertErr.message);
 
     } catch (error) {
       console.error('[PatternLearning] Error updating type confidence:', error);
