@@ -325,11 +325,11 @@ function extractMetricFromPlatformData(metricType, platformData) {
 async function extractMetricFromMemories(userId, metricType) {
   // Fetch enough memories to find platform_data (reflections dominate recent stream)
   const recentMemories = await getRecentMemories(userId, 200);
-  const platformMemories = recentMemories.filter(m => m.memory_type === 'platform_data');
+  const platformMemories = recentMemories.filter(m => m.memory_type === 'platform_data' || m.memory_type === 'observation');
 
-  // Only consider memories from the last 24 hours
-  const oneDayAgo = Date.now() - 24 * 60 * 60 * 1000;
-  const recent = platformMemories.filter(m => new Date(m.created_at).getTime() > oneDayAgo);
+  // Consider memories from the last 36 hours (wider window than cron interval to avoid gaps)
+  const windowMs = 36 * 60 * 60 * 1000;
+  const recent = platformMemories.filter(m => new Date(m.created_at).getTime() > Date.now() - windowMs);
 
   const patterns = {
     sleep_hours: /[Ss]lept?\s+([\d.]+)\s*h/,
