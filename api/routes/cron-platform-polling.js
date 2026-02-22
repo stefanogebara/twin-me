@@ -191,7 +191,8 @@ async function pollAllUsers() {
     const { data: connections, error } = await getSupabaseClient()
       .from('platform_connections')
       .select('user_id, platform, access_token, refresh_token')
-      .eq('status', 'connected');
+      .eq('status', 'connected')
+      .limit(1000);
 
     if (error) {
       console.error('❌ Error fetching users:', error);
@@ -232,7 +233,7 @@ async function pollAllUsers() {
             const nangoResult = await nangoService.extractPlatformData(userId, connection.platform);
             if (nangoResult.success) {
               await nangoService.storeNangoExtractionData(userId, connection.platform, nangoResult);
-              await getSupabaseClient()
+              const { error: nangoSyncErr } = await getSupabaseClient()
                 .from('platform_connections')
                 .update({
                   last_sync: new Date().toISOString(),
@@ -241,6 +242,7 @@ async function pollAllUsers() {
                 })
                 .eq('user_id', userId)
                 .eq('platform', connection.platform);
+              if (nangoSyncErr) console.warn(`[CRON] Failed to update sync status for ${connection.platform}:`, nangoSyncErr.message);
             }
 
             pollingResults.push({
@@ -273,7 +275,7 @@ async function pollAllUsers() {
 
           // Update last sync time if successful
           if (result.success) {
-            await getSupabaseClient()
+            const { error: syncUpdateErr } = await getSupabaseClient()
               .from('platform_connections')
               .update({
                 last_sync: new Date().toISOString(),
@@ -282,6 +284,7 @@ async function pollAllUsers() {
               })
               .eq('user_id', userId)
               .eq('platform', connection.platform);
+            if (syncUpdateErr) console.warn(`[CRON] Failed to update sync status for ${connection.platform}:`, syncUpdateErr.message);
           }
 
           pollingResults.push({
