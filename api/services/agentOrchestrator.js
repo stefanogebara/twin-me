@@ -168,13 +168,14 @@ class AgentOrchestrator {
 
     try {
       // Check for Spotify data
-      const { data: spotifyData } = await supabase
+      const { data: spotifyData, error: spotifyErr } = await supabase
         .from('platform_raw_data')
         .select('extracted_at, data')
         .eq('user_id', userId)
         .eq('platform', 'spotify')
         .order('extracted_at', { ascending: false })
         .limit(1);
+      if (spotifyErr) console.warn('[AgentOrchestrator] Error checking Spotify data:', spotifyErr.message);
 
       if (spotifyData?.length > 0) {
         sources.spotify.available = true;
@@ -183,13 +184,14 @@ class AgentOrchestrator {
       }
 
       // Check for Whoop data
-      const { data: whoopData } = await supabase
+      const { data: whoopData, error: whoopErr } = await supabase
         .from('platform_raw_data')
         .select('extracted_at, data')
         .eq('user_id', userId)
         .eq('platform', 'whoop')
         .order('extracted_at', { ascending: false })
         .limit(1);
+      if (whoopErr) console.warn('[AgentOrchestrator] Error checking Whoop data:', whoopErr.message);
 
       if (whoopData?.length > 0) {
         sources.whoop.available = true;
@@ -198,13 +200,14 @@ class AgentOrchestrator {
       }
 
       // Check for Calendar data
-      const { data: calendarData } = await supabase
+      const { data: calendarData, error: calendarErr } = await supabase
         .from('platform_raw_data')
         .select('extracted_at, data')
         .eq('user_id', userId)
         .eq('platform', 'google_calendar')
         .order('extracted_at', { ascending: false })
         .limit(1);
+      if (calendarErr) console.warn('[AgentOrchestrator] Error checking Calendar data:', calendarErr.message);
 
       if (calendarData?.length > 0) {
         sources.calendar.available = true;
@@ -213,13 +216,14 @@ class AgentOrchestrator {
       }
 
       // Check for Web Browsing data (from browser extension)
-      const { data: webData, count: webCount } = await supabase
+      const { data: webData, count: webCount, error: webErr } = await supabase
         .from('user_platform_data')
         .select('created_at', { count: 'exact' })
         .eq('user_id', userId)
         .eq('platform', 'web')
         .order('created_at', { ascending: false })
         .limit(1);
+      if (webErr) console.warn('[AgentOrchestrator] Error checking Web data:', webErr.message);
 
       if (webData?.length > 0 && webCount > 0) {
         sources.web.available = true;
