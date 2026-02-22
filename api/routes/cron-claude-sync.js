@@ -460,7 +460,7 @@ router.post('/process-analysis', async (req, res) => {
       return res.status(401).json({ error: 'Unauthorized' });
     }
 
-    const limit = parseInt(req.query.limit) || 50;
+    const limit = Math.min(parseInt(req.query.limit) || 50, 200);
 
     // Import and run the analysis processor
     const { default: analyzer } = await import('../services/conversationAIAnalyzer.js');
