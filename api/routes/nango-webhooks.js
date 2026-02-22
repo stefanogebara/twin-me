@@ -187,7 +187,6 @@ async function handleSyncWebhook(data) {
       .from('platform_connections')
       .update({
         last_sync: new Date().toISOString(),
-        sync_count: supabaseAdmin.sql`COALESCE(sync_count, 0) + 1`
       })
       .eq('user_id', userId)
       .eq('platform', providerConfigKey);
