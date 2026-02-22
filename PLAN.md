@@ -474,3 +474,49 @@ Priority order: Discord -> GitHub -> Reddit -> LinkedIn deep -> Apple Music
 | DAU/MAU | > 30% | Measures overall engagement |
 | Free -> Paid conversion | > 5% | Measures monetization viability |
 | Time to wow moment | < 60 seconds | Measures onboarding speed |
+
+---
+
+## TIER 5: AUDIT BACKLOG (2026-02-22)
+
+Compiled from comprehensive codebase audit. All items confirmed with user via alignment session.
+
+### Security (P0)
+
+| # | Task | Status | Notes |
+|---|------|--------|-------|
+| S1 | Fix cron-claude-sync.js weak CRON_SECRET check | ✅ DONE | Main POST / and /process-analysis routes allowed through when CRON_SECRET not set. Fixed to match robust pattern used by other 4 cron files. |
+| S2 | Verify CRON_SECRET is set in Vercel env vars | PENDING | Check vercel env ls, add if missing. All 5 cron routes now fail-closed in production. |
+
+### Performance (P1)
+
+| # | Task | Status | Notes |
+|---|------|--------|-------|
+| P1 | Fix prompt caching bug in twin-chat.js | PENDING | `buildTwinSystemPrompt()` returns array with `cache_control` blocks, but at lines 1120-1122 it gets `.map(b => b.text).join('\n')` before being passed to `complete()`. This strips the caching metadata — Anthropic prompt caching never activates. Fix: pass the array through to llmGateway directly, update `complete()` to accept array system prompts. Cost: ~10x per chat message. |
+| P2 | Remove getMoltbotContext() from twin-chat.js | PENDING | Lines 529-598. Redundant with twinContextBuilder.js — creates duplicate DB queries on every chat. twinContextBuilder already retrieves memories. |
+
+### User Experience (P1)
+
+| # | Task | Status | Notes |
+|---|------|--------|-------|
+| U1 | Raise free tier from 50 → 100 messages/month | PENDING | `FREE_TIER_LIMIT` in `api/routes/chat-usage.js`. 50 is too low for meaningful engagement. Decision: 100. |
+| U2 | Add chat streaming | PENDING | llmGateway.js has `stream()` function. twin-chat.js uses `complete()`. No SSE wiring in frontend. Users see 3-5s dead silence. Wire `stream()` through to frontend via SSE. |
+
+### Memory Quality (P2)
+
+| # | Task | Status | Notes |
+|---|------|--------|-------|
+| M1 | Fix memory diversity problem | PENDING | `retrieveMemories(userId, msg, 30)` with default weights returns ~17 reflections, ~1 fact, ~0 platform_data. Reflections dominate because they have high importance (7-9) AND are recent. Fix: run 3 parallel typed queries — reflections (15), facts (8), platform_data (7) — union and deduplicate. Keeps each type proportionally represented. |
+
+### Code Health (P3)
+
+| # | Task | Status | Notes |
+|---|------|--------|-------|
+| C1 | Aggressive route cleanup | PENDING | 70+ route files in api/routes/. Many are legacy/unused. Check which routes are actually mounted in server.js, then delete unmounted ones. Reduces confusion and maintenance burden. |
+
+### Completed This Session
+
+| Date | Item | Notes |
+|------|------|-------|
+| 2026-02-22 | Fix Whoop-anchor bias | Changed "Recovery score is everything" in TWIN_BASE_INSTRUCTIONS to "Recovery gives physical context... Don't anchor every response". Added PLATFORM DIVERSITY and HEALTH DATA IS CONTEXT response rules. Commit 2c1c34f. |
+| 2026-02-22 | Fix cron-claude-sync.js security (S1) | Hardened two endpoint auth checks to fail-closed when CRON_SECRET not configured. |
