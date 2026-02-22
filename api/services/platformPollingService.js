@@ -415,13 +415,14 @@ async function pollPlatformForAllUsers(platform) {
           const result = await nangoService.extractPlatformData(userId, platform);
           if (result.success) {
             await nangoService.storeNangoExtractionData(userId, platform, result);
-            await getSupabaseClient()
+            const { error: pollUpdateErr } = await getSupabaseClient()
               .from('platform_connections')
               .update({
                 last_sync: new Date().toISOString(),
                 updated_at: new Date().toISOString(),
               })
               .eq('id', conn.id);
+            if (pollUpdateErr) console.warn('[PlatformPolling] Error updating connection:', pollUpdateErr.message);
           }
           await new Promise(resolve => setTimeout(resolve, 2000));
           continue;

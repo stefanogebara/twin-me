@@ -86,9 +86,14 @@ export async function getOrCreatePrivacyProfile(userId) {
       .eq('user_id', userId)
       .single();
 
-    if (existing) {
+    if (!fetchError) {
       return { success: true, profile: existing };
+    } else if (fetchError.code !== 'PGRST116') {
+      // Real error, not just "no rows found"
+      console.error('[Privacy] Error fetching privacy settings:', fetchError.message);
+      throw fetchError;
     }
+    // PGRST116: no profile yet, fall through to create one
 
     // Create default profile with all clusters
     const allClusters = [];
@@ -308,8 +313,10 @@ export async function filterDataByPrivacy(userId, data, platformName, audienceId
       .single();
 
     if (error) {
-      console.warn('No privacy settings found, returning full data');
-      return data;
+      if (error.code !== 'PGRST116') {
+        console.error('[Privacy] Error fetching privacy settings:', error.message);
+      }
+      return data; // Return unfiltered data as fallback
     }
 
     // Get clusters associated with this platform
