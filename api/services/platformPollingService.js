@@ -438,7 +438,7 @@ async function pollPlatformForAllUsers(platform) {
         await pollPlatform(userId, platform, accessToken);
 
         // Update last sync time
-        await getSupabaseClient()
+        const { error: syncUpdateErr } = await getSupabaseClient()
           .from('platform_connections')
           .update({
             last_sync: new Date().toISOString(),
@@ -446,6 +446,7 @@ async function pollPlatformForAllUsers(platform) {
           })
           .eq('user_id', userId)
           .eq('platform', platform);
+        if (syncUpdateErr) console.warn(`[PlatformPolling] Error updating last_sync for ${platform}:`, syncUpdateErr.message);
 
         // Wait 2 seconds between users to avoid rate limits
         await new Promise(resolve => setTimeout(resolve, 2000));
