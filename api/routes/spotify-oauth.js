@@ -112,7 +112,7 @@ router.get('/connect', authenticateUser, oauthAuthorizationLimiter, async (req, 
     res.status(500).json({
       success: false,
       error: 'Failed to initialize Spotify connection',
-      details: error.message
+      ...(process.env.NODE_ENV !== 'production' && { details: error.message }),
     });
   }
 });
@@ -162,7 +162,7 @@ router.get('/status', authenticateUser, async (req, res) => {
     res.status(500).json({
       success: false,
       error: 'Failed to check Spotify status',
-      details: error.message
+      ...(process.env.NODE_ENV !== 'production' && { details: error.message }),
     });
   }
 });
@@ -253,7 +253,7 @@ router.get('/playlists', authenticateUser, async (req, res) => {
     res.status(500).json({
       success: false,
       error: 'Failed to fetch playlists',
-      details: error.message
+      ...(process.env.NODE_ENV !== 'production' && { details: error.message }),
     });
   }
 });
@@ -755,7 +755,7 @@ router.get('/playlists/filtered', authenticateUser, async (req, res) => {
     res.status(500).json({
       success: false,
       error: 'Failed to fetch filtered playlists',
-      details: error.message
+      ...(process.env.NODE_ENV !== 'production' && { details: error.message }),
     });
   }
 });
@@ -860,7 +860,7 @@ router.post('/track-selection', authenticateUser, async (req, res) => {
     res.status(500).json({
       success: false,
       error: 'Failed to track selection',
-      details: error.message
+      ...(process.env.NODE_ENV !== 'production' && { details: error.message }),
     });
   }
 });
@@ -952,7 +952,7 @@ router.get('/playback', authenticateUser, async (req, res) => {
     res.status(500).json({
       success: false,
       error: 'Failed to get playback state',
-      details: error.message
+      ...(process.env.NODE_ENV !== 'production' && { details: error.message }),
     });
   }
 });
@@ -1041,7 +1041,7 @@ router.post('/play', authenticateUser, async (req, res) => {
     res.status(500).json({
       success: false,
       error: 'Failed to start playback',
-      details: error.message
+      ...(process.env.NODE_ENV !== 'production' && { details: error.message }),
     });
   }
 });
@@ -1105,7 +1105,7 @@ router.post('/pause', authenticateUser, async (req, res) => {
     res.status(500).json({
       success: false,
       error: 'Failed to pause playback',
-      details: error.message
+      ...(process.env.NODE_ENV !== 'production' && { details: error.message }),
     });
   }
 });
@@ -1173,7 +1173,7 @@ router.post('/music-session', authenticateUser, async (req, res) => {
         return res.status(500).json({
           success: false,
           error: 'Music sessions table not found. Please run database migrations.',
-          details: error.message
+          ...(process.env.NODE_ENV !== 'production' && { details: error.message }),
         });
       }
       throw error;
@@ -1191,7 +1191,7 @@ router.post('/music-session', authenticateUser, async (req, res) => {
     res.status(500).json({
       success: false,
       error: 'Failed to log music session',
-      details: error.message
+      ...(process.env.NODE_ENV !== 'production' && { details: error.message }),
     });
   }
 });
@@ -1232,7 +1232,7 @@ router.post('/disconnect', authenticateUser, async (req, res) => {
     res.status(500).json({
       success: false,
       error: 'Failed to disconnect Spotify',
-      details: error.message
+      ...(process.env.NODE_ENV !== 'production' && { details: error.message }),
     });
   }
 });

@@ -41,7 +41,7 @@ router.get('/questions', async (req, res) => {
     res.status(500).json({
       success: false,
       error: 'Failed to fetch origin questions',
-      details: error.message
+      ...(process.env.NODE_ENV !== 'production' && { details: error.message }),
     });
   }
 });
@@ -82,7 +82,7 @@ router.get('/data', async (req, res) => {
     res.status(500).json({
       success: false,
       error: 'Failed to fetch origin data',
-      details: error.message
+      ...(process.env.NODE_ENV !== 'production' && { details: error.message }),
     });
   }
 });
@@ -160,7 +160,7 @@ router.post('/data', async (req, res) => {
     res.status(500).json({
       success: false,
       error: 'Failed to save origin data',
-      details: error.message
+      ...(process.env.NODE_ENV !== 'production' && { details: error.message }),
     });
   }
 });
@@ -230,7 +230,7 @@ router.patch('/data', async (req, res) => {
     res.status(500).json({
       success: false,
       error: 'Failed to update origin data section',
-      details: error.message
+      ...(process.env.NODE_ENV !== 'production' && { details: error.message }),
     });
   }
 });
@@ -267,7 +267,7 @@ router.delete('/data', async (req, res) => {
     res.status(500).json({
       success: false,
       error: 'Failed to delete origin data',
-      details: error.message
+      ...(process.env.NODE_ENV !== 'production' && { details: error.message }),
     });
   }
 });
@@ -348,7 +348,7 @@ router.get('/summary', async (req, res) => {
     res.status(500).json({
       success: false,
       error: 'Failed to fetch origin summary',
-      details: error.message
+      ...(process.env.NODE_ENV !== 'production' && { details: error.message }),
     });
   }
 });
@@ -369,7 +369,7 @@ router.get('/values/options', async (req, res) => {
     res.status(500).json({
       success: false,
       error: 'Failed to fetch value options',
-      details: error.message
+      ...(process.env.NODE_ENV !== 'production' && { details: error.message }),
     });
   }
 });
