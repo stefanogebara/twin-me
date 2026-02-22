@@ -1,5 +1,6 @@
 import express from 'express';
 import { supabaseAdmin } from '../services/database.js';
+import { authenticateUser } from '../middleware/auth.js';
 
 const router = express.Router();
 
@@ -7,13 +8,9 @@ const router = express.Router();
  * GET /api/dashboard/stats
  * Get dashboard statistics for the user
  */
-router.get('/stats', async (req, res) => {
+router.get('/stats', authenticateUser, async (req, res) => {
   try {
-    const userId = req.query.userId || req.user?.id;
-
-    if (!userId) {
-      return res.status(400).json({ error: 'User ID is required' });
-    }
+    const userId = req.user.id;
 
     // Get connected platforms count from platform_connections
     const { data: platforms, error: platformsError } = await supabaseAdmin
@@ -113,14 +110,10 @@ router.get('/stats', async (req, res) => {
  * GET /api/dashboard/activity
  * Get recent activity feed for the user
  */
-router.get('/activity', async (req, res) => {
+router.get('/activity', authenticateUser, async (req, res) => {
   try {
-    const userId = req.query.userId || req.user?.id;
-    const limit = parseInt(req.query.limit) || 10;
-
-    if (!userId) {
-      return res.status(400).json({ error: 'User ID is required' });
-    }
+    const userId = req.user.id;
+    const limit = Math.min(parseInt(req.query.limit) || 10, 100); // cap at 100
 
     // Get recent analytics events for this user
     const { data: events, error: eventsError } = await supabaseAdmin
