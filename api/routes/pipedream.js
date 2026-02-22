@@ -35,16 +35,9 @@ async function getPipedreamClient() {
  * POST /api/pipedream/connect-token
  * Generate Connect token for a user to connect their accounts
  */
-router.post('/connect-token', async (req, res) => {
+router.post('/connect-token', authenticateUser, async (req, res) => {
   try {
-    const { userId } = req.body;
-
-    if (!userId) {
-      return res.status(400).json({
-        success: false,
-        error: 'userId is required'
-      });
-    }
+    const userId = req.user.id;
 
     console.log(`[Pipedream] Generating Connect token for user ${userId}`);
 
