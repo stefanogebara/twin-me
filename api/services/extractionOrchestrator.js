@@ -347,10 +347,13 @@ class ExtractionOrchestrator {
       };
 
       // Get all platform connections
-      const { data: connections } = await supabase
+      const { data: connections, error: connErr } = await supabase
         .from('platform_connections')
         .select('platform, last_sync_at, last_sync_status, status')
         .eq('user_id', userId);
+      if (connErr) {
+        throw new Error(`Failed to fetch platform connections: ${connErr.message}`);
+      }
 
       // Get recent extraction jobs
       const { data: jobs } = await supabase
@@ -467,11 +470,12 @@ class ExtractionOrchestrator {
       console.log('⏰ [Orchestrator] Periodic extraction triggered');
 
       try {
-        // Get all users with connected platforms
+        // Get all users with connected platforms (bounded to prevent loading entire table)
         const { data: users } = await supabase
           .from('platform_connections')
           .select('user_id')
-          .not('access_token', 'is', null);
+          .not('access_token', 'is', null)
+          .limit(1000);
 
         if (!users || users.length === 0) {
           console.log('   No users to sync');
@@ -495,6 +499,8 @@ class ExtractionOrchestrator {
         console.error('❌ [Orchestrator] Periodic extraction error:', error);
       }
     }, intervalMs);
+    // Allow process to exit gracefully even if this interval is active
+    this.periodicSyncInterval.unref();
 
     console.log(`⏰ [Orchestrator] Periodic extraction scheduled (every ${intervalHours} hours)`);
   }

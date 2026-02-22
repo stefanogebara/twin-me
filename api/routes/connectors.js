@@ -172,7 +172,7 @@ const OAUTH_CONFIGS = {
 // Debug: Check LinkedIn config on load
 console.log('🔍 LinkedIn config on file load:', {
   hasLinkedIn: !!OAUTH_CONFIGS.linkedin,
-  clientId: OAUTH_CONFIGS.linkedin?.clientId,
+  hasClientId: !!OAUTH_CONFIGS.linkedin?.clientId,
   hasClientSecret: !!OAUTH_CONFIGS.linkedin?.clientSecret
 });
 
@@ -265,7 +265,7 @@ router.get('/connect/:provider', authenticateUser, async (req, res) => {
       }, 'connector');
 
       // Store state for CSRF protection
-      await supabaseAdmin
+      const { error: stateInsertErr1 } = await supabaseAdmin
         .from('oauth_states')
         .insert({
           state,
@@ -274,6 +274,9 @@ router.get('/connect/:provider', authenticateUser, async (req, res) => {
           created_at: new Date().toISOString(),
           expires_at: new Date(Date.now() + 1800000).toISOString() // 30 minutes
         });
+      if (stateInsertErr1) {
+        console.error('[connectors] Failed to store CSRF state for connect:', stateInsertErr1.message);
+      }
 
       let authUrl;
       if (provider === 'spotify') {
@@ -398,7 +401,7 @@ router.get('/connect/:provider', authenticateUser, async (req, res) => {
         }, 'connector');
 
         // Store state for CSRF protection
-        await supabaseAdmin
+        const { error: stateInsertErr2 } = await supabaseAdmin
           .from('oauth_states')
           .insert({
             state,
@@ -407,6 +410,9 @@ router.get('/connect/:provider', authenticateUser, async (req, res) => {
             created_at: new Date().toISOString(),
             expires_at: new Date(Date.now() + 1800000).toISOString() // 30 minutes
           });
+        if (stateInsertErr2) {
+          console.error('[connectors] Failed to store CSRF state for reconnect:', stateInsertErr2.message);
+        }
 
         const scope = config.scopes.join(' ');
         let authUrl;
@@ -448,7 +454,7 @@ router.get('/connect/:provider', authenticateUser, async (req, res) => {
       }, 'connector');
 
       // Store state for CSRF protection
-      await supabaseAdmin
+      const { error: stateInsertErr3 } = await supabaseAdmin
         .from('oauth_states')
         .insert({
           state,
@@ -457,6 +463,9 @@ router.get('/connect/:provider', authenticateUser, async (req, res) => {
           created_at: new Date().toISOString(),
           expires_at: new Date(Date.now() + 1800000).toISOString() // 30 minutes
         });
+      if (stateInsertErr3) {
+        console.error('[connectors] Failed to store CSRF state for /auth/:provider:', stateInsertErr3.message);
+      }
 
       const scope = config.scopes.join(' ');
       let authUrl;
@@ -500,7 +509,7 @@ router.get('/connect/:provider', authenticateUser, async (req, res) => {
  * GET /api/connectors/auth/:provider
  * Generate OAuth authorization URL for a provider
  */
-router.get('/auth/:provider', (req, res) => {
+router.get('/auth/:provider', authenticateUser, (req, res) => {
   try {
     const { provider } = req.params;
     const { userId } = req.query;
@@ -509,6 +518,15 @@ router.get('/auth/:provider', (req, res) => {
       return res.status(400).json({
         success: false,
         error: 'userId is required'
+      });
+    }
+
+    // IDOR protection: callers may only request auth URLs for themselves
+    if (userId !== req.user.id) {
+      return res.status(403).json({
+        success: false,
+        error: 'Forbidden',
+        message: 'Cannot request OAuth URL for another user'
       });
     }
 
@@ -711,7 +729,7 @@ router.post('/callback', async (req, res) => {
 
     if (provider === 'spotify') {
       // Spotify uses Basic Authentication
-      console.log(`🔑 [Spotify] Client ID: ${config.clientId}`);
+      console.log(`🔑 [Spotify] Has client ID: ${!!config.clientId}`);
 
       tokenResponse = await fetch(config.tokenUrl, {
         method: 'POST',
@@ -980,12 +998,16 @@ router.get('/status/:userId', authenticateUser, async (req, res) => {
     // Convert email to UUID if needed
     let userUuid = userId;
     if (userId && !userId.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i)) {
-      const { data: userData } = await supabaseAdmin
+      const { data: userData, error: userLookupErr } = await supabaseAdmin
         .from('users')
         .select('id')
         .eq('email', userId)
         .single();
-      if (userData) userUuid = userData.id;
+      if (userLookupErr) {
+        console.warn('[connectors] Failed to resolve email to UUID:', userLookupErr.message);
+      } else if (userData) {
+        userUuid = userData.id;
+      }
     }
 
     // Check in-memory cache first (fastest, no external deps)
