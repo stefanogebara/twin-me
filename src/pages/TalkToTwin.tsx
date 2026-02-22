@@ -64,23 +64,23 @@ const TalkToTwin = () => {
   const [limitReached, setLimitReached] = useState(false);
   const [introFetched, setIntroFetched] = useState(false);
 
-  // Design system color tokens — light theme only, no dark conditionals
+  // Design system color tokens
   const colors = {
     bg: '#F7F7F3',
-    bgSecondary: 'rgba(255, 255, 255, 0.6)',
-    bgTertiary: 'rgba(255, 255, 255, 0.18)',
+    bgSecondary: 'rgba(255, 255, 255, 0.7)',
+    bgTertiary: 'rgba(0, 0, 0, 0.05)',
     text: '#1F1C18',
     textSecondary: '#8A857D',
     textMuted: '#8A857D',
-    border: 'rgba(255, 255, 255, 0.45)',
+    border: 'rgba(231, 229, 228, 0.6)',
     accent: '#2D2722',
-    accentHover: '#1F1C18',
-    userBubble: 'rgba(255, 255, 255, 0.18)',
-    userBubbleBg: '#2D2722',
+    accentHover: '#1a1410',
+    userBubble: 'rgba(0, 0, 0, 0.06)',
+    userBubbleBg: 'rgba(45, 39, 34, 0.88)',
     userBubbleText: '#F7F7F3',
     assistantBubble: 'transparent',
-    inputBg: 'rgba(255, 255, 255, 0.6)',
-    inputBorder: 'rgba(255, 255, 255, 0.45)',
+    inputBg: 'rgba(255, 255, 255, 0.9)',
+    inputBorder: 'rgba(231, 229, 228, 0.6)',
   };
 
   const platforms = [

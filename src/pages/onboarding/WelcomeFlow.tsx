@@ -1,7 +1,6 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
-import { useTheme } from '@/contexts/ThemeContext';
 import { onboardingAPI, OnboardingQuestion, OnboardingAnswers } from '@/services/apiService';
 import {
   ChevronLeft,
@@ -120,7 +119,6 @@ interface WelcomeFlowProps {
 const WelcomeFlow: React.FC<WelcomeFlowProps> = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const { theme } = useTheme();
 
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
@@ -235,9 +233,9 @@ const WelcomeFlow: React.FC<WelcomeFlowProps> = () => {
         <div className="text-center">
           <Loader2
             className="w-8 h-8 animate-spin mx-auto mb-4"
-            style={{ color: theme === 'dark' ? '#C1C0B6' : '#57534e' }}
+            style={{ color: '#8A857D' }}
           />
-          <p style={{ color: theme === 'dark' ? 'rgba(193, 192, 182, 0.8)' : '#57534e' }}>
+          <p style={{ color: '#8A857D' }}>
             Loading your personalization assessment...
           </p>
         </div>
@@ -253,7 +251,7 @@ const WelcomeFlow: React.FC<WelcomeFlowProps> = () => {
       >
         <div className="text-center">
           <Check className="w-12 h-12 text-green-500 mx-auto mb-4" />
-          <p style={{ color: theme === 'dark' ? 'rgba(193, 192, 182, 0.8)' : '#57534e' }}>
+          <p style={{ color: '#8A857D' }}>
             Assessment completed! Redirecting...
           </p>
         </div>
@@ -269,34 +267,26 @@ const WelcomeFlow: React.FC<WelcomeFlowProps> = () => {
         style={{ backgroundColor: '#F7F7F3' }}
       >
         <div className="max-w-lg w-full">
-          <div
-            className="rounded-2xl p-8 text-center"
-            style={{
-              backgroundColor: theme === 'dark' ? 'rgba(45, 45, 41, 0.6)' : 'rgba(255, 255, 255, 0.8)',
-              backdropFilter: 'blur(16px)',
-              WebkitBackdropFilter: 'blur(16px)',
-              border: theme === 'dark' ? '1px solid rgba(193, 192, 182, 0.1)' : '1px solid rgba(231, 229, 228, 0.6)',
-              boxShadow: theme === 'dark' ? '0 25px 50px -12px rgba(0, 0, 0, 0.5)' : '0 25px 50px -12px rgba(0, 0, 0, 0.15)'
-            }}
-          >
-            <div className="flex justify-center mx-auto mb-6">
-              <img
-                src="/images/backgrounds/flower-hero.png"
-                alt="Twin Me"
-                className="w-16 h-16 object-contain drop-shadow-md"
-              />
+          <div className="glass-card p-8 text-center">
+            <div
+              className="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-6"
+              style={{
+                background: 'linear-gradient(135deg, rgba(12, 10, 9, 0.1), rgba(12, 10, 9, 0.05))',
+                border: '1px solid rgba(12, 10, 9, 0.1)'
+              }}
+            >
+              <Sparkles className="w-8 h-8" style={{ color: '#1F1C18' }} />
             </div>
 
             <h1
-              className="text-2xl font-semibold mb-3"
-              style={{ color: theme === 'dark' ? '#C1C0B6' : '#0c0a09' }}
+              className="heading-serif text-2xl font-semibold mb-3"
             >
               Let's personalize your experience
             </h1>
 
             <p
               className="mb-6 leading-relaxed"
-              style={{ color: theme === 'dark' ? 'rgba(193, 192, 182, 0.8)' : '#57534e' }}
+              style={{ color: '#8A857D' }}
             >
               Answer {questions.length} quick questions so your twin can learn how you work,
               focus, and recharge. This helps us recommend music that truly fits your style.
@@ -305,11 +295,7 @@ const WelcomeFlow: React.FC<WelcomeFlowProps> = () => {
             <div className="flex flex-col gap-3">
               <Button
                 onClick={() => setShowIntro(false)}
-                className="w-full py-6 text-lg rounded-xl transition-all duration-200"
-                style={{
-                  backgroundColor: theme === 'dark' ? '#C1C0B6' : '#0c0a09',
-                  color: '#F7F7F3'
-                }}
+                className="btn-cta-app w-full py-6 text-lg rounded-xl transition-all duration-200"
               >
                 Start Assessment
                 <ChevronRight className="w-5 h-5 ml-2" />
@@ -319,7 +305,7 @@ const WelcomeFlow: React.FC<WelcomeFlowProps> = () => {
                 onClick={handleSkip}
                 variant="ghost"
                 className="transition-colors"
-                style={{ color: theme === 'dark' ? 'rgba(193, 192, 182, 0.6)' : '#78716c' }}
+                style={{ color: '#8A857D' }}
                 disabled={submitting}
               >
                 <SkipForward className="w-4 h-4 mr-2" />
@@ -329,7 +315,7 @@ const WelcomeFlow: React.FC<WelcomeFlowProps> = () => {
 
             <p
               className="text-xs mt-4"
-              style={{ color: theme === 'dark' ? 'rgba(193, 192, 182, 0.5)' : '#a8a29e' }}
+              style={{ color: '#8A857D' }}
             >
               Takes about 2 minutes
             </p>
@@ -353,13 +339,13 @@ const WelcomeFlow: React.FC<WelcomeFlowProps> = () => {
         <div className="flex items-center justify-between mb-2">
           <span
             className="text-sm"
-            style={{ color: theme === 'dark' ? 'rgba(193, 192, 182, 0.6)' : '#78716c' }}
+            style={{ color: '#8A857D' }}
           >
             Question {currentQuestion + 1} of {questions.length}
           </span>
           <span
             className="text-sm"
-            style={{ color: theme === 'dark' ? 'rgba(193, 192, 182, 0.6)' : '#78716c' }}
+            style={{ color: '#8A857D' }}
           >
             {progress}% complete
           </span>
@@ -369,23 +355,14 @@ const WelcomeFlow: React.FC<WelcomeFlowProps> = () => {
 
       {/* Question card */}
       <div className="max-w-2xl mx-auto">
-        <div
-          className="rounded-2xl p-8"
-          style={{
-            backgroundColor: theme === 'dark' ? 'rgba(45, 45, 41, 0.6)' : 'rgba(255, 255, 255, 0.8)',
-            backdropFilter: 'blur(16px)',
-            WebkitBackdropFilter: 'blur(16px)',
-            border: theme === 'dark' ? '1px solid rgba(193, 192, 182, 0.1)' : '1px solid rgba(231, 229, 228, 0.6)',
-            boxShadow: theme === 'dark' ? '0 25px 50px -12px rgba(0, 0, 0, 0.5)' : '0 25px 50px -12px rgba(0, 0, 0, 0.15)'
-          }}
-        >
+        <div className="glass-card p-8">
           {/* Category badge */}
           <div className="mb-6">
             <span
               className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium"
               style={{
-                backgroundColor: theme === 'dark' ? 'rgba(193, 192, 182, 0.1)' : 'rgba(12, 10, 9, 0.05)',
-                color: theme === 'dark' ? '#C1C0B6' : '#57534e'
+                backgroundColor: 'rgba(12, 10, 9, 0.05)',
+                color: '#8A857D'
               }}
             >
               {question?.category}
@@ -394,8 +371,7 @@ const WelcomeFlow: React.FC<WelcomeFlowProps> = () => {
 
           {/* Question */}
           <h2
-            className="text-xl md:text-2xl font-medium mb-8 leading-relaxed"
-            style={{ color: theme === 'dark' ? '#C1C0B6' : '#0c0a09' }}
+            className="heading-serif text-xl md:text-2xl mb-8 leading-relaxed"
           >
             {question?.question}
           </h2>
@@ -411,11 +387,11 @@ const WelcomeFlow: React.FC<WelcomeFlowProps> = () => {
                   className="w-full text-left p-4 rounded-xl border-2 transition-all duration-200"
                   style={{
                     borderColor: isSelected
-                      ? (theme === 'dark' ? '#C1C0B6' : '#0c0a09')
-                      : (theme === 'dark' ? 'rgba(193, 192, 182, 0.2)' : '#e7e5e4'),
+                      ? '#1F1C18'
+                      : '#e7e5e4',
                     backgroundColor: isSelected
-                      ? (theme === 'dark' ? 'rgba(193, 192, 182, 0.1)' : 'rgba(12, 10, 9, 0.03)')
-                      : (theme === 'dark' ? 'rgba(35, 35, 32, 0.5)' : 'rgba(255, 255, 255, 0.8)'),
+                      ? 'rgba(12, 10, 9, 0.03)'
+                      : 'rgba(255, 255, 255, 0.8)',
                     boxShadow: isSelected ? '0 4px 6px -1px rgba(0, 0, 0, 0.1)' : 'none'
                   }}
                 >
@@ -425,17 +401,15 @@ const WelcomeFlow: React.FC<WelcomeFlowProps> = () => {
                         className="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0"
                         style={{
                           backgroundColor: isSelected
-                            ? (theme === 'dark' ? 'rgba(193, 192, 182, 0.15)' : 'rgba(12, 10, 9, 0.08)')
-                            : (theme === 'dark' ? 'rgba(193, 192, 182, 0.08)' : 'rgba(12, 10, 9, 0.04)')
+                            ? 'rgba(12, 10, 9, 0.08)'
+                            : 'rgba(12, 10, 9, 0.04)'
                         }}
                       >
                         <OptionIcon
                           iconName={option.icon}
                           className="w-5 h-5"
                           style={{
-                            color: isSelected
-                              ? (theme === 'dark' ? '#C1C0B6' : '#0c0a09')
-                              : (theme === 'dark' ? 'rgba(193, 192, 182, 0.7)' : '#78716c')
+                            color: isSelected ? '#1F1C18' : '#8A857D'
                           }}
                         />
                       </div>
@@ -443,9 +417,7 @@ const WelcomeFlow: React.FC<WelcomeFlowProps> = () => {
                     <span
                       className="font-medium"
                       style={{
-                        color: isSelected
-                          ? (theme === 'dark' ? '#C1C0B6' : '#0c0a09')
-                          : (theme === 'dark' ? 'rgba(193, 192, 182, 0.8)' : '#57534e')
+                        color: isSelected ? '#1F1C18' : '#8A857D'
                       }}
                     >
                       {option.label}
@@ -453,7 +425,7 @@ const WelcomeFlow: React.FC<WelcomeFlowProps> = () => {
                     {isSelected && (
                       <Check
                         className="w-5 h-5 ml-auto"
-                        style={{ color: theme === 'dark' ? '#C1C0B6' : '#0c0a09' }}
+                        style={{ color: '#1F1C18' }}
                       />
                     )}
                   </div>
@@ -465,13 +437,13 @@ const WelcomeFlow: React.FC<WelcomeFlowProps> = () => {
           {/* Navigation */}
           <div
             className="flex items-center justify-between mt-8 pt-6"
-            style={{ borderTop: theme === 'dark' ? '1px solid rgba(193, 192, 182, 0.1)' : '1px solid #e7e5e4' }}
+            style={{ borderTop: '1px solid rgba(0, 0, 0, 0.08)' }}
           >
             <Button
               onClick={handlePrevious}
               variant="ghost"
               disabled={currentQuestion === 0}
-              style={{ color: theme === 'dark' ? 'rgba(193, 192, 182, 0.6)' : '#57534e' }}
+              style={{ color: '#8A857D' }}
             >
               <ChevronLeft className="w-4 h-4 mr-2" />
               Previous
@@ -481,11 +453,7 @@ const WelcomeFlow: React.FC<WelcomeFlowProps> = () => {
               <Button
                 onClick={handleSubmit}
                 disabled={submitting}
-                className="px-8 transition-all duration-200"
-                style={{
-                  backgroundColor: theme === 'dark' ? '#C1C0B6' : '#0c0a09',
-                  color: '#F7F7F3'
-                }}
+                className="btn-cta-app px-8 transition-all duration-200"
               >
                 {submitting ? (
                   <>
@@ -504,7 +472,7 @@ const WelcomeFlow: React.FC<WelcomeFlowProps> = () => {
                 onClick={() => setCurrentQuestion(prev => prev + 1)}
                 disabled={!isAnswered || isLastQuestion}
                 variant="ghost"
-                style={{ color: theme === 'dark' ? 'rgba(193, 192, 182, 0.6)' : '#57534e' }}
+                style={{ color: '#8A857D' }}
               >
                 Next
                 <ChevronRight className="w-4 h-4 ml-2" />
@@ -518,7 +486,7 @@ const WelcomeFlow: React.FC<WelcomeFlowProps> = () => {
               onClick={handleSkip}
               disabled={submitting}
               className="text-xs transition-colors"
-              style={{ color: theme === 'dark' ? 'rgba(193, 192, 182, 0.4)' : '#a8a29e' }}
+              style={{ color: '#8A857D' }}
             >
               Skip assessment
             </button>
@@ -530,9 +498,9 @@ const WelcomeFlow: React.FC<WelcomeFlowProps> = () => {
           <div
             className="mt-4 p-4 rounded-xl text-center"
             style={{
-              backgroundColor: theme === 'dark' ? 'rgba(220, 38, 38, 0.1)' : 'rgba(254, 242, 242, 0.8)',
-              border: theme === 'dark' ? '1px solid rgba(220, 38, 38, 0.2)' : '1px solid #fecaca',
-              color: theme === 'dark' ? '#fca5a5' : '#b91c1c'
+              backgroundColor: 'rgba(254, 242, 242, 0.8)',
+              border: '1px solid #fecaca',
+              color: '#b91c1c'
             }}
           >
             {error}

@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useTheme } from '@/contexts/ThemeContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { useDemo } from '@/contexts/DemoContext';
 import { PageLayout, GlassPanel } from '@/components/layout/PageLayout';
@@ -37,7 +36,6 @@ const MOOD_CONFIG: Record<string, { emoji: string; label: string; color: string 
 };
 
 const JournalPage: React.FC = () => {
-  const { theme } = useTheme();
   const { user } = useAuth();
   const { isDemoMode } = useDemo();
 
@@ -59,11 +57,11 @@ const JournalPage: React.FC = () => {
   const [tagInput, setTagInput] = useState('');
   const [saving, setSaving] = useState(false);
 
-  const isDark = theme === 'dark';
-  const textPrimary = isDark ? '#C1C0B6' : '#0c0a09';
-  const textSecondary = isDark ? 'rgba(193, 192, 182, 0.7)' : '#57534e';
-  const borderColor = isDark ? 'rgba(193, 192, 182, 0.12)' : 'rgba(0, 0, 0, 0.08)';
-  const inputBg = isDark ? 'rgba(193, 192, 182, 0.06)' : 'rgba(0, 0, 0, 0.03)';
+  // Design system colors
+  const textPrimary = '#1F1C18';
+  const textSecondary = '#8A857D';
+  const borderColor = 'rgba(0, 0, 0, 0.08)';
+  const inputBg = 'rgba(0, 0, 0, 0.03)';
 
   // Load data
   const loadData = useCallback(async () => {
@@ -238,7 +236,7 @@ const JournalPage: React.FC = () => {
         {insights && insights.analyzedEntries > 0 && (
           <GlassPanel className="relative overflow-hidden">
             <div className="flex items-start gap-4">
-              <div className="w-10 h-10 rounded-full flex items-center justify-center" style={{ background: isDark ? 'rgba(193, 192, 182, 0.1)' : 'rgba(0,0,0,0.05)' }}>
+              <div className="w-10 h-10 rounded-full flex items-center justify-center" style={{ background: 'rgba(0,0,0,0.05)' }}>
                 <Clay3DIcon name="brain" size={20} />
               </div>
               <div className="flex-1 min-w-0">
@@ -256,7 +254,7 @@ const JournalPage: React.FC = () => {
                       key={t.theme}
                       className="px-2.5 py-1 rounded-full text-xs"
                       style={{
-                        background: isDark ? 'rgba(193, 192, 182, 0.08)' : 'rgba(0,0,0,0.04)',
+                        background: 'rgba(0,0,0,0.04)',
                         color: textSecondary,
                         border: `1px solid ${borderColor}`
                       }}
@@ -268,7 +266,7 @@ const JournalPage: React.FC = () => {
                     <span
                       className="px-2.5 py-1 rounded-full text-xs flex items-center gap-1"
                       style={{
-                        background: isDark ? 'rgba(193, 192, 182, 0.08)' : 'rgba(0,0,0,0.04)',
+                        background: 'rgba(0,0,0,0.04)',
                         color: textSecondary,
                         border: `1px solid ${borderColor}`
                       }}
@@ -288,7 +286,7 @@ const JournalPage: React.FC = () => {
             onClick={() => setShowComposer(true)}
             className="w-full flex items-center gap-3 p-4 rounded-2xl transition-colors duration-200"
             style={{
-              background: isDark ? 'rgba(193, 192, 182, 0.06)' : 'rgba(0,0,0,0.03)',
+              background: 'rgba(0,0,0,0.03)',
               border: `1px dashed ${borderColor}`,
               color: textSecondary
             }}
@@ -321,7 +319,7 @@ const JournalPage: React.FC = () => {
                 <h3 className="text-sm font-medium" style={{ color: textPrimary, fontFamily: 'var(--font-heading)' }}>
                   {editingId ? 'Edit Entry' : 'New Entry'}
                 </h3>
-                <button onClick={resetComposer} className="p-1 rounded-lg transition-colors hover:bg-black/5 dark:hover:bg-white/5">
+                <button onClick={resetComposer} className="p-1 rounded-lg transition-colors hover:bg-black/5">
                   <X className="w-4 h-4" style={{ color: textSecondary }} />
                 </button>
               </div>
@@ -390,10 +388,8 @@ const JournalPage: React.FC = () => {
                       onClick={() => setEnergyLevel(level)}
                       className="w-10 h-10 rounded-xl text-sm font-medium transition-all"
                       style={{
-                        background: energyLevel >= level
-                          ? isDark ? 'rgba(193, 192, 182, 0.15)' : 'rgba(0,0,0,0.08)'
-                          : inputBg,
-                        border: `1px solid ${energyLevel >= level ? (isDark ? 'rgba(193,192,182,0.3)' : 'rgba(0,0,0,0.15)') : borderColor}`,
+                        background: energyLevel >= level ? 'rgba(0,0,0,0.08)' : inputBg,
+                        border: `1px solid ${energyLevel >= level ? 'rgba(0,0,0,0.15)' : borderColor}`,
                         color: textPrimary
                       }}
                     >
@@ -412,7 +408,7 @@ const JournalPage: React.FC = () => {
                       key={t}
                       className="px-2 py-1 rounded-full text-xs flex items-center gap-1"
                       style={{
-                        background: isDark ? 'rgba(193, 192, 182, 0.1)' : 'rgba(0,0,0,0.05)',
+                        background: 'rgba(0,0,0,0.05)',
                         color: textSecondary,
                         border: `1px solid ${borderColor}`
                       }}
@@ -458,8 +454,8 @@ const JournalPage: React.FC = () => {
                   disabled={!content.trim() || saving}
                   className="px-4 py-2 rounded-xl text-sm font-medium flex items-center gap-2 transition-all disabled:opacity-40"
                   style={{
-                    background: isDark ? '#C1C0B6' : '#0c0a09',
-                    color: isDark ? '#232320' : '#FAFAFA'
+                    background: '#2D2722',
+                    color: '#F7F7F3'
                   }}
                 >
                   {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
@@ -523,7 +519,7 @@ const JournalPage: React.FC = () => {
                   }}
                   className="text-left p-4 rounded-xl transition-colors duration-200 group"
                   style={{
-                    background: isDark ? 'rgba(193, 192, 182, 0.04)' : 'rgba(0,0,0,0.02)',
+                    background: 'rgba(0,0,0,0.02)',
                     border: `1px dashed ${borderColor}`,
                   }}
                   initial={{ opacity: 0, y: 10 }}
@@ -589,7 +585,7 @@ const JournalPage: React.FC = () => {
                               key={t}
                               className="px-2 py-0.5 rounded-full text-[10px]"
                               style={{
-                                background: isDark ? 'rgba(193, 192, 182, 0.06)' : 'rgba(0,0,0,0.03)',
+                                background: 'rgba(0,0,0,0.03)',
                                 color: textSecondary,
                                 border: `1px solid ${borderColor}`
                               }}
@@ -636,8 +632,8 @@ const JournalPage: React.FC = () => {
                         <div
                           className="rounded-xl p-4 space-y-3"
                           style={{
-                            background: isDark ? 'rgba(156, 39, 176, 0.06)' : 'rgba(156, 39, 176, 0.04)',
-                            border: `1px solid ${isDark ? 'rgba(156, 39, 176, 0.15)' : 'rgba(156, 39, 176, 0.1)'}`
+                            background: 'rgba(156, 39, 176, 0.04)',
+                            border: '1px solid rgba(156, 39, 176, 0.1)'
                           }}
                         >
                           <div className="flex items-center gap-2 mb-2">
@@ -660,7 +656,7 @@ const JournalPage: React.FC = () => {
                                 {analysis.emotions.map((em, i) => (
                                   <div key={i} className="flex items-center gap-1.5">
                                     <span className="text-xs" style={{ color: textSecondary }}>{em.emotion}</span>
-                                    <div className="w-16 h-1.5 rounded-full overflow-hidden" style={{ background: isDark ? 'rgba(193,192,182,0.1)' : 'rgba(0,0,0,0.06)' }}>
+                                    <div className="w-16 h-1.5 rounded-full overflow-hidden" style={{ background: 'rgba(0,0,0,0.06)' }}>
                                       <div
                                         className="h-full rounded-full"
                                         style={{ width: `${em.intensity * 100}%`, background: '#9C27B0' }}
@@ -729,7 +725,7 @@ const JournalPage: React.FC = () => {
                                   key={i}
                                   className="px-2 py-0.5 rounded-full text-[10px]"
                                   style={{
-                                    background: isDark ? 'rgba(193, 192, 182, 0.06)' : 'rgba(0,0,0,0.03)',
+                                    background: 'rgba(0,0,0,0.03)',
                                     color: textSecondary,
                                     border: `1px solid ${borderColor}`
                                   }}
@@ -748,7 +744,7 @@ const JournalPage: React.FC = () => {
                             disabled={analyzingId === entry.id}
                             className="flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-medium transition-all disabled:opacity-40"
                             style={{
-                              background: isDark ? 'rgba(156, 39, 176, 0.1)' : 'rgba(156, 39, 176, 0.06)',
+                              background: 'rgba(156, 39, 176, 0.06)',
                               color: '#9C27B0',
                               border: '1px solid rgba(156, 39, 176, 0.2)'
                             }}
@@ -767,7 +763,7 @@ const JournalPage: React.FC = () => {
                           <>
                             <button
                               onClick={(e) => { e.stopPropagation(); handleEdit(entry); }}
-                              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs transition-colors hover:bg-black/5 dark:hover:bg-white/5"
+                              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs transition-colors hover:bg-black/5"
                               style={{ color: textSecondary }}
                             >
                               <Edit3 className="w-3.5 h-3.5" /> Edit

@@ -6,7 +6,6 @@
 
 import React, { useState } from 'react';
 import { ThumbsUp, ThumbsDown, Star, MessageSquare, Check, Loader2 } from 'lucide-react';
-import { useTheme } from '../contexts/ThemeContext';
 import { useAuth } from '../contexts/AuthContext';
 
 interface FeedbackWidgetProps {
@@ -30,7 +29,6 @@ export const FeedbackWidget: React.FC<FeedbackWidgetProps> = ({
   onFeedbackSubmitted,
   compact = false
 }) => {
-  const { theme } = useTheme();
   const { isDemoMode } = useAuth();
 
   const [thumbsVote, setThumbsVote] = useState<'up' | 'down' | null>(null);
@@ -85,7 +83,7 @@ export const FeedbackWidget: React.FC<FeedbackWidgetProps> = ({
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
-        console.error(`❌ [FeedbackWidget] API error:`, response.status, errorData);
+        console.error(`[FeedbackWidget] API error:`, response.status, errorData);
         throw new Error(errorData.error || 'Failed to submit feedback');
       }
 
@@ -94,7 +92,7 @@ export const FeedbackWidget: React.FC<FeedbackWidgetProps> = ({
       setSubmitted(true);
       onFeedbackSubmitted?.(feedback);
     } catch (error) {
-      console.error(`❌ [FeedbackWidget] Error submitting feedback:`, error);
+      console.error(`[FeedbackWidget] Error submitting feedback:`, error);
     } finally {
       setIsSubmitting(false);
     }
@@ -104,7 +102,6 @@ export const FeedbackWidget: React.FC<FeedbackWidgetProps> = ({
     setThumbsVote(vote);
 
     // In compact mode, submit immediately for both up and down
-    // (no room for star rating in compact mode)
     if (compact) {
       await submitFeedback({ thumbsVote: vote });
       return;
@@ -148,7 +145,7 @@ export const FeedbackWidget: React.FC<FeedbackWidgetProps> = ({
       <div
         className="flex items-center gap-2 py-2 px-3 rounded-lg text-sm"
         style={{
-          backgroundColor: theme === 'dark' ? 'rgba(34, 197, 94, 0.1)' : 'rgba(34, 197, 94, 0.08)',
+          backgroundColor: 'rgba(34, 197, 94, 0.08)',
           color: '#22c55e'
         }}
       >
@@ -164,7 +161,7 @@ export const FeedbackWidget: React.FC<FeedbackWidgetProps> = ({
       <div className="flex items-center gap-2">
         <span
           className="text-xs"
-          style={{ color: theme === 'dark' ? 'rgba(193, 192, 182, 0.5)' : '#a8a29e' }}
+          style={{ color: '#8A857D' }}
         >
           Helpful?
         </span>
@@ -177,8 +174,8 @@ export const FeedbackWidget: React.FC<FeedbackWidgetProps> = ({
           style={{
             backgroundColor: thumbsVote === 'up'
               ? 'rgba(34, 197, 94, 0.15)'
-              : theme === 'dark' ? 'rgba(193, 192, 182, 0.08)' : 'rgba(0, 0, 0, 0.04)',
-            color: thumbsVote === 'up' ? '#22c55e' : theme === 'dark' ? '#C1C0B6' : '#57534e'
+              : 'rgba(0, 0, 0, 0.04)',
+            color: thumbsVote === 'up' ? '#22c55e' : '#57534e'
           }}
         >
           <ThumbsUp className="w-3.5 h-3.5" />
@@ -192,13 +189,13 @@ export const FeedbackWidget: React.FC<FeedbackWidgetProps> = ({
           style={{
             backgroundColor: thumbsVote === 'down'
               ? 'rgba(239, 68, 68, 0.15)'
-              : theme === 'dark' ? 'rgba(193, 192, 182, 0.08)' : 'rgba(0, 0, 0, 0.04)',
-            color: thumbsVote === 'down' ? '#ef4444' : theme === 'dark' ? '#C1C0B6' : '#57534e'
+              : 'rgba(0, 0, 0, 0.04)',
+            color: thumbsVote === 'down' ? '#ef4444' : '#57534e'
           }}
         >
           <ThumbsDown className="w-3.5 h-3.5" />
         </button>
-        {isSubmitting && <Loader2 className="w-3 h-3 animate-spin" style={{ color: theme === 'dark' ? '#C1C0B6' : '#57534e' }} />}
+        {isSubmitting && <Loader2 className="w-3 h-3 animate-spin" style={{ color: '#57534e' }} />}
       </div>
     );
   }
@@ -208,8 +205,8 @@ export const FeedbackWidget: React.FC<FeedbackWidgetProps> = ({
     <div
       className="rounded-lg p-3 space-y-3"
       style={{
-        backgroundColor: theme === 'dark' ? 'rgba(193, 192, 182, 0.05)' : 'rgba(0, 0, 0, 0.02)',
-        border: theme === 'dark' ? '1px solid rgba(193, 192, 182, 0.1)' : '1px solid rgba(0, 0, 0, 0.05)'
+        backgroundColor: 'rgba(0, 0, 0, 0.02)',
+        border: '1px solid rgba(0, 0, 0, 0.05)'
       }}
       onClick={(e) => e.stopPropagation()}
     >
@@ -217,7 +214,7 @@ export const FeedbackWidget: React.FC<FeedbackWidgetProps> = ({
       <div className="flex items-center justify-between">
         <span
           className="text-xs font-medium"
-          style={{ color: theme === 'dark' ? 'rgba(193, 192, 182, 0.7)' : '#57534e' }}
+          style={{ color: '#57534e' }}
         >
           Was this helpful?
         </span>
@@ -231,8 +228,8 @@ export const FeedbackWidget: React.FC<FeedbackWidgetProps> = ({
             style={{
               backgroundColor: thumbsVote === 'up'
                 ? 'rgba(34, 197, 94, 0.15)'
-                : theme === 'dark' ? 'rgba(193, 192, 182, 0.1)' : 'rgba(0, 0, 0, 0.05)',
-              color: thumbsVote === 'up' ? '#22c55e' : theme === 'dark' ? '#C1C0B6' : '#57534e'
+                : 'rgba(0, 0, 0, 0.05)',
+              color: thumbsVote === 'up' ? '#22c55e' : '#57534e'
             }}
           >
             <ThumbsUp className="w-3.5 h-3.5" />
@@ -247,8 +244,8 @@ export const FeedbackWidget: React.FC<FeedbackWidgetProps> = ({
             style={{
               backgroundColor: thumbsVote === 'down'
                 ? 'rgba(239, 68, 68, 0.15)'
-                : theme === 'dark' ? 'rgba(193, 192, 182, 0.1)' : 'rgba(0, 0, 0, 0.05)',
-              color: thumbsVote === 'down' ? '#ef4444' : theme === 'dark' ? '#C1C0B6' : '#57534e'
+                : 'rgba(0, 0, 0, 0.05)',
+              color: thumbsVote === 'down' ? '#ef4444' : '#57534e'
             }}
           >
             <ThumbsDown className="w-3.5 h-3.5" />
@@ -262,7 +259,7 @@ export const FeedbackWidget: React.FC<FeedbackWidgetProps> = ({
         <div className="space-y-2">
           <span
             className="text-xs"
-            style={{ color: theme === 'dark' ? 'rgba(193, 192, 182, 0.6)' : '#78716c' }}
+            style={{ color: '#78716c' }}
           >
             How would you rate this insight?
           </span>
@@ -286,7 +283,7 @@ export const FeedbackWidget: React.FC<FeedbackWidgetProps> = ({
                   stroke={
                     (hoverStar !== null ? star <= hoverStar : star <= (starRating || 0))
                       ? '#F59E0B'
-                      : theme === 'dark' ? 'rgba(193, 192, 182, 0.4)' : '#a8a29e'
+                      : '#a8a29e'
                   }
                 />
               </button>
@@ -301,11 +298,11 @@ export const FeedbackWidget: React.FC<FeedbackWidgetProps> = ({
           <div className="flex items-center gap-1.5">
             <MessageSquare
               className="w-3.5 h-3.5"
-              style={{ color: theme === 'dark' ? 'rgba(193, 192, 182, 0.5)' : '#a8a29e' }}
+              style={{ color: '#a8a29e' }}
             />
             <span
               className="text-xs"
-              style={{ color: theme === 'dark' ? 'rgba(193, 192, 182, 0.6)' : '#78716c' }}
+              style={{ color: '#78716c' }}
             >
               Help us improve (optional)
             </span>
@@ -317,9 +314,9 @@ export const FeedbackWidget: React.FC<FeedbackWidgetProps> = ({
             rows={2}
             className="w-full text-sm rounded-md px-3 py-2 resize-none"
             style={{
-              backgroundColor: theme === 'dark' ? 'rgba(45, 45, 41, 0.5)' : '#fff',
-              border: theme === 'dark' ? '1px solid rgba(193, 192, 182, 0.15)' : '1px solid rgba(0, 0, 0, 0.1)',
-              color: theme === 'dark' ? '#C1C0B6' : '#0c0a09'
+              backgroundColor: '#fff',
+              border: '1px solid rgba(0, 0, 0, 0.1)',
+              color: '#1F1C18'
             }}
           />
           <button
@@ -327,8 +324,8 @@ export const FeedbackWidget: React.FC<FeedbackWidgetProps> = ({
             disabled={isSubmitting}
             className="flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-colors"
             style={{
-              backgroundColor: theme === 'dark' ? 'rgba(193, 192, 182, 0.15)' : 'rgba(0, 0, 0, 0.08)',
-              color: theme === 'dark' ? '#C1C0B6' : '#0c0a09'
+              backgroundColor: 'rgba(0, 0, 0, 0.06)',
+              color: '#1F1C18'
             }}
           >
             {isSubmitting ? (

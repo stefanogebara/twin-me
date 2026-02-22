@@ -5,7 +5,7 @@
  */
 
 /* ===== FONTS ===== */
-@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500&family=Inter:wght@300;400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=EB+Garamond:wght@400;500;600&family=Inter:wght@300;400;500;600;700&family=Playfair+Display:ital,wght@0,400;0,500;0,600;1,400;1,500&display=swap');
 
 /* ===== GLASS MORPHISM EFFECTS ===== */
 @import './styles/glassmorphism.css';
@@ -869,46 +869,92 @@
   display: inline;
 }
 
-/* Landing page CTA button — dark warm pill */
-.btn-cta-app {
-  background-color: #2D2722;
-  color: #F7F7F3;
-  border-radius: 9999px;
-  padding: 12px 28px;
-  font-size: 15px;
+/* ===== DESIGN SYSTEM UTILITIES (Landing Page Tokens) ===== */
+
+/* Playfair Display font utility */
+.font-playfair {
+  font-family: 'Playfair Display', Georgia, serif;
+}
+
+/* Serif headings — Playfair Display, warm black */
+.heading-serif {
+  font-family: 'Playfair Display', Georgia, serif;
   font-weight: 600;
-  transition: all 0.3s ease;
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  box-shadow: 0 4px 20px rgba(45, 39, 34, 0.25);
+  color: #1F1C18;
   letter-spacing: -0.01em;
 }
 
-.btn-cta-app:hover {
-  background-color: #1F1C18;
-  transform: translateY(-2px);
-  box-shadow: 0 8px 28px rgba(45, 39, 34, 0.35);
+/* Italic variant */
+.heading-serif-italic {
+  font-family: 'Playfair Display', Georgia, serif;
+  font-weight: 500;
+  font-style: italic;
+  color: #1F1C18;
 }
 
-/* Frosted light glass button */
-.btn-glass-app {
-  background-color: rgba(255, 255, 255, 0.6);
-  color: #2D2722;
-  border-radius: 9999px;
-  padding: 12px 24px;
-  font-size: 15px;
-  font-weight: 500;
-  transition: all 0.3s ease;
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  border: 1px solid rgba(255, 255, 255, 0.5);
+/* Liquid glass card — matches landing page spec */
+.glass-card-ds {
+  background: rgba(255, 255, 255, 0.18);
   backdrop-filter: blur(10px) saturate(140%);
   -webkit-backdrop-filter: blur(10px) saturate(140%);
+  border-radius: 2rem;
+  border: 1px solid rgba(255, 255, 255, 0.45);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.18), inset 0 1px 0 rgba(255, 255, 255, 0.6);
+  padding: 1.5rem;
+}
+
+/* Primary CTA button — dark on cream */
+.btn-cta-app {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.625rem 1.5rem;
+  background-color: #2D2722;
+  color: #F7F7F3;
+  border-radius: 2rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  font-family: 'Inter', system-ui, sans-serif;
+  border: none;
+  cursor: pointer;
+  transition: opacity 0.2s ease, transform 0.2s ease;
+  text-decoration: none;
+}
+
+.btn-cta-app:hover {
+  opacity: 0.88;
+  transform: scale(1.02);
+}
+
+.btn-cta-app:active {
+  transform: scale(0.98);
+}
+
+/* Secondary glass button */
+.btn-glass-app {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.625rem 1.5rem;
+  background: rgba(255, 255, 255, 0.18);
+  backdrop-filter: blur(10px) saturate(140%);
+  -webkit-backdrop-filter: blur(10px) saturate(140%);
+  color: #1F1C18;
+  border-radius: 2rem;
+  border: 1px solid rgba(255, 255, 255, 0.45);
+  font-size: 0.875rem;
+  font-weight: 500;
+  font-family: 'Inter', system-ui, sans-serif;
+  cursor: pointer;
+  transition: background 0.2s ease, transform 0.2s ease;
+  text-decoration: none;
 }
 
 .btn-glass-app:hover {
-  background-color: rgba(255, 255, 255, 0.8);
-  transform: translateY(-1px);
+  background: rgba(255, 255, 255, 0.28);
+  transform: scale(1.02);
+}
+
+.btn-glass-app:active {
+  transform: scale(0.98);
 }

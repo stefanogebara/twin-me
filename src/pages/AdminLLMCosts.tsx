@@ -1,6 +1,5 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { motion } from 'framer-motion';
-import { useTheme } from '@/contexts/ThemeContext';
 import { PageLayout } from '@/components/layout/PageLayout';
 import {
   DollarSign,
@@ -146,8 +145,6 @@ type SortKey = 'created_at' | 'cost_usd' | 'latency_ms' | 'tier' | 'model' | 'se
 // --- Component ---
 
 const AdminLLMCosts: React.FC = () => {
-  const { theme } = useTheme();
-
   const [summary, setSummary] = useState<CostSummary | null>(null);
   const [daily, setDaily] = useState<DailyData | null>(null);
   const [realtime, setRealtime] = useState<RealtimeData | null>(null);
@@ -266,13 +263,13 @@ const AdminLLMCosts: React.FC = () => {
     </button>
   );
 
-  // Style helpers
-  const cardBg = theme === 'dark' ? 'rgba(45, 45, 41, 0.6)' : 'rgba(255, 255, 255, 0.8)';
-  const cardBorder = theme === 'dark' ? '1px solid rgba(193, 192, 182, 0.1)' : '1px solid rgba(0, 0, 0, 0.06)';
-  const textPrimary = theme === 'dark' ? '#C1C0B6' : '#0c0a09';
-  const textMuted = theme === 'dark' ? 'rgba(193, 192, 182, 0.6)' : '#78716c';
-  const tableBg = theme === 'dark' ? 'rgba(35, 35, 32, 0.8)' : 'rgba(250, 250, 250, 0.9)';
-  const rowHover = theme === 'dark' ? 'rgba(193, 192, 182, 0.05)' : 'rgba(0, 0, 0, 0.02)';
+  // Design system colors
+  const cardBg = 'rgba(255, 255, 255, 0.8)';
+  const cardBorder = '1px solid rgba(0, 0, 0, 0.06)';
+  const textPrimary = '#1F1C18';
+  const textMuted = '#8A857D';
+  const tableBg = 'rgba(250, 250, 250, 0.9)';
+  const rowHover = 'rgba(0, 0, 0, 0.02)';
 
   if (loading) {
     return (
@@ -296,7 +293,7 @@ const AdminLLMCosts: React.FC = () => {
             onClick={() => { setLoading(true); fetchData(); }}
             className="px-4 py-2 rounded-lg text-sm font-medium transition-colors"
             style={{
-              backgroundColor: theme === 'dark' ? 'rgba(193, 192, 182, 0.12)' : 'rgba(0, 0, 0, 0.06)',
+              backgroundColor: 'rgba(0, 0, 0, 0.06)',
               color: textPrimary,
             }}
           >
@@ -320,7 +317,7 @@ const AdminLLMCosts: React.FC = () => {
             <button
               onClick={() => setAutoRefresh(!autoRefresh)}
               className={`w-10 h-5 rounded-full transition-colors relative ${
-                autoRefresh ? 'bg-green-500' : (theme === 'dark' ? 'bg-gray-600' : 'bg-gray-300')
+                autoRefresh ? 'bg-green-500' : 'bg-gray-300'
               }`}
             >
               <span
@@ -334,7 +331,7 @@ const AdminLLMCosts: React.FC = () => {
             onClick={() => { setLoading(true); fetchData(); }}
             className="p-2 rounded-lg transition-colors hover:opacity-80"
             style={{
-              backgroundColor: theme === 'dark' ? 'rgba(193, 192, 182, 0.08)' : 'rgba(0, 0, 0, 0.04)',
+              backgroundColor: 'rgba(0, 0, 0, 0.04)',
             }}
             title="Refresh now"
           >

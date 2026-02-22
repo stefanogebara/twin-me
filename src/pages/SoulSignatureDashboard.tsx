@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import { useTheme } from '../contexts/ThemeContext';
 import { useNavigate } from 'react-router-dom';
 import { PageLayout } from '../components/layout/PageLayout';
 import { RefreshCw, AlertCircle, Share2, Link, Check, Download } from 'lucide-react';
@@ -22,7 +21,6 @@ const STATS_PLATFORM_WHITELIST = ['spotify', 'google-calendar', 'whoop', 'youtub
 
 const SoulSignatureDashboard: React.FC = () => {
   const { user } = useAuth();
-  const { theme } = useTheme();
   const navigate = useNavigate();
 
   const [isPublic, setIsPublic] = useState(false);
@@ -53,17 +51,18 @@ const SoulSignatureDashboard: React.FC = () => {
   // portrait.soulSignature from API, falling back to sessionStorage cache
   const displaySoulSignature = (portrait as any)?.soulSignature ?? cachedArchetype;
 
+
   const colors: ThemeColors = {
-    textColor: theme === 'dark' ? '#C1C0B6' : '#0c0a09',
-    textSecondary: theme === 'dark' ? 'rgba(193, 192, 182, 0.7)' : '#57534e',
-    textMuted: theme === 'dark' ? 'rgba(193, 192, 182, 0.6)' : '#78716c',
-    textFaint: theme === 'dark' ? 'rgba(193, 192, 182, 0.5)' : '#a8a29e',
-    cardBg: theme === 'dark' ? 'rgba(45, 45, 41, 0.5)' : 'rgba(255, 255, 255, 0.7)',
-    cardBorder: theme === 'dark' ? '1px solid rgba(193, 192, 182, 0.1)' : '1px solid rgba(0, 0, 0, 0.06)',
-    cardShadow: theme === 'dark' ? '0 8px 32px rgba(0, 0, 0, 0.3)' : '0 8px 32px rgba(0, 0, 0, 0.06)',
-    hoverBg: theme === 'dark' ? 'rgba(193, 192, 182, 0.05)' : 'rgba(0, 0, 0, 0.02)',
-    subtleBg: theme === 'dark' ? 'rgba(193, 192, 182, 0.1)' : 'rgba(0, 0, 0, 0.05)',
-    theme
+    textColor: '#1F1C18',
+    textSecondary: '#8A857D',
+    textMuted: '#8A857D',
+    textFaint: 'rgba(138, 133, 125, 0.7)',
+    cardBg: 'rgba(255, 255, 255, 0.18)',
+    cardBorder: '1px solid rgba(255, 255, 255, 0.45)',
+    cardShadow: '0 8px 32px rgba(0, 0, 0, 0.18)',
+    hoverBg: 'rgba(0, 0, 0, 0.02)',
+    subtleBg: 'rgba(0, 0, 0, 0.05)',
+    theme: 'light'
   };
 
   const toggleShare = async () => {
@@ -159,8 +158,7 @@ const SoulSignatureDashboard: React.FC = () => {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
         <div>
           <h1
-            className="text-3xl md:text-4xl mb-2"
-            style={{ fontFamily: 'var(--font-heading)', fontWeight: 400, color: colors.textColor }}
+            className="heading-serif text-3xl md:text-4xl mb-2"
           >
             Your Soul Signature
           </h1>
@@ -215,7 +213,7 @@ const SoulSignatureDashboard: React.FC = () => {
           style={{ backgroundColor: 'rgba(220, 38, 38, 0.08)', border: '1px solid rgba(220, 38, 38, 0.2)' }}
         >
           <AlertCircle className="w-5 h-5 flex-shrink-0" style={{ color: '#EF4444' }} />
-          <span style={{ color: theme === 'dark' ? '#fca5a5' : '#991b1b' }}>
+          <span style={{ color: '#991b1b' }}>
             {(error as Error).message || 'Failed to load portrait'}
           </span>
           <button onClick={() => refetch()} className="ml-auto text-sm underline" style={{ color: colors.textSecondary }}>

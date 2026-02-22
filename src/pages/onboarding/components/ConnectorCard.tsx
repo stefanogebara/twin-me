@@ -26,7 +26,6 @@ export const ConnectorCard: React.FC<ConnectorCardProps> = ({
   needsReconnect,
   connectingProvider,
   disconnectingProvider,
-  theme,
   colors,
   onConnect,
   onDisconnect,
@@ -48,7 +47,7 @@ export const ConnectorCard: React.FC<ConnectorCardProps> = ({
           <h3
             className="text-lg"
             style={{
-              color: colors.textPrimary,
+              color: '#1F1C18',
               fontFamily: 'var(--font-heading)',
               fontWeight: 400
             }}
@@ -58,7 +57,7 @@ export const ConnectorCard: React.FC<ConnectorCardProps> = ({
           <p
             className="text-xs"
             style={{
-              color: colors.muted,
+              color: '#8A857D',
               fontFamily: 'var(--font-body)'
             }}
           >
@@ -70,7 +69,7 @@ export const ConnectorCard: React.FC<ConnectorCardProps> = ({
       <p
         className="text-sm mb-3 leading-relaxed"
         style={{
-          color: colors.textSecondary,
+          color: '#8A857D',
           fontFamily: 'var(--font-body)'
         }}
       >
@@ -84,8 +83,8 @@ export const ConnectorCard: React.FC<ConnectorCardProps> = ({
               key={idx}
               className="text-xs px-2 py-1 rounded-full"
               style={{
-                backgroundColor: theme === 'dark' ? 'rgba(45, 45, 41, 0.8)' : 'rgba(0, 0, 0, 0.05)',
-                color: colors.muted,
+                backgroundColor: 'rgba(0, 0, 0, 0.05)',
+                color: '#8A857D',
                 fontFamily: 'var(--font-body)'
               }}
             >
@@ -96,8 +95,8 @@ export const ConnectorCard: React.FC<ConnectorCardProps> = ({
             <span
               className="text-xs px-2 py-1 rounded-full"
               style={{
-                backgroundColor: theme === 'dark' ? 'rgba(45, 45, 41, 0.8)' : 'rgba(0, 0, 0, 0.05)',
-                color: colors.muted,
+                backgroundColor: 'rgba(0, 0, 0, 0.05)',
+                color: '#8A857D',
                 fontFamily: 'var(--font-body)'
               }}
             >
@@ -117,8 +116,8 @@ export const ConnectorCard: React.FC<ConnectorCardProps> = ({
             disabled={connectingProvider === connector.provider}
             className="w-full flex items-center justify-center gap-2 px-4 py-2 rounded-xl text-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed"
             style={{
-              backgroundColor: theme === 'dark' ? 'rgba(193, 192, 182, 0.1)' : 'rgba(0, 0, 0, 0.05)',
-              color: colors.textPrimary,
+              backgroundColor: 'rgba(0, 0, 0, 0.05)',
+              color: '#1F1C18',
               fontFamily: 'var(--font-body)',
               fontWeight: 500
             }}
@@ -142,7 +141,7 @@ export const ConnectorCard: React.FC<ConnectorCardProps> = ({
         <div className="mt-3">
           <div className="flex items-center justify-between mb-2">
             <div className="flex items-center gap-2">
-              <svg className="w-4 h-4" style={{ color: '#C1C0B6' }} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <svg className="w-4 h-4" style={{ color: '#8A857D' }} fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
               </svg>
               <span
@@ -164,9 +163,9 @@ export const ConnectorCard: React.FC<ConnectorCardProps> = ({
             disabled={connectingProvider === connector.provider}
             className="w-full flex items-center justify-center gap-2 px-4 py-2 rounded-xl text-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed"
             style={{
-              backgroundColor: 'rgba(193, 192, 182, 0.15)',
-              color: '#C1C0B6',
-              border: '1px solid rgba(193, 192, 182, 0.3)',
+              backgroundColor: 'rgba(0, 0, 0, 0.05)',
+              color: '#1F1C18',
+              border: '1px solid rgba(0, 0, 0, 0.1)',
               fontFamily: 'var(--font-body)',
               fontWeight: 500
             }}
@@ -190,11 +189,11 @@ export const ConnectorCard: React.FC<ConnectorCardProps> = ({
         <div className="mt-3">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <CheckCircle2 className="w-4 h-4" style={{ color: colors.muted }} />
+              <CheckCircle2 className="w-4 h-4" style={{ color: '#8A857D' }} />
               <span
                 className="text-sm"
                 style={{
-                  color: colors.muted,
+                  color: '#8A857D',
                   fontFamily: 'var(--font-body)'
                 }}
               >
@@ -211,7 +210,7 @@ export const ConnectorCard: React.FC<ConnectorCardProps> = ({
               className="flex items-center gap-1 px-2 py-1 rounded-lg text-xs transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               style={{
                 backgroundColor: 'transparent',
-                color: colors.muted,
+                color: '#8A857D',
                 fontFamily: 'var(--font-body)'
               }}
             >

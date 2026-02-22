@@ -7,7 +7,6 @@
 import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
-import { useTheme } from '../contexts/ThemeContext';
 import { useAuth } from '../contexts/AuthContext';
 import { FeedbackWidget } from './FeedbackWidget';
 import { DEMO_TODAY_INSIGHTS } from '../services/demoDataService';
@@ -76,9 +75,6 @@ interface TodayInsightsResponse {
   };
 }
 
-// Demo insights imported from centralized demoDataService.ts
-// DEMO_TODAY_INSIGHTS
-
 const iconMap = {
   activity: Activity,
   calendar: Calendar,
@@ -97,7 +93,6 @@ const priorityColors = {
 };
 
 export const TodayInsights: React.FC = () => {
-  const { theme } = useTheme();
   const { isDemoMode, user } = useAuth();
   const navigate = useNavigate();
   const [expandedId, setExpandedId] = useState<string | null>(null);
@@ -209,12 +204,15 @@ export const TodayInsights: React.FC = () => {
   if (isLoading) {
     return (
       <div className="rounded-2xl p-6" style={{
-        backgroundColor: theme === 'dark' ? 'rgba(45, 45, 41, 0.5)' : 'rgba(255, 255, 255, 0.7)',
-        border: theme === 'dark' ? '1px solid rgba(193, 192, 182, 0.1)' : '1px solid rgba(0, 0, 0, 0.05)'
+        background: 'rgba(255, 255, 255, 0.18)',
+        backdropFilter: 'blur(10px) saturate(140%)',
+        WebkitBackdropFilter: 'blur(10px) saturate(140%)',
+        border: '1px solid rgba(255, 255, 255, 0.45)',
+        boxShadow: '0 8px 32px rgba(0, 0, 0, 0.18), inset 0 1px 0 rgba(255, 255, 255, 0.6)',
       }}>
         <div className="flex items-center justify-center py-8">
-          <Loader2 className="w-6 h-6 animate-spin" style={{ color: theme === 'dark' ? '#C1C0B6' : '#57534e' }} />
-          <span className="ml-3" style={{ color: theme === 'dark' ? 'rgba(193, 192, 182, 0.8)' : '#57534e' }}>
+          <Loader2 className="w-6 h-6 animate-spin" style={{ color: '#8A857D' }} />
+          <span className="ml-3" style={{ color: '#8A857D' }}>
             Analyzing your day...
           </span>
         </div>
@@ -224,9 +222,12 @@ export const TodayInsights: React.FC = () => {
 
   if (error || !data?.success) {
     return (
-      <div className="rounded-2xl p-5" style={{
-        backgroundColor: theme === 'dark' ? 'rgba(45, 45, 41, 0.5)' : 'rgba(255, 255, 255, 0.7)',
-        border: theme === 'dark' ? '1px solid rgba(193, 192, 182, 0.1)' : '1px solid rgba(0, 0, 0, 0.05)'
+      <div className="rounded-2xl p-6" style={{
+        background: 'rgba(255, 255, 255, 0.18)',
+        backdropFilter: 'blur(10px) saturate(140%)',
+        WebkitBackdropFilter: 'blur(10px) saturate(140%)',
+        border: '1px solid rgba(255, 255, 255, 0.45)',
+        boxShadow: '0 8px 32px rgba(0, 0, 0, 0.18), inset 0 1px 0 rgba(255, 255, 255, 0.6)',
       }}>
         <div className="flex items-center gap-3" style={{ color: theme === 'dark' ? 'rgba(193,192,182,0.7)' : '#57534e' }}>
           <AlertCircle className="w-5 h-5 flex-shrink-0" style={{ color: theme === 'dark' ? '#f87171' : '#ef4444' }} />
@@ -269,10 +270,10 @@ export const TodayInsights: React.FC = () => {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <Sparkles className="w-5 h-5" style={{ color: theme === 'dark' ? '#C1C0B6' : '#57534e' }} />
+          <Sparkles className="w-5 h-5" style={{ color: '#8A857D' }} />
           <h2 className="text-lg font-medium" style={{
             fontFamily: 'var(--font-heading)',
-            color: theme === 'dark' ? '#C1C0B6' : '#0c0a09'
+            color: '#1F1C18'
           }}>
             Today's Insights
           </h2>
@@ -280,18 +281,18 @@ export const TodayInsights: React.FC = () => {
         <button
           onClick={() => refetch()}
           disabled={isFetching}
-          className="p-2 rounded-lg transition-colors hover:bg-black/5 dark:hover:bg-white/5"
+          className="p-2 rounded-lg transition-colors hover:bg-black/5"
           title="Refresh insights"
         >
           <RefreshCw
             className={`w-4 h-4 ${isFetching ? 'animate-spin' : ''}`}
-            style={{ color: theme === 'dark' ? 'rgba(193, 192, 182, 0.6)' : '#a8a29e' }}
+            style={{ color: '#8A857D' }}
           />
         </button>
       </div>
 
       {/* Data Sources Indicator - Uses real platform status with token expiry check */}
-      <div className="flex items-center gap-4 text-xs" style={{ color: theme === 'dark' ? 'rgba(193, 192, 182, 0.5)' : '#a8a29e' }}>
+      <div className="flex items-center gap-4 text-xs" style={{ color: '#8A857D' }}>
         {(() => {
           const WhoopIcon = getPlatformLogo('whoop') || Activity;
           const CalendarIcon = getPlatformLogo('google_calendar') || Calendar;
@@ -345,9 +346,13 @@ export const TodayInsights: React.FC = () => {
               key={insight.id}
               className="rounded-xl overflow-hidden transition-all duration-200 cursor-pointer"
               style={{
-                backgroundColor: theme === 'dark' ? 'rgba(45, 45, 41, 0.7)' : 'rgba(255, 255, 255, 0.8)',
-                border: theme === 'dark' ? '1px solid rgba(193, 192, 182, 0.15)' : '1px solid rgba(0, 0, 0, 0.08)',
-                boxShadow: isExpanded ? '0 4px 12px rgba(0, 0, 0, 0.1)' : 'none'
+                background: 'rgba(255, 255, 255, 0.18)',
+                backdropFilter: 'blur(10px) saturate(140%)',
+                WebkitBackdropFilter: 'blur(10px) saturate(140%)',
+                border: '1px solid rgba(255, 255, 255, 0.45)',
+                boxShadow: isExpanded
+                  ? '0 8px 32px rgba(0, 0, 0, 0.18), inset 0 1px 0 rgba(255, 255, 255, 0.6)'
+                  : '0 2px 8px rgba(0, 0, 0, 0.06), inset 0 1px 0 rgba(255, 255, 255, 0.6)'
               }}
               onClick={() => handleInsightClick(insight)}
             >
@@ -358,18 +363,18 @@ export const TodayInsights: React.FC = () => {
                   <div
                     className="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0"
                     style={{
-                      backgroundColor: theme === 'dark' ? 'rgba(193, 192, 182, 0.1)' : colors.bg,
-                      border: `1px solid ${theme === 'dark' ? 'rgba(193, 192, 182, 0.2)' : colors.border}`
+                      backgroundColor: colors.bg,
+                      border: `1px solid ${colors.border}`
                     }}
                   >
-                    <Icon className="w-5 h-5" style={{ color: theme === 'dark' ? '#C1C0B6' : colors.text }} />
+                    <Icon className="w-5 h-5" style={{ color: colors.text }} />
                   </div>
 
                   {/* Text */}
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-1">
                       <h3 className="text-sm font-medium truncate" style={{
-                        color: theme === 'dark' ? '#C1C0B6' : '#0c0a09'
+                        color: '#1F1C18'
                       }}>
                         {insight.title}
                       </h3>
@@ -380,8 +385,8 @@ export const TodayInsights: React.FC = () => {
                             key={platform}
                             className="text-[10px] px-1.5 py-0.5 rounded"
                             style={{
-                              backgroundColor: theme === 'dark' ? 'rgba(193, 192, 182, 0.1)' : 'rgba(0, 0, 0, 0.05)',
-                              color: theme === 'dark' ? 'rgba(193, 192, 182, 0.7)' : '#57534e'
+                              backgroundColor: 'rgba(0, 0, 0, 0.05)',
+                              color: '#57534e'
                             }}
                           >
                             {platform.replace('google_', '').replace('_', ' ')}
@@ -389,7 +394,7 @@ export const TodayInsights: React.FC = () => {
                         ))}
                       </div>
                     </div>
-                    <p className="text-sm" style={{ color: theme === 'dark' ? 'rgba(193, 192, 182, 0.7)' : '#57534e' }}>
+                    <p className="text-sm" style={{ color: '#57534e' }}>
                       {insight.summary}
                     </p>
                   </div>
@@ -397,7 +402,7 @@ export const TodayInsights: React.FC = () => {
                   {/* Expand Arrow */}
                   <ChevronRight
                     className={`w-5 h-5 flex-shrink-0 transition-transform duration-200 ${isExpanded ? 'rotate-90' : ''}`}
-                    style={{ color: theme === 'dark' ? 'rgba(193, 192, 182, 0.4)' : '#a8a29e' }}
+                    style={{ color: '#8A857D' }}
                   />
                 </div>
               </div>
@@ -406,27 +411,27 @@ export const TodayInsights: React.FC = () => {
               {isExpanded && insight.detail && (
                 <div
                   className="px-4 pb-4 pt-0"
-                  style={{ borderTop: theme === 'dark' ? '1px solid rgba(193, 192, 182, 0.1)' : '1px solid rgba(0, 0, 0, 0.05)' }}
+                  style={{ borderTop: '1px solid rgba(0, 0, 0, 0.05)' }}
                 >
-                  <p className="text-sm mb-3 pt-3" style={{ color: theme === 'dark' ? 'rgba(193, 192, 182, 0.6)' : '#78716c' }}>
+                  <p className="text-sm mb-3 pt-3" style={{ color: '#78716c' }}>
                     {insight.detail}
                   </p>
 
                   {/* Enhanced Mood Visualization for music insights */}
                   {insight.type === 'music' && insight.audioFeatures && (
                     <div className="mb-4 p-3 rounded-lg" style={{
-                      backgroundColor: theme === 'dark' ? 'rgba(29, 185, 84, 0.08)' : 'rgba(29, 185, 84, 0.05)',
-                      border: theme === 'dark' ? '1px solid rgba(29, 185, 84, 0.15)' : '1px solid rgba(29, 185, 84, 0.1)'
+                      backgroundColor: 'rgba(29, 185, 84, 0.05)',
+                      border: '1px solid rgba(29, 185, 84, 0.1)'
                     }}>
                       <div className="grid grid-cols-2 gap-3">
                         {/* Energy Bar */}
                         <div>
                           <div className="flex justify-between text-xs mb-1">
-                            <span style={{ color: theme === 'dark' ? 'rgba(193, 192, 182, 0.6)' : '#78716c' }}>Energy</span>
+                            <span style={{ color: '#78716c' }}>Energy</span>
                             <span style={{ color: '#1DB954' }}>{Math.round(insight.audioFeatures.energy)}%</span>
                           </div>
                           <div className="h-1.5 rounded-full overflow-hidden" style={{
-                            backgroundColor: theme === 'dark' ? 'rgba(29, 185, 84, 0.15)' : 'rgba(29, 185, 84, 0.1)'
+                            backgroundColor: 'rgba(29, 185, 84, 0.1)'
                           }}>
                             <div
                               className="h-full rounded-full transition-all duration-500"
@@ -437,11 +442,11 @@ export const TodayInsights: React.FC = () => {
                         {/* Positivity Bar */}
                         <div>
                           <div className="flex justify-between text-xs mb-1">
-                            <span style={{ color: theme === 'dark' ? 'rgba(193, 192, 182, 0.6)' : '#78716c' }}>Positivity</span>
+                            <span style={{ color: '#78716c' }}>Positivity</span>
                             <span style={{ color: '#8B5CF6' }}>{Math.round(insight.audioFeatures.valence)}%</span>
                           </div>
                           <div className="h-1.5 rounded-full overflow-hidden" style={{
-                            backgroundColor: theme === 'dark' ? 'rgba(139, 92, 246, 0.15)' : 'rgba(139, 92, 246, 0.1)'
+                            backgroundColor: 'rgba(139, 92, 246, 0.1)'
                           }}>
                             <div
                               className="h-full rounded-full transition-all duration-500"
@@ -452,11 +457,11 @@ export const TodayInsights: React.FC = () => {
                         {/* Danceability Bar */}
                         <div>
                           <div className="flex justify-between text-xs mb-1">
-                            <span style={{ color: theme === 'dark' ? 'rgba(193, 192, 182, 0.6)' : '#78716c' }}>Danceability</span>
+                            <span style={{ color: '#78716c' }}>Danceability</span>
                             <span style={{ color: '#EC4899' }}>{Math.round(insight.audioFeatures.danceability)}%</span>
                           </div>
                           <div className="h-1.5 rounded-full overflow-hidden" style={{
-                            backgroundColor: theme === 'dark' ? 'rgba(236, 72, 153, 0.15)' : 'rgba(236, 72, 153, 0.1)'
+                            backgroundColor: 'rgba(236, 72, 153, 0.1)'
                           }}>
                             <div
                               className="h-full rounded-full transition-all duration-500"
@@ -467,11 +472,11 @@ export const TodayInsights: React.FC = () => {
                         {/* Tempo */}
                         <div>
                           <div className="flex justify-between text-xs mb-1">
-                            <span style={{ color: theme === 'dark' ? 'rgba(193, 192, 182, 0.6)' : '#78716c' }}>Tempo</span>
+                            <span style={{ color: '#78716c' }}>Tempo</span>
                             <span style={{ color: '#F59E0B' }}>{Math.round(insight.audioFeatures.tempo)} BPM</span>
                           </div>
                           <div className="h-1.5 rounded-full overflow-hidden" style={{
-                            backgroundColor: theme === 'dark' ? 'rgba(245, 158, 11, 0.15)' : 'rgba(245, 158, 11, 0.1)'
+                            backgroundColor: 'rgba(245, 158, 11, 0.1)'
                           }}>
                             <div
                               className="h-full rounded-full transition-all duration-500"
@@ -492,8 +497,8 @@ export const TodayInsights: React.FC = () => {
                         }}
                         className="text-sm font-medium px-4 py-2 rounded-lg transition-colors"
                         style={{
-                          backgroundColor: theme === 'dark' ? 'rgba(193, 192, 182, 0.15)' : 'rgba(0, 0, 0, 0.08)',
-                          color: theme === 'dark' ? '#C1C0B6' : '#0c0a09'
+                          backgroundColor: 'rgba(0, 0, 0, 0.06)',
+                          color: '#1F1C18'
                         }}
                       >
                         {insight.action.label} →
@@ -526,21 +531,21 @@ export const TodayInsights: React.FC = () => {
         <div
           className="rounded-xl p-4 space-y-3"
           style={{
-            backgroundColor: theme === 'dark' ? 'rgba(45, 45, 41, 0.4)' : 'rgba(255, 255, 255, 0.6)',
-            border: theme === 'dark' ? '1px solid rgba(193, 192, 182, 0.08)' : '1px solid rgba(0, 0, 0, 0.04)',
+            backgroundColor: 'rgba(255, 255, 255, 0.6)',
+            border: '1px solid rgba(0, 0, 0, 0.04)',
           }}
         >
           {disconnectedPlatforms.map(({ platform, desc }) => (
             <div key={platform} className="flex items-center justify-between gap-3">
-              <span className="text-sm" style={{ color: theme === 'dark' ? 'rgba(193,192,182,0.7)' : '#57534e' }}>
+              <span className="text-sm" style={{ color: '#57534e' }}>
                 {desc}
               </span>
               <button
                 onClick={() => navigate('/get-started')}
                 className="flex-shrink-0 text-xs px-3 py-1.5 rounded-lg font-medium transition-colors hover:opacity-80"
                 style={{
-                  backgroundColor: theme === 'dark' ? 'rgba(193,192,182,0.12)' : 'rgba(0,0,0,0.06)',
-                  color: theme === 'dark' ? '#C1C0B6' : '#44403c',
+                  backgroundColor: 'rgba(0,0,0,0.06)',
+                  color: '#44403c',
                 }}
               >
                 Connect
@@ -556,9 +561,9 @@ export const TodayInsights: React.FC = () => {
           onClick={() => navigate('/soul-signature')}
           className="w-full py-3 text-sm font-medium rounded-xl transition-colors flex items-center justify-center gap-2"
           style={{
-            backgroundColor: theme === 'dark' ? 'rgba(193, 192, 182, 0.05)' : 'rgba(0, 0, 0, 0.03)',
-            color: theme === 'dark' ? 'rgba(193, 192, 182, 0.7)' : '#57534e',
-            border: theme === 'dark' ? '1px solid rgba(193, 192, 182, 0.1)' : '1px solid rgba(0, 0, 0, 0.05)'
+            backgroundColor: 'rgba(0, 0, 0, 0.03)',
+            color: '#57534e',
+            border: '1px solid rgba(0, 0, 0, 0.05)'
           }}
         >
           View Your Full Soul Signature
