@@ -47,7 +47,7 @@ import {
 
 // Reflection threshold: trigger when sum of recent importance scores exceeds this
 // Lowered from 150 to 50 so new users trigger reflections earlier (~10 memories rated 5)
-const IMPORTANCE_THRESHOLD = 50;
+export const IMPORTANCE_THRESHOLD = 15;
 
 // Max recursive reflection depth (paper allows reflections on reflections)
 const MAX_REFLECTION_DEPTH = 3;
@@ -398,6 +398,5 @@ export {
   generateReflections,
   shouldTriggerReflection,
   seedReflections,
-  IMPORTANCE_THRESHOLD,
   EXPERT_PERSONAS,
 };
