@@ -321,13 +321,16 @@ class LifeEventInferenceService {
     for (const event of inferredEvents) {
       try {
         // Check if this event already exists (by source event ID or similar dates)
-        const { data: existing } = await supabaseAdmin
+        const { data: existing, error: existingErr } = await supabaseAdmin
           .from('life_context')
           .select('id')
           .eq('user_id', userId)
           .eq('context_type', event.type)
           .eq('source_event_id', event.sourceEventId)
           .single();
+        if (existingErr && existingErr.code !== 'PGRST116') {
+          console.warn('[LifeEvent] Error checking existing context:', existingErr.message);
+        }
 
         if (existing) {
           console.log(`⏭️ [Life Event Inference] Event already exists, skipping: ${event.title}`);
