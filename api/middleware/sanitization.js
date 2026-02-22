@@ -75,11 +75,9 @@ function sanitizeValue(value, options = {}) {
     });
   }
 
-  // SQL injection basic protection (escape single quotes)
-  value = value.replace(/'/g, "''");
-
-  // Remove potential NoSQL injection patterns
-  value = value.replace(/[\$\{\}]/g, '');
+  // SQL injection is prevented at the database layer via Supabase's parameterized queries.
+  // Manual escaping here is harmful — it doubles apostrophes in legitimate user content
+  // (e.g., "John's" → "John''s") and does not protect against all injection patterns.
 
   // Limit length to prevent DoS
   if (value.length > 10000) {
