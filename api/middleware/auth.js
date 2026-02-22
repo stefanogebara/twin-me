@@ -143,9 +143,8 @@ export const userRateLimit = (maxRequests = 100, windowMs = 15 * 60 * 1000) => {
       });
     }
 
-    // Add current request
-    recentRequests.push(now);
-    requests.set(userId, recentRequests);
+    // Add current request (immutable — create new array rather than mutating)
+    requests.set(userId, [...recentRequests, now]);
 
     next();
   };
