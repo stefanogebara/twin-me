@@ -11,7 +11,7 @@
 
 import express from 'express';
 import axios from 'axios';
-import { complete, TIER_CHAT } from '../services/llmGateway.js';
+import { complete, stream as streamLLM, TIER_CHAT } from '../services/llmGateway.js';
 import { authenticateUser } from '../middleware/auth.js';
 import { serverDb, supabaseAdmin } from '../services/database.js';
 import { getMonthlyUsage, FREE_TIER_LIMIT } from './chat-usage.js';
@@ -973,33 +973,64 @@ router.post('/message', authenticateUser, async (req, res) => {
     // Send message via LLM Gateway
     let assistantMessage;
     const chatSource = 'direct';
+    const isStreaming = req.query.stream === '1';
+    const llmMessages = [...conversationHistory, { role: 'user', content: message }];
 
-    try {
-      chatLog('Starting LLM call');
-      const result = await complete({
-        tier: TIER_CHAT,
-        system: systemPrompt,
-        messages: [
-          ...conversationHistory,
-          { role: 'user', content: message }
-        ],
-        maxTokens: 2048,
-        temperature: 0.7,
-        userId,
-        serviceName: 'twin-chat'
-      });
-      chatLog('LLM call complete');
-      assistantMessage = result.content || 'I apologize, I could not generate a response.';
-    } catch (llmError) {
-      console.error('[Twin Chat] LLM Gateway failed:', llmError.message);
-      const isBillingIssue = llmError.message?.includes('credit balance') || llmError.message?.includes('billing');
-      return res.status(503).json({
-        success: false,
-        error: isBillingIssue
-          ? 'Chat is temporarily unavailable due to API billing. Please contact the administrator.'
-          : 'Chat is temporarily unavailable. The AI provider is unreachable.',
-        details: process.env.NODE_ENV === 'development' ? llmError.message : undefined
-      });
+    if (isStreaming) {
+      // Set SSE headers before any write
+      res.setHeader('Content-Type', 'text/event-stream');
+      res.setHeader('Cache-Control', 'no-cache');
+      res.setHeader('Connection', 'keep-alive');
+      res.setHeader('X-Accel-Buffering', 'no');
+      res.flushHeaders();
+
+      try {
+        chatLog('Starting streaming LLM call');
+        const result = await streamLLM({
+          tier: TIER_CHAT,
+          system: systemPrompt,
+          messages: llmMessages,
+          maxTokens: 2048,
+          temperature: 0.7,
+          userId,
+          serviceName: 'twin-chat',
+          onChunk: (chunk) => {
+            res.write(`data: ${JSON.stringify({ type: 'chunk', content: chunk })}\n\n`);
+          },
+        });
+        chatLog('Streaming LLM call complete');
+        assistantMessage = result.content || 'I apologize, I could not generate a response.';
+      } catch (llmError) {
+        console.error('[Twin Chat] Streaming LLM Gateway failed:', llmError.message);
+        const isBillingIssue = llmError.message?.includes('credit balance') || llmError.message?.includes('billing');
+        res.write(`data: ${JSON.stringify({ type: 'error', error: isBillingIssue ? 'Chat is temporarily unavailable due to API billing.' : 'Chat is temporarily unavailable.' })}\n\n`);
+        return res.end();
+      }
+    } else {
+      try {
+        chatLog('Starting LLM call');
+        const result = await complete({
+          tier: TIER_CHAT,
+          system: systemPrompt,
+          messages: llmMessages,
+          maxTokens: 2048,
+          temperature: 0.7,
+          userId,
+          serviceName: 'twin-chat'
+        });
+        chatLog('LLM call complete');
+        assistantMessage = result.content || 'I apologize, I could not generate a response.';
+      } catch (llmError) {
+        console.error('[Twin Chat] LLM Gateway failed:', llmError.message);
+        const isBillingIssue = llmError.message?.includes('credit balance') || llmError.message?.includes('billing');
+        return res.status(503).json({
+          success: false,
+          error: isBillingIssue
+            ? 'Chat is temporarily unavailable due to API billing. Please contact the administrator.'
+            : 'Chat is temporarily unavailable. The AI provider is unreachable.',
+          details: process.env.NODE_ENV === 'development' ? llmError.message : undefined
+        });
+      }
     }
 
     // Store conversation in UNIFIED database (shared with MCP) - non-blocking
@@ -1063,7 +1094,7 @@ router.post('/message', authenticateUser, async (req, res) => {
     }
 
     // Return response
-    res.json({
+    const responsePayload = {
       success: true,
       message: assistantMessage,
       conversationId: conversationId || null,
@@ -1072,10 +1103,23 @@ router.post('/message', authenticateUser, async (req, res) => {
         ...buildContextSourcesMeta(twinContext),
         personaBlock: personaBlock ? personaBlock.length : 0,
       }
-    });
+    };
+
+    if (isStreaming) {
+      res.write(`data: ${JSON.stringify({ type: 'done', ...responsePayload })}\n\n`);
+      res.end();
+    } else {
+      res.json(responsePayload);
+    }
 
   } catch (error) {
     console.error('[Twin Chat] Error:', error);
+
+    // If SSE headers already sent, write error event instead of JSON
+    if (res.headersSent) {
+      res.write(`data: ${JSON.stringify({ type: 'error', error: 'Failed to process your message' })}\n\n`);
+      return res.end();
+    }
 
     // Handle specific error types
     if (error.status === 429) {
