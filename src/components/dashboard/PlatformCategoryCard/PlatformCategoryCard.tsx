@@ -35,14 +35,11 @@ export const PlatformCategoryCard: React.FC<PlatformCategoryCardProps> = ({
   const { categoryData, fetchCategoryData, isLoading } = usePlatformCategoryData();
 
   const category = PLATFORM_CATEGORIES[categoryId];
-  if (!category) {
-    return null;
-  }
 
-  // Count connected platforms in this category
-  const connectedInCategory = category.platforms.filter(p =>
+  // Count connected platforms in this category (safe if category is undefined)
+  const connectedInCategory = category ? category.platforms.filter(p =>
     connectedProviders.includes(p)
-  );
+  ) : [];
   const connectedCount = connectedInCategory.length;
 
   // Generate summary stat from first connected platform
@@ -59,17 +56,19 @@ export const PlatformCategoryCard: React.FC<PlatformCategoryCardProps> = ({
     return undefined;
   };
 
-  // Handle expand/collapse
+  // Handle expand/collapse (after all hooks — early return moved below)
   const handleToggle = useCallback(() => {
     const newExpanded = !isExpanded;
     setIsExpanded(newExpanded);
 
     // Fetch data on first expand
-    if (newExpanded && !hasLoadedOnce && connectedCount > 0) {
+    if (newExpanded && !hasLoadedOnce && connectedCount > 0 && category) {
       setHasLoadedOnce(true);
       fetchCategoryData(category.platforms, connectedProviders);
     }
-  }, [isExpanded, hasLoadedOnce, connectedCount, category.platforms, connectedProviders, fetchCategoryData]);
+  }, [isExpanded, hasLoadedOnce, connectedCount, category, connectedProviders, fetchCategoryData]);
+
+  if (!category) return null;
 
   // Handle platform navigation
   const handlePlatformClick = (platform: string) => {
