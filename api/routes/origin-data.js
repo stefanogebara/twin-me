@@ -95,7 +95,6 @@ router.post('/data', authenticateUser, async (req, res) => {
   try {
     const userId = req.user.id;
     const { ...originFields } = req.body;
-    }
 
     // Validate core_values (max 5)
     if (originFields.core_values && originFields.core_values.length > 5) {
