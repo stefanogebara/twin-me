@@ -11,6 +11,7 @@ import { authenticateUser } from '../middleware/auth.js';
 import nangoService from '../services/nangoService.js';
 import { supabaseAdmin } from '../services/database.js';
 import { saveConnectionMapping, deleteConnectionMapping } from '../services/connectionMappingService.js';
+import { runPostOnboardingIngestion } from '../services/observationIngestion.js';
 
 // Direct Nango client for connection lookups by end_user
 let nango = null;
@@ -174,6 +175,11 @@ router.post('/verify-connection', authenticateUser, async (req, res) => {
           await nangoService.storeNangoExtractionData(userId, integrationId, result);
           console.log(`[Nango API] Initial extraction stored for ${integrationId}`);
 
+          // Immediately ingest extracted data into memory stream (don't wait for 30-min cron)
+          runPostOnboardingIngestion(userId).catch(err =>
+            console.warn(`[Nango] Post-connection ingestion error for ${integrationId}:`, err.message)
+          );
+
           // Run feature extraction after raw data is stored
           try {
             const featureExtractorMap = {
@@ -324,6 +330,11 @@ router.get('/extract/:platform', authenticateUser, async (req, res) => {
     if (result.success) {
       // Store extracted data to user_platform_data
       await nangoService.storeNangoExtractionData(userId, platform, result);
+
+      // Immediately ingest into memory stream after on-demand extraction
+      runPostOnboardingIngestion(userId).catch(err =>
+        console.warn(`[Nango] Post-extraction ingestion error for ${platform}:`, err.message)
+      );
 
       // Also update platform_connections.last_sync_at so the frontend shows the correct sync date
       const platformKey = platform === 'google-calendar' ? 'google_calendar' :
