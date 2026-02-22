@@ -81,7 +81,7 @@ router.get('/connect', authenticateUser, oauthAuthorizationLimiter, async (req, 
     }, 'entertainment');
 
     // Store state + code_verifier in Supabase (CSRF protection + PKCE)
-    await supabaseAdmin
+    const { error: stateErr } = await supabaseAdmin
       .from('oauth_states')
       .insert({
         state,
@@ -89,6 +89,10 @@ router.get('/connect', authenticateUser, oauthAuthorizationLimiter, async (req, 
         data: { userId, platform: 'spotify', feature: 'ritual' },
         expires_at: new Date(Date.now() + 1800000) // 30 minutes
       });
+    if (stateErr) {
+      console.error('[Spotify OAuth] Failed to store OAuth state (CSRF protection will fail):', stateErr.message);
+      return res.status(500).json({ success: false, error: 'Failed to initiate OAuth flow' });
+    }
 
     const authUrl = `${SPOTIFY_CONFIG.authUrl}?` +
       `client_id=${process.env.SPOTIFY_CLIENT_ID}&` +
@@ -1303,7 +1307,7 @@ async function refreshSpotifyToken(userId, encryptedRefreshToken) {
     const expiresAt = new Date(Date.now() + tokens.expires_in * 1000);
 
     // Update stored tokens
-    await supabaseAdmin
+    const { error: tokenUpdateErr } = await supabaseAdmin
       .from('platform_connections')
       .update({
         access_token: encryptToken(newAccessToken),
@@ -1316,6 +1320,10 @@ async function refreshSpotifyToken(userId, encryptedRefreshToken) {
       })
       .eq('user_id', userId)
       .eq('platform', 'spotify');
+    if (tokenUpdateErr) {
+      console.error(`[Spotify Ritual] Failed to persist refreshed tokens for user ${userId}:`, tokenUpdateErr.message);
+      return null;
+    }
 
     console.log(`[Spotify Ritual] Token refreshed for user ${userId}`);
     return newAccessToken;
