@@ -83,7 +83,7 @@ router.get('/callback', async (req, res) => {
 
   } catch (error) {
     console.error('OAuth callback error:', error);
-    res.redirect(`${appUrl}/soul-signature?error=${error.message}`);
+    res.redirect(`${appUrl}/soul-signature?error=connection_failed`);
   }
 });
 
