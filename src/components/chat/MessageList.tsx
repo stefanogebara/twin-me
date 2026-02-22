@@ -1,7 +1,7 @@
 import { forwardRef } from 'react';
 import {
   Sparkles, Database, User,
-  Lightbulb
+  Lightbulb, RotateCcw, AlertCircle
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -10,6 +10,7 @@ interface Message {
   role: 'user' | 'assistant';
   content: string;
   timestamp: Date;
+  failed?: boolean;
   contextUsed?: {
     soulSignature?: boolean;
     twinSummary?: string | null;
@@ -36,6 +37,7 @@ interface MessageListProps {
   isTyping: boolean;
   colors: Colors;
   formatTime: (date: Date) => string;
+  onRetry?: (content: string, messageId: string) => void;
 }
 
 // Design-system glass style for assistant bubbles
@@ -49,7 +51,7 @@ const assistantBubbleStyle = {
 } as React.CSSProperties;
 
 export const MessageList = forwardRef<HTMLDivElement, MessageListProps>(
-  ({ messages, isTyping, colors, formatTime }, ref) => {
+  ({ messages, isTyping, colors, formatTime, onRetry }, ref) => {
     return (
       <div className="px-4 py-6 space-y-6">
         {messages.map((message) => (
@@ -80,8 +82,9 @@ export const MessageList = forwardRef<HTMLDivElement, MessageListProps>(
                 style={
                   message.role === 'user'
                     ? {
-                        backgroundColor: '#2D2722',
-                        color: '#F7F7F3',
+                        backgroundColor: message.failed ? 'rgba(239,68,68,0.15)' : '#2D2722',
+                        color: message.failed ? '#EF4444' : '#F7F7F3',
+                        border: message.failed ? '1px solid rgba(239,68,68,0.3)' : undefined,
                       }
                     : assistantBubbleStyle
                 }
@@ -89,6 +92,22 @@ export const MessageList = forwardRef<HTMLDivElement, MessageListProps>(
                 <p className="text-[15px] leading-relaxed whitespace-pre-wrap">
                   {message.content}
                 </p>
+                {message.failed && (
+                  <div className="flex items-center gap-2 mt-2 pt-2" style={{ borderTop: '1px solid rgba(239,68,68,0.2)' }}>
+                    <AlertCircle className="w-3.5 h-3.5 flex-shrink-0" style={{ color: '#EF4444' }} />
+                    <span className="text-xs" style={{ color: '#EF4444' }}>Failed to send</span>
+                    {onRetry && (
+                      <button
+                        onClick={() => onRetry(message.content, message.id)}
+                        className="ml-auto flex items-center gap-1 text-xs px-2 py-0.5 rounded transition-opacity hover:opacity-70"
+                        style={{ backgroundColor: 'rgba(239,68,68,0.15)', color: '#EF4444' }}
+                      >
+                        <RotateCcw className="w-3 h-3" />
+                        Retry
+                      </button>
+                    )}
+                  </div>
+                )}
               </div>
 
               {message.role === 'assistant' && message.contextUsed && (

@@ -19,6 +19,7 @@ interface Message {
   role: 'user' | 'assistant';
   content: string;
   timestamp: Date;
+  failed?: boolean;
   contextUsed?: {
     soulSignature?: boolean;
     twinSummary?: string | null;
@@ -274,16 +275,20 @@ const TalkToTwin = () => {
       }
     } catch (error) {
       console.error('Chat error:', error);
-      const assistantMessage: Message = {
-        id: crypto.randomUUID(),
-        role: 'assistant',
-        content: "I'm having trouble connecting right now. Please try again.",
-        timestamp: new Date()
-      };
-      setMessages(prev => [...prev, assistantMessage]);
+      // Mark the user's message as failed so they can retry without retyping
+      setMessages(prev =>
+        prev.map(m => m.id === userMessage.id ? { ...m, failed: true } : m)
+      );
     } finally {
       setIsTyping(false);
     }
+  };
+
+  const handleRetry = (content: string, messageId: string) => {
+    // Remove the failed message and restore content to input so user can resend
+    setMessages(prev => prev.filter(m => m.id !== messageId));
+    setInputMessage(content);
+    inputRef.current?.focus();
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
@@ -364,6 +369,7 @@ const TalkToTwin = () => {
               isTyping={isTyping}
               colors={colors}
               formatTime={formatTime}
+              onRetry={handleRetry}
             />
           )}
         </div>
