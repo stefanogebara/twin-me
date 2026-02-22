@@ -282,8 +282,11 @@ async function fetchCalendarObservations(userId) {
       const endRaw = e.end?.dateTime || e.end?.date;
 
       if (startRaw && endRaw) {
-        const startTime = new Date(startRaw).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
-        const endTime = new Date(endRaw).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+        const startDate = new Date(startRaw);
+        const endDate = new Date(endRaw);
+        if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) continue;
+        const startTime = startDate.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+        const endTime = endDate.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
         observations.push(`Has a meeting '${title}' from ${startTime} to ${endTime}`);
       } else if (startRaw) {
         observations.push(`Has an all-day event '${title}'`);
