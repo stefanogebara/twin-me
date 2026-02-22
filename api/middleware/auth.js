@@ -144,6 +144,10 @@ export const userRateLimit = (maxRequests = 100, windowMs = 15 * 60 * 1000) => {
     }
 
     // Add current request (immutable — create new array rather than mutating)
+    // Delete stale entry when window has fully lapsed to keep Map tidy
+    if (recentRequests.length === 0 && requests.has(userId)) {
+      requests.delete(userId);
+    }
     requests.set(userId, [...recentRequests, now]);
 
     next();
