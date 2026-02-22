@@ -312,10 +312,16 @@ router.get('/oauth/google', (req, res) => {
     timestamp: Date.now()
   };
 
-  // Include redirect parameter in state if provided
+  // Include redirect parameter in state if provided (relative paths only — prevent open redirect)
   if (req.query.redirect) {
-    stateData.redirectAfterAuth = req.query.redirect;
-    console.log('🔵 [OAuth Google GET] Including post-auth redirect in state:', req.query.redirect);
+    const redirectParam = req.query.redirect;
+    const isSafeRelative = /^\/[^/\\]/.test(redirectParam); // Must start with / but not // (protocol-relative)
+    if (isSafeRelative) {
+      stateData.redirectAfterAuth = redirectParam;
+      console.log('🔵 [OAuth Google GET] Including post-auth redirect in state:', redirectParam);
+    } else {
+      console.warn('🔵 [OAuth Google GET] Ignoring unsafe redirect param:', redirectParam);
+    }
   }
 
   const state = encryptState(stateData, 'auth');
