@@ -35,7 +35,7 @@ class EmbeddingGenerator {
         endpoint: this.azureEndpoint,
         deployment: this.azureDeployment,
         apiVersion: this.azureApiVersion,
-        apiKey: this.azureApiKey.substring(0, 8) + '...'
+        apiKey: '[REDACTED]',
       });
     }
   }
@@ -189,9 +189,8 @@ class EmbeddingGenerator {
         const errorDetails = {
           status: response.status,
           statusText: response.statusText,
-          error: errorText,
+          error: errorText.substring(0, 200),
           endpoint: url,
-          apiKey: this.azureApiKey ? `${this.azureApiKey.substring(0, 10)}...` : 'NOT SET'
         };
         console.error('[Embeddings] Azure OpenAI API error:', errorDetails);
         return { error: `Azure OpenAI API ${response.status}: ${errorText.substring(0, 100)}` };

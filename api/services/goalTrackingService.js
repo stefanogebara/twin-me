@@ -357,11 +357,20 @@ async function extractMetricFromMemories(userId, metricType) {
   const pattern = patterns[metricType];
   if (!pattern) return null;
 
+  // Reasonable upper bounds per metric type to reject absurd regex matches
+  const METRIC_BOUNDS = {
+    sleep_hours: { min: 0, max: 24 },
+    recovery_score: { min: 0, max: 100 },
+    hrv: { min: 0, max: 300 },
+    meeting_count: { min: 0, max: 50 },
+  };
+
   for (const mem of recent) {
     const match = mem.content.match(pattern);
     if (match) {
       const value = parseFloat(match[1]);
-      if (!isNaN(value)) {
+      const bounds = METRIC_BOUNDS[metricType];
+      if (!isNaN(value) && bounds && value >= bounds.min && value <= bounds.max) {
         console.log(`[GoalTracking] Extracted ${metricType}=${value} from memory: "${mem.content.substring(0, 60)}..."`);
         return value;
       }
