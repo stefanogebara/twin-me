@@ -25,7 +25,9 @@ const STABLE_CACHE_TTL = 10 * 60 * 1000; // 10 minutes
 
 function getCached(key) {
   const entry = stableDataCache.get(key);
-  if (entry && (Date.now() - entry.ts) < STABLE_CACHE_TTL) return entry.data;
+  if (!entry) return undefined;
+  if ((Date.now() - entry.ts) < STABLE_CACHE_TTL) return entry.data;
+  stableDataCache.delete(key); // Evict expired entry
   return undefined;
 }
 function setCache(key, data) {
@@ -377,6 +379,7 @@ async function _fetchPlatformData(userId, platforms) {
   if (cached && (Date.now() - cached.timestamp) < PLATFORM_CACHE_TTL) {
     return cached.data;
   }
+  if (cached) platformDataCache.delete(cacheKey); // Evict expired entry
 
   const data = {};
 
