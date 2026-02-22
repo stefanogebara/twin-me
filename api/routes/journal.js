@@ -17,6 +17,8 @@ const asyncHandler = (fn) => (req, res, next) =>
 // All journal routes require authentication
 router.use(authenticateUser);
 
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 // ============================================================================
 // GET /entries - List user's journal entries (paginated, newest first)
 // ============================================================================
@@ -106,6 +108,11 @@ router.post('/entries', asyncHandler(async (req, res) => {
 router.put('/entries/:id', asyncHandler(async (req, res) => {
   const userId = req.user.id;
   const { id } = req.params;
+
+  if (!UUID_RE.test(id)) {
+    return res.status(400).json({ error: 'Invalid entry ID' });
+  }
+
   const { title, content, mood, energy_level, tags } = req.body;
 
   if (content !== undefined && content.trim().length === 0) {
@@ -156,6 +163,10 @@ router.delete('/entries/:id', asyncHandler(async (req, res) => {
   const userId = req.user.id;
   const { id } = req.params;
 
+  if (!UUID_RE.test(id)) {
+    return res.status(400).json({ error: 'Invalid entry ID' });
+  }
+
   const { error } = await supabase
     .from('journal_entries')
     .delete()
@@ -176,6 +187,10 @@ router.delete('/entries/:id', asyncHandler(async (req, res) => {
 router.post('/entries/:id/analyze', asyncHandler(async (req, res) => {
   const userId = req.user.id;
   const { id } = req.params;
+
+  if (!UUID_RE.test(id)) {
+    return res.status(400).json({ error: 'Invalid entry ID' });
+  }
 
   // Fetch the entry
   const { data: entry, error: fetchError } = await supabase
