@@ -30,10 +30,16 @@ const router = express.Router();
  * GET /api/goals - List goals with optional status filter
  * Query params: ?status=active (or suggested, completed, abandoned)
  */
+const VALID_GOAL_STATUSES = new Set(['suggested', 'active', 'completed', 'abandoned']);
+
 router.get('/', authenticateUser, async (req, res) => {
   try {
     const userId = req.user.id;
     const { status } = req.query;
+
+    if (status && !VALID_GOAL_STATUSES.has(status)) {
+      return res.status(400).json({ success: false, error: 'Invalid status filter' });
+    }
 
     const statusFilter = status || null;
     const goals = await getUserGoals(userId, statusFilter);
@@ -78,12 +84,14 @@ router.get('/summary', authenticateUser, async (req, res) => {
 /**
  * GET /api/goals/:id - Goal with progress log
  */
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 router.get('/:id', authenticateUser, async (req, res) => {
   try {
     const userId = req.user.id;
     const { id } = req.params;
 
-    if (!id || id.length < 10) {
+    if (!id || !UUID_RE.test(id)) {
       return res.status(400).json({ success: false, error: 'Invalid goal ID' });
     }
 
@@ -108,6 +116,10 @@ router.post('/:id/accept', authenticateUser, async (req, res) => {
     const userId = req.user.id;
     const { id } = req.params;
 
+    if (!id || !UUID_RE.test(id)) {
+      return res.status(400).json({ success: false, error: 'Invalid goal ID' });
+    }
+
     const result = await acceptGoal(id, userId);
 
     if (!result.success) {
@@ -129,6 +141,10 @@ router.post('/:id/dismiss', authenticateUser, async (req, res) => {
     const userId = req.user.id;
     const { id } = req.params;
 
+    if (!id || !UUID_RE.test(id)) {
+      return res.status(400).json({ success: false, error: 'Invalid goal ID' });
+    }
+
     const result = await dismissGoal(id, userId);
 
     if (!result.success) {
@@ -149,6 +165,10 @@ router.post('/:id/abandon', authenticateUser, async (req, res) => {
   try {
     const userId = req.user.id;
     const { id } = req.params;
+
+    if (!id || !UUID_RE.test(id)) {
+      return res.status(400).json({ success: false, error: 'Invalid goal ID' });
+    }
 
     const result = await abandonGoal(id, userId);
 
