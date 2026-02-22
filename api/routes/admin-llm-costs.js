@@ -73,7 +73,7 @@ router.get('/llm-costs', async (req, res) => {
     });
   } catch (error) {
     console.error('[Admin LLM Costs] Summary error:', error.message);
-    res.status(500).json({ error: error.message });
+    res.status(500).json({ error: process.env.NODE_ENV !== 'production' ? error.message : 'Internal server error' });
   }
 });
 
@@ -119,7 +119,7 @@ router.get('/llm-costs/daily', async (req, res) => {
     });
   } catch (error) {
     console.error('[Admin LLM Costs] Daily error:', error.message);
-    res.status(500).json({ error: error.message });
+    res.status(500).json({ error: process.env.NODE_ENV !== 'production' ? error.message : 'Internal server error' });
   }
 });
 
@@ -145,7 +145,7 @@ router.get('/llm-costs/realtime', async (req, res) => {
     });
   } catch (error) {
     console.error('[Admin LLM Costs] Realtime error:', error.message);
-    res.status(500).json({ error: error.message });
+    res.status(500).json({ error: process.env.NODE_ENV !== 'production' ? error.message : 'Internal server error' });
   }
 });
 
@@ -248,7 +248,7 @@ router.get('/llm-costs/by-user', async (req, res) => {
     });
   } catch (error) {
     console.error('[Admin LLM Costs] By-user error:', error.message);
-    res.status(500).json({ error: error.message });
+    res.status(500).json({ error: process.env.NODE_ENV !== 'production' ? error.message : 'Internal server error' });
   }
 });
 

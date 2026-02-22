@@ -65,7 +65,7 @@ router.post('/connect', authenticateUser, async (req, res) => {
     });
   } catch (error) {
     console.error('[Wearables] Connect error:', error);
-    res.status(500).json({ error: error.message });
+    res.status(500).json({ error: process.env.NODE_ENV !== 'production' ? error.message : 'Internal server error' });
   }
 });
 
@@ -103,7 +103,7 @@ router.get('/status', authenticateUser, async (req, res) => {
     });
   } catch (error) {
     console.error('[Wearables] Status error:', error);
-    res.status(500).json({ error: error.message });
+    res.status(500).json({ error: process.env.NODE_ENV !== 'production' ? error.message : 'Internal server error' });
   }
 });
 
@@ -142,7 +142,7 @@ router.post('/disconnect', authenticateUser, async (req, res) => {
     res.json({ success: true, provider });
   } catch (error) {
     console.error('[Wearables] Disconnect error:', error);
-    res.status(500).json({ error: error.message });
+    res.status(500).json({ error: process.env.NODE_ENV !== 'production' ? error.message : 'Internal server error' });
   }
 });
 
@@ -247,7 +247,7 @@ router.post('/sync', authenticateUser, async (req, res) => {
     });
   } catch (error) {
     console.error('[Wearables] Sync error:', error);
-    res.status(500).json({ error: error.message });
+    res.status(500).json({ error: process.env.NODE_ENV !== 'production' ? error.message : 'Internal server error' });
   }
 });
 
@@ -283,7 +283,7 @@ router.get('/data', authenticateUser, async (req, res) => {
     res.json({ data: data || [] });
   } catch (error) {
     console.error('[Wearables] Data fetch error:', error);
-    res.status(500).json({ error: error.message });
+    res.status(500).json({ error: process.env.NODE_ENV !== 'production' ? error.message : 'Internal server error' });
   }
 });
 
@@ -317,7 +317,7 @@ router.get('/health', async (req, res) => {
   } catch (error) {
     res.json({
       open_wearables: 'unavailable',
-      error: error.message
+      error: process.env.NODE_ENV !== 'production' ? error.message : 'Internal server error'
     });
   }
 });

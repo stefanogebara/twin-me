@@ -87,7 +87,7 @@ router.post('/detect', authenticateToken, async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Failed to detect patterns',
-      error: error.message
+      error: process.env.NODE_ENV !== 'production' ? error.message : 'Internal server error'
     });
   }
 });
@@ -144,7 +144,7 @@ router.get('/', authenticateToken, async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Failed to get patterns',
-      error: error.message
+      error: process.env.NODE_ENV !== 'production' ? error.message : 'Internal server error'
     });
   }
 });
@@ -190,7 +190,7 @@ router.get('/:id', authenticateToken, async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Failed to get pattern',
-      error: error.message
+      error: process.env.NODE_ENV !== 'production' ? error.message : 'Internal server error'
     });
   }
 });
@@ -258,7 +258,7 @@ router.put('/:id', authenticateToken, async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Failed to update pattern',
-      error: error.message
+      error: process.env.NODE_ENV !== 'production' ? error.message : 'Internal server error'
     });
   }
 });
@@ -284,7 +284,7 @@ router.delete('/:id', authenticateToken, async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Failed to delete pattern',
-      error: error.message
+      error: process.env.NODE_ENV !== 'production' ? error.message : 'Internal server error'
     });
   }
 });
@@ -316,7 +316,7 @@ router.post('/track', authenticateToken, async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Failed to track patterns',
-      error: error.message
+      error: process.env.NODE_ENV !== 'production' ? error.message : 'Internal server error'
     });
   }
 });
@@ -341,7 +341,7 @@ router.get('/tracking/status', authenticateToken, async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Failed to get tracking status',
-      error: error.message
+      error: process.env.NODE_ENV !== 'production' ? error.message : 'Internal server error'
     });
   }
 });
@@ -367,7 +367,7 @@ router.post('/:id/predict', authenticateToken, async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Failed to predict pattern occurrence',
-      error: error.message
+      error: process.env.NODE_ENV !== 'production' ? error.message : 'Internal server error'
     });
   }
 });
@@ -414,7 +414,7 @@ router.get('/insights', authenticateToken, async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Failed to get insights',
-      error: error.message
+      error: process.env.NODE_ENV !== 'production' ? error.message : 'Internal server error'
     });
   }
 });
@@ -455,7 +455,7 @@ router.post('/insights/generate', authenticateToken, async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Failed to generate insights',
-      error: error.message
+      error: process.env.NODE_ENV !== 'production' ? error.message : 'Internal server error'
     });
   }
 });
@@ -481,7 +481,7 @@ router.post('/insights/:id/dismiss', authenticateToken, async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Failed to dismiss insight',
-      error: error.message
+      error: process.env.NODE_ENV !== 'production' ? error.message : 'Internal server error'
     });
   }
 });
@@ -519,7 +519,7 @@ router.post('/insights/:id/rate', authenticateToken, async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Failed to rate insight',
-      error: error.message
+      error: process.env.NODE_ENV !== 'production' ? error.message : 'Internal server error'
     });
   }
 });
@@ -597,7 +597,7 @@ router.get('/stats', authenticateToken, async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Failed to get statistics',
-      error: error.message
+      error: process.env.NODE_ENV !== 'production' ? error.message : 'Internal server error'
     });
   }
 });

@@ -13,13 +13,13 @@ const router = express.Router();
  * GET /api/research-rag/status
  * Get the status of indexed research papers
  */
-router.get('/status', async (req, res) => {
+router.get('/status', authenticateToken, async (req, res) => {
   try {
     const status = await researchRAGService.getIndexStatus();
     res.json({ success: true, ...status });
   } catch (error) {
     console.error('[Research RAG] Error getting status:', error);
-    res.status(500).json({ success: false, error: error.message });
+    res.status(500).json({ success: false, error: process.env.NODE_ENV !== 'production' ? error.message : 'Internal server error' });
   }
 });
 
@@ -27,14 +27,14 @@ router.get('/status', async (req, res) => {
  * POST /api/research-rag/index
  * Index all research papers with embeddings
  */
-router.post('/index', async (req, res) => {
+router.post('/index', authenticateToken, async (req, res) => {
   try {
     console.log('[Research RAG] Starting indexing...');
     const result = await researchRAGService.indexResearchPapers();
     res.json({ success: true, ...result });
   } catch (error) {
     console.error('[Research RAG] Error indexing:', error);
-    res.status(500).json({ success: false, error: error.message });
+    res.status(500).json({ success: false, error: process.env.NODE_ENV !== 'production' ? error.message : 'Internal server error' });
   }
 });
 
@@ -43,7 +43,7 @@ router.post('/index', async (req, res) => {
  * Search for relevant research papers
  * Body: { query: string, limit?: number, threshold?: number }
  */
-router.post('/search', async (req, res) => {
+router.post('/search', authenticateToken, async (req, res) => {
   try {
     const { query, limit = 5, threshold = 0.3 } = req.body;
 
@@ -61,7 +61,7 @@ router.post('/search', async (req, res) => {
     });
   } catch (error) {
     console.error('[Research RAG] Error searching:', error);
-    res.status(500).json({ success: false, error: error.message });
+    res.status(500).json({ success: false, error: process.env.NODE_ENV !== 'production' ? error.message : 'Internal server error' });
   }
 });
 
@@ -69,7 +69,7 @@ router.post('/search', async (req, res) => {
  * GET /api/research-rag/context/:dimension/:feature
  * Get research context for a specific personality dimension and feature
  */
-router.get('/context/:dimension/:feature', async (req, res) => {
+router.get('/context/:dimension/:feature', authenticateToken, async (req, res) => {
   try {
     const { dimension, feature } = req.params;
 
@@ -83,7 +83,7 @@ router.get('/context/:dimension/:feature', async (req, res) => {
     });
   } catch (error) {
     console.error('[Research RAG] Error getting context:', error);
-    res.status(500).json({ success: false, error: error.message });
+    res.status(500).json({ success: false, error: process.env.NODE_ENV !== 'production' ? error.message : 'Internal server error' });
   }
 });
 

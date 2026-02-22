@@ -229,7 +229,7 @@ router.get('/health', async (req, res) => {
     console.error('❌ [Orchestrator API] Health check failed:', error);
     res.status(500).json({
       status: 'unhealthy',
-      error: error.message,
+      error: process.env.NODE_ENV !== 'production' ? error.message : 'Internal server error',
       timestamp: new Date().toISOString()
     });
   }

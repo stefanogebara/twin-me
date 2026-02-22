@@ -157,7 +157,7 @@ router.get('/soul-signature', authenticateApiKey, async (req, res) => {
     const signature = await getSoulSignature(req.userId);
     res.json({ success: true, data: signature });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    res.status(500).json({ error: process.env.NODE_ENV !== 'production' ? error.message : 'Internal server error' });
   }
 });
 
@@ -170,7 +170,7 @@ router.get('/live-data', authenticateApiKey, async (req, res) => {
     const data = await getPlatformData(req.userId, platforms);
     res.json({ success: true, data });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    res.status(500).json({ error: process.env.NODE_ENV !== 'production' ? error.message : 'Internal server error' });
   }
 });
 
@@ -182,7 +182,7 @@ router.get('/patterns', authenticateApiKey, async (req, res) => {
     const patterns = await getPatterns(req.userId);
     res.json({ success: true, data: patterns });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    res.status(500).json({ error: process.env.NODE_ENV !== 'production' ? error.message : 'Internal server error' });
   }
 });
 
@@ -194,7 +194,7 @@ router.get('/insights', authenticateApiKey, async (req, res) => {
     const insights = await getInsights(req.userId);
     res.json({ success: true, data: insights });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    res.status(500).json({ error: process.env.NODE_ENV !== 'production' ? error.message : 'Internal server error' });
   }
 });
 
@@ -206,7 +206,7 @@ router.get('/predictions', authenticateApiKey, async (req, res) => {
     const predictions = await getPredictions(req.userId);
     res.json({ success: true, data: predictions });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    res.status(500).json({ error: process.env.NODE_ENV !== 'production' ? error.message : 'Internal server error' });
   }
 });
 

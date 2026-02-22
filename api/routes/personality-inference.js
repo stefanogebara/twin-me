@@ -63,7 +63,7 @@ router.post('/infer', async (req, res) => {
     console.error('[PersonalityAPI] Inference error:', error);
     res.status(500).json({
       success: false,
-      error: error.message
+      error: process.env.NODE_ENV !== 'production' ? error.message : 'Internal server error'
     });
   }
 });
@@ -128,7 +128,7 @@ router.get('/evidence', authenticateUser, async (req, res) => {
     console.error('[PersonalityAPI] Evidence retrieval error:', error);
     res.status(500).json({
       success: false,
-      error: error.message
+      error: process.env.NODE_ENV !== 'production' ? error.message : 'Internal server error'
     });
   }
 });
@@ -196,7 +196,7 @@ router.get('/evidence/:userId', authenticateUser, async (req, res) => {
     console.error('[PersonalityAPI] Evidence retrieval error:', error);
     res.status(500).json({
       success: false,
-      error: error.message
+      error: process.env.NODE_ENV !== 'production' ? error.message : 'Internal server error'
     });
   }
 });
@@ -234,7 +234,7 @@ router.get('/data-sources/:userId', authenticateUser, async (req, res) => {
     console.error('[PersonalityAPI] Data sources check error:', error);
     res.status(500).json({
       success: false,
-      error: error.message
+      error: process.env.NODE_ENV !== 'production' ? error.message : 'Internal server error'
     });
   }
 });
@@ -259,7 +259,7 @@ router.get('/health', async (req, res) => {
     res.status(500).json({
       success: false,
       status: 'unhealthy',
-      error: error.message
+      error: process.env.NODE_ENV !== 'production' ? error.message : 'Internal server error'
     });
   }
 });
@@ -295,7 +295,7 @@ router.post('/analyze/spotify', async (req, res) => {
     console.error('[PersonalityAPI] Spotify analysis error:', error);
     res.status(500).json({
       success: false,
-      error: error.message
+      error: process.env.NODE_ENV !== 'production' ? error.message : 'Internal server error'
     });
   }
 });
@@ -331,7 +331,7 @@ router.post('/analyze/whoop', async (req, res) => {
     console.error('[PersonalityAPI] Whoop analysis error:', error);
     res.status(500).json({
       success: false,
-      error: error.message
+      error: process.env.NODE_ENV !== 'production' ? error.message : 'Internal server error'
     });
   }
 });
@@ -367,7 +367,7 @@ router.post('/analyze/calendar', async (req, res) => {
     console.error('[PersonalityAPI] Calendar analysis error:', error);
     res.status(500).json({
       success: false,
-      error: error.message
+      error: process.env.NODE_ENV !== 'production' ? error.message : 'Internal server error'
     });
   }
 });

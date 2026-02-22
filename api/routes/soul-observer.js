@@ -335,7 +335,7 @@ router.get('/insights/:userId', authenticateUser, async (req, res) => {
     console.error('[Soul Observer] Error in /insights/:userId:', error);
     res.status(500).json({
       success: false,
-      error: error.message
+      error: process.env.NODE_ENV !== 'production' ? error.message : 'Internal server error'
     });
   }
 });
@@ -389,7 +389,7 @@ router.get('/patterns/:userId', authenticateUser, async (req, res) => {
     console.error('[Soul Observer] Error in /patterns/:userId:', error);
     res.status(500).json({
       success: false,
-      error: error.message
+      error: process.env.NODE_ENV !== 'production' ? error.message : 'Internal server error'
     });
   }
 });
@@ -441,7 +441,7 @@ router.get('/behavioral-summary/:userId', authenticateUser, async (req, res) => 
     console.error('[Soul Observer] Error in /behavioral-summary/:userId:', error);
     res.status(500).json({
       success: false,
-      error: error.message
+      error: process.env.NODE_ENV !== 'production' ? error.message : 'Internal server error'
     });
   }
 });
@@ -497,7 +497,7 @@ router.get('/sessions/:userId', authenticateUser, async (req, res) => {
     console.error('[Soul Observer] Error in /sessions/:userId:', error);
     res.status(500).json({
       success: false,
-      error: error.message
+      error: process.env.NODE_ENV !== 'production' ? error.message : 'Internal server error'
     });
   }
 });
