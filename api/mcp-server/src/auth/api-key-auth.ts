@@ -102,11 +102,12 @@ export class ApiKeyAuth {
       return { success: false, error: 'API key has expired' };
     }
 
-    // Update last_used_at
-    await this.supabase
+    // Update last_used_at (non-critical — only warn on failure)
+    const { error: touchErr } = await this.supabase
       .from('api_keys')
       .update({ last_used_at: new Date().toISOString() })
       .eq('id', data.id);
+    if (touchErr) console.warn('[MCP Auth] Failed to update last_used_at:', touchErr.message);
 
     return { success: true, userId: data.user_id };
   }
