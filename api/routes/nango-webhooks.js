@@ -123,7 +123,7 @@ async function handleAuthWebhook(data) {
         if (result.success) {
           console.log(`[Nango Webhooks] Initial extraction complete for ${providerConfigKey}`);
 
-          // Store extracted data
+          // Store extracted data (fire-and-forget — don't block webhook response)
           supabaseAdmin
             .from('platform_extracted_data')
             .insert({
@@ -132,11 +132,9 @@ async function handleAuthWebhook(data) {
               data: result.extractedData,
               extracted_at: new Date().toISOString()
             })
-            .then(() => {
-              console.log(`[Nango Webhooks] Stored extracted data for ${providerConfigKey}`);
-            })
-            .catch(err => {
-              console.error(`[Nango Webhooks] Failed to store extracted data:`, err.message);
+            .then(({ error: insertErr }) => {
+              if (insertErr) console.error(`[Nango Webhooks] Failed to store extracted data:`, insertErr.message);
+              else console.log(`[Nango Webhooks] Stored extracted data for ${providerConfigKey}`);
             });
         }
       })
