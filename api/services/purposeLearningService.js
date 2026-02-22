@@ -615,7 +615,7 @@ class PurposeLearningService {
           // Create or update pattern
           const contextConditions = this.buildPatternConditions(patternKey, data.features);
 
-          await supabaseAdmin
+          const { error: upsertErr } = await supabaseAdmin
             .from('purpose_context_patterns')
             .upsert({
               user_id: userId,
@@ -631,6 +631,7 @@ class PurposeLearningService {
             }, {
               onConflict: 'user_id,pattern_name'
             });
+          if (upsertErr) console.error('[PurposeLearning] Error upserting context pattern:', upsertErr.message);
 
           console.log(`✨ [Purpose Learning] Pattern discovered: ${patternKey} -> ${topPurpose} (${Math.round(successRate * 100)}%)`);
         }

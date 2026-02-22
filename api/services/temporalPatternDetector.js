@@ -282,7 +282,7 @@ class TemporalPatternDetector {
 
     try {
       for (const pattern of patterns) {
-        await supabaseAdmin
+        const { error: upsertErr } = await supabaseAdmin
           .from('behavioral_patterns')
           .upsert({
             user_id: userId,
@@ -305,6 +305,9 @@ class TemporalPatternDetector {
           }, {
             onConflict: 'user_id,pattern_type,trigger_event,response_action'
           });
+        if (upsertErr) {
+          console.error('[TemporalPattern] Error upserting pattern:', upsertErr.message);
+        }
       }
 
       console.log('✅ [Pattern Detector] Patterns saved successfully');

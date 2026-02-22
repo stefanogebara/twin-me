@@ -640,7 +640,7 @@ Return ONLY valid JSON in this exact format:
       .slice(0, 50);
 
     for (const [ngram, frequency] of topBigrams) {
-      await supabase
+      const { error: bigramErr } = await supabase
         .from('user_ngrams')
         .upsert({
           user_id: userId,
@@ -651,6 +651,9 @@ Return ONLY valid JSON in this exact format:
         }, {
           onConflict: 'user_id,ngram_type,ngram_value'
         });
+      if (bigramErr) {
+        console.error('[Stylometric] Error upserting bigram:', bigramErr);
+      }
     }
 
     // Store top 50 trigrams
@@ -659,7 +662,7 @@ Return ONLY valid JSON in this exact format:
       .slice(0, 50);
 
     for (const [ngram, frequency] of topTrigrams) {
-      await supabase
+      const { error: trigramErr } = await supabase
         .from('user_ngrams')
         .upsert({
           user_id: userId,
@@ -670,6 +673,9 @@ Return ONLY valid JSON in this exact format:
         }, {
           onConflict: 'user_id,ngram_type,ngram_value'
         });
+      if (trigramErr) {
+        console.error('[Stylometric] Error upserting trigram:', trigramErr);
+      }
     }
 
     console.log(`[Stylometric] Stored ${topBigrams.length} bigrams and ${topTrigrams.length} trigrams`);

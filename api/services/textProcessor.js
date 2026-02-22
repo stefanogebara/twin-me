@@ -322,10 +322,11 @@ class TextProcessor {
    */
   async markAsProcessed(platformDataId) {
     try {
-      await supabase
+      const { error: markErr } = await supabase
         .from('user_platform_data')
         .update({ processed: true })
         .eq('id', platformDataId);
+      if (markErr) console.error('[TextProcessor] Error marking as processed:', markErr.message);
     } catch (error) {
       console.error('[TextProcessor] Error marking as processed:', error);
     }
@@ -336,21 +337,24 @@ class TextProcessor {
    */
   async getProcessingStats(userId) {
     try {
-      const { data: total } = await supabase
+      const { data: total, error: totalErr } = await supabase
         .from('user_platform_data')
         .select('id', { count: 'exact', head: true })
         .eq('user_id', userId);
+      if (totalErr) { console.warn('[TextProcessor] Error getting stats:', totalErr.message); return { total: 0, processed: 0, textContent: 0 }; }
 
-      const { data: processed } = await supabase
+      const { data: processed, error: processedErr } = await supabase
         .from('user_platform_data')
         .select('id', { count: 'exact', head: true })
         .eq('user_id', userId)
         .eq('processed', true);
+      if (processedErr) { console.warn('[TextProcessor] Error getting stats:', processedErr.message); return { total: 0, processed: 0, textContent: 0 }; }
 
-      const { data: textCount } = await supabase
+      const { data: textCount, error: textCountErr } = await supabase
         .from('user_text_content')
         .select('id', { count: 'exact', head: true })
         .eq('user_id', userId);
+      if (textCountErr) { console.warn('[TextProcessor] Error getting stats:', textCountErr.message); return { total: 0, processed: 0, textContent: 0 }; }
 
       return {
         totalRawItems: total || 0,
