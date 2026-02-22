@@ -100,19 +100,7 @@ export async function generateDetailedNarrative(data, name) {
            !(dpLower.includes('linkedin.com/in/') && dpLower.length < 100);
   });
 
-  // Debug logging
-  console.log('[ProfileEnrichment] === DEBUG: Prompt Data ===');
-  console.log('[ProfileEnrichment] Total dataPoints:', dataPoints.length);
-  console.log('[ProfileEnrichment] Filtered dataPoints:', filteredDataPoints.length);
-  console.log('[ProfileEnrichment] Data keys:', Object.keys(data).filter(k => data[k] != null));
-  console.log('[ProfileEnrichment] Has career_timeline:', !!data.career_timeline);
-  if (data.career_timeline) {
-    console.log('[ProfileEnrichment] career_timeline length:', data.career_timeline.length);
-  }
-  console.log('[ProfileEnrichment] Filtered data points:');
-  filteredDataPoints.forEach((dp, i) => {
-    console.log(`  [${i}]: ${dp.substring(0, 300)}${dp.length > 300 ? '...' : ''}`);
-  });
+  console.log(`[ProfileEnrichment] Generating narrative: ${filteredDataPoints.length}/${dataPoints.length} data points used`);
 
   const prompt = `Write a SHORT biography (3-4 sentences max) covering only verified facts.
 
