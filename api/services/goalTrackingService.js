@@ -609,20 +609,20 @@ async function trackGoalProgress(userId, platformData) {
 
       const targetMet = evaluateTarget(measuredValue, goal.target_value, goal.target_operator);
 
-      // Insert progress log
+      // Upsert progress log — UNIQUE(goal_id, tracked_date) so concurrent ingestions silently skip
       const { error: insertErr } = await supabase
         .from('goal_progress_log')
-        .insert({
+        .upsert({
           goal_id: goal.id,
           user_id: userId,
           tracked_date: today,
           measured_value: measuredValue,
           target_met: targetMet,
           source_data: { metric_type: goal.metric_type, platform: goal.source_platform },
-        });
+        }, { onConflict: 'goal_id,tracked_date', ignoreDuplicates: true });
 
       if (insertErr) {
-        console.warn(`[GoalTracking] Progress insert error for goal ${goal.id}:`, insertErr.message);
+        console.warn(`[GoalTracking] Progress upsert error for goal ${goal.id}:`, insertErr.message);
         continue;
       }
 
