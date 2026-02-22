@@ -143,7 +143,7 @@ export async function extractYouTubeData(userId) {
     }
 
     // Update connection status
-    await supabase
+    const { error: ytSuccessUpdateErr } = await supabase
       .from('platform_connections')
       .update({
         last_synced_at: new Date(),
@@ -151,6 +151,8 @@ export async function extractYouTubeData(userId) {
       })
       .eq('user_id', userId)
       .eq('platform', 'youtube');
+
+    if (ytSuccessUpdateErr) console.warn('[YouTube] Error updating connection status to success:', ytSuccessUpdateErr.message);
 
     return {
       success: true,
@@ -165,13 +167,15 @@ export async function extractYouTubeData(userId) {
 
     // Handle token expiration
     if (error.response?.status === 401) {
-      await supabase
+      const { error: ytReauthUpdateErr } = await supabase
         .from('platform_connections')
         .update({
           last_sync_status: 'requires_reauth'
         })
         .eq('user_id', userId)
         .eq('platform', 'youtube');
+
+      if (ytReauthUpdateErr) console.warn('[YouTube] Error updating connection status to requires_reauth:', ytReauthUpdateErr.message);
 
       return {
         success: false,
@@ -192,13 +196,15 @@ export async function extractYouTubeData(userId) {
     }
 
     // Update connection with error status
-    await supabase
+    const { error: ytFailedUpdateErr } = await supabase
       .from('platform_connections')
       .update({
         last_sync_status: 'failed'
       })
       .eq('user_id', userId)
       .eq('platform', 'youtube');
+
+    if (ytFailedUpdateErr) console.warn('[YouTube] Error updating connection status to failed:', ytFailedUpdateErr.message);
 
     throw error;
   }

@@ -66,11 +66,13 @@ async function handleGitHubWebhook(event, payload, userId) {
     }
 
     // Update last sync timestamp
-    await supabase
+    const { error: githubSyncErr } = await supabase
       .from('platform_connections')
       .update({ last_sync: new Date().toISOString() })
       .eq('user_id', userId)
       .eq('platform', 'github');
+
+    if (githubSyncErr) console.error('[Webhook] Error updating GitHub last_sync:', githubSyncErr.message);
 
     // Notify user via WebSocket and SSE
     notifyNewData(userId, 'github', event, 1);
@@ -100,7 +102,7 @@ async function handleGmailPushNotification(message, userId) {
     const historyId = data.historyId;
 
     // Store the notification
-    await supabase
+    const { error: gmailInsertErr } = await supabase
       .from('user_platform_data')
       .insert({
         user_id: userId,
@@ -114,12 +116,16 @@ async function handleGmailPushNotification(message, userId) {
         extracted_at: new Date().toISOString(),
       });
 
+    if (gmailInsertErr) console.error('[Webhook] Error storing Gmail push notification data:', gmailInsertErr.message);
+
     // Update last sync
-    await supabase
+    const { error: gmailSyncErr } = await supabase
       .from('platform_connections')
       .update({ last_sync: new Date().toISOString() })
       .eq('user_id', userId)
       .eq('platform', 'google_gmail');
+
+    if (gmailSyncErr) console.error('[Webhook] Error updating Gmail last_sync:', gmailSyncErr.message);
 
     // Notify user via WebSocket and SSE
     notifyNewData(userId, 'google_gmail', 'new_email', 1);
@@ -148,7 +154,7 @@ async function handleSlackEvent(event, payload, userId) {
     }
 
     // Store the event
-    await supabase
+    const { error: slackInsertErr } = await supabase
       .from('user_platform_data')
       .insert({
         user_id: userId,
@@ -158,12 +164,16 @@ async function handleSlackEvent(event, payload, userId) {
         extracted_at: new Date().toISOString(),
       });
 
+    if (slackInsertErr) console.error('[Webhook] Error storing Slack event data:', slackInsertErr.message);
+
     // Update last sync
-    await supabase
+    const { error: slackSyncErr } = await supabase
       .from('platform_connections')
       .update({ last_sync: new Date().toISOString() })
       .eq('user_id', userId)
       .eq('platform', 'slack');
+
+    if (slackSyncErr) console.error('[Webhook] Error updating Slack last_sync:', slackSyncErr.message);
 
     // Notify user via WebSocket and SSE
     notifyNewData(userId, 'slack', event.type, 1);
@@ -219,7 +229,7 @@ async function registerGitHubWebhook(userId, accessToken, repoOwner, repoName) {
     console.log(`✅ GitHub webhook registered for ${repoOwner}/${repoName}`);
 
     // Store webhook info in database
-    await supabase
+    const { error: webhookInsertErr } = await supabase
       .from('platform_webhooks')
       .insert({
         user_id: userId,
@@ -232,6 +242,8 @@ async function registerGitHubWebhook(userId, accessToken, repoOwner, repoName) {
           created_at: webhook.created_at,
         },
       });
+
+    if (webhookInsertErr) console.error('[Webhook] Error storing GitHub webhook registration:', webhookInsertErr.message);
 
     return { success: true, webhook };
   } catch (error) {
@@ -273,7 +285,7 @@ async function setupGmailPushNotifications(userId, accessToken) {
     console.log(`✅ Gmail push notifications enabled for user ${userId}`);
 
     // Store watch info
-    await supabase
+    const { error: gmailWatchInsertErr } = await supabase
       .from('platform_webhooks')
       .insert({
         user_id: userId,
@@ -285,6 +297,8 @@ async function setupGmailPushNotifications(userId, accessToken) {
           expiration: watchResponse.expiration,
         },
       });
+
+    if (gmailWatchInsertErr) console.error('[Webhook] Error storing Gmail watch registration:', gmailWatchInsertErr.message);
 
     return { success: true, watchResponse };
   } catch (error) {
