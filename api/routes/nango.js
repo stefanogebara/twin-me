@@ -5,6 +5,7 @@
  * via Nango unified API
  */
 
+import crypto from 'crypto';
 import express from 'express';
 import { Nango } from '@nangohq/node';
 import { authenticateUser } from '../middleware/auth.js';
@@ -93,6 +94,20 @@ router.post('/verify-connection', authenticateUser, async (req, res) => {
 
     if (!integrationId) {
       return res.status(400).json({ success: false, error: 'integrationId is required' });
+    }
+
+    // Allowlist: only permit known Nango integration IDs to prevent SSRF via arbitrary provider keys
+    const ALLOWED_INTEGRATION_IDS = new Set([
+      'spotify', 'spotify-getting-started',
+      'google-calendar', 'google-calendar-getting-started',
+      'whoop', 'whoop-getting-started',
+      'youtube', 'youtube-getting-started',
+      'twitch', 'twitch-getting-started',
+      'discord', 'discord-getting-started',
+    ]);
+    if (!ALLOWED_INTEGRATION_IDS.has(integrationId)) {
+      console.warn(`[Nango API] Rejected unknown integrationId: ${integrationId}`);
+      return res.status(400).json({ success: false, error: 'Unknown integration' });
     }
 
     console.log(`[Nango API] Verifying connection for ${integrationId} (user: ${userId})`);
@@ -751,6 +766,27 @@ router.get('/gmail/labels', authenticateUser, async (req, res) => {
  * Configure in Nango Dashboard > Settings > Webhooks
  */
 router.post('/webhook', async (req, res) => {
+  // Verify Nango webhook signature to prevent spoofed events
+  const webhookSecret = process.env.NANGO_WEBHOOK_SECRET;
+  if (webhookSecret) {
+    const signature = req.headers['x-nango-signature'];
+    if (!signature) {
+      console.warn('[Nango Webhook] Missing signature header — rejecting');
+      return res.status(401).json({ success: false, error: 'Missing webhook signature' });
+    }
+    // Body has already been parsed by express.json(), re-serialize for HMAC
+    const bodyStr = JSON.stringify(req.body);
+    const expected = crypto.createHmac('sha256', webhookSecret).update(bodyStr).digest('hex');
+    const sigBuf = Buffer.from(signature);
+    const expBuf = Buffer.from(expected);
+    if (sigBuf.length !== expBuf.length || !crypto.timingSafeEqual(sigBuf, expBuf)) {
+      console.warn('[Nango Webhook] Signature mismatch — rejecting');
+      return res.status(401).json({ success: false, error: 'Invalid webhook signature' });
+    }
+  } else {
+    console.warn('[Nango Webhook] NANGO_WEBHOOK_SECRET not set — skipping signature verification');
+  }
+
   try {
     const { type, connectionId, providerConfigKey, endUser } = req.body;
 

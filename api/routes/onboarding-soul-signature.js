@@ -56,7 +56,10 @@ router.post('/instant-signature', authenticateUser, async (req, res) => {
     }
 
     // Fetch calibration data from DB if not provided
-    let insights = calibrationInsights || [];
+    // Enforce array type — reject strings/objects to prevent template injection
+    let insights = Array.isArray(calibrationInsights)
+      ? calibrationInsights.slice(0, 20).map(s => (typeof s === 'string' ? s.substring(0, 200) : '').trim()).filter(Boolean)
+      : [];
     let archetypeHint = '';
     let personalitySummary = '';
 
