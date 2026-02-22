@@ -336,9 +336,15 @@ router.post('/', async (req, res) => {
     // Verify cron secret for security
     const cronSecret = req.headers['x-vercel-cron-secret'] || req.headers['authorization'];
     const expectedSecret = process.env.CRON_SECRET;
+    const isDevelopment = process.env.NODE_ENV === 'development';
 
-    if (expectedSecret && cronSecret !== expectedSecret && cronSecret !== `Bearer ${expectedSecret}`) {
-      return res.status(401).json({ error: 'Unauthorized' });
+    if (!isDevelopment) {
+      if (!expectedSecret) {
+        return res.status(500).json({ error: 'CRON_SECRET not configured in production' });
+      }
+      if (cronSecret !== expectedSecret && cronSecret !== `Bearer ${expectedSecret}`) {
+        return res.status(401).json({ error: 'Unauthorized' });
+      }
     }
 
     console.log('[Claude Sync Cron] Starting scheduled sync...');
@@ -462,8 +468,15 @@ router.post('/process-analysis', async (req, res) => {
     // Verify cron secret for security (same as main cron endpoint)
     const cronSecret = req.headers['x-vercel-cron-secret'] || req.headers['authorization'];
     const expectedSecret = process.env.CRON_SECRET;
-    if (expectedSecret && cronSecret !== expectedSecret && cronSecret !== `Bearer ${expectedSecret}`) {
-      return res.status(401).json({ error: 'Unauthorized' });
+    const isDevelopment = process.env.NODE_ENV === 'development';
+
+    if (!isDevelopment) {
+      if (!expectedSecret) {
+        return res.status(500).json({ error: 'CRON_SECRET not configured in production' });
+      }
+      if (cronSecret !== expectedSecret && cronSecret !== `Bearer ${expectedSecret}`) {
+        return res.status(401).json({ error: 'Unauthorized' });
+      }
     }
 
     const limit = Math.min(Math.max(parseInt(req.query.limit, 10) || 50, 1), 200);
