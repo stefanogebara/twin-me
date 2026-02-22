@@ -340,9 +340,10 @@ async function generateReflections(userId, depth = 0) {
       }
     }
 
-    // Set cooldown (only on initial call)
+    // Set cooldown (only on initial call) and auto-expire to prevent memory leak
     if (depth === 0) {
       reflectionCooldowns.set(userId, Date.now());
+      setTimeout(() => reflectionCooldowns.delete(userId), REFLECTION_COOLDOWN_MS);
     }
 
     console.log(`[Reflection] Completed depth ${depth}: ${reflectionsGenerated} reflections from ${EXPERT_PERSONAS.length} experts for user ${userId}`);
