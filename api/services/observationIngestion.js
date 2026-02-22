@@ -936,6 +936,12 @@ async function runPostOnboardingIngestion(userId) {
         for (const obs of observations) {
           const content = typeof obs === 'string' ? obs : obs.content;
           const contentType = typeof obs === 'string' ? undefined : obs.contentType;
+
+          // Skip invalid observations - empty/null content corrupts the memory stream
+          if (!content || typeof content !== 'string' || content.trim() === '') {
+            continue;
+          }
+
           const dup = await isDuplicate(userId, platform, content, contentType);
           if (dup) continue;
 
@@ -993,11 +999,13 @@ async function runPostOnboardingIngestion(userId) {
 
       // Regenerate twin summary after a delay to allow reflections to complete
       // The reflection engine runs in parallel, so wait 30 seconds before summarizing
-      setTimeout(() => {
+      // unref() ensures this timer doesn't prevent graceful process shutdown.
+      const summaryTimer = setTimeout(() => {
         generateTwinSummary(userId).catch(err =>
           console.warn(`[PostOnboarding] Twin summary regeneration error:`, err.message)
         );
       }, 30000); // 30s delay gives reflection engine time to complete
+      summaryTimer.unref();
     }
 
     console.log(`[ObservationIngestion] Post-onboarding: stored ${totalStored} observations for user ${userId}`);
