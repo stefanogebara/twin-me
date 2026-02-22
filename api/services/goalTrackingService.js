@@ -587,16 +587,18 @@ async function trackGoalProgress(userId, platformData) {
     const today = new Date().toISOString().split('T')[0];
     let tracked = 0;
 
-    for (const goal of activeGoals) {
-      // Check if already tracked today
-      const { data: existing } = await supabase
-        .from('goal_progress_log')
-        .select('id')
-        .eq('goal_id', goal.id)
-        .eq('tracked_date', today)
-        .maybeSingle();
+    // Batch-check which goals are already tracked today (avoids N+1 query per goal)
+    const goalIds = activeGoals.map(g => g.id);
+    const { data: existingLogs, error: existingLogsErr } = await supabase
+      .from('goal_progress_log')
+      .select('goal_id')
+      .in('goal_id', goalIds)
+      .eq('tracked_date', today);
+    if (existingLogsErr) console.warn('[GoalTracking] Error fetching existing logs:', existingLogsErr.message);
+    const alreadyTracked = new Set((existingLogs || []).map(l => l.goal_id));
 
-      if (existing) continue;
+    for (const goal of activeGoals) {
+      if (alreadyTracked.has(goal.id)) continue;
 
       // Extract metric from platform data, or fallback to recent memories
       let measuredValue = extractMetricFromPlatformData(goal.metric_type, platformData);
