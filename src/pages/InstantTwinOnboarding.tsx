@@ -400,6 +400,35 @@ const InstantTwinOnboarding = () => {
           title: "Ready to extract your Soul Signature!",
           description: "Navigate to the dashboard to begin extraction.",
         });
+
+        // Generate instant soul signature archetype (non-blocking — failure doesn't block navigation)
+        try {
+          const instantSigRes = await fetch(`${import.meta.env.VITE_API_URL}/onboarding/instant-signature`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              Authorization: `Bearer ${token}`,
+            },
+            body: JSON.stringify({
+              enrichmentContext: {
+                answers: [],
+                writingSamples: [],
+              },
+              calibrationInsights: '',
+              connectedPlatforms: connectedServices,
+            }),
+          });
+
+          if (instantSigRes.ok) {
+            const sigData = await instantSigRes.json();
+            if (sigData.archetype?.archetype_name) {
+              sessionStorage.setItem('instant_archetype', JSON.stringify(sigData.archetype));
+            }
+          }
+        } catch (err) {
+          console.warn('[Onboarding] instant-signature failed (non-blocking):', err);
+        }
+
         setTimeout(() => navigate('/soul-signature'), 500);
       } else {
         throw new Error(`Failed to create soul signature structure: ${result.error || result.message || 'Unknown error'}`);
