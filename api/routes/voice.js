@@ -299,7 +299,7 @@ router.post('/clone', authenticateUser, requireProfessor, userRateLimit(5, 60 * 
 
       if (dbError) {
         console.error('Failed to save voice profile to database:', dbError);
-        // Don't fail the request, just log the error
+        // Voice cloned at ElevenLabs — don't fail, but log for recovery
       }
 
       // Clean up uploaded file
@@ -313,7 +313,7 @@ router.post('/clone', authenticateUser, requireProfessor, userRateLimit(5, 60 * 
         success: true,
         voice_id: cloneResult.voiceId,
         voice_name: voice_name,
-        voice_profile: voiceProfile,
+        voice_profile: voiceProfile || null,
         message: 'Voice cloned successfully',
         timestamp: new Date().toISOString()
       });
