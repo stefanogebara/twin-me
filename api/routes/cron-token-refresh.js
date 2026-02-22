@@ -303,11 +303,11 @@ async function logCronExecution(jobName, status, executionTimeMs, result, errorM
       executed_at: new Date().toISOString(),
     };
 
-    await getSupabaseClient()
+    const { error: logErr } = await getSupabaseClient()
       .from('cron_executions')
       .insert(logEntry);
-
-    console.log(`📊 [CRON] Execution logged to database`);
+    if (logErr) console.warn('⚠️  [CRON] Failed to log execution to database:', logErr.message);
+    else console.log(`📊 [CRON] Execution logged to database`);
   } catch (error) {
     // Don't fail the cron job if logging fails
     console.error('⚠️  [CRON] Failed to log execution:', error.message);

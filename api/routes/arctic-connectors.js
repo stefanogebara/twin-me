@@ -38,7 +38,7 @@ router.get('/connect/:provider', authenticateUser, async (req, res) => {
 
     // Store code verifier in session/database for later validation
     // For now, we'll store it in a temporary table or use stateless approach
-    await supabase
+    const { error: sessionErr } = await supabase
       .from('oauth_sessions')
       .upsert({
         state,
@@ -48,6 +48,7 @@ router.get('/connect/:provider', authenticateUser, async (req, res) => {
         created_at: new Date().toISOString(),
         expires_at: new Date(Date.now() + 30 * 60 * 1000).toISOString() // 30 minutes - enough time for user to complete OAuth
       });
+    if (sessionErr) console.warn('[Arctic] Error storing OAuth session:', sessionErr.message);
 
     console.log(`[Arctic Connector] Authorization URL generated for ${provider}`);
 
@@ -423,7 +424,7 @@ router.post('/refresh/:userId/:provider', authenticateUser, async (req, res) => 
     const encryptedAccessToken = encryptToken(newTokens.accessToken);
     const encryptedRefreshToken = newTokens.refreshToken ? encryptToken(newTokens.refreshToken) : connection.refresh_token;
 
-    await supabase
+    const { error: tokenSaveErr } = await supabase
       .from('platform_connections')
       .update({
         access_token: encryptedAccessToken,
@@ -432,6 +433,7 @@ router.post('/refresh/:userId/:provider', authenticateUser, async (req, res) => 
       })
       .eq('user_id', userId)
       .eq('platform', provider);
+    if (tokenSaveErr) console.warn('[Arctic] Error saving refreshed tokens:', tokenSaveErr.message);
 
     res.json({
       success: true,

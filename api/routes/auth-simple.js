@@ -281,10 +281,11 @@ router.post('/logout', async (req, res) => {
     if (token) {
       try {
         const decoded = jwt.verify(token, JWT_SECRET);
-        await supabaseAdmin
+        const { error: clearTokenErr } = await supabaseAdmin
           .from('users')
           .update({ refresh_token_hash: null })
           .eq('id', decoded.id);
+        if (clearTokenErr) console.warn('[Auth] Error clearing refresh token on logout:', clearTokenErr.message);
       } catch {
         // Token expired or invalid — still clear on best effort
       }

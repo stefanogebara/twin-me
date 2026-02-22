@@ -483,27 +483,24 @@ router.post('/sync', authenticateUser, async (req, res) => {
       events.push(transformedEvent);
 
       // Store in database
-      try {
-        await supabaseAdmin
-          .from('calendar_events')
-          .upsert({
-            user_id: userId,
-            google_event_id: transformedEvent.id,
-            title: transformedEvent.title,
-            description: transformedEvent.description,
-            start_time: transformedEvent.startTime.toISOString(),
-            end_time: transformedEvent.endTime.toISOString(),
-            location: transformedEvent.location,
-            is_important: transformedEvent.isImportant,
-            event_type: transformedEvent.type,
-            attendees: transformedEvent.attendees,
-            synced_at: new Date().toISOString()
-          }, {
-            onConflict: 'user_id,google_event_id'
-          });
-      } catch (dbError) {
-        console.warn(`[Calendar Sync] Failed to store event ${transformedEvent.id}:`, dbError.message);
-      }
+      const { error: eventUpsertErr } = await supabaseAdmin
+        .from('calendar_events')
+        .upsert({
+          user_id: userId,
+          google_event_id: transformedEvent.id,
+          title: transformedEvent.title,
+          description: transformedEvent.description,
+          start_time: transformedEvent.startTime.toISOString(),
+          end_time: transformedEvent.endTime.toISOString(),
+          location: transformedEvent.location,
+          is_important: transformedEvent.isImportant,
+          event_type: transformedEvent.type,
+          attendees: transformedEvent.attendees,
+          synced_at: new Date().toISOString()
+        }, {
+          onConflict: 'user_id,google_event_id'
+        });
+      if (eventUpsertErr) console.warn(`[Calendar Sync] Failed to store event ${transformedEvent.id}:`, eventUpsertErr.message);
     }
 
     // Update platform connection

@@ -45,7 +45,7 @@ export class GithubTokenManager {
         console.error(`❌ GitHub token invalid for user ${userId}`);
 
         // Mark connection as needs reauth
-        await supabase
+        const { error: reauthErr } = await supabase
           .from('platform_connections')
           .update({
             status: 'needs_reauth',
@@ -54,6 +54,7 @@ export class GithubTokenManager {
           })
           .eq('user_id', userId)
           .eq('platform', 'github');
+        if (reauthErr) console.warn('[GitHub] Error marking connection as needs_reauth:', reauthErr.message);
 
         throw new Error('GitHub token has been revoked. User must reconnect.');
       }

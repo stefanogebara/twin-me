@@ -19,26 +19,23 @@ export async function storeReflection(userId, platform, reflection) {
   const expiresAt = new Date();
   expiresAt.setHours(expiresAt.getHours() + CACHE_TTL_HOURS);
 
-  try {
-    await supabaseAdmin
-      .from('reflection_history')
-      .insert({
-        user_id: userId,
-        platform,
-        reflection_text: reflection.text,
-        themes: reflection.themes,
-        confidence: reflection.confidence,
-        reflection_type: 'observation',
-        expires_at: expiresAt.toISOString(),
-        data_snapshot: {
-          patterns: reflection.patterns,
-          evidence: reflection.evidence || [],
-          contextSnapshot: reflection.contextSnapshot || null
-        }
-      });
-  } catch (error) {
-    console.error('[Reflection] Failed to store reflection:', error);
-  }
+  const { error } = await supabaseAdmin
+    .from('reflection_history')
+    .insert({
+      user_id: userId,
+      platform,
+      reflection_text: reflection.text,
+      themes: reflection.themes,
+      confidence: reflection.confidence,
+      reflection_type: 'observation',
+      expires_at: expiresAt.toISOString(),
+      data_snapshot: {
+        patterns: reflection.patterns,
+        evidence: reflection.evidence || [],
+        contextSnapshot: reflection.contextSnapshot || null
+      }
+    });
+  if (error) console.error('[Reflection] Failed to store reflection:', error.message);
 }
 
 /**
