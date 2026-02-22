@@ -300,7 +300,8 @@ router.post('/:id/messages', authenticateUser, userRateLimit(100, 15 * 60 * 1000
     }
 
     // Update conversation's last message time
-    await serverDb.updateConversationLastMessage(conversationId);
+    const { error: updateConvoErr } = await serverDb.updateConversationLastMessage(conversationId);
+    if (updateConvoErr) console.error('[Conversations] Failed to update last message time:', updateConvoErr.message);
 
     res.status(201).json({
       message,

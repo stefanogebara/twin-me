@@ -29,11 +29,12 @@ router.get('/connected', authenticateUser, async (req, res) => {
     // Convert email to UUID if needed
     let userUuid = targetUserId;
     if (targetUserId && !targetUserId.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i)) {
-      const { data: userData } = await supabaseAdmin
+      const { data: userData, error: userLookupErr } = await supabaseAdmin
         .from('users')
         .select('id')
         .eq('email', targetUserId)
         .single();
+      if (userLookupErr && userLookupErr.code !== 'PGRST116') console.error('[DataSources] User email lookup error:', userLookupErr.message);
 
       if (userData) {
         userUuid = userData.id;
@@ -104,11 +105,12 @@ router.get('/status/:userId', authenticateUser, async (req, res) => {
     // Convert email to UUID if needed
     let userUuid = userId;
     if (userId && !userId.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i)) {
-      const { data: userData } = await supabaseAdmin
+      const { data: userData, error: userLookupErr2 } = await supabaseAdmin
         .from('users')
         .select('id')
         .eq('email', userId)
         .single();
+      if (userLookupErr2 && userLookupErr2.code !== 'PGRST116') console.error('[DataSources] User email lookup error:', userLookupErr2.message);
       if (userData) userUuid = userData.id;
     }
 
