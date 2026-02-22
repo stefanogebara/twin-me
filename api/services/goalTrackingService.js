@@ -41,6 +41,16 @@ const suggestionCooldowns = new Map();
 const SUGGESTION_COOLDOWN_MS = 24 * 60 * 60 * 1000;
 const MAX_PENDING_SUGGESTIONS = 2;
 
+// Prune expired cooldown entries to prevent unbounded map growth in long-running servers
+function pruneSuggestionCooldowns() {
+  const now = Date.now();
+  for (const [uid, ts] of suggestionCooldowns) {
+    if (now - ts >= SUGGESTION_COOLDOWN_MS) {
+      suggestionCooldowns.delete(uid);
+    }
+  }
+}
+
 // ====================================================================
 // Core CRUD Operations
 // ====================================================================
@@ -132,7 +142,10 @@ async function acceptGoal(goalId, userId) {
     return { success: false, error: `Cannot accept a goal with status '${goal.status}'` };
   }
 
-  const endDate = new Date(now.getTime() + (goal.duration_days || 14) * 24 * 60 * 60 * 1000)
+  // Clamp duration_days: must be a positive integer, max 365 days
+  const rawDays = Number(goal.duration_days);
+  const durationDays = Number.isFinite(rawDays) && rawDays > 0 ? Math.min(Math.round(rawDays), 365) : 14;
+  const endDate = new Date(now.getTime() + durationDays * 24 * 60 * 60 * 1000)
     .toISOString().split('T')[0];
 
   const { data, error } = await supabase
@@ -524,8 +537,9 @@ async function generateGoalSuggestions(userId) {
       }
     }
 
-    // Set cooldown
+    // Set cooldown and prune expired entries to keep map size bounded
     suggestionCooldowns.set(userId, Date.now());
+    pruneSuggestionCooldowns();
 
     console.log(`[GoalTracking] Generated ${stored} suggestions for user ${userId}`);
     return stored;
