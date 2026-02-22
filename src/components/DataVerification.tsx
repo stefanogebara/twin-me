@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { CheckCircle, XCircle, Loader2, RefreshCw, AlertTriangle, Clock } from 'lucide-react';
 import { usePlatformStatus } from '@/hooks/usePlatformStatus';
-import { useTheme } from '@/contexts/ThemeContext';
 
 // MVP Platform SVG logos only
 const SpotifyLogo = () => (
@@ -106,7 +105,6 @@ const platformConfig: Record<string, {
 };
 
 export const DataVerification: React.FC<DataVerificationProps> = ({ userId, connectedServices }) => {
-  const { theme } = useTheme();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [lastRefreshTime, setLastRefreshTime] = useState<Date | null>(null);
@@ -205,17 +203,11 @@ export const DataVerification: React.FC<DataVerificationProps> = ({ userId, conn
         key={platform}
         className="p-4 rounded-xl transition-all hover:scale-[1.01]"
         style={{
-          backgroundColor: theme === 'dark'
-            ? 'rgba(45, 45, 41, 0.5)'
-            : 'rgba(255, 255, 255, 0.7)',
-          backdropFilter: 'blur(10px)',
-          border: '1px solid',
-          borderColor: theme === 'dark'
-            ? 'rgba(193, 192, 182, 0.1)'
-            : 'rgba(0, 0, 0, 0.06)',
-          boxShadow: theme === 'dark'
-            ? '0 2px 8px rgba(0, 0, 0, 0.2)'
-            : '0 2px 8px rgba(0, 0, 0, 0.04), 0 1px 2px rgba(0, 0, 0, 0.06)'
+          background: 'rgba(255, 255, 255, 0.18)',
+          backdropFilter: 'blur(10px) saturate(140%)',
+          WebkitBackdropFilter: 'blur(10px) saturate(140%)',
+          border: '1px solid rgba(255, 255, 255, 0.45)',
+          boxShadow: '0 8px 32px rgba(0, 0, 0, 0.18), inset 0 1px 0 rgba(255, 255, 255, 0.6)',
         }}
       >
         <div className="flex items-center justify-between">
@@ -227,7 +219,7 @@ export const DataVerification: React.FC<DataVerificationProps> = ({ userId, conn
               <h4
                 className="text-sm font-medium"
                 style={{
-                  color: theme === 'dark' ? '#C1C0B6' : '#0c0a09',
+                  color: '#1F1C18',
                   fontFamily: 'var(--font-ui)'
                 }}
               >
@@ -277,7 +269,7 @@ export const DataVerification: React.FC<DataVerificationProps> = ({ userId, conn
         <h3
           className="text-base font-medium"
           style={{
-            color: theme === 'dark' ? '#C1C0B6' : '#0c0a09',
+            color: '#1F1C18',
             fontFamily: 'var(--font-heading)'
           }}
         >
@@ -288,10 +280,8 @@ export const DataVerification: React.FC<DataVerificationProps> = ({ userId, conn
           disabled={loading}
           className="p-2 rounded-lg transition-all hover:opacity-80 disabled:opacity-50"
           style={{
-            backgroundColor: theme === 'dark'
-              ? 'rgba(193, 192, 182, 0.1)'
-              : 'rgba(0, 0, 0, 0.05)',
-            color: theme === 'dark' ? '#C1C0B6' : '#0c0a09'
+            backgroundColor: 'rgba(0, 0, 0, 0.05)',
+            color: '#1F1C18'
           }}
         >
           <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
@@ -301,7 +291,7 @@ export const DataVerification: React.FC<DataVerificationProps> = ({ userId, conn
       {loading && !platformStatuses && (
         <div className="flex items-center justify-center py-8">
           <Loader2 className="w-6 h-6 animate-spin" style={{
-            color: theme === 'dark' ? '#C1C0B6' : '#0c0a09'
+            color: '#8A857D'
           }} />
         </div>
       )}

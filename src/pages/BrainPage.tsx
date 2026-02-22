@@ -10,7 +10,6 @@ import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import BrainExplorer from '@/components/BrainExplorer';
 import { useAuth } from '@/contexts/AuthContext';
-import { useTheme } from '@/contexts/ThemeContext';
 import { useDemo } from '@/contexts/DemoContext';
 import { PageLayout, GlassPanel } from '@/components/layout/PageLayout';
 import { Sparkles, Zap, GitBranch, Layers } from 'lucide-react';
@@ -18,15 +17,14 @@ import { Clay3DIcon } from '@/components/Clay3DIcon';
 
 const BrainPage: React.FC = () => {
   const { isSignedIn, isLoaded } = useAuth();
-  const { theme } = useTheme();
   const { isDemoMode } = useDemo();
   const navigate = useNavigate();
 
-  // Theme-aware colors
-  const textColor = theme === 'dark' ? '#C1C0B6' : '#0c0a09';
-  const textSecondary = theme === 'dark' ? 'rgba(193, 192, 182, 0.7)' : '#57534e';
-  const textMuted = theme === 'dark' ? 'rgba(193, 192, 182, 0.6)' : '#78716c';
-  const subtleBg = theme === 'dark' ? 'rgba(193, 192, 182, 0.1)' : 'rgba(0, 0, 0, 0.05)';
+  // Design system colors
+  const textColor = '#1F1C18';
+  const textSecondary = '#8A857D';
+  const textMuted = '#8A857D';
+  const subtleBg = 'rgba(0, 0, 0, 0.05)';
 
   // Wait for auth to load
   if (!isLoaded) {
@@ -60,12 +58,7 @@ const BrainPage: React.FC = () => {
               <Clay3DIcon name="brain" size={40} />
             </div>
             <h1
-              className="text-2xl mb-3"
-              style={{
-                fontFamily: 'var(--font-heading)',
-                fontWeight: 400,
-                color: textColor
-              }}
+              className="heading-serif text-2xl mb-3"
             >
               Explore Your Brain
             </h1>
@@ -74,11 +67,7 @@ const BrainPage: React.FC = () => {
             </p>
             <button
               onClick={() => navigate('/auth')}
-              className="flex items-center gap-2 px-6 py-3 rounded-xl mx-auto transition-all hover:scale-[1.02]"
-              style={{
-                backgroundColor: '#4ECDC4',
-                color: '#232320'
-              }}
+              className="btn-cta-app flex items-center gap-2 mx-auto"
             >
               <Sparkles className="w-4 h-4" />
               Sign In to Explore
@@ -114,8 +103,7 @@ const BrainPage: React.FC = () => {
             <Clay3DIcon name="brain" size={40} />
           </motion.div>
           <motion.h1
-            className="text-3xl mb-3"
-            style={{ fontFamily: 'var(--font-heading)', fontWeight: 400, color: textColor }}
+            className="heading-serif text-3xl mb-3"
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.45, delay: 0.15, ease: [0.4, 0, 0.2, 1] }}
@@ -135,8 +123,8 @@ const BrainPage: React.FC = () => {
 
         <GlassPanel className="!p-8 mb-6">
           <div className="flex items-center gap-3 mb-6">
-            <img src="/images/backgrounds/flower-hero.png" alt="" className="w-5 h-5 object-contain drop-shadow-sm" />
-            <h3 className="text-lg" style={{ fontFamily: 'var(--font-heading)', fontWeight: 400, color: textColor }}>
+            <Clay3DIcon name="diamond" size={20} />
+            <h3 className="heading-serif text-lg">
               Knowledge Graph Preview
             </h3>
           </div>
@@ -148,7 +136,7 @@ const BrainPage: React.FC = () => {
                 className="flex items-center gap-3 p-4 rounded-xl transition-all hover:scale-[1.02]"
                 style={{
                   backgroundColor: subtleBg,
-                  border: `1px solid ${theme === 'dark' ? 'rgba(193, 192, 182, 0.08)' : 'rgba(0, 0, 0, 0.04)'}`
+                  border: '1px solid rgba(0, 0, 0, 0.04)'
                 }}
               >
                 <span className="text-2xl">{node.icon}</span>
@@ -182,8 +170,7 @@ const BrainPage: React.FC = () => {
           </p>
           <button
             onClick={() => navigate('/get-started')}
-            className="flex items-center gap-2 px-6 py-3 rounded-xl mx-auto transition-all hover:scale-[1.02]"
-            style={{ backgroundColor: '#4ECDC4', color: '#232320' }}
+            className="btn-cta-app flex items-center gap-2 mx-auto"
           >
             <Sparkles className="w-4 h-4" />
             Connect Platforms to Explore

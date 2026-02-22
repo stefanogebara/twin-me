@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Brain, Heart, Palette, Users, Flame, ChevronDown, ChevronUp } from 'lucide-react';
-import { useTheme } from '@/contexts/ThemeContext';
 import type { TwinDomains } from './types';
 
 type DomainKey = keyof TwinDomains;
@@ -30,8 +29,6 @@ interface Props {
 }
 
 export const BentoDomainTile: React.FC<Props> = ({ domainKey, domains, animationDelay = 0 }) => {
-  const { theme } = useTheme();
-  const isDark = theme === 'dark';
   const [expanded, setExpanded] = useState(false);
 
   const content = domains[domainKey];
@@ -46,10 +43,12 @@ export const BentoDomainTile: React.FC<Props> = ({ domainKey, domains, animation
     <motion.div
       className="rounded-2xl overflow-hidden cursor-pointer"
       style={{
-        backgroundColor: isDark ? 'rgba(30, 30, 26, 0.7)' : 'rgba(255, 255, 255, 0.8)',
-        border: isDark ? '1px solid rgba(193, 192, 182, 0.07)' : '1px solid rgba(0, 0, 0, 0.05)',
+        background: 'rgba(255, 255, 255, 0.18)',
+        backdropFilter: 'blur(10px) saturate(140%)',
+        WebkitBackdropFilter: 'blur(10px) saturate(140%)',
+        border: '1px solid rgba(255, 255, 255, 0.45)',
+        boxShadow: '0 8px 32px rgba(0, 0, 0, 0.18), inset 0 1px 0 rgba(255, 255, 255, 0.6)',
         borderTop: `2px solid ${config.color}`,
-        boxShadow: isDark ? '0 4px 16px rgba(0, 0, 0, 0.25)' : '0 4px 16px rgba(0, 0, 0, 0.04)',
       }}
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
@@ -77,8 +76,8 @@ export const BentoDomainTile: React.FC<Props> = ({ domainKey, domains, animation
           </div>
           {hasMore && (
             expanded
-              ? <ChevronUp className="w-3.5 h-3.5 flex-shrink-0" style={{ color: isDark ? 'rgba(193, 192, 182, 0.3)' : '#c4bfba' }} />
-              : <ChevronDown className="w-3.5 h-3.5 flex-shrink-0" style={{ color: isDark ? 'rgba(193, 192, 182, 0.3)' : '#c4bfba' }} />
+              ? <ChevronUp className="w-3.5 h-3.5 flex-shrink-0" style={{ color: '#c4bfba' }} />
+              : <ChevronDown className="w-3.5 h-3.5 flex-shrink-0" style={{ color: '#c4bfba' }} />
           )}
         </div>
 
@@ -88,7 +87,7 @@ export const BentoDomainTile: React.FC<Props> = ({ domainKey, domains, animation
             <motion.p
               key="expanded"
               className="text-sm leading-relaxed"
-              style={{ color: isDark ? 'rgba(193, 192, 182, 0.75)' : '#4a4540' }}
+              style={{ color: '#4a4540' }}
               initial={{ opacity: 0, height: 0 }}
               animate={{ opacity: 1, height: 'auto' }}
               exit={{ opacity: 0, height: 0 }}
@@ -100,7 +99,7 @@ export const BentoDomainTile: React.FC<Props> = ({ domainKey, domains, animation
             <motion.p
               key="preview"
               className="text-sm leading-relaxed line-clamp-3"
-              style={{ color: isDark ? 'rgba(193, 192, 182, 0.65)' : '#4a4540' }}
+              style={{ color: '#4a4540' }}
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
