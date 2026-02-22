@@ -721,6 +721,12 @@ async function runObservationIngestion() {
             for (const obs of observations) {
               const content = typeof obs === 'string' ? obs : obs.content;
               const contentType = typeof obs === 'string' ? undefined : obs.contentType;
+
+              // Skip invalid observations - empty/null content corrupts the memory stream
+              if (!content || typeof content !== 'string' || content.trim() === '') {
+                continue;
+              }
+
               const duplicate = await isDuplicate(userId, platform, content, contentType);
               if (duplicate) {
                 continue;
@@ -778,12 +784,14 @@ async function runObservationIngestion() {
           );
 
           // Regenerate twin summary after a delay to allow reflections to complete
-          // Reflections have priority, so wait 45s before summarizing
-          setTimeout(() => {
+          // Reflections have priority, so wait 45s before summarizing.
+          // unref() ensures this timer doesn't prevent graceful process shutdown.
+          const summaryTimer = setTimeout(() => {
             generateTwinSummary(userId).catch(err =>
               console.warn(`[ObservationIngestion] Twin summary error for ${userId}:`, err.message)
             );
           }, 45000); // 45s delay: reflections have priority, then summary
+          summaryTimer.unref();
         }
       } catch (userErr) {
         const errMsg = `User ${userId}: ${userErr.message}`;
