@@ -489,7 +489,10 @@ async function getMoltbotContext(userId) {
     const recoveryMem = recentEvents.find(e => e.content?.toLowerCase().includes('recovery') || e.content?.toLowerCase().includes('whoop'));
     if (recoveryMem) {
       const match = recoveryMem.content.match(/(\d+)%?\s*recovery/i);
-      if (match) currentState.recovery = parseInt(match[1]);
+      if (match) {
+        const parsed = parseInt(match[1], 10);
+        if (!isNaN(parsed)) currentState.recovery = Math.max(0, Math.min(100, parsed));
+      }
     }
 
     const moodMem = recentMemories.find(m => m.content?.toLowerCase().includes('mood') || m.content?.toLowerCase().includes('feeling'));
