@@ -149,7 +149,7 @@ router.post('/start', authenticateUser, async (req, res) => {
     trainingJobs.set(userId, job);
 
     // Log analytics event
-    await supabase
+    const { error: startedErr } = await supabase
       .from('analytics_events')
       .insert([{
         event_type: 'training_started',
@@ -158,6 +158,7 @@ router.post('/start', authenticateUser, async (req, res) => {
         session_id: jobId,
         timestamp: new Date().toISOString(),
       }]);
+    if (startedErr) console.warn('[Training] Failed to log training_started event:', startedErr.message);
 
     // Simulate training progress (in production, this would be an async job)
     simulateTraining(userId, epochs);
@@ -198,7 +199,7 @@ router.post('/stop', authenticateUser, async (req, res) => {
     trainingJobs.delete(userId);
 
     // Log analytics event
-    await supabase
+    const { error: stoppedErr } = await supabase
       .from('analytics_events')
       .insert([{
         event_type: 'training_stopped',
@@ -211,6 +212,7 @@ router.post('/stop', authenticateUser, async (req, res) => {
         session_id: job.jobId,
         timestamp: new Date().toISOString(),
       }]);
+    if (stoppedErr) console.warn('[Training] Failed to log training_stopped event:', stoppedErr.message);
 
     res.json({ success: true, message: 'Training stopped' });
   } catch (error) {
@@ -248,7 +250,7 @@ router.post('/reset', authenticateUser, async (req, res) => {
     }
 
     // Log analytics event
-    await supabase
+    const { error: resetErr } = await supabase
       .from('analytics_events')
       .insert([{
         event_type: 'model_reset',
@@ -257,6 +259,7 @@ router.post('/reset', authenticateUser, async (req, res) => {
         session_id: `reset_${Date.now()}`,
         timestamp: new Date().toISOString(),
       }]);
+    if (resetErr) console.warn('[Training] Failed to log model_reset event:', resetErr.message);
 
     res.json({ success: true, message: 'Model reset successfully' });
   } catch (error) {
@@ -301,13 +304,14 @@ async function simulateTraining(userId, totalEpochs) {
   const finalJob = trainingJobs.get(userId);
   if (finalJob && finalJob.jobId === job.jobId) {
     // Update the twin's updated_at to mark completion
-    await supabase
+    const { error: twinUpdateErr } = await supabase
       .from('digital_twins')
       .update({ updated_at: new Date().toISOString() })
       .eq('user_id', userId);
+    if (twinUpdateErr) console.warn('[Training] Failed to update twin updated_at:', twinUpdateErr.message);
 
     // Log completion event
-    await supabase
+    const { error: completedErr } = await supabase
       .from('analytics_events')
       .insert([{
         event_type: 'training_completed',
@@ -319,6 +323,7 @@ async function simulateTraining(userId, totalEpochs) {
         session_id: job.jobId,
         timestamp: new Date().toISOString(),
       }]);
+    if (completedErr) console.warn('[Training] Failed to log training_completed event:', completedErr.message);
 
     // Remove job from active jobs
     trainingJobs.delete(userId);

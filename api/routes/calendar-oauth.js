@@ -284,31 +284,29 @@ router.get('/events', authenticateUser, async (req, res) => {
     // Optionally store events in database for caching
     if (events.length > 0) {
       // Upsert events to calendar_events table (if it exists)
-      try {
-        for (const event of events) {
-          await supabaseAdmin
-            .from('calendar_events')
-            .upsert({
-              user_id: userId,
-              google_event_id: event.id,
-              title: event.title,
-              description: event.description,
-              start_time: event.startTime.toISOString(),
-              end_time: event.endTime.toISOString(),
-              location: event.location,
-              is_important: event.isImportant,
-              event_type: event.type,
-              attendees: event.attendees,
-              synced_at: new Date().toISOString()
-            }, {
-              onConflict: 'user_id,google_event_id'
-            });
-        }
-        console.log(`[Calendar Events] Stored ${events.length} events in database`);
-      } catch (dbError) {
-        // Log but don't fail - database storage is optional
-        console.warn(`[Calendar Events] Failed to store events in database:`, dbError.message);
+      let storeErrors = 0;
+      for (const event of events) {
+        const { error: upsertErr } = await supabaseAdmin
+          .from('calendar_events')
+          .upsert({
+            user_id: userId,
+            google_event_id: event.id,
+            title: event.title,
+            description: event.description,
+            start_time: event.startTime.toISOString(),
+            end_time: event.endTime.toISOString(),
+            location: event.location,
+            is_important: event.isImportant,
+            event_type: event.type,
+            attendees: event.attendees,
+            synced_at: new Date().toISOString()
+          }, {
+            onConflict: 'user_id,google_event_id'
+          });
+        if (upsertErr) storeErrors++;
       }
+      if (storeErrors > 0) console.warn(`[Calendar Events] Failed to store ${storeErrors}/${events.length} events`);
+      else console.log(`[Calendar Events] Stored ${events.length} events in database`);
     }
 
     // Update last sync time in platform_connections
@@ -659,15 +657,12 @@ router.delete('/disconnect', authenticateUser, async (req, res) => {
     await invalidatePlatformStatusCache(userId);
 
     // Optionally delete cached events
-    try {
-      await supabaseAdmin
-        .from('calendar_events')
-        .delete()
-        .eq('user_id', userId);
-      console.log(`[Calendar Disconnect] Deleted cached events for user: ${userId}`);
-    } catch (deleteError) {
-      console.warn(`[Calendar Disconnect] Failed to delete events:`, deleteError.message);
-    }
+    const { error: eventsDeleteErr } = await supabaseAdmin
+      .from('calendar_events')
+      .delete()
+      .eq('user_id', userId);
+    if (eventsDeleteErr) console.warn(`[Calendar Disconnect] Failed to delete events:`, eventsDeleteErr.message);
+    else console.log(`[Calendar Disconnect] Deleted cached events for user: ${userId}`);
 
     res.json({
       success: true,
