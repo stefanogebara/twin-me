@@ -244,7 +244,9 @@ router.get('/stats', authenticateUser, async (req, res) => {
       .from('user_platform_data')
       .select('platform, data_type, raw_data, extracted_at')
       .eq('user_id', userId)
-      .like('data_type', 'extension_%');
+      .like('data_type', 'extension_%')
+      .order('extracted_at', { ascending: false })
+      .limit(500);
 
     if (error) throw error;
 
