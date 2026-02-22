@@ -43,7 +43,14 @@ const supabase = createClient(
  * Start pattern tracking background job
  * Runs every 15 minutes
  */
+let _patternTrackingInterval = null;
+
 export function startPatternTrackingJob() {
+  if (_patternTrackingInterval) {
+    console.warn('[Pattern Tracker] Job already running, skipping duplicate start');
+    return;
+  }
+
   console.log('🚀 [Pattern Tracker] Starting background tracking job');
 
   // Run immediately on startup
@@ -53,13 +60,21 @@ export function startPatternTrackingJob() {
 
   // Then run every 15 minutes
   const intervalMinutes = 15;
-  setInterval(() => {
+  _patternTrackingInterval = setInterval(() => {
     trackAllUsers().catch(err =>
       console.error('❌ [Pattern Tracker] Error in scheduled tracking run:', err)
     );
   }, intervalMinutes * 60 * 1000);
 
   console.log(`✅ [Pattern Tracker] Job scheduled to run every ${intervalMinutes} minutes`);
+}
+
+export function stopPatternTrackingJob() {
+  if (_patternTrackingInterval) {
+    clearInterval(_patternTrackingInterval);
+    _patternTrackingInterval = null;
+    console.log('[Pattern Tracker] Background job stopped');
+  }
 }
 
 /**

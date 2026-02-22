@@ -24,6 +24,11 @@ import { supabaseAdmin } from './database.js';
 
 const SUMMARY_MAX_AGE_MS = 4 * 60 * 60 * 1000; // 4 hours
 
+// In-memory lock: prevents concurrent regeneration for the same user.
+// Maps userId -> pending Promise<generateTwinSummary result>.
+// Concurrent callers join the in-progress generation instead of launching a new one.
+const pendingGenerations = new Map();
+
 /**
  * Summarize a set of retrieved memories into a concise description for a given aspect.
  *
@@ -158,10 +163,21 @@ async function getTwinSummary(userId, userName = 'This person') {
       console.log(`[TwinSummary] Cached summary stale (age: ${Math.round(age / 3600000)}h), regenerating`);
     }
 
-    // Generate fresh summary
-    const result = await generateTwinSummary(userId, userName);
+    // Join existing generation if another request is already running for this user
+    if (pendingGenerations.has(userId)) {
+      console.log(`[TwinSummary] Joining in-progress generation for ${userId}`);
+      const result = await pendingGenerations.get(userId);
+      return result?.summary || null;
+    }
+
+    // Start generation and register promise so concurrent callers can join it
+    const generationPromise = generateTwinSummary(userId, userName)
+      .finally(() => pendingGenerations.delete(userId));
+    pendingGenerations.set(userId, generationPromise);
+    const result = await generationPromise;
     return result?.summary || null;
   } catch (err) {
+    pendingGenerations.delete(userId);
     console.warn('[TwinSummary] getTwinSummary error:', err.message);
     return null;
   }
@@ -197,8 +213,29 @@ async function getTwinSummaryWithDomains(userId, userName = 'This person') {
       }
     }
 
-    // Generate fresh
-    const result = await generateTwinSummary(userId, userName);
+    // Join existing generation if another request is already running for this user
+    if (pendingGenerations.has(userId)) {
+      console.log(`[TwinSummary] Joining in-progress generation for ${userId}`);
+      const result = await pendingGenerations.get(userId);
+      if (!result) return null;
+      return {
+        summary: result.summary,
+        domains: {
+          personality: result.personality,
+          lifestyle: result.lifestyle,
+          culturalIdentity: result.culturalIdentity,
+          socialDynamics: result.socialDynamics,
+          motivation: result.motivation,
+        },
+        generatedAt: new Date().toISOString(),
+      };
+    }
+
+    // Start generation and register promise so concurrent callers can join it
+    const generationPromise = generateTwinSummary(userId, userName)
+      .finally(() => pendingGenerations.delete(userId));
+    pendingGenerations.set(userId, generationPromise);
+    const result = await generationPromise;
     if (!result) return null;
 
     return {
@@ -213,6 +250,7 @@ async function getTwinSummaryWithDomains(userId, userName = 'This person') {
       generatedAt: new Date().toISOString(),
     };
   } catch (err) {
+    pendingGenerations.delete(userId);
     console.warn('[TwinSummary] getTwinSummaryWithDomains error:', err.message);
     return null;
   }
