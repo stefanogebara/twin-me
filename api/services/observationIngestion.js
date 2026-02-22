@@ -629,22 +629,22 @@ async function runObservationIngestion() {
 
     // Find all users with at least one active platform connection.
     // Check both platform_connections (direct OAuth) AND nango_connection_mappings (Nango-managed).
-    const [pcResult, nangoResult] = await Promise.all([
+    const [pcRes, nangoRes] = await Promise.all([
       supabase
         .from('platform_connections')
         .select('user_id, platform')
         .not('connected_at', 'is', null)
-        .in('platform', SUPPORTED_PLATFORMS)
-        .then(r => r.data || [])
-        .catch(() => []),
+        .in('platform', SUPPORTED_PLATFORMS),
       supabase
         .from('nango_connection_mappings')
         .select('user_id, platform')
         .eq('status', 'active')
-        .in('platform', SUPPORTED_PLATFORMS)
-        .then(r => r.data || [])
-        .catch(() => []),
+        .in('platform', SUPPORTED_PLATFORMS),
     ]);
+    if (pcRes.error) console.warn('[ObservationIngestion] platform_connections fetch error:', pcRes.error.message);
+    if (nangoRes.error) console.warn('[ObservationIngestion] nango_connection_mappings fetch error:', nangoRes.error.message);
+    const pcResult = pcRes.data || [];
+    const nangoResult = nangoRes.data || [];
 
     const allConnections = [...pcResult, ...nangoResult];
     if (allConnections.length === 0) {
@@ -883,24 +883,24 @@ async function runPostOnboardingIngestion(userId) {
 
     // Find connected platforms for this user — check both platform_connections (legacy)
     // and nango_connection_mappings (primary OAuth flow via Nango)
-    const [pcConns, nangoConns] = await Promise.all([
+    const [pcConnsRes, nangoConnsRes] = await Promise.all([
       supabase
         .from('platform_connections')
         .select('platform')
         .eq('user_id', userId)
         .not('connected_at', 'is', null)
-        .in('platform', SUPPORTED_PLATFORMS)
-        .then(r => r.data || [])
-        .catch(() => []),
+        .in('platform', SUPPORTED_PLATFORMS),
       supabase
         .from('nango_connection_mappings')
         .select('platform')
         .eq('user_id', userId)
         .eq('status', 'active')
-        .in('platform', SUPPORTED_PLATFORMS)
-        .then(r => r.data || [])
-        .catch(() => []),
+        .in('platform', SUPPORTED_PLATFORMS),
     ]);
+    if (pcConnsRes.error) console.warn('[PostOnboarding] platform_connections fetch error:', pcConnsRes.error.message);
+    if (nangoConnsRes.error) console.warn('[PostOnboarding] nango_connection_mappings fetch error:', nangoConnsRes.error.message);
+    const pcConns = pcConnsRes.data || [];
+    const nangoConns = nangoConnsRes.data || [];
 
     const platforms = [...new Set([
       ...pcConns.map(c => c.platform),
@@ -962,10 +962,11 @@ async function runPostOnboardingIngestion(userId) {
     // on first chat even if the user hasn't connected any platforms yet.
     try {
       const supabaseForCount = await getSupabase();
-      const { count } = await supabaseForCount
+      const { count, error: countErr } = await supabaseForCount
         .from('user_memories')
         .select('id', { count: 'exact', head: true })
         .eq('user_id', userId);
+      if (countErr) console.warn('[PostOnboarding] Memory count error:', countErr.message);
       if ((count || 0) < 10) {
         const seedResult = await seedMemoriesFromEnrichment(userId);
         if (seedResult.memoriesStored > 0) {

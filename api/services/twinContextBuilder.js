@@ -490,12 +490,13 @@ async function _fetchSinglePlatform(userId, platform) {
 
       if (platform === 'whoop') {
         try {
-          const { data: whoopConn } = await supabaseAdmin
+          const { data: whoopConn, error: whoopConnErr } = await supabaseAdmin
             .from('platform_connections')
             .select('access_token')
             .eq('user_id', userId)
             .eq('platform', 'whoop')
             .single();
+          if (whoopConnErr && whoopConnErr.code !== 'PGRST116') console.warn('[TwinContext] Whoop connection fetch failed:', whoopConnErr.message);
 
           if (whoopConn?.access_token === 'NANGO_MANAGED') {
             const nangoService = await import('./nangoService.js');

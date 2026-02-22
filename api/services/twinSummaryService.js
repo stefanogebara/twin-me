@@ -110,26 +110,22 @@ async function generateTwinSummary(userId, userName = 'This person') {
   const domains = { personality, lifestyle, culturalIdentity, socialDynamics, motivation };
 
   // Persist to database (upsert)
-  try {
-    const { error } = await supabaseAdmin
-      .from('twin_summaries')
-      .upsert({
-        user_id: userId,
-        summary,
-        core_traits: personality || null,
-        current_focus: lifestyle || null,
-        recent_feelings: culturalIdentity || null,
-        domains,
-        generated_at: new Date().toISOString(),
-      }, { onConflict: 'user_id' });
+  const { error: upsertErr } = await supabaseAdmin
+    .from('twin_summaries')
+    .upsert({
+      user_id: userId,
+      summary,
+      core_traits: personality || null,
+      current_focus: lifestyle || null,
+      recent_feelings: culturalIdentity || null,
+      domains,
+      generated_at: new Date().toISOString(),
+    }, { onConflict: 'user_id' });
 
-    if (error) {
-      console.warn('[TwinSummary] Failed to persist summary:', error.message);
-    } else {
-      console.log(`[TwinSummary] Summary persisted (${summary.length} chars, ${parts.length} domains)`);
-    }
-  } catch (err) {
-    console.warn('[TwinSummary] DB upsert error:', err.message);
+  if (upsertErr) {
+    console.warn('[TwinSummary] Failed to persist summary:', upsertErr.message);
+  } else {
+    console.log(`[TwinSummary] Summary persisted (${summary.length} chars, ${parts.length} domains)`);
   }
 
   return { summary, personality, lifestyle, culturalIdentity, socialDynamics, motivation };
