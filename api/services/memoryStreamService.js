@@ -75,8 +75,14 @@ async function rateImportance(content) {
  * @param {object} options - { skipEmbedding, skipImportance, importanceScore }
  * @returns {object} { id, importance_score } or null on failure
  */
+const VALID_MEMORY_TYPES = new Set(['conversation', 'fact', 'platform_data', 'observation', 'reflection']);
+
 async function addMemory(userId, content, memoryType = 'observation', metadata = {}, options = {}) {
   if (!content || !userId) return null;
+  if (!VALID_MEMORY_TYPES.has(memoryType)) {
+    console.error(`[MemoryStream] Invalid memory type: "${memoryType}". Allowed: ${[...VALID_MEMORY_TYPES].join(', ')}`);
+    return null;
+  }
 
   try {
     // Generate embedding and importance score in parallel
@@ -453,7 +459,8 @@ async function getMemoryStats(userId) {
     const { data, error } = await supabaseAdmin
       .from('user_memories')
       .select('memory_type')
-      .eq('user_id', userId);
+      .eq('user_id', userId)
+      .limit(5000); // Cap to prevent OOM for power users — callers only need approximate counts
 
     if (error || !data) {
       console.warn('[MemoryStream] getMemoryStats query failed:', error?.message);
