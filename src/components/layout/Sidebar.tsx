@@ -8,8 +8,8 @@ import {
   MessageCircle,
   Brain,
   Settings,
-  Shield,
-  HelpCircle,
+  Target,
+  BookOpen,
   LogOut,
   User
 } from 'lucide-react';
@@ -52,11 +52,25 @@ const primaryNavItems: NavItem[] = [
     description: 'Interact with your twin'
   },
   {
+    id: 'goals',
+    label: 'Goals',
+    icon: Target,
+    path: '/goals',
+    description: 'Twin-driven goal tracking'
+  },
+  {
     id: 'brain',
     label: 'Twin\'s Brain',
     icon: Brain,
     path: '/brain',
     description: 'Explore your knowledge graph'
+  },
+  {
+    id: 'journal',
+    label: 'Journal',
+    icon: BookOpen,
+    path: '/journal',
+    description: 'Your personal journal'
   },
   {
     id: 'settings',
@@ -67,22 +81,7 @@ const primaryNavItems: NavItem[] = [
   }
 ];
 
-const secondaryNavItems: NavItem[] = [
-  {
-    id: 'privacy',
-    label: 'Privacy Controls',
-    icon: Shield,
-    path: '/privacy-spectrum',
-    description: 'Manage your data sharing'
-  },
-  {
-    id: 'help',
-    label: 'Help & Docs',
-    icon: HelpCircle,
-    path: '/help',
-    description: 'Get support'
-  }
-];
+const secondaryNavItems: NavItem[] = [];
 
 interface SidebarProps {
   onNavigate?: () => void;
@@ -159,42 +158,44 @@ export const Sidebar: React.FC<SidebarProps> = ({ onNavigate }) => {
           })}
         </div>
 
-        {/* Divider */}
-        <div className="my-4 border-t border-[hsl(var(--claude-border))]" />
+        {/* Secondary Navigation (only rendered when items exist) */}
+        {secondaryNavItems.length > 0 && (
+          <>
+            <div className="my-4 border-t border-[hsl(var(--claude-border))]" />
+            <div className="px-3 space-y-1">
+              {secondaryNavItems.map((item) => {
+                const Icon = item.icon;
+                const active = isActive(item.path);
 
-        {/* Secondary Navigation */}
-        <div className="px-3 space-y-1">
-          {secondaryNavItems.map((item) => {
-            const Icon = item.icon;
-            const active = isActive(item.path);
-
-            return (
-              <button
-                key={item.id}
-                onClick={() => handleNavigate(item.path)}
-                aria-label={`Navigate to ${item.label}`}
-                aria-current={active ? 'page' : undefined}
-                className={`
-                  w-full flex items-center gap-3 px-3 py-2.5 rounded-lg
-                  transition-all duration-150 relative
-                  ${active
-                    ? 'bg-[hsl(var(--claude-surface-raised))] text-[hsl(var(--claude-text))] shadow-sm'
-                    : 'text-[hsl(var(--claude-text-muted))] hover:bg-[hsl(var(--claude-surface-raised))]/60 hover:text-[hsl(var(--claude-text))]'
-                  }
-                `}
-              >
-                {active && (
-                  <div className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 rounded-r-full bg-[hsl(var(--claude-text))]" />
-                )}
-                <Icon
-                  className={`w-5 h-5 ${active ? 'text-[hsl(var(--claude-text))]' : ''}`}
-                  aria-hidden="true"
-                />
-                <span className="text-sm font-medium">{item.label}</span>
-              </button>
-            );
-          })}
-        </div>
+                return (
+                  <button
+                    key={item.id}
+                    onClick={() => handleNavigate(item.path)}
+                    aria-label={`Navigate to ${item.label}`}
+                    aria-current={active ? 'page' : undefined}
+                    className={`
+                      w-full flex items-center gap-3 px-3 py-2.5 rounded-lg
+                      transition-all duration-150 relative
+                      ${active
+                        ? 'bg-[hsl(var(--claude-surface-raised))] text-[hsl(var(--claude-text))] shadow-sm'
+                        : 'text-[hsl(var(--claude-text-muted))] hover:bg-[hsl(var(--claude-surface-raised))]/60 hover:text-[hsl(var(--claude-text))]'
+                      }
+                    `}
+                  >
+                    {active && (
+                      <div className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 rounded-r-full bg-[hsl(var(--claude-text))]" />
+                    )}
+                    <Icon
+                      className={`w-5 h-5 ${active ? 'text-[hsl(var(--claude-text))]' : ''}`}
+                      aria-hidden="true"
+                    />
+                    <span className="text-sm font-medium">{item.label}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </>
+        )}
       </nav>
 
       {/* User Profile Section */}
