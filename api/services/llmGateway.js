@@ -222,7 +222,8 @@ function logUsage({ userId, serviceName, model, tier, usage, cost, cacheHit, lat
     })
     .then(({ error }) => {
       if (error) console.warn('[LLM Gateway] Usage log error:', error.message);
-    });
+    })
+    .catch(err => console.warn('[LLM Gateway] Usage log promise rejected:', err.message));
 }
 
 // ====================================================================
@@ -398,6 +399,15 @@ export async function stream({
   checkCircuitBreaker();
   if (circuitBreaker.state === 'open') {
     throw new Error(`[LLM Gateway] Circuit breaker is OPEN - LLM calls temporarily disabled. Resets in ${Math.ceil((circuitBreaker.resetTimeout - (Date.now() - circuitBreaker.lastFailure)) / 1000)}s`);
+  }
+
+  // Budget guard (4D) - consistent with complete()
+  {
+    const dailyCost = await getDailyCost();
+    const budget = parseFloat(process.env.LLM_DAILY_BUDGET_USD) || 10;
+    if (dailyCost >= budget) {
+      throw new Error(`[LLM Gateway] Daily LLM budget exceeded: $${dailyCost.toFixed(2)} >= $${budget.toFixed(2)} limit. Resets at midnight UTC.`);
+    }
   }
 
   try {
