@@ -169,7 +169,7 @@ async function getUndeliveredInsights(userId, limit = 3) {
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 async function markInsightsDelivered(insightIds) {
-  if (!insightIds || insightIds.length === 0) return;
+  if (!Array.isArray(insightIds) || insightIds.length === 0) return;
 
   // Validate all IDs are UUIDs before updating to prevent unexpected writes
   const validIds = insightIds.filter(id => typeof id === 'string' && UUID_RE.test(id));
