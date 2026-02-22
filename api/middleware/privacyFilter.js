@@ -233,29 +233,26 @@ export function logPrivacyAction(action) {
     if (userId) {
       // Log the action asynchronously (don't block request)
       setImmediate(async () => {
-        try {
-          const { createClient } = await import('@supabase/supabase-js');
-          const supabase = createClient(
-            process.env.VITE_SUPABASE_URL,
-            process.env.SUPABASE_SERVICE_ROLE_KEY
-          );
+        const { createClient } = await import('@supabase/supabase-js');
+        const supabase = createClient(
+          process.env.VITE_SUPABASE_URL,
+          process.env.SUPABASE_SERVICE_ROLE_KEY
+        );
 
-          await supabase.from('privacy_audit_log').insert({
-            user_id: userId,
-            action,
-            metadata: {
-              method: req.method,
-              path: req.path,
-              params: req.params,
-              query: req.query,
-              ip: req.ip,
-              userAgent: req.headers['user-agent']
-            },
-            changed_at: new Date().toISOString()
-          });
-        } catch (error) {
-          console.error('Error logging privacy action:', error);
-        }
+        const { error: auditErr } = await supabase.from('privacy_audit_log').insert({
+          user_id: userId,
+          action,
+          metadata: {
+            method: req.method,
+            path: req.path,
+            params: req.params,
+            query: req.query,
+            ip: req.ip,
+            userAgent: req.headers['user-agent']
+          },
+          changed_at: new Date().toISOString()
+        });
+        if (auditErr) console.warn('[PrivacyFilter] Failed to log audit action:', auditErr.message);
       });
     }
 
