@@ -233,11 +233,10 @@ router.post('/analyze-style', async (req, res) => {
     console.error('[API] Error in /analyze-style:', error);
     console.error('[API] Error stack:', error.stack);
 
-    // Return detailed error information
     res.status(500).json({
       success: false,
       error: 'Failed to analyze communication style',
-      message: error.message,
+      message: process.env.NODE_ENV !== 'production' ? error.message : undefined,
       details: process.env.NODE_ENV === 'development' ? {
         stack: error.stack,
         name: error.name
@@ -385,7 +384,8 @@ router.post('/rag/chat', async (req, res) => {
     console.error('[API] Error stack:', error.stack);
     res.status(500).json({
       success: false,
-      error: error.message || 'Failed to process chat message',
+      error: 'Failed to process chat message',
+      message: process.env.NODE_ENV !== 'production' ? error.message : undefined,
       details: process.env.NODE_ENV === 'development' ? error.stack : undefined
     });
   }
