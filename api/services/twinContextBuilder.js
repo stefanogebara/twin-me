@@ -8,7 +8,7 @@
 
 import { supabaseAdmin } from './database.js';
 import { getValidAccessToken } from './tokenRefresh.js';
-import { retrieveMemories } from './memoryStreamService.js';
+import { retrieveDiverseMemories } from './memoryStreamService.js';
 import { getTwinSummary } from './twinSummaryService.js';
 import { getUndeliveredInsights } from './proactiveInsights.js';
 import { getEnrichment } from './enrichment/enrichmentStore.js';
@@ -98,7 +98,7 @@ async function fetchTwinContext(userId, userMessage, options = {}) {
       return null;
     })),
 
-    timed('memories', retrieveMemories(userId, userMessage, 30).catch(err => {
+    timed('memories', retrieveDiverseMemories(userId, userMessage).catch(err => {
       console.warn('[TwinContext] Memory retrieval failed:', err.message);
       return [];
     })),
