@@ -385,13 +385,9 @@ router.post('/', async (req, res) => {
  * POST /api/cron/claude-sync/run
  * Manual trigger endpoint for testing
  */
-router.post('/run', async (req, res) => {
+router.post('/run', authenticateUser, async (req, res) => {
   try {
-    const { userId } = req.body;
-
-    if (!userId) {
-      return res.status(400).json({ error: 'userId is required' });
-    }
+    const userId = req.user.id;
 
     console.log(`[Claude Sync] Manual sync requested for user: ${userId}`);
 
@@ -457,6 +453,13 @@ router.get('/status', authenticateUser, async (req, res) => {
  */
 router.post('/process-analysis', async (req, res) => {
   try {
+    // Verify cron secret for security (same as main cron endpoint)
+    const cronSecret = req.headers['x-vercel-cron-secret'] || req.headers['authorization'];
+    const expectedSecret = process.env.CRON_SECRET;
+    if (expectedSecret && cronSecret !== expectedSecret && cronSecret !== `Bearer ${expectedSecret}`) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+
     const limit = parseInt(req.query.limit) || 50;
 
     // Import and run the analysis processor
