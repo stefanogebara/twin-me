@@ -540,13 +540,16 @@ router.get('/reconnect/whoop', oauthAuthorizationLimiter, async (req, res) => {
 
     if (existingConnection) {
       // Update status to 'reconnecting'
-      await supabase
+      const { error: statusErr } = await supabase
         .from('platform_connections')
         .update({
           status: 'reconnecting',
           updated_at: new Date().toISOString()
         })
         .eq('id', existingConnection.id);
+      if (statusErr) {
+        console.error('Failed to update connection status:', statusErr.message);
+      }
     }
 
     const config = PLATFORM_CONFIGS.whoop;
@@ -567,7 +570,7 @@ router.get('/reconnect/whoop', oauthAuthorizationLimiter, async (req, res) => {
     const state = encryptState(stateData, 'health');
 
     // Store state + code_verifier in Supabase
-    await supabase
+    const { error: stateErr } = await supabase
       .from('oauth_states')
       .insert({
         state,
@@ -575,6 +578,10 @@ router.get('/reconnect/whoop', oauthAuthorizationLimiter, async (req, res) => {
         data: { userId, platform: 'whoop', reconnect: true },
         expires_at: new Date(Date.now() + 1800000) // 30 minutes
       });
+    if (stateErr) {
+      console.error('Failed to store Whoop OAuth state:', stateErr.message);
+      return res.status(500).json({ success: false, error: 'Failed to initialize Whoop reconnection' });
+    }
 
     // Whoop uses client_secret authentication, not PKCE
     const authUrl = `${config.authUrl}?` +
@@ -683,7 +690,7 @@ router.post('/refresh/whoop', authenticateUser, async (req, res) => {
     const encryptedAccessToken = encryptToken(newAccessToken);
     const encryptedRefreshToken = newRefreshToken ? encryptToken(newRefreshToken) : connection.refresh_token;
 
-    await supabase
+    const { error: tokenUpdateErr } = await supabase
       .from('platform_connections')
       .update({
         access_token: encryptedAccessToken,
@@ -694,6 +701,11 @@ router.post('/refresh/whoop', authenticateUser, async (req, res) => {
         updated_at: new Date().toISOString()
       })
       .eq('id', connection.id);
+
+    if (tokenUpdateErr) {
+      console.error('Failed to store refreshed Whoop tokens:', tokenUpdateErr.message);
+      return res.status(500).json({ success: false, error: 'Failed to save refreshed token' });
+    }
 
     console.log(`✅ Whoop token refreshed for user ${userId}`);
 
@@ -750,7 +762,7 @@ router.get('/connect/oura', oauthAuthorizationLimiter, async (req, res) => {
     const state = encryptState(stateData, 'health');
 
     // Store state + code_verifier in Supabase
-    await supabase
+    const { error: stateErrOuraGet } = await supabase
       .from('oauth_states')
       .insert({
         state,
@@ -758,6 +770,10 @@ router.get('/connect/oura', oauthAuthorizationLimiter, async (req, res) => {
         data: { userId, platform: 'oura' },
         expires_at: new Date(Date.now() + 1800000) // 30 minutes
       });
+    if (stateErrOuraGet) {
+      console.error('Failed to store Oura OAuth state:', stateErrOuraGet.message);
+      return res.status(500).json({ success: false, error: 'Failed to initialize Oura connection' });
+    }
 
     const authUrl = `${config.authUrl}?` +
       `client_id=${process.env.OURA_CLIENT_ID}&` +
@@ -825,7 +841,7 @@ router.post('/connect/oura', oauthAuthorizationLimiter, async (req, res) => {
     const state = encryptState(stateData, 'health');
 
     // Store state + code_verifier in Supabase
-    await supabase
+    const { error: stateErrOuraPost } = await supabase
       .from('oauth_states')
       .insert({
         state,
@@ -833,6 +849,10 @@ router.post('/connect/oura', oauthAuthorizationLimiter, async (req, res) => {
         data: { userId, platform: 'oura' },
         expires_at: new Date(Date.now() + 1800000) // 30 minutes
       });
+    if (stateErrOuraPost) {
+      console.error('Failed to store Oura OAuth state:', stateErrOuraPost.message);
+      return res.status(500).json({ success: false, error: 'Failed to initialize Oura connection' });
+    }
 
     const authUrl = `${config.authUrl}?` +
       `client_id=${process.env.OURA_CLIENT_ID}&` +
