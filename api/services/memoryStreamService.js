@@ -51,7 +51,9 @@ async function rateImportance(content) {
     });
 
     const text = (result.content || '').trim();
-    const score = parseInt(text);
+    // Use regex to extract leading digit in case LLM adds explanatory text
+    const match = text.match(/^(\d+)/);
+    const score = match ? parseInt(match[1], 10) : NaN;
     return (score >= 1 && score <= 10) ? score : 5;
   } catch (error) {
     console.warn('[MemoryStream] Importance rating failed, defaulting to 5:', error.message);

@@ -150,7 +150,7 @@ async function getTwinSummary(userId, userName = 'This person') {
       .single();
 
     if (!error && cached && cached.summary) {
-      const age = Date.now() - new Date(cached.generated_at).getTime();
+      const age = cached.generated_at ? Date.now() - new Date(cached.generated_at).getTime() : Infinity;
       if (age < SUMMARY_MAX_AGE_MS) {
         console.log(`[TwinSummary] Using cached summary (age: ${Math.round(age / 60000)}m)`);
         return cached.summary;
@@ -186,7 +186,7 @@ async function getTwinSummaryWithDomains(userId, userName = 'This person') {
       .single();
 
     if (!error && cached && cached.summary) {
-      const age = Date.now() - new Date(cached.generated_at).getTime();
+      const age = cached.generated_at ? Date.now() - new Date(cached.generated_at).getTime() : Infinity;
       const hasDomains = cached.domains && Object.keys(cached.domains).length > 0;
       if (age < SUMMARY_MAX_AGE_MS && hasDomains) {
         return {
