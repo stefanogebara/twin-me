@@ -2,10 +2,10 @@ import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
-import { AlertCircle, Globe, Target, Flame, Trophy, ChevronRight } from 'lucide-react';
+import { AlertCircle, Target, Flame, Trophy, ChevronRight, Globe } from 'lucide-react';
 import { goalsAPI, GoalSummary } from '@/services/api/goalsAPI';
 import { PageLayout } from '@/components/layout/PageLayout';
-import { calendarAPI, spotifyAPI, CalendarEvent } from '@/services/apiService';
+import { calendarAPI, CalendarEvent } from '@/services/apiService';
 import { TodayInsights } from '@/components/TodayInsights';
 import { ProactiveInsightsPanel } from '@/components/ProactiveInsightsPanel';
 import { usePlatformStatus } from '@/hooks/usePlatformStatus';
@@ -13,19 +13,9 @@ import { DEMO_CALENDAR_DATA } from '@/services/demoDataService';
 import { DashboardSkeleton } from './components/dashboard/DashboardSkeleton';
 import { NextEventCard } from './components/dashboard/NextEventCard';
 import { TwinInsightsGrid } from './components/dashboard/TwinInsightsGrid';
-import { YourPatternsSection } from './components/dashboard/YourPatternsSection';
-import { ConnectedPlatformsSection } from './components/dashboard/ConnectedPlatformsSection';
 
 // Auto-refresh interval for calendar events (1 minute)
 const CALENDAR_REFRESH_INTERVAL = 60 * 1000;
-
-interface PlatformStatus {
-  id: string;
-  name: string;
-  connected: boolean;
-  expired?: boolean;
-  color: string;
-}
 
 interface Pattern {
   id: string;
@@ -38,34 +28,22 @@ interface Pattern {
   hasData?: boolean;
 }
 
-// Platform configuration for icons and colors (MVP platforms only)
-const PLATFORM_CONFIG: Record<string, { name: string; color: string; brandColor: string }> = {
-  spotify: { name: 'Spotify', color: 'text-green-500', brandColor: '#1DB954' },
-  google_calendar: { name: 'Calendar', color: 'text-blue-500', brandColor: '#4285F4' },
-  youtube: { name: 'YouTube', color: 'text-red-500', brandColor: '#FF0000' },
-};
-
 export const Dashboard: React.FC = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
-  const [allEvents, setAllEvents] = useState<CalendarEvent[]>([]); // Store all events from API
+  const [allEvents, setAllEvents] = useState<CalendarEvent[]>([]);
   const [calendarConnected, setCalendarConnected] = useState(false);
-  const [spotifyConnected, setSpotifyConnected] = useState(false);
   const [goalSummary, setGoalSummary] = useState<GoalSummary | null>(null);
   const [error, setError] = useState<{ message: string; type?: 'auth' | 'general' } | null>(null);
   const [syncing, setSyncing] = useState(false);
-  const [currentTime, setCurrentTime] = useState(new Date()); // For live updates
+  const [currentTime, setCurrentTime] = useState(new Date());
 
-  // Use platform status hook for dynamic platform display
-  const { data: platformStatusData, connectedProviders } = usePlatformStatus(user?.id);
+  const { connectedProviders } = usePlatformStatus(user?.id);
 
   // Update current time every 30 seconds for live event filtering
   useEffect(() => {
-    const timer = setInterval(() => {
-      setCurrentTime(new Date());
-    }, 30 * 1000); // Every 30 seconds
-
+    const timer = setInterval(() => setCurrentTime(new Date()), 30 * 1000);
     return () => clearInterval(timer);
   }, []);
 
@@ -76,19 +54,13 @@ export const Dashboard: React.FC = () => {
     const todayEnd = new Date(todayStart);
     todayEnd.setDate(todayEnd.getDate() + 1);
 
-    // Filter today's events
     const todaysEvents = allEvents.filter((event: CalendarEvent) => {
       const eventStart = new Date(event.startTime);
       return eventStart >= todayStart && eventStart < todayEnd;
     });
 
-    // Find next upcoming event (events that haven't started yet OR are currently happening)
     const upcomingEvents = allEvents
-      .filter((event: CalendarEvent) => {
-        const eventEnd = new Date(event.endTime);
-        // Include event if it hasn't ended yet
-        return eventEnd > now;
-      })
+      .filter((event: CalendarEvent) => new Date(event.endTime) > now)
       .sort((a: CalendarEvent, b: CalendarEvent) =>
         new Date(a.startTime).getTime() - new Date(b.startTime).getTime()
       );
@@ -104,15 +76,11 @@ export const Dashboard: React.FC = () => {
       setLoading(true);
       setError(null);
 
-      // Check for demo mode
       const isDemoMode = localStorage.getItem('demo_mode') === 'true';
 
       if (isDemoMode) {
-        // In demo mode, show all MVP platforms as connected with sample data
         setCalendarConnected(true);
-        setSpotifyConnected(true);
 
-        // Populate demo calendar events with real Date objects
         const today = new Date();
         const demoEvents: CalendarEvent[] = DEMO_CALENDAR_DATA.todayEvents.map((evt) => {
           const [startH, startM] = evt.startTime.split(':').map(Number);
@@ -128,13 +96,12 @@ export const Dashboard: React.FC = () => {
             isImportant: (evt.attendees || 0) > 3,
           };
         });
-        // Add tomorrow's upcoming events
         const tomorrow = new Date(today);
         tomorrow.setDate(tomorrow.getDate() + 1);
         DEMO_CALENDAR_DATA.upcomingEvents.forEach((evt) => {
           const [h, m] = (evt.time || '10:00').split(':').map(Number);
           const start = new Date(tomorrow.getFullYear(), tomorrow.getMonth(), tomorrow.getDate(), h, m);
-          const end = new Date(start.getTime() + 60 * 60 * 1000); // 1 hour duration
+          const end = new Date(start.getTime() + 60 * 60 * 1000);
           demoEvents.push({
             id: evt.id,
             title: evt.title,
@@ -145,37 +112,25 @@ export const Dashboard: React.FC = () => {
           });
         });
         setAllEvents(demoEvents);
-
         setLoading(false);
         return;
       }
 
       try {
-        // Fetch platform statuses + goal summary in parallel
-        const [calendarStatus, spotifyStatus, goalResult] = await Promise.allSettled([
+        const [calendarStatus, goalResult] = await Promise.allSettled([
           calendarAPI.getStatus(),
-          spotifyAPI.getStatus(),
           goalsAPI.getSummary()
         ]);
 
-        // Update goal summary
         if (goalResult.status === 'fulfilled') {
           setGoalSummary(goalResult.value);
         }
 
-        // Update calendar connection status
         if (calendarStatus.status === 'fulfilled') {
           setCalendarConnected(calendarStatus.value.connected);
         }
 
-        // Update Spotify connection status
-        if (spotifyStatus.status === 'fulfilled') {
-          setSpotifyConnected(spotifyStatus.value.connected);
-        }
-
-        // If calendar is connected, fetch events
         if (calendarStatus.status === 'fulfilled' && calendarStatus.value.connected) {
-          // Check if token is expired before attempting to fetch
           if (calendarStatus.value.tokenExpired) {
             setError({
               message: 'Calendar connection expired. Please reconnect to see your events.',
@@ -184,12 +139,8 @@ export const Dashboard: React.FC = () => {
           } else {
             try {
               const eventsResponse = await calendarAPI.getEvents();
-              const events = eventsResponse.events || [];
-              // Store all events - filtering is done in useMemo with live time updates
-              setAllEvents(events);
+              setAllEvents(eventsResponse.events || []);
             } catch (err: unknown) {
-              console.error('Failed to fetch calendar events:', err);
-              // Check if error is authentication related (401/403)
               const isAuthError = err instanceof Error && (
                 err.message.includes('401') ||
                 err.message.includes('403') ||
@@ -198,7 +149,6 @@ export const Dashboard: React.FC = () => {
                 err.message.includes('expired') ||
                 err.message.includes('token')
               );
-
               if (err instanceof Error && !err.message.includes('not connected')) {
                 setError({
                   message: isAuthError
@@ -210,7 +160,6 @@ export const Dashboard: React.FC = () => {
             }
           }
         }
-
       } catch (err) {
         console.error('Dashboard loading error:', err);
         setError({ message: 'Failed to load dashboard data', type: 'general' });
@@ -222,28 +171,20 @@ export const Dashboard: React.FC = () => {
     loadData();
   }, [user]);
 
-  // Function to fetch calendar events (used by both initial load and refresh)
   const fetchCalendarEvents = useCallback(async () => {
     if (!calendarConnected) return;
-
     try {
       const eventsResponse = await calendarAPI.getEvents();
-      const events = eventsResponse.events || [];
-      setAllEvents(events);
-      setCurrentTime(new Date()); // Update time to trigger re-filter
+      setAllEvents(eventsResponse.events || []);
+      setCurrentTime(new Date());
     } catch (err) {
       console.error('Failed to fetch calendar events:', err);
     }
   }, [calendarConnected]);
 
-  // Auto-refresh calendar events every minute
   useEffect(() => {
     if (!calendarConnected) return;
-
-    const refreshInterval = setInterval(() => {
-      fetchCalendarEvents();
-    }, CALENDAR_REFRESH_INTERVAL);
-
+    const refreshInterval = setInterval(fetchCalendarEvents, CALENDAR_REFRESH_INTERVAL);
     return () => clearInterval(refreshInterval);
   }, [calendarConnected, fetchCalendarEvents]);
 
@@ -254,7 +195,6 @@ export const Dashboard: React.FC = () => {
       await calendarAPI.sync();
       await fetchCalendarEvents();
     } catch (err) {
-      console.error('Sync error:', err);
       const isAuthError = err instanceof Error && (
         err.message.includes('401') ||
         err.message.includes('403') ||
@@ -279,58 +219,23 @@ export const Dashboard: React.FC = () => {
   };
 
   const formatTimeUntil = (startDate: Date, endDate?: Date) => {
-    const now = currentTime; // Use live time
+    const now = currentTime;
     const eventStart = new Date(startDate);
     const eventEnd = endDate ? new Date(endDate) : null;
     const diff = eventStart.getTime() - now.getTime();
 
-    // Event is currently happening
-    if (diff < 0 && eventEnd && now < eventEnd) {
-      return 'now';
-    }
-
-    // Event has passed (shouldn't show, but handle gracefully)
-    if (diff < 0) {
-      return 'ended';
-    }
+    if (diff < 0 && eventEnd && now < eventEnd) return 'now';
+    if (diff < 0) return 'ended';
 
     const hours = Math.floor(diff / (1000 * 60 * 60));
     const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
 
-    if (hours > 0) {
-      return `${hours}h ${minutes}m`;
-    }
-    if (minutes <= 0) {
-      return 'starting';
-    }
+    if (hours > 0) return `${hours}h ${minutes}m`;
+    if (minutes <= 0) return 'starting';
     return `${minutes}m`;
   };
 
-  // Build dynamic platforms list from all connected providers
-  const allConnectedIds = new Set<string>(connectedProviders);
-  if (calendarConnected) allConnectedIds.add('google_calendar');
-  if (spotifyConnected) allConnectedIds.add('spotify');
-
-  const platforms: PlatformStatus[] = Array.from(allConnectedIds)
-    .map(provider => {
-      const config = PLATFORM_CONFIG[provider];
-      if (!config) return null;
-
-      const status = platformStatusData[provider];
-      const isExpired = status?.tokenExpired || status?.status === 'token_expired';
-
-      return {
-        id: provider,
-        name: config.name,
-        connected: true,
-        expired: isExpired,
-        color: config.color
-      };
-    })
-    .filter((p): p is PlatformStatus => p !== null);
-
-  // Build insight links based on connected platforms
-  const isSpotifyConnected = connectedProviders.includes('spotify') || spotifyConnected;
+  const isSpotifyConnected = connectedProviders.includes('spotify');
   const isCalendarConnected = connectedProviders.includes('google_calendar') || calendarConnected;
   const isYouTubeConnected = connectedProviders.includes('youtube');
 
@@ -401,10 +306,7 @@ export const Dashboard: React.FC = () => {
             <button
               onClick={() => navigate('/get-started')}
               className="px-4 py-2 rounded-lg text-sm font-medium transition-colors"
-              style={{
-                backgroundColor: 'rgba(245, 158, 11, 0.15)',
-                color: '#d97706'
-              }}
+              style={{ backgroundColor: 'rgba(245, 158, 11, 0.15)', color: '#d97706' }}
             >
               Reconnect
             </button>
@@ -418,41 +320,33 @@ export const Dashboard: React.FC = () => {
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5, ease: [0.4, 0, 0.2, 1] }}
       >
-        <h1
-          className="heading-serif text-3xl mb-2"
-        >
+        <h1 className="heading-serif text-3xl mb-2">
           {getGreeting()}, {user?.firstName || 'there'}
         </h1>
-        <p
-          className="text-base"
-          style={{ color: '#8A857D' }}
-        >
+        <p className="text-base" style={{ color: '#8A857D' }}>
           {todayEvents.length > 0
             ? `${todayEvents.length} event${todayEvents.length !== 1 ? 's' : ''} today`
             : 'Your day awaits'
           }
-          {platforms.length > 0 && (
+          {connectedProviders.length > 0 && (
             <span style={{ color: '#a8a29e' }}>
               {' '}&bull;{' '}
               <span style={{ color: '#B8942E' }}>
-                {platforms.length} platform{platforms.length !== 1 ? 's' : ''} connected
+                {connectedProviders.length} platform{connectedProviders.length !== 1 ? 's' : ''} connected
               </span>
             </span>
           )}
         </p>
       </motion.div>
 
-      {/* Today's Insights Section */}
       <div className="mb-8">
         <TodayInsights />
       </div>
 
-      {/* Proactive Insights - What the twin has noticed */}
       <div className="mb-8">
         <ProactiveInsightsPanel />
       </div>
 
-      {/* Goal Tracking Summary Widget */}
       {goalSummary && (goalSummary.active > 0 || goalSummary.suggested > 0) && (
         <motion.div
           className="mb-8"
@@ -471,9 +365,7 @@ export const Dashboard: React.FC = () => {
             <div className="flex items-center justify-between mb-3">
               <div className="flex items-center gap-2">
                 <Target className="w-4 h-4" style={{ color: '#44403c' }} />
-                <span className="text-sm font-medium" style={{ color: '#1F1C18' }}>
-                  Goals
-                </span>
+                <span className="text-sm font-medium" style={{ color: '#1F1C18' }}>Goals</span>
                 {goalSummary.suggested > 0 && (
                   <span className="inline-flex items-center justify-center w-5 h-5 text-xs font-medium rounded-full bg-blue-500/20 text-blue-400">
                     {goalSummary.suggested}
@@ -486,25 +378,19 @@ export const Dashboard: React.FC = () => {
               {goalSummary.active > 0 && (
                 <div className="flex items-center gap-1.5">
                   <div className="w-2 h-2 rounded-full bg-emerald-500" />
-                  <span className="text-sm" style={{ color: '#8A857D' }}>
-                    {goalSummary.active} active
-                  </span>
+                  <span className="text-sm" style={{ color: '#8A857D' }}>{goalSummary.active} active</span>
                 </div>
               )}
               {goalSummary.bestStreak > 0 && (
                 <div className="flex items-center gap-1.5">
                   <Flame className="w-3.5 h-3.5 text-orange-400" />
-                  <span className="text-sm" style={{ color: '#8A857D' }}>
-                    {goalSummary.bestStreak}d best streak
-                  </span>
+                  <span className="text-sm" style={{ color: '#8A857D' }}>{goalSummary.bestStreak}d best streak</span>
                 </div>
               )}
               {goalSummary.completed > 0 && (
                 <div className="flex items-center gap-1.5">
                   <Trophy className="w-3.5 h-3.5 text-amber-400" />
-                  <span className="text-sm" style={{ color: '#8A857D' }}>
-                    {goalSummary.completed} completed
-                  </span>
+                  <span className="text-sm" style={{ color: '#8A857D' }}>{goalSummary.completed} completed</span>
                 </div>
               )}
               {goalSummary.suggested > 0 && goalSummary.active === 0 && (
@@ -528,19 +414,6 @@ export const Dashboard: React.FC = () => {
 
       <TwinInsightsGrid
         insightLinks={insightLinks}
-        onNavigate={navigate}
-      />
-
-      <YourPatternsSection
-        platforms={platforms}
-        isCalendarConnected={isCalendarConnected}
-        isSpotifyConnected={isSpotifyConnected}
-        todayEventsCount={todayEvents.length}
-        onNavigate={navigate}
-      />
-
-      <ConnectedPlatformsSection
-        platforms={platforms}
         onNavigate={navigate}
       />
     </PageLayout>
