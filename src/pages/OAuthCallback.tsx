@@ -80,30 +80,36 @@ const OAuthCallback = () => {
           return;
         }
 
-        // Handle direct token from GET redirect (backend sends token in URL)
-        const directToken = searchParams.get('token');
-        if (directToken && !code) {
-          localStorage.setItem('auth_token', directToken);
-          localStorage.setItem('auth_provider', searchParams.get('provider') || 'google');
-
-          // Store refresh token from URL if provided
-          const urlRefreshToken = searchParams.get('refreshToken');
-          if (urlRefreshToken) {
-            localStorage.setItem('refresh_token', urlRefreshToken);
+        // Handle one-time auth code from GET redirect (secure: tokens stored server-side)
+        const authCodeParam = searchParams.get('auth_code');
+        if (authCodeParam && !code) {
+          const claimResponse = await fetch(
+            `${import.meta.env.VITE_API_URL}/auth/oauth/claim?auth_code=${encodeURIComponent(authCodeParam)}`
+          );
+          if (!claimResponse.ok) {
+            setStatus('error');
+            setMessage('Authentication failed. Please try again.');
+            errorTimeoutRef.current = setTimeout(() => setShowError(true), 500);
+            setTimeout(() => navigate('/auth'), 3000);
+            return;
           }
-
-          setStatus('success');
-          setMessage('Authentication successful! Redirecting...');
-
-          toast.success('Welcome!', {
-            description: 'Successfully signed in',
-            duration: 3000
-          });
-
-          setTimeout(() => {
-            window.location.href = '/dashboard';
-          }, 1500);
-          return;
+          const claimData = await claimResponse.json();
+          if (claimData.token) {
+            localStorage.setItem('auth_token', claimData.token);
+            localStorage.setItem('auth_provider', claimData.provider || searchParams.get('provider') || 'google');
+            if (claimData.refreshToken) {
+              localStorage.setItem('refresh_token', claimData.refreshToken);
+            }
+            setStatus('success');
+            setMessage('Authentication successful! Redirecting...');
+            toast.success('Welcome!', { description: 'Successfully signed in', duration: 3000 });
+            const isRelativePath = (path: string) => path.startsWith('/') && !path.startsWith('//');
+            const redirectPath = (claimData.redirectAfterAuth && isRelativePath(claimData.redirectAfterAuth))
+              ? claimData.redirectAfterAuth
+              : '/dashboard';
+            setTimeout(() => { window.location.href = redirectPath; }, 1500);
+            return;
+          }
         }
 
         if (!code) {

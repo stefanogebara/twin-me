@@ -8,6 +8,16 @@ import profileEnrichmentService from '../services/profileEnrichmentService.js';
 
 const router = express.Router();
 
+// Short-lived in-memory store for one-time auth codes (avoids tokens in redirect URLs)
+// Keyed by random hex code; each entry expires after 2 minutes.
+const pendingAuthCodes = new Map();
+setInterval(() => {
+  const now = Date.now();
+  for (const [code, session] of pendingAuthCodes.entries()) {
+    if (session.expiresAt < now) pendingAuthCodes.delete(code);
+  }
+}, 5 * 60 * 1000).unref();
+
 // JWT secret - required environment variable
 const JWT_SECRET = process.env.JWT_SECRET;
 if (!JWT_SECRET) {
@@ -87,10 +97,13 @@ router.post('/signup', async (req, res) => {
     const refreshTokenHash = hashToken(refreshToken);
 
     // Store refresh token hash
-    await supabaseAdmin
+    const { error: signupHashErr } = await supabaseAdmin
       .from('users')
       .update({ refresh_token_hash: refreshTokenHash })
       .eq('id', newUser.id);
+    if (signupHashErr) {
+      console.error('Failed to store refresh token hash on signup:', signupHashErr.message);
+    }
 
     res.json({
       success: true,
@@ -143,10 +156,13 @@ router.post('/signin', async (req, res) => {
     const refreshTokenHash = hashToken(refreshToken);
 
     // Store refresh token hash
-    await supabaseAdmin
+    const { error: signinHashErr } = await supabaseAdmin
       .from('users')
       .update({ refresh_token_hash: refreshTokenHash })
       .eq('id', user.id);
+    if (signinHashErr) {
+      console.error('Failed to store refresh token hash on signin:', signinHashErr.message);
+    }
 
     res.json({
       success: true,
@@ -231,10 +247,14 @@ router.post('/refresh', async (req, res) => {
     const newHash = hashToken(newRefreshToken);
 
     // Update stored hash (token rotation)
-    await supabaseAdmin
+    const { error: rotateHashErr } = await supabaseAdmin
       .from('users')
       .update({ refresh_token_hash: newHash })
       .eq('id', user.id);
+    if (rotateHashErr) {
+      console.error('Failed to rotate refresh token hash:', rotateHashErr.message);
+      return res.status(500).json({ error: 'Internal server error' });
+    }
 
     res.json({
       success: true,
@@ -443,11 +463,15 @@ router.get('/oauth/callback', async (req, res) => {
 
     try {
       stateData = decryptState(state);
-      console.log('🔍 Auth GET callback - decoded state provider:', stateData.provider);
-      provider = stateData.provider || 'google';
-      userId = stateData.userId;
-      isConnectorFlow = !!userId; // If userId exists, this is a connector OAuth flow
-      console.log('🔍 Auth GET callback - flow detection:', { provider, userId, isConnectorFlow });
+      if (stateData) {
+        console.log('🔍 Auth GET callback - decoded state provider:', stateData.provider);
+        provider = stateData.provider || 'google';
+        userId = stateData.userId;
+        isConnectorFlow = !!userId; // If userId exists, this is a connector OAuth flow
+        console.log('🔍 Auth GET callback - flow detection:', { provider, userId, isConnectorFlow });
+      } else {
+        console.log('Could not decode state (null result), defaulting to google');
+      }
     } catch (e) {
       console.log('Could not decode state, defaulting to google');
     }
@@ -578,13 +602,26 @@ router.get('/oauth/callback', async (req, res) => {
     const refreshTokenHash = hashToken(refreshToken);
 
     // Store refresh token hash
-    await supabaseAdmin
+    const { error: getCallbackHashErr } = await supabaseAdmin
       .from('users')
       .update({ refresh_token_hash: refreshTokenHash })
       .eq('id', user.id);
+    if (getCallbackHashErr) {
+      console.error('Failed to store refresh token hash in GET callback:', getCallbackHashErr.message);
+    }
 
-    // Redirect to frontend with tokens
-    const redirectUrl = `${appUrl}/oauth/callback?token=${accessToken}&refreshToken=${refreshToken}&provider=${provider}`;
+    // Generate a one-time auth code to pass to the frontend — avoids tokens in the redirect URL
+    // (tokens in URLs are logged by servers, stored in browser history, and leaked in Referer headers)
+    const authCode = crypto.randomBytes(32).toString('hex');
+    pendingAuthCodes.set(authCode, {
+      accessToken,
+      refreshToken,
+      provider,
+      redirectAfterAuth: stateData?.redirectAfterAuth || null,
+      expiresAt: Date.now() + 120_000, // 2-minute TTL
+    });
+
+    const redirectUrl = `${appUrl}/oauth/callback?auth_code=${authCode}&provider=${encodeURIComponent(provider)}`;
     res.redirect(redirectUrl);
   } catch (error) {
     console.error('OAuth callback error:', error);
@@ -792,10 +829,13 @@ router.post('/oauth/callback', async (req, res) => {
       const refreshTokenHash = hashToken(refreshToken);
 
       // Store refresh token hash
-      await supabaseAdmin
+      const { error: postCallbackHashErr } = await supabaseAdmin
         .from('users')
         .update({ refresh_token_hash: refreshTokenHash })
         .eq('id', user.id);
+      if (postCallbackHashErr) {
+        console.error('Failed to store refresh token hash in POST callback:', postCallbackHashErr.message);
+      }
 
       console.log('✅ Returning auth success with token');
 
@@ -829,6 +869,38 @@ router.post('/oauth/callback', async (req, res) => {
     console.error('❌ Error stack:', error.stack);
     res.status(500).json({ error: 'OAuth authentication failed' });
   }
+});
+
+// Exchange one-time auth code for tokens — called by frontend after GET redirect
+// Tokens are stored server-side to avoid exposing them in URLs (server logs, browser history, Referer headers)
+router.get('/oauth/claim', (req, res) => {
+  const { auth_code: authCode } = req.query;
+
+  if (!authCode || typeof authCode !== 'string') {
+    return res.status(400).json({ error: 'Missing auth_code' });
+  }
+
+  const session = pendingAuthCodes.get(authCode);
+
+  if (!session) {
+    return res.status(404).json({ error: 'Invalid or expired auth code' });
+  }
+
+  if (session.expiresAt < Date.now()) {
+    pendingAuthCodes.delete(authCode);
+    return res.status(410).json({ error: 'Auth code expired' });
+  }
+
+  // One-time use — delete immediately after claim
+  pendingAuthCodes.delete(authCode);
+
+  return res.json({
+    success: true,
+    token: session.accessToken,
+    refreshToken: session.refreshToken,
+    provider: session.provider,
+    redirectAfterAuth: session.redirectAfterAuth || null,
+  });
 });
 
 export default router;
