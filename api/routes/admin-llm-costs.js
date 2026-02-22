@@ -15,14 +15,26 @@ const router = express.Router();
 // All admin routes require authentication and admin/professor role
 router.use(authenticateUser, requireProfessor);
 
+// Safe integer parsing helpers — prevent NaN from crashing date/limit calculations
+function parseDays(val, defaultVal = 7) {
+  const n = parseInt(val, 10);
+  if (isNaN(n) || n < 1) return defaultVal;
+  return Math.min(n, 365);
+}
+
+function parseLimit(val, defaultVal = 100, max = 500) {
+  const n = parseInt(val, 10);
+  if (isNaN(n) || n < 1) return defaultVal;
+  return Math.min(n, max);
+}
+
 /**
  * GET /api/admin/llm-costs
  * Summary by tier, model, and service
  */
 router.get('/llm-costs', async (req, res) => {
   try {
-    const { days = 7 } = req.query;
-    const periodDays = parseInt(days);
+    const periodDays = parseDays(req.query.days, 7);
     const since = new Date(Date.now() - periodDays * 24 * 60 * 60 * 1000).toISOString();
 
     const { data, error } = await supabaseAdmin.rpc('aggregate_llm_costs_summary', {
@@ -83,8 +95,7 @@ router.get('/llm-costs', async (req, res) => {
  */
 router.get('/llm-costs/daily', async (req, res) => {
   try {
-    const { days = 30 } = req.query;
-    const periodDays = parseInt(days);
+    const periodDays = parseDays(req.query.days, 30);
     const since = new Date(Date.now() - periodDays * 24 * 60 * 60 * 1000).toISOString();
 
     const { data, error } = await supabaseAdmin.rpc('aggregate_llm_costs_daily', {
@@ -129,13 +140,11 @@ router.get('/llm-costs/daily', async (req, res) => {
  */
 router.get('/llm-costs/realtime', async (req, res) => {
   try {
-    const { limit = 100 } = req.query;
-
     const { data, error } = await supabaseAdmin
       .from('llm_usage_log')
       .select('*')
       .order('created_at', { ascending: false })
-      .limit(Math.min(parseInt(limit), 500));
+      .limit(parseLimit(req.query.limit, 100, 500));
 
     if (error) throw error;
 
@@ -155,8 +164,7 @@ router.get('/llm-costs/realtime', async (req, res) => {
  */
 router.get('/llm-costs/by-user', async (req, res) => {
   try {
-    const { days = 7 } = req.query;
-    const periodDays = parseInt(days);
+    const periodDays = parseDays(req.query.days, 7);
     const since = new Date(Date.now() - periodDays * 24 * 60 * 60 * 1000).toISOString();
 
     // Use RPC/raw SQL for server-side aggregation (table has 50k+ rows)
