@@ -85,7 +85,12 @@ const InstantTwinOnboarding = () => {
   const [connectingProvider, setConnectingProvider] = useState<DataProvider | null>(null);
   const [disconnectingProvider, setDisconnectingProvider] = useState<DataProvider | null>(null);
   const [showProfessionalPlatforms, setShowProfessionalPlatforms] = useState(true);
-  const [revealedArchetype, setRevealedArchetype] = useState<{ archetype_name: string; archetype_subtitle?: string; narrative?: string; defining_traits?: unknown[] } | null>(null);
+  const [revealedArchetype, setRevealedArchetype] = useState<{
+    archetype_name: string;
+    signature_quote?: string;
+    first_impression?: string;
+    core_traits?: unknown[];
+  } | null>(null);
 
   const connectedServices = connectedProviders as DataProvider[];
 
@@ -660,20 +665,20 @@ const InstantTwinOnboarding = () => {
                     {revealedArchetype.archetype_name}
                   </h2>
 
-                  {revealedArchetype.archetype_subtitle && (
+                  {revealedArchetype.signature_quote && (
                     <p
                       className="text-sm italic"
                       style={{ color: colors.textSecondary, fontFamily: 'var(--font-body)' }}
                     >
-                      {revealedArchetype.archetype_subtitle}
+                      {revealedArchetype.signature_quote}
                     </p>
                   )}
                 </div>
 
                 {/* Defining traits */}
-                {Array.isArray(revealedArchetype.defining_traits) && revealedArchetype.defining_traits.length > 0 && (
+                {Array.isArray(revealedArchetype.core_traits) && revealedArchetype.core_traits.length > 0 && (
                   <div className="flex flex-wrap gap-2 justify-center mb-6">
-                    {revealedArchetype.defining_traits.slice(0, 5).map((trait, i) => {
+                    {revealedArchetype.core_traits.slice(0, 5).map((trait, i) => {
                       const label = typeof trait === 'string' ? trait : (trait as { trait?: string })?.trait ?? '';
                       if (!label) return null;
                       return (
@@ -697,7 +702,7 @@ const InstantTwinOnboarding = () => {
                 )}
 
                 {/* Narrative */}
-                {revealedArchetype.narrative && (
+                {revealedArchetype.first_impression && (
                   <motion.p
                     className="text-sm leading-relaxed text-center mb-8"
                     style={{ color: colors.textSecondary, fontFamily: 'var(--font-body)' }}
@@ -705,7 +710,7 @@ const InstantTwinOnboarding = () => {
                     animate={{ opacity: 1 }}
                     transition={{ delay: 0.4 }}
                   >
-                    {revealedArchetype.narrative}
+                    {revealedArchetype.first_impression}
                   </motion.p>
                 )}
 
