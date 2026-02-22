@@ -1,6 +1,7 @@
 import express from 'express';
 import { supabaseAdmin as supabase } from '../config/supabase.js';
 import rateLimit from 'express-rate-limit';
+import { authenticateUser } from '../middleware/auth.js';
 
 const router = express.Router();
 
@@ -87,20 +88,18 @@ router.post('/session-end', analyticsLimiter, async (req, res) => {
   }
 });
 
-router.get('/dashboard', async (req, res) => {
+router.get('/dashboard', authenticateUser, async (req, res) => {
   try {
-    const { user_id, days = 7 } = req.query;
+    const user_id = req.user.id;
+    const { days = 7 } = req.query;
     const startDate = new Date();
     startDate.setDate(startDate.getDate() - parseInt(days));
 
     let query = supabase
       .from('analytics_events')
       .select('*')
-      .gte('timestamp', startDate.toISOString());
-
-    if (user_id) {
-      query = query.eq('user_id', user_id);
-    }
+      .gte('timestamp', startDate.toISOString())
+      .eq('user_id', user_id);
 
     const { data: events, error } = await query.order('timestamp', { ascending: false });
 
