@@ -736,6 +736,14 @@ async function runObservationIngestion() {
           generateGoalSuggestions(userId).catch(err =>
             console.warn(`[ObservationIngestion] Goal suggestions failed for ${userId}:`, err.message)
           );
+
+          // Regenerate twin summary after a delay to allow reflections to complete
+          // Reflections have priority, so wait 45s before summarizing
+          setTimeout(() => {
+            generateTwinSummary(userId).catch(err =>
+              console.warn(`[ObservationIngestion] Twin summary error for ${userId}:`, err.message)
+            );
+          }, 45000); // 45s delay: reflections have priority, then summary
         }
       } catch (userErr) {
         const errMsg = `User ${userId}: ${userErr.message}`;
