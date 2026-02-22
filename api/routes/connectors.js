@@ -1292,10 +1292,10 @@ router.delete('/:provider/:userId', authenticateUser, async (req, res) => {
  * Proxy endpoint for entertainment connectors (Spotify, YouTube, etc.)
  * This provides backward compatibility for frontend that expects this route
  */
-router.post('/connect/:platform', async (req, res) => {
+router.post('/connect/:platform', authenticateUser, async (req, res) => {
   try {
     const { platform } = req.params;
-    const { userId } = req.body;
+    const userId = req.user.id;
 
     console.log(`🔗 OAuth connection request for ${platform} from user ${userId}`);
 
@@ -1431,9 +1431,10 @@ router.post('/connect/:platform', async (req, res) => {
  * POST /api/connectors/test-add-connection
  * Test endpoint to add a connection for testing purposes
  */
-router.post('/test-add-connection', async (req, res) => {
+router.post('/test-add-connection', authenticateUser, async (req, res) => {
   try {
-    const { userId, provider } = req.body;
+    const userId = req.user.id;
+    const { provider } = req.body;
 
     // Convert email to UUID if needed
     let userUuid = userId;
