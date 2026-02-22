@@ -301,11 +301,16 @@ router.delete('/connections/:platform', authenticateUser, async (req, res) => {
 
     if (result.success) {
       // Also remove from our database
-      await supabaseAdmin
+      const { error: deleteErr } = await supabaseAdmin
         .from('platform_connections')
         .delete()
         .eq('user_id', userId)
         .eq('platform', platform);
+
+      if (deleteErr) {
+        console.error(`[Nango API] Failed to remove ${platform} connection from DB:`, deleteErr.message);
+        return res.status(500).json({ success: false, error: 'Failed to remove connection record' });
+      }
 
       res.json({
         success: true,
@@ -356,11 +361,14 @@ router.get('/extract/:platform', authenticateUser, async (req, res) => {
       // Also update platform_connections.last_sync_at so the frontend shows the correct sync date
       const platformKey = platform === 'google-calendar' ? 'google_calendar' :
                           platform === 'google-mail' ? 'gmail' : platform;
-      await supabaseAdmin
+      const { error: syncUpdateErr } = await supabaseAdmin
         .from('platform_connections')
         .update({ last_sync_at: new Date().toISOString() })
         .eq('user_id', userId)
         .eq('platform', platformKey);
+      if (syncUpdateErr) {
+        console.error(`[Nango API] Failed to update last_sync_at for ${platformKey}:`, syncUpdateErr.message);
+      }
 
       // Run feature extraction after raw data is stored
       try {
@@ -414,11 +422,14 @@ router.get('/extract-all', authenticateUser, async (req, res) => {
       if (platformResult.success) {
         const platformKey = platform === 'google-calendar' ? 'google_calendar' :
                             platform === 'google-mail' ? 'gmail' : platform;
-        await supabaseAdmin
+        const { error: syncErr } = await supabaseAdmin
           .from('platform_connections')
           .update({ last_sync_at: now })
           .eq('user_id', userId)
           .eq('platform', platformKey);
+        if (syncErr) {
+          console.error(`[Nango API] Failed to update last_sync_at for ${platformKey}:`, syncErr.message);
+        }
       }
     }
 
