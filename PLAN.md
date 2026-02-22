@@ -499,7 +499,7 @@ Compiled from comprehensive codebase audit. All items confirmed with user via al
 
 | # | Task | Status | Notes |
 |---|------|--------|-------|
-| U1 | Raise free tier from 50 → 100 messages/month | PENDING | `FREE_TIER_LIMIT` in `api/routes/chat-usage.js`. 50 is too low for meaningful engagement. Decision: 100. |
+| U1 | Raise free tier from 10 → 100 messages/month | ✅ DONE | `FREE_TIER_LIMIT` in `api/routes/chat-usage.js`. Was 10 (far too low). Now 100. |
 | U2 | Add chat streaming | PENDING | llmGateway.js has `stream()` function. twin-chat.js uses `complete()`. No SSE wiring in frontend. Users see 3-5s dead silence. Wire `stream()` through to frontend via SSE. |
 
 ### Memory Quality (P2)

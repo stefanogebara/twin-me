@@ -11,7 +11,7 @@ import { authenticateUser } from '../middleware/auth.js';
 
 const router = express.Router();
 
-const FREE_TIER_LIMIT = 10; // messages per month
+const FREE_TIER_LIMIT = 100; // messages per month
 
 /**
  * Get the user's current monthly chat usage
