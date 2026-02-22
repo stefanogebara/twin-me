@@ -348,6 +348,75 @@ async function getRecentImportanceSum(userId, hoursAgo = 2) {
 }
 
 /**
+ * Retrieve a diverse mix of memories by type to prevent reflection dominance.
+ *
+ * Problem: A single retrieveMemories(30) call returns ~27 reflections and
+ * ~3 observations because reflections have high importance scores (7-9) AND
+ * are frequently accessed (high recency). Facts and platform_data never surface.
+ *
+ * Solution: Run 3 parallel queries with per-type budgets:
+ *   - Reflections (15): semantic search with 'identity' weights (relevance-dominant)
+ *   - Facts (8): direct query by importance_score (most salient facts)
+ *   - Platform data (7): direct query by recency (freshest activity observations)
+ *
+ * @param {string} userId
+ * @param {string} query - Used for reflection semantic search
+ * @param {object} [budgets] - Override default per-type limits
+ * @returns {Array} Combined memories: up to 30 total with guaranteed type diversity
+ */
+async function retrieveDiverseMemories(userId, query, budgets = {}) {
+  const { reflections: maxReflections = 15, facts: maxFacts = 8, platformData: maxPlatformData = 7 } = budgets;
+
+  const SELECT_COLS = 'id, content, memory_type, importance_score, metadata, created_at, last_accessed_at';
+
+  const [reflectionResults, factResults, platformResults] = await Promise.all([
+    // Reflections: semantic search over-fetches, then we cap at maxReflections
+    retrieveMemories(userId, query, maxReflections * 2, 'identity').catch(err => {
+      console.warn('[MemoryStream] Diverse reflections fetch failed:', err.message);
+      return [];
+    }),
+
+    // Facts: top by importance (most salient facts about the user)
+    supabaseAdmin
+      .from('user_memories')
+      .select(SELECT_COLS)
+      .eq('user_id', userId)
+      .eq('memory_type', 'fact')
+      .order('importance_score', { ascending: false })
+      .limit(maxFacts)
+      .then(({ data, error }) => {
+        if (error) console.warn('[MemoryStream] Diverse facts fetch failed:', error.message);
+        return data || [];
+      }),
+
+    // Platform data: most recent activity observations
+    supabaseAdmin
+      .from('user_memories')
+      .select(SELECT_COLS)
+      .eq('user_id', userId)
+      .eq('memory_type', 'platform_data')
+      .order('created_at', { ascending: false })
+      .limit(maxPlatformData)
+      .then(({ data, error }) => {
+        if (error) console.warn('[MemoryStream] Diverse platform_data fetch failed:', error.message);
+        return data || [];
+      }),
+  ]);
+
+  // Cap reflections: take only the top N from the over-fetched semantic results
+  const topReflections = reflectionResults
+    .filter(m => m.memory_type === 'reflection')
+    .slice(0, maxReflections);
+
+  const combined = [...topReflections, ...factResults, ...platformResults];
+  console.log(
+    `[MemoryStream] Diverse retrieval: ${topReflections.length} reflections, ` +
+    `${factResults.length} facts, ${platformResults.length} platform_data`
+  );
+  return combined;
+}
+
+/**
  * Get recent memories for reflection generation.
  * Returns the N most recent memories ordered by creation time.
  */
@@ -488,6 +557,7 @@ export {
   addPlatformObservation,
   addReflection,
   retrieveMemories,
+  retrieveDiverseMemories,
   getRecentImportanceSum,
   getRecentMemories,
   rateImportance,
