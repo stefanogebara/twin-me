@@ -17,7 +17,7 @@ import { BentoExpertSpotlight } from './components/soul-portrait/BentoExpertSpot
 import { BentoGoalsTile } from './components/soul-portrait/BentoGoalsTile';
 
 // Whitelist for BentoStatsTile — filters out unknown/internal platform entries
-const STATS_PLATFORM_WHITELIST = ['spotify', 'google-calendar', 'whoop', 'youtube', 'twitch', 'linkedin', 'github', 'reddit'];
+const STATS_PLATFORM_WHITELIST = ['spotify', 'google-calendar', 'youtube', 'linkedin', 'github', 'reddit'];
 
 const SoulSignatureDashboard: React.FC = () => {
   const { user } = useAuth();
@@ -142,7 +142,7 @@ const SoulSignatureDashboard: React.FC = () => {
   // Determine which platforms are connected and have a known config
   // DB stores 'google_calendar' but we reference it as 'calendar' in the UI
   const PLATFORM_ALIAS: Record<string, string> = { google_calendar: 'calendar' };
-  const knownPlatforms = ['spotify', 'calendar', 'whoop', 'youtube', 'twitch'];
+  const knownPlatforms = ['spotify', 'calendar', 'youtube'];
   const activePlatforms = portrait?.connectedPlatforms
     .map(p => {
       const key = p.platform.toLowerCase();
@@ -324,7 +324,7 @@ const SoulSignatureDashboard: React.FC = () => {
             </div>
           )}
 
-          {/* ── Row 3: Cultural Identity + Social Dynamics + Motivation/Whoop ── */}
+          {/* ── Row 3: Cultural Identity + Social Dynamics + Motivation ── */}
           {portrait.twinSummary && (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-4">
               {activePlatforms.includes('spotify') && (
@@ -339,34 +339,28 @@ const SoulSignatureDashboard: React.FC = () => {
                 domains={portrait.twinSummary.domains}
                 animationDelay={0.15}
               />
-              {activePlatforms.includes('whoop') ? (
-                <BentoPlatformTile
-                  platform="whoop"
-                  platformData={portrait.platformData}
-                  connectedPlatforms={portrait.connectedPlatforms}
-                  animationDelay={0.2}
-                />
-              ) : (
-                <BentoDomainTile
-                  domainKey="motivation"
-                  domains={portrait.twinSummary.domains}
-                  animationDelay={0.2}
-                />
-              )}
-            </div>
-          )}
-
-          {/* ── Row 3b: Motivation + Calendar (when both Spotify and Whoop are connected) ── */}
-          {portrait.twinSummary && activePlatforms.includes('whoop') && (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-4">
               <BentoDomainTile
                 domainKey="motivation"
                 domains={portrait.twinSummary.domains}
-                animationDelay={0.1}
+                animationDelay={0.2}
               />
+            </div>
+          )}
+
+          {/* ── Row 3b: Platform insight tiles (Calendar + YouTube) ── */}
+          {(activePlatforms.includes('calendar') || activePlatforms.includes('youtube')) && (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-4">
               {activePlatforms.includes('calendar') && (
                 <BentoPlatformTile
                   platform="calendar"
+                  platformData={portrait.platformData}
+                  connectedPlatforms={portrait.connectedPlatforms}
+                  animationDelay={0.1}
+                />
+              )}
+              {activePlatforms.includes('youtube') && (
+                <BentoPlatformTile
+                  platform="youtube"
                   platformData={portrait.platformData}
                   connectedPlatforms={portrait.connectedPlatforms}
                   animationDelay={0.15}
@@ -389,33 +383,13 @@ const SoulSignatureDashboard: React.FC = () => {
             </div>
           )}
 
-          {/* ── Row 5: Expert Spotlight (2/3) + Platform tiles (1/3 each) ── */}
+          {/* ── Row 5: Expert Analysis — full width ── */}
           {portrait.reflections.length > 0 && (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-4">
-              <div className="lg:col-span-2">
-                <BentoExpertSpotlight
-                  reflections={portrait.reflections}
-                  animationDelay={0.08}
-                />
-              </div>
-              <div className="flex flex-col gap-4">
-                {activePlatforms.includes('youtube') && (
-                  <BentoPlatformTile
-                    platform="youtube"
-                    platformData={portrait.platformData}
-                    connectedPlatforms={portrait.connectedPlatforms}
-                    animationDelay={0.12}
-                  />
-                )}
-                {activePlatforms.includes('twitch') && (
-                  <BentoPlatformTile
-                    platform="twitch"
-                    platformData={portrait.platformData}
-                    connectedPlatforms={portrait.connectedPlatforms}
-                    animationDelay={0.16}
-                  />
-                )}
-              </div>
+            <div className="mb-4">
+              <BentoExpertSpotlight
+                reflections={portrait.reflections}
+                animationDelay={0.08}
+              />
             </div>
           )}
 
