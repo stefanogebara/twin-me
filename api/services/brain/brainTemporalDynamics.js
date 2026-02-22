@@ -195,25 +195,31 @@ export async function getNodesWithTemporalInfo(userId) {
 export async function reinforceNodesFromPlatform(userId, platform, nodeLabels, reinforceNodeFn) {
   const stats = { reinforced: 0, notFound: 0 };
 
-  for (const label of nodeLabels) {
-    const { data: node } = await supabaseAdmin
-      .from('brain_nodes')
-      .select('id')
-      .eq('user_id', userId)
-      .eq('platform', platform)
-      .ilike('label', `%${label}%`)
-      .single();
-
-    if (node) {
-      await reinforceNodeFn(userId, node.id, {
-        evidenceSource: `platform_data:${platform}`,
-        confidenceBoost: 0.05
-      });
-      stats.reinforced++;
-    } else {
-      stats.notFound++;
-    }
+  if (nodeLabels.length === 0) {
+    return stats;
   }
+
+  const orFilter = nodeLabels.map(l => `label.ilike.%${l}%`).join(',');
+  const { data: nodes, error: nodesErr } = await supabaseAdmin
+    .from('brain_nodes')
+    .select('id')
+    .eq('user_id', userId)
+    .eq('platform', platform)
+    .or(orFilter);
+
+  if (nodesErr) {
+    console.warn('[TwinsBrain] Error fetching nodes for reinforcement:', nodesErr.message);
+  }
+
+  for (const node of (nodes || [])) {
+    await reinforceNodeFn(userId, node.id, {
+      evidenceSource: `platform_data:${platform}`,
+      confidenceBoost: 0.05
+    });
+    stats.reinforced++;
+  }
+
+  stats.notFound = Math.max(nodeLabels.length - stats.reinforced, 0);
 
   console.log(`[TwinsBrain] Platform reinforcement (${platform}): ${stats.reinforced} reinforced, ${stats.notFound} not found`);
   return stats;
