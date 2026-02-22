@@ -133,13 +133,14 @@ async function pollPlatform(userId, platform, accessToken) {
       console.log(`✅ Successfully polled ${platform} - ${endpoint.name}`);
 
       // Store the raw data
-      await getSupabaseClient().from('user_platform_data').insert({
+      const { error: insertErr } = await getSupabaseClient().from('user_platform_data').insert({
         user_id: userId,
         platform: platform,
         data_type: endpoint.name,
         raw_data: response.data,
         extracted_at: new Date().toISOString(),
       });
+      if (insertErr) console.warn(`[PlatformPolling] Failed to store ${platform}/${endpoint.name} data:`, insertErr.message);
 
       results.push({
         endpoint: endpoint.name,
@@ -157,7 +158,7 @@ async function pollPlatform(userId, platform, accessToken) {
 
       // If unauthorized, mark connection as needs_reauth
       if (error.response?.status === 401) {
-        await getSupabaseClient()
+        const { error: reauthErr } = await getSupabaseClient()
           .from('platform_connections')
           .update({
             status: 'needs_reauth',
@@ -167,6 +168,7 @@ async function pollPlatform(userId, platform, accessToken) {
           })
           .eq('user_id', userId)
           .eq('platform', platform);
+        if (reauthErr) console.warn(`[PlatformPolling] Failed to mark ${platform} as needs_reauth:`, reauthErr.message);
       }
     }
   }
@@ -241,7 +243,7 @@ async function pollAllUsers() {
 
           // Update last sync time if successful
           if (result.success) {
-            await getSupabaseClient()
+            const { error: syncErr } = await getSupabaseClient()
               .from('platform_connections')
               .update({
                 last_sync: new Date().toISOString(),
@@ -250,6 +252,7 @@ async function pollAllUsers() {
               })
               .eq('user_id', userId)
               .eq('platform', connection.platform);
+            if (syncErr) console.warn(`[PlatformPolling] Failed to update last_sync for ${connection.platform}:`, syncErr.message);
           }
 
           pollingResults.push({
