@@ -12,7 +12,6 @@ import { extractGitHubData } from './githubExtraction.js';
 import soulSignatureBuilder from './soulSignatureBuilder.js';
 // MVP Feature Extractors
 import spotifyFeatureExtractor from './featureExtractors/spotifyExtractor.js';
-import whoopFeatureExtractor from './featureExtractors/whoopExtractor.js';
 import calendarFeatureExtractor from './featureExtractors/calendarExtractor.js';
 // Gmail, Outlook, LinkedIn extractors removed (TIER 1 cleanup)
 const gmailFeatureExtractor = { extractFeatures: async () => ({}), saveFeatures: async () => {} };
@@ -162,24 +161,6 @@ class ExtractionOrchestrator {
           }
           break;
 
-        case 'whoop':
-          // Use MVP feature extractor for Whoop
-          try {
-            const features = await whoopFeatureExtractor.extractFeatures(userId);
-            if (features.length > 0) {
-              await whoopFeatureExtractor.saveFeatures(features);
-              itemsExtracted = features.length;
-              result = { success: true, itemsExtracted };
-              console.log(`   📊 Extracted ${features.length} Whoop behavioral features`);
-            } else {
-              result = { success: true, itemsExtracted: 0, message: 'No Whoop data available' };
-            }
-          } catch (whoopError) {
-            console.error(`   ❌ Whoop extraction error: ${whoopError.message}`);
-            result = { success: false, error: whoopError.message };
-          }
-          break;
-
         case 'calendar':
         case 'google_calendar':
           // Use MVP feature extractor for Calendar
@@ -209,9 +190,8 @@ class ExtractionOrchestrator {
           itemsExtracted = result.itemsExtracted || 0;
           break;
 
-        case 'youtube':
-        case 'twitch': {
-          // Use Nango extraction + storage for these platforms
+        case 'youtube': {
+          // Use Nango extraction + storage for YouTube
           const nangoService = await import('./nangoService.js');
           const extractResult = await nangoService.extractPlatformData(userId, platform);
           if (extractResult.success) {

@@ -5,7 +5,7 @@ import { useNavigate } from 'react-router-dom';
 import { AlertCircle, Globe, Target, Flame, Trophy, ChevronRight } from 'lucide-react';
 import { goalsAPI, GoalSummary } from '@/services/api/goalsAPI';
 import { PageLayout } from '@/components/layout/PageLayout';
-import { calendarAPI, spotifyAPI, whoopAPI, CalendarEvent } from '@/services/apiService';
+import { calendarAPI, spotifyAPI, CalendarEvent } from '@/services/apiService';
 import { TodayInsights } from '@/components/TodayInsights';
 import { ProactiveInsightsPanel } from '@/components/ProactiveInsightsPanel';
 import { usePlatformStatus } from '@/hooks/usePlatformStatus';
@@ -38,22 +38,11 @@ interface Pattern {
   hasData?: boolean;
 }
 
-// DASH 2.4: Whoop data interface for dashboard display
-interface WhoopData {
-  recovery: number | null;
-  hrv: number | null;
-  sleepHours: number | null;
-  strain: number | null;
-  recoveryLabel: string;
-}
-
 // Platform configuration for icons and colors (MVP platforms only)
 const PLATFORM_CONFIG: Record<string, { name: string; color: string; brandColor: string }> = {
   spotify: { name: 'Spotify', color: 'text-green-500', brandColor: '#1DB954' },
   google_calendar: { name: 'Calendar', color: 'text-blue-500', brandColor: '#4285F4' },
-  whoop: { name: 'Whoop', color: 'text-cyan-500', brandColor: '#00A5E0' },
   youtube: { name: 'YouTube', color: 'text-red-500', brandColor: '#FF0000' },
-  twitch: { name: 'Twitch', color: 'text-purple-500', brandColor: '#9146FF' },
 };
 
 export const Dashboard: React.FC = () => {
@@ -63,9 +52,6 @@ export const Dashboard: React.FC = () => {
   const [allEvents, setAllEvents] = useState<CalendarEvent[]>([]); // Store all events from API
   const [calendarConnected, setCalendarConnected] = useState(false);
   const [spotifyConnected, setSpotifyConnected] = useState(false);
-  const [whoopConnected, setWhoopConnected] = useState(false);
-  // DASH 2.4: Whoop data state
-  const [whoopData, setWhoopData] = useState<WhoopData | null>(null);
   const [goalSummary, setGoalSummary] = useState<GoalSummary | null>(null);
   const [error, setError] = useState<{ message: string; type?: 'auth' | 'general' } | null>(null);
   const [syncing, setSyncing] = useState(false);
@@ -125,7 +111,6 @@ export const Dashboard: React.FC = () => {
         // In demo mode, show all MVP platforms as connected with sample data
         setCalendarConnected(true);
         setSpotifyConnected(true);
-        setWhoopConnected(true);
 
         // Populate demo calendar events with real Date objects
         const today = new Date();
@@ -161,25 +146,15 @@ export const Dashboard: React.FC = () => {
         });
         setAllEvents(demoEvents);
 
-        // Set demo Whoop data
-        setWhoopData({
-          recovery: 72,
-          hrv: 58,
-          sleepHours: 7.2,
-          strain: 11.4,
-          recoveryLabel: 'Green'
-        });
-
         setLoading(false);
         return;
       }
 
       try {
         // Fetch platform statuses + goal summary in parallel
-        const [calendarStatus, spotifyStatus, whoopStatus, goalResult] = await Promise.allSettled([
+        const [calendarStatus, spotifyStatus, goalResult] = await Promise.allSettled([
           calendarAPI.getStatus(),
           spotifyAPI.getStatus(),
-          whoopAPI.getStatus(),
           goalsAPI.getSummary()
         ]);
 
@@ -196,29 +171,6 @@ export const Dashboard: React.FC = () => {
         // Update Spotify connection status
         if (spotifyStatus.status === 'fulfilled') {
           setSpotifyConnected(spotifyStatus.value.connected);
-        }
-
-        // Update Whoop connection status and fetch data if connected
-        if (whoopStatus.status === 'fulfilled') {
-          const isWhoopConnected = whoopStatus.value.connected && !whoopStatus.value.tokenExpired;
-          setWhoopConnected(isWhoopConnected);
-
-          // DASH 2.4: Fetch Whoop data when connected
-          if (isWhoopConnected) {
-            try {
-              const whoopState = await whoopAPI.getCurrentState();
-              setWhoopData({
-                recovery: whoopState.recovery?.score ?? null,
-                hrv: whoopState.recovery?.components?.hrv ?? null,
-                sleepHours: whoopState.sleep?.hours ?? null,
-                strain: whoopState.strain?.score ?? null,
-                recoveryLabel: whoopState.recovery?.label || 'Unknown'
-              });
-            } catch (err) {
-              console.error('Failed to fetch Whoop data:', err);
-              // Don't set error for Whoop - it's optional
-            }
-          }
         }
 
         // If calendar is connected, fetch events
@@ -358,7 +310,6 @@ export const Dashboard: React.FC = () => {
   const allConnectedIds = new Set<string>(connectedProviders);
   if (calendarConnected) allConnectedIds.add('google_calendar');
   if (spotifyConnected) allConnectedIds.add('spotify');
-  if (whoopConnected) allConnectedIds.add('whoop');
 
   const platforms: PlatformStatus[] = Array.from(allConnectedIds)
     .map(provider => {
@@ -380,10 +331,8 @@ export const Dashboard: React.FC = () => {
 
   // Build insight links based on connected platforms
   const isSpotifyConnected = connectedProviders.includes('spotify') || spotifyConnected;
-  const isWhoopConnected = connectedProviders.includes('whoop') || whoopConnected;
   const isCalendarConnected = connectedProviders.includes('google_calendar') || calendarConnected;
   const isYouTubeConnected = connectedProviders.includes('youtube');
-  const isTwitchConnected = connectedProviders.includes('twitch');
 
   const insightLinks: Pattern[] = [
     {
@@ -397,18 +346,6 @@ export const Dashboard: React.FC = () => {
       hasData: isSpotifyConnected,
       actionLabel: isSpotifyConnected ? 'Explore' : 'Connect',
       actionPath: isSpotifyConnected ? '/insights/spotify' : '/get-started'
-    },
-    {
-      id: 'body-stories',
-      title: 'Body Stories',
-      description: isWhoopConnected
-        ? 'What your body tells you'
-        : 'Connect Whoop to hear your body stories',
-      icon: Globe,
-      color: isWhoopConnected ? 'text-cyan-500' : 'text-gray-500',
-      hasData: isWhoopConnected,
-      actionLabel: isWhoopConnected ? 'Explore' : 'Connect',
-      actionPath: isWhoopConnected ? '/insights/whoop' : '/get-started'
     },
     {
       id: 'time-patterns',
@@ -433,18 +370,6 @@ export const Dashboard: React.FC = () => {
       hasData: isYouTubeConnected,
       actionLabel: isYouTubeConnected ? 'Explore' : 'Connect',
       actionPath: isYouTubeConnected ? '/insights/youtube' : '/get-started'
-    },
-    {
-      id: 'gaming-world',
-      title: 'Gaming World',
-      description: isTwitchConnected
-        ? 'Your Twitch streams and gaming identity'
-        : 'Connect Twitch to reveal your gaming world',
-      icon: Globe,
-      color: isTwitchConnected ? 'text-purple-500' : 'text-gray-500',
-      hasData: isTwitchConnected,
-      actionLabel: isTwitchConnected ? 'Explore' : 'Connect',
-      actionPath: isTwitchConnected ? '/insights/twitch' : '/get-started'
     },
   ];
 

@@ -40,7 +40,7 @@ async function getSupabase() {
 }
 
 // Platforms we know how to ingest
-const SUPPORTED_PLATFORMS = ['spotify', 'google_calendar', 'whoop', 'youtube', 'twitch'];
+const SUPPORTED_PLATFORMS = ['spotify', 'google_calendar', 'youtube'];
 
 // ====================================================================
 // Prompt injection defense
@@ -338,127 +338,6 @@ async function fetchCalendarObservations(userId) {
 }
 
 /**
- * Fetch Whoop data and return natural-language observations.
- * Handles both NANGO_MANAGED and self-managed tokens, same as twin-chat.js.
- */
-async function fetchWhoopObservations(userId) {
-  const observations = [];
-
-  try {
-    const supabase = await getSupabase();
-    if (!supabase) return observations;
-
-    // Check if connection is NANGO_MANAGED
-    const { data: whoopConn } = await supabase
-      .from('platform_connections')
-      .select('access_token')
-      .eq('user_id', userId)
-      .eq('platform', 'whoop')
-      .single();
-
-    let recoveryData = null;
-    let sleepRecords = [];
-
-    let allRecoveryRecords = [];
-
-    if (whoopConn?.access_token === 'NANGO_MANAGED') {
-      // Use Nango proxy
-      const nangoService = await import('./nangoService.js');
-      const [recoveryResult, sleepResult] = await Promise.all([
-        nangoService.whoop.getRecovery(userId, 3),
-        nangoService.whoop.getSleep(userId, 5),
-      ]);
-      allRecoveryRecords = recoveryResult.success ? (recoveryResult.data?.records || []) : [];
-      recoveryData = allRecoveryRecords[0] || null;
-      sleepRecords = sleepResult.success ? (sleepResult.data?.records || []) : [];
-    } else {
-      // Self-managed token — direct API
-      const tokenResult = await getValidAccessToken(userId, 'whoop');
-      if (!tokenResult.success || !tokenResult.accessToken) {
-        console.warn('[ObservationIngestion] Whoop: no valid token for user', userId);
-        return observations;
-      }
-      const headers = { Authorization: `Bearer ${tokenResult.accessToken}` };
-      const [recoveryRes, sleepRes] = await Promise.all([
-        axios.get('https://api.prod.whoop.com/developer/v2/recovery?limit=3', { headers, timeout: 10000 }),
-        axios.get('https://api.prod.whoop.com/developer/v2/activity/sleep?limit=5', { headers, timeout: 10000 }),
-      ]);
-      allRecoveryRecords = recoveryRes.data?.records || [];
-      recoveryData = allRecoveryRecords[0] || null;
-      sleepRecords = sleepRes.data?.records || [];
-    }
-
-    // Process recovery
-    if (recoveryData?.score) {
-      const score = recoveryData.score.recovery_score;
-      const hrv = recoveryData.score.hrv_rmssd_milli
-        ? Math.round(recoveryData.score.hrv_rmssd_milli)
-        : null;
-
-      // Calculate sleep from recent records
-      const now = new Date();
-      const yesterday = new Date(now.getTime() - 24 * 60 * 60 * 1000);
-      const todaysSleeps = sleepRecords.filter(s => new Date(s.end) >= yesterday);
-
-      let totalSleepMs = 0;
-      todaysSleeps.forEach(sleep => {
-        const stageSummary = sleep.score?.stage_summary || {};
-        totalSleepMs += sleep.score?.total_sleep_time_milli ||
-          (stageSummary.total_in_bed_time_milli - (stageSummary.total_awake_time_milli || 0)) ||
-          stageSummary.total_in_bed_time_milli || 0;
-      });
-
-      const sleepHours = (totalSleepMs / (1000 * 60 * 60)).toFixed(1);
-
-      // Build recovery level label
-      let level = 'moderate';
-      if (score >= 67) level = 'green';
-      else if (score <= 33) level = 'red';
-
-      const parts = [`Recovery score: ${score}% (${level})`];
-      if (parseFloat(sleepHours) > 0) parts.push(`Slept ${sleepHours}h`);
-      if (hrv) parts.push(`HRV: ${hrv}ms`);
-
-      observations.push(parts.join('. '));
-    }
-
-    // Strain observation (if available from recovery data)
-    if (recoveryData?.score?.user_calibrating === false) {
-      // Strain is on the cycle, not recovery — skip unless we fetch it separately
-      // For now, we only generate recovery observations
-    }
-
-    // --- Richer observation templates ---
-
-    // Trend analysis: if 3 recovery records, compute trend
-    if (allRecoveryRecords.length >= 3) {
-      const scores = allRecoveryRecords
-        .slice(0, 3)
-        .map(r => r.score?.recovery_score)
-        .filter(s => s != null);
-      if (scores.length === 3) {
-        const trend = scores[0] > scores[2] ? 'up' : scores[0] < scores[2] ? 'down' : 'stable';
-        // scores[0] is most recent, scores[2] is oldest
-        observations.push({ content: `Recovery trending ${trend}: ${scores[2]}% -> ${scores[1]}% -> ${scores[0]}% over 3 days`, contentType: 'trend' });
-      }
-    }
-
-    // Strain-recovery balance: high strain with low recovery
-    if (recoveryData?.score) {
-      const strain = recoveryData.score.strain_score || 0;
-      const recovery = recoveryData.score.recovery_score || 0;
-      if (strain > 15 && recovery < 40) {
-        observations.push({ content: 'High strain with low recovery - body under load', contentType: 'current_state' });
-      }
-    }
-  } catch (e) {
-    console.warn('[ObservationIngestion] Whoop error:', e.message);
-  }
-
-  return observations;
-}
-
-/**
  * Fetch YouTube data and return natural-language observations.
  * Uses the YouTube Data API v3 to pull subscriptions and liked videos.
  */
@@ -525,78 +404,6 @@ async function fetchYouTubeObservations(userId) {
     }
   } catch (e) {
     // Activities endpoint may not always be available — non-critical
-  }
-
-  return observations;
-}
-
-/**
- * Fetch Twitch data and return natural-language observations.
- * Uses the Twitch Helix API to pull followed channels.
- */
-async function fetchTwitchObservations(userId) {
-  const observations = [];
-
-  const tokenResult = await getValidAccessToken(userId, 'twitch');
-  if (!tokenResult.success || !tokenResult.accessToken) {
-    console.warn('[ObservationIngestion] Twitch: no valid token for user', userId);
-    return observations;
-  }
-
-  const headers = {
-    Authorization: `Bearer ${tokenResult.accessToken}`,
-    'Client-Id': process.env.TWITCH_CLIENT_ID || '',
-  };
-
-  // Get Twitch user ID first (required for followed channels endpoint)
-  let twitchUserId = null;
-  try {
-    const userRes = await axios.get('https://api.twitch.tv/helix/users', { headers, timeout: 10000 });
-    twitchUserId = userRes.data?.data?.[0]?.id || null;
-  } catch (e) {
-    console.warn('[ObservationIngestion] Twitch user lookup error:', e.message);
-    return observations;
-  }
-
-  if (!twitchUserId) {
-    console.warn('[ObservationIngestion] Twitch: could not determine user ID for', userId);
-    return observations;
-  }
-
-  // Followed channels
-  try {
-    const followsRes = await axios.get(
-      `https://api.twitch.tv/helix/channels/followed?user_id=${twitchUserId}&first=50`,
-      { headers, timeout: 10000 }
-    );
-    const follows = followsRes.data?.data || [];
-    if (follows.length > 0) {
-      const channelNames = follows.map(f => sanitizeExternal(f.broadcaster_name)).filter(Boolean).slice(0, 15);
-      observations.push({
-        content: `Follows Twitch channels: ${channelNames.join(', ')} — streams in gaming and entertainment categories`,
-        contentType: 'weekly_summary',
-      });
-    }
-  } catch (e) {
-    console.warn('[ObservationIngestion] Twitch followed channels error:', e.message);
-  }
-
-  // Live streams currently followed (real-time signal)
-  try {
-    const streamsRes = await axios.get(
-      `https://api.twitch.tv/helix/streams/followed?user_id=${twitchUserId}&first=10`,
-      { headers, timeout: 10000 }
-    );
-    const liveStreams = streamsRes.data?.data || [];
-    if (liveStreams.length > 0) {
-      const streamDescs = liveStreams.slice(0, 5).map(s => `${sanitizeExternal(s.user_name)} (${sanitizeExternal(s.game_name, 50) || 'Unknown'})`);
-      observations.push({
-        content: `Twitch channels currently live that I follow: ${streamDescs.join(', ')}`,
-        contentType: 'current_state',
-      });
-    }
-  } catch (e) {
-    // Non-critical — live stream data may be unavailable
   }
 
   return observations;
@@ -686,14 +493,8 @@ async function runObservationIngestion() {
               case 'google_calendar':
                 observations = await fetchCalendarObservations(userId);
                 break;
-              case 'whoop':
-                observations = await fetchWhoopObservations(userId);
-                break;
               case 'youtube':
                 observations = await fetchYouTubeObservations(userId);
-                break;
-              case 'twitch':
-                observations = await fetchTwitchObservations(userId);
                 break;
             }
 
@@ -948,14 +749,8 @@ async function runPostOnboardingIngestion(userId) {
           case 'google_calendar':
             observations = await fetchCalendarObservations(userId);
             break;
-          case 'whoop':
-            observations = await fetchWhoopObservations(userId);
-            break;
           case 'youtube':
             observations = await fetchYouTubeObservations(userId);
-            break;
-          case 'twitch':
-            observations = await fetchTwitchObservations(userId);
             break;
         }
 
@@ -1049,8 +844,6 @@ export {
   stopObservationIngestion,
   fetchSpotifyObservations,
   fetchCalendarObservations,
-  fetchWhoopObservations,
   fetchYouTubeObservations,
-  fetchTwitchObservations,
   runPostOnboardingIngestion,
 };

@@ -43,17 +43,4 @@ export const DEMO_PLATFORM_CONNECTIONS = [
     dataPoints: 156,
     extractedDataPoints: 156,
   },
-  {
-    id: 'demo-conn-whoop',
-    platform: 'whoop',
-    platformName: 'Whoop',
-    connected: true,
-    connectedAt: getRelativeDateDays(14), // Connected 14 days ago
-    lastSync: getRelativeDate(3), // Synced 3 hours ago
-    status: 'active',
-    syncStatus: 'synced',
-    dataQuality: 'high',
-    dataPoints: 730,
-    extractedDataPoints: 730,
-  },
 ];

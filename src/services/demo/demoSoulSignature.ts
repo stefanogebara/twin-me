@@ -23,7 +23,6 @@ export const DEMO_SOUL_SIGNATURE = {
       { trait: 'Creative Explorer', strength: 88 },
       { trait: 'Balanced Achiever', strength: 85 },
       { trait: 'Social Connector', strength: 76 },
-      { trait: 'Health Conscious', strength: 82 },
       { trait: 'Continuous Learner', strength: 89 },
     ],
   },
@@ -31,7 +30,6 @@ export const DEMO_SOUL_SIGNATURE = {
   interests: {
     primary: [
       { name: 'Electronic Music', intensity: 94 },
-      { name: 'Fitness & Recovery', intensity: 87 },
       { name: 'Productivity', intensity: 82 },
       { name: 'Mindfulness', intensity: 78 },
     ],
@@ -56,18 +54,6 @@ export const DEMO_SOUL_SIGNATURE = {
           'Uses music to match energy levels throughout the day',
         ],
       },
-      {
-        name: 'Health & Recovery',
-        revealLevel: 80,
-        dataPoints: 730,
-        source: 'whoop',
-        insights: [
-          'Average recovery score of 68% - room for improvement',
-          'Sleep quality correlates strongly with next-day productivity',
-          'Moderate daily strain suggests balanced activity level',
-          'HRV trending stable - consistent stress management',
-        ],
-      },
     ],
     professional: [
       {
@@ -88,15 +74,6 @@ export const DEMO_SOUL_SIGNATURE = {
 
 export const DEMO_INSIGHTS = [
   {
-    id: 'insight-1',
-    title: 'Recovery-Music Connection',
-    description: 'On high recovery days (80%+), you tend to listen to more energetic music. Consider matching your playlist to your recovery score.',
-    type: 'correlation',
-    confidence: 89,
-    icon: '\uD83C\uDFB5',
-    platforms: ['whoop', 'spotify'],
-  },
-  {
     id: 'insight-2',
     title: 'Pre-Meeting Music',
     description: 'You often listen to ambient music 30 minutes before important meetings. This may help you prepare mentally.',
@@ -104,15 +81,6 @@ export const DEMO_INSIGHTS = [
     confidence: 92,
     icon: '\uD83D\uDCC5',
     platforms: ['spotify', 'google_calendar'],
-  },
-  {
-    id: 'insight-3',
-    title: 'Sleep Impact',
-    description: 'Your calendar shows 23% more meetings scheduled after nights with 7+ hours of sleep. Better rest = more social energy.',
-    type: 'correlation',
-    confidence: 85,
-    icon: '\uD83D\uDE34',
-    platforms: ['whoop', 'google_calendar'],
   },
   {
     id: 'insight-4',

@@ -14,9 +14,8 @@
  * This is the thin orchestrator. Domain logic lives in:
  * - reflections/reflectionConstants.js   - System prompt, cache TTL
  * - reflections/spotifyDataFetcher.js    - Spotify data extraction
- * - reflections/whoopDataFetcher.js      - Whoop data extraction + historical context
  * - reflections/calendarDataFetcher.js   - Calendar data extraction
- * - reflections/otherDataFetchers.js     - YouTube, Twitch, Web data extraction
+ * - reflections/otherDataFetchers.js     - YouTube, Web data extraction
  * - reflections/reflectionPrompts.js     - Per-platform prompt building
  * - reflections/reflectionTemplates.js   - Template-based fallback reflections
  * - reflections/reflectionStore.js       - DB/cache ops + response formatting
@@ -30,9 +29,8 @@ import { REFLECTION_BASE_SYSTEM } from './reflections/reflectionConstants.js';
 
 // Data fetchers
 import { getSpotifyData } from './reflections/spotifyDataFetcher.js';
-import { getWhoopData } from './reflections/whoopDataFetcher.js';
 import { getCalendarData } from './reflections/calendarDataFetcher.js';
-import { getYouTubeData, getTwitchData, getWebBrowsingData } from './reflections/otherDataFetchers.js';
+import { getYouTubeData, getWebBrowsingData } from './reflections/otherDataFetchers.js';
 
 // Prompt building
 import { getPromptForPlatform } from './reflections/reflectionPrompts.js';
@@ -164,14 +162,10 @@ class PlatformReflectionService {
     switch (platform) {
       case 'spotify':
         return getSpotifyData(userId, context);
-      case 'whoop':
-        return getWhoopData(context);
       case 'calendar':
         return getCalendarData(context);
       case 'youtube':
         return getYouTubeData(userId);
-      case 'twitch':
-        return getTwitchData(userId);
       case 'web':
         return getWebBrowsingData(userId);
       default:

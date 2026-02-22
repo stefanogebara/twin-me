@@ -50,10 +50,8 @@ export const CLAY_ICON_MAP: Record<string, string> = {
   chat: 'chat-bubble',
   // Insights
   'spotify-insights': 'headphones',
-  'whoop-insights': 'lightning',
   'calendar-insights': 'compass',
   'youtube-insights': 'star',
-  'twitch-insights': 'game-controller',
   'web-insights': 'globe',
   // Features
   privacy: 'shield',

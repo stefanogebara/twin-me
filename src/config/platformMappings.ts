@@ -61,13 +61,6 @@ export const platformMappings: Record<string, PlatformConfig> = {
     description: 'Curated tastes, premium preferences',
     docsUrl: 'https://developer.apple.com/documentation/applemusicapi'
   },
-  twitch: {
-    name: 'Twitch',
-    category: 'personal',
-    apiAvailable: 'Full API',
-    description: 'Live engagement, community participation',
-    docsUrl: 'https://dev.twitch.tv/docs/api'
-  },
   tiktok: {
     name: 'TikTok',
     category: 'personal',

@@ -24,17 +24,6 @@ export interface DemoTodayInsight {
 
 export const DEMO_TODAY_INSIGHTS: DemoTodayInsight[] = [
   {
-    id: 'demo-1',
-    type: 'health',
-    title: 'Good Recovery Day',
-    summary: 'Your recovery is at 72% - perfect for moderate activity',
-    detail: 'Based on your Whoop data, your HRV is above average and you got 7.2 hours of sleep. Consider a workout today.',
-    platforms: ['whoop'],
-    priority: 'high',
-    icon: 'activity',
-    action: { label: 'View Health Data', route: '/soul-signature' }
-  },
-  {
     id: 'demo-2',
     type: 'schedule',
     title: 'Your Day Ahead',
@@ -61,8 +50,8 @@ export const DEMO_TODAY_INSIGHTS: DemoTodayInsight[] = [
     type: 'pattern',
     title: 'Energy Pattern Detected',
     summary: 'You tend to crash around 3pm - schedule important work earlier',
-    detail: 'Cross-referencing your Whoop strain data with calendar events shows your energy dips mid-afternoon. Your high-recovery days correlate with morning workouts.',
-    platforms: ['whoop', 'google_calendar', 'spotify'],
+    detail: 'Cross-referencing your calendar events shows your energy dips mid-afternoon. Your most productive days correlate with morning routines.',
+    platforms: ['google_calendar', 'spotify'],
     priority: 'medium',
     icon: 'trending'
   }

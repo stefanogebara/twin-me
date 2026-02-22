@@ -59,11 +59,6 @@ const GithubLogo = ({ className = "w-6 h-6" }: { className?: string }) => (
   </svg>
 );
 
-const WhoopLogo = ({ className = "w-6 h-6" }: { className?: string }) => (
-  <svg className={className} viewBox="0 0 1332 999" fill="currentColor">
-    <path d="m969.3 804.3l-129.4-426.3h-118.7l189.2 620.8h117.8l303.7-998h-118.7zm-851.3-803.5h-117.9l188.4 620.7h118.6zm488.6 0l-302.8 997.9h117.8l303.7-997.9z"/>
-  </svg>
-);
 
 const OuraLogo = ({ className = "w-6 h-6" }: { className?: string }) => (
   <svg className={className} viewBox="0 0 24 24" fill="currentColor">
@@ -82,11 +77,6 @@ const OutlookLogo = ({ className = "w-6 h-6" }: { className?: string }) => (
   </svg>
 );
 
-const TwitchLogo = ({ className = "w-6 h-6" }: { className?: string }) => (
-  <svg className={className} viewBox="0 0 24 24" fill="currentColor">
-    <path d="M11.571 4.714h1.715v5.143H11.57zm4.715 0H18v5.143h-1.714zM6 0L1.714 4.286v15.428h5.143V24l4.286-4.286h3.428L22.286 12V0zm14.571 11.143l-3.428 3.428h-3.429l-3 3v-3H6.857V1.714h13.714z"/>
-  </svg>
-);
 
 // ====================================================================
 // CONNECTOR CONFIGURATION
@@ -131,18 +121,6 @@ export const AVAILABLE_CONNECTORS: ConnectorConfig[] = [
     category: 'professional'
   },
   {
-    provider: 'whoop' as DataProvider,
-    name: 'Whoop',
-    description: 'Your body signals reveal recovery, strain, and optimal performance windows',
-    icon: <WhoopLogo className="w-6 h-6" />,
-    color: '#00A7E1',
-    dataTypes: ['Recovery Score', 'Sleep Quality', 'Strain Level'],
-    estimatedInsights: 15,
-    setupTime: '10 seconds',
-    privacyLevel: 'medium',
-    category: 'health'
-  },
-  {
     provider: 'youtube' as DataProvider,
     name: 'YouTube',
     description: 'Your viewing patterns reveal learning interests, entertainment preferences, and content curiosities',
@@ -150,18 +128,6 @@ export const AVAILABLE_CONNECTORS: ConnectorConfig[] = [
     color: '#FF0000',
     dataTypes: ['Watch History', 'Subscriptions', 'Liked Videos'],
     estimatedInsights: 10,
-    setupTime: '10 seconds',
-    privacyLevel: 'low',
-    category: 'entertainment'
-  },
-  {
-    provider: 'twitch' as DataProvider,
-    name: 'Twitch',
-    description: 'Your streaming habits reveal gaming interests, community engagement, and entertainment preferences',
-    icon: <TwitchLogo className="w-6 h-6" />,
-    color: '#9146FF',
-    dataTypes: ['Followed Channels', 'Viewing Patterns', 'Communities'],
-    estimatedInsights: 8,
     setupTime: '10 seconds',
     privacyLevel: 'low',
     category: 'entertainment'

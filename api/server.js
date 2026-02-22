@@ -264,7 +264,6 @@ import bigFiveRoutes from './routes/big-five.js';
 import platformInsightsRoutes from './routes/platform-insights.js';
 import twinPipelineRoutes from './routes/twin-pipeline.js';
 import notificationsRoutes from './routes/notifications.js';
-import whoopWebhooksRoutes from './routes/whoop-webhooks.js';
 import extractionStatusRoutes from './routes/extraction-status.js';
 import researchRAGRoutes from './routes/research-rag.js';
 import personalityInferenceRoutes from './routes/personality-inference.js';
@@ -405,7 +404,6 @@ app.use('/api/platforms', allPlatformRoutes); // Comprehensive 56-platform integ
 // Extension sends userId in body when not authenticated
 app.use('/api/soul-observer', soulObserverRoutes); // Soul Observer Mode - behavioral tracking
 app.use('/api/webhooks', webhookRoutes); // Real-time webhook receivers (GitHub, Gmail, Slack)
-app.use('/api/webhooks/whoop', whoopWebhooksRoutes); // Whoop push notifications (recovery, sleep, workout)
 app.use('/api/sse', sseRoutes); // Server-Sent Events for real-time updates
 app.use('/api/queues', queueDashboardRoutes); // Bull Board job queue dashboard
 app.use('/api/pipedream', pipedreamRoutes); // Pipedream Connect OAuth integration
@@ -576,12 +574,12 @@ if (process.env.NODE_ENV !== 'production') {
   startPatternLearningJob();
 
   // Token expiry notification service
-  // - Checks daily for tokens about to expire (especially Whoop with 7-day refresh token)
+  // - Checks daily for tokens about to expire
   // - Creates user notifications prompting reconnection before data flow interrupts
   startTokenExpiryNotifier();
 
   // Observation ingestion service
-  // - Pulls platform data (Spotify, Calendar, Whoop) every 30 minutes
+  // - Pulls platform data (Spotify, Calendar, YouTube) every 30 minutes
   // - Converts to natural-language observations in the memory stream
   // - Triggers reflection engine when importance accumulates
   // Production equivalent: Vercel Cron → /api/cron/ingest-observations
@@ -606,12 +604,11 @@ if (process.env.NODE_ENV !== 'production') {
     console.log(`     • GitHub: Every 6 hours`);
     console.log(`     • Discord: Every 4 hours`);
     console.log(`     • Gmail: Every 1 hour`);
-    console.log(`     • Twitch: Every 3 hours`);
     console.log(`   - Pattern Learning:`);
     console.log(`     • Feedback Processing: Every 6 hours`);
     console.log(`     • Test endpoint: http://localhost:${PORT}/api/test-pattern-learning/status`);
     console.log(`   - Observation Ingestion:`);
-    console.log(`     • Spotify/Calendar/Whoop: Every 30 minutes`);
+    console.log(`     • Spotify/Calendar/YouTube: Every 30 minutes`);
     console.log(`     • Cron endpoint: /api/cron/ingest-observations`);
   });
 

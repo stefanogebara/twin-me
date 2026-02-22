@@ -57,7 +57,7 @@ export const DEMO_PERSONALITY_SCORES: DemoPersonalityScores = {
   extraversion_confidence: 88,
   agreeableness_confidence: 82,
   neuroticism_confidence: 84,
-  analyzed_platforms: ['spotify', 'google_calendar', 'whoop'],
+  analyzed_platforms: ['spotify', 'google_calendar'],
   sample_size: 47
 };
 
@@ -93,7 +93,6 @@ export const DEMO_SOUL_ARCHETYPE: DemoSoulArchetype = {
   defining_traits: [
     { trait: 'Intellectual Curiosity', score: 92, evidence: 'Diverse music genres in Spotify history' },
     { trait: 'Work-Life Balance', score: 78, evidence: 'Healthy mix of meetings and focus time' },
-    { trait: 'Health Conscious', score: 85, evidence: 'Consistent recovery tracking on Whoop' },
     { trait: 'Emotional Depth', score: 74, evidence: 'Music choices reflect mood awareness' }
   ],
   color_scheme: {
@@ -122,8 +121,7 @@ export interface DemoBehavioralFeature {
 export const DEMO_BEHAVIORAL_FEATURES: DemoBehavioralFeature[] = [
   { id: 'f1', platform: 'spotify', feature_type: 'music_diversity', feature_value: 85, contributes_to: 'openness', confidence_score: 90 },
   { id: 'f2', platform: 'google_calendar', feature_type: 'focus_time_ratio', feature_value: 67, contributes_to: 'conscientiousness', confidence_score: 78 },
-  { id: 'f3', platform: 'whoop', feature_type: 'recovery_consistency', feature_value: 72, contributes_to: 'neuroticism', confidence_score: 82 },
-  { id: 'f4', platform: 'google_calendar', feature_type: 'social_events_ratio', feature_value: 68, contributes_to: 'extraversion', confidence_score: 85 }
+  { id: 'f3', platform: 'google_calendar', feature_type: 'social_events_ratio', feature_value: 68, contributes_to: 'extraversion', confidence_score: 85 }
 ];
 
 // =====================================================

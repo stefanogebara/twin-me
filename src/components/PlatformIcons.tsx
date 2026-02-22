@@ -121,7 +121,6 @@ export const platformIconMap: Record<string, React.ElementType> = {
   playstation: Gamepad2,
   xbox: Gamepad2,
   nintendo: Gamepad2,
-  twitch: Video,
   'battle-net': Gamepad2,
   battlenet: Gamepad2,
   origin: Gamepad2,
@@ -256,7 +255,6 @@ export const platformColors: Record<string, string> = {
 
   // Gaming
   steam: '#00ADEE',
-  twitch: '#9146FF',
   playstation: '#003087',
   xbox: '#107C10',
 
