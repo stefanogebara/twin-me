@@ -658,12 +658,15 @@ export async function storeNangoExtractionData(userId, platform, extractionResul
 
   // Delete existing rows for this platform so we don't accumulate stale data
   try {
-    await supabaseAdmin
+    const { error: deleteErr } = await supabaseAdmin
       .from('user_platform_data')
       .delete()
       .eq('user_id', userId)
       .eq('platform', dbPlatform)
       .in('data_type', dataKeys);
+    if (deleteErr) {
+      console.warn(`[Nango] Failed to clean old ${dbPlatform} data:`, deleteErr.message);
+    }
   } catch (err) {
     console.warn(`[Nango] Failed to clean old ${dbPlatform} data:`, err.message);
   }
