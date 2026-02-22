@@ -61,6 +61,7 @@ const TalkToTwin = () => {
   const [isLoadingContext, setIsLoadingContext] = useState(false);
   const [chatUsage, setChatUsage] = useState<{ used: number; limit: number; remaining: number; tier: string } | null>(null);
   const [limitReached, setLimitReached] = useState(false);
+  const [introFetched, setIntroFetched] = useState(false);
 
   // Design system color tokens — light theme only, no dark conditionals
   const colors = {
@@ -133,6 +134,26 @@ const TalkToTwin = () => {
 
   useEffect(() => {
     fetchUsage();
+  }, [user?.id]);
+
+  // Fetch a personalized first greeting from the twin on page load (new users only)
+  useEffect(() => {
+    if (!user?.id || introFetched) return;
+    setIntroFetched(true);
+    const token = localStorage.getItem('auth_token');
+    fetch(`${API_BASE}/chat/intro`, { headers: { 'Authorization': `Bearer ${token}` } })
+      .then(r => r.ok ? r.json() : null)
+      .then(data => {
+        if (data?.intro) {
+          setMessages([{
+            id: 'twin-intro',
+            role: 'assistant',
+            content: data.intro,
+            timestamp: new Date(),
+          }]);
+        }
+      })
+      .catch(() => { /* non-fatal */ });
   }, [user?.id]);
 
   const loadContext = async () => {
@@ -256,9 +277,7 @@ const TalkToTwin = () => {
       const assistantMessage: Message = {
         id: crypto.randomUUID(),
         role: 'assistant',
-        content: connectedPlatforms.length === 0
-          ? "Connect your platforms first so I can learn about you and provide personalized insights."
-          : "I'm having trouble connecting right now. Please try again.",
+        content: "I'm having trouble connecting right now. Please try again.",
         timestamp: new Date()
       };
       setMessages(prev => [...prev, assistantMessage]);
@@ -394,7 +413,7 @@ const TalkToTwin = () => {
           onKeyDown={handleKeyPress}
           onSend={handleSendMessage}
           isTyping={isTyping}
-          isDisabled={connectedPlatforms.length === 0}
+          isDisabled={limitReached}
           limitReached={limitReached}
           hasConnectedPlatforms={connectedPlatforms.length > 0}
           chatUsage={chatUsage}
