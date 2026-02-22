@@ -1235,15 +1235,17 @@ router.get('/context', authenticateUser, async (req, res) => {
     const [twinSummary, memoryStats, insightsResult] = await Promise.all([
       getTwinSummary(userId).catch(() => null),
       getMemoryStats(userId).catch(() => ({ total: 0, byType: {} })),
-      supabaseAdmin
-        .from('proactive_insights')
-        .select('id, insight, category, urgency, created_at')
-        .eq('user_id', userId)
-        .eq('delivered', false)
-        .order('created_at', { ascending: false })
-        .limit(10)
-        .then(r => r.data || [])
-        .catch(() => []),
+      (async () => {
+        const { data, error: insightsErr } = await supabaseAdmin
+          .from('proactive_insights')
+          .select('id, insight, category, urgency, created_at')
+          .eq('user_id', userId)
+          .eq('delivered', false)
+          .order('created_at', { ascending: false })
+          .limit(10);
+        if (insightsErr) console.warn('[Twin Chat] Failed to fetch pending insights:', insightsErr.message);
+        return data || [];
+      })(),
     ]);
 
     if (res.headersSent) return;
