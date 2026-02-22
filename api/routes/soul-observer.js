@@ -89,6 +89,13 @@ router.post('/activity', async (req, res) => {
       });
     }
 
+    if (!isValidUUID(sessionId)) {
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid session ID format'
+      });
+    }
+
     // Parse and normalize activities
     const parsedActivities = activities.map(activity => ({
       user_id: userId,

@@ -324,7 +324,12 @@ async function generateReflections(userId, depth = 0) {
     // Count total reflections generated
     let reflectionsGenerated = 0;
     for (let i = 0; i < EXPERT_PERSONAS.length; i++) {
-      const count = expertResults[i].length;
+      const result = expertResults[i];
+      if (!Array.isArray(result)) {
+        console.warn(`[Reflection] Expert ${EXPERT_PERSONAS[i].id} returned invalid result`);
+        continue;
+      }
+      const count = result.length;
       if (count > 0) {
         console.log(`[Reflection] ${EXPERT_PERSONAS[i].name}: ${count} reflections`);
       }
