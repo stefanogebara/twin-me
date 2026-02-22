@@ -20,6 +20,7 @@ import {
   getMemoryStats,
   addPlatformMemory
 } from '../services/mem0Service.js';
+import { supabaseAdmin } from '../services/database.js';
 
 const router = express.Router();
 
@@ -168,13 +169,30 @@ router.post('/platform', authenticateUser, async (req, res) => {
 router.delete('/memory/:id', authenticateUser, async (req, res) => {
   try {
     const { id } = req.params;
+    const userId = req.user.id;
+
+    // Verify ownership before deleting
+    const { data: memory, error: fetchErr } = await supabaseAdmin
+      .from('user_memories')
+      .select('user_id')
+      .eq('id', id)
+      .single();
+
+    if (fetchErr || !memory) {
+      return res.status(404).json({ success: false, error: 'Memory not found' });
+    }
+
+    if (memory.user_id !== userId) {
+      return res.status(403).json({ success: false, error: 'Access denied' });
+    }
 
     const result = await deleteMemory(id);
 
-    res.json({
-      success: result,
-      message: result ? 'Memory deleted' : 'Failed to delete memory'
-    });
+    if (!result) {
+      return res.status(500).json({ success: false, error: 'Failed to delete memory' });
+    }
+
+    res.json({ success: true, message: 'Memory deleted' });
   } catch (error) {
     console.error('[Mem0 API] Error deleting memory:', error);
     res.status(500).json({

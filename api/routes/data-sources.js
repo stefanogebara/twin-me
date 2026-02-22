@@ -14,12 +14,10 @@ const router = express.Router();
  * Get all connected platforms for a user
  * Query params: userId (required)
  */
-router.get('/connected', optionalAuth, async (req, res) => {
+router.get('/connected', authenticateUser, async (req, res) => {
   try {
-    const { userId } = req.query;
-
-    // Use authenticated user if available, otherwise require userId param
-    const targetUserId = req.user?.id || userId;
+    // Always use the authenticated user's ID — disallow querying other users
+    const targetUserId = req.user.id;
 
     if (!targetUserId) {
       return res.status(400).json({
