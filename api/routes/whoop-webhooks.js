@@ -145,7 +145,7 @@ async function handleRecoveryUpdate(userId, cycleId, whoopUserId) {
 
     if (recoveryData) {
       // Store in user_platform_data
-      await supabaseAdmin.from('user_platform_data').upsert({
+      const { error: recoveryUpsertErr } = await supabaseAdmin.from('user_platform_data').upsert({
         user_id: userId,
         platform: 'whoop',
         data_type: 'recovery',
@@ -154,6 +154,9 @@ async function handleRecoveryUpdate(userId, cycleId, whoopUserId) {
       }, {
         onConflict: 'user_id,platform,data_type'
       });
+      if (recoveryUpsertErr) {
+        console.error('[Whoop Webhook] Failed to store recovery data:', recoveryUpsertErr.message);
+      }
 
       // Push to Pattern Learning System
       await patternLearningBridge.pushWhoopRecovery(userId, recoveryData);
@@ -162,7 +165,7 @@ async function handleRecoveryUpdate(userId, cycleId, whoopUserId) {
   } catch (err) {
     console.error(`[Whoop Webhook] Error fetching recovery:`, err.message);
     // Still record the webhook event
-    await supabaseAdmin.from('user_platform_data').upsert({
+    const { error: recoveryFallbackErr } = await supabaseAdmin.from('user_platform_data').upsert({
       user_id: userId,
       platform: 'whoop',
       data_type: 'recovery_webhook',
@@ -177,6 +180,9 @@ async function handleRecoveryUpdate(userId, cycleId, whoopUserId) {
     }, {
       onConflict: 'user_id,platform,data_type'
     });
+    if (recoveryFallbackErr) {
+      console.error('[Whoop Webhook] Failed to store recovery fallback record:', recoveryFallbackErr.message);
+    }
   }
 }
 
@@ -190,7 +196,7 @@ async function handleSleepUpdate(userId, sleepId, whoopUserId) {
     const sleepData = await fetchWhoopSleep(userId, sleepId);
 
     if (sleepData) {
-      await supabaseAdmin.from('user_platform_data').upsert({
+      const { error: sleepUpsertErr } = await supabaseAdmin.from('user_platform_data').upsert({
         user_id: userId,
         platform: 'whoop',
         data_type: 'sleep',
@@ -199,6 +205,9 @@ async function handleSleepUpdate(userId, sleepId, whoopUserId) {
       }, {
         onConflict: 'user_id,platform,data_type'
       });
+      if (sleepUpsertErr) {
+        console.error('[Whoop Webhook] Failed to store sleep data:', sleepUpsertErr.message);
+      }
 
       // Push to Pattern Learning System
       await patternLearningBridge.pushWhoopSleep(userId, sleepData);
@@ -206,7 +215,7 @@ async function handleSleepUpdate(userId, sleepId, whoopUserId) {
     }
   } catch (err) {
     console.error(`[Whoop Webhook] Error fetching sleep:`, err.message);
-    await supabaseAdmin.from('user_platform_data').upsert({
+    const { error: sleepFallbackErr } = await supabaseAdmin.from('user_platform_data').upsert({
       user_id: userId,
       platform: 'whoop',
       data_type: 'sleep_webhook',
@@ -221,6 +230,9 @@ async function handleSleepUpdate(userId, sleepId, whoopUserId) {
     }, {
       onConflict: 'user_id,platform,data_type'
     });
+    if (sleepFallbackErr) {
+      console.error('[Whoop Webhook] Failed to store sleep fallback record:', sleepFallbackErr.message);
+    }
   }
 }
 
@@ -234,7 +246,7 @@ async function handleWorkoutUpdate(userId, workoutId, whoopUserId) {
     const workoutData = await fetchWhoopWorkout(userId, workoutId);
 
     if (workoutData) {
-      await supabaseAdmin.from('user_platform_data').upsert({
+      const { error: workoutUpsertErr } = await supabaseAdmin.from('user_platform_data').upsert({
         user_id: userId,
         platform: 'whoop',
         data_type: 'workout',
@@ -243,6 +255,9 @@ async function handleWorkoutUpdate(userId, workoutId, whoopUserId) {
       }, {
         onConflict: 'user_id,platform,data_type'
       });
+      if (workoutUpsertErr) {
+        console.error('[Whoop Webhook] Failed to store workout data:', workoutUpsertErr.message);
+      }
 
       // Push to Pattern Learning System
       await patternLearningBridge.pushWhoopWorkout(userId, workoutData);
@@ -250,7 +265,7 @@ async function handleWorkoutUpdate(userId, workoutId, whoopUserId) {
     }
   } catch (err) {
     console.error(`[Whoop Webhook] Error fetching workout:`, err.message);
-    await supabaseAdmin.from('user_platform_data').upsert({
+    const { error: workoutFallbackErr } = await supabaseAdmin.from('user_platform_data').upsert({
       user_id: userId,
       platform: 'whoop',
       data_type: 'workout_webhook',
@@ -265,6 +280,9 @@ async function handleWorkoutUpdate(userId, workoutId, whoopUserId) {
     }, {
       onConflict: 'user_id,platform,data_type'
     });
+    if (workoutFallbackErr) {
+      console.error('[Whoop Webhook] Failed to store workout fallback record:', workoutFallbackErr.message);
+    }
   }
 }
 
@@ -320,7 +338,7 @@ async function refreshWhoopToken(userId, refreshToken) {
   const tokens = await response.json();
 
   // Update stored tokens
-  await supabaseAdmin
+  const { error: updateErr } = await supabaseAdmin
     .from('platform_connections')
     .update({
       access_token: tokens.access_token,
@@ -329,6 +347,10 @@ async function refreshWhoopToken(userId, refreshToken) {
     })
     .eq('user_id', userId)
     .eq('platform', 'whoop');
+  if (updateErr) {
+    console.error('[Whoop Webhook] Failed to persist refreshed tokens:', updateErr.message);
+    throw new Error(`Token refresh succeeded but failed to persist: ${updateErr.message}`);
+  }
 
   return tokens.access_token;
 }
@@ -434,7 +456,7 @@ async function handleDataDeleted(userId, resourceId, eventType) {
   console.log(`🗑️ [Whoop Webhook] Data deleted:`, eventType, resourceId);
 
   // Record deletion event for audit trail
-  await supabaseAdmin.from('user_platform_data').insert({
+  const { error: deletionErr } = await supabaseAdmin.from('user_platform_data').insert({
     user_id: userId,
     platform: 'whoop',
     data_type: 'deletion_event',
@@ -445,6 +467,9 @@ async function handleDataDeleted(userId, resourceId, eventType) {
     },
     extracted_at: new Date().toISOString()
   });
+  if (deletionErr) {
+    console.error('[Whoop Webhook] Failed to record deletion event:', deletionErr.message);
+  }
 }
 
 export default router;
