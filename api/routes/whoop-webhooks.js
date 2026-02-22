@@ -18,12 +18,26 @@ const router = express.Router();
 // Whoop webhook secret (from Developer Dashboard)
 const WHOOP_WEBHOOK_SECRET = process.env.WHOOP_WEBHOOK_SECRET;
 
+const WEBHOOK_TIMESTAMP_TOLERANCE_MS = 5 * 60 * 1000; // 5 minutes
+
 /**
- * Verify Whoop webhook signature
+ * Verify Whoop webhook signature and timestamp freshness.
+ * Prevents replay attacks by rejecting requests older than 5 minutes.
  */
 function verifyWebhookSignature(payload, signature, timestamp) {
   if (!WHOOP_WEBHOOK_SECRET) {
     console.warn('⚠️ WHOOP_WEBHOOK_SECRET not configured');
+    return false;
+  }
+
+  if (!signature || !timestamp) {
+    return false;
+  }
+
+  // Validate timestamp freshness to prevent replay attacks
+  const ts = parseInt(timestamp, 10);
+  if (isNaN(ts) || Math.abs(Date.now() - ts * 1000) > WEBHOOK_TIMESTAMP_TOLERANCE_MS) {
+    console.warn('[Whoop Webhook] Timestamp outside acceptable window (possible replay)');
     return false;
   }
 
