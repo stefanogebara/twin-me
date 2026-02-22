@@ -293,7 +293,8 @@ router.get('/insights', asyncHandler(async (req, res) => {
     .select('themes, emotions, personality_signals, self_perception, summary, created_at')
     .eq('user_id', userId)
     .gte('created_at', thirtyDaysAgo.toISOString())
-    .order('created_at', { ascending: false });
+    .order('created_at', { ascending: false })
+    .limit(500);
 
   if (error) {
     console.error('[Journal] Error fetching insights:', error);

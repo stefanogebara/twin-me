@@ -421,7 +421,8 @@ router.get('/public/active', userRateLimit(100, 15 * 60 * 1000), async (req, res
       .select('id, name, description, subject_area, creator_id, created_at')
       .eq('is_active', true)
       .eq('twin_type', 'professor')
-      .order('created_at', { ascending: false });
+      .order('created_at', { ascending: false })
+      .limit(100);
 
     if (queryError) {
       return res.status(500).json({
