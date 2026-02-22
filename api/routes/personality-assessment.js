@@ -359,16 +359,26 @@ router.delete('/reset', authenticateToken, async (req, res) => {
     const userId = req.user.id;
 
     // Delete responses
-    await supabaseAdmin
+    const { error: responsesErr } = await supabaseAdmin
       .from('personality_responses')
       .delete()
       .eq('user_id', userId);
 
+    if (responsesErr) {
+      console.error('[Personality] Failed to delete responses:', responsesErr.message);
+      return res.status(500).json({ success: false, error: 'Failed to reset assessment' });
+    }
+
     // Delete estimate
-    await supabaseAdmin
+    const { error: estimateErr } = await supabaseAdmin
       .from('personality_estimates')
       .delete()
       .eq('user_id', userId);
+
+    if (estimateErr) {
+      console.error('[Personality] Failed to delete estimate:', estimateErr.message);
+      return res.status(500).json({ success: false, error: 'Failed to reset assessment' });
+    }
 
     console.log(`[Personality] Reset assessment for user ${userId}`);
 
