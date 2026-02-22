@@ -24,12 +24,8 @@ export const dashboardAPI = {
   /**
    * Get dashboard statistics
    */
-  getStats: async (userId?: string): Promise<DashboardStats> => {
-    const url = userId
-      ? `${API_URL}/dashboard/stats?userId=${encodeURIComponent(userId)}`
-      : `${API_URL}/dashboard/stats`;
-
-    const response = await fetch(url, {
+  getStats: async (): Promise<DashboardStats> => {
+    const response = await fetch(`${API_URL}/dashboard/stats`, {
       headers: getAuthHeaders(),
     });
 
@@ -44,12 +40,8 @@ export const dashboardAPI = {
   /**
    * Get recent activity feed
    */
-  getActivity: async (userId?: string, limit: number = 10): Promise<ActivityItem[]> => {
-    const url = userId
-      ? `${API_URL}/dashboard/activity?userId=${encodeURIComponent(userId)}&limit=${limit}`
-      : `${API_URL}/dashboard/activity?limit=${limit}`;
-
-    const response = await fetch(url, {
+  getActivity: async (limit: number = 10): Promise<ActivityItem[]> => {
+    const response = await fetch(`${API_URL}/dashboard/activity?limit=${limit}`, {
       headers: getAuthHeaders(),
     });
 
