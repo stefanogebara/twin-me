@@ -455,11 +455,16 @@ async function generateGoalSuggestions(userId) {
     const supabase = await getSupabase();
 
     // Check pending suggestion count
-    const { data: pending } = await supabase
+    const { data: pending, error: pendingErr } = await supabase
       .from('twin_goals')
       .select('id')
       .eq('user_id', userId)
       .eq('status', 'suggested');
+
+    if (pendingErr) {
+      console.warn('[GoalTracking] Failed to check pending suggestions:', pendingErr.message);
+      return 0;
+    }
 
     if ((pending?.length || 0) >= MAX_PENDING_SUGGESTIONS) {
       return 0;
