@@ -168,10 +168,11 @@ export const dbHelpers = {
     if (error) throw error;
 
     // Update conversation's last_message_at
-    await supabase
+    const { error: touchErr } = await supabase
       .from('conversations')
       .update({ last_message_at: new Date().toISOString() })
       .eq('id', messageData.conversation_id);
+    if (touchErr) console.warn('[Supabase] Failed to update last_message_at:', touchErr.message);
 
     return data;
   },
