@@ -187,6 +187,8 @@ router.post('/verify-connection', authenticateUser, async (req, res) => {
               'spotify': (await import('../services/featureExtractors/spotifyExtractor.js')).default,
               'google-calendar': (await import('../services/featureExtractors/calendarExtractor.js')).default,
               'whoop': (await import('../services/featureExtractors/whoopExtractor.js')).default,
+              'youtube': (await import('../services/featureExtractors/youtubeFeatureExtractor.js')).default,
+              'twitch': (await import('../services/featureExtractors/twitchFeatureExtractor.js')).default,
             };
             const extractor = featureExtractorMap[integrationId];
             if (extractor) {
@@ -352,6 +354,8 @@ router.get('/extract/:platform', authenticateUser, async (req, res) => {
           'spotify': (await import('../services/featureExtractors/spotifyExtractor.js')).default,
           'google-calendar': (await import('../services/featureExtractors/calendarExtractor.js')).default,
           'whoop': (await import('../services/featureExtractors/whoopExtractor.js')).default,
+          'youtube': (await import('../services/featureExtractors/youtubeFeatureExtractor.js')).default,
+          'twitch': (await import('../services/featureExtractors/twitchFeatureExtractor.js')).default,
         };
         const extractor = featureExtractorMap[platform];
         if (extractor) {

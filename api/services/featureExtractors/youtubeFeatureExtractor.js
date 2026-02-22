@@ -552,6 +552,29 @@ class YouTubeFeatureExtractor {
       }
     };
   }
+
+  async saveFeatures(features) {
+    if (features.length === 0) return { success: true, saved: 0 };
+
+    console.log(`[YouTube Extractor] Saving ${features.length} features to database...`);
+
+    try {
+      const { data, error } = await supabaseAdmin
+        .from('behavioral_features')
+        .upsert(features, {
+          onConflict: 'user_id,platform,feature_type'
+        })
+        .select();
+
+      if (error) throw error;
+
+      console.log(`[YouTube Extractor] Saved ${data.length} features successfully`);
+      return { success: true, saved: data.length, data };
+    } catch (error) {
+      console.error('[YouTube Extractor] Error saving features:', error);
+      return { success: false, error: error.message };
+    }
+  }
 }
 
 const youtubeFeatureExtractor = new YouTubeFeatureExtractor();

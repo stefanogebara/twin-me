@@ -426,6 +426,29 @@ class TwitchFeatureExtractor {
       }
     };
   }
+
+  async saveFeatures(features) {
+    if (features.length === 0) return { success: true, saved: 0 };
+
+    console.log(`[Twitch Extractor] Saving ${features.length} features to database...`);
+
+    try {
+      const { data, error } = await supabaseAdmin
+        .from('behavioral_features')
+        .upsert(features, {
+          onConflict: 'user_id,platform,feature_type'
+        })
+        .select();
+
+      if (error) throw error;
+
+      console.log(`[Twitch Extractor] Saved ${data.length} features successfully`);
+      return { success: true, saved: data.length, data };
+    } catch (error) {
+      console.error('[Twitch Extractor] Error saving features:', error);
+      return { success: false, error: error.message };
+    }
+  }
 }
 
 const twitchFeatureExtractor = new TwitchFeatureExtractor();
