@@ -97,7 +97,7 @@ router.get('/analyze', authenticateUser, async (req, res) => {
 
     // Store the analysis in database
     if (patterns.success) {
-      await supabaseAdmin
+      const { error: upsertErr } = await supabaseAdmin
         .from('ritual_patterns')
         .upsert({
           user_id: userId,
@@ -109,6 +109,9 @@ router.get('/analyze', authenticateUser, async (req, res) => {
         }, {
           onConflict: 'user_id'
         });
+      if (upsertErr) {
+        console.error('[Ritual API] Failed to persist patterns:', upsertErr.message);
+      }
     }
 
     res.json(patterns);
@@ -444,7 +447,7 @@ router.post('/feedback', authenticateUser, async (req, res) => {
     const { eventId, accepted, actualTiming, notes } = req.body;
 
     // Store feedback for improving predictions
-    await supabaseAdmin
+    const { error: insertErr } = await supabaseAdmin
       .from('ritual_feedback')
       .insert({
         user_id: userId,
@@ -454,6 +457,14 @@ router.post('/feedback', authenticateUser, async (req, res) => {
         notes,
         created_at: new Date().toISOString()
       });
+
+    if (insertErr) {
+      console.error('[Ritual API] Failed to store feedback:', insertErr.message);
+      return res.status(500).json({
+        success: false,
+        error: 'Failed to store feedback'
+      });
+    }
 
     res.json({
       success: true,

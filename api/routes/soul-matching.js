@@ -15,7 +15,7 @@ const router = express.Router();
  */
 router.get('/find-matches', authenticateUser, async (req, res) => {
   try {
-    const userId = req.user.userId;
+    const userId = req.user.id;
     const {
       limit = 20,
       minCompatibility = 50,
@@ -52,7 +52,7 @@ router.get('/find-matches', authenticateUser, async (req, res) => {
  */
 router.post('/calculate-compatibility', authenticateUser, async (req, res) => {
   try {
-    const userId = req.user.userId;
+    const userId = req.user.id;
     const { targetUserId, includeOpposites = false } = req.body;
 
     if (!targetUserId) {
@@ -110,7 +110,7 @@ router.post('/calculate-compatibility', authenticateUser, async (req, res) => {
  */
 router.get('/stats', authenticateUser, async (req, res) => {
   try {
-    const userId = req.user.userId;
+    const userId = req.user.id;
 
     // Get user's soul signature to check completeness
     const userSignature = await soulMatchingService.getSoulSignature(userId);
@@ -154,7 +154,7 @@ router.get('/stats', authenticateUser, async (req, res) => {
  */
 router.put('/preferences', authenticateUser, async (req, res) => {
   try {
-    const userId = req.user.userId;
+    const userId = req.user.id;
     const {
       allowSoulMatching = true,
       minCompatibility = 50,
