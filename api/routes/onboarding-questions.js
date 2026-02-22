@@ -93,7 +93,7 @@ router.post('/answers', authenticateToken, async (req, res) => {
     }
 
     // Also update onboarding_state if it exists
-    await supabaseAdmin
+    const { error: stateUpsertErr } = await supabaseAdmin
       .from('onboarding_state')
       .upsert({
         user_id: userId,
@@ -102,6 +102,7 @@ router.post('/answers', authenticateToken, async (req, res) => {
         completed_at: new Date().toISOString(),
         updated_at: new Date().toISOString()
       }, { onConflict: 'user_id' });
+    if (stateUpsertErr) console.error('[Onboarding] Error updating onboarding state:', stateUpsertErr.message);
 
     console.log(`[Onboarding] Successfully saved preferences for user ${userId}`);
 
