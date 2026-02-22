@@ -135,7 +135,7 @@ router.get('/extraction-status', async (req, res) => {
 router.post('/process', async (req, res) => {
   try {
     const userId = req.user.id;
-    const limit = Math.min(parseInt(req.body.limit || req.query.limit || '100'), 1000);
+    const limit = Math.min(Math.max(parseInt(req.body.limit || req.query.limit || '100', 10) || 100, 1), 1000);
 
     if (!userId) {
       return res.status(400).json({
@@ -290,7 +290,7 @@ router.get('/style-profile', async (req, res) => {
 router.post('/generate-embeddings', async (req, res) => {
   try {
     const userId = req.user.id;
-    const limit = Math.min(parseInt(req.body.limit || req.query.limit || '100'), 1000);
+    const limit = Math.min(Math.max(parseInt(req.body.limit || req.query.limit || '100', 10) || 100, 1), 1000);
 
     if (!userId) {
       return res.status(400).json({
@@ -399,7 +399,7 @@ router.get('/rag/conversation-history', async (req, res) => {
   try {
     const { twinId } = req.query;
     const userId = req.user.id;
-    const limit = Math.min(parseInt(req.query.limit || '10'), 100);
+    const limit = Math.min(Math.max(parseInt(req.query.limit || '10', 10) || 10, 1), 100);
 
     if (!userId || !twinId) {
       return res.status(400).json({
