@@ -227,12 +227,13 @@ const TalkToTwin = () => {
     setMessages(prev => [...prev, userMessage]);
     const currentInput = inputMessage;
     setInputMessage('');
-
     setIsTyping(true);
+
+    const assistantMsgId = crypto.randomUUID();
 
     try {
       const token = localStorage.getItem('auth_token');
-      const response = await fetch(`${API_BASE}/chat/message`, {
+      const response = await fetch(`${API_BASE}/chat/message?stream=1`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -245,40 +246,93 @@ const TalkToTwin = () => {
         })
       });
 
-      if (response.ok) {
-        const data = await response.json();
-        const assistantMessage: Message = {
-          id: crypto.randomUUID(),
-          role: 'assistant',
-          content: data.response || data.message || "I'm processing your request...",
-          timestamp: new Date(),
-          contextUsed: data.contextSources ? {
-            soulSignature: data.contextSources.soulSignature,
-            twinSummary: data.contextSources.twinSummary,
-            memoryStream: data.contextSources.memoryStream,
-            proactiveInsights: data.contextSources.proactiveInsights,
-            platformData: data.contextSources.platformData,
-            personalityProfile: data.contextSources.personalityProfile,
-          } : undefined
-        };
-        setMessages(prev => [...prev, assistantMessage]);
-        if (data.conversationId) setConversationId(data.conversationId);
-        fetchUsage();
-      } else if (response.status === 429) {
+      if (response.status === 429) {
         const data = await response.json();
         setLimitReached(true);
         if (data.usage) setChatUsage({ used: data.usage.used, limit: data.usage.limit, remaining: 0, tier: data.usage.tier });
         setMessages(prev => prev.filter(m => m.id !== userMessage.id));
         setInputMessage(currentInput);
-      } else {
+        return;
+      }
+
+      if (!response.ok || !response.body) {
         throw new Error('Failed to send message');
+      }
+
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = '';
+      let firstChunk = true;
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split('\n');
+        buffer = lines.pop() ?? '';
+
+        for (const line of lines) {
+          if (!line.startsWith('data: ')) continue;
+          try {
+            const event = JSON.parse(line.slice(6));
+
+            if (event.type === 'chunk') {
+              if (firstChunk) {
+                firstChunk = false;
+                setIsTyping(false);
+                setMessages(prev => [...prev, {
+                  id: assistantMsgId,
+                  role: 'assistant',
+                  content: event.content,
+                  timestamp: new Date(),
+                }]);
+              } else {
+                setMessages(prev => prev.map(m =>
+                  m.id === assistantMsgId ? { ...m, content: m.content + event.content } : m
+                ));
+              }
+            } else if (event.type === 'done') {
+              if (event.conversationId) setConversationId(event.conversationId);
+              if (event.contextSources) {
+                setMessages(prev => prev.map(m =>
+                  m.id === assistantMsgId ? {
+                    ...m,
+                    contextUsed: {
+                      soulSignature: event.contextSources.soulSignature,
+                      twinSummary: event.contextSources.twinSummary,
+                      memoryStream: event.contextSources.memoryStream,
+                      proactiveInsights: event.contextSources.proactiveInsights,
+                      platformData: event.contextSources.platformData,
+                      personalityProfile: event.contextSources.personalityProfile,
+                    }
+                  } : m
+                ));
+              }
+              fetchUsage();
+            } else if (event.type === 'error') {
+              setMessages(prev => {
+                const hasMsg = prev.some(m => m.id === assistantMsgId);
+                if (hasMsg) {
+                  return prev.map(m => m.id === assistantMsgId ? { ...m, failed: true } : m);
+                }
+                return prev.map(m => m.id === userMessage.id ? { ...m, failed: true } : m);
+              });
+            }
+          } catch {
+            // Skip malformed SSE lines
+          }
+        }
       }
     } catch (error) {
       console.error('Chat error:', error);
-      // Mark the user's message as failed so they can retry without retyping
-      setMessages(prev =>
-        prev.map(m => m.id === userMessage.id ? { ...m, failed: true } : m)
-      );
+      setMessages(prev => {
+        const hasAssistantMsg = prev.some(m => m.id === assistantMsgId);
+        if (hasAssistantMsg) {
+          return prev.map(m => m.id === assistantMsgId ? { ...m, failed: true } : m);
+        }
+        return prev.map(m => m.id === userMessage.id ? { ...m, failed: true } : m);
+      });
     } finally {
       setIsTyping(false);
     }
@@ -388,7 +442,7 @@ const TalkToTwin = () => {
               </div>
               <div>
                 <p className="text-sm font-medium" style={{ color: colors.text }}>
-                  You've used all 10 free messages this month
+                  You've used all {chatUsage?.limit ?? 100} free messages this month
                 </p>
                 <p className="text-xs" style={{ color: colors.textMuted }}>
                   Resets on {chatUsage ? new Date(new Date().getFullYear(), new Date().getMonth() + 1, 1).toLocaleDateString('en-US', { month: 'long', day: 'numeric' }) : 'next month'}
