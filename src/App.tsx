@@ -27,12 +27,10 @@ import NotFound from "./pages/NotFound";
 
 // Lazy-loaded pages (code-split into separate chunks)
 const Dashboard = lazy(() => import("./pages/Dashboard"));
-const DashboardDemo = lazy(() => import("./pages/DashboardDemo"));
 const Settings = lazy(() => import("./pages/Settings"));
 const InstantTwinOnboarding = lazy(() => import("./pages/InstantTwinOnboarding"));
 const SoulSignatureDashboard = lazy(() => import("./pages/SoulSignatureDashboard"));
 const BrainPage = lazy(() => import("./pages/BrainPage"));
-const PersonalityAssessment = lazy(() => import("./pages/PersonalityAssessment"));
 const BigFiveAssessment = lazy(() => import("./pages/BigFiveAssessment"));
 const TalkToTwin = lazy(() => import("./pages/TalkToTwin"));
 const JournalPage = lazy(() => import("./pages/JournalPage"));
@@ -177,31 +175,11 @@ const App = () => {
               </ProtectedRoute>
             } />
 
-            {/* Personality Assessment */}
-            <Route path="/personality" element={
-              <ProtectedRoute>
-                <SidebarLayout>
-                  <ErrorBoundary>
-                    <PersonalityAssessment />
-                  </ErrorBoundary>
-                </SidebarLayout>
-              </ProtectedRoute>
-            } />
-
             {/* Big Five Assessment - IPIP-NEO-120 scientific assessment (allows anonymous preview) */}
             <Route path="/big-five" element={
               <ErrorBoundary>
                 <BigFiveAssessment />
               </ErrorBoundary>
-            } />
-
-            {/* Dashboard Demo - No Auth Required */}
-            <Route path="/dashboard-demo" element={
-              <SidebarLayout>
-                <ErrorBoundary>
-                  <DashboardDemo />
-                </ErrorBoundary>
-              </SidebarLayout>
             } />
 
             {/* Platform Connection / Get Started */}
