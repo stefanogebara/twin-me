@@ -388,10 +388,11 @@ async function recordPatternObservation(patternId, userId, event, activity, matc
   }
 
   // Update pattern's last_observed_at and occurrence_count
-  await supabase.rpc('increment_pattern_occurrence', {
+  const { error: rpcErr } = await supabase.rpc('increment_pattern_occurrence', {
     p_pattern_id: patternId,
     p_observation_time: new Date().toISOString()
   });
+  if (rpcErr) console.warn('[PatternTracker] Error incrementing pattern occurrence:', rpcErr.message);
 }
 
 /**
