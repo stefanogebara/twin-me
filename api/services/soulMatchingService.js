@@ -460,11 +460,14 @@ class SoulMatchingService {
         }
 
         // Get user info
-        const { data: user } = await supabase
+        const { data: user, error: userErr } = await supabase
           .from('users')
           .select('id, full_name, email, profile_picture_url')
           .eq('id', twin.user_id)
           .single();
+        if (userErr && userErr.code !== 'PGRST116') {
+          console.error(`[SoulMatching] Error fetching user ${twin.user_id}:`, userErr.message);
+        }
 
         candidates.push({
           userId: twin.user_id,

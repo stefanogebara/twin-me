@@ -56,7 +56,11 @@ async function isInCooldown(userId, insightType, metricName = null) {
     // For now, we just check by type
   }
 
-  const { data } = await query;
+  const { data, error } = await query;
+  if (error) {
+    console.error('[ProactiveInsight] Error fetching insights:', error.message);
+    return [];
+  }
   return data && data.length > 0;
 }
 
@@ -396,11 +400,14 @@ export async function markInsightShown(insightId) {
  */
 export async function recordInsightFeedback(insightId, feedback, notes = null) {
   // Get insight to find hypothesis
-  const { data: insight } = await supabaseAdmin
+  const { data: insight, error: insightErr } = await supabaseAdmin
     .from('pl_proactive_insights')
     .select('hypothesis_id')
     .eq('id', insightId)
     .single();
+  if (insightErr && insightErr.code !== 'PGRST116') {
+    console.warn('[ProactiveInsight] Error fetching insight:', insightErr.message);
+  }
 
   // Record feedback
   const { error } = await supabaseAdmin
