@@ -715,12 +715,17 @@ async function fetchCalendarData(userId) {
 async function fetchWhoopData(userId) {
   try {
     // Check if connection is NANGO_MANAGED
-    const { data: whoopConn } = await supabaseAdmin
+    const { data: whoopConn, error: whoopConnErr } = await supabaseAdmin
       .from('platform_connections')
       .select('access_token')
       .eq('user_id', userId)
       .eq('platform', 'whoop')
       .single();
+
+    if (whoopConnErr && whoopConnErr.code !== 'PGRST116') {
+      // PGRST116 = no rows found (expected when user has no Whoop)
+      console.warn('[twin-chat] fetchWhoopData connection query error:', whoopConnErr.message);
+    }
 
     let latestRecovery = null;
     let allSleeps = [];
@@ -780,7 +785,7 @@ async function fetchWhoopData(userId) {
 async function fetchWebData(userId) {
   try {
     const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
-    const { data: webEvents } = await supabaseAdmin
+    const { data: webEvents, error: webErr } = await supabaseAdmin
       .from('user_platform_data')
       .select('data_type, raw_data, created_at')
       .eq('user_id', userId)
@@ -788,6 +793,10 @@ async function fetchWebData(userId) {
       .gte('created_at', sevenDaysAgo)
       .order('created_at', { ascending: false })
       .limit(25);
+
+    if (webErr) {
+      console.warn('[twin-chat] fetchWebData query error:', webErr.message);
+    }
 
     if (!webEvents?.length) return null;
 
@@ -1272,11 +1281,16 @@ router.get('/intro', authenticateUser, async (req, res) => {
     const userId = req.user.id;
 
     // Check if user already has conversation messages — intro only for fresh users
-    const { data: existing } = await supabaseAdmin
+    const { data: existing, error: existingErr } = await supabaseAdmin
       .from('conversations')
       .select('id')
       .eq('user_id', userId)
       .limit(1);
+    if (existingErr) {
+      console.warn('[twin-chat] /intro first-visit check error:', existingErr.message);
+      // Fail safe: skip intro rather than risk a duplicate on DB errors
+      return res.json({ success: true, intro: null, reason: 'db_error' });
+    }
     if (existing && existing.length > 0) {
       return res.json({ success: true, intro: null, reason: 'not_first_visit' });
     }

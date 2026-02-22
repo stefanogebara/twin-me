@@ -108,12 +108,16 @@ async function pollPlatform(userId, platform, accessToken) {
       // Replace placeholders (e.g., {username})
       if (url.includes('{username}')) {
         // Get username from platform_connections metadata
-        const { data: connection } = await getSupabaseClient()
+        const { data: connection, error: connErr } = await getSupabaseClient()
           .from('platform_connections')
           .select('platform_user_id, metadata')
           .eq('user_id', userId)
           .eq('platform', platform)
           .single();
+
+        if (connErr) {
+          console.warn(`⚠️  Failed to fetch connection for ${platform} username placeholder:`, connErr.message);
+        }
 
         const username = connection?.platform_user_id || connection?.metadata?.username;
         url = url.replace('{username}', username);
@@ -130,13 +134,17 @@ async function pollPlatform(userId, platform, accessToken) {
       console.log(`✅ Successfully polled ${platform} - ${endpoint.name}`);
 
       // Store the raw data
-      await getSupabaseClient().from('user_platform_data').insert({
+      const { error: insertErr } = await getSupabaseClient().from('user_platform_data').insert({
         user_id: userId,
         platform: platform,
         data_type: endpoint.name,
         raw_data: response.data,
         extracted_at: new Date().toISOString(),
       });
+
+      if (insertErr) {
+        console.error(`❌ Failed to store polled data for ${platform} - ${endpoint.name}:`, insertErr.message);
+      }
 
       results.push({
         endpoint: endpoint.name,
@@ -154,7 +162,7 @@ async function pollPlatform(userId, platform, accessToken) {
 
       // If unauthorized, mark connection as needs_reauth
       if (error.response?.status === 401) {
-        await getSupabaseClient()
+        const { error: reauthErr } = await getSupabaseClient()
           .from('platform_connections')
           .update({
             status: 'needs_reauth',
@@ -163,6 +171,10 @@ async function pollPlatform(userId, platform, accessToken) {
           })
           .eq('user_id', userId)
           .eq('platform', platform);
+
+        if (reauthErr) {
+          console.warn(`⚠️  Failed to mark ${platform} as needs_reauth:`, reauthErr.message);
+        }
       }
     }
   }
@@ -205,13 +217,17 @@ async function pollAllPlatformsForUser(userId) {
           const result = await nangoService.extractPlatformData(userId, connection.platform);
           if (result.success) {
             await nangoService.storeNangoExtractionData(userId, connection.platform, result);
-            await getSupabaseClient()
+            const { error: nangoSyncErr } = await getSupabaseClient()
               .from('platform_connections')
               .update({
                 last_sync: new Date().toISOString(),
                 updated_at: new Date().toISOString(),
               })
               .eq('id', connection.id);
+
+            if (nangoSyncErr) {
+              console.warn(`⚠️  Failed to update last_sync for ${connection.platform} (Nango):`, nangoSyncErr.message);
+            }
           }
           return {
             platform: connection.platform,
@@ -231,13 +247,17 @@ async function pollAllPlatformsForUser(userId) {
         const results = await pollPlatform(userId, connection.platform, accessToken);
 
         // Update last sync time
-        await getSupabaseClient()
+        const { error: legacySyncErr } = await getSupabaseClient()
           .from('platform_connections')
           .update({
             last_sync: new Date().toISOString(),
             updated_at: new Date().toISOString(),
           })
           .eq('id', connection.id);
+
+        if (legacySyncErr) {
+          console.warn(`⚠️  Failed to update last_sync for ${connection.platform} (legacy):`, legacySyncErr.message);
+        }
 
         return {
           platform: connection.platform,

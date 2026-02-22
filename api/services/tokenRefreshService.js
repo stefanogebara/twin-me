@@ -92,7 +92,6 @@ async function refreshAccessToken(platform, refreshToken, userId) {
       hasTokenUrl: !!config?.tokenUrl,
       hasClientId: !!config?.clientId,
       hasClientSecret: !!config?.clientSecret,
-      clientIdPrefix: config?.clientId?.substring(0, 8),
       clientSecretLength: config?.clientSecret?.length
     });
 
@@ -132,8 +131,7 @@ async function refreshAccessToken(platform, refreshToken, userId) {
       grant_type: paramsObj.grant_type,
       has_refresh_token: !!paramsObj.refresh_token,
       refresh_token_length: paramsObj.refresh_token?.length,
-      refresh_token_prefix: paramsObj.refresh_token?.substring(0, 10),
-      client_id: paramsObj.client_id,
+      has_client_id: !!paramsObj.client_id,
       has_client_secret: !!paramsObj.client_secret,
       scope: paramsObj.scope,
       redirect_uri: paramsObj.redirect_uri,
@@ -160,7 +158,7 @@ async function refreshAccessToken(platform, refreshToken, userId) {
     console.error(`❌ Token refresh failed for ${platform}:`, error.response?.data || error.message);
 
     // Mark connection as expired (database constraint allows: connected, disconnected, error, pending, expired)
-    await getSupabaseClient()
+    const { error: expiredErr } = await getSupabaseClient()
       .from('platform_connections')
       .update({
         status: 'expired',
@@ -168,6 +166,10 @@ async function refreshAccessToken(platform, refreshToken, userId) {
       })
       .eq('user_id', userId)
       .eq('platform', platform);
+
+    if (expiredErr) {
+      console.warn(`⚠️  Failed to mark ${platform} token as expired:`, expiredErr.message);
+    }
 
     return null;
   }
@@ -255,7 +257,7 @@ async function checkAndRefreshExpiringTokens() {
 
         const newExpiryTime = new Date(Date.now() + newTokens.expiresIn * 1000).toISOString();
 
-        await getSupabaseClient()
+        const { error: saveErr } = await getSupabaseClient()
           .from('platform_connections')
           .update({
             access_token: encryptedAccessToken,
@@ -266,7 +268,11 @@ async function checkAndRefreshExpiringTokens() {
           })
           .eq('id', connection.id);
 
-        console.log(`✅ Updated tokens for ${connection.platform} (user: ${connection.user_id})`);
+        if (saveErr) {
+          console.error(`❌ Failed to persist refreshed tokens for ${connection.platform} (user: ${connection.user_id}):`, saveErr.message);
+        } else {
+          console.log(`✅ Updated tokens for ${connection.platform} (user: ${connection.user_id})`);
+        }
       }
     }
   } catch (error) {
@@ -385,7 +391,7 @@ async function ensureFreshToken(userId, platform) {
         const encryptedRefreshToken = encryptToken(newTokens.refreshToken);
         const newExpiryTime = new Date(Date.now() + newTokens.expiresIn * 1000).toISOString();
 
-        await getSupabaseClient()
+        const { error: saveErr } = await getSupabaseClient()
           .from('platform_connections')
           .update({
             access_token: encryptedAccessToken,
@@ -395,6 +401,11 @@ async function ensureFreshToken(userId, platform) {
             updated_at: new Date().toISOString(),
           })
           .eq('id', connection.id);
+
+        if (saveErr) {
+          console.error(`❌ Failed to persist refreshed tokens for ${platform}:`, saveErr.message);
+          throw new Error(`Token refresh succeeded but failed to persist: ${saveErr.message}`);
+        }
 
         console.log(`✅ Token refreshed for ${platform}`);
         resolveRefresh(newTokens.accessToken);
