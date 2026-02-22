@@ -903,6 +903,11 @@ async function runPostOnboardingIngestion(userId) {
         }
       } catch { /* non-critical */ }
 
+      // Generate proactive insights immediately — don't wait for cron
+      generateProactiveInsights(userId).catch(err =>
+        console.warn(`[ObservationIngestion] Post-onboarding proactive insights error:`, err.message)
+      );
+
       generateGoalSuggestions(userId).catch(err =>
         console.warn(`[ObservationIngestion] Post-onboarding goal suggestion error:`, err.message)
       );
