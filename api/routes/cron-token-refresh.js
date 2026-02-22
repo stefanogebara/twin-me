@@ -208,10 +208,11 @@ async function checkAndRefreshExpiringTokens() {
 
     // Refresh each token
     for (const connection of refreshableConnections) {
-      const decryptedRefreshToken = decryptToken(connection.refresh_token);
-
-      if (!decryptedRefreshToken) {
-        console.error(`❌ Could not decrypt refresh token for ${connection.platform}`);
+      let decryptedRefreshToken;
+      try {
+        decryptedRefreshToken = decryptToken(connection.refresh_token);
+      } catch (decryptErr) {
+        console.error(`❌ Could not decrypt refresh token for ${connection.platform}:`, decryptErr.message);
         refreshResults.push({
           platform: connection.platform,
           userId: connection.user_id,
