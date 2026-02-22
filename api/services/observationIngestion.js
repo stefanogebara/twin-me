@@ -26,6 +26,7 @@ import { addPlatformObservation } from './memoryStreamService.js';
 import { shouldTriggerReflection, generateReflections } from './reflectionEngine.js';
 import { generateProactiveInsights } from './proactiveInsights.js';
 import { trackGoalProgress, generateGoalSuggestions } from './goalTrackingService.js';
+import { generateTwinSummary } from './twinSummaryService.js';
 
 // Lazy-load to avoid circular dependency
 let supabaseAdmin = null;
@@ -911,6 +912,14 @@ async function runPostOnboardingIngestion(userId) {
       generateGoalSuggestions(userId).catch(err =>
         console.warn(`[ObservationIngestion] Post-onboarding goal suggestion error:`, err.message)
       );
+
+      // Regenerate twin summary after a delay to allow reflections to complete
+      // The reflection engine runs in parallel, so wait 30 seconds before summarizing
+      setTimeout(() => {
+        generateTwinSummary(userId).catch(err =>
+          console.warn(`[PostOnboarding] Twin summary regeneration error:`, err.message)
+        );
+      }, 30000); // 30s delay gives reflection engine time to complete
     }
 
     console.log(`[ObservationIngestion] Post-onboarding: stored ${totalStored} observations for user ${userId}`);
