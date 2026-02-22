@@ -51,7 +51,7 @@ const FALLBACK_CONNECTION_IDS = {
   'outlook': 'e4ed0f1b-c626-496a-8cbf-83f5f3635358'
 };
 
-// Helper to get connection ID - checks database first, falls back to hardcoded
+// Helper to get connection ID - checks database first, falls back to hardcoded test IDs
 async function getConnectionId(platform, userId) {
   // Try database first (for new users)
   const dbConnectionId = await getDbConnectionId(userId, platform);
@@ -59,13 +59,15 @@ async function getConnectionId(platform, userId) {
     return dbConnectionId;
   }
 
-  // Fall back to hardcoded IDs (for existing test user)
+  // Fall back to hardcoded IDs (for existing test user only - dev/testing)
   if (FALLBACK_CONNECTION_IDS[platform]) {
     return FALLBACK_CONNECTION_IDS[platform];
   }
 
-  // Last resort: use userId
-  return userId;
+  // No connection found — return null so callers can fail gracefully
+  // (Previously returned userId as last resort, which could cause IDOR if Nango
+  //  accepted any UUID as connection ID)
+  return null;
 }
 
 // Platform configurations with API endpoints for soul signature extraction
@@ -614,7 +616,7 @@ export async function extractPlatformData(userId, platform) {
   const dbPlatformKey = platformKeyMap[platform] || platform;
   if (supabaseAdmin) {
     try {
-      await supabaseAdmin
+      const { error: syncErr } = await supabaseAdmin
         .from('platform_connections')
         .update({
           last_sync_at: new Date().toISOString(),
@@ -622,6 +624,9 @@ export async function extractPlatformData(userId, platform) {
         })
         .eq('user_id', userId)
         .eq('platform', dbPlatformKey);
+      if (syncErr) {
+        console.warn(`[Nango] Failed to update platform_connections sync status:`, syncErr.message);
+      }
     } catch (err) {
       console.warn(`[Nango] Failed to update platform_connections sync status:`, err.message);
     }
