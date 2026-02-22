@@ -35,18 +35,20 @@ router.get('/all', authenticateToken, async (req, res) => {
     const userId = req.user.id;
 
     // Get user's connected platforms
-    const { data: connections } = await supabase
+    const { data: connections, error: connErr } = await supabase
       .from('platform_connections')
       .select('id, platform, status, connected_at, last_sync_at')
       .eq('user_id', userId);
+    if (connErr) console.error('[AllPlatforms] Connections fetch error:', connErr.message);
 
     const connectedPlatforms = new Set(connections?.map(c => c.platform) || []);
 
     // Get data counts for connected platforms
-    const { data: dataCounts } = await supabase
+    const { data: dataCounts, error: dataCountErr } = await supabase
       .from('extracted_platform_data')
       .select('platform, count')
       .eq('user_id', userId);
+    if (dataCountErr) console.error('[AllPlatforms] Data counts fetch error:', dataCountErr.message);
 
     const dataCountMap = new Map(
       dataCounts?.map(d => [d.platform, d.count]) || []
@@ -80,16 +82,18 @@ router.get('/stats', authenticateToken, async (req, res) => {
     const userId = req.user.id;
 
     // Get connection count
-    const { count: connectedCount } = await supabase
+    const { count: connectedCount, error: countErr } = await supabase
       .from('platform_connections')
       .select('*', { count: 'exact', head: true })
       .eq('user_id', userId);
+    if (countErr) console.error('[AllPlatforms] Connection count error:', countErr.message);
 
     // Get total data points
-    const { data: dataPoints } = await supabase
+    const { data: dataPoints, error: dataPointsErr } = await supabase
       .from('extracted_platform_data')
       .select('count')
       .eq('user_id', userId);
+    if (dataPointsErr) console.error('[AllPlatforms] Data points fetch error:', dataPointsErr.message);
 
     const totalDataPoints = dataPoints?.reduce((sum, d) => sum + (d.count || 0), 0) || 0;
 
@@ -188,13 +192,17 @@ async function handleOAuthConnection(userId, platformId, platformConfig, req, re
     }, 'connector');
 
     // Store state in session/database
-    await supabase
+    const { error: stateInsertErr } = await supabase
       .from('oauth_states')
       .insert({
         state,
         data: { userId, platform: platformId, timestamp: Date.now() },
         expires_at: new Date(Date.now() + 10 * 60 * 1000) // 10 min expiry
       });
+    if (stateInsertErr) {
+      console.error('[AllPlatforms] Failed to store OAuth state:', stateInsertErr.message);
+      return res.status(500).json({ error: 'Failed to initiate OAuth flow' });
+    }
 
     // Build authorization URL
     const redirectUri = `${process.env.VITE_APP_URL || 'http://localhost:8086'}/oauth/callback`;
@@ -281,7 +289,7 @@ router.get('/callback/:platform', async (req, res) => {
     const encryptedRefreshToken = tokens.refresh_token ? encryptToken(tokens.refresh_token) : null;
 
     // Store connection
-    await supabase
+    const { error: connUpsertErr } = await supabase
       .from('platform_connections')
       .upsert({
         user_id: userId,
@@ -297,12 +305,17 @@ router.get('/callback/:platform', async (req, res) => {
       }, {
         onConflict: 'user_id,platform'
       });
+    if (connUpsertErr) {
+      console.error('[AllPlatforms] Failed to store platform connection:', connUpsertErr.message);
+      return res.redirect(`${process.env.VITE_APP_URL}/platform-hub?error=connection_failed`);
+    }
 
     // Delete used state
-    await supabase
+    const { error: stateDeleteErr } = await supabase
       .from('oauth_states')
       .delete()
       .eq('state', state);
+    if (stateDeleteErr) console.error('[AllPlatforms] Failed to delete OAuth state:', stateDeleteErr.message);
 
     // Redirect to platform hub
     res.redirect(`${process.env.VITE_APP_URL}/platform-hub?connected=${platformId}`);
@@ -368,19 +381,24 @@ router.delete('/disconnect/:platform', authenticateToken, async (req, res) => {
     const platformId = req.params.platform;
 
     // Delete connection
-    await supabase
+    const { error: disconnectErr } = await supabase
       .from('platform_connections')
       .delete()
       .eq('user_id', userId)
       .eq('platform', platformId);
+    if (disconnectErr) {
+      console.error('[AllPlatforms] Failed to disconnect platform:', disconnectErr.message);
+      return res.status(500).json({ error: 'Failed to disconnect platform' });
+    }
 
     // Optionally delete extracted data
     if (req.query.deleteData === 'true') {
-      await supabase
+      const { error: dataDeleteErr } = await supabase
         .from('extracted_platform_data')
         .delete()
         .eq('user_id', userId)
         .eq('platform', platformId);
+      if (dataDeleteErr) console.error('[AllPlatforms] Failed to delete extracted data:', dataDeleteErr.message);
     }
 
     res.json({

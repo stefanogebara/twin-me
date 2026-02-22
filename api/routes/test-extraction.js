@@ -170,7 +170,7 @@ router.post('/spotify/:userId', authenticateUser, async (req, res) => {
     if (dataError) throw dataError;
 
     // Update extraction job as completed
-    await supabase
+    const { error: jobUpdateErr } = await supabase
       .from('extraction_jobs')
       .update({
         status: 'completed',
@@ -178,9 +178,10 @@ router.post('/spotify/:userId', authenticateUser, async (req, res) => {
         items_extracted: dataPoints.length
       })
       .eq('id', job.id);
+    if (jobUpdateErr) console.error('[TestExtraction] Failed to update extraction job:', jobUpdateErr.message);
 
     // Update platform_connections last_sync
-    await supabase
+    const { error: syncUpdateErr } = await supabase
       .from('platform_connections')
       .update({
         last_sync: new Date().toISOString(),
@@ -189,6 +190,7 @@ router.post('/spotify/:userId', authenticateUser, async (req, res) => {
       })
       .eq('user_id', userId)
       .eq('platform', 'spotify');
+    if (syncUpdateErr) console.error('[TestExtraction] Failed to update last_sync:', syncUpdateErr.message);
 
     console.log(`✅ [TEST MODE] Stored ${dataPoints.length} Spotify data points for user ${userId}`);
 
