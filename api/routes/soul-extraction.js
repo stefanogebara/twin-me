@@ -54,12 +54,12 @@ const supabase = createClient(
  * 3. requirePlatformConnection - Ensures platform is connected (or throws helpful error)
  */
 router.post('/extract/platform/:platform',
-  validateUserId,
+  authenticateUser,
   validatePlatform,
   requirePlatformConnection,
   asyncHandler(async (req, res) => {
     const { platform } = req.params;
-    const { userId } = req.body;
+    const userId = req.user.id;
 
     console.log(`🎭 Soul extraction request for ${platform} from user ${userId}`);
 
@@ -483,10 +483,11 @@ router.get('/extract/test-youtube', (req, res) => {
  * 2. validateMultiplePlatforms - Validates platforms array and checks connections
  */
 router.post('/extract/multi-platform',
-  validateUserId,
+  authenticateUser,
   validateMultiplePlatforms,
   asyncHandler(async (req, res) => {
-    const { userId, platforms } = req.body;
+    const userId = req.user.id;
+    const { platforms } = req.body;
     const { connectedPlatforms, disconnectedPlatforms, platformConnections } = req;
 
     console.log(`🌟 Multi-platform soul extraction for user ${userId}`);
@@ -573,9 +574,10 @@ router.get('/demo/:platform', async (req, res) => {
  * POST /api/soul/analyze/patterns
  * Analyze patterns across multiple extractions for deeper insights
  */
-router.post('/analyze/patterns', async (req, res) => {
+router.post('/analyze/patterns', authenticateUser, async (req, res) => {
   try {
-    const { userId, extractions, timeframe } = req.body;
+    const userId = req.user.id;
+    const { extractions, timeframe } = req.body;
 
     console.log(`🔍 Pattern analysis for user ${userId} over ${timeframe || 'all time'}`);
 
@@ -643,9 +645,10 @@ router.get('/insights/:userId', authenticateUser, async (req, res) => {
  * POST /api/soul/synthesize
  * Synthesize soul signature across all connected platforms
  */
-router.post('/synthesize', async (req, res) => {
+router.post('/synthesize', authenticateUser, async (req, res) => {
   try {
-    const { userId, platforms, preferences } = req.body;
+    const userId = req.user.id;
+    const { platforms, preferences } = req.body;
 
     console.log(`✨ Synthesizing complete soul signature for user ${userId}`);
 
@@ -1721,9 +1724,9 @@ router.post('/extension-historical-import', async (req, res) => {
  * GET /api/soul-data/style-profile
  * Get user's communication style profile
  */
-router.get('/style-profile', async (req, res) => {
+router.get('/style-profile', authenticateUser, async (req, res) => {
   try {
-    const { userId } = req.query;
+    const userId = req.user.id;
 
     if (!userId) {
       return res.status(400).json({
@@ -1801,9 +1804,10 @@ router.get('/style-profile', async (req, res) => {
  * POST /api/soul-data/analyze-style
  * Analyze and save user's communication style
  */
-router.post('/analyze-style', async (req, res) => {
+router.post('/analyze-style', authenticateUser, async (req, res) => {
   try {
-    const { userId, platforms = [] } = req.body;
+    const userId = req.user.id;
+    const { platforms = [] } = req.body;
 
     if (!userId) {
       return res.status(400).json({
