@@ -312,7 +312,7 @@ router.get('/insights/:userId', authenticateUser, async (req, res) => {
       });
     }
 
-    const limit = parseInt(req.query.limit) || 20;
+    const limit = Math.min(Math.max(parseInt(req.query.limit, 10) || 20, 1), 1000);
     const category = req.query.category;
 
     let query = supabase
@@ -422,7 +422,7 @@ router.get('/behavioral-summary/:userId', authenticateUser, async (req, res) => 
       });
     }
 
-    const daysBack = parseInt(req.query.days) || 7;
+    const daysBack = Math.min(Math.max(parseInt(req.query.days, 10) || 7, 1), 365);
 
     const { data, error } = await supabase
       .rpc('get_behavioral_summary', {
@@ -474,7 +474,7 @@ router.get('/sessions/:userId', authenticateUser, async (req, res) => {
       });
     }
 
-    const limit = parseInt(req.query.limit) || 10;
+    const limit = Math.min(Math.max(parseInt(req.query.limit, 10) || 10, 1), 1000);
     const analyzed = req.query.analyzed === 'true';
 
     let query = supabase

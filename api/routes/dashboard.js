@@ -113,7 +113,7 @@ router.get('/stats', authenticateUser, async (req, res) => {
 router.get('/activity', authenticateUser, async (req, res) => {
   try {
     const userId = req.user.id;
-    const limit = Math.min(parseInt(req.query.limit) || 10, 100); // cap at 100
+    const limit = Math.min(Math.max(parseInt(req.query.limit, 10) || 10, 1), 100);
 
     // Get recent analytics events for this user
     const { data: events, error: eventsError } = await supabaseAdmin

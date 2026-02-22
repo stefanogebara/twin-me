@@ -229,7 +229,7 @@ router.get('/:id/messages', authenticateUser, userRateLimit(200, 15 * 60 * 1000)
   try {
     const { id } = req.params;
     const userId = req.user.id;
-    const limit = Math.min(parseInt(req.query.limit) || 50, 200);
+    const limit = Math.min(Math.max(parseInt(req.query.limit, 10) || 50, 1), 200);
 
     // IDOR guard: verify conversation ownership before fetching messages
     const { data: conversation, error: fetchError } = await serverDb.getConversation(id);

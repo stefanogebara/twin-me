@@ -22,8 +22,8 @@ router.use(authenticateUser);
 // ============================================================================
 router.get('/entries', asyncHandler(async (req, res) => {
   const userId = req.user.id;
-  const page = parseInt(req.query.page) || 1;
-  const limit = Math.min(parseInt(req.query.limit) || 20, 50);
+  const page = Math.max(parseInt(req.query.page, 10) || 1, 1);
+  const limit = Math.min(Math.max(parseInt(req.query.limit, 10) || 20, 1), 50);
   const offset = (page - 1) * limit;
 
   // Get entries with their analyses
