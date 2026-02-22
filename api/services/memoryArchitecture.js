@@ -130,10 +130,13 @@ export class WorkingMemory {
    * Clear session (end conversation)
    */
   async clear() {
-    await supabaseAdmin
+    const { error } = await supabaseAdmin
       .from('working_memory')
       .delete()
       .eq('session_id', this.sessionId);
+    if (error) {
+      console.error('Error clearing session:', error);
+    }
 
     this.context = [];
     this.scratchpad = '';
@@ -273,7 +276,7 @@ ${conversationText}`
       const summary = result.content;
 
       // Store summary in core memory
-      await supabaseAdmin
+      const { error } = await supabaseAdmin
         .from('conversation_summaries')
         .insert({
           user_id: this.userId,
@@ -281,6 +284,9 @@ ${conversationText}`
           message_count: messages.length,
           created_at: new Date().toISOString()
         });
+      if (error) {
+        console.error('Error storing conversation summary:', error);
+      }
 
       return summary;
     } catch (error) {

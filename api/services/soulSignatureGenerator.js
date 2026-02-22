@@ -346,10 +346,14 @@ Respond ONLY with JSON in this exact format (no markdown):
     console.log(`🔄 [Soul Signature] Regenerating for user ${userId}`);
 
     // Delete existing signature
-    await supabaseAdmin
+    const { error: deleteErr } = await supabaseAdmin
       .from('soul_signatures')
       .delete()
       .eq('user_id', userId);
+    if (deleteErr) {
+      console.error('[Soul Signature] Error deleting signature:', deleteErr);
+      throw deleteErr;
+    }
 
     // Generate new one
     return this.generateSoulSignature(userId, { forceRefresh: true });
