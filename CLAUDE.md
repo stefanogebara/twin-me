@@ -178,7 +178,7 @@ WHOOP_CLIENT_ID, WHOOP_CLIENT_SECRET
 ## Critical Gotchas
 
 ### User IDs: public.users NOT auth.users
-The app uses `public.users.id` everywhere (user_memories, twin_goals, etc.), NOT `auth.users.id`. These are DIFFERENT UUIDs. All FK constraints reference `public.users(id)`. The test user is `167c27b5-4a30-49e1-aa79-9973d1e4e06f`.
+The app uses `public.users.id` everywhere (user_memories, twin_goals, etc.), NOT `auth.users.id`. These are DIFFERENT UUIDs. All FK constraints reference `public.users(id)`. The test user is `167c27b5-a40b-49fb-8d00-deb1b1c57f4d` (stefanogebara@gmail.com).
 
 ### JWT Token Format
 Auth middleware reads `payload.id || payload.userId`. The verify endpoint uses `decoded.id`. ALWAYS use `id` field when generating test tokens.

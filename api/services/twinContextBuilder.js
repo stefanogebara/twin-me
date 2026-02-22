@@ -108,7 +108,7 @@ async function fetchTwinContext(userId, userMessage, options = {}) {
       return null;
     })),
 
-    timed('proactiveInsights', getUndeliveredInsights(userId).catch(err => {
+    timed('proactiveInsights', getUndeliveredInsights(userId, 8).catch(err => {
       console.warn('[TwinContext] Proactive insights fetch failed:', err.message);
       return [];
     })),
