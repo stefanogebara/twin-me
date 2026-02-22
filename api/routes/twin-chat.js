@@ -57,18 +57,24 @@ const CHAT_RATE_LIMIT_WINDOW_MS = 60 * 60 * 1000; // 1 hour
 // Map<userId, { timestamps: number[] }>
 const chatRateLimitMap = new Map();
 
+// Interval IDs for cleanup — prevent accumulation on hot-reload
+let _chatRateLimitCleanupInterval = null;
+let _platformCacheCleanupInterval = null;
+
 // Periodic cleanup of expired entries to prevent memory leaks
-setInterval(() => {
-  const now = Date.now();
-  for (const [userId, entry] of chatRateLimitMap.entries()) {
-    const fresh = entry.timestamps.filter(ts => now - ts < CHAT_RATE_LIMIT_WINDOW_MS);
-    if (fresh.length === 0) {
-      chatRateLimitMap.delete(userId);
-    } else {
-      entry.timestamps = fresh;
+if (!_chatRateLimitCleanupInterval) {
+  _chatRateLimitCleanupInterval = setInterval(() => {
+    const now = Date.now();
+    for (const [userId, entry] of chatRateLimitMap.entries()) {
+      const fresh = entry.timestamps.filter(ts => now - ts < CHAT_RATE_LIMIT_WINDOW_MS);
+      if (fresh.length === 0) {
+        chatRateLimitMap.delete(userId);
+      } else {
+        entry.timestamps = fresh;
+      }
     }
-  }
-}, 10 * 60 * 1000); // Clean up every 10 minutes
+  }, 10 * 60 * 1000); // Clean up every 10 minutes
+}
 
 /**
  * Check if a user has exceeded the per-hour chat rate limit.
@@ -108,14 +114,16 @@ const MAX_DYNAMIC_CONTEXT_CHARS = 20000; // ~5K tokens for dynamic context (rich
 const MAX_ADDITIONAL_CONTEXT_CHARS = 12000; // ~3K tokens for writing profile, memories, history
 
 // Periodic cleanup to prevent memory leaks from expired cache entries
-setInterval(() => {
-  const now = Date.now();
-  for (const [key, value] of platformDataCache.entries()) {
-    if (now - value.timestamp > PLATFORM_CACHE_TTL) {
-      platformDataCache.delete(key);
+if (!_platformCacheCleanupInterval) {
+  _platformCacheCleanupInterval = setInterval(() => {
+    const now = Date.now();
+    for (const [key, value] of platformDataCache.entries()) {
+      if (now - value.timestamp > PLATFORM_CACHE_TTL) {
+        platformDataCache.delete(key);
+      }
     }
-  }
-}, 10 * 60 * 1000);
+  }, 10 * 60 * 1000);
+}
 
 /**
  * STATIC BASE INSTRUCTIONS (cached via Anthropic prompt caching)

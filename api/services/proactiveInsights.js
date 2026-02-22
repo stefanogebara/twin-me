@@ -166,8 +166,18 @@ async function getUndeliveredInsights(userId, limit = 3) {
 /**
  * Mark insights as delivered after they've been included in a twin chat response.
  */
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 async function markInsightsDelivered(insightIds) {
   if (!insightIds || insightIds.length === 0) return;
+
+  // Validate all IDs are UUIDs before updating to prevent unexpected writes
+  const validIds = insightIds.filter(id => typeof id === 'string' && UUID_RE.test(id));
+  if (validIds.length === 0) return;
+  if (validIds.length !== insightIds.length) {
+    console.warn(`[ProactiveInsights] markInsightsDelivered: ${insightIds.length - validIds.length} invalid IDs filtered out`);
+  }
+  insightIds = validIds;
 
   try {
     const { error } = await supabaseAdmin
