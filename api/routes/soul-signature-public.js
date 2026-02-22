@@ -25,9 +25,15 @@ const router = express.Router();
  * Returns a user's soul signature if it's marked as public.
  * No authentication required - this is the endpoint for shared links.
  */
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 router.get('/public/:userId', async (req, res) => {
   try {
     const { userId } = req.params;
+
+    if (!UUID_RE.test(userId)) {
+      return res.status(400).json({ success: false, error: 'Invalid user ID' });
+    }
 
     if (!supabaseAdmin) {
       return res.status(503).json({ success: false, error: 'Database unavailable' });
