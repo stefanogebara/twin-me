@@ -287,10 +287,11 @@ class BehavioralEmbeddingService {
       console.log(`[Behavioral Embedding] Stored embedding for session ${sessionId}`);
 
       // Step 5: Update session to mark embeddings generated
-      await supabase
+      const { error: markErr } = await supabase
         .from('soul_observer_sessions')
         .update({ embeddings_generated: true })
         .eq('session_id', sessionId);
+      if (markErr) console.warn('[Behavioral Embedding] Error marking session embeddings:', markErr.message);
 
       return {
         success: true,

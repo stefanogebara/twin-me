@@ -61,10 +61,11 @@ class EmbeddingGenerator {
 
       // Check which already have embeddings
       const textContentIds = textContent.map(t => t.id);
-      const { data: existingEmbeddings } = await supabase
+      const { data: existingEmbeddings, error: existingErr } = await supabase
         .from('user_embeddings')
         .select('text_content_id')
         .in('text_content_id', textContentIds);
+      if (existingErr) console.warn('[Embeddings] Error fetching existing embeddings:', existingErr.message);
 
       const existingIds = new Set((existingEmbeddings || []).map(e => e.text_content_id));
       const toProcess = textContent.filter(t => !existingIds.has(t.id));

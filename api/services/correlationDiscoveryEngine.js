@@ -376,7 +376,7 @@ export async function validateExistingCorrelations(userId) {
         newResult.direction === corr.direction;
 
       // Update validation
-      await supabaseAdmin
+      const { error: validationUpdateErr } = await supabaseAdmin
         .from('pl_discovered_correlations')
         .update({
           correlation_coefficient: newResult.correlationCoefficient,
@@ -388,6 +388,7 @@ export async function validateExistingCorrelations(userId) {
           validation_count: (corr.validation_count || 1) + 1
         })
         .eq('id', corr.id);
+      if (validationUpdateErr) console.warn('[CorrelationDiscovery] Error updating correlation validation:', validationUpdateErr.message);
 
       if (stillValid) {
         results.validated++;

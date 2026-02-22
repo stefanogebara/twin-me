@@ -300,9 +300,10 @@ export async function saveAssessmentResponses(userId, responses, sessionId = nul
 
     // First, we need to ensure questions exist in the database
     // Get question IDs from database
-    const { data: existingQuestions } = await supabase
+    const { data: existingQuestions, error: existingQErr } = await supabase
       .from('personality_questions')
       .select('id, question_text');
+    if (existingQErr) console.warn('[PersonalityAssessment] Error checking existing questions:', existingQErr.message);
 
     // If no questions in DB, seed them first
     if (!existingQuestions || existingQuestions.length === 0) {
@@ -310,9 +311,10 @@ export async function saveAssessmentResponses(userId, responses, sessionId = nul
     }
 
     // Map our JSON question IDs to database UUIDs
-    const { data: dbQuestions } = await supabase
+    const { data: dbQuestions, error: dbQErr } = await supabase
       .from('personality_questions')
       .select('id, question_text, dimension, reverse_scored');
+    if (dbQErr) throw new Error(`Failed to fetch questions: ${dbQErr.message}`);
 
     if (!dbQuestions || dbQuestions.length === 0) {
       throw new Error('No questions found in database');
