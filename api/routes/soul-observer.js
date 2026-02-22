@@ -161,16 +161,17 @@ router.post('/activity', async (req, res) => {
 
     if (existingSession) {
       // Update session with new event count
-      await supabase
+      const { error: sessionUpdateErr } = await supabase
         .from('soul_observer_sessions')
         .update({
           total_events: existingSession.total_events + activities.length,
           updated_at: new Date().toISOString()
         })
         .eq('session_id', sessionId);
+      if (sessionUpdateErr) console.warn('[Soul Observer] Error updating session:', sessionUpdateErr.message);
     } else {
       // Create new session
-      await supabase
+      const { error: sessionInsertErr } = await supabase
         .from('soul_observer_sessions')
         .insert({
           user_id: userId,
@@ -180,6 +181,7 @@ router.post('/activity', async (req, res) => {
           processed: false,
           ai_analyzed: false
         });
+      if (sessionInsertErr) console.warn('[Soul Observer] Error creating session:', sessionInsertErr.message);
     }
 
     res.json({

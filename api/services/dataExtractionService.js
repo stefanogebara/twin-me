@@ -185,7 +185,7 @@ class DataExtractionService {
         console.warn(`[DataExtraction] Failed to get valid token for ${platform}: ${tokenResult.error}`);
 
         if (jobId) {
-          await getSupabaseClient()
+          const { error: tokenFailErr } = await getSupabaseClient()
             .from('data_extraction_jobs')
             .update({
               status: 'failed',
@@ -193,6 +193,7 @@ class DataExtractionService {
               completed_at: new Date().toISOString()
             })
             .eq('id', jobId);
+          if (tokenFailErr) console.warn(`[DataExtraction] Error marking job ${jobId} as failed (token):`, tokenFailErr.message);
 
           notifyExtractionFailed(userId, jobId, platform, new Error(tokenResult.error || 'Token refresh failed'));
           notifyConnectionStatus(userId, platform, 'needs_reauth', 'Please reconnect your account');
@@ -254,7 +255,7 @@ class DataExtractionService {
 
       // Update job with completion status
       if (jobId) {
-        await getSupabaseClient()
+        const { error: jobUpdateErr } = await getSupabaseClient()
           .from('data_extraction_jobs')
           .update({
             status: result.success ? 'completed' : 'failed',
@@ -270,6 +271,7 @@ class DataExtractionService {
             }
           })
           .eq('id', jobId);
+        if (jobUpdateErr) console.warn(`[DataExtraction] Error updating job ${jobId} status:`, jobUpdateErr.message);
 
         console.log(`[DataExtraction] Updated job ${jobId} to ${result.success ? 'completed' : 'failed'}`);
 
@@ -302,7 +304,7 @@ class DataExtractionService {
 
       // Mark job as failed
       if (jobId) {
-        await getSupabaseClient()
+        const { error: catchJobErr } = await getSupabaseClient()
           .from('data_extraction_jobs')
           .update({
             status: 'failed',
@@ -310,6 +312,7 @@ class DataExtractionService {
             completed_at: new Date().toISOString()
           })
           .eq('id', jobId);
+        if (catchJobErr) console.warn(`[DataExtraction] Error marking job ${jobId} as failed:`, catchJobErr.message);
 
         // Notify user via WebSocket that extraction failed
         notifyExtractionFailed(userId, jobId, platform, error);
@@ -420,13 +423,14 @@ class DataExtractionService {
         last_sync_items: extractionResult.itemsExtracted || 0
       };
 
-      await getSupabaseClient()
+      const { error: metaErr } = await getSupabaseClient()
         .from('platform_connections')
         .update({
           last_synced_at: now,
           last_sync_status: extractionResult.success ? 'success' : 'failed'
         })
         .eq('id', connectorId);
+      if (metaErr) console.warn('[DataExtraction] Error updating connector metadata:', metaErr.message);
     } catch (error) {
       console.error('[DataExtraction] Error updating metadata:', error);
     }
@@ -518,11 +522,12 @@ class DataExtractionService {
         next_sync: new Date(Date.now() + intervalHours * 60 * 60 * 1000).toISOString()
       };
 
-      await getSupabaseClient()
+      const { error: scheduleErr } = await getSupabaseClient()
         .from('platform_connections')
         .update({ metadata })
         .eq('user_id', userId)
         .eq('platform', platform);
+      if (scheduleErr) console.warn('[DataExtraction] Error updating sync schedule:', scheduleErr.message);
     }
 
     return { scheduled: true, intervalHours };

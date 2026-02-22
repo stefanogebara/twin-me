@@ -102,11 +102,12 @@ export async function updateLastSynced(userId, platform) {
     return;
   }
 
-  await supabaseAdmin
+  const { error: updateErr } = await supabaseAdmin
     .from('nango_connection_mappings')
     .update({ last_synced_at: new Date().toISOString() })
     .eq('user_id', userId)
     .eq('platform', platform);
+  if (updateErr) console.warn('[ConnectionMapping] Error updating last_synced_at:', updateErr.message);
 }
 
 export default {
