@@ -40,6 +40,19 @@ const SoulSignatureDashboard: React.FC = () => {
 
   const { data: portrait, isLoading, error, refetch } = useTwinPortrait(!!user);
 
+  // Use cached archetype from onboarding if portrait API hasn't loaded yet
+  const cachedArchetype = React.useMemo(() => {
+    try {
+      const raw = sessionStorage.getItem('instant_archetype');
+      return raw ? JSON.parse(raw) : null;
+    } catch {
+      return null;
+    }
+  }, []);
+
+  // portrait.soulSignature from API, falling back to sessionStorage cache
+  const displaySoulSignature = (portrait as any)?.soulSignature ?? cachedArchetype;
+
   const colors: ThemeColors = {
     textColor: theme === 'dark' ? '#C1C0B6' : '#0c0a09',
     textSecondary: theme === 'dark' ? 'rgba(193, 192, 182, 0.7)' : '#57534e',
@@ -115,13 +128,14 @@ const SoulSignatureDashboard: React.FC = () => {
     );
   }
 
-  const hasData = portrait && (
-    portrait.twinSummary ||
-    (portrait.reflections?.length ?? 0) > 0 ||
-    (portrait.insights?.length ?? 0) > 0 ||
-    (portrait.memoryStats?.total ?? 0) > 0 ||
-    (portrait.connectedPlatforms?.length ?? 0) > 0 ||
-    portrait.personalityScores !== null
+  const hasData = !!(
+    displaySoulSignature ||           // NEW — show content if archetype exists
+    portrait?.twinSummary ||
+    (portrait?.reflections?.length ?? 0) > 0 ||
+    (portrait?.insights?.length ?? 0) > 0 ||
+    (portrait?.memoryStats?.total ?? 0) > 0 ||
+    (portrait?.connectedPlatforms?.length ?? 0) > 0 ||
+    portrait?.personalityScores !== null
   );
 
   // Determine which platforms are connected and have a known config
@@ -212,6 +226,45 @@ const SoulSignatureDashboard: React.FC = () => {
 
       {/* Empty state */}
       {!hasData && !error && <PortraitEmptyState />}
+
+      {/* Bento grid layout */}
+      {hasData && (
+        <>
+          {/* Archetype Card — visible immediately after onboarding, before reflections accumulate */}
+          {displaySoulSignature && (
+            <div className="mb-6 rounded-2xl border border-stone-200 bg-white/80 p-6 shadow-sm backdrop-blur-sm">
+              <p className="mb-1 text-xs font-semibold uppercase tracking-widest text-stone-400">
+                Your Archetype
+              </p>
+              <h2 className="mb-2 text-2xl font-bold text-stone-900">
+                {displaySoulSignature.archetype_name}
+              </h2>
+              {displaySoulSignature.signature_quote && (
+                <p className="mb-3 italic text-stone-500">
+                  "{displaySoulSignature.signature_quote}"
+                </p>
+              )}
+              {displaySoulSignature.core_traits?.length > 0 && (
+                <div className="flex flex-wrap gap-2">
+                  {displaySoulSignature.core_traits.map((trait: string) => (
+                    <span
+                      key={trait}
+                      className="rounded-full bg-stone-100 px-3 py-1 text-xs font-medium text-stone-700"
+                    >
+                      {trait}
+                    </span>
+                  ))}
+                </div>
+              )}
+              {displaySoulSignature.first_impression && (
+                <p className="mt-3 text-sm text-stone-600">
+                  {displaySoulSignature.first_impression}
+                </p>
+              )}
+            </div>
+          )}
+        </>
+      )}
 
       {/* Bento grid layout */}
       {hasData && portrait && (
