@@ -132,7 +132,7 @@ async function refreshAccessToken(platform, refreshToken, userId) {
     console.error(`❌ Token refresh failed for ${platform}:`, error.response?.data || error.message);
 
     // Mark connection as needs_reauth
-    await getSupabaseClient()
+    const { error: reauthErr } = await getSupabaseClient()
       .from('platform_connections')
       .update({
         status: 'needs_reauth',
@@ -141,6 +141,9 @@ async function refreshAccessToken(platform, refreshToken, userId) {
       })
       .eq('user_id', userId)
       .eq('platform', platform);
+    if (reauthErr) {
+      console.warn(`[CRON] Failed to mark ${platform} as needs_reauth after refresh failure:`, reauthErr.message);
+    }
 
     return null;
   }
@@ -176,7 +179,8 @@ async function checkAndRefreshExpiringTokens() {
       .select('id, user_id, platform, access_token, refresh_token, token_expires_at, status')
       .in('status', ['connected', 'token_expired'])
       .not('refresh_token', 'is', null)
-      .lt('token_expires_at', tenMinutesFromNow);
+      .lt('token_expires_at', tenMinutesFromNow)
+      .limit(1000);
 
     if (error) {
       console.error('❌ Error fetching connections:', error);
@@ -234,7 +238,7 @@ async function checkAndRefreshExpiringTokens() {
         const encryptedRefreshToken = encryptToken(newTokens.refreshToken);
         const newExpiryTime = new Date(Date.now() + newTokens.expiresIn * 1000).toISOString();
 
-        await getSupabaseClient()
+        const { error: updateError } = await getSupabaseClient()
           .from('platform_connections')
           .update({
             access_token: encryptedAccessToken,
@@ -246,7 +250,11 @@ async function checkAndRefreshExpiringTokens() {
           })
           .eq('id', connection.id);
 
-        console.log(`✅ Updated tokens for ${connection.platform} (user: ${connection.user_id})`);
+        if (updateError) {
+          console.error(`❌ Failed to save refreshed tokens for ${connection.platform}:`, updateError.message);
+        } else {
+          console.log(`✅ Updated tokens for ${connection.platform} (user: ${connection.user_id})`);
+        }
 
         refreshResults.push({
           platform: connection.platform,
