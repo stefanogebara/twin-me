@@ -499,11 +499,12 @@ export async function resetPrivacySettings(userId) {
     if (error) throw error;
 
     // Log reset action
-    await supabase.from('privacy_audit_log').insert({
+    const { error: auditLogErr } = await supabase.from('privacy_audit_log').insert({
       user_id: userId,
       action: 'reset_to_defaults',
       changed_at: new Date().toISOString()
     });
+    if (auditLogErr) console.warn('[Privacy] Error logging reset action:', auditLogErr.message);
 
     return { success: true, profile: data };
   } catch (error) {
