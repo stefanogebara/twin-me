@@ -11,7 +11,6 @@
  */
 
 import React from 'react';
-import { useTheme } from '@/contexts/ThemeContext';
 import { Sparkles, TrendingUp, Heart, Lightbulb } from 'lucide-react';
 import { GlassPanel } from '@/components/layout/PageLayout';
 
@@ -46,15 +45,12 @@ export const TwinReflection: React.FC<TwinReflectionProps> = ({
   isNew = false,
   className = ''
 }) => {
-  const { theme } = useTheme();
-
-  // Theme-aware colors
   const colors = {
-    text: theme === 'dark' ? '#C1C0B6' : '#44403c',
-    textMuted: theme === 'dark' ? 'rgba(193, 192, 182, 0.4)' : '#a8a29e',
-    iconBg: theme === 'dark' ? 'rgba(139, 92, 246, 0.15)' : 'rgba(139, 92, 246, 0.1)',
+    text: '#44403c',
+    textMuted: '#a8a29e',
+    iconBg: 'rgba(139, 92, 246, 0.1)',
     iconColor: '#8B5CF6',
-    highlight: theme === 'dark' ? 'rgba(139, 92, 246, 0.2)' : 'rgba(139, 92, 246, 0.1)'
+    highlight: 'rgba(139, 92, 246, 0.1)'
   };
 
   return (
@@ -141,11 +137,9 @@ export const PatternObservation: React.FC<PatternObservationProps> = ({
   occurrences = 'noticed',
   className = ''
 }) => {
-  const { theme } = useTheme();
-
   const colors = {
-    text: theme === 'dark' ? 'rgba(193, 192, 182, 0.9)' : '#44403c',
-    textMuted: theme === 'dark' ? 'rgba(193, 192, 182, 0.5)' : '#a8a29e',
+    text: '#44403c',
+    textMuted: '#a8a29e',
     iconColor: occurrences === 'often' ? '#8B5CF6' :
       occurrences === 'sometimes' ? '#06b6d4' : '#a78bfa'
   };
@@ -164,19 +158,15 @@ export const PatternObservation: React.FC<PatternObservationProps> = ({
     <div
       className={`p-4 rounded-xl flex items-start gap-3 ${className}`}
       style={{
-        backgroundColor: theme === 'dark'
-          ? 'rgba(193, 192, 182, 0.03)'
-          : 'rgba(0, 0, 0, 0.02)',
-        border: `1px solid ${theme === 'dark' ? 'rgba(193, 192, 182, 0.05)' : 'rgba(0, 0, 0, 0.03)'}`
+        backgroundColor: 'rgba(0, 0, 0, 0.02)',
+        border: '1px solid rgba(0, 0, 0, 0.03)'
       }}
     >
       {/* Icon */}
       <div
         className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
         style={{
-          backgroundColor: theme === 'dark'
-            ? `${colors.iconColor}20`
-            : `${colors.iconColor}15`
+          backgroundColor: `${colors.iconColor}15`
         }}
       >
         <Icon
@@ -222,12 +212,10 @@ export const DataHighlight: React.FC<DataHighlightProps> = ({
   accentColor = '#8B5CF6',
   className = ''
 }) => {
-  const { theme } = useTheme();
-
   const colors = {
-    text: theme === 'dark' ? '#C1C0B6' : '#44403c',
-    textMuted: theme === 'dark' ? 'rgba(193, 192, 182, 0.5)' : '#a8a29e',
-    itemBg: theme === 'dark' ? 'rgba(193, 192, 182, 0.08)' : 'rgba(0, 0, 0, 0.04)'
+    text: '#44403c',
+    textMuted: '#a8a29e',
+    itemBg: 'rgba(0, 0, 0, 0.04)'
   };
 
   if (!items || items.length === 0) return null;
@@ -294,13 +282,11 @@ export const StatCard: React.FC<StatCardProps> = ({
   subtitle,
   className = ''
 }) => {
-  const { theme } = useTheme();
-
   const colors = {
-    text: theme === 'dark' ? '#C1C0B6' : '#44403c',
-    textMuted: theme === 'dark' ? 'rgba(193, 192, 182, 0.5)' : '#a8a29e',
-    bg: theme === 'dark' ? 'rgba(193, 192, 182, 0.03)' : 'rgba(0, 0, 0, 0.02)',
-    border: theme === 'dark' ? 'rgba(193, 192, 182, 0.05)' : 'rgba(0, 0, 0, 0.03)'
+    text: '#44403c',
+    textMuted: '#a8a29e',
+    bg: 'rgba(0, 0, 0, 0.02)',
+    border: 'rgba(0, 0, 0, 0.03)'
   };
 
   return (
@@ -356,14 +342,12 @@ export const TrackCard: React.FC<TrackCardProps> = ({
   context,
   className = ''
 }) => {
-  const { theme } = useTheme();
-
   const colors = {
-    text: theme === 'dark' ? '#C1C0B6' : '#44403c',
-    textMuted: theme === 'dark' ? 'rgba(193, 192, 182, 0.6)' : '#78716c',
+    text: '#44403c',
+    textMuted: '#78716c',
     spotifyGreen: '#1DB954',
-    bg: theme === 'dark' ? 'rgba(29, 185, 84, 0.08)' : 'rgba(29, 185, 84, 0.05)',
-    border: theme === 'dark' ? 'rgba(29, 185, 84, 0.15)' : 'rgba(29, 185, 84, 0.1)'
+    bg: 'rgba(29, 185, 84, 0.05)',
+    border: 'rgba(29, 185, 84, 0.1)'
   };
 
   return (
@@ -428,8 +412,6 @@ export const EventCard: React.FC<EventCardProps> = ({
   type = 'other',
   className = ''
 }) => {
-  const { theme } = useTheme();
-
   const typeConfig: Record<string, { color: string; icon: string; label: string }> = {
     meeting: { color: '#4285F4', icon: '👥', label: 'Meeting' },
     focus: { color: '#34A853', icon: '🎯', label: 'Focus' },
@@ -444,10 +426,10 @@ export const EventCard: React.FC<EventCardProps> = ({
   const config = typeConfig[type || 'other'] || typeConfig.other;
 
   const colors = {
-    text: theme === 'dark' ? '#C1C0B6' : '#44403c',
-    textMuted: theme === 'dark' ? 'rgba(193, 192, 182, 0.6)' : '#78716c',
-    bg: theme === 'dark' ? `${config.color}15` : `${config.color}10`,
-    border: theme === 'dark' ? `${config.color}30` : `${config.color}20`
+    text: '#44403c',
+    textMuted: '#78716c',
+    bg: `${config.color}10`,
+    border: `${config.color}20`
   };
 
   return (

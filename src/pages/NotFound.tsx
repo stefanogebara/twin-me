@@ -1,76 +1,97 @@
 import { useLocation, useNavigate } from "react-router-dom";
 import { useEffect } from "react";
-import { useTheme } from "@/contexts/ThemeContext";
 import { Home, ArrowLeft } from "lucide-react";
 import { Clay3DIcon } from '@/components/Clay3DIcon';
 
 const NotFound = () => {
   const location = useLocation();
   const navigate = useNavigate();
-  const { theme } = useTheme();
 
   useEffect(() => {
     console.error("404 Error: User attempted to access non-existent route:", location.pathname);
   }, [location.pathname]);
 
-  const textColor = theme === 'dark' ? '#C1C0B6' : '#0c0a09';
-  const textSecondary = theme === 'dark' ? 'rgba(193, 192, 182, 0.7)' : '#57534e';
-  const bgColor = theme === 'dark' ? '#232320' : '#FAFAFA';
-
   return (
-    <div className="min-h-screen" style={{ backgroundColor: bgColor }}>
-      <div className="min-h-screen flex items-center justify-center px-6">
+    <div
+      className="min-h-screen relative overflow-hidden"
+      style={{ backgroundColor: '#F7F7F3' }}
+    >
+      {/* Subtle background texture */}
+      <div
+        className="absolute inset-0 pointer-events-none"
+        style={{
+          background: 'radial-gradient(ellipse 80% 60% at 50% 20%, rgba(45, 39, 34, 0.06) 0%, transparent 70%), radial-gradient(ellipse 60% 80% at 80% 80%, rgba(45, 39, 34, 0.04) 0%, transparent 70%)',
+        }}
+      />
+
+      <div className="min-h-screen flex items-center justify-center px-6 relative z-10">
         <div className="text-center max-w-lg mx-auto">
-          <div className="mx-auto mb-8 opacity-60">
-            <Clay3DIcon name="compass" size={80} />
-          </div>
-          <h1
-            className="text-[clamp(2rem,4vw,3rem)] mb-4"
-            style={{
-              fontFamily: 'var(--font-heading)',
-              fontWeight: 400,
-              letterSpacing: '-0.02em',
-              color: textColor
-            }}
+          {/* Glass card */}
+          <div
+            className="glass-card-ds mb-8"
+            style={{ padding: '3rem' }}
           >
-            Page Not Found
-          </h1>
+            {/* Icon */}
+            <div className="mx-auto mb-8" style={{ opacity: 0.75 }}>
+              <Clay3DIcon name="compass" size={80} />
+            </div>
+
+            {/* 404 number */}
+            <p
+              className="text-8xl font-bold mb-4"
+              style={{
+                color: 'rgba(31, 28, 24, 0.08)',
+                fontFamily: '"Playfair Display", Georgia, serif',
+                lineHeight: 1,
+                letterSpacing: '-0.04em',
+              }}
+            >
+              404
+            </p>
+
+            {/* Heading */}
+            <h1
+              className="heading-serif text-[clamp(1.75rem,3.5vw,2.5rem)] mb-4"
+            >
+              Page Not Found
+            </h1>
+
+            {/* Subtitle */}
+            <p
+              className="text-base mb-10 leading-relaxed"
+              style={{
+                color: '#8A857D',
+              }}
+            >
+              The page you're looking for doesn't exist or may have been moved.
+            </p>
+
+            {/* Buttons */}
+            <div className="flex flex-col sm:flex-row gap-3 justify-center">
+              <button
+                onClick={() => navigate(-1)}
+                className="btn-glass-app flex items-center gap-2 justify-center"
+              >
+                <ArrowLeft className="w-4 h-4" />
+                Go Back
+              </button>
+              <button
+                onClick={() => navigate('/')}
+                className="btn-cta-app flex items-center gap-2 justify-center"
+              >
+                <Home className="w-4 h-4" />
+                Home
+              </button>
+            </div>
+          </div>
+
+          {/* Footer hint */}
           <p
-            className="text-base mb-8"
-            style={{
-              fontFamily: 'var(--font-body)',
-              color: textSecondary
-            }}
+            className="text-xs"
+            style={{ color: 'rgba(138, 133, 125, 0.6)' }}
           >
-            The page you're looking for doesn't exist or may have been moved.
+            Lost? Head back home to find your soul signature.
           </p>
-          <div className="flex flex-col sm:flex-row gap-3 justify-center">
-            <button
-              onClick={() => navigate(-1)}
-              className="flex items-center gap-2 justify-center px-6 py-3 rounded-xl text-sm font-medium transition-all hover:scale-[1.02]"
-              style={{
-                backgroundColor: theme === 'dark' ? 'rgba(193, 192, 182, 0.1)' : 'rgba(0, 0, 0, 0.05)',
-                border: theme === 'dark' ? '1px solid rgba(193, 192, 182, 0.15)' : '1px solid rgba(0, 0, 0, 0.08)',
-                color: textColor,
-                fontFamily: 'var(--font-body)'
-              }}
-            >
-              <ArrowLeft className="w-4 h-4" />
-              Go Back
-            </button>
-            <button
-              onClick={() => navigate('/')}
-              className="flex items-center gap-2 justify-center px-6 py-3 rounded-xl text-sm font-medium transition-all hover:opacity-90"
-              style={{
-                backgroundColor: theme === 'dark' ? '#C1C0B6' : '#0c0a09',
-                color: theme === 'dark' ? '#232320' : '#ffffff',
-                fontFamily: 'var(--font-body)'
-              }}
-            >
-              <Home className="w-4 h-4" />
-              Home
-            </button>
-          </div>
         </div>
       </div>
     </div>

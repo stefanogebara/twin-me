@@ -2,13 +2,11 @@ import { useEffect, useState, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Brain, CheckCircle, XCircle, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
-import { useTheme } from '@/contexts/ThemeContext';
 import { useAnalytics } from '@/contexts/AnalyticsContext';
 
 const OAuthCallback = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
-  const { theme } = useTheme();
   const { trackFunnel } = useAnalytics();
   const [status, setStatus] = useState<'loading' | 'success' | 'error'>('loading');
   const [message, setMessage] = useState('Processing authentication...');
@@ -457,7 +455,7 @@ const OAuthCallback = () => {
         }
 
       } catch (error) {
-        console.error('❌ OAuth callback error:', error);
+        console.error('OAuth callback error:', error);
 
         // Clear the processing marker on error to allow retry
         const code = searchParams.get('code');
@@ -490,36 +488,34 @@ const OAuthCallback = () => {
   }, [searchParams, navigate]);
 
   const getStatusIcon = () => {
-    const iconColor = theme === 'dark' ? '#C1C0B6' : '#0c0a09';
     // Don't show error icon until showError is true (prevents 401 flash)
     const displayStatus = status === 'error' && !showError ? 'loading' : status;
     switch (displayStatus) {
       case 'loading':
-        return <Loader2 className="w-12 h-12 animate-spin" style={{ color: iconColor }} />;
+        return <Loader2 className="w-12 h-12 animate-spin" style={{ color: '#1F1C18' }} />;
       case 'success':
-        return <CheckCircle className="w-12 h-12" style={{ color: iconColor }} />;
+        return <CheckCircle className="w-12 h-12" style={{ color: '#1F1C18' }} />;
       case 'error':
-        return <XCircle className="w-12 h-12" style={{ color: iconColor }} />;
+        return <XCircle className="w-12 h-12" style={{ color: '#1F1C18' }} />;
     }
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: theme === 'dark' ? '#232320' : '#FAFAFA' }}>
-      <div className="max-w-md w-full mx-4 p-8 rounded-[16px] border text-center backdrop-blur-[16px]" style={{
-        backgroundColor: theme === 'dark' ? 'rgba(45, 45, 41, 0.5)' : 'rgba(255, 255, 255, 0.5)',
-        borderColor: theme === 'dark' ? 'rgba(193, 192, 182, 0.1)' : 'rgba(0, 0, 0, 0.06)',
-        boxShadow: theme === 'dark' ? '0 4px 16px rgba(0, 0, 0, 0.3)' : '0 4px 16px rgba(0, 0, 0, 0.03)'
-      }}>
+    <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: '#F7F7F3' }}>
+      <div
+        className="glass-card max-w-md w-full mx-4 p-8 text-center"
+      >
         {/* Logo */}
         <div className="flex items-center justify-center mb-8">
-          <div className="flex items-center justify-center w-12 h-12 rounded-xl mr-3" style={{ backgroundColor: theme === 'dark' ? '#C1C0B6' : '#0c0a09' }}>
-            <Brain className="w-6 h-6" style={{ color: theme === 'dark' ? '#232320' : '#ffffff' }} />
+          <div
+            className="flex items-center justify-center w-12 h-12 rounded-xl mr-3"
+            style={{ backgroundColor: '#1F1C18' }}
+          >
+            <Brain className="w-6 h-6" style={{ color: '#F7F7F3' }} />
           </div>
-          <h1 className="text-2xl font-medium" style={{
-            fontFamily: 'var(--font-heading)',
-            letterSpacing: '-0.02em',
-            color: theme === 'dark' ? '#C1C0B6' : '#0c0a09'
-          }}>
+          <h1
+            className="heading-serif text-2xl"
+          >
             Twin Me
           </h1>
         </div>
@@ -535,20 +531,15 @@ const OAuthCallback = () => {
           const displayMessage = status === 'error' && !showError ? 'Processing authentication...' : message;
           return (
             <>
-              <h2 className="text-xl mb-2 font-medium" style={{
-                fontFamily: 'var(--font-heading)',
-                letterSpacing: '-0.02em',
-                color: theme === 'dark' ? '#C1C0B6' : '#0c0a09'
-              }}>
+              <h2
+                className="heading-serif text-xl mb-2"
+              >
                 {displayStatus === 'loading' && 'Authenticating...'}
                 {displayStatus === 'success' && 'Welcome!'}
                 {displayStatus === 'error' && 'Authentication Failed'}
               </h2>
 
-              <p className="text-sm" style={{
-                fontFamily: 'var(--font-body)',
-                color: theme === 'dark' ? 'rgba(193, 192, 182, 0.8)' : '#57534e'
-              }}>
+              <p className="text-sm" style={{ color: '#8A857D' }}>
                 {displayMessage}
               </p>
             </>
@@ -558,8 +549,8 @@ const OAuthCallback = () => {
         {/* Progress indicator for loading state */}
         {(status === 'loading' || (status === 'error' && !showError)) && (
           <div className="mt-6">
-            <div className="w-full rounded-full h-1.5" style={{ backgroundColor: theme === 'dark' ? 'rgba(193, 192, 182, 0.2)' : 'rgba(0, 0, 0, 0.06)' }}>
-              <div className="h-1.5 rounded-full w-3/5 transition-all duration-300" style={{ backgroundColor: theme === 'dark' ? '#C1C0B6' : '#0c0a09' }} />
+            <div className="w-full rounded-full h-1.5" style={{ backgroundColor: 'rgba(0, 0, 0, 0.06)' }}>
+              <div className="h-1.5 rounded-full w-3/5 transition-all duration-300" style={{ backgroundColor: '#1F1C18' }} />
             </div>
           </div>
         )}
@@ -568,22 +559,7 @@ const OAuthCallback = () => {
         {status === 'error' && showError && (
           <button
             onClick={() => navigate('/auth')}
-            className="mt-6 px-6 py-2 rounded-lg font-medium transition-all"
-            style={{
-              fontFamily: 'var(--font-heading)',
-              letterSpacing: '-0.02em',
-              backgroundColor: theme === 'dark' ? '#C1C0B6' : '#0c0a09',
-              color: theme === 'dark' ? '#232320' : '#ffffff',
-              boxShadow: theme === 'dark' ? '0 2px 8px rgba(0,0,0,0.2)' : '0 2px 8px rgba(0,0,0,0.1)'
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.backgroundColor = theme === 'dark' ? 'rgba(193, 192, 182, 0.9)' : '#1c1917';
-              e.currentTarget.style.boxShadow = theme === 'dark' ? '0 4px 12px rgba(0,0,0,0.3)' : '0 4px 12px rgba(0,0,0,0.15)';
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.backgroundColor = theme === 'dark' ? '#C1C0B6' : '#0c0a09';
-              e.currentTarget.style.boxShadow = theme === 'dark' ? '0 2px 8px rgba(0,0,0,0.2)' : '0 2px 8px rgba(0,0,0,0.1)';
-            }}
+            className="btn-cta-app mt-6 px-6 py-2"
           >
             Try Again
           </button>

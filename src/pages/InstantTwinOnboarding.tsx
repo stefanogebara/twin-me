@@ -9,7 +9,6 @@ import React, { useState, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { useTheme } from '@/contexts/ThemeContext';
 import { useDemo } from '@/contexts/DemoContext';
 import { useAnalytics } from '@/contexts/AnalyticsContext';
 import { useToast } from '@/components/ui/use-toast';
@@ -38,21 +37,20 @@ import { PlatformCategorySection } from './onboarding/components/PlatformCategor
 const InstantTwinOnboarding = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const { theme } = useTheme();
   const { isDemoMode } = useDemo();
   const { trackFunnel } = useAnalytics();
   const { toast } = useToast();
 
-  // Lorix design system colors
+  // Design system colors (light only)
   const colors = {
-    textPrimary: theme === 'dark' ? '#C1C0B6' : '#0c0a09',
-    textSecondary: theme === 'dark' ? 'rgba(193, 192, 182, 0.8)' : '#57534e',
-    muted: theme === 'dark' ? 'rgba(193, 192, 182, 0.6)' : '#a8a29e',
+    textPrimary: '#1F1C18',
+    textSecondary: '#8A857D',
+    muted: '#8A857D',
     categoryEntertainment: '#3b82f6',
     categorySocial: '#a855f7',
     categoryProfessional: '#78716c',
     categoryHealth: '#00A7E1',
-    connected: theme === 'dark' ? 'rgba(193, 192, 182, 0.6)' : '#57534e', // Subtle gray instead of green
+    connected: '#8A857D',
   };
 
   const {
@@ -426,7 +424,7 @@ const InstantTwinOnboarding = () => {
     platformStatusData,
     connectingProvider,
     disconnectingProvider,
-    theme,
+    theme: 'light',
     colors,
     onConnect: connectService,
     onDisconnect: disconnectService,
@@ -443,8 +441,8 @@ const InstantTwinOnboarding = () => {
         <div
           className="rounded-2xl p-4 flex items-center gap-3 mb-6"
           style={{
-            backgroundColor: theme === 'dark' ? 'rgba(251, 191, 36, 0.1)' : 'rgba(251, 191, 36, 0.1)',
-            border: `1px solid ${theme === 'dark' ? 'rgba(251, 191, 36, 0.2)' : 'rgba(251, 191, 36, 0.3)'}`
+            backgroundColor: 'rgba(251, 191, 36, 0.1)',
+            border: '1px solid rgba(251, 191, 36, 0.3)'
           }}
         >
           <Info className="w-5 h-5 flex-shrink-0" style={{ color: '#FBBF24' }} />
@@ -460,7 +458,7 @@ const InstantTwinOnboarding = () => {
             onClick={() => setCurrentStep(currentStep - 1)}
             className="flex items-center gap-2 text-sm px-3 py-2 rounded-lg transition-opacity hover:opacity-80"
             style={{
-              backgroundColor: theme === 'dark' ? 'rgba(45, 45, 41, 0.5)' : 'rgba(0, 0, 0, 0.05)',
+              backgroundColor: 'rgba(0, 0, 0, 0.05)',
               color: colors.textPrimary
             }}
           >
@@ -510,13 +508,7 @@ const InstantTwinOnboarding = () => {
             </div>
             <motion.button
               onClick={() => navigate('/dashboard')}
-              className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm transition-all"
-              style={{
-                backgroundColor: colors.connected,
-                color: 'white',
-                fontFamily: 'var(--font-body)',
-                fontWeight: 500
-              }}
+              className="btn-cta-app flex items-center gap-2 px-4 py-2 text-sm"
               whileHover={{ scale: 1.05, y: -1 }}
               whileTap={{ scale: 0.97 }}
             >
@@ -580,7 +572,7 @@ const InstantTwinOnboarding = () => {
             <div className="text-center py-8">
               <div className="flex items-center justify-center gap-2 mb-4">
                 {expiredConnections.length > 0 ? (
-                  <svg className="w-5 h-5" style={{ color: '#C1C0B6' }} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <svg className="w-5 h-5" style={{ color: '#8A857D' }} fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                   </svg>
                 ) : (
@@ -603,12 +595,7 @@ const InstantTwinOnboarding = () => {
               </div>
               <button
                 onClick={() => navigate('/dashboard')}
-                className="inline-flex items-center gap-2 px-6 py-3 rounded-full text-[14px] font-medium transition-all hover:opacity-90"
-                style={{
-                  backgroundColor: theme === 'dark' ? '#C1C0B6' : '#0c0a09',
-                  color: theme === 'dark' ? '#232320' : '#FAFAFA',
-                  fontFamily: 'var(--font-ui)'
-                }}
+                className="btn-cta-app inline-flex items-center gap-2 px-6 py-3"
               >
                 Continue to Dashboard
                 <ArrowRight className="w-4 h-4" />
