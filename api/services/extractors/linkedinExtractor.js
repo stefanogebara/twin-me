@@ -177,7 +177,7 @@ class LinkedInExtractor {
    * Complete extraction job
    */
   async completeExtractionJob(jobId, totalItems) {
-    await supabase
+    const { error: updateErr } = await supabase
       .from('data_extraction_jobs')
       .update({
         status: 'completed',
@@ -190,6 +190,7 @@ class LinkedInExtractor {
         }
       })
       .eq('id', jobId);
+    if (updateErr) console.warn('[LinkedIn] Error completing extraction job:', updateErr.message);
   }
 }
 

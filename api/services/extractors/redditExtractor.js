@@ -418,7 +418,7 @@ class RedditExtractor {
    * Complete extraction job
    */
   async completeExtractionJob(jobId, totalItems) {
-    await supabase
+    const { error: updateErr } = await supabase
       .from('data_extraction_jobs')
       .update({
         status: 'completed',
@@ -428,6 +428,7 @@ class RedditExtractor {
         results: { message: 'Extraction completed successfully' }
       })
       .eq('id', jobId);
+    if (updateErr) console.warn('[Reddit] Error completing extraction job:', updateErr.message);
   }
 }
 

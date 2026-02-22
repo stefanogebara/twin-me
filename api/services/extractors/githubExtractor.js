@@ -558,7 +558,7 @@ class GithubExtractor {
    * Complete extraction job
    */
   async completeExtractionJob(jobId, totalItems) {
-    await supabase
+    const { error: updateErr } = await supabase
       .from('data_extraction_jobs')
       .update({
         status: 'completed',
@@ -568,6 +568,7 @@ class GithubExtractor {
         results: { message: 'Extraction completed successfully' }
       })
       .eq('id', jobId);
+    if (updateErr) console.warn('[GitHub] Error completing extraction job:', updateErr.message);
   }
 }
 

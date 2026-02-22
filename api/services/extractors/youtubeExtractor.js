@@ -514,7 +514,7 @@ class YouTubeExtractor {
    */
   async completeExtractionJob(jobId, totalItems) {
     const supabase = getSupabaseClient();
-    await supabase
+    const { error: updateErr } = await supabase
       .from('data_extraction_jobs')
       .update({
         status: 'completed',
@@ -524,6 +524,7 @@ class YouTubeExtractor {
         results: { message: 'Extraction completed successfully' }
       })
       .eq('id', jobId);
+    if (updateErr) console.warn('[YouTube] Error completing extraction job:', updateErr.message);
   }
 
   /**
