@@ -62,7 +62,7 @@ router.post('/quick', authenticateUser, async (req, res) => {
 router.post('/search', authenticateUser, async (req, res) => {
   try {
     const { email, name } = req.body;
-    const userId = req.user?.id || req.body.userId;
+    const userId = req.user.id;
 
     if (!userId || !email) {
       return res.status(400).json({
@@ -156,7 +156,7 @@ router.post('/search', authenticateUser, async (req, res) => {
     res.status(500).json({
       success: false,
       error: 'Failed to perform enrichment search',
-      details: error.message
+      ...(process.env.NODE_ENV !== 'production' && { details: error.message }),
     });
   }
 });
@@ -185,7 +185,6 @@ router.get('/results/:userId', authenticateUser, async (req, res) => {
       return res.status(500).json({
         success: false,
         error: 'Failed to fetch enrichment results',
-        details: result.error
       });
     }
 
@@ -254,7 +253,7 @@ router.get('/results/:userId', authenticateUser, async (req, res) => {
     res.status(500).json({
       success: false,
       error: 'Failed to fetch enrichment results',
-      details: error.message
+      ...(process.env.NODE_ENV !== 'production' && { details: error.message }),
     });
   }
 });
@@ -265,7 +264,7 @@ router.get('/results/:userId', authenticateUser, async (req, res) => {
 router.post('/confirm', authenticateUser, async (req, res) => {
   try {
     const { confirmedData, corrections } = req.body;
-    const userId = req.user?.id || req.body.userId;
+    const userId = req.user.id;
 
     if (!userId) {
       return res.status(400).json({
@@ -293,7 +292,6 @@ router.post('/confirm', authenticateUser, async (req, res) => {
       return res.status(500).json({
         success: false,
         error: 'Failed to confirm enrichment',
-        details: result.error
       });
     }
 
@@ -322,7 +320,7 @@ router.post('/confirm', authenticateUser, async (req, res) => {
     res.status(500).json({
       success: false,
       error: 'Failed to confirm enrichment',
-      details: error.message
+      ...(process.env.NODE_ENV !== 'production' && { details: error.message }),
     });
   }
 });
@@ -351,7 +349,6 @@ router.get('/status/:userId', authenticateUser, async (req, res) => {
       return res.status(500).json({
         success: false,
         error: 'Failed to get enrichment status',
-        details: result.error
       });
     }
 
@@ -365,7 +362,7 @@ router.get('/status/:userId', authenticateUser, async (req, res) => {
     res.status(500).json({
       success: false,
       error: 'Failed to get enrichment status',
-      details: error.message
+      ...(process.env.NODE_ENV !== 'production' && { details: error.message }),
     });
   }
 });
@@ -407,7 +404,7 @@ router.delete('/clear/:userId', authenticateUser, async (req, res) => {
       return res.status(500).json({
         success: false,
         error: 'Failed to clear enrichment',
-        details: error.message
+        ...(process.env.NODE_ENV !== 'production' && { details: error.message }),
       });
     }
 
@@ -420,7 +417,7 @@ router.delete('/clear/:userId', authenticateUser, async (req, res) => {
     res.status(500).json({
       success: false,
       error: 'Failed to clear enrichment',
-      details: error.message
+      ...(process.env.NODE_ENV !== 'production' && { details: error.message }),
     });
   }
 });
@@ -431,7 +428,7 @@ router.delete('/clear/:userId', authenticateUser, async (req, res) => {
 router.post('/from-linkedin', authenticateUser, async (req, res) => {
   try {
     const { linkedinUrl, name } = req.body;
-    const userId = req.user?.id || req.body.userId;
+    const userId = req.user.id;
 
     if (!userId || !linkedinUrl) {
       return res.status(400).json({
@@ -525,7 +522,7 @@ router.post('/from-linkedin', authenticateUser, async (req, res) => {
     res.status(500).json({
       success: false,
       error: 'Failed to enrich from LinkedIn URL',
-      details: error.message
+      ...(process.env.NODE_ENV !== 'production' && { details: error.message }),
     });
   }
 });
@@ -535,7 +532,7 @@ router.post('/from-linkedin', authenticateUser, async (req, res) => {
 // ============================================================================
 router.post('/skip', authenticateUser, async (req, res) => {
   try {
-    const userId = req.user?.id || req.body.userId;
+    const userId = req.user.id;
 
     if (!userId) {
       return res.status(400).json({
@@ -574,7 +571,7 @@ router.post('/skip', authenticateUser, async (req, res) => {
     res.status(500).json({
       success: false,
       error: 'Failed to skip enrichment',
-      details: error.message
+      ...(process.env.NODE_ENV !== 'production' && { details: error.message }),
     });
   }
 });
@@ -582,20 +579,13 @@ router.post('/skip', authenticateUser, async (req, res) => {
 // ============================================================================
 // POST /api/enrichment/reset - Reset confirmation for testing (DEV ONLY)
 // ============================================================================
-router.post('/reset', async (req, res) => {
+router.post('/reset', authenticateUser, async (req, res) => {
   if (process.env.NODE_ENV === 'production') {
     return res.status(404).json({ error: 'Not found' });
   }
 
   try {
-    const { userId } = req.body;
-
-    if (!userId) {
-      return res.status(400).json({
-        success: false,
-        error: 'userId is required'
-      });
-    }
+    const userId = req.user.id;
 
     console.log(`[Enrichment API] Resetting confirmation for user ${userId}`);
 
@@ -612,7 +602,7 @@ router.post('/reset', async (req, res) => {
     res.status(500).json({
       success: false,
       error: 'Failed to reset confirmation',
-      details: error.message
+      ...(process.env.NODE_ENV !== 'production' && { details: error.message }),
     });
   }
 });
