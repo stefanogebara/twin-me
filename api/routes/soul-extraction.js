@@ -128,8 +128,6 @@ case 'github':
           const slackExtractor = new SlackExtractor(accessToken);
           extraction = await slackExtractor.extractAll(userId, null);
           break;
-          extraction = await extractor.generateGenericPlatformData(platform, userId);
-          break;
 
         default:
           // This shouldn't happen since validatePlatform middleware should catch it
@@ -1128,10 +1126,11 @@ router.get('/extract/professional/:userId', authenticateUser, async (req, res) =
     };
 
     const insights = [];
+    const apiBase = process.env.VITE_API_URL || `http://localhost:${process.env.PORT || 3004}/api`;
 
     // Fetch Gmail insights
     try {
-      const gmailResponse = await fetch(`http://localhost:3001/api/soul/extract/gmail/${userId}`);
+      const gmailResponse = await fetch(`${apiBase}/soul/extract/gmail/${userId}`);
       if (gmailResponse.ok) {
         const gmailData = await gmailResponse.json();
         insights.push({
@@ -1145,7 +1144,7 @@ router.get('/extract/professional/:userId', authenticateUser, async (req, res) =
 
     // Fetch Calendar insights
     try {
-      const calendarResponse = await fetch(`http://localhost:3001/api/soul/extract/calendar/${userId}`);
+      const calendarResponse = await fetch(`${apiBase}/soul/extract/calendar/${userId}`);
       if (calendarResponse.ok) {
         const calendarData = await calendarResponse.json();
         insights.push({
