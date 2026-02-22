@@ -12,13 +12,12 @@ interface WebBrowsingChartsProps {
     webAccent: string;
     webBg: string;
   };
-  theme: string;
+  theme?: string;
 }
 
 export const WebBrowsingCharts: React.FC<WebBrowsingChartsProps> = ({
   insights,
   colors,
-  theme,
 }) => {
   return (
     <>
@@ -45,7 +44,7 @@ export const WebBrowsingCharts: React.FC<WebBrowsingChartsProps> = ({
                 </div>
                 <div
                   className="h-2 rounded-full overflow-hidden"
-                  style={{ backgroundColor: theme === 'dark' ? 'rgba(0,0,0,0.3)' : 'rgba(0,0,0,0.08)' }}
+                  style={{ backgroundColor: 'rgba(0,0,0,0.08)' }}
                 >
                   <div
                     className="h-full rounded-full transition-all"
@@ -156,7 +155,7 @@ export const WebBrowsingCharts: React.FC<WebBrowsingChartsProps> = ({
                   key={index}
                   className="px-3 py-1.5 rounded-lg text-sm"
                   style={{
-                    backgroundColor: theme === 'dark' ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.04)',
+                    backgroundColor: 'rgba(0,0,0,0.04)',
                     color: colors.text,
                     fontSize: `${size}rem`,
                     borderLeft: `3px solid ${colors.webAccent}`,
@@ -190,7 +189,7 @@ export const WebBrowsingCharts: React.FC<WebBrowsingChartsProps> = ({
                 key={index}
                 className="px-2.5 py-1 rounded-md text-xs"
                 style={{
-                  backgroundColor: theme === 'dark' ? 'rgba(99, 102, 241, 0.1)' : 'rgba(99, 102, 241, 0.08)',
+                  backgroundColor: 'rgba(99, 102, 241, 0.08)',
                   color: colors.text,
                   opacity: 1 - (index * 0.03)
                 }}

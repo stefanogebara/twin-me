@@ -26,7 +26,7 @@ export default defineConfig(({ mode }) => ({
     dedupe: ['react', 'react-dom'],
   },
   optimizeDeps: {
-    include: ['react', 'react-dom'],
+    include: ['react', 'react-dom', 'three', 'react-force-graph-3d'],
     force: true,
   },
   build: {

@@ -14,7 +14,6 @@ interface TodayEvent {
 
 interface TodayTimelineProps {
   events: TodayEvent[];
-  theme: string;
   colors: {
     textSecondary: string;
     calendarBlue: string;
@@ -30,7 +29,7 @@ const eventColors: Record<string, string> = {
   learning: '#8B5CF6',
 };
 
-export const TodayTimeline: React.FC<TodayTimelineProps> = ({ events, theme, colors }) => {
+export const TodayTimeline: React.FC<TodayTimelineProps> = ({ events, colors }) => {
   return (
     <GlassPanel className="!p-4 mb-6">
       <h3
@@ -48,7 +47,7 @@ export const TodayTimeline: React.FC<TodayTimelineProps> = ({ events, theme, col
         </div>
         <div
           className="h-12 rounded-lg relative overflow-hidden"
-          style={{ backgroundColor: theme === 'dark' ? 'rgba(0,0,0,0.3)' : 'rgba(0,0,0,0.1)' }}
+          style={{ backgroundColor: 'rgba(0,0,0,0.1)' }}
         >
           {events.map((event) => {
             const startHour = parseInt(event.startTime.split(':')[0]);

@@ -9,15 +9,15 @@ interface WeeklyHeatmapDay {
 
 interface WeeklyHeatmapProps {
   heatmap: WeeklyHeatmapDay[];
-  theme: string;
+  theme?: string;
   colors: {
     textSecondary: string;
   };
 }
 
-export const WeeklyHeatmap: React.FC<WeeklyHeatmapProps> = ({ heatmap, theme, colors }) => {
+export const WeeklyHeatmap: React.FC<WeeklyHeatmapProps> = ({ heatmap, colors }) => {
   const intensityColors = [
-    theme === 'dark' ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)',
+    'rgba(0,0,0,0.05)',
     'rgba(66, 133, 244, 0.3)',
     'rgba(66, 133, 244, 0.6)',
     'rgba(66, 133, 244, 0.9)',
