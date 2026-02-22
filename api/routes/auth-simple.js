@@ -408,21 +408,14 @@ async function exchangeGoogleCode(code, appUrl) {
 
 // OAuth callback handler (GET for redirects)
 router.get('/oauth/callback', async (req, res) => {
+  // Declared outside try so catch block can use it for error redirect
+  let appUrl = process.env.APP_URL
+    || (req.get('host')?.includes('vercel.app') ? 'https://twin-ai-learn.vercel.app' : null)
+    || process.env.VITE_APP_URL
+    || 'http://localhost:8086';
+
   try {
     const { code, state, error } = req.query;
-
-    // Auto-detect production URL from request or use environment variable
-    let appUrl;
-    if (process.env.APP_URL) {
-      appUrl = process.env.APP_URL;
-    } else if (req.get('host')?.includes('vercel.app')) {
-      // IMPORTANT: Always use the production domain for OAuth, not deployment-specific URLs
-      // This ensures redirect_uri matches between authorization and token exchange
-      appUrl = 'https://twin-ai-learn.vercel.app';
-    } else {
-      // Local development fallback
-      appUrl = process.env.VITE_APP_URL || 'http://localhost:8086';
-    }
 
     if (error) {
       console.error('OAuth error:', error);
