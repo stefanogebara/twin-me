@@ -27,7 +27,7 @@ router.get('/portrait', authenticateUser, async (req, res) => {
   const userName = await _getUserDisplayName(userId, req.user.email);
 
   try {
-    // 9 parallel queries — fail-safe, each returns null/[] on error
+    // 10 parallel queries — fail-safe, each returns null/[] on error
     const [
       twinSummary,
       rawReflections,
@@ -38,6 +38,7 @@ router.get('/portrait', authenticateUser, async (req, res) => {
       personalityScores,
       connectedPlatforms,
       firstMemory,
+      soulSignature,    // NEW
     ] = await Promise.all([
       // 1. Twin summary with domain breakdowns
       getTwinSummaryWithDomains(userId, userName).catch(err => {
@@ -127,6 +128,17 @@ router.get('/portrait', authenticateUser, async (req, res) => {
         .single()
         .then(({ data }) => data?.created_at || null)
         .catch(() => null),
+
+      // 10. Soul signature archetype (from instant-signature onboarding step)
+      supabaseAdmin
+        .from('soul_signatures')
+        .select('archetype_name, core_traits, signature_quote, first_impression, created_at')
+        .eq('user_id', userId)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .single()
+        .then(({ data }) => data || null)
+        .catch(() => null),
     ]);
 
     // Distribute reflections evenly across experts (top 3 per expert)
@@ -144,6 +156,7 @@ router.get('/portrait', authenticateUser, async (req, res) => {
         personalityScores,
         connectedPlatforms,
         firstMemoryAt: firstMemory,
+        soulSignature,    // NEW
       },
     });
   } catch (err) {
