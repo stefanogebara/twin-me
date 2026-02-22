@@ -262,10 +262,11 @@ Return a JSON object with exactly this structure (no markdown, just raw JSON):
   }
 
   // Mark entry as analyzed
-  await supabase
+  const { error: analyzedErr } = await supabase
     .from('journal_entries')
     .update({ is_analyzed: true })
     .eq('id', id);
+  if (analyzedErr) console.error('[Journal] Error marking entry as analyzed:', analyzedErr.message);
 
   // =========================================================================
   // INTEGRATION: Push journal insights to Twins Brain, Mem0, and Soul Signature
