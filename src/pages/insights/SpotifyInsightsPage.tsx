@@ -10,7 +10,6 @@
 import React, { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { useAuth } from '@/contexts/AuthContext';
-import { useTheme } from '@/contexts/ThemeContext';
 import { useDemo } from '@/contexts/DemoContext';
 import { PageLayout, GlassPanel } from '@/components/layout/PageLayout';
 import { TwinReflection, PatternObservation } from './components/TwinReflection';
@@ -25,7 +24,6 @@ import { SpotifyCharts } from './components/SpotifyCharts';
 import { SpotifyEmptyState } from './components/SpotifyEmptyState';
 
 const SpotifyInsightsPage: React.FC = () => {
-  const { theme } = useTheme();
   const { token } = useAuth();
   const { isDemoMode } = useDemo();
   const navigate = useNavigate();
@@ -37,12 +35,12 @@ const SpotifyInsightsPage: React.FC = () => {
 
   const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3001';
 
-  // Theme colors
+  // Light-mode only colors
   const colors = {
-    text: theme === 'dark' ? '#C1C0B6' : '#0c0a09',
-    textSecondary: theme === 'dark' ? 'rgba(193, 192, 182, 0.6)' : '#a8a29e',
+    text: '#1F1C18',
+    textSecondary: '#8A857D',
     spotifyGreen: '#1DB954',
-    spotifyBg: theme === 'dark' ? 'rgba(29, 185, 84, 0.15)' : 'rgba(29, 185, 84, 0.1)'
+    spotifyBg: 'rgba(29, 185, 84, 0.1)'
   };
 
   // Generate demo insights data
@@ -176,20 +174,9 @@ const SpotifyInsightsPage: React.FC = () => {
     }
   };
 
-  // Skeleton loader component (kept for error state usage)
-  const SkeletonPulse = ({ className = '', style = {} }: { className?: string; style?: React.CSSProperties }) => (
-    <div
-      className={`animate-pulse rounded ${className}`}
-      style={{
-        backgroundColor: theme === 'dark' ? 'rgba(193, 192, 182, 0.1)' : 'rgba(0, 0, 0, 0.06)',
-        ...style
-      }}
-    />
-  );
-
   // Loading state with skeleton loaders
   if (loading) {
-    return <SpotifySkeleton theme={theme} />;
+    return <SpotifySkeleton />;
   }
 
   // Error state
@@ -289,7 +276,7 @@ const SpotifyInsightsPage: React.FC = () => {
 
       {/* Charts: Recent Tracks, Top Artists, Genre Distribution, Listening Hours, Current Mood */}
       {insights && (
-        <SpotifyCharts insights={insights} colors={colors} theme={theme} />
+        <SpotifyCharts insights={insights} colors={colors} />
       )}
 
       {/* Primary Reflection */}
@@ -360,7 +347,7 @@ const SpotifyInsightsPage: React.FC = () => {
               <GlassPanel key={past.id} variant="default" className="!p-4">
                 <p
                   className="text-sm leading-relaxed"
-                  style={{ color: theme === 'dark' ? 'rgba(193, 192, 182, 0.7)' : '#57534e' }}
+                  style={{ color: '#57534e' }}
                 >
                   {past.text}
                 </p>
@@ -378,7 +365,7 @@ const SpotifyInsightsPage: React.FC = () => {
 
       {/* Empty State - show when no reflection AND no music data */}
       {!insights?.reflection?.text && !insights?.recentTracks?.length && !insights?.topArtistsWithPlays?.length && (
-        <SpotifyEmptyState colors={colors} theme={theme} navigate={navigate} />
+        <SpotifyEmptyState colors={colors} navigate={navigate} />
       )}
     </PageLayout>
   );

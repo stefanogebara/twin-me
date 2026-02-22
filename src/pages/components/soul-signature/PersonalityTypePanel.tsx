@@ -16,7 +16,7 @@ const MBTIDimensionBar: React.FC<{
   confidence?: number;
   colors: ThemeColors;
 }> = ({ dimension, value, confidence, colors }) => {
-  const { textMuted, textFaint, subtleBg, theme } = colors;
+  const { textMuted, textFaint, subtleBg } = colors;
   const info = MBTI_DIMENSIONS[dimension];
   const isHigh = value >= 50;
   const percentage = isHigh ? value : 100 - value;
@@ -63,7 +63,7 @@ const MBTIDimensionBar: React.FC<{
           </Tooltip>
           <div className="flex-1 relative h-2 rounded-full overflow-hidden" style={{ backgroundColor: subtleBg }}>
             <div className="absolute top-0 bottom-0 left-1/2 w-px" style={{
-              backgroundColor: theme === 'dark' ? 'rgba(193, 192, 182, 0.3)' : 'rgba(0, 0, 0, 0.1)'
+              backgroundColor: 'rgba(0, 0, 0, 0.1)'
             }} />
             <div
               className="absolute h-full rounded-full transition-all duration-500"
@@ -105,8 +105,8 @@ export const PersonalityTypePanel: React.FC<PersonalityTypePanelProps> = ({
   return (
     <GlassPanel className="!p-5 md:!p-6 mb-6">
       <div className="flex items-center gap-3 mb-6">
-        <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ backgroundColor: 'rgba(193, 192, 182, 0.1)' }}>
-          <Compass className="w-5 h-5" style={{ color: '#C1C0B6' }} />
+        <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ backgroundColor: 'rgba(45, 39, 34, 0.08)' }}>
+          <Compass className="w-5 h-5" style={{ color: '#2D2722' }} />
         </div>
         <div>
           <h3 style={{ fontFamily: 'var(--font-heading)', fontWeight: 500, color: textColor }}>
@@ -119,8 +119,8 @@ export const PersonalityTypePanel: React.FC<PersonalityTypePanelProps> = ({
       </div>
 
       <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 mb-6 p-4 rounded-xl" style={{
-        backgroundColor: 'rgba(193, 192, 182, 0.08)',
-        border: '1px solid rgba(193, 192, 182, 0.15)'
+        backgroundColor: 'rgba(45, 39, 34, 0.06)',
+        border: '1px solid rgba(45, 39, 34, 0.12)'
       }}>
         <div className="flex items-center gap-1">
           {(personalityScores.archetype_code || 'XXXX-X').split('').map((letter: string, i: number) => {

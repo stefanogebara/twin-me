@@ -8,7 +8,6 @@
 import React, { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { useAuth } from '@/contexts/AuthContext';
-import { useTheme } from '@/contexts/ThemeContext';
 import { useDemo } from '@/contexts/DemoContext';
 import { PageLayout, GlassPanel } from '@/components/layout/PageLayout';
 import { TwinReflection, PatternObservation } from './components/TwinReflection';
@@ -22,7 +21,6 @@ import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 
 const WebBrowsingInsightsPage: React.FC = () => {
-  const { theme } = useTheme();
   const { token } = useAuth();
   const { isDemoMode } = useDemo();
   const navigate = useNavigate();
@@ -35,10 +33,10 @@ const WebBrowsingInsightsPage: React.FC = () => {
   const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3001';
 
   const colors = {
-    text: theme === 'dark' ? '#C1C0B6' : '#0c0a09',
-    textSecondary: theme === 'dark' ? 'rgba(193, 192, 182, 0.6)' : '#a8a29e',
+    text: '#1F1C18',
+    textSecondary: '#8A857D',
     webAccent: '#6366f1',
-    webBg: theme === 'dark' ? 'rgba(99, 102, 241, 0.15)' : 'rgba(99, 102, 241, 0.1)'
+    webBg: 'rgba(99, 102, 241, 0.1)'
   };
 
   const getDemoInsights = (): InsightsResponse => ({
@@ -208,11 +206,11 @@ const WebBrowsingInsightsPage: React.FC = () => {
   };
 
   if (loading) {
-    return <WebBrowsingSkeleton theme={theme} />;
+    return <WebBrowsingSkeleton />;
   }
 
   if (error) {
-    return <WebBrowsingErrorState colors={colors} theme={theme} navigate={navigate} />;
+    return <WebBrowsingErrorState colors={colors} navigate={navigate} />;
   }
 
   return (
@@ -295,7 +293,7 @@ const WebBrowsingInsightsPage: React.FC = () => {
 
       {/* Charts & Data Visualizations */}
       {insights && (
-        <WebBrowsingCharts insights={insights} colors={colors} theme={theme} />
+        <WebBrowsingCharts insights={insights} colors={colors} />
       )}
 
       {/* Primary Reflection */}
@@ -346,7 +344,7 @@ const WebBrowsingInsightsPage: React.FC = () => {
               <GlassPanel key={past.id} variant="default" className="!p-4">
                 <p
                   className="text-sm leading-relaxed"
-                  style={{ color: theme === 'dark' ? 'rgba(193, 192, 182, 0.7)' : '#57534e' }}
+                  style={{ color: '#57534e' }}
                 >
                   {past.text}
                 </p>

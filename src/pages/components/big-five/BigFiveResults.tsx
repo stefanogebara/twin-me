@@ -12,7 +12,7 @@ import { DOMAIN_INFO, type BigFiveScores, type DomainScore, type FacetScore } fr
 
 interface BigFiveResultsProps {
   colors: Record<string, string>;
-  theme: string;
+  theme?: string; // kept for backward compat with parent, unused (light-mode only)
   scores: BigFiveScores;
   facets: FacetScore[];
   questionsAnswered: number;
@@ -22,7 +22,7 @@ interface BigFiveResultsProps {
 
 export function BigFiveResults({
   colors,
-  theme,
+  theme: _theme,
   scores,
   facets,
   questionsAnswered,
@@ -49,7 +49,7 @@ export function BigFiveResults({
           Assessment Complete
         </div>
         <h1
-          className="text-3xl md:text-4xl mb-2"
+          className="text-3xl md:text-4xl mb-2 heading-serif"
           style={{ color: colors.text, fontFamily: 'var(--font-heading)', fontWeight: 500 }}
         >
           Your Big Five Profile
@@ -201,7 +201,7 @@ export function BigFiveResults({
           className="px-6 py-3 rounded-xl font-medium transition-all hover:scale-[1.02]"
           style={{
             backgroundColor: colors.accent,
-            color: theme === 'dark' ? '#1a1a18' : '#fff'
+            color: '#fff'
           }}
         >
           View Soul Signature

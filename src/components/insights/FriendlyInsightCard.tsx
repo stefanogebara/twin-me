@@ -5,7 +5,6 @@
  */
 
 import { motion } from 'framer-motion';
-import { useTheme } from '@/contexts/ThemeContext';
 import {
   Moon,
   Sun,
@@ -48,7 +47,6 @@ export function FriendlyInsightCard({
   onPrivacyToggle,
   delay = 0
 }: FriendlyInsightCardProps) {
-  const { theme } = useTheme();
   const [isHovered, setIsHovered] = useState(false);
 
   // Map emoji icons to Lucide icons
@@ -125,8 +123,8 @@ export function FriendlyInsightCard({
           isHovered ? 'shadow-lg scale-[1.02]' : 'shadow-md'
         } ${isPrivate ? 'opacity-60' : ''}`}
         style={{
-          backgroundColor: theme === 'dark' ? 'rgba(45, 45, 41, 0.7)' : 'rgba(255, 255, 255, 0.5)',
-          borderColor: theme === 'dark' ? 'rgba(193, 192, 182, 0.2)' : 'rgba(0, 0, 0, 0.06)',
+          backgroundColor: 'rgba(255, 255, 255, 0.5)',
+          borderColor: 'rgba(0, 0, 0, 0.06)',
           borderWidth: '1px',
           borderStyle: 'solid'
         }}
@@ -141,10 +139,10 @@ export function FriendlyInsightCard({
 
             {/* Title and Description */}
             <div className="flex-1">
-              <h3 className="text-lg font-semibold text-slate-900 mb-1">
+              <h3 className="text-lg font-semibold mb-1" style={{ color: '#1F1C18' }}>
                 {title}
               </h3>
-              <p className="text-sm text-slate-600">
+              <p className="text-sm" style={{ color: '#8A857D' }}>
                 {description}
               </p>
             </div>
@@ -158,9 +156,9 @@ export function FriendlyInsightCard({
               title={isPrivate ? "Make public" : "Make private"}
             >
               {isPrivate ? (
-                <EyeOff className="w-4 h-4 text-slate-500" />
+                <EyeOff className="w-4 h-4" style={{ color: '#8A857D' }} />
               ) : (
-                <Eye className="w-4 h-4 text-slate-500" />
+                <Eye className="w-4 h-4" style={{ color: '#8A857D' }} />
               )}
             </button>
           )}
@@ -168,7 +166,7 @@ export function FriendlyInsightCard({
 
         {/* Confidence Score */}
         <div className="mb-4">
-          <div className="flex items-center justify-between text-xs text-slate-600 mb-1">
+          <div className="flex items-center justify-between text-xs mb-1" style={{ color: '#8A857D' }}>
             <span>Confidence</span>
             <span>{confidence}%</span>
           </div>
@@ -178,9 +176,7 @@ export function FriendlyInsightCard({
               animate={{ width: `${confidence}%` }}
               transition={{ duration: 1, delay: delay + 0.3 }}
               className={`h-full rounded-full ${
-                confidence > 80 ? 'bg-green-500' :
-                confidence > 60 ? 'bg-stone-500' :
-                'bg-stone-500'
+                confidence > 80 ? 'bg-green-500' : 'bg-stone-500'
               }`}
             />
           </div>
@@ -193,10 +189,11 @@ export function FriendlyInsightCard({
               <motion.button
                 key={index}
                 whileHover={{ x: 4 }}
-                className="w-full flex items-center justify-between p-2 rounded-lg hover:bg-stone-50 transition-colors text-sm text-slate-700"
+                className="w-full flex items-center justify-between p-2 rounded-lg hover:bg-stone-50 transition-colors text-sm"
+                style={{ color: '#1F1C18' }}
               >
                 <span>{action}</span>
-                <ChevronRight className="w-4 h-4 text-slate-400" />
+                <ChevronRight className="w-4 h-4" style={{ color: '#8A857D' }} />
               </motion.button>
             ))}
           </div>
@@ -209,7 +206,7 @@ export function FriendlyInsightCard({
           </span>
 
           {isPrivate && (
-            <div className="flex items-center space-x-1 text-xs text-slate-500">
+            <div className="flex items-center space-x-1 text-xs" style={{ color: '#8A857D' }}>
               <Shield className="w-3 h-3" />
               <span>Private</span>
             </div>

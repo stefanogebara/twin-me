@@ -17,7 +17,7 @@ import {
 
 interface BigFiveQuestionsProps {
   colors: Record<string, string>;
-  theme: string;
+  theme?: string; // kept for backward compat with parent, unused (light-mode only)
   loading: boolean;
   error: string | null;
   currentQuestion: BigFiveQuestion | undefined;
@@ -35,7 +35,7 @@ interface BigFiveQuestionsProps {
 
 export function BigFiveQuestions({
   colors,
-  theme,
+  theme: _theme,
   loading,
   error,
   currentQuestion,
@@ -194,7 +194,7 @@ export function BigFiveQuestions({
               className="flex items-center gap-2 px-4 py-2 rounded-lg transition-all disabled:opacity-30"
               style={{
                 backgroundColor: responses.has(currentQuestion.id) ? colors.accent : colors.accentBg,
-                color: responses.has(currentQuestion.id) ? (theme === 'dark' ? '#1a1a18' : '#fff') : colors.text
+                color: responses.has(currentQuestion.id) ? '#fff' : colors.text
               }}
             >
               {currentIndex === questions.length - 1 ? 'See Results' : 'Next'}

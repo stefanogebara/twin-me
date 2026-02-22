@@ -7,7 +7,6 @@
 
 import React from 'react';
 import { motion } from 'framer-motion';
-import { useTheme } from '@/contexts/ThemeContext';
 import {
   Music,
   Heart,
@@ -45,12 +44,10 @@ export const CategoryCardHeader: React.FC<CategoryCardHeaderProps> = ({
   summaryStat,
   onClick
 }) => {
-  const { theme } = useTheme();
-
-  const textColor = theme === 'dark' ? '#C1C0B6' : '#0c0a09';
-  const textSecondary = theme === 'dark' ? 'rgba(193, 192, 182, 0.7)' : '#57534e';
-  const textMuted = theme === 'dark' ? 'rgba(193, 192, 182, 0.6)' : '#78716c';
-  const textFaint = theme === 'dark' ? 'rgba(193, 192, 182, 0.4)' : '#a8a29e';
+  const textColor = '#1F1C18';
+  const textSecondary = '#57534e';
+  const textMuted = '#8A857D';
+  const textFaint = '#a8a29e';
 
   const IconComponent = categoryIconMap[category.icon] || Briefcase;
 
@@ -65,9 +62,7 @@ export const CategoryCardHeader: React.FC<CategoryCardHeaderProps> = ({
       className="w-full p-5 flex items-center justify-between text-left transition-colors duration-200 rounded-2xl"
       onClick={onClick}
       whileHover={respectReducedMotion() ? {} : {
-        backgroundColor: theme === 'dark'
-          ? 'rgba(193, 192, 182, 0.03)'
-          : 'rgba(0, 0, 0, 0.01)'
+        backgroundColor: 'rgba(0, 0, 0, 0.01)'
       }}
       whileTap={respectReducedMotion() ? {} : { scale: 0.995 }}
     >

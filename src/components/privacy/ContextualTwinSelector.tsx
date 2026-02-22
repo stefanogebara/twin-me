@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { useTheme } from '@/contexts/ThemeContext';
 import {
   Briefcase,
   Users,
@@ -99,7 +98,6 @@ export const ContextualTwinSelector: React.FC<ContextualTwinSelectorProps> = ({
   onEditTwin,
   onDeleteTwin,
 }) => {
-  const { theme } = useTheme();
   const [hoveredId, setHoveredId] = useState<string | null>(null);
 
   const activeTwin = twins.find((t) => t.id === activeId) || twins[0];
@@ -142,15 +140,15 @@ export const ContextualTwinSelector: React.FC<ContextualTwinSelectorProps> = ({
         layout
         className="p-6 rounded-xl border"
         style={{
-          backgroundColor: theme === 'dark' ? '#2D2D29' : '#FFFFFF',
-          borderColor: theme === 'dark' ? 'rgba(193, 192, 182, 0.2)' : 'rgba(0, 0, 0, 0.1)',
+          backgroundColor: '#FFFFFF',
+          borderColor: 'rgba(0, 0, 0, 0.1)',
         }}
       >
         <div className="flex items-center gap-3 mb-4">
           <div
             className="p-2.5 rounded-lg"
             style={{
-              backgroundColor: theme === 'dark' ? 'rgba(193, 192, 182, 0.1)' : '#F5F5F4',
+              backgroundColor: '#F5F5F4',
             }}
           >
             <div style={{ color: activeTwin.color }}>
@@ -180,14 +178,14 @@ export const ContextualTwinSelector: React.FC<ContextualTwinSelectorProps> = ({
           {Object.entries(activeTwin.clusterLevels).map(([cluster, level]) => (
             <div key={cluster} className="space-y-2">
               <div className="flex items-center justify-between">
-                <span className="text-xs font-medium capitalize font-ui" style={{ color: theme === 'dark' ? '#C1C0B6' : '#0c0a09' }}>
+                <span className="text-xs font-medium capitalize font-ui" style={{ color: '#1F1C18' }}>
                   {cluster}
                 </span>
-                <span className="text-xs font-bold" style={{ color: theme === 'dark' ? '#C1C0B6' : '#0c0a09' }}>
+                <span className="text-xs font-bold" style={{ color: '#1F1C18' }}>
                   {level}%
                 </span>
               </div>
-              <div className="h-2 rounded-full overflow-hidden" style={{ backgroundColor: theme === 'dark' ? 'rgba(193, 192, 182, 0.2)' : '#e7e5e4' }}>
+              <div className="h-2 rounded-full overflow-hidden" style={{ backgroundColor: '#e7e5e4' }}>
                 <motion.div
                   className="h-full rounded-full"
                   style={{ backgroundColor: activeTwin.color }}
@@ -220,8 +218,8 @@ export const ContextualTwinSelector: React.FC<ContextualTwinSelectorProps> = ({
               onClick={() => !isActive && onSelectTwin(twin.id)}
               className="relative p-5 rounded-xl border cursor-pointer transition-all duration-200"
               style={{
-                backgroundColor: theme === 'dark' ? '#2D2D29' : '#FFFFFF',
-                borderColor: isActive ? '#D97706' : theme === 'dark' ? 'rgba(193, 192, 182, 0.2)' : 'rgba(0, 0, 0, 0.1)',
+                backgroundColor: '#FFFFFF',
+                borderColor: isActive ? '#D97706' : 'rgba(0, 0, 0, 0.1)',
                 borderWidth: isActive ? '2px' : '1px',
               }}
             >
@@ -231,7 +229,7 @@ export const ContextualTwinSelector: React.FC<ContextualTwinSelectorProps> = ({
                     <div
                       className="p-2.5 rounded-lg"
                       style={{
-                        backgroundColor: theme === 'dark' ? 'rgba(193, 192, 182, 0.1)' : '#F5F5F4',
+                        backgroundColor: '#F5F5F4',
                       }}
                     >
                       <div style={{ color: twin.color }}>
@@ -296,7 +294,7 @@ export const ContextualTwinSelector: React.FC<ContextualTwinSelectorProps> = ({
                       key={cluster}
                       className="flex-1 h-1.5 rounded-full overflow-hidden"
                       title={`${cluster}: ${level}%`}
-                      style={{ backgroundColor: theme === 'dark' ? 'rgba(193, 192, 182, 0.2)' : '#e7e5e4' }}
+                      style={{ backgroundColor: '#e7e5e4' }}
                     >
                       <div
                         className="h-full"

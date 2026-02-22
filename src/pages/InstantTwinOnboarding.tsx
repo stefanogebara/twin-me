@@ -581,25 +581,25 @@ const InstantTwinOnboarding = () => {
               <div className="relative w-28 h-28">
                 <motion.div
                   className="absolute inset-0 rounded-full"
-                  style={{ backgroundColor: theme === 'dark' ? 'rgba(193, 192, 182, 0.15)' : 'rgba(12, 10, 9, 0.06)' }}
+                  style={{ backgroundColor: 'rgba(12, 10, 9, 0.06)' }}
                   animate={{ scale: [1, 1.4, 1], opacity: [0.8, 0.2, 0.8] }}
                   transition={{ duration: 2.4, repeat: Infinity, ease: 'easeInOut' }}
                 />
                 <motion.div
                   className="absolute inset-3 rounded-full"
-                  style={{ backgroundColor: theme === 'dark' ? 'rgba(193, 192, 182, 0.2)' : 'rgba(12, 10, 9, 0.08)' }}
+                  style={{ backgroundColor: 'rgba(12, 10, 9, 0.08)' }}
                   animate={{ scale: [1, 1.25, 1], opacity: [0.6, 0.15, 0.6] }}
                   transition={{ duration: 2.4, repeat: Infinity, ease: 'easeInOut', delay: 0.3 }}
                 />
                 <div
                   className="absolute inset-6 rounded-full flex items-center justify-center"
-                  style={{ backgroundColor: theme === 'dark' ? '#C1C0B6' : '#0c0a09' }}
+                  style={{ backgroundColor: '#0c0a09' }}
                 >
                   <motion.div
                     animate={{ rotate: [0, 15, -15, 0] }}
                     transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }}
                   >
-                    <Sparkles className="w-7 h-7" style={{ color: theme === 'dark' ? '#232320' : '#FAFAFA' }} />
+                    <Sparkles className="w-7 h-7" style={{ color: '#FAFAFA' }} />
                   </motion.div>
                 </div>
               </div>
@@ -678,7 +678,7 @@ const InstantTwinOnboarding = () => {
                           key={i}
                           className="px-3 py-1 rounded-full text-xs"
                           style={{
-                            backgroundColor: theme === 'dark' ? 'rgba(193, 192, 182, 0.1)' : 'rgba(12, 10, 9, 0.06)',
+                            backgroundColor: 'rgba(12, 10, 9, 0.06)',
                             color: colors.textSecondary,
                             fontFamily: 'var(--font-body)',
                           }}
@@ -712,8 +712,8 @@ const InstantTwinOnboarding = () => {
                     onClick={() => navigate('/soul-signature')}
                     className="inline-flex items-center gap-2 px-8 py-3 rounded-full text-[14px] font-medium"
                     style={{
-                      backgroundColor: theme === 'dark' ? '#C1C0B6' : '#0c0a09',
-                      color: theme === 'dark' ? '#232320' : '#FAFAFA',
+                      backgroundColor: '#0c0a09',
+                      color: '#FAFAFA',
                       fontFamily: 'var(--font-ui)',
                     }}
                     whileHover={{ scale: 1.04, y: -1 }}

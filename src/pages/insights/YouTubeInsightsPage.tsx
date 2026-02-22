@@ -8,7 +8,6 @@
 import React, { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { useAuth } from '@/contexts/AuthContext';
-import { useTheme } from '@/contexts/ThemeContext';
 import { useDemo } from '@/contexts/DemoContext';
 import { PageLayout, GlassPanel } from '@/components/layout/PageLayout';
 import { TwinReflection, PatternObservation } from './components/TwinReflection';
@@ -149,7 +148,6 @@ const getDemoYouTubeInsights = (): InsightsResponse => ({
 });
 
 const YouTubeInsightsPage: React.FC = () => {
-  const { theme } = useTheme();
   const { token } = useAuth();
   const { isDemoMode } = useDemo();
   const navigate = useNavigate();
@@ -162,10 +160,10 @@ const YouTubeInsightsPage: React.FC = () => {
   const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3001';
 
   const colors = {
-    text: theme === 'dark' ? '#C1C0B6' : '#0c0a09',
-    textSecondary: theme === 'dark' ? 'rgba(193, 192, 182, 0.6)' : '#a8a29e',
+    text: '#1F1C18',
+    textSecondary: '#8A857D',
     youtubeRed: '#FF0000',
-    youtubeBg: theme === 'dark' ? 'rgba(255, 0, 0, 0.15)' : 'rgba(255, 0, 0, 0.1)'
+    youtubeBg: 'rgba(255, 0, 0, 0.1)'
   };
 
   useEffect(() => {
@@ -240,7 +238,7 @@ const YouTubeInsightsPage: React.FC = () => {
     <div
       className={`animate-pulse rounded ${className}`}
       style={{
-        backgroundColor: theme === 'dark' ? 'rgba(193, 192, 182, 0.1)' : 'rgba(0, 0, 0, 0.06)',
+        backgroundColor: 'rgba(0, 0, 0, 0.06)',
         ...style
       }}
     />
@@ -398,7 +396,7 @@ const YouTubeInsightsPage: React.FC = () => {
                   <div className="flex items-center gap-2 mt-0.5">
                     {item.watchPercentage != null && (
                       <div className="flex items-center gap-1">
-                        <div className="w-16 h-1.5 rounded-full overflow-hidden" style={{ backgroundColor: theme === 'dark' ? 'rgba(0,0,0,0.3)' : 'rgba(0,0,0,0.1)' }}>
+                        <div className="w-16 h-1.5 rounded-full overflow-hidden" style={{ backgroundColor: 'rgba(0,0,0,0.1)' }}>
                           <div className="h-full rounded-full" style={{ width: `${item.watchPercentage}%`, backgroundColor: item.completed ? '#22c55e' : colors.youtubeRed }} />
                         </div>
                         <span className="text-xs" style={{ color: colors.textSecondary }}>{item.watchPercentage}%</span>
@@ -509,7 +507,7 @@ const YouTubeInsightsPage: React.FC = () => {
                   </Pie>
                   <RechartsTooltip
                     contentStyle={{
-                      backgroundColor: theme === 'dark' ? '#1c1917' : '#ffffff',
+                      backgroundColor: '#ffffff',
                       border: 'none',
                       borderRadius: '8px',
                     }}
@@ -549,7 +547,7 @@ const YouTubeInsightsPage: React.FC = () => {
             </span>
             <BookOpen className="w-4 h-4" style={{ color: colors.textSecondary }} />
           </div>
-          <div className="flex gap-1 h-4 rounded-full overflow-hidden" style={{ backgroundColor: theme === 'dark' ? 'rgba(0,0,0,0.3)' : 'rgba(0,0,0,0.1)' }}>
+          <div className="flex gap-1 h-4 rounded-full overflow-hidden" style={{ backgroundColor: 'rgba(0,0,0,0.1)' }}>
             <div
               className="h-full rounded-l-full transition-all"
               style={{ width: `${insights.youtubeLearningRatio}%`, backgroundColor: '#60a5fa' }}
@@ -653,7 +651,7 @@ const YouTubeInsightsPage: React.FC = () => {
               <GlassPanel key={past.id} variant="default" className="!p-4">
                 <p
                   className="text-sm leading-relaxed"
-                  style={{ color: theme === 'dark' ? 'rgba(193, 192, 182, 0.7)' : '#57534e' }}
+                  style={{ color: '#57534e' }}
                 >
                   {past.text}
                 </p>
@@ -680,7 +678,7 @@ const YouTubeInsightsPage: React.FC = () => {
             <div
               className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm"
               style={{
-                backgroundColor: theme === 'dark' ? 'rgba(255, 0, 0, 0.08)' : 'rgba(255, 0, 0, 0.05)',
+                backgroundColor: 'rgba(255, 0, 0, 0.05)',
                 color: colors.youtubeRed,
                 border: '1px solid rgba(255, 0, 0, 0.15)',
               }}
@@ -704,10 +702,10 @@ const YouTubeInsightsPage: React.FC = () => {
               <div className="space-y-2">
                 {[85, 65, 45].map((width, i) => (
                   <div key={i} className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-full animate-pulse" style={{ backgroundColor: theme === 'dark' ? 'rgba(193,192,182,0.1)' : 'rgba(0,0,0,0.06)' }} />
+                    <div className="w-8 h-8 rounded-full animate-pulse" style={{ backgroundColor: 'rgba(0,0,0,0.06)' }} />
                     <div className="flex-1">
-                      <div className="h-3 rounded animate-pulse mb-1" style={{ width: `${width}%`, backgroundColor: theme === 'dark' ? 'rgba(193,192,182,0.1)' : 'rgba(0,0,0,0.06)' }} />
-                      <div className="h-2 rounded animate-pulse" style={{ width: `${width - 20}%`, backgroundColor: theme === 'dark' ? 'rgba(193,192,182,0.06)' : 'rgba(0,0,0,0.04)' }} />
+                      <div className="h-3 rounded animate-pulse mb-1" style={{ width: `${width}%`, backgroundColor: 'rgba(0,0,0,0.06)' }} />
+                      <div className="h-2 rounded animate-pulse" style={{ width: `${width - 20}%`, backgroundColor: 'rgba(0,0,0,0.04)' }} />
                     </div>
                   </div>
                 ))}
@@ -720,7 +718,7 @@ const YouTubeInsightsPage: React.FC = () => {
                   <PieChart className="w-4 h-4" style={{ color: colors.textSecondary }} />
                   <span className="text-sm" style={{ color: colors.textSecondary }}>Categories</span>
                 </div>
-                <div className="w-16 h-16 mx-auto rounded-full animate-pulse" style={{ border: `3px dashed ${theme === 'dark' ? 'rgba(193,192,182,0.12)' : 'rgba(0,0,0,0.08)'}` }} />
+                <div className="w-16 h-16 mx-auto rounded-full animate-pulse" style={{ border: `3px dashed rgba(0,0,0,0.08)` }} />
               </GlassPanel>
               <GlassPanel className="!p-4" style={{ border: '1px dashed' }}>
                 <div className="flex items-center gap-2 mb-3">
