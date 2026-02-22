@@ -345,7 +345,8 @@ router.get('/patterns', authenticateToken, async (req, res) => {
       .from('unique_patterns')
       .select('*')
       .eq('user_id', userId)
-      .order('uniqueness_score', { ascending: false });
+      .order('uniqueness_score', { ascending: false })
+      .limit(500);
 
     if (definingOnly) {
       query = query.eq('is_defining', true);
@@ -386,7 +387,8 @@ router.get('/features', authenticateToken, async (req, res) => {
       .from('behavioral_features')
       .select('*')
       .eq('user_id', userId)
-      .order('confidence_score', { ascending: false });
+      .order('confidence_score', { ascending: false })
+      .limit(500);
 
     if (platform) {
       query = query.eq('platform', platform);
