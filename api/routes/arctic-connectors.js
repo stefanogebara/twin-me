@@ -26,17 +26,10 @@ const supabase = createClient(
  * GET /api/arctic/connect/:provider
  * Initiate OAuth flow for a platform using Arctic
  */
-router.get('/connect/:provider', async (req, res) => {
+router.get('/connect/:provider', authenticateUser, async (req, res) => {
   try {
     const { provider } = req.params;
-    const { userId } = req.query;
-
-    if (!userId) {
-      return res.status(400).json({
-        success: false,
-        error: 'userId is required'
-      });
-    }
+    const userId = req.user.id;
 
     console.log(`[Arctic Connector] Initiating OAuth for ${provider}, user ${userId}`);
 
