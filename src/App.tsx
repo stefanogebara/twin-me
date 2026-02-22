@@ -36,7 +36,6 @@ const TalkToTwin = lazy(() => import("./pages/TalkToTwin"));
 const JournalPage = lazy(() => import("./pages/JournalPage"));
 const AdminLLMCosts = lazy(() => import("./pages/AdminLLMCosts"));
 const PrivacyPolicy = lazy(() => import("./pages/PrivacyPolicy"));
-const PublicSoulCard = lazy(() => import("./pages/PublicSoulCard"));
 const PortfolioPage = lazy(() => import("./pages/PortfolioPage"));
 const NewDiscoverFlow = lazy(() => import("./pages/onboarding/NewDiscoverFlow"));
 const GmailCallback = lazy(() => import("./pages/oauth/GmailCallback"));
@@ -223,10 +222,10 @@ const App = () => {
             <Route path="/discover-legacy" element={<Navigate to="/discover" replace />} />
             <Route path="/soul-onboarding" element={<Navigate to="/discover" replace />} />
 
-            {/* Public Soul Card - Shareable link, no auth */}
+            {/* Public Soul Card - redirects to Portfolio */}
             <Route path="/s/:userId" element={
               <ErrorBoundary>
-                <PublicSoulCard />
+                <PortfolioPage />
               </ErrorBoundary>
             } />
 
