@@ -238,17 +238,22 @@ function buildTwinSystemPrompt(soulSignature, platformData, moltbotContext = nul
 
   // === SOUL SIGNATURE (Identity Layer - fallback if no twin summary) ===
   if (soulSignature && !twinSummary) {
-    dynamicContext += `\n\nWho I am:`;
-    if (soulSignature.title) dynamicContext += ` "${soulSignature.title}"`;
-    if (soulSignature.subtitle) dynamicContext += ` - ${soulSignature.subtitle}`;
-    if (soulSignature.traits && soulSignature.traits.length > 0) {
-      dynamicContext += `\nCore traits: ${soulSignature.traits.map(t => `${t.name} (${t.description})`).join('; ')}`;
-    }
-    // Include personality insights narrative if available
-    if (soulSignature.personality_insights && Array.isArray(soulSignature.personality_insights)) {
-      const insights = soulSignature.personality_insights.slice(0, 3);
-      if (insights.length > 0) {
-        dynamicContext += `\nInsights: ${insights.map(i => typeof i === 'string' ? i : i.text || i.insight || '').filter(Boolean).join('. ')}`;
+    const archetypeName = soulSignature.archetype_name || soulSignature.title;
+    const archetypeSubtitle = soulSignature.archetype_subtitle || soulSignature.subtitle;
+    const narrative = soulSignature.narrative;
+    const definingTraits = soulSignature.defining_traits || soulSignature.traits;
+
+    if (archetypeName) {
+      dynamicContext += `\n\nWho I am: "${archetypeName}"`;
+      if (archetypeSubtitle) dynamicContext += ` — ${archetypeSubtitle}`;
+      if (narrative) dynamicContext += `\n${narrative}`;
+      if (definingTraits?.length > 0) {
+        const traitList = definingTraits
+          .map(t => typeof t === 'string' ? t : (t.trait || t.name || ''))
+          .filter(Boolean)
+          .slice(0, 5)
+          .join(', ');
+        if (traitList) dynamicContext += `\nCore traits: ${traitList}`;
       }
     }
   }
