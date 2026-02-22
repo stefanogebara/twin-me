@@ -189,7 +189,8 @@ const Index = () => {
             <img
               src="/images/backgrounds/flower-hero.png"
               alt="Twin Me"
-              className="w-8 h-8 object-contain drop-shadow-sm"
+              className="w-8 h-8 object-contain"
+              style={{ mixBlendMode: 'multiply' }}
             />
             <span className="heading-serif text-[26px] font-medium text-[#1F1C18]">
               Twin Me
@@ -312,12 +313,18 @@ const Index = () => {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 1, delay: 0.3 }}
           >
-            <img
-              src="/images/backgrounds/flower-hero.png"
-              alt="Soul Signature"
-              className="w-[480px] h-auto object-contain"
-              fetchPriority="high"
-            />
+            <div style={{
+              maskImage: 'radial-gradient(ellipse 82% 88% at 52% 48%, black 48%, rgba(0,0,0,0.7) 65%, transparent 82%)',
+              WebkitMaskImage: 'radial-gradient(ellipse 82% 88% at 52% 48%, black 48%, rgba(0,0,0,0.7) 65%, transparent 82%)',
+            }}>
+              <img
+                src="/images/backgrounds/flower-hero.png"
+                alt="Soul Signature"
+                className="w-[480px] h-auto object-contain"
+                style={{ mixBlendMode: 'multiply' }}
+                fetchPriority="high"
+              />
+            </div>
           </motion.div>
         </div>
       </section>
@@ -341,8 +348,8 @@ const Index = () => {
           className="max-w-[1000px] mx-auto text-center relative z-10"
         >
           <div className="slide-glass-card p-10 lg:p-16">
-            <motion.h2 variants={fadeUp} className="text-[clamp(1.8rem,3.5vw,3rem)] mb-8 text-white leading-tight">
-              <span className="heading-serif-italic">"Perhaps we are searching in the branches for what we only find in the roots."</span>
+            <motion.h2 variants={fadeUp} className="text-[clamp(1.8rem,3.5vw,3rem)] mb-8 leading-tight" style={{ color: 'white' }}>
+              <span className="heading-serif-italic" style={{ color: 'rgba(255,255,255,0.95)' }}>"Perhaps we are searching in the branches for what we only find in the roots."</span>
             </motion.h2>
             <motion.p variants={fadeUp} className="text-[16px] lg:text-[18px] leading-[1.7] text-white/80 max-w-[680px] mx-auto">
               Public information is easy to clone, but it lacks soul. We go beyond your resume and public persona to discover what makes you authentically YOU through your private choices, curiosities, and patterns.
@@ -365,9 +372,9 @@ const Index = () => {
         <div className="relative z-10 px-8 lg:px-[80px]">
           <div className="max-w-[1200px] mx-auto w-full flex flex-col lg:flex-row gap-12 items-center">
             <div className="lg:w-1/2">
-              <h2 className="heading-serif text-[clamp(2.2rem,3.5vw,3.2rem)] mb-5 text-white" style={{ textShadow: '0 2px 8px rgba(0,0,0,0.3)' }}>
+              <h2 className="heading-serif text-[clamp(2.2rem,3.5vw,3.2rem)] mb-5" style={{ color: 'white', textShadow: '0 2px 8px rgba(0,0,0,0.3)' }}>
                 Connect deeply, <br />
-                <span className="heading-serif-italic !text-white/80">live simply.</span>
+                <span className="heading-serif-italic" style={{ color: 'rgba(255,255,255,0.85)' }}>live simply.</span>
               </h2>
               <p className="text-[17px] text-white/90 max-w-[400px] leading-relaxed mb-7" style={{ textShadow: '0 1px 4px rgba(0,0,0,0.2)' }}>
                 Link your digital environment with effortless, secure integrations. You maintain total control over your data boundaries while Twin Me securely processes your unique signature.
@@ -442,9 +449,9 @@ const Index = () => {
                   className="photo-glass-card p-8 lg:p-10 transition-transform duration-500 hover:-translate-y-2"
                   style={{ marginTop: idx === 1 ? '32px' : idx === 2 ? '64px' : '0' }}
                 >
-                  <div className="text-[13px] font-bold text-white/50 mb-5 tracking-widest">{item.step}</div>
-                  <h3 className="heading-serif text-[28px] mb-3 text-white">{item.title}</h3>
-                  <p className="text-[15px] leading-[1.6] text-white/75">{item.desc}</p>
+                  <div className="text-[13px] font-bold mb-5 tracking-widest" style={{ color: 'rgba(255,255,255,0.55)' }}>{item.step}</div>
+                  <h3 className="heading-serif text-[28px] mb-3" style={{ color: 'white' }}>{item.title}</h3>
+                  <p className="text-[15px] leading-[1.6]" style={{ color: 'rgba(255,255,255,0.8)' }}>{item.desc}</p>
                 </motion.div>
               ))}
             </div>
@@ -479,7 +486,7 @@ const Index = () => {
             className="text-[clamp(2.5rem,5vw,5rem)] text-center leading-[1.05] max-w-[900px] px-8 text-[#1F1C18]"
           >
             <div className="heading-serif">Ready to discover your</div>
-            <div className="heading-serif-italic">soul signature?</div>
+            <div className="heading-serif-italic" style={{ color: '#2D2722' }}>soul signature?</div>
           </motion.h2>
 
           <motion.div
@@ -506,7 +513,7 @@ const Index = () => {
           <div className="w-full h-[1px] bg-black/10 mb-5" />
           <div className="flex items-center justify-between text-[#8A857D] text-[13px] font-medium tracking-wide">
             <div className="flex items-center gap-2 heading-serif text-[18px] text-[#1F1C18]">
-              <img src="/images/backgrounds/flower-hero.png" alt="" className="w-5 h-5 object-contain opacity-70" />
+              <img src="/images/backgrounds/flower-hero.png" alt="" className="w-5 h-5 object-contain" style={{ mixBlendMode: 'multiply', opacity: 0.85 }} />
               Twin Me
             </div>
             <div className="flex items-center gap-8">

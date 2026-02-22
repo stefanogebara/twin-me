@@ -11,14 +11,13 @@ interface WhoopChartsProps {
     text: string;
     textSecondary: string;
   };
-  theme: string;
+  theme?: string;
 }
 
 export const WhoopCharts: React.FC<WhoopChartsProps> = ({
   history7Day,
   sleepBreakdown,
   colors,
-  theme,
 }) => {
   return (
     <>
@@ -47,7 +46,7 @@ export const WhoopCharts: React.FC<WhoopChartsProps> = ({
                 />
                 <RechartsTooltip
                   contentStyle={{
-                    backgroundColor: theme === 'dark' ? '#1c1917' : '#ffffff',
+                    backgroundColor: '#ffffff',
                     border: 'none',
                     borderRadius: '8px',
                   }}
@@ -82,7 +81,7 @@ export const WhoopCharts: React.FC<WhoopChartsProps> = ({
             {/* Deep Sleep */}
             <div className="flex items-center gap-3">
               <span className="text-xs w-16" style={{ color: colors.textSecondary }}>Deep</span>
-              <div className="flex-1 h-6 rounded-lg overflow-hidden" style={{ backgroundColor: theme === 'dark' ? 'rgba(0,0,0,0.3)' : 'rgba(0,0,0,0.1)' }}>
+              <div className="flex-1 h-6 rounded-lg overflow-hidden" style={{ backgroundColor: 'rgba(0,0,0,0.1)' }}>
                 <div
                   className="h-full rounded-lg transition-all"
                   style={{
@@ -98,7 +97,7 @@ export const WhoopCharts: React.FC<WhoopChartsProps> = ({
             {/* REM Sleep */}
             <div className="flex items-center gap-3">
               <span className="text-xs w-16" style={{ color: colors.textSecondary }}>REM</span>
-              <div className="flex-1 h-6 rounded-lg overflow-hidden" style={{ backgroundColor: theme === 'dark' ? 'rgba(0,0,0,0.3)' : 'rgba(0,0,0,0.1)' }}>
+              <div className="flex-1 h-6 rounded-lg overflow-hidden" style={{ backgroundColor: 'rgba(0,0,0,0.1)' }}>
                 <div
                   className="h-full rounded-lg transition-all"
                   style={{
@@ -114,7 +113,7 @@ export const WhoopCharts: React.FC<WhoopChartsProps> = ({
             {/* Light Sleep */}
             <div className="flex items-center gap-3">
               <span className="text-xs w-16" style={{ color: colors.textSecondary }}>Light</span>
-              <div className="flex-1 h-6 rounded-lg overflow-hidden" style={{ backgroundColor: theme === 'dark' ? 'rgba(0,0,0,0.3)' : 'rgba(0,0,0,0.1)' }}>
+              <div className="flex-1 h-6 rounded-lg overflow-hidden" style={{ backgroundColor: 'rgba(0,0,0,0.1)' }}>
                 <div
                   className="h-full rounded-lg transition-all"
                   style={{
@@ -131,7 +130,7 @@ export const WhoopCharts: React.FC<WhoopChartsProps> = ({
             {sleepBreakdown.awakeDuring != null && sleepBreakdown.awakeDuring > 0 && (
               <div className="flex items-center gap-3">
                 <span className="text-xs w-16" style={{ color: colors.textSecondary }}>Awake</span>
-                <div className="flex-1 h-6 rounded-lg overflow-hidden" style={{ backgroundColor: theme === 'dark' ? 'rgba(0,0,0,0.3)' : 'rgba(0,0,0,0.1)' }}>
+                <div className="flex-1 h-6 rounded-lg overflow-hidden" style={{ backgroundColor: 'rgba(0,0,0,0.1)' }}>
                   <div
                     className="h-full rounded-lg transition-all"
                     style={{
@@ -175,7 +174,7 @@ export const WhoopCharts: React.FC<WhoopChartsProps> = ({
                 <YAxis hide domain={['auto', 'auto']} />
                 <RechartsTooltip
                   contentStyle={{
-                    backgroundColor: theme === 'dark' ? '#1c1917' : '#ffffff',
+                    backgroundColor: '#ffffff',
                     border: 'none',
                     borderRadius: '8px',
                   }}

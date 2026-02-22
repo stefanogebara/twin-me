@@ -8,13 +8,12 @@ interface WhoopEmptyStateProps {
     textSecondary: string;
     whoopTeal: string;
   };
-  theme: string;
+  theme?: string;
   onConnect: () => void;
 }
 
 export const WhoopEmptyState: React.FC<WhoopEmptyStateProps> = ({
   colors,
-  theme,
   onConnect,
 }) => {
   return (
@@ -37,7 +36,7 @@ export const WhoopEmptyState: React.FC<WhoopEmptyStateProps> = ({
         <div
           className="mt-4 inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm"
           style={{
-            backgroundColor: theme === 'dark' ? 'rgba(0, 180, 216, 0.08)' : 'rgba(0, 180, 216, 0.05)',
+            backgroundColor: 'rgba(0, 180, 216, 0.05)',
             color: colors.whoopTeal,
             border: '1px solid rgba(0, 180, 216, 0.2)',
           }}
@@ -64,7 +63,7 @@ export const WhoopEmptyState: React.FC<WhoopEmptyStateProps> = ({
                 <span style={{ color: colors.textSecondary }}>{metric.icon}</span>
                 <span className="text-xs uppercase tracking-wider" style={{ color: colors.textSecondary }}>{metric.label}</span>
               </div>
-              <div className="h-6 rounded animate-pulse" style={{ backgroundColor: theme === 'dark' ? 'rgba(193,192,182,0.08)' : 'rgba(0,0,0,0.04)' }} />
+              <div className="h-6 rounded animate-pulse" style={{ backgroundColor: 'rgba(0,0,0,0.04)' }} />
             </GlassPanel>
           ))}
         </div>
@@ -79,7 +78,7 @@ export const WhoopEmptyState: React.FC<WhoopEmptyStateProps> = ({
               <div key={i} className="flex-1 flex flex-col items-center gap-1">
                 <div className="w-full rounded-t animate-pulse" style={{
                   height: `${h}%`,
-                  backgroundColor: theme === 'dark' ? 'rgba(193,192,182,0.08)' : 'rgba(0,0,0,0.04)',
+                  backgroundColor: 'rgba(0,0,0,0.04)',
                 }} />
                 <span className="text-[9px]" style={{ color: colors.textSecondary }}>{['M','T','W','T','F','S','S'][i]}</span>
               </div>
