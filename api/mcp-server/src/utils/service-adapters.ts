@@ -576,11 +576,12 @@ export async function getValidAccessToken(userId: string, platform: string): Pro
   const refreshResult = await refreshAccessToken(userId, platform, decryptedRefreshToken);
   if (!refreshResult) {
     // Mark as expired
-    await supabase
+    const { error: expiredErr } = await supabase
       .from('platform_connections')
       .update({ status: 'expired', updated_at: new Date().toISOString() })
       .eq('user_id', userId)
       .eq('platform', platform);
+    if (expiredErr) console.error('[MCP] Failed to mark token expired:', expiredErr.message);
     return { success: false, error: `${platform} token refresh failed` };
   }
 
@@ -589,7 +590,7 @@ export async function getValidAccessToken(userId: string, platform: string): Pro
   const encryptedRefreshToken = encryptToken(refreshResult.refreshToken);
   const newExpiresAt = new Date(Date.now() + refreshResult.expiresIn * 1000).toISOString();
 
-  await supabase
+  const { error: saveErr } = await supabase
     .from('platform_connections')
     .update({
       access_token: encryptedAccessToken,
@@ -600,6 +601,7 @@ export async function getValidAccessToken(userId: string, platform: string): Pro
     })
     .eq('user_id', userId)
     .eq('platform', platform);
+  if (saveErr) console.error('[MCP] Failed to save refreshed tokens:', saveErr.message);
 
   return { success: true, accessToken: refreshResult.accessToken };
 }
@@ -1914,23 +1916,21 @@ async function queueAIAnalysis(
 ): Promise<void> {
   const supabase = getSupabaseClient();
 
-  try {
-    // Create an analysis job in the database queue
-    await supabase
-      .from('conversation_analysis_jobs')
-      .insert({
-        user_id: userId,
-        conversation_log_id: conversationLogId,
-        session_id: sessionId,
-        status: 'pending',
-        priority: 5,
-        queued_at: new Date().toISOString()
-      });
+  const { error: jobErr } = await supabase
+    .from('conversation_analysis_jobs')
+    .insert({
+      user_id: userId,
+      conversation_log_id: conversationLogId,
+      session_id: sessionId,
+      status: 'pending',
+      priority: 5,
+      queued_at: new Date().toISOString()
+    });
 
+  if (jobErr) {
+    console.error('[MCP Learning] Failed to queue analysis job:', jobErr.message);
+  } else {
     console.error('[MCP Learning] AI analysis job queued for:', conversationLogId);
-  } catch (err) {
-    // Non-critical - log and continue
-    console.error('[MCP Learning] Failed to queue analysis job:', err);
   }
 }
 
@@ -1989,7 +1989,7 @@ async function updateUserWritingPatterns(userId: string, analysis: WritingAnalys
   const assertiveness = 100 - analysis.questionCount * 5 + analysis.exclamationCount * 5; // Statements vs questions
 
   // Upsert the patterns
-  await supabase
+  const { error: patternsErr } = await supabase
     .from('user_writing_patterns')
     .upsert({
       user_id: userId,
@@ -2009,6 +2009,7 @@ async function updateUserWritingPatterns(userId: string, analysis: WritingAnalys
     }, {
       onConflict: 'user_id'
     });
+  if (patternsErr) console.warn('[MCP Learning] Failed to upsert writing patterns:', patternsErr.message);
 }
 
 /**
@@ -2042,20 +2043,19 @@ async function storeLearnedFacts(
       const factValue = match[1].trim();
       if (factValue.length > 3 && factValue.length < 200) {
         // Store as a learned fact
-        try {
-          await supabase
-            .from('learned_facts')
-            .insert({
-              user_id: userId,
-              category,
-              key: category,
-              value: factValue,
-              source: 'mcp_conversation',
-              confidence: 0.7,
-              created_at: new Date().toISOString()
-            });
-        } catch {
-          // Ignore duplicates or errors
+        const { error: factErr } = await supabase
+          .from('learned_facts')
+          .insert({
+            user_id: userId,
+            category,
+            key: category,
+            value: factValue,
+            source: 'mcp_conversation',
+            confidence: 0.7,
+            created_at: new Date().toISOString()
+          });
+        if (factErr && !factErr.message?.includes('duplicate')) {
+          console.warn('[MCP Learning] Failed to insert learned fact:', factErr.message);
         }
       }
     }
@@ -2064,20 +2064,20 @@ async function storeLearnedFacts(
   // Store topics as interests
   if (topics.length > 0 && topics[0] !== 'general') {
     for (const topic of topics.slice(0, 2)) {
-      try {
-        await supabase
-          .from('learned_facts')
-          .insert({
-            user_id: userId,
-            category: 'interest',
-            key: 'topic_discussed',
-            value: topic,
-            source: 'mcp_conversation',
-            confidence: 0.5,
-            created_at: new Date().toISOString()
-          });
-      } catch {
-        // Ignore duplicates or errors
+      const { error: topicErr } = await supabase
+        .from('learned_facts')
+        .insert({
+          user_id: userId,
+          category: 'interest',
+          key: 'topic_discussed',
+          value: topic,
+          source: 'mcp_conversation',
+          confidence: 0.5,
+          created_at: new Date().toISOString()
+        });
+      // Ignore duplicates; warn on other errors
+      if (topicErr && !topicErr.message?.includes('duplicate')) {
+        console.warn('[MCP Learning] Failed to insert topic interest:', topicErr.message);
       }
     }
   }
