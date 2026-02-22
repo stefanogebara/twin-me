@@ -19,7 +19,8 @@ import {
   ArrowLeft,
   ArrowRight,
   CheckCircle2,
-  Info
+  Info,
+  Sparkles
 } from 'lucide-react';
 
 import { DataVerification } from '../components/DataVerification';
@@ -84,6 +85,7 @@ const InstantTwinOnboarding = () => {
   const [connectingProvider, setConnectingProvider] = useState<DataProvider | null>(null);
   const [disconnectingProvider, setDisconnectingProvider] = useState<DataProvider | null>(null);
   const [showProfessionalPlatforms, setShowProfessionalPlatforms] = useState(true);
+  const [revealedArchetype, setRevealedArchetype] = useState<{ archetype_name: string; archetype_subtitle?: string; narrative?: string; defining_traits?: unknown[] } | null>(null);
 
   const connectedServices = connectedProviders as DataProvider[];
 
@@ -396,36 +398,39 @@ const InstantTwinOnboarding = () => {
       const result = await response.json();
 
       if (response.ok && (result.id || result.twin?.id)) {
-        toast({
-          title: "Ready to extract your Soul Signature!",
-          description: "Navigate to the dashboard to begin extraction.",
-        });
+        // Advance to the archetype reveal step immediately
+        setCurrentStep(3);
 
-        // Fire-and-forget — navigation happens immediately, archetype populates in background
+        // Fetch archetype (with 15s timeout) — show reveal step while we wait
         const VITE_API_URL = import.meta.env.VITE_API_URL;
+        const sigController = new AbortController();
+        const sigTimeout = setTimeout(() => sigController.abort(), 15000);
         fetch(`${VITE_API_URL}/onboarding/instant-signature`, {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${token}`,
-          },
+          signal: sigController.signal,
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
           body: JSON.stringify({
             enrichmentContext: { answers: [], writingSamples: [] },
-            calibrationInsights: '',
+            calibrationInsights: [],
             connectedPlatforms: connectedServices,
           }),
         })
           .then(res => (res.ok ? res.json() : null))
           .then(sigData => {
+            clearTimeout(sigTimeout);
             const sig = sigData?.signature ?? sigData?.archetype;
             if (sig?.archetype_name) {
               sessionStorage.setItem('instant_archetype', JSON.stringify(sig));
+              setRevealedArchetype(sig);
+            } else {
+              // No archetype returned — navigate directly
+              navigate('/soul-signature');
             }
           })
-          .catch(err => console.warn('[Onboarding] instant-signature failed:', err));
-
-        // Navigate immediately — don't wait for archetype LLM call
-        setTimeout(() => navigate('/soul-signature'), 500);
+          .catch(() => {
+            clearTimeout(sigTimeout);
+            navigate('/soul-signature');
+          });
       } else {
         throw new Error(`Failed to create soul signature structure: ${result.error || result.message || 'Unknown error'}`);
       }
@@ -437,7 +442,6 @@ const InstantTwinOnboarding = () => {
         variant: "destructive"
       });
       setIsGenerating(false);
-      setTimeout(() => navigate('/soul-signature'), 1000);
     }
   }, [user, connectedServices, navigate, toast]);
 
@@ -494,7 +498,7 @@ const InstantTwinOnboarding = () => {
         </div>
       )}
 
-      {currentStep > 1 && (
+      {currentStep > 1 && currentStep < 3 && (
         <div className="mb-8">
           <button
             onClick={() => setCurrentStep(currentStep - 1)}
@@ -565,6 +569,170 @@ const InstantTwinOnboarding = () => {
             </motion.button>
           </div>
         </GlassPanel>
+      )}
+
+      {currentStep === 3 && (
+        <div className="flex flex-col items-center justify-center py-16 min-h-[60vh]">
+          {!revealedArchetype ? (
+            // Loading — waiting for instant-signature to return
+            <motion.div
+              className="flex flex-col items-center gap-8"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5 }}
+            >
+              <div className="relative w-28 h-28">
+                <motion.div
+                  className="absolute inset-0 rounded-full"
+                  style={{ backgroundColor: theme === 'dark' ? 'rgba(193, 192, 182, 0.15)' : 'rgba(12, 10, 9, 0.06)' }}
+                  animate={{ scale: [1, 1.4, 1], opacity: [0.8, 0.2, 0.8] }}
+                  transition={{ duration: 2.4, repeat: Infinity, ease: 'easeInOut' }}
+                />
+                <motion.div
+                  className="absolute inset-3 rounded-full"
+                  style={{ backgroundColor: theme === 'dark' ? 'rgba(193, 192, 182, 0.2)' : 'rgba(12, 10, 9, 0.08)' }}
+                  animate={{ scale: [1, 1.25, 1], opacity: [0.6, 0.15, 0.6] }}
+                  transition={{ duration: 2.4, repeat: Infinity, ease: 'easeInOut', delay: 0.3 }}
+                />
+                <div
+                  className="absolute inset-6 rounded-full flex items-center justify-center"
+                  style={{ backgroundColor: theme === 'dark' ? '#C1C0B6' : '#0c0a09' }}
+                >
+                  <motion.div
+                    animate={{ rotate: [0, 15, -15, 0] }}
+                    transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }}
+                  >
+                    <Sparkles className="w-7 h-7" style={{ color: theme === 'dark' ? '#232320' : '#FAFAFA' }} />
+                  </motion.div>
+                </div>
+              </div>
+
+              <div className="text-center space-y-2">
+                <h2
+                  className="text-2xl"
+                  style={{ color: colors.textPrimary, fontFamily: 'var(--font-heading)', fontWeight: 400 }}
+                >
+                  Discovering your archetype...
+                </h2>
+                <p
+                  className="text-sm"
+                  style={{ color: colors.muted, fontFamily: 'var(--font-body)' }}
+                >
+                  Weaving your digital footprint into a soul signature
+                </p>
+              </div>
+
+              <div className="flex gap-1.5">
+                {[0, 0.3, 0.6].map((delay, i) => (
+                  <motion.div
+                    key={i}
+                    className="w-1.5 h-1.5 rounded-full"
+                    style={{ backgroundColor: colors.muted }}
+                    animate={{ opacity: [0.3, 1, 0.3] }}
+                    transition={{ duration: 1.2, repeat: Infinity, delay }}
+                  />
+                ))}
+              </div>
+            </motion.div>
+          ) : (
+            // Archetype revealed
+            <motion.div
+              className="w-full max-w-lg"
+              initial={{ opacity: 0, scale: 0.92 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ duration: 0.6, ease: 'easeOut' }}
+            >
+              <GlassPanel>
+                {/* Label */}
+                <div className="text-center mb-6">
+                  <p
+                    className="text-[10px] uppercase tracking-[0.2em] mb-4"
+                    style={{ color: colors.muted, fontFamily: 'var(--font-ui)' }}
+                  >
+                    Your Soul Archetype
+                  </p>
+
+                  {/* Archetype name */}
+                  <h2
+                    className="text-4xl mb-2"
+                    style={{ color: colors.textPrimary, fontFamily: 'var(--font-heading)', fontWeight: 400 }}
+                  >
+                    {revealedArchetype.archetype_name}
+                  </h2>
+
+                  {revealedArchetype.archetype_subtitle && (
+                    <p
+                      className="text-sm italic"
+                      style={{ color: colors.textSecondary, fontFamily: 'var(--font-body)' }}
+                    >
+                      {revealedArchetype.archetype_subtitle}
+                    </p>
+                  )}
+                </div>
+
+                {/* Defining traits */}
+                {Array.isArray(revealedArchetype.defining_traits) && revealedArchetype.defining_traits.length > 0 && (
+                  <div className="flex flex-wrap gap-2 justify-center mb-6">
+                    {revealedArchetype.defining_traits.slice(0, 5).map((trait, i) => {
+                      const label = typeof trait === 'string' ? trait : (trait as { trait?: string })?.trait ?? '';
+                      if (!label) return null;
+                      return (
+                        <motion.span
+                          key={i}
+                          className="px-3 py-1 rounded-full text-xs"
+                          style={{
+                            backgroundColor: theme === 'dark' ? 'rgba(193, 192, 182, 0.1)' : 'rgba(12, 10, 9, 0.06)',
+                            color: colors.textSecondary,
+                            fontFamily: 'var(--font-body)',
+                          }}
+                          initial={{ opacity: 0, y: 8 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ delay: 0.15 + i * 0.07 }}
+                        >
+                          {label}
+                        </motion.span>
+                      );
+                    })}
+                  </div>
+                )}
+
+                {/* Narrative */}
+                {revealedArchetype.narrative && (
+                  <motion.p
+                    className="text-sm leading-relaxed text-center mb-8"
+                    style={{ color: colors.textSecondary, fontFamily: 'var(--font-body)' }}
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ delay: 0.4 }}
+                  >
+                    {revealedArchetype.narrative}
+                  </motion.p>
+                )}
+
+                {/* CTA */}
+                <div className="text-center">
+                  <motion.button
+                    onClick={() => navigate('/soul-signature')}
+                    className="inline-flex items-center gap-2 px-8 py-3 rounded-full text-[14px] font-medium"
+                    style={{
+                      backgroundColor: theme === 'dark' ? '#C1C0B6' : '#0c0a09',
+                      color: theme === 'dark' ? '#232320' : '#FAFAFA',
+                      fontFamily: 'var(--font-ui)',
+                    }}
+                    whileHover={{ scale: 1.04, y: -1 }}
+                    whileTap={{ scale: 0.97 }}
+                    initial={{ opacity: 0, y: 8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.6 }}
+                  >
+                    Enter your Twin
+                    <ArrowRight className="w-4 h-4" />
+                  </motion.button>
+                </div>
+              </GlassPanel>
+            </motion.div>
+          )}
+        </div>
       )}
 
       {currentStep === 1 && (
@@ -641,29 +809,43 @@ const InstantTwinOnboarding = () => {
                   )}
                 </span>
               </div>
-              <button
-                onClick={() => navigate('/dashboard')}
-                className="inline-flex items-center gap-2 px-6 py-3 rounded-full text-[14px] font-medium transition-all hover:opacity-90"
+              <motion.button
+                onClick={startTwinGeneration}
+                disabled={isGenerating}
+                className="inline-flex items-center gap-2 px-6 py-3 rounded-full text-[14px] font-medium transition-all hover:opacity-90 disabled:opacity-60"
                 style={{
                   backgroundColor: theme === 'dark' ? '#C1C0B6' : '#0c0a09',
                   color: theme === 'dark' ? '#232320' : '#FAFAFA',
-                  fontFamily: 'var(--font-ui)'
+                  fontFamily: 'var(--font-ui)',
+                  cursor: isGenerating ? 'not-allowed' : 'pointer',
                 }}
+                whileHover={!isGenerating ? { scale: 1.03, y: -1 } : {}}
+                whileTap={!isGenerating ? { scale: 0.97 } : {}}
               >
-                Continue to Dashboard
-                <ArrowRight className="w-4 h-4" />
+                {isGenerating ? (
+                  <>
+                    <motion.div
+                      animate={{ rotate: 360 }}
+                      transition={{ duration: 1.5, repeat: Infinity, ease: 'linear' }}
+                    >
+                      <Sparkles className="w-4 h-4" />
+                    </motion.div>
+                    Discovering your archetype...
+                  </>
+                ) : (
+                  <>
+                    <Sparkles className="w-4 h-4" />
+                    Reveal Your Soul Archetype
+                  </>
+                )}
+              </motion.button>
+              <button
+                onClick={() => navigate('/dashboard')}
+                className="text-xs mt-3 hover:opacity-70 transition-opacity"
+                style={{ color: colors.muted, fontFamily: 'var(--font-body)' }}
+              >
+                Skip — go straight to dashboard →
               </button>
-              <p
-                className="text-sm mt-3"
-                style={{
-                  color: colors.muted,
-                  fontFamily: 'var(--font-body)'
-                }}
-              >
-                {expiredConnections.length > 0
-                  ? 'Reconnect expired platforms for full functionality'
-                  : 'Your twin insights are ready to explore'}
-              </p>
             </div>
           )}
         </div>
