@@ -187,7 +187,7 @@ async function importConversationsForUser(userId, conversations) {
             messagesImported++;
 
             // Queue AI analysis for the imported message
-            await supabaseAdmin
+            const { error: analysisJobErr } = await supabaseAdmin
               .from('conversation_analysis_jobs')
               .insert({
                 user_id: userId,
@@ -196,8 +196,8 @@ async function importConversationsForUser(userId, conversations) {
                 status: 'pending',
                 priority: 10, // Lower priority for historical imports
                 queued_at: new Date().toISOString(),
-              })
-              .catch(err => console.warn('[CronSync] Analysis job queue error:', err.message));
+              });
+            if (analysisJobErr) console.warn('[CronSync] Analysis job queue error:', analysisJobErr.message);
           }
         }
       }
@@ -261,7 +261,7 @@ async function runSyncForUser(userId) {
     console.log(`[Claude Sync] Found ${conversations.length} conversations to import`);
 
     if (conversations.length === 0) {
-      await supabaseAdmin
+      const { error: emptyCompletedErr } = await supabaseAdmin
         .from('claude_desktop_imports')
         .update({
           status: 'completed',
@@ -269,6 +269,7 @@ async function runSyncForUser(userId) {
           completed_at: new Date().toISOString(),
         })
         .eq('id', importRecord.id);
+      if (emptyCompletedErr) console.error('[Claude Sync] Failed to update import record (empty):', emptyCompletedErr.message);
 
       return {
         success: true,
@@ -281,7 +282,7 @@ async function runSyncForUser(userId) {
     const result = await importConversationsForUser(userId, conversations);
 
     // Update import record
-    await supabaseAdmin
+    const { error: completedErr } = await supabaseAdmin
       .from('claude_desktop_imports')
       .update({
         status: 'completed',
@@ -294,6 +295,7 @@ async function runSyncForUser(userId) {
         completed_at: new Date().toISOString(),
       })
       .eq('id', importRecord.id);
+    if (completedErr) console.error('[Claude Sync] Failed to update import record:', completedErr.message);
 
     return {
       success: true,
@@ -305,7 +307,7 @@ async function runSyncForUser(userId) {
 
   } catch (syncError) {
     // Update import record with error
-    await supabaseAdmin
+    const { error: failedErr } = await supabaseAdmin
       .from('claude_desktop_imports')
       .update({
         status: 'failed',
@@ -313,6 +315,7 @@ async function runSyncForUser(userId) {
         completed_at: new Date().toISOString(),
       })
       .eq('id', importRecord.id);
+    if (failedErr) console.error('[Claude Sync] Failed to update import record with error:', failedErr.message);
 
     return {
       success: false,
