@@ -128,7 +128,7 @@ async function refreshAccessToken(platform, refreshToken, userId) {
     console.error(`❌ Token refresh failed for ${platform}:`, error.response?.data || error.message);
 
     // Mark connection as needs_reauth
-    await getSupabaseClient()
+    const { error: reauthErr } = await getSupabaseClient()
       .from('platform_connections')
       .update({
         status: 'needs_reauth',
@@ -137,6 +137,7 @@ async function refreshAccessToken(platform, refreshToken, userId) {
       })
       .eq('user_id', userId)
       .eq('platform', platform);
+    if (reauthErr) console.warn(`[TokenRefresh] Failed to mark ${platform} as needs_reauth:`, reauthErr.message);
 
     return null;
   }
@@ -210,7 +211,7 @@ async function checkAndRefreshExpiringTokens() {
         const encryptedRefreshToken = encryptToken(newTokens.refreshToken);
         const newExpiryTime = new Date(Date.now() + newTokens.expiresIn * 1000).toISOString();
 
-        await getSupabaseClient()
+        const { error: saveErr } = await getSupabaseClient()
           .from('platform_connections')
           .update({
             access_token: encryptedAccessToken,
@@ -221,6 +222,7 @@ async function checkAndRefreshExpiringTokens() {
             updated_at: new Date().toISOString(),
           })
           .eq('id', connection.id);
+        if (saveErr) console.warn(`[TokenRefresh] Failed to save refreshed tokens for connection ${connection.id}:`, saveErr.message);
 
         console.log(`✅ Updated tokens for ${connection.platform} (user: ${connection.user_id})`);
 
