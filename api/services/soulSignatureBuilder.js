@@ -1080,6 +1080,7 @@ Respond ONLY with valid JSON, no explanation.`
         .select('mood, energy_level, created_at')
         .eq('user_id', userId)
         .gte('created_at', thirtyDaysAgo.toISOString());
+      if (entriesError) console.warn('[SoulSignature] Failed to fetch journal entries:', entriesError.message);
 
       // Aggregate personality signals across all entries
       const traitSignals = {};
