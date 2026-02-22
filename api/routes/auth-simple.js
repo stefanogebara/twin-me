@@ -35,11 +35,27 @@ router.post('/signup', async (req, res) => {
   try {
     const { email, password, firstName, lastName } = req.body;
 
+    // Basic input validation
+    if (!email || typeof email !== 'string' || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
+      return res.status(400).json({ error: 'Valid email is required' });
+    }
+    if (!password || typeof password !== 'string' || password.length < 8) {
+      return res.status(400).json({ error: 'Password must be at least 8 characters' });
+    }
+    if (firstName && typeof firstName === 'string' && firstName.length > 100) {
+      return res.status(400).json({ error: 'First name too long' });
+    }
+    if (lastName && typeof lastName === 'string' && lastName.length > 100) {
+      return res.status(400).json({ error: 'Last name too long' });
+    }
+
+    const normalizedEmail = email.trim().toLowerCase();
+
     // Check if user exists
     const { data: existingUser } = await supabaseAdmin
       .from('users')
       .select('id')
-      .eq('email', email)
+      .eq('email', normalizedEmail)
       .single();
 
     if (existingUser) {
@@ -53,10 +69,10 @@ router.post('/signup', async (req, res) => {
     const { data: newUser, error: insertError } = await supabaseAdmin
       .from('users')
       .insert({
-        email,
+        email: normalizedEmail,
         password_hash: hashedPassword,
-        first_name: firstName || '',
-        last_name: lastName || ''
+        first_name: (firstName || '').trim().slice(0, 100),
+        last_name: (lastName || '').trim().slice(0, 100)
       })
       .select()
       .single();
@@ -99,11 +115,17 @@ router.post('/signin', async (req, res) => {
   try {
     const { email, password } = req.body;
 
+    if (!email || typeof email !== 'string' || !password || typeof password !== 'string') {
+      return res.status(400).json({ error: 'Email and password are required' });
+    }
+
+    const normalizedEmail = email.trim().toLowerCase();
+
     // Get user
     const { data: user, error: fetchError } = await supabaseAdmin
       .from('users')
       .select('id, email, first_name, last_name, password_hash')
-      .eq('email', email)
+      .eq('email', normalizedEmail)
       .single();
 
     if (fetchError || !user) {
@@ -806,7 +828,7 @@ router.post('/oauth/callback', async (req, res) => {
   } catch (error) {
     console.error('❌ OAuth callback error (caught in catch block):', error);
     console.error('❌ Error stack:', error.stack);
-    res.status(500).json({ error: 'OAuth authentication failed', message: error.message });
+    res.status(500).json({ error: 'OAuth authentication failed' });
   }
 });
 
