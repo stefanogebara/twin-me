@@ -240,7 +240,7 @@ router.post('/read-all', authenticateUser, async (req, res) => {
  * POST /api/notifications/check-expiring
  * Manually trigger token expiry check (admin/testing)
  */
-router.post('/check-expiring', async (req, res) => {
+router.post('/check-expiring', authenticateUser, async (req, res) => {
   try {
     console.log('🔔 Manual token expiry check triggered');
     await checkExpiringTokens();
