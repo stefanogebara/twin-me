@@ -60,67 +60,52 @@ export const serverDb = {
     const dbCheck = checkDbAvailable();
     if (dbCheck) return dbCheck;
 
-    try {
-      const { data, error } = await supabaseAdmin
-        .from('profiles')
-        .insert(profileData)
-        .select()
-        .single();
+    const { data, error } = await supabaseAdmin
+      .from('profiles')
+      .insert(profileData)
+      .select()
+      .single();
 
-      if (error) {
-        console.error('Error creating profile:', error);
-        return { data: null, error };
-      }
-      return { data, error: null };
-    } catch (error) {
-      console.error('Unexpected error creating profile:', error);
+    if (error) {
+      console.error('Error creating profile:', error);
       return { data: null, error };
     }
+    return { data, error: null };
   },
 
   async getProfile(userId) {
     const dbCheck = checkDbAvailable();
     if (dbCheck) return dbCheck;
 
-    try {
-      const { data, error } = await supabaseAdmin
-        .from('profiles')
-        .select('*')
-        .eq('id', userId)
-        .single();
+    const { data, error } = await supabaseAdmin
+      .from('profiles')
+      .select('*')
+      .eq('id', userId)
+      .single();
 
-      if (error) {
-        console.error('Error fetching profile:', error);
-        return { data: null, error };
-      }
-      return { data, error: null };
-    } catch (error) {
-      console.error('Unexpected error fetching profile:', error);
+    if (error) {
+      console.error('Error fetching profile:', error);
       return { data: null, error };
     }
+    return { data, error: null };
   },
 
   async updateProfile(userId, updates) {
     const dbCheck = checkDbAvailable();
     if (dbCheck) return dbCheck;
 
-    try {
-      const { data, error } = await supabaseAdmin
-        .from('profiles')
-        .update(updates)
-        .eq('id', userId)
-        .select()
-        .single();
+    const { data, error } = await supabaseAdmin
+      .from('profiles')
+      .update(updates)
+      .eq('id', userId)
+      .select()
+      .single();
 
-      if (error) {
-        console.error('Error updating profile:', error);
-        return { data: null, error };
-      }
-      return { data, error: null };
-    } catch (error) {
-      console.error('Unexpected error updating profile:', error);
+    if (error) {
+      console.error('Error updating profile:', error);
       return { data: null, error };
     }
+    return { data, error: null };
   },
 
   // Digital Twin operations
@@ -128,110 +113,85 @@ export const serverDb = {
     const dbCheck = checkDbAvailable();
     if (dbCheck) return dbCheck;
 
-    try {
-      const { data, error } = await supabaseAdmin
-        .from('digital_twins')
-        .insert(twinData)
-        .select()
-        .single();
+    const { data, error } = await supabaseAdmin
+      .from('digital_twins')
+      .insert(twinData)
+      .select()
+      .single();
 
-      if (error) {
-        console.error('Error creating digital twin:', error);
-        return { data: null, error };
-      }
-      return { data, error: null };
-    } catch (error) {
-      console.error('Unexpected error creating digital twin:', error);
+    if (error) {
+      console.error('Error creating digital twin:', error);
       return { data: null, error };
     }
+    return { data, error: null };
   },
 
   async getDigitalTwin(twinId) {
     const dbCheck = checkDbAvailable();
     if (dbCheck) return dbCheck;
 
-    try {
-      const { data, error } = await supabaseAdmin
-        .from('digital_twins')
-        .select('*')
-        .eq('id', twinId)
-        .single();
+    const { data, error } = await supabaseAdmin
+      .from('digital_twins')
+      .select('*')
+      .eq('id', twinId)
+      .single();
 
-      if (error) {
-        console.error('Error fetching digital twin:', error);
-        return { data: null, error };
-      }
-      return { data, error: null };
-    } catch (error) {
-      console.error('Unexpected error fetching digital twin:', error);
+    if (error) {
+      console.error('Error fetching digital twin:', error);
       return { data: null, error };
     }
+    return { data, error: null };
   },
 
   async getDigitalTwinsByCreator(creatorId) {
     const dbCheck = checkDbAvailable();
     if (dbCheck) return dbCheck;
 
-    try {
-      const { data, error } = await supabaseAdmin
-        .from('digital_twins')
-        .select('*')
-        .eq('creator_id', creatorId)
-        .order('created_at', { ascending: false });
+    const { data, error } = await supabaseAdmin
+      .from('digital_twins')
+      .select('*')
+      .eq('creator_id', creatorId)
+      .order('created_at', { ascending: false });
 
-      if (error) {
-        console.error('Error fetching digital twins:', error);
-        return { data: [], error };
-      }
-      return { data, error: null };
-    } catch (error) {
-      console.error('Unexpected error fetching digital twins:', error);
+    if (error) {
+      console.error('Error fetching digital twins:', error);
       return { data: [], error };
     }
+    return { data, error: null };
   },
 
   async updateDigitalTwin(twinId, updates) {
     const dbCheck = checkDbAvailable();
     if (dbCheck) return dbCheck;
 
-    try {
-      const { data, error} = await supabaseAdmin
-        .from('digital_twins')
-        .update(updates)
-        .eq('id', twinId)
-        .select()
-        .single();
+    const { data, error} = await supabaseAdmin
+      .from('digital_twins')
+      .update(updates)
+      .eq('id', twinId)
+      .select()
+      .single();
 
-      if (error) {
-        console.error('Error updating digital twin:', error);
-        return { data: null, error };
-      }
-      return { data, error: null };
-    } catch (error) {
-      console.error('Unexpected error updating digital twin:', error);
+    if (error) {
+      console.error('Error updating digital twin:', error);
       return { data: null, error };
     }
+    return { data, error: null };
   },
 
   async deleteDigitalTwin(twinId) {
     const dbCheck = checkDbAvailable();
     if (dbCheck) return dbCheck;
 
-    try {
-      const { error } = await supabaseAdmin
-        .from('digital_twins')
-        .delete()
-        .eq('id', twinId);
+    const { error } = await supabaseAdmin
+      .from('digital_twins')
+      .delete()
+      .eq('id', twinId);
 
-      if (error) {
-        console.error('Error deleting digital twin:', error);
-        return { success: false, error };
-      }
-      return { success: true, error: null };
-    } catch (error) {
-      console.error('Unexpected error deleting digital twin:', error);
+    if (error) {
+      console.error('Error deleting digital twin:', error);
       return { success: false, error };
     }
+    return { success: true, error: null };
   },
 
   // Platform Connection operations
@@ -239,23 +199,18 @@ export const serverDb = {
     const dbCheck = checkDbAvailable();
     if (dbCheck) return dbCheck;
 
-    try {
-      const { data, error } = await supabaseAdmin
-        .from('platform_connections')
-        .select('*')
-        .eq('user_id', userId)
-        .eq('platform', platform)
-        .single();
+    const { data, error } = await supabaseAdmin
+      .from('platform_connections')
+      .select('*')
+      .eq('user_id', userId)
+      .eq('platform', platform)
+      .single();
 
-      if (error && error.code !== 'PGRST116') { // PGRST116 is "no rows returned"
-        console.error('Error getting platform connection:', error);
-        return null;
-      }
-      return data;
-    } catch (error) {
-      console.error('Unexpected error getting platform connection:', error);
+    if (error && error.code !== 'PGRST116') { // PGRST116 is "no rows returned"
+      console.error('Error getting platform connection:', error);
       return null;
     }
+    return data;
   },
 
   // Training Material operations
@@ -263,67 +218,52 @@ export const serverDb = {
     const dbCheck = checkDbAvailable();
     if (dbCheck) return dbCheck;
 
-    try {
-      const { data, error } = await supabaseAdmin
-        .from('training_materials')
-        .insert(materialData)
-        .select()
-        .single();
+    const { data, error } = await supabaseAdmin
+      .from('training_materials')
+      .insert(materialData)
+      .select()
+      .single();
 
-      if (error) {
-        console.error('Error creating training material:', error);
-        return { data: null, error };
-      }
-      return { data, error: null };
-    } catch (error) {
-      console.error('Unexpected error creating training material:', error);
+    if (error) {
+      console.error('Error creating training material:', error);
       return { data: null, error };
     }
+    return { data, error: null };
   },
 
   async getTrainingMaterialsByTwin(twinId) {
     const dbCheck = checkDbAvailable();
     if (dbCheck) return dbCheck;
 
-    try {
-      const { data, error } = await supabaseAdmin
-        .from('training_materials')
-        .select('*')
-        .eq('twin_id', twinId)
-        .order('uploaded_at', { ascending: false });
+    const { data, error } = await supabaseAdmin
+      .from('training_materials')
+      .select('*')
+      .eq('twin_id', twinId)
+      .order('uploaded_at', { ascending: false });
 
-      if (error) {
-        console.error('Error fetching training materials:', error);
-        return { data: [], error };
-      }
-      return { data, error: null };
-    } catch (error) {
-      console.error('Unexpected error fetching training materials:', error);
+    if (error) {
+      console.error('Error fetching training materials:', error);
       return { data: [], error };
     }
+    return { data, error: null };
   },
 
   async updateTrainingMaterial(materialId, updates) {
     const dbCheck = checkDbAvailable();
     if (dbCheck) return dbCheck;
 
-    try {
-      const { data, error } = await supabaseAdmin
-        .from('training_materials')
-        .update(updates)
-        .eq('id', materialId)
-        .select()
-        .single();
+    const { data, error } = await supabaseAdmin
+      .from('training_materials')
+      .update(updates)
+      .eq('id', materialId)
+      .select()
+      .single();
 
-      if (error) {
-        console.error('Error updating training material:', error);
-        return { data: null, error };
-      }
-      return { data, error: null };
-    } catch (error) {
-      console.error('Unexpected error updating training material:', error);
+    if (error) {
+      console.error('Error updating training material:', error);
       return { data: null, error };
     }
+    return { data, error: null };
   },
 
   // Conversation operations
@@ -331,108 +271,83 @@ export const serverDb = {
     const dbCheck = checkDbAvailable();
     if (dbCheck) return dbCheck;
 
-    try {
-      const { data, error } = await supabaseAdmin
-        .from('conversations')
-        .insert(conversationData)
-        .select()
-        .single();
+    const { data, error } = await supabaseAdmin
+      .from('conversations')
+      .insert(conversationData)
+      .select()
+      .single();
 
-      if (error) {
-        console.error('Error creating conversation:', error);
-        return { data: null, error };
-      }
-      return { data, error: null };
-    } catch (error) {
-      console.error('Unexpected error creating conversation:', error);
+    if (error) {
+      console.error('Error creating conversation:', error);
       return { data: null, error };
     }
+    return { data, error: null };
   },
 
   async getConversation(conversationId) {
     const dbCheck = checkDbAvailable();
     if (dbCheck) return dbCheck;
 
-    try {
-      const { data, error } = await supabaseAdmin
-        .from('conversations')
-        .select('*')
-        .eq('id', conversationId)
-        .single();
+    const { data, error } = await supabaseAdmin
+      .from('conversations')
+      .select('*')
+      .eq('id', conversationId)
+      .single();
 
-      if (error) {
-        console.error('Error fetching conversation:', error);
-        return { data: null, error };
-      }
-      return { data, error: null };
-    } catch (error) {
-      console.error('Unexpected error fetching conversation:', error);
+    if (error) {
+      console.error('Error fetching conversation:', error);
       return { data: null, error };
     }
+    return { data, error: null };
   },
 
   async getConversationsByStudent(studentId) {
     const dbCheck = checkDbAvailable();
     if (dbCheck) return dbCheck;
 
-    try {
-      const { data, error } = await supabaseAdmin
-        .from('conversations')
-        .select('*')
-        .eq('user_id', studentId)
-        .order('updated_at', { ascending: false });
+    const { data, error } = await supabaseAdmin
+      .from('conversations')
+      .select('*')
+      .eq('user_id', studentId)
+      .order('updated_at', { ascending: false });
 
-      if (error) {
-        console.error('Error fetching conversations:', error);
-        return { data: [], error };
-      }
-      return { data, error: null };
-    } catch (error) {
-      console.error('Unexpected error fetching conversations:', error);
+    if (error) {
+      console.error('Error fetching conversations:', error);
       return { data: [], error };
     }
+    return { data, error: null };
   },
 
   async updateConversationLastMessage(conversationId) {
     const dbCheck = checkDbAvailable();
     if (dbCheck) return dbCheck;
 
-    try {
-      const { error } = await supabaseAdmin
-        .from('conversations')
-        .update({ updated_at: new Date().toISOString() })
-        .eq('id', conversationId);
+    const { error } = await supabaseAdmin
+      .from('conversations')
+      .update({ updated_at: new Date().toISOString() })
+      .eq('id', conversationId);
 
-      if (error) {
-        console.error('Error updating conversation last message time:', error);
-        return { success: false, error };
-      }
-      return { success: true, error: null };
-    } catch (error) {
-      console.error('Unexpected error updating conversation:', error);
+    if (error) {
+      console.error('Error updating conversation last message time:', error);
       return { success: false, error };
     }
+    return { success: true, error: null };
   },
 
   async deleteConversation(conversationId) {
     const dbCheck = checkDbAvailable();
     if (dbCheck) return dbCheck;
 
-    try {
-      const { error } = await supabaseAdmin
-        .from('conversations')
-        .delete()
-        .eq('id', conversationId);
+    const { error } = await supabaseAdmin
+      .from('conversations')
+      .delete()
+      .eq('id', conversationId);
 
-      if (error) {
-        console.error('Error deleting conversation:', error);
-        return { success: false, error };
-      }
-      return { success: true, error: null };
-    } catch (error) {
-      console.error('Unexpected error deleting conversation:', error);
+    if (error) {
+      console.error('Error deleting conversation:', error);
       return { success: false, error };
     }
+    return { success: true, error: null };
   },
 
   // Message operations
@@ -440,45 +355,35 @@ export const serverDb = {
     const dbCheck = checkDbAvailable();
     if (dbCheck) return dbCheck;
 
-    try {
-      const { data, error } = await supabaseAdmin
-        .from('messages')
-        .insert(messageData)
-        .select()
-        .single();
+    const { data, error } = await supabaseAdmin
+      .from('messages')
+      .insert(messageData)
+      .select()
+      .single();
 
-      if (error) {
-        console.error('Error creating message:', error);
-        return { data: null, error };
-      }
-      return { data, error: null };
-    } catch (error) {
-      console.error('Unexpected error creating message:', error);
+    if (error) {
+      console.error('Error creating message:', error);
       return { data: null, error };
     }
+    return { data, error: null };
   },
 
   async getMessagesByConversation(conversationId, limit = 50) {
     const dbCheck = checkDbAvailable();
     if (dbCheck) return dbCheck;
 
-    try {
-      const { data, error } = await supabaseAdmin
-        .from('messages')
-        .select('*')
-        .eq('conversation_id', conversationId)
-        .order('created_at', { ascending: true })
-        .limit(limit);
+    const { data, error } = await supabaseAdmin
+      .from('messages')
+      .select('*')
+      .eq('conversation_id', conversationId)
+      .order('created_at', { ascending: true })
+      .limit(limit);
 
-      if (error) {
-        console.error('Error fetching messages:', error);
-        return { data: [], error };
-      }
-      return { data, error: null };
-    } catch (error) {
-      console.error('Unexpected error fetching messages:', error);
+    if (error) {
+      console.error('Error fetching messages:', error);
       return { data: [], error };
     }
+    return { data, error: null };
   },
 
   // Student Profile operations
@@ -486,67 +391,52 @@ export const serverDb = {
     const dbCheck = checkDbAvailable();
     if (dbCheck) return dbCheck;
 
-    try {
-      const { data, error } = await supabaseAdmin
-        .from('student_profiles')
-        .insert(profileData)
-        .select()
-        .single();
+    const { data, error } = await supabaseAdmin
+      .from('student_profiles')
+      .insert(profileData)
+      .select()
+      .single();
 
-      if (error) {
-        console.error('Error creating student profile:', error);
-        return { data: null, error };
-      }
-      return { data, error: null };
-    } catch (error) {
-      console.error('Unexpected error creating student profile:', error);
+    if (error) {
+      console.error('Error creating student profile:', error);
       return { data: null, error };
     }
+    return { data, error: null };
   },
 
   async getStudentProfile(studentId) {
     const dbCheck = checkDbAvailable();
     if (dbCheck) return dbCheck;
 
-    try {
-      const { data, error } = await supabaseAdmin
-        .from('student_profiles')
-        .select('*')
-        .eq('id', studentId)
-        .single();
+    const { data, error } = await supabaseAdmin
+      .from('student_profiles')
+      .select('*')
+      .eq('id', studentId)
+      .single();
 
-      if (error) {
-        console.error('Error fetching student profile:', error);
-        return { data: null, error };
-      }
-      return { data, error: null };
-    } catch (error) {
-      console.error('Unexpected error fetching student profile:', error);
+    if (error) {
+      console.error('Error fetching student profile:', error);
       return { data: null, error };
     }
+    return { data, error: null };
   },
 
   async updateStudentProfile(studentId, updates) {
     const dbCheck = checkDbAvailable();
     if (dbCheck) return dbCheck;
 
-    try {
-      const { data, error } = await supabaseAdmin
-        .from('student_profiles')
-        .update(updates)
-        .eq('id', studentId)
-        .select()
-        .single();
+    const { data, error } = await supabaseAdmin
+      .from('student_profiles')
+      .update(updates)
+      .eq('id', studentId)
+      .select()
+      .single();
 
-      if (error) {
-        console.error('Error updating student profile:', error);
-        return { data: null, error };
-      }
-      return { data, error: null };
-    } catch (error) {
-      console.error('Unexpected error updating student profile:', error);
+    if (error) {
+      console.error('Error updating student profile:', error);
       return { data: null, error };
     }
+    return { data, error: null };
   },
 
   // Voice Profile operations
@@ -554,110 +444,85 @@ export const serverDb = {
     const dbCheck = checkDbAvailable();
     if (dbCheck) return dbCheck;
 
-    try {
-      const { data, error } = await supabaseAdmin
-        .from('voice_profiles')
-        .insert(profileData)
-        .select()
-        .single();
+    const { data, error } = await supabaseAdmin
+      .from('voice_profiles')
+      .insert(profileData)
+      .select()
+      .single();
 
-      if (error) {
-        console.error('Error creating voice profile:', error);
-        return { data: null, error };
-      }
-      return { data, error: null };
-    } catch (error) {
-      console.error('Unexpected error creating voice profile:', error);
+    if (error) {
+      console.error('Error creating voice profile:', error);
       return { data: null, error };
     }
+    return { data, error: null };
   },
 
   async getVoiceProfilesByTwin(twinId) {
     const dbCheck = checkDbAvailable();
     if (dbCheck) return dbCheck;
 
-    try {
-      const { data, error } = await supabaseAdmin
-        .from('voice_profiles')
-        .select('*')
-        .eq('twin_id', twinId)
-        .order('created_at', { ascending: false });
+    const { data, error } = await supabaseAdmin
+      .from('voice_profiles')
+      .select('*')
+      .eq('twin_id', twinId)
+      .order('created_at', { ascending: false });
 
-      if (error) {
-        console.error('Error fetching voice profiles:', error);
-        return { data: [], error };
-      }
-      return { data, error: null };
-    } catch (error) {
-      console.error('Unexpected error fetching voice profiles:', error);
+    if (error) {
+      console.error('Error fetching voice profiles:', error);
       return { data: [], error };
     }
+    return { data, error: null };
   },
 
   async updateVoiceProfile(profileId, updates) {
     const dbCheck = checkDbAvailable();
     if (dbCheck) return dbCheck;
 
-    try {
-      const { data, error } = await supabaseAdmin
-        .from('voice_profiles')
-        .update(updates)
-        .eq('id', profileId)
-        .select()
-        .single();
+    const { data, error } = await supabaseAdmin
+      .from('voice_profiles')
+      .update(updates)
+      .eq('id', profileId)
+      .select()
+      .single();
 
-      if (error) {
-        console.error('Error updating voice profile:', error);
-        return { data: null, error };
-      }
-      return { data, error: null };
-    } catch (error) {
-      console.error('Unexpected error updating voice profile:', error);
+    if (error) {
+      console.error('Error updating voice profile:', error);
       return { data: null, error };
     }
+    return { data, error: null };
   },
 
   async getVoiceProfile(profileId) {
     const dbCheck = checkDbAvailable();
     if (dbCheck) return dbCheck;
 
-    try {
-      const { data, error } = await supabaseAdmin
-        .from('voice_profiles')
-        .select('*')
-        .eq('id', profileId)
-        .single();
+    const { data, error } = await supabaseAdmin
+      .from('voice_profiles')
+      .select('*')
+      .eq('id', profileId)
+      .single();
 
-      if (error) {
-        console.error('Error fetching voice profile:', error);
-        return { data: null, error };
-      }
-      return { data, error: null };
-    } catch (error) {
-      console.error('Unexpected error fetching voice profile:', error);
+    if (error) {
+      console.error('Error fetching voice profile:', error);
       return { data: null, error };
     }
+    return { data, error: null };
   },
 
   async deleteVoiceProfile(profileId) {
     const dbCheck = checkDbAvailable();
     if (dbCheck) return dbCheck;
 
-    try {
-      const { error } = await supabaseAdmin
-        .from('voice_profiles')
-        .delete()
-        .eq('id', profileId);
+    const { error } = await supabaseAdmin
+      .from('voice_profiles')
+      .delete()
+      .eq('id', profileId);
 
-      if (error) {
-        console.error('Error deleting voice profile:', error);
-        return { success: false, error };
-      }
-      return { success: true, error: null };
-    } catch (error) {
-      console.error('Unexpected error deleting voice profile:', error);
+    if (error) {
+      console.error('Error deleting voice profile:', error);
       return { success: false, error };
     }
+    return { success: true, error: null };
   },
 
   // Utility functions
@@ -667,66 +532,56 @@ export const serverDb = {
 
     const startTime = Date.now();
 
-    try {
-      // Test basic connectivity with a simple query
-      const { data, error } = await supabaseAdmin
-        .from('profiles')
-        .select('count', { count: 'exact', head: true });
+    // Test basic connectivity with a simple query
+    const { data, error } = await supabaseAdmin
+      .from('profiles')
+      .select('count', { count: 'exact', head: true });
 
-      if (error) {
-        console.error('Database health check failed:', error);
-        return { healthy: false, error, responseTime: Date.now() - startTime };
-      }
-
-      const responseTime = Date.now() - startTime;
-
-      // Additional performance checks
-      const performanceChecks = await Promise.allSettled([
-        // Test digital twins query performance
-        supabaseAdmin
-          .from('digital_twins')
-          .select('id', { count: 'exact', head: true }),
-
-        // Test conversations query performance
-        supabaseAdmin
-          .from('conversations')
-          .select('id', { count: 'exact', head: true }),
-
-        // Test messages query performance
-        supabaseAdmin
-          .from('messages')
-          .select('id', { count: 'exact', head: true })
-      ]);
-
-      const performance = {
-        responseTime,
-        tables: {
-          profiles: { status: 'healthy' },
-          digital_twins: performanceChecks[0].status === 'fulfilled' ? { status: 'healthy' } : { status: 'error', error: performanceChecks[0].reason },
-          conversations: performanceChecks[1].status === 'fulfilled' ? { status: 'healthy' } : { status: 'error', error: performanceChecks[1].reason },
-          messages: performanceChecks[2].status === 'fulfilled' ? { status: 'healthy' } : { status: 'error', error: performanceChecks[2].reason }
-        },
-        timestamp: new Date().toISOString()
-      };
-
-      return {
-        healthy: true,
-        error: null,
-        performance,
-        connectionPool: {
-          status: 'active',
-          headers: { 'x-connection-pool': 'server' }
-        }
-      };
-    } catch (error) {
-      console.error('Database health check error:', error);
-      return {
-        healthy: false,
-        error,
-        responseTime: Date.now() - startTime,
-        timestamp: new Date().toISOString()
-      };
+    if (error) {
+      console.error('Database health check failed:', error);
+      return { healthy: false, error, responseTime: Date.now() - startTime };
     }
+
+    const responseTime = Date.now() - startTime;
+
+    // Additional performance checks
+    const performanceChecks = await Promise.allSettled([
+      // Test digital twins query performance
+      supabaseAdmin
+        .from('digital_twins')
+        .select('id', { count: 'exact', head: true }),
+
+      // Test conversations query performance
+      supabaseAdmin
+        .from('conversations')
+        .select('id', { count: 'exact', head: true }),
+
+      // Test messages query performance
+      supabaseAdmin
+        .from('messages')
+        .select('id', { count: 'exact', head: true })
+    ]);
+
+    const performance = {
+      responseTime,
+      tables: {
+        profiles: { status: 'healthy' },
+        digital_twins: performanceChecks[0].status === 'fulfilled' ? { status: 'healthy' } : { status: 'error', error: performanceChecks[0].reason },
+        conversations: performanceChecks[1].status === 'fulfilled' ? { status: 'healthy' } : { status: 'error', error: performanceChecks[1].reason },
+        messages: performanceChecks[2].status === 'fulfilled' ? { status: 'healthy' } : { status: 'error', error: performanceChecks[2].reason }
+      },
+      timestamp: new Date().toISOString()
+    };
+
+    return {
+      healthy: true,
+      error: null,
+      performance,
+      connectionPool: {
+        status: 'active',
+        headers: { 'x-connection-pool': 'server' }
+      }
+    };
   },
 
   // Performance monitoring
@@ -734,35 +589,30 @@ export const serverDb = {
     const dbCheck = checkDbAvailable();
     if (dbCheck) return dbCheck;
 
-    try {
-      const startTime = Date.now();
+    const startTime = Date.now();
 
-      // Get table sizes and row counts
-      const tableStats = await Promise.allSettled([
-        supabaseAdmin.from('digital_twins').select('*', { count: 'exact', head: true }),
-        supabaseAdmin.from('conversations').select('*', { count: 'exact', head: true }),
-        supabaseAdmin.from('messages').select('*', { count: 'exact', head: true }),
-        supabaseAdmin.from('profiles').select('*', { count: 'exact', head: true })
-      ]);
+    // Get table sizes and row counts
+    const tableStats = await Promise.allSettled([
+      supabaseAdmin.from('digital_twins').select('*', { count: 'exact', head: true }),
+      supabaseAdmin.from('conversations').select('*', { count: 'exact', head: true }),
+      supabaseAdmin.from('messages').select('*', { count: 'exact', head: true }),
+      supabaseAdmin.from('profiles').select('*', { count: 'exact', head: true })
+    ]);
 
-      const responseTime = Date.now() - startTime;
+    const responseTime = Date.now() - startTime;
 
-      return {
-        data: {
-          responseTime,
-          tables: {
-            digital_twins: tableStats[0].status === 'fulfilled' ? tableStats[0].value : { count: 0, error: tableStats[0].reason },
-            conversations: tableStats[1].status === 'fulfilled' ? tableStats[1].value : { count: 0, error: tableStats[1].reason },
-            messages: tableStats[2].status === 'fulfilled' ? tableStats[2].value : { count: 0, error: tableStats[2].reason },
-            profiles: tableStats[3].status === 'fulfilled' ? tableStats[3].value : { count: 0, error: tableStats[3].reason }
-          },
-          timestamp: new Date().toISOString()
+    return {
+      data: {
+        responseTime,
+        tables: {
+          digital_twins: tableStats[0].status === 'fulfilled' ? tableStats[0].value : { count: 0, error: tableStats[0].reason },
+          conversations: tableStats[1].status === 'fulfilled' ? tableStats[1].value : { count: 0, error: tableStats[1].reason },
+          messages: tableStats[2].status === 'fulfilled' ? tableStats[2].value : { count: 0, error: tableStats[2].reason },
+          profiles: tableStats[3].status === 'fulfilled' ? tableStats[3].value : { count: 0, error: tableStats[3].reason }
         },
-        error: null
-      };
-    } catch (error) {
-      console.error('Performance stats error:', error);
-      return { data: null, error };
-    }
+        timestamp: new Date().toISOString()
+      },
+      error: null
+    };
   }
 };
