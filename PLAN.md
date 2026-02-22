@@ -500,19 +500,19 @@ Compiled from comprehensive codebase audit. All items confirmed with user via al
 | # | Task | Status | Notes |
 |---|------|--------|-------|
 | U1 | Raise free tier from 10 → 100 messages/month | ✅ DONE | `FREE_TIER_LIMIT` in `api/routes/chat-usage.js`. Was 10 (far too low). Now 100. |
-| U2 | Add chat streaming | PENDING | llmGateway.js has `stream()` function. twin-chat.js uses `complete()`. No SSE wiring in frontend. Users see 3-5s dead silence. Wire `stream()` through to frontend via SSE. |
+| U2 | Add chat streaming | ✅ DONE | SSE via `?stream=1`. Backend: streamLLM() with onChunk callback, SSE headers. Frontend: ReadableStream reader + TextDecoder, first-chunk spinner pattern. Commit a5cc527. |
 
 ### Memory Quality (P2)
 
 | # | Task | Status | Notes |
 |---|------|--------|-------|
-| M1 | Fix memory diversity problem | PENDING | `retrieveMemories(userId, msg, 30)` with default weights returns ~17 reflections, ~1 fact, ~0 platform_data. Reflections dominate because they have high importance (7-9) AND are recent. Fix: run 3 parallel typed queries — reflections (15), facts (8), platform_data (7) — union and deduplicate. Keeps each type proportionally represented. |
+| M1 | Fix memory diversity problem | ✅ DONE | Added `retrieveDiverseMemories()` in memoryStreamService.js: reflections (15) via semantic search + identity weights, facts (8) by importance DESC, platform_data (7) by recency DESC. twinContextBuilder.js updated. Commit 9354cff. |
 
 ### Code Health (P3)
 
 | # | Task | Status | Notes |
 |---|------|--------|-------|
-| C1 | Aggressive route cleanup | PENDING | 70+ route files in api/routes/. Many are legacy/unused. Check which routes are actually mounted in server.js, then delete unmounted ones. Reduces confusion and maintenance burden. |
+| C1 | Aggressive route cleanup | ✅ DONE | All 80 routes confirmed mounted (og-image.js via dynamic import). Fixed 2 open endpoints in test-pattern-learning.js (/trigger-all, /status had no auth). Fixed training.js legacy import (api/config/supabase.js → api/services/database.js). Commit 4a5f94b. |
 
 ### Completed This Session
 
