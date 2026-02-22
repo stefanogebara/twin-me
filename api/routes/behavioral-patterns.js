@@ -543,25 +543,28 @@ router.get('/stats', authenticateToken, async (req, res) => {
     );
 
     // Get pattern counts by type
-    const { data: patternsByType } = await supabase
+    const { data: patternsByType, error: typeErr } = await supabase
       .from('behavioral_patterns')
       .select('pattern_type')
       .eq('user_id', userId)
       .eq('is_active', true);
+    if (typeErr) throw typeErr;
 
     // Get confidence distribution
-    const { data: allPatterns } = await supabase
+    const { data: allPatterns, error: patternsErr } = await supabase
       .from('behavioral_patterns')
       .select('confidence_score, occurrence_count, consistency_rate')
       .eq('user_id', userId)
       .eq('is_active', true);
+    if (patternsErr) throw patternsErr;
 
     // Get recent observations count
-    const { count: recentObservations } = await supabase
+    const { count: recentObservations, error: obsErr } = await supabase
       .from('pattern_observations')
       .select('id', { count: 'exact', head: true })
       .eq('user_id', userId)
       .gte('observed_at', new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString());
+    if (obsErr) throw obsErr;
 
     // Calculate statistics
     const typeCounts = {};

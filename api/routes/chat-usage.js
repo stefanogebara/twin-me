@@ -24,10 +24,12 @@ async function getMonthlyUsage(userId) {
   monthStart.setHours(0, 0, 0, 0);
 
   // Step 1: Get user's conversation IDs
-  const { data: convos } = await supabaseAdmin
+  const { data: convos, error: convosErr } = await supabaseAdmin
     .from('twin_conversations')
     .select('id')
     .eq('user_id', userId);
+
+  if (convosErr) throw convosErr;
 
   if (!convos || convos.length === 0) {
     return { used: 0, limit: FREE_TIER_LIMIT, tier: 'free' };
@@ -35,12 +37,14 @@ async function getMonthlyUsage(userId) {
 
   // Step 2: Count user messages in those conversations this month
   const convoIds = convos.map(c => c.id);
-  const { count } = await supabaseAdmin
+  const { count, error: countErr } = await supabaseAdmin
     .from('twin_messages')
     .select('id', { count: 'exact', head: true })
     .eq('role', 'user')
     .gte('created_at', monthStart.toISOString())
     .in('conversation_id', convoIds);
+
+  if (countErr) throw countErr;
 
   return {
     used: count || 0,
