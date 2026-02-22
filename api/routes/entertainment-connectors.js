@@ -1,4 +1,5 @@
 import express from 'express';
+import { authenticateUser } from '../middleware/auth.js';
 import multer from 'multer';
 import crypto from 'crypto';
 import { SoulSignatureService } from '../services/soulSignature.js';
@@ -64,7 +65,7 @@ const csvUpload = multer({
  */
 
 // Spotify Connector - Musical Soul
-router.post('/connect/spotify', oauthAuthorizationLimiter, async (req, res) => {
+router.post('/connect/spotify', authenticateUser, oauthAuthorizationLimiter, async (req, res) => {
   try {
     // Validate request body exists
     if (!req.body || typeof req.body !== 'object') {
@@ -74,7 +75,7 @@ router.post('/connect/spotify', oauthAuthorizationLimiter, async (req, res) => {
       });
     }
 
-    const { userId } = req.body;
+    const userId = req.user.id;
 
     if (!userId) {
       return res.status(400).json({
@@ -140,9 +141,9 @@ router.post('/connect/spotify', oauthAuthorizationLimiter, async (req, res) => {
 });
 
 // Netflix Connector - Narrative Preferences
-router.post('/connect/netflix', oauthAuthorizationLimiter, async (req, res) => {
+router.post('/connect/netflix', authenticateUser, oauthAuthorizationLimiter, async (req, res) => {
   try {
-    const { userId } = req.body;
+    const userId = req.user.id;
 
     // Netflix doesn't have public API, so we'll use CSV upload
     res.json({
@@ -164,9 +165,9 @@ router.post('/connect/netflix', oauthAuthorizationLimiter, async (req, res) => {
 });
 
 // Netflix CSV Upload - Manual Data Import
-router.post('/upload/netflix-csv', csvUpload.single('csvFile'), async (req, res) => {
+router.post('/upload/netflix-csv', authenticateUser, csvUpload.single('csvFile'), async (req, res) => {
   try {
-    const { userId } = req.body;
+    const userId = req.user.id;
 
     if (!userId) {
       return res.status(400).json({
@@ -274,9 +275,9 @@ router.post('/upload/netflix-csv', csvUpload.single('csvFile'), async (req, res)
 });
 
 // YouTube Connector - Learning & Entertainment Mix
-router.post('/connect/youtube', oauthAuthorizationLimiter, async (req, res) => {
+router.post('/connect/youtube', authenticateUser, oauthAuthorizationLimiter, async (req, res) => {
   try {
-    const { userId } = req.body;
+    const userId = req.user.id;
 
     if (!userId) {
       return res.status(400).json({
@@ -343,9 +344,10 @@ router.post('/connect/youtube', oauthAuthorizationLimiter, async (req, res) => {
 });
 
 // Steam/Gaming Connector - Interactive Preferences
-router.post('/connect/steam', oauthAuthorizationLimiter, async (req, res) => {
+router.post('/connect/steam', authenticateUser, oauthAuthorizationLimiter, async (req, res) => {
   try {
-    const { userId, steamId } = req.body;
+    const userId = req.user.id;
+    const { steamId } = req.body;
 
     // Steam Web API approach
     res.json({
@@ -698,9 +700,10 @@ router.post('/oauth/callback', oauthCallbackLimiter, async (req, res) => {
 });
 
 // Extract Spotify Musical Soul
-router.post('/extract/spotify', async (req, res) => {
+router.post('/extract/spotify', authenticateUser, async (req, res) => {
   try {
-    const { userId, accessToken } = req.body;
+    const userId = req.user.id;
+    const { accessToken } = req.body;
 
     if (!userId || !accessToken) {
       return res.status(400).json({
@@ -838,9 +841,10 @@ router.post('/extract/spotify', async (req, res) => {
 });
 
 // Extract YouTube Viewing Patterns
-router.post('/extract/youtube', async (req, res) => {
+router.post('/extract/youtube', authenticateUser, async (req, res) => {
   try {
-    const { userId, accessToken } = req.body;
+    const userId = req.user.id;
+    const { accessToken } = req.body;
 
     if (!userId || !accessToken) {
       return res.status(400).json({
@@ -948,9 +952,10 @@ router.post('/extract/youtube', async (req, res) => {
 });
 
 // Aggregate Entertainment Soul Signature
-router.post('/aggregate-entertainment', async (req, res) => {
+router.post('/aggregate-entertainment', authenticateUser, async (req, res) => {
   try {
-    const { userId, connectedPlatforms } = req.body;
+    const userId = req.user.id;
+    const { connectedPlatforms } = req.body;
 
     const aggregatedSoul = {
       emotionalLandscape: {},
@@ -1345,9 +1350,9 @@ function calculateViewingFrequency(viewingHistory) {
 }
 
 // GitHub Connector - Code & Collaboration Soul
-router.post('/connect/github', oauthAuthorizationLimiter, async (req, res) => {
+router.post('/connect/github', authenticateUser, oauthAuthorizationLimiter, async (req, res) => {
   try {
-    const { userId } = req.body;
+    const userId = req.user.id;
 
     if (!userId) {
       return res.status(400).json({
@@ -1406,9 +1411,9 @@ router.post('/connect/github', oauthAuthorizationLimiter, async (req, res) => {
 });
 
 // Discord Connector - Community & Social Soul
-router.post('/connect/discord', oauthAuthorizationLimiter, async (req, res) => {
+router.post('/connect/discord', authenticateUser, oauthAuthorizationLimiter, async (req, res) => {
   try {
-    const { userId } = req.body;
+    const userId = req.user.id;
 
     if (!userId) {
       return res.status(400).json({
@@ -1474,9 +1479,9 @@ router.post('/connect/discord', oauthAuthorizationLimiter, async (req, res) => {
 });
 
 // Gmail Connector - Communication Patterns Soul
-router.post('/connect/gmail', oauthAuthorizationLimiter, async (req, res) => {
+router.post('/connect/gmail', authenticateUser, oauthAuthorizationLimiter, async (req, res) => {
   try {
-    const { userId } = req.body;
+    const userId = req.user.id;
 
     if (!userId) {
       return res.status(400).json({
@@ -1547,9 +1552,9 @@ router.post('/connect/gmail', oauthAuthorizationLimiter, async (req, res) => {
 });
 
 // Google Calendar Connector - Schedule & Time Patterns
-router.post('/connect/google_calendar', oauthAuthorizationLimiter, async (req, res) => {
+router.post('/connect/google_calendar', authenticateUser, oauthAuthorizationLimiter, async (req, res) => {
   try {
-    const { userId } = req.body;
+    const userId = req.user.id;
 
     if (!userId) {
       return res.status(400).json({
@@ -1617,9 +1622,9 @@ router.post('/connect/google_calendar', oauthAuthorizationLimiter, async (req, r
 });
 
 // Whoop Connector - Biometric & Recovery Data
-router.post('/connect/whoop', oauthAuthorizationLimiter, async (req, res) => {
+router.post('/connect/whoop', authenticateUser, oauthAuthorizationLimiter, async (req, res) => {
   try {
-    const { userId } = req.body;
+    const userId = req.user.id;
 
     if (!userId) {
       return res.status(400).json({
@@ -1679,9 +1684,9 @@ router.post('/connect/whoop', oauthAuthorizationLimiter, async (req, res) => {
 });
 
 // Oura Connector - Sleep & Readiness Data
-router.post('/connect/oura', oauthAuthorizationLimiter, async (req, res) => {
+router.post('/connect/oura', authenticateUser, oauthAuthorizationLimiter, async (req, res) => {
   try {
-    const { userId } = req.body;
+    const userId = req.user.id;
 
     if (!userId) {
       return res.status(400).json({
@@ -1745,7 +1750,7 @@ router.post('/connect/oura', oauthAuthorizationLimiter, async (req, res) => {
  * Check OAuth configuration status for all platforms.
  * Returns which platforms have credentials configured (without exposing secrets).
  */
-router.get('/oauth/debug', async (req, res) => {
+router.get('/oauth/debug', authenticateUser, async (req, res) => {
   try {
     const platforms = {
       spotify: {
