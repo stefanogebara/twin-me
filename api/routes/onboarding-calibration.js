@@ -557,6 +557,9 @@ router.post('/calibrate', authenticateUser, async (req, res) => {
           }, { onConflict: 'user_id' })
           .then(({ error }) => {
             if (error) console.warn('[Calibration] Save error:', error.message);
+          })
+          .catch(err => {
+            console.error('[Calibration] Upsert network error:', err.message);
           });
       }
 

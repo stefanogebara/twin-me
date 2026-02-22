@@ -96,7 +96,7 @@ async function handleAuthWebhook(data) {
     console.log(`[Nango Webhooks] New connection: ${provider} for user ${userId}`);
 
     // Record the connection in our database
-    await supabaseAdmin
+    const { error: upsertErr } = await supabaseAdmin
       .from('platform_connections')
       .upsert({
         user_id: userId,
@@ -113,6 +113,9 @@ async function handleAuthWebhook(data) {
       }, {
         onConflict: 'user_id,platform'
       });
+    if (upsertErr) {
+      console.error(`[Nango Webhooks] Failed to record connection for ${provider}:`, upsertErr.message);
+    }
 
     // Trigger initial data extraction in background
     extractPlatformData(userId, providerConfigKey)
@@ -145,7 +148,7 @@ async function handleAuthWebhook(data) {
     console.error(`[Nango Webhooks] Token refresh failed for ${provider}: ${error?.description}`);
 
     // Update connection status
-    await supabaseAdmin
+    const { error: statusErr } = await supabaseAdmin
       .from('platform_connections')
       .update({
         status: 'error',
@@ -154,9 +157,12 @@ async function handleAuthWebhook(data) {
       })
       .eq('user_id', userId)
       .eq('platform', providerConfigKey);
+    if (statusErr) {
+      console.error(`[Nango Webhooks] Failed to update error status for ${provider}:`, statusErr.message);
+    }
 
     // Create notification for user
-    await supabaseAdmin
+    const { error: notifErr } = await supabaseAdmin
       .from('user_notifications')
       .insert({
         user_id: userId,
@@ -167,6 +173,9 @@ async function handleAuthWebhook(data) {
         read: false,
         created_at: new Date().toISOString()
       });
+    if (notifErr) {
+      console.error(`[Nango Webhooks] Failed to create notification for ${provider}:`, notifErr.message);
+    }
   }
 }
 
@@ -183,13 +192,16 @@ async function handleSyncWebhook(data) {
 
   if (success) {
     // Update last sync timestamp
-    await supabaseAdmin
+    const { error: syncErr } = await supabaseAdmin
       .from('platform_connections')
       .update({
         last_sync: new Date().toISOString(),
       })
       .eq('user_id', userId)
       .eq('platform', providerConfigKey);
+    if (syncErr) {
+      console.error(`[Nango Webhooks] Failed to update last_sync for ${providerConfigKey}:`, syncErr.message);
+    }
   }
 }
 
