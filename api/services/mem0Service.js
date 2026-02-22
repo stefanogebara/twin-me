@@ -435,12 +435,12 @@ async function createMemoryTable() {
     CREATE INDEX IF NOT EXISTS idx_user_memories_created ON user_memories(created_at DESC);
   `;
 
-  try {
-    await supabaseAdmin.rpc('exec_sql', { sql });
-    console.log('[Memory] Created user_memories table');
-  } catch (error) {
-    // Table might already exist or rpc not available
+  const { error } = await supabaseAdmin.rpc('exec_sql', { sql });
+  if (error) {
+    // Table might already exist or exec_sql rpc not available
     console.warn('[Memory] Could not create table via RPC:', error.message);
+  } else {
+    console.log('[Memory] Created user_memories table');
   }
 }
 
