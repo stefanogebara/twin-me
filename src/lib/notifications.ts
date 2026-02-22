@@ -417,6 +417,7 @@ export const promiseNotifications = {
     }: {
       loading: string;
       success: string | ((data: T) => string);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- error can be any thrown value
       error: string | ((error: any) => string);
     }
   ) => {

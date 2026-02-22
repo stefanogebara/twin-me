@@ -155,6 +155,7 @@ export const CalibrationStep: React.FC<CalibrationStepProps> = ({
           questions_answered: qNum - 1,
           has_insights: (result.insights || []).length > 0,
           domains_covered: Object.values(result.domainProgress || {}).filter(
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any -- domainProgress values have dynamic shape
             (d: any) => d.asked >= 2
           ).length,
         });

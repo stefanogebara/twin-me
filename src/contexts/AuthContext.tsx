@@ -249,20 +249,16 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   }, [user]);
 
   const signInWithOAuth = async (provider: 'google', redirectAfterAuth?: string) => {
-    try {
-      // Build OAuth URL with optional redirect parameter
-      let oauthUrl = `${import.meta.env.VITE_API_URL}/auth/oauth/${provider}`;
+    // Build OAuth URL with optional redirect parameter
+    let oauthUrl = `${import.meta.env.VITE_API_URL}/auth/oauth/${provider}`;
 
-      // If redirectAfterAuth is provided, pass it as a query parameter
-      if (redirectAfterAuth) {
-        oauthUrl += `?redirect=${encodeURIComponent(redirectAfterAuth)}`;
-      }
-
-      // Redirect to OAuth provider
-      window.location.href = oauthUrl;
-    } catch (error) {
-      throw error;
+    // If redirectAfterAuth is provided, pass it as a query parameter
+    if (redirectAfterAuth) {
+      oauthUrl += `?redirect=${encodeURIComponent(redirectAfterAuth)}`;
     }
+
+    // Redirect to OAuth provider
+    window.location.href = oauthUrl;
   };
 
   const value: AuthContextType = {

@@ -19,7 +19,7 @@ export interface ErrorLog {
   category: ErrorCategory;
   message: string;
   stack?: string;
-  context?: Record<string, any>;
+  context?: Record<string, unknown>;
   userAgent: string;
   url: string;
 }
@@ -31,7 +31,7 @@ class ErrorService {
   /**
    * Log an error with context
    */
-  logError(error: unknown, category: ErrorCategory = 'unknown', context?: Record<string, any>): void {
+  logError(error: unknown, category: ErrorCategory = 'unknown', context?: Record<string, unknown>): void {
     const errorLog: ErrorLog = {
       id: this.generateId(),
       timestamp: new Date(),

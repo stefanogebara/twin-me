@@ -80,6 +80,7 @@ const fetchPlatformData = async (platform: string, token: string): Promise<Platf
 /**
  * Extract key metrics from platform data
  */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any -- platform data has dynamic shape per platform
 const extractMetrics = (platform: string, data: any): PlatformData['metrics'] => {
   switch (platform) {
     case 'spotify':
@@ -145,6 +146,7 @@ const extractMetrics = (platform: string, data: any): PlatformData['metrics'] =>
 /**
  * Generate a brief AI-style insight for the platform
  */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any -- platform data has dynamic shape per platform
 const generateInsight = (platform: string, data: any): string => {
   switch (platform) {
     case 'spotify':

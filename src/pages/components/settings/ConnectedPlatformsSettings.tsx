@@ -11,7 +11,7 @@ import { Clay3DIcon } from '@/components/Clay3DIcon';
 
 interface ConnectedPlatformsSettingsProps {
   isDemoMode: boolean;
-  connectorStatus: Record<string, any>;
+  connectorStatus: Record<string, unknown>;
   isLoading: boolean;
   error: string | null;
   disconnectingService: string | null;

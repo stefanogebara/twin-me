@@ -28,6 +28,7 @@ export const useExtensionSync = () => {
           }
         );
       } catch {
+        // Extension not installed or messaging failed — intentionally ignored
       }
     };
 

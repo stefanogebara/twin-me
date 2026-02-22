@@ -47,6 +47,7 @@ export interface JourneyEvent {
 /**
  * Transform soul signature to radar chart data (Big Five personality traits)
  */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any -- dynamic soul signature shape from API
 export function transformToRadarData(soulSignature: any): RadarDataPoint[] {
   const personality = soulSignature?.personality || {};
 
@@ -82,11 +83,13 @@ export function transformToRadarData(soulSignature: any): RadarDataPoint[] {
 /**
  * Transform interests to cluster data for bubble chart
  */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any -- dynamic soul signature shape from API
 export function transformToClusterData(soulSignature: any): ClusterData[] {
   const clusters: ClusterData[] = [];
 
   // Personal clusters
   const personalClusters = soulSignature?.personalClusters || [];
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- cluster items have dynamic shape
   personalClusters.forEach((cluster: any, index: number) => {
     clusters.push({
       id: `personal-${index}`,
@@ -94,12 +97,14 @@ export function transformToClusterData(soulSignature: any): ClusterData[] {
       category: 'personal',
       size: cluster.dataPoints?.length || 10,
       strength: cluster.intensityLevel || 50,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- data point shape varies by platform
       items: cluster.dataPoints?.map((dp: any) => dp.title || dp.name) || []
     });
   });
 
   // Professional clusters
   const professionalClusters = soulSignature?.professionalClusters || [];
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- cluster items have dynamic shape
   professionalClusters.forEach((cluster: any, index: number) => {
     clusters.push({
       id: `professional-${index}`,
@@ -107,12 +112,14 @@ export function transformToClusterData(soulSignature: any): ClusterData[] {
       category: 'professional',
       size: cluster.dataPoints?.length || 10,
       strength: cluster.intensityLevel || 50,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- data point shape varies by platform
       items: cluster.dataPoints?.map((dp: any) => dp.title || dp.name) || []
     });
   });
 
   // Creative clusters
   const creativeClusters = soulSignature?.creativeClusters || [];
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- cluster items have dynamic shape
   creativeClusters.forEach((cluster: any, index: number) => {
     clusters.push({
       id: `creative-${index}`,
@@ -120,6 +127,7 @@ export function transformToClusterData(soulSignature: any): ClusterData[] {
       category: 'creative',
       size: cluster.dataPoints?.length || 10,
       strength: cluster.intensityLevel || 50,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- data point shape varies by platform
       items: cluster.dataPoints?.map((dp: any) => dp.title || dp.name) || []
     });
   });
@@ -132,6 +140,7 @@ export function transformToClusterData(soulSignature: any): ClusterData[] {
  * ❌ DEPRECATED: This function used fake activity pattern generators
  * TODO: Replace with real activity data from platform APIs when available
  */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any -- deprecated function, platforms array has dynamic shape
 export function transformToTimelineData(_platforms: any[]): TimelineActivity[] {
   // Return empty array until we have real activity data from platforms
   // Fake generators have been removed. Implement real activity tracking.
@@ -148,6 +157,7 @@ export function transformToTimelineData(_platforms: any[]): TimelineActivity[] {
  * Real patterns should come from Claude soul signature analysis API
  * TODO: Replace with real pattern detection from /api/soul-signature/insights
  */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any -- deprecated function, soul signature has dynamic shape
 export function transformToPatternData(_soulSignature: any): PatternData[] {
   // Hardcoded patterns have been removed. Use Claude soul insights API instead.
   return [];
@@ -159,6 +169,7 @@ export function transformToPatternData(_soulSignature: any): PatternData[] {
  * The LifeJourneyTimeline component has been removed from the dashboard
  * TODO: If timeline is needed, rebuild based on real Claude insights timeline
  */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any -- deprecated function, dynamic platform and soul signature shapes
 export function transformToJourneyEvents(_platforms: any[], _soulSignature: any): JourneyEvent[] {
   // Deprecated - LifeJourneyTimeline component has been removed.
   return [];
@@ -167,6 +178,7 @@ export function transformToJourneyEvents(_platforms: any[], _soulSignature: any)
 /**
  * Calculate completeness percentage
  */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any -- dynamic platform connection and soul signature shapes
 export function calculateCompleteness(platforms: any[], soulSignature: any): {
   overall: number;
   breakdown: {

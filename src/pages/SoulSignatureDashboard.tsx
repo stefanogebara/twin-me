@@ -50,6 +50,7 @@ const SoulSignatureDashboard: React.FC = () => {
   if (!user) return null;
 
   // portrait.soulSignature from API, falling back to sessionStorage cache
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- portrait shape from API is dynamic
   const displaySoulSignature = (portrait as any)?.soulSignature ?? cachedArchetype;
 
 

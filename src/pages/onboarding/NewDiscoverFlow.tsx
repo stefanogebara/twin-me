@@ -229,7 +229,7 @@ const NewDiscoverFlow: React.FC = () => {
   const extractFirstLine = (text: string, maxLen = 60): string => {
     if (isLLMJunk(text)) return '';
     // Get first meaningful line/sentence from a block of text
-    const line = text.split(/[\n•\-]/).map(s => s.trim()).find(s => s.length > 5) || text;
+    const line = text.split(/[\n•-]/).map(s => s.trim()).find(s => s.length > 5) || text;
     return line.length > maxLen ? line.slice(0, maxLen).replace(/\s+\S*$/, '') + '...' : line;
   };
 

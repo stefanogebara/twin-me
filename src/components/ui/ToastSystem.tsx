@@ -157,6 +157,7 @@ function ToastItem({ toast, onClose }: { toast: ToastMessage; onClose: () => voi
   const variant = type === 'error' ? 'destructive' : 'default';
 
   return (
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- variant cast needed for shadcn Toast component
     <Toast variant={variant as any} duration={duration}>
       <div className="flex items-start gap-3">
         {icons[type] && <span className="flex-shrink-0 mt-0.5">{icons[type]}</span>}
@@ -206,6 +207,7 @@ export const toast = {
     messages: {
       loading: string;
       success: string | ((data: T) => string);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- error can be any thrown value
       error: string | ((error: any) => string);
     }
   ): Promise<T> => {

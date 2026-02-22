@@ -34,6 +34,7 @@ export interface DemoJournalAnalysis {
   created_at: string;
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any -- demo insights have dynamic shape
 export const getDemoJournalData = (): { entries: DemoJournalEntry[]; insights: any } => {
   const entries: DemoJournalEntry[] = [
     {

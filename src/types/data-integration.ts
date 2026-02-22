@@ -56,8 +56,8 @@ export interface RawDataPoint {
   dataType: DataType;
 
   // Content
-  content: Record<string, any>;
-  metadata: Record<string, any>;
+  content: Record<string, unknown>;
+  metadata: Record<string, unknown>;
 
   // Processing status
   processed: boolean;
@@ -117,7 +117,7 @@ export interface PersonalityInsight {
   id: string;
   userId: string;
   insightType: InsightType;
-  insightData: WritingStyle | CommunicationPattern | ExpertiseArea | Record<string, any>;
+  insightData: WritingStyle | CommunicationPattern | ExpertiseArea | Record<string, unknown>;
 
   // Confidence and validation
   confidenceScore: number; // 0-1
@@ -149,8 +149,8 @@ export interface TwinEvolutionEntry {
   userId: string;
 
   changeType: ChangeType;
-  oldValue?: Record<string, any>;
-  newValue?: Record<string, any>;
+  oldValue?: Record<string, unknown>;
+  newValue?: Record<string, unknown>;
   changeSummary: string;
   confidenceImpact: number; // -1 to 1
 
@@ -177,8 +177,8 @@ export interface AutomationRule {
   ruleType: AutomationRuleType;
 
   // Rule logic
-  conditions: Record<string, any>; // when to trigger
-  actions: Record<string, any>; // what to do
+  conditions: Record<string, unknown>; // when to trigger
+  actions: Record<string, unknown>; // what to do
 
   // Safety controls
   confidenceThreshold: number; // 0-1
@@ -241,7 +241,7 @@ export interface SyncQueueItem {
   queueType: QueueType;
 
   priority: number; // 1-10 (1 = highest)
-  payload?: Record<string, any>;
+  payload?: Record<string, unknown>;
 
   status: QueueStatus;
   attempts: number;
@@ -312,7 +312,7 @@ export interface TwinActionSuggestion {
   type: 'email_response' | 'social_post' | 'calendar_event' | 'message_reply';
   confidence: number;
   content: string;
-  context: Record<string, any>;
+  context: Record<string, unknown>;
   requiresApproval: boolean;
   expiresAt: Date;
 }
@@ -362,7 +362,7 @@ export interface DataIngestionError {
   connectorId: string;
   errorType: 'api_error' | 'rate_limit' | 'auth_expired' | 'data_corruption' | 'processing_error';
   errorMessage: string;
-  errorDetails: Record<string, any>;
+  errorDetails: Record<string, unknown>;
 
   // Recovery information
   isRecoverable: boolean;
@@ -414,7 +414,7 @@ export interface WebhookEvent {
   id: string;
   connectorId: string;
   eventType: string;
-  eventData: Record<string, any>;
+  eventData: Record<string, unknown>;
   receivedAt: Date;
   processed: boolean;
   processingError?: string;
@@ -423,7 +423,7 @@ export interface WebhookEvent {
 export interface RealTimeUpdate {
   userId: string;
   updateType: 'new_data' | 'insight_change' | 'twin_evolution' | 'automation_trigger';
-  data: Record<string, any>;
+  data: Record<string, unknown>;
   timestamp: Date;
   priority: 'low' | 'medium' | 'high';
 }
@@ -464,7 +464,7 @@ export interface ActionTrigger {
 
 export interface AutomationAction {
   type: ActionType;
-  payload: Record<string, any>;
+  payload: Record<string, unknown>;
   delay?: number; // milliseconds
   maxRetries?: number;
 }
@@ -480,6 +480,7 @@ export interface EnhancedAutomationRule {
   trigger: ActionTrigger;
   action: AutomationAction;
   cooldownPeriod: number; // milliseconds
+
   lastTriggered?: Date;
   triggerCount?: number;
   createdAt?: Date;
@@ -492,7 +493,7 @@ export interface AutomatedAction {
   twinId: string;
   ruleId?: string;
   actionType: ActionType;
-  payload: Record<string, any>;
+  payload: Record<string, unknown>;
   priority: number;
   status: 'pending' | 'executing' | 'completed' | 'failed';
   scheduledFor: Date;

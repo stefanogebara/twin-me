@@ -168,7 +168,7 @@ export interface BehavioralFeature {
   contribution_weight: number;
 
   // Supporting evidence
-  evidence?: Record<string, any>;
+  evidence?: Record<string, unknown>;
 
   // Timestamps
   extracted_at: string;
@@ -188,7 +188,7 @@ export interface BehavioralFeatureInput {
   sample_size?: number;
   contributes_to?: string;
   contribution_weight?: number;
-  evidence?: Record<string, any>;
+  evidence?: Record<string, unknown>;
 }
 
 // ====================================================================
@@ -227,7 +227,7 @@ export interface UniquePattern {
   is_defining: boolean;
 
   // Supporting evidence
-  evidence?: Record<string, any>;
+  evidence?: Record<string, unknown>;
 
   // Timestamps
   detected_at: string;
@@ -250,7 +250,7 @@ export interface UniquePatternInput {
   behavioral_feature_ids?: string[];
   uniqueness_score?: number;
   is_defining?: boolean;
-  evidence?: Record<string, any>;
+  evidence?: Record<string, unknown>;
 }
 
 // ====================================================================
@@ -264,7 +264,7 @@ export interface PlatformPrivacyOverride {
   reveal_level: number;
   hide_genres?: string[];
   hide_series?: boolean;
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 /**
@@ -275,7 +275,7 @@ export interface AudienceProfile {
   reveal_level: number;
   hide_clusters?: string[];
   show_clusters?: string[];
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 /**

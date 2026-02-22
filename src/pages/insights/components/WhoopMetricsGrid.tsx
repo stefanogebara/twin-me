@@ -131,6 +131,7 @@ export const WhoopMetricsGrid: React.FC<WhoopMetricsGridProps> = ({
             </div>
             <div className="flex items-baseline gap-1">
               <span className="text-2xl font-medium" style={{ color: colors.text }}>
+                {/* eslint-disable-next-line @typescript-eslint/no-explicit-any -- metrics has additional dynamic fields */}
                 {(metrics as any)?.sleepHours || sleepBreakdown.totalHours}
               </span>
               <span className="text-sm" style={{ color: colors.textSecondary }}>hours</span>

@@ -35,7 +35,7 @@ const OAuthCallback = () => {
     const handleOAuthCallback = async () => {
       try {
         const code = searchParams.get('code');
-        let state = searchParams.get('state');  // Changed to let so we can reassign for fallback
+        const state = searchParams.get('state');  // Changed to let so we can reassign for fallback
         const error = searchParams.get('error');
 
         // CRITICAL: Prevent duplicate API calls using sessionStorage

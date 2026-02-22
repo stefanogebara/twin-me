@@ -229,10 +229,10 @@ export interface PrivacyAuditLog {
   previous_global_privacy?: number;
   new_global_privacy?: number;
   cluster_changes?: {
-    previous: Record<string, any>;
-    new: Record<string, any>;
+    previous: Record<string, unknown>;
+    new: Record<string, unknown>;
   };
-  metadata: Record<string, any>;
+  metadata: Record<string, unknown>;
   changed_at: string;
 }
 

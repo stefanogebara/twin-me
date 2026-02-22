@@ -121,6 +121,7 @@ export async function fetchPlatformConnections(userId?: string): Promise<Platfor
 /**
  * Transform backend platform data to frontend format
  */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any -- backend platform data has dynamic shape
 function transformPlatformData(backendData: any[]): PlatformStatus[] {
   const statuses: PlatformStatus[] = [];
 
@@ -155,6 +156,7 @@ function transformPlatformData(backendData: any[]): PlatformStatus[] {
 /**
  * Transform demo platform data to frontend format
  */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any -- demo platform data has dynamic shape
 function transformDemoPlatformData(demoData: any[]): PlatformStatus[] {
   const statuses: PlatformStatus[] = [];
 

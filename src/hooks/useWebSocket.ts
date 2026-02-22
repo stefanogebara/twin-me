@@ -9,7 +9,7 @@ import { useAuth } from '../contexts/AuthContext';
 export interface WebSocketMessage {
   type: string;
   timestamp: string;
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 export interface ExtractionProgress {
@@ -31,7 +31,7 @@ export interface ConnectionStatus {
 interface UseWebSocketReturn {
   connected: boolean;
   lastMessage: WebSocketMessage | null;
-  sendMessage: (message: any) => void;
+  sendMessage: (message: unknown) => void;
   reconnect: () => void;
 }
 
@@ -158,7 +158,7 @@ export function useWebSocket(onMessage?: (message: WebSocketMessage) => void): U
     }
   }, [user?.id]); // Removed onMessage dependency - using ref instead
 
-  const sendMessage = useCallback((message: any) => {
+  const sendMessage = useCallback((message: unknown) => {
     if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
       wsRef.current.send(JSON.stringify(message));
     }

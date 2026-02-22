@@ -310,8 +310,7 @@ const InstantTwinOnboarding = () => {
     try {
       const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
 
-      let apiUrl: string;
-      let fetchOptions: RequestInit = {
+      const fetchOptions: RequestInit = {
         method: 'DELETE',
         headers: {
           'Content-Type': 'application/json',
@@ -320,7 +319,7 @@ const InstantTwinOnboarding = () => {
       };
 
       // Use standard connectors endpoint for disconnect
-      apiUrl = `${baseUrl}/connectors/${provider}/${encodeURIComponent(user.id)}`;
+      const apiUrl = `${baseUrl}/connectors/${provider}/${encodeURIComponent(user.id)}`;
 
       const response = await fetch(apiUrl, fetchOptions);
 
