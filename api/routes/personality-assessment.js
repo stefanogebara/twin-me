@@ -391,7 +391,13 @@ router.delete('/reset', authenticateToken, async (req, res) => {
  */
 router.post('/seed', async (req, res) => {
   try {
-    // In production, add admin authentication here
+    // Require CRON_SECRET for admin-only database seeding operation
+    const cronSecret = req.headers['x-vercel-cron-secret'] || req.headers['authorization'];
+    const expectedSecret = process.env.CRON_SECRET;
+    if (expectedSecret && cronSecret !== expectedSecret && cronSecret !== `Bearer ${expectedSecret}`) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+
     console.log('[Personality] Starting database seeding...');
 
     await seedQuestionsToDatabase();

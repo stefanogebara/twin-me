@@ -51,21 +51,15 @@ function getSupabaseClient() {
  * POST /api/resume/upload
  * Upload and parse a resume file
  */
-router.post('/upload', upload.single('resume'), async (req, res) => {
+router.post('/upload', authenticateUser, upload.single('resume'), async (req, res) => {
   try {
-    const { userId, name } = req.body;
+    const userId = req.user.id;
+    const { name } = req.body;
 
     if (!req.file) {
       return res.status(400).json({
         success: false,
         error: 'No file uploaded'
-      });
-    }
-
-    if (!userId) {
-      return res.status(400).json({
-        success: false,
-        error: 'userId is required'
       });
     }
 
@@ -158,21 +152,15 @@ router.post('/upload', upload.single('resume'), async (req, res) => {
  * POST /api/resume/parse-text
  * Parse resume from pasted text
  */
-router.post('/parse-text', async (req, res) => {
+router.post('/parse-text', authenticateUser, async (req, res) => {
   try {
-    const { userId, text, name } = req.body;
+    const userId = req.user.id;
+    const { text, name } = req.body;
 
     if (!text || text.trim().length < 50) {
       return res.status(400).json({
         success: false,
         error: 'Please provide resume text (minimum 50 characters)'
-      });
-    }
-
-    if (!userId) {
-      return res.status(400).json({
-        success: false,
-        error: 'userId is required'
       });
     }
 
