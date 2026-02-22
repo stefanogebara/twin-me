@@ -11,10 +11,8 @@ import { ErrorProvider } from "./contexts/ErrorContext";
 import { AnalyticsProvider, useAnalytics } from "./contexts/AnalyticsContext";
 import ErrorNotification from "./components/ui/ErrorNotification";
 import ProtectedRoute from "./components/ProtectedRoute";
-import { ThemeProvider } from "./contexts/ThemeContext";
 import { DemoProvider } from "./contexts/DemoContext";
 import { NavigationProvider } from "./contexts/NavigationContext";
-import { PipedreamProvider } from "./contexts/PipedreamContext";
 import { SidebarProvider } from "./contexts/SidebarContext";
 import { useExtensionSync } from "./hooks/useExtensionSync";
 import DemoBanner from "./components/DemoBanner";
@@ -73,15 +71,20 @@ const App = () => {
   // Automatically sync auth tokens to browser extension
   useExtensionSync();
 
+  // Force light mode
+  if (typeof window !== 'undefined') {
+    localStorage.removeItem('theme');
+    document.documentElement.classList.remove('dark');
+    document.documentElement.setAttribute('data-theme', 'light');
+  }
+
   return (
-  <ThemeProvider>
     <DemoProvider>
       <ErrorBoundary showHomeButton>
         <ErrorProvider>
           <LoadingProvider>
             <AnalyticsProvider>
               <QueryClientProvider client={queryClient}>
-                <PipedreamProvider>
                   <TooltipProvider>
                     <Toaster />
                     <Sonner />
@@ -291,14 +294,12 @@ const App = () => {
                       </SidebarProvider>
         </BrowserRouter>
                   </TooltipProvider>
-                </PipedreamProvider>
             </QueryClientProvider>
           </AnalyticsProvider>
         </LoadingProvider>
       </ErrorProvider>
     </ErrorBoundary>
     </DemoProvider>
-  </ThemeProvider>
   );
 };
 

@@ -73,7 +73,7 @@ Based on Park et al., UIST 2023 ("Generative Agents: Interactive Simulacra of Hu
 
 ### Memory Stream (`user_memories` table)
 Single unified store for ALL memory types:
-- **Observations** - Raw platform data (Spotify plays, calendar events, Whoop recovery)
+- **Observations** - Raw platform data (Spotify plays, calendar events, YouTube activity)
 - **Conversations** - Per-utterance chat exchanges with the twin
 - **Facts** - Extracted facts about the user
 - **Reflections** - Higher-level synthesized insights (stored back as memories)
@@ -171,12 +171,10 @@ Flow: Observation ingestion -> `generateGoalSuggestions()` -> user accepts -> `t
 - **Auth**: JWT + OAuth 2.0 for platform connections
 - **Analytics**: PostHog
 
-## Active Platform Integrations (5)
+## Active Platform Integrations (3)
 1. **Spotify** - Music taste, listening patterns, mood
 2. **Google Calendar** - Schedule, events, time patterns
-3. **Whoop** - Recovery, strain, sleep, HRV
-4. **YouTube** - Content preferences, subscriptions
-5. **Twitch** - Gaming identity, followed channels
+3. **YouTube** - Content preferences, subscriptions
 
 ## LLM Model Strategy
 | Tier | Use Case | OpenRouter Model ID | Why |
@@ -207,8 +205,7 @@ twin-ai-learn/
 │   ├── middleware/          # Auth, rate limiting, validation
 │   └── config/             # AI models, constants
 ├── database/               # Supabase migrations
-├── browser-extension/      # Chrome extension
-└── _archive/               # Archived dead code
+└── browser-extension/      # Chrome extension
 ```
 
 ## Environment Variables (Required)
@@ -219,7 +216,7 @@ JWT_SECRET, ENCRYPTION_KEY
 OPENROUTER_API_KEY
 SPOTIFY_CLIENT_ID, SPOTIFY_CLIENT_SECRET
 GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET
-WHOOP_CLIENT_ID, WHOOP_CLIENT_SECRET
+YOUTUBE_API_KEY
 ```
 
 ## Philosophy
