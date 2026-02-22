@@ -86,16 +86,14 @@ class ExtractionOrchestrator {
       }
 
       // 3b. Invalidate stale twin_summaries so a fresh one regenerates on next chat
-      try {
-        const { error: invalidateErr } = await supabase
-          .from('twin_summaries')
-          .delete()
-          .eq('user_id', userId);
-        if (!invalidateErr) {
-          console.log('🗑️ [Orchestrator] Invalidated twin_summaries for fresh regeneration');
-        }
-      } catch (invalidateErr) {
+      const { error: invalidateErr } = await supabase
+        .from('twin_summaries')
+        .delete()
+        .eq('user_id', userId);
+      if (invalidateErr) {
         console.warn('[Orchestrator] twin_summaries invalidation failed (non-blocking):', invalidateErr.message);
+      } else {
+        console.log('🗑️ [Orchestrator] Invalidated twin_summaries for fresh regeneration');
       }
 
       // 4. Return summary
@@ -471,11 +469,15 @@ class ExtractionOrchestrator {
 
       try {
         // Get all users with connected platforms (bounded to prevent loading entire table)
-        const { data: users } = await supabase
+        const { data: users, error: usersErr } = await supabase
           .from('platform_connections')
           .select('user_id')
           .not('access_token', 'is', null)
           .limit(1000);
+        if (usersErr) {
+          console.error('[Orchestrator] Failed to fetch users for periodic sync:', usersErr.message);
+          return;
+        }
 
         if (!users || users.length === 0) {
           console.log('   No users to sync');

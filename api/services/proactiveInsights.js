@@ -179,17 +179,13 @@ async function markInsightsDelivered(insightIds) {
   }
   insightIds = validIds;
 
-  try {
-    const { error } = await supabaseAdmin
-      .from('proactive_insights')
-      .update({ delivered: true, delivered_at: new Date().toISOString() })
-      .in('id', insightIds);
+  const { error: deliveredErr } = await supabaseAdmin
+    .from('proactive_insights')
+    .update({ delivered: true, delivered_at: new Date().toISOString() })
+    .in('id', insightIds);
 
-    if (error) {
-      console.warn('[ProactiveInsights] Failed to mark delivered:', error.message);
-    }
-  } catch (err) {
-    console.warn('[ProactiveInsights] markDelivered error:', err.message);
+  if (deliveredErr) {
+    console.warn('[ProactiveInsights] Failed to mark delivered:', deliveredErr.message);
   }
 }
 

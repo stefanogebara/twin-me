@@ -209,7 +209,7 @@ export async function analyzeAndUpdateConversationLog(conversationLogId) {
 
     if (!result.success) {
       // Update job status as failed
-      await supabaseAdmin
+      const { error: failUpdateErr } = await supabaseAdmin
         .from('conversation_analysis_jobs')
         .update({
           status: 'failed',
@@ -217,6 +217,7 @@ export async function analyzeAndUpdateConversationLog(conversationLogId) {
           completed_at: new Date().toISOString()
         })
         .eq('conversation_log_id', conversationLogId);
+      if (failUpdateErr) console.warn('[ConversationAIAnalyzer] Failed to mark job as failed:', failUpdateErr.message);
 
       return result;
     }
@@ -320,7 +321,7 @@ Respond with ONLY a valid JSON object:
     }
 
     // Update the session with summary
-    await supabaseAdmin
+    const { error: sessionUpdateErr } = await supabaseAdmin
       .from('conversation_sessions')
       .update({
         session_summary: analysis.summary,
@@ -331,6 +332,7 @@ Respond with ONLY a valid JSON object:
         updated_at: new Date().toISOString()
       })
       .eq('id', sessionId);
+    if (sessionUpdateErr) console.warn('[ConversationAIAnalyzer] Failed to update session summary:', sessionUpdateErr.message);
 
     console.log('[ConversationAIAnalyzer] Session analyzed:', sessionId);
 
@@ -416,13 +418,14 @@ export async function processPendingJobs(limit = 10) {
     for (const job of jobs) {
       try {
         // Mark as processing
-        await supabaseAdmin
+        const { error: processingErr } = await supabaseAdmin
           .from('conversation_analysis_jobs')
           .update({
             status: 'processing',
             started_at: new Date().toISOString()
           })
           .eq('id', job.id);
+        if (processingErr) console.warn('[ConversationAIAnalyzer] Failed to mark job as processing:', processingErr.message);
 
         // Process the job
         const startTime = Date.now();
@@ -430,7 +433,7 @@ export async function processPendingJobs(limit = 10) {
         const processingTimeMs = Date.now() - startTime;
 
         if (result.success) {
-          await supabaseAdmin
+          const { error: completedErr } = await supabaseAdmin
             .from('conversation_analysis_jobs')
             .update({
               status: 'completed',
@@ -441,6 +444,7 @@ export async function processPendingJobs(limit = 10) {
               analysis_result: result.analysis
             })
             .eq('id', job.id);
+          if (completedErr) console.warn('[ConversationAIAnalyzer] Failed to mark job as completed:', completedErr.message);
 
           processed++;
         } else {
@@ -448,7 +452,7 @@ export async function processPendingJobs(limit = 10) {
         }
 
       } catch (jobError) {
-        await supabaseAdmin
+        const { error: jobFailErr } = await supabaseAdmin
           .from('conversation_analysis_jobs')
           .update({
             status: 'failed',
@@ -456,6 +460,7 @@ export async function processPendingJobs(limit = 10) {
             error_message: jobError.message
           })
           .eq('id', job.id);
+        if (jobFailErr) console.warn('[ConversationAIAnalyzer] Failed to mark job as failed:', jobFailErr.message);
 
         failed++;
       }

@@ -104,10 +104,11 @@ class DataExtractionService {
 
       // Update job to 'running' status
       if (jobId) {
-        await getSupabaseClient()
+        const { error: runningErr } = await getSupabaseClient()
           .from('data_extraction_jobs')
           .update({ status: 'running' })
           .eq('id', jobId);
+        if (runningErr) console.warn('[DataExtraction] Failed to update job to running:', runningErr.message);
 
         // Notify user via WebSocket that extraction has started
         notifyExtractionStarted(userId, jobId, platform);
@@ -121,18 +122,20 @@ class DataExtractionService {
           await storeYT(userId, 'youtube', ytResult);
           const ytItems = Object.keys(ytResult.data || {}).length;
           if (jobId) {
-            await getSupabaseClient()
+            const { error: ytCompleteErr } = await getSupabaseClient()
               .from('data_extraction_jobs')
               .update({ status: 'completed', items_extracted: ytItems, completed_at: new Date().toISOString() })
               .eq('id', jobId);
+            if (ytCompleteErr) console.warn('[DataExtraction] Failed to mark YouTube job completed:', ytCompleteErr.message);
           }
           return { success: true, platform, message: 'YouTube data extracted via Nango', itemsExtracted: ytItems, skipped: false };
         }
         if (jobId) {
-          await getSupabaseClient()
+          const { error: ytFailErr } = await getSupabaseClient()
             .from('data_extraction_jobs')
             .update({ status: 'failed', error_message: ytResult.error || 'Nango extraction failed', completed_at: new Date().toISOString() })
             .eq('id', jobId);
+          if (ytFailErr) console.warn('[DataExtraction] Failed to mark YouTube job failed:', ytFailErr.message);
         }
         return { success: false, platform, message: ytResult.error || 'YouTube extraction failed', itemsExtracted: 0, skipped: false };
       }
@@ -144,18 +147,20 @@ class DataExtractionService {
           await storeNangoExtractionData(userId, 'twitch', twitchResult);
           const twitchItems = Object.keys(twitchResult.data || {}).length;
           if (jobId) {
-            await getSupabaseClient()
+            const { error: twitchCompleteErr } = await getSupabaseClient()
               .from('data_extraction_jobs')
               .update({ status: 'completed', items_extracted: twitchItems, completed_at: new Date().toISOString() })
               .eq('id', jobId);
+            if (twitchCompleteErr) console.warn('[DataExtraction] Failed to mark Twitch job completed:', twitchCompleteErr.message);
           }
           return { success: true, platform, message: 'Twitch data extracted via Nango', itemsExtracted: twitchItems, skipped: false };
         }
         if (jobId) {
-          await getSupabaseClient()
+          const { error: twitchFailErr } = await getSupabaseClient()
             .from('data_extraction_jobs')
             .update({ status: 'failed', error_message: twitchResult.error || 'Nango extraction failed', completed_at: new Date().toISOString() })
             .eq('id', jobId);
+          if (twitchFailErr) console.warn('[DataExtraction] Failed to mark Twitch job failed:', twitchFailErr.message);
         }
         return { success: false, platform, message: twitchResult.error || 'Twitch extraction failed', itemsExtracted: 0, skipped: false };
       }
@@ -163,10 +168,11 @@ class DataExtractionService {
       if (platform === 'whoop') {
         console.log(`[DataExtraction] Whoop uses direct API extraction via featureExtractor - skipping raw data storage`);
         if (jobId) {
-          await getSupabaseClient()
+          const { error: whoopErr } = await getSupabaseClient()
             .from('data_extraction_jobs')
             .update({ status: 'completed', completed_at: new Date().toISOString() })
             .eq('id', jobId);
+          if (whoopErr) console.warn('[DataExtraction] Failed to mark Whoop job completed:', whoopErr.message);
         }
         return { success: true, platform, message: 'Whoop data will be extracted during soul signature generation', itemsExtracted: 0, skipped: false };
       }
@@ -314,24 +320,23 @@ class DataExtractionService {
         console.warn(`[DataExtraction] 401 Unauthorized for ${platform} - token likely expired or revoked`);
 
         // Mark connector as disconnected
-        try {
-          await getSupabaseClient()
-            .from('platform_connections')
-            .update({
-              metadata: {
-                auth_error: true,
-                last_error: '401 Unauthorized - Token expired or revoked',
-                error_timestamp: new Date().toISOString()
-              }
-            })
-            .eq('user_id', userId)
-            .eq('platform', platform);
-
-          // Notify user via WebSocket about connection status
-          notifyConnectionStatus(userId, platform, 'unauthorized', 'Authentication failed. Please reconnect your account.');
-        } catch (updateError) {
-          console.error(`[DataExtraction] Failed to update connector status:`, updateError);
+        const { error: connStatusErr } = await getSupabaseClient()
+          .from('platform_connections')
+          .update({
+            metadata: {
+              auth_error: true,
+              last_error: '401 Unauthorized - Token expired or revoked',
+              error_timestamp: new Date().toISOString()
+            }
+          })
+          .eq('user_id', userId)
+          .eq('platform', platform);
+        if (connStatusErr) {
+          console.error(`[DataExtraction] Failed to update connector status:`, connStatusErr.message);
         }
+
+        // Notify user via WebSocket about connection status
+        notifyConnectionStatus(userId, platform, 'unauthorized', 'Authentication failed. Please reconnect your account.');
 
         return {
           success: false,
