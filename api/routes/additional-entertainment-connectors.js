@@ -307,9 +307,10 @@ router.post('/connect/strava', authenticateUser, async (req, res) => {
 });
 
 // Manual Netflix Data Import
-router.post('/import/netflix', async (req, res) => {
+router.post('/import/netflix', authenticateUser, async (req, res) => {
   try {
-    const { userId, viewingHistory } = req.body;
+    const userId = req.user.id;
+    const { viewingHistory } = req.body;
 
     if (!viewingHistory || !Array.isArray(viewingHistory)) {
       return res.status(400).json({
@@ -338,9 +339,10 @@ router.post('/import/netflix', async (req, res) => {
 });
 
 // HBO Max Manual Import
-router.post('/import/hbo-max', async (req, res) => {
+router.post('/import/hbo-max', authenticateUser, async (req, res) => {
   try {
-    const { userId, watchlist } = req.body;
+    const userId = req.user.id;
+    const { watchlist } = req.body;
 
     res.json({
       success: true,
