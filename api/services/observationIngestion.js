@@ -27,6 +27,7 @@ import { shouldTriggerReflection, generateReflections } from './reflectionEngine
 import { generateProactiveInsights } from './proactiveInsights.js';
 import { trackGoalProgress, generateGoalSuggestions } from './goalTrackingService.js';
 import { generateTwinSummary } from './twinSummaryService.js';
+import { seedMemoriesFromEnrichment } from './enrichmentMemoryBridge.js';
 
 // Lazy-load to avoid circular dependency
 let supabaseAdmin = null;
@@ -927,6 +928,26 @@ async function runPostOnboardingIngestion(userId) {
       } catch (err) {
         console.warn(`[ObservationIngestion] Post-onboarding ${conn.platform} error:`, err.message);
       }
+    }
+
+    // Seed memories from enrichment data for new users with thin memory streams.
+    // This runs regardless of platform connections — gives the twin something to say
+    // on first chat even if the user hasn't connected any platforms yet.
+    try {
+      const supabaseForCount = await getSupabase();
+      const { count } = await supabaseForCount
+        .from('user_memories')
+        .select('id', { count: 'exact', head: true })
+        .eq('user_id', userId);
+      if ((count || 0) < 10) {
+        const seedResult = await seedMemoriesFromEnrichment(userId);
+        if (seedResult.memoriesStored > 0) {
+          totalStored += seedResult.memoriesStored;
+          console.log(`[PostOnboarding] Seeded ${seedResult.memoriesStored} memories from enrichment for user ${userId}`);
+        }
+      }
+    } catch (err) {
+      console.warn('[PostOnboarding] Enrichment memory seeding error:', err.message);
     }
 
     // Trigger reflections if enough data

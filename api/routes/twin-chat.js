@@ -1218,4 +1218,92 @@ router.post('/chat', (req, res) => {
   });
 });
 
+/**
+ * GET /api/chat/intro - Generate a personalized first greeting from the twin.
+ *
+ * Called by the frontend when the chat page loads for the first time (0 messages).
+ * Uses soul signature archetype + enrichment context to craft a warm, curious opening.
+ * Cheap: single LLM call with small context; cached per user for 24 hours.
+ */
+router.get('/intro', authenticateUser, async (req, res) => {
+  try {
+    const userId = req.user.id;
+
+    // Check if user already has conversation messages — intro only for fresh users
+    const { data: existing } = await supabaseAdmin
+      .from('conversations')
+      .select('id')
+      .eq('user_id', userId)
+      .limit(1);
+    if (existing && existing.length > 0) {
+      return res.json({ success: true, intro: null, reason: 'not_first_visit' });
+    }
+
+    // Fetch soul signature
+    const { data: sig } = await supabaseAdmin
+      .from('soul_signatures')
+      .select('archetype_name, archetype_subtitle, narrative, defining_traits')
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .single();
+
+    // Fetch display name
+    const { data: userRow } = await supabaseAdmin
+      .from('users')
+      .select('first_name, email')
+      .eq('id', userId)
+      .single();
+    const firstName = userRow?.first_name || userRow?.email?.split('@')[0] || null;
+
+    // Fetch enrichment bio/interests as extra context
+    const { data: enrichment } = await supabaseAdmin
+      .from('enriched_profiles')
+      .select('discovered_bio, interests_and_hobbies, personality_traits')
+      .eq('user_id', userId)
+      .single();
+
+    // Build a minimal prompt for the greeting
+    const archetypeBlock = sig
+      ? `Archetype: ${sig.archetype_name}${sig.archetype_subtitle ? ` — ${sig.archetype_subtitle}` : ''}\n${sig.narrative ? `Description: ${sig.narrative}` : ''}`
+      : 'No archetype yet';
+    const traitsBlock = (() => {
+      if (!sig?.defining_traits) return '';
+      const traits = Array.isArray(sig.defining_traits)
+        ? sig.defining_traits.slice(0, 3).map(t => (typeof t === 'object' ? t.trait || t : t)).join(', ')
+        : String(sig.defining_traits).substring(0, 200);
+      return traits ? `Core traits: ${traits}` : '';
+    })();
+    const enrichmentBlock = [
+      enrichment?.interests_and_hobbies ? `Interests: ${String(enrichment.interests_and_hobbies).substring(0, 200)}` : '',
+      enrichment?.personality_traits ? `Personality: ${String(enrichment.personality_traits).substring(0, 200)}` : '',
+    ].filter(Boolean).join('\n');
+
+    const greetingPrompt = `You are someone's digital twin — their AI reflection that truly knows them. You are about to say hello to ${firstName || 'your person'} for the very first time.
+
+What you know about them:
+${archetypeBlock}
+${traitsBlock}
+${enrichmentBlock || 'Still learning about you.'}
+
+Write a short, warm, genuinely curious greeting (2-3 sentences max).
+- Greet them by first name if known
+- Reference their archetype or a specific trait naturally — not generically
+- End with an open, curious question that invites them to explore something together
+- Speak as their twin — intimate, direct, a bit knowing
+- No fluff, no "I'm an AI" disclaimers, no corporate language
+- Sound like someone who already knows them a little and is eager to know them better`;
+
+    const intro = await complete(
+      [{ role: 'user', content: greetingPrompt }],
+      { model: TIER_CHAT, maxTokens: 150, temperature: 0.8 }
+    );
+
+    res.json({ success: true, intro: intro?.trim() || null });
+  } catch (err) {
+    console.error('[Twin Chat] /intro error:', err.message);
+    res.json({ success: true, intro: null }); // Non-fatal — just show empty state
+  }
+});
+
 export default router;
