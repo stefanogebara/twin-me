@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { PageLayout } from '../components/layout/PageLayout';
@@ -30,12 +30,6 @@ const SoulSignatureDashboard: React.FC = () => {
 
   const API_URL = import.meta.env.VITE_API_URL;
 
-  // Redirect if not authenticated
-  if (!user) {
-    navigate('/auth');
-    return null;
-  }
-
   const { data: portrait, isLoading, error, refetch } = useTwinPortrait(!!user);
 
   // Use cached archetype from onboarding if portrait API hasn't loaded yet
@@ -47,6 +41,13 @@ const SoulSignatureDashboard: React.FC = () => {
       return null;
     }
   }, []);
+
+  // Redirect if not authenticated (after all hooks)
+  useEffect(() => {
+    if (!user) navigate('/auth');
+  }, [user, navigate]);
+
+  if (!user) return null;
 
   // portrait.soulSignature from API, falling back to sessionStorage cache
   const displaySoulSignature = (portrait as any)?.soulSignature ?? cachedArchetype;

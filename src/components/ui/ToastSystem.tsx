@@ -4,7 +4,7 @@
  * Built on top of the existing Radix UI Toast primitives
  */
 
-import React, { createContext, useContext, useReducer, useCallback } from 'react';
+import React, { createContext, useContext, useReducer, useCallback, useEffect } from 'react';
 import {
   Toast,
   ToastAction,
@@ -75,6 +75,9 @@ interface ToastContextType {
 
 const ToastContext = createContext<ToastContextType | undefined>(undefined);
 
+// Module-level API store — populated by ToastSystemProvider so toast.x() works outside React
+let _toastApi: Pick<ToastContextType, 'showToast' | 'hideToast'> | null = null;
+
 // Hook to use toast
 export function useToastSystem() {
   const context = useContext(ToastContext);
@@ -101,6 +104,12 @@ export function ToastSystemProvider({ children }: { children: React.ReactNode })
   const clearAllToasts = useCallback(() => {
     dispatch({ type: 'CLEAR_ALL' });
   }, []);
+
+  // Populate module-level API so toast.x() works outside React components
+  useEffect(() => {
+    _toastApi = { showToast, hideToast };
+    return () => { _toastApi = null; };
+  }, [showToast, hideToast]);
 
   return (
     <ToastContext.Provider value={{ toasts: state.toasts, showToast, hideToast, clearAllToasts }}>
@@ -166,36 +175,30 @@ function ToastItem({ toast, onClose }: { toast: ToastMessage; onClose: () => voi
   );
 }
 
-// Convenience toast object with methods
+// Convenience toast object with methods — uses module-level API, safe to call outside React
 export const toast = {
   success: (title: string, description?: string, duration?: number) => {
-    const { showToast } = useToastSystem();
-    return showToast({ type: 'success', title, description, duration });
+    return _toastApi?.showToast({ type: 'success', title, description, duration }) ?? '';
   },
 
   error: (title: string, description?: string, duration?: number) => {
-    const { showToast } = useToastSystem();
-    return showToast({ type: 'error', title, description, duration });
+    return _toastApi?.showToast({ type: 'error', title, description, duration }) ?? '';
   },
 
   warning: (title: string, description?: string, duration?: number) => {
-    const { showToast } = useToastSystem();
-    return showToast({ type: 'warning', title, description, duration });
+    return _toastApi?.showToast({ type: 'warning', title, description, duration }) ?? '';
   },
 
   info: (title: string, description?: string, duration?: number) => {
-    const { showToast } = useToastSystem();
-    return showToast({ type: 'info', title, description, duration });
+    return _toastApi?.showToast({ type: 'info', title, description, duration }) ?? '';
   },
 
   loading: (title: string, description?: string) => {
-    const { showToast } = useToastSystem();
-    return showToast({ type: 'loading', title, description, duration: 0 });
+    return _toastApi?.showToast({ type: 'loading', title, description, duration: 0 }) ?? '';
   },
 
   custom: (title: string, description?: string, action?: { label: string; onClick: () => void }) => {
-    const { showToast } = useToastSystem();
-    return showToast({ type: 'default', title, description, action });
+    return _toastApi?.showToast({ type: 'default', title, description, action }) ?? '';
   },
 
   promise: async <T,>(
@@ -206,19 +209,18 @@ export const toast = {
       error: string | ((error: any) => string);
     }
   ): Promise<T> => {
-    const { showToast, hideToast } = useToastSystem();
-    const loadingId = showToast({ type: 'loading', title: messages.loading, duration: 0 });
+    const loadingId = _toastApi?.showToast({ type: 'loading', title: messages.loading, duration: 0 }) ?? '';
 
     try {
       const result = await promise;
-      hideToast(loadingId);
+      _toastApi?.hideToast(loadingId);
       const successMessage = typeof messages.success === 'function' ? messages.success(result) : messages.success;
-      showToast({ type: 'success', title: successMessage });
+      _toastApi?.showToast({ type: 'success', title: successMessage });
       return result;
     } catch (error) {
-      hideToast(loadingId);
+      _toastApi?.hideToast(loadingId);
       const errorMessage = typeof messages.error === 'function' ? messages.error(error) : messages.error;
-      showToast({ type: 'error', title: errorMessage });
+      _toastApi?.showToast({ type: 'error', title: errorMessage });
       throw error;
     }
   },
