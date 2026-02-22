@@ -84,22 +84,24 @@ router.get('/evidence', authenticateUser, async (req, res) => {
     const evidence = await getUserEvidence(userId);
 
     // Get personality scores - try assessment first, then behavioral scores
-    const { data: assessment } = await supabase
+    const { data: assessment, error: assessmentErr } = await supabase
       .from('personality_assessments')
       .select('big_five_scores')
       .eq('user_id', userId)
       .order('created_at', { ascending: false })
       .limit(1);
+    if (assessmentErr) console.error('[PersonalityAPI] Assessment query error:', assessmentErr.message);
 
     let personality = assessment?.[0]?.big_five_scores;
 
     // Fallback to behavioral personality_scores if no assessment
     if (!personality) {
-      const { data: behavioralScores } = await supabase
+      const { data: behavioralScores, error: behavioralErr } = await supabase
         .from('personality_scores')
         .select('openness, conscientiousness, extraversion, agreeableness, neuroticism')
         .eq('user_id', userId)
         .single();
+      if (behavioralErr && behavioralErr.code !== 'PGRST116') console.error('[PersonalityAPI] Behavioral scores query error:', behavioralErr.message);
 
       personality = behavioralScores || {
         openness: 50,
@@ -152,22 +154,24 @@ router.get('/evidence/:userId', authenticateUser, async (req, res) => {
     const evidence = await getUserEvidence(userId);
 
     // Get personality scores - try assessment first, then behavioral scores
-    const { data: assessment } = await supabase
+    const { data: assessment, error: assessmentErr2 } = await supabase
       .from('personality_assessments')
       .select('big_five_scores')
       .eq('user_id', userId)
       .order('created_at', { ascending: false })
       .limit(1);
+    if (assessmentErr2) console.error('[PersonalityAPI] Assessment query error (by userId):', assessmentErr2.message);
 
     let personality = assessment?.[0]?.big_five_scores;
 
     // Fallback to behavioral personality_scores if no assessment
     if (!personality) {
-      const { data: behavioralScores } = await supabase
+      const { data: behavioralScores, error: behavioralErr2 } = await supabase
         .from('personality_scores')
         .select('openness, conscientiousness, extraversion, agreeableness, neuroticism')
         .eq('user_id', userId)
         .single();
+      if (behavioralErr2 && behavioralErr2.code !== 'PGRST116') console.error('[PersonalityAPI] Behavioral scores query error (by userId):', behavioralErr2.message);
 
       personality = behavioralScores || {
         openness: 50,
@@ -356,10 +360,11 @@ async function getDataSourceInfo(userId) {
 
   try {
     // Get platform raw data stats
-    const { data } = await supabase
+    const { data, error: dsErr } = await supabase
       .from('platform_raw_data')
       .select('platform, extracted_at, data')
       .eq('user_id', userId);
+    if (dsErr) console.error('[PersonalityAPI] Data source info query error:', dsErr.message);
 
     if (data) {
       for (const record of data) {
