@@ -32,7 +32,7 @@ const supabase = createClient(
  */
 router.get('/all', authenticateToken, async (req, res) => {
   try {
-    const userId = req.user.userId;
+    const userId = req.user.id;
 
     // Get user's connected platforms
     const { data: connections } = await supabase
@@ -77,7 +77,7 @@ router.get('/all', authenticateToken, async (req, res) => {
  */
 router.get('/stats', authenticateToken, async (req, res) => {
   try {
-    const userId = req.user.userId;
+    const userId = req.user.id;
 
     // Get connection count
     const { count: connectedCount } = await supabase
@@ -117,7 +117,7 @@ router.get('/stats', authenticateToken, async (req, res) => {
  */
 router.post('/connect/:platform', authenticateToken, async (req, res) => {
   try {
-    const userId = req.user.userId;
+    const userId = req.user.id;
     const platformId = req.params.platform;
 
     const platformConfig = getPlatformConfig(platformId);
@@ -318,7 +318,7 @@ router.get('/callback/:platform', async (req, res) => {
  */
 router.post('/extract/:platform', authenticateToken, async (req, res) => {
   try {
-    const userId = req.user.id || req.user.userId; // Support both formats
+    const userId = req.user.id;
     const platformId = req.params.platform;
 
     const platformConfig = getPlatformConfig(platformId);
@@ -364,7 +364,7 @@ router.post('/extract/:platform', authenticateToken, async (req, res) => {
  */
 router.delete('/disconnect/:platform', authenticateToken, async (req, res) => {
   try {
-    const userId = req.user.userId;
+    const userId = req.user.id;
     const platformId = req.params.platform;
 
     // Delete connection
