@@ -618,12 +618,13 @@ class UserContextAggregator {
 
     try {
       // First check for Google Calendar connection
-      const { data: connection } = await supabaseAdmin
+      const { data: connection, error: connErr } = await supabaseAdmin
         .from('platform_connections')
         .select('access_token, refresh_token, token_expires_at')
         .eq('user_id', userId)
         .eq('platform', 'google_calendar')
         .single();
+      if (connErr && connErr.code !== 'PGRST116') console.warn('[Context Aggregator] Calendar connection fetch error:', connErr.message);
 
       if (!connection) {
         console.log(`⚠️ [Context Aggregator] Google Calendar not connected`);
@@ -704,20 +705,17 @@ class UserContextAggregator {
     } catch (error) {
       console.error(`❌ [Context Aggregator] Calendar error:`, error.message);
       // Fall back to database if API fails
-      try {
-        const { data: events } = await supabaseAdmin
-          .from('calendar_events')
-          .select('*')
-          .eq('user_id', userId)
-          .gte('start_time', new Date().toISOString())
-          .order('start_time', { ascending: true })
-          .limit(5);
+      const { data: events, error: eventsErr } = await supabaseAdmin
+        .from('calendar_events')
+        .select('*')
+        .eq('user_id', userId)
+        .gte('start_time', new Date().toISOString())
+        .order('start_time', { ascending: true })
+        .limit(5);
+      if (eventsErr) console.warn('[Context Aggregator] Calendar fallback fetch error:', eventsErr.message);
 
-        if (events && events.length > 0) {
-          return this.formatCalendarEvents(events);
-        }
-      } catch {
-        // Ignore fallback error
+      if (events && events.length > 0) {
+        return this.formatCalendarEvents(events);
       }
       return null;
     }
@@ -771,11 +769,12 @@ class UserContextAggregator {
   async getPersonalityProfile(userId) {
     try {
       // First, check personality_estimates (60-question Big Five assessment)
-      const { data: estimates } = await supabaseAdmin
+      const { data: estimates, error: estErr } = await supabaseAdmin
         .from('personality_estimates')
         .select('*')
         .eq('user_id', userId)
         .single();
+      if (estErr && estErr.code !== 'PGRST116') console.warn('[Context Aggregator] personality_estimates fetch error:', estErr.message);
 
       if (estimates && estimates.total_questions_answered > 0) {
         console.log(`🧠 [Context Aggregator] Found personality assessment: ${estimates.archetype_code} (${estimates.total_questions_answered} questions)`);
@@ -794,11 +793,12 @@ class UserContextAggregator {
       }
 
       // Fall back to personality_scores (behavioral learning)
-      const { data: scores } = await supabaseAdmin
+      const { data: scores, error: scoresErr } = await supabaseAdmin
         .from('personality_scores')
         .select('*')
         .eq('user_id', userId)
         .single();
+      if (scoresErr && scoresErr.code !== 'PGRST116') console.warn('[Context Aggregator] personality_scores fetch error:', scoresErr.message);
 
       if (!scores) return null;
 

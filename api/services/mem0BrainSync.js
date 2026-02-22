@@ -84,20 +84,22 @@ async function classifyFact(factText) {
 async function findSimilarNodes(userId, label, keywords) {
   try {
     // Search by label similarity
-    const { data: labelMatches } = await supabaseAdmin
+    const { data: labelMatches, error: labelErr } = await supabaseAdmin
       .from('brain_nodes')
       .select('id, label, node_type, confidence, strength')
       .eq('user_id', userId)
       .ilike('label', `%${label.split(' ')[0]}%`)
       .limit(5);
+    if (labelErr) console.warn('[Mem0Sync] Error searching nodes by label:', labelErr.message);
 
     // Search by keywords in tags
-    const { data: tagMatches } = await supabaseAdmin
+    const { data: tagMatches, error: tagErr } = await supabaseAdmin
       .from('brain_nodes')
       .select('id, label, node_type, confidence, strength, tags')
       .eq('user_id', userId)
       .overlaps('tags', keywords)
       .limit(5);
+    if (tagErr) console.warn('[Mem0Sync] Error searching nodes by tags:', tagErr.message);
 
     // Combine and dedupe
     const allMatches = [...(labelMatches || []), ...(tagMatches || [])];
@@ -165,11 +167,12 @@ async function createBrainNode(userId, fact, classification) {
 async function reinforceNode(nodeId, fact) {
   try {
     // Get current node
-    const { data: node } = await supabaseAdmin
+    const { data: node, error: nodeErr } = await supabaseAdmin
       .from('brain_nodes')
       .select('strength, confidence, data')
       .eq('id', nodeId)
       .single();
+    if (nodeErr && nodeErr.code !== 'PGRST116') console.warn('[Mem0Sync] Error fetching node for reinforce:', nodeErr.message);
 
     if (!node) return null;
 
@@ -209,13 +212,14 @@ async function reinforceNode(nodeId, fact) {
 async function createEdgesBetweenKeywords(userId, newNodeId, keywords) {
   try {
     // Find nodes that share keywords
-    const { data: relatedNodes } = await supabaseAdmin
+    const { data: relatedNodes, error: relatedErr } = await supabaseAdmin
       .from('brain_nodes')
       .select('id, label, tags')
       .eq('user_id', userId)
       .neq('id', newNodeId)
       .overlaps('tags', keywords)
       .limit(5);
+    if (relatedErr) console.warn('[Mem0Sync] Error finding related nodes:', relatedErr.message);
 
     if (!relatedNodes || relatedNodes.length === 0) return [];
 
@@ -268,11 +272,12 @@ async function createEdgesBetweenKeywords(userId, newNodeId, keywords) {
 async function markFactAsSynced(factId, brainNodeId) {
   try {
     // Fetch current metadata and update
-    const { data: mem } = await supabaseAdmin
+    const { data: mem, error: memErr } = await supabaseAdmin
       .from('user_memories')
       .select('metadata')
       .eq('id', factId)
       .single();
+    if (memErr && memErr.code !== 'PGRST116') console.warn('[Mem0Sync] Error fetching memory for sync mark:', memErr.message);
 
     if (mem) {
       const { error } = await supabaseAdmin
@@ -449,29 +454,32 @@ export async function syncMem0ToBrain(userId, options = {}) {
 export async function getSyncStatus(userId) {
   try {
     // Count total facts
-    const { count: totalFacts } = await supabaseAdmin
+    const { count: totalFacts, error: factsErr } = await supabaseAdmin
       .from('user_memories')
       .select('*', { count: 'exact', head: true })
       .eq('user_id', userId)
       .eq('memory_type', 'fact');
+    if (factsErr) console.warn('[Mem0Sync] Error counting total facts:', factsErr.message);
 
     // Count synced facts
-    const { data: syncedData } = await supabaseAdmin
+    const { data: syncedData, error: syncedErr } = await supabaseAdmin
       .from('user_memories')
       .select('id')
       .eq('user_id', userId)
       .eq('memory_type', 'fact')
       .not('metadata->synced_to_brain', 'is', null)
       .eq('metadata->synced_to_brain', true);
+    if (syncedErr) console.warn('[Mem0Sync] Error counting synced facts:', syncedErr.message);
 
     const syncedFacts = syncedData?.length || 0;
 
     // Count brain nodes from mem0
-    const { count: brainNodes } = await supabaseAdmin
+    const { count: brainNodes, error: brainNodesErr } = await supabaseAdmin
       .from('brain_nodes')
       .select('*', { count: 'exact', head: true })
       .eq('user_id', userId)
       .eq('source_type', 'mem0_sync');
+    if (brainNodesErr) console.warn('[Mem0Sync] Error counting brain nodes:', brainNodesErr.message);
 
     return {
       totalFacts,

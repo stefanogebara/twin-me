@@ -196,13 +196,14 @@ class TwinsBrainService {
       .map(([cat]) => cat);
 
     // Get previous snapshot for comparison
-    const { data: prevSnapshot } = await this.supabase
+    const { data: prevSnapshot, error: prevSnapErr } = await this.supabase
       .from('brain_snapshots')
       .select('node_count, edge_count')
       .eq('user_id', userId)
       .order('snapshot_date', { ascending: false })
       .limit(1)
       .single();
+    if (prevSnapErr && prevSnapErr.code !== 'PGRST116') console.warn('[TwinsBrain] Failed to fetch previous snapshot:', prevSnapErr.message);
 
     const nodesAdded = prevSnapshot ? Math.max(0, nodes.length - prevSnapshot.node_count) : nodes.length;
     const nodesRemoved = prevSnapshot ? Math.max(0, prevSnapshot.node_count - nodes.length) : 0;
@@ -474,19 +475,18 @@ class TwinsBrainService {
   // ------------------------------------------------------------------
 
   async _logActivity(userId, activityType, entityType, entityId, changeData = {}, triggerSource = null) {
-    try {
-      await this.supabase
-        .from('brain_activity_log')
-        .insert({
-          user_id: userId,
-          activity_type: activityType,
-          entity_type: entityType,
-          entity_id: entityId,
-          change_data: changeData,
-          trigger_source: triggerSource
-        });
-    } catch (err) {
-      console.error('[TwinsBrain] Failed to log activity:', err.message);
+    const { error } = await this.supabase
+      .from('brain_activity_log')
+      .insert({
+        user_id: userId,
+        activity_type: activityType,
+        entity_type: entityType,
+        entity_id: entityId,
+        change_data: changeData,
+        trigger_source: triggerSource
+      });
+    if (error) {
+      console.error('[TwinsBrain] Failed to log activity:', error.message);
     }
   }
 

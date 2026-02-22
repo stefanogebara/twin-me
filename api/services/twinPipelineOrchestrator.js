@@ -442,22 +442,21 @@ class TwinPipelineOrchestrator {
    * Update pipeline record in database
    */
   async updatePipelineRecord(userId, pipelineId, status, data) {
-    try {
-      await supabaseAdmin
-        .from('data_extraction_jobs')
-        .insert({
-          user_id: userId,
-          platform: 'pipeline',
-          status,
-          started_at: this.runningPipelines.get(userId)?.startedAt || new Date().toISOString(),
-          completed_at: new Date().toISOString(),
-          total_items: data?.aggregationResult?.featureCount || 0,
-          processed_items: data?.extractionResult?.successful || 0,
-          error_message: data?.error || null
-        });
+    const { error } = await supabaseAdmin
+      .from('data_extraction_jobs')
+      .insert({
+        user_id: userId,
+        platform: 'pipeline',
+        status,
+        started_at: this.runningPipelines.get(userId)?.startedAt || new Date().toISOString(),
+        completed_at: new Date().toISOString(),
+        total_items: data?.aggregationResult?.featureCount || 0,
+        processed_items: data?.extractionResult?.successful || 0,
+        error_message: data?.error || null
+      });
 
-    } catch (error) {
-      console.error('[TwinPipeline] Failed to record pipeline:', error);
+    if (error) {
+      console.error('[TwinPipeline] Failed to record pipeline:', error.message);
     }
   }
 }
