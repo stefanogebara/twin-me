@@ -334,7 +334,7 @@ class DiscordExtractor {
    * Complete extraction job
    */
   async completeExtractionJob(jobId, totalItems) {
-    await supabase
+    const { error: updateErr } = await supabase
       .from('data_extraction_jobs')
       .update({
         status: 'completed',
@@ -344,6 +344,7 @@ class DiscordExtractor {
         results: { message: 'Extraction completed successfully' }
       })
       .eq('id', jobId);
+    if (updateErr) console.warn('[Discord] Error completing extraction job:', updateErr.message);
   }
 }
 
