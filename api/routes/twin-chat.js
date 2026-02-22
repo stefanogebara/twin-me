@@ -1015,12 +1015,13 @@ router.post('/message', authenticateUser, async (req, res) => {
         if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(conversationId)) {
           console.warn(`[Twin Chat] Invalid conversationId format from user ${userId}`);
         } else {
-          const { data: convoCheck } = await supabaseAdmin
+          const { data: convoCheck, error: convoCheckErr } = await supabaseAdmin
             .from('twin_conversations')
             .select('id')
             .eq('id', conversationId)
             .eq('user_id', userId)
             .single();
+          if (convoCheckErr && convoCheckErr.code !== 'PGRST116') console.error('[Twin Chat] Conversation ownership check error:', convoCheckErr.message);
 
           if (convoCheck) {
             const { data: messages } = await serverDb.getMessagesByConversation(conversationId, 20);
@@ -1296,28 +1297,31 @@ router.get('/intro', authenticateUser, async (req, res) => {
     }
 
     // Fetch soul signature
-    const { data: sig } = await supabaseAdmin
+    const { data: sig, error: sigErr } = await supabaseAdmin
       .from('soul_signatures')
       .select('archetype_name, archetype_subtitle, narrative, defining_traits')
       .eq('user_id', userId)
       .order('created_at', { ascending: false })
       .limit(1)
       .single();
+    if (sigErr && sigErr.code !== 'PGRST116') console.error('[Twin Chat] Soul signature fetch error:', sigErr.message);
 
     // Fetch display name
-    const { data: userRow } = await supabaseAdmin
+    const { data: userRow, error: userRowErr } = await supabaseAdmin
       .from('users')
       .select('first_name, email')
       .eq('id', userId)
       .single();
+    if (userRowErr && userRowErr.code !== 'PGRST116') console.error('[Twin Chat] User row fetch error:', userRowErr.message);
     const firstName = userRow?.first_name || userRow?.email?.split('@')[0] || null;
 
     // Fetch enrichment bio/interests as extra context
-    const { data: enrichment } = await supabaseAdmin
+    const { data: enrichment, error: enrichmentErr } = await supabaseAdmin
       .from('enriched_profiles')
       .select('discovered_bio, interests_and_hobbies, personality_traits')
       .eq('user_id', userId)
       .single();
+    if (enrichmentErr && enrichmentErr.code !== 'PGRST116') console.error('[Twin Chat] Enrichment fetch error:', enrichmentErr.message);
 
     // Build a minimal prompt for the greeting
     const archetypeBlock = sig
