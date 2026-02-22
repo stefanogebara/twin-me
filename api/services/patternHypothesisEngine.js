@@ -223,7 +223,7 @@ export async function generateHypotheses(userId, useAI = true) {
       if (existing) {
         // Update existing hypothesis if text changed significantly
         if (existing.hypothesis_text !== hypothesisText) {
-          await supabaseAdmin
+          const { error: updateHypErr } = await supabaseAdmin
             .from('pl_pattern_hypotheses')
             .update({
               hypothesis_text: hypothesisText,
@@ -232,6 +232,7 @@ export async function generateHypotheses(userId, useAI = true) {
               category
             })
             .eq('id', existing.id);
+          if (updateHypErr) console.warn('[PatternHypothesis] Error updating hypothesis:', updateHypErr.message);
 
           results.updated++;
         }
