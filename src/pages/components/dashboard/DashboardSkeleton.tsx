@@ -1,14 +1,12 @@
 import React from 'react';
-import { useTheme } from '@/contexts/ThemeContext';
 import { PageLayout, GlassPanel } from '@/components/layout/PageLayout';
 
 const SkeletonPulse = ({ className = '', style = {} }: { className?: string; style?: React.CSSProperties }) => {
-  const { theme } = useTheme();
   return (
     <div
-      className={`animate-pulse rounded ${className}`}
+      className={`glass-shimmer rounded ${className}`}
       style={{
-        backgroundColor: theme === 'dark' ? 'rgba(193, 192, 182, 0.1)' : 'rgba(0, 0, 0, 0.06)',
+        backgroundColor: 'rgba(255, 255, 255, 0.18)',
         ...style
       }}
     />

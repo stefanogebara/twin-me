@@ -9,7 +9,6 @@ import {
 } from 'lucide-react';
 
 interface DataManagementSettingsProps {
-  theme: string;
   isDemoMode: boolean;
   navigate: (path: string) => void;
   exporting: boolean;
@@ -25,7 +24,6 @@ interface DataManagementSettingsProps {
 }
 
 const DataManagementSettings: React.FC<DataManagementSettingsProps> = ({
-  theme,
   isDemoMode,
   navigate,
   exporting,
@@ -40,14 +38,14 @@ const DataManagementSettings: React.FC<DataManagementSettingsProps> = ({
   cardStyle,
 }) => {
   return (
-    <section className="rounded-2xl p-5" style={cardStyle}>
+    <section className="p-5" style={cardStyle}>
       <div className="flex items-center gap-3 mb-2">
-        <Download className="w-5 h-5" style={{ color: theme === 'dark' ? '#C1C0B6' : '#0c0a09' }} />
-        <h2 style={{ fontFamily: 'var(--font-heading)', fontWeight: 400, color: theme === 'dark' ? '#C1C0B6' : '#0c0a09' }}>
+        <Download className="w-5 h-5" style={{ color: '#1F1C18' }} />
+        <h2 className="heading-serif text-base">
           Your Data
         </h2>
       </div>
-      <p className="text-sm mb-4" style={{ fontFamily: 'var(--font-body)', color: theme === 'dark' ? 'rgba(193, 192, 182, 0.6)' : '#78716c' }}>
+      <p className="text-sm mb-4" style={{ fontFamily: 'var(--font-body)', color: '#8A857D' }}>
         You own your data. Export it anytime, or delete your account to permanently remove everything.
       </p>
 
@@ -71,9 +69,9 @@ const DataManagementSettings: React.FC<DataManagementSettingsProps> = ({
           onClick={() => navigate('/privacy-policy')}
           className="w-full flex items-center justify-between px-4 py-3 rounded-xl transition-all hover:scale-[1.01]"
           style={{
-            backgroundColor: theme === 'dark' ? 'rgba(193, 192, 182, 0.05)' : 'rgba(0, 0, 0, 0.02)',
-            border: theme === 'dark' ? '1px solid rgba(193, 192, 182, 0.08)' : '1px solid rgba(0, 0, 0, 0.04)',
-            color: theme === 'dark' ? '#C1C0B6' : '#0c0a09',
+            backgroundColor: 'rgba(0, 0, 0, 0.02)',
+            border: '1px solid rgba(0, 0, 0, 0.04)',
+            color: '#1F1C18',
             fontFamily: 'var(--font-body)',
           }}
         >
@@ -87,7 +85,7 @@ const DataManagementSettings: React.FC<DataManagementSettingsProps> = ({
           disabled={exporting || isDemoMode}
           className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl transition-all hover:scale-[1.01]"
           style={{
-            backgroundColor: theme === 'dark' ? 'rgba(59, 130, 246, 0.1)' : 'rgba(59, 130, 246, 0.08)',
+            backgroundColor: 'rgba(59, 130, 246, 0.08)',
             border: '1px solid rgba(59, 130, 246, 0.2)',
             color: '#3B82F6',
             fontFamily: 'var(--font-body)',
@@ -121,21 +119,21 @@ const DataManagementSettings: React.FC<DataManagementSettingsProps> = ({
           <div
             className="p-4 rounded-xl space-y-3"
             style={{
-              backgroundColor: theme === 'dark' ? 'rgba(239, 68, 68, 0.08)' : 'rgba(239, 68, 68, 0.04)',
+              backgroundColor: 'rgba(239, 68, 68, 0.04)',
               border: '1px solid rgba(239, 68, 68, 0.2)',
             }}
           >
             <p className="text-sm font-medium" style={{ color: '#ef4444' }}>
               This will permanently delete:
             </p>
-            <ul className="text-xs space-y-1" style={{ color: theme === 'dark' ? 'rgba(239, 68, 68, 0.8)' : '#dc2626' }}>
+            <ul className="text-xs space-y-1" style={{ color: '#dc2626' }}>
               <li>- Your profile and account data</li>
               <li>- All platform connections and extracted data</li>
               <li>- Your soul signature and personality analysis</li>
               <li>- All twin conversations and memories</li>
               <li>- Behavioral patterns and insights</li>
             </ul>
-            <p className="text-xs" style={{ color: theme === 'dark' ? 'rgba(193, 192, 182, 0.6)' : '#78716c' }}>
+            <p className="text-xs" style={{ color: '#8A857D' }}>
               Type <strong style={{ color: '#ef4444' }}>DELETE</strong> to confirm:
             </p>
             <input
@@ -145,9 +143,9 @@ const DataManagementSettings: React.FC<DataManagementSettingsProps> = ({
               placeholder="Type DELETE"
               className="w-full px-3 py-2 rounded-lg text-sm outline-none"
               style={{
-                backgroundColor: theme === 'dark' ? 'rgba(0, 0, 0, 0.3)' : 'rgba(255, 255, 255, 0.8)',
+                backgroundColor: 'rgba(255, 255, 255, 0.8)',
                 border: '1px solid rgba(239, 68, 68, 0.3)',
-                color: theme === 'dark' ? '#C1C0B6' : '#0c0a09',
+                color: '#1F1C18',
                 fontFamily: 'var(--font-body)',
               }}
             />
@@ -156,8 +154,8 @@ const DataManagementSettings: React.FC<DataManagementSettingsProps> = ({
                 onClick={() => { setShowDeleteConfirm(false); setDeleteConfirmText(''); }}
                 className="flex-1 px-4 py-2 rounded-lg text-sm"
                 style={{
-                  backgroundColor: theme === 'dark' ? 'rgba(193, 192, 182, 0.1)' : 'rgba(0, 0, 0, 0.05)',
-                  color: theme === 'dark' ? '#C1C0B6' : '#0c0a09',
+                  backgroundColor: 'rgba(0, 0, 0, 0.05)',
+                  color: '#1F1C18',
                   fontFamily: 'var(--font-body)',
                 }}
               >
@@ -181,7 +179,7 @@ const DataManagementSettings: React.FC<DataManagementSettingsProps> = ({
           </div>
         )}
 
-        <p className="text-xs" style={{ color: theme === 'dark' ? 'rgba(193, 192, 182, 0.4)' : '#a8a29e' }}>
+        <p className="text-xs" style={{ color: '#8A857D' }}>
           Account deletion is immediate and irreversible. We recommend exporting your data first.
         </p>
       </div>

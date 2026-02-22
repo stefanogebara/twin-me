@@ -117,7 +117,7 @@ For privacy concerns: privacy@twinailearn.com`
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center px-6 py-20" style={{ backgroundColor: theme === 'dark' ? '#232320' : '#FAFAFA' }}>
+    <div className="min-h-screen flex items-center justify-center px-6 py-20" style={{ backgroundColor: '#F7F7F3' }}>
       {/* Back button - top left */}
       <div className="fixed top-6 left-6 z-50">
         <button
@@ -139,17 +139,11 @@ For privacy concerns: privacy@twinailearn.com`
         {/* Header with icon */}
         <div className="text-center">
           <div className="flex justify-center mb-6">
-            <div
-              className="w-16 h-16 rounded-2xl flex items-center justify-center"
-              style={{
-                background: theme === 'dark'
-                  ? 'linear-gradient(135deg, rgba(193, 192, 182, 0.2), rgba(193, 192, 182, 0.1))'
-                  : 'linear-gradient(135deg, rgba(12, 10, 9, 0.1), rgba(12, 10, 9, 0.05))',
-                border: theme === 'dark' ? '1px solid rgba(193, 192, 182, 0.2)' : '1px solid rgba(12, 10, 9, 0.1)'
-              }}
-            >
-              <Sparkles className="w-8 h-8" style={{ color: theme === 'dark' ? '#C1C0B6' : '#0c0a09' }} />
-            </div>
+            <img
+              src="/images/backgrounds/flower-hero.png"
+              alt="Twin Me"
+              className="w-16 h-16 object-contain drop-shadow-md"
+            />
           </div>
           <h1 className="text-4xl font-normal tracking-tight font-garamond" style={{ color: theme === 'dark' ? '#C1C0B6' : '#0c0a09' }}>
             Discover Your Soul Signature

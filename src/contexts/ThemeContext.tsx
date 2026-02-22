@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import React, { createContext, useContext, ReactNode } from 'react';
 
 type Theme = 'light' | 'dark';
 
@@ -21,37 +21,24 @@ interface ThemeProviderProps {
   children: ReactNode;
 }
 
+/**
+ * ThemeProvider — Light mode only.
+ * We use the landing page cream palette (#F7F7F3) consistently.
+ * The toggleTheme is a no-op kept for API compatibility.
+ */
 export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
-  const [theme, setTheme] = useState<Theme>(() => {
-    // Check localStorage first
-    const stored = localStorage.getItem('theme') as Theme;
-    if (stored) return stored;
-
-    // Default to dark mode (user requested black UI by default)
-    return 'dark';
-  });
-
-  useEffect(() => {
-    // Apply theme to document using both data-theme attribute and class
-    document.documentElement.setAttribute('data-theme', theme);
-
-    // Add/remove dark class for Tailwind
-    if (theme === 'dark') {
-      document.documentElement.classList.add('dark');
-    } else {
-      document.documentElement.classList.remove('dark');
-    }
-
-    localStorage.setItem('theme', theme);
-  }, [theme]);
-
-  const toggleTheme = () => {
-    setTheme(prev => prev === 'light' ? 'dark' : 'light');
-  };
+  // Force light mode — remove any stored dark preference
+  if (typeof window !== 'undefined') {
+    localStorage.removeItem('theme');
+    document.documentElement.classList.remove('dark');
+    document.documentElement.setAttribute('data-theme', 'light');
+  }
 
   const value: ThemeContextType = {
-    theme,
-    toggleTheme,
+    theme: 'light',
+    toggleTheme: () => {
+      // No-op: light mode only for now
+    },
   };
 
   return <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>;

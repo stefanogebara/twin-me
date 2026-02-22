@@ -36,6 +36,15 @@ interface ChatEmptyStateProps {
   onQuickAction: (text: string) => void;
 }
 
+// Glass button style matching the design system
+const glassButtonStyle = {
+  backgroundColor: 'rgba(255, 255, 255, 0.18)',
+  backdropFilter: 'blur(10px) saturate(140%)',
+  WebkitBackdropFilter: 'blur(10px) saturate(140%)',
+  border: '1px solid rgba(255, 255, 255, 0.45)',
+  color: '#1F1C18',
+} as React.CSSProperties;
+
 export const ChatEmptyState = ({
   connectedPlatforms,
   platforms,
@@ -49,7 +58,7 @@ export const ChatEmptyState = ({
     <div className="h-full flex flex-col items-center justify-center px-4 py-12">
       <motion.div
         className="w-20 h-20 rounded-full flex items-center justify-center mb-8"
-        style={{ backgroundColor: colors.bgSecondary }}
+        style={{ backgroundColor: 'rgba(255, 255, 255, 0.18)', border: '1px solid rgba(255, 255, 255, 0.45)' }}
         initial={{ opacity: 0, scale: 0.6 }}
         animate={{ opacity: 1, scale: 1 }}
         transition={{ duration: 0.5, ease: [0.4, 0, 0.2, 1] }}
@@ -58,8 +67,8 @@ export const ChatEmptyState = ({
       </motion.div>
 
       <motion.h1
-        className="text-2xl md:text-3xl font-medium mb-3 text-center"
-        style={{ color: colors.text }}
+        className="text-2xl md:text-3xl font-medium mb-3 text-center heading-serif"
+        style={{ color: '#1F1C18' }}
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.4, delay: 0.15, ease: [0.4, 0, 0.2, 1] }}
@@ -72,7 +81,7 @@ export const ChatEmptyState = ({
 
       <motion.p
         className="text-center mb-8 max-w-md"
-        style={{ color: colors.textSecondary }}
+        style={{ color: '#8A857D' }}
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.4, delay: 0.25, ease: [0.4, 0, 0.2, 1] }}
@@ -89,19 +98,15 @@ export const ChatEmptyState = ({
             <motion.button
               key={idx}
               onClick={() => onQuickAction(action.label)}
-              className="flex items-center gap-2 px-4 py-2.5 rounded-full text-sm transition-colors border"
-              style={{
-                backgroundColor: colors.bgSecondary,
-                borderColor: colors.border,
-                color: colors.text
-              }}
+              className="flex items-center gap-2 px-4 py-2.5 rounded-full text-sm transition-all"
+              style={glassButtonStyle}
               initial={{ opacity: 0, y: 12 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.35, delay: 0.35 + idx * 0.08, ease: [0.4, 0, 0.2, 1] }}
               whileHover={{ scale: 1.04, y: -2 }}
               whileTap={{ scale: 0.97 }}
             >
-              <span style={{ color: colors.accent }}>{action.icon}</span>
+              <span style={{ color: '#2D2722' }}>{action.icon}</span>
               {action.label}
             </motion.button>
           ))}
@@ -120,9 +125,11 @@ export const ChatEmptyState = ({
             style={{
               backgroundColor: platform.connected
                 ? `${platform.color}15`
-                : colors.bgSecondary,
-              color: platform.connected ? platform.color : colors.textMuted,
-              border: `1px solid ${platform.connected ? `${platform.color}30` : colors.border}`
+                : 'rgba(255, 255, 255, 0.18)',
+              color: platform.connected ? platform.color : '#8A857D',
+              border: platform.connected
+                ? `1px solid ${platform.color}30`
+                : '1px solid rgba(255, 255, 255, 0.45)'
             }}
           >
             {platform.icon}

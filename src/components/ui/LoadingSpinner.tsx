@@ -18,14 +18,17 @@ export const LoadingSpinner: React.FC<LoadingSpinnerProps> = ({
     xl: 'w-12 h-12'
   };
 
-  const colorClasses = {
-    primary: 'text-[#FF5722]',
-    secondary: 'text-gray-600',
-    white: 'text-white'
+  const colorMap = {
+    primary: '#2D2722',
+    secondary: '#8A857D',
+    white: '#F7F7F3'
   };
 
   return (
-    <div className={`inline-block animate-spin ${sizeClasses[size]} ${colorClasses[color]} ${className}`}>
+    <div
+      className={`inline-block animate-spin ${sizeClasses[size]} ${className}`}
+      style={{ color: colorMap[color] }}
+    >
       <svg
         className="w-full h-full"
         xmlns="http://www.w3.org/2000/svg"
@@ -74,15 +77,15 @@ export const LoadingButton: React.FC<LoadingButtonProps> = ({
   const baseClasses = 'inline-flex items-center justify-center font-medium transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed';
 
   const variantClasses = {
-    primary: 'bg-[#FF5722] text-white hover:bg-[#E64A19] hover:scale-105 hover:shadow-lg',
-    secondary: 'bg-gray-200 text-gray-800 hover:bg-gray-300',
-    outline: 'border-2 border-[#FF5722] text-[#FF5722] hover:bg-[#FF5722] hover:text-white'
+    primary: 'btn-cta-app',
+    secondary: 'btn-glass-app',
+    outline: 'btn-glass-app'
   };
 
   const sizeClasses = {
-    sm: 'px-3 py-1.5 text-sm rounded-md gap-1.5',
-    md: 'px-6 py-2.5 text-base rounded-lg gap-2',
-    lg: 'px-8 py-3 text-lg rounded-xl gap-2.5'
+    sm: 'px-3 py-1.5 text-sm gap-1.5',
+    md: 'px-6 py-2.5 text-base gap-2',
+    lg: 'px-8 py-3 text-lg gap-2.5'
   };
 
   const isDisabled = disabled || isLoading;
@@ -96,7 +99,7 @@ export const LoadingButton: React.FC<LoadingButtonProps> = ({
       {isLoading && (
         <LoadingSpinner
           size={size === 'sm' ? 'sm' : 'md'}
-          color={variant === 'primary' ? 'white' : 'primary'}
+          color={variant === 'primary' ? 'white' : 'secondary'}
         />
       )}
       <span>{isLoading ? loadingText : children}</span>
@@ -118,10 +121,22 @@ export const LoadingOverlay: React.FC<LoadingOverlayProps> = ({
   if (!isVisible) return null;
 
   return (
-    <div className={`fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 ${className}`}>
-      <div className="bg-card rounded-lg p-6 flex flex-col items-center gap-4 max-w-sm mx-4">
+    <div
+      className={`fixed inset-0 flex items-center justify-center z-50 ${className}`}
+      style={{ backgroundColor: 'rgba(247, 247, 243, 0.85)', backdropFilter: 'blur(4px)' }}
+    >
+      <div
+        className="rounded-2xl p-6 flex flex-col items-center gap-4 max-w-sm mx-4"
+        style={{
+          background: 'rgba(255, 255, 255, 0.18)',
+          backdropFilter: 'blur(10px) saturate(140%)',
+          WebkitBackdropFilter: 'blur(10px) saturate(140%)',
+          border: '1px solid rgba(255, 255, 255, 0.45)',
+          boxShadow: '0 8px 32px rgba(0, 0, 0, 0.18)',
+        }}
+      >
         <LoadingSpinner size="lg" />
-        <p className="text-muted-foreground text-center">{message}</p>
+        <p style={{ color: '#8A857D' }} className="text-center text-sm">{message}</p>
       </div>
     </div>
   );
@@ -141,14 +156,18 @@ export const Skeleton: React.FC<SkeletonProps> = ({
   return (
     <div className={`animate-pulse ${className}`}>
       {avatar && (
-        <div className="w-10 h-10 bg-gray-300 rounded-full mb-2"></div>
+        <div
+          className="w-10 h-10 rounded-full mb-2 glass-shimmer"
+          style={{ backgroundColor: 'rgba(255, 255, 255, 0.18)' }}
+        />
       )}
       {Array.from({ length: lines }, (_, i) => (
         <div
           key={i}
-          className={`bg-gray-300 rounded h-4 ${
+          className={`glass-shimmer rounded h-4 ${
             i === lines - 1 ? 'w-3/4' : 'w-full'
           } ${i > 0 ? 'mt-2' : ''}`}
+          style={{ backgroundColor: 'rgba(255, 255, 255, 0.18)' }}
         />
       ))}
     </div>

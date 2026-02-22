@@ -1,7 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { useTheme } from '../contexts/ThemeContext';
 import { useAnalytics } from '../contexts/AnalyticsContext';
 import { usePlatformStatus } from '../hooks/usePlatformStatus';
 import {
@@ -43,7 +42,6 @@ const API_BASE = import.meta.env.VITE_API_URL || 'http://127.0.0.1:3004/api';
 const TalkToTwin = () => {
   const navigate = useNavigate();
   const { user, isSignedIn } = useAuth();
-  const { theme } = useTheme();
   const { trackFunnel } = useAnalytics();
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
@@ -64,22 +62,23 @@ const TalkToTwin = () => {
   const [chatUsage, setChatUsage] = useState<{ used: number; limit: number; remaining: number; tier: string } | null>(null);
   const [limitReached, setLimitReached] = useState(false);
 
+  // Design system color tokens — light theme only, no dark conditionals
   const colors = {
-    bg: theme === 'dark' ? '#232320' : '#FAFAFA',
-    bgSecondary: theme === 'dark' ? 'rgba(45, 45, 41, 0.5)' : 'rgba(255, 255, 255, 0.7)',
-    bgTertiary: theme === 'dark' ? 'rgba(45, 45, 41, 0.7)' : 'rgba(0, 0, 0, 0.05)',
-    text: theme === 'dark' ? '#C1C0B6' : '#0c0a09',
-    textSecondary: theme === 'dark' ? 'rgba(193, 192, 182, 0.8)' : '#57534e',
-    textMuted: theme === 'dark' ? 'rgba(193, 192, 182, 0.6)' : '#a8a29e',
-    border: theme === 'dark' ? 'rgba(193, 192, 182, 0.2)' : 'rgba(231, 229, 228, 0.6)',
-    accent: theme === 'dark' ? '#C1C0B6' : '#0c0a09',
-    accentHover: theme === 'dark' ? '#D4D3CC' : '#292524',
-    userBubble: theme === 'dark' ? 'rgba(193, 192, 182, 0.15)' : 'rgba(0, 0, 0, 0.06)',
-    userBubbleBg: theme === 'dark' ? 'rgba(80, 78, 70, 0.9)' : 'rgba(12, 10, 9, 0.85)',
-    userBubbleText: theme === 'dark' ? '#E8E7E3' : '#FAFAFA',
+    bg: '#F7F7F3',
+    bgSecondary: 'rgba(255, 255, 255, 0.6)',
+    bgTertiary: 'rgba(255, 255, 255, 0.18)',
+    text: '#1F1C18',
+    textSecondary: '#8A857D',
+    textMuted: '#8A857D',
+    border: 'rgba(255, 255, 255, 0.45)',
+    accent: '#2D2722',
+    accentHover: '#1F1C18',
+    userBubble: 'rgba(255, 255, 255, 0.18)',
+    userBubbleBg: '#2D2722',
+    userBubbleText: '#F7F7F3',
     assistantBubble: 'transparent',
-    inputBg: theme === 'dark' ? 'rgba(45, 45, 41, 0.7)' : 'rgba(255, 255, 255, 0.9)',
-    inputBorder: theme === 'dark' ? 'rgba(193, 192, 182, 0.2)' : 'rgba(231, 229, 228, 0.6)',
+    inputBg: 'rgba(255, 255, 255, 0.6)',
+    inputBorder: 'rgba(255, 255, 255, 0.45)',
   };
 
   const platforms = [
@@ -311,7 +310,7 @@ const TalkToTwin = () => {
               className="w-8 h-8 rounded-full flex items-center justify-center"
               style={{ backgroundColor: colors.accent }}
             >
-              <Sparkles className="w-4 h-4 text-white" />
+              <Sparkles className="w-4 h-4" style={{ color: '#F7F7F3' }} />
             </div>
             <span
               className="font-medium"
@@ -354,9 +353,7 @@ const TalkToTwin = () => {
           <div
             className="mx-4 mb-2 p-4 rounded-2xl flex flex-col sm:flex-row items-center justify-between gap-3"
             style={{
-              background: theme === 'dark'
-                ? 'linear-gradient(135deg, rgba(99, 102, 241, 0.15), rgba(168, 85, 247, 0.1))'
-                : 'linear-gradient(135deg, rgba(99, 102, 241, 0.08), rgba(168, 85, 247, 0.05))',
+              background: 'linear-gradient(135deg, rgba(99, 102, 241, 0.08), rgba(168, 85, 247, 0.05))',
               border: '1px solid rgba(99, 102, 241, 0.25)',
             }}
           >

@@ -1,6 +1,5 @@
 import React, { Component, ReactNode, ErrorInfo } from 'react';
 import { AlertTriangle, RefreshCw, Home } from 'lucide-react';
-import { Button } from '@/components/ui/button';
 
 interface Props {
   children: ReactNode;
@@ -39,12 +38,10 @@ class ErrorBoundary extends Component<Props, State> {
       errorInfo
     });
 
-    // Log error to console in development
     if (process.env.NODE_ENV === 'development') {
       console.error('ErrorBoundary caught an error:', error, errorInfo);
     }
 
-    // Call custom error handler if provided
     this.props.onError?.(error, errorInfo);
   }
 
@@ -66,37 +63,65 @@ class ErrorBoundary extends Component<Props, State> {
 
   render() {
     if (this.state.hasError) {
-      // Custom fallback UI if provided
       if (this.props.fallback) {
         return this.props.fallback;
       }
 
-      // Default error UI
       return (
-        <div className="min-h-screen bg-background flex items-center justify-center p-4">
-          <div className="max-w-md w-full bg-card rounded-xl shadow-lg p-8 text-center border border-border">
-            <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-6">
-              <AlertTriangle className="w-8 h-8 text-red-600" />
+        <div
+          className="min-h-screen flex items-center justify-center p-4"
+          style={{ backgroundColor: '#F7F7F3' }}
+        >
+          <div
+            className="max-w-md w-full text-center p-8"
+            style={{
+              background: 'rgba(255, 255, 255, 0.18)',
+              backdropFilter: 'blur(10px) saturate(140%)',
+              WebkitBackdropFilter: 'blur(10px) saturate(140%)',
+              borderRadius: '2rem',
+              border: '1px solid rgba(255, 255, 255, 0.45)',
+              boxShadow: '0 8px 32px rgba(0, 0, 0, 0.18), inset 0 1px 0 rgba(255, 255, 255, 0.6)',
+            }}
+          >
+            <div
+              className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-6"
+              style={{ backgroundColor: 'rgba(239, 68, 68, 0.1)' }}
+            >
+              <AlertTriangle className="w-8 h-8 text-red-500" />
             </div>
 
-            <h2 className="text-xl font-semibold text-foreground mb-4">
-              Oops! Something went wrong
+            <h2
+              className="heading-serif text-xl mb-4"
+            >
+              Something went wrong
             </h2>
 
-            <p className="text-muted-foreground mb-6">
-              We encountered an unexpected error. Don't worry, this has been logged and we'll work on fixing it.
+            <p
+              className="text-sm mb-6"
+              style={{ color: '#8A857D' }}
+            >
+              We encountered an unexpected error. Don't worry — this has been logged and we'll work on fixing it.
             </p>
 
             {process.env.NODE_ENV === 'development' && this.state.error && (
               <details className="mb-6 text-left">
-                <summary className="cursor-pointer text-sm text-muted-foreground mb-2">
+                <summary
+                  className="cursor-pointer text-sm mb-2"
+                  style={{ color: '#8A857D' }}
+                >
                   Error Details (Development)
                 </summary>
-                <div className="bg-muted p-3 rounded text-xs overflow-auto max-h-32">
+                <div
+                  className="p-3 rounded-lg text-xs overflow-auto max-h-32"
+                  style={{ backgroundColor: 'rgba(0, 0, 0, 0.04)' }}
+                >
                   <div className="font-mono text-red-600 mb-2">
                     {this.state.error.name}: {this.state.error.message}
                   </div>
-                  <div className="font-mono text-muted-foreground whitespace-pre-wrap">
+                  <div
+                    className="font-mono whitespace-pre-wrap"
+                    style={{ color: '#8A857D' }}
+                  >
                     {this.state.error.stack}
                   </div>
                 </div>
@@ -104,34 +129,32 @@ class ErrorBoundary extends Component<Props, State> {
             )}
 
             <div className="flex flex-col sm:flex-row gap-3">
-              <Button
+              <button
                 onClick={this.handleRetry}
-                className="flex-1 bg-[#FF5722] hover:bg-[#E64E1E] text-white"
+                className="btn-cta-app flex-1 flex items-center justify-center gap-2"
               >
-                <RefreshCw className="w-4 h-4 mr-2" />
+                <RefreshCw className="w-4 h-4" />
                 Try Again
-              </Button>
+              </button>
 
               {this.props.showReloadButton !== false && (
-                <Button
+                <button
                   onClick={this.handleReload}
-                  variant="outline"
-                  className="flex-1"
+                  className="btn-glass-app flex-1 flex items-center justify-center gap-2"
                 >
-                  <RefreshCw className="w-4 h-4 mr-2" />
+                  <RefreshCw className="w-4 h-4" />
                   Reload Page
-                </Button>
+                </button>
               )}
 
               {this.props.showHomeButton && (
-                <Button
+                <button
                   onClick={this.handleGoHome}
-                  variant="outline"
-                  className="flex-1"
+                  className="btn-glass-app flex-1 flex items-center justify-center gap-2"
                 >
-                  <Home className="w-4 h-4 mr-2" />
+                  <Home className="w-4 h-4" />
                   Go Home
-                </Button>
+                </button>
               )}
             </div>
           </div>

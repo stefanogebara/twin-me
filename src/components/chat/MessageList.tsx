@@ -38,6 +38,16 @@ interface MessageListProps {
   formatTime: (date: Date) => string;
 }
 
+// Design-system glass style for assistant bubbles
+const assistantBubbleStyle = {
+  backgroundColor: 'rgba(255, 255, 255, 0.18)',
+  backdropFilter: 'blur(10px) saturate(140%)',
+  WebkitBackdropFilter: 'blur(10px) saturate(140%)',
+  border: '1px solid rgba(255, 255, 255, 0.45)',
+  boxShadow: '0 8px 32px rgba(0, 0, 0, 0.18), inset 0 1px 0 rgba(255, 255, 255, 0.6)',
+  color: '#1F1C18',
+} as React.CSSProperties;
+
 export const MessageList = forwardRef<HTMLDivElement, MessageListProps>(
   ({ messages, isTyping, colors, formatTime }, ref) => {
     return (
@@ -52,10 +62,10 @@ export const MessageList = forwardRef<HTMLDivElement, MessageListProps>(
           >
             {message.role === 'assistant' && (
               <div
-                className="w-8 h-8 rounded-full flex-shrink-0 flex items-center justify-center"
-                style={{ backgroundColor: colors.accent }}
+                className="w-8 h-8 rounded-full flex-shrink-0 flex items-center justify-center overflow-hidden"
+                style={{ backgroundColor: 'rgba(255,255,255,0.6)' }}
               >
-                <Sparkles className="w-4 h-4 text-white" />
+                <img src="/images/backgrounds/flower-hero.png" alt="" className="w-7 h-7 object-contain" />
               </div>
             )}
 
@@ -67,12 +77,14 @@ export const MessageList = forwardRef<HTMLDivElement, MessageListProps>(
                     ? "rounded-br-md"
                     : "rounded-bl-md"
                 )}
-                style={{
-                  backgroundColor: message.role === 'user'
-                    ? colors.userBubbleBg
-                    : colors.userBubble,
-                  color: message.role === 'user' ? colors.userBubbleText : colors.text
-                }}
+                style={
+                  message.role === 'user'
+                    ? {
+                        backgroundColor: '#2D2722',
+                        color: '#F7F7F3',
+                      }
+                    : assistantBubbleStyle
+                }
               >
                 <p className="text-[15px] leading-relaxed whitespace-pre-wrap">
                   {message.content}
@@ -95,7 +107,7 @@ export const MessageList = forwardRef<HTMLDivElement, MessageListProps>(
                       spotify: '#1DB954', whoop: '#00A5E0', calendar: '#4285F4',
                       google_calendar: '#4285F4', youtube: '#FF0000', twitch: '#9146FF',
                     };
-                    const color = platformColors[p] || colors.textMuted;
+                    const color = platformColors[p] || '#8A857D';
                     return (
                       <span
                         key={p}
@@ -132,7 +144,7 @@ export const MessageList = forwardRef<HTMLDivElement, MessageListProps>(
                   "text-xs mt-1",
                   message.role === 'user' ? "text-right" : "text-left"
                 )}
-                style={{ color: colors.textMuted }}
+                style={{ color: '#8A857D' }}
               >
                 {formatTime(message.timestamp)}
               </div>
@@ -141,9 +153,9 @@ export const MessageList = forwardRef<HTMLDivElement, MessageListProps>(
             {message.role === 'user' && (
               <div
                 className="w-8 h-8 rounded-full flex-shrink-0 flex items-center justify-center"
-                style={{ backgroundColor: colors.bgTertiary }}
+                style={{ backgroundColor: 'rgba(255, 255, 255, 0.18)', border: '1px solid rgba(255, 255, 255, 0.45)' }}
               >
-                <User className="w-4 h-4" style={{ color: colors.textSecondary }} />
+                <User className="w-4 h-4" style={{ color: '#8A857D' }} />
               </div>
             )}
           </div>
@@ -152,27 +164,27 @@ export const MessageList = forwardRef<HTMLDivElement, MessageListProps>(
         {isTyping && (
           <div className="flex gap-3">
             <div
-              className="w-8 h-8 rounded-full flex-shrink-0 flex items-center justify-center"
-              style={{ backgroundColor: colors.accent }}
+              className="w-8 h-8 rounded-full flex-shrink-0 flex items-center justify-center overflow-hidden"
+              style={{ backgroundColor: 'rgba(255,255,255,0.6)' }}
             >
-              <Sparkles className="w-4 h-4 text-white" />
+              <img src="/images/backgrounds/flower-hero.png" alt="" className="w-7 h-7 object-contain" />
             </div>
             <div
               className="px-4 py-3 rounded-2xl rounded-bl-md"
-              style={{ backgroundColor: colors.userBubble }}
+              style={assistantBubbleStyle}
             >
               <div className="flex gap-1.5">
                 <div
                   className="w-2 h-2 rounded-full animate-bounce"
-                  style={{ backgroundColor: colors.accent, animationDelay: '0ms' }}
+                  style={{ backgroundColor: '#2D2722', animationDelay: '0ms' }}
                 />
                 <div
                   className="w-2 h-2 rounded-full animate-bounce"
-                  style={{ backgroundColor: colors.accent, animationDelay: '150ms' }}
+                  style={{ backgroundColor: '#2D2722', animationDelay: '150ms' }}
                 />
                 <div
                   className="w-2 h-2 rounded-full animate-bounce"
-                  style={{ backgroundColor: colors.accent, animationDelay: '300ms' }}
+                  style={{ backgroundColor: '#2D2722', animationDelay: '300ms' }}
                 />
               </div>
             </div>

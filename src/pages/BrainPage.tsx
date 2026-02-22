@@ -135,7 +135,7 @@ const BrainPage: React.FC = () => {
 
         <GlassPanel className="!p-8 mb-6">
           <div className="flex items-center gap-3 mb-6">
-            <Clay3DIcon name="diamond" size={20} />
+            <img src="/images/backgrounds/flower-hero.png" alt="" className="w-5 h-5 object-contain drop-shadow-sm" />
             <h3 className="text-lg" style={{ fontFamily: 'var(--font-heading)', fontWeight: 400, color: textColor }}>
               Knowledge Graph Preview
             </h3>

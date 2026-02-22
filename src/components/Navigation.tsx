@@ -31,7 +31,7 @@ export const Navigation = () => {
             onClick={() => navigate('/')}
           >
             <img
-              src="/icons/3d/diamond.png"
+              src="/images/backgrounds/flower-hero.png"
               alt="Twin Me"
               className="w-9 h-9 object-contain drop-shadow-sm group-hover:scale-105 transition-transform"
             />

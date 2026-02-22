@@ -13,7 +13,6 @@ interface Consent {
 }
 
 interface DataConsentSettingsProps {
-  theme: string;
   consents: Consent[];
   loadingConsents: boolean;
   revokingConsent: string | null;
@@ -22,7 +21,6 @@ interface DataConsentSettingsProps {
 }
 
 const DataConsentSettings: React.FC<DataConsentSettingsProps> = ({
-  theme,
   consents,
   loadingConsents,
   revokingConsent,
@@ -30,27 +28,27 @@ const DataConsentSettings: React.FC<DataConsentSettingsProps> = ({
   cardStyle,
 }) => {
   return (
-    <section className="rounded-2xl p-5" style={cardStyle}>
+    <section className="p-5" style={cardStyle}>
       <div className="flex items-center gap-3 mb-4">
         <Shield className="w-5 h-5" style={{ color: '#A78BFA' }} />
-        <h2 style={{ fontFamily: 'var(--font-heading)', fontWeight: 400, color: theme === 'dark' ? '#C1C0B6' : '#0c0a09' }}>
+        <h2 className="heading-serif text-base">
           Data Consent
         </h2>
       </div>
-      <p className="text-sm mb-4" style={{ fontFamily: 'var(--font-body)', color: theme === 'dark' ? 'rgba(193, 192, 182, 0.6)' : '#78716c' }}>
+      <p className="text-sm mb-4" style={{ fontFamily: 'var(--font-body)', color: '#8A857D' }}>
         Manage the permissions you've granted for platform data access.
       </p>
 
       {loadingConsents ? (
         <div className="flex items-center justify-center py-6">
-          <Loader2 className="w-5 h-5 animate-spin" style={{ color: theme === 'dark' ? '#C1C0B6' : '#0c0a09' }} />
+          <Loader2 className="w-5 h-5 animate-spin" style={{ color: '#1F1C18' }} />
         </div>
       ) : consents.length === 0 ? (
         <div
           className="text-sm py-4 text-center rounded-xl"
           style={{
-            color: theme === 'dark' ? 'rgba(193, 192, 182, 0.5)' : '#78716c',
-            backgroundColor: theme === 'dark' ? 'rgba(193, 192, 182, 0.03)' : 'rgba(0, 0, 0, 0.02)',
+            color: '#8A857D',
+            backgroundColor: 'rgba(0, 0, 0, 0.02)',
           }}
         >
           No active consents. Connect a platform to get started.
@@ -62,17 +60,17 @@ const DataConsentSettings: React.FC<DataConsentSettingsProps> = ({
               key={consent.id}
               className="flex items-center justify-between p-3 rounded-xl"
               style={{
-                backgroundColor: theme === 'dark' ? 'rgba(193, 192, 182, 0.05)' : 'rgba(255, 255, 255, 0.8)',
-                border: theme === 'dark' ? '1px solid rgba(193, 192, 182, 0.08)' : '1px solid rgba(0, 0, 0, 0.04)',
+                backgroundColor: 'rgba(255, 255, 255, 0.8)',
+                border: '1px solid rgba(0, 0, 0, 0.04)',
               }}
             >
               <div>
-                <h3 className="text-sm" style={{ fontFamily: 'var(--font-body)', fontWeight: 500, color: theme === 'dark' ? '#C1C0B6' : '#0c0a09' }}>
+                <h3 className="text-sm" style={{ fontFamily: 'var(--font-body)', fontWeight: 500, color: '#1F1C18' }}>
                   {consent.platform
                     ? `${consent.platform.charAt(0).toUpperCase() + consent.platform.slice(1).replace(/_/g, ' ')} - ${consent.consent_type.replace(/_/g, ' ')}`
                     : consent.consent_type.replace(/_/g, ' ')}
                 </h3>
-                <p className="text-xs" style={{ color: theme === 'dark' ? 'rgba(193, 192, 182, 0.5)' : '#78716c' }}>
+                <p className="text-xs" style={{ color: '#8A857D' }}>
                   Granted {consent.granted_at ? new Date(consent.granted_at).toLocaleDateString() : 'N/A'}
                   {' '}&middot; v{consent.consent_version}
                 </p>

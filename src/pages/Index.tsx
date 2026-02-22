@@ -183,10 +183,17 @@ const Index = () => {
           className="w-full max-w-[1200px] flex items-center justify-between bg-[#FCFAF8] border border-[#EBE9E0] shadow-[0_4px_20px_rgba(0,0,0,0.03)] rounded-[32px] px-6 py-3"
         >
           <div
-            className="heading-serif text-[26px] cursor-pointer font-medium text-[#1F1C18]"
+            className="flex items-center gap-2.5 cursor-pointer"
             onClick={() => navigate('/')}
           >
-            Twin Me
+            <img
+              src="/images/backgrounds/flower-hero.png"
+              alt="Twin Me"
+              className="w-8 h-8 object-contain drop-shadow-sm"
+            />
+            <span className="heading-serif text-[26px] font-medium text-[#1F1C18]">
+              Twin Me
+            </span>
           </div>
 
           <div className="flex items-center gap-3">
@@ -498,7 +505,10 @@ const Index = () => {
         <footer className="relative z-10 w-full px-8 lg:px-[120px] pb-8 pt-4">
           <div className="w-full h-[1px] bg-black/10 mb-5" />
           <div className="flex items-center justify-between text-[#8A857D] text-[13px] font-medium tracking-wide">
-            <div className="heading-serif text-[18px] text-[#1F1C18]">Twin Me</div>
+            <div className="flex items-center gap-2 heading-serif text-[18px] text-[#1F1C18]">
+              <img src="/images/backgrounds/flower-hero.png" alt="" className="w-5 h-5 object-contain opacity-70" />
+              Twin Me
+            </div>
             <div className="flex items-center gap-8">
               <a href="/privacy-policy" className="hover:text-[#1F1C18] transition-colors">Privacy & Terms</a>
               <a href="https://github.com/twinme-ai" target="_blank" rel="noopener noreferrer" className="hover:text-[#1F1C18] transition-colors">GitHub</a>

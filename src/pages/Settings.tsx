@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { useTheme } from '../contexts/ThemeContext';
 import { useDemo } from '../contexts/DemoContext';
 import { usePlatformStatus } from '../hooks/usePlatformStatus';
 import {
@@ -32,7 +31,6 @@ const getAuthHeaders = () => {
 const Settings = () => {
   const navigate = useNavigate();
   const { user, signOut } = useAuth();
-  const { theme } = useTheme();
   const { isDemoMode } = useDemo();
   const [disconnectingService, setDisconnectingService] = useState<string | null>(null);
   const [userIdCopied, setUserIdCopied] = useState(false);
@@ -267,19 +265,20 @@ const Settings = () => {
     }
   };
 
-  // Shared card styles
+  // Shared card styles — glass card design system
   const cardStyle = {
-    backgroundColor: theme === 'dark' ? 'rgba(45, 45, 41, 0.5)' : 'rgba(255, 255, 255, 0.5)',
-    backdropFilter: 'blur(16px) saturate(180%)',
-    WebkitBackdropFilter: 'blur(16px) saturate(180%)',
-    border: theme === 'dark' ? '1px solid rgba(193, 192, 182, 0.1)' : '1px solid rgba(0, 0, 0, 0.06)',
-    boxShadow: theme === 'dark' ? '0 8px 32px rgba(0, 0, 0, 0.3)' : '0 8px 32px rgba(0, 0, 0, 0.03)'
+    background: 'rgba(255, 255, 255, 0.18)',
+    backdropFilter: 'blur(10px) saturate(140%)',
+    WebkitBackdropFilter: 'blur(10px) saturate(140%)',
+    borderRadius: '2rem',
+    border: '1px solid rgba(255, 255, 255, 0.45)',
+    boxShadow: '0 8px 32px rgba(0, 0, 0, 0.18), inset 0 1px 0 rgba(255, 255, 255, 0.6)',
   };
 
   return (
     <div
       className="min-h-screen"
-      style={{ backgroundColor: theme === 'dark' ? '#232320' : '#FAFAFA' }}
+      style={{ backgroundColor: '#F7F7F3' }}
     >
       <main className="max-w-4xl mx-auto pt-8 pb-20 px-6">
         {/* Page title */}
@@ -289,10 +288,7 @@ const Settings = () => {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.4, ease: [0.4, 0, 0.2, 1] }}
         >
-          <h1
-            className="text-2xl"
-            style={{ fontFamily: 'var(--font-heading)', fontWeight: 400, letterSpacing: '-0.02em', color: theme === 'dark' ? '#C1C0B6' : '#0c0a09' }}
-          >
+          <h1 className="heading-serif text-2xl">
             Settings
           </h1>
         </motion.div>
@@ -308,23 +304,23 @@ const Settings = () => {
             <div
               className="rounded-2xl p-4 flex items-center gap-3"
               style={{
-                backgroundColor: theme === 'dark' ? 'rgba(251, 191, 36, 0.1)' : 'rgba(251, 191, 36, 0.08)',
+                backgroundColor: 'rgba(251, 191, 36, 0.08)',
                 border: '1px solid rgba(251, 191, 36, 0.3)'
               }}
             >
               <Info className="w-5 h-5 flex-shrink-0" style={{ color: '#FBBF24' }} />
-              <p className="text-sm" style={{ color: theme === 'dark' ? '#FCD34D' : '#B45309' }}>
+              <p className="text-sm" style={{ color: '#B45309' }}>
                 You're in demo mode. Platform connections and sync features are simulated. Sign up to connect your real accounts.
               </p>
             </div>
           )}
 
           {/* Account Information */}
-          <section className="rounded-2xl p-5" style={cardStyle}>
+          <section className="p-5" style={cardStyle}>
             <div className="flex items-center justify-between gap-3 mb-4">
               <div className="flex items-center gap-3">
                 <Clay3DIcon name="robot" size={20} />
-                <h2 style={{ fontFamily: 'var(--font-heading)', fontWeight: 400, color: theme === 'dark' ? '#C1C0B6' : '#0c0a09' }}>
+                <h2 className="heading-serif text-base">
                   Account
                 </h2>
               </div>
@@ -332,7 +328,7 @@ const Settings = () => {
                 onClick={async () => { try { await signOut(); } catch { /* ignore */ } navigate('/auth'); }}
                 className="flex items-center gap-2 px-3 py-1.5 rounded-xl text-sm font-medium transition-all hover:scale-[1.02]"
                 style={{
-                  backgroundColor: theme === 'dark' ? 'rgba(239, 68, 68, 0.1)' : 'rgba(239, 68, 68, 0.08)',
+                  backgroundColor: 'rgba(239, 68, 68, 0.08)',
                   color: '#EF4444',
                   border: '1px solid rgba(239, 68, 68, 0.2)',
                 }}
@@ -341,13 +337,13 @@ const Settings = () => {
                 Sign Out
               </button>
             </div>
-            <div className="flex flex-wrap gap-6 text-sm" style={{ fontFamily: 'var(--font-body)', color: theme === 'dark' ? 'rgba(193, 192, 182, 0.8)' : '#44403c' }}>
+            <div className="flex flex-wrap gap-6 text-sm" style={{ fontFamily: 'var(--font-body)', color: '#1F1C18' }}>
               <div>
-                <span style={{ color: theme === 'dark' ? 'rgba(193, 192, 182, 0.5)' : '#78716c' }}>Name: </span>
+                <span style={{ color: '#8A857D' }}>Name: </span>
                 {user?.fullName || `${user?.firstName || ''} ${user?.lastName || ''}`.trim() || 'Not set'}
               </div>
               <div>
-                <span style={{ color: theme === 'dark' ? 'rgba(193, 192, 182, 0.5)' : '#78716c' }}>Email: </span>
+                <span style={{ color: '#8A857D' }}>Email: </span>
                 {user?.email}
               </div>
             </div>
@@ -355,7 +351,6 @@ const Settings = () => {
 
           {/* Connected Services */}
           <ConnectedPlatformsSettings
-            theme={theme}
             isDemoMode={isDemoMode}
             connectorStatus={connectorStatus}
             isLoading={isLoading}
@@ -368,7 +363,6 @@ const Settings = () => {
 
           {/* Data Consent */}
           <DataConsentSettings
-            theme={theme}
             consents={consents}
             loadingConsents={loadingConsents}
             revokingConsent={revokingConsent}
@@ -378,7 +372,6 @@ const Settings = () => {
 
           {/* Claude Desktop Sync */}
           <ClaudeDesktopSync
-            theme={theme}
             user={user}
             syncStats={syncStats}
             loadingSyncStats={loadingSyncStats}
@@ -391,14 +384,14 @@ const Settings = () => {
           />
 
           {/* How Your Data is Protected */}
-          <section className="rounded-2xl p-5" style={cardStyle}>
+          <section className="p-5" style={cardStyle}>
             <div className="flex items-center gap-3 mb-2">
               <Shield className="w-5 h-5" style={{ color: '#10B981' }} />
-              <h2 style={{ fontFamily: 'var(--font-heading)', fontWeight: 400, color: theme === 'dark' ? '#C1C0B6' : '#0c0a09' }}>
+              <h2 className="heading-serif text-base">
                 How Your Data is Protected
               </h2>
             </div>
-            <p className="text-sm mb-4" style={{ fontFamily: 'var(--font-body)', color: theme === 'dark' ? 'rgba(193, 192, 182, 0.6)' : '#78716c' }}>
+            <p className="text-sm mb-4" style={{ fontFamily: 'var(--font-body)', color: '#8A857D' }}>
               Your privacy is fundamental to Twin Me. Here's how we protect you.
             </p>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -412,14 +405,14 @@ const Settings = () => {
                   key={label}
                   className="flex items-start gap-3 p-3 rounded-xl"
                   style={{
-                    backgroundColor: theme === 'dark' ? 'rgba(16, 185, 129, 0.05)' : 'rgba(16, 185, 129, 0.03)',
-                    border: theme === 'dark' ? '1px solid rgba(16, 185, 129, 0.1)' : '1px solid rgba(16, 185, 129, 0.08)',
+                    backgroundColor: 'rgba(16, 185, 129, 0.03)',
+                    border: '1px solid rgba(16, 185, 129, 0.08)',
                   }}
                 >
                   <Icon className="w-4 h-4 mt-0.5 flex-shrink-0" style={{ color: '#10B981' }} />
                   <div>
-                    <div className="text-sm font-medium" style={{ color: theme === 'dark' ? '#C1C0B6' : '#0c0a09' }}>{label}</div>
-                    <div className="text-xs" style={{ color: theme === 'dark' ? 'rgba(193, 192, 182, 0.5)' : '#78716c' }}>{desc}</div>
+                    <div className="text-sm font-medium" style={{ color: '#1F1C18' }}>{label}</div>
+                    <div className="text-xs" style={{ color: '#8A857D' }}>{desc}</div>
                   </div>
                 </div>
               ))}
@@ -428,7 +421,6 @@ const Settings = () => {
 
           {/* Privacy & Data Management */}
           <DataManagementSettings
-            theme={theme}
             isDemoMode={isDemoMode}
             navigate={navigate}
             exporting={exporting}

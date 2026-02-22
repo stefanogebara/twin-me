@@ -10,8 +10,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
-import { useTheme } from '@/contexts/ThemeContext';
-import { PageLayout, GlassPanel } from '@/components/layout/PageLayout';
+import { PageLayout } from '@/components/layout/PageLayout';
 import { goalsAPI } from '@/services/api/goalsAPI';
 import type { Goal, GoalProgress } from '@/services/api/goalsAPI';
 import GoalCard from './components/goals/GoalCard';
@@ -26,6 +25,11 @@ import {
   Loader2,
   Flame,
 } from 'lucide-react';
+
+// --- Design tokens ---
+const TEXT_PRIMARY = '#1F1C18';
+const TEXT_SECONDARY = '#8A857D';
+const BORDER_COLOR = 'rgba(0, 0, 0, 0.08)';
 
 // --- Query Keys ---
 
@@ -75,14 +79,8 @@ const useGoalProgress = () => {
 // --- Main Component ---
 
 const GoalsPage: React.FC = () => {
-  const { theme } = useTheme();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const isDark = theme === 'dark';
-
-  const textPrimary = isDark ? '#C1C0B6' : '#0c0a09';
-  const textSecondary = isDark ? 'rgba(193, 192, 182, 0.7)' : '#57534e';
-  const borderColor = isDark ? 'rgba(193, 192, 182, 0.12)' : 'rgba(0, 0, 0, 0.08)';
 
   // Local UI state
   const [showCompleted, setShowCompleted] = useState(false);
@@ -131,9 +129,6 @@ const GoalsPage: React.FC = () => {
   });
 
   const isLoading = loadingActive && loadingSuggestions;
-
-  // --- Prefetch progress when active goals load ---
-  // This is handled on demand via the GoalCard expand
 
   // --- Mutation handlers ---
 
@@ -208,7 +203,7 @@ const GoalsPage: React.FC = () => {
         {/* Loading state */}
         {isLoading && (
           <div className="flex items-center justify-center py-20">
-            <Loader2 className="w-6 h-6 animate-spin" style={{ color: textSecondary }} />
+            <Loader2 className="w-6 h-6 animate-spin" style={{ color: TEXT_SECONDARY }} />
           </div>
         )}
 
@@ -223,32 +218,27 @@ const GoalsPage: React.FC = () => {
             <div
               className="w-16 h-16 mx-auto rounded-2xl flex items-center justify-center"
               style={{
-                background: isDark ? 'rgba(193, 192, 182, 0.06)' : 'rgba(0, 0, 0, 0.03)',
-                border: `1px solid ${borderColor}`,
+                background: 'rgba(0, 0, 0, 0.03)',
+                border: `1px solid ${BORDER_COLOR}`,
               }}
             >
-              <Target className="w-8 h-8" style={{ color: textSecondary }} />
+              <Target className="w-8 h-8" style={{ color: TEXT_SECONDARY }} />
             </div>
             <h3
-              className="text-lg"
-              style={{ color: textPrimary, fontFamily: 'var(--font-heading)' }}
+              className="heading-serif text-lg"
             >
               Your twin is still learning your patterns
             </h3>
             <p
               className="text-sm max-w-md mx-auto"
-              style={{ color: textSecondary, fontFamily: 'var(--font-body)' }}
+              style={{ color: TEXT_SECONDARY, fontFamily: 'var(--font-body)' }}
             >
               Connect more platforms to get personalized goals. Your twin analyzes your real
               data to suggest goals that actually fit your life.
             </p>
             <button
               onClick={() => navigate('/get-started')}
-              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-medium transition-all"
-              style={{
-                background: isDark ? '#C1C0B6' : '#0c0a09',
-                color: isDark ? '#232320' : '#FAFAFA',
-              }}
+              className="btn-cta-app inline-flex items-center gap-2 px-5 py-2.5 text-sm font-medium transition-all"
             >
               <Link2 className="w-4 h-4" />
               Connect Platforms
@@ -266,8 +256,8 @@ const GoalsPage: React.FC = () => {
           >
             {summary.active > 0 && (
               <div className="flex items-center gap-1.5">
-                <Target className="w-4 h-4" style={{ color: textSecondary }} />
-                <span className="text-sm" style={{ color: textPrimary }}>
+                <Target className="w-4 h-4" style={{ color: TEXT_SECONDARY }} />
+                <span className="text-sm" style={{ color: TEXT_PRIMARY }}>
                   <span className="font-medium">{summary.active}</span> active
                 </span>
               </div>
@@ -275,7 +265,7 @@ const GoalsPage: React.FC = () => {
             {summary.completed > 0 && (
               <div className="flex items-center gap-1.5">
                 <Trophy className="w-4 h-4" style={{ color: '#34d399' }} />
-                <span className="text-sm" style={{ color: textPrimary }}>
+                <span className="text-sm" style={{ color: TEXT_PRIMARY }}>
                   <span className="font-medium">{summary.completed}</span> completed
                 </span>
               </div>
@@ -283,7 +273,7 @@ const GoalsPage: React.FC = () => {
             {summary.bestStreak > 0 && (
               <div className="flex items-center gap-1.5">
                 <Flame className="w-4 h-4" style={{ color: '#f97316' }} />
-                <span className="text-sm" style={{ color: textPrimary }}>
+                <span className="text-sm" style={{ color: TEXT_PRIMARY }}>
                   <span className="font-medium">{summary.bestStreak}d</span> best streak
                 </span>
               </div>
@@ -295,10 +285,9 @@ const GoalsPage: React.FC = () => {
         {!isLoading && suggestions.length > 0 && (
           <section className="space-y-4">
             <div className="flex items-center gap-2">
-              <Sparkles className="w-4 h-4" style={{ color: textSecondary }} />
+              <Sparkles className="w-4 h-4" style={{ color: TEXT_SECONDARY }} />
               <h2
-                className="text-sm font-medium"
-                style={{ color: textPrimary, fontFamily: 'var(--font-heading)' }}
+                className="heading-serif text-sm font-medium"
               >
                 Your twin suggests
               </h2>
@@ -326,10 +315,9 @@ const GoalsPage: React.FC = () => {
         {!isLoading && activeGoals.length > 0 && (
           <section className="space-y-4">
             <div className="flex items-center gap-2">
-              <Target className="w-4 h-4" style={{ color: textSecondary }} />
+              <Target className="w-4 h-4" style={{ color: TEXT_SECONDARY }} />
               <h2
-                className="text-sm font-medium"
-                style={{ color: textPrimary, fontFamily: 'var(--font-heading)' }}
+                className="heading-serif text-sm font-medium"
               >
                 Active Goals
               </h2>
@@ -366,15 +354,14 @@ const GoalsPage: React.FC = () => {
             >
               <Trophy className="w-4 h-4" style={{ color: '#34d399' }} />
               <h2
-                className="text-sm font-medium flex-1"
-                style={{ color: textPrimary, fontFamily: 'var(--font-heading)' }}
+                className="heading-serif text-sm font-medium flex-1"
               >
                 Completed Goals
               </h2>
               {showCompleted ? (
-                <ChevronUp className="w-4 h-4" style={{ color: textSecondary }} />
+                <ChevronUp className="w-4 h-4" style={{ color: TEXT_SECONDARY }} />
               ) : (
-                <ChevronDown className="w-4 h-4" style={{ color: textSecondary }} />
+                <ChevronDown className="w-4 h-4" style={{ color: TEXT_SECONDARY }} />
               )}
             </button>
 
@@ -388,10 +375,10 @@ const GoalsPage: React.FC = () => {
                 >
                   {loadingCompleted ? (
                     <div className="flex items-center justify-center py-8">
-                      <Loader2 className="w-5 h-5 animate-spin" style={{ color: textSecondary }} />
+                      <Loader2 className="w-5 h-5 animate-spin" style={{ color: TEXT_SECONDARY }} />
                     </div>
                   ) : completedGoals.length === 0 ? (
-                    <p className="text-sm py-4" style={{ color: textSecondary }}>
+                    <p className="text-sm py-4" style={{ color: TEXT_SECONDARY }}>
                       No completed goals yet. Keep going!
                     </p>
                   ) : (

@@ -7,7 +7,6 @@
 
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { useTheme } from '@/contexts/ThemeContext';
 import {
   Flame,
   Trophy,
@@ -25,6 +24,11 @@ import {
 } from 'lucide-react';
 import GoalProgressChart from './GoalProgressChart';
 import type { Goal, GoalProgress } from '@/services/api/goalsAPI';
+
+// Design tokens
+const TEXT_PRIMARY = '#1F1C18';
+const TEXT_SECONDARY = '#8A857D';
+const BORDER_COLOR = 'rgba(0, 0, 0, 0.08)';
 
 // Category color mapping
 const CATEGORY_STYLES: Record<string, { bg: string; text: string; border: string; label: string }> = {
@@ -83,14 +87,8 @@ const GoalCard: React.FC<GoalCardProps> = ({
   isAbandoning,
   index,
 }) => {
-  const { theme } = useTheme();
-  const isDark = theme === 'dark';
   const [expanded, setExpanded] = useState(false);
   const [showAbandonConfirm, setShowAbandonConfirm] = useState(false);
-
-  const textPrimary = isDark ? '#C1C0B6' : '#0c0a09';
-  const textSecondary = isDark ? 'rgba(193, 192, 182, 0.7)' : '#57534e';
-  const borderColor = isDark ? 'rgba(193, 192, 182, 0.12)' : 'rgba(0, 0, 0, 0.08)';
 
   const categoryStyle = CATEGORY_STYLES[goal.category] ?? CATEGORY_STYLES.balance;
   const CategoryIcon = CATEGORY_ICONS[goal.category] ?? Sparkles;
@@ -149,7 +147,7 @@ const GoalCard: React.FC<GoalCardProps> = ({
           <div className="flex-1 min-w-0">
             <h4
               className="text-sm font-medium leading-snug truncate"
-              style={{ color: textPrimary, fontFamily: 'var(--font-heading)' }}
+              style={{ color: TEXT_PRIMARY, fontFamily: 'var(--font-heading)' }}
             >
               {goal.title}
             </h4>
@@ -185,17 +183,17 @@ const GoalCard: React.FC<GoalCardProps> = ({
       {/* Progress bar */}
       <div className="space-y-1">
         <div className="flex items-center justify-between">
-          <span className="text-[10px]" style={{ color: textSecondary }}>
+          <span className="text-[10px]" style={{ color: TEXT_SECONDARY }}>
             Progress
           </span>
-          <span className="text-[10px] font-medium" style={{ color: textPrimary }}>
+          <span className="text-[10px] font-medium" style={{ color: TEXT_PRIMARY }}>
             {progressPercent}%
           </span>
         </div>
         <div
           className="h-2 rounded-full overflow-hidden"
           style={{
-            background: isDark ? 'rgba(193, 192, 182, 0.08)' : 'rgba(0, 0, 0, 0.05)',
+            background: 'rgba(0, 0, 0, 0.05)',
           }}
         >
           <motion.div
@@ -207,11 +205,11 @@ const GoalCard: React.FC<GoalCardProps> = ({
           />
         </div>
         <div className="flex items-center justify-between">
-          <span className="text-[10px]" style={{ color: textSecondary }}>
+          <span className="text-[10px]" style={{ color: TEXT_SECONDARY }}>
             {goal.total_days_met}/{goal.total_days_tracked} days met
           </span>
           {goal.target_value != null && goal.target_unit && (
-            <span className="text-[10px]" style={{ color: textSecondary }}>
+            <span className="text-[10px]" style={{ color: TEXT_SECONDARY }}>
               Target: {goal.target_value} {goal.target_unit}
             </span>
           )}
@@ -225,12 +223,12 @@ const GoalCard: React.FC<GoalCardProps> = ({
           <div className="flex items-center gap-1">
             <Flame
               className="w-3.5 h-3.5"
-              style={{ color: goal.current_streak >= 3 ? '#f97316' : textSecondary }}
+              style={{ color: goal.current_streak >= 3 ? '#f97316' : TEXT_SECONDARY }}
             />
             <span
               className="text-xs font-medium"
               style={{
-                color: goal.current_streak >= 3 ? '#f97316' : textPrimary,
+                color: goal.current_streak >= 3 ? '#f97316' : TEXT_PRIMARY,
               }}
             >
               {goal.current_streak}d streak
@@ -241,8 +239,8 @@ const GoalCard: React.FC<GoalCardProps> = ({
         {/* Best streak */}
         {goal.best_streak > 0 && (
           <div className="flex items-center gap-1">
-            <Trophy className="w-3 h-3" style={{ color: textSecondary }} />
-            <span className="text-[10px]" style={{ color: textSecondary }}>
+            <Trophy className="w-3 h-3" style={{ color: TEXT_SECONDARY }} />
+            <span className="text-[10px]" style={{ color: TEXT_SECONDARY }}>
               Best: {goal.best_streak}d
             </span>
           </div>
@@ -251,11 +249,11 @@ const GoalCard: React.FC<GoalCardProps> = ({
         {/* Days remaining (only for active goals) */}
         {!isCompleted && daysRemaining != null && (
           <div className="flex items-center gap-1 ml-auto">
-            <Clock className="w-3 h-3" style={{ color: textSecondary }} />
+            <Clock className="w-3 h-3" style={{ color: TEXT_SECONDARY }} />
             <span
               className="text-[10px]"
               style={{
-                color: daysRemaining <= 3 ? '#f97316' : textSecondary,
+                color: daysRemaining <= 3 ? '#f97316' : TEXT_SECONDARY,
               }}
             >
               {daysRemaining}d left
@@ -268,7 +266,7 @@ const GoalCard: React.FC<GoalCardProps> = ({
       <button
         onClick={() => setExpanded((prev) => !prev)}
         className="flex items-center gap-1 w-full pt-1 transition-colors"
-        style={{ color: textSecondary }}
+        style={{ color: TEXT_SECONDARY }}
       >
         {expanded ? (
           <ChevronUp className="w-3.5 h-3.5" />
@@ -287,13 +285,13 @@ const GoalCard: React.FC<GoalCardProps> = ({
           exit={{ opacity: 0, height: 0 }}
           transition={{ duration: 0.2 }}
           className="space-y-3 pt-1"
-          style={{ borderTop: `1px solid ${borderColor}` }}
+          style={{ borderTop: `1px solid ${BORDER_COLOR}` }}
         >
           {/* Description */}
           {goal.description && (
             <p
               className="text-xs pt-2"
-              style={{ color: textSecondary, fontFamily: 'var(--font-body)' }}
+              style={{ color: TEXT_SECONDARY, fontFamily: 'var(--font-body)' }}
             >
               {goal.description}
             </p>
@@ -313,7 +311,7 @@ const GoalCard: React.FC<GoalCardProps> = ({
             <div className="pt-2">
               {showAbandonConfirm ? (
                 <div className="flex items-center gap-2">
-                  <span className="text-xs" style={{ color: textSecondary }}>
+                  <span className="text-xs" style={{ color: TEXT_SECONDARY }}>
                     Are you sure?
                   </span>
                   <button
@@ -331,8 +329,8 @@ const GoalCard: React.FC<GoalCardProps> = ({
                   </button>
                   <button
                     onClick={() => setShowAbandonConfirm(false)}
-                    className="px-3 py-1 rounded-lg text-xs transition-colors hover:bg-black/5 dark:hover:bg-white/5"
-                    style={{ color: textSecondary }}
+                    className="px-3 py-1 rounded-lg text-xs transition-colors hover:bg-black/5"
+                    style={{ color: TEXT_SECONDARY }}
                   >
                     Cancel
                   </button>
@@ -341,7 +339,7 @@ const GoalCard: React.FC<GoalCardProps> = ({
                 <button
                   onClick={handleAbandonClick}
                   className="flex items-center gap-1 px-3 py-1 rounded-lg text-xs transition-colors hover:bg-red-500/10"
-                  style={{ color: isDark ? 'rgba(239, 68, 68, 0.7)' : '#ef4444' }}
+                  style={{ color: '#ef4444' }}
                 >
                   <XCircle className="w-3 h-3" />
                   Abandon goal

@@ -1,13 +1,13 @@
 /**
  * PageLayout Component
  *
- * Provides consistent page structure with Lorix minimal design
- * Includes optional title/subtitle header and content wrapper with glass morphism
+ * Provides consistent page structure with the TwinMe landing page design.
+ * Cream background (#F7F7F3), Playfair Display headings, liquid glass cards.
+ * Light mode only — matches Index.tsx design language.
  */
 
 import React, { ReactNode } from 'react';
 import { motion } from 'framer-motion';
-import { useTheme } from '@/contexts/ThemeContext';
 import { TokenExpiryBanner } from '@/components/TokenExpiryBanner';
 
 interface PageLayoutProps {
@@ -27,8 +27,6 @@ export const PageLayout: React.FC<PageLayoutProps> = ({
   maxWidth = 'full',
   padding = 'lg'
 }) => {
-  const { theme } = useTheme();
-
   const maxWidthClasses = {
     sm: 'max-w-2xl',
     md: 'max-w-4xl',
@@ -48,9 +46,7 @@ export const PageLayout: React.FC<PageLayoutProps> = ({
   return (
     <div
       className={`min-h-screen ${className}`}
-      style={{
-        backgroundColor: theme === 'dark' ? '#232320' : '#FAFAFA'
-      }}
+      style={{ backgroundColor: '#F7F7F3' }}
     >
       {/* Token Expiry Banner - shows when tokens are expiring */}
       <TokenExpiryBanner />
@@ -66,11 +62,9 @@ export const PageLayout: React.FC<PageLayoutProps> = ({
           <div className="mb-8">
             {title && (
               <h1
-                className="text-3xl mb-2"
+                className="text-3xl mb-2 heading-serif"
                 style={{
-                  fontFamily: 'var(--font-heading)',
-                  fontWeight: 400,
-                  color: theme === 'dark' ? '#C1C0B6' : '#0c0a09'
+                  color: '#1F1C18'
                 }}
               >
                 {title}
@@ -80,8 +74,8 @@ export const PageLayout: React.FC<PageLayoutProps> = ({
               <p
                 className="text-[15px]"
                 style={{
-                  fontFamily: 'var(--font-body)',
-                  color: theme === 'dark' ? 'rgba(193, 192, 182, 0.8)' : '#57534e'
+                  fontFamily: 'Inter, system-ui, sans-serif',
+                  color: '#8A857D'
                 }}
               >
                 {subtitle}
@@ -100,7 +94,8 @@ export const PageLayout: React.FC<PageLayoutProps> = ({
 /**
  * GlassPanel Component
  *
- * Reusable glass morphism panel with Framer Motion hover and entrance animations
+ * Reusable liquid glass panel with Framer Motion hover and entrance animations.
+ * Matches the landing page glass card spec.
  */
 export const GlassPanel: React.FC<{
   children: ReactNode;
@@ -110,8 +105,6 @@ export const GlassPanel: React.FC<{
   onClick?: () => void;
   delay?: number;
 }> = ({ children, className = '', hover = false, variant = 'card', onClick, delay = 0 }) => {
-  const { theme } = useTheme();
-
   const variantClasses = {
     default: 'glass',
     card: 'glass-card',
@@ -122,7 +115,6 @@ export const GlassPanel: React.FC<{
   return (
     <motion.div
       className={`${variantClasses[variant]} ${className} p-6`}
-      style={{ borderRadius: '20px' }}
       initial={{ opacity: 0, y: 16 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{
@@ -133,9 +125,7 @@ export const GlassPanel: React.FC<{
       whileHover={hover || onClick ? {
         y: -4,
         scale: 1.01,
-        boxShadow: theme === 'dark'
-          ? '0 20px 60px rgba(0, 0, 0, 0.3), 0 0 20px rgba(212, 168, 83, 0.06)'
-          : '0 20px 60px rgba(12, 10, 9, 0.12), 0 0 20px rgba(212, 168, 83, 0.08)',
+        boxShadow: '0 20px 60px rgba(0, 0, 0, 0.22), inset 0 1px 0 rgba(255, 255, 255, 0.7)',
         transition: { duration: 0.25, ease: [0.4, 0, 0.2, 1] }
       } : undefined}
       whileTap={onClick ? { scale: 0.985, transition: { duration: 0.1 } } : undefined}

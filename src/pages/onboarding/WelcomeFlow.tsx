@@ -230,7 +230,7 @@ const WelcomeFlow: React.FC<WelcomeFlowProps> = () => {
     return (
       <div
         className="min-h-screen flex items-center justify-center"
-        style={{ backgroundColor: theme === 'dark' ? '#232320' : '#FAFAFA' }}
+        style={{ backgroundColor: '#F7F7F3' }}
       >
         <div className="text-center">
           <Loader2
@@ -249,7 +249,7 @@ const WelcomeFlow: React.FC<WelcomeFlowProps> = () => {
     return (
       <div
         className="min-h-screen flex items-center justify-center"
-        style={{ backgroundColor: theme === 'dark' ? '#232320' : '#FAFAFA' }}
+        style={{ backgroundColor: '#F7F7F3' }}
       >
         <div className="text-center">
           <Check className="w-12 h-12 text-green-500 mx-auto mb-4" />
@@ -266,7 +266,7 @@ const WelcomeFlow: React.FC<WelcomeFlowProps> = () => {
     return (
       <div
         className="min-h-screen flex items-center justify-center p-4"
-        style={{ backgroundColor: theme === 'dark' ? '#232320' : '#FAFAFA' }}
+        style={{ backgroundColor: '#F7F7F3' }}
       >
         <div className="max-w-lg w-full">
           <div
@@ -279,16 +279,12 @@ const WelcomeFlow: React.FC<WelcomeFlowProps> = () => {
               boxShadow: theme === 'dark' ? '0 25px 50px -12px rgba(0, 0, 0, 0.5)' : '0 25px 50px -12px rgba(0, 0, 0, 0.15)'
             }}
           >
-            <div
-              className="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-6"
-              style={{
-                background: theme === 'dark'
-                  ? 'linear-gradient(135deg, rgba(193, 192, 182, 0.2), rgba(193, 192, 182, 0.1))'
-                  : 'linear-gradient(135deg, rgba(12, 10, 9, 0.1), rgba(12, 10, 9, 0.05))',
-                border: theme === 'dark' ? '1px solid rgba(193, 192, 182, 0.2)' : '1px solid rgba(12, 10, 9, 0.1)'
-              }}
-            >
-              <Sparkles className="w-8 h-8" style={{ color: theme === 'dark' ? '#C1C0B6' : '#0c0a09' }} />
+            <div className="flex justify-center mx-auto mb-6">
+              <img
+                src="/images/backgrounds/flower-hero.png"
+                alt="Twin Me"
+                className="w-16 h-16 object-contain drop-shadow-md"
+              />
             </div>
 
             <h1
@@ -312,7 +308,7 @@ const WelcomeFlow: React.FC<WelcomeFlowProps> = () => {
                 className="w-full py-6 text-lg rounded-xl transition-all duration-200"
                 style={{
                   backgroundColor: theme === 'dark' ? '#C1C0B6' : '#0c0a09',
-                  color: theme === 'dark' ? '#232320' : '#FAFAFA'
+                  color: '#F7F7F3'
                 }}
               >
                 Start Assessment
@@ -350,7 +346,7 @@ const WelcomeFlow: React.FC<WelcomeFlowProps> = () => {
   return (
     <div
       className="min-h-screen p-4"
-      style={{ backgroundColor: theme === 'dark' ? '#232320' : '#FAFAFA' }}
+      style={{ backgroundColor: '#F7F7F3' }}
     >
       {/* Progress header */}
       <div className="max-w-2xl mx-auto mb-6">
@@ -488,7 +484,7 @@ const WelcomeFlow: React.FC<WelcomeFlowProps> = () => {
                 className="px-8 transition-all duration-200"
                 style={{
                   backgroundColor: theme === 'dark' ? '#C1C0B6' : '#0c0a09',
-                  color: theme === 'dark' ? '#232320' : '#FAFAFA'
+                  color: '#F7F7F3'
                 }}
               >
                 {submitting ? (

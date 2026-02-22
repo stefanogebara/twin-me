@@ -10,7 +10,6 @@ import {
 import { Clay3DIcon } from '@/components/Clay3DIcon';
 
 interface ConnectedPlatformsSettingsProps {
-  theme: string;
   isDemoMode: boolean;
   connectorStatus: Record<string, any>;
   isLoading: boolean;
@@ -27,8 +26,17 @@ const connectorConfig = [
   { id: 'whoop', name: 'Whoop', description: 'Health, recovery, and strain data' }
 ];
 
+// Glass card style matching the design system
+const cardStyle = {
+  background: 'rgba(255, 255, 255, 0.18)',
+  backdropFilter: 'blur(10px) saturate(140%)',
+  WebkitBackdropFilter: 'blur(10px) saturate(140%)',
+  borderRadius: '2rem',
+  border: '1px solid rgba(255, 255, 255, 0.45)',
+  boxShadow: '0 8px 32px rgba(0, 0, 0, 0.18), inset 0 1px 0 rgba(255, 255, 255, 0.6)',
+};
+
 const ConnectedPlatformsSettings: React.FC<ConnectedPlatformsSettingsProps> = ({
-  theme,
   isDemoMode,
   connectorStatus,
   isLoading,
@@ -39,17 +47,11 @@ const ConnectedPlatformsSettings: React.FC<ConnectedPlatformsSettingsProps> = ({
   handleDisconnectService,
 }) => {
   return (
-    <section className="rounded-2xl p-5" style={{
-      backgroundColor: theme === 'dark' ? 'rgba(45, 45, 41, 0.5)' : 'rgba(255, 255, 255, 0.5)',
-      backdropFilter: 'blur(16px) saturate(180%)',
-      WebkitBackdropFilter: 'blur(16px) saturate(180%)',
-      border: theme === 'dark' ? '1px solid rgba(193, 192, 182, 0.1)' : '1px solid rgba(0, 0, 0, 0.06)',
-      boxShadow: theme === 'dark' ? '0 8px 32px rgba(0, 0, 0, 0.3)' : '0 8px 32px rgba(0, 0, 0, 0.03)'
-    }}>
+    <section className="p-5" style={cardStyle}>
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-3">
           <Clay3DIcon name="globe" size={20} />
-          <h2 style={{ fontFamily: 'var(--font-heading)', fontWeight: 400, color: theme === 'dark' ? '#C1C0B6' : '#0c0a09' }}>
+          <h2 className="heading-serif text-base">
             Connected Platforms
           </h2>
           <span className="flex items-center gap-1 text-xs px-2 py-0.5 rounded-full" style={{
@@ -64,9 +66,9 @@ const ConnectedPlatformsSettings: React.FC<ConnectedPlatformsSettingsProps> = ({
         <button
           onClick={() => refetch()}
           className="p-2 rounded-lg transition-all hover:scale-105"
-          style={{ backgroundColor: theme === 'dark' ? 'rgba(193, 192, 182, 0.1)' : 'rgba(0, 0, 0, 0.05)' }}
+          style={{ backgroundColor: 'rgba(0, 0, 0, 0.05)' }}
         >
-          <RefreshCw className="w-4 h-4" style={{ color: theme === 'dark' ? '#C1C0B6' : '#0c0a09' }} />
+          <RefreshCw className="w-4 h-4" style={{ color: '#1F1C18' }} />
         </button>
       </div>
 
@@ -79,7 +81,7 @@ const ConnectedPlatformsSettings: React.FC<ConnectedPlatformsSettingsProps> = ({
 
       {isLoading && !isDemoMode ? (
         <div className="flex items-center justify-center py-6">
-          <Loader2 className="w-5 h-5 animate-spin" style={{ color: theme === 'dark' ? '#C1C0B6' : '#0c0a09' }} />
+          <Loader2 className="w-5 h-5 animate-spin" style={{ color: '#1F1C18' }} />
         </div>
       ) : (
         <div className="space-y-2">
@@ -94,15 +96,15 @@ const ConnectedPlatformsSettings: React.FC<ConnectedPlatformsSettingsProps> = ({
                 key={connector.id}
                 className="flex items-center justify-between p-3 rounded-xl"
                 style={{
-                  backgroundColor: theme === 'dark' ? 'rgba(193, 192, 182, 0.05)' : 'rgba(255, 255, 255, 0.8)',
-                  border: theme === 'dark' ? '1px solid rgba(193, 192, 182, 0.08)' : '1px solid rgba(0, 0, 0, 0.04)'
+                  backgroundColor: 'rgba(255, 255, 255, 0.8)',
+                  border: '1px solid rgba(0, 0, 0, 0.04)'
                 }}
               >
                 <div>
-                  <h3 style={{ fontFamily: 'var(--font-body)', fontWeight: 500, color: theme === 'dark' ? '#C1C0B6' : '#0c0a09' }}>
+                  <h3 style={{ fontFamily: 'var(--font-body)', fontWeight: 500, color: '#1F1C18' }}>
                     {connector.name}
                   </h3>
-                  <p className="text-xs" style={{ color: theme === 'dark' ? 'rgba(193, 192, 182, 0.5)' : '#78716c' }}>
+                  <p className="text-xs" style={{ color: '#8A857D' }}>
                     {connector.description}
                   </p>
                 </div>
@@ -138,7 +140,7 @@ const ConnectedPlatformsSettings: React.FC<ConnectedPlatformsSettingsProps> = ({
                       </button>
                     </>
                   ) : (
-                    <XCircle className="w-4 h-4" style={{ color: theme === 'dark' ? 'rgba(193, 192, 182, 0.3)' : '#d6d3d1' }} />
+                    <XCircle className="w-4 h-4" style={{ color: '#d6d3d1' }} />
                   )}
                 </div>
               </div>
