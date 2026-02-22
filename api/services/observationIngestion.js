@@ -38,7 +38,7 @@ async function getSupabase() {
 }
 
 // Platforms we know how to ingest
-const SUPPORTED_PLATFORMS = ['spotify', 'google_calendar', 'whoop'];
+const SUPPORTED_PLATFORMS = ['spotify', 'google_calendar', 'whoop', 'youtube', 'twitch'];
 
 // ====================================================================
 // De-duplication
@@ -449,6 +449,154 @@ async function fetchWhoopObservations(userId) {
   return observations;
 }
 
+/**
+ * Fetch YouTube data and return natural-language observations.
+ * Uses the YouTube Data API v3 to pull subscriptions and liked videos.
+ */
+async function fetchYouTubeObservations(userId) {
+  const observations = [];
+
+  const tokenResult = await getValidAccessToken(userId, 'youtube');
+  if (!tokenResult.success || !tokenResult.accessToken) {
+    console.warn('[ObservationIngestion] YouTube: no valid token for user', userId);
+    return observations;
+  }
+
+  const headers = { Authorization: `Bearer ${tokenResult.accessToken}` };
+
+  // Subscribed channels
+  try {
+    const subsRes = await axios.get(
+      'https://www.googleapis.com/youtube/v3/subscriptions?part=snippet&mine=true&maxResults=20',
+      { headers, timeout: 10000 }
+    );
+    const items = subsRes.data?.items || [];
+    if (items.length > 0) {
+      const channelNames = items.map(i => i.snippet?.title).filter(Boolean).slice(0, 10);
+      const categories = [...new Set(items.map(i => i.snippet?.description).filter(Boolean).slice(0, 5))];
+      let obs = `Subscribed to YouTube channels: ${channelNames.join(', ')}`;
+      if (categories.length > 0) {
+        obs += ` — revealing interests in content from these creators`;
+      }
+      observations.push({ content: obs, contentType: 'weekly_summary' });
+    }
+  } catch (e) {
+    console.warn('[ObservationIngestion] YouTube subscriptions error:', e.message);
+  }
+
+  // Liked videos (recent activity signal)
+  try {
+    const likedRes = await axios.get(
+      'https://www.googleapis.com/youtube/v3/videos?part=snippet&myRating=like&maxResults=10',
+      { headers, timeout: 10000 }
+    );
+    const videos = likedRes.data?.items || [];
+    if (videos.length > 0) {
+      const titles = videos.map(v => v.snippet?.title).filter(Boolean).slice(0, 5);
+      const channelsSeen = [...new Set(videos.map(v => v.snippet?.channelTitle).filter(Boolean))].slice(0, 5);
+      observations.push({
+        content: `Recently liked YouTube videos: "${titles.join('", "')}" — from channels: ${channelsSeen.join(', ')}`,
+        contentType: 'daily_summary',
+      });
+    }
+  } catch (e) {
+    console.warn('[ObservationIngestion] YouTube liked videos error:', e.message);
+  }
+
+  // Watch activity (activities endpoint — reflects recent engagement)
+  try {
+    const actRes = await axios.get(
+      'https://www.googleapis.com/youtube/v3/activities?part=snippet&mine=true&maxResults=10',
+      { headers, timeout: 10000 }
+    );
+    const activities = actRes.data?.items || [];
+    const watchItems = activities.filter(a => a.snippet?.type === 'watch');
+    if (watchItems.length > 0) {
+      const recentTitles = watchItems.map(a => a.snippet?.title).filter(Boolean).slice(0, 3);
+      observations.push({
+        content: `Recently watched on YouTube: ${recentTitles.map(t => `"${t}"`).join(', ')}`,
+        contentType: 'current_state',
+      });
+    }
+  } catch (e) {
+    // Activities endpoint may not always be available — non-critical
+  }
+
+  return observations;
+}
+
+/**
+ * Fetch Twitch data and return natural-language observations.
+ * Uses the Twitch Helix API to pull followed channels.
+ */
+async function fetchTwitchObservations(userId) {
+  const observations = [];
+
+  const tokenResult = await getValidAccessToken(userId, 'twitch');
+  if (!tokenResult.success || !tokenResult.accessToken) {
+    console.warn('[ObservationIngestion] Twitch: no valid token for user', userId);
+    return observations;
+  }
+
+  const headers = {
+    Authorization: `Bearer ${tokenResult.accessToken}`,
+    'Client-Id': process.env.TWITCH_CLIENT_ID || '',
+  };
+
+  // Get Twitch user ID first (required for followed channels endpoint)
+  let twitchUserId = null;
+  try {
+    const userRes = await axios.get('https://api.twitch.tv/helix/users', { headers, timeout: 10000 });
+    twitchUserId = userRes.data?.data?.[0]?.id || null;
+  } catch (e) {
+    console.warn('[ObservationIngestion] Twitch user lookup error:', e.message);
+    return observations;
+  }
+
+  if (!twitchUserId) {
+    console.warn('[ObservationIngestion] Twitch: could not determine user ID for', userId);
+    return observations;
+  }
+
+  // Followed channels
+  try {
+    const followsRes = await axios.get(
+      `https://api.twitch.tv/helix/channels/followed?user_id=${twitchUserId}&first=50`,
+      { headers, timeout: 10000 }
+    );
+    const follows = followsRes.data?.data || [];
+    if (follows.length > 0) {
+      const channelNames = follows.map(f => f.broadcaster_name).filter(Boolean).slice(0, 15);
+      observations.push({
+        content: `Follows Twitch channels: ${channelNames.join(', ')} — streams in gaming and entertainment categories`,
+        contentType: 'weekly_summary',
+      });
+    }
+  } catch (e) {
+    console.warn('[ObservationIngestion] Twitch followed channels error:', e.message);
+  }
+
+  // Live streams currently followed (real-time signal)
+  try {
+    const streamsRes = await axios.get(
+      `https://api.twitch.tv/helix/streams/followed?user_id=${twitchUserId}&first=10`,
+      { headers, timeout: 10000 }
+    );
+    const liveStreams = streamsRes.data?.data || [];
+    if (liveStreams.length > 0) {
+      const streamDescs = liveStreams.slice(0, 5).map(s => `${s.user_name} (${s.game_name || 'Unknown'})`);
+      observations.push({
+        content: `Twitch channels currently live that I follow: ${streamDescs.join(', ')}`,
+        contentType: 'current_state',
+      });
+    }
+  } catch (e) {
+    // Non-critical — live stream data may be unavailable
+  }
+
+  return observations;
+}
+
 // ====================================================================
 // Main Ingestion Loop
 // ====================================================================
@@ -518,6 +666,12 @@ async function runObservationIngestion() {
                 break;
               case 'whoop':
                 observations = await fetchWhoopObservations(userId);
+                break;
+              case 'youtube':
+                observations = await fetchYouTubeObservations(userId);
+                break;
+              case 'twitch':
+                observations = await fetchTwitchObservations(userId);
                 break;
             }
 
@@ -712,6 +866,12 @@ async function runPostOnboardingIngestion(userId) {
           case 'whoop':
             observations = await fetchWhoopObservations(userId);
             break;
+          case 'youtube':
+            observations = await fetchYouTubeObservations(userId);
+            break;
+          case 'twitch':
+            observations = await fetchTwitchObservations(userId);
+            break;
         }
 
         for (const obs of observations) {
@@ -763,5 +923,7 @@ export {
   fetchSpotifyObservations,
   fetchCalendarObservations,
   fetchWhoopObservations,
+  fetchYouTubeObservations,
+  fetchTwitchObservations,
   runPostOnboardingIngestion,
 };

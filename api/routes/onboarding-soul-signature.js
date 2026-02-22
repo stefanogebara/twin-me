@@ -147,6 +147,29 @@ Respond in this exact JSON format:
       }
     }
 
+    // Store archetype as high-importance fact in memory stream for twin context retrieval
+    // Non-blocking — failure does not affect the response
+    if (userId && signature) {
+      const archetypeSummary = [
+        signature.archetype_name ? `My archetype is "${signature.archetype_name}".` : '',
+        Array.isArray(signature.core_traits) && signature.core_traits.length > 0
+          ? `My core personality traits are: ${signature.core_traits.map(t => (typeof t === 'object' ? t.trait : t)).join(', ')}.`
+          : '',
+        signature.signature_quote ? `A phrase that captures me: "${signature.signature_quote}"` : '',
+        signature.first_impression ? `First impression: ${signature.first_impression}` : '',
+      ].filter(Boolean).join(' ');
+
+      if (archetypeSummary) {
+        addMemory(userId, archetypeSummary, 'fact', {
+          source: 'soul_signature_archetype',
+          archetype_name: signature.archetype_name,
+        }, {
+          skipImportance: true,
+          importanceScore: 9,
+        }).catch(err => console.warn('[InstantSig] Failed to store archetype memory:', err.message));
+      }
+    }
+
     // Fire-and-forget: store calibration insights + signature as memories with domain tags
     if (userId && signature) {
       const memoryPromises = [];
