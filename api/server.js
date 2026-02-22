@@ -226,18 +226,11 @@ import dataVerificationRoutes from './routes/data-verification.js';
 import mcpRoutes from './routes/mcp.js';
 import entertainmentRoutes from './routes/entertainment-connectors.js';
 import additionalEntertainmentRoutes from './routes/additional-entertainment-connectors.js';
-import healthRoutes from './routes/health-connectors.js';
-import wearableRoutes from './routes/wearable-connectors.js';
 import soulExtractionRoutes from './routes/soul-extraction.js';
-import soulDataRoutes from './routes/soul-data.js';
-import soulMatchingRoutes from './routes/soul-matching.js';
 import authRoutes from './routes/auth-simple.js';
 import oauthCallbackRoutes from './routes/oauth-callback.js';
 import dashboardRoutes from './routes/dashboard.js';
-import trainingRoutes from './routes/training.js';
 import dataSourcesRoutes from './routes/data-sources.js';
-import allPlatformRoutes from './routes/all-platform-connectors.js';
-import soulObserverRoutes from './routes/soul-observer.js';
 import webhookRoutes from './routes/webhooks.js';
 import sseRoutes from './routes/sse.js';
 import queueDashboardRoutes from './routes/queue-dashboard.js';
@@ -245,17 +238,11 @@ import cronTokenRefreshHandler from './routes/cron-token-refresh.js';
 import cronPlatformPollingHandler from './routes/cron-platform-polling.js';
 import cronPatternLearningHandler from './routes/cron-pattern-learning.js';
 import cronObservationIngestionHandler from './routes/cron-observation-ingestion.js';
-import pipedreamRoutes from './routes/pipedream.js';
-import arcticRoutes from './routes/arctic-connectors.js';
 import soulSignatureRoutes from './routes/soul-signature.js';
 import soulInsightsRoutes from './routes/soul-insights.js';
 import testExtractionRoutes from './routes/test-extraction.js';
-import behavioralPatternsRoutes from './routes/behavioral-patterns.js';
-// import gnnPatternsRoutes from './routes/gnn-patterns.js'; // ARCHIVED: Neo4j/GNN not active
-import orchestratorRoutes from './routes/orchestrator.js';
 import calendarOAuthRoutes from './routes/calendar-oauth.js';
 import spotifyOAuthRoutes from './routes/spotify-oauth.js';
-import presentationRitualRoutes from './routes/presentation-ritual.js';
 import intelligentTwinRoutes from './routes/intelligent-twin.js';
 import testPatternLearningRoutes from './routes/test-pattern-learning.js';
 import onboardingQuestionsRoutes from './routes/onboarding-questions.js';
@@ -265,13 +252,8 @@ import platformInsightsRoutes from './routes/platform-insights.js';
 import twinPipelineRoutes from './routes/twin-pipeline.js';
 import notificationsRoutes from './routes/notifications.js';
 import extractionStatusRoutes from './routes/extraction-status.js';
-import researchRAGRoutes from './routes/research-rag.js';
-import personalityInferenceRoutes from './routes/personality-inference.js';
-import originDataRoutes from './routes/origin-data.js';
 import profileEnrichmentRoutes from './routes/profile-enrichment.js';
 import resumeUploadRoutes from './routes/resume-upload.js';
-import apiKeysRoutes from './routes/api-keys.js';
-import mcpApiRoutes from './routes/mcp-api.js';
 import claudeSyncRoutes from './routes/claude-sync.js';
 import cronClaudeSyncRoutes from './routes/cron-claude-sync.js';
 import twinsBrainRoutes from './routes/twins-brain.js';
@@ -389,39 +371,24 @@ app.use('/api/mcp', mcpRoutes);
 // Express merges their handlers under the same mount point.
 app.use('/api/entertainment', entertainmentRoutes);
 app.use('/api/entertainment', additionalEntertainmentRoutes);
-app.use('/api/health', healthRoutes);
-app.use('/api/wearables', wearableRoutes);
 app.use('/api/soul', soulExtractionRoutes);
-app.use('/api/soul-data', soulDataRoutes);
-app.use('/api/soul-matching', soulMatchingRoutes);
 app.use('/api/data-sources', dataSourcesRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/oauth', oauthCallbackRoutes); // Unified OAuth callback handler
 app.use('/api/dashboard', dashboardRoutes);
-app.use('/api/training', trainingRoutes);
-app.use('/api/platforms', allPlatformRoutes); // Comprehensive 56-platform integration
-// Soul Observer uses optional auth - allows both authenticated and unauthenticated requests
-// Extension sends userId in body when not authenticated
-app.use('/api/soul-observer', soulObserverRoutes); // Soul Observer Mode - behavioral tracking
 app.use('/api/webhooks', webhookRoutes); // Real-time webhook receivers (GitHub, Gmail, Slack)
 app.use('/api/sse', sseRoutes); // Server-Sent Events for real-time updates
 app.use('/api/queues', queueDashboardRoutes); // Bull Board job queue dashboard
-app.use('/api/pipedream', pipedreamRoutes); // Pipedream Connect OAuth integration
-app.use('/api/arctic', arcticRoutes); // Arctic OAuth integration (Better Auth + Arctic)
 app.use('/api/soul-signature', soulSignatureRoutes); // Soul Signature Analysis with Claude AI
 app.use('/api/soul-insights', soulInsightsRoutes); // User-friendly insights from graph metrics
 // Test/debug routes - only available in development
 if (process.env.NODE_ENV === 'development') {
   app.use('/api/test-extraction', testExtractionRoutes); // Demo data extraction endpoints
 }
-app.use('/api/behavioral-patterns', behavioralPatternsRoutes); // Cross-platform behavioral pattern recognition
-// app.use('/api/gnn-patterns', gnnPatternsRoutes); // ARCHIVED: Neo4j/GNN not active
-app.use('/api/orchestrator', orchestratorRoutes); // Multi-agent AI orchestration system (Anthropic pattern)
 app.use('/api/oauth/calendar', calendarOAuthRoutes); // Google Calendar OAuth connect endpoint
 app.use('/api/calendar', calendarOAuthRoutes); // Calendar events and sync endpoints
 app.use('/api/oauth/spotify', spotifyOAuthRoutes); // Spotify OAuth connect endpoint (Ritual feature)
 app.use('/api/spotify', spotifyOAuthRoutes); // Spotify playback and playlist endpoints
-app.use('/api/presentation-ritual', presentationRitualRoutes); // MVP: Presentation ritual pattern detection
 app.use('/api/twin', intelligentTwinRoutes); // Intelligent Twin Engine routes (context, today-insights, music)
 if (process.env.NODE_ENV === 'development') {
   app.use('/api/test-pattern-learning', testPatternLearningRoutes); // Pattern learning test/debug endpoints
@@ -442,13 +409,8 @@ app.use('/api/goals', goalsRoutes); // Twin-driven goal tracking (suggestions, p
 app.use('/api/twin', twinPipelineRoutes); // Twin formation pipeline (form, status, profile, evolution)
 app.use('/api/extraction', extractionStatusRoutes); // Extraction status and job history
 app.use('/api/notifications', notificationsRoutes); // User notifications (token expiry, sync issues)
-app.use('/api/research-rag', researchRAGRoutes); // Research paper RAG for evidence-backed personality inference
-app.use('/api/personality-inference', personalityInferenceRoutes); // Multi-agent personality inference pipeline
-app.use('/api/origin', originDataRoutes); // Origin data (hands-on user-provided context)
 app.use('/api/enrichment', profileEnrichmentRoutes); // Profile enrichment via Perplexity Sonar (enrichment-first onboarding)
 app.use('/api/resume', resumeUploadRoutes); // Resume/CV upload and parsing for enrichment
-app.use('/api/keys', apiKeysRoutes); // API key management for MCP server
-app.use('/api/mcp-api', mcpApiRoutes); // MCP API for LLM integrations (ChatGPT, Gemini, etc.)
 app.use('/api/claude-sync', claudeSyncRoutes); // Claude Desktop conversation sync
 app.use('/api/cron/claude-sync', cronClaudeSyncRoutes); // Claude Desktop cron sync and AI analysis processing
 app.use('/api/twins-brain', twinsBrainRoutes); // Twins Brain unified knowledge graph
