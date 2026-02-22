@@ -370,11 +370,12 @@ router.post('/oauth/callback/whoop', oauthCallbackLimiter, async (req, res) => {
     console.log(`💾 Whoop tokens stored for user ${userId}`);
 
     // Update last_sync_at to indicate connection is active
-    await supabase
+    const { error: whoopConnErr } = await supabase
       .from('platform_connections')
       .update({ last_sync_at: new Date().toISOString(), last_sync_status: 'connected' })
       .eq('user_id', userId)
       .eq('platform', 'whoop');
+    if (whoopConnErr) console.warn('[Whoop] Error updating connection status:', whoopConnErr.message);
 
     // Invalidate platform status cache so the new token expiration is reflected
     await invalidatePlatformStatusCache(userId);
@@ -666,7 +667,7 @@ router.post('/refresh/whoop', authenticateUser, async (req, res) => {
       console.error('Whoop token refresh error:', errorText);
 
       // Update status to needs_reauth
-      await supabase
+      const { error: reauthErr } = await supabase
         .from('platform_connections')
         .update({
           status: 'needs_reauth',
@@ -674,6 +675,7 @@ router.post('/refresh/whoop', authenticateUser, async (req, res) => {
           updated_at: new Date().toISOString()
         })
         .eq('id', connection.id);
+      if (reauthErr) console.warn('[Whoop] Error marking connection as needs_reauth:', reauthErr.message);
 
       return res.status(400).json({
         success: false,
@@ -1781,7 +1783,7 @@ async function refreshWhoopToken(userId, encryptedRefreshToken) {
     const expiresAt = new Date(Date.now() + tokens.expires_in * 1000);
 
     // Update stored tokens
-    await supabase
+    const { error: tokenUpdateErr } = await supabase
       .from('platform_connections')
       .update({
         access_token: encryptToken(newAccessToken),
@@ -1790,6 +1792,7 @@ async function refreshWhoopToken(userId, encryptedRefreshToken) {
       })
       .eq('user_id', userId)
       .eq('platform', 'whoop');
+    if (tokenUpdateErr) console.warn('[Whoop Token Refresh] Error saving refreshed tokens:', tokenUpdateErr.message);
 
     console.log('[Whoop Token Refresh] Success');
     return newAccessToken;

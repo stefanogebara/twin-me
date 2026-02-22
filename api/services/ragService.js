@@ -420,7 +420,7 @@ Do NOT simply provide information. Channel their authentic voice, perspective, a
       const timestamp = new Date().toISOString();
 
       // Store user message
-      await supabase
+      const { error: userMsgErr } = await supabase
         .from('conversation_memory')
         .insert({
           user_id: userId,
@@ -432,12 +432,13 @@ Do NOT simply provide information. Channel their authentic voice, perspective, a
           importance_score: 0.5,
           timestamp
         });
+      if (userMsgErr) console.warn('[RAG] Error storing user message:', userMsgErr.message);
 
       // Generate embedding for assistant response
       const responseEmbedding = await embeddingGenerator.generateQueryEmbedding(assistantResponse);
 
       if (responseEmbedding) {
-        await supabase
+        const { error: assistantMsgErr } = await supabase
           .from('conversation_memory')
           .insert({
             user_id: userId,
@@ -449,6 +450,7 @@ Do NOT simply provide information. Channel their authentic voice, perspective, a
             importance_score: 0.5,
             timestamp
           });
+        if (assistantMsgErr) console.warn('[RAG] Error storing assistant message:', assistantMsgErr.message);
       }
     } catch (error) {
       console.error('[RAG] Error storing conversation:', error);
