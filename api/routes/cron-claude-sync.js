@@ -12,6 +12,7 @@
  */
 
 import { Router } from 'express';
+import { authenticateUser } from '../middleware/auth.js';
 import fs from 'fs';
 import path from 'path';
 import os from 'os';
@@ -411,9 +412,9 @@ router.post('/run', async (req, res) => {
  * GET /api/cron/claude-sync/status
  * Get sync status for a user
  */
-router.get('/status', async (req, res) => {
+router.get('/status', authenticateUser, async (req, res) => {
   try {
-    const userId = req.query.userId || req.user?.id;
+    const userId = req.user.id;
 
     if (!userId) {
       return res.status(400).json({ error: 'userId is required' });

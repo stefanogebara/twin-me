@@ -17,9 +17,9 @@ const router = express.Router();
  * POST /api/twin/form
  * Trigger the full twin formation pipeline
  */
-router.post('/form', async (req, res) => {
+router.post('/form', authenticateUser, async (req, res) => {
   try {
-    const userId = req.body.userId || req.user?.id;
+    const userId = req.user.id;
 
     if (!userId) {
       return res.status(400).json({
@@ -114,10 +114,10 @@ router.get('/profile/:userId', authenticateUser, async (req, res) => {
  * POST /api/twin/refresh/:platform
  * Refresh data from a single platform
  */
-router.post('/refresh/:platform', async (req, res) => {
+router.post('/refresh/:platform', authenticateUser, async (req, res) => {
   try {
     const { platform } = req.params;
-    const userId = req.body.userId || req.user?.id;
+    const userId = req.user.id;
 
     if (!userId) {
       return res.status(400).json({

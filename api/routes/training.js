@@ -1,5 +1,6 @@
 import express from 'express';
 import { supabase } from '../config/supabase.js';
+import { authenticateUser } from '../middleware/auth.js';
 
 const router = express.Router();
 
@@ -15,9 +16,9 @@ const trainingJobs = new Map();
  * GET /api/training/status
  * Get current training status and metrics
  */
-router.get('/status', async (req, res) => {
+router.get('/status', authenticateUser, async (req, res) => {
   try {
-    const userId = req.query.userId || req.user?.id;
+    const userId = req.user.id;
 
     if (!userId) {
       return res.status(400).json({ error: 'User ID is required' });
@@ -98,9 +99,9 @@ router.get('/status', async (req, res) => {
  * POST /api/training/start
  * Start training the model
  */
-router.post('/start', async (req, res) => {
+router.post('/start', authenticateUser, async (req, res) => {
   try {
-    const userId = req.body.userId || req.user?.id;
+    const userId = req.user.id;
     const epochs = req.body.epochs || 10;
 
     if (!userId) {
@@ -176,9 +177,9 @@ router.post('/start', async (req, res) => {
  * POST /api/training/stop
  * Stop ongoing training
  */
-router.post('/stop', async (req, res) => {
+router.post('/stop', authenticateUser, async (req, res) => {
   try {
-    const userId = req.body.userId || req.user?.id;
+    const userId = req.user.id;
 
     if (!userId) {
       return res.status(400).json({ error: 'User ID is required' });
@@ -222,9 +223,9 @@ router.post('/stop', async (req, res) => {
  * POST /api/training/reset
  * Reset the model
  */
-router.post('/reset', async (req, res) => {
+router.post('/reset', authenticateUser, async (req, res) => {
   try {
-    const userId = req.body.userId || req.user?.id;
+    const userId = req.user.id;
 
     if (!userId) {
       return res.status(400).json({ error: 'User ID is required' });
