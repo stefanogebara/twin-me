@@ -287,8 +287,18 @@ import { /* handleAuthError, */ handleGeneralError, handle404 } from './middlewa
 import { errorHandler, notFoundHandler } from './middleware/errors.js';
 import { authenticateUser } from './middleware/auth.js';
 
+// Health check cache: avoid hammering Supabase on every uptime probe
+let _healthCache = null;
+let _healthCacheAt = 0;
+const HEALTH_CACHE_TTL_MS = 30_000; // 30 seconds
+
 // System health check endpoint (4A - Production Hardening)
 app.get('/api/system/health', async (req, res) => {
+  // Return cached result if fresh enough
+  if (_healthCache && (Date.now() - _healthCacheAt) < HEALTH_CACHE_TTL_MS) {
+    return res.status(_healthCache.status === 'unhealthy' ? 503 : 200).json(_healthCache);
+  }
+
   const checks = {
     status: 'ok',
     timestamp: new Date().toISOString(),
@@ -300,13 +310,13 @@ app.get('/api/system/health', async (req, res) => {
   };
 
   try {
-    // 1. Database connectivity check (SELECT 1 equivalent)
+    // 1. Database connectivity — use user_memories (lighter; avoids users table churn)
     if (!supabaseAdmin) {
       checks.database.connected = false;
       checks.database.error = 'supabaseAdmin not initialized';
     } else {
       const { error: dbError } = await supabaseAdmin
-        .from('users')
+        .from('user_memories')
         .select('id')
         .limit(1);
       checks.database.connected = !dbError;
@@ -317,9 +327,11 @@ app.get('/api/system/health', async (req, res) => {
     checks.database.error = e.message;
   }
 
-  // If database is not connected, return 503 early
+  // If database is not connected, cache the unhealthy result and return 503
   if (!checks.database.connected) {
     checks.status = 'unhealthy';
+    _healthCache = checks;
+    _healthCacheAt = Date.now();
     return res.status(503).json(checks);
   }
 
@@ -351,6 +363,8 @@ app.get('/api/system/health', async (req, res) => {
     checks.queryError = e.message;
   }
 
+  _healthCache = checks;
+  _healthCacheAt = Date.now();
   res.status(200).json(checks);
 });
 

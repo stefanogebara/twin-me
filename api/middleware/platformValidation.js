@@ -44,6 +44,11 @@ export const SUPPORTED_PLATFORMS = {
   web: { name: 'Web Browsing', category: 'behavioral', requiresAuth: false }
 };
 
+// Cache user lookups to avoid a DB round-trip on every soul extraction request.
+// 5-minute TTL is safe because user identity (id/email/name) rarely changes.
+const _userCache = new Map();
+const USER_CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
+
 /**
  * Validates that userId is provided and exists
  */
@@ -72,6 +77,14 @@ export const validateUserId = asyncHandler(async (req, res, next) => {
     });
   }
 
+  // Return cached user if entry is still fresh
+  const cached = _userCache.get(userId);
+  if (cached && (Date.now() - cached.ts) < USER_CACHE_TTL_MS) {
+    req.user = cached.user;
+    req.userId = userId;
+    return next();
+  }
+
   // Check if user exists
   const { data: user, error } = await supabase
     .from('users')
@@ -84,6 +97,8 @@ export const validateUserId = asyncHandler(async (req, res, next) => {
       suggestion: 'Verify the user exists and the ID is correct'
     });
   }
+
+  _userCache.set(userId, { user, ts: Date.now() });
 
   // Attach user to request for downstream middleware
   req.user = user;
