@@ -12,7 +12,7 @@ const CARD_IMAGES = {
   share: '/images/backgrounds/flower-card-4.jpg',      // Red/orange flower on cream
   control: '/images/backgrounds/flower-card-5.jpg',    // Pink/orange flower on purple
   stats: '/images/backgrounds/flower-card-3.jpg',      // Orange flower on teal underwater (was discover)
-  cta: '/images/backgrounds/flower-card-6.jpg',        // Abstract orange/teal grainy — standalone CTA flower
+  cta: '/images/backgrounds/flower-card-4.jpg',        // Red/orange flower on cream — standalone CTA flower
 };
 
 /* ── Service tab data ── */
@@ -524,13 +524,13 @@ const Index = () => {
             whileInView={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.7 }}
             viewport={{ once: true, amount: 0.3 }}
-            className="w-full max-w-[720px] overflow-hidden"
-            style={{ borderRadius: '28px' }}
+            className="w-full max-w-[820px] relative overflow-hidden"
+            style={{ borderRadius: '28px', aspectRatio: '2.2 / 1' }}
           >
             <img
               src={CARD_IMAGES.cta}
               alt=""
-              className="w-full h-auto object-cover"
+              className="absolute inset-0 w-full h-full object-cover"
             />
           </motion.div>
 
