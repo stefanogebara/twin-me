@@ -41,6 +41,8 @@ const SpotifyInsightsPage = lazy(() => import("./pages/insights/SpotifyInsightsP
 const CalendarInsightsPage = lazy(() => import("./pages/insights/CalendarInsightsPage"));
 const YouTubeInsightsPage = lazy(() => import("./pages/insights/YouTubeInsightsPage"));
 const WebBrowsingInsightsPage = lazy(() => import("./pages/insights/WebBrowsingInsightsPage"));
+const DiscordInsightsPage = lazy(() => import("./pages/insights/DiscordInsightsPage"));
+const LinkedInInsightsPage = lazy(() => import("./pages/insights/LinkedInInsightsPage"));
 const GoalsPage = lazy(() => import("./pages/GoalsPage"));
 
 const queryClient = new QueryClient();
@@ -150,6 +152,24 @@ const App = () => {
                 <SidebarLayout>
                   <ErrorBoundary>
                     <WebBrowsingInsightsPage />
+                  </ErrorBoundary>
+                </SidebarLayout>
+              </ProtectedRoute>
+            } />
+            <Route path="/insights/discord" element={
+              <ProtectedRoute>
+                <SidebarLayout>
+                  <ErrorBoundary>
+                    <DiscordInsightsPage />
+                  </ErrorBoundary>
+                </SidebarLayout>
+              </ProtectedRoute>
+            } />
+            <Route path="/insights/linkedin" element={
+              <ProtectedRoute>
+                <SidebarLayout>
+                  <ErrorBoundary>
+                    <LinkedInInsightsPage />
                   </ErrorBoundary>
                 </SidebarLayout>
               </ProtectedRoute>

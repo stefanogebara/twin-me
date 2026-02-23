@@ -24,6 +24,8 @@ import {
   Eye,
   Video,
   Globe,
+  MessageSquare,
+  Briefcase,
   BookOpen,
   Target,
   BarChart3
@@ -109,10 +111,16 @@ const insightNavItems: NavItem[] = [
     path: '/insights/youtube'
   },
   {
-    id: 'web-insights',
-    label: 'Digital Life',
-    icon: Globe,
-    path: '/insights/web'
+    id: 'discord-insights',
+    label: 'Communities',
+    icon: MessageSquare,
+    path: '/insights/discord'
+  },
+  {
+    id: 'linkedin-insights',
+    label: 'Professional',
+    icon: Briefcase,
+    path: '/insights/linkedin'
   }
 ];
 

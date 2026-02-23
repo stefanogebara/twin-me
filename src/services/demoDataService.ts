@@ -59,5 +59,13 @@ export { getDemoJournalData } from './demo/demoJournal';
 export type { DemoTodayInsight } from './demo/demoTodayInsights';
 export { DEMO_TODAY_INSIGHTS } from './demo/demoTodayInsights';
 
+// Discord
+export type { DemoDiscordInsights, DemoDiscordData, DemoDiscordServer } from './demo/demoDiscord';
+export { getDemoDiscordInsights, getDemoDiscordData } from './demo/demoDiscord';
+
+// LinkedIn
+export type { DemoLinkedInInsights, DemoLinkedInData } from './demo/demoLinkedIn';
+export { getDemoLinkedInInsights, getDemoLinkedInData } from './demo/demoLinkedIn';
+
 // Combined
 export { getDemoContext, DEMO_CONTEXT, DEMO_TWIN_STATS, getDemoData, DEMO_DATA } from './demo/demoCombined';
