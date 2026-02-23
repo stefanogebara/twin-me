@@ -24,7 +24,7 @@ interface Message {
 interface SoulChatInterfaceProps {
   userId: string;
   className?: string;
-  conversationTopic?: 'music' | 'netflix' | 'youtube' | 'github' | 'general';
+  conversationTopic?: 'music' | 'youtube' | 'github' | 'general';
 }
 
 export function SoulChatInterface({
@@ -256,7 +256,7 @@ export function SoulChatInterface({
               <div className="flex flex-wrap gap-2 justify-center">
                 {[
                   'What does my music taste say about me?',
-                  'Analyze my Netflix viewing patterns',
+                  'What are my top content interests?',
                   'What am I learning from YouTube?',
                   'Show me my coding activity'
                 ].map((suggestion, index) => (

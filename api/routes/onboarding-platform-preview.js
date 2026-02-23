@@ -17,7 +17,6 @@ import { authenticateUser } from '../middleware/auth.js';
 import {
   fetchSpotifyObservations,
   fetchCalendarObservations,
-  fetchWhoopObservations,
 } from '../services/observationIngestion.js';
 import { addPlatformObservation } from '../services/memoryStreamService.js';
 import { getValidAccessToken } from '../services/tokenRefresh.js';
@@ -28,7 +27,6 @@ const router = express.Router();
 const PLATFORM_FETCHERS = {
   spotify: fetchSpotifyObservations,
   google_calendar: fetchCalendarObservations,
-  whoop: fetchWhoopObservations,
 };
 
 // ====================================================================
@@ -77,41 +75,6 @@ async function extractSpotifyHighlights(userId) {
         dataPoints.push({ label: 'Recent Artists', value: `${uniqueArtists.size} different`, icon: 'users' });
       }
     } catch { /* non-critical */ }
-  } catch { /* non-critical */ }
-
-  return dataPoints;
-}
-
-/**
- * Extract structured data points from Whoop API.
- */
-async function extractWhoopHighlights(userId) {
-  const dataPoints = [];
-  try {
-    // Reuse observation fetcher logic — it already handles NANGO_MANAGED vs self-managed
-    // The observations will contain recovery/sleep info as strings
-    // For structured data, we parse the observations
-    const observations = await fetchWhoopObservations(userId);
-    for (const obs of observations) {
-      const content = typeof obs === 'string' ? obs : obs.content;
-      // Parse recovery score
-      const recoveryMatch = content.match(/Recovery score: (\d+)%/);
-      if (recoveryMatch) {
-        const score = parseInt(recoveryMatch[1], 10);
-        const level = score >= 67 ? 'Green' : score <= 33 ? 'Red' : 'Yellow';
-        dataPoints.push({ label: 'Recovery', value: `${score}% (${level})`, icon: 'heart' });
-      }
-      // Parse sleep
-      const sleepMatch = content.match(/Slept ([\d.]+)h/);
-      if (sleepMatch) {
-        dataPoints.push({ label: 'Last Sleep', value: `${sleepMatch[1]} hours`, icon: 'moon' });
-      }
-      // Parse HRV
-      const hrvMatch = content.match(/HRV: (\d+)ms/);
-      if (hrvMatch) {
-        dataPoints.push({ label: 'HRV', value: `${hrvMatch[1]}ms`, icon: 'activity' });
-      }
-    }
   } catch { /* non-critical */ }
 
   return dataPoints;
@@ -209,18 +172,9 @@ const TWIN_REACTIONS = {
     'The way you structure your time tells me about your priorities.',
     'I can see the rhythm of your work life already.',
   ],
-  whoop: [
-    'Your body data tells a story your mind might not notice.',
-    'Recovery patterns are one of the most honest signals about your lifestyle.',
-    'The connection between your body and decisions is clearer than you think.',
-  ],
   youtube: [
     'What you choose to watch when no one\'s looking — that\'s the real you.',
     'Your content choices reveal your deepest curiosities.',
-  ],
-  twitch: [
-    'Gaming preferences say a lot about how you think and compete.',
-    'Your streaming world reveals a side of you others rarely see.',
   ],
 };
 
@@ -279,9 +233,6 @@ router.get('/platform-preview/:platform', authenticateUser, async (req, res) => 
       switch (platform) {
         case 'spotify':
           dataPoints = await extractSpotifyHighlights(userId);
-          break;
-        case 'whoop':
-          dataPoints = await extractWhoopHighlights(userId);
           break;
         case 'google_calendar':
           dataPoints = await extractCalendarHighlights(userId);

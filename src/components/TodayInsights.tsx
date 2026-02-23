@@ -1,7 +1,7 @@
 /**
  * Today's Insights Component
  * Shows 3-5 contextual, digestible insights based on real-time data
- * from Whoop, Google Calendar, and Spotify
+ * from Google Calendar, Spotify, and YouTube
  */
 
 import React, { useState } from 'react';
@@ -69,9 +69,9 @@ interface TodayInsightsResponse {
   insights: TodayInsight[];
   dataTimestamp: string;
   sources: {
-    whoop: boolean;
     calendar: boolean;
     spotify: boolean;
+    youtube: boolean;
   };
 }
 

@@ -18,7 +18,7 @@ interface ChatMessageProps {
   timestamp?: Date;
   onRegenerate?: () => void;
   onQuickAction?: (actionId: string) => void;
-  conversationTopic?: 'music' | 'netflix' | 'youtube' | 'github' | 'general';
+  conversationTopic?: 'music' | 'youtube' | 'github' | 'general';
   showActions?: boolean;
 }
 
