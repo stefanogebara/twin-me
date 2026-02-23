@@ -103,7 +103,7 @@ export const getDemoJournalData = (): { entries: DemoJournalEntry[]; insights: a
       id: 'demo-journal-3',
       user_id: DEMO_USER.id,
       title: null,
-      content: 'Feeling a bit off today. Couldn\'t focus during work, kept jumping between tasks without finishing anything. My Whoop shows low recovery and I only slept 5 hours. I know the pattern - late night scrolling leads to bad sleep leads to foggy brain. Need to break the cycle. Put my phone in another room tonight.',
+      content: 'Feeling a bit off today. Couldn\'t focus during work, kept jumping between tasks without finishing anything. My sleep tracker shows low recovery and I only slept 5 hours. I know the pattern - late night scrolling leads to bad sleep leads to foggy brain. Need to break the cycle. Put my phone in another room tonight.',
       mood: 'frustrated',
       energy_level: 2,
       tags: ['sleep', 'productivity', 'habits'],

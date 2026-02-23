@@ -2,7 +2,7 @@
  * Animation Utilities and Constants
  *
  * Centralized animation configuration for consistent micro-interactions
- * across the Twin AI Learn platform.
+ * across the TwinMe platform.
  */
 
 import { Variants } from 'framer-motion';

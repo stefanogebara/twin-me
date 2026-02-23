@@ -2,7 +2,7 @@
  * Animated Wrapper Components
  *
  * Pre-configured Framer Motion wrapper components for common animations
- * throughout the Twin AI Learn platform.
+ * throughout the TwinMe platform.
  */
 
 import { motion, HTMLMotionProps } from 'framer-motion';

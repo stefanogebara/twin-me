@@ -251,7 +251,7 @@ export const OnboardingSteps: Step[] = [
   {
     id: 'welcome',
     title: 'Welcome',
-    description: 'Get started with Twin AI Learn'
+    description: 'Get started with Twin Me'
   },
   {
     id: 'connect',
