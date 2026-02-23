@@ -9,7 +9,7 @@ const CARD_IMAGES = {
   hero: '/images/backgrounds/flower-card-1.jpg',      // Coral flower on blue sky
   connect: '/images/backgrounds/flower-card-2.jpg',    // Orange poppy on green bokeh
   discover: '/images/backgrounds/flower-card-7.jpg',   // NEW: warm amber flower on deep red-brown
-  share: '/images/backgrounds/flower-card-4.jpg',      // Red/orange flower on cream
+  share: '/images/backgrounds/flower-card-6.jpg',      // Abstract orange/teal grainy
   control: '/images/backgrounds/flower-card-5.jpg',    // Pink/orange flower on purple
   stats: '/images/backgrounds/flower-card-3.jpg',      // Orange flower on teal underwater (was discover)
   cta: '/images/backgrounds/flower-card-4.jpg',        // Red/orange flower on cream — standalone CTA flower
