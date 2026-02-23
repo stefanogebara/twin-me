@@ -274,6 +274,7 @@ import privacySettingsRoutes from './routes/privacy-settings.js';
 import soulSignaturePublicRoutes from './routes/soul-signature-public.js';
 import portfolioPublicRoutes from './routes/portfolio-public.js';
 import goalsRoutes from './routes/goals.js';
+import importsRoutes from './routes/imports.js';
 // OG image routes loaded lazily to prevent font-loading crashes from taking down the whole server
 let ogImageRoutes = null;
 try {
@@ -427,6 +428,7 @@ app.use('/api/extraction', extractionStatusRoutes); // Extraction status and job
 app.use('/api/notifications', notificationsRoutes); // User notifications (token expiry, sync issues)
 app.use('/api/enrichment', profileEnrichmentRoutes); // Profile enrichment via Perplexity Sonar (enrichment-first onboarding)
 app.use('/api/resume', resumeUploadRoutes); // Resume/CV upload and parsing for enrichment
+app.use('/api/imports', importsRoutes); // GDPR / platform data export ingestion
 app.use('/api/claude-sync', claudeSyncRoutes); // Claude Desktop conversation sync
 app.use('/api/cron/claude-sync', cronClaudeSyncRoutes); // Claude Desktop cron sync and AI analysis processing
 app.use('/api/twins-brain', twinsBrainRoutes); // Twins Brain unified knowledge graph

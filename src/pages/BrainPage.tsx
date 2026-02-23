@@ -25,6 +25,7 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { SoulEvolutionTimeline } from '@/components/brain/SoulEvolutionTimeline';
+import { DataUploadPanel } from '@/components/brain/DataUploadPanel';
 
 interface Insight {
   id?: string;
@@ -418,6 +419,21 @@ const BrainPage: React.FC = () => {
               <RefreshCw className="w-4 h-4" />
               Manage Connections
             </button>
+          </GlassPanel>
+        </div>
+
+        {/* Upload Your Data — GDPR / platform data export ingestion */}
+        <div className="lg:col-span-3">
+          <GlassPanel>
+            <div className="flex items-center gap-2 mb-4">
+              <h2 className="heading-serif text-lg" style={{ color: textColor }}>
+                Upload Your Data
+              </h2>
+            </div>
+            <p className="text-sm mb-5" style={{ color: textSecondary }}>
+              Import years of history from Spotify, YouTube, Discord, and Reddit — data the live APIs can't provide.
+            </p>
+            {user?.id && <DataUploadPanel userId={user.id} />}
           </GlassPanel>
         </div>
 
