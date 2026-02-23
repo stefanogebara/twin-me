@@ -171,10 +171,12 @@ Flow: Observation ingestion -> `generateGoalSuggestions()` -> user accepts -> `t
 - **Auth**: JWT + OAuth 2.0 for platform connections
 - **Analytics**: PostHog
 
-## Active Platform Integrations (3)
+## Active Platform Integrations (5)
 1. **Spotify** - Music taste, listening patterns, mood
 2. **Google Calendar** - Schedule, events, time patterns
 3. **YouTube** - Content preferences, subscriptions
+4. **Discord** - Server activity, community interests, communication style
+5. **LinkedIn** - Career trajectory, professional skills, network
 
 ## LLM Model Strategy
 | Tier | Use Case | OpenRouter Model ID | Why |

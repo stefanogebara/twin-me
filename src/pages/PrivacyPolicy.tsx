@@ -67,8 +67,9 @@ const PrivacyPolicy = () => {
             <ul className="list-disc list-inside space-y-1 ml-2 mb-4" style={{ color: '#1F1C18' }}>
               <li><strong style={{ color: '#1F1C18' }}>Spotify:</strong> Listening history, top artists, top tracks, playlists</li>
               <li><strong style={{ color: '#1F1C18' }}>Google Calendar:</strong> Event titles, times, and density (not event descriptions or attendees)</li>
-              <li><strong style={{ color: '#1F1C18' }}>Whoop:</strong> Recovery scores, strain, sleep metrics, HRV</li>
               <li><strong style={{ color: '#1F1C18' }}>YouTube:</strong> Subscriptions, liked videos, watch history categories</li>
+              <li><strong style={{ color: '#1F1C18' }}>Discord:</strong> Server memberships, activity patterns, community interests</li>
+              <li><strong style={{ color: '#1F1C18' }}>LinkedIn:</strong> Career summary, skills, work history, and professional network size</li>
             </ul>
 
             <h3 className="font-medium mb-2" style={{ color: '#1F1C18' }}>Calibration Q&A</h3>
@@ -88,7 +89,7 @@ const PrivacyPolicy = () => {
               <li>Passwords to any platform</li>
               <li>Financial or banking information</li>
               <li>Private messages or email content</li>
-              <li>Health records beyond Whoop fitness metrics</li>
+              <li>Detailed health records or biometric data</li>
               <li>Browsing history or cookies from other sites</li>
             </ul>
           </section>
@@ -212,7 +213,7 @@ const PrivacyPolicy = () => {
             <h2 className="heading-serif text-lg mb-3">11. Contact</h2>
             <p style={{ color: '#1F1C18' }}>
               If you have questions about this Privacy Policy or your data, please contact us
-              through the Settings page in the application, or email us at privacy@twinme.app.
+              through the Settings page in the application, or email us at privacy@twinme.ai.
             </p>
           </section>
         </div>
