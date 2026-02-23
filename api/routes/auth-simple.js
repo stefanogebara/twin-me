@@ -752,43 +752,57 @@ router.post('/oauth/callback', async (req, res) => {
 
     if (!isConnectorFlow && userData) {
       console.log('🔵 Querying for existing user');
-      const { data: existingUser, error: userFetchError } = await supabaseAdmin
-        .from('users')
-        .select('id, email, first_name, last_name, picture_url, oauth_provider, created_at')
-        .eq('email', userData.email)
-        .single();
+      let existingUser, userFetchError;
+      try {
+        const result = await Promise.race([
+          supabaseAdmin
+            .from('users')
+            .select('id, email, first_name, last_name, picture_url, oauth_provider, created_at')
+            .eq('email', userData.email)
+            .single(),
+          new Promise((_, reject) =>
+            setTimeout(() => reject(new Error('Database timeout')), 10000)
+          )
+        ]);
+        existingUser = result.data;
+        userFetchError = result.error;
+      } catch (dbErr) {
+        console.error('❌ Auth DB query timed out or failed:', dbErr.message);
+        return res.status(503).json({ success: false, error: 'Service temporarily unavailable. Please try again in a moment.' });
+      }
 
       console.log('🔵 Existing user query result:', { found: !!existingUser, error: userFetchError });
 
       if (!existingUser) {
         // Create new user
         console.log('🔵 Creating new user');
-        const { data: newUser, error: insertError } = await supabaseAdmin
-          .from('users')
-          .insert({
-            email: userData.email,
-            first_name: userData.firstName,
-            last_name: userData.lastName,
-            oauth_provider: provider,
-            picture_url: userData.picture
-          })
-          .select()
-          .single();
+        let newUser, insertError;
+        try {
+          const insertResult = await Promise.race([
+            supabaseAdmin
+              .from('users')
+              .insert({
+                email: userData.email,
+                first_name: userData.firstName,
+                last_name: userData.lastName,
+                oauth_provider: provider,
+                picture_url: userData.picture
+              })
+              .select()
+              .single(),
+            new Promise((_, reject) =>
+              setTimeout(() => reject(new Error('Database timeout')), 10000)
+            )
+          ]);
+          newUser = insertResult.data;
+          insertError = insertResult.error;
+        } catch (dbErr) {
+          console.error('❌ Auth user insert timed out or failed:', dbErr.message);
+          return res.status(503).json({ success: false, error: 'Service temporarily unavailable. Please try again in a moment.' });
+        }
 
         if (insertError) {
-          console.error('❌ Failed to create user:', insertError);
-          console.error('❌ Supabase error code:', insertError.code);
-          console.error('❌ Supabase error message:', insertError.message);
-          console.error('❌ Supabase error details:', JSON.stringify(insertError.details));
-          console.error('❌ Supabase error hint:', insertError.hint);
-          console.error('❌ Full insertError object:', JSON.stringify(insertError, null, 2));
-          console.error('❌ Attempted insert with data:', {
-            email: userData.email,
-            first_name: userData.firstName,
-            last_name: userData.lastName,
-            oauth_provider: provider,
-            picture_url: userData.picture
-          });
+          console.error('❌ Failed to create user:', insertError.message);
           throw new Error('User creation failed');
         }
 

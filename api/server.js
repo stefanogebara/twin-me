@@ -509,43 +509,49 @@ if (process.env.NODE_ENV !== 'production') {
   // Initialize WebSocket server
   initializeWebSocketServer(server);
 
-  // Start background services (development only)
-  // In production, these are handled by Vercel Cron Jobs calling /api/cron/* endpoints
-  console.log('🔧 Initializing background services (development mode)...');
-
   // Initialize Bull queues for background job processing
   initializeQueues();
 
   // Initialize OAuth rate limiting (Redis or in-memory fallback)
   await initializeRateLimiter();
 
-  // Platform polling service - platform-specific schedules
-  // Production equivalent: Vercel Cron → /api/cron/platform-polling
-  startPlatformPolling();
+  // Start background services (development only)
+  // In production, these are handled by Vercel Cron Jobs calling /api/cron/* endpoints
+  // Set DISABLE_BACKGROUND_JOBS=true to skip background workers (useful when DB is under load)
+  const disableBackgroundJobs = process.env.DISABLE_BACKGROUND_JOBS === 'true';
+  if (disableBackgroundJobs) {
+    console.log('⚠️  Background jobs DISABLED (DISABLE_BACKGROUND_JOBS=true). Skipping cron workers.');
+  } else {
+    console.log('🔧 Initializing background services (development mode)...');
 
-  // Token lifecycle background jobs (token refresh + OAuth state cleanup)
-  // - Token refresh: Every 5 minutes (prevents token expiration)
-  // - OAuth cleanup: Every 15 minutes (removes expired/used states)
-  // Production equivalent: Vercel Cron → /api/cron/token-refresh
-  startBackgroundJobs();
+    // Platform polling service - platform-specific schedules
+    // Production equivalent: Vercel Cron → /api/cron/platform-polling
+    startPlatformPolling();
 
-  // Pattern learning job (feedback processing + insight generation)
-  // - Processes user feedback every 6 hours
-  // - Generates personalized insights using Claude AI
-  // Production equivalent: Vercel Cron → /api/cron/pattern-learning
-  startPatternLearningJob();
+    // Token lifecycle background jobs (token refresh + OAuth state cleanup)
+    // - Token refresh: Every 5 minutes (prevents token expiration)
+    // - OAuth cleanup: Every 15 minutes (removes expired/used states)
+    // Production equivalent: Vercel Cron → /api/cron/token-refresh
+    startBackgroundJobs();
 
-  // Token expiry notification service
-  // - Checks daily for tokens about to expire
-  // - Creates user notifications prompting reconnection before data flow interrupts
-  startTokenExpiryNotifier();
+    // Pattern learning job (feedback processing + insight generation)
+    // - Processes user feedback every 6 hours
+    // - Generates personalized insights using Claude AI
+    // Production equivalent: Vercel Cron → /api/cron/pattern-learning
+    startPatternLearningJob();
 
-  // Observation ingestion service
-  // - Pulls platform data (Spotify, Calendar, YouTube) every 30 minutes
-  // - Converts to natural-language observations in the memory stream
-  // - Triggers reflection engine when importance accumulates
-  // Production equivalent: Vercel Cron → /api/cron/ingest-observations
-  startObservationIngestion();
+    // Token expiry notification service
+    // - Checks daily for tokens about to expire
+    // - Creates user notifications prompting reconnection before data flow interrupts
+    startTokenExpiryNotifier();
+
+    // Observation ingestion service
+    // - Pulls platform data (Spotify, Calendar, YouTube) every 30 minutes
+    // - Converts to natural-language observations in the memory stream
+    // - Triggers reflection engine when importance accumulates
+    // Production equivalent: Vercel Cron → /api/cron/ingest-observations
+    startObservationIngestion();
+  }
 
 
   // Start HTTP server
