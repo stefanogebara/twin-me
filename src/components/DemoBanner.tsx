@@ -49,24 +49,24 @@ export const DemoBanner: React.FC<DemoBannerProps> = ({
         id="demo-banner"
         className="sticky top-0 left-0 right-0 z-[60] bg-gradient-to-r from-[hsl(var(--claude-accent))] to-[hsl(var(--claude-accent-hover))] text-white shadow-lg"
       >
-        <div className="max-w-[1400px] mx-auto px-6 py-3 flex items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <Sparkles className="w-5 h-5 flex-shrink-0" />
-            <div>
-              <p className="text-sm font-medium">
-                {message || "Demo Mode - All data shown is sample data, not real"}
+        <div className="max-w-[1400px] mx-auto px-4 sm:px-6 py-2.5 flex items-center justify-between gap-3">
+          <div className="flex items-center gap-2 min-w-0">
+            <Sparkles className="w-4 h-4 flex-shrink-0" />
+            <div className="min-w-0">
+              <p className="text-sm font-medium truncate">
+                {message || "Demo Mode — sample data only"}
               </p>
-              <p className="text-xs opacity-80">
+              <p className="text-xs opacity-80 hidden sm:block">
                 Connect your platforms to see your actual data
               </p>
             </div>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 flex-shrink-0">
             {showSignUp && (
               <button
                 onClick={handleSignUp}
                 aria-label="Sign up for an account to save your data"
-                className="flex items-center gap-2 px-4 py-1.5 bg-white text-[hsl(var(--claude-accent))] rounded-lg text-sm font-medium hover:bg-stone-100 transition-all shadow-md"
+                className="hidden sm:flex items-center gap-2 px-4 py-1.5 bg-white text-[hsl(var(--claude-accent))] rounded-lg text-sm font-medium hover:bg-stone-100 transition-all shadow-md"
               >
                 Sign up to save your data
                 <ArrowRight className="w-4 h-4" aria-hidden="true" />
@@ -75,7 +75,7 @@ export const DemoBanner: React.FC<DemoBannerProps> = ({
             <button
               onClick={handleExitDemo}
               aria-label="Exit demo mode and return to home"
-              className="flex items-center gap-2 px-3 py-1.5 bg-white/20 text-white rounded-lg text-sm font-medium hover:bg-white/30 transition-all"
+              className="hidden sm:flex items-center gap-2 px-3 py-1.5 bg-white/20 text-white rounded-lg text-sm font-medium hover:bg-white/30 transition-all"
             >
               <LogOut className="w-4 h-4" aria-hidden="true" />
               Exit Demo
