@@ -24,6 +24,7 @@ import {
   RefreshCw,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { SoulEvolutionTimeline } from '@/components/brain/SoulEvolutionTimeline';
 
 interface Insight {
   id?: string;
@@ -41,6 +42,14 @@ interface Reflection {
   expert: string | null;
   category: string | null;
   createdAt: string;
+}
+
+interface BrainSnapshot {
+  id: string;
+  snapshot_date: string;
+  node_count: number;
+  avg_confidence: number;
+  snapshot_type: string;
 }
 
 const PLATFORM_META: Record<string, { label: string; icon: string; description: string }> = {
@@ -103,6 +112,7 @@ const BrainPage: React.FC = () => {
   const [insightsError, setInsightsError] = useState<string | null>(null);
   const [reflections, setReflections] = useState<Reflection[]>([]);
   const [reflectionsLoading, setReflectionsLoading] = useState(false);
+  const [snapshots, setSnapshots] = useState<BrainSnapshot[]>([]);
 
   const { data: platformStatus, isLoading: platformLoading } = usePlatformStatus(
     isSignedIn ? user?.id : undefined
@@ -154,6 +164,19 @@ const BrainPage: React.FC = () => {
     };
 
     fetchReflections();
+  }, [isSignedIn, isDemoMode, user?.id]);
+
+  useEffect(() => {
+    if (!isSignedIn || isDemoMode || !user?.id) return;
+
+    authFetch('/twins-brain/snapshots?limit=30')
+      .then(r => r.ok ? r.json() : null)
+      .then(json => {
+        if (json?.success && Array.isArray(json.snapshots)) {
+          setSnapshots(json.snapshots);
+        }
+      })
+      .catch(() => {});
   }, [isSignedIn, isDemoMode, user?.id]);
 
   const textColor = '#000000';
@@ -455,6 +478,27 @@ const BrainPage: React.FC = () => {
                   </motion.div>
                 ))}
               </div>
+            </GlassPanel>
+          </div>
+        )}
+
+        {/* Soul Evolution Timeline */}
+        {snapshots.length >= 2 && (
+          <div className="lg:col-span-3">
+            <GlassPanel>
+              <div className="flex items-center gap-2 mb-5">
+                <Clock className="w-4 h-4" style={{ color: '#8A857D' }} />
+                <h2 className="heading-serif text-lg" style={{ color: textColor }}>
+                  Soul Signature Evolution
+                </h2>
+                <span className="text-xs ml-auto" style={{ color: textSecondary }}>
+                  {snapshots.length} snapshots
+                </span>
+              </div>
+              <p className="text-xs mb-4" style={{ color: textSecondary }}>
+                How your twin's understanding of you has grown over time.
+              </p>
+              <SoulEvolutionTimeline snapshots={snapshots} />
             </GlassPanel>
           </div>
         )}
