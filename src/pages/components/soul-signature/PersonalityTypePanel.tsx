@@ -109,7 +109,7 @@ export const PersonalityTypePanel: React.FC<PersonalityTypePanelProps> = ({
           <Compass className="w-5 h-5" style={{ color: '#000000' }} />
         </div>
         <div>
-          <h3 style={{ fontFamily: 'var(--font-heading)', fontWeight: 500, color: textColor }}>
+          <h3 className="text-sm" style={{ fontFamily: 'var(--font-heading)', fontWeight: 500, color: textColor }}>
             Personality Type
           </h3>
           <p className="text-xs" style={{ color: textMuted }}>

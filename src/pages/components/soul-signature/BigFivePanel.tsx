@@ -25,7 +25,7 @@ export const BigFivePanel: React.FC<BigFivePanelProps> = ({
             <Target className="w-5 h-5" style={{ color: '#C1C0B6' }} />
           </div>
           <div>
-            <h3 style={{ fontFamily: 'var(--font-heading)', fontWeight: 500, color: textColor }}>
+            <h3 className="text-sm" style={{ fontFamily: 'var(--font-heading)', fontWeight: 500, color: textColor }}>
               Big Five Personality Profile
             </h3>
             <p className="text-xs" style={{ color: textMuted }}>
