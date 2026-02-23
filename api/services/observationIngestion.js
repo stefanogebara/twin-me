@@ -415,11 +415,16 @@ async function fetchYouTubeObservations(userId) {
  */
 function detectDiscordCategories(serverNames) {
   const patterns = {
-    'gaming':   /\b(game|gaming|gamer|esport|clan|guild|pvp|mmo|fps|rpg|minecraft|valorant|league|fortnite|apex|steam)\b/i,
-    'tech/dev': /\b(dev|code|coding|programming|software|tech|crypto|web|python|javascript|typescript|hackathon|open.?source|linux|cyber)\b/i,
-    'creative': /\b(art|design|music|creative|writing|writer|photo|film|video|animation|3d|illustration|poetry|fiction)\b/i,
-    'learning': /\b(study|learn|school|university|college|class|course|tutorial|math|science|language|book|research)\b/i,
-    'community': /\b(community|server|hangout|friends|social|general|vibe|lounge|chat)\b/i,
+    'gaming':    /\b(game|gaming|gamer|esport|clan|guild|pvp|mmo|fps|rpg|minecraft|valorant|league|fortnite|apex|steam|roblox|overwatch|wow|warcraft)\b/i,
+    'tech/dev':  /\b(dev|code|coding|programming|software|tech|web|python|javascript|typescript|hackathon|open.?source|linux|cyber|ai|ml|data|cloud|backend|frontend)\b/i,
+    'creative':  /\b(art|design|creative|writing|writer|photo|film|video|animation|3d|illustration|poetry|fiction|manga|draw|pixel|vfx|ux)\b/i,
+    'learning':  /\b(study|learn|school|university|college|class|course|tutorial|math|science|language|book|research|exam|homework|knowledge)\b/i,
+    'community': /\b(community|server|hangout|friends|social|general|vibe|lounge|chat|chill|talk|discuss)\b/i,
+    'music':     /\b(music|spotify|playlist|dj|producer|beats|rap|hip.?hop|edm|rock|jazz|classical|band|sound|audio|synth|piano)\b/i,
+    'finance':   /\b(finance|invest|trading|stock|forex|crypto|bitcoin|nft|defi|web3|money|wallet|portfolio|market|hedge)\b/i,
+    'health':    /\b(health|fitness|gym|workout|nutrition|diet|mental.health|wellness|yoga|meditation|run|sport|body|lift|cardio)\b/i,
+    'sports':    /\b(sport|football|soccer|basketball|baseball|tennis|golf|esport|nba|nfl|f1|racing|cricket|rugby|hockey)\b/i,
+    'education': /\b(educat|academ|phd|masters|degree|student|professor|lecture|curriculum|stem|homework|scholarship|tutoring)\b/i,
   };
   const results = [];
   for (const [label, re] of Object.entries(patterns)) {
