@@ -11,6 +11,8 @@ import {
   handleGitHubWebhook,
   handleGmailPushNotification,
   handleSlackEvent,
+  getUserIdByEmail,
+  getWebhookInfo,
 } from '../services/webhookReceiverService.js';
 
 const router = express.Router();
@@ -87,19 +89,24 @@ router.post('/gmail', express.json(), async (req, res) => {
       return res.status(400).json({ error: 'Missing email address' });
     }
 
-    // Look up userId by email address
-    // TODO: Implement email-to-userId lookup from database
-    // For now, we'll need to store this mapping when setting up push notifications
+    // Resolve userId from email address (platform_connections → users fallback)
+    const userId = await getUserIdByEmail(emailAddress);
 
-    console.log(`📧 Gmail push notification received`);
+    if (!userId) {
+      console.warn(`⚠️  Gmail push: no user found for email ${emailAddress}`);
+      // Acknowledge to Pub/Sub so it doesn't keep retrying for unknown addresses
+      return res.status(200).json({ success: true, message: 'Unknown recipient, acknowledged' });
+    }
 
-    // Handle the push notification
-    // We need the userId here - this should be stored when registering the webhook
-    // For now, we'll acknowledge receipt
+    console.log(`📧 Gmail push notification received for user ${userId}`);
+
+    // Acknowledge immediately — Pub/Sub expects a fast 200 response
     res.status(200).json({ success: true, message: 'Notification received' });
 
     // Process in background (don't block response)
-    // await handleGmailPushNotification(message, userId);
+    handleGmailPushNotification(message, userId).catch(err =>
+      console.error('❌ Error processing Gmail push notification:', err)
+    );
   } catch (error) {
     console.error('❌ Error processing Gmail push notification:', error);
     res.status(500).json({ error: 'Internal server error' });
@@ -196,8 +203,7 @@ router.get('/list', async (req, res) => {
       return res.status(400).json({ error: 'Missing userId parameter' });
     }
 
-    // TODO: Implement getWebhookInfo from webhookReceiverService
-    const webhooks = []; // await getWebhookInfo(userId);
+    const webhooks = await getWebhookInfo(userId) || [];
 
     res.status(200).json({
       success: true,

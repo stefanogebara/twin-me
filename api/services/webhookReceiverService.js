@@ -322,6 +322,40 @@ async function refreshGmailWatch(userId, accessToken) {
 }
 
 /**
+ * Resolve a userId from a Gmail email address.
+ * First checks platform_connections (where platform_user_id stores the Gmail address),
+ * then falls back to the users table by email.
+ *
+ * @param {string} emailAddress - The Gmail address from the Pub/Sub notification
+ * @returns {Promise<string|null>} userId or null if not found
+ */
+async function getUserIdByEmail(emailAddress) {
+  // 1. Check platform_connections (most reliable — gmail connection stores email as platform_user_id)
+  const { data: conn } = await getSupabaseClient()
+    .from('platform_connections')
+    .select('user_id')
+    .eq('platform', 'google_gmail')
+    .eq('platform_user_id', emailAddress)
+    .eq('status', 'connected')
+    .limit(1)
+    .single()
+    .catch(() => ({ data: null }));
+
+  if (conn?.user_id) return conn.user_id;
+
+  // 2. Fall back to users table by email
+  const { data: user } = await getSupabaseClient()
+    .from('users')
+    .select('id')
+    .eq('email', emailAddress)
+    .limit(1)
+    .single()
+    .catch(() => ({ data: null }));
+
+  return user?.id || null;
+}
+
+/**
  * Get webhook registration info for a user
  */
 async function getWebhookInfo(userId, platform) {
@@ -349,4 +383,5 @@ export {
   setupGmailPushNotifications,
   refreshGmailWatch,
   getWebhookInfo,
+  getUserIdByEmail,
 };
