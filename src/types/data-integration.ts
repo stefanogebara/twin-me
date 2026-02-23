@@ -1,5 +1,5 @@
 /**
- * Twin AI Learn - Data Integration Types
+ * TwinMe - Data Integration Types
  * Revolutionary Soul Signature extraction and analysis system
  */
 

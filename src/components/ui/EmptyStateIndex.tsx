@@ -1,7 +1,7 @@
 /**
  * EmptyState Component System
  *
- * This module provides a comprehensive empty state system for the Twin AI Learn platform.
+ * This module provides a comprehensive empty state system for the TwinMe platform.
  *
  * Usage:
  *

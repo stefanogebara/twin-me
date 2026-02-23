@@ -71,7 +71,7 @@ export function AnimationShowcase() {
         <div className="text-center space-y-4">
           <h1 className="text-4xl font-bold">Animation Showcase</h1>
           <p className="text-muted-foreground max-w-2xl mx-auto">
-            Explore all available hover effects and micro-interactions in the Twin AI Learn platform.
+            Explore all available hover effects and micro-interactions in the TwinMe platform.
             All animations respect accessibility preferences and are GPU-accelerated.
           </p>
         </div>
