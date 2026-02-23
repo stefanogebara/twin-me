@@ -40,7 +40,7 @@ async function getSupabase() {
 }
 
 // Platforms we know how to ingest
-const SUPPORTED_PLATFORMS = ['spotify', 'google_calendar', 'youtube'];
+const SUPPORTED_PLATFORMS = ['spotify', 'google_calendar', 'youtube', 'discord', 'linkedin'];
 
 // ====================================================================
 // Prompt injection defense
@@ -409,6 +409,150 @@ async function fetchYouTubeObservations(userId) {
   return observations;
 }
 
+/**
+ * Detect broad community interest categories from a list of Discord server names.
+ * Returns an array of detected category labels (e.g. ['tech/dev', 'gaming']).
+ */
+function detectDiscordCategories(serverNames) {
+  const patterns = {
+    'gaming':   /\b(game|gaming|gamer|esport|clan|guild|pvp|mmo|fps|rpg|minecraft|valorant|league|fortnite|apex|steam)\b/i,
+    'tech/dev': /\b(dev|code|coding|programming|software|tech|crypto|web|python|javascript|typescript|hackathon|open.?source|linux|cyber)\b/i,
+    'creative': /\b(art|design|music|creative|writing|writer|photo|film|video|animation|3d|illustration|poetry|fiction)\b/i,
+    'learning': /\b(study|learn|school|university|college|class|course|tutorial|math|science|language|book|research)\b/i,
+    'community': /\b(community|server|hangout|friends|social|general|vibe|lounge|chat)\b/i,
+  };
+  const detected = [];
+  for (const [label, re] of Object.entries(patterns)) {
+    if (serverNames.some(name => re.test(name))) detected.push(label);
+  }
+  return detected;
+}
+
+/**
+ * Fetch Discord data and return natural-language observations.
+ * Uses the Discord REST API with `identify` + `guilds` scopes.
+ */
+async function fetchDiscordObservations(userId) {
+  const observations = [];
+
+  const tokenResult = await getValidAccessToken(userId, 'discord');
+  if (!tokenResult.success || !tokenResult.accessToken) {
+    console.warn('[ObservationIngestion] Discord: no valid token for user', userId);
+    return observations;
+  }
+
+  const headers = { Authorization: `Bearer ${tokenResult.accessToken}` };
+
+  // Guild (server) memberships — primary signal
+  try {
+    const guildsRes = await axios.get(
+      'https://discord.com/api/v10/users/@me/guilds?limit=200',
+      { headers, timeout: 10000 }
+    );
+    const guilds = guildsRes.data || [];
+    if (guilds.length > 0) {
+      const names = guilds.map(g => sanitizeExternal(g.name, 60)).filter(Boolean);
+
+      // Full server list observation
+      const preview = names.slice(0, 8).join(', ');
+      const suffix = names.length > 8 ? ` and ${names.length - 8} more` : '';
+      observations.push({
+        content: `Member of ${names.length} Discord communities: ${preview}${suffix}`,
+        contentType: 'weekly_summary',
+      });
+
+      // Category interests from server names
+      const categories = detectDiscordCategories(names);
+      if (categories.length > 0) {
+        observations.push({
+          content: `Discord community interests suggest: ${categories.join(', ')}`,
+          contentType: 'weekly_summary',
+        });
+      }
+    }
+  } catch (e) {
+    console.warn('[ObservationIngestion] Discord guilds error:', e.message);
+  }
+
+  return observations;
+}
+
+/**
+ * Fetch LinkedIn data and return natural-language observations.
+ * Uses the LinkedIn REST API + OpenID Connect userinfo endpoint.
+ */
+async function fetchLinkedInObservations(userId) {
+  const observations = [];
+
+  const tokenResult = await getValidAccessToken(userId, 'linkedin');
+  if (!tokenResult.success || !tokenResult.accessToken) {
+    console.warn('[ObservationIngestion] LinkedIn: no valid token for user', userId);
+    return observations;
+  }
+
+  const headers = {
+    Authorization: `Bearer ${tokenResult.accessToken}`,
+    'LinkedIn-Version': '202304',
+  };
+
+  // Try richer LinkedIn v2 profile first (r_liteprofile scope)
+  let headline = null;
+  let industry = null;
+  try {
+    const profileRes = await axios.get(
+      'https://api.linkedin.com/v2/me?projection=(localizedFirstName,localizedLastName,localizedHeadline,industryName)',
+      { headers, timeout: 10000 }
+    );
+    headline = sanitizeExternal(profileRes.data?.localizedHeadline, 120) || null;
+    industry = sanitizeExternal(profileRes.data?.industryName, 80) || null;
+  } catch {
+    // Scope may not cover this endpoint — fall through to userinfo
+  }
+
+  // OpenID Connect userinfo fallback (works with `profile` scope)
+  let locale = null;
+  try {
+    const userInfoRes = await axios.get(
+      'https://api.linkedin.com/v2/userinfo',
+      { headers, timeout: 10000 }
+    );
+    const data = userInfoRes.data || {};
+    if (!headline && data.name) {
+      headline = sanitizeExternal(data.name, 120);
+    }
+    // locale is an object {country, language} or a string like "en_US"
+    if (data.locale) {
+      const country = typeof data.locale === 'object' ? data.locale.country : null;
+      if (country) locale = country;
+    }
+  } catch (e) {
+    console.warn('[ObservationIngestion] LinkedIn userinfo error:', e.message);
+  }
+
+  // Emit observations only for fields that have real signal
+  if (headline) {
+    observations.push({
+      content: `LinkedIn professional headline: "${headline}"`,
+      contentType: 'weekly_summary',
+    });
+  }
+  if (industry) {
+    observations.push({
+      content: `Works in the ${industry} industry (from LinkedIn)`,
+      contentType: 'weekly_summary',
+    });
+  }
+  if (locale && !industry && !headline) {
+    // Only emit locale if we have nothing else
+    observations.push({
+      content: `LinkedIn profile located in ${locale}`,
+      contentType: 'weekly_summary',
+    });
+  }
+
+  return observations;
+}
+
 // ====================================================================
 // Main Ingestion Loop
 // ====================================================================
@@ -495,6 +639,12 @@ async function runObservationIngestion() {
                 break;
               case 'youtube':
                 observations = await fetchYouTubeObservations(userId);
+                break;
+              case 'discord':
+                observations = await fetchDiscordObservations(userId);
+                break;
+              case 'linkedin':
+                observations = await fetchLinkedInObservations(userId);
                 break;
             }
 
@@ -845,5 +995,7 @@ export {
   fetchSpotifyObservations,
   fetchCalendarObservations,
   fetchYouTubeObservations,
+  fetchDiscordObservations,
+  fetchLinkedInObservations,
   runPostOnboardingIngestion,
 };
