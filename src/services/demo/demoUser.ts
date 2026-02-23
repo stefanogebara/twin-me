@@ -14,7 +14,7 @@ export const DEMO_USER = {
   profileImageUrl: 'https://api.dicebear.com/7.x/avataaars/svg?seed=AlexRivera',
 };
 
-// MVP Platforms Only: Spotify, Google Calendar, Whoop
+// Active Platforms: Spotify, Google Calendar, YouTube, Discord, LinkedIn
 // Using dynamic dates so demo data always looks fresh
 export const DEMO_PLATFORM_CONNECTIONS = [
   {
@@ -35,12 +35,51 @@ export const DEMO_PLATFORM_CONNECTIONS = [
     platform: 'google_calendar',
     platformName: 'Google Calendar',
     connected: true,
-    connectedAt: getRelativeDateDays(14), // Connected 14 days ago
-    lastSync: getRelativeDate(1), // Synced 1 hour ago
+    connectedAt: getRelativeDateDays(14),
+    lastSync: getRelativeDate(1),
     status: 'active',
     syncStatus: 'synced',
     dataQuality: 'high',
     dataPoints: 156,
     extractedDataPoints: 156,
+  },
+  {
+    id: 'demo-conn-youtube',
+    platform: 'youtube',
+    platformName: 'YouTube',
+    connected: true,
+    connectedAt: getRelativeDateDays(10),
+    lastSync: getRelativeDate(3),
+    status: 'active',
+    syncStatus: 'synced',
+    dataQuality: 'high',
+    dataPoints: 892,
+    extractedDataPoints: 892,
+  },
+  {
+    id: 'demo-conn-discord',
+    platform: 'discord',
+    platformName: 'Discord',
+    connected: true,
+    connectedAt: getRelativeDateDays(7),
+    lastSync: getRelativeDate(0.5),
+    status: 'active',
+    syncStatus: 'synced',
+    dataQuality: 'medium',
+    dataPoints: 1243,
+    extractedDataPoints: 1243,
+  },
+  {
+    id: 'demo-conn-linkedin',
+    platform: 'linkedin',
+    platformName: 'LinkedIn',
+    connected: true,
+    connectedAt: getRelativeDateDays(12),
+    lastSync: getRelativeDate(6),
+    status: 'active',
+    syncStatus: 'synced',
+    dataQuality: 'high',
+    dataPoints: 47,
+    extractedDataPoints: 47,
   },
 ];

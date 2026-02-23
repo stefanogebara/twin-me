@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useAnalytics } from '../contexts/AnalyticsContext';
-import { ArrowLeft, Loader2, Sparkles, X } from 'lucide-react';
+import { ArrowLeft, Loader2, X } from 'lucide-react';
 
 const CustomAuth = () => {
   const navigate = useNavigate();
@@ -35,10 +35,10 @@ const CustomAuth = () => {
       content: `Last updated: January 2025
 
 1. Acceptance of Terms
-By accessing and using Twin AI Learn, you agree to be bound by these Terms of Service. If you do not agree, please do not use our service.
+By accessing and using Twin Me, you agree to be bound by these Terms of Service. If you do not agree, please do not use our service.
 
 2. Description of Service
-Twin AI Learn provides a digital twin platform that analyzes your connected platform data to generate personalized insights and recommendations.
+Twin Me provides a digital twin platform that analyzes your connected platform data to generate personalized insights and recommendations.
 
 3. User Data & Privacy
 - You retain ownership of all data you provide
@@ -62,7 +62,7 @@ The service is provided "as is" without warranties. We are not liable for indire
 We may update these terms. Continued use constitutes acceptance of changes.
 
 8. Contact
-For questions about these terms, contact support@twinailearn.com`
+For questions about these terms, contact support@twinme.ai`
     },
     privacy: {
       title: 'Privacy Policy',
@@ -70,7 +70,7 @@ For questions about these terms, contact support@twinailearn.com`
 
 1. Information We Collect
 - Account information (email, name from Google OAuth)
-- Connected platform data (Spotify, Calendar, Whoop, etc.)
+- Connected platform data (Spotify, Calendar, YouTube, etc.)
 - Usage analytics and preferences
 
 2. How We Use Your Information
@@ -110,7 +110,7 @@ Data may be processed in the United States.
 We'll notify you of significant changes via email.
 
 10. Contact Us
-For privacy concerns: privacy@twinailearn.com`
+For privacy concerns: privacy@twinme.ai`
     }
   };
 
@@ -131,15 +131,11 @@ For privacy concerns: privacy@twinailearn.com`
         {/* Header with icon */}
         <div className="text-center">
           <div className="flex justify-center mb-6">
-            <div
-              className="w-16 h-16 rounded-2xl flex items-center justify-center"
-              style={{
-                background: 'linear-gradient(135deg, rgba(12, 10, 9, 0.1), rgba(12, 10, 9, 0.05))',
-                border: '1px solid rgba(12, 10, 9, 0.1)'
-              }}
-            >
-              <Sparkles className="w-8 h-8" style={{ color: '#1F1C18' }} />
-            </div>
+            <img
+              src="/images/backgrounds/flower-hero.png"
+              alt="Twin Me"
+              className="w-16 h-16 object-contain drop-shadow-md"
+            />
           </div>
           <h1 className="heading-serif text-4xl font-normal tracking-tight">
             Discover Your Soul Signature

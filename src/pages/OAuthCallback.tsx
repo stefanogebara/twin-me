@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { Brain, CheckCircle, XCircle, Loader2 } from 'lucide-react';
+import { CheckCircle, XCircle, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAnalytics } from '@/contexts/AnalyticsContext';
 
@@ -175,8 +175,8 @@ const OAuthCallback = () => {
               callbackEndpoint = '/arctic/callback';
               break;
             case 'health':
-              // Health callbacks are provider-specific: /health/oauth/callback/whoop or /health/oauth/callback/oura
-              callbackEndpoint = `/health/oauth/callback/${sessionProvider || 'whoop'}`;
+              // Health callbacks are provider-specific: /health/oauth/callback/{provider}
+              callbackEndpoint = `/health/oauth/callback/${sessionProvider}`;
               break;
             case 'connector':
             default:
@@ -512,13 +512,12 @@ const OAuthCallback = () => {
         className="glass-card max-w-md w-full mx-4 p-8 text-center"
       >
         {/* Logo */}
-        <div className="flex items-center justify-center mb-8">
-          <div
-            className="flex items-center justify-center w-12 h-12 rounded-xl mr-3"
-            style={{ backgroundColor: '#1F1C18' }}
-          >
-            <Brain className="w-6 h-6" style={{ color: '#F7F7F3' }} />
-          </div>
+        <div className="flex items-center justify-center gap-3 mb-8">
+          <img
+            src="/images/backgrounds/flower-hero.png"
+            alt="Twin Me"
+            className="w-10 h-10 object-contain drop-shadow-md"
+          />
           <h1
             className="heading-serif text-2xl"
           >
