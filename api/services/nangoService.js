@@ -59,8 +59,10 @@ async function getConnectionId(platform, userId) {
     return dbConnectionId;
   }
 
-  // Fall back to hardcoded IDs (for existing test user only - dev/testing)
-  if (FALLBACK_CONNECTION_IDS[platform]) {
+  // Fall back to hardcoded IDs for the dev/test user ONLY — never for other users
+  // (prevents IDOR: other users would otherwise get the dev user's OAuth credentials)
+  const DEV_USER_ID = '167c27b5-a40b-49fb-8d00-deb1b1c57f4d';
+  if (userId === DEV_USER_ID && FALLBACK_CONNECTION_IDS[platform]) {
     return FALLBACK_CONNECTION_IDS[platform];
   }
 

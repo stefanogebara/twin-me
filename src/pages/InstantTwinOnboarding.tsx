@@ -444,7 +444,7 @@ const InstantTwinOnboarding = () => {
     }
   }, [user, connectedServices, navigate, toast]);
 
-  const DEMO_CONNECTED_PROVIDERS = ['spotify', 'google_calendar'];
+  const DEMO_CONNECTED_PROVIDERS = ['spotify', 'google_calendar', 'youtube', 'discord', 'linkedin'];
 
   // Sort connectors - connected ones first
   const sortConnectors = (connectors: typeof AVAILABLE_CONNECTORS) => {
@@ -492,7 +492,7 @@ const InstantTwinOnboarding = () => {
         >
           <Info className="w-5 h-5 flex-shrink-0" style={{ color: '#FBBF24' }} />
           <p className="text-sm" style={{ color: colors.textSecondary, fontFamily: 'var(--font-body)' }}>
-            You're in demo mode. Spotify and Calendar are shown as connected with sample data. Sign up to connect your real platforms.
+            You're in demo mode. All 5 platforms are shown as connected with sample data. Sign up to connect your real platforms.
           </p>
         </div>
       )}

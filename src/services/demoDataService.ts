@@ -34,8 +34,11 @@ export { generateEventTypeDistribution, generateWeeklyHeatmap, DEMO_CALENDAR_DAT
 // Spotify
 export { getDemoSpotifyData, DEMO_SPOTIFY_DATA, DEMO_SPOTIFY_PERSONALITY } from './demo/demoSpotify';
 
-// Soul Signature
-export { DEMO_SOUL_SIGNATURE, DEMO_INSIGHTS } from './demo/demoSoulSignature';
+// Soul Signature & Twin Portrait
+export { DEMO_SOUL_SIGNATURE, DEMO_INSIGHTS, DEMO_TWIN_PORTRAIT } from './demo/demoSoulSignature';
+
+// Goals
+export { DEMO_ACTIVE_GOALS, DEMO_SUGGESTED_GOALS, DEMO_COMPLETED_GOALS, DEMO_GOAL_SUMMARY } from './demo/demoGoals';
 
 // Personality
 export type { DemoPersonalityScores, DemoSoulArchetype, DemoBehavioralFeature, DemoMBTIQuestion } from './demo/demoPersonality';
