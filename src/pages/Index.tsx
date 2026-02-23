@@ -6,12 +6,13 @@ import { motion, AnimatePresence } from 'framer-motion';
 
 /* ── Card images from Gemini ── */
 const CARD_IMAGES = {
-  hero: '/images/backgrounds/flower-card-1.jpg',      // Purple/orange flower on yellow
+  hero: '/images/backgrounds/flower-card-1.jpg',      // Coral flower on blue sky
   connect: '/images/backgrounds/flower-card-2.jpg',    // Orange poppy on green bokeh
-  discover: '/images/backgrounds/flower-card-3.jpg',   // Orange flower on teal underwater
-  share: '/images/backgrounds/flower-card-6.jpg',      // Abstract orange/teal grainy (was stats)
+  discover: '/images/backgrounds/flower-card-7.jpg',   // NEW: warm amber flower on deep red-brown
+  share: '/images/backgrounds/flower-card-4.jpg',      // Red/orange flower on cream
   control: '/images/backgrounds/flower-card-5.jpg',    // Pink/orange flower on purple
-  stats: '/images/backgrounds/flower-card-4.jpg',      // Red/orange flower on cream (was share)
+  stats: '/images/backgrounds/flower-card-3.jpg',      // Orange flower on teal underwater (was discover)
+  cta: '/images/backgrounds/flower-card-6.jpg',        // Abstract orange/teal grainy — standalone CTA flower
 };
 
 /* ── Service tab data ── */
@@ -343,8 +344,8 @@ const Index = () => {
               alt=""
               className="absolute inset-0 w-full h-full object-cover"
             />
-            {/* Dark overlay for legibility */}
-            <div className="absolute inset-0" style={{ background: 'rgba(15, 60, 50, 0.65)' }} />
+            {/* Subtle overlay for legibility — no heavy color filter */}
+            <div className="absolute inset-0" style={{ background: 'rgba(0, 0, 0, 0.25)' }} />
 
             {/* Glass stat boxes */}
             <div className="relative z-10 p-8 lg:p-12 grid grid-cols-1 md:grid-cols-3 gap-4 items-end h-full" style={{ minHeight: '380px' }}>
@@ -516,6 +517,22 @@ const Index = () => {
           <h2 className="heading-serif h2">
             Turn confusion into <span className="heading-serif-italic">clarity,</span> today.
           </h2>
+
+          {/* Standalone flower image */}
+          <motion.div
+            initial={{ opacity: 0, y: 30 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.7 }}
+            viewport={{ once: true, amount: 0.3 }}
+            className="w-full max-w-[720px] overflow-hidden"
+            style={{ borderRadius: '28px' }}
+          >
+            <img
+              src={CARD_IMAGES.cta}
+              alt=""
+              className="w-full h-auto object-cover"
+            />
+          </motion.div>
 
           <p className="body-text max-w-[520px]">
             Start free and discover patterns about yourself you never noticed. Your soul signature is waiting.
