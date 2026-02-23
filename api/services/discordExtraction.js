@@ -260,16 +260,17 @@ function extractServerCategories(guilds) {
   const categories = {};
 
   const categoryKeywords = {
-    'Gaming': ['gaming', 'game', 'esports', 'valorant', 'league', 'minecraft', 'fortnite', 'apex', 'cod', 'csgo'],
-    'Technology': ['tech', 'programming', 'coding', 'developer', 'software', 'web dev', 'python', 'javascript'],
-    'Creative': ['art', 'design', 'music', 'creative', 'artist', 'drawing', 'animation', 'photography'],
-    'Education': ['education', 'learning', 'study', 'university', 'college', 'school', 'homework'],
-    'Entertainment': ['anime', 'manga', 'movies', 'tv', 'netflix', 'streaming', 'memes', 'funny'],
-    'Fitness': ['fitness', 'gym', 'workout', 'health', 'bodybuilding', 'exercise'],
-    'Social': ['hangout', 'chill', 'friends', 'community', 'chat', 'social'],
-    'Crypto': ['crypto', 'bitcoin', 'nft', 'trading', 'defi', 'web3'],
-    'Music': ['music', 'spotify', 'playlist', 'dj', 'producer', 'beats'],
-    'Professional': ['business', 'entrepreneur', 'marketing', 'startup', 'professional']
+    'Gaming':       ['gaming', 'game', 'esports', 'valorant', 'league', 'minecraft', 'fortnite', 'apex', 'cod', 'csgo', 'roblox', 'overwatch', 'wow', 'warcraft'],
+    'Technology':   ['tech', 'programming', 'coding', 'developer', 'software', 'python', 'javascript', 'typescript', 'linux', 'ai', 'ml', 'cloud', 'backend', 'frontend', 'cyber'],
+    'Creative':     ['art', 'design', 'creative', 'artist', 'drawing', 'animation', 'photography', 'illustration', 'pixel', 'vfx', 'ux', '3d'],
+    'Education':    ['education', 'learning', 'study', 'university', 'college', 'school', 'course', 'tutorial', 'research', 'homework', 'stem', 'tutoring'],
+    'Entertainment': ['anime', 'manga', 'movies', 'tv', 'netflix', 'streaming', 'memes', 'funny', 'film', 'music video'],
+    'Fitness':      ['fitness', 'gym', 'workout', 'health', 'bodybuilding', 'exercise', 'nutrition', 'yoga', 'meditation', 'wellness', 'cardio'],
+    'Social':       ['hangout', 'chill', 'friends', 'community', 'chat', 'social', 'lounge', 'vibe', 'talk'],
+    'Finance':      ['crypto', 'bitcoin', 'nft', 'trading', 'defi', 'web3', 'invest', 'forex', 'stock', 'finance', 'market', 'wallet'],
+    'Music':        ['music', 'spotify', 'playlist', 'dj', 'producer', 'beats', 'rap', 'hip hop', 'edm', 'rock', 'jazz', 'band', 'synth'],
+    'Sports':       ['sport', 'football', 'soccer', 'basketball', 'baseball', 'tennis', 'golf', 'nba', 'nfl', 'f1', 'racing', 'cricket', 'rugby', 'hockey'],
+    'Professional': ['business', 'entrepreneur', 'marketing', 'startup', 'professional', 'career']
   };
 
   guilds.forEach(guild => {
