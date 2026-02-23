@@ -34,6 +34,15 @@ interface Insight {
   createdAt?: string;
 }
 
+interface Reflection {
+  id: string;
+  content: string;
+  importance: number;
+  expert: string | null;
+  category: string | null;
+  createdAt: string;
+}
+
 const PLATFORM_META: Record<string, { label: string; icon: string; description: string }> = {
   spotify: {
     label: 'Spotify',
@@ -92,6 +101,8 @@ const BrainPage: React.FC = () => {
   const [insights, setInsights] = useState<Insight[]>([]);
   const [insightsLoading, setInsightsLoading] = useState(false);
   const [insightsError, setInsightsError] = useState<string | null>(null);
+  const [reflections, setReflections] = useState<Reflection[]>([]);
+  const [reflectionsLoading, setReflectionsLoading] = useState(false);
 
   const { data: platformStatus, isLoading: platformLoading } = usePlatformStatus(
     isSignedIn ? user?.id : undefined
@@ -121,6 +132,28 @@ const BrainPage: React.FC = () => {
     };
 
     fetchInsights();
+  }, [isSignedIn, isDemoMode, user?.id]);
+
+  useEffect(() => {
+    if (!isSignedIn || isDemoMode || !user?.id) return;
+
+    const fetchReflections = async () => {
+      setReflectionsLoading(true);
+      try {
+        const res = await authFetch('/twin/reflections?limit=20');
+        if (!res.ok) return;
+        const json = await res.json();
+        if (json.success && Array.isArray(json.reflections)) {
+          setReflections(json.reflections);
+        }
+      } catch {
+        // silently fail — reflections are additive, not critical
+      } finally {
+        setReflectionsLoading(false);
+      }
+    };
+
+    fetchReflections();
   }, [isSignedIn, isDemoMode, user?.id]);
 
   const textColor = '#000000';
@@ -364,6 +397,67 @@ const BrainPage: React.FC = () => {
             </button>
           </GlassPanel>
         </div>
+
+        {/* Reflections — full width below two-column section */}
+        {(reflections.length > 0 || reflectionsLoading) && (
+          <div className="lg:col-span-3">
+            <GlassPanel>
+              <div className="flex items-center gap-2 mb-5">
+                <Sparkles className="w-4 h-4" style={{ color: '#8b5cf6' }} />
+                <h2 className="heading-serif text-lg" style={{ color: textColor }}>
+                  What Your Twin Has Learned
+                </h2>
+                {reflections.length > 0 && (
+                  <span className="text-xs px-2 py-0.5 rounded-full ml-1"
+                    style={{ background: 'rgba(139,92,246,0.1)', color: '#8b5cf6' }}>
+                    {reflections.length} reflections
+                  </span>
+                )}
+              </div>
+
+              {reflectionsLoading && (
+                <div className="flex items-center gap-2 py-4" style={{ color: textSecondary }}>
+                  <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                  <span className="text-sm">Loading reflections…</span>
+                </div>
+              )}
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                {reflections.map((r, i) => (
+                  <motion.div
+                    key={r.id}
+                    className="p-4 rounded-xl"
+                    style={{ background: 'rgba(139,92,246,0.04)', border: '1px solid rgba(139,92,246,0.08)' }}
+                    initial={{ opacity: 0, y: 6 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.3, delay: i * 0.04 }}
+                  >
+                    {r.expert && (
+                      <p className="text-xs font-semibold uppercase tracking-wide mb-1.5"
+                        style={{ color: '#8b5cf6' }}>
+                        {r.expert}
+                      </p>
+                    )}
+                    <p className="text-sm leading-relaxed" style={{ color: textColor }}>
+                      {r.content}
+                    </p>
+                    <div className="flex items-center gap-2 mt-2">
+                      {r.category && (
+                        <span className="text-xs px-2 py-0.5 rounded-full"
+                          style={{ background: 'rgba(139,92,246,0.08)', color: '#8b5cf6' }}>
+                          {r.category}
+                        </span>
+                      )}
+                      <span className="text-xs" style={{ color: textSecondary }}>
+                        importance {r.importance}/10
+                      </span>
+                    </div>
+                  </motion.div>
+                ))}
+              </div>
+            </GlassPanel>
+          </div>
+        )}
       </div>
     </PageLayout>
   );
