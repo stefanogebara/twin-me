@@ -277,7 +277,7 @@ const Settings = () => {
       className="min-h-screen"
       style={{ backgroundColor: '#fcf6ef' }}
     >
-      <main className="max-w-4xl mx-auto pt-8 pb-20 px-6">
+      <main className="max-w-4xl mx-auto pt-12 lg:pt-16 pb-20 px-6">
         {/* Page title */}
         <motion.div
           className="mb-8"
@@ -290,7 +290,7 @@ const Settings = () => {
           </h1>
         </motion.div>
         <motion.div
-          className="space-y-6"
+          className="space-y-8"
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.45, delay: 0.1, ease: [0.4, 0, 0.2, 1] }}
@@ -299,7 +299,7 @@ const Settings = () => {
           {/* Demo Mode Notice */}
           {isDemoMode && (
             <div
-              className="rounded-2xl p-4 flex items-center gap-3"
+              className="rounded-2xl p-6 flex items-center gap-3"
               style={{
                 backgroundColor: 'rgba(251, 191, 36, 0.08)',
                 border: '1px solid rgba(251, 191, 36, 0.3)'
@@ -313,8 +313,8 @@ const Settings = () => {
           )}
 
           {/* Account Information */}
-          <section className="p-5" style={cardStyle}>
-            <div className="flex items-center justify-between gap-3 mb-4">
+          <section className="p-8" style={cardStyle}>
+            <div className="flex items-center justify-between gap-3 mb-6">
               <div className="flex items-center gap-3">
                 <Clay3DIcon name="robot" size={20} />
                 <h2 className="heading-serif text-base">
@@ -381,17 +381,17 @@ const Settings = () => {
           />
 
           {/* How Your Data is Protected */}
-          <section className="p-5" style={cardStyle}>
-            <div className="flex items-center gap-3 mb-2">
+          <section className="p-8" style={cardStyle}>
+            <div className="flex items-center gap-3 mb-4">
               <Shield className="w-5 h-5" style={{ color: '#10B981' }} />
               <h2 className="heading-serif text-base">
                 How Your Data is Protected
               </h2>
             </div>
-            <p className="body-text mb-4" style={{ color: '#8A857D' }}>
+            <p className="body-text mb-6" style={{ color: '#8A857D' }}>
               Your privacy is fundamental to Twin Me. Here's how we protect you.
             </p>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
               {[
                 { icon: Lock, label: 'OAuth-only connections', desc: 'We never see or store your platform passwords' },
                 { icon: Database, label: 'Encrypted at rest', desc: 'All data stored in encrypted Supabase (PostgreSQL)' },
@@ -400,7 +400,7 @@ const Settings = () => {
               ].map(({ icon: Icon, label, desc }) => (
                 <div
                   key={label}
-                  className="flex items-start gap-3 p-3 rounded-xl"
+                  className="flex items-start gap-3 p-5 rounded-2xl"
                   style={{
                     backgroundColor: 'rgba(16, 185, 129, 0.03)',
                     border: '1px solid rgba(16, 185, 129, 0.08)',

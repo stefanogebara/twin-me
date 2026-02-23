@@ -233,7 +233,7 @@ const SoulSignatureDashboard: React.FC = () => {
           {/* Archetype Card — visible immediately after onboarding, before reflections accumulate */}
           {displaySoulSignature && (
             <div
-              className="mb-6 rounded-2xl p-6 backdrop-blur-sm"
+              className="mb-8 rounded-2xl p-8 backdrop-blur-sm"
               style={{ background: colors.cardBg, border: colors.cardBorder, boxShadow: colors.cardShadow }}
             >
               <p className="mb-1 text-xs font-semibold uppercase tracking-widest" style={{ color: colors.textFaint }}>
@@ -279,7 +279,7 @@ const SoulSignatureDashboard: React.FC = () => {
       {hasData && portrait && (
         <>
           {/* ── Row 1: Hero (2/3) + Stats (1/3) ── */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mb-8">
             {portrait.twinSummary ? (
               <div className="lg:col-span-2">
                 <BentoHero data={portrait.twinSummary} />
@@ -296,7 +296,7 @@ const SoulSignatureDashboard: React.FC = () => {
 
           {/* ── Row 2: Personality + Lifestyle + Spotify/Cultural Identity ── */}
           {portrait.twinSummary && (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mb-8">
               <BentoDomainTile
                 domainKey="personality"
                 domains={portrait.twinSummary.domains}
@@ -326,7 +326,7 @@ const SoulSignatureDashboard: React.FC = () => {
 
           {/* ── Row 3: Cultural Identity + Social Dynamics + Motivation ── */}
           {portrait.twinSummary && (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mb-8">
               {activePlatforms.includes('spotify') && (
                 <BentoDomainTile
                   domainKey="culturalIdentity"
@@ -350,7 +350,7 @@ const SoulSignatureDashboard: React.FC = () => {
           {/* ── Row 3b: Platform insight tiles (Calendar + YouTube + Discord + LinkedIn) ── */}
           {(activePlatforms.includes('calendar') || activePlatforms.includes('youtube') ||
             activePlatforms.includes('discord') || activePlatforms.includes('linkedin')) && (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mb-8">
               {activePlatforms.includes('calendar') && (
                 <BentoPlatformTile
                   platform="calendar"
@@ -388,7 +388,7 @@ const SoulSignatureDashboard: React.FC = () => {
 
           {/* ── Row 4: Insights (2/3) + Goals (1/3) ── */}
           {(portrait.insights.length > 0 || portrait.goals.length > 0) && (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mb-8">
               {portrait.insights.length > 0 && (
                 <div className="lg:col-span-2">
                   <BentoInsightsTile insights={portrait.insights} animationDelay={0.1} />
@@ -402,7 +402,7 @@ const SoulSignatureDashboard: React.FC = () => {
 
           {/* ── Row 5: Expert Analysis — full width ── */}
           {portrait.reflections.length > 0 && (
-            <div className="mb-4">
+            <div className="mb-8">
               <BentoExpertSpotlight
                 reflections={portrait.reflections}
                 animationDelay={0.08}
@@ -412,7 +412,7 @@ const SoulSignatureDashboard: React.FC = () => {
 
           {/* ── Big Five — collapsible, secondary ── */}
           {portrait.personalityScores && (
-            <div className="mb-4">
+            <div className="mb-8">
               <BigFivePanel
                 personalityScores={{
                   id: user.id,

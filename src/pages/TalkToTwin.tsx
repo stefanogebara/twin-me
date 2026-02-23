@@ -372,7 +372,7 @@ const TalkToTwin = () => {
     >
       <div className="flex-1 flex flex-col max-w-4xl mx-auto w-full">
         <header
-          className="flex items-center justify-between px-4 py-3 border-b"
+          className="flex items-center justify-between px-6 py-4 lg:py-5 border-b"
           style={{ borderColor: colors.border }}
         >
           <button
@@ -430,7 +430,7 @@ const TalkToTwin = () => {
 
         {limitReached && (
           <div
-            className="mx-4 mb-2 p-4 rounded-2xl flex flex-col sm:flex-row items-center justify-between gap-3"
+            className="mx-4 mb-2 p-6 rounded-2xl flex flex-col sm:flex-row items-center justify-between gap-3"
             style={{
               background: 'linear-gradient(135deg, rgba(99, 102, 241, 0.08), rgba(168, 85, 247, 0.05))',
               border: '1px solid rgba(99, 102, 241, 0.25)',

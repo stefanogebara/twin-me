@@ -286,7 +286,7 @@ export const Dashboard: React.FC = () => {
     <PageLayout>
       {error && (
         <div
-          className="mb-4 p-4 rounded-xl flex items-center justify-between"
+          className="mb-6 p-6 rounded-2xl flex items-center justify-between"
           style={{
             backgroundColor: error.type === 'auth'
               ? 'rgba(245, 158, 11, 0.1)'
@@ -356,7 +356,7 @@ export const Dashboard: React.FC = () => {
         >
           <button
             onClick={() => navigate('/goals')}
-            className="w-full text-left rounded-xl p-5 transition-all hover:scale-[1.01]"
+            className="w-full text-left rounded-2xl p-6 transition-all hover:scale-[1.01]"
             style={{
               backgroundColor: 'rgba(0,0,0,0.02)',
               border: '1px solid rgba(0,0,0,0.06)',

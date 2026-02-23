@@ -297,7 +297,7 @@ const GoalsPage: React.FC = () => {
 
         {/* ===== Suggestions Section ===== */}
         {!isLoading && suggestions.length > 0 && (
-          <section className="space-y-4">
+          <section className="space-y-6">
             <div className="flex items-center gap-2">
               <Sparkles className="w-4 h-4" style={{ color: TEXT_SECONDARY }} />
               <h2
@@ -307,7 +307,7 @@ const GoalsPage: React.FC = () => {
               </h2>
             </div>
 
-            <div className="space-y-3">
+            <div className="space-y-4">
               <AnimatePresence mode="popLayout">
                 {suggestions.map((goal, i) => (
                   <GoalSuggestionCard
@@ -327,7 +327,7 @@ const GoalsPage: React.FC = () => {
 
         {/* ===== Active Goals Section ===== */}
         {!isLoading && activeGoals.length > 0 && (
-          <section className="space-y-4">
+          <section className="space-y-6">
             <div className="flex items-center gap-2">
               <Target className="w-4 h-4" style={{ color: TEXT_SECONDARY }} />
               <h2
@@ -337,7 +337,7 @@ const GoalsPage: React.FC = () => {
               </h2>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
               <AnimatePresence mode="popLayout">
                 {activeGoals.map((goal, i) => (
                   <div
@@ -361,7 +361,7 @@ const GoalsPage: React.FC = () => {
 
         {/* ===== Completed Goals Section (collapsible) ===== */}
         {!isLoading && !hasNoData && (summary?.completed ?? 0) > 0 && (
-          <section className="space-y-4">
+          <section className="space-y-6">
             <button
               onClick={() => setShowCompleted((prev) => !prev)}
               className="flex items-center gap-2 w-full text-left transition-colors"
@@ -396,7 +396,7 @@ const GoalsPage: React.FC = () => {
                       No completed goals yet. Keep going!
                     </p>
                   ) : (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
                       {completedGoals.map((goal, i) => (
                         <div
                           key={goal.id}

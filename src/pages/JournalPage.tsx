@@ -230,12 +230,12 @@ const JournalPage: React.FC = () => {
 
   return (
     <PageLayout title="Soul Journal" subtitle="Discover yourself through your own words">
-      <div className="space-y-6">
+      <div className="space-y-8">
 
         {/* AI Insight Card */}
         {insights && insights.analyzedEntries > 0 && (
-          <GlassPanel className="relative overflow-hidden">
-            <div className="flex items-start gap-4">
+          <GlassPanel className="relative overflow-hidden p-8">
+            <div className="flex items-start gap-5">
               <div className="w-10 h-10 rounded-full flex items-center justify-center" style={{ background: 'rgba(0,0,0,0.05)' }}>
                 <Clay3DIcon name="brain" size={20} />
               </div>
@@ -248,7 +248,7 @@ const JournalPage: React.FC = () => {
                     {insights.recentSummaries[0]}
                   </p>
                 )}
-                <div className="flex flex-wrap gap-2">
+                <div className="flex flex-wrap gap-3">
                   {insights.topThemes.slice(0, 4).map(t => (
                     <span
                       key={t.theme}
@@ -284,7 +284,7 @@ const JournalPage: React.FC = () => {
         {!showComposer && (
           <motion.button
             onClick={() => setShowComposer(true)}
-            className="w-full flex items-center gap-3 p-4 rounded-2xl transition-colors duration-200"
+            className="w-full flex items-center gap-3 p-6 rounded-2xl transition-colors duration-200"
             style={{
               background: 'rgba(0,0,0,0.03)',
               border: `1px dashed ${borderColor}`,
@@ -313,7 +313,7 @@ const JournalPage: React.FC = () => {
             transition={{ duration: 0.3, ease: [0.4, 0, 0.2, 1] }}
           >
           <GlassPanel>
-            <div className="space-y-4">
+            <div className="space-y-6">
               {/* Header */}
               <div className="flex items-center justify-between">
                 <h3 className="heading-serif text-sm font-medium">
@@ -330,7 +330,7 @@ const JournalPage: React.FC = () => {
                 placeholder="Title (optional)"
                 value={title}
                 onChange={e => setTitle(e.target.value)}
-                className="w-full px-3 py-2 rounded-xl text-sm outline-none transition-colors"
+                className="w-full px-3 py-3 rounded-xl text-sm outline-none transition-colors"
                 style={{
                   background: inputBg,
                   border: `1px solid ${borderColor}`,
@@ -345,7 +345,7 @@ const JournalPage: React.FC = () => {
                 value={content}
                 onChange={e => setContent(e.target.value)}
                 rows={5}
-                className="w-full px-3 py-2 rounded-xl text-sm outline-none resize-none transition-colors"
+                className="w-full px-3 py-3 rounded-xl text-sm outline-none resize-none transition-colors"
                 style={{
                   background: inputBg,
                   border: `1px solid ${borderColor}`,
@@ -358,7 +358,7 @@ const JournalPage: React.FC = () => {
               {/* Mood Selector */}
               <div>
                 <label className="text-xs mb-2 block" style={{ color: textSecondary }}>How are you feeling?</label>
-                <div className="flex flex-wrap gap-2">
+                <div className="flex flex-wrap gap-3">
                   {Object.entries(MOOD_CONFIG).map(([key, cfg]) => (
                     <button
                       key={key}
@@ -498,7 +498,7 @@ const JournalPage: React.FC = () => {
             </motion.p>
 
             {/* Suggested writing prompts */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-w-lg mx-auto">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 max-w-lg mx-auto">
               {[
                 { prompt: 'How are you feeling right now?', mood: 'reflective' },
                 { prompt: "What's on your mind today?", mood: null },
@@ -512,7 +512,7 @@ const JournalPage: React.FC = () => {
                     if (suggestedMood) setMood(suggestedMood);
                     setShowComposer(true);
                   }}
-                  className="text-left p-4 rounded-xl transition-colors duration-200 group"
+                  className="text-left p-6 rounded-2xl transition-colors duration-200 group"
                   style={{
                     background: 'rgba(0,0,0,0.02)',
                     border: `1px dashed ${borderColor}`,
@@ -531,7 +531,7 @@ const JournalPage: React.FC = () => {
             </div>
           </div>
         ) : (
-          <div className="space-y-3">
+          <div className="space-y-5">
             {entries.map((entry, i) => {
               const isExpanded = expandedEntry === entry.id;
               const analysis = entry.journal_analyses?.[0];
@@ -625,7 +625,7 @@ const JournalPage: React.FC = () => {
                       {/* AI Analysis */}
                       {analysis ? (
                         <div
-                          className="rounded-xl p-4 space-y-3"
+                          className="rounded-2xl p-6 space-y-3"
                           style={{
                             background: 'rgba(156, 39, 176, 0.04)',
                             border: '1px solid rgba(156, 39, 176, 0.1)'
@@ -647,7 +647,7 @@ const JournalPage: React.FC = () => {
                               <div className="text-xs font-medium mb-1.5 flex items-center gap-1" style={{ color: textPrimary }}>
                                 <Heart className="w-3 h-3" /> Emotions detected
                               </div>
-                              <div className="flex flex-wrap gap-2">
+                              <div className="flex flex-wrap gap-3">
                                 {analysis.emotions.map((em, i) => (
                                   <div key={i} className="flex items-center gap-1.5">
                                     <span className="text-xs" style={{ color: textSecondary }}>{em.emotion}</span>
