@@ -304,31 +304,89 @@ const Index = () => {
         </div>
       </section>
 
-      {/* ── Slide 2: Philosophy Quote — MOUNTAIN BACKGROUND ── */}
-      <section className="slide-section relative px-8 lg:px-[80px]">
-        <img
-          src={MOUNTAIN_BG}
-          alt=""
-          className="absolute inset-0 w-full h-full object-cover"
-          style={{ zIndex: 0, objectPosition: 'center 30%' }}
-          loading="lazy"
-        />
-        <div className="absolute inset-0 bg-black/40" style={{ zIndex: 1 }} />
-
+      {/* ── Slide 2: Philosophy Card — Claura-style nature card ── */}
+      <section className="slide-section relative px-6 lg:px-[80px] bg-[#F7F7F3]">
         <motion.div
-          variants={staggerContainer}
-          initial="hidden"
-          whileInView="visible"
-          viewport={{ once: true, amount: 0.5 }}
-          className="max-w-[1000px] mx-auto text-center relative z-10"
+          initial={{ opacity: 0, y: 40 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.8 }}
+          viewport={{ once: true, amount: 0.4 }}
+          className="max-w-[1100px] mx-auto w-full relative z-10 flex items-center justify-center h-full"
         >
-          <div className="slide-glass-card p-10 lg:p-16">
-            <motion.h2 variants={fadeUp} className="text-[clamp(1.8rem,3.5vw,3rem)] mb-8 leading-tight" style={{ color: 'white' }}>
-              <span className="heading-serif-italic" style={{ color: 'rgba(255,255,255,0.95)' }}>"Perhaps we are searching in the branches for what we only find in the roots."</span>
-            </motion.h2>
-            <motion.p variants={fadeUp} className="text-[16px] lg:text-[18px] leading-[1.7] text-white/80 max-w-[680px] mx-auto">
-              Public information is easy to clone, but it lacks soul. We go beyond your resume and public persona to discover what makes you authentically YOU through your private choices, curiosities, and patterns.
-            </motion.p>
+          {/* Large rounded nature card */}
+          <div
+            className="relative w-full overflow-hidden"
+            style={{
+              borderRadius: '2rem',
+              height: 'min(75vh, 560px)',
+            }}
+          >
+            {/* Nature background image */}
+            <img
+              src={RAINFOREST_BG}
+              alt=""
+              className="absolute inset-0 w-full h-full object-cover"
+              style={{ filter: 'blur(1px) brightness(0.85) saturate(1.2)' }}
+              loading="lazy"
+            />
+            {/* Green tint overlay */}
+            <div
+              className="absolute inset-0"
+              style={{
+                background: 'linear-gradient(180deg, rgba(60,80,50,0.15) 0%, rgba(40,60,35,0.35) 50%, rgba(30,45,25,0.75) 100%)',
+              }}
+            />
+
+            {/* Flower accent — positioned top-right like the reference */}
+            <img
+              src="/images/backgrounds/flower-hero.png"
+              alt=""
+              className="absolute -top-8 right-[5%] w-[320px] h-auto pointer-events-none"
+              style={{
+                filter: 'brightness(1.1) saturate(1.2) blur(0.5px)',
+                opacity: 0.7,
+                mixBlendMode: 'soft-light',
+              }}
+            />
+
+            {/* Text overlay at bottom — Claura style */}
+            <div className="absolute bottom-0 left-0 right-0 p-8 lg:p-12">
+              <h2
+                className="heading-serif text-[clamp(2.5rem,5vw,4rem)] mb-3 leading-[1.05]"
+                style={{ color: 'white' }}
+              >
+                Soul Signature
+              </h2>
+              <p
+                className="text-[16px] lg:text-[18px] leading-[1.6] max-w-[520px]"
+                style={{ color: 'rgba(255,255,255,0.8)' }}
+              >
+                We go beyond your resume and public persona to discover
+                what makes you authentically YOU through your private
+                choices, curiosities, and patterns.
+              </p>
+            </div>
+          </div>
+        </motion.div>
+
+        {/* Below-card quote */}
+        <motion.div
+          initial={{ opacity: 0 }}
+          whileInView={{ opacity: 1 }}
+          transition={{ duration: 0.8, delay: 0.3 }}
+          viewport={{ once: true }}
+          className="max-w-[1100px] mx-auto w-full mt-10 flex flex-col lg:flex-row gap-6 lg:gap-16 items-start px-2"
+        >
+          <p className="text-[13px] uppercase tracking-widest text-[#8A857D] font-medium whitespace-nowrap pt-2">
+            The Philosophy
+          </p>
+          <div>
+            <p className="heading-serif text-[clamp(1.3rem,2.5vw,1.75rem)] leading-[1.4] text-[#1F1C18] mb-4">
+              <span className="heading-serif-italic" style={{ color: '#5C5851' }}>"Perhaps we are searching in the branches for what we only find in the roots."</span>
+            </p>
+            <p className="text-[15px] leading-[1.7] text-[#8A857D] max-w-[600px]">
+              Public information is easy to clone, but it lacks soul. Your private patterns across music, wellness, and daily rhythms reveal the real you.
+            </p>
           </div>
         </motion.div>
       </section>
