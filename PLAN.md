@@ -521,3 +521,92 @@ Compiled from comprehensive codebase audit. All items confirmed with user via al
 | 2026-02-22 | Fix Whoop-anchor bias | Changed "Recovery score is everything" in TWIN_BASE_INSTRUCTIONS to "Recovery gives physical context... Don't anchor every response". Added PLATFORM DIVERSITY and HEALTH DATA IS CONTEXT response rules. Commit 2c1c34f. |
 | 2026-02-22 | Fix cron-claude-sync.js security (S1) | Hardened two endpoint auth checks to fail-closed when CRON_SECRET not configured. |
 | 2026-02-22 | Fix prompt caching bug (P1) | Removed stringification at twin-chat.js:1120. System prompt array now passed directly to complete(), enabling Anthropic prompt caching for TWIN_BASE_INSTRUCTIONS (~1024 tokens). |
+| 2026-02-23 | AUDIT-PLAN.md all 28 issues resolved | 26 were already fixed. Fixed M8 footer (3-column nav) and L4 YouTube extension CTA (now "coming soon"). Commit c034433. |
+
+---
+
+## TIER 6: GROWTH ROADMAP (2026-02-23)
+
+Priority order confirmed by user: Discord connector → BrainPage content → Temporal evolution.
+
+---
+
+### Phase 1: Discord Connector
+
+**Status:** 🔲 NOT STARTED
+
+**What already exists (don't rebuild):**
+- `POST /api/entertainment-connectors/connect/discord` — OAuth initiation
+- Token exchange in `api/routes/entertainment-connectors.js` (~line 465)
+- `fetchDiscordObservations()` in `api/services/observationIngestion.js` (~line 432) — pulls guild list + category detection
+- `src/pages/insights/DiscordInsightsPage.tsx` (377 lines) — full UI exists
+- Connector card in `src/pages/onboarding/components/connectorConfig.tsx` (category: 'social')
+- Route `/insights/discord` wired in `App.tsx`
+- `DISCORD_CLIENT_ID` + `DISCORD_CLIENT_SECRET` + `DISCORD_REDIRECT_URI` in Vercel (set 140d ago)
+- `VITE_APP_URL=https://twin-ai-learn.vercel.app` used as redirect URI base — correct
+
+**Critical pre-check (do first):**
+- Go to https://discord.com/developers/applications → app ID 1423392139995513093
+- OAuth2 → Redirects: `https://twin-ai-learn.vercel.app/oauth/callback` must be listed
+- If missing → add it. Without this, prod OAuth fails with "redirect_uri mismatch"
+- Scopes needed: `identify`, `guilds`
+
+**Steps:**
+1. [ ] Verify Discord dev portal has prod redirect URI whitelisted
+2. [ ] Test full OAuth flow locally (`npm run dev:full` → /get-started → Discord)
+3. [ ] Verify token stored in `nango_connection_mappings` or `platform_connections`
+4. [ ] Trigger observation ingestion, confirm Discord memories appear in `user_memories`
+5. [ ] Audit `/api/twin/insights` — confirm `discordServers`, `discordCategoryBreakdown` returned
+6. [ ] If not returned: add Discord data extraction to insights endpoint
+7. [ ] Expand `detectDiscordCategories()` — add: finance, health, music, sports, education
+8. [ ] Test DiscordInsightsPage shows real data (not just demo)
+9. [ ] Confirm `platformStatus?.discord?.connected` resolves in TalkToTwin.tsx
+
+---
+
+### Phase 2: BrainPage Content
+
+**Status:** 🔲 NOT STARTED
+
+**Bundle size already solved** — BrainPage chunk is 16 KB (was 1,414 KB before code-splitting). Nothing to do on performance. Focus is on making the page show real content.
+
+**Steps:**
+1. [ ] Audit what `/api/twin/insights` returns today — is `insights[]` populated for real users?
+2. [ ] Add "X memories recorded" count per platform (query `user_memories` grouped by `metadata->source`)
+3. [ ] Show top 3 insight nodes derived from reflections (expert domain + one-line summary)
+4. [ ] Connection nodes: map `memory_type='reflection'` + `metadata->expert` → domain nodes
+5. [ ] Node size = avg `importance_score` per domain, color per expert (psychology=purple, lifestyle=green, cultural=amber, social=blue, motivation=orange)
+6. [ ] Verify "Your Data" platform list shows correct connection status + last sync times
+7. [ ] Add "X total memories" stat to the overview panel
+
+---
+
+### Phase 3: Temporal Evolution
+
+**Status:** 🔲 NOT STARTED
+
+**Data that already exists:**
+- `soul_signatures` table: `created_at`, `archetype_name`, `defining_traits` — new rows on each generation → natural history exists
+- `user_memories` table: every memory has `created_at` — full timeline
+- `personality_scores` table: single row per user, OVERWRITTEN — no history
+
+**Steps:**
+1. [ ] DB migration: create `personality_score_snapshots` table
+   ```sql
+   CREATE TABLE personality_score_snapshots (
+     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+     user_id UUID NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
+     openness NUMERIC(4,3), conscientiousness NUMERIC(4,3),
+     extraversion NUMERIC(4,3), agreeableness NUMERIC(4,3), neuroticism NUMERIC(4,3),
+     archetype_code TEXT, memory_count INTEGER,
+     created_at TIMESTAMPTZ DEFAULT NOW()
+   );
+   CREATE INDEX ON personality_score_snapshots(user_id, created_at DESC);
+   ```
+2. [ ] Hook: after each reflection engine run → insert snapshot row into `personality_score_snapshots`
+3. [ ] API: `GET /api/twin/evolution` — returns personality snapshots + soul_signature history + weekly memory growth
+4. [ ] Frontend: `EvolutionSection` component in `SoulSignatureDashboard.tsx`
+   - Big Five radar chart over time (recharts RadarChart with multiple overlapping datasets)
+   - Soul archetype timeline ("The Curious Builder → The Deep Diver")
+   - Memory growth bar chart (week-over-week, shows "twin is learning")
+5. [ ] Quick win: "Twin has known you for X days" widget on dashboard (data already in `firstMemoryAt`)
