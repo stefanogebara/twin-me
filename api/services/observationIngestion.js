@@ -579,6 +579,7 @@ async function runObservationIngestion() {
     observationsStored: 0,
     reflectionsTriggered: 0,
     errors: [],
+    processedUserIds: [],
   };
 
   try {
@@ -716,6 +717,7 @@ async function runObservationIngestion() {
 
         // After all platform data is ingested for this user, check reflection trigger
         if (userObsCount > 0) {
+          stats.processedUserIds.push(userId);
           try {
             const shouldReflect = await shouldTriggerReflection(userId);
             if (shouldReflect) {

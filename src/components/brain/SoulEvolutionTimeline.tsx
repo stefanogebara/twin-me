@@ -1,12 +1,7 @@
 import React from 'react';
 import {
-  AreaChart,
-  Area,
-  XAxis,
-  YAxis,
-  Tooltip,
-  ResponsiveContainer,
-  CartesianGrid,
+  AreaChart, Area, XAxis, YAxis, Tooltip,
+  ResponsiveContainer, CartesianGrid
 } from 'recharts';
 import { motion } from 'framer-motion';
 
@@ -27,13 +22,11 @@ function formatDate(dateStr: string): string {
   return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 }
 
-const CustomTooltip = ({ active, payload, label }: any) => {
+const CustomTooltip = ({ active, payload, label }: { active?: boolean; payload?: Array<{ value: number }>; label?: string }) => {
   if (!active || !payload?.length) return null;
   return (
-    <div
-      className="rounded-xl px-3 py-2 text-xs shadow-lg"
-      style={{ background: 'white', border: '1px solid rgba(0,0,0,0.08)' }}
-    >
+    <div className="rounded-xl px-3 py-2 text-xs shadow-lg"
+      style={{ background: 'white', border: '1px solid rgba(0,0,0,0.08)' }}>
       <p className="font-medium mb-1">{label}</p>
       <p style={{ color: '#8b5cf6' }}>
         Confidence: {((payload[0]?.value ?? 0) * 100).toFixed(0)}%
@@ -57,10 +50,8 @@ export const SoulEvolutionTimeline: React.FC<Props> = ({ snapshots }) => {
 
   if (data.length < 2) {
     return (
-      <div
-        className="flex items-center justify-center py-8 text-sm"
-        style={{ color: '#8A857D' }}
-      >
+      <div className="flex items-center justify-center py-8 text-sm"
+        style={{ color: '#8A857D' }}>
         Collect more data over time to see your soul signature evolve.
       </div>
     );
