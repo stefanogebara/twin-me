@@ -448,3 +448,9 @@ export type {
   PrivacyLevel as Privacy,
   ClusterCategory as Category,
 };
+
+// Aliases for hook compatibility
+export type UserClusterSetting = UserClusterSettings;
+export type UpdatePrivacySettingsRequest = UpdatePrivacySettingsInput;
+export type CreateContextualTwinRequest = CreateContextualTwinInput;
+export type UpdateContextualTwinRequest = UpdateContextualTwinInput;

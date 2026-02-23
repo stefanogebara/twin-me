@@ -44,6 +44,7 @@ const WebBrowsingInsightsPage = lazy(() => import("./pages/insights/WebBrowsingI
 const DiscordInsightsPage = lazy(() => import("./pages/insights/DiscordInsightsPage"));
 const LinkedInInsightsPage = lazy(() => import("./pages/insights/LinkedInInsightsPage"));
 const GoalsPage = lazy(() => import("./pages/GoalsPage"));
+const PrivacySpectrumDashboard = lazy(() => import("./pages/PrivacySpectrumDashboard"));
 
 const queryClient = new QueryClient();
 
@@ -276,6 +277,17 @@ const App = () => {
                 <SidebarLayout>
                   <ErrorBoundary>
                     <GoalsPage />
+                  </ErrorBoundary>
+                </SidebarLayout>
+              </ProtectedRoute>
+            } />
+
+            {/* Privacy Spectrum Dashboard */}
+            <Route path="/privacy-spectrum" element={
+              <ProtectedRoute>
+                <SidebarLayout>
+                  <ErrorBoundary>
+                    <PrivacySpectrumDashboard />
                   </ErrorBoundary>
                 </SidebarLayout>
               </ProtectedRoute>

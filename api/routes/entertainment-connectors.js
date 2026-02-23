@@ -548,36 +548,6 @@ router.post('/oauth/callback', oauthCallbackLimiter, async (req, res) => {
         expiresIn = googleTokens.expires_in;
         break;
 
-      case 'whoop':
-        const whoopConfig = PLATFORM_CONFIGS.whoop;
-        // Whoop requires client_secret_post (credentials in body, NOT Basic Auth)
-        const whoopTokenResponse = await fetch(whoopConfig.tokenUrl, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/x-www-form-urlencoded'
-          },
-          body: new URLSearchParams({
-            grant_type: 'authorization_code',
-            code,
-            redirect_uri: `${process.env.VITE_APP_URL || 'http://127.0.0.1:8086'}/oauth/callback`,
-            client_id: process.env.WHOOP_CLIENT_ID,
-            client_secret: process.env.WHOOP_CLIENT_SECRET,
-            scope: 'offline'
-          })
-        });
-
-        if (!whoopTokenResponse.ok) {
-          const errorData = await whoopTokenResponse.json();
-          console.error('Whoop token exchange error:', errorData);
-          throw new Error(`Failed to exchange Whoop authorization code: ${errorData.error_description || errorData.error}`);
-        }
-
-        const whoopTokens = await whoopTokenResponse.json();
-        accessToken = whoopTokens.access_token;
-        refreshToken = whoopTokens.refresh_token;
-        expiresIn = whoopTokens.expires_in;
-        break;
-
       case 'oura':
         const ouraConfig = PLATFORM_CONFIGS.oura;
         const ouraTokenResponse = await fetch(ouraConfig.tokenUrl, {
@@ -1621,68 +1591,6 @@ router.post('/connect/google_calendar', authenticateUser, oauthAuthorizationLimi
   }
 });
 
-// Whoop Connector - Biometric & Recovery Data
-router.post('/connect/whoop', authenticateUser, oauthAuthorizationLimiter, async (req, res) => {
-  try {
-    const userId = req.user.id;
-
-    if (!userId) {
-      return res.status(400).json({
-        success: false,
-        error: 'userId is required'
-      });
-    }
-
-    const config = PLATFORM_CONFIGS.whoop;
-    const clientId = process.env.WHOOP_CLIENT_ID;
-    const appUrl = process.env.APP_URL || process.env.VITE_APP_URL || 'http://127.0.0.1:8086';
-    const redirectUri = `${appUrl}/oauth/callback`;
-    const scope = config.scopes.join(' ');
-
-    // Whoop uses state for CSRF protection (no PKCE support)
-    const state = encryptState({
-      platform: 'whoop',
-      userId
-    }, 'entertainment');
-
-    // Store state in Supabase
-    const { error: stateInsertError } = await supabase
-      .from('oauth_states')
-      .insert({
-        state,
-        data: { userId, platform: 'whoop' },
-        expires_at: new Date(Date.now() + 1800000) // 30 minutes
-      });
-
-    if (stateInsertError) {
-      console.error('❌ Failed to store OAuth state:', stateInsertError);
-      throw new Error(`Failed to store OAuth state: ${stateInsertError.message}`);
-    }
-
-    const authUrl = `${config.authUrl}?` +
-      `client_id=${clientId}&` +
-      `response_type=code&` +
-      `redirect_uri=${encodeURIComponent(redirectUri)}&` +
-      `scope=${encodeURIComponent(scope)}&` +
-      `state=${state}`;
-
-    console.log(`💪 Whoop OAuth initiated for user ${userId}`);
-
-    res.json({
-      success: true,
-      authUrl,
-      message: 'Connect your Whoop to understand your recovery and strain patterns'
-    });
-  } catch (error) {
-    console.error('Whoop connection error:', error);
-    res.status(500).json({
-      success: false,
-      error: 'Failed to initialize Whoop connection',
-      ...(process.env.NODE_ENV !== 'production' && { details: error.message }),
-    });
-  }
-});
-
 // Oura Connector - Sleep & Readiness Data
 router.post('/connect/oura', authenticateUser, oauthAuthorizationLimiter, async (req, res) => {
   try {
@@ -1761,10 +1669,6 @@ router.get('/oauth/debug', authenticateUser, async (req, res) => {
         configured: !!(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET),
         clientIdPrefix: process.env.GOOGLE_CLIENT_ID?.substring(0, 20) || null
       },
-      whoop: {
-        configured: !!(process.env.WHOOP_CLIENT_ID && process.env.WHOOP_CLIENT_SECRET),
-        clientIdPrefix: process.env.WHOOP_CLIENT_ID?.substring(0, 8) || null
-      },
       discord: {
         configured: !!(process.env.DISCORD_CLIENT_ID && process.env.DISCORD_CLIENT_SECRET),
         clientIdPrefix: process.env.DISCORD_CLIENT_ID?.substring(0, 8) || null
@@ -1793,9 +1697,8 @@ router.get('/oauth/debug', authenticateUser, async (req, res) => {
       mvpPlatforms: {
         spotify: platforms.spotify.configured,
         google_calendar: platforms.google.configured,
-        whoop: platforms.whoop.configured
       },
-      allConfigured: platforms.spotify.configured && platforms.google.configured && platforms.whoop.configured && encryptionConfigured
+      allConfigured: platforms.spotify.configured && platforms.google.configured && encryptionConfigured
     });
   } catch (error) {
     console.error('OAuth debug error:', error);

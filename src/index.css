@@ -740,10 +740,8 @@
 
   /* Platform brand color accent backgrounds */
   .platform-bg-spotify { background-color: rgba(29, 185, 84, 0.12); }
-  .platform-bg-whoop { background-color: rgba(0, 165, 224, 0.12); }
   .platform-bg-calendar { background-color: rgba(66, 133, 244, 0.12); }
   .platform-bg-youtube { background-color: rgba(255, 0, 0, 0.10); }
-  .platform-bg-twitch { background-color: rgba(145, 70, 255, 0.12); }
   .platform-bg-discord { background-color: rgba(88, 101, 242, 0.12); }
   .platform-bg-reddit { background-color: rgba(255, 69, 0, 0.10); }
   .platform-bg-github { background-color: rgba(110, 110, 110, 0.12); }
@@ -751,10 +749,8 @@
   .platform-bg-gmail { background-color: rgba(234, 67, 53, 0.10); }
 
   .dark .platform-bg-spotify { background-color: rgba(29, 185, 84, 0.15); }
-  .dark .platform-bg-whoop { background-color: rgba(0, 165, 224, 0.15); }
   .dark .platform-bg-calendar { background-color: rgba(66, 133, 244, 0.15); }
   .dark .platform-bg-youtube { background-color: rgba(255, 0, 0, 0.12); }
-  .dark .platform-bg-twitch { background-color: rgba(145, 70, 255, 0.15); }
   .dark .platform-bg-discord { background-color: rgba(88, 101, 242, 0.15); }
   .dark .platform-bg-reddit { background-color: rgba(255, 69, 0, 0.12); }
   .dark .platform-bg-github { background-color: rgba(160, 160, 160, 0.12); }
