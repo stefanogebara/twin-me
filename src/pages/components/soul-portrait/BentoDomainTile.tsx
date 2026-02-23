@@ -98,7 +98,7 @@ export const BentoDomainTile: React.FC<Props> = ({ domainKey, domains, animation
           ) : (
             <motion.p
               key="preview"
-              className="text-sm leading-relaxed line-clamp-3"
+              className="text-sm leading-relaxed"
               style={{ color: '#4a4540' }}
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
