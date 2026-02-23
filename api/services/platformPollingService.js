@@ -84,6 +84,10 @@ const POLLING_CONFIGS = {
       },
     ],
   },
+  linkedin: {
+    interval: '0 */6 * * *', // Every 6 hours (profile data changes infrequently)
+    endpoints: [], // Handled by Nango
+  },
 };
 
 /**
@@ -366,6 +370,12 @@ function startPlatformPolling() {
   cron.schedule('0 */3 * * *', async () => {
     console.log('⏰ Running Twitch polling job');
     await pollPlatformForAllUsers('twitch');
+  });
+
+  // LinkedIn - Every 6 hours
+  cron.schedule('0 */6 * * *', async () => {
+    console.log('⏰ Running LinkedIn polling job');
+    await pollPlatformForAllUsers('linkedin');
   });
 
   console.log('✅ Platform polling service started with multiple schedules');
