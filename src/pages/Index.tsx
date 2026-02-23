@@ -178,7 +178,7 @@ const Index = () => {
           initial={{ y: -20, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
           transition={{ duration: 0.7 }}
-          className="w-full max-w-[1200px] flex items-center justify-between bg-[#FCFAF8] border border-[#EBE9E0] shadow-[0_4px_20px_rgba(0,0,0,0.03)] rounded-[32px] px-6 py-3"
+          className="w-full max-w-[1200px] flex items-center justify-between bg-white/90 border border-[#EBE9E0] shadow-[0_4px_20px_rgba(0,0,0,0.04)] rounded-[32px] px-6 py-3 backdrop-blur-sm"
         >
           <div
             className="flex items-center gap-2.5 cursor-pointer"
@@ -218,36 +218,16 @@ const Index = () => {
         </motion.nav>
       </div>
 
-      {/* ── Slide 1: Hero with Aurora Background ── */}
-      <section id="about" className="slide-section px-8 lg:px-[120px] relative overflow-hidden">
-        {/* Warm ambient blobs */}
+      {/* ── Slide 1: Hero with White Background ── */}
+      <section id="about" className="slide-section px-8 lg:px-[120px] relative overflow-x-clip bg-white">
+        {/* Subtle ambient glow — very light to keep hero clean white */}
         <div
           className="aurora-blob"
           style={{
-            width: '520px', height: '520px',
-            background: 'radial-gradient(circle, rgba(200,180,150,0.15) 0%, rgba(180,160,130,0.08) 60%, transparent 100%)',
-            top: '-80px', right: '-100px',
+            width: '400px', height: '400px',
+            background: 'radial-gradient(circle, rgba(200,180,150,0.06) 0%, transparent 70%)',
+            top: '-60px', right: '-60px',
             animationDelay: '0s',
-          }}
-        />
-        <div
-          className="aurora-blob"
-          style={{
-            width: '380px', height: '380px',
-            background: 'radial-gradient(circle, rgba(160,140,120,0.12) 0%, rgba(140,130,110,0.06) 60%, transparent 100%)',
-            bottom: '60px', left: '-80px',
-            animationDelay: '-6s',
-            animationDuration: '22s',
-          }}
-        />
-        <div
-          className="aurora-blob"
-          style={{
-            width: '260px', height: '260px',
-            background: 'radial-gradient(circle, rgba(210,190,160,0.10) 0%, transparent 70%)',
-            top: '30%', right: '30%',
-            animationDelay: '-12s',
-            animationDuration: '28s',
           }}
         />
 
@@ -304,25 +284,22 @@ const Index = () => {
             </motion.div>
           </motion.div>
 
-          {/* Hero visual: flower image */}
+          {/* Hero visual: flower image — absolutely positioned for size control */}
           <motion.div
-            className="hidden lg:flex flex-1 items-center justify-center relative"
+            className="hidden lg:block absolute right-[2%] top-1/2 -translate-y-[45%]"
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 1, delay: 0.3 }}
           >
-            <div style={{
-              maskImage: 'radial-gradient(ellipse 82% 88% at 52% 48%, black 48%, rgba(0,0,0,0.7) 65%, transparent 82%)',
-              WebkitMaskImage: 'radial-gradient(ellipse 82% 88% at 52% 48%, black 48%, rgba(0,0,0,0.7) 65%, transparent 82%)',
-            }}>
-              <img
-                src="/images/backgrounds/flower-hero.png"
-                alt="Soul Signature"
-                className="w-[480px] h-auto object-contain"
-                style={{ mixBlendMode: 'multiply' }}
-                fetchPriority="high"
-              />
-            </div>
+            <img
+              src="/images/backgrounds/flower-hero.png"
+              alt="Soul Signature"
+              className="w-[560px] h-auto"
+              style={{
+                filter: 'brightness(1.15) contrast(0.88) saturate(1.15)',
+              }}
+              fetchPriority="high"
+            />
           </motion.div>
         </div>
       </section>
