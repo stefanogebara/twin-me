@@ -331,7 +331,7 @@ export const Dashboard: React.FC = () => {
           {connectedProviders.length > 0 && (
             <span style={{ color: '#a8a29e' }}>
               {' '}&bull;{' '}
-              <span style={{ color: '#B8942E' }}>
+              <span style={{ color: '#8A857D' }}>
                 {connectedProviders.length} platform{connectedProviders.length !== 1 ? 's' : ''} connected
               </span>
             </span>

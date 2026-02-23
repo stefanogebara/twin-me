@@ -202,7 +202,7 @@ const BrainPage: React.FC = () => {
             >
               <Clay3DIcon name="brain" size={40} />
             </div>
-            <h1 className="heading-serif text-2xl mb-3">Your Twin's Brain</h1>
+            <h1 className="heading-serif mb-3" style={{ fontSize: '36px' }}>Your Twin's Brain</h1>
             <p className="mb-6" style={{ color: textSecondary }}>
               Sign in to see what patterns your twin has discovered about you.
             </p>
@@ -232,7 +232,7 @@ const BrainPage: React.FC = () => {
           transition={{ duration: 0.4 }}
         >
           <Clay3DIcon name="brain" size={32} />
-          <h1 className="heading-serif text-3xl" style={{ color: textColor }}>
+          <h1 className="heading-serif" style={{ color: textColor, fontSize: '36px' }}>
             Twin's Brain
           </h1>
         </motion.div>

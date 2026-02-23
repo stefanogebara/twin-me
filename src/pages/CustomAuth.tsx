@@ -120,7 +120,7 @@ For privacy concerns: privacy@twinme.ai`
       <div className="fixed top-6 left-6 z-50">
         <button
           onClick={() => navigate('/')}
-          className="btn-glass-app flex items-center gap-2 px-4 py-2 text-sm font-medium"
+          className="btn-outline flex items-center gap-2"
         >
           <ArrowLeft className="w-4 h-4" />
           Back to Home

@@ -29,11 +29,7 @@ export const NextEventCard: React.FC<NextEventCardProps> = ({
   if (nextEvent) {
     return (
       <GlassPanel className="mb-8 relative overflow-hidden" variant="card">
-        <div
-          className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-purple-500 via-blue-500 to-green-500"
-        />
-
-        <div className="pt-4">
+        <div>
           <div className="flex items-start justify-between mb-6">
             <div>
               <div className="flex items-center gap-2 mb-2">
