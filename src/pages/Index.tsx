@@ -4,7 +4,15 @@ import { ArrowRight, PlayCircle } from 'lucide-react';
 import { useAuth, SignInButton } from '../contexts/AuthContext';
 import { motion, AnimatePresence } from 'framer-motion';
 
-const FLOWER_HERO = '/images/backgrounds/flower-hero.png';
+/* ── Card images from Gemini ── */
+const CARD_IMAGES = {
+  hero: '/images/backgrounds/flower-card-1.jpg',      // Purple/orange flower on yellow
+  connect: '/images/backgrounds/flower-card-2.jpg',    // Orange poppy on green bokeh
+  discover: '/images/backgrounds/flower-card-3.jpg',   // Orange flower on teal underwater
+  share: '/images/backgrounds/flower-card-4.jpg',      // Red/orange flower on cream
+  control: '/images/backgrounds/flower-card-5.jpg',    // Pink/orange flower on purple
+  stats: '/images/backgrounds/flower-card-6.jpg',      // Abstract orange/teal grainy
+};
 
 /* ── Service tab data ── */
 const SERVICES = [
@@ -14,9 +22,7 @@ const SERVICES = [
     num: '01',
     heading: 'Connect',
     desc: 'Securely link Spotify, Google Calendar, YouTube, and more. Your digital footprint becomes the raw material of your soul signature.',
-    // Purple-blue flower tone
-    imgFilter: 'saturate(1.75) hue-rotate(220deg) brightness(0.9)',
-    imgBg: 'linear-gradient(135deg, #7b5ea7 0%, #4a6cf7 50%, #6b3fa0 100%)',
+    img: CARD_IMAGES.connect,
   },
   {
     id: 'discover',
@@ -24,9 +30,7 @@ const SERVICES = [
     num: '02',
     heading: 'Discover',
     desc: 'AI unearths invisible patterns across your data -- personality traits, rhythms, and curiosities you never noticed about yourself.',
-    // Orange-warm flower tone
-    imgFilter: 'saturate(1.75) hue-rotate(15deg) brightness(0.95)',
-    imgBg: 'linear-gradient(135deg, #c4652a 0%, #e8945a 50%, #d4763a 100%)',
+    img: CARD_IMAGES.discover,
   },
   {
     id: 'share',
@@ -34,9 +38,7 @@ const SERVICES = [
     num: '03',
     heading: 'Share',
     desc: 'Share your authentic soul signature with the world. Let others see the real you -- not your resume, but your personality.',
-    // Pink-magenta flower tone
-    imgFilter: 'saturate(1.75) hue-rotate(300deg) brightness(0.9)',
-    imgBg: 'linear-gradient(135deg, #c74b8f 0%, #e87baf 50%, #a73b7f 100%)',
+    img: CARD_IMAGES.share,
   },
   {
     id: 'control',
@@ -44,9 +46,7 @@ const SERVICES = [
     num: '04',
     heading: 'Control',
     desc: 'Choose what to reveal and what to keep private. Your privacy spectrum dashboard puts you in total control of your data.',
-    // Teal-green flower tone
-    imgFilter: 'saturate(1.75) hue-rotate(140deg) brightness(0.9)',
-    imgBg: 'linear-gradient(135deg, #2a8f6a 0%, #3ab88a 50%, #1f7a5a 100%)',
+    img: CARD_IMAGES.control,
   },
 ];
 
@@ -261,7 +261,7 @@ const Index = () => {
             </button>
           </motion.div>
 
-          {/* Hero image card — flower with dot pattern overlay */}
+          {/* Hero image card */}
           <motion.div
             initial={{ opacity: 0, y: 40 }}
             animate={{ opacity: 1, y: 0 }}
@@ -269,24 +269,11 @@ const Index = () => {
             className="w-full mt-4 relative overflow-hidden"
             style={{ borderRadius: '28px', aspectRatio: '2.4 / 1' }}
           >
-            <div
-              className="absolute inset-0"
-              style={{ background: 'linear-gradient(135deg, #e8945a 0%, #7bb8d4 40%, #4a6cf7 100%)' }}
-            />
             <img
-              src={FLOWER_HERO}
+              src={CARD_IMAGES.hero}
               alt="Soul Signature"
-              className="absolute inset-0 w-full h-full object-contain"
-              style={{ filter: 'saturate(1.75)', mixBlendMode: 'overlay', opacity: 0.9 }}
+              className="absolute inset-0 w-full h-full object-cover"
               fetchPriority="high"
-            />
-            {/* Dot pattern overlay */}
-            <div
-              className="absolute inset-0 pointer-events-none"
-              style={{
-                backgroundImage: 'radial-gradient(circle, rgba(255,255,255,0.6) 2px, transparent 2px)',
-                backgroundSize: '28px 28px',
-              }}
             />
           </motion.div>
         </div>
@@ -319,18 +306,14 @@ const Index = () => {
             className="relative overflow-hidden w-full"
             style={{ borderRadius: '28px', minHeight: '380px' }}
           >
-            {/* Teal-green gradient bg */}
-            <div
-              className="absolute inset-0"
-              style={{ background: 'linear-gradient(135deg, #3a8f6a 0%, #1a6f5a 40%, #0f4a3a 100%)' }}
-            />
-            {/* Flower accent */}
+            {/* Background image */}
             <img
-              src={FLOWER_HERO}
+              src={CARD_IMAGES.stats}
               alt=""
-              className="absolute top-[-20%] right-[10%] w-[400px] h-auto pointer-events-none"
-              style={{ filter: 'saturate(1.5) brightness(1.1)', opacity: 0.5, mixBlendMode: 'soft-light' }}
+              className="absolute inset-0 w-full h-full object-cover"
             />
+            {/* Dark overlay for legibility */}
+            <div className="absolute inset-0" style={{ background: 'rgba(15, 60, 50, 0.65)' }} />
 
             {/* Glass stat boxes */}
             <div className="relative z-10 p-8 lg:p-12 grid grid-cols-1 md:grid-cols-3 gap-4 items-end h-full" style={{ minHeight: '380px' }}>
@@ -408,16 +391,10 @@ const Index = () => {
                       aspectRatio: '1.4 / 1',
                     }}
                   >
-                    <div className="absolute inset-0" style={{ background: SERVICES[activeService].imgBg }} />
                     <img
-                      src={FLOWER_HERO}
-                      alt=""
-                      className="absolute inset-0 w-full h-full object-contain"
-                      style={{
-                        filter: SERVICES[activeService].imgFilter,
-                        mixBlendMode: 'screen',
-                        opacity: 0.85,
-                      }}
+                      src={SERVICES[activeService].img}
+                      alt={SERVICES[activeService].heading}
+                      className="absolute inset-0 w-full h-full object-cover"
                     />
                   </div>
                   {/* Description */}
