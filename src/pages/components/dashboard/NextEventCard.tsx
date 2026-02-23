@@ -101,7 +101,7 @@ export const NextEventCard: React.FC<NextEventCardProps> = ({
 
           <motion.button
             onClick={() => onNavigate('/insights/calendar')}
-            className="btn-cta-app w-full py-4 flex items-center justify-center gap-3"
+            className="btn-cta-app w-full py-2 flex items-center justify-center gap-2"
             whileHover={{ scale: 1.015 }}
             whileTap={{ scale: 0.985 }}
             transition={{ duration: 0.2 }}

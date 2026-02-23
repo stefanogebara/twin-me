@@ -77,7 +77,7 @@ export const ContextSidebar = ({
       <div className="p-4">
         <div className="flex items-center justify-between mb-4">
           <h3
-            className="font-medium flex items-center gap-2"
+            className="text-sm font-medium flex items-center gap-2"
             style={{ color: '#000000' }}
           >
             <img src="/images/backgrounds/flower-hero.png" alt="" className="w-4 h-4 object-contain" />

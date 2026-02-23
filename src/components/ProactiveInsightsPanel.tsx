@@ -130,10 +130,10 @@ export const ProactiveInsightsPanel: React.FC = () => {
         <div
           className="w-1 h-5 rounded-full"
           style={{
-            background: 'linear-gradient(to bottom, #B8942E, rgba(0, 0, 0, 0.1))',
+            background: 'linear-gradient(to bottom, var(--accent-vibrant), rgba(0, 0, 0, 0.1))',
           }}
         />
-        <Eye className="w-4 h-4" style={{ color: '#B8942E' }} />
+        <Eye className="w-4 h-4" style={{ color: '#8A857D' }} />
         <h3
           className="text-sm uppercase tracking-wider"
           style={{ color: '#78716c' }}
@@ -143,8 +143,8 @@ export const ProactiveInsightsPanel: React.FC = () => {
         <span
           className="text-xs px-2 py-0.5 rounded-full"
           style={{
-            backgroundColor: 'rgba(212, 168, 83, 0.12)',
-            color: '#B8942E',
+            backgroundColor: 'rgba(0, 0, 0, 0.06)',
+            color: '#8A857D',
           }}
         >
           {insights.length}
@@ -172,12 +172,12 @@ export const ProactiveInsightsPanel: React.FC = () => {
                     <div
                       className="w-10 h-10 rounded-lg flex items-center justify-center"
                       style={{
-                        backgroundColor: 'rgba(212, 168, 83, 0.08)',
+                        backgroundColor: 'rgba(0, 0, 0, 0.04)',
                       }}
                     >
                       <Icon
                         className="w-5 h-5"
-                        style={{ color: '#B8942E' }}
+                        style={{ color: '#8A857D' }}
                       />
                     </div>
                     {/* Urgency dot */}
@@ -220,9 +220,9 @@ export const ProactiveInsightsPanel: React.FC = () => {
                   onClick={() => navigate('/talk-to-twin')}
                   className="mt-3 w-full py-2 flex items-center justify-center gap-2 rounded-lg text-xs font-medium transition-colors"
                   style={{
-                    backgroundColor: 'rgba(212, 168, 83, 0.08)',
-                    color: '#B8942E',
-                    border: '1px solid rgba(212, 168, 83, 0.12)',
+                    backgroundColor: 'rgba(0, 0, 0, 0.06)',
+                    color: '#000000',
+                    border: '1px solid rgba(0, 0, 0, 0.08)',
                   }}
                 >
                   <MessageCircle className="w-3.5 h-3.5" />
