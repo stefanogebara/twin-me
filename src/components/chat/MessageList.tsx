@@ -74,7 +74,7 @@ export const MessageList = forwardRef<HTMLDivElement, MessageListProps>(
             <div className={cn("max-w-[80%]", message.role === 'user' && "order-first")}>
               <div
                 className={cn(
-                  "px-4 py-3 rounded-2xl",
+                  "px-5 py-4 rounded-2xl",
                   message.role === 'user'
                     ? "rounded-br-md"
                     : "rounded-bl-md"
@@ -189,7 +189,7 @@ export const MessageList = forwardRef<HTMLDivElement, MessageListProps>(
               <img src="/images/backgrounds/flower-hero.png" alt="" className="w-7 h-7 object-contain" />
             </div>
             <div
-              className="px-4 py-3 rounded-2xl rounded-bl-md"
+              className="px-5 py-4 rounded-2xl rounded-bl-md"
               style={assistantBubbleStyle}
             >
               <div className="flex gap-1.5">

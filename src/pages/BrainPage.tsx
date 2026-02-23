@@ -170,7 +170,7 @@ const BrainPage: React.FC = () => {
       {/* Header */}
       <div className="mb-8">
         <motion.div
-          className="flex items-center gap-3 mb-2"
+          className="flex items-center gap-4 mb-2"
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.4 }}
@@ -191,7 +191,7 @@ const BrainPage: React.FC = () => {
         </motion.p>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* Discoveries — 2/3 width */}
         <div className="lg:col-span-2">
           <GlassPanel>
@@ -240,11 +240,11 @@ const BrainPage: React.FC = () => {
             )}
 
             {!insightsLoading && displayInsights.length > 0 && (
-              <div className="space-y-3">
+              <div className="space-y-4">
                 {displayInsights.map((insight, i) => (
                   <motion.div
                     key={insight.id || i}
-                    className="p-4 rounded-xl"
+                    className="p-6 rounded-2xl"
                     style={{ background: 'rgba(0,0,0,0.03)', border: '1px solid rgba(0,0,0,0.04)' }}
                     initial={{ opacity: 0, y: 8 }}
                     animate={{ opacity: 1, y: 0 }}
@@ -285,12 +285,12 @@ const BrainPage: React.FC = () => {
               </h2>
             </div>
 
-            <p className="text-xs mb-4" style={{ color: textSecondary }}>
+            <p className="text-xs mb-8" style={{ color: textSecondary }}>
               These platforms shape how your twin understands you.
             </p>
 
             {platformLoading ? (
-              <div className="space-y-3">
+              <div className="space-y-4">
                 {[0, 1, 2].map(i => (
                   <div key={i} className="h-16 rounded-xl animate-pulse"
                     style={{ background: 'rgba(0,0,0,0.04)' }}
@@ -298,7 +298,7 @@ const BrainPage: React.FC = () => {
                 ))}
               </div>
             ) : (
-              <div className="space-y-3">
+              <div className="space-y-4">
                 {ORDERED_PLATFORMS.map((provider) => {
                   const meta = PLATFORM_META[provider];
                   const status = platformStatus?.[provider];
@@ -308,7 +308,7 @@ const BrainPage: React.FC = () => {
                   return (
                     <div
                       key={provider}
-                      className="flex items-start gap-3 p-3 rounded-xl"
+                      className="flex items-start gap-3 p-5 rounded-xl"
                       style={{ background: 'rgba(0,0,0,0.03)', border: '1px solid rgba(0,0,0,0.04)' }}
                     >
                       <span className="text-xl mt-0.5">{meta.icon}</span>

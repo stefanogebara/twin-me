@@ -38,9 +38,9 @@ export const PageLayout: React.FC<PageLayoutProps> = ({
 
   const paddingClasses = {
     none: 'p-0',
-    sm: 'p-4 lg:p-6',
-    md: 'p-5 lg:p-7',
-    lg: 'p-6 lg:p-8'
+    sm: 'p-5 lg:p-7',
+    md: 'p-6 lg:p-8',
+    lg: 'p-8 lg:p-10'
   };
 
   return (
@@ -59,12 +59,15 @@ export const PageLayout: React.FC<PageLayoutProps> = ({
       >
         {/* Page Header */}
         {(title || subtitle) && (
-          <div className="mb-8">
+          <div className="mb-10">
             {title && (
               <h1
-                className="text-3xl mb-2 heading-serif"
+                className="heading-serif mb-3"
                 style={{
-                  color: '#000000'
+                  fontSize: '36px',
+                  color: '#000000',
+                  letterSpacing: '-0.04em',
+                  lineHeight: 1.1
                 }}
               >
                 {title}
@@ -72,10 +75,11 @@ export const PageLayout: React.FC<PageLayoutProps> = ({
             )}
             {subtitle && (
               <p
-                className="text-[15px]"
+                className="text-[14px] font-medium"
                 style={{
-                  fontFamily: 'Inter, system-ui, sans-serif',
-                  color: '#8A857D'
+                  fontFamily: "'Geist', sans-serif",
+                  color: '#8A857D',
+                  lineHeight: 1.65
                 }}
               >
                 {subtitle}
@@ -114,7 +118,7 @@ export const GlassPanel: React.FC<{
 
   return (
     <motion.div
-      className={`${variantClasses[variant]} ${className} p-6`}
+      className={`${variantClasses[variant]} ${className} p-8`}
       initial={{ opacity: 0, y: 16 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{
