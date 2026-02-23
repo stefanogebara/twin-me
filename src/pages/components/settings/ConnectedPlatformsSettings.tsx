@@ -103,7 +103,7 @@ const ConnectedPlatformsSettings: React.FC<ConnectedPlatformsSettingsProps> = ({
                 }}
               >
                 <div>
-                  <h3 style={{ fontFamily: 'var(--font-body)', fontWeight: 500, color: '#000000' }}>
+                  <h3 className="text-sm" style={{ fontFamily: 'var(--font-body)', fontWeight: 500, color: '#000000' }}>
                     {connector.name}
                   </h3>
                   <p className="text-xs" style={{ color: '#8A857D' }}>

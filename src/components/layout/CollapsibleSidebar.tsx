@@ -27,8 +27,7 @@ import {
   MessageSquare,
   Briefcase,
   BookOpen,
-  Target,
-  BarChart3
+  Target
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Clay3DIcon, CLAY_ICON_MAP } from '@/components/Clay3DIcon';
@@ -379,26 +378,6 @@ export const CollapsibleSidebar: React.FC<CollapsibleSidebarProps> = ({
             </div>
           )}
         </nav>
-
-        {/* Admin Section */}
-        <div className="px-4 pb-2">
-          <button
-            onClick={() => handleNavigate('/admin/llm-costs')}
-            aria-label="Navigate to LLM Costs"
-            aria-current={isActive('/admin/llm-costs') ? 'page' : undefined}
-            className={cn(
-              "w-full flex items-center gap-3 rounded-lg transition-all duration-200",
-              isExpanded ? "px-4 py-3" : "px-3 py-3 justify-center",
-              isActive('/admin/llm-costs')
-                ? 'bg-sidebar-accent border-l-[3px] border-l-[#000] text-sidebar-accent-foreground font-semibold'
-                : 'text-sidebar-foreground opacity-70 hover:bg-sidebar-accent hover:opacity-100 border-l-[3px] border-l-transparent'
-            )}
-            title="LLM Costs"
-          >
-            <BarChart3 className={cn("w-5 h-5", isActive('/admin/llm-costs') && "text-[#000]")} aria-hidden="true" />
-            {isExpanded && <span className="text-sm">LLM Costs</span>}
-          </button>
-        </div>
 
         {/* Sign Out + User at Bottom */}
         <div className="border-t border-sidebar-border p-4 space-y-1">

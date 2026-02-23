@@ -104,12 +104,8 @@ export const TwinInsightsGrid: React.FC<TwinInsightsGridProps> = ({
                   <span
                     className="text-xs px-3 py-1 rounded-full inline-block font-medium"
                     style={{
-                      backgroundColor: insight.hasData
-                        ? 'rgba(212, 168, 83, 0.12)'
-                        : 'rgba(0, 0, 0, 0.06)',
-                      color: insight.hasData
-                        ? '#B8942E'
-                        : '#8A857D'
+                      backgroundColor: 'rgba(0, 0, 0, 0.06)',
+                      color: '#8A857D'
                     }}
                   >
                     {insight.actionLabel} →

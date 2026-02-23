@@ -321,7 +321,7 @@ const Index = () => {
             transition={{ duration: 0.7 }}
             viewport={{ once: true, amount: 0.3 }}
             className="relative overflow-hidden w-full"
-            style={{ borderRadius: '28px', minHeight: '380px' }}
+            style={{ borderRadius: '28px', minHeight: '380px', backgroundColor: '#2a2420' }}
           >
             {/* Background image */}
             <img
