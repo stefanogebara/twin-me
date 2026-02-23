@@ -17,6 +17,8 @@ import { authenticateUser } from '../middleware/auth.js';
 import {
   fetchSpotifyObservations,
   fetchCalendarObservations,
+  fetchDiscordObservations,
+  fetchLinkedInObservations,
 } from '../services/observationIngestion.js';
 import { addPlatformObservation } from '../services/memoryStreamService.js';
 import { getValidAccessToken } from '../services/tokenRefresh.js';
@@ -27,6 +29,8 @@ const router = express.Router();
 const PLATFORM_FETCHERS = {
   spotify: fetchSpotifyObservations,
   google_calendar: fetchCalendarObservations,
+  discord: fetchDiscordObservations,
+  linkedin: fetchLinkedInObservations,
 };
 
 // ====================================================================
