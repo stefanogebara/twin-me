@@ -23,7 +23,7 @@ const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABAS
 const supabase = supabaseUrl && supabaseKey ? createClient(supabaseUrl, supabaseKey) : null;
 
 // Valid platforms
-const VALID_PLATFORMS = ['spotify', 'whoop', 'calendar', 'youtube', 'twitch', 'web', 'discord', 'linkedin'];
+const VALID_PLATFORMS = ['spotify', 'calendar', 'youtube', 'web', 'discord', 'linkedin'];
 
 // Map URL platform names to database platform names
 // Calendar is stored as 'google_calendar' in platform_connections
@@ -146,10 +146,8 @@ router.get('/all/summary', authenticateUser, async (req, res) => {
   try {
     const results = await Promise.allSettled([
       platformReflectionService.getReflections(userId, 'spotify'),
-      platformReflectionService.getReflections(userId, 'whoop'),
       platformReflectionService.getReflections(userId, 'calendar'),
       platformReflectionService.getReflections(userId, 'youtube'),
-      platformReflectionService.getReflections(userId, 'twitch'),
       platformReflectionService.getReflections(userId, 'web')
     ]);
 
@@ -160,11 +158,9 @@ router.get('/all/summary', authenticateUser, async (req, res) => {
 
     const summary = {
       spotify: makeSummary(results[0]),
-      whoop: makeSummary(results[1]),
-      calendar: makeSummary(results[2]),
-      youtube: makeSummary(results[3]),
-      twitch: makeSummary(results[4]),
-      web: makeSummary(results[5])
+      calendar: makeSummary(results[1]),
+      youtube: makeSummary(results[2]),
+      web: makeSummary(results[3])
     };
 
     res.json({

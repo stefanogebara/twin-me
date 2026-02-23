@@ -63,36 +63,6 @@ router.post('/connect/tiktok', authenticateUser, async (req, res) => {
   }
 });
 
-// Twitch Connector
-router.post('/connect/twitch', authenticateUser, async (req, res) => {
-  try {
-    const { userId } = req.body;
-
-    const clientId = process.env.TWITCH_CLIENT_ID || 'your-twitch-client-id';
-    const redirectUri = encodeURIComponent(`${process.env.VITE_APP_URL}/oauth/callback`);
-    const scope = encodeURIComponent('user:read:follows user:read:subscriptions');
-    const state = encryptState({
-      platform: 'twitch',
-      userId,
-      timestamp: Date.now()
-    }, 'entertainment');
-
-    const authUrl = `https://id.twitch.tv/oauth2/authorize?` +
-      `client_id=${clientId}&redirect_uri=${redirectUri}&` +
-      `response_type=code&scope=${scope}&state=${state}`;
-
-    res.json({
-      success: true,
-      authUrl,
-      message: 'Connect your Twitch streaming preferences',
-      insights: platformAPIMappings.entertainment.twitch.insights
-    });
-  } catch (error) {
-    console.error('Twitch connection error:', error);
-    res.status(500).json({ error: 'Failed to initialize Twitch connection' });
-  }
-});
-
 // Discord Connector
 router.post('/connect/discord', authenticateUser, async (req, res) => {
   try {

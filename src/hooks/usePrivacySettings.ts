@@ -16,7 +16,7 @@ const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
 
 // Privacy Settings Hook
 export const usePrivacySettings = () => {
-  const { user } = useAuth();
+  const { user, authToken } = useAuth();
   const queryClient = useQueryClient();
 
   // Fetch privacy settings
@@ -32,7 +32,7 @@ export const usePrivacySettings = () => {
         credentials: 'include',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${user?.token}`,
+          'Authorization': `Bearer ${authToken}`,
         },
       });
 
@@ -54,7 +54,7 @@ export const usePrivacySettings = () => {
         credentials: 'include',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${user?.token}`,
+          'Authorization': `Bearer ${authToken}`,
         },
         body: JSON.stringify(updates),
       });
@@ -79,7 +79,7 @@ export const usePrivacySettings = () => {
         credentials: 'include',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${user?.token}`,
+          'Authorization': `Bearer ${authToken}`,
         },
       });
 
@@ -109,7 +109,7 @@ export const usePrivacySettings = () => {
 
 // Contextual Twins Hook
 export const useContextualTwins = () => {
-  const { user } = useAuth();
+  const { user, authToken } = useAuth();
   const queryClient = useQueryClient();
 
   // Fetch all twins
@@ -125,7 +125,7 @@ export const useContextualTwins = () => {
         credentials: 'include',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${user?.token}`,
+          'Authorization': `Bearer ${authToken}`,
         },
       });
 
@@ -151,7 +151,7 @@ export const useContextualTwins = () => {
         credentials: 'include',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${user?.token}`,
+          'Authorization': `Bearer ${authToken}`,
         },
         body: JSON.stringify(twinData),
       });
@@ -175,7 +175,7 @@ export const useContextualTwins = () => {
         credentials: 'include',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${user?.token}`,
+          'Authorization': `Bearer ${authToken}`,
         },
         body: JSON.stringify(updates),
       });
@@ -199,7 +199,7 @@ export const useContextualTwins = () => {
         credentials: 'include',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${user?.token}`,
+          'Authorization': `Bearer ${authToken}`,
         },
       });
 
@@ -222,7 +222,7 @@ export const useContextualTwins = () => {
         credentials: 'include',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${user?.token}`,
+          'Authorization': `Bearer ${authToken}`,
         },
       });
 
@@ -246,7 +246,7 @@ export const useContextualTwins = () => {
         credentials: 'include',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${user?.token}`,
+          'Authorization': `Bearer ${authToken}`,
         },
       });
 
@@ -282,7 +282,7 @@ export const useContextualTwins = () => {
 
 // User Clusters Hook
 export const useUserClusters = () => {
-  const { user } = useAuth();
+  const { user, authToken } = useAuth();
   const queryClient = useQueryClient();
 
   // Fetch user cluster settings
@@ -298,7 +298,7 @@ export const useUserClusters = () => {
         credentials: 'include',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${user?.token}`,
+          'Authorization': `Bearer ${authToken}`,
         },
       });
 
@@ -321,7 +321,7 @@ export const useUserClusters = () => {
         credentials: 'include',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${user?.token}`,
+          'Authorization': `Bearer ${authToken}`,
         },
         body: JSON.stringify({ privacyLevel }),
       });
@@ -346,7 +346,7 @@ export const useUserClusters = () => {
         credentials: 'include',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${user?.token}`,
+          'Authorization': `Bearer ${authToken}`,
         },
         body: JSON.stringify({ enabled }),
       });
@@ -377,7 +377,7 @@ export const useUserClusters = () => {
 
 // Privacy Statistics Hook
 export const usePrivacyStatistics = () => {
-  const { user } = useAuth();
+  const { user, authToken } = useAuth();
 
   const {
     data: statistics,
@@ -390,7 +390,7 @@ export const usePrivacyStatistics = () => {
         credentials: 'include',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${user?.token}`,
+          'Authorization': `Bearer ${authToken}`,
         },
       });
 
@@ -414,7 +414,7 @@ export const usePrivacyStatistics = () => {
 
 // Audience Presets Hook
 export const useAudiencePresets = () => {
-  const { user } = useAuth();
+  const { user, authToken } = useAuth();
 
   const {
     data: presets = [],
@@ -427,7 +427,7 @@ export const useAudiencePresets = () => {
         credentials: 'include',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${user?.token}`,
+          'Authorization': `Bearer ${authToken}`,
         },
       });
 

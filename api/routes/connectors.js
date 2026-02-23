@@ -151,22 +151,6 @@ const OAUTH_CONFIGS = {
     tokenUrl: 'https://www.reddit.com/api/v1/access_token'
   },
 
-  // Whoop - Health & Fitness
-  whoop: {
-    clientId: process.env.WHOOP_CLIENT_ID,
-    clientSecret: process.env.WHOOP_CLIENT_SECRET,
-    scopes: [
-      'offline',  // Required for refresh tokens
-      'read:profile',
-      'read:recovery',
-      'read:cycles',
-      'read:workout',
-      'read:sleep',
-      'read:body_measurement'
-    ],
-    authUrl: 'https://api.prod.whoop.com/oauth/oauth2/auth',
-    tokenUrl: 'https://api.prod.whoop.com/oauth/oauth2/token'
-  }
 };
 
 // Debug: Check LinkedIn config on load
@@ -192,7 +176,7 @@ router.get('/connect/:provider', authenticateUser, async (req, res) => {
     const userId = req.user.id;
 
     // Health platforms handled by health-connectors (use platform-specific redirect URIs)
-    const healthPlatforms = ['whoop', 'oura'];
+    const healthPlatforms = ['oura'];
     if (healthPlatforms.includes(provider)) {
       // Forward to health connectors endpoint (uses WHOOP_REDIRECT_URI etc.)
       const baseUrl = process.env.API_URL || `http://localhost:${process.env.PORT || 3001}`;
@@ -648,7 +632,7 @@ router.post('/callback', async (req, res) => {
     console.log('🔵 [Connector Callback] Available configs:', Object.keys(OAUTH_CONFIGS));
 
     // Route health platforms to health connectors
-    const healthPlatforms = ['whoop', 'oura'];
+    const healthPlatforms = ['oura'];
     if (healthPlatforms.includes(configKey)) {
       console.log(`🏃 [Connector Callback] Routing ${configKey} to health connectors`);
       const baseUrl = process.env.API_URL || `http://localhost:${process.env.PORT || 3001}`;
@@ -1323,10 +1307,10 @@ router.post('/connect/:platform', authenticateUser, async (req, res) => {
     console.log(`🔗 OAuth connection request for ${platform} from user ${userId}`);
 
     // Platforms handled by entertainment-connectors
-    const entertainmentPlatforms = ['spotify', 'youtube', 'netflix', 'twitch', 'tiktok'];
+    const entertainmentPlatforms = ['spotify', 'youtube', 'netflix', 'tiktok'];
 
     // Health platforms handled by health-connectors (use platform-specific redirect URIs)
-    const healthPlatforms = ['whoop', 'oura'];
+    const healthPlatforms = ['oura'];
 
     if (healthPlatforms.includes(platform)) {
       // Forward to health connectors endpoint (uses WHOOP_REDIRECT_URI etc.)

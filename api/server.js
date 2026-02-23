@@ -270,6 +270,7 @@ import onboardingSoulSignatureRoutes from './routes/onboarding-soul-signature.js
 import onboardingPlatformPreviewRoutes from './routes/onboarding-platform-preview.js';
 import accountRoutes from './routes/account.js';
 import consentRoutes from './routes/consent.js';
+import privacySettingsRoutes from './routes/privacy-settings.js';
 import soulSignaturePublicRoutes from './routes/soul-signature-public.js';
 import portfolioPublicRoutes from './routes/portfolio-public.js';
 import goalsRoutes from './routes/goals.js';
@@ -399,6 +400,7 @@ app.use('/api/onboarding', onboardingSoulSignatureRoutes); // Instant soul signa
 app.use('/api/onboarding', onboardingPlatformPreviewRoutes); // Platform preview insights during onboarding
 app.use('/api/account', accountRoutes); // Account deletion + data export
 app.use('/api/consent', consentRoutes); // User consent management (GDPR/privacy)
+app.use('/api/privacy-settings', privacySettingsRoutes); // Privacy spectrum dashboard
 app.use('/api/soul-signature', soulSignaturePublicRoutes); // Public share + visibility toggle
 app.use('/api/portfolio', portfolioPublicRoutes); // Public portfolio page aggregated endpoint
 if (ogImageRoutes) app.use('/api', ogImageRoutes); // OG image cards (/api/og/soul-card, /api/s/:userId)
