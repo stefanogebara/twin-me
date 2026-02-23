@@ -1,7 +1,7 @@
 /**
  * Other Platform Data Fetchers
  *
- * Data extraction for YouTube, Twitch, and Web Browsing platforms.
+ * Data extraction for YouTube, Twitch, Web Browsing, Discord, and LinkedIn platforms.
  */
 
 import { supabaseAdmin } from '../../config/supabase.js';
@@ -226,6 +226,162 @@ export async function getTwitchData(userId) {
     };
   } catch (error) {
     console.error('[Reflection] Twitch data error:', error);
+    return { success: false, error: error.message };
+  }
+}
+
+/**
+ * Get Discord data for reflection
+ * Reads from user_memories (stored by observationIngestion via addPlatformObservation)
+ *
+ * @param {string} userId - User ID
+ * @returns {Promise<Object>} { success, data?, error? }
+ */
+export async function getDiscordData(userId) {
+  try {
+    const { data: memories } = await supabaseAdmin
+      .from('user_memories')
+      .select('content, created_at')
+      .eq('user_id', userId)
+      .eq('memory_type', 'platform_data')
+      .filter('metadata->>platform', 'eq', 'discord')
+      .order('created_at', { ascending: false })
+      .limit(20);
+
+    if (!memories || memories.length === 0) {
+      return { success: false, error: 'Discord not connected or no data yet' };
+    }
+
+    const contents = memories.map(m => m.content);
+
+    // Parse server list from "Member of N Discord communities: server1, server2..."
+    let servers = [];
+    let totalServers = 0;
+    const memberLine = contents.find(c => c.includes('Member of') && c.includes('Discord communities'));
+    if (memberLine) {
+      const countMatch = memberLine.match(/Member of (\d+) Discord communities?/);
+      if (countMatch) totalServers = parseInt(countMatch[1]);
+      const namesMatch = memberLine.match(/Discord communities?:\s*(.+)/);
+      if (namesMatch) {
+        servers = namesMatch[1].split(', ').map(name => ({ name: name.trim() }));
+      }
+    }
+
+    // Parse category breakdown from "Discord community interests suggest: tech/dev (4 servers)..."
+    let categoryBreakdown = [];
+    let topCategories = [];
+    const catLine = contents.find(c => c.includes('Discord community interests suggest'));
+    if (catLine) {
+      const catSection = catLine.match(/Discord community interests suggest:\s*(.+)/)?.[1] || '';
+      const total = (catSection.match(/\((\d+) server/g) || []).reduce((sum, m) => {
+        const n = m.match(/\((\d+)/);
+        return sum + (n ? parseInt(n[1]) : 0);
+      }, 0) || 1;
+      categoryBreakdown = catSection.split(', ').map(item => {
+        const m = item.match(/^(.+?)\s*\((\d+) server/);
+        if (!m) return null;
+        const count = parseInt(m[2]);
+        return { category: m[1].trim(), count, percentage: Math.round((count / total) * 100) };
+      }).filter(Boolean);
+      topCategories = categoryBreakdown.slice(0, 2).map(c => c.category);
+    }
+
+    const rawSummary = contents.slice(0, 3).join('\n');
+    console.log(`[Reflection] Found ${memories.length} Discord observations for user ${userId}`);
+
+    return {
+      success: servers.length > 0 || totalServers > 0,
+      data: {
+        servers,
+        totalServers: totalServers || servers.length,
+        categoryBreakdown,
+        topCategories,
+        rawSummary,
+        observationCount: memories.length,
+      }
+    };
+  } catch (error) {
+    console.error('[Reflection] Discord data error:', error);
+    return { success: false, error: error.message };
+  }
+}
+
+/**
+ * Get LinkedIn data for reflection
+ * Reads from user_memories (stored by observationIngestion via addPlatformObservation)
+ *
+ * @param {string} userId - User ID
+ * @returns {Promise<Object>} { success, data?, error? }
+ */
+export async function getLinkedInData(userId) {
+  try {
+    const { data: memories } = await supabaseAdmin
+      .from('user_memories')
+      .select('content, created_at')
+      .eq('user_id', userId)
+      .eq('memory_type', 'platform_data')
+      .filter('metadata->>platform', 'eq', 'linkedin')
+      .order('created_at', { ascending: false })
+      .limit(20);
+
+    if (!memories || memories.length === 0) {
+      return { success: false, error: 'LinkedIn not connected or no data yet' };
+    }
+
+    const contents = memories.map(m => m.content);
+
+    // Parse headline from 'LinkedIn professional headline: "..."'
+    let headline = null;
+    const headlineLine = contents.find(c => c.includes('LinkedIn professional headline'));
+    if (headlineLine) {
+      const m = headlineLine.match(/headline:\s*"([^"]+)"/);
+      if (m) headline = m[1];
+    }
+
+    // Parse industry from "Works in the X industry"
+    let industry = null;
+    const industryLine = contents.find(c => c.includes('Works in the') && c.includes('industry'));
+    if (industryLine) {
+      const m = industryLine.match(/Works in the (.+?) industry/);
+      if (m) industry = m[1];
+    }
+
+    // Parse locale and connection count from "locale: XX, N+ connections"
+    let locale = null;
+    let connectionCount = null;
+    const localeLine = contents.find(c => c.includes('locale:') || c.includes('connections'));
+    if (localeLine) {
+      const localeMatch = localeLine.match(/locale:\s*([A-Z]{2})/);
+      if (localeMatch) locale = localeMatch[1];
+      const connMatch = localeLine.match(/(\d+)\+?\s*connections/);
+      if (connMatch) connectionCount = parseInt(connMatch[1]);
+    }
+
+    // Parse skills from "LinkedIn skills include: skill1, skill2..."
+    let skills = [];
+    const skillsLine = contents.find(c => c.includes('LinkedIn skills include'));
+    if (skillsLine) {
+      const m = skillsLine.match(/LinkedIn skills include:\s*(.+)/);
+      if (m) skills = m[1].split(', ').map(s => s.trim()).filter(Boolean);
+    }
+
+    const rawSummary = contents.slice(0, 3).join('\n');
+    console.log(`[Reflection] Found ${memories.length} LinkedIn observations for user ${userId}`);
+
+    return {
+      success: !!(headline || industry || skills.length > 0),
+      data: {
+        headline,
+        industry,
+        locale,
+        skills,
+        connectionCount,
+        rawSummary,
+        observationCount: memories.length,
+      }
+    };
+  } catch (error) {
+    console.error('[Reflection] LinkedIn data error:', error);
     return { success: false, error: error.message };
   }
 }
