@@ -9,7 +9,6 @@ import { createClient } from '@supabase/supabase-js';
 import { extractSpotifyData } from './spotifyExtraction.js';
 import { extractDiscordData } from './discordExtraction.js';
 import { extractGitHubData } from './githubExtraction.js';
-import soulSignatureBuilder from './soulSignatureBuilder.js';
 // MVP Feature Extractors
 import spotifyFeatureExtractor from './featureExtractors/spotifyExtractor.js';
 import calendarFeatureExtractor from './featureExtractors/calendarExtractor.js';
@@ -74,15 +73,6 @@ class ExtractionOrchestrator {
       );
 
       const results = await Promise.all(extractionPromises);
-
-      // 3. Build soul signature after all extractions complete
-      console.log('🎭 [Orchestrator] Building soul signature...');
-      try {
-        await soulSignatureBuilder.buildSoulSignature(userId);
-        console.log('✅ [Orchestrator] Soul signature built');
-      } catch (soulError) {
-        console.error('❌ [Orchestrator] Soul signature building failed:', soulError);
-      }
 
       // 3b. Invalidate stale twin_summaries so a fresh one regenerates on next chat
       const { error: invalidateErr } = await supabase

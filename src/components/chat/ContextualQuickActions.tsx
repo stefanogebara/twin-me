@@ -31,7 +31,7 @@ interface QuickAction {
 
 interface ContextualQuickActionsProps {
   messageContent: string;
-  conversationTopic?: 'music' | 'netflix' | 'youtube' | 'github' | 'general';
+  conversationTopic?: 'music' | 'youtube' | 'github' | 'general';
   onAction: (actionId: string) => void;
   className?: string;
 }
@@ -43,17 +43,14 @@ export function ContextualQuickActions({
   className = ''
 }: ContextualQuickActionsProps) {
   // Analyze message content to determine context
-  const detectTopic = (): 'music' | 'netflix' | 'youtube' | 'github' | 'general' => {
+  const detectTopic = (): 'music' | 'youtube' | 'github' | 'general' => {
     if (conversationTopic) return conversationTopic;
 
     const content = messageContent.toLowerCase();
     if (content.includes('spotify') || content.includes('music') || content.includes('song') || content.includes('artist')) {
       return 'music';
     }
-    if (content.includes('netflix') || content.includes('show') || content.includes('movie') || content.includes('series')) {
-      return 'netflix';
-    }
-    if (content.includes('youtube') || content.includes('video') || content.includes('channel')) {
+    if (content.includes('youtube') || content.includes('video') || content.includes('channel') || content.includes('show') || content.includes('movie') || content.includes('series')) {
       return 'youtube';
     }
     if (content.includes('github') || content.includes('code') || content.includes('repository')) {
@@ -109,32 +106,6 @@ export function ContextualQuickActions({
             label: 'Analyze mood trends',
             icon: TrendingUp,
             action: () => onAction('mood-trends'),
-            color: 'text-purple-600'
-          },
-          ...baseActions
-        ];
-
-      case 'netflix':
-        return [
-          {
-            id: 'viewing-patterns',
-            label: 'View patterns',
-            icon: Calendar,
-            action: () => onAction('viewing-patterns'),
-            color: 'text-red-600'
-          },
-          {
-            id: 'genre-breakdown',
-            label: 'Genre breakdown',
-            icon: BarChart3,
-            action: () => onAction('genre-breakdown'),
-            color: 'text-orange-600'
-          },
-          {
-            id: 'recommendations',
-            label: 'Get recommendations',
-            icon: Sparkles,
-            action: () => onAction('recommendations'),
             color: 'text-purple-600'
           },
           ...baseActions
