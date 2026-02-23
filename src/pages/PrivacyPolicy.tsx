@@ -22,7 +22,7 @@ const PrivacyPolicy = () => {
           Privacy Policy
         </h1>
         <p className="text-sm mb-10" style={{ color: '#8A857D' }}>
-          Last updated: February 13, 2026
+          Last updated: February 23, 2026
         </p>
 
         <div className="space-y-8 text-sm leading-relaxed" style={{ fontFamily: 'var(--font-body)' }}>
@@ -37,6 +37,24 @@ const PrivacyPolicy = () => {
 
           <section>
             <h2 className="heading-serif text-lg mb-3">2. Data We Collect</h2>
+
+            <h3 className="font-medium mb-2" style={{ color: '#000000' }}>Browser Extension Data</h3>
+            <p className="mb-3" style={{ color: '#000000' }}>
+              If you install the optional Twin Me Chrome extension, it collects the following data
+              to build your Soul Signature. The extension never runs on sensitive sites (banking,
+              healthcare, email, authentication pages) and never collects passwords, form data, or
+              private messages.
+            </p>
+            <ul className="list-disc list-inside space-y-1 ml-2 mb-3" style={{ color: '#000000' }}>
+              <li><strong>Tab visit history:</strong> Domain, page title, and time spent on each page — tracked via the Chrome Tabs API in the background service worker. No page content is read.</li>
+              <li><strong>Streaming platform activity:</strong> Watch sessions from YouTube, Twitch, Netflix, Hulu, HBO Max, Prime Video, and Disney+ — via content scripts on those specific domains only.</li>
+              <li><strong>Past browsing history (optional, one-time import):</strong> Up to 7 days of past browsing history imported once via the Chrome History API when you click "Import History" in the extension popup.</li>
+              <li><strong>On-demand page analysis (optional):</strong> Title, description, headings, and estimated reading time of the current page — only when you explicitly click "Analyze This Page" in the popup.</li>
+            </ul>
+            <p className="mb-4" style={{ color: '#000000' }}>
+              All extension data is stored locally in your browser first and synced to your Twin Me
+              account over HTTPS. You can disconnect the extension at any time via Settings.
+            </p>
 
             <h3 className="font-medium mb-2" style={{ color: '#000000' }}>Account Data</h3>
             <p className="mb-3" style={{ color: '#000000' }}>When you sign up, we collect:</p>
@@ -90,7 +108,9 @@ const PrivacyPolicy = () => {
               <li>Financial or banking information</li>
               <li>Private messages or email content</li>
               <li>Detailed health records or biometric data</li>
-              <li>Browsing history or cookies from other sites</li>
+              <li>Page content, form inputs, or passwords from any site</li>
+              <li>Browsing activity on banking, healthcare, email, or authentication sites</li>
+              <li>Cookies or browser storage from any site</li>
             </ul>
           </section>
 
