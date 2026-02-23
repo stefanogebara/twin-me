@@ -23,7 +23,7 @@ const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABAS
 const supabase = supabaseUrl && supabaseKey ? createClient(supabaseUrl, supabaseKey) : null;
 
 // Valid platforms
-const VALID_PLATFORMS = ['spotify', 'whoop', 'calendar', 'youtube', 'twitch', 'web'];
+const VALID_PLATFORMS = ['spotify', 'whoop', 'calendar', 'youtube', 'twitch', 'web', 'discord', 'linkedin'];
 
 // Map URL platform names to database platform names
 // Calendar is stored as 'google_calendar' in platform_connections
