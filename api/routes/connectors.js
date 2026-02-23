@@ -109,7 +109,7 @@ const OAUTH_CONFIGS = {
   discord: {
     clientId: process.env.DISCORD_CLIENT_ID,
     clientSecret: process.env.DISCORD_CLIENT_SECRET,
-    scopes: ['identify', 'email', 'guilds', 'guilds.members.read'],
+    scopes: ['identify', 'email', 'guilds', 'connections'],
     authUrl: 'https://discord.com/api/oauth2/authorize',
     tokenUrl: 'https://discord.com/api/oauth2/token'
   },

@@ -27,7 +27,7 @@ function getSupabaseClient() {
 export async function extractDiscordData(userId) {
   try {
     // Get platform connection with encrypted tokens
-    const { data: connection, error: connectionError } = await supabase
+    const { data: connection, error: connectionError } = await getSupabaseClient()
       .from('platform_connections')
       .select('*')
       .eq('user_id', userId)
@@ -83,7 +83,7 @@ export async function extractDiscordData(userId) {
     console.log(`✅ Extracted ${totalItems} Discord items`);
 
     // Save extracted data to soul_data table
-    const { error: insertError } = await supabase
+    const { error: insertError } = await getSupabaseClient()
       .from('soul_data')
       .insert({
         user_id: userId,
@@ -103,7 +103,7 @@ export async function extractDiscordData(userId) {
     }
 
     // Update connection status
-    const { error: syncSuccessErr } = await supabase
+    const { error: syncSuccessErr } = await getSupabaseClient()
       .from('platform_connections')
       .update({
         last_synced_at: new Date(),
@@ -126,7 +126,7 @@ export async function extractDiscordData(userId) {
 
     // Handle token expiration
     if (error.response?.status === 401) {
-      const { error: reauthErr } = await supabase
+      const { error: reauthErr } = await getSupabaseClient()
         .from('platform_connections')
         .update({
           last_sync_status: 'requires_reauth'
@@ -154,7 +154,7 @@ export async function extractDiscordData(userId) {
     }
 
     // Update connection with error status
-    const { error: failedErr } = await supabase
+    const { error: failedErr } = await getSupabaseClient()
       .from('platform_connections')
       .update({
         last_sync_status: 'failed'
