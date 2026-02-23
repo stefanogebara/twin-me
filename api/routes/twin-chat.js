@@ -990,7 +990,7 @@ router.post('/message', authenticateUser, async (req, res) => {
           tier: TIER_CHAT,
           system: systemPrompt,
           messages: llmMessages,
-          maxTokens: 2048,
+          maxTokens: 1024,
           temperature: 0.7,
           userId,
           serviceName: 'twin-chat',
@@ -1002,7 +1002,7 @@ router.post('/message', authenticateUser, async (req, res) => {
         assistantMessage = result.content || 'I apologize, I could not generate a response.';
       } catch (llmError) {
         console.error('[Twin Chat] Streaming LLM Gateway failed:', llmError.message);
-        const isBillingIssue = llmError.message?.includes('credit balance') || llmError.message?.includes('billing');
+        const isBillingIssue = llmError.message?.includes('credit balance') || llmError.message?.includes('billing') || llmError.message?.includes('more credits') || llmError.message?.includes('402');
         res.write(`data: ${JSON.stringify({ type: 'error', error: isBillingIssue ? 'Chat is temporarily unavailable due to API billing.' : 'Chat is temporarily unavailable.' })}\n\n`);
         return res.end();
       }
@@ -1013,7 +1013,7 @@ router.post('/message', authenticateUser, async (req, res) => {
           tier: TIER_CHAT,
           system: systemPrompt,
           messages: llmMessages,
-          maxTokens: 2048,
+          maxTokens: 1024,
           temperature: 0.7,
           userId,
           serviceName: 'twin-chat'
