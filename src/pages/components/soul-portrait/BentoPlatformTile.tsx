@@ -1,6 +1,6 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { Music, Calendar, Tv } from 'lucide-react';
+import { Music, Calendar, Tv, MessageSquare, Briefcase } from 'lucide-react';
 import type { PlatformSummary, ConnectedPlatform } from './types';
 
 interface PlatformMeta {
@@ -42,6 +42,26 @@ const PLATFORM_META: Record<string, PlatformMeta> = {
       const first = obs[0] || '';
       if (first.length > 0) return first.slice(0, 52) + (first.length > 52 ? '…' : '');
       return 'Content synced';
+    },
+  },
+  discord: {
+    label: 'Discord',
+    icon: MessageSquare,
+    color: '#5865F2',
+    extractMetric: (obs) => {
+      const first = obs[0] || '';
+      if (first.length > 0) return first.slice(0, 52) + (first.length > 52 ? '…' : '');
+      return 'Activity synced';
+    },
+  },
+  linkedin: {
+    label: 'LinkedIn',
+    icon: Briefcase,
+    color: '#0A66C2',
+    extractMetric: (obs) => {
+      const first = obs[0] || '';
+      if (first.length > 0) return first.slice(0, 52) + (first.length > 52 ? '…' : '');
+      return 'Profile synced';
     },
   },
 };

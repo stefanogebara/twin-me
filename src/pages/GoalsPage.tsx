@@ -13,6 +13,12 @@ import { toast } from 'sonner';
 import { PageLayout } from '@/components/layout/PageLayout';
 import { goalsAPI } from '@/services/api/goalsAPI';
 import type { Goal, GoalProgress } from '@/services/api/goalsAPI';
+import {
+  DEMO_ACTIVE_GOALS,
+  DEMO_SUGGESTED_GOALS,
+  DEMO_COMPLETED_GOALS,
+  DEMO_GOAL_SUMMARY,
+} from '@/services/demoDataService';
 import GoalCard from './components/goals/GoalCard';
 import GoalSuggestionCard from './components/goals/GoalSuggestionCard';
 import {
@@ -81,6 +87,7 @@ const useGoalProgress = () => {
 const GoalsPage: React.FC = () => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const isDemoMode = localStorage.getItem('demo_mode') === 'true';
 
   // Local UI state
   const [showCompleted, setShowCompleted] = useState(false);
@@ -99,6 +106,8 @@ const GoalsPage: React.FC = () => {
     queryKey: QUERY_KEYS.activeGoals,
     queryFn: () => goalsAPI.getGoals('active'),
     staleTime: 30_000,
+    enabled: !isDemoMode,
+    initialData: isDemoMode ? DEMO_ACTIVE_GOALS : undefined,
   });
 
   const {
@@ -108,6 +117,8 @@ const GoalsPage: React.FC = () => {
     queryKey: QUERY_KEYS.suggestions,
     queryFn: () => goalsAPI.getSuggestions(),
     staleTime: 60_000,
+    enabled: !isDemoMode,
+    initialData: isDemoMode ? DEMO_SUGGESTED_GOALS : undefined,
   });
 
   const {
@@ -117,7 +128,8 @@ const GoalsPage: React.FC = () => {
     queryKey: QUERY_KEYS.completedGoals,
     queryFn: () => goalsAPI.getGoals('completed'),
     staleTime: 60_000,
-    enabled: showCompleted,
+    enabled: showCompleted && !isDemoMode,
+    initialData: isDemoMode ? DEMO_COMPLETED_GOALS : undefined,
   });
 
   const {
@@ -126,9 +138,11 @@ const GoalsPage: React.FC = () => {
     queryKey: QUERY_KEYS.summary,
     queryFn: () => goalsAPI.getSummary(),
     staleTime: 30_000,
+    enabled: !isDemoMode,
+    initialData: isDemoMode ? DEMO_GOAL_SUMMARY : undefined,
   });
 
-  const isLoading = loadingActive && loadingSuggestions;
+  const isLoading = isDemoMode ? false : (loadingActive && loadingSuggestions);
 
   // --- Mutation handlers ---
 

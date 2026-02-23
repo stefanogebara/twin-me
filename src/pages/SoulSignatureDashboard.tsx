@@ -17,7 +17,7 @@ import { BentoExpertSpotlight } from './components/soul-portrait/BentoExpertSpot
 import { BentoGoalsTile } from './components/soul-portrait/BentoGoalsTile';
 
 // Whitelist for BentoStatsTile — filters out unknown/internal platform entries
-const STATS_PLATFORM_WHITELIST = ['spotify', 'google-calendar', 'youtube', 'linkedin', 'github', 'reddit'];
+const STATS_PLATFORM_WHITELIST = ['spotify', 'google_calendar', 'youtube', 'discord', 'linkedin', 'github', 'reddit'];
 
 const SoulSignatureDashboard: React.FC = () => {
   const { user } = useAuth();
@@ -142,7 +142,7 @@ const SoulSignatureDashboard: React.FC = () => {
   // Determine which platforms are connected and have a known config
   // DB stores 'google_calendar' but we reference it as 'calendar' in the UI
   const PLATFORM_ALIAS: Record<string, string> = { google_calendar: 'calendar' };
-  const knownPlatforms = ['spotify', 'calendar', 'youtube'];
+  const knownPlatforms = ['spotify', 'calendar', 'youtube', 'discord', 'linkedin'];
   const activePlatforms = portrait?.connectedPlatforms
     .map(p => {
       const key = p.platform.toLowerCase();
@@ -347,8 +347,9 @@ const SoulSignatureDashboard: React.FC = () => {
             </div>
           )}
 
-          {/* ── Row 3b: Platform insight tiles (Calendar + YouTube) ── */}
-          {(activePlatforms.includes('calendar') || activePlatforms.includes('youtube')) && (
+          {/* ── Row 3b: Platform insight tiles (Calendar + YouTube + Discord + LinkedIn) ── */}
+          {(activePlatforms.includes('calendar') || activePlatforms.includes('youtube') ||
+            activePlatforms.includes('discord') || activePlatforms.includes('linkedin')) && (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-4">
               {activePlatforms.includes('calendar') && (
                 <BentoPlatformTile
@@ -364,6 +365,22 @@ const SoulSignatureDashboard: React.FC = () => {
                   platformData={portrait.platformData}
                   connectedPlatforms={portrait.connectedPlatforms}
                   animationDelay={0.15}
+                />
+              )}
+              {activePlatforms.includes('discord') && (
+                <BentoPlatformTile
+                  platform="discord"
+                  platformData={portrait.platformData}
+                  connectedPlatforms={portrait.connectedPlatforms}
+                  animationDelay={0.2}
+                />
+              )}
+              {activePlatforms.includes('linkedin') && (
+                <BentoPlatformTile
+                  platform="linkedin"
+                  platformData={portrait.platformData}
+                  connectedPlatforms={portrait.connectedPlatforms}
+                  animationDelay={0.25}
                 />
               )}
             </div>

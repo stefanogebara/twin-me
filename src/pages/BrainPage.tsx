@@ -50,9 +50,19 @@ const PLATFORM_META: Record<string, { label: string; icon: string; description: 
     icon: '▶️',
     description: 'Content preferences, interests'
   },
+  discord: {
+    label: 'Discord',
+    icon: '💬',
+    description: 'Community activity, communication style'
+  },
+  linkedin: {
+    label: 'LinkedIn',
+    icon: '💼',
+    description: 'Career trajectory, professional skills'
+  },
 };
 
-const ORDERED_PLATFORMS = ['spotify', 'google_calendar', 'youtube'];
+const ORDERED_PLATFORMS = ['spotify', 'google_calendar', 'youtube', 'discord', 'linkedin'];
 
 // Demo insights shown when in demo mode
 const DEMO_INSIGHTS: Insight[] = [

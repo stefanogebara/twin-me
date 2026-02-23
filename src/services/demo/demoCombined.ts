@@ -44,7 +44,7 @@ export const DEMO_TWIN_STATS = {
   total_conversations: randomInRange(8, 25),
   total_messages: randomInRange(30, 80),
   last_interaction: new Date().toISOString(),
-  connected_platforms: 3,
+  connected_platforms: 5,
 };
 
 // Dynamic full data getter

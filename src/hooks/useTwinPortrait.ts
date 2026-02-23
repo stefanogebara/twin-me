@@ -3,10 +3,12 @@
  *
  * Fetches the complete twin portrait data for the Soul Signature page.
  * Uses @tanstack/react-query for caching, stale management, and background refetch.
+ * In demo mode, returns DEMO_TWIN_PORTRAIT without making any API calls.
  */
 
 import { useQuery } from '@tanstack/react-query';
 import type { TwinPortraitData } from '../pages/components/soul-portrait/types';
+import { DEMO_TWIN_PORTRAIT } from '../services/demoDataService';
 
 const API_URL = import.meta.env.VITE_API_URL;
 
@@ -31,12 +33,14 @@ async function fetchPortrait(): Promise<TwinPortraitData> {
 }
 
 export function useTwinPortrait(enabled = true) {
+  const isDemoMode = localStorage.getItem('demo_mode') === 'true';
+
   return useQuery<TwinPortraitData>({
-    queryKey: ['twin-portrait'],
-    queryFn: fetchPortrait,
+    queryKey: ['twin-portrait', isDemoMode ? 'demo' : 'live'],
+    queryFn: isDemoMode ? () => Promise.resolve(DEMO_TWIN_PORTRAIT) : fetchPortrait,
     enabled,
-    staleTime: 2 * 60 * 1000,       // 2 minutes
-    refetchInterval: 5 * 60 * 1000,  // 5 minutes
-    retry: 1,
+    staleTime: isDemoMode ? Infinity : 2 * 60 * 1000,
+    refetchInterval: isDemoMode ? false : 5 * 60 * 1000,
+    retry: isDemoMode ? false : 1,
   });
 }
