@@ -83,7 +83,12 @@ async function writeObservations(userId, platform, observations, importId, exist
       existingHashes.add(hash);
       created++;
     } catch (err) {
-      console.error(`[GdprImport] Failed to write observation: ${err.message}`);
+      // Unique constraint violation = concurrent upload already wrote this hash — treat as skip
+      if (err.message?.includes('duplicate key') || err.code === '23505') {
+        skipped++;
+      } else {
+        console.error(`[GdprImport] Failed to write observation: ${err.message}`);
+      }
     }
   }
   return { created, skipped };
