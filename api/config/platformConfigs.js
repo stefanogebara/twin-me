@@ -76,7 +76,7 @@ export const PLATFORM_CONFIGS = {
     name: 'Discord',
     authUrl: 'https://discord.com/api/oauth2/authorize',
     tokenUrl: 'https://discord.com/api/oauth2/token',
-    scopes: ['identify', 'guilds', 'guilds.members.read', 'email'],
+    scopes: ['identify', 'guilds', 'connections', 'email'],
     apiBaseUrl: 'https://discord.com/api/v10',
 
     endpoints: {

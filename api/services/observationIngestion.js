@@ -411,7 +411,7 @@ async function fetchYouTubeObservations(userId) {
 
 /**
  * Detect broad community interest categories from a list of Discord server names.
- * Returns an array of detected category labels (e.g. ['tech/dev', 'gaming']).
+ * Returns an array of { label, count } objects sorted by count descending.
  */
 function detectDiscordCategories(serverNames) {
   const patterns = {
@@ -421,11 +421,12 @@ function detectDiscordCategories(serverNames) {
     'learning': /\b(study|learn|school|university|college|class|course|tutorial|math|science|language|book|research)\b/i,
     'community': /\b(community|server|hangout|friends|social|general|vibe|lounge|chat)\b/i,
   };
-  const detected = [];
+  const results = [];
   for (const [label, re] of Object.entries(patterns)) {
-    if (serverNames.some(name => re.test(name))) detected.push(label);
+    const count = serverNames.filter(name => re.test(name)).length;
+    if (count > 0) results.push({ label, count });
   }
-  return detected;
+  return results.sort((a, b) => b.count - a.count);
 }
 
 /**
@@ -461,11 +462,12 @@ async function fetchDiscordObservations(userId) {
         contentType: 'weekly_summary',
       });
 
-      // Category interests from server names
+      // Category interests from server names (with counts for downstream parsing)
       const categories = detectDiscordCategories(names);
       if (categories.length > 0) {
+        const catString = categories.map(c => `${c.label} (${c.count} server${c.count === 1 ? '' : 's'})`).join(', ');
         observations.push({
-          content: `Discord community interests suggest: ${categories.join(', ')}`,
+          content: `Discord community interests suggest: ${catString}`,
           contentType: 'weekly_summary',
         });
       }
