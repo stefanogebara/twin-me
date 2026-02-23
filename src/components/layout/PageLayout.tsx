@@ -2,7 +2,7 @@
  * PageLayout Component
  *
  * Provides consistent page structure with the TwinMe landing page design.
- * Cream background (#F7F7F3), Playfair Display headings, liquid glass cards.
+ * Cream background (#F7F7F3), Halant headings, liquid glass cards.
  * Light mode only — matches Index.tsx design language.
  */
 

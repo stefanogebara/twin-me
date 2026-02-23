@@ -41,7 +41,7 @@ const NotFound = () => {
               className="text-8xl font-bold mb-4"
               style={{
                 color: 'rgba(31, 28, 24, 0.08)',
-                fontFamily: '"Playfair Display", Georgia, serif',
+                fontFamily: '"Halant", Georgia, serif',
                 lineHeight: 1,
                 letterSpacing: '-0.04em',
               }}

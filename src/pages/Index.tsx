@@ -45,12 +45,12 @@ const Index = () => {
         }
 
         .heading-serif {
-          font-family: 'Playfair Display', serif;
+          font-family: 'Halant', serif;
           letter-spacing: -0.03em;
           line-height: 1.05;
         }
         .heading-serif-italic {
-          font-family: 'Playfair Display', serif;
+          font-family: 'Halant', serif;
           font-style: italic;
           color: #8A857D;
           letter-spacing: -0.04em;
@@ -452,45 +452,75 @@ const Index = () => {
         </div>
       </section>
 
-      {/* ── Slide 4: Features — RAINFOREST BACKGROUND ── */}
-      <section id="features" className="slide-section relative">
-        <img
-          src={RAINFOREST_BG}
-          alt=""
-          className="absolute inset-0 w-full h-full object-cover"
-          style={{ zIndex: 0 }}
-          loading="lazy"
-        />
-        <div className="absolute inset-0 bg-black/20" style={{ zIndex: 1 }} />
+      {/* ── Slide 4: Features — Claura-style nature cards on cream bg ── */}
+      <section id="features" className="slide-section relative bg-[#F7F7F3] px-6 lg:px-[80px]">
+        <div className="max-w-[1200px] mx-auto w-full flex flex-col justify-center h-full">
+          {/* Section header */}
+          <motion.div
+            initial={{ opacity: 0, y: 24 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.7 }}
+            viewport={{ once: true, amount: 0.5 }}
+            className="mb-10 lg:mb-14"
+          >
+            <p className="text-[13px] uppercase tracking-widest text-[#8A857D] font-medium mb-4">
+              How It Works
+            </p>
+            <h2 className="heading-serif text-[clamp(2rem,4vw,3rem)] text-[#1F1C18] leading-[1.1]">
+              Three steps to your <span className="heading-serif-italic">soul signature.</span>
+            </h2>
+          </motion.div>
 
-        <div className="relative z-10 px-8 lg:px-[80px]">
-          <div className="max-w-[1200px] mx-auto w-full">
-            <div className="grid md:grid-cols-3 gap-6 items-start">
-              {[
-                { step: '01', title: 'Connect', desc: 'Securely link your core platforms and data sources effortlessly.' },
-                { step: '02', title: 'Discover', desc: 'Unearth beautiful insights and invisible patterns in your daily life.' },
-                { step: '03', title: 'Control',  desc: 'Selectively share and protect your digital essence with ease.' },
-              ].map((item, idx) => (
-                <motion.div
-                  key={item.step}
-                  initial={{ opacity: 0, y: 30 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.6, delay: idx * 0.15 }}
-                  viewport={{ once: true, amount: 0.5 }}
-                  className="photo-glass-card p-8 lg:p-10 transition-transform duration-500 hover:-translate-y-2"
-                  style={{ marginTop: idx === 1 ? '32px' : idx === 2 ? '64px' : '0' }}
-                >
-                  <div className="text-[13px] font-bold mb-5 tracking-widest" style={{ color: 'rgba(255,255,255,0.55)' }}>{item.step}</div>
-                  <h3 className="heading-serif text-[28px] mb-3" style={{ color: 'white' }}>{item.title}</h3>
-                  <p className="text-[15px] leading-[1.6]" style={{ color: 'rgba(255,255,255,0.8)' }}>{item.desc}</p>
-                </motion.div>
-              ))}
-            </div>
+          {/* Claura-style tall nature cards */}
+          <div className="grid md:grid-cols-3 gap-4 lg:gap-5">
+            {[
+              { title: 'Connect', desc: 'Securely link your platforms. Your music, calendar, and wellness data form the raw material of your soul signature.', bg: RAINFOREST_BG, overlay: 'rgba(40,65,35,0.55)' },
+              { title: 'Discover', desc: 'AI unearths invisible patterns across your data — personality traits, rhythms, and curiosities you never noticed.', bg: OCEAN_BG, overlay: 'rgba(25,50,75,0.55)' },
+              { title: 'Control', desc: 'Choose what to reveal and what to keep private. Your privacy spectrum, your rules.', bg: DESERT_BG, overlay: 'rgba(80,55,30,0.50)' },
+            ].map((card, idx) => (
+              <motion.div
+                key={card.title}
+                initial={{ opacity: 0, y: 30 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.6, delay: idx * 0.12 }}
+                viewport={{ once: true, amount: 0.4 }}
+                className="relative overflow-hidden group cursor-default"
+                style={{
+                  borderRadius: '28px',
+                  aspectRatio: '1 / 1.35',
+                }}
+              >
+                {/* Card background image */}
+                <img
+                  src={card.bg}
+                  alt=""
+                  className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+                  loading="lazy"
+                />
+                {/* Color overlay */}
+                <div
+                  className="absolute inset-0 transition-opacity duration-500"
+                  style={{ background: `linear-gradient(180deg, ${card.overlay} 0%, rgba(0,0,0,0.65) 100%)` }}
+                />
+
+                {/* Card content — bottom-aligned */}
+                <div className="absolute inset-0 flex flex-col justify-end p-7 lg:p-8">
+                  <h3
+                    className="heading-serif text-[clamp(1.6rem,2.5vw,2rem)] mb-2 leading-[1.15]"
+                    style={{ color: 'white' }}
+                  >
+                    {card.title}
+                  </h3>
+                  <p
+                    className="text-[14px] lg:text-[15px] leading-[1.55]"
+                    style={{ color: 'rgba(255,255,255,0.8)' }}
+                  >
+                    {card.desc}
+                  </p>
+                </div>
+              </motion.div>
+            ))}
           </div>
-        </div>
-
-        <div className="absolute bottom-6 right-8 z-10 opacity-50">
-          <img src="/icons/3d/sparkle.png" alt="" className="w-8 h-8 drop-shadow-md" />
         </div>
       </section>
 
