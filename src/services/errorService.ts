@@ -3,6 +3,8 @@
  * Centralized error handling, logging, and categorization
  */
 
+import * as Sentry from '@sentry/react';
+
 export type ErrorCategory =
   | 'authentication'
   | 'network'
@@ -61,8 +63,17 @@ class ErrorService {
       });
     }
 
-    // TODO: Send to external logging service (e.g., Sentry, LogRocket)
-    // this.sendToExternalService(errorLog);
+    // Send to Sentry (no-op if Sentry wasn't initialized — DSN not configured)
+    Sentry.withScope((scope) => {
+      scope.setTag('category', category);
+      scope.setExtra('url', errorLog.url);
+      if (context) scope.setExtras(context as Record<string, unknown>);
+      if (error instanceof Error) {
+        Sentry.captureException(error);
+      } else {
+        Sentry.captureMessage(errorLog.message, 'error');
+      }
+    });
   }
 
   /**
