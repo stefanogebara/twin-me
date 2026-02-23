@@ -176,7 +176,7 @@ async function _getLatestPlatformSummary(userId) {
     .eq('user_id', userId)
     .in('memory_type', ['platform_data', 'observation'])
     .order('created_at', { ascending: false })
-    .limit(30);
+    .limit(100);
 
   if (error || !data || data.length === 0) return null;
 
