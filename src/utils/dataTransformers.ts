@@ -21,12 +21,6 @@ export interface ClusterData {
   radius?: number;
 }
 
-export interface TimelineActivity {
-  platform: string;
-  timeOfDay: number[];
-  dayOfWeek: number[];
-}
-
 export interface PatternData {
   id: string;
   title: string;
@@ -34,14 +28,6 @@ export interface PatternData {
   confidence: number;
   platforms: string[];
   insight: string;
-}
-
-export interface JourneyEvent {
-  date: string;
-  type: 'interest_added' | 'skill_gained' | 'pattern_discovered' | 'platform_connected';
-  description: string;
-  platform: string;
-  icon?: string;
 }
 
 /**
@@ -133,46 +119,6 @@ export function transformToClusterData(soulSignature: any): ClusterData[] {
   });
 
   return clusters;
-}
-
-/**
- * Transform platform activity to timeline data for heatmap
- * ❌ DEPRECATED: This function used fake activity pattern generators
- * TODO: Replace with real activity data from platform APIs when available
- */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any -- deprecated function, platforms array has dynamic shape
-export function transformToTimelineData(_platforms: any[]): TimelineActivity[] {
-  // Return empty array until we have real activity data from platforms
-  // Fake generators have been removed. Implement real activity tracking.
-  return [];
-}
-
-// ❌ REMOVED: generateTimePattern() and generateDayPattern()
-// These functions generated fake activity patterns using Math.random()
-// Real activity patterns should come from actual platform API data
-
-/**
- * Extract pattern discoveries from soul signature
- * ❌ DEPRECATED: This function returned hardcoded pattern insights
- * Real patterns should come from Claude soul signature analysis API
- * TODO: Replace with real pattern detection from /api/soul-signature/insights
- */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any -- deprecated function, soul signature has dynamic shape
-export function transformToPatternData(_soulSignature: any): PatternData[] {
-  // Hardcoded patterns have been removed. Use Claude soul insights API instead.
-  return [];
-}
-
-/**
- * Transform to life journey timeline events
- * ❌ DEPRECATED: This function was built for the old cluster-based architecture
- * The LifeJourneyTimeline component has been removed from the dashboard
- * TODO: If timeline is needed, rebuild based on real Claude insights timeline
- */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any -- deprecated function, dynamic platform and soul signature shapes
-export function transformToJourneyEvents(_platforms: any[], _soulSignature: any): JourneyEvent[] {
-  // Deprecated - LifeJourneyTimeline component has been removed.
-  return [];
 }
 
 /**
