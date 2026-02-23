@@ -43,6 +43,20 @@ export default async function handler(req, res) {
   try {
     const result = await runObservationIngestion();
 
+    // Auto-snapshot users who had new observations stored
+    if (result.observationsStored > 0 && Array.isArray(result.processedUserIds)) {
+      try {
+        const { twinsBrainService } = await import('../services/twinsBrainService.js');
+        for (const uid of result.processedUserIds) {
+          twinsBrainService.createSnapshot(uid, 'automatic').catch(e =>
+            console.warn('[CRON] Auto-snapshot failed for', uid, e.message)
+          );
+        }
+      } catch (e) {
+        console.warn('[CRON] Auto-snapshot setup failed:', e.message);
+      }
+    }
+
     const status = result.errors.length > 0 && result.observationsStored === 0 ? 500 : 200;
 
     console.log('[CRON] Observation ingestion completed:', result);
