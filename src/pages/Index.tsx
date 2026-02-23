@@ -1,22 +1,59 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowRight, PlayCircle } from 'lucide-react';
 import { useAuth, SignInButton } from '../contexts/AuthContext';
-import { motion } from 'framer-motion';
-import {
-  SpotifyLogo,
-  GoogleCalendarLogo,
-  YoutubeLogo,
-} from '../components/PlatformLogos';
+import { motion, AnimatePresence } from 'framer-motion';
 
-const RAINFOREST_BG = '/images/backgrounds/rainforest.jpg';
-const OCEAN_BG = '/images/backgrounds/ocean.jpg';
-const DESERT_BG = '/images/backgrounds/desert.jpg';
-const MOUNTAIN_BG = '/images/backgrounds/mountain.jpg';
+const FLOWER_HERO = '/images/backgrounds/flower-hero.png';
+
+/* ── Service tab data ── */
+const SERVICES = [
+  {
+    id: 'connect',
+    title: 'Connect',
+    num: '01',
+    heading: 'Connect',
+    desc: 'Securely link Spotify, Google Calendar, YouTube, and more. Your digital footprint becomes the raw material of your soul signature.',
+    // Purple-blue flower tone
+    imgFilter: 'saturate(1.75) hue-rotate(220deg) brightness(0.9)',
+    imgBg: 'linear-gradient(135deg, #7b5ea7 0%, #4a6cf7 50%, #6b3fa0 100%)',
+  },
+  {
+    id: 'discover',
+    title: 'Discover',
+    num: '02',
+    heading: 'Discover',
+    desc: 'AI unearths invisible patterns across your data -- personality traits, rhythms, and curiosities you never noticed about yourself.',
+    // Orange-warm flower tone
+    imgFilter: 'saturate(1.75) hue-rotate(15deg) brightness(0.95)',
+    imgBg: 'linear-gradient(135deg, #c4652a 0%, #e8945a 50%, #d4763a 100%)',
+  },
+  {
+    id: 'share',
+    title: 'Share',
+    num: '03',
+    heading: 'Share',
+    desc: 'Share your authentic soul signature with the world. Let others see the real you -- not your resume, but your personality.',
+    // Pink-magenta flower tone
+    imgFilter: 'saturate(1.75) hue-rotate(300deg) brightness(0.9)',
+    imgBg: 'linear-gradient(135deg, #c74b8f 0%, #e87baf 50%, #a73b7f 100%)',
+  },
+  {
+    id: 'control',
+    title: 'Control',
+    num: '04',
+    heading: 'Control',
+    desc: 'Choose what to reveal and what to keep private. Your privacy spectrum dashboard puts you in total control of your data.',
+    // Teal-green flower tone
+    imgFilter: 'saturate(1.75) hue-rotate(140deg) brightness(0.9)',
+    imgBg: 'linear-gradient(135deg, #2a8f6a 0%, #3ab88a 50%, #1f7a5a 100%)',
+  },
+];
 
 const Index = () => {
   const navigate = useNavigate();
   const { isSignedIn, isLoaded } = useAuth();
+  const [activeService, setActiveService] = useState(0);
 
   useEffect(() => {
     if (isLoaded && isSignedIn) {
@@ -24,109 +61,56 @@ const Index = () => {
     }
   }, [isLoaded, isSignedIn, navigate]);
 
-  const fadeUp = {
-    hidden: { opacity: 0, y: 40 },
-    visible: { opacity: 1, y: 0, transition: { duration: 0.8 } }
-  };
-
-  const staggerContainer = {
-    hidden: { opacity: 0 },
-    visible: { opacity: 1, transition: { staggerChildren: 0.15 } }
-  };
+  /* Auto-cycle services every 4s */
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setActiveService((prev) => (prev + 1) % SERVICES.length);
+    }, 4000);
+    return () => clearInterval(timer);
+  }, []);
 
   return (
-    <div className="h-screen w-full overflow-y-auto overflow-x-hidden snap-y snap-mandatory relative landing-root font-sans bg-[#F7F7F3] text-[#1F1C18]">
+    <div className="w-full min-h-screen font-sans text-[#1F1C18]" style={{ backgroundColor: '#FCF6EF' }}>
       <style>{`
-        .landing-root::-webkit-scrollbar { display: none; }
-        .landing-root {
-          -ms-overflow-style: none;
-          scrollbar-width: none;
-          scroll-behavior: smooth;
-        }
-
         .heading-serif {
-          font-family: 'Halant', serif;
-          letter-spacing: -0.03em;
-          line-height: 1.05;
+          font-family: 'Halant', Georgia, serif;
+          letter-spacing: -0.05em;
+          line-height: 1.1;
         }
         .heading-serif-italic {
-          font-family: 'Halant', serif;
+          font-family: 'Halant', Georgia, serif;
           font-style: italic;
           color: #8A857D;
-          letter-spacing: -0.04em;
+          letter-spacing: -0.05em;
         }
-
-        .slide-section {
-          height: 100vh;
-          width: 100%;
-          flex-shrink: 0;
-          scroll-snap-align: start;
-          display: flex;
-          flex-direction: column;
-          justify-content: center;
-          position: relative;
-          z-index: 10;
-          contain: layout style paint;
-          will-change: transform;
+        .claura-label {
+          background: rgba(0,0,0,0.04);
+          border: 1px solid rgba(0,0,0,0.06);
+          border-radius: 8px;
+          padding: 6px 14px;
+          font-size: 13px;
+          font-weight: 500;
+          color: #5C5851;
+          display: inline-block;
         }
-
-        .slide-glass-card {
-          background: rgba(255, 255, 255, 0.18);
-          border: 1px solid rgba(255, 255, 255, 0.45);
-          box-shadow: 0 8px 32px rgba(0, 0, 0, 0.18), inset 0 1px 0 rgba(255, 255, 255, 0.6);
-          border-radius: 2.5rem;
-          backdrop-filter: blur(10px) saturate(140%);
-          -webkit-backdrop-filter: blur(10px) saturate(140%);
-        }
-
-        .photo-glass-card {
-          background: rgba(255, 255, 255, 0.18);
-          border: 1px solid rgba(255, 255, 255, 0.45);
-          box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15), inset 0 1px 0 rgba(255, 255, 255, 0.5);
-          border-radius: 2rem;
-          backdrop-filter: blur(10px) saturate(140%);
-          -webkit-backdrop-filter: blur(10px) saturate(140%);
-        }
-
-        /* CTA button — warm dark, matches palette */
         .btn-cta {
           background-color: #2D2722;
           color: #F7F7F3;
           border-radius: 9999px;
-          padding: 16px 36px;
+          padding: 16px 32px;
           font-size: 16px;
           font-weight: 600;
           transition: all 0.3s ease;
           display: inline-flex;
           align-items: center;
           gap: 8px;
-          box-shadow: 0 4px 20px rgba(45, 39, 34, 0.25);
           letter-spacing: -0.01em;
         }
-        .btn-cta:hover {
-          background-color: #1F1C18;
-          transform: translateY(-2px);
-          box-shadow: 0 8px 28px rgba(45, 39, 34, 0.35);
-        }
-        .btn-cta:active { transform: translateY(0); }
-
-        .btn-solid {
-          background-color: #2D2722;
-          color: #F7F7F3;
-          border-radius: 9999px;
-          padding: 12px 24px;
-          font-size: 14px;
-          font-weight: 500;
-          transition: all 0.3s ease;
-          display: inline-flex;
-          align-items: center;
-          gap: 8px;
-        }
-        .btn-solid:hover { background-color: #1F1C18; transform: translateY(-1px); }
-
-        .btn-light {
-          background-color: rgba(255, 255, 255, 0.6);
+        .btn-cta:hover { background-color: #1F1C18; transform: translateY(-2px); }
+        .btn-outline {
+          background: transparent;
           color: #2D2722;
+          border: 1.5px solid #D5D0C8;
           border-radius: 9999px;
           padding: 14px 28px;
           font-size: 15px;
@@ -135,426 +119,128 @@ const Index = () => {
           display: inline-flex;
           align-items: center;
           gap: 8px;
-          border: 1px solid rgba(255, 255, 255, 0.5);
-          backdrop-filter: blur(10px) saturate(140%);
-          -webkit-backdrop-filter: blur(10px) saturate(140%);
         }
-        .btn-light:hover { background-color: rgba(255, 255, 255, 0.8); transform: translateY(-1px); }
+        .btn-outline:hover { border-color: #2D2722; transform: translateY(-1px); }
 
-        /* Aurora gradient animation */
-        @keyframes aurora-drift {
-          0%   { transform: translate(0%, 0%) rotate(0deg) scale(1); }
-          33%  { transform: translate(3%, -4%) rotate(60deg) scale(1.05); }
-          66%  { transform: translate(-3%, 2%) rotate(120deg) scale(0.97); }
-          100% { transform: translate(0%, 0%) rotate(180deg) scale(1); }
+        /* Service tab highlight */
+        .service-tab {
+          cursor: pointer;
+          padding: 20px 28px;
+          border-radius: 16px;
+          transition: all 0.3s ease;
         }
-        @keyframes aurora-pulse {
-          0%, 100% { opacity: 0.55; }
-          50%       { opacity: 0.75; }
+        .service-tab:hover { background: rgba(0,0,0,0.03); }
+        .service-tab.active {
+          background: rgba(0,0,0,0.04);
         }
-        .aurora-blob {
-          position: absolute;
+
+        /* Glass stat card */
+        .glass-stat {
+          background: rgba(255,255,255,0.2);
+          border: 1px solid rgba(255,255,255,0.3);
+          backdrop-filter: blur(12px);
+          -webkit-backdrop-filter: blur(12px);
+          border-radius: 20px;
+          padding: 28px 24px;
+          text-align: center;
+        }
+
+        /* Step circle */
+        .step-circle {
+          width: 48px;
+          height: 48px;
           border-radius: 50%;
-          animation: aurora-drift 18s ease-in-out infinite, aurora-pulse 6s ease-in-out infinite;
-          pointer-events: none;
+          border: 1.5px solid #D5D0C8;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 14px;
+          font-weight: 600;
+          color: #5C5851;
+          flex-shrink: 0;
         }
-
-        @media (prefers-reduced-motion: reduce) {
-          .aurora-blob { animation: none; }
-        }
-
-        .platform-card {
-          transition: transform 0.25s ease, box-shadow 0.25s ease;
-        }
-        .platform-card:hover {
-          transform: translateY(-6px);
-          box-shadow: 0 16px 40px rgba(0,0,0,0.12);
+        .step-badge {
+          background: rgba(0,0,0,0.04);
+          border: 1px solid rgba(0,0,0,0.06);
+          border-radius: 6px;
+          padding: 3px 10px;
+          font-size: 12px;
+          font-weight: 500;
+          color: #8A857D;
         }
       `}</style>
 
-      {/* ── Simplified Nav: Logo | Sign In + Start Free ── */}
-      <div className="absolute top-6 left-0 right-0 z-50 px-4 md:px-8 flex justify-center mt-2">
-        <motion.nav
-          initial={{ y: -20, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
-          transition={{ duration: 0.7 }}
-          className="w-full max-w-[1200px] flex items-center justify-between bg-white/90 border border-[#EBE9E0] shadow-[0_4px_20px_rgba(0,0,0,0.04)] rounded-[32px] px-6 py-3 backdrop-blur-sm"
-        >
-          <div
-            className="flex items-center gap-2.5 cursor-pointer"
-            onClick={() => navigate('/')}
-          >
-            <img
-              src="/images/backgrounds/flower-hero.png"
-              alt="Twin Me"
-              className="w-8 h-8 object-contain"
-              style={{ mixBlendMode: 'multiply' }}
-            />
-            <span className="heading-serif text-[26px] font-medium text-[#1F1C18]">
+      {/* ────────────── NAV ────────────── */}
+      <nav className="sticky top-0 z-50 w-full px-6 lg:px-16" style={{ backgroundColor: '#FCF6EF' }}>
+        <div className="max-w-[1200px] mx-auto flex items-center justify-between py-4">
+          <div className="flex items-center gap-8">
+            <span
+              className="heading-serif text-[22px] font-bold cursor-pointer"
+              onClick={() => navigate('/')}
+            >
               Twin Me
             </span>
           </div>
-
           <div className="flex items-center gap-3">
             {isLoaded && isSignedIn ? (
-              <button onClick={() => navigate('/dashboard')} className="btn-cta !py-3 !px-7 !text-[14px] !rounded-[24px]">
+              <button onClick={() => navigate('/dashboard')} className="btn-cta !py-3 !px-6 !text-[14px]">
                 Dashboard
               </button>
             ) : (
-              <>
-                <SignInButton mode="modal" fallbackRedirectUrl="/discover" forceRedirectUrl="/discover">
-                  <button className="btn-solid !py-3 !px-6 !text-[14px] !rounded-[24px]">
-                    Sign In
-                  </button>
-                </SignInButton>
-                <SignInButton mode="modal" fallbackRedirectUrl="/discover" forceRedirectUrl="/discover">
-                  <button className="btn-cta !py-3 !px-7 !text-[14px] !rounded-[24px]">
-                    Start Free <ArrowRight className="w-4 h-4" />
-                  </button>
-                </SignInButton>
-              </>
+              <SignInButton mode="modal" fallbackRedirectUrl="/discover" forceRedirectUrl="/discover">
+                <button className="btn-cta !py-3 !px-6 !text-[14px]">
+                  Start Free
+                </button>
+              </SignInButton>
             )}
           </div>
-        </motion.nav>
-      </div>
+        </div>
+      </nav>
 
-      {/* ── Slide 1: Hero with White Background ── */}
-      <section id="about" className="slide-section px-8 lg:px-[120px] relative overflow-x-clip bg-white">
-        {/* Subtle ambient glow — very light to keep hero clean white */}
-        <div
-          className="aurora-blob"
-          style={{
-            width: '400px', height: '400px',
-            background: 'radial-gradient(circle, rgba(200,180,150,0.06) 0%, transparent 70%)',
-            top: '-60px', right: '-60px',
-            animationDelay: '0s',
-          }}
-        />
-
-        <div className="max-w-[1200px] mx-auto w-full flex flex-col lg:flex-row items-center gap-12 relative z-10 pt-20">
+      {/* ────────────── HERO ────────────── */}
+      <section className="px-6 lg:px-16 pt-16 pb-20 lg:pt-24 lg:pb-28">
+        <div className="max-w-[1072px] mx-auto text-center flex flex-col items-center gap-8">
+          {/* Social proof */}
           <motion.div
-            variants={staggerContainer}
-            initial="hidden"
-            whileInView="visible"
-            viewport={{ once: true, amount: 0.5 }}
-            className="max-w-[600px]"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6 }}
+            className="flex flex-col items-center gap-2"
           >
-            <motion.div variants={fadeUp} className="mb-6">
-              <span className="bg-[#EBE9E0]/80 text-[#5C5851] rounded-[8px] px-3.5 py-1.5 text-[13px] font-medium tracking-wide">
-                AI-powered Discovery
-              </span>
-            </motion.div>
-
-            <motion.h1
-              variants={fadeUp}
-              className="text-[clamp(3.5rem,6.5vw,7rem)] mb-6 leading-[0.95] text-[#918F85]"
-            >
-              <div className="heading-serif">Authentic</div>
-              <div className="heading-serif">
-                identity, <span className="heading-serif-italic">real</span>
-              </div>
-              <div className="heading-serif text-[#1F1C18]">discovery.</div>
-            </motion.h1>
-
-            <motion.p
-              variants={fadeUp}
-              className="text-[17px] lg:text-[19px] leading-[1.5] text-[#1F1C18] max-w-[420px] mb-10 font-medium"
-            >
-              See how discovering your private patterns across music, wellness, and schedule reveals your true digital soul signature.
-            </motion.p>
-
-            <motion.div variants={fadeUp} className="flex items-center gap-4 flex-wrap">
-              {isLoaded && isSignedIn ? (
-                <button onClick={() => navigate('/dashboard')} className="btn-cta">
-                  Go to Dashboard <ArrowRight className="w-5 h-5" />
-                </button>
-              ) : (
-                <SignInButton mode="modal" fallbackRedirectUrl="/discover" forceRedirectUrl="/discover">
-                  <button className="btn-cta">
-                    Start Free <ArrowRight className="w-5 h-5" />
-                  </button>
-                </SignInButton>
-              )}
-              <button
-                className="bg-[#FCFAF8]/80 text-[#1F1C18] border border-[#EBE9E0] rounded-[32px] py-4 px-6 text-[15px] font-medium transition-colors hover:bg-[#EBE9E0] flex items-center shadow-sm"
-                onClick={() => document.getElementById('features')?.scrollIntoView({ behavior: 'smooth' })}
-              >
-                How we work <PlayCircle className="w-5 h-5 ml-2 text-[#5C5851]" />
-              </button>
-            </motion.div>
+            <div className="flex gap-0.5 text-[#C4A265]">
+              {[...Array(5)].map((_, i) => (
+                <svg key={i} width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" /></svg>
+              ))}
+            </div>
+            <p className="text-[14px] text-[#8A857D] font-medium">Discover your authentic self</p>
           </motion.div>
 
-          {/* Hero visual: flower image — absolutely positioned for size control */}
-          <motion.div
-            className="hidden lg:block absolute right-[2%] top-1/2 -translate-y-[45%]"
+          {/* Main heading */}
+          <motion.h1
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 1, delay: 0.3 }}
+            transition={{ duration: 0.7, delay: 0.1 }}
+            className="heading-serif text-[clamp(2.5rem,5.5vw,4.5rem)]"
           >
-            <img
-              src="/images/backgrounds/flower-hero.png"
-              alt="Soul Signature"
-              className="w-[560px] h-auto"
-              style={{
-                filter: 'brightness(1.15) contrast(0.88) saturate(1.15)',
-              }}
-              fetchPriority="high"
-            />
-          </motion.div>
-        </div>
-      </section>
+            From digital footprints to soul signature.
+          </motion.h1>
 
-      {/* ── Slide 2: Philosophy Card — Claura-style nature card ── */}
-      <section className="slide-section relative px-6 lg:px-[80px] bg-[#F7F7F3]">
-        <motion.div
-          initial={{ opacity: 0, y: 40 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8 }}
-          viewport={{ once: true, amount: 0.4 }}
-          className="max-w-[1100px] mx-auto w-full relative z-10 flex items-center justify-center h-full"
-        >
-          {/* Large rounded nature card */}
-          <div
-            className="relative w-full overflow-hidden"
-            style={{
-              borderRadius: '2rem',
-              height: 'min(75vh, 560px)',
-            }}
+          {/* Subtitle */}
+          <motion.p
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.2 }}
+            className="text-[17px] lg:text-[19px] text-[#8A857D] max-w-[620px] leading-[1.6]"
           >
-            {/* Nature background image */}
-            <img
-              src={RAINFOREST_BG}
-              alt=""
-              className="absolute inset-0 w-full h-full object-cover"
-              style={{ filter: 'blur(1px) brightness(0.85) saturate(1.2)' }}
-              loading="lazy"
-            />
-            {/* Green tint overlay */}
-            <div
-              className="absolute inset-0"
-              style={{
-                background: 'linear-gradient(180deg, rgba(60,80,50,0.15) 0%, rgba(40,60,35,0.35) 50%, rgba(30,45,25,0.75) 100%)',
-              }}
-            />
+            We discover what makes you authentically YOU through the private patterns across your music, wellness, and daily rhythms.
+          </motion.p>
 
-            {/* Flower accent — positioned top-right like the reference */}
-            <img
-              src="/images/backgrounds/flower-hero.png"
-              alt=""
-              className="absolute -top-8 right-[5%] w-[320px] h-auto pointer-events-none"
-              style={{
-                filter: 'brightness(1.1) saturate(1.2) blur(0.5px)',
-                opacity: 0.7,
-                mixBlendMode: 'soft-light',
-              }}
-            />
-
-            {/* Text overlay at bottom — Claura style */}
-            <div className="absolute bottom-0 left-0 right-0 p-8 lg:p-12">
-              <h2
-                className="heading-serif text-[clamp(2.5rem,5vw,4rem)] mb-3 leading-[1.05]"
-                style={{ color: 'white' }}
-              >
-                Soul Signature
-              </h2>
-              <p
-                className="text-[16px] lg:text-[18px] leading-[1.6] max-w-[520px]"
-                style={{ color: 'rgba(255,255,255,0.8)' }}
-              >
-                We go beyond your resume and public persona to discover
-                what makes you authentically YOU through your private
-                choices, curiosities, and patterns.
-              </p>
-            </div>
-          </div>
-        </motion.div>
-
-        {/* Below-card quote */}
-        <motion.div
-          initial={{ opacity: 0 }}
-          whileInView={{ opacity: 1 }}
-          transition={{ duration: 0.8, delay: 0.3 }}
-          viewport={{ once: true }}
-          className="max-w-[1100px] mx-auto w-full mt-10 flex flex-col lg:flex-row gap-6 lg:gap-16 items-start px-2"
-        >
-          <p className="text-[13px] uppercase tracking-widest text-[#8A857D] font-medium whitespace-nowrap pt-2">
-            The Philosophy
-          </p>
-          <div>
-            <p className="heading-serif text-[clamp(1.3rem,2.5vw,1.75rem)] leading-[1.4] text-[#1F1C18] mb-4">
-              <span className="heading-serif-italic" style={{ color: '#5C5851' }}>"Perhaps we are searching in the branches for what we only find in the roots."</span>
-            </p>
-            <p className="text-[15px] leading-[1.7] text-[#8A857D] max-w-[600px]">
-              Public information is easy to clone, but it lacks soul. Your private patterns across music, wellness, and daily rhythms reveal the real you.
-            </p>
-          </div>
-        </motion.div>
-      </section>
-
-      {/* ── Slide 3: Ecosystem — OCEAN BACKGROUND with SVG platform icons ── */}
-      <section id="platform" className="slide-section relative">
-        <img
-          src={OCEAN_BG}
-          alt=""
-          className="absolute inset-0 w-full h-full object-cover"
-          style={{ zIndex: 0 }}
-          loading="lazy"
-        />
-        <div className="absolute inset-0 bg-black/25" style={{ zIndex: 1 }} />
-
-        <div className="relative z-10 px-8 lg:px-[80px]">
-          <div className="max-w-[1200px] mx-auto w-full flex flex-col lg:flex-row gap-12 items-center">
-            <div className="lg:w-1/2">
-              <h2 className="heading-serif text-[clamp(2.2rem,3.5vw,3.2rem)] mb-5" style={{ color: 'white', textShadow: '0 2px 8px rgba(0,0,0,0.3)' }}>
-                Connect deeply, <br />
-                <span className="heading-serif-italic" style={{ color: 'rgba(255,255,255,0.85)' }}>live simply.</span>
-              </h2>
-              <p className="text-[17px] text-white/90 max-w-[400px] leading-relaxed mb-7" style={{ textShadow: '0 1px 4px rgba(0,0,0,0.2)' }}>
-                Link your digital environment with effortless, secure integrations. You maintain total control over your data boundaries while Twin Me securely processes your unique signature.
-              </p>
-              <button className="btn-light">
-                View Privacy Standards
-              </button>
-            </div>
-
-            {/* Platform cards with real SVG icons */}
-            <div className="lg:w-1/2 w-full">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                {[
-                  { Icon: SpotifyLogo,          iconColor: '#1DB954', iconBg: 'rgba(29,185,84,0.15)',   title: 'Spotify',          desc: 'Acoustic patterns & vibes' },
-                  { Icon: GoogleCalendarLogo,    iconColor: '#4285F4', iconBg: 'rgba(66,133,244,0.12)',  title: 'Google Calendar',  desc: 'Time & priority rhythms' },
-                  { Icon: YoutubeLogo,           iconColor: '#FF0000', iconBg: 'rgba(255,0,0,0.12)',     title: 'YouTube',          desc: 'Curiosity & learning' },
-                ].map((item, idx) => (
-                  <div
-                    key={idx}
-                    className="photo-glass-card platform-card p-4 flex items-center gap-3 cursor-default"
-                  >
-                    <div
-                      className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
-                      style={{ backgroundColor: item.iconBg, border: `1.5px solid ${item.iconColor}40`, color: item.iconColor }}
-                      aria-hidden="true"
-                    >
-                      <item.Icon className="w-5 h-5" />
-                    </div>
-                    <div>
-                      <h4 className="text-[15px] font-semibold text-white mb-0.5">{item.title}</h4>
-                      <p className="text-[13px] text-white/70">{item.desc}</p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div className="absolute bottom-6 right-8 z-10 opacity-50">
-          <img src="/icons/3d/sparkle.png" alt="" className="w-8 h-8 drop-shadow-md" />
-        </div>
-      </section>
-
-      {/* ── Slide 4: Features — Claura-style nature cards on cream bg ── */}
-      <section id="features" className="slide-section relative bg-[#F7F7F3] px-6 lg:px-[80px]">
-        <div className="max-w-[1200px] mx-auto w-full flex flex-col justify-center h-full">
-          {/* Section header */}
+          {/* CTA buttons */}
           <motion.div
-            initial={{ opacity: 0, y: 24 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.7 }}
-            viewport={{ once: true, amount: 0.5 }}
-            className="mb-10 lg:mb-14"
-          >
-            <p className="text-[13px] uppercase tracking-widest text-[#8A857D] font-medium mb-4">
-              How It Works
-            </p>
-            <h2 className="heading-serif text-[clamp(2rem,4vw,3rem)] text-[#1F1C18] leading-[1.1]">
-              Three steps to your <span className="heading-serif-italic">soul signature.</span>
-            </h2>
-          </motion.div>
-
-          {/* Claura-style tall nature cards */}
-          <div className="grid md:grid-cols-3 gap-4 lg:gap-5">
-            {[
-              { title: 'Connect', desc: 'Securely link your platforms. Your music, calendar, and wellness data form the raw material of your soul signature.', bg: RAINFOREST_BG, overlay: 'rgba(40,65,35,0.55)' },
-              { title: 'Discover', desc: 'AI unearths invisible patterns across your data — personality traits, rhythms, and curiosities you never noticed.', bg: OCEAN_BG, overlay: 'rgba(25,50,75,0.55)' },
-              { title: 'Control', desc: 'Choose what to reveal and what to keep private. Your privacy spectrum, your rules.', bg: DESERT_BG, overlay: 'rgba(80,55,30,0.50)' },
-            ].map((card, idx) => (
-              <motion.div
-                key={card.title}
-                initial={{ opacity: 0, y: 30 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.6, delay: idx * 0.12 }}
-                viewport={{ once: true, amount: 0.4 }}
-                className="relative overflow-hidden group cursor-default"
-                style={{
-                  borderRadius: '28px',
-                  aspectRatio: '1 / 1.35',
-                }}
-              >
-                {/* Card background image */}
-                <img
-                  src={card.bg}
-                  alt=""
-                  className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
-                  loading="lazy"
-                />
-                {/* Color overlay */}
-                <div
-                  className="absolute inset-0 transition-opacity duration-500"
-                  style={{ background: `linear-gradient(180deg, ${card.overlay} 0%, rgba(0,0,0,0.65) 100%)` }}
-                />
-
-                {/* Card content — bottom-aligned */}
-                <div className="absolute inset-0 flex flex-col justify-end p-7 lg:p-8">
-                  <h3
-                    className="heading-serif text-[clamp(1.6rem,2.5vw,2rem)] mb-2 leading-[1.15]"
-                    style={{ color: 'white' }}
-                  >
-                    {card.title}
-                  </h3>
-                  <p
-                    className="text-[14px] lg:text-[15px] leading-[1.55]"
-                    style={{ color: 'rgba(255,255,255,0.8)' }}
-                  >
-                    {card.desc}
-                  </p>
-                </div>
-              </motion.div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ── Slide 5: Final CTA ── */}
-      <section id="security" className="slide-section relative flex flex-col justify-between w-full">
-        <img
-          src={DESERT_BG}
-          alt=""
-          className="absolute inset-0 w-full h-full object-cover"
-          style={{ zIndex: 0, objectPosition: 'center 60%' }}
-          loading="lazy"
-        />
-        <div className="absolute inset-0" style={{
-          zIndex: 1,
-          background: 'linear-gradient(180deg, rgba(245,245,240,0.1) 0%, rgba(245,245,240,0.5) 60%, rgba(245,245,240,0.85) 100%)',
-        }} />
-
-        <div className="relative z-10 flex-grow flex flex-col items-center justify-center gap-8 pt-20">
-          <motion.h2
-            initial={{ opacity: 0, scale: 0.95 }}
-            whileInView={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.8 }}
-            viewport={{ once: true }}
-            className="text-[clamp(2.5rem,5vw,5rem)] text-center leading-[1.05] max-w-[900px] px-8 text-[#1F1C18]"
-          >
-            <div className="heading-serif">Ready to discover your</div>
-            <div className="heading-serif-italic" style={{ color: '#2D2722' }}>soul signature?</div>
-          </motion.h2>
-
-          <motion.div
-            initial={{ opacity: 0, y: 16 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.7, delay: 0.2 }}
-            viewport={{ once: true }}
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.3 }}
+            className="flex items-center gap-4 flex-wrap justify-center"
           >
             {isLoaded && isSignedIn ? (
               <button onClick={() => navigate('/dashboard')} className="btn-cta">
@@ -563,32 +249,307 @@ const Index = () => {
             ) : (
               <SignInButton mode="modal" fallbackRedirectUrl="/discover" forceRedirectUrl="/discover">
                 <button className="btn-cta">
-                  Start Free — It's Free <ArrowRight className="w-5 h-5" />
+                  Start Free <ArrowRight className="w-5 h-5" />
                 </button>
               </SignInButton>
             )}
+            <button
+              className="btn-outline"
+              onClick={() => document.getElementById('how-it-works')?.scrollIntoView({ behavior: 'smooth' })}
+            >
+              How we work <PlayCircle className="w-5 h-5" />
+            </button>
+          </motion.div>
+
+          {/* Hero image card — flower with dot pattern overlay */}
+          <motion.div
+            initial={{ opacity: 0, y: 40 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.8, delay: 0.4 }}
+            className="w-full mt-4 relative overflow-hidden"
+            style={{ borderRadius: '28px', aspectRatio: '2.4 / 1' }}
+          >
+            <div
+              className="absolute inset-0"
+              style={{ background: 'linear-gradient(135deg, #e8945a 0%, #7bb8d4 40%, #4a6cf7 100%)' }}
+            />
+            <img
+              src={FLOWER_HERO}
+              alt="Soul Signature"
+              className="absolute inset-0 w-full h-full object-contain"
+              style={{ filter: 'saturate(1.75)', mixBlendMode: 'overlay', opacity: 0.9 }}
+              fetchPriority="high"
+            />
+            {/* Dot pattern overlay */}
+            <div
+              className="absolute inset-0 pointer-events-none"
+              style={{
+                backgroundImage: 'radial-gradient(circle, rgba(255,255,255,0.6) 2px, transparent 2px)',
+                backgroundSize: '28px 28px',
+              }}
+            />
           </motion.div>
         </div>
+      </section>
 
-        <footer className="relative z-10 w-full px-8 lg:px-[120px] pb-8 pt-4">
-          <div className="w-full h-[1px] bg-black/10 mb-5" />
-          <div className="flex items-center justify-between text-[#8A857D] text-[13px] font-medium tracking-wide">
-            <div className="flex items-center gap-2 heading-serif text-[18px] text-[#1F1C18]">
-              <img src="/images/backgrounds/flower-hero.png" alt="" className="w-5 h-5 object-contain" style={{ mixBlendMode: 'multiply', opacity: 0.85 }} />
-              Twin Me
+      {/* ────────────── WHO WE ARE + STATS ────────────── */}
+      <section className="px-6 lg:px-16 py-20 lg:py-28">
+        <div className="max-w-[1200px] mx-auto">
+          {/* Header row */}
+          <div className="flex flex-col lg:flex-row gap-8 lg:gap-16 mb-12">
+            <div className="lg:w-1/2">
+              <span className="claura-label mb-5 block">Who we are</span>
+              <h2 className="heading-serif text-[clamp(2rem,4vw,3.2rem)]">
+                The soul signature built for <span className="heading-serif-italic">you.</span>
+              </h2>
             </div>
-            <div className="flex items-center gap-8">
-              <a href="/privacy-policy" className="hover:text-[#1F1C18] transition-colors">Privacy & Terms</a>
+            <div className="lg:w-1/2 flex items-end">
+              <p className="text-[16px] lg:text-[17px] text-[#8A857D] leading-[1.65] max-w-[520px]">
+                We built Twin Me to go beyond your public persona. We listen to your private data patterns, discover what makes you unique, and build a digital twin that truly knows you.
+              </p>
+            </div>
+          </div>
+
+          {/* Stats card with nature bg + glass stat boxes */}
+          <motion.div
+            initial={{ opacity: 0, y: 30 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.7 }}
+            viewport={{ once: true, amount: 0.3 }}
+            className="relative overflow-hidden w-full"
+            style={{ borderRadius: '28px', minHeight: '380px' }}
+          >
+            {/* Teal-green gradient bg */}
+            <div
+              className="absolute inset-0"
+              style={{ background: 'linear-gradient(135deg, #3a8f6a 0%, #1a6f5a 40%, #0f4a3a 100%)' }}
+            />
+            {/* Flower accent */}
+            <img
+              src={FLOWER_HERO}
+              alt=""
+              className="absolute top-[-20%] right-[10%] w-[400px] h-auto pointer-events-none"
+              style={{ filter: 'saturate(1.5) brightness(1.1)', opacity: 0.5, mixBlendMode: 'soft-light' }}
+            />
+
+            {/* Glass stat boxes */}
+            <div className="relative z-10 p-8 lg:p-12 grid grid-cols-1 md:grid-cols-3 gap-4 items-end h-full" style={{ minHeight: '380px' }}>
+              {[
+                { value: '5+', label: 'Platform integrations', sub: 'And growing' },
+                { value: '1,536d', label: 'Vector embeddings', sub: 'Per memory' },
+                { value: '< 60s', label: 'Time to first insight', sub: 'After connecting' },
+              ].map((stat, i) => (
+                <div key={i} className="glass-stat">
+                  <h3 className="heading-serif text-[clamp(2rem,3vw,3rem)] text-white mb-1">{stat.value}</h3>
+                  <p className="text-[14px] text-white/80 font-medium">{stat.label}</p>
+                  <p className="text-[12px] text-white/60 mt-1">{stat.sub}</p>
+                </div>
+              ))}
+            </div>
+          </motion.div>
+        </div>
+      </section>
+
+      {/* ────────────── SERVICES — Interactive Tab + Flower Card ────────────── */}
+      <section id="services" className="px-6 lg:px-16 py-20 lg:py-28">
+        <div className="max-w-[1200px] mx-auto">
+          {/* Header */}
+          <div className="mb-12">
+            <span className="claura-label mb-5 block">Services</span>
+            <div className="flex flex-col lg:flex-row gap-6 lg:gap-16">
+              <h2 className="heading-serif text-[clamp(2rem,4vw,3.2rem)] lg:max-w-[520px]">
+                We handle everything so you don't have to.
+              </h2>
+              <p className="text-[16px] text-[#8A857D] leading-[1.65] max-w-[480px] lg:pt-2">
+                From connecting your platforms to generating insights and building your AI twin -- we manage the entire process while you discover yourself.
+              </p>
+            </div>
+          </div>
+
+          {/* Tabs + Card */}
+          <div className="flex flex-col lg:flex-row gap-8 lg:gap-12">
+            {/* Left: Tab labels */}
+            <div className="lg:w-[45%] flex flex-col">
+              {SERVICES.map((svc, idx) => (
+                <div
+                  key={svc.id}
+                  className={`service-tab flex items-baseline gap-3 ${idx === activeService ? 'active' : ''}`}
+                  onClick={() => setActiveService(idx)}
+                >
+                  <h3 className={`heading-serif text-[clamp(2rem,3.5vw,3rem)] transition-colors duration-300 ${
+                    idx === activeService ? 'text-[#1F1C18]' : 'text-[#D5D0C8]'
+                  }`}>
+                    {svc.title}
+                  </h3>
+                  <span className={`text-[14px] font-medium transition-colors duration-300 ${
+                    idx === activeService ? 'text-[#8A857D]' : 'text-[#D5D0C8]'
+                  }`}>
+                    {svc.num}
+                  </span>
+                </div>
+              ))}
+            </div>
+
+            {/* Right: Flower card + description */}
+            <div className="lg:w-[55%]">
+              <AnimatePresence mode="wait">
+                <motion.div
+                  key={activeService}
+                  initial={{ opacity: 0, y: 16 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -16 }}
+                  transition={{ duration: 0.4 }}
+                >
+                  {/* Flower image card */}
+                  <div
+                    className="relative overflow-hidden w-full mb-6"
+                    style={{
+                      borderRadius: '28px',
+                      aspectRatio: '1.4 / 1',
+                    }}
+                  >
+                    <div className="absolute inset-0" style={{ background: SERVICES[activeService].imgBg }} />
+                    <img
+                      src={FLOWER_HERO}
+                      alt=""
+                      className="absolute inset-0 w-full h-full object-contain"
+                      style={{
+                        filter: SERVICES[activeService].imgFilter,
+                        mixBlendMode: 'screen',
+                        opacity: 0.85,
+                      }}
+                    />
+                  </div>
+                  {/* Description */}
+                  <h4 className="text-[18px] font-bold text-[#1F1C18] mb-2">
+                    {SERVICES[activeService].heading}
+                  </h4>
+                  <p className="text-[15px] text-[#8A857D] leading-[1.6] max-w-[480px]">
+                    {SERVICES[activeService].desc}
+                  </p>
+                </motion.div>
+              </AnimatePresence>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ────────────── HOW WE WORK — 3 Steps ────────────── */}
+      <section id="how-it-works" className="px-6 lg:px-16 py-20 lg:py-28">
+        <div className="max-w-[1200px] mx-auto flex flex-col lg:flex-row gap-12 lg:gap-20">
+          {/* Left: heading + CTA */}
+          <div className="lg:w-[45%]">
+            <span className="claura-label mb-5 block">How we work</span>
+            <h2 className="heading-serif text-[clamp(2rem,4vw,3.2rem)] mb-5">
+              Getting you results <span className="heading-serif-italic">without</span> the complexity.
+            </h2>
+            <p className="text-[16px] text-[#8A857D] leading-[1.65] mb-8 max-w-[440px]">
+              Our three-step process takes you from connecting platforms to discovering your soul signature, with clear progress and insights at every stage.
+            </p>
+            <div className="flex items-center gap-4 flex-wrap">
+              {isLoaded && isSignedIn ? (
+                <button onClick={() => navigate('/dashboard')} className="btn-cta !text-[15px]">
+                  Go to Dashboard <ArrowRight className="w-4 h-4" />
+                </button>
+              ) : (
+                <SignInButton mode="modal" fallbackRedirectUrl="/discover" forceRedirectUrl="/discover">
+                  <button className="btn-cta !text-[15px]">
+                    Start Free <ArrowRight className="w-4 h-4" />
+                  </button>
+                </SignInButton>
+              )}
+            </div>
+          </div>
+
+          {/* Right: 3 steps */}
+          <div className="lg:w-[55%] flex flex-col gap-10">
+            {[
+              { num: '01', title: 'Connect Your Platforms', badge: 'Step 1', desc: 'Link your Spotify, Google Calendar, YouTube and more. We securely pull your data without storing passwords.' },
+              { num: '02', title: 'Discover Your Patterns', badge: 'Step 2', desc: 'Our AI analyzes your cross-platform data, identifying personality traits, daily rhythms, and hidden curiosities.' },
+              { num: '03', title: 'Meet Your Twin', badge: 'Ongoing', desc: 'Your AI twin embodies your personality. Chat with it, share it, and watch it evolve as you add more data.' },
+            ].map((step, idx) => (
+              <motion.div
+                key={step.num}
+                initial={{ opacity: 0, x: 20 }}
+                whileInView={{ opacity: 1, x: 0 }}
+                transition={{ duration: 0.5, delay: idx * 0.1 }}
+                viewport={{ once: true, amount: 0.5 }}
+                className="flex gap-5"
+              >
+                <div className="step-circle">{step.num}</div>
+                <div>
+                  <div className="flex items-center gap-3 mb-2">
+                    <h4 className="text-[17px] font-bold text-[#1F1C18]">{step.title}</h4>
+                    <span className="step-badge">{step.badge}</span>
+                  </div>
+                  <p className="text-[15px] text-[#8A857D] leading-[1.6] max-w-[420px]">
+                    {step.desc}
+                  </p>
+                </div>
+              </motion.div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ────────────── FINAL CTA ────────────── */}
+      <section className="px-6 lg:px-16 py-20 lg:py-28">
+        <div className="max-w-[1072px] mx-auto text-center flex flex-col items-center gap-8">
+          {/* Stars */}
+          <div className="flex flex-col items-center gap-2">
+            <div className="flex gap-0.5 text-[#C4A265]">
+              {[...Array(5)].map((_, i) => (
+                <svg key={i} width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" /></svg>
+              ))}
+            </div>
+            <p className="text-[14px] text-[#8A857D] font-medium">Discover your authentic self</p>
+          </div>
+
+          <h2 className="heading-serif text-[clamp(2.2rem,5vw,4rem)]">
+            Turn confusion into <span className="heading-serif-italic">clarity,</span> today.
+          </h2>
+
+          <p className="text-[17px] text-[#8A857D] max-w-[520px] leading-[1.6]">
+            Start free and discover patterns about yourself you never noticed. Your soul signature is waiting.
+          </p>
+
+          <div className="flex items-center gap-4 flex-wrap justify-center">
+            {isLoaded && isSignedIn ? (
+              <button onClick={() => navigate('/dashboard')} className="btn-cta">
+                Go to Dashboard <ArrowRight className="w-5 h-5" />
+              </button>
+            ) : (
+              <SignInButton mode="modal" fallbackRedirectUrl="/discover" forceRedirectUrl="/discover">
+                <button className="btn-cta">
+                  Start Free <ArrowRight className="w-5 h-5" />
+                </button>
+              </SignInButton>
+            )}
+          </div>
+        </div>
+      </section>
+
+      {/* ────────────── FOOTER ────────────── */}
+      <footer className="px-6 lg:px-16 pb-10 pt-12 border-t border-[#E8E3DC]">
+        <div className="max-w-[1200px] mx-auto">
+          {/* Top row */}
+          <div className="flex flex-col lg:flex-row justify-between gap-8 mb-10">
+            <div>
+              <h3 className="heading-serif text-[22px] font-bold mb-2">Twin Me</h3>
+              <p className="text-[14px] text-[#8A857D]">Discover what makes you authentically you.</p>
+            </div>
+          </div>
+          {/* Bottom row */}
+          <div className="flex flex-col sm:flex-row justify-between gap-4 text-[13px] text-[#8A857D]">
+            <p>&copy; 2025 Twin Me. All rights reserved.</p>
+            <div className="flex gap-6">
+              <a href="/privacy-policy" className="hover:text-[#1F1C18] transition-colors">Privacy Policy</a>
               <a href="https://github.com/twinme-ai" target="_blank" rel="noopener noreferrer" className="hover:text-[#1F1C18] transition-colors">GitHub</a>
               <a href="mailto:hello@twinme.ai" className="hover:text-[#1F1C18] transition-colors">Contact</a>
             </div>
           </div>
-        </footer>
-
-        <div className="absolute bottom-8 right-8 z-10 opacity-40">
-          <img src="/icons/3d/sparkle.png" alt="" className="w-8 h-8 drop-shadow-md" />
         </div>
-      </section>
+      </footer>
     </div>
   );
 };
