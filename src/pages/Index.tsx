@@ -70,57 +70,79 @@ const Index = () => {
   }, []);
 
   return (
-    <div className="w-full min-h-screen font-sans text-[#1F1C18]" style={{ backgroundColor: '#FCF6EF' }}>
+    <div className="w-full min-h-screen text-[#000000]" style={{ backgroundColor: '#fcf6ef', fontFamily: "'Geist', sans-serif", fontSize: '14px', fontWeight: 500 }}>
       <style>{`
+        /* ── Claura Typography System ── */
+        /* H1: 70px/400, H2: 56px/400, H3: 32px/400 — all Halant */
+        /* Body: 14px/500, Button: 12px/400 — all Geist */
         .heading-serif {
           font-family: 'Halant', Georgia, serif;
+          font-weight: 400;
           letter-spacing: -0.05em;
           line-height: 1.1;
+          color: #000000;
         }
+        .h1 { font-size: 70px; }
+        .h2 { font-size: 56px; }
+        .h3 { font-size: 32px; }
         .heading-serif-italic {
           font-family: 'Halant', Georgia, serif;
+          font-weight: 400;
           font-style: italic;
           color: #8A857D;
           letter-spacing: -0.05em;
         }
+        .body-text {
+          font-family: 'Geist', sans-serif;
+          font-size: 14px;
+          font-weight: 500;
+          color: #8A857D;
+          line-height: 1.65;
+        }
         .claura-label {
+          font-family: 'Geist', sans-serif;
           background: rgba(0,0,0,0.04);
           border: 1px solid rgba(0,0,0,0.06);
           border-radius: 8px;
           padding: 6px 14px;
-          font-size: 13px;
-          font-weight: 500;
+          font-size: 12px;
+          font-weight: 400;
           color: #5C5851;
           display: inline-block;
         }
         .btn-cta {
-          background-color: #2D2722;
-          color: #F7F7F3;
-          border-radius: 9999px;
-          padding: 16px 32px;
-          font-size: 16px;
-          font-weight: 600;
-          transition: all 0.3s ease;
-          display: inline-flex;
-          align-items: center;
-          gap: 8px;
-          letter-spacing: -0.01em;
-        }
-        .btn-cta:hover { background-color: #1F1C18; transform: translateY(-2px); }
-        .btn-outline {
-          background: transparent;
-          color: #2D2722;
-          border: 1.5px solid #D5D0C8;
+          font-family: 'Geist', sans-serif;
+          background-color: #000000;
+          color: #fcf6ef;
           border-radius: 9999px;
           padding: 14px 28px;
-          font-size: 15px;
-          font-weight: 500;
+          font-size: 12px;
+          font-weight: 400;
           transition: all 0.3s ease;
           display: inline-flex;
           align-items: center;
           gap: 8px;
+          letter-spacing: 0.02em;
+          text-transform: uppercase;
         }
-        .btn-outline:hover { border-color: #2D2722; transform: translateY(-1px); }
+        .btn-cta:hover { background-color: #222; transform: translateY(-2px); }
+        .btn-outline {
+          font-family: 'Geist', sans-serif;
+          background: transparent;
+          color: #000000;
+          border: 1.5px solid #D5D0C8;
+          border-radius: 9999px;
+          padding: 13px 26px;
+          font-size: 12px;
+          font-weight: 400;
+          transition: all 0.3s ease;
+          display: inline-flex;
+          align-items: center;
+          gap: 8px;
+          letter-spacing: 0.02em;
+          text-transform: uppercase;
+        }
+        .btn-outline:hover { border-color: #000; transform: translateY(-1px); }
 
         /* Service tab highlight */
         .service-tab {
@@ -154,28 +176,37 @@ const Index = () => {
           display: flex;
           align-items: center;
           justify-content: center;
-          font-size: 14px;
-          font-weight: 600;
+          font-family: 'Geist', sans-serif;
+          font-size: 12px;
+          font-weight: 400;
           color: #5C5851;
           flex-shrink: 0;
         }
         .step-badge {
+          font-family: 'Geist', sans-serif;
           background: rgba(0,0,0,0.04);
           border: 1px solid rgba(0,0,0,0.06);
           border-radius: 6px;
           padding: 3px 10px;
           font-size: 12px;
-          font-weight: 500;
+          font-weight: 400;
           color: #8A857D;
+        }
+
+        /* Responsive heading sizes */
+        @media (max-width: 768px) {
+          .h1 { font-size: 42px; }
+          .h2 { font-size: 36px; }
+          .h3 { font-size: 24px; }
         }
       `}</style>
 
       {/* ────────────── NAV ────────────── */}
-      <nav className="sticky top-0 z-50 w-full px-6 lg:px-16" style={{ backgroundColor: '#FCF6EF' }}>
+      <nav className="sticky top-0 z-50 w-full px-6 lg:px-16" style={{ backgroundColor: '#fcf6ef' }}>
         <div className="max-w-[1200px] mx-auto flex items-center justify-between py-4">
           <div className="flex items-center gap-8">
             <span
-              className="heading-serif text-[22px] font-bold cursor-pointer"
+              className="heading-serif text-[22px] cursor-pointer"
               onClick={() => navigate('/')}
             >
               Twin Me
@@ -183,12 +214,12 @@ const Index = () => {
           </div>
           <div className="flex items-center gap-3">
             {isLoaded && isSignedIn ? (
-              <button onClick={() => navigate('/dashboard')} className="btn-cta !py-3 !px-6 !text-[14px]">
+              <button onClick={() => navigate('/dashboard')} className="btn-cta">
                 Dashboard
               </button>
             ) : (
               <SignInButton mode="modal" fallbackRedirectUrl="/discover" forceRedirectUrl="/discover">
-                <button className="btn-cta !py-3 !px-6 !text-[14px]">
+                <button className="btn-cta">
                   Start Free
                 </button>
               </SignInButton>
@@ -212,15 +243,15 @@ const Index = () => {
                 <svg key={i} width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" /></svg>
               ))}
             </div>
-            <p className="text-[14px] text-[#8A857D] font-medium">Discover your authentic self</p>
+            <p className="body-text">Discover your authentic self</p>
           </motion.div>
 
-          {/* Main heading */}
+          {/* Main heading — H1: 70px/400 */}
           <motion.h1
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.7, delay: 0.1 }}
-            className="heading-serif text-[clamp(2.5rem,5.5vw,4.5rem)]"
+            className="heading-serif h1"
           >
             From digital footprints to soul signature.
           </motion.h1>
@@ -230,7 +261,7 @@ const Index = () => {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.2 }}
-            className="text-[17px] lg:text-[19px] text-[#8A857D] max-w-[620px] leading-[1.6]"
+            className="body-text max-w-[620px]"
           >
             We discover what makes you authentically YOU through the private patterns across your music, wellness, and daily rhythms.
           </motion.p>
@@ -244,12 +275,12 @@ const Index = () => {
           >
             {isLoaded && isSignedIn ? (
               <button onClick={() => navigate('/dashboard')} className="btn-cta">
-                Go to Dashboard <ArrowRight className="w-5 h-5" />
+                Go to Dashboard <ArrowRight className="w-4 h-4" />
               </button>
             ) : (
               <SignInButton mode="modal" fallbackRedirectUrl="/discover" forceRedirectUrl="/discover">
                 <button className="btn-cta">
-                  Start Free <ArrowRight className="w-5 h-5" />
+                  Start Free <ArrowRight className="w-4 h-4" />
                 </button>
               </SignInButton>
             )}
@@ -257,7 +288,7 @@ const Index = () => {
               className="btn-outline"
               onClick={() => document.getElementById('how-it-works')?.scrollIntoView({ behavior: 'smooth' })}
             >
-              How we work <PlayCircle className="w-5 h-5" />
+              How we work <PlayCircle className="w-4 h-4" />
             </button>
           </motion.div>
 
@@ -286,12 +317,12 @@ const Index = () => {
           <div className="flex flex-col lg:flex-row gap-8 lg:gap-16 mb-12">
             <div className="lg:w-1/2">
               <span className="claura-label mb-5 block">Who we are</span>
-              <h2 className="heading-serif text-[clamp(2rem,4vw,3.2rem)]">
+              <h2 className="heading-serif h2">
                 The soul signature built for <span className="heading-serif-italic">you.</span>
               </h2>
             </div>
             <div className="lg:w-1/2 flex items-end">
-              <p className="text-[16px] lg:text-[17px] text-[#8A857D] leading-[1.65] max-w-[520px]">
+              <p className="body-text max-w-[520px]">
                 We built Twin Me to go beyond your public persona. We listen to your private data patterns, discover what makes you unique, and build a digital twin that truly knows you.
               </p>
             </div>
@@ -323,9 +354,9 @@ const Index = () => {
                 { value: '< 60s', label: 'Time to first insight', sub: 'After connecting' },
               ].map((stat, i) => (
                 <div key={i} className="glass-stat">
-                  <h3 className="heading-serif text-[clamp(2rem,3vw,3rem)] text-white mb-1">{stat.value}</h3>
-                  <p className="text-[14px] text-white/80 font-medium">{stat.label}</p>
-                  <p className="text-[12px] text-white/60 mt-1">{stat.sub}</p>
+                  <h3 className="heading-serif h3 text-white mb-1">{stat.value}</h3>
+                  <p className="body-text text-white/80">{stat.label}</p>
+                  <p className="body-text text-white/60 mt-1" style={{ fontSize: '12px' }}>{stat.sub}</p>
                 </div>
               ))}
             </div>
@@ -340,10 +371,10 @@ const Index = () => {
           <div className="mb-12">
             <span className="claura-label mb-5 block">Services</span>
             <div className="flex flex-col lg:flex-row gap-6 lg:gap-16">
-              <h2 className="heading-serif text-[clamp(2rem,4vw,3.2rem)] lg:max-w-[520px]">
+              <h2 className="heading-serif h2 lg:max-w-[520px]">
                 We handle everything so you don't have to.
               </h2>
-              <p className="text-[16px] text-[#8A857D] leading-[1.65] max-w-[480px] lg:pt-2">
+              <p className="body-text max-w-[480px] lg:pt-2">
                 From connecting your platforms to generating insights and building your AI twin -- we manage the entire process while you discover yourself.
               </p>
             </div>
@@ -359,12 +390,12 @@ const Index = () => {
                   className={`service-tab flex items-baseline gap-3 ${idx === activeService ? 'active' : ''}`}
                   onClick={() => setActiveService(idx)}
                 >
-                  <h3 className={`heading-serif text-[clamp(2rem,3.5vw,3rem)] transition-colors duration-300 ${
-                    idx === activeService ? 'text-[#1F1C18]' : 'text-[#D5D0C8]'
+                  <h3 className={`heading-serif h3 transition-colors duration-300 ${
+                    idx === activeService ? 'text-[#000]' : 'text-[#D5D0C8]'
                   }`}>
                     {svc.title}
                   </h3>
-                  <span className={`text-[14px] font-medium transition-colors duration-300 ${
+                  <span className={`body-text transition-colors duration-300 ${
                     idx === activeService ? 'text-[#8A857D]' : 'text-[#D5D0C8]'
                   }`}>
                     {svc.num}
@@ -398,10 +429,10 @@ const Index = () => {
                     />
                   </div>
                   {/* Description */}
-                  <h4 className="text-[18px] font-bold text-[#1F1C18] mb-2">
+                  <h4 className="body-text text-[#000] mb-2" style={{ fontWeight: 600 }}>
                     {SERVICES[activeService].heading}
                   </h4>
-                  <p className="text-[15px] text-[#8A857D] leading-[1.6] max-w-[480px]">
+                  <p className="body-text max-w-[480px]">
                     {SERVICES[activeService].desc}
                   </p>
                 </motion.div>
@@ -417,20 +448,20 @@ const Index = () => {
           {/* Left: heading + CTA */}
           <div className="lg:w-[45%]">
             <span className="claura-label mb-5 block">How we work</span>
-            <h2 className="heading-serif text-[clamp(2rem,4vw,3.2rem)] mb-5">
+            <h2 className="heading-serif h2 mb-5">
               Getting you results <span className="heading-serif-italic">without</span> the complexity.
             </h2>
-            <p className="text-[16px] text-[#8A857D] leading-[1.65] mb-8 max-w-[440px]">
+            <p className="body-text mb-8 max-w-[440px]">
               Our three-step process takes you from connecting platforms to discovering your soul signature, with clear progress and insights at every stage.
             </p>
             <div className="flex items-center gap-4 flex-wrap">
               {isLoaded && isSignedIn ? (
-                <button onClick={() => navigate('/dashboard')} className="btn-cta !text-[15px]">
+                <button onClick={() => navigate('/dashboard')} className="btn-cta">
                   Go to Dashboard <ArrowRight className="w-4 h-4" />
                 </button>
               ) : (
                 <SignInButton mode="modal" fallbackRedirectUrl="/discover" forceRedirectUrl="/discover">
-                  <button className="btn-cta !text-[15px]">
+                  <button className="btn-cta">
                     Start Free <ArrowRight className="w-4 h-4" />
                   </button>
                 </SignInButton>
@@ -456,10 +487,10 @@ const Index = () => {
                 <div className="step-circle">{step.num}</div>
                 <div>
                   <div className="flex items-center gap-3 mb-2">
-                    <h4 className="text-[17px] font-bold text-[#1F1C18]">{step.title}</h4>
+                    <h4 className="body-text text-[#000]" style={{ fontWeight: 600 }}>{step.title}</h4>
                     <span className="step-badge">{step.badge}</span>
                   </div>
-                  <p className="text-[15px] text-[#8A857D] leading-[1.6] max-w-[420px]">
+                  <p className="body-text max-w-[420px]">
                     {step.desc}
                   </p>
                 </div>
@@ -479,26 +510,26 @@ const Index = () => {
                 <svg key={i} width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" /></svg>
               ))}
             </div>
-            <p className="text-[14px] text-[#8A857D] font-medium">Discover your authentic self</p>
+            <p className="body-text">Discover your authentic self</p>
           </div>
 
-          <h2 className="heading-serif text-[clamp(2.2rem,5vw,4rem)]">
+          <h2 className="heading-serif h2">
             Turn confusion into <span className="heading-serif-italic">clarity,</span> today.
           </h2>
 
-          <p className="text-[17px] text-[#8A857D] max-w-[520px] leading-[1.6]">
+          <p className="body-text max-w-[520px]">
             Start free and discover patterns about yourself you never noticed. Your soul signature is waiting.
           </p>
 
           <div className="flex items-center gap-4 flex-wrap justify-center">
             {isLoaded && isSignedIn ? (
               <button onClick={() => navigate('/dashboard')} className="btn-cta">
-                Go to Dashboard <ArrowRight className="w-5 h-5" />
+                Go to Dashboard <ArrowRight className="w-4 h-4" />
               </button>
             ) : (
               <SignInButton mode="modal" fallbackRedirectUrl="/discover" forceRedirectUrl="/discover">
                 <button className="btn-cta">
-                  Start Free <ArrowRight className="w-5 h-5" />
+                  Start Free <ArrowRight className="w-4 h-4" />
                 </button>
               </SignInButton>
             )}
@@ -513,10 +544,8 @@ const Index = () => {
           <div className="flex flex-col lg:flex-row justify-between gap-10 mb-10">
             {/* Brand */}
             <div className="lg:max-w-[220px]">
-              <h3 className="heading-serif text-[22px] font-bold mb-2">Twin Me</h3>
-              <p className="text-[14px] text-[#8A857D] leading-relaxed">
-                Discover what makes you authentically you.
-              </p>
+              <h3 className="heading-serif text-[22px] mb-2">Twin Me</h3>
+              <p className="body-text">Discover what makes you authentically you.</p>
             </div>
 
             {/* Product links */}
@@ -524,33 +553,11 @@ const Index = () => {
               <p className="text-[11px] uppercase tracking-widest text-[#8A857D] font-semibold mb-4">
                 Product
               </p>
-              <ul className="space-y-2.5 text-[14px]">
-                <li>
-                  <a href="/#features" className="text-[#57534E] hover:text-[#1F1C18] transition-colors">
-                    Features
-                  </a>
-                </li>
-                <li>
-                  <a
-                    href="/#how-it-works"
-                    className="text-[#57534E] hover:text-[#1F1C18] transition-colors"
-                  >
-                    How it works
-                  </a>
-                </li>
-                <li>
-                  <a href="/get-started" className="text-[#57534E] hover:text-[#1F1C18] transition-colors">
-                    Connect your data
-                  </a>
-                </li>
-                <li>
-                  <a
-                    href="/soul-signature"
-                    className="text-[#57534E] hover:text-[#1F1C18] transition-colors"
-                  >
-                    Soul Signature
-                  </a>
-                </li>
+              <ul className="space-y-2.5 body-text">
+                <li><a href="/#features" className="text-[#57534E] hover:text-[#000] transition-colors">Features</a></li>
+                <li><a href="/#how-it-works" className="text-[#57534E] hover:text-[#000] transition-colors">How it works</a></li>
+                <li><a href="/get-started" className="text-[#57534E] hover:text-[#000] transition-colors">Connect your data</a></li>
+                <li><a href="/soul-signature" className="text-[#57534E] hover:text-[#000] transition-colors">Soul Signature</a></li>
               </ul>
             </div>
 
@@ -559,49 +566,20 @@ const Index = () => {
               <p className="text-[11px] uppercase tracking-widest text-[#8A857D] font-semibold mb-4">
                 Community
               </p>
-              <ul className="space-y-2.5 text-[14px]">
-                <li>
-                  <a
-                    href="https://github.com/twinme-ai"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-[#57534E] hover:text-[#1F1C18] transition-colors"
-                  >
-                    GitHub
-                  </a>
-                </li>
-                <li>
-                  <a
-                    href="https://twitter.com/twinme_ai"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-[#57534E] hover:text-[#1F1C18] transition-colors"
-                  >
-                    Twitter / X
-                  </a>
-                </li>
-                <li>
-                  <a
-                    href="mailto:hello@twinme.ai"
-                    className="text-[#57534E] hover:text-[#1F1C18] transition-colors"
-                  >
-                    Contact us
-                  </a>
-                </li>
+              <ul className="space-y-2.5 body-text">
+                <li><a href="https://github.com/twinme-ai" target="_blank" rel="noopener noreferrer" className="text-[#57534E] hover:text-[#000] transition-colors">GitHub</a></li>
+                <li><a href="https://twitter.com/twinme_ai" target="_blank" rel="noopener noreferrer" className="text-[#57534E] hover:text-[#000] transition-colors">Twitter / X</a></li>
+                <li><a href="mailto:hello@twinme.ai" className="text-[#57534E] hover:text-[#000] transition-colors">Contact us</a></li>
               </ul>
             </div>
           </div>
 
           {/* Bottom row */}
-          <div className="flex flex-col sm:flex-row justify-between gap-4 text-[13px] text-[#8A857D] border-t border-[#E8E3DC] pt-6">
+          <div className="flex flex-col sm:flex-row justify-between gap-4 body-text border-t border-[#E8E3DC] pt-6" style={{ fontSize: '12px' }}>
             <p>&copy; 2026 Twin Me. All rights reserved.</p>
             <div className="flex gap-6">
-              <a href="/privacy-policy" className="hover:text-[#1F1C18] transition-colors">
-                Privacy Policy
-              </a>
-              <a href="/terms" className="hover:text-[#1F1C18] transition-colors">
-                Terms
-              </a>
+              <a href="/privacy-policy" className="hover:text-[#000] transition-colors">Privacy Policy</a>
+              <a href="/terms" className="hover:text-[#000] transition-colors">Terms</a>
             </div>
           </div>
         </div>
