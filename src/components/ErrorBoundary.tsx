@@ -70,7 +70,7 @@ class ErrorBoundary extends Component<Props, State> {
       return (
         <div
           className="min-h-screen flex items-center justify-center p-4"
-          style={{ backgroundColor: '#F7F7F3' }}
+          style={{ backgroundColor: '#fcf6ef' }}
         >
           <div
             className="max-w-md w-full text-center p-8"

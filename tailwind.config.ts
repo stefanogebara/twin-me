@@ -15,13 +15,13 @@ export default {
     },
     extend: {
       fontFamily: {
-        // Anthropic/Claude Design System Fonts
-        'heading': ['Space Grotesk', 'system-ui', '-apple-system', 'sans-serif'],  // Styrene A alternative
-        'body': ['Source Serif 4', 'Georgia', 'serif'],                            // Tiempos alternative
-        'ui': ['DM Sans', 'system-ui', 'sans-serif'],                              // Styrene B alternative
-        'sans': ['DM Sans', 'system-ui', 'sans-serif'],                            // Default sans
-        'serif': ['Source Serif 4', 'Georgia', 'serif'],                           // Default serif
-        'mono': ['JetBrains Mono', 'Consolas', 'monospace'],                       // Monospace
+        // Claura Design System Fonts
+        'heading': ['Halant', 'Georgia', 'serif'],         // Serif headings
+        'body': ['Geist', 'Inter', 'system-ui', 'sans-serif'],   // Body text
+        'ui': ['Geist', 'Inter', 'system-ui', 'sans-serif'],     // UI elements
+        'sans': ['Geist', 'Inter', 'system-ui', 'sans-serif'],   // Default sans
+        'serif': ['Halant', 'Georgia', 'serif'],            // Default serif
+        'mono': ['JetBrains Mono', 'Consolas', 'monospace'],
       },
       colors: {
         // Semantic tokens from CSS variables

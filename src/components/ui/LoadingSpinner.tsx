@@ -19,9 +19,9 @@ export const LoadingSpinner: React.FC<LoadingSpinnerProps> = ({
   };
 
   const colorMap = {
-    primary: '#2D2722',
+    primary: '#000000',
     secondary: '#8A857D',
-    white: '#F7F7F3'
+    white: '#fcf6ef'
   };
 
   return (
@@ -123,7 +123,7 @@ export const LoadingOverlay: React.FC<LoadingOverlayProps> = ({
   return (
     <div
       className={`fixed inset-0 flex items-center justify-center z-50 ${className}`}
-      style={{ backgroundColor: 'rgba(247, 247, 243, 0.85)', backdropFilter: 'blur(4px)' }}
+      style={{ backgroundColor: 'rgba(252, 246, 239, 0.85)', backdropFilter: 'blur(4px)' }}
     >
       <div
         className="rounded-2xl p-6 flex flex-col items-center gap-4 max-w-sm mx-4"

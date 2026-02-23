@@ -498,16 +498,16 @@ const OAuthCallback = () => {
     const displayStatus = status === 'error' && !showError ? 'loading' : status;
     switch (displayStatus) {
       case 'loading':
-        return <Loader2 className="w-12 h-12 animate-spin" style={{ color: '#1F1C18' }} />;
+        return <Loader2 className="w-12 h-12 animate-spin" style={{ color: '#000000' }} />;
       case 'success':
-        return <CheckCircle className="w-12 h-12" style={{ color: '#1F1C18' }} />;
+        return <CheckCircle className="w-12 h-12" style={{ color: '#000000' }} />;
       case 'error':
-        return <XCircle className="w-12 h-12" style={{ color: '#1F1C18' }} />;
+        return <XCircle className="w-12 h-12" style={{ color: '#000000' }} />;
     }
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: '#F7F7F3' }}>
+    <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: '#fcf6ef' }}>
       <div
         className="glass-card max-w-md w-full mx-4 p-8 text-center"
       >
@@ -555,7 +555,7 @@ const OAuthCallback = () => {
         {(status === 'loading' || (status === 'error' && !showError)) && (
           <div className="mt-6">
             <div className="w-full rounded-full h-1.5" style={{ backgroundColor: 'rgba(0, 0, 0, 0.06)' }}>
-              <div className="h-1.5 rounded-full w-3/5 transition-all duration-300" style={{ backgroundColor: '#1F1C18' }} />
+              <div className="h-1.5 rounded-full w-3/5 transition-all duration-300" style={{ backgroundColor: '#000000' }} />
             </div>
           </div>
         )}

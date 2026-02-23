@@ -265,20 +265,17 @@ const Settings = () => {
     }
   };
 
-  // Shared card styles — glass card design system
+  // Shared card styles — Claura light card
   const cardStyle = {
-    background: 'rgba(255, 255, 255, 0.18)',
-    backdropFilter: 'blur(10px) saturate(140%)',
-    WebkitBackdropFilter: 'blur(10px) saturate(140%)',
-    borderRadius: '2rem',
-    border: '1px solid rgba(255, 255, 255, 0.45)',
-    boxShadow: '0 8px 32px rgba(0, 0, 0, 0.18), inset 0 1px 0 rgba(255, 255, 255, 0.6)',
+    background: 'rgba(255, 255, 255, 0.35)',
+    borderRadius: '20px',
+    border: '1px solid rgba(0, 0, 0, 0.06)',
   };
 
   return (
     <div
       className="min-h-screen"
-      style={{ backgroundColor: '#F7F7F3' }}
+      style={{ backgroundColor: '#fcf6ef' }}
     >
       <main className="max-w-4xl mx-auto pt-8 pb-20 px-6">
         {/* Page title */}
@@ -326,7 +323,7 @@ const Settings = () => {
               </div>
               <button
                 onClick={async () => { try { await signOut(); } catch { /* ignore */ } navigate('/auth'); }}
-                className="flex items-center gap-2 px-3 py-1.5 rounded-xl text-sm font-medium transition-all hover:scale-[1.02]"
+                className="flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-medium transition-all hover:scale-[1.02]"
                 style={{
                   backgroundColor: 'rgba(239, 68, 68, 0.08)',
                   color: '#EF4444',
@@ -337,7 +334,7 @@ const Settings = () => {
                 Sign Out
               </button>
             </div>
-            <div className="flex flex-wrap gap-6 text-sm" style={{ fontFamily: 'var(--font-body)', color: '#1F1C18' }}>
+            <div className="flex flex-wrap gap-6 body-text" style={{ color: '#000000' }}>
               <div>
                 <span style={{ color: '#8A857D' }}>Name: </span>
                 {user?.fullName || `${user?.firstName || ''} ${user?.lastName || ''}`.trim() || 'Not set'}
@@ -391,7 +388,7 @@ const Settings = () => {
                 How Your Data is Protected
               </h2>
             </div>
-            <p className="text-sm mb-4" style={{ fontFamily: 'var(--font-body)', color: '#8A857D' }}>
+            <p className="body-text mb-4" style={{ color: '#8A857D' }}>
               Your privacy is fundamental to Twin Me. Here's how we protect you.
             </p>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -411,7 +408,7 @@ const Settings = () => {
                 >
                   <Icon className="w-4 h-4 mt-0.5 flex-shrink-0" style={{ color: '#10B981' }} />
                   <div>
-                    <div className="text-sm font-medium" style={{ color: '#1F1C18' }}>{label}</div>
+                    <div className="text-sm font-medium" style={{ color: '#000000' }}>{label}</div>
                     <div className="text-xs" style={{ color: '#8A857D' }}>{desc}</div>
                   </div>
                 </div>

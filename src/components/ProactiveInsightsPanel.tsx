@@ -185,7 +185,7 @@ export const ProactiveInsightsPanel: React.FC = () => {
                       className="absolute -top-1 -right-1 w-3 h-3 rounded-full border-2"
                       style={{
                         backgroundColor: colors.dot,
-                        borderColor: '#F7F7F3',
+                        borderColor: '#fcf6ef',
                       }}
                     />
                   </div>

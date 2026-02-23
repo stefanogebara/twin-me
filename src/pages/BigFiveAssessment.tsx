@@ -31,13 +31,13 @@ const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
 
 // Design system colors — light mode only
 const colors = {
-  bg: '#F7F7F3',
-  cardBg: 'rgba(255, 255, 255, 0.18)',
-  border: 'rgba(255, 255, 255, 0.45)',
-  text: '#1F1C18',
+  bg: '#fcf6ef',
+  cardBg: 'rgba(255, 255, 255, 0.55)',
+  border: 'rgba(0, 0, 0, 0.08)',
+  text: '#000000',
   textSecondary: '#8A857D',
-  accent: '#2D2722',
-  accentBg: 'rgba(45, 39, 34, 0.08)',
+  accent: '#000000',
+  accentBg: 'rgba(0, 0, 0, 0.06)',
 };
 
 export function BigFiveAssessment() {

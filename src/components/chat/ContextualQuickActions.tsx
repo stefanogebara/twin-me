@@ -203,7 +203,7 @@ export function ContextualQuickActions({
               backdropFilter: 'blur(10px) saturate(140%)',
               WebkitBackdropFilter: 'blur(10px) saturate(140%)',
               border: '1px solid rgba(255, 255, 255, 0.45)',
-              color: '#1F1C18'
+              color: '#000000'
             }}
           >
             <Icon className={`w-4 h-4 ${action.color || ''}`} style={!action.color ? { color: '#8A857D' } : undefined} />

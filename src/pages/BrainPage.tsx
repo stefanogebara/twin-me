@@ -123,7 +123,7 @@ const BrainPage: React.FC = () => {
     fetchInsights();
   }, [isSignedIn, isDemoMode, user?.id]);
 
-  const textColor = '#1F1C18';
+  const textColor = '#000000';
   const textSecondary = '#8A857D';
 
   if (!isLoaded) {
@@ -354,7 +354,7 @@ const BrainPage: React.FC = () => {
             <button
               onClick={() => navigate('/get-started')}
               className={cn(
-                "w-full mt-4 flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl text-sm font-medium transition-all",
+                "w-full mt-4 flex items-center justify-center gap-2 py-2.5 px-4 rounded-full text-sm font-medium transition-all",
                 "border border-current opacity-70 hover:opacity-100"
               )}
               style={{ color: textColor }}

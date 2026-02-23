@@ -41,7 +41,7 @@ const DataConsentSettings: React.FC<DataConsentSettingsProps> = ({
 
       {loadingConsents ? (
         <div className="flex items-center justify-center py-6">
-          <Loader2 className="w-5 h-5 animate-spin" style={{ color: '#1F1C18' }} />
+          <Loader2 className="w-5 h-5 animate-spin" style={{ color: '#000000' }} />
         </div>
       ) : consents.length === 0 ? (
         <div
@@ -65,7 +65,7 @@ const DataConsentSettings: React.FC<DataConsentSettingsProps> = ({
               }}
             >
               <div>
-                <h3 className="text-sm" style={{ fontFamily: 'var(--font-body)', fontWeight: 500, color: '#1F1C18' }}>
+                <h3 className="text-sm" style={{ fontFamily: 'var(--font-body)', fontWeight: 500, color: '#000000' }}>
                   {consent.platform
                     ? `${consent.platform.charAt(0).toUpperCase() + consent.platform.slice(1).replace(/_/g, ' ')} - ${consent.consent_type.replace(/_/g, ' ')}`
                     : consent.consent_type.replace(/_/g, ' ')}

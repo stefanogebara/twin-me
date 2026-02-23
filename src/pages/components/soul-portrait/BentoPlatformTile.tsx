@@ -136,7 +136,7 @@ export const BentoPlatformTile: React.FC<Props> = ({
           </div>
           <span
             className="text-xs font-semibold"
-            style={{ color: '#1F1C18' }}
+            style={{ color: '#000000' }}
           >
             {meta.label}
           </span>

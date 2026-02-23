@@ -316,7 +316,7 @@ export const FeedbackWidget: React.FC<FeedbackWidgetProps> = ({
             style={{
               backgroundColor: '#fff',
               border: '1px solid rgba(0, 0, 0, 0.1)',
-              color: '#1F1C18'
+              color: '#000000'
             }}
           />
           <button
@@ -325,7 +325,7 @@ export const FeedbackWidget: React.FC<FeedbackWidgetProps> = ({
             className="flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-colors"
             style={{
               backgroundColor: 'rgba(0, 0, 0, 0.06)',
-              color: '#1F1C18'
+              color: '#000000'
             }}
           >
             {isSubmitting ? (

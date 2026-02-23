@@ -19,24 +19,21 @@ export const SidebarLayout: React.FC<SidebarLayoutProps> = ({ children }) => {
   return (
     <div
       className="flex min-h-screen w-full"
-      style={{ backgroundColor: '#F7F7F3' }}
+      style={{ backgroundColor: '#fcf6ef' }}
     >
       {/* Mobile Menu Button - Only visible on small screens */}
       <button
         onClick={() => setSidebarOpen(!sidebarOpen)}
         className="fixed top-4 left-4 z-50 p-3 rounded-2xl lg:hidden transition-all duration-200"
         style={{
-          backgroundColor: 'rgba(255, 255, 255, 0.18)',
-          backdropFilter: 'blur(10px) saturate(140%)',
-          WebkitBackdropFilter: 'blur(10px) saturate(140%)',
-          border: '1px solid rgba(255, 255, 255, 0.45)',
-          boxShadow: '0 8px 32px rgba(0, 0, 0, 0.18), inset 0 1px 0 rgba(255, 255, 255, 0.6)'
+          backgroundColor: 'rgba(255, 255, 255, 0.6)',
+          border: '1px solid rgba(0, 0, 0, 0.06)',
         }}
         aria-label="Toggle menu"
       >
         <Menu
           className="w-5 h-5"
-          style={{ color: '#1F1C18' }}
+          style={{ color: '#000000' }}
         />
       </button>
 

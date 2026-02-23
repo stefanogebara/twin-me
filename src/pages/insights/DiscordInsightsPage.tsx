@@ -89,7 +89,7 @@ const DiscordInsightsPage: React.FC = () => {
   const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3001';
 
   const colors = {
-    text: '#1F1C18',
+    text: '#000000',
     textSecondary: '#8A857D',
     discordPurple: '#5865F2',
     discordBg: 'rgba(88, 101, 242, 0.1)',

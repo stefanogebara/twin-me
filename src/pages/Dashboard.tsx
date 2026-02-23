@@ -305,7 +305,7 @@ export const Dashboard: React.FC = () => {
           {error.type === 'auth' && (
             <button
               onClick={() => navigate('/get-started')}
-              className="px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+              className="px-4 py-2 rounded-full text-sm font-medium transition-colors"
               style={{ backgroundColor: 'rgba(245, 158, 11, 0.15)', color: '#d97706' }}
             >
               Reconnect
@@ -365,7 +365,7 @@ export const Dashboard: React.FC = () => {
             <div className="flex items-center justify-between mb-3">
               <div className="flex items-center gap-2">
                 <Target className="w-4 h-4" style={{ color: '#44403c' }} />
-                <span className="text-sm font-medium" style={{ color: '#1F1C18' }}>Goals</span>
+                <span className="text-sm font-medium" style={{ color: '#000000' }}>Goals</span>
                 {goalSummary.suggested > 0 && (
                   <span className="inline-flex items-center justify-center w-5 h-5 text-xs font-medium rounded-full bg-blue-500/20 text-blue-400">
                     {goalSummary.suggested}

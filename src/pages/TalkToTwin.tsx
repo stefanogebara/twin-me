@@ -66,18 +66,18 @@ const TalkToTwin = () => {
 
   // Design system color tokens
   const colors = {
-    bg: '#F7F7F3',
+    bg: '#fcf6ef',
     bgSecondary: 'rgba(255, 255, 255, 0.7)',
     bgTertiary: 'rgba(0, 0, 0, 0.05)',
-    text: '#1F1C18',
+    text: '#000000',
     textSecondary: '#8A857D',
     textMuted: '#8A857D',
     border: 'rgba(231, 229, 228, 0.6)',
-    accent: '#2D2722',
+    accent: '#000000',
     accentHover: '#1a1410',
     userBubble: 'rgba(0, 0, 0, 0.06)',
-    userBubbleBg: 'rgba(45, 39, 34, 0.88)',
-    userBubbleText: '#F7F7F3',
+    userBubbleBg: 'rgba(0, 0, 0, 0.88)',
+    userBubbleText: '#fcf6ef',
     assistantBubble: 'transparent',
     inputBg: 'rgba(255, 255, 255, 0.9)',
     inputBorder: 'rgba(231, 229, 228, 0.6)',
@@ -388,7 +388,7 @@ const TalkToTwin = () => {
               className="w-8 h-8 rounded-full flex items-center justify-center"
               style={{ backgroundColor: colors.accent }}
             >
-              <Sparkles className="w-4 h-4" style={{ color: '#F7F7F3' }} />
+              <Sparkles className="w-4 h-4" style={{ color: '#fcf6ef' }} />
             </div>
             <span
               className="font-medium"

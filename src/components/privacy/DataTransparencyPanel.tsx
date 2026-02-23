@@ -124,7 +124,7 @@ export const DataTransparencyPanel: React.FC<DataTransparencyPanelProps> = ({
               Connected
             </span>
           </div>
-          <p className="text-3xl font-heading font-bold" style={{ color: '#1F1C18' }}>
+          <p className="text-3xl font-heading font-bold" style={{ color: '#000000' }}>
             {connectedSources.length}
           </p>
           <p className="text-xs mt-1 font-ui" style={{ color: '#8A857D' }}>
@@ -148,7 +148,7 @@ export const DataTransparencyPanel: React.FC<DataTransparencyPanelProps> = ({
               Data Points
             </span>
           </div>
-          <p className="text-3xl font-heading font-bold" style={{ color: '#1F1C18' }}>
+          <p className="text-3xl font-heading font-bold" style={{ color: '#000000' }}>
             {totalDataPoints.toLocaleString()}
           </p>
           <p className="text-xs mt-1 font-ui" style={{ color: '#8A857D' }}>
@@ -172,7 +172,7 @@ export const DataTransparencyPanel: React.FC<DataTransparencyPanelProps> = ({
               Quality
             </span>
           </div>
-          <p className="text-3xl font-heading font-bold" style={{ color: '#1F1C18' }}>
+          <p className="text-3xl font-heading font-bold" style={{ color: '#000000' }}>
             {totalQuality}%
           </p>
           <p className="text-xs mt-1 font-ui" style={{ color: '#8A857D' }}>
@@ -196,7 +196,7 @@ export const DataTransparencyPanel: React.FC<DataTransparencyPanelProps> = ({
               Storage
             </span>
           </div>
-          <p className="text-3xl font-heading font-bold" style={{ color: '#1F1C18' }}>
+          <p className="text-3xl font-heading font-bold" style={{ color: '#000000' }}>
             {totalSize}
           </p>
           <p className="text-xs mt-1 font-ui" style={{ color: '#8A857D' }}>

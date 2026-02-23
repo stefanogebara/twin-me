@@ -139,7 +139,7 @@ export function FriendlyInsightCard({
 
             {/* Title and Description */}
             <div className="flex-1">
-              <h3 className="text-lg font-semibold mb-1" style={{ color: '#1F1C18' }}>
+              <h3 className="text-lg font-semibold mb-1" style={{ color: '#000000' }}>
                 {title}
               </h3>
               <p className="text-sm" style={{ color: '#8A857D' }}>
@@ -190,7 +190,7 @@ export function FriendlyInsightCard({
                 key={index}
                 whileHover={{ x: 4 }}
                 className="w-full flex items-center justify-between p-2 rounded-lg hover:bg-stone-50 transition-colors text-sm"
-                style={{ color: '#1F1C18' }}
+                style={{ color: '#000000' }}
               >
                 <span>{action}</span>
                 <ChevronRight className="w-4 h-4" style={{ color: '#8A857D' }} />

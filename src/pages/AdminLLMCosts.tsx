@@ -264,11 +264,11 @@ const AdminLLMCosts: React.FC = () => {
   );
 
   // Design system colors
-  const cardBg = 'rgba(255, 255, 255, 0.8)';
-  const cardBorder = '1px solid rgba(0, 0, 0, 0.06)';
-  const textPrimary = '#1F1C18';
+  const cardBg = 'rgba(255, 255, 255, 0.55)';
+  const cardBorder = '1px solid rgba(0, 0, 0, 0.08)';
+  const textPrimary = '#000000';
   const textMuted = '#8A857D';
-  const tableBg = 'rgba(250, 250, 250, 0.9)';
+  const tableBg = 'rgba(255, 255, 255, 0.6)';
   const rowHover = 'rgba(0, 0, 0, 0.02)';
 
   if (loading) {

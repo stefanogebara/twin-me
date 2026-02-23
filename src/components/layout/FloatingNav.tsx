@@ -101,13 +101,14 @@ export const FloatingNav: React.FC = () => {
   return (
     <nav className="fixed top-6 left-1/2 -translate-x-1/2 z-50 w-full max-w-6xl px-6">
       <div
-        className="backdrop-blur-xl bg-stone-100/85 border border-stone-300/50 rounded-full px-8 py-4 shadow-[0_8px_32px_rgba(0,0,0,0.08),0_2px_8px_rgba(0,0,0,0.04)] transition-all duration-300 hover:shadow-[0_12px_48px_rgba(0,0,0,0.12),0_4px_12px_rgba(0,0,0,0.06)]"
+        className="backdrop-blur-xl border border-stone-300/50 rounded-full px-8 py-4 shadow-[0_8px_32px_rgba(0,0,0,0.08),0_2px_8px_rgba(0,0,0,0.04)] transition-all duration-300 hover:shadow-[0_12px_48px_rgba(0,0,0,0.12),0_4px_12px_rgba(0,0,0,0.06)]"
+        style={{ backgroundColor: 'rgba(252, 246, 239, 0.85)' }}
       >
         <div className="flex justify-between items-center">
           {/* Brand */}
           <div
-            className="text-2xl font-bold text-stone-900 cursor-pointer hover:text-stone-700 transition-colors"
-            style={{ fontFamily: 'var(--font-heading)', fontWeight: 500 }}
+            className="text-2xl font-bold text-black cursor-pointer hover:text-stone-700 transition-colors"
+            style={{ fontFamily: '"Halant", var(--font-heading), Georgia, serif', fontWeight: 500 }}
             onClick={() => handleNavigate('/dashboard')}
           >
             Twin Me
@@ -127,8 +128,8 @@ export const FloatingNav: React.FC = () => {
                       flex items-center gap-2 px-4 py-2 rounded-full
                       font-medium text-sm transition-all duration-300
                       ${active
-                        ? 'bg-stone-900 text-white shadow-[0_2px_8px_rgba(0,0,0,0.12)]'
-                        : 'text-stone-700 hover:text-stone-900 hover:bg-white/50'
+                        ? 'bg-black text-white shadow-[0_2px_8px_rgba(0,0,0,0.12)]'
+                        : 'text-stone-700 hover:text-black hover:bg-white/50'
                       }
                     `}
                   >
@@ -146,10 +147,10 @@ export const FloatingNav: React.FC = () => {
               onClick={() => setShowUserMenu(!showUserMenu)}
               className="flex items-center gap-2 px-4 py-2 rounded-full bg-white/50 hover:bg-white border border-stone-300/50 transition-all duration-300"
             >
-              <div className="w-6 h-6 bg-stone-900 rounded-full flex items-center justify-center text-white text-xs font-bold">
+              <div className="w-6 h-6 bg-black rounded-full flex items-center justify-center text-white text-xs font-bold">
                 {user?.firstName?.charAt(0) || user?.email?.charAt(0) || 'U'}
               </div>
-              <span className="text-sm font-medium text-stone-900 hidden md:block">
+              <span className="text-sm font-medium text-black hidden md:block">
                 {user?.firstName || 'User'}
               </span>
             </button>
@@ -166,7 +167,7 @@ export const FloatingNav: React.FC = () => {
                 {/* Menu */}
                 <div className="absolute right-0 mt-2 w-48 backdrop-blur-xl bg-white/95 border border-stone-300/50 rounded-2xl shadow-[0_8px_32px_rgba(0,0,0,0.12)] z-50 overflow-hidden">
                   <div className="p-3 border-b border-stone-300/50">
-                    <p className="text-sm font-medium text-stone-900 truncate">
+                    <p className="text-sm font-medium text-black truncate">
                       {user?.fullName || user?.email || 'User'}
                     </p>
                     <p className="text-xs text-stone-600 truncate">

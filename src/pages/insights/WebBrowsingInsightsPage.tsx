@@ -33,7 +33,7 @@ const WebBrowsingInsightsPage: React.FC = () => {
   const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3001';
 
   const colors = {
-    text: '#1F1C18',
+    text: '#000000',
     textSecondary: '#8A857D',
     webAccent: '#6366f1',
     webBg: 'rgba(99, 102, 241, 0.1)'

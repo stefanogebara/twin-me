@@ -37,7 +37,7 @@ const SpotifyInsightsPage: React.FC = () => {
 
   // Light-mode only colors
   const colors = {
-    text: '#1F1C18',
+    text: '#000000',
     textSecondary: '#8A857D',
     spotifyGreen: '#1DB954',
     spotifyBg: 'rgba(29, 185, 84, 0.1)'

@@ -125,7 +125,7 @@ export const ClusterCard: React.FC<ClusterCardProps> = ({
         {/* Intensity Slider */}
         <div className="space-y-3">
           <div className="flex items-center justify-between">
-            <label className="text-sm font-ui font-medium" style={{ color: '#1F1C18' }}>
+            <label className="text-sm font-ui font-medium" style={{ color: '#000000' }}>
               Reveal Level
             </label>
             <span

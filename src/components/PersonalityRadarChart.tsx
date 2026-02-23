@@ -40,10 +40,10 @@ const DEFAULT_COLORS = [
 
 // Light-mode design tokens for chart
 const chartColors = {
-  text: '#1F1C18',
+  text: '#000000',
   textSecondary: '#8A857D',
   gridLine: 'rgba(45, 39, 34, 0.1)',
-  accent: '#2D2722',
+  accent: '#000000',
 };
 
 export function PersonalityRadarChart({

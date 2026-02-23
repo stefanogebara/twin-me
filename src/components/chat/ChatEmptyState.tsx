@@ -42,7 +42,7 @@ const glassButtonStyle = {
   backdropFilter: 'blur(10px) saturate(140%)',
   WebkitBackdropFilter: 'blur(10px) saturate(140%)',
   border: '1px solid rgba(255, 255, 255, 0.45)',
-  color: '#1F1C18',
+  color: '#000000',
 } as React.CSSProperties;
 
 export const ChatEmptyState = ({
@@ -68,7 +68,7 @@ export const ChatEmptyState = ({
 
       <motion.h1
         className="text-2xl md:text-3xl font-medium mb-3 text-center heading-serif"
-        style={{ color: '#1F1C18' }}
+        style={{ color: '#000000' }}
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.4, delay: 0.15, ease: [0.4, 0, 0.2, 1] }}
@@ -106,7 +106,7 @@ export const ChatEmptyState = ({
               whileHover={{ scale: 1.04, y: -2 }}
               whileTap={{ scale: 0.97 }}
             >
-              <span style={{ color: '#2D2722' }}>{action.icon}</span>
+              <span style={{ color: '#000000' }}>{action.icon}</span>
               {action.label}
             </motion.button>
           ))}

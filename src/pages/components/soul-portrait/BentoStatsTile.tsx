@@ -70,7 +70,7 @@ export const BentoStatsTile: React.FC<Props> = ({ stats, firstMemoryAt, connecte
             <div>
               <p
                 className="text-lg font-semibold leading-none mb-0.5"
-                style={{ color: '#1F1C18' }}
+                style={{ color: '#000000' }}
               >
                 {value}
               </p>

@@ -47,7 +47,7 @@ const assistantBubbleStyle = {
   WebkitBackdropFilter: 'blur(10px) saturate(140%)',
   border: '1px solid rgba(255, 255, 255, 0.45)',
   boxShadow: '0 8px 32px rgba(0, 0, 0, 0.18), inset 0 1px 0 rgba(255, 255, 255, 0.6)',
-  color: '#1F1C18',
+  color: '#000000',
 } as React.CSSProperties;
 
 export const MessageList = forwardRef<HTMLDivElement, MessageListProps>(
@@ -82,8 +82,8 @@ export const MessageList = forwardRef<HTMLDivElement, MessageListProps>(
                 style={
                   message.role === 'user'
                     ? {
-                        backgroundColor: message.failed ? 'rgba(239,68,68,0.15)' : '#2D2722',
-                        color: message.failed ? '#EF4444' : '#F7F7F3',
+                        backgroundColor: message.failed ? 'rgba(239,68,68,0.15)' : '#000000',
+                        color: message.failed ? '#EF4444' : '#fcf6ef',
                         border: message.failed ? '1px solid rgba(239,68,68,0.3)' : undefined,
                       }
                     : assistantBubbleStyle
@@ -195,15 +195,15 @@ export const MessageList = forwardRef<HTMLDivElement, MessageListProps>(
               <div className="flex gap-1.5">
                 <div
                   className="w-2 h-2 rounded-full animate-bounce"
-                  style={{ backgroundColor: '#2D2722', animationDelay: '0ms' }}
+                  style={{ backgroundColor: '#000000', animationDelay: '0ms' }}
                 />
                 <div
                   className="w-2 h-2 rounded-full animate-bounce"
-                  style={{ backgroundColor: '#2D2722', animationDelay: '150ms' }}
+                  style={{ backgroundColor: '#000000', animationDelay: '150ms' }}
                 />
                 <div
                   className="w-2 h-2 rounded-full animate-bounce"
-                  style={{ backgroundColor: '#2D2722', animationDelay: '300ms' }}
+                  style={{ backgroundColor: '#000000', animationDelay: '300ms' }}
                 />
               </div>
             </div>

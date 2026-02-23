@@ -178,10 +178,10 @@ export const ContextualTwinSelector: React.FC<ContextualTwinSelectorProps> = ({
           {Object.entries(activeTwin.clusterLevels).map(([cluster, level]) => (
             <div key={cluster} className="space-y-2">
               <div className="flex items-center justify-between">
-                <span className="text-xs font-medium capitalize font-ui" style={{ color: '#1F1C18' }}>
+                <span className="text-xs font-medium capitalize font-ui" style={{ color: '#000000' }}>
                   {cluster}
                 </span>
-                <span className="text-xs font-bold" style={{ color: '#1F1C18' }}>
+                <span className="text-xs font-bold" style={{ color: '#000000' }}>
                   {level}%
                 </span>
               </div>
