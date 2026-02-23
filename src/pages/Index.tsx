@@ -524,13 +524,13 @@ const Index = () => {
             whileInView={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.7 }}
             viewport={{ once: true, amount: 0.3 }}
-            className="w-full max-w-[820px] relative overflow-hidden"
-            style={{ borderRadius: '28px', aspectRatio: '2.2 / 1' }}
+            className="w-full max-w-[820px] overflow-hidden"
+            style={{ borderRadius: '28px' }}
           >
             <img
               src={CARD_IMAGES.cta}
               alt=""
-              className="absolute inset-0 w-full h-full object-cover"
+              className="w-full h-auto block"
             />
           </motion.div>
 
