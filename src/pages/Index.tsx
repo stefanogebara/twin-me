@@ -83,7 +83,7 @@ const Index = () => {
           line-height: 1.1;
           color: #000000;
         }
-        .h1 { font-size: 70px; }
+        .h1 { font-size: 80px; }
         .h2 { font-size: 56px; }
         .h3 { font-size: 32px; }
         .heading-serif-italic {
@@ -159,10 +159,10 @@ const Index = () => {
 
         /* Glass stat card */
         .glass-stat {
-          background: rgba(255,255,255,0.2);
-          border: 1px solid rgba(255,255,255,0.3);
-          backdrop-filter: blur(12px);
-          -webkit-backdrop-filter: blur(12px);
+          background: rgba(0,0,0,0.35);
+          border: 1px solid rgba(255,255,255,0.2);
+          backdrop-filter: blur(16px);
+          -webkit-backdrop-filter: blur(16px);
           border-radius: 20px;
           padding: 28px 24px;
           text-align: center;
@@ -196,7 +196,7 @@ const Index = () => {
 
         /* Responsive heading sizes */
         @media (max-width: 768px) {
-          .h1 { font-size: 42px; }
+          .h1 { font-size: 48px; }
           .h2 { font-size: 36px; }
           .h3 { font-size: 24px; }
         }
@@ -232,22 +232,7 @@ const Index = () => {
       {/* ────────────── HERO ────────────── */}
       <section className="px-6 lg:px-16 pt-16 pb-20 lg:pt-24 lg:pb-28">
         <div className="max-w-[1072px] mx-auto text-center flex flex-col items-center gap-8">
-          {/* Social proof */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6 }}
-            className="flex flex-col items-center gap-2"
-          >
-            <div className="flex gap-0.5 text-[#C4A265]">
-              {[...Array(5)].map((_, i) => (
-                <svg key={i} width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" /></svg>
-              ))}
-            </div>
-            <p className="body-text">Discover your authentic self</p>
-          </motion.div>
-
-          {/* Main heading — H1: 70px/400 */}
+          {/* Main heading — H1: 80px/400 */}
           <motion.h1
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
@@ -504,16 +489,6 @@ const Index = () => {
       {/* ────────────── FINAL CTA ────────────── */}
       <section className="px-6 lg:px-16 py-20 lg:py-28">
         <div className="max-w-[1072px] mx-auto text-center flex flex-col items-center gap-8">
-          {/* Stars */}
-          <div className="flex flex-col items-center gap-2">
-            <div className="flex gap-0.5 text-[#C4A265]">
-              {[...Array(5)].map((_, i) => (
-                <svg key={i} width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" /></svg>
-              ))}
-            </div>
-            <p className="body-text">Discover your authentic self</p>
-          </div>
-
           <h2 className="heading-serif h2">
             Turn confusion into <span className="heading-serif-italic">clarity,</span> today.
           </h2>
