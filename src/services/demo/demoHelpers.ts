@@ -43,7 +43,7 @@ export const GENRE_POOLS = [
   ['Ambient', 'Electronic', 'Lo-fi', 'Indie', 'Jazz'],
   ['Psychedelic Rock', 'Alternative', 'Synthwave', 'Dream Pop', 'Shoegaze'],
   ['Classical', 'Neo-Classical', 'Minimalist', 'Post-Rock', 'Ambient'],
-  ['Funk', 'Soul', 'R&B', 'Disco', 'Electronic'],
+  ['Electronic', 'Chillwave', 'Ambient', 'Lo-fi', 'Synthwave'],
 ];
 
 export const PEAK_HOURS = ['10pm - 2am', '8pm - 11pm', '6am - 9am', '2pm - 5pm', '9pm - 12am'];
