@@ -509,20 +509,99 @@ const Index = () => {
       {/* ────────────── FOOTER ────────────── */}
       <footer className="px-6 lg:px-16 pb-10 pt-12 border-t border-[#E8E3DC]">
         <div className="max-w-[1200px] mx-auto">
-          {/* Top row */}
-          <div className="flex flex-col lg:flex-row justify-between gap-8 mb-10">
-            <div>
+          {/* Top row — 3 columns */}
+          <div className="flex flex-col lg:flex-row justify-between gap-10 mb-10">
+            {/* Brand */}
+            <div className="lg:max-w-[220px]">
               <h3 className="heading-serif text-[22px] font-bold mb-2">Twin Me</h3>
-              <p className="text-[14px] text-[#8A857D]">Discover what makes you authentically you.</p>
+              <p className="text-[14px] text-[#8A857D] leading-relaxed">
+                Discover what makes you authentically you.
+              </p>
+            </div>
+
+            {/* Product links */}
+            <div>
+              <p className="text-[11px] uppercase tracking-widest text-[#8A857D] font-semibold mb-4">
+                Product
+              </p>
+              <ul className="space-y-2.5 text-[14px]">
+                <li>
+                  <a href="/#features" className="text-[#57534E] hover:text-[#1F1C18] transition-colors">
+                    Features
+                  </a>
+                </li>
+                <li>
+                  <a
+                    href="/#how-it-works"
+                    className="text-[#57534E] hover:text-[#1F1C18] transition-colors"
+                  >
+                    How it works
+                  </a>
+                </li>
+                <li>
+                  <a href="/get-started" className="text-[#57534E] hover:text-[#1F1C18] transition-colors">
+                    Connect your data
+                  </a>
+                </li>
+                <li>
+                  <a
+                    href="/soul-signature"
+                    className="text-[#57534E] hover:text-[#1F1C18] transition-colors"
+                  >
+                    Soul Signature
+                  </a>
+                </li>
+              </ul>
+            </div>
+
+            {/* Community */}
+            <div>
+              <p className="text-[11px] uppercase tracking-widest text-[#8A857D] font-semibold mb-4">
+                Community
+              </p>
+              <ul className="space-y-2.5 text-[14px]">
+                <li>
+                  <a
+                    href="https://github.com/twinme-ai"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-[#57534E] hover:text-[#1F1C18] transition-colors"
+                  >
+                    GitHub
+                  </a>
+                </li>
+                <li>
+                  <a
+                    href="https://twitter.com/twinme_ai"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-[#57534E] hover:text-[#1F1C18] transition-colors"
+                  >
+                    Twitter / X
+                  </a>
+                </li>
+                <li>
+                  <a
+                    href="mailto:hello@twinme.ai"
+                    className="text-[#57534E] hover:text-[#1F1C18] transition-colors"
+                  >
+                    Contact us
+                  </a>
+                </li>
+              </ul>
             </div>
           </div>
+
           {/* Bottom row */}
-          <div className="flex flex-col sm:flex-row justify-between gap-4 text-[13px] text-[#8A857D]">
-            <p>&copy; 2025 Twin Me. All rights reserved.</p>
+          <div className="flex flex-col sm:flex-row justify-between gap-4 text-[13px] text-[#8A857D] border-t border-[#E8E3DC] pt-6">
+            <p>&copy; 2026 Twin Me. All rights reserved.</p>
             <div className="flex gap-6">
-              <a href="/privacy-policy" className="hover:text-[#1F1C18] transition-colors">Privacy Policy</a>
-              <a href="https://github.com/twinme-ai" target="_blank" rel="noopener noreferrer" className="hover:text-[#1F1C18] transition-colors">GitHub</a>
-              <a href="mailto:hello@twinme.ai" className="hover:text-[#1F1C18] transition-colors">Contact</a>
+              <a href="/privacy-policy" className="hover:text-[#1F1C18] transition-colors">
+                Privacy Policy
+              </a>
+              <a href="/terms" className="hover:text-[#1F1C18] transition-colors">
+                Terms
+              </a>
             </div>
           </div>
         </div>

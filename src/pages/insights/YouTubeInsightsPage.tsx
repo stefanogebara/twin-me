@@ -348,24 +348,30 @@ const YouTubeInsightsPage: React.FC = () => {
         </motion.button>
       </div>
 
-      {/* Extension Install Banner */}
+      {/* Extension Coming Soon Banner */}
       {!insights?.hasExtensionData && (
         <GlassPanel
-          className="!p-4 mb-6 cursor-pointer transition-opacity hover:opacity-80"
+          className="!p-4 mb-6"
           style={{ borderLeft: `3px solid ${colors.youtubeRed}` }}
-          onClick={() => navigate('/get-started')}
         >
           <div className="flex items-center gap-3">
             <Download className="w-5 h-5 flex-shrink-0" style={{ color: colors.youtubeRed }} />
             <div className="flex-1">
-              <p className="text-sm font-medium" style={{ color: colors.text }}>
-                Get deeper YouTube insights
-              </p>
+              <div className="flex items-center gap-2">
+                <p className="text-sm font-medium" style={{ color: colors.text }}>
+                  Deeper YouTube insights
+                </p>
+                <span
+                  className="text-[10px] font-semibold px-2 py-0.5 rounded-full uppercase tracking-wider"
+                  style={{ background: 'rgba(255,0,0,0.08)', color: colors.youtubeRed }}
+                >
+                  Coming soon
+                </span>
+              </div>
               <p className="text-xs mt-0.5" style={{ color: colors.textSecondary }}>
-                Install our browser extension to capture watch history, search queries, and viewing patterns that the YouTube API can't access.
+                A browser extension will capture watch history, search queries, and viewing patterns that the YouTube API can't access.
               </p>
             </div>
-            <ArrowLeft className="w-4 h-4 rotate-180 flex-shrink-0" style={{ color: colors.textSecondary }} />
           </div>
         </GlassPanel>
       )}
