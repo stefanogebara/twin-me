@@ -30,7 +30,7 @@ import { REFLECTION_BASE_SYSTEM } from './reflections/reflectionConstants.js';
 // Data fetchers
 import { getSpotifyData } from './reflections/spotifyDataFetcher.js';
 import { getCalendarData } from './reflections/calendarDataFetcher.js';
-import { getYouTubeData, getWebBrowsingData } from './reflections/otherDataFetchers.js';
+import { getYouTubeData, getTwitchData, getWebBrowsingData, getDiscordData, getLinkedInData } from './reflections/otherDataFetchers.js';
 
 // Prompt building
 import { getPromptForPlatform } from './reflections/reflectionPrompts.js';
@@ -166,8 +166,14 @@ class PlatformReflectionService {
         return getCalendarData(context);
       case 'youtube':
         return getYouTubeData(userId);
+      case 'twitch':
+        return getTwitchData(userId);
       case 'web':
         return getWebBrowsingData(userId);
+      case 'discord':
+        return getDiscordData(userId);
+      case 'linkedin':
+        return getLinkedInData(userId);
       default:
         return { success: false, error: 'Unknown platform' };
     }

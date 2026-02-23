@@ -62,6 +62,10 @@ Use this personality context to make your observations more personal and insight
       return buildTwitchPrompt(dynamicContext, data);
     case 'web':
       return buildWebPrompt(dynamicContext, data);
+    case 'discord':
+      return buildDiscordPrompt(dynamicContext, data);
+    case 'linkedin':
+      return buildLinkedInPrompt(dynamicContext, data);
     default:
       return `${dynamicContext ? dynamicContext + '\n\n' : ''}Generate a reflection about this person's digital patterns.`;
   }
@@ -182,6 +186,36 @@ Data about this person (USE THIS TO INFORM YOUR OBSERVATION, don't list it):
 ${data.broadcasterType ? `- They are a ${data.broadcasterType} broadcaster themselves` : '- Primarily a viewer/follower'}
 ${twitchExtensionSection}
 Write an observation about what their streaming habits reveal about them.`;
+}
+
+function buildDiscordPrompt(dynamicContext, data) {
+  const serverList = data.servers?.map(s => s.name).join(', ') || 'various communities';
+  const categories = data.categoryBreakdown?.map(c => `${c.category} (${c.count})`).join(', ') || 'mixed';
+
+  return `${dynamicContext ? dynamicContext + '\n\n' : ''}PLATFORM: DISCORD (Communities & Social)
+
+Data about this person (USE THIS TO INFORM YOUR OBSERVATION, don't list it):
+- Member of ${data.totalServers || data.servers?.length || 'several'} Discord communities
+- Communities include: ${serverList}
+- Community categories: ${categories}
+${data.topCategories?.length > 0 ? `- Their strongest community focus: ${data.topCategories.join(', ')}` : ''}
+
+Write an observation about what their community choices reveal about who they are — how they connect with others, what they care about, and the kind of belonging they seek.`;
+}
+
+function buildLinkedInPrompt(dynamicContext, data) {
+  const skillsList = data.skills?.slice(0, 6).join(', ') || 'various skills';
+
+  return `${dynamicContext ? dynamicContext + '\n\n' : ''}PLATFORM: LINKEDIN (Professional Identity)
+
+Data about this person (USE THIS TO INFORM YOUR OBSERVATION, don't list it):
+${data.headline ? `- Professional headline: "${data.headline}"` : ''}
+${data.industry ? `- Works in: ${data.industry}` : ''}
+${data.locale ? `- Location/locale: ${data.locale}` : ''}
+${data.connectionCount ? `- Network size: ${data.connectionCount}+ connections` : ''}
+${data.skills?.length > 0 ? `- Their listed skills: ${skillsList}` : ''}
+
+Write an observation about what their professional identity and positioning reveals about them as a person — their ambitions, values, and how they want to be seen professionally.`;
 }
 
 function buildWebPrompt(dynamicContext, data) {

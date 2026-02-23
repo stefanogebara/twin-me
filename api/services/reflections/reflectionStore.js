@@ -229,6 +229,17 @@ export function formatResponse(reflection, history, lifeContext = null, visualDa
     webReadingProfile: rawData.readingProfile || null,
     webRecentActivity: rawData.recentActivity || [],
     webTotalPageVisits: rawData.totalPageVisits || 0,
-    webTotalSearches: rawData.totalSearches || 0
+    webTotalSearches: rawData.totalSearches || 0,
+    // Discord data
+    discordServers: rawData.servers || [],
+    discordTotalServers: rawData.totalServers || 0,
+    discordCategoryBreakdown: rawData.categoryBreakdown || [],
+    discordTopCategories: rawData.topCategories || [],
+    // LinkedIn data
+    linkedinHeadline: rawData.headline || null,
+    linkedinIndustry: rawData.industry || null,
+    linkedinLocale: rawData.locale || null,
+    linkedinSkills: rawData.skills || [],
+    linkedinConnectionCount: rawData.connectionCount || null
   };
 }
