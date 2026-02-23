@@ -48,7 +48,7 @@ async function loadExistingHashes(userId, platform) {
     .select('content, metadata')
     .eq('user_id', userId)
     .eq('memory_type', 'platform_data')
-    .eq('source', platform)
+    .filter('metadata->>source', 'eq', platform)
     .limit(5000);
 
   const hashes = new Set();
