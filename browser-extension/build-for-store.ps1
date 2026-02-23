@@ -29,8 +29,7 @@ Write-Host "[2/5] Created dist/" -ForegroundColor Green
 $filesToCopy = @(
     "manifest.json",
     "config.js",
-    "background.js",
-    "soul-observer.js"
+    "background.js"
 )
 
 $dirsToCopy = @(
