@@ -1,14 +1,14 @@
 {
   "manifest_version": 3,
   "name": "Soul Signature - Digital Twin Collector",
-  "version": "1.1.0",
-  "description": "Capture your digital footprint from streaming platforms and browsing activity to build your Soul Signature profile",
+  "version": "2.0.0",
+  "description": "Capture your digital footprint from streaming platforms to build your authentic Soul Signature profile",
   "permissions": [
     "storage",
     "tabs",
     "activeTab",
     "scripting",
-    "webNavigation",
+    "history",
     "alarms"
   ],
   "homepage_url": "https://twin-ai-learn.vercel.app",
@@ -18,10 +18,11 @@
     "https://www.netflix.com/*",
     "https://www.hulu.com/*",
     "https://www.hbomax.com/*",
+    "https://max.com/*",
     "https://www.primevideo.com/*",
+    "https://www.amazon.com/gp/video/*",
     "https://www.disneyplus.com/*",
-    "https://twin-ai-learn.vercel.app/*",
-    "https://*/*"
+    "https://twin-ai-learn.vercel.app/*"
   ],
   "background": {
     "service_worker": "background.js",
@@ -62,16 +63,6 @@
       "matches": ["https://www.disneyplus.com/*"],
       "js": ["collectors/disneyplus.js"],
       "run_at": "document_idle"
-    },
-    {
-      "matches": ["https://www.instagram.com/*"],
-      "js": ["collectors/instagram.js"],
-      "run_at": "document_idle"
-    },
-    {
-      "matches": ["<all_urls>"],
-      "js": ["content/soul-observer.js"],
-      "run_at": "document_idle"
     }
   ],
   "action": {
@@ -90,7 +81,12 @@
   "web_accessible_resources": [
     {
       "resources": ["content/*"],
-      "matches": ["<all_urls>"]
+      "matches": [
+        "https://www.youtube.com/*",
+        "https://www.twitch.tv/*",
+        "https://www.netflix.com/*",
+        "https://twin-ai-learn.vercel.app/*"
+      ]
     }
   ]
 }
