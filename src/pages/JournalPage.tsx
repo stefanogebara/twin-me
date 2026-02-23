@@ -58,7 +58,7 @@ const JournalPage: React.FC = () => {
   const [saving, setSaving] = useState(false);
 
   // Design system colors
-  const textPrimary = '#1F1C18';
+  const textPrimary = '#000000';
   const textSecondary = '#8A857D';
   const borderColor = 'rgba(0, 0, 0, 0.08)';
   const inputBg = 'rgba(0, 0, 0, 0.03)';
@@ -240,11 +240,11 @@ const JournalPage: React.FC = () => {
                 <Clay3DIcon name="brain" size={20} />
               </div>
               <div className="flex-1 min-w-0">
-                <h3 className="text-sm font-medium mb-2" style={{ color: textPrimary, fontFamily: 'var(--font-heading)' }}>
+                <h3 className="heading-serif text-sm font-medium mb-2">
                   Your Journal Patterns
                 </h3>
                 {insights.recentSummaries.length > 0 && (
-                  <p className="text-sm mb-3" style={{ color: textSecondary, fontFamily: 'var(--font-body)' }}>
+                  <p className="body-text mb-3" style={{ color: textSecondary }}>
                     {insights.recentSummaries[0]}
                   </p>
                 )}
@@ -297,7 +297,7 @@ const JournalPage: React.FC = () => {
             whileTap={{ scale: 0.99 }}
           >
             <Plus className="w-5 h-5" />
-            <span className="text-sm" style={{ fontFamily: 'var(--font-body)' }}>
+            <span className="body-text">
               Write about your day...
             </span>
           </motion.button>
@@ -316,7 +316,7 @@ const JournalPage: React.FC = () => {
             <div className="space-y-4">
               {/* Header */}
               <div className="flex items-center justify-between">
-                <h3 className="text-sm font-medium" style={{ color: textPrimary, fontFamily: 'var(--font-heading)' }}>
+                <h3 className="heading-serif text-sm font-medium">
                   {editingId ? 'Edit Entry' : 'New Entry'}
                 </h3>
                 <button onClick={resetComposer} className="p-1 rounded-lg transition-colors hover:bg-black/5">
@@ -335,7 +335,7 @@ const JournalPage: React.FC = () => {
                   background: inputBg,
                   border: `1px solid ${borderColor}`,
                   color: textPrimary,
-                  fontFamily: 'var(--font-heading)'
+                  fontFamily: "'Halant', Georgia, serif"
                 }}
               />
 
@@ -350,7 +350,7 @@ const JournalPage: React.FC = () => {
                   background: inputBg,
                   border: `1px solid ${borderColor}`,
                   color: textPrimary,
-                  fontFamily: 'var(--font-body)'
+                  fontFamily: "'Geist', 'Inter', system-ui, sans-serif"
                 }}
                 autoFocus
               />
@@ -444,7 +444,7 @@ const JournalPage: React.FC = () => {
               <div className="flex items-center justify-end gap-2 pt-2">
                 <button
                   onClick={resetComposer}
-                  className="px-4 py-2 rounded-xl text-sm transition-colors"
+                  className="px-4 py-2 rounded-full text-sm transition-colors"
                   style={{ color: textSecondary }}
                 >
                   Cancel
@@ -452,11 +452,7 @@ const JournalPage: React.FC = () => {
                 <button
                   onClick={handleSave}
                   disabled={!content.trim() || saving}
-                  className="px-4 py-2 rounded-xl text-sm font-medium flex items-center gap-2 transition-all disabled:opacity-40"
-                  style={{
-                    background: '#2D2722',
-                    color: '#F7F7F3'
-                  }}
+                  className="btn-cta-app flex items-center gap-2 transition-all disabled:opacity-40"
                 >
                   {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
                   {editingId ? 'Update' : 'Save Entry'}
@@ -484,8 +480,7 @@ const JournalPage: React.FC = () => {
               <Clay3DIcon name="light-bulb" size={48} />
             </motion.div>
             <motion.h3
-              className="text-lg mb-2"
-              style={{ color: textPrimary, fontFamily: 'var(--font-heading)' }}
+              className="heading-serif text-lg mb-2"
               initial={{ opacity: 0, y: 8 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.4, delay: 0.1, ease: [0.4, 0, 0.2, 1] }}
@@ -528,7 +523,7 @@ const JournalPage: React.FC = () => {
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
                 >
-                  <span className="text-sm" style={{ color: textSecondary, fontFamily: 'var(--font-body)' }}>
+                  <span className="body-text" style={{ color: textSecondary }}>
                     {prompt}
                   </span>
                 </motion.button>
@@ -566,13 +561,13 @@ const JournalPage: React.FC = () => {
                     {/* Content */}
                     <div className="flex-1 min-w-0">
                       {entry.title && (
-                        <h4 className="text-sm font-medium mb-1" style={{ color: textPrimary, fontFamily: 'var(--font-heading)' }}>
+                        <h4 className="heading-serif text-sm font-medium mb-1">
                           {entry.title}
                         </h4>
                       )}
                       <p
-                        className={`text-sm ${!isExpanded ? 'line-clamp-2' : ''}`}
-                        style={{ color: textSecondary, fontFamily: 'var(--font-body)' }}
+                        className={`body-text ${!isExpanded ? 'line-clamp-2' : ''}`}
+                        style={{ color: textSecondary }}
                       >
                         {entry.content}
                       </p>

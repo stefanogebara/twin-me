@@ -57,7 +57,7 @@ const InstantTwinOnboarding = () => {
 
   // Design system colors (light only)
   const colors = {
-    textPrimary: '#1F1C18',
+    textPrimary: '#000000',
     textSecondary: '#8A857D',
     muted: '#8A857D',
     categoryEntertainment: '#3b82f6',

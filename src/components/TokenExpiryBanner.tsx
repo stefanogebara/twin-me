@@ -185,7 +185,7 @@ export const TokenExpiryBanner: React.FC<TokenExpiryBannerProps> = ({
           className="h-8 px-3 text-xs rounded-lg flex items-center gap-1.5 font-medium transition-opacity hover:opacity-90"
           style={{
             backgroundColor: isExpired ? '#dc2626' : '#d97706',
-            color: '#F7F7F3',
+            color: '#fcf6ef',
           }}
         >
           <RefreshCw className="w-3 h-3" />

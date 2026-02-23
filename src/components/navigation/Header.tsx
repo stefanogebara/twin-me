@@ -32,7 +32,7 @@ export const Header: React.FC<HeaderProps> = ({ user, onSignOut }) => {
     <header
       className="fixed top-0 left-0 right-0 z-50 m-4 rounded-2xl"
       style={{
-        backgroundColor: 'rgba(247, 247, 243, 0.9)',
+        backgroundColor: 'rgba(252, 246, 239, 0.9)',
         backdropFilter: 'blur(16px) saturate(180%)',
         WebkitBackdropFilter: 'blur(16px) saturate(180%)',
         border: '1px solid rgba(0, 0, 0, 0.06)',
@@ -55,11 +55,11 @@ export const Header: React.FC<HeaderProps> = ({ user, onSignOut }) => {
           </div>
           <span
             style={{
-              fontFamily: 'var(--font-heading)',
-              fontWeight: 400,
+              fontFamily: '"Halant", var(--font-heading), Georgia, serif',
+              fontWeight: 500,
               letterSpacing: '-0.02em',
               fontSize: '1.125rem',
-              color: '#1F1C18'
+              color: '#000000'
             }}
           >
             Twin Me
@@ -84,8 +84,8 @@ export const Header: React.FC<HeaderProps> = ({ user, onSignOut }) => {
                     ? 'rgba(0, 0, 0, 0.05)'
                     : 'transparent',
                   color: isActive
-                    ? '#1F1C18'
-                    : 'rgba(31, 28, 24, 0.6)'
+                    ? '#000000'
+                    : 'rgba(0, 0, 0, 0.5)'
                 })}
               >
                 {Icon && <Icon className="w-4 h-4" />}
@@ -108,7 +108,7 @@ export const Header: React.FC<HeaderProps> = ({ user, onSignOut }) => {
           className="md:hidden p-2 rounded-lg transition-colors"
           onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
           style={{
-            color: '#1F1C18',
+            color: '#000000',
             backgroundColor: mobileMenuOpen
               ? 'rgba(0, 0, 0, 0.05)'
               : 'transparent'
@@ -149,7 +149,7 @@ export const Header: React.FC<HeaderProps> = ({ user, onSignOut }) => {
                     style={{
                       fontFamily: 'var(--font-heading)',
                       fontWeight: 500,
-                      color: '#1F1C18'
+                      color: '#000000'
                     }}
                   >
                     {user.name}
@@ -217,8 +217,8 @@ export const Header: React.FC<HeaderProps> = ({ user, onSignOut }) => {
                       ? 'rgba(0, 0, 0, 0.05)'
                       : 'transparent',
                     color: isActive
-                      ? '#1F1C18'
-                      : 'rgba(31, 28, 24, 0.6)'
+                      ? '#000000'
+                      : 'rgba(0, 0, 0, 0.5)'
                   })}
                 >
                   {Icon && <Icon className="w-4 h-4" />}
@@ -267,7 +267,7 @@ export const Header: React.FC<HeaderProps> = ({ user, onSignOut }) => {
                         style={{
                           fontFamily: 'var(--font-heading)',
                           fontWeight: 500,
-                          color: '#1F1C18'
+                          color: '#000000'
                         }}
                       >
                         {user.name}

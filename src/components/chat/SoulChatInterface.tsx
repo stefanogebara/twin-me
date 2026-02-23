@@ -205,7 +205,7 @@ export function SoulChatInterface({
   return (
     <div
       className={`flex flex-col h-full ${className}`}
-      style={{ backgroundColor: '#F7F7F3' }}
+      style={{ backgroundColor: '#fcf6ef' }}
     >
       {/* Header with Conversation Controls */}
       <div
@@ -220,7 +220,7 @@ export function SoulChatInterface({
             <img src="/images/backgrounds/flower-hero.png" alt="Twin" className="w-9 h-9 object-contain" />
           </div>
           <div>
-            <h2 className="font-semibold" style={{ color: '#1F1C18' }}>
+            <h2 className="font-semibold" style={{ color: '#000000' }}>
               Chat with Your Soul Twin
             </h2>
             <p className="text-sm" style={{ color: '#8A857D' }}>
@@ -273,7 +273,7 @@ export function SoulChatInterface({
                       backgroundColor: 'rgba(255, 255, 255, 0.18)',
                       backdropFilter: 'blur(10px)',
                       border: '1px solid rgba(255, 255, 255, 0.45)',
-                      color: '#1F1C18'
+                      color: '#000000'
                     }}
                   >
                     {suggestion}
@@ -305,9 +305,9 @@ export function SoulChatInterface({
           >
             <div
               className="w-8 h-8 rounded-full flex items-center justify-center"
-              style={{ background: 'linear-gradient(135deg, #2D2722, #4a3f38)' }}
+              style={{ background: 'linear-gradient(135deg, #000000, #4a3f38)' }}
             >
-              <Loader className="w-5 h-5 animate-spin" style={{ color: '#F7F7F3' }} />
+              <Loader className="w-5 h-5 animate-spin" style={{ color: '#fcf6ef' }} />
             </div>
             <span style={{ color: '#8A857D' }}>Thinking...</span>
           </motion.div>
@@ -333,7 +333,7 @@ export function SoulChatInterface({
             style={{
               backgroundColor: 'rgba(255, 255, 255, 0.6)',
               border: '1px solid rgba(255, 255, 255, 0.45)',
-              color: '#1F1C18',
+              color: '#000000',
               minHeight: '48px',
               maxHeight: '120px'
             }}

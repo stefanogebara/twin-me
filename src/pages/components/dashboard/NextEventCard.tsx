@@ -62,7 +62,7 @@ export const NextEventCard: React.FC<NextEventCardProps> = ({
                 style={{
                   fontFamily: 'var(--font-heading)',
                   fontWeight: 500,
-                  color: '#1F1C18'
+                  color: '#000000'
                 }}
               >
                 {nextEvent.title}
@@ -133,7 +133,7 @@ export const NextEventCard: React.FC<NextEventCardProps> = ({
     >
       <Clock
         className="w-5 h-5 flex-shrink-0 opacity-40"
-        style={{ color: '#1F1C18' }}
+        style={{ color: '#000000' }}
       />
       <span
         className="text-sm flex-1"
@@ -146,7 +146,7 @@ export const NextEventCard: React.FC<NextEventCardProps> = ({
         className="px-3 py-1.5 rounded-lg text-xs font-medium transition-colors hover:opacity-80 flex-shrink-0"
         style={{
           backgroundColor: 'rgba(0, 0, 0, 0.06)',
-          color: '#1F1C18'
+          color: '#000000'
         }}
       >
         {isCalendarConnected ? 'View Calendar' : 'Connect Calendar'}

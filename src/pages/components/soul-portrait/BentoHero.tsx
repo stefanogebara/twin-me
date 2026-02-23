@@ -69,7 +69,7 @@ export const BentoHero: React.FC<Props> = ({ data }) => {
         <blockquote
           className="text-xl md:text-2xl leading-snug font-light mb-5"
           style={{
-            color: '#1F1C18',
+            color: '#000000',
             letterSpacing: '-0.01em',
           }}
         >

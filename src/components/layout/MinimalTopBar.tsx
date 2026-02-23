@@ -18,7 +18,7 @@ export const MinimalTopBar: React.FC<MinimalTopBarProps> = ({ onMenuClick }) => 
   };
 
   return (
-    <div className="fixed top-0 left-0 right-0 z-50 bg-white border-b border-stone-200/60">
+    <div className="fixed top-0 left-0 right-0 z-50 border-b border-stone-200/60" style={{ backgroundColor: '#fcf6ef' }}>
       <div className="flex items-center justify-between px-6 py-4">
         {/* Left: Menu + Logo */}
         <div className="flex items-center gap-4">
@@ -33,8 +33,8 @@ export const MinimalTopBar: React.FC<MinimalTopBarProps> = ({ onMenuClick }) => 
 
           <button
             onClick={() => navigate('/dashboard')}
-            className="text-2xl font-bold text-stone-900 hover:text-stone-700 transition-colors"
-            style={{ fontFamily: 'var(--font-heading)', fontWeight: 500 }}
+            className="text-2xl font-bold text-black hover:text-stone-700 transition-colors"
+            style={{ fontFamily: '"Halant", var(--font-heading), Georgia, serif', fontWeight: 500 }}
           >
             Twin Me
           </button>
@@ -46,10 +46,10 @@ export const MinimalTopBar: React.FC<MinimalTopBarProps> = ({ onMenuClick }) => 
             onClick={() => setShowUserMenu(!showUserMenu)}
             className="flex items-center gap-3 px-4 py-2 rounded-full hover:bg-stone-100 transition-colors"
           >
-            <div className="w-8 h-8 bg-stone-900 rounded-full flex items-center justify-center text-white text-sm font-bold">
+            <div className="w-8 h-8 bg-black rounded-full flex items-center justify-center text-white text-sm font-bold">
               {user?.firstName?.charAt(0) || user?.email?.charAt(0) || 'U'}
             </div>
-            <span className="text-sm font-medium text-stone-900 hidden md:block">
+            <span className="text-sm font-medium text-black hidden md:block">
               {user?.firstName || 'User'}
             </span>
           </button>
@@ -63,7 +63,7 @@ export const MinimalTopBar: React.FC<MinimalTopBarProps> = ({ onMenuClick }) => 
 
               <div className="absolute right-0 mt-2 w-56 bg-white border border-stone-200 rounded-xl shadow-lg z-50 overflow-hidden">
                 <div className="p-4 border-b border-stone-200">
-                  <p className="text-sm font-medium text-stone-900 truncate">
+                  <p className="text-sm font-medium text-black truncate">
                     {user?.fullName || user?.email || 'User'}
                   </p>
                   <p className="text-xs text-stone-600 truncate">

@@ -178,12 +178,13 @@ export const CollapsibleSidebar: React.FC<CollapsibleSidebarProps> = ({
       {/* Sidebar */}
       <div
         className={cn(
-          "fixed top-0 left-0 bottom-0 z-40 transition-all duration-300 flex flex-col glass-sidebar",
+          "fixed top-0 left-0 bottom-0 z-40 transition-all duration-300 flex flex-col",
           isOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0",
           isExpanded ? "w-64" : "w-20 lg:w-20",
-          "lg:m-4 lg:rounded-3xl",
-          "lg:overflow-visible overflow-hidden"
+          "lg:m-4 lg:rounded-2xl",
+          "lg:overflow-visible overflow-hidden border-r border-[#E8E3DC]"
         )}
+        style={{ backgroundColor: '#f8f1e8' }}
       >
         <style>
           {`
@@ -252,8 +253,8 @@ export const CollapsibleSidebar: React.FC<CollapsibleSidebarProps> = ({
               <span
                 className="text-2xl heading-serif"
                 style={{
-                  fontWeight: 500,
-                  color: '#1F1C18'
+                  fontWeight: 400,
+                  color: '#000000'
                 }}
               >
                 Twin Me
@@ -278,7 +279,7 @@ export const CollapsibleSidebar: React.FC<CollapsibleSidebarProps> = ({
                   "w-full flex items-center gap-3 rounded-lg transition-all duration-200",
                   isExpanded ? "px-4 py-3" : "px-3 py-3 justify-center",
                   active
-                    ? 'bg-sidebar-accent border-l-[3px] border-l-emerald-500 text-sidebar-accent-foreground font-semibold'
+                    ? 'bg-sidebar-accent border-l-[3px] border-l-[#000] text-sidebar-accent-foreground font-semibold'
                     : 'text-sidebar-foreground hover:bg-sidebar-accent border-l-[3px] border-l-transparent'
                 )}
                 title={item.label}
@@ -286,7 +287,7 @@ export const CollapsibleSidebar: React.FC<CollapsibleSidebarProps> = ({
                 {CLAY_ICON_MAP[item.id] ? (
                   <Clay3DIcon name={CLAY_ICON_MAP[item.id]} size="sm" className={cn("transition-transform", active && "scale-110")} />
                 ) : (
-                  <Icon className={cn("w-5 h-5", active && "text-emerald-500")} aria-hidden="true" />
+                  <Icon className={cn("w-5 h-5", active && "text-[#000]")} aria-hidden="true" />
                 )}
                 {isExpanded && <span className="text-sm">{item.label}</span>}
               </button>
@@ -329,7 +330,7 @@ export const CollapsibleSidebar: React.FC<CollapsibleSidebarProps> = ({
                         className={cn(
                           "w-full flex items-center gap-3 px-4 py-2 rounded-lg transition-all duration-200",
                           active
-                            ? 'bg-sidebar-accent border-l-[3px] border-l-emerald-500 text-sidebar-accent-foreground font-semibold'
+                            ? 'bg-sidebar-accent border-l-[3px] border-l-[#000] text-sidebar-accent-foreground font-semibold'
                             : 'text-sidebar-foreground opacity-80 hover:bg-sidebar-accent hover:opacity-100 border-l-[3px] border-l-transparent'
                         )}
                         title={item.label}
@@ -337,7 +338,7 @@ export const CollapsibleSidebar: React.FC<CollapsibleSidebarProps> = ({
                         {CLAY_ICON_MAP[item.id] ? (
                           <Clay3DIcon name={CLAY_ICON_MAP[item.id]} size="xs" className={cn("transition-transform", active && "scale-110")} />
                         ) : (
-                          <Icon className={cn("w-4 h-4", active && "text-emerald-500")} aria-hidden="true" />
+                          <Icon className={cn("w-4 h-4", active && "text-[#000]")} aria-hidden="true" />
                         )}
                         <span className="text-sm">{item.label}</span>
                       </button>
@@ -362,7 +363,7 @@ export const CollapsibleSidebar: React.FC<CollapsibleSidebarProps> = ({
                     className={cn(
                       "w-full flex items-center justify-center px-3 py-3 rounded-lg transition-all duration-200",
                       active
-                        ? 'bg-sidebar-accent border-l-[3px] border-l-emerald-500'
+                        ? 'bg-sidebar-accent border-l-[3px] border-l-[#000]'
                         : 'text-sidebar-foreground opacity-80 hover:bg-sidebar-accent hover:opacity-100 border-l-[3px] border-l-transparent'
                     )}
                     title={item.label}
@@ -370,7 +371,7 @@ export const CollapsibleSidebar: React.FC<CollapsibleSidebarProps> = ({
                     {CLAY_ICON_MAP[item.id] ? (
                       <Clay3DIcon name={CLAY_ICON_MAP[item.id]} size="xs" className={cn("transition-transform", active && "scale-110")} />
                     ) : (
-                      <Icon className={cn("w-4 h-4", active ? "text-emerald-500" : "")} />
+                      <Icon className={cn("w-4 h-4", active ? "text-[#000]" : "")} />
                     )}
                   </button>
                 );
@@ -389,12 +390,12 @@ export const CollapsibleSidebar: React.FC<CollapsibleSidebarProps> = ({
               "w-full flex items-center gap-3 rounded-lg transition-all duration-200",
               isExpanded ? "px-4 py-3" : "px-3 py-3 justify-center",
               isActive('/admin/llm-costs')
-                ? 'bg-sidebar-accent border-l-[3px] border-l-emerald-500 text-sidebar-accent-foreground font-semibold'
+                ? 'bg-sidebar-accent border-l-[3px] border-l-[#000] text-sidebar-accent-foreground font-semibold'
                 : 'text-sidebar-foreground opacity-70 hover:bg-sidebar-accent hover:opacity-100 border-l-[3px] border-l-transparent'
             )}
             title="LLM Costs"
           >
-            <BarChart3 className={cn("w-5 h-5", isActive('/admin/llm-costs') && "text-emerald-500")} aria-hidden="true" />
+            <BarChart3 className={cn("w-5 h-5", isActive('/admin/llm-costs') && "text-[#000]")} aria-hidden="true" />
             {isExpanded && <span className="text-sm">LLM Costs</span>}
           </button>
         </div>

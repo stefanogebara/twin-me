@@ -55,13 +55,13 @@ const SoulSignatureDashboard: React.FC = () => {
 
 
   const colors: ThemeColors = {
-    textColor: '#1F1C18',
+    textColor: '#000000',
     textSecondary: '#8A857D',
     textMuted: '#8A857D',
     textFaint: 'rgba(138, 133, 125, 0.7)',
-    cardBg: 'rgba(255, 255, 255, 0.18)',
-    cardBorder: '1px solid rgba(255, 255, 255, 0.45)',
-    cardShadow: '0 8px 32px rgba(0, 0, 0, 0.18)',
+    cardBg: 'rgba(255, 255, 255, 0.55)',
+    cardBorder: '1px solid rgba(0, 0, 0, 0.08)',
+    cardShadow: '0 2px 12px rgba(0, 0, 0, 0.06)',
     hoverBg: 'rgba(0, 0, 0, 0.02)',
     subtleBg: 'rgba(0, 0, 0, 0.05)',
     theme: 'light'

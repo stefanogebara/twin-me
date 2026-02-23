@@ -17,7 +17,7 @@ export const PortraitEmptyState: React.FC = () => {
         style={{
           fontFamily: 'var(--font-heading)',
           fontWeight: 500,
-          color: '#1F1C18',
+          color: '#000000',
         }}
       >
         Your Twin Is Still Learning

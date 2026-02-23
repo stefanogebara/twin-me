@@ -128,7 +128,7 @@ const CalendarInsightsPage: React.FC = () => {
   const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3001';
 
   const colors = {
-    text: '#1F1C18',
+    text: '#000000',
     textSecondary: '#8A857D',
     calendarBlue: '#4285F4',
     calendarBg: 'rgba(66, 133, 244, 0.1)'

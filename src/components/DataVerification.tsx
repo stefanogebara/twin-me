@@ -203,7 +203,7 @@ export const DataVerification: React.FC<DataVerificationProps> = ({ userId, conn
               <h4
                 className="text-sm font-medium"
                 style={{
-                  color: '#1F1C18',
+                  color: '#000000',
                   fontFamily: 'var(--font-ui)'
                 }}
               >
@@ -253,7 +253,7 @@ export const DataVerification: React.FC<DataVerificationProps> = ({ userId, conn
         <h3
           className="text-base font-medium"
           style={{
-            color: '#1F1C18',
+            color: '#000000',
             fontFamily: 'var(--font-heading)'
           }}
         >
@@ -265,7 +265,7 @@ export const DataVerification: React.FC<DataVerificationProps> = ({ userId, conn
           className="p-2 rounded-lg transition-all hover:opacity-80 disabled:opacity-50"
           style={{
             backgroundColor: 'rgba(0, 0, 0, 0.05)',
-            color: '#1F1C18'
+            color: '#000000'
           }}
         >
           <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />

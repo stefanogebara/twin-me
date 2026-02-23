@@ -31,10 +31,10 @@ import {
 } from 'lucide-react';
 
 // --- Design tokens ---
-const TEXT_PRIMARY = '#1F1C18';
+const TEXT_PRIMARY = '#000000';
 const TEXT_SECONDARY = '#8A857D';
 const BORDER_COLOR = 'rgba(0, 0, 0, 0.08)';
-const CARD_BG = 'rgba(255,255,255,0.8)';
+const CARD_BG = 'rgba(255,255,255,0.55)';
 
 const CATEGORY_COLORS = {
   personal: '#EC4899',
@@ -370,7 +370,7 @@ const PrivacySpectrumDashboard: React.FC = () => {
               fontWeight: 700,
               color: TEXT_PRIMARY,
               margin: 0,
-              fontFamily: 'var(--font-heading-serif, Georgia, serif)',
+              fontFamily: "Halant, var(--font-heading), Georgia, serif",
             }}
           >
             Privacy Spectrum
@@ -497,7 +497,7 @@ const PrivacySpectrumDashboard: React.FC = () => {
               fontSize: 22,
               fontWeight: 800,
               color: TEXT_PRIMARY,
-              fontFamily: 'var(--font-heading-serif, Georgia, serif)',
+              fontFamily: "Halant, var(--font-heading), Georgia, serif",
             }}
           >
             {currentGlobal}%
@@ -665,7 +665,7 @@ const StatCard: React.FC<{ label: string; value: string; color: string }> = ({ l
       padding: '12px 16px',
     }}
   >
-    <div style={{ fontSize: 20, fontWeight: 800, color, fontFamily: 'var(--font-heading-serif, Georgia, serif)' }}>
+    <div style={{ fontSize: 20, fontWeight: 800, color, fontFamily: "Halant, var(--font-heading), Georgia, serif" }}>
       {value}
     </div>
     <div style={{ fontSize: 11, color: '#8A857D', marginTop: 2, fontWeight: 500 }}>

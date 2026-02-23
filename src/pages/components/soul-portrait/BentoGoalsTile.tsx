@@ -73,7 +73,7 @@ export const BentoGoalsTile: React.FC<Props> = ({ goals, animationDelay = 0 }) =
                 }
                 <p
                   className="text-xs font-medium leading-tight truncate flex-1"
-                  style={{ color: '#1F1C18' }}
+                  style={{ color: '#000000' }}
                 >
                   {goal.title}
                 </p>

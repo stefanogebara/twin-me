@@ -106,7 +106,7 @@ export const PersonalityTypePanel: React.FC<PersonalityTypePanelProps> = ({
     <GlassPanel className="!p-5 md:!p-6 mb-6">
       <div className="flex items-center gap-3 mb-6">
         <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ backgroundColor: 'rgba(45, 39, 34, 0.08)' }}>
-          <Compass className="w-5 h-5" style={{ color: '#2D2722' }} />
+          <Compass className="w-5 h-5" style={{ color: '#000000' }} />
         </div>
         <div>
           <h3 style={{ fontFamily: 'var(--font-heading)', fontWeight: 500, color: textColor }}>

@@ -33,7 +33,7 @@ import {
 } from 'lucide-react';
 
 // --- Design tokens ---
-const TEXT_PRIMARY = '#1F1C18';
+const TEXT_PRIMARY = '#000000';
 const TEXT_SECONDARY = '#8A857D';
 const BORDER_COLOR = 'rgba(0, 0, 0, 0.08)';
 
@@ -244,8 +244,8 @@ const GoalsPage: React.FC = () => {
               Your twin is still learning your patterns
             </h3>
             <p
-              className="text-sm max-w-md mx-auto"
-              style={{ color: TEXT_SECONDARY, fontFamily: 'var(--font-body)' }}
+              className="body-text max-w-md mx-auto"
+              style={{ color: TEXT_SECONDARY }}
             >
               Connect more platforms to get personalized goals. Your twin analyzes your real
               data to suggest goals that actually fit your life.

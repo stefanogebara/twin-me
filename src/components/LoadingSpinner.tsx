@@ -35,7 +35,7 @@ const LoadingSpinner: React.FC<LoadingSpinnerProps> = ({
       case 'chat':
         return <img src="/icons/3d/chat-bubble.png" alt="Loading chat" className="animate-pulse" style={{ width: clay3dSize, height: clay3dSize }} />;
       default:
-        return <Loader2 className={baseClasses} style={{ color: '#2D2722' }} />;
+        return <Loader2 className={baseClasses} style={{ color: '#000000' }} />;
     }
   };
 
@@ -61,7 +61,7 @@ const LoadingSpinner: React.FC<LoadingSpinnerProps> = ({
     return (
       <div
         className="fixed inset-0 flex items-center justify-center z-50"
-        style={{ backgroundColor: 'rgba(247, 247, 243, 0.9)', backdropFilter: 'blur(4px)' }}
+        style={{ backgroundColor: 'rgba(252, 246, 239, 0.9)', backdropFilter: 'blur(4px)' }}
       >
         <div
           className="rounded-2xl p-8"
@@ -85,7 +85,7 @@ const LoadingSpinner: React.FC<LoadingSpinnerProps> = ({
 export const LoadingPage: React.FC<{ text?: string }> = ({ text = "Loading..." }) => (
   <div
     className="min-h-screen flex items-center justify-center"
-    style={{ backgroundColor: '#F7F7F3' }}
+    style={{ backgroundColor: '#fcf6ef' }}
   >
     <LoadingSpinner size="xl" text={text} className="p-8" />
   </div>
@@ -125,7 +125,7 @@ export const LoadingOverlay: React.FC<{ text?: string; variant?: 'default' | 'br
   <div
     className="absolute inset-0 flex items-center justify-center rounded-lg z-10"
     style={{
-      backgroundColor: 'rgba(247, 247, 243, 0.9)',
+      backgroundColor: 'rgba(252, 246, 239, 0.9)',
       backdropFilter: 'blur(4px)',
     }}
   >

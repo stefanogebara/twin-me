@@ -21,7 +21,7 @@ import {
 import type { Goal } from '@/services/api/goalsAPI';
 
 // Design tokens
-const TEXT_PRIMARY = '#1F1C18';
+const TEXT_PRIMARY = '#000000';
 const TEXT_SECONDARY = '#8A857D';
 const BORDER_COLOR = 'rgba(0, 0, 0, 0.08)';
 

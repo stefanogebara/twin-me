@@ -75,7 +75,7 @@ export const ChatInputArea = forwardRef<HTMLTextAreaElement, ChatInputAreaProps>
             className="w-full px-4 py-3 resize-none focus:outline-none disabled:opacity-50 text-[15px]"
             style={{
               backgroundColor: 'transparent',
-              color: '#1F1C18',
+              color: '#000000',
               minHeight: '48px',
               maxHeight: '120px'
             }}
@@ -138,8 +138,8 @@ export const ChatInputArea = forwardRef<HTMLTextAreaElement, ChatInputAreaProps>
                 disabled={!inputMessage.trim() || isDisabled || isTyping || limitReached}
                 className="p-2.5 rounded-xl transition-all hover:scale-[1.02] disabled:opacity-50 disabled:hover:scale-100"
                 style={{
-                  backgroundColor: inputMessage.trim() ? '#2D2722' : 'rgba(255, 255, 255, 0.3)',
-                  color: inputMessage.trim() ? '#F7F7F3' : '#8A857D'
+                  backgroundColor: inputMessage.trim() ? '#000000' : 'rgba(255, 255, 255, 0.3)',
+                  color: inputMessage.trim() ? '#fcf6ef' : '#8A857D'
                 }}
               >
                 {isTyping ? (

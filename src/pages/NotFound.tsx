@@ -14,13 +14,13 @@ const NotFound = () => {
   return (
     <div
       className="min-h-screen relative overflow-hidden"
-      style={{ backgroundColor: '#F7F7F3' }}
+      style={{ backgroundColor: '#fcf6ef' }}
     >
       {/* Subtle background texture */}
       <div
         className="absolute inset-0 pointer-events-none"
         style={{
-          background: 'radial-gradient(ellipse 80% 60% at 50% 20%, rgba(45, 39, 34, 0.06) 0%, transparent 70%), radial-gradient(ellipse 60% 80% at 80% 80%, rgba(45, 39, 34, 0.04) 0%, transparent 70%)',
+          background: 'radial-gradient(ellipse 80% 60% at 50% 20%, rgba(0, 0, 0, 0.04) 0%, transparent 70%), radial-gradient(ellipse 60% 80% at 80% 80%, rgba(0, 0, 0, 0.03) 0%, transparent 70%)',
         }}
       />
 
@@ -40,7 +40,7 @@ const NotFound = () => {
             <p
               className="text-8xl font-bold mb-4"
               style={{
-                color: 'rgba(31, 28, 24, 0.08)',
+                color: 'rgba(0, 0, 0, 0.06)',
                 fontFamily: '"Halant", Georgia, serif',
                 lineHeight: 1,
                 letterSpacing: '-0.04em',

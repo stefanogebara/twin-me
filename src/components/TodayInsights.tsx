@@ -167,7 +167,7 @@ export const TodayInsights: React.FC = () => {
       <div className="space-y-3">
         <div className="flex items-center gap-2">
           <Sparkles className="w-5 h-5" style={{ color: '#57534e' }} />
-          <h2 className="text-lg font-medium" style={{ fontFamily: 'var(--font-heading)', color: '#1F1C18' }}>
+          <h2 className="text-lg font-medium" style={{ fontFamily: 'var(--font-heading)', color: '#000000' }}>
             Today's Insights
           </h2>
         </div>
@@ -244,7 +244,7 @@ export const TodayInsights: React.FC = () => {
       <div className="space-y-3">
         <div className="flex items-center gap-2">
           <Sparkles className="w-5 h-5" style={{ color: '#57534e' }} />
-          <h2 className="text-lg font-medium" style={{ fontFamily: 'var(--font-heading)', color: '#1F1C18' }}>
+          <h2 className="text-lg font-medium" style={{ fontFamily: 'var(--font-heading)', color: '#000000' }}>
             Today's Insights
           </h2>
         </div>
@@ -272,7 +272,7 @@ export const TodayInsights: React.FC = () => {
           <Sparkles className="w-5 h-5" style={{ color: '#8A857D' }} />
           <h2 className="text-lg font-medium" style={{
             fontFamily: 'var(--font-heading)',
-            color: '#1F1C18'
+            color: '#000000'
           }}>
             Today's Insights
           </h2>
@@ -362,7 +362,7 @@ export const TodayInsights: React.FC = () => {
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-1">
                       <h3 className="text-sm font-medium truncate" style={{
-                        color: '#1F1C18'
+                        color: '#000000'
                       }}>
                         {insight.title}
                       </h3>
@@ -486,7 +486,7 @@ export const TodayInsights: React.FC = () => {
                         className="text-sm font-medium px-4 py-2 rounded-lg transition-colors"
                         style={{
                           backgroundColor: 'rgba(0, 0, 0, 0.06)',
-                          color: '#1F1C18'
+                          color: '#000000'
                         }}
                       >
                         {insight.action.label} →

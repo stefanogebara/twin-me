@@ -160,7 +160,7 @@ const YouTubeInsightsPage: React.FC = () => {
   const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3001';
 
   const colors = {
-    text: '#1F1C18',
+    text: '#000000',
     textSecondary: '#8A857D',
     youtubeRed: '#FF0000',
     youtubeBg: 'rgba(255, 0, 0, 0.1)'

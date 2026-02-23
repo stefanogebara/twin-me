@@ -70,7 +70,7 @@ const ConnectedPlatformsSettings: React.FC<ConnectedPlatformsSettingsProps> = ({
           className="p-2 rounded-lg transition-all hover:scale-105"
           style={{ backgroundColor: 'rgba(0, 0, 0, 0.05)' }}
         >
-          <RefreshCw className="w-4 h-4" style={{ color: '#1F1C18' }} />
+          <RefreshCw className="w-4 h-4" style={{ color: '#000000' }} />
         </button>
       </div>
 
@@ -83,7 +83,7 @@ const ConnectedPlatformsSettings: React.FC<ConnectedPlatformsSettingsProps> = ({
 
       {isLoading && !isDemoMode ? (
         <div className="flex items-center justify-center py-6">
-          <Loader2 className="w-5 h-5 animate-spin" style={{ color: '#1F1C18' }} />
+          <Loader2 className="w-5 h-5 animate-spin" style={{ color: '#000000' }} />
         </div>
       ) : (
         <div className="space-y-2">
@@ -103,7 +103,7 @@ const ConnectedPlatformsSettings: React.FC<ConnectedPlatformsSettingsProps> = ({
                 }}
               >
                 <div>
-                  <h3 style={{ fontFamily: 'var(--font-body)', fontWeight: 500, color: '#1F1C18' }}>
+                  <h3 style={{ fontFamily: 'var(--font-body)', fontWeight: 500, color: '#000000' }}>
                     {connector.name}
                   </h3>
                   <p className="text-xs" style={{ color: '#8A857D' }}>

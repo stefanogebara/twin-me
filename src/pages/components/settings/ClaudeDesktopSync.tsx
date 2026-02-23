@@ -52,7 +52,7 @@ const ClaudeDesktopSync: React.FC<ClaudeDesktopSyncProps> = ({
 
       {loadingSyncStats ? (
         <div className="flex items-center gap-2 mb-4">
-          <Loader2 className="w-4 h-4 animate-spin" style={{ color: '#1F1C18' }} />
+          <Loader2 className="w-4 h-4 animate-spin" style={{ color: '#000000' }} />
           <span className="text-sm" style={{ color: '#8A857D' }}>Loading...</span>
         </div>
       ) : syncStats && syncStats.claudeDesktopConversations > 0 ? (
@@ -62,7 +62,7 @@ const ClaudeDesktopSync: React.FC<ClaudeDesktopSyncProps> = ({
         >
           <CheckCircle className="w-5 h-5" style={{ color: '#10B981' }} />
           <div className="flex-1">
-            <span className="text-sm font-medium" style={{ color: '#1F1C18' }}>
+            <span className="text-sm font-medium" style={{ color: '#000000' }}>
               {syncStats.claudeDesktopConversations} conversations imported
             </span>
             {syncStats.lastSyncAt && (

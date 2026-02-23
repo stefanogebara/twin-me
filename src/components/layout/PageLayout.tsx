@@ -2,7 +2,7 @@
  * PageLayout Component
  *
  * Provides consistent page structure with the TwinMe landing page design.
- * Cream background (#F7F7F3), Halant headings, liquid glass cards.
+ * Cream background (#fcf6ef), Halant headings, liquid glass cards.
  * Light mode only — matches Index.tsx design language.
  */
 
@@ -46,7 +46,7 @@ export const PageLayout: React.FC<PageLayoutProps> = ({
   return (
     <div
       className={`min-h-screen ${className}`}
-      style={{ backgroundColor: '#F7F7F3' }}
+      style={{ backgroundColor: '#fcf6ef' }}
     >
       {/* Token Expiry Banner - shows when tokens are expiring */}
       <TokenExpiryBanner />
@@ -64,7 +64,7 @@ export const PageLayout: React.FC<PageLayoutProps> = ({
               <h1
                 className="text-3xl mb-2 heading-serif"
                 style={{
-                  color: '#1F1C18'
+                  color: '#000000'
                 }}
               >
                 {title}

@@ -47,7 +47,7 @@ export const ConnectorCard: React.FC<ConnectorCardProps> = ({
           <h3
             className="text-lg"
             style={{
-              color: '#1F1C18',
+              color: '#000000',
               fontFamily: 'var(--font-heading)',
               fontWeight: 400
             }}
@@ -117,7 +117,7 @@ export const ConnectorCard: React.FC<ConnectorCardProps> = ({
             className="w-full flex items-center justify-center gap-2 px-4 py-2 rounded-xl text-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed"
             style={{
               backgroundColor: 'rgba(0, 0, 0, 0.05)',
-              color: '#1F1C18',
+              color: '#000000',
               fontFamily: 'var(--font-body)',
               fontWeight: 500
             }}
@@ -164,7 +164,7 @@ export const ConnectorCard: React.FC<ConnectorCardProps> = ({
             className="w-full flex items-center justify-center gap-2 px-4 py-2 rounded-xl text-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed"
             style={{
               backgroundColor: 'rgba(0, 0, 0, 0.05)',
-              color: '#1F1C18',
+              color: '#000000',
               border: '1px solid rgba(0, 0, 0, 0.1)',
               fontFamily: 'var(--font-body)',
               fontWeight: 500

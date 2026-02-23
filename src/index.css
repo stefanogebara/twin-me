@@ -5,7 +5,7 @@
  */
 
 /* ===== FONTS ===== */
-@import url('https://fonts.googleapis.com/css2?family=EB+Garamond:wght@400;500;600&family=Inter:wght@300;400;500;600;700&family=Halant:wght@300;400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Halant:wght@300;400;500;600;700&display=swap');
 
 /* ===== GLASS MORPHISM EFFECTS ===== */
 @import './styles/glassmorphism.css';
@@ -13,86 +13,86 @@
 @tailwind components;
 @tailwind utilities;
 
-/* ===== DESIGN TOKENS - LOGIN PAGE PALETTE ===== */
+/* ===== DESIGN TOKENS - CLAURA DESIGN SYSTEM ===== */
 @layer base {
   :root {
-    /* Background Colors — cream palette matching landing page */
-    --background: #F7F7F3;
-    --surface: rgba(255, 255, 255, 0.18);
-    --surface-solid: rgba(255, 255, 255, 0.7);
+    /* Background Colors — Claura warm cream */
+    --background: #fcf6ef;
+    --surface: rgba(255, 255, 255, 0.25);
+    --surface-solid: rgba(255, 255, 255, 0.75);
 
     /* Claude Theme Variables - Light Mode */
-    --claude-bg: #F7F7F3;
-    --claude-surface: rgba(255, 255, 255, 0.18);
-    --claude-surface-raised: rgba(255, 255, 255, 0.7);
-    --claude-text: #1F1C18;
+    --claude-bg: #fcf6ef;
+    --claude-surface: rgba(255, 255, 255, 0.25);
+    --claude-surface-raised: rgba(255, 255, 255, 0.75);
+    --claude-text: #000000;
     --claude-text-muted: #8A857D;
-    --claude-accent: #2D2722;
-    --claude-accent-hover: #1F1C18;
-    --claude-border: rgba(255, 255, 255, 0.45);
+    --claude-accent: #000000;
+    --claude-accent-hover: #222222;
+    --claude-border: rgba(0, 0, 0, 0.08);
 
     /* Text Colors */
-    --foreground: #1F1C18;
-    --text-primary: #1F1C18;
+    --foreground: #000000;
+    --text-primary: #000000;
     --text-secondary: #8A857D;
     --text-muted: #8A857D;
-    --text-placeholder: #a8a29e;
+    --text-placeholder: #B5B0A8;
 
     /* Border Colors */
     --border: rgba(0, 0, 0, 0.08);
-    --border-glass: rgba(255, 255, 255, 0.45);
+    --border-glass: rgba(0, 0, 0, 0.06);
 
     /* Interactive Colors */
-    --primary: #2D2722;
-    --primary-foreground: #F7F7F3;
-    --ring: rgba(45, 39, 34, 0.25);
+    --primary: #000000;
+    --primary-foreground: #fcf6ef;
+    --ring: rgba(0, 0, 0, 0.15);
 
     /* Component Colors */
-    --card: rgba(255, 255, 255, 0.18);
-    --card-foreground: #1F1C18;
+    --card: rgba(255, 255, 255, 0.35);
+    --card-foreground: #000000;
     --popover: rgba(255, 255, 255, 0.95);
-    --popover-foreground: #1F1C18;
+    --popover-foreground: #000000;
     --secondary: rgba(255, 255, 255, 0.5);
-    --secondary-foreground: #1F1C18;
-    --muted: rgba(247, 247, 243, 0.8);
+    --secondary-foreground: #000000;
+    --muted: rgba(252, 246, 239, 0.8);
     --muted-foreground: #8A857D;
-    --accent: rgba(255, 255, 255, 0.4);
-    --accent-foreground: #1F1C18;
+    --accent: rgba(0, 0, 0, 0.04);
+    --accent-foreground: #000000;
     --destructive: #dc2626;
     --destructive-foreground: #ffffff;
-    --input: rgba(255, 255, 255, 0.5);
+    --input: rgba(255, 255, 255, 0.6);
 
-    /* Sidebar Colors */
-    --sidebar: rgba(255, 255, 255, 0.18);
-    --sidebar-foreground: #8A857D;
-    --sidebar-primary: #2D2722;
-    --sidebar-primary-foreground: #F7F7F3;
-    --sidebar-accent: rgba(255, 255, 255, 0.3);
-    --sidebar-accent-foreground: #1F1C18;
-    --sidebar-border: rgba(255, 255, 255, 0.45);
-    --sidebar-ring: rgba(45, 39, 34, 0.25);
+    /* Sidebar Colors — Claura cream */
+    --sidebar: #f8f1e8;
+    --sidebar-foreground: #5C5851;
+    --sidebar-primary: #000000;
+    --sidebar-primary-foreground: #fcf6ef;
+    --sidebar-accent: rgba(0, 0, 0, 0.04);
+    --sidebar-accent-foreground: #000000;
+    --sidebar-border: #E8E3DC;
+    --sidebar-ring: rgba(0, 0, 0, 0.15);
 
-    /* Glass Effects — landing page spec */
-    --glass-blur: 10px;
-    --glass-shadow: 0 8px 32px rgba(0, 0, 0, 0.18), inset 0 1px 0 rgba(255, 255, 255, 0.6);
-    --glass-shadow-lg: 0 12px 40px rgba(0, 0, 0, 0.22), inset 0 1px 0 rgba(255, 255, 255, 0.6);
+    /* Glass Effects — subtle for Claura */
+    --glass-blur: 12px;
+    --glass-shadow: 0 4px 24px rgba(0, 0, 0, 0.06);
+    --glass-shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.08);
 
-    /* Typography — Halant for headings, Inter for body */
+    /* Typography — Halant for headings, Geist for body */
     --font-heading: 'Halant', Georgia, serif;
     --font-accent: 'Halant', Georgia, serif;
-    --font-body: 'Inter', system-ui, sans-serif;
-    --font-sans: 'Inter', system-ui, sans-serif;
+    --font-body: 'Geist', 'Inter', system-ui, sans-serif;
+    --font-sans: 'Geist', 'Inter', system-ui, sans-serif;
     --font-serif: 'Halant', Georgia, serif;
     --font-mono: ui-monospace, monospace;
 
-    /* Vibrant Accent for CTAs */
-    --accent-vibrant: #D4A853;
-    --accent-vibrant-hover: #C49A45;
-    --accent-vibrant-glow: rgba(212, 168, 83, 0.25);
+    /* Vibrant Accent for CTAs — kept gold for special actions */
+    --accent-vibrant: #C4A265;
+    --accent-vibrant-hover: #B39255;
+    --accent-vibrant-glow: rgba(196, 162, 101, 0.2);
 
-    /* Spacing & Radius — larger, rounder to match landing page */
+    /* Spacing & Radius — Claura style rounded */
     --radius: 1rem;
-    --radius-lg: 2rem;
+    --radius-lg: 1.75rem;
     --spacing-unit: 0.25rem;
   }
 
@@ -222,59 +222,70 @@
     background-color: var(--background);
     color: var(--foreground);
     font-family: var(--font-body);
-    font-size: 15px;
-    line-height: 1.6;
+    font-size: 14px;
+    font-weight: 500;
+    line-height: 1.65;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
   }
 
-  /* Headings — Halant for major titles, Inter for UI headers */
+  /* Headings — Halant serif for all headings (Claura system) */
   h1, h2 {
     font-family: 'Halant', Georgia, serif;
-    font-weight: 500;
-    letter-spacing: -0.03em;
+    font-weight: 400;
+    letter-spacing: -0.05em;
     line-height: 1.1;
     color: var(--text-primary);
   }
 
-  h3, h4, h5, h6 {
+  h3 {
+    font-family: 'Halant', Georgia, serif;
+    font-weight: 400;
+    letter-spacing: -0.03em;
+    line-height: 1.2;
+    color: var(--text-primary);
+  }
+
+  h4, h5, h6 {
     font-family: var(--font-body);
-    font-weight: 500;
+    font-weight: 600;
     letter-spacing: -0.01em;
     line-height: 1.3;
     color: var(--text-primary);
   }
 
   h1 {
-    font-size: clamp(2rem, 5vw, 2.75rem);
+    font-size: clamp(2.625rem, 5vw, 4.375rem);
   }
 
   h2 {
-    font-size: clamp(1.5rem, 4vw, 2rem);
+    font-size: clamp(2.25rem, 4vw, 3.5rem);
   }
 
   h3 {
-    font-size: clamp(1.125rem, 3vw, 1.375rem);
+    font-size: clamp(1.5rem, 3vw, 2rem);
   }
 
   h4 {
-    font-size: 1.125rem;
+    font-size: 1.375rem;
   }
 
   p {
     font-family: var(--font-body);
-    font-size: 15px;
-    line-height: 1.6;
+    font-size: 14px;
+    font-weight: 500;
+    line-height: 1.65;
     color: var(--text-secondary);
   }
 
   /* Labels */
   label {
     font-family: var(--font-body);
-    font-size: 13px;
+    font-size: 12px;
     line-height: 1.25rem;
-    font-weight: 500;
+    font-weight: 400;
     color: var(--text-muted);
+    letter-spacing: 0.02em;
   }
 
   /* Form Elements */
@@ -285,36 +296,33 @@
 
 /* ===== COMPONENT STYLES ===== */
 @layer components {
-  /* === Liquid Glass Container (from login page) === */
+  /* === Glass Container — Claura light cards === */
   .glass-container {
-    background: var(--surface);
-    backdrop-filter: blur(var(--glass-blur));
-    -webkit-backdrop-filter: blur(var(--glass-blur));
-    border: 1px solid var(--border-glass);
-    box-shadow: var(--glass-shadow);
-    border-radius: var(--radius-lg);
+    background: rgba(255, 255, 255, 0.35);
+    border: 1px solid rgba(0, 0, 0, 0.06);
+    border-radius: 20px;
   }
 
   .glass-container-solid {
-    background: var(--surface-solid);
-    backdrop-filter: blur(var(--glass-blur));
-    -webkit-backdrop-filter: blur(var(--glass-blur));
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
+    background: rgba(255, 255, 255, 0.7);
+    border: 1px solid rgba(0, 0, 0, 0.06);
+    border-radius: 16px;
   }
 
-  /* === Buttons (from login page) === */
+  /* === Buttons — Claura Design System === */
   .btn {
     display: inline-flex;
     align-items: center;
     justify-content: center;
     gap: 0.5rem;
-    padding: 0.75rem 1.5rem;
-    font-size: 15px;
+    padding: 14px 28px;
+    font-size: 12px;
     line-height: 1.25rem;
-    font-weight: 500;
-    border-radius: var(--radius);
-    transition: all 200ms ease;
+    font-weight: 400;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+    border-radius: 9999px;
+    transition: all 0.3s ease;
     cursor: pointer;
   }
 
@@ -324,32 +332,31 @@
   }
 
   .btn-primary {
-    background-color: var(--primary);
-    color: var(--primary-foreground);
-    box-shadow: 0 2px 8px 0 rgba(0, 0, 0, 0.1);
+    background-color: #000000;
+    color: #fcf6ef;
   }
 
   .btn-primary:hover:not(:disabled) {
-    opacity: 0.9;
+    background-color: #222;
+    transform: translateY(-2px);
   }
 
   .btn-secondary {
-    background: var(--surface-solid);
-    color: var(--text-primary);
-    border: 1px solid var(--border);
-    backdrop-filter: blur(8px);
-    -webkit-backdrop-filter: blur(8px);
+    background: transparent;
+    color: #000000;
+    border: 1.5px solid #D5D0C8;
   }
 
   .btn-secondary:hover:not(:disabled) {
-    background: var(--surface);
+    border-color: #000;
+    transform: translateY(-1px);
   }
 
   .btn-accent {
     background: linear-gradient(135deg, var(--accent-vibrant), var(--accent-vibrant-hover));
     color: #1a1a17;
     box-shadow: 0 2px 12px var(--accent-vibrant-glow);
-    font-weight: 600;
+    font-weight: 500;
   }
 
   .btn-accent:hover:not(:disabled) {
@@ -363,22 +370,20 @@
   }
 
   .btn-ghost:hover:not(:disabled) {
-    background: var(--surface);
+    background: rgba(0, 0, 0, 0.04);
     color: var(--text-primary);
   }
 
-  /* === Inputs (from login page) === */
+  /* === Inputs — Claura style === */
   .input {
     width: 100%;
     padding: 0.75rem 1rem;
-    font-size: 15px;
+    font-size: 14px;
     line-height: 1.25rem;
-    background: var(--surface-solid);
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
+    background: rgba(255, 255, 255, 0.6);
+    border: 1px solid #E8E3DC;
+    border-radius: 12px;
     color: var(--text-primary);
-    backdrop-filter: blur(8px);
-    -webkit-backdrop-filter: blur(8px);
     transition: all 200ms ease;
   }
 
@@ -395,44 +400,43 @@
     padding-left: 2.5rem;
   }
 
-  /* === Cards === */
+  /* === Cards — Claura style === */
   .card {
-    background: var(--card);
-    backdrop-filter: blur(var(--glass-blur));
-    -webkit-backdrop-filter: blur(var(--glass-blur));
-    border: 1px solid var(--border-glass);
-    box-shadow: var(--glass-shadow);
-    border-radius: var(--radius-lg);
+    background: rgba(255, 255, 255, 0.4);
+    border: 1px solid rgba(0, 0, 0, 0.06);
+    border-radius: 20px;
     padding: 1.5rem;
   }
 
   .card-solid {
-    background: var(--surface-solid);
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
+    background: rgba(255, 255, 255, 0.7);
+    border: 1px solid rgba(0, 0, 0, 0.06);
+    border-radius: 16px;
     padding: 1.5rem;
   }
 
-  /* === Typography Utilities === */
+  /* === Typography Utilities — Claura === */
   .text-heading {
-    font-family: var(--font-heading);
-    font-weight: 500;
-    letter-spacing: -0.01em;
+    font-family: 'Halant', Georgia, serif;
+    font-weight: 400;
+    letter-spacing: -0.05em;
     color: var(--text-primary);
   }
 
   .text-body {
     font-family: var(--font-body);
-    font-size: 15px;
-    line-height: 1.6;
+    font-size: 14px;
+    font-weight: 500;
+    line-height: 1.65;
     color: var(--text-secondary);
   }
 
   .text-label {
     font-family: var(--font-body);
-    font-size: 13px;
+    font-size: 12px;
     line-height: 1.25rem;
-    font-weight: 500;
+    font-weight: 400;
+    letter-spacing: 0.02em;
     color: var(--text-muted);
   }
 
@@ -459,11 +463,9 @@
     box-shadow: var(--glass-shadow);
   }
 
-  /* === Sidebar Glass === */
+  /* === Sidebar — Claura solid cream === */
   .sidebar-glass {
     background: var(--sidebar);
-    backdrop-filter: blur(var(--glass-blur));
-    -webkit-backdrop-filter: blur(var(--glass-blur));
     border-right: 1px solid var(--sidebar-border);
   }
 
@@ -685,13 +687,11 @@
     transform: rotateX(4deg) rotateY(-2deg) translateY(-4px);
   }
 
-  /* Glass Card */
+  /* Glass Card — Claura */
   .glass-card {
-    background: var(--surface);
-    backdrop-filter: blur(var(--glass-blur)) saturate(180%);
-    -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(180%);
-    border: 1px solid var(--border-glass);
-    border-radius: var(--radius-lg);
+    background: rgba(255, 255, 255, 0.35);
+    border: 1px solid rgba(0, 0, 0, 0.06);
+    border-radius: 20px;
     padding: 1.5rem;
   }
 
@@ -707,14 +707,14 @@
     z-index: 50;
   }
 
-  /* Hero Text */
+  /* Hero Text — Claura */
   .hero-text {
-    font-family: var(--font-heading);
-    font-size: clamp(2.5rem, 8vw, 4rem);
-    font-weight: 500;
-    letter-spacing: -0.02em;
+    font-family: 'Halant', Georgia, serif;
+    font-size: clamp(2.625rem, 8vw, 4.375rem);
+    font-weight: 400;
+    letter-spacing: -0.05em;
     line-height: 1.1;
-    color: var(--text-primary);
+    color: #000000;
   }
 
   /* Grok-inspired spacing utilities */
@@ -836,18 +836,135 @@
   font-family: var(--font-body);
 }
 
-/* Landing page heading classes — mirrors Index.tsx */
+/* ===== CLAURA DESIGN SYSTEM — Global heading/body/button classes ===== */
 .heading-serif {
   font-family: 'Halant', Georgia, serif;
-  letter-spacing: -0.03em;
-  line-height: 1.05;
+  font-weight: 400;
+  letter-spacing: -0.05em;
+  line-height: 1.1;
+  color: #000000;
 }
+.heading-serif.h1 { font-size: 70px; }
+.heading-serif.h2 { font-size: 56px; }
+.heading-serif.h3 { font-size: 32px; }
+.heading-serif.h4 { font-size: 22px; font-weight: 600; }
 
 .heading-serif-italic {
   font-family: 'Halant', Georgia, serif;
+  font-weight: 400;
   font-style: italic;
   color: #8A857D;
-  letter-spacing: -0.04em;
+  letter-spacing: -0.05em;
+}
+
+.body-text {
+  font-family: 'Geist', 'Inter', system-ui, sans-serif;
+  font-size: 14px;
+  font-weight: 500;
+  color: #8A857D;
+  line-height: 1.65;
+}
+
+.claura-label {
+  font-family: 'Geist', 'Inter', system-ui, sans-serif;
+  background: rgba(0, 0, 0, 0.04);
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  border-radius: 8px;
+  padding: 6px 14px;
+  font-size: 12px;
+  font-weight: 400;
+  color: #5C5851;
+  display: inline-block;
+}
+
+.btn-cta {
+  font-family: 'Geist', 'Inter', system-ui, sans-serif;
+  background-color: #000000;
+  color: #fcf6ef;
+  border-radius: 9999px;
+  padding: 14px 28px;
+  font-size: 12px;
+  font-weight: 400;
+  transition: all 0.3s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+.btn-cta:hover { background-color: #222; transform: translateY(-2px); }
+
+.btn-outline {
+  font-family: 'Geist', 'Inter', system-ui, sans-serif;
+  background: transparent;
+  color: #000000;
+  border: 1.5px solid #D5D0C8;
+  border-radius: 9999px;
+  padding: 13px 26px;
+  font-size: 12px;
+  font-weight: 400;
+  transition: all 0.3s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+.btn-outline:hover { border-color: #000; transform: translateY(-1px); }
+
+/* Service tab */
+.service-tab {
+  cursor: pointer;
+  padding: 20px 28px;
+  border-radius: 16px;
+  transition: all 0.3s ease;
+}
+.service-tab:hover { background: rgba(0, 0, 0, 0.03); }
+.service-tab.active { background: rgba(0, 0, 0, 0.04); }
+
+/* Glass stat card */
+.glass-stat {
+  background: rgba(255, 255, 255, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-radius: 20px;
+  padding: 28px 24px;
+  text-align: center;
+}
+
+/* Step circle */
+.step-circle {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  border: 1.5px solid #D5D0C8;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: 'Geist', 'Inter', system-ui, sans-serif;
+  font-size: 12px;
+  font-weight: 400;
+  color: #5C5851;
+  flex-shrink: 0;
+}
+
+.step-badge {
+  font-family: 'Geist', 'Inter', system-ui, sans-serif;
+  background: rgba(0, 0, 0, 0.04);
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  border-radius: 6px;
+  padding: 3px 10px;
+  font-size: 12px;
+  font-weight: 400;
+  color: #8A857D;
+}
+
+/* Responsive Claura heading sizes */
+@media (max-width: 768px) {
+  .heading-serif.h1 { font-size: 42px; }
+  .heading-serif.h2 { font-size: 36px; }
+  .heading-serif.h3 { font-size: 24px; }
 }
 
 /* Italic serif emphasis for onboarding messages */
@@ -865,90 +982,68 @@
   display: inline;
 }
 
-/* ===== DESIGN SYSTEM UTILITIES (Landing Page Tokens) ===== */
+/* ===== APP BUTTON VARIANTS (Claura-aligned) ===== */
 
-/* Halant font utility */
-.font-playfair {
-  font-family: 'Halant', Georgia, serif;
-}
-
-/* Serif headings — Halant, warm black */
-.heading-serif {
-  font-family: 'Halant', Georgia, serif;
-  font-weight: 600;
-  color: #1F1C18;
-  letter-spacing: -0.01em;
-}
-
-/* Italic variant */
-.heading-serif-italic {
-  font-family: 'Halant', Georgia, serif;
-  font-weight: 500;
-  font-style: italic;
-  color: #1F1C18;
-}
-
-/* Liquid glass card — matches landing page spec */
+/* Glass card — Claura light */
 .glass-card-ds {
-  background: rgba(255, 255, 255, 0.18);
-  backdrop-filter: blur(10px) saturate(140%);
-  -webkit-backdrop-filter: blur(10px) saturate(140%);
-  border-radius: 2rem;
-  border: 1px solid rgba(255, 255, 255, 0.45);
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.18), inset 0 1px 0 rgba(255, 255, 255, 0.6);
+  background: rgba(255, 255, 255, 0.35);
+  border-radius: 20px;
+  border: 1px solid rgba(0, 0, 0, 0.06);
   padding: 1.5rem;
 }
 
-/* Primary CTA button — dark on cream */
+/* Primary CTA button — black on cream (Claura) */
 .btn-cta-app {
   display: inline-flex;
   align-items: center;
   gap: 0.5rem;
-  padding: 0.625rem 1.5rem;
-  background-color: #2D2722;
-  color: #F7F7F3;
-  border-radius: 2rem;
-  font-size: 0.875rem;
-  font-weight: 500;
-  font-family: 'Inter', system-ui, sans-serif;
+  padding: 12px 24px;
+  background-color: #000000;
+  color: #fcf6ef;
+  border-radius: 9999px;
+  font-size: 12px;
+  font-weight: 400;
+  font-family: 'Geist', 'Inter', system-ui, sans-serif;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
   border: none;
   cursor: pointer;
-  transition: opacity 0.2s ease, transform 0.2s ease;
+  transition: all 0.3s ease;
   text-decoration: none;
 }
 
 .btn-cta-app:hover {
-  opacity: 0.88;
-  transform: scale(1.02);
+  background-color: #222;
+  transform: translateY(-2px);
 }
 
 .btn-cta-app:active {
   transform: scale(0.98);
 }
 
-/* Secondary glass button */
+/* Secondary outline button (Claura) */
 .btn-glass-app {
   display: inline-flex;
   align-items: center;
   gap: 0.5rem;
-  padding: 0.625rem 1.5rem;
-  background: rgba(255, 255, 255, 0.18);
-  backdrop-filter: blur(10px) saturate(140%);
-  -webkit-backdrop-filter: blur(10px) saturate(140%);
-  color: #1F1C18;
-  border-radius: 2rem;
-  border: 1px solid rgba(255, 255, 255, 0.45);
-  font-size: 0.875rem;
-  font-weight: 500;
-  font-family: 'Inter', system-ui, sans-serif;
+  padding: 11px 22px;
+  background: transparent;
+  color: #000000;
+  border-radius: 9999px;
+  border: 1.5px solid #D5D0C8;
+  font-size: 12px;
+  font-weight: 400;
+  font-family: 'Geist', 'Inter', system-ui, sans-serif;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
   cursor: pointer;
-  transition: background 0.2s ease, transform 0.2s ease;
+  transition: all 0.3s ease;
   text-decoration: none;
 }
 
 .btn-glass-app:hover {
-  background: rgba(255, 255, 255, 0.28);
-  transform: scale(1.02);
+  border-color: #000;
+  transform: translateY(-1px);
 }
 
 .btn-glass-app:active {

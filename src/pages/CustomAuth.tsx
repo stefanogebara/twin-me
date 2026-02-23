@@ -115,7 +115,7 @@ For privacy concerns: privacy@twinme.ai`
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center px-6 py-20" style={{ backgroundColor: '#F7F7F3' }}>
+    <div className="min-h-screen flex items-center justify-center px-6 py-20" style={{ backgroundColor: '#fcf6ef' }}>
       {/* Back button - top left */}
       <div className="fixed top-6 left-6 z-50">
         <button
@@ -171,7 +171,7 @@ For privacy concerns: privacy@twinme.ai`
               style={{
                 backgroundColor: 'rgba(255, 255, 255, 0.9)',
                 borderColor: 'rgba(231, 229, 228, 0.6)',
-                color: '#1F1C18'
+                color: '#000000'
               }}
             >
               {loading ? (
@@ -270,7 +270,7 @@ For privacy concerns: privacy@twinme.ai`
               <button
                 onClick={() => setActiveModal(null)}
                 className="p-2 rounded-lg hover:opacity-70 transition-opacity"
-                style={{ color: '#1F1C18' }}
+                style={{ color: '#000000' }}
               >
                 <X className="w-5 h-5" />
               </button>

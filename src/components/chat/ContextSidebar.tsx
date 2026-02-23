@@ -70,7 +70,7 @@ export const ContextSidebar = ({
         !showContext && "md:hidden"
       )}
       style={{
-        backgroundColor: '#F7F7F3',
+        backgroundColor: '#fcf6ef',
         borderColor: 'rgba(255, 255, 255, 0.45)',
       }}
     >
@@ -78,7 +78,7 @@ export const ContextSidebar = ({
         <div className="flex items-center justify-between mb-4">
           <h3
             className="font-medium flex items-center gap-2"
-            style={{ color: '#1F1C18' }}
+            style={{ color: '#000000' }}
           >
             <img src="/images/backgrounds/flower-hero.png" alt="" className="w-4 h-4 object-contain" />
             Twin Context
@@ -112,7 +112,7 @@ export const ContextSidebar = ({
                   </span>
                   <span
                     className="text-sm"
-                    style={{ color: platform.connected ? '#1F1C18' : '#8A857D' }}
+                    style={{ color: platform.connected ? '#000000' : '#8A857D' }}
                   >
                     {platform.name}
                   </span>
@@ -126,7 +126,7 @@ export const ContextSidebar = ({
                   <button
                     onClick={() => navigate('/get-started')}
                     className="text-xs px-2 py-1 rounded"
-                    style={{ color: '#2D2722', fontWeight: 500 }}
+                    style={{ color: '#000000', fontWeight: 500 }}
                   >
                     Connect
                   </button>
@@ -156,14 +156,14 @@ export const ContextSidebar = ({
                   style={glassRowStyle}
                 >
                   <div className="flex items-center gap-2 mb-1">
-                    {item.type === 'memory' && <Clock className="w-3 h-3" style={{ color: '#2D2722' }} />}
+                    {item.type === 'memory' && <Clock className="w-3 h-3" style={{ color: '#000000' }} />}
                     {item.type === 'fact' && <Lightbulb className="w-3 h-3" style={{ color: '#F59E0B' }} />}
                     {item.type === 'personality' && <Clay3DIcon name="brain" size={12} />}
                     <span className="text-xs font-medium" style={{ color: '#8A857D' }}>
                       {item.label}
                     </span>
                   </div>
-                  <p className="text-sm" style={{ color: '#1F1C18' }}>
+                  <p className="text-sm" style={{ color: '#000000' }}>
                     {item.value}
                   </p>
                 </div>
@@ -192,13 +192,13 @@ export const ContextSidebar = ({
           >
             <div className="grid grid-cols-2 gap-3 text-center">
               <div>
-                <div className="text-lg font-semibold" style={{ color: '#2D2722' }}>
+                <div className="text-lg font-semibold" style={{ color: '#000000' }}>
                   {connectedCount || 0}
                 </div>
                 <div className="text-xs" style={{ color: '#8A857D' }}>Platforms</div>
               </div>
               <div>
-                <div className="text-lg font-semibold" style={{ color: '#2D2722' }}>
+                <div className="text-lg font-semibold" style={{ color: '#000000' }}>
                   {messageCount}
                 </div>
                 <div className="text-xs" style={{ color: '#8A857D' }}>Messages</div>
