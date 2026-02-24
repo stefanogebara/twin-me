@@ -1,0 +1,14 @@
+{
+  "name": "usage-stats",
+  "version": "1.0.0",
+  "description": "Native Android UsageStats module for TwinMe",
+  "main": "src/index.ts",
+  "types": "src/index.ts",
+  "scripts": {
+    "build": "tsc"
+  },
+  "peerDependencies": {
+    "expo": "*",
+    "react-native": "*"
+  }
+}
