@@ -3,6 +3,22 @@ import { useNavigate } from 'react-router-dom';
 import { ArrowRight, PlayCircle } from 'lucide-react';
 import { useAuth, SignInButton } from '../contexts/AuthContext';
 import { motion, AnimatePresence } from 'framer-motion';
+import {
+  SpotifyLogo,
+  GoogleCalendarLogo,
+  YoutubeLogo,
+  DiscordLogo,
+  LinkedinLogo,
+} from '../components/PlatformLogos';
+
+/* ── Active platform integrations ── */
+const PLATFORMS = [
+  { id: 'spotify',   name: 'Spotify',          Icon: SpotifyLogo,         color: '#1DB954' },
+  { id: 'calendar',  name: 'Google Calendar',   Icon: GoogleCalendarLogo,  color: '#4285F4' },
+  { id: 'youtube',   name: 'YouTube',           Icon: YoutubeLogo,         color: '#FF0000' },
+  { id: 'discord',   name: 'Discord',           Icon: DiscordLogo,         color: '#5865F2' },
+  { id: 'linkedin',  name: 'LinkedIn',          Icon: LinkedinLogo,        color: '#0A66C2' },
+];
 
 /* ── Card images from Gemini ── */
 const CARD_IMAGES = {
@@ -230,7 +246,7 @@ const Index = () => {
       </nav>
 
       {/* ────────────── HERO ────────────── */}
-      <section className="px-6 lg:px-16 pt-16 pb-20 lg:pt-24 lg:pb-28">
+      <section className="px-6 lg:px-16 pt-12 pb-14 lg:pt-16 lg:pb-16">
         <div className="max-w-[1072px] mx-auto text-center flex flex-col items-center gap-8">
           {/* Main heading — H1: 80px/400 */}
           <motion.h1
@@ -249,7 +265,7 @@ const Index = () => {
             transition={{ duration: 0.6, delay: 0.2 }}
             className="body-text max-w-[620px]"
           >
-            We discover what makes you authentically YOU through the private patterns across your music, wellness, and daily rhythms.
+            We discover what makes you authentically YOU through patterns across your music, calendar, content, conversations, and professional life.
           </motion.p>
 
           {/* CTA buttons */}
@@ -296,8 +312,28 @@ const Index = () => {
         </div>
       </section>
 
+      {/* ────────────── PLATFORMS STRIP ────────────── */}
+      <section className="px-6 lg:px-16 py-10 border-t border-b border-[#E8E3DC]">
+        <div className="max-w-[1200px] mx-auto">
+          <p className="text-center mb-7" style={{ fontFamily: "'Geist', sans-serif", fontSize: '11px', fontWeight: 400, letterSpacing: '0.12em', textTransform: 'uppercase', color: '#B5B0A8' }}>
+            Your data, your insights — powered by
+          </p>
+          <div className="flex flex-wrap justify-center items-center gap-8 lg:gap-14">
+            {PLATFORMS.map(({ id, name, Icon, color }) => (
+              <div key={id} className="flex items-center gap-2.5 transition-opacity duration-200" style={{ opacity: 0.6 }}
+                onMouseEnter={e => (e.currentTarget.style.opacity = '1')}
+                onMouseLeave={e => (e.currentTarget.style.opacity = '0.6')}
+              >
+                <Icon className="w-5 h-5" style={{ color }} />
+                <span style={{ fontFamily: "'Geist', sans-serif", fontSize: '13px', fontWeight: 500, color: '#57534E' }}>{name}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
       {/* ────────────── WHO WE ARE + STATS ────────────── */}
-      <section className="px-6 lg:px-16 py-20 lg:py-28">
+      <section className="px-6 lg:px-16 py-16 lg:py-20">
         <div className="max-w-[1200px] mx-auto">
           {/* Header row */}
           <div className="flex flex-col lg:flex-row gap-8 lg:gap-16 mb-12">
@@ -362,7 +398,7 @@ const Index = () => {
       </section>
 
       {/* ────────────── SERVICES — Interactive Tab + Flower Card ────────────── */}
-      <section id="services" className="px-6 lg:px-16 py-20 lg:py-28">
+      <section id="services" className="px-6 lg:px-16 py-16 lg:py-20">
         <div className="max-w-[1200px] mx-auto">
           {/* Header */}
           <div className="mb-12">
@@ -440,7 +476,7 @@ const Index = () => {
       </section>
 
       {/* ────────────── HOW WE WORK — 3 Steps ────────────── */}
-      <section id="how-it-works" className="px-6 lg:px-16 py-20 lg:py-28">
+      <section id="how-it-works" className="px-6 lg:px-16 py-16 lg:py-20">
         <div className="max-w-[1200px] mx-auto flex flex-col lg:flex-row gap-12 lg:gap-20">
           {/* Left: heading + CTA */}
           <div className="lg:w-[45%]">
@@ -498,7 +534,7 @@ const Index = () => {
       </section>
 
       {/* ────────────── FINAL CTA ────────────── */}
-      <section className="px-6 lg:px-16 py-20 lg:py-28">
+      <section className="px-6 lg:px-16 py-16 lg:py-20">
         <div className="max-w-[1072px] mx-auto text-center flex flex-col items-center gap-8">
           <h2 className="heading-serif h2">
             Turn confusion into <span className="heading-serif-italic">clarity,</span> today.
