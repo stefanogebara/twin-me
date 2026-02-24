@@ -38,7 +38,9 @@ export default defineConfig(({ mode }) => ({
           'vendor-icons': ['lucide-react'],
           'vendor-charts': ['recharts'],
           'vendor-tanstack': ['@tanstack/react-query'],
-          'vendor-3d': ['three', 'react-force-graph-3d'],
+          'vendor-3d': ['three', 'three-stdlib', '@react-three/fiber', '@react-three/drei', 'react-force-graph-3d'],
+          'vendor-utils': ['date-fns', 'zod', 'cmdk', 'vaul'],
+          'vendor-analytics': ['posthog-js'],
           'vendor-radix': [
             '@radix-ui/react-accordion',
             '@radix-ui/react-alert-dialog',
