@@ -24,7 +24,7 @@
         "buildType": "app-bundle"
       },
       "env": {
-        "EXPO_PUBLIC_API_URL": "https://twin-ai-learn-stefanogebaras-projects.vercel.app/api"
+        "EXPO_PUBLIC_API_URL": "https://www.twinme.me/api"
       }
     }
   },
