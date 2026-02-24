@@ -410,6 +410,84 @@ function parseReddit(buffer) {
 }
 
 // ---------------------------------------------------------------------------
+// Android Usage parser
+// ---------------------------------------------------------------------------
+
+/**
+ * Input: JSON object from mobile app
+ * { apps: [{ packageName, appName, totalTimeMs, date }], notifications: [{ packageName, appName, count, date }] }
+ */
+function parseAndroidUsage(buffer) {
+  let data;
+  try {
+    data = JSON.parse(buffer.toString('utf8'));
+  } catch {
+    throw new Error('android_usage file is not valid JSON');
+  }
+
+  // Support both field name conventions from mobile app
+  const apps = Array.isArray(data.appUsage) ? data.appUsage
+    : Array.isArray(data.apps) ? data.apps : [];
+  const notifications = Array.isArray(data.notificationPatterns) ? data.notificationPatterns
+    : Array.isArray(data.notifications) ? data.notifications : [];
+  const observations = [];
+
+  // Aggregate app usage across all entries
+  const appTotals = {};
+  for (const entry of apps) {
+    const key = entry.appName || entry.packageName || 'Unknown';
+    appTotals[key] = (appTotals[key] || 0) + (entry.totalTimeMs || 0);
+  }
+
+  const topApps = Object.entries(appTotals)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 10);
+
+  if (topApps.length > 0) {
+    const topAppNames = topApps.slice(0, 5).map(([name]) => name).join(', ');
+    observations.push(`Most-used apps on Android: ${topAppNames}`);
+
+    const totalHours = Math.round(
+      Object.values(appTotals).reduce((a, b) => a + b, 0) / 3_600_000
+    );
+    if (totalHours > 0) {
+      observations.push(`Total tracked Android screen time: ~${totalHours} hours`);
+    }
+  }
+
+  // Category hints from package names
+  const socialPkgs = ['instagram', 'twitter', 'snapchat', 'tiktok', 'facebook', 'reddit', 'discord', 'telegram', 'whatsapp'];
+  const productivityPkgs = ['notion', 'slack', 'gmail', 'calendar', 'docs', 'sheets', 'zoom', 'teams', 'meet'];
+  const entertainmentPkgs = ['youtube', 'netflix', 'spotify', 'twitch', 'prime', 'hulu', 'music'];
+
+  const keys = Object.keys(appTotals).map(k => k.toLowerCase());
+  const socialCount = keys.filter(k => socialPkgs.some(p => k.includes(p))).length;
+  const prodCount = keys.filter(k => productivityPkgs.some(p => k.includes(p))).length;
+  const entCount = keys.filter(k => entertainmentPkgs.some(p => k.includes(p))).length;
+
+  if (socialCount >= 2) observations.push(`Active social media user on Android (${socialCount} social apps tracked)`);
+  if (prodCount >= 2) observations.push(`Uses productivity apps on Android (${prodCount} tracked)`);
+  if (entCount >= 2) observations.push(`Regular entertainment app usage on Android (${entCount} apps)`);
+
+  // Notification patterns
+  const notifTotals = {};
+  for (const entry of notifications) {
+    const key = entry.appName || entry.packageName || 'Unknown';
+    notifTotals[key] = (notifTotals[key] || 0) + (entry.count || 0);
+  }
+  const topNotifApps = Object.entries(notifTotals)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 3);
+
+  if (topNotifApps.length > 0) {
+    const names = topNotifApps.map(([name]) => name).join(', ');
+    observations.push(`Most notifications on Android from: ${names}`);
+  }
+
+  return observations;
+}
+
+// ---------------------------------------------------------------------------
 // Import record helpers
 // ---------------------------------------------------------------------------
 
@@ -482,6 +560,9 @@ export async function processGdprImport(userId, platform, fileBuffer, fileName) 
         break;
       case 'reddit':
         observations = parseReddit(fileBuffer);
+        break;
+      case 'android_usage':
+        observations = parseAndroidUsage(fileBuffer);
         break;
       default:
         throw new Error(`Unsupported platform: ${platform}`);
