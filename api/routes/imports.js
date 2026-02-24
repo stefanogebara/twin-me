@@ -35,7 +35,7 @@ const upload = multer({
   },
 });
 
-const SUPPORTED_PLATFORMS = new Set(['spotify', 'youtube', 'discord', 'reddit']);
+const SUPPORTED_PLATFORMS = new Set(['spotify', 'youtube', 'discord', 'reddit', 'android_usage']);
 
 // ---------------------------------------------------------------------------
 // POST /api/imports/gdpr

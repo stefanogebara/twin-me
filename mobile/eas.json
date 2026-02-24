@@ -22,6 +22,9 @@
     "production": {
       "android": {
         "buildType": "app-bundle"
+      },
+      "env": {
+        "EXPO_PUBLIC_API_URL": "https://twin-ai-learn-stefanogebaras-projects.vercel.app/api"
       }
     }
   },
@@ -29,7 +32,7 @@
     "production": {
       "android": {
         "serviceAccountKeyPath": "./google-service-account.json",
-        "track": "internal"
+        "track": "alpha"
       }
     }
   }
