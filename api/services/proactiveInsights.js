@@ -21,6 +21,7 @@
 
 import { getRecentMemories, retrieveMemories } from './memoryStreamService.js';
 import { complete, TIER_ANALYSIS } from './llmGateway.js';
+import { sendPushToUser } from './pushNotificationService.js';
 import { supabaseAdmin } from './database.js';
 
 const INSIGHT_GENERATION_PROMPT = `Based on these recent observations about a person, generate 1-3 proactive insights their digital twin should mention next time they chat. Focus on:
@@ -116,6 +117,16 @@ async function generateProactiveInsights(userId) {
 
       if (!error) {
         stored++;
+        // Push high-urgency insights immediately — don't wait for next chat open
+        if (item.urgency === 'high') {
+          sendPushToUser(userId, {
+            title: 'Your twin noticed something',
+            body: item.insight.substring(0, 120),
+            data: { type: 'proactive_insight', category: item.category ?? 'trend' },
+          }).catch((err) =>
+            console.warn('[ProactiveInsights] Push failed:', err.message)
+          );
+        }
       } else {
         console.warn('[ProactiveInsights] Failed to store insight:', error.message);
       }

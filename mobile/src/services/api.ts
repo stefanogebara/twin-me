@@ -4,7 +4,7 @@ import type { User, MemoryStats, TwinInsight, AndroidUsageData } from '../types'
 
 // ── Core fetch wrapper ────────────────────────────────────────────────────────
 
-async function authFetch(path: string, options: RequestInit = {}): Promise<Response> {
+export async function authFetch(path: string, options: RequestInit = {}): Promise<Response> {
   const token = await SecureStore.getItemAsync(STORAGE_KEYS.AUTH_TOKEN);
   return fetch(`${API_URL}${path}`, {
     ...options,
