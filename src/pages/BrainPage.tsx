@@ -36,6 +36,19 @@ interface Insight {
   createdAt?: string;
 }
 
+interface MemoryStats {
+  totalMemories: number;
+  byPlatform: Record<string, number>;
+}
+
+const EXPERT_META: Record<string, { label: string; color: string; bg: string }> = {
+  personality_psychologist: { label: 'Personality', color: '#8b5cf6', bg: 'rgba(139,92,246,0.08)' },
+  lifestyle_analyst: { label: 'Lifestyle', color: '#10b981', bg: 'rgba(16,185,129,0.08)' },
+  cultural_identity: { label: 'Cultural Identity', color: '#f59e0b', bg: 'rgba(245,158,11,0.08)' },
+  social_dynamics: { label: 'Social', color: '#3b82f6', bg: 'rgba(59,130,246,0.08)' },
+  motivation_analyst: { label: 'Motivation', color: '#f97316', bg: 'rgba(249,115,22,0.08)' },
+};
+
 interface Reflection {
   id: string;
   content: string;
@@ -108,42 +121,14 @@ const BrainPage: React.FC = () => {
   const { isDemoMode } = useDemo();
   const navigate = useNavigate();
 
-  const [insights, setInsights] = useState<Insight[]>([]);
-  const [insightsLoading, setInsightsLoading] = useState(false);
-  const [insightsError, setInsightsError] = useState<string | null>(null);
   const [reflections, setReflections] = useState<Reflection[]>([]);
   const [reflectionsLoading, setReflectionsLoading] = useState(false);
   const [snapshots, setSnapshots] = useState<BrainSnapshot[]>([]);
+  const [memoryStats, setMemoryStats] = useState<MemoryStats | null>(null);
 
   const { data: platformStatus, isLoading: platformLoading } = usePlatformStatus(
     isSignedIn ? user?.id : undefined
   );
-
-  // Fetch insights for authenticated non-demo users
-  useEffect(() => {
-    if (!isSignedIn || isDemoMode || !user?.id) return;
-
-    const fetchInsights = async () => {
-      setInsightsLoading(true);
-      setInsightsError(null);
-      try {
-        const res = await authFetch('/twin/insights');
-        if (!res.ok) throw new Error('Failed to fetch insights');
-        const json = await res.json();
-        if (json.success && Array.isArray(json.insights)) {
-          setInsights(json.insights);
-        } else {
-          setInsights([]);
-        }
-      } catch (err) {
-        setInsightsError(err instanceof Error ? err.message : 'Unknown error');
-      } finally {
-        setInsightsLoading(false);
-      }
-    };
-
-    fetchInsights();
-  }, [isSignedIn, isDemoMode, user?.id]);
 
   useEffect(() => {
     if (!isSignedIn || isDemoMode || !user?.id) return;
@@ -176,6 +161,17 @@ const BrainPage: React.FC = () => {
         if (json?.success && Array.isArray(json.snapshots)) {
           setSnapshots(json.snapshots);
         }
+      })
+      .catch(() => {});
+  }, [isSignedIn, isDemoMode, user?.id]);
+
+  useEffect(() => {
+    if (!isSignedIn || isDemoMode || !user?.id) return;
+
+    authFetch('/twin/memory-stats')
+      .then(r => r.ok ? r.json() : null)
+      .then(json => {
+        if (json?.success) setMemoryStats({ totalMemories: json.totalMemories, byPlatform: json.byPlatform });
       })
       .catch(() => {});
   }, [isSignedIn, isDemoMode, user?.id]);
@@ -220,7 +216,24 @@ const BrainPage: React.FC = () => {
     );
   }
 
-  const displayInsights = isDemoMode ? DEMO_INSIGHTS : insights;
+  // Derive top discoveries from reflections: best reflection per expert domain
+  const topDiscoveries: Insight[] = isDemoMode
+    ? DEMO_INSIGHTS
+    : (() => {
+        const seen = new Set<string>();
+        const picks: Insight[] = [];
+        for (const r of reflections) {
+          const key = r.expert || 'unknown';
+          if (!seen.has(key)) {
+            seen.add(key);
+            picks.push({ id: r.id, content: r.content, category: r.expert || undefined, createdAt: r.createdAt });
+          }
+          if (picks.length >= 4) break;
+        }
+        return picks;
+      })();
+
+  const totalMemories = memoryStats?.totalMemories ?? 0;
 
   return (
     <PageLayout maxWidth="xl">
@@ -236,6 +249,12 @@ const BrainPage: React.FC = () => {
           <h1 className="heading-serif" style={{ color: textColor, fontSize: '36px' }}>
             Twin's Brain
           </h1>
+          {totalMemories > 0 && (
+            <span className="text-xs px-3 py-1 rounded-full ml-auto"
+              style={{ background: 'rgba(0,0,0,0.05)', color: textSecondary }}>
+              {totalMemories.toLocaleString()} memories
+            </span>
+          )}
         </motion.div>
         <motion.p
           className="text-sm ml-[44px]"
@@ -259,26 +278,14 @@ const BrainPage: React.FC = () => {
               </h2>
             </div>
 
-            {insightsLoading && (
+            {reflectionsLoading && (
               <div className="flex items-center justify-center py-12 gap-3" style={{ color: textSecondary }}>
                 <div className="w-5 h-5 border-2 border-current border-t-transparent rounded-full animate-spin" />
                 <span className="text-sm">Twin is thinking…</span>
               </div>
             )}
 
-            {insightsError && !insightsLoading && (
-              <div className="flex items-center gap-3 py-8 px-4 rounded-xl"
-                style={{ background: 'rgba(239, 68, 68, 0.06)' }}
-              >
-                <AlertCircle className="w-5 h-5 text-red-400 flex-shrink-0" />
-                <div>
-                  <p className="text-sm font-medium text-red-600">Couldn't load insights</p>
-                  <p className="text-xs mt-0.5" style={{ color: textSecondary }}>{insightsError}</p>
-                </div>
-              </div>
-            )}
-
-            {!insightsLoading && !insightsError && displayInsights.length === 0 && (
+            {!reflectionsLoading && topDiscoveries.length === 0 && (
               <div className="text-center py-12">
                 <p className="text-sm mb-1" style={{ color: textSecondary }}>
                   No discoveries yet.
@@ -296,37 +303,33 @@ const BrainPage: React.FC = () => {
               </div>
             )}
 
-            {!insightsLoading && displayInsights.length > 0 && (
+            {!reflectionsLoading && topDiscoveries.length > 0 && (
               <div className="space-y-4">
-                {displayInsights.map((insight, i) => (
-                  <motion.div
-                    key={insight.id || i}
-                    className="p-6 rounded-2xl"
-                    style={{ background: 'rgba(0,0,0,0.03)', border: '1px solid rgba(0,0,0,0.04)' }}
-                    initial={{ opacity: 0, y: 8 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.35, delay: i * 0.05 }}
-                  >
-                    {insight.title && (
-                      <p className="text-xs font-semibold uppercase tracking-wide mb-1.5"
-                        style={{ color: '#10b981' }}
-                      >
-                        {insight.title}
+                {topDiscoveries.map((insight, i) => {
+                  const expertKey = insight.category || '';
+                  const em = EXPERT_META[expertKey];
+                  return (
+                    <motion.div
+                      key={insight.id || i}
+                      className="p-6 rounded-2xl"
+                      style={{ background: em?.bg ?? 'rgba(0,0,0,0.03)', border: `1px solid ${em?.color ?? 'rgba(0,0,0,0.04)'}22` }}
+                      initial={{ opacity: 0, y: 8 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.35, delay: i * 0.05 }}
+                    >
+                      {em && (
+                        <p className="text-xs font-semibold uppercase tracking-wide mb-1.5"
+                          style={{ color: em.color }}
+                        >
+                          {em.label}
+                        </p>
+                      )}
+                      <p className="text-sm leading-relaxed" style={{ color: textColor }}>
+                        {insight.content}
                       </p>
-                    )}
-                    <p className="text-sm leading-relaxed" style={{ color: textColor }}>
-                      {insight.content}
-                    </p>
-                    {insight.category && (
-                      <span
-                        className="inline-block mt-2 text-xs px-2 py-0.5 rounded-full"
-                        style={{ background: 'rgba(16,185,129,0.1)', color: '#10b981' }}
-                      >
-                        {insight.category}
-                      </span>
-                    )}
-                  </motion.div>
-                ))}
+                    </motion.div>
+                  );
+                })}
               </div>
             )}
           </GlassPanel>
@@ -400,6 +403,11 @@ const BrainPage: React.FC = () => {
                         )}
                         {!isConnected && !isExpired && (
                           <p className="text-xs mt-1" style={{ color: textSecondary }}>Not connected</p>
+                        )}
+                        {memoryStats?.byPlatform[provider] != null && (
+                          <p className="text-xs mt-0.5" style={{ color: textSecondary }}>
+                            {memoryStats.byPlatform[provider]} memories
+                          </p>
                         )}
                       </div>
                     </div>

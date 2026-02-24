@@ -276,6 +276,45 @@ router.get('/reflections', authenticateUser, async (req, res) => {
 });
 
 /**
+ * GET /api/twin/memory-stats
+ * Return total memory count + breakdown by platform source for BrainPage.
+ */
+router.get('/memory-stats', authenticateUser, async (req, res) => {
+  try {
+    const userId = req.user?.id;
+    if (!userId) return res.status(401).json({ success: false, error: 'Unauthorized' });
+
+    // Total count
+    const { count: totalCount, error: countErr } = await supabase
+      .from('user_memories')
+      .select('id', { count: 'exact', head: true })
+      .eq('user_id', userId);
+
+    if (countErr) throw countErr;
+
+    // Count by platform: filter platform_data rows, group by metadata->>'source'
+    const { data: rows, error: rowsErr } = await supabase
+      .from('user_memories')
+      .select('metadata')
+      .eq('user_id', userId)
+      .eq('memory_type', 'platform_data');
+
+    if (rowsErr) throw rowsErr;
+
+    const byPlatform = {};
+    for (const row of rows || []) {
+      const src = row.metadata?.source || row.metadata?.platform || 'unknown';
+      byPlatform[src] = (byPlatform[src] || 0) + 1;
+    }
+
+    res.json({ success: true, totalMemories: totalCount || 0, byPlatform });
+  } catch (err) {
+    console.error('[Twin API] memory-stats error:', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+/**
  * GET /api/twin/status
  * Get quick status assessment (lightweight endpoint)
  */
