@@ -41,6 +41,7 @@
       "expo-font",
       "expo-background-fetch",
       "expo-task-manager",
+      "./modules/notification-listener/plugin/index.js",
       [
         "expo-notifications",
         {

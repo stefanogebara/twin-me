@@ -8,6 +8,7 @@ import type { User } from '../types';
 import * as SecureStore from 'expo-secure-store';
 import { registerBackgroundSync, unregisterBackgroundSync } from '../services/backgroundSync';
 import { UsageStatsModule } from '../native/UsageStatsModule';
+import { NotificationListenerModule } from '../native/NotificationListenerModule';
 
 interface Props {
   user: User;
@@ -18,10 +19,12 @@ export function SettingsScreen({ user, onLogout }: Props) {
   const [syncEnabled, setSyncEnabled] = useState(true);
   const [lastSync, setLastSync] = useState<string | null>(null);
   const [hasUsagePerm, setHasUsagePerm] = useState(false);
+  const [hasNotifPerm, setHasNotifPerm] = useState(false);
 
   useEffect(() => {
     SecureStore.getItemAsync(STORAGE_KEYS.LAST_SYNC).then(v => setLastSync(v));
     setHasUsagePerm(UsageStatsModule.hasUsagePermission());
+    setHasNotifPerm(NotificationListenerModule.hasNotificationPermission());
   }, []);
 
   const handleSyncToggle = useCallback(async (enabled: boolean) => {
@@ -43,10 +46,18 @@ export function SettingsScreen({ user, onLogout }: Props) {
   function openUsageStatsPermission() {
     if (Platform.OS === 'android') {
       UsageStatsModule.requestUsagePermission();
-      // Re-check after user returns from Settings
       setTimeout(() => setHasUsagePerm(UsageStatsModule.hasUsagePermission()), 1000);
     } else {
       Alert.alert('Android only', 'Usage stats collection is only available on Android.');
+    }
+  }
+
+  function openNotificationPermission() {
+    if (Platform.OS === 'android') {
+      NotificationListenerModule.requestNotificationPermission();
+      setTimeout(() => setHasNotifPerm(NotificationListenerModule.hasNotificationPermission()), 1000);
+    } else {
+      Alert.alert('Android only', 'Notification tracking is only available on Android.');
     }
   }
 
@@ -99,6 +110,25 @@ export function SettingsScreen({ user, onLogout }: Props) {
             </Text>
           </View>
           {!hasUsagePerm && <Text style={styles.chevron}>›</Text>}
+        </TouchableOpacity>
+
+        <View style={styles.divider} />
+
+        <TouchableOpacity style={styles.row} onPress={openNotificationPermission}>
+          <View style={styles.rowContent}>
+            <Text style={styles.rowTitle}>
+              Notification access{' '}
+              <Text style={{ color: hasNotifPerm ? COLORS.success : COLORS.warning }}>
+                {hasNotifPerm ? '● Granted' : '● Not granted'}
+              </Text>
+            </Text>
+            <Text style={styles.rowSubtitle}>
+              {hasNotifPerm
+                ? 'Notification pattern tracking is active'
+                : 'Tap to open Settings → Notifications → Notification access'}
+            </Text>
+          </View>
+          {!hasNotifPerm && <Text style={styles.chevron}>›</Text>}
         </TouchableOpacity>
       </View>
 

@@ -1,0 +1,16 @@
+{
+  "name": "notification-listener",
+  "version": "1.0.0",
+  "description": "Native Android NotificationListenerService module for TwinMe",
+  "main": "src/index.ts",
+  "types": "src/index.ts",
+  "expo": {
+    "install": {
+      "exclude": ["expo-modules-core"]
+    }
+  },
+  "peerDependencies": {
+    "expo": "*",
+    "react-native": "*"
+  }
+}
