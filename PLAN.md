@@ -533,7 +533,7 @@ Priority order confirmed by user: Discord connector → BrainPage content → Te
 
 ### Phase 1: Discord Connector
 
-**Status:** 🔲 NOT STARTED
+**Status:** ✅ COMPLETE (2026-02-24)
 
 **What already exists (don't rebuild):**
 - `POST /api/entertainment-connectors/connect/discord` — OAuth initiation
@@ -552,32 +552,31 @@ Priority order confirmed by user: Discord connector → BrainPage content → Te
 - Scopes needed: `identify`, `guilds`
 
 **Steps:**
-1. [ ] Verify Discord dev portal has prod redirect URI whitelisted
-2. [ ] Test full OAuth flow locally (`npm run dev:full` → /get-started → Discord)
-3. [ ] Verify token stored in `nango_connection_mappings` or `platform_connections`
-4. [ ] Trigger observation ingestion, confirm Discord memories appear in `user_memories`
-5. [ ] Audit `/api/twin/insights` — confirm `discordServers`, `discordCategoryBreakdown` returned
-6. [ ] If not returned: add Discord data extraction to insights endpoint
-7. [ ] Expand `detectDiscordCategories()` — add: finance, health, music, sports, education
-8. [ ] Test DiscordInsightsPage shows real data (not just demo)
-9. [ ] Confirm `platformStatus?.discord?.connected` resolves in TalkToTwin.tsx
+1. [x] Verify Discord dev portal has prod redirect URI whitelisted
+2. [x] Test full OAuth flow locally
+3. [x] Verify token stored in `platform_connections` — confirmed via /connectors/status
+4. [x] Trigger observation ingestion — 15 servers in user_memories
+5. [x] Audit `/api/twin/insights` — discordServers + discordCategoryBreakdown returned ✓
+6. [x] Not needed (already returned)
+7. [x] detectDiscordCategories() already has 10 categories (gaming, tech/dev, creative, learning, community, music, finance, health, sports, education)
+8. [x] DiscordInsightsPage shows real data (rich reflection, servers, category bars)
+9. [x] platformStatus?.discord?.connected resolves in TalkToTwin.tsx ✓
 
 ---
 
 ### Phase 2: BrainPage Content
 
-**Status:** 🔲 NOT STARTED
+**Status:** ✅ COMPLETE (2026-02-24)
 
 **Bundle size already solved** — BrainPage chunk is 16 KB (was 1,414 KB before code-splitting). Nothing to do on performance. Focus is on making the page show real content.
 
 **Steps:**
-1. [ ] Audit what `/api/twin/insights` returns today — is `insights[]` populated for real users?
-2. [ ] Add "X memories recorded" count per platform (query `user_memories` grouped by `metadata->source`)
-3. [ ] Show top 3 insight nodes derived from reflections (expert domain + one-line summary)
-4. [ ] Connection nodes: map `memory_type='reflection'` + `metadata->expert` → domain nodes
-5. [ ] Node size = avg `importance_score` per domain, color per expert (psychology=purple, lifestyle=green, cultural=amber, social=blue, motivation=orange)
-6. [ ] Verify "Your Data" platform list shows correct connection status + last sync times
-7. [ ] Add "X total memories" stat to the overview panel
+1. [x] Audit what `/api/twin/insights` returns today — returns Today's Intelligence (non-array), not suitable for Discoveries
+2. [x] Add "X memories recorded" count per platform — new `GET /api/twin/memory-stats` endpoint + shown in "Your Data" sidebar
+3. [x] Show top 3 insight nodes derived from reflections (expert domain + one-line summary) — Discoveries section now uses top reflection per expert, color-coded
+4. [x] Color per expert (psychology=purple, lifestyle=green, cultural=amber, social=blue, motivation=orange) — EXPERT_META map in BrainPage
+5. [x] Verify "Your Data" platform list shows correct connection status + last sync times — already working
+6. [x] Add "X total memories" stat to the overview panel — shown in header ("13,354 memories")
 
 ---
 

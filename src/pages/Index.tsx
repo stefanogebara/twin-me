@@ -340,9 +340,20 @@ const Index = () => {
                 { value: '< 60s', label: 'Time to first insight', sub: 'After connecting' },
               ].map((stat, i) => (
                 <div key={i} className="glass-stat">
-                  <h3 className="heading-serif h3 text-white mb-1">{stat.value}</h3>
-                  <p className="body-text text-white/80">{stat.label}</p>
-                  <p className="body-text text-white/60 mt-1" style={{ fontSize: '12px' }}>{stat.sub}</p>
+                  <div
+                    style={{
+                      fontFamily: 'var(--font-heading)',
+                      fontSize: '56px',
+                      fontWeight: 600,
+                      lineHeight: 1.05,
+                      color: '#ffffff',
+                      marginBottom: '8px',
+                    }}
+                  >
+                    {stat.value}
+                  </div>
+                  <p style={{ fontFamily: 'var(--font-sans)', fontSize: '13px', color: 'rgba(255,255,255,0.85)', lineHeight: 1.4, margin: 0 }}>{stat.label}</p>
+                  <p style={{ fontFamily: 'var(--font-sans)', fontSize: '11px', color: 'rgba(255,255,255,0.55)', marginTop: '4px' }}>{stat.sub}</p>
                 </div>
               ))}
             </div>
