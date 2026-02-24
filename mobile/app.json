@@ -1,0 +1,58 @@
+{
+  "expo": {
+    "name": "TwinMe",
+    "slug": "twinme-android",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "automatic",
+    "newArchEnabled": true,
+    "scheme": "twinme",
+    "splash": {
+      "image": "./assets/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#faf9f8"
+    },
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "com.twinme.app"
+    },
+    "android": {
+      "package": "com.twinme.app",
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#faf9f8"
+      },
+      "edgeToEdgeEnabled": true,
+      "permissions": [
+        "android.permission.PACKAGE_USAGE_STATS",
+        "android.permission.BIND_NOTIFICATION_LISTENER_SERVICE",
+        "android.permission.RECEIVE_BOOT_COMPLETED",
+        "android.permission.INTERNET",
+        "android.permission.FOREGROUND_SERVICE"
+      ]
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "plugins": [
+      "expo-secure-store",
+      "expo-router",
+      "expo-font",
+      "expo-background-fetch",
+      "expo-task-manager",
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/notification-icon.png",
+          "color": "#8b5cf6"
+        }
+      ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "twinme-android"
+      }
+    }
+  }
+}
