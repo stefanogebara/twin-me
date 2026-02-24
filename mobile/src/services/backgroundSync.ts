@@ -5,13 +5,16 @@
  * On each run it:
  *  1. Reads the stored auth token from SecureStore
  *  2. Collects real app-usage data via UsageStatsModule (native Android module)
+ *     and notification patterns via NotificationListenerModule.
  *     Falls back to empty payload gracefully on Expo Go / iOS.
  *  3. POSTs to /api/imports/gdpr with platform=android_usage
  *  4. Updates LAST_SYNC in SecureStore
+ *  5. Clears notification counters after successful upload (no double-counting)
  *
- * NOTE: UsageStatsModule requires PACKAGE_USAGE_STATS permission (user must
- * grant via Settings > Apps > Special app access > Usage access).
- * The Settings screen is opened via UsageStatsModule.requestUsagePermission().
+ * PERMISSIONS REQUIRED:
+ *  - PACKAGE_USAGE_STATS  → Settings > Apps > Special app access > Usage access
+ *  - BIND_NOTIFICATION_LISTENER_SERVICE → Settings > Notifications > Notification access
+ * Both are user-granted via the Settings screen (no runtime permission dialog).
  */
 
 import * as BackgroundFetch from 'expo-background-fetch';
@@ -21,6 +24,7 @@ import { USAGE_SYNC_TASK, STORAGE_KEYS } from '../constants';
 import { uploadAndroidUsage } from './api';
 import type { AndroidUsageData } from '../types';
 import { UsageStatsModule } from '../native/UsageStatsModule';
+import { NotificationListenerModule } from '../native/NotificationListenerModule';
 
 // ---------------------------------------------------------------------------
 // Task definition (must be at module top level)
@@ -35,6 +39,10 @@ TaskManager.defineTask(USAGE_SYNC_TASK, async () => {
 
     const data = await collectUsageData();
     await uploadAndroidUsage(data);
+
+    // Clear notification counters only after successful upload
+    NotificationListenerModule.clearStats();
+
     await SecureStore.setItemAsync(STORAGE_KEYS.LAST_SYNC, new Date().toISOString());
 
     console.log('[BackgroundSync] Usage data uploaded successfully');
@@ -46,11 +54,26 @@ TaskManager.defineTask(USAGE_SYNC_TASK, async () => {
 });
 
 // ---------------------------------------------------------------------------
-// Collect usage data via native UsageStatsModule (graceful fallback on iOS/Go)
+// Collect usage data — merges UsageStats + notification patterns
 // ---------------------------------------------------------------------------
 
 async function collectUsageData(): Promise<AndroidUsageData> {
-  return UsageStatsModule.getAndroidUsageData(24);
+  const [usageData, notificationPatterns] = await Promise.all([
+    UsageStatsModule.getAndroidUsageData(24),
+    NotificationListenerModule.getNotificationStats(),
+  ]);
+
+  // Merge notification patterns from the native listener into the payload.
+  // UsageStatsModule already collects a proxy via SHORTCUT_INVOCATION events;
+  // the real NotificationListenerService data is richer and takes precedence
+  // when available (non-empty).
+  return {
+    ...usageData,
+    notificationPatterns:
+      notificationPatterns.length > 0
+        ? notificationPatterns
+        : usageData.notificationPatterns,
+  };
 }
 
 // ---------------------------------------------------------------------------
