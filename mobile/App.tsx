@@ -1,12 +1,13 @@
-import React, { useEffect } from 'react';
+import React, { useCallback, useEffect, useRef } from 'react';
 import { ActivityIndicator, View } from 'react-native';
-import { NavigationContainer } from '@react-navigation/native';
+import { NavigationContainer, NavigationContainerRef } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 
 import { useAuth } from './src/hooks/useAuth';
 import { registerBackgroundSync } from './src/services/backgroundSync';
+import { usePushNotifications } from './src/hooks/usePushNotifications';
 import { LoginScreen } from './src/screens/LoginScreen';
 import { HomeScreen } from './src/screens/HomeScreen';
 import { TwinChatScreen } from './src/screens/TwinChatScreen';
@@ -38,12 +39,19 @@ function TabIcon({ label, focused }: { label: string; focused: boolean }) {
 
 export default function App() {
   const { token, user, isLoading, login, logout } = useAuth();
+  const navRef = useRef<NavigationContainerRef<Record<string, undefined>>>(null);
 
   useEffect(() => {
     if (token) {
       registerBackgroundSync().catch(console.error);
     }
   }, [token]);
+
+  const handlePushTap = useCallback(() => {
+    navRef.current?.navigate('Chat');
+  }, []);
+
+  usePushNotifications(token ? handlePushTap : undefined);
 
   if (isLoading) {
     return (
@@ -66,7 +74,7 @@ export default function App() {
   return (
     <SafeAreaProvider>
       <StatusBar style="dark" />
-      <NavigationContainer>
+      <NavigationContainer ref={navRef}>
         <Tab.Navigator
           screenOptions={{
             headerStyle: { backgroundColor: COLORS.background, elevation: 0, shadowOpacity: 0 },
