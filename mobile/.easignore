@@ -1,0 +1,7 @@
+node_modules/
+.git/
+android/.gradle/
+android/build/
+android/app/build/
+modules/usage-stats/node_modules/
+modules/notification-listener/node_modules/
