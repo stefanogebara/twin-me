@@ -44,6 +44,7 @@ import {
   addReflection,
   getRecentImportanceSum,
 } from './memoryStreamService.js';
+import { supabaseAdmin } from './database.js';
 
 // Reflection threshold: trigger when sum of recent importance scores exceeds this
 // Lowered from 50 to 15 so new users trigger reflections earlier (~3 memories rated 5)
@@ -349,6 +350,13 @@ async function generateReflections(userId, depth = 0) {
     if (depth === 0) {
       reflectionCooldowns.set(userId, Date.now());
       setTimeout(() => reflectionCooldowns.delete(userId), REFLECTION_COOLDOWN_MS);
+
+      // Snapshot personality scores after each reflection cycle
+      if (reflectionsGenerated > 0) {
+        snapshotPersonalityScores(userId).catch(err =>
+          console.warn('[Reflection] Snapshot error (non-fatal):', err.message)
+        );
+      }
     }
 
     console.log(`[Reflection] Completed depth ${depth}: ${reflectionsGenerated} reflections from ${EXPERT_PERSONAS.length} experts for user ${userId}`);
@@ -383,6 +391,56 @@ async function seedReflections(userId) {
   // Clear cooldown to allow immediate reflection
   reflectionCooldowns.delete(userId);
   return generateReflections(userId);
+}
+
+// ====================================================================
+// Personality Snapshot
+// ====================================================================
+
+/**
+ * Copy current personality_scores into personality_score_snapshots.
+ * Called automatically after each reflection cycle.
+ * One snapshot per 24h per user (enforced by DB data, not code).
+ */
+async function snapshotPersonalityScores(userId) {
+  try {
+    const { data: ps, error: psErr } = await supabaseAdmin
+      .from('personality_scores')
+      .select('openness, conscientiousness, extraversion, agreeableness, neuroticism')
+      .eq('user_id', userId)
+      .single();
+    if (psErr || !ps) return;
+
+    // Get latest archetype_name
+    const { data: sig } = await supabaseAdmin
+      .from('soul_signatures')
+      .select('archetype_name')
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .single();
+
+    // Get current memory count
+    const { count: memCount } = await supabaseAdmin
+      .from('user_memories')
+      .select('id', { count: 'exact', head: true })
+      .eq('user_id', userId);
+
+    await supabaseAdmin.from('personality_score_snapshots').insert({
+      user_id: userId,
+      openness: ps.openness,
+      conscientiousness: ps.conscientiousness,
+      extraversion: ps.extraversion,
+      agreeableness: ps.agreeableness,
+      neuroticism: ps.neuroticism,
+      archetype_name: sig?.archetype_name || null,
+      memory_count: memCount || 0,
+    });
+
+    console.log(`[Reflection] Personality snapshot recorded for user ${userId}`);
+  } catch (err) {
+    console.warn('[Reflection] snapshotPersonalityScores error:', err.message);
+  }
 }
 
 // ====================================================================
