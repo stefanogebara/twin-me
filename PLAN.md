@@ -598,3 +598,115 @@ Priority order confirmed by user: Discord connector → BrainPage content → Te
    - Soul archetype timeline with arrows ("The X → The Y")
    - Memory growth bar chart (recharts BarChart, weeklyGrowth data)
 5. [x] "Twin has known you for X days" badge in EvolutionSection header
+
+---
+
+## Phase 4: Android App — Architecture Decision Record
+
+**Status:** 📋 DECISION PENDING (user must choose framework)
+
+**Date:** 2026-02-24
+
+### Problem Statement
+
+TwinMe's competitive advantage is deep, passive data collection from the actual device the user uses. A web app can only see what users manually connect. An Android app can:
+- Capture **foreground app usage** via `UsageStatsManager` (no special Play Store permissions)
+- Capture **notification patterns** via `NotificationListenerService`
+- Run **background sync** to continuously enrich the memory stream
+- Provide **push notifications** for proactive twin insights
+
+### Decision: React Native vs Flutter
+
+| Criterion | React Native | Flutter |
+|-----------|-------------|---------|
+| **Code reuse** | ~60-70% shared with existing TypeScript/React codebase | 0% — Dart is a new language |
+| **Native API access** | Good via NativeModules / community libs | Excellent — direct platform channel to Java/Kotlin |
+| **`UsageStatsManager`** | Available via `react-native-usage-stats` or custom NativeModule | Direct via MethodChannel to Kotlin |
+| **`NotificationListenerService`** | Available via `react-native-notification-listener` | Direct via Kotlin plugin |
+| **Play Store risk** | Low — standard permissions, no Accessibility Service | Low — same |
+| **Performance** | JSI bridge adds overhead for high-frequency data | Native rendering, no bridge |
+| **Developer experience** | TypeScript — same toolchain as existing code | Dart — new lang to learn |
+| **Hot reload** | Yes (Metro bundler) | Yes (Flutter engine) |
+| **UI consistency** | Uses native components → matches OS look | Custom renderer → consistent cross-platform |
+| **Community** | Large, mature, Meta-backed | Large, growing, Google-backed |
+| **Bundle size** | ~7 MB base | ~5 MB base |
+| **Timeline to first build** | 2-3 days (reuse React skills) | 1 week (Dart ramp-up) |
+
+### Data Collection Strategy (Both Frameworks)
+
+**Do NOT use Accessibility Service** — this triggers enhanced Play Store review and requires policy justification. Use:
+
+1. **`UsageStatsManager`** (`PACKAGE_USAGE_STATS` permission)
+   - User grants in Android Settings → Digital Wellbeing → App usage
+   - Returns foreground app time by hour/day
+   - Highly reliable, no Play Store concerns
+   - Data: `{ appPackage, totalTimeInForeground, lastTimeUsed }`
+
+2. **`NotificationListenerService`** (user-enabled service)
+   - Captures: which apps send notifications + frequency
+   - Does NOT read notification content (privacy-safe)
+   - Data: `{ packageName, notificationCount, hourOfDay }`
+
+3. **Background sync** every 4-6 hours
+   - `WorkManager` (Android) — battery-efficient background jobs
+   - POST to `/api/imports` with `platform: 'android_usage'`
+   - Same deduplication pipeline as GDPR imports
+
+### Recommended Data Observations Generated
+
+From `UsageStatsManager`:
+```
+"Used Instagram for 2h 15min on average daily (last 30 days)"
+"Peak phone usage: 9-10pm (32% of daily screen time)"
+"Top apps: Instagram (23%), YouTube (18%), WhatsApp (15%)"
+"Reduced TikTok usage by 40% week-over-week"
+```
+
+From `NotificationListenerService`:
+```
+"High notification frequency from Slack (48/day avg) — work/communication dominant"
+"Mostly quiet from 11pm-7am — healthy digital sleep hygiene"
+"Discord notifications peak on weekends — community-oriented social pattern"
+```
+
+### Backend Integration
+
+Reuse existing GDPR import pipeline:
+- `POST /api/imports/gdpr` with `platform: 'android_usage'`
+- Add parser in `gdprImportService.js`:
+  ```javascript
+  case 'android_usage': observations = parseAndroidUsage(fileBuffer); break;
+  ```
+- No new DB migration needed — `user_data_imports` table already exists
+
+### Recommendation
+
+**React Native** for Phase 4 because:
+1. Immediate TypeScript/React code reuse → faster delivery
+2. Existing team skill (no Dart learning curve)
+3. `UsageStatsManager` and `NotificationListenerService` both have solid React Native libraries
+4. Same API client code can be shared with web app
+5. Hot reload development experience matches existing workflow
+
+**Flutter** is the better long-term choice if:
+- You plan to ship iOS simultaneously (Flutter's iOS support is excellent)
+- You need very high performance UI rendering
+- You're willing to invest 1-2 weeks in Dart onboarding
+
+### Phase 4 Milestones (React Native path)
+
+1. [ ] Init project: `npx react-native init TwinMeAndroid --template react-native-template-typescript`
+2. [ ] Add auth: reuse JWT logic, store token in `react-native-keychain`
+3. [ ] Implement `UsageStatsManager` bridge (NativeModule in Kotlin)
+4. [ ] Implement `NotificationListenerService` (Background service in Kotlin)
+5. [ ] `WorkManager` background job → POST to `/api/imports/gdpr`
+6. [ ] Add `android_usage` parser to `gdprImportService.js`
+7. [ ] Push notifications via FCM → deliver proactive twin insights
+8. [ ] Play Store alpha release
+
+### **Decision Required**
+
+Before starting Phase 4 code:
+- [ ] Choose framework: **React Native** or **Flutter**?
+- [ ] Confirm data collection scope: UsageStats only, or also Notifications?
+- [ ] iOS priority: Android-first or simultaneous?
