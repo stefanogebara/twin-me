@@ -6,7 +6,7 @@
  */
 
 import { Router } from 'express';
-import { authMiddleware } from '../middleware/auth.js';
+import { authenticateUser as authMiddleware } from '../middleware/auth.js';
 import { registerDeviceToken } from '../services/pushNotificationService.js';
 import { supabaseAdmin } from '../services/database.js';
 

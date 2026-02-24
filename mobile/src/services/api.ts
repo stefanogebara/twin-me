@@ -116,21 +116,34 @@ export async function uploadAndroidUsage(usageData: AndroidUsageData): Promise<{
   importId: string;
   observationsCreated: number;
 }> {
-  const json = JSON.stringify(usageData);
-  const blob = new Blob([json], { type: 'application/json' });
   const token = await SecureStore.getItemAsync(STORAGE_KEYS.AUTH_TOKEN);
+  const authHeader: Record<string, string> = token ? { Authorization: `Bearer ${token}` } : {};
+  const fileName = 'android-usage.json';
 
-  const formData = new FormData();
-  formData.append('platform', 'android_usage');
-  formData.append('file', blob as unknown as File, 'android-usage.json');
-
-  const res = await fetch(`${API_URL}/imports/gdpr`, {
+  // Step 1 — get presigned upload URL
+  const urlRes = await fetch(`${API_URL}/imports/upload-url`, {
     method: 'POST',
-    headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}) },
-    body: formData,
+    headers: { 'Content-Type': 'application/json', ...authHeader },
+    body: JSON.stringify({ platform: 'android_usage', fileName }),
   });
+  if (!urlRes.ok) throw new Error('Failed to get upload URL');
+  const { uploadUrl, storagePath } = await urlRes.json();
 
-  if (!res.ok) throw new Error('Upload failed');
-  const data = await res.json();
+  // Step 2 — upload directly to Supabase Storage (bypasses Vercel body limit)
+  const putRes = await fetch(uploadUrl, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(usageData),
+  });
+  if (!putRes.ok) throw new Error(`Storage upload failed (${putRes.status})`);
+
+  // Step 3 — process the uploaded file
+  const processRes = await fetch(`${API_URL}/imports/process`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...authHeader },
+    body: JSON.stringify({ platform: 'android_usage', storagePath, fileName }),
+  });
+  if (!processRes.ok) throw new Error('Processing failed');
+  const data = await processRes.json();
   return { importId: data.importId, observationsCreated: data.observationsCreated ?? 0 };
 }
