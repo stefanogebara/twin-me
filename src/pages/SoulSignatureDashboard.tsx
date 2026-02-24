@@ -15,6 +15,7 @@ import { BentoPlatformTile } from './components/soul-portrait/BentoPlatformTile'
 import { BentoInsightsTile } from './components/soul-portrait/BentoInsightsTile';
 import { BentoExpertSpotlight } from './components/soul-portrait/BentoExpertSpotlight';
 import { BentoGoalsTile } from './components/soul-portrait/BentoGoalsTile';
+import { EvolutionSection } from '../components/brain/EvolutionSection';
 
 // Whitelist for BentoStatsTile — filters out unknown/internal platform entries
 const STATS_PLATFORM_WHITELIST = ['spotify', 'google_calendar', 'youtube', 'discord', 'linkedin', 'github', 'reddit'];
@@ -436,6 +437,11 @@ const SoulSignatureDashboard: React.FC = () => {
               />
             </div>
           )}
+
+          {/* ── Soul Signature Evolution — personality growth over time ── */}
+          <div className="mb-8">
+            <EvolutionSection />
+          </div>
 
           {/* ── Memory stream footer — full width ── */}
           <MemoryStreamFooter

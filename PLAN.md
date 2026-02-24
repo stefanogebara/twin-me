@@ -582,7 +582,7 @@ Priority order confirmed by user: Discord connector → BrainPage content → Te
 
 ### Phase 3: Temporal Evolution
 
-**Status:** 🔲 NOT STARTED
+**Status:** ✅ COMPLETE (2026-02-24)
 
 **Data that already exists:**
 - `soul_signatures` table: `created_at`, `archetype_name`, `defining_traits` — new rows on each generation → natural history exists
@@ -590,22 +590,11 @@ Priority order confirmed by user: Discord connector → BrainPage content → Te
 - `personality_scores` table: single row per user, OVERWRITTEN — no history
 
 **Steps:**
-1. [ ] DB migration: create `personality_score_snapshots` table
-   ```sql
-   CREATE TABLE personality_score_snapshots (
-     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-     user_id UUID NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
-     openness NUMERIC(4,3), conscientiousness NUMERIC(4,3),
-     extraversion NUMERIC(4,3), agreeableness NUMERIC(4,3), neuroticism NUMERIC(4,3),
-     archetype_code TEXT, memory_count INTEGER,
-     created_at TIMESTAMPTZ DEFAULT NOW()
-   );
-   CREATE INDEX ON personality_score_snapshots(user_id, created_at DESC);
-   ```
-2. [ ] Hook: after each reflection engine run → insert snapshot row into `personality_score_snapshots`
-3. [ ] API: `GET /api/twin/evolution` — returns personality snapshots + soul_signature history + weekly memory growth
-4. [ ] Frontend: `EvolutionSection` component in `SoulSignatureDashboard.tsx`
-   - Big Five radar chart over time (recharts RadarChart with multiple overlapping datasets)
-   - Soul archetype timeline ("The Curious Builder → The Deep Diver")
-   - Memory growth bar chart (week-over-week, shows "twin is learning")
-5. [ ] Quick win: "Twin has known you for X days" widget on dashboard (data already in `firstMemoryAt`)
+1. [x] DB migration: create `personality_score_snapshots` table (used NUMERIC(5,2) not 4,3 — actual scores 0-100, seeded 3 users)
+2. [x] Hook: after each reflection engine run → insert snapshot row into `personality_score_snapshots` (in reflectionEngine.js, depth=0, fire-and-forget)
+3. [x] API: `GET /api/twin/evolution` — returns personality snapshots + soul_signature history + weekly memory growth + daysKnown
+4. [x] Frontend: `EvolutionSection` component in `SoulSignatureDashboard.tsx`
+   - Big Five radar chart (BigFiveRadarChart preset from PersonalityRadarChart.tsx)
+   - Soul archetype timeline with arrows ("The X → The Y")
+   - Memory growth bar chart (recharts BarChart, weeklyGrowth data)
+5. [x] "Twin has known you for X days" badge in EvolutionSection header
