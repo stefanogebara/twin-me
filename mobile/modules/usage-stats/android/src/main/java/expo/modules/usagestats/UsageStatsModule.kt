@@ -27,10 +27,12 @@ class UsageStatsModule : Module() {
     // requestUsagePermission — opens system Settings
     // -------------------------------------------------------------------------
     Function("requestUsagePermission") {
-      val ctx = appContext.reactContext ?: return@Function
-      val intent = Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS)
-        .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-      ctx.startActivity(intent)
+      appContext.reactContext?.let { ctx ->
+        ctx.startActivity(
+          Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS)
+            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        )
+      }
     }
 
     // -------------------------------------------------------------------------
