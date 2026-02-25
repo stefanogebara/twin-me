@@ -322,7 +322,14 @@ router.get('/oauth/google', (req, res) => {
     appUrl = process.env.VITE_APP_URL || 'http://localhost:8086';
   }
 
-  const redirectUri = encodeURIComponent(`${appUrl}/oauth/callback`);
+  const isMobile = req.query.mobile === 'true';
+
+  // For mobile: redirect straight to backend callback so we can issue deep-link redirect.
+  // For web: redirect to frontend /oauth/callback which then POSTs to backend.
+  const redirectUri = isMobile
+    ? encodeURIComponent(`${req.protocol}://${req.get('host')}/api/auth/oauth/callback`)
+    : encodeURIComponent(`${appUrl}/oauth/callback`);
+
   // Only request basic profile scopes for authentication
   const scope = encodeURIComponent('email profile openid');
 
@@ -330,7 +337,9 @@ router.get('/oauth/google', (req, res) => {
   const stateData = {
     provider: 'google',
     isAuth: true, // Mark this as authentication flow
-    timestamp: Date.now()
+    timestamp: Date.now(),
+    mobile: isMobile, // Mobile app sets this for deep-link callback
+    redirectUri: isMobile ? `${req.protocol}://${req.get('host')}/api/auth/oauth/callback` : `${appUrl}/oauth/callback`,
   };
 
   // Include redirect parameter in state if provided (relative paths only — prevent open redirect)
@@ -354,7 +363,8 @@ router.get('/oauth/google', (req, res) => {
 });
 
 // Helper function to exchange Google auth code for tokens
-async function exchangeGoogleCode(code, appUrl) {
+// redirectUri can be the full callback URL, or we derive it from appUrl
+async function exchangeGoogleCode(code, appUrl, overrideRedirectUri = null) {
   try {
     console.log('🟢 exchangeGoogleCode START');
     console.log('🟢 code:', code?.substring(0, 20) + '...');
@@ -370,7 +380,7 @@ async function exchangeGoogleCode(code, appUrl) {
       return null;
     }
 
-    const redirectUri = `${appUrl}/oauth/callback`;
+    const redirectUri = overrideRedirectUri || `${appUrl}/oauth/callback`;
     console.log('🟢 redirectUri:', redirectUri);
 
     // Exchange code for tokens
@@ -486,8 +496,9 @@ router.get('/oauth/callback', async (req, res) => {
     const isAuthFlow = stateData && stateData.isAuth === true;
 
     if (isGoogleBased && code && (isAuthFlow || !isConnectorFlow)) {
-      // Real Google OAuth for authentication
-      userData = await exchangeGoogleCode(code, appUrl);
+      // Use redirectUri stored in state for mobile, fallback to appUrl-derived for web
+      const storedRedirectUri = stateData?.redirectUri || null;
+      userData = await exchangeGoogleCode(code, appUrl, storedRedirectUri);
 
       // If we failed to get real data, don't fall back to demo for auth flows
       if (!userData && isAuthFlow) {
@@ -621,6 +632,12 @@ router.get('/oauth/callback', async (req, res) => {
       redirectAfterAuth: stateData?.redirectAfterAuth || null,
       expiresAt: Date.now() + 120_000, // 2-minute TTL
     });
+
+    // Mobile app flow: redirect to deep link instead of web app
+    if (stateData?.mobile) {
+      console.log('📱 Mobile OAuth flow — redirecting to deep link');
+      return res.redirect(`twinme://auth?auth_code=${authCode}`);
+    }
 
     const redirectUrl = `${appUrl}/oauth/callback?auth_code=${authCode}&provider=${encodeURIComponent(provider)}`;
     res.redirect(redirectUrl);
