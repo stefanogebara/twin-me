@@ -1,6 +1,18 @@
 import * as SecureStore from 'expo-secure-store';
-import { API_URL, STORAGE_KEYS } from '../constants';
+import { API_URL, OAUTH_API_URL, STORAGE_KEYS } from '../constants';
 import type { User, MemoryStats, TwinInsight, AndroidUsageData } from '../types';
+
+function normalizeUser(u: Record<string, unknown>): User {
+  const full = (u.fullName as string)
+    || `${u.firstName ?? ''} ${u.lastName ?? ''}`.trim()
+    || (u.email as string);
+  return {
+    id: u.id as string,
+    email: u.email as string,
+    full_name: full,
+    name: full,
+  };
+}
 
 // ── Core fetch wrapper ────────────────────────────────────────────────────────
 
@@ -19,7 +31,7 @@ export async function authFetch(path: string, options: RequestInit = {}): Promis
 // ── Auth ─────────────────────────────────────────────────────────────────────
 
 export async function login(email: string, password: string): Promise<{ token: string; user: User }> {
-  const res = await fetch(`${API_URL}/auth/login`, {
+  const res = await fetch(`${API_URL}/auth/signin`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ email, password }),
@@ -29,6 +41,37 @@ export async function login(email: string, password: string): Promise<{ token: s
     throw new Error(err.error || err.message || 'Login failed');
   }
   const data = await res.json();
+  return { token: data.token, user: normalizeUser(data.user) };
+}
+
+export async function register(
+  email: string,
+  password: string,
+  firstName: string,
+  lastName: string,
+): Promise<{ token: string; user: User }> {
+  const res = await fetch(`${API_URL}/auth/signup`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email, password, firstName, lastName }),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ error: 'Sign up failed' }));
+    throw new Error(err.error || err.message || 'Sign up failed');
+  }
+  const data = await res.json();
+  return { token: data.token, user: normalizeUser(data.user) };
+}
+
+export async function claimAuthCode(authCode: string): Promise<{ token: string; user: User }> {
+  const res = await fetch(`${OAUTH_API_URL}/auth/oauth/claim?auth_code=${encodeURIComponent(authCode)}`);
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ error: 'OAuth failed' }));
+    throw new Error(err.error || 'OAuth claim failed');
+  }
+  const data = await res.json();
+  if (!data.token) throw new Error('No token returned from OAuth claim');
+  // Fetch user via verify since claim doesn't return full user object
   return { token: data.token, user: data.user };
 }
 
@@ -37,7 +80,7 @@ export async function verifyToken(): Promise<User | null> {
     const res = await authFetch('/auth/verify');
     if (!res.ok) return null;
     const data = await res.json();
-    return data.user ?? null;
+    return data.user ? normalizeUser(data.user) : null;
   } catch {
     return null;
   }

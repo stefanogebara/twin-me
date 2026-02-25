@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useRef } from 'react';
-import { ActivityIndicator, View } from 'react-native';
+import { ActivityIndicator, View, Text } from 'react-native';
 import { NavigationContainer, NavigationContainerRef } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
@@ -27,23 +27,26 @@ import { COLORS } from './src/constants';
 
 const Tab = createBottomTabNavigator();
 
+const TAB_ICONS: Record<string, string> = {
+  Home: '⊙',
+  Chat: '◈',
+  Settings: '⊕',
+};
+
 function TabIcon({ label, focused }: { label: string; focused: boolean }) {
-  const icons: Record<string, string> = {
-    Home: '⊙',
-    Chat: '◈',
-    Settings: '⊕',
-  };
   return (
-    <View style={{ alignItems: 'center' }}>
+    <View style={{ alignItems: 'center', gap: 2 }}>
       <View
         style={{
-          width: 6,
-          height: 6,
+          width: 5,
+          height: 5,
           borderRadius: 3,
           backgroundColor: focused ? COLORS.primary : 'transparent',
-          marginBottom: 2,
         }}
       />
+      <Text style={{ fontSize: 16, color: focused ? COLORS.text : COLORS.textMuted }}>
+        {TAB_ICONS[label] ?? '○'}
+      </Text>
     </View>
   );
 }
@@ -58,7 +61,7 @@ export default function App() {
     Inter_600SemiBold,
   });
 
-  const { token, user, isLoading, login, logout } = useAuth();
+  const { token, user, isLoading, login, signup, loginWithGoogle, logout } = useAuth();
   const navRef = useRef<NavigationContainerRef<Record<string, undefined>>>(null);
 
   useEffect(() => {
@@ -86,7 +89,7 @@ export default function App() {
     return (
       <SafeAreaProvider>
         <StatusBar style="dark" />
-        <LoginScreen onLogin={login} />
+        <LoginScreen onLogin={login} onSignup={signup} onGoogleLogin={loginWithGoogle} />
       </SafeAreaProvider>
     );
   }
@@ -98,22 +101,26 @@ export default function App() {
         <Tab.Navigator
           screenOptions={{
             headerStyle: { backgroundColor: COLORS.background, elevation: 0, shadowOpacity: 0 },
-            headerTitleStyle: { color: COLORS.text, fontFamily: 'Halant_600SemiBold', fontSize: 18 },
+            headerTitleStyle: { color: COLORS.text, fontFamily: 'Halant_400Regular', fontSize: 18, letterSpacing: -0.5 },
             tabBarStyle: {
               backgroundColor: COLORS.background,
-              borderTopColor: COLORS.border,
+              borderTopColor: 'rgba(0,0,0,0.06)',
               borderTopWidth: 1,
               height: 60,
               paddingBottom: 8,
             },
-            tabBarActiveTintColor: COLORS.primary,
+            tabBarActiveTintColor: COLORS.text,
             tabBarInactiveTintColor: COLORS.textMuted,
-            tabBarLabelStyle: { fontSize: 11, fontFamily: 'Inter_500Medium' },
+            tabBarLabelStyle: { fontSize: 10, fontFamily: 'Inter_400Regular', letterSpacing: 0.5, textTransform: 'uppercase' },
           }}
         >
           <Tab.Screen
             name="Home"
-            options={{ title: 'TwinMe', tabBarLabel: 'Home' }}
+            options={{
+              title: 'TwinMe',
+              tabBarLabel: 'Home',
+              tabBarIcon: ({ focused }) => <TabIcon label="Home" focused={focused} />,
+            }}
           >
             {() => <HomeScreen user={user} />}
           </Tab.Screen>
@@ -121,12 +128,20 @@ export default function App() {
           <Tab.Screen
             name="Chat"
             component={TwinChatScreen}
-            options={{ title: 'Your Twin', tabBarLabel: 'Chat' }}
+            options={{
+              title: 'Your Twin',
+              tabBarLabel: 'Chat',
+              tabBarIcon: ({ focused }) => <TabIcon label="Chat" focused={focused} />,
+            }}
           />
 
           <Tab.Screen
             name="Settings"
-            options={{ title: 'Settings', tabBarLabel: 'Settings' }}
+            options={{
+              title: 'Settings',
+              tabBarLabel: 'Settings',
+              tabBarIcon: ({ focused }) => <TabIcon label="Settings" focused={focused} />,
+            }}
           >
             {() => <SettingsScreen user={user} onLogout={logout} />}
           </Tab.Screen>
