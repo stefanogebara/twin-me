@@ -1,15 +1,13 @@
 apply plugin: 'com.android.library'
 apply plugin: 'kotlin-android'
-apply plugin: 'expo-module-gradle-plugin'
 
 android {
   compileSdkVersion 36
+  namespace "expo.modules.usagestats"
 
   defaultConfig {
     minSdkVersion 24
     targetSdkVersion 36
-    versionCode 1
-    versionName "1.0"
   }
 }
 
