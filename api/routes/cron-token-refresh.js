@@ -129,19 +129,28 @@ async function refreshAccessToken(platform, refreshToken, userId) {
       expiresIn: expires_in || 3600,
     };
   } catch (error) {
-    console.error(`❌ Token refresh failed for ${platform}:`, error.response?.data || error.message);
+    const oauthError = error.response?.data;
+    console.error(`❌ Token refresh failed for ${platform}:`, oauthError || error.message);
 
-    // Mark connection as expired so future cron runs can retry with the refresh_token
-    const { error: reauthErr } = await getSupabaseClient()
+    // invalid_grant = refresh token is revoked or expired permanently — no point retrying
+    const isPermanentFailure = oauthError?.error === 'invalid_grant' ||
+      oauthError?.error === 'invalid_token';
+
+    const newStatus = isPermanentFailure ? 'needs_reauth' : 'expired';
+    if (isPermanentFailure) {
+      console.warn(`⚠️  [CRON] ${platform} refresh token permanently invalid (${oauthError?.error}) — marking needs_reauth`);
+    }
+
+    const { error: updateErr } = await getSupabaseClient()
       .from('platform_connections')
       .update({
-        status: 'expired',
+        status: newStatus,
         updated_at: new Date().toISOString(),
       })
       .eq('user_id', userId)
       .eq('platform', platform);
-    if (reauthErr) {
-      console.warn(`[CRON] Failed to mark ${platform} as needs_reauth after refresh failure:`, reauthErr.message);
+    if (updateErr) {
+      console.warn(`[CRON] Failed to update ${platform} status after refresh failure:`, updateErr.message);
     }
 
     return null;
@@ -175,7 +184,7 @@ async function checkAndRefreshExpiringTokens() {
 
     const { data: connections, error } = await getSupabaseClient()
       .from('platform_connections')
-      .select('id, user_id, platform, access_token, refresh_token, token_expires_at, status')
+      .select('id, user_id, platform, access_token, refresh_token, token_expires_at, status, updated_at')
       .in('status', ['connected', 'token_expired', 'expired'])
       .not('refresh_token', 'is', null)
       .lt('token_expires_at', tenMinutesFromNow)
@@ -191,10 +200,16 @@ async function checkAndRefreshExpiringTokens() {
       return { success: true, tokensRefreshed: 0, message: 'No tokens expiring soon' };
     }
 
-    // Filter out Nango-managed connections
+    // Filter out Nango-managed connections and recently-refreshed ones (concurrency guard)
+    // Vercel can fire multiple cron instances simultaneously; skip if updated < 60s ago
+    const sixtySecondsAgo = new Date(Date.now() - 60 * 1000).toISOString();
     const refreshableConnections = connections.filter(conn => {
       if (isNangoManagedToken(conn.refresh_token) || isNangoManagedToken(conn.access_token)) {
         console.log(`ℹ️  [CRON] Skipping ${conn.platform} - Nango-managed token`);
+        return false;
+      }
+      if (conn.updated_at && conn.updated_at > sixtySecondsAgo) {
+        console.log(`ℹ️  [CRON] Skipping ${conn.platform} - recently updated (concurrency guard)`);
         return false;
       }
       return true;
