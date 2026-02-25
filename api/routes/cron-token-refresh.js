@@ -131,12 +131,11 @@ async function refreshAccessToken(platform, refreshToken, userId) {
   } catch (error) {
     console.error(`❌ Token refresh failed for ${platform}:`, error.response?.data || error.message);
 
-    // Mark connection as needs_reauth
+    // Mark connection as expired so future cron runs can retry with the refresh_token
     const { error: reauthErr } = await getSupabaseClient()
       .from('platform_connections')
       .update({
-        status: 'needs_reauth',
-        error_message: 'Token refresh failed - please reconnect',
+        status: 'expired',
         updated_at: new Date().toISOString(),
       })
       .eq('user_id', userId)
@@ -177,7 +176,7 @@ async function checkAndRefreshExpiringTokens() {
     const { data: connections, error } = await getSupabaseClient()
       .from('platform_connections')
       .select('id, user_id, platform, access_token, refresh_token, token_expires_at, status')
-      .in('status', ['connected', 'token_expired'])
+      .in('status', ['connected', 'token_expired', 'expired'])
       .not('refresh_token', 'is', null)
       .lt('token_expires_at', tenMinutesFromNow)
       .limit(1000);
