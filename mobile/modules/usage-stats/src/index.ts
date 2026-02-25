@@ -1,7 +1,7 @@
 import { NativeModule, requireNativeModule } from 'expo';
-import type { AppUsageEntry, NotificationEntry, AndroidUsageData } from '../../../src/types';
+import type { AppUsageEntry, AppLaunchEntry, HourlyActivity, BatteryInfo, NotificationEntry, AndroidUsageData } from '../../../src/types';
 
-export type { AppUsageEntry, NotificationEntry, AndroidUsageData };
+export type { AppUsageEntry, AppLaunchEntry, HourlyActivity, BatteryInfo, NotificationEntry, AndroidUsageData };
 
 export interface UsageStatsModuleType extends NativeModule {
   /**
@@ -77,6 +77,11 @@ export const UsageStatsModule = {
         appUsage: [],
         notificationPatterns: [],
         screenOnTimeMs: 0,
+        appLaunchCounts: [],
+        screenUnlockCount: 0,
+        hourlyActivity: [],
+        batteryInfo: { level: -1, isCharging: false, chargingType: 'unknown' },
+        audioMode: 'unknown',
       };
     }
     return mod.getAndroidUsageData(hours);

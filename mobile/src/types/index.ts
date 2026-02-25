@@ -41,6 +41,25 @@ export interface AppUsageEntry {
   category?: string;
 }
 
+export interface AppLaunchEntry {
+  appName: string;
+  packageName: string;
+  launchCount: number;
+  avgSessionMs: number;
+}
+
+export interface HourlyActivity {
+  hour: number;       // 0-23
+  activeApps: number; // unique apps opened this hour
+  totalMs: number;    // total foreground time this hour
+}
+
+export interface BatteryInfo {
+  level: number;      // 0-100, or -1 if unknown
+  isCharging: boolean;
+  chargingType: 'ac' | 'usb' | 'wireless' | 'none' | 'unknown';
+}
+
 export interface NotificationEntry {
   packageName: string;
   appName: string;
@@ -53,4 +72,9 @@ export interface AndroidUsageData {
   appUsage: AppUsageEntry[];
   notificationPatterns: NotificationEntry[];
   screenOnTimeMs: number;
+  appLaunchCounts: AppLaunchEntry[];
+  screenUnlockCount: number;
+  hourlyActivity: HourlyActivity[];
+  batteryInfo: BatteryInfo;
+  audioMode: 'silent' | 'vibrate' | 'normal' | 'unknown';
 }
