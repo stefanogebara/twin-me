@@ -115,7 +115,7 @@ export async function sendChatMessage(
   onChunk: (text: string) => void,
 ): Promise<void> {
   const token = await SecureStore.getItemAsync(STORAGE_KEYS.AUTH_TOKEN);
-  const res = await fetch(`${API_URL}/twin/chat/message?stream=1`, {
+  const res = await fetch(`${API_URL}/chat/message?stream=1`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
