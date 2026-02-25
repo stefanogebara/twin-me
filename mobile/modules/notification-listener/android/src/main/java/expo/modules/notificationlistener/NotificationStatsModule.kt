@@ -26,10 +26,12 @@ class NotificationStatsModule : Module() {
     // requestNotificationPermission — opens system Settings
     // -------------------------------------------------------------------------
     Function("requestNotificationPermission") {
-      val ctx = appContext.reactContext ?: return@Function
-      val intent = Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS)
-        .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-      ctx.startActivity(intent)
+      appContext.reactContext?.let { ctx ->
+        ctx.startActivity(
+          Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS)
+            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        )
+      }
     }
 
     // -------------------------------------------------------------------------
@@ -75,8 +77,9 @@ class NotificationStatsModule : Module() {
     // clearStats — wipes all stored counters (call after successful upload)
     // -------------------------------------------------------------------------
     Function("clearStats") {
-      val ctx = appContext.reactContext ?: return@Function
-      TwinNotificationListenerService.getPrefs(ctx).edit().clear().apply()
+      appContext.reactContext?.let { ctx ->
+        TwinNotificationListenerService.getPrefs(ctx).edit().clear().apply()
+      }
     }
   }
 }
