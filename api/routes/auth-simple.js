@@ -8,15 +8,7 @@ import profileEnrichmentService from '../services/profileEnrichmentService.js';
 
 const router = express.Router();
 
-// Short-lived in-memory store for one-time auth codes (avoids tokens in redirect URLs)
-// Keyed by random hex code; each entry expires after 2 minutes.
-const pendingAuthCodes = new Map();
-setInterval(() => {
-  const now = Date.now();
-  for (const [code, session] of pendingAuthCodes.entries()) {
-    if (session.expiresAt < now) pendingAuthCodes.delete(code);
-  }
-}, 5 * 60 * 1000).unref();
+// Auth codes stored in Supabase (not in-memory) so Vercel serverless instances share state
 
 // JWT secret - required environment variable
 const JWT_SECRET = process.env.JWT_SECRET;
@@ -143,6 +135,11 @@ router.post('/signin', async (req, res) => {
 
     if (fetchError || !user) {
       return res.status(400).json({ error: 'Invalid credentials' });
+    }
+
+    // Account uses social login only
+    if (!user.password_hash) {
+      return res.status(400).json({ error: 'This account uses Google sign-in. Please continue with Google.' });
     }
 
     // Verify password
@@ -624,13 +621,15 @@ router.get('/oauth/callback', async (req, res) => {
 
     // Generate a one-time auth code to pass to the frontend — avoids tokens in the redirect URL
     // (tokens in URLs are logged by servers, stored in browser history, and leaked in Referer headers)
+    // Stored in Supabase so all Vercel serverless instances share the same state
     const authCode = crypto.randomBytes(32).toString('hex');
-    pendingAuthCodes.set(authCode, {
-      accessToken,
-      refreshToken,
+    await supabaseAdmin.from('pending_auth_codes').insert({
+      code: authCode,
+      access_token: accessToken,
+      refresh_token: refreshToken,
       provider,
-      redirectAfterAuth: stateData?.redirectAfterAuth || null,
-      expiresAt: Date.now() + 120_000, // 2-minute TTL
+      redirect_after_auth: stateData?.redirectAfterAuth || null,
+      expires_at: new Date(Date.now() + 120_000).toISOString(),
     });
 
     // Mobile app flow: redirect to deep link instead of web app
@@ -904,34 +903,38 @@ router.post('/oauth/callback', async (req, res) => {
 });
 
 // Exchange one-time auth code for tokens — called by frontend after GET redirect
-// Tokens are stored server-side to avoid exposing them in URLs (server logs, browser history, Referer headers)
-router.get('/oauth/claim', (req, res) => {
+// Tokens are stored in Supabase to avoid exposing them in URLs and to work across serverless instances
+router.get('/oauth/claim', async (req, res) => {
   const { auth_code: authCode } = req.query;
 
   if (!authCode || typeof authCode !== 'string') {
     return res.status(400).json({ error: 'Missing auth_code' });
   }
 
-  const session = pendingAuthCodes.get(authCode);
+  const { data: session, error } = await supabaseAdmin
+    .from('pending_auth_codes')
+    .select('*')
+    .eq('code', authCode)
+    .single();
 
-  if (!session) {
+  if (error || !session) {
     return res.status(404).json({ error: 'Invalid or expired auth code' });
   }
 
-  if (session.expiresAt < Date.now()) {
-    pendingAuthCodes.delete(authCode);
+  if (new Date(session.expires_at) < new Date()) {
+    await supabaseAdmin.from('pending_auth_codes').delete().eq('code', authCode);
     return res.status(410).json({ error: 'Auth code expired' });
   }
 
   // One-time use — delete immediately after claim
-  pendingAuthCodes.delete(authCode);
+  await supabaseAdmin.from('pending_auth_codes').delete().eq('code', authCode);
 
   return res.json({
     success: true,
-    token: session.accessToken,
-    refreshToken: session.refreshToken,
+    token: session.access_token,
+    refreshToken: session.refresh_token,
     provider: session.provider,
-    redirectAfterAuth: session.redirectAfterAuth || null,
+    redirectAfterAuth: session.redirect_after_auth || null,
   });
 });
 

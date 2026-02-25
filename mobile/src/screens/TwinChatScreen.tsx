@@ -1,12 +1,17 @@
 import React, { useState, useRef, useCallback } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity, FlatList, Image,
-  StyleSheet, KeyboardAvoidingView, Platform,
-  ActivityIndicator,
+  StyleSheet, KeyboardAvoidingView, Platform, ActivityIndicator,
 } from 'react-native';
 import { COLORS } from '../constants';
 import { sendChatMessage } from '../services/api';
 import type { ChatMessage } from '../types';
+
+const SUGGESTIONS = [
+  'What music do I like?',
+  'How do I spend my time?',
+  'What motivates me?',
+];
 
 function MessageBubble({ message }: { message: ChatMessage }) {
   const isUser = message.role === 'user';
@@ -39,10 +44,8 @@ export function TwinChatScreen() {
       content: text,
       timestamp: Date.now(),
     };
-
     const assistantId = (Date.now() + 1).toString();
     streamingIdRef.current = assistantId;
-
     const assistantMsg: ChatMessage = {
       id: assistantId,
       role: 'assistant',
@@ -57,9 +60,7 @@ export function TwinChatScreen() {
       await sendChatMessage(text, (chunk) => {
         setMessages(prev =>
           prev.map(m =>
-            m.id === assistantId
-              ? { ...m, content: m.content + chunk }
-              : m,
+            m.id === assistantId ? { ...m, content: m.content + chunk } : m,
           ),
         );
         listRef.current?.scrollToEnd({ animated: false });
@@ -83,6 +84,7 @@ export function TwinChatScreen() {
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       keyboardVerticalOffset={88}
     >
+      {/* Empty state */}
       {messages.length === 0 && (
         <View style={styles.emptyState}>
           <Image
@@ -94,11 +96,18 @@ export function TwinChatScreen() {
           <Text style={styles.emptySubtitle}>
             Ask anything — it knows your patterns, preferences, and personality.
           </Text>
-          {['What music do I like?', 'How do I spend my time?', 'What motivates me?'].map(q => (
-            <TouchableOpacity key={q} style={styles.suggestion} onPress={() => setInput(q)}>
-              <Text style={styles.suggestionText}>{q}</Text>
-            </TouchableOpacity>
-          ))}
+          <View style={styles.suggestionsRow}>
+            {SUGGESTIONS.map(q => (
+              <TouchableOpacity
+                key={q}
+                style={styles.suggestion}
+                onPress={() => setInput(q)}
+                activeOpacity={0.7}
+              >
+                <Text style={styles.suggestionText}>{q}</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
         </View>
       )}
 
@@ -111,24 +120,25 @@ export function TwinChatScreen() {
         onContentSizeChange={() => listRef.current?.scrollToEnd({ animated: false })}
       />
 
+      {/* Input row */}
       <View style={styles.inputRow}>
         <TextInput
           style={styles.input}
           value={input}
           onChangeText={setInput}
           placeholder="Message your twin..."
-          placeholderTextColor={COLORS.textMuted}
+          placeholderTextColor="#B5B0A8"
           multiline
           maxLength={500}
-          returnKeyType="default"
         />
         <TouchableOpacity
           style={[styles.sendBtn, (!input.trim() || streaming) && styles.sendBtnDisabled]}
           onPress={send}
           disabled={!input.trim() || streaming}
+          activeOpacity={0.8}
         >
           {streaming
-            ? <ActivityIndicator color="#fff" size="small" />
+            ? <ActivityIndicator color={COLORS.primaryFg} size="small" />
             : <Text style={styles.sendIcon}>↑</Text>
           }
         </TouchableOpacity>
@@ -139,45 +149,46 @@ export function TwinChatScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.background },
+
+  // Empty state
   emptyState: {
     alignItems: 'center',
     paddingHorizontal: 32,
-    paddingTop: 48,
+    paddingTop: 52,
     paddingBottom: 24,
   },
-  emptyLogo: {
-    width: 72,
-    height: 72,
-    marginBottom: 20,
-  },
+  emptyLogo: { width: 64, height: 64, marginBottom: 20 },
   emptyTitle: {
-    fontSize: 22,
-    fontFamily: 'Halant_600SemiBold',
+    fontFamily: 'Halant_400Regular',
+    fontSize: 26,
     color: COLORS.text,
+    letterSpacing: -0.5,
     marginBottom: 8,
   },
   emptySubtitle: {
-    fontSize: 14,
     fontFamily: 'Inter_400Regular',
+    fontSize: 14,
     color: COLORS.textMuted,
     textAlign: 'center',
     lineHeight: 21,
     marginBottom: 28,
   },
+  suggestionsRow: { alignItems: 'center', gap: 8 },
   suggestion: {
+    backgroundColor: COLORS.card,
     borderWidth: 1,
     borderColor: COLORS.border,
-    borderRadius: 20,
+    borderRadius: 9999,
     paddingHorizontal: 18,
-    paddingVertical: 9,
-    marginBottom: 8,
-    backgroundColor: COLORS.card,
+    paddingVertical: 10,
   },
   suggestionText: {
-    fontSize: 13,
     fontFamily: 'Inter_400Regular',
+    fontSize: 13,
     color: COLORS.text,
   },
+
+  // Messages
   messageList: { padding: 16, paddingBottom: 8 },
   bubbleRow: { marginBottom: 12, flexDirection: 'row' },
   bubbleRowRight: { justifyContent: 'flex-end' },
@@ -185,7 +196,7 @@ const styles = StyleSheet.create({
     maxWidth: '80%',
     borderRadius: 18,
     padding: 12,
-    paddingHorizontal: 15,
+    paddingHorizontal: 16,
   },
   bubbleUser: {
     backgroundColor: COLORS.primary,
@@ -193,17 +204,19 @@ const styles = StyleSheet.create({
   },
   bubbleAssistant: {
     backgroundColor: COLORS.card,
-    borderBottomLeftRadius: 4,
     borderWidth: 1,
     borderColor: COLORS.border,
+    borderBottomLeftRadius: 4,
   },
   bubbleText: {
-    fontSize: 15,
     fontFamily: 'Inter_400Regular',
+    fontSize: 15,
     color: COLORS.text,
     lineHeight: 22,
   },
-  bubbleTextUser: { color: '#fff' },
+  bubbleTextUser: { color: COLORS.primaryFg },
+
+  // Input
   inputRow: {
     flexDirection: 'row',
     alignItems: 'flex-end',
@@ -211,7 +224,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderTopWidth: 1,
-    borderTopColor: COLORS.border,
+    borderTopColor: COLORS.inputBorder,
     backgroundColor: COLORS.background,
   },
   input: {
@@ -220,26 +233,31 @@ const styles = StyleSheet.create({
     maxHeight: 120,
     paddingHorizontal: 16,
     paddingVertical: 11,
-    backgroundColor: COLORS.card,
+    backgroundColor: COLORS.inputBg,
     borderWidth: 1,
-    borderColor: COLORS.border,
-    borderRadius: 22,
-    fontSize: 15,
+    borderColor: COLORS.inputBorder,
+    borderRadius: 9999,
+    fontFamily: 'Inter_400Regular',
+    fontSize: 14,
     color: COLORS.text,
   },
   sendBtn: {
     width: 42,
     height: 42,
-    borderRadius: 21,
+    borderRadius: 9999,
     backgroundColor: COLORS.primary,
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: COLORS.primary,
-    shadowOpacity: 0.3,
+    shadowColor: '#000',
+    shadowOpacity: 0.15,
     shadowRadius: 8,
     shadowOffset: { width: 0, height: 2 },
     elevation: 3,
   },
-  sendBtnDisabled: { opacity: 0.4 },
-  sendIcon: { color: '#fff', fontSize: 18, fontWeight: '700' },
+  sendBtnDisabled: { opacity: 0.35 },
+  sendIcon: {
+    color: COLORS.primaryFg,
+    fontSize: 18,
+    fontWeight: '700',
+  },
 });

@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import {
   View, Text, ScrollView, StyleSheet, Image,
-  RefreshControl, ActivityIndicator,
+  RefreshControl, ActivityIndicator, TouchableOpacity,
 } from 'react-native';
 import { COLORS } from '../constants';
 import { fetchMemoryStats, fetchInsights } from '../services/api';
@@ -17,6 +17,13 @@ const EXPERT_COLORS: Record<string, string> = {
 
 interface Props {
   user: User;
+}
+
+function getGreeting() {
+  const h = new Date().getHours();
+  if (h < 12) return 'Good morning';
+  if (h < 17) return 'Good afternoon';
+  return 'Good evening';
 }
 
 export function HomeScreen({ user }: Props) {
@@ -43,12 +50,14 @@ export function HomeScreen({ user }: Props) {
   if (loading) {
     return (
       <View style={styles.center}>
-        <ActivityIndicator color={COLORS.primary} size="large" />
+        <ActivityIndicator color={COLORS.text} size="large" />
       </View>
     );
   }
 
-  const displayName = user.full_name ?? user.name ?? user.email.split('@')[0];
+  const firstName = user.full_name?.split(' ')[0]
+    ?? user.name?.split(' ')[0]
+    ?? user.email.split('@')[0];
 
   return (
     <ScrollView
@@ -58,21 +67,20 @@ export function HomeScreen({ user }: Props) {
         <RefreshControl
           refreshing={refreshing}
           onRefresh={() => { setRefreshing(true); load(); }}
-          tintColor={COLORS.primary}
+          tintColor={COLORS.text}
         />
       }
     >
-      {/* Header with logo */}
+      {/* Greeting */}
       <View style={styles.header}>
-        <View style={styles.headerTop}>
-          <Image
-            source={require('../../assets/flower-hero.png')}
-            style={styles.headerLogo}
-            resizeMode="contain"
-          />
-        </View>
-        <Text style={styles.greeting}>Good to see you,</Text>
-        <Text style={styles.name}>{displayName}</Text>
+        <Image
+          source={require('../../assets/flower-hero.png')}
+          style={styles.headerLogo}
+          resizeMode="contain"
+        />
+        <Text style={styles.greeting}>{getGreeting()},</Text>
+        <Text style={styles.name}>{firstName}</Text>
+        <Text style={styles.subheading}>Your soul signature awaits</Text>
       </View>
 
       {/* Memory count card */}
@@ -80,27 +88,29 @@ export function HomeScreen({ user }: Props) {
         <View style={styles.card}>
           <Text style={styles.cardLabel}>MEMORIES COLLECTED</Text>
           <Text style={styles.bigNumber}>{(stats.total ?? 0).toLocaleString()}</Text>
-          <View style={styles.platformRow}>
-            {Object.entries(stats.byPlatform ?? {}).slice(0, 4).map(([platform, count]) => (
-              <View key={platform} style={styles.platformChip}>
-                <Text style={styles.platformName}>{platform}</Text>
-                <Text style={styles.platformCount}>{Number(count).toLocaleString()}</Text>
-              </View>
-            ))}
-          </View>
+          {Object.keys(stats.byPlatform ?? {}).length > 0 && (
+            <View style={styles.chipRow}>
+              {Object.entries(stats.byPlatform ?? {}).slice(0, 4).map(([platform, count]) => (
+                <View key={platform} style={styles.chip}>
+                  <Text style={styles.chipText}>{platform}</Text>
+                  <Text style={styles.chipCount}>{Number(count).toLocaleString()}</Text>
+                </View>
+              ))}
+            </View>
+          )}
         </View>
       )}
 
-      {/* Twin insights */}
+      {/* Insights */}
       {insights.length > 0 && (
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>What your twin knows</Text>
+          <Text style={styles.sectionLabel}>WHAT YOUR TWIN KNOWS</Text>
           {insights.map((insight) => (
             <View key={insight.id} style={styles.insightCard}>
               <View
                 style={[
                   styles.insightDot,
-                  { backgroundColor: EXPERT_COLORS[insight.category] ?? COLORS.primary },
+                  { backgroundColor: EXPERT_COLORS[insight.category] ?? '#000' },
                 ]}
               />
               <Text style={styles.insightText} numberOfLines={3}>
@@ -111,9 +121,9 @@ export function HomeScreen({ user }: Props) {
         </View>
       )}
 
-      {/* Placeholder if no insights */}
+      {/* Empty state */}
       {insights.length === 0 && (
-        <View style={styles.emptyCard}>
+        <View style={styles.card}>
           <Text style={styles.emptyTitle}>Twin is learning</Text>
           <Text style={styles.emptyText}>
             Connect platforms and add memories to start building your soul signature.
@@ -126,116 +136,125 @@ export function HomeScreen({ user }: Props) {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.background },
-  content: { padding: 20, paddingBottom: 40 },
-  center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  header: { marginBottom: 28 },
-  headerTop: { alignItems: 'flex-start', marginBottom: 16 },
-  headerLogo: { width: 44, height: 44 },
+  content: { padding: 24, paddingBottom: 48 },
+  center: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: COLORS.background },
+
+  // Header
+  header: { marginBottom: 32 },
+  headerLogo: { width: 40, height: 40, marginBottom: 20 },
   greeting: {
-    fontSize: 14,
     fontFamily: 'Inter_400Regular',
+    fontSize: 14,
     color: COLORS.textMuted,
+    marginBottom: 2,
   },
   name: {
-    fontSize: 26,
-    fontFamily: 'Halant_600SemiBold',
+    fontFamily: 'Halant_400Regular',
+    fontSize: 32,
     color: COLORS.text,
-    letterSpacing: -0.3,
-    marginTop: 2,
+    letterSpacing: -1,
+    lineHeight: 38,
   },
+  subheading: {
+    fontFamily: 'Inter_400Regular',
+    fontSize: 14,
+    color: COLORS.textMuted,
+    marginTop: 4,
+  },
+
+  // Glass card
   card: {
     backgroundColor: COLORS.card,
     borderRadius: 20,
-    padding: 20,
-    marginBottom: 24,
-    shadowColor: '#000',
-    shadowOpacity: 0.06,
-    shadowRadius: 16,
-    shadowOffset: { width: 0, height: 2 },
-    elevation: 3,
     borderWidth: 1,
     borderColor: COLORS.border,
+    padding: 24,
+    marginBottom: 20,
+    shadowColor: '#000',
+    shadowOpacity: 0.18,
+    shadowRadius: 32,
+    shadowOffset: { width: 0, height: 8 },
+    elevation: 5,
   },
   cardLabel: {
+    fontFamily: 'Inter_500Medium',
     fontSize: 10,
-    fontFamily: 'Inter_600SemiBold',
     color: COLORS.textMuted,
     letterSpacing: 1.2,
+    textTransform: 'uppercase',
     marginBottom: 8,
   },
   bigNumber: {
-    fontSize: 48,
-    fontFamily: 'Halant_600SemiBold',
+    fontFamily: 'Halant_400Regular',
+    fontSize: 52,
     color: COLORS.text,
-    letterSpacing: -1,
+    letterSpacing: -2,
+    lineHeight: 58,
   },
-  platformRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 12 },
-  platformChip: {
+  chipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 14 },
+  chip: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    backgroundColor: COLORS.primaryLight,
-    borderRadius: 20,
+    backgroundColor: 'rgba(0,0,0,0.05)',
+    borderRadius: 9999,
     paddingHorizontal: 10,
     paddingVertical: 4,
+    borderWidth: 1,
+    borderColor: COLORS.inputBorder,
   },
-  platformName: {
+  chipText: {
+    fontFamily: 'Inter_500Medium',
     fontSize: 11,
-    fontFamily: 'Inter_600SemiBold',
-    color: COLORS.primary,
+    color: COLORS.text,
   },
-  platformCount: {
-    fontSize: 11,
+  chipCount: {
     fontFamily: 'Inter_400Regular',
-    color: COLORS.primary,
-  },
-  section: { marginBottom: 24 },
-  sectionTitle: {
     fontSize: 11,
-    fontFamily: 'Inter_600SemiBold',
     color: COLORS.textMuted,
-    letterSpacing: 0.8,
-    marginBottom: 12,
+  },
+
+  // Insights section
+  section: { marginBottom: 20 },
+  sectionLabel: {
+    fontFamily: 'Inter_500Medium',
+    fontSize: 10,
+    color: COLORS.textMuted,
+    letterSpacing: 1.2,
     textTransform: 'uppercase',
+    marginBottom: 12,
   },
   insightCard: {
     flexDirection: 'row',
     alignItems: 'flex-start',
     gap: 12,
     backgroundColor: COLORS.card,
-    borderRadius: 14,
-    padding: 14,
-    marginBottom: 8,
+    borderRadius: 16,
     borderWidth: 1,
     borderColor: COLORS.border,
+    padding: 16,
+    marginBottom: 8,
   },
-  insightDot: { width: 8, height: 8, borderRadius: 4, marginTop: 5 },
+  insightDot: { width: 7, height: 7, borderRadius: 4, marginTop: 6 },
   insightText: {
     flex: 1,
-    fontSize: 14,
     fontFamily: 'Inter_400Regular',
+    fontSize: 14,
     color: COLORS.text,
     lineHeight: 21,
   },
-  emptyCard: {
-    backgroundColor: COLORS.card,
-    borderRadius: 20,
-    padding: 28,
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: COLORS.border,
-  },
+
+  // Empty state
   emptyTitle: {
-    fontSize: 18,
-    fontFamily: 'Halant_500Medium',
+    fontFamily: 'Halant_400Regular',
+    fontSize: 20,
     color: COLORS.text,
     marginBottom: 8,
   },
   emptyText: {
-    fontSize: 13,
     fontFamily: 'Inter_400Regular',
+    fontSize: 13,
     color: COLORS.textMuted,
-    textAlign: 'center',
     lineHeight: 20,
   },
 });
