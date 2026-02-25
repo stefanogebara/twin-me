@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import {
-  View, Text, TextInput, TouchableOpacity,
+  View, Text, TextInput, TouchableOpacity, Image,
   StyleSheet, KeyboardAvoidingView, Platform,
-  ActivityIndicator, Alert,
+  ActivityIndicator, Alert, ScrollView,
 } from 'react-native';
 import { COLORS } from '../constants';
 
@@ -36,18 +36,26 @@ export function LoginScreen({ onLogin }: Props) {
       style={styles.container}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
-      <View style={styles.inner}>
-        {/* Logo / brand */}
+      <ScrollView
+        contentContainerStyle={styles.inner}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+      >
+        {/* Logo */}
         <View style={styles.header}>
-          <View style={styles.logoCircle}>
-            <Text style={styles.logoText}>T</Text>
-          </View>
-          <Text style={styles.title}>TwinMe</Text>
+          <Image
+            source={require('../../assets/flower-hero.png')}
+            style={styles.logo}
+            resizeMode="contain"
+          />
+          <Text style={styles.title}>Twin Me</Text>
           <Text style={styles.subtitle}>Your soul signature, in your pocket</Text>
         </View>
 
-        {/* Form */}
-        <View style={styles.form}>
+        {/* Glass card form */}
+        <View style={styles.card}>
+          <Text style={styles.cardTitle}>Welcome back</Text>
+
           <Text style={styles.label}>Email</Text>
           <TextInput
             style={styles.input}
@@ -86,7 +94,7 @@ export function LoginScreen({ onLogin }: Props) {
         <Text style={styles.hint}>
           Use the same credentials as the TwinMe web app.
         </Text>
-      </View>
+      </ScrollView>
     </KeyboardAvoidingView>
   );
 }
@@ -94,31 +102,88 @@ export function LoginScreen({ onLogin }: Props) {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.background },
   inner: {
-    flex: 1, justifyContent: 'center', paddingHorizontal: 32,
+    flexGrow: 1,
+    justifyContent: 'center',
+    paddingHorizontal: 24,
+    paddingVertical: 48,
   },
-  header: { alignItems: 'center', marginBottom: 48 },
-  logoCircle: {
-    width: 64, height: 64, borderRadius: 32,
-    backgroundColor: COLORS.primary,
-    alignItems: 'center', justifyContent: 'center',
+  header: { alignItems: 'center', marginBottom: 40 },
+  logo: {
+    width: 96,
+    height: 96,
+    marginBottom: 20,
+  },
+  title: {
+    fontSize: 38,
+    fontFamily: 'Halant_600SemiBold',
+    color: COLORS.text,
+    letterSpacing: -0.5,
+  },
+  subtitle: {
+    fontSize: 15,
+    fontFamily: 'Inter_400Regular',
+    color: COLORS.textMuted,
+    marginTop: 6,
+  },
+  card: {
+    backgroundColor: COLORS.card,
+    borderRadius: 20,
+    padding: 24,
+    shadowColor: '#000',
+    shadowOpacity: 0.08,
+    shadowRadius: 20,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 4,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+  },
+  cardTitle: {
+    fontSize: 20,
+    fontFamily: 'Halant_500Medium',
+    color: COLORS.text,
+    marginBottom: 20,
+  },
+  label: {
+    fontSize: 13,
+    fontFamily: 'Inter_500Medium',
+    color: COLORS.text,
+    marginBottom: 6,
+  },
+  input: {
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 13,
+    fontSize: 15,
+    fontFamily: 'Inter_400Regular',
+    color: COLORS.text,
+    backgroundColor: 'rgba(255,255,255,0.7)',
     marginBottom: 16,
   },
-  logoText: { color: '#fff', fontSize: 28, fontWeight: '700' },
-  title: { fontSize: 28, fontWeight: '700', color: COLORS.text, letterSpacing: -0.5 },
-  subtitle: { fontSize: 14, color: COLORS.textMuted, marginTop: 4 },
-  form: { gap: 8 },
-  label: { fontSize: 13, fontWeight: '600', color: COLORS.text, marginBottom: 2 },
-  input: {
-    borderWidth: 1, borderColor: COLORS.border,
-    borderRadius: 10, paddingHorizontal: 14, paddingVertical: 12,
-    fontSize: 15, color: COLORS.text, backgroundColor: COLORS.card,
-    marginBottom: 8,
-  },
   button: {
-    backgroundColor: COLORS.primary, borderRadius: 10,
-    paddingVertical: 14, alignItems: 'center', marginTop: 8,
+    backgroundColor: COLORS.primary,
+    borderRadius: 12,
+    paddingVertical: 15,
+    alignItems: 'center',
+    marginTop: 4,
+    shadowColor: COLORS.primary,
+    shadowOpacity: 0.35,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 4,
   },
   buttonDisabled: { opacity: 0.6 },
-  buttonText: { color: '#fff', fontSize: 15, fontWeight: '700' },
-  hint: { textAlign: 'center', color: COLORS.textMuted, fontSize: 12, marginTop: 32 },
+  buttonText: {
+    color: '#fff',
+    fontSize: 15,
+    fontFamily: 'Inter_600SemiBold',
+  },
+  hint: {
+    textAlign: 'center',
+    color: COLORS.textMuted,
+    fontSize: 12,
+    fontFamily: 'Inter_400Regular',
+    marginTop: 28,
+  },
 });

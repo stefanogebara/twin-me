@@ -4,6 +4,17 @@ import { NavigationContainer, NavigationContainerRef } from '@react-navigation/n
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
+import { useFonts } from 'expo-font';
+import {
+  Halant_400Regular,
+  Halant_500Medium,
+  Halant_600SemiBold,
+} from '@expo-google-fonts/halant';
+import {
+  Inter_400Regular,
+  Inter_500Medium,
+  Inter_600SemiBold,
+} from '@expo-google-fonts/inter';
 
 import { useAuth } from './src/hooks/useAuth';
 import { registerBackgroundSync } from './src/services/backgroundSync';
@@ -38,6 +49,15 @@ function TabIcon({ label, focused }: { label: string; focused: boolean }) {
 }
 
 export default function App() {
+  const [fontsLoaded] = useFonts({
+    Halant_400Regular,
+    Halant_500Medium,
+    Halant_600SemiBold,
+    Inter_400Regular,
+    Inter_500Medium,
+    Inter_600SemiBold,
+  });
+
   const { token, user, isLoading, login, logout } = useAuth();
   const navRef = useRef<NavigationContainerRef<Record<string, undefined>>>(null);
 
@@ -53,7 +73,7 @@ export default function App() {
 
   usePushNotifications(token ? handlePushTap : undefined);
 
-  if (isLoading) {
+  if (isLoading || !fontsLoaded) {
     return (
       <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: COLORS.background }}>
         <ActivityIndicator color={COLORS.primary} size="large" />
@@ -78,7 +98,7 @@ export default function App() {
         <Tab.Navigator
           screenOptions={{
             headerStyle: { backgroundColor: COLORS.background, elevation: 0, shadowOpacity: 0 },
-            headerTitleStyle: { color: COLORS.text, fontWeight: '700', fontSize: 17 },
+            headerTitleStyle: { color: COLORS.text, fontFamily: 'Halant_600SemiBold', fontSize: 18 },
             tabBarStyle: {
               backgroundColor: COLORS.background,
               borderTopColor: COLORS.border,
@@ -88,7 +108,7 @@ export default function App() {
             },
             tabBarActiveTintColor: COLORS.primary,
             tabBarInactiveTintColor: COLORS.textMuted,
-            tabBarLabelStyle: { fontSize: 11, fontWeight: '600' },
+            tabBarLabelStyle: { fontSize: 11, fontFamily: 'Inter_500Medium' },
           }}
         >
           <Tab.Screen

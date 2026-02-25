@@ -11,13 +11,14 @@ export const STORAGE_KEYS = {
 // Background task name
 export const USAGE_SYNC_TASK = 'USAGE_SYNC_TASK';
 
-// TwinMe brand colors
+// TwinMe brand colors — matches web app exactly
 export const COLORS = {
   primary: '#8b5cf6',
   primaryLight: 'rgba(139,92,246,0.12)',
-  background: '#faf9f8',
-  card: '#ffffff',
-  text: '#1a1a1a',
+  background: '#fcf6ef',   // warm beige — matches web
+  card: 'rgba(255,255,255,0.85)',
+  cardSolid: '#ffffff',
+  text: '#1c1917',
   textMuted: '#8A857D',
   border: 'rgba(0,0,0,0.08)',
   success: '#10b981',
