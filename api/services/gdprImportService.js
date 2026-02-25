@@ -443,15 +443,23 @@ function parseAndroidUsage(buffer) {
     .sort((a, b) => b[1] - a[1])
     .slice(0, 10);
 
+  // Screen-on time from dedicated field (more accurate than sum of app times)
+  const screenOnMs = typeof data.screenOnTimeMs === 'number' ? data.screenOnTimeMs : 0;
+  if (screenOnMs > 0) {
+    const screenHours = (screenOnMs / 3_600_000).toFixed(1);
+    observations.push(`Android screen-on time in last 24h: ${screenHours} hours`);
+  }
+
   if (topApps.length > 0) {
     const topAppNames = topApps.slice(0, 5).map(([name]) => name).join(', ');
     observations.push(`Most-used apps on Android: ${topAppNames}`);
 
-    const totalHours = Math.round(
-      Object.values(appTotals).reduce((a, b) => a + b, 0) / 3_600_000
-    );
-    if (totalHours > 0) {
-      observations.push(`Total tracked Android screen time: ~${totalHours} hours`);
+    // Per-app observations for top 3 (gives twin concrete data points)
+    for (const [appName, timeMs] of topApps.slice(0, 3)) {
+      const mins = Math.round(Number(timeMs) / 60_000);
+      if (mins >= 5) {
+        observations.push(`Used ${appName} for ${mins >= 60 ? `${(mins / 60).toFixed(1)}h` : `${mins}min`} on Android`);
+      }
     }
   }
 

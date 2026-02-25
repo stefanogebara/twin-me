@@ -77,6 +77,24 @@ async function collectUsageData(): Promise<AndroidUsageData> {
 }
 
 // ---------------------------------------------------------------------------
+// Manual sync — runs immediately (for "Sync now" button in Settings)
+// ---------------------------------------------------------------------------
+
+export async function runSyncNow(): Promise<{ observationsCreated: number }> {
+  const token = await SecureStore.getItemAsync(STORAGE_KEYS.AUTH_TOKEN);
+  if (!token) throw new Error('Not authenticated');
+
+  const data = await collectUsageData();
+  const result = await uploadAndroidUsage(data);
+
+  NotificationListenerModule.clearStats();
+  await SecureStore.setItemAsync(STORAGE_KEYS.LAST_SYNC, new Date().toISOString());
+
+  console.log('[BackgroundSync] Manual sync complete, observations:', result.observationsCreated);
+  return { observationsCreated: result.observationsCreated };
+}
+
+// ---------------------------------------------------------------------------
 // Registration helpers
 // ---------------------------------------------------------------------------
 
