@@ -136,9 +136,11 @@ async function refreshAccessToken(platform, refreshToken, userId) {
     const isPermanentFailure = oauthError?.error === 'invalid_grant' ||
       oauthError?.error === 'invalid_token';
 
-    const newStatus = isPermanentFailure ? 'needs_reauth' : 'expired';
+    // DB constraint allows: connected, disconnected, error, pending, expired
+    // Use 'error' for permanent failures (user must reconnect), 'expired' for transient ones
+    const newStatus = isPermanentFailure ? 'error' : 'expired';
     if (isPermanentFailure) {
-      console.warn(`⚠️  [CRON] ${platform} refresh token permanently invalid (${oauthError?.error}) — marking needs_reauth`);
+      console.warn(`⚠️  [CRON] ${platform} refresh token permanently invalid (${oauthError?.error}) — marking error (user must reconnect)`);
     }
 
     const { error: updateErr } = await getSupabaseClient()
