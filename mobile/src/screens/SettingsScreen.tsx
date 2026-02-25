@@ -1,12 +1,12 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
-  Switch, Alert, Platform,
+  Switch, Alert, Platform, ActivityIndicator,
 } from 'react-native';
 import { COLORS, STORAGE_KEYS } from '../constants';
 import type { User } from '../types';
 import * as SecureStore from 'expo-secure-store';
-import { registerBackgroundSync, unregisterBackgroundSync } from '../services/backgroundSync';
+import { registerBackgroundSync, unregisterBackgroundSync, runSyncNow } from '../services/backgroundSync';
 import { UsageStatsModule } from '../native/UsageStatsModule';
 import { NotificationListenerModule } from '../native/NotificationListenerModule';
 
@@ -20,6 +20,8 @@ export function SettingsScreen({ user, onLogout }: Props) {
   const [lastSync, setLastSync] = useState<string | null>(null);
   const [hasUsagePerm, setHasUsagePerm] = useState(false);
   const [hasNotifPerm, setHasNotifPerm] = useState(false);
+  const [syncing, setSyncing] = useState(false);
+  const [syncResult, setSyncResult] = useState<string | null>(null);
 
   useEffect(() => {
     SecureStore.getItemAsync(STORAGE_KEYS.LAST_SYNC).then(v => setLastSync(v));
@@ -35,6 +37,27 @@ export function SettingsScreen({ user, onLogout }: Props) {
       await unregisterBackgroundSync();
     }
   }, []);
+
+  const handleSyncNow = useCallback(async () => {
+    if (syncing) return;
+    setSyncing(true);
+    setSyncResult(null);
+    try {
+      const { observationsCreated } = await runSyncNow();
+      const now = new Date().toISOString();
+      setLastSync(now);
+      setSyncResult(
+        observationsCreated > 0
+          ? `Added ${observationsCreated} new observations to your twin`
+          : 'Up to date — no new observations'
+      );
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Sync failed';
+      setSyncResult(`Error: ${msg}`);
+    } finally {
+      setSyncing(false);
+    }
+  }, [syncing]);
 
   function handleLogout() {
     Alert.alert('Sign out', 'Are you sure you want to sign out?', [
@@ -127,12 +150,35 @@ export function SettingsScreen({ user, onLogout }: Props) {
         </TouchableOpacity>
       </View>
 
-      {lastSync && (
+      {/* Sync now button + status */}
+      <TouchableOpacity
+        style={[styles.syncBtn, syncing && styles.syncBtnDisabled]}
+        onPress={handleSyncNow}
+        activeOpacity={0.8}
+        disabled={syncing}
+      >
+        {syncing ? (
+          <ActivityIndicator color={COLORS.primaryFg} size="small" />
+        ) : (
+          <Text style={styles.syncBtnText}>SYNC NOW</Text>
+        )}
+      </TouchableOpacity>
+
+      {syncResult && (
+        <Text style={[
+          styles.syncNote,
+          { color: syncResult.startsWith('Error') ? COLORS.error : COLORS.success, marginTop: 8 },
+        ]}>
+          {syncResult}
+        </Text>
+      )}
+
+      {lastSync && !syncResult && (
         <Text style={styles.syncNote}>Last sync: {new Date(lastSync).toLocaleString()}</Text>
       )}
 
       {/* Section: About */}
-      <Text style={styles.sectionLabel}>ABOUT</Text>
+      <Text style={[styles.sectionLabel, { marginTop: syncResult || lastSync ? 16 : 0 }]}>ABOUT</Text>
       <View style={styles.card}>
         <View style={styles.row}>
           <Text style={styles.rowTitle}>Version</Text>
@@ -258,13 +304,30 @@ const styles = StyleSheet.create({
     color: COLORS.textMuted,
   },
 
+  // Sync now button
+  syncBtn: {
+    backgroundColor: COLORS.primary,
+    borderRadius: 9999,
+    padding: 15,
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  syncBtnDisabled: {
+    opacity: 0.6,
+  },
+  syncBtnText: {
+    fontFamily: 'Inter_500Medium',
+    fontSize: 12,
+    color: COLORS.primaryFg,
+    letterSpacing: 1.5,
+  },
+
   // Sync note
   syncNote: {
     fontFamily: 'Inter_400Regular',
     fontSize: 12,
     color: COLORS.textMuted,
-    marginTop: -16,
-    marginBottom: 24,
+    marginBottom: 8,
     marginLeft: 4,
   },
 
