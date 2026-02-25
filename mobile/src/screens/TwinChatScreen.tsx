@@ -1,6 +1,6 @@
 import React, { useState, useRef, useCallback } from 'react';
 import {
-  View, Text, TextInput, TouchableOpacity, FlatList,
+  View, Text, TextInput, TouchableOpacity, FlatList, Image,
   StyleSheet, KeyboardAvoidingView, Platform,
   ActivityIndicator,
 } from 'react-native';
@@ -64,7 +64,7 @@ export function TwinChatScreen() {
         );
         listRef.current?.scrollToEnd({ animated: false });
       });
-    } catch (err) {
+    } catch {
       setMessages(prev =>
         prev.map(m =>
           m.id === assistantId
@@ -85,9 +85,11 @@ export function TwinChatScreen() {
     >
       {messages.length === 0 && (
         <View style={styles.emptyState}>
-          <View style={styles.avatarCircle}>
-            <Text style={styles.avatarText}>T</Text>
-          </View>
+          <Image
+            source={require('../../assets/flower-hero.png')}
+            style={styles.emptyLogo}
+            resizeMode="contain"
+          />
           <Text style={styles.emptyTitle}>Talk to your twin</Text>
           <Text style={styles.emptySubtitle}>
             Ask anything — it knows your patterns, preferences, and personality.
@@ -138,44 +140,105 @@ export function TwinChatScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.background },
   emptyState: {
-    alignItems: 'center', paddingHorizontal: 32, paddingTop: 48, paddingBottom: 24,
+    alignItems: 'center',
+    paddingHorizontal: 32,
+    paddingTop: 48,
+    paddingBottom: 24,
   },
-  avatarCircle: {
-    width: 56, height: 56, borderRadius: 28, backgroundColor: COLORS.primary,
-    alignItems: 'center', justifyContent: 'center', marginBottom: 16,
+  emptyLogo: {
+    width: 72,
+    height: 72,
+    marginBottom: 20,
   },
-  avatarText: { color: '#fff', fontSize: 24, fontWeight: '700' },
-  emptyTitle: { fontSize: 20, fontWeight: '700', color: COLORS.text, marginBottom: 8 },
-  emptySubtitle: { fontSize: 14, color: COLORS.textMuted, textAlign: 'center', lineHeight: 20, marginBottom: 24 },
+  emptyTitle: {
+    fontSize: 22,
+    fontFamily: 'Halant_600SemiBold',
+    color: COLORS.text,
+    marginBottom: 8,
+  },
+  emptySubtitle: {
+    fontSize: 14,
+    fontFamily: 'Inter_400Regular',
+    color: COLORS.textMuted,
+    textAlign: 'center',
+    lineHeight: 21,
+    marginBottom: 28,
+  },
   suggestion: {
-    borderWidth: 1, borderColor: COLORS.border, borderRadius: 20,
-    paddingHorizontal: 16, paddingVertical: 8, marginBottom: 8,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    borderRadius: 20,
+    paddingHorizontal: 18,
+    paddingVertical: 9,
+    marginBottom: 8,
+    backgroundColor: COLORS.card,
   },
-  suggestionText: { fontSize: 13, color: COLORS.text },
+  suggestionText: {
+    fontSize: 13,
+    fontFamily: 'Inter_400Regular',
+    color: COLORS.text,
+  },
   messageList: { padding: 16, paddingBottom: 8 },
   bubbleRow: { marginBottom: 12, flexDirection: 'row' },
   bubbleRowRight: { justifyContent: 'flex-end' },
   bubble: {
-    maxWidth: '80%', borderRadius: 16, padding: 12,
+    maxWidth: '80%',
+    borderRadius: 18,
+    padding: 12,
+    paddingHorizontal: 15,
   },
-  bubbleUser: { backgroundColor: COLORS.primary, borderBottomRightRadius: 4 },
-  bubbleAssistant: { backgroundColor: COLORS.card, borderBottomLeftRadius: 4 },
-  bubbleText: { fontSize: 15, color: COLORS.text, lineHeight: 22 },
+  bubbleUser: {
+    backgroundColor: COLORS.primary,
+    borderBottomRightRadius: 4,
+  },
+  bubbleAssistant: {
+    backgroundColor: COLORS.card,
+    borderBottomLeftRadius: 4,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+  },
+  bubbleText: {
+    fontSize: 15,
+    fontFamily: 'Inter_400Regular',
+    color: COLORS.text,
+    lineHeight: 22,
+  },
   bubbleTextUser: { color: '#fff' },
   inputRow: {
-    flexDirection: 'row', alignItems: 'flex-end', gap: 8,
-    paddingHorizontal: 16, paddingVertical: 12,
-    borderTopWidth: 1, borderTopColor: COLORS.border,
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    gap: 10,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderTopWidth: 1,
+    borderTopColor: COLORS.border,
     backgroundColor: COLORS.background,
   },
   input: {
-    flex: 1, minHeight: 40, maxHeight: 120, paddingHorizontal: 14, paddingVertical: 10,
-    backgroundColor: COLORS.card, borderWidth: 1, borderColor: COLORS.border,
-    borderRadius: 20, fontSize: 15, color: COLORS.text,
+    flex: 1,
+    minHeight: 42,
+    maxHeight: 120,
+    paddingHorizontal: 16,
+    paddingVertical: 11,
+    backgroundColor: COLORS.card,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    borderRadius: 22,
+    fontSize: 15,
+    color: COLORS.text,
   },
   sendBtn: {
-    width: 40, height: 40, borderRadius: 20, backgroundColor: COLORS.primary,
-    alignItems: 'center', justifyContent: 'center',
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    backgroundColor: COLORS.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: COLORS.primary,
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 3,
   },
   sendBtnDisabled: { opacity: 0.4 },
   sendIcon: { color: '#fff', fontSize: 18, fontWeight: '700' },

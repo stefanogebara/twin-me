@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import {
-  View, Text, ScrollView, StyleSheet, TouchableOpacity,
+  View, Text, ScrollView, StyleSheet, Image,
   RefreshControl, ActivityIndicator,
 } from 'react-native';
 import { COLORS } from '../constants';
@@ -54,10 +54,23 @@ export function HomeScreen({ user }: Props) {
     <ScrollView
       style={styles.container}
       contentContainerStyle={styles.content}
-      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); load(); }} />}
+      refreshControl={
+        <RefreshControl
+          refreshing={refreshing}
+          onRefresh={() => { setRefreshing(true); load(); }}
+          tintColor={COLORS.primary}
+        />
+      }
     >
-      {/* Header */}
+      {/* Header with logo */}
       <View style={styles.header}>
+        <View style={styles.headerTop}>
+          <Image
+            source={require('../../assets/flower-hero.png')}
+            style={styles.headerLogo}
+            resizeMode="contain"
+          />
+        </View>
         <Text style={styles.greeting}>Good to see you,</Text>
         <Text style={styles.name}>{displayName}</Text>
       </View>
@@ -115,35 +128,114 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.background },
   content: { padding: 20, paddingBottom: 40 },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  header: { marginBottom: 24 },
-  greeting: { fontSize: 14, color: COLORS.textMuted },
-  name: { fontSize: 24, fontWeight: '700', color: COLORS.text, letterSpacing: -0.3 },
-  card: {
-    backgroundColor: COLORS.card, borderRadius: 16,
-    padding: 20, marginBottom: 24,
-    shadowColor: '#000', shadowOpacity: 0.06, shadowRadius: 12, shadowOffset: { width: 0, height: 2 },
-    elevation: 3,
+  header: { marginBottom: 28 },
+  headerTop: { alignItems: 'flex-start', marginBottom: 16 },
+  headerLogo: { width: 44, height: 44 },
+  greeting: {
+    fontSize: 14,
+    fontFamily: 'Inter_400Regular',
+    color: COLORS.textMuted,
   },
-  cardLabel: { fontSize: 10, fontWeight: '700', color: COLORS.textMuted, letterSpacing: 1, marginBottom: 8 },
-  bigNumber: { fontSize: 48, fontWeight: '700', color: COLORS.text, letterSpacing: -1 },
+  name: {
+    fontSize: 26,
+    fontFamily: 'Halant_600SemiBold',
+    color: COLORS.text,
+    letterSpacing: -0.3,
+    marginTop: 2,
+  },
+  card: {
+    backgroundColor: COLORS.card,
+    borderRadius: 20,
+    padding: 20,
+    marginBottom: 24,
+    shadowColor: '#000',
+    shadowOpacity: 0.06,
+    shadowRadius: 16,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 3,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+  },
+  cardLabel: {
+    fontSize: 10,
+    fontFamily: 'Inter_600SemiBold',
+    color: COLORS.textMuted,
+    letterSpacing: 1.2,
+    marginBottom: 8,
+  },
+  bigNumber: {
+    fontSize: 48,
+    fontFamily: 'Halant_600SemiBold',
+    color: COLORS.text,
+    letterSpacing: -1,
+  },
   platformRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 12 },
   platformChip: {
-    flexDirection: 'row', alignItems: 'center', gap: 4,
-    backgroundColor: COLORS.primaryLight, borderRadius: 20, paddingHorizontal: 10, paddingVertical: 4,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: COLORS.primaryLight,
+    borderRadius: 20,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
   },
-  platformName: { fontSize: 11, color: COLORS.primary, fontWeight: '600' },
-  platformCount: { fontSize: 11, color: COLORS.primary },
+  platformName: {
+    fontSize: 11,
+    fontFamily: 'Inter_600SemiBold',
+    color: COLORS.primary,
+  },
+  platformCount: {
+    fontSize: 11,
+    fontFamily: 'Inter_400Regular',
+    color: COLORS.primary,
+  },
   section: { marginBottom: 24 },
-  sectionTitle: { fontSize: 13, fontWeight: '700', color: COLORS.textMuted, letterSpacing: 0.5, marginBottom: 12, textTransform: 'uppercase' },
+  sectionTitle: {
+    fontSize: 11,
+    fontFamily: 'Inter_600SemiBold',
+    color: COLORS.textMuted,
+    letterSpacing: 0.8,
+    marginBottom: 12,
+    textTransform: 'uppercase',
+  },
   insightCard: {
-    flexDirection: 'row', alignItems: 'flex-start', gap: 12,
-    backgroundColor: COLORS.card, borderRadius: 12, padding: 14, marginBottom: 8,
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 12,
+    backgroundColor: COLORS.card,
+    borderRadius: 14,
+    padding: 14,
+    marginBottom: 8,
+    borderWidth: 1,
+    borderColor: COLORS.border,
   },
-  insightDot: { width: 8, height: 8, borderRadius: 4, marginTop: 4 },
-  insightText: { flex: 1, fontSize: 14, color: COLORS.text, lineHeight: 20 },
+  insightDot: { width: 8, height: 8, borderRadius: 4, marginTop: 5 },
+  insightText: {
+    flex: 1,
+    fontSize: 14,
+    fontFamily: 'Inter_400Regular',
+    color: COLORS.text,
+    lineHeight: 21,
+  },
   emptyCard: {
-    backgroundColor: COLORS.card, borderRadius: 16, padding: 24, alignItems: 'center',
+    backgroundColor: COLORS.card,
+    borderRadius: 20,
+    padding: 28,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: COLORS.border,
   },
-  emptyTitle: { fontSize: 16, fontWeight: '600', color: COLORS.text, marginBottom: 8 },
-  emptyText: { fontSize: 13, color: COLORS.textMuted, textAlign: 'center', lineHeight: 20 },
+  emptyTitle: {
+    fontSize: 18,
+    fontFamily: 'Halant_500Medium',
+    color: COLORS.text,
+    marginBottom: 8,
+  },
+  emptyText: {
+    fontSize: 13,
+    fontFamily: 'Inter_400Regular',
+    color: COLORS.textMuted,
+    textAlign: 'center',
+    lineHeight: 20,
+  },
 });
