@@ -38,4 +38,13 @@ yarn-error.*
 
 # generated native folders
 /ios
-/android
+
+# Android - track source, exclude build artifacts and secrets
+android/.gradle/
+android/build/
+android/app/build/
+android/keystore.properties
+android/local.properties
+android/app/debug.keystore
+android/app/twinme-release.keystore
+android/app/*.keystore
