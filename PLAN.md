@@ -710,3 +710,210 @@ Before starting Phase 4 code:
 - [ ] Choose framework: **React Native** or **Flutter**?
 - [ ] Confirm data collection scope: UsageStats only, or also Notifications?
 - [ ] iOS priority: Android-first or simultaneous?
+
+---
+
+## PHASE 5: COGNITIVE ARCHITECTURE UPGRADE (2026-02-26)
+
+> Research basis: Generative Agents (Park et al. UIST 2023), Generative Agent Simulations of 1,000 People (Park et al. 2024, Simile Paper 2), Creating General User Models from Computer Use (Shaikh et al. UIST 2025, Simile Paper 3), Finetuning LLMs for Human Behavior Prediction (Kolluri et al. EMNLP 2025, Simile Paper 4), Ebbinghaus Forgetting Curve + MemoryBank (Zhong et al. AAAI 2024), A-MEM (Xu et al. 2025)
+
+**Goal:** Move from "data collector + RAG" to a genuine cognitive architecture that models how human memory actually works — differentiated decay by memory type, emotional state awareness, per-platform domain experts, MMR retrieval diversity, proposition confidence, and identity-conditioned reflection framing.
+
+**User decisions (2026-02-26):**
+- Schema: Incremental — add confidence, decay_rate, reasoning, grounding_ids to user_memories
+- Expert model: Hybrid — per-platform experts for INGESTION, 5 generic experts for SYNTHESIS
+- Identity: Infer from existing data (music era, locale, calendar, LinkedIn)
+
+---
+
+### Sprint 1 — Retrieval Quality + Schema Foundation
+
+**Status:** ✅ COMPLETE (2026-02-26)
+
+**Goal:** Make retrieval smarter — MMR diversity, type-differentiated decay, proposition columns.
+
+**Tasks:**
+- [x] S1.1 DB migration: add `confidence FLOAT DEFAULT 0.7`, `decay_rate FLOAT DEFAULT 0.5`, `reasoning TEXT`, `grounding_ids UUID[]` to `user_memories` — migration `20260226_phase5_sprint1_memory_schema` applied
+- [x] S1.2 Update `search_memory_stream` RPC: replaced flat `0.995^hours` recency with type-aware Ebbinghaus decay: `exp(-0.1053 * hours / stability_hours)` where stability = {conversation:72h, platform_data:168h, fact:720h, reflection:2160h}. Also added `embedding` to RETURNS for MMR.
+- [x] S1.3 Add MMR reranking to `retrieveMemories()`: over-fetch 3× candidates, apply `mmrRerank(candidates, limit, λ=0.5)` — directly fixes jazz/reflection over-indexing at query time
+- [x] S1.4 Whoop already in memory stream (205 observations). No change needed.
+- [x] S1.5 Reflection threshold confirmed at 40 in code. CLAUDE.md corrected (was wrong at 150). Threshold at 40 is intentional for TwinMe's volume.
+- [x] BONUS: Fixed `extractConversationFacts` — added semantic dedup (cosine threshold 0.92) + exact-match dedup + JSON object parsing. DB cleanup: 7,093 duplicate facts deleted (8,374→1,281).
+
+**Files:**
+- `database/supabase/migrations/20260226_phase5_memory_columns.sql`
+- `database/supabase/migrations/20260226_phase5_mmr_retrieval.sql` (or update existing search RPC)
+- `api/services/observationIngestion.js` (Whoop ingestion)
+- `api/services/reflectionEngine.js` (threshold fix)
+
+**Acceptance criteria:**
+- Retrieval returns diverse results (no single topic >40% of returned memories)
+- Whoop recovery/sleep appears in memory stream after ingestion
+- `confidence`, `decay_rate`, `reasoning`, `grounding_ids` columns exist on user_memories
+- Test: run `/api/twin/reflections?diverse=true` — should not be >2 same-expert reflections in top 5
+
+---
+
+### Sprint 2 — Emotional State Awareness
+
+**Status:** ✅ COMPLETE (2026-02-26)
+
+**Goal:** Twin knows how you're feeling RIGHT NOW from behavioral signals, not just history.
+
+**Key insight (cognitive science):** Historical memory without current state produces a twin that knows who you WERE but not who you ARE. The emotional state vector is the highest-ROI unimplemented feature.
+
+**Tasks:**
+- [x] S2.1 Build `api/services/emotionalStateService.js`:
+  - Inputs: last 24h Spotify (valence, tempo, energy from audio features), Whoop recovery score, calendar density today, message tone from recent conversation memories
+  - Outputs: `{ valence: 0-1, arousal: 0-1, cognitiveLoad: 'low'|'normal'|'high', timestamp }`
+  - Formula: `valence = 0.3*spotify_valence + 0.4*conversation_sentiment + 0.2*whoop_normalized + 0.1*calendar_positivity`
+  - Formula: `arousal = 0.3*(tempo/200) + 0.3*(meetings/10) + 0.4*(1-whoop_recovery)`
+  - `cognitiveLoad = 'high'` if meetings > 6 OR whoop_recovery < 50
+- [x] S2.2 Inject `[CURRENT STATE]` block into twin chat system prompt — behavioral guidance injected at start of additionalContext
+- [x] S2.3 Timestamp-aware context tagging in `addConversationMemory`: late_night (22:00-04:00) + early_morning (04:00-08:00) added to metadata.context
+- [x] S2.4 Store emotional state snapshot as 'observation' memory (importance=6, non-blocking) via `buildEmotionalStateMemory()`
+
+**Files:**
+- `api/services/emotionalStateService.js` (new, ~150 lines)
+- `api/routes/twin-chat.js` (inject [CURRENT STATE] block)
+- `api/services/memoryStreamService.js` (timestamp-aware tagging)
+
+**Acceptance criteria:**
+- Twin responds differently to "I feel anxious" at 2pm vs 11pm
+- Twin acknowledges heavy workload when calendar shows 6+ meetings without user saying anything
+- Whoop "recovery 52%" generates twin response that accounts for low energy
+
+---
+
+### Sprint 3 — Per-Platform Domain Experts + Expert Routing
+
+**Status:** ✅ COMPLETE (2026-02-26)
+
+**Goal:** Each platform has a specialist that deeply understands its signal. Chat queries route to the right expert.
+
+**Architecture (Hybrid):**
+- **Ingestion layer**: per-platform experts generate 10-20 deep propositions when new platform data arrives
+- **Synthesis layer**: existing 5 generic experts run periodically to generate cross-platform insights
+- **Chat layer**: expert routing classifies incoming query → pulls that expert's memories preferentially
+
+**Per-Platform Experts (new):**
+| Platform | Expert Persona | Example Reflection |
+|----------|----------------|-------------------|
+| Spotify | Music Psychologist | "Transitions to low-BPM minor-key music late at night signal emotional processing windows" |
+| Whoop | Health Behaviorist | "HRV dips correlate with heavy workdays — recovery is reactive to schedule, not just sleep" |
+| Calendar | Productivity Analyst | "Consistent 90-min morning focus blocks before 10am — this is the deep work signature" |
+| YouTube | Media Sociologist | "Channel subscriptions skew heavily toward autodidactic learning — values knowledge acquisition over entertainment" |
+| Discord | Social Analyst | "Active in 3 tech/dev servers but minimal engagement in gaming despite membership — professional identity dominates social online presence" |
+| Android UsageStats | Digital Behaviorist | "Peak phone usage 9-10pm, 32% of daily screen time — evening is the primary digital consumption window" |
+
+**Tasks:**
+- [x] S3.1 Create `api/services/platformExperts.js` with 6 expert personas + their reflection prompts
+- [x] S3.2 Hook platform experts into `observationIngestion.js`: after storing platform observations, run platform-specific expert reflection (capped at 5 reflections per ingestion run)
+- [x] S3.3 Store platform expert reflections with `metadata.expertType = 'platform'` and `metadata.platform = 'spotify'` etc.
+- [x] S3.4 Add expert routing to `api/routes/twin-chat.js`:
+  - Classify incoming query: is it about health/energy, music/mood, schedule/work, content/interests, social, digital habits?
+  - Pull that platform expert's recent memories as priority context (before generic retrieval)
+  - Routing prompt: "Which domain does this question primarily concern: health, music_mood, schedule, content, social, digital_habits, or general?"
+- [x] S3.5 Store `reasoning` + `grounding_ids` on all new reflections (use Sprint 1 columns)
+
+**Files:**
+- `api/services/platformExperts.js` (new, ~300 lines)
+- `api/services/observationIngestion.js` (hook platform experts post-ingestion)
+- `api/routes/twin-chat.js` (expert routing logic)
+- `api/services/reflectionEngine.js` (store reasoning + grounding_ids)
+
+**Acceptance criteria:**
+- After Spotify sync, Music Psychologist generates ≥2 new reflections with reasoning stored
+- Ask twin "how's my energy looking?" → response draws primarily from Whoop/Health Behaviorist memories
+- Ask twin "what have I been listening to?" → response draws from Music Psychologist memories
+- Generic experts still run cross-platform synthesis (existing 5 experts unchanged)
+
+---
+
+### Sprint 4 — Identity Context Layer
+
+**Status:** 🔄 TODO
+
+**Goal:** Reflection framing adapts to who the user actually is (life stage, culture, career salience).
+
+**Inference approach (no user friction):**
+| Signal | What to Infer |
+|--------|--------------|
+| Music era preferences (Spotify) | Approximate age ±5 years |
+| LinkedIn locale / calendar timezone | Country / culture |
+| Calendar meeting density, LinkedIn headline | Career salience score |
+| Spotify language distribution | Primary language / cultural orientation |
+| Content categories (YouTube, Discord) | Interests → life stage proxy |
+
+**Tasks:**
+- [ ] S4.1 Build `api/services/identityContextService.js`:
+  - `inferIdentityContext(userId)` → `{ lifeStage, culturalOrientation, careerSalience, approximateAge }`
+  - Cached 24h (changes slowly)
+- [ ] S4.2 Inject identity context into expert reflection prompts:
+  - "This person appears to be in early adulthood (mid-20s), career-building phase, individualist cultural orientation. Frame insights accordingly."
+- [ ] S4.3 Condition twin voice on identity: career-focused users → reference work/growth more; exploratory-stage users → more curiosity framing
+- [ ] S4.4 Store identity context as `fact` memory (importance=8): "Inferred identity context: early adult, high career salience, individualist orientation, ~25 years old."
+
+**Files:**
+- `api/services/identityContextService.js` (new, ~200 lines)
+- `api/services/reflectionEngine.js` (inject identity context into expert prompts)
+- `api/routes/twin-chat.js` (inject identity context into twin voice section)
+
+---
+
+### Sprint 5 — Memory Health + Forgetting
+
+**Status:** 🔄 TODO
+
+**Goal:** Memory quality improves over time rather than degrading from noise accumulation.
+
+**Tasks:**
+- [ ] S5.1 Proposition revision: at write time, check cosine similarity of new memory against recent same-type memories. If >0.90 similar → update existing memory's confidence + reasoning instead of creating duplicate.
+- [ ] S5.2 Post-reflection source decay: after reflection engine runs, decay importance of contributing source memories by 40% (they've been abstracted upward). Prevents source observations from competing with their own reflection.
+- [ ] S5.3 Multi-tier forgetting cron (weekly, Sunday 3am):
+  - Tier 1 (aggressive): conversation memories >30 days + importance ≤3 → archive
+  - Tier 2 (moderate): platform_data memories >14 days + importance ≤4 + retrieval_count=0 → archive
+  - Tier 3 (gentle): fact memories >90 days + importance ≤5 → decay importance by 20%
+  - Never touch: importance ≥8, retrieval_count ≥3, reflections
+- [ ] S5.4 Add `retrieval_count INTEGER DEFAULT 0` to user_memories. Increment on access via `touch_memories` RPC.
+
+**Files:**
+- `api/services/memoryStreamService.js` (proposition revision, post-reflection decay, retrieval_count increment)
+- `api/routes/cron-memory-archive.js` (multi-tier forgetting pass)
+- `database/supabase/migrations/20260226_phase5_retrieval_count.sql`
+- `vercel.json` (weekly forgetting cron)
+
+---
+
+### Research References
+
+| Paper | Key Contribution | Applied In |
+|-------|-----------------|-----------|
+| Generative Agents (Park 2023) | Memory stream + 3-factor retrieval + reflection tree | Foundation (already implemented) |
+| 1,000 People (Park 2024) | Per-platform domain experts + expert routing + 4-step CoT | Sprint 3 |
+| GUM / Computer Use (Shaikh 2025) | Proposition confidence+decay+reasoning + MMR retrieval + revision | Sprint 1, 5 |
+| MemoryBank (Zhong 2024) | SM-2 stability-based decay formula | Sprint 1 |
+| Behavioral Finetuning (Kolluri 2025) | 10% saturation point → twin readiness score | Future (Phase 6) |
+| A-MEM (Xu 2025) | Zettelkasten memory links | Future (Phase 6) |
+| Ebbinghaus / SM-2 | R = exp(-k*t/S), type-differentiated stability | Sprint 1 |
+| Cognitive Science (emotional memory) | Amygdala salience, emotional encoding boost | Sprint 2 |
+
+---
+
+### Key Formulas
+
+```javascript
+// Type-differentiated decay (Sprint 1)
+const STABILITY_DAYS = { conversation:3, platform_data:7, fact:30, reflection:90 };
+retention(m, t_days) = exp(-0.1053 * t_days / STABILITY_DAYS[m.memory_type])
+
+// MMR retrieval (Sprint 1)
+mmr_score(d, S) = 0.5 * relevance(d) - 0.5 * max_{j in S} cosine(d, j)
+
+// Emotional state (Sprint 2)
+valence = 0.3*spotify_valence + 0.4*conversation_sentiment + 0.2*whoop_normalized + 0.1*calendar_positivity
+arousal = 0.3*(tempo/200) + 0.3*(meetings/10) + 0.4*(1 - whoop_recovery)
+
+// Post-reflection source decay (Sprint 5)
+new_importance = max(1, round(original_importance * 0.6))
+```

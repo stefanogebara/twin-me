@@ -45,14 +45,39 @@ import {
   getRecentImportanceSum,
 } from './memoryStreamService.js';
 import { supabaseAdmin } from './database.js';
+import { generateEmbedding } from './embeddingService.js';
 
 // ====================================================================
-// Deduplication — Bigram Jaccard similarity
+// Deduplication — Cosine similarity on stored embeddings
 // ====================================================================
+
+const DEDUP_COSINE_THRESHOLD = 0.85;
+const DEDUP_BIGRAM_THRESHOLD = 0.72;
+
+/** Dot-product cosine similarity between two equal-length float arrays. */
+function cosineSim(a, b) {
+  let dot = 0, normA = 0, normB = 0;
+  for (let i = 0; i < a.length; i++) {
+    dot += a[i] * b[i];
+    normA += a[i] * a[i];
+    normB += b[i] * b[i];
+  }
+  if (!normA || !normB) return 0;
+  return dot / (Math.sqrt(normA) * Math.sqrt(normB));
+}
+
+/** Parse a pgvector string "[0.1,0.2,...]" into a float array. */
+function parseEmbedding(str) {
+  if (!str) return null;
+  try {
+    return str.slice(1, -1).split(',').map(Number);
+  } catch {
+    return null;
+  }
+}
 
 /**
- * Compute bigram Jaccard similarity between two strings.
- * Returns 0 (completely different) to 1 (identical).
+ * Bigram Jaccard similarity — fallback when embeddings are unavailable.
  * Words under 4 chars are ignored (stop-word filter).
  */
 function bigramSimilarity(a, b) {
@@ -74,15 +99,19 @@ function bigramSimilarity(a, b) {
 }
 
 /**
- * Returns true if a very similar reflection already exists for this expert.
- * Fetches last 50 reflections from the expert and checks bigram similarity.
- * Threshold: 0.72 (high enough to catch paraphrases, low enough to allow new angles).
+ * Returns true if a semantically similar reflection already exists for this expert.
+ *
+ * Primary: cosine similarity on stored embeddings (threshold 0.85).
+ * The new observation's embedding is generated here and cached — addMemory() will
+ * re-request it and hit the in-memory cache, so no duplicate API call.
+ *
+ * Fallback: bigram Jaccard (threshold 0.72) when no embeddings are stored yet.
  */
 async function isDuplicateReflection(userId, expertId, newObservation) {
   try {
     const { data } = await supabaseAdmin
       .from('user_memories')
-      .select('content')
+      .select('content, embedding')
       .eq('user_id', userId)
       .eq('memory_type', 'reflection')
       .filter('metadata->>expert', 'eq', expertId)
@@ -91,9 +120,28 @@ async function isDuplicateReflection(userId, expertId, newObservation) {
 
     if (!data || data.length === 0) return false;
 
+    // Cosine path: use embeddings when available
+    const rowsWithEmbeddings = data.filter(r => r.embedding);
+    if (rowsWithEmbeddings.length > 0) {
+      const newVec = await generateEmbedding(newObservation);
+      if (newVec) {
+        for (const row of rowsWithEmbeddings) {
+          const existingVec = parseEmbedding(row.embedding);
+          if (!existingVec) continue;
+          const sim = cosineSim(newVec, existingVec);
+          if (sim > DEDUP_COSINE_THRESHOLD) {
+            console.log(`[Reflection] Dedup skip (${expertId}): cosine ${sim.toFixed(3)} > ${DEDUP_COSINE_THRESHOLD}`);
+            return true;
+          }
+        }
+        return false;
+      }
+    }
+
+    // Bigram fallback: no embeddings stored yet
     const maxSim = Math.max(...data.map(r => bigramSimilarity(newObservation, r.content)));
-    if (maxSim > 0.72) {
-      console.log(`[Reflection] Dedup skip (${expertId}): similarity ${maxSim.toFixed(2)} > 0.72`);
+    if (maxSim > DEDUP_BIGRAM_THRESHOLD) {
+      console.log(`[Reflection] Dedup skip (${expertId}): bigram ${maxSim.toFixed(2)} > ${DEDUP_BIGRAM_THRESHOLD}`);
       return true;
     }
     return false;
@@ -308,6 +356,9 @@ async function runExpertAnalysis(userId, expert, formattedObservations, depth) {
     const stored = [];
     const evidenceIds = domainMemories.map(m => m.id);
 
+    // S3.5: Reasoning string for the proposition reasoning column
+    const reasoning = `${expert.name} analyzed ${domainMemories.length} domain-specific memories to identify ${expert.retrievalQuery.split(',')[0].trim()} patterns.`;
+
     for (const observation of observations.slice(0, 3)) {
       // Dedup check — skip if a very similar reflection already exists for this expert
       const isDupe = await isDuplicateReflection(userId, expert.id, observation);
@@ -316,8 +367,14 @@ async function runExpertAnalysis(userId, expert, formattedObservations, depth) {
       const reflectionResult = await addReflection(userId, observation, evidenceIds, {
         expert: expert.id,
         expertName: expert.name,
+        expertType: 'generic',   // distinguish from platform experts (metadata.expertType='platform')
         reflectionDepth: depth,
         evidenceCount: domainMemories.length,
+      }, {
+        // S3.5: Store reasoning + grounding_ids on all generic expert reflections
+        reasoning,
+        grounding_ids: evidenceIds,
+        confidence: 0.70,
       });
 
       if (reflectionResult) {

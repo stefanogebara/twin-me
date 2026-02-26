@@ -38,6 +38,7 @@ import {
   getMemoryStats,
 } from '../services/memoryStreamService.js';
 import { shouldTriggerReflection, generateReflections, seedReflections } from '../services/reflectionEngine.js';
+import { classifyQueryDomain, retrieveExpertMemories } from '../services/platformExperts.js';
 import { getTwinSummary } from '../services/twinSummaryService.js';
 import { getUndeliveredInsights, markInsightsDelivered } from '../services/proactiveInsights.js';
 import { buildPersonaBlock } from '../services/personaBlockBuilder.js';
@@ -934,10 +935,39 @@ router.post('/message', authenticateUser, async (req, res) => {
       additionalContext += `\n\nHOW I ACTUALLY WRITE (mirror this exact style, tone, and rhythm):\n${voiceExamples.map(m => `> "${m.substring(0, 200)}"`).join('\n')}`;
     }
 
+    // Expert routing: classify query domain → pull that platform expert's memories as priority context.
+    // Runs in parallel with the generic memory block to avoid adding latency.
+    let expertRoutingResult = null;
+    let expertMemories = [];
+    try {
+      expertRoutingResult = await classifyQueryDomain(message);
+      if (expertRoutingResult.expertId && expertRoutingResult.domain !== 'general') {
+        expertMemories = await retrieveExpertMemories(userId, expertRoutingResult.expertId, message, 6);
+        chatLog(`Expert routing: ${expertRoutingResult.domain} (${expertRoutingResult.confidence}) → ${expertMemories.length} expert memories`);
+      }
+    } catch (routingErr) {
+      console.warn('[Twin Chat] Expert routing failed (non-fatal):', routingErr.message);
+    }
+
+    // Inject expert memories first (domain-specific context from platform specialists)
+    if (expertMemories.length > 0) {
+      const expertName = expertMemories.find(m => m.metadata?.expertName)?.metadata?.expertName || expertRoutingResult.domain;
+      const expertReflections = expertMemories.filter(m => m.memory_type === 'reflection');
+      const expertObs = expertMemories.filter(m => m.memory_type !== 'reflection');
+      if (expertReflections.length > 0) {
+        additionalContext += `\n\n[${expertName} insights — domain-specific patterns]:\n${expertReflections.map(r => `- ${r.content.substring(0, 250)}`).join('\n')}`;
+      }
+      if (expertObs.length > 0) {
+        additionalContext += `\n\n[${expertName} — recent data]:\n${expertObs.slice(0, 5).map(m => `- ${m.content.substring(0, 200)}`).join('\n')}`;
+      }
+    }
+
     // Add unified memory stream results (reflections + observations)
     if (memories && memories.length > 0) {
-      const reflections = memories.filter(m => m.memory_type === 'reflection');
-      const observations = memories.filter(m => m.memory_type !== 'reflection');
+      // Filter out expert memories already injected above to avoid duplication
+      const expertMemoryIds = new Set(expertMemories.map(m => m.id));
+      const reflections = memories.filter(m => m.memory_type === 'reflection' && !expertMemoryIds.has(m.id));
+      const observations = memories.filter(m => m.memory_type !== 'reflection' && !expertMemoryIds.has(m.id));
 
       if (reflections.length > 0) {
         // Deduplicate reflections: keep diverse themes, prefer higher-scored (already sorted by retrieval score)
