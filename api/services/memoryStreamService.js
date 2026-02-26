@@ -137,16 +137,22 @@ async function addMemory(userId, content, memoryType = 'observation', metadata =
  * @returns {{ userMemory, twinMemory }} - Both memory records (or null on failure)
  */
 async function addConversationMemory(userId, userMessage, assistantResponse, metadata = {}) {
+  // Time-of-day context tagging (S2.3: cognitive science — emotional weight of late-night messages)
+  const hour = new Date().getHours();
+  const isLateNight = hour >= 22 || hour < 4;
+  const timeContext = isLateNight ? 'late_night' : hour < 8 ? 'early_morning' : null;
+  const taggedMeta = timeContext ? { ...metadata, context: timeContext } : metadata;
+
   const [userMemory, twinMemory] = await Promise.all([
     addMemory(userId, `User said: "${userMessage.substring(0, 500)}"`, 'conversation', {
       role: 'user',
       source: 'twin_chat',
-      ...metadata,
+      ...taggedMeta,
     }),
     addMemory(userId, `Twin responded: "${assistantResponse.substring(0, 500)}"`, 'conversation', {
       role: 'assistant',
       source: 'twin_chat',
-      ...metadata,
+      ...taggedMeta,
     }),
   ]);
 
