@@ -43,6 +43,7 @@ import {
   retrieveMemories,
   addReflection,
   getRecentImportanceSum,
+  decaySourceMemories,
 } from './memoryStreamService.js';
 import { inferIdentityContext } from './identityContextService.js';
 import { supabaseAdmin } from './database.js';
@@ -389,6 +390,9 @@ async function runExpertAnalysis(userId, expert, formattedObservations, depth, i
       }
     }
 
+    // Attach evidence IDs to the returned array so generateReflections can collect
+    // them for S5.2 post-reflection source decay
+    stored._evidenceIds = evidenceIds;
     return stored;
   } catch (error) {
     console.warn(`[Reflection] ${expert.name} error:`, error.message);
@@ -456,8 +460,10 @@ async function generateReflections(userId, depth = 0) {
       )
     );
 
-    // Count total reflections generated
+    // Count total reflections generated + collect all evidence IDs for source decay
     let reflectionsGenerated = 0;
+    const allEvidenceIds = new Set();
+
     for (let i = 0; i < EXPERT_PERSONAS.length; i++) {
       const result = expertResults[i];
       if (!Array.isArray(result)) {
@@ -467,8 +473,22 @@ async function generateReflections(userId, depth = 0) {
       const count = result.length;
       if (count > 0) {
         console.log(`[Reflection] ${EXPERT_PERSONAS[i].name}: ${count} reflections`);
+        // Collect evidence IDs (result items may be { observation, evidenceIds } or just strings)
+        // runExpertAnalysis returns stored observation strings; evidenceIds tracked below via a Map
+        if (result._evidenceIds) {
+          for (const id of result._evidenceIds) allEvidenceIds.add(id);
+        }
       }
       reflectionsGenerated += count;
+    }
+
+    // S5.2: Post-reflection source decay — run non-blocking after reflections are stored.
+    // Decays importance of source memories by 40% so they don't compete with the
+    // reflections that abstracted them. Protected: importance ≥ 8 or retrieval_count ≥ 3.
+    if (reflectionsGenerated > 0 && allEvidenceIds.size > 0) {
+      decaySourceMemories(userId, [...allEvidenceIds]).catch(err =>
+        console.warn('[Reflection] Source decay failed (non-fatal):', err.message)
+      );
     }
 
     // Recursive reflection: if new reflections pushed importance back over threshold

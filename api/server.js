@@ -276,6 +276,8 @@ import soulSignaturePublicRoutes from './routes/soul-signature-public.js';
 import portfolioPublicRoutes from './routes/portfolio-public.js';
 import goalsRoutes from './routes/goals.js';
 import importsRoutes from './routes/imports.js';
+import cronMemoryArchiveRoutes from './routes/cron-memory-archive.js';
+import cronMemoryForgettingRoutes from './routes/cron-memory-forgetting.js';
 // OG image routes loaded lazily to prevent font-loading crashes from taking down the whole server
 let ogImageRoutes = null;
 try {
@@ -433,6 +435,8 @@ app.use('/api/resume', resumeUploadRoutes); // Resume/CV upload and parsing for 
 app.use('/api/imports', importsRoutes); // GDPR / platform data export ingestion
 app.use('/api/claude-sync', claudeSyncRoutes); // Claude Desktop conversation sync
 app.use('/api/cron/claude-sync', cronClaudeSyncRoutes); // Claude Desktop cron sync and AI analysis processing
+app.use('/api/cron/memory-archive', cronMemoryArchiveRoutes);    // Daily memory archival for large users
+app.use('/api/cron/memory-forgetting', cronMemoryForgettingRoutes); // Weekly multi-tier quality maintenance
 app.use('/api/twins-brain', twinsBrainRoutes); // Twins Brain unified knowledge graph
 app.use('/api/mem0', mem0Routes); // Mem0 intelligent memory layer
 app.use('/api/mem0-sync', mem0BrainSyncRoutes); // Mem0 → Twins Brain sync
