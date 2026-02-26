@@ -44,6 +44,7 @@ import {
   addReflection,
   getRecentImportanceSum,
 } from './memoryStreamService.js';
+import { inferIdentityContext } from './identityContextService.js';
 import { supabaseAdmin } from './database.js';
 import { generateEmbedding } from './embeddingService.js';
 
@@ -313,7 +314,7 @@ Return observations numbered 1., 2., 3. on separate lines. Nothing else.`
  * Run a single expert persona against a user's memories.
  * Returns an array of generated reflections (0-3).
  */
-async function runExpertAnalysis(userId, expert, formattedObservations, depth) {
+async function runExpertAnalysis(userId, expert, formattedObservations, depth, identityContext = null) {
   try {
     // Retrieve domain-relevant memories via vector search (reflection weights: relevance dominant, no recency bias)
     const domainMemories = await retrieveMemories(userId, expert.retrievalQuery, 10, 'reflection');
@@ -324,12 +325,17 @@ async function runExpertAnalysis(userId, expert, formattedObservations, depth) {
           .join('\n')
       : 'No additional domain-specific evidence available.';
 
+    // S4.2: Prepend identity context preamble so the expert frames insights appropriately
+    const identityPreamble = identityContext?.promptFragment
+      ? `${identityContext.promptFragment}\n\n`
+      : '';
+
     // Run expert analysis
     const result = await complete({
       tier: TIER_ANALYSIS,
       messages: [{
         role: 'user',
-        content: expert.prompt
+        content: identityPreamble + expert.prompt
           .replace('{observations}', formattedObservations)
           .replace('{evidence}', evidence),
       }],
@@ -430,12 +436,23 @@ async function generateReflections(userId, depth = 0) {
       })
       .join('\n');
 
-    // Step 2: Run all experts in parallel
+    // Step 2: Fetch identity context (cached 24h — near-zero cost on repeat calls)
+    let identityContext = null;
+    try {
+      identityContext = await inferIdentityContext(userId);
+      if (identityContext.promptFragment) {
+        console.log(`[Reflection] Identity context: ${identityContext.lifeStage}, career=${identityContext.careerSalience}`);
+      }
+    } catch (idErr) {
+      console.warn('[Reflection] Identity context fetch failed (non-fatal):', idErr.message);
+    }
+
+    // Step 3: Run all experts in parallel (with identity context injected)
     console.log(`[Reflection] Running ${EXPERT_PERSONAS.length} expert analyses in parallel...`);
 
     const expertResults = await Promise.all(
       EXPERT_PERSONAS.map(expert =>
-        runExpertAnalysis(userId, expert, formattedObservations, depth)
+        runExpertAnalysis(userId, expert, formattedObservations, depth, identityContext)
       )
     );
 

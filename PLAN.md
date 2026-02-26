@@ -832,7 +832,7 @@ Before starting Phase 4 code:
 
 ### Sprint 4 — Identity Context Layer
 
-**Status:** 🔄 TODO
+**Status:** ✅ COMPLETE (2026-02-26)
 
 **Goal:** Reflection framing adapts to who the user actually is (life stage, culture, career salience).
 
@@ -846,13 +846,13 @@ Before starting Phase 4 code:
 | Content categories (YouTube, Discord) | Interests → life stage proxy |
 
 **Tasks:**
-- [ ] S4.1 Build `api/services/identityContextService.js`:
+- [x] S4.1 Build `api/services/identityContextService.js`:
   - `inferIdentityContext(userId)` → `{ lifeStage, culturalOrientation, careerSalience, approximateAge }`
   - Cached 24h (changes slowly)
-- [ ] S4.2 Inject identity context into expert reflection prompts:
+- [x] S4.2 Inject identity context into expert reflection prompts:
   - "This person appears to be in early adulthood (mid-20s), career-building phase, individualist cultural orientation. Frame insights accordingly."
-- [ ] S4.3 Condition twin voice on identity: career-focused users → reference work/growth more; exploratory-stage users → more curiosity framing
-- [ ] S4.4 Store identity context as `fact` memory (importance=8): "Inferred identity context: early adult, high career salience, individualist orientation, ~25 years old."
+- [x] S4.3 Condition twin voice on identity: career-focused users → reference work/growth more; exploratory-stage users → more curiosity framing
+- [x] S4.4 Store identity context as `fact` memory (importance=8): "Inferred identity context: early adult, high career salience, individualist orientation, ~25 years old."
 
 **Files:**
 - `api/services/identityContextService.js` (new, ~200 lines)
