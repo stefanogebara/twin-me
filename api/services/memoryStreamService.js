@@ -213,25 +213,119 @@ const RETRIEVAL_WEIGHTS = {
 };
 
 // ====================================================================
+// MMR Reranking (Maximum Marginal Relevance)
+// ====================================================================
+
+const MMR_LAMBDA = 0.5; // balance relevance vs diversity (0=pure diversity, 1=pure relevance)
+
+/**
+ * Parse a stringified vector "[0.1,0.2,...]" → Float32Array.
+ * Returns null if parsing fails.
+ */
+function parseVec(embeddingStr) {
+  if (!embeddingStr || typeof embeddingStr !== 'string') return null;
+  try {
+    return embeddingStr.slice(1, -1).split(',').map(Number);
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Dot-product cosine similarity between two equal-length float arrays.
+ */
+function cosineSim(a, b) {
+  if (!a || !b || a.length !== b.length) return 0;
+  let dot = 0, normA = 0, normB = 0;
+  for (let i = 0; i < a.length; i++) {
+    dot += a[i] * b[i];
+    normA += a[i] * a[i];
+    normB += b[i] * b[i];
+  }
+  return normA && normB ? dot / (Math.sqrt(normA) * Math.sqrt(normB)) : 0;
+}
+
+/**
+ * Maximum Marginal Relevance reranking.
+ * Iteratively selects candidates that maximize:
+ *   MMR(d) = λ * relevance(d) - (1-λ) * max_sim(d, selected)
+ *
+ * This promotes diversity — avoids returning 5 nearly-identical jazz memories
+ * when there are more varied memories that are also relevant.
+ *
+ * @param {Array} candidates - Memories from RPC (must have .score and .embedding)
+ * @param {number} finalLimit - How many to return
+ * @param {number} lambda - Trade-off (0=pure diversity, 1=pure relevance)
+ * @returns {Array} Reranked memories (embedding stripped from output)
+ */
+function mmrRerank(candidates, finalLimit, lambda = MMR_LAMBDA) {
+  if (candidates.length <= finalLimit) return candidates.map(stripEmbedding);
+
+  const selected = [];
+  const remaining = candidates.map((c, i) => ({ ...c, _idx: i }));
+
+  while (selected.length < finalLimit && remaining.length > 0) {
+    let bestScore = -Infinity;
+    let bestIdx = 0;
+
+    for (let i = 0; i < remaining.length; i++) {
+      const cand = remaining[i];
+      const relevance = cand.score || 0;
+
+      // Max cosine similarity to any already-selected memory
+      let maxSim = 0;
+      if (selected.length > 0) {
+        const candVec = parseVec(cand.embedding);
+        if (candVec) {
+          for (const sel of selected) {
+            const selVec = parseVec(sel.embedding);
+            if (selVec) {
+              const sim = cosineSim(candVec, selVec);
+              if (sim > maxSim) maxSim = sim;
+            }
+          }
+        }
+      }
+
+      const mmrScore = lambda * relevance - (1 - lambda) * maxSim;
+      if (mmrScore > bestScore) {
+        bestScore = mmrScore;
+        bestIdx = i;
+      }
+    }
+
+    selected.push(remaining[bestIdx]);
+    remaining.splice(bestIdx, 1);
+  }
+
+  return selected.map(stripEmbedding);
+}
+
+/** Remove embedding from memory object before returning to callers. */
+function stripEmbedding({ embedding: _emb, _idx, ...rest }) { return rest; }
+
+// ====================================================================
 // Read Path
 // ====================================================================
 
 /**
  * Retrieve memories using three-factor scoring with min-max normalization
- * and context-dependent weights:
+ * and context-dependent weights, followed by MMR diversity reranking.
+ *
  *   score = w_recency * norm(recency) + w_importance * norm(importance) + w_relevance * norm(relevance)
  *
- * Each factor is normalized to [0,1] via min-max across all candidate memories.
- * Weights can be customized per-call or via named presets.
+ * The RPC now uses type-differentiated Ebbinghaus decay:
+ *   recency = EXP(-0.1053 * hours / stability_hours)
+ * where stability_hours: conversation=72, platform_data=168, fact=720, reflection=2160.
  *
- * Uses the `search_memory_stream` RPC function in Supabase.
+ * After scoring, MMR reranking promotes diversity by penalizing candidates
+ * that are too similar to already-selected memories (λ=0.5 by default).
  *
  * @param {string} userId - User UUID
  * @param {string} query - Natural language query for semantic search
  * @param {number} limit - Max results to return (default 10)
- * @param {object|string} weights - Weight preset name ('identity'|'recent'|'reflection'|'default')
- *                                   or object { recency, importance, relevance }
- * @returns {Array} Scored and ranked memories
+ * @param {object|string} weights - Weight preset name or object { recency, importance, relevance }
+ * @returns {Array} Scored, ranked, and diversity-reranked memories
  */
 async function retrieveMemories(userId, query, limit = 10, weights = 'default') {
   if (!userId || !query) return [];
@@ -241,14 +335,12 @@ async function retrieveMemories(userId, query, limit = 10, weights = 'default') 
     ? (RETRIEVAL_WEIGHTS[weights] || RETRIEVAL_WEIGHTS.default)
     : { ...RETRIEVAL_WEIGHTS.default, ...weights };
 
-  // Validate weight values to prevent NaN/division-by-zero in scoring
   if (typeof w.recency !== 'number' || typeof w.importance !== 'number' || typeof w.relevance !== 'number') {
     console.warn('[MemoryStream] Invalid weight types, falling back to defaults');
     Object.assign(w, RETRIEVAL_WEIGHTS.default);
   }
 
   try {
-    // Generate query embedding for semantic search
     const queryEmbedding = await generateEmbedding(query);
 
     if (!queryEmbedding) {
@@ -256,12 +348,12 @@ async function retrieveMemories(userId, query, limit = 10, weights = 'default') 
       return fallbackKeywordSearch(userId, query, limit);
     }
 
-    // Call the three-factor scoring RPC function with weights
+    // Over-fetch 3× candidates for MMR to have enough diversity pool
     const { data, error } = await supabaseAdmin.rpc('search_memory_stream', {
       p_user_id: userId,
       p_query_embedding: vectorToString(queryEmbedding),
-      p_limit: limit,
-      p_decay_factor: 0.995,
+      p_limit: limit * 3,
+      p_decay_factor: 0.995, // kept for API compat, no longer used in formula
       p_weight_recency: w.recency,
       p_weight_importance: w.importance,
       p_weight_relevance: w.relevance,
@@ -272,19 +364,20 @@ async function retrieveMemories(userId, query, limit = 10, weights = 'default') 
       return fallbackKeywordSearch(userId, query, limit);
     }
 
-    if (!data || data.length === 0) {
-      return [];
-    }
+    if (!data || data.length === 0) return [];
+
+    // Apply MMR reranking for diversity (strips embedding from output)
+    const reranked = mmrRerank(data, limit);
 
     // Touch accessed memories (update last_accessed_at) - non-blocking
-    const memoryIds = data.map(m => m.id);
+    const memoryIds = reranked.map(m => m.id);
     supabaseAdmin.rpc('touch_memories', { p_memory_ids: memoryIds })
       .then(() => {})
       .catch(err => console.warn('[MemoryStream] Failed to touch memories:', err.message));
 
     const weightLabel = typeof weights === 'string' ? weights : 'custom';
-    console.log(`[MemoryStream] Retrieved ${data.length} memories (weights=${weightLabel}, top score: ${data[0].score?.toFixed(3)})`);
-    return data;
+    console.log(`[MemoryStream] Retrieved ${reranked.length} memories (weights=${weightLabel}, MMR from ${data.length} candidates, top score: ${reranked[0]?.score?.toFixed(3)})`);
+    return reranked;
   } catch (error) {
     console.error('[MemoryStream] retrieveMemories error:', error.message);
     return fallbackKeywordSearch(userId, query, limit);
@@ -445,16 +538,111 @@ async function getRecentMemories(userId, limit = 50) {
 // Conversation Fact Extraction
 // ====================================================================
 
-const FACT_EXTRACTION_PROMPT = `Extract 0-3 factual statements about this person from their message. Return a JSON array of strings. Only include clear facts, not opinions or greetings.
+const FACT_EXTRACTION_PROMPT = `Extract 0-3 factual statements about this person from their message. Return a JSON array of plain strings (not objects). Only include clear facts, not opinions or greetings. Return [] if no clear facts.
+
+Examples:
+Input: "I love hiking every weekend"
+Output: ["User enjoys hiking regularly on weekends"]
+
+Input: "hey how are you"
+Output: []
 
 Message: "{message}"
 
 JSON array:`;
 
+const FACT_DEDUP_COSINE_THRESHOLD = 0.92;
+
+/**
+ * Normalize a raw fact value from LLM output.
+ * Handles plain strings and JSON-object formats like {"fact":"...","category":"..."}.
+ */
+function normalizeFact(raw) {
+  if (typeof raw === 'string') {
+    const trimmed = raw.trim();
+    // Try to parse if it looks like a JSON object string
+    if (trimmed.startsWith('{')) {
+      try {
+        const parsed = JSON.parse(trimmed);
+        return (parsed.fact || parsed.content || parsed.statement || '').trim();
+      } catch {
+        return trimmed;
+      }
+    }
+    return trimmed;
+  }
+  if (typeof raw === 'object' && raw !== null) {
+    return (raw.fact || raw.content || raw.statement || '').trim();
+  }
+  return '';
+}
+
+/**
+ * Returns true if a semantically similar fact already exists for this user.
+ * Primary: cosine similarity on stored embeddings (threshold 0.92).
+ * Fallback: exact content match.
+ */
+async function isDuplicateFact(userId, factText) {
+  try {
+    // Exact match check first (fast, no LLM call)
+    const { data: exact } = await supabaseAdmin
+      .from('user_memories')
+      .select('id')
+      .eq('user_id', userId)
+      .eq('memory_type', 'fact')
+      .eq('content', factText)
+      .limit(1);
+    if (exact && exact.length > 0) {
+      console.log(`[MemoryStream] Fact dedup: exact match found, skipping.`);
+      return true;
+    }
+
+    // Semantic similarity check: compare against recent facts
+    const { data: recentFacts } = await supabaseAdmin
+      .from('user_memories')
+      .select('content, embedding')
+      .eq('user_id', userId)
+      .eq('memory_type', 'fact')
+      .not('embedding', 'is', null)
+      .order('created_at', { ascending: false })
+      .limit(50);
+
+    if (!recentFacts || recentFacts.length === 0) return false;
+
+    const newVec = await generateEmbedding(factText);
+    if (!newVec) return false;
+
+    for (const row of recentFacts) {
+      if (!row.embedding) continue;
+      try {
+        const existingVec = row.embedding.slice(1, -1).split(',').map(Number);
+        if (existingVec.length !== newVec.length) continue;
+        let dot = 0, normA = 0, normB = 0;
+        for (let i = 0; i < newVec.length; i++) {
+          dot += newVec[i] * existingVec[i];
+          normA += newVec[i] * newVec[i];
+          normB += existingVec[i] * existingVec[i];
+        }
+        const sim = normA && normB ? dot / (Math.sqrt(normA) * Math.sqrt(normB)) : 0;
+        if (sim > FACT_DEDUP_COSINE_THRESHOLD) {
+          console.log(`[MemoryStream] Fact dedup: cosine ${sim.toFixed(3)} > ${FACT_DEDUP_COSINE_THRESHOLD}, skipping: "${factText.substring(0, 60)}"`);
+          return true;
+        }
+      } catch {
+        // skip malformed embeddings
+      }
+    }
+    return false;
+  } catch (error) {
+    console.warn('[MemoryStream] isDuplicateFact error:', error.message);
+    return false; // fail open — store it if dedup check fails
+  }
+}
+
 /**
  * Extract factual statements from a user's chat message and store them as memories.
  * Uses TIER_EXTRACTION (Mistral Small) for cheap, fast extraction.
- * Skips messages shorter than 20 characters.
+ * Skips messages shorter than 20 characters. Deduplicates against existing facts.
  *
  * @param {string} userId - User UUID
  * @param {string} userMessage - The user's chat message
@@ -480,7 +668,6 @@ async function extractConversationFacts(userId, userMessage) {
     // Parse the JSON array from the response
     let facts;
     try {
-      // Handle cases where the LLM wraps in markdown code blocks
       const cleaned = text.replace(/^```json?\s*/i, '').replace(/\s*```$/i, '').trim();
       facts = JSON.parse(cleaned);
     } catch {
@@ -490,17 +677,21 @@ async function extractConversationFacts(userId, userMessage) {
 
     if (!Array.isArray(facts) || facts.length === 0) return [];
 
-    // Store each fact as a memory (max 3)
+    // Store each fact as a memory (max 3), with deduplication
     const stored = [];
-    for (const fact of facts.slice(0, 3)) {
-      if (typeof fact === 'string' && fact.trim().length > 0) {
-        const mem = await addMemory(userId, fact.trim(), 'fact', { source: 'conversation_extraction' });
-        if (mem) stored.push(mem);
-      }
+    for (const raw of facts.slice(0, 3)) {
+      const factText = normalizeFact(raw);
+      if (!factText || factText.length < 10) continue;
+
+      const isDupe = await isDuplicateFact(userId, factText);
+      if (isDupe) continue;
+
+      const mem = await addMemory(userId, factText, 'fact', { source: 'conversation_extraction' });
+      if (mem) stored.push(mem);
     }
 
     if (stored.length > 0) {
-      console.log(`[MemoryStream] Extracted ${stored.length} facts from conversation for user ${userId}`);
+      console.log(`[MemoryStream] Extracted ${stored.length} new facts from conversation for user ${userId}`);
     }
 
     return stored;
@@ -551,6 +742,38 @@ async function getMemoryStats(userId) {
   }
 }
 
+/**
+ * Archive old low-importance memories for a user.
+ * Calls the archive_old_memories Supabase RPC which moves qualifying rows
+ * to user_memories_archive. Only runs if user has >5,000 total memories.
+ *
+ * @param {string} userId - User UUID
+ * @returns {number} Count of archived memories (0 if threshold not met)
+ */
+async function archiveOldMemories(userId) {
+  if (!userId) return 0;
+
+  try {
+    const { data, error } = await supabaseAdmin.rpc('archive_old_memories', {
+      p_user_id: userId,
+    });
+
+    if (error) {
+      console.warn('[MemoryStream] archiveOldMemories RPC failed:', error.message);
+      return 0;
+    }
+
+    const count = data || 0;
+    if (count > 0) {
+      console.log(`[MemoryStream] Archived ${count} old memories for user ${userId}`);
+    }
+    return count;
+  } catch (error) {
+    console.error('[MemoryStream] archiveOldMemories error:', error.message);
+    return 0;
+  }
+}
+
 export {
   addMemory,
   addConversationMemory,
@@ -563,5 +786,6 @@ export {
   rateImportance,
   extractConversationFacts,
   getMemoryStats,
+  archiveOldMemories,
   RETRIEVAL_WEIGHTS,
 };
