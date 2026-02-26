@@ -97,7 +97,7 @@ Weight presets (inspired by Paper 2):
 
 ### Expert Reflection Engine (`reflectionEngine.js`)
 Inspired by Paper 2 (Park et al., 2024 "Generative Agent Simulations of 1,000 People").
-Triggered when accumulated importance > 150. Uses 5 domain-specific expert personas:
+Triggered when accumulated importance > 40 (IMPORTANCE_THRESHOLD in reflectionEngine.js). Uses 5 domain-specific expert personas:
 
 1. **Personality Psychologist** - Emotional patterns, coping, attachment style, Big Five from behavior
 2. **Lifestyle Analyst** - Daily rhythms, energy, health-behavior connections, routine vs spontaneity
