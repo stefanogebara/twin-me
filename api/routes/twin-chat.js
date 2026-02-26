@@ -39,6 +39,7 @@ import {
 } from '../services/memoryStreamService.js';
 import { shouldTriggerReflection, generateReflections, seedReflections } from '../services/reflectionEngine.js';
 import { classifyQueryDomain, retrieveExpertMemories } from '../services/platformExperts.js';
+import { inferIdentityContext } from '../services/identityContextService.js';
 import { getTwinSummary } from '../services/twinSummaryService.js';
 import { getUndeliveredInsights, markInsightsDelivered } from '../services/proactiveInsights.js';
 import { buildPersonaBlock } from '../services/personaBlockBuilder.js';
@@ -901,12 +902,25 @@ router.post('/message', authenticateUser, async (req, res) => {
       }
     }
 
+    // S4.3: Fetch identity context (cached 24h — near-zero latency on repeat calls)
+    let identityContext = null;
+    try {
+      identityContext = await inferIdentityContext(userId);
+    } catch (idErr) {
+      console.warn('[Twin Chat] Identity context fetch failed (non-fatal):', idErr.message);
+    }
+
     // Build additional dynamic context (writing profile + unified memory stream)
     let additionalContext = '';
 
     // Inject [CURRENT STATE] block first — high-priority signal for twin's response tone
     if (emotionalState.promptBlock) {
       additionalContext += `\n\n${emotionalState.promptBlock}`;
+    }
+
+    // S4.3: Inject identity voice hint — conditions tone to life stage + career salience
+    if (identityContext?.twinVoiceHint) {
+      additionalContext += `\n\n${identityContext.twinVoiceHint}`;
     }
 
     // Add writing profile context so twin can match user's voice precisely
