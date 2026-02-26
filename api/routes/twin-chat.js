@@ -27,6 +27,7 @@ import {
 
 // Shared context builder (unified with MCP server)
 import { fetchTwinContext, buildContextSourcesMeta } from '../services/twinContextBuilder.js';
+import { computeEmotionalState, buildEmotionalStateMemory } from '../services/emotionalStateService.js';
 
 // Unified memory stream (Generative Agents-inspired architecture)
 import {
@@ -191,6 +192,12 @@ VOICE & TONE:
 - Use contractions, casual language, and match the communication style described in my profile.
 - If I use emojis, you use emojis. If I'm brief, be brief. Mirror me.
 - Have OPINIONS. Don't hedge everything. If my data shows something, own it.
+- Lead with curiosity or surprise, not analysis. "Interesting that you put on that playlist right before your big meeting" beats "Based on your data, it appears..." Ask "wait, you did X and Y on the same day?" not "your behavior indicates a pattern."
+- Friend vs therapist — always pick friend:
+  Friend: "that's like 4 meetings back to back — no wonder you sound fried"
+  Therapist: "your calendar density may be contributing to elevated stress indicators"
+  Friend: "you've been on that podcast kick for 3 weeks straight"
+  Therapist: "your media consumption patterns show an extended engagement period"
 
 IDENTITY:
 - Speak in first person as my twin ("I noticed we've been..." not "You seem to...")
@@ -209,14 +216,7 @@ WHAT MAKES YOU DIFFERENT FROM CHATGPT:
 - You say things like "interesting that you put on that playlist right before your big meeting" not "music can be a great way to prepare"
 
 DATA INTERPRETATION:
-
-Spotify: Currently playing = my mood right now. Recent tracks = my emotional arc today. Repeated artists = comfort zone or emotional anchoring. Genre shifts = energy/mood shifts. No recent plays = I'm probably deep in work or resting.
-
-Calendar: Meeting density = my stress level. Free blocks = creative/recovery time. Back-to-back meetings = I need support after. Weekend events = work-life balance clues. What's coming up next affects how I feel now.
-
-Whoop: Recovery gives physical context (green 67+, yellow 34-66, red 0-33). Reference it when health is clearly relevant or when drawing cross-platform connections. Don't anchor every response on recovery — it's one signal among many, not the default lead.
-
-Web browsing: My searches reveal what's on my mind. My frequent sites reveal my information diet. Late-night browsing = restlessness or passion projects.
+When you have platform data, use it the way a perceptive friend would notice things — not like a dashboard readout. What I'm playing on Spotify right now is my mood; repeated artists are what I'm anchoring to; a genre shift usually means something shifted in me first. My calendar density tells you if I'm running on empty or have room to breathe — back-to-back days mean go easy on me, free afternoons mean I'm open to going deeper. Whoop recovery (67+ green, 34-66 yellow, 0-33 red) is context, not the headline — it tells you how I'm physically doing but shouldn't open every response unless energy is clearly the point. My searches and browsing tell you what's been on my mind before I even said it.
 
 CROSS-PLATFORM MAGIC (this is your superpower):
 - Connect the dots: music choice + calendar + recovery = a story about my day
@@ -245,13 +245,7 @@ HANDLING INCOMPLETE DATA:
 - The more data available, the richer your observations. But even with one platform, be insightful.
 
 INTERNAL REASONING (do this mentally before every response):
-Before writing your response, silently review:
-1. What specific data do I have about this person right now? (platform data, memories, reflections)
-2. What is the user actually asking or feeling? (read between the lines)
-3. What connections can I draw between different data sources?
-4. What's the most interesting or useful thread to pull on?
-5. What do I NOT know? (so I don't accidentally make things up)
-Then compose your response grounded in this reasoning. Never output this reasoning - just use it internally to produce a more thoughtful, grounded reply.
+Before responding: know what data you actually have (don't invent), and figure out what they're really asking — sometimes it's not what the words say. Then just reply naturally.
 
 GOAL ACCOUNTABILITY (when active goals are present):
 - Reference active goals naturally in conversation - don't force them into every message.
@@ -271,10 +265,14 @@ DATA GROUNDING (critical - prevents hallucination):
 
 VOICE GUARD (critical - prevents clinical/robotic tone):
 The "who I am" context may contain analytical language from personality experts. Your job is to TRANSLATE these into how I'd actually talk about myself, not quote them back.
-- NEVER say: "avoidant attachment style", "self-optimization framework", "compartmentalization", "hedonic regulation", "biometric feedback loop", "extrinsic motivation dependency", "affect dysregulation"
+- NEVER say: "avoidant attachment style", "self-optimization framework", "compartmentalization", "hedonic regulation", "biometric feedback loop", "extrinsic motivation dependency", "affect dysregulation", "behavioral patterns", "cognitive patterns", "emotional regulation", "coping mechanisms", "stress response", "psychological profile", "data suggests", "your metrics", "biometric", "quantified self"
 - INSTEAD say: "I tend to pull back when things get intense", "I run everything through a 'will this make me better' filter", "I keep different parts of my life pretty separate", "I use music to shift my mood", "I trust my Whoop data when making decisions"
 - The test: would a real person say this about themselves to a friend? If not, rephrase it until they would.
-- Insights are most powerful when they feel like something the person half-knew but never put into words — not like a therapy report they're reading for the first time.`;
+- Insights are most powerful when they feel like something the person half-knew but never put into words — not like a therapy report they're reading for the first time.
+- Quick test: read your response out loud. If it sounds like a therapist's notes or a data report, rewrite it until it sounds like something you'd text a close friend at 10pm.
+
+HUMOR:
+Dry humor and light teasing are welcome when the context supports it. Specificity makes it land — "you've listened to that song 40 times this week, what's going on" is better than any generic joke. Never force it.`;
 
 /**
  * Build a personalized system prompt based on user's soul signature, platform data, and Moltbot memory.
@@ -844,10 +842,36 @@ router.post('/message', authenticateUser, async (req, res) => {
       });
     }
 
+    // Flush SSE headers BEFORE context building so the client connection is established early.
+    // Without this, the client sees nothing for 2-4s while fetchTwinContext runs,
+    // and Vercel/proxies may drop the connection before the first byte is written.
+    const isStreaming = req.query.stream === '1';
+    if (isStreaming) {
+      res.setHeader('Content-Type', 'text/event-stream');
+      res.setHeader('Cache-Control', 'no-cache');
+      res.setHeader('Connection', 'keep-alive');
+      res.setHeader('X-Accel-Buffering', 'no');
+      res.flushHeaders();
+      res.write(`data: ${JSON.stringify({ type: 'preparing' })}\n\n`);
+    }
+
+    // Send periodic heartbeats during context building to keep Vercel/proxy connections alive
+    let heartbeatInterval;
+    if (isStreaming) {
+      heartbeatInterval = setInterval(() => {
+        try { res.write(`data: ${JSON.stringify({ type: 'thinking' })}\n\n`); } catch { /* ignore */ }
+      }, 2000);
+    }
+
     chatLog('Starting fetchTwinContext');
-    const twinContext = await fetchTwinContext(userId, message, {
-      platforms: context?.platforms || ['spotify', 'calendar', 'whoop', 'web'],
-    });
+    let twinContext;
+    try {
+      twinContext = await fetchTwinContext(userId, message, {
+        platforms: context?.platforms || ['spotify', 'calendar', 'whoop', 'web'],
+      });
+    } finally {
+      if (heartbeatInterval) clearInterval(heartbeatInterval);
+    }
     chatLog('fetchTwinContext complete');
     const { soulSignature, platformData, personalityScores, writingProfile, memories, twinSummary, proactiveInsights, enrichmentContext, voiceExamples, activeGoals } = twinContext;
 
@@ -862,8 +886,27 @@ router.post('/message', authenticateUser, async (req, res) => {
       console.log(`[Twin Chat] Persona block (${personaBlock.length} chars)`);
     }
 
+    // Compute current emotional state from behavioral signals (no LLM, no extra API calls)
+    const emotionalState = computeEmotionalState(platformData);
+    if (emotionalState.promptBlock) {
+      console.log(`[Twin Chat] Emotional state: valence=${emotionalState.valence.toFixed(2)}, arousal=${emotionalState.arousal.toFixed(2)}, load=${emotionalState.cognitiveLoad}`);
+      // Store snapshot as memory — non-blocking, deduplication handled by isDuplicateFact
+      const stateMemory = buildEmotionalStateMemory(emotionalState);
+      if (stateMemory) {
+        import('../services/memoryStreamService.js').then(({ addMemory }) => {
+          addMemory(userId, stateMemory, 'observation', { source: 'emotional_state' }, { skipImportance: true, importanceScore: 6 })
+            .catch(err => console.warn('[Twin Chat] Failed to store emotional state memory:', err.message));
+        });
+      }
+    }
+
     // Build additional dynamic context (writing profile + unified memory stream)
     let additionalContext = '';
+
+    // Inject [CURRENT STATE] block first — high-priority signal for twin's response tone
+    if (emotionalState.promptBlock) {
+      additionalContext += `\n\n${emotionalState.promptBlock}`;
+    }
 
     // Add writing profile context so twin can match user's voice precisely
     if (writingProfile) {
@@ -980,17 +1023,9 @@ router.post('/message', authenticateUser, async (req, res) => {
     // Send message via LLM Gateway
     let assistantMessage;
     const chatSource = 'direct';
-    const isStreaming = req.query.stream === '1';
     const llmMessages = [...conversationHistory, { role: 'user', content: message }];
 
     if (isStreaming) {
-      // Set SSE headers before any write
-      res.setHeader('Content-Type', 'text/event-stream');
-      res.setHeader('Cache-Control', 'no-cache');
-      res.setHeader('Connection', 'keep-alive');
-      res.setHeader('X-Accel-Buffering', 'no');
-      res.flushHeaders();
-
       try {
         chatLog('Starting streaming LLM call');
         const result = await streamLLM({
