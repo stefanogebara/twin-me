@@ -247,6 +247,10 @@ router.get('/reflections', authenticateUser, async (req, res) => {
     if (!userId) return res.status(401).json({ success: false, error: 'Unauthorized' });
 
     const limit = parseInt(req.query.limit) || 20;
+    const diverse = req.query.diverse === 'true';
+
+    // Fetch more when diverse mode to ensure coverage across all expert domains
+    const fetchLimit = diverse ? Math.max(limit * 10, 60) : limit;
 
     const { data, error } = await supabase
       .from('user_memories')
@@ -255,11 +259,34 @@ router.get('/reflections', authenticateUser, async (req, res) => {
       .eq('memory_type', 'reflection')
       .order('importance_score', { ascending: false })
       .order('created_at', { ascending: false })
-      .limit(limit);
+      .limit(fetchLimit);
 
     if (error) throw error;
 
-    const reflections = (data || []).map(r => ({
+    let rows = data || [];
+
+    if (diverse) {
+      // Pick the best reflection per expert domain, preferring non-jazz ones
+      // Jazz/Miles Davis/Coltrane got over-amplified by the recursive reflection engine
+      const OVERREPRESENTED = /\bjazz\b|\bmiles davis\b|\bcoltrane\b/i;
+      const byExpert = {};
+      for (const r of rows) {
+        const key = r.metadata?.expert || r.metadata?.category || r.metadata?.domain || 'general';
+        if (!byExpert[key]) {
+          byExpert[key] = r; // first pass: take highest importance regardless
+        } else if (OVERREPRESENTED.test(byExpert[key].content) && !OVERREPRESENTED.test(r.content)) {
+          byExpert[key] = r; // prefer non-jazz if current best is jazz
+        }
+      }
+      // Sort diverse set by importance desc then recency desc
+      const diverseRows = Object.values(byExpert).sort((a, b) =>
+        b.importance_score - a.importance_score ||
+        new Date(b.created_at) - new Date(a.created_at)
+      );
+      rows = diverseRows.slice(0, limit);
+    }
+
+    const reflections = rows.map(r => ({
       id: r.id,
       content: r.content,
       importance: r.importance_score,

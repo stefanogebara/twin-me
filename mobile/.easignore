@@ -5,6 +5,10 @@ web-build/
 android/.gradle/
 android/build/
 android/app/build/
+modules/usage-stats/android/build/
+modules/usage-stats/android/.gradle/
+modules/notification-listener/android/build/
+modules/notification-listener/android/.gradle/
 *.orig.*
 npm-debug.*
 yarn-debug.*

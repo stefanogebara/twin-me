@@ -1,11 +1,55 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import {
   View, Text, ScrollView, StyleSheet, Image,
-  RefreshControl, ActivityIndicator, TouchableOpacity,
+  RefreshControl, ActivityIndicator, TouchableOpacity, LayoutAnimation,
 } from 'react-native';
 import { COLORS } from '../constants';
 import { fetchMemoryStats, fetchInsights } from '../services/api';
 import type { MemoryStats, TwinInsight, User } from '../types';
+
+function toSecondPerson(text: string): string {
+  return text
+    .replace(/\bThis person's\b/g, 'Your')
+    .replace(/\bthis person's\b/g, 'your')
+    .replace(/\bThis person\b/g, 'You')
+    .replace(/\bthis person\b/g, 'you')
+    .replace(/\bTheir\b/g, 'Your')
+    .replace(/\btheir\b/g, 'your')
+    .replace(/\bThey\b/g, 'You')
+    .replace(/\bthey\b/g, 'you')
+    .replace(/\bThem\b/g, 'You')
+    .replace(/\bthem\b/g, 'you')
+    .replace(/\bThemselves\b/g, 'Yourself')
+    .replace(/\bthemselves\b/g, 'yourself');
+}
+
+function InsightCard({ insight }: { insight: TwinInsight }) {
+  const [expanded, setExpanded] = useState(false);
+  const text = toSecondPerson(insight.content);
+  return (
+    <TouchableOpacity
+      style={styles.insightCard}
+      onPress={() => {
+        LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+        setExpanded(e => !e);
+      }}
+      activeOpacity={0.75}
+    >
+      <View
+        style={[
+          styles.insightDot,
+          { backgroundColor: EXPERT_COLORS[insight.category] ?? '#000' },
+        ]}
+      />
+      <View style={{ flex: 1 }}>
+        <Text style={styles.insightText} numberOfLines={expanded ? undefined : 3}>
+          {text}
+        </Text>
+        <Text style={styles.insightToggle}>{expanded ? 'Less ↑' : 'More ↓'}</Text>
+      </View>
+    </TouchableOpacity>
+  );
+}
 
 const EXPERT_COLORS: Record<string, string> = {
   personality: '#8b5cf6',
@@ -34,11 +78,12 @@ export function HomeScreen({ user }: Props) {
 
   const load = useCallback(async () => {
     try {
-      const [s, i] = await Promise.all([fetchMemoryStats(), fetchInsights()]);
-      setStats(s);
-      setInsights(i.slice(0, 5));
-    } catch {
-      // silently fail — show stale data
+      const [statsResult, insightsResult] = await Promise.allSettled([
+        fetchMemoryStats(),
+        fetchInsights(),
+      ]);
+      if (statsResult.status === 'fulfilled') setStats(statsResult.value);
+      if (insightsResult.status === 'fulfilled') setInsights(insightsResult.value.slice(0, 5));
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -106,17 +151,7 @@ export function HomeScreen({ user }: Props) {
         <View style={styles.section}>
           <Text style={styles.sectionLabel}>WHAT YOUR TWIN KNOWS</Text>
           {insights.map((insight) => (
-            <View key={insight.id} style={styles.insightCard}>
-              <View
-                style={[
-                  styles.insightDot,
-                  { backgroundColor: EXPERT_COLORS[insight.category] ?? '#000' },
-                ]}
-              />
-              <Text style={styles.insightText} numberOfLines={3}>
-                {insight.content}
-              </Text>
-            </View>
+            <InsightCard key={insight.id} insight={insight} />
           ))}
         </View>
       )}
@@ -237,11 +272,16 @@ const styles = StyleSheet.create({
   },
   insightDot: { width: 7, height: 7, borderRadius: 4, marginTop: 6 },
   insightText: {
-    flex: 1,
     fontFamily: 'Inter_400Regular',
     fontSize: 14,
     color: COLORS.text,
     lineHeight: 21,
+  },
+  insightToggle: {
+    fontFamily: 'Inter_400Regular',
+    fontSize: 11,
+    color: COLORS.textMuted,
+    marginTop: 6,
   },
 
   // Empty state

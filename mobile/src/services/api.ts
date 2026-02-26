@@ -93,7 +93,7 @@ export async function fetchMemoryStats(): Promise<MemoryStats> {
   if (!res.ok) throw new Error('Failed to fetch memory stats');
   const data = await res.json();
   return {
-    total: data.total ?? 0,
+    total: data.totalMemories ?? data.total ?? 0,
     byPlatform: data.byPlatform ?? {},
     lastMemoryAt: data.lastMemoryAt ?? null,
   };
@@ -102,10 +102,17 @@ export async function fetchMemoryStats(): Promise<MemoryStats> {
 // ── Twin insights ─────────────────────────────────────────────────────────────
 
 export async function fetchInsights(): Promise<TwinInsight[]> {
-  const res = await authFetch('/twin/insights');
+  const res = await authFetch('/twin/reflections?limit=5&diverse=true');
   if (!res.ok) throw new Error('Failed to fetch insights');
   const data = await res.json();
-  return Array.isArray(data.insights) ? data.insights : [];
+  const reflections = Array.isArray(data.reflections) ? data.reflections : [];
+  return reflections.map((r: Record<string, unknown>) => ({
+    id: r.id as string,
+    content: r.content as string,
+    category: (r.category as string) ?? (r.expert as string) ?? 'reflection',
+    created_at: r.createdAt as string,
+    importance_score: (r.importance as number) ?? 5,
+  }));
 }
 
 // ── Twin chat ─────────────────────────────────────────────────────────────────
@@ -115,41 +122,26 @@ export async function sendChatMessage(
   onChunk: (text: string) => void,
 ): Promise<void> {
   const token = await SecureStore.getItemAsync(STORAGE_KEYS.AUTH_TOKEN);
-  const res = await fetch(`${API_URL}/chat/message?stream=1`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-    },
-    body: JSON.stringify({ message }),
-  });
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 45000);
 
-  if (!res.ok) throw new Error('Chat request failed');
-  if (!res.body) throw new Error('No response body');
+  try {
+    const res = await fetch(`${API_URL}/chat/message`, {
+      method: 'POST',
+      signal: controller.signal,
+      headers: {
+        'Content-Type': 'application/json',
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+      body: JSON.stringify({ message }),
+    });
 
-  const reader = res.body.getReader();
-  const decoder = new TextDecoder();
-  let buffer = '';
-
-  while (true) {
-    const { done, value } = await reader.read();
-    if (done) break;
-    buffer += decoder.decode(value, { stream: true });
-    const lines = buffer.split('\n');
-    buffer = lines.pop() ?? '';
-    for (const line of lines) {
-      if (line.startsWith('data: ')) {
-        const text = line.slice(6);
-        if (text && text !== '[DONE]') {
-          try {
-            const parsed = JSON.parse(text);
-            if (parsed.content) onChunk(parsed.content);
-          } catch {
-            if (text !== '[DONE]') onChunk(text);
-          }
-        }
-      }
-    }
+    if (!res.ok) throw new Error(`Chat request failed (${res.status})`);
+    const data = await res.json();
+    const reply = data.message || data.reply || data.content || '';
+    if (reply) onChunk(reply);
+  } finally {
+    clearTimeout(timeout);
   }
 }
 
