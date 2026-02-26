@@ -46,12 +46,70 @@ import {
 } from './memoryStreamService.js';
 import { supabaseAdmin } from './database.js';
 
-// Reflection threshold: trigger when sum of recent importance scores exceeds this
-// Lowered from 50 to 15 so new users trigger reflections earlier (~3 memories rated 5)
-export const IMPORTANCE_THRESHOLD = 15;
+// ====================================================================
+// Deduplication — Bigram Jaccard similarity
+// ====================================================================
 
-// Max recursive reflection depth (paper allows reflections on reflections)
-const MAX_REFLECTION_DEPTH = 3;
+/**
+ * Compute bigram Jaccard similarity between two strings.
+ * Returns 0 (completely different) to 1 (identical).
+ * Words under 4 chars are ignored (stop-word filter).
+ */
+function bigramSimilarity(a, b) {
+  const getBigrams = text => {
+    const words = text.toLowerCase().split(/\s+/).filter(w => w.length > 3);
+    const bigrams = new Set();
+    for (let i = 0; i < words.length - 1; i++) {
+      bigrams.add(`${words[i]}_${words[i + 1]}`);
+    }
+    return bigrams;
+  };
+  const setA = getBigrams(a);
+  const setB = getBigrams(b);
+  if (setA.size === 0 && setB.size === 0) return 1;
+  if (setA.size === 0 || setB.size === 0) return 0;
+  let intersection = 0;
+  for (const bg of setA) { if (setB.has(bg)) intersection++; }
+  return intersection / (setA.size + setB.size - intersection);
+}
+
+/**
+ * Returns true if a very similar reflection already exists for this expert.
+ * Fetches last 50 reflections from the expert and checks bigram similarity.
+ * Threshold: 0.72 (high enough to catch paraphrases, low enough to allow new angles).
+ */
+async function isDuplicateReflection(userId, expertId, newObservation) {
+  try {
+    const { data } = await supabaseAdmin
+      .from('user_memories')
+      .select('content')
+      .eq('user_id', userId)
+      .eq('memory_type', 'reflection')
+      .filter('metadata->>expert', 'eq', expertId)
+      .order('created_at', { ascending: false })
+      .limit(50);
+
+    if (!data || data.length === 0) return false;
+
+    const maxSim = Math.max(...data.map(r => bigramSimilarity(newObservation, r.content)));
+    if (maxSim > 0.72) {
+      console.log(`[Reflection] Dedup skip (${expertId}): similarity ${maxSim.toFixed(2)} > 0.72`);
+      return true;
+    }
+    return false;
+  } catch (err) {
+    console.warn('[Reflection] Dedup check failed (non-fatal):', err.message);
+    return false; // On error, allow write
+  }
+}
+
+// Reflection threshold: trigger when sum of recent importance scores exceeds this
+// 40 = ~8 platform observations at avg importance 5, prevents runaway triggering
+export const IMPORTANCE_THRESHOLD = 40;
+
+// Max recursive reflection depth — depth-2 prevents feedback loops while still
+// allowing reflections to synthesize other reflections (one level of meta-insight)
+const MAX_REFLECTION_DEPTH = 2;
 
 // Cooldown: don't reflect more than once per hour per user
 const reflectionCooldowns = new Map();
@@ -72,132 +130,130 @@ const EXPERT_PERSONAS = [
   {
     id: 'personality_psychologist',
     name: 'Personality Psychologist',
-    retrievalQuery: "emotional reactions, stress responses, coping mechanisms, mood patterns, feelings about relationships and self",
-    prompt: `You are an expert personality psychologist analyzing behavioral data about a person to understand their psychological profile.
+    retrievalQuery: "emotional reactions, stress responses, mood patterns, feelings about relationships and self, how they react under pressure",
+    prompt: `You are analyzing behavioral data about a person to spot real patterns in how they tick emotionally.
 
-Your domain: emotional patterns, attachment style, coping mechanisms, stress responses, emotional regulation, Big Five personality traits as revealed through behavior (not self-report).
+Your focus: how their mood shifts across different situations, what they reach for when stressed, how their feelings show up in their choices (music, schedule, habits), how they handle difficult emotions.
 
-Recent observations about this person:
+Recent observations:
 {observations}
 
-Additional evidence from their life (retrieved by relevance to your domain):
+More evidence from their life:
 {evidence}
 
-Based on this evidence, generate 2-3 specific psychological observations about this person. Each observation should be:
-- Grounded in the specific evidence provided (cite what you see)
-- Written as a concise insight (1-2 sentences)
-- In third person ("This person...")
-- A genuine psychological pattern, NOT a surface description
+Write 2-3 specific observations about this person's emotional patterns. Each one should:
+- Point to specific evidence (name what you actually see in the data)
+- Be 1-2 sentences, plain conversational English
+- Start with "This person..."
+- Sound like something a perceptive friend would notice, NOT a clinical report
+- Use everyday language: "pulls back when overwhelmed" not "avoidant coping", "gets restless when things are too structured" not "low tolerance for constraint", "uses music to shift their mood" not "employs hedonic regulation"
 
-Focus on patterns they might not notice themselves: emotional triggers, coping strategies, attachment behaviors, how their mood connects to their activities.
+If there's not enough data for a genuine insight, return "INSUFFICIENT_EVIDENCE".
 
-If the evidence is insufficient for your domain, return "INSUFFICIENT_EVIDENCE".
-
-Return each observation on a new line, prefixed with a number (1., 2., 3.). No other text.`
+Return observations numbered 1., 2., 3. on separate lines. Nothing else.`
   },
   {
     id: 'lifestyle_analyst',
     name: 'Lifestyle Analyst',
     retrievalQuery: "daily routine, sleep patterns, exercise habits, energy levels, health metrics, time management, work-life balance",
-    prompt: `You are an expert lifestyle analyst studying a person's daily patterns to understand their rhythms and habits.
+    prompt: `You are analyzing a person's daily patterns to understand how they actually live — their rhythms, rituals, and habits.
 
-Your domain: daily routines, energy patterns, sleep-wake cycles, health-behavior connections, routine vs spontaneity balance, how physical state affects decisions and mood.
+Your focus: daily routines and what disrupts them, how physical state (sleep, recovery) connects to their other choices, how they balance structure vs spontaneity, what their schedule reveals about their priorities.
 
-Recent observations about this person:
+Recent observations:
 {observations}
 
-Additional evidence from their life (retrieved by relevance to your domain):
+More evidence from their life:
 {evidence}
 
-Based on this evidence, generate 2-3 specific lifestyle observations about this person. Each observation should be:
-- Grounded in the specific evidence provided (cite what you see)
-- Written as a concise insight (1-2 sentences)
-- In third person ("This person...")
-- A genuine behavioral pattern, NOT a surface description
+Write 2-3 specific observations about this person's lifestyle patterns. Each one should:
+- Point to specific evidence (name what you actually see in the data)
+- Be 1-2 sentences, plain conversational English
+- Start with "This person..."
+- Sound like something a perceptive friend would notice, NOT a wellness consultant's report
+- Use everyday language: "tends to go harder on days they slept well" not "demonstrates biometric-behavioral correlation", "blocks off mornings for focused work" not "exhibits high conscientiousness temporal allocation"
+- Find the cross-platform connections: how their sleep affects their playlist, how packed their calendar is vs how they're feeling
 
-Focus on cross-domain connections: how sleep affects their music choices, how meeting density correlates with listening habits, recovery trends and their relationship to schedule patterns.
+If there's not enough data for a genuine insight, return "INSUFFICIENT_EVIDENCE".
 
-If the evidence is insufficient for your domain, return "INSUFFICIENT_EVIDENCE".
-
-Return each observation on a new line, prefixed with a number (1., 2., 3.). No other text.`
+Return observations numbered 1., 2., 3. on separate lines. Nothing else.`
   },
   {
     id: 'cultural_identity',
     name: 'Cultural Identity Expert',
-    retrievalQuery: "music taste, content preferences, aesthetic choices, media consumption, creative interests, cultural references, hobbies",
-    prompt: `You are a cultural identity expert analyzing a person's media consumption and aesthetic choices to understand their identity.
+    retrievalQuery: "music taste, content preferences, aesthetic choices, media consumption, creative interests, hobbies, what they watch and listen to",
+    prompt: `You are analyzing a person's media and aesthetic choices to understand what they're into and what it says about them.
 
-Your domain: music taste and what it reveals, content preferences, aesthetic sensibilities, cultural markers, creative expression, how media choices reflect inner states and values.
+Your focus: what their music taste reveals about their mood and personality, how their content choices shift over time, what their listening/watching habits say about their values and what they're drawn to, the difference between their "public taste" and what they actually reach for.
 
-Recent observations about this person:
+Recent observations:
 {observations}
 
-Additional evidence from their life (retrieved by relevance to your domain):
+More evidence from their life:
 {evidence}
 
-Based on this evidence, generate 2-3 specific cultural identity observations about this person. Each observation should be:
-- Grounded in the specific evidence provided (cite what you see)
-- Written as a concise insight (1-2 sentences)
-- In third person ("This person...")
-- A genuine identity pattern, NOT a surface description
+Write 2-3 specific observations about this person's tastes and cultural identity. Each one should:
+- Point to specific evidence (name the actual artists, genres, content you see)
+- Be 1-2 sentences, plain conversational English
+- Start with "This person..."
+- Sound like something a music-savvy friend would notice, NOT a cultural studies paper
+- Use everyday language: "puts on Radiohead when they need to process something" not "utilizes emotionally complex media for affective regulation", "their taste skews toward stuff most people haven't heard of" not "demonstrates cultural capital maximization"
+- Avoid over-generalizing from one data point
 
-Focus on what their choices reveal: genre shifts as emotional barometers, comfort artists vs exploration, content that signals deeper values or aspirations.
+If there's not enough data for a genuine insight, return "INSUFFICIENT_EVIDENCE".
 
-If the evidence is insufficient for your domain, return "INSUFFICIENT_EVIDENCE".
-
-Return each observation on a new line, prefixed with a number (1., 2., 3.). No other text.`
+Return observations numbered 1., 2., 3. on separate lines. Nothing else.`
   },
   {
     id: 'social_dynamics',
     name: 'Social Dynamics Analyst',
-    retrievalQuery: "communication style, social interactions, meeting patterns, relationship dynamics, how they talk to others, social energy management",
-    prompt: `You are a social dynamics analyst studying a person's communication patterns and social behaviors.
+    retrievalQuery: "communication style, social interactions, meeting patterns, relationship dynamics, how they talk to others, social energy, alone time vs social time",
+    prompt: `You are analyzing a person's social patterns to understand how they relate to people and manage their social energy.
 
-Your domain: communication style, social energy management, introversion/extraversion as revealed by behavior, relationship maintenance patterns, how they structure their social world.
+Your focus: how they structure their social life, when they seek connection vs pull back, what their communication patterns say about them, how social load affects their other behaviors, how they show up in different social contexts.
 
-Recent observations about this person:
+Recent observations:
 {observations}
 
-Additional evidence from their life (retrieved by relevance to your domain):
+More evidence from their life:
 {evidence}
 
-Based on this evidence, generate 2-3 specific social dynamics observations about this person. Each observation should be:
-- Grounded in the specific evidence provided (cite what you see)
-- Written as a concise insight (1-2 sentences)
-- In third person ("This person...")
-- A genuine social pattern, NOT a surface description
+Write 2-3 specific observations about this person's social patterns. Each one should:
+- Point to specific evidence (name what you actually see in the data)
+- Be 1-2 sentences, plain conversational English
+- Start with "This person..."
+- Sound like what a close mutual friend might notice, NOT a social psychologist's assessment
+- Use everyday language: "needs serious alone time after a packed social day" not "exhibits introversion-based energy recovery patterns", "tends to keep conversations surface-level until they trust someone" not "demonstrates selective self-disclosure behavior"
 
-Focus on: how they structure their social calendar, patterns in when they seek vs avoid interaction, communication patterns that reveal their social identity, how social load affects other behaviors.
+If there's not enough data for a genuine insight, return "INSUFFICIENT_EVIDENCE".
 
-If the evidence is insufficient for your domain, return "INSUFFICIENT_EVIDENCE".
-
-Return each observation on a new line, prefixed with a number (1., 2., 3.). No other text.`
+Return observations numbered 1., 2., 3. on separate lines. Nothing else.`
   },
   {
     id: 'motivation_analyst',
     name: 'Motivation Analyst',
-    retrievalQuery: "work patterns, goals, ambitions, decision making, career interests, what drives them, productivity patterns, focus sessions, goal streaks, commitment patterns",
-    prompt: `You are a motivation analyst studying a person's drive patterns and decision-making to understand what moves them.
+    retrievalQuery: "work patterns, goals, ambitions, decision making, what drives them, productivity patterns, focus sessions, goal commitment, what they prioritize",
+    prompt: `You are analyzing a person's patterns around work, goals, and what drives their decisions.
 
-Your domain: work patterns, goal orientation, intrinsic vs extrinsic motivation, decision-making style, how they allocate their most productive time, what they prioritize when constrained, goal commitment and follow-through patterns.
+Your focus: what they do with free time (reveals real priorities), how they handle competing demands, when they're most energized and focused, what their browsing and content consumption hint at in terms of ambitions, how committed they are to things once they start them.
 
-Recent observations about this person:
+Recent observations:
 {observations}
 
-Additional evidence from their life (retrieved by relevance to your domain):
+More evidence from their life:
 {evidence}
 
-Based on this evidence, generate 2-3 specific motivation observations about this person. Each observation should be:
-- Grounded in the specific evidence provided (cite what you see)
-- Written as a concise insight (1-2 sentences)
-- In third person ("This person...")
-- A genuine motivational pattern, NOT a surface description
+Write 2-3 specific observations about this person's motivation and drive patterns. Each one should:
+- Point to specific evidence (name what you actually see in the data)
+- Be 1-2 sentences, plain conversational English
+- Start with "This person..."
+- Sound like something a perceptive colleague would notice, NOT a management consultant's report
+- Use everyday language: "does their best thinking late at night" not "exhibits peak cognitive performance during nocturnal periods", "gets way more done when they have a hard deadline" not "demonstrates extrinsic motivation dependency"
+- If goal data exists: note whether they actually follow through, what makes them drop off
 
-Focus on: what they do when they have free time (reveals intrinsic motivation), how they handle competing priorities, patterns in when they're most engaged, what their browsing and content consumption reveal about aspirations. If goal-related data exists, analyze their commitment patterns - do they maintain streaks? What triggers falling off track?
+If there's not enough data for a genuine insight, return "INSUFFICIENT_EVIDENCE".
 
-If the evidence is insufficient for your domain, return "INSUFFICIENT_EVIDENCE".
-
-Return each observation on a new line, prefixed with a number (1., 2., 3.). No other text.`
+Return observations numbered 1., 2., 3. on separate lines. Nothing else.`
   },
 ];
 
@@ -253,6 +309,10 @@ async function runExpertAnalysis(userId, expert, formattedObservations, depth) {
     const evidenceIds = domainMemories.map(m => m.id);
 
     for (const observation of observations.slice(0, 3)) {
+      // Dedup check — skip if a very similar reflection already exists for this expert
+      const isDupe = await isDuplicateReflection(userId, expert.id, observation);
+      if (isDupe) continue;
+
       const reflectionResult = await addReflection(userId, observation, evidenceIds, {
         expert: expert.id,
         expertName: expert.name,
