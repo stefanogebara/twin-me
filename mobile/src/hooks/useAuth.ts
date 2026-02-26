@@ -34,18 +34,24 @@ export function useAuth() {
       if (cachedUser) {
         setState({ token, user: cachedUser, isLoading: false });
       }
-      // Verify in background — only log out on explicit 401
+      // Verify in background — clear session on 401, keep on network error
       verifyToken().then(user => {
         if (user) {
           setState({ token, user, isLoading: false });
         } else if (!cachedUser) {
-          // Only clear session if we had no cached user and verify failed
           SecureStore.deleteItemAsync(STORAGE_KEYS.AUTH_TOKEN);
           setState({ token: null, user: null, isLoading: false });
         }
-      }).catch(() => {
-        // Network error — keep cached session
-        if (!cachedUser) setState({ token: null, user: null, isLoading: false });
+      }).catch((err: Error) => {
+        if (err?.message === 'UNAUTHORIZED') {
+          // Token expired/invalid — force re-login
+          SecureStore.deleteItemAsync(STORAGE_KEYS.AUTH_TOKEN);
+          SecureStore.deleteItemAsync(STORAGE_KEYS.USER);
+          setState({ token: null, user: null, isLoading: false });
+        } else {
+          // Network error — keep cached session
+          if (!cachedUser) setState({ token: null, user: null, isLoading: false });
+        }
       });
     })();
   }, []);

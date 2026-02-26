@@ -1,6 +1,6 @@
 import * as SecureStore from 'expo-secure-store';
 import { API_URL, OAUTH_API_URL, STORAGE_KEYS } from '../constants';
-import type { User, MemoryStats, TwinInsight, AndroidUsageData } from '../types';
+import type { User, MemoryStats, TwinInsight, AndroidUsageData, SoulSignatureProfile, PersonalityScores, PlatformConnection } from '../types';
 
 function normalizeUser(u: Record<string, unknown>): User {
   const full = (u.fullName as string)
@@ -76,14 +76,11 @@ export async function claimAuthCode(authCode: string): Promise<{ token: string; 
 }
 
 export async function verifyToken(): Promise<User | null> {
-  try {
-    const res = await authFetch('/auth/verify');
-    if (!res.ok) return null;
-    const data = await res.json();
-    return data.user ? normalizeUser(data.user) : null;
-  } catch {
-    return null;
-  }
+  const res = await authFetch('/auth/verify');
+  if (res.status === 401) throw new Error('UNAUTHORIZED');
+  if (!res.ok) return null;
+  const data = await res.json();
+  return data.user ? normalizeUser(data.user) : null;
 }
 
 // ── Memory stats ─────────────────────────────────────────────────────────────
@@ -113,6 +110,47 @@ export async function fetchInsights(): Promise<TwinInsight[]> {
     created_at: r.createdAt as string,
     importance_score: (r.importance as number) ?? 5,
   }));
+}
+
+// ── Soul portrait (Me tab) ────────────────────────────────────────────────────
+
+export async function fetchSoulSignature(): Promise<SoulSignatureProfile | null> {
+  try {
+    const res = await authFetch('/soul-signature/profile');
+    if (!res.ok) return null;
+    const data = await res.json();
+    return data.profile ?? null;
+  } catch {
+    return null;
+  }
+}
+
+export async function fetchPersonalityScores(): Promise<PersonalityScores | null> {
+  try {
+    const res = await authFetch('/soul-signature/personality-scores');
+    if (!res.ok) return null;
+    const data = await res.json();
+    return data.data ?? data.scores ?? null;
+  } catch {
+    return null;
+  }
+}
+
+export async function fetchPlatformConnections(userId: string): Promise<PlatformConnection[]> {
+  try {
+    const res = await authFetch(`/connectors/status/${userId}`);
+    if (!res.ok) return [];
+    const json = await res.json();
+    // Response: { success, data: { spotify: {isActive, ...}, youtube: {...}, ... } }
+    const platforms = json.data ?? {};
+    return Object.entries(platforms).map(([platform, info]) => ({
+      platform,
+      status: (info as Record<string, unknown>)?.isActive ? 'connected' : 'error',
+      last_sync_at: (info as Record<string, unknown>)?.lastSync as string | undefined,
+    }));
+  } catch {
+    return [];
+  }
 }
 
 // ── Twin chat ─────────────────────────────────────────────────────────────────
