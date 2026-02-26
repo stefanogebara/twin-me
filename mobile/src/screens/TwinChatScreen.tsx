@@ -1,7 +1,8 @@
-import React, { useState, useRef, useCallback } from 'react';
+import React, { useState, useRef, useCallback, useEffect } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity, FlatList, Image,
   StyleSheet, KeyboardAvoidingView, Platform, ActivityIndicator,
+  Animated,
 } from 'react-native';
 import { COLORS } from '../constants';
 import { sendChatMessage } from '../services/api';
@@ -13,8 +14,61 @@ const SUGGESTIONS = [
   'What motivates me?',
 ];
 
-function MessageBubble({ message }: { message: ChatMessage }) {
+const THINKING_LABELS = [
+  'Searching your memories...',
+  'Connecting the patterns...',
+  'Thinking as you...',
+  'Almost there...',
+];
+
+function TypingIndicator() {
+  const dots = [useRef(new Animated.Value(0)).current, useRef(new Animated.Value(0)).current, useRef(new Animated.Value(0)).current];
+  const [labelIdx, setLabelIdx] = useState(0);
+
+  useEffect(() => {
+    const anims = dots.map((dot, i) =>
+      Animated.loop(
+        Animated.sequence([
+          Animated.delay(i * 150),
+          Animated.timing(dot, { toValue: 1, duration: 350, useNativeDriver: true }),
+          Animated.timing(dot, { toValue: 0, duration: 350, useNativeDriver: true }),
+          Animated.delay((dots.length - i - 1) * 150),
+        ]),
+      ),
+    );
+    anims.forEach(a => a.start());
+
+    const interval = setInterval(() => {
+      setLabelIdx(i => (i + 1) % THINKING_LABELS.length);
+    }, 2200);
+
+    return () => {
+      anims.forEach(a => a.stop());
+      clearInterval(interval);
+    };
+  }, []);
+
+  return (
+    <View style={styles.bubbleRow}>
+      <View style={[styles.bubble, styles.bubbleAssistant, styles.typingBubble]}>
+        <Text style={styles.thinkingLabel}>{THINKING_LABELS[labelIdx]}</Text>
+        <View style={styles.dotsRow}>
+          {dots.map((dot, i) => (
+            <Animated.View key={i} style={[styles.dot, { opacity: dot }]} />
+          ))}
+        </View>
+      </View>
+    </View>
+  );
+}
+
+function MessageBubble({ message, isTyping }: { message: ChatMessage; isTyping?: boolean }) {
   const isUser = message.role === 'user';
+
+  if (!isUser && isTyping && !message.content) {
+    return <TypingIndicator />;
+  }
+
   return (
     <View style={[styles.bubbleRow, isUser && styles.bubbleRowRight]}>
       <View style={[styles.bubble, isUser ? styles.bubbleUser : styles.bubbleAssistant]}>
@@ -115,7 +169,12 @@ export function TwinChatScreen() {
         ref={listRef}
         data={messages}
         keyExtractor={m => m.id}
-        renderItem={({ item }) => <MessageBubble message={item} />}
+        renderItem={({ item }) => (
+          <MessageBubble
+            message={item}
+            isTyping={streaming && item.id === streamingIdRef.current}
+          />
+        )}
         contentContainerStyle={styles.messageList}
         onContentSizeChange={() => listRef.current?.scrollToEnd({ animated: false })}
       />
@@ -215,6 +274,22 @@ const styles = StyleSheet.create({
     lineHeight: 22,
   },
   bubbleTextUser: { color: COLORS.primaryFg },
+
+  // Typing indicator
+  typingBubble: { paddingVertical: 14, paddingHorizontal: 18, gap: 8 },
+  thinkingLabel: {
+    fontFamily: 'Inter_400Regular',
+    fontSize: 12,
+    color: COLORS.textMuted,
+    letterSpacing: 0.2,
+  },
+  dotsRow: { flexDirection: 'row', gap: 5, alignItems: 'center' },
+  dot: {
+    width: 7,
+    height: 7,
+    borderRadius: 4,
+    backgroundColor: COLORS.textMuted,
+  },
 
   // Input
   inputRow: {

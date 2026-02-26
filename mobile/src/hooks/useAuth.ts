@@ -20,7 +20,7 @@ export function useAuth() {
     isLoading: true,
   });
 
-  // On mount: load saved token and verify it
+  // On mount: load cached session immediately, then verify in background
   useEffect(() => {
     (async () => {
       const token = await SecureStore.getItemAsync(STORAGE_KEYS.AUTH_TOKEN);
@@ -28,13 +28,25 @@ export function useAuth() {
         setState({ token: null, user: null, isLoading: false });
         return;
       }
-      const user = await verifyToken();
-      if (user) {
-        setState({ token, user, isLoading: false });
-      } else {
-        await SecureStore.deleteItemAsync(STORAGE_KEYS.AUTH_TOKEN);
-        setState({ token: null, user: null, isLoading: false });
+      // Load cached user immediately — no network wait
+      const cachedUserJson = await SecureStore.getItemAsync(STORAGE_KEYS.USER);
+      const cachedUser = cachedUserJson ? JSON.parse(cachedUserJson) as User : null;
+      if (cachedUser) {
+        setState({ token, user: cachedUser, isLoading: false });
       }
+      // Verify in background — only log out on explicit 401
+      verifyToken().then(user => {
+        if (user) {
+          setState({ token, user, isLoading: false });
+        } else if (!cachedUser) {
+          // Only clear session if we had no cached user and verify failed
+          SecureStore.deleteItemAsync(STORAGE_KEYS.AUTH_TOKEN);
+          setState({ token: null, user: null, isLoading: false });
+        }
+      }).catch(() => {
+        // Network error — keep cached session
+        if (!cachedUser) setState({ token: null, user: null, isLoading: false });
+      });
     })();
   }, []);
 
