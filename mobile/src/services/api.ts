@@ -122,27 +122,54 @@ export async function sendChatMessage(
   onChunk: (text: string) => void,
 ): Promise<void> {
   const token = await SecureStore.getItemAsync(STORAGE_KEYS.AUTH_TOKEN);
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 45000);
 
-  try {
-    const res = await fetch(`${API_URL}/chat/message`, {
-      method: 'POST',
-      signal: controller.signal,
-      headers: {
-        'Content-Type': 'application/json',
-        ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      },
-      body: JSON.stringify({ message }),
-    });
+  return new Promise((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    const timeoutId = setTimeout(() => {
+      xhr.abort();
+      reject(new Error('Chat request timed out'));
+    }, 45000);
 
-    if (!res.ok) throw new Error(`Chat request failed (${res.status})`);
-    const data = await res.json();
-    const reply = data.message || data.reply || data.content || '';
-    if (reply) onChunk(reply);
-  } finally {
-    clearTimeout(timeout);
-  }
+    let lastLength = 0;
+
+    xhr.open('POST', `${API_URL}/chat/message?stream=1`);
+    xhr.setRequestHeader('Content-Type', 'application/json');
+    if (token) xhr.setRequestHeader('Authorization', `Bearer ${token}`);
+
+    xhr.onprogress = () => {
+      const raw = xhr.responseText;
+      const newData = raw.slice(lastLength);
+      lastLength = raw.length;
+      const lines = newData.split('\n');
+      for (const line of lines) {
+        if (!line.startsWith('data: ')) continue;
+        try {
+          const event = JSON.parse(line.slice(6));
+          if (event.type === 'chunk' && event.content) {
+            onChunk(event.content);
+          }
+        } catch {
+          // ignore partial JSON mid-stream
+        }
+      }
+    };
+
+    xhr.onload = () => {
+      clearTimeout(timeoutId);
+      if (xhr.status >= 400) {
+        reject(new Error(`Chat request failed (${xhr.status})`));
+      } else {
+        resolve();
+      }
+    };
+
+    xhr.onerror = () => {
+      clearTimeout(timeoutId);
+      reject(new Error('Network error during chat'));
+    };
+
+    xhr.send(JSON.stringify({ message }));
+  });
 }
 
 // ── Android usage import ──────────────────────────────────────────────────────
