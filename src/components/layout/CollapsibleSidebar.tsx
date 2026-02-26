@@ -7,11 +7,7 @@ import {
   MessageCircle,
   Sparkles,
   Link2,
-  Shield,
-  TrendingUp,
   Brain,
-  Database,
-  HelpCircle,
   ChevronRight,
   ChevronDown,
   ChevronsLeft,
@@ -19,13 +15,6 @@ import {
   X,
   Settings,
   LogOut,
-  Music,
-  Calendar,
-  Eye,
-  Video,
-  Globe,
-  MessageSquare,
-  Briefcase,
   BookOpen,
   Target
 } from 'lucide-react';
@@ -44,83 +33,20 @@ interface CollapsibleSidebarProps {
   onClose: () => void;
 }
 
+// 3 primary tabs
 const mainNavItems: NavItem[] = [
-  {
-    id: 'dashboard',
-    label: 'Dashboard',
-    icon: Home,
-    path: '/dashboard'
-  },
-  {
-    id: 'connect-data',
-    label: 'Connect Data',
-    icon: Link2,
-    path: '/get-started'
-  },
-  {
-    id: 'soul-signature',
-    label: 'Soul Signature',
-    icon: Sparkles,
-    path: '/soul-signature'
-  },
-  {
-    id: 'brain',
-    label: 'Twin\'s Brain',
-    icon: Brain,
-    path: '/brain'
-  },
-  {
-    id: 'journal',
-    label: 'Soul Journal',
-    icon: BookOpen,
-    path: '/journal'
-  },
-  {
-    id: 'goals',
-    label: 'Goals',
-    icon: Target,
-    path: '/goals'
-  },
-  {
-    id: 'chat',
-    label: 'Chat with Twin',
-    icon: MessageCircle,
-    path: '/talk-to-twin'
-  }
+  { id: 'dashboard', label: 'Home',  icon: Home,          path: '/dashboard' },
+  { id: 'chat',      label: 'Chat',  icon: MessageCircle, path: '/talk-to-twin' },
+  { id: 'me',        label: 'Me',    icon: Sparkles,      path: '/soul-signature' },
 ];
 
-// Twin Insights - expandable section for platform reflections
-const insightNavItems: NavItem[] = [
-  {
-    id: 'spotify-insights',
-    label: 'Music Soul',
-    icon: Music,
-    path: '/insights/spotify'
-  },
-  {
-    id: 'calendar-insights',
-    label: 'Time Patterns',
-    icon: Calendar,
-    path: '/insights/calendar'
-  },
-  {
-    id: 'youtube-insights',
-    label: 'Content World',
-    icon: Video,
-    path: '/insights/youtube'
-  },
-  {
-    id: 'discord-insights',
-    label: 'Communities',
-    icon: MessageSquare,
-    path: '/insights/discord'
-  },
-  {
-    id: 'linkedin-insights',
-    label: 'Professional',
-    icon: Briefcase,
-    path: '/insights/linkedin'
-  }
+// Everything else — shown in a collapsible "More" section
+const moreNavItems: NavItem[] = [
+  { id: 'goals',        label: 'Goals',          icon: Target,   path: '/goals' },
+  { id: 'brain',        label: "Twin's Brain",   icon: Brain,    path: '/brain' },
+  { id: 'journal',      label: 'Soul Journal',   icon: BookOpen, path: '/journal' },
+  { id: 'connect-data', label: 'Connect Data',   icon: Link2,    path: '/get-started' },
+  { id: 'settings',     label: 'Settings',       icon: Settings, path: '/settings' },
 ];
 
 export const CollapsibleSidebar: React.FC<CollapsibleSidebarProps> = ({
@@ -131,20 +57,9 @@ export const CollapsibleSidebar: React.FC<CollapsibleSidebarProps> = ({
   const location = useLocation();
   const { user, signOut } = useAuth();
   const { isCollapsed, toggleSidebar } = useSidebar();
-  const isExpanded = !isCollapsed; // Use context state for sidebar expand/collapse
-  const [showInsights, setShowInsights] = useState(true); // Keep Insights section open by default
-
-  // Persist Insights section state in localStorage
-  useEffect(() => {
-    const savedState = localStorage.getItem('sidebar-insights-open');
-    if (savedState !== null) {
-      setShowInsights(JSON.parse(savedState));
-    }
-  }, []);
-
-  useEffect(() => {
-    localStorage.setItem('sidebar-insights-open', JSON.stringify(showInsights));
-  }, [showInsights]);
+  const isExpanded = !isCollapsed;
+  const moreActive = moreNavItems.some(i => location.pathname === i.path);
+  const [showMore, setShowMore] = useState(false);
 
   const isActive = (path: string) => {
     return location.pathname === path;
@@ -263,10 +178,11 @@ export const CollapsibleSidebar: React.FC<CollapsibleSidebarProps> = ({
         </div>
 
         <nav className="p-4 space-y-1 flex-1" role="navigation" aria-label="Main navigation">
-          {/* Main navigation items */}
+          {/* 3 primary tabs */}
           {mainNavItems.map((item) => {
             const Icon = item.icon;
-            const active = isActive(item.path);
+            const active = isActive(item.path) ||
+              (item.id === 'me' && moreActive && !mainNavItems.filter(i => i.id !== 'me').some(i => isActive(i.path)));
 
             return (
               <button
@@ -288,93 +204,54 @@ export const CollapsibleSidebar: React.FC<CollapsibleSidebarProps> = ({
                 ) : (
                   <Icon className={cn("w-5 h-5", active && "text-[#000]")} aria-hidden="true" />
                 )}
-                {isExpanded && <span className="text-sm">{item.label}</span>}
+                {isExpanded && <span className="text-sm font-semibold">{item.label}</span>}
               </button>
             );
           })}
 
-          {/* Twin Insights - Expandable section */}
+          {/* More — collapsible (expanded sidebar only) */}
           {isExpanded && (
-            <div className="pt-4">
+            <div className="pt-3">
               <button
-                onClick={() => setShowInsights(!showInsights)}
-                aria-label={showInsights ? "Collapse Twin Insights section" : "Expand Twin Insights section"}
-                aria-expanded={showInsights}
-                className="w-full flex items-center justify-between px-4 py-3 rounded-lg text-sidebar-foreground hover:bg-sidebar-accent transition-colors"
+                onClick={() => setShowMore(o => !o)}
+                aria-label={showMore ? "Collapse More section" : "Expand More section"}
+                aria-expanded={showMore || moreActive}
+                className="w-full flex items-center justify-between px-4 py-2 rounded-lg text-sidebar-foreground hover:bg-sidebar-accent transition-colors"
               >
-                <div className="flex items-center gap-2">
-                  <Eye className="w-4 h-4" aria-hidden="true" />
-                  <span className="text-sm font-medium">Twin Insights</span>
-                </div>
-                {showInsights ? (
-                  <ChevronDown className="w-4 h-4" aria-hidden="true" />
+                <span className="text-xs font-medium uppercase tracking-wide opacity-60">More</span>
+                {showMore || moreActive ? (
+                  <ChevronDown className="w-3.5 h-3.5 opacity-50" aria-hidden="true" />
                 ) : (
-                  <ChevronRight className="w-4 h-4" aria-hidden="true" />
+                  <ChevronRight className="w-3.5 h-3.5 opacity-50" aria-hidden="true" />
                 )}
               </button>
 
-              {showInsights && (
-                <div className="mt-1 space-y-1 pl-4" role="menu" aria-label="Twin Insights submenu">
-                  {insightNavItems.map((item) => {
+              {(showMore || moreActive) && (
+                <div className="mt-1 space-y-0.5 pl-2">
+                  {moreNavItems.map((item) => {
                     const Icon = item.icon;
                     const active = isActive(item.path);
-
                     return (
                       <button
                         key={item.id}
                         onClick={() => handleNavigate(item.path)}
-                        role="menuitem"
                         aria-label={`Navigate to ${item.label}`}
                         aria-current={active ? 'page' : undefined}
                         className={cn(
-                          "w-full flex items-center gap-3 px-4 py-2 rounded-lg transition-all duration-200",
+                          "w-full flex items-center gap-3 px-3 py-2 rounded-lg transition-all duration-200",
                           active
                             ? 'bg-sidebar-accent border-l-[3px] border-l-[#000] text-sidebar-accent-foreground font-semibold'
-                            : 'text-sidebar-foreground opacity-80 hover:bg-sidebar-accent hover:opacity-100 border-l-[3px] border-l-transparent'
+                            : 'text-sidebar-foreground opacity-70 hover:bg-sidebar-accent hover:opacity-100 border-l-[3px] border-l-transparent'
                         )}
                         title={item.label}
                       >
-                        {CLAY_ICON_MAP[item.id] ? (
-                          <Clay3DIcon name={CLAY_ICON_MAP[item.id]} size="xs" className={cn("transition-transform", active && "scale-110")} />
-                        ) : (
-                          <Icon className={cn("w-4 h-4", active && "text-[#000]")} aria-hidden="true" />
-                        )}
+                        <Icon className={cn("w-4 h-4", active && "text-[#000]")} aria-hidden="true" />
                         <span className="text-sm">{item.label}</span>
                       </button>
                     );
                   })}
                 </div>
               )}
-            </div>
-          )}
-
-          {/* Collapsed Insights - Show as icons only */}
-          {!isExpanded && (
-            <div className="pt-4 space-y-1">
-              {insightNavItems.map((item) => {
-                const Icon = item.icon;
-                const active = isActive(item.path);
-
-                return (
-                  <button
-                    key={item.id}
-                    onClick={() => handleNavigate(item.path)}
-                    className={cn(
-                      "w-full flex items-center justify-center px-3 py-3 rounded-lg transition-all duration-200",
-                      active
-                        ? 'bg-sidebar-accent border-l-[3px] border-l-[#000]'
-                        : 'text-sidebar-foreground opacity-80 hover:bg-sidebar-accent hover:opacity-100 border-l-[3px] border-l-transparent'
-                    )}
-                    title={item.label}
-                  >
-                    {CLAY_ICON_MAP[item.id] ? (
-                      <Clay3DIcon name={CLAY_ICON_MAP[item.id]} size="xs" className={cn("transition-transform", active && "scale-110")} />
-                    ) : (
-                      <Icon className={cn("w-4 h-4", active ? "text-[#000]" : "")} />
-                    )}
-                  </button>
-                );
-              })}
             </div>
           )}
         </nav>
