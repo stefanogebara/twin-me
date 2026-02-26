@@ -49,6 +49,14 @@
     {
       "path": "/api/cron/claude-sync/process-analysis",
       "schedule": "*/15 * * * *"
+    },
+    {
+      "path": "/api/cron/memory-archive",
+      "schedule": "0 3 * * *"
+    },
+    {
+      "path": "/api/cron/memory-forgetting",
+      "schedule": "0 3 * * 0"
     }
   ]
 }

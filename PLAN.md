@@ -863,19 +863,19 @@ Before starting Phase 4 code:
 
 ### Sprint 5 — Memory Health + Forgetting
 
-**Status:** 🔄 TODO
+**Status:** ✅ COMPLETE (2026-02-26)
 
 **Goal:** Memory quality improves over time rather than degrading from noise accumulation.
 
 **Tasks:**
-- [ ] S5.1 Proposition revision: at write time, check cosine similarity of new memory against recent same-type memories. If >0.90 similar → update existing memory's confidence + reasoning instead of creating duplicate.
-- [ ] S5.2 Post-reflection source decay: after reflection engine runs, decay importance of contributing source memories by 40% (they've been abstracted upward). Prevents source observations from competing with their own reflection.
-- [ ] S5.3 Multi-tier forgetting cron (weekly, Sunday 3am):
+- [x] S5.1 Proposition revision: at write time, check cosine similarity of new memory against recent same-type memories. If >0.90 similar → update existing memory's confidence + reasoning instead of creating duplicate.
+- [x] S5.2 Post-reflection source decay: after reflection engine runs, decay importance of contributing source memories by 40% (they've been abstracted upward). Prevents source observations from competing with their own reflection.
+- [x] S5.3 Multi-tier forgetting cron (weekly, Sunday 3am):
   - Tier 1 (aggressive): conversation memories >30 days + importance ≤3 → archive
   - Tier 2 (moderate): platform_data memories >14 days + importance ≤4 + retrieval_count=0 → archive
   - Tier 3 (gentle): fact memories >90 days + importance ≤5 → decay importance by 20%
   - Never touch: importance ≥8, retrieval_count ≥3, reflections
-- [ ] S5.4 Add `retrieval_count INTEGER DEFAULT 0` to user_memories. Increment on access via `touch_memories` RPC.
+- [x] S5.4 Add `retrieval_count INTEGER DEFAULT 0` to user_memories. Increment on access via `touch_memories` RPC.
 
 **Files:**
 - `api/services/memoryStreamService.js` (proposition revision, post-reflection decay, retrieval_count increment)

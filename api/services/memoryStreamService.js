@@ -77,6 +77,65 @@ async function rateImportance(content) {
  */
 const VALID_MEMORY_TYPES = new Set(['conversation', 'fact', 'platform_data', 'observation', 'reflection']);
 
+// S5.1: Proposition revision — memory types where we prefer UPDATE over INSERT when
+// a very similar memory already exists (threshold higher than dedup to be conservative).
+const REVISION_TYPES = new Set(['reflection', 'fact']);
+const REVISION_SIMILARITY_THRESHOLD = 0.90;
+
+/**
+ * S5.1: Check if a very similar memory already exists for the same type.
+ * If so, update its confidence + last_accessed_at instead of inserting a duplicate.
+ * Returns the existing memory's {id} if revised, or null if no revision happened.
+ */
+async function maybeReviseExistingMemory(userId, content, memoryType, embedding, options) {
+  if (!REVISION_TYPES.has(memoryType) || !embedding) return null;
+
+  try {
+    const { data: recent } = await supabaseAdmin
+      .from('user_memories')
+      .select('id, embedding, confidence, importance_score')
+      .eq('user_id', userId)
+      .eq('memory_type', memoryType)
+      .order('created_at', { ascending: false })
+      .limit(50);
+
+    if (!recent || recent.length === 0) return null;
+
+    for (const row of recent) {
+      const existingVec = parseVec(row.embedding);
+      if (!existingVec) continue;
+
+      const sim = cosineSim(embedding, existingVec);
+      if (sim < REVISION_SIMILARITY_THRESHOLD) continue;
+
+      // Found a very similar existing memory — update it instead of inserting
+      const updates = {
+        last_accessed_at: new Date().toISOString(),
+        // Boost confidence slightly (clamp to 1.0)
+        confidence: Math.min(1.0, (row.confidence ?? 0.7) + 0.05),
+      };
+      if (options.reasoning) {
+        updates.reasoning = options.reasoning.substring(0, 1000);
+      }
+
+      const { error } = await supabaseAdmin
+        .from('user_memories')
+        .update(updates)
+        .eq('id', row.id);
+
+      if (!error) {
+        console.log(`[MemoryStream] S5.1 Revised existing ${memoryType} (cosine=${sim.toFixed(3)}, id=${row.id})`);
+        return { id: row.id, importance_score: row.importance_score };
+      }
+    }
+
+    return null;
+  } catch (err) {
+    console.warn('[MemoryStream] Proposition revision check failed (non-fatal):', err.message);
+    return null;
+  }
+}
+
 async function addMemory(userId, content, memoryType = 'observation', metadata = {}, options = {}) {
   if (!content || !userId) return null;
   if (!VALID_MEMORY_TYPES.has(memoryType)) {
@@ -91,6 +150,13 @@ async function addMemory(userId, content, memoryType = 'observation', metadata =
       options.skipImportance ? (options.importanceScore || 5) : rateImportance(content),
     ]);
 
+    // S5.1: Proposition revision — for reflection/fact types, prefer UPDATE over INSERT
+    // when a very similar memory (cosine > 0.90) already exists
+    if (!options.skipRevision && embedding) {
+      const revised = await maybeReviseExistingMemory(userId, content, memoryType, embedding, options);
+      if (revised) return revised; // Return existing memory ID — no new insert
+    }
+
     const record = {
       user_id: userId,
       memory_type: memoryType,
@@ -102,6 +168,13 @@ async function addMemory(userId, content, memoryType = 'observation', metadata =
       importance_score: importanceScore,
       last_accessed_at: new Date().toISOString(),
     };
+
+    // Sprint 1 proposition columns (optional)
+    if (options.confidence !== undefined) record.confidence = options.confidence;
+    if (options.reasoning) record.reasoning = options.reasoning.substring(0, 1000);
+    if (options.grounding_ids && Array.isArray(options.grounding_ids)) {
+      record.grounding_ids = options.grounding_ids;
+    }
 
     // Add embedding if generated
     if (embedding) {
@@ -124,6 +197,61 @@ async function addMemory(userId, content, memoryType = 'observation', metadata =
   } catch (error) {
     console.error('[MemoryStream] addMemory error:', error.message);
     return null;
+  }
+}
+
+/**
+ * S5.2: Post-reflection source decay.
+ * After the reflection engine abstracts source memories into higher-level reflections,
+ * decay the importance of those source memories by 40% so they stop competing with
+ * the reflections they produced.
+ *
+ * Floor: importance score never drops below 1.
+ * Protected: memories with importance ≥ 8 or retrieval_count ≥ 3 are skipped.
+ *
+ * @param {string} userId
+ * @param {string[]} evidenceIds - IDs of source memories to decay
+ * @returns {Promise<number>} Number of memories decayed
+ */
+async function decaySourceMemories(userId, evidenceIds) {
+  if (!evidenceIds || evidenceIds.length === 0) return 0;
+
+  try {
+    // Fetch current importance scores (only decay eligible ones)
+    const { data: memories } = await supabaseAdmin
+      .from('user_memories')
+      .select('id, importance_score, retrieval_count')
+      .eq('user_id', userId)
+      .in('id', evidenceIds);
+
+    if (!memories || memories.length === 0) return 0;
+
+    // Filter: skip protected memories (high importance or frequently retrieved)
+    const eligible = memories.filter(
+      m => m.importance_score < 8 && (m.retrieval_count ?? 0) < 3
+    );
+
+    if (eligible.length === 0) return 0;
+
+    // Batch update: decay by 40%, floor at 1
+    const updates = eligible.map(m => ({
+      id: m.id,
+      importance_score: Math.max(1, Math.round(m.importance_score * 0.6)),
+    }));
+
+    for (const update of updates) {
+      await supabaseAdmin
+        .from('user_memories')
+        .update({ importance_score: update.importance_score })
+        .eq('id', update.id)
+        .eq('user_id', userId); // safety: ensure user ownership
+    }
+
+    console.log(`[MemoryStream] S5.2 Decayed ${eligible.length} source memories for user ${userId}`);
+    return eligible.length;
+  } catch (err) {
+    console.warn('[MemoryStream] Source decay failed (non-fatal):', err.message);
+    return 0;
   }
 }
 
@@ -174,7 +302,7 @@ async function addPlatformObservation(userId, content, platform, metadata = {}) 
  * Store a reflection (higher-level insight) as a memory.
  * Reflections get high importance scores (7-9) since they're synthesized insights.
  */
-async function addReflection(userId, content, evidenceIds = [], metadata = {}) {
+async function addReflection(userId, content, evidenceIds = [], metadata = {}, options = {}) {
   return addMemory(userId, content, 'reflection', {
     source: 'reflection_engine',
     evidence_memory_ids: evidenceIds,
@@ -182,6 +310,9 @@ async function addReflection(userId, content, evidenceIds = [], metadata = {}) {
   }, {
     importanceScore: Math.min(9, Math.max(7, Math.round(content.length / 50))),
     skipImportance: true,
+    ...(options.reasoning ? { reasoning: options.reasoning } : {}),
+    ...(options.grounding_ids ? { grounding_ids: options.grounding_ids } : {}),
+    ...(options.confidence !== undefined ? { confidence: options.confidence } : {}),
   });
 }
 
@@ -793,5 +924,6 @@ export {
   extractConversationFacts,
   getMemoryStats,
   archiveOldMemories,
+  decaySourceMemories,
   RETRIEVAL_WEIGHTS,
 };
