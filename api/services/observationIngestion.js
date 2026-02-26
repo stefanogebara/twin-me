@@ -24,6 +24,7 @@ import crypto from 'crypto';
 import { getValidAccessToken } from './tokenRefresh.js';
 import { addPlatformObservation } from './memoryStreamService.js';
 import { shouldTriggerReflection, generateReflections } from './reflectionEngine.js';
+import { runPlatformExpert } from './platformExperts.js';
 import { generateProactiveInsights } from './proactiveInsights.js';
 import { trackGoalProgress, generateGoalSuggestions } from './goalTrackingService.js';
 import { generateTwinSummary } from './twinSummaryService.js';
@@ -678,6 +679,7 @@ async function runObservationIngestion() {
 
             // Store each observation (with de-duplication)
             // Observations can be strings (legacy) or { content, contentType } objects (richer templates)
+            let platformObsCount = 0; // track new obs for THIS platform in this run
             for (const obs of observations) {
               const content = typeof obs === 'string' ? obs : obs.content;
               const contentType = typeof obs === 'string' ? undefined : obs.contentType;
@@ -701,10 +703,20 @@ async function runObservationIngestion() {
 
               if (result) {
                 userObsCount++;
+                platformObsCount++;
                 stats.observationsStored++;
                 // Track newly stored hashes to prevent within-batch duplicates
                 existingHashes.add(hash);
               }
+            }
+
+            // After storing observations for this platform, run platform-specific expert reflection.
+            // Only fires when new data was ingested — skips platforms with no updates this run.
+            // Non-blocking: capped at 5 reflections per platform per sync.
+            if (platformObsCount > 0) {
+              runPlatformExpert(userId, platform).catch(err =>
+                console.warn(`[ObservationIngestion] Platform expert (${platform}) failed for ${userId}:`, err.message)
+              );
             }
           } catch (platformErr) {
             const errMsg = `${platform} for user ${userId}: ${platformErr.message}`;
