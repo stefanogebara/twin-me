@@ -173,8 +173,10 @@ app.use('/api/soul-extraction/', aiLimiter); // LLM-powered extraction endpoints
 // Longer timeout in dev when Cloudflare workaround adds latency per query
 const DEFAULT_TIMEOUT = process.env.USE_CURL_FETCH === 'true' ? 120000 : 30000;
 app.use((req, res, next) => {
-  // Chat message endpoint needs extra time for context building + LLM call
-  const timeout = req.path.includes('/chat/message') ? 300000 : DEFAULT_TIMEOUT;
+  // Chat and cron endpoints need extra time; default 30s for all others
+  const timeout = req.path.includes('/chat/message') ? 300000
+    : req.path.includes('/cron/') ? 115000
+    : DEFAULT_TIMEOUT;
   req.setTimeout(timeout);
   res.setTimeout(timeout, () => {
     if (!res.headersSent) {
