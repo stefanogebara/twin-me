@@ -911,6 +911,20 @@ async function fetchGitHubObservations(userId) {
   return observations;
 }
 
+async function fetchRecentWebEvents(userId) {
+  const since = new Date(Date.now() - 25 * 60 * 60 * 1000).toISOString();
+  const { data } = await supabaseAdmin
+    .from('user_platform_data')
+    .select('raw_data, data_type, extracted_at')
+    .eq('user_id', userId)
+    .eq('platform', 'web')
+    .like('data_type', 'extension_%')
+    .gte('extracted_at', since)
+    .order('extracted_at', { ascending: false })
+    .limit(200);
+  return (data ?? []).map(row => ({ ...row.raw_data, data_type: row.data_type }));
+}
+
 // ====================================================================
 // Main Ingestion Loop
 // ====================================================================
@@ -1085,6 +1099,17 @@ async function runObservationIngestion() {
             console.warn(`[ObservationIngestion] Platform error - ${errMsg}`);
             stats.errors.push(errMsg);
           }
+        }
+
+        // Web dwell-time: re-process any accumulated extension events from the last 25h
+        try {
+          const webEvents = await fetchRecentWebEvents(userId);
+          if (webEvents.length > 0) {
+            await ingestWebObservations(userId, webEvents);
+            console.log(`[ObservationIngestion] Web: ingested ${webEvents.length} events for ${userId}`);
+          }
+        } catch (err) {
+          console.warn('[ObservationIngestion] Web events failed (non-fatal):', err.message);
         }
 
         stats.usersProcessed++;
