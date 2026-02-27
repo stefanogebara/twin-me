@@ -184,7 +184,7 @@ router.post('/spotify/:userId', authenticateUser, async (req, res) => {
     const { error: syncUpdateErr } = await supabase
       .from('platform_connections')
       .update({
-        last_sync: new Date().toISOString(),
+        last_sync_at: new Date().toISOString(),
         last_sync_status: 'success',
         total_synced: dataPoints.length
       })

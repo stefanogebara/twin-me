@@ -105,7 +105,7 @@ async function handleAuthWebhook(data) {
         status: 'connected',
         connection_id: connectionId,
         connected_at: new Date().toISOString(),
-        last_sync: null,
+        last_sync_at: null,
         metadata: {
           source: 'nango',
           email: endUser?.endUserEmail
@@ -193,12 +193,12 @@ async function handleSyncWebhook(data) {
     const { error: syncErr } = await supabaseAdmin
       .from('platform_connections')
       .update({
-        last_sync: new Date().toISOString(),
+        last_sync_at: new Date().toISOString(),
       })
       .eq('user_id', userId)
       .eq('platform', providerConfigKey);
     if (syncErr) {
-      console.error(`[Nango Webhooks] Failed to update last_sync for ${providerConfigKey}:`, syncErr.message);
+      console.error(`[Nango Webhooks] Failed to update last_sync_at for ${providerConfigKey}:`, syncErr.message);
     }
   }
 }

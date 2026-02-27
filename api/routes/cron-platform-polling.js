@@ -245,7 +245,7 @@ async function pollAllUsers() {
               const { error: nangoSyncErr } = await getSupabaseClient()
                 .from('platform_connections')
                 .update({
-                  last_sync: new Date().toISOString(),
+                  last_sync_at: new Date().toISOString(),
                   last_sync_status: 'success',
                   updated_at: new Date().toISOString(),
                 })
@@ -287,7 +287,7 @@ async function pollAllUsers() {
             const { error: syncUpdateErr } = await getSupabaseClient()
               .from('platform_connections')
               .update({
-                last_sync: new Date().toISOString(),
+                last_sync_at: new Date().toISOString(),
                 last_sync_status: 'success',
                 updated_at: new Date().toISOString(),
               })
