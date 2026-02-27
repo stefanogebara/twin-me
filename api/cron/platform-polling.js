@@ -161,9 +161,9 @@ async function pollPlatform(userId, platform, accessToken) {
         const { error: reauthErr } = await getSupabaseClient()
           .from('platform_connections')
           .update({
-            status: 'needs_reauth',
-            error_message: 'Authentication failed - please reconnect',
+            status: 'error',
             last_sync_status: 'auth_error',
+            last_sync_error: 'Authentication failed - please reconnect',
             updated_at: new Date().toISOString(),
           })
           .eq('user_id', userId)
@@ -246,7 +246,7 @@ async function pollAllUsers() {
             const { error: syncErr } = await getSupabaseClient()
               .from('platform_connections')
               .update({
-                last_sync: new Date().toISOString(),
+                last_sync_at: new Date().toISOString(),
                 last_sync_status: 'success',
                 updated_at: new Date().toISOString(),
               })

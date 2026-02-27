@@ -120,8 +120,8 @@ async function refreshAccessToken(platform, refreshToken, userId) {
     const { error: reauthErr } = await getSupabaseClient()
       .from('platform_connections')
       .update({
-        status: 'needs_reauth',
-        error_message: 'Token refresh failed - please reconnect',
+        status: 'error',
+        last_sync_error: 'Token refresh failed - please reconnect',
         updated_at: new Date().toISOString(),
       })
       .eq('user_id', userId)
