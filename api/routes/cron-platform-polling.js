@@ -240,13 +240,13 @@ async function pollAllUsers() {
             console.log(`📡 [CRON] Polling ${connection.platform} via Nango for user ${userId}`);
             const nangoService = await import('../services/nangoService.js');
             const nangoResult = await nangoService.extractPlatformData(userId, connection.platform);
-            if (nangoResult.success) {
+            if (nangoResult.success || nangoResult.partial) {
               await nangoService.storeNangoExtractionData(userId, connection.platform, nangoResult);
               const { error: nangoSyncErr } = await getSupabaseClient()
                 .from('platform_connections')
                 .update({
                   last_sync_at: new Date().toISOString(),
-                  last_sync_status: 'success',
+                  last_sync_status: nangoResult.success ? 'success' : 'partial',
                   updated_at: new Date().toISOString(),
                 })
                 .eq('user_id', userId)
