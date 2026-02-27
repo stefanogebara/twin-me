@@ -16,7 +16,8 @@ import {
   Settings,
   LogOut,
   BookOpen,
-  Target
+  Target,
+  Activity
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Clay3DIcon, CLAY_ICON_MAP } from '@/components/Clay3DIcon';
@@ -45,8 +46,9 @@ const moreNavItems: NavItem[] = [
   { id: 'goals',        label: 'Goals',          icon: Target,   path: '/goals' },
   { id: 'brain',        label: "Twin's Brain",   icon: Brain,    path: '/brain' },
   { id: 'journal',      label: 'Soul Journal',   icon: BookOpen, path: '/journal' },
-  { id: 'connect-data', label: 'Connect Data',   icon: Link2,    path: '/get-started' },
-  { id: 'settings',     label: 'Settings',       icon: Settings, path: '/settings' },
+  { id: 'connect-data',   label: 'Connect Data',   icon: Link2,     path: '/get-started' },
+  { id: 'memory-health',  label: 'Memory Health',  icon: Activity,  path: '/memory-health' },
+  { id: 'settings',       label: 'Settings',       icon: Settings,  path: '/settings' },
 ];
 
 export const CollapsibleSidebar: React.FC<CollapsibleSidebarProps> = ({
