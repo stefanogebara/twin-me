@@ -45,6 +45,8 @@ const DiscordInsightsPage = lazy(() => import("./pages/insights/DiscordInsightsP
 const LinkedInInsightsPage = lazy(() => import("./pages/insights/LinkedInInsightsPage"));
 const GoalsPage = lazy(() => import("./pages/GoalsPage"));
 const PrivacySpectrumDashboard = lazy(() => import("./pages/PrivacySpectrumDashboard"));
+const MemoryHealth = lazy(() => import("./pages/MemoryHealth"));
+const EvalDashboard = lazy(() => import("./pages/EvalDashboard"));
 
 const queryClient = new QueryClient();
 
@@ -310,6 +312,28 @@ const App = () => {
                 <SidebarLayout>
                   <ErrorBoundary>
                     <AdminLLMCosts />
+                  </ErrorBoundary>
+                </SidebarLayout>
+              </ProtectedRoute>
+            } />
+
+            {/* Memory Health Dashboard */}
+            <Route path="/memory-health" element={
+              <ProtectedRoute>
+                <SidebarLayout>
+                  <ErrorBoundary>
+                    <MemoryHealth />
+                  </ErrorBoundary>
+                </SidebarLayout>
+              </ProtectedRoute>
+            } />
+
+            {/* Twin Eval Tool (internal) */}
+            <Route path="/eval" element={
+              <ProtectedRoute>
+                <SidebarLayout>
+                  <ErrorBoundary>
+                    <EvalDashboard />
                   </ErrorBoundary>
                 </SidebarLayout>
               </ProtectedRoute>
