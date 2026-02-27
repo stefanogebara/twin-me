@@ -426,7 +426,7 @@ class DataExtractionService {
       const { error: metaErr } = await getSupabaseClient()
         .from('platform_connections')
         .update({
-          last_synced_at: now,
+          last_sync_at: now,
           last_sync_status: extractionResult.success ? 'success' : 'failed'
         })
         .eq('id', connectorId);
