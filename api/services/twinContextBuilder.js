@@ -410,9 +410,10 @@ async function _fetchSinglePlatform(userId, platform) {
           if (tokenResult.success && tokenResult.accessToken) {
             const headers = { Authorization: `Bearer ${tokenResult.accessToken}` };
 
+            const PLATFORM_TIMEOUT = 3000;
             let currentlyPlaying = null;
             try {
-              const currentRes = await axios.get('https://api.spotify.com/v1/me/player/currently-playing', { headers });
+              const currentRes = await axios.get('https://api.spotify.com/v1/me/player/currently-playing', { headers, timeout: PLATFORM_TIMEOUT });
               if (currentRes.data?.item) {
                 currentlyPlaying = {
                   name: currentRes.data.item.name,
@@ -425,8 +426,8 @@ async function _fetchSinglePlatform(userId, platform) {
             }
 
             const [recentRes, topRes] = await Promise.all([
-              axios.get('https://api.spotify.com/v1/me/player/recently-played?limit=10', { headers }),
-              axios.get('https://api.spotify.com/v1/me/top/artists?limit=5&time_range=short_term', { headers })
+              axios.get('https://api.spotify.com/v1/me/player/recently-played?limit=10', { headers, timeout: PLATFORM_TIMEOUT }),
+              axios.get('https://api.spotify.com/v1/me/top/artists?limit=5&time_range=short_term', { headers, timeout: PLATFORM_TIMEOUT })
             ]);
 
             const oneDayAgo = Date.now() - 24 * 60 * 60 * 1000;
@@ -462,6 +463,7 @@ async function _fetchSinglePlatform(userId, platform) {
 
             const calRes = await axios.get('https://www.googleapis.com/calendar/v3/calendars/primary/events', {
               headers: { Authorization: `Bearer ${tokenResult.accessToken}` },
+              timeout: 3000,
               params: {
                 timeMin: now.toISOString(),
                 timeMax: weekFromNow.toISOString(),

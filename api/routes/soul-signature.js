@@ -42,7 +42,7 @@ router.get('/profile', authenticateToken, async (req, res) => {
 
     // Fetch complete profile from view (joins all related tables)
     const { data: profile, error } = await supabaseAdmin
-      .from('soul_signature_profiles')
+      .from('soul_signature_profile')
       .select('*')
       .eq('user_id', userId)
       .single();

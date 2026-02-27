@@ -43,6 +43,8 @@ import { inferIdentityContext } from '../services/identityContextService.js';
 import { getTwinSummary } from '../services/twinSummaryService.js';
 import { getUndeliveredInsights, markInsightsDelivered } from '../services/proactiveInsights.js';
 import { buildPersonaBlock } from '../services/personaBlockBuilder.js';
+import { getFeatureFlags } from '../services/featureFlagsService.js';
+import { getRedisClient, isRedisAvailable } from '../services/redisClient.js';
 
 
 const router = express.Router();
@@ -77,10 +79,40 @@ if (!_chatRateLimitCleanupInterval) {
 
 /**
  * Check if a user has exceeded the per-hour chat rate limit.
+ * Uses Redis sorted sets for serverless-safe sliding window.
+ * Falls back to in-memory Map if Redis is unavailable.
  * Returns { allowed: boolean, used: number, limit: number, retryAfterMs: number | null }
  */
-function checkChatRateLimit(userId) {
+async function checkChatRateLimit(userId) {
   const now = Date.now();
+  const windowStart = now - CHAT_RATE_LIMIT_WINDOW_MS;
+
+  // Try Redis first (cross-instance, survives cold starts)
+  try {
+    const client = getRedisClient();
+    if (client && isRedisAvailable()) {
+      const key = `chatRateLimit:${userId}`;
+      // Sliding window: store each message timestamp as score in a sorted set
+      const pipe = client.pipeline();
+      pipe.zremrangebyscore(key, '-inf', windowStart); // Remove expired entries
+      pipe.zadd(key, now, `${now}-${Math.random()}`); // Add current message
+      pipe.zcard(key); // Count messages in window
+      pipe.zrange(key, 0, 0, 'WITHSCORES'); // Get oldest for retry-after
+      pipe.expire(key, Math.ceil(CHAT_RATE_LIMIT_WINDOW_MS / 1000)); // Auto-expire key
+      const results = await pipe.exec();
+      const used = results[2][1]; // zcard result
+      if (used > CHAT_RATE_LIMIT_MAX) {
+        const oldestScore = parseFloat(results[3][1][1] || now);
+        const retryAfterMs = CHAT_RATE_LIMIT_WINDOW_MS - (now - oldestScore);
+        return { allowed: false, used, limit: CHAT_RATE_LIMIT_MAX, retryAfterMs: Math.max(0, retryAfterMs) };
+      }
+      return { allowed: true, used, limit: CHAT_RATE_LIMIT_MAX, retryAfterMs: null };
+    }
+  } catch (redisErr) {
+    console.warn('[Twin Chat] Redis rate limit check failed, using in-memory fallback:', redisErr.message);
+  }
+
+  // Fallback: in-memory Map (resets on cold start)
   const entry = chatRateLimitMap.get(userId);
 
   if (!entry) {
@@ -88,17 +120,14 @@ function checkChatRateLimit(userId) {
     return { allowed: true, used: 1, limit: CHAT_RATE_LIMIT_MAX, retryAfterMs: null };
   }
 
-  // Remove timestamps outside the window (immutable-style: create new array)
   const fresh = entry.timestamps.filter(ts => now - ts < CHAT_RATE_LIMIT_WINDOW_MS);
 
   if (fresh.length >= CHAT_RATE_LIMIT_MAX) {
-    // Find the oldest timestamp in the window to calculate retry-after
     const oldestInWindow = Math.min(...fresh);
     const retryAfterMs = CHAT_RATE_LIMIT_WINDOW_MS - (now - oldestInWindow);
     return { allowed: false, used: fresh.length, limit: CHAT_RATE_LIMIT_MAX, retryAfterMs };
   }
 
-  // Record this request
   chatRateLimitMap.set(userId, { timestamps: [...fresh, now] });
   return { allowed: true, used: fresh.length + 1, limit: CHAT_RATE_LIMIT_MAX, retryAfterMs: null };
 }
@@ -799,6 +828,12 @@ router.post('/message', authenticateUser, async (req, res) => {
     const { message, conversationId, context } = req.body;
     chatLog(`Message received from ${userId}: "${message?.substring(0, 50)}..."`);
 
+    // Feature flags: per-user A/B toggles (default all enabled)
+    const featureFlags = await getFeatureFlags(userId).catch(() => ({}));
+    const useExpertRouting = featureFlags.expert_routing !== false;
+    const useIdentityContext = featureFlags.identity_context !== false;
+    const useEmotionalState = featureFlags.emotional_state !== false;
+
     if (!message || !message.trim()) {
       return res.status(400).json({
         success: false,
@@ -832,7 +867,7 @@ router.post('/message', authenticateUser, async (req, res) => {
     }
 
     // Per-user hourly rate limit (50 messages/hour)
-    const rateLimit = checkChatRateLimit(userId);
+    const rateLimit = await checkChatRateLimit(userId);
     if (!rateLimit.allowed) {
       const retryAfterSec = Math.ceil((rateLimit.retryAfterMs || 0) / 1000);
       console.warn(`[Twin Chat] Rate limit exceeded for user ${userId}: ${rateLimit.used}/${rateLimit.limit} per hour`);
@@ -889,8 +924,8 @@ router.post('/message', authenticateUser, async (req, res) => {
     }
 
     // Compute current emotional state from behavioral signals (no LLM, no extra API calls)
-    const emotionalState = computeEmotionalState(platformData);
-    if (emotionalState.promptBlock) {
+    const emotionalState = useEmotionalState ? computeEmotionalState(platformData) : { promptBlock: null };
+    if (useEmotionalState && emotionalState.promptBlock) {
       console.log(`[Twin Chat] Emotional state: valence=${emotionalState.valence.toFixed(2)}, arousal=${emotionalState.arousal.toFixed(2)}, load=${emotionalState.cognitiveLoad}`);
       // Store snapshot as memory — non-blocking, deduplication handled by isDuplicateFact
       const stateMemory = buildEmotionalStateMemory(emotionalState);
@@ -904,10 +939,12 @@ router.post('/message', authenticateUser, async (req, res) => {
 
     // S4.3: Fetch identity context (cached 24h — near-zero latency on repeat calls)
     let identityContext = null;
-    try {
-      identityContext = await inferIdentityContext(userId);
-    } catch (idErr) {
-      console.warn('[Twin Chat] Identity context fetch failed (non-fatal):', idErr.message);
+    if (useIdentityContext) {
+      try {
+        identityContext = await inferIdentityContext(userId);
+      } catch (idErr) {
+        console.warn('[Twin Chat] Identity context fetch failed (non-fatal):', idErr.message);
+      }
     }
 
     // Build additional dynamic context (writing profile + unified memory stream)
@@ -953,14 +990,16 @@ router.post('/message', authenticateUser, async (req, res) => {
     // Runs in parallel with the generic memory block to avoid adding latency.
     let expertRoutingResult = null;
     let expertMemories = [];
-    try {
-      expertRoutingResult = await classifyQueryDomain(message);
-      if (expertRoutingResult.expertId && expertRoutingResult.domain !== 'general') {
-        expertMemories = await retrieveExpertMemories(userId, expertRoutingResult.expertId, message, 6);
-        chatLog(`Expert routing: ${expertRoutingResult.domain} (${expertRoutingResult.confidence}) → ${expertMemories.length} expert memories`);
+    if (useExpertRouting) {
+      try {
+        expertRoutingResult = await classifyQueryDomain(message);
+        if (expertRoutingResult.expertId && expertRoutingResult.domain !== 'general') {
+          expertMemories = await retrieveExpertMemories(userId, expertRoutingResult.expertId, message, 6);
+          chatLog(`Expert routing: ${expertRoutingResult.domain} (${expertRoutingResult.confidence}) → ${expertMemories.length} expert memories`);
+        }
+      } catch (routingErr) {
+        console.warn('[Twin Chat] Expert routing failed (non-fatal):', routingErr.message);
       }
-    } catch (routingErr) {
-      console.warn('[Twin Chat] Expert routing failed (non-fatal):', routingErr.message);
     }
 
     // Inject expert memories first (domain-specific context from platform specialists)
@@ -1011,10 +1050,12 @@ router.post('/message', authenticateUser, async (req, res) => {
       additionalContext += `\n\n${activeGoals}`;
     }
 
-    // Hard cap additional context to prevent token bloat
+    // Hard cap additional context to prevent token bloat — truncate at last newline to avoid mid-sentence cuts
     if (additionalContext.length > MAX_ADDITIONAL_CONTEXT_CHARS) {
       console.warn(`[Twin Chat] Additional context truncated: ${additionalContext.length} -> ${MAX_ADDITIONAL_CONTEXT_CHARS} chars`);
-      additionalContext = additionalContext.substring(0, MAX_ADDITIONAL_CONTEXT_CHARS) + '...';
+      const truncated = additionalContext.substring(0, MAX_ADDITIONAL_CONTEXT_CHARS);
+      const lastNewline = truncated.lastIndexOf('\n');
+      additionalContext = (lastNewline > MAX_ADDITIONAL_CONTEXT_CHARS * 0.5 ? truncated.substring(0, lastNewline) : truncated) + '\n[context truncated]';
     }
 
     // Append additional context to the last dynamic block in the system prompt array
@@ -1045,9 +1086,15 @@ router.post('/message', authenticateUser, async (req, res) => {
           if (convoCheckErr && convoCheckErr.code !== 'PGRST116') console.error('[Twin Chat] Conversation ownership check error:', convoCheckErr.message);
 
           if (convoCheck) {
-            const { data: messages } = await serverDb.getMessagesByConversation(conversationId, 20);
+            // Query twin_messages (not messages which is the legacy school system)
+            const { data: messages } = await supabaseAdmin
+              .from('twin_messages')
+              .select('role, content, created_at')
+              .eq('conversation_id', conversationId)
+              .order('created_at', { ascending: true })
+              .limit(20);
             conversationHistory = (messages || []).map(m => ({
-              role: m.is_user_message ? 'user' : 'assistant',
+              role: m.role === 'assistant' ? 'assistant' : 'user',
               content: m.content.length > 800 ? m.content.substring(0, 800) + '...' : m.content
             }));
           } else {
@@ -1257,11 +1304,11 @@ router.get('/history', authenticateUser, async (req, res) => {
       return res.status(404).json({ success: false, error: 'Conversation not found' });
     }
 
-    const messages = await serverDb.getMessagesByConversation(conversationId, 50);
+    const { data: messagesData } = await serverDb.getMessagesByConversation(conversationId, 50);
 
     res.json({
       success: true,
-      messages: messages.map(m => ({
+      messages: (messagesData || []).map(m => ({
         id: m.id,
         content: m.content,
         isUser: m.is_user_message,
@@ -1340,7 +1387,7 @@ router.get('/intro', authenticateUser, async (req, res) => {
 
     // Check if user already has conversation messages — intro only for fresh users
     const { data: existing, error: existingErr } = await supabaseAdmin
-      .from('conversations')
+      .from('twin_conversations')
       .select('id')
       .eq('user_id', userId)
       .limit(1);

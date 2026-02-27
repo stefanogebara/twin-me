@@ -67,6 +67,34 @@ export interface NotificationEntry {
   hour: number;
 }
 
+export interface SoulSignatureProfile {
+  archetype_name?: string;
+  archetype_subtitle?: string;
+  narrative?: string;
+  defining_traits?: Array<{ name: string; description?: string } | string>;
+  music_signature?: { top_genres?: string[] };
+  curiosity_profile?: { interests?: string[] };
+}
+
+export interface PersonalityScores {
+  openness: number;
+  conscientiousness: number;
+  extraversion: number;
+  agreeableness: number;
+  neuroticism: number;
+  openness_confidence?: number;
+  conscientiousness_confidence?: number;
+  extraversion_confidence?: number;
+  agreeableness_confidence?: number;
+  neuroticism_confidence?: number;
+}
+
+export interface PlatformConnection {
+  platform: string;
+  status: 'connected' | 'error' | 'disconnected';
+  last_sync_at?: string;
+}
+
 export interface AndroidUsageData {
   capturedAt: string;
   appUsage: AppUsageEntry[];

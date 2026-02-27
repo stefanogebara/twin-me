@@ -17,7 +17,7 @@ router.get('/stats', authenticateUser, async (req, res) => {
       .from('platform_connections')
       .select('platform', { count: 'exact' })
       .eq('user_id', userId)
-      .eq('is_active', true);
+      .eq('status', 'connected');
 
     if (platformsError) {
       console.error('Error fetching platforms:', platformsError);
@@ -64,10 +64,10 @@ router.get('/stats', authenticateUser, async (req, res) => {
     // Get last sync time from platform_connections
     const { data: lastSyncData, error: lastSyncError } = await supabaseAdmin
       .from('platform_connections')
-      .select('last_sync')
+      .select('last_sync_at')
       .eq('user_id', userId)
-      .eq('is_active', true)
-      .order('last_sync', { ascending: false })
+      .eq('status', 'connected')
+      .order('last_sync_at', { ascending: false })
       .limit(1)
       .single();
 
@@ -75,7 +75,7 @@ router.get('/stats', authenticateUser, async (req, res) => {
       console.error('Error fetching last sync:', lastSyncError);
     }
 
-    const lastSync = lastSyncData?.last_sync || new Date().toISOString();
+    const lastSync = lastSyncData?.last_sync_at || new Date().toISOString();
 
     // Get training status (check if model exists for user)
     const { data: modelData, error: modelError } = await supabaseAdmin

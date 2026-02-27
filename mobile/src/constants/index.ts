@@ -9,6 +9,7 @@ export const STORAGE_KEYS = {
   AUTH_TOKEN: 'twinme_auth_token',
   USER: 'twinme_user',
   LAST_SYNC: 'twinme_last_sync',
+  PERMISSIONS_SHOWN: 'twinme_permissions_shown',
 } as const;
 
 // Background task name

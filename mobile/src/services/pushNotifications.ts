@@ -7,6 +7,14 @@
  *
  * Also sets up foreground notification behaviour (show banner while app
  * is open) and returns a cleanup function for event listeners.
+ *
+ * Tap routing: when the user taps a notification, `notificationType`
+ * in the data payload determines which screen to navigate to:
+ *   insight     → Home (twin insights visible)
+ *   goal        → Goals screen
+ *   reflection  → Soul Signature screen
+ *   chat        → Talk to Twin screen
+ *   (default)   → Home
  */
 
 import * as Notifications from 'expo-notifications';
@@ -23,6 +31,14 @@ Notifications.setNotificationHandler({
     shouldSetBadge: false,
   }),
 });
+
+/** Map notificationType → tab/screen name used in navigation */
+const NOTIFICATION_TYPE_TO_SCREEN: Record<string, string> = {
+  insight: 'Home',
+  goal: 'Goals',
+  reflection: 'SoulSignature',
+  chat: 'TalkToTwin',
+};
 
 /**
  * Register this device for push notifications.
@@ -65,10 +81,36 @@ export async function registerForPushNotifications(): Promise<string | null> {
   authFetch('/device-tokens', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ token, platform: Platform.OS }),
+    body: JSON.stringify({ token, platform: Platform.OS, token_type: 'expo' }),
   }).catch((err) => console.warn('[Push] Token registration failed:', err.message));
 
   return token;
+}
+
+/**
+ * Set up a listener that handles notification taps and navigates the user
+ * to the relevant screen. Must be called once from App.tsx / root component.
+ *
+ * Returns a cleanup function — call it on component unmount.
+ *
+ * @param navigate - React Navigation dispatch function:
+ *   `(screenName: string) => navigation.navigate(screenName)`
+ */
+export function setupNotificationTapHandler(
+  navigate: (screen: string) => void
+): () => void {
+  const subscription = Notifications.addNotificationResponseReceivedListener(
+    (response) => {
+      const data = response.notification.request.content.data as Record<string, unknown>;
+      const notificationType = (data?.notificationType as string) ?? 'insight';
+      const screen = NOTIFICATION_TYPE_TO_SCREEN[notificationType] ?? 'Home';
+
+      console.log(`[Push] Tapped notification type="${notificationType}" → navigating to ${screen}`);
+      navigate(screen);
+    }
+  );
+
+  return () => subscription.remove();
 }
 
 /**

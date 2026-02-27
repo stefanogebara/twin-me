@@ -1,6 +1,6 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { Music, Calendar, Tv, MessageSquare, Briefcase } from 'lucide-react';
+import { Music, Calendar, Tv, MessageSquare, Briefcase, Activity } from 'lucide-react';
 import type { PlatformSummary, ConnectedPlatform } from './types';
 
 interface PlatformMeta {
@@ -62,6 +62,18 @@ const PLATFORM_META: Record<string, PlatformMeta> = {
       const first = obs[0] || '';
       if (first.length > 0) return first.slice(0, 52) + (first.length > 52 ? '…' : '');
       return 'Profile synced';
+    },
+  },
+  whoop: {
+    label: 'Whoop',
+    icon: Activity,
+    color: '#00D4AA',
+    extractMetric: (obs) => {
+      const first = obs[0] || '';
+      const scoreMatch = first.match(/Recovery score:\s*(\d+)%/);
+      if (scoreMatch) return `Recovery ${scoreMatch[1]}%`;
+      if (first.length > 0) return first.slice(0, 52) + (first.length > 52 ? '…' : '');
+      return 'Biometrics synced';
     },
   },
 };

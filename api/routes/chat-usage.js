@@ -23,31 +23,23 @@ async function getMonthlyUsage(userId) {
   monthStart.setDate(1);
   monthStart.setHours(0, 0, 0, 0);
 
-  // Step 1: Get user's conversation IDs
-  const { data: convos, error: convosErr } = await supabaseAdmin
-    .from('twin_conversations')
-    .select('id')
-    .eq('user_id', userId);
-
-  if (convosErr) throw convosErr;
-
-  if (!convos || convos.length === 0) {
-    return { used: 0, limit: FREE_TIER_LIMIT, tier: 'free' };
-  }
-
-  // Step 2: Count user messages in those conversations this month
-  const convoIds = convos.map(c => c.id);
+  // Count user conversation memories this month from the memory stream.
+  // Twin chat stores messages via addConversationMemory → user_memories with role metadata.
+  // metadata->>role = 'user' selects only the user's messages (not assistant replies).
   const { count, error: countErr } = await supabaseAdmin
-    .from('twin_messages')
+    .from('user_memories')
     .select('id', { count: 'exact', head: true })
-    .eq('role', 'user')
-    .gte('created_at', monthStart.toISOString())
-    .in('conversation_id', convoIds);
+    .eq('user_id', userId)
+    .eq('memory_type', 'conversation')
+    .eq('metadata->>role', 'user')
+    .gte('created_at', monthStart.toISOString());
 
   if (countErr) throw countErr;
 
+  const messageCount = count || 0;
+
   return {
-    used: count || 0,
+    used: messageCount,
     limit: FREE_TIER_LIMIT,
     tier: 'free'
   };

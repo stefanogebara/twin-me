@@ -742,7 +742,7 @@ async function isDuplicateFact(userId, factText) {
       .eq('memory_type', 'fact')
       .not('embedding', 'is', null)
       .order('created_at', { ascending: false })
-      .limit(50);
+      .limit(200); // Widened from 50 → 200 to catch duplicates from months ago
 
     if (!recentFacts || recentFacts.length === 0) return false;
 
@@ -853,26 +853,30 @@ async function getMemoryStats(userId) {
   if (!userId) return defaultStats;
 
   try {
-    const { data, error } = await supabaseAdmin
-      .from('user_memories')
-      .select('memory_type')
-      .eq('user_id', userId)
-      .limit(5000); // Cap to prevent OOM for power users — callers only need approximate counts
-
-    if (error || !data) {
-      console.warn('[MemoryStream] getMemoryStats query failed:', error?.message);
-      return defaultStats;
-    }
+    // Use parallel COUNT queries (head: true returns count only, no rows transferred)
+    // This is dramatically more efficient than fetching 5000 rows for JS counting
+    const types = ['fact', 'reflection', 'platform_data', 'conversation', 'observation'];
+    const countResults = await Promise.all(
+      types.map(t =>
+        supabaseAdmin
+          .from('user_memories')
+          .select('*', { count: 'exact', head: true })
+          .eq('user_id', userId)
+          .eq('memory_type', t)
+      )
+    );
 
     const byType = { fact: 0, reflection: 0, platform_data: 0, conversation: 0, observation: 0 };
-    for (const row of data) {
-      const t = row.memory_type;
-      if (t in byType) {
-        byType[t]++;
+    let total = 0;
+    for (let i = 0; i < types.length; i++) {
+      const { count, error } = countResults[i];
+      if (!error && count != null) {
+        byType[types[i]] = count;
+        total += count;
       }
     }
 
-    return { total: data.length, byType };
+    return { total, byType };
   } catch (error) {
     console.error('[MemoryStream] getMemoryStats error:', error.message);
     return defaultStats;

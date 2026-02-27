@@ -18,7 +18,7 @@ import { BentoGoalsTile } from './components/soul-portrait/BentoGoalsTile';
 import { EvolutionSection } from '../components/brain/EvolutionSection';
 
 // Whitelist for BentoStatsTile — filters out unknown/internal platform entries
-const STATS_PLATFORM_WHITELIST = ['spotify', 'google_calendar', 'youtube', 'discord', 'linkedin', 'github', 'reddit'];
+const STATS_PLATFORM_WHITELIST = ['spotify', 'google_calendar', 'youtube', 'discord', 'linkedin', 'whoop', 'github', 'reddit'];
 
 const SoulSignatureDashboard: React.FC = () => {
   const { user } = useAuth();
@@ -142,8 +142,8 @@ const SoulSignatureDashboard: React.FC = () => {
 
   // Determine which platforms are connected and have a known config
   // DB stores 'google_calendar' but we reference it as 'calendar' in the UI
-  const PLATFORM_ALIAS: Record<string, string> = { google_calendar: 'calendar' };
-  const knownPlatforms = ['spotify', 'calendar', 'youtube', 'discord', 'linkedin'];
+  const PLATFORM_ALIAS: Record<string, string> = { google_calendar: 'calendar', whoop: 'whoop' };
+  const knownPlatforms = ['spotify', 'calendar', 'youtube', 'discord', 'linkedin', 'whoop'];
   const activePlatforms = portrait?.connectedPlatforms
     .map(p => {
       const key = p.platform.toLowerCase();
@@ -349,9 +349,10 @@ const SoulSignatureDashboard: React.FC = () => {
             </div>
           )}
 
-          {/* ── Row 3b: Platform insight tiles (Calendar + YouTube + Discord + LinkedIn) ── */}
+          {/* ── Row 3b: Platform insight tiles (Calendar + YouTube + Discord + LinkedIn + Whoop) ── */}
           {(activePlatforms.includes('calendar') || activePlatforms.includes('youtube') ||
-            activePlatforms.includes('discord') || activePlatforms.includes('linkedin')) && (
+            activePlatforms.includes('discord') || activePlatforms.includes('linkedin') ||
+            activePlatforms.includes('whoop')) && (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mb-8">
               {activePlatforms.includes('calendar') && (
                 <BentoPlatformTile
@@ -383,6 +384,14 @@ const SoulSignatureDashboard: React.FC = () => {
                   platformData={portrait.platformData}
                   connectedPlatforms={portrait.connectedPlatforms}
                   animationDelay={0.25}
+                />
+              )}
+              {activePlatforms.includes('whoop') && (
+                <BentoPlatformTile
+                  platform="whoop"
+                  platformData={portrait.platformData}
+                  connectedPlatforms={portrait.connectedPlatforms}
+                  animationDelay={0.3}
                 />
               )}
             </div>
