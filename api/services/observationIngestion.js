@@ -41,7 +41,7 @@ async function getSupabase() {
 }
 
 // Platforms we know how to ingest
-const SUPPORTED_PLATFORMS = ['spotify', 'google_calendar', 'youtube', 'discord', 'linkedin'];
+const SUPPORTED_PLATFORMS = ['spotify', 'google_calendar', 'youtube', 'discord', 'linkedin', 'whoop', 'github'];
 
 // ====================================================================
 // Prompt injection defense
@@ -561,6 +561,356 @@ async function fetchLinkedInObservations(userId) {
   return observations;
 }
 
+/**
+ * Check if a user has a Nango-managed connection for a given platform.
+ * Used as fallback when platform_connections row is missing.
+ */
+async function _hasNangoMapping(supabase, userId, platform) {
+  const { data } = await supabase
+    .from('nango_connection_mappings')
+    .select('id')
+    .eq('user_id', userId)
+    .eq('platform', platform)
+    .eq('status', 'connected')
+    .single();
+  return !!data;
+}
+
+/**
+ * Fetch Whoop health data and return natural-language observations.
+ * Supports both Nango-managed connections and direct OAuth tokens.
+ */
+async function fetchWhoopObservations(userId) {
+  const observations = [];
+
+  const supabase = await getSupabase();
+  if (!supabase) return observations;
+
+  // Check if this is a Nango-managed Whoop connection
+  const { data: whoopConn } = await supabase
+    .from('platform_connections')
+    .select('access_token')
+    .eq('user_id', userId)
+    .eq('platform', 'whoop')
+    .single();
+
+  // Also check nango_connection_mappings for users whose Whoop is Nango-only
+  const isNangoManaged = whoopConn?.access_token === 'NANGO_MANAGED' || (!whoopConn && await _hasNangoMapping(supabase, userId, 'whoop'));
+
+  let recoveryData = null;
+  let sleepData = null;
+
+  if (isNangoManaged) {
+    try {
+      const nangoService = await import('./nangoService.js');
+      const [recoveryResult, sleepResult] = await Promise.all([
+        nangoService.whoop.getRecovery(userId, 1),
+        nangoService.whoop.getSleep(userId, 3),
+      ]);
+      recoveryData = recoveryResult.success ? recoveryResult.data?.records?.[0] : null;
+      sleepData = sleepResult.success ? (sleepResult.data?.records || []) : [];
+    } catch (e) {
+      console.warn('[ObservationIngestion] Whoop Nango fetch error:', e.message);
+      return observations;
+    }
+  } else {
+    const tokenResult = await getValidAccessToken(userId, 'whoop');
+    if (!tokenResult.success || !tokenResult.accessToken) {
+      console.warn('[ObservationIngestion] Whoop: no valid token for user', userId);
+      return observations;
+    }
+    const headers = { Authorization: `Bearer ${tokenResult.accessToken}` };
+    try {
+      const [recoveryRes, sleepRes] = await Promise.all([
+        axios.get('https://api.prod.whoop.com/developer/v2/recovery?limit=1', { headers, timeout: 10000 }),
+        axios.get('https://api.prod.whoop.com/developer/v2/activity/sleep?limit=3', { headers, timeout: 10000 }),
+      ]);
+      recoveryData = recoveryRes.data?.records?.[0] || null;
+      sleepData = sleepRes.data?.records || [];
+    } catch (e) {
+      console.warn('[ObservationIngestion] Whoop direct API error:', e.message);
+      return observations;
+    }
+  }
+
+  // ── Recovery observation ──────────────────────────────────────────────────
+  const recoveryScore = recoveryData?.score?.recovery_score ?? null;
+  const hrv = recoveryData?.score?.hrv_rmssd_milli ? Math.round(recoveryData.score.hrv_rmssd_milli) : null;
+  const restingHR = recoveryData?.score?.resting_heart_rate ? Math.round(recoveryData.score.resting_heart_rate) : null;
+
+  if (recoveryScore !== null) {
+    const recoveryLabel = recoveryScore >= 70 ? 'high' : recoveryScore >= 50 ? 'moderate' : 'low';
+    const parts = [`Recovery score: ${recoveryScore}% (${recoveryLabel} recovery)`];
+    if (hrv) parts.push(`HRV ${hrv}ms`);
+    if (restingHR) parts.push(`resting heart rate ${restingHR}bpm`);
+    observations.push({
+      content: parts.join(', '),
+      contentType: 'daily_summary',
+    });
+
+    // Actionable insight for extremes
+    if (recoveryScore >= 85) {
+      observations.push({ content: 'Excellent Whoop recovery today — body is primed and energized', contentType: 'daily_summary' });
+    } else if (recoveryScore < 40) {
+      observations.push({ content: `Low Whoop recovery (${recoveryScore}%) — likely needs rest or light activity`, contentType: 'daily_summary' });
+    }
+  }
+
+  // ── Sleep observation ─────────────────────────────────────────────────────
+  if (sleepData.length > 0) {
+    const latestSleep = sleepData[0];
+    const stageSummary = latestSleep.score?.stage_summary || {};
+    const totalSleepMs = latestSleep.score?.total_sleep_time_milli
+      || (stageSummary.total_in_bed_time_milli - (stageSummary.total_awake_time_milli || 0))
+      || stageSummary.total_in_bed_time_milli
+      || 0;
+    const sleepHours = totalSleepMs / (1000 * 60 * 60);
+    const sleepPerf = latestSleep.score?.sleep_performance_percentage ?? null;
+
+    if (sleepHours > 0.5) {
+      const sleepLabel = sleepHours >= 7.5 ? 'well-rested' : sleepHours >= 6 ? 'moderate sleep' : 'under-slept';
+      let obs = `Slept ${sleepHours.toFixed(1)} hours (${sleepLabel})`;
+      if (sleepPerf !== null) obs += ` — sleep performance ${sleepPerf}%`;
+      observations.push({ content: obs, contentType: 'daily_summary' });
+    }
+  }
+
+  return observations;
+}
+
+// ====================================================================
+// B1: Web Browsing (Browser Extension)
+// ====================================================================
+
+/**
+ * Convert recent browser-extension tab visits (stored in user_platform_data)
+ * into natural-language observations for the memory stream.
+ *
+ * This is called directly from the extension batch endpoint — the extension
+ * already pushed events into user_platform_data; we just need to turn them
+ * into observations and store them in user_memories via addPlatformObservation.
+ *
+ * @param {string} userId
+ * @param {object[]} events - Raw tab_visit events from the extension batch
+ * @returns {Promise<string[]>} NL observation strings
+ */
+export async function ingestWebObservations(userId, events) {
+  if (!events || events.length === 0) return [];
+
+  const supabase = await getSupabase();
+  if (!supabase) return [];
+
+  // Aggregate visits: group by domain, sum dwell time
+  const domainMap = new Map(); // domain → { totalSeconds, titles, count }
+  const searches = [];
+
+  for (const e of events) {
+    if (e.data_type === 'extension_search_query') {
+      if (e.raw_data?.searchQuery) searches.push(sanitizeExternal(e.raw_data.searchQuery, 80));
+      continue;
+    }
+    if (!['extension_page_visit', 'extension_article_read', 'extension_web_video', 'tab_visit'].includes(e.data_type || '')) continue;
+
+    const raw = e.raw_data || e;
+    const domain = raw.domain || extractDomainFromUrl(raw.url || '');
+    if (!domain || domain.length < 3) continue;
+
+    const secs = parseInt(raw.duration_seconds || raw.durationSeconds || 0, 10);
+    if (secs < 10) continue; // skip drive-bys
+
+    if (!domainMap.has(domain)) domainMap.set(domain, { totalSeconds: 0, titles: [], count: 0 });
+    const entry = domainMap.get(domain);
+    entry.totalSeconds += secs;
+    entry.count += 1;
+    const title = sanitizeExternal(raw.title || '', 60);
+    if (title && !entry.titles.includes(title)) entry.titles.push(title);
+  }
+
+  const observations = [];
+
+  // Top domains by dwell time
+  const topDomains = [...domainMap.entries()]
+    .sort((a, b) => b[1].totalSeconds - a[1].totalSeconds)
+    .slice(0, 6);
+
+  for (const [domain, { totalSeconds, count }] of topDomains) {
+    if (totalSeconds < 30) continue;
+    const mins = Math.round(totalSeconds / 60);
+    const minLabel = mins < 1 ? `${totalSeconds}s` : `${mins} minute${mins !== 1 ? 's' : ''}`;
+    observations.push(`Spent ${minLabel} on ${domain} (${count} page${count !== 1 ? 's' : ''} visited)`);
+  }
+
+  // Search queries summary
+  if (searches.length > 0) {
+    const uniq = [...new Set(searches)].slice(0, 5);
+    observations.push(`Searched for: ${uniq.join(', ')}`);
+  }
+
+  if (observations.length === 0) return [];
+
+  // Batch dedup against recent memories
+  const maxWindowMs = Math.max(...Object.values(DEDUP_WINDOWS_MS));
+  const cutoff = new Date(Date.now() - maxWindowMs).toISOString();
+  const existingHashes = new Set();
+  const { data: recentMems } = await supabase
+    .from('user_memories')
+    .select('content')
+    .eq('user_id', userId)
+    .eq('memory_type', 'platform_data')
+    .gte('created_at', cutoff)
+    .limit(200);
+  for (const mem of (recentMems || [])) {
+    existingHashes.add(contentHash('web', mem.content || ''));
+  }
+
+  let stored = 0;
+  for (const obs of observations) {
+    const hash = contentHash('web', obs);
+    if (existingHashes.has(hash)) continue;
+    const ok = await addPlatformObservation(userId, obs, 'web', { ingestion_source: 'extension_batch' });
+    if (ok) { stored++; existingHashes.add(hash); }
+  }
+
+  if (stored > 0) {
+    console.log(`[WebBrowsing] Stored ${stored} observations for user ${userId}`);
+  }
+  return observations;
+}
+
+function extractDomainFromUrl(url) {
+  try { return new URL(url).hostname.replace(/^www\./, ''); } catch { return ''; }
+}
+
+// ====================================================================
+// B2: GitHub (Personal Access Token)
+// ====================================================================
+
+/**
+ * Fetch recent GitHub activity and convert to NL observations.
+ * Uses the user's stored PAT from user_github_config table.
+ *
+ * @param {string} userId
+ * @returns {Promise<string[]>} NL observation strings
+ */
+async function fetchGitHubObservations(userId) {
+  const supabase = await getSupabase();
+  if (!supabase) return [];
+
+  const { data: config } = await supabase
+    .from('user_github_config')
+    .select('github_username, access_token')
+    .eq('user_id', userId)
+    .single();
+
+  if (!config?.github_username || !config?.access_token) {
+    console.warn('[GitHub] No PAT configured for user', userId);
+    return [];
+  }
+
+  const { github_username, access_token } = config;
+  const headers = {
+    Authorization: `token ${access_token}`,
+    Accept: 'application/vnd.github+json',
+    'X-GitHub-Api-Version': '2022-11-28',
+    'User-Agent': 'TwinMe/1.0',
+  };
+
+  const observations = [];
+
+  try {
+    const eventsRes = await axios.get(
+      `https://api.github.com/users/${github_username}/events?per_page=30`,
+      { headers, timeout: 10000 }
+    );
+
+    const events = eventsRes.data || [];
+    const oneDayAgo = Date.now() - 24 * 60 * 60 * 1000;
+
+    // Group push events by repo
+    const pushByRepo = new Map();
+    const prsSeen = new Set();
+
+    for (const event of events) {
+      const eventTime = new Date(event.created_at).getTime();
+      if (eventTime < oneDayAgo) continue; // only last 24h
+
+      const repo = sanitizeExternal(event.repo?.name || '', 60).replace(/^[^/]+\//, ''); // strip owner
+
+      switch (event.type) {
+        case 'PushEvent': {
+          const commits = event.payload?.commits || [];
+          if (commits.length === 0) break;
+          if (!pushByRepo.has(repo)) pushByRepo.set(repo, []);
+          for (const c of commits.slice(0, 3)) {
+            const msg = sanitizeExternal(c.message?.split('\n')[0] || '', 80);
+            if (msg) pushByRepo.get(repo).push(msg);
+          }
+          break;
+        }
+        case 'PullRequestEvent': {
+          const pr = event.payload?.pull_request;
+          if (!pr || prsSeen.has(pr.number)) break;
+          prsSeen.add(pr.number);
+          const action = event.payload?.action;
+          if (!['opened', 'closed', 'merged'].includes(action)) break;
+          const state = action === 'closed' && pr.merged ? 'merged' : action;
+          const title = sanitizeExternal(pr.title || '', 80);
+          observations.push(`${state === 'merged' ? 'Merged' : state === 'opened' ? 'Opened' : 'Closed'} PR in ${repo}: "${title}"`);
+          break;
+        }
+        case 'IssuesEvent': {
+          const issue = event.payload?.issue;
+          const action = event.payload?.action;
+          if (!issue || action !== 'opened') break;
+          const title = sanitizeExternal(issue.title || '', 80);
+          observations.push(`Opened issue in ${repo}: "${title}"`);
+          break;
+        }
+        case 'CreateEvent': {
+          const refType = event.payload?.ref_type;
+          if (refType === 'repository') {
+            observations.push(`Created new repository: ${repo}`);
+          } else if (refType === 'branch') {
+            const branch = sanitizeExternal(event.payload?.ref || '', 60);
+            if (branch) observations.push(`Created branch "${branch}" in ${repo}`);
+          }
+          break;
+        }
+      }
+    }
+
+    // Summarize pushes per repo
+    for (const [repo, messages] of pushByRepo) {
+      const count = messages.length;
+      const msgPreview = messages.slice(0, 2).map(m => `"${m}"`).join(', ');
+      observations.push(`Pushed ${count} commit${count !== 1 ? 's' : ''} to ${repo}: ${msgPreview}`);
+    }
+
+    // Weekly coding summary (commits across all repos in last 7 days)
+    try {
+      const weekAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
+      const weekEvents = events.filter(e => e.type === 'PushEvent' && new Date(e.created_at).getTime() > weekAgo);
+      const weekCommits = weekEvents.reduce((sum, e) => sum + (e.payload?.commits?.length || 0), 0);
+      const weekRepos = new Set(weekEvents.map(e => e.repo?.name)).size;
+      if (weekCommits > 0) {
+        observations.push({ content: `Made ${weekCommits} commit${weekCommits !== 1 ? 's' : ''} across ${weekRepos} repo${weekRepos !== 1 ? 's' : ''} this week`, contentType: 'weekly_summary' });
+      }
+    } catch { /* non-fatal */ }
+
+    console.log(`[GitHub] Generated ${observations.length} observations for ${github_username}`);
+
+    // Update last_synced_at timestamp
+    await supabase
+      .from('user_github_config')
+      .update({ last_synced_at: new Date().toISOString() })
+      .eq('user_id', userId);
+  } catch (err) {
+    console.warn('[GitHub] API fetch error:', err.message);
+  }
+
+  return observations;
+}
+
 // ====================================================================
 // Main Ingestion Loop
 // ====================================================================
@@ -591,8 +941,9 @@ async function runObservationIngestion() {
     }
 
     // Find all users with at least one active platform connection.
-    // Check both platform_connections (direct OAuth) AND nango_connection_mappings (Nango-managed).
-    const [pcRes, nangoRes] = await Promise.all([
+    // Check platform_connections (direct OAuth), nango_connection_mappings (Nango-managed),
+    // AND user_github_config (PAT-based connections that don't go through OAuth).
+    const [pcRes, nangoRes, githubRes] = await Promise.all([
       supabase
         .from('platform_connections')
         .select('user_id, platform')
@@ -603,13 +954,18 @@ async function runObservationIngestion() {
         .select('user_id, platform')
         .eq('status', 'active')
         .in('platform', SUPPORTED_PLATFORMS),
+      supabase
+        .from('user_github_config')
+        .select('user_id')
+        .not('access_token', 'is', null),
     ]);
     if (pcRes.error) console.warn('[ObservationIngestion] platform_connections fetch error:', pcRes.error.message);
     if (nangoRes.error) console.warn('[ObservationIngestion] nango_connection_mappings fetch error:', nangoRes.error.message);
     const pcResult = pcRes.data || [];
     const nangoResult = nangoRes.data || [];
+    const githubResult = (githubRes.data || []).map(r => ({ user_id: r.user_id, platform: 'github' }));
 
-    const allConnections = [...pcResult, ...nangoResult];
+    const allConnections = [...pcResult, ...nangoResult, ...githubResult];
     if (allConnections.length === 0) {
       console.log('[ObservationIngestion] No active platform connections found');
       return stats;
@@ -654,6 +1010,12 @@ async function runObservationIngestion() {
                 break;
               case 'linkedin':
                 observations = await fetchLinkedInObservations(userId);
+                break;
+              case 'whoop':
+                observations = await fetchWhoopObservations(userId);
+                break;
+              case 'github':
+                observations = await fetchGitHubObservations(userId);
                 break;
             }
 
@@ -923,6 +1285,9 @@ async function runPostOnboardingIngestion(userId) {
           case 'youtube':
             observations = await fetchYouTubeObservations(userId);
             break;
+          case 'github':
+            observations = await fetchGitHubObservations(userId);
+            break;
         }
 
         for (const obs of observations) {
@@ -1018,5 +1383,6 @@ export {
   fetchYouTubeObservations,
   fetchDiscordObservations,
   fetchLinkedInObservations,
+  fetchGitHubObservations,
   runPostOnboardingIngestion,
 };

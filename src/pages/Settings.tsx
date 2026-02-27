@@ -18,6 +18,8 @@ import ConnectedPlatformsSettings from './components/settings/ConnectedPlatforms
 import DataConsentSettings from './components/settings/DataConsentSettings';
 import ClaudeDesktopSync from './components/settings/ClaudeDesktopSync';
 import DataManagementSettings from './components/settings/DataManagementSettings';
+import GitHubConnectCard from './components/settings/GitHubConnectCard';
+import WhatsAppImportCard from './components/settings/WhatsAppImportCard';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
 
@@ -357,6 +359,10 @@ const Settings = () => {
             navigate={navigate}
             handleDisconnectService={handleDisconnectService}
           />
+
+          {/* GitHub + WhatsApp (B-phase integrations) */}
+          {!isDemoMode && <GitHubConnectCard />}
+          {!isDemoMode && <WhatsAppImportCard />}
 
           {/* Data Consent */}
           <DataConsentSettings

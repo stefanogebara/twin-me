@@ -12,6 +12,7 @@
 import express from 'express';
 import { authenticateUser } from '../middleware/auth.js';
 import { supabaseAdmin } from '../config/supabase.js';
+import { ingestWebObservations } from '../services/observationIngestion.js';
 
 const router = express.Router();
 
@@ -157,22 +158,21 @@ router.post('/batch', authenticateUser, async (req, res) => {
 
     console.log(`[Extension] Batch inserted ${data.length} events`);
 
-    // Check if we should trigger a periodic analysis (every ~50 web events)
-    if ((platform === 'web' || events.some(e => e.platform === 'web')) && data.length > 0) {
-      const { count } = await supabaseAdmin
-        .from('user_platform_data')
-        .select('id', { count: 'exact', head: true })
-        .eq('user_id', userId)
-        .eq('platform', 'web')
-        .like('data_type', 'extension_%');
-
-      // Trigger analysis every 50 events (non-blocking)
-      if (count && count % 50 < events.length) {
-        console.log(`[Extension] Triggering periodic browsing analysis (${count} total events)`);
-        pushBrowsingToIntegrations(userId, await quickBrowsingAnalysis(userId)).catch(err => {
-          console.warn('[Extension] Periodic analysis failed:', err.message);
-        });
-      }
+    // B1: Route web tab visits → memory stream via ingestWebObservations (non-blocking)
+    // This converts dwell-time events into NL observations stored in user_memories.
+    const webEvents = events.filter(e =>
+      (e.platform === 'web' || platform === 'web') &&
+      ['tab_visit', 'extension_page_visit', 'extension_article_read', 'extension_search_query', 'extension_web_video'].includes(e.data_type || e.eventType || '')
+    );
+    if (webEvents.length > 0) {
+      // Normalise event shape for ingestWebObservations (expects data_type + raw_data)
+      const normalised = webEvents.map(e => ({
+        data_type: e.data_type || mapEventType(e.eventType || 'page_visit', 'web'),
+        raw_data: e,
+      }));
+      ingestWebObservations(userId, normalised).catch(err =>
+        console.warn('[Extension] Web observation ingestion failed (non-fatal):', err.message)
+      );
     }
 
     res.json({
