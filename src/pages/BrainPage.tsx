@@ -92,9 +92,14 @@ const PLATFORM_META: Record<string, { label: string; icon: string; description: 
     icon: '💼',
     description: 'Career trajectory, professional skills'
   },
+  whoop: {
+    label: 'Whoop',
+    icon: '❤️',
+    description: 'Recovery, sleep, HRV, strain'
+  },
 };
 
-const ORDERED_PLATFORMS = ['spotify', 'google_calendar', 'youtube', 'discord', 'linkedin'];
+const ORDERED_PLATFORMS = ['spotify', 'google_calendar', 'youtube', 'discord', 'linkedin', 'whoop'];
 
 // Demo insights shown when in demo mode
 const DEMO_INSIGHTS: Insight[] = [

@@ -38,6 +38,7 @@
  */
 
 import { complete, TIER_ANALYSIS } from './llmGateway.js';
+import { get as redisGet, set as redisSet, del as redisDel } from './redisClient.js';
 import {
   getRecentMemories,
   retrieveMemories,
@@ -162,8 +163,36 @@ export const IMPORTANCE_THRESHOLD = 40;
 const MAX_REFLECTION_DEPTH = 2;
 
 // Cooldown: don't reflect more than once per hour per user
-const reflectionCooldowns = new Map();
+// Uses Redis as primary store (serverless-safe) with in-memory Map as fallback
+const reflectionCooldowns = new Map(); // fallback only — reset on cold starts
 const REFLECTION_COOLDOWN_MS = 60 * 60 * 1000; // 1 hour
+const REFLECTION_COOLDOWN_REDIS_TTL = 3600; // 1 hour in seconds
+
+async function _isReflectionOnCooldown(userId) {
+  // Try Redis first (cross-instance, survives cold starts)
+  try {
+    const redisCooldown = await redisGet(`reflectionCooldown:${userId}`);
+    if (redisCooldown) return true;
+  } catch { /* Redis unavailable — fall through to in-memory */ }
+  // Fallback: in-memory Map (resets on cold start, but better than nothing)
+  const lastReflection = reflectionCooldowns.get(userId);
+  return !!(lastReflection && (Date.now() - lastReflection) < REFLECTION_COOLDOWN_MS);
+}
+
+async function _setReflectionCooldown(userId) {
+  try {
+    await redisSet(`reflectionCooldown:${userId}`, '1', REFLECTION_COOLDOWN_REDIS_TTL);
+  } catch { /* Redis unavailable — use in-memory fallback */ }
+  reflectionCooldowns.set(userId, Date.now());
+  setTimeout(() => reflectionCooldowns.delete(userId), REFLECTION_COOLDOWN_MS);
+}
+
+async function _clearReflectionCooldown(userId) {
+  try {
+    await redisDel(`reflectionCooldown:${userId}`);
+  } catch { /* Redis unavailable */ }
+  reflectionCooldowns.delete(userId);
+}
 
 // ====================================================================
 // Expert Persona Definitions
@@ -347,8 +376,8 @@ async function runExpertAnalysis(userId, expert, formattedObservations, depth, i
 
     const responseText = (result.content || '').trim();
 
-    // Check for insufficient evidence
-    if (responseText === 'INSUFFICIENT_EVIDENCE' || responseText.length < 20) {
+    // Check for insufficient evidence (case-insensitive, handles trailing punctuation/variants)
+    if (responseText.toUpperCase().startsWith('INSUFFICIENT_EVIDENCE') || responseText.length < 20) {
       console.log(`[Reflection] ${expert.name}: insufficient evidence`);
       return [];
     }
@@ -357,7 +386,7 @@ async function runExpertAnalysis(userId, expert, formattedObservations, depth, i
     const observations = responseText
       .split('\n')
       .map(line => line.replace(/^\d+\.\s*/, '').trim())
-      .filter(obs => obs.length > 20 && obs !== 'INSUFFICIENT_EVIDENCE');
+      .filter(obs => obs.length > 20 && !obs.toUpperCase().startsWith('INSUFFICIENT_EVIDENCE'));
 
     // Store each observation as a reflection
     const stored = [];
@@ -413,8 +442,7 @@ async function generateReflections(userId, depth = 0) {
 
   // Check cooldown (only on initial call, not recursive ones)
   if (depth === 0) {
-    const lastReflection = reflectionCooldowns.get(userId);
-    if (lastReflection && (Date.now() - lastReflection) < REFLECTION_COOLDOWN_MS) {
+    if (await _isReflectionOnCooldown(userId)) {
       console.log(`[Reflection] Skipping - cooldown active for user ${userId}`);
       return 0;
     }
@@ -500,10 +528,9 @@ async function generateReflections(userId, depth = 0) {
       }
     }
 
-    // Set cooldown (only on initial call) and auto-expire to prevent memory leak
+    // Set cooldown (only on initial call) — stored in Redis for serverless safety
     if (depth === 0) {
-      reflectionCooldowns.set(userId, Date.now());
-      setTimeout(() => reflectionCooldowns.delete(userId), REFLECTION_COOLDOWN_MS);
+      await _setReflectionCooldown(userId);
 
       // Snapshot personality scores after each reflection cycle
       if (reflectionsGenerated > 0) {
@@ -526,8 +553,7 @@ async function generateReflections(userId, depth = 0) {
  */
 async function shouldTriggerReflection(userId) {
   // Check cooldown first (cheap)
-  const lastReflection = reflectionCooldowns.get(userId);
-  if (lastReflection && (Date.now() - lastReflection) < REFLECTION_COOLDOWN_MS) {
+  if (await _isReflectionOnCooldown(userId)) {
     return false;
   }
 
@@ -543,7 +569,7 @@ async function shouldTriggerReflection(userId) {
 async function seedReflections(userId) {
   console.log(`[Reflection] Seeding initial reflections for user ${userId}`);
   // Clear cooldown to allow immediate reflection
-  reflectionCooldowns.delete(userId);
+  await _clearReflectionCooldown(userId);
   return generateReflections(userId);
 }
 
@@ -558,6 +584,21 @@ async function seedReflections(userId) {
  */
 async function snapshotPersonalityScores(userId) {
   try {
+    // Guard: one snapshot per 24h per user
+    const startOfToday = new Date();
+    startOfToday.setHours(0, 0, 0, 0);
+    const { data: existingToday } = await supabaseAdmin
+      .from('personality_score_snapshots')
+      .select('id')
+      .eq('user_id', userId)
+      .gte('created_at', startOfToday.toISOString())
+      .limit(1)
+      .single();
+    if (existingToday) {
+      console.log(`[Reflection] Skipping personality snapshot — already snapshotted today for user ${userId}`);
+      return;
+    }
+
     const { data: ps, error: psErr } = await supabaseAdmin
       .from('personality_scores')
       .select('openness, conscientiousness, extraversion, agreeableness, neuroticism')

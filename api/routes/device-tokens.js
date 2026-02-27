@@ -17,7 +17,7 @@ router.use(authMiddleware);
 router.post('/', async (req, res) => {
   try {
     const userId = req.user.id;
-    const { token, platform } = req.body;
+    const { token, platform, token_type = 'expo' } = req.body;
 
     if (!token || typeof token !== 'string') {
       return res.status(400).json({ success: false, error: 'token required' });
@@ -25,8 +25,11 @@ router.post('/', async (req, res) => {
     if (!['android', 'ios'].includes(platform)) {
       return res.status(400).json({ success: false, error: 'platform must be android or ios' });
     }
+    if (!['expo', 'fcm'].includes(token_type)) {
+      return res.status(400).json({ success: false, error: 'token_type must be expo or fcm' });
+    }
 
-    await registerDeviceToken(userId, token, platform);
+    await registerDeviceToken(userId, token, platform, token_type);
     res.json({ success: true });
   } catch (err) {
     console.error('[DeviceTokens] Register error:', err.message);

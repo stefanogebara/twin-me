@@ -3,8 +3,10 @@ import {
   View, Text, ScrollView, StyleSheet, Image,
   RefreshControl, ActivityIndicator, TouchableOpacity, LayoutAnimation,
 } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { COLORS } from '../constants';
 import { fetchMemoryStats, fetchInsights } from '../services/api';
+import { WIDGET_STORAGE_KEY } from '../widgets/widgetTaskHandler';
 import type { MemoryStats, TwinInsight, User } from '../types';
 
 function toSecondPerson(text: string): string {
@@ -83,7 +85,21 @@ export function HomeScreen({ user }: Props) {
         fetchInsights(),
       ]);
       if (statsResult.status === 'fulfilled') setStats(statsResult.value);
-      if (insightsResult.status === 'fulfilled') setInsights(insightsResult.value.slice(0, 5));
+      else console.error('[Home] stats failed:', statsResult.reason);
+      if (insightsResult.status === 'fulfilled') {
+        const list = insightsResult.value.slice(0, 5);
+        setInsights(list);
+        // Persist first insight for the home screen widget
+        if (list.length > 0) {
+          AsyncStorage.setItem(WIDGET_STORAGE_KEY, JSON.stringify({
+            text: list[0].content,
+            category: list[0].category,
+            memoriesTotal: statsResult.status === 'fulfilled' ? statsResult.value?.total : undefined,
+          })).catch(() => {/* non-critical */});
+        }
+      } else {
+        console.error('[Home] insights failed:', insightsResult.reason);
+      }
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -156,12 +172,12 @@ export function HomeScreen({ user }: Props) {
         </View>
       )}
 
-      {/* Empty state */}
+      {/* Empty state — show when no insights loaded yet */}
       {insights.length === 0 && (
         <View style={styles.card}>
-          <Text style={styles.emptyTitle}>Twin is learning</Text>
+          <Text style={styles.emptyTitle}>Twin is building your portrait</Text>
           <Text style={styles.emptyText}>
-            Connect platforms and add memories to start building your soul signature.
+            Connect platforms on the web and chat with your twin — insights appear here as it learns your patterns.
           </Text>
         </View>
       )}

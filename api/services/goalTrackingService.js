@@ -198,9 +198,24 @@ async function abandonGoal(goalId, userId) {
 async function dismissGoal(goalId, userId) {
   const supabase = await getSupabase();
 
+  // Fetch current metadata first to avoid overwriting existing fields
+  const { data: existing, error: fetchError } = await supabase
+    .from('twin_goals')
+    .select('metadata')
+    .eq('id', goalId)
+    .eq('user_id', userId)
+    .single();
+
+  if (fetchError) {
+    console.warn('[GoalTracking] dismissGoal fetch error:', fetchError.message);
+    return { success: false, error: fetchError.message };
+  }
+
+  const mergedMetadata = { ...(existing?.metadata || {}), dismissed: true, dismissedAt: new Date().toISOString() };
+
   const { data, error } = await supabase
     .from('twin_goals')
-    .update({ status: 'abandoned', metadata: { dismissed: true } })
+    .update({ status: 'abandoned', metadata: mergedMetadata })
     .eq('id', goalId)
     .eq('user_id', userId)
     .eq('status', 'suggested')
@@ -352,6 +367,8 @@ async function extractMetricFromMemories(userId, metricType) {
     recovery_score: /[Rr]ecovery\s+(?:score:?\s*)?([\d.]+)\s*%/,
     hrv: /HRV:?\s*([\d.]+)\s*ms/i,
     meeting_count: /(\d+)\s+(?:events?|meetings?)\s+(?:today|scheduled)/i,
+    listening_hours: /([\d.]+)\s*h(?:ours?)?\s+(?:of\s+)?listening/i,
+    focus_time: /([\d.]+)\s*h(?:ours?)?\s+(?:focused|focus|deep\s+work)/i,
   };
 
   const pattern = patterns[metricType];
@@ -363,6 +380,8 @@ async function extractMetricFromMemories(userId, metricType) {
     recovery_score: { min: 0, max: 100 },
     hrv: { min: 0, max: 300 },
     meeting_count: { min: 0, max: 50 },
+    listening_hours: { min: 0, max: 24 },
+    focus_time: { min: 0, max: 24 },
   };
 
   for (const mem of recent) {

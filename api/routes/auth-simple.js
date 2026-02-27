@@ -5,6 +5,47 @@ import bcrypt from 'bcrypt';
 import { supabase, supabaseAdmin } from '../config/supabase.js';
 import { encryptToken, encryptState, decryptState } from '../services/encryption.js';
 import profileEnrichmentService from '../services/profileEnrichmentService.js';
+import { getRedisClient, isRedisAvailable } from '../services/redisClient.js';
+
+const AUTH_LOCKOUT_THRESHOLD = 10; // failed attempts before lockout
+const AUTH_LOCKOUT_TTL = 15 * 60; // 15 minutes in seconds
+
+/**
+ * Increment the failed-login counter for an account. Returns true if account is now locked.
+ */
+async function trackAuthFailure(email) {
+  try {
+    const client = getRedisClient();
+    if (!client || !isRedisAvailable()) return false;
+    const key = `authFailures:${email}`;
+    const count = await client.incr(key);
+    if (count === 1) await client.expire(key, AUTH_LOCKOUT_TTL); // Set TTL on first failure
+    return count > AUTH_LOCKOUT_THRESHOLD;
+  } catch { return false; }
+}
+
+/**
+ * Returns true if this account has exceeded the failed-login threshold.
+ */
+async function isAccountLocked(email) {
+  try {
+    const client = getRedisClient();
+    if (!client || !isRedisAvailable()) return false;
+    const count = parseInt(await client.get(`authFailures:${email}`) || '0', 10);
+    return count > AUTH_LOCKOUT_THRESHOLD;
+  } catch { return false; }
+}
+
+/**
+ * Clear failed-login counter on successful login.
+ */
+async function clearAuthFailures(email) {
+  try {
+    const client = getRedisClient();
+    if (!client || !isRedisAvailable()) return;
+    await client.del(`authFailures:${email}`);
+  } catch { /* non-fatal */ }
+}
 
 const router = express.Router();
 
@@ -126,6 +167,11 @@ router.post('/signin', async (req, res) => {
 
     const normalizedEmail = email.trim().toLowerCase();
 
+    // Per-account lockout check (prevents credential stuffing across IPs)
+    if (await isAccountLocked(normalizedEmail)) {
+      return res.status(429).json({ error: 'Too many failed attempts. Please wait 15 minutes before trying again.' });
+    }
+
     // Get user
     const { data: user, error: fetchError } = await supabaseAdmin
       .from('users')
@@ -134,6 +180,7 @@ router.post('/signin', async (req, res) => {
       .single();
 
     if (fetchError || !user) {
+      await trackAuthFailure(normalizedEmail);
       return res.status(400).json({ error: 'Invalid credentials' });
     }
 
@@ -145,8 +192,12 @@ router.post('/signin', async (req, res) => {
     // Verify password
     const validPassword = await bcrypt.compare(password, user.password_hash);
     if (!validPassword) {
+      await trackAuthFailure(normalizedEmail);
       return res.status(400).json({ error: 'Invalid credentials' });
     }
+
+    // Successful login — clear failure counter
+    await clearAuthFailures(normalizedEmail);
 
     // Generate token pair
     const { accessToken, refreshToken } = generateTokenPair(user);

@@ -49,8 +49,19 @@ Only return the JSON array, no other text.`;
  */
 async function generateProactiveInsights(userId) {
   try {
-    // 1. Get recent memories (last ~50)
-    const recentMemories = await getRecentMemories(userId, 50);
+    // 0. Cleanup delivered insights older than 30 days to keep the table lean
+    supabaseAdmin
+      .from('proactive_insights')
+      .delete()
+      .eq('user_id', userId)
+      .eq('delivered', true)
+      .lt('created_at', new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString())
+      .then(({ error }) => {
+        if (error) console.warn('[ProactiveInsights] Cleanup error:', error.message);
+      });
+
+    // 1. Fetch 200 memories to find enough platform signals (reflections dominate recent stream ~90%)
+    const recentMemories = await getRecentMemories(userId, 200);
     if (recentMemories.length < 3) {
       console.log(`[ProactiveInsights] Not enough memories (${recentMemories.length}) for insights`);
       return 0;
@@ -59,10 +70,12 @@ async function generateProactiveInsights(userId) {
     // 2. Get reflections for context (recent weights: recency dominant for trend detection)
     const reflections = await retrieveMemories(userId, "patterns and trends in recent behavior", 10, 'recent');
 
-    // 3. Format for LLM
-    const observations = recentMemories
-      .filter(m => m.memory_type !== 'reflection')
-      .slice(0, 25)
+    // 3. Format for LLM — explicitly separate signals from reflections
+    const signalMemories = recentMemories
+      .filter(m => m.memory_type === 'platform_data' || m.memory_type === 'observation' || m.memory_type === 'fact');
+
+    const observations = signalMemories
+      .slice(0, 30)
       .map(m => `- ${m.content.substring(0, 200)}`)
       .join('\n');
 

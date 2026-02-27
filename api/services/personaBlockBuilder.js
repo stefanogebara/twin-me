@@ -31,13 +31,18 @@ export function buildPersonaBlock({ personalityScores = null, soulSignature = nu
   if (identity) sections.push(identity);
 
   const styleRules = buildCommunicationStyleRules(personalityScores, writingProfile);
-  if (styleRules) sections.push(styleRules);
+  const unique = buildUniqueRules(personalityScores, soulSignature, writingProfile);
+
+  if (styleRules && unique) {
+    sections.push(styleRules + ' ' + unique);
+  } else if (styleRules) {
+    sections.push(styleRules);
+  } else if (unique) {
+    sections.push(`How I communicate: ${unique}`);
+  }
 
   const emotional = buildEmotionalState(platformData);
   if (emotional) sections.push(emotional);
-
-  const unique = buildUniqueRules(personalityScores, soulSignature, writingProfile);
-  if (unique) sections.push(unique);
 
   if (sections.length === 0) return '';
 
@@ -62,7 +67,7 @@ export function buildIdentityStatement(twinSummary, soulSignature) {
   if (twinSummary) {
     let converted = convertToFirstPerson(twinSummary);
     converted = truncateAtSentence(converted, 300);
-    if (converted) return `[Identity] ${converted}`;
+    if (converted) return `How I am: ${converted}`;
   }
 
   if (soulSignature) {
@@ -74,7 +79,7 @@ export function buildIdentityStatement(twinSummary, soulSignature) {
       const parts = [];
       if (archetype) parts.push(`I am "${archetype}"${subtitle ? ` - ${subtitle}` : ''}.`);
       if (narrative) parts.push(truncateAtSentence(narrative, 200));
-      return `[Identity] ${parts.join(' ')}`;
+      return `How I am: ${parts.join(' ')}`;
     }
   }
 
@@ -108,9 +113,9 @@ export function buildCommunicationStyleRules(personalityScores, writingProfile) 
     // Conscientiousness
     if (hasConfidence(p, 'conscientiousness')) {
       if (p.conscientiousness >= 70) {
-        rules.push('Be structured, reference progress and timelines');
+        rules.push('I appreciate plans and follow-through — reference them');
       } else if (p.conscientiousness <= 35) {
-        rules.push('Be loose and spontaneous, jump between topics freely');
+        rules.push('Keep it loose — topic-jumping is fine');
       }
     }
 
@@ -119,7 +124,7 @@ export function buildCommunicationStyleRules(personalityScores, writingProfile) 
       if (p.extraversion >= 70) {
         rules.push('Be enthusiastic and expressive, high energy');
       } else if (p.extraversion <= 35) {
-        rules.push('Be measured and reflective, go deep on single topics');
+        rules.push('Go deep rather than wide, think before reacting');
       }
     }
 
@@ -135,7 +140,7 @@ export function buildCommunicationStyleRules(personalityScores, writingProfile) 
     // Neuroticism
     if (hasConfidence(p, 'neuroticism')) {
       if (p.neuroticism >= 70) {
-        rules.push('Acknowledge emotional complexity, validate feelings');
+        rules.push("Let things land — don't rush to fix");
       } else if (p.neuroticism <= 35) {
         rules.push('Stay calm and steady, even-keeled tone');
       }
@@ -167,7 +172,7 @@ export function buildCommunicationStyleRules(personalityScores, writingProfile) 
 
   if (rules.length === 0) return '';
 
-  return `[Style Rules] ${rules.join('. ')}.`;
+  return `How I communicate: ${rules.join('. ')}.`;
 }
 
 /**
@@ -211,7 +216,7 @@ export function buildEmotionalState(platformData) {
 
   if (!directive) return '';
 
-  return `[Emotional State] ${directive}.`;
+  return `Right now: ${directive}.`;
 }
 
 /**
@@ -265,7 +270,7 @@ export function buildUniqueRules(personalityScores, soulSignature, writingProfil
 
   if (rules.length === 0) return '';
 
-  return `[Unique Rules] ${rules.join('. ')}.`;
+  return rules.join('. ') + '.';
 }
 
 // ---------------------------------------------------------------------------

@@ -1111,6 +1111,27 @@ router.get('/status/:userId', authenticateUser, async (req, res) => {
       };
     }
 
+    // Also include Nango-only connections (stored in nango_connection_mappings, not platform_connections)
+    const { data: nangoMappings } = await supabaseAdmin
+      .from('nango_connection_mappings')
+      .select('platform, status, created_at, updated_at')
+      .eq('user_id', userUuid)
+      .eq('status', 'connected');
+
+    for (const mapping of nangoMappings || []) {
+      if (!connectionStatus[mapping.platform]) {
+        connectionStatus[mapping.platform] = {
+          connected: true,
+          isActive: true,
+          tokenExpired: false,
+          connectedAt: mapping.created_at || null,
+          lastSync: mapping.updated_at || null,
+          status: 'active',
+          expiresAt: null,
+        };
+      }
+    }
+
     console.log(`📊 Connection status for user ${userId}:`, connectionStatus);
 
     // Cache the result in memory and Redis
