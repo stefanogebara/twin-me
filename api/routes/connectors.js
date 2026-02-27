@@ -343,8 +343,7 @@ router.get('/connect/:provider', authenticateUser, async (req, res) => {
           access_token: encryptToken(newTokens.access_token),
           token_expires_at: new Date(Date.now() + (newTokens.expires_in * 1000)).toISOString(),
           updated_at: new Date().toISOString(),
-          is_active: true,
-          token_expired: false
+          status: 'connected',
         };
 
         // Only update refresh token if a new one was provided

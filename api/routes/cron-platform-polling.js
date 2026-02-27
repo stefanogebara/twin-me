@@ -282,19 +282,18 @@ async function pollAllUsers() {
           // Poll the platform
           const result = await pollPlatform(userId, connection.platform, accessToken);
 
-          // Update last sync time if successful
-          if (result.success) {
-            const { error: syncUpdateErr } = await getSupabaseClient()
-              .from('platform_connections')
-              .update({
-                last_sync_at: new Date().toISOString(),
-                last_sync_status: 'success',
-                updated_at: new Date().toISOString(),
-              })
-              .eq('user_id', userId)
-              .eq('platform', connection.platform);
-            if (syncUpdateErr) console.warn(`[CRON] Failed to update sync status for ${connection.platform}:`, syncUpdateErr.message);
-          }
+          // Update last sync time and status
+          const firstError = result.results?.find(r => !r.success)?.error;
+          await getSupabaseClient()
+            .from('platform_connections')
+            .update({
+              last_sync_at: new Date().toISOString(),
+              last_sync_status: result.success ? 'success' : 'failed',
+              last_sync_error: result.success ? null : (firstError || 'Poll failed'),
+              updated_at: new Date().toISOString(),
+            })
+            .eq('user_id', userId)
+            .eq('platform', connection.platform);
 
           pollingResults.push({
             userId,
@@ -307,6 +306,16 @@ async function pollAllUsers() {
           await new Promise(resolve => setTimeout(resolve, 2000));
         } catch (error) {
           console.error(`❌ Error polling ${connection.platform} for user ${userId}:`, error.message);
+          await getSupabaseClient()
+            .from('platform_connections')
+            .update({
+              last_sync_at: new Date().toISOString(),
+              last_sync_status: 'failed',
+              last_sync_error: error.message,
+              updated_at: new Date().toISOString(),
+            })
+            .eq('user_id', userId)
+            .eq('platform', connection.platform);
           pollingResults.push({
             userId,
             platform: connection.platform,

@@ -106,7 +106,7 @@ export async function extractDiscordData(userId) {
     const { error: syncSuccessErr } = await getSupabaseClient()
       .from('platform_connections')
       .update({
-        last_synced_at: new Date(),
+        last_sync_at: new Date().toISOString(),
         last_sync_status: 'success'
       })
       .eq('user_id', userId)
