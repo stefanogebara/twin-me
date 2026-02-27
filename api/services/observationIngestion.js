@@ -1374,6 +1374,89 @@ async function runPostOnboardingIngestion(userId) {
   }
 }
 
+/**
+ * Ingest location clusters as NL observations into the memory stream.
+ * Called asynchronously after cluster upsert in POST /api/location/clusters.
+ *
+ * @param {string} userId
+ * @param {Array} clusters - Cluster objects from mobile (centroid + visit patterns)
+ */
+export async function ingestLocationClusters(userId, clusters) {
+  if (!clusters || clusters.length === 0) return;
+  try {
+    const sorted = [...clusters].sort((a, b) => (b.visit_count ?? 0) - (a.visit_count ?? 0));
+
+    function hasNightHours(hours) {
+      return (hours || []).some((h) => h < 7 || h >= 22);
+    }
+    function hasWorkHours(hours) {
+      return (hours || []).some((h) => h >= 9 && h <= 18);
+    }
+    function isWeekdaysOnly(days) {
+      return (days || []).length > 0 && (days || []).every((d) => d >= 1 && d <= 5);
+    }
+    function hasWeekend(days) {
+      return (days || []).some((d) => d === 0 || d === 6);
+    }
+
+    const homeCluster = sorted.find(
+      (c) => c.label_hint === 'home' || (hasNightHours(c.typical_hours) && (c.visit_count ?? 0) > 5)
+    );
+    const workCluster = sorted.find(
+      (c) =>
+        c.label_hint === 'work' ||
+        (isWeekdaysOnly(c.typical_days) && hasWorkHours(c.typical_hours) && (c.visit_count ?? 0) > 3)
+    );
+    const weekendSpot = sorted.find(
+      (c) => c !== homeCluster && c !== workCluster && hasWeekend(c.typical_days)
+    );
+
+    const observations = [];
+
+    if (homeCluster && workCluster) {
+      observations.push(
+        'Has a clear home-work lifestyle split — two distinct recurring locations, one active during work hours (weekdays 9–18h) and one dominating evenings and weekends'
+      );
+    } else if (homeCluster) {
+      observations.push(
+        'Strong home-base pattern — most location activity centers around a primary home location with limited recurring external spots'
+      );
+    } else if (workCluster) {
+      observations.push(
+        'Consistent weekday routine with a fixed daytime location — suggests structured work schedule'
+      );
+    }
+
+    if (weekendSpot) {
+      const days = weekendSpot.typical_days || [];
+      const dayName = days.includes(6) ? 'Saturdays' : 'Sundays';
+      const hours = weekendSpot.typical_hours || [];
+      const timeOfDay = hours.some((h) => h < 12) ? 'mornings' : 'afternoons';
+      observations.push(
+        `Has a recurring ${dayName} ${timeOfDay} spot — a regular haunt suggesting a consistent weekend ritual (gym, market, hobby, or social meetup)`
+      );
+    }
+
+    if (sorted.length >= 4) {
+      observations.push(
+        `Frequents ${sorted.length} distinct recurring locations — an active person with varied routines across multiple regular spots`
+      );
+    } else if (sorted.length <= 2 && sorted.length > 0) {
+      observations.push(
+        'Location patterns show a routine-oriented lifestyle — two or fewer recurring spots suggesting consistent, predictable daily rhythms'
+      );
+    }
+
+    for (const obs of observations) {
+      await addPlatformObservation(userId, obs, 'location', { ingestion_source: 'location_clusters' });
+    }
+
+    console.log(`[Location] Stored ${observations.length} NL observations for user ${userId}`);
+  } catch (err) {
+    console.error('[Location] ingestLocationClusters error:', err.message);
+  }
+}
+
 export {
   runObservationIngestion,
   startObservationIngestion,

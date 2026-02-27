@@ -22,6 +22,7 @@ import * as TaskManager from 'expo-task-manager';
 import * as SecureStore from 'expo-secure-store';
 import { USAGE_SYNC_TASK, STORAGE_KEYS } from '../constants';
 import { uploadAndroidUsage } from './api';
+import { uploadLocationClusters } from './locationClusters';
 import type { AndroidUsageData } from '../types';
 import { UsageStatsModule } from '../native/UsageStatsModule';
 import { NotificationListenerModule } from '../native/NotificationListenerModule';
@@ -85,7 +86,10 @@ export async function runSyncNow(): Promise<{ observationsCreated: number }> {
   if (!token) throw new Error('Not authenticated');
 
   const data = await collectUsageData();
-  const result = await uploadAndroidUsage(data);
+  const [result] = await Promise.all([
+    uploadAndroidUsage(data),
+    uploadLocationClusters(),
+  ]);
 
   NotificationListenerModule.clearStats();
   await SecureStore.setItemAsync(STORAGE_KEYS.LAST_SYNC, new Date().toISOString());

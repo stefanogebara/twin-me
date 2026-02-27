@@ -282,6 +282,7 @@ import memoryHealthRoutes from './routes/memory-health.js';
 import githubConnectRoutes from './routes/github-connect.js';
 import whatsappImportRoutes from './routes/whatsapp-import.js';
 import evalRoutes from './routes/eval.js';
+import locationRoutes from './routes/location.js';
 // OG image routes loaded lazily to prevent font-loading crashes from taking down the whole server
 let ogImageRoutes = null;
 try {
@@ -454,6 +455,7 @@ app.use('/api/github', githubConnectRoutes);   // GitHub PAT connection + status
 app.use('/api/whatsapp', whatsappImportRoutes); // WhatsApp export file parser
 app.use('/api/journal', journalRoutes); // Soul Journal - personal journaling with AI analysis
 app.use('/api/admin', adminLlmCostsRoutes); // LLM cost tracking dashboard
+app.use('/api/location', locationRoutes); // Location clusters — privacy-first lifestyle signals
 
 // Vercel Cron Job endpoints (production automation)
 // These are called by Vercel Cron Jobs on schedule (configured in vercel.json)
