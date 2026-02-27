@@ -3,8 +3,7 @@
   "buildCommand": "npm run build",
   "functions": {
     "api/index.js": {
-      "maxDuration": 120,
-      "supportsResponseStreaming": true
+      "maxDuration": 120
     }
   },
   "routes": [
