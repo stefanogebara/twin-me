@@ -235,33 +235,10 @@ async function pollAllUsers() {
 
       for (const connection of userConns) {
         try {
-          // Handle Nango-managed tokens (YouTube, Twitch, etc.)
+          // Skip Nango-managed tokens — handled by observation-ingestion cron via nango_connection_mappings
+          // Processing them here causes 120s function timeout before legacy platforms (Spotify, Discord) are reached
           if (connection.access_token === 'NANGO_MANAGED') {
-            console.log(`📡 [CRON] Polling ${connection.platform} via Nango for user ${userId}`);
-            const nangoService = await import('../services/nangoService.js');
-            const nangoResult = await nangoService.extractPlatformData(userId, connection.platform);
-            if (nangoResult.success || nangoResult.partial) {
-              await nangoService.storeNangoExtractionData(userId, connection.platform, nangoResult);
-              const { error: nangoSyncErr } = await getSupabaseClient()
-                .from('platform_connections')
-                .update({
-                  last_sync_at: new Date().toISOString(),
-                  last_sync_status: nangoResult.success ? 'success' : 'partial',
-                  updated_at: new Date().toISOString(),
-                })
-                .eq('user_id', userId)
-                .eq('platform', connection.platform);
-              if (nangoSyncErr) console.warn(`[CRON] Failed to update sync status for ${connection.platform}:`, nangoSyncErr.message);
-            }
-
-            pollingResults.push({
-              userId,
-              platform: connection.platform,
-              success: nangoResult.success,
-              results: nangoResult.success ? [{ endpoint: 'nango', success: true }] : [{ endpoint: 'nango', success: false, error: nangoResult.error }],
-            });
-
-            await new Promise(resolve => setTimeout(resolve, 2000));
+            console.log(`⏭️  [CRON] Skipping ${connection.platform} (Nango-managed, handled by ingest-observations)`);
             continue;
           }
 
