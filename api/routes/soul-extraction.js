@@ -163,7 +163,7 @@ case 'github':
     const { error: syncErr } = await supabase
       .from('platform_connections')
       .update({
-        last_sync: new Date().toISOString(),
+        last_sync_at: new Date().toISOString(),
         last_sync_status: extraction.success !== false ? 'success' : 'failed'
       })
       .eq('user_id', userId)

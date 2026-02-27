@@ -313,7 +313,7 @@ router.get('/events', authenticateUser, async (req, res) => {
     const { error: syncUpdateErr } = await supabaseAdmin
       .from('platform_connections')
       .update({
-        last_sync: new Date().toISOString(),
+        last_sync_at: new Date().toISOString(),
         last_sync_status: 'success',
         metadata: {
           last_sync: new Date().toISOString(),
@@ -507,7 +507,7 @@ router.post('/sync', authenticateUser, async (req, res) => {
     const { error: manualSyncErr } = await supabaseAdmin
       .from('platform_connections')
       .update({
-        last_sync: new Date().toISOString(),
+        last_sync_at: new Date().toISOString(),
         last_sync_status: 'success',
         metadata: {
           last_sync: new Date().toISOString(),
@@ -552,7 +552,7 @@ router.post('/sync', authenticateUser, async (req, res) => {
     const { error: failStatusErr } = await supabaseAdmin
       .from('platform_connections')
       .update({
-        last_sync: new Date().toISOString(),
+        last_sync_at: new Date().toISOString(),
         last_sync_status: 'failed',
         metadata: {
           last_sync: new Date().toISOString(),
