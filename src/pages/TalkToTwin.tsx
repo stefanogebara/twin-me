@@ -1,5 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useSubscription } from '@/hooks/useSubscription';
+import PaywallModal from '@/components/PaywallModal';
 import { useAuth } from '../contexts/AuthContext';
 import { useAnalytics } from '../contexts/AnalyticsContext';
 import { usePlatformStatus } from '../hooks/usePlatformStatus';
@@ -63,6 +65,9 @@ const TalkToTwin = () => {
   const [chatUsage, setChatUsage] = useState<{ used: number; limit: number; remaining: number; tier: string } | null>(null);
   const [limitReached, setLimitReached] = useState(false);
   const [introFetched, setIntroFetched] = useState(false);
+  const { plan } = useSubscription();
+  const [paywallOpen, setPaywallOpen] = useState(false);
+  const [freeExchangeCount, setFreeExchangeCount] = useState(0);
 
   // Design system color tokens
   const colors = {
@@ -293,6 +298,13 @@ const TalkToTwin = () => {
                 ));
               }
             } else if (event.type === 'done') {
+              if (plan === 'free') {
+                setFreeExchangeCount(c => {
+                  const next = c + 1;
+                  if (next >= 1) setPaywallOpen(true);
+                  return next;
+                });
+              }
               if (event.conversationId) setConversationId(event.conversationId);
               if (event.contextSources) {
                 setMessages(prev => prev.map(m =>
@@ -370,6 +382,7 @@ const TalkToTwin = () => {
       className="min-h-screen flex"
       style={{ backgroundColor: colors.bg }}
     >
+      <PaywallModal isOpen={paywallOpen} />
       <div className="flex-1 flex flex-col max-w-4xl mx-auto w-full">
         <header
           className="flex items-center justify-between px-6 py-4 lg:py-5 border-b"
