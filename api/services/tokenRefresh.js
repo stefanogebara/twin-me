@@ -294,8 +294,8 @@ export async function refreshAccessToken(userId, provider) {
     const { error: statusErr } = await supabaseClient
       .from('platform_connections')
       .update({
-        last_sync_status: 'token_refresh_failed',
-        error_message: error.message,
+        last_sync_status: 'error',
+        last_sync_error: error.message,
         updated_at: new Date().toISOString()
       })
       .eq('user_id', userId)

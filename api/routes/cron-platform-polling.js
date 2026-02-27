@@ -284,7 +284,7 @@ async function pollAllUsers() {
 
           // Update last sync time and status
           const firstError = result.results?.find(r => !r.success)?.error;
-          await getSupabaseClient()
+          const { error: syncUpdateErr } = await getSupabaseClient()
             .from('platform_connections')
             .update({
               last_sync_at: new Date().toISOString(),
@@ -294,6 +294,9 @@ async function pollAllUsers() {
             })
             .eq('user_id', userId)
             .eq('platform', connection.platform);
+          if (syncUpdateErr) {
+            console.error(`[CRON] Failed to update last_sync for ${connection.platform} (user: ${userId}):`, syncUpdateErr.message, syncUpdateErr.code);
+          }
 
           pollingResults.push({
             userId,
@@ -306,7 +309,7 @@ async function pollAllUsers() {
           await new Promise(resolve => setTimeout(resolve, 2000));
         } catch (error) {
           console.error(`❌ Error polling ${connection.platform} for user ${userId}:`, error.message);
-          await getSupabaseClient()
+          const { error: catchUpdateErr } = await getSupabaseClient()
             .from('platform_connections')
             .update({
               last_sync_at: new Date().toISOString(),
@@ -316,6 +319,9 @@ async function pollAllUsers() {
             })
             .eq('user_id', userId)
             .eq('platform', connection.platform);
+          if (catchUpdateErr) {
+            console.error(`[CRON] Failed to update error status for ${connection.platform}:`, catchUpdateErr.message, catchUpdateErr.code);
+          }
           pollingResults.push({
             userId,
             platform: connection.platform,

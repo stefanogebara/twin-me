@@ -266,6 +266,19 @@ async function pollAllUsers() {
           await new Promise(resolve => setTimeout(resolve, 2000));
         } catch (error) {
           console.error(`❌ Error polling ${connection.platform} for user ${userId}:`, error.message);
+          const { error: catchUpdateErr } = await getSupabaseClient()
+            .from('platform_connections')
+            .update({
+              last_sync_at: new Date().toISOString(),
+              last_sync_status: 'failed',
+              last_sync_error: error.message,
+              updated_at: new Date().toISOString(),
+            })
+            .eq('user_id', userId)
+            .eq('platform', connection.platform);
+          if (catchUpdateErr) {
+            console.warn(`[PlatformPolling] Failed to update error status for ${connection.platform}:`, catchUpdateErr.message);
+          }
           pollingResults.push({
             userId,
             platform: connection.platform,
