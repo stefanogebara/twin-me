@@ -9,6 +9,7 @@ import ParticleField from './components/ParticleField';
 import DataRevealItem from './components/DataRevealItem';
 import PersonalizedQuestions from './components/PersonalizedQuestion';
 import CompactPlatformConnect from './components/CompactPlatformConnect';
+import PlatformConnectStep from './components/PlatformConnectStep';
 import CorrectionForm from './components/CorrectionForm';
 import DeepInterview from './components/DeepInterview';
 
@@ -46,7 +47,7 @@ const inferNameFromEmail = (email: string): string => {
   return result.length === 0 ? local.charAt(0).toUpperCase() + local.slice(1) : result.join(' ');
 };
 
-type FlowPhase = 'entry' | 'reveal' | 'deepening' | 'deep-interview' | 'complete';
+type FlowPhase = 'entry' | 'reveal' | 'platforms' | 'deepening' | 'deep-interview' | 'complete';
 type OrbPhase = 'dormant' | 'awakening' | 'alive';
 
 interface DataPoint {
@@ -270,9 +271,9 @@ const NewDiscoverFlow: React.FC = () => {
       }).catch(() => {});
     }
 
-    setPhase('deepening');
+    setPhase('platforms');
 
-    // Fetch personalized questions from backend
+    // Pre-fetch personalized questions in background while user is on platforms screen
     setLoadingQuestions(true);
     try {
       const enrichment = enrichmentDataRef.current;
@@ -370,6 +371,10 @@ const NewDiscoverFlow: React.FC = () => {
       // Skip enrichment failed silently
     }
     enrichmentDataRef.current = null;
+    setPhase('platforms');
+  };
+
+  const handlePlatformsComplete = (_connectedPlatforms: string[]) => {
     setPhase('deepening');
   };
 
@@ -677,6 +682,14 @@ const NewDiscoverFlow: React.FC = () => {
             </motion.div>
           )}
 
+          {/* ===== PHASE: PLATFORMS ===== */}
+          {phase === 'platforms' && (
+            <PlatformConnectStep
+              userId={user.id}
+              onContinue={handlePlatformsComplete}
+            />
+          )}
+
           {/* ===== PHASE: DEEPENING ===== */}
           {phase === 'deepening' && (
             <motion.div
@@ -736,16 +749,6 @@ const NewDiscoverFlow: React.FC = () => {
                   ) : null}
                 </>
               )}
-
-              {/* Platform Connect — always visible */}
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: 0.5 }}
-                className="mt-8 mb-6"
-              >
-                <CompactPlatformConnect userId={user.id} />
-              </motion.div>
 
               {/* Soul Signature Card (shows after all questions answered) */}
               <AnimatePresence>
