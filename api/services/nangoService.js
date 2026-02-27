@@ -650,7 +650,7 @@ export async function extractPlatformData(userId, platform) {
  * (context aggregator, soul signature, insights pages)
  */
 export async function storeNangoExtractionData(userId, platform, extractionResult) {
-  if (!supabaseAdmin || !extractionResult?.success || !extractionResult.data) return;
+  if (!supabaseAdmin || (!extractionResult?.success && !extractionResult?.partial) || !extractionResult.data) return;
 
   const platformKeyMap = {
     'youtube': 'youtube', 'twitch': 'twitch', 'spotify': 'spotify',
