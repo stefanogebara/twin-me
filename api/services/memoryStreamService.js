@@ -217,38 +217,17 @@ async function decaySourceMemories(userId, evidenceIds) {
   if (!evidenceIds || evidenceIds.length === 0) return 0;
 
   try {
-    // Fetch current importance scores (only decay eligible ones)
-    const { data: memories } = await supabaseAdmin
-      .from('user_memories')
-      .select('id, importance_score, retrieval_count')
-      .eq('user_id', userId)
-      .in('id', evidenceIds);
+    // Single RPC call: SQL filters eligible rows + decays in one query (no N+1)
+    const { data: decayed, error } = await supabaseAdmin.rpc('bulk_decay_memories', {
+      p_user_id: userId,
+      p_memory_ids: evidenceIds,
+      p_decay_factor: 0.6,
+    });
 
-    if (!memories || memories.length === 0) return 0;
-
-    // Filter: skip protected memories (high importance or frequently retrieved)
-    const eligible = memories.filter(
-      m => m.importance_score < 8 && (m.retrieval_count ?? 0) < 3
-    );
-
-    if (eligible.length === 0) return 0;
-
-    // Batch update: decay by 40%, floor at 1
-    const updates = eligible.map(m => ({
-      id: m.id,
-      importance_score: Math.max(1, Math.round(m.importance_score * 0.6)),
-    }));
-
-    for (const update of updates) {
-      await supabaseAdmin
-        .from('user_memories')
-        .update({ importance_score: update.importance_score })
-        .eq('id', update.id)
-        .eq('user_id', userId); // safety: ensure user ownership
-    }
-
-    console.log(`[MemoryStream] S5.2 Decayed ${eligible.length} source memories for user ${userId}`);
-    return eligible.length;
+    if (error) throw error;
+    const count = decayed?.length ?? 0;
+    console.log(`[MemoryStream] S5.2 Decayed ${count} source memories for user ${userId}`);
+    return count;
   } catch (err) {
     console.warn('[MemoryStream] Source decay failed (non-fatal):', err.message);
     return 0;

@@ -123,7 +123,15 @@ async function isDuplicateReflection(userId, expertId, newObservation) {
 
     if (!data || data.length === 0) return false;
 
-    // Cosine path: use embeddings when available
+    // Cheap check first: bigram Jaccard on all rows (no API call needed)
+    // Catches obvious duplicates without paying for an embedding
+    const bigramMax = Math.max(...data.map(r => bigramSimilarity(newObservation, r.content)));
+    if (bigramMax > DEDUP_BIGRAM_THRESHOLD) {
+      console.log(`[Reflection] Dedup skip (${expertId}): bigram ${bigramMax.toFixed(2)} > ${DEDUP_BIGRAM_THRESHOLD}`);
+      return true;
+    }
+
+    // Cosine path: only pay for embedding when bigram didn't catch it
     const rowsWithEmbeddings = data.filter(r => r.embedding);
     if (rowsWithEmbeddings.length > 0) {
       const newVec = await generateEmbedding(newObservation);
@@ -137,16 +145,9 @@ async function isDuplicateReflection(userId, expertId, newObservation) {
             return true;
           }
         }
-        return false;
       }
     }
 
-    // Bigram fallback: no embeddings stored yet
-    const maxSim = Math.max(...data.map(r => bigramSimilarity(newObservation, r.content)));
-    if (maxSim > DEDUP_BIGRAM_THRESHOLD) {
-      console.log(`[Reflection] Dedup skip (${expertId}): bigram ${maxSim.toFixed(2)} > ${DEDUP_BIGRAM_THRESHOLD}`);
-      return true;
-    }
     return false;
   } catch (err) {
     console.warn('[Reflection] Dedup check failed (non-fatal):', err.message);

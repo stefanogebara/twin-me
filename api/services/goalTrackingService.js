@@ -645,8 +645,23 @@ async function trackGoalProgress(userId, platformData) {
         continue;
       }
 
-      // Update streak counters
-      const newStreak = targetMet ? (goal.current_streak || 0) + 1 : 0;
+      // Update streak counters — grace_days=1 means one miss doesn't reset to 0
+      const GRACE_DAYS = 1;
+      const consecutiveMisses = (goal.metadata?.consecutive_misses ?? 0);
+      let newStreak;
+      let newConsecutiveMisses;
+      if (targetMet) {
+        newStreak = (goal.current_streak || 0) + 1;
+        newConsecutiveMisses = 0;
+      } else if (consecutiveMisses < GRACE_DAYS) {
+        // Within grace window — preserve streak, increment miss counter
+        newStreak = goal.current_streak || 0;
+        newConsecutiveMisses = consecutiveMisses + 1;
+      } else {
+        // Grace exhausted — reset
+        newStreak = 0;
+        newConsecutiveMisses = 0;
+      }
       const newBestStreak = Math.max(newStreak, goal.best_streak || 0);
       const newTotalTracked = (goal.total_days_tracked || 0) + 1;
       const newTotalMet = (goal.total_days_met || 0) + (targetMet ? 1 : 0);
@@ -671,6 +686,7 @@ async function trackGoalProgress(userId, platformData) {
           last_progress_check: new Date().toISOString(),
           status: newStatus,
           celebration_delivered: newStatus === 'completed' ? false : goal.celebration_delivered,
+          metadata: { ...(goal.metadata ?? {}), consecutive_misses: newConsecutiveMisses },
         })
         .eq('id', goal.id);
 
