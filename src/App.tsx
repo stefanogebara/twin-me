@@ -36,6 +36,7 @@ const AdminLLMCosts = lazy(() => import("./pages/AdminLLMCosts"));
 const PrivacyPolicy = lazy(() => import("./pages/PrivacyPolicy"));
 const PortfolioPage = lazy(() => import("./pages/PortfolioPage"));
 const NewDiscoverFlow = lazy(() => import("./pages/onboarding/NewDiscoverFlow"));
+const DiscoverLanding = lazy(() => import("./pages/DiscoverLanding"));
 const GmailCallback = lazy(() => import("./pages/oauth/GmailCallback"));
 const SpotifyInsightsPage = lazy(() => import("./pages/insights/SpotifyInsightsPage"));
 const CalendarInsightsPage = lazy(() => import("./pages/insights/CalendarInsightsPage"));
@@ -110,6 +111,7 @@ const App = () => {
 
             {/* Landing */}
             <Route path="/" element={<Index />} />
+            <Route path="/discover" element={<DiscoverLanding />} />
 
             {/* Main Dashboard */}
             <Route path="/dashboard" element={

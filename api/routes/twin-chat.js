@@ -12,6 +12,7 @@
 import express from 'express';
 import axios from 'axios';
 import { complete, stream as streamLLM, TIER_CHAT } from '../services/llmGateway.js';
+import { getUserSubscription } from '../services/subscriptionService.js';
 import { authenticateUser } from '../middleware/auth.js';
 import { serverDb, supabaseAdmin } from '../services/database.js';
 import { getMonthlyUsage, FREE_TIER_LIMIT } from './chat-usage.js';
@@ -833,6 +834,25 @@ router.post('/message', authenticateUser, async (req, res) => {
     const useExpertRouting = featureFlags.expert_routing !== false;
     const useIdentityContext = featureFlags.identity_context !== false;
     const useEmotionalState = featureFlags.emotional_state !== false;
+
+    // Subscription gate: free users get 1 assistant reply, then paywall
+    const sub = await getUserSubscription(userId);
+    if (sub.plan === 'free') {
+      const { count } = await supabaseAdmin
+        .from('twin_messages')
+        .select('id', { count: 'exact', head: true })
+        .eq('user_id', userId)
+        .eq('role', 'assistant');
+
+      if ((count ?? 0) >= 1) {
+        return res.status(403).json({
+          success: false,
+          error: 'Upgrade required to continue chatting',
+          code: 'UPGRADE_REQUIRED',
+          requiredPlan: 'pro',
+        });
+      }
+    }
 
     if (!message || !message.trim()) {
       return res.status(400).json({

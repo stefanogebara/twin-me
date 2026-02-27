@@ -1,0 +1,42 @@
+// api/services/subscriptionService.js
+import { supabaseAdmin } from './database.js';
+
+const PLAN_LIMITS = {
+  free:  { chatMessages: 0,        platformConnections: 1,        memoryDays: 0,        emailDigest: false },
+  pro:   { chatMessages: Infinity, platformConnections: 3,        memoryDays: 30,       emailDigest: true  },
+  max:   { chatMessages: Infinity, platformConnections: Infinity, memoryDays: Infinity, emailDigest: true  },
+};
+
+export async function getUserSubscription(userId) {
+  const { data } = await supabaseAdmin
+    .from('user_subscriptions')
+    .select('plan, status, current_period_end, cancel_at_period_end')
+    .eq('user_id', userId)
+    .single();
+
+  if (!data) return { plan: 'free', status: 'active' };
+  const isActive = ['active', 'trialing', 'past_due'].includes(data.status);
+  return {
+    plan: isActive ? data.plan : 'free',
+    status: data.status,
+    currentPeriodEnd: data.current_period_end,
+    cancelAtPeriodEnd: data.cancel_at_period_end,
+  };
+}
+
+export function getPlanLimits(plan) {
+  return PLAN_LIMITS[plan] ?? PLAN_LIMITS.free;
+}
+
+export async function requirePlan(userId, minimumPlan) {
+  const sub = await getUserSubscription(userId);
+  const order = ['free', 'pro', 'max'];
+  if (order.indexOf(sub.plan) < order.indexOf(minimumPlan)) {
+    const err = new Error(`Requires ${minimumPlan} plan`);
+    err.statusCode = 403;
+    err.code = 'UPGRADE_REQUIRED';
+    err.requiredPlan = minimumPlan;
+    throw err;
+  }
+  return sub;
+}

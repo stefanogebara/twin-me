@@ -186,6 +186,9 @@ app.use((req, res, next) => {
   next();
 });
 
+// Billing webhook needs raw body — mount BEFORE express.json
+app.use('/api/billing', billingRoutes);
+
 // Parse JSON bodies
 app.use(express.json({ limit: '10mb' }));
 
@@ -285,6 +288,9 @@ import githubConnectRoutes from './routes/github-connect.js';
 import whatsappImportRoutes from './routes/whatsapp-import.js';
 import evalRoutes from './routes/eval.js';
 import locationRoutes from './routes/location.js';
+import billingRoutes from './routes/billing.js';
+import discoveryRoutes from './routes/discovery.js';
+import cronEmailDigestHandler from './routes/cron-email-digest.js';
 // OG image routes loaded lazily to prevent font-loading crashes from taking down the whole server
 let ogImageRoutes = null;
 try {
@@ -458,6 +464,8 @@ app.use('/api/whatsapp', whatsappImportRoutes); // WhatsApp export file parser
 app.use('/api/journal', journalRoutes); // Soul Journal - personal journaling with AI analysis
 app.use('/api/admin', adminLlmCostsRoutes); // LLM cost tracking dashboard
 app.use('/api/location', locationRoutes); // Location clusters — privacy-first lifestyle signals
+app.use('/api/discovery', discoveryRoutes); // Public pre-signup discovery scan
+app.use('/api/cron/email-digest', cronEmailDigestHandler); // Weekly email digest (Mondays 9am)
 
 // Vercel Cron Job endpoints (production automation)
 // These are called by Vercel Cron Jobs on schedule (configured in vercel.json)

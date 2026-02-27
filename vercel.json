@@ -56,6 +56,10 @@
     {
       "path": "/api/cron/memory-forgetting",
       "schedule": "0 3 * * 0"
+    },
+    {
+      "path": "/api/cron/email-digest",
+      "schedule": "0 9 * * 1"
     }
   ]
 }
