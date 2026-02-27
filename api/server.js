@@ -278,6 +278,10 @@ import goalsRoutes from './routes/goals.js';
 import importsRoutes from './routes/imports.js';
 import cronMemoryArchiveRoutes from './routes/cron-memory-archive.js';
 import cronMemoryForgettingRoutes from './routes/cron-memory-forgetting.js';
+import memoryHealthRoutes from './routes/memory-health.js';
+import githubConnectRoutes from './routes/github-connect.js';
+import whatsappImportRoutes from './routes/whatsapp-import.js';
+import evalRoutes from './routes/eval.js';
 // OG image routes loaded lazily to prevent font-loading crashes from taking down the whole server
 let ogImageRoutes = null;
 try {
@@ -437,6 +441,8 @@ app.use('/api/claude-sync', claudeSyncRoutes); // Claude Desktop conversation sy
 app.use('/api/cron/claude-sync', cronClaudeSyncRoutes); // Claude Desktop cron sync and AI analysis processing
 app.use('/api/cron/memory-archive', cronMemoryArchiveRoutes);    // Daily memory archival for large users
 app.use('/api/cron/memory-forgetting', cronMemoryForgettingRoutes); // Weekly multi-tier quality maintenance
+app.use('/api/memory-health', memoryHealthRoutes); // Memory stream health dashboard
+app.use('/api/eval', evalRoutes); // Twin eval rubric + feature flags
 app.use('/api/twins-brain', twinsBrainRoutes); // Twins Brain unified knowledge graph
 app.use('/api/mem0', mem0Routes); // Mem0 intelligent memory layer
 app.use('/api/mem0-sync', mem0BrainSyncRoutes); // Mem0 → Twins Brain sync
@@ -444,6 +450,8 @@ app.use('/api/correlations', correlationsRoutes); // Cross-platform correlation 
 app.use('/api/nango', nangoRoutes); // Nango unified API for 10 platform connections
 app.use('/api/nango-webhooks', nangoWebhooksRoutes); // Nango webhook receiver
 app.use('/api/extension', extensionDataRoutes); // Browser extension data capture (YouTube, Twitch, Netflix)
+app.use('/api/github', githubConnectRoutes);   // GitHub PAT connection + status
+app.use('/api/whatsapp', whatsappImportRoutes); // WhatsApp export file parser
 app.use('/api/journal', journalRoutes); // Soul Journal - personal journaling with AI analysis
 app.use('/api/admin', adminLlmCostsRoutes); // LLM cost tracking dashboard
 
