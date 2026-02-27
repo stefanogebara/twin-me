@@ -30,7 +30,8 @@
         "android.permission.RECEIVE_BOOT_COMPLETED",
         "android.permission.INTERNET",
         "android.permission.FOREGROUND_SERVICE",
-        "android.permission.WAKE_LOCK"
+        "android.permission.WAKE_LOCK",
+        "android.permission.ACCESS_COARSE_LOCATION"
       ]
     },
     "web": {
@@ -38,6 +39,9 @@
     },
     "plugins": [
       "expo-secure-store",
+      ["expo-location", {
+        "locationWhenInUsePermission": "TwinMe uses your location to understand your daily patterns."
+      }],
       "expo-router",
       "expo-font",
       "expo-background-fetch",
@@ -48,6 +52,23 @@
         {
           "icon": "./assets/notification-icon.png",
           "color": "#8b5cf6"
+        }
+      ],
+      [
+        "react-native-android-widget",
+        {
+          "widgets": [
+            {
+              "name": "TwinInsight",
+              "label": "Twin Insight",
+              "description": "Your latest soul signature insight",
+              "previewImage": "./assets/widget-preview.png",
+              "minWidth": "180dp",
+              "minHeight": "110dp",
+              "resizable": "horizontal",
+              "updatePeriodMillis": 1800000
+            }
+          ]
         }
       ]
     ],

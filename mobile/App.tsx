@@ -1,10 +1,11 @@
-import React, { useCallback, useEffect, useRef } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, View, Text } from 'react-native';
 import { NavigationContainer, NavigationContainerRef } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import { useFonts } from 'expo-font';
+import * as SecureStore from 'expo-secure-store';
 import {
   Halant_400Regular,
   Halant_500Medium,
@@ -17,20 +18,24 @@ import {
 } from '@expo-google-fonts/inter';
 
 import { useAuth } from './src/hooks/useAuth';
-import { registerBackgroundSync } from './src/services/backgroundSync';
+import { registerBackgroundSync, runSyncNow } from './src/services/backgroundSync';
+import { addLocationSample, SAMPLE_INTERVAL_MS } from './src/services/locationClusters';
 import { usePushNotifications } from './src/hooks/usePushNotifications';
 import { LoginScreen } from './src/screens/LoginScreen';
 import { HomeScreen } from './src/screens/HomeScreen';
 import { TwinChatScreen } from './src/screens/TwinChatScreen';
-import { SettingsScreen } from './src/screens/SettingsScreen';
-import { COLORS } from './src/constants';
+import { MeScreen } from './src/screens/MeScreen';
+import { PermissionOnboardingScreen } from './src/screens/PermissionOnboardingScreen';
+import { COLORS, STORAGE_KEYS } from './src/constants';
+import { UsageStatsModule } from './src/native/UsageStatsModule';
+import { NotificationListenerModule } from './src/native/NotificationListenerModule';
 
 const Tab = createBottomTabNavigator();
 
 const TAB_ICONS: Record<string, string> = {
   Home: '⊙',
   Chat: '◈',
-  Settings: '⊕',
+  Me: '⊕',
 };
 
 function TabIcon({ label, focused }: { label: string; focused: boolean }) {
@@ -64,14 +69,52 @@ export default function App() {
   const { token, user, isLoading, login, signup, loginWithGoogle, logout } = useAuth();
   const navRef = useRef<NavigationContainerRef<Record<string, undefined>>>(null);
 
+  // Tracks whether we should show the permission onboarding wizard
+  const [showPermissions, setShowPermissions] = useState<boolean | null>(null);
+
   useEffect(() => {
     if (token) {
       registerBackgroundSync().catch(console.error);
+      checkPermissionsNeeded();
+    } else {
+      setShowPermissions(null);
     }
   }, [token]);
 
-  const handlePushTap = useCallback(() => {
-    navRef.current?.navigate('Chat');
+  // Foreground location sampling — fires every 5 min while app is open
+  useEffect(() => {
+    if (!user) return;
+    const interval = setInterval(addLocationSample, SAMPLE_INTERVAL_MS);
+    return () => clearInterval(interval);
+  }, [user]);
+
+  async function checkPermissionsNeeded() {
+    const alreadyShown = await SecureStore.getItemAsync(STORAGE_KEYS.PERMISSIONS_SHOWN);
+    if (alreadyShown) {
+      setShowPermissions(false);
+      return;
+    }
+    const hasUsage = UsageStatsModule.hasUsagePermission();
+    const hasNotif = NotificationListenerModule.hasNotificationPermission();
+    setShowPermissions(!hasUsage || !hasNotif);
+  }
+
+  async function handlePermissionsDone() {
+    // Kick off an immediate sync so new permissions take effect right away
+    runSyncNow().catch(console.error);
+    setShowPermissions(false);
+  }
+
+  const handlePushTap = useCallback((data: Record<string, unknown>) => {
+    const type = (data?.notificationType as string) ?? 'insight';
+    const screenMap: Record<string, string> = {
+      insight: 'Home',
+      goal: 'Home',      // no dedicated Goals tab in mobile yet
+      reflection: 'Me',
+      chat: 'Chat',
+    };
+    const screen = screenMap[type] ?? 'Chat';
+    navRef.current?.navigate(screen as never);
   }, []);
 
   usePushNotifications(token ? handlePushTap : undefined);
@@ -90,6 +133,26 @@ export default function App() {
       <SafeAreaProvider>
         <StatusBar style="dark" />
         <LoginScreen onLogin={login} onSignup={signup} onGoogleLogin={loginWithGoogle} />
+      </SafeAreaProvider>
+    );
+  }
+
+  // showPermissions is null while we're checking — show spinner
+  if (showPermissions === null) {
+    return (
+      <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: COLORS.background }}>
+        <ActivityIndicator color={COLORS.primary} size="large" />
+        <StatusBar style="dark" />
+      </View>
+    );
+  }
+
+  // Show onboarding wizard if permissions are missing and haven't been shown yet
+  if (showPermissions) {
+    return (
+      <SafeAreaProvider>
+        <StatusBar style="dark" />
+        <PermissionOnboardingScreen onDone={handlePermissionsDone} />
       </SafeAreaProvider>
     );
   }
@@ -136,14 +199,14 @@ export default function App() {
           />
 
           <Tab.Screen
-            name="Settings"
+            name="Me"
             options={{
-              title: 'Settings',
-              tabBarLabel: 'Settings',
-              tabBarIcon: ({ focused }) => <TabIcon label="Settings" focused={focused} />,
+              title: 'Me',
+              tabBarLabel: 'Me',
+              tabBarIcon: ({ focused }) => <TabIcon label="Me" focused={focused} />,
             }}
           >
-            {() => <SettingsScreen user={user} onLogout={logout} />}
+            {() => <MeScreen user={user} onLogout={logout} />}
           </Tab.Screen>
         </Tab.Navigator>
       </NavigationContainer>

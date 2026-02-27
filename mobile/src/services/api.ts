@@ -28,6 +28,10 @@ export async function authFetch(path: string, options: RequestInit = {}): Promis
   });
 }
 
+export async function apiPost(path: string, body: object): Promise<Response> {
+  return authFetch(path, { method: 'POST', body: JSON.stringify(body) });
+}
+
 // ── Auth ─────────────────────────────────────────────────────────────────────
 
 export async function login(email: string, password: string): Promise<{ token: string; user: User }> {
