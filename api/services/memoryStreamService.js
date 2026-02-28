@@ -256,12 +256,12 @@ async function addConversationMemory(userId, userMessage, assistantResponse, met
   const taggedMeta = timeContext ? { ...metadata, context: timeContext } : metadata;
 
   const [userMemory, twinMemory] = await Promise.all([
-    addMemory(userId, `User said: "${userMessage.substring(0, 500)}"`, 'conversation', {
+    addMemory(userId, userMessage.substring(0, 500), 'conversation', {
       role: 'user',
       source: 'twin_chat',
       ...taggedMeta,
     }),
-    addMemory(userId, `Twin responded: "${assistantResponse.substring(0, 500)}"`, 'conversation', {
+    addMemory(userId, `Twin said: "${assistantResponse.substring(0, 500)}"`, 'conversation', {
       role: 'assistant',
       source: 'twin_chat',
       ...taggedMeta,
@@ -709,9 +709,22 @@ async function getRecentMemories(userId, limit = 50) {
 
 const FACT_EXTRACTION_PROMPT = `Extract 0-3 factual statements about this person from their message. Return a JSON array of plain strings (not objects). Only include clear facts, not opinions or greetings. Return [] if no clear facts.
 
+Categories to extract (when explicitly mentioned):
+- Personal interests, hobbies, habits
+- Professional identity: job title, company, projects, skills, career goals
+- Goals and aspirations mentioned explicitly
+- Relationships mentioned (family, friends, colleagues by role)
+- Lifestyle facts (location, diet, routine, preferences)
+
 Examples:
 Input: "I love hiking every weekend"
 Output: ["User enjoys hiking regularly on weekends"]
+
+Input: "I'm a senior engineer at Stripe working on payments infrastructure"
+Output: ["User is a senior engineer at Stripe", "User works on payments infrastructure"]
+
+Input: "My sister just got married and I'm really close with my family"
+Output: ["User has a sister who recently got married", "User is close with their family"]
 
 Input: "hey how are you"
 Output: []
@@ -871,6 +884,79 @@ async function extractConversationFacts(userId, userMessage) {
 }
 
 // ====================================================================
+// Communication Style Extraction
+// ====================================================================
+
+const COMMUNICATION_STYLE_PROMPT = `Analyze this message from the user. Extract 1-2 SHORT facts about their communication style IF the message is long enough to reveal patterns. Focus on:
+- Formality (casual/formal/mixed)
+- Characteristic phrases or expressions they use
+- Sentence structure (fragments/complete/stream-of-consciousness)
+- Tone (direct/indirect/humorous/analytical)
+- Vocabulary complexity
+
+Message: "{message}"
+
+Return ONLY if you can extract something specific and non-generic. Format: ["fact1", "fact2"] or [] if nothing to extract.
+Do NOT extract facts about the topic — only about HOW they communicate.`;
+
+/**
+ * Extract communication style facts from a user message and store as memories.
+ * Only runs for messages >= 30 characters. Fire-and-forget — caller does not await.
+ *
+ * @param {string} userId - User UUID
+ * @param {string} userMessage - The user's chat message
+ * @returns {Promise<void>}
+ */
+async function extractCommunicationStyle(userId, userMessage) {
+  if (!userId || !userMessage || userMessage.length < 30) return;
+
+  try {
+    const result = await complete({
+      tier: TIER_EXTRACTION,
+      messages: [{
+        role: 'user',
+        content: COMMUNICATION_STYLE_PROMPT.replace('{message}', userMessage.substring(0, 500))
+      }],
+      maxTokens: 150,
+      temperature: 0,
+      serviceName: 'memoryStream-commStyle'
+    });
+
+    const text = (result.content || '').trim();
+
+    let facts;
+    try {
+      const cleaned = text.replace(/^```json?\s*/i, '').replace(/\s*```$/i, '').trim();
+      facts = JSON.parse(cleaned);
+    } catch {
+      return;
+    }
+
+    if (!Array.isArray(facts) || facts.length === 0) return;
+
+    for (const raw of facts.slice(0, 2)) {
+      const factText = normalizeFact(raw);
+      if (!factText || factText.length < 10) continue;
+
+      const isDupe = await isDuplicateFact(userId, factText);
+      if (isDupe) continue;
+
+      await addMemory(userId, factText, 'fact', {
+        source: 'communication_style',
+        extracted_from: 'conversation',
+      }, {
+        importanceScore: 4,
+        skipImportance: true,
+      });
+    }
+
+    console.log(`[MemoryStream] Communication style extraction ran for user ${userId}`);
+  } catch (error) {
+    console.warn('[MemoryStream] extractCommunicationStyle error (non-fatal):', error.message);
+  }
+}
+
+// ====================================================================
 // Memory Stats Helper
 // ====================================================================
 
@@ -1008,6 +1094,7 @@ export {
   getRecentMemories,
   rateImportance,
   extractConversationFacts,
+  extractCommunicationStyle,
   getMemoryStats,
   getTwinReadinessScore,
   archiveOldMemories,

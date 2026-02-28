@@ -36,6 +36,7 @@ import {
   retrieveMemories,
   getRecentImportanceSum,
   extractConversationFacts,
+  extractCommunicationStyle,
   getMemoryStats,
 } from '../services/memoryStreamService.js';
 import { shouldTriggerReflection, generateReflections, seedReflections } from '../services/reflectionEngine.js';
@@ -460,6 +461,10 @@ function buildTwinSystemPrompt(soulSignature, platformData, personalityScores = 
       if (platformData.web.recentSearches?.length > 0) dynamicContext += ` Recently searched: "${platformData.web.recentSearches.slice(0, 3).join('", "')}".`;
       if (platformData.web.topDomains?.length > 0) dynamicContext += ` Frequent sites: ${platformData.web.topDomains.slice(0, 5).join(', ')}.`;
     }
+
+    if (platformData.linkedin?.observations?.length > 0) {
+      dynamicContext += `\n\nMy professional side (from LinkedIn activity):\n${platformData.linkedin.observations.map(o => `- ${o}`).join('\n')}`;
+    }
   }
 
   // Hard cap dynamic context to prevent token bloat
@@ -570,6 +575,7 @@ async function getPlatformData(userId, platforms) {
     if (platform === 'calendar' || platform === 'google_calendar') return fetchCalendarData(userId);
     if (platform === 'whoop') return fetchWhoopData(userId);
     if (platform === 'web') return fetchWebData(userId);
+    if (platform === 'linkedin') return fetchLinkedInData(userId);
     return Promise.resolve(null);
   });
 
@@ -584,6 +590,7 @@ async function getPlatformData(userId, platforms) {
     else if (platform === 'calendar' || platform === 'google_calendar') data.calendar = result;
     else if (platform === 'whoop') data.whoop = result;
     else if (platform === 'web') data.web = result;
+    else if (platform === 'linkedin') data.linkedin = result;
   }
 
   // Store in cache before returning
@@ -825,6 +832,34 @@ async function fetchWebData(userId) {
   }
 }
 
+/** Fetch LinkedIn context from memory stream (platform_data observations tagged linkedin) */
+async function fetchLinkedInData(userId) {
+  try {
+    const { data, error } = await supabaseAdmin
+      .from('user_memories')
+      .select('content, created_at, metadata')
+      .eq('user_id', userId)
+      .eq('memory_type', 'platform_data')
+      .ilike('content', '%linkedin%')
+      .order('created_at', { ascending: false })
+      .limit(5);
+
+    if (error) {
+      console.warn('[Twin Chat] LinkedIn memory query error:', error.message);
+      return null;
+    }
+    if (!data || data.length === 0) return null;
+
+    return {
+      observations: data.map(m => m.content),
+      fetchedAt: new Date().toISOString(),
+    };
+  } catch (err) {
+    console.warn('[Twin Chat] Could not fetch LinkedIn data:', err.message);
+    return null;
+  }
+}
+
 /**
  * POST /api/chat/message - Send a message to your digital twin
  */
@@ -951,7 +986,8 @@ router.post('/message', authenticateUser, async (req, res) => {
     }
 
     // Compute current emotional state from behavioral signals (no LLM, no extra API calls)
-    const emotionalState = useEmotionalState ? computeEmotionalState(platformData) : { promptBlock: null };
+    // Pass user message for keyword-based sentiment detection
+    const emotionalState = useEmotionalState ? computeEmotionalState(platformData, message) : { promptBlock: null };
     if (useEmotionalState && emotionalState.promptBlock) {
       console.log(`[Twin Chat] Emotional state: valence=${emotionalState.valence.toFixed(2)}, arousal=${emotionalState.arousal.toFixed(2)}, load=${emotionalState.cognitiveLoad}`);
       // Store snapshot as memory — non-blocking, deduplication handled by isDuplicateFact
@@ -1141,6 +1177,24 @@ router.post('/message', authenticateUser, async (req, res) => {
       }
     }
 
+    // Every 5th turn: inject a proactive deep question into the system prompt
+    if (conversationHistory.length > 0 && conversationHistory.length % 5 === 0) {
+      const deepQuestionBlock = `
+PROACTIVE QUESTION: At the very end of your response, naturally ask ONE of these questions based on what you know about the user (pick the most relevant, don't ask the same one twice):
+- "By the way — what are you actually working on these days? I feel like I barely know what you do professionally."
+- "What's something you've been meaning to do but keep putting off? I'm genuinely curious."
+- "How do you actually feel about [specific thing you noticed in their data]? Not the optimized version — the real version."
+- "What did today actually feel like for you?"
+Make it sound natural and curious, not like a survey question.`;
+      const lastBlock = systemPrompt[systemPrompt.length - 1];
+      if (lastBlock && !lastBlock.cache_control) {
+        lastBlock.text += deepQuestionBlock;
+      } else {
+        systemPrompt.push({ type: 'text', text: deepQuestionBlock.trim() });
+      }
+      console.log(`[Twin Chat] Injected proactive deep question (turn ${conversationHistory.length})`);
+    }
+
     // Log total system prompt size for monitoring
     const totalSystemChars = systemPrompt.reduce((sum, block) => sum + (block.text?.length || 0), 0);
     const estimatedTokens = Math.ceil(totalSystemChars / 4);
@@ -1231,6 +1285,9 @@ router.post('/message', authenticateUser, async (req, res) => {
 
     // Extract facts from user message - non-blocking
     extractConversationFacts(userId, message).catch(err => console.error('[TWIN-CHAT] Fact extraction failed:', err.message));
+
+    // Extract communication style patterns from user message - non-blocking
+    extractCommunicationStyle(userId, message).catch(err => console.warn('[TWIN-CHAT] Communication style extraction failed:', err.message));
 
     // Trigger reflection if enough importance has accumulated - non-blocking
     shouldTriggerReflection(userId).then(async (shouldReflect) => {

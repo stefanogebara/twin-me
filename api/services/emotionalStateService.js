@@ -12,10 +12,12 @@
  *
  * Output shape:
  *   {
- *     valence: 0-1,          // emotional tone: 0=negative, 0.5=neutral, 1=positive
- *     arousal: 0-1,          // energy level: 0=exhausted, 1=highly activated
+ *     valence: 0-1,                  // emotional tone: 0=negative, 0.5=neutral, 1=positive
+ *     arousal: 0-1,                  // energy level: 0=exhausted, 1=highly activated
  *     cognitiveLoad: 'low' | 'normal' | 'high',
  *     meetingCount: number,
+ *     expressedSentiment: 'positive' | 'negative' | null,  // detected from user message text
+ *     guidanceOverride: string|null,  // overrides derived guidance when negative sentiment detected
  *     signals: {             // human-readable signal breakdown for prompt injection
  *       whoop: string|null,
  *       calendar: string|null,
@@ -30,11 +32,12 @@
  * Compute current emotional state from already-fetched platform context.
  *
  * @param {object} platformData - Output of fetchTwinContext() platform section
+ * @param {string|null} [userMessage] - Optional user message text for sentiment detection
  * @param {object} [options]
  * @param {Date} [options.now] - Override for current time (useful in tests)
  * @returns {object} Emotional state vector + prompt block
  */
-export function computeEmotionalState(platformData, options = {}) {
+export function computeEmotionalState(platformData, userMessage = null, options = {}) {
   const now = options.now || new Date();
   const hourOfDay = now.getHours();
   const isLateNight = hourOfDay >= 22 || hourOfDay < 4;
@@ -121,11 +124,33 @@ export function computeEmotionalState(platformData, options = {}) {
     ? 'normal'
     : 'low';
 
+  // ── Message sentiment detection ──────────────────────────────────────────
+  // Quick keyword-based sentiment check on the user's current message.
+  // This overrides platform-inferred valence when the user explicitly expresses emotion.
+  let expressedSentiment = null;
+  let guidanceOverride = null;
+
+  if (userMessage && userMessage.length > 20) {
+    const negativeWords = ['stressed', 'tired', 'exhausted', 'anxious', 'overwhelmed', 'frustrated', 'terrible', 'awful', 'horrible', 'burnout', 'burnt out', 'fried', 'disaster', 'hate', 'angry', 'depressed', 'sad', 'worried', 'panic'];
+    const positiveWords = ['great', 'amazing', 'excited', 'happy', 'fantastic', 'love', 'excellent', 'perfect', 'wonderful', 'energized', 'motivated', 'proud', 'thrilled'];
+    const msg = userMessage.toLowerCase();
+    const negCount = negativeWords.filter(w => msg.includes(w)).length;
+    const posCount = positiveWords.filter(w => msg.includes(w)).length;
+
+    if (negCount >= 2 || (negCount === 1 && msg.length < 100)) {
+      expressedSentiment = 'negative';
+      guidanceOverride = 'User has expressed negative emotions directly. Be empathetic and supportive. Do NOT be upbeat or enthusiastic. Acknowledge how they feel first.';
+    } else if (posCount >= 2) {
+      expressedSentiment = 'positive';
+    }
+  }
+
   // ── Build prompt block ───────────────────────────────────────────────────
   const promptBlock = buildCurrentStateBlock({
     valence, arousal, cognitiveLoad, meetingCount,
     recovery, sleepHours, hrv, isLateNight,
     whoopSignal, calSignal, timeContext,
+    expressedSentiment, guidanceOverride,
   });
 
   return {
@@ -133,6 +158,8 @@ export function computeEmotionalState(platformData, options = {}) {
     arousal,
     cognitiveLoad,
     meetingCount,
+    expressedSentiment,
+    guidanceOverride,
     signals: { whoop: whoopSignal, calendar: calSignal, timeContext },
     promptBlock,
     timestamp: now.toISOString(),
@@ -148,13 +175,18 @@ function buildCurrentStateBlock(params) {
     valence, arousal, cognitiveLoad, meetingCount,
     recovery, sleepHours, hrv, isLateNight,
     whoopSignal, calSignal, timeContext,
+    expressedSentiment, guidanceOverride,
   } = params;
 
-  // Only inject if we have meaningful signals
-  const hasSignals = whoopSignal || calSignal || isLateNight;
+  // Only inject if we have meaningful signals or expressed sentiment
+  const hasSignals = whoopSignal || calSignal || isLateNight || expressedSentiment;
   if (!hasSignals) return '';
 
   const lines = ['[CURRENT STATE — inferred from behavioral signals]'];
+
+  if (expressedSentiment) {
+    lines.push(`Expressed sentiment: ${expressedSentiment} (detected from user message)`);
+  }
 
   if (whoopSignal) {
     const energyLabel = arousal > 0.6 ? 'elevated' : arousal < 0.3 ? 'depleted' : 'moderate';
@@ -170,10 +202,14 @@ function buildCurrentStateBlock(params) {
     lines.push(`Time: ${timeContext}`);
   }
 
-  // Behavioral guidance for the twin
-  const guidance = deriveGuidance({ valence, arousal, cognitiveLoad, meetingCount, recovery, sleepHours, isLateNight });
-  if (guidance) {
-    lines.push(`→ ${guidance}`);
+  // Sentiment override takes priority over inferred guidance
+  if (guidanceOverride) {
+    lines.push(`→ ${guidanceOverride}`);
+  } else {
+    const guidance = deriveGuidance({ valence, arousal, cognitiveLoad, meetingCount, recovery, sleepHours, isLateNight });
+    if (guidance) {
+      lines.push(`→ ${guidance}`);
+    }
   }
 
   return lines.join('\n');
