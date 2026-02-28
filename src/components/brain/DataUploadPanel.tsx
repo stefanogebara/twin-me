@@ -24,6 +24,8 @@ import {
   Archive,
   Loader2,
   ExternalLink,
+  Heart,
+  Search,
 } from 'lucide-react';
 import { importsAPI, type ImportPlatform, type DataImport } from '@/services/api/importsAPI';
 
@@ -44,6 +46,8 @@ interface PlatformConfig {
   exportUrl: string;
   expectedFile: string;
   fileAccept: string;
+  /** If true, the user can drop/select multiple files and each is uploaded sequentially */
+  multiFile?: boolean;
 }
 
 // ---------------------------------------------------------------------------
@@ -57,11 +61,12 @@ const PLATFORMS: PlatformConfig[] = [
     color: '#1DB954',
     bgColor: 'rgba(29, 185, 84, 0.08)',
     icon: <Music size={20} />,
-    description: 'Full multi-year listening history — artists, tracks, and time patterns.',
-    exportInstructions: 'Go to spotify.com → Account → Privacy settings → Request data',
+    description: 'Extended Streaming History (4 JSON files, 2018→present) — full artist, album, and time pattern analysis.',
+    exportInstructions: 'Go to spotify.com → Account → Privacy settings → Request data → select "Extended streaming history" (takes up to 30 days)',
     exportUrl: 'https://www.spotify.com/account/privacy/',
-    expectedFile: 'StreamingHistory*.json',
+    expectedFile: 'Streaming_History_Audio_*.json (all 4 files)',
     fileAccept: '.json,application/json',
+    multiFile: true,
   },
   {
     id: 'youtube',
@@ -102,6 +107,30 @@ const PLATFORMS: PlatformConfig[] = [
     exportInstructions: 'Go to Reddit → Settings → Privacy & Security → Request data export',
     exportUrl: 'https://www.reddit.com/settings/data-request',
     expectedFile: 'reddit-data-*.json',
+    fileAccept: '.json,application/json',
+  },
+  {
+    id: 'apple_health',
+    label: 'Apple Health',
+    color: '#FF3B30',
+    bgColor: 'rgba(255, 59, 48, 0.07)',
+    icon: <Heart size={20} />,
+    description: 'Steps, heart rate, sleep, workouts from iPhone/Apple Watch.',
+    exportInstructions: 'Health app → profile icon → Export All Health Data → share zip',
+    exportUrl: 'https://support.apple.com/en-us/guide/iphone/iph27f6325b2/ios',
+    expectedFile: 'export.zip',
+    fileAccept: '.zip,application/zip',
+  },
+  {
+    id: 'google_search',
+    label: 'Google Search',
+    color: '#4285F4',
+    bgColor: 'rgba(66, 133, 244, 0.07)',
+    icon: <Search size={20} />,
+    description: 'Your search history — what you look up reveals what you genuinely care about.',
+    exportInstructions: 'takeout.google.com → select Search → JSON format → Export',
+    exportUrl: 'https://takeout.google.com/',
+    expectedFile: 'MyActivity.json',
     fileAccept: '.json,application/json',
   },
 ];
@@ -149,6 +178,7 @@ export function DataUploadPanel({ userId, onImportComplete }: DataUploadPanelPro
   const [selectedPlatform, setSelectedPlatform] = useState<PlatformConfig | null>(null);
   const [dragging, setDragging] = useState(false);
   const [result, setResult] = useState<{ observationsCreated: number; error?: string } | null>(null);
+  const [multiFileProgress, setMultiFileProgress] = useState<{ current: number; total: number } | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handlePlatformSelect = useCallback((config: PlatformConfig) => {
@@ -156,37 +186,56 @@ export function DataUploadPanel({ userId, onImportComplete }: DataUploadPanelPro
     setStep('uploading');
   }, []);
 
-  const handleFile = useCallback(async (file: File) => {
-    if (!selectedPlatform) return;
+  const handleFiles = useCallback(async (files: File[]) => {
+    if (!selectedPlatform || files.length === 0) return;
     setStep('processing');
+    setMultiFileProgress(null);
+
     try {
-      const res = await importsAPI.uploadGdpr(selectedPlatform.id, file);
-      setResult({ observationsCreated: res.observationsCreated });
-      setStep('done');
-      onImportComplete?.({ platform: selectedPlatform.id, observations_created: res.observationsCreated });
+      if (files.length === 1) {
+        // Single file — simple path
+        const res = await importsAPI.uploadGdpr(selectedPlatform.id, files[0]);
+        setResult({ observationsCreated: res.observationsCreated });
+        setStep('done');
+        onImportComplete?.({ platform: selectedPlatform.id, observations_created: res.observationsCreated });
+      } else {
+        // Multi-file: process sequentially, accumulate total observations
+        let totalObservations = 0;
+        for (let i = 0; i < files.length; i++) {
+          setMultiFileProgress({ current: i + 1, total: files.length });
+          const res = await importsAPI.uploadGdpr(selectedPlatform.id, files[i]);
+          totalObservations += res.observationsCreated;
+        }
+        setResult({ observationsCreated: totalObservations });
+        setMultiFileProgress(null);
+        setStep('done');
+        onImportComplete?.({ platform: selectedPlatform.id, observations_created: totalObservations });
+      }
     } catch (err) {
       setResult({ observationsCreated: 0, error: err instanceof Error ? err.message : 'Upload failed' });
+      setMultiFileProgress(null);
       setStep('error');
     }
   }, [selectedPlatform, onImportComplete]);
 
   const onInputChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) handleFile(file);
+    const files = Array.from(e.target.files || []);
+    if (files.length > 0) handleFiles(files);
     e.target.value = '';
-  }, [handleFile]);
+  }, [handleFiles]);
 
   const onDrop = useCallback((e: React.DragEvent) => {
     e.preventDefault();
     setDragging(false);
-    const file = e.dataTransfer.files?.[0];
-    if (file) handleFile(file);
-  }, [handleFile]);
+    const files = Array.from(e.dataTransfer.files || []);
+    if (files.length > 0) handleFiles(files);
+  }, [handleFiles]);
 
   const reset = useCallback(() => {
     setStep('idle');
     setSelectedPlatform(null);
     setResult(null);
+    setMultiFileProgress(null);
   }, []);
 
   // ----- Render -----
@@ -290,12 +339,18 @@ export function DataUploadPanel({ userId, onImportComplete }: DataUploadPanelPro
               }}
             >
               <Upload size={24} className="mx-auto mb-2 text-black/30" />
-              <p className="text-sm font-medium text-black/70">Drop file here or click to browse</p>
+              <p className="text-sm font-medium text-black/70">
+                {selectedPlatform.multiFile ? 'Drop files here or click to browse' : 'Drop file here or click to browse'}
+              </p>
               <p className="text-xs text-black/40 mt-1">{selectedPlatform.expectedFile}</p>
+              {selectedPlatform.multiFile && (
+                <p className="text-xs text-black/30 mt-0.5">Select all files at once — they'll be processed sequentially</p>
+              )}
               <input
                 ref={fileInputRef}
                 type="file"
                 accept={selectedPlatform.fileAccept}
+                multiple={selectedPlatform.multiFile === true}
                 className="hidden"
                 onChange={onInputChange}
               />
@@ -321,9 +376,22 @@ export function DataUploadPanel({ userId, onImportComplete }: DataUploadPanelPro
           >
             <Loader2 size={28} className="animate-spin" style={{ color: selectedPlatform.color }} />
             <p className="text-sm text-black/60 font-medium">
-              Importing your {selectedPlatform.label} history…
+              {multiFileProgress
+                ? `Processing file ${multiFileProgress.current} of ${multiFileProgress.total}…`
+                : `Importing your ${selectedPlatform.label} history…`}
             </p>
             <p className="text-xs text-black/40">This may take a moment for large exports.</p>
+            {multiFileProgress && (
+              <div className="w-48 h-1.5 rounded-full bg-black/10 overflow-hidden mt-1">
+                <div
+                  className="h-full rounded-full transition-all duration-300"
+                  style={{
+                    width: `${Math.round((multiFileProgress.current / multiFileProgress.total) * 100)}%`,
+                    background: selectedPlatform.color,
+                  }}
+                />
+              </div>
+            )}
           </motion.div>
         )}
 

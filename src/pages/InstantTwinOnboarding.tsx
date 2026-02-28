@@ -24,6 +24,7 @@ import {
 
 import { DataVerification } from '../components/DataVerification';
 import SoulRichnessBar from '../components/onboarding/SoulRichnessBar';
+import { DataUploadPanel } from '@/components/brain/DataUploadPanel';
 
 import {
   DataProvider
@@ -778,6 +779,27 @@ const InstantTwinOnboarding = () => {
               userId={user?.id || 'demo-user'}
               connectedServices={connectedServices}
             />
+          )}
+
+          {/* Upload historical data exports */}
+          {user && (
+            <GlassPanel>
+              <div className="mb-4">
+                <h3
+                  className="text-base mb-1"
+                  style={{ color: colors.textPrimary, fontFamily: 'var(--font-heading)', fontWeight: 400 }}
+                >
+                  Upload historical data
+                </h3>
+                <p
+                  className="text-xs leading-relaxed"
+                  style={{ color: colors.muted, fontFamily: 'var(--font-body)' }}
+                >
+                  Import years of history the live API can't provide — Spotify extended plays, Google searches, Apple Health, and more.
+                </p>
+              </div>
+              <DataUploadPanel userId={user.id} />
+            </GlassPanel>
           )}
 
           {connectedServices.length > 0 && (
