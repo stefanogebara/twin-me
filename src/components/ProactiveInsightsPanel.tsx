@@ -10,6 +10,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useAuth } from '../contexts/AuthContext';
+import { authFetch } from '@/services/api/apiBase';
 import {
   TrendingUp,
   AlertCircle,
@@ -24,7 +25,7 @@ import { GlassPanel } from '@/components/layout/PageLayout';
 interface ProactiveInsight {
   id: string;
   insight: string;
-  category: 'trend' | 'anomaly' | 'celebration' | 'concern';
+  category: 'trend' | 'anomaly' | 'celebration' | 'concern' | 'goal_progress' | 'goal_suggestion';
   urgency: 'high' | 'medium' | 'low';
   created_at: string;
 }
@@ -39,6 +40,8 @@ const categoryConfig: Record<string, { icon: React.ElementType; label: string }>
   anomaly: { icon: AlertCircle, label: 'Anomaly' },
   celebration: { icon: Trophy, label: 'Celebration' },
   concern: { icon: AlertTriangle, label: 'Concern' },
+  goal_progress: { icon: TrendingUp, label: 'Goal Progress' },
+  goal_suggestion: { icon: AlertCircle, label: 'Goal Idea' },
 };
 
 const urgencyColors: Record<string, { dot: string; bg: string }> = {
@@ -72,11 +75,8 @@ export const ProactiveInsightsPanel: React.FC = () => {
     if (isDemoMode || engagedIds.has(insightId)) return;
     setEngagedIds(prev => new Set(prev).add(insightId));
     // Fire-and-forget — do not await, UI must not block on this
-    const token = localStorage.getItem('auth_token');
-    fetch(`${import.meta.env.VITE_API_URL}/insights/proactive/${insightId}/engage`, {
-      method: 'POST',
-      headers: { 'Authorization': `Bearer ${token}` },
-    }).catch(() => { /* silently ignore network errors */ });
+    authFetch(`/insights/proactive/${insightId}/engage`, { method: 'POST' })
+      .catch(() => { /* silently ignore network errors */ });
   };
 
   const { data, isLoading } = useQuery<ChatContextResponse>({
