@@ -13,6 +13,7 @@ import { getTwinSummary } from './twinSummaryService.js';
 import { getUndeliveredInsights } from './proactiveInsights.js';
 import { getEnrichment } from './enrichment/enrichmentStore.js';
 import { getActiveGoalContext } from './goalTrackingService.js';
+import { getTopPatterns } from './twinPatternService.js';
 import axios from 'axios';
 
 // Short-lived platform data cache to avoid redundant API calls within 5 minutes
@@ -71,6 +72,7 @@ async function fetchTwinContext(userId, userMessage, options = {}) {
     enrichmentProfile,
     voiceExamples,
     activeGoals,
+    patterns,
   ] = await Promise.all([
     fetchSoul
       ? timed('soulSignature', _fetchSoulSignature(userId).catch(err => {
@@ -130,6 +132,12 @@ async function fetchTwinContext(userId, userMessage, options = {}) {
       console.warn('[TwinContext] Active goals fetch failed:', err.message);
       return null;
     })),
+
+    // Top learned patterns (EWC++ confidence-weighted topic affinities)
+    timed('patterns', getTopPatterns(userId, 5).catch(err => {
+      console.warn('[TwinContext] Pattern fetch failed:', err.message);
+      return [];
+    })),
   ]);
 
   ctxLog('All parallel fetches complete');
@@ -169,6 +177,7 @@ async function fetchTwinContext(userId, userMessage, options = {}) {
     enrichmentContext,
     voiceExamples,
     activeGoals,
+    patterns,
   };
 }
 

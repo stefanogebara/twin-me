@@ -936,7 +936,7 @@ router.post('/message', authenticateUser, async (req, res) => {
       if (heartbeatInterval) clearInterval(heartbeatInterval);
     }
     chatLog('fetchTwinContext complete');
-    const { soulSignature, platformData, personalityScores, writingProfile, memories, twinSummary, proactiveInsights, enrichmentContext, voiceExamples, activeGoals } = twinContext;
+    const { soulSignature, platformData, personalityScores, writingProfile, memories, twinSummary, proactiveInsights, enrichmentContext, voiceExamples, activeGoals, patterns } = twinContext;
 
     // Build personalized system prompt with structured context layers
     // Returns array format for Anthropic prompt caching: [cached_base, dynamic_context]
@@ -1074,6 +1074,14 @@ router.post('/message', authenticateUser, async (req, res) => {
     // Add active goal context for natural accountability in conversation
     if (activeGoals) {
       additionalContext += `\n\n${activeGoals}`;
+    }
+
+    // Add high-confidence learned patterns (EWC++ topic affinities)
+    if (patterns?.length > 0) {
+      const patternLines = patterns
+        .map(p => `- ${p.name}${p.description ? ': ' + p.description.substring(0, 120) : ''}`)
+        .join('\n');
+      additionalContext += `\n\nThings I keep coming back to (learned from patterns):\n${patternLines}`;
     }
 
     // Hard cap additional context to prevent token bloat — truncate at last newline to avoid mid-sentence cuts
