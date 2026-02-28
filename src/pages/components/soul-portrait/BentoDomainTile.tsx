@@ -1,20 +1,21 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Brain, Heart, Palette, Users, Flame, ChevronDown, ChevronUp } from 'lucide-react';
+import { ChevronDown, ChevronUp } from 'lucide-react';
+import { Clay3DIcon } from '@/components/Clay3DIcon';
 import type { TwinDomains } from './types';
 
 type DomainKey = keyof TwinDomains;
 
 const DOMAIN_CONFIG: Record<DomainKey, {
   label: string;
-  icon: React.ElementType;
+  clayIcon: string;
   color: string;
 }> = {
-  personality: { label: 'Personality', icon: Brain, color: '#9B59B6' },
-  lifestyle: { label: 'Lifestyle', icon: Heart, color: '#E74C3C' },
-  culturalIdentity: { label: 'Cultural Identity', icon: Palette, color: '#3498DB' },
-  socialDynamics: { label: 'Social Dynamics', icon: Users, color: '#2ECC71' },
-  motivation: { label: 'Motivation', icon: Flame, color: '#F39C12' },
+  personality:     { label: 'Personality',       clayIcon: 'brain',      color: '#9B59B6' },
+  lifestyle:       { label: 'Lifestyle',          clayIcon: 'lightning',  color: '#E74C3C' },
+  culturalIdentity:{ label: 'Cultural Identity',  clayIcon: 'headphones', color: '#3498DB' },
+  socialDynamics:  { label: 'Social Dynamics',    clayIcon: 'chat-bubble',color: '#2ECC71' },
+  motivation:      { label: 'Motivation',         clayIcon: 'trophy',     color: '#F39C12' },
 };
 
 function extractFirstSentence(text: string): string {
@@ -35,7 +36,6 @@ export const BentoDomainTile: React.FC<Props> = ({ domainKey, domains, animation
   if (!content) return null;
 
   const config = DOMAIN_CONFIG[domainKey];
-  const Icon = config.icon;
   const preview = extractFirstSentence(content);
   const hasMore = content !== preview;
 
@@ -58,14 +58,14 @@ export const BentoDomainTile: React.FC<Props> = ({ domainKey, domains, animation
       whileTap={hasMore ? { scale: 0.99 } : {}}
     >
       <div className="p-4">
-        {/* Header */}
-        <div className="flex items-center justify-between mb-2.5">
-          <div className="flex items-center gap-2">
+        {/* Header with clay 3D icon */}
+        <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center gap-2.5">
             <div
-              className="w-6 h-6 rounded-md flex items-center justify-center"
-              style={{ backgroundColor: `${config.color}18` }}
+              className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0"
+              style={{ backgroundColor: `${config.color}15` }}
             >
-              <Icon className="w-3 h-3" style={{ color: config.color }} />
+              <Clay3DIcon name={config.clayIcon} size={20} />
             </div>
             <span
               className="text-xs font-semibold uppercase tracking-wider"
@@ -86,7 +86,7 @@ export const BentoDomainTile: React.FC<Props> = ({ domainKey, domains, animation
           {expanded ? (
             <motion.p
               key="expanded"
-              className="text-sm leading-relaxed"
+              className="text-xs leading-relaxed"
               style={{ color: '#4a4540' }}
               initial={{ opacity: 0, height: 0 }}
               animate={{ opacity: 1, height: 'auto' }}
@@ -98,7 +98,7 @@ export const BentoDomainTile: React.FC<Props> = ({ domainKey, domains, animation
           ) : (
             <motion.p
               key="preview"
-              className="text-sm leading-relaxed"
+              className="text-xs leading-relaxed"
               style={{ color: '#4a4540' }}
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
