@@ -50,6 +50,12 @@ When asked "what's next", "phase status", or "what should we work on", read this
 
 ---
 
+### Cron Reliability ✅ FIXED (2026-02-27)
+- vercel.json: removed invalid `supportsResponseStreaming` (was blocking ALL deployments for 8+ hours)
+- server.js: cron routes get 115s Express timeout (was 30s, killing cron mid-run)
+- cron-platform-polling.js: skip NANGO_MANAGED platforms (handled by obs-ingestion separately)
+- Result: Spotify, Discord, Calendar all polling successfully again
+
 ### Phase B — New Data Sources ✅ DONE (2026-02-27)
 GitHub + WhatsApp + Browser Extension were already 95% implemented. The real gap was web dwell-time not being re-processed in the background ingestion loop.
 - `fetchRecentWebEvents()` added to `observationIngestion.js` — queries `user_platform_data` for 25h of extension events
@@ -58,33 +64,36 @@ GitHub + WhatsApp + Browser Extension were already 95% implemented. The real gap
 
 ---
 
+### Option A — Beta Readiness ✅ DONE (2026-02-28)
+- user_subscriptions table (free/pro/max) + Stripe billing routes
+- PaywallModal after first free twin exchange
+- /discover pre-signup landing page (quickEnrich)
+- Weekly email digest via Resend (twinme.me domain, all DNS records added)
+- Chat backend gate (free users: 1 assistant reply, then 403)
+
+### Option B — Onboarding Funnel Polish ✅ DONE (2026-02-28)
+- SoulRichnessBar wired into InstantTwinOnboarding step 1 (activeConnections)
+- Email hint banner in CustomAuth for /discover → /auth?email= flow
+- Web dwell-time already in observationIngestion.js (was already implemented)
+
+### Option C — Twin Quality Validation ✅ DONE (2026-02-28)
+- EvalDashboard page already existed with all 4 sections
+- Added Eval nav link (FlaskConical) to CollapsibleSidebar More section
+- /eval route was already wired in App.tsx
+
+### Option D — Mobile Push Notifications ✅ DONE (2026-02-28)
+- registerForPushNotifications wired in mobile/App.tsx on login (token change)
+- sendPushToUser for high-urgency insights already in proactiveInsights.js
+
 ## WHAT'S NEXT — Choose one:
-
-### Option A — Beta Readiness (Recommended)
-Get 5-10 real users on the product.
-- Onboarding funnel polish (reduce friction in platform connect flow)
-- Email digest: weekly "what your twin noticed this week"
-- Share Soul Signature card (shareable image/link)
-- Stripe paywall ($9/mo) + billing portal
-
-### Option C — Twin Quality Validation
-Measure how good the twin actually is.
-- Manual eval rubric: 10 questions about the user → score twin accuracy 1-5
-- A/B: current vs. no-expert-routing vs. no-identity-context
-- Memory quality dashboard: distribution by type, avg importance, staleness
-
-### Option D — Mobile Polish
-Bring mobile to parity with web.
-- Push notifications for proactive insights
-- Android home screen widget (today's twin insight)
-- Background sync optimization (WorkManager intervals)
 
 ---
 
-## Stats (as of 2026-02-27)
+## Stats (as of 2026-02-28)
 - Memories: ~16,000+ rows
 - Platform integrations: 5 (Spotify, YouTube, Calendar, Discord, LinkedIn)
 - Expert personas: 6 (per-platform domain specialists)
-- Cron jobs: 8 (token-refresh, polling, pattern-learning, ingest, claude-sync ×2, memory-archive, memory-forgetting)
+- Cron jobs: 9 (token-refresh, polling, pattern-learning, ingest, claude-sync ×2, memory-archive, memory-forgetting, email-digest)
 - Integration tests: 68 passing
+- Subscription tiers: free (1 message) / pro ($19/mo) / max ($50/mo)
 - Target users: 5-10 beta
