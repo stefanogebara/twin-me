@@ -6,8 +6,10 @@
  * from your digital twin about what it has noticed.
  *
  * Endpoints:
- * GET  /api/insights/:platform        - Get reflection + patterns + history
- * POST /api/insights/:platform/refresh - Force regenerate reflection
+ * GET  /api/insights/:platform              - Get reflection + patterns + history
+ * POST /api/insights/:platform/refresh      - Force regenerate reflection
+ * POST /api/insights/proactive/:id/engage   - Mark a proactive insight as engaged
+ * GET  /api/insights/proactive/engagement-stats - Engagement stats (last 30 days)
  */
 
 import express from 'express';
@@ -175,6 +177,76 @@ router.get('/all/summary', authenticateUser, async (req, res) => {
       message: error.message
     });
   }
+});
+
+/**
+ * POST /api/insights/proactive/:id/engage
+ * Mark a proactive insight as engaged (user tapped/expanded it).
+ * Only the owning user can mark their own insight.
+ */
+router.post('/proactive/:id/engage', authenticateUser, async (req, res) => {
+  const userId = req.user.id;
+  const { id } = req.params;
+
+  if (!supabase) {
+    return res.status(503).json({ success: false, error: 'Database unavailable' });
+  }
+
+  const { error } = await supabase
+    .from('proactive_insights')
+    .update({ engaged: true, engaged_at: new Date().toISOString() })
+    .eq('id', id)
+    .eq('user_id', userId); // security: user can only engage their own insights
+
+  if (error) {
+    console.error('[Insights] engage error:', error.message);
+    return res.status(500).json({ success: false, error: error.message });
+  }
+
+  res.json({ success: true });
+});
+
+/**
+ * GET /api/insights/proactive/engagement-stats
+ * Returns engagement breakdown by category and urgency for the last 30 days.
+ */
+router.get('/proactive/engagement-stats', authenticateUser, async (req, res) => {
+  const userId = req.user.id;
+
+  if (!supabase) {
+    return res.status(503).json({ success: false, error: 'Database unavailable' });
+  }
+
+  const since = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
+  const { data, error } = await supabase
+    .from('proactive_insights')
+    .select('category, urgency, engaged, delivered')
+    .eq('user_id', userId)
+    .gte('created_at', since);
+
+  if (error) {
+    console.error('[Insights] engagement-stats error:', error.message);
+    return res.status(500).json({ success: false, error: error.message });
+  }
+
+  const stats = { total: data?.length || 0, engaged: 0, byCategory: {}, byUrgency: {} };
+  for (const row of (data || [])) {
+    if (row.engaged) stats.engaged++;
+
+    if (!stats.byCategory[row.category]) {
+      stats.byCategory[row.category] = { total: 0, engaged: 0 };
+    }
+    stats.byCategory[row.category].total++;
+    if (row.engaged) stats.byCategory[row.category].engaged++;
+
+    if (!stats.byUrgency[row.urgency]) {
+      stats.byUrgency[row.urgency] = { total: 0, engaged: 0 };
+    }
+    stats.byUrgency[row.urgency].total++;
+    if (row.engaged) stats.byUrgency[row.urgency].engaged++;
+  }
+
+  res.json({ success: true, data: stats });
 });
 
 export default router;

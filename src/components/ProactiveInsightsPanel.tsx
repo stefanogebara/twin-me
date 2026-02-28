@@ -2,9 +2,10 @@
  * Proactive Insights Panel
  * Shows insights the twin has noticed from cross-platform pattern analysis.
  * Fetches from GET /api/chat/context (reuses existing endpoint).
+ * Tracks engagement via POST /api/insights/proactive/:id/engage when user interacts.
  */
 
-import React from 'react';
+import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
@@ -64,6 +65,19 @@ function formatRelativeTime(dateStr: string): string {
 export const ProactiveInsightsPanel: React.FC = () => {
   const { isDemoMode } = useAuth();
   const navigate = useNavigate();
+  // Track which insight IDs the user has already engaged with (fire-and-forget to backend)
+  const [engagedIds, setEngagedIds] = useState<Set<string>>(new Set());
+
+  const markEngaged = (insightId: string) => {
+    if (isDemoMode || engagedIds.has(insightId)) return;
+    setEngagedIds(prev => new Set(prev).add(insightId));
+    // Fire-and-forget — do not await, UI must not block on this
+    const token = localStorage.getItem('auth_token');
+    fetch(`${import.meta.env.VITE_API_URL}/insights/proactive/${insightId}/engage`, {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${token}` },
+    }).catch(() => { /* silently ignore network errors */ });
+  };
 
   const { data, isLoading } = useQuery<ChatContextResponse>({
     queryKey: ['proactive-insights'],
@@ -157,6 +171,7 @@ export const ProactiveInsightsPanel: React.FC = () => {
           const config = categoryConfig[insight.category] || categoryConfig.trend;
           const Icon = config.icon;
           const colors = urgencyColors[insight.urgency] || urgencyColors.low;
+          const isEngaged = engagedIds.has(insight.id);
 
           return (
             <motion.div
@@ -180,11 +195,11 @@ export const ProactiveInsightsPanel: React.FC = () => {
                         style={{ color: '#8A857D' }}
                       />
                     </div>
-                    {/* Urgency dot */}
+                    {/* Urgency dot — turns green once engaged */}
                     <div
-                      className="absolute -top-1 -right-1 w-3 h-3 rounded-full border-2"
+                      className="absolute -top-1 -right-1 w-3 h-3 rounded-full border-2 transition-colors duration-300"
                       style={{
-                        backgroundColor: colors.dot,
+                        backgroundColor: isEngaged ? '#22c55e' : colors.dot,
                         borderColor: '#fcf6ef',
                       }}
                     />
@@ -205,6 +220,18 @@ export const ProactiveInsightsPanel: React.FC = () => {
                       >
                         {formatRelativeTime(insight.created_at)}
                       </span>
+                      {/* Subtle "seen" badge once engaged */}
+                      {isEngaged && (
+                        <span
+                          className="text-[10px] px-1.5 py-0.5 rounded"
+                          style={{
+                            backgroundColor: 'rgba(34, 197, 94, 0.1)',
+                            color: '#22c55e',
+                          }}
+                        >
+                          seen
+                        </span>
+                      )}
                     </div>
                     <p
                       className="text-sm leading-relaxed"
@@ -215,9 +242,12 @@ export const ProactiveInsightsPanel: React.FC = () => {
                   </div>
                 </div>
 
-                {/* Discuss Button */}
+                {/* Discuss Button — triggers engagement tracking */}
                 <button
-                  onClick={() => navigate('/talk-to-twin')}
+                  onClick={() => {
+                    markEngaged(insight.id);
+                    navigate('/talk-to-twin');
+                  }}
                   className="mt-3 w-full py-2 flex items-center justify-center gap-2 rounded-lg text-xs font-medium transition-colors"
                   style={{
                     backgroundColor: 'rgba(0, 0, 0, 0.06)',
