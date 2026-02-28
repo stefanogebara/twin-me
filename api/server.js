@@ -192,11 +192,15 @@ app.use('/api/billing', billingRoutes);
 // Parse JSON bodies
 app.use(express.json({ limit: '100kb' }));
 
-// Content-Type validation (exclude auth routes)
+// Content-Type validation (exclude auth routes and WhatsApp import which uses text/plain)
 app.use((req, res, next) => {
   // Skip Content-Type validation for auth routes
   if (req.originalUrl.startsWith('/api/auth/')) {
     return next();
+  }
+  // WhatsApp import accepts text/plain chat exports
+  if (req.originalUrl.startsWith('/api/whatsapp/import')) {
+    return validateContentType(['application/json', 'multipart/form-data', 'text/plain'])(req, res, next);
   }
   // Apply Content-Type validation to all other routes
   return validateContentType(['application/json', 'multipart/form-data'])(req, res, next);
