@@ -85,15 +85,70 @@ GitHub + WhatsApp + Browser Extension were already 95% implemented. The real gap
 - registerForPushNotifications wired in mobile/App.tsx on login (token change)
 - sendPushToUser for high-urgency insights already in proactiveInsights.js
 
-## WHAT'S NEXT — Choose one:
+### Pre-Invite Memory Quality Fixes ✅ DONE (2026-02-28)
+- Purged 1,178 exact-duplicate fact memories (2,654 → 1,476)
+- Fixed decay_rate per type (conversation=3, platform_data=7, fact=30, reflection=90)
+- Twin summary: 15→25 memories per domain, soul_signature_profile fallback, synthesis LLM pass
+- Insight dedup: isInsightDuplicate() 7-day 80-char prefix check before insert
+- Unique index on (user_id, md5(content)) for fact type — prevents future dupes
+- touch_memories RPC fixed to increment retrieval_count
+
+### Phase 4 APK Rebuild ✅ DONE (2026-02-28)
+- Fresh APK built (104MB, Feb 28) with Me tab redesign
+- WiFi ADB offline during sleep — install when device reconnected
+
+### Phase 6 — Soul Architecture ✅ DONE (2026-02-28)
+
+**6A: Twin Readiness Score (Soul Saturation)**
+- getTwinReadinessScore(): 3-factor weighted score in memoryStreamService.js
+- TwinReadinessScore.tsx: compact/full modes, animated bar
+- Wired into Dashboard (compact) + MemoryHealth page (full)
+
+**6B: A-MEM Zettelkasten Memory Links**
+- memory_links table + find_similar_memories_for_linking RPC (cosine 0.75)
+- memoryLinksService.js: auto-link on reflection write (fire-and-forget)
+- GET /api/memory/:memoryId/links
+
+**6C: Syd-Inspired Daily Check-In + Correlations**
+- 50-state mood picker (DailyCheckin.tsx), POST /api/checkin
+- daily_checkins table, stored as platform_data memory
+- Dashboard shows check-in card if not done today
+- Cross-stream correlations: generateCorrelationInsights() runs weekly
+
+**6D: "Who You Are" Identity Explorer**
+- GET /api/twin/identity → identity context + soul signature + expert reflections
+- IdentityPage.tsx: expert accordion (5 domains), archetype badges, music signature
+- /identity route, Fingerprint icon in sidebar More section
+
+**6E: Behavioral Feedback Loop**
+- proactive_insights.engaged + engaged_at columns
+- POST /api/insights/proactive/:id/engage — fires on "Discuss" tap
+- ProactiveInsightsPanel: green dot + "seen" badge on engaged insights
+
+---
+
+## WHAT'S NEXT — Phase 7
+
+**Remaining Phase 6 (not done):**
+- Play Store alpha release (need to publish signed APK to Google Play)
+- iOS app (React Native reuse)
+
+**Phase 7 candidates:**
+1. **Invite first beta users** — system is ready, invite 2-5 people
+2. **Play Store alpha** — upload APK to Play Store internal testing track
+3. **Behavioral finetuning** (Simile Paper 4) — finetune on user patterns
+4. **Camera-based stress detection** — Syd-style PPG for users without Whoop
+5. **Multi-platform expansion** — Apple Music, Reddit, Oura Ring
 
 ---
 
 ## Stats (as of 2026-02-28)
-- Memories: ~16,000+ rows
+- Memories: ~11,000 rows (fact=1,476, reflection=5,034, conversation=2,436, platform_data=2,029)
 - Platform integrations: 5 (Spotify, YouTube, Calendar, Discord, LinkedIn)
-- Expert personas: 6 (per-platform domain specialists)
-- Cron jobs: 9 (token-refresh, polling, pattern-learning, ingest, claude-sync ×2, memory-archive, memory-forgetting, email-digest)
+- Expert personas: 11 (5 generic + 6 per-platform domain)
+- Cron jobs: 9 active
 - Integration tests: 68 passing
 - Subscription tiers: free (1 message) / pro ($19/mo) / max ($50/mo)
+- New Phase 6 tables: memory_links, daily_checkins, proactive_insights.engaged
+- APK: 104MB fresh build, ready to install
 - Target users: 5-10 beta
