@@ -128,6 +128,20 @@ For privacy concerns: privacy@twinme.ai`
       </div>
 
       <div className="w-full max-w-md space-y-8">
+        {/* Email hint banner */}
+        {searchParams.get('email') && (
+          <div
+            className="rounded-xl p-4 text-center text-sm"
+            style={{
+              background: 'linear-gradient(135deg, rgba(99, 102, 241, 0.1), rgba(129, 140, 248, 0.1))',
+              border: '1px solid rgba(99, 102, 241, 0.25)',
+              color: '#4338ca',
+            }}
+          >
+            Signing up as <strong>{searchParams.get('email')}</strong> — continue with Google
+          </div>
+        )}
+
         {/* Header with icon */}
         <div className="text-center">
           <div className="flex justify-center mb-6">
