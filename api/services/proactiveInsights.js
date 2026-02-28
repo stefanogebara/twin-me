@@ -171,6 +171,38 @@ async function generateProactiveInsights(userId) {
     }
 
     console.log(`[ProactiveInsights] Generated ${stored} insights for user ${userId}`);
+
+    // Weekly cross-platform correlation insights
+    // Only run if no 'trend' category insight exists in the last 7 days
+    try {
+      const { count: trendCount } = await supabaseAdmin
+        .from('proactive_insights')
+        .select('id', { count: 'exact', head: true })
+        .eq('user_id', userId)
+        .eq('category', 'trend')
+        .gte('created_at', new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString());
+
+      if (!trendCount || trendCount === 0) {
+        const correlations = await generateCorrelationInsights(userId);
+        if (correlations?.length) {
+          for (const item of correlations) {
+            if (!item.insight || item.insight.length < 10) continue;
+            if (await isInsightDuplicate(userId, item.insight)) continue;
+            await supabaseAdmin.from('proactive_insights').insert({
+              user_id: userId,
+              insight: item.insight.substring(0, 500),
+              urgency: 'low',
+              category: 'trend',
+            });
+            console.log(`[ProactiveInsights] Stored correlation insight for user ${userId}`);
+          }
+        }
+      }
+    } catch (corrErr) {
+      // Non-fatal — don't let correlation errors fail the whole function
+      console.warn('[ProactiveInsights] Correlation insights error:', corrErr.message);
+    }
+
     return stored;
   } catch (error) {
     console.error('[ProactiveInsights] Error:', error.message);
@@ -293,6 +325,72 @@ function _parseInsightsJSON(text) {
   }
 
   throw new Error('No valid JSON insights found in LLM response');
+}
+
+/**
+ * Generate cross-platform behavioral correlation insights.
+ * Looks for non-obvious patterns that span multiple data sources
+ * (e.g. "packed calendar days → Spotify shifts to lo-fi → Whoop recovery drops").
+ * Called weekly from generateProactiveInsights to avoid over-generating.
+ *
+ * @param {string} userId
+ * @returns {Promise<Array<{insight: string, urgency: string, category: string}> | null>}
+ */
+async function generateCorrelationInsights(userId) {
+  try {
+    const since = new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString();
+
+    const { data: platformMemories } = await supabaseAdmin
+      .from('user_memories')
+      .select('content, metadata, created_at')
+      .eq('user_id', userId)
+      .eq('memory_type', 'platform_data')
+      .gte('created_at', since)
+      .order('created_at', { ascending: false })
+      .limit(60);
+
+    if (!platformMemories || platformMemories.length < 5) return null;
+
+    // Group memories by their originating platform source
+    const bySource = {};
+    for (const m of platformMemories) {
+      const src = m.metadata?.source || 'unknown';
+      if (!bySource[src]) bySource[src] = [];
+      bySource[src].push(m.content);
+    }
+
+    const sources = Object.keys(bySource);
+    if (sources.length < 2) return null;
+
+    const sourceText = sources
+      .map((s) => `[${s.toUpperCase()}]\n${bySource[s].slice(0, 5).join('\n')}`)
+      .join('\n\n');
+
+    const result = await complete({
+      tier: TIER_ANALYSIS,
+      system: `You analyze cross-platform behavioral correlations for a personal AI twin.
+Look for genuine patterns that span multiple data sources.
+Surface specific, non-obvious connections. Be concrete with observed data.
+Example: "When your calendar shows 3+ back-to-back meetings, your Spotify shifts to ambient/lo-fi within the same day."
+Output ONLY a JSON array of 1-2 correlation insights: [{"insight": "...", "urgency": "low", "category": "trend"}]
+No other text.`,
+      messages: [{ role: 'user', content: `Find cross-platform patterns in this behavioral data:\n\n${sourceText}` }],
+      maxTokens: 300,
+      temperature: 0.4,
+      serviceName: 'correlationInsights-generate',
+    });
+
+    const text = (result.content || '').trim();
+    const start = text.indexOf('[');
+    const end = text.lastIndexOf(']') + 1;
+    if (start === -1 || end <= start) return null;
+
+    const parsed = JSON.parse(text.slice(start, end));
+    return Array.isArray(parsed) ? parsed : null;
+  } catch (err) {
+    console.warn('[ProactiveInsights] generateCorrelationInsights error:', err.message);
+    return null;
+  }
 }
 
 export { generateProactiveInsights, getUndeliveredInsights, markInsightsDelivered };
