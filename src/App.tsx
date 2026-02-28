@@ -48,6 +48,7 @@ const GoalsPage = lazy(() => import("./pages/GoalsPage"));
 const PrivacySpectrumDashboard = lazy(() => import("./pages/PrivacySpectrumDashboard"));
 const MemoryHealth = lazy(() => import("./pages/MemoryHealth"));
 const EvalDashboard = lazy(() => import("./pages/EvalDashboard"));
+const IdentityPage = lazy(() => import("./pages/IdentityPage"));
 
 const queryClient = new QueryClient();
 
@@ -186,6 +187,17 @@ const App = () => {
                 <SidebarLayout>
                   <ErrorBoundary>
                     <SoulSignatureDashboard />
+                  </ErrorBoundary>
+                </SidebarLayout>
+              </ProtectedRoute>
+            } />
+
+            {/* Who You Are — identity explorer */}
+            <Route path="/identity" element={
+              <ProtectedRoute>
+                <SidebarLayout>
+                  <ErrorBoundary>
+                    <IdentityPage />
                   </ErrorBoundary>
                 </SidebarLayout>
               </ProtectedRoute>

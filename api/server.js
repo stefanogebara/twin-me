@@ -289,6 +289,7 @@ import memoryLinksRoutes from './routes/memory-links.js';
 import githubConnectRoutes from './routes/github-connect.js';
 import whatsappImportRoutes from './routes/whatsapp-import.js';
 import evalRoutes from './routes/eval.js';
+import twinIdentityRoutes from './routes/twin-identity.js';
 import locationRoutes from './routes/location.js';
 import billingRoutes from './routes/billing.js';
 import discoveryRoutes from './routes/discovery.js';
@@ -456,6 +457,7 @@ app.use('/api/cron/memory-forgetting', cronMemoryForgettingRoutes); // Weekly mu
 app.use('/api/memory-health', memoryHealthRoutes); // Memory stream health dashboard
 app.use('/api/memory/:memoryId', memoryLinksRoutes); // A-MEM Zettelkasten memory links
 app.use('/api/eval', evalRoutes); // Twin eval rubric + feature flags
+app.use('/api/twin', twinIdentityRoutes); // Who You Are identity explorer
 app.use('/api/twins-brain', twinsBrainRoutes); // Twins Brain unified knowledge graph
 app.use('/api/mem0', mem0Routes); // Mem0 intelligent memory layer
 app.use('/api/mem0-sync', mem0BrainSyncRoutes); // Mem0 → Twins Brain sync

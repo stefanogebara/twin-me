@@ -19,6 +19,7 @@ import {
   Target,
   Activity,
   FlaskConical,
+  Fingerprint,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Clay3DIcon, CLAY_ICON_MAP } from '@/components/Clay3DIcon';
@@ -44,6 +45,7 @@ const mainNavItems: NavItem[] = [
 
 // Everything else — shown in a collapsible "More" section
 const moreNavItems: NavItem[] = [
+  { id: 'identity',     label: 'Who You Are',    icon: Fingerprint, path: '/identity' },
   { id: 'goals',        label: 'Goals',          icon: Target,   path: '/goals' },
   { id: 'brain',        label: "Twin's Brain",   icon: Brain,    path: '/brain' },
   { id: 'journal',      label: 'Soul Journal',   icon: BookOpen, path: '/journal' },
