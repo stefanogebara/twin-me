@@ -41,7 +41,7 @@ async function getSupabase() {
 }
 
 // Platforms we know how to ingest
-const SUPPORTED_PLATFORMS = ['spotify', 'google_calendar', 'youtube', 'discord', 'linkedin', 'whoop', 'github'];
+const SUPPORTED_PLATFORMS = ['spotify', 'google_calendar', 'youtube', 'discord', 'linkedin', 'reddit', 'whoop', 'github'];
 
 // ====================================================================
 // Prompt injection defense
@@ -554,6 +554,83 @@ async function fetchLinkedInObservations(userId) {
     // Only emit locale if we have nothing else
     observations.push({
       content: `LinkedIn profile located in ${locale}`,
+      contentType: 'weekly_summary',
+    });
+  }
+
+  return observations;
+}
+
+/**
+ * Fetch Reddit subscribed-subreddit data and return natural-language observations.
+ * Groups subreddits by topic category to surface interest patterns.
+ */
+async function fetchRedditObservations(userId) {
+  const observations = [];
+
+  const tokenResult = await getValidAccessToken(userId, 'reddit');
+  if (!tokenResult.success || !tokenResult.accessToken) {
+    console.warn('[ObservationIngestion] Reddit: no valid token for user', userId);
+    return observations;
+  }
+
+  const headers = {
+    Authorization: `Bearer ${tokenResult.accessToken}`,
+    'User-Agent': 'TwinMe/1.0',
+  };
+
+  // Fetch subscribed subreddits (top 20)
+  let subreddits = [];
+  try {
+    const subRes = await axios.get(
+      'https://oauth.reddit.com/subreddits/mine/subscriber?limit=20',
+      { headers, timeout: 10000 }
+    );
+    subreddits = (subRes.data?.data?.children || []).map(c => c.data);
+  } catch (e) {
+    console.warn('[ObservationIngestion] Reddit subreddits error:', e.message);
+    return observations;
+  }
+
+  if (subreddits.length === 0) return observations;
+
+  const names = subreddits.map(s => sanitizeExternal(s.display_name || s.name, 60)).filter(Boolean);
+  const top3 = names.slice(0, 3).map(n => `r/${n}`).join(', ');
+
+  observations.push({
+    content: `Subscribed to ${names.length} subreddits including ${top3}`,
+    contentType: 'weekly_summary',
+  });
+
+  // Group subreddits into broad topic categories
+  const categoryPatterns = {
+    'programming/tech': /\b(programming|coding|code|software|dev|web|python|javascript|typescript|linux|open.?source|cyber|ai|ml|data|cloud|backend|frontend|rust|golang|java|csharp|dotnet|devops|sysadmin|netsec|hacking|compsci|computerscience)\b/i,
+    'gaming':           /\b(gaming|gamer|game|games|rpg|mmo|fps|strategy|indie|minecraft|valorant|league|fortnite|apex|steam|roblox|overwatch|wow|warcraft|dota|hearthstone|pokemon|nintendo|playstation|xbox)\b/i,
+    'finance/investing': /\b(finance|invest|investing|stocks|trading|forex|crypto|bitcoin|ethereum|defi|web3|personalfinance|wallstreet|options|etf|realestate|entrepreneur)\b/i,
+    'science/learning': /\b(science|physics|math|biology|chemistry|neuroscience|space|astronomy|history|philosophy|psychology|sociology|learn|askscience|explainlikeimfive|todayilearned|futurology)\b/i,
+    'fitness/health':   /\b(fitness|gym|workout|running|yoga|meditation|nutrition|diet|weightlifting|bodybuilding|cycling|hiking|health|mentalhealth|loseit|gainit)\b/i,
+    'creative/art':     /\b(art|design|creative|writing|fiction|draw|illustration|photography|film|animation|3d|poetry|music|piano|guitar|diy|crafts|woodworking)\b/i,
+    'news/politics':    /\b(news|politics|world|geopolitics|economics|policy|government|law|legal|environment|climate)\b/i,
+    'entertainment':    /\b(movies|tv|television|anime|manga|books|reading|music|podcasts|comedy|humor|aww|funny|memes|pop)\b/i,
+  };
+
+  const categoryHits = {};
+  for (const name of names) {
+    for (const [category, pattern] of Object.entries(categoryPatterns)) {
+      if (pattern.test(name)) {
+        categoryHits[category] = (categoryHits[category] || 0) + 1;
+      }
+    }
+  }
+
+  const topCategories = Object.entries(categoryHits)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 4)
+    .map(([cat]) => cat);
+
+  if (topCategories.length > 0) {
+    observations.push({
+      content: `Reddit community interests span: ${topCategories.join(', ')}`,
       contentType: 'weekly_summary',
     });
   }
@@ -1247,6 +1324,9 @@ async function runObservationIngestion() {
               case 'linkedin':
                 observations = await fetchLinkedInObservations(userId);
                 break;
+              case 'reddit':
+                observations = await fetchRedditObservations(userId);
+                break;
               case 'whoop':
                 observations = await fetchWhoopObservations(userId);
                 break;
@@ -1535,6 +1615,15 @@ async function runPostOnboardingIngestion(userId) {
           case 'github':
             observations = await fetchGitHubObservations(userId);
             break;
+          case 'discord':
+            observations = await fetchDiscordObservations(userId);
+            break;
+          case 'linkedin':
+            observations = await fetchLinkedInObservations(userId);
+            break;
+          case 'reddit':
+            observations = await fetchRedditObservations(userId);
+            break;
         }
 
         for (const obs of observations) {
@@ -1713,6 +1802,7 @@ export {
   fetchYouTubeObservations,
   fetchDiscordObservations,
   fetchLinkedInObservations,
+  fetchRedditObservations,
   fetchGitHubObservations,
   runPostOnboardingIngestion,
 };

@@ -333,7 +333,7 @@ function buildTwinSystemPrompt(soulSignature, platformData, personalityScores = 
 
   // === PROACTIVE INSIGHTS (Things I noticed - mention naturally if relevant) ===
   if (proactiveInsights && proactiveInsights.length > 0) {
-    const diverseInsights = deduplicateByTheme(proactiveInsights, i => i.insight, { threshold: 0.35, maxItems: 3 });
+    const diverseInsights = deduplicateByTheme(proactiveInsights, i => i.insight, { threshold: 0.50, maxItems: 3 });
     if (diverseInsights.length < proactiveInsights.length) {
       console.log(`[Twin Chat] Insights deduped: ${proactiveInsights.length} -> ${diverseInsights.length}`);
     }

@@ -86,8 +86,6 @@ export function computeEmotionalState(platformData, options = {}) {
       : 0.0;
 
     calSignal = `${meetingCount} meeting${meetingCount !== 1 ? 's' : ''} today`;
-    const nextEvent = todayEvents[0];
-    if (nextEvent?.summary) calSignal += ` (next: ${nextEvent.summary.substring(0, 40)})`;
   }
 
   // ── Time-of-day context ──────────────────────────────────────────────────

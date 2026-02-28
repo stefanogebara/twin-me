@@ -80,7 +80,7 @@ async function generateTwinSummary(userId, userName = 'This person') {
   // Five parallel retrieval queries aligned to expert reflection domains
   // Using 'identity' weights: relevance dominant, low recency bias — who this person IS, not just what happened recently
   const [personalityMemories, lifestyleMemories, culturalMemories, socialMemories, motivationMemories] = await Promise.all([
-    retrieveMemories(userId, `${userName}'s emotional patterns, personality traits, coping mechanisms, and psychological tendencies`, 25, 'identity'),
+    retrieveMemories(userId, `${userName}'s emotional patterns, personality traits, emotional regulation strategies, and psychological tendencies`, 25, 'identity'),
     retrieveMemories(userId, `${userName}'s daily routines, energy patterns, sleep habits, health metrics, and lifestyle rhythms`, 25, 'identity'),
     retrieveMemories(userId, `${userName}'s music taste, content preferences, aesthetic choices, cultural identity, and creative interests`, 25, 'identity'),
     retrieveMemories(userId, `${userName}'s communication style, social interactions, relationship patterns, and social energy`, 25, 'identity'),
