@@ -603,7 +603,7 @@ async function fetchSpotifyData(userId) {
     // Check currently playing FIRST
     let currentlyPlaying = null;
     try {
-      const currentRes = await axios.get('https://api.spotify.com/v1/me/player/currently-playing', { headers });
+      const currentRes = await axios.get('https://api.spotify.com/v1/me/player/currently-playing', { headers, timeout: 5000 });
       if (currentRes.data?.item) {
         currentlyPlaying = {
           name: currentRes.data.item.name,
@@ -617,8 +617,8 @@ async function fetchSpotifyData(userId) {
 
     // Get recent tracks with timestamps
     const [recentRes, topRes] = await Promise.all([
-      axios.get('https://api.spotify.com/v1/me/player/recently-played?limit=10', { headers }),
-      axios.get('https://api.spotify.com/v1/me/top/artists?limit=5&time_range=short_term', { headers })
+      axios.get('https://api.spotify.com/v1/me/player/recently-played?limit=10', { headers, timeout: 5000 }),
+      axios.get('https://api.spotify.com/v1/me/top/artists?limit=5&time_range=short_term', { headers, timeout: 5000 })
     ]);
 
     // Filter recent tracks to last 24 hours only
@@ -658,6 +658,7 @@ async function fetchCalendarData(userId) {
 
     const calRes = await axios.get('https://www.googleapis.com/calendar/v3/calendars/primary/events', {
       headers: { Authorization: `Bearer ${tokenResult.accessToken}` },
+      timeout: 5000,
       params: {
         timeMin: now.toISOString(),
         timeMax: weekFromNow.toISOString(),
@@ -717,8 +718,8 @@ async function fetchWhoopData(userId) {
 
       const headers = { Authorization: `Bearer ${tokenResult.accessToken}` };
       const [recoveryRes, sleepRes] = await Promise.all([
-        axios.get('https://api.prod.whoop.com/developer/v2/recovery?limit=1', { headers }),
-        axios.get('https://api.prod.whoop.com/developer/v2/activity/sleep?limit=5', { headers })
+        axios.get('https://api.prod.whoop.com/developer/v2/recovery?limit=1', { headers, timeout: 5000 }),
+        axios.get('https://api.prod.whoop.com/developer/v2/activity/sleep?limit=5', { headers, timeout: 5000 })
       ]);
       latestRecovery = recoveryRes.data?.records?.[0];
       allSleeps = sleepRes.data?.records || [];
