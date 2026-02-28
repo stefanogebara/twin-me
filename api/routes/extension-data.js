@@ -41,9 +41,23 @@ function mapEventType(eventType, platform = '') {
     'chat_engagement': 'extension_chat',
     'clip_view': 'extension_clip_view',
     // Web browsing events
+    'tab_visit': 'extension_page_visit',
     'page_visit': 'extension_page_visit',
     'article_read': 'extension_article_read',
     'web_video_watch': 'extension_web_video',
+    // Pass-throughs: already valid DB storage values
+    'extension_page_visit': 'extension_page_visit',
+    'extension_article_read': 'extension_article_read',
+    'extension_web_video': 'extension_web_video',
+    'extension_search_query': 'extension_search_query',
+    'extension_search': 'extension_search',
+    'extension_video_watch': 'extension_video_watch',
+    'extension_recommendation': 'extension_recommendation',
+    'extension_homepage': 'extension_homepage',
+    'extension_stream_watch': 'extension_stream_watch',
+    'extension_browse': 'extension_browse',
+    'extension_chat': 'extension_chat',
+    'extension_clip_view': 'extension_clip_view',
     // Generic
     'capture': 'activity'
   };
@@ -139,7 +153,7 @@ router.post('/batch', authenticateUser, async (req, res) => {
       return {
         user_id: userId,
         platform: eventPlatform,
-        data_type: event.data_type || mapEventType(event.eventType || 'capture', eventPlatform),
+        data_type: mapEventType(event.data_type || event.eventType || 'capture', eventPlatform),
         raw_data: event.raw_data || event,
         extracted_at: event.timestamp || new Date().toISOString()
       };
