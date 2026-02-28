@@ -495,7 +495,7 @@ async function generateReflections(userId, depth = 0) {
     // Step 3: Run all experts in parallel (with identity context injected)
     console.log(`[Reflection] Running ${EXPERT_PERSONAS.length} expert analyses in parallel...`);
 
-    const expertResults = await Promise.all(
+    const expertSettled = await Promise.allSettled(
       EXPERT_PERSONAS.map(expert =>
         runExpertAnalysis(userId, expert, formattedObservations, depth, identityContext)
       )
@@ -506,7 +506,11 @@ async function generateReflections(userId, depth = 0) {
     const allEvidenceIds = new Set();
 
     for (let i = 0; i < EXPERT_PERSONAS.length; i++) {
-      const result = expertResults[i];
+      if (expertSettled[i].status === 'rejected') {
+        console.warn(`[Reflection] Expert ${EXPERT_PERSONAS[i].id} failed:`, expertSettled[i].reason?.message);
+        continue;
+      }
+      const result = expertSettled[i].value;
       if (!Array.isArray(result)) {
         console.warn(`[Reflection] Expert ${EXPERT_PERSONAS[i].id} returned invalid result`);
         continue;

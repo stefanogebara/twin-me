@@ -16,7 +16,6 @@ router.post('/events', analyticsLimiter, async (req, res) => {
     const {
       event_type,
       event_data,
-      user_id,
       session_id,
       timestamp,
       page_url,
@@ -28,12 +27,26 @@ router.post('/events', analyticsLimiter, async (req, res) => {
       return res.status(400).json({ error: 'event_type and session_id are required' });
     }
 
+    // Resolve user_id from JWT only — never trust the body-supplied user_id
+    // (anonymous events are fine; authenticated events get the correct user)
+    let resolvedUserId = null;
+    const authHeader = req.headers.authorization;
+    if (authHeader?.startsWith('Bearer ')) {
+      try {
+        const jwt = await import('jsonwebtoken');
+        const payload = jwt.default.verify(authHeader.slice(7), process.env.JWT_SECRET);
+        resolvedUserId = payload.id || payload.userId || null;
+      } catch {
+        // Invalid / expired token — treat as anonymous
+      }
+    }
+
     const { data, error } = await supabase
       .from('analytics_events')
       .insert([{
         event_type,
         event_data: event_data || {},
-        user_id: user_id || null,
+        user_id: resolvedUserId,
         session_id,
         timestamp: timestamp || new Date().toISOString(),
         page_url: page_url || null,
@@ -56,15 +69,28 @@ router.post('/events', analyticsLimiter, async (req, res) => {
 
 router.post('/session-end', analyticsLimiter, async (req, res) => {
   try {
-    const { session_id, user_id, end_time } = req.body;
+    const { session_id, end_time } = req.body;
 
     if (!session_id) {
       return res.status(400).json({ error: 'session_id is required' });
     }
 
+    // Resolve user_id from JWT only — never trust body-supplied user_id
+    let resolvedUserId = null;
+    const authHeader = req.headers.authorization;
+    if (authHeader?.startsWith('Bearer ')) {
+      try {
+        const jwt = await import('jsonwebtoken');
+        const payload = jwt.default.verify(authHeader.slice(7), process.env.JWT_SECRET);
+        resolvedUserId = payload.id || payload.userId || null;
+      } catch {
+        // Invalid / expired token — treat as anonymous
+      }
+    }
+
     const upsertData = {
       session_id,
-      user_id: user_id || null,
+      user_id: resolvedUserId,
       ended_at: end_time || new Date().toISOString(),
       updated_at: new Date().toISOString()
     };
