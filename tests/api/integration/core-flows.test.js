@@ -110,18 +110,10 @@ describe('Flow 1: Memory stats', () => {
   });
 
   it('returns correct shape with total and byType', async () => {
-    // Simulate supabase returning typed memory rows
+    // getMemoryStats now uses parallel COUNT queries (head:true) returning { count, error }
+    // All 5 type queries share the same mock chain, so each resolves to count=1 → total=5
     supabaseAdmin._chain.then.mockImplementation((cb) =>
-      Promise.resolve(cb({
-        data: [
-          { memory_type: 'reflection' },
-          { memory_type: 'reflection' },
-          { memory_type: 'fact' },
-          { memory_type: 'platform_data' },
-          { memory_type: 'conversation' },
-        ],
-        error: null,
-      }))
+      Promise.resolve(cb({ count: 1, error: null }))
     );
 
     const stats = await getMemoryStats('user-test-1');
@@ -132,8 +124,8 @@ describe('Flow 1: Memory stats', () => {
     expect(stats.byType).toHaveProperty('fact');
     expect(stats.byType).toHaveProperty('platform_data');
     expect(stats.byType).toHaveProperty('conversation');
-    expect(stats.total).toBe(5);
-    expect(stats.byType.reflection).toBe(2);
+    expect(stats.total).toBe(5);       // 5 types × count=1 each
+    expect(stats.byType.reflection).toBe(1);
     expect(stats.byType.fact).toBe(1);
   });
 
