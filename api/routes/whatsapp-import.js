@@ -29,9 +29,6 @@ import { addPlatformObservation, addMemory } from '../services/memoryStreamServi
 
 const router = express.Router();
 
-// Accept up to 10MB of text (large chat exports)
-const TEXT_LIMIT = '10mb';
-
 // ─── Parse WhatsApp export ─────────────────────────────────────────────────────
 
 /**
@@ -243,7 +240,7 @@ function buildObservations(patterns) {
 
 // ─── POST /import ──────────────────────────────────────────────────────────────
 
-router.post('/import', authenticateUser, express.text({ limit: TEXT_LIMIT, type: 'text/plain' }), async (req, res) => {
+router.post('/import', authenticateUser, async (req, res) => {
   const userId = req.user.id;
   const { my_name } = req.query; // optional: user's display name in the chat
 
