@@ -20,6 +20,7 @@ import {
 import { useAuth } from './src/hooks/useAuth';
 import { registerBackgroundSync, runSyncNow } from './src/services/backgroundSync';
 import { addLocationSample, SAMPLE_INTERVAL_MS } from './src/services/locationClusters';
+import { registerForPushNotifications } from './src/services/pushNotifications';
 import { usePushNotifications } from './src/hooks/usePushNotifications';
 import { LoginScreen } from './src/screens/LoginScreen';
 import { HomeScreen } from './src/screens/HomeScreen';
@@ -75,6 +76,9 @@ export default function App() {
   useEffect(() => {
     if (token) {
       registerBackgroundSync().catch(console.error);
+      registerForPushNotifications().catch(err =>
+        console.warn('[Push] Registration failed (non-fatal):', err)
+      );
       checkPermissionsNeeded();
     } else {
       setShowPermissions(null);
