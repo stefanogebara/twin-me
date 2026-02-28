@@ -41,7 +41,7 @@ async function getSupabase() {
 }
 
 // Platforms we know how to ingest
-const SUPPORTED_PLATFORMS = ['spotify', 'google_calendar', 'youtube', 'discord', 'linkedin', 'reddit', 'whoop', 'github'];
+const SUPPORTED_PLATFORMS = ['spotify', 'google_calendar', 'youtube', 'discord', 'linkedin', 'reddit', 'whoop', 'github', 'google_gmail'];
 
 // ====================================================================
 // Prompt injection defense
@@ -633,6 +633,156 @@ async function fetchRedditObservations(userId) {
       content: `Reddit community interests span: ${topCategories.join(', ')}`,
       contentType: 'weekly_summary',
     });
+  }
+
+  return observations;
+}
+
+/**
+ * Fetch Gmail behavioral signals and return natural-language observations.
+ * Privacy-safe: reads only aggregate stats, label names, and message Date/From headers.
+ * Never reads message content or subject lines.
+ */
+async function fetchGmailObservations(userId) {
+  const observations = [];
+
+  const tokenResult = await getValidAccessToken(userId, 'google_gmail');
+  if (!tokenResult.success || !tokenResult.accessToken) {
+    console.warn('[ObservationIngestion] Gmail: no valid token for user', userId);
+    return observations;
+  }
+
+  const headers = { Authorization: `Bearer ${tokenResult.accessToken}` };
+  const BASE = 'https://gmail.googleapis.com/gmail/v1/users/me';
+
+  // ── 1. Profile: inbox size category ────────────────────────────────────────
+  let totalMessages = null;
+  try {
+    const profileRes = await axios.get(`${BASE}/profile`, { headers, timeout: 10000 });
+    totalMessages = profileRes.data?.messagesTotal ?? null;
+  } catch (e) {
+    console.warn('[ObservationIngestion] Gmail profile error:', e.message);
+    return observations;
+  }
+
+  if (totalMessages !== null) {
+    const sizeLabel =
+      totalMessages > 50000 ? 'a very large mailbox (50 000+ messages)' :
+      totalMessages > 10000 ? `a large mailbox (~${Math.round(totalMessages / 1000)}k messages)` :
+      totalMessages > 1000  ? `a moderate-sized mailbox (~${Math.round(totalMessages / 1000)}k messages)` :
+                              `a lean mailbox (${totalMessages} messages)`;
+    observations.push({ content: `Manages ${sizeLabel}`, contentType: 'weekly_summary' });
+  }
+
+  // ── 2. Custom labels — reveals organization habits ─────────────────────────
+  try {
+    const labelsRes = await axios.get(`${BASE}/labels`, { headers, timeout: 10000 });
+    const customLabels = (labelsRes.data?.labels || [])
+      .filter(l => l.type === 'user')
+      .map(l => sanitizeExternal(l.name, 60))
+      .filter(Boolean);
+    if (customLabels.length > 0) {
+      const top = customLabels.slice(0, 5).join(', ');
+      observations.push({
+        content: `Uses ${customLabels.length} custom email labels including: ${top}`,
+        contentType: 'weekly_summary',
+      });
+    }
+  } catch (e) {
+    console.warn('[ObservationIngestion] Gmail labels error:', e.message);
+  }
+
+  // ── 3. Weekly volume estimate (INBOX + SENT) ────────────────────────────────
+  try {
+    const [inboxRes, sentRes] = await Promise.all([
+      axios.get(`${BASE}/messages?labelIds=INBOX&q=newer_than:7d&maxResults=1`, { headers, timeout: 10000 }),
+      axios.get(`${BASE}/messages?labelIds=SENT&q=newer_than:7d&maxResults=1`, { headers, timeout: 10000 }),
+    ]);
+    const weeklyInbox = inboxRes.data?.resultSizeEstimate ?? 0;
+    const weeklySent = sentRes.data?.resultSizeEstimate ?? 0;
+    const total = weeklyInbox + weeklySent;
+    if (total > 0) {
+      const volLabel =
+        total > 200 ? 'heavy (200+ per week)' :
+        total > 50  ? `moderate (~${total} per week)` :
+                      `light (~${total} per week)`;
+      observations.push({
+        content: `Email activity this week is ${volLabel} — ~${weeklyInbox} received, ~${weeklySent} sent`,
+        contentType: 'weekly_summary',
+      });
+    }
+  } catch (e) {
+    console.warn('[ObservationIngestion] Gmail volume estimate error:', e.message);
+  }
+
+  // ── 4. Time-of-day peak from recent sent messages ──────────────────────────
+  try {
+    const sentListRes = await axios.get(
+      `${BASE}/messages?labelIds=SENT&maxResults=20`,
+      { headers, timeout: 10000 }
+    );
+    const sentIds = (sentListRes.data?.messages || []).map(m => m.id);
+    if (sentIds.length >= 5) {
+      const dateStrings = await Promise.all(
+        sentIds.map(id =>
+          axios.get(`${BASE}/messages/${id}?format=metadata&metadataHeaders=Date`, { headers, timeout: 10000 })
+            .then(r => r.data?.payload?.headers?.find(h => h.name === 'Date')?.value || null)
+            .catch(() => null)
+        )
+      );
+      const hourCounts = { morning: 0, afternoon: 0, evening: 0, night: 0 };
+      for (const dateStr of dateStrings.filter(Boolean)) {
+        const hour = new Date(dateStr).getHours();
+        if (isNaN(hour)) continue;
+        if (hour >= 6 && hour < 12) hourCounts.morning++;
+        else if (hour >= 12 && hour < 18) hourCounts.afternoon++;
+        else if (hour >= 18 && hour < 23) hourCounts.evening++;
+        else hourCounts.night++;
+      }
+      const peakSlot = Object.entries(hourCounts).sort((a, b) => b[1] - a[1])[0];
+      if (peakSlot && peakSlot[1] > 0) {
+        observations.push({
+          content: `Tends to send emails in the ${peakSlot[0]} (from recent sent patterns)`,
+          contentType: 'weekly_summary',
+        });
+      }
+    }
+  } catch (e) {
+    console.warn('[ObservationIngestion] Gmail time-of-day error:', e.message);
+  }
+
+  // ── 5. Sender domain diversity from last 30 days ───────────────────────────
+  try {
+    const inboxListRes = await axios.get(
+      `${BASE}/messages?labelIds=INBOX&q=newer_than:30d&maxResults=30`,
+      { headers, timeout: 10000 }
+    );
+    const inboxIds = (inboxListRes.data?.messages || []).map(m => m.id);
+    if (inboxIds.length >= 5) {
+      const domains = await Promise.all(
+        inboxIds.map(id =>
+          axios.get(`${BASE}/messages/${id}?format=metadata&metadataHeaders=From`, { headers, timeout: 10000 })
+            .then(r => {
+              const from = r.data?.payload?.headers?.find(h => h.name === 'From')?.value || '';
+              const match = from.match(/@([a-zA-Z0-9.-]+)/);
+              return match ? match[1].toLowerCase() : null;
+            })
+            .catch(() => null)
+        )
+      );
+      const uniqueDomains = [...new Set(domains.filter(Boolean))];
+      // Filter out known automation/transactional senders
+      const automatedPattern = /\b(noreply|no-reply|newsletter|notifications|support|mailer|bounce|amazonses|mailchimp|sendgrid|mailgun|hubspot|constantcontact)\b/i;
+      const personalDomains = uniqueDomains.filter(d => !automatedPattern.test(d));
+      if (personalDomains.length > 0) {
+        observations.push({
+          content: `Receives email from ${personalDomains.length} distinct senders/organizations in the past month`,
+          contentType: 'weekly_summary',
+        });
+      }
+    }
+  } catch (e) {
+    console.warn('[ObservationIngestion] Gmail sender diversity error:', e.message);
   }
 
   return observations;
@@ -1333,6 +1483,9 @@ async function runObservationIngestion() {
               case 'github':
                 observations = await fetchGitHubObservations(userId);
                 break;
+              case 'google_gmail':
+                observations = await fetchGmailObservations(userId);
+                break;
             }
 
             // Batch de-duplication: pre-fetch recent memories once per platform
@@ -1624,6 +1777,9 @@ async function runPostOnboardingIngestion(userId) {
           case 'reddit':
             observations = await fetchRedditObservations(userId);
             break;
+          case 'google_gmail':
+            observations = await fetchGmailObservations(userId);
+            break;
         }
 
         for (const obs of observations) {
@@ -1804,5 +1960,6 @@ export {
   fetchLinkedInObservations,
   fetchRedditObservations,
   fetchGitHubObservations,
+  fetchGmailObservations,
   runPostOnboardingIngestion,
 };
