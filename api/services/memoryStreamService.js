@@ -868,6 +868,56 @@ async function getMemoryStats(userId) {
 }
 
 /**
+ * Compute Twin Readiness Score (0-100) — "Soul Saturation"
+ * Measures how well the twin knows the user based on memory depth and diversity.
+ * Target: 10,000 diverse, high-quality memories = 100%
+ *
+ * @param {string} userId - User UUID
+ * @returns {{ score: number, label: string, breakdown: object, total: number, byType: object }}
+ */
+async function getTwinReadinessScore(userId) {
+  try {
+    const stats = await getMemoryStats(userId);
+    const total = stats.total || 0;
+    const byType = stats.byType || {};
+
+    // Factor 1: Volume (40%) — 10,000 memories = full score
+    const volumeScore = Math.min(1.0, total / 10000);
+
+    // Factor 2: Type diversity (30%) — how many of 4 types are represented
+    const types = ['fact', 'reflection', 'platform_data', 'conversation'];
+    const presentTypes = types.filter(t => (byType[t] || 0) >= 10).length;
+    const diversityScore = presentTypes / types.length;
+
+    // Factor 3: Reflection depth (30%) — reflections show synthesis happened
+    const reflectionCount = byType.reflection || 0;
+    const reflectionScore = Math.min(1.0, reflectionCount / 3000);
+
+    const score = Math.round(
+      (volumeScore * 0.4 + diversityScore * 0.3 + reflectionScore * 0.3) * 100
+    );
+
+    const breakdown = {
+      volume: Math.round(volumeScore * 100),
+      diversity: Math.round(diversityScore * 100),
+      reflection: Math.round(reflectionScore * 100),
+    };
+
+    const label = score < 15 ? 'Just getting started'
+      : score < 30 ? 'Starting to know you'
+      : score < 50 ? 'Getting interesting'
+      : score < 70 ? 'Taking shape'
+      : score < 85 ? 'Deeply familiar'
+      : 'Soul captured';
+
+    return { score, label, breakdown, total, byType };
+  } catch (err) {
+    console.warn('[MemoryStream] getTwinReadinessScore error:', err.message);
+    return { score: 0, label: 'Just getting started', breakdown: {}, total: 0, byType: {} };
+  }
+}
+
+/**
  * Archive old low-importance memories for a user.
  * Calls the archive_old_memories Supabase RPC which moves qualifying rows
  * to user_memories_archive. Only runs if user has >5,000 total memories.
@@ -911,6 +961,7 @@ export {
   rateImportance,
   extractConversationFacts,
   getMemoryStats,
+  getTwinReadinessScore,
   archiveOldMemories,
   decaySourceMemories,
   RETRIEVAL_WEIGHTS,

@@ -10,6 +10,7 @@ import { useQuery } from '@tanstack/react-query';
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid } from 'recharts';
 import { PageLayout } from '@/components/layout/PageLayout';
 import { authFetch } from '@/services/api/apiBase';
+import { TwinReadinessScore } from '@/components/twin/TwinReadinessScore';
 import {
   Brain,
   Archive,
@@ -42,6 +43,11 @@ interface MemoryHealthData {
     retrievalCount: number;
     agedays: number;
   }>;
+  readiness?: {
+    score: number;
+    label: string;
+    breakdown?: { volume: number; diversity: number; reflection: number };
+  };
 }
 
 const TYPE_COLORS: Record<string, string> = {
@@ -134,6 +140,17 @@ export default function MemoryHealth() {
 
         {data && (
           <>
+            {/* Twin Readiness Score */}
+            {data.readiness !== undefined && (
+              <div className="bg-white rounded-xl border border-stone-200 p-6">
+                <TwinReadinessScore
+                  score={data.readiness.score}
+                  label={data.readiness.label}
+                  breakdown={data.readiness.breakdown}
+                />
+              </div>
+            )}
+
             {/* Quality Indicators */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               <div className="bg-white rounded-xl border border-stone-200 p-4">

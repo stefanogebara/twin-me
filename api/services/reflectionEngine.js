@@ -49,6 +49,7 @@ import {
 import { inferIdentityContext } from './identityContextService.js';
 import { supabaseAdmin } from './database.js';
 import { generateEmbedding } from './embeddingService.js';
+import { autoLinkMemory } from './memoryLinksService.js';
 
 // ====================================================================
 // Deduplication — Cosine similarity on stored embeddings
@@ -417,6 +418,17 @@ async function runExpertAnalysis(userId, expert, formattedObservations, depth, i
       if (reflectionResult) {
         stored.push(observation);
         console.log(`[Reflection] ${expert.name}: "${observation.substring(0, 70)}..."`);
+
+        // A-MEM: Auto-link this reflection to semantically related memories.
+        // generateEmbedding is cached — this is a cache hit from the dedup check above.
+        // Fire-and-forget: link failures must never affect the reflection pipeline.
+        generateEmbedding(observation).then(embedding => {
+          if (embedding) {
+            autoLinkMemory(reflectionResult.id, userId, embedding).catch(err =>
+              console.warn('[MemoryLinks] autoLinkMemory fire-and-forget error:', err.message)
+            );
+          }
+        }).catch(() => {});
       }
     }
 
