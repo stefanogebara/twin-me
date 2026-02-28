@@ -258,12 +258,12 @@ async function markInsightsDelivered(insightIds) {
   if (validIds.length !== insightIds.length) {
     console.warn(`[ProactiveInsights] markInsightsDelivered: ${insightIds.length - validIds.length} invalid IDs filtered out`);
   }
-  insightIds = validIds;
+  const safeIds = validIds;
 
   const { error: deliveredErr } = await supabaseAdmin
     .from('proactive_insights')
     .update({ delivered: true, delivered_at: new Date().toISOString() })
-    .in('id', insightIds);
+    .in('id', safeIds);
 
   if (deliveredErr) {
     console.warn('[ProactiveInsights] Failed to mark delivered:', deliveredErr.message);

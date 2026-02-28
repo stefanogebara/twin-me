@@ -39,10 +39,27 @@ router.post('/', authenticateUser, async (req, res) => {
     return res.status(400).json({ success: false, error: 'Note too long (max 500 chars)' });
   }
 
+  if (moodEmoji !== undefined && (typeof moodEmoji !== 'string' || moodEmoji.length > 10)) {
+    return res.status(400).json({ success: false, error: 'Invalid moodEmoji' });
+  }
+
   const safeMood = mood.trim();
   const today = new Date().toISOString().split('T')[0];
 
   try {
+    // Upsert first — it's idempotent; addMemory is not, so only write memory on success
+    const { error } = await supabaseAdmin
+      .from('daily_checkins')
+      .upsert(
+        { user_id: userId, date: today, mood: safeMood, energy: energy || null },
+        { onConflict: 'user_id,date' }
+      );
+
+    if (error) {
+      console.error('[Checkin] Failed to upsert daily_checkins:', error.message);
+      return res.status(500).json({ success: false, error: 'Failed to save check-in' });
+    }
+
     // Build natural-language memory content for the twin
     const energyPhrase = energy ? ` with ${energy} energy` : '';
     const notePhrase = note?.trim() ? `. ${note.trim()}` : '';
@@ -56,19 +73,6 @@ router.post('/', authenticateUser, async (req, res) => {
       note: note?.trim() || null,
       checkin_date: today,
     });
-
-    // Upsert so re-submitting today updates rather than errors
-    const { error } = await supabaseAdmin
-      .from('daily_checkins')
-      .upsert(
-        { user_id: userId, date: today, mood: safeMood, energy: energy || null },
-        { onConflict: 'user_id,date' }
-      );
-
-    if (error) {
-      console.error('[Checkin] Failed to upsert daily_checkins:', error.message);
-      return res.status(500).json({ success: false, error: 'Failed to save check-in' });
-    }
 
     return res.json({ success: true });
   } catch (err) {
