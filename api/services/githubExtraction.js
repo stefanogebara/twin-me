@@ -27,7 +27,7 @@ function getSupabaseClient() {
 export async function extractGitHubData(userId) {
   try {
     // Get platform connection with encrypted tokens
-    const { data: connection, error: connectionError } = await supabase
+    const { data: connection, error: connectionError } = await getSupabaseClient()
       .from('platform_connections')
       .select('*')
       .eq('user_id', userId)
@@ -58,7 +58,6 @@ export async function extractGitHubData(userId) {
       userResponse,
       reposResponse,
       starredResponse,
-      eventsResponse,
       followingResponse,
       followersResponse
     ] = await Promise.all([
@@ -70,10 +69,6 @@ export async function extractGitHubData(userId) {
 
       // Get starred repositories
       axios.get('https://api.github.com/user/starred?per_page=100', { headers }),
-
-      // Get recent events (contributions)
-      axios.get('https://api.github.com/users/USER/events?per_page=100', { headers })
-        .catch(() => ({ data: [] })),
 
       // Get following
       axios.get('https://api.github.com/user/following?per_page=100', { headers }),
@@ -112,7 +107,7 @@ export async function extractGitHubData(userId) {
     console.log(`✅ Extracted ${totalItems} GitHub items`);
 
     // Save extracted data to soul_data table
-    const { error: insertError } = await supabase
+    const { error: insertError } = await getSupabaseClient()
       .from('soul_data')
       .insert({
         user_id: userId,
@@ -136,7 +131,7 @@ export async function extractGitHubData(userId) {
     }
 
     // Update connection status
-    const { error: syncSuccessErr } = await supabase
+    const { error: syncSuccessErr } = await getSupabaseClient()
       .from('platform_connections')
       .update({
         last_sync_at: new Date().toISOString(),
@@ -159,7 +154,7 @@ export async function extractGitHubData(userId) {
 
     // Handle token expiration
     if (error.response?.status === 401) {
-      const { error: reauthErr } = await supabase
+      const { error: reauthErr } = await getSupabaseClient()
         .from('platform_connections')
         .update({
           last_sync_status: 'requires_reauth'
@@ -187,7 +182,7 @@ export async function extractGitHubData(userId) {
     }
 
     // Update connection with error status
-    const { error: failedErr } = await supabase
+    const { error: failedErr } = await getSupabaseClient()
       .from('platform_connections')
       .update({
         last_sync_status: 'failed'
