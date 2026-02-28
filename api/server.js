@@ -189,6 +189,9 @@ app.use((req, res, next) => {
 // Billing webhook needs raw body — mount BEFORE express.json
 app.use('/api/billing', billingRoutes);
 
+// Parse text/plain bodies for WhatsApp import (must be before express.json so the stream isn't consumed)
+app.use('/api/whatsapp/import', express.text({ limit: '10mb', type: 'text/plain' }));
+
 // Parse JSON bodies
 app.use(express.json({ limit: '100kb' }));
 
