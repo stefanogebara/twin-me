@@ -1242,6 +1242,132 @@ async function fetchStravaObservations(userId) {
         contentType: 'daily_summary',
       });
     }
+
+    // ── Training load: average distance per activity type (last 10) ──────────
+    try {
+      const last10 = activities.slice(0, 10);
+      const distByType = {};
+      const countByType = {};
+      for (const act of last10) {
+        const type = sanitizeExternal(act.type || act.sport_type || 'Unknown', 30);
+        if (!type) continue;
+        const distKm = (act.distance || 0) / 1000;
+        if (distKm > 0) {
+          distByType[type] = (distByType[type] || 0) + distKm;
+          countByType[type] = (countByType[type] || 0) + 1;
+        }
+      }
+      const avgParts = Object.entries(distByType)
+        .filter(([, total]) => total > 0)
+        .sort((a, b) => b[1] - a[1])
+        .map(([type, total]) => {
+          const count = countByType[type] || 1;
+          return `averages ${(total / count).toFixed(1)}km per ${type.toLowerCase()}`;
+        });
+      if (avgParts.length > 0) {
+        observations.push({
+          content: `Strava training load: ${avgParts.join('; ')} (based on last ${last10.length} activities)`,
+          contentType: 'weekly_summary',
+        });
+      }
+    } catch (e) {
+      console.warn('[ObservationIngestion] Strava training load error:', e.message);
+    }
+
+    // ── Activity streak: ≥5 active days in last 7 ───────────────────────────
+    try {
+      const sevenDaysAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
+      const recentDates = new Set(
+        activities
+          .filter(a => a.start_date && new Date(a.start_date).getTime() > sevenDaysAgo)
+          .map(a => new Date(a.start_date).toISOString().slice(0, 10))
+      );
+      if (recentDates.size >= 5) {
+        observations.push({
+          content: `Strava active streak: ${recentDates.size} out of the last 7 days had a recorded workout`,
+          contentType: 'weekly_summary',
+        });
+      }
+    } catch (e) {
+      console.warn('[ObservationIngestion] Strava streak error:', e.message);
+    }
+
+    // ── Intensity distribution from average heart rate ────────────────────
+    try {
+      const last10 = activities.slice(0, 10);
+      const activitiesWithHR = last10.filter(a => a.average_heartrate && a.average_heartrate > 0);
+      if (activitiesWithHR.length >= 3) {
+        let easy = 0, moderate = 0, hard = 0;
+        for (const act of activitiesWithHR) {
+          const hr = act.average_heartrate;
+          if (hr < 140) easy++;
+          else if (hr < 165) moderate++;
+          else hard++;
+        }
+        const total = activitiesWithHR.length;
+        const easyPct = Math.round((easy / total) * 100);
+        const modPct = Math.round((moderate / total) * 100);
+        const hardPct = Math.round((hard / total) * 100);
+        observations.push({
+          content: `Strava recent training intensity: ${easyPct}% easy, ${modPct}% moderate, ${hardPct}% hard (based on avg HR across ${total} activities)`,
+          contentType: 'weekly_summary',
+        });
+      }
+    } catch (e) {
+      console.warn('[ObservationIngestion] Strava intensity distribution error:', e.message);
+    }
+
+    // ── Personal records ──────────────────────────────────────────────────
+    try {
+      const recentPRActivities = activities
+        .slice(0, 10)
+        .filter(a => (a.pr_count ?? 0) > 0);
+      if (recentPRActivities.length > 0) {
+        const prTypes = [...new Set(
+          recentPRActivities.map(a => sanitizeExternal(a.type || a.sport_type || 'activity', 30))
+        )].filter(Boolean);
+        const typeStr = prTypes.slice(0, 3).join(', ');
+        const totalPRs = recentPRActivities.reduce((sum, a) => sum + (a.pr_count || 0), 0);
+        observations.push({
+          content: `Set ${totalPRs} personal record${totalPRs !== 1 ? 's' : ''} in recent Strava ${typeStr} activities`,
+          contentType: 'weekly_summary',
+        });
+      }
+    } catch (e) {
+      console.warn('[ObservationIngestion] Strava personal records error:', e.message);
+    }
+
+    // ── Gear insight: dominant gear per activity type ──────────────────────
+    try {
+      const last10 = activities.slice(0, 10);
+      const gearByType = {};
+      for (const act of last10) {
+        const type = sanitizeExternal(act.type || act.sport_type || 'Unknown', 30);
+        const gearId = act.gear_id || null;
+        if (!type || !gearId) continue;
+        if (!gearByType[type]) gearByType[type] = {};
+        gearByType[type][gearId] = (gearByType[type][gearId] || 0) + 1;
+      }
+      const gearInsights = [];
+      for (const [type, gearCounts] of Object.entries(gearByType)) {
+        const entries = Object.entries(gearCounts).sort((a, b) => b[1] - a[1]);
+        const [topGearId, topCount] = entries[0];
+        const totalForType = Object.values(gearCounts).reduce((a, b) => a + b, 0);
+        if (topCount >= 3 && topCount === totalForType) {
+          gearInsights.push(`${type.toLowerCase()} (always same gear)`);
+        } else if (totalForType >= 4 && topCount / totalForType >= 0.75) {
+          gearInsights.push(`${type.toLowerCase()} (primarily one piece of gear)`);
+        }
+      }
+      if (gearInsights.length > 0) {
+        observations.push({
+          content: `Strava gear: primarily uses one piece of gear for ${gearInsights.join(' and ')}`,
+          contentType: 'weekly_summary',
+        });
+      }
+    } catch (e) {
+      console.warn('[ObservationIngestion] Strava gear insight error:', e.message);
+    }
   }
 
   // ── 3. Heart rate zones if available ────────────────────────────────────
@@ -1498,6 +1624,118 @@ async function fetchFitbitObservations(userId) {
 }
 
 /**
+ * Fetch Twitch data and return natural-language observations.
+ * Extracts followed channel categories to reveal gaming/streaming interests.
+ */
+async function fetchTwitchObservations(userId) {
+  const observations = [];
+
+  const supabase = await getSupabase();
+  if (!supabase) return observations;
+
+  const hasConnection = await _hasNangoMapping(supabase, userId, 'twitch');
+  if (!hasConnection) {
+    console.warn('[ObservationIngestion] Twitch: no Nango connection for user', userId);
+    return observations;
+  }
+
+  let nangoService;
+  try {
+    nangoService = await import('./nangoService.js');
+  } catch (e) {
+    console.warn('[ObservationIngestion] Twitch: failed to load nangoService:', e.message);
+    return observations;
+  }
+
+  // ── 1. Get Twitch user ID (required by followed-channels endpoint) ──────────
+  let twitchUserId = null;
+  try {
+    const userResult = await nangoService.twitch.getUser(userId);
+    const userData = userResult.success ? userResult.data?.data?.[0] : null;
+    twitchUserId = userData?.id || null;
+
+    const broadcastType = userData?.broadcaster_type;
+    const isStreamer = broadcastType === 'affiliate' || broadcastType === 'partner';
+    if (isStreamer) {
+      const login = sanitizeExternal(userData?.login || '', 40);
+      const views = userData?.view_count;
+      observations.push({
+        content: `Active Twitch streamer (${login}) with ${views?.toLocaleString() || 'unknown'} lifetime views`,
+        contentType: 'weekly_summary',
+      });
+    }
+  } catch (e) {
+    console.warn('[ObservationIngestion] Twitch getUser error:', e.message);
+    return observations;
+  }
+
+  if (!twitchUserId) return observations;
+
+  // ── 2. Followed channels → content interest fingerprint ──────────────────
+  try {
+    const followResult = await nangoService.twitch.getFollowedChannels(userId, twitchUserId);
+    const channels = followResult.success ? (followResult.data?.data || []) : [];
+
+    if (channels.length > 0) {
+      observations.push({
+        content: `Follows ${channels.length} Twitch channels`,
+        contentType: 'weekly_summary',
+      });
+
+      // Categorize by game/content name
+      const names = channels
+        .map(c => sanitizeExternal(c.game_name || c.broadcaster_name || '', 60))
+        .filter(Boolean);
+
+      const categoryPatterns = {
+        'FPS/shooters':       /\b(valorant|counter.?strike|cs2|apex|call.of.duty|warzone|overwatch|rainbow.?six|halo|battlefield|fortnite|pubg)\b/i,
+        'RPG/adventure':      /\b(elden.ring|dark.souls|diablo|baldur|final.fantasy|zelda|pokemon|cyberpunk|witcher|skyrim|wow|world.of.warcraft|genshin|ffxiv)\b/i,
+        'strategy/MOBA':      /\b(league.of.legends|lol|dota|hearthstone|starcraft|age.of.empires|civilization|teamfight.tactics|tft)\b/i,
+        'sports/racing':      /\b(fifa|nba|nfl|madden|rocket.league|f1|formula|nascar|ufc)\b/i,
+        'sandbox/survival':   /\b(minecraft|roblox|terraria|stardew|rust|ark|valheim|palworld)\b/i,
+        'IRL/just chatting':  /\b(just.chatting|irl|podcast|talk|creative|art|music)\b/i,
+        'horror':             /\b(dead.by.daylight|phasmophobia|resident.evil|amnesia|outlast)\b/i,
+        'variety/retro':      /\b(speed.?run|variety|retro|classic|indie)\b/i,
+      };
+
+      const hits = {};
+      for (const name of names) {
+        for (const [cat, pat] of Object.entries(categoryPatterns)) {
+          if (pat.test(name)) hits[cat] = (hits[cat] || 0) + 1;
+        }
+      }
+
+      const topCats = Object.entries(hits)
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 3)
+        .map(([cat]) => cat);
+
+      if (topCats.length > 0) {
+        observations.push({
+          content: `Twitch viewing interests: ${topCats.join(', ')}`,
+          contentType: 'weekly_summary',
+        });
+      }
+
+      // Top 3 streamers by name
+      const topNames = channels.slice(0, 3)
+        .map(c => sanitizeExternal(c.broadcaster_name || c.broadcaster_login || '', 40))
+        .filter(Boolean);
+      if (topNames.length > 0) {
+        observations.push({
+          content: `Top followed Twitch channels include: ${topNames.join(', ')}`,
+          contentType: 'weekly_summary',
+        });
+      }
+    }
+  } catch (e) {
+    console.warn('[ObservationIngestion] Twitch getFollowedChannels error:', e.message);
+  }
+
+  return observations;
+}
+
+/**
  * Check if a user has a Nango-managed connection for a given platform.
  * Used as fallback when platform_connections row is missing.
  */
@@ -1534,20 +1772,35 @@ async function fetchWhoopObservations(userId) {
   const isNangoManaged = whoopConn?.access_token === 'NANGO_MANAGED' || (!whoopConn && await _hasNangoMapping(supabase, userId, 'whoop'));
 
   let recoveryData = null;
-  let sleepData = null;
+  let recoveryHistory = [];
+  let sleepData = [];
+  let workoutData = [];
+  let directHeaders = null;
 
   if (isNangoManaged) {
     try {
       const nangoService = await import('./nangoService.js');
       const [recoveryResult, sleepResult] = await Promise.all([
-        nangoService.whoop.getRecovery(userId, 1),
+        nangoService.whoop.getRecovery(userId, 3),
         nangoService.whoop.getSleep(userId, 3),
       ]);
-      recoveryData = recoveryResult.success ? recoveryResult.data?.records?.[0] : null;
+      recoveryHistory = recoveryResult.success ? (recoveryResult.data?.records || []) : [];
+      recoveryData = recoveryHistory[0] || null;
       sleepData = sleepResult.success ? (sleepResult.data?.records || []) : [];
     } catch (e) {
       console.warn('[ObservationIngestion] Whoop Nango fetch error:', e.message);
       return observations;
+    }
+
+    // ── Workout data (Nango) ────────────────────────────────────────────────
+    try {
+      const nangoService = await import('./nangoService.js');
+      if (typeof nangoService.whoop?.getWorkout === 'function') {
+        const workoutResult = await nangoService.whoop.getWorkout(userId, 5);
+        workoutData = workoutResult.success ? (workoutResult.data?.records || []) : [];
+      }
+    } catch (e) {
+      console.warn('[ObservationIngestion] Whoop workout fetch error:', e.message);
     }
   } else {
     const tokenResult = await getValidAccessToken(userId, 'whoop');
@@ -1555,17 +1808,29 @@ async function fetchWhoopObservations(userId) {
       console.warn('[ObservationIngestion] Whoop: no valid token for user', userId);
       return observations;
     }
-    const headers = { Authorization: `Bearer ${tokenResult.accessToken}` };
+    directHeaders = { Authorization: `Bearer ${tokenResult.accessToken}` };
     try {
       const [recoveryRes, sleepRes] = await Promise.all([
-        axios.get('https://api.prod.whoop.com/developer/v2/recovery?limit=1', { headers, timeout: 10000 }),
-        axios.get('https://api.prod.whoop.com/developer/v2/activity/sleep?limit=3', { headers, timeout: 10000 }),
+        axios.get('https://api.prod.whoop.com/developer/v2/recovery?limit=3', { headers: directHeaders, timeout: 10000 }),
+        axios.get('https://api.prod.whoop.com/developer/v2/activity/sleep?limit=3', { headers: directHeaders, timeout: 10000 }),
       ]);
-      recoveryData = recoveryRes.data?.records?.[0] || null;
+      recoveryHistory = recoveryRes.data?.records || [];
+      recoveryData = recoveryHistory[0] || null;
       sleepData = sleepRes.data?.records || [];
     } catch (e) {
       console.warn('[ObservationIngestion] Whoop direct API error:', e.message);
       return observations;
+    }
+
+    // ── Workout data (direct) ───────────────────────────────────────────────
+    try {
+      const workoutRes = await axios.get(
+        'https://api.prod.whoop.com/developer/v2/activity/workout?limit=5',
+        { headers: directHeaders, timeout: 10000 }
+      );
+      workoutData = workoutRes.data?.records || [];
+    } catch (e) {
+      console.warn('[ObservationIngestion] Whoop workout direct API error:', e.message);
     }
   }
 
@@ -1592,6 +1857,23 @@ async function fetchWhoopObservations(userId) {
     }
   }
 
+  // ── 3-day low recovery streak ─────────────────────────────────────────────
+  try {
+    if (recoveryHistory.length >= 3) {
+      const last3Scores = recoveryHistory.slice(0, 3)
+        .map(r => r?.score?.recovery_score ?? null)
+        .filter(s => s !== null);
+      if (last3Scores.length === 3 && last3Scores.every(s => s < 50)) {
+        observations.push({
+          content: `3-day low recovery streak on Whoop (scores: ${last3Scores.join('%, ')}%) — likely overtraining or poor sleep`,
+          contentType: 'weekly_summary',
+        });
+      }
+    }
+  } catch (e) {
+    console.warn('[ObservationIngestion] Whoop recovery streak error:', e.message);
+  }
+
   // ── Sleep observation ─────────────────────────────────────────────────────
   if (sleepData.length > 0) {
     const latestSleep = sleepData[0];
@@ -1609,6 +1891,104 @@ async function fetchWhoopObservations(userId) {
       if (sleepPerf !== null) obs += ` — sleep performance ${sleepPerf}%`;
       observations.push({ content: obs, contentType: 'daily_summary' });
     }
+  }
+
+  // ── Sleep consistency: compare last 3 bedtimes ────────────────────────────
+  try {
+    if (sleepData.length >= 3) {
+      const startMinutes = sleepData.slice(0, 3).map(s => {
+        if (!s.start) return null;
+        const d = new Date(s.start);
+        // Minutes past midnight; shift post-noon values negative so 11pm and 1am cluster
+        let mins = d.getUTCHours() * 60 + d.getUTCMinutes();
+        if (mins > 12 * 60) mins -= 24 * 60;
+        return mins;
+      }).filter(m => m !== null);
+
+      if (startMinutes.length >= 3) {
+        const maxDiff = Math.max(...startMinutes) - Math.min(...startMinutes);
+        if (maxDiff <= 30) {
+          observations.push({
+            content: 'Consistent sleep schedule — bedtime varies by less than 30 minutes over the last 3 nights',
+            contentType: 'weekly_summary',
+          });
+        } else if (maxDiff > 120) {
+          observations.push({
+            content: `Irregular sleep timing — bedtime varies by over ${Math.round(maxDiff / 60)} hours across the last 3 nights`,
+            contentType: 'weekly_summary',
+          });
+        }
+      }
+    }
+  } catch (e) {
+    console.warn('[ObservationIngestion] Whoop sleep consistency error:', e.message);
+  }
+
+  // ── Workout data: type, strain, HR zone breakdown ─────────────────────────
+  try {
+    if (workoutData.length > 0) {
+      const latestWorkout = workoutData[0];
+      const sportId = latestWorkout.sport_id ?? null;
+      const strain = latestWorkout.score?.strain ?? null;
+      const avgHR = latestWorkout.score?.average_heart_rate ?? null;
+      const maxHR = latestWorkout.score?.max_heart_rate ?? null;
+      const calsBurned = latestWorkout.score?.kilojoule != null
+        ? Math.round(latestWorkout.score.kilojoule * 0.239006)
+        : null;
+
+      const WHOOP_SPORTS = {
+        0: 'Activity', 1: 'Running', 2: 'Cycling', 3: 'Baseball', 4: 'Basketball',
+        5: 'Rowing', 6: 'Fencing', 7: 'Field Hockey', 8: 'Football', 9: 'Golf',
+        10: 'Ice Hockey', 11: 'Lacrosse', 12: 'Rugby', 13: 'Skiing', 14: 'Soccer',
+        15: 'Softball', 16: 'Squash', 17: 'Swimming', 18: 'Tennis', 19: 'Track',
+        20: 'Volleyball', 21: 'Water Polo', 22: 'Wrestling', 23: 'Boxing',
+        24: 'Dance', 25: 'Pilates', 26: 'Yoga', 27: 'Weightlifting', 28: 'CrossFit',
+        29: 'Functional Fitness', 30: 'Duathlon', 31: 'Gymnastics', 32: 'Hiking',
+        33: 'Horseback Riding', 34: 'Kayaking', 35: 'Martial Arts', 36: 'Mountain Biking',
+        37: 'Powerlifting', 38: 'Rock Climbing', 39: 'Paddleboarding', 40: 'Triathlon',
+        41: 'Walking', 42: 'Surfing', 43: 'Elliptical', 44: 'Stairmaster',
+      };
+      const sportName = sanitizeExternal(
+        sportId !== null ? (WHOOP_SPORTS[sportId] || `Sport ${sportId}`) : 'workout',
+        40
+      );
+
+      if (strain !== null) {
+        const strainLabel = strain >= 18 ? 'all-out effort' : strain >= 14 ? 'hard day' : strain >= 10 ? 'moderate' : 'recovery day';
+        const parts = [`Latest Whoop workout: ${sportName} — strain ${strain.toFixed(1)}/21 (${strainLabel})`];
+        if (avgHR) parts.push(`avg HR ${avgHR}bpm`);
+        if (maxHR) parts.push(`max HR ${maxHR}bpm`);
+        if (calsBurned) parts.push(`~${calsBurned} kcal`);
+        observations.push({ content: parts.join(', '), contentType: 'daily_summary' });
+      }
+
+      // HR zone breakdown across recent workouts
+      const zoneKeys = ['zone_zero_milli', 'zone_one_milli', 'zone_two_milli', 'zone_three_milli', 'zone_four_milli', 'zone_five_milli'];
+      const zoneTotals = new Array(6).fill(0);
+      let hasZoneData = false;
+      for (const w of workoutData) {
+        for (let i = 0; i < zoneKeys.length; i++) {
+          const v = w.score?.[zoneKeys[i]] ?? 0;
+          if (v > 0) { hasZoneData = true; zoneTotals[i] += v; }
+        }
+      }
+      if (hasZoneData) {
+        const totalMs = zoneTotals.reduce((a, b) => a + b, 0);
+        if (totalMs > 0) {
+          const easyPct = Math.round(((zoneTotals[0] + zoneTotals[1] + zoneTotals[2]) / totalMs) * 100);
+          const moderatePct = Math.round((zoneTotals[3] / totalMs) * 100);
+          const hardPct = Math.round(((zoneTotals[4] + zoneTotals[5]) / totalMs) * 100);
+          if (easyPct + moderatePct + hardPct > 0) {
+            observations.push({
+              content: `Whoop HR zone breakdown (last ${workoutData.length} workout${workoutData.length !== 1 ? 's' : ''}): ${easyPct}% easy, ${moderatePct}% moderate, ${hardPct}% hard`,
+              contentType: 'weekly_summary',
+            });
+          }
+        }
+      }
+    }
+  } catch (e) {
+    console.warn('[ObservationIngestion] Whoop workout observation error:', e.message);
   }
 
   return observations;
