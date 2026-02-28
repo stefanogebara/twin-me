@@ -340,71 +340,102 @@ async function fetchCalendarObservations(userId) {
 
 /**
  * Fetch YouTube data and return natural-language observations.
- * Uses the YouTube Data API v3 to pull subscriptions and liked videos.
+ * Supports both Nango-managed connections (proxy) and direct OAuth tokens.
  */
 async function fetchYouTubeObservations(userId) {
   const observations = [];
 
-  const tokenResult = await getValidAccessToken(userId, 'youtube');
-  if (!tokenResult.success || !tokenResult.accessToken) {
-    console.warn('[ObservationIngestion] YouTube: no valid token for user', userId);
-    return observations;
+  const supabase = await getSupabase();
+  if (!supabase) return observations;
+
+  // Check if this is a Nango-managed YouTube connection
+  const { data: ytConn } = await supabase
+    .from('platform_connections')
+    .select('access_token')
+    .eq('user_id', userId)
+    .eq('platform', 'youtube')
+    .single();
+
+  const isNangoManaged = ytConn?.access_token === 'NANGO_MANAGED' || (!ytConn && await _hasNangoMapping(supabase, userId, 'youtube'));
+
+  let subsItems = [];
+  let likedItems = [];
+
+  if (isNangoManaged) {
+    try {
+      const nangoService = await import('./nangoService.js');
+      const [subsResult, likedResult] = await Promise.all([
+        nangoService.youtube.getSubscriptions(userId),
+        nangoService.youtube.getLikedVideos(userId),
+      ]);
+      subsItems = subsResult.success ? (subsResult.data?.items || []) : [];
+      likedItems = likedResult.success ? (likedResult.data?.items || []) : [];
+    } catch (e) {
+      console.warn('[ObservationIngestion] YouTube Nango fetch error:', e.message);
+      return observations;
+    }
+  } else {
+    const tokenResult = await getValidAccessToken(userId, 'youtube');
+    if (!tokenResult.success || !tokenResult.accessToken) {
+      console.warn('[ObservationIngestion] YouTube: no valid token for user', userId);
+      return observations;
+    }
+    const headers = { Authorization: `Bearer ${tokenResult.accessToken}` };
+
+    try {
+      const subsRes = await axios.get(
+        'https://www.googleapis.com/youtube/v3/subscriptions?part=snippet&mine=true&maxResults=20',
+        { headers, timeout: 10000 }
+      );
+      subsItems = subsRes.data?.items || [];
+    } catch (e) {
+      console.warn('[ObservationIngestion] YouTube subscriptions error:', e.message);
+    }
+
+    try {
+      const likedRes = await axios.get(
+        'https://www.googleapis.com/youtube/v3/videos?part=snippet&myRating=like&maxResults=10',
+        { headers, timeout: 10000 }
+      );
+      likedItems = likedRes.data?.items || [];
+    } catch (e) {
+      console.warn('[ObservationIngestion] YouTube liked videos error:', e.message);
+    }
+
+    // Watch activity (activities endpoint — direct token only, not available via Nango proxy)
+    try {
+      const actRes = await axios.get(
+        'https://www.googleapis.com/youtube/v3/activities?part=snippet&mine=true&maxResults=10',
+        { headers: { Authorization: `Bearer ${tokenResult.accessToken}` }, timeout: 10000 }
+      );
+      const activities = actRes.data?.items || [];
+      const watchItems = activities.filter(a => a.snippet?.type === 'watch');
+      if (watchItems.length > 0) {
+        const recentTitles = watchItems.map(a => sanitizeExternal(a.snippet?.title, 80)).filter(Boolean).slice(0, 3);
+        observations.push({
+          content: `Recently watched on YouTube: ${recentTitles.map(t => `"${t}"`).join(', ')}`,
+          contentType: 'current_state',
+        });
+      }
+    } catch (e) {
+      // Activities endpoint may not always be available — non-critical
+    }
   }
 
-  const headers = { Authorization: `Bearer ${tokenResult.accessToken}` };
-
   // Subscribed channels
-  try {
-    const subsRes = await axios.get(
-      'https://www.googleapis.com/youtube/v3/subscriptions?part=snippet&mine=true&maxResults=20',
-      { headers, timeout: 10000 }
-    );
-    const items = subsRes.data?.items || [];
-    if (items.length > 0) {
-      const channelNames = items.map(i => sanitizeExternal(i.snippet?.title)).filter(Boolean).slice(0, 10);
-      let obs = `Subscribed to YouTube channels: ${channelNames.join(', ')}`;
-      observations.push({ content: obs, contentType: 'weekly_summary' });
-    }
-  } catch (e) {
-    console.warn('[ObservationIngestion] YouTube subscriptions error:', e.message);
+  if (subsItems.length > 0) {
+    const channelNames = subsItems.map(i => sanitizeExternal(i.snippet?.title)).filter(Boolean).slice(0, 10);
+    observations.push({ content: `Subscribed to YouTube channels: ${channelNames.join(', ')}`, contentType: 'weekly_summary' });
   }
 
   // Liked videos (recent activity signal)
-  try {
-    const likedRes = await axios.get(
-      'https://www.googleapis.com/youtube/v3/videos?part=snippet&myRating=like&maxResults=10',
-      { headers, timeout: 10000 }
-    );
-    const videos = likedRes.data?.items || [];
-    if (videos.length > 0) {
-      const titles = videos.map(v => sanitizeExternal(v.snippet?.title, 80)).filter(Boolean).slice(0, 5);
-      const channelsSeen = [...new Set(videos.map(v => sanitizeExternal(v.snippet?.channelTitle)).filter(Boolean))].slice(0, 5);
-      observations.push({
-        content: `Recently liked YouTube videos: "${titles.join('", "')}" — from channels: ${channelsSeen.join(', ')}`,
-        contentType: 'daily_summary',
-      });
-    }
-  } catch (e) {
-    console.warn('[ObservationIngestion] YouTube liked videos error:', e.message);
-  }
-
-  // Watch activity (activities endpoint — reflects recent engagement)
-  try {
-    const actRes = await axios.get(
-      'https://www.googleapis.com/youtube/v3/activities?part=snippet&mine=true&maxResults=10',
-      { headers, timeout: 10000 }
-    );
-    const activities = actRes.data?.items || [];
-    const watchItems = activities.filter(a => a.snippet?.type === 'watch');
-    if (watchItems.length > 0) {
-      const recentTitles = watchItems.map(a => sanitizeExternal(a.snippet?.title, 80)).filter(Boolean).slice(0, 3);
-      observations.push({
-        content: `Recently watched on YouTube: ${recentTitles.map(t => `"${t}"`).join(', ')}`,
-        contentType: 'current_state',
-      });
-    }
-  } catch (e) {
-    // Activities endpoint may not always be available — non-critical
+  if (likedItems.length > 0) {
+    const titles = likedItems.map(v => sanitizeExternal(v.snippet?.title, 80)).filter(Boolean).slice(0, 5);
+    const channelsSeen = [...new Set(likedItems.map(v => sanitizeExternal(v.snippet?.channelTitle)).filter(Boolean))].slice(0, 5);
+    observations.push({
+      content: `Recently liked YouTube videos: "${titles.join('", "')}" — from channels: ${channelsSeen.join(', ')}`,
+      contentType: 'daily_summary',
+    });
   }
 
   return observations;
