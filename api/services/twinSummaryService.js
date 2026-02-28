@@ -80,11 +80,11 @@ async function generateTwinSummary(userId, userName = 'This person') {
   // Five parallel retrieval queries aligned to expert reflection domains
   // Using 'identity' weights: relevance dominant, low recency bias — who this person IS, not just what happened recently
   const [personalityMemories, lifestyleMemories, culturalMemories, socialMemories, motivationMemories] = await Promise.all([
-    retrieveMemories(userId, `${userName}'s emotional patterns, personality traits, coping mechanisms, and psychological tendencies`, 15, 'identity'),
-    retrieveMemories(userId, `${userName}'s daily routines, energy patterns, sleep habits, health metrics, and lifestyle rhythms`, 15, 'identity'),
-    retrieveMemories(userId, `${userName}'s music taste, content preferences, aesthetic choices, cultural identity, and creative interests`, 15, 'identity'),
-    retrieveMemories(userId, `${userName}'s communication style, social interactions, relationship patterns, and social energy`, 15, 'identity'),
-    retrieveMemories(userId, `${userName}'s work patterns, goals, ambitions, motivation, productivity, and decision-making style`, 15, 'identity'),
+    retrieveMemories(userId, `${userName}'s emotional patterns, personality traits, coping mechanisms, and psychological tendencies`, 25, 'identity'),
+    retrieveMemories(userId, `${userName}'s daily routines, energy patterns, sleep habits, health metrics, and lifestyle rhythms`, 25, 'identity'),
+    retrieveMemories(userId, `${userName}'s music taste, content preferences, aesthetic choices, cultural identity, and creative interests`, 25, 'identity'),
+    retrieveMemories(userId, `${userName}'s communication style, social interactions, relationship patterns, and social energy`, 25, 'identity'),
+    retrieveMemories(userId, `${userName}'s work patterns, goals, ambitions, motivation, productivity, and decision-making style`, 25, 'identity'),
   ]);
 
   // Summarize each domain in parallel
@@ -96,18 +96,64 @@ async function generateTwinSummary(userId, userName = 'This person') {
     summarizeMemories(motivationMemories, 'motivations and work patterns', userName),
   ]);
 
+  // Fallback for empty/thin domains: pull from soul_signature_profile
+  let filledCulturalIdentity = culturalIdentity;
+  let filledLifestyle = lifestyle;
+  if ((!culturalIdentity || culturalIdentity.length < 40) || (!lifestyle || lifestyle.length < 40)) {
+    try {
+      const { data: profile } = await supabaseAdmin
+        .from('soul_signature_profile')
+        .select('uniqueness_markers, archetype, music_signature')
+        .eq('user_id', userId)
+        .single();
+      if (profile) {
+        if (!culturalIdentity || culturalIdentity.length < 40) {
+          const marker = Array.isArray(profile.uniqueness_markers) ? profile.uniqueness_markers[0] : null;
+          if (marker) filledCulturalIdentity = marker;
+        }
+        if (!lifestyle || lifestyle.length < 40) {
+          const archetype = profile.archetype || '';
+          const genres = profile.music_signature?.top_genres?.join(', ') || '';
+          const fallback = [archetype, genres].filter(Boolean).join(' — ');
+          if (fallback.length >= 10) filledLifestyle = fallback;
+        }
+      }
+    } catch (err) {
+      console.warn('[TwinSummary] soul_signature_profile fallback failed:', err.message);
+    }
+  }
+
   // Combine into a single natural paragraph
-  const parts = [personality, lifestyle, culturalIdentity, socialDynamics, motivation].filter(Boolean);
-  const summary = parts.length > 0
-    ? parts.join(' ')
-    : '';
+  const parts = [personality, filledLifestyle, filledCulturalIdentity, socialDynamics, motivation].filter(Boolean);
+
+  // Synthesis: eliminate repetition across domains via LLM
+  let finalSummary = '';
+  if (parts.length >= 2) {
+    try {
+      const synthesisResult = await complete({
+        tier: TIER_ANALYSIS,
+        system: 'Synthesize personality domain descriptions into a non-repetitive 2-3 sentence summary. Each sentence must add new information. No filler phrases.',
+        messages: [{ role: 'user', content: `Synthesize:\n\n${parts.join('\n\n')}` }],
+        maxTokens: 250,
+        temperature: 0.4,
+        serviceName: 'twinSummary-synthesize',
+      });
+      finalSummary = (synthesisResult.content || '').trim() || parts.join(' ');
+    } catch (err) {
+      console.warn('[TwinSummary] Synthesis failed, falling back to concatenation:', err.message);
+      finalSummary = parts.join(' ');
+    }
+  } else {
+    finalSummary = parts.length > 0 ? parts.join(' ') : '';
+  }
+  const summary = finalSummary;
 
   if (!summary) {
     console.log('[TwinSummary] No memories available to generate summary');
     return null;
   }
 
-  const domains = { personality, lifestyle, culturalIdentity, socialDynamics, motivation };
+  const domains = { personality, lifestyle: filledLifestyle, culturalIdentity: filledCulturalIdentity, socialDynamics, motivation };
 
   // Persist to database (upsert)
   const { error: upsertErr } = await supabaseAdmin
@@ -116,8 +162,8 @@ async function generateTwinSummary(userId, userName = 'This person') {
       user_id: userId,
       summary,
       core_traits: personality || null,
-      current_focus: lifestyle || null,
-      recent_feelings: culturalIdentity || null,
+      current_focus: filledLifestyle || null,
+      recent_feelings: filledCulturalIdentity || null,
       domains,
       generated_at: new Date().toISOString(),
     }, { onConflict: 'user_id' });
@@ -128,7 +174,7 @@ async function generateTwinSummary(userId, userName = 'This person') {
     console.log(`[TwinSummary] Summary persisted (${summary.length} chars, ${parts.length} domains)`);
   }
 
-  return { summary, personality, lifestyle, culturalIdentity, socialDynamics, motivation };
+  return { summary, personality, lifestyle: filledLifestyle, culturalIdentity: filledCulturalIdentity, socialDynamics, motivation };
 }
 
 /**
