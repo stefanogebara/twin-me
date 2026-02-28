@@ -44,6 +44,29 @@ Return as JSON array: [{"insight": "...", "urgency": "low|medium|high", "categor
 Only return the JSON array, no other text.`;
 
 /**
+ * Check if a similar insight was already generated in the last 7 days.
+ * Uses 80-char prefix match to catch near-duplicates without embeddings.
+ */
+async function isInsightDuplicate(userId, insightText) {
+  try {
+    const since = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+    const { data } = await supabaseAdmin
+      .from('proactive_insights')
+      .select('insight')
+      .eq('user_id', userId)
+      .eq('delivered', false)
+      .gte('created_at', since)
+      .limit(50);
+    if (!data?.length) return false;
+    const snippet = insightText.substring(0, 80).toLowerCase();
+    return data.some(r => (r.insight || '').substring(0, 80).toLowerCase() === snippet);
+  } catch (err) {
+    console.warn('[ProactiveInsights] isInsightDuplicate error:', err.message);
+    return false; // fail open
+  }
+}
+
+/**
  * Generate proactive insights for a user from recent memories and reflections.
  * Called after observation ingestion completes.
  */
@@ -114,10 +137,12 @@ async function generateProactiveInsights(userId) {
       return 0;
     }
 
-    // 5. Store insights (max 3)
+    // 5. Store insights (max 3), with dedup against recent undelivered
     let stored = 0;
     for (const item of insights.slice(0, 3)) {
       if (!item.insight || item.insight.length < 10) continue;
+
+      if (await isInsightDuplicate(userId, item.insight)) continue;
 
       const { error } = await supabaseAdmin
         .from('proactive_insights')

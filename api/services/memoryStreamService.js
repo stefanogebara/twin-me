@@ -77,6 +77,10 @@ async function rateImportance(content) {
  */
 const VALID_MEMORY_TYPES = new Set(['conversation', 'fact', 'platform_data', 'observation', 'reflection']);
 
+// Ebbinghaus-inspired decay stability (in days) per memory type.
+// Higher = decays slower. Used by the weekly forgetting cron.
+const DECAY_RATE_BY_TYPE = { conversation: 3, platform_data: 7, fact: 30, reflection: 90 };
+
 // S5.1: Proposition revision — memory types where we prefer UPDATE over INSERT when
 // a very similar memory already exists (threshold higher than dedup to be conservative).
 const REVISION_TYPES = new Set(['reflection', 'fact']);
@@ -167,6 +171,7 @@ async function addMemory(userId, content, memoryType = 'observation', metadata =
       },
       importance_score: importanceScore,
       last_accessed_at: new Date().toISOString(),
+      decay_rate: DECAY_RATE_BY_TYPE[memoryType] ?? 7,
     };
 
     // Sprint 1 proposition columns (optional)
