@@ -17,6 +17,7 @@ import express from 'express';
 import { authenticateUser } from '../middleware/auth.js';
 import { supabaseAdmin } from '../services/database.js';
 import { get as redisGet, set as redisSet } from '../services/redisClient.js';
+import { getTwinReadinessScore } from '../services/memoryStreamService.js';
 
 const router = express.Router();
 const CACHE_TTL_SECONDS = 5 * 60; // 5-minute cache — health data doesn't need sub-second freshness
@@ -37,7 +38,7 @@ router.get('/', authenticateUser, async (req, res) => {
     const thirtyDaysAgo = new Date(now - 30 * 24 * 60 * 60 * 1000).toISOString();
     const fourteenDaysAgo = new Date(now - 14 * 24 * 60 * 60 * 1000).toISOString();
 
-    // Run all queries in parallel
+    // Run all queries in parallel (readiness score runs alongside DB queries)
     const [
       compositionResult,
       retrievalResult,
@@ -47,6 +48,7 @@ router.get('/', authenticateUser, async (req, res) => {
       forgettingT2Result,
       forgettingT3Result,
       topMemoriesResult,
+      readinessResult,
     ] = await Promise.all([
       // 1. Composition + avg importance by type
       supabaseAdmin
@@ -113,6 +115,9 @@ router.get('/', authenticateUser, async (req, res) => {
         .eq('user_id', userId)
         .order('importance_score', { ascending: false })
         .limit(10),
+
+      // 9. Twin Readiness Score — uses its own getMemoryStats internally
+      getTwinReadinessScore(userId),
     ]);
 
     // Process composition
@@ -174,6 +179,11 @@ router.get('/', authenticateUser, async (req, res) => {
         wouldDecayFact: forgettingT3Result.count || 0,
       },
       topMemories,
+      readiness: {
+        score: readinessResult.score,
+        label: readinessResult.label,
+        breakdown: readinessResult.breakdown,
+      },
     };
 
     // Cache for 5 minutes — non-blocking write
