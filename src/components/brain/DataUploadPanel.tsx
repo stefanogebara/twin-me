@@ -19,6 +19,7 @@ import {
   Music,
   Youtube,
   MessageSquare,
+  MessageCircle,
   ArrowLeft,
   FileJson,
   Archive,
@@ -132,6 +133,19 @@ const PLATFORMS: PlatformConfig[] = [
     exportUrl: 'https://takeout.google.com/',
     expectedFile: 'MyActivity.json',
     fileAccept: '.json,application/json',
+  },
+  {
+    id: 'whatsapp',
+    label: 'WhatsApp',
+    color: '#25D366',
+    bgColor: 'rgba(37, 211, 102, 0.07)',
+    icon: <MessageCircle size={20} />,
+    description: 'Communication patterns from your chat exports (no message content stored).',
+    exportInstructions: 'WhatsApp → Settings → Chats → Export chat → Without media. Export each chat you want to include.',
+    exportUrl: 'https://faq.whatsapp.com/196737011380816/',
+    expectedFile: '_chat.txt or WhatsApp export ZIP',
+    fileAccept: '.txt,.zip,text/plain,application/zip',
+    multiFile: true,
   },
 ];
 
