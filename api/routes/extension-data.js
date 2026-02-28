@@ -139,8 +139,8 @@ router.post('/batch', authenticateUser, async (req, res) => {
       return {
         user_id: userId,
         platform: eventPlatform,
-        data_type: mapEventType(event.eventType || 'capture', eventPlatform),
-        raw_data: event,
+        data_type: mapEventType(event.data_type || event.eventType || 'capture', eventPlatform),
+        raw_data: event.raw_data || event,
         extracted_at: event.timestamp || new Date().toISOString()
       };
     });
@@ -168,7 +168,7 @@ router.post('/batch', authenticateUser, async (req, res) => {
       // Normalise event shape for ingestWebObservations (expects data_type + raw_data)
       const normalised = webEvents.map(e => ({
         data_type: e.data_type || mapEventType(e.eventType || 'page_visit', 'web'),
-        raw_data: e,
+        raw_data: e.raw_data || e,
       }));
       ingestWebObservations(userId, normalised).catch(err =>
         console.warn('[Extension] Web observation ingestion failed (non-fatal):', err.message)
