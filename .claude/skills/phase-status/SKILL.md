@@ -5,7 +5,11 @@ When asked "what's next", "phase status", or "what should we work on", read this
 
 ---
 
-## PHASES COMPLETE
+## CURRENT STATUS: All phases complete through Phase 6. Ready to invite beta users.
+
+---
+
+## PHASES COMPLETE (summary)
 
 ### Phase 2 — Voice + Speed + Simplicity ✅ DONE (2026-02-26)
 1. Twin voice rewrite — friend/curious tone, banned clinical terms
@@ -56,11 +60,31 @@ When asked "what's next", "phase status", or "what should we work on", read this
 - cron-platform-polling.js: skip NANGO_MANAGED platforms (handled by obs-ingestion separately)
 - Result: Spotify, Discord, Calendar all polling successfully again
 
-### Phase B — New Data Sources ✅ DONE (2026-02-27)
-GitHub + WhatsApp + Browser Extension were already 95% implemented. The real gap was web dwell-time not being re-processed in the background ingestion loop.
-- `fetchRecentWebEvents()` added to `observationIngestion.js` — queries `user_platform_data` for 25h of extension events
-- Called in per-user loop after platform sweep (non-fatal try/catch)
-- Build: clean ✅
+### Phase B — GitHub + WhatsApp + Extension + Audit Closure ✅ DONE (2026-02-28)
+
+#### GitHub PAT Ingestion ✅
+- api/services/observationIngestion.js: fetchGitHubObservations (OAuth + PAT dual-path)
+- api/routes/github-connect.js: PAT storage in user_github_config table
+- Fixed: githubExtraction.js null supabase crash (5 null references → getSupabaseClient())
+- Fixed: hardcoded USER placeholder in events URL
+
+#### WhatsApp Export Parser ✅
+- api/routes/whatsapp-import.js: full parser (Android + iOS formats), contact/pattern extraction
+- Fixed: text/plain content-type middleware, global express.text() body parser
+- Fixed: redundant route-level express.text() removed
+- Stores: top contacts, message frequency, active hours, message style as platform_data memories
+
+#### Browser Extension Dwell-Time ✅
+- browser-extension/background.js: tab visit timing → /api/extension/batch
+- api/routes/extension-data.js: dual-write (user_platform_data + ingestWebObservations)
+- Fixed: event.data_type field name (was eventType), double-nested raw_data, tab_visit mapping
+- Fixed: capture route same field confusion
+- Verified: github.com, news.ycombinator.com, search queries → natural-language memories
+
+#### Backend Audit Closure ✅ (all 20 findings resolved)
+- F8: bulk_decay_memories RPC (single SQL call, no N+1 loop)
+- F16: GRACE_DAYS=1 streak resilience (one miss doesn't reset 30-day streak)
+- F20: bigram Jaccard check before embedding (avoids ~30% of embedding API calls)
 
 ---
 
