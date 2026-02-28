@@ -2641,8 +2641,10 @@ async function fetchGitHubObservations(userId) {
 }
 
 async function fetchRecentWebEvents(userId) {
+  const supabase = await getSupabase();
+  if (!supabase) return [];
   const since = new Date(Date.now() - 25 * 60 * 60 * 1000).toISOString();
-  const { data } = await supabaseAdmin
+  const { data } = await supabase
     .from('user_platform_data')
     .select('raw_data, data_type, extracted_at')
     .eq('user_id', userId)
