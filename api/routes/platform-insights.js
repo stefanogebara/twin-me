@@ -16,6 +16,7 @@ import express from 'express';
 import { authenticateUser } from '../middleware/auth.js';
 import platformReflectionService from '../services/platformReflectionService.js';
 import { supabaseAdmin } from '../services/database.js';
+import { seedPatternFromInsight } from '../services/twinPatternService.js';
 
 const router = express.Router();
 
@@ -234,6 +235,21 @@ router.post('/proactive/:id/engage', authenticateUser, async (req, res) => {
   }
 
   res.json({ success: true });
+
+  // Non-blocking: seed an EWC++ topic_affinity pattern from the engaged insight
+  // so the twin learns which topics the user finds interesting over time
+  supabaseAdmin
+    .from('proactive_insights')
+    .select('content, category')
+    .eq('id', id)
+    .single()
+    .then(({ data }) => {
+      if (!data?.content) return;
+      const patternName = data.category || 'engaged_insight';
+      seedPatternFromInsight(userId, patternName, data.content)
+        .catch(err => console.warn('[Insights] Pattern seed failed:', err.message));
+    })
+    .catch(() => {});
 });
 
 export default router;

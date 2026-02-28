@@ -623,11 +623,59 @@ async function retrieveDiverseMemories(userId, query, budgets = {}) {
     .slice(0, maxReflections);
 
   const combined = [...topReflections, ...factResults, ...platformResults];
+
+  // Graph expansion: expand context using Zettelkasten memory_links (A-MEM, Xu et al., 2025)
+  // Fetches 1-hop linked memories for the top retrieved reflections to enrich context
+  const expanded = await _expandWithMemoryLinks(userId, combined, 5).catch(err => {
+    console.warn('[MemoryStream] Graph expansion failed:', err.message);
+    return combined;
+  });
+
   console.log(
     `[MemoryStream] Diverse retrieval: ${topReflections.length} reflections, ` +
-    `${factResults.length} facts, ${platformResults.length} platform_data`
+    `${factResults.length} facts, ${platformResults.length} platform_data` +
+    (expanded.length > combined.length ? `, +${expanded.length - combined.length} graph-linked` : '')
   );
-  return combined;
+  return expanded;
+}
+
+/**
+ * Graph expansion helper: fetch 1-hop linked memories via memory_links.
+ * Seeds from the top 3 retrieved memories; adds up to maxLinked new unique memories.
+ * Non-blocking — caller wraps in .catch() to swallow failures.
+ */
+async function _expandWithMemoryLinks(userId, memories, maxLinked = 5) {
+  if (!memories.length) return memories;
+
+  // Use top 3 retrieved memories as seeds for link traversal
+  const sourceIds = memories.slice(0, 3).map(m => m.id);
+  const existingIds = new Set(memories.map(m => m.id));
+
+  const { data: links, error } = await supabaseAdmin
+    .from('memory_links')
+    .select('target_memory_id, strength')
+    .eq('user_id', userId)
+    .in('source_memory_id', sourceIds)
+    .order('strength', { ascending: false })
+    .limit(30);
+
+  if (error || !links?.length) return memories;
+
+  // Deduplicate target IDs and exclude already-retrieved memories
+  const newIds = [...new Set(links.map(l => l.target_memory_id))]
+    .filter(id => !existingIds.has(id))
+    .slice(0, maxLinked);
+
+  if (!newIds.length) return memories;
+
+  const { data: linkedMems, error: fetchErr } = await supabaseAdmin
+    .from('user_memories')
+    .select('id, content, memory_type, importance_score, metadata, created_at, last_accessed_at')
+    .in('id', newIds);
+
+  if (fetchErr || !linkedMems?.length) return memories;
+
+  return [...memories, ...linkedMems];
 }
 
 /**
