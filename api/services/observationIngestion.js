@@ -41,7 +41,7 @@ async function getSupabase() {
 }
 
 // Platforms we know how to ingest
-const SUPPORTED_PLATFORMS = ['spotify', 'google_calendar', 'youtube', 'discord', 'linkedin', 'reddit', 'whoop', 'github', 'google_gmail', 'outlook', 'strava', 'garmin', 'fitbit'];
+const SUPPORTED_PLATFORMS = ['spotify', 'google_calendar', 'youtube', 'discord', 'linkedin', 'reddit', 'whoop', 'github', 'google_gmail', 'outlook', 'strava', 'garmin', 'fitbit', 'twitch'];
 
 // ====================================================================
 // Prompt injection defense
@@ -2587,6 +2587,9 @@ async function runObservationIngestion() {
               case 'fitbit':
                 observations = await fetchFitbitObservations(userId);
                 break;
+              case 'twitch':
+                observations = await fetchTwitchObservations(userId);
+                break;
             }
 
             // Batch de-duplication: pre-fetch recent memories once per platform
@@ -2893,6 +2896,9 @@ async function runPostOnboardingIngestion(userId) {
           case 'fitbit':
             observations = await fetchFitbitObservations(userId);
             break;
+          case 'twitch':
+            observations = await fetchTwitchObservations(userId);
+            break;
         }
 
         for (const obs of observations) {
@@ -3078,5 +3084,6 @@ export {
   fetchStravaObservations,
   fetchGarminObservations,
   fetchFitbitObservations,
+  fetchTwitchObservations,
   runPostOnboardingIngestion,
 };
