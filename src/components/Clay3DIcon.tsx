@@ -42,8 +42,9 @@ export const Clay3DIcon = ({ name, size = 'md', className = '', alt }: Clay3DIco
 export const CLAY_ICON_MAP: Record<string, string> = {
   // Main nav
   dashboard: 'rocket',
+  me: 'heart',
   'connect-data': 'globe',
-  'soul-signature': 'sparkle',
+  'soul-signature': 'heart',
   brain: 'brain',
   journal: 'light-bulb',
   personality: 'heart',

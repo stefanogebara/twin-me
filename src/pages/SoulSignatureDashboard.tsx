@@ -3,6 +3,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { PageLayout } from '../components/layout/PageLayout';
 import { RefreshCw, AlertCircle, Share2, Link, Check, Download } from 'lucide-react';
+import { Clay3DIcon } from '../components/Clay3DIcon';
 import { useTwinPortrait } from '../hooks/useTwinPortrait';
 import { ThemeColors } from './components/soul-signature/types';
 import { BigFivePanel } from './components/soul-signature/BigFivePanel';
@@ -233,47 +234,62 @@ const SoulSignatureDashboard: React.FC = () => {
       {hasData && (
         <>
           {/* Archetype Card — visible immediately after onboarding, before reflections accumulate */}
-          {displaySoulSignature && (
-            <div
-              className="mb-8 rounded-2xl p-8 backdrop-blur-sm"
-              style={{ background: colors.cardBg, border: colors.cardBorder, boxShadow: colors.cardShadow }}
-            >
-              <p className="mb-1 text-xs font-semibold uppercase tracking-widest" style={{ color: colors.textFaint }}>
-                Your Archetype
-              </p>
-              <h2 className="mb-2 text-2xl font-bold" style={{ color: colors.textColor }}>
-                {displaySoulSignature.archetype_name}
-              </h2>
-              {/* signature_quote is the sessionStorage field, archetype_subtitle is the DB field */}
-              {(displaySoulSignature.signature_quote || displaySoulSignature.archetype_subtitle) && (
-                <p className="mb-3 italic" style={{ color: colors.textSecondary }}>
-                  "{displaySoulSignature.signature_quote ?? displaySoulSignature.archetype_subtitle}"
-                </p>
-              )}
-              {/* core_traits is sessionStorage field, defining_traits is DB field */}
-              {(() => {
-                const raw = displaySoulSignature.core_traits ?? displaySoulSignature.defining_traits ?? [];
-                const traitList: string[] = (Array.isArray(raw) ? raw : [])
-                  .map((t: unknown) => (typeof t === 'string' ? t : (t as { trait?: string })?.trait ?? ''))
-                  .filter(Boolean);
-                return traitList.length > 0 ? (
-                  <div className="flex flex-wrap gap-2">
-                    {traitList.map((trait: string) => (
-                      <span key={trait} className="rounded-full px-3 py-1 text-xs font-medium" style={{ background: colors.subtleBg, color: colors.textSecondary }}>
-                        {trait}
-                      </span>
-                    ))}
+          {displaySoulSignature && (() => {
+            const raw = displaySoulSignature.core_traits ?? displaySoulSignature.defining_traits ?? [];
+            const traitList: string[] = (Array.isArray(raw) ? raw : [])
+              .map((t: unknown) => (typeof t === 'string' ? t : (t as { trait?: string })?.trait ?? ''))
+              .filter(Boolean);
+            const quote = displaySoulSignature.signature_quote ?? displaySoulSignature.archetype_subtitle;
+            const narrative = displaySoulSignature.first_impression ?? displaySoulSignature.narrative;
+            return (
+              <div
+                className="mb-8 rounded-2xl overflow-hidden"
+                style={{ background: colors.cardBg, border: colors.cardBorder, boxShadow: colors.cardShadow }}
+              >
+                <div className="flex gap-5 p-6 md:p-8">
+                  {/* Visual anchor */}
+                  <div
+                    className="flex-shrink-0 w-16 h-16 rounded-2xl flex items-center justify-center"
+                    style={{ background: 'rgba(196, 162, 101, 0.1)' }}
+                  >
+                    <Clay3DIcon name="heart" size={40} />
                   </div>
-                ) : null;
-              })()}
-              {/* first_impression is sessionStorage field, narrative is DB field */}
-              {(displaySoulSignature.first_impression || displaySoulSignature.narrative) && (
-                <p className="mt-3 text-sm" style={{ color: colors.textMuted }}>
-                  {displaySoulSignature.first_impression ?? displaySoulSignature.narrative}
-                </p>
-              )}
-            </div>
-          )}
+                  {/* Content */}
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-semibold uppercase tracking-widest mb-1" style={{ color: colors.textFaint }}>
+                      Your Archetype
+                    </p>
+                    <h2 className="heading-serif mb-1" style={{ fontSize: '28px', color: colors.textColor }}>
+                      {displaySoulSignature.archetype_name}
+                    </h2>
+                    {quote && (
+                      <p className="text-sm italic mb-3" style={{ color: colors.textSecondary }}>
+                        "{quote}"
+                      </p>
+                    )}
+                    {traitList.length > 0 && (
+                      <div className="flex flex-wrap gap-1.5 mb-3">
+                        {traitList.map((trait: string) => (
+                          <span
+                            key={trait}
+                            className="rounded-full px-2.5 py-0.5 text-xs font-medium"
+                            style={{ background: 'rgba(196, 162, 101, 0.12)', color: '#7D6232' }}
+                          >
+                            {trait}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                    {narrative && (
+                      <p className="text-sm line-clamp-2" style={{ color: colors.textMuted }}>
+                        {narrative}
+                      </p>
+                    )}
+                  </div>
+                </div>
+              </div>
+            );
+          })()}
         </>
       )}
 

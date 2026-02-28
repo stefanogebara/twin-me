@@ -142,10 +142,10 @@ export function DailyCheckin({ onComplete }: DailyCheckinProps) {
             whileTap={{ scale: submitting ? 1 : 0.95 }}
             onClick={() => handleSelect(mood)}
             disabled={submitting}
-            className={`flex items-center gap-1 px-2 py-1 rounded-full text-xs border transition-colors
+            className={`flex items-center gap-1 px-2 py-1 rounded-full text-xs transition-colors
               ${selectedId === mood.id
-                ? 'bg-primary text-primary-foreground border-primary'
-                : 'bg-background hover:bg-muted border-border'
+                ? 'bg-[#f0e8d9] text-[#3d2f1a] font-medium ring-1 ring-[#C4A265]/50'
+                : 'bg-black/4 hover:bg-black/8 text-[#5C5851]'
               }
               ${submitting ? 'cursor-not-allowed opacity-60' : 'cursor-pointer'}
             `}
