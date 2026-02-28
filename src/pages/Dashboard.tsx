@@ -1,11 +1,13 @@
 import React, { useEffect, useState, useCallback, useMemo } from 'react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { AlertCircle, Target, Flame, Trophy, ChevronRight, Globe } from 'lucide-react';
 import { goalsAPI, GoalSummary } from '@/services/api/goalsAPI';
 import { PageLayout } from '@/components/layout/PageLayout';
 import { calendarAPI, CalendarEvent } from '@/services/apiService';
+import { authFetch } from '@/services/api/apiBase';
 import { TodayInsights } from '@/components/TodayInsights';
 import { ProactiveInsightsPanel } from '@/components/ProactiveInsightsPanel';
 import { usePlatformStatus } from '@/hooks/usePlatformStatus';
@@ -13,9 +15,17 @@ import { DEMO_CALENDAR_DATA } from '@/services/demoDataService';
 import { DashboardSkeleton } from './components/dashboard/DashboardSkeleton';
 import { NextEventCard } from './components/dashboard/NextEventCard';
 import { TwinInsightsGrid } from './components/dashboard/TwinInsightsGrid';
+import { TwinReadinessScore } from '@/components/twin/TwinReadinessScore';
+import { DailyCheckin } from '@/components/twin/DailyCheckin';
 
 // Auto-refresh interval for calendar events (1 minute)
 const CALENDAR_REFRESH_INTERVAL = 60 * 1000;
+
+interface TwinReadiness {
+  score: number;
+  label: string;
+  breakdown?: { volume: number; diversity: number; reflection: number };
+}
 
 interface Pattern {
   id: string;
@@ -39,7 +49,45 @@ export const Dashboard: React.FC = () => {
   const [syncing, setSyncing] = useState(false);
   const [currentTime, setCurrentTime] = useState(new Date());
 
+  const queryClient = useQueryClient();
   const { connectedProviders } = usePlatformStatus(user?.id);
+
+  const isDemoMode = localStorage.getItem('demo_mode') === 'true';
+
+  // Check whether the user has already done today's mood check-in
+  const { data: todayCheckin } = useQuery<{ checkedIn: boolean; data: { mood: string; energy: string | null } | null }>({
+    queryKey: ['checkin-today'],
+    queryFn: async () => {
+      const res = await authFetch('/checkin/today');
+      if (!res.ok) throw new Error('Failed to load check-in status');
+      return res.json();
+    },
+    staleTime: 60 * 1000,
+    enabled: !isDemoMode,
+  });
+
+  // Dismiss the check-in card locally (separate from checkedIn — allows manual dismissal)
+  const [checkinDismissed, setCheckinDismissed] = useState(false);
+
+  const handleCheckinComplete = () => {
+    setCheckinDismissed(true);
+    queryClient.invalidateQueries({ queryKey: ['checkin-today'] });
+  };
+
+  // Show the check-in card when: not demo mode, not yet checked in, and not dismissed this session
+  const showCheckin = !isDemoMode && !checkinDismissed && todayCheckin !== undefined && !todayCheckin.checkedIn;
+
+  // Fetch memory health (includes readiness score) — 5-min stale time, non-blocking
+  const { data: memoryHealth } = useQuery<{ readiness?: TwinReadiness }>({
+    queryKey: ['memory-health'],
+    queryFn: async () => {
+      const res = await authFetch('/memory-health');
+      if (!res.ok) throw new Error('Failed to load memory health');
+      return res.json();
+    },
+    staleTime: 5 * 60 * 1000,
+    enabled: !localStorage.getItem('demo_mode'),
+  });
 
   // Update current time every 30 seconds for live event filtering
   useEffect(() => {
@@ -338,6 +386,39 @@ export const Dashboard: React.FC = () => {
           )}
         </p>
       </motion.div>
+
+      {memoryHealth?.readiness !== undefined && (
+        <motion.div
+          className="mb-6 px-4 py-3 rounded-2xl"
+          style={{ backgroundColor: 'rgba(0,0,0,0.02)', border: '1px solid rgba(0,0,0,0.06)' }}
+          initial={{ opacity: 0, y: 4 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4, delay: 0.1 }}
+        >
+          <TwinReadinessScore
+            score={memoryHealth.readiness.score}
+            label={memoryHealth.readiness.label}
+            breakdown={memoryHealth.readiness.breakdown}
+            compact
+          />
+        </motion.div>
+      )}
+
+      <AnimatePresence>
+        {showCheckin && (
+          <motion.div
+            key="daily-checkin"
+            className="mb-6 px-4 py-4 rounded-2xl"
+            style={{ backgroundColor: 'rgba(0,0,0,0.02)', border: '1px solid rgba(0,0,0,0.06)' }}
+            initial={{ opacity: 0, y: 6 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -6, scale: 0.97 }}
+            transition={{ duration: 0.35 }}
+          >
+            <DailyCheckin onComplete={handleCheckinComplete} />
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       <div className="mb-8">
         <TodayInsights />

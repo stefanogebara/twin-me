@@ -280,10 +280,12 @@ import privacySettingsRoutes from './routes/privacy-settings.js';
 import soulSignaturePublicRoutes from './routes/soul-signature-public.js';
 import portfolioPublicRoutes from './routes/portfolio-public.js';
 import goalsRoutes from './routes/goals.js';
+import checkinRoutes from './routes/checkin.js';
 import importsRoutes from './routes/imports.js';
 import cronMemoryArchiveRoutes from './routes/cron-memory-archive.js';
 import cronMemoryForgettingRoutes from './routes/cron-memory-forgetting.js';
 import memoryHealthRoutes from './routes/memory-health.js';
+import memoryLinksRoutes from './routes/memory-links.js';
 import githubConnectRoutes from './routes/github-connect.js';
 import whatsappImportRoutes from './routes/whatsapp-import.js';
 import evalRoutes from './routes/eval.js';
@@ -439,6 +441,7 @@ app.use('/api/personality', personalityAssessmentRoutes); // Big Five personalit
 app.use('/api/big-five', bigFiveRoutes); // IPIP-NEO-120 Big Five assessment with T-score normalization
 app.use('/api/insights', platformInsightsRoutes); // Platform-specific conversational insights
 app.use('/api/goals', goalsRoutes); // Twin-driven goal tracking (suggestions, progress, accountability)
+app.use('/api/checkin', checkinRoutes); // Daily mood check-in (50 moods)
 app.use('/api/twin', twinPipelineRoutes); // Twin formation pipeline (form, status, profile, evolution)
 app.use('/api/extraction', extractionStatusRoutes); // Extraction status and job history
 app.use('/api/notifications', notificationsRoutes); // User notifications (token expiry, sync issues)
@@ -451,6 +454,7 @@ app.use('/api/cron/claude-sync', cronClaudeSyncRoutes); // Claude Desktop cron s
 app.use('/api/cron/memory-archive', cronMemoryArchiveRoutes);    // Daily memory archival for large users
 app.use('/api/cron/memory-forgetting', cronMemoryForgettingRoutes); // Weekly multi-tier quality maintenance
 app.use('/api/memory-health', memoryHealthRoutes); // Memory stream health dashboard
+app.use('/api/memory/:memoryId', memoryLinksRoutes); // A-MEM Zettelkasten memory links
 app.use('/api/eval', evalRoutes); // Twin eval rubric + feature flags
 app.use('/api/twins-brain', twinsBrainRoutes); // Twins Brain unified knowledge graph
 app.use('/api/mem0', mem0Routes); // Mem0 intelligent memory layer
