@@ -245,12 +245,12 @@ const App = () => {
               </ProtectedRoute>
             } />
 
-            {/* Legacy onboarding routes → redirect to enriched flow */}
-            <Route path="/welcome" element={<Navigate to="/discover" replace />} />
-            <Route path="/onboarding" element={<Navigate to="/discover" replace />} />
+            {/* Legacy onboarding routes → redirect to platform connection */}
+            <Route path="/welcome" element={<Navigate to="/get-started" replace />} />
+            <Route path="/onboarding" element={<Navigate to="/get-started" replace />} />
 
-            {/* Cinematic Discover - "The Reveal" flow */}
-            <Route path="/discover" element={
+            {/* Cinematic Soul Reveal - post-onboarding discovery flow */}
+            <Route path="/soul-reveal" element={
               <ProtectedRoute>
                 <ErrorBoundary>
                   <NewDiscoverFlow />
@@ -258,9 +258,9 @@ const App = () => {
               </ProtectedRoute>
             } />
 
-            {/* Legacy onboarding routes → primary flow */}
-            <Route path="/discover-legacy" element={<Navigate to="/discover" replace />} />
-            <Route path="/soul-onboarding" element={<Navigate to="/discover" replace />} />
+            {/* Legacy routes */}
+            <Route path="/discover-legacy" element={<Navigate to="/soul-reveal" replace />} />
+            <Route path="/soul-onboarding" element={<Navigate to="/soul-reveal" replace />} />
 
             {/* Public Soul Card - redirects to Portfolio */}
             <Route path="/s/:userId" element={
