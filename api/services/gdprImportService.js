@@ -4,10 +4,16 @@
  * Parses platform GDPR/data-export archives and ingests them into the memory stream.
  *
  * Supported platforms:
- *   - Spotify  : StreamingHistory*.json
- *   - YouTube  : watch-history.json  (Google Takeout)
- *   - Discord  : messages/ * /messages.json  (inside a ZIP)
- *   - Reddit   : reddit-data-*.json  (nested JSON export)
+ *   - Spotify         : StreamingHistory*.json
+ *   - YouTube         : watch-history.json  (Google Takeout)
+ *   - Discord         : messages/ * /messages.json  (inside a ZIP)
+ *   - Reddit          : reddit-data-*.json  (nested JSON export)
+ *   - WhatsApp        : _chat.txt or ZIP export
+ *   - Apple Health    : export.zip / export.xml
+ *   - Android Usage   : JSON from UsageStatsModule background sync
+ *   - Google Search   : MyActivity.json (Google Takeout)
+ *   - Health Connect  : JSON from Android HealthConnectModule (REQUIRES MOBILE REBUILD)
+ *   - SMS Patterns    : JSON from Android SmsStatsModule (REQUIRES MOBILE REBUILD)
  *
  * Pipeline:
  *   fileBuffer -> platformParser -> observations[] -> dedup -> addPlatformObservation
@@ -1441,6 +1447,372 @@ function parseAndroidUsage(buffer) {
 
 
 // ---------------------------------------------------------------------------
+// Android Health Connect parser
+// ---------------------------------------------------------------------------
+//
+// Input JSON format (written by the Android HealthConnectModule, see REQUIRES MOBILE REBUILD):
+// {
+//   "userId": "...",
+//   "extractedAt": "...",
+//   "healthConnect": {
+//     "steps_7d":        [{ date: "YYYY-MM-DD", count: number }],
+//     "sleep_7d":        [{ date: "YYYY-MM-DD", durationHours: number, startHour: number }],
+//     "workouts":        [{ type: string, durationMin: number, date: "YYYY-MM-DD" }],
+//     "avgRestingHR":    number | null,
+//     "activeCalories7d": number
+//   }
+// }
+//
+// PRIVACY: No raw GPS or heart rate time-series — only daily aggregates / session-level data.
+
+function parseHealthConnect(buffer) {
+  let data;
+  try {
+    data = JSON.parse(buffer.toString('utf8'));
+  } catch {
+    throw new Error('health_connect file is not valid JSON');
+  }
+
+  const hc = data.healthConnect;
+  if (!hc || typeof hc !== 'object') {
+    throw new Error('health_connect JSON missing "healthConnect" key');
+  }
+
+  const steps7d   = Array.isArray(hc.steps_7d)  ? hc.steps_7d  : [];
+  const sleep7d   = Array.isArray(hc.sleep_7d)  ? hc.sleep_7d  : [];
+  const workouts  = Array.isArray(hc.workouts)  ? hc.workouts  : [];
+  const restingHR = typeof hc.avgRestingHR === 'number' && hc.avgRestingHR > 0
+    ? Math.round(hc.avgRestingHR)
+    : null;
+  const activeCalories = typeof hc.activeCalories7d === 'number' ? Math.round(hc.activeCalories7d) : null;
+
+  const observations = [];
+
+  // ── Steps ──────────────────────────────────────────────────────────────────
+  if (steps7d.length > 0) {
+    const validDays  = steps7d.filter(d => typeof d.count === 'number' && d.count >= 0);
+    const total7d    = validDays.reduce((s, d) => s + d.count, 0);
+    const avg7d      = validDays.length > 0 ? Math.round(total7d / validDays.length) : 0;
+    const bestDay    = validDays.reduce((best, d) => d.count > (best?.count ?? 0) ? d : best, null);
+
+    if (avg7d > 0) {
+      const activityLabel = avg7d >= 10_000
+        ? 'highly active (10k+ steps/day)'
+        : avg7d >= 7_500
+          ? 'moderately active (7,500–10,000 steps/day)'
+          : avg7d >= 5_000
+            ? 'somewhat active (5,000–7,500 steps/day)'
+            : 'mostly sedentary (under 5,000 steps/day)';
+      observations.push(
+        `Averaged ${avg7d.toLocaleString()} steps per day over the past week ` +
+        `(${total7d.toLocaleString()} total — ${activityLabel})`
+      );
+    }
+
+    if (bestDay && bestDay.count > 0) {
+      observations.push(
+        `Best step day in the past week: ${bestDay.count.toLocaleString()} steps on ${bestDay.date}`
+      );
+    }
+  }
+
+  // ── Sleep ──────────────────────────────────────────────────────────────────
+  if (sleep7d.length > 0) {
+    const validNights   = sleep7d.filter(d => typeof d.durationHours === 'number' && d.durationHours > 0);
+    const avgDurHours   = validNights.length > 0
+      ? (validNights.reduce((s, d) => s + d.durationHours, 0) / validNights.length).toFixed(1)
+      : null;
+
+    const startHours    = sleep7d
+      .filter(d => typeof d.startHour === 'number')
+      .map(d => d.startHour);
+    const avgStartHour  = startHours.length > 0
+      ? Math.round(startHours.reduce((s, h) => s + h, 0) / startHours.length)
+      : null;
+
+    const fmtHour = (h) => {
+      const norm = ((h % 24) + 24) % 24;
+      return norm === 0 ? '12am' : norm < 12 ? `${norm}am` : norm === 12 ? '12pm' : `${norm - 12}pm`;
+    };
+
+    if (avgDurHours !== null && avgStartHour !== null) {
+      const wakeHour = ((avgStartHour + Math.round(Number(avgDurHours))) % 24);
+      observations.push(
+        `Sleep schedule: typically falls asleep around ${fmtHour(avgStartHour)}, ` +
+        `wakes around ${fmtHour(wakeHour)} ` +
+        `(avg ${avgDurHours}h/night over ${validNights.length} tracked nights)`
+      );
+    } else if (avgDurHours !== null) {
+      observations.push(
+        `Averaged ${avgDurHours}h of sleep per night over the past week (Health Connect)`
+      );
+    }
+
+    const shortNights = validNights.filter(d => d.durationHours < 6).length;
+    if (shortNights > 0 && validNights.length >= 3) {
+      observations.push(
+        `${shortNights} of the last ${validNights.length} nights had under 6 hours of sleep`
+      );
+    }
+  }
+
+  // ── Heart rate ─────────────────────────────────────────────────────────────
+  if (restingHR !== null) {
+    const fitnessLabel = restingHR < 50
+      ? 'athlete-level resting heart rate'
+      : restingHR < 60
+        ? 'excellent resting heart rate (strong cardiovascular fitness)'
+        : restingHR < 70
+          ? 'good resting heart rate'
+          : restingHR < 80
+            ? 'average resting heart rate'
+            : 'elevated resting heart rate (worth monitoring)';
+    observations.push(
+      `Resting heart rate from Health Connect: ~${restingHR} bpm (${fitnessLabel})`
+    );
+  }
+
+  // ── Active calories ────────────────────────────────────────────────────────
+  if (activeCalories !== null && activeCalories > 0) {
+    const dailyAvgCal = Math.round(activeCalories / 7);
+    const burnLabel = dailyAvgCal >= 600
+      ? 'high daily energy output'
+      : dailyAvgCal >= 350
+        ? 'moderate daily activity'
+        : 'light daily activity';
+    observations.push(
+      `Burned ~${activeCalories.toLocaleString()} active calories in the past 7 days ` +
+      `(~${dailyAvgCal} cal/day — ${burnLabel})`
+    );
+  }
+
+  // ── Workouts ───────────────────────────────────────────────────────────────
+  if (workouts.length > 0) {
+    const typeCounts = {};
+    for (const w of workouts) {
+      const t = String(w.type || 'Workout').trim();
+      typeCounts[t] = (typeCounts[t] || 0) + 1;
+    }
+
+    const topTypes = Object.entries(typeCounts)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 5);
+
+    const typeDesc = topTypes.map(([t, c]) => `${c} ${t.toLowerCase()}${c !== 1 ? 's' : ''}`).join(', ');
+    const avgDurMin = Math.round(
+      workouts
+        .filter(w => typeof w.durationMin === 'number')
+        .reduce((s, w) => s + w.durationMin, 0) / workouts.length
+    );
+
+    observations.push(
+      `Completed ${workouts.length} workout${workouts.length !== 1 ? 's' : ''} this week: ${typeDesc}` +
+      (avgDurMin > 0 ? ` (avg ${avgDurMin} min each)` : '')
+    );
+  }
+
+  if (observations.length === 0) {
+    throw new Error(
+      'No Health Connect data found in the file. ' +
+      'Ensure the Android app has Health Connect permissions and has synced at least once.'
+    );
+  }
+
+  return observations;
+}
+
+
+// ---------------------------------------------------------------------------
+// SMS & Call Patterns parser
+// ---------------------------------------------------------------------------
+//
+// Input JSON format (written by the Android SmsStatsModule, see REQUIRES MOBILE REBUILD):
+// {
+//   "userId": "...",
+//   "extractedAt": "...",
+//   "smsPatterns": {
+//     "sentLast30d":            number,
+//     "receivedLast30d":        number,
+//     "uniqueContacts":         number,
+//     "peakHour":               number,        // 0-23
+//     "sendHourHistogram":      number[24],    // count per hour of day
+//     "avgResponseTimeMinutes": number | null
+//   },
+//   "callPatterns": {              // optional — requires READ_CALL_LOG
+//     "totalOutgoing30d":    number,
+//     "totalIncoming30d":    number,
+//     "avgDurationSeconds":  number
+//   }
+// }
+//
+// PRIVACY: No message content is ever stored. Contact names are not stored.
+// Only aggregate counts, timing histograms, and anonymized patterns.
+
+function parseSmsPatterns(buffer) {
+  let data;
+  try {
+    data = JSON.parse(buffer.toString('utf8'));
+  } catch {
+    throw new Error('sms_patterns file is not valid JSON');
+  }
+
+  const sms   = data.smsPatterns;
+  const calls = data.callPatterns || null;
+
+  if (!sms || typeof sms !== 'object') {
+    throw new Error('sms_patterns JSON missing "smsPatterns" key');
+  }
+
+  const sentLast30d   = typeof sms.sentLast30d   === 'number' ? sms.sentLast30d   : 0;
+  const recvLast30d   = typeof sms.receivedLast30d === 'number' ? sms.receivedLast30d : 0;
+  const uniqueContacts = typeof sms.uniqueContacts === 'number' ? sms.uniqueContacts : null;
+  const peakHour       = typeof sms.peakHour      === 'number' ? sms.peakHour      : null;
+  const histogram      = Array.isArray(sms.sendHourHistogram) ? sms.sendHourHistogram : null;
+  const avgResponseMin = typeof sms.avgResponseTimeMinutes === 'number'
+    ? Math.round(sms.avgResponseTimeMinutes)
+    : null;
+
+  const observations = [];
+
+  const fmtHour = (h) => {
+    const n = ((h % 24) + 24) % 24;
+    return n === 0 ? '12am' : n < 12 ? `${n}am` : n === 12 ? '12pm' : `${n - 12}pm`;
+  };
+
+  // ── Volume summary ─────────────────────────────────────────────────────────
+  const totalSms = sentLast30d + recvLast30d;
+  if (totalSms > 0) {
+    const ratio = sentLast30d > 0 && recvLast30d > 0
+      ? (sentLast30d / recvLast30d).toFixed(2)
+      : null;
+    const style = ratio !== null
+      ? Number(ratio) > 1.3
+        ? 'tends to initiate more than they receive'
+        : Number(ratio) < 0.7
+          ? 'tends to receive more than they send'
+          : 'balanced sender/receiver'
+      : '';
+
+    observations.push(
+      `Texted ${sentLast30d.toLocaleString()} times and received ${recvLast30d.toLocaleString()} ` +
+      `texts in the past month` +
+      (style ? ` — ${style}` : '')
+    );
+  }
+
+  // ── Unique contacts ────────────────────────────────────────────────────────
+  if (uniqueContacts !== null && uniqueContacts > 0) {
+    const breadthLabel = uniqueContacts >= 50
+      ? 'very broad social texter (50+ contacts)'
+      : uniqueContacts >= 20
+        ? 'active social texter'
+        : uniqueContacts >= 10
+          ? 'moderately social texter'
+          : 'focused texter (tight inner circle)';
+    observations.push(
+      `Texted ${uniqueContacts} unique contacts in the past month — ${breadthLabel}`
+    );
+  }
+
+  // ── Timing patterns ────────────────────────────────────────────────────────
+  if (peakHour !== null) {
+    observations.push(`Peak SMS hour: most texts sent around ${fmtHour(peakHour)}`);
+  }
+
+  if (histogram && histogram.length === 24) {
+    const total = histogram.reduce((s, c) => s + (c || 0), 0);
+    if (total > 0) {
+      const morning   = histogram.slice(6, 12).reduce((s, c) => s + (c || 0), 0);
+      const afternoon = histogram.slice(12, 18).reduce((s, c) => s + (c || 0), 0);
+      const evening   = histogram.slice(18, 22).reduce((s, c) => s + (c || 0), 0);
+      const night     = (histogram.slice(22, 24).reduce((s, c) => s + (c || 0), 0)
+        + histogram.slice(0, 6).reduce((s, c) => s + (c || 0), 0));
+      const pct = (n) => Math.round((n / total) * 100);
+
+      const dominant = [
+        ['morning', pct(morning)],
+        ['afternoon', pct(afternoon)],
+        ['evening', pct(evening)],
+        ['late-night', pct(night)],
+      ].sort((a, b) => Number(b[1]) - Number(a[1]))[0];
+
+      observations.push(
+        `SMS timing: ${pct(morning)}% morning, ${pct(afternoon)}% afternoon, ` +
+        `${pct(evening)}% evening, ${pct(night)}% late-night ` +
+        `(primarily a ${dominant[0]} texter)`
+      );
+    }
+  }
+
+  // ── Response time ──────────────────────────────────────────────────────────
+  if (avgResponseMin !== null && avgResponseMin >= 0) {
+    const responseLabel = avgResponseMin <= 5
+      ? 'very fast responder'
+      : avgResponseMin <= 20
+        ? 'quick responder'
+        : avgResponseMin <= 60
+          ? 'moderate responder'
+          : 'slow/async texter';
+    observations.push(
+      `Average SMS response time: ${avgResponseMin} min (${responseLabel})`
+    );
+  }
+
+  // ── Call patterns (optional) ───────────────────────────────────────────────
+  if (calls && typeof calls === 'object') {
+    const outgoing   = typeof calls.totalOutgoing30d  === 'number' ? calls.totalOutgoing30d  : 0;
+    const incoming   = typeof calls.totalIncoming30d  === 'number' ? calls.totalIncoming30d  : 0;
+    const avgDurSec  = typeof calls.avgDurationSeconds === 'number' ? Math.round(calls.avgDurationSeconds) : null;
+    const totalCalls = outgoing + incoming;
+
+    if (totalCalls > 0) {
+      const callStyle = outgoing > incoming * 1.3
+        ? 'tends to initiate calls'
+        : outgoing < incoming * 0.7
+          ? 'tends to receive rather than initiate calls'
+          : 'balanced caller';
+
+      const avgDurLabel = avgDurSec !== null
+        ? avgDurSec >= 300
+          ? `avg ${Math.round(avgDurSec / 60)} min/call (long conversations)`
+          : avgDurSec >= 60
+            ? `avg ${Math.round(avgDurSec / 60)} min/call`
+            : `avg ${avgDurSec}s/call (brief check-ins)`
+        : '';
+
+      observations.push(
+        `Made/received ${totalCalls} phone calls in the past month ` +
+        `(${outgoing} out, ${incoming} in — ${callStyle})` +
+        (avgDurLabel ? `, ${avgDurLabel}` : '')
+      );
+
+      // SMS vs call preference
+      if (totalSms > 0) {
+        const smsRatio = (totalSms / Math.max(totalCalls, 1)).toFixed(0);
+        const prefLabel = Number(smsRatio) >= 5
+          ? 'strongly prefers texting over calling'
+          : Number(smsRatio) >= 2
+            ? 'leans toward texting'
+            : 'mixes texting and calling';
+        observations.push(
+          `Communication style: ${smsRatio} texts per phone call — ${prefLabel}`
+        );
+      }
+    }
+  }
+
+  if (observations.length === 0) {
+    throw new Error(
+      'No SMS pattern data found in the file. ' +
+      'Ensure the Android app has READ_SMS permission and has synced at least once.'
+    );
+  }
+
+  return observations;
+}
+
+
+// ---------------------------------------------------------------------------
 // Google Search (Takeout My Activity) parser
 // ---------------------------------------------------------------------------
 
@@ -1608,7 +1980,9 @@ async function finalizeImportRecord(importId, status, observationsCreated, facts
  * Parse a GDPR data export and ingest into the memory stream.
  *
  * @param {string}  userId     - The user's UUID (public.users.id)
- * @param {string}  platform   - 'spotify' | 'youtube' | 'discord' | 'reddit'
+ * @param {string}  platform   - 'spotify' | 'youtube' | 'discord' | 'reddit' | 'android_usage' |
+ *                               'google_search' | 'whatsapp' | 'apple_health' |
+ *                               'health_connect' | 'sms_patterns'
  * @param {Buffer}  fileBuffer - Raw file bytes
  * @param {string}  fileName   - Original file name (for logging / import record)
  * @returns {{ importId, observationsCreated, factsCreated, error? }}
@@ -1649,6 +2023,12 @@ export async function processGdprImport(userId, platform, fileBuffer, fileName) 
         break;
       case 'apple_health':
         observations = parseAppleHealth(fileBuffer);
+        break;
+      case 'health_connect':
+        observations = parseHealthConnect(fileBuffer);
+        break;
+      case 'sms_patterns':
+        observations = parseSmsPatterns(fileBuffer);
         break;
       default:
         throw new Error(`Unsupported platform: ${platform}`);
