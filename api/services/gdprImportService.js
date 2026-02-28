@@ -95,7 +95,7 @@ async function writeObservations(userId, platform, observations, importId, exist
 }
 
 // ---------------------------------------------------------------------------
-// Spotify parser
+// Spotify parser — supports both Extended Streaming History and legacy format
 // ---------------------------------------------------------------------------
 
 function parseSpotify(buffer) {
@@ -103,20 +103,287 @@ function parseSpotify(buffer) {
   try {
     raw = JSON.parse(buffer.toString('utf8'));
   } catch {
-    throw new Error('Invalid Spotify JSON — expected StreamingHistory*.json');
+    throw new Error('Invalid Spotify JSON — expected StreamingHistory*.json or Streaming_History_Audio_*.json');
   }
 
   if (!Array.isArray(raw)) {
     throw new Error('Spotify file must be a JSON array');
   }
 
-  const MIN_MS = 30_000; // skip tracks played < 30 s (skips)
-  const playsByArtist = {};   // artist -> { count, msTotal }
-  const hourBuckets = new Array(24).fill(0);
+  // Auto-detect format: Extended has "ts" + "ms_played"; legacy has "endTime" + "msPlayed"
+  const isExtended = raw.length > 0 && raw[0]?.ts !== undefined;
 
-  // Individual play observations (sample up to 500 most recent)
+  if (isExtended) {
+    return parseSpotifyExtended(raw);
+  }
+  return parseSpotifyLegacy(raw);
+}
+
+// ---------------------------------------------------------------------------
+// Extended Streaming History parser (2018-present export format)
+// ---------------------------------------------------------------------------
+
+function parseSpotifyExtended(raw) {
+  const MIN_MS = 30_000;        // real listen threshold (30 s)
+  const MIN_MS_INDIVIDUAL = 120_000; // individual obs threshold (2 min)
+  const MAX_INDIVIDUAL_OBS = 250;
+
+  const fmt = (h) => h === 0 ? '12am' : h < 12 ? `${h}am` : h === 12 ? '12pm' : `${h - 12}pm`;
+  const fmtMonth = (d) => `${d.toLocaleString('default', { month: 'short' })} ${d.getFullYear()}`;
+
+  // ── Pass 1: aggregate across all entries ─────────────────────────────────
+  const artistStats = {};  // artist -> { msTotal, count }
+  const albumStats  = {};  // album  -> { msTotal }
+  const trackCounts = {};  // "Track|Artist" -> count
+  const yearArtists = {};  // year -> artist -> msTotal
+  const hourBuckets = new Array(24).fill(0);
+  const countries   = new Set();
+
+  let totalRealPlays   = 0;
+  let totalRealMs      = 0;
+  let skippedCount     = 0;
+  let shuffleCount     = 0;
+  let shuffleBase      = 0;
+  let earliestDate     = null;
+  let latestDate       = null;
+
+  // Individual obs pool — only substantial, non-skipped plays
+  const individualPool = [];
+
+  for (const entry of raw) {
+    const msPlayed = entry.ms_played || 0;
+    const isSkipped = entry.skipped === true;
+    const isShuffle = entry.shuffle === true;
+    const when = entry.ts ? new Date(entry.ts) : null;
+
+    const artist = String(entry.master_metadata_album_artist_name || '').trim().slice(0, 80) || null;
+    const track  = String(entry.master_metadata_track_name || '').trim().slice(0, 80)  || null;
+    const album  = String(entry.master_metadata_album_album_name || '').trim().slice(0, 80) || null;
+    const country = entry.conn_country || null;
+
+    if (country) countries.add(country);
+    if (isSkipped) skippedCount++;
+
+    // Track shuffle ratio on all entries where shuffle flag is defined
+    if (entry.shuffle !== undefined && entry.shuffle !== null) {
+      shuffleBase++;
+      if (isShuffle) shuffleCount++;
+    }
+
+    // Track date range from all entries
+    if (when) {
+      if (!earliestDate || when < earliestDate) earliestDate = when;
+      if (!latestDate || when > latestDate) latestDate = when;
+    }
+
+    // Only count as real listen for aggregation
+    if (msPlayed < MIN_MS) continue;
+
+    totalRealPlays++;
+    totalRealMs += msPlayed;
+    if (when) hourBuckets[when.getHours()]++;
+
+    if (!artist) continue;
+
+    // Artist stats
+    if (!artistStats[artist]) artistStats[artist] = { msTotal: 0, count: 0 };
+    artistStats[artist].msTotal += msPlayed;
+    artistStats[artist].count++;
+
+    // Album stats
+    if (album) {
+      if (!albumStats[album]) albumStats[album] = { msTotal: 0 };
+      albumStats[album].msTotal += msPlayed;
+    }
+
+    // Track repeat counts
+    if (track) {
+      const key = `${track}|${artist}`;
+      trackCounts[key] = (trackCounts[key] || 0) + 1;
+    }
+
+    // Year → artist listening breakdown
+    if (when) {
+      const year = when.getFullYear();
+      if (!yearArtists[year]) yearArtists[year] = {};
+      if (!yearArtists[year][artist]) yearArtists[year][artist] = 0;
+      yearArtists[year][artist] += msPlayed;
+    }
+
+    // Individual pool: substantial non-skipped plays with track metadata
+    if (!isSkipped && msPlayed >= MIN_MS_INDIVIDUAL && track && artist) {
+      individualPool.push({ track, artist, when });
+    }
+  }
+
+  // ── Build observations ────────────────────────────────────────────────────
+  const summaryObs = [];
+
+  // 1. Span summary
+  const totalEntries = raw.length;
+  const totalHours = Math.round(totalRealMs / 3_600_000);
+  if (earliestDate && latestDate) {
+    const yearSpan = latestDate.getFullYear() - earliestDate.getFullYear();
+    const spanLabel = yearSpan >= 1
+      ? `${yearSpan + 1} years`
+      : `${Math.max(1, Math.round((latestDate - earliestDate) / (30 * 24 * 3600_000)))} months`;
+    const startLabel = fmtMonth(earliestDate);
+    const endLabel   = fmtMonth(latestDate);
+    summaryObs.push(
+      `Spotify history spans ${spanLabel} (${startLabel} to ${endLabel}), ` +
+      `${totalRealPlays.toLocaleString()} real listens, ~${totalHours.toLocaleString()}h total`
+    );
+  }
+
+  // 2. Top 3 artists by listening time
+  const topArtistsSorted = Object.entries(artistStats)
+    .sort((a, b) => b[1].msTotal - a[1].msTotal);
+
+  if (topArtistsSorted.length >= 1) {
+    const top3 = topArtistsSorted.slice(0, 3).map(([name, stats]) => {
+      const h = Math.round(stats.msTotal / 3_600_000);
+      return `${name} (${h}h)`;
+    });
+    summaryObs.push(`Top 3 Spotify artists by listening time: ${top3.join(', ')}`);
+  }
+
+  // 3. Also deeply into (artists 4-8)
+  if (topArtistsSorted.length > 3) {
+    const also = topArtistsSorted.slice(3, 8).map(([name]) => name).join(', ');
+    summaryObs.push(`Also deeply into on Spotify: ${also}`);
+  }
+
+  // 4. Year-by-year taste
+  const years = Object.keys(yearArtists).sort();
+  if (years.length >= 2) {
+    const parts = years.map(year => {
+      const top2 = Object.entries(yearArtists[year])
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 2)
+        .map(([name]) => name);
+      return `${year}: ${top2.join(' & ')}`;
+    });
+    summaryObs.push(`Music taste by year — ${parts.join(' | ')}`);
+  }
+
+  // 5. Repeat obsessions (tracks played 10+ times)
+  const repeatTracks = Object.entries(trackCounts)
+    .filter(([, count]) => count >= 10)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 10);
+
+  if (repeatTracks.length > 0) {
+    const parts = repeatTracks.map(([key, count]) => {
+      const [track, artist] = key.split('|');
+      return `"${track}" by ${artist} (${count}x)`;
+    });
+    summaryObs.push(`Spotify repeat obsessions: ${parts.join(', ')}`);
+  }
+
+  // 6. Skip rate + most-skipped artists
+  if (totalEntries > 0) {
+    const overallSkipPct = Math.round((skippedCount / totalEntries) * 100);
+    // Per-artist skip analysis
+    const artistSkips = {};
+    for (const entry of raw) {
+      const artist = String(entry.master_metadata_album_artist_name || '').trim().slice(0, 80);
+      if (!artist) continue;
+      if (!artistSkips[artist]) artistSkips[artist] = { total: 0, skipped: 0 };
+      artistSkips[artist].total++;
+      if (entry.skipped === true) artistSkips[artist].skipped++;
+    }
+    const highSkipArtists = Object.entries(artistSkips)
+      .filter(([, s]) => s.total >= 5 && (s.skipped / s.total) > 0.30)
+      .sort((a, b) => (b[1].skipped / b[1].total) - (a[1].skipped / a[1].total))
+      .slice(0, 5)
+      .map(([name, s]) => `${name} (${Math.round((s.skipped / s.total) * 100)}% skipped)`);
+
+    if (highSkipArtists.length > 0) {
+      summaryObs.push(
+        `Spotify skip rate: ${overallSkipPct}% overall. Most-skipped artists: ${highSkipArtists.join(', ')}`
+      );
+    } else {
+      summaryObs.push(`Spotify skip rate: ${overallSkipPct}% of total streams`);
+    }
+  }
+
+  // 7. Time-of-day patterns
+  const totalHourPlays = hourBuckets.reduce((a, b) => a + b, 0);
+  if (totalHourPlays > 0) {
+    const morning   = hourBuckets.slice(6, 12).reduce((a, b) => a + b, 0);
+    const afternoon = hourBuckets.slice(12, 18).reduce((a, b) => a + b, 0);
+    const evening   = hourBuckets.slice(18, 22).reduce((a, b) => a + b, 0);
+    const lateNight = hourBuckets.slice(22, 24).reduce((a, b) => a + b, 0)
+      + hourBuckets.slice(0, 6).reduce((a, b) => a + b, 0);
+    const pct = (n) => Math.round((n / totalHourPlays) * 100);
+
+    // Peak hour
+    let peakHour = 0;
+    for (let h = 1; h < 24; h++) {
+      if (hourBuckets[h] > hourBuckets[peakHour]) peakHour = h;
+    }
+
+    const label = shuffleBase > 0
+      ? ` Peak hour: ${fmt(peakHour)}.`
+      : '';
+    summaryObs.push(
+      `Spotify listening patterns: ${pct(morning)}% morning, ${pct(afternoon)}% afternoon, ` +
+      `${pct(evening)}% evening, ${pct(lateNight)}% late-night.${label} Peak hour: ${fmt(peakHour)}`
+    );
+  }
+
+  // 8. Shuffle vs curated
+  if (shuffleBase > 10) {
+    const shufflePct = Math.round((shuffleCount / shuffleBase) * 100);
+    const label = shufflePct > 60
+      ? 'primarily a shuffle listener'
+      : shufflePct < 30
+        ? 'primarily a curated/album listener'
+        : 'a mix of shuffle and curated listening';
+    summaryObs.push(`Spotify shuffle: ${shufflePct}% of streams on shuffle (${label})`);
+  }
+
+  // 9. Travel signal from countries
+  if (countries.size >= 2) {
+    const countriesList = Array.from(countries).join(', ');
+    summaryObs.push(
+      `Spotify detected from ${countries.size} countries: ${countriesList} — suggests international travel or living abroad`
+    );
+  }
+
+  // 10. Top albums by listening time
+  const topAlbums = Object.entries(albumStats)
+    .sort((a, b) => b[1].msTotal - a[1].msTotal)
+    .slice(0, 5);
+  if (topAlbums.length > 0) {
+    const parts = topAlbums.map(([name, s]) => `"${name}" (${Math.round(s.msTotal / 3_600_000)}h)`);
+    summaryObs.push(`Top Spotify albums by listening time: ${parts.join(', ')}`);
+  }
+
+  // 11. Individual significant listens (up to MAX_INDIVIDUAL_OBS)
+  const individualObs = individualPool
+    .sort((a, b) => (b.when?.getTime() ?? 0) - (a.when?.getTime() ?? 0))
+    .slice(0, MAX_INDIVIDUAL_OBS)
+    .map(({ track, artist, when }) => {
+      const monthYear = when ? fmtMonth(when) : '';
+      return monthYear
+        ? `Listened to "${track}" by ${artist} (${monthYear})`
+        : `Listened to "${track}" by ${artist}`;
+    });
+
+  return [...summaryObs, ...individualObs];
+}
+
+// ---------------------------------------------------------------------------
+// Legacy Streaming History parser (StreamingHistory*.json — pre-2023 format)
+// ---------------------------------------------------------------------------
+
+function parseSpotifyLegacy(raw) {
+  const MIN_MS = 30_000;
+  const playsByArtist = {};
+  const hourBuckets = new Array(24).fill(0);
   const individualObs = [];
-  const sorted = raw.filter(e => e.msPlayed >= MIN_MS).slice(-500);
+  const sorted = raw.filter(e => (e.msPlayed || 0) >= MIN_MS).slice(-500);
 
   for (const entry of sorted) {
     const artist = String(entry.artistName || 'Unknown Artist').slice(0, 80);
@@ -130,7 +397,6 @@ function parseSpotify(buffer) {
         : `Listened to "${track}" by ${artist}`
     );
 
-    // Aggregate
     if (!playsByArtist[artist]) playsByArtist[artist] = { count: 0, msTotal: 0 };
     playsByArtist[artist].count++;
     playsByArtist[artist].msTotal += (entry.msPlayed || 0);
@@ -138,10 +404,7 @@ function parseSpotify(buffer) {
     if (when) hourBuckets[when.getHours()]++;
   }
 
-  const allValid = raw.filter(e => e.msPlayed >= MIN_MS);
-  const totalPlays = allValid.length;
-
-  // Top artist observations
+  const totalPlays = raw.filter(e => (e.msPlayed || 0) >= MIN_MS).length;
   const topArtists = Object.entries(playsByArtist)
     .sort((a, b) => b[1].count - a[1].count)
     .slice(0, 10);
@@ -167,7 +430,6 @@ function parseSpotify(buffer) {
     );
   }
 
-  // Time-of-day pattern
   const totalHourPlays = hourBuckets.reduce((a, b) => a + b, 0);
   if (totalHourPlays > 0) {
     const lateNight = hourBuckets.slice(22, 24).reduce((a, b) => a + b, 0)
@@ -545,6 +807,130 @@ function parseAndroidUsage(buffer) {
 
 
 // ---------------------------------------------------------------------------
+// Google Search (Takeout My Activity) parser
+// ---------------------------------------------------------------------------
+
+function parseGoogleSearch(buffer) {
+  let raw;
+  try {
+    raw = JSON.parse(buffer.toString('utf8'));
+  } catch {
+    throw new Error('Invalid Google Search JSON — expected MyActivity.json from Google Takeout');
+  }
+
+  if (!Array.isArray(raw)) {
+    throw new Error('Google Search Takeout file must be a JSON array');
+  }
+
+  const MAX_INDIVIDUAL = 200;
+
+  // Extract search query from title (Google formats as "Searched for <query>")
+  const extractQuery = (title) => {
+    if (!title) return null;
+    const match = String(title).match(/^Searched for (.+)$/i);
+    return match ? match[1].trim() : null;
+  };
+
+  const wordCounts = {};
+  const hourBuckets = new Array(24).fill(0);
+  const individualEntries = [];
+  let totalSearches = 0;
+
+  for (const entry of raw) {
+    // Filter to Search product entries only (skip Maps, YouTube, etc.)
+    const products = entry.products || [];
+    const isSearch = products.includes('Search') || entry.header === 'Search';
+    if (!isSearch) continue;
+
+    const query = extractQuery(entry.title);
+    if (!query) continue;
+
+    totalSearches++;
+
+    const when = entry.time ? new Date(entry.time) : null;
+    if (when && !isNaN(when.getTime())) {
+      hourBuckets[when.getHours()]++;
+      individualEntries.push({ query, when });
+    } else {
+      individualEntries.push({ query, when: null });
+    }
+
+    // Tokenize query into words for topic extraction
+    const words = query
+      .toLowerCase()
+      .replace(/[^a-z0-9\s]/g, ' ')
+      .split(/\s+/)
+      .filter(w => w.length >= 4); // skip short stop-words
+
+    for (const word of words) {
+      wordCounts[word] = (wordCounts[word] || 0) + 1;
+    }
+  }
+
+  const observations = [];
+
+  // Summary: top search topics
+  const STOP_WORDS = new Set([
+    'what', 'where', 'when', 'how', 'that', 'this', 'with', 'from', 'have',
+    'will', 'your', 'they', 'does', 'which', 'about', 'into', 'than', 'more',
+    'some', 'like', 'would', 'could', 'should', 'best', 'good', 'many',
+    'make', 'most', 'also', 'just', 'over', 'know', 'need', 'much',
+    'between', 'after', 'before', 'their', 'there', 'being', 'been', 'were',
+  ]);
+
+  const topWords = Object.entries(wordCounts)
+    .filter(([word]) => !STOP_WORDS.has(word))
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 30);
+
+  if (topWords.length > 0 && totalSearches > 0) {
+    const topTopics = topWords.slice(0, 8).map(([w]) => w).join(', ');
+    observations.push(
+      `Google Search history shows strong interest in: ${topTopics} ` +
+      `(${totalSearches.toLocaleString()} total searches)`
+    );
+  }
+
+  // Time-of-day pattern
+  const totalHourPlays = hourBuckets.reduce((a, b) => a + b, 0);
+  if (totalHourPlays > 0) {
+    let peakHour = 0;
+    for (let h = 1; h < 24; h++) {
+      if (hourBuckets[h] > hourBuckets[peakHour]) peakHour = h;
+    }
+    const fmt = (h) => h === 0 ? '12am' : h < 12 ? `${h}am` : h === 12 ? '12pm' : `${h - 12}pm`;
+    const morning   = hourBuckets.slice(6, 12).reduce((a, b) => a + b, 0);
+    const evening   = hourBuckets.slice(18, 22).reduce((a, b) => a + b, 0);
+    const lateNight = hourBuckets.slice(22, 24).reduce((a, b) => a + b, 0)
+      + hourBuckets.slice(0, 6).reduce((a, b) => a + b, 0);
+    const pct = (n) => Math.round((n / totalHourPlays) * 100);
+    observations.push(
+      `Google search timing: ${pct(morning)}% morning, ${pct(evening)}% evening, ${pct(lateNight)}% late-night. Peak hour: ${fmt(peakHour)}`
+    );
+  }
+
+  // Individual search observations (most recent MAX_INDIVIDUAL)
+  const individualObs = individualEntries
+    .sort((a, b) => {
+      if (!a.when && !b.when) return 0;
+      if (!a.when) return 1;
+      if (!b.when) return -1;
+      return b.when.getTime() - a.when.getTime();
+    })
+    .slice(0, MAX_INDIVIDUAL)
+    .map(({ query, when }) => {
+      const monthYear = when
+        ? `${when.toLocaleString('default', { month: 'short' })} ${when.getFullYear()}`
+        : '';
+      return monthYear
+        ? `Searched for: ${query.slice(0, 100)} (${monthYear})`
+        : `Searched for: ${query.slice(0, 100)}`;
+    });
+
+  return [...observations, ...individualObs];
+}
+
+// ---------------------------------------------------------------------------
 // Import record helpers
 // ---------------------------------------------------------------------------
 
@@ -620,6 +1006,9 @@ export async function processGdprImport(userId, platform, fileBuffer, fileName) 
         break;
       case 'android_usage':
         observations = parseAndroidUsage(fileBuffer);
+        break;
+      case 'google_search':
+        observations = parseGoogleSearch(fileBuffer);
         break;
       default:
         throw new Error(`Unsupported platform: ${platform}`);
