@@ -23,6 +23,7 @@ import {
 } from 'lucide-react';
 
 import { DataVerification } from '../components/DataVerification';
+import SoulRichnessBar from '../components/onboarding/SoulRichnessBar';
 
 import {
   DataProvider
@@ -730,6 +731,8 @@ const InstantTwinOnboarding = () => {
 
       {currentStep === 1 && (
         <div className="space-y-8">
+          <SoulRichnessBar connectedPlatforms={activeConnections} />
+
           <PlatformCategorySection
             categoryName="Entertainment"
             categorySubtext="Music, videos, streaming"
