@@ -41,7 +41,7 @@ async function getSupabase() {
 }
 
 // Platforms we know how to ingest
-const SUPPORTED_PLATFORMS = ['spotify', 'google_calendar', 'youtube', 'discord', 'linkedin', 'reddit', 'whoop', 'github', 'google_gmail'];
+const SUPPORTED_PLATFORMS = ['spotify', 'google_calendar', 'youtube', 'discord', 'linkedin', 'reddit', 'whoop', 'github', 'google_gmail', 'outlook', 'strava', 'garmin', 'fitbit'];
 
 // ====================================================================
 // Prompt injection defense
@@ -788,6 +788,453 @@ async function fetchGmailObservations(userId) {
   return observations;
 }
 
+// ====================================================================
+// Outlook (Nango-managed via Microsoft Graph)
+// ====================================================================
+
+/**
+ * Fetch Microsoft Outlook signals and return natural-language observations.
+ * Privacy-safe: only folder/count metadata, no message content.
+ *
+ * Signals emitted:
+ *  1. Inbox size estimate (totalItemCount from inbox folder)
+ *  2. Custom mail folder count (organization habits)
+ *  3. Contact count (network breadth)
+ */
+async function fetchOutlookObservations(userId) {
+  const observations = [];
+
+  const supabase = await getSupabase();
+  if (!supabase) return observations;
+
+  const isNangoManaged = await _hasNangoMapping(supabase, userId, 'outlook');
+  if (!isNangoManaged) {
+    console.warn('[ObservationIngestion] Outlook: no Nango connection for user', userId);
+    return observations;
+  }
+
+  let nangoService;
+  try {
+    nangoService = await import('./nangoService.js');
+  } catch (e) {
+    console.warn('[ObservationIngestion] Outlook: nangoService import failed:', e.message);
+    return observations;
+  }
+
+  // ── 1. Mail folders (inbox size + custom folder count) ───────────────────
+  let inboxCount = null;
+  let customFolderCount = 0;
+  try {
+    const foldersResult = await nangoService.outlook.getMailFolders(userId);
+    if (foldersResult.success && Array.isArray(foldersResult.data?.value)) {
+      const folders = foldersResult.data.value;
+      const inbox = folders.find(f => f.displayName === 'Inbox' || f.id === 'inbox');
+      if (inbox?.totalItemCount != null && inbox.totalItemCount > 0) {
+        inboxCount = inbox.totalItemCount;
+      }
+      // Count folders the user created (not system defaults)
+      const systemNames = new Set(['Inbox', 'Sent Items', 'Deleted Items', 'Drafts', 'Junk Email', 'Outbox', 'Archive', 'Conversation History', 'Notes']);
+      customFolderCount = folders.filter(f => !systemNames.has(f.displayName)).length;
+    }
+  } catch (e) {
+    console.warn('[ObservationIngestion] Outlook mail folders error:', e.message);
+  }
+
+  if (inboxCount !== null) {
+    const sizeLabel = inboxCount > 5000 ? 'very large' : inboxCount > 1000 ? 'large' : inboxCount > 200 ? 'moderate' : 'manageable';
+    observations.push({
+      content: `Outlook inbox contains approximately ${inboxCount.toLocaleString()} messages (${sizeLabel} inbox)`,
+      contentType: 'weekly_summary',
+    });
+  }
+  if (customFolderCount > 0) {
+    observations.push({
+      content: `Organizes Outlook email into ${customFolderCount} custom folder${customFolderCount !== 1 ? 's' : ''} — structured email habits`,
+      contentType: 'weekly_summary',
+    });
+  }
+
+  // ── 2. Contact count (network breadth) ────────────────────────────────────
+  try {
+    const contactsResult = await nangoService.outlook.getContacts(userId, 100);
+    if (contactsResult.success) {
+      const contacts = contactsResult.data?.value || [];
+      if (contacts.length > 0) {
+        observations.push({
+          content: `Outlook contacts list has at least ${contacts.length} contact${contacts.length !== 1 ? 's' : ''} — ${contacts.length >= 80 ? 'broad' : contacts.length >= 30 ? 'moderate' : 'focused'} professional network`,
+          contentType: 'weekly_summary',
+        });
+      }
+    }
+  } catch (e) {
+    console.warn('[ObservationIngestion] Outlook contacts error:', e.message);
+  }
+
+  return observations;
+}
+
+// ====================================================================
+// Strava (Nango-managed)
+// ====================================================================
+
+/**
+ * Fetch Strava athlete and activity data as natural-language observations.
+ *
+ * Signals emitted:
+ *  1. Athlete sport type and follower/following counts
+ *  2. Activity type breakdown from last 10 activities
+ *  3. Weekly distance and elevation from last 7 days
+ *  4. Heart rate zone distribution if available
+ */
+async function fetchStravaObservations(userId) {
+  const observations = [];
+
+  const supabase = await getSupabase();
+  if (!supabase) return observations;
+
+  const isNangoManaged = await _hasNangoMapping(supabase, userId, 'strava');
+  if (!isNangoManaged) {
+    console.warn('[ObservationIngestion] Strava: no Nango connection for user', userId);
+    return observations;
+  }
+
+  let nangoService;
+  try {
+    nangoService = await import('./nangoService.js');
+  } catch (e) {
+    console.warn('[ObservationIngestion] Strava: nangoService import failed:', e.message);
+    return observations;
+  }
+
+  // ── 1. Athlete profile ────────────────────────────────────────────────────
+  let athleteId = null;
+  try {
+    const athleteResult = await nangoService.strava.getAthlete(userId);
+    if (athleteResult.success && athleteResult.data) {
+      const athlete = athleteResult.data;
+      athleteId = athlete.id || null;
+      const country = sanitizeExternal(athlete.country || '', 50);
+      const followers = athlete.follower_count ?? null;
+      const following = athlete.friend_count ?? null;
+
+      const parts = [];
+      if (country) parts.push(`based in ${country}`);
+      if (followers !== null) parts.push(`${followers} follower${followers !== 1 ? 's' : ''}`);
+      if (following !== null) parts.push(`following ${following} athlete${following !== 1 ? 's' : ''}`);
+
+      if (parts.length > 0) {
+        observations.push({
+          content: `Strava athlete: ${parts.join(', ')}`,
+          contentType: 'weekly_summary',
+        });
+      }
+    }
+  } catch (e) {
+    console.warn('[ObservationIngestion] Strava athlete profile error:', e.message);
+  }
+
+  // ── 2. Recent activities (last 50, analyze last 10 + weekly window) ───────
+  let activities = [];
+  try {
+    const activitiesResult = await nangoService.strava.getActivities(userId, 1);
+    if (activitiesResult.success && Array.isArray(activitiesResult.data)) {
+      activities = activitiesResult.data;
+    }
+  } catch (e) {
+    console.warn('[ObservationIngestion] Strava activities error:', e.message);
+  }
+
+  if (activities.length > 0) {
+    // Activity type breakdown from last 10
+    const last10 = activities.slice(0, 10);
+    const typeCounts = {};
+    for (const act of last10) {
+      const type = sanitizeExternal(act.type || act.sport_type || 'Unknown', 30);
+      if (type) typeCounts[type] = (typeCounts[type] || 0) + 1;
+    }
+    const typeEntries = Object.entries(typeCounts).sort((a, b) => b[1] - a[1]);
+    if (typeEntries.length > 0) {
+      const typeStr = typeEntries.map(([t, c]) => `${c} ${t.toLowerCase()}${c !== 1 ? 's' : ''}`).join(', ');
+      observations.push({
+        content: `Recent Strava activities: ${typeStr} (last ${last10.length} activities)`,
+        contentType: 'weekly_summary',
+      });
+    }
+
+    // Weekly distance and elevation (last 7 days)
+    const sevenDaysAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
+    const weekActivities = activities.filter(a => {
+      const ts = a.start_date ? new Date(a.start_date).getTime() : 0;
+      return ts > sevenDaysAgo;
+    });
+
+    if (weekActivities.length > 0) {
+      const totalDistanceM = weekActivities.reduce((sum, a) => sum + (a.distance || 0), 0);
+      const totalElevationM = weekActivities.reduce((sum, a) => sum + (a.total_elevation_gain || 0), 0);
+      const totalDistanceKm = totalDistanceM / 1000;
+      const parts = [`${weekActivities.length} workout${weekActivities.length !== 1 ? 's' : ''}`];
+      if (totalDistanceKm >= 0.1) parts.push(`${totalDistanceKm.toFixed(1)} km total`);
+      if (totalElevationM >= 10) parts.push(`${Math.round(totalElevationM)}m elevation gain`);
+      observations.push({
+        content: `Strava this week: ${parts.join(', ')}`,
+        contentType: 'daily_summary',
+      });
+    }
+  }
+
+  // ── 3. Heart rate zones if available ────────────────────────────────────
+  try {
+    const zonesResult = await nangoService.strava.getZones(userId);
+    if (zonesResult.success && zonesResult.data?.heart_rate?.zones) {
+      const zones = zonesResult.data.heart_rate.zones;
+      // Find the zone with the most time spent
+      const topZone = zones.reduce((best, z) => (z.time > (best?.time || 0) ? z : best), null);
+      if (topZone && topZone.time > 0 && topZone.max !== -1) {
+        const zoneName = sanitizeExternal(topZone.name || `Zone ${zones.indexOf(topZone) + 1}`, 30);
+        const minutes = Math.round(topZone.time / 60);
+        if (minutes > 0) {
+          observations.push({
+            content: `Spends most Strava training time in ${zoneName} heart rate zone (${minutes} min)`,
+            contentType: 'weekly_summary',
+          });
+        }
+      }
+    }
+  } catch (e) {
+    console.warn('[ObservationIngestion] Strava zones error:', e.message);
+  }
+
+  return observations;
+}
+
+// ====================================================================
+// Garmin (Nango-managed)
+// ====================================================================
+
+/**
+ * Fetch Garmin Connect daily health data as natural-language observations.
+ *
+ * Signals emitted:
+ *  1. Daily summary: steps, active calories, stress score
+ *  2. Sleep: duration and sleep score
+ *  3. Recent activities: types and count
+ */
+async function fetchGarminObservations(userId) {
+  const observations = [];
+
+  const supabase = await getSupabase();
+  if (!supabase) return observations;
+
+  const isNangoManaged = await _hasNangoMapping(supabase, userId, 'garmin');
+  if (!isNangoManaged) {
+    console.warn('[ObservationIngestion] Garmin: no Nango connection for user', userId);
+    return observations;
+  }
+
+  let nangoService;
+  try {
+    nangoService = await import('./nangoService.js');
+  } catch (e) {
+    console.warn('[ObservationIngestion] Garmin: nangoService import failed:', e.message);
+    return observations;
+  }
+
+  // ── 1. Daily summary ──────────────────────────────────────────────────────
+  try {
+    const summaryResult = await nangoService.garmin.getDailySummary(userId);
+    if (summaryResult.success && summaryResult.data) {
+      // Garmin Wellness API may return an array or a single object
+      const summary = Array.isArray(summaryResult.data)
+        ? summaryResult.data[0]
+        : summaryResult.data;
+
+      if (summary) {
+        const steps = summary.steps ?? summary.totalSteps ?? null;
+        const activeCalories = summary.activeKilocalories ?? summary.activeCalories ?? null;
+        const stressScore = summary.averageStressLevel ?? summary.stressLevel ?? null;
+
+        const parts = [];
+        if (steps !== null && steps > 0) parts.push(`${steps.toLocaleString()} steps`);
+        if (activeCalories !== null && activeCalories > 0) parts.push(`${activeCalories} active calories`);
+        if (stressScore !== null && stressScore > 0) {
+          const stressLabel = stressScore < 26 ? 'low stress' : stressScore < 51 ? 'moderate stress' : stressScore < 76 ? 'high stress' : 'very high stress';
+          parts.push(`stress level ${stressScore} (${stressLabel})`);
+        }
+
+        if (parts.length > 0) {
+          observations.push({
+            content: `Garmin daily summary: ${parts.join(', ')}`,
+            contentType: 'daily_summary',
+          });
+        }
+      }
+    }
+  } catch (e) {
+    console.warn('[ObservationIngestion] Garmin daily summary error:', e.message);
+  }
+
+  // ── 2. Sleep data ─────────────────────────────────────────────────────────
+  try {
+    const sleepResult = await nangoService.garmin.getSleepData(userId);
+    if (sleepResult.success && sleepResult.data) {
+      const sleepRecord = Array.isArray(sleepResult.data)
+        ? sleepResult.data[0]
+        : sleepResult.data;
+
+      if (sleepRecord) {
+        // Duration in seconds is common in Garmin responses
+        const durationSec = sleepRecord.sleepTimeSeconds ?? sleepRecord.durationInSeconds ?? null;
+        const sleepScore = sleepRecord.overallSleepScore ?? sleepRecord.sleepScore ?? null;
+
+        if (durationSec !== null && durationSec > 0) {
+          const hours = durationSec / 3600;
+          const sleepLabel = hours >= 7.5 ? 'well-rested' : hours >= 6 ? 'moderate sleep' : 'under-slept';
+          let obs = `Garmin sleep: ${hours.toFixed(1)} hours (${sleepLabel})`;
+          if (sleepScore !== null && sleepScore > 0) obs += ` — sleep score ${sleepScore}`;
+          observations.push({ content: obs, contentType: 'daily_summary' });
+        }
+      }
+    }
+  } catch (e) {
+    console.warn('[ObservationIngestion] Garmin sleep error:', e.message);
+  }
+
+  // ── 3. Recent activities ──────────────────────────────────────────────────
+  try {
+    const activitiesResult = await nangoService.garmin.getActivities(userId);
+    if (activitiesResult.success) {
+      const activities = Array.isArray(activitiesResult.data)
+        ? activitiesResult.data
+        : (activitiesResult.data?.activityList || []);
+
+      if (activities.length > 0) {
+        const typeCounts = {};
+        for (const act of activities.slice(0, 10)) {
+          const type = sanitizeExternal(act.activityType?.typeKey || act.activityTypePK || act.activityType || 'unknown', 30);
+          const normalType = type.replace(/_/g, ' ').toLowerCase();
+          if (normalType) typeCounts[normalType] = (typeCounts[normalType] || 0) + 1;
+        }
+        const typeEntries = Object.entries(typeCounts).sort((a, b) => b[1] - a[1]);
+        if (typeEntries.length > 0) {
+          const typeStr = typeEntries.map(([t, c]) => `${c}x ${t}`).join(', ');
+          observations.push({
+            content: `Recent Garmin activities: ${typeStr}`,
+            contentType: 'weekly_summary',
+          });
+        }
+      }
+    }
+  } catch (e) {
+    console.warn('[ObservationIngestion] Garmin activities error:', e.message);
+  }
+
+  return observations;
+}
+
+// ====================================================================
+// Fitbit (Nango-managed)
+// ====================================================================
+
+/**
+ * Fetch Fitbit daily health data as natural-language observations.
+ *
+ * Signals emitted:
+ *  1. Today's activity summary: steps, calories, distance, active minutes
+ *  2. Sleep: duration and efficiency score
+ *  3. Resting heart rate
+ */
+async function fetchFitbitObservations(userId) {
+  const observations = [];
+
+  const supabase = await getSupabase();
+  if (!supabase) return observations;
+
+  const isNangoManaged = await _hasNangoMapping(supabase, userId, 'fitbit');
+  if (!isNangoManaged) {
+    console.warn('[ObservationIngestion] Fitbit: no Nango connection for user', userId);
+    return observations;
+  }
+
+  let nangoService;
+  try {
+    nangoService = await import('./nangoService.js');
+  } catch (e) {
+    console.warn('[ObservationIngestion] Fitbit: nangoService import failed:', e.message);
+    return observations;
+  }
+
+  // ── 1. Today's activity summary ───────────────────────────────────────────
+  try {
+    const activityResult = await nangoService.fitbit.getActivities(userId, 'today');
+    if (activityResult.success && activityResult.data?.summary) {
+      const summary = activityResult.data.summary;
+      const steps = summary.steps ?? null;
+      const calories = summary.caloriesOut ?? null;
+      const distanceKm = summary.distances?.find(d => d.activity === 'total')?.distance ?? null;
+      const activeMins = (summary.fairlyActiveMinutes ?? 0) + (summary.veryActiveMinutes ?? 0);
+
+      const parts = [];
+      if (steps !== null && steps > 0) parts.push(`${steps.toLocaleString()} steps`);
+      if (calories !== null && calories > 0) parts.push(`${calories} calories burned`);
+      if (distanceKm !== null && distanceKm > 0) parts.push(`${distanceKm.toFixed(2)} km`);
+      if (activeMins > 0) parts.push(`${activeMins} active minutes`);
+
+      if (parts.length > 0) {
+        observations.push({
+          content: `Fitbit today: ${parts.join(', ')}`,
+          contentType: 'daily_summary',
+        });
+      }
+    }
+  } catch (e) {
+    console.warn('[ObservationIngestion] Fitbit activity error:', e.message);
+  }
+
+  // ── 2. Sleep ──────────────────────────────────────────────────────────────
+  try {
+    const sleepResult = await nangoService.fitbit.getSleep(userId, 'today');
+    if (sleepResult.success && sleepResult.data?.summary) {
+      const summary = sleepResult.data.summary;
+      const totalMinutes = summary.totalMinutesAsleep ?? null;
+      const efficiency = sleepResult.data?.sleep?.[0]?.efficiency ?? null;
+
+      if (totalMinutes !== null && totalMinutes > 0) {
+        const hours = totalMinutes / 60;
+        const sleepLabel = hours >= 7.5 ? 'well-rested' : hours >= 6 ? 'moderate sleep' : 'under-slept';
+        let obs = `Fitbit sleep: ${hours.toFixed(1)} hours (${sleepLabel})`;
+        if (efficiency !== null && efficiency > 0) obs += ` — efficiency ${efficiency}%`;
+        observations.push({ content: obs, contentType: 'daily_summary' });
+      }
+    }
+  } catch (e) {
+    console.warn('[ObservationIngestion] Fitbit sleep error:', e.message);
+  }
+
+  // ── 3. Resting heart rate ─────────────────────────────────────────────────
+  try {
+    const hrResult = await nangoService.fitbit.getHeartRate(userId, 'today');
+    if (hrResult.success && hrResult.data) {
+      // Fitbit heart rate response: activities-heart[0].value.restingHeartRate
+      const hrData = hrResult.data['activities-heart'];
+      const restingHR = Array.isArray(hrData)
+        ? hrData[0]?.value?.restingHeartRate ?? null
+        : null;
+
+      if (restingHR !== null && restingHR > 0) {
+        const hrLabel = restingHR < 60 ? 'athlete-level' : restingHR < 70 ? 'excellent' : restingHR < 80 ? 'good' : restingHR < 90 ? 'average' : 'elevated';
+        observations.push({
+          content: `Fitbit resting heart rate: ${restingHR} bpm (${hrLabel})`,
+          contentType: 'daily_summary',
+        });
+      }
+    }
+  } catch (e) {
+    console.warn('[ObservationIngestion] Fitbit heart rate error:', e.message);
+  }
+
+  return observations;
+}
+
 /**
  * Check if a user has a Nango-managed connection for a given platform.
  * Used as fallback when platform_connections row is missing.
@@ -1486,6 +1933,18 @@ async function runObservationIngestion() {
               case 'google_gmail':
                 observations = await fetchGmailObservations(userId);
                 break;
+              case 'outlook':
+                observations = await fetchOutlookObservations(userId);
+                break;
+              case 'strava':
+                observations = await fetchStravaObservations(userId);
+                break;
+              case 'garmin':
+                observations = await fetchGarminObservations(userId);
+                break;
+              case 'fitbit':
+                observations = await fetchFitbitObservations(userId);
+                break;
             }
 
             // Batch de-duplication: pre-fetch recent memories once per platform
@@ -1780,6 +2239,18 @@ async function runPostOnboardingIngestion(userId) {
           case 'google_gmail':
             observations = await fetchGmailObservations(userId);
             break;
+          case 'outlook':
+            observations = await fetchOutlookObservations(userId);
+            break;
+          case 'strava':
+            observations = await fetchStravaObservations(userId);
+            break;
+          case 'garmin':
+            observations = await fetchGarminObservations(userId);
+            break;
+          case 'fitbit':
+            observations = await fetchFitbitObservations(userId);
+            break;
         }
 
         for (const obs of observations) {
@@ -1961,5 +2432,9 @@ export {
   fetchRedditObservations,
   fetchGitHubObservations,
   fetchGmailObservations,
+  fetchOutlookObservations,
+  fetchStravaObservations,
+  fetchGarminObservations,
+  fetchFitbitObservations,
   runPostOnboardingIngestion,
 };
