@@ -190,7 +190,7 @@ app.use((req, res, next) => {
 app.use('/api/billing', billingRoutes);
 
 // Parse JSON bodies
-app.use(express.json({ limit: '10mb' }));
+app.use(express.json({ limit: '100kb' }));
 
 // Content-Type validation (exclude auth routes)
 app.use((req, res, next) => {
