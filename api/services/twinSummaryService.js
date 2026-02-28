@@ -88,13 +88,38 @@ async function generateTwinSummary(userId, userName = 'This person') {
   ]);
 
   // Summarize each domain in parallel
-  const [personality, lifestyle, culturalIdentity, socialDynamics, motivation] = await Promise.all([
+  const [personality, lifestyle, culturalIdentity, socialDynamicsRaw, motivation] = await Promise.all([
     summarizeMemories(personalityMemories, 'emotional patterns and personality', userName),
     summarizeMemories(lifestyleMemories, 'daily rhythms and lifestyle patterns', userName),
     summarizeMemories(culturalMemories, 'cultural identity and aesthetic preferences', userName),
     summarizeMemories(socialMemories, 'social dynamics and communication style', userName),
     summarizeMemories(motivationMemories, 'motivations and work patterns', userName),
   ]);
+
+  // Social dynamics fallback: if primary retrieval returned no usable summary,
+  // query memories tagged with the social_dynamics or social_analyst expert directly.
+  let socialDynamics = socialDynamicsRaw;
+  if (!socialDynamics || socialDynamics.length < 40) {
+    try {
+      // Supabase JS supports .or() with JSONB path filters via PostgREST syntax
+      const { data: expertSocialRaw } = await supabaseAdmin
+        .from('user_memories')
+        .select('content')
+        .eq('user_id', userId)
+        .eq('memory_type', 'reflection')
+        .or('metadata->>expert.eq.social_dynamics,metadata->>expert.eq.social_analyst')
+        .order('created_at', { ascending: false })
+        .limit(3);
+
+      if (expertSocialRaw && expertSocialRaw.length > 0) {
+        const fallbackMemories = expertSocialRaw.map(r => ({ content: r.content }));
+        socialDynamics = await summarizeMemories(fallbackMemories, 'social dynamics and communication style', userName);
+        console.log(`[TwinSummary] socialDynamics fallback from expert memories (${expertSocialRaw.length} found)`);
+      }
+    } catch (sdErr) {
+      console.warn('[TwinSummary] socialDynamics expert fallback failed (non-fatal):', sdErr.message);
+    }
+  }
 
   // Fallback for empty/thin domains: pull from soul_signature_profile
   let filledCulturalIdentity = culturalIdentity;
