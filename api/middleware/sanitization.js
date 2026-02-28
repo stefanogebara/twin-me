@@ -87,44 +87,6 @@ function sanitizeValue(value, options = {}) {
   return value.trim();
 }
 
-// Strict sanitization for critical fields (like database queries)
-const strictSanitize = (req, res, next) => {
-  try {
-    // Apply extra strict rules for database-related endpoints
-    if (req.body) {
-      // Remove any potential SQL keywords from user input
-      const sqlKeywords = /\b(SELECT|INSERT|UPDATE|DELETE|DROP|CREATE|ALTER|EXEC|UNION|SCRIPT|JAVASCRIPT|VBSCRIPT|ONLOAD|ONERROR)\b/gi;
-
-      const sanitizeStrict = (obj) => {
-        if (typeof obj === 'string') {
-          return obj.replace(sqlKeywords, '').replace(/[<>'"]/g, '');
-        }
-        if (Array.isArray(obj)) {
-          return obj.map(sanitizeStrict);
-        }
-        if (obj && typeof obj === 'object') {
-          const result = {};
-          for (const [key, value] of Object.entries(obj)) {
-            result[key] = sanitizeStrict(value);
-          }
-          return result;
-        }
-        return obj;
-      };
-
-      req.body = sanitizeStrict(req.body);
-    }
-
-    next();
-  } catch (error) {
-    console.error('Strict sanitization error:', error);
-    return res.status(400).json({
-      error: 'Input validation failed',
-      message: 'Contains prohibited content'
-    });
-  }
-};
-
 // Rate limiting per endpoint type
 const endpointRateLimit = (maxRequests, windowMs, errorMessage) => {
   const requests = new Map();
@@ -199,7 +161,6 @@ const validateContentType = (allowedTypes = ['application/json']) => {
 
 export {
   sanitizeInput,
-  strictSanitize,
   endpointRateLimit,
   validateContentType
 };
