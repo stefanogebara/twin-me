@@ -339,6 +339,47 @@ Return observations numbered 1., 2., 3. on separate lines. Nothing else.`
 ];
 
 // ====================================================================
+// Personality Trend
+// ====================================================================
+
+/**
+ * Fetch recent personality score snapshots and detect meaningful trait shifts.
+ * Returns a string like "openness increased by 8% over 3 reflection cycles" or null.
+ *
+ * Note: personality_score_snapshots stores individual trait columns, not a big_five JSONB.
+ */
+async function getPersonalityTrend(userId) {
+  try {
+    const { data } = await supabaseAdmin
+      .from('personality_score_snapshots')
+      .select('openness, conscientiousness, extraversion, agreeableness, neuroticism, memory_count, created_at')
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false })
+      .limit(3);
+
+    if (!data || data.length < 2) return null;
+
+    const latest = data[0];
+    const older = data[data.length - 1];
+    const changes = [];
+
+    for (const trait of ['openness', 'conscientiousness', 'extraversion', 'agreeableness', 'neuroticism']) {
+      if (latest[trait] != null && older[trait] != null) {
+        const delta = latest[trait] - older[trait];
+        if (Math.abs(delta) > 5) {
+          changes.push(`${trait} ${delta > 0 ? 'increased' : 'decreased'} by ${Math.abs(delta).toFixed(0)}% over ${data.length} reflection cycles`);
+        }
+      }
+    }
+
+    return changes.length > 0 ? `Recent personality shifts: ${changes.join('; ')}` : null;
+  } catch (err) {
+    console.warn('[Reflection] getPersonalityTrend failed (non-fatal):', err.message);
+    return null;
+  }
+}
+
+// ====================================================================
 // Core Expert Reflection Pipeline
 // ====================================================================
 
@@ -492,12 +533,28 @@ async function generateReflections(userId, depth = 0) {
       console.warn('[Reflection] Identity context fetch failed (non-fatal):', idErr.message);
     }
 
-    // Step 3: Run all experts in parallel (with identity context injected)
+    // Step 3: Fetch personality trend (non-blocking, injected as context for experts)
+    let personalityTrend = null;
+    try {
+      personalityTrend = await getPersonalityTrend(userId);
+      if (personalityTrend) {
+        console.log(`[Reflection] Personality trend: ${personalityTrend}`);
+      }
+    } catch (trendErr) {
+      console.warn('[Reflection] Personality trend fetch failed (non-fatal):', trendErr.message);
+    }
+
+    // Append personality trend to the shared observations block so all experts see it
+    const observationsWithTrend = personalityTrend
+      ? `${formattedObservations}\n\n[PERSONALITY TREND]: ${personalityTrend}`
+      : formattedObservations;
+
+    // Step 4: Run all experts in parallel (with identity context injected)
     console.log(`[Reflection] Running ${EXPERT_PERSONAS.length} expert analyses in parallel...`);
 
     const expertSettled = await Promise.allSettled(
       EXPERT_PERSONAS.map(expert =>
-        runExpertAnalysis(userId, expert, formattedObservations, depth, identityContext)
+        runExpertAnalysis(userId, expert, observationsWithTrend, depth, identityContext)
       )
     );
 
