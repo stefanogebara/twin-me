@@ -119,6 +119,15 @@ const REFRESH_CONFIGS = {
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
     buildBody: (clientId, clientSecret, refreshToken) =>
       `grant_type=refresh_token&refresh_token=${refreshToken}&client_id=${clientId}&client_secret=${clientSecret}`
+  },
+
+  // Twitch
+  twitch: {
+    tokenEndpoint: 'https://id.twitch.tv/oauth2/token',
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    buildBody: (clientId, clientSecret, refreshToken) =>
+      `grant_type=refresh_token&refresh_token=${refreshToken}&client_id=${clientId}&client_secret=${clientSecret}`
   }
 };
 
@@ -165,6 +174,10 @@ const CLIENT_CREDENTIALS = {
   oura: {
     clientId: process.env.OURA_CLIENT_ID,
     clientSecret: process.env.OURA_CLIENT_SECRET
+  },
+  twitch: {
+    clientId: process.env.TWITCH_CLIENT_ID,
+    clientSecret: process.env.TWITCH_CLIENT_SECRET
   }
 };
 

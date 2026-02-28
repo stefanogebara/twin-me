@@ -1905,7 +1905,7 @@ async function _hasNangoMapping(supabase, userId, platform) {
     .select('id')
     .eq('user_id', userId)
     .eq('platform', platform)
-    .eq('status', 'connected')
+    .eq('status', 'active')
     .single();
   return !!data;
 }
@@ -2757,9 +2757,10 @@ async function runObservationIngestion() {
 
             // Batch de-duplication: pre-fetch recent memories once per platform
             // instead of one DB query per observation (N+1 fix).
-            // Use the longest dedup window (weekly_summary = 7 days) to be conservative.
-            const maxWindowMs = Math.max(...Object.values(DEDUP_WINDOWS_MS));
-            const batchCutoff = new Date(Date.now() - maxWindowMs).toISOString();
+            // Use a 24-hour window for the pre-fetch (covers current_state and daily_summary).
+            // weekly_summary observations fall back to isDuplicate() per-call below.
+            const batchWindowMs = DEDUP_WINDOWS_MS.daily_summary; // 24 hours
+            const batchCutoff = new Date(Date.now() - batchWindowMs).toISOString();
             const dedupSupabase = await getSupabase();
             const existingHashes = new Set();
             if (dedupSupabase) {
@@ -2769,7 +2770,7 @@ async function runObservationIngestion() {
                 .eq('user_id', userId)
                 .eq('memory_type', 'platform_data')
                 .gte('created_at', batchCutoff)
-                .limit(200);
+                .limit(1000);
               for (const mem of (recentMems || [])) {
                 existingHashes.add(contentHash(platform, mem.content || ''));
               }
@@ -2791,6 +2792,13 @@ async function runObservationIngestion() {
               const hash = contentHash(platform, content);
               if (existingHashes.has(hash)) {
                 continue;
+              }
+
+              // For weekly_summary observations the 24h batch window above is too short —
+              // fall back to a targeted DB check using the full 7-day window.
+              if (contentType === 'weekly_summary') {
+                const dup = await isDuplicate(userId, platform, content, contentType);
+                if (dup) continue;
               }
 
               const result = await addPlatformObservation(userId, content, platform, {
