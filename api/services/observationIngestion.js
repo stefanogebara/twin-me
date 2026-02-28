@@ -41,7 +41,7 @@ async function getSupabase() {
 }
 
 // Platforms we know how to ingest
-const SUPPORTED_PLATFORMS = ['spotify', 'google_calendar', 'youtube', 'discord', 'linkedin', 'reddit', 'whoop', 'github', 'google_gmail', 'outlook', 'strava', 'garmin', 'fitbit', 'twitch'];
+const SUPPORTED_PLATFORMS = ['spotify', 'google_calendar', 'youtube', 'discord', 'linkedin', 'reddit', 'whoop', 'github', 'google_gmail', 'outlook', 'strava', 'garmin', 'fitbit', 'twitch', 'oura'];
 
 // ====================================================================
 // Prompt injection defense
@@ -1735,6 +1735,166 @@ async function fetchTwitchObservations(userId) {
   return observations;
 }
 
+async function fetchOuraObservations(userId) {
+  const observations = [];
+
+  const supabase = await getSupabase();
+  if (!supabase) return observations;
+
+  const hasConnection = await _hasNangoMapping(supabase, userId, 'oura');
+  if (!hasConnection) {
+    console.warn('[ObservationIngestion] Oura: no Nango connection for user', userId);
+    return observations;
+  }
+
+  let nangoService;
+  try {
+    nangoService = await import('./nangoService.js');
+  } catch (e) {
+    console.warn('[ObservationIngestion] Oura: failed to load nangoService:', e.message);
+    return observations;
+  }
+
+  // Date range: last 14 days
+  const endDate = new Date().toISOString().split('T')[0];
+  const startDate = new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+
+  // ── 1. Daily readiness → readiness score trend ───────────────────────────
+  try {
+    const readinessResult = await nangoService.oura.getDailyReadiness(userId, startDate, endDate);
+    const entries = readinessResult.success ? (readinessResult.data?.data || []) : [];
+    if (entries.length >= 3) {
+      const scores = entries.map(e => e.score).filter(s => typeof s === 'number');
+      if (scores.length > 0) {
+        const avg = Math.round(scores.reduce((a, b) => a + b, 0) / scores.length);
+        const trend = scores.length >= 5
+          ? (scores.slice(-3).reduce((a, b) => a + b, 0) / 3 > scores.slice(0, 3).reduce((a, b) => a + b, 0) / 3 ? 'improving' : 'declining')
+          : 'stable';
+        observations.push({
+          content: `Oura readiness score averages ${avg}/100 over the past 2 weeks (${trend} trend)`,
+          contentType: 'weekly_summary',
+        });
+      }
+    }
+  } catch (e) {
+    console.warn('[ObservationIngestion] Oura readiness error:', e.message);
+  }
+
+  // ── 2. Daily stress → stress pattern / chronotype signals ────────────────
+  try {
+    const stressResult = await nangoService.oura.getDailyStress(userId, startDate, endDate);
+    const entries = stressResult.success ? (stressResult.data?.data || []) : [];
+    if (entries.length >= 3) {
+      const labels = entries.map(e => e.stress_high).filter(s => typeof s === 'string');
+      const counts = labels.reduce((acc, l) => { acc[l] = (acc[l] || 0) + 1; return acc; }, {});
+      const dominant = Object.entries(counts).sort((a, b) => b[1] - a[1])[0];
+      if (dominant) {
+        const labelMap = { restored: 'low-stress / well-recovered', normal: 'moderate-stress', stressful: 'high-stress' };
+        observations.push({
+          content: `Oura stress pattern shows mostly ${labelMap[dominant[0]] || dominant[0]} days recently`,
+          contentType: 'weekly_summary',
+        });
+      }
+    }
+  } catch (e) {
+    console.warn('[ObservationIngestion] Oura stress error:', e.message);
+  }
+
+  // ── 3. Daily resilience → long-term trend ────────────────────────────────
+  try {
+    const resilResult = await nangoService.oura.getDailyResilience(userId, startDate, endDate);
+    const entries = resilResult.success ? (resilResult.data?.data || []) : [];
+    if (entries.length >= 3) {
+      const levels = entries.map(e => e.level).filter(Boolean);
+      const levelOrder = { exceptional: 5, strong: 4, adequate: 3, limited: 2, poor: 1 };
+      const avgLevel = levels.reduce((a, l) => a + (levelOrder[l] || 3), 0) / levels.length;
+      const label = avgLevel >= 4.5 ? 'exceptional' : avgLevel >= 3.5 ? 'strong' : avgLevel >= 2.5 ? 'adequate' : 'limited';
+      observations.push({
+        content: `Oura resilience level is ${label} — reflects ability to recover from physical and mental stress`,
+        contentType: 'weekly_summary',
+      });
+    }
+  } catch (e) {
+    console.warn('[ObservationIngestion] Oura resilience error:', e.message);
+  }
+
+  // ── 4. Sleep time → chronotype (bedtime/wake midpoint) ───────────────────
+  try {
+    const sleepTimeResult = await nangoService.oura.getSleepTime(userId, startDate, endDate);
+    const entries = sleepTimeResult.success ? (sleepTimeResult.data?.data || []) : [];
+    if (entries.length >= 3) {
+      // sleep_time has optimal_bedtime: { start, end } in seconds past midnight
+      const bedtimes = entries
+        .map(e => e.optimal_bedtime?.start)
+        .filter(s => typeof s === 'number');
+      if (bedtimes.length > 0) {
+        const avgSecs = bedtimes.reduce((a, b) => a + b, 0) / bedtimes.length;
+        // Seconds can be negative (before midnight) - normalize to 0-86400
+        const normalizedSecs = ((avgSecs % 86400) + 86400) % 86400;
+        const hour = Math.floor(normalizedSecs / 3600);
+        const chronotype = hour >= 22 || hour < 1 ? 'evening type (10pm–1am)' : hour >= 19 ? 'moderate evening type (7–10pm)' : hour < 5 ? 'night owl (after 1am)' : 'morning type';
+        observations.push({
+          content: `Oura chronotype: ${chronotype} — natural sleep window centers around ${hour}:00`,
+          contentType: 'weekly_summary',
+        });
+      }
+    }
+  } catch (e) {
+    console.warn('[ObservationIngestion] Oura sleep time error:', e.message);
+  }
+
+  // ── 5. Workouts → type + time-of-day preference ──────────────────────────
+  try {
+    const workoutResult = await nangoService.oura.getWorkouts(userId, startDate, endDate);
+    const workouts = workoutResult.success ? (workoutResult.data?.data || []) : [];
+    if (workouts.length > 0) {
+      // Count workout types
+      const typeCounts = workouts.reduce((acc, w) => {
+        const t = sanitizeExternal(w.activity || 'unknown', 40);
+        acc[t] = (acc[t] || 0) + 1;
+        return acc;
+      }, {});
+      const topTypes = Object.entries(typeCounts).sort((a, b) => b[1] - a[1]).slice(0, 3).map(([t]) => t);
+
+      // Time-of-day from workout start time
+      const hours = workouts
+        .map(w => w.start_datetime ? new Date(w.start_datetime).getUTCHours() : null)
+        .filter(h => h !== null);
+      const amCount = hours.filter(h => h >= 5 && h < 12).length;
+      const pmCount = hours.filter(h => h >= 12 && h < 20).length;
+      const timeLabel = amCount > pmCount ? 'morning' : pmCount > amCount ? 'afternoon/evening' : 'mixed timing';
+
+      observations.push({
+        content: `Oura tracked ${workouts.length} workout(s) in the past 2 weeks: ${topTypes.join(', ')} — mostly ${timeLabel}`,
+        contentType: 'weekly_summary',
+      });
+    }
+  } catch (e) {
+    console.warn('[ObservationIngestion] Oura workouts error:', e.message);
+  }
+
+  // ── 6. Enhanced tags → user self-annotations ─────────────────────────────
+  try {
+    const tagsResult = await nangoService.oura.getEnhancedTags(userId, startDate, endDate);
+    const tags = tagsResult.success ? (tagsResult.data?.data || []) : [];
+    if (tags.length > 0) {
+      const tagNames = tags
+        .map(t => sanitizeExternal(t.tag_type_code || t.custom_name || '', 40))
+        .filter(Boolean);
+      const counts = tagNames.reduce((acc, t) => { acc[t] = (acc[t] || 0) + 1; return acc; }, {});
+      const topTags = Object.entries(counts).sort((a, b) => b[1] - a[1]).slice(0, 4).map(([t]) => t);
+      observations.push({
+        content: `Oura self-tagged events recently: ${topTags.join(', ')} — reflects intentional lifestyle tracking`,
+        contentType: 'weekly_summary',
+      });
+    }
+  } catch (e) {
+    console.warn('[ObservationIngestion] Oura enhanced tags error:', e.message);
+  }
+
+  return observations;
+}
+
 /**
  * Check if a user has a Nango-managed connection for a given platform.
  * Used as fallback when platform_connections row is missing.
@@ -2590,6 +2750,9 @@ async function runObservationIngestion() {
               case 'twitch':
                 observations = await fetchTwitchObservations(userId);
                 break;
+              case 'oura':
+                observations = await fetchOuraObservations(userId);
+                break;
             }
 
             // Batch de-duplication: pre-fetch recent memories once per platform
@@ -2899,6 +3062,9 @@ async function runPostOnboardingIngestion(userId) {
           case 'twitch':
             observations = await fetchTwitchObservations(userId);
             break;
+          case 'oura':
+            observations = await fetchOuraObservations(userId);
+            break;
         }
 
         for (const obs of observations) {
@@ -3085,5 +3251,6 @@ export {
   fetchGarminObservations,
   fetchFitbitObservations,
   fetchTwitchObservations,
+  fetchOuraObservations,
   runPostOnboardingIngestion,
 };

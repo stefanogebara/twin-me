@@ -284,6 +284,23 @@ export const PLATFORM_CONFIGS = {
       weight: '/1/user/-/body/log/weight/date/today.json'
     },
     soulDataPoints: ['daily_activity', 'sleep_quality', 'heart_health', 'weight_trends']
+  },
+
+  oura: {
+    providerConfigKey: 'oura',
+    name: 'Oura Ring',
+    category: 'health',
+    baseUrl: 'https://api.ouraring.com/v2',
+    endpoints: {
+      dailyReadiness: '/usercollection/daily_readiness',
+      dailySleep: '/usercollection/daily_sleep',
+      dailyStress: '/usercollection/daily_stress',
+      dailyResilience: '/usercollection/daily_resilience',
+      workouts: '/usercollection/workout',
+      enhancedTags: '/usercollection/enhanced_tag',
+      sleepTime: '/usercollection/sleep_time'
+    },
+    soulDataPoints: ['chronotype', 'stress_pattern', 'resilience_trend', 'workout_timing', 'self_annotations']
   }
 };
 
@@ -838,6 +855,23 @@ export const fitbit = {
   getHeartRate: (userId, date = 'today') => proxyRequest(userId, 'fitbit', `/1/user/-/activities/heart/date/${date}/1d.json`)
 };
 
+export const oura = {
+  getDailyReadiness: (userId, startDate, endDate) =>
+    proxyRequest(userId, 'oura', `/usercollection/daily_readiness?start_date=${startDate}&end_date=${endDate}`),
+  getDailyStress: (userId, startDate, endDate) =>
+    proxyRequest(userId, 'oura', `/usercollection/daily_stress?start_date=${startDate}&end_date=${endDate}`),
+  getDailyResilience: (userId, startDate, endDate) =>
+    proxyRequest(userId, 'oura', `/usercollection/daily_resilience?start_date=${startDate}&end_date=${endDate}`),
+  getSleep: (userId, startDate, endDate) =>
+    proxyRequest(userId, 'oura', `/usercollection/daily_sleep?start_date=${startDate}&end_date=${endDate}`),
+  getSleepTime: (userId, startDate, endDate) =>
+    proxyRequest(userId, 'oura', `/usercollection/sleep_time?start_date=${startDate}&end_date=${endDate}`),
+  getWorkouts: (userId, startDate, endDate) =>
+    proxyRequest(userId, 'oura', `/usercollection/workout?start_date=${startDate}&end_date=${endDate}`),
+  getEnhancedTags: (userId, startDate, endDate) =>
+    proxyRequest(userId, 'oura', `/usercollection/enhanced_tag?start_date=${startDate}&end_date=${endDate}`)
+};
+
 export default {
   createConnectSession,
   getConnection,
@@ -862,5 +896,6 @@ export default {
   outlook,
   garmin,
   strava,
-  fitbit
+  fitbit,
+  oura
 };
