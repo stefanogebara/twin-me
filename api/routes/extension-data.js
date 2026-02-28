@@ -139,7 +139,7 @@ router.post('/batch', authenticateUser, async (req, res) => {
       return {
         user_id: userId,
         platform: eventPlatform,
-        data_type: mapEventType(event.data_type || event.eventType || 'capture', eventPlatform),
+        data_type: event.data_type || mapEventType(event.eventType || 'capture', eventPlatform),
         raw_data: event.raw_data || event,
         extracted_at: event.timestamp || new Date().toISOString()
       };
