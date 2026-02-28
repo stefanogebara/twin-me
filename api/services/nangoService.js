@@ -353,6 +353,7 @@ export async function createConnectSession(userId, userEmail, options = {}) {
  */
 export async function getConnection(userId, platform) {
   try {
+    requireNango();
     const config = PLATFORM_CONFIGS[platform];
     if (!config) {
       return { success: false, error: `Unknown platform: ${platform}` };
@@ -388,6 +389,7 @@ export async function getConnection(userId, platform) {
  */
 export async function getAccessToken(userId, platform) {
   try {
+    requireNango();
     const config = PLATFORM_CONFIGS[platform];
     if (!config) {
       return { success: false, error: `Unknown platform: ${platform}` };
@@ -430,6 +432,7 @@ export async function getAllConnections(userId) {
  */
 export async function deleteConnection(userId, platform) {
   try {
+    requireNango();
     const config = PLATFORM_CONFIGS[platform];
     if (!config) {
       return { success: false, error: `Unknown platform: ${platform}` };
@@ -454,6 +457,7 @@ export async function deleteConnection(userId, platform) {
  * @param {object} options - Optional: method, params, data, headers, connectionId, baseUrl (overrides)
  */
 export async function proxyRequest(userId, platform, endpoint, options = {}) {
+  requireNango();
   const config = PLATFORM_CONFIGS[platform];
 
   // Allow custom provider keys not in PLATFORM_CONFIGS (for legacy connections)
