@@ -83,7 +83,7 @@ router.post('/capture/:platform', authenticateUser, async (req, res) => {
       });
     }
 
-    const dataType = mapEventType(capturedData.eventType || 'capture', platform);
+    const dataType = mapEventType(capturedData.data_type || capturedData.eventType || 'capture', platform);
 
     const { data, error } = await supabaseAdmin
       .from('user_platform_data')
@@ -109,7 +109,7 @@ router.post('/capture/:platform', authenticateUser, async (req, res) => {
       id: data.id,
       platform,
       dataType,
-      eventType: capturedData.eventType || 'capture'
+      dataType: capturedData.data_type || capturedData.eventType || 'capture'
     });
 
   } catch (error) {
