@@ -111,6 +111,34 @@ const TalkToTwin = () => {
     }
   }, [isSignedIn, navigate]);
 
+  const [interviewChecked, setInterviewChecked] = useState(false);
+
+  useEffect(() => {
+    const checkInterview = async () => {
+      try {
+        const token = localStorage.getItem('auth_token');
+        if (!token) { setInterviewChecked(true); return; }
+        const payload = JSON.parse(atob(token.split('.')[1]));
+        const userId = payload.id || payload.userId;
+        if (!userId) { setInterviewChecked(true); return; }
+        const res = await fetch(`${API_BASE}/onboarding/calibration-data/${userId}`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (res.ok) {
+          const { data } = await res.json();
+          // Only block if interview was STARTED but not finished.
+          // data === null means existing user who never started → don't block.
+          if (data && !data.completed_at) {
+            navigate('/interview');
+            return;
+          }
+        }
+      } catch { /* Non-fatal — don't block on error */ }
+      setInterviewChecked(true);
+    };
+    checkInterview();
+  }, []);
+
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
@@ -376,6 +404,14 @@ const TalkToTwin = () => {
       hour12: true
     }).format(date);
   };
+
+  if (!interviewChecked) {
+    return (
+      <div className="flex h-screen items-center justify-center" style={{ backgroundColor: '#fcf6ef' }}>
+        <div className="w-5 h-5 border-2 border-current border-t-transparent rounded-full animate-spin opacity-30" />
+      </div>
+    );
+  }
 
   return (
     <div
