@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { PageLayout } from '../components/layout/PageLayout';
-import { RefreshCw, AlertCircle, Share2, Link, Check, Download } from 'lucide-react';
+import { RefreshCw, AlertCircle, Share2, Link, Check, Download, User2, Sun, Music, Users, Zap, ChevronDown } from 'lucide-react';
 import { useTwinPortrait } from '../hooks/useTwinPortrait';
 import { ThemeColors } from './components/soul-signature/types';
 import { BigFivePanel } from './components/soul-signature/BigFivePanel';
@@ -14,12 +14,18 @@ import { motion } from 'framer-motion';
 // Whitelist for stats — filters out unknown/internal platform entries
 const STATS_PLATFORM_WHITELIST = ['spotify', 'google_calendar', 'youtube', 'discord', 'linkedin', 'whoop', 'github', 'reddit'];
 
-const DOMAIN_CONFIG: Record<string, { label: string; number: string; flower: string; flowerRight: boolean }> = {
-  personality:      { label: 'Personality',       number: '01', flower: '/images/backgrounds/flower-card-2.jpg', flowerRight: true  },
-  lifestyle:        { label: 'Lifestyle',          number: '02', flower: '/images/backgrounds/flower-card-5.jpg', flowerRight: false },
-  culturalIdentity: { label: 'Cultural Identity',  number: '03', flower: '/images/backgrounds/flower-card-3.jpg', flowerRight: true  },
-  socialDynamics:   { label: 'Social Dynamics',    number: '04', flower: '/images/backgrounds/flower-card-6.jpg', flowerRight: false },
-  motivation:       { label: 'Motivation',         number: '05', flower: '/images/backgrounds/flower-card-7.jpg', flowerRight: true  },
+const DOMAIN_CONFIG: Record<string, {
+  label: string;
+  number: string;
+  Icon: React.ComponentType<{ className?: string; style?: React.CSSProperties }>;
+  color: string;
+  bgColor: string;
+}> = {
+  personality:      { label: 'Personality',      number: '01', Icon: User2, color: '#6366F1', bgColor: 'rgba(99, 102, 241, 0.10)' },
+  lifestyle:        { label: 'Lifestyle',         number: '02', Icon: Sun,   color: '#C4A265', bgColor: 'rgba(196, 162, 101, 0.12)' },
+  culturalIdentity: { label: 'Cultural Identity', number: '03', Icon: Music, color: '#0D9488', bgColor: 'rgba(13, 148, 136, 0.10)' },
+  socialDynamics:   { label: 'Social Dynamics',   number: '04', Icon: Users, color: '#EC4899', bgColor: 'rgba(236, 72, 153, 0.10)' },
+  motivation:       { label: 'Motivation',        number: '05', Icon: Zap,   color: '#10B981', bgColor: 'rgba(16, 185, 129, 0.10)' },
 };
 
 // ─── DomainSection ────────────────────────────────────────────────────────────
@@ -34,78 +40,83 @@ const DomainSection: React.FC<DomainSectionProps> = ({ domainKey, text }) => {
   const config = DOMAIN_CONFIG[domainKey];
   if (!config) return null;
 
-  // Truncate pull quote at 220 chars on last word boundary
-  const truncateAt = 220;
-  const needsTruncation = text.length > truncateAt;
-  const truncated = needsTruncation
-    ? text.slice(0, truncateAt).replace(/\s+\S*$/, '') + '\u2026'
-    : text;
-  const displayText = expanded ? text : truncated;
+  const { Icon, color, bgColor, label } = config;
 
-  const flowerImg = (
-    <img
-      src={config.flower}
-      alt=""
-      className="w-36 h-44 rounded-2xl object-cover flex-shrink-0 hidden md:block"
-    />
-  );
+  // First sentence as the card preview
+  const dotIdx = text.indexOf('. ');
+  const preview = dotIdx > 20 && dotIdx < 160
+    ? text.slice(0, dotIdx + 1)
+    : text.slice(0, 110) + '\u2026';
 
   return (
-    <div
-      className="py-12"
-      style={{ borderBottom: '1px solid rgba(0,0,0,0.08)' }}
-    >
-      <div className="flex items-start gap-8">
-        {/* Flower — left side */}
-        {!config.flowerRight && flowerImg}
-
-        {/* Content */}
-        <div className="flex-1 min-w-0">
-          {/* Chapter meta */}
-          <div className="flex items-baseline gap-3 mb-3">
-            <span
-              className="font-serif"
-              style={{ fontSize: '13px', color: '#C4A265' }}
-            >
-              {config.number}
-            </span>
-            <span
-              className="text-xs uppercase tracking-widest"
-              style={{ color: '#8A857D' }}
-            >
-              {config.label}
-            </span>
+    <div className="mb-3">
+      <div
+        className="rounded-2xl overflow-hidden transition-shadow duration-200"
+        style={{
+          background: 'rgba(255, 255, 255, 0.60)',
+          border: '1px solid rgba(0, 0, 0, 0.08)',
+          boxShadow: expanded ? '0 4px 24px rgba(0,0,0,0.08)' : '0 2px 8px rgba(0,0,0,0.04)',
+        }}
+      >
+        {/* Header row — always visible, tappable */}
+        <button
+          onClick={() => setExpanded(p => !p)}
+          className="w-full text-left flex items-center gap-4 p-5"
+        >
+          {/* Colored icon */}
+          <div
+            className="flex-shrink-0 w-10 h-10 rounded-xl flex items-center justify-center"
+            style={{ backgroundColor: bgColor }}
+          >
+            <Icon className="w-5 h-5" style={{ color }} />
           </div>
 
-          {/* Pull quote */}
-          <blockquote className="mb-3">
-            <span
-              style={{
-                fontFamily: "'Halant', serif",
-                fontStyle: 'italic',
-                fontSize: '22px',
-                lineHeight: '1.55',
-                color: '#000000',
-              }}
+          {/* Label + one-line preview */}
+          <div className="flex-1 min-w-0">
+            <p
+              className="uppercase tracking-widest mb-0.5"
+              style={{ fontSize: '10px', color, fontFamily: "'Geist', sans-serif", fontWeight: 600 }}
             >
-              &ldquo;{displayText}&rdquo;
-            </span>
-          </blockquote>
-
-          {/* Expand/collapse */}
-          {needsTruncation && (
-            <button
-              onClick={() => setExpanded(prev => !prev)}
-              className="text-sm font-medium transition-opacity hover:opacity-70"
-              style={{ color: '#C4A265' }}
+              {label}
+            </p>
+            <p
+              className="truncate"
+              style={{ fontSize: '13px', color: '#78716c', fontFamily: "'Geist', sans-serif" }}
             >
-              {expanded ? '− Less' : '＋ Read full analysis'}
-            </button>
-          )}
-        </div>
+              {preview}
+            </p>
+          </div>
 
-        {/* Flower — right side */}
-        {config.flowerRight && flowerImg}
+          {/* Chevron */}
+          <ChevronDown
+            className="flex-shrink-0 w-4 h-4 transition-transform duration-200"
+            style={{ color: '#a8a29e', transform: expanded ? 'rotate(180deg)' : 'rotate(0deg)' }}
+          />
+        </button>
+
+        {/* Expanded full text */}
+        {expanded && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.2 }}
+            className="px-5 pb-5"
+          >
+            <div style={{ borderTop: '1px solid rgba(0,0,0,0.06)', paddingTop: '16px' }}>
+              <p
+                style={{
+                  fontFamily: "'Geist', sans-serif",
+                  fontSize: '14px',
+                  fontWeight: 400,
+                  lineHeight: 1.75,
+                  color: '#44403c',
+                }}
+              >
+                {text}
+              </p>
+            </div>
+          </motion.div>
+        )}
       </div>
     </div>
   );
@@ -473,7 +484,15 @@ const SoulSignatureDashboard: React.FC = () => {
               initial={{ opacity: 0, y: 12 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5, delay: 0.15 }}
+              className="py-8"
+              style={{ borderBottom: '1px solid rgba(0,0,0,0.08)' }}
             >
+              <p
+                className="text-xs font-semibold uppercase tracking-widest mb-4"
+                style={{ color: '#8A857D' }}
+              >
+                Who You Are
+              </p>
               {Object.keys(DOMAIN_CONFIG).map(key => {
                 const text = domains[key];
                 if (!text) return null;

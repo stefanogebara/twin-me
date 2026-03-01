@@ -94,18 +94,28 @@ async function generateProactiveInsights(userId) {
     const reflections = await retrieveMemories(userId, "patterns and trends in recent behavior", 10, 'recent');
 
     // 3. Format for LLM — explicitly separate signals from reflections
+    // GUM Task 4: Filter out low-confidence memories (< 0.30) before LLM call
+    const GUM_MIN_INSIGHT_CONFIDENCE = 0.30;
+
     const signalMemories = recentMemories
-      .filter(m => m.memory_type === 'platform_data' || m.memory_type === 'observation' || m.memory_type === 'fact');
+      .filter(m => (m.memory_type === 'platform_data' || m.memory_type === 'observation' || m.memory_type === 'fact')
+        && (m.confidence ?? 0.7) >= GUM_MIN_INSIGHT_CONFIDENCE);
 
     const observations = signalMemories
       .slice(0, 30)
-      .map(m => `- ${m.content.substring(0, 200)}`)
+      .map(m => {
+        const uncertain = (m.confidence ?? 0.7) < 0.50 ? ' [uncertain]' : '';
+        return `- ${m.content.substring(0, 200)}${uncertain}`;
+      })
       .join('\n');
 
     const reflectionText = reflections
-      .filter(m => m.memory_type === 'reflection')
+      .filter(m => m.memory_type === 'reflection' && (m.confidence ?? 0.7) >= GUM_MIN_INSIGHT_CONFIDENCE)
       .slice(0, 5)
-      .map(m => `- ${m.content.substring(0, 200)}`)
+      .map(m => {
+        const uncertain = (m.confidence ?? 0.7) < 0.50 ? ' [uncertain]' : '';
+        return `- ${m.content.substring(0, 200)}${uncertain}`;
+      })
       .join('\n') || 'No reflections yet.';
 
     // 4. Generate insights via LLM
