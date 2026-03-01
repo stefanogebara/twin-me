@@ -198,6 +198,38 @@ function deduplicateByTheme(items, getText, options = {}) {
   return selected;
 }
 
+/**
+ * Fetch the user's deep interview calibration data for twin context injection.
+ * Returns a formatted [DEEP INTERVIEW] block, or null if no interview exists.
+ */
+async function fetchCalibrationContext(userId) {
+  if (!supabaseAdmin) return null;
+  try {
+    const { data, error } = await supabaseAdmin
+      .from('onboarding_calibration')
+      .select('personality_summary, insights, archetype_hint, domain_progress, questions_asked, completed_at')
+      .eq('user_id', userId)
+      .single();
+
+    if (error || !data) return null;
+
+    const lines = [];
+    if (data.archetype_hint) lines.push(`Archetype: ${data.archetype_hint}`);
+    if (data.personality_summary) lines.push(data.personality_summary.trim());
+    const insights = Array.isArray(data.insights) ? data.insights : [];
+    if (insights.length > 0) {
+      lines.push('Key insights:');
+      insights.slice(0, 8).forEach(i => lines.push(`- ${typeof i === 'string' ? i : i.insight || JSON.stringify(i)}`));
+    }
+
+    if (lines.length === 0) return null;
+    return `[DEEP INTERVIEW — ${data.questions_asked || '?'} questions across ${Object.keys(data.domain_progress || {}).length} domains]\n${lines.join('\n')}`;
+  } catch (err) {
+    console.warn('[Twin Chat] Calibration context fetch failed (non-fatal):', err.message);
+    return null;
+  }
+}
+
 // Periodic cleanup to prevent memory leaks from expired cache entries
 if (!_platformCacheCleanupInterval) {
   _platformCacheCleanupInterval = setInterval(() => {
@@ -1001,14 +1033,15 @@ router.post('/message', authenticateUser, async (req, res) => {
     }
 
     // S4.3: Fetch identity context (cached 24h — near-zero latency on repeat calls)
+    // Also fetch deep interview calibration data in parallel
     let identityContext = null;
-    if (useIdentityContext) {
-      try {
-        identityContext = await inferIdentityContext(userId);
-      } catch (idErr) {
-        console.warn('[Twin Chat] Identity context fetch failed (non-fatal):', idErr.message);
-      }
-    }
+    let calibrationContext = null;
+    await Promise.all([
+      useIdentityContext
+        ? inferIdentityContext(userId).then(r => { identityContext = r; }).catch(err => console.warn('[Twin Chat] Identity context fetch failed (non-fatal):', err.message))
+        : Promise.resolve(),
+      fetchCalibrationContext(userId).then(r => { calibrationContext = r; }).catch(err => console.warn('[Twin Chat] Calibration context fetch failed (non-fatal):', err.message)),
+    ]);
 
     // Build additional dynamic context (writing profile + unified memory stream)
     let additionalContext = '';
@@ -1021,6 +1054,11 @@ router.post('/message', authenticateUser, async (req, res) => {
     // S4.3: Inject identity voice hint — conditions tone to life stage + career salience
     if (identityContext?.twinVoiceHint) {
       additionalContext += `\n\n${identityContext.twinVoiceHint}`;
+    }
+
+    // Inject deep interview calibration — highest-signal personality context (user's own words)
+    if (calibrationContext) {
+      additionalContext += `\n\n${calibrationContext}`;
     }
 
     // Add writing profile context so twin can match user's voice precisely

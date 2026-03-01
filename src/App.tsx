@@ -49,6 +49,7 @@ const PrivacySpectrumDashboard = lazy(() => import("./pages/PrivacySpectrumDashb
 const MemoryHealth = lazy(() => import("./pages/MemoryHealth"));
 const EvalDashboard = lazy(() => import("./pages/EvalDashboard"));
 const IdentityPage = lazy(() => import("./pages/IdentityPage"));
+const InterviewPage = lazy(() => import("./pages/InterviewPage"));
 
 const queryClient = new QueryClient();
 
@@ -187,6 +188,17 @@ const App = () => {
                 <SidebarLayout>
                   <ErrorBoundary>
                     <SoulSignatureDashboard />
+                  </ErrorBoundary>
+                </SidebarLayout>
+              </ProtectedRoute>
+            } />
+
+            {/* Deep Interview — structured onboarding */}
+            <Route path="/interview" element={
+              <ProtectedRoute>
+                <SidebarLayout>
+                  <ErrorBoundary>
+                    <InterviewPage />
                   </ErrorBoundary>
                 </SidebarLayout>
               </ProtectedRoute>
