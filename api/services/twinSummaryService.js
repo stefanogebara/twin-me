@@ -49,10 +49,10 @@ async function summarizeMemories(memories, aspect, userName) {
   try {
     const result = await complete({
       tier: TIER_ANALYSIS,
-      system: `You summarize memories about a person into a concise, natural-sounding description. Write in third person. Be specific and use details from the memories. Output 1-2 sentences only, no bullet points. Only state things supported by the evidence.`,
+      system: `You summarize memories about a person into a concise, natural-sounding description. Write in second person, addressing the person directly as "you" / "your". Be specific and use details from the memories. Output 1-2 sentences only, no bullet points. Only state things supported by the evidence.`,
       messages: [{
         role: 'user',
-        content: `Based on these memories about ${userName}, write a concise summary of their ${aspect}:\n\n- ${memoryText}`
+        content: `Based on these memories about ${userName}, write a concise summary of their ${aspect} (use "you/your" to address them directly):\n\n- ${memoryText}`
       }],
       maxTokens: 200,
       temperature: 0.5,
