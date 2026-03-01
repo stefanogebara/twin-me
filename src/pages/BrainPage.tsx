@@ -260,7 +260,7 @@ const BrainPage: React.FC = () => {
           {totalMemories > 0 && (
             <span className="text-xs px-3 py-1 rounded-full ml-auto"
               style={{ background: 'rgba(0,0,0,0.05)', color: textSecondary }}>
-              {totalMemories.toLocaleString()} memories
+              {totalMemories.toLocaleString('en-US')} memories
             </span>
           )}
         </motion.div>

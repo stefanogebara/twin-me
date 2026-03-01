@@ -269,7 +269,7 @@ const SoulSignatureDashboard: React.FC = () => {
     .slice(0, 4);
 
   const memoryTotal = portrait?.memoryStats?.total ?? 0;
-  const formattedMemories = memoryTotal.toLocaleString() + ' memories';
+  const formattedMemories = memoryTotal.toLocaleString('en-US') + ' memories';
 
   const daysSinceFirst = portrait?.firstMemoryAt
     ? Math.floor((Date.now() - new Date(portrait.firstMemoryAt).getTime()) / 86_400_000)
@@ -278,6 +278,21 @@ const SoulSignatureDashboard: React.FC = () => {
   const platformCount = whitelistedPlatforms.length;
 
   const domains = portrait?.twinSummary?.domains as Record<string, string> | undefined;
+
+  // Convert legacy third-person reflections to second person for display
+  function toSecondPerson(text: string): string {
+    return text
+      .replace(/^This person /i, 'You ')
+      .replace(/^They /i, 'You ')
+      .replace(/^Their /i, 'Your ')
+      .replace(/ they /gi, ' you ')
+      .replace(/ their /gi, ' your ')
+      .replace(/ them /gi, ' you ')
+      .replace(/ they're /gi, " you're ")
+      .replace(/ they've /gi, " you've ")
+      .replace(/ they'd /gi, " you'd ")
+      .replace(/ they'll /gi, " you'll ");
+  }
 
   return (
     <PageLayout maxWidth="xl">
@@ -525,7 +540,7 @@ const SoulSignatureDashboard: React.FC = () => {
                     />
                     <div>
                       <p style={{ fontSize: '14px', color: '#44403c', lineHeight: 1.65 }}>
-                        {r.content}
+                        {toSecondPerson(r.content)}
                       </p>
                       {r.expert && (
                         <p className="mt-1 uppercase tracking-widest" style={{ fontSize: '10px', color: '#8A857D' }}>
