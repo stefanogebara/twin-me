@@ -33,63 +33,28 @@ const EVAL_QUESTIONS = [
 
 /**
  * POST /api/eval/run
- * Fires all 10 questions through the twin chat API and returns responses.
- * Body: { target_user_id: UUID }  (defaults to self)
+ * Stores pre-collected twin responses (collected by the frontend) into the DB.
+ * Body: { questions: [{id, type, question, twinResponse, scores}], target_user_id?: UUID }
  */
 router.post('/run', authenticateUser, async (req, res) => {
   try {
     const evaluatorId = req.user.id;
     const targetUserId = req.body.target_user_id || evaluatorId;
+    const { questions } = req.body;
 
-    // Call the internal twin chat service for each question
-    // We import the context pipeline directly to avoid HTTP overhead
-    const { fetchTwinContext } = await import('../services/twinContextService.js').catch(() => null) || {};
-
-    const results = [];
-
-    for (const q of EVAL_QUESTIONS) {
-      try {
-        // Call the twin chat via internal HTTP
-        const baseUrl = process.env.NODE_ENV === 'production'
-          ? 'https://twin-ai-learn.vercel.app'
-          : `http://localhost:${process.env.PORT || 3001}`;
-        const resp = await fetch(`${baseUrl}/api/chat/message`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': req.headers.authorization,
-            'X-Eval-Mode': 'true',
-          },
-          body: JSON.stringify({
-            message: q.question,
-            userId: targetUserId,
-            streaming: false,
-          }),
-        });
-
-        let twinResponse = '[no response]';
-        if (resp.ok) {
-          const data = await resp.json();
-          twinResponse = data.response || data.message || data.content || '[empty]';
-        } else {
-          twinResponse = `[error ${resp.status}]`;
-        }
-
-        results.push({
-          ...q,
-          twinResponse,
-          scores: { accuracy: null, specificity: null, voice: null },
-        });
-      } catch (qErr) {
-        results.push({
-          ...q,
-          twinResponse: `[error: ${qErr.message}]`,
-          scores: { accuracy: null, specificity: null, voice: null },
-        });
-      }
+    if (!Array.isArray(questions) || questions.length === 0) {
+      return res.status(400).json({ error: 'questions array required' });
     }
 
-    // Save the pending run to DB
+    // Normalize: ensure each question has a scores object with null dimensions
+    const results = questions.map(q => ({
+      id: q.id,
+      type: q.type,
+      question: q.question,
+      twinResponse: q.twinResponse || '[no response]',
+      scores: q.scores || { accuracy: null, specificity: null, voice: null },
+    }));
+
     const { data: run, error: insertErr } = await supabaseAdmin
       .from('eval_runs')
       .insert({
