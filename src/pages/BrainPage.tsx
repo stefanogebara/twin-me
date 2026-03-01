@@ -22,6 +22,7 @@ import {
   Clock,
   AlertCircle,
   RefreshCw,
+  ChevronDown,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { SoulEvolutionTimeline } from '@/components/brain/SoulEvolutionTimeline';
@@ -129,6 +130,8 @@ const BrainPage: React.FC = () => {
   const [reflections, setReflections] = useState<Reflection[]>([]);
   const [reflectionsLoading, setReflectionsLoading] = useState(false);
   const [snapshots, setSnapshots] = useState<BrainSnapshot[]>([]);
+  const [expandedDiscovery, setExpandedDiscovery] = useState<string | null>(null);
+  const [expandedReflection, setExpandedReflection] = useState<string | null>(null);
   const [memoryStats, setMemoryStats] = useState<MemoryStats | null>(null);
 
   const { data: platformStatus, isLoading: platformLoading } = usePlatformStatus(
@@ -313,25 +316,38 @@ const BrainPage: React.FC = () => {
                 {topDiscoveries.map((insight, i) => {
                   const expertKey = insight.category || '';
                   const em = EXPERT_META[expertKey];
+                  const cardKey = insight.id || String(i);
+                  const isExpanded = expandedDiscovery === cardKey;
+                  const dotIdx = insight.content.indexOf('. ');
+                  const preview = dotIdx !== -1 && dotIdx < 130
+                    ? insight.content.slice(0, dotIdx + 1)
+                    : insight.content.slice(0, 130) + (insight.content.length > 130 ? '…' : '');
+                  const hasMore = preview !== insight.content;
                   return (
                     <motion.div
-                      key={insight.id || i}
-                      className="p-6 rounded-2xl"
+                      key={cardKey}
+                      className="rounded-2xl overflow-hidden cursor-pointer"
                       style={{ background: em?.bg ?? 'rgba(0,0,0,0.03)', border: `1px solid ${em?.color ?? 'rgba(0,0,0,0.04)'}22` }}
+                      onClick={() => setExpandedDiscovery(prev => prev === cardKey ? null : cardKey)}
                       initial={{ opacity: 0, y: 8 }}
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ duration: 0.35, delay: i * 0.05 }}
                     >
-                      {em && (
-                        <p className="text-xs font-semibold uppercase tracking-wide mb-1.5"
-                          style={{ color: em.color }}
-                        >
-                          {em.label}
-                        </p>
-                      )}
-                      <p className="text-sm leading-relaxed" style={{ color: textColor }}>
-                        {insight.content}
-                      </p>
+                      <div className="p-5 flex items-start gap-3">
+                        <div className="flex-1 min-w-0">
+                          {em && <p className="text-xs font-semibold uppercase tracking-wide mb-1.5" style={{ color: em.color }}>{em.label}</p>}
+                          <p className="text-sm leading-relaxed" style={{ color: textColor }}>
+                            {isExpanded ? insight.content : preview}
+                          </p>
+                        </div>
+                        {hasMore && (
+                          <ChevronDown
+                            className="flex-shrink-0 w-4 h-4 mt-0.5 transition-transform duration-200"
+                            style={{ color: '#a8a29e', transform: isExpanded ? 'rotate(180deg)' : 'rotate(0deg)' }}
+                          />
+                        )}
+                      </div>
+                      {isExpanded && !hasMore && null}
                     </motion.div>
                   );
                 })}
@@ -475,37 +491,56 @@ const BrainPage: React.FC = () => {
               )}
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                {reflections.map((r, i) => (
-                  <motion.div
-                    key={r.id}
-                    className="p-4 rounded-xl"
-                    style={{ background: 'rgba(139,92,246,0.04)', border: '1px solid rgba(139,92,246,0.08)' }}
-                    initial={{ opacity: 0, y: 6 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.3, delay: i * 0.04 }}
-                  >
-                    {r.expert && (
-                      <p className="text-xs font-semibold uppercase tracking-wide mb-1.5"
-                        style={{ color: '#8b5cf6' }}>
-                        {r.expert}
-                      </p>
-                    )}
-                    <p className="text-sm leading-relaxed" style={{ color: textColor }}>
-                      {r.content}
-                    </p>
-                    <div className="flex items-center gap-2 mt-2">
-                      {r.category && (
-                        <span className="text-xs px-2 py-0.5 rounded-full"
-                          style={{ background: 'rgba(139,92,246,0.08)', color: '#8b5cf6' }}>
-                          {r.category}
-                        </span>
-                      )}
-                      <span className="text-xs" style={{ color: textSecondary }}>
-                        importance {r.importance}/10
-                      </span>
-                    </div>
-                  </motion.div>
-                ))}
+                {reflections.map((r, i) => {
+                  const isExpanded = expandedReflection === r.id;
+                  const dotIdx = r.content.indexOf('. ');
+                  const preview = dotIdx !== -1 && dotIdx < 120
+                    ? r.content.slice(0, dotIdx + 1)
+                    : r.content.slice(0, 120) + (r.content.length > 120 ? '…' : '');
+                  const hasMore = preview !== r.content;
+                  return (
+                    <motion.div
+                      key={r.id}
+                      className="rounded-xl overflow-hidden cursor-pointer"
+                      style={{ background: 'rgba(139,92,246,0.04)', border: '1px solid rgba(139,92,246,0.08)' }}
+                      onClick={() => setExpandedReflection(prev => prev === r.id ? null : r.id)}
+                      initial={{ opacity: 0, y: 6 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.3, delay: i * 0.04 }}
+                    >
+                      <div className="p-4 flex items-start gap-3">
+                        <div className="flex-1 min-w-0">
+                          {r.expert && (
+                            <p className="text-xs font-semibold uppercase tracking-wide mb-1.5"
+                              style={{ color: '#8b5cf6' }}>
+                              {r.expert}
+                            </p>
+                          )}
+                          <p className="text-sm leading-relaxed" style={{ color: textColor }}>
+                            {isExpanded ? r.content : preview}
+                          </p>
+                          <div className="flex items-center gap-2 mt-2">
+                            {r.category && (
+                              <span className="text-xs px-2 py-0.5 rounded-full"
+                                style={{ background: 'rgba(139,92,246,0.08)', color: '#8b5cf6' }}>
+                                {r.category}
+                              </span>
+                            )}
+                            <span className="text-xs" style={{ color: textSecondary }}>
+                              importance {r.importance}/10
+                            </span>
+                          </div>
+                        </div>
+                        {hasMore && (
+                          <ChevronDown
+                            className="flex-shrink-0 w-4 h-4 mt-0.5 transition-transform duration-200"
+                            style={{ color: '#a8a29e', transform: isExpanded ? 'rotate(180deg)' : 'rotate(0deg)' }}
+                          />
+                        )}
+                      </div>
+                    </motion.div>
+                  );
+                })}
               </div>
             </GlassPanel>
           </div>

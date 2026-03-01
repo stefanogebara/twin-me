@@ -15,6 +15,7 @@ import {
   MessageCircle,
   Eye,
   Loader2,
+  ChevronDown,
 } from 'lucide-react';
 import { GlassPanel } from '@/components/layout/PageLayout';
 
@@ -52,6 +53,7 @@ export const ProactiveInsightsPanel: React.FC = () => {
   const navigate = useNavigate();
   // Track which insight IDs the user has already engaged with (fire-and-forget to backend)
   const [engagedIds, setEngagedIds] = useState<Set<string>>(new Set());
+  const [expandedId, setExpandedId] = useState<string | null>(null);
 
   const markEngaged = (insightId: string) => {
     if (isDemoMode || engagedIds.has(insightId)) return;
@@ -150,6 +152,11 @@ export const ProactiveInsightsPanel: React.FC = () => {
       {/* Insight Cards */}
       <div className="space-y-3">
         {insights.map((insight, idx) => {
+          const isExpanded = expandedId === insight.id;
+          const dotIdx = insight.insight.indexOf('. ');
+          const preview = dotIdx !== -1 && dotIdx < 100
+            ? insight.insight.slice(0, dotIdx + 1)
+            : insight.insight.slice(0, 90) + (insight.insight.length > 90 ? '\u2026' : '');
           return (
             <motion.div
               key={insight.id}
@@ -162,20 +169,15 @@ export const ProactiveInsightsPanel: React.FC = () => {
                   {/* Content */}
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-1">
-                      <span
-                        className="text-[10px]"
-                        style={{ color: '#d6d3d1' }}
-                      >
-                        {formatRelativeTime(insight.created_at)}
-                      </span>
+                      <span className="text-[10px]" style={{ color: '#d6d3d1' }}>{formatRelativeTime(insight.created_at)}</span>
                     </div>
-                    <p
-                      className="text-sm leading-relaxed"
-                      style={{ color: '#44403c' }}
-                    >
-                      {insight.insight}
+                    <p className="text-sm leading-relaxed" style={{ color: '#44403c' }}>
+                      {isExpanded ? insight.insight : preview}
                     </p>
                   </div>
+                  <button onClick={() => setExpandedId(prev => prev === insight.id ? null : insight.id)} className="flex-shrink-0 self-start mt-1">
+                    <ChevronDown className="w-4 h-4 transition-transform duration-200" style={{ color: '#a8a29e', transform: isExpanded ? 'rotate(180deg)' : 'rotate(0deg)' }} />
+                  </button>
                 </div>
 
                 {/* Discuss Button — triggers engagement tracking */}

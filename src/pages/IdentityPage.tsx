@@ -8,7 +8,7 @@
  * - Music signature (if available)
  */
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '@/contexts/AuthContext';
@@ -29,6 +29,7 @@ import {
   Fingerprint,
   RefreshCw,
   AlertCircle,
+  ChevronDown,
 } from 'lucide-react';
 
 // ── Types ──────────────────────────────────────────────────────────────────
@@ -253,6 +254,9 @@ const IdentityPage: React.FC = () => {
   const expertInsights = data?.data?.expertInsights ?? {};
   const summary = data?.data?.summary ?? null;
 
+  const [summaryExpanded, setSummaryExpanded] = useState(false);
+  const [archetypeExpanded, setArchetypeExpanded] = useState(false);
+
   const hasAnyData = !!(
     summary ||
     profile?.archetype ||
@@ -329,21 +333,53 @@ const IdentityPage: React.FC = () => {
         </div>
 
         {/* Twin Summary */}
-        {summary && (
-          <div
-            className="rounded-2xl p-6"
-            style={{
-              background: 'rgba(255,255,255,0.7)',
-              border: '1px solid rgba(0,0,0,0.08)',
-              boxShadow: '0 2px 12px rgba(0,0,0,0.06)',
-            }}
-          >
-            <p className="text-xs font-semibold uppercase tracking-widest text-gray-400 mb-3">
-              Twin Summary
-            </p>
-            <p className="text-gray-800 leading-relaxed text-[15px]">{summary}</p>
-          </div>
-        )}
+        {summary && (() => {
+          const dotIdx = summary.indexOf('. ');
+          const cutoff = dotIdx !== -1 && dotIdx < 180 ? dotIdx + 1 : 150;
+          const preview = summary.slice(0, cutoff);
+          const needsTruncation = summary.length > preview.length;
+          return (
+            <div
+              className="rounded-2xl p-6"
+              style={{
+                background: 'rgba(255,255,255,0.7)',
+                border: '1px solid rgba(0,0,0,0.08)',
+                boxShadow: '0 2px 12px rgba(0,0,0,0.06)',
+              }}
+            >
+              <p className="text-xs font-semibold uppercase tracking-widest text-gray-400 mb-3">
+                Twin Summary
+              </p>
+              {summaryExpanded ? (
+                <>
+                  <p className="text-gray-800 leading-relaxed text-[15px]">{summary}</p>
+                  {needsTruncation && (
+                    <button
+                      onClick={() => setSummaryExpanded(false)}
+                      className="mt-2 text-xs"
+                      style={{ color: '#C4A265' }}
+                    >
+                      Show less
+                    </button>
+                  )}
+                </>
+              ) : (
+                <>
+                  <p className="text-gray-800 leading-relaxed text-[15px]">{preview}</p>
+                  {needsTruncation && (
+                    <button
+                      onClick={() => setSummaryExpanded(true)}
+                      className="mt-2 text-xs"
+                      style={{ color: '#C4A265' }}
+                    >
+                      Read more
+                    </button>
+                  )}
+                </>
+              )}
+            </div>
+          );
+        })()}
 
         {/* Archetype + Uniqueness Markers */}
         {(profile?.archetype || uniquenessMarkers.length > 0 || coreValues.length > 0) && (
@@ -361,11 +397,42 @@ const IdentityPage: React.FC = () => {
                   Archetype
                 </p>
                 <p className="text-lg font-bold text-gray-900">{profile.archetype}</p>
-                {profile?.personality_summary && (
-                  <p className="mt-1 text-sm text-gray-500 leading-relaxed">
-                    {profile.personality_summary}
-                  </p>
-                )}
+                {profile?.personality_summary && (() => {
+                  const ps = profile.personality_summary!;
+                  const psPreview = ps.slice(0, 120);
+                  const psNeedsTruncation = ps.length > 120;
+                  return (
+                    <div className="mt-1">
+                      {archetypeExpanded ? (
+                        <>
+                          <p className="text-sm text-gray-500 leading-relaxed">{ps}</p>
+                          {psNeedsTruncation && (
+                            <button
+                              onClick={() => setArchetypeExpanded(false)}
+                              className="mt-1 text-xs"
+                              style={{ color: '#C4A265' }}
+                            >
+                              Show less
+                            </button>
+                          )}
+                        </>
+                      ) : (
+                        <>
+                          <p className="text-sm text-gray-500 leading-relaxed">{psPreview}{psNeedsTruncation ? '…' : ''}</p>
+                          {psNeedsTruncation && (
+                            <button
+                              onClick={() => setArchetypeExpanded(true)}
+                              className="mt-1 text-xs"
+                              style={{ color: '#C4A265' }}
+                            >
+                              Read more
+                            </button>
+                          )}
+                        </>
+                      )}
+                    </div>
+                  );
+                })()}
               </div>
             )}
 

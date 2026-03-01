@@ -438,6 +438,11 @@ async function runExpertAnalysis(userId, expert, formattedObservations, depth, i
     // S3.5: Reasoning string for the proposition reasoning column
     const reasoning = `${expert.name} analyzed ${domainMemories.length} domain-specific memories to identify ${expert.retrievalQuery.split(',')[0].trim()} patterns.`;
 
+    // GUM Task 3: Confidence inheritance — reflection inherits avg confidence of source memories (floor 0.50)
+    const inheritedConfidence = domainMemories.length > 0
+      ? Math.max(0.50, domainMemories.reduce((sum, m) => sum + (m.confidence ?? 0.7), 0) / domainMemories.length)
+      : 0.70;
+
     for (const observation of observations.slice(0, 3)) {
       // Dedup check — skip if a very similar reflection already exists for this expert
       const isDupe = await isDuplicateReflection(userId, expert.id, observation);
@@ -453,7 +458,7 @@ async function runExpertAnalysis(userId, expert, formattedObservations, depth, i
         // S3.5: Store reasoning + grounding_ids on all generic expert reflections
         reasoning,
         grounding_ids: evidenceIds,
-        confidence: 0.70,
+        confidence: inheritedConfidence,
       });
 
       if (reflectionResult) {

@@ -140,6 +140,94 @@ async function maybeReviseExistingMemory(userId, content, memoryType, embedding,
   }
 }
 
+// GUM Task 1: Bayesian contradiction detection
+// Finds memories in the 0.75-0.90 cosine band (below the hard revision threshold),
+// asks Mistral Small to classify each as CONFIRMS / CONTRADICTS / UNRELATED,
+// then adjusts confidence accordingly. Fire-and-forget — does not block INSERT.
+const GUM_LOWER_BAND = 0.75;
+const GUM_UPPER_BAND = 0.90; // exclusive (>= 0.90 is handled by maybeReviseExistingMemory)
+const GUM_CONFIRM_DELTA = 0.10;
+const GUM_CONTRADICT_DELTA = -0.15;
+const GUM_MAX_LLM_CALLS = 3; // cap LLM calls per write to control cost
+
+const GUM_CLASSIFY_PROMPT = `You are a fact-checker comparing two statements about the same person.
+
+Statement A (existing belief): "{existing}"
+Statement B (new observation): "{new}"
+
+Does Statement B CONFIRM, CONTRADICT, or is it UNRELATED to Statement A?
+Reply with exactly one word: CONFIRMS, CONTRADICTS, or UNRELATED.`;
+
+async function applyGumBayesianRevision(userId, newContent, newEmbedding, memoryType) {
+  if (!newEmbedding) return;
+  // Only run on types where contradictions are meaningful
+  if (!REVISION_TYPES.has(memoryType)) return;
+
+  try {
+    const { data: candidates } = await supabaseAdmin
+      .from('user_memories')
+      .select('id, content, embedding, confidence')
+      .eq('user_id', userId)
+      .eq('memory_type', memoryType)
+      .order('created_at', { ascending: false })
+      .limit(50);
+
+    if (!candidates || candidates.length === 0) return;
+
+    let llmCalls = 0;
+    const updates = [];
+
+    for (const row of candidates) {
+      if (llmCalls >= GUM_MAX_LLM_CALLS) break;
+
+      const existingVec = parseVec(row.embedding);
+      if (!existingVec) continue;
+
+      const sim = cosineSim(newEmbedding, existingVec);
+      if (sim < GUM_LOWER_BAND || sim >= GUM_UPPER_BAND) continue;
+
+      // In band — classify with LLM
+      llmCalls++;
+      try {
+        const result = await complete({
+          tier: TIER_EXTRACTION,
+          messages: [{
+            role: 'user',
+            content: GUM_CLASSIFY_PROMPT
+              .replace('{existing}', row.content.substring(0, 200))
+              .replace('{new}', newContent.substring(0, 200)),
+          }],
+          maxTokens: 10,
+          temperature: 0.0,
+          serviceName: 'gum-bayesian-classify',
+        });
+
+        const verdict = (result.content || '').trim().toUpperCase();
+        let delta = 0;
+        if (verdict.startsWith('CONFIRMS')) delta = GUM_CONFIRM_DELTA;
+        else if (verdict.startsWith('CONTRADICTS')) delta = GUM_CONTRADICT_DELTA;
+        else continue; // UNRELATED — no update
+
+        const currentConf = row.confidence ?? 0.7;
+        const newConf = Math.min(0.95, Math.max(0.10, currentConf + delta));
+        updates.push({ id: row.id, confidence: newConf, verdict });
+      } catch {
+        // Non-fatal — skip this candidate
+      }
+    }
+
+    // Apply updates (non-blocking batch)
+    for (const u of updates) {
+      supabaseAdmin.from('user_memories').update({ confidence: u.confidence }).eq('id', u.id)
+        .then(() => console.log(`[GUM] ${u.verdict} → confidence updated for ${u.id}`))
+        .catch(() => {});
+    }
+  } catch (err) {
+    // Fully non-fatal
+    console.warn('[GUM] Bayesian revision check failed (non-fatal):', err.message);
+  }
+}
+
 async function addMemory(userId, content, memoryType = 'observation', metadata = {}, options = {}) {
   if (!content || !userId) return null;
   if (!VALID_MEMORY_TYPES.has(memoryType)) {
@@ -159,6 +247,12 @@ async function addMemory(userId, content, memoryType = 'observation', metadata =
     if (!options.skipRevision && embedding) {
       const revised = await maybeReviseExistingMemory(userId, content, memoryType, embedding, options);
       if (revised) return revised; // Return existing memory ID — no new insert
+    }
+
+    // GUM Task 1: Bayesian contradiction detection — fire-and-forget, does not block INSERT
+    // Updates confidence of related memories in the 0.75–0.90 cosine band
+    if (embedding && !options.skipRevision) {
+      applyGumBayesianRevision(userId, content, embedding, memoryType).catch(() => {});
     }
 
     const record = {
@@ -487,6 +581,11 @@ async function retrieveMemories(userId, query, limit = 10, weights = 'default') 
 
     if (!data || data.length === 0) return [];
 
+    // GUM: confidence-weight scores before MMR so low-confidence memories sink in rankings
+    for (const m of data) {
+      m.score = (m.score ?? 0) * (m.confidence ?? 0.7);
+    }
+
     // Apply MMR reranking for diversity (strips embedding from output)
     const reranked = mmrRerank(data, limit);
 
@@ -686,7 +785,7 @@ async function getRecentMemories(userId, limit = 50) {
   try {
     const { data, error } = await supabaseAdmin
       .from('user_memories')
-      .select('id, content, memory_type, importance_score, metadata, created_at')
+      .select('id, content, memory_type, importance_score, metadata, created_at, confidence')
       .eq('user_id', userId)
       .order('created_at', { ascending: false })
       .limit(limit);
