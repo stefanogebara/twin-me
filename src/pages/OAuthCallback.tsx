@@ -334,8 +334,8 @@ const OAuthCallback = () => {
               } else if (stateData?.redirectAfterAuth && isRelativePath(stateData.redirectAfterAuth)) {
                 redirectPath = stateData.redirectAfterAuth;
               } else if (data.isNewUser) {
-                // New users go to platform connection onboarding
-                redirectPath = '/get-started';
+                // New users go to interview first, then platform onboarding
+                redirectPath = '/interview';
               }
 
               const welcomeMessage = data.isNewUser
@@ -406,7 +406,7 @@ const OAuthCallback = () => {
               setStatus('success');
 
               // Determine redirect based on whether user is new or existing
-              const redirectPath = data.isNewUser ? '/get-started' : '/dashboard';
+              const redirectPath = data.isNewUser ? '/interview' : '/dashboard';
               const welcomeMessage = data.isNewUser
                 ? 'Welcome! Let\'s set up your Soul Signature'
                 : 'Welcome back!';

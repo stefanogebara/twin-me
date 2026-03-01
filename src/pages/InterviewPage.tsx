@@ -54,11 +54,11 @@ export default function InterviewPage() {
   }, []);
 
   const handleComplete = () => {
-    navigate('/dashboard');
+    navigate('/get-started');
   };
 
   const handleSkip = () => {
-    navigate('/dashboard');
+    navigate('/get-started');
   };
 
   if (loading) {
