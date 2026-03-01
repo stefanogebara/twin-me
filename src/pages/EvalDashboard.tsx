@@ -106,12 +106,53 @@ export default function EvalDashboard() {
     },
   });
 
-  // Start eval run
+  // The 10 canonical eval questions (must match api/routes/eval.js)
+  const EVAL_QUESTIONS = [
+    { id: 1, type: 'factual',    question: 'What is my job or professional role?' },
+    { id: 2, type: 'factual',    question: 'What city or country do I live in?' },
+    { id: 3, type: 'preference', question: 'What music genre or artists do I listen to most?' },
+    { id: 4, type: 'preference', question: 'What do I do for exercise or physical activity?' },
+    { id: 5, type: 'behavioral', question: 'Am I more of a morning or night person?' },
+    { id: 6, type: 'behavioral', question: 'Do I tend to have busier weekdays or busier weekends?' },
+    { id: 7, type: 'value',      question: 'How would you describe my relationship to productivity and work?' },
+    { id: 8, type: 'value',      question: 'What topics or subjects am I most curious about?' },
+    { id: 9, type: 'prediction', question: 'What would I most likely do on a free Saturday afternoon?' },
+    { id: 10, type: 'prediction', question: 'What kind of content or recommendations would I share with a friend?' },
+  ] as const;
+
+  // Start eval run — calls twin chat from the browser, then stores results
   const runMutation = useMutation({
     mutationFn: async () => {
-      const res = await authFetch('/eval/run', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({}) });
-      if (!res.ok) throw new Error('Failed to start eval run');
-      return res.json();
+      const results: { id: number; type: string; question: string; twinResponse: string; scores: { accuracy: null; specificity: null; voice: null } }[] = [];
+
+      for (const q of EVAL_QUESTIONS) {
+        try {
+          const res = await authFetch('/chat/message', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-Eval-Mode': 'true' },
+            body: JSON.stringify({ message: q.question, streaming: false }),
+          });
+          let twinResponse = '[no response]';
+          if (res.ok) {
+            const data = await res.json();
+            twinResponse = data.response || data.message || data.content || '[empty]';
+          } else {
+            twinResponse = `[error ${res.status}]`;
+          }
+          results.push({ ...q, twinResponse, scores: { accuracy: null, specificity: null, voice: null } });
+        } catch (err: any) {
+          results.push({ ...q, twinResponse: `[error: ${err.message}]`, scores: { accuracy: null, specificity: null, voice: null } });
+        }
+      }
+
+      // Store pre-collected results (backend only does DB write now)
+      const storeRes = await authFetch('/eval/run', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ questions: results }),
+      });
+      if (!storeRes.ok) throw new Error('Failed to save eval run');
+      return storeRes.json();
     },
     onSuccess: (data) => {
       setActiveRun(data.run);
