@@ -18,7 +18,6 @@ import {
   BookOpen,
   Target,
   Activity,
-  FlaskConical,
   Fingerprint,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -52,7 +51,6 @@ const moreNavItems: NavItem[] = [
   { id: 'journal',      label: 'Soul Journal',   icon: BookOpen, path: '/journal' },
   { id: 'connect-data',   label: 'Connect Data',   icon: Link2,     path: '/get-started' },
   { id: 'memory-health',  label: 'Memory Health',  icon: Activity,  path: '/memory-health' },
-  { id: 'eval',           label: 'Eval',           icon: FlaskConical, path: '/eval' },
   { id: 'settings',       label: 'Settings',       icon: Settings,  path: '/settings' },
 ];
 

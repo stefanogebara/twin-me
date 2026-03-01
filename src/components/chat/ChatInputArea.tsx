@@ -118,7 +118,7 @@ export const ChatInputArea = forwardRef<HTMLTextAreaElement, ChatInputAreaProps>
                   }}
                 >
                   <MessageCircle className="w-3 h-3" />
-                  <span>{chatUsage.used} of {chatUsage.limit}</span>
+                  <span title={`${chatUsage.used} of ${chatUsage.limit} free messages used this month`}>{chatUsage.used} / {chatUsage.limit} msgs</span>
                 </div>
               )}
 
