@@ -156,4 +156,16 @@ export const AVAILABLE_CONNECTORS: ConnectorConfig[] = [
     privacyLevel: 'medium',
     category: 'professional'
   },
+  {
+    provider: 'google_gmail' as DataProvider,
+    name: 'Gmail',
+    description: 'Email patterns reveal communication habits, network breadth, and how you organize your digital life',
+    icon: <GmailLogo className="w-6 h-6" />,
+    color: '#EA4335',
+    dataTypes: ['Email Patterns', 'Network Breadth', 'Communication Style'],
+    estimatedInsights: 7,
+    setupTime: '5 seconds',
+    privacyLevel: 'medium',
+    category: 'professional'
+  },
 ];

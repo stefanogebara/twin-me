@@ -366,21 +366,6 @@ export const TodayInsights: React.FC = () => {
                       }}>
                         {insight.title}
                       </h3>
-                      {/* Platform badges */}
-                      <div className="flex gap-1">
-                        {insight.platforms.map(platform => (
-                          <span
-                            key={platform}
-                            className="text-[10px] px-1.5 py-0.5 rounded"
-                            style={{
-                              backgroundColor: 'rgba(0, 0, 0, 0.05)',
-                              color: '#57534e'
-                            }}
-                          >
-                            {platform.replace('google_', '').replace('_', ' ')}
-                          </span>
-                        ))}
-                      </div>
                     </div>
                     <p className="text-sm" style={{ color: '#57534e' }}>
                       {insight.summary}
