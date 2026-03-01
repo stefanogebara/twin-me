@@ -1313,6 +1313,10 @@ Make it sound natural and curious, not like a survey question.`;
       }
     }).catch(err => console.warn('[Twin Chat] Failed to log conversation:', err.message));
 
+    // Skip memory writes + reflection during eval runs to avoid polluting memory stream
+    const evalMode = req.headers['x-eval-mode'] === 'true';
+
+    if (!evalMode) {
     // Store in unified memory stream - non-blocking
     addConversationMemoryStream(userId, message, assistantMessage, {
       conversationId,
@@ -1326,9 +1330,10 @@ Make it sound natural and curious, not like a survey question.`;
 
     // Extract communication style patterns from user message - non-blocking
     extractCommunicationStyle(userId, message).catch(err => console.warn('[TWIN-CHAT] Communication style extraction failed:', err.message));
+    } // end !evalMode
 
     // Trigger reflection if enough importance has accumulated - non-blocking
-    shouldTriggerReflection(userId).then(async (shouldReflect) => {
+    if (!evalMode) shouldTriggerReflection(userId).then(async (shouldReflect) => {
       if (shouldReflect) {
         console.log(`[Twin Chat] Triggering background reflection for user ${userId}`);
         generateReflections(userId).catch(err =>
