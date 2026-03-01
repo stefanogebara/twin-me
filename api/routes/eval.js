@@ -49,8 +49,10 @@ router.post('/run', authenticateUser, async (req, res) => {
 
     for (const q of EVAL_QUESTIONS) {
       try {
-        // Call the twin chat via internal HTTP (same process, avoids auth complexity)
-        const baseUrl = `http://localhost:${process.env.PORT || 3001}`;
+        // Call the twin chat via internal HTTP
+        const baseUrl = process.env.VERCEL_URL
+          ? `https://${process.env.VERCEL_URL}`
+          : `http://localhost:${process.env.PORT || 3001}`;
         const resp = await fetch(`${baseUrl}/api/chat/message`, {
           method: 'POST',
           headers: {
