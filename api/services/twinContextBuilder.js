@@ -434,25 +434,32 @@ async function _fetchSinglePlatform(userId, platform) {
               // No current playback
             }
 
-            const [recentRes, topRes] = await Promise.all([
+            const [recentRes, topShortRes, topMedRes, topLongRes] = await Promise.all([
               axios.get('https://api.spotify.com/v1/me/player/recently-played?limit=10', { headers, timeout: PLATFORM_TIMEOUT }),
-              axios.get('https://api.spotify.com/v1/me/top/artists?limit=5&time_range=short_term', { headers, timeout: PLATFORM_TIMEOUT })
+              axios.get('https://api.spotify.com/v1/me/top/artists?limit=5&time_range=short_term', { headers, timeout: PLATFORM_TIMEOUT }),
+              axios.get('https://api.spotify.com/v1/me/top/artists?limit=5&time_range=medium_term', { headers, timeout: PLATFORM_TIMEOUT }),
+              axios.get('https://api.spotify.com/v1/me/top/artists?limit=5&time_range=long_term', { headers, timeout: PLATFORM_TIMEOUT }),
             ]);
 
-            const oneDayAgo = Date.now() - 24 * 60 * 60 * 1000;
-            const recentTracks = recentRes.data?.items?.filter(item => {
-              return new Date(item.played_at).getTime() > oneDayAgo;
-            }).map(item => ({
+            // All recent tracks regardless of age (up to 10)
+            const recentTracks = recentRes.data?.items?.map(item => ({
               name: item.track?.name,
               artist: item.track?.artists?.[0]?.name,
               playedAt: item.played_at
             })) || [];
 
+            const topShort = topShortRes.data?.items?.map(a => a.name) || [];
+            const topMed   = topMedRes.data?.items?.map(a => a.name) || [];
+            const topLong  = topLongRes.data?.items?.map(a => a.name) || [];
+            const genres   = topShortRes.data?.items?.flatMap(a => a.genres?.slice(0, 2) || []).slice(0, 5) || [];
+
             data.spotify = {
               currentlyPlaying,
-              recentTracks: recentTracks.slice(0, 5),
-              topArtists: topRes.data?.items?.map(a => a.name) || [],
-              genres: topRes.data?.items?.flatMap(a => a.genres?.slice(0, 2) || []).slice(0, 5) || [],
+              recentTracks: recentTracks.slice(0, 8),
+              topArtistsShortTerm: topShort,   // ~4 weeks
+              topArtistsMediumTerm: topMed,    // ~6 months
+              topArtistsLongTerm: topLong,     // all time
+              genres,
               fetchedAt: new Date().toISOString()
             };
           }

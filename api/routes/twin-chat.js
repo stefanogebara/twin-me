@@ -431,15 +431,20 @@ function buildTwinSystemPrompt(soulSignature, platformData, personalityScores = 
       }
       if (sp.recentTracks?.length > 0) {
         dynamicContext += ` My recent listening: ${sp.recentTracks.slice(0, 5).map(t => `"${t.name}" by ${t.artist}`).join(', ')}.`;
-        // Add temporal observation if tracks have timestamps
         if (sp.recentTracks[0]?.playedAt) {
           const lastPlayed = new Date(sp.recentTracks[0].playedAt);
           const hoursAgo = Math.round((now - lastPlayed) / 3600000);
           if (hoursAgo > 6) dynamicContext += ` (Haven't listened in ${hoursAgo}+ hours.)`;
         }
       }
-      if (sp.topArtists?.length > 0) {
-        dynamicContext += ` Artists I keep coming back to: ${sp.topArtists.slice(0, 5).join(', ')}.`;
+      if (sp.topArtistsShortTerm?.length > 0) {
+        dynamicContext += ` Top artists (last 4 weeks): ${sp.topArtistsShortTerm.join(', ')}.`;
+      }
+      if (sp.topArtistsMediumTerm?.length > 0) {
+        dynamicContext += ` Top artists (last 6 months): ${sp.topArtistsMediumTerm.join(', ')}.`;
+      }
+      if (sp.topArtistsLongTerm?.length > 0) {
+        dynamicContext += ` Top artists (all time): ${sp.topArtistsLongTerm.join(', ')}.`;
       }
       if (sp.genres?.length > 0) {
         dynamicContext += ` My genres: ${sp.genres.slice(0, 5).join(', ')}.`;
@@ -654,18 +659,16 @@ async function fetchSpotifyData(userId) {
       // No current playback - that's fine
     }
 
-    // Get recent tracks with timestamps
-    const [recentRes, topRes] = await Promise.all([
+    // Get recent tracks + top artists across all time ranges
+    const [recentRes, topShortRes, topMedRes, topLongRes] = await Promise.all([
       axios.get('https://api.spotify.com/v1/me/player/recently-played?limit=10', { headers, timeout: 5000 }),
-      axios.get('https://api.spotify.com/v1/me/top/artists?limit=5&time_range=short_term', { headers, timeout: 5000 })
+      axios.get('https://api.spotify.com/v1/me/top/artists?limit=5&time_range=short_term', { headers, timeout: 5000 }),
+      axios.get('https://api.spotify.com/v1/me/top/artists?limit=5&time_range=medium_term', { headers, timeout: 5000 }),
+      axios.get('https://api.spotify.com/v1/me/top/artists?limit=5&time_range=long_term', { headers, timeout: 5000 }),
     ]);
 
-    // Filter recent tracks to last 24 hours only
-    const oneDayAgo = Date.now() - 24 * 60 * 60 * 1000;
-    const recentTracks = recentRes.data?.items?.filter(item => {
-      const playedAt = new Date(item.played_at).getTime();
-      return playedAt > oneDayAgo;
-    }).map(item => ({
+    // All recent tracks regardless of age
+    const recentTracks = recentRes.data?.items?.map(item => ({
       name: item.track?.name,
       artist: item.track?.artists?.[0]?.name,
       playedAt: item.played_at
@@ -673,9 +676,11 @@ async function fetchSpotifyData(userId) {
 
     return {
       currentlyPlaying,
-      recentTracks: recentTracks.slice(0, 5),
-      topArtists: topRes.data?.items?.map(a => a.name) || [],
-      genres: topRes.data?.items?.flatMap(a => a.genres?.slice(0, 2) || []).slice(0, 5) || [],
+      recentTracks: recentTracks.slice(0, 8),
+      topArtistsShortTerm: topShortRes.data?.items?.map(a => a.name) || [],   // ~4 weeks
+      topArtistsMediumTerm: topMedRes.data?.items?.map(a => a.name) || [],    // ~6 months
+      topArtistsLongTerm: topLongRes.data?.items?.map(a => a.name) || [],     // all time
+      genres: topShortRes.data?.items?.flatMap(a => a.genres?.slice(0, 2) || []).slice(0, 5) || [],
       fetchedAt: new Date().toISOString()
     };
   } catch (err) {
