@@ -6,8 +6,12 @@ import { supabaseAdmin } from '../services/database.js';
 import { getUserSubscription } from '../services/subscriptionService.js';
 
 const router = express.Router();
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
+const stripe = process.env.STRIPE_SECRET_KEY ? new Stripe(process.env.STRIPE_SECRET_KEY) : null;
 const APP_URL = process.env.VITE_APP_URL || 'http://localhost:8086';
+
+if (!stripe) {
+  console.warn('[Billing] STRIPE_SECRET_KEY not set — billing routes disabled');
+}
 
 // POST /api/billing/webhook  (raw body — must be mounted BEFORE express.json)
 router.post('/webhook', express.raw({ type: 'application/json' }), async (req, res) => {

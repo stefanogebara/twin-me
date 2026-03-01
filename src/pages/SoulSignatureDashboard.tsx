@@ -1,25 +1,117 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { PageLayout } from '../components/layout/PageLayout';
 import { RefreshCw, AlertCircle, Share2, Link, Check, Download } from 'lucide-react';
-import { Clay3DIcon } from '../components/Clay3DIcon';
 import { useTwinPortrait } from '../hooks/useTwinPortrait';
 import { ThemeColors } from './components/soul-signature/types';
 import { BigFivePanel } from './components/soul-signature/BigFivePanel';
 import { MemoryStreamFooter } from './components/soul-portrait/MemoryStreamFooter';
 import { PortraitEmptyState } from './components/soul-portrait/PortraitEmptyState';
-import { BentoHero } from './components/soul-portrait/BentoHero';
-import { BentoStatsTile } from './components/soul-portrait/BentoStatsTile';
-import { BentoDomainTile } from './components/soul-portrait/BentoDomainTile';
-import { BentoPlatformTile } from './components/soul-portrait/BentoPlatformTile';
-import { BentoInsightsTile } from './components/soul-portrait/BentoInsightsTile';
-import { BentoExpertSpotlight } from './components/soul-portrait/BentoExpertSpotlight';
-import { BentoGoalsTile } from './components/soul-portrait/BentoGoalsTile';
 import { EvolutionSection } from '../components/brain/EvolutionSection';
+import { motion } from 'framer-motion';
 
-// Whitelist for BentoStatsTile — filters out unknown/internal platform entries
+// Whitelist for stats — filters out unknown/internal platform entries
 const STATS_PLATFORM_WHITELIST = ['spotify', 'google_calendar', 'youtube', 'discord', 'linkedin', 'whoop', 'github', 'reddit'];
+
+const DOMAIN_CONFIG: Record<string, { label: string; number: string; flower: string; flowerRight: boolean }> = {
+  personality:      { label: 'Personality',       number: '01', flower: '/images/backgrounds/flower-card-2.jpg', flowerRight: true  },
+  lifestyle:        { label: 'Lifestyle',          number: '02', flower: '/images/backgrounds/flower-card-5.jpg', flowerRight: false },
+  culturalIdentity: { label: 'Cultural Identity',  number: '03', flower: '/images/backgrounds/flower-card-3.jpg', flowerRight: true  },
+  socialDynamics:   { label: 'Social Dynamics',    number: '04', flower: '/images/backgrounds/flower-card-6.jpg', flowerRight: false },
+  motivation:       { label: 'Motivation',         number: '05', flower: '/images/backgrounds/flower-card-7.jpg', flowerRight: true  },
+};
+
+// ─── DomainSection ────────────────────────────────────────────────────────────
+
+interface DomainSectionProps {
+  domainKey: string;
+  text: string;
+}
+
+const DomainSection: React.FC<DomainSectionProps> = ({ domainKey, text }) => {
+  const [expanded, setExpanded] = useState(false);
+  const config = DOMAIN_CONFIG[domainKey];
+  if (!config) return null;
+
+  // Truncate pull quote at 220 chars on last word boundary
+  const truncateAt = 220;
+  const needsTruncation = text.length > truncateAt;
+  const truncated = needsTruncation
+    ? text.slice(0, truncateAt).replace(/\s+\S*$/, '') + '\u2026'
+    : text;
+  const displayText = expanded ? text : truncated;
+
+  const flowerImg = (
+    <img
+      src={config.flower}
+      alt=""
+      className="w-36 h-44 rounded-2xl object-cover flex-shrink-0 hidden md:block"
+    />
+  );
+
+  return (
+    <div
+      className="py-12"
+      style={{ borderBottom: '1px solid rgba(0,0,0,0.08)' }}
+    >
+      <div className="flex items-start gap-8">
+        {/* Flower — left side */}
+        {!config.flowerRight && flowerImg}
+
+        {/* Content */}
+        <div className="flex-1 min-w-0">
+          {/* Chapter meta */}
+          <div className="flex items-baseline gap-3 mb-3">
+            <span
+              className="font-serif"
+              style={{ fontSize: '13px', color: '#C4A265' }}
+            >
+              {config.number}
+            </span>
+            <span
+              className="text-xs uppercase tracking-widest"
+              style={{ color: '#8A857D' }}
+            >
+              {config.label}
+            </span>
+          </div>
+
+          {/* Pull quote */}
+          <blockquote className="mb-3">
+            <span
+              style={{
+                fontFamily: "'Halant', serif",
+                fontStyle: 'italic',
+                fontSize: '22px',
+                lineHeight: '1.55',
+                color: '#000000',
+              }}
+            >
+              &ldquo;{displayText}&rdquo;
+            </span>
+          </blockquote>
+
+          {/* Expand/collapse */}
+          {needsTruncation && (
+            <button
+              onClick={() => setExpanded(prev => !prev)}
+              className="text-sm font-medium transition-opacity hover:opacity-70"
+              style={{ color: '#C4A265' }}
+            >
+              {expanded ? '− Less' : '＋ Read full analysis'}
+            </button>
+          )}
+        </div>
+
+        {/* Flower — right side */}
+        {config.flowerRight && flowerImg}
+      </div>
+    </div>
+  );
+};
+
+// ─── Main Component ───────────────────────────────────────────────────────────
 
 const SoulSignatureDashboard: React.FC = () => {
   const { user } = useAuth();
@@ -35,7 +127,7 @@ const SoulSignatureDashboard: React.FC = () => {
   const { data: portrait, isLoading, error, refetch } = useTwinPortrait(!!user);
 
   // Use cached archetype from onboarding if portrait API hasn't loaded yet
-  const cachedArchetype = React.useMemo(() => {
+  const cachedArchetype = useMemo(() => {
     try {
       const raw = sessionStorage.getItem('instant_archetype');
       return raw ? JSON.parse(raw) : null;
@@ -54,7 +146,6 @@ const SoulSignatureDashboard: React.FC = () => {
   // portrait.soulSignature from API, falling back to sessionStorage cache
   // eslint-disable-next-line @typescript-eslint/no-explicit-any -- portrait shape from API is dynamic
   const displaySoulSignature = (portrait as any)?.soulSignature ?? cachedArchetype;
-
 
   const colors: ThemeColors = {
     textColor: '#000000',
@@ -132,7 +223,7 @@ const SoulSignatureDashboard: React.FC = () => {
   }
 
   const hasData = !!(
-    displaySoulSignature ||           // NEW — show content if archetype exists
+    displaySoulSignature ||
     portrait?.twinSummary ||
     (portrait?.reflections?.length ?? 0) > 0 ||
     (portrait?.insights?.length ?? 0) > 0 ||
@@ -142,7 +233,6 @@ const SoulSignatureDashboard: React.FC = () => {
   );
 
   // Determine which platforms are connected and have a known config
-  // DB stores 'google_calendar' but we reference it as 'calendar' in the UI
   const PLATFORM_ALIAS: Record<string, string> = { google_calendar: 'calendar', whoop: 'whoop' };
   const knownPlatforms = ['spotify', 'calendar', 'youtube', 'discord', 'linkedin', 'whoop'];
   const activePlatforms = portrait?.connectedPlatforms
@@ -155,6 +245,28 @@ const SoulSignatureDashboard: React.FC = () => {
   const whitelistedPlatforms = portrait?.connectedPlatforms.filter(p =>
     STATS_PLATFORM_WHITELIST.includes(p.platform.toLowerCase())
   ) ?? [];
+
+  // ─── Derived display values ─────────────────────────────────────────────────
+
+  const archetypeName = displaySoulSignature?.archetype_name ?? '';
+  const archetypeQuote = displaySoulSignature?.signature_quote ?? displaySoulSignature?.archetype_subtitle ?? '';
+  const archetypeNarrative = displaySoulSignature?.first_impression ?? displaySoulSignature?.narrative ?? '';
+  const rawTraits = displaySoulSignature?.core_traits ?? displaySoulSignature?.defining_traits ?? [];
+  const traitList: string[] = (Array.isArray(rawTraits) ? rawTraits : [])
+    .map((t: unknown) => (typeof t === 'string' ? t : (t as { trait?: string })?.trait ?? ''))
+    .filter(Boolean)
+    .slice(0, 4);
+
+  const memoryTotal = portrait?.memoryStats?.total ?? 0;
+  const formattedMemories = memoryTotal.toLocaleString() + ' memories';
+
+  const daysSinceFirst = portrait?.firstMemoryAt
+    ? Math.floor((Date.now() - new Date(portrait.firstMemoryAt).getTime()) / 86_400_000)
+    : null;
+
+  const platformCount = whitelistedPlatforms.length;
+
+  const domains = portrait?.twinSummary?.domains as Record<string, string> | undefined;
 
   return (
     <PageLayout maxWidth="xl">
@@ -230,216 +342,192 @@ const SoulSignatureDashboard: React.FC = () => {
       {/* Empty state */}
       {!hasData && !error && <PortraitEmptyState />}
 
-      {/* Bento grid layout */}
+      {/* Magazine layout — single column, max-width 720px centered */}
       {hasData && (
-        <>
-          {/* Archetype Card — visible immediately after onboarding, before reflections accumulate */}
-          {displaySoulSignature && (() => {
-            const raw = displaySoulSignature.core_traits ?? displaySoulSignature.defining_traits ?? [];
-            const traitList: string[] = (Array.isArray(raw) ? raw : [])
-              .map((t: unknown) => (typeof t === 'string' ? t : (t as { trait?: string })?.trait ?? ''))
-              .filter(Boolean);
-            const quote = displaySoulSignature.signature_quote ?? displaySoulSignature.archetype_subtitle;
-            const narrative = displaySoulSignature.first_impression ?? displaySoulSignature.narrative;
-            return (
-              <div
-                className="mb-8 rounded-2xl overflow-hidden"
-                style={{ background: colors.cardBg, border: colors.cardBorder, boxShadow: colors.cardShadow }}
-              >
-                <div className="flex gap-5 p-6 md:p-8">
-                  {/* Visual anchor */}
-                  <div
-                    className="flex-shrink-0 w-16 h-16 rounded-2xl flex items-center justify-center"
-                    style={{ background: 'rgba(196, 162, 101, 0.1)' }}
+        <div style={{ maxWidth: '720px', margin: '0 auto' }}>
+
+          {/* ── 1. ARCHETYPE HERO ─────────────────────────────────────────────── */}
+          {displaySoulSignature && (
+            <motion.div
+              initial={{ opacity: 0, y: 16 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5 }}
+              className="mb-16 pb-16"
+              style={{ borderBottom: '1px solid rgba(0,0,0,0.08)' }}
+            >
+              <div className="flex items-start gap-6">
+                {/* Text content — 60% */}
+                <div className="flex-1 min-w-0">
+                  <p
+                    className="text-xs font-semibold uppercase tracking-widest mb-3"
+                    style={{ color: '#C4A265' }}
                   >
-                    <Clay3DIcon name="heart" size={40} />
-                  </div>
-                  {/* Content */}
-                  <div className="flex-1 min-w-0">
-                    <p className="text-xs font-semibold uppercase tracking-widest mb-1" style={{ color: colors.textFaint }}>
-                      Your Archetype
+                    Your Soul Archetype
+                  </p>
+                  <h1
+                    style={{
+                      fontFamily: "'Halant', serif",
+                      fontSize: '48px',
+                      fontWeight: 600,
+                      lineHeight: 1.15,
+                      color: '#000000',
+                      marginBottom: '12px',
+                    }}
+                  >
+                    {archetypeName}
+                  </h1>
+                  {archetypeQuote && (
+                    <p
+                      style={{
+                        fontFamily: "'Halant', serif",
+                        fontStyle: 'italic',
+                        fontSize: '20px',
+                        lineHeight: 1.5,
+                        color: '#44403c',
+                        marginBottom: '16px',
+                      }}
+                    >
+                      {archetypeQuote}
                     </p>
-                    <h2 className="heading-serif mb-1" style={{ fontSize: '28px', color: colors.textColor }}>
-                      {displaySoulSignature.archetype_name}
-                    </h2>
-                    {quote && (
-                      <p className="text-sm italic mb-3" style={{ color: colors.textSecondary }}>
-                        "{quote}"
+                  )}
+                  {traitList.length > 0 && (
+                    <div className="flex flex-wrap gap-2 mb-4">
+                      {traitList.map((trait: string) => (
+                        <span
+                          key={trait}
+                          className="rounded-full px-3 py-1 text-xs font-medium"
+                          style={{ background: 'rgba(196, 162, 101, 0.15)', color: '#7D6232' }}
+                        >
+                          {trait}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                  {archetypeNarrative && (
+                    <p
+                      className="line-clamp-2 text-sm"
+                      style={{ color: '#8A857D', lineHeight: 1.65 }}
+                    >
+                      {archetypeNarrative}
+                    </p>
+                  )}
+                </div>
+
+                {/* Flower — 38% */}
+                <div className="flex-shrink-0 hidden sm:block" style={{ width: '38%' }}>
+                  <img
+                    src="/images/backgrounds/flower-card-1.jpg"
+                    alt=""
+                    style={{ height: '200px', width: '100%', borderRadius: '16px', objectFit: 'cover' }}
+                  />
+                </div>
+              </div>
+            </motion.div>
+          )}
+
+          {/* ── 2. STATS BAR ──────────────────────────────────────────────────── */}
+          {(memoryTotal > 0 || daysSinceFirst !== null || platformCount > 0) && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ duration: 0.4, delay: 0.1 }}
+              className="py-8 flex items-center gap-4 flex-wrap"
+              style={{ borderBottom: '1px solid rgba(0,0,0,0.08)' }}
+            >
+              {memoryTotal > 0 && (
+                <span
+                  className="uppercase tracking-widest"
+                  style={{ fontSize: '12px', color: '#8A857D', fontFamily: 'Geist, sans-serif' }}
+                >
+                  {formattedMemories}
+                </span>
+              )}
+              {memoryTotal > 0 && daysSinceFirst !== null && (
+                <span style={{ color: '#C4A265', fontSize: '10px' }}>&#8226;</span>
+              )}
+              {daysSinceFirst !== null && (
+                <span
+                  className="uppercase tracking-widest"
+                  style={{ fontSize: '12px', color: '#8A857D', fontFamily: 'Geist, sans-serif' }}
+                >
+                  {daysSinceFirst} days of data
+                </span>
+              )}
+              {((memoryTotal > 0 || daysSinceFirst !== null) && platformCount > 0) && (
+                <span style={{ color: '#C4A265', fontSize: '10px' }}>&#8226;</span>
+              )}
+              {platformCount > 0 && (
+                <span
+                  className="uppercase tracking-widest"
+                  style={{ fontSize: '12px', color: '#8A857D', fontFamily: 'Geist, sans-serif' }}
+                >
+                  {platformCount} {platformCount === 1 ? 'platform' : 'platforms'} connected
+                </span>
+              )}
+            </motion.div>
+          )}
+
+          {/* ── 3. DOMAIN CHAPTERS ────────────────────────────────────────────── */}
+          {domains && (
+            <motion.div
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, delay: 0.15 }}
+            >
+              {Object.keys(DOMAIN_CONFIG).map(key => {
+                const text = domains[key];
+                if (!text) return null;
+                return <DomainSection key={key} domainKey={key} text={text} />;
+              })}
+            </motion.div>
+          )}
+
+          {/* ── 4. TWIN REFLECTIONS ───────────────────────────────────────────── */}
+          {(portrait?.reflections?.length ?? 0) > 0 && (
+            <motion.div
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, delay: 0.2 }}
+              className="py-12"
+              style={{ borderBottom: '1px solid rgba(0,0,0,0.08)' }}
+            >
+              <p
+                className="text-xs font-semibold uppercase tracking-widest mb-6"
+                style={{ color: '#8A857D' }}
+              >
+                What Your Twin Sees
+              </p>
+              <div className="flex flex-col gap-5">
+                {portrait!.reflections.slice(0, 3).map((r, i) => (
+                  <div key={i} className="flex gap-4 items-start">
+                    <div
+                      className="flex-shrink-0 mt-1"
+                      style={{ width: '2px', height: '40px', background: 'rgba(196, 162, 101, 0.35)', borderRadius: '1px' }}
+                    />
+                    <div>
+                      <p style={{ fontSize: '14px', color: '#44403c', lineHeight: 1.65 }}>
+                        {r.content}
                       </p>
-                    )}
-                    {traitList.length > 0 && (
-                      <div className="flex flex-wrap gap-1.5 mb-3">
-                        {traitList.map((trait: string) => (
-                          <span
-                            key={trait}
-                            className="rounded-full px-2.5 py-0.5 text-xs font-medium"
-                            style={{ background: 'rgba(196, 162, 101, 0.12)', color: '#7D6232' }}
-                          >
-                            {trait}
-                          </span>
-                        ))}
-                      </div>
-                    )}
-                    {narrative && (
-                      <p className="text-sm line-clamp-2" style={{ color: colors.textMuted }}>
-                        {narrative}
-                      </p>
-                    )}
+                      {r.expert && (
+                        <p className="mt-1 uppercase tracking-widest" style={{ fontSize: '10px', color: '#8A857D' }}>
+                          {r.expert}
+                        </p>
+                      )}
+                    </div>
                   </div>
-                </div>
+                ))}
               </div>
-            );
-          })()}
-        </>
-      )}
-
-      {/* Bento grid layout */}
-      {hasData && portrait && (
-        <>
-          {/* ── Row 1: Hero (2/3) + Stats (1/3) ── */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mb-8">
-            {portrait.twinSummary ? (
-              <div className="lg:col-span-2">
-                <BentoHero data={portrait.twinSummary} />
-              </div>
-            ) : (
-              <div className="lg:col-span-2" />
-            )}
-            <BentoStatsTile
-              stats={portrait.memoryStats}
-              firstMemoryAt={portrait.firstMemoryAt}
-              connectedPlatforms={whitelistedPlatforms}
-            />
-          </div>
-
-          {/* ── Row 2: Personality + Lifestyle + Spotify/Cultural Identity ── */}
-          {portrait.twinSummary && (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mb-8">
-              <BentoDomainTile
-                domainKey="personality"
-                domains={portrait.twinSummary.domains}
-                animationDelay={0.05}
-              />
-              <BentoDomainTile
-                domainKey="lifestyle"
-                domains={portrait.twinSummary.domains}
-                animationDelay={0.1}
-              />
-              {activePlatforms.includes('spotify') ? (
-                <BentoPlatformTile
-                  platform="spotify"
-                  platformData={portrait.platformData}
-                  connectedPlatforms={portrait.connectedPlatforms}
-                  animationDelay={0.15}
-                />
-              ) : (
-                <BentoDomainTile
-                  domainKey="culturalIdentity"
-                  domains={portrait.twinSummary.domains}
-                  animationDelay={0.15}
-                />
-              )}
-            </div>
+            </motion.div>
           )}
 
-          {/* ── Row 3: Cultural Identity + Social Dynamics + Motivation ── */}
-          {portrait.twinSummary && (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mb-8">
-              {activePlatforms.includes('spotify') && (
-                <BentoDomainTile
-                  domainKey="culturalIdentity"
-                  domains={portrait.twinSummary.domains}
-                  animationDelay={0.1}
-                />
-              )}
-              <BentoDomainTile
-                domainKey="socialDynamics"
-                domains={portrait.twinSummary.domains}
-                animationDelay={0.15}
-              />
-              <BentoDomainTile
-                domainKey="motivation"
-                domains={portrait.twinSummary.domains}
-                animationDelay={0.2}
-              />
-            </div>
-          )}
-
-          {/* ── Row 3b: Platform insight tiles (Calendar + YouTube + Discord + LinkedIn + Whoop) ── */}
-          {(activePlatforms.includes('calendar') || activePlatforms.includes('youtube') ||
-            activePlatforms.includes('discord') || activePlatforms.includes('linkedin') ||
-            activePlatforms.includes('whoop')) && (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mb-8">
-              {activePlatforms.includes('calendar') && (
-                <BentoPlatformTile
-                  platform="calendar"
-                  platformData={portrait.platformData}
-                  connectedPlatforms={portrait.connectedPlatforms}
-                  animationDelay={0.1}
-                />
-              )}
-              {activePlatforms.includes('youtube') && (
-                <BentoPlatformTile
-                  platform="youtube"
-                  platformData={portrait.platformData}
-                  connectedPlatforms={portrait.connectedPlatforms}
-                  animationDelay={0.15}
-                />
-              )}
-              {activePlatforms.includes('discord') && (
-                <BentoPlatformTile
-                  platform="discord"
-                  platformData={portrait.platformData}
-                  connectedPlatforms={portrait.connectedPlatforms}
-                  animationDelay={0.2}
-                />
-              )}
-              {activePlatforms.includes('linkedin') && (
-                <BentoPlatformTile
-                  platform="linkedin"
-                  platformData={portrait.platformData}
-                  connectedPlatforms={portrait.connectedPlatforms}
-                  animationDelay={0.25}
-                />
-              )}
-              {activePlatforms.includes('whoop') && (
-                <BentoPlatformTile
-                  platform="whoop"
-                  platformData={portrait.platformData}
-                  connectedPlatforms={portrait.connectedPlatforms}
-                  animationDelay={0.3}
-                />
-              )}
-            </div>
-          )}
-
-          {/* ── Row 4: Insights (2/3) + Goals (1/3) ── */}
-          {(portrait.insights.length > 0 || portrait.goals.length > 0) && (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mb-8">
-              {portrait.insights.length > 0 && (
-                <div className="lg:col-span-2">
-                  <BentoInsightsTile insights={portrait.insights} animationDelay={0.1} />
-                </div>
-              )}
-              {portrait.goals.length > 0 && (
-                <BentoGoalsTile goals={portrait.goals} animationDelay={0.15} />
-              )}
-            </div>
-          )}
-
-          {/* ── Row 5: Expert Analysis — full width ── */}
-          {portrait.reflections.length > 0 && (
-            <div className="mb-8">
-              <BentoExpertSpotlight
-                reflections={portrait.reflections}
-                animationDelay={0.08}
-              />
-            </div>
-          )}
-
-          {/* ── Big Five — collapsible, secondary ── */}
-          {portrait.personalityScores && (
-            <div className="mb-8">
+          {/* ── 5. BIG FIVE ───────────────────────────────────────────────────── */}
+          {portrait?.personalityScores && (
+            <motion.div
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, delay: 0.25 }}
+              className="mb-8"
+            >
               <BigFivePanel
                 personalityScores={{
                   id: user.id,
@@ -460,20 +548,28 @@ const SoulSignatureDashboard: React.FC = () => {
                 onNavigateToBigFive={() => navigate('/big-five')}
                 colors={colors}
               />
-            </div>
+            </motion.div>
           )}
 
-          {/* ── Soul Signature Evolution — personality growth over time ── */}
-          <div className="mb-8">
+          {/* ── 6. EVOLUTION SECTION ──────────────────────────────────────────── */}
+          <motion.div
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.3 }}
+            className="mb-8"
+          >
             <EvolutionSection />
-          </div>
+          </motion.div>
 
-          {/* ── Memory stream footer — full width ── */}
-          <MemoryStreamFooter
-            stats={portrait.memoryStats}
-            firstMemoryAt={portrait.firstMemoryAt}
-          />
-        </>
+          {/* ── 7. MEMORY FOOTER ──────────────────────────────────────────────── */}
+          {portrait && (
+            <MemoryStreamFooter
+              stats={portrait.memoryStats}
+              firstMemoryAt={portrait.firstMemoryAt}
+            />
+          )}
+
+        </div>
       )}
     </PageLayout>
   );

@@ -12,10 +12,6 @@ import { motion } from 'framer-motion';
 import { useAuth } from '../contexts/AuthContext';
 import { authFetch } from '@/services/api/apiBase';
 import {
-  TrendingUp,
-  AlertCircle,
-  Trophy,
-  AlertTriangle,
   MessageCircle,
   Eye,
   Loader2,
@@ -35,20 +31,6 @@ interface ChatContextResponse {
   pendingInsights: ProactiveInsight[];
 }
 
-const categoryConfig: Record<string, { icon: React.ElementType; label: string }> = {
-  trend: { icon: TrendingUp, label: 'Trend' },
-  anomaly: { icon: AlertCircle, label: 'Anomaly' },
-  celebration: { icon: Trophy, label: 'Celebration' },
-  concern: { icon: AlertTriangle, label: 'Concern' },
-  goal_progress: { icon: TrendingUp, label: 'Goal Progress' },
-  goal_suggestion: { icon: AlertCircle, label: 'Goal Idea' },
-};
-
-const urgencyColors: Record<string, { dot: string; bg: string }> = {
-  high: { dot: '#ef4444', bg: 'rgba(239, 68, 68, 0.1)' },
-  medium: { dot: '#f59e0b', bg: 'rgba(245, 158, 11, 0.1)' },
-  low: { dot: '#22c55e', bg: 'rgba(34, 197, 94, 0.1)' },
-};
 
 function formatRelativeTime(dateStr: string): string {
   const now = Date.now();
@@ -168,11 +150,6 @@ export const ProactiveInsightsPanel: React.FC = () => {
       {/* Insight Cards */}
       <div className="space-y-3">
         {insights.map((insight, idx) => {
-          const config = categoryConfig[insight.category] || categoryConfig.trend;
-          const Icon = config.icon;
-          const colors = urgencyColors[insight.urgency] || urgencyColors.low;
-          const isEngaged = engagedIds.has(insight.id);
-
           return (
             <motion.div
               key={insight.id}
@@ -182,56 +159,15 @@ export const ProactiveInsightsPanel: React.FC = () => {
             >
               <GlassPanel className="relative">
                 <div className="flex items-start gap-3">
-                  {/* Category Icon + Urgency Dot */}
-                  <div className="relative flex-shrink-0">
-                    <div
-                      className="w-10 h-10 rounded-lg flex items-center justify-center"
-                      style={{
-                        backgroundColor: 'rgba(0, 0, 0, 0.04)',
-                      }}
-                    >
-                      <Icon
-                        className="w-5 h-5"
-                        style={{ color: '#8A857D' }}
-                      />
-                    </div>
-                    {/* Urgency dot — turns green once engaged */}
-                    <div
-                      className="absolute -top-1 -right-1 w-3 h-3 rounded-full border-2 transition-colors duration-300"
-                      style={{
-                        backgroundColor: isEngaged ? '#22c55e' : colors.dot,
-                        borderColor: '#fcf6ef',
-                      }}
-                    />
-                  </div>
-
                   {/* Content */}
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-1">
-                      <span
-                        className="text-[10px] uppercase tracking-wider font-medium"
-                        style={{ color: '#8A857D' }}
-                      >
-                        {config.label}
-                      </span>
                       <span
                         className="text-[10px]"
                         style={{ color: '#d6d3d1' }}
                       >
                         {formatRelativeTime(insight.created_at)}
                       </span>
-                      {/* Subtle "seen" badge once engaged */}
-                      {isEngaged && (
-                        <span
-                          className="text-[10px] px-1.5 py-0.5 rounded"
-                          style={{
-                            backgroundColor: 'rgba(34, 197, 94, 0.1)',
-                            color: '#22c55e',
-                          }}
-                        >
-                          seen
-                        </span>
-                      )}
                     </div>
                     <p
                       className="text-sm leading-relaxed"
