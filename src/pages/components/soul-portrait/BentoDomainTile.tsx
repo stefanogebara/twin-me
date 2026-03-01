@@ -18,9 +18,12 @@ const DOMAIN_CONFIG: Record<DomainKey, {
   motivation:      { label: 'Motivation',         clayIcon: 'trophy',     color: '#F39C12' },
 };
 
-function extractFirstSentence(text: string): string {
-  const match = text.match(/^.*?[.!?](?:\s|$)/);
-  return match ? match[0].trim() : text.slice(0, 120).trim();
+const PREVIEW_LIMIT = 140;
+
+function extractPreview(text: string): string {
+  if (text.length <= PREVIEW_LIMIT) return text;
+  const cut = text.lastIndexOf(' ', PREVIEW_LIMIT);
+  return text.slice(0, cut > 0 ? cut : PREVIEW_LIMIT).trimEnd() + '…';
 }
 
 interface Props {
@@ -36,8 +39,8 @@ export const BentoDomainTile: React.FC<Props> = ({ domainKey, domains, animation
   if (!content) return null;
 
   const config = DOMAIN_CONFIG[domainKey];
-  const preview = extractFirstSentence(content);
-  const hasMore = content !== preview;
+  const preview = extractPreview(content);
+  const hasMore = content.length > PREVIEW_LIMIT;
 
   return (
     <motion.div
