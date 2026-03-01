@@ -77,7 +77,7 @@ router.post('/webhook', express.raw({ type: 'application/json' }), async (req, r
 // GET /api/billing/subscription
 router.get('/subscription', authenticateToken, async (req, res) => {
   try {
-    const sub = await getUserSubscription(req.userId);
+    const sub = await getUserSubscription(req.user?.id);
     res.json({ subscription: sub });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -95,17 +95,17 @@ router.post('/checkout', authenticateToken, async (req, res) => {
 
   try {
     const { data: existingSub } = await supabaseAdmin
-      .from('user_subscriptions').select('stripe_customer_id').eq('user_id', req.userId).single();
+      .from('user_subscriptions').select('stripe_customer_id').eq('user_id', req.user?.id).single();
     const { data: user } = await supabaseAdmin
-      .from('users').select('email, first_name').eq('id', req.userId).single();
+      .from('users').select('email, first_name').eq('id', req.user?.id).single();
 
     let customerId = existingSub?.stripe_customer_id;
     if (!customerId) {
       const customer = await stripe.customers.create({
-        email: user.email, name: user.first_name, metadata: { userId: req.userId },
+        email: user.email, name: user.first_name, metadata: { userId: req.user?.id },
       });
       customerId = customer.id;
-      await supabaseAdmin.from('user_subscriptions').update({ stripe_customer_id: customerId }).eq('user_id', req.userId);
+      await supabaseAdmin.from('user_subscriptions').update({ stripe_customer_id: customerId }).eq('user_id', req.user?.id);
     }
 
     const session = await stripe.checkout.sessions.create({
@@ -115,7 +115,7 @@ router.post('/checkout', authenticateToken, async (req, res) => {
       line_items: [{ price: priceId, quantity: 1 }],
       success_url: `${APP_URL}/me?upgraded=1`,
       cancel_url: `${APP_URL}/me?upgrade_canceled=1`,
-      metadata: { userId: req.userId, plan },
+      metadata: { userId: req.user?.id, plan },
     });
 
     res.json({ url: session.url });
@@ -129,7 +129,7 @@ router.post('/checkout', authenticateToken, async (req, res) => {
 router.post('/portal', authenticateToken, async (req, res) => {
   try {
     const { data: sub } = await supabaseAdmin
-      .from('user_subscriptions').select('stripe_customer_id').eq('user_id', req.userId).single();
+      .from('user_subscriptions').select('stripe_customer_id').eq('user_id', req.user?.id).single();
     if (!sub?.stripe_customer_id) return res.status(400).json({ error: 'No billing account found' });
 
     const session = await stripe.billingPortal.sessions.create({

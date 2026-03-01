@@ -1,8 +1,9 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { PageLayout } from '@/components/layout/PageLayout';
 import { authFetch } from '@/services/api/apiBase';
+import { useAuth } from '@/contexts/AuthContext';
 import DeepInterview from './onboarding/components/DeepInterview';
 
 function getUserIdFromToken(): string | null {
@@ -16,41 +17,24 @@ function getUserIdFromToken(): string | null {
   }
 }
 
-interface EnrichmentContext {
-  name?: string;
-  company?: string;
-  title?: string;
-  location?: string;
-  bio?: string;
-}
-
 export default function InterviewPage() {
   const navigate = useNavigate();
-  const [enrichmentContext, setEnrichmentContext] = useState<EnrichmentContext>({});
+  const { user } = useAuth();
   const [alreadyDone, setAlreadyDone] = useState(false);
   const [loading, setLoading] = useState(true);
+  const initRan = useRef(false);
+
+  // Build enrichment context from AuthContext user — no extra API call needed
+  const enrichmentContext = {
+    name: user ? `${user.firstName || ''} ${user.lastName || ''}`.trim() || user.email : undefined,
+  };
 
   useEffect(() => {
-    const init = async () => {
-      try {
-        // Fetch user profile for enrichment context
-        const profileRes = await authFetch('/user/profile');
-        if (profileRes.ok) {
-          const profile = await profileRes.json();
-          setEnrichmentContext({
-            name: profile.name || profile.full_name,
-            company: profile.company,
-            title: profile.title || profile.job_title,
-            location: profile.location,
-            bio: profile.bio,
-          });
-        }
-      } catch {
-        // Non-fatal — interview works without enrichment context
-      }
+    if (initRan.current) return;
+    initRan.current = true;
 
+    const checkCompletion = async () => {
       try {
-        // Check if interview already completed
         const userId = getUserIdFromToken();
         if (userId) {
           const res = await authFetch(`/onboarding/calibration-data/${userId}`);
@@ -61,24 +45,25 @@ export default function InterviewPage() {
         }
       } catch {
         // Non-fatal
+      } finally {
+        setLoading(false);
       }
-
-      setLoading(false);
     };
-    init();
+
+    checkCompletion();
   }, []);
 
   const handleComplete = () => {
-    navigate('/soul-signature');
+    navigate('/dashboard');
   };
 
   const handleSkip = () => {
-    navigate('/soul-signature');
+    navigate('/dashboard');
   };
 
   if (loading) {
     return (
-      <PageLayout title="Deep Interview">
+      <PageLayout title="Tell Your Story">
         <div className="flex items-center justify-center h-64">
           <div className="w-6 h-6 border-2 border-current border-t-transparent rounded-full animate-spin opacity-40" />
         </div>
@@ -88,7 +73,7 @@ export default function InterviewPage() {
 
   if (alreadyDone) {
     return (
-      <PageLayout title="Deep Interview">
+      <PageLayout title="Tell Your Story">
         <motion.div
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
@@ -98,20 +83,14 @@ export default function InterviewPage() {
             Your story is already in.
           </p>
           <p className="mb-8" style={{ color: '#8A857D' }}>
-            Your twin has your deep interview context. You can take it again to update your portrait.
+            Your twin has your interview context. You can redo it to update your portrait.
           </p>
           <div className="flex gap-3 justify-center">
-            <button
-              onClick={() => setAlreadyDone(false)}
-              className="btn-cta-app"
-            >
+            <button onClick={() => setAlreadyDone(false)} className="btn-cta-app">
               Redo Interview
             </button>
-            <button
-              onClick={() => navigate('/soul-signature')}
-              className="btn-glass-app"
-            >
-              View Portrait
+            <button onClick={() => navigate('/dashboard')} className="btn-glass-app">
+              Back to Home
             </button>
           </div>
         </motion.div>
@@ -120,18 +99,22 @@ export default function InterviewPage() {
   }
 
   return (
-    <PageLayout title="Deep Interview">
+    <PageLayout title="Tell Your Story">
       <div className="max-w-2xl mx-auto">
-        <div className="mb-6">
-          <p className="text-sm" style={{ color: '#8A857D' }}>
-            12-18 questions across 5 life domains. Your answers seed your twin with the context no platform data can capture.
-          </p>
+        <p className="text-sm mb-6" style={{ color: '#8A857D' }}>
+          12-18 questions across 5 life domains. Your answers seed your twin with the context no platform data can capture.
+        </p>
+        {/* Dark container — DeepInterview uses cream (#E8D5B7) text designed for dark backgrounds */}
+        <div
+          className="rounded-2xl p-6"
+          style={{ backgroundColor: '#1a1814', border: '1px solid rgba(232,213,183,0.1)' }}
+        >
+          <DeepInterview
+            enrichmentContext={enrichmentContext}
+            onComplete={handleComplete}
+            onSkip={handleSkip}
+          />
         </div>
-        <DeepInterview
-          enrichmentContext={enrichmentContext}
-          onComplete={handleComplete}
-          onSkip={handleSkip}
-        />
       </div>
     </PageLayout>
   );

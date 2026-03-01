@@ -944,7 +944,9 @@ router.get('/today-insights', authenticateUser, async (req, res) => {
         type: 'content',
         title: 'Your Content World',
         summary: yt.subscriptionCount > 0
-          ? `${yt.subscriptionCount} subscriptions across ${yt.contentCategories?.length || 0} interest areas`
+          ? yt.contentCategories?.length > 0
+            ? `${yt.subscriptionCount} subscriptions across ${yt.contentCategories.length} interest areas`
+            : `${yt.subscriptionCount} subscriptions`
           : `Following ${topChannelList}`,
         detail: yt.contentProfile || 'Your YouTube activity reveals your curiosities and learning patterns.',
         platforms: ['youtube'],
