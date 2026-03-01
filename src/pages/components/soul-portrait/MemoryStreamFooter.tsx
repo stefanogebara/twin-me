@@ -13,10 +13,10 @@ export const MemoryStreamFooter: React.FC<Props> = ({ stats, firstMemoryAt }) =>
     : null;
 
   const items = [
-    { icon: Database, label: 'Memories', value: stats.total.toLocaleString() },
-    { icon: Cpu, label: 'Reflections', value: (stats.byType?.reflection || 0).toLocaleString() },
-    { icon: MessageSquare, label: 'Conversations', value: (stats.byType?.conversation || 0).toLocaleString() },
-    { icon: Eye, label: 'Observations', value: ((stats.byType?.observation || 0) + (stats.byType?.platform_data || 0)).toLocaleString() },
+    { icon: Database, label: 'Memories', value: stats.total.toLocaleString('en-US') },
+    { icon: Cpu, label: 'Reflections', value: (stats.byType?.reflection || 0).toLocaleString('en-US') },
+    { icon: MessageSquare, label: 'Conversations', value: (stats.byType?.conversation || 0).toLocaleString('en-US') },
+    { icon: Eye, label: 'Observations', value: ((stats.byType?.observation || 0) + (stats.byType?.platform_data || 0)).toLocaleString('en-US') },
   ];
 
   if (stats.total === 0 && !twinAge) return null;

@@ -112,7 +112,7 @@ export default function MemoryHealth() {
             <div>
               <h1 className="text-xl font-semibold text-stone-900">Memory Stream Health</h1>
               <p className="text-sm text-stone-500">
-                {data ? `${data.totalCount.toLocaleString()} memories total` : 'Loading...'}
+                {data ? `${data.totalCount.toLocaleString('en-US')} memories total` : 'Loading...'}
               </p>
             </div>
           </div>
@@ -172,7 +172,7 @@ export default function MemoryHealth() {
                 <div className="text-2xl font-bold text-stone-900">
                   {(data.stalePct * 100).toFixed(1)}%
                 </div>
-                <div className="text-xs text-stone-400 mt-1">{data.staleCount.toLocaleString()} older than 90 days</div>
+                <div className="text-xs text-stone-400 mt-1">{data.staleCount.toLocaleString('en-US')} older than 90 days</div>
               </div>
 
               <div className="bg-white rounded-xl border border-stone-200 p-4">
@@ -211,14 +211,14 @@ export default function MemoryHealth() {
                         <Cell key={entry.type} fill={TYPE_COLORS[entry.type] || '#9CA3AF'} />
                       ))}
                     </Pie>
-                    <Tooltip formatter={(val: number) => [val.toLocaleString(), 'count']} />
+                    <Tooltip formatter={(val: number) => [val.toLocaleString('en-US'), 'count']} />
                   </PieChart>
                 </ResponsiveContainer>
                 <div className="flex flex-wrap gap-3 mt-3">
                   {pieData.map(d => (
                     <div key={d.type} className="flex items-center gap-1.5 text-xs text-stone-600">
                       <div className="w-2.5 h-2.5 rounded-sm" style={{ background: TYPE_COLORS[d.type] || '#9CA3AF' }} />
-                      {d.name}: {d.value.toLocaleString()}
+                      {d.name}: {d.value.toLocaleString('en-US')}
                     </div>
                   ))}
                 </div>

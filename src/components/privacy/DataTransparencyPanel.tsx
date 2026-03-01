@@ -149,7 +149,7 @@ export const DataTransparencyPanel: React.FC<DataTransparencyPanelProps> = ({
             </span>
           </div>
           <p className="text-3xl font-heading font-bold" style={{ color: '#000000' }}>
-            {totalDataPoints.toLocaleString()}
+            {totalDataPoints.toLocaleString('en-US')}
           </p>
           <p className="text-xs mt-1 font-ui" style={{ color: '#8A857D' }}>
             moments captured
@@ -253,7 +253,7 @@ export const DataTransparencyPanel: React.FC<DataTransparencyPanelProps> = ({
                         <div className="flex items-center gap-3 text-xs text-stone-500">
                           <span className="flex items-center gap-1">
                             <Sparkles className="w-3 h-3" />
-                            {source.dataPoints.toLocaleString()} data points
+                            {source.dataPoints.toLocaleString('en-US')} data points
                           </span>
                           <span className="flex items-center gap-1">
                             <HardDrive className="w-3 h-3" />

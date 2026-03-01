@@ -222,12 +222,12 @@ Recent observations:
 More evidence from their life:
 {evidence}
 
-Write 2-3 specific observations about this person's emotional patterns. Each one should:
+Write 2-3 specific observations about their emotional patterns. Address them directly in second person ("You...", "Your..."). Each one should:
 - Point to specific evidence (name what you actually see in the data)
 - Be 1-2 sentences, plain conversational English
-- Start with "This person..."
+- Start with "You..." or "Your..." — directly addressing the person
 - Sound like something a perceptive friend would notice, NOT a clinical report
-- Use everyday language: "pulls back when overwhelmed" not "avoidant coping", "gets restless when things are too structured" not "low tolerance for constraint", "uses music to shift their mood" not "employs hedonic regulation"
+- Use everyday language: "You pull back when overwhelmed" not "avoidant coping", "You get restless when things are too structured" not "low tolerance for constraint", "You use music to shift your mood" not "employs hedonic regulation"
 
 If there's not enough data for a genuine insight, return "INSUFFICIENT_EVIDENCE".
 
@@ -247,12 +247,12 @@ Recent observations:
 More evidence from their life:
 {evidence}
 
-Write 2-3 specific observations about this person's lifestyle patterns. Each one should:
+Write 2-3 specific observations about their lifestyle patterns. Address them directly in second person ("You...", "Your..."). Each one should:
 - Point to specific evidence (name what you actually see in the data)
 - Be 1-2 sentences, plain conversational English
-- Start with "This person..."
+- Start with "You..." or "Your..." — directly addressing the person
 - Sound like something a perceptive friend would notice, NOT a wellness consultant's report
-- Use everyday language: "tends to go harder on days they slept well" not "demonstrates biometric-behavioral correlation", "blocks off mornings for focused work" not "exhibits high conscientiousness temporal allocation"
+- Use everyday language: "You tend to go harder on days you slept well" not "demonstrates biometric-behavioral correlation", "You block off mornings for focused work" not "exhibits high conscientiousness temporal allocation"
 - Find the cross-platform connections: how their sleep affects their playlist, how packed their calendar is vs how they're feeling
 
 If there's not enough data for a genuine insight, return "INSUFFICIENT_EVIDENCE".
@@ -273,12 +273,12 @@ Recent observations:
 More evidence from their life:
 {evidence}
 
-Write 2-3 specific observations about this person's tastes and cultural identity. Each one should:
+Write 2-3 specific observations about their tastes and cultural identity. Address them directly in second person ("You...", "Your..."). Each one should:
 - Point to specific evidence (name the actual artists, genres, content you see)
 - Be 1-2 sentences, plain conversational English
-- Start with "This person..."
+- Start with "You..." or "Your..." — directly addressing the person
 - Sound like something a music-savvy friend would notice, NOT a cultural studies paper
-- Use everyday language: "puts on Radiohead when they need to process something" not "utilizes emotionally complex media for affective regulation", "their taste skews toward stuff most people haven't heard of" not "demonstrates cultural capital maximization"
+- Use everyday language: "You put on Radiohead when you need to process something" not "utilizes emotionally complex media for affective regulation", "Your taste skews toward stuff most people haven't heard of" not "demonstrates cultural capital maximization"
 - Avoid over-generalizing from one data point
 
 If there's not enough data for a genuine insight, return "INSUFFICIENT_EVIDENCE".
@@ -299,12 +299,12 @@ Recent observations:
 More evidence from their life:
 {evidence}
 
-Write 2-3 specific observations about this person's social patterns. Each one should:
+Write 2-3 specific observations about their social patterns. Address them directly in second person ("You...", "Your..."). Each one should:
 - Point to specific evidence (name what you actually see in the data)
 - Be 1-2 sentences, plain conversational English
-- Start with "This person..."
+- Start with "You..." or "Your..." — directly addressing the person
 - Sound like what a close mutual friend might notice, NOT a social psychologist's assessment
-- Use everyday language: "needs serious alone time after a packed social day" not "exhibits introversion-based energy recovery patterns", "tends to keep conversations surface-level until they trust someone" not "demonstrates selective self-disclosure behavior"
+- Use everyday language: "You need serious alone time after a packed social day" not "exhibits introversion-based energy recovery patterns", "You tend to keep conversations surface-level until you trust someone" not "demonstrates selective self-disclosure behavior"
 
 If there's not enough data for a genuine insight, return "INSUFFICIENT_EVIDENCE".
 
@@ -324,12 +324,12 @@ Recent observations:
 More evidence from their life:
 {evidence}
 
-Write 2-3 specific observations about this person's motivation and drive patterns. Each one should:
+Write 2-3 specific observations about their motivation and drive patterns. Address them directly in second person ("You...", "Your..."). Each one should:
 - Point to specific evidence (name what you actually see in the data)
 - Be 1-2 sentences, plain conversational English
-- Start with "This person..."
+- Start with "You..." or "Your..." — directly addressing the person
 - Sound like something a perceptive colleague would notice, NOT a management consultant's report
-- Use everyday language: "does their best thinking late at night" not "exhibits peak cognitive performance during nocturnal periods", "gets way more done when they have a hard deadline" not "demonstrates extrinsic motivation dependency"
+- Use everyday language: "You do your best thinking late at night" not "exhibits peak cognitive performance during nocturnal periods", "You get way more done when you have a hard deadline" not "demonstrates extrinsic motivation dependency"
 - If goal data exists: note whether they actually follow through, what makes them drop off
 
 If there's not enough data for a genuine insight, return "INSUFFICIENT_EVIDENCE".
