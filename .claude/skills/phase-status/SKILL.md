@@ -149,6 +149,15 @@ When asked "what's next", "phase status", or "what should we work on", read this
 - POST /api/insights/proactive/:id/engage — fires on "Discuss" tap
 - ProactiveInsightsPanel: green dot + "seen" badge on engaged insights
 
+### Phase C — CX Audit + Interview Surface ✅ DONE (2026-03-01)
+
+- Interview flow surfaced: Dashboard CTA card + sidebar "Tell Your Story" link
+- Twin chat context renamed to `[YOUR STORY]` block
+- Gmail observation generator smoke-tested (google_gmail → user_memories confirmed)
+- Interview page UX: fixed double-question bug (initRan ref), dark container contrast, wrong redirects, broken /api/user/profile 404
+- **Billing root-cause fix**: `req.userId` was `undefined` in billing.js (should be `req.user?.id`) — subscription check always returned `free`, paywall never triggered correctly. Now fixed.
+- YouTube insight text: "50 subscriptions across 0 interest areas" → "50 subscriptions"
+
 ---
 
 ## WHAT'S NEXT — Phase 7
