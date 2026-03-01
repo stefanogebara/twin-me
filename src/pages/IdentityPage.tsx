@@ -200,6 +200,8 @@ const ExpertSection: React.FC<ExpertSectionProps> = ({ config, bullets }) => {
 const IdentityPage: React.FC = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const [summaryExpanded, setSummaryExpanded] = useState(false);
+  const [archetypeExpanded, setArchetypeExpanded] = useState(false);
 
   useEffect(() => {
     if (!user) navigate('/auth');
@@ -253,9 +255,6 @@ const IdentityPage: React.FC = () => {
   const profile = data?.data?.profile ?? null;
   const expertInsights = data?.data?.expertInsights ?? {};
   const summary = data?.data?.summary ?? null;
-
-  const [summaryExpanded, setSummaryExpanded] = useState(false);
-  const [archetypeExpanded, setArchetypeExpanded] = useState(false);
 
   const hasAnyData = !!(
     summary ||
