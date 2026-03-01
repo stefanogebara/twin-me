@@ -1,5 +1,5 @@
 import React from 'react';
-import { Sparkles, MessageSquare, Plug } from 'lucide-react';
+import { Sparkles, MessageSquare, Plug, BookOpen } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { GlassPanel } from '@/components/layout/PageLayout';
 
@@ -31,8 +31,15 @@ export const PortraitEmptyState: React.FC = () => {
 
       <div className="flex flex-col sm:flex-row gap-3 justify-center">
         <button
-          onClick={() => navigate('/dashboard')}
+          onClick={() => navigate('/interview')}
           className="btn-cta-app flex items-center justify-center gap-2"
+        >
+          <BookOpen className="w-4 h-4" />
+          Tell Your Story
+        </button>
+        <button
+          onClick={() => navigate('/dashboard')}
+          className="btn-glass-app flex items-center justify-center gap-2"
         >
           <Plug className="w-4 h-4" />
           Connect Platforms
