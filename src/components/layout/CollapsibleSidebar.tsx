@@ -45,6 +45,7 @@ const mainNavItems: NavItem[] = [
 
 // Everything else — shown in a collapsible "More" section
 const moreNavItems: NavItem[] = [
+  { id: 'interview',    label: 'Tell Your Story', icon: BookOpen,   path: '/interview' },
   { id: 'identity',     label: 'Who You Are',    icon: Fingerprint, path: '/identity' },
   { id: 'goals',        label: 'Goals',          icon: Target,   path: '/goals' },
   { id: 'brain',        label: "Twin's Brain",   icon: Brain,    path: '/brain' },

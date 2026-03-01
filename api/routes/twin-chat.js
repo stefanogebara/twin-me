@@ -223,7 +223,7 @@ async function fetchCalibrationContext(userId) {
     }
 
     if (lines.length === 0) return null;
-    return `[DEEP INTERVIEW — ${data.questions_asked || '?'} questions across ${Object.keys(data.domain_progress || {}).length} domains]\n${lines.join('\n')}`;
+    return `[YOUR STORY — told in ${data.questions_asked || '?'} questions]\n${lines.join('\n')}`;
   } catch (err) {
     console.warn('[Twin Chat] Calibration context fetch failed (non-fatal):', err.message);
     return null;

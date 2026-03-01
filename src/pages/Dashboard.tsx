@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
-import { AlertCircle, Target, Flame, Trophy, ChevronRight, Globe } from 'lucide-react';
+import { AlertCircle, Target, Flame, Trophy, ChevronRight, Globe, BookOpen } from 'lucide-react';
 import { goalsAPI, GoalSummary } from '@/services/api/goalsAPI';
 import { PageLayout } from '@/components/layout/PageLayout';
 import { calendarAPI, CalendarEvent } from '@/services/apiService';
@@ -65,6 +65,20 @@ export const Dashboard: React.FC = () => {
     staleTime: 60 * 1000,
     enabled: !isDemoMode,
   });
+
+  // Fetch interview completion status — shown as a CTA if not done
+  const { data: interviewStatus } = useQuery<{ data: { completed_at: string | null } | null }>({
+    queryKey: ['interview-status', user?.id],
+    queryFn: async () => {
+      const res = await authFetch(`/onboarding/calibration-data/${user?.id}`);
+      if (!res.ok) throw new Error('Failed to load interview status');
+      return res.json();
+    },
+    staleTime: 10 * 60 * 1000,
+    enabled: !!user?.id && !isDemoMode,
+  });
+
+  const showInterviewCTA = !isDemoMode && interviewStatus !== undefined && !interviewStatus?.data?.completed_at;
 
   // Dismiss the check-in card locally (separate from checkedIn — allows manual dismissal)
   const [checkinDismissed, setCheckinDismissed] = useState(false);
@@ -423,6 +437,32 @@ export const Dashboard: React.FC = () => {
       <div className="mb-8">
         <TodayInsights />
       </div>
+
+      <AnimatePresence>
+        {showInterviewCTA && (
+          <motion.div
+            key="interview-cta"
+            className="mb-6"
+            initial={{ opacity: 0, y: 6 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -6, scale: 0.97 }}
+            transition={{ duration: 0.35 }}
+          >
+            <button
+              onClick={() => navigate('/interview')}
+              className="w-full text-left flex items-center gap-4 px-5 py-4 rounded-2xl transition-all hover:scale-[1.01]"
+              style={{ backgroundColor: 'rgba(196, 162, 101, 0.08)', border: '1px solid rgba(196, 162, 101, 0.25)' }}
+            >
+              <BookOpen className="w-5 h-5 flex-shrink-0" style={{ color: '#C4A265' }} />
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium" style={{ color: '#000' }}>Tell your twin your story</p>
+                <p className="text-xs mt-0.5" style={{ color: '#8A857D' }}>A 5-min interview seeds your twin with foundational context</p>
+              </div>
+              <span className="text-sm font-medium flex-shrink-0" style={{ color: '#C4A265' }}>Start →</span>
+            </button>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       <div className="mb-8">
         <ProactiveInsightsPanel />

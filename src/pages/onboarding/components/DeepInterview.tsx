@@ -60,14 +60,17 @@ const DeepInterview: React.FC<DeepInterviewProps> = ({
   const [summary, setSummary] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const initRan = useRef(false);
 
   // Auto-scroll to bottom
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
-  // Fetch first question on mount
+  // Fetch first question on mount — ref guard prevents React StrictMode double-invoke
   useEffect(() => {
+    if (initRan.current) return;
+    initRan.current = true;
     fetchNextQuestion([]);
   }, []);
 
