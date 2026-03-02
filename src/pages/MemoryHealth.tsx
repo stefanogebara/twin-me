@@ -21,6 +21,7 @@ import {
   RefreshCw,
   AlertCircle,
 } from 'lucide-react';
+import { toSecondPerson } from '@/lib/utils';
 
 interface MemoryHealthData {
   totalCount: number;
@@ -62,6 +63,15 @@ const TYPE_LABELS: Record<string, string> = {
   reflection: 'Reflections',
   conversation: 'Conversations',
   platform_data: 'Platform Data',
+  observation: 'Observations',
+};
+
+const EXPERT_LABELS: Record<string, string> = {
+  personality_psychologist: 'Personality',
+  lifestyle_analyst: 'Lifestyle',
+  cultural_identity: 'Cultural Identity',
+  social_dynamics: 'Social Dynamics',
+  motivation_analyst: 'Motivation',
 };
 
 export default function MemoryHealth() {
@@ -251,7 +261,7 @@ export default function MemoryHealth() {
                     .sort((a, b) => b[1] - a[1])
                     .map(([name, count]) => (
                       <div key={name} className="flex items-center justify-between p-3 bg-stone-50 rounded-lg">
-                        <span className="text-xs text-stone-600 leading-tight">{name}</span>
+                        <span className="text-xs text-stone-600 leading-tight">{EXPERT_LABELS[name] ?? name}</span>
                         <span className="text-sm font-semibold text-stone-900 ml-2">{count}</span>
                       </div>
                     ))}
@@ -297,7 +307,7 @@ export default function MemoryHealth() {
                       {m.importance}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm text-stone-700 leading-snug">{m.excerpt}{m.excerpt.length >= 120 ? '…' : ''}</p>
+                      <p className="text-sm text-stone-700 leading-snug">{toSecondPerson(m.excerpt)}{m.excerpt.length >= 120 ? '…' : ''}</p>
                       <div className="flex items-center gap-3 mt-1">
                         <span className="text-xs text-stone-400">{TYPE_LABELS[m.type] || m.type}</span>
                         <span className="text-xs text-stone-400">·</span>

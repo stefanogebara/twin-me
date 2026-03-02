@@ -40,6 +40,7 @@ router.get('/', authenticateUser, async (req, res) => {
 
     // Run all queries in parallel (readiness score runs alongside DB queries)
     const [
+      totalCountResult,
       compositionResult,
       retrievalResult,
       staleResult,
@@ -50,7 +51,13 @@ router.get('/', authenticateUser, async (req, res) => {
       topMemoriesResult,
       readinessResult,
     ] = await Promise.all([
-      // 1. Composition + avg importance by type
+      // 0. Exact total count (Supabase caps SELECT data at 1000 rows)
+      supabaseAdmin
+        .from('user_memories')
+        .select('*', { count: 'exact', head: true })
+        .eq('user_id', userId),
+
+      // 1. Composition + avg importance by type (sample up to 1000 for breakdown)
       supabaseAdmin
         .from('user_memories')
         .select('memory_type, importance_score')
@@ -122,7 +129,8 @@ router.get('/', authenticateUser, async (req, res) => {
 
     // Process composition
     const rows = compositionResult.data || [];
-    const totalCount = rows.length;
+    // Use the exact COUNT query — SELECT data is capped at 1000 rows by Supabase default
+    const totalCount = totalCountResult.count ?? rows.length;
     const composition = {};
     const importanceSums = {};
     const importanceCounts = {};

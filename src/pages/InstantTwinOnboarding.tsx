@@ -791,12 +791,6 @@ const InstantTwinOnboarding = () => {
                 >
                   Upload historical data
                 </h3>
-                <p
-                  className="text-xs leading-relaxed"
-                  style={{ color: colors.muted, fontFamily: 'var(--font-body)' }}
-                >
-                  Import years of history the live API can't provide — Spotify extended plays, Google searches, Apple Health, and more.
-                </p>
               </div>
               <DataUploadPanel userId={user.id} />
             </GlassPanel>
