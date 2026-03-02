@@ -51,7 +51,7 @@ const DataConsentSettings: React.FC<DataConsentSettingsProps> = ({
             backgroundColor: 'rgba(0, 0, 0, 0.02)',
           }}
         >
-          No active consents. Connect a platform to get started.
+          Platform access is managed through your connected platforms above. You can disconnect any platform at any time to revoke access.
         </div>
       ) : (
         <div className="space-y-2">
