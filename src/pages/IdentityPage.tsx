@@ -31,6 +31,7 @@ import {
   AlertCircle,
   ChevronDown,
 } from 'lucide-react';
+import { toSecondPerson } from '@/lib/utils';
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
@@ -70,8 +71,8 @@ interface IdentityData {
 type ExpertKey =
   | 'personality_psychologist'
   | 'lifestyle_analyst'
-  | 'cultural_identity_expert'
-  | 'social_dynamics_analyst'
+  | 'cultural_identity'
+  | 'social_dynamics'
   | 'motivation_analyst';
 
 interface ExpertConfig {
@@ -98,14 +99,14 @@ const EXPERT_SECTIONS: ExpertConfig[] = [
     bgColor: 'rgba(16, 185, 129, 0.1)',
   },
   {
-    key: 'cultural_identity_expert',
+    key: 'cultural_identity',
     label: 'Your Cultural DNA',
     Icon: Music,
     color: '#F59E0B',
     bgColor: 'rgba(245, 158, 11, 0.1)',
   },
   {
-    key: 'social_dynamics_analyst',
+    key: 'social_dynamics',
     label: 'How You Connect',
     Icon: Users,
     color: '#3B82F6',
@@ -181,7 +182,7 @@ const ExpertSection: React.FC<ExpertSectionProps> = ({ config, bullets }) => {
             {bullets.map((bullet, i) => (
               <li key={i} className="flex gap-2 text-sm leading-relaxed text-gray-700">
                 <span className="mt-1.5 flex-shrink-0 w-1.5 h-1.5 rounded-full" style={{ backgroundColor: color }} />
-                <span>{bullet}</span>
+                <span>{toSecondPerson(bullet)}</span>
               </li>
             ))}
           </ul>
