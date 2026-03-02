@@ -102,7 +102,7 @@ export default function InterviewPage() {
     <PageLayout title="Tell Your Story">
       <div className="max-w-2xl mx-auto">
         <p className="text-sm mb-6" style={{ color: '#8A857D' }}>
-          12-18 questions across 5 life domains. Your answers seed your twin with the context no platform data can capture.
+          A quick conversation across 5 life domains. Your answers seed your twin with the context no platform data can capture.
         </p>
         {/* Dark container — DeepInterview uses cream (#E8D5B7) text designed for dark backgrounds */}
         <div
