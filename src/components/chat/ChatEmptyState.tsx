@@ -87,8 +87,8 @@ export const ChatEmptyState = ({
         transition={{ duration: 0.4, delay: 0.25, ease: [0.4, 0, 0.2, 1] }}
       >
         {connectedPlatforms.length > 0
-          ? "Ask me about your patterns, preferences, or get personalized recommendations based on your connected data."
-          : "Your twin learns from your platforms -- music, health, calendar, social, and more -- to understand your soul signature."
+          ? "Ask me anything about yourself — I know your Spotify, Calendar, and more. Try: \"What have you noticed about me this week?\""
+          : "Your twin learns from your platforms — music, calendar, social, and more — to understand your soul signature."
         }
       </motion.p>
 

@@ -241,14 +241,14 @@ const GoalsPage: React.FC = () => {
             <h3
               className="heading-serif text-lg"
             >
-              Your twin is still learning your patterns
+              No goal suggestions yet
             </h3>
             <p
               className="body-text max-w-md mx-auto"
               style={{ color: TEXT_SECONDARY }}
             >
-              Connect more platforms to get personalized goals. Your twin analyzes your real
-              data to suggest goals that actually fit your life.
+              Your twin needs 2-3 days of platform data to suggest goals that actually fit
+              your life. Connect Spotify or Calendar to get started.
             </p>
             <button
               onClick={() => navigate('/get-started')}

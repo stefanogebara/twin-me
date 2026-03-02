@@ -25,7 +25,7 @@ export function TwinReadinessScore({
         <Brain className="w-4 h-4 text-muted-foreground flex-shrink-0" />
         <div className="flex-1 min-w-0">
           <div className="flex justify-between items-center mb-1">
-            <span className="text-xs text-muted-foreground">Twin Readiness</span>
+            <span className="text-xs text-muted-foreground">Twin Understanding</span>
             <span className={`text-xs font-semibold ${scoreColor}`}>{score}%</span>
           </div>
           <div className="h-1.5 bg-muted rounded-full overflow-hidden">
@@ -46,7 +46,7 @@ export function TwinReadinessScore({
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <Brain className="w-4 h-4 text-muted-foreground" />
-          <span className="text-sm font-medium">Twin Readiness</span>
+          <span className="text-sm font-medium">Twin Understanding</span>
         </div>
         <div className="text-right">
           <span className={`text-xl font-bold ${scoreColor}`}>{score}%</span>

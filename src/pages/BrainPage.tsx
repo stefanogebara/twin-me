@@ -295,18 +295,18 @@ const BrainPage: React.FC = () => {
 
             {!reflectionsLoading && topDiscoveries.length === 0 && (
               <div className="text-center py-12">
-                <p className="text-sm mb-1" style={{ color: textSecondary }}>
-                  No discoveries yet.
+                <p className="text-sm mb-1 font-medium" style={{ color: textSecondary }}>
+                  No discoveries yet
                 </p>
-                <p className="text-xs" style={{ color: textSecondary }}>
-                  Connect platforms and let your twin observe your patterns for a few days.
+                <p className="text-xs mb-4" style={{ color: textSecondary }}>
+                  Discoveries appear after 2-3 days of platform data. Connect a platform to start.
                 </p>
                 <button
                   onClick={() => navigate('/get-started')}
-                  className="btn-cta-app flex items-center gap-2 mx-auto mt-4"
+                  className="btn-cta-app flex items-center gap-2 mx-auto"
                 >
                   <Link2 className="w-4 h-4" />
-                  Connect Platforms
+                  Connect platforms
                 </button>
               </div>
             )}

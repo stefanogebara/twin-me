@@ -27,9 +27,7 @@ import NotFound from "./pages/NotFound";
 const Dashboard = lazy(() => import("./pages/Dashboard"));
 const Settings = lazy(() => import("./pages/Settings"));
 const InstantTwinOnboarding = lazy(() => import("./pages/InstantTwinOnboarding"));
-const SoulSignatureDashboard = lazy(() => import("./pages/SoulSignatureDashboard"));
 const BrainPage = lazy(() => import("./pages/BrainPage"));
-const BigFiveAssessment = lazy(() => import("./pages/BigFiveAssessment"));
 const TalkToTwin = lazy(() => import("./pages/TalkToTwin"));
 const JournalPage = lazy(() => import("./pages/JournalPage"));
 const AdminLLMCosts = lazy(() => import("./pages/AdminLLMCosts"));
@@ -182,16 +180,8 @@ const App = () => {
               </ProtectedRoute>
             } />
 
-            {/* Soul Signature Dashboard */}
-            <Route path="/soul-signature" element={
-              <ProtectedRoute>
-                <SidebarLayout>
-                  <ErrorBoundary>
-                    <SoulSignatureDashboard />
-                  </ErrorBoundary>
-                </SidebarLayout>
-              </ProtectedRoute>
-            } />
+            {/* Soul Signature → redirect to Identity (canonical "Who You Are" page) */}
+            <Route path="/soul-signature" element={<Navigate to="/identity" replace />} />
 
             {/* Deep Interview — structured onboarding */}
             <Route path="/interview" element={
@@ -226,12 +216,8 @@ const App = () => {
               </ProtectedRoute>
             } />
 
-            {/* Big Five Assessment - IPIP-NEO-120 scientific assessment (allows anonymous preview) */}
-            <Route path="/big-five" element={
-              <ErrorBoundary>
-                <BigFiveAssessment />
-              </ErrorBoundary>
-            } />
+            {/* Big Five → redirect to Identity (inline section) */}
+            <Route path="/big-five" element={<Navigate to="/identity" replace />} />
 
             {/* Platform Connection / Get Started */}
             <Route path="/get-started" element={
@@ -343,8 +329,9 @@ const App = () => {
               </ProtectedRoute>
             } />
 
-            {/* Memory Health Dashboard */}
-            <Route path="/memory-health" element={
+            {/* Memory Health — admin/debug tool, moved to /admin/memory-health */}
+            <Route path="/memory-health" element={<Navigate to="/admin/memory-health" replace />} />
+            <Route path="/admin/memory-health" element={
               <ProtectedRoute>
                 <SidebarLayout>
                   <ErrorBoundary>

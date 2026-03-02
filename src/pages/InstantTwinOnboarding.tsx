@@ -549,7 +549,7 @@ const InstantTwinOnboarding = () => {
                 >
                   {expiredConnections.length > 0
                     ? 'Reconnect expired platforms below for full access'
-                    : 'Ready to discover your soul signature'}
+                    : 'Syncing your data now — first insights appear in ~2 hours'}
                 </p>
               </div>
             </div>

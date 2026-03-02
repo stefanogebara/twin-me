@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
-import { AlertCircle, Target, Flame, Trophy, ChevronRight, Globe, BookOpen } from 'lucide-react';
+import { AlertCircle, Target, Flame, Trophy, ChevronRight, Globe, BookOpen, Circle } from 'lucide-react';
 import { goalsAPI, GoalSummary } from '@/services/api/goalsAPI';
 import { PageLayout } from '@/components/layout/PageLayout';
 import { calendarAPI, CalendarEvent } from '@/services/apiService';
@@ -50,7 +50,7 @@ export const Dashboard: React.FC = () => {
   const [currentTime, setCurrentTime] = useState(new Date());
 
   const queryClient = useQueryClient();
-  const { connectedProviders } = usePlatformStatus(user?.id);
+  const { connectedProviders, data: platformStatusData } = usePlatformStatus(user?.id);
 
   const isDemoMode = localStorage.getItem('demo_mode') === 'true';
 
@@ -280,6 +280,31 @@ export const Dashboard: React.FC = () => {
     return 'Good evening';
   };
 
+  const formatLastSync = (lastSync: string | null): string => {
+    if (!lastSync) return 'never';
+    const diffMs = Date.now() - new Date(lastSync).getTime();
+    const diffMin = Math.floor(diffMs / 60000);
+    const diffHours = Math.floor(diffMs / 3600000);
+    const diffDays = Math.floor(diffMs / 86400000);
+    if (diffMin < 2) return 'just now';
+    if (diffMin < 60) return `${diffMin}m ago`;
+    if (diffHours < 24) return `${diffHours}h ago`;
+    if (diffDays === 1) return 'yesterday';
+    return `${diffDays}d ago`;
+  };
+
+  const PLATFORM_DISPLAY_NAMES: Record<string, string> = {
+    spotify: 'Spotify',
+    google_calendar: 'Calendar',
+    youtube: 'YouTube',
+    discord: 'Discord',
+    linkedin: 'LinkedIn',
+    whoop: 'Whoop',
+    twitch: 'Twitch',
+    github: 'GitHub',
+    reddit: 'Reddit',
+  };
+
   const formatTimeUntil = (startDate: Date, endDate?: Date) => {
     const now = currentTime;
     const eventStart = new Date(startDate);
@@ -403,7 +428,7 @@ export const Dashboard: React.FC = () => {
 
       {memoryHealth?.readiness !== undefined && (
         <motion.div
-          className="mb-6 px-4 py-3 rounded-2xl"
+          className="mb-4 px-4 py-3 rounded-2xl"
           style={{ backgroundColor: 'rgba(0,0,0,0.02)', border: '1px solid rgba(0,0,0,0.06)' }}
           initial={{ opacity: 0, y: 4 }}
           animate={{ opacity: 1, y: 0 }}
@@ -415,6 +440,41 @@ export const Dashboard: React.FC = () => {
             breakdown={memoryHealth.readiness.breakdown}
             compact
           />
+        </motion.div>
+      )}
+
+      {connectedProviders.length > 0 && (
+        <motion.div
+          className="mb-6 flex flex-wrap gap-2"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.4, delay: 0.15 }}
+        >
+          {connectedProviders.map((provider) => {
+            const status = platformStatusData[provider];
+            const name = PLATFORM_DISPLAY_NAMES[provider] ?? provider;
+            const syncLabel = formatLastSync(status?.lastSync ?? null);
+            const isRecent = status?.lastSync
+              ? Date.now() - new Date(status.lastSync).getTime() < 2 * 60 * 60 * 1000
+              : false;
+            return (
+              <span
+                key={provider}
+                className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs"
+                style={{
+                  backgroundColor: 'rgba(0,0,0,0.04)',
+                  border: '1px solid rgba(0,0,0,0.08)',
+                  color: '#78716c',
+                }}
+              >
+                <Circle
+                  className="w-1.5 h-1.5 fill-current flex-shrink-0"
+                  style={{ color: isRecent ? '#22c55e' : '#d6d3d1' }}
+                />
+                {name} synced {syncLabel}
+              </span>
+            );
+          })}
         </motion.div>
       )}
 

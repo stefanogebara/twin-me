@@ -1,14 +1,13 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useSubscription } from '@/hooks/useSubscription';
-import PaywallModal from '@/components/PaywallModal';
 import { useAuth } from '../contexts/AuthContext';
 import { useAnalytics } from '../contexts/AnalyticsContext';
 import { usePlatformStatus } from '../hooks/usePlatformStatus';
 import {
   ArrowLeft,
   Sparkles, Layers,
-  Lightbulb, TrendingUp, Heart, Zap
+  Lightbulb, TrendingUp, Heart, Zap,
+  Trash2,
 } from 'lucide-react';
 import { SpotifyLogo, GoogleCalendarLogo, YoutubeLogo, DiscordLogo, LinkedinLogo } from '@/components/PlatformLogos';
 import { ChatEmptyState } from '@/components/chat/ChatEmptyState';
@@ -42,6 +41,29 @@ interface ContextItem {
 
 const API_BASE = import.meta.env.VITE_API_URL || 'http://127.0.0.1:3004/api';
 
+const CHAT_HISTORY_KEY = 'twin_chat_history';
+const CHAT_HISTORY_MAX = 20;
+
+function loadChatHistory(): Message[] {
+  try {
+    const raw = localStorage.getItem(CHAT_HISTORY_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw) as Array<Omit<Message, 'timestamp'> & { timestamp: string }>;
+    return parsed.map(m => ({ ...m, timestamp: new Date(m.timestamp) }));
+  } catch {
+    return [];
+  }
+}
+
+function saveChatHistory(messages: Message[]): void {
+  try {
+    const capped = messages.slice(-CHAT_HISTORY_MAX);
+    localStorage.setItem(CHAT_HISTORY_KEY, JSON.stringify(capped));
+  } catch {
+    // Non-fatal — localStorage may be unavailable
+  }
+}
+
 const TalkToTwin = () => {
   const navigate = useNavigate();
   const { user, isSignedIn } = useAuth();
@@ -55,7 +77,7 @@ const TalkToTwin = () => {
     isLoading: isLoadingPlatforms
   } = usePlatformStatus(user?.id);
 
-  const [messages, setMessages] = useState<Message[]>([]);
+  const [messages, setMessages] = useState<Message[]>(loadChatHistory);
   const [inputMessage, setInputMessage] = useState('');
   const [isTyping, setIsTyping] = useState(false);
   const [conversationId, setConversationId] = useState<string | null>(null);
@@ -65,9 +87,6 @@ const TalkToTwin = () => {
   const [chatUsage, setChatUsage] = useState<{ used: number; limit: number; remaining: number; tier: string } | null>(null);
   const [limitReached, setLimitReached] = useState(false);
   const [introFetched, setIntroFetched] = useState(false);
-  const { plan } = useSubscription();
-  const [paywallOpen, setPaywallOpen] = useState(false);
-  const [freeExchangeCount, setFreeExchangeCount] = useState(0);
 
   // Interview guard: if user started but didn't finish the interview, redirect them back.
   // Existing users who never started are NOT blocked.
@@ -146,6 +165,13 @@ const TalkToTwin = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
+  // Persist chat history to localStorage whenever messages change
+  useEffect(() => {
+    if (messages.length > 0) {
+      saveChatHistory(messages);
+    }
+  }, [messages]);
+
   useEffect(() => {
     if (user?.id) {
       loadContext();
@@ -173,9 +199,14 @@ const TalkToTwin = () => {
     fetchUsage();
   }, [user?.id]);
 
-  // Fetch a personalized first greeting from the twin on page load (new users only)
+  // Fetch a personalized first greeting from the twin on page load (new users only).
+  // Skip if we already have persisted chat history to avoid displacing it.
   useEffect(() => {
     if (!user?.id || introFetched) return;
+    if (messages.length > 0) {
+      setIntroFetched(true);
+      return;
+    }
     setIntroFetched(true);
     const token = localStorage.getItem('auth_token');
     fetch(`${API_BASE}/chat/intro`, { headers: { 'Authorization': `Bearer ${token}` } })
@@ -329,13 +360,6 @@ const TalkToTwin = () => {
                 ));
               }
             } else if (event.type === 'done') {
-              if (plan === 'free') {
-                setFreeExchangeCount(c => {
-                  const next = c + 1;
-                  if (next >= 1) setPaywallOpen(true);
-                  return next;
-                });
-              }
               if (event.conversationId) setConversationId(event.conversationId);
               if (event.contextSources) {
                 setMessages(prev => prev.map(m =>
@@ -381,6 +405,13 @@ const TalkToTwin = () => {
     }
   };
 
+  const handleClearChat = () => {
+    localStorage.removeItem(CHAT_HISTORY_KEY);
+    setMessages([]);
+    setConversationId(null);
+    setIntroFetched(false);
+  };
+
   const handleRetry = (content: string, messageId: string) => {
     // Remove the failed message and restore content to input so user can resend
     setMessages(prev => prev.filter(m => m.id !== messageId));
@@ -421,7 +452,6 @@ const TalkToTwin = () => {
       className="min-h-screen flex"
       style={{ backgroundColor: colors.bg }}
     >
-      <PaywallModal isOpen={paywallOpen} />
       <div className="flex-1 flex flex-col max-w-4xl mx-auto w-full">
         <header
           className="flex items-center justify-between px-6 py-4 lg:py-5 border-b"
@@ -450,13 +480,25 @@ const TalkToTwin = () => {
             </span>
           </div>
 
-          <button
-            onClick={() => setShowContext(!showContext)}
-            className="p-2 rounded-lg transition-colors hover:opacity-70 md:hidden"
-            style={{ color: colors.textSecondary }}
-          >
-            <Layers className="w-5 h-5" />
-          </button>
+          <div className="flex items-center gap-1">
+            {messages.length > 0 && (
+              <button
+                onClick={handleClearChat}
+                className="p-2 rounded-lg transition-colors hover:opacity-70"
+                style={{ color: colors.textSecondary }}
+                title="Clear chat"
+              >
+                <Trash2 className="w-4 h-4" />
+              </button>
+            )}
+            <button
+              onClick={() => setShowContext(!showContext)}
+              className="p-2 rounded-lg transition-colors hover:opacity-70 md:hidden"
+              style={{ color: colors.textSecondary }}
+            >
+              <Layers className="w-5 h-5" />
+            </button>
+          </div>
         </header>
 
         <div className="flex-1 overflow-y-auto">
