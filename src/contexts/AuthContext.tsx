@@ -149,7 +149,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         // Cache user data for next load
         localStorage.setItem('auth_user', JSON.stringify(userData.user));
         // Non-blocking: check if new user needs onboarding
-        fetch(`${import.meta.env.VITE_API_URL}/onboarding/status`, {
+        fetch(`${import.meta.env.VITE_API_URL}/onboarding/new-user-check`, {
           headers: { 'Authorization': `Bearer ${token}` }
         })
           .then(r => r.ok ? r.json() : null)

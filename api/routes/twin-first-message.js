@@ -85,14 +85,17 @@ Write a first message to them (3-4 sentences max):
 - No flattery. No therapist language. No intro lines like "Based on what you shared..."
 - Sound like you're discovering yourself as you speak to them`;
 
-    const message = await complete(TIER_CHAT, [
-      { role: 'user', content: prompt }
-    ], {
-      max_tokens: 200,
+    const message = await complete({
+      tier: TIER_CHAT,
+      messages: [{ role: 'user', content: prompt }],
+      maxTokens: 200,
       temperature: 0.85,
+      userId,
+      serviceName: 'twin-first-message',
     });
 
-    return res.json({ success: true, message: message?.trim() || "I'm here. Let's figure each other out." });
+    const text = message?.content?.trim() || "I'm here. Let's figure each other out.";
+    return res.json({ success: true, message: text });
   } catch (error) {
     console.error('[Twin First Message] Error:', error);
     return res.status(500).json({ success: false, error: 'Failed to generate first message' });
