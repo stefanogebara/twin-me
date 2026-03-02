@@ -532,7 +532,7 @@ export const TodayInsights: React.FC = () => {
       {/* Only show the Soul Signature link when there are actual insights to explore */}
       {insights.length > 0 && (
         <button
-          onClick={() => navigate('/soul-signature')}
+          onClick={() => navigate('/identity')}
           className="w-full py-3 text-sm font-medium rounded-xl transition-colors flex items-center justify-center gap-2"
           style={{
             backgroundColor: 'rgba(0, 0, 0, 0.03)',
@@ -540,7 +540,7 @@ export const TodayInsights: React.FC = () => {
             border: '1px solid rgba(0, 0, 0, 0.05)'
           }}
         >
-          View Your Full Soul Signature
+          Explore who you are
           <ChevronRight className="w-4 h-4" />
         </button>
       )}
