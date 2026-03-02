@@ -404,7 +404,7 @@ const DeepInterview: React.FC<DeepInterviewProps> = ({
             textAlign: 'center',
           }}
         >
-          Done for now — continue to dashboard
+          Done for now — continue to platforms
         </motion.button>
       )}
     </div>
