@@ -734,4 +734,40 @@ router.get('/calibration-data/:userId', authenticateUser, async (req, res) => {
   }
 });
 
+/**
+ * GET /api/onboarding/status
+ * Returns whether the user needs to complete onboarding.
+ * Used by AuthContext on sign-in to gate the cinematic onboarding flow.
+ */
+router.get('/status', authenticateUser, async (req, res) => {
+  try {
+    const userId = req.user?.id;
+
+    if (!supabaseAdmin) {
+      return res.json({ success: true, isNew: false, memoriesCount: 0, hasCalibration: false });
+    }
+
+    const [calibRes, memRes] = await Promise.all([
+      supabaseAdmin
+        .from('onboarding_calibration')
+        .select('completed_at')
+        .eq('user_id', userId)
+        .maybeSingle(),
+      supabaseAdmin
+        .from('user_memories')
+        .select('id', { count: 'exact', head: true })
+        .eq('user_id', userId),
+    ]);
+
+    const hasCalibration = !!(calibRes.data?.completed_at);
+    const memoriesCount = memRes.count ?? 0;
+    const isNew = !hasCalibration && memoriesCount < 5;
+
+    return res.json({ success: true, isNew, memoriesCount, hasCalibration });
+  } catch (error) {
+    console.error('[Onboarding] Status check error:', error);
+    return res.status(500).json({ success: false, error: 'Failed to check onboarding status' });
+  }
+});
+
 export default router;

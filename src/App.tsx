@@ -33,6 +33,7 @@ const AdminLLMCosts = lazy(() => import("./pages/AdminLLMCosts"));
 const PrivacyPolicy = lazy(() => import("./pages/PrivacyPolicy"));
 const PortfolioPage = lazy(() => import("./pages/PortfolioPage"));
 const NewDiscoverFlow = lazy(() => import("./pages/onboarding/NewDiscoverFlow"));
+const OnboardingFlow = lazy(() => import("./pages/onboarding/OnboardingFlow"));
 const DiscoverLanding = lazy(() => import("./pages/DiscoverLanding"));
 const GmailCallback = lazy(() => import("./pages/oauth/GmailCallback"));
 const SpotifyInsightsPage = lazy(() => import("./pages/insights/SpotifyInsightsPage"));
@@ -242,9 +243,17 @@ const App = () => {
               </ProtectedRoute>
             } />
 
-            {/* Legacy onboarding routes → redirect to platform connection */}
+            {/* Legacy onboarding routes */}
             <Route path="/welcome" element={<Navigate to="/get-started" replace />} />
-            <Route path="/onboarding" element={<Navigate to="/get-started" replace />} />
+
+            {/* Cinematic onboarding — new user flow */}
+            <Route path="/onboarding" element={
+              <ProtectedRoute>
+                <ErrorBoundary>
+                  <OnboardingFlow />
+                </ErrorBoundary>
+              </ProtectedRoute>
+            } />
 
             {/* Cinematic Soul Reveal - post-onboarding discovery flow */}
             <Route path="/soul-reveal" element={

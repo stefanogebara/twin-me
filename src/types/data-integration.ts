@@ -11,7 +11,8 @@ export type DataProvider =
   | 'google_gmail' | 'google_calendar' | 'google_drive'
   | 'microsoft_outlook' | 'microsoft_teams' | 'microsoft_onedrive'
   | 'slack' | 'discord' | 'linkedin' | 'twitter' | 'instagram'
-  | 'netflix' | 'spotify' | 'youtube' | 'github' | 'notion' | 'reddit';
+  | 'netflix' | 'spotify' | 'youtube' | 'github' | 'notion' | 'reddit'
+  | 'strava' | 'oura';
 
 export type DataType =
   | 'email' | 'calendar_event' | 'slack_message' | 'teams_message'

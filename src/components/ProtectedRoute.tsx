@@ -23,7 +23,7 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   children,
   fallbackPath = '/auth'
 }) => {
-  const { isSignedIn, isLoaded, isDemoMode: authDemoMode } = useAuth();
+  const { isSignedIn, isLoaded, isDemoMode: authDemoMode, needsOnboarding } = useAuth();
   const { isDemoMode: demoDemoMode } = useDemo();
   const location = useLocation();
 
@@ -60,6 +60,10 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
 
   // Auth is loaded - now we can make a decision
   if (isSignedIn) {
+    // Gate new users to cinematic onboarding (skip if already on /onboarding)
+    if (needsOnboarding && location.pathname !== '/onboarding') {
+      return <Navigate to="/onboarding" replace />;
+    }
     return <>{children}</>;
   }
 

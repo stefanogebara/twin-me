@@ -68,6 +68,12 @@ const OuraLogo = ({ className = "w-6 h-6" }: { className?: string }) => (
   </svg>
 );
 
+const StravaLogo = ({ className = "w-6 h-6" }: { className?: string }) => (
+  <svg className={className} viewBox="0 0 24 24" fill="currentColor">
+    <path d="M15.387 17.944l-2.089-4.116h-3.065L15.387 24l5.15-10.172h-3.066m-7.008-5.599l2.836 5.599h4.172L10.463 0 4 13.828h4.172"/>
+  </svg>
+);
+
 const OutlookLogo = ({ className = "w-6 h-6" }: { className?: string }) => (
   <svg className={className} viewBox="0 0 32 32" fill="none">
     <path d="M19.484 7.937v5.477l1.916 1.205a.489.489 0 00.21.063.5.5 0 00.229-.063l5.677-3.416a.476.476 0 00-.026-.063.9.9 0 00-.379-.334l-6.417-3.326a1.837 1.837 0 00-1.21.457z" fill="currentColor"/>
@@ -167,5 +173,65 @@ export const AVAILABLE_CONNECTORS: ConnectorConfig[] = [
     setupTime: '5 seconds',
     privacyLevel: 'medium',
     category: 'professional'
+  },
+  {
+    provider: 'reddit' as DataProvider,
+    name: 'Reddit',
+    description: 'The communities you follow reveal your real interests, curiosities, and intellectual depth',
+    icon: <RedditLogo className="w-6 h-6" />,
+    color: '#FF4500',
+    dataTypes: ['Community Interests', 'Content Preferences', 'Curiosities'],
+    estimatedInsights: 8,
+    setupTime: '5 seconds',
+    privacyLevel: 'low',
+    category: 'social'
+  },
+  {
+    provider: 'github' as DataProvider,
+    name: 'GitHub',
+    description: 'Your repositories and activity reveal how you think about problems and what you build',
+    icon: <GithubLogo className="w-6 h-6" />,
+    color: '#24292F',
+    dataTypes: ['Projects', 'Coding Patterns', 'Tech Interests'],
+    estimatedInsights: 6,
+    setupTime: '5 seconds',
+    privacyLevel: 'low',
+    category: 'professional'
+  },
+  {
+    provider: 'slack' as DataProvider,
+    name: 'Slack',
+    description: 'Workspace channels reveal professional focus areas, team dynamics, and how you collaborate',
+    icon: <SlackLogo className="w-6 h-6" />,
+    color: '#4A154B',
+    dataTypes: ['Work Focus', 'Collaboration Style', 'Channel Interests'],
+    estimatedInsights: 5,
+    setupTime: '5 seconds',
+    privacyLevel: 'medium',
+    category: 'professional'
+  },
+  {
+    provider: 'strava' as DataProvider,
+    name: 'Strava',
+    description: 'Training data reveals discipline, consistency, and how physical effort shapes your mindset',
+    icon: <StravaLogo className="w-6 h-6" />,
+    color: '#FC4C02',
+    dataTypes: ['Fitness Activities', 'Training Patterns', 'Consistency'],
+    estimatedInsights: 7,
+    setupTime: '10 seconds',
+    privacyLevel: 'low',
+    category: 'health'
+  },
+  {
+    provider: 'oura' as DataProvider,
+    name: 'Oura Ring',
+    description: 'Sleep, HRV, and recovery data reveal how your biology shapes your mood and energy patterns',
+    icon: <OuraLogo className="w-6 h-6" />,
+    color: '#6366F1',
+    dataTypes: ['Sleep Quality', 'Recovery', 'HRV Trends'],
+    estimatedInsights: 9,
+    setupTime: '10 seconds',
+    privacyLevel: 'low',
+    category: 'health'
   },
 ];
