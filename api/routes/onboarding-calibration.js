@@ -735,11 +735,12 @@ router.get('/calibration-data/:userId', authenticateUser, async (req, res) => {
 });
 
 /**
- * GET /api/onboarding/status
- * Returns whether the user needs to complete onboarding.
- * Used by AuthContext on sign-in to gate the cinematic onboarding flow.
+ * GET /api/onboarding/new-user-check
+ * Returns whether the user needs to complete the cinematic onboarding flow.
+ * Checks calibration completion + memory count to distinguish new vs returning users.
+ * Used by AuthContext on sign-in to gate the OnboardingFlow.
  */
-router.get('/status', authenticateUser, async (req, res) => {
+router.get('/new-user-check', authenticateUser, async (req, res) => {
   try {
     const userId = req.user?.id;
 
