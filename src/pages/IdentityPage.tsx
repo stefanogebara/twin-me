@@ -481,7 +481,7 @@ const IdentityPage: React.FC = () => {
               5 specialist lenses from your twin's reflection engine
             </p>
           </div>
-          <Accordion type="multiple" className="px-6 pb-4">
+          <Accordion type="multiple" defaultValue={[EXPERT_SECTIONS[0].key]} className="px-6 pb-4">
             {EXPERT_SECTIONS.map((config) => (
               <ExpertSection
                 key={config.key}
