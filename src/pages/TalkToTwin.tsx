@@ -69,6 +69,37 @@ const TalkToTwin = () => {
   const [paywallOpen, setPaywallOpen] = useState(false);
   const [freeExchangeCount, setFreeExchangeCount] = useState(0);
 
+  // Interview guard: if user started but didn't finish the interview, redirect them back.
+  // Existing users who never started are NOT blocked.
+  const [interviewChecked, setInterviewChecked] = useState(false);
+  useEffect(() => {
+    const checkInterview = async () => {
+      try {
+        const token = localStorage.getItem('auth_token');
+        if (!token) { setInterviewChecked(true); return; }
+        const payload = JSON.parse(atob(token.split('.')[1]));
+        const userId = payload.id || payload.userId;
+        if (!userId) { setInterviewChecked(true); return; }
+        const res = await fetch(`${API_BASE}/onboarding/calibration-data/${userId}`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        if (res.ok) {
+          const { data } = await res.json();
+          // Only block if interview was STARTED but not finished.
+          // data === null means existing user who never started → don't block.
+          if (data && !data.completed_at) {
+            navigate('/interview');
+            return;
+          }
+        }
+      } catch {
+        // Non-fatal — don't block on network error
+      }
+      setInterviewChecked(true);
+    };
+    checkInterview();
+  }, [navigate]);
+
   // Design system color tokens
   const colors = {
     bg: '#fcf6ef',
@@ -110,34 +141,6 @@ const TalkToTwin = () => {
       navigate('/auth');
     }
   }, [isSignedIn, navigate]);
-
-  const [interviewChecked, setInterviewChecked] = useState(false);
-
-  useEffect(() => {
-    const checkInterview = async () => {
-      try {
-        const token = localStorage.getItem('auth_token');
-        if (!token) { setInterviewChecked(true); return; }
-        const payload = JSON.parse(atob(token.split('.')[1]));
-        const userId = payload.id || payload.userId;
-        if (!userId) { setInterviewChecked(true); return; }
-        const res = await fetch(`${API_BASE}/onboarding/calibration-data/${userId}`, {
-          headers: { 'Authorization': `Bearer ${token}` }
-        });
-        if (res.ok) {
-          const { data } = await res.json();
-          // Only block if interview was STARTED but not finished.
-          // data === null means existing user who never started → don't block.
-          if (data && !data.completed_at) {
-            navigate('/interview');
-            return;
-          }
-        }
-      } catch { /* Non-fatal — don't block on error */ }
-      setInterviewChecked(true);
-    };
-    checkInterview();
-  }, []);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
