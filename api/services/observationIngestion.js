@@ -41,7 +41,7 @@ async function getSupabase() {
 }
 
 // Platforms we know how to ingest
-const SUPPORTED_PLATFORMS = ['spotify', 'google_calendar', 'youtube', 'discord', 'linkedin', 'reddit', 'whoop', 'github', 'google_gmail', 'outlook', 'strava', 'garmin', 'fitbit', 'twitch', 'oura'];
+const SUPPORTED_PLATFORMS = ['spotify', 'google_calendar', 'youtube', 'discord', 'linkedin', 'reddit', 'whoop', 'github', 'google_gmail', 'outlook', 'strava', 'garmin', 'fitbit', 'twitch', 'oura', 'slack'];
 
 // ====================================================================
 // Prompt injection defense
@@ -587,6 +587,71 @@ async function fetchLinkedInObservations(userId) {
       content: `LinkedIn profile located in ${locale}`,
       contentType: 'weekly_summary',
     });
+  }
+
+  return observations;
+}
+
+/**
+ * Fetch Slack workspace profile + channel membership and return natural-language observations.
+ * Reveals professional focus areas and collaboration context.
+ */
+async function fetchSlackObservations(userId) {
+  const observations = [];
+
+  const tokenResult = await getValidAccessToken(userId, 'slack');
+  if (!tokenResult.success || !tokenResult.accessToken) {
+    console.warn('[ObservationIngestion] Slack: no valid token for user', userId);
+    return observations;
+  }
+
+  const headers = {
+    Authorization: `Bearer ${tokenResult.accessToken}`,
+    'Content-Type': 'application/json'
+  };
+
+  // User profile — timezone and title reveal work context
+  try {
+    const profileRes = await axios.get('https://slack.com/api/users.profile.get', { headers, timeout: 10000 });
+    if (profileRes.data?.ok) {
+      const profile = profileRes.data.profile;
+      const parts = [];
+      if (profile.title) parts.push(`job title: ${sanitizeExternal(profile.title, 80)}`);
+      if (profile.tz) parts.push(`timezone: ${profile.tz}`);
+      if (parts.length > 0) {
+        observations.push({
+          content: `Slack profile shows ${parts.join(', ')}`,
+          contentType: 'profile_summary',
+        });
+      }
+    }
+  } catch (e) {
+    console.warn('[ObservationIngestion] Slack profile error:', e.message);
+  }
+
+  // Channel membership — reveals project areas and interests
+  try {
+    const channelsRes = await axios.get(
+      'https://slack.com/api/conversations.list?types=public_channel&exclude_archived=true&limit=200',
+      { headers, timeout: 10000 }
+    );
+    if (channelsRes.data?.ok) {
+      const channels = (channelsRes.data.channels || [])
+        .filter(c => c.is_member)
+        .map(c => sanitizeExternal(c.name, 50))
+        .filter(Boolean);
+
+      if (channels.length > 0) {
+        const preview = channels.slice(0, 10).join(', ');
+        const suffix = channels.length > 10 ? ` and ${channels.length - 10} more` : '';
+        observations.push({
+          content: `Member of ${channels.length} Slack channels: ${preview}${suffix}`,
+          contentType: 'weekly_summary',
+        });
+      }
+    }
+  } catch (e) {
+    console.warn('[ObservationIngestion] Slack channels error:', e.message);
   }
 
   return observations;
@@ -2756,6 +2821,9 @@ async function runObservationIngestion() {
               case 'linkedin':
                 observations = await fetchLinkedInObservations(userId);
                 break;
+              case 'slack':
+                observations = await fetchSlackObservations(userId);
+                break;
               case 'reddit':
                 observations = await fetchRedditObservations(userId);
                 break;
@@ -3082,6 +3150,9 @@ async function runPostOnboardingIngestion(userId) {
           case 'linkedin':
             observations = await fetchLinkedInObservations(userId);
             break;
+          case 'slack':
+            observations = await fetchSlackObservations(userId);
+            break;
           case 'reddit':
             observations = await fetchRedditObservations(userId);
             break;
@@ -3284,6 +3355,7 @@ export {
   fetchYouTubeObservations,
   fetchDiscordObservations,
   fetchLinkedInObservations,
+  fetchSlackObservations,
   fetchRedditObservations,
   fetchGitHubObservations,
   fetchGmailObservations,
