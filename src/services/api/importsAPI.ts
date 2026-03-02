@@ -10,7 +10,7 @@
 
 import { API_URL } from './apiBase';
 
-export type ImportPlatform = 'spotify' | 'youtube' | 'discord' | 'reddit' | 'apple_health' | 'google_search' | 'whatsapp';
+export type ImportPlatform = 'spotify' | 'youtube' | 'discord' | 'reddit' | 'apple_health' | 'google_search' | 'whatsapp' | 'whoop';
 
 export interface DataImport {
   id: string;
