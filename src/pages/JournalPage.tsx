@@ -569,7 +569,7 @@ const JournalPage: React.FC = () => {
                         className={`body-text ${!isExpanded ? 'line-clamp-2' : ''}`}
                         style={{ color: textSecondary }}
                       >
-                        {entry.content}
+                        {entry.content.replace(/''/g, "'")}
                       </p>
 
                       {/* Tags */}

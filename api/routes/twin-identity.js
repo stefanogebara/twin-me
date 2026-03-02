@@ -22,8 +22,8 @@ const router = express.Router();
 const EXPERT_KEYS = [
   'personality_psychologist',
   'lifestyle_analyst',
-  'cultural_identity_expert',
-  'social_dynamics_analyst',
+  'cultural_identity',
+  'social_dynamics',
   'motivation_analyst',
 ];
 

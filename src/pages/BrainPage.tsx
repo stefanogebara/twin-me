@@ -24,7 +24,7 @@ import {
   RefreshCw,
   ChevronDown,
 } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { cn, toSecondPerson } from '@/lib/utils';
 import { SoulEvolutionTimeline } from '@/components/brain/SoulEvolutionTimeline';
 import { DataUploadPanel } from '@/components/brain/DataUploadPanel';
 
@@ -318,11 +318,12 @@ const BrainPage: React.FC = () => {
                   const em = EXPERT_META[expertKey];
                   const cardKey = insight.id || String(i);
                   const isExpanded = expandedDiscovery === cardKey;
-                  const dotIdx = insight.content.indexOf('. ');
+                  const displayContent = toSecondPerson(insight.content);
+                  const dotIdx = displayContent.indexOf('. ');
                   const preview = dotIdx !== -1 && dotIdx < 130
-                    ? insight.content.slice(0, dotIdx + 1)
-                    : insight.content.slice(0, 130) + (insight.content.length > 130 ? '…' : '');
-                  const hasMore = preview !== insight.content;
+                    ? displayContent.slice(0, dotIdx + 1)
+                    : displayContent.slice(0, 130) + (displayContent.length > 130 ? '…' : '');
+                  const hasMore = preview !== displayContent;
                   return (
                     <motion.div
                       key={cardKey}
@@ -337,7 +338,7 @@ const BrainPage: React.FC = () => {
                         <div className="flex-1 min-w-0">
                           {em && <p className="text-xs font-semibold uppercase tracking-wide mb-1.5" style={{ color: em.color }}>{em.label}</p>}
                           <p className="text-sm leading-relaxed" style={{ color: textColor }}>
-                            {isExpanded ? insight.content : preview}
+                            {isExpanded ? displayContent : preview}
                           </p>
                         </div>
                         {hasMore && (
@@ -493,11 +494,12 @@ const BrainPage: React.FC = () => {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 {reflections.map((r, i) => {
                   const isExpanded = expandedReflection === r.id;
-                  const dotIdx = r.content.indexOf('. ');
+                  const displayContent2 = toSecondPerson(r.content);
+                  const dotIdx = displayContent2.indexOf('. ');
                   const preview = dotIdx !== -1 && dotIdx < 120
-                    ? r.content.slice(0, dotIdx + 1)
-                    : r.content.slice(0, 120) + (r.content.length > 120 ? '…' : '');
-                  const hasMore = preview !== r.content;
+                    ? displayContent2.slice(0, dotIdx + 1)
+                    : displayContent2.slice(0, 120) + (displayContent2.length > 120 ? '…' : '');
+                  const hasMore = preview !== displayContent2;
                   return (
                     <motion.div
                       key={r.id}
@@ -512,18 +514,18 @@ const BrainPage: React.FC = () => {
                         <div className="flex-1 min-w-0">
                           {r.expert && (
                             <p className="text-xs font-semibold uppercase tracking-wide mb-1.5"
-                              style={{ color: '#8b5cf6' }}>
-                              {r.expert}
+                              style={{ color: EXPERT_META[r.expert]?.color ?? '#8b5cf6' }}>
+                              {EXPERT_META[r.expert]?.label ?? r.expert}
                             </p>
                           )}
                           <p className="text-sm leading-relaxed" style={{ color: textColor }}>
-                            {isExpanded ? r.content : preview}
+                            {isExpanded ? displayContent2 : preview}
                           </p>
                           <div className="flex items-center gap-2 mt-2">
-                            {r.category && (
+                            {r.category && r.category !== r.expert && (
                               <span className="text-xs px-2 py-0.5 rounded-full"
                                 style={{ background: 'rgba(139,92,246,0.08)', color: '#8b5cf6' }}>
-                                {r.category}
+                                {EXPERT_META[r.category]?.label ?? r.category}
                               </span>
                             )}
                             <span className="text-xs" style={{ color: textSecondary }}>
