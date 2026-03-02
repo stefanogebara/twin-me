@@ -111,4 +111,49 @@ router.get('/today', authenticateUser, async (req, res) => {
   }
 });
 
+/**
+ * GET /api/checkin/streak
+ * Returns the current consecutive daily check-in streak.
+ * Looks back 60 days; streak resets after a missed day.
+ * If user hasn't checked in today yet, current streak = consecutive days ending yesterday.
+ */
+router.get('/streak', authenticateUser, async (req, res) => {
+  const userId = req.user.id;
+
+  try {
+    const since = new Date();
+    since.setDate(since.getDate() - 60);
+    const sinceStr = since.toISOString().split('T')[0];
+
+    const { data, error } = await supabaseAdmin
+      .from('daily_checkins')
+      .select('date')
+      .eq('user_id', userId)
+      .gte('date', sinceStr)
+      .order('date', { ascending: false });
+
+    if (error) throw error;
+
+    const dateSet = new Set((data || []).map(r => r.date));
+    const today = new Date().toISOString().split('T')[0];
+
+    // Start from today if checked in, otherwise from yesterday
+    const cursor = new Date();
+    if (!dateSet.has(today)) cursor.setDate(cursor.getDate() - 1);
+
+    let streak = 0;
+    while (true) {
+      const dateStr = cursor.toISOString().split('T')[0];
+      if (!dateSet.has(dateStr)) break;
+      streak++;
+      cursor.setDate(cursor.getDate() - 1);
+    }
+
+    return res.json({ success: true, streak });
+  } catch (err) {
+    console.error('[Checkin] Streak error:', err.message);
+    return res.json({ success: false, streak: 0 });
+  }
+});
+
 export default router;

@@ -54,6 +54,19 @@ export const Dashboard: React.FC = () => {
 
   const isDemoMode = localStorage.getItem('demo_mode') === 'true';
 
+  // Daily check-in streak
+  const { data: streakData } = useQuery<{ streak: number }>({
+    queryKey: ['checkin-streak'],
+    queryFn: async () => {
+      const res = await authFetch('/checkin/streak');
+      if (!res.ok) return { streak: 0 };
+      return res.json();
+    },
+    staleTime: 5 * 60 * 1000,
+    enabled: !isDemoMode,
+  });
+  const checkinStreak = streakData?.streak ?? 0;
+
   // Check whether the user has already done today's mood check-in
   const { data: todayCheckin } = useQuery<{ checkedIn: boolean; data: { mood: string; energy: string | null } | null }>({
     queryKey: ['checkin-today'],
@@ -86,6 +99,7 @@ export const Dashboard: React.FC = () => {
   const handleCheckinComplete = () => {
     setCheckinDismissed(true);
     queryClient.invalidateQueries({ queryKey: ['checkin-today'] });
+    queryClient.invalidateQueries({ queryKey: ['checkin-streak'] });
   };
 
   // Show the check-in card when: not demo mode, not yet checked in, and not dismissed this session
@@ -420,6 +434,14 @@ export const Dashboard: React.FC = () => {
               {' '}&bull;{' '}
               <span style={{ color: '#8A857D' }}>
                 {connectedProviders.length} platform{connectedProviders.length !== 1 ? 's' : ''} connected
+              </span>
+            </span>
+          )}
+          {checkinStreak >= 2 && (
+            <span style={{ color: '#a8a29e' }}>
+              {' '}&bull;{' '}
+              <span style={{ color: '#f97316' }}>
+                🔥 {checkinStreak}-day streak
               </span>
             </span>
           )}
