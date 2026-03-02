@@ -29,7 +29,6 @@ const Settings = lazy(() => import("./pages/Settings"));
 const InstantTwinOnboarding = lazy(() => import("./pages/InstantTwinOnboarding"));
 const BrainPage = lazy(() => import("./pages/BrainPage"));
 const TalkToTwin = lazy(() => import("./pages/TalkToTwin"));
-const JournalPage = lazy(() => import("./pages/JournalPage"));
 const AdminLLMCosts = lazy(() => import("./pages/AdminLLMCosts"));
 const PrivacyPolicy = lazy(() => import("./pages/PrivacyPolicy"));
 const PortfolioPage = lazy(() => import("./pages/PortfolioPage"));
@@ -275,15 +274,7 @@ const App = () => {
             } />
 
             {/* Soul Journal */}
-            <Route path="/journal" element={
-              <ProtectedRoute>
-                <SidebarLayout>
-                  <ErrorBoundary>
-                    <JournalPage />
-                  </ErrorBoundary>
-                </SidebarLayout>
-              </ProtectedRoute>
-            } />
+            <Route path="/journal" element={<Navigate to="/brain" replace />} />
 
             {/* Goal Tracking */}
             <Route path="/goals" element={
