@@ -26,6 +26,13 @@ import {
 
 const TEST_USER_ID = '167c27b5-a40b-49fb-8d00-deb1b1c57f4d'; // Use real user ID from .env or tests
 
+// SAFETY GUARD: This script writes test data to the DB.
+// It must NOT be run against the production user ID in a live environment.
+if (process.env.NODE_ENV === 'production') {
+  console.error('❌ Refusing to run test script in production environment.');
+  process.exit(1);
+}
+
 async function runTests() {
   console.log('\n🧪 Testing Memory Service...\n');
 
