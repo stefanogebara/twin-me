@@ -85,8 +85,9 @@ const PlatformStep: React.FC<PlatformStepProps> = ({ onContinue }) => {
 
     setConnecting(platform.id);
     try {
-      const entertainmentTypes = ['entertainment'];
-      const isEntertainment = entertainmentTypes.includes(platform.type);
+      // These providers all use the /entertainment/connect/:id POST endpoint
+      const entertainmentProviders = ['spotify', 'discord', 'youtube', 'google_calendar', 'gmail', 'strava'];
+      const isEntertainment = entertainmentProviders.includes(platform.id);
 
       let apiUrl: string;
       let fetchOptions: RequestInit;
