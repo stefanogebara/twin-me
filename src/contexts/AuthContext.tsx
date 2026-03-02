@@ -32,6 +32,8 @@ interface AuthContextType {
   isSignedIn: boolean;
   isLoading: boolean;
   isDemoMode: boolean;
+  needsOnboarding: boolean;
+  setNeedsOnboarding: (v: boolean) => void;
   signOut: () => Promise<void>;
   signInWithOAuth: (provider: 'google', redirectAfterAuth?: string) => Promise<void>;
   clearAuth: () => void;
@@ -77,6 +79,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [isLoaded, setIsLoaded] = useState(false); // Don't set true until verification completes
   const [isLoading, setIsLoading] = useState(false);
   const [isVerifying, setIsVerifying] = useState(false);
+  const [needsOnboarding, setNeedsOnboarding] = useState(false);
 
   useEffect(() => {
     // Check for existing session on mount
@@ -145,6 +148,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         setUser(userData.user);
         // Cache user data for next load
         localStorage.setItem('auth_user', JSON.stringify(userData.user));
+        // Non-blocking: check if new user needs onboarding
+        fetch(`${import.meta.env.VITE_API_URL}/onboarding/status`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        })
+          .then(r => r.ok ? r.json() : null)
+          .then(data => { if (data?.isNew) setNeedsOnboarding(true); })
+          .catch(() => {});
       } else {
         // Token is invalid - clear auth state
         localStorage.removeItem('auth_token');
@@ -176,6 +186,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     localStorage.removeItem('demo_mode'); // Also exit demo mode
     setUser(null);
     setAuthToken(null);
+    setNeedsOnboarding(false);
   };
 
   const clearAuth = () => {
@@ -268,6 +279,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     isSignedIn: !!user,
     isLoading,
     isDemoMode: localStorage.getItem('demo_mode') === 'true',
+    needsOnboarding,
+    setNeedsOnboarding,
     signOut,
     signInWithOAuth,
     clearAuth,
