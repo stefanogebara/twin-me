@@ -5,6 +5,107 @@ When asked "what's next", "phase status", or "what should we work on", read this
 
 ---
 
+## COMPLETED PHASES
+
+### Phase 2 — Voice + Speed + Simplicity ✅ (2026-02-26)
+- Twin voice rewrite (friend tone, banned clinical terms, humor section)
+- Vercel SSE streaming fix
+- Reflection dedup (cosine 0.85)
+- Web nav: 3 tabs (Home/Chat/Me)
+
+### Phase 3 — Android + Archive + Tests ✅ (2026-02-26)
+- Android permission onboarding
+- Memory archive: `user_memories_archive` + daily 3am cron
+- 68 integration tests passing
+
+### Phase 4 — Mobile Polish ✅ (2026-02-26)
+- Android debug build + JWT 30d fix
+- Me tab redesigned
+
+### Phase 5 — Cognitive Architecture ✅ (2026-02-27)
+- MMR retrieval + Ebbinghaus decay
+- Emotional state → [CURRENT STATE] block in chat
+- 5 expert personas in reflectionEngine.js
+- Identity context service
+- Post-reflection source decay + weekly forgetting cron
+
+### Phase 6 — Soul Dashboard ✅ (2026-02-28)
+- Twin Readiness Score
+- A-MEM memory_links
+- 50-mood daily check-in
+- /identity page ("Who You Are")
+- Insight engagement tracking
+
+### Phase B — Data Ingestion ✅ (2026-02-28)
+- Apple Health + WhatsApp parsers
+- GitHub + Reddit observation generators
+- Whoop GDPR import wiring
+
+### Phase C — Onboarding Interview + GUM Memory ✅ (2026-03-01)
+- New users → /interview on signup
+- InterviewPage → /get-started on complete/skip
+- TalkToTwin: guard for unfinished interview
+- GUM columns: `confidence`, `reasoning`, `grounding_ids` on `user_memories`
+- `bulk_decay_memories` RPC
+
+### E2E Audit Fixes ✅ (2026-03-02)
+- Jazz contamination cleared
+- EXPERT_LABELS completed
+- Recharts blank charts fixed
+- toSecondPerson verb conjugation fix
+- Identity: first accordion auto-opens
+- Discoveries cap 4→5
+- "1 memories" → "1 memory"
+- Whoop + Gmail in Settings
+- Today's Insights: retry:0 (no more infinite spinner)
+
+---
+
+## CURRENT PHASE: Phase 7 — Beta Readiness
+
+**Goal:** Get 5-10 real users through the full funnel without hand-holding.
+
+### Priority stack (in order):
+
+**1. Onboarding funnel polish** — HIGH ROI
+- New user: auth → interview → get-started → dashboard flow
+- Twin summary should populate within 60s of first platform connect
+- Ensure interview questions save correctly and seed memory
+
+**2. Email digest** — RETENTION
+- Weekly "your twin noticed..." email with 3 top reflections
+- Resend or SendGrid, simple transactional
+- Opt-out link
+
+**3. Share Soul Signature card** — VIRAL LOOP
+- Shareable image card from /soul-signature
+- "Share" button → copy link or native share
+- Public preview page (archetype + top 3 traits) + CTA to try
+
+**4. Stripe paywall** — MONETIZATION
+- Free: 1 platform, 500 memories
+- Pro ($9/mo): unlimited platforms, full memory, priority reflection
+- Gate by memory count or platform count (not on signup)
+
+---
+
+## Phase 8+ (after PMF signal)
+- Location clusters (foreground only)
+- iOS app
+- WhatsApp communication patterns (metadata only)
+- Financial behavior (Plaid)
+
+---
+
+## Stats (as of 2026-03-02)
+- Memories: ~16K+ (fact ~50%, reflection ~27%, conversation ~12%, platform_data ~11%)
+- Active platforms: Spotify, YouTube, Calendar, Discord, LinkedIn (OAuth) + Whoop (Nango)
+- Tests: 68 integration tests passing
+- Target: 5-10 beta users
+- Revenue: $0 (no paywall yet)
+
+---
+
 ## CURRENT STATUS: All phases complete through Phase 6. Ready to invite beta users.
 
 ---
