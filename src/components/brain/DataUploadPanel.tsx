@@ -16,9 +16,6 @@ import {
   Upload,
   CheckCircle2,
   AlertCircle,
-  Music,
-  Youtube,
-  MessageSquare,
   MessageCircle,
   ArrowLeft,
   FileJson,
@@ -27,7 +24,9 @@ import {
   ExternalLink,
   Heart,
   Search,
+  Activity,
 } from 'lucide-react';
+import { SpotifyLogo, YoutubeLogo, DiscordLogo, RedditLogo } from '@/components/PlatformLogos';
 import { importsAPI, type ImportPlatform, type DataImport } from '@/services/api/importsAPI';
 
 // ---------------------------------------------------------------------------
@@ -61,7 +60,7 @@ const PLATFORMS: PlatformConfig[] = [
     label: 'Spotify',
     color: '#1DB954',
     bgColor: 'rgba(29, 185, 84, 0.08)',
-    icon: <Music size={20} />,
+    icon: <SpotifyLogo className="w-5 h-5" />,
     description: 'Extended Streaming History (4 JSON files, 2018→present) — full artist, album, and time pattern analysis.',
     exportInstructions: 'Go to spotify.com → Account → Privacy settings → Request data → select "Extended streaming history" (takes up to 30 days)',
     exportUrl: 'https://www.spotify.com/account/privacy/',
@@ -74,7 +73,7 @@ const PLATFORMS: PlatformConfig[] = [
     label: 'YouTube',
     color: '#FF0000',
     bgColor: 'rgba(255, 0, 0, 0.06)',
-    icon: <Youtube size={20} />,
+    icon: <YoutubeLogo className="w-5 h-5" />,
     description: 'Every video you\'ve ever watched — channels, patterns, and topics.',
     exportInstructions: 'Go to Google Takeout → select YouTube → only Watch history → Export',
     exportUrl: 'https://takeout.google.com/',
@@ -86,7 +85,7 @@ const PLATFORMS: PlatformConfig[] = [
     label: 'Discord',
     color: '#5865F2',
     bgColor: 'rgba(88, 101, 242, 0.08)',
-    icon: <MessageSquare size={20} />,
+    icon: <DiscordLogo className="w-5 h-5" />,
     description: 'Message frequency and activity patterns across your servers (no content stored).',
     exportInstructions: 'Go to Discord → User Settings → Privacy & Safety → Request all my data',
     exportUrl: 'https://discord.com/settings/privacy-and-safety',
@@ -98,17 +97,24 @@ const PLATFORMS: PlatformConfig[] = [
     label: 'Reddit',
     color: '#FF4500',
     bgColor: 'rgba(255, 69, 0, 0.07)',
-    icon: (
-      <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
-        <circle cx="10" cy="10" r="10" fill="currentColor" opacity="0.15" />
-        <text x="5" y="14" fontSize="11" fontWeight="bold" fill="currentColor">R</text>
-      </svg>
-    ),
+    icon: <RedditLogo className="w-5 h-5" />,
     description: 'Subreddit activity, comment history, and saved posts.',
     exportInstructions: 'Go to Reddit → Settings → Privacy & Security → Request data export',
     exportUrl: 'https://www.reddit.com/settings/data-request',
     expectedFile: 'reddit-data-*.json',
     fileAccept: '.json,application/json',
+  },
+  {
+    id: 'whoop',
+    label: 'Whoop',
+    color: '#00E5FF',
+    bgColor: 'rgba(0, 229, 255, 0.07)',
+    icon: <Activity size={20} color="#00E5FF" />,
+    description: 'Recovery score, HRV, strain, sleep quality, and workout history.',
+    exportInstructions: 'Open Whoop app → Profile → Privacy → Download My Data → request ZIP export',
+    exportUrl: 'https://app.whoop.com/settings/privacy',
+    expectedFile: 'whoop-data-export.zip',
+    fileAccept: '.zip,application/zip',
   },
   {
     id: 'apple_health',

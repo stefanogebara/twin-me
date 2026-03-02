@@ -18,7 +18,7 @@ import { processGdprImport, listUserImports } from '../services/gdprImportServic
 
 const router = Router();
 
-const SUPPORTED_PLATFORMS = new Set(['spotify', 'youtube', 'discord', 'reddit', 'android_usage']);
+const SUPPORTED_PLATFORMS = new Set(['spotify', 'youtube', 'discord', 'reddit', 'android_usage', 'whoop']);
 
 // ---------------------------------------------------------------------------
 // POST /api/imports/upload-url

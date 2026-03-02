@@ -8,6 +8,7 @@ import {
   Lock,
 } from 'lucide-react';
 import { Clay3DIcon } from '@/components/Clay3DIcon';
+import { PlatformLogo } from '@/components/PlatformLogos';
 
 interface ConnectedPlatformsSettingsProps {
   isDemoMode: boolean;
@@ -102,13 +103,16 @@ const ConnectedPlatformsSettings: React.FC<ConnectedPlatformsSettingsProps> = ({
                   border: '1px solid rgba(0, 0, 0, 0.04)'
                 }}
               >
-                <div>
-                  <h3 className="text-sm" style={{ fontFamily: 'var(--font-body)', fontWeight: 500, color: '#000000' }}>
-                    {connector.name}
-                  </h3>
-                  <p className="text-xs" style={{ color: '#8A857D' }}>
-                    {connector.description}
-                  </p>
+                <div className="flex items-center gap-2">
+                  <PlatformLogo platform={connector.id} size={22} />
+                  <div>
+                    <h3 className="text-sm" style={{ fontFamily: 'var(--font-body)', fontWeight: 500, color: '#000000' }}>
+                      {connector.name}
+                    </h3>
+                    <p className="text-xs" style={{ color: '#8A857D' }}>
+                      {connector.description}
+                    </p>
+                  </div>
                 </div>
                 <div className="flex items-center gap-2">
                   {isActiveConnection ? (
