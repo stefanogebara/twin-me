@@ -16,6 +16,7 @@ import {
   Eye,
   Loader2,
   ChevronDown,
+  Plug,
 } from 'lucide-react';
 import { GlassPanel } from '@/components/layout/PageLayout';
 
@@ -107,16 +108,20 @@ export const ProactiveInsightsPanel: React.FC = () => {
   if (insights.length === 0) {
     return (
       <GlassPanel className="text-center py-6">
-        <Eye
+        <Plug
           className="w-8 h-8 mx-auto mb-3 opacity-30"
           style={{ color: '#78716c' }}
         />
-        <p
-          className="text-sm"
-          style={{ color: '#8A857D' }}
-        >
-          Your twin is observing. Insights will appear as patterns emerge.
+        <p className="text-sm mb-3" style={{ color: '#8A857D' }}>
+          Connect Spotify or Calendar to get your first insights
         </p>
+        <button
+          onClick={() => navigate('/get-started')}
+          className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-medium transition-colors"
+          style={{ backgroundColor: 'rgba(0,0,0,0.06)', color: '#44403c', border: '1px solid rgba(0,0,0,0.1)' }}
+        >
+          Connect Data →
+        </button>
       </GlassPanel>
     );
   }

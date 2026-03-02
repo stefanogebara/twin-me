@@ -222,18 +222,16 @@ export default function MemoryHealth() {
             <div className="grid md:grid-cols-2 gap-6">
               <div className="bg-white rounded-xl border border-stone-200 p-6">
                 <h2 className="text-sm font-semibold text-stone-700 mb-4">Memory Composition</h2>
-                <div style={{ width: '100%', height: 200 }}>
-                  <ResponsiveContainer width="100%" height="100%">
-                    <PieChart>
-                      <Pie data={pieData} cx="50%" cy="50%" outerRadius={80} dataKey="value" label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`} labelLine={false} fontSize={11}>
-                        {pieData.map((entry, i) => (
-                          <Cell key={entry.type} fill={TYPE_COLORS[entry.type] || '#9CA3AF'} />
-                        ))}
-                      </Pie>
-                      <Tooltip formatter={(val: number) => [val.toLocaleString('en-US'), 'count']} />
-                    </PieChart>
-                  </ResponsiveContainer>
-                </div>
+                <ResponsiveContainer width="100%" height={200}>
+                  <PieChart>
+                    <Pie data={pieData} cx="50%" cy="50%" outerRadius={80} dataKey="value" label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`} labelLine={false} fontSize={11}>
+                      {pieData.map((entry, i) => (
+                        <Cell key={entry.type} fill={TYPE_COLORS[entry.type] || '#9CA3AF'} />
+                      ))}
+                    </Pie>
+                    <Tooltip formatter={(val: number) => [val.toLocaleString('en-US'), 'count']} />
+                  </PieChart>
+                </ResponsiveContainer>
                 <div className="flex flex-wrap gap-3 mt-3">
                   {pieData.map(d => (
                     <div key={d.type} className="flex items-center gap-1.5 text-xs text-stone-600">
@@ -246,21 +244,19 @@ export default function MemoryHealth() {
 
               <div className="bg-white rounded-xl border border-stone-200 p-6">
                 <h2 className="text-sm font-semibold text-stone-700 mb-4">Avg Importance by Type</h2>
-                <div style={{ width: '100%', height: 200 }}>
-                  <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={importanceData} margin={{ top: 5, right: 10, left: -20, bottom: 5 }}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="#F3F4F6" />
-                      <XAxis dataKey="name" tick={{ fontSize: 11 }} />
-                      <YAxis domain={[0, 10]} tick={{ fontSize: 11 }} />
-                      <Tooltip formatter={(val: number) => [val.toFixed(2), 'avg importance']} />
-                      <Bar dataKey="avg" radius={[4, 4, 0, 0]}>
-                        {importanceData.map((entry, i) => (
-                          <Cell key={i} fill={entry.fill} />
-                        ))}
-                      </Bar>
-                    </BarChart>
-                  </ResponsiveContainer>
-                </div>
+                <ResponsiveContainer width="100%" height={200}>
+                  <BarChart data={importanceData} margin={{ top: 5, right: 10, left: -20, bottom: 5 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#F3F4F6" />
+                    <XAxis dataKey="name" tick={{ fontSize: 11 }} />
+                    <YAxis domain={[0, 10]} tick={{ fontSize: 11 }} />
+                    <Tooltip formatter={(val: number) => [val.toFixed(2), 'avg importance']} />
+                    <Bar dataKey="avg" radius={[4, 4, 0, 0]}>
+                      {importanceData.map((entry, i) => (
+                        <Cell key={i} fill={entry.fill} />
+                      ))}
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
               </div>
             </div>
 

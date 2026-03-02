@@ -20,6 +20,15 @@ import { seedPatternFromInsight } from '../services/twinPatternService.js';
 
 const router = express.Router();
 
+// Wrap a promise with a hard timeout — returns a timeout error if it exceeds the deadline
+const INSIGHTS_TIMEOUT_MS = 20_000;
+function withTimeout(promise, ms = INSIGHTS_TIMEOUT_MS) {
+  const timeout = new Promise((_, reject) =>
+    setTimeout(() => reject(new Error(`Insights request timed out after ${ms}ms`)), ms)
+  );
+  return Promise.race([promise, timeout]);
+}
+
 // Valid platforms
 const VALID_PLATFORMS = ['spotify', 'calendar', 'youtube', 'web', 'discord', 'linkedin'];
 
@@ -43,10 +52,10 @@ router.get('/all/summary', authenticateUser, async (req, res) => {
 
   try {
     const results = await Promise.allSettled([
-      platformReflectionService.getReflections(userId, 'spotify'),
-      platformReflectionService.getReflections(userId, 'calendar'),
-      platformReflectionService.getReflections(userId, 'youtube'),
-      platformReflectionService.getReflections(userId, 'web')
+      withTimeout(platformReflectionService.getReflections(userId, 'spotify')),
+      withTimeout(platformReflectionService.getReflections(userId, 'calendar')),
+      withTimeout(platformReflectionService.getReflections(userId, 'youtube')),
+      withTimeout(platformReflectionService.getReflections(userId, 'web'))
     ]);
 
     const makeSummary = (result) =>
@@ -155,7 +164,7 @@ router.get('/:platform', authenticateUser, async (req, res) => {
       });
     }
 
-    const result = await platformReflectionService.getReflections(userId, platform);
+    const result = await withTimeout(platformReflectionService.getReflections(userId, platform));
 
     if (!result.success) {
       // Return a graceful response instead of 400 for downstream failures
@@ -170,10 +179,14 @@ router.get('/:platform', authenticateUser, async (req, res) => {
     res.json(result);
   } catch (error) {
     console.error(`[Insights API] Error:`, error);
-    res.status(500).json({
-      success: false,
-      error: 'Failed to get platform insights',
-      message: error.message
+    const isTimeout = error.message?.includes('timed out');
+    res.json({
+      success: true,
+      platform,
+      reflection: isTimeout
+        ? `Your ${platform} insights are taking longer than expected. Try refreshing in a moment.`
+        : `Unable to generate ${platform} insights right now. Try again later.`,
+      fallback: true
     });
   }
 });
@@ -197,7 +210,7 @@ router.post('/:platform/refresh', authenticateUser, async (req, res) => {
   }
 
   try {
-    const result = await platformReflectionService.refreshReflection(userId, platform);
+    const result = await withTimeout(platformReflectionService.refreshReflection(userId, platform));
 
     if (!result.success) {
       return res.status(400).json(result);
@@ -206,9 +219,10 @@ router.post('/:platform/refresh', authenticateUser, async (req, res) => {
     res.json(result);
   } catch (error) {
     console.error(`❌ [Insights API] Refresh error:`, error);
-    res.status(500).json({
+    const isTimeout = error.message?.includes('timed out');
+    res.status(isTimeout ? 504 : 500).json({
       success: false,
-      error: 'Failed to refresh reflection',
+      error: isTimeout ? 'Reflection generation timed out' : 'Failed to refresh reflection',
       message: error.message
     });
   }

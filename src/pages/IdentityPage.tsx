@@ -30,7 +30,9 @@ import {
   RefreshCw,
   AlertCircle,
   ChevronDown,
+  Share2,
 } from 'lucide-react';
+import { toast } from 'sonner';
 import { toSecondPerson } from '@/lib/utils';
 
 // ── Types ──────────────────────────────────────────────────────────────────
@@ -188,7 +190,7 @@ const ExpertSection: React.FC<ExpertSectionProps> = ({ config, bullets }) => {
           </ul>
         ) : (
           <p className="pl-11 pb-2 text-sm text-gray-400 italic">
-            Your twin hasn't built enough signal here yet — keep using connected platforms.
+            No signal here yet. Keep using connected platforms — insights in this section appear after ~2 days of data.
           </p>
         )}
       </AccordionContent>
@@ -272,11 +274,27 @@ const IdentityPage: React.FC = () => {
           <div className="w-16 h-16 rounded-2xl bg-gray-100 flex items-center justify-center mx-auto mb-6">
             <Fingerprint className="w-8 h-8 text-gray-400" />
           </div>
-          <h2 className="text-xl font-bold text-gray-900 mb-3">Your twin is still learning</h2>
-          <p className="text-gray-500 text-sm leading-relaxed max-w-sm mx-auto">
-            Connect your platforms and give it a few days. The more data your twin processes,
-            the richer this portrait becomes.
+          <h2 className="text-xl font-bold text-gray-900 mb-3">No identity portrait yet</h2>
+          <p className="text-gray-500 text-sm leading-relaxed max-w-sm mx-auto mb-6">
+            Your twin builds this portrait from your platforms. Connect Spotify, Calendar, or
+            YouTube and check back in 2-3 days — the first insights appear quickly.
           </p>
+          <div className="flex flex-col sm:flex-row gap-3 justify-center">
+            <button
+              onClick={() => navigate('/get-started')}
+              className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-full text-sm font-medium"
+              style={{ backgroundColor: '#0c0a09', color: '#FAFAFA' }}
+            >
+              Connect platforms
+            </button>
+            <button
+              onClick={() => navigate('/interview')}
+              className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-full text-sm font-medium border border-gray-200"
+              style={{ color: '#0c0a09' }}
+            >
+              Complete your interview
+            </button>
+          </div>
         </div>
       </PageLayout>
     );
@@ -313,14 +331,35 @@ const IdentityPage: React.FC = () => {
 
         {/* Header */}
         <div>
-          <div className="flex items-center gap-3 mb-2">
-            <div className="w-10 h-10 rounded-xl bg-gray-100 flex items-center justify-center">
-              <Fingerprint className="w-5 h-5 text-gray-700" />
+          <div className="flex items-center justify-between gap-3 mb-2">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-gray-100 flex items-center justify-center">
+                <Fingerprint className="w-5 h-5 text-gray-700" />
+              </div>
+              <div>
+                <h1 className="text-2xl font-bold text-gray-900 heading-serif">Who You Are</h1>
+                <p className="text-sm text-gray-500">What your twin knows about you</p>
+              </div>
             </div>
-            <div>
-              <h1 className="text-2xl font-bold text-gray-900 heading-serif">Who You Are</h1>
-              <p className="text-sm text-gray-500">What your twin knows about you</p>
-            </div>
+            <button
+              onClick={() => {
+                const shareUrl = `${window.location.origin}/p/${user.id}`;
+                navigator.clipboard.writeText(shareUrl).then(() => {
+                  toast.success('Link copied! Share your Soul Signature');
+                }).catch(() => {
+                  toast.error('Could not copy link');
+                });
+              }}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border transition-opacity hover:opacity-70 flex-shrink-0"
+              style={{
+                borderColor: 'rgba(0,0,0,0.15)',
+                color: '#555',
+                background: 'transparent',
+              }}
+            >
+              <Share2 className="w-3.5 h-3.5" />
+              Share
+            </button>
           </div>
           {identityMetaPill && (
             <span
@@ -380,6 +419,17 @@ const IdentityPage: React.FC = () => {
             </div>
           );
         })()}
+
+        {/* Interview CTA */}
+        <div className="text-center">
+          <button
+            onClick={() => navigate('/interview')}
+            className="text-xs transition-opacity hover:opacity-60"
+            style={{ color: '#C4A265' }}
+          >
+            Improve accuracy → Redo your interview
+          </button>
+        </div>
 
         {/* Archetype + Uniqueness Markers */}
         {(profile?.archetype || uniquenessMarkers.length > 0 || coreValues.length > 0) && (

@@ -27,8 +27,12 @@ router.post('/scan', async (req, res) => {
   }
 
   try {
-    const data = await profileEnrichmentService.quickEnrich(email, name || null);
-    res.json({ discovered: data });
+    const result = await profileEnrichmentService.quickEnrich(email, name || null);
+    // result = { success, data: { discovered_name, ... }, elapsed }
+    // Return null if nothing was found (source === 'none' means both Gravatar + GitHub failed)
+    const innerData = result?.data;
+    const discovered = (innerData && innerData.source !== 'none') ? innerData : null;
+    res.json({ discovered });
   } catch (err) {
     console.error('[Discovery] Scan error:', err.message);
     res.json({ discovered: null });

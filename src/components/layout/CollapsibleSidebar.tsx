@@ -17,8 +17,6 @@ import {
   LogOut,
   BookOpen,
   Target,
-  Activity,
-  Fingerprint,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Clay3DIcon, CLAY_ICON_MAP } from '@/components/Clay3DIcon';
@@ -39,19 +37,16 @@ interface CollapsibleSidebarProps {
 const mainNavItems: NavItem[] = [
   { id: 'dashboard', label: 'Home',  icon: Home,          path: '/dashboard' },
   { id: 'chat',      label: 'Chat',  icon: MessageCircle, path: '/talk-to-twin' },
-  { id: 'me',        label: 'Me',    icon: Sparkles,      path: '/soul-signature' },
+  { id: 'me',        label: 'You',   icon: Sparkles,      path: '/identity' },
 ];
 
 // Everything else — shown in a collapsible "More" section
 const moreNavItems: NavItem[] = [
-  { id: 'interview',    label: 'Tell Your Story', icon: BookOpen,   path: '/interview' },
-  { id: 'identity',     label: 'Who You Are',    icon: Fingerprint, path: '/identity' },
-  { id: 'goals',        label: 'Goals',          icon: Target,   path: '/goals' },
-  { id: 'brain',        label: "Twin's Brain",   icon: Brain,    path: '/brain' },
-  { id: 'journal',      label: 'Soul Journal',   icon: BookOpen, path: '/journal' },
-  { id: 'connect-data',   label: 'Connect Data',   icon: Link2,     path: '/get-started' },
-  { id: 'memory-health',  label: 'Memory Health',  icon: Activity,  path: '/memory-health' },
-  { id: 'settings',       label: 'Settings',       icon: Settings,  path: '/settings' },
+  { id: 'goals',        label: 'Your Goals',      icon: Target,     path: '/goals' },
+  { id: 'brain',        label: 'Memory Explorer', icon: Brain,      path: '/brain' },
+  { id: 'interview',    label: 'Your Interview',  icon: BookOpen,   path: '/interview' },
+  { id: 'connect-data', label: 'Connect Data',    icon: Link2,      path: '/get-started' },
+  { id: 'settings',     label: 'Settings',        icon: Settings,   path: '/settings' },
 ];
 
 export const CollapsibleSidebar: React.FC<CollapsibleSidebarProps> = ({
@@ -199,8 +194,12 @@ export const CollapsibleSidebar: React.FC<CollapsibleSidebarProps> = ({
                   "w-full flex items-center gap-3 rounded-lg transition-all duration-200",
                   isExpanded ? "px-4 py-3" : "px-3 py-3 justify-center",
                   active
-                    ? 'bg-sidebar-accent border-l-[3px] border-l-[#000] text-sidebar-accent-foreground font-semibold'
-                    : 'text-sidebar-foreground hover:bg-sidebar-accent border-l-[3px] border-l-transparent'
+                    ? isExpanded
+                      ? 'bg-sidebar-accent border-l-[3px] border-l-[#000] text-sidebar-accent-foreground font-semibold'
+                      : 'bg-sidebar-accent text-sidebar-accent-foreground font-semibold'
+                    : isExpanded
+                      ? 'text-sidebar-foreground hover:bg-sidebar-accent border-l-[3px] border-l-transparent'
+                      : 'text-sidebar-foreground hover:bg-sidebar-accent'
                 )}
                 title={item.label}
               >
