@@ -236,7 +236,7 @@ const BrainPage: React.FC = () => {
             seen.add(key);
             picks.push({ id: r.id, content: r.content, category: r.expert || undefined, createdAt: r.createdAt });
           }
-          if (picks.length >= 4) break;
+          if (picks.length >= 5) break;
         }
         return picks;
       })();
@@ -428,7 +428,7 @@ const BrainPage: React.FC = () => {
                         )}
                         {memoryStats?.byPlatform[provider] != null && (
                           <p className="text-xs mt-0.5" style={{ color: textSecondary }}>
-                            {memoryStats.byPlatform[provider]} memories
+                            {memoryStats.byPlatform[provider]} {memoryStats.byPlatform[provider] === 1 ? 'memory' : 'memories'}
                           </p>
                         )}
                       </div>
@@ -460,9 +460,6 @@ const BrainPage: React.FC = () => {
                 Upload Your Data
               </h2>
             </div>
-            <p className="text-sm mb-5" style={{ color: textSecondary }}>
-              Import years of history from Spotify, YouTube, Discord, and Reddit — data the live APIs can't provide.
-            </p>
             {user?.id && <DataUploadPanel userId={user.id} />}
           </GlassPanel>
         </div>

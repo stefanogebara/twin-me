@@ -132,6 +132,7 @@ export const TodayInsights: React.FC = () => {
     },
     staleTime: 5 * 60 * 1000, // 5 minutes
     refetchInterval: 10 * 60 * 1000, // Refresh every 10 minutes
+    retry: 0,
   });
 
   const handleInsightClick = (insight: TodayInsight) => {

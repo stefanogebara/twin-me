@@ -11,8 +11,8 @@ export function cn(...inputs: ClassValue[]) {
  * This transform makes them read naturally as "You..." / "Your..." for the user.
  */
 export function toSecondPerson(text: string): string {
-  return text
-    // Possessives must come first to avoid "This person's" → "You's"
+  let result = text
+    // Possessives first to avoid "This person's" → "You's"
     .replace(/\bThis person's\b/g, 'Your')
     .replace(/\bthis person's\b/g, 'your')
     .replace(/\bThis person\b/g, 'You')
@@ -32,5 +32,16 @@ export function toSecondPerson(text: string): string {
     .replace(/\bThem\b/g, 'You')
     .replace(/\bthem\b/g, 'you')
     .replace(/\bThemselves\b/g, 'Yourself')
-    .replace(/\bthemselves\b/g, 'yourself');
+    .replace(/\bthemselves\b/g, 'yourself')
+    // Reflexive pronouns
+    .replace(/\bHimself\b/g, 'Yourself')
+    .replace(/\bhimself\b/g, 'yourself')
+    .replace(/\bHerself\b/g, 'Yourself')
+    .replace(/\bherself\b/g, 'yourself');
+
+  // Fix third-person singular verb forms after "You" (result of subject replacement)
+  // Pattern: "You [verb]s" → "You [verb]" for common verbs
+  result = result.replace(/\bYou (treats|enjoys|likes|tends|uses|shows|demonstrates|displays|exhibits|finds|makes|takes|seeks|brings|keeps|holds|plays|works|feels|seems|appears|remains|becomes|leads|creates|builds|runs|starts|moves|drives|pushes|pulls|shapes|forms|centers|values|focuses|prioritizes|expresses|explores|connects|engages|approaches|handles|manages|navigates|balances|combines|blends|mixes|shifts|adapts|learns|grows|evolves|develops|refines|processes|reflects|considers|weighs|analyzes|questions|challenges)\b/g, (_, verb) => `You ${verb.replace(/s$/, '')}`);
+
+  return result;
 }

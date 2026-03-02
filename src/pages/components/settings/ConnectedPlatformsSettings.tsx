@@ -21,12 +21,21 @@ interface ConnectedPlatformsSettingsProps {
   handleDisconnectService: (provider: string) => void;
 }
 
-const connectorConfig = [
-  { id: 'spotify', name: 'Spotify', description: 'Music preferences and listening patterns' },
-  { id: 'google_calendar', name: 'Google Calendar', description: 'Schedule and event patterns' },
-  { id: 'youtube', name: 'YouTube', description: 'Content preferences and watch history' },
-  { id: 'discord', name: 'Discord', description: 'Community activity and communication style' },
-  { id: 'linkedin', name: 'LinkedIn', description: 'Career trajectory and professional skills' },
+interface ConnectorConfig {
+  id: string;
+  name: string;
+  description: string;
+  isOAuth: boolean;
+}
+
+const connectorConfig: ConnectorConfig[] = [
+  { id: 'spotify', name: 'Spotify', description: 'Music preferences and listening patterns', isOAuth: true },
+  { id: 'google_calendar', name: 'Google Calendar', description: 'Schedule and event patterns', isOAuth: true },
+  { id: 'youtube', name: 'YouTube', description: 'Content preferences and watch history', isOAuth: true },
+  { id: 'discord', name: 'Discord', description: 'Community activity and communication style', isOAuth: true },
+  { id: 'linkedin', name: 'LinkedIn', description: 'Career trajectory and professional skills', isOAuth: true },
+  { id: 'whoop', name: 'Whoop', description: 'Recovery, strain, sleep, and HRV patterns', isOAuth: false },
+  { id: 'gmail', name: 'Gmail', description: 'Communication patterns from email metadata', isOAuth: false },
 ];
 
 // Glass card style matching the design system
@@ -118,7 +127,7 @@ const ConnectedPlatformsSettings: React.FC<ConnectedPlatformsSettingsProps> = ({
                   {isActiveConnection ? (
                     <>
                       <CheckCircle className="w-4 h-4" style={{ color: '#10B981' }} />
-                      {!isDemoMode && (
+                      {!isDemoMode && connector.isOAuth && (
                         <button
                           onClick={() => handleDisconnectService(connector.id)}
                           disabled={disconnectingService === connector.id}
