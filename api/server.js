@@ -292,6 +292,7 @@ import checkinRoutes from './routes/checkin.js';
 import importsRoutes from './routes/imports.js';
 import cronMemoryArchiveRoutes from './routes/cron-memory-archive.js';
 import cronMemoryForgettingRoutes from './routes/cron-memory-forgetting.js';
+import cronPersonalityEvalRoutes from './routes/cron-personality-eval.js';
 import memoryHealthRoutes from './routes/memory-health.js';
 import memoryLinksRoutes from './routes/memory-links.js';
 import githubConnectRoutes from './routes/github-connect.js';
@@ -464,7 +465,19 @@ app.use('/api/claude-sync', claudeSyncRoutes); // Claude Desktop conversation sy
 app.use('/api/cron/claude-sync', cronClaudeSyncRoutes); // Claude Desktop cron sync and AI analysis processing
 app.use('/api/cron/memory-archive', cronMemoryArchiveRoutes);    // Daily memory archival for large users
 app.use('/api/cron/memory-forgetting', cronMemoryForgettingRoutes); // Weekly multi-tier quality maintenance
+app.use('/api/cron/personality-eval', cronPersonalityEvalRoutes);   // Weekly personality assessment (Sunday 4am)
 app.use('/api/memory-health', memoryHealthRoutes); // Memory stream health dashboard
+// Personality assessment history (inline — small enough not to need its own route file)
+app.get('/api/personality/history', authenticateUser, async (req, res) => {
+  try {
+    const { getPersonalityHistory } = await import('./services/personalityEvaluationService.js');
+    const history = await getPersonalityHistory(req.user.id, parseInt(req.query.limit) || 12);
+    res.json({ success: true, assessments: history });
+  } catch (err) {
+    console.error('[Personality] History fetch error:', err.message);
+    res.status(500).json({ error: 'Failed to fetch personality history' });
+  }
+});
 app.use('/api/memory/:memoryId', memoryLinksRoutes); // A-MEM Zettelkasten memory links
 app.use('/api/eval', evalRoutes); // Twin eval rubric + feature flags
 app.use('/api/twin', twinIdentityRoutes); // Who You Are identity explorer

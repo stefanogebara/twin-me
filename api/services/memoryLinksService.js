@@ -128,6 +128,69 @@ export async function linkReflectionToSources(reflectionId, userId, sourceIds) {
  * @param {number} limit
  * @returns {Promise<Array>} Array of { link_type, strength, target: { id, content, memory_type, importance_score, created_at } }
  */
+// ====================================================================
+// STDP co-retrieval link strengthening
+// ====================================================================
+
+/**
+ * Strengthen links between co-cited memories (STDP-inspired).
+ * Memories cited together in a twin response wire together:
+ * - Creates 'co_citation' links at strength 0.3 if they don't exist
+ * - Increments existing co_citation links by 0.1 (capped at 1.0)
+ * - Max 15 pairs per call to prevent combinatorial explosion
+ *
+ * @param {string} userId
+ * @param {string[]} citedIds - Memory IDs cited in the same response
+ */
+export async function strengthenCoCitedLinks(userId, citedIds) {
+  if (!citedIds || citedIds.length < 2) return;
+
+  // Generate pairs (max 15 to avoid n^2 explosion with many citations)
+  const pairs = [];
+  for (let i = 0; i < citedIds.length && pairs.length < 15; i++) {
+    for (let j = i + 1; j < citedIds.length && pairs.length < 15; j++) {
+      pairs.push([citedIds[i], citedIds[j]]);
+    }
+  }
+
+  try {
+    for (const [sourceId, targetId] of pairs) {
+      // Try to fetch existing link
+      const { data: existing } = await supabaseAdmin
+        .from('memory_links')
+        .select('id, strength')
+        .eq('source_memory_id', sourceId)
+        .eq('target_memory_id', targetId)
+        .maybeSingle();
+
+      if (existing) {
+        // Increment strength by 0.1, cap at 1.0
+        const newStrength = Math.min(1.0, existing.strength + 0.1);
+        await supabaseAdmin
+          .from('memory_links')
+          .update({ strength: newStrength, updated_at: new Date().toISOString() })
+          .eq('id', existing.id);
+      } else {
+        // Create new co_citation link at 0.3
+        await supabaseAdmin
+          .from('memory_links')
+          .upsert({
+            user_id: userId,
+            source_memory_id: sourceId,
+            target_memory_id: targetId,
+            link_type: 'co_citation',
+            strength: 0.3,
+            updated_at: new Date().toISOString(),
+          }, { onConflict: 'source_memory_id,target_memory_id', ignoreDuplicates: false });
+      }
+    }
+
+    console.log(`[MemoryLinks] STDP: strengthened ${pairs.length} co-citation pairs`);
+  } catch (err) {
+    console.warn('[MemoryLinks] strengthenCoCitedLinks error:', err.message);
+  }
+}
+
 export async function getLinkedMemories(memoryId, userId, limit = 5) {
   const { data, error } = await supabaseAdmin
     .from('memory_links')
