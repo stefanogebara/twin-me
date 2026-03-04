@@ -58,6 +58,7 @@ const DeepInterview: React.FC<DeepInterviewProps> = ({
   const [domainProgress, setDomainProgress] = useState<Record<string, { asked: number; covered: boolean }>>({});
   const [isDone, setIsDone] = useState(false);
   const [summary, setSummary] = useState('');
+  const [enhancedSignature, setEnhancedSignature] = useState<SoulSignature | undefined>(undefined);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const initRan = useRef(false);
@@ -171,14 +172,13 @@ const DeepInterview: React.FC<DeepInterviewProps> = ({
       if (response.ok) {
         const result = await response.json();
         if (result.success && result.signature) {
-          onComplete(result.signature);
+          setEnhancedSignature(result.signature);
           return;
         }
       }
     } catch {
-      // Fall through
+      // Fall through — signature generation is non-critical
     }
-    onComplete();
   };
 
   return (
@@ -341,7 +341,7 @@ const DeepInterview: React.FC<DeepInterviewProps> = ({
             </p>
           )}
           <motion.button
-            onClick={() => onComplete()}
+            onClick={() => onComplete(enhancedSignature)}
             className="w-full px-6 py-4 rounded-full text-sm font-normal flex items-center justify-center gap-2 transition-colors"
             style={{
               backgroundColor: 'var(--foreground)',

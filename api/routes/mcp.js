@@ -9,6 +9,9 @@ import { authenticateUser } from '../middleware/auth.js';
 
 const router = express.Router();
 
+// All MCP routes require authentication
+router.use(authenticateUser);
+
 /**
  * GET /api/mcp/status
  * Get MCP infrastructure status and available servers

@@ -70,6 +70,14 @@ router.post('/github/:userId', express.raw({ type: 'application/json' }), async 
  */
 router.post('/gmail', express.json(), async (req, res) => {
   try {
+    // Verify Pub/Sub push authentication token
+    const authHeader = req.headers.authorization;
+    const expectedAudience = process.env.GMAIL_PUBSUB_AUDIENCE;
+    if (expectedAudience && (!authHeader || !authHeader.startsWith('Bearer '))) {
+      console.warn('⚠️  Gmail push: missing auth token');
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+
     const { message } = req.body;
 
     if (!message) {
