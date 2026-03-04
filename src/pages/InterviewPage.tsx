@@ -22,12 +22,10 @@ export default function InterviewPage() {
   const { user } = useAuth();
   const [alreadyDone, setAlreadyDone] = useState(false);
   const [loading, setLoading] = useState(true);
-  const initRan = useRef(false);
-
-  // Build enrichment context from AuthContext user — no extra API call needed
-  const enrichmentContext = {
+  const [enrichmentContext, setEnrichmentContext] = useState<Record<string, string | undefined>>({
     name: user ? `${user.firstName || ''} ${user.lastName || ''}`.trim() || user.email : undefined,
-  };
+  });
+  const initRan = useRef(false);
 
   useEffect(() => {
     if (initRan.current) return;
@@ -41,6 +39,10 @@ export default function InterviewPage() {
           if (res.ok) {
             const { data } = await res.json();
             if (data?.completed_at) setAlreadyDone(true);
+            // Reuse enrichment_context from previous calibration if available
+            if (data?.enrichment_context) {
+              setEnrichmentContext(prev => ({ ...prev, ...data.enrichment_context }));
+            }
           }
         }
       } catch {

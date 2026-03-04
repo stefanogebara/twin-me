@@ -239,31 +239,51 @@ function analyzeProgress(conversationHistory, questionNumber) {
  * This is lightweight (TIER_ANALYSIS) and lets us track domain coverage accurately.
  */
 // Keyword-based domain classification — zero-cost, instant, works offline
+// Keywords are weighted: strong (2pts) = highly domain-specific, weak (1pt) = could appear in other contexts
 const DOMAIN_KEYWORDS = {
-  motivation: ['work', 'career', 'ambition', 'goal', 'drive', 'job', 'project', 'build', 'create', 'startup', 'business', 'success', 'achieve', 'purpose', 'mission', 'passion', 'professional', 'entrepreneur'],
-  lifestyle: ['routine', 'sleep', 'morning', 'evening', 'day look', 'schedule', 'gym', 'exercise', 'health', 'energy', 'diet', 'habit', 'wake up', 'coffee', 'commute', 'weekend', 'typical day', 'daily'],
-  personality: ['stress', 'emotion', 'feel', 'cope', 'anxious', 'happy', 'sad', 'angry', 'introvert', 'extrovert', 'temperament', 'react', 'overwhelm', 'vulnerable', 'afraid', 'confident', 'insecure', 'mood'],
-  cultural: ['music', 'movie', 'book', 'art', 'aesthetic', 'design', 'taste', 'creative', 'song', 'album', 'artist', 'film', 'show', 'podcast', 'genre', 'style', 'culture', 'food', 'cook', 'travel', 'restaurant'],
-  social: ['friend', 'relationship', 'family', 'partner', 'communicate', 'social', 'people', 'group', 'alone', 'lonely', 'connect', 'trust', 'conflict', 'disagree', 'open up', 'close to', 'circle'],
+  motivation: {
+    strong: ['career', 'ambition', 'startup', 'entrepreneur', 'professional', 'promotion', 'resume', 'hiring', 'salary'],
+    weak: ['goal', 'drive', 'purpose', 'mission', 'success', 'achieve', 'passion'],
+  },
+  lifestyle: {
+    strong: ['routine', 'sleep', 'morning person', 'night owl', 'gym', 'exercise', 'diet', 'wake up', 'commute', 'recharge'],
+    weak: ['morning', 'evening', 'schedule', 'health', 'energy', 'habit', 'coffee', 'weekend', 'daily'],
+  },
+  personality: {
+    strong: ['stress', 'anxious', 'introvert', 'extrovert', 'temperament', 'overwhelm', 'vulnerable', 'insecure', 'coping'],
+    weak: ['emotion', 'feel', 'cope', 'mood', 'confident', 'react', 'afraid', 'self-aware'],
+  },
+  cultural: {
+    strong: ['music', 'movie', 'album', 'artist', 'film', 'podcast', 'genre', 'aesthetic', 'pagode', 'sertanejo', 'drake'],
+    weak: ['book', 'art', 'taste', 'creative', 'song', 'show', 'style', 'culture', 'food', 'cook', 'travel'],
+  },
+  social: {
+    strong: ['friend', 'relationship', 'family', 'partner', 'introvert', 'extrovert', 'circle', 'networking'],
+    weak: ['communicate', 'social', 'people', 'group', 'alone', 'lonely', 'trust', 'conflict', 'disagree'],
+  },
 };
 
 function classifyDomainByKeywords(question, answer) {
   const text = `${question} ${answer}`.toLowerCase();
   const scores = {};
-  for (const [domain, keywords] of Object.entries(DOMAIN_KEYWORDS)) {
-    scores[domain] = keywords.filter(kw => text.includes(kw)).length;
+  for (const [domain, { strong, weak }] of Object.entries(DOMAIN_KEYWORDS)) {
+    const strongHits = strong.filter(kw => text.includes(kw)).length * 2;
+    const weakHits = weak.filter(kw => text.includes(kw)).length;
+    scores[domain] = strongHits + weakHits;
   }
   const sorted = Object.entries(scores).sort((a, b) => b[1] - a[1]);
-  // Only return if there's a clear winner (>0 matches)
-  if (sorted[0][1] > 0) return sorted[0][0];
-  return null; // ambiguous
+  const [top, second] = sorted;
+  // Require clear winner: top score > 0 AND at least 2-point margin over runner-up
+  // Otherwise fall through to LLM classifier for better accuracy
+  if (top[1] >= 2 && (top[1] - second[1]) >= 2) return top[0];
+  return null; // ambiguous — let LLM decide
 }
 
 async function classifyDomain(question, answer) {
   // Try keyword classification first — free and instant
   const keywordDomain = classifyDomainByKeywords(question, answer);
 
-  // Use LLM only when keywords are ambiguous (no matches)
+  // Use LLM when keywords are ambiguous (no clear winner)
   if (keywordDomain) return keywordDomain;
 
   try {
@@ -483,22 +503,40 @@ Return ONLY this JSON array (no markdown, no explanation):
 router.post('/calibrate', authenticateUser, async (req, res) => {
   try {
     const userId = req.user?.id;
-    const { enrichmentContext, conversationHistory, questionNumber, domainProgress: clientDomainProgress } = req.body;
+    let { enrichmentContext, conversationHistory, questionNumber, domainProgress: clientDomainProgress } = req.body;
 
     if (!enrichmentContext || !questionNumber) {
       return res.status(400).json({ success: false, error: 'enrichmentContext and questionNumber required' });
     }
 
+    // Auto-enrich from enriched_profiles if frontend only sent name
+    if (userId && supabaseAdmin && !enrichmentContext.company && !enrichmentContext.title) {
+      try {
+        const { data: profile } = await supabaseAdmin
+          .from('enriched_profiles')
+          .select('company, title, location, bio, career_timeline, education, github_url, twitter_url')
+          .eq('user_id', userId)
+          .maybeSingle();
+        if (profile) {
+          enrichmentContext = { ...enrichmentContext, ...profile };
+        }
+      } catch {
+        // Non-fatal — proceed with whatever the frontend sent
+      }
+    }
+
     // Cap conversation history to prevent oversized LLM payloads
-    if (Array.isArray(conversationHistory) && conversationHistory.length > 30) {
-      conversationHistory.length = 30;
+    // 18-question interview = 36+ messages, so cap at 40 and trim from the start
+    let history_raw = Array.isArray(conversationHistory) ? conversationHistory : [];
+    if (history_raw.length > 40) {
+      history_raw = history_raw.slice(-40);
     }
 
     const currentQ = Math.min(questionNumber, MAX_QUESTIONS);
 
     // Classify the last answer's domain (if we have a new answer)
     let lastDomain = null;
-    const history = conversationHistory || [];
+    const history = history_raw;
     if (history.length >= 2) {
       const lastAssistant = [...history].reverse().find(m => m.role === 'assistant');
       const lastUser = [...history].reverse().find(m => m.role === 'user');
@@ -521,7 +559,7 @@ router.post('/calibrate', authenticateUser, async (req, res) => {
 
     // Check completion conditions
     const domainsWithCoverage = Object.values(domainProgress).filter(d => d.asked >= 2).length;
-    const shouldComplete = (currentQ > MAX_QUESTIONS) ||
+    const shouldComplete = (currentQ >= MAX_QUESTIONS) ||
       (currentQ > MIN_QUESTIONS && domainsWithCoverage >= 4);
 
     if (shouldComplete) {
@@ -669,6 +707,17 @@ router.post('/calibrate', authenticateUser, async (req, res) => {
  */
 async function storeInterviewMemories(userId, history, domainInsights, archetypeHint, summary) {
   try {
+    // Delete old interview memories before inserting new ones (handles re-interview)
+    if (supabaseAdmin) {
+      const { error: delErr } = await supabaseAdmin
+        .from('user_memories')
+        .delete()
+        .eq('user_id', userId)
+        .contains('metadata', { source: 'onboarding_interview' });
+      if (delErr) console.warn('[Calibration] Failed to delete old interview memories:', delErr.message);
+      else console.log(`[Calibration] Cleared old interview memories for user ${userId}`);
+    }
+
     // Store each Q&A pair as a conversation memory
     for (let i = 0; i < history.length - 1; i++) {
       const msg = history[i];

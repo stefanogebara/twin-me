@@ -3,6 +3,16 @@ import { Resend } from 'resend';
 import crypto from 'crypto';
 
 const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null;
+
+function escapeHtml(str) {
+  if (!str) return '';
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#x27;');
+}
 if (!resend) console.warn('[EmailService] RESEND_API_KEY not set — email sending disabled');
 const FROM = process.env.RESEND_FROM_EMAIL || 'twin@twinme.me';
 const APP_URL = process.env.VITE_APP_URL || 'https://twin-ai-learn.vercel.app';
@@ -37,13 +47,13 @@ export async function sendWeeklyDigest({ toEmail, firstName, reflections, newMem
 
   const reflectionCards = reflections
     .slice(0, 3)
-    .map(text => `<div class="card"><p style="font-size:16px;line-height:1.6;margin:0">${text.slice(0, 300)}</p></div>`)
+    .map(text => `<div class="card"><p style="font-size:16px;line-height:1.6;margin:0">${escapeHtml(text.slice(0, 300))}</p></div>`)
     .join('');
 
   return resend.emails.send({
     from: FROM,
     to: toEmail,
-    subject: `Your twin noticed something this week, ${firstName}`,
+    subject: `Your twin noticed something this week, ${escapeHtml(firstName)}`,
     html: `<!DOCTYPE html><html><head><meta charset="utf-8"><style>
 body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#0a0a0a;color:#e5e5e5;margin:0;padding:0}
 .c{max-width:600px;margin:0 auto;padding:40px 24px}
@@ -54,7 +64,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .footer{margin-top:40px;font-size:12px;color:#4b5563;line-height:1.6}
 </style></head><body><div class="c">
 <div class="logo">TwinMe</div>
-<p style="color:#9ca3af;margin-bottom:28px;font-size:15px">Hey ${firstName} — here's what your twin noticed this week.</p>
+<p style="color:#9ca3af;margin-bottom:28px;font-size:15px">Hey ${escapeHtml(firstName)} — here's what your twin noticed this week.</p>
 <div class="section-lbl">This week's reflections</div>
 ${reflectionCards}
 ${newMemories > 0 ? `<p style="color:#6b7280;font-size:13px;margin-top:8px">+${newMemories} new memories added this week.</p>` : ''}

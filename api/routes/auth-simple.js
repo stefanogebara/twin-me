@@ -49,6 +49,13 @@ async function clearAuthFailures(email) {
 
 const router = express.Router();
 
+// Prevent proxy/CDN caching of auth responses containing tokens
+router.use((req, res, next) => {
+  res.set('Cache-Control', 'no-store');
+  res.set('Pragma', 'no-cache');
+  next();
+});
+
 // Auth codes stored in Supabase (not in-memory) so Vercel serverless instances share state
 
 // JWT secret - required environment variable
@@ -333,18 +340,24 @@ router.post('/refresh', async (req, res) => {
   }
 });
 
-// Logout - invalidate refresh token
+// Logout - invalidate refresh token + blacklist JWT
 router.post('/logout', async (req, res) => {
   try {
     const token = req.headers.authorization?.split(' ')[1];
     if (token) {
       try {
         const decoded = jwt.verify(token, JWT_SECRET);
+        // Clear refresh token
         const { error: clearTokenErr } = await supabaseAdmin
           .from('users')
           .update({ refresh_token_hash: null })
           .eq('id', decoded.id);
         if (clearTokenErr) console.warn('[Auth] Error clearing refresh token on logout:', clearTokenErr.message);
+
+        // Blacklist the JWT until its natural expiry
+        const { blacklistToken } = await import('../middleware/auth.js');
+        const ttl = decoded.exp ? decoded.exp - Math.floor(Date.now() / 1000) : 30 * 24 * 60 * 60;
+        if (ttl > 0) await blacklistToken(token, ttl);
       } catch {
         // Token expired or invalid — still clear on best effort
       }
@@ -483,6 +496,12 @@ async function exchangeGoogleCode(code, appUrl, overrideRedirectUri = null) {
 
     const userData = await userResponse.json();
     console.log('✅ User info received, hasGivenName:', !!userData.given_name);
+
+    // nOAuth protection: reject unverified emails to prevent account takeover
+    if (userData.verified_email === false) {
+      console.warn('[Auth] ⚠️ OAuth rejected: email not verified for', userData.email);
+      return null;
+    }
 
     const result = {
       email: userData.email,

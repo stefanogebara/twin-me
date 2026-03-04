@@ -1,7 +1,44 @@
 import jwt from 'jsonwebtoken';
+import crypto from 'crypto';
 import dotenv from 'dotenv';
 
 dotenv.config();
+
+// Token blacklist helpers (Redis-backed, in-memory fallback)
+const TOKEN_BLACKLIST_PREFIX = 'jwt:revoked:';
+const inMemoryBlacklist = new Map();
+
+function tokenFingerprint(token) {
+  return crypto.createHash('sha256').update(token).digest('hex').slice(0, 16);
+}
+
+export async function blacklistToken(token, expiresInSeconds) {
+  const key = TOKEN_BLACKLIST_PREFIX + tokenFingerprint(token);
+  try {
+    const { getRedisClient, isRedisAvailable } = await import('../services/redisClient.js');
+    if (isRedisAvailable()) {
+      const client = getRedisClient();
+      await client.set(key, '1', 'EX', expiresInSeconds);
+      return;
+    }
+  } catch {}
+  inMemoryBlacklist.set(key, Date.now() + expiresInSeconds * 1000);
+}
+
+async function isTokenBlacklisted(token) {
+  const key = TOKEN_BLACKLIST_PREFIX + tokenFingerprint(token);
+  try {
+    const { getRedisClient, isRedisAvailable } = await import('../services/redisClient.js');
+    if (isRedisAvailable()) {
+      const client = getRedisClient();
+      return await client.exists(key) === 1;
+    }
+  } catch {}
+  const expiry = inMemoryBlacklist.get(key);
+  if (!expiry) return false;
+  if (Date.now() > expiry) { inMemoryBlacklist.delete(key); return false; }
+  return true;
+}
 
 // JWT secret from environment (required)
 const JWT_SECRET = process.env.JWT_SECRET;
@@ -37,6 +74,14 @@ export const authenticateUser = async (req, res, next) => {
     try {
       // Verify the JWT token
       const payload = jwt.verify(token, JWT_SECRET);
+
+      // Check if token has been revoked (logout blacklist)
+      if (await isTokenBlacklisted(token)) {
+        return res.status(401).json({
+          error: 'Unauthorized',
+          message: 'Token has been revoked'
+        });
+      }
 
       // Add user info to request
       req.user = {
@@ -96,8 +141,8 @@ export const optionalAuth = async (req, res, next) => {
   }
 };
 
-// Admin/Professor role check middleware
-export const requireProfessor = (req, res, next) => {
+// Admin/Professor role check middleware — re-validates role from DB
+export const requireProfessor = async (req, res, next) => {
   if (!req.user) {
     return res.status(401).json({
       error: 'Unauthorized',
@@ -105,18 +150,33 @@ export const requireProfessor = (req, res, next) => {
     });
   }
 
-  // Check if user has professor role
-  const userRole = req.user.role || req.user.user_type;
-  const isProfessor = userRole === 'professor' || userRole === 'admin';
+  try {
+    const { supabaseAdmin } = await import('../services/database.js');
+    const { data: dbUser } = await supabaseAdmin
+      .from('users')
+      .select('role, user_type')
+      .eq('id', req.user.id)
+      .single();
 
-  if (!isProfessor) {
-    return res.status(403).json({
-      error: 'Forbidden',
-      message: 'Professor role required'
-    });
+    if (!dbUser) {
+      return res.status(403).json({ error: 'Forbidden', message: 'User not found' });
+    }
+
+    const dbRole = dbUser.role || dbUser.user_type;
+    const isProfessor = dbRole === 'professor' || dbRole === 'admin';
+
+    if (!isProfessor) {
+      return res.status(403).json({
+        error: 'Forbidden',
+        message: 'Professor role required'
+      });
+    }
+
+    next();
+  } catch (err) {
+    console.error('[Auth] requireProfessor DB check failed:', err.message);
+    return res.status(500).json({ error: 'Internal server error' });
   }
-
-  next();
 };
 
 // Rate limiting middleware per user
