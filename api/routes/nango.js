@@ -355,7 +355,7 @@ router.get('/extract/:platform', authenticateUser, async (req, res) => {
 
       // Also update platform_connections.last_sync_at so the frontend shows the correct sync date
       const platformKey = platform === 'google-calendar' ? 'google_calendar' :
-                          platform === 'google-mail' ? 'gmail' : platform;
+                          platform === 'google-mail' ? 'google_gmail' : platform;
       const { error: syncUpdateErr } = await supabaseAdmin
         .from('platform_connections')
         .update({ last_sync_at: new Date().toISOString() })
@@ -414,7 +414,7 @@ router.get('/extract-all', authenticateUser, async (req, res) => {
     for (const [platform, platformResult] of Object.entries(result.platforms || {})) {
       if (platformResult.success) {
         const platformKey = platform === 'google-calendar' ? 'google_calendar' :
-                            platform === 'google-mail' ? 'gmail' : platform;
+                            platform === 'google-mail' ? 'google_gmail' : platform;
         const { error: syncErr } = await supabaseAdmin
           .from('platform_connections')
           .update({ last_sync_at: now })
