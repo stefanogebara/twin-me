@@ -186,31 +186,54 @@ router.post('/', async (req, res) => {
       stats.errors.push(`tier4: ${t4Err.message}`);
     }
 
-    // ── Tier 5: Homeostatic importance regulation ──
-    // Prevent importance score inflation: if mean drifts > 1.0 from 5.0, shift 20% back
+    // ── Tier 5: Homeostatic importance regulation (per-user) ──
+    // Prevent importance score inflation: if a user's mean drifts > 1.0 from 5.0, shift 20% back
     // Never touch scores of 1 or 10 (anchored extremes)
     stats.tier5Shifted = 0;
+    stats.tier5UsersProcessed = 0;
     try {
-      const { data: importanceStats } = await supabaseAdmin.rpc('get_importance_stats');
+      // Get distinct user_ids with >100 memories
+      const { data: activeUsers } = await supabaseAdmin
+        .from('user_memories')
+        .select('user_id')
+        .not('importance_score', 'is', null)
+        .limit(5000);
 
-      if (importanceStats && importanceStats.length > 0) {
-        const { mean_importance, total_count } = importanceStats[0];
-        const drift = mean_importance - 5.0;
+      // Dedupe user IDs
+      const userIds = [...new Set((activeUsers || []).map(r => r.user_id))];
 
-        if (Math.abs(drift) > 1.0 && total_count > 100) {
-          // Shift direction: -1 per memory if mean too high, +1 if too low
-          // Control rate via limit: shift ~5% of memories × drift magnitude
-          const shiftAmount = drift > 0 ? -1 : 1;
-          const direction = drift > 0 ? 'down' : 'up';
-          const shiftLimit = Math.min(500, Math.round(total_count * 0.05 * Math.abs(drift)));
+      for (const uid of userIds) {
+        try {
+          const { data: importanceStats } = await supabaseAdmin.rpc('get_importance_stats', { p_user_id: uid });
 
-          const { data: shiftResult } = await supabaseAdmin.rpc('apply_importance_shift', {
-            p_shift: shiftAmount,
-            p_limit: shiftLimit,
-          });
+          if (importanceStats && importanceStats.length > 0) {
+            const { mean_importance, total_count } = importanceStats[0];
+            if (!mean_importance || total_count < 100) continue;
 
-          stats.tier5Shifted = shiftResult?.[0]?.shifted_count || 0;
-          console.log(`[Cron] memory-forgetting: Tier 5 homeostatic shift ${direction}: mean=${mean_importance.toFixed(2)}, shifted ${stats.tier5Shifted} memories by ${shiftAmount}`);
+            const drift = mean_importance - 5.0;
+
+            if (Math.abs(drift) > 1.0) {
+              const shiftAmount = drift > 0 ? -1 : 1;
+              const direction = drift > 0 ? 'down' : 'up';
+              const shiftLimit = Math.min(500, Math.round(total_count * 0.05 * Math.abs(drift)));
+
+              const { data: shiftResult } = await supabaseAdmin.rpc('apply_importance_shift', {
+                p_shift: shiftAmount,
+                p_limit: shiftLimit,
+                p_user_id: uid,
+              });
+
+              const shifted = shiftResult?.[0]?.shifted_count || 0;
+              stats.tier5Shifted += shifted;
+              stats.tier5UsersProcessed++;
+              if (shifted > 0) {
+                console.log(`[Cron] memory-forgetting: Tier 5 user ${uid.substring(0, 8)}… shift ${direction}: mean=${mean_importance.toFixed(2)}, shifted ${shifted}`);
+              }
+            }
+          }
+        } catch (userErr) {
+          // Non-fatal per-user error
+          console.warn(`[Cron] memory-forgetting: Tier 5 error for user ${uid.substring(0, 8)}:`, userErr.message);
         }
       }
     } catch (t5Err) {
@@ -219,7 +242,7 @@ router.post('/', async (req, res) => {
     }
 
     const durationMs = Date.now() - startTime;
-    console.log(`[Cron] memory-forgetting: done in ${durationMs}ms. t1=${stats.tier1Archived} t2=${stats.tier2Archived} t3=${stats.tier3Decayed} t4_decayed=${stats.tier4LinksDecayed} t4_deleted=${stats.tier4LinksDeleted} t5=${stats.tier5Shifted}`);
+    console.log(`[Cron] memory-forgetting: done in ${durationMs}ms. t1=${stats.tier1Archived} t2=${stats.tier2Archived} t3=${stats.tier3Decayed} t4_decayed=${stats.tier4LinksDecayed} t4_deleted=${stats.tier4LinksDeleted} t5=${stats.tier5Shifted} (${stats.tier5UsersProcessed} users)`);
 
     res.json({
       success: true,

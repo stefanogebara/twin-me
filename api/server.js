@@ -209,15 +209,8 @@ app.use((req, res, next) => {
   return validateContentType(['application/json', 'multipart/form-data'])(req, res, next);
 });
 
-// Input sanitization (exclude auth routes to prevent breaking authentication)
-app.use('/api/', (req, res, next) => {
-  // Skip sanitization for authentication routes
-  if (req.originalUrl.startsWith('/api/auth/')) {
-    return next();
-  }
-  // Apply sanitization to all other API routes
-  sanitizeInput(req, res, next);
-});
+// Input sanitization for all API routes (including auth)
+app.use('/api/', sanitizeInput);
 
 // Note: validateChatRequest / handleValidationErrors are defined per-route in
 // api/routes/ai.js (which handles /api/ai/chat). Twin-chat (/api/chat/message)

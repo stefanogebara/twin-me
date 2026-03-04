@@ -138,6 +138,17 @@ router.post('/signup', async (req, res) => {
       console.error('Failed to store refresh token hash on signup:', signupHashErr.message);
     }
 
+    // Trigger background enrichment for email signup users
+    const fullName = `${(firstName || '').trim()} ${(lastName || '').trim()}`.trim();
+    profileEnrichmentService.enrichFromEmail(normalizedEmail, fullName)
+      .then(data => {
+        if (data) {
+          return profileEnrichmentService.saveEnrichment(newUser.id, normalizedEmail, data);
+        }
+      })
+      .then(() => console.log('✅ Enrichment completed for email signup user:', newUser.id))
+      .catch(err => console.error('⚠️ Enrichment failed (non-blocking):', err.message));
+
     res.json({
       success: true,
       token: accessToken,

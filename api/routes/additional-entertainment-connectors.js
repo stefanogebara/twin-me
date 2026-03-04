@@ -15,7 +15,7 @@ const router = express.Router();
 // Apple Music Connector
 router.post('/connect/apple-music', authenticateUser, async (req, res) => {
   try {
-    const { userId } = req.body;
+    const userId = req.user.id;
 
     res.json({
       success: true,
@@ -37,9 +37,12 @@ router.post('/connect/apple-music', authenticateUser, async (req, res) => {
 // TikTok Connector
 router.post('/connect/tiktok', authenticateUser, async (req, res) => {
   try {
-    const { userId } = req.body;
+    const userId = req.user.id;
 
-    const clientKey = process.env.TIKTOK_CLIENT_KEY || 'your-tiktok-client-key';
+    const clientKey = process.env.TIKTOK_CLIENT_KEY;
+    if (!clientKey) {
+      return res.status(503).json({ error: 'TikTok integration not configured' });
+    }
     const redirectUri = encodeURIComponent(`${process.env.VITE_APP_URL}/oauth/callback`);
     const state = encryptState({
       platform: 'tiktok',
@@ -66,9 +69,12 @@ router.post('/connect/tiktok', authenticateUser, async (req, res) => {
 // Discord Connector
 router.post('/connect/discord', authenticateUser, async (req, res) => {
   try {
-    const { userId } = req.body;
+    const userId = req.user.id;
 
-    const clientId = process.env.DISCORD_CLIENT_ID || 'your-discord-client-id';
+    const clientId = process.env.DISCORD_CLIENT_ID;
+    if (!clientId) {
+      return res.status(503).json({ error: 'Discord integration not configured' });
+    }
     const redirectUri = encodeURIComponent(`${process.env.VITE_APP_URL}/oauth/callback`);
     const scope = encodeURIComponent('identify guilds activities.read');
     const state = encryptState({
@@ -96,9 +102,12 @@ router.post('/connect/discord', authenticateUser, async (req, res) => {
 // Reddit Connector
 router.post('/connect/reddit', authenticateUser, async (req, res) => {
   try {
-    const { userId } = req.body;
+    const userId = req.user.id;
 
-    const clientId = process.env.REDDIT_CLIENT_ID || 'your-reddit-client-id';
+    const clientId = process.env.REDDIT_CLIENT_ID;
+    if (!clientId) {
+      return res.status(503).json({ error: 'Reddit integration not configured' });
+    }
     const redirectUri = encodeURIComponent(`${process.env.VITE_APP_URL}/oauth/callback`);
     const state = encryptState({
       platform: 'reddit',
@@ -126,9 +135,12 @@ router.post('/connect/reddit', authenticateUser, async (req, res) => {
 // GitHub Connector (for developers)
 router.post('/connect/github', authenticateUser, async (req, res) => {
   try {
-    const { userId } = req.body;
+    const userId = req.user.id;
 
-    const clientId = process.env.GITHUB_CLIENT_ID || 'your-github-client-id';
+    const clientId = process.env.GITHUB_CLIENT_ID;
+    if (!clientId) {
+      return res.status(503).json({ error: 'GitHub integration not configured' });
+    }
     const redirectUri = encodeURIComponent(`${process.env.VITE_APP_URL}/oauth/callback`);
     const scope = encodeURIComponent('read:user repo read:org');
     const state = encryptState({
@@ -156,9 +168,12 @@ router.post('/connect/github', authenticateUser, async (req, res) => {
 // Instagram Connector
 router.post('/connect/instagram', authenticateUser, async (req, res) => {
   try {
-    const { userId } = req.body;
+    const userId = req.user.id;
 
-    const clientId = process.env.INSTAGRAM_CLIENT_ID || 'your-instagram-client-id';
+    const clientId = process.env.INSTAGRAM_CLIENT_ID;
+    if (!clientId) {
+      return res.status(503).json({ error: 'Instagram integration not configured' });
+    }
     const redirectUri = encodeURIComponent(`${process.env.VITE_APP_URL}/oauth/callback`);
     const scope = encodeURIComponent('user_profile,user_media');
     const state = encryptState({
@@ -186,9 +201,12 @@ router.post('/connect/instagram', authenticateUser, async (req, res) => {
 // Twitter/X Connector
 router.post('/connect/twitter', authenticateUser, async (req, res) => {
   try {
-    const { userId } = req.body;
+    const userId = req.user.id;
 
-    const clientId = process.env.TWITTER_CLIENT_ID || 'your-twitter-client-id';
+    const clientId = process.env.TWITTER_CLIENT_ID;
+    if (!clientId) {
+      return res.status(503).json({ error: 'Twitter integration not configured' });
+    }
     const redirectUri = encodeURIComponent(`${process.env.VITE_APP_URL}/oauth/callback`);
     const scope = encodeURIComponent('tweet.read users.read follows.read');
     const state = encryptState({
@@ -218,9 +236,12 @@ router.post('/connect/twitter', authenticateUser, async (req, res) => {
 // Medium Connector
 router.post('/connect/medium', authenticateUser, async (req, res) => {
   try {
-    const { userId } = req.body;
+    const userId = req.user.id;
 
-    const clientId = process.env.MEDIUM_CLIENT_ID || 'your-medium-client-id';
+    const clientId = process.env.MEDIUM_CLIENT_ID;
+    if (!clientId) {
+      return res.status(503).json({ error: 'Medium integration not configured' });
+    }
     const redirectUri = encodeURIComponent(`${process.env.VITE_APP_URL}/oauth/callback`);
     const scope = encodeURIComponent('basicProfile listPublications');
     const state = encryptState({
@@ -249,9 +270,12 @@ router.post('/connect/medium', authenticateUser, async (req, res) => {
 // Strava Connector (fitness personality)
 router.post('/connect/strava', authenticateUser, async (req, res) => {
   try {
-    const { userId } = req.body;
+    const userId = req.user.id;
 
-    const clientId = process.env.STRAVA_CLIENT_ID || 'your-strava-client-id';
+    const clientId = process.env.STRAVA_CLIENT_ID;
+    if (!clientId) {
+      return res.status(503).json({ error: 'Strava integration not configured' });
+    }
     const redirectUri = encodeURIComponent(`${process.env.VITE_APP_URL}/oauth/callback`);
     const state = encryptState({
       platform: 'strava',

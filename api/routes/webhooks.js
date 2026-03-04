@@ -14,6 +14,7 @@ import {
   getUserIdByEmail,
   getWebhookInfo,
 } from '../services/webhookReceiverService.js';
+import { authenticateUser } from '../middleware/auth.js';
 
 const router = express.Router();
 
@@ -195,13 +196,9 @@ router.post('/discord/:userId', express.json(), async (req, res) => {
  * List all registered webhooks for a user
  * GET /api/webhooks/list?userId=xxx
  */
-router.get('/list', async (req, res) => {
+router.get('/list', authenticateUser, async (req, res) => {
   try {
-    const { userId } = req.query;
-
-    if (!userId) {
-      return res.status(400).json({ error: 'Missing userId parameter' });
-    }
+    const userId = req.user.id;
 
     const webhooks = await getWebhookInfo(userId) || [];
 

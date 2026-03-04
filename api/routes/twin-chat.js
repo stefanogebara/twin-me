@@ -1238,6 +1238,7 @@ router.post('/message', authenticateUser, async (req, res) => {
         const { data: recentMsgs } = await supabaseAdmin
           .from('twin_messages')
           .select('metadata')
+          .eq('conversation_id', conversationId)
           .eq('role', 'assistant')
           .order('created_at', { ascending: false })
           .limit(5);
