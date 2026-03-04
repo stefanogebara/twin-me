@@ -57,16 +57,16 @@ const InstantTwinOnboarding = () => {
   const { trackFunnel } = useAnalytics();
   const { toast } = useToast();
 
-  // Design system colors (light only)
+  // Design system colors
   const colors = {
-    textPrimary: '#000000',
-    textSecondary: '#8A857D',
-    muted: '#8A857D',
+    textPrimary: 'var(--foreground)',
+    textSecondary: 'var(--text-secondary)',
+    muted: 'var(--text-secondary)',
     categoryEntertainment: '#3b82f6',
     categorySocial: '#a855f7',
     categoryProfessional: '#78716c',
     categoryHealth: '#00A7E1',
-    connected: '#8A857D',
+    connected: 'var(--text-secondary)',
   };
 
   const {
@@ -505,7 +505,7 @@ const InstantTwinOnboarding = () => {
             onClick={() => setCurrentStep(currentStep - 1)}
             className="flex items-center gap-2 text-sm px-3 py-2 rounded-lg transition-opacity hover:opacity-80"
             style={{
-              backgroundColor: 'rgba(0, 0, 0, 0.05)',
+              backgroundColor: 'var(--glass-surface-bg)',
               color: colors.textPrimary
             }}
           >
@@ -591,13 +591,13 @@ const InstantTwinOnboarding = () => {
                 />
                 <div
                   className="absolute inset-6 rounded-full flex items-center justify-center"
-                  style={{ backgroundColor: '#0c0a09' }}
+                  style={{ backgroundColor: 'var(--foreground)' }}
                 >
                   <motion.div
                     animate={{ rotate: [0, 15, -15, 0] }}
                     transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }}
                   >
-                    <Sparkles className="w-7 h-7" style={{ color: '#FAFAFA' }} />
+                    <Sparkles className="w-7 h-7" style={{ color: 'var(--background)' }} />
                   </motion.div>
                 </div>
               </div>
@@ -710,8 +710,8 @@ const InstantTwinOnboarding = () => {
                     onClick={() => navigate('/soul-signature')}
                     className="inline-flex items-center gap-2 px-8 py-3 rounded-full text-[14px] font-medium"
                     style={{
-                      backgroundColor: '#0c0a09',
-                      color: '#FAFAFA',
+                      backgroundColor: 'var(--foreground)',
+                      color: 'var(--background)',
                       fontFamily: 'var(--font-ui)',
                     }}
                     whileHover={{ scale: 1.04, y: -1 }}
@@ -800,7 +800,7 @@ const InstantTwinOnboarding = () => {
             <div className="text-center py-8">
               <div className="flex items-center justify-center gap-2 mb-4">
                 {expiredConnections.length > 0 ? (
-                  <svg className="w-5 h-5" style={{ color: '#8A857D' }} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <svg className="w-5 h-5" style={{ color: 'var(--text-secondary)' }} fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                   </svg>
                 ) : (
@@ -826,8 +826,8 @@ const InstantTwinOnboarding = () => {
                 disabled={isGenerating}
                 className="inline-flex items-center gap-2 px-6 py-3 rounded-full text-[14px] font-medium transition-all hover:opacity-90 disabled:opacity-60"
                 style={{
-                  backgroundColor: '#0c0a09',
-                  color: '#FAFAFA',
+                  backgroundColor: 'var(--foreground)',
+                  color: 'var(--background)',
                   fontFamily: 'var(--font-ui)',
                   cursor: isGenerating ? 'not-allowed' : 'pointer',
                 }}

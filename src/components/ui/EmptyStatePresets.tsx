@@ -143,7 +143,7 @@ export const ErrorLoadingEmptyState: React.FC<{
   return (
     <EmptyState
       icon={AlertCircle}
-      iconClassName="bg-red-50"
+      iconClassName="bg-red-900/20"
       title="Failed to Load Data"
       description={errorMessage || 'Something went wrong while loading your data. Please try again or contact support if the problem persists.'}
       primaryAction={onRetry ? {

@@ -25,10 +25,10 @@ export function PatternDiscoveryCard({ pattern, className = '' }: PatternDiscove
   };
 
   const getConfidenceColor = (confidence: number): string => {
-    if (confidence >= 90) return 'text-green-600 bg-green-100 border-green-200';
-    if (confidence >= 70) return 'text-blue-600 bg-blue-100 border-blue-200';
-    if (confidence >= 50) return 'text-orange-600 bg-orange-100 border-orange-200';
-    return 'text-stone-600 bg-stone-100 border-stone-200';
+    if (confidence >= 90) return 'text-green-400 bg-green-900/20 border-green-800/30';
+    if (confidence >= 70) return 'text-blue-400 bg-blue-900/20 border-blue-800/30';
+    if (confidence >= 50) return 'text-orange-400 bg-orange-900/20 border-orange-800/30';
+    return 'text-muted-foreground bg-white/8 border-white/10';
   };
 
   const handleShare = () => {
@@ -43,19 +43,19 @@ export function PatternDiscoveryCard({ pattern, className = '' }: PatternDiscove
       initial={{ opacity: 0, scale: 0.95 }}
       animate={{ opacity: 1, scale: 1 }}
       transition={{ duration: 0.3 }}
-      className={`bg-gradient-to-br ${getConfidenceGradient(pattern.confidence)} rounded-xl border border-stone-200 overflow-hidden ${className}`}
+      className={`bg-gradient-to-br ${getConfidenceGradient(pattern.confidence)} rounded-xl border border-white/10 overflow-hidden ${className}`}
     >
       <div className="p-6">
         {/* Header */}
         <div className="flex items-start justify-between mb-4">
           <div className="flex-1">
             <div className="flex items-center space-x-2 mb-2">
-              <Sparkles className="w-5 h-5 text-stone-500" />
-              <h4 className="text-lg font-heading font-semibold text-slate-900">
+              <Sparkles className="w-5 h-5 text-muted-foreground" />
+              <h4 className="text-lg font-heading font-semibold text-foreground">
                 {pattern.title}
               </h4>
             </div>
-            <p className="text-sm text-slate-600">{pattern.description}</p>
+            <p className="text-sm text-muted-foreground">{pattern.description}</p>
           </div>
 
           {/* Confidence badge */}
@@ -72,7 +72,7 @@ export function PatternDiscoveryCard({ pattern, className = '' }: PatternDiscove
               initial={{ opacity: 0, x: -10 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.2, delay: index * 0.05 }}
-              className="text-xs px-2.5 py-1 bg-white rounded-md border border-stone-200 text-slate-700"
+              className="text-xs px-2.5 py-1 bg-white/8 rounded-md border border-white/10 text-muted-foreground"
             >
               {platform}
             </motion.span>
@@ -81,7 +81,7 @@ export function PatternDiscoveryCard({ pattern, className = '' }: PatternDiscove
 
         {/* AI Insight (collapsed state) */}
         {!isExpanded && (
-          <p className="text-sm text-slate-700 line-clamp-2 mb-4">
+          <p className="text-sm text-muted-foreground line-clamp-2 mb-4">
             {pattern.insight}
           </p>
         )}
@@ -96,14 +96,14 @@ export function PatternDiscoveryCard({ pattern, className = '' }: PatternDiscove
               transition={{ duration: 0.3 }}
               className="mb-4"
             >
-              <div className="p-4 bg-white/60 rounded-lg border border-stone-200">
+              <div className="p-4 bg-white/8 rounded-lg border border-white/10">
                 <div className="flex items-start space-x-3">
-                  <div className="w-8 h-8 rounded-full bg-orange-100 flex items-center justify-center flex-shrink-0">
-                    <Sparkles className="w-4 h-4 text-orange-600" />
+                  <div className="w-8 h-8 rounded-full bg-orange-900/20 flex items-center justify-center flex-shrink-0">
+                    <Sparkles className="w-4 h-4 text-orange-400" />
                   </div>
                   <div>
-                    <h5 className="text-sm font-semibold text-slate-900 mb-2">AI Insight</h5>
-                    <p className="text-sm text-slate-700 leading-relaxed">
+                    <h5 className="text-sm font-semibold text-foreground mb-2">AI Insight</h5>
+                    <p className="text-sm text-muted-foreground leading-relaxed">
                       {pattern.insight}
                     </p>
                   </div>
@@ -117,7 +117,7 @@ export function PatternDiscoveryCard({ pattern, className = '' }: PatternDiscove
         <div className="flex items-center justify-between">
           <button
             onClick={() => setIsExpanded(!isExpanded)}
-            className="flex items-center space-x-2 text-sm text-orange-600 hover:text-stone-700 font-medium transition-colors"
+            className="flex items-center space-x-2 text-sm text-orange-400 hover:text-muted-foreground font-medium transition-colors"
           >
             <span>{isExpanded ? 'Show less' : 'Read full insight'}</span>
             {isExpanded ? (
@@ -129,7 +129,7 @@ export function PatternDiscoveryCard({ pattern, className = '' }: PatternDiscove
 
           <button
             onClick={handleShare}
-            className="flex items-center space-x-2 text-sm text-slate-600 hover:text-slate-900 transition-colors"
+            className="flex items-center space-x-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
             title="Copy to clipboard"
           >
             <Share2 className="w-4 h-4" />
@@ -139,7 +139,7 @@ export function PatternDiscoveryCard({ pattern, className = '' }: PatternDiscove
       </div>
 
       {/* Confidence progress bar */}
-      <div className="h-1 bg-stone-200">
+      <div className="h-1 bg-white/10">
         <motion.div
           initial={{ width: 0 }}
           animate={{ width: `${pattern.confidence}%` }}

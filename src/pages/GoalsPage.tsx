@@ -33,9 +33,9 @@ import {
 } from 'lucide-react';
 
 // --- Design tokens ---
-const TEXT_PRIMARY = '#000000';
-const TEXT_SECONDARY = '#8A857D';
-const BORDER_COLOR = 'rgba(0, 0, 0, 0.08)';
+const TEXT_PRIMARY = 'var(--foreground)';
+const TEXT_SECONDARY = 'var(--text-secondary)';
+const BORDER_COLOR = 'var(--glass-surface-border)';
 
 // --- Query Keys ---
 
@@ -211,8 +211,36 @@ const GoalsPage: React.FC = () => {
   const hasNoData = !isLoading && activeGoals.length === 0 && suggestions.length === 0;
 
   return (
-    <PageLayout title="Goals" subtitle="Twin-driven goals based on your real patterns">
-      <div className="space-y-8">
+    <PageLayout>
+      {/* Page heading */}
+      <div className="mb-12">
+        <h1
+          className="heading-serif mb-4"
+          style={{
+            fontSize: 'clamp(2rem, 4vw, 3rem)',
+            fontFamily: 'var(--font-heading)',
+            fontWeight: 400,
+            letterSpacing: '-0.04em',
+            lineHeight: 1.1,
+            color: 'var(--foreground)',
+          }}
+        >
+          Goals
+        </h1>
+        <p
+          className="text-[15px] font-medium"
+          style={{
+            fontFamily: "'Geist', sans-serif",
+            color: 'var(--text-secondary)',
+            lineHeight: 1.7,
+            maxWidth: '540px',
+          }}
+        >
+          Twin-driven goals based on your real patterns
+        </p>
+      </div>
+
+      <div className="space-y-10">
 
         {/* Loading state */}
         {isLoading && (
@@ -232,7 +260,7 @@ const GoalsPage: React.FC = () => {
             <div
               className="w-16 h-16 mx-auto rounded-2xl flex items-center justify-center"
               style={{
-                background: 'rgba(0, 0, 0, 0.03)',
+                background: 'var(--glass-surface-bg-subtle)',
                 border: `1px solid ${BORDER_COLOR}`,
               }}
             >
@@ -263,32 +291,41 @@ const GoalsPage: React.FC = () => {
         {/* Summary stats bar */}
         {!isLoading && !hasNoData && summary && (
           <motion.div
-            className="flex flex-wrap items-center gap-4"
+            className="flex flex-wrap items-center gap-3"
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.35, ease: [0.4, 0, 0.2, 1] }}
           >
             {summary.active > 0 && (
-              <div className="flex items-center gap-1.5">
-                <Target className="w-4 h-4" style={{ color: TEXT_SECONDARY }} />
-                <span className="text-sm" style={{ color: TEXT_PRIMARY }}>
-                  <span className="font-medium">{summary.active}</span> active
+              <div
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-full"
+                style={{ background: 'var(--glass-surface-bg)', border: '1px solid var(--glass-surface-border)' }}
+              >
+                <Target className="w-3.5 h-3.5" style={{ color: TEXT_SECONDARY }} />
+                <span className="text-xs font-medium" style={{ color: TEXT_PRIMARY }}>
+                  {summary.active} active
                 </span>
               </div>
             )}
             {summary.completed > 0 && (
-              <div className="flex items-center gap-1.5">
-                <Trophy className="w-4 h-4" style={{ color: '#34d399' }} />
-                <span className="text-sm" style={{ color: TEXT_PRIMARY }}>
-                  <span className="font-medium">{summary.completed}</span> completed
+              <div
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-full"
+                style={{ background: 'var(--glass-surface-bg)', border: '1px solid var(--glass-surface-border)' }}
+              >
+                <Trophy className="w-3.5 h-3.5" style={{ color: '#34d399' }} />
+                <span className="text-xs font-medium" style={{ color: TEXT_PRIMARY }}>
+                  {summary.completed} completed
                 </span>
               </div>
             )}
             {summary.bestStreak > 0 && (
-              <div className="flex items-center gap-1.5">
-                <Flame className="w-4 h-4" style={{ color: '#f97316' }} />
-                <span className="text-sm" style={{ color: TEXT_PRIMARY }}>
-                  <span className="font-medium">{summary.bestStreak}d</span> best streak
+              <div
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-full"
+                style={{ background: 'var(--glass-surface-bg)', border: '1px solid var(--glass-surface-border)' }}
+              >
+                <Flame className="w-3.5 h-3.5" style={{ color: '#f97316' }} />
+                <span className="text-xs font-medium" style={{ color: TEXT_PRIMARY }}>
+                  {summary.bestStreak}d best streak
                 </span>
               </div>
             )}
@@ -301,7 +338,8 @@ const GoalsPage: React.FC = () => {
             <div className="flex items-center gap-2">
               <Sparkles className="w-4 h-4" style={{ color: TEXT_SECONDARY }} />
               <h2
-                className="heading-serif text-sm font-medium"
+                className="heading-serif"
+                style={{ fontFamily: 'var(--font-heading)', fontWeight: 400, fontSize: '1.125rem', letterSpacing: '-0.02em', color: TEXT_PRIMARY }}
               >
                 Your twin suggests
               </h2>
@@ -331,7 +369,8 @@ const GoalsPage: React.FC = () => {
             <div className="flex items-center gap-2">
               <Target className="w-4 h-4" style={{ color: TEXT_SECONDARY }} />
               <h2
-                className="heading-serif text-sm font-medium"
+                className="heading-serif"
+                style={{ fontFamily: 'var(--font-heading)', fontWeight: 400, fontSize: '1.125rem', letterSpacing: '-0.02em', color: TEXT_PRIMARY }}
               >
                 Active Goals
               </h2>
@@ -368,7 +407,8 @@ const GoalsPage: React.FC = () => {
             >
               <Trophy className="w-4 h-4" style={{ color: '#34d399' }} />
               <h2
-                className="heading-serif text-sm font-medium flex-1"
+                className="heading-serif flex-1"
+                style={{ fontFamily: 'var(--font-heading)', fontWeight: 400, fontSize: '1.125rem', letterSpacing: '-0.02em', color: TEXT_PRIMARY }}
               >
                 Completed Goals
               </h2>

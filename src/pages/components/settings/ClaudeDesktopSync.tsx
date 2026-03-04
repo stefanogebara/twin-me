@@ -24,7 +24,7 @@ interface ClaudeDesktopSyncProps {
   userIdCopied: boolean;
   handleManualSync: () => void;
   handleCopyUserId: () => void;
-  cardStyle: React.CSSProperties;
+  cardStyle: string;
 }
 
 const ClaudeDesktopSync: React.FC<ClaudeDesktopSyncProps> = ({
@@ -39,21 +39,21 @@ const ClaudeDesktopSync: React.FC<ClaudeDesktopSyncProps> = ({
   cardStyle,
 }) => {
   return (
-    <section className="p-5" style={cardStyle}>
+    <section className={`p-5 ${cardStyle}`}>
       <div className="flex items-center gap-3 mb-2">
         <MessageSquare className="w-5 h-5" style={{ color: '#A78BFA' }} />
         <h2 className="heading-serif text-base">
           Claude Desktop Sync
         </h2>
       </div>
-      <p className="text-sm mb-4" style={{ fontFamily: 'var(--font-body)', color: '#8A857D' }}>
+      <p className="text-sm mb-4" style={{ fontFamily: 'var(--font-body)', color: 'var(--text-secondary)' }}>
         Import your Claude Desktop conversations so your twin can learn your writing style and topics you care about.
       </p>
 
       {loadingSyncStats ? (
         <div className="flex items-center gap-2 mb-4">
-          <Loader2 className="w-4 h-4 animate-spin" style={{ color: '#000000' }} />
-          <span className="text-sm" style={{ color: '#8A857D' }}>Loading...</span>
+          <Loader2 className="w-4 h-4 animate-spin" style={{ color: 'var(--foreground)' }} />
+          <span className="text-sm" style={{ color: 'var(--text-secondary)' }}>Loading...</span>
         </div>
       ) : syncStats && syncStats.claudeDesktopConversations > 0 ? (
         <div
@@ -62,11 +62,11 @@ const ClaudeDesktopSync: React.FC<ClaudeDesktopSyncProps> = ({
         >
           <CheckCircle className="w-5 h-5" style={{ color: '#10B981' }} />
           <div className="flex-1">
-            <span className="text-sm font-medium" style={{ color: '#000000' }}>
+            <span className="text-sm font-medium" style={{ color: 'var(--foreground)' }}>
               {syncStats.claudeDesktopConversations} conversations imported
             </span>
             {syncStats.lastSyncAt && (
-              <span className="text-xs ml-2" style={{ color: '#8A857D' }}>
+              <span className="text-xs ml-2" style={{ color: 'var(--text-secondary)' }}>
                 · Last sync: {new Date(syncStats.lastSyncAt).toLocaleDateString()}
               </span>
             )}
@@ -111,12 +111,12 @@ const ClaudeDesktopSync: React.FC<ClaudeDesktopSyncProps> = ({
         <div
           className="p-3 rounded-xl"
           style={{
-            backgroundColor: 'rgba(0, 0, 0, 0.02)',
-            border: '1px solid rgba(0, 0, 0, 0.04)'
+            backgroundColor: 'rgba(255, 255, 255, 0.03)',
+            border: '1px solid rgba(255, 255, 255, 0.05)'
           }}
         >
           <div className="flex items-center justify-between mb-1">
-            <span className="text-xs" style={{ color: '#8A857D' }}>
+            <span className="text-xs" style={{ color: 'var(--text-secondary)' }}>
               Your User ID (for manual setup)
             </span>
             <button
@@ -131,12 +131,12 @@ const ClaudeDesktopSync: React.FC<ClaudeDesktopSyncProps> = ({
               {userIdCopied ? 'Copied!' : 'Copy'}
             </button>
           </div>
-          <code className="text-xs break-all" style={{ color: '#57534e' }}>
+          <code className="text-xs break-all" style={{ color: 'var(--text-secondary)' }}>
             {user?.id || 'Loading...'}
           </code>
         </div>
 
-        <p className="text-xs" style={{ color: '#8A857D' }}>
+        <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>
           <strong>Note:</strong> Close Claude Desktop before syncing. Your conversations are analyzed locally to learn your writing patterns.
         </p>
       </div>

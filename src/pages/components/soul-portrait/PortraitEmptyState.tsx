@@ -10,21 +10,21 @@ export const PortraitEmptyState: React.FC = () => {
     <GlassPanel className="text-center py-16">
       <Sparkles
         className="w-12 h-12 mx-auto mb-4"
-        style={{ color: '#8A857D' }}
+        style={{ color: 'var(--text-secondary)' }}
       />
       <h3
         className="text-xl mb-2"
         style={{
           fontFamily: 'var(--font-heading)',
           fontWeight: 500,
-          color: '#000000',
+          color: 'var(--foreground)',
         }}
       >
         Your Twin Is Still Learning
       </h3>
       <p
         className="mb-8 max-w-md mx-auto"
-        style={{ color: '#8A857D' }}
+        style={{ color: 'var(--text-secondary)' }}
       >
         Connect your platforms and chat with your twin to build your soul signature. The more data, the richer your portrait.
       </p>

@@ -51,16 +51,16 @@ export function PersonalityCards({ data, className = '' }: PersonalityCardsProps
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5 }}
-      className={`bg-white rounded-xl border border-stone-200 p-6 ${className}`}
+      className={`glass-card p-6 ${className}`}
     >
       <div className="mb-6">
         <div className="flex items-center gap-2 mb-2">
           <Sparkles className="w-6 h-6 text-[#D97706]" />
-          <h3 className="text-2xl font-heading font-semibold text-slate-900">
+          <h3 className="text-2xl font-heading font-semibold text-foreground">
             Your Personality Profile
           </h3>
         </div>
-        <p className="text-sm text-slate-600">
+        <p className="text-sm text-muted-foreground">
           AI-powered insights from your digital footprint—visualized in a way that's easy to understand
         </p>
       </div>
@@ -80,7 +80,7 @@ export function PersonalityCards({ data, className = '' }: PersonalityCardsProps
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.4, delay: index * 0.1 }}
-              className={`bg-gradient-to-br ${config.gradient} rounded-xl p-5 border border-stone-200 hover:shadow-lg transition-all duration-300`}
+              className={`bg-gradient-to-br ${config.gradient} rounded-xl p-5 border border-white/10 hover:shadow-lg transition-all duration-300`}
             >
               {/* Header */}
               <div className="flex items-center justify-between mb-3">
@@ -92,10 +92,10 @@ export function PersonalityCards({ data, className = '' }: PersonalityCardsProps
                     <Icon className="w-5 h-5" style={{ color: config.color }} />
                   </div>
                   <div>
-                    <h4 className="text-base font-semibold text-slate-900">
+                    <h4 className="text-base font-semibold text-foreground">
                       {trait.trait}
                     </h4>
-                    <p className="text-xs text-slate-600">
+                    <p className="text-xs text-muted-foreground">
                       {config.description}
                     </p>
                   </div>
@@ -105,14 +105,14 @@ export function PersonalityCards({ data, className = '' }: PersonalityCardsProps
               {/* Progress Bar */}
               <div className="mb-3">
                 <div className="flex items-center justify-between mb-2">
-                  <span className="text-xs font-medium text-slate-700">
+                  <span className="text-xs font-medium text-muted-foreground">
                     {level} Level
                   </span>
                   <span className="text-sm font-bold" style={{ color: config.color }}>
                     {percentage}%
                   </span>
                 </div>
-                <div className="h-2 bg-white/80 rounded-full overflow-hidden">
+                <div className="h-2 bg-white/10 rounded-full overflow-hidden">
                   <motion.div
                     initial={{ width: 0 }}
                     animate={{ width: `${percentage}%` }}
@@ -124,7 +124,7 @@ export function PersonalityCards({ data, className = '' }: PersonalityCardsProps
               </div>
 
               {/* Friendly Interpretation */}
-              <p className="text-xs text-slate-600 leading-relaxed">
+              <p className="text-xs text-muted-foreground leading-relaxed">
                 {getTraitInterpretation(trait.trait, percentage)}
               </p>
             </motion.div>
@@ -137,15 +137,15 @@ export function PersonalityCards({ data, className = '' }: PersonalityCardsProps
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ duration: 0.5, delay: 0.8 }}
-        className="mt-6 p-4 bg-gradient-to-r from-stone-50 to-amber-50 rounded-xl border border-orange-200"
+        className="mt-6 p-4 bg-gradient-to-r from-amber-900/15 to-orange-900/10 rounded-xl border border-amber-800/20"
       >
         <div className="flex items-start gap-3">
-          <Sparkles className="w-5 h-5 text-orange-600 mt-0.5 flex-shrink-0" />
+          <Sparkles className="w-5 h-5 text-amber-400 mt-0.5 flex-shrink-0" />
           <div>
-            <h5 className="text-sm font-semibold text-orange-900 mb-1">
+            <h5 className="text-sm font-semibold text-amber-300 mb-1">
               What This Means for You
             </h5>
-            <p className="text-xs text-orange-800 leading-relaxed">
+            <p className="text-xs text-amber-200/70 leading-relaxed">
               These traits combine to create your unique personality profile. Understanding them helps your AI twin
               communicate and act more like you—capturing your authentic style and preferences.
             </p>

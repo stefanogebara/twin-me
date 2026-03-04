@@ -50,11 +50,11 @@ export const MultiStepProgress: React.FC<MultiStepProgressProps> = ({
   const getStepIcon = (status: StepStatus, defaultIcon?: React.ReactNode) => {
     switch (status) {
       case 'completed':
-        return <CheckCircle2 className="w-5 h-5 text-green-600" />;
+        return <CheckCircle2 className="w-5 h-5 text-green-400" />;
       case 'active':
         return <Loader2 className="w-5 h-5 text-[hsl(var(--claude-accent))] animate-spin" />;
       case 'error':
-        return <Circle className="w-5 h-5 text-red-600" />;
+        return <Circle className="w-5 h-5 text-red-400" />;
       default:
         return defaultIcon || <Circle className="w-5 h-5 text-[hsl(var(--claude-text-muted))]" />;
     }
@@ -96,9 +96,9 @@ export const MultiStepProgress: React.FC<MultiStepProgressProps> = ({
                   <div
                     className={cn(
                       'flex items-center justify-center w-10 h-10 rounded-full border-2 transition-all',
-                      status === 'completed' && 'bg-green-50 border-green-600',
+                      status === 'completed' && 'bg-green-900/20 border-green-600',
                       status === 'active' && 'bg-[hsl(var(--claude-accent))]/10 border-[hsl(var(--claude-accent))]',
-                      status === 'error' && 'bg-red-50 border-red-600',
+                      status === 'error' && 'bg-red-900/20 border-red-600',
                       status === 'pending' && 'bg-[hsl(var(--claude-surface))] border-[hsl(var(--claude-border))]'
                     )}
                   >
@@ -111,8 +111,8 @@ export const MultiStepProgress: React.FC<MultiStepProgressProps> = ({
                       className={cn(
                         'text-sm font-medium transition-colors',
                         status === 'active' && 'text-[hsl(var(--claude-text))]',
-                        status === 'completed' && 'text-green-600',
-                        status === 'error' && 'text-red-600',
+                        status === 'completed' && 'text-green-400',
+                        status === 'error' && 'text-red-400',
                         status === 'pending' && 'text-[hsl(var(--claude-text-muted))]'
                       )}
                     >
@@ -164,9 +164,9 @@ export const MultiStepProgress: React.FC<MultiStepProgressProps> = ({
                 <div
                   className={cn(
                     'flex items-center justify-center w-10 h-10 rounded-full border-2 transition-all z-10',
-                    status === 'completed' && 'bg-green-50 border-green-600',
+                    status === 'completed' && 'bg-green-900/20 border-green-600',
                     status === 'active' && 'bg-[hsl(var(--claude-accent))]/10 border-[hsl(var(--claude-accent))]',
-                    status === 'error' && 'bg-red-50 border-red-600',
+                    status === 'error' && 'bg-red-900/20 border-red-600',
                     status === 'pending' && 'bg-[hsl(var(--claude-surface))] border-[hsl(var(--claude-border))]'
                   )}
                 >
@@ -192,8 +192,8 @@ export const MultiStepProgress: React.FC<MultiStepProgressProps> = ({
                   className={cn(
                     'font-medium transition-colors',
                     status === 'active' && 'text-[hsl(var(--claude-text))]',
-                    status === 'completed' && 'text-green-600',
-                    status === 'error' && 'text-red-600',
+                    status === 'completed' && 'text-green-400',
+                    status === 'error' && 'text-red-400',
                     status === 'pending' && 'text-[hsl(var(--claude-text-muted))]'
                   )}
                 >

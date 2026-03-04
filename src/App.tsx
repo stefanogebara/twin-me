@@ -15,6 +15,8 @@ import { DemoProvider } from "./contexts/DemoContext";
 import { NavigationProvider } from "./contexts/NavigationContext";
 import { SidebarProvider } from "./contexts/SidebarContext";
 import { useExtensionSync } from "./hooks/useExtensionSync";
+import { ThemeProvider } from "./contexts/ThemeContext";
+import { SunProvider } from "./contexts/SunContext";
 import DemoBanner from "./components/DemoBanner";
 
 // Eager-loaded (critical path: landing, auth, 404)
@@ -77,14 +79,9 @@ const App = () => {
   // Automatically sync auth tokens to browser extension
   useExtensionSync();
 
-  // Force light mode
-  if (typeof window !== 'undefined') {
-    localStorage.removeItem('theme');
-    document.documentElement.classList.remove('dark');
-    document.documentElement.setAttribute('data-theme', 'light');
-  }
-
   return (
+    <ThemeProvider defaultTheme="dark">
+    <SunProvider>
     <DemoProvider>
       <ErrorBoundary showHomeButton>
         <ErrorProvider>
@@ -369,6 +366,8 @@ const App = () => {
       </ErrorProvider>
     </ErrorBoundary>
     </DemoProvider>
+    </SunProvider>
+    </ThemeProvider>
   );
 };
 

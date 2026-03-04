@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Loader2, Send, Brain, Heart, Palette, Users, Flame, ArrowRight } from 'lucide-react';
+import { Send, Brain, Heart, Palette, Users, Flame, ArrowRight } from 'lucide-react';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3004/api';
 
 const DOMAIN_ICONS: Record<string, React.ReactNode> = {
   motivation: <Flame className="w-3.5 h-3.5" />,
@@ -76,7 +76,7 @@ const DeepInterview: React.FC<DeepInterviewProps> = ({
 
   const getAuthToken = () => localStorage.getItem('auth_token') || localStorage.getItem('token');
 
-  const fetchNextQuestion = async (conversationHistory: Message[]) => {
+  const fetchNextQuestion = async (conversationHistory: Message[], retryCount = 0) => {
     setLoading(true);
     try {
       const token = getAuthToken();
@@ -98,13 +98,10 @@ const DeepInterview: React.FC<DeepInterviewProps> = ({
       const result = await response.json();
 
       if (result.done) {
-        // Interview complete
         setIsDone(true);
         setSummary(result.summary || '');
         if (result.domainProgress) setDomainProgress(result.domainProgress);
-
-        // Generate enhanced soul signature
-        generateEnhancedSignature(result);
+        await generateEnhancedSignature(result);
         return;
       }
 
@@ -115,14 +112,20 @@ const DeepInterview: React.FC<DeepInterviewProps> = ({
       }
     } catch (error) {
       console.error('[DeepInterview] Error fetching question:', error);
+
+      // Retry up to 2 times with backoff
+      if (retryCount < 2) {
+        await new Promise(r => setTimeout(r, 1000 * (retryCount + 1)));
+        return fetchNextQuestion(conversationHistory, retryCount + 1);
+      }
+
+      // After retries exhausted, show error but let user try again
       setMessages(prev => [...prev, {
         role: 'assistant',
-        content: "I'd love to keep talking, but let's continue in the chat. Your twin is ready!",
+        content: "Something went wrong on my end — hit send again or click 'Done for now' to continue.",
       }]);
-      setIsDone(true);
     } finally {
       setLoading(false);
-      // Focus input after question arrives
       setTimeout(() => inputRef.current?.focus(), 100);
     }
   };
@@ -178,23 +181,24 @@ const DeepInterview: React.FC<DeepInterviewProps> = ({
     onComplete();
   };
 
-  // Count domains covered
-  const domainEntries = Object.entries(domainProgress);
-  const coveredCount = domainEntries.filter(([, p]) => p.asked >= 2).length;
-
   return (
-    <div className="flex flex-col h-full min-h-[60vh]">
+    <div className="flex flex-col flex-1 min-h-0">
       {/* Header */}
       <div className="text-center mb-4">
         <h2
           className="text-xl md:text-2xl mb-1"
-          style={{ fontFamily: 'var(--font-heading)', color: '#E8D5B7' }}
+          style={{
+            fontFamily: 'Halant, Georgia, serif',
+            fontWeight: 400,
+            letterSpacing: '-0.03em',
+            color: 'var(--foreground)',
+          }}
         >
           Deep Conversation
         </h2>
         <p
-          className="text-xs opacity-40"
-          style={{ fontFamily: 'var(--font-body)', color: '#E8D5B7' }}
+          className="text-xs"
+          style={{ fontFamily: "'Geist', sans-serif", color: 'var(--text-secondary)' }}
         >
           Your twin wants to really understand you
         </p>
@@ -216,20 +220,20 @@ const DeepInterview: React.FC<DeepInterviewProps> = ({
                 className="w-8 h-8 rounded-full flex items-center justify-center transition-all duration-300"
                 style={{
                   backgroundColor: isCovered
-                    ? 'rgba(232, 213, 183, 0.2)'
+                    ? 'var(--glass-surface-bg-hover)'
                     : isActive
-                      ? 'rgba(232, 213, 183, 0.1)'
-                      : 'rgba(232, 213, 183, 0.03)',
+                      ? 'var(--glass-surface-bg)'
+                      : 'transparent',
                   border: isCovered
-                    ? '1.5px solid rgba(232, 213, 183, 0.5)'
+                    ? '1.5px solid var(--glass-surface-border-hover)'
                     : isActive
-                      ? '1px solid rgba(232, 213, 183, 0.2)'
-                      : '1px solid rgba(232, 213, 183, 0.08)',
+                      ? '1px solid var(--glass-surface-border-hover)'
+                      : '1px solid var(--glass-surface-border)',
                   color: isCovered
-                    ? '#E8D5B7'
+                    ? 'var(--text-primary)'
                     : isActive
-                      ? 'rgba(232, 213, 183, 0.5)'
-                      : 'rgba(232, 213, 183, 0.2)',
+                      ? 'var(--text-secondary)'
+                      : 'var(--text-placeholder)',
                 }}
               >
                 {DOMAIN_ICONS[domain]}
@@ -237,10 +241,10 @@ const DeepInterview: React.FC<DeepInterviewProps> = ({
               <span
                 className="text-[10px]"
                 style={{
+                  fontFamily: "'Geist', sans-serif",
                   color: isCovered
-                    ? 'rgba(232, 213, 183, 0.6)'
-                    : 'rgba(232, 213, 183, 0.2)',
-                  fontFamily: 'var(--font-body)',
+                    ? 'var(--text-secondary)'
+                    : 'var(--text-placeholder)',
                 }}
               >
                 {DOMAIN_LABELS[domain]}
@@ -252,9 +256,10 @@ const DeepInterview: React.FC<DeepInterviewProps> = ({
 
       {/* Chat messages */}
       <div
-        className="flex-1 overflow-y-auto space-y-3 px-1 mb-4 scrollbar-hide"
-        style={{ maxHeight: '50vh' }}
+        className="flex-1 overflow-y-auto px-1 mb-4 scrollbar-hide min-h-0"
+        style={{ maxHeight: 'min(50vh, 400px)' }}
       >
+        <div className="flex flex-col min-h-full justify-end space-y-3">
         <AnimatePresence initial={false}>
           {messages.map((msg, i) => (
             <motion.div
@@ -268,15 +273,11 @@ const DeepInterview: React.FC<DeepInterviewProps> = ({
                 className="max-w-[85%] px-4 py-3 rounded-2xl text-sm leading-relaxed"
                 style={{
                   backgroundColor: msg.role === 'user'
-                    ? 'rgba(232, 213, 183, 0.12)'
-                    : 'rgba(232, 213, 183, 0.04)',
-                  border: msg.role === 'user'
-                    ? '1px solid rgba(232, 213, 183, 0.2)'
-                    : '1px solid rgba(232, 213, 183, 0.08)',
-                  color: msg.role === 'user'
-                    ? 'rgba(232, 213, 183, 0.9)'
-                    : 'rgba(232, 213, 183, 0.75)',
-                  fontFamily: 'var(--font-body)',
+                    ? 'var(--glass-surface-bg)'
+                    : 'var(--glass-surface-bg-hover)',
+                  border: '1px solid var(--glass-surface-border)',
+                  color: msg.role === 'user' ? 'var(--text-primary)' : 'var(--text-secondary)',
+                  fontFamily: "'Geist', sans-serif",
                   borderBottomRightRadius: msg.role === 'user' ? 6 : undefined,
                   borderBottomLeftRadius: msg.role === 'assistant' ? 6 : undefined,
                 }}
@@ -297,8 +298,8 @@ const DeepInterview: React.FC<DeepInterviewProps> = ({
             <div
               className="px-4 py-3 rounded-2xl"
               style={{
-                backgroundColor: 'rgba(232, 213, 183, 0.04)',
-                border: '1px solid rgba(232, 213, 183, 0.08)',
+                backgroundColor: 'var(--glass-surface-bg-hover)',
+                border: '1px solid var(--glass-surface-border)',
               }}
             >
               <div className="flex gap-1.5">
@@ -308,7 +309,7 @@ const DeepInterview: React.FC<DeepInterviewProps> = ({
                     animate={{ opacity: [0.3, 1, 0.3] }}
                     transition={{ duration: 1.2, repeat: Infinity, delay: i * 0.2 }}
                     className="w-2 h-2 rounded-full"
-                    style={{ backgroundColor: 'rgba(232, 213, 183, 0.4)' }}
+                    style={{ backgroundColor: 'var(--text-muted)' }}
                   />
                 ))}
               </div>
@@ -317,6 +318,7 @@ const DeepInterview: React.FC<DeepInterviewProps> = ({
         )}
 
         <div ref={messagesEndRef} />
+        </div>
       </div>
 
       {/* Input area or completion */}
@@ -330,8 +332,8 @@ const DeepInterview: React.FC<DeepInterviewProps> = ({
             <p
               className="text-sm text-center leading-relaxed mb-2"
               style={{
-                color: 'rgba(232, 213, 183, 0.6)',
-                fontFamily: 'var(--font-heading)',
+                color: 'var(--text-secondary)',
+                fontFamily: 'Halant, Georgia, serif',
                 fontStyle: 'italic',
               }}
             >
@@ -340,11 +342,16 @@ const DeepInterview: React.FC<DeepInterviewProps> = ({
           )}
           <motion.button
             onClick={() => onComplete()}
-            className="w-full px-6 py-4 rounded-xl text-base font-medium flex items-center justify-center gap-2"
+            className="w-full px-6 py-4 rounded-full text-sm font-normal flex items-center justify-center gap-2 transition-colors"
             style={{
-              background: 'linear-gradient(135deg, #E8D5B7 0%, #D4C4A8 100%)',
-              color: '#0C0C0C',
-              fontFamily: 'var(--font-body)',
+              backgroundColor: 'var(--foreground)',
+              color: 'var(--background)',
+              fontFamily: "'Geist', sans-serif",
+              letterSpacing: '0.02em',
+              textTransform: 'uppercase',
+              fontSize: '12px',
+              border: 'none',
+              cursor: 'pointer',
             }}
           >
             Enter My World
@@ -362,10 +369,10 @@ const DeepInterview: React.FC<DeepInterviewProps> = ({
             disabled={loading}
             className="flex-1 px-4 py-3 rounded-xl text-sm outline-none transition-all duration-200"
             style={{
-              backgroundColor: 'rgba(232, 213, 183, 0.06)',
-              border: '1px solid rgba(232, 213, 183, 0.15)',
-              color: '#E8D5B7',
-              fontFamily: 'var(--font-body)',
+              backgroundColor: 'var(--glass-surface-bg-hover)',
+              border: '1px solid var(--glass-surface-border)',
+              color: 'var(--text-primary)',
+              fontFamily: "'Geist', sans-serif",
             }}
           />
           <motion.button
@@ -375,11 +382,10 @@ const DeepInterview: React.FC<DeepInterviewProps> = ({
             whileTap={{ scale: 0.95 }}
             className="px-4 py-3 rounded-xl transition-all duration-200"
             style={{
-              backgroundColor: input.trim()
-                ? 'rgba(232, 213, 183, 0.15)'
-                : 'rgba(232, 213, 183, 0.05)',
-              border: '1px solid rgba(232, 213, 183, 0.15)',
-              color: input.trim() ? '#E8D5B7' : 'rgba(232, 213, 183, 0.3)',
+              backgroundColor: input.trim() ? 'var(--foreground)' : 'var(--glass-surface-bg)',
+              border: '1px solid var(--glass-surface-border)',
+              color: input.trim() ? 'var(--background)' : 'var(--text-placeholder)',
+              cursor: input.trim() ? 'pointer' : 'default',
             }}
           >
             <Send className="w-4 h-4" />
@@ -388,7 +394,7 @@ const DeepInterview: React.FC<DeepInterviewProps> = ({
       )}
 
       {/* Done for now escape hatch */}
-      {!isDone && messages.length >= 2 && (
+      {!isDone && messages.length >= 1 && (
         <motion.button
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
@@ -396,8 +402,8 @@ const DeepInterview: React.FC<DeepInterviewProps> = ({
           onClick={onSkip}
           className="mt-3 text-xs transition-opacity hover:opacity-70"
           style={{
-            color: 'rgba(232, 213, 183, 0.3)',
-            fontFamily: 'var(--font-body)',
+            color: 'var(--text-secondary)',
+            fontFamily: "'Geist', sans-serif",
             background: 'none',
             border: 'none',
             cursor: 'pointer',

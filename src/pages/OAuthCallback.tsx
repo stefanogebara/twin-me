@@ -93,6 +93,7 @@ const OAuthCallback = () => {
           }
           const claimData = await claimResponse.json();
           if (claimData.token) {
+            localStorage.removeItem('demo_mode');
             localStorage.setItem('auth_token', claimData.token);
             localStorage.setItem('auth_provider', claimData.provider || searchParams.get('provider') || 'google');
             if (claimData.refreshToken) {
@@ -276,14 +277,21 @@ const OAuthCallback = () => {
                 }
                 window.close();
               } else {
-                // We're in the main window - redirect
-                window.location.href = '/get-started?connected=true&provider=' + connectedProvider;
+                // If we came from the onboarding flow, return there
+                const fromOnboarding = sessionStorage.getItem('onboarding_platform_step');
+                if (fromOnboarding) {
+                  sessionStorage.removeItem('onboarding_platform_step');
+                  window.location.href = '/onboarding?step=platform&connected=' + connectedProvider;
+                } else {
+                  window.location.href = '/get-started?connected=true&provider=' + connectedProvider;
+                }
               }
             }, 1500);
           } else {
             // Check what type of flow this is
             if (isAuthOAuth && data.token) {
               // Handle auth OAuth success
+              localStorage.removeItem('demo_mode');
               localStorage.setItem('auth_token', data.token);
               localStorage.setItem('auth_provider', 'google');
 
@@ -334,8 +342,8 @@ const OAuthCallback = () => {
               } else if (stateData?.redirectAfterAuth && isRelativePath(stateData.redirectAfterAuth)) {
                 redirectPath = stateData.redirectAfterAuth;
               } else if (data.isNewUser) {
-                // New users go to interview first, then platform onboarding
-                redirectPath = '/interview';
+                // New users go to cinematic onboarding (interview is step 2 inside)
+                redirectPath = '/onboarding';
               }
 
               const welcomeMessage = data.isNewUser
@@ -371,11 +379,18 @@ const OAuthCallback = () => {
                   window.opener.postMessage({ type: 'oauth-success', provider: stateData?.provider }, window.location.origin);
                   window.close();
                 } else {
-                  window.location.href = '/get-started?connected=true';
+                  const fromOnboarding = sessionStorage.getItem('onboarding_platform_step');
+                  if (fromOnboarding) {
+                    sessionStorage.removeItem('onboarding_platform_step');
+                    window.location.href = '/onboarding?step=platform&connected=' + (stateData?.provider || '');
+                  } else {
+                    window.location.href = '/get-started?connected=true';
+                  }
                 }
               }, 1500);
             } else if (data.token && !isAuthOAuth && !isConnectorOAuth) {
               // Generic OAuth success (might be auth without explicit isAuth flag)
+              localStorage.removeItem('demo_mode');
               localStorage.setItem('auth_token', data.token);
               localStorage.setItem('auth_provider', 'google');
 
@@ -406,7 +421,7 @@ const OAuthCallback = () => {
               setStatus('success');
 
               // Determine redirect based on whether user is new or existing
-              const redirectPath = data.isNewUser ? '/interview' : '/dashboard';
+              const redirectPath = data.isNewUser ? '/onboarding' : '/dashboard';
               const welcomeMessage = data.isNewUser
                 ? 'Welcome! Let\'s set up your Soul Signature'
                 : 'Welcome back!';
@@ -498,16 +513,16 @@ const OAuthCallback = () => {
     const displayStatus = status === 'error' && !showError ? 'loading' : status;
     switch (displayStatus) {
       case 'loading':
-        return <Loader2 className="w-12 h-12 animate-spin" style={{ color: '#000000' }} />;
+        return <Loader2 className="w-12 h-12 animate-spin" style={{ color: 'var(--foreground)' }} />;
       case 'success':
-        return <CheckCircle className="w-12 h-12" style={{ color: '#000000' }} />;
+        return <CheckCircle className="w-12 h-12" style={{ color: 'var(--foreground)' }} />;
       case 'error':
-        return <XCircle className="w-12 h-12" style={{ color: '#000000' }} />;
+        return <XCircle className="w-12 h-12" style={{ color: 'var(--foreground)' }} />;
     }
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: '#fcf6ef' }}>
+    <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: 'var(--background)' }}>
       <div
         className="glass-card max-w-md w-full mx-4 p-8 text-center"
       >
@@ -544,7 +559,7 @@ const OAuthCallback = () => {
                 {displayStatus === 'error' && 'Authentication Failed'}
               </h2>
 
-              <p className="text-sm" style={{ color: '#8A857D' }}>
+              <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
                 {displayMessage}
               </p>
             </>
@@ -554,7 +569,7 @@ const OAuthCallback = () => {
         {/* Progress indicator for loading state */}
         {(status === 'loading' || (status === 'error' && !showError)) && (
           <div className="mt-6">
-            <div className="w-full rounded-full h-1.5" style={{ backgroundColor: 'rgba(0, 0, 0, 0.06)' }}>
+            <div className="w-full rounded-full h-1.5" style={{ backgroundColor: 'rgba(255, 255, 255, 0.06)' }}>
               <div className="h-1.5 rounded-full w-3/5 transition-all duration-300" style={{ backgroundColor: '#000000' }} />
             </div>
           </div>

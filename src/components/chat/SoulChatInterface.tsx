@@ -205,25 +205,25 @@ export function SoulChatInterface({
   return (
     <div
       className={`flex flex-col h-full ${className}`}
-      style={{ backgroundColor: '#fcf6ef' }}
+      style={{ backgroundColor: 'var(--background)' }}
     >
       {/* Header with Conversation Controls */}
       <div
         className="flex items-center justify-between p-4 border-b"
-        style={{ borderColor: 'rgba(255, 255, 255, 0.45)' }}
+        style={{ borderColor: 'var(--glass-surface-border)' }}
       >
         <div className="flex items-center gap-3">
           <div
             className="w-10 h-10 rounded-full flex items-center justify-center overflow-hidden"
-            style={{ backgroundColor: 'rgba(255,255,255,0.6)', border: '1px solid rgba(255,255,255,0.45)' }}
+            style={{ backgroundColor: 'var(--glass-surface-bg)', border: '1px solid var(--glass-surface-border-hover)' }}
           >
             <img src="/images/backgrounds/flower-hero.png" alt="Twin" className="w-9 h-9 object-contain" />
           </div>
           <div>
-            <h2 className="font-semibold" style={{ color: '#000000' }}>
+            <h2 className="font-semibold" style={{ color: 'var(--foreground)' }}>
               Chat with Your Soul Twin
             </h2>
-            <p className="text-sm" style={{ color: '#8A857D' }}>
+            <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
               Ask me anything about your authentic self
             </p>
           </div>
@@ -250,7 +250,7 @@ export function SoulChatInterface({
               <h3 className="text-xl font-semibold mb-2 heading-serif">
                 Start a Conversation
               </h3>
-              <p className="max-w-md mb-6" style={{ color: '#8A857D' }}>
+              <p className="max-w-md mb-6" style={{ color: 'var(--text-secondary)' }}>
                 Ask me about your music taste, viewing habits, learning patterns, or anything else from your soul signature.
               </p>
               <div className="flex flex-wrap gap-2 justify-center">
@@ -270,10 +270,10 @@ export function SoulChatInterface({
                     onClick={() => sendMessage(suggestion)}
                     className="px-4 py-2 rounded-full text-sm transition-colors"
                     style={{
-                      backgroundColor: 'rgba(255, 255, 255, 0.18)',
+                      backgroundColor: 'var(--glass-surface-bg)',
                       backdropFilter: 'blur(10px)',
-                      border: '1px solid rgba(255, 255, 255, 0.45)',
-                      color: '#000000'
+                      border: '1px solid var(--glass-surface-border-hover)',
+                      color: 'var(--foreground)'
                     }}
                   >
                     {suggestion}
@@ -305,11 +305,11 @@ export function SoulChatInterface({
           >
             <div
               className="w-8 h-8 rounded-full flex items-center justify-center"
-              style={{ background: 'linear-gradient(135deg, #000000, #4a3f38)' }}
+              style={{ background: 'linear-gradient(135deg, rgba(255,255,255,0.15), rgba(255,255,255,0.08))' }}
             >
-              <Loader className="w-5 h-5 animate-spin" style={{ color: '#fcf6ef' }} />
+              <Loader className="w-5 h-5 animate-spin" style={{ color: 'var(--foreground)' }} />
             </div>
-            <span style={{ color: '#8A857D' }}>Thinking...</span>
+            <span style={{ color: 'var(--text-secondary)' }}>Thinking...</span>
           </motion.div>
         )}
 
@@ -319,7 +319,7 @@ export function SoulChatInterface({
       {/* Input Area */}
       <div
         className="p-4 border-t"
-        style={{ borderColor: 'rgba(255, 255, 255, 0.45)' }}
+        style={{ borderColor: 'var(--glass-surface-border)' }}
       >
         <form onSubmit={handleSubmit} className="flex gap-2">
           <textarea
@@ -331,9 +331,9 @@ export function SoulChatInterface({
             rows={1}
             className="flex-1 px-4 py-3 rounded-2xl focus:outline-none resize-none text-sm"
             style={{
-              backgroundColor: 'rgba(255, 255, 255, 0.6)',
-              border: '1px solid rgba(255, 255, 255, 0.45)',
-              color: '#000000',
+              backgroundColor: 'var(--glass-surface-bg)',
+              border: '1px solid var(--glass-surface-border-hover)',
+              color: 'var(--foreground)',
               minHeight: '48px',
               maxHeight: '120px'
             }}

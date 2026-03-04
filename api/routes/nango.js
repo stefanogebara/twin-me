@@ -100,6 +100,7 @@ router.post('/verify-connection', authenticateUser, async (req, res) => {
     const ALLOWED_INTEGRATION_IDS = new Set([
       'spotify', 'spotify-getting-started',
       'google-calendar', 'google-calendar-getting-started',
+      'google-mail', 'google-mail-getting-started',
       'youtube', 'youtube-getting-started',
       'discord', 'discord-getting-started',
     ]);

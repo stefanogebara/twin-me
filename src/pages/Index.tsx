@@ -87,7 +87,7 @@ const Index = () => {
   }, []);
 
   return (
-    <div className="w-full min-h-screen text-[#000000]" style={{ backgroundColor: '#fcf6ef', fontFamily: "'Geist', sans-serif", fontSize: '14px', fontWeight: 500 }}>
+    <div className="w-full min-h-screen text-[#000000]" style={{ backgroundColor: 'var(--background)', fontFamily: "'Geist', sans-serif", fontSize: '14px', fontWeight: 500 }}>
       <style>{`
         /* ── Claura Typography System ── */
         /* H1: 70px/400, H2: 56px/400, H3: 32px/400 — all Halant */
@@ -130,7 +130,7 @@ const Index = () => {
         .btn-cta {
           font-family: 'Geist', sans-serif;
           background-color: #000000;
-          color: #fcf6ef;
+          color: var(--foreground);
           border-radius: 9999px;
           padding: 14px 28px;
           font-size: 12px;
@@ -219,7 +219,7 @@ const Index = () => {
       `}</style>
 
       {/* ────────────── NAV ────────────── */}
-      <nav className="sticky top-0 z-50 w-full px-6 lg:px-16" style={{ backgroundColor: '#fcf6ef' }}>
+      <nav className="sticky top-0 z-50 w-full px-6 lg:px-16" style={{ backgroundColor: 'var(--background)' }}>
         <div className="max-w-[1200px] mx-auto flex items-center justify-between py-4">
           <div className="flex items-center gap-8">
             <span
@@ -325,7 +325,7 @@ const Index = () => {
                 onMouseLeave={e => (e.currentTarget.style.opacity = '0.6')}
               >
                 <Icon className="w-5 h-5" style={{ color }} />
-                <span style={{ fontFamily: "'Geist', sans-serif", fontSize: '13px', fontWeight: 500, color: '#57534E' }}>{name}</span>
+                <span style={{ fontFamily: "'Geist', sans-serif", fontSize: '13px', fontWeight: 500, color: 'var(--text-secondary)' }}>{name}</span>
               </div>
             ))}
           </div>
@@ -366,7 +366,7 @@ const Index = () => {
               className="absolute inset-0 w-full h-full object-cover"
             />
             {/* Subtle overlay for legibility — no heavy color filter */}
-            <div className="absolute inset-0" style={{ background: 'rgba(0, 0, 0, 0.25)' }} />
+            <div className="absolute inset-0" style={{ background: 'rgba(255, 255, 255, 0.25)' }} />
 
             {/* Glass stat boxes */}
             <div className="relative z-10 p-8 lg:p-12 grid grid-cols-1 md:grid-cols-3 gap-4 items-end h-full" style={{ minHeight: '380px' }}>

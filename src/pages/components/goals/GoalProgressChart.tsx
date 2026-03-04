@@ -10,7 +10,7 @@ import React from 'react';
 import type { GoalProgress } from '@/services/api/goalsAPI';
 
 // Design tokens
-const TEXT_MUTED = '#8A857D';
+const TEXT_MUTED = 'var(--text-muted)';
 
 interface GoalProgressChartProps {
   progress: GoalProgress[];
@@ -65,7 +65,7 @@ const GoalProgressChart: React.FC<GoalProgressChartProps> = ({
       case 'missed':
         return '#ef4444';
       case 'future':
-        return 'rgba(0, 0, 0, 0.06)';
+        return 'var(--glass-surface-bg)';
     }
   };
 

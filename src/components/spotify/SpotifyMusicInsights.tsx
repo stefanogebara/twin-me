@@ -25,15 +25,15 @@ export const SpotifyMusicInsights: React.FC<SpotifyMusicInsightsProps> = ({
   // Loading state
   if (isLoading) {
     return (
-      <Card className={`bg-white border border-stone-200 p-12 ${className}`}>
+      <Card className={`p-12 ${className}`}>
         <div className="flex flex-col items-center justify-center">
           <div className="w-16 h-16 rounded-full bg-[#1DB954]/10 flex items-center justify-center mb-4">
             <Loader2 className="w-8 h-8 text-[#1DB954] animate-spin" />
           </div>
-          <h3 className="font-heading text-lg font-medium text-stone-900 mb-2">
+          <h3 className="font-heading text-lg font-medium text-foreground mb-2">
             Analyzing Your Musical Soul
           </h3>
-          <p className="text-sm text-stone-600">
+          <p className="text-sm text-muted-foreground">
             Extracting insights from your Spotify data...
           </p>
         </div>
@@ -44,15 +44,15 @@ export const SpotifyMusicInsights: React.FC<SpotifyMusicInsightsProps> = ({
   // Error state
   if (isError) {
     return (
-      <Card className={`bg-white border border-red-200 p-8 ${className}`}>
+      <Card className={`p-8 ${className}`}>
         <div className="flex flex-col items-center justify-center text-center">
-          <div className="w-16 h-16 rounded-full bg-red-50 flex items-center justify-center mb-4">
+          <div className="w-16 h-16 rounded-full bg-red-900/20 flex items-center justify-center mb-4">
             <AlertCircle className="w-8 h-8 text-red-500" />
           </div>
-          <h3 className="font-heading text-lg font-medium text-stone-900 mb-2">
+          <h3 className="font-heading text-lg font-medium text-foreground mb-2">
             Unable to Load Spotify Insights
           </h3>
-          <p className="text-sm text-stone-600 mb-6 max-w-md">
+          <p className="text-sm text-muted-foreground mb-6 max-w-md">
             {error?.message || 'We couldn\'t retrieve your Spotify data. Please try again.'}
           </p>
           <Button
@@ -70,15 +70,15 @@ export const SpotifyMusicInsights: React.FC<SpotifyMusicInsightsProps> = ({
   // Empty state
   if (!insights || (!insights.topArtists?.length && !insights.genres?.length)) {
     return (
-      <Card className={`bg-white border border-stone-200 p-8 ${className}`}>
+      <Card className={`p-8 ${className}`}>
         <div className="flex flex-col items-center justify-center text-center">
           <div className="w-16 h-16 rounded-full bg-[#1DB954]/10 flex items-center justify-center mb-4">
             <Music className="w-8 h-8 text-[#1DB954]" />
           </div>
-          <h3 className="font-heading text-lg font-medium text-stone-900 mb-2">
+          <h3 className="font-heading text-lg font-medium text-foreground mb-2">
             No Spotify Data Yet
           </h3>
-          <p className="text-sm text-stone-600 mb-6 max-w-md">
+          <p className="text-sm text-muted-foreground mb-6 max-w-md">
             Connect your Spotify account to discover your musical soul signature
           </p>
           <Button
@@ -108,13 +108,13 @@ export const SpotifyMusicInsights: React.FC<SpotifyMusicInsightsProps> = ({
               <Music className="w-7 h-7 text-white" />
             </div>
             <div>
-              <h2 className="font-heading text-2xl font-medium text-stone-900 mb-2">
+              <h2 className="font-heading text-2xl font-medium text-foreground mb-2">
                 Musical Soul Signature
               </h2>
-              <p className="text-base font-body text-stone-700 mb-3">
+              <p className="text-base font-body text-muted-foreground mb-3">
                 Your authentic listening personality from Spotify
               </p>
-              <div className="flex items-center gap-4 text-xs text-stone-600">
+              <div className="flex items-center gap-4 text-xs text-muted-foreground">
                 <div className="flex items-center gap-1">
                   <div className="w-1.5 h-1.5 rounded-full bg-[#1DB954]" />
                   <span>{insights.topArtists?.length || 0} Artists</span>
@@ -207,7 +207,7 @@ export const SpotifyMusicInsights: React.FC<SpotifyMusicInsightsProps> = ({
         transition={{ delay: 0.8 }}
         className="mt-6 text-center"
       >
-        <p className="text-xs text-stone-500">
+        <p className="text-xs text-muted-foreground">
           Data extracted from your Spotify listening history and preferences
         </p>
       </motion.div>

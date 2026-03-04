@@ -26,7 +26,7 @@ export function EmptyVisualization({
       initial={{ opacity: 0, scale: 0.95 }}
       animate={{ opacity: 1, scale: 1 }}
       transition={{ duration: 0.5 }}
-      className={`bg-white rounded-xl border border-stone-200 p-12 ${className}`}
+      className={`glass-card p-12 ${className}`}
     >
       <div className="max-w-md mx-auto text-center">
         {/* Icon */}
@@ -35,9 +35,9 @@ export function EmptyVisualization({
             initial={{ scale: 0 }}
             animate={{ scale: 1 }}
             transition={{ duration: 0.5, delay: 0.2, type: 'spring' }}
-            className="w-20 h-20 bg-stone-100 rounded-full flex items-center justify-center mx-auto mb-6"
+            className="w-20 h-20 bg-white/8 rounded-full flex items-center justify-center mx-auto mb-6"
           >
-            <div className="text-stone-400">
+            <div className="text-muted-foreground">
               {icon}
             </div>
           </motion.div>
@@ -48,7 +48,7 @@ export function EmptyVisualization({
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, delay: 0.3 }}
-          className="text-xl font-heading font-semibold text-slate-900 mb-3"
+          className="text-xl font-heading font-semibold text-foreground mb-3"
         >
           {title}
         </motion.h3>
@@ -58,7 +58,7 @@ export function EmptyVisualization({
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, delay: 0.4 }}
-          className="text-sm text-slate-600 mb-6 leading-relaxed"
+          className="text-sm text-muted-foreground mb-6 leading-relaxed"
         >
           {description}
         </motion.p>

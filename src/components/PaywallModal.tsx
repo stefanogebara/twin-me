@@ -47,13 +47,13 @@ const PaywallModal: React.FC<Props> = ({ isOpen }) => {
           style={{ background: 'rgba(0,0,0,0.45)', backdropFilter: 'blur(8px)' }}>
           <motion.div initial={{ scale: 0.95, y: 20 }} animate={{ scale: 1, y: 0 }}
             className="max-w-xl w-full rounded-3xl p-8 space-y-8"
-            style={{ background: '#fff', border: '1px solid rgba(0,0,0,0.08)', boxShadow: '0 24px 80px rgba(0,0,0,0.15)' }}>
+            style={{ background: 'var(--background)', border: '1px solid var(--glass-surface-border)', boxShadow: '0 24px 80px rgba(0,0,0,0.15)' }}>
 
             {/* Header */}
             <div className="text-center space-y-2">
-              <p className="text-xs uppercase tracking-widest" style={{ color: '#8A857D' }}>Your twin is ready</p>
+              <p className="text-xs uppercase tracking-widest" style={{ color: 'var(--text-secondary)' }}>Your twin is ready</p>
               <h2 className="heading-serif text-4xl font-normal tracking-tight">Keep the conversation going.</h2>
-              <p className="text-sm" style={{ color: '#8A857D' }}>Unlock full access to everything your twin can do.</p>
+              <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>Unlock full access to everything your twin can do.</p>
             </div>
 
             {/* Plan cards */}
@@ -62,12 +62,12 @@ const PaywallModal: React.FC<Props> = ({ isOpen }) => {
                 <div key={plan.key} className="rounded-2xl p-6 space-y-4"
                   style={plan.highlight
                     ? { background: 'rgba(196,162,101,0.06)', border: '1px solid rgba(196,162,101,0.3)' }
-                    : { background: 'rgba(0,0,0,0.02)', border: '1px solid rgba(0,0,0,0.08)' }}>
+                    : { background: 'var(--glass-surface-bg-subtle)', border: '1px solid var(--glass-surface-border)' }}>
 
                   {/* Plan name */}
                   <div className="flex items-center gap-2">
                     <p className="text-xs font-medium uppercase tracking-widest"
-                      style={{ color: plan.highlight ? '#C4A265' : '#8A857D' }}>
+                      style={{ color: plan.highlight ? 'var(--accent-vibrant)' : 'var(--text-secondary)' }}>
                       {plan.name}
                     </p>
                     {plan.highlight && (
@@ -81,17 +81,17 @@ const PaywallModal: React.FC<Props> = ({ isOpen }) => {
                   {/* Price */}
                   <div className="flex items-baseline gap-1">
                     <span className="heading-serif text-4xl font-normal">{plan.price}</span>
-                    <span className="text-sm" style={{ color: '#8A857D' }}>{plan.period}</span>
+                    <span className="text-sm" style={{ color: 'var(--text-secondary)' }}>{plan.period}</span>
                   </div>
 
                   {/* Description */}
-                  <p className="text-sm" style={{ color: '#8A857D' }}>{plan.description}</p>
+                  <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>{plan.description}</p>
 
                   {/* Features */}
                   <ul className="space-y-1.5">
                     {plan.features.map(f => (
                       <li key={f} className="text-sm flex gap-2 items-start">
-                        <span style={{ color: plan.highlight ? '#C4A265' : '#8A857D' }}>✓</span>
+                        <span style={{ color: plan.highlight ? 'var(--accent-vibrant)' : 'var(--text-secondary)' }}>✓</span>
                         <span>{f}</span>
                       </li>
                     ))}
@@ -115,7 +115,7 @@ const PaywallModal: React.FC<Props> = ({ isOpen }) => {
             </div>
 
             {/* Footer */}
-            <p className="text-xs text-center" style={{ color: '#8A857D' }}>
+            <p className="text-xs text-center" style={{ color: 'var(--text-secondary)' }}>
               Cancel anytime. Annual plans available — 2 months free.
             </p>
           </motion.div>

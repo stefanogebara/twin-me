@@ -56,7 +56,7 @@ const defaultTwins: ContextualTwin[] = [
       professional: 35,
       creative: 80,
     },
-    color: '#78716c', // stone-500
+    color: 'var(--text-muted)', // stone-500
     isActive: false,
     isDefault: true,
   },
@@ -70,7 +70,7 @@ const defaultTwins: ContextualTwin[] = [
       professional: 25,
       creative: 90,
     },
-    color: '#a8a29e', // stone-400
+    color: 'var(--text-muted)',
     isActive: false,
     isDefault: true,
   },
@@ -84,7 +84,7 @@ const defaultTwins: ContextualTwin[] = [
       professional: 50,
       creative: 30,
     },
-    color: '#57534e', // stone-600
+    color: 'var(--text-secondary)',
     isActive: false,
     isDefault: true,
   },
@@ -110,7 +110,7 @@ export const ContextualTwinSelector: React.FC<ContextualTwinSelectorProps> = ({
           <h3 className="font-heading text-2xl font-medium text-[hsl(var(--claude-text))] mb-2">
             Contextual Twins
           </h3>
-          <p className="text-sm text-stone-600 font-body leading-relaxed">
+          <p className="text-sm text-muted-foreground font-body leading-relaxed">
             Different versions of your soul signature for different audiences
           </p>
         </div>
@@ -138,17 +138,13 @@ export const ContextualTwinSelector: React.FC<ContextualTwinSelectorProps> = ({
       {/* Active Twin Preview */}
       <motion.div
         layout
-        className="p-6 rounded-xl border"
-        style={{
-          backgroundColor: '#FFFFFF',
-          borderColor: 'rgba(0, 0, 0, 0.1)',
-        }}
+        className="glass-card p-6"
       >
         <div className="flex items-center gap-3 mb-4">
           <div
             className="p-2.5 rounded-lg"
             style={{
-              backgroundColor: '#F5F5F4',
+              backgroundColor: 'rgba(255, 255, 255, 0.08)',
             }}
           >
             <div style={{ color: activeTwin.color }}>
@@ -159,14 +155,14 @@ export const ContextualTwinSelector: React.FC<ContextualTwinSelectorProps> = ({
             <h4 className="font-heading text-lg font-medium text-[hsl(var(--claude-text))] mb-1">
               Currently Active: {activeTwin.name}
             </h4>
-            <p className="text-sm text-stone-600 font-body">
+            <p className="text-sm text-muted-foreground font-body">
               {activeTwin.description}
             </p>
           </div>
           <motion.div
             initial={{ scale: 0 }}
             animate={{ scale: 1 }}
-            className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-green-100 text-green-700"
+            className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-green-900/20 text-green-400"
           >
             <Check className="w-4 h-4" />
             <span className="text-sm font-medium font-ui">Active</span>
@@ -178,14 +174,14 @@ export const ContextualTwinSelector: React.FC<ContextualTwinSelectorProps> = ({
           {Object.entries(activeTwin.clusterLevels).map(([cluster, level]) => (
             <div key={cluster} className="space-y-2">
               <div className="flex items-center justify-between">
-                <span className="text-xs font-medium capitalize font-ui" style={{ color: '#000000' }}>
+                <span className="text-xs font-medium capitalize font-ui" style={{ color: 'var(--foreground)' }}>
                   {cluster}
                 </span>
-                <span className="text-xs font-bold" style={{ color: '#000000' }}>
+                <span className="text-xs font-bold" style={{ color: 'var(--foreground)' }}>
                   {level}%
                 </span>
               </div>
-              <div className="h-2 rounded-full overflow-hidden" style={{ backgroundColor: '#e7e5e4' }}>
+              <div className="h-2 rounded-full overflow-hidden" style={{ backgroundColor: 'rgba(255, 255, 255, 0.10)' }}>
                 <motion.div
                   className="h-full rounded-full"
                   style={{ backgroundColor: activeTwin.color }}
@@ -216,12 +212,7 @@ export const ContextualTwinSelector: React.FC<ContextualTwinSelectorProps> = ({
               onMouseEnter={() => setHoveredId(twin.id)}
               onMouseLeave={() => setHoveredId(null)}
               onClick={() => !isActive && onSelectTwin(twin.id)}
-              className="relative p-5 rounded-xl border cursor-pointer transition-all duration-200"
-              style={{
-                backgroundColor: '#FFFFFF',
-                borderColor: isActive ? '#D97706' : 'rgba(0, 0, 0, 0.1)',
-                borderWidth: isActive ? '2px' : '1px',
-              }}
+              className={`glass-card relative p-5 cursor-pointer transition-all duration-200 ${isActive ? '!border-2 !border-amber-600' : ''}`}
             >
               <div className="relative">
                 <div className="flex items-start justify-between mb-3">
@@ -229,7 +220,7 @@ export const ContextualTwinSelector: React.FC<ContextualTwinSelectorProps> = ({
                     <div
                       className="p-2.5 rounded-lg"
                       style={{
-                        backgroundColor: '#F5F5F4',
+                        backgroundColor: 'rgba(255, 255, 255, 0.08)',
                       }}
                     >
                       <div style={{ color: twin.color }}>
@@ -241,7 +232,7 @@ export const ContextualTwinSelector: React.FC<ContextualTwinSelectorProps> = ({
                         {twin.name}
                       </h5>
                       {twin.isDefault && (
-                        <span className="text-xs text-stone-500 font-ui">
+                        <span className="text-xs text-muted-foreground font-ui">
                           Default preset
                         </span>
                       )}
@@ -261,10 +252,10 @@ export const ContextualTwinSelector: React.FC<ContextualTwinSelectorProps> = ({
                             e.stopPropagation();
                             onEditTwin(twin.id);
                           }}
-                          className="p-1.5 rounded-lg hover:bg-stone-100 transition-colors"
+                          className="p-1.5 rounded-lg hover:bg-white/12 transition-colors"
                           title="Edit twin"
                         >
-                          <Edit2 className="w-3.5 h-3.5 text-stone-600" />
+                          <Edit2 className="w-3.5 h-3.5 text-muted-foreground" />
                         </button>
                       )}
                       {onDeleteTwin && (
@@ -273,17 +264,17 @@ export const ContextualTwinSelector: React.FC<ContextualTwinSelectorProps> = ({
                             e.stopPropagation();
                             onDeleteTwin(twin.id);
                           }}
-                          className="p-1.5 rounded-lg hover:bg-red-50 transition-colors"
+                          className="p-1.5 rounded-lg hover:bg-red-900/20 transition-colors"
                           title="Delete twin"
                         >
-                          <Trash2 className="w-3.5 h-3.5 text-red-600" />
+                          <Trash2 className="w-3.5 h-3.5 text-red-400" />
                         </button>
                       )}
                     </motion.div>
                   )}
                 </div>
 
-                <p className="text-sm text-stone-600 font-body leading-relaxed mb-4">
+                <p className="text-sm text-muted-foreground font-body leading-relaxed mb-4">
                   {twin.description}
                 </p>
 
@@ -294,7 +285,7 @@ export const ContextualTwinSelector: React.FC<ContextualTwinSelectorProps> = ({
                       key={cluster}
                       className="flex-1 h-1.5 rounded-full overflow-hidden"
                       title={`${cluster}: ${level}%`}
-                      style={{ backgroundColor: '#e7e5e4' }}
+                      style={{ backgroundColor: 'rgba(255, 255, 255, 0.10)' }}
                     >
                       <div
                         className="h-full"
@@ -327,7 +318,7 @@ export const ContextualTwinSelector: React.FC<ContextualTwinSelectorProps> = ({
       <motion.div
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
-        className="p-4 rounded-xl bg-blue-50 border border-blue-200"
+        className="p-4 rounded-xl bg-blue-900/20 border border-blue-800/30"
       >
         <p className="text-sm text-blue-900 font-body leading-relaxed">
           <strong className="font-medium">Pro tip:</strong> Switch between twins

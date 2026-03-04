@@ -92,21 +92,21 @@ export function ContextualQuickActions({
             label: 'Show me playlists',
             icon: Music,
             action: () => onAction('show-playlists'),
-            color: 'text-green-600'
+            color: 'text-green-400'
           },
           {
             id: 'compare-artists',
             label: 'Compare artists',
             icon: BarChart3,
             action: () => onAction('compare-artists'),
-            color: 'text-blue-600'
+            color: 'text-blue-400'
           },
           {
             id: 'mood-trends',
             label: 'Analyze mood trends',
             icon: TrendingUp,
             action: () => onAction('mood-trends'),
-            color: 'text-purple-600'
+            color: 'text-purple-400'
           },
           ...baseActions
         ];
@@ -118,21 +118,21 @@ export function ContextualQuickActions({
             label: 'View top channels',
             icon: PlayCircle,
             action: () => onAction('top-channels'),
-            color: 'text-red-600'
+            color: 'text-red-400'
           },
           {
             id: 'learning-paths',
             label: 'Learning paths',
             icon: TrendingUp,
             action: () => onAction('learning-paths'),
-            color: 'text-blue-600'
+            color: 'text-blue-400'
           },
           {
             id: 'watch-time',
             label: 'Watch time analysis',
             icon: Calendar,
             action: () => onAction('watch-time'),
-            color: 'text-green-600'
+            color: 'text-green-400'
           },
           ...baseActions
         ];
@@ -144,21 +144,21 @@ export function ContextualQuickActions({
             label: 'Coding patterns',
             icon: Zap,
             action: () => onAction('coding-patterns'),
-            color: 'text-purple-600'
+            color: 'text-purple-400'
           },
           {
             id: 'language-breakdown',
             label: 'Language breakdown',
             icon: BarChart3,
             action: () => onAction('language-breakdown'),
-            color: 'text-blue-600'
+            color: 'text-blue-400'
           },
           {
             id: 'contribution-graph',
             label: 'Contribution graph',
             icon: Calendar,
             action: () => onAction('contribution-graph'),
-            color: 'text-green-600'
+            color: 'text-green-400'
           },
           ...baseActions
         ];
@@ -199,14 +199,14 @@ export function ContextualQuickActions({
             onClick={action.action}
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-full transition-all whitespace-nowrap text-sm font-medium group"
             style={{
-              backgroundColor: 'rgba(255, 255, 255, 0.18)',
+              backgroundColor: 'rgba(255, 255, 255, 0.06)',
               backdropFilter: 'blur(10px) saturate(140%)',
               WebkitBackdropFilter: 'blur(10px) saturate(140%)',
-              border: '1px solid rgba(255, 255, 255, 0.45)',
-              color: '#000000'
+              border: '1px solid rgba(255, 255, 255, 0.10)',
+              color: 'var(--foreground)'
             }}
           >
-            <Icon className={`w-4 h-4 ${action.color || ''}`} style={!action.color ? { color: '#8A857D' } : undefined} />
+            <Icon className={`w-4 h-4 ${action.color || ''}`} style={!action.color ? { color: 'var(--text-secondary)' } : undefined} />
             <span>{action.label}</span>
           </motion.button>
         );

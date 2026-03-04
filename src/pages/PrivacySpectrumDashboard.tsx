@@ -31,10 +31,10 @@ import {
 } from 'lucide-react';
 
 // --- Design tokens ---
-const TEXT_PRIMARY = '#000000';
-const TEXT_SECONDARY = '#8A857D';
-const BORDER_COLOR = 'rgba(0, 0, 0, 0.08)';
-const CARD_BG = 'rgba(255,255,255,0.55)';
+const TEXT_PRIMARY = 'var(--foreground)';
+const TEXT_SECONDARY = 'var(--text-secondary)';
+const BORDER_COLOR = 'var(--glass-surface-border)';
+const CARD_BG = 'var(--glass-surface-bg)';
 
 const CATEGORY_COLORS = {
   personal: '#EC4899',
@@ -82,7 +82,7 @@ interface ClusterRowProps {
 
 const ClusterRow: React.FC<ClusterRowProps> = ({ cluster, onPrivacyChange, onToggle }) => {
   const [localLevel, setLocalLevel] = useState(cluster.privacyLevel);
-  const color = CATEGORY_COLORS[cluster.category as keyof typeof CATEGORY_COLORS] ?? '#8A857D';
+  const color = CATEGORY_COLORS[cluster.category as keyof typeof CATEGORY_COLORS] ?? 'var(--text-secondary)';
 
   const handleSliderChange = useCallback(
     (values: number[]) => {
@@ -193,7 +193,7 @@ interface CategorySectionProps {
 
 const CategorySection: React.FC<CategorySectionProps> = ({ category, clusters, onPrivacyChange, onToggle }) => {
   const [collapsed, setCollapsed] = useState(false);
-  const color = CATEGORY_COLORS[category as keyof typeof CATEGORY_COLORS] ?? '#8A857D';
+  const color = CATEGORY_COLORS[category as keyof typeof CATEGORY_COLORS] ?? 'var(--text-secondary)';
   const label = category.charAt(0).toUpperCase() + category.slice(1);
 
   return (
@@ -410,7 +410,7 @@ const PrivacySpectrumDashboard: React.FC = () => {
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', gap: 10 }}>
             {twins.map(twin => {
               const IconComponent = TWIN_ICONS[twin.twin_type] ?? Sparkles;
-              const twinColor = twin.color ?? TWIN_COLORS[twin.twin_type] ?? '#8A857D';
+              const twinColor = twin.color ?? TWIN_COLORS[twin.twin_type] ?? 'var(--text-secondary)';
               const isActive = twin.isActive;
 
               return (
@@ -529,7 +529,7 @@ const PrivacySpectrumDashboard: React.FC = () => {
             const label = (preset as { name?: string; label?: string }).name
               ?? (preset as { label?: string }).label
               ?? key;
-            const color = (preset as unknown as { color?: string }).color ?? '#8A857D';
+            const color = (preset as unknown as { color?: string }).color ?? 'var(--text-secondary)';
 
             return (
               <button
@@ -668,7 +668,7 @@ const StatCard: React.FC<{ label: string; value: string; color: string }> = ({ l
     <div style={{ fontSize: 20, fontWeight: 800, color, fontFamily: "Halant, var(--font-heading), Georgia, serif" }}>
       {value}
     </div>
-    <div style={{ fontSize: 11, color: '#8A857D', marginTop: 2, fontWeight: 500 }}>
+    <div style={{ fontSize: 11, color: 'var(--text-secondary)', marginTop: 2, fontWeight: 500 }}>
       {label}
     </div>
   </div>

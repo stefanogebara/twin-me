@@ -38,11 +38,11 @@ export const GenreDistributionChart: React.FC<GenreDistributionChartProps> = ({
   const CustomTooltip = ({ active, payload }: any) => {
     if (active && payload && payload.length) {
       return (
-        <div className="bg-white border border-stone-200 rounded-lg shadow-lg p-3">
-          <p className="font-ui text-sm font-medium text-stone-900">
+        <div className="glass-card rounded-lg p-3">
+          <p className="font-ui text-sm font-medium text-foreground">
             {payload[0].name}
           </p>
-          <p className="text-xs text-stone-600 mt-1">
+          <p className="text-xs text-muted-foreground mt-1">
             {payload[0].value.toFixed(1)}% ({payload[0].payload.count} tracks)
           </p>
         </div>
@@ -52,16 +52,16 @@ export const GenreDistributionChart: React.FC<GenreDistributionChartProps> = ({
   };
 
   return (
-    <Card className={`bg-white border border-stone-200 p-6 shadow-md hover:shadow-lg transition-shadow duration-200 ${className}`}>
+    <Card className={`p-6 ${className}`}>
       <div className="flex items-center gap-3 mb-5">
         <div className="w-10 h-10 rounded-full bg-[#1DB954]/10 flex items-center justify-center">
           <Disc3 className="w-5 h-5 text-[#1DB954]" />
         </div>
         <div>
-          <h3 className="font-heading text-lg font-medium text-stone-900">
+          <h3 className="font-heading text-lg font-medium text-foreground">
             Genre Distribution
           </h3>
-          <p className="text-xs text-stone-500">
+          <p className="text-xs text-muted-foreground">
             Your musical palette
           </p>
         </div>
@@ -109,11 +109,11 @@ export const GenreDistributionChart: React.FC<GenreDistributionChartProps> = ({
                     className="w-3 h-3 rounded-full flex-shrink-0"
                     style={{ backgroundColor: genre.color }}
                   />
-                  <span className="text-sm font-ui text-stone-700 truncate">
+                  <span className="text-sm font-ui text-muted-foreground truncate">
                     {genre.name}
                   </span>
                 </div>
-                <span className="text-sm font-mono text-stone-600 flex-shrink-0 ml-2">
+                <span className="text-sm font-mono text-muted-foreground flex-shrink-0 ml-2">
                   {genre.value.toFixed(1)}%
                 </span>
               </motion.div>
@@ -122,8 +122,8 @@ export const GenreDistributionChart: React.FC<GenreDistributionChartProps> = ({
         </motion.div>
       ) : (
         <div className="text-center py-12">
-          <Disc3 className="w-12 h-12 text-stone-600 mx-auto mb-3" />
-          <p className="text-sm text-stone-500">
+          <Disc3 className="w-12 h-12 text-muted-foreground mx-auto mb-3" />
+          <p className="text-sm text-muted-foreground">
             No genre data available yet
           </p>
         </div>

@@ -62,11 +62,7 @@ export const ClusterCard: React.FC<ClusterCardProps> = ({
       transition={{ duration: 0.3, ease: 'easeOut' }}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
-      className="relative overflow-hidden rounded-xl border transition-all duration-200"
-      style={{
-        backgroundColor: '#FFFFFF',
-        borderColor: 'rgba(0, 0, 0, 0.1)',
-      }}
+      className="glass-card relative overflow-hidden transition-all duration-200"
     >
       <div className="p-6">
         {/* Header */}
@@ -75,24 +71,24 @@ export const ClusterCard: React.FC<ClusterCardProps> = ({
             <div
               className="p-2.5 rounded-lg"
               style={{
-                backgroundColor: '#F5F5F4',
+                backgroundColor: 'rgba(255, 255, 255, 0.08)',
               }}
             >
-              <Icon className="w-5 h-5" style={{ color: '#57534e' }} />
+              <Icon className="w-5 h-5" style={{ color: 'var(--text-secondary)' }} />
             </div>
 
             <div className="flex-1">
               <h3 className="font-heading text-lg font-medium text-[hsl(var(--claude-text))] mb-1">
                 {cluster.name}
               </h3>
-              <div className="flex items-center gap-2 text-xs text-stone-500">
+              <div className="flex items-center gap-2 text-xs text-muted-foreground">
                 <span className="flex items-center gap-1">
                   <Sparkles className="w-3 h-3" />
                   {cluster.dataPoints} moments
                 </span>
                 {cluster.quality && (
                   <span className="flex items-center gap-1">
-                    <span className="w-1 h-1 rounded-full bg-stone-300" />
+                    <span className="w-1 h-1 rounded-full bg-white/15" />
                     {cluster.quality}% quality
                   </span>
                 )}
@@ -103,7 +99,7 @@ export const ClusterCard: React.FC<ClusterCardProps> = ({
           {onToggleExpand && (
             <motion.button
               onClick={onToggleExpand}
-              className="p-2 rounded-lg hover:bg-stone-100 transition-colors"
+              className="p-2 rounded-lg hover:bg-white/12 transition-colors"
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
             >
@@ -111,21 +107,21 @@ export const ClusterCard: React.FC<ClusterCardProps> = ({
                 animate={{ rotate: isExpanded ? 180 : 0 }}
                 transition={{ duration: 0.3 }}
               >
-                <ChevronDown className="w-4 h-4 text-stone-600" />
+                <ChevronDown className="w-4 h-4 text-muted-foreground" />
               </motion.div>
             </motion.button>
           )}
         </div>
 
         {/* Description */}
-        <p className="text-sm text-stone-600 font-body mb-6 leading-relaxed">
+        <p className="text-sm text-muted-foreground font-body mb-6 leading-relaxed">
           {cluster.description}
         </p>
 
         {/* Intensity Slider */}
         <div className="space-y-3">
           <div className="flex items-center justify-between">
-            <label className="text-sm font-ui font-medium" style={{ color: '#000000' }}>
+            <label className="text-sm font-ui font-medium" style={{ color: 'var(--foreground)' }}>
               Reveal Level
             </label>
             <span
@@ -150,7 +146,7 @@ export const ClusterCard: React.FC<ClusterCardProps> = ({
             <Slider.Track
               className="relative grow rounded-full h-2"
               style={{
-                backgroundColor: '#e7e5e4',
+                backgroundColor: 'rgba(255, 255, 255, 0.10)',
               }}
             >
               <Slider.Range
@@ -169,7 +165,7 @@ export const ClusterCard: React.FC<ClusterCardProps> = ({
           </Slider.Root>
 
           {/* Percentage Markers */}
-          <div className="flex justify-between text-xs text-stone-400 px-1">
+          <div className="flex justify-between text-xs text-muted-foreground px-1">
             <span>0%</span>
             <span>25%</span>
             <span>50%</span>
@@ -186,11 +182,11 @@ export const ClusterCard: React.FC<ClusterCardProps> = ({
               animate={{ height: 'auto', opacity: 1 }}
               exit={{ height: 0, opacity: 0 }}
               transition={{ duration: 0.3 }}
-              className="mt-6 pt-6 border-t border-stone-200"
+              className="mt-6 pt-6 border-t border-white/10"
             >
               <div className="flex items-center gap-2 mb-3">
-                <Eye className="w-4 h-4 text-stone-500" />
-                <span className="text-xs font-medium text-stone-700 font-ui">
+                <Eye className="w-4 h-4 text-muted-foreground" />
+                <span className="text-xs font-medium text-muted-foreground font-ui">
                   What's revealed at this level
                 </span>
               </div>
@@ -201,7 +197,7 @@ export const ClusterCard: React.FC<ClusterCardProps> = ({
                     initial={{ opacity: 0, x: -10 }}
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ delay: index * 0.1 }}
-                    className="flex items-start gap-2 text-sm text-stone-600 font-body"
+                    className="flex items-start gap-2 text-sm text-muted-foreground font-body"
                   >
                     <span className="text-[hsl(var(--claude-accent))] mt-1">•</span>
                     <span>{item}</span>
@@ -220,22 +216,22 @@ export const ClusterCard: React.FC<ClusterCardProps> = ({
               animate={{ height: 'auto', opacity: 1 }}
               exit={{ height: 0, opacity: 0 }}
               transition={{ duration: 0.3 }}
-              className="mt-6 pt-6 border-t border-stone-200"
+              className="mt-6 pt-6 border-t border-white/10"
             >
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-1">
-                  <p className="text-xs text-stone-500 font-ui">Category</p>
-                  <p className="text-sm font-medium text-stone-700 capitalize">
+                  <p className="text-xs text-muted-foreground font-ui">Category</p>
+                  <p className="text-sm font-medium text-muted-foreground capitalize">
                     {cluster.category}
                   </p>
                 </div>
                 {cluster.lastUpdated && (
                   <div className="space-y-1">
-                    <p className="text-xs text-stone-500 font-ui flex items-center gap-1">
+                    <p className="text-xs text-muted-foreground font-ui flex items-center gap-1">
                       <Clock className="w-3 h-3" />
                       Last Updated
                     </p>
-                    <p className="text-sm font-medium text-stone-700">
+                    <p className="text-sm font-medium text-muted-foreground">
                       {cluster.lastUpdated.toLocaleDateString()}
                     </p>
                   </div>

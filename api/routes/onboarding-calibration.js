@@ -238,10 +238,37 @@ function analyzeProgress(conversationHistory, questionNumber) {
  * Use LLM to classify which domain a Q&A pair belongs to.
  * This is lightweight (TIER_ANALYSIS) and lets us track domain coverage accurately.
  */
+// Keyword-based domain classification — zero-cost, instant, works offline
+const DOMAIN_KEYWORDS = {
+  motivation: ['work', 'career', 'ambition', 'goal', 'drive', 'job', 'project', 'build', 'create', 'startup', 'business', 'success', 'achieve', 'purpose', 'mission', 'passion', 'professional', 'entrepreneur'],
+  lifestyle: ['routine', 'sleep', 'morning', 'evening', 'day look', 'schedule', 'gym', 'exercise', 'health', 'energy', 'diet', 'habit', 'wake up', 'coffee', 'commute', 'weekend', 'typical day', 'daily'],
+  personality: ['stress', 'emotion', 'feel', 'cope', 'anxious', 'happy', 'sad', 'angry', 'introvert', 'extrovert', 'temperament', 'react', 'overwhelm', 'vulnerable', 'afraid', 'confident', 'insecure', 'mood'],
+  cultural: ['music', 'movie', 'book', 'art', 'aesthetic', 'design', 'taste', 'creative', 'song', 'album', 'artist', 'film', 'show', 'podcast', 'genre', 'style', 'culture', 'food', 'cook', 'travel', 'restaurant'],
+  social: ['friend', 'relationship', 'family', 'partner', 'communicate', 'social', 'people', 'group', 'alone', 'lonely', 'connect', 'trust', 'conflict', 'disagree', 'open up', 'close to', 'circle'],
+};
+
+function classifyDomainByKeywords(question, answer) {
+  const text = `${question} ${answer}`.toLowerCase();
+  const scores = {};
+  for (const [domain, keywords] of Object.entries(DOMAIN_KEYWORDS)) {
+    scores[domain] = keywords.filter(kw => text.includes(kw)).length;
+  }
+  const sorted = Object.entries(scores).sort((a, b) => b[1] - a[1]);
+  // Only return if there's a clear winner (>0 matches)
+  if (sorted[0][1] > 0) return sorted[0][0];
+  return null; // ambiguous
+}
+
 async function classifyDomain(question, answer) {
+  // Try keyword classification first — free and instant
+  const keywordDomain = classifyDomainByKeywords(question, answer);
+
+  // Use LLM only when keywords are ambiguous (no matches)
+  if (keywordDomain) return keywordDomain;
+
   try {
     const result = await complete({
-      tier: TIER_ANALYSIS,
+      tier: TIER_EXTRACTION,
       messages: [{
         role: 'user',
         content: `Classify this Q&A into exactly ONE domain. Return ONLY the domain ID.
@@ -267,7 +294,7 @@ Domain ID:`,
     const validDomains = ['motivation', 'lifestyle', 'personality', 'cultural', 'social'];
     return validDomains.includes(domain) ? domain : 'motivation';
   } catch {
-    return 'motivation'; // Safe fallback
+    return 'motivation'; // Last resort fallback
   }
 }
 
@@ -515,7 +542,7 @@ router.post('/calibrate', authenticateUser, async (req, res) => {
           ...history,
           { role: 'user', content: 'Based on our entire conversation, analyze my personality across all domains.' },
         ],
-        maxTokens: 800,
+        maxTokens: 1500,
         temperature: 0.6,
         userId,
         serviceName: 'onboarding-calibration-summary',
@@ -530,19 +557,27 @@ router.post('/calibrate', authenticateUser, async (req, res) => {
         const jsonMatch = summaryResult.content.match(/\{[\s\S]*\}/);
         if (jsonMatch) {
           const parsed = JSON.parse(jsonMatch[0]);
-          domainInsights = parsed.domain_insights || {};
+          // Handle both underscore and hyphenated keys (LLMs vary)
+          domainInsights = parsed.domain_insights || parsed['domain-insights'] || {};
           // Flatten domain insights into a single array for backward compat
           insights = Object.values(domainInsights).flat().filter(Boolean);
-          archetypeHint = parsed.archetype_hint || '';
+          archetypeHint = parsed.archetype_hint || parsed['archetype-hint'] || '';
           summary = parsed.summary || '';
         }
       } catch {
-        summary = summaryResult.content;
+        // JSON parse failed (truncated or malformed) — never show raw JSON to user
+        console.warn('[Calibration] Failed to parse summary JSON, extracting fallback');
+        summary = '';
       }
 
-      // Save to database
+      // Safety: if summary looks like JSON, discard it
+      if (summary.includes('"domain_insights"') || summary.includes('"domain-insights"') || summary.startsWith('{')) {
+        summary = '';
+      }
+
+      // Save to database — await so data is persisted before we respond
       if (userId && supabaseAdmin) {
-        supabaseAdmin
+        const { error: saveError } = await supabaseAdmin
           .from('onboarding_calibration')
           .upsert({
             user_id: userId,
@@ -554,18 +589,17 @@ router.post('/calibrate', authenticateUser, async (req, res) => {
             domain_progress: domainProgress,
             questions_asked: currentQ - 1,
             completed_at: new Date().toISOString(),
-          }, { onConflict: 'user_id' })
-          .then(({ error }) => {
-            if (error) console.warn('[Calibration] Save error:', error.message);
-          })
-          .catch(err => {
-            console.error('[Calibration] Upsert network error:', err.message);
-          });
+          }, { onConflict: 'user_id' });
+        if (saveError) console.warn('[Calibration] Save error:', saveError.message);
       }
 
-      // Fire-and-forget: Store rich domain-tagged memories
+      // Store rich domain-tagged memories — await to ensure they're persisted before responding
       if (userId) {
-        storeInterviewMemories(userId, history, domainInsights, archetypeHint, summary);
+        try {
+          await storeInterviewMemories(userId, history, domainInsights, archetypeHint, summary);
+        } catch (memErr) {
+          console.error('[Calibration] Memory storage failed (non-fatal):', memErr.message);
+        }
       }
 
       console.log(`[Calibration] Interview complete: ${currentQ - 1} questions, ${domainsWithCoverage}/5 domains covered`);

@@ -24,15 +24,15 @@ export const TopTracksCard: React.FC<TopTracksCardProps> = ({ tracks, className 
   };
 
   return (
-    <Card className={`bg-white border border-stone-200 p-6 shadow-sm ${className}`}>
+    <Card className={`p-6 ${className}`}>
       {/* Header */}
       <div className="flex items-center gap-3 mb-6">
         <div className="w-10 h-10 rounded-lg bg-[#1DB954]/10 flex items-center justify-center">
           <Music2 className="w-5 h-5 text-[#1DB954]" />
         </div>
         <div>
-          <h3 className="font-heading text-lg font-medium text-stone-900">Top Tracks</h3>
-          <p className="text-xs text-stone-600">Your most played songs</p>
+          <h3 className="font-heading text-lg font-medium text-foreground">Top Tracks</h3>
+          <p className="text-xs text-muted-foreground">Your most played songs</p>
         </div>
       </div>
 
@@ -47,22 +47,22 @@ export const TopTracksCard: React.FC<TopTracksCardProps> = ({ tracks, className 
             className="group"
           >
             <div className="flex items-center gap-3 mb-2">
-              <div className="w-6 h-6 rounded flex items-center justify-center bg-stone-100 text-xs font-medium text-stone-600 group-hover:bg-[#1DB954]/10 group-hover:text-[#1DB954] transition-colors">
+              <div className="w-6 h-6 rounded flex items-center justify-center bg-white/8 text-xs font-medium text-muted-foreground group-hover:bg-[#1DB954]/10 group-hover:text-[#1DB954] transition-colors">
                 {index + 1}
               </div>
               <div className="flex-1 min-w-0">
-                <p className="font-ui text-sm font-medium text-stone-900 truncate">
+                <p className="font-ui text-sm font-medium text-foreground truncate">
                   {track.name}
                 </p>
-                <p className="text-xs text-stone-600 truncate">{track.artist}</p>
+                <p className="text-xs text-muted-foreground truncate">{track.artist}</p>
               </div>
               <div className="text-right">
-                <div className="text-sm font-medium text-stone-900">{track.plays}</div>
-                <div className="text-xs text-stone-500">{formatDuration(track.duration_ms)}</div>
+                <div className="text-sm font-medium text-foreground">{track.plays}</div>
+                <div className="text-xs text-muted-foreground">{formatDuration(track.duration_ms)}</div>
               </div>
             </div>
             {/* Progress Bar */}
-            <div className="h-1.5 bg-stone-100 rounded-full overflow-hidden">
+            <div className="h-1.5 bg-white/8 rounded-full overflow-hidden">
               <motion.div
                 className="h-full bg-[#1DB954] rounded-full"
                 initial={{ width: 0 }}
@@ -76,8 +76,8 @@ export const TopTracksCard: React.FC<TopTracksCardProps> = ({ tracks, className 
 
       {/* Footer */}
       {tracks.length > 5 && (
-        <div className="mt-4 pt-4 border-t border-stone-200">
-          <p className="text-xs text-stone-500 text-center">
+        <div className="mt-4 pt-4 border-t border-white/10">
+          <p className="text-xs text-muted-foreground text-center">
             +{tracks.length - 5} more tracks in your library
           </p>
         </div>

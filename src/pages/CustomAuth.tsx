@@ -115,7 +115,7 @@ For privacy concerns: privacy@twinme.ai`
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center px-6 py-20" style={{ backgroundColor: '#fcf6ef' }}>
+    <div className="min-h-screen flex items-center justify-center px-6 py-20" style={{ backgroundColor: 'var(--background)' }}>
       {/* Back button - top left */}
       <div className="fixed top-6 left-6 z-50">
         <button
@@ -135,7 +135,7 @@ For privacy concerns: privacy@twinme.ai`
             style={{
               background: 'linear-gradient(135deg, rgba(99, 102, 241, 0.1), rgba(129, 140, 248, 0.1))',
               border: '1px solid rgba(99, 102, 241, 0.25)',
-              color: '#4338ca',
+              color: '#818cf8',
             }}
           >
             Signing up as <strong>{searchParams.get('email')}</strong> — continue with Google
@@ -154,7 +154,7 @@ For privacy concerns: privacy@twinme.ai`
           <h1 className="heading-serif text-4xl font-normal tracking-tight">
             Discover Your Soul Signature
           </h1>
-          <p className="mt-3 text-[15px] leading-6" style={{ color: '#8A857D' }}>
+          <p className="mt-3 text-[15px] leading-6" style={{ color: 'var(--text-secondary)' }}>
             Sign in with Google to begin your journey of authentic self-discovery
           </p>
         </div>
@@ -164,13 +164,13 @@ For privacy concerns: privacy@twinme.ai`
           <div
             className="flex items-center gap-3 p-4 rounded-xl"
             style={{
-              background: 'rgba(255, 235, 235, 0.5)',
+              background: 'rgba(220, 38, 38, 0.15)',
               backdropFilter: 'blur(16px)',
               WebkitBackdropFilter: 'blur(16px)',
-              border: '1px solid rgba(220, 38, 38, 0.2)',
+              border: '1px solid rgba(220, 38, 38, 0.3)',
             }}
           >
-            <p className="text-sm" style={{ color: '#991b1b' }}>{error}</p>
+            <p className="text-sm" style={{ color: '#fca5a5' }}>{error}</p>
           </div>
         )}
 
@@ -183,9 +183,9 @@ For privacy concerns: privacy@twinme.ai`
               disabled={loading}
               className="w-full flex items-center justify-center gap-3 px-6 py-4 text-[15px] leading-5 font-medium border rounded-xl transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed backdrop-blur-sm hover:scale-[1.02] active:scale-[0.98]"
               style={{
-                backgroundColor: 'rgba(255, 255, 255, 0.9)',
-                borderColor: 'rgba(231, 229, 228, 0.6)',
-                color: '#000000'
+                backgroundColor: 'rgba(255, 255, 255, 0.08)',
+                borderColor: 'rgba(255, 255, 255, 0.15)',
+                color: 'var(--foreground)'
               }}
             >
               {loading ? (
@@ -208,7 +208,7 @@ For privacy concerns: privacy@twinme.ai`
 
             {/* Benefits list */}
             <div className="pt-4 space-y-3">
-              <p className="text-xs font-medium uppercase tracking-wider" style={{ color: '#8A857D' }}>
+              <p className="text-xs font-medium uppercase tracking-wider" style={{ color: 'var(--text-secondary)' }}>
                 What you'll get
               </p>
               <ul className="space-y-2">
@@ -217,7 +217,7 @@ For privacy concerns: privacy@twinme.ai`
                   'Privacy controls - you decide what to reveal',
                   'Connect multiple platforms for deeper insights'
                 ].map((benefit, index) => (
-                  <li key={index} className="flex items-start gap-2 text-[13px] leading-5" style={{ color: '#8A857D' }}>
+                  <li key={index} className="flex items-start gap-2 text-[13px] leading-5" style={{ color: 'var(--text-secondary)' }}>
                     <span className="text-green-500 mt-0.5">✓</span>
                     {benefit}
                   </li>
@@ -228,12 +228,12 @@ For privacy concerns: privacy@twinme.ai`
         </div>
 
         {/* Footer note */}
-        <p className="text-center text-xs" style={{ color: '#8A857D' }}>
+        <p className="text-center text-xs" style={{ color: 'var(--text-secondary)' }}>
           By continuing, you agree to our{' '}
           <button
             onClick={() => setActiveModal('terms')}
             className="underline hover:opacity-80 transition-opacity"
-            style={{ color: '#78716c' }}
+            style={{ color: 'var(--text-muted)' }}
           >
             Terms of Service
           </button>
@@ -241,7 +241,7 @@ For privacy concerns: privacy@twinme.ai`
           <button
             onClick={() => setActiveModal('privacy')}
             className="underline hover:opacity-80 transition-opacity"
-            style={{ color: '#78716c' }}
+            style={{ color: 'var(--text-muted)' }}
           >
             Privacy Policy
           </button>
@@ -265,18 +265,13 @@ For privacy concerns: privacy@twinme.ai`
           />
           {/* Modal content */}
           <div
-            className="relative w-full max-w-2xl max-h-[80vh] overflow-hidden rounded-2xl"
-            style={{
-              backgroundColor: '#ffffff',
-              border: '1px solid rgba(0, 0, 0, 0.1)',
-              boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)'
-            }}
+            className="glass-card relative w-full max-w-2xl max-h-[80vh] overflow-hidden"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Header */}
             <div
               className="flex items-center justify-between px-6 py-4 border-b"
-              style={{ borderColor: 'rgba(0, 0, 0, 0.1)' }}
+              style={{ borderColor: 'rgba(255, 255, 255, 0.10)' }}
             >
               <h2 className="heading-serif text-xl">
                 {modalContent[activeModal].title}
@@ -284,7 +279,7 @@ For privacy concerns: privacy@twinme.ai`
               <button
                 onClick={() => setActiveModal(null)}
                 className="p-2 rounded-lg hover:opacity-70 transition-opacity"
-                style={{ color: '#000000' }}
+                style={{ color: 'var(--foreground)' }}
               >
                 <X className="w-5 h-5" />
               </button>
@@ -293,7 +288,7 @@ For privacy concerns: privacy@twinme.ai`
             <div className="p-6 overflow-y-auto max-h-[60vh]">
               <pre
                 className="whitespace-pre-wrap font-sans text-sm leading-relaxed"
-                style={{ color: '#8A857D' }}
+                style={{ color: 'var(--text-secondary)' }}
               >
                 {modalContent[activeModal].content}
               </pre>

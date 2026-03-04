@@ -59,13 +59,13 @@ export function CompletenessProgress({ completeness, breakdown, className = '' }
       initial={{ opacity: 0, scale: 0.9 }}
       animate={{ opacity: 1, scale: 1 }}
       transition={{ duration: 0.5 }}
-      className={`bg-white rounded-xl border border-stone-200 p-6 ${className}`}
+      className={`glass-card p-6 ${className}`}
     >
       <div className="mb-6">
-        <h3 className="text-2xl font-heading font-semibold text-slate-900">
+        <h3 className="text-2xl font-heading font-semibold text-foreground">
           Soul Signature Completeness
         </h3>
-        <p className="text-sm text-slate-600 mt-2">
+        <p className="text-sm text-muted-foreground mt-2">
           Connect more platforms to unlock deeper insights
         </p>
       </div>
@@ -156,10 +156,10 @@ export function CompletenessProgress({ completeness, breakdown, className = '' }
               transition={{ duration: 0.5, delay: 0.8 }}
               className="text-center"
             >
-              <div className="text-5xl font-heading font-bold text-slate-900">
+              <div className="text-5xl font-heading font-bold text-foreground">
                 {animatedValue}%
               </div>
-              <div className="text-sm text-slate-600 mt-1">Complete</div>
+              <div className="text-sm text-muted-foreground mt-1">Complete</div>
             </motion.div>
           </div>
 
@@ -176,14 +176,14 @@ export function CompletenessProgress({ completeness, breakdown, className = '' }
 
         {/* Feature Unlocks - Value-focused instead of meaningless percentages */}
         <div className="flex-1 space-y-4">
-          <div className="text-sm font-semibold text-slate-900 mb-4">Unlocked Features</div>
+          <div className="text-sm font-semibold text-foreground mb-4">Unlocked Features</div>
 
           {/* Musical Identity - Always shown as unlocked when data exists */}
           <motion.div
             initial={{ opacity: 0, x: -20 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.5, delay: 0.3 }}
-            className="flex items-start p-3 rounded-lg bg-green-50 border border-green-200"
+            className="flex items-start p-3 rounded-lg bg-green-900/20 border border-green-800/30"
           >
             <div className="flex items-start space-x-3">
               <div className="w-5 h-5 rounded-full bg-green-500 flex items-center justify-center mt-0.5 flex-shrink-0">
@@ -193,7 +193,7 @@ export function CompletenessProgress({ completeness, breakdown, className = '' }
               </div>
               <div>
                 <p className="text-sm font-semibold text-green-900">Musical Identity</p>
-                <p className="text-xs text-green-700 mt-0.5">Spotify connected - emotional patterns discovered</p>
+                <p className="text-xs text-green-400 mt-0.5">Spotify connected - emotional patterns discovered</p>
               </div>
             </div>
           </motion.div>
@@ -205,8 +205,8 @@ export function CompletenessProgress({ completeness, breakdown, className = '' }
             transition={{ duration: 0.5, delay: 0.4 }}
             className={`flex items-start p-3 rounded-lg ${
               breakdown.personal >= 30
-                ? 'bg-green-50 border-green-200'
-                : 'bg-stone-50 border-stone-200'
+                ? 'bg-green-900/20 border-green-800/30'
+                : 'bg-[var(--glass-surface-bg)] border-[var(--glass-surface-border)]'
             } border`}
           >
             <div className="flex items-start space-x-3">
@@ -217,17 +217,17 @@ export function CompletenessProgress({ completeness, breakdown, className = '' }
                   </svg>
                 </div>
               ) : (
-                <div className="w-5 h-5 rounded-full bg-stone-300 flex items-center justify-center mt-0.5 flex-shrink-0">
+                <div className="w-5 h-5 rounded-full bg-white/15 flex items-center justify-center mt-0.5 flex-shrink-0">
                   <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
                   </svg>
                 </div>
               )}
               <div>
-                <p className={`text-sm font-semibold ${breakdown.personal >= 30 ? 'text-green-900' : 'text-stone-600'}`}>
+                <p className={`text-sm font-semibold ${breakdown.personal >= 30 ? 'text-green-900' : 'text-muted-foreground'}`}>
                   Deep Personality Analysis
                 </p>
-                <p className={`text-xs mt-0.5 ${breakdown.personal >= 30 ? 'text-green-700' : 'text-stone-500'}`}>
+                <p className={`text-xs mt-0.5 ${breakdown.personal >= 30 ? 'text-green-400' : 'text-muted-foreground'}`}>
                   {breakdown.personal >= 30
                     ? 'Unlocked - 20+ insights generated'
                     : 'Connect 3 more personal platforms to unlock'}
@@ -243,8 +243,8 @@ export function CompletenessProgress({ completeness, breakdown, className = '' }
             transition={{ duration: 0.5, delay: 0.5 }}
             className={`flex items-start p-3 rounded-lg ${
               completeness >= 50
-                ? 'bg-green-50 border-green-200'
-                : 'bg-stone-50 border-stone-200'
+                ? 'bg-green-900/20 border-green-800/30'
+                : 'bg-[var(--glass-surface-bg)] border-[var(--glass-surface-border)]'
             } border`}
           >
             <div className="flex items-start space-x-3">
@@ -255,17 +255,17 @@ export function CompletenessProgress({ completeness, breakdown, className = '' }
                   </svg>
                 </div>
               ) : (
-                <div className="w-5 h-5 rounded-full bg-stone-300 flex items-center justify-center mt-0.5 flex-shrink-0">
+                <div className="w-5 h-5 rounded-full bg-white/15 flex items-center justify-center mt-0.5 flex-shrink-0">
                   <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
                   </svg>
                 </div>
               )}
               <div>
-                <p className={`text-sm font-semibold ${completeness >= 50 ? 'text-green-900' : 'text-stone-600'}`}>
+                <p className={`text-sm font-semibold ${completeness >= 50 ? 'text-green-900' : 'text-muted-foreground'}`}>
                   AI Twin Chat
                 </p>
-                <p className={`text-xs mt-0.5 ${completeness >= 50 ? 'text-green-700' : 'text-stone-500'}`}>
+                <p className={`text-xs mt-0.5 ${completeness >= 50 ? 'text-green-400' : 'text-muted-foreground'}`}>
                   {completeness >= 50
                     ? 'Unlocked - Chat with your digital twin'
                     : `${Math.max(0, 50 - completeness)}% more data needed to unlock`}
@@ -281,8 +281,8 @@ export function CompletenessProgress({ completeness, breakdown, className = '' }
             transition={{ duration: 0.5, delay: 0.6 }}
             className={`flex items-start p-3 rounded-lg ${
               completeness >= 75
-                ? 'bg-green-50 border-green-200'
-                : 'bg-stone-50 border-stone-200'
+                ? 'bg-green-900/20 border-green-800/30'
+                : 'bg-[var(--glass-surface-bg)] border-[var(--glass-surface-border)]'
             } border`}
           >
             <div className="flex items-start space-x-3">
@@ -293,17 +293,17 @@ export function CompletenessProgress({ completeness, breakdown, className = '' }
                   </svg>
                 </div>
               ) : (
-                <div className="w-5 h-5 rounded-full bg-stone-300 flex items-center justify-center mt-0.5 flex-shrink-0">
+                <div className="w-5 h-5 rounded-full bg-white/15 flex items-center justify-center mt-0.5 flex-shrink-0">
                   <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
                   </svg>
                 </div>
               )}
               <div>
-                <p className={`text-sm font-semibold ${completeness >= 75 ? 'text-green-900' : 'text-stone-600'}`}>
+                <p className={`text-sm font-semibold ${completeness >= 75 ? 'text-green-900' : 'text-muted-foreground'}`}>
                   Soul Matching
                 </p>
-                <p className={`text-xs mt-0.5 ${completeness >= 75 ? 'text-green-700' : 'text-stone-500'}`}>
+                <p className={`text-xs mt-0.5 ${completeness >= 75 ? 'text-green-400' : 'text-muted-foreground'}`}>
                   {completeness >= 75
                     ? 'Unlocked - Find compatible souls'
                     : `${Math.max(0, 75 - completeness)}% more data needed to unlock`}
@@ -318,10 +318,10 @@ export function CompletenessProgress({ completeness, breakdown, className = '' }
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ duration: 0.5, delay: 1 }}
-              className="pt-4 border-t border-stone-200"
+              className="pt-4 border-t border-white/10"
             >
-              <div className="flex items-center space-x-2 text-sm text-slate-600">
-                <svg className="w-4 h-4 text-stone-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <div className="flex items-center space-x-2 text-sm text-muted-foreground">
+                <svg className="w-4 h-4 text-muted-foreground flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
                 </svg>
                 <span>

@@ -101,13 +101,13 @@ export const FloatingNav: React.FC = () => {
   return (
     <nav className="fixed top-6 left-1/2 -translate-x-1/2 z-50 w-full max-w-6xl px-6">
       <div
-        className="backdrop-blur-xl border border-stone-300/50 rounded-full px-8 py-4 shadow-[0_8px_32px_rgba(0,0,0,0.08),0_2px_8px_rgba(0,0,0,0.04)] transition-all duration-300 hover:shadow-[0_12px_48px_rgba(0,0,0,0.12),0_4px_12px_rgba(0,0,0,0.06)]"
-        style={{ backgroundColor: 'rgba(252, 246, 239, 0.85)' }}
+        className="backdrop-blur-xl border border-white/12/50 rounded-full px-8 py-4 shadow-[0_8px_32px_rgba(0,0,0,0.08),0_2px_8px_rgba(0,0,0,0.04)] transition-all duration-300 hover:shadow-[0_12px_48px_rgba(0,0,0,0.12),0_4px_12px_rgba(0,0,0,0.06)]"
+        style={{ backgroundColor: 'rgba(28, 25, 23, 0.85)' }}
       >
         <div className="flex justify-between items-center">
           {/* Brand */}
           <div
-            className="text-2xl font-bold text-black cursor-pointer hover:text-stone-700 transition-colors"
+            className="text-2xl font-bold text-foreground cursor-pointer hover:text-muted-foreground transition-colors"
             style={{ fontFamily: '"Halant", var(--font-heading), Georgia, serif', fontWeight: 500 }}
             onClick={() => handleNavigate('/dashboard')}
           >
@@ -129,7 +129,7 @@ export const FloatingNav: React.FC = () => {
                       font-medium text-sm transition-all duration-300
                       ${active
                         ? 'bg-black text-white shadow-[0_2px_8px_rgba(0,0,0,0.12)]'
-                        : 'text-stone-700 hover:text-black hover:bg-white/50'
+                        : 'text-muted-foreground hover:text-foreground hover:bg-white/10'
                       }
                     `}
                   >
@@ -145,12 +145,12 @@ export const FloatingNav: React.FC = () => {
           <div className="relative">
             <button
               onClick={() => setShowUserMenu(!showUserMenu)}
-              className="flex items-center gap-2 px-4 py-2 rounded-full bg-white/50 hover:bg-white border border-stone-300/50 transition-all duration-300"
+              className="flex items-center gap-2 px-4 py-2 rounded-full bg-white/10 hover:bg-white/15 border border-white/12 transition-all duration-300"
             >
               <div className="w-6 h-6 bg-black rounded-full flex items-center justify-center text-white text-xs font-bold">
                 {user?.firstName?.charAt(0) || user?.email?.charAt(0) || 'U'}
               </div>
-              <span className="text-sm font-medium text-black hidden md:block">
+              <span className="text-sm font-medium text-foreground hidden md:block">
                 {user?.firstName || 'User'}
               </span>
             </button>
@@ -165,12 +165,12 @@ export const FloatingNav: React.FC = () => {
                 />
 
                 {/* Menu */}
-                <div className="absolute right-0 mt-2 w-48 backdrop-blur-xl bg-white/95 border border-stone-300/50 rounded-2xl shadow-[0_8px_32px_rgba(0,0,0,0.12)] z-50 overflow-hidden">
-                  <div className="p-3 border-b border-stone-300/50">
-                    <p className="text-sm font-medium text-black truncate">
+                <div className="absolute right-0 mt-2 w-48 backdrop-blur-xl bg-[rgba(40,37,36,0.95)] border border-white/12 rounded-2xl shadow-[0_8px_32px_rgba(0,0,0,0.40)] z-50 overflow-hidden">
+                  <div className="p-3 border-b border-white/12/50">
+                    <p className="text-sm font-medium text-foreground truncate">
                       {user?.fullName || user?.email || 'User'}
                     </p>
-                    <p className="text-xs text-stone-600 truncate">
+                    <p className="text-xs text-muted-foreground truncate">
                       {user?.email}
                     </p>
                   </div>
@@ -180,7 +180,7 @@ export const FloatingNav: React.FC = () => {
                       setShowUserMenu(false);
                       handleNavigate('/settings');
                     }}
-                    className="w-full flex items-center gap-3 px-4 py-3 text-stone-700 hover:bg-stone-100/50 hover:text-stone-900 transition-colors text-left"
+                    className="w-full flex items-center gap-3 px-4 py-3 text-muted-foreground hover:bg-white/12/50 hover:text-foreground transition-colors text-left"
                   >
                     <User className="w-4 h-4" />
                     <span className="text-sm font-medium">Settings</span>
@@ -191,7 +191,7 @@ export const FloatingNav: React.FC = () => {
                       setShowUserMenu(false);
                       handleSignOut();
                     }}
-                    className="w-full flex items-center gap-3 px-4 py-3 text-red-600 hover:bg-red-50/50 transition-colors text-left border-t border-stone-300/50"
+                    className="w-full flex items-center gap-3 px-4 py-3 text-red-400 hover:bg-red-900/20/50 transition-colors text-left border-t border-white/12/50"
                   >
                     <LogOut className="w-4 h-4" />
                     <span className="text-sm font-medium">Sign Out</span>

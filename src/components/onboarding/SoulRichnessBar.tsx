@@ -18,14 +18,14 @@ const SoulRichnessBar: React.FC<{ connectedPlatforms: string[] }> = ({ connected
   return (
     <div className="space-y-1.5">
       <div className="flex justify-between text-sm">
-        <span className="text-gray-400">Soul Richness</span>
+        <span className="text-muted-foreground">Soul Richness</span>
         <span className="text-indigo-400 font-medium">{score}%</span>
       </div>
       <div className="h-2 bg-gray-800 rounded-full overflow-hidden">
         <motion.div className="h-full bg-gradient-to-r from-indigo-500 to-purple-500 rounded-full"
           initial={{ width: 0 }} animate={{ width: `${score}%` }} transition={{ duration: 0.6, ease: 'easeOut' }} />
       </div>
-      <p className="text-xs text-gray-500">{label(score)}</p>
+      <p className="text-xs text-muted-foreground">{label(score)}</p>
       {score >= 15 && score < 60 && (
         <p className="text-xs text-indigo-400">Connect more for a richer portrait — or reveal now.</p>
       )}

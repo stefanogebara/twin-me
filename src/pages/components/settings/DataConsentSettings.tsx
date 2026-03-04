@@ -17,7 +17,7 @@ interface DataConsentSettingsProps {
   loadingConsents: boolean;
   revokingConsent: string | null;
   handleRevokeConsent: (consentType: string, platform: string) => void;
-  cardStyle: React.CSSProperties;
+  cardStyle: string;
 }
 
 const DataConsentSettings: React.FC<DataConsentSettingsProps> = ({
@@ -28,27 +28,27 @@ const DataConsentSettings: React.FC<DataConsentSettingsProps> = ({
   cardStyle,
 }) => {
   return (
-    <section className="p-5" style={cardStyle}>
+    <section className={`p-5 ${cardStyle}`}>
       <div className="flex items-center gap-3 mb-4">
         <Shield className="w-5 h-5" style={{ color: '#A78BFA' }} />
         <h2 className="heading-serif text-base">
           Data Consent
         </h2>
       </div>
-      <p className="text-sm mb-4" style={{ fontFamily: 'var(--font-body)', color: '#8A857D' }}>
+      <p className="text-sm mb-4" style={{ fontFamily: 'var(--font-body)', color: 'var(--text-secondary)' }}>
         Manage the permissions you've granted for platform data access.
       </p>
 
       {loadingConsents ? (
         <div className="flex items-center justify-center py-6">
-          <Loader2 className="w-5 h-5 animate-spin" style={{ color: '#000000' }} />
+          <Loader2 className="w-5 h-5 animate-spin" style={{ color: 'var(--foreground)' }} />
         </div>
       ) : consents.length === 0 ? (
         <div
           className="text-sm py-4 text-center rounded-xl"
           style={{
-            color: '#8A857D',
-            backgroundColor: 'rgba(0, 0, 0, 0.02)',
+            color: 'var(--text-secondary)',
+            backgroundColor: 'rgba(255, 255, 255, 0.03)',
           }}
         >
           Platform access is managed through your connected platforms above. You can disconnect any platform at any time to revoke access.
@@ -61,16 +61,16 @@ const DataConsentSettings: React.FC<DataConsentSettingsProps> = ({
               className="flex items-center justify-between p-3 rounded-xl"
               style={{
                 backgroundColor: 'rgba(255, 255, 255, 0.8)',
-                border: '1px solid rgba(0, 0, 0, 0.04)',
+                border: '1px solid rgba(255, 255, 255, 0.05)',
               }}
             >
               <div>
-                <h3 className="text-sm" style={{ fontFamily: 'var(--font-body)', fontWeight: 500, color: '#000000' }}>
+                <h3 className="text-sm" style={{ fontFamily: 'var(--font-body)', fontWeight: 500, color: 'var(--foreground)' }}>
                   {consent.platform
                     ? `${consent.platform.charAt(0).toUpperCase() + consent.platform.slice(1).replace(/_/g, ' ')} - ${consent.consent_type.replace(/_/g, ' ')}`
                     : consent.consent_type.replace(/_/g, ' ')}
                 </h3>
-                <p className="text-xs" style={{ color: '#8A857D' }}>
+                <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>
                   Granted {consent.granted_at ? new Date(consent.granted_at).toLocaleDateString() : 'N/A'}
                   {' '}&middot; v{consent.consent_version}
                 </p>

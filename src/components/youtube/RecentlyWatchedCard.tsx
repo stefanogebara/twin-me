@@ -32,15 +32,15 @@ export const RecentlyWatchedCard: React.FC<RecentlyWatchedCardProps> = ({
   };
 
   return (
-    <Card className={`bg-white border border-stone-200 p-6 shadow-sm ${className}`}>
+    <Card className={`p-6 ${className}`}>
       {/* Header */}
       <div className="flex items-center gap-3 mb-6">
         <div className="w-10 h-10 rounded-lg bg-[#FF0000]/10 flex items-center justify-center">
           <Clock className="w-5 h-5 text-[#FF0000]" />
         </div>
         <div>
-          <h3 className="font-heading text-lg font-medium text-stone-900">Recently Watched</h3>
-          <p className="text-xs text-stone-600">Your latest viewing activity</p>
+          <h3 className="font-heading text-lg font-medium text-foreground">Recently Watched</h3>
+          <p className="text-xs text-muted-foreground">Your latest viewing activity</p>
         </div>
       </div>
 
@@ -55,13 +55,13 @@ export const RecentlyWatchedCard: React.FC<RecentlyWatchedCardProps> = ({
               transition={{ delay: index * 0.05 }}
               className="relative group"
             >
-              <div className="bg-stone-50 rounded-lg p-4 hover:bg-stone-100 transition-colors border border-stone-200 hover:border-[#FF0000]/30 h-full">
+              <div className="bg-[var(--glass-surface-bg)] rounded-lg p-4 hover:bg-[var(--glass-surface-bg-hover)] transition-colors border border-[var(--glass-surface-border)] hover:border-[#FF0000]/30 h-full">
                 {/* Video Icon */}
                 <div className="flex items-center gap-2 mb-3">
                   <div className="w-8 h-8 rounded-lg bg-[#FF0000]/10 flex items-center justify-center group-hover:scale-110 transition-transform">
                     <Video className="w-4 h-4 text-[#FF0000]" />
                   </div>
-                  <div className="flex items-center gap-1 text-xs text-stone-500">
+                  <div className="flex items-center gap-1 text-xs text-muted-foreground">
                     <Clock className="w-3 h-3" />
                     <span>{formatDuration(item.duration)}</span>
                   </div>
@@ -69,13 +69,13 @@ export const RecentlyWatchedCard: React.FC<RecentlyWatchedCardProps> = ({
 
                 {/* Content */}
                 <div>
-                  <p className="font-ui text-sm font-medium text-stone-900 mb-2 line-clamp-2">
+                  <p className="font-ui text-sm font-medium text-foreground mb-2 line-clamp-2">
                     {item.title}
                   </p>
-                  <p className="text-xs text-stone-600 mb-2 truncate">
+                  <p className="text-xs text-muted-foreground mb-2 truncate">
                     {item.channel}
                   </p>
-                  <div className="flex items-center gap-1.5 text-xs text-stone-500">
+                  <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
                     <Play className="w-3 h-3 text-[#FF0000]" />
                     <span>{formatTimeAgo(item.watched_at)}</span>
                   </div>
@@ -87,11 +87,11 @@ export const RecentlyWatchedCard: React.FC<RecentlyWatchedCardProps> = ({
       ) : (
         /* Empty State */
         <div className="text-center py-12">
-          <div className="w-12 h-12 rounded-full bg-stone-100 flex items-center justify-center mx-auto mb-3">
-            <Video className="w-6 h-6 text-stone-400" />
+          <div className="w-12 h-12 rounded-full bg-white/8 flex items-center justify-center mx-auto mb-3">
+            <Video className="w-6 h-6 text-muted-foreground" />
           </div>
-          <p className="text-sm text-stone-600 mb-1">No recent activity</p>
-          <p className="text-xs text-stone-500">Start watching to see your history</p>
+          <p className="text-sm text-muted-foreground mb-1">No recent activity</p>
+          <p className="text-xs text-muted-foreground">Start watching to see your history</p>
         </div>
       )}
     </Card>

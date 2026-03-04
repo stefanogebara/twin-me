@@ -46,11 +46,11 @@ export const BentoDomainTile: React.FC<Props> = ({ domainKey, domains, animation
     <motion.div
       className="rounded-2xl overflow-hidden cursor-pointer"
       style={{
-        background: 'rgba(255, 255, 255, 0.18)',
+        background: 'rgba(255, 255, 255, 0.06)',
         backdropFilter: 'blur(10px) saturate(140%)',
         WebkitBackdropFilter: 'blur(10px) saturate(140%)',
-        border: '1px solid rgba(255, 255, 255, 0.45)',
-        boxShadow: '0 8px 32px rgba(0, 0, 0, 0.18), inset 0 1px 0 rgba(255, 255, 255, 0.6)',
+        border: '1px solid rgba(255, 255, 255, 0.10)',
+        boxShadow: '0 8px 32px rgba(0, 0, 0, 0.18), inset 0 1px 0 rgba(255, 255, 255, 0.08)',
         borderTop: `2px solid ${config.color}`,
       }}
       initial={{ opacity: 0, y: 12 }}
@@ -79,8 +79,8 @@ export const BentoDomainTile: React.FC<Props> = ({ domainKey, domains, animation
           </div>
           {hasMore && (
             expanded
-              ? <ChevronUp className="w-3.5 h-3.5 flex-shrink-0" style={{ color: '#c4bfba' }} />
-              : <ChevronDown className="w-3.5 h-3.5 flex-shrink-0" style={{ color: '#c4bfba' }} />
+              ? <ChevronUp className="w-3.5 h-3.5 flex-shrink-0" style={{ color: 'var(--text-muted)' }} />
+              : <ChevronDown className="w-3.5 h-3.5 flex-shrink-0" style={{ color: 'var(--text-muted)' }} />
           )}
         </div>
 
@@ -90,7 +90,7 @@ export const BentoDomainTile: React.FC<Props> = ({ domainKey, domains, animation
             <motion.p
               key="expanded"
               className="text-xs leading-relaxed"
-              style={{ color: '#4a4540' }}
+              style={{ color: 'var(--foreground)' }}
               initial={{ opacity: 0, height: 0 }}
               animate={{ opacity: 1, height: 'auto' }}
               exit={{ opacity: 0, height: 0 }}
@@ -102,7 +102,7 @@ export const BentoDomainTile: React.FC<Props> = ({ domainKey, domains, animation
             <motion.p
               key="preview"
               className="text-xs leading-relaxed"
-              style={{ color: '#4a4540' }}
+              style={{ color: 'var(--foreground)' }}
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}

@@ -81,6 +81,11 @@ const VALID_MEMORY_TYPES = new Set(['conversation', 'fact', 'platform_data', 'ob
 // Higher = decays slower. Used by the weekly forgetting cron.
 const DECAY_RATE_BY_TYPE = { conversation: 3, platform_data: 7, fact: 30, reflection: 90 };
 
+// GUM: Default confidence priors by memory type.
+// Platform data is high-confidence (directly observed), conversations are lower
+// (user may be speculative), facts and reflections inherit from options or default.
+const CONFIDENCE_BY_TYPE = { platform_data: 0.90, observation: 0.90, conversation: 0.60, fact: 0.70, reflection: 0.70 };
+
 // S5.1: Proposition revision — memory types where we prefer UPDATE over INSERT when
 // a very similar memory already exists (threshold higher than dedup to be conservative).
 const REVISION_TYPES = new Set(['reflection', 'fact']);
@@ -268,8 +273,10 @@ async function addMemory(userId, content, memoryType = 'observation', metadata =
       decay_rate: DECAY_RATE_BY_TYPE[memoryType] ?? 7,
     };
 
-    // Sprint 1 proposition columns (optional)
-    if (options.confidence !== undefined) record.confidence = options.confidence;
+    // GUM: Set confidence from explicit option or per-type prior
+    record.confidence = options.confidence !== undefined
+      ? options.confidence
+      : (CONFIDENCE_BY_TYPE[memoryType] ?? 0.70);
     if (options.reasoning) record.reasoning = options.reasoning.substring(0, 1000);
     if (options.grounding_ids && Array.isArray(options.grounding_ids)) {
       record.grounding_ids = options.grounding_ids;

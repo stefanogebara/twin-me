@@ -38,20 +38,20 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   // This prevents showing content then redirecting (the "session expired" feeling)
   if (!isLoaded) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[#FAFAFA] dark:bg-[#232320]">
+      <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="flex flex-col items-center gap-5">
           {/* Pulsing brand mark */}
           <div className="relative">
-            <div className="w-12 h-12 rounded-2xl bg-[#0c0a09] dark:bg-[#C1C0B6] flex items-center justify-center animate-pulse">
-              <span className="text-lg font-semibold text-[#FAFAFA] dark:text-[#232320]" style={{ fontFamily: 'var(--font-heading)' }}>
+            <div className="w-12 h-12 rounded-2xl bg-foreground flex items-center justify-center animate-pulse">
+              <span className="text-lg font-semibold text-background" style={{ fontFamily: 'var(--font-heading)' }}>
                 T
               </span>
             </div>
           </div>
           {/* Skeleton content shimmer */}
           <div className="flex flex-col items-center gap-2">
-            <div className="h-2 w-24 rounded-full bg-[#0c0a09]/10 dark:bg-[#C1C0B6]/10 animate-pulse" />
-            <div className="h-2 w-16 rounded-full bg-[#0c0a09]/5 dark:bg-[#C1C0B6]/5 animate-pulse" style={{ animationDelay: '150ms' }} />
+            <div className="h-2 w-24 rounded-full bg-foreground/10 animate-pulse" />
+            <div className="h-2 w-16 rounded-full bg-foreground/5 animate-pulse" style={{ animationDelay: '150ms' }} />
           </div>
         </div>
       </div>

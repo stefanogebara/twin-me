@@ -32,7 +32,20 @@ const INSIGHT_GENERATION_PROMPT = `Based on these recent observations about a pe
 - Goal progress (if active goals exist, celebrate streaks or encourage when falling behind)
 - Goal suggestions (if patterns suggest a achievable goal the person could try)
 
-Each insight should be conversational and feel like a friend noticing something, not a report.
+TONE RULES — this is critical:
+- Write like a close friend texting, NOT a wellness app or doctor
+- Max 1-2 short sentences per insight. No bullet points, no headers.
+- Zero jargon: no "cortisol", "HRV variability", "cognitive load", "biometrics", "longitudinal patterns"
+- Use plain words: "you seem tired" not "recovery metrics indicate fatigue", "lots of meetings lately" not "elevated schedule density"
+
+Good examples:
+  "you've been grinding pretty hard this week — might be worth actually taking a break this weekend"
+  "noticed you keep going back to that same playlist when your weeks get busy — comfort music?"
+  "your sleep has been all over the place lately, guessing things are hectic?"
+
+Bad examples (DO NOT write like this):
+  "Analysis of your biometric data indicates suboptimal recovery metrics correlating with increased cognitive load."
+  "Your HRV patterns suggest elevated stress levels that may impact long-term well-being."
 
 Recent observations:
 {observations}

@@ -16,66 +16,95 @@
 /* ===== DESIGN TOKENS - CLAURA DESIGN SYSTEM ===== */
 @layer base {
   :root {
-    /* Background Colors — Claura warm cream */
-    --background: #fcf6ef;
-    --surface: rgba(255, 255, 255, 0.25);
-    --surface-solid: rgba(255, 255, 255, 0.75);
+    /* Background Colors — Warm Cream light mode */
+    --background: #FAF8F5;
+    --surface: rgba(255, 255, 255, 0.65);
+    --surface-solid: rgba(255, 255, 255, 0.80);
 
-    /* Claude Theme Variables - Light Mode */
-    --claude-bg: #fcf6ef;
-    --claude-surface: rgba(255, 255, 255, 0.25);
-    --claude-surface-raised: rgba(255, 255, 255, 0.75);
-    --claude-text: #000000;
-    --claude-text-muted: #8A857D;
-    --claude-accent: #000000;
-    --claude-accent-hover: #222222;
-    --claude-border: rgba(0, 0, 0, 0.08);
+    /* Claude Theme Variables */
+    --claude-bg: #FAF8F5;
+    --claude-surface: rgba(255, 255, 255, 0.65);
+    --claude-surface-raised: rgba(255, 255, 255, 0.80);
+    --claude-text: #1C1917;
+    --claude-text-muted: #78716C;
+    --claude-accent: #1C1917;
+    --claude-accent-hover: #292524;
+    --claude-border: rgba(28, 25, 23, 0.10);
 
     /* Text Colors */
-    --foreground: #000000;
-    --text-primary: #000000;
-    --text-secondary: #8A857D;
-    --text-muted: #8A857D;
-    --text-placeholder: #B5B0A8;
+    --foreground: #1C1917;
+    --text-primary: #1C1917;
+    --text-secondary: #57534E;
+    --text-muted: #78716C;
+    --text-placeholder: #A8A29E;
+    --accent-streak: #C2410C;
 
     /* Border Colors */
-    --border: rgba(0, 0, 0, 0.08);
-    --border-glass: rgba(0, 0, 0, 0.06);
+    --border: rgba(28, 25, 23, 0.10);
+    --border-glass: rgba(28, 25, 23, 0.06);
 
     /* Interactive Colors */
-    --primary: #000000;
-    --primary-foreground: #fcf6ef;
-    --ring: rgba(0, 0, 0, 0.15);
+    --primary: #1C1917;
+    --primary-foreground: #FAF8F5;
+    --ring: rgba(28, 25, 23, 0.15);
 
     /* Component Colors */
-    --card: rgba(255, 255, 255, 0.35);
-    --card-foreground: #000000;
+    --card: rgba(255, 255, 255, 0.55);
+    --card-foreground: #1C1917;
     --popover: rgba(255, 255, 255, 0.95);
-    --popover-foreground: #000000;
-    --secondary: rgba(255, 255, 255, 0.5);
-    --secondary-foreground: #000000;
-    --muted: rgba(252, 246, 239, 0.8);
-    --muted-foreground: #8A857D;
-    --accent: rgba(0, 0, 0, 0.04);
-    --accent-foreground: #000000;
+    --popover-foreground: #1C1917;
+    --secondary: rgba(28, 25, 23, 0.06);
+    --secondary-foreground: #1C1917;
+    --muted: rgba(28, 25, 23, 0.06);
+    --muted-foreground: #57534E;
+    --accent: rgba(28, 25, 23, 0.04);
+    --accent-foreground: #1C1917;
     --destructive: #dc2626;
     --destructive-foreground: #ffffff;
-    --input: rgba(255, 255, 255, 0.6);
+    --input: rgba(28, 25, 23, 0.08);
 
-    /* Sidebar Colors — Claura cream */
-    --sidebar: #f8f1e8;
-    --sidebar-foreground: #5C5851;
-    --sidebar-primary: #000000;
-    --sidebar-primary-foreground: #fcf6ef;
-    --sidebar-accent: rgba(0, 0, 0, 0.04);
-    --sidebar-accent-foreground: #000000;
-    --sidebar-border: #E8E3DC;
-    --sidebar-ring: rgba(0, 0, 0, 0.15);
+    /* Sidebar Colors — light glass */
+    --sidebar: rgba(255, 255, 255, 0.45);
+    --sidebar-foreground: #44403C;
+    --sidebar-primary: #1C1917;
+    --sidebar-primary-foreground: #FAF8F5;
+    --sidebar-accent: rgba(28, 25, 23, 0.06);
+    --sidebar-accent-foreground: #1C1917;
+    --sidebar-border: rgba(28, 25, 23, 0.08);
+    --sidebar-ring: rgba(28, 25, 23, 0.15);
 
-    /* Glass Effects — subtle for Claura */
-    --glass-blur: 12px;
-    --glass-shadow: 0 4px 24px rgba(0, 0, 0, 0.06);
-    --glass-shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.08);
+    /* Glass Effects */
+    --glass-blur: 16px;
+    --glass-shadow: 0 8px 32px rgba(0, 0, 0, 0.08);
+    --glass-shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.12);
+
+    /* Glass Surface Variables */
+    --glass-surface-bg: rgba(255, 255, 255, 0.55);
+    --glass-surface-bg-hover: rgba(255, 255, 255, 0.70);
+    --glass-surface-bg-subtle: rgba(255, 255, 255, 0.38);
+    --glass-surface-border: rgba(28, 25, 23, 0.10);
+    --glass-surface-border-hover: rgba(28, 25, 23, 0.18);
+    --glass-inset-highlight: rgba(255, 255, 255, 0.50);
+
+    /* Body gradients — warm honey on cream (sun-driven overrides via SunContext) */
+    --body-gradient-1: rgba(200, 160, 80, 0.12);
+    --body-gradient-2: rgba(180, 140, 70, 0.10);
+    --body-gradient-3: rgba(160, 120, 60, 0.12);
+    --body-gradient-4: rgba(190, 150, 80, 0.08);
+
+    /* Gradient orb positions/sizes (sun-driven overrides via SunContext) */
+    --bg-pos-1: 5% 0%;
+    --bg-size-1: 120% 80%;
+    --bg-spread-1: 55%;
+    --bg-pos-2: 95% 15%;
+    --bg-size-2: 80% 70%;
+    --bg-spread-2: 50%;
+    --bg-pos-3: 50% 100%;
+    --bg-size-3: 100% 90%;
+    --bg-spread-3: 55%;
+    --bg-pos-4: 70% 50%;
+    --bg-size-4: 60% 60%;
+    --bg-spread-4: 45%;
 
     /* Typography — Halant for headings, Geist for body */
     --font-heading: 'Halant', Georgia, serif;
@@ -85,83 +114,112 @@
     --font-serif: 'Halant', Georgia, serif;
     --font-mono: ui-monospace, monospace;
 
-    /* Vibrant Accent for CTAs — kept gold for special actions */
-    --accent-vibrant: #C4A265;
-    --accent-vibrant-hover: #B39255;
-    --accent-vibrant-glow: rgba(196, 162, 101, 0.2);
+    /* Vibrant Accent for CTAs */
+    --accent-vibrant: #D4A853;
+    --accent-vibrant-hover: #C49A48;
+    --accent-vibrant-glow: rgba(212, 168, 83, 0.20);
 
-    /* Spacing & Radius — Claura style rounded */
+    /* Spacing & Radius */
     --radius: 1rem;
     --radius-lg: 1.75rem;
     --spacing-unit: 0.25rem;
   }
 
   .dark {
-    /* Background Colors */
-    --background: #232320;
-    --surface: rgba(45, 45, 41, 0.5);
-    --surface-solid: rgba(45, 45, 41, 0.7);
+    /* Background Colors — Warm Dark charcoal (production) */
+    --background: #1C1917;
+    --surface: rgba(255, 255, 255, 0.06);
+    --surface-solid: rgba(255, 255, 255, 0.12);
 
-    /* Claude Theme Variables - Dark Mode */
-    --claude-bg: #232320;
-    --claude-surface: rgba(45, 45, 41, 0.5);
-    --claude-surface-raised: rgba(55, 55, 51, 0.7);
-    --claude-text: #C1C0B6;
-    --claude-text-muted: rgba(193, 192, 182, 0.6);
-    --claude-accent: #C1C0B6;
-    --claude-accent-hover: #D4D3CC;
-    --claude-border: rgba(193, 192, 182, 0.2);
+    /* Claude Theme Variables */
+    --claude-bg: #1C1917;
+    --claude-surface: rgba(255, 255, 255, 0.06);
+    --claude-surface-raised: rgba(255, 255, 255, 0.12);
+    --claude-text: #F5F5F4;
+    --claude-text-muted: #A8A29E;
+    --claude-accent: #F5F5F4;
+    --claude-accent-hover: #E7E5E4;
+    --claude-border: rgba(255, 255, 255, 0.10);
 
     /* Text Colors */
-    --foreground: #C1C0B6;
-    --text-primary: #C1C0B6;
-    --text-secondary: rgba(193, 192, 182, 0.8);
-    --text-muted: rgba(193, 192, 182, 0.6);
-    --text-placeholder: rgba(193, 192, 182, 0.6);
+    --foreground: #F5F5F4;
+    --text-primary: #F5F5F4;
+    --text-secondary: #A8A29E;
+    --text-muted: #9C9590;
+    --text-placeholder: #57534E;
+    --accent-streak: #F97316;
 
     /* Border Colors */
-    --border: rgba(193, 192, 182, 0.2);
-    --border-glass: rgba(193, 192, 182, 0.1);
+    --border: rgba(255, 255, 255, 0.08);
+    --border-glass: rgba(255, 255, 255, 0.06);
 
     /* Interactive Colors */
-    --primary: #C1C0B6;
-    --primary-foreground: #232320;
-    --ring: rgba(193, 192, 182, 0.3);
+    --primary: #F5F5F4;
+    --primary-foreground: #1C1917;
+    --ring: rgba(255, 255, 255, 0.15);
 
     /* Component Colors */
-    --card: rgba(45, 45, 41, 0.5);
-    --card-foreground: #C1C0B6;
-    --popover: rgba(45, 45, 41, 0.9);
-    --popover-foreground: #C1C0B6;
-    --secondary: rgba(45, 45, 41, 0.7);
-    --secondary-foreground: #C1C0B6;
-    --muted: rgba(45, 45, 41, 0.8);
-    --muted-foreground: rgba(193, 192, 182, 0.8);
-    --accent: rgba(45, 45, 41, 0.7);
-    --accent-foreground: #C1C0B6;
+    --card: rgba(255, 255, 255, 0.06);
+    --card-foreground: #F5F5F4;
+    --popover: rgba(40, 37, 36, 0.95);
+    --popover-foreground: #F5F5F4;
+    --secondary: rgba(255, 255, 255, 0.08);
+    --secondary-foreground: #F5F5F4;
+    --muted: rgba(28, 25, 23, 0.8);
+    --muted-foreground: #A8A29E;
+    --accent: rgba(255, 255, 255, 0.06);
+    --accent-foreground: #F5F5F4;
     --destructive: #dc2626;
     --destructive-foreground: #ffffff;
-    --input: rgba(45, 45, 41, 0.7);
+    --input: rgba(255, 255, 255, 0.08);
 
-    /* Sidebar Colors */
-    --sidebar: rgba(45, 45, 41, 0.5);
-    --sidebar-foreground: rgba(193, 192, 182, 0.8);
-    --sidebar-primary: #C1C0B6;
-    --sidebar-primary-foreground: #232320;
-    --sidebar-accent: rgba(45, 45, 41, 0.7);
-    --sidebar-accent-foreground: #C1C0B6;
-    --sidebar-border: rgba(193, 192, 182, 0.2);
-    --sidebar-ring: rgba(193, 192, 182, 0.3);
-
-    /* Vibrant Accent for CTAs (Dark Mode) */
-    --accent-vibrant: #E0B860;
-    --accent-vibrant-hover: #D4A853;
-    --accent-vibrant-glow: rgba(224, 184, 96, 0.2);
+    /* Sidebar Colors — dark glass */
+    --sidebar: rgba(255, 255, 255, 0.05);
+    --sidebar-foreground: #D6D3D1;
+    --sidebar-primary: #F5F5F4;
+    --sidebar-primary-foreground: #1C1917;
+    --sidebar-accent: rgba(255, 255, 255, 0.08);
+    --sidebar-accent-foreground: #F5F5F4;
+    --sidebar-border: rgba(255, 255, 255, 0.08);
+    --sidebar-ring: rgba(255, 255, 255, 0.15);
 
     /* Glass Effects */
     --glass-blur: 16px;
-    --glass-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
-    --glass-shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.4);
+    --glass-shadow: 0 8px 32px rgba(0, 0, 0, 0.35);
+    --glass-shadow-lg: 0 16px 48px rgba(0, 0, 0, 0.45);
+
+    /* Glass Surface Variables */
+    --glass-surface-bg: rgba(255, 255, 255, 0.08);
+    --glass-surface-bg-hover: rgba(255, 255, 255, 0.12);
+    --glass-surface-bg-subtle: rgba(255, 255, 255, 0.05);
+    --glass-surface-border: rgba(255, 255, 255, 0.12);
+    --glass-surface-border-hover: rgba(255, 255, 255, 0.22);
+    --glass-inset-highlight: rgba(255, 255, 255, 0.18);
+
+    /* Body gradients — amber/copper on charcoal (sun-driven overrides via SunContext) */
+    --body-gradient-1: rgba(200, 130, 50, 0.28);
+    --body-gradient-2: rgba(170, 100, 60, 0.22);
+    --body-gradient-3: rgba(150, 90, 50, 0.25);
+    --body-gradient-4: rgba(180, 120, 70, 0.16);
+
+    /* Gradient orb positions/sizes (dark defaults) */
+    --bg-pos-1: 5% 0%;
+    --bg-size-1: 120% 80%;
+    --bg-spread-1: 55%;
+    --bg-pos-2: 95% 15%;
+    --bg-size-2: 80% 70%;
+    --bg-spread-2: 50%;
+    --bg-pos-3: 50% 100%;
+    --bg-size-3: 100% 90%;
+    --bg-spread-3: 55%;
+    --bg-pos-4: 70% 50%;
+    --bg-size-4: 60% 60%;
+    --bg-spread-4: 45%;
+
+    /* Vibrant Accent for CTAs — warm gold pops on dark */
+    --accent-vibrant: #E0B860;
+    --accent-vibrant-hover: #D4A853;
+    --accent-vibrant-glow: rgba(224, 184, 96, 0.25);
   }
 
   /* Theme inline definitions for Tailwind */
@@ -220,11 +278,18 @@
 
   body {
     background-color: var(--background);
+    /* Sun-driven ambient gradients — orb positions/sizes/colors set by SunContext */
+    background-image:
+      radial-gradient(ellipse var(--bg-size-1) at var(--bg-pos-1), var(--body-gradient-1) 0%, transparent var(--bg-spread-1)),
+      radial-gradient(ellipse var(--bg-size-2) at var(--bg-pos-2), var(--body-gradient-2) 0%, transparent var(--bg-spread-2)),
+      radial-gradient(ellipse var(--bg-size-3) at var(--bg-pos-3), var(--body-gradient-3) 0%, transparent var(--bg-spread-3)),
+      radial-gradient(ellipse var(--bg-size-4) at var(--bg-pos-4), var(--body-gradient-4) 0%, transparent var(--bg-spread-4));
+    background-attachment: fixed;
     color: var(--foreground);
     font-family: var(--font-body);
-    font-size: 14px;
+    font-size: 14.5px;
     font-weight: 500;
-    line-height: 1.65;
+    line-height: 1.7;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
   }
@@ -272,9 +337,9 @@
 
   p {
     font-family: var(--font-body);
-    font-size: 14px;
+    font-size: 14.5px;
     font-weight: 500;
-    line-height: 1.65;
+    line-height: 1.7;
     color: var(--text-secondary);
   }
 
@@ -298,14 +363,14 @@
 @layer components {
   /* === Glass Container — Claura light cards === */
   .glass-container {
-    background: rgba(255, 255, 255, 0.35);
-    border: 1px solid rgba(0, 0, 0, 0.06);
-    border-radius: 20px;
+    background: var(--glass-surface-bg);
+    border: 1px solid var(--glass-surface-border);
+    border-radius: 28px;
   }
 
   .glass-container-solid {
-    background: rgba(255, 255, 255, 0.7);
-    border: 1px solid rgba(0, 0, 0, 0.06);
+    background: var(--glass-surface-bg-hover);
+    border: 1px solid var(--glass-surface-border);
     border-radius: 16px;
   }
 
@@ -332,23 +397,24 @@
   }
 
   .btn-primary {
-    background-color: #000000;
-    color: #fcf6ef;
+    background-color: var(--foreground);
+    color: var(--background);
   }
 
   .btn-primary:hover:not(:disabled) {
-    background-color: #222;
+    background-color: var(--claude-accent-hover);
+    color: var(--background);
     transform: translateY(-2px);
   }
 
   .btn-secondary {
     background: transparent;
-    color: #000000;
-    border: 1.5px solid #D5D0C8;
+    color: var(--foreground);
+    border: 1.5px solid var(--glass-surface-border-hover);
   }
 
   .btn-secondary:hover:not(:disabled) {
-    border-color: #000;
+    border-color: var(--foreground);
     transform: translateY(-1px);
   }
 
@@ -370,7 +436,7 @@
   }
 
   .btn-ghost:hover:not(:disabled) {
-    background: rgba(0, 0, 0, 0.04);
+    background: var(--glass-surface-bg-subtle);
     color: var(--text-primary);
   }
 
@@ -380,8 +446,8 @@
     padding: 0.75rem 1rem;
     font-size: 14px;
     line-height: 1.25rem;
-    background: rgba(255, 255, 255, 0.6);
-    border: 1px solid #E8E3DC;
+    background: var(--glass-surface-bg-subtle);
+    border: 1px solid var(--glass-surface-border);
     border-radius: 12px;
     color: var(--text-primary);
     transition: all 200ms ease;
@@ -400,17 +466,17 @@
     padding-left: 2.5rem;
   }
 
-  /* === Cards — Claura style === */
+  /* === Cards — glass style === */
   .card {
-    background: rgba(255, 255, 255, 0.4);
-    border: 1px solid rgba(0, 0, 0, 0.06);
-    border-radius: 20px;
-    padding: 1.5rem;
+    background: var(--glass-surface-bg);
+    border: 1px solid var(--glass-surface-border);
+    border-radius: 28px;
+    padding: 2rem;
   }
 
   .card-solid {
-    background: rgba(255, 255, 255, 0.7);
-    border: 1px solid rgba(0, 0, 0, 0.06);
+    background: var(--glass-surface-bg-hover);
+    border: 1px solid var(--glass-surface-border);
     border-radius: 16px;
     padding: 1.5rem;
   }
@@ -641,11 +707,11 @@
 
   /* Apple Liquid Glass Variables */
   :root {
-    --liquid-glass-bg-light: rgba(255, 255, 255, 0.5);
-    --liquid-glass-bg-dark: rgba(45, 45, 41, 0.5);
-    --liquid-glass-border-light: rgba(0, 0, 0, 0.06);
-    --liquid-glass-border-dark: rgba(193, 192, 182, 0.1);
-    --liquid-glass-reflection: linear-gradient(135deg, rgba(255, 255, 255, 0.2) 0%, rgba(255, 255, 255, 0.05) 50%, rgba(0, 0, 0, 0.02) 100%);
+    --liquid-glass-bg-light: var(--glass-surface-bg);
+    --liquid-glass-bg-dark: var(--glass-surface-bg-subtle);
+    --liquid-glass-border-light: var(--glass-surface-border);
+    --liquid-glass-border-dark: var(--glass-surface-border);
+    --liquid-glass-reflection: linear-gradient(135deg, rgba(255, 255, 255, 0.10) 0%, rgba(255, 255, 255, 0.03) 50%, rgba(0, 0, 0, 0.05) 100%);
     --perspective-subtle: 1200px;
   }
 
@@ -687,12 +753,15 @@
     transform: rotateX(4deg) rotateY(-2deg) translateY(-4px);
   }
 
-  /* Glass Card — Claura */
+  /* Glass Card — now defined in glassmorphism.css (Apple iOS 26 Liquid Glass spec) */
+  /* Only add padding here — visual styles live in glassmorphism.css */
   .glass-card {
-    background: rgba(255, 255, 255, 0.35);
-    border: 1px solid rgba(0, 0, 0, 0.06);
-    border-radius: 20px;
-    padding: 1.5rem;
+    padding: 2rem;
+  }
+
+  .glass-card-elevated {
+    padding: 2rem;
+    border-radius: 1.75rem;
   }
 
   /* Glass Navigation */
@@ -714,7 +783,7 @@
     font-weight: 400;
     letter-spacing: -0.05em;
     line-height: 1.1;
-    color: #000000;
+    color: var(--text-primary);
   }
 
   /* Grok-inspired spacing utilities */
@@ -770,6 +839,22 @@
     height: 2px;
     background: linear-gradient(90deg, var(--accent-vibrant), rgba(193, 192, 182, 0.3));
     border-radius: 2px 2px 0 0;
+  }
+
+  /* Refined accent underline */
+  .accent-underline {
+    position: relative;
+    display: inline-block;
+  }
+  .accent-underline::after {
+    content: '';
+    position: absolute;
+    bottom: -2px;
+    left: 0;
+    width: 100%;
+    height: 1.5px;
+    background: linear-gradient(90deg, var(--accent-vibrant), transparent);
+    opacity: 0.6;
   }
 
 }
@@ -842,7 +927,7 @@
   font-weight: 400;
   letter-spacing: -0.05em;
   line-height: 1.1;
-  color: #000000;
+  color: var(--text-primary);
 }
 .heading-serif.h1 { font-size: 70px; }
 .heading-serif.h2 { font-size: 56px; }
@@ -853,7 +938,7 @@
   font-family: 'Halant', Georgia, serif;
   font-weight: 400;
   font-style: italic;
-  color: #8A857D;
+  color: var(--text-muted);
   letter-spacing: -0.05em;
 }
 
@@ -861,26 +946,26 @@
   font-family: 'Geist', 'Inter', system-ui, sans-serif;
   font-size: 14px;
   font-weight: 500;
-  color: #8A857D;
+  color: var(--text-secondary);
   line-height: 1.65;
 }
 
 .claura-label {
   font-family: 'Geist', 'Inter', system-ui, sans-serif;
-  background: rgba(0, 0, 0, 0.04);
-  border: 1px solid rgba(0, 0, 0, 0.06);
+  background: var(--glass-surface-bg-subtle);
+  border: 1px solid var(--glass-surface-border);
   border-radius: 8px;
   padding: 6px 14px;
   font-size: 12px;
   font-weight: 400;
-  color: #5C5851;
+  color: var(--text-secondary);
   display: inline-block;
 }
 
 .btn-cta {
   font-family: 'Geist', 'Inter', system-ui, sans-serif;
-  background-color: #000000;
-  color: #fcf6ef;
+  background-color: var(--foreground);
+  color: var(--background);
   border-radius: 9999px;
   padding: 14px 28px;
   font-size: 12px;
@@ -892,13 +977,13 @@
   letter-spacing: 0.02em;
   text-transform: uppercase;
 }
-.btn-cta:hover { background-color: #222; transform: translateY(-2px); }
+.btn-cta:hover { background-color: var(--claude-accent-hover); transform: translateY(-2px); }
 
 .btn-outline {
   font-family: 'Geist', 'Inter', system-ui, sans-serif;
   background: transparent;
-  color: #000000;
-  border: 1.5px solid #D5D0C8;
+  color: var(--foreground);
+  border: 1.5px solid var(--glass-surface-border-hover);
   border-radius: 9999px;
   padding: 13px 26px;
   font-size: 12px;
@@ -910,7 +995,7 @@
   letter-spacing: 0.02em;
   text-transform: uppercase;
 }
-.btn-outline:hover { border-color: #000; transform: translateY(-1px); }
+.btn-outline:hover { border-color: var(--foreground); transform: translateY(-1px); }
 
 /* Service tab */
 .service-tab {
@@ -919,17 +1004,17 @@
   border-radius: 16px;
   transition: all 0.3s ease;
 }
-.service-tab:hover { background: rgba(0, 0, 0, 0.03); }
-.service-tab.active { background: rgba(0, 0, 0, 0.04); }
+.service-tab:hover { background: var(--glass-surface-bg-subtle); }
+.service-tab.active { background: var(--glass-surface-bg); }
 
 /* Glass stat card */
 .glass-stat {
-  background: rgba(255, 255, 255, 0.2);
-  border: 1px solid rgba(255, 255, 255, 0.3);
+  background: var(--glass-surface-bg);
+  border: 1px solid var(--glass-surface-border);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
-  border-radius: 20px;
-  padding: 28px 24px;
+  border-radius: 28px;
+  padding: 2rem;
   text-align: center;
 }
 
@@ -938,26 +1023,26 @@
   width: 48px;
   height: 48px;
   border-radius: 50%;
-  border: 1.5px solid #D5D0C8;
+  border: 1.5px solid var(--glass-surface-border-hover);
   display: flex;
   align-items: center;
   justify-content: center;
   font-family: 'Geist', 'Inter', system-ui, sans-serif;
   font-size: 12px;
   font-weight: 400;
-  color: #5C5851;
+  color: var(--text-secondary);
   flex-shrink: 0;
 }
 
 .step-badge {
   font-family: 'Geist', 'Inter', system-ui, sans-serif;
-  background: rgba(0, 0, 0, 0.04);
-  border: 1px solid rgba(0, 0, 0, 0.06);
+  background: var(--glass-surface-bg-subtle);
+  border: 1px solid var(--glass-surface-border);
   border-radius: 6px;
   padding: 3px 10px;
   font-size: 12px;
   font-weight: 400;
-  color: #8A857D;
+  color: var(--text-secondary);
 }
 
 /* Responsive Claura heading sizes */
@@ -984,22 +1069,19 @@
 
 /* ===== APP BUTTON VARIANTS (Claura-aligned) ===== */
 
-/* Glass card — Claura light */
+/* Glass card — Claura light (legacy alias for glass-card) */
 .glass-card-ds {
-  background: rgba(255, 255, 255, 0.35);
-  border-radius: 20px;
-  border: 1px solid rgba(0, 0, 0, 0.06);
   padding: 1.5rem;
 }
 
-/* Primary CTA button — black on cream (Claura) */
+/* Primary CTA button — warm dark */
 .btn-cta-app {
   display: inline-flex;
   align-items: center;
   gap: 0.5rem;
   padding: 12px 24px;
-  background-color: #000000;
-  color: #fcf6ef;
+  background-color: var(--foreground);
+  color: var(--background);
   border-radius: 9999px;
   font-size: 12px;
   font-weight: 400;
@@ -1013,7 +1095,7 @@
 }
 
 .btn-cta-app:hover {
-  background-color: #222;
+  background-color: var(--claude-accent-hover);
   transform: translateY(-2px);
 }
 
@@ -1028,9 +1110,9 @@
   gap: 0.5rem;
   padding: 11px 22px;
   background: transparent;
-  color: #000000;
+  color: var(--foreground);
   border-radius: 9999px;
-  border: 1.5px solid #D5D0C8;
+  border: 1.5px solid var(--glass-surface-border-hover);
   font-size: 12px;
   font-weight: 400;
   font-family: 'Geist', 'Inter', system-ui, sans-serif;
@@ -1042,7 +1124,7 @@
 }
 
 .btn-glass-app:hover {
-  border-color: #000;
+  border-color: var(--foreground);
   transform: translateY(-1px);
 }
 

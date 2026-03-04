@@ -358,15 +358,37 @@ Dry humor and light teasing are welcome when the context supports it. Specificit
  * Build a personalized system prompt based on user's soul signature, platform data, and Moltbot memory.
  * Returns an array format for Anthropic prompt caching - static base is cached, dynamic context is not.
  */
-function buildTwinSystemPrompt(soulSignature, platformData, personalityScores = null, twinSummary = null, proactiveInsights = null) {
+function buildTwinSystemPrompt(soulSignature, platformData, personalityScores = null, twinSummary = null, proactiveInsights = null, userLocation = null) {
   let dynamicContext = '';
 
-  // === TEMPORAL AWARENESS ===
+  // === TEMPORAL + GEOGRAPHIC AWARENESS ===
   const now = new Date();
   const hour = now.getHours();
   const dayOfWeek = now.toLocaleDateString('en-US', { weekday: 'long' });
   const timeOfDay = hour < 6 ? 'late night' : hour < 12 ? 'morning' : hour < 17 ? 'afternoon' : hour < 21 ? 'evening' : 'night';
-  dynamicContext += `\nRight now: ${dayOfWeek} ${timeOfDay} (${hour}:${String(now.getMinutes()).padStart(2, '0')})`;
+
+  // Season from hemisphere-aware month
+  const month = now.getMonth(); // 0-based
+  const isNorthern = !userLocation || (userLocation.latitude ?? 0) >= 0;
+  const seasonIndex = Math.floor(((month + 1) % 12) / 3); // 0=winter, 1=spring, 2=summer, 3=fall
+  const northSeasons = ['winter', 'spring', 'summer', 'fall'];
+  const southSeasons = ['summer', 'fall', 'winter', 'spring'];
+  const season = isNorthern ? northSeasons[seasonIndex] : southSeasons[seasonIndex];
+
+  let temporalLine = `Right now: ${dayOfWeek} ${timeOfDay} (${hour}:${String(now.getMinutes()).padStart(2, '0')}), ${season}`;
+
+  if (userLocation) {
+    // Add sun phase context (dawn/sunrise/morning/noon/afternoon/sunset/dusk/night)
+    if (userLocation.sun_phase) {
+      temporalLine += `. Sky: ${userLocation.sun_phase}`;
+    }
+    // Add timezone-derived city hint
+    if (userLocation.timezone) {
+      const city = userLocation.timezone.split('/').pop()?.replace(/_/g, ' ');
+      if (city) temporalLine += ` (${city} time)`;
+    }
+  }
+  dynamicContext += `\n${temporalLine}`;
 
   // === DYNAMIC TWIN SUMMARY (Primary Identity - from memory stream) ===
   if (twinSummary) {
@@ -1010,10 +1032,22 @@ router.post('/message', authenticateUser, async (req, res) => {
 
     chatLog('Starting fetchTwinContext');
     let twinContext;
+    let userLocation = null;
     try {
-      twinContext = await fetchTwinContext(userId, message, {
-        platforms: context?.platforms || ['spotify', 'calendar', 'whoop', 'web'],
-      });
+      // Fetch twin context + user location in parallel
+      const [ctx] = await Promise.all([
+        fetchTwinContext(userId, message, {
+          platforms: context?.platforms || ['spotify', 'calendar', 'whoop', 'web'],
+        }),
+        supabaseAdmin
+          .from('users')
+          .select('last_location')
+          .eq('id', userId)
+          .single()
+          .then(({ data }) => { userLocation = data?.last_location || null; })
+          .catch(() => { /* non-fatal */ }),
+      ]);
+      twinContext = ctx;
     } finally {
       if (heartbeatInterval) clearInterval(heartbeatInterval);
     }
@@ -1022,7 +1056,7 @@ router.post('/message', authenticateUser, async (req, res) => {
 
     // Build personalized system prompt with structured context layers
     // Returns array format for Anthropic prompt caching: [cached_base, dynamic_context]
-    let systemPrompt = buildTwinSystemPrompt(soulSignature, platformData, personalityScores, twinSummary, proactiveInsights);
+    let systemPrompt = buildTwinSystemPrompt(soulSignature, platformData, personalityScores, twinSummary, proactiveInsights, userLocation);
 
     // Inject persona block: translates personality data into prescriptive behavioral rules
     const personaBlock = buildPersonaBlock({ personalityScores, soulSignature, twinSummary, writingProfile, platformData });

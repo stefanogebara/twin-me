@@ -267,17 +267,13 @@ const Settings = () => {
     }
   };
 
-  // Shared card styles — Claura light card
-  const cardStyle = {
-    background: 'rgba(255, 255, 255, 0.35)',
-    borderRadius: '20px',
-    border: '1px solid rgba(0, 0, 0, 0.06)',
-  };
+  // Shared card styles — Liquid glass card
+  const cardStyle = 'glass-card';
 
   return (
     <div
       className="min-h-screen"
-      style={{ backgroundColor: '#fcf6ef' }}
+      style={{ backgroundColor: 'var(--background)' }}
     >
       <main className="max-w-4xl mx-auto pt-12 lg:pt-16 pb-20 px-6">
         {/* Page title */}
@@ -287,7 +283,15 @@ const Settings = () => {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.4, ease: [0.4, 0, 0.2, 1] }}
         >
-          <h1 className="heading-serif text-2xl">
+          <h1
+            className="heading-serif"
+            style={{
+              fontSize: 'clamp(2.25rem, 5vw, 3.5rem)',
+              letterSpacing: '-0.05em',
+              lineHeight: 1.1,
+              color: 'var(--foreground)'
+            }}
+          >
             Settings
           </h1>
         </motion.div>
@@ -315,7 +319,7 @@ const Settings = () => {
           )}
 
           {/* Account Information */}
-          <section className="p-8" style={cardStyle}>
+          <section className={`p-8 ${cardStyle}`}>
             <div className="flex items-center justify-between gap-3 mb-6">
               <div className="flex items-center gap-3">
                 <Clay3DIcon name="robot" size={20} />
@@ -336,13 +340,13 @@ const Settings = () => {
                 Sign Out
               </button>
             </div>
-            <div className="flex flex-wrap gap-6 body-text" style={{ color: '#000000' }}>
+            <div className="flex flex-wrap gap-6 body-text" style={{ color: 'var(--foreground)' }}>
               <div>
-                <span style={{ color: '#8A857D' }}>Name: </span>
+                <span style={{ color: 'var(--text-secondary)' }}>Name: </span>
                 {user?.fullName || `${user?.firstName || ''} ${user?.lastName || ''}`.trim() || 'Not set'}
               </div>
               <div>
-                <span style={{ color: '#8A857D' }}>Email: </span>
+                <span style={{ color: 'var(--text-secondary)' }}>Email: </span>
                 {user?.email}
               </div>
             </div>
@@ -387,14 +391,14 @@ const Settings = () => {
           />
 
           {/* How Your Data is Protected */}
-          <section className="p-8" style={cardStyle}>
+          <section className={`p-8 ${cardStyle}`}>
             <div className="flex items-center gap-3 mb-4">
               <Shield className="w-5 h-5" style={{ color: '#10B981' }} />
               <h2 className="heading-serif text-base">
                 How Your Data is Protected
               </h2>
             </div>
-            <p className="body-text mb-6" style={{ color: '#8A857D' }}>
+            <p className="body-text mb-6" style={{ color: 'var(--text-secondary)' }}>
               Your privacy is fundamental to Twin Me. Here's how we protect you.
             </p>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
@@ -414,8 +418,8 @@ const Settings = () => {
                 >
                   <Icon className="w-4 h-4 mt-0.5 flex-shrink-0" style={{ color: '#10B981' }} />
                   <div>
-                    <div className="text-sm font-medium" style={{ color: '#000000' }}>{label}</div>
-                    <div className="text-xs" style={{ color: '#8A857D' }}>{desc}</div>
+                    <div className="text-sm font-medium" style={{ color: 'var(--foreground)' }}>{label}</div>
+                    <div className="text-xs" style={{ color: 'var(--text-secondary)' }}>{desc}</div>
                   </div>
                 </div>
               ))}

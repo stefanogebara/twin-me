@@ -42,8 +42,8 @@ export const TwinInsightsGrid: React.FC<TwinInsightsGridProps> = ({
   onNavigate,
 }) => {
   return (
-    <div className="mb-8">
-      <div className="flex items-center gap-2 mb-4">
+    <div className="mb-12">
+      <div className="flex items-center gap-2 mb-6">
         <div
           className="w-1 h-5 rounded-full"
           style={{
@@ -52,18 +52,18 @@ export const TwinInsightsGrid: React.FC<TwinInsightsGridProps> = ({
         />
         <h3
           className="text-sm uppercase tracking-wider font-semibold"
-          style={{ color: '#8A857D' }}
+          style={{ color: 'var(--text-secondary)' }}
         >
           Twin Insights
         </h3>
       </div>
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {insightLinks.map((insight, idx) => {
           const Icon = insight.icon;
           const clayIcon = CLAY_3D_MAP[insight.id];
           const iconBgColor = insight.hasData && INSIGHT_BG_COLORS[insight.id]
             ? INSIGHT_BG_COLORS[insight.id]
-            : 'rgba(0, 0, 0, 0.04)';
+            : 'rgba(255, 255, 255, 0.05)';
 
           return (
             <GlassPanel
@@ -90,22 +90,22 @@ export const TwinInsightsGrid: React.FC<TwinInsightsGridProps> = ({
                     style={{
                       fontFamily: 'var(--font-heading)',
                       fontWeight: 500,
-                      color: '#000000'
+                      color: 'var(--foreground)'
                     }}
                   >
                     {insight.title}
                   </h4>
                   <p
                     className="text-xs mb-2"
-                    style={{ color: '#8A857D' }}
+                    style={{ color: 'var(--text-secondary)' }}
                   >
                     {insight.description}
                   </p>
                   <span
                     className="text-xs px-3 py-1 rounded-full inline-block font-medium"
                     style={{
-                      backgroundColor: 'rgba(0, 0, 0, 0.06)',
-                      color: '#8A857D'
+                      backgroundColor: 'rgba(255, 255, 255, 0.06)',
+                      color: 'var(--text-secondary)'
                     }}
                   >
                     {insight.actionLabel} →

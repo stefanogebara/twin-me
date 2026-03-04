@@ -19,25 +19,27 @@ export const SidebarLayout: React.FC<SidebarLayoutProps> = ({ children }) => {
   return (
     <div
       className="flex min-h-screen w-full"
-      style={{ backgroundColor: '#fcf6ef' }}
     >
       {/* Mobile Menu Button - Only visible on small screens */}
       <button
         onClick={() => setSidebarOpen(!sidebarOpen)}
         className="fixed top-4 left-4 z-50 p-3 rounded-2xl lg:hidden transition-all duration-200"
         style={{
-          backgroundColor: 'rgba(255, 255, 255, 0.6)',
-          border: '1px solid rgba(0, 0, 0, 0.06)',
+          backgroundColor: 'rgba(255, 255, 255, 0.08)',
+          backdropFilter: 'blur(20px) saturate(180%)',
+          WebkitBackdropFilter: 'blur(20px) saturate(180%)',
+          border: '1px solid rgba(255, 255, 255, 0.12)',
+          boxShadow: '0 4px 16px rgba(0, 0, 0, 0.30)',
         }}
         aria-label="Toggle menu"
       >
         <Menu
           className="w-5 h-5"
-          style={{ color: '#000000' }}
+          style={{ color: 'var(--foreground)' }}
         />
       </button>
 
-      {/* Collapsible Sidebar with Glass Morphism */}
+      {/* Collapsible Sidebar with Liquid Glass */}
       <CollapsibleSidebar
         isOpen={sidebarOpen}
         onClose={() => setSidebarOpen(false)}

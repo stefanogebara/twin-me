@@ -47,11 +47,11 @@ export const EvidenceSection: React.FC<EvidenceSectionProps> = ({
 
   // Light-mode only colors
   const colors = {
-    text: '#44403c',
-    textMuted: '#8A857D',
-    textSecondary: '#57534e',
-    border: 'rgba(0, 0, 0, 0.05)',
-    bgSubtle: 'rgba(0, 0, 0, 0.02)',
+    text: 'var(--foreground)',
+    textMuted: 'var(--text-muted)',
+    textSecondary: 'var(--text-secondary)',
+    border: 'var(--glass-surface-border)',
+    bgSubtle: 'var(--glass-surface-bg-subtle)',
     confidenceHigh: '#22c55e',
     confidenceMedium: '#f59e0b',
     confidenceLow: '#64748b'

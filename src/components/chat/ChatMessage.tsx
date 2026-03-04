@@ -43,10 +43,10 @@ export function ChatMessage({
       onMouseLeave={() => setIsHovered(false)}
       className={`group flex gap-4 px-6 py-4 rounded-xl`}
       style={{
-        backgroundColor: isAssistant ? 'rgba(255, 255, 255, 0.18)' : 'transparent',
+        backgroundColor: isAssistant ? 'rgba(255, 255, 255, 0.06)' : 'transparent',
         backdropFilter: isAssistant ? 'blur(10px) saturate(140%)' : undefined,
         WebkitBackdropFilter: isAssistant ? 'blur(10px) saturate(140%)' : undefined,
-        border: isAssistant ? '1px solid rgba(255, 255, 255, 0.45)' : undefined,
+        border: isAssistant ? '1px solid rgba(255, 255, 255, 0.10)' : undefined,
       }}
     >
       {/* Avatar */}
@@ -54,14 +54,14 @@ export function ChatMessage({
         className="flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center"
         style={{
           background: isAssistant
-            ? 'linear-gradient(135deg, #000000, #4a3f38)'
+            ? 'linear-gradient(135deg, var(--foreground), var(--text-secondary))'
             : 'linear-gradient(135deg, #6b7280, #4b5563)'
         }}
       >
         {isAssistant ? (
-          <Bot className="w-5 h-5" style={{ color: '#fcf6ef' }} />
+          <Bot className="w-5 h-5" style={{ color: 'var(--foreground)' }} />
         ) : (
-          <User className="w-5 h-5" style={{ color: '#fcf6ef' }} />
+          <User className="w-5 h-5" style={{ color: 'var(--foreground)' }} />
         )}
       </div>
 
@@ -69,11 +69,11 @@ export function ChatMessage({
       <div className="flex-1 min-w-0">
         <div className="flex items-start justify-between mb-2">
           <div className="flex items-center gap-2">
-            <span className="font-semibold" style={{ color: '#000000' }}>
+            <span className="font-semibold" style={{ color: 'var(--foreground)' }}>
               {isAssistant ? 'Your Soul Twin' : 'You'}
             </span>
             {timestamp && (
-              <span className="text-xs" style={{ color: '#8A857D' }}>
+              <span className="text-xs" style={{ color: 'var(--text-secondary)' }}>
                 {timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
               </span>
             )}
@@ -99,7 +99,7 @@ export function ChatMessage({
 
         {/* Message Content */}
         <div className="prose prose-sm max-w-none">
-          <p className="whitespace-pre-wrap" style={{ color: '#000000' }}>
+          <p className="whitespace-pre-wrap" style={{ color: 'var(--foreground)' }}>
             {content}
           </p>
         </div>

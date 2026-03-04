@@ -165,8 +165,7 @@ function PlatformCard({ config, onSelect }: { config: PlatformConfig; onSelect: 
       onClick={onSelect}
       whileHover={{ scale: 1.02, y: -2 }}
       whileTap={{ scale: 0.98 }}
-      className="w-full text-left p-4 rounded-xl border border-black/8 transition-colors"
-      style={{ background: config.bgColor }}
+      className="glass-card w-full text-left p-4 transition-colors"
     >
       <div className="flex items-start gap-3">
         <div
@@ -176,8 +175,8 @@ function PlatformCard({ config, onSelect }: { config: PlatformConfig; onSelect: 
           {config.icon}
         </div>
         <div>
-          <div className="font-semibold text-sm text-black">{config.label}</div>
-          <div className="text-xs text-black/50 mt-0.5 leading-relaxed">{config.description}</div>
+          <div className="font-semibold text-sm text-foreground">{config.label}</div>
+          <div className="text-xs text-foreground/50 mt-0.5 leading-relaxed">{config.description}</div>
         </div>
       </div>
     </motion.button>
@@ -273,7 +272,7 @@ export function DataUploadPanel({ userId, onImportComplete }: DataUploadPanelPro
             exit={{ opacity: 0 }}
             className="flex items-center justify-between"
           >
-            <p className="text-sm text-black/50 leading-relaxed max-w-md">
+            <p className="text-sm text-foreground/50 leading-relaxed max-w-md">
               Import years of history the platform APIs can't provide — full Spotify plays, every YouTube video, Discord activity patterns, and Reddit archives.
             </p>
             <motion.button
@@ -298,7 +297,7 @@ export function DataUploadPanel({ userId, onImportComplete }: DataUploadPanelPro
             exit={{ opacity: 0 }}
             className="space-y-3"
           >
-            <p className="text-sm text-black/50">Choose a platform to import:</p>
+            <p className="text-sm text-foreground/50">Choose a platform to import:</p>
             <div className="grid grid-cols-2 gap-3">
               {PLATFORMS.map((p) => (
                 <PlatformCard key={p.id} config={p} onSelect={() => handlePlatformSelect(p)} />
@@ -306,7 +305,7 @@ export function DataUploadPanel({ userId, onImportComplete }: DataUploadPanelPro
             </div>
             <button
               onClick={reset}
-              className="text-xs text-black/40 hover:text-black/60 flex items-center gap-1 mt-1"
+              className="text-xs text-foreground/40 hover:text-foreground/60 flex items-center gap-1 mt-1"
             >
               <ArrowLeft size={12} /> Cancel
             </button>
@@ -330,7 +329,7 @@ export function DataUploadPanel({ userId, onImportComplete }: DataUploadPanelPro
               <div className="flex items-center gap-2 font-semibold text-sm" style={{ color: selectedPlatform.color }}>
                 <span>{selectedPlatform.label} Export Instructions</span>
               </div>
-              <p className="text-xs text-black/60 leading-relaxed">{selectedPlatform.exportInstructions}</p>
+              <p className="text-xs text-foreground/60 leading-relaxed">{selectedPlatform.exportInstructions}</p>
               <a
                 href={selectedPlatform.exportUrl}
                 target="_blank"
@@ -340,7 +339,7 @@ export function DataUploadPanel({ userId, onImportComplete }: DataUploadPanelPro
               >
                 Open settings <ExternalLink size={10} />
               </a>
-              <div className="flex items-center gap-1.5 text-xs text-black/40 mt-1">
+              <div className="flex items-center gap-1.5 text-xs text-foreground/40 mt-1">
                 {selectedPlatform.id === 'discord' ? <Archive size={12} /> : <FileJson size={12} />}
                 Expected file: <span className="font-mono">{selectedPlatform.expectedFile}</span>
               </div>
@@ -358,13 +357,13 @@ export function DataUploadPanel({ userId, onImportComplete }: DataUploadPanelPro
                 background: dragging ? selectedPlatform.bgColor : 'transparent',
               }}
             >
-              <Upload size={24} className="mx-auto mb-2 text-black/30" />
-              <p className="text-sm font-medium text-black/70">
+              <Upload size={24} className="mx-auto mb-2 text-foreground/30" />
+              <p className="text-sm font-medium text-foreground/70">
                 {selectedPlatform.multiFile ? 'Drop files here or click to browse' : 'Drop file here or click to browse'}
               </p>
-              <p className="text-xs text-black/40 mt-1">{selectedPlatform.expectedFile}</p>
+              <p className="text-xs text-foreground/40 mt-1">{selectedPlatform.expectedFile}</p>
               {selectedPlatform.multiFile && (
-                <p className="text-xs text-black/30 mt-0.5">Select all files at once — they'll be processed sequentially</p>
+                <p className="text-xs text-foreground/30 mt-0.5">Select all files at once — they'll be processed sequentially</p>
               )}
               <input
                 ref={fileInputRef}
@@ -378,7 +377,7 @@ export function DataUploadPanel({ userId, onImportComplete }: DataUploadPanelPro
 
             <button
               onClick={() => setStep('selecting')}
-              className="text-xs text-black/40 hover:text-black/60 flex items-center gap-1"
+              className="text-xs text-foreground/40 hover:text-foreground/60 flex items-center gap-1"
             >
               <ArrowLeft size={12} /> Choose different platform
             </button>
@@ -395,12 +394,12 @@ export function DataUploadPanel({ userId, onImportComplete }: DataUploadPanelPro
             className="flex flex-col items-center justify-center py-10 gap-3"
           >
             <Loader2 size={28} className="animate-spin" style={{ color: selectedPlatform.color }} />
-            <p className="text-sm text-black/60 font-medium">
+            <p className="text-sm text-foreground/60 font-medium">
               {multiFileProgress
                 ? `Processing file ${multiFileProgress.current} of ${multiFileProgress.total}…`
                 : `Importing your ${selectedPlatform.label} history…`}
             </p>
-            <p className="text-xs text-black/40">This may take a moment for large exports.</p>
+            <p className="text-xs text-foreground/40">This may take a moment for large exports.</p>
             {multiFileProgress && (
               <div className="w-48 h-1.5 rounded-full bg-black/10 overflow-hidden mt-1">
                 <div
@@ -422,22 +421,22 @@ export function DataUploadPanel({ userId, onImportComplete }: DataUploadPanelPro
             initial={{ opacity: 0, scale: 0.97 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0 }}
-            className="rounded-xl border border-black/8 p-5 space-y-3"
+            className="glass-card p-5 space-y-3"
           >
             <div className="flex items-center gap-2">
               <CheckCircle2 size={20} className="text-green-500" />
               <span className="font-semibold text-sm">Import complete!</span>
             </div>
-            <p className="text-sm text-black/60">
+            <p className="text-sm text-foreground/60">
               Added{' '}
-              <span className="font-semibold text-black">{result.observationsCreated.toLocaleString()}</span>{' '}
+              <span className="font-semibold text-foreground">{result.observationsCreated.toLocaleString()}</span>{' '}
               new observations from {selectedPlatform.label} to your twin's memory.
               {result.observationsCreated > 20 && ' Your twin is reflecting on the new data.'}
             </p>
             <div className="flex gap-3 pt-1">
               <button
                 onClick={reset}
-                className="text-xs px-3 py-1.5 rounded-lg border border-black/10 text-black/60 hover:border-black/20"
+                className="text-xs px-3 py-1.5 rounded-lg border border-black/10 text-foreground/60 hover:border-black/20"
               >
                 Import another
               </button>
@@ -452,16 +451,16 @@ export function DataUploadPanel({ userId, onImportComplete }: DataUploadPanelPro
             initial={{ opacity: 0, scale: 0.97 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0 }}
-            className="rounded-xl border border-red-100 bg-red-50 p-5 space-y-3"
+            className="glass-card p-5 space-y-3 !border-red-800/30"
           >
             <div className="flex items-center gap-2">
               <AlertCircle size={20} className="text-red-500" />
               <span className="font-semibold text-sm text-red-700">Import failed</span>
             </div>
-            <p className="text-xs text-red-600 leading-relaxed">{result.error}</p>
+            <p className="text-xs text-red-400 leading-relaxed">{result.error}</p>
             <button
               onClick={() => setStep('uploading')}
-              className="text-xs px-3 py-1.5 rounded-lg border border-red-200 text-red-600 hover:bg-red-100"
+              className="text-xs px-3 py-1.5 rounded-lg border border-red-800/30 text-red-400 hover:bg-red-900/20"
             >
               Try again
             </button>

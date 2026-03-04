@@ -42,12 +42,12 @@ interface MessageListProps {
 
 // Design-system glass style for assistant bubbles
 const assistantBubbleStyle = {
-  backgroundColor: 'rgba(255, 255, 255, 0.18)',
+  backgroundColor: 'rgba(255, 255, 255, 0.06)',
   backdropFilter: 'blur(10px) saturate(140%)',
   WebkitBackdropFilter: 'blur(10px) saturate(140%)',
-  border: '1px solid rgba(255, 255, 255, 0.45)',
-  boxShadow: '0 8px 32px rgba(0, 0, 0, 0.18), inset 0 1px 0 rgba(255, 255, 255, 0.6)',
-  color: '#000000',
+  border: '1px solid rgba(255, 255, 255, 0.10)',
+  boxShadow: '0 8px 32px rgba(0, 0, 0, 0.18), inset 0 1px 0 rgba(255, 255, 255, 0.08)',
+  color: 'var(--foreground)',
 } as React.CSSProperties;
 
 export const MessageList = forwardRef<HTMLDivElement, MessageListProps>(
@@ -65,7 +65,7 @@ export const MessageList = forwardRef<HTMLDivElement, MessageListProps>(
             {message.role === 'assistant' && (
               <div
                 className="w-8 h-8 rounded-full flex-shrink-0 flex items-center justify-center overflow-hidden"
-                style={{ backgroundColor: 'rgba(255,255,255,0.6)' }}
+                style={{ backgroundColor: 'var(--glass-surface-bg)' }}
               >
                 <img src="/images/backgrounds/flower-hero.png" alt="" className="w-7 h-7 object-contain" />
               </div>
@@ -83,7 +83,7 @@ export const MessageList = forwardRef<HTMLDivElement, MessageListProps>(
                   message.role === 'user'
                     ? {
                         backgroundColor: message.failed ? 'rgba(239,68,68,0.15)' : '#000000',
-                        color: message.failed ? '#EF4444' : '#fcf6ef',
+                        color: message.failed ? '#EF4444' : 'var(--foreground)',
                         border: message.failed ? '1px solid rgba(239,68,68,0.3)' : undefined,
                       }
                     : assistantBubbleStyle
@@ -126,7 +126,7 @@ export const MessageList = forwardRef<HTMLDivElement, MessageListProps>(
                       spotify: '#1DB954', calendar: '#4285F4',
                       google_calendar: '#4285F4', youtube: '#FF0000',
                     };
-                    const color = platformColors[p] || '#8A857D';
+                    const color = platformColors[p] || 'var(--text-muted)';
                     return (
                       <span
                         key={p}
@@ -163,7 +163,7 @@ export const MessageList = forwardRef<HTMLDivElement, MessageListProps>(
                   "text-xs mt-1",
                   message.role === 'user' ? "text-right" : "text-left"
                 )}
-                style={{ color: '#8A857D' }}
+                style={{ color: 'var(--text-secondary)' }}
               >
                 {formatTime(message.timestamp)}
               </div>
@@ -172,9 +172,9 @@ export const MessageList = forwardRef<HTMLDivElement, MessageListProps>(
             {message.role === 'user' && (
               <div
                 className="w-8 h-8 rounded-full flex-shrink-0 flex items-center justify-center"
-                style={{ backgroundColor: 'rgba(255, 255, 255, 0.18)', border: '1px solid rgba(255, 255, 255, 0.45)' }}
+                style={{ backgroundColor: 'rgba(255, 255, 255, 0.06)', border: '1px solid rgba(255, 255, 255, 0.10)' }}
               >
-                <User className="w-4 h-4" style={{ color: '#8A857D' }} />
+                <User className="w-4 h-4" style={{ color: 'var(--text-secondary)' }} />
               </div>
             )}
           </div>
@@ -184,7 +184,7 @@ export const MessageList = forwardRef<HTMLDivElement, MessageListProps>(
           <div className="flex gap-3">
             <div
               className="w-8 h-8 rounded-full flex-shrink-0 flex items-center justify-center overflow-hidden"
-              style={{ backgroundColor: 'rgba(255,255,255,0.6)' }}
+              style={{ backgroundColor: 'var(--glass-surface-bg)' }}
             >
               <img src="/images/backgrounds/flower-hero.png" alt="" className="w-7 h-7 object-contain" />
             </div>
@@ -195,15 +195,15 @@ export const MessageList = forwardRef<HTMLDivElement, MessageListProps>(
               <div className="flex gap-1.5">
                 <div
                   className="w-2 h-2 rounded-full animate-bounce"
-                  style={{ backgroundColor: '#000000', animationDelay: '0ms' }}
+                  style={{ backgroundColor: 'var(--foreground)', animationDelay: '0ms' }}
                 />
                 <div
                   className="w-2 h-2 rounded-full animate-bounce"
-                  style={{ backgroundColor: '#000000', animationDelay: '150ms' }}
+                  style={{ backgroundColor: 'var(--foreground)', animationDelay: '150ms' }}
                 />
                 <div
                   className="w-2 h-2 rounded-full animate-bounce"
-                  style={{ backgroundColor: '#000000', animationDelay: '300ms' }}
+                  style={{ backgroundColor: 'var(--foreground)', animationDelay: '300ms' }}
                 />
               </div>
             </div>

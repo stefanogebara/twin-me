@@ -160,8 +160,8 @@ const YouTubeInsightsPage: React.FC = () => {
   const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3001';
 
   const colors = {
-    text: '#000000',
-    textSecondary: '#8A857D',
+    text: 'var(--foreground)',
+    textSecondary: 'var(--text-secondary)',
     youtubeRed: '#FF0000',
     youtubeBg: 'rgba(255, 0, 0, 0.1)'
   };
@@ -238,7 +238,7 @@ const YouTubeInsightsPage: React.FC = () => {
     <div
       className={`animate-pulse rounded ${className}`}
       style={{
-        backgroundColor: 'rgba(0, 0, 0, 0.06)',
+        backgroundColor: 'rgba(255, 255, 255, 0.06)',
         ...style
       }}
     />
@@ -513,9 +513,11 @@ const YouTubeInsightsPage: React.FC = () => {
                   </Pie>
                   <RechartsTooltip
                     contentStyle={{
-                      backgroundColor: '#ffffff',
-                      border: 'none',
-                      borderRadius: '8px',
+                      backgroundColor: 'rgba(28, 25, 23, 0.90)',
+                      backdropFilter: 'blur(20px)',
+                      border: '1px solid rgba(180, 175, 168, 0.25)',
+                      borderRadius: '12px',
+                      boxShadow: '0 8px 32px rgba(255, 255, 255, 0.08)',
                     }}
                     labelStyle={{ color: colors.text }}
                     itemStyle={{ color: colors.text }}
@@ -657,7 +659,7 @@ const YouTubeInsightsPage: React.FC = () => {
               <GlassPanel key={past.id} variant="default" className="!p-4">
                 <p
                   className="text-sm leading-relaxed"
-                  style={{ color: '#57534e' }}
+                  style={{ color: 'var(--text-secondary)' }}
                 >
                   {past.text}
                 </p>

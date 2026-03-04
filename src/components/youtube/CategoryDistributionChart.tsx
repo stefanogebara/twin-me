@@ -48,14 +48,14 @@ export const CategoryDistributionChart: React.FC<CategoryDistributionChartProps>
   const CustomTooltip = ({ active, payload }: any) => {
     if (active && payload && payload.length) {
       return (
-        <div className="bg-white border border-stone-200 rounded-lg shadow-lg p-3">
-          <p className="font-ui text-sm font-medium text-stone-900">
+        <div className="glass-card rounded-lg p-3">
+          <p className="font-ui text-sm font-medium text-foreground">
             {payload[0].name}
           </p>
-          <p className="text-xs text-stone-600 mt-1">
+          <p className="text-xs text-muted-foreground mt-1">
             {payload[0].value.toFixed(1)}% ({payload[0].payload.count} videos)
           </p>
-          <p className="text-xs text-stone-500 mt-0.5">
+          <p className="text-xs text-muted-foreground mt-0.5">
             {formatWatchTime(payload[0].payload.watchTime)} watched
           </p>
         </div>
@@ -65,16 +65,16 @@ export const CategoryDistributionChart: React.FC<CategoryDistributionChartProps>
   };
 
   return (
-    <Card className={`bg-white border border-stone-200 p-6 shadow-md hover:shadow-lg transition-shadow duration-200 ${className}`}>
+    <Card className={`p-6 ${className}`}>
       <div className="flex items-center gap-3 mb-5">
         <div className="w-10 h-10 rounded-full bg-[#FF0000]/10 flex items-center justify-center">
           <LayoutGrid className="w-5 h-5 text-[#FF0000]" />
         </div>
         <div>
-          <h3 className="font-heading text-lg font-medium text-stone-900">
+          <h3 className="font-heading text-lg font-medium text-foreground">
             Category Distribution
           </h3>
-          <p className="text-xs text-stone-500">
+          <p className="text-xs text-muted-foreground">
             Your content preferences
           </p>
         </div>
@@ -119,22 +119,22 @@ export const CategoryDistributionChart: React.FC<CategoryDistributionChartProps>
                 initial={{ opacity: 0, x: -20 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: index * 0.1 }}
-                className="flex items-center justify-between group cursor-default hover:bg-stone-50 px-2 py-1 rounded transition-colors"
+                className="flex items-center justify-between group cursor-default hover:bg-[var(--glass-surface-bg-hover)] px-2 py-1 rounded transition-colors"
               >
                 <div className="flex items-center gap-2 flex-1 min-w-0">
                   <div
                     className="w-3 h-3 rounded-full flex-shrink-0 group-hover:scale-110 transition-transform"
                     style={{ backgroundColor: category.color }}
                   />
-                  <span className="text-sm font-ui text-stone-700 truncate">
+                  <span className="text-sm font-ui text-muted-foreground truncate">
                     {category.name}
                   </span>
                 </div>
                 <div className="flex items-center gap-2 flex-shrink-0 ml-2">
-                  <span className="text-sm font-mono text-stone-600">
+                  <span className="text-sm font-mono text-muted-foreground">
                     {category.value.toFixed(1)}%
                   </span>
-                  <span className="text-xs text-stone-500">
+                  <span className="text-xs text-muted-foreground">
                     ({formatWatchTime(category.watchTime)})
                   </span>
                 </div>
@@ -144,8 +144,8 @@ export const CategoryDistributionChart: React.FC<CategoryDistributionChartProps>
         </motion.div>
       ) : (
         <div className="text-center py-12">
-          <LayoutGrid className="w-12 h-12 text-stone-600 mx-auto mb-3" />
-          <p className="text-sm text-stone-500">
+          <LayoutGrid className="w-12 h-12 text-muted-foreground mx-auto mb-3" />
+          <p className="text-sm text-muted-foreground">
             No category data available yet
           </p>
         </div>

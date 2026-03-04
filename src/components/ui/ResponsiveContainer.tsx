@@ -139,7 +139,7 @@ export const Card: React.FC<CardProps> = ({
     : '';
 
   return (
-    <div className={`bg-white rounded-lg shadow-md border border-gray-200 ${paddingClasses[padding]} ${hoverClasses} ${className}`}>
+    <div className={`glass-card ${paddingClasses[padding]} ${hoverClasses} ${className}`}>
       {children}
     </div>
   );

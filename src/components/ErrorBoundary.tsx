@@ -70,17 +70,17 @@ class ErrorBoundary extends Component<Props, State> {
       return (
         <div
           className="min-h-screen flex items-center justify-center p-4"
-          style={{ backgroundColor: '#fcf6ef' }}
+          style={{ backgroundColor: 'var(--background)' }}
         >
           <div
             className="max-w-md w-full text-center p-8"
             style={{
-              background: 'rgba(255, 255, 255, 0.18)',
+              background: 'rgba(255, 255, 255, 0.06)',
               backdropFilter: 'blur(10px) saturate(140%)',
               WebkitBackdropFilter: 'blur(10px) saturate(140%)',
               borderRadius: '2rem',
-              border: '1px solid rgba(255, 255, 255, 0.45)',
-              boxShadow: '0 8px 32px rgba(0, 0, 0, 0.18), inset 0 1px 0 rgba(255, 255, 255, 0.6)',
+              border: '1px solid rgba(255, 255, 255, 0.10)',
+              boxShadow: '0 8px 32px rgba(0, 0, 0, 0.18), inset 0 1px 0 rgba(255, 255, 255, 0.08)',
             }}
           >
             <div
@@ -98,7 +98,7 @@ class ErrorBoundary extends Component<Props, State> {
 
             <p
               className="text-sm mb-6"
-              style={{ color: '#8A857D' }}
+              style={{ color: 'var(--text-secondary)' }}
             >
               We encountered an unexpected error. Don't worry — this has been logged and we'll work on fixing it.
             </p>
@@ -107,20 +107,20 @@ class ErrorBoundary extends Component<Props, State> {
               <details className="mb-6 text-left">
                 <summary
                   className="cursor-pointer text-sm mb-2"
-                  style={{ color: '#8A857D' }}
+                  style={{ color: 'var(--text-secondary)' }}
                 >
                   Error Details (Development)
                 </summary>
                 <div
                   className="p-3 rounded-lg text-xs overflow-auto max-h-32"
-                  style={{ backgroundColor: 'rgba(0, 0, 0, 0.04)' }}
+                  style={{ backgroundColor: 'rgba(255, 255, 255, 0.05)' }}
                 >
-                  <div className="font-mono text-red-600 mb-2">
+                  <div className="font-mono text-red-400 mb-2">
                     {this.state.error.name}: {this.state.error.message}
                   </div>
                   <div
                     className="font-mono whitespace-pre-wrap"
-                    style={{ color: '#8A857D' }}
+                    style={{ color: 'var(--text-secondary)' }}
                   >
                     {this.state.error.stack}
                   </div>

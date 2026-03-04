@@ -31,11 +31,11 @@ export const BentoHero: React.FC<Props> = ({ data }) => {
     <motion.div
       className="relative overflow-hidden rounded-2xl p-6 md:p-8 h-full"
       style={{
-        background: 'rgba(255, 255, 255, 0.18)',
+        background: 'rgba(255, 255, 255, 0.06)',
         backdropFilter: 'blur(10px) saturate(140%)',
         WebkitBackdropFilter: 'blur(10px) saturate(140%)',
         border: '1px solid rgba(155, 89, 182, 0.2)',
-        boxShadow: '0 8px 32px rgba(0, 0, 0, 0.18), inset 0 1px 0 rgba(255, 255, 255, 0.6)',
+        boxShadow: '0 8px 32px rgba(0, 0, 0, 0.18), inset 0 1px 0 rgba(255, 255, 255, 0.08)',
       }}
       initial={{ opacity: 0, y: 16 }}
       animate={{ opacity: 1, y: 0 }}
@@ -69,7 +69,7 @@ export const BentoHero: React.FC<Props> = ({ data }) => {
         <blockquote
           className="text-xl md:text-2xl leading-snug font-light mb-5"
           style={{
-            color: '#000000',
+            color: 'var(--foreground)',
             letterSpacing: '-0.01em',
           }}
         >
@@ -78,7 +78,7 @@ export const BentoHero: React.FC<Props> = ({ data }) => {
 
         <p
           className="text-xs"
-          style={{ color: '#8A857D' }}
+          style={{ color: 'var(--text-secondary)' }}
         >
           Last updated {timeAgoLabel(data.generatedAt)}
         </p>

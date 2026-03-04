@@ -54,11 +54,11 @@ export const ChatInputArea = forwardRef<HTMLTextAreaElement, ChatInputAreaProps>
         <div
           className="rounded-2xl border shadow-sm overflow-hidden"
           style={{
-            backgroundColor: 'rgba(255, 255, 255, 0.6)',
-            borderColor: 'rgba(255, 255, 255, 0.45)',
+            backgroundColor: 'var(--glass-surface-bg)',
+            borderColor: 'var(--glass-surface-border)',
             backdropFilter: 'blur(10px) saturate(140%)',
             WebkitBackdropFilter: 'blur(10px) saturate(140%)',
-            boxShadow: '0 8px 32px rgba(0, 0, 0, 0.18), inset 0 1px 0 rgba(255, 255, 255, 0.6)',
+            boxShadow: '0 8px 32px rgba(0, 0, 0, 0.18), inset 0 1px 0 rgba(255, 255, 255, 0.08)',
           }}
         >
           <textarea
@@ -75,7 +75,7 @@ export const ChatInputArea = forwardRef<HTMLTextAreaElement, ChatInputAreaProps>
             className="w-full px-4 py-3 resize-none focus:outline-none disabled:opacity-50 text-[15px]"
             style={{
               backgroundColor: 'transparent',
-              color: '#000000',
+              color: 'var(--foreground)',
               minHeight: '48px',
               maxHeight: '120px'
             }}
@@ -83,13 +83,13 @@ export const ChatInputArea = forwardRef<HTMLTextAreaElement, ChatInputAreaProps>
 
           <div
             className="flex items-center justify-between px-3 py-2 border-t"
-            style={{ borderColor: 'rgba(255, 255, 255, 0.45)' }}
+            style={{ borderColor: 'var(--glass-surface-border)' }}
           >
             <div className="flex items-center gap-1">
               <button
                 disabled
                 className="p-2 rounded-lg transition-colors opacity-30 cursor-not-allowed"
-                style={{ color: '#8A857D' }}
+                style={{ color: 'var(--text-secondary)' }}
                 title="File attachments coming soon"
               >
                 <Paperclip className="w-5 h-5" />
@@ -97,7 +97,7 @@ export const ChatInputArea = forwardRef<HTMLTextAreaElement, ChatInputAreaProps>
               <button
                 disabled
                 className="p-2 rounded-lg transition-colors opacity-30 cursor-not-allowed"
-                style={{ color: '#8A857D' }}
+                style={{ color: 'var(--text-secondary)' }}
                 title="Voice input coming soon"
               >
                 <Mic className="w-5 h-5" />
@@ -114,7 +114,7 @@ export const ChatInputArea = forwardRef<HTMLTextAreaElement, ChatInputAreaProps>
                       : 'rgba(255, 255, 255, 0.3)',
                     color: chatUsage.remaining <= 2
                       ? '#ef4444'
-                      : '#8A857D'
+                      : 'var(--text-muted)'
                   }}
                 >
                   <MessageCircle className="w-3 h-3" />
@@ -126,7 +126,7 @@ export const ChatInputArea = forwardRef<HTMLTextAreaElement, ChatInputAreaProps>
                 className="flex items-center gap-1 px-2 py-1 rounded-lg text-xs"
                 style={{
                   backgroundColor: 'rgba(255, 255, 255, 0.3)',
-                  color: '#8A857D'
+                  color: 'var(--text-secondary)'
                 }}
               >
                 <Sparkles className="w-3 h-3" />
@@ -138,8 +138,8 @@ export const ChatInputArea = forwardRef<HTMLTextAreaElement, ChatInputAreaProps>
                 disabled={!inputMessage.trim() || isDisabled || isTyping || limitReached}
                 className="p-2.5 rounded-xl transition-all hover:scale-[1.02] disabled:opacity-50 disabled:hover:scale-100"
                 style={{
-                  backgroundColor: inputMessage.trim() ? '#000000' : 'rgba(255, 255, 255, 0.3)',
-                  color: inputMessage.trim() ? '#fcf6ef' : '#8A857D'
+                  backgroundColor: inputMessage.trim() ? 'var(--foreground)' : 'rgba(255, 255, 255, 0.3)',
+                  color: inputMessage.trim() ? 'var(--foreground)' : 'var(--text-muted)'
                 }}
               >
                 {isTyping ? (
