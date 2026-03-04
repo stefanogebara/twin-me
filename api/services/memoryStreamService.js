@@ -91,6 +91,30 @@ const CONFIDENCE_BY_TYPE = { platform_data: 0.90, observation: 0.90, conversatio
 const REVISION_TYPES = new Set(['reflection', 'fact']);
 const REVISION_SIMILARITY_THRESHOLD = 0.90;
 
+// ====================================================================
+// Dynamic Alpha Blending (CL1-inspired)
+// ====================================================================
+
+/**
+ * Compute alpha weight for a memory based on confidence, importance, and citation frequency.
+ * Alpha determines how prominently a memory appears in the twin's context:
+ * - alpha >= 0.4: full text (up to 250 chars)
+ * - 0.2 <= alpha < 0.4: truncated with "(less certain)" note
+ * - alpha < 0.2: omitted entirely
+ *
+ * Formula: confidence * (importance/10) * min(1, 0.5 + 0.1 * retrieval_count)
+ *
+ * @param {Object} memory - Memory object with confidence, importance_score, retrieval_count
+ * @returns {number} Alpha value 0.0-1.0
+ */
+export function computeAlpha(memory) {
+  const confidence = memory.confidence ?? 0.7;
+  const importance = (memory.importance_score ?? 5) / 10;
+  // Citation boost: starts at 0.7 for never-cited, grows to 1.0 with 3+ citations
+  const citationBoost = Math.min(1.0, 0.7 + 0.1 * (memory.retrieval_count ?? 0));
+  return confidence * importance * citationBoost;
+}
+
 /**
  * S5.1: Check if a very similar memory already exists for the same type.
  * If so, update its confidence + last_accessed_at instead of inserting a duplicate.

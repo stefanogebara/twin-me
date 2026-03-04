@@ -154,8 +154,72 @@ router.post('/', async (req, res) => {
       stats.errors.push(`tier3: ${t3Err.message}`);
     }
 
+    // ── Tier 4: Co-citation link decay — weaken stale co_citation links ──
+    // Links not updated in 30 days decay by 0.05; links ≤ 0.1 are deleted
+    stats.tier4LinksDecayed = 0;
+    stats.tier4LinksDeleted = 0;
+    try {
+      const tier4Cutoff = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
+
+      const { data: staleLinks } = await supabaseAdmin
+        .from('memory_links')
+        .select('id, strength')
+        .eq('link_type', 'co_citation')
+        .lt('updated_at', tier4Cutoff)
+        .limit(BATCH_SIZE);
+
+      if (staleLinks && staleLinks.length > 0) {
+        for (const link of staleLinks) {
+          const newStrength = link.strength - 0.05;
+          if (newStrength <= 0.1) {
+            await supabaseAdmin.from('memory_links').delete().eq('id', link.id);
+            stats.tier4LinksDeleted++;
+          } else {
+            await supabaseAdmin.from('memory_links').update({ strength: newStrength }).eq('id', link.id);
+            stats.tier4LinksDecayed++;
+          }
+        }
+        console.log(`[Cron] memory-forgetting: Tier 4 decayed ${stats.tier4LinksDecayed}, deleted ${stats.tier4LinksDeleted} co_citation links`);
+      }
+    } catch (t4Err) {
+      console.warn('[Cron] memory-forgetting: Tier 4 error:', t4Err.message);
+      stats.errors.push(`tier4: ${t4Err.message}`);
+    }
+
+    // ── Tier 5: Homeostatic importance regulation ──
+    // Prevent importance score inflation: if mean drifts > 1.0 from 5.0, shift 20% back
+    // Never touch scores of 1 or 10 (anchored extremes)
+    stats.tier5Shifted = 0;
+    try {
+      const { data: importanceStats } = await supabaseAdmin.rpc('get_importance_stats');
+
+      if (importanceStats && importanceStats.length > 0) {
+        const { mean_importance, total_count } = importanceStats[0];
+        const drift = mean_importance - 5.0;
+
+        if (Math.abs(drift) > 1.0 && total_count > 100) {
+          // Shift direction: -1 per memory if mean too high, +1 if too low
+          // Control rate via limit: shift ~5% of memories × drift magnitude
+          const shiftAmount = drift > 0 ? -1 : 1;
+          const direction = drift > 0 ? 'down' : 'up';
+          const shiftLimit = Math.min(500, Math.round(total_count * 0.05 * Math.abs(drift)));
+
+          const { data: shiftResult } = await supabaseAdmin.rpc('apply_importance_shift', {
+            p_shift: shiftAmount,
+            p_limit: shiftLimit,
+          });
+
+          stats.tier5Shifted = shiftResult?.[0]?.shifted_count || 0;
+          console.log(`[Cron] memory-forgetting: Tier 5 homeostatic shift ${direction}: mean=${mean_importance.toFixed(2)}, shifted ${stats.tier5Shifted} memories by ${shiftAmount}`);
+        }
+      }
+    } catch (t5Err) {
+      console.warn('[Cron] memory-forgetting: Tier 5 error:', t5Err.message);
+      stats.errors.push(`tier5: ${t5Err.message}`);
+    }
+
     const durationMs = Date.now() - startTime;
-    console.log(`[Cron] memory-forgetting: done in ${durationMs}ms. t1=${stats.tier1Archived} t2=${stats.tier2Archived} t3=${stats.tier3Decayed}`);
+    console.log(`[Cron] memory-forgetting: done in ${durationMs}ms. t1=${stats.tier1Archived} t2=${stats.tier2Archived} t3=${stats.tier3Decayed} t4_decayed=${stats.tier4LinksDecayed} t4_deleted=${stats.tier4LinksDeleted} t5=${stats.tier5Shifted}`);
 
     res.json({
       success: true,
