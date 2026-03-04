@@ -39,7 +39,7 @@ const EVAL_QUESTIONS = [
 router.post('/run', authenticateUser, async (req, res) => {
   try {
     const evaluatorId = req.user.id;
-    const targetUserId = req.body.target_user_id || evaluatorId;
+    const targetUserId = evaluatorId;
     const { questions } = req.body;
 
     if (!Array.isArray(questions) || questions.length === 0) {
@@ -146,7 +146,7 @@ router.post('/score', authenticateUser, async (req, res) => {
  */
 router.get('/history', authenticateUser, async (req, res) => {
   try {
-    const userId = req.query.user_id || req.user.id;
+    const userId = req.user.id;
 
     const { data, error } = await supabaseAdmin
       .from('eval_runs')
@@ -200,7 +200,7 @@ router.get('/run/:id', authenticateUser, async (req, res) => {
  */
 router.get('/flags', authenticateUser, async (req, res) => {
   try {
-    const userId = req.query.user_id || req.user.id;
+    const userId = req.user.id;
     const flags = await getAllFlagsForUser(userId);
 
     // Merge with defaults (known flags that aren't in DB yet default to true)
@@ -227,8 +227,8 @@ router.get('/flags', authenticateUser, async (req, res) => {
  */
 router.post('/flags', authenticateUser, async (req, res) => {
   try {
-    const { flag_name, enabled, user_id } = req.body;
-    const targetUserId = user_id || req.user.id;
+    const { flag_name, enabled } = req.body;
+    const targetUserId = req.user.id;
 
     const KNOWN_FLAGS = ['expert_routing', 'identity_context', 'emotional_state', 'ebbinghaus_decay'];
     if (!KNOWN_FLAGS.includes(flag_name)) {

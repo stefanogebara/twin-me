@@ -7,7 +7,8 @@ import { sendWeeklyDigest } from '../services/emailService.js';
 const router = express.Router();
 
 router.post('/', async (req, res) => {
-  if (req.headers['authorization']?.replace('Bearer ', '') !== process.env.CRON_SECRET) {
+  const cronSecret = req.headers['authorization']?.replace('Bearer ', '');
+  if (!process.env.CRON_SECRET || cronSecret !== process.env.CRON_SECRET) {
     return res.status(401).json({ error: 'Unauthorized' });
   }
 
