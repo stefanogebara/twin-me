@@ -128,8 +128,8 @@ const CalendarInsightsPage: React.FC = () => {
   const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3001';
 
   const colors = {
-    text: '#000000',
-    textSecondary: '#8A857D',
+    text: 'var(--foreground)',
+    textSecondary: 'var(--text-secondary)',
     calendarBlue: '#4285F4',
     calendarBg: 'rgba(66, 133, 244, 0.1)'
   };
@@ -459,7 +459,7 @@ const CalendarInsightsPage: React.FC = () => {
               <GlassPanel key={past.id} variant="default" className="!p-4">
                 <p
                   className="text-sm leading-relaxed"
-                  style={{ color: '#57534e' }}
+                  style={{ color: 'var(--text-secondary)' }}
                 >
                   {past.text}
                 </p>

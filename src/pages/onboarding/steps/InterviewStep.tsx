@@ -16,12 +16,14 @@ const InterviewStep: React.FC<InterviewStepProps> = ({ onComplete, onSkip }) => 
   };
 
   return (
-    <div className="min-h-screen bg-[#FAFAFA]">
-      <DeepInterview
-        enrichmentContext={enrichmentContext}
-        onComplete={() => onComplete()}
-        onSkip={onSkip}
-      />
+    <div className="h-screen flex flex-col" style={{ backgroundColor: 'var(--background)' }}>
+      <div className="flex-1 flex flex-col w-full max-w-2xl mx-auto px-6 py-10 min-h-0">
+        <DeepInterview
+          enrichmentContext={enrichmentContext}
+          onComplete={() => onComplete()}
+          onSkip={onSkip}
+        />
+      </div>
     </div>
   );
 };

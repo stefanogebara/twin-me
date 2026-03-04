@@ -126,16 +126,16 @@ const GmailCallback: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center px-6 py-20" style={{ background: '#FAFAFA' }}>
+    <div className="min-h-screen flex flex-col items-center justify-center px-6 py-20" style={{ background: 'var(--background)' }}>
       <div className="w-full max-w-md">
         <div
           className="rounded-3xl overflow-hidden p-8 text-center space-y-6"
           style={{
-            background: 'rgba(255, 255, 255, 0.5)',
+            background: 'var(--glass-surface-bg)',
             backdropFilter: 'blur(16px)',
             WebkitBackdropFilter: 'blur(16px)',
-            border: '1px solid rgba(0, 0, 0, 0.06)',
-            boxShadow: '0 8px 32px rgba(0, 0, 0, 0.03)',
+            border: '1px solid var(--glass-surface-border)',
+            boxShadow: 'var(--glass-shadow)',
           }}
         >
           {/* Status Icon */}
@@ -143,9 +143,9 @@ const GmailCallback: React.FC = () => {
             {status === 'loading' && (
               <div
                 className="w-16 h-16 rounded-full flex items-center justify-center"
-                style={{ background: 'rgba(0, 0, 0, 0.04)' }}
+                style={{ background: 'var(--glass-surface-bg-subtle)' }}
               >
-                <Loader2 className="w-8 h-8 text-stone-600 animate-spin" />
+                <Loader2 className="w-8 h-8 text-muted-foreground animate-spin" />
               </div>
             )}
             {status === 'success' && (
@@ -153,7 +153,7 @@ const GmailCallback: React.FC = () => {
                 className="w-16 h-16 rounded-full flex items-center justify-center"
                 style={{ background: 'rgba(34, 197, 94, 0.1)' }}
               >
-                <CheckCircle2 className="w-8 h-8 text-green-600" />
+                <CheckCircle2 className="w-8 h-8 text-green-400" />
               </div>
             )}
             {status === 'error' && (
@@ -161,38 +161,38 @@ const GmailCallback: React.FC = () => {
                 className="w-16 h-16 rounded-full flex items-center justify-center"
                 style={{ background: 'rgba(239, 68, 68, 0.1)' }}
               >
-                <XCircle className="w-8 h-8 text-red-600" />
+                <XCircle className="w-8 h-8 text-red-400" />
               </div>
             )}
           </div>
 
           {/* Status Message */}
           <div className="space-y-2">
-            <h2 className="text-xl font-medium text-stone-900">
+            <h2 className="text-xl font-medium text-foreground">
               {status === 'loading' && 'Connecting Gmail...'}
               {status === 'success' && 'Success!'}
               {status === 'error' && 'Connection Failed'}
             </h2>
-            <p className="text-[15px] text-stone-600">
+            <p className="text-[15px] text-muted-foreground">
               {message}
             </p>
           </div>
 
           {/* Additional Info */}
           {status === 'loading' && (
-            <p className="text-[13px] text-stone-500">
+            <p className="text-[13px] text-muted-foreground">
               Please wait while we connect your Gmail account
             </p>
           )}
           {status === 'success' && (
-            <p className="text-[13px] text-stone-500">
+            <p className="text-[13px] text-muted-foreground">
               This window will close automatically
             </p>
           )}
           {status === 'error' && (
             <button
               onClick={() => window.close()}
-              className="text-[13px] text-stone-600 hover:text-stone-900 underline"
+              className="text-[13px] text-muted-foreground hover:text-foreground underline"
             >
               Close this window
             </button>

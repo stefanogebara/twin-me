@@ -38,16 +38,16 @@ export const WatchPatternsCard: React.FC<WatchPatternsCardProps> = ({
   const weekendPercent = 100 - weekdayPercent;
 
   return (
-    <Card className={`bg-white border border-stone-200 p-6 shadow-md hover:shadow-lg transition-shadow duration-200 ${className}`}>
+    <Card className={`p-6 ${className}`}>
       <div className="flex items-center gap-3 mb-5">
         <div className="w-10 h-10 rounded-full bg-[#FF0000]/10 flex items-center justify-center">
           <TrendingUp className="w-5 h-5 text-[#FF0000]" />
         </div>
         <div>
-          <h3 className="font-heading text-lg font-medium text-stone-900">
+          <h3 className="font-heading text-lg font-medium text-foreground">
             Watch Patterns
           </h3>
-          <p className="text-xs text-stone-500">
+          <p className="text-xs text-muted-foreground">
             Your viewing behavior insights
           </p>
         </div>
@@ -59,19 +59,19 @@ export const WatchPatternsCard: React.FC<WatchPatternsCardProps> = ({
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
-          className="flex items-center gap-3 p-3 bg-stone-50 rounded-lg hover:bg-stone-100 transition-colors"
+          className="flex items-center gap-3 p-3 bg-[var(--glass-surface-bg)] rounded-lg hover:bg-[var(--glass-surface-bg-hover)] transition-colors"
         >
           <div className="w-10 h-10 rounded-lg bg-[#FF0000]/10 flex items-center justify-center flex-shrink-0">
             <Clock className="w-5 h-5 text-[#FF0000]" />
           </div>
           <div className="flex-1 min-w-0">
-            <p className="text-xs font-ui text-stone-500 uppercase tracking-wide mb-0.5">
+            <p className="text-xs font-ui text-muted-foreground uppercase tracking-wide mb-0.5">
               Peak Hours
             </p>
-            <p className="font-ui text-sm font-medium text-stone-900">
+            <p className="font-ui text-sm font-medium text-foreground">
               {formatPeakHours(patterns.peakHours.start, patterns.peakHours.end)}
             </p>
-            <p className="text-xs text-stone-600 mt-0.5">
+            <p className="text-xs text-muted-foreground mt-0.5">
               {patterns.peakHours.label}
             </p>
           </div>
@@ -82,16 +82,16 @@ export const WatchPatternsCard: React.FC<WatchPatternsCardProps> = ({
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.2 }}
-          className="flex items-center gap-3 p-3 bg-stone-50 rounded-lg hover:bg-stone-100 transition-colors"
+          className="flex items-center gap-3 p-3 bg-[var(--glass-surface-bg)] rounded-lg hover:bg-[var(--glass-surface-bg-hover)] transition-colors"
         >
           <div className="w-10 h-10 rounded-lg bg-[#FF0000]/10 flex items-center justify-center flex-shrink-0">
             <TrendingUp className="w-5 h-5 text-[#FF0000]" />
           </div>
           <div className="flex-1">
-            <p className="text-xs font-ui text-stone-500 uppercase tracking-wide mb-0.5">
+            <p className="text-xs font-ui text-muted-foreground uppercase tracking-wide mb-0.5">
               Avg Videos Per Session
             </p>
-            <p className="font-ui text-xl font-medium text-stone-900">
+            <p className="font-ui text-xl font-medium text-foreground">
               {patterns.avgVideosPerSession.toFixed(1)}
             </p>
           </div>
@@ -102,16 +102,16 @@ export const WatchPatternsCard: React.FC<WatchPatternsCardProps> = ({
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.3 }}
-          className="flex items-center gap-3 p-3 bg-stone-50 rounded-lg hover:bg-stone-100 transition-colors"
+          className="flex items-center gap-3 p-3 bg-[var(--glass-surface-bg)] rounded-lg hover:bg-[var(--glass-surface-bg-hover)] transition-colors"
         >
           <div className="w-10 h-10 rounded-lg bg-[#FF0000]/10 flex items-center justify-center flex-shrink-0">
             <Clock className="w-5 h-5 text-[#FF0000]" />
           </div>
           <div className="flex-1">
-            <p className="text-xs font-ui text-stone-500 uppercase tracking-wide mb-0.5">
+            <p className="text-xs font-ui text-muted-foreground uppercase tracking-wide mb-0.5">
               Avg Watch Duration
             </p>
-            <p className="font-ui text-xl font-medium text-stone-900">
+            <p className="font-ui text-xl font-medium text-foreground">
               {formatDuration(patterns.avgWatchDuration)}
             </p>
           </div>
@@ -122,16 +122,16 @@ export const WatchPatternsCard: React.FC<WatchPatternsCardProps> = ({
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.4 }}
-          className="flex items-center gap-3 p-3 bg-stone-50 rounded-lg hover:bg-stone-100 transition-colors"
+          className="flex items-center gap-3 p-3 bg-[var(--glass-surface-bg)] rounded-lg hover:bg-[var(--glass-surface-bg-hover)] transition-colors"
         >
           <div className="w-10 h-10 rounded-lg bg-[#FF0000]/10 flex items-center justify-center flex-shrink-0">
             <CheckCircle className="w-5 h-5 text-[#FF0000]" />
           </div>
           <div className="flex-1">
-            <p className="text-xs font-ui text-stone-500 uppercase tracking-wide mb-0.5">
+            <p className="text-xs font-ui text-muted-foreground uppercase tracking-wide mb-0.5">
               Completion Rate
             </p>
-            <p className="font-ui text-xl font-medium text-stone-900">
+            <p className="font-ui text-xl font-medium text-foreground">
               {patterns.completionRate.toFixed(0)}%
             </p>
           </div>
@@ -142,11 +142,11 @@ export const WatchPatternsCard: React.FC<WatchPatternsCardProps> = ({
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.5 }}
-          className="p-3 bg-stone-50 rounded-lg"
+          className="p-3 bg-[var(--glass-surface-bg)] rounded-lg"
         >
           <div className="flex items-center gap-2 mb-3">
             <Calendar className="w-4 h-4 text-[#FF0000]" />
-            <p className="text-xs font-ui text-stone-500 uppercase tracking-wide">
+            <p className="text-xs font-ui text-muted-foreground uppercase tracking-wide">
               Weekday vs Weekend
             </p>
           </div>
@@ -154,8 +154,8 @@ export const WatchPatternsCard: React.FC<WatchPatternsCardProps> = ({
           {/* Horizontal bar chart */}
           <div className="space-y-2">
             <div className="flex items-center gap-2">
-              <span className="text-xs font-ui text-stone-600 w-16">Weekday</span>
-              <div className="flex-1 h-6 bg-stone-200 rounded-full overflow-hidden">
+              <span className="text-xs font-ui text-muted-foreground w-16">Weekday</span>
+              <div className="flex-1 h-6 bg-white/10 rounded-full overflow-hidden">
                 <motion.div
                   initial={{ width: 0 }}
                   animate={{ width: `${weekdayPercent}%` }}
@@ -170,8 +170,8 @@ export const WatchPatternsCard: React.FC<WatchPatternsCardProps> = ({
             </div>
 
             <div className="flex items-center gap-2">
-              <span className="text-xs font-ui text-stone-600 w-16">Weekend</span>
-              <div className="flex-1 h-6 bg-stone-200 rounded-full overflow-hidden">
+              <span className="text-xs font-ui text-muted-foreground w-16">Weekend</span>
+              <div className="flex-1 h-6 bg-white/10 rounded-full overflow-hidden">
                 <motion.div
                   initial={{ width: 0 }}
                   animate={{ width: `${weekendPercent}%` }}

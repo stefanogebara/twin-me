@@ -21,9 +21,9 @@ import {
 import type { Goal } from '@/services/api/goalsAPI';
 
 // Design tokens
-const TEXT_PRIMARY = '#000000';
-const TEXT_SECONDARY = '#8A857D';
-const BORDER_COLOR = 'rgba(0, 0, 0, 0.08)';
+const TEXT_PRIMARY = 'var(--foreground)';
+const TEXT_SECONDARY = 'var(--text-secondary)';
+const BORDER_COLOR = 'var(--glass-surface-border)';
 
 // Category to icon mapping
 const CATEGORY_ICONS: Record<string, React.ElementType> = {
@@ -100,7 +100,7 @@ const GoalSuggestionCard: React.FC<GoalSuggestionCardProps> = ({
       <div
         className="w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 mt-1"
         style={{
-          background: 'rgba(0, 0, 0, 0.05)',
+          background: 'var(--glass-surface-bg)',
           border: `1px solid ${BORDER_COLOR}`,
         }}
       >
@@ -111,7 +111,7 @@ const GoalSuggestionCard: React.FC<GoalSuggestionCardProps> = ({
       <div
         className="flex-1 rounded-2xl rounded-tl-md p-4 space-y-3"
         style={{
-          background: 'rgba(0, 0, 0, 0.03)',
+          background: 'var(--glass-surface-bg-subtle)',
           border: `1px solid ${BORDER_COLOR}`,
         }}
       >
@@ -148,7 +148,7 @@ const GoalSuggestionCard: React.FC<GoalSuggestionCardProps> = ({
         {goal.source_observation && (
           <p
             className="text-xs italic pl-9"
-            style={{ color: 'rgba(0, 0, 0, 0.35)' }}
+            style={{ color: TEXT_SECONDARY, opacity: 0.7 }}
           >
             Based on: {goal.source_observation}
           </p>
@@ -172,7 +172,7 @@ const GoalSuggestionCard: React.FC<GoalSuggestionCardProps> = ({
           <span
             className="px-2 py-0.5 rounded-full text-[10px]"
             style={{
-              background: 'rgba(0, 0, 0, 0.03)',
+              background: 'var(--glass-surface-bg-subtle)',
               color: TEXT_SECONDARY,
               border: `1px solid ${BORDER_COLOR}`,
             }}
@@ -183,7 +183,7 @@ const GoalSuggestionCard: React.FC<GoalSuggestionCardProps> = ({
             <span
               className="px-2 py-0.5 rounded-full text-[10px] capitalize"
               style={{
-                background: 'rgba(0, 0, 0, 0.03)',
+                background: 'var(--glass-surface-bg-subtle)',
                 color: TEXT_SECONDARY,
                 border: `1px solid ${BORDER_COLOR}`,
               }}

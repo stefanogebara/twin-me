@@ -4,9 +4,9 @@
     <!-- Inline script to prevent flash of light mode - must run before body renders -->
     <script>
       (function() {
-        // Check localStorage for saved theme, default to 'dark'
         var theme = localStorage.getItem('theme') || 'dark';
-        if (theme === 'dark') {
+        var isDark = theme === 'dark' || (theme === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
+        if (isDark) {
           document.documentElement.classList.add('dark');
           document.documentElement.setAttribute('data-theme', 'dark');
         } else {
@@ -38,6 +38,18 @@
   </head>
 
   <body>
+    <!-- SVG filter for liquid glass refraction (Chrome/Edge — progressive enhancement) -->
+    <svg style="display:none;position:absolute;width:0;height:0" aria-hidden="true">
+      <defs>
+        <filter id="liquid-glass-refract" x="-10%" y="-10%" width="120%" height="120%" color-interpolation-filters="sRGB">
+          <feGaussianBlur in="SourceGraphic" stdDeviation="0.8" result="blurred"/>
+          <feTurbulence type="turbulence" baseFrequency="0.01 0.01" numOctaves="2" seed="42" result="noise"/>
+          <feDisplacementMap in="blurred" in2="noise" scale="18" xChannelSelector="R" yChannelSelector="G" result="displaced"/>
+          <feColorMatrix in="displaced" type="saturate" values="1.6" result="final"/>
+        </filter>
+      </defs>
+    </svg>
+
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>

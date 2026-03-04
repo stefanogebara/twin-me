@@ -28,14 +28,14 @@ export const NextEventCard: React.FC<NextEventCardProps> = ({
 }) => {
   if (nextEvent) {
     return (
-      <GlassPanel className="mb-8 relative overflow-hidden" variant="card">
+      <GlassPanel className="mb-14 relative overflow-hidden" variant="card">
         <div>
           <div className="flex items-start justify-between mb-6">
             <div>
               <div className="flex items-center gap-2 mb-2">
                 <span
                   className="text-xs uppercase tracking-wider"
-                  style={{ color: '#8A857D' }}
+                  style={{ color: 'var(--text-secondary)' }}
                 >
                   Next Important Event
                 </span>
@@ -48,7 +48,7 @@ export const NextEventCard: React.FC<NextEventCardProps> = ({
                   >
                     <RefreshCw
                       className={`w-3 h-3 ${syncing ? 'animate-spin' : ''}`}
-                      style={{ color: '#8A857D' }}
+                      style={{ color: 'var(--text-secondary)' }}
                     />
                   </button>
                 )}
@@ -58,7 +58,7 @@ export const NextEventCard: React.FC<NextEventCardProps> = ({
                 style={{
                   fontFamily: 'var(--font-heading)',
                   fontWeight: 500,
-                  color: '#000000'
+                  color: 'var(--foreground)'
                 }}
               >
                 {nextEvent.title}
@@ -66,7 +66,7 @@ export const NextEventCard: React.FC<NextEventCardProps> = ({
               <div className="flex items-center gap-4">
                 <span
                   className="flex items-center gap-1.5 text-sm"
-                  style={{ color: '#8A857D' }}
+                  style={{ color: 'var(--text-secondary)' }}
                 >
                   <Clock className="w-4 h-4" />
                   {(() => {
@@ -80,8 +80,8 @@ export const NextEventCard: React.FC<NextEventCardProps> = ({
                 <span
                   className="px-2 py-0.5 rounded-full text-xs"
                   style={{
-                    backgroundColor: 'rgba(0, 0, 0, 0.08)',
-                    color: '#8A857D'
+                    backgroundColor: 'rgba(255, 255, 255, 0.06)',
+                    color: 'var(--text-secondary)'
                   }}
                 >
                   {nextEvent.type}
@@ -92,10 +92,10 @@ export const NextEventCard: React.FC<NextEventCardProps> = ({
             <div
               className="w-12 h-12 rounded-xl flex items-center justify-center"
               style={{
-                backgroundColor: 'rgba(0, 0, 0, 0.05)'
+                backgroundColor: 'rgba(255, 255, 255, 0.06)'
               }}
             >
-              <Target className="w-6 h-6" style={{ color: '#8A857D' }} />
+              <Target className="w-6 h-6" style={{ color: 'var(--text-secondary)' }} />
             </div>
           </div>
 
@@ -121,19 +121,19 @@ export const NextEventCard: React.FC<NextEventCardProps> = ({
 
   return (
     <div
-      className="mb-8 px-4 py-3 rounded-xl flex items-center gap-3"
+      className="mb-14 px-5 py-4 rounded-xl flex items-center gap-3"
       style={{
         backgroundColor: 'rgba(255, 255, 255, 0.7)',
-        border: '1px solid rgba(0, 0, 0, 0.06)'
+        border: '1px solid rgba(255, 255, 255, 0.06)'
       }}
     >
       <Clock
         className="w-5 h-5 flex-shrink-0 opacity-40"
-        style={{ color: '#000000' }}
+        style={{ color: 'var(--foreground)' }}
       />
       <span
         className="text-sm flex-1"
-        style={{ color: '#8A857D' }}
+        style={{ color: 'var(--text-secondary)' }}
       >
         {isCalendarConnected ? 'No events today' : 'Connect your calendar to see events'}
       </span>
@@ -141,8 +141,8 @@ export const NextEventCard: React.FC<NextEventCardProps> = ({
         onClick={() => onNavigate(isCalendarConnected ? '/insights/calendar' : '/get-started')}
         className="px-3 py-1.5 rounded-lg text-xs font-medium transition-colors hover:opacity-80 flex-shrink-0"
         style={{
-          backgroundColor: 'rgba(0, 0, 0, 0.06)',
-          color: '#000000'
+          backgroundColor: 'rgba(255, 255, 255, 0.06)',
+          color: 'var(--foreground)'
         }}
       >
         {isCalendarConnected ? 'View Calendar' : 'Connect Calendar'}

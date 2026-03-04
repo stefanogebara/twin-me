@@ -70,7 +70,7 @@ const ScoreButton = ({ value, current, onClick }: { value: number; current: numb
     className={`w-8 h-8 rounded-lg text-sm font-semibold transition-colors ${
       current === value
         ? 'bg-indigo-600 text-white'
-        : 'bg-stone-100 text-stone-600 hover:bg-stone-200'
+        : 'bg-white/8 text-muted-foreground hover:bg-white/10'
     }`}
   >
     {value}
@@ -230,17 +230,17 @@ export default function EvalDashboard() {
         {/* Header */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-indigo-100 flex items-center justify-center">
-              <ClipboardCheck className="w-5 h-5 text-indigo-600" />
+            <div className="w-10 h-10 rounded-xl bg-indigo-900/20 flex items-center justify-center">
+              <ClipboardCheck className="w-5 h-5 text-indigo-400" />
             </div>
             <div>
-              <h1 className="text-xl font-semibold text-stone-900">Twin Accuracy Eval</h1>
-              <p className="text-sm text-stone-500">Internal tool — run monthly to track quality</p>
+              <h1 className="text-xl font-semibold text-foreground">Twin Accuracy Eval</h1>
+              <p className="text-sm text-muted-foreground">Internal tool — run monthly to track quality</p>
             </div>
           </div>
           {trend !== null && trend !== undefined && (
             <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium ${
-              trend >= 0 ? 'bg-emerald-50 text-emerald-700' : 'bg-red-50 text-red-700'
+              trend >= 0 ? 'bg-emerald-50 text-emerald-700' : 'bg-red-900/20 text-red-700'
             }`}>
               {trend >= 0 ? <TrendingUp className="w-4 h-4" /> : <TrendingDown className="w-4 h-4" />}
               {trend >= 0 ? '+' : ''}{trend}% vs last run
@@ -250,8 +250,8 @@ export default function EvalDashboard() {
 
         {/* Score History Chart */}
         {historyChartData.length > 0 && (
-          <div className="bg-white rounded-xl border border-stone-200 p-6">
-            <h2 className="text-sm font-semibold text-stone-700 mb-4">Score History</h2>
+          <div className="glass-card p-6">
+            <h2 className="text-sm font-semibold text-muted-foreground mb-4">Score History</h2>
             <ResponsiveContainer width="100%" height={160}>
               <LineChart data={historyChartData}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#F3F4F6" />
@@ -265,17 +265,17 @@ export default function EvalDashboard() {
         )}
 
         {/* Feature Flags */}
-        <div className="bg-white rounded-xl border border-stone-200 p-6">
-          <h2 className="text-sm font-semibold text-stone-700 mb-4">Feature Flags (A/B)</h2>
-          <p className="text-xs text-stone-500 mb-4">Toggle features off, run an eval, compare scores to measure impact.</p>
+        <div className="glass-card p-6">
+          <h2 className="text-sm font-semibold text-muted-foreground mb-4">Feature Flags (A/B)</h2>
+          <p className="text-xs text-muted-foreground mb-4">Toggle features off, run an eval, compare scores to measure impact.</p>
           <div className="grid md:grid-cols-2 gap-3">
             {(flagsData?.flags || []).map(flag => {
               const meta = FLAG_LABELS[flag.flag_name] || { label: flag.flag_name, description: '' };
               return (
-                <div key={flag.flag_name} className="flex items-center justify-between p-3 bg-stone-50 rounded-lg">
+                <div key={flag.flag_name} className="flex items-center justify-between p-3 bg-[var(--glass-surface-bg)] rounded-lg">
                   <div>
-                    <div className="text-sm font-medium text-stone-800">{meta.label}</div>
-                    <div className="text-xs text-stone-500">{meta.description}</div>
+                    <div className="text-sm font-medium text-foreground">{meta.label}</div>
+                    <div className="text-xs text-muted-foreground">{meta.description}</div>
                   </div>
                   <button
                     onClick={() => flagMutation.mutate({ flag_name: flag.flag_name, enabled: !flag.enabled })}
@@ -284,8 +284,8 @@ export default function EvalDashboard() {
                     title={flag.enabled ? 'Disable' : 'Enable'}
                   >
                     {flag.enabled
-                      ? <ToggleRight className="w-8 h-8 text-indigo-600" />
-                      : <ToggleLeft className="w-8 h-8 text-stone-400" />}
+                      ? <ToggleRight className="w-8 h-8 text-indigo-400" />
+                      : <ToggleLeft className="w-8 h-8 text-muted-foreground" />}
                   </button>
                 </div>
               );
@@ -294,16 +294,16 @@ export default function EvalDashboard() {
         </div>
 
         {/* Start Eval Run */}
-        <div className="bg-white rounded-xl border border-stone-200 p-6">
+        <div className="glass-card p-6">
           <div className="flex items-center justify-between mb-2">
-            <h2 className="text-sm font-semibold text-stone-700">Run New Eval</h2>
+            <h2 className="text-sm font-semibold text-muted-foreground">Run New Eval</h2>
             {activeRun && (
-              <span className="text-xs text-stone-400">
+              <span className="text-xs text-muted-foreground">
                 {scoredCount}/{questionCount} scored
               </span>
             )}
           </div>
-          <p className="text-xs text-stone-500 mb-4">
+          <p className="text-xs text-muted-foreground mb-4">
             Asks the twin 10 standard questions and captures responses. You then score each on Accuracy, Specificity, and Voice (1–5).
           </p>
           <button
@@ -316,17 +316,17 @@ export default function EvalDashboard() {
               : <><Play className="w-4 h-4" /> Start Eval Run</>}
           </button>
           {runMutation.isPending && (
-            <p className="text-xs text-stone-400 mt-2">This may take 30–60 seconds while the twin answers each question.</p>
+            <p className="text-xs text-muted-foreground mt-2">This may take 30–60 seconds while the twin answers each question.</p>
           )}
         </div>
 
         {/* Active Run: Score Questions */}
         {activeRun && (
-          <div className="bg-white rounded-xl border border-stone-200 p-6 space-y-4">
+          <div className="glass-card p-6 space-y-4">
             <div className="flex items-center justify-between">
-              <h2 className="text-sm font-semibold text-stone-700">Score Responses</h2>
+              <h2 className="text-sm font-semibold text-muted-foreground">Score Responses</h2>
               {activeRun.total_score !== null && (
-                <div className="px-3 py-1 bg-indigo-50 text-indigo-700 rounded-lg text-sm font-bold">
+                <div className="px-3 py-1 bg-indigo-900/20 text-indigo-700 rounded-lg text-sm font-bold">
                   {activeRun.total_score.toFixed(1)}%
                 </div>
               )}
@@ -336,34 +336,34 @@ export default function EvalDashboard() {
               const local = localScores[q.id] || { accuracy: null, specificity: null, voice: null };
               const isExpanded = expandedQ === q.id;
               return (
-                <div key={q.id} className="border border-stone-200 rounded-xl overflow-hidden">
+                <div key={q.id} className="border border-white/10 rounded-xl overflow-hidden">
                   <button
-                    className="w-full flex items-center justify-between p-4 hover:bg-stone-50 transition-colors text-left"
+                    className="w-full flex items-center justify-between p-4 hover:bg-[var(--glass-surface-bg-hover)] transition-colors text-left"
                     onClick={() => setExpandedQ(isExpanded ? null : q.id)}
                   >
                     <div className="flex items-center gap-3">
                       <span className={`w-2 h-2 rounded-full flex-shrink-0`} style={{ background: TYPE_COLORS[q.type] || '#9CA3AF' }} />
-                      <span className="text-sm font-medium text-stone-800">{q.question}</span>
+                      <span className="text-sm font-medium text-foreground">{q.question}</span>
                     </div>
                     <div className="flex items-center gap-2">
                       {local.accuracy !== null && local.specificity !== null && local.voice !== null && (
                         <span className="text-xs text-emerald-600 font-medium">✓ scored</span>
                       )}
-                      {isExpanded ? <ChevronUp className="w-4 h-4 text-stone-400" /> : <ChevronDown className="w-4 h-4 text-stone-400" />}
+                      {isExpanded ? <ChevronUp className="w-4 h-4 text-muted-foreground" /> : <ChevronDown className="w-4 h-4 text-muted-foreground" />}
                     </div>
                   </button>
 
                   {isExpanded && (
-                    <div className="border-t border-stone-100 p-4 space-y-4">
-                      <div className="bg-stone-50 rounded-lg p-3">
-                        <div className="text-xs text-stone-500 mb-1 font-medium">Twin's response:</div>
-                        <p className="text-sm text-stone-700 leading-relaxed whitespace-pre-wrap">{q.twinResponse}</p>
+                    <div className="border-t border-[var(--glass-surface-border)] p-4 space-y-4">
+                      <div className="bg-[var(--glass-surface-bg)] rounded-lg p-3">
+                        <div className="text-xs text-muted-foreground mb-1 font-medium">Twin's response:</div>
+                        <p className="text-sm text-muted-foreground leading-relaxed whitespace-pre-wrap">{q.twinResponse}</p>
                       </div>
 
                       <div className="grid grid-cols-3 gap-4">
                         {(['accuracy', 'specificity', 'voice'] as const).map(dim => (
                           <div key={dim}>
-                            <div className="text-xs font-medium text-stone-600 mb-2 capitalize">{dim}</div>
+                            <div className="text-xs font-medium text-muted-foreground mb-2 capitalize">{dim}</div>
                             <div className="flex gap-1">
                               {[1, 2, 3, 4, 5].map(v => (
                                 <ScoreButton key={v} value={v} current={local[dim]} onClick={() => setScore(q.id, dim, v)} />
@@ -378,13 +378,13 @@ export default function EvalDashboard() {
               );
             })}
 
-            <div className="pt-2 border-t border-stone-100">
+            <div className="pt-2 border-t border-[var(--glass-surface-border)]">
               <textarea
                 value={notes}
                 onChange={e => setNotes(e.target.value)}
                 placeholder="Optional notes about this eval run..."
                 rows={2}
-                className="w-full text-sm border border-stone-200 rounded-lg p-3 resize-none text-stone-700 placeholder-stone-400 focus:outline-none focus:ring-2 focus:ring-indigo-400"
+                className="w-full text-sm border border-white/10 rounded-lg p-3 resize-none text-muted-foreground placeholder-stone-400 focus:outline-none focus:ring-2 focus:ring-indigo-400"
               />
               <button
                 onClick={() => scoreMutation.mutate()}
@@ -401,16 +401,16 @@ export default function EvalDashboard() {
 
         {/* History Table */}
         {(historyData?.runs || []).length > 0 && (
-          <div className="bg-white rounded-xl border border-stone-200 p-6">
-            <h2 className="text-sm font-semibold text-stone-700 mb-4">Past Runs</h2>
+          <div className="glass-card p-6">
+            <h2 className="text-sm font-semibold text-muted-foreground mb-4">Past Runs</h2>
             <div className="space-y-2">
               {historyData.runs.map((run: any) => (
-                <div key={run.id} className="flex items-center justify-between p-3 bg-stone-50 rounded-lg">
+                <div key={run.id} className="flex items-center justify-between p-3 bg-[var(--glass-surface-bg)] rounded-lg">
                   <div>
-                    <div className="text-sm text-stone-700">{new Date(run.run_at).toLocaleString()}</div>
-                    {run.notes && <div className="text-xs text-stone-500 mt-0.5">{run.notes}</div>}
+                    <div className="text-sm text-muted-foreground">{new Date(run.run_at).toLocaleString()}</div>
+                    {run.notes && <div className="text-xs text-muted-foreground mt-0.5">{run.notes}</div>}
                   </div>
-                  <div className="text-sm font-bold text-stone-900">
+                  <div className="text-sm font-bold text-foreground">
                     {run.total_score !== null ? `${run.total_score.toFixed(1)}%` : '—'}
                   </div>
                 </div>

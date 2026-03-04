@@ -121,21 +121,21 @@ const TalkToTwin = () => {
 
   // Design system color tokens
   const colors = {
-    bg: '#fcf6ef',
-    bgSecondary: 'rgba(255, 255, 255, 0.7)',
-    bgTertiary: 'rgba(0, 0, 0, 0.05)',
-    text: '#000000',
-    textSecondary: '#8A857D',
-    textMuted: '#8A857D',
-    border: 'rgba(231, 229, 228, 0.6)',
-    accent: '#000000',
-    accentHover: '#1a1410',
-    userBubble: 'rgba(0, 0, 0, 0.06)',
-    userBubbleBg: 'rgba(0, 0, 0, 0.88)',
-    userBubbleText: '#fcf6ef',
+    bg: 'var(--background)',
+    bgSecondary: 'var(--glass-surface-bg)',
+    bgTertiary: 'var(--glass-surface-bg-subtle)',
+    text: 'var(--foreground)',
+    textSecondary: 'var(--text-secondary)',
+    textMuted: 'var(--text-muted)',
+    border: 'var(--glass-surface-border)',
+    accent: 'var(--foreground)',
+    accentHover: 'rgba(255, 255, 255, 0.90)',
+    userBubble: 'var(--glass-surface-bg)',
+    userBubbleBg: 'var(--glass-surface-bg-hover)',
+    userBubbleText: 'var(--foreground)',
     assistantBubble: 'transparent',
-    inputBg: 'rgba(255, 255, 255, 0.9)',
-    inputBorder: 'rgba(231, 229, 228, 0.6)',
+    inputBg: 'var(--glass-surface-bg)',
+    inputBorder: 'var(--glass-surface-border-hover)',
   };
 
   const platforms = [
@@ -441,7 +441,7 @@ const TalkToTwin = () => {
 
   if (!interviewChecked) {
     return (
-      <div className="flex h-screen items-center justify-center" style={{ backgroundColor: '#fcf6ef' }}>
+      <div className="flex h-screen items-center justify-center" style={{ backgroundColor: 'var(--background)' }}>
         <div className="w-5 h-5 border-2 border-current border-t-transparent rounded-full animate-spin opacity-30" />
       </div>
     );
@@ -470,7 +470,7 @@ const TalkToTwin = () => {
               className="w-8 h-8 rounded-full flex items-center justify-center"
               style={{ backgroundColor: colors.accent }}
             >
-              <Sparkles className="w-4 h-4" style={{ color: '#fcf6ef' }} />
+              <Sparkles className="w-4 h-4" style={{ color: 'var(--foreground)' }} />
             </div>
             <span
               className="font-medium"

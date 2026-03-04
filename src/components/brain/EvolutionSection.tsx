@@ -75,10 +75,10 @@ const CustomBarTooltip = ({
   return (
     <div
       className="rounded-lg px-3 py-2 text-xs shadow-md"
-      style={{ background: 'white', border: '1px solid rgba(0,0,0,0.08)' }}
+      style={{ background: 'var(--background)', border: '1px solid var(--glass-surface-border)' }}
     >
-      <p className="font-medium text-black/60 mb-0.5">{label}</p>
-      <p className="font-semibold text-black">{payload[0].value.toLocaleString()} memories</p>
+      <p className="font-medium text-foreground/60 mb-0.5">{label}</p>
+      <p className="font-semibold text-foreground">{payload[0].value.toLocaleString()} memories</p>
     </div>
   );
 };
@@ -106,7 +106,7 @@ function ArchetypeTimeline({ signatures }: { signatures: SoulSignatureEntry[] })
         >
           {unique[0]?.archetype_name ?? 'Unknown'}
         </div>
-        <span className="text-xs text-black/30">— collecting more data over time</span>
+        <span className="text-xs text-foreground/30">— collecting more data over time</span>
       </div>
     );
   }
@@ -123,14 +123,14 @@ function ArchetypeTimeline({ signatures }: { signatures: SoulSignatureEntry[] })
             style={{
               background: i === unique.length - 1
                 ? 'rgba(139,92,246,0.12)'
-                : 'rgba(0,0,0,0.05)',
+                : 'var(--glass-surface-bg-subtle)',
               color: i === unique.length - 1 ? '#8b5cf6' : '#8A857D',
             }}
           >
             {s.archetype_name ?? 'Unknown'}
           </motion.div>
           {i < unique.length - 1 && (
-            <ArrowRight size={12} className="text-black/20 flex-shrink-0" />
+            <ArrowRight size={12} className="text-foreground/20 flex-shrink-0" />
           )}
         </React.Fragment>
       ))}
@@ -182,7 +182,7 @@ export function EvolutionSection({ compact = false }: EvolutionSectionProps) {
     return (
       <div
         className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs"
-        style={{ background: 'rgba(0,0,0,0.05)', color: '#8A857D' }}
+        style={{ background: 'rgba(0,0,0,0.05)', color: 'var(--text-secondary)' }}
       >
         <Calendar size={11} />
         Known for {data.daysKnown} day{data.daysKnown !== 1 ? 's' : ''}
@@ -199,8 +199,8 @@ export function EvolutionSection({ compact = false }: EvolutionSectionProps) {
     >
       {/* Header */}
       <div className="flex items-center gap-3">
-        <TrendingUp size={18} className="text-black/40" />
-        <h2 className="heading-serif text-xl text-black">Soul Signature Evolution</h2>
+        <TrendingUp size={18} className="text-foreground/40" />
+        <h2 className="heading-serif text-xl text-foreground">Soul Signature Evolution</h2>
         <div
           className="ml-auto inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs"
           style={{ background: 'rgba(139,92,246,0.08)', color: '#8b5cf6' }}
@@ -214,7 +214,7 @@ export function EvolutionSection({ compact = false }: EvolutionSectionProps) {
       {hasRadar && (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-wider text-black/40 mb-4">
+            <p className="text-xs font-semibold uppercase tracking-wider text-foreground/40 mb-4">
               Personality Profile
             </p>
             <BigFiveRadarChart
@@ -229,7 +229,7 @@ export function EvolutionSection({ compact = false }: EvolutionSectionProps) {
               animated
             />
             {latestSnapshot.archetype_name && (
-              <p className="text-center text-sm font-medium mt-3 text-black/60">
+              <p className="text-center text-sm font-medium mt-3 text-foreground/60">
                 {latestSnapshot.archetype_name}
               </p>
             )}
@@ -238,11 +238,11 @@ export function EvolutionSection({ compact = false }: EvolutionSectionProps) {
           {/* Archetype Timeline */}
           {hasArchetypes && (
             <div>
-              <p className="text-xs font-semibold uppercase tracking-wider text-black/40 mb-4">
+              <p className="text-xs font-semibold uppercase tracking-wider text-foreground/40 mb-4">
                 Archetype Journey
               </p>
               <ArchetypeTimeline signatures={data.signatures} />
-              <p className="text-xs text-black/30 mt-3 leading-relaxed">
+              <p className="text-xs text-foreground/30 mt-3 leading-relaxed">
                 As your twin learns more about you, it refines its understanding of your core archetype.
               </p>
             </div>
@@ -253,7 +253,7 @@ export function EvolutionSection({ compact = false }: EvolutionSectionProps) {
       {/* Memory Growth Bar Chart */}
       {hasGrowth && (
         <div>
-          <p className="text-xs font-semibold uppercase tracking-wider text-black/40 mb-4">
+          <p className="text-xs font-semibold uppercase tracking-wider text-foreground/40 mb-4">
             Memory Growth (weekly)
           </p>
           <ResponsiveContainer width="100%" height={140}>
@@ -264,15 +264,15 @@ export function EvolutionSection({ compact = false }: EvolutionSectionProps) {
               }))}
               margin={{ top: 4, right: 4, left: -24, bottom: 0 }}
             >
-              <CartesianGrid vertical={false} strokeDasharray="3 3" stroke="rgba(0,0,0,0.05)" />
+              <CartesianGrid vertical={false} strokeDasharray="3 3" stroke="var(--glass-surface-border)" />
               <XAxis
                 dataKey="week"
-                tick={{ fontSize: 10, fill: '#8A857D' }}
+                tick={{ fontSize: 10, fill: 'var(--text-muted)' }}
                 axisLine={false}
                 tickLine={false}
               />
               <YAxis
-                tick={{ fontSize: 10, fill: '#8A857D' }}
+                tick={{ fontSize: 10, fill: 'var(--text-muted)' }}
                 axisLine={false}
                 tickLine={false}
               />

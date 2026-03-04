@@ -25,15 +25,15 @@ export const MemoryStreamFooter: React.FC<Props> = ({ stats, firstMemoryAt }) =>
     <div
       className="flex flex-wrap items-center justify-between gap-4 px-5 py-3 rounded-xl"
       style={{
-        backgroundColor: 'rgba(255, 255, 255, 0.5)',
-        border: '1px solid rgba(0, 0, 0, 0.03)',
+        backgroundColor: 'rgba(255, 255, 255, 0.06)',
+        border: '1px solid rgba(255, 255, 255, 0.04)',
       }}
     >
       <div className="flex flex-wrap items-center gap-4">
         {items.map(({ icon: Icon, label, value }) => (
           <div key={label} className="flex items-center gap-1.5">
-            <Icon className="w-3.5 h-3.5" style={{ color: '#a8a29e' }} />
-            <span className="text-xs" style={{ color: '#78716c' }}>
+            <Icon className="w-3.5 h-3.5" style={{ color: 'var(--text-muted)' }} />
+            <span className="text-xs" style={{ color: 'var(--text-muted)' }}>
               {value} {label.toLowerCase()}
             </span>
           </div>
@@ -41,7 +41,7 @@ export const MemoryStreamFooter: React.FC<Props> = ({ stats, firstMemoryAt }) =>
       </div>
 
       {twinAge && (
-        <span className="text-xs" style={{ color: '#a8a29e' }}>
+        <span className="text-xs" style={{ color: 'var(--text-muted)' }}>
           Twin age: {twinAge} {twinAge === 1 ? 'day' : 'days'}
         </span>
       )}

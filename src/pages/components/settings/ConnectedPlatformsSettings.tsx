@@ -38,15 +38,8 @@ const connectorConfig: ConnectorConfig[] = [
   { id: 'gmail', name: 'Gmail', description: 'Communication patterns from email metadata', isOAuth: false },
 ];
 
-// Glass card style matching the design system
-const cardStyle = {
-  background: 'rgba(255, 255, 255, 0.18)',
-  backdropFilter: 'blur(10px) saturate(140%)',
-  WebkitBackdropFilter: 'blur(10px) saturate(140%)',
-  borderRadius: '2rem',
-  border: '1px solid rgba(255, 255, 255, 0.45)',
-  boxShadow: '0 8px 32px rgba(0, 0, 0, 0.18), inset 0 1px 0 rgba(255, 255, 255, 0.6)',
-};
+// Glass card class from design system
+const cardClassName = 'glass-card';
 
 const ConnectedPlatformsSettings: React.FC<ConnectedPlatformsSettingsProps> = ({
   isDemoMode,
@@ -59,7 +52,7 @@ const ConnectedPlatformsSettings: React.FC<ConnectedPlatformsSettingsProps> = ({
   handleDisconnectService,
 }) => {
   return (
-    <section className="p-5" style={cardStyle}>
+    <section className={`p-5 ${cardClassName}`}>
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-3">
           <Clay3DIcon name="globe" size={20} />
@@ -78,9 +71,9 @@ const ConnectedPlatformsSettings: React.FC<ConnectedPlatformsSettingsProps> = ({
         <button
           onClick={() => refetch()}
           className="p-2 rounded-lg transition-all hover:scale-105"
-          style={{ backgroundColor: 'rgba(0, 0, 0, 0.05)' }}
+          style={{ backgroundColor: 'rgba(255, 255, 255, 0.06)' }}
         >
-          <RefreshCw className="w-4 h-4" style={{ color: '#000000' }} />
+          <RefreshCw className="w-4 h-4" style={{ color: 'var(--foreground)' }} />
         </button>
       </div>
 
@@ -93,7 +86,7 @@ const ConnectedPlatformsSettings: React.FC<ConnectedPlatformsSettingsProps> = ({
 
       {isLoading && !isDemoMode ? (
         <div className="flex items-center justify-center py-6">
-          <Loader2 className="w-5 h-5 animate-spin" style={{ color: '#000000' }} />
+          <Loader2 className="w-5 h-5 animate-spin" style={{ color: 'var(--foreground)' }} />
         </div>
       ) : (
         <div className="space-y-2">
@@ -108,17 +101,17 @@ const ConnectedPlatformsSettings: React.FC<ConnectedPlatformsSettingsProps> = ({
                 key={connector.id}
                 className="flex items-center justify-between p-3 rounded-xl"
                 style={{
-                  backgroundColor: 'rgba(255, 255, 255, 0.8)',
-                  border: '1px solid rgba(0, 0, 0, 0.04)'
+                  backgroundColor: 'var(--glass-surface-bg)',
+                  border: '1px solid var(--glass-surface-border)'
                 }}
               >
                 <div className="flex items-center gap-2">
                   <PlatformLogo platform={connector.id} size={22} />
                   <div>
-                    <h3 className="text-sm" style={{ fontFamily: 'var(--font-body)', fontWeight: 500, color: '#000000' }}>
+                    <h3 className="text-sm" style={{ fontFamily: 'var(--font-body)', fontWeight: 500, color: 'var(--foreground)' }}>
                       {connector.name}
                     </h3>
-                    <p className="text-xs" style={{ color: '#8A857D' }}>
+                    <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>
                       {connector.description}
                     </p>
                   </div>
@@ -155,7 +148,7 @@ const ConnectedPlatformsSettings: React.FC<ConnectedPlatformsSettingsProps> = ({
                       </button>
                     </>
                   ) : (
-                    <XCircle className="w-4 h-4" style={{ color: '#d6d3d1' }} />
+                    <XCircle className="w-4 h-4" style={{ color: 'var(--text-muted)' }} />
                   )}
                 </div>
               </div>

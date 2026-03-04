@@ -74,7 +74,7 @@ const platformConfig: Record<string, {
   github: {
     name: 'GitHub',
     icon: <CalendarLogo />,
-    color: '#333333'
+    color: 'var(--foreground)'
   },
   gmail: {
     name: 'Gmail',
@@ -187,11 +187,11 @@ export const DataVerification: React.FC<DataVerificationProps> = ({ userId, conn
         key={platform}
         className="p-4 rounded-xl transition-all hover:scale-[1.01]"
         style={{
-          background: 'rgba(255, 255, 255, 0.18)',
+          background: 'rgba(255, 255, 255, 0.06)',
           backdropFilter: 'blur(10px) saturate(140%)',
           WebkitBackdropFilter: 'blur(10px) saturate(140%)',
-          border: '1px solid rgba(255, 255, 255, 0.45)',
-          boxShadow: '0 8px 32px rgba(0, 0, 0, 0.18), inset 0 1px 0 rgba(255, 255, 255, 0.6)',
+          border: '1px solid rgba(255, 255, 255, 0.10)',
+          boxShadow: '0 8px 32px rgba(0, 0, 0, 0.18), inset 0 1px 0 rgba(255, 255, 255, 0.08)',
         }}
       >
         <div className="flex items-center justify-between">
@@ -203,7 +203,7 @@ export const DataVerification: React.FC<DataVerificationProps> = ({ userId, conn
               <h4
                 className="text-sm font-medium"
                 style={{
-                  color: '#000000',
+                  color: 'var(--foreground)',
                   fontFamily: 'var(--font-ui)'
                 }}
               >
@@ -253,7 +253,7 @@ export const DataVerification: React.FC<DataVerificationProps> = ({ userId, conn
         <h3
           className="text-base font-medium"
           style={{
-            color: '#000000',
+            color: 'var(--foreground)',
             fontFamily: 'var(--font-heading)'
           }}
         >
@@ -264,8 +264,8 @@ export const DataVerification: React.FC<DataVerificationProps> = ({ userId, conn
           disabled={loading}
           className="p-2 rounded-lg transition-all hover:opacity-80 disabled:opacity-50"
           style={{
-            backgroundColor: 'rgba(0, 0, 0, 0.05)',
-            color: '#000000'
+            backgroundColor: 'rgba(255, 255, 255, 0.06)',
+            color: 'var(--foreground)'
           }}
         >
           <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
@@ -275,7 +275,7 @@ export const DataVerification: React.FC<DataVerificationProps> = ({ userId, conn
       {loading && !platformStatuses && (
         <div className="flex items-center justify-center py-8">
           <Loader2 className="w-6 h-6 animate-spin" style={{
-            color: '#8A857D'
+            color: 'var(--text-secondary)'
           }} />
         </div>
       )}

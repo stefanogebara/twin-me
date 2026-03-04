@@ -21,7 +21,7 @@ import {
   TrendingUp,
   Heart
 } from 'lucide-react';
-import { Clay3DIcon } from '@/components/Clay3DIcon';
+import { Brain as BrainIcon } from 'lucide-react';
 
 // Mood config with emoji and color
 const MOOD_CONFIG: Record<string, { emoji: string; label: string; color: string }> = {
@@ -57,11 +57,11 @@ const JournalPage: React.FC = () => {
   const [tagInput, setTagInput] = useState('');
   const [saving, setSaving] = useState(false);
 
-  // Design system colors
-  const textPrimary = '#000000';
-  const textSecondary = '#8A857D';
-  const borderColor = 'rgba(0, 0, 0, 0.08)';
-  const inputBg = 'rgba(0, 0, 0, 0.03)';
+  // Design system colors (theme-aware via CSS vars)
+  const textPrimary = 'var(--foreground)';
+  const textSecondary = 'var(--text-secondary)';
+  const borderColor = 'var(--glass-surface-border)';
+  const inputBg = 'var(--glass-surface-bg-subtle)';
 
   // Load data
   const loadData = useCallback(async () => {
@@ -236,8 +236,8 @@ const JournalPage: React.FC = () => {
         {insights && insights.analyzedEntries > 0 && (
           <GlassPanel className="relative overflow-hidden p-8">
             <div className="flex items-start gap-5">
-              <div className="w-10 h-10 rounded-full flex items-center justify-center" style={{ background: 'rgba(0,0,0,0.05)' }}>
-                <Clay3DIcon name="brain" size={20} />
+              <div className="w-10 h-10 rounded-full flex items-center justify-center" style={{ background: 'var(--glass-surface-bg)' }}>
+                <BrainIcon className="w-5 h-5" style={{ color: 'var(--text-secondary)' }} />
               </div>
               <div className="flex-1 min-w-0">
                 <h3 className="heading-serif text-sm font-medium mb-2">
@@ -254,7 +254,7 @@ const JournalPage: React.FC = () => {
                       key={t.theme}
                       className="px-2.5 py-1 rounded-full text-xs"
                       style={{
-                        background: 'rgba(0,0,0,0.04)',
+                        background: 'var(--glass-surface-bg-subtle)',
                         color: textSecondary,
                         border: `1px solid ${borderColor}`
                       }}
@@ -266,7 +266,7 @@ const JournalPage: React.FC = () => {
                     <span
                       className="px-2.5 py-1 rounded-full text-xs flex items-center gap-1"
                       style={{
-                        background: 'rgba(0,0,0,0.04)',
+                        background: 'var(--glass-surface-bg-subtle)',
                         color: textSecondary,
                         border: `1px solid ${borderColor}`
                       }}
@@ -286,7 +286,7 @@ const JournalPage: React.FC = () => {
             onClick={() => setShowComposer(true)}
             className="w-full flex items-center gap-3 p-6 rounded-2xl transition-colors duration-200"
             style={{
-              background: 'rgba(0,0,0,0.03)',
+              background: 'var(--glass-surface-bg-subtle)',
               border: `1px dashed ${borderColor}`,
               color: textSecondary
             }}
@@ -388,8 +388,8 @@ const JournalPage: React.FC = () => {
                       onClick={() => setEnergyLevel(level)}
                       className="w-10 h-10 rounded-xl text-sm font-medium transition-all"
                       style={{
-                        background: energyLevel >= level ? 'rgba(0,0,0,0.08)' : inputBg,
-                        border: `1px solid ${energyLevel >= level ? 'rgba(0,0,0,0.15)' : borderColor}`,
+                        background: energyLevel >= level ? 'var(--glass-surface-bg-hover)' : inputBg,
+                        border: `1px solid ${energyLevel >= level ? 'var(--glass-surface-border-hover)' : borderColor}`,
                         color: textPrimary
                       }}
                     >
@@ -408,7 +408,7 @@ const JournalPage: React.FC = () => {
                       key={t}
                       className="px-2 py-1 rounded-full text-xs flex items-center gap-1"
                       style={{
-                        background: 'rgba(0,0,0,0.05)',
+                        background: 'var(--glass-surface-bg)',
                         color: textSecondary,
                         border: `1px solid ${borderColor}`
                       }}
@@ -477,7 +477,7 @@ const JournalPage: React.FC = () => {
               animate={{ opacity: 0.5, scale: 1 }}
               transition={{ duration: 0.5, ease: [0.4, 0, 0.2, 1] }}
             >
-              <Clay3DIcon name="light-bulb" size={48} />
+              <BrainIcon className="w-12 h-12" style={{ color: 'var(--text-muted)' }} />
             </motion.div>
             <motion.h3
               className="heading-serif text-lg mb-2"
@@ -514,7 +514,7 @@ const JournalPage: React.FC = () => {
                   }}
                   className="text-left p-6 rounded-2xl transition-colors duration-200 group"
                   style={{
-                    background: 'rgba(0,0,0,0.02)',
+                    background: 'var(--glass-surface-bg-subtle)',
                     border: `1px dashed ${borderColor}`,
                   }}
                   initial={{ opacity: 0, y: 10 }}
@@ -580,7 +580,7 @@ const JournalPage: React.FC = () => {
                               key={t}
                               className="px-2 py-0.5 rounded-full text-[10px]"
                               style={{
-                                background: 'rgba(0,0,0,0.03)',
+                                background: 'var(--glass-surface-bg-subtle)',
                                 color: textSecondary,
                                 border: `1px solid ${borderColor}`
                               }}
@@ -632,7 +632,7 @@ const JournalPage: React.FC = () => {
                           }}
                         >
                           <div className="flex items-center gap-2 mb-2">
-                            <Clay3DIcon name="brain" size={16} />
+                            <BrainIcon className="w-4 h-4" style={{ color: '#9C27B0' }} />
                             <span className="text-xs font-medium" style={{ color: textPrimary }}>AI Analysis</span>
                           </div>
 
@@ -651,7 +651,7 @@ const JournalPage: React.FC = () => {
                                 {analysis.emotions.map((em, i) => (
                                   <div key={i} className="flex items-center gap-1.5">
                                     <span className="text-xs" style={{ color: textSecondary }}>{em.emotion}</span>
-                                    <div className="w-16 h-1.5 rounded-full overflow-hidden" style={{ background: 'rgba(0,0,0,0.06)' }}>
+                                    <div className="w-16 h-1.5 rounded-full overflow-hidden" style={{ background: 'var(--glass-surface-bg)' }}>
                                       <div
                                         className="h-full rounded-full"
                                         style={{ width: `${em.intensity * 100}%`, background: '#9C27B0' }}
@@ -720,7 +720,7 @@ const JournalPage: React.FC = () => {
                                   key={i}
                                   className="px-2 py-0.5 rounded-full text-[10px]"
                                   style={{
-                                    background: 'rgba(0,0,0,0.03)',
+                                    background: 'var(--glass-surface-bg-subtle)',
                                     color: textSecondary,
                                     border: `1px solid ${borderColor}`
                                   }}

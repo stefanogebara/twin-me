@@ -48,7 +48,7 @@ const DiscoverLanding: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center px-6 py-20" style={{ backgroundColor: '#fcf6ef' }}>
+    <div className="min-h-screen flex flex-col items-center justify-center px-6 py-20" style={{ backgroundColor: 'var(--background)' }}>
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
         className="max-w-[480px] w-full mx-auto space-y-8">
 
@@ -61,7 +61,7 @@ const DiscoverLanding: React.FC = () => {
         {/* Header */}
         <div className="text-center space-y-3">
           <h1 className="heading-serif text-5xl font-normal tracking-tight">Discover your Soul Signature</h1>
-          <p className="text-base leading-relaxed" style={{ color: '#8A857D' }}>
+          <p className="text-base leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
             First, let's see what the internet already knows about you.
           </p>
         </div>
@@ -76,19 +76,19 @@ const DiscoverLanding: React.FC = () => {
               placeholder="your@email.com"
               className="w-full rounded-xl px-4 py-3 text-sm focus:outline-none"
               style={{
-                background: '#fff',
-                border: '1px solid rgba(0,0,0,0.12)',
-                color: '#000',
+                background: 'var(--glass-surface-bg)',
+                border: '1px solid var(--glass-surface-border)',
+                color: 'var(--foreground)',
               }}
-              onFocus={e => (e.target.style.border = '1px solid rgba(0,0,0,0.3)')}
-              onBlur={e => (e.target.style.border = '1px solid rgba(0,0,0,0.12)')}
+              onFocus={e => (e.target.style.border = '1px solid var(--glass-surface-border-hover)')}
+              onBlur={e => (e.target.style.border = '1px solid var(--glass-surface-border)')}
               required
             />
             <button type="submit" disabled={loading} className="btn-cta w-full disabled:opacity-50 flex items-center justify-center gap-2">
               {loading && <Loader2 className="animate-spin w-4 h-4" />}
               {loading ? 'Scanning the web...' : 'Scan my public footprint'}
             </button>
-            {error && <p className="text-sm text-center" style={{ color: '#b45309' }}>{error}</p>}
+            {error && <p className="text-sm text-center" style={{ color: 'var(--text-secondary)' }}>{error}</p>}
           </form>
         )}
 
@@ -99,12 +99,12 @@ const DiscoverLanding: React.FC = () => {
               {discovered ? (
                 <div className="rounded-2xl p-6 space-y-3"
                   style={{
-                    background: 'rgba(255,255,255,0.7)',
-                    border: '1px solid rgba(0,0,0,0.06)',
+                    background: 'var(--glass-surface-bg)',
+                    border: '1px solid var(--glass-surface-border)',
                     backdropFilter: 'blur(8px)',
-                    boxShadow: '0 4px 24px rgba(0,0,0,0.06)',
+                    boxShadow: 'var(--glass-shadow)',
                   }}>
-                  <p className="text-xs uppercase tracking-widest font-medium" style={{ color: '#8A857D' }}>
+                  <p className="text-xs uppercase tracking-widest font-medium" style={{ color: 'var(--text-secondary)' }}>
                     What the world knows about you
                   </p>
                   {discovered.discovered_photo && (
@@ -114,7 +114,7 @@ const DiscoverLanding: React.FC = () => {
                     <p className="heading-serif text-2xl">{discovered.discovered_name}</p>
                   )}
                   {discovered.discovered_title && (
-                    <p className="text-sm" style={{ color: '#8A857D' }}>
+                    <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
                       {discovered.discovered_title}{discovered.discovered_company ? ` · ${discovered.discovered_company}` : ''}
                     </p>
                   )}
@@ -122,10 +122,10 @@ const DiscoverLanding: React.FC = () => {
                     <p className="text-sm leading-relaxed line-clamp-3">{discovered.discovered_bio}</p>
                   )}
                   {discovered.discovered_location && (
-                    <p className="text-sm" style={{ color: '#8A857D' }}>📍 {discovered.discovered_location}</p>
+                    <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>📍 {discovered.discovered_location}</p>
                   )}
-                  <div className="pt-3" style={{ borderTop: '1px solid rgba(0,0,0,0.06)' }}>
-                    <p className="text-sm italic" style={{ color: '#C4A265' }}>
+                  <div className="pt-3" style={{ borderTop: '1px solid var(--glass-surface-border)' }}>
+                    <p className="text-sm italic" style={{ color: 'var(--accent-vibrant)' }}>
                       That's just the surface. Your real self is much more interesting.
                     </p>
                   </div>
@@ -133,14 +133,14 @@ const DiscoverLanding: React.FC = () => {
               ) : (
                 <div className="rounded-2xl p-6 text-center space-y-3"
                   style={{
-                    background: 'rgba(255,255,255,0.7)',
-                    border: '1px solid rgba(0,0,0,0.06)',
+                    background: 'var(--glass-surface-bg)',
+                    border: '1px solid var(--glass-surface-border)',
                     backdropFilter: 'blur(8px)',
-                    boxShadow: '0 4px 24px rgba(0,0,0,0.06)',
+                    boxShadow: 'var(--glass-shadow)',
                   }}>
                   <p className="text-4xl">👻</p>
                   <p className="heading-serif text-2xl">You're a ghost on the internet.</p>
-                  <p className="text-sm" style={{ color: '#8A857D' }}>
+                  <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
                     No public footprint found — your Soul Signature will be built entirely from what you share with us.
                   </p>
                 </div>

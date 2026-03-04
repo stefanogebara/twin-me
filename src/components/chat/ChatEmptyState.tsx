@@ -38,11 +38,11 @@ interface ChatEmptyStateProps {
 
 // Glass button style matching the design system
 const glassButtonStyle = {
-  backgroundColor: 'rgba(255, 255, 255, 0.18)',
+  backgroundColor: 'var(--glass-surface-bg)',
   backdropFilter: 'blur(10px) saturate(140%)',
   WebkitBackdropFilter: 'blur(10px) saturate(140%)',
-  border: '1px solid rgba(255, 255, 255, 0.45)',
-  color: '#000000',
+  border: '1px solid var(--glass-surface-border)',
+  color: 'var(--foreground)',
 } as React.CSSProperties;
 
 export const ChatEmptyState = ({
@@ -58,7 +58,7 @@ export const ChatEmptyState = ({
     <div className="h-full flex flex-col items-center justify-center px-4 py-12">
       <motion.div
         className="w-20 h-20 rounded-full flex items-center justify-center mb-8"
-        style={{ backgroundColor: 'rgba(255, 255, 255, 0.18)', border: '1px solid rgba(255, 255, 255, 0.45)' }}
+        style={{ backgroundColor: 'var(--glass-surface-bg)', border: '1px solid var(--glass-surface-border)' }}
         initial={{ opacity: 0, scale: 0.6 }}
         animate={{ opacity: 1, scale: 1 }}
         transition={{ duration: 0.5, ease: [0.4, 0, 0.2, 1] }}
@@ -68,7 +68,7 @@ export const ChatEmptyState = ({
 
       <motion.h1
         className="text-2xl md:text-3xl font-medium mb-3 text-center heading-serif"
-        style={{ color: '#000000' }}
+        style={{ color: 'var(--foreground)' }}
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.4, delay: 0.15, ease: [0.4, 0, 0.2, 1] }}
@@ -81,7 +81,7 @@ export const ChatEmptyState = ({
 
       <motion.p
         className="text-center mb-8 max-w-md"
-        style={{ color: '#8A857D' }}
+        style={{ color: 'var(--text-secondary)' }}
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.4, delay: 0.25, ease: [0.4, 0, 0.2, 1] }}
@@ -106,7 +106,7 @@ export const ChatEmptyState = ({
               whileHover={{ scale: 1.04, y: -2 }}
               whileTap={{ scale: 0.97 }}
             >
-              <span style={{ color: '#000000' }}>{action.icon}</span>
+              <span style={{ color: 'var(--foreground)' }}>{action.icon}</span>
               {action.label}
             </motion.button>
           ))}
@@ -125,11 +125,11 @@ export const ChatEmptyState = ({
             style={{
               backgroundColor: platform.connected
                 ? `${platform.color}15`
-                : 'rgba(255, 255, 255, 0.18)',
-              color: platform.connected ? platform.color : '#8A857D',
+                : 'var(--glass-surface-bg)',
+              color: platform.connected ? platform.color : 'var(--text-muted)',
               border: platform.connected
                 ? `1px solid ${platform.color}30`
-                : '1px solid rgba(255, 255, 255, 0.45)'
+                : '1px solid var(--glass-surface-border)'
             }}
           >
             {platform.icon}

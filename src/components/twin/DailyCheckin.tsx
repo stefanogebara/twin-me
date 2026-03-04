@@ -112,7 +112,7 @@ export function DailyCheckin({ onComplete }: DailyCheckinProps) {
         className="text-center py-4"
       >
         <div className="text-2xl mb-1">{selectedMood.emoji}</div>
-        <p className="text-sm" style={{ color: '#8A857D' }}>
+        <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
           Your twin knows how you're feeling
         </p>
       </motion.div>
@@ -122,10 +122,10 @@ export function DailyCheckin({ onComplete }: DailyCheckinProps) {
   return (
     <div className="space-y-3">
       <div>
-        <h3 className="text-sm font-semibold" style={{ color: '#000000' }}>
+        <h3 className="text-sm font-semibold" style={{ color: 'var(--foreground)' }}>
           How are you feeling right now?
         </h3>
-        <p className="text-xs" style={{ color: '#8A857D' }}>
+        <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>
           Your twin will remember this
         </p>
       </div>

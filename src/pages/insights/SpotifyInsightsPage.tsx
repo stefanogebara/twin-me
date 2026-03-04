@@ -37,8 +37,8 @@ const SpotifyInsightsPage: React.FC = () => {
 
   // Light-mode only colors
   const colors = {
-    text: '#000000',
-    textSecondary: '#8A857D',
+    text: 'var(--foreground)',
+    textSecondary: 'var(--text-secondary)',
     spotifyGreen: '#1DB954',
     spotifyBg: 'rgba(29, 185, 84, 0.1)'
   };
@@ -347,7 +347,7 @@ const SpotifyInsightsPage: React.FC = () => {
               <GlassPanel key={past.id} variant="default" className="!p-4">
                 <p
                   className="text-sm leading-relaxed"
-                  style={{ color: '#57534e' }}
+                  style={{ color: 'var(--text-secondary)' }}
                 >
                   {past.text}
                 </p>

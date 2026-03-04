@@ -35,7 +35,7 @@ const LoadingSpinner: React.FC<LoadingSpinnerProps> = ({
       case 'chat':
         return <img src="/icons/3d/chat-bubble.png" alt="Loading chat" className="animate-pulse" style={{ width: clay3dSize, height: clay3dSize }} />;
       default:
-        return <Loader2 className={baseClasses} style={{ color: '#000000' }} />;
+        return <Loader2 className={baseClasses} style={{ color: 'var(--foreground)' }} />;
     }
   };
 
@@ -49,7 +49,7 @@ const LoadingSpinner: React.FC<LoadingSpinnerProps> = ({
             size === 'lg' || size === 'xl' ? 'text-lg' :
             'text-base'
           }`}
-          style={{ color: '#8A857D' }}
+          style={{ color: 'var(--text-secondary)' }}
         >
           {text}
         </p>
@@ -61,15 +61,15 @@ const LoadingSpinner: React.FC<LoadingSpinnerProps> = ({
     return (
       <div
         className="fixed inset-0 flex items-center justify-center z-50"
-        style={{ backgroundColor: 'rgba(252, 246, 239, 0.9)', backdropFilter: 'blur(4px)' }}
+        style={{ backgroundColor: 'rgba(28, 25, 23, 0.90)', backdropFilter: 'blur(4px)' }}
       >
         <div
           className="rounded-2xl p-8"
           style={{
-            background: 'rgba(255, 255, 255, 0.18)',
+            background: 'var(--glass-surface-bg)',
             backdropFilter: 'blur(10px) saturate(140%)',
             WebkitBackdropFilter: 'blur(10px) saturate(140%)',
-            border: '1px solid rgba(255, 255, 255, 0.45)',
+            border: '1px solid var(--glass-surface-border)',
             boxShadow: '0 8px 32px rgba(0, 0, 0, 0.18)',
           }}
         >
@@ -85,7 +85,7 @@ const LoadingSpinner: React.FC<LoadingSpinnerProps> = ({
 export const LoadingPage: React.FC<{ text?: string }> = ({ text = "Loading..." }) => (
   <div
     className="min-h-screen flex items-center justify-center"
-    style={{ backgroundColor: '#fcf6ef' }}
+    style={{ backgroundColor: 'var(--background)' }}
   >
     <LoadingSpinner size="xl" text={text} className="p-8" />
   </div>
@@ -98,10 +98,10 @@ export const LoadingCard: React.FC<{ text?: string; className?: string }> = ({
   <div
     className={`rounded-2xl p-8 ${className}`}
     style={{
-      background: 'rgba(255, 255, 255, 0.18)',
+      background: 'var(--glass-surface-bg)',
       backdropFilter: 'blur(10px) saturate(140%)',
       WebkitBackdropFilter: 'blur(10px) saturate(140%)',
-      border: '1px solid rgba(255, 255, 255, 0.45)',
+      border: '1px solid var(--glass-surface-border)',
     }}
   >
     <LoadingSpinner size="lg" text={text} />
@@ -114,7 +114,7 @@ export const LoadingButton: React.FC<{ text?: string; size?: 'sm' | 'md' | 'lg' 
 }) => (
   <div className="flex items-center gap-2">
     <LoadingSpinner size={size} />
-    <span style={{ color: '#8A857D' }}>{text}</span>
+    <span style={{ color: 'var(--text-secondary)' }}>{text}</span>
   </div>
 );
 
@@ -125,7 +125,7 @@ export const LoadingOverlay: React.FC<{ text?: string; variant?: 'default' | 'br
   <div
     className="absolute inset-0 flex items-center justify-center rounded-lg z-10"
     style={{
-      backgroundColor: 'rgba(252, 246, 239, 0.9)',
+      backgroundColor: 'rgba(28, 25, 23, 0.90)',
       backdropFilter: 'blur(4px)',
     }}
   >
@@ -137,22 +137,22 @@ export const SkeletonCard: React.FC<{ className?: string }> = ({ className = "" 
   <div
     className={`rounded-2xl p-4 ${className}`}
     style={{
-      background: 'rgba(255, 255, 255, 0.18)',
-      border: '1px solid rgba(255, 255, 255, 0.45)',
+      background: 'var(--glass-surface-bg)',
+      border: '1px solid var(--glass-surface-border)',
     }}
   >
     <div className="animate-pulse">
       <div
         className="h-4 rounded mb-3 glass-shimmer"
-        style={{ backgroundColor: 'rgba(255, 255, 255, 0.18)' }}
+        style={{ backgroundColor: 'var(--glass-surface-bg)' }}
       />
       <div
         className="h-3 rounded mb-2 glass-shimmer"
-        style={{ backgroundColor: 'rgba(255, 255, 255, 0.18)' }}
+        style={{ backgroundColor: 'var(--glass-surface-bg)' }}
       />
       <div
         className="h-3 rounded w-3/4 glass-shimmer"
-        style={{ backgroundColor: 'rgba(255, 255, 255, 0.18)' }}
+        style={{ backgroundColor: 'var(--glass-surface-bg)' }}
       />
     </div>
   </div>
@@ -173,39 +173,39 @@ export const SkeletonTwin: React.FC<{ className?: string }> = ({ className = "" 
   <div
     className={`rounded-2xl p-6 ${className}`}
     style={{
-      background: 'rgba(255, 255, 255, 0.18)',
-      border: '1px solid rgba(255, 255, 255, 0.45)',
+      background: 'var(--glass-surface-bg)',
+      border: '1px solid var(--glass-surface-border)',
     }}
   >
     <div className="animate-pulse">
       <div className="flex items-center gap-4 mb-4">
         <div
           className="w-12 h-12 rounded-full glass-shimmer"
-          style={{ backgroundColor: 'rgba(255, 255, 255, 0.18)' }}
+          style={{ backgroundColor: 'var(--glass-surface-bg)' }}
         />
         <div className="flex-1">
           <div
             className="h-5 rounded mb-2 glass-shimmer"
-            style={{ backgroundColor: 'rgba(255, 255, 255, 0.18)' }}
+            style={{ backgroundColor: 'var(--glass-surface-bg)' }}
           />
           <div
             className="h-3 rounded w-2/3 glass-shimmer"
-            style={{ backgroundColor: 'rgba(255, 255, 255, 0.18)' }}
+            style={{ backgroundColor: 'var(--glass-surface-bg)' }}
           />
         </div>
       </div>
       <div className="space-y-2">
         <div
           className="h-3 rounded glass-shimmer"
-          style={{ backgroundColor: 'rgba(255, 255, 255, 0.18)' }}
+          style={{ backgroundColor: 'var(--glass-surface-bg)' }}
         />
         <div
           className="h-3 rounded w-4/5 glass-shimmer"
-          style={{ backgroundColor: 'rgba(255, 255, 255, 0.18)' }}
+          style={{ backgroundColor: 'var(--glass-surface-bg)' }}
         />
         <div
           className="h-3 rounded w-3/5 glass-shimmer"
-          style={{ backgroundColor: 'rgba(255, 255, 255, 0.18)' }}
+          style={{ backgroundColor: 'var(--glass-surface-bg)' }}
         />
       </div>
     </div>

@@ -123,7 +123,7 @@ export const EmptyState: React.FC<EmptyStateProps> = ({
             'w-16 h-16 rounded-full bg-black/[0.04] flex items-center justify-center',
             iconClassName
           )}>
-            <Icon className="w-8 h-8 text-stone-600" />
+            <Icon className="w-8 h-8 text-muted-foreground" />
           </div>
         </motion.div>
       ) : null}
@@ -133,11 +133,11 @@ export const EmptyState: React.FC<EmptyStateProps> = ({
         className="max-w-md mx-auto mb-6"
         variants={animate ? textVariants : undefined}
       >
-        <h3 className="text-2xl text-stone-900 mb-2"
+        <h3 className="text-2xl text-foreground mb-2"
             style={{ fontFamily: 'var(--font-heading)', fontWeight: 500 }}>
           {title}
         </h3>
-        <p className="text-stone-600 text-base leading-relaxed">
+        <p className="text-muted-foreground text-base leading-relaxed">
           {description}
         </p>
       </motion.div>
@@ -177,7 +177,7 @@ export const EmptyState: React.FC<EmptyStateProps> = ({
             <Button
               onClick={tertiaryAction.onClick}
               variant={tertiaryAction.variant || 'ghost'}
-              className="text-stone-600"
+              className="text-muted-foreground"
             >
               {tertiaryAction.icon && <tertiaryAction.icon className="w-4 h-4 mr-2" />}
               {tertiaryAction.label}

@@ -46,8 +46,8 @@ export const TwinReflection: React.FC<TwinReflectionProps> = ({
   className = ''
 }) => {
   const colors = {
-    text: '#44403c',
-    textMuted: '#a8a29e',
+    text: 'var(--foreground)',
+    textMuted: 'var(--text-muted)',
     iconBg: 'rgba(139, 92, 246, 0.1)',
     iconColor: '#8B5CF6',
     highlight: 'rgba(139, 92, 246, 0.1)'
@@ -138,8 +138,8 @@ export const PatternObservation: React.FC<PatternObservationProps> = ({
   className = ''
 }) => {
   const colors = {
-    text: '#44403c',
-    textMuted: '#a8a29e',
+    text: 'var(--foreground)',
+    textMuted: 'var(--text-muted)',
     iconColor: occurrences === 'often' ? '#8B5CF6' :
       occurrences === 'sometimes' ? '#06b6d4' : '#a78bfa'
   };
@@ -158,8 +158,8 @@ export const PatternObservation: React.FC<PatternObservationProps> = ({
     <div
       className={`p-4 rounded-xl flex items-start gap-3 ${className}`}
       style={{
-        backgroundColor: 'rgba(0, 0, 0, 0.02)',
-        border: '1px solid rgba(0, 0, 0, 0.03)'
+        backgroundColor: 'var(--glass-surface-bg-subtle)',
+        border: '1px solid var(--glass-surface-bg-subtle)'
       }}
     >
       {/* Icon */}
@@ -213,9 +213,9 @@ export const DataHighlight: React.FC<DataHighlightProps> = ({
   className = ''
 }) => {
   const colors = {
-    text: '#44403c',
-    textMuted: '#a8a29e',
-    itemBg: 'rgba(0, 0, 0, 0.04)'
+    text: 'var(--foreground)',
+    textMuted: 'var(--text-muted)',
+    itemBg: 'var(--glass-surface-bg)'
   };
 
   if (!items || items.length === 0) return null;
@@ -283,10 +283,10 @@ export const StatCard: React.FC<StatCardProps> = ({
   className = ''
 }) => {
   const colors = {
-    text: '#44403c',
-    textMuted: '#a8a29e',
-    bg: 'rgba(0, 0, 0, 0.02)',
-    border: 'rgba(0, 0, 0, 0.03)'
+    text: 'var(--foreground)',
+    textMuted: 'var(--text-muted)',
+    bg: 'var(--glass-surface-bg-subtle)',
+    border: 'var(--glass-surface-bg-subtle)'
   };
 
   return (
@@ -343,8 +343,8 @@ export const TrackCard: React.FC<TrackCardProps> = ({
   className = ''
 }) => {
   const colors = {
-    text: '#44403c',
-    textMuted: '#78716c',
+    text: 'var(--foreground)',
+    textMuted: 'var(--text-muted)',
     spotifyGreen: '#1DB954',
     bg: 'rgba(29, 185, 84, 0.05)',
     border: 'rgba(29, 185, 84, 0.1)'
@@ -426,8 +426,8 @@ export const EventCard: React.FC<EventCardProps> = ({
   const config = typeConfig[type || 'other'] || typeConfig.other;
 
   const colors = {
-    text: '#44403c',
-    textMuted: '#78716c',
+    text: 'var(--foreground)',
+    textMuted: 'var(--text-muted)',
     bg: `${config.color}10`,
     border: `${config.color}20`
   };

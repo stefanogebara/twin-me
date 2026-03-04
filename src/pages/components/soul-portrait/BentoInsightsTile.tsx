@@ -38,11 +38,11 @@ export const BentoInsightsTile: React.FC<Props> = ({ insights, animationDelay = 
     <motion.div
       className="rounded-2xl p-5 h-full flex flex-col"
       style={{
-        background: 'rgba(255, 255, 255, 0.18)',
+        background: 'rgba(255, 255, 255, 0.06)',
         backdropFilter: 'blur(10px) saturate(140%)',
         WebkitBackdropFilter: 'blur(10px) saturate(140%)',
-        border: '1px solid rgba(255, 255, 255, 0.45)',
-        boxShadow: '0 8px 32px rgba(0, 0, 0, 0.18), inset 0 1px 0 rgba(255, 255, 255, 0.6)',
+        border: '1px solid rgba(255, 255, 255, 0.10)',
+        boxShadow: '0 8px 32px rgba(0, 0, 0, 0.18), inset 0 1px 0 rgba(255, 255, 255, 0.08)',
       }}
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
@@ -58,7 +58,7 @@ export const BentoInsightsTile: React.FC<Props> = ({ insights, animationDelay = 
         </div>
         <p
           className="text-xs font-semibold uppercase tracking-wider"
-          style={{ color: '#8A857D' }}
+          style={{ color: 'var(--text-secondary)' }}
         >
           What Your Twin Noticed
         </p>
@@ -92,14 +92,14 @@ export const BentoInsightsTile: React.FC<Props> = ({ insights, animationDelay = 
                 {i < top3.length - 1 && (
                   <span
                     className="w-px flex-1 mt-1 min-h-[12px]"
-                    style={{ backgroundColor: 'rgba(0, 0, 0, 0.06)' }}
+                    style={{ backgroundColor: 'rgba(255, 255, 255, 0.06)' }}
                   />
                 )}
               </div>
 
               <p
                 className="text-xs leading-relaxed"
-                style={{ color: '#4a4540' }}
+                style={{ color: 'var(--foreground)' }}
               >
                 {truncated}
               </p>

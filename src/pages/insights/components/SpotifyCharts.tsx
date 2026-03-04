@@ -156,9 +156,11 @@ export const SpotifyCharts: React.FC<SpotifyChartsProps> = ({
                   </Pie>
                   <RechartsTooltip
                     contentStyle={{
-                      backgroundColor: '#ffffff',
-                      border: 'none',
-                      borderRadius: '8px',
+                      backgroundColor: 'rgba(28, 25, 23, 0.90)',
+                      backdropFilter: 'blur(20px)',
+                      border: '1px solid rgba(180, 175, 168, 0.25)',
+                      borderRadius: '12px',
+                      boxShadow: '0 8px 32px rgba(255, 255, 255, 0.08)',
                     }}
                     labelStyle={{ color: colors.text }}
                     itemStyle={{ color: colors.text }}
@@ -210,7 +212,7 @@ export const SpotifyCharts: React.FC<SpotifyChartsProps> = ({
                 <YAxis hide />
                 <RechartsTooltip
                   contentStyle={{
-                    backgroundColor: '#ffffff',
+                    backgroundColor: 'var(--surface-solid)',
                     border: 'none',
                     borderRadius: '8px',
                   }}
@@ -262,7 +264,7 @@ export const SpotifyCharts: React.FC<SpotifyChartsProps> = ({
                 </div>
                 <div
                   className="w-12 h-2 rounded-full overflow-hidden"
-                  style={{ backgroundColor: 'rgba(0, 0, 0, 0.08)' }}
+                  style={{ backgroundColor: 'rgba(255, 255, 255, 0.06)' }}
                 >
                   <div
                     className="h-full rounded-full"
@@ -282,7 +284,7 @@ export const SpotifyCharts: React.FC<SpotifyChartsProps> = ({
                 </div>
                 <div
                   className="w-12 h-2 rounded-full overflow-hidden"
-                  style={{ backgroundColor: 'rgba(0, 0, 0, 0.08)' }}
+                  style={{ backgroundColor: 'rgba(255, 255, 255, 0.06)' }}
                 >
                   <div
                     className="h-full rounded-full"

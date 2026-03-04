@@ -41,7 +41,7 @@ export function ConversationControls({
   };
 
   const iconBtnStyle = {
-    color: '#8A857D'
+    color: 'var(--text-secondary)'
   };
 
   return (
@@ -64,11 +64,11 @@ export function ConversationControls({
           whileTap={{ scale: 0.95 }}
           onClick={handleSave}
           className="p-2 rounded-lg transition-colors"
-          style={{ backgroundColor: 'rgba(255, 255, 255, 0.18)' }}
+          style={{ backgroundColor: 'rgba(255, 255, 255, 0.06)' }}
           title={isSaved ? 'Conversation saved' : 'Save conversation'}
         >
           {savedRecently || isSaved ? (
-            <Check className="w-5 h-5 text-green-600" />
+            <Check className="w-5 h-5 text-green-400" />
           ) : (
             <Save className="w-5 h-5" style={iconBtnStyle} />
           )}
@@ -83,7 +83,7 @@ export function ConversationControls({
             whileTap={{ scale: 0.95 }}
             onClick={() => setShowExportMenu(!showExportMenu)}
             className="p-2 rounded-lg transition-colors"
-            style={{ backgroundColor: 'rgba(255, 255, 255, 0.18)' }}
+            style={{ backgroundColor: 'rgba(255, 255, 255, 0.06)' }}
             title="Export conversation"
           >
             <Download className="w-5 h-5" style={iconBtnStyle} />
@@ -97,17 +97,17 @@ export function ConversationControls({
               exit={{ opacity: 0, y: -10 }}
               className="absolute right-0 mt-2 w-48 rounded-2xl overflow-hidden z-10"
               style={{
-                backgroundColor: 'rgba(255, 255, 255, 0.18)',
+                backgroundColor: 'rgba(255, 255, 255, 0.06)',
                 backdropFilter: 'blur(10px) saturate(140%)',
                 WebkitBackdropFilter: 'blur(10px) saturate(140%)',
-                border: '1px solid rgba(255, 255, 255, 0.45)',
+                border: '1px solid rgba(255, 255, 255, 0.10)',
                 boxShadow: '0 8px 32px rgba(0, 0, 0, 0.18)'
               }}
             >
               <button
                 onClick={() => handleExport('pdf')}
                 className="w-full px-4 py-2 text-left flex items-center gap-2 text-sm transition-colors hover:bg-white/20"
-                style={{ color: '#000000' }}
+                style={{ color: 'var(--foreground)' }}
               >
                 <FileText className="w-4 h-4 text-red-500" />
                 <span>Export as PDF</span>
@@ -115,7 +115,7 @@ export function ConversationControls({
               <button
                 onClick={() => handleExport('text')}
                 className="w-full px-4 py-2 text-left flex items-center gap-2 text-sm transition-colors hover:bg-white/20"
-                style={{ color: '#000000' }}
+                style={{ color: 'var(--foreground)' }}
               >
                 <FileText className="w-4 h-4 text-blue-500" />
                 <span>Export as Text</span>
@@ -123,7 +123,7 @@ export function ConversationControls({
               <button
                 onClick={() => handleExport('json')}
                 className="w-full px-4 py-2 text-left flex items-center gap-2 text-sm transition-colors hover:bg-white/20"
-                style={{ color: '#000000' }}
+                style={{ color: 'var(--foreground)' }}
               >
                 <FileText className="w-4 h-4 text-green-500" />
                 <span>Export as JSON</span>

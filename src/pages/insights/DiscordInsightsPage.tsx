@@ -89,8 +89,8 @@ const DiscordInsightsPage: React.FC = () => {
   const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3001';
 
   const colors = {
-    text: '#000000',
-    textSecondary: '#8A857D',
+    text: 'var(--foreground)',
+    textSecondary: 'var(--text-secondary)',
     discordPurple: '#5865F2',
     discordBg: 'rgba(88, 101, 242, 0.1)',
   };
@@ -169,9 +169,9 @@ const DiscordInsightsPage: React.FC = () => {
     return (
       <PageLayout>
         <div className="animate-pulse space-y-4">
-          <div className="h-16 bg-stone-100 rounded-xl" />
-          <div className="h-32 bg-stone-100 rounded-xl" />
-          <div className="h-48 bg-stone-100 rounded-xl" />
+          <div className="h-16 bg-white/8 rounded-xl" />
+          <div className="h-32 bg-white/8 rounded-xl" />
+          <div className="h-48 bg-white/8 rounded-xl" />
         </div>
       </PageLayout>
     );
@@ -339,7 +339,7 @@ const DiscordInsightsPage: React.FC = () => {
           <div className="space-y-3">
             {insights.history.map(past => (
               <GlassPanel key={past.id} variant="default" className="!p-4">
-                <p className="text-sm leading-relaxed" style={{ color: '#57534e' }}>
+                <p className="text-sm leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
                   {past.text}
                 </p>
                 <p className="text-xs mt-2" style={{ color: colors.textSecondary }}>

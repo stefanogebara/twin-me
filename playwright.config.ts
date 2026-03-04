@@ -9,7 +9,7 @@ export default defineConfig({
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
-  workers: process.env.CI ? 1 : undefined,
+  workers: process.env.CI ? 1 : 2,
   reporter: 'html',
 
   use: {
@@ -34,6 +34,16 @@ export default defineConfig({
         storageState: 'playwright/.auth/user.json',
       },
       dependencies: ['setup'],
+      testIgnore: /onboarding-flow\.spec\.ts/,
+    },
+
+    // Onboarding tests — self-contained auth via localStorage injection, no setup dependency
+    {
+      name: 'onboarding',
+      testMatch: /onboarding-flow\.spec\.ts/,
+      use: {
+        ...devices['Desktop Chrome'],
+      },
     },
   ],
 

@@ -19,9 +19,9 @@ export const LoadingSpinner: React.FC<LoadingSpinnerProps> = ({
   };
 
   const colorMap = {
-    primary: '#000000',
-    secondary: '#8A857D',
-    white: '#fcf6ef'
+    primary: 'var(--foreground)',
+    secondary: 'var(--text-secondary)',
+    white: 'var(--foreground)'
   };
 
   return (
@@ -123,20 +123,20 @@ export const LoadingOverlay: React.FC<LoadingOverlayProps> = ({
   return (
     <div
       className={`fixed inset-0 flex items-center justify-center z-50 ${className}`}
-      style={{ backgroundColor: 'rgba(252, 246, 239, 0.85)', backdropFilter: 'blur(4px)' }}
+      style={{ backgroundColor: 'rgba(28, 25, 23, 0.85)', backdropFilter: 'blur(4px)' }}
     >
       <div
         className="rounded-2xl p-6 flex flex-col items-center gap-4 max-w-sm mx-4"
         style={{
-          background: 'rgba(255, 255, 255, 0.18)',
+          background: 'rgba(255, 255, 255, 0.06)',
           backdropFilter: 'blur(10px) saturate(140%)',
           WebkitBackdropFilter: 'blur(10px) saturate(140%)',
-          border: '1px solid rgba(255, 255, 255, 0.45)',
+          border: '1px solid rgba(255, 255, 255, 0.10)',
           boxShadow: '0 8px 32px rgba(0, 0, 0, 0.18)',
         }}
       >
         <LoadingSpinner size="lg" />
-        <p style={{ color: '#8A857D' }} className="text-center text-sm">{message}</p>
+        <p style={{ color: 'var(--text-secondary)' }} className="text-center text-sm">{message}</p>
       </div>
     </div>
   );
@@ -158,7 +158,7 @@ export const Skeleton: React.FC<SkeletonProps> = ({
       {avatar && (
         <div
           className="w-10 h-10 rounded-full mb-2 glass-shimmer"
-          style={{ backgroundColor: 'rgba(255, 255, 255, 0.18)' }}
+          style={{ backgroundColor: 'rgba(255, 255, 255, 0.06)' }}
         />
       )}
       {Array.from({ length: lines }, (_, i) => (
@@ -167,7 +167,7 @@ export const Skeleton: React.FC<SkeletonProps> = ({
           className={`glass-shimmer rounded h-4 ${
             i === lines - 1 ? 'w-3/4' : 'w-full'
           } ${i > 0 ? 'mt-2' : ''}`}
-          style={{ backgroundColor: 'rgba(255, 255, 255, 0.18)' }}
+          style={{ backgroundColor: 'rgba(255, 255, 255, 0.06)' }}
         />
       ))}
     </div>

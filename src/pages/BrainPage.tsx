@@ -13,7 +13,6 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useDemo } from '@/contexts/DemoContext';
 import { usePlatformStatus } from '@/hooks/usePlatformStatus';
 import { PageLayout, GlassPanel } from '@/components/layout/PageLayout';
-import { Clay3DIcon } from '@/components/Clay3DIcon';
 import { authFetch } from '@/services/api/apiBase';
 import {
   Sparkles,
@@ -23,6 +22,7 @@ import {
   AlertCircle,
   RefreshCw,
   ChevronDown,
+  Brain,
 } from 'lucide-react';
 import { cn, toSecondPerson } from '@/lib/utils';
 import { SoulEvolutionTimeline } from '@/components/brain/SoulEvolutionTimeline';
@@ -184,8 +184,8 @@ const BrainPage: React.FC = () => {
       .catch(() => {});
   }, [isSignedIn, isDemoMode, user?.id]);
 
-  const textColor = '#000000';
-  const textSecondary = '#8A857D';
+  const textColor = 'var(--foreground)';
+  const textSecondary = 'var(--text-secondary)';
 
   if (!isLoaded) {
     return (
@@ -205,9 +205,9 @@ const BrainPage: React.FC = () => {
             <div className="w-20 h-20 rounded-2xl mx-auto mb-6 flex items-center justify-center"
               style={{ background: 'linear-gradient(135deg, rgba(78, 205, 196, 0.2) 0%, rgba(69, 183, 209, 0.2) 100%)' }}
             >
-              <Clay3DIcon name="brain" size={40} />
+              <Brain className="w-10 h-10" style={{ color: 'var(--foreground)' }} />
             </div>
-            <h1 className="heading-serif mb-3" style={{ fontSize: '36px' }}>Your Twin's Brain</h1>
+            <h1 className="heading-serif mb-3" style={{ fontSize: 'clamp(2.25rem, 5vw, 3.5rem)', letterSpacing: '-0.05em', lineHeight: 1.1 }}>Your Twin's Brain</h1>
             <p className="mb-6" style={{ color: textSecondary }}>
               Sign in to see what patterns your twin has discovered about you.
             </p>
@@ -246,20 +246,20 @@ const BrainPage: React.FC = () => {
   return (
     <PageLayout maxWidth="xl">
       {/* Header */}
-      <div className="mb-8">
+      <div className="py-12" style={{ marginBottom: '3rem' }}>
         <motion.div
           className="flex items-center gap-4 mb-2"
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.4 }}
         >
-          <Clay3DIcon name="brain" size={32} />
-          <h1 className="heading-serif" style={{ color: textColor, fontSize: '36px' }}>
+          <Brain className="w-8 h-8" style={{ color: textColor }} />
+          <h1 className="heading-serif" style={{ color: textColor, fontSize: 'clamp(2rem, 4vw, 3rem)', fontFamily: 'var(--font-heading)', fontWeight: 400, letterSpacing: '-0.04em', lineHeight: 1.1 }}>
             Twin's Brain
           </h1>
           {totalMemories > 0 && (
             <span className="text-xs px-3 py-1 rounded-full ml-auto"
-              style={{ background: 'rgba(0,0,0,0.05)', color: textSecondary }}>
+              style={{ background: 'var(--glass-surface-bg)', color: textSecondary }}>
               {totalMemories.toLocaleString('en-US')} memories
             </span>
           )}
@@ -275,11 +275,11 @@ const BrainPage: React.FC = () => {
         </motion.p>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-16">
         {/* Discoveries — 2/3 width */}
         <div className="lg:col-span-2">
           <GlassPanel>
-            <div className="flex items-center gap-2 mb-5">
+            <div className="flex items-center gap-2" style={{ marginBottom: '1.5rem' }}>
               <Sparkles className="w-4 h-4" style={{ color: '#10b981' }} />
               <h2 className="heading-serif text-lg" style={{ color: textColor }}>
                 Discoveries
@@ -312,7 +312,7 @@ const BrainPage: React.FC = () => {
             )}
 
             {!reflectionsLoading && topDiscoveries.length > 0 && (
-              <div className="space-y-4">
+              <div className="space-y-6">
                 {topDiscoveries.map((insight, i) => {
                   const expertKey = insight.category || '';
                   const em = EXPERT_META[expertKey];
@@ -327,16 +327,16 @@ const BrainPage: React.FC = () => {
                   return (
                     <motion.div
                       key={cardKey}
-                      className="rounded-2xl overflow-hidden cursor-pointer"
-                      style={{ background: em?.bg ?? 'rgba(0,0,0,0.03)', border: `1px solid ${em?.color ?? 'rgba(0,0,0,0.04)'}22` }}
+                      className="glass-card rounded-2xl overflow-hidden cursor-pointer"
+                      style={{ background: em?.bg ?? 'var(--glass-surface-bg)', border: `1px solid ${em?.color ?? 'var(--glass-surface-border)'}22` }}
                       onClick={() => setExpandedDiscovery(prev => prev === cardKey ? null : cardKey)}
                       initial={{ opacity: 0, y: 8 }}
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ duration: 0.35, delay: i * 0.05 }}
                     >
-                      <div className="p-5 flex items-start gap-3">
+                      <div className="p-7 flex items-start gap-3">
                         <div className="flex-1 min-w-0">
-                          {em && <p className="text-xs font-semibold uppercase tracking-wide mb-1.5" style={{ color: em.color }}>{em.label}</p>}
+                          {em && <p className="text-[11px] font-medium uppercase tracking-widest mb-1.5" style={{ color: 'var(--accent-vibrant)', letterSpacing: '0.1em' }}>{em.label}</p>}
                           <p className="text-sm leading-relaxed" style={{ color: textColor }}>
                             {isExpanded ? displayContent : preview}
                           </p>
@@ -344,7 +344,7 @@ const BrainPage: React.FC = () => {
                         {hasMore && (
                           <ChevronDown
                             className="flex-shrink-0 w-4 h-4 mt-0.5 transition-transform duration-200"
-                            style={{ color: '#a8a29e', transform: isExpanded ? 'rotate(180deg)' : 'rotate(0deg)' }}
+                            style={{ color: 'var(--text-muted)', transform: isExpanded ? 'rotate(180deg)' : 'rotate(0deg)' }}
                           />
                         )}
                       </div>
@@ -360,7 +360,7 @@ const BrainPage: React.FC = () => {
         {/* Your Data — 1/3 width */}
         <div className="lg:col-span-1">
           <GlassPanel>
-            <div className="flex items-center gap-2 mb-5">
+            <div className="flex items-center gap-2" style={{ marginBottom: '1.5rem' }}>
               <Link2 className="w-4 h-4" style={{ color: textSecondary }} />
               <h2 className="heading-serif text-lg" style={{ color: textColor }}>
                 Your Data
@@ -375,12 +375,12 @@ const BrainPage: React.FC = () => {
               <div className="space-y-4">
                 {[0, 1, 2].map(i => (
                   <div key={i} className="h-16 rounded-xl animate-pulse"
-                    style={{ background: 'rgba(0,0,0,0.04)' }}
+                    style={{ background: 'var(--glass-surface-bg)' }}
                   />
                 ))}
               </div>
             ) : (
-              <div className="space-y-4">
+              <div className="space-y-5">
                 {ORDERED_PLATFORMS.map((provider) => {
                   const meta = PLATFORM_META[provider];
                   const status = platformStatus?.[provider];
@@ -390,8 +390,8 @@ const BrainPage: React.FC = () => {
                   return (
                     <div
                       key={provider}
-                      className="flex items-start gap-3 p-5 rounded-xl"
-                      style={{ background: 'rgba(0,0,0,0.03)', border: '1px solid rgba(0,0,0,0.04)' }}
+                      className="flex items-start gap-3 p-6 rounded-2xl"
+                      style={{ background: 'var(--glass-surface-bg)', border: '1px solid var(--glass-surface-border)' }}
                     >
                       <span className="text-xl mt-0.5">{meta.icon}</span>
                       <div className="flex-1 min-w-0">
@@ -405,7 +405,7 @@ const BrainPage: React.FC = () => {
                             <AlertCircle className="w-4 h-4 text-amber-400 flex-shrink-0" />
                           ) : (
                             <div className="w-2 h-2 rounded-full flex-shrink-0"
-                              style={{ background: 'rgba(0,0,0,0.2)' }}
+                              style={{ background: 'var(--text-muted)' }}
                             />
                           )}
                         </div>
@@ -453,9 +453,9 @@ const BrainPage: React.FC = () => {
         </div>
 
         {/* Upload Your Data — GDPR / platform data export ingestion */}
-        <div className="lg:col-span-3">
+        <div className="lg:col-span-3" style={{ marginTop: '3rem', marginBottom: '3rem' }}>
           <GlassPanel>
-            <div className="flex items-center gap-2 mb-4">
+            <div className="flex items-center gap-2" style={{ marginBottom: '1.5rem' }}>
               <h2 className="heading-serif text-lg" style={{ color: textColor }}>
                 Upload Your Data
               </h2>
@@ -468,7 +468,7 @@ const BrainPage: React.FC = () => {
         {(reflections.length > 0 || reflectionsLoading) && (
           <div className="lg:col-span-3">
             <GlassPanel>
-              <div className="flex items-center gap-2 mb-5">
+              <div className="flex items-center gap-2" style={{ marginBottom: '1.5rem' }}>
                 <Sparkles className="w-4 h-4" style={{ color: '#8b5cf6' }} />
                 <h2 className="heading-serif text-lg" style={{ color: textColor }}>
                   What Your Twin Has Learned
@@ -488,7 +488,7 @@ const BrainPage: React.FC = () => {
                 </div>
               )}
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {reflections.map((r, i) => {
                   const isExpanded = expandedReflection === r.id;
                   const displayContent2 = toSecondPerson(r.content);
@@ -500,18 +500,18 @@ const BrainPage: React.FC = () => {
                   return (
                     <motion.div
                       key={r.id}
-                      className="rounded-xl overflow-hidden cursor-pointer"
+                      className="glass-card rounded-2xl overflow-hidden cursor-pointer"
                       style={{ background: 'rgba(139,92,246,0.04)', border: '1px solid rgba(139,92,246,0.08)' }}
                       onClick={() => setExpandedReflection(prev => prev === r.id ? null : r.id)}
                       initial={{ opacity: 0, y: 6 }}
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ duration: 0.3, delay: i * 0.04 }}
                     >
-                      <div className="p-4 flex items-start gap-3">
+                      <div className="p-6 flex items-start gap-3">
                         <div className="flex-1 min-w-0">
                           {r.expert && (
-                            <p className="text-xs font-semibold uppercase tracking-wide mb-1.5"
-                              style={{ color: EXPERT_META[r.expert]?.color ?? '#8b5cf6' }}>
+                            <p className="text-[11px] font-medium uppercase tracking-widest mb-1.5"
+                              style={{ color: 'var(--accent-vibrant)', letterSpacing: '0.1em' }}>
                               {EXPERT_META[r.expert]?.label ?? r.expert}
                             </p>
                           )}
@@ -533,7 +533,7 @@ const BrainPage: React.FC = () => {
                         {hasMore && (
                           <ChevronDown
                             className="flex-shrink-0 w-4 h-4 mt-0.5 transition-transform duration-200"
-                            style={{ color: '#a8a29e', transform: isExpanded ? 'rotate(180deg)' : 'rotate(0deg)' }}
+                            style={{ color: 'var(--text-muted)', transform: isExpanded ? 'rotate(180deg)' : 'rotate(0deg)' }}
                           />
                         )}
                       </div>
@@ -547,10 +547,10 @@ const BrainPage: React.FC = () => {
 
         {/* Soul Evolution Timeline */}
         {snapshots.length >= 2 && (
-          <div className="lg:col-span-3">
+          <div className="lg:col-span-3" style={{ marginTop: '3rem' }}>
             <GlassPanel>
-              <div className="flex items-center gap-2 mb-5">
-                <Clock className="w-4 h-4" style={{ color: '#8A857D' }} />
+              <div className="flex items-center gap-2" style={{ marginBottom: '1.5rem' }}>
+                <Clock className="w-4 h-4" style={{ color: 'var(--text-secondary)' }} />
                 <h2 className="heading-serif text-lg" style={{ color: textColor }}>
                   Soul Signature Evolution
                 </h2>

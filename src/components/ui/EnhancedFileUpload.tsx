@@ -286,7 +286,7 @@ const EnhancedFileUpload: React.FC<EnhancedFileUploadProps> = ({
     if (fileType.includes('video')) return <Video className="w-6 h-6 text-blue-500" />;
     if (fileType.includes('image')) return <Image className="w-6 h-6 text-green-500" />;
     if (fileType.includes('pdf')) return <FileText className="w-6 h-6 text-red-500" />;
-    if (fileType.includes('word') || fileType.includes('document')) return <FileText className="w-6 h-6 text-blue-600" />;
+    if (fileType.includes('word') || fileType.includes('document')) return <FileText className="w-6 h-6 text-blue-400" />;
     return <File className="w-6 h-6 text-muted-foreground" />;
   };
 
@@ -304,25 +304,25 @@ const EnhancedFileUpload: React.FC<EnhancedFileUploadProps> = ({
         {...getRootProps()}
         className={`border-2 border-dashed rounded-xl p-8 text-center transition-all duration-300 ${
           isDisabled
-            ? 'border-gray-200 bg-gray-50 cursor-not-allowed opacity-50'
+            ? 'border-white/10 bg-gray-800/30 cursor-not-allowed opacity-50'
             : isDragActive
             ? 'border-[#FF5722] bg-[#FFF3F0] cursor-pointer'
             : 'border-[#E5E7EB] hover:border-[#FF5722] hover:bg-[#FFFBF8] cursor-pointer'
         }`}
       >
         <input {...getInputProps()} disabled={isDisabled} />
-        <Upload className={`w-12 h-12 mx-auto mb-4 ${isDisabled ? 'text-gray-300' : 'text-[#6B7280]'}`} />
-        <h3 className={`text-lg font-medium mb-2 ${isDisabled ? 'text-gray-400' : 'text-[#1A1A4B]'}`}>
+        <Upload className={`w-12 h-12 mx-auto mb-4 ${isDisabled ? 'text-gray-300' : 'text-muted-foreground'}`} />
+        <h3 className={`text-lg font-medium mb-2 ${isDisabled ? 'text-muted-foreground' : 'text-foreground'}`}>
           {isDragActive ? 'Drop files here' : title}
         </h3>
-        <p className={`mb-4 ${isDisabled ? 'text-gray-400' : 'text-[#6B7280]'}`}>
+        <p className={`mb-4 ${isDisabled ? 'text-muted-foreground' : 'text-muted-foreground'}`}>
           {isDisabled ? 'Save your twin first to enable file uploads' : description}
         </p>
-        <p className={`text-sm ${isDisabled ? 'text-gray-400' : 'text-[#6B7280]'}`}>
+        <p className={`text-sm ${isDisabled ? 'text-muted-foreground' : 'text-muted-foreground'}`}>
           Supports: {getSupportedFormats()} (max {formatFileSize(maxFileSize)})
         </p>
         {!isDisabled && (
-          <p className="text-xs text-[#6B7280] mt-2">
+          <p className="text-xs text-muted-foreground mt-2">
             Maximum {maxFiles} files • {allowMultiple ? 'Multiple files allowed' : 'Single file only'}
           </p>
         )}
@@ -331,23 +331,23 @@ const EnhancedFileUpload: React.FC<EnhancedFileUploadProps> = ({
       {/* Uploading Files */}
       {uploadingFiles.length > 0 && (
         <div className="space-y-2">
-          <h4 className="font-medium text-[#1A1A4B] flex items-center gap-2">
+          <h4 className="font-medium text-foreground flex items-center gap-2">
             <Folder className="w-4 h-4" />
             Uploading Files ({uploadingFiles.length})
           </h4>
           {uploadingFiles.map((uploadingFile) => (
             <div
               key={uploadingFile.id}
-              className="bg-card border border-[#E5E7EB] rounded-lg p-4 shadow-sm"
+              className="glass-card p-4"
             >
               <div className="flex items-center justify-between mb-2">
                 <div className="flex items-center gap-3">
                   {getFileIcon(uploadingFile.file.type)}
                   <div>
-                    <h5 className="font-medium text-[#1A1A4B] text-sm">
+                    <h5 className="font-medium text-foreground text-sm">
                       {uploadingFile.file.name}
                     </h5>
-                    <p className="text-xs text-[#6B7280]">
+                    <p className="text-xs text-muted-foreground">
                       {formatFileSize(uploadingFile.file.size)}
                     </p>
                   </div>
@@ -383,7 +383,7 @@ const EnhancedFileUpload: React.FC<EnhancedFileUploadProps> = ({
               {uploadingFile.status === 'uploading' && (
                 <div className="space-y-1">
                   <Progress value={uploadingFile.progress} className="h-2" />
-                  <p className="text-xs text-[#6B7280]">
+                  <p className="text-xs text-muted-foreground">
                     Uploading... {Math.round(uploadingFile.progress)}%
                   </p>
                 </div>
@@ -396,7 +396,7 @@ const EnhancedFileUpload: React.FC<EnhancedFileUploadProps> = ({
               )}
 
               {uploadingFile.status === 'completed' && (
-                <p className="text-sm text-green-600">
+                <p className="text-sm text-green-400">
                   Upload completed successfully
                 </p>
               )}
@@ -407,13 +407,13 @@ const EnhancedFileUpload: React.FC<EnhancedFileUploadProps> = ({
 
       {/* Completed Files Summary */}
       {completedFiles.length > 0 && (
-        <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+        <div className="bg-green-900/20 border border-green-800/30 rounded-lg p-4">
           <h4 className="font-medium text-green-800 mb-2">
             ✅ Successfully Uploaded ({completedFiles.length} files)
           </h4>
           <div className="space-y-1">
             {completedFiles.map((file, index) => (
-              <p key={index} className="text-sm text-green-700">
+              <p key={index} className="text-sm text-green-400">
                 {file.fileName} - {file.chunksProcessed} chunks processed
               </p>
             ))}

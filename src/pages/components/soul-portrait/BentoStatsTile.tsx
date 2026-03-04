@@ -41,11 +41,11 @@ export const BentoStatsTile: React.FC<Props> = ({ stats, firstMemoryAt, connecte
     <motion.div
       className="rounded-2xl p-5 h-full flex flex-col justify-between"
       style={{
-        background: 'rgba(255, 255, 255, 0.18)',
+        background: 'rgba(255, 255, 255, 0.06)',
         backdropFilter: 'blur(10px) saturate(140%)',
         WebkitBackdropFilter: 'blur(10px) saturate(140%)',
-        border: '1px solid rgba(255, 255, 255, 0.45)',
-        boxShadow: '0 8px 32px rgba(0, 0, 0, 0.18), inset 0 1px 0 rgba(255, 255, 255, 0.6)',
+        border: '1px solid rgba(255, 255, 255, 0.10)',
+        boxShadow: '0 8px 32px rgba(0, 0, 0, 0.18), inset 0 1px 0 rgba(255, 255, 255, 0.08)',
       }}
       initial={{ opacity: 0, y: 16 }}
       animate={{ opacity: 1, y: 0 }}
@@ -53,7 +53,7 @@ export const BentoStatsTile: React.FC<Props> = ({ stats, firstMemoryAt, connecte
     >
       <p
         className="text-xs uppercase tracking-widest font-medium mb-4"
-        style={{ color: '#8A857D' }}
+        style={{ color: 'var(--text-secondary)' }}
       >
         Twin Stats
       </p>
@@ -70,13 +70,13 @@ export const BentoStatsTile: React.FC<Props> = ({ stats, firstMemoryAt, connecte
             <div>
               <p
                 className="text-lg font-semibold leading-none mb-0.5"
-                style={{ color: '#000000' }}
+                style={{ color: 'var(--foreground)' }}
               >
                 {value}
               </p>
               <p
                 className="text-xs"
-                style={{ color: '#8A857D' }}
+                style={{ color: 'var(--text-secondary)' }}
               >
                 {label}
               </p>

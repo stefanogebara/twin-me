@@ -13,7 +13,7 @@ export interface SkeletonProps extends React.HTMLAttributes<HTMLDivElement> {
 export const Skeleton = ({ className, ...props }: SkeletonProps) => {
   return (
     <div
-      className={cn("animate-pulse rounded-md bg-stone-200", className)}
+      className={cn("animate-pulse rounded-md bg-white/10", className)}
       {...props}
     />
   );
@@ -22,7 +22,7 @@ export const Skeleton = ({ className, ...props }: SkeletonProps) => {
 // Card Skeleton
 export const CardSkeleton = () => {
   return (
-    <div className="bg-white border border-stone-200 rounded-xl p-6 shadow-md">
+    <div className="glass-card p-6 shadow-md">
       <div className="space-y-4">
         <Skeleton className="h-5 w-3/4" />
         <Skeleton className="h-4 w-full" />
@@ -35,7 +35,7 @@ export const CardSkeleton = () => {
 // Soul Signature Card Skeleton
 export const SoulSignatureCardSkeleton = () => {
   return (
-    <div className="bg-white border border-stone-200 rounded-xl p-8 shadow-md">
+    <div className="glass-card p-8 shadow-md">
       <div className="space-y-6">
         <div className="flex items-start justify-between">
           <div className="space-y-2 flex-1">
@@ -68,7 +68,7 @@ export const PlatformGridSkeleton = () => {
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
       {[...Array(6)].map((_, i) => (
-        <div key={i} className="bg-white border border-stone-200 rounded-xl p-4 shadow-md">
+        <div key={i} className="glass-card p-4 shadow-md">
           <div className="flex items-center gap-3">
             <Skeleton className="h-10 w-10 rounded-lg" />
             <div className="flex-1 space-y-2">
@@ -85,7 +85,7 @@ export const PlatformGridSkeleton = () => {
 // Dashboard Card Skeleton
 export const DashboardCardSkeleton = () => {
   return (
-    <div className="bg-white border border-stone-200 rounded-xl p-6 shadow-md">
+    <div className="glass-card p-6 shadow-md">
       <div className="space-y-3">
         <div className="flex items-center justify-between">
           <Skeleton className="h-5 w-5 rounded" />
@@ -114,7 +114,7 @@ export const ActivityListSkeleton = () => {
   return (
     <div className="space-y-4">
       {[...Array(5)].map((_, i) => (
-        <div key={i} className="flex items-start gap-3 p-4 rounded-lg bg-stone-50 border border-stone-200">
+        <div key={i} className="flex items-start gap-3 p-4 glass-card">
           <Skeleton className="h-5 w-5 rounded mt-0.5" />
           <div className="flex-1 space-y-2">
             <Skeleton className="h-4 w-3/4" />
@@ -129,7 +129,7 @@ export const ActivityListSkeleton = () => {
 // Journey Progress Skeleton
 export const JourneyProgressSkeleton = () => {
   return (
-    <div className="bg-white border border-stone-200 rounded-xl p-8 shadow-md">
+    <div className="glass-card p-8 shadow-md">
       <Skeleton className="h-6 w-1/3 mb-6" />
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         {[...Array(4)].map((_, i) => (
@@ -152,7 +152,7 @@ export const QuickActionsSkeleton = () => {
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
       {[...Array(4)].map((_, i) => (
-        <div key={i} className="bg-white border border-stone-200 rounded-xl p-6 shadow-md">
+        <div key={i} className="glass-card p-6 shadow-md">
           <div className="flex items-start gap-4">
             <Skeleton className="h-12 w-12 rounded-lg" />
             <div className="flex-1 space-y-2">
@@ -169,7 +169,7 @@ export const QuickActionsSkeleton = () => {
 // Page Skeleton (Full Dashboard)
 export const DashboardSkeleton = () => {
   return (
-    <div className="min-h-screen bg-[#FAFAFA] p-4 md:p-8">
+    <div className="min-h-screen p-4 md:p-8">
       <div className="mb-8 space-y-2">
         <Skeleton className="h-8 w-64" />
         <Skeleton className="h-4 w-48" />
@@ -180,7 +180,7 @@ export const DashboardSkeleton = () => {
         <StatsCardSkeleton />
         <QuickActionsSkeleton />
 
-        <div className="bg-white border border-stone-200 rounded-xl p-6 shadow-md">
+        <div className="glass-card p-6 shadow-md">
           <div className="flex items-center justify-between mb-6">
             <Skeleton className="h-6 w-40" />
             <Skeleton className="h-4 w-4 rounded" />

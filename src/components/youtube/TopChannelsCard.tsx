@@ -30,16 +30,16 @@ export const TopChannelsCard: React.FC<TopChannelsCardProps> = ({
   };
 
   return (
-    <Card className={`bg-white border border-stone-200 p-6 shadow-md hover:shadow-lg transition-shadow duration-200 ${className}`}>
+    <Card className={`p-6 ${className}`}>
       <div className="flex items-center gap-3 mb-5">
         <div className="w-10 h-10 rounded-full bg-[#FF0000]/10 flex items-center justify-center">
           <Users className="w-5 h-5 text-[#FF0000]" />
         </div>
         <div>
-          <h3 className="font-heading text-lg font-medium text-stone-900">
+          <h3 className="font-heading text-lg font-medium text-foreground">
             Top Channels
           </h3>
-          <p className="text-xs text-stone-500">
+          <p className="text-xs text-muted-foreground">
             Your favorite creators
           </p>
         </div>
@@ -56,14 +56,14 @@ export const TopChannelsCard: React.FC<TopChannelsCardProps> = ({
           >
             <div className="flex items-start justify-between mb-2 gap-3">
               <div className="flex items-start gap-2 flex-1 min-w-0">
-                <span className="font-ui text-sm font-medium text-stone-400 flex-shrink-0 mt-0.5">
+                <span className="font-ui text-sm font-medium text-muted-foreground flex-shrink-0 mt-0.5">
                   {index + 1}
                 </span>
                 <div className="min-w-0 flex-1">
-                  <p className="font-ui text-sm font-medium text-stone-900 truncate mb-1">
+                  <p className="font-ui text-sm font-medium text-foreground truncate mb-1">
                     {channel.channel}
                   </p>
-                  <div className="flex items-center gap-2 text-xs text-stone-500">
+                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
                     <span className="truncate">
                       {formatSubscribers(channel.subscribers)} subscribers
                     </span>
@@ -71,11 +71,11 @@ export const TopChannelsCard: React.FC<TopChannelsCardProps> = ({
                 </div>
               </div>
               <div className="flex flex-col items-end gap-1 flex-shrink-0">
-                <div className="flex items-center gap-1 text-xs text-stone-600">
+                <div className="flex items-center gap-1 text-xs text-muted-foreground">
                   <Video className="w-3 h-3 text-[#FF0000]" />
                   <span className="font-mono">{channel.videosWatched}</span>
                 </div>
-                <div className="flex items-center gap-1 text-xs text-stone-500">
+                <div className="flex items-center gap-1 text-xs text-muted-foreground">
                   <Clock className="w-3 h-3" />
                   <span>{formatWatchTime(channel.avgWatchTime)}</span>
                 </div>
@@ -83,7 +83,7 @@ export const TopChannelsCard: React.FC<TopChannelsCardProps> = ({
             </div>
 
             {/* Visual bar */}
-            <div className="w-full h-1.5 bg-stone-100 rounded-full overflow-hidden">
+            <div className="w-full h-1.5 bg-white/8 rounded-full overflow-hidden">
               <motion.div
                 initial={{ width: 0 }}
                 animate={{ width: `${(channel.videosWatched / maxVideos) * 100}%` }}
@@ -97,8 +97,8 @@ export const TopChannelsCard: React.FC<TopChannelsCardProps> = ({
 
       {channels.length === 0 && (
         <div className="text-center py-8">
-          <Users className="w-12 h-12 text-stone-600 mx-auto mb-3" />
-          <p className="text-sm text-stone-500">
+          <Users className="w-12 h-12 text-muted-foreground mx-auto mb-3" />
+          <p className="text-sm text-muted-foreground">
             No channel data available yet
           </p>
         </div>

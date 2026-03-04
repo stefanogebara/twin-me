@@ -2,7 +2,7 @@
  * PageLayout Component
  *
  * Provides consistent page structure with the TwinMe landing page design.
- * Cream background (#fcf6ef), Halant headings, liquid glass cards.
+ * Dark background (#1C1917), Halant headings, liquid glass cards.
  * Light mode only — matches Index.tsx design language.
  */
 
@@ -40,13 +40,12 @@ export const PageLayout: React.FC<PageLayoutProps> = ({
     none: 'p-0',
     sm: 'p-5 lg:p-7',
     md: 'p-6 lg:p-8',
-    lg: 'p-8 lg:p-10'
+    lg: 'px-8 py-12 lg:px-10 lg:py-14'
   };
 
   return (
     <div
       className={`min-h-screen ${className}`}
-      style={{ backgroundColor: '#fcf6ef' }}
     >
       {/* Token Expiry Banner - shows when tokens are expiring */}
       <TokenExpiryBanner />
@@ -57,16 +56,16 @@ export const PageLayout: React.FC<PageLayoutProps> = ({
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.4, ease: [0.4, 0, 0.2, 1] }}
       >
-        {/* Page Header */}
+        {/* Page Header — hero-scale typography */}
         {(title || subtitle) && (
-          <div className="mb-10">
+          <div className="mb-14">
             {title && (
               <h1
-                className="heading-serif mb-3"
+                className="heading-serif mb-4"
                 style={{
-                  fontSize: '36px',
-                  color: '#000000',
-                  letterSpacing: '-0.04em',
+                  fontSize: 'clamp(2.25rem, 5vw, 3.5rem)',
+                  color: 'var(--foreground)',
+                  letterSpacing: '-0.05em',
                   lineHeight: 1.1
                 }}
               >
@@ -75,11 +74,12 @@ export const PageLayout: React.FC<PageLayoutProps> = ({
             )}
             {subtitle && (
               <p
-                className="text-[14px] font-medium"
+                className="text-[15px] font-medium"
                 style={{
                   fontFamily: "'Geist', sans-serif",
-                  color: '#8A857D',
-                  lineHeight: 1.65
+                  color: 'var(--text-secondary)',
+                  lineHeight: 1.7,
+                  maxWidth: '540px'
                 }}
               >
                 {subtitle}
@@ -127,10 +127,10 @@ export const GlassPanel: React.FC<{
         ease: [0.4, 0, 0.2, 1]
       }}
       whileHover={hover || onClick ? {
-        y: -4,
-        scale: 1.01,
-        boxShadow: '0 20px 60px rgba(0, 0, 0, 0.22), inset 0 1px 0 rgba(255, 255, 255, 0.7)',
-        transition: { duration: 0.25, ease: [0.4, 0, 0.2, 1] }
+        y: -2,
+        scale: 1.005,
+        boxShadow: '0 16px 48px rgba(0, 0, 0, 0.18), 0 4px 12px rgba(255, 255, 255, 0.08)',
+        transition: { duration: 0.3, ease: [0.4, 0, 0.2, 1] }
       } : undefined}
       whileTap={onClick ? { scale: 0.985, transition: { duration: 0.1 } } : undefined}
       onClick={onClick}

@@ -270,7 +270,7 @@ const PlatformConnectStep: React.FC<PlatformConnectStepProps> = ({ userId, onCon
                       className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-all duration-200 hover:opacity-90 disabled:opacity-50"
                       style={{
                         backgroundColor: platform.color,
-                        color: '#000',
+                        color: 'var(--foreground)',
                         fontFamily: 'var(--font-body)',
                       }}
                     >

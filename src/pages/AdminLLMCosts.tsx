@@ -110,7 +110,7 @@ const TIER_DOT_COLORS: Record<string, string> = {
 };
 
 function tierBadge(tier: string) {
-  const cls = TIER_COLORS[tier] || 'bg-gray-500/20 text-gray-400 border-gray-500/30';
+  const cls = TIER_COLORS[tier] || 'bg-gray-700/20 text-muted-foreground border-gray-500/30';
   return (
     <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-medium border ${cls}`}>
       <span className={`w-1.5 h-1.5 rounded-full ${TIER_DOT_COLORS[tier] || 'bg-gray-400'}`} />
@@ -264,12 +264,12 @@ const AdminLLMCosts: React.FC = () => {
   );
 
   // Design system colors
-  const cardBg = 'rgba(255, 255, 255, 0.55)';
-  const cardBorder = '1px solid rgba(0, 0, 0, 0.08)';
-  const textPrimary = '#000000';
-  const textMuted = '#8A857D';
-  const tableBg = 'rgba(255, 255, 255, 0.6)';
-  const rowHover = 'rgba(0, 0, 0, 0.02)';
+  const cardBg = 'var(--glass-surface-bg)';
+  const cardBorder = '1px solid var(--glass-surface-border)';
+  const textPrimary = 'var(--foreground)';
+  const textMuted = 'var(--text-muted)';
+  const tableBg = 'var(--glass-surface-bg)';
+  const rowHover = 'var(--glass-surface-bg-subtle)';
 
   if (loading) {
     return (
@@ -293,7 +293,7 @@ const AdminLLMCosts: React.FC = () => {
             onClick={() => { setLoading(true); fetchData(); }}
             className="px-4 py-2 rounded-lg text-sm font-medium transition-colors"
             style={{
-              backgroundColor: 'rgba(0, 0, 0, 0.06)',
+              backgroundColor: 'var(--glass-surface-bg)',
               color: textPrimary,
             }}
           >
@@ -317,7 +317,7 @@ const AdminLLMCosts: React.FC = () => {
             <button
               onClick={() => setAutoRefresh(!autoRefresh)}
               className={`w-10 h-5 rounded-full transition-colors relative ${
-                autoRefresh ? 'bg-green-500' : 'bg-gray-300'
+                autoRefresh ? 'bg-green-500' : 'bg-gray-600'
               }`}
             >
               <span
@@ -331,7 +331,7 @@ const AdminLLMCosts: React.FC = () => {
             onClick={() => { setLoading(true); fetchData(); }}
             className="p-2 rounded-lg transition-colors hover:opacity-80"
             style={{
-              backgroundColor: 'rgba(0, 0, 0, 0.04)',
+              backgroundColor: 'var(--glass-surface-bg)',
             }}
             title="Refresh now"
           >
@@ -398,7 +398,7 @@ const AdminLLMCosts: React.FC = () => {
         {/* Average Latency */}
         <div className="p-5 rounded-2xl" style={{ backgroundColor: cardBg, border: cardBorder }}>
           <div className="flex items-center gap-3 mb-3">
-            <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-amber-500/10">
+            <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-amber-900/150/10">
               <Clock className="w-5 h-5 text-amber-400" />
             </div>
             <span className="text-xs uppercase tracking-wider" style={{ color: textMuted }}>Avg Latency</span>

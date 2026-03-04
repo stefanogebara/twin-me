@@ -173,7 +173,7 @@ export const TokenExpiryBanner: React.FC<TokenExpiryBannerProps> = ({
               ? `${platformName} connection expired`
               : `${platformName} connection expiring soon`}
           </p>
-          <p className="text-xs" style={{ color: '#8A857D' }}>
+          <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>
             {urgentNotification.message}
           </p>
         </div>
@@ -185,7 +185,7 @@ export const TokenExpiryBanner: React.FC<TokenExpiryBannerProps> = ({
           className="h-8 px-3 text-xs rounded-lg flex items-center gap-1.5 font-medium transition-opacity hover:opacity-90"
           style={{
             backgroundColor: isExpired ? '#dc2626' : '#d97706',
-            color: '#fcf6ef',
+            color: 'var(--foreground)',
           }}
         >
           <RefreshCw className="w-3 h-3" />
@@ -196,7 +196,7 @@ export const TokenExpiryBanner: React.FC<TokenExpiryBannerProps> = ({
           onClick={() => handleDismiss(urgentNotification.id)}
           className="h-8 w-8 p-0 flex items-center justify-center rounded-lg hover:bg-black/5 transition-colors"
           title="Dismiss"
-          style={{ color: '#8A857D' }}
+          style={{ color: 'var(--text-secondary)' }}
         >
           <X className="w-4 h-4" />
         </button>
@@ -204,7 +204,7 @@ export const TokenExpiryBanner: React.FC<TokenExpiryBannerProps> = ({
 
       {visibleNotifications.length > 1 && (
         <div className="absolute right-16 top-1/2 -translate-y-1/2">
-          <span className="text-xs" style={{ color: '#8A857D' }}>
+          <span className="text-xs" style={{ color: 'var(--text-secondary)' }}>
             +{visibleNotifications.length - 1} more
           </span>
         </div>

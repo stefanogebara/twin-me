@@ -19,11 +19,11 @@ export const BentoGoalsTile: React.FC<Props> = ({ goals, animationDelay = 0 }) =
     <motion.div
       className="rounded-2xl p-5 h-full flex flex-col"
       style={{
-        background: 'rgba(255, 255, 255, 0.18)',
+        background: 'rgba(255, 255, 255, 0.06)',
         backdropFilter: 'blur(10px) saturate(140%)',
         WebkitBackdropFilter: 'blur(10px) saturate(140%)',
-        border: '1px solid rgba(255, 255, 255, 0.45)',
-        boxShadow: '0 8px 32px rgba(0, 0, 0, 0.18), inset 0 1px 0 rgba(255, 255, 255, 0.6)',
+        border: '1px solid rgba(255, 255, 255, 0.10)',
+        boxShadow: '0 8px 32px rgba(0, 0, 0, 0.18), inset 0 1px 0 rgba(255, 255, 255, 0.08)',
       }}
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
@@ -39,7 +39,7 @@ export const BentoGoalsTile: React.FC<Props> = ({ goals, animationDelay = 0 }) =
         </div>
         <p
           className="text-xs font-semibold uppercase tracking-wider"
-          style={{ color: '#8A857D' }}
+          style={{ color: 'var(--text-secondary)' }}
         >
           Goals
         </p>
@@ -73,7 +73,7 @@ export const BentoGoalsTile: React.FC<Props> = ({ goals, animationDelay = 0 }) =
                 }
                 <p
                   className="text-xs font-medium leading-tight truncate flex-1"
-                  style={{ color: '#000000' }}
+                  style={{ color: 'var(--foreground)' }}
                 >
                   {goal.title}
                 </p>
@@ -91,7 +91,7 @@ export const BentoGoalsTile: React.FC<Props> = ({ goals, animationDelay = 0 }) =
               {!isCompleted && !isSuggested && (
                 <div
                   className="h-1 rounded-full overflow-hidden"
-                  style={{ backgroundColor: 'rgba(0, 0, 0, 0.06)' }}
+                  style={{ backgroundColor: 'rgba(255, 255, 255, 0.06)' }}
                 >
                   <motion.div
                     className="h-full rounded-full"

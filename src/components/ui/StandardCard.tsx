@@ -12,10 +12,10 @@ export interface StandardCardProps extends React.HTMLAttributes<HTMLDivElement> 
 }
 
 const variants = {
-  default: 'bg-[hsl(var(--claude-surface))] border border-[hsl(var(--claude-border))]',
-  elevated: 'bg-[hsl(var(--claude-surface))] shadow-lg',
-  bordered: 'bg-[hsl(var(--claude-surface))] border-2 border-[hsl(var(--claude-border))]',
-  interactive: 'bg-[hsl(var(--claude-surface))] border border-[hsl(var(--claude-border))] hover:shadow-md transition-shadow cursor-pointer'
+  default: 'glass-card',
+  elevated: 'glass-card',
+  bordered: 'glass-card',
+  interactive: 'glass-card cursor-pointer'
 };
 
 const paddings = {

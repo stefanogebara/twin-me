@@ -60,11 +60,11 @@ export const AudioFeaturesRadar: React.FC<AudioFeaturesRadarProps> = ({
   const CustomTooltip = ({ active, payload }: any) => {
     if (active && payload && payload.length) {
       return (
-        <div className="bg-white border border-stone-200 rounded-lg shadow-lg p-3">
-          <p className="font-ui text-sm font-medium text-stone-900">
+        <div className="glass-card rounded-lg p-3">
+          <p className="font-ui text-sm font-medium text-foreground">
             {payload[0].payload.feature}
           </p>
-          <p className="text-xs text-stone-600 mt-1">
+          <p className="text-xs text-muted-foreground mt-1">
             {payload[0].payload.description}
           </p>
           <p className="text-xs font-mono text-[#1DB954] mt-2">
@@ -96,16 +96,16 @@ export const AudioFeaturesRadar: React.FC<AudioFeaturesRadarProps> = ({
   };
 
   return (
-    <Card className={`bg-white border border-stone-200 p-6 shadow-md hover:shadow-lg transition-shadow duration-200 ${className}`}>
+    <Card className={`p-6 ${className}`}>
       <div className="flex items-center gap-3 mb-5">
         <div className="w-10 h-10 rounded-full bg-[#1DB954]/10 flex items-center justify-center">
           <Activity className="w-5 h-5 text-[#1DB954]" />
         </div>
         <div>
-          <h3 className="font-heading text-lg font-medium text-stone-900">
+          <h3 className="font-heading text-lg font-medium text-foreground">
             Audio Personality
           </h3>
-          <p className="text-xs text-stone-500">
+          <p className="text-xs text-muted-foreground">
             Your musical characteristics
           </p>
         </div>
@@ -151,11 +151,11 @@ export const AudioFeaturesRadar: React.FC<AudioFeaturesRadarProps> = ({
         >
           <div className="flex items-center gap-2 mb-2">
             <Activity className="w-4 h-4 text-[#1DB954]" />
-            <span className="text-xs font-ui font-medium text-stone-600">
+            <span className="text-xs font-ui font-medium text-muted-foreground">
               Musical Personality
             </span>
           </div>
-          <p className="text-base font-heading font-medium text-stone-900">
+          <p className="text-base font-heading font-medium text-foreground">
             {getPersonalityInsight()}
           </p>
         </motion.div>
@@ -168,15 +168,15 @@ export const AudioFeaturesRadar: React.FC<AudioFeaturesRadarProps> = ({
               initial={{ opacity: 0, x: -10 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ delay: 0.6 + index * 0.1 }}
-              className="flex items-center justify-between bg-stone-50 rounded-lg px-3 py-2"
+              className="flex items-center justify-between bg-[var(--glass-surface-bg)] rounded-lg px-3 py-2"
             >
               <div className="flex items-center gap-2">
                 <div className="w-2 h-2 rounded-full bg-[#1DB954]" />
-                <span className="text-xs font-ui text-stone-700">
+                <span className="text-xs font-ui text-muted-foreground">
                   {item.feature}
                 </span>
               </div>
-              <span className="text-xs font-mono text-stone-900 font-medium">
+              <span className="text-xs font-mono text-foreground font-medium">
                 {item.value.toFixed(0)}%
               </span>
             </motion.div>

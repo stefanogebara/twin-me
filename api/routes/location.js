@@ -70,6 +70,65 @@ router.post('/clusters', authenticateUser, async (req, res) => {
   }
 });
 
+// POST /api/location/current — lightweight upsert of current lat/lng + sun phase
+// Called by frontend SunContext when location is resolved (debounced, ~1x per session)
+router.post('/current', authenticateUser, async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { latitude, longitude, timezone, sunPhase, source } = req.body;
+
+    if (typeof latitude !== 'number' || typeof longitude !== 'number') {
+      return res.status(400).json({ error: 'latitude and longitude are required numbers' });
+    }
+
+    // Clamp to valid ranges
+    const lat = Math.max(-90, Math.min(90, latitude));
+    const lng = Math.max(-180, Math.min(180, longitude));
+
+    const locationData = {
+      latitude: lat,
+      longitude: lng,
+      timezone: typeof timezone === 'string' ? timezone.slice(0, 64) : null,
+      sun_phase: typeof sunPhase === 'string' ? sunPhase.slice(0, 16) : null,
+      source: typeof source === 'string' ? source.slice(0, 16) : 'unknown',
+      updated_at: new Date().toISOString(),
+    };
+
+    const db = await getSupabase();
+    const { error } = await db
+      .from('users')
+      .update({ last_location: locationData })
+      .eq('id', userId);
+
+    if (error) throw error;
+
+    res.json({ success: true });
+  } catch (err) {
+    console.error('[Location] POST /current error:', err.message);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// GET /api/location/current — retrieve last known location (used by twin-chat)
+router.get('/current', authenticateUser, async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const db = await getSupabase();
+    const { data, error } = await db
+      .from('users')
+      .select('last_location')
+      .eq('id', userId)
+      .single();
+
+    if (error) throw error;
+
+    res.json({ success: true, location: data?.last_location || null });
+  } catch (err) {
+    console.error('[Location] GET /current error:', err.message);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
 // GET /api/location/status — cluster count for user
 router.get('/status', authenticateUser, async (req, res) => {
   try {

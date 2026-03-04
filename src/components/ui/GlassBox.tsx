@@ -65,12 +65,12 @@ export const GlassFeatureCard: React.FC<{
       </div>
 
       {/* Title */}
-      <h3 className="text-xl font-semibold text-stone-900 mb-2">
+      <h3 className="text-xl font-semibold text-foreground mb-2">
         {title}
       </h3>
 
       {/* Description */}
-      <p className="text-stone-700 text-sm leading-relaxed">
+      <p className="text-muted-foreground text-sm leading-relaxed">
         {description}
       </p>
 

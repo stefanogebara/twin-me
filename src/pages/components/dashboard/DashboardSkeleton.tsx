@@ -6,7 +6,7 @@ const SkeletonPulse = ({ className = '', style = {} }: { className?: string; sty
     <div
       className={`glass-shimmer rounded ${className}`}
       style={{
-        backgroundColor: 'rgba(255, 255, 255, 0.18)',
+        backgroundColor: 'rgba(255, 255, 255, 0.06)',
         ...style
       }}
     />

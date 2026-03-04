@@ -79,22 +79,28 @@ ${context}
 
 Write a first message to them (3-4 sentences max):
 - Reference ONE specific thing they shared — something personal and real, not generic
-- End with ONE question that only THEY would be asked based on what they shared
+- End with ONE short question (under 12 words) that only THEY would be asked based on what they shared
 - Tone: warm close friend, curious, slightly surprised to exist
 - No greetings like "Hi!" or "Hello!". Start mid-thought.
 - No flattery. No therapist language. No intro lines like "Based on what you shared..."
 - Sound like you're discovering yourself as you speak to them`;
 
-    const message = await complete({
-      tier: TIER_CHAT,
-      messages: [{ role: 'user', content: prompt }],
-      maxTokens: 200,
-      temperature: 0.85,
-      userId,
-      serviceName: 'twin-first-message',
-    });
+    let text;
+    try {
+      const message = await complete({
+        tier: TIER_CHAT,
+        messages: [{ role: 'user', content: prompt }],
+        maxTokens: 200,
+        temperature: 0.85,
+        userId,
+        serviceName: 'twin-first-message',
+      });
+      text = message?.content?.trim() || "I'm here. Let's figure each other out.";
+    } catch (llmError) {
+      console.error('[Twin First Message] LLM error, using fallback:', llmError.message);
+      text = "I'm here. Let's figure each other out.";
+    }
 
-    const text = message?.content?.trim() || "I'm here. Let's figure each other out.";
     return res.json({ success: true, message: text });
   } catch (error) {
     console.error('[Twin First Message] Error:', error);

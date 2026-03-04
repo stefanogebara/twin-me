@@ -26,9 +26,9 @@ import GoalProgressChart from './GoalProgressChart';
 import type { Goal, GoalProgress } from '@/services/api/goalsAPI';
 
 // Design tokens
-const TEXT_PRIMARY = '#000000';
-const TEXT_SECONDARY = '#8A857D';
-const BORDER_COLOR = 'rgba(0, 0, 0, 0.08)';
+const TEXT_PRIMARY = 'var(--foreground)';
+const TEXT_SECONDARY = 'var(--text-secondary)';
+const BORDER_COLOR = 'var(--glass-surface-border)';
 
 // Category color mapping
 const CATEGORY_STYLES: Record<string, { bg: string; text: string; border: string; label: string }> = {
@@ -129,7 +129,7 @@ const GoalCard: React.FC<GoalCardProps> = ({
         delay: index * 0.06,
         ease: [0.4, 0, 0.2, 1],
       }}
-      className="glass-card p-5 space-y-3"
+      className="glass-card p-6 space-y-4"
       style={{ borderRadius: '16px' }}
     >
       {/* Header: Category badge + title */}
@@ -152,7 +152,7 @@ const GoalCard: React.FC<GoalCardProps> = ({
               {goal.title}
             </h4>
             <span
-              className="inline-block px-2 py-0.5 rounded-full text-[10px] mt-1"
+              className="inline-block px-3 py-1 rounded-full text-xs font-medium mt-1.5"
               style={{
                 background: categoryStyle.bg,
                 color: categoryStyle.text,
@@ -193,7 +193,7 @@ const GoalCard: React.FC<GoalCardProps> = ({
         <div
           className="h-2 rounded-full overflow-hidden"
           style={{
-            background: 'rgba(0, 0, 0, 0.05)',
+            background: 'var(--glass-surface-bg)',
           }}
         >
           <motion.div

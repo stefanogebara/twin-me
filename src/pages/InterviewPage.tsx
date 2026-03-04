@@ -82,7 +82,7 @@ export default function InterviewPage() {
           <p className="text-2xl mb-2" style={{ fontFamily: 'var(--font-heading)', fontWeight: 500 }}>
             Your story is already in.
           </p>
-          <p className="mb-8" style={{ color: '#8A857D' }}>
+          <p className="mb-8" style={{ color: 'var(--text-secondary)' }}>
             Your twin has your interview context. You can redo it to update your portrait.
           </p>
           <div className="flex gap-3 justify-center">
@@ -101,13 +101,12 @@ export default function InterviewPage() {
   return (
     <PageLayout title="Tell Your Story">
       <div className="max-w-2xl mx-auto">
-        <p className="text-sm mb-6" style={{ color: '#8A857D' }}>
+        <p className="text-sm mb-6" style={{ color: 'var(--text-secondary)' }}>
           A quick conversation across 5 life domains. Your answers seed your twin with the context no platform data can capture.
         </p>
-        {/* Dark container — DeepInterview uses cream (#E8D5B7) text designed for dark backgrounds */}
         <div
           className="rounded-2xl p-6"
-          style={{ backgroundColor: '#1a1814', border: '1px solid rgba(232,213,183,0.1)' }}
+          style={{ backgroundColor: 'var(--glass-surface-bg)', border: '1px solid var(--glass-surface-border)' }}
         >
           <DeepInterview
             enrichmentContext={enrichmentContext}

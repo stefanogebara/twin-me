@@ -14,13 +14,13 @@ const NotFound = () => {
   return (
     <div
       className="min-h-screen relative overflow-hidden"
-      style={{ backgroundColor: '#fcf6ef' }}
+      style={{ backgroundColor: 'var(--background)' }}
     >
       {/* Subtle background texture */}
       <div
         className="absolute inset-0 pointer-events-none"
         style={{
-          background: 'radial-gradient(ellipse 80% 60% at 50% 20%, rgba(0, 0, 0, 0.04) 0%, transparent 70%), radial-gradient(ellipse 60% 80% at 80% 80%, rgba(0, 0, 0, 0.03) 0%, transparent 70%)',
+          background: 'radial-gradient(ellipse 80% 60% at 50% 20%, rgba(255, 255, 255, 0.05) 0%, transparent 70%), radial-gradient(ellipse 60% 80% at 80% 80%, rgba(255, 255, 255, 0.04) 0%, transparent 70%)',
         }}
       />
 
@@ -40,7 +40,7 @@ const NotFound = () => {
             <p
               className="text-8xl font-bold mb-4"
               style={{
-                color: 'rgba(0, 0, 0, 0.06)',
+                color: 'rgba(255, 255, 255, 0.06)',
                 fontFamily: '"Halant", Georgia, serif',
                 lineHeight: 1,
                 letterSpacing: '-0.04em',
@@ -60,7 +60,7 @@ const NotFound = () => {
             <p
               className="text-base mb-10 leading-relaxed"
               style={{
-                color: '#8A857D',
+                color: 'var(--text-secondary)',
               }}
             >
               The page you're looking for doesn't exist or may have been moved.
