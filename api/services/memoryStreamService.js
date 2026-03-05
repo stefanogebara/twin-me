@@ -126,7 +126,7 @@ async function maybeReviseExistingMemory(userId, content, memoryType, embedding,
   try {
     const { data: recent } = await supabaseAdmin
       .from('user_memories')
-      .select('id, embedding, confidence, importance_score')
+      .select('id, embedding, confidence, importance_score, revision_count')
       .eq('user_id', userId)
       .eq('memory_type', memoryType)
       .order('created_at', { ascending: false })
@@ -146,6 +146,8 @@ async function maybeReviseExistingMemory(userId, content, memoryType, embedding,
         last_accessed_at: new Date().toISOString(),
         // Boost confidence slightly (clamp to 1.0)
         confidence: Math.min(1.0, (row.confidence ?? 0.7) + 0.05),
+        // Track revision frequency
+        revision_count: (row.revision_count ?? 0) + 1,
       };
       if (options.reasoning) {
         updates.reasoning = options.reasoning.substring(0, 1000);
@@ -247,13 +249,52 @@ async function applyGumBayesianRevision(userId, newContent, newEmbedding, memory
 
     // Apply updates (non-blocking batch)
     for (const u of updates) {
-      supabaseAdmin.from('user_memories').update({ confidence: u.confidence }).eq('id', u.id)
-        .then(() => console.log(`[GUM] ${u.verdict} → confidence updated for ${u.id}`))
+      // Update confidence + bump revision_count via raw SQL (JS client can't do col + 1)
+      supabaseAdmin.rpc('update_memory_confidence', {
+        p_memory_id: u.id,
+        p_new_confidence: u.confidence,
+      })
+        .then(() => console.log(`[GUM] ${u.verdict} → confidence=${u.confidence.toFixed(2)} for ${u.id}`))
         .catch(() => {});
+
+      // GUM Step 4: Contradiction cascade — when a memory is contradicted,
+      // reduce confidence of downstream reflections that cite it via grounding_ids
+      if (u.verdict === 'CONTRADICTS') {
+        cascadeContradiction(u.id).catch(() => {});
+      }
     }
   } catch (err) {
     // Fully non-fatal
     console.warn('[GUM] Bayesian revision check failed (non-fatal):', err.message);
+  }
+}
+
+/**
+ * GUM Step 4: Contradiction cascade.
+ * When a source memory is contradicted, reflections that cite it (via grounding_ids)
+ * should lose some confidence too — belief propagation from GUM Paper 3.
+ */
+async function cascadeContradiction(contradictedId) {
+  try {
+    const { data: downstream } = await supabaseAdmin
+      .from('user_memories')
+      .select('id, confidence')
+      .eq('memory_type', 'reflection')
+      .contains('grounding_ids', [contradictedId]);
+
+    if (!downstream || downstream.length === 0) return;
+
+    for (const row of downstream) {
+      const newConf = Math.max(0.30, (row.confidence ?? 0.7) - 0.05);
+      supabaseAdmin.from('user_memories')
+        .update({ confidence: newConf })
+        .eq('id', row.id)
+        .then(() => console.log(`[GUM] Cascade: reflection ${row.id} confidence → ${newConf.toFixed(2)}`))
+        .catch(() => {});
+    }
+    console.log(`[GUM] Contradiction cascade: ${downstream.length} downstream reflections affected`);
+  } catch (err) {
+    console.warn('[GUM] Contradiction cascade failed (non-fatal):', err.message);
   }
 }
 
@@ -612,10 +653,8 @@ async function retrieveMemories(userId, query, limit = 10, weights = 'default') 
 
     if (!data || data.length === 0) return [];
 
-    // GUM: confidence-weight scores before MMR so low-confidence memories sink in rankings
-    for (const m of data) {
-      m.score = (m.score ?? 0) * (m.confidence ?? 0.7);
-    }
+    // GUM: confidence weighting is now baked into SQL scoring (search_memory_stream RPC
+    // multiplies by COALESCE(confidence, 0.7) before ORDER BY). No post-RPC adjustment needed.
 
     // Apply MMR reranking for diversity (strips embedding from output)
     const reranked = mmrRerank(data, limit);

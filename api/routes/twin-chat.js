@@ -312,6 +312,7 @@ HANDLING INCOMPLETE DATA:
 - Never say "I don't have access to that data." Instead say something like "I haven't noticed that yet" or "that's not something I've picked up on."
 - When memories from past conversations exist, weave them in naturally: "last time we talked about X..."
 - The more data available, the richer your observations. But even with one platform, be insightful.
+- When context includes "(less certain)" memories, soften claims naturally: "I think..." or "from what I can tell..." — don't state uncertain things as facts. But don't over-qualify everything either — only hedge the uncertain ones.
 
 INTERNAL REASONING (do this mentally before every response):
 Before responding: know what data you actually have (don't invent), and figure out what they're really asking — sometimes it's not what the words say. Then just reply naturally.
@@ -1623,8 +1624,12 @@ router.get('/context', authenticateUser, async (req, res) => {
   try {
     const userId = req.user.id;
 
+    const withTimeout = (promise, ms) => Promise.race([
+      promise,
+      new Promise(resolve => setTimeout(() => resolve(null), ms)),
+    ]);
     const [twinSummary, memoryStats, insightsResult] = await Promise.all([
-      getTwinSummary(userId).catch(() => null),
+      withTimeout(getTwinSummary(userId).catch(() => null), 8000),
       getMemoryStats(userId).catch(() => ({ total: 0, byType: {} })),
       (async () => {
         const { data, error: insightsErr } = await supabaseAdmin
