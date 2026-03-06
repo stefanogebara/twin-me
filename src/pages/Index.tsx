@@ -87,7 +87,7 @@ const Index = () => {
   }, []);
 
   return (
-    <div className="w-full min-h-screen text-[#000000]" style={{ backgroundColor: 'var(--background)', fontFamily: "'Geist', sans-serif", fontSize: '14px', fontWeight: 500 }}>
+    <div className="w-full min-h-screen text-[#000000] dark:text-[#F5F5F4]" style={{ backgroundColor: 'var(--background)', fontFamily: "'Geist', sans-serif", fontSize: '14px', fontWeight: 500 }}>
       <style>{`
         /* ── Claura Typography System ── */
         /* H1: 70px/400, H2: 56px/400, H3: 32px/400 — all Halant */
@@ -99,6 +99,7 @@ const Index = () => {
           line-height: 1.1;
           color: #000000;
         }
+        .dark .heading-serif { color: #F5F5F4; }
         .h1 { font-size: 80px; }
         .h2 { font-size: 56px; }
         .h3 { font-size: 32px; }
@@ -109,6 +110,7 @@ const Index = () => {
           color: #8A857D;
           letter-spacing: -0.05em;
         }
+        .dark .heading-serif-italic { color: #D6D3D1; }
         .body-text {
           font-family: 'Geist', sans-serif;
           font-size: 14px;
@@ -116,6 +118,7 @@ const Index = () => {
           color: #8A857D;
           line-height: 1.65;
         }
+        .dark .body-text { color: #A8A29E; }
         .claura-label {
           font-family: 'Geist', sans-serif;
           background: rgba(0,0,0,0.04);
@@ -127,10 +130,15 @@ const Index = () => {
           color: #5C5851;
           display: inline-block;
         }
+        .dark .claura-label {
+          background: rgba(255,255,255,0.08);
+          border-color: rgba(255,255,255,0.12);
+          color: #A8A29E;
+        }
         .btn-cta {
           font-family: 'Geist', sans-serif;
           background-color: #000000;
-          color: var(--foreground);
+          color: #F5F5F4;
           border-radius: 9999px;
           padding: 14px 28px;
           font-size: 12px;
@@ -143,6 +151,8 @@ const Index = () => {
           text-transform: uppercase;
         }
         .btn-cta:hover { background-color: #222; transform: translateY(-2px); }
+        .dark .btn-cta { background-color: #F5F5F4; color: #1C1917; }
+        .dark .btn-cta:hover { background-color: #E7E5E4; }
         .btn-outline {
           font-family: 'Geist', sans-serif;
           background: transparent;
@@ -160,6 +170,8 @@ const Index = () => {
           text-transform: uppercase;
         }
         .btn-outline:hover { border-color: #000; transform: translateY(-1px); }
+        .dark .btn-outline { color: #F5F5F4; border-color: rgba(255,255,255,0.25); }
+        .dark .btn-outline:hover { border-color: rgba(255,255,255,0.5); }
 
         /* Service tab highlight */
         .service-tab {
@@ -172,6 +184,8 @@ const Index = () => {
         .service-tab.active {
           background: rgba(0,0,0,0.04);
         }
+        .dark .service-tab:hover { background: rgba(255,255,255,0.06); }
+        .dark .service-tab.active { background: rgba(255,255,255,0.08); }
 
         /* Glass stat card */
         .glass-stat {
@@ -199,6 +213,7 @@ const Index = () => {
           color: #5C5851;
           flex-shrink: 0;
         }
+        .dark .step-circle { border-color: rgba(255,255,255,0.25); color: #A8A29E; }
         .step-badge {
           font-family: 'Geist', sans-serif;
           background: rgba(0,0,0,0.04);
@@ -208,6 +223,11 @@ const Index = () => {
           font-size: 12px;
           font-weight: 400;
           color: #8A857D;
+        }
+        .dark .step-badge {
+          background: rgba(255,255,255,0.08);
+          border-color: rgba(255,255,255,0.12);
+          color: #A8A29E;
         }
 
         /* Responsive heading sizes */
@@ -313,7 +333,7 @@ const Index = () => {
       </section>
 
       {/* ────────────── PLATFORMS STRIP ────────────── */}
-      <section className="px-6 lg:px-16 py-10 border-t border-b border-[#E8E3DC]">
+      <section className="px-6 lg:px-16 py-10 border-t border-b border-[#E8E3DC] dark:border-white/10">
         <div className="max-w-[1200px] mx-auto">
           <p className="text-center mb-7" style={{ fontFamily: "'Geist', sans-serif", fontSize: '11px', fontWeight: 400, letterSpacing: '0.12em', textTransform: 'uppercase', color: '#B5B0A8' }}>
             Your data, your insights — powered by
@@ -424,12 +444,12 @@ const Index = () => {
                   onClick={() => setActiveService(idx)}
                 >
                   <h3 className={`heading-serif h3 transition-colors duration-300 ${
-                    idx === activeService ? 'text-[#000]' : 'text-[#D5D0C8]'
+                    idx === activeService ? 'text-[#000] dark:text-[#F5F5F4]' : 'text-[#D5D0C8] dark:text-[#57534E]'
                   }`}>
                     {svc.title}
                   </h3>
                   <span className={`body-text transition-colors duration-300 ${
-                    idx === activeService ? 'text-[#8A857D]' : 'text-[#D5D0C8]'
+                    idx === activeService ? 'text-[#8A857D] dark:text-[#A8A29E]' : 'text-[#D5D0C8] dark:text-[#57534E]'
                   }`}>
                     {svc.num}
                   </span>
@@ -462,7 +482,7 @@ const Index = () => {
                     />
                   </div>
                   {/* Description */}
-                  <h4 className="body-text text-[#000] mb-2" style={{ fontWeight: 600 }}>
+                  <h4 className="body-text text-[#000] dark:text-[#F5F5F4] mb-2" style={{ fontWeight: 600 }}>
                     {SERVICES[activeService].heading}
                   </h4>
                   <p className="body-text max-w-[480px]">
@@ -520,7 +540,7 @@ const Index = () => {
                 <div className="step-circle">{step.num}</div>
                 <div>
                   <div className="flex items-center gap-3 mb-2">
-                    <h4 className="body-text text-[#000]" style={{ fontWeight: 600 }}>{step.title}</h4>
+                    <h4 className="body-text text-[#000] dark:text-[#F5F5F4]" style={{ fontWeight: 600 }}>{step.title}</h4>
                     <span className="step-badge">{step.badge}</span>
                   </div>
                   <p className="body-text max-w-[420px]">
@@ -577,7 +597,7 @@ const Index = () => {
       </section>
 
       {/* ────────────── FOOTER ────────────── */}
-      <footer className="px-6 lg:px-16 pb-10 pt-12 border-t border-[#E8E3DC]">
+      <footer className="px-6 lg:px-16 pb-10 pt-12 border-t border-[#E8E3DC] dark:border-white/10">
         <div className="max-w-[1200px] mx-auto">
           {/* Top row — 3 columns */}
           <div className="flex flex-col lg:flex-row justify-between gap-10 mb-10">
@@ -593,10 +613,10 @@ const Index = () => {
                 Product
               </p>
               <ul className="space-y-2.5 body-text">
-                <li><a href="/#features" className="text-[#57534E] hover:text-[#000] transition-colors">Features</a></li>
-                <li><a href="/#how-it-works" className="text-[#57534E] hover:text-[#000] transition-colors">How it works</a></li>
-                <li><a href="/get-started" className="text-[#57534E] hover:text-[#000] transition-colors">Connect your data</a></li>
-                <li><a href="/soul-signature" className="text-[#57534E] hover:text-[#000] transition-colors">Soul Signature</a></li>
+                <li><a href="/#features" className="text-[#57534E] hover:text-[#000] dark:text-[#A8A29E] dark:hover:text-[#F5F5F4] transition-colors">Features</a></li>
+                <li><a href="/#how-it-works" className="text-[#57534E] hover:text-[#000] dark:text-[#A8A29E] dark:hover:text-[#F5F5F4] transition-colors">How it works</a></li>
+                <li><a href="/get-started" className="text-[#57534E] hover:text-[#000] dark:text-[#A8A29E] dark:hover:text-[#F5F5F4] transition-colors">Connect your data</a></li>
+                <li><a href="/soul-signature" className="text-[#57534E] hover:text-[#000] dark:text-[#A8A29E] dark:hover:text-[#F5F5F4] transition-colors">Soul Signature</a></li>
               </ul>
             </div>
 
@@ -606,19 +626,19 @@ const Index = () => {
                 Community
               </p>
               <ul className="space-y-2.5 body-text">
-                <li><a href="https://github.com/twinme-ai" target="_blank" rel="noopener noreferrer" className="text-[#57534E] hover:text-[#000] transition-colors">GitHub</a></li>
-                <li><a href="https://twitter.com/twinme_ai" target="_blank" rel="noopener noreferrer" className="text-[#57534E] hover:text-[#000] transition-colors">Twitter / X</a></li>
-                <li><a href="mailto:hello@twinme.ai" className="text-[#57534E] hover:text-[#000] transition-colors">Contact us</a></li>
+                <li><a href="https://github.com/twinme-ai" target="_blank" rel="noopener noreferrer" className="text-[#57534E] hover:text-[#000] dark:text-[#A8A29E] dark:hover:text-[#F5F5F4] transition-colors">GitHub</a></li>
+                <li><a href="https://twitter.com/twinme_ai" target="_blank" rel="noopener noreferrer" className="text-[#57534E] hover:text-[#000] dark:text-[#A8A29E] dark:hover:text-[#F5F5F4] transition-colors">Twitter / X</a></li>
+                <li><a href="mailto:hello@twinme.ai" className="text-[#57534E] hover:text-[#000] dark:text-[#A8A29E] dark:hover:text-[#F5F5F4] transition-colors">Contact us</a></li>
               </ul>
             </div>
           </div>
 
           {/* Bottom row */}
-          <div className="flex flex-col sm:flex-row justify-between gap-4 body-text border-t border-[#E8E3DC] pt-6" style={{ fontSize: '12px' }}>
+          <div className="flex flex-col sm:flex-row justify-between gap-4 body-text border-t border-[#E8E3DC] dark:border-white/10 pt-6" style={{ fontSize: '12px' }}>
             <p>&copy; 2026 Twin Me. All rights reserved.</p>
             <div className="flex gap-6">
-              <a href="/privacy-policy" className="hover:text-[#000] transition-colors">Privacy Policy</a>
-              <a href="/terms" className="hover:text-[#000] transition-colors">Terms</a>
+              <a href="/privacy-policy" className="hover:text-[#000] dark:hover:text-[#F5F5F4] transition-colors">Privacy Policy</a>
+              <a href="/terms" className="hover:text-[#000] dark:hover:text-[#F5F5F4] transition-colors">Terms</a>
             </div>
           </div>
         </div>

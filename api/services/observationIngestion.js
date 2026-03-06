@@ -240,6 +240,43 @@ async function fetchSpotifyObservations(userId) {
     observations.push({ content: `Extended listening session (${recentTracks.length} tracks recently)`, contentType: 'current_state' });
   }
 
+  // Audio features analysis: mood detection from energy, valence, danceability
+  if (recentItems.length > 0) {
+    try {
+      const trackIds = recentItems
+        .map(item => item.track?.id)
+        .filter(Boolean)
+        .slice(0, 10);
+      if (trackIds.length >= 3) {
+        const featuresRes = await axios.get(
+          `https://api.spotify.com/v1/audio-features?ids=${trackIds.join(',')}`,
+          { headers, timeout: 10000 }
+        );
+        const features = (featuresRes.data?.audio_features || []).filter(Boolean);
+        if (features.length >= 3) {
+          const avg = (key) => features.reduce((sum, f) => sum + (f[key] || 0), 0) / features.length;
+          const avgValence = avg('valence');
+          const avgEnergy = avg('energy');
+          const avgDance = avg('danceability');
+
+          const moodLabel = avgValence > 0.7 ? 'upbeat and positive'
+            : avgValence > 0.4 ? 'balanced'
+            : 'mellow or introspective';
+          const energyLabel = avgEnergy > 0.7 ? 'high-energy'
+            : avgEnergy > 0.4 ? 'moderate-energy'
+            : 'low-energy, chill';
+
+          observations.push({
+            content: `Music mood right now: ${moodLabel}, ${energyLabel} (valence ${(avgValence * 100).toFixed(0)}%, energy ${(avgEnergy * 100).toFixed(0)}%, danceability ${(avgDance * 100).toFixed(0)}%)`,
+            contentType: 'current_state',
+          });
+        }
+      }
+    } catch (e) {
+      // Audio features endpoint may fail — non-critical
+    }
+  }
+
   return observations;
 }
 
@@ -436,6 +473,28 @@ async function fetchYouTubeObservations(userId) {
       content: `Recently liked YouTube videos: "${titles.join('", "')}" — from channels: ${channelsSeen.join(', ')}`,
       contentType: 'daily_summary',
     });
+
+    // Category clustering from liked videos
+    const categoryCounts = {};
+    for (const item of likedItems) {
+      const cat = item.snippet?.categoryId;
+      if (cat) {
+        // YouTube category IDs → human-readable mapping (common IDs)
+        const categoryMap = { '1': 'Film & Animation', '2': 'Autos', '10': 'Music', '15': 'Pets', '17': 'Sports', '20': 'Gaming', '22': 'People & Vlogs', '23': 'Comedy', '24': 'Entertainment', '25': 'News', '26': 'How-to & Style', '27': 'Education', '28': 'Science & Tech' };
+        const label = categoryMap[cat] || `Category ${cat}`;
+        categoryCounts[label] = (categoryCounts[label] || 0) + 1;
+      }
+    }
+    const topCategories = Object.entries(categoryCounts)
+      .sort(([, a], [, b]) => b - a)
+      .slice(0, 4)
+      .map(([cat, count]) => `${cat} (${count})`);
+    if (topCategories.length > 0) {
+      observations.push({
+        content: `YouTube content interests: ${topCategories.join(', ')}`,
+        contentType: 'weekly_summary',
+      });
+    }
   }
 
   return observations;
@@ -508,6 +567,25 @@ async function fetchDiscordObservations(userId) {
           contentType: 'weekly_summary',
         });
       }
+
+      // Community engagement depth: owner vs member ratio
+      const ownedCount = guilds.filter(g => g.owner).length;
+      if (ownedCount > 0) {
+        observations.push({
+          content: `Owns ${ownedCount} Discord server${ownedCount > 1 ? 's' : ''} — active community builder`,
+          contentType: 'weekly_summary',
+        });
+      }
+
+      // Server size distribution insight (approximate from permissions)
+      const largeServers = guilds.filter(g => g.approximate_member_count > 1000).length;
+      const smallServers = guilds.filter(g => g.approximate_member_count && g.approximate_member_count <= 50).length;
+      if (largeServers > 0 && smallServers > 0) {
+        observations.push({
+          content: `Mix of ${largeServers} large community servers and ${smallServers} tight-knit groups on Discord — comfortable in both public and private spaces`,
+          contentType: 'weekly_summary',
+        });
+      }
     }
   } catch (e) {
     console.warn('[ObservationIngestion] Discord guilds error:', e.message);
@@ -574,6 +652,24 @@ async function fetchLinkedInObservations(userId) {
       content: `LinkedIn professional headline: "${headline}"`,
       contentType: 'weekly_summary',
     });
+
+    // Headline depth analysis: detect role seniority signals
+    const seniorityPatterns = {
+      executive: /\b(CEO|CTO|CFO|COO|CMO|VP|Vice President|Director|Head of|Chief|Partner|Founder|Co-founder)\b/i,
+      senior: /\b(Senior|Lead|Principal|Staff|Architect|Manager)\b/i,
+      mid: /\b(Engineer|Developer|Designer|Analyst|Consultant|Specialist|Coordinator)\b/i,
+      entry: /\b(Junior|Associate|Intern|Trainee|Entry|Graduate|Apprentice)\b/i,
+    };
+    for (const [level, pattern] of Object.entries(seniorityPatterns)) {
+      if (pattern.test(headline)) {
+        const labels = { executive: 'executive/leadership', senior: 'senior-level', mid: 'mid-career', entry: 'early-career' };
+        observations.push({
+          content: `LinkedIn headline suggests ${labels[level]} professional positioning`,
+          contentType: 'weekly_summary',
+        });
+        break;
+      }
+    }
   }
   if (industry) {
     observations.push({
@@ -587,6 +683,24 @@ async function fetchLinkedInObservations(userId) {
       content: `LinkedIn profile located in ${locale}`,
       contentType: 'weekly_summary',
     });
+  }
+
+  // Connection count (if available via v2 API)
+  try {
+    const connectionsRes = await axios.get(
+      'https://api.linkedin.com/v2/connections?q=viewer&count=0',
+      { headers, timeout: 10000 }
+    );
+    const connectionCount = connectionsRes.data?.paging?.total ?? null;
+    if (connectionCount !== null && connectionCount > 0) {
+      const networkLabel = connectionCount > 500 ? 'extensive' : connectionCount > 100 ? 'solid' : 'growing';
+      observations.push({
+        content: `LinkedIn network: ${connectionCount}+ connections (${networkLabel} professional network)`,
+        contentType: 'weekly_summary',
+      });
+    }
+  } catch {
+    // Connection count requires specific scope — non-fatal
   }
 
   return observations;
@@ -1017,6 +1131,44 @@ async function fetchGmailObservations(userId) {
     }
   } catch (e) {
     console.warn('[ObservationIngestion] Gmail sent network size error:', e.message);
+  }
+
+  // ── 9. Top sender domains (who emails you most) ────────────────────────────
+  try {
+    const fromListRes = await axios.get(
+      `${BASE}/messages?labelIds=INBOX&q=newer_than:7d&maxResults=50`,
+      { headers, timeout: 10000 }
+    );
+    const fromIds = (fromListRes.data?.messages || []).map(m => m.id).slice(0, 20);
+    if (fromIds.length >= 5) {
+      const fromDomains = await Promise.all(
+        fromIds.map(id =>
+          axios.get(`${BASE}/messages/${id}?format=metadata&metadataHeaders=From`, { headers, timeout: 10000 })
+            .then(r => {
+              const from = r.data?.payload?.headers?.find(h => h.name === 'From')?.value || '';
+              const match = from.match(/@([a-zA-Z0-9.-]+)/);
+              return match ? match[1].toLowerCase() : null;
+            })
+            .catch(() => null)
+        )
+      );
+      const domainCounts = {};
+      for (const d of fromDomains.filter(Boolean)) {
+        domainCounts[d] = (domainCounts[d] || 0) + 1;
+      }
+      const topSenders = Object.entries(domainCounts)
+        .sort(([, a], [, b]) => b - a)
+        .slice(0, 5)
+        .map(([domain, count]) => `${domain} (${count})`);
+      if (topSenders.length > 0) {
+        observations.push({
+          content: `Most frequent email senders this week: ${topSenders.join(', ')}`,
+          contentType: 'weekly_summary',
+        });
+      }
+    }
+  } catch (e) {
+    console.warn('[ObservationIngestion] Gmail top senders error:', e.message);
   }
 
   return observations;
@@ -2007,6 +2159,108 @@ async function _hasNangoMapping(supabase, userId, platform) {
 }
 
 /**
+ * Store raw Whoop API data into user_platform_data for structured access.
+ * Uses upsert keyed on (user_id, platform, data_type, source_url) where
+ * source_url encodes the date to give one row per data type per day.
+ */
+async function storeWhoopPlatformData(userId, supabase, { recoveryData, recoveryHistory, sleepData, workoutData }) {
+  const today = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
+  const rows = [];
+
+  // Recovery — store latest
+  if (recoveryData?.score) {
+    rows.push({
+      user_id: userId,
+      platform: 'whoop',
+      data_type: 'recovery',
+      source_url: `whoop:recovery:${today}`,
+      raw_data: {
+        recovery_score: recoveryData.score.recovery_score,
+        hrv_rmssd_milli: recoveryData.score.hrv_rmssd_milli,
+        resting_heart_rate: recoveryData.score.resting_heart_rate,
+        spo2_percentage: recoveryData.score.spo2_percentage,
+        skin_temp_celsius: recoveryData.score.skin_temp_celsius,
+        created_at: recoveryData.created_at,
+        history: (recoveryHistory || []).slice(0, 3).map(r => ({
+          recovery_score: r?.score?.recovery_score,
+          hrv_rmssd_milli: r?.score?.hrv_rmssd_milli,
+          created_at: r?.created_at,
+        })),
+      },
+      processed: true,
+    });
+  }
+
+  // Sleep — store latest
+  if (sleepData.length > 0) {
+    const s = sleepData[0];
+    const stageSummary = s.score?.stage_summary || {};
+    const totalSleepMs = s.score?.total_sleep_time_milli
+      || (stageSummary.total_in_bed_time_milli - (stageSummary.total_awake_time_milli || 0))
+      || 0;
+    rows.push({
+      user_id: userId,
+      platform: 'whoop',
+      data_type: 'sleep',
+      source_url: `whoop:sleep:${today}`,
+      raw_data: {
+        total_sleep_hours: +(totalSleepMs / (1000 * 60 * 60)).toFixed(2),
+        sleep_performance_percentage: s.score?.sleep_performance_percentage,
+        respiratory_rate: s.score?.respiratory_rate,
+        disturbances: stageSummary.disturbance_count,
+        rem_milli: stageSummary.total_rem_sleep_time_milli,
+        deep_milli: stageSummary.total_slow_wave_sleep_time_milli,
+        light_milli: stageSummary.total_light_sleep_time_milli,
+        awake_milli: stageSummary.total_awake_time_milli,
+        start: s.start,
+        end: s.end,
+      },
+      processed: true,
+    });
+  }
+
+  // Workout — store latest
+  if (workoutData.length > 0) {
+    const w = workoutData[0];
+    rows.push({
+      user_id: userId,
+      platform: 'whoop',
+      data_type: 'workout',
+      source_url: `whoop:workout:${today}`,
+      raw_data: {
+        sport_id: w.sport_id,
+        strain: w.score?.strain,
+        average_heart_rate: w.score?.average_heart_rate,
+        max_heart_rate: w.score?.max_heart_rate,
+        kilojoule: w.score?.kilojoule,
+        distance_meter: w.score?.distance_meter,
+        zone_zero_milli: w.score?.zone_zero_milli,
+        zone_one_milli: w.score?.zone_one_milli,
+        zone_two_milli: w.score?.zone_two_milli,
+        zone_three_milli: w.score?.zone_three_milli,
+        zone_four_milli: w.score?.zone_four_milli,
+        zone_five_milli: w.score?.zone_five_milli,
+        start: w.start,
+        end: w.end,
+      },
+      processed: true,
+    });
+  }
+
+  if (rows.length === 0) return;
+
+  const { error } = await supabase
+    .from('user_platform_data')
+    .upsert(rows, { onConflict: 'user_id,platform,data_type,source_url' });
+
+  if (error) {
+    console.warn('[ObservationIngestion] Whoop user_platform_data upsert error:', error.message);
+  } else {
+    console.log(`[ObservationIngestion] Whoop: stored ${rows.length} platform data rows for user ${userId}`);
+  }
+}
+
+/**
  * Fetch Whoop health data and return natural-language observations.
  * Supports both Nango-managed connections and direct OAuth tokens.
  */
@@ -2088,6 +2342,13 @@ async function fetchWhoopObservations(userId) {
     } catch (e) {
       console.warn('[ObservationIngestion] Whoop workout direct API error:', e.message);
     }
+  }
+
+  // ── Store raw Whoop data in user_platform_data (fire-and-forget) ─────────
+  try {
+    storeWhoopPlatformData(userId, supabase, { recoveryData, recoveryHistory, sleepData, workoutData });
+  } catch (e) {
+    console.warn('[ObservationIngestion] Whoop platform data store error:', e.message);
   }
 
   // ── Recovery observation ──────────────────────────────────────────────────
@@ -2266,14 +2527,49 @@ async function fetchWhoopObservations(userId) {
  * @param {object[]} events - Raw tab_visit events from the extension batch
  * @returns {Promise<string[]>} NL observation strings
  */
+// Domain category map for browsing pattern analysis
+const DOMAIN_CATEGORIES = {
+  tech: /\b(github|stackoverflow|gitlab|dev\.to|hackernews|ycombinator|techcrunch|vercel|netlify|npmjs|pypi|docs\.|developer\.|mdn|w3schools|codepen|replit|codesandbox|medium\.com.*\/tech|lobste\.rs)\b/i,
+  news: /\b(cnn|bbc|nytimes|reuters|apnews|theguardian|washingtonpost|wsj|bloomberg|cnbc|foxnews|aljazeera|news\.google)\b/i,
+  social: /\b(twitter|x\.com|reddit|facebook|instagram|tiktok|threads|mastodon|bluesky|linkedin)\b/i,
+  entertainment: /\b(youtube|netflix|twitch|hbo|disneyplus|primevideo|hulu|crunchyroll|spotify|soundcloud|imdb|rottentomatoes)\b/i,
+  learning: /\b(coursera|udemy|edx|khanacademy|brilliant|leetcode|hackerrank|freecodecamp|skillshare|duolingo|wikipedia|arxiv|scholar\.google)\b/i,
+  shopping: /\b(amazon|ebay|etsy|shopify|aliexpress|walmart|target|bestbuy|newegg)\b/i,
+  productivity: /\b(notion|trello|asana|jira|confluence|figma|canva|miro|airtable|clickup|linear)\b/i,
+  finance: /\b(coinbase|binance|robinhood|tradingview|yahoo.*finance|marketwatch|investopedia|mint)\b/i,
+};
+
+function categorizeDomain(domain) {
+  for (const [cat, re] of Object.entries(DOMAIN_CATEGORIES)) {
+    if (re.test(domain)) return cat;
+  }
+  return 'other';
+}
+
+function getTimeOfDayLabel(isoTimestamp) {
+  if (!isoTimestamp) return null;
+  const hour = new Date(isoTimestamp).getHours();
+  if (hour >= 0 && hour < 5) return 'late_night';
+  if (hour >= 5 && hour < 9) return 'early_morning';
+  if (hour >= 9 && hour < 12) return 'morning';
+  if (hour >= 12 && hour < 17) return 'afternoon';
+  if (hour >= 17 && hour < 21) return 'evening';
+  return 'night';
+}
+
+function formatMinutes(totalSeconds) {
+  const mins = Math.round(totalSeconds / 60);
+  return mins < 1 ? `${totalSeconds}s` : `${mins} min`;
+}
+
 export async function ingestWebObservations(userId, events) {
   if (!events || events.length === 0) return [];
 
   const supabase = await getSupabase();
   if (!supabase) return [];
 
-  // Aggregate visits: group by domain, sum dwell time
-  const domainMap = new Map(); // domain → { totalSeconds, titles, count }
+  // ── Parse events into structured data ──
+  const domainMap = new Map(); // domain → { totalSeconds, titles, count, timestamps }
   const searches = [];
 
   for (const e of events) {
@@ -2288,31 +2584,88 @@ export async function ingestWebObservations(userId, events) {
     if (!domain || domain.length < 3) continue;
 
     const secs = parseInt(raw.duration_seconds || raw.durationSeconds || 0, 10);
-    if (secs < 10) continue; // skip drive-bys
+    if (secs < 10) continue;
 
-    if (!domainMap.has(domain)) domainMap.set(domain, { totalSeconds: 0, titles: [], count: 0 });
+    if (!domainMap.has(domain)) domainMap.set(domain, { totalSeconds: 0, titles: [], count: 0, timestamps: [] });
     const entry = domainMap.get(domain);
     entry.totalSeconds += secs;
     entry.count += 1;
+    if (raw.timestamp) entry.timestamps.push(raw.timestamp);
     const title = sanitizeExternal(raw.title || '', 60);
-    if (title && !entry.titles.includes(title)) entry.titles.push(title);
+    if (title && entry.titles.length < 5 && !entry.titles.includes(title)) entry.titles.push(title);
   }
+
+  if (domainMap.size === 0 && searches.length === 0) return [];
 
   const observations = [];
+  const allDomains = [...domainMap.entries()].sort((a, b) => b[1].totalSeconds - a[1].totalSeconds);
+  const totalBrowsingSeconds = allDomains.reduce((sum, [, v]) => sum + v.totalSeconds, 0);
 
-  // Top domains by dwell time
-  const topDomains = [...domainMap.entries()]
-    .sort((a, b) => b[1].totalSeconds - a[1].totalSeconds)
-    .slice(0, 6);
+  // ── 1. Domain category clustering ──
+  const catTotals = {};
+  for (const [domain, { totalSeconds }] of allDomains) {
+    const cat = categorizeDomain(domain);
+    catTotals[cat] = (catTotals[cat] || 0) + totalSeconds;
+  }
+  const sortedCats = Object.entries(catTotals)
+    .filter(([cat]) => cat !== 'other')
+    .sort((a, b) => b[1] - a[1]);
 
-  for (const [domain, { totalSeconds, count }] of topDomains) {
-    if (totalSeconds < 30) continue;
-    const mins = Math.round(totalSeconds / 60);
-    const minLabel = mins < 1 ? `${totalSeconds}s` : `${mins} minute${mins !== 1 ? 's' : ''}`;
-    observations.push(`Spent ${minLabel} on ${domain} (${count} page${count !== 1 ? 's' : ''} visited)`);
+  if (sortedCats.length > 0 && totalBrowsingSeconds > 120) {
+    const topCats = sortedCats.slice(0, 3).map(([cat, secs]) => {
+      const pct = Math.round((secs / totalBrowsingSeconds) * 100);
+      return `${cat} (${pct}%)`;
+    });
+    observations.push(`Browsing skews toward ${topCats.join(', ')}`);
   }
 
-  // Search queries summary
+  // ── 2. Top domains by dwell time (keep existing behavior, enriched) ──
+  for (const [domain, { totalSeconds, count, titles }] of allDomains.slice(0, 5)) {
+    if (totalSeconds < 30) continue;
+    const label = formatMinutes(totalSeconds);
+    let obs = `Spent ${label} on ${domain} (${count} page${count !== 1 ? 's' : ''})`;
+    if (titles.length > 0 && titles.length <= 3) {
+      obs += ` — ${titles.join(', ')}`;
+    }
+    observations.push(obs);
+  }
+
+  // ── 3. Deep dive detection (>20min on one domain) ──
+  for (const [domain, { totalSeconds }] of allDomains) {
+    if (totalSeconds >= 1200) { // 20+ minutes
+      const label = formatMinutes(totalSeconds);
+      observations.push(`Deep reading session on ${domain} (${label})`);
+    }
+  }
+
+  // ── 4. Time-of-day patterns ──
+  const todBuckets = {};
+  for (const [domain, { timestamps }] of allDomains) {
+    for (const ts of timestamps) {
+      const tod = getTimeOfDayLabel(ts);
+      if (tod) {
+        if (!todBuckets[tod]) todBuckets[tod] = [];
+        todBuckets[tod].push(domain);
+      }
+    }
+  }
+  if (todBuckets.late_night && todBuckets.late_night.length >= 2) {
+    const uniqueDomains = [...new Set(todBuckets.late_night)].slice(0, 3);
+    observations.push(`Late-night browsing (midnight-4am) on ${uniqueDomains.join(', ')} — night owl pattern`);
+  }
+  if (todBuckets.early_morning && todBuckets.early_morning.length >= 2) {
+    const uniqueDomains = [...new Set(todBuckets.early_morning)].slice(0, 3);
+    observations.push(`Early-morning browsing (5-9am) on ${uniqueDomains.join(', ')} — early riser`);
+  }
+
+  // ── 5. Content diversity ──
+  if (domainMap.size >= 10) {
+    observations.push(`${domainMap.size} unique domains visited — broad information diet`);
+  } else if (domainMap.size <= 3 && domainMap.size > 0 && totalBrowsingSeconds > 600) {
+    observations.push(`Only ${domainMap.size} domain${domainMap.size !== 1 ? 's' : ''} visited with ${formatMinutes(totalBrowsingSeconds)} total — focused session`);
+  }
+
+  // ── 6. Search intent signals ──
   if (searches.length > 0) {
     const uniq = [...new Set(searches)].slice(0, 5);
     observations.push(`Searched for: ${uniq.join(', ')}`);
@@ -2320,7 +2673,7 @@ export async function ingestWebObservations(userId, events) {
 
   if (observations.length === 0) return [];
 
-  // Batch dedup against recent memories
+  // ── Dedup against recent memories ──
   const maxWindowMs = Math.max(...Object.values(DEDUP_WINDOWS_MS));
   const cutoff = new Date(Date.now() - maxWindowMs).toISOString();
   const existingHashes = new Set();
@@ -2344,7 +2697,7 @@ export async function ingestWebObservations(userId, events) {
   }
 
   if (stored > 0) {
-    console.log(`[WebBrowsing] Stored ${stored} observations for user ${userId}`);
+    console.log(`[WebBrowsing] Stored ${stored}/${observations.length} observations for user ${userId}`);
   }
   return observations;
 }
@@ -2854,6 +3207,9 @@ async function runObservationIngestion() {
               case 'oura':
                 observations = await fetchOuraObservations(userId);
                 break;
+              case 'apple_music':
+                observations = await fetchAppleMusicObservations(userId);
+                break;
             }
 
             // Batch de-duplication: pre-fetch recent memories once per platform
@@ -3346,6 +3702,90 @@ export async function ingestLocationClusters(userId, clusters) {
   }
 }
 
+/**
+ * Fetch Apple Music data and return natural-language observations.
+ * Requires Apple Music user token stored via Nango or platform_connections.
+ */
+async function fetchAppleMusicObservations(userId) {
+  const observations = [];
+
+  const supabase = await getSupabase();
+  if (!supabase) return observations;
+
+  // Check for Nango-managed Apple Music connection
+  const isNangoManaged = await _hasNangoMapping(supabase, userId, 'apple_music');
+  if (!isNangoManaged) {
+    // Fallback: check platform_connections for user-provided token
+    const tokenResult = await getValidAccessToken(userId, 'apple_music');
+    if (!tokenResult.success || !tokenResult.accessToken) {
+      console.warn('[ObservationIngestion] Apple Music: no valid token for user', userId);
+      return observations;
+    }
+  }
+
+  try {
+    const appleMusicService = await import('./platforms/appleMusicService.js');
+
+    // Get user token from platform_connections
+    const tokenResult = await getValidAccessToken(userId, 'apple_music');
+    if (!tokenResult.success || !tokenResult.accessToken) return observations;
+    const userToken = tokenResult.accessToken;
+
+    // Recently played tracks
+    const recentTracks = await appleMusicService.getRecentlyPlayed(userToken, 10).catch(() => []);
+    for (const track of recentTracks.slice(0, 5)) {
+      const name = track.attributes?.name;
+      const artist = track.attributes?.artistName;
+      if (name && artist) {
+        observations.push(`Listened to '${name}' by ${artist} on Apple Music`);
+      }
+    }
+
+    // Genre distribution from library songs
+    const librarySongs = await appleMusicService.getLibrarySongs(userToken, 25).catch(() => []);
+    if (librarySongs.length > 0) {
+      const genreCounts = {};
+      for (const song of librarySongs) {
+        const genres = song.attributes?.genreNames || [];
+        for (const genre of genres) {
+          if (genre !== 'Music') {
+            genreCounts[genre] = (genreCounts[genre] || 0) + 1;
+          }
+        }
+      }
+      const topGenres = Object.entries(genreCounts)
+        .sort(([, a], [, b]) => b - a)
+        .slice(0, 5)
+        .map(([genre]) => genre);
+      if (topGenres.length > 0) {
+        observations.push({
+          content: `Apple Music top genres: ${topGenres.join(', ')}`,
+          contentType: 'weekly_summary',
+        });
+      }
+    }
+
+    // Playlist analysis
+    const playlists = await appleMusicService.getLibraryPlaylists(userToken, 10).catch(() => []);
+    if (playlists.length > 0) {
+      const playlistNames = playlists
+        .map(p => p.attributes?.name)
+        .filter(Boolean)
+        .slice(0, 5);
+      if (playlistNames.length > 0) {
+        observations.push({
+          content: `Curated Apple Music playlists: ${playlistNames.join(', ')}`,
+          contentType: 'weekly_summary',
+        });
+      }
+    }
+  } catch (e) {
+    console.warn('[ObservationIngestion] Apple Music error:', e.message);
+  }
+
+  return observations;
+}
+
 export {
   runObservationIngestion,
   startObservationIngestion,
@@ -3365,5 +3805,6 @@ export {
   fetchFitbitObservations,
   fetchTwitchObservations,
   fetchOuraObservations,
+  fetchAppleMusicObservations,
   runPostOnboardingIngestion,
 };

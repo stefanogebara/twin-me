@@ -74,6 +74,45 @@ const StravaLogo = ({ className = "w-6 h-6" }: { className?: string }) => (
   </svg>
 );
 
+const WhoopLogo = ({ className = "w-6 h-6" }: { className?: string }) => (
+  <svg className={className} viewBox="3 13 40 22" fill="none" stroke="currentColor" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M16.47,26.68l-3.7097,-11.047" />
+    <path d="M18.38,32.368l5.6196,-16.735" />
+    <path d="M25.91,21.32l3.7097,11.047,5.6196,-16.735" />
+  </svg>
+);
+
+const AppleMusicLogo = ({ className = "w-6 h-6" }: { className?: string }) => (
+  <svg className={className} viewBox="0 0 24 24" fill="currentColor">
+    <path d="M23.997 6.124a9.23 9.23 0 0 0-.24-2.19c-.317-1.31-1.062-2.31-2.18-3.043A5.022 5.022 0 0 0 19.7.294a10.15 10.15 0 0 0-1.564-.15C17.327.086 16.517.065 15.693.065H8.31c-.828 0-1.638.021-2.448.079a10.15 10.15 0 0 0-1.564.15c-.89.164-1.7.497-2.378.997C.81 2.38.065 3.55.025 5.05a10.82 10.82 0 0 0-.025.8v12.304c0 .27.01.54.025.8.035 1.5.78 2.67 1.895 3.758a5.022 5.022 0 0 0 1.877.797c.516.094 1.038.148 1.564.15.81.058 1.62.079 2.448.079h7.383c.828 0 1.634-.021 2.444-.079a10.15 10.15 0 0 0 1.564-.15c.89-.164 1.7-.497 2.377-.997 1.11-1.09 1.86-2.26 1.895-3.758a9.44 9.44 0 0 0 .025-.8V6.924a9.44 9.44 0 0 0-.025-.8zM17.5 17.5a.75.75 0 0 1-.75.75h-.5a2.25 2.25 0 0 1-2.25-2.25v-5.5l-5 1.25V16a2.25 2.25 0 0 1-2.25 2.25h-.5a.75.75 0 0 1-.75-.75v-.5a2.25 2.25 0 0 1 2.25-2.25H8V8.5a1 1 0 0 1 .757-.97l6-1.5A1 1 0 0 1 16 7v7.75a2.25 2.25 0 0 1 1.5 2.25v.5z"/>
+  </svg>
+);
+
+const FitbitLogo = ({ className = "w-6 h-6" }: { className?: string }) => (
+  <svg className={className} viewBox="0 0 24 24" fill="currentColor">
+    <circle cx="12" cy="4" r="2.5"/>
+    <circle cx="12" cy="12" r="2.5"/>
+    <circle cx="12" cy="20" r="2.5"/>
+    <circle cx="4" cy="8" r="2"/>
+    <circle cx="4" cy="16" r="2"/>
+    <circle cx="20" cy="8" r="2"/>
+    <circle cx="20" cy="16" r="2"/>
+  </svg>
+);
+
+const GarminLogo = ({ className = "w-6 h-6" }: { className?: string }) => (
+  <svg className={className} viewBox="0 0 24 24" fill="currentColor">
+    <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm-1-13h2v6h-2zm0 8h2v2h-2z"/>
+    <path d="M12 4c-4.42 0-8 3.58-8 8h2c0-3.31 2.69-6 6-6s6 2.69 6 6h2c0-4.42-3.58-8-8-8z"/>
+  </svg>
+);
+
+const TwitchLogo = ({ className = "w-6 h-6" }: { className?: string }) => (
+  <svg className={className} viewBox="0 0 24 24" fill="currentColor">
+    <path d="M11.571 4.714h1.715v5.143H11.57zm4.715 0H18v5.143h-1.714zM6 0L1.714 4.286v15.428h5.143V24l4.286-4.286h3.428L22.286 12V0zm14.571 11.143l-3.428 3.428h-3.429l-3 3v-3H6.857V1.714h13.714z"/>
+  </svg>
+);
+
 const OutlookLogo = ({ className = "w-6 h-6" }: { className?: string }) => (
   <svg className={className} viewBox="0 0 32 32" fill="none">
     <path d="M19.484 7.937v5.477l1.916 1.205a.489.489 0 00.21.063.5.5 0 00.229-.063l5.677-3.416a.476.476 0 00-.026-.063.9.9 0 00-.379-.334l-6.417-3.326a1.837 1.837 0 00-1.21.457z" fill="currentColor"/>
@@ -99,6 +138,7 @@ export interface ConnectorConfig {
   setupTime: string;
   privacyLevel: 'low' | 'medium' | 'high';
   category: 'entertainment' | 'social' | 'professional' | 'health';
+  comingSoon?: boolean;
 }
 
 export const AVAILABLE_CONNECTORS: ConnectorConfig[] = [
@@ -233,5 +273,78 @@ export const AVAILABLE_CONNECTORS: ConnectorConfig[] = [
     setupTime: '10 seconds',
     privacyLevel: 'low',
     category: 'health'
+  },
+  {
+    provider: 'whoop' as DataProvider,
+    name: 'Whoop',
+    description: 'Recovery, strain, and sleep data reveal how your body responds to stress and shapes your daily energy',
+    icon: <WhoopLogo className="w-6 h-6" />,
+    color: '#44A8B3',
+    dataTypes: ['Recovery Score', 'Strain', 'Sleep Quality', 'HRV Trends'],
+    estimatedInsights: 8,
+    setupTime: '10 seconds',
+    privacyLevel: 'low',
+    category: 'health'
+  },
+  {
+    provider: 'apple_music' as DataProvider,
+    name: 'Apple Music',
+    description: 'Your Apple Music library reveals genre depth, playlist curation style, and how music shapes your daily mood',
+    icon: <AppleMusicLogo className="w-6 h-6" />,
+    color: '#FC3C44',
+    dataTypes: ['Music Library', 'Recently Played', 'Playlists', 'Genre Taste'],
+    estimatedInsights: 10,
+    setupTime: '10 seconds',
+    privacyLevel: 'low',
+    category: 'entertainment',
+    comingSoon: true
+  },
+  {
+    provider: 'fitbit' as DataProvider,
+    name: 'Fitbit',
+    description: 'Steps, sleep, and heart rate data reveal your daily activity rhythm and recovery patterns',
+    icon: <FitbitLogo className="w-6 h-6" />,
+    color: '#00B0B9',
+    dataTypes: ['Steps', 'Sleep Quality', 'Heart Rate', 'Activity Zones'],
+    estimatedInsights: 8,
+    setupTime: '10 seconds',
+    privacyLevel: 'low',
+    category: 'health'
+  },
+  {
+    provider: 'garmin' as DataProvider,
+    name: 'Garmin',
+    description: 'Training load, recovery, and VO2 max reveal your fitness discipline and how you push your limits',
+    icon: <GarminLogo className="w-6 h-6" />,
+    color: '#007CC3',
+    dataTypes: ['Training Load', 'Recovery', 'VO2 Max', 'Body Battery'],
+    estimatedInsights: 7,
+    setupTime: '10 seconds',
+    privacyLevel: 'low',
+    category: 'health'
+  },
+  {
+    provider: 'twitch' as DataProvider,
+    name: 'Twitch',
+    description: 'Followed channels and watch patterns reveal your gaming identity and community interests',
+    icon: <TwitchLogo className="w-6 h-6" />,
+    color: '#9146FF',
+    dataTypes: ['Followed Channels', 'Watch Patterns', 'Game Preferences'],
+    estimatedInsights: 6,
+    setupTime: '5 seconds',
+    privacyLevel: 'low',
+    category: 'entertainment'
+  },
+  {
+    provider: 'microsoft_outlook' as DataProvider,
+    name: 'Outlook',
+    description: 'Email patterns and calendar events reveal how you structure your professional life and communicate',
+    icon: <OutlookLogo className="w-6 h-6" />,
+    color: '#0078D4',
+    dataTypes: ['Email Patterns', 'Calendar Events', 'Communication Style'],
+    estimatedInsights: 7,
+    setupTime: '10 seconds',
+    privacyLevel: 'medium',
+    category: 'professional'
   },
 ];

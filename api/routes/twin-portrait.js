@@ -89,20 +89,20 @@ router.get('/portrait', authenticateUser, async (req, res) => {
         .catch(() => null),
 
       // 8. Connected platforms — check both platform_connections AND nango_connection_mappings
-      //    so that Nango-based connections are reflected even if platform_connections is empty
+      //    Match connectors/status logic: connected_at NOT NULL = connected
       Promise.all([
         supabaseAdmin
           .from('platform_connections')
-          .select('platform, status, last_sync_at')
+          .select('platform, status, last_sync_at, connected_at')
           .eq('user_id', userId)
-          .eq('status', 'connected')
+          .not('connected_at', 'is', null)
           .then(({ data }) => data || [])
           .catch(() => []),
         supabaseAdmin
           .from('nango_connection_mappings')
           .select('platform, status, connected_at, last_synced_at')
           .eq('user_id', userId)
-          .eq('status', 'connected')
+          .not('connected_at', 'is', null)
           .then(({ data }) => data || [])
           .catch(() => []),
       ]).then(([pcRows, nangoRows]) => {

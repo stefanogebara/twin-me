@@ -189,6 +189,7 @@ export async function logConversationToDatabase(entry) {
         user_id: entry.userId,
         user_message: entry.userMessage,
         twin_response: entry.twinResponse,
+        rendered_system_prompt: entry.renderedSystemPrompt || null,
         platforms_context: entry.platformsContext || {},
         brain_stats: entry.brainStats || {},
         writing_analysis: writingAnalysis,

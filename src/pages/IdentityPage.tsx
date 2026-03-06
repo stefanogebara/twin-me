@@ -392,7 +392,7 @@ const IdentityPage: React.FC = () => {
               </p>
               {summaryExpanded ? (
                 <>
-                  <p className="text-foreground leading-relaxed text-[15px]">{summary}</p>
+                  <p className="text-foreground leading-relaxed text-[15px]">{toSecondPerson(summary)}</p>
                   {needsTruncation && (
                     <button
                       onClick={() => setSummaryExpanded(false)}
@@ -405,7 +405,7 @@ const IdentityPage: React.FC = () => {
                 </>
               ) : (
                 <>
-                  <p className="text-foreground leading-relaxed text-[15px]">{preview}</p>
+                  <p className="text-foreground leading-relaxed text-[15px]">{toSecondPerson(preview)}</p>
                   {needsTruncation && (
                     <button
                       onClick={() => setSummaryExpanded(true)}
@@ -452,7 +452,7 @@ const IdentityPage: React.FC = () => {
                     <div className="mt-1">
                       {archetypeExpanded ? (
                         <>
-                          <p className="text-sm text-muted-foreground leading-relaxed">{ps}</p>
+                          <p className="text-sm text-muted-foreground leading-relaxed">{toSecondPerson(ps)}</p>
                           {psNeedsTruncation && (
                             <button
                               onClick={() => setArchetypeExpanded(false)}
@@ -465,7 +465,7 @@ const IdentityPage: React.FC = () => {
                         </>
                       ) : (
                         <>
-                          <p className="text-sm text-muted-foreground leading-relaxed">{psPreview}{psNeedsTruncation ? '…' : ''}</p>
+                          <p className="text-sm text-muted-foreground leading-relaxed">{toSecondPerson(psPreview)}{psNeedsTruncation ? '…' : ''}</p>
                           {psNeedsTruncation && (
                             <button
                               onClick={() => setArchetypeExpanded(true)}

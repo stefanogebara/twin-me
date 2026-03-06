@@ -72,20 +72,21 @@ interface GoalSuggestionCardProps {
   index: number;
 }
 
-const GoalSuggestionCard: React.FC<GoalSuggestionCardProps> = ({
+const GoalSuggestionCard = React.forwardRef<HTMLDivElement, GoalSuggestionCardProps>(({
   goal,
   onAccept,
   onDismiss,
   isAccepting,
   isDismissing,
   index,
-}) => {
+}, ref) => {
   const CategoryIcon = CATEGORY_ICONS[goal.category] ?? Sparkles;
   const categoryColor = CATEGORY_COLORS[goal.category] ?? CATEGORY_COLORS.balance;
   const isLoading = isAccepting || isDismissing;
 
   return (
     <motion.div
+      ref={ref}
       initial={{ opacity: 0, y: 16, scale: 0.97 }}
       animate={{ opacity: 1, y: 0, scale: 1 }}
       exit={{ opacity: 0, y: -8, scale: 0.95 }}
@@ -224,6 +225,8 @@ const GoalSuggestionCard: React.FC<GoalSuggestionCardProps> = ({
       </div>
     </motion.div>
   );
-};
+});
+
+GoalSuggestionCard.displayName = 'GoalSuggestionCard';
 
 export default GoalSuggestionCard;

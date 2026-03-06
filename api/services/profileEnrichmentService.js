@@ -35,6 +35,8 @@ import {
   quickEnrich,
   lookupGravatar,
   lookupGitHub,
+  lookupGitHubByUsername,
+  probeSocialProfiles,
 } from './enrichment/quickEnrichment.js';
 
 // Provider-specific enrichment
@@ -142,6 +144,14 @@ class ProfileEnrichmentService {
 
   async lookupGitHub(email) {
     return lookupGitHub(email);
+  }
+
+  async lookupGitHubByUsername(username) {
+    return lookupGitHubByUsername(username);
+  }
+
+  async probeSocialProfiles(username) {
+    return probeSocialProfiles(username);
   }
 
   // ============================================================
@@ -387,7 +397,7 @@ class ProfileEnrichmentService {
     // =================================================================
     // STEP 0: INSTANT FREE LOOKUPS (Gravatar + GitHub) - < 1 second
     // =================================================================
-    console.log('[ProfileEnrichment] Step 0: Running free instant lookups...');
+    console.log('[ProfileEnrichment] Step 0: Running free instant lookups (Gravatar + GitHub + Social probing)...');
     const quickResult = await quickEnrich(email, name);
     if (quickResult.success && quickResult.data) {
       const q = quickResult.data;
@@ -401,6 +411,8 @@ class ProfileEnrichmentService {
         discovered_photo: q.discovered_photo,
         github_repos: q.github_repos,
         github_followers: q.github_followers,
+        github_languages: q.github_languages,
+        github_top_repos: q.github_top_repos,
         social_links: q.social_links,
       };
       enrichmentSource = q.source;

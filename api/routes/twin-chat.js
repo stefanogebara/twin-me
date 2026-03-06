@@ -1070,12 +1070,18 @@ Make it sound natural and curious, not like a survey question.`;
     }
 
     // Store conversation in UNIFIED database (shared with MCP) - non-blocking
+    // Flatten system prompt blocks into single string for fine-tuning export
+    const renderedSystemPromptText = systemPrompt
+      .map(block => block.text || '')
+      .join('\n')
+      .trim();
     logConversationToDatabase({
       userId,
       userMessage: message,
       twinResponse: assistantMessage,
       source: 'twinme_web',
       conversationId,
+      renderedSystemPrompt: renderedSystemPromptText,
       platformsContext: {
         spotify: !!platformData.spotify,
         calendar: !!platformData.calendar,

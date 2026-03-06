@@ -1,5 +1,6 @@
 import React from 'react';
 import { motion } from 'framer-motion';
+import { toSecondPerson } from '@/lib/utils';
 import type { TwinSummaryData } from './types';
 
 interface Props {
@@ -73,7 +74,7 @@ export const BentoHero: React.FC<Props> = ({ data }) => {
             letterSpacing: '-0.01em',
           }}
         >
-          {pullQuote}
+          {toSecondPerson(pullQuote)}
         </blockquote>
 
         <p

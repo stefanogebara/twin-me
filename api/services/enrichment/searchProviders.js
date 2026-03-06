@@ -877,6 +877,8 @@ export function combineEnrichmentSources(linkedInData, webSearchResult, email, n
     discovered_photo: linkedInData?.discovered_photo || null,
     github_repos: linkedInData?.github_repos || null,
     github_followers: linkedInData?.github_followers || null,
+    github_languages: linkedInData?.github_languages || null,
+    github_top_repos: linkedInData?.github_top_repos || null,
     social_links: linkedInData?.social_links || null,
     languages: linkedInData?.languages || null,
     certifications: linkedInData?.certifications || null,

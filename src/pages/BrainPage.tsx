@@ -48,6 +48,12 @@ const EXPERT_META: Record<string, { label: string; color: string; bg: string }> 
   cultural_identity: { label: 'Cultural Identity', color: '#f59e0b', bg: 'rgba(245,158,11,0.08)' },
   social_dynamics: { label: 'Social', color: '#3b82f6', bg: 'rgba(59,130,246,0.08)' },
   motivation_analyst: { label: 'Motivation', color: '#f97316', bg: 'rgba(249,115,22,0.08)' },
+  social_analyst: { label: 'Social', color: '#3b82f6', bg: 'rgba(59,130,246,0.08)' },
+  productivity_analyst: { label: 'Productivity', color: '#14b8a6', bg: 'rgba(20,184,166,0.08)' },
+  music_psychologist: { label: 'Music', color: '#ec4899', bg: 'rgba(236,72,153,0.08)' },
+  health_behaviorist: { label: 'Health', color: '#ef4444', bg: 'rgba(239,68,68,0.08)' },
+  media_sociologist: { label: 'Media', color: '#6366f1', bg: 'rgba(99,102,241,0.08)' },
+  digital_behaviorist: { label: 'Digital', color: '#8b5cf6', bg: 'rgba(139,92,246,0.08)' },
 };
 
 interface Reflection {

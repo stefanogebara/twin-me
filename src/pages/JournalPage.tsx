@@ -190,7 +190,7 @@ const JournalPage: React.FC = () => {
   const handleEdit = (entry: JournalEntry) => {
     setEditingId(entry.id);
     setTitle(entry.title || '');
-    setContent(entry.content);
+    setContent(entry.content.replace(/''/g, "'"));
     setMood(entry.mood);
     setEnergyLevel(entry.energy_level || 3);
     setTags(entry.tags || []);

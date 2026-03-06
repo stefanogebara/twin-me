@@ -12,7 +12,8 @@ export type DataProvider =
   | 'microsoft_outlook' | 'microsoft_teams' | 'microsoft_onedrive'
   | 'slack' | 'discord' | 'linkedin' | 'twitter' | 'instagram'
   | 'netflix' | 'spotify' | 'youtube' | 'github' | 'notion' | 'reddit'
-  | 'strava' | 'oura';
+  | 'strava' | 'oura' | 'whoop'
+  | 'apple_music' | 'fitbit' | 'garmin' | 'twitch';
 
 export type DataType =
   | 'email' | 'calendar_event' | 'slack_message' | 'teams_message'

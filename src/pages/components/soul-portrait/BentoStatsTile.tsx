@@ -14,7 +14,7 @@ export const BentoStatsTile: React.FC<Props> = ({ stats, firstMemoryAt, connecte
     ? Math.max(1, Math.floor((Date.now() - new Date(firstMemoryAt).getTime()) / (1000 * 60 * 60 * 24)))
     : null;
 
-  const connectedCount = connectedPlatforms.filter(p => p.status === 'active' || p.last_sync_at).length;
+  const connectedCount = connectedPlatforms.length;
 
   const statItems = [
     {

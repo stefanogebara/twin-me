@@ -63,22 +63,68 @@ const DeepInterview: React.FC<DeepInterviewProps> = ({
   const inputRef = useRef<HTMLInputElement>(null);
   const initRan = useRef(false);
 
+  const STORAGE_KEY = 'twinme_interview_progress';
+
+  // Save progress to localStorage
+  const saveProgress = (msgs: Message[], qNum: number, dp: Record<string, { asked: number; covered: boolean }>) => {
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({
+        messages: msgs,
+        questionNumber: qNum,
+        domainProgress: dp,
+        savedAt: Date.now(),
+      }));
+    } catch { /* storage full — non-critical */ }
+  };
+
+  // Clear saved progress
+  const clearProgress = () => {
+    localStorage.removeItem(STORAGE_KEY);
+  };
+
   // Auto-scroll to bottom
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
-  // Fetch first question on mount — ref guard prevents React StrictMode double-invoke
+  // Restore or start fresh on mount
   useEffect(() => {
     if (initRan.current) return;
     initRan.current = true;
+
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY);
+      if (saved) {
+        const progress = JSON.parse(saved);
+        // Only restore if saved within last 7 days
+        if (progress.savedAt && Date.now() - progress.savedAt < 7 * 24 * 60 * 60 * 1000) {
+          const restoredMessages = progress.messages || [];
+          const restoredQ = progress.questionNumber || 1;
+          const restoredDp = progress.domainProgress || {};
+          setMessages(restoredMessages);
+          setQuestionNumber(restoredQ);
+          setDomainProgress(restoredDp);
+          // Resume from where we left off
+          fetchNextQuestion(restoredMessages, 0, restoredQ, restoredDp);
+          return;
+        }
+      }
+    } catch { /* corrupted data — start fresh */ }
+
     fetchNextQuestion([]);
   }, []);
 
   const getAuthToken = () => localStorage.getItem('auth_token') || localStorage.getItem('token');
 
-  const fetchNextQuestion = async (conversationHistory: Message[], retryCount = 0) => {
+  const fetchNextQuestion = async (
+    conversationHistory: Message[],
+    retryCount = 0,
+    qNumOverride?: number,
+    dpOverride?: Record<string, { asked: number; covered: boolean }>,
+  ) => {
     setLoading(true);
+    const qNum = qNumOverride ?? questionNumber;
+    const dp = dpOverride ?? domainProgress;
     try {
       const token = getAuthToken();
       const response = await fetch(`${API_URL}/onboarding/calibrate`, {
@@ -90,8 +136,8 @@ const DeepInterview: React.FC<DeepInterviewProps> = ({
         body: JSON.stringify({
           enrichmentContext,
           conversationHistory,
-          questionNumber,
-          domainProgress,
+          questionNumber: qNum,
+          domainProgress: dp,
         }),
       });
 
@@ -102,25 +148,30 @@ const DeepInterview: React.FC<DeepInterviewProps> = ({
         setIsDone(true);
         setSummary(result.summary || '');
         if (result.domainProgress) setDomainProgress(result.domainProgress);
+        clearProgress();
         await generateEnhancedSignature(result);
         return;
       }
 
       if (result.message) {
-        setMessages(prev => [...prev, { role: 'assistant', content: result.message }]);
-        setQuestionNumber(result.questionNumber + 1);
+        const nextQ = result.questionNumber + 1;
+        const nextDp = result.domainProgress || dp;
+        setMessages(prev => {
+          const updated = [...prev, { role: 'assistant' as const, content: result.message }];
+          saveProgress(updated, nextQ, nextDp);
+          return updated;
+        });
+        setQuestionNumber(nextQ);
         if (result.domainProgress) setDomainProgress(result.domainProgress);
       }
     } catch (error) {
       console.error('[DeepInterview] Error fetching question:', error);
 
-      // Retry up to 2 times with backoff
       if (retryCount < 2) {
         await new Promise(r => setTimeout(r, 1000 * (retryCount + 1)));
-        return fetchNextQuestion(conversationHistory, retryCount + 1);
+        return fetchNextQuestion(conversationHistory, retryCount + 1, qNum, dp);
       }
 
-      // After retries exhausted, show error but let user try again
       setMessages(prev => [...prev, {
         role: 'assistant',
         content: "Something went wrong on my end — hit send again or click 'Done for now' to continue.",
@@ -138,6 +189,7 @@ const DeepInterview: React.FC<DeepInterviewProps> = ({
     const newMessages: Message[] = [...messages, { role: 'user', content: text }];
     setMessages(newMessages);
     setInput('');
+    saveProgress(newMessages, questionNumber, domainProgress);
 
     fetchNextQuestion(newMessages);
   };
@@ -200,7 +252,9 @@ const DeepInterview: React.FC<DeepInterviewProps> = ({
           className="text-xs"
           style={{ fontFamily: "'Geist', sans-serif", color: 'var(--text-secondary)' }}
         >
-          Your twin wants to really understand you
+          {questionNumber <= 18
+            ? `Question ${Math.min(questionNumber, 18)} of ~18`
+            : 'Wrapping up'}
         </p>
       </div>
 
