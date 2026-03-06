@@ -110,8 +110,9 @@ const REVISION_SIMILARITY_THRESHOLD = 0.90;
 export function computeAlpha(memory) {
   const confidence = memory.confidence ?? 0.7;
   const importance = (memory.importance_score ?? 5) / 10;
-  // Citation boost: starts at 0.7 for never-cited, grows to 1.0 with 3+ citations
-  const citationBoost = Math.min(1.0, 0.7 + 0.1 * (memory.retrieval_count ?? 0));
+  // P5: Citation boost raised from 0.7→0.85 baseline so first-retrieval memories
+  // aren't unfairly penalized (importance=7, conf=0.7, count=0 → alpha 0.416 vs old 0.343)
+  const citationBoost = Math.min(1.0, 0.85 + 0.05 * (memory.retrieval_count ?? 0));
   return confidence * importance * citationBoost;
 }
 
@@ -748,11 +749,11 @@ async function getRecentImportanceSum(userId, hoursAgo = 2) {
  * @returns {Array} Combined memories: up to 30 total with guaranteed type diversity
  */
 async function retrieveDiverseMemories(userId, query, budgets = {}) {
-  const { reflections: maxReflections = 15, facts: maxFacts = 8, platformData: maxPlatformData = 7 } = budgets;
+  const { reflections: maxReflections = 15, facts: maxFacts = 8, platformData: maxPlatformData = 4, conversations: maxConversations = 4 } = budgets;
 
   const SELECT_COLS = 'id, content, memory_type, importance_score, metadata, created_at, last_accessed_at';
 
-  const [reflectionResults, factResults, platformResults] = await Promise.all([
+  const [reflectionResults, factResults, platformResults, conversationResults] = await Promise.all([
     // Reflections: semantic search over-fetches, then we cap at maxReflections
     retrieveMemories(userId, query, maxReflections * 2, 'identity').catch(err => {
       console.warn('[MemoryStream] Diverse reflections fetch failed:', err.message);
@@ -772,7 +773,7 @@ async function retrieveDiverseMemories(userId, query, budgets = {}) {
         return data || [];
       }),
 
-    // Platform data: most recent activity observations
+    // Platform data: most recent activity observations (reduced from 7→4, live data already injected by fetchTwinContext)
     supabaseAdmin
       .from('user_memories')
       .select(SELECT_COLS)
@@ -784,6 +785,16 @@ async function retrieveDiverseMemories(userId, query, budgets = {}) {
         if (error) console.warn('[MemoryStream] Diverse platform_data fetch failed:', error.message);
         return data || [];
       }),
+
+    // P3: Conversation memories — semantic search for relevant past exchanges
+    maxConversations > 0
+      ? retrieveMemories(userId, query, maxConversations * 2, 'default')
+          .then(mems => mems.filter(m => m.memory_type === 'conversation').slice(0, maxConversations))
+          .catch(err => {
+            console.warn('[MemoryStream] Diverse conversations fetch failed:', err.message);
+            return [];
+          })
+      : Promise.resolve([]),
   ]);
 
   // Cap reflections: take only the top N from the over-fetched semantic results
@@ -791,7 +802,7 @@ async function retrieveDiverseMemories(userId, query, budgets = {}) {
     .filter(m => m.memory_type === 'reflection')
     .slice(0, maxReflections);
 
-  const combined = [...topReflections, ...factResults, ...platformResults];
+  const combined = [...topReflections, ...factResults, ...platformResults, ...conversationResults];
 
   // Graph expansion: expand context using Zettelkasten memory_links (A-MEM, Xu et al., 2025)
   // Fetches 1-hop linked memories for the top retrieved reflections to enrich context
@@ -802,7 +813,8 @@ async function retrieveDiverseMemories(userId, query, budgets = {}) {
 
   console.log(
     `[MemoryStream] Diverse retrieval: ${topReflections.length} reflections, ` +
-    `${factResults.length} facts, ${platformResults.length} platform_data` +
+    `${factResults.length} facts, ${platformResults.length} platform_data, ` +
+    `${conversationResults.length} conversations` +
     (expanded.length > combined.length ? `, +${expanded.length - combined.length} graph-linked` : '')
   );
   return expanded;

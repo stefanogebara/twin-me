@@ -64,12 +64,8 @@ export function buildPersonaBlock({ personalityScores = null, soulSignature = nu
  * @returns {string}
  */
 export function buildIdentityStatement(twinSummary, soulSignature) {
-  if (twinSummary) {
-    let converted = convertToFirstPerson(twinSummary);
-    converted = truncateAtSentence(converted, 300);
-    if (converted) return `How I am: ${converted}`;
-  }
-
+  // P4: Skip twinSummary here — it's already injected by buildTwinSystemPrompt.
+  // Only use soul signature archetype for identity statement to avoid duplication.
   if (soulSignature) {
     const archetype = soulSignature.archetype_name || soulSignature.title || '';
     const narrative = soulSignature.narrative || '';

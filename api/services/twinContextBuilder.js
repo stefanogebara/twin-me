@@ -14,6 +14,7 @@ import { getUndeliveredInsights } from './proactiveInsights.js';
 import { getEnrichment } from './enrichment/enrichmentStore.js';
 import { getActiveGoalContext } from './goalTrackingService.js';
 import { getTopPatterns } from './twinPatternService.js';
+import { inferIdentityContext } from './identityContextService.js';
 import axios from 'axios';
 
 // Short-lived platform data cache to avoid redundant API calls within 5 minutes
@@ -61,19 +62,16 @@ async function fetchTwinContext(userId, userMessage, options = {}) {
   // Wrap each fetch with timing
   const timed = (label, promise) => promise.then(r => { ctxLog(`${label} done`); return r; });
 
-  const [
-    soulSignature,
-    platformData,
-    personalityScores,
-    writingProfile,
-    memories,
-    twinSummary,
-    proactiveInsights,
-    enrichmentProfile,
-    voiceExamples,
-    activeGoals,
-    patterns,
-  ] = await Promise.all([
+  // Circuit breaker: if any single fetch hangs, cap total context build at 7s
+  const CONTEXT_TIMEOUT_MS = 7000;
+  const timeoutSentinel = new Promise((_, reject) =>
+    setTimeout(() => reject(new Error('fetchTwinContext timeout')), CONTEXT_TIMEOUT_MS)
+  );
+
+  let contextResults;
+  try {
+    contextResults = await Promise.race([
+      Promise.all([
     fetchSoul
       ? timed('soulSignature', _fetchSoulSignature(userId).catch(err => {
           console.warn('[TwinContext] Soul signature fetch failed:', err.message);
@@ -138,7 +136,45 @@ async function fetchTwinContext(userId, userMessage, options = {}) {
       console.warn('[TwinContext] Pattern fetch failed:', err.message);
       return [];
     })),
-  ]);
+
+    // P8: Identity context (cached 24h — near-zero on repeat calls)
+    timed('identityContext', inferIdentityContext(userId).catch(err => {
+      console.warn('[TwinContext] Identity context fetch failed:', err.message);
+      return null;
+    })),
+
+    // P8: Deep interview calibration data
+    timed('calibrationContext', _fetchCalibrationContext(userId).catch(err => {
+      console.warn('[TwinContext] Calibration context fetch failed:', err.message);
+      return null;
+    })),
+      ]),
+      timeoutSentinel,
+    ]);
+  } catch (timeoutErr) {
+    if (timeoutErr.message === 'fetchTwinContext timeout') {
+      console.warn(`[TwinContext] Circuit breaker tripped at ${CONTEXT_TIMEOUT_MS}ms — returning partial context`);
+      contextResults = [null, {}, null, null, [], null, [], { success: false, data: null }, [], null, [], null, null];
+    } else {
+      throw timeoutErr;
+    }
+  }
+
+  const [
+    soulSignature,
+    platformData,
+    personalityScores,
+    writingProfile,
+    memories,
+    twinSummary,
+    proactiveInsights,
+    enrichmentProfile,
+    voiceExamples,
+    activeGoals,
+    patterns,
+    identityContext,
+    calibrationContext,
+  ] = contextResults;
 
   ctxLog('All parallel fetches complete');
 
@@ -178,6 +214,8 @@ async function fetchTwinContext(userId, userMessage, options = {}) {
     voiceExamples,
     activeGoals,
     patterns,
+    identityContext,
+    calibrationContext,
   };
 }
 
@@ -420,26 +458,24 @@ async function _fetchSinglePlatform(userId, platform) {
             const headers = { Authorization: `Bearer ${tokenResult.accessToken}` };
 
             const PLATFORM_TIMEOUT = 3000;
-            let currentlyPlaying = null;
-            try {
-              const currentRes = await axios.get('https://api.spotify.com/v1/me/player/currently-playing', { headers, timeout: PLATFORM_TIMEOUT });
-              if (currentRes.data?.item) {
-                currentlyPlaying = {
-                  name: currentRes.data.item.name,
-                  artist: currentRes.data.item.artists?.[0]?.name,
-                  isPlaying: currentRes.data.is_playing
-                };
-              }
-            } catch {
-              // No current playback
-            }
 
-            const [recentRes, topShortRes, topMedRes, topLongRes] = await Promise.all([
+            // Run ALL 5 Spotify calls in parallel (P2: was serial currently-playing first)
+            const [currentRes, recentRes, topShortRes, topMedRes, topLongRes] = await Promise.all([
+              axios.get('https://api.spotify.com/v1/me/player/currently-playing', { headers, timeout: PLATFORM_TIMEOUT }).catch(() => ({ data: null })),
               axios.get('https://api.spotify.com/v1/me/player/recently-played?limit=10', { headers, timeout: PLATFORM_TIMEOUT }),
               axios.get('https://api.spotify.com/v1/me/top/artists?limit=5&time_range=short_term', { headers, timeout: PLATFORM_TIMEOUT }),
               axios.get('https://api.spotify.com/v1/me/top/artists?limit=5&time_range=medium_term', { headers, timeout: PLATFORM_TIMEOUT }),
               axios.get('https://api.spotify.com/v1/me/top/artists?limit=5&time_range=long_term', { headers, timeout: PLATFORM_TIMEOUT }),
             ]);
+
+            let currentlyPlaying = null;
+            if (currentRes.data?.item) {
+              currentlyPlaying = {
+                name: currentRes.data.item.name,
+                artist: currentRes.data.item.artists?.[0]?.name,
+                isPlaying: currentRes.data.is_playing
+              };
+            }
 
             // All recent tracks regardless of age (up to 10)
             const recentTracks = recentRes.data?.items?.map(item => ({
@@ -643,6 +679,32 @@ async function _fetchSinglePlatform(userId, platform) {
   }
 
   return Object.keys(data).length > 0 ? data : null;
+}
+
+/**
+ * Fetch deep interview calibration data for twin context injection.
+ * Returns a formatted [YOUR STORY] block, or null if no interview exists.
+ */
+async function _fetchCalibrationContext(userId) {
+  const { data, error } = await supabaseAdmin
+    .from('onboarding_calibration')
+    .select('personality_summary, insights, archetype_hint, domain_progress, questions_asked, completed_at')
+    .eq('user_id', userId)
+    .single();
+
+  if (error || !data) return null;
+
+  const lines = [];
+  if (data.archetype_hint) lines.push(`Archetype: ${data.archetype_hint}`);
+  if (data.personality_summary) lines.push(data.personality_summary.trim());
+  const insights = Array.isArray(data.insights) ? data.insights : [];
+  if (insights.length > 0) {
+    lines.push('Key insights:');
+    insights.slice(0, 8).forEach(i => lines.push(`- ${typeof i === 'string' ? i : i.insight || JSON.stringify(i)}`));
+  }
+
+  if (lines.length === 0) return null;
+  return `[YOUR STORY — told in ${data.questions_asked || '?'} questions]\n${lines.join('\n')}`;
 }
 
 export { fetchTwinContext, buildContextSourcesMeta };
