@@ -145,8 +145,7 @@ const InstantTwinOnboarding = () => {
 
   const STEPS = [
     { id: 1, name: 'Connect', description: 'Connect your digital services' },
-    { id: 2, name: 'Configure', description: 'Choose privacy settings' },
-    { id: 3, name: 'Generate', description: 'Create your instant twin' }
+    { id: 2, name: 'Generate', description: 'Create your instant twin' }
   ];
 
   const handleConnectorToggle = useCallback((provider: DataProvider) => {
@@ -419,7 +418,7 @@ const InstantTwinOnboarding = () => {
 
       if (response.ok && (result.id || result.twin?.id)) {
         // Advance to the archetype reveal step immediately
-        setCurrentStep(3);
+        setCurrentStep(2);
 
         // Fetch archetype (with 15s timeout) — show reveal step while we wait
         const VITE_API_URL = import.meta.env.VITE_API_URL;
@@ -518,7 +517,7 @@ const InstantTwinOnboarding = () => {
         </div>
       )}
 
-      {currentStep > 1 && currentStep < 3 && (
+      {currentStep > 1 && currentStep < 2 && (
         <div className="mb-8">
           <button
             onClick={() => setCurrentStep(currentStep - 1)}
@@ -585,7 +584,7 @@ const InstantTwinOnboarding = () => {
         </GlassPanel>
       )}
 
-      {currentStep === 3 && (
+      {currentStep === 2 && (
         <div className="flex flex-col items-center justify-center py-16 min-h-[60vh]">
           {!revealedArchetype ? (
             // Loading — waiting for instant-signature to return

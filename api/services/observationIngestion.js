@@ -41,7 +41,7 @@ async function getSupabase() {
 }
 
 // Platforms we know how to ingest
-const SUPPORTED_PLATFORMS = ['spotify', 'google_calendar', 'youtube', 'discord', 'linkedin', 'reddit', 'whoop', 'github', 'google_gmail', 'outlook', 'strava', 'garmin', 'fitbit', 'twitch', 'oura', 'slack'];
+const SUPPORTED_PLATFORMS = ['spotify', 'google_calendar', 'youtube', 'discord', 'linkedin', 'reddit', 'whoop', 'github', 'google_gmail', 'outlook', 'strava', 'garmin', 'fitbit', 'twitch', 'oura', 'slack', 'apple_music'];
 
 // ====================================================================
 // Prompt injection defense
@@ -3532,6 +3532,12 @@ async function runPostOnboardingIngestion(userId) {
             break;
           case 'oura':
             observations = await fetchOuraObservations(userId);
+            break;
+          case 'whoop':
+            observations = await fetchWhoopObservations(userId);
+            break;
+          case 'apple_music':
+            observations = await fetchAppleMusicObservations(userId);
             break;
         }
 

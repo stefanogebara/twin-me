@@ -1004,7 +1004,7 @@ Make it sound natural and curious, not like a survey question.`;
           tier: TIER_CHAT,
           system: systemPrompt,
           messages: llmMessages,
-          maxTokens: 1024,
+          maxTokens: 2048,
           temperature: 0.7,
           userId,
           serviceName: 'twin-chat',
@@ -1027,7 +1027,7 @@ Make it sound natural and curious, not like a survey question.`;
           tier: TIER_CHAT,
           system: systemPrompt,
           messages: llmMessages,
-          maxTokens: 1024,
+          maxTokens: 2048,
           temperature: 0.7,
           userId,
           serviceName: 'twin-chat'
