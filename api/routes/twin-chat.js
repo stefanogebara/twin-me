@@ -10,13 +10,11 @@
  */
 
 import express from 'express';
-import axios from 'axios';
 import { complete, stream as streamLLM, TIER_CHAT } from '../services/llmGateway.js';
 import { getUserSubscription } from '../services/subscriptionService.js';
 import { authenticateUser } from '../middleware/auth.js';
 import { serverDb, supabaseAdmin } from '../services/database.js';
 import { getMonthlyUsage, FREE_TIER_LIMIT } from './chat-usage.js';
-import { getValidAccessToken } from '../services/tokenRefresh.js';
 
 // Shared conversation logging (unified with MCP server)
 import {
@@ -41,7 +39,6 @@ import {
 } from '../services/memoryStreamService.js';
 import { shouldTriggerReflection, generateReflections, seedReflections } from '../services/reflectionEngine.js';
 import { classifyQueryDomain, retrieveExpertMemories } from '../services/platformExperts.js';
-import { inferIdentityContext } from '../services/identityContextService.js';
 import { getTwinSummary } from '../services/twinSummaryService.js';
 import { getUndeliveredInsights, markInsightsDelivered } from '../services/proactiveInsights.js';
 import { buildPersonaBlock } from '../services/personaBlockBuilder.js';
@@ -66,7 +63,6 @@ const chatRateLimitMap = new Map();
 
 // Interval IDs for cleanup — prevent accumulation on hot-reload
 let _chatRateLimitCleanupInterval = null;
-let _platformCacheCleanupInterval = null;
 
 // Periodic cleanup of expired entries to prevent memory leaks
 if (!_chatRateLimitCleanupInterval) {
@@ -139,8 +135,6 @@ async function checkChatRateLimit(userId) {
 }
 
 // Platform data cache - prevents redundant API calls during conversations
-const platformDataCache = new Map();
-const PLATFORM_CACHE_TTL = 5 * 60 * 1000; // 5 minutes
 
 // Token budget: ~4 chars per token. Claude Sonnet handles larger contexts well.
 // Quality > cost for twin chat - richer context = better personality embodiment.
@@ -202,49 +196,8 @@ function deduplicateByTheme(items, getText, options = {}) {
   return selected;
 }
 
-/**
- * Fetch the user's deep interview calibration data for twin context injection.
- * Returns a formatted [DEEP INTERVIEW] block, or null if no interview exists.
- */
-async function fetchCalibrationContext(userId) {
-  if (!supabaseAdmin) return null;
-  try {
-    const { data, error } = await supabaseAdmin
-      .from('onboarding_calibration')
-      .select('personality_summary, insights, archetype_hint, domain_progress, questions_asked, completed_at')
-      .eq('user_id', userId)
-      .single();
+// fetchCalibrationContext moved to twinContextBuilder.js (P8)
 
-    if (error || !data) return null;
-
-    const lines = [];
-    if (data.archetype_hint) lines.push(`Archetype: ${data.archetype_hint}`);
-    if (data.personality_summary) lines.push(data.personality_summary.trim());
-    const insights = Array.isArray(data.insights) ? data.insights : [];
-    if (insights.length > 0) {
-      lines.push('Key insights:');
-      insights.slice(0, 8).forEach(i => lines.push(`- ${typeof i === 'string' ? i : i.insight || JSON.stringify(i)}`));
-    }
-
-    if (lines.length === 0) return null;
-    return `[YOUR STORY — told in ${data.questions_asked || '?'} questions]\n${lines.join('\n')}`;
-  } catch (err) {
-    console.warn('[Twin Chat] Calibration context fetch failed (non-fatal):', err.message);
-    return null;
-  }
-}
-
-// Periodic cleanup to prevent memory leaks from expired cache entries
-if (!_platformCacheCleanupInterval) {
-  _platformCacheCleanupInterval = setInterval(() => {
-    const now = Date.now();
-    for (const [key, value] of platformDataCache.entries()) {
-      if (now - value.timestamp > PLATFORM_CACHE_TTL) {
-        platformDataCache.delete(key);
-      }
-    }
-  }, 10 * 60 * 1000);
-}
 
 /**
  * STATIC BASE INSTRUCTIONS (cached via Anthropic prompt caching)
@@ -628,310 +581,7 @@ async function getPersonalityScores(userId) {
   }
 }
 
-/**
- * Fetch recent platform data for context
- * ALWAYS fetches LIVE data - no stale cache
- */
-async function getPlatformData(userId, platforms) {
-  // Check cache first - avoid redundant API calls within 5 minutes
-  const cacheKey = userId;
-  const cached = platformDataCache.get(cacheKey);
-  if (cached && (Date.now() - cached.timestamp) < PLATFORM_CACHE_TTL) {
-    return cached.data;
-  }
-
-  const data = {};
-
-  // Build platform fetch functions for parallel execution
-  const fetchFns = platforms.map(platform => {
-    if (platform === 'spotify') return fetchSpotifyData(userId);
-    if (platform === 'calendar' || platform === 'google_calendar') return fetchCalendarData(userId);
-    if (platform === 'whoop') return fetchWhoopData(userId);
-    if (platform === 'web') return fetchWebData(userId);
-    if (platform === 'linkedin') return fetchLinkedInData(userId);
-    return Promise.resolve(null);
-  });
-
-  const results = await Promise.all(fetchFns);
-
-  // Merge results into data object
-  for (let i = 0; i < platforms.length; i++) {
-    const result = results[i];
-    if (!result) continue;
-    const platform = platforms[i];
-    if (platform === 'spotify') data.spotify = result;
-    else if (platform === 'calendar' || platform === 'google_calendar') data.calendar = result;
-    else if (platform === 'whoop') data.whoop = result;
-    else if (platform === 'web') data.web = result;
-    else if (platform === 'linkedin') data.linkedin = result;
-  }
-
-  // Store in cache before returning
-  platformDataCache.set(cacheKey, { data, timestamp: Date.now() });
-
-  return data;
-}
-
-/** Fetch live Spotify data */
-async function fetchSpotifyData(userId) {
-  try {
-    const tokenResult = await getValidAccessToken(userId, 'spotify');
-    if (!tokenResult.success || !tokenResult.accessToken) return null;
-
-    const headers = { Authorization: `Bearer ${tokenResult.accessToken}` };
-
-    // Check currently playing FIRST
-    let currentlyPlaying = null;
-    try {
-      const currentRes = await axios.get('https://api.spotify.com/v1/me/player/currently-playing', { headers, timeout: 5000 });
-      if (currentRes.data?.item) {
-        currentlyPlaying = {
-          name: currentRes.data.item.name,
-          artist: currentRes.data.item.artists?.[0]?.name,
-          isPlaying: currentRes.data.is_playing
-        };
-      }
-    } catch {
-      // No current playback - that's fine
-    }
-
-    // Get recent tracks + top artists across all time ranges
-    const [recentRes, topShortRes, topMedRes, topLongRes] = await Promise.all([
-      axios.get('https://api.spotify.com/v1/me/player/recently-played?limit=10', { headers, timeout: 5000 }),
-      axios.get('https://api.spotify.com/v1/me/top/artists?limit=5&time_range=short_term', { headers, timeout: 5000 }),
-      axios.get('https://api.spotify.com/v1/me/top/artists?limit=5&time_range=medium_term', { headers, timeout: 5000 }),
-      axios.get('https://api.spotify.com/v1/me/top/artists?limit=5&time_range=long_term', { headers, timeout: 5000 }),
-    ]);
-
-    // All recent tracks regardless of age
-    const recentTracks = recentRes.data?.items?.map(item => ({
-      name: item.track?.name,
-      artist: item.track?.artists?.[0]?.name,
-      playedAt: item.played_at
-    })) || [];
-
-    return {
-      currentlyPlaying,
-      recentTracks: recentTracks.slice(0, 8),
-      topArtistsShortTerm: topShortRes.data?.items?.map(a => a.name) || [],   // ~4 weeks
-      topArtistsMediumTerm: topMedRes.data?.items?.map(a => a.name) || [],    // ~6 months
-      topArtistsLongTerm: topLongRes.data?.items?.map(a => a.name) || [],     // all time
-      genres: topShortRes.data?.items?.flatMap(a => a.genres?.slice(0, 2) || []).slice(0, 5) || [],
-      fetchedAt: new Date().toISOString()
-    };
-  } catch (err) {
-    console.warn('[Twin Chat] Could not fetch live Spotify data:', err.message);
-    return null;
-  }
-}
-
-/** Fetch live Google Calendar data */
-async function fetchCalendarData(userId) {
-  try {
-    const tokenResult = await getValidAccessToken(userId, 'google_calendar');
-    if (!tokenResult.success || !tokenResult.accessToken) return null;
-
-    const now = new Date();
-    const todayEnd = new Date(now);
-    todayEnd.setHours(23, 59, 59, 999);
-    const weekFromNow = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
-
-    const calRes = await axios.get('https://www.googleapis.com/calendar/v3/calendars/primary/events', {
-      headers: { Authorization: `Bearer ${tokenResult.accessToken}` },
-      timeout: 5000,
-      params: {
-        timeMin: now.toISOString(),
-        timeMax: weekFromNow.toISOString(),
-        maxResults: 15,
-        singleEvents: true,
-        orderBy: 'startTime'
-      }
-    });
-
-    const events = calRes.data?.items?.map(e => ({
-      summary: e.summary,
-      start: e.start?.dateTime || e.start?.date,
-      isToday: new Date(e.start?.dateTime || e.start?.date) <= todayEnd
-    })) || [];
-
-    return {
-      todayEvents: events.filter(e => e.isToday).slice(0, 5),
-      upcomingEvents: events.filter(e => !e.isToday).slice(0, 5),
-      fetchedAt: new Date().toISOString()
-    };
-  } catch (err) {
-    console.warn('[Twin Chat] Could not fetch live Calendar data:', err.message);
-    return null;
-  }
-}
-
-/** Fetch live Whoop data - supports both Nango and direct API */
-async function fetchWhoopData(userId) {
-  try {
-    // Check if connection is NANGO_MANAGED
-    const { data: whoopConn, error: whoopConnErr } = await supabaseAdmin
-      .from('platform_connections')
-      .select('access_token')
-      .eq('user_id', userId)
-      .eq('platform', 'whoop')
-      .single();
-
-    if (whoopConnErr && whoopConnErr.code !== 'PGRST116') {
-      // PGRST116 = no rows found (expected when user has no Whoop)
-      console.warn('[twin-chat] fetchWhoopData connection query error:', whoopConnErr.message);
-    }
-
-    let latestRecovery = null;
-    let allSleeps = [];
-
-    if (whoopConn?.access_token === 'NANGO_MANAGED') {
-      const nangoService = await import('../services/nangoService.js');
-      const [recoveryResult, sleepResult] = await Promise.all([
-        nangoService.whoop.getRecovery(userId, 1),
-        nangoService.whoop.getSleep(userId, 5)
-      ]);
-      latestRecovery = recoveryResult.success ? recoveryResult.data?.records?.[0] : null;
-      allSleeps = sleepResult.success ? (sleepResult.data?.records || []) : [];
-    } else {
-      const tokenResult = await getValidAccessToken(userId, 'whoop');
-      if (!tokenResult.success || !tokenResult.accessToken) return null;
-
-      const headers = { Authorization: `Bearer ${tokenResult.accessToken}` };
-      const [recoveryRes, sleepRes] = await Promise.all([
-        axios.get('https://api.prod.whoop.com/developer/v2/recovery?limit=1', { headers, timeout: 5000 }),
-        axios.get('https://api.prod.whoop.com/developer/v2/activity/sleep?limit=5', { headers, timeout: 5000 })
-      ]);
-      latestRecovery = recoveryRes.data?.records?.[0];
-      allSleeps = sleepRes.data?.records || [];
-    }
-
-    if (!latestRecovery && allSleeps.length === 0) return null;
-
-    const now = new Date();
-    const yesterday = new Date(now.getTime() - 24 * 60 * 60 * 1000);
-    const todaysSleeps = allSleeps.filter(s => new Date(s.end) >= yesterday);
-
-    let totalSleepMs = 0;
-    todaysSleeps.forEach(sleep => {
-      const stageSummary = sleep.score?.stage_summary || {};
-      totalSleepMs += sleep.score?.total_sleep_time_milli ||
-                     (stageSummary.total_in_bed_time_milli - (stageSummary.total_awake_time_milli || 0)) ||
-                     stageSummary.total_in_bed_time_milli || 0;
-    });
-
-    const sleepHours = totalSleepMs / (1000 * 60 * 60);
-    return {
-      recovery: latestRecovery?.score?.recovery_score || null,
-      strain: latestRecovery?.score?.user_calibrating ? 'calibrating' : null,
-      sleepHours: sleepHours > 0 ? sleepHours.toFixed(1) : null,
-      sleepDescription: sleepHours > 0 ? `${sleepHours.toFixed(1)} hours${todaysSleeps.length > 1 ? ` (incl. ${todaysSleeps.length - 1} nap${todaysSleeps.length > 2 ? 's' : ''})` : ''}` : null,
-      hrv: latestRecovery?.score?.hrv_rmssd_milli ? Math.round(latestRecovery.score.hrv_rmssd_milli) : null,
-      restingHR: latestRecovery?.score?.resting_heart_rate ? Math.round(latestRecovery.score.resting_heart_rate) : null,
-      fetchedAt: new Date().toISOString()
-    };
-  } catch (err) {
-    console.warn('[Twin Chat] Could not fetch live Whoop data:', err.message);
-    return null;
-  }
-}
-
-/** Fetch web browsing data from browser extension */
-async function fetchWebData(userId) {
-  try {
-    const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
-    const { data: webEvents, error: webErr } = await supabaseAdmin
-      .from('user_platform_data')
-      .select('data_type, raw_data, created_at')
-      .eq('user_id', userId)
-      .eq('platform', 'web')
-      .gte('created_at', sevenDaysAgo)
-      .order('created_at', { ascending: false })
-      .limit(25);
-
-    if (webErr) {
-      console.warn('[twin-chat] fetchWebData query error:', webErr.message);
-    }
-
-    if (!webEvents?.length) return null;
-
-    const categories = {};
-    const topics = {};
-    const searches = [];
-    const domains = {};
-
-    for (const event of webEvents) {
-      const raw = event.raw_data || {};
-      const category = raw.category || raw.metadata?.category;
-      if (category) categories[category] = (categories[category] || 0) + 1;
-
-      const domain = raw.domain || raw.metadata?.domain;
-      if (domain) domains[domain] = (domains[domain] || 0) + 1;
-
-      const eventTopics = raw.topics || raw.metadata?.topics || [];
-      for (const t of eventTopics) topics[t] = (topics[t] || 0) + 1;
-
-      if (event.data_type === 'extension_search_query' && raw.query) {
-        searches.push(raw.query);
-      }
-    }
-
-    const topCategories = Object.entries(categories)
-      .sort((a, b) => b[1] - a[1])
-      .slice(0, 5)
-      .map(([c]) => c);
-
-    const topTopics = Object.entries(topics)
-      .sort((a, b) => b[1] - a[1])
-      .slice(0, 8)
-      .map(([t]) => t);
-
-    const topDomains = Object.entries(domains)
-      .sort((a, b) => b[1] - a[1])
-      .slice(0, 5)
-      .map(([d]) => d);
-
-    return {
-      hasExtensionData: true,
-      totalEvents: webEvents.length,
-      topCategories,
-      topTopics,
-      topDomains,
-      recentSearches: searches.slice(0, 5),
-      fetchedAt: new Date().toISOString()
-    };
-  } catch (err) {
-    console.warn('[Twin Chat] Could not fetch web browsing data:', err.message);
-    return null;
-  }
-}
-
-/** Fetch LinkedIn context from memory stream (platform_data observations tagged linkedin) */
-async function fetchLinkedInData(userId) {
-  try {
-    const { data, error } = await supabaseAdmin
-      .from('user_memories')
-      .select('content, created_at, metadata')
-      .eq('user_id', userId)
-      .eq('memory_type', 'platform_data')
-      .ilike('content', '%linkedin%')
-      .order('created_at', { ascending: false })
-      .limit(5);
-
-    if (error) {
-      console.warn('[Twin Chat] LinkedIn memory query error:', error.message);
-      return null;
-    }
-    if (!data || data.length === 0) return null;
-
-    return {
-      observations: data.map(m => m.content),
-      fetchedAt: new Date().toISOString(),
-    };
-  } catch (err) {
-    console.warn('[Twin Chat] Could not fetch LinkedIn data:', err.message);
-    return null;
-  }
-}
+// P6: Dead platform fetchers removed — all platform data is now fetched by twinContextBuilder.js
 
 /**
  * POST /api/chat/message - Send a message to your digital twin
@@ -1057,7 +707,7 @@ router.post('/message', authenticateUser, async (req, res) => {
       if (heartbeatInterval) clearInterval(heartbeatInterval);
     }
     chatLog('fetchTwinContext complete');
-    const { soulSignature, platformData, personalityScores, writingProfile, memories, twinSummary, proactiveInsights, enrichmentContext, voiceExamples, activeGoals, patterns } = twinContext;
+    const { soulSignature, platformData, personalityScores, writingProfile, memories, twinSummary, proactiveInsights, enrichmentContext, voiceExamples, activeGoals, patterns, identityContext, calibrationContext } = twinContext;
 
     // Build personalized system prompt with structured context layers
     // Returns array format for Anthropic prompt caching: [cached_base, dynamic_context]
@@ -1085,16 +735,77 @@ router.post('/message', authenticateUser, async (req, res) => {
       }
     }
 
-    // S4.3: Fetch identity context (cached 24h — near-zero latency on repeat calls)
-    // Also fetch deep interview calibration data in parallel
-    let identityContext = null;
-    let calibrationContext = null;
-    await Promise.all([
-      useIdentityContext
-        ? inferIdentityContext(userId).then(r => { identityContext = r; }).catch(err => console.warn('[Twin Chat] Identity context fetch failed (non-fatal):', err.message))
-        : Promise.resolve(),
-      fetchCalibrationContext(userId).then(r => { calibrationContext = r; }).catch(err => console.warn('[Twin Chat] Calibration context fetch failed (non-fatal):', err.message)),
-    ]);
+    // P8: identity + calibration now fetched inside fetchTwinContext (parallel)
+
+    // P1: Start async operations EARLY so they run in parallel with sync work below
+    const expertRoutingPromise = useExpertRouting
+      ? classifyQueryDomain(message)
+          .then(async (routingResult) => {
+            if (routingResult.expertId && routingResult.domain !== 'general') {
+              const expertMems = await retrieveExpertMemories(userId, routingResult.expertId, message, 6);
+              return { routingResult, expertMemories: expertMems };
+            }
+            return { routingResult, expertMemories: [] };
+          })
+          .catch(err => { console.warn('[Twin Chat] Expert routing failed (non-fatal):', err.message); return null; })
+      : Promise.resolve(null);
+
+    const conversationHistoryPromise = conversationId
+      ? (async () => {
+          if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(conversationId)) {
+            console.warn(`[Twin Chat] Invalid conversationId format from user ${userId}`);
+            return [];
+          }
+          const { data: convoCheck, error: convoCheckErr } = await supabaseAdmin
+            .from('twin_conversations')
+            .select('id')
+            .eq('id', conversationId)
+            .eq('user_id', userId)
+            .single();
+          if (convoCheckErr && convoCheckErr.code !== 'PGRST116') console.error('[Twin Chat] Conversation ownership check error:', convoCheckErr.message);
+          if (!convoCheck) {
+            console.warn(`[Twin Chat] conversationId ${conversationId} not owned by user ${userId}, ignoring history`);
+            return [];
+          }
+          const { data: messages } = await supabaseAdmin
+            .from('twin_messages')
+            .select('role, content, created_at')
+            .eq('conversation_id', conversationId)
+            .order('created_at', { ascending: true })
+            .limit(20);
+          return (messages || []).map(m => ({
+            role: m.role === 'assistant' ? 'assistant' : 'user',
+            content: m.content.length > 800 ? m.content.substring(0, 800) + '...' : m.content
+          }));
+        })().catch(err => { console.warn('[Twin Chat] Could not fetch conversation history:', err.message); return []; })
+      : Promise.resolve([]);
+
+    const creativityBoostPromise = conversationId
+      ? (async () => {
+          const { data: recentMsgs } = await supabaseAdmin
+            .from('twin_messages')
+            .select('metadata')
+            .eq('conversation_id', conversationId)
+            .eq('role', 'assistant')
+            .order('created_at', { ascending: false })
+            .limit(5);
+          if (!recentMsgs || recentMsgs.length < 3) return null;
+          const lzScores = recentMsgs.map(m => m.metadata?.lz_complexity).filter(s => typeof s === 'number');
+          if (lzScores.length < 3) return null;
+          const avgLz = lzScores.reduce((a, b) => a + b, 0) / lzScores.length;
+          if (avgLz >= 0.3) return null;
+          const { data: novelMemories } = await supabaseAdmin
+            .from('user_memories')
+            .select('id, content')
+            .eq('user_id', userId)
+            .gte('importance_score', 5)
+            .lte('retrieval_count', 1)
+            .order('created_at', { ascending: false })
+            .limit(3);
+          if (!novelMemories?.length) return null;
+          return { novelMemories, avgLz };
+        })().catch(() => null)
+      : Promise.resolve(null);
 
     // Build additional dynamic context (writing profile + unified memory stream)
     let additionalContext = '';
@@ -1143,20 +854,17 @@ router.post('/message', authenticateUser, async (req, res) => {
       additionalContext += `\n\nHOW I ACTUALLY WRITE (mirror this exact style, tone, and rhythm):\n${voiceExamples.map(m => `> "${m.substring(0, 200)}"`).join('\n')}`;
     }
 
-    // Expert routing: classify query domain → pull that platform expert's memories as priority context.
-    // Runs in parallel with the generic memory block to avoid adding latency.
-    let expertRoutingResult = null;
-    let expertMemories = [];
-    if (useExpertRouting) {
-      try {
-        expertRoutingResult = await classifyQueryDomain(message);
-        if (expertRoutingResult.expertId && expertRoutingResult.domain !== 'general') {
-          expertMemories = await retrieveExpertMemories(userId, expertRoutingResult.expertId, message, 6);
-          chatLog(`Expert routing: ${expertRoutingResult.domain} (${expertRoutingResult.confidence}) → ${expertMemories.length} expert memories`);
-        }
-      } catch (routingErr) {
-        console.warn('[Twin Chat] Expert routing failed (non-fatal):', routingErr.message);
-      }
+    // P1: Await parallelized async operations (expert routing, conversation history, creativity boost)
+    const [expertResult, conversationHistory, creativityResult] = await Promise.all([
+      expertRoutingPromise,
+      conversationHistoryPromise,
+      creativityBoostPromise,
+    ]);
+
+    const expertRoutingResult = expertResult?.routingResult || null;
+    const expertMemories = expertResult?.expertMemories || [];
+    if (expertRoutingResult?.expertId && expertRoutingResult.domain !== 'general') {
+      chatLog(`Expert routing: ${expertRoutingResult.domain} (${expertRoutingResult.confidence}) → ${expertMemories.length} expert memories`);
     }
 
     // Inject expert memories first (domain-specific context from platform specialists)
@@ -1232,47 +940,12 @@ router.post('/message', authenticateUser, async (req, res) => {
       additionalContext += `\n\nThings I keep coming back to (learned from patterns):\n${patternLines}`;
     }
 
-    // Creativity boost: if recent twin responses are repetitive (low LZ), inject rarely-accessed memories
-    // Feature-flagged: only triggers if avg LZ of last 5 responses < 0.3
-    try {
-      if (conversationId) {
-        const { data: recentMsgs } = await supabaseAdmin
-          .from('twin_messages')
-          .select('metadata')
-          .eq('conversation_id', conversationId)
-          .eq('role', 'assistant')
-          .order('created_at', { ascending: false })
-          .limit(5);
-
-        if (recentMsgs && recentMsgs.length >= 3) {
-          const lzScores = recentMsgs
-            .map(m => m.metadata?.lz_complexity)
-            .filter(s => typeof s === 'number');
-
-          if (lzScores.length >= 3) {
-            const avgLz = lzScores.reduce((a, b) => a + b, 0) / lzScores.length;
-            if (avgLz < 0.3) {
-              // Inject 3 rarely-accessed memories with decent importance
-              const { data: novelMemories } = await supabaseAdmin
-                .from('user_memories')
-                .select('id, content')
-                .eq('user_id', userId)
-                .gte('importance_score', 5)
-                .lte('retrieval_count', 1)
-                .order('created_at', { ascending: false })
-                .limit(3);
-
-              if (novelMemories?.length > 0) {
-                additionalContext += `\n\n[Creativity spark — rarely recalled memories]:\n${novelMemories.map(m => `- ${m.content.substring(0, 200)}`).join('\n')}`;
-                memoriesInContext.push(...novelMemories);
-                chatLog(`Creativity boost: injected ${novelMemories.length} novel memories (avgLZ=${avgLz.toFixed(2)})`);
-              }
-            }
-          }
-        }
-      }
-    } catch (creativityErr) {
-      // Non-fatal — creativity boost is optional
+    // P1: Creativity boost (parallelized above) — inject rarely-accessed memories if responses are repetitive
+    if (creativityResult) {
+      const { novelMemories, avgLz } = creativityResult;
+      additionalContext += `\n\n[Creativity spark — rarely recalled memories]:\n${novelMemories.map(m => `- ${m.content.substring(0, 200)}`).join('\n')}`;
+      memoriesInContext.push(...novelMemories);
+      chatLog(`Creativity boost: injected ${novelMemories.length} novel memories (avgLZ=${avgLz.toFixed(2)})`);
     }
 
     // Hard cap additional context to prevent token bloat — truncate at last newline to avoid mid-sentence cuts
@@ -1294,42 +967,7 @@ router.post('/message', authenticateUser, async (req, res) => {
       }
     }
 
-    // Get conversation history if conversationId provided (cap at 20 messages for rich continuity)
-    let conversationHistory = [];
-    if (conversationId) {
-      try {
-        // Verify ownership before fetching history — prevents IDOR leaking another user's messages
-        if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(conversationId)) {
-          console.warn(`[Twin Chat] Invalid conversationId format from user ${userId}`);
-        } else {
-          const { data: convoCheck, error: convoCheckErr } = await supabaseAdmin
-            .from('twin_conversations')
-            .select('id')
-            .eq('id', conversationId)
-            .eq('user_id', userId)
-            .single();
-          if (convoCheckErr && convoCheckErr.code !== 'PGRST116') console.error('[Twin Chat] Conversation ownership check error:', convoCheckErr.message);
-
-          if (convoCheck) {
-            // Query twin_messages (not messages which is the legacy school system)
-            const { data: messages } = await supabaseAdmin
-              .from('twin_messages')
-              .select('role, content, created_at')
-              .eq('conversation_id', conversationId)
-              .order('created_at', { ascending: true })
-              .limit(20);
-            conversationHistory = (messages || []).map(m => ({
-              role: m.role === 'assistant' ? 'assistant' : 'user',
-              content: m.content.length > 800 ? m.content.substring(0, 800) + '...' : m.content
-            }));
-          } else {
-            console.warn(`[Twin Chat] conversationId ${conversationId} not owned by user ${userId}, ignoring history`);
-          }
-        }
-      } catch (err) {
-        console.warn('[Twin Chat] Could not fetch conversation history:', err.message);
-      }
-    }
+    // P1: Conversation history already fetched in parallel above
 
     // Every 5th turn: inject a proactive deep question into the system prompt
     if (conversationHistory.length > 0 && conversationHistory.length % 5 === 0) {
