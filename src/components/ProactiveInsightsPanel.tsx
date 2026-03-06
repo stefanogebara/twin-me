@@ -64,7 +64,7 @@ export const ProactiveInsightsPanel: React.FC = () => {
       .catch(() => { /* silently ignore network errors */ });
   };
 
-  const { data, isLoading } = useQuery<ChatContextResponse>({
+  const { data, isLoading, isError } = useQuery<ChatContextResponse>({
     queryKey: ['proactive-insights'],
     queryFn: async () => {
       if (isDemoMode) {
@@ -72,15 +72,23 @@ export const ProactiveInsightsPanel: React.FC = () => {
         return { success: true, pendingInsights: [] };
       }
 
-      const token = localStorage.getItem('auth_token');
-      const response = await fetch(`${import.meta.env.VITE_API_URL}/chat/context`, {
-        headers: { 'Authorization': `Bearer ${token}` },
-      });
-      if (!response.ok) throw new Error('Failed to fetch insights');
-      return response.json();
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000);
+      try {
+        const token = localStorage.getItem('auth_token');
+        const response = await fetch(`${import.meta.env.VITE_API_URL}/chat/context`, {
+          headers: { 'Authorization': `Bearer ${token}` },
+          signal: controller.signal,
+        });
+        if (!response.ok) throw new Error('Failed to fetch insights');
+        return response.json();
+      } finally {
+        clearTimeout(timeoutId);
+      }
     },
     staleTime: 5 * 60 * 1000,
     refetchInterval: 10 * 60 * 1000,
+    retry: 1,
   });
 
   const insights = data?.pendingInsights || [];
@@ -102,6 +110,11 @@ export const ProactiveInsightsPanel: React.FC = () => {
         </div>
       </div>
     );
+  }
+
+  // On error or timeout, silently show empty state instead of stuck spinner
+  if (isError) {
+    return null;
   }
 
   // Empty state

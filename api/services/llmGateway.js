@@ -20,12 +20,12 @@ import OpenAI from 'openai';
 import { getRedisClient, isRedisAvailable } from './redisClient.js';
 import { supabaseAdmin } from './database.js';
 import {
-  TIER_CHAT, TIER_ANALYSIS, TIER_EXTRACTION,
+  TIER_CHAT, TIER_CHAT_FINETUNED, TIER_ANALYSIS, TIER_EXTRACTION,
   OPENROUTER_MODELS, MODEL_PRICING, CACHE_TTL_BY_TIER,
 } from '../config/aiModels.js';
 
 // Re-export tier constants for convenience
-export { TIER_CHAT, TIER_ANALYSIS, TIER_EXTRACTION };
+export { TIER_CHAT, TIER_CHAT_FINETUNED, TIER_ANALYSIS, TIER_EXTRACTION };
 
 // ====================================================================
 // Circuit Breaker (4B)
@@ -121,6 +121,22 @@ const openrouter = new OpenAI({
     'X-Title': 'TwinMe',
   },
 });
+
+// Direct OpenAI client for finetuned models (ft: prefix)
+const openaiDirect = process.env.OPENAI_API_KEY
+  ? new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
+  : null;
+
+/**
+ * Select the correct client based on model ID.
+ * ft: models go to OpenAI directly; everything else to OpenRouter.
+ */
+function getClientForModel(model) {
+  if (model && model.startsWith('ft:') && openaiDirect) {
+    return openaiDirect;
+  }
+  return openrouter;
+}
 
 // ====================================================================
 // In-Memory Cache Fallback (when Redis is unavailable)
@@ -307,7 +323,8 @@ export async function complete({
   const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
 
   try {
-    const response = await openrouter.chat.completions.create({
+    const client = getClientForModel(model);
+    const response = await client.chat.completions.create({
       model,
       max_tokens: maxTokens,
       temperature,
@@ -411,7 +428,8 @@ export async function stream({
   }
 
   try {
-    const streamResponse = await openrouter.chat.completions.create({
+    const client = getClientForModel(model);
+    const streamResponse = await client.chat.completions.create({
       model,
       max_tokens: maxTokens,
       temperature,

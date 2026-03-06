@@ -108,32 +108,46 @@ export const ConnectorCard: React.FC<ConnectorCardProps> = ({
 
       {!isConnected && (
         <div className="mt-3">
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              onConnect(connector.provider);
-            }}
-            disabled={connectingProvider === connector.provider}
-            className="w-full flex items-center justify-center gap-2 px-4 py-2 rounded-xl text-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-            style={{
-              backgroundColor: 'rgba(255, 255, 255, 0.06)',
-              color: 'var(--foreground)',
-              fontFamily: 'var(--font-body)',
-              fontWeight: 500
-            }}
-          >
-            {connectingProvider === connector.provider ? (
-              <>
-                <svg className="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                </svg>
-                Connecting...
-              </>
-            ) : (
-              'Connect'
-            )}
-          </button>
+          {connector.comingSoon ? (
+            <div
+              className="w-full flex items-center justify-center gap-2 px-4 py-2 rounded-xl text-sm opacity-60 cursor-default"
+              style={{
+                backgroundColor: 'rgba(255, 255, 255, 0.04)',
+                color: 'var(--text-secondary)',
+                fontFamily: 'var(--font-body)',
+                fontWeight: 500
+              }}
+            >
+              Coming Soon
+            </div>
+          ) : (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                onConnect(connector.provider);
+              }}
+              disabled={connectingProvider === connector.provider}
+              className="w-full flex items-center justify-center gap-2 px-4 py-2 rounded-xl text-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+              style={{
+                backgroundColor: 'rgba(255, 255, 255, 0.06)',
+                color: 'var(--foreground)',
+                fontFamily: 'var(--font-body)',
+                fontWeight: 500
+              }}
+            >
+              {connectingProvider === connector.provider ? (
+                <>
+                  <svg className="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  Connecting...
+                </>
+              ) : (
+                'Connect'
+              )}
+            </button>
+          )}
         </div>
       )}
 

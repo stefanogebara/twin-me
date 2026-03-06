@@ -39,11 +39,16 @@ import { PlatformCategorySection } from './onboarding/components/PlatformCategor
 
 const NANGO_PROVIDER_MAP: Record<string, string> = {
   'linkedin': 'linkedin',
-  'github': 'github',
+  'github': 'github-getting-started',
   'reddit': 'reddit',
   'spotify': 'spotify',
   'youtube': 'youtube',
   'google-calendar': 'google-calendar',
+  'strava': 'strava',
+  'fitbit': 'fitbit',
+  'garmin': 'garmin',
+  'twitch': 'twitch',
+  'microsoft_outlook': 'outlook',
 };
 
 // ====================================================================
@@ -173,11 +178,13 @@ const InstantTwinOnboarding = () => {
 
       const healthPlatforms = ['oura'];
       // Entertainment platforms use direct OAuth via entertainment-connectors endpoints
-      const entertainmentPlatforms = ['spotify', 'discord', 'youtube', 'netflix', 'hbo_max', 'prime_video', 'disney_plus', 'apple_music', 'apple_tv', 'strava'];
+      const entertainmentPlatforms = ['spotify', 'discord', 'youtube', 'netflix', 'hbo_max', 'prime_video', 'disney_plus', 'apple_tv'];
       // Professional platforms that use Google OAuth scopes via entertainment-connectors
       const googlePlatforms = ['google_calendar', 'gmail'];
       // Arctic-managed platforms with built-in OAuth
       const arcticPlatforms = ['github', 'reddit', 'linkedin'];
+      // Nango-managed platforms — connect via Nango popup OAuth
+      const nangoPlatforms = ['strava', 'fitbit', 'garmin', 'twitch', 'microsoft_outlook'];
 
       let apiUrl: string;
       let fetchOptions: RequestInit = {
@@ -185,7 +192,19 @@ const InstantTwinOnboarding = () => {
         headers: { 'Content-Type': 'application/json' },
       };
 
-      if (entertainmentPlatforms.includes(provider as string) || googlePlatforms.includes(provider as string)) {
+      if (nangoPlatforms.includes(provider as string)) {
+        // Use Nango connect session for popup OAuth
+        const nangoIntegrationId = NANGO_PROVIDER_MAP[provider] || provider;
+        apiUrl = `${baseUrl}/nango/connect-session`;
+        fetchOptions = {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
+          },
+          body: JSON.stringify({ integrationId: nangoIntegrationId })
+        };
+      } else if (entertainmentPlatforms.includes(provider as string) || googlePlatforms.includes(provider as string)) {
         // Use direct entertainment-connectors OAuth (PKCE + encrypted state)
         apiUrl = `${baseUrl}/entertainment/connect/${provider}`;
         fetchOptions = {

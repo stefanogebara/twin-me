@@ -39,9 +39,27 @@ router.get('/', authenticateUser, async (req, res) => {
     const fourteenDaysAgo = new Date(now - 14 * 24 * 60 * 60 * 1000).toISOString();
 
     // Run all queries in parallel (readiness score runs alongside DB queries)
+    // Memory types to count — avoids Supabase's 1000-row default cap
+    const MEMORY_TYPES = ['fact', 'reflection', 'conversation', 'platform_data', 'observation'];
+
     const [
       totalCountResult,
-      compositionResult,
+      ...perTypeResults
+    ] = await Promise.all([
+      // 0. Exact total count
+      supabaseAdmin
+        .from('user_memories')
+        .select('*', { count: 'exact', head: true })
+        .eq('user_id', userId),
+
+      // 1-5. Per-type exact counts + avg importance (no 1000-row cap)
+      ...MEMORY_TYPES.map(type =>
+        supabaseAdmin.rpc('get_type_stats', { p_user_id: userId, p_type: type })
+      ),
+    ]);
+
+    // Gather remaining queries in parallel
+    const [
       retrievalResult,
       staleResult,
       expertResult,
@@ -51,22 +69,10 @@ router.get('/', authenticateUser, async (req, res) => {
       topMemoriesResult,
       readinessResult,
     ] = await Promise.all([
-      // 0. Exact total count (Supabase caps SELECT data at 1000 rows)
+      // Retrieval coverage: exact count with retrieval_count > 0
       supabaseAdmin
         .from('user_memories')
         .select('*', { count: 'exact', head: true })
-        .eq('user_id', userId),
-
-      // 1. Composition + avg importance by type (sample up to 1000 for breakdown)
-      supabaseAdmin
-        .from('user_memories')
-        .select('memory_type, importance_score')
-        .eq('user_id', userId),
-
-      // 2. Retrieval coverage: count with retrieval_count > 0
-      supabaseAdmin
-        .from('user_memories')
-        .select('retrieval_count', { count: 'exact', head: false })
         .eq('user_id', userId)
         .gt('retrieval_count', 0),
 
@@ -127,28 +133,23 @@ router.get('/', authenticateUser, async (req, res) => {
       getTwinReadinessScore(userId),
     ]);
 
-    // Process composition
-    const rows = compositionResult.data || [];
-    // Use the exact COUNT query — SELECT data is capped at 1000 rows by Supabase default
-    const totalCount = totalCountResult.count ?? rows.length;
+    // Process composition from per-type exact counts
+    const totalCount = totalCountResult.count ?? 0;
     const composition = {};
-    const importanceSums = {};
-    const importanceCounts = {};
-
-    for (const row of rows) {
-      const t = row.memory_type;
-      composition[t] = (composition[t] || 0) + 1;
-      importanceSums[t] = (importanceSums[t] || 0) + (row.importance_score || 0);
-      importanceCounts[t] = (importanceCounts[t] || 0) + 1;
-    }
-
     const avgImportanceByType = {};
-    for (const t of Object.keys(importanceSums)) {
-      avgImportanceByType[t] = parseFloat((importanceSums[t] / importanceCounts[t]).toFixed(2));
+
+    for (let i = 0; i < MEMORY_TYPES.length; i++) {
+      const type = MEMORY_TYPES[i];
+      const result = perTypeResults[i];
+      const row = result.data?.[0];
+      if (row && row.cnt > 0) {
+        composition[type] = row.cnt;
+        avgImportanceByType[type] = parseFloat((row.avg_importance || 0).toFixed(2));
+      }
     }
 
-    // Retrieval coverage
-    const retrievedCount = retrievalResult.data?.length || 0;
+    // Retrieval coverage (exact count, no 1000-row cap)
+    const retrievedCount = retrievalResult.count || 0;
     const retrievalCoverage = totalCount > 0 ? parseFloat((retrievedCount / totalCount).toFixed(3)) : 0;
 
     // Staleness

@@ -34,11 +34,17 @@ export const MODEL = CLAUDE_MODEL;
 // To change a model, update OPENROUTER_MODELS below - all callers auto-switch.
 
 export const TIER_CHAT = 'chat';
+export const TIER_CHAT_FINETUNED = 'chat_finetuned';
 export const TIER_ANALYSIS = 'analysis';
 export const TIER_EXTRACTION = 'extraction';
 
+// Finetuned model ID from OpenAI (set via env after fine-tune job completes)
+// Format: ft:gpt-4o-mini-2024-07-18:org::id
+export const FINETUNED_MODEL = process.env.FINETUNED_TWIN_MODEL || null;
+
 export const OPENROUTER_MODELS = {
   [TIER_CHAT]: 'anthropic/claude-sonnet-4.5', // $3.00/$15.00 per M — quality is critical for twin personality
+  [TIER_CHAT_FINETUNED]: FINETUNED_MODEL,     // OpenAI finetuned model — routed directly, not via OpenRouter
   [TIER_ANALYSIS]: 'deepseek/deepseek-v3.2',          // $0.25/$0.38 per M — 90% cheaper than Haiku
   [TIER_EXTRACTION]: 'mistralai/mistral-small-creative', // $0.10/$0.30 per M — replaces deprecated gemini-2.0-flash
   // NOTE: Kimi K2.5 is a reasoning model (wastes tokens on chain-of-thought).

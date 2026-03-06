@@ -159,6 +159,32 @@ async function seedMemoriesFromEnrichment(userId) {
       });
     }
 
+    // GitHub tech identity (languages + top repos)
+    if (profile.github_languages && Array.isArray(profile.github_languages) && profile.github_languages.length > 0) {
+      memoryEntries.push({
+        content: `Programs in: ${profile.github_languages.join(', ')}`,
+        importance: 6,
+      });
+    }
+    if (profile.github_top_repos && Array.isArray(profile.github_top_repos) && profile.github_top_repos.length > 0) {
+      const repoDescriptions = profile.github_top_repos
+        .map(r => `${r.name}${r.description ? ` - ${r.description}` : ''}${r.language ? ` (${r.language})` : ''}`)
+        .join('; ');
+      memoryEntries.push({
+        content: `Notable GitHub projects: ${repoDescriptions}`.substring(0, 2000),
+        importance: 6,
+      });
+    }
+
+    // Social media presence from probed profiles
+    if (profile.social_links && Array.isArray(profile.social_links) && profile.social_links.length > 0) {
+      const platformList = profile.social_links.map(l => l.platform).join(', ');
+      memoryEntries.push({
+        content: `Active on social platforms: ${platformList}`,
+        importance: 5,
+      });
+    }
+
     if (memoryEntries.length === 0) {
       console.log(`[EnrichmentBridge] No meaningful enrichment fields for user ${userId}`);
       return { success: true, memoriesStored: 0 };

@@ -1247,8 +1247,9 @@ router.delete('/:provider/:userId', authenticateUser, async (req, res) => {
 
     console.log(`🔌 Disconnect request for ${provider} from user ${userId}`);
 
-    // Use supabaseAdmin to bypass RLS policies for server-side operations
-    // First check if connection exists
+    let deletedSomething = false;
+
+    // 1. Delete from platform_connections (standard OAuth connections)
     const { data: existingConnection, error: checkError } = await supabaseAdmin
       .from('platform_connections')
       .select('id, platform')
@@ -1257,40 +1258,50 @@ router.delete('/:provider/:userId', authenticateUser, async (req, res) => {
       .single();
 
     if (checkError && checkError.code !== 'PGRST116') {
-      // PGRST116 is "not found" which is okay
-      console.error('Error checking connection:', checkError);
+      console.error('Error checking platform_connections:', checkError);
     }
 
-    if (!existingConnection) {
-      console.log(`⚠️ No connection found for ${provider} - user ${userUuid}`);
-      // Still return success since the end state is what user wants
-      return res.json({
-        success: true,
-        data: {
-          provider,
-          userId,
-          disconnected: true,
-          message: 'Connection was already disconnected'
-        }
-      });
+    if (existingConnection) {
+      const { error } = await supabaseAdmin
+        .from('platform_connections')
+        .delete()
+        .eq('user_id', userUuid)
+        .eq('platform', provider);
+
+      if (error) {
+        console.error('Error deleting from platform_connections:', error);
+        throw error;
+      }
+      console.log(`✅ Deleted platform_connections for ${provider}`);
+      deletedSomething = true;
     }
 
-    console.log(`🗑️ Deleting connection: ${existingConnection.id} for ${provider}`);
-
-    // Disconnect by deleting the platform connection record
-    // Use supabaseAdmin to bypass RLS for server-side delete
-    const { error, count } = await supabaseAdmin
-      .from('platform_connections')
-      .delete()
+    // 2. Also delete from nango_connection_mappings (Nango-managed connections)
+    const { data: nangoMapping } = await supabaseAdmin
+      .from('nango_connection_mappings')
+      .select('id, platform')
       .eq('user_id', userUuid)
-      .eq('platform', provider);
+      .eq('platform', provider)
+      .single();
 
-    if (error) {
-      console.error('Error disconnecting provider:', error);
-      throw error;
+    if (nangoMapping) {
+      const { error: nangoError } = await supabaseAdmin
+        .from('nango_connection_mappings')
+        .delete()
+        .eq('user_id', userUuid)
+        .eq('platform', provider);
+
+      if (nangoError) {
+        console.error('Error deleting from nango_connection_mappings:', nangoError);
+        throw nangoError;
+      }
+      console.log(`✅ Deleted nango_connection_mappings for ${provider}`);
+      deletedSomething = true;
     }
 
-    console.log(`✅ Deleted connection for ${provider} - user ${userUuid}`);
+    if (!deletedSomething) {
+      console.log(`⚠️ No connection found for ${provider} - user ${userUuid}`);
+    }
 
     // Invalidate cached platform status for this user BEFORE responding
     await invalidatePlatformStatusCache(userUuid);

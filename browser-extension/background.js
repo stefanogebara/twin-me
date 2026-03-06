@@ -89,6 +89,11 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       sendResponse({ success: true });
       break;
 
+    case 'SEND_PLATFORM_DATA':
+      sendToBackend(message.platform || 'web', message.events || [message.data])
+        .then(() => sendResponse({ success: true }));
+      return true; // async response
+
     case 'PAGE_ANALYSIS_RESULT':
       handlePageAnalysis(message.data);
       sendResponse({ success: true });
@@ -270,9 +275,11 @@ async function importBrowsingHistory() {
 // ─────────────────────────────────────────────
 
 async function handleNetflixData(data) {
+  const event = { ...data, platform: 'netflix', collectedAt: new Date().toISOString(), synced: false };
   const { netflixData = [] } = await chrome.storage.local.get('netflixData');
-  netflixData.push({ ...data, collectedAt: new Date().toISOString(), synced: false });
-  await chrome.storage.local.set({ netflixData });
+  const trimmed = [...netflixData, event].slice(-500);
+  await chrome.storage.local.set({ netflixData: trimmed });
+  await sendToBackend('netflix', [event]);
   updateBadge();
 }
 
@@ -345,18 +352,39 @@ async function sendToBackend(platform, events) {
 async function syncCollectedData() {
   if (!userId) return;
 
-  const { youtube_history = [], twitch_history = [], web_history = [] } =
-    await chrome.storage.local.get(['youtube_history', 'twitch_history', 'web_history']);
+  const stores = ['youtube_history', 'twitch_history', 'web_history', 'netflixData'];
+  const stored = await chrome.storage.local.get(stores);
+  const youtube_history = stored.youtube_history || [];
+  const twitch_history = stored.twitch_history || [];
+  const web_history = stored.web_history || [];
+  const netflixData = stored.netflixData || [];
 
-  const unsyncedYoutube = youtube_history.filter(d => !d.synced);
-  const unsyncedTwitch = twitch_history.filter(d => !d.synced);
-  const unsyncedWeb = web_history.filter(d => !d.synced);
+  const batches = [
+    { key: 'youtube_history', list: youtube_history, platform: 'youtube' },
+    { key: 'twitch_history', list: twitch_history, platform: 'twitch' },
+    { key: 'web_history', list: web_history, platform: 'web' },
+    { key: 'netflixData', list: netflixData, platform: 'netflix' },
+  ];
 
-  if (unsyncedYoutube.length > 0) await sendToBackend('youtube', unsyncedYoutube);
-  if (unsyncedTwitch.length > 0) await sendToBackend('twitch', unsyncedTwitch);
-  if (unsyncedWeb.length > 0) await sendToBackend('web', unsyncedWeb);
+  let totalSynced = 0;
+  for (const { key, list, platform } of batches) {
+    const unsynced = list.filter(d => !d.synced);
+    if (unsynced.length === 0) continue;
 
-  if (unsyncedYoutube.length + unsyncedTwitch.length + unsyncedWeb.length > 0) {
+    try {
+      await sendToBackend(platform, unsynced);
+      // Mark events as synced in the stored array
+      for (const item of list) {
+        if (!item.synced) item.synced = true;
+      }
+      await chrome.storage.local.set({ [key]: list });
+      totalSynced += unsynced.length;
+    } catch (err) {
+      console.error(`[Background] Sync failed for ${platform}:`, err.message);
+    }
+  }
+
+  if (totalSynced > 0) {
     await chrome.storage.local.set({ lastSync: new Date().toISOString() });
   }
 
@@ -368,10 +396,10 @@ async function syncCollectedData() {
 // ─────────────────────────────────────────────
 
 async function updateBadge() {
-  const { web_history = [], youtube_history = [], twitch_history = [] } =
-    await chrome.storage.local.get(['web_history', 'youtube_history', 'twitch_history']);
+  const { web_history = [], youtube_history = [], twitch_history = [], netflixData = [] } =
+    await chrome.storage.local.get(['web_history', 'youtube_history', 'twitch_history', 'netflixData']);
 
-  const unsynced = [web_history, youtube_history, twitch_history]
+  const unsynced = [web_history, youtube_history, twitch_history, netflixData]
     .flat()
     .filter(d => !d.synced).length;
 

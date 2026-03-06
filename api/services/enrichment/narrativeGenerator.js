@@ -42,6 +42,22 @@ export async function generateDetailedNarrative(data, name) {
   if (data.scrapin_connection_count) dataPoints.push(`Professional network connections: ${data.scrapin_connection_count}`);
   if (data.scrapin_follower_count) dataPoints.push(`Professional followers: ${data.scrapin_follower_count}`);
 
+  // GitHub tech identity
+  if (data.github_languages?.length) dataPoints.push(`Programming languages: ${data.github_languages.join(', ')}`);
+  if (data.github_top_repos?.length) {
+    const repoList = data.github_top_repos.map(r =>
+      `${r.name}${r.description ? ` (${r.description})` : ''}${r.language ? ` [${r.language}]` : ''}`
+    ).join('; ');
+    dataPoints.push(`Notable GitHub projects: ${repoList}`);
+  }
+  if (data.github_repos) dataPoints.push(`GitHub: ${data.github_repos} public repositories`);
+
+  // Social media presence
+  if (data.social_links?.length) {
+    const platforms = data.social_links.map(l => l.platform).join(', ');
+    dataPoints.push(`Active on: ${platforms}`);
+  }
+
   // If we have raw comprehensive search data, include it (CLEANED)
   if (data.raw_comprehensive && data.raw_comprehensive.length > 200) {
     let cleanRaw = data.raw_comprehensive
@@ -562,6 +578,21 @@ export function buildFactualSummary(data) {
     bio += `. Works in the ${industry} industry`;
   }
   bio += '.';
+
+  // Add GitHub tech identity if available
+  if (data.github_languages?.length) {
+    bio += ` Programs in ${data.github_languages.join(', ')}.`;
+  }
+  if (data.github_top_repos?.length) {
+    const topRepo = data.github_top_repos[0];
+    bio += ` Notable project: ${topRepo.name}${topRepo.description ? ` (${topRepo.description})` : ''}.`;
+  }
+
+  // Add social presence summary
+  if (data.social_links?.length > 1) {
+    const platforms = data.social_links.map(l => l.platform).join(', ');
+    bio += ` Active on ${platforms}.`;
+  }
 
   return bio;
 }

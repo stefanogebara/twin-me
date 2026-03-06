@@ -1,6 +1,7 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { Brain } from 'lucide-react';
+import { toSecondPerson } from '@/lib/utils';
 import type { ExpertReflection } from './types';
 
 const EXPERT_META: Record<string, { label: string; color: string; shortLabel: string }> = {
@@ -101,7 +102,7 @@ export const BentoExpertSpotlight: React.FC<Props> = ({ reflections, animationDe
                       color: 'var(--foreground)',
                     }}
                   >
-                    {r.content}
+                    {toSecondPerson(r.content)}
                   </div>
                 ))}
               </div>

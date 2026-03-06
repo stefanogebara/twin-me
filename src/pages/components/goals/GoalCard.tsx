@@ -210,7 +210,7 @@ const GoalCard: React.FC<GoalCardProps> = ({
           </span>
           {goal.target_value != null && goal.target_unit && (
             <span className="text-[10px]" style={{ color: TEXT_SECONDARY }}>
-              Target: {goal.target_value} {goal.target_unit}
+              Target: {goal.target_value}{goal.target_unit === 'percent' ? '%' : ` ${goal.target_unit}`}
             </span>
           )}
         </div>
