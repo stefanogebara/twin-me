@@ -87,7 +87,7 @@ const Index = () => {
   }, []);
 
   return (
-    <div className="w-full min-h-screen text-[#000000] dark:text-[#F5F5F4]" style={{ backgroundColor: 'var(--background)', fontFamily: "'Geist', sans-serif", fontSize: '14px', fontWeight: 500 }}>
+    <div className="w-full min-h-screen" style={{ backgroundColor: 'var(--background)', color: 'var(--foreground)', fontFamily: "'Geist', sans-serif", fontSize: '14px', fontWeight: 500 }}>
       <style>{`
         /* ── Claura Typography System ── */
         /* H1: 70px/400, H2: 56px/400, H3: 32px/400 — all Halant */
@@ -97,9 +97,8 @@ const Index = () => {
           font-weight: 400;
           letter-spacing: -0.05em;
           line-height: 1.1;
-          color: #000000;
+          color: var(--foreground);
         }
-        .dark .heading-serif { color: #F5F5F4; }
         .h1 { font-size: 80px; }
         .h2 { font-size: 56px; }
         .h3 { font-size: 32px; }
@@ -107,38 +106,31 @@ const Index = () => {
           font-family: 'Halant', Georgia, serif;
           font-weight: 400;
           font-style: italic;
-          color: #8A857D;
+          color: var(--text-secondary);
           letter-spacing: -0.05em;
         }
-        .dark .heading-serif-italic { color: #D6D3D1; }
         .body-text {
           font-family: 'Geist', sans-serif;
           font-size: 14px;
           font-weight: 500;
-          color: #8A857D;
+          color: var(--text-secondary);
           line-height: 1.65;
         }
-        .dark .body-text { color: #A8A29E; }
         .claura-label {
           font-family: 'Geist', sans-serif;
-          background: rgba(0,0,0,0.04);
-          border: 1px solid rgba(0,0,0,0.06);
+          background: var(--glass-surface-bg, rgba(0,0,0,0.04));
+          border: 1px solid var(--glass-surface-border, rgba(0,0,0,0.06));
           border-radius: 8px;
           padding: 6px 14px;
           font-size: 12px;
           font-weight: 400;
-          color: #5C5851;
+          color: var(--text-secondary);
           display: inline-block;
-        }
-        .dark .claura-label {
-          background: rgba(255,255,255,0.08);
-          border-color: rgba(255,255,255,0.12);
-          color: #A8A29E;
         }
         .btn-cta {
           font-family: 'Geist', sans-serif;
-          background-color: #000000;
-          color: #F5F5F4;
+          background-color: var(--foreground);
+          color: var(--background);
           border-radius: 9999px;
           padding: 14px 28px;
           font-size: 12px;
@@ -150,14 +142,12 @@ const Index = () => {
           letter-spacing: 0.02em;
           text-transform: uppercase;
         }
-        .btn-cta:hover { background-color: #222; transform: translateY(-2px); }
-        .dark .btn-cta { background-color: #F5F5F4; color: #1C1917; }
-        .dark .btn-cta:hover { background-color: #E7E5E4; }
+        .btn-cta:hover { opacity: 0.85; transform: translateY(-2px); }
         .btn-outline {
           font-family: 'Geist', sans-serif;
           background: transparent;
-          color: #000000;
-          border: 1.5px solid #D5D0C8;
+          color: var(--foreground);
+          border: 1.5px solid var(--glass-surface-border, #D5D0C8);
           border-radius: 9999px;
           padding: 13px 26px;
           font-size: 12px;
@@ -169,9 +159,7 @@ const Index = () => {
           letter-spacing: 0.02em;
           text-transform: uppercase;
         }
-        .btn-outline:hover { border-color: #000; transform: translateY(-1px); }
-        .dark .btn-outline { color: #F5F5F4; border-color: rgba(255,255,255,0.25); }
-        .dark .btn-outline:hover { border-color: rgba(255,255,255,0.5); }
+        .btn-outline:hover { border-color: var(--foreground); transform: translateY(-1px); }
 
         /* Service tab highlight */
         .service-tab {
@@ -180,12 +168,10 @@ const Index = () => {
           border-radius: 16px;
           transition: all 0.3s ease;
         }
-        .service-tab:hover { background: rgba(0,0,0,0.03); }
+        .service-tab:hover { background: var(--glass-surface-bg, rgba(0,0,0,0.03)); }
         .service-tab.active {
-          background: rgba(0,0,0,0.04);
+          background: var(--glass-surface-bg, rgba(0,0,0,0.04));
         }
-        .dark .service-tab:hover { background: rgba(255,255,255,0.06); }
-        .dark .service-tab.active { background: rgba(255,255,255,0.08); }
 
         /* Glass stat card */
         .glass-stat {
@@ -203,31 +189,25 @@ const Index = () => {
           width: 48px;
           height: 48px;
           border-radius: 50%;
-          border: 1.5px solid #D5D0C8;
+          border: 1.5px solid var(--glass-surface-border, #D5D0C8);
           display: flex;
           align-items: center;
           justify-content: center;
           font-family: 'Geist', sans-serif;
           font-size: 12px;
           font-weight: 400;
-          color: #5C5851;
+          color: var(--text-secondary);
           flex-shrink: 0;
         }
-        .dark .step-circle { border-color: rgba(255,255,255,0.25); color: #A8A29E; }
         .step-badge {
           font-family: 'Geist', sans-serif;
-          background: rgba(0,0,0,0.04);
-          border: 1px solid rgba(0,0,0,0.06);
+          background: var(--glass-surface-bg, rgba(0,0,0,0.04));
+          border: 1px solid var(--glass-surface-border, rgba(0,0,0,0.06));
           border-radius: 6px;
           padding: 3px 10px;
           font-size: 12px;
           font-weight: 400;
-          color: #8A857D;
-        }
-        .dark .step-badge {
-          background: rgba(255,255,255,0.08);
-          border-color: rgba(255,255,255,0.12);
-          color: #A8A29E;
+          color: var(--text-secondary);
         }
 
         /* Responsive heading sizes */
@@ -333,7 +313,7 @@ const Index = () => {
       </section>
 
       {/* ────────────── PLATFORMS STRIP ────────────── */}
-      <section className="px-6 lg:px-16 py-10 border-t border-b border-[#E8E3DC] dark:border-white/10">
+      <section className="px-6 lg:px-16 py-10 border-t border-b border-[var(--glass-surface-border)]">
         <div className="max-w-[1200px] mx-auto">
           <p className="text-center mb-7" style={{ fontFamily: "'Geist', sans-serif", fontSize: '11px', fontWeight: 400, letterSpacing: '0.12em', textTransform: 'uppercase', color: '#B5B0A8' }}>
             Your data, your insights — powered by
@@ -444,12 +424,12 @@ const Index = () => {
                   onClick={() => setActiveService(idx)}
                 >
                   <h3 className={`heading-serif h3 transition-colors duration-300 ${
-                    idx === activeService ? 'text-[#000] dark:text-[#F5F5F4]' : 'text-[#D5D0C8] dark:text-[#57534E]'
+                    idx === activeService ? 'text-[var(--foreground)]' : 'text-[var(--text-secondary)] opacity-40'
                   }`}>
                     {svc.title}
                   </h3>
                   <span className={`body-text transition-colors duration-300 ${
-                    idx === activeService ? 'text-[#8A857D] dark:text-[#A8A29E]' : 'text-[#D5D0C8] dark:text-[#57534E]'
+                    idx === activeService ? 'text-[#8A857D] dark:text-[#A8A29E]' : 'text-[var(--text-secondary)] opacity-40'
                   }`}>
                     {svc.num}
                   </span>
@@ -482,7 +462,7 @@ const Index = () => {
                     />
                   </div>
                   {/* Description */}
-                  <h4 className="body-text text-[#000] dark:text-[#F5F5F4] mb-2" style={{ fontWeight: 600 }}>
+                  <h4 className="body-text text-[var(--foreground)] mb-2" style={{ fontWeight: 600 }}>
                     {SERVICES[activeService].heading}
                   </h4>
                   <p className="body-text max-w-[480px]">
@@ -540,7 +520,7 @@ const Index = () => {
                 <div className="step-circle">{step.num}</div>
                 <div>
                   <div className="flex items-center gap-3 mb-2">
-                    <h4 className="body-text text-[#000] dark:text-[#F5F5F4]" style={{ fontWeight: 600 }}>{step.title}</h4>
+                    <h4 className="body-text text-[var(--foreground)]" style={{ fontWeight: 600 }}>{step.title}</h4>
                     <span className="step-badge">{step.badge}</span>
                   </div>
                   <p className="body-text max-w-[420px]">
@@ -597,7 +577,7 @@ const Index = () => {
       </section>
 
       {/* ────────────── FOOTER ────────────── */}
-      <footer className="px-6 lg:px-16 pb-10 pt-12 border-t border-[#E8E3DC] dark:border-white/10">
+      <footer className="px-6 lg:px-16 pb-10 pt-12 border-t border-[var(--glass-surface-border)]">
         <div className="max-w-[1200px] mx-auto">
           {/* Top row — 3 columns */}
           <div className="flex flex-col lg:flex-row justify-between gap-10 mb-10">
@@ -613,10 +593,10 @@ const Index = () => {
                 Product
               </p>
               <ul className="space-y-2.5 body-text">
-                <li><a href="/#features" className="text-[#57534E] hover:text-[#000] dark:text-[#A8A29E] dark:hover:text-[#F5F5F4] transition-colors">Features</a></li>
-                <li><a href="/#how-it-works" className="text-[#57534E] hover:text-[#000] dark:text-[#A8A29E] dark:hover:text-[#F5F5F4] transition-colors">How it works</a></li>
-                <li><a href="/get-started" className="text-[#57534E] hover:text-[#000] dark:text-[#A8A29E] dark:hover:text-[#F5F5F4] transition-colors">Connect your data</a></li>
-                <li><a href="/soul-signature" className="text-[#57534E] hover:text-[#000] dark:text-[#A8A29E] dark:hover:text-[#F5F5F4] transition-colors">Soul Signature</a></li>
+                <li><a href="/#features" className="text-[var(--text-secondary)] hover:text-[var(--foreground)] transition-colors">Features</a></li>
+                <li><a href="/#how-it-works" className="text-[var(--text-secondary)] hover:text-[var(--foreground)] transition-colors">How it works</a></li>
+                <li><a href="/get-started" className="text-[var(--text-secondary)] hover:text-[var(--foreground)] transition-colors">Connect your data</a></li>
+                <li><a href="/soul-signature" className="text-[var(--text-secondary)] hover:text-[var(--foreground)] transition-colors">Soul Signature</a></li>
               </ul>
             </div>
 
@@ -626,19 +606,19 @@ const Index = () => {
                 Community
               </p>
               <ul className="space-y-2.5 body-text">
-                <li><a href="https://github.com/twinme-ai" target="_blank" rel="noopener noreferrer" className="text-[#57534E] hover:text-[#000] dark:text-[#A8A29E] dark:hover:text-[#F5F5F4] transition-colors">GitHub</a></li>
-                <li><a href="https://twitter.com/twinme_ai" target="_blank" rel="noopener noreferrer" className="text-[#57534E] hover:text-[#000] dark:text-[#A8A29E] dark:hover:text-[#F5F5F4] transition-colors">Twitter / X</a></li>
-                <li><a href="mailto:hello@twinme.ai" className="text-[#57534E] hover:text-[#000] dark:text-[#A8A29E] dark:hover:text-[#F5F5F4] transition-colors">Contact us</a></li>
+                <li><a href="https://github.com/twinme-ai" target="_blank" rel="noopener noreferrer" className="text-[var(--text-secondary)] hover:text-[var(--foreground)] transition-colors">GitHub</a></li>
+                <li><a href="https://twitter.com/twinme_ai" target="_blank" rel="noopener noreferrer" className="text-[var(--text-secondary)] hover:text-[var(--foreground)] transition-colors">Twitter / X</a></li>
+                <li><a href="mailto:hello@twinme.ai" className="text-[var(--text-secondary)] hover:text-[var(--foreground)] transition-colors">Contact us</a></li>
               </ul>
             </div>
           </div>
 
           {/* Bottom row */}
-          <div className="flex flex-col sm:flex-row justify-between gap-4 body-text border-t border-[#E8E3DC] dark:border-white/10 pt-6" style={{ fontSize: '12px' }}>
+          <div className="flex flex-col sm:flex-row justify-between gap-4 body-text border-t border-[var(--glass-surface-border)] pt-6" style={{ fontSize: '12px' }}>
             <p>&copy; 2026 Twin Me. All rights reserved.</p>
             <div className="flex gap-6">
-              <a href="/privacy-policy" className="hover:text-[#000] dark:hover:text-[#F5F5F4] transition-colors">Privacy Policy</a>
-              <a href="/terms" className="hover:text-[#000] dark:hover:text-[#F5F5F4] transition-colors">Terms</a>
+              <a href="/privacy-policy" className="hover:text-[var(--foreground)] transition-colors">Privacy Policy</a>
+              <a href="/terms" className="hover:text-[var(--foreground)] transition-colors">Terms</a>
             </div>
           </div>
         </div>

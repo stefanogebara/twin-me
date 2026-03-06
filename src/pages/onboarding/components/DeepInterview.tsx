@@ -448,7 +448,7 @@ const DeepInterview: React.FC<DeepInterviewProps> = ({
       )}
 
       {/* Done for now escape hatch */}
-      {!isDone && messages.length >= 1 && (
+      {!isDone && (
         <motion.button
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
