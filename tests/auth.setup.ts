@@ -1,9 +1,11 @@
 /**
  * Authentication Setup for Playwright Tests
- * Creates an authenticated session that can be reused across tests
+ *
+ * Injects a pre-minted JWT for the test user into localStorage.
+ * The app uses Google OAuth — we bypass it with a known-good token.
  */
 
-import { test as setup, expect } from '@playwright/test';
+import { test as setup } from '@playwright/test';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
@@ -11,83 +13,34 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const authFile = path.join(__dirname, '../playwright/.auth/user.json');
 
-setup('authenticate', async ({ page, request }) => {
-  console.log('🔐 Setting up authentication for tests...');
+// Fresh JWT minted 2026-03-06 (30-day validity)
+// User: stefanogebara@gmail.com | ID: 167c27b5-a40b-49fb-8d00-deb1b1c57f4d
+const TEST_TOKEN =
+  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjE2N2MyN2I1LWE0MGItNDlmYi04ZDAwLWRlYjFiMWM1N2Y0ZCIsImVtYWlsIjoic3RlZmFub2dlYmFyYUBnbWFpbC5jb20iLCJpYXQiOjE3NzI4MzE2NTYsImV4cCI6MTc3NTQyMzY1Nn0.moNmEwpAWk3fHHnG9CwXqwPuT2k0lbk7uoJIBNAaglQ';
 
-  // Use a timestamp-based email to avoid conflicts
-  const testEmail = `test${Date.now()}@twinme.com`;
-  const testPassword = 'testpassword123';
+setup('authenticate', async ({ page }) => {
+  console.log('🔐 Setting up authentication with pre-minted JWT...');
 
-  console.log(`🔨 Creating test user: ${testEmail}`);
+  // Navigate to app to initialize localStorage
+  await page.goto('/');
+  await page.waitForLoadState('domcontentloaded');
 
-  // Create a test user via API
-  const signupResponse = await request.post('http://localhost:3001/api/auth/signup', {
-    data: {
-      email: testEmail,
-      password: testPassword,
-      firstName: 'Test',
-      lastName: 'User'
-    }
-  });
+  // Inject the auth token
+  await page.evaluate((token) => {
+    localStorage.setItem('auth_token', token);
+  }, TEST_TOKEN);
 
-  if (signupResponse.ok()) {
-    console.log('✅ Test user created successfully');
+  console.log('💾 Auth token stored in localStorage');
+
+  // Verify auth works by navigating to a protected page
+  await page.goto('/dashboard');
+  await page.waitForLoadState('networkidle', { timeout: 10000 }).catch(() => {});
+
+  const currentUrl = page.url();
+  if (currentUrl.includes('/dashboard')) {
+    console.log('✅ Auth verified — dashboard loaded');
   } else {
-    const signupData = await signupResponse.json().catch(() => ({}));
-    console.log('⚠️ Signup failed:', signupData.message || signupData.error);
-    // This is a problem - if we can't create a user, tests will fail
-  }
-
-  // Now sign in with the test user
-  console.log('📧 Attempting to sign in via API...');
-
-  const loginResponse = await request.post('http://localhost:3001/api/auth/signin', {
-    data: {
-      email: testEmail,
-      password: testPassword
-    }
-  });
-
-  if (loginResponse.ok()) {
-    const loginData = await loginResponse.json();
-    console.log('✅ Successfully authenticated via API');
-    console.log('🔑 Token:', loginData.token ? 'Present' : 'Missing');
-
-    // Store the auth token in localStorage by navigating to the app
-    await page.goto('/');
-
-    // Set the auth token in localStorage
-    if (loginData.token) {
-      await page.evaluate((token) => {
-        localStorage.setItem('auth_token', token);
-      }, loginData.token);
-
-      // Also set user data if available
-      if (loginData.user) {
-        await page.evaluate((user) => {
-          localStorage.setItem('user', JSON.stringify(user));
-        }, loginData.user);
-      }
-
-      console.log('💾 Auth token stored in localStorage');
-    }
-
-    // Navigate to a protected page to verify auth works
-    await page.goto('/get-started');
-    await page.waitForTimeout(2000);
-
-    const currentUrl = page.url();
-    console.log('🔄 Current URL after auth:', currentUrl);
-
-    if (currentUrl.includes('/get-started') || currentUrl.includes('/soul-signature')) {
-      console.log('✅ Successfully navigated to protected page');
-    } else {
-      console.log('⚠️ Still on auth page, authentication may have failed');
-    }
-  } else {
-    console.error('❌ Login failed');
-    const loginData = await loginResponse.json().catch(() => ({}));
-    console.error('Error:', loginData.message || loginData.error);
+    console.log('⚠️ Redirected to:', currentUrl);
   }
 
   // Save signed-in state

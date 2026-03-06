@@ -34,13 +34,22 @@ export default defineConfig({
         storageState: 'playwright/.auth/user.json',
       },
       dependencies: ['setup'],
-      testIgnore: /onboarding-flow\.spec\.ts/,
+      testIgnore: [/onboarding-flow\.spec\.ts/, /smoke-.*\.spec\.ts/],
     },
 
     // Onboarding tests — self-contained auth via localStorage injection, no setup dependency
     {
       name: 'onboarding',
       testMatch: /onboarding-flow\.spec\.ts/,
+      use: {
+        ...devices['Desktop Chrome'],
+      },
+    },
+
+    // Smoke tests — self-contained auth, no setup dependency
+    {
+      name: 'smoke',
+      testMatch: /smoke-.*\.spec\.ts/,
       use: {
         ...devices['Desktop Chrome'],
       },
