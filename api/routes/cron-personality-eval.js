@@ -10,6 +10,7 @@
 import express from 'express';
 import { supabaseAdmin } from '../services/database.js';
 import { evaluatePersonality } from '../services/personalityEvaluationService.js';
+import { verifyCronSecret } from '../middleware/verifyCronSecret.js';
 
 const router = express.Router();
 
@@ -17,9 +18,10 @@ const BATCH_SIZE = 5;
 const MAX_USERS = 10;
 
 router.post('/', async (req, res) => {
-  const cronSecret = req.headers.authorization?.replace('Bearer ', '');
-  if (process.env.NODE_ENV !== 'development' && cronSecret !== process.env.CRON_SECRET) {
-    return res.status(401).json({ error: 'Unauthorized' });
+  // Verify cron secret (timing-safe)
+  const authResult = verifyCronSecret(req);
+  if (!authResult.authorized) {
+    return res.status(authResult.status).json({ error: authResult.error });
   }
 
   const startTime = Date.now();

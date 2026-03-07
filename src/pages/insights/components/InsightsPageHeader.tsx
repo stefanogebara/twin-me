@@ -58,10 +58,8 @@ export const InsightsPageHeader: React.FC<InsightsPageHeaderProps> = ({
           transition={{ duration: 0.45, delay: 0.15, ease: [0.4, 0, 0.2, 1] }}
         >
           <h1
-            className="text-2xl"
+            className="heading-serif text-2xl"
             style={{
-              fontFamily: 'var(--font-heading)',
-              fontWeight: 500,
               color: textColor,
             }}
           >

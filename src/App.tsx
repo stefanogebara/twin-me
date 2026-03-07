@@ -33,6 +33,7 @@ const BrainPage = lazy(() => import("./pages/BrainPage"));
 const TalkToTwin = lazy(() => import("./pages/TalkToTwin"));
 const AdminLLMCosts = lazy(() => import("./pages/AdminLLMCosts"));
 const PrivacyPolicy = lazy(() => import("./pages/PrivacyPolicy"));
+const TermsOfService = lazy(() => import("./pages/TermsOfService"));
 const PortfolioPage = lazy(() => import("./pages/PortfolioPage"));
 const NewDiscoverFlow = lazy(() => import("./pages/onboarding/NewDiscoverFlow"));
 const OnboardingFlow = lazy(() => import("./pages/onboarding/OnboardingFlow"));
@@ -351,6 +352,9 @@ const App = () => {
 
             {/* Privacy Policy - Public, no auth required */}
             <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+
+            {/* Terms of Service - Public, no auth required */}
+            <Route path="/terms" element={<TermsOfService />} />
 
             {/* Catch-all */}
             <Route path="*" element={<NotFound />} />

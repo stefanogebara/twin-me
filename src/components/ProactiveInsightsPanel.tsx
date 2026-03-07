@@ -202,7 +202,9 @@ export const ProactiveInsightsPanel: React.FC = () => {
                 <button
                   onClick={() => {
                     markEngaged(insight.id);
-                    navigate('/talk-to-twin');
+                    navigate('/talk-to-twin', {
+                      state: { discussContext: `I saw this insight: "${insight.insight}" — can we discuss it?` }
+                    });
                   }}
                   className="mt-3 w-full py-2 flex items-center justify-center gap-2 rounded-lg text-xs font-medium transition-colors"
                   style={{

@@ -134,6 +134,52 @@ const BADGE_PALETTE = [
   { bg: 'rgba(20, 184, 166, 0.12)', color: '#5EEAD4' },
 ];
 
+// ── Helpers ──────────────────────────────────────────────────────────────────
+
+/**
+ * Strip raw citation markers that LLMs sometimes inject into reflections.
+ * Examples: [Memory #34], [Source: Spotify], [Based on memory data], [Ref 2], etc.
+ */
+function stripCitations(text: string): string {
+  return text
+    .replace(/\[Memory\s*#?\d+\]/gi, '')
+    .replace(/\[Source:\s*[^\]]*\]/gi, '')
+    .replace(/\[Based on[^\]]*\]/gi, '')
+    .replace(/\[Ref\s*#?\d+\]/gi, '')
+    .replace(/\[Note:\s*[^\]]*\]/gi, '')
+    .replace(/\[Evidence[^\]]*\]/gi, '')
+    .replace(/\[mem\s*#?\d+\]/gi, '')
+    .replace(/\s{2,}/g, ' ')
+    .trim();
+}
+
+/**
+ * Strip leading bullet markers (-, *, numbered) the LLM may have left.
+ */
+function stripLeadingBullet(text: string): string {
+  return text.replace(/^[-*]\s+/, '').replace(/^\d+\.\s*/, '').trim();
+}
+
+/**
+ * Clean and deduplicate expert bullet strings.
+ * - Strips citations and leading bullet markers
+ * - Deduplicates by normalised lowercase comparison
+ * - Filters out empty strings
+ */
+function cleanBullets(bullets: string[]): string[] {
+  const seen = new Set<string>();
+  const cleaned: string[] = [];
+  for (const raw of bullets) {
+    const text = stripCitations(stripLeadingBullet(raw));
+    if (!text) continue;
+    const key = text.toLowerCase();
+    if (seen.has(key)) continue;
+    seen.add(key);
+    cleaned.push(text);
+  }
+  return cleaned;
+}
+
 // ── Sub-components ─────────────────────────────────────────────────────────
 
 interface ColoredBadgeProps {
@@ -158,8 +204,9 @@ interface ExpertSectionProps {
   bullets: string[];
 }
 
-const ExpertSection: React.FC<ExpertSectionProps> = ({ config, bullets }) => {
+const ExpertSection: React.FC<ExpertSectionProps> = ({ config, bullets: rawBullets }) => {
   const { key, label, Icon, color, bgColor } = config;
+  const bullets = cleanBullets(rawBullets);
   const hasBullets = bullets.length > 0;
 
   return (
@@ -341,7 +388,6 @@ const IdentityPage: React.FC = () => {
                   className="heading-serif"
                   style={{
                     fontSize: 'clamp(1.75rem, 4vw, 2.5rem)',
-                    fontFamily: 'var(--font-heading)',
                     fontWeight: 400,
                     letterSpacing: '-0.05em',
                     lineHeight: 1.1,
@@ -443,7 +489,7 @@ const IdentityPage: React.FC = () => {
                 >
                   Archetype
                 </p>
-                <p className="text-lg" style={{ fontFamily: 'var(--font-heading)', fontWeight: 400, letterSpacing: '-0.03em', color: 'var(--foreground)' }}>{profile.archetype}</p>
+                <p className="text-lg" style={{ fontWeight: 400, letterSpacing: '-0.03em', color: 'var(--foreground)' }}>{profile.archetype}</p>
                 {profile?.personality_summary && (() => {
                   const ps = profile.personality_summary!;
                   const psPreview = ps.slice(0, 120);
@@ -522,7 +568,7 @@ const IdentityPage: React.FC = () => {
           <div style={{ marginBottom: '1.5rem' }}>
             <p
               className="text-base"
-              style={{ fontFamily: 'var(--font-heading)', fontWeight: 400, letterSpacing: '-0.03em', color: 'var(--foreground)' }}
+              style={{ fontWeight: 400, letterSpacing: '-0.03em', color: 'var(--foreground)' }}
             >
               Expert Perspectives
             </p>

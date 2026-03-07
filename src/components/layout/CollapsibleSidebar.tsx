@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSidebar } from '@/contexts/SidebarContext';
@@ -8,14 +8,11 @@ import {
   Sparkles,
   Link2,
   Brain,
-  ChevronRight,
-  ChevronDown,
   ChevronsLeft,
   ChevronsRight,
   X,
   Settings,
   LogOut,
-  BookOpen,
   Target,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -33,20 +30,14 @@ interface CollapsibleSidebarProps {
   onClose: () => void;
 }
 
-// 3 primary tabs
-const mainNavItems: NavItem[] = [
-  { id: 'dashboard', label: 'Home',  icon: Home,          path: '/dashboard' },
-  { id: 'chat',      label: 'Chat',  icon: MessageCircle, path: '/talk-to-twin' },
-  { id: 'me',        label: 'You',   icon: Sparkles,      path: '/identity' },
-];
-
-// Everything else — shown in a collapsible "More" section
-const moreNavItems: NavItem[] = [
-  { id: 'goals',        label: 'Your Goals',      icon: Target,     path: '/goals' },
-  { id: 'brain',        label: 'Memory Explorer', icon: Brain,      path: '/brain' },
-  { id: 'interview',    label: 'Your Interview',  icon: BookOpen,   path: '/interview' },
-  { id: 'connect-data', label: 'Connect Data',    icon: Link2,      path: '/get-started' },
-  { id: 'settings',     label: 'Settings',        icon: Settings,   path: '/settings' },
+const navItems: NavItem[] = [
+  { id: 'chat',         label: 'Talk to Twin',    icon: MessageCircle, path: '/talk-to-twin' },
+  { id: 'dashboard',    label: 'Home',            icon: Home,          path: '/dashboard' },
+  { id: 'me',           label: 'You',             icon: Sparkles,      path: '/identity' },
+  { id: 'goals',        label: 'Goals',            icon: Target,        path: '/goals' },
+  { id: 'brain',        label: 'Memory Explorer', icon: Brain,         path: '/brain' },
+  { id: 'connect-data', label: 'Connect Data',    icon: Link2,         path: '/get-started' },
+  { id: 'settings',     label: 'Settings',        icon: Settings,      path: '/settings' },
 ];
 
 export const CollapsibleSidebar: React.FC<CollapsibleSidebarProps> = ({
@@ -58,8 +49,6 @@ export const CollapsibleSidebar: React.FC<CollapsibleSidebarProps> = ({
   const { user, signOut } = useAuth();
   const { isCollapsed, toggleSidebar } = useSidebar();
   const isExpanded = !isCollapsed;
-  const moreActive = moreNavItems.some(i => location.pathname === i.path);
-  const [showMore, setShowMore] = useState(false);
 
   const isActive = (path: string) => {
     return location.pathname === path;
@@ -68,7 +57,6 @@ export const CollapsibleSidebar: React.FC<CollapsibleSidebarProps> = ({
   const handleNavigate = (path: string) => {
     navigate(path);
     // Only close the mobile overlay, not the sidebar itself
-    // This way the More section stays expanded
     if (window.innerWidth < 1024) { // lg breakpoint
       onClose();
     }
@@ -184,11 +172,9 @@ export const CollapsibleSidebar: React.FC<CollapsibleSidebarProps> = ({
         </div>
 
         <nav className="p-4 space-y-1 flex-1" role="navigation" aria-label="Main navigation">
-          {/* 3 primary tabs */}
-          {mainNavItems.map((item) => {
+          {navItems.map((item) => {
             const Icon = item.icon;
-            const active = isActive(item.path) ||
-              (item.id === 'me' && moreActive && !mainNavItems.filter(i => i.id !== 'me').some(i => isActive(i.path)));
+            const active = isActive(item.path);
 
             return (
               <button
@@ -200,66 +186,27 @@ export const CollapsibleSidebar: React.FC<CollapsibleSidebarProps> = ({
                   "w-full flex items-center gap-3 rounded-lg transition-all duration-200",
                   isExpanded ? "px-4 py-3" : "px-3 py-3 justify-center",
                   active
-                    ? isExpanded
-                      ? 'bg-sidebar-accent border-l-[3px] border-l-sidebar-primary text-sidebar-accent-foreground font-semibold'
-                      : 'bg-sidebar-accent text-sidebar-accent-foreground font-semibold'
+                    ? "font-semibold"
                     : isExpanded
                       ? 'text-sidebar-foreground hover:bg-sidebar-accent border-l-[3px] border-l-transparent'
                       : 'text-sidebar-foreground hover:bg-sidebar-accent'
                 )}
+                style={active ? {
+                  background: 'var(--accent-vibrant-glow)',
+                  borderLeft: isExpanded ? '3px solid var(--accent-vibrant)' : undefined,
+                  color: 'var(--sidebar-accent-foreground)',
+                } : undefined}
                 title={item.label}
               >
-                <Icon className={cn("w-5 h-5 transition-transform", active && "text-sidebar-primary scale-110")} aria-hidden="true" />
+                <Icon
+                  className={cn("w-5 h-5 transition-transform", active && "scale-110")}
+                  style={active ? { color: 'var(--accent-vibrant)' } : undefined}
+                  aria-hidden="true"
+                />
                 {isExpanded && <span className="text-sm font-semibold">{item.label}</span>}
               </button>
             );
           })}
-
-          {/* More — collapsible (expanded sidebar only) */}
-          {isExpanded && (
-            <div className="pt-3">
-              <button
-                onClick={() => setShowMore(o => !o)}
-                aria-label={showMore ? "Collapse More section" : "Expand More section"}
-                aria-expanded={showMore || moreActive}
-                className="w-full flex items-center justify-between px-4 py-2 rounded-lg text-sidebar-foreground hover:bg-sidebar-accent transition-colors"
-              >
-                <span className="text-xs font-medium uppercase tracking-wide opacity-60">More</span>
-                {showMore || moreActive ? (
-                  <ChevronDown className="w-3.5 h-3.5 opacity-50" aria-hidden="true" />
-                ) : (
-                  <ChevronRight className="w-3.5 h-3.5 opacity-50" aria-hidden="true" />
-                )}
-              </button>
-
-              {(showMore || moreActive) && (
-                <div className="mt-1 space-y-0.5 pl-2">
-                  {moreNavItems.map((item) => {
-                    const Icon = item.icon;
-                    const active = isActive(item.path);
-                    return (
-                      <button
-                        key={item.id}
-                        onClick={() => handleNavigate(item.path)}
-                        aria-label={`Navigate to ${item.label}`}
-                        aria-current={active ? 'page' : undefined}
-                        className={cn(
-                          "w-full flex items-center gap-3 px-3 py-2 rounded-lg transition-all duration-200",
-                          active
-                            ? 'bg-sidebar-accent border-l-[3px] border-l-sidebar-primary text-sidebar-accent-foreground font-semibold'
-                            : 'text-sidebar-foreground opacity-70 hover:bg-sidebar-accent hover:opacity-100 border-l-[3px] border-l-transparent'
-                        )}
-                        title={item.label}
-                      >
-                        <Icon className={cn("w-4 h-4", active && "text-sidebar-primary")} aria-hidden="true" />
-                        <span className="text-sm">{item.label}</span>
-                      </button>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
-          )}
         </nav>
 
         {/* Theme Toggle + Sign Out + User at Bottom */}

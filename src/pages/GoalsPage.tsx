@@ -218,7 +218,6 @@ const GoalsPage: React.FC = () => {
           className="heading-serif mb-4"
           style={{
             fontSize: 'clamp(2rem, 4vw, 3rem)',
-            fontFamily: 'var(--font-heading)',
             fontWeight: 400,
             letterSpacing: '-0.04em',
             lineHeight: 1.1,
@@ -230,7 +229,7 @@ const GoalsPage: React.FC = () => {
         <p
           className="text-[15px] font-medium"
           style={{
-            fontFamily: "'Geist', sans-serif",
+            fontFamily: 'var(--font-ui)',
             color: 'var(--text-secondary)',
             lineHeight: 1.7,
             maxWidth: '540px',
@@ -339,7 +338,7 @@ const GoalsPage: React.FC = () => {
               <Sparkles className="w-4 h-4" style={{ color: TEXT_SECONDARY }} />
               <h2
                 className="heading-serif"
-                style={{ fontFamily: 'var(--font-heading)', fontWeight: 400, fontSize: '1.125rem', letterSpacing: '-0.02em', color: TEXT_PRIMARY }}
+                style={{ fontWeight: 400, fontSize: '1.125rem', letterSpacing: '-0.02em', color: TEXT_PRIMARY }}
               >
                 Your twin suggests
               </h2>
@@ -370,7 +369,7 @@ const GoalsPage: React.FC = () => {
               <Target className="w-4 h-4" style={{ color: TEXT_SECONDARY }} />
               <h2
                 className="heading-serif"
-                style={{ fontFamily: 'var(--font-heading)', fontWeight: 400, fontSize: '1.125rem', letterSpacing: '-0.02em', color: TEXT_PRIMARY }}
+                style={{ fontWeight: 400, fontSize: '1.125rem', letterSpacing: '-0.02em', color: TEXT_PRIMARY }}
               >
                 Active Goals
               </h2>
@@ -408,7 +407,7 @@ const GoalsPage: React.FC = () => {
               <Trophy className="w-4 h-4" style={{ color: '#34d399' }} />
               <h2
                 className="heading-serif flex-1"
-                style={{ fontFamily: 'var(--font-heading)', fontWeight: 400, fontSize: '1.125rem', letterSpacing: '-0.02em', color: TEXT_PRIMARY }}
+                style={{ fontWeight: 400, fontSize: '1.125rem', letterSpacing: '-0.02em', color: TEXT_PRIMARY }}
               >
                 Completed Goals
               </h2>

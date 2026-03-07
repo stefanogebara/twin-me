@@ -26,6 +26,13 @@ const router = express.Router();
 router.post('/github/:userId', express.raw({ type: 'application/json' }), async (req, res) => {
   try {
     const { userId } = req.params;
+
+    // Validate userId is a proper UUID (defense-in-depth)
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    if (!userId || !uuidRegex.test(userId)) {
+      return res.status(400).json({ error: 'Invalid user ID format' });
+    }
+
     const signature = req.headers['x-hub-signature-256'];
     const event = req.headers['x-github-event'];
 
@@ -130,6 +137,13 @@ router.post('/gmail', express.json(), async (req, res) => {
 router.post('/slack/:userId', express.json(), async (req, res) => {
   try {
     const { userId } = req.params;
+
+    // Validate userId is a proper UUID (defense-in-depth)
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    if (!userId || !uuidRegex.test(userId)) {
+      return res.status(400).json({ error: 'Invalid user ID format' });
+    }
+
     const slackSignature = req.headers['x-slack-signature'];
     const slackTimestamp = req.headers['x-slack-request-timestamp'];
 
@@ -183,6 +197,12 @@ router.post('/slack/:userId', express.json(), async (req, res) => {
 router.post('/discord/:userId', express.json(), async (req, res) => {
   try {
     const { userId } = req.params;
+
+    // Validate userId is a proper UUID (defense-in-depth)
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    if (!userId || !uuidRegex.test(userId)) {
+      return res.status(400).json({ error: 'Invalid user ID format' });
+    }
 
     console.log(`🎮 Discord webhook received for user ${userId}`);
 
