@@ -522,7 +522,7 @@ export async function proxyRequest(userId, platform, endpoint, options = {}) {
           .from('nango_connection_mappings')
           .update({ status: 'needs_reconnect' })
           .eq('user_id', userId)
-          .eq('provider', platform)
+          .eq('platform', platform)
           .then(({ error: dbErr }) => {
             if (dbErr) console.warn(`[Nango] Failed to mark ${platform} needs_reconnect:`, dbErr.message);
           });
