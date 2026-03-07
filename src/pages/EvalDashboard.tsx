@@ -249,9 +249,9 @@ export default function EvalDashboard() {
         </div>
 
         {/* Score History Chart */}
-        {historyChartData.length > 0 && (
-          <div className="glass-card p-6">
-            <h2 className="text-sm font-semibold text-muted-foreground mb-4">Score History</h2>
+        <div className="glass-card p-6">
+          <h2 className="text-sm font-semibold text-muted-foreground mb-4">Score History</h2>
+          {historyChartData.length > 0 ? (
             <ResponsiveContainer width="100%" height={160}>
               <LineChart data={historyChartData}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#F3F4F6" />
@@ -261,8 +261,16 @@ export default function EvalDashboard() {
                 <Line type="monotone" dataKey="score" stroke="#6366F1" strokeWidth={2} dot={{ fill: '#6366F1', r: 4 }} />
               </LineChart>
             </ResponsiveContainer>
-          </div>
-        )}
+          ) : (
+            <div className="flex flex-col items-center justify-center py-8 text-center">
+              <AlertCircle className="w-8 h-8 text-muted-foreground mb-3 opacity-40" />
+              <p className="text-sm text-muted-foreground">No scored eval runs yet</p>
+              <p className="text-xs text-muted-foreground mt-1">
+                Run an eval below and score the responses to see your history chart.
+              </p>
+            </div>
+          )}
+        </div>
 
         {/* Feature Flags */}
         <div className="glass-card p-6">

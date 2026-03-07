@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Send, Brain, Heart, Palette, Users, Flame, ArrowRight } from 'lucide-react';
+import { Send, Brain, Heart, Palette, Users, Flame, ArrowRight, Sparkles } from 'lucide-react';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3004/api';
 
@@ -380,23 +380,94 @@ const DeepInterview: React.FC<DeepInterviewProps> = ({
         <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
-          className="flex flex-col gap-3"
+          className="flex flex-col items-center gap-4 py-4"
         >
-          {summary && (
+          <div className="flex items-center justify-center w-12 h-12 rounded-full"
+            style={{ backgroundColor: 'var(--glass-surface-bg-hover)', border: '1px solid var(--glass-surface-border)' }}
+          >
+            <Sparkles className="w-5 h-5" style={{ color: 'var(--text-secondary)' }} />
+          </div>
+
+          <div className="text-center">
             <p
-              className="text-sm text-center leading-relaxed mb-2"
+              className="text-lg mb-1"
               style={{
-                color: 'var(--text-secondary)',
                 fontFamily: 'Halant, Georgia, serif',
-                fontStyle: 'italic',
+                fontWeight: 500,
+                color: 'var(--foreground)',
               }}
             >
-              {summary}
+              Interview Complete
             </p>
+
+            {enhancedSignature?.archetype_name && (
+              <p
+                className="text-sm font-medium mb-2"
+                style={{ color: 'var(--text-secondary)' }}
+              >
+                Your archetype: {enhancedSignature.archetype_name}
+              </p>
+            )}
+
+            {enhancedSignature?.first_impression && (
+              <p
+                className="text-xs leading-relaxed max-w-sm mx-auto mb-1"
+                style={{ color: 'var(--text-secondary)', fontFamily: "'Geist', sans-serif" }}
+              >
+                {enhancedSignature.first_impression}
+              </p>
+            )}
+
+            {enhancedSignature?.signature_quote && (
+              <p
+                className="text-xs leading-relaxed max-w-sm mx-auto mt-2"
+                style={{
+                  color: 'var(--text-secondary)',
+                  fontFamily: 'Halant, Georgia, serif',
+                  fontStyle: 'italic',
+                  opacity: 0.8,
+                }}
+              >
+                "{enhancedSignature.signature_quote}"
+              </p>
+            )}
+
+            {!enhancedSignature && summary && (
+              <p
+                className="text-sm leading-relaxed max-w-sm mx-auto"
+                style={{
+                  color: 'var(--text-secondary)',
+                  fontFamily: 'Halant, Georgia, serif',
+                  fontStyle: 'italic',
+                }}
+              >
+                {summary}
+              </p>
+            )}
+          </div>
+
+          {enhancedSignature?.core_traits && enhancedSignature.core_traits.length > 0 && (
+            <div className="flex flex-wrap justify-center gap-1.5 max-w-sm">
+              {enhancedSignature.core_traits.slice(0, 5).map((t, i) => (
+                <span
+                  key={i}
+                  className="px-2.5 py-1 rounded-full text-[11px]"
+                  style={{
+                    backgroundColor: 'var(--glass-surface-bg)',
+                    border: '1px solid var(--glass-surface-border)',
+                    color: 'var(--text-secondary)',
+                    fontFamily: "'Geist', sans-serif",
+                  }}
+                >
+                  {t.trait}
+                </span>
+              ))}
+            </div>
           )}
+
           <motion.button
             onClick={() => onComplete(enhancedSignature)}
-            className="w-full px-6 py-4 rounded-full text-sm font-normal flex items-center justify-center gap-2 transition-colors"
+            className="w-full px-6 py-4 rounded-full text-sm font-normal flex items-center justify-center gap-2 transition-colors mt-2"
             style={{
               backgroundColor: 'var(--foreground)',
               color: 'var(--background)',

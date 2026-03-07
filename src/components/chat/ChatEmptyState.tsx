@@ -17,103 +17,115 @@ interface QuickAction {
   icon: React.ReactNode;
 }
 
-interface Colors {
-  bg: string;
-  bgSecondary: string;
-  bgTertiary: string;
-  text: string;
-  textSecondary: string;
-  textMuted: string;
-  border: string;
-  accent: string;
-}
-
 interface ChatEmptyStateProps {
   connectedPlatforms: Platform[];
   platforms: Platform[];
   quickActions: QuickAction[];
-  colors: Colors;
   onQuickAction: (text: string) => void;
+  onSendMessage?: () => void;
 }
-
-// Glass button style matching the design system
-const glassButtonStyle = {
-  backgroundColor: 'var(--glass-surface-bg)',
-  backdropFilter: 'blur(10px) saturate(140%)',
-  WebkitBackdropFilter: 'blur(10px) saturate(140%)',
-  border: '1px solid var(--glass-surface-border)',
-  color: 'var(--foreground)',
-} as React.CSSProperties;
 
 export const ChatEmptyState = ({
   connectedPlatforms,
   platforms,
   quickActions,
-  colors,
   onQuickAction,
+  onSendMessage,
 }: ChatEmptyStateProps) => {
   const navigate = useNavigate();
 
   return (
     <div className="h-full flex flex-col items-center justify-center px-4 py-12">
+      {/* Glass card container */}
       <motion.div
-        className="w-20 h-20 rounded-full flex items-center justify-center mb-8"
-        style={{ backgroundColor: 'var(--glass-surface-bg)', border: '1px solid var(--glass-surface-border)' }}
-        initial={{ opacity: 0, scale: 0.6 }}
-        animate={{ opacity: 1, scale: 1 }}
+        className="glass-card max-w-lg w-full flex flex-col items-center p-8"
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5, ease: [0.4, 0, 0.2, 1] }}
       >
-        <Clay3DIcon name="brain" size={40} />
+        {/* Icon */}
+        <motion.div
+          className="w-16 h-16 rounded-full flex items-center justify-center mb-6"
+          style={{
+            background: 'var(--accent-vibrant-glow)',
+            border: '1px solid var(--glass-surface-border)',
+          }}
+          initial={{ opacity: 0, scale: 0.6 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.5, delay: 0.1, ease: [0.4, 0, 0.2, 1] }}
+        >
+          <Clay3DIcon name="brain" size={32} />
+        </motion.div>
+
+        {/* Heading — serif */}
+        <motion.h2
+          className="text-2xl md:text-3xl mb-2 text-center heading-serif"
+          style={{
+            fontWeight: 400,
+            letterSpacing: '-0.03em',
+            color: 'var(--foreground)',
+          }}
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4, delay: 0.15, ease: [0.4, 0, 0.2, 1] }}
+        >
+          {connectedPlatforms.length > 0
+            ? "What do you want to know?"
+            : "Connect platforms to unlock your Twin"
+          }
+        </motion.h2>
+
+        <motion.p
+          className="text-center mb-6 max-w-sm text-sm"
+          style={{ color: 'var(--text-secondary)' }}
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4, delay: 0.25, ease: [0.4, 0, 0.2, 1] }}
+        >
+          {connectedPlatforms.length > 0
+            ? "Ask me anything about yourself — I know your Spotify, Calendar, and more."
+            : "Your twin learns from your platforms to understand your soul signature."
+          }
+        </motion.p>
+
+        {/* Quick action chips with amber outlines */}
+        {connectedPlatforms.length > 0 && (
+          <div className="flex flex-col items-center gap-2.5 mb-6">
+            {quickActions.map((action, idx) => (
+              <motion.button
+                key={idx}
+                onClick={() => onQuickAction(action.label)}
+                className="flex items-center gap-2 px-4 py-2 rounded-full text-sm transition-all"
+                style={{
+                  background: 'transparent',
+                  border: '1.5px solid var(--glass-surface-border)',
+                  color: 'var(--foreground)',
+                }}
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.35, delay: 0.3 + idx * 0.06, ease: [0.4, 0, 0.2, 1] }}
+                whileHover={{
+                  scale: 1.03,
+                  y: -1,
+                  backgroundColor: 'var(--accent-vibrant-glow)',
+                }}
+                whileTap={{ scale: 0.97 }}
+              >
+                <span style={{ color: 'var(--accent-vibrant)' }}>{action.icon}</span>
+                {action.label}
+              </motion.button>
+            ))}
+          </div>
+        )}
       </motion.div>
 
-      <motion.h1
-        className="text-2xl md:text-3xl font-medium mb-3 text-center heading-serif"
-        style={{ color: 'var(--foreground)' }}
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.4, delay: 0.15, ease: [0.4, 0, 0.2, 1] }}
+      {/* Platform badges below the card */}
+      <motion.div
+        className="flex flex-wrap items-center justify-center gap-2 max-w-lg mt-5"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.4, delay: 0.5 }}
       >
-        {connectedPlatforms.length > 0
-          ? "What do you want to know?"
-          : "Connect platforms to unlock your Twin"
-        }
-      </motion.h1>
-
-      <motion.p
-        className="text-center mb-8 max-w-md"
-        style={{ color: 'var(--text-secondary)' }}
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.4, delay: 0.25, ease: [0.4, 0, 0.2, 1] }}
-      >
-        {connectedPlatforms.length > 0
-          ? "Ask me anything about yourself — I know your Spotify, Calendar, and more. Try: \"What have you noticed about me this week?\""
-          : "Your twin learns from your platforms — music, calendar, social, and more — to understand your soul signature."
-        }
-      </motion.p>
-
-      {connectedPlatforms.length > 0 && (
-        <div className="flex flex-wrap gap-5 justify-center max-w-lg mb-8">
-          {quickActions.map((action, idx) => (
-            <motion.button
-              key={idx}
-              onClick={() => onQuickAction(action.label)}
-              className="flex items-center gap-2 px-4 py-2.5 rounded-full text-sm transition-all"
-              style={glassButtonStyle}
-              initial={{ opacity: 0, y: 12 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.35, delay: 0.35 + idx * 0.08, ease: [0.4, 0, 0.2, 1] }}
-              whileHover={{ scale: 1.04, y: -2 }}
-              whileTap={{ scale: 0.97 }}
-            >
-              <span style={{ color: 'var(--foreground)' }}>{action.icon}</span>
-              {action.label}
-            </motion.button>
-          ))}
-        </div>
-      )}
-
-      <div className="flex flex-wrap items-center justify-center gap-2 max-w-lg">
         {platforms.map((platform) => (
           <div
             key={platform.key}
@@ -137,7 +149,7 @@ export const ChatEmptyState = ({
             {platform.connected && <Check className="w-3 h-3" />}
           </div>
         ))}
-      </div>
+      </motion.div>
     </div>
   );
 };
