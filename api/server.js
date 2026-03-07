@@ -96,10 +96,19 @@ app.use(cors({
     // Allow requests with no origin (like mobile apps, curl, etc.)
     if (!origin) return callback(null, true);
 
-    // Allow browser extensions (Chrome, Edge, Firefox)
+    // Allow specific browser extensions (by ID)
     if (origin && (origin.startsWith('chrome-extension://') || origin.startsWith('moz-extension://'))) {
-      console.log(`✅ CORS allowing browser extension: ${origin}`);
-      return callback(null, true);
+      const allowedExtensionIds = (process.env.ALLOWED_EXTENSION_IDS || '').split(',').filter(Boolean);
+      if (allowedExtensionIds.length === 0 && process.env.NODE_ENV === 'development') {
+        // In development, allow all extensions if no specific IDs configured
+        return callback(null, true);
+      }
+      const extensionId = origin.split('://')[1];
+      if (allowedExtensionIds.includes(extensionId)) {
+        return callback(null, true);
+      }
+      console.warn(`CORS rejected browser extension: ${origin}`);
+      return callback(new Error('Extension not allowed'));
     }
 
     // In development, allow localhost and 127.0.0.1 on any port

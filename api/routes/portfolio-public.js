@@ -20,6 +20,12 @@ router.get('/public/:userId', async (req, res) => {
   try {
     const { userId } = req.params;
 
+    // Validate userId is a proper UUID v4 format
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    if (!userId || !uuidRegex.test(userId)) {
+      return res.status(400).json({ success: false, error: 'Invalid user ID format' });
+    }
+
     if (!supabaseAdmin) {
       return res.status(503).json({ success: false, error: 'Database unavailable' });
     }

@@ -16,6 +16,7 @@
 
 import { createClient } from '@supabase/supabase-js';
 import { PatternLearningService } from '../services/patternLearningService.js';
+import { verifyCronSecret } from '../middleware/verifyCronSecret.js';
 
 // Lazy initialization to avoid crashes if env vars not loaded yet
 let supabase = null;
@@ -68,29 +69,14 @@ export default async function handler(req, res) {
   console.log(`🌐 [CRON] Pattern learning endpoint called at ${new Date().toISOString()}`);
   console.log(`${'='.repeat(60)}`);
 
-  // Security: Verify cron secret (Vercel automatically adds this header)
-  // SECURITY FIX: Require CRON_SECRET in production (was previously bypassed if not set)
-  const authHeader = req.headers.authorization;
-  const cronSecret = process.env.CRON_SECRET;
-  const isDevelopment = process.env.NODE_ENV === 'development';
-
-  if (!isDevelopment) {
-    if (!cronSecret) {
-      console.error('❌ CRON_SECRET not configured in production');
-      return res.status(500).json({
-        success: false,
-        error: 'Configuration Error',
-        message: 'CRON_SECRET must be configured in production',
-      });
-    }
-    if (authHeader !== `Bearer ${cronSecret}`) {
-      console.error('❌ Unauthorized cron request - invalid secret');
-      return res.status(401).json({
-        success: false,
-        error: 'Unauthorized',
-        message: 'Invalid CRON_SECRET',
-      });
-    }
+  // Security: Verify cron secret (timing-safe)
+  const authResult = verifyCronSecret(req);
+  if (!authResult.authorized) {
+    console.error('❌ Unauthorized cron request - invalid secret');
+    return res.status(authResult.status).json({
+      success: false,
+      error: authResult.error,
+    });
   }
 
   try {
