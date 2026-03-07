@@ -627,14 +627,19 @@ router.get('/oauth/callback', async (req, res) => {
       }
       // Skip user creation for connector flows
     } else {
-      // Only create mock users for authentication flows
+      // In development, create a mock user if OAuth exchange returned no data
       if (!userData) {
-        console.log('Using mock user for development (auth flow)');
-        userData = {
-          email: provider === 'google' ? 'demo@google.com' : `demo@${provider}.com`,
-          firstName: provider.charAt(0).toUpperCase() + provider.slice(1),
-          lastName: 'User'
-        };
+        if (process.env.NODE_ENV !== 'production') {
+          console.warn('[Auth] Using mock user for development (auth flow)');
+          userData = {
+            email: provider === 'google' ? 'demo@google.com' : `demo@${provider}.com`,
+            firstName: provider.charAt(0).toUpperCase() + provider.slice(1),
+            lastName: 'User'
+          };
+        } else {
+          console.error(`[Auth] OAuth exchange returned no user data for provider: ${provider}`);
+          return res.redirect(`${appUrl}/auth?error=${encodeURIComponent('OAuth authentication failed - no user data received')}`);
+        }
       }
     }
 
@@ -831,14 +836,22 @@ router.post('/oauth/callback', async (req, res) => {
       }
       // Skip user creation for connector flows
     } else {
-      // Only create mock users for authentication flows
+      // In development, create a mock user if OAuth exchange returned no data
       if (!userData) {
-        console.log('Using mock user for development (auth flow)');
-        userData = {
-          email: provider === 'google' ? 'demo@google.com' : `demo@${provider}.com`,
-          firstName: provider.charAt(0).toUpperCase() + provider.slice(1),
-          lastName: 'User'
-        };
+        if (process.env.NODE_ENV !== 'production') {
+          console.warn('[Auth] Using mock user for development (auth flow)');
+          userData = {
+            email: provider === 'google' ? 'demo@google.com' : `demo@${provider}.com`,
+            firstName: provider.charAt(0).toUpperCase() + provider.slice(1),
+            lastName: 'User'
+          };
+        } else {
+          console.error(`[Auth] OAuth exchange returned no user data for provider: ${provider}`);
+          return res.status(400).json({
+            success: false,
+            error: 'OAuth authentication failed - no user data received'
+          });
+        }
       }
     }
 
