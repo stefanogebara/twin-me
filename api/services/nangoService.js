@@ -39,7 +39,7 @@ if (process.env.NANGO_SECRET_KEY) {
 const FALLBACK_CONNECTION_IDS = {
   'spotify': '3e7a5d77-4e87-4af4-bdac-c9c817955037',
   'google-calendar': 'a8902250-3d55-4aca-8f5e-e5dbd54cd2c5',
-  'whoop': '21d7e76c-41e9-4119-b953-7f9872f3db62',
+  'whoop': '51cce4e6-41e9-4119-b953-7f9872f3db62',
   'discord': '74263fd1-b2e2-4a31-b4b3-c6917dcebff1',
   'github': 'd983f21d-0648-462d-8168-ade982c0d4d3',
   'github-getting-started': 'd983f21d-0648-462d-8168-ade982c0d4d3',
@@ -47,7 +47,7 @@ const FALLBACK_CONNECTION_IDS = {
   'youtube': 'aa34e681-f825-432f-954f-c400ce6f6597',
   'reddit': 'd0ff07a2-437d-4ee2-a073-c097682809ac',
   'google-mail': 'bedc8ec1-4c7a-44ca-8e73-e0b62d50fdd9',
-  'twitch': 'a1e97928-3191-4a2c-98a2-e0433356942a',
+  'twitch': 'd6aec2c3-3191-4a2c-98a2-e0433356942a',
   'outlook': 'e4ed0f1b-c626-496a-8cbf-83f5f3635358'
 };
 
@@ -513,10 +513,32 @@ export async function proxyRequest(userId, platform, endpoint, options = {}) {
       };
     }
 
+    // 424 = Nango says the upstream connection failed (expired/revoked token)
+    const status = error.response?.status;
+    if (status === 424) {
+      console.warn(`[Nango] 424 for ${platform} — marking connection as needs_reconnect`);
+      if (supabaseAdmin) {
+        supabaseAdmin
+          .from('nango_connection_mappings')
+          .update({ status: 'needs_reconnect' })
+          .eq('user_id', userId)
+          .eq('provider', platform)
+          .then(({ error: dbErr }) => {
+            if (dbErr) console.warn(`[Nango] Failed to mark ${platform} needs_reconnect:`, dbErr.message);
+          });
+      }
+      return {
+        success: false,
+        error: `${platform} connection expired. Please reconnect to ${platform}.`,
+        needsReconnect: true,
+        status
+      };
+    }
+
     return {
       success: false,
       error: error.message,
-      status: error.response?.status
+      status
     };
   }
 }
@@ -768,15 +790,11 @@ export const calendar = {
   }
 };
 
-// GitHub connection from Nango (uses 'github-getting-started' provider key)
-const GITHUB_CONNECTION_ID = 'd983f21d-0648-462d-8168-ade982c0d4d3';
-const GITHUB_PROVIDER_KEY = 'github-getting-started';
-
 export const github = {
-  getProfile: (userId) => proxyRequest(userId, GITHUB_PROVIDER_KEY, '/user', { connectionId: GITHUB_CONNECTION_ID }),
-  getRepos: (userId) => proxyRequest(userId, GITHUB_PROVIDER_KEY, '/user/repos?sort=updated&per_page=50', { connectionId: GITHUB_CONNECTION_ID }),
-  getEvents: (userId, username) => proxyRequest(userId, GITHUB_PROVIDER_KEY, `/users/${username}/events?per_page=100`, { connectionId: GITHUB_CONNECTION_ID }),
-  getStarred: (userId) => proxyRequest(userId, GITHUB_PROVIDER_KEY, '/user/starred?per_page=50', { connectionId: GITHUB_CONNECTION_ID })
+  getProfile: (userId) => proxyRequest(userId, 'github', '/user'),
+  getRepos: (userId) => proxyRequest(userId, 'github', '/user/repos?sort=updated&per_page=50'),
+  getEvents: (userId, username) => proxyRequest(userId, 'github', `/users/${username}/events?per_page=100`),
+  getStarred: (userId) => proxyRequest(userId, 'github', '/user/starred?per_page=50')
 };
 
 export const discord = {
@@ -800,18 +818,12 @@ export const linkedin = {
   getProfile: (userId) => proxyRequest(userId, 'linkedin', '/me')
 };
 
-// Twitch connection_id from Nango (different from end_user.id)
-// TODO: Implement dynamic lookup of connection_id based on user
-const TWITCH_CONNECTION_ID = 'a1e97928-3191-4a2c-98a2-e0433356942a';
-
 export const twitch = {
   getUser: (userId) => proxyRequest(userId, 'twitch', '/users', {
-    headers: { 'Client-Id': process.env.TWITCH_CLIENT_ID },
-    connectionId: TWITCH_CONNECTION_ID
+    headers: { 'Client-Id': process.env.TWITCH_CLIENT_ID }
   }),
   getFollowedChannels: (userId, twitchUserId) => proxyRequest(userId, 'twitch', `/channels/followed?user_id=${twitchUserId}&first=100`, {
-    headers: { 'Client-Id': process.env.TWITCH_CLIENT_ID },
-    connectionId: TWITCH_CONNECTION_ID
+    headers: { 'Client-Id': process.env.TWITCH_CLIENT_ID }
   })
 };
 
@@ -821,16 +833,13 @@ export const gmail = {
   getThreads: (userId) => proxyRequest(userId, 'google-mail', '/users/me/threads?maxResults=50')
 };
 
-// Outlook connection_id from Nango
-const OUTLOOK_CONNECTION_ID = 'e4ed0f1b-c626-496a-8cbf-83f5f3635358';
-
 export const outlook = {
-  getProfile: (userId) => proxyRequest(userId, 'outlook', '/me', { connectionId: OUTLOOK_CONNECTION_ID }),
-  getMailFolders: (userId) => proxyRequest(userId, 'outlook', '/me/mailFolders', { connectionId: OUTLOOK_CONNECTION_ID }),
-  getRecentMessages: (userId, limit = 50) => proxyRequest(userId, 'outlook', `/me/mailFolders/inbox/messages?$top=${limit}&$orderby=receivedDateTime desc`, { connectionId: OUTLOOK_CONNECTION_ID }),
-  getCalendarEvents: (userId, limit = 100) => proxyRequest(userId, 'outlook', `/me/events?$top=${limit}&$orderby=start/dateTime`, { connectionId: OUTLOOK_CONNECTION_ID }),
-  getCalendars: (userId) => proxyRequest(userId, 'outlook', '/me/calendars', { connectionId: OUTLOOK_CONNECTION_ID }),
-  getContacts: (userId, limit = 100) => proxyRequest(userId, 'outlook', `/me/contacts?$top=${limit}`, { connectionId: OUTLOOK_CONNECTION_ID })
+  getProfile: (userId) => proxyRequest(userId, 'outlook', '/me'),
+  getMailFolders: (userId) => proxyRequest(userId, 'outlook', '/me/mailFolders'),
+  getRecentMessages: (userId, limit = 50) => proxyRequest(userId, 'outlook', `/me/mailFolders/inbox/messages?$top=${limit}&$orderby=receivedDateTime desc`),
+  getCalendarEvents: (userId, limit = 100) => proxyRequest(userId, 'outlook', `/me/events?$top=${limit}&$orderby=start/dateTime`),
+  getCalendars: (userId) => proxyRequest(userId, 'outlook', '/me/calendars'),
+  getContacts: (userId, limit = 100) => proxyRequest(userId, 'outlook', `/me/contacts?$top=${limit}`)
 };
 
 // ============================================================================
