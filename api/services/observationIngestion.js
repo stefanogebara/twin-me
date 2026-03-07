@@ -558,12 +558,34 @@ async function fetchDiscordObservations(userId) {
         contentType: 'weekly_summary',
       });
 
-      // Category interests from server names (with counts for downstream parsing)
+      // Per-category observations with specific server names (richer signal)
       const categories = detectDiscordCategories(names);
-      if (categories.length > 0) {
-        const catString = categories.map(c => `${c.label} (${c.count} server${c.count === 1 ? '' : 's'})`).join(', ');
+      for (const cat of categories) {
+        const matchingServers = names.filter(n => {
+          const patterns = {
+            'gaming':    /\b(game|gaming|gamer|esport|clan|guild|pvp|mmo|fps|rpg|minecraft|valorant|league|fortnite|apex|steam|roblox|overwatch|wow|warcraft)\b/i,
+            'tech/dev':  /\b(dev|code|coding|programming|software|tech|web|python|javascript|typescript|hackathon|open.?source|linux|cyber|ai|ml|data|cloud|backend|frontend)\b/i,
+            'creative':  /\b(art|design|creative|writing|writer|photo|film|video|animation|3d|illustration|poetry|fiction|manga|draw|pixel|vfx|ux)\b/i,
+            'learning':  /\b(study|learn|school|university|college|class|course|tutorial|math|science|language|book|research|exam|homework|knowledge)\b/i,
+            'music':     /\b(music|spotify|playlist|dj|producer|beats|rap|hip.?hop|edm|rock|jazz|classical|band|sound|audio|synth|piano)\b/i,
+            'finance':   /\b(finance|invest|trading|stock|forex|crypto|bitcoin|nft|defi|web3|money|wallet|portfolio|market|hedge)\b/i,
+            'health':    /\b(health|fitness|gym|workout|nutrition|diet|mental.health|wellness|yoga|meditation|run|sport|body|lift|cardio)\b/i,
+            'sports':    /\b(sport|football|soccer|basketball|baseball|tennis|golf|esport|nba|nfl|f1|racing|cricket|rugby|hockey)\b/i,
+          };
+          return patterns[cat.label]?.test(n);
+        });
+        const serverList = matchingServers.slice(0, 5).join(', ');
         observations.push({
-          content: `Discord community interests suggest: ${catString}`,
+          content: `Active in ${cat.count} ${cat.label} Discord communities: ${serverList}`,
+          contentType: 'weekly_summary',
+        });
+      }
+
+      // Notable servers (top 5 by name recognition — just list them)
+      const notableServers = names.slice(0, 5);
+      if (notableServers.length > 0) {
+        observations.push({
+          content: `Most active Discord servers include: ${notableServers.join(', ')}`,
           contentType: 'weekly_summary',
         });
       }
@@ -577,7 +599,7 @@ async function fetchDiscordObservations(userId) {
         });
       }
 
-      // Server size distribution insight (approximate from permissions)
+      // Server size distribution insight
       const largeServers = guilds.filter(g => g.approximate_member_count > 1000).length;
       const smallServers = guilds.filter(g => g.approximate_member_count && g.approximate_member_count <= 50).length;
       if (largeServers > 0 && smallServers > 0) {
