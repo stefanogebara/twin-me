@@ -663,7 +663,7 @@ export const Dashboard: React.FC = () => {
             <div className="flex items-center justify-between mb-5">
               <div className="flex items-center gap-2">
                 <Target className="w-4 h-4" style={{ color: 'var(--text-secondary)' }} />
-                <span className="text-sm font-medium" style={{ fontFamily: 'var(--font-heading)', fontWeight: 400, letterSpacing: '-0.03em', color: 'var(--foreground)' }}>Goals</span>
+                <span className="text-sm font-medium" style={{ fontFamily: 'var(--font-ui)', fontWeight: 400, letterSpacing: '-0.03em', color: 'var(--foreground)' }}>Goals</span>
                 {goalSummary.suggested > 0 && (
                   <span className="inline-flex items-center justify-center w-5 h-5 text-xs font-medium rounded-full bg-blue-500/20 text-blue-400">
                     {goalSummary.suggested}
