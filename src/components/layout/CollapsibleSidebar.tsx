@@ -77,23 +77,45 @@ export const CollapsibleSidebar: React.FC<CollapsibleSidebarProps> = ({
         />
       )}
 
-      {/* Sidebar */}
+      {/* Sidebar wrapper — overflow-visible so the toggle button can protrude */}
       <div
         className={cn(
-          "fixed top-0 left-0 bottom-0 z-40 transition-all duration-300 flex flex-col",
+          "fixed top-0 left-0 bottom-0 z-40 transition-all duration-300",
           isOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0",
           isExpanded ? "w-64" : "w-20 lg:w-20",
-          "lg:m-4 lg:rounded-2xl",
-          "lg:overflow-visible overflow-hidden"
+          "lg:m-4",
+          "overflow-visible"
         )}
-        style={{
-          backgroundColor: 'var(--glass-surface-bg)',
-          backdropFilter: 'blur(20px) saturate(140%)',
-          WebkitBackdropFilter: 'blur(20px) saturate(140%)',
-          border: '1px solid var(--glass-surface-border)',
-          boxShadow: 'var(--glass-shadow), inset 0 1px 0 var(--glass-inset-highlight)',
-        }}
       >
+        {/* Toggle Button for Desktop - rendered in wrapper so it can overflow */}
+        <button
+          onClick={toggleSidebar}
+          aria-label={isExpanded ? "Collapse sidebar" : "Expand sidebar"}
+          aria-expanded={isExpanded}
+          className="hidden lg:flex absolute top-8 w-8 h-8 bg-sidebar-primary hover:opacity-90 text-sidebar-primary-foreground rounded-full items-center justify-center transition-all shadow-xl hover:shadow-2xl hover:scale-110 z-50 border-2 border-sidebar"
+          style={{
+            right: '-16px'
+          }}
+          title={isExpanded ? "Collapse sidebar" : "Expand sidebar"}
+        >
+          {isExpanded ? (
+            <ChevronsLeft className="w-4 h-4" aria-hidden="true" />
+          ) : (
+            <ChevronsRight className="w-4 h-4" aria-hidden="true" />
+          )}
+        </button>
+
+        {/* Inner glass container — overflow-hidden clips content to rounded corners */}
+        <div
+          className="flex flex-col h-full overflow-hidden lg:rounded-2xl"
+          style={{
+            backgroundColor: 'var(--glass-surface-bg)',
+            backdropFilter: 'blur(20px) saturate(140%)',
+            WebkitBackdropFilter: 'blur(20px) saturate(140%)',
+            border: '1px solid var(--glass-surface-border)',
+            boxShadow: 'var(--glass-shadow), inset 0 1px 0 var(--glass-inset-highlight)',
+          }}
+        >
         <style>
           {`
             /* Hide Scrollbar */
@@ -112,24 +134,6 @@ export const CollapsibleSidebar: React.FC<CollapsibleSidebarProps> = ({
             }
           `}
         </style>
-
-        {/* Toggle Button for Desktop - Outside scrollable area */}
-        <button
-          onClick={toggleSidebar}
-          aria-label={isExpanded ? "Collapse sidebar" : "Expand sidebar"}
-          aria-expanded={isExpanded}
-          className="hidden lg:flex absolute top-8 w-8 h-8 bg-sidebar-primary hover:opacity-90 text-sidebar-primary-foreground rounded-full items-center justify-center transition-all shadow-xl hover:shadow-2xl hover:scale-110 z-50 border-2 border-sidebar"
-          style={{
-            right: '-16px'
-          }}
-          title={isExpanded ? "Collapse sidebar" : "Expand sidebar"}
-        >
-          {isExpanded ? (
-            <ChevronsLeft className="w-4 h-4" aria-hidden="true" />
-          ) : (
-            <ChevronsRight className="w-4 h-4" aria-hidden="true" />
-          )}
-        </button>
 
         <div className="overflow-y-auto flex-1 flex flex-col sidebar-scroll">
         {/* Close button for mobile */}
@@ -253,6 +257,7 @@ export const CollapsibleSidebar: React.FC<CollapsibleSidebarProps> = ({
               </div>
             )}
           </button>
+        </div>
         </div>
         </div>
       </div>
