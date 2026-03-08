@@ -599,7 +599,7 @@ async function generateReflections(userId, depth = 0) {
     }
 
     // Recursive reflection: if new reflections pushed importance back over threshold
-    if (reflectionsGenerated > 0 && depth < MAX_REFLECTION_DEPTH - 1) {
+    if (reflectionsGenerated > 0 && depth + 1 < MAX_REFLECTION_DEPTH) {
       const newSum = await getRecentImportanceSum(userId, 2);
       if (newSum >= IMPORTANCE_THRESHOLD) {
         console.log(`[Reflection] Importance ${newSum} >= ${IMPORTANCE_THRESHOLD} after depth ${depth}, recursing...`);

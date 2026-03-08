@@ -92,16 +92,28 @@ async function getDailyCost() {
     todayStart.setUTCHours(0, 0, 0, 0);
 
     const { data, error } = await supabaseAdmin
-      .from('llm_usage_log')
-      .select('cost_usd')
-      .gte('created_at', todayStart.toISOString());
+      .rpc('sum_llm_costs_since', { since_ts: todayStart.toISOString() });
 
     if (error) {
+      // Fallback to client-side sum if RPC doesn't exist yet
+      if (error.code === '42883') {
+        const { data: rows, error: fallbackErr } = await supabaseAdmin
+          .from('llm_usage_log')
+          .select('cost_usd')
+          .gte('created_at', todayStart.toISOString());
+        if (fallbackErr) {
+          console.warn('[LLM Gateway] Budget check fallback error:', fallbackErr.message);
+          return dailyCostCache.value;
+        }
+        const fallbackCost = (rows || []).reduce((sum, row) => sum + (row.cost_usd || 0), 0);
+        dailyCostCache = { value: fallbackCost, fetchedAt: Date.now() };
+        return fallbackCost;
+      }
       console.warn('[LLM Gateway] Budget check query error:', error.message);
       return dailyCostCache.value; // Return stale cache on error
     }
 
-    const totalCost = (data || []).reduce((sum, row) => sum + (row.cost_usd || 0), 0);
+    const totalCost = data ?? 0;
     dailyCostCache = { value: totalCost, fetchedAt: Date.now() };
     return totalCost;
   } catch (err) {

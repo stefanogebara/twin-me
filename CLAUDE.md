@@ -182,8 +182,8 @@ Flow: Observation ingestion -> `generateGoalSuggestions()` -> user accepts -> `t
 | Tier | Use Case | OpenRouter Model ID | Why |
 |------|----------|---------------------|-----|
 | CHAT | Twin conversation | `anthropic/claude-sonnet-4.5` | Quality matters - twin must feel like YOU |
-| ANALYSIS | Reflections, twin summary, proactive insights | `deepseek/deepseek-chat-v3-0324` | Good enough, 95% cheaper |
-| EXTRACTION | Importance rating, fact extraction | `mistralai/mistral-small-3.1-24b-instruct` | Cheapest, structured output |
+| ANALYSIS | Reflections, twin summary, proactive insights | `deepseek/deepseek-v3.2` | Good enough, 95% cheaper |
+| EXTRACTION | Importance rating, fact extraction | `mistralai/mistral-small-creative` | Cheapest, structured output |
 
 ## Development
 ```bash
