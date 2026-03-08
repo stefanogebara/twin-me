@@ -37,9 +37,9 @@ const BORDER_COLOR = 'var(--glass-surface-border)';
 const CARD_BG = 'var(--glass-surface-bg)';
 
 const CATEGORY_COLORS = {
-  personal: '#EC4899',
-  professional: '#3B82F6',
-  creative: '#8B5CF6',
+  personal: '#f472b6',
+  professional: '#60a5fa',
+  creative: '#a78bfa',
 } as const;
 
 const TWIN_ICONS: Record<string, React.ComponentType<{ size?: number; style?: React.CSSProperties }>> = {
@@ -51,20 +51,20 @@ const TWIN_ICONS: Record<string, React.ComponentType<{ size?: number; style?: Re
 };
 
 const TWIN_COLORS: Record<string, string> = {
-  professional: '#3B82F6',
-  social: '#10B981',
-  dating: '#EC4899',
-  public: '#6B7280',
-  custom: '#8B5CF6',
+  professional: '#60a5fa',
+  social: '#34d399',
+  dating: '#f472b6',
+  public: '#9ca3af',
+  custom: '#a78bfa',
 };
 
 // Built-in presets used when the DB table is empty
 const BUILT_IN_PRESETS = [
-  { key: 'hidden', label: 'Hidden', level: 0, color: '#6B7280' },
-  { key: 'minimal', label: 'Minimal', level: 20, color: '#8B5CF6' },
-  { key: 'balanced', label: 'Balanced', level: 50, color: '#3B82F6' },
-  { key: 'open', label: 'Open', level: 80, color: '#10B981' },
-  { key: 'full', label: 'Full', level: 100, color: '#F59E0B' },
+  { key: 'hidden', label: 'Hidden', level: 0, color: '#9ca3af' },
+  { key: 'minimal', label: 'Minimal', level: 20, color: '#a78bfa' },
+  { key: 'balanced', label: 'Balanced', level: 50, color: '#60a5fa' },
+  { key: 'open', label: 'Open', level: 80, color: '#34d399' },
+  { key: 'full', label: 'Full', level: 100, color: '#fbbf24' },
 ];
 
 // --- Cluster Row ---

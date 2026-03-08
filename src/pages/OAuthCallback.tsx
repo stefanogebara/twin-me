@@ -522,7 +522,7 @@ const OAuthCallback = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: 'var(--background)' }}>
+    <div className="min-h-screen flex items-center justify-center" >
       <div
         className="glass-card max-w-md w-full mx-4 p-8 text-center"
       >

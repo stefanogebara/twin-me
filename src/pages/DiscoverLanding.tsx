@@ -48,7 +48,7 @@ const DiscoverLanding: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center px-6 py-20" style={{ backgroundColor: 'var(--background)' }}>
+    <div className="min-h-screen flex flex-col items-center justify-center px-6 py-20">
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
         className="max-w-[480px] w-full mx-auto space-y-8">
 
@@ -74,14 +74,7 @@ const DiscoverLanding: React.FC = () => {
               value={email}
               onChange={e => setEmail(e.target.value)}
               placeholder="your@email.com"
-              className="w-full rounded-xl px-4 py-3 text-sm focus:outline-none"
-              style={{
-                background: 'var(--glass-surface-bg)',
-                border: '1px solid var(--glass-surface-border)',
-                color: 'var(--foreground)',
-              }}
-              onFocus={e => (e.target.style.border = '1px solid var(--glass-surface-border-hover)')}
-              onBlur={e => (e.target.style.border = '1px solid var(--glass-surface-border)')}
+              className="input focus:border-[var(--glass-surface-border-hover)]"
               required
             />
             <button type="submit" disabled={loading} className="btn-cta w-full disabled:opacity-50 flex items-center justify-center gap-2">

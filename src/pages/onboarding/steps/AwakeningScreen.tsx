@@ -61,7 +61,7 @@ const AwakeningScreen: React.FC<AwakeningScreenProps> = ({ onEnter }) => {
   return (
     <div
       className="h-screen flex flex-col items-center px-6 py-10"
-      style={{ backgroundColor: 'var(--background)' }}
+      
     >
       <motion.div
         initial={{ opacity: 0, y: 24 }}

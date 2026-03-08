@@ -14,7 +14,6 @@ const NotFound = () => {
   return (
     <div
       className="min-h-screen relative overflow-hidden"
-      style={{ backgroundColor: 'var(--background)' }}
     >
       {/* Subtle background texture */}
       <div

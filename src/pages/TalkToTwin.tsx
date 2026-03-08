@@ -432,14 +432,14 @@ const TalkToTwin = () => {
 
   if (!interviewChecked) {
     return (
-      <div className="flex h-screen items-center justify-center" style={{ backgroundColor: 'var(--background)' }}>
+      <div className="flex h-screen items-center justify-center">
         <div className="w-5 h-5 border-2 border-current border-t-transparent rounded-full animate-spin opacity-30" />
       </div>
     );
   }
 
   return (
-    <div className="flex" style={{ backgroundColor: 'var(--background)', height: '100dvh', maxHeight: '100dvh' }}>
+    <div className="flex" style={{ height: '100dvh', maxHeight: '100dvh' }}>
       <div className="flex-1 flex flex-col max-w-4xl mx-auto w-full">
         {/* Compact top bar */}
         <header

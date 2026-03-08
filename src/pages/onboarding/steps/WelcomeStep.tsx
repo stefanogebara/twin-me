@@ -20,7 +20,7 @@ const WelcomeStep: React.FC<WelcomeStepProps> = ({ onBegin }) => {
   return (
     <div
       className="min-h-screen flex flex-col items-center justify-center px-6"
-      style={{ backgroundColor: 'var(--background)' }}
+      
     >
       <motion.div
         initial={{ opacity: 0, y: 24 }}

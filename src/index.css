@@ -197,10 +197,10 @@
     --glass-inset-highlight: rgba(255, 255, 255, 0.18);
 
     /* Body gradients — amber/copper on charcoal (sun-driven overrides via SunContext) */
-    --body-gradient-1: rgba(200, 130, 50, 0.28);
-    --body-gradient-2: rgba(170, 100, 60, 0.22);
-    --body-gradient-3: rgba(150, 90, 50, 0.25);
-    --body-gradient-4: rgba(180, 120, 70, 0.16);
+    --body-gradient-1: rgba(210, 145, 55, 0.38);
+    --body-gradient-2: rgba(180, 110, 65, 0.30);
+    --body-gradient-3: rgba(160, 95, 55, 0.34);
+    --body-gradient-4: rgba(55, 45, 140, 0.28);
 
     /* Gradient orb positions/sizes (dark defaults) */
     --bg-pos-1: 5% 0%;
