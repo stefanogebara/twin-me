@@ -482,7 +482,9 @@ app.get('/api/personality/history', authenticateUser, async (req, res) => {
   }
 });
 app.use('/api/memory/:memoryId', memoryLinksRoutes); // A-MEM Zettelkasten memory links
-app.use('/api/eval', evalRoutes); // Twin eval rubric + feature flags
+if (process.env.NODE_ENV === 'development') {
+  app.use('/api/eval', evalRoutes); // Twin eval rubric + feature flags (dev-only)
+}
 app.use('/api/twin', twinIdentityRoutes); // Who You Are identity explorer
 app.use('/api/twins-brain', twinsBrainRoutes); // Twins Brain unified knowledge graph
 app.use('/api/mem0', mem0Routes); // Mem0 intelligent memory layer
