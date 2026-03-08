@@ -463,7 +463,7 @@ const TalkToTwin = () => {
             </div>
             <span
               className="text-sm font-medium flex items-center gap-1.5"
-              style={{ color: 'var(--foreground)', fontFamily: 'var(--font-heading)' }}
+              style={{ color: 'var(--foreground)', fontFamily: 'var(--font-ui)' }}
             >
               Your Twin
               <Sparkles className="w-3.5 h-3.5" style={{ color: 'var(--accent-vibrant)' }} />

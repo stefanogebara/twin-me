@@ -233,9 +233,9 @@ const ExpertSection: React.FC<ExpertSectionProps> = ({ config, bullets: rawBulle
           >
             <Icon className="w-4 h-4" style={{ color }} />
           </div>
-          <span className="text-sm text-left" style={{ fontFamily: 'var(--font-heading)', fontWeight: 500, letterSpacing: '-0.02em', color: 'var(--foreground)' }}>{label}</span>
+          <span className="text-sm text-left" style={{ fontFamily: 'var(--font-ui)', fontWeight: 500, letterSpacing: '-0.02em', color: 'var(--foreground)' }}>{label}</span>
           {!hasBullets && (
-            <span className="ml-2 text-xs font-normal" style={{ color: 'var(--text-muted)' }}>(no insights yet)</span>
+            <span className="ml-2 text-xs font-normal" style={{ color: 'var(--text-muted)' }}>(still learning)</span>
           )}
         </div>
       </AccordionTrigger>
@@ -251,7 +251,7 @@ const ExpertSection: React.FC<ExpertSectionProps> = ({ config, bullets: rawBulle
           </ul>
         ) : (
           <p className="pl-11 italic leading-relaxed" style={{ fontSize: '15px', color: 'var(--text-secondary)' }}>
-            No signal here yet. Keep using connected platforms -- insights in this section appear after ~2 days of data.
+            Nothing here yet — keep your platforms connected and I'll fill this in as I notice things.
           </p>
         )}
       </AccordionContent>
@@ -335,10 +335,9 @@ const IdentityPage: React.FC = () => {
           <div className="w-16 h-16 rounded-2xl bg-white/8 flex items-center justify-center mx-auto mb-6">
             <Fingerprint className="w-8 h-8 text-muted-foreground" />
           </div>
-          <h2 className="text-xl font-bold text-foreground mb-3">No identity portrait yet</h2>
+          <h2 className="text-xl font-bold text-foreground mb-3">I'm still figuring you out</h2>
           <p className="text-muted-foreground text-sm leading-relaxed max-w-sm mx-auto mb-6">
-            Your twin builds this portrait from your platforms. Connect Spotify, Calendar, or
-            YouTube and check back in 2-3 days — the first insights appear quickly.
+            Connect Spotify, Calendar, or YouTube and I'll start building a real picture of you — not just facts, but patterns. Usually takes a couple of days.
           </p>
           <div className="flex flex-col sm:flex-row gap-3 justify-center">
             <button
@@ -446,7 +445,7 @@ const IdentityPage: React.FC = () => {
             <div className="glass-card rounded-2xl p-8">
               <p
                 className="text-xs font-semibold uppercase tracking-widest"
-                style={{ fontFamily: 'var(--font-heading)', color: 'var(--text-secondary)', marginBottom: '1.5rem' }}
+                style={{ fontFamily: 'var(--font-ui)', color: 'var(--text-secondary)', marginBottom: '1.5rem' }}
               >
                 Twin Summary
               </p>
@@ -499,7 +498,7 @@ const IdentityPage: React.FC = () => {
               <div>
                 <p
                   className="text-xs font-semibold uppercase tracking-widest mb-1"
-                  style={{ fontFamily: 'var(--font-heading)', color: 'var(--text-secondary)' }}
+                  style={{ fontFamily: 'var(--font-ui)', color: 'var(--text-secondary)' }}
                 >
                   Archetype
                 </p>
@@ -547,7 +546,7 @@ const IdentityPage: React.FC = () => {
               <div>
                 <p
                   className="text-xs font-semibold uppercase tracking-widest mb-2"
-                  style={{ fontFamily: 'var(--font-heading)', color: 'var(--text-secondary)' }}
+                  style={{ fontFamily: 'var(--font-ui)', color: 'var(--text-secondary)' }}
                 >
                   What makes you unique
                 </p>
@@ -563,7 +562,7 @@ const IdentityPage: React.FC = () => {
               <div>
                 <p
                   className="text-xs font-semibold uppercase tracking-widest mb-2"
-                  style={{ fontFamily: 'var(--font-heading)', color: 'var(--text-secondary)' }}
+                  style={{ fontFamily: 'var(--font-ui)', color: 'var(--text-secondary)' }}
                 >
                   Core values
                 </p>
@@ -608,7 +607,7 @@ const IdentityPage: React.FC = () => {
               <Music className="w-4 h-4 text-amber-500" />
               <p
                 className="text-xs font-semibold uppercase tracking-widest"
-                style={{ fontFamily: 'var(--font-heading)', color: 'var(--text-secondary)' }}
+                style={{ fontFamily: 'var(--font-ui)', color: 'var(--text-secondary)' }}
               >
                 Music Signature
               </p>
