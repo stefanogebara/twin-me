@@ -306,6 +306,7 @@ import billingRoutes from './routes/billing.js';
 import discoveryRoutes from './routes/discovery.js';
 import cronEmailDigestHandler from './routes/cron-email-digest.js';
 import emailUnsubscribeRoutes from './routes/email-unsubscribe.js';
+import personalityProfileRoutes from './routes/personality-profile.js';
 // OG image routes loaded lazily to prevent font-loading crashes from taking down the whole server
 let ogImageRoutes = null;
 try {
@@ -485,6 +486,7 @@ app.use('/api/memory/:memoryId', memoryLinksRoutes); // A-MEM Zettelkasten memor
 if (process.env.NODE_ENV === 'development') {
   app.use('/api/eval', evalRoutes); // Twin eval rubric + feature flags (dev-only)
 }
+app.use('/api/personality-profile', personalityProfileRoutes); // Soul Signature voting layer — OCEAN, stylometrics, sampling params
 app.use('/api/twin', twinIdentityRoutes); // Who You Are identity explorer
 app.use('/api/twins-brain', twinsBrainRoutes); // Twins Brain unified knowledge graph
 app.use('/api/mem0', mem0Routes); // Mem0 intelligent memory layer
