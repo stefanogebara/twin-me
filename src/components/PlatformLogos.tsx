@@ -120,6 +120,14 @@ export const AppleMusicLogo: React.FC<{ className?: string }> = ({ className = "
   </svg>
 );
 
+export const WhoopLogo: React.FC<{ className?: string }> = ({ className = "w-8 h-8" }) => (
+  <svg className={className} viewBox="3 13 40 22" fill="none" stroke="currentColor" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M16.47,26.68l-3.7097,-11.047" />
+    <path d="M18.38,32.368l5.6196,-16.735" />
+    <path d="M25.91,21.32l3.7097,11.047,5.6196,-16.735" />
+  </svg>
+);
+
 // Platform logo mapping
 export const PlatformLogos: Record<string, React.FC<{ className?: string }>> = {
   spotify: SpotifyLogo,
@@ -158,6 +166,7 @@ export const PlatformLogos: Record<string, React.FC<{ className?: string }>> = {
   apple_music: AppleMusicLogo,
   applemusic: AppleMusicLogo,
   'apple-music': AppleMusicLogo,
+  whoop: WhoopLogo,
 };
 
 // Get logo component for a platform

@@ -22,6 +22,7 @@
 
 import express from 'express';
 import { supabaseAdmin } from '../services/database.js';
+import { verifyCronSecret } from '../middleware/verifyCronSecret.js';
 
 const router = express.Router();
 
@@ -30,18 +31,10 @@ const BATCH_SIZE = 500;
 
 router.post('/', async (req, res) => {
   try {
-    // Verify cron secret
-    const cronSecret = req.headers['x-vercel-cron-secret'] || req.headers['authorization'];
-    const expectedSecret = process.env.CRON_SECRET;
-    const isDevelopment = process.env.NODE_ENV === 'development';
-
-    if (!isDevelopment) {
-      if (!expectedSecret) {
-        return res.status(500).json({ error: 'CRON_SECRET not configured' });
-      }
-      if (cronSecret !== expectedSecret && cronSecret !== `Bearer ${expectedSecret}`) {
-        return res.status(401).json({ error: 'Unauthorized' });
-      }
+    // Verify cron secret (timing-safe)
+    const authResult = verifyCronSecret(req);
+    if (!authResult.authorized) {
+      return res.status(authResult.status).json({ error: authResult.error });
     }
 
     console.log('[Cron] memory-forgetting: starting weekly pass');

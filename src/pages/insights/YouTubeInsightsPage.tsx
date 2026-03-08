@@ -323,8 +323,8 @@ const YouTubeInsightsPage: React.FC = () => {
             transition={{ duration: 0.45, delay: 0.15, ease: [0.4, 0, 0.2, 1] }}
           >
             <h1
-              className="text-2xl"
-              style={{ fontFamily: 'var(--font-heading)', fontWeight: 500, color: colors.text }}
+              className="heading-serif text-2xl"
+              style={{ color: colors.text }}
             >
               Your Content World
             </h1>

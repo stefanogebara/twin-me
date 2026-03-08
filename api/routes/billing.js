@@ -15,6 +15,9 @@ if (!stripe) {
 
 // POST /api/billing/webhook  (raw body — must be mounted BEFORE express.json)
 router.post('/webhook', express.raw({ type: 'application/json' }), async (req, res) => {
+  if (!stripe) {
+    return res.status(503).json({ error: 'Billing not configured' });
+  }
   const sig = req.headers['stripe-signature'];
   let event;
   try {
@@ -86,6 +89,9 @@ router.get('/subscription', authenticateToken, async (req, res) => {
 
 // POST /api/billing/checkout
 router.post('/checkout', authenticateToken, async (req, res) => {
+  if (!stripe) {
+    return res.status(503).json({ error: 'Billing not configured' });
+  }
   const { plan } = req.body;
   if (!['pro', 'max'].includes(plan)) return res.status(400).json({ error: 'Invalid plan' });
 
@@ -127,6 +133,9 @@ router.post('/checkout', authenticateToken, async (req, res) => {
 
 // POST /api/billing/portal
 router.post('/portal', authenticateToken, async (req, res) => {
+  if (!stripe) {
+    return res.status(503).json({ error: 'Billing not configured' });
+  }
   try {
     const { data: sub } = await supabaseAdmin
       .from('user_subscriptions').select('stripe_customer_id').eq('user_id', req.user?.id).single();

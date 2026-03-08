@@ -12,7 +12,7 @@ const supabaseAnonKey = process.env.SUPABASE_ANON_KEY;
 // Debug logging - Verify environment variables are loaded correctly
 console.log('🔵 [Supabase Config] Initializing Supabase client');
 console.log('🔵 [Supabase Config] NODE_ENV:', process.env.NODE_ENV);
-console.log('🔵 [Supabase Config] SUPABASE_URL:', supabaseUrl);
+console.log('🔵 [Supabase Config] SUPABASE_URL:', supabaseUrl ? '***configured***' : 'MISSING');
 console.log('🔵 [Supabase Config] SUPABASE_ANON_KEY length:', supabaseAnonKey?.length);
 console.log('🔵 [Supabase Config] SUPABASE_SERVICE_ROLE_KEY length:', process.env.SUPABASE_SERVICE_ROLE_KEY?.length);
 
