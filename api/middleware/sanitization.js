@@ -4,19 +4,27 @@ import xss from 'xss';
 // Comprehensive input sanitization middleware
 const sanitizeInput = (req, res, next) => {
   try {
-    // Sanitize request body
+    // Sanitize request body (mutable in Express 5)
     if (req.body && typeof req.body === 'object') {
       req.body = sanitizeObject(req.body);
     }
 
-    // Sanitize query parameters (replace with new sanitized object)
+    // Sanitize query parameters in-place (Express 5: req.query is getter-only)
     if (req.query && typeof req.query === 'object') {
-      req.query = sanitizeObject(req.query);
+      const sanitizedQuery = sanitizeObject(req.query);
+      for (const key of Object.keys(req.query)) {
+        delete req.query[key];
+      }
+      Object.assign(req.query, sanitizedQuery);
     }
 
-    // Sanitize URL parameters
+    // Sanitize URL parameters in-place (Express 5: req.params may be getter-only)
     if (req.params && typeof req.params === 'object') {
-      req.params = sanitizeObject(req.params);
+      const sanitizedParams = sanitizeObject(req.params);
+      for (const key of Object.keys(req.params)) {
+        delete req.params[key];
+      }
+      Object.assign(req.params, sanitizedParams);
     }
 
     next();
