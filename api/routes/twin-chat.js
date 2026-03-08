@@ -1281,6 +1281,7 @@ router.get('/context', authenticateUser, async (req, res) => {
           .select('id, insight, category, urgency, created_at')
           .eq('user_id', userId)
           .eq('delivered', false)
+          .gte('created_at', new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString())
           .order('created_at', { ascending: false })
           .limit(20); // Fetch more so dedup has a wider pool
         if (insightsErr) console.warn('[Twin Chat] Failed to fetch pending insights:', insightsErr.message);

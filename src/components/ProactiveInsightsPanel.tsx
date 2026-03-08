@@ -11,6 +11,7 @@ import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useAuth } from '../contexts/AuthContext';
 import { authFetch } from '@/services/api/apiBase';
+import { toSecondPerson } from '@/lib/utils';
 import {
   MessageCircle,
   Eye,
@@ -171,10 +172,11 @@ export const ProactiveInsightsPanel: React.FC = () => {
       <div className="space-y-4">
         {insights.map((insight, idx) => {
           const isExpanded = expandedId === insight.id;
-          const dotIdx = insight.insight.indexOf('. ');
+          const displayText = toSecondPerson(insight.insight);
+          const dotIdx = displayText.indexOf('. ');
           const preview = dotIdx !== -1 && dotIdx < 100
-            ? insight.insight.slice(0, dotIdx + 1)
-            : insight.insight.slice(0, 90) + (insight.insight.length > 90 ? '\u2026' : '');
+            ? displayText.slice(0, dotIdx + 1)
+            : displayText.slice(0, 90) + (displayText.length > 90 ? '\u2026' : '');
           return (
             <motion.div
               key={insight.id}
@@ -190,7 +192,7 @@ export const ProactiveInsightsPanel: React.FC = () => {
                       <span className="text-[10px]" style={{ color: 'var(--text-muted)' }}>{formatRelativeTime(insight.created_at)}</span>
                     </div>
                     <p className="text-sm leading-relaxed" style={{ color: 'var(--foreground)' }}>
-                      {isExpanded ? insight.insight : preview}
+                      {isExpanded ? displayText : preview}
                     </p>
                   </div>
                   <button onClick={() => setExpandedId(prev => prev === insight.id ? null : insight.id)} className="flex-shrink-0 self-start mt-1">
@@ -203,7 +205,7 @@ export const ProactiveInsightsPanel: React.FC = () => {
                   onClick={() => {
                     markEngaged(insight.id);
                     navigate('/talk-to-twin', {
-                      state: { discussContext: `I saw this insight: "${insight.insight}" — can we discuss it?` }
+                      state: { discussContext: `I saw this insight: "${displayText}" — can we discuss it?` }
                     });
                   }}
                   className="mt-3 w-full py-2 flex items-center justify-center gap-2 rounded-lg text-xs font-medium transition-colors"
