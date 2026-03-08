@@ -1,5 +1,6 @@
 import React, { ReactNode, useState } from 'react';
 import { CollapsibleSidebar } from './CollapsibleSidebar';
+import { BottomNav } from './BottomNav';
 import { useSidebar } from '@/contexts/SidebarContext';
 import { Menu } from 'lucide-react';
 
@@ -61,10 +62,13 @@ export const SidebarLayout: React.FC<SidebarLayoutProps> = ({ children }) => {
             }
           }
         `}</style>
-        <div className="min-h-full pt-16 lg:pt-0">
+        <div className="min-h-full pt-16 pb-20 lg:pt-0 lg:pb-0">
           {children}
         </div>
       </main>
+
+      {/* Bottom nav bar — mobile only (hidden on lg+) */}
+      <BottomNav />
     </div>
   );
 };
