@@ -275,7 +275,6 @@ const Settings = () => {
   return (
     <div
       className="min-h-screen"
-      style={{ backgroundColor: 'var(--background)' }}
     >
       <main className="max-w-4xl mx-auto pt-12 lg:pt-16 pb-20 px-6">
         {/* Page title */}

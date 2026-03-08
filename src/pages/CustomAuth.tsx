@@ -114,7 +114,7 @@ For privacy concerns: privacy@twinme.ai`
   };
 
   return (
-    <div className="min-h-screen flex flex-col" style={{ backgroundColor: 'var(--background)' }}>
+    <div className="min-h-screen flex flex-col">
       {/* Top bar: logo left, back to home right */}
       <div className="w-full flex items-center justify-between px-6 py-4">
         <div className="flex items-center gap-2.5">

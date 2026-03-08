@@ -194,7 +194,7 @@ const PlatformStep: React.FC<PlatformStepProps> = ({ onContinue }) => {
   const anyConnected = connected.size > 0;
 
   return (
-    <div className="min-h-screen flex flex-col items-center overflow-y-auto px-4 py-12" style={{ backgroundColor: 'var(--background)' }}>
+    <div className="min-h-screen flex flex-col items-center overflow-y-auto px-4 py-12" >
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
