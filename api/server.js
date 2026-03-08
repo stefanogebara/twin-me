@@ -325,7 +325,8 @@ let _healthCacheAt = 0;
 const HEALTH_CACHE_TTL_MS = 30_000; // 30 seconds
 
 // System health check endpoint (4A - Production Hardening)
-app.get('/api/system/health', authenticateUser, async (req, res) => {
+// No auth required so uptime monitors (UptimeRobot, Vercel checks) can hit it
+app.get('/api/system/health', async (req, res) => {
   // Return cached result if fresh enough
   if (_healthCache && (Date.now() - _healthCacheAt) < HEALTH_CACHE_TTL_MS) {
     return res.status(_healthCache.status === 'unhealthy' ? 503 : 200).json(_healthCache);
