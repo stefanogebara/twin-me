@@ -127,14 +127,14 @@ export const ProactiveInsightsPanel: React.FC = () => {
           style={{ color: 'var(--text-muted)' }}
         />
         <p className="text-sm mb-3" style={{ color: 'var(--text-secondary)' }}>
-          Connect Spotify or Calendar to get your first insights
+          I'm still getting to know you — connect Spotify or Calendar so I can start noticing things
         </p>
         <button
           onClick={() => navigate('/get-started')}
           className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-medium transition-colors"
           style={{ backgroundColor: 'var(--glass-surface-bg)', color: 'var(--foreground)', border: '1px solid var(--glass-surface-border)' }}
         >
-          Connect Data →
+          Connect a platform →
         </button>
       </GlassPanel>
     );

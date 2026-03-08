@@ -268,14 +268,13 @@ const GoalsPage: React.FC = () => {
             <h3
               className="heading-serif text-lg"
             >
-              No goal suggestions yet
+              No goal ideas yet — check back soon
             </h3>
             <p
               className="body-text max-w-md mx-auto"
               style={{ color: TEXT_SECONDARY }}
             >
-              Your twin needs 2-3 days of platform data to suggest goals that actually fit
-              your life. Connect Spotify or Calendar to get started.
+              Once I've seen a few days of your patterns, I'll suggest goals that actually make sense for your life. Connect Spotify or Calendar to get me started.
             </p>
             <button
               onClick={() => navigate('/get-started')}
@@ -432,7 +431,7 @@ const GoalsPage: React.FC = () => {
                     </div>
                   ) : completedGoals.length === 0 ? (
                     <p className="text-sm py-4" style={{ color: TEXT_SECONDARY }}>
-                      No completed goals yet. Keep going!
+                      Nothing finished yet — you've got this though.
                     </p>
                   ) : (
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">

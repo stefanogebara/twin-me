@@ -154,8 +154,8 @@ export const TodayInsights: React.FC = () => {
   // ── Per-platform connect rows for any platform that is NOT connected ─────
   const disconnectedPlatforms = !isLoading && !platformStatusLoading && !isDemoMode
     ? [
-        { platform: 'Calendar', platformKey: 'google_calendar', desc: 'Connect Google Calendar to unlock schedule insights',   active: isPlatformActive('google_calendar') },
-        { platform: 'Spotify',  platformKey: 'spotify',         desc: 'Connect Spotify to unlock music mood insights',         active: isPlatformActive('spotify') },
+        { platform: 'Calendar', platformKey: 'google_calendar', desc: 'Connect Google Calendar and I can tell you how you structure your time',   active: isPlatformActive('google_calendar') },
+        { platform: 'Spotify',  platformKey: 'spotify',         desc: 'Connect Spotify and I can read your mood from your music',         active: isPlatformActive('spotify') },
       ].filter(p => !p.active)
     : [];
 
@@ -258,7 +258,7 @@ export const TodayInsights: React.FC = () => {
         >
           <Loader2 className="w-5 h-5 animate-spin flex-shrink-0" style={{ color: 'var(--text-muted)' }} />
           <span className="text-sm" style={{ color: 'var(--text-secondary)' }}>
-            Analyzing your data — insights will appear here once your platforms sync.
+            I'm going through your data now — check back in a bit and I should have something for you.
           </span>
         </div>
       </div>
