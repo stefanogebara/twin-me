@@ -3,20 +3,7 @@
  * Extracts, cleans, and normalizes text from platform data
  */
 
-import { createClient } from '@supabase/supabase-js';
-
-// Use SUPABASE_URL (backend) - fallback to VITE_ prefix for compatibility
-// Lazy initialization to avoid crashes if env vars not loaded yet
-let supabase = null;
-function getSupabaseClient() {
-  if (!supabase) {
-    supabase = createClient(
-      process.env.SUPABASE_URL,
-      process.env.SUPABASE_SERVICE_ROLE_KEY
-    );
-  }
-  return supabase;
-}
+import { supabaseAdmin } from './database.js';
 
 class TextProcessor {
   /**
@@ -27,7 +14,7 @@ class TextProcessor {
 
     try {
       // Get unprocessed data
-      const { data: rawData, error } = await supabase
+      const { data: rawData, error } = await supabaseAdmin
         .from('user_platform_data')
         .select('*')
         .eq('user_id', userId)
@@ -303,7 +290,7 @@ class TextProcessor {
    */
   async storeTextContent(data) {
     try {
-      const { error } = await supabase
+      const { error } = await supabaseAdmin
         .from('user_text_content')
         .insert(data);
 
@@ -322,7 +309,7 @@ class TextProcessor {
    */
   async markAsProcessed(platformDataId) {
     try {
-      const { error: markErr } = await supabase
+      const { error: markErr } = await supabaseAdmin
         .from('user_platform_data')
         .update({ processed: true })
         .eq('id', platformDataId);
@@ -337,20 +324,20 @@ class TextProcessor {
    */
   async getProcessingStats(userId) {
     try {
-      const { data: total, error: totalErr } = await supabase
+      const { data: total, error: totalErr } = await supabaseAdmin
         .from('user_platform_data')
         .select('id', { count: 'exact', head: true })
         .eq('user_id', userId);
       if (totalErr) { console.warn('[TextProcessor] Error getting stats:', totalErr.message); return { total: 0, processed: 0, textContent: 0 }; }
 
-      const { data: processed, error: processedErr } = await supabase
+      const { data: processed, error: processedErr } = await supabaseAdmin
         .from('user_platform_data')
         .select('id', { count: 'exact', head: true })
         .eq('user_id', userId)
         .eq('processed', true);
       if (processedErr) { console.warn('[TextProcessor] Error getting stats:', processedErr.message); return { total: 0, processed: 0, textContent: 0 }; }
 
-      const { data: textCount, error: textCountErr } = await supabase
+      const { data: textCount, error: textCountErr } = await supabaseAdmin
         .from('user_text_content')
         .select('id', { count: 'exact', head: true })
         .eq('user_id', userId);

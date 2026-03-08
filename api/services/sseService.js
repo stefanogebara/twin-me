@@ -15,19 +15,7 @@
  * - Connection status changes
  */
 
-import { createClient } from '@supabase/supabase-js';
-
-// Lazy initialization to avoid crashes if env vars not loaded yet
-let supabase = null;
-function getSupabaseClient() {
-  if (!supabase) {
-    supabase = createClient(
-      process.env.SUPABASE_URL,
-      process.env.SUPABASE_SERVICE_ROLE_KEY
-    );
-  }
-  return supabase;
-}
+import { supabaseAdmin } from './database.js';
 
 // Store active SSE connections: userId -> response object
 const connections = new Map();
@@ -153,7 +141,7 @@ function broadcastSSE(data) {
  */
 async function sendPlatformStatus(userId) {
   try {
-    const { data: platformConnections, error } = await getSupabaseClient()
+    const { data: platformConnections, error } = await supabaseAdmin
       .from('platform_connections')
       .select('id, user_id, platform, status, connected_at, last_sync_at')
       .eq('user_id', userId);

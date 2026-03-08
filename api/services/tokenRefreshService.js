@@ -5,21 +5,9 @@
  */
 
 import cron from 'node-cron';
-import { createClient } from '@supabase/supabase-js';
+import { supabaseAdmin } from './database.js';
 import axios from 'axios';
 import { encryptToken, decryptToken } from './encryption.js';
-
-// Lazy initialization to avoid crashes if env vars not loaded yet
-let supabase = null;
-function getSupabaseClient() {
-  if (!supabase) {
-    supabase = createClient(
-      process.env.SUPABASE_URL,
-      process.env.SUPABASE_SERVICE_ROLE_KEY
-    );
-  }
-  return supabase;
-}
 
 // In-memory lock to prevent concurrent token refresh attempts
 // Key: `${userId}:${platform}`, Value: Promise that resolves when refresh completes
@@ -158,7 +146,7 @@ async function refreshAccessToken(platform, refreshToken, userId) {
     console.error(`❌ Token refresh failed for ${platform}:`, error.response?.data || error.message);
 
     // Mark connection as expired (database constraint allows: connected, disconnected, error, pending, expired)
-    const { error: expiredErr } = await getSupabaseClient()
+    const { error: expiredErr } = await supabaseAdmin
       .from('platform_connections')
       .update({
         status: 'expired',
@@ -202,7 +190,7 @@ async function checkAndRefreshExpiringTokens() {
     // Include both 'connected' and 'token_expired' status (tokens can be refreshed even if expired)
     const tenMinutesFromNow = new Date(Date.now() + 10 * 60 * 1000).toISOString();
 
-    const { data: connections, error } = await getSupabaseClient()
+    const { data: connections, error } = await supabaseAdmin
       .from('platform_connections')
       .select('*')
       .in('status', ['connected', 'token_expired', 'expired'])
@@ -257,7 +245,7 @@ async function checkAndRefreshExpiringTokens() {
 
         const newExpiryTime = new Date(Date.now() + newTokens.expiresIn * 1000).toISOString();
 
-        const { error: saveErr } = await getSupabaseClient()
+        const { error: saveErr } = await supabaseAdmin
           .from('platform_connections')
           .update({
             access_token: encryptedAccessToken,
@@ -316,7 +304,7 @@ async function ensureFreshToken(userId, platform) {
     try {
       await refreshLocks.get(lockKey);
       // After waiting, re-fetch the connection to get the updated token
-      const { data: updatedConnection, error: updConnErr } = await getSupabaseClient()
+      const { data: updatedConnection, error: updConnErr } = await supabaseAdmin
         .from('platform_connections')
         .select('access_token, status')
         .eq('user_id', userId)
@@ -335,7 +323,7 @@ async function ensureFreshToken(userId, platform) {
   }
 
   try {
-    const { data: connection } = await getSupabaseClient()
+    const { data: connection } = await supabaseAdmin
       .from('platform_connections')
       .select('*')
       .eq('user_id', userId)
@@ -392,7 +380,7 @@ async function ensureFreshToken(userId, platform) {
         const encryptedRefreshToken = encryptToken(newTokens.refreshToken);
         const newExpiryTime = new Date(Date.now() + newTokens.expiresIn * 1000).toISOString();
 
-        const { error: saveErr } = await getSupabaseClient()
+        const { error: saveErr } = await supabaseAdmin
           .from('platform_connections')
           .update({
             access_token: encryptedAccessToken,

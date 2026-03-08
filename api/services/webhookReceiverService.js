@@ -5,21 +5,9 @@
  */
 
 import crypto from 'crypto';
-import { createClient } from '@supabase/supabase-js';
+import { supabaseAdmin } from './database.js';
 import { notifyNewData, notifyConnectionStatus } from './websocketService.js';
 import * as sseService from './sseService.js';
-
-// Lazy initialization to avoid crashes if env vars not loaded yet
-let supabase = null;
-function getSupabaseClient() {
-  if (!supabase) {
-    supabase = createClient(
-      process.env.SUPABASE_URL,
-      process.env.SUPABASE_SERVICE_ROLE_KEY
-    );
-  }
-  return supabase;
-}
 
 /**
  * Verify GitHub webhook signature
@@ -50,7 +38,7 @@ async function handleGitHubWebhook(event, payload, userId) {
 
   try {
     // Store the raw event data
-    const { error } = await supabase
+    const { error } = await supabaseAdmin
       .from('user_platform_data')
       .insert({
         user_id: userId,
@@ -66,7 +54,7 @@ async function handleGitHubWebhook(event, payload, userId) {
     }
 
     // Update last sync timestamp
-    const { error: githubSyncErr } = await supabase
+    const { error: githubSyncErr } = await supabaseAdmin
       .from('platform_connections')
       .update({ last_sync: new Date().toISOString() })
       .eq('user_id', userId)
@@ -102,7 +90,7 @@ async function handleGmailPushNotification(message, userId) {
     const historyId = data.historyId;
 
     // Store the notification
-    const { error: gmailInsertErr } = await supabase
+    const { error: gmailInsertErr } = await supabaseAdmin
       .from('user_platform_data')
       .insert({
         user_id: userId,
@@ -119,7 +107,7 @@ async function handleGmailPushNotification(message, userId) {
     if (gmailInsertErr) console.error('[Webhook] Error storing Gmail push notification data:', gmailInsertErr.message);
 
     // Update last sync
-    const { error: gmailSyncErr } = await supabase
+    const { error: gmailSyncErr } = await supabaseAdmin
       .from('platform_connections')
       .update({ last_sync: new Date().toISOString() })
       .eq('user_id', userId)
@@ -154,7 +142,7 @@ async function handleSlackEvent(event, payload, userId) {
     }
 
     // Store the event
-    const { error: slackInsertErr } = await supabase
+    const { error: slackInsertErr } = await supabaseAdmin
       .from('user_platform_data')
       .insert({
         user_id: userId,
@@ -167,7 +155,7 @@ async function handleSlackEvent(event, payload, userId) {
     if (slackInsertErr) console.error('[Webhook] Error storing Slack event data:', slackInsertErr.message);
 
     // Update last sync
-    const { error: slackSyncErr } = await supabase
+    const { error: slackSyncErr } = await supabaseAdmin
       .from('platform_connections')
       .update({ last_sync: new Date().toISOString() })
       .eq('user_id', userId)
@@ -229,7 +217,7 @@ async function registerGitHubWebhook(userId, accessToken, repoOwner, repoName) {
     console.log(`✅ GitHub webhook registered for ${repoOwner}/${repoName}`);
 
     // Store webhook info in database
-    const { error: webhookInsertErr } = await supabase
+    const { error: webhookInsertErr } = await supabaseAdmin
       .from('platform_webhooks')
       .insert({
         user_id: userId,
@@ -285,7 +273,7 @@ async function setupGmailPushNotifications(userId, accessToken) {
     console.log(`✅ Gmail push notifications enabled for user ${userId}`);
 
     // Store watch info
-    const { error: gmailWatchInsertErr } = await supabase
+    const { error: gmailWatchInsertErr } = await supabaseAdmin
       .from('platform_webhooks')
       .insert({
         user_id: userId,
@@ -331,7 +319,7 @@ async function refreshGmailWatch(userId, accessToken) {
  */
 async function getUserIdByEmail(emailAddress) {
   // 1. Check platform_connections (most reliable — gmail connection stores email as platform_user_id)
-  const { data: conn } = await getSupabaseClient()
+  const { data: conn } = await supabaseAdmin
     .from('platform_connections')
     .select('user_id')
     .eq('platform', 'google_gmail')
@@ -344,7 +332,7 @@ async function getUserIdByEmail(emailAddress) {
   if (conn?.user_id) return conn.user_id;
 
   // 2. Fall back to users table by email
-  const { data: user } = await getSupabaseClient()
+  const { data: user } = await supabaseAdmin
     .from('users')
     .select('id')
     .eq('email', emailAddress)
@@ -359,7 +347,7 @@ async function getUserIdByEmail(emailAddress) {
  * Get webhook registration info for a user
  */
 async function getWebhookInfo(userId, platform) {
-  const { data, error } = await supabase
+  const { data, error } = await supabaseAdmin
     .from('platform_webhooks')
     .select('*')
     .eq('user_id', userId)

@@ -4,12 +4,7 @@
  * Using OpenID Connect scopes
  */
 
-import { createClient } from '@supabase/supabase-js';
-
-const supabase = createClient(
-  process.env.SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+import { supabaseAdmin } from '../database.js';
 
 class LinkedInExtractor {
   constructor(accessToken) {
@@ -125,7 +120,7 @@ class LinkedInExtractor {
    */
   async storeRawData(userId, platform, dataType, rawData) {
     try {
-      const { error } = await supabase
+      const { error } = await supabaseAdmin
         .from('user_platform_data')
         .upsert({
           user_id: userId,
@@ -152,7 +147,7 @@ class LinkedInExtractor {
    * Create extraction job
    */
   async createExtractionJob(userId, connectorId) {
-    const { data, error } = await supabase
+    const { data, error } = await supabaseAdmin
       .from('data_extraction_jobs')
       .insert({
         user_id: userId,
@@ -177,7 +172,7 @@ class LinkedInExtractor {
    * Complete extraction job
    */
   async completeExtractionJob(jobId, totalItems) {
-    const { error: updateErr } = await supabase
+    const { error: updateErr } = await supabaseAdmin
       .from('data_extraction_jobs')
       .update({
         status: 'completed',

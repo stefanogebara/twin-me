@@ -5,12 +5,7 @@
  * Handles privacy filtering, cluster-based revelation, and context-aware data access.
  */
 
-import { createClient } from '@supabase/supabase-js';
-
-const supabase = createClient(
-  process.env.VITE_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+import { supabaseAdmin } from './database.js';
 
 /**
  * Default life clusters with categories and default revelation levels
@@ -80,7 +75,7 @@ export const PLATFORM_CLUSTER_MAPPING = {
 export async function getOrCreatePrivacyProfile(userId) {
   try {
     // Try to get existing profile
-    const { data: existing, error: fetchError } = await supabase
+    const { data: existing, error: fetchError } = await supabaseAdmin
       .from('privacy_settings')
       .select('*')
       .eq('user_id', userId)
@@ -116,7 +111,7 @@ export async function getOrCreatePrivacyProfile(userId) {
       updated_at: new Date().toISOString()
     };
 
-    const { data: created, error: createError } = await supabase
+    const { data: created, error: createError } = await supabaseAdmin
       .from('privacy_settings')
       .insert(defaultProfile)
       .select()
@@ -142,7 +137,7 @@ export async function updateGlobalPrivacyLevel(userId, globalLevel) {
       throw new Error('Global privacy level must be between 0 and 100');
     }
 
-    const { data, error } = await supabase
+    const { data, error } = await supabaseAdmin
       .from('privacy_settings')
       .update({
         global_privacy: globalLevel,
@@ -171,7 +166,7 @@ export async function updateClusterPrivacy(userId, clusterId, revelationLevel, i
     }
 
     // Get current settings
-    const { data: settings, error: fetchError } = await supabase
+    const { data: settings, error: fetchError } = await supabaseAdmin
       .from('privacy_settings')
       .select('clusters')
       .eq('user_id', userId)
@@ -204,7 +199,7 @@ export async function updateClusterPrivacy(userId, clusterId, revelationLevel, i
     }
 
     // Save updated clusters
-    const { data, error } = await supabase
+    const { data, error } = await supabaseAdmin
       .from('privacy_settings')
       .update({
         clusters,
@@ -229,7 +224,7 @@ export async function updateClusterPrivacy(userId, clusterId, revelationLevel, i
 export async function batchUpdateClusters(userId, clusterUpdates) {
   try {
     // Get current settings
-    const { data: settings, error: fetchError } = await supabase
+    const { data: settings, error: fetchError } = await supabaseAdmin
       .from('privacy_settings')
       .select('clusters')
       .eq('user_id', userId)
@@ -252,7 +247,7 @@ export async function batchUpdateClusters(userId, clusterUpdates) {
     });
 
     // Save updated clusters
-    const { data, error } = await supabase
+    const { data, error } = await supabaseAdmin
       .from('privacy_settings')
       .update({
         clusters,
@@ -276,7 +271,7 @@ export async function batchUpdateClusters(userId, clusterUpdates) {
  */
 export async function getEffectivePrivacyLevel(userId, clusterId, audienceId = 'social') {
   try {
-    const { data: settings, error } = await supabase
+    const { data: settings, error } = await supabaseAdmin
       .from('privacy_settings')
       .select('clusters, audience_specific_settings')
       .eq('user_id', userId)
@@ -306,7 +301,7 @@ export async function getEffectivePrivacyLevel(userId, clusterId, audienceId = '
 export async function filterDataByPrivacy(userId, data, platformName, audienceId = 'social') {
   try {
     // Get user's privacy settings
-    const { data: settings, error } = await supabase
+    const { data: settings, error } = await supabaseAdmin
       .from('privacy_settings')
       .select('*')
       .eq('user_id', userId)
@@ -406,7 +401,7 @@ function filterToMinimal(data) {
  */
 export async function getPrivacyStats(userId) {
   try {
-    const { data: settings, error } = await supabase
+    const { data: settings, error } = await supabaseAdmin
       .from('privacy_settings')
       .select('*')
       .eq('user_id', userId)
@@ -489,7 +484,7 @@ export async function resetPrivacySettings(userId) {
       updated_at: new Date().toISOString()
     };
 
-    const { data, error } = await supabase
+    const { data, error } = await supabaseAdmin
       .from('privacy_settings')
       .update(defaultProfile)
       .eq('user_id', userId)
@@ -499,7 +494,7 @@ export async function resetPrivacySettings(userId) {
     if (error) throw error;
 
     // Log reset action
-    const { error: auditLogErr } = await supabase.from('privacy_audit_log').insert({
+    const { error: auditLogErr } = await supabaseAdmin.from('privacy_audit_log').insert({
       user_id: userId,
       action: 'reset_to_defaults',
       changed_at: new Date().toISOString()
@@ -518,7 +513,7 @@ export async function resetPrivacySettings(userId) {
  */
 export async function updateContextPrivacy(userId, contextName, clusterOverrides) {
   try {
-    const { data: settings, error: fetchError } = await supabase
+    const { data: settings, error: fetchError } = await supabaseAdmin
       .from('privacy_settings')
       .select('audience_specific_settings')
       .eq('user_id', userId)
@@ -529,7 +524,7 @@ export async function updateContextPrivacy(userId, contextName, clusterOverrides
     const audienceSettings = settings.audience_specific_settings || {};
     audienceSettings[contextName] = clusterOverrides;
 
-    const { data, error } = await supabase
+    const { data, error } = await supabaseAdmin
       .from('privacy_settings')
       .update({
         audience_specific_settings: audienceSettings,

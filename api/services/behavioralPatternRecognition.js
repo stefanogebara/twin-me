@@ -23,12 +23,7 @@
  * - Clear explanations for detected patterns
  */
 
-import { createClient } from '@supabase/supabase-js';
-
-const supabase = createClient(
-  process.env.VITE_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+import { supabaseAdmin } from './database.js';
 
 // ====================================================================
 // TEMPORAL CORRELATION DETECTION
@@ -51,7 +46,7 @@ export async function detectTemporalCorrelations(userId, timeWindowHours = 72) {
 
     // Step 1: Fetch calendar events in time window
     // Support multiple calendar data formats: google_calendar/events, calendar/recent_event, calendar/upcoming_event
-    const { data: calendarEvents, error: calendarError } = await supabase
+    const { data: calendarEvents, error: calendarError } = await supabaseAdmin
       .from('user_platform_data')
       .select('*')
       .eq('user_id', userId)
@@ -70,7 +65,7 @@ export async function detectTemporalCorrelations(userId, timeWindowHours = 72) {
     console.log(`📅 [Pattern Recognition] Found ${calendarEvents.length} calendar events`);
 
     // Step 2: Fetch platform activities in time window (Spotify, YouTube, Discord, etc.)
-    const { data: activities, error: activitiesError } = await supabase
+    const { data: activities, error: activitiesError } = await supabaseAdmin
       .from('user_platform_data')
       .select('*')
       .eq('user_id', userId)
@@ -414,7 +409,7 @@ export async function detectAndStoreBehavioralPatterns(userId, options = {}) {
     for (const pattern of validPatterns) {
       const confidenceScore = scorePatternConfidence(pattern);
 
-      const { data, error } = await supabase
+      const { data, error } = await supabaseAdmin
         .from('behavioral_patterns')
         .upsert({
           user_id: userId,
@@ -630,7 +625,7 @@ function inferPurpose(eventType, timeOffsetMinutes) {
  */
 export async function getUserPatterns(userId, filters = {}) {
   try {
-    let query = supabase
+    let query = supabaseAdmin
       .from('behavioral_patterns')
       .select('*')
       .eq('user_id', userId)
@@ -673,7 +668,7 @@ export async function getHighConfidencePatterns(userId) {
  */
 export async function deletePattern(userId, patternId) {
   try {
-    const { error } = await supabase
+    const { error } = await supabaseAdmin
       .from('behavioral_patterns')
       .delete()
       .eq('id', patternId)
