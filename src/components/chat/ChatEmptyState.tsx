@@ -97,8 +97,9 @@ export const ChatEmptyState = ({
                 onClick={() => onQuickAction(action.label)}
                 className="flex items-center gap-2 px-4 py-2 rounded-full text-sm transition-all"
                 style={{
-                  background: 'transparent',
-                  border: '1.5px solid var(--glass-surface-border)',
+                  background: 'rgba(255,255,255,0.03)',
+                  backdropFilter: 'blur(8px)',
+                  border: '1.5px solid rgba(212,168,83,0.20)',
                   color: 'var(--foreground)',
                 }}
                 initial={{ opacity: 0, y: 10 }}
@@ -136,11 +137,11 @@ export const ChatEmptyState = ({
             )}
             style={{
               backgroundColor: platform.connected
-                ? `${platform.color}15`
+                ? `${platform.color}20`
                 : 'var(--glass-surface-bg)',
               color: platform.connected ? platform.color : 'var(--text-muted)',
               border: platform.connected
-                ? `1px solid ${platform.color}30`
+                ? `1px solid ${platform.color}35`
                 : '1px solid var(--glass-surface-border)'
             }}
           >
