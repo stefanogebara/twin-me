@@ -149,8 +149,8 @@ export class RealTimeExtractor {
 
   /**
    * Extract YouTube personality signature
-   * NOTE: YouTube API implementation pending - no public watch history API available
-   * TODO: Implement browser extension for data collection
+   * NOTE: YouTube API doesn't expose watch history. Data collected via browser extension
+   * (see browser-extension/) which captures watch activity and sends to /api/extension.
    */
   async extractYouTubeSignature(accessToken, userId) {
     try {
