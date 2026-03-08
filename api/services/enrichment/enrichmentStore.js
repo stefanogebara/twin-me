@@ -9,12 +9,7 @@
  * - Reset confirmation (for testing)
  */
 
-import { createClient } from '@supabase/supabase-js';
-
-const supabase = createClient(
-  process.env.SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+import { supabaseAdmin } from '../database.js';
 
 /**
  * Save enrichment data to database
@@ -64,7 +59,7 @@ export async function saveEnrichment(userId, email, enrichmentData) {
       enriched_at: new Date().toISOString()
     };
 
-    const { data, error } = await supabase
+    const { data, error } = await supabaseAdmin
       .from('enriched_profiles')
       .upsert(dbFields, {
         onConflict: 'user_id'
@@ -90,7 +85,7 @@ export async function saveEnrichment(userId, email, enrichmentData) {
  */
 export async function getEnrichment(userId) {
   try {
-    const { data, error } = await supabase
+    const { data, error } = await supabaseAdmin
       .from('enriched_profiles')
       .select('*')
       .eq('user_id', userId)
@@ -114,7 +109,7 @@ export async function confirmEnrichment(userId, confirmedData, corrections = nul
   console.log(`[ProfileEnrichment] Confirming enrichment for user ${userId}`);
 
   try {
-    const { data, error } = await supabase
+    const { data, error } = await supabaseAdmin
       .from('enriched_profiles')
       .update({
         user_confirmed: true,
@@ -144,7 +139,7 @@ export async function confirmEnrichment(userId, confirmedData, corrections = nul
  */
 export async function getEnrichmentStatus(userId) {
   try {
-    const { data, error } = await supabase
+    const { data, error } = await supabaseAdmin
       .from('enriched_profiles')
       .select('id, enriched_at, user_confirmed, confirmed_at, discovered_company, discovered_title, identity_confidence')
       .eq('user_id', userId)
@@ -187,7 +182,7 @@ export async function resetConfirmation(userId) {
   console.log(`[ProfileEnrichment] Resetting confirmation for user ${userId}`);
 
   try {
-    const { data, error } = await supabase
+    const { data, error } = await supabaseAdmin
       .from('enriched_profiles')
       .update({
         user_confirmed: false,

@@ -17,7 +17,7 @@
 import cron from 'node-cron';
 import { refreshAccessToken } from './tokenRefreshService.js';
 import { decryptToken, encryptToken } from './encryption.js';
-import { createClient } from '@supabase/supabase-js';
+import { supabaseAdmin } from './database.js';
 
 // Nango-managed tokens use placeholder values - don't try to refresh them ourselves
 const NANGO_PLACEHOLDER_TOKENS = ['NANGO_MANAGED', 'nango_managed', 'managed_by_nango'];
@@ -32,26 +32,6 @@ function isNangoManagedToken(token) {
     return true;
   }
   return false;
-}
-
-// =========================================================================
-// Supabase Client Initialization (Lazy)
-// =========================================================================
-
-let supabase = null;
-
-/**
- * Get or initialize Supabase client
- * Lazy initialization to ensure env vars are loaded first
- */
-function getSupabaseClient() {
-  if (!supabase) {
-    supabase = createClient(
-      process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL,
-      process.env.SUPABASE_SERVICE_ROLE_KEY
-    );
-  }
-  return supabase;
 }
 
 // =========================================================================
@@ -85,14 +65,13 @@ const tokenRefreshJobHandler = async () => {
   console.log('🔄 [Token Lifecycle] Starting token refresh job...');
 
   try {
-    const supabase = getSupabaseClient();
 
     // Get all tokens that need refresh:
     // 1. Connected tokens expiring within 5 minutes
     // 2. Already expired tokens (they may still have valid refresh tokens)
     const fiveMinutesFromNow = new Date(Date.now() + 5 * 60 * 1000).toISOString();
 
-    const { data: expiringTokens, error } = await supabase
+    const { data: expiringTokens, error } = await supabaseAdmin
       .from('platform_connections')
       .select('user_id, platform, access_token, refresh_token, token_expires_at, status')
       .not('refresh_token', 'is', null)
@@ -154,7 +133,7 @@ const tokenRefreshJobHandler = async () => {
             const encryptedRefreshToken = encryptToken(newTokens.refreshToken);
             const newExpiryTime = new Date(Date.now() + newTokens.expiresIn * 1000).toISOString();
 
-            const { error: tokenUpdateErr } = await getSupabaseClient()
+            const { error: tokenUpdateErr } = await supabaseAdmin
               .from('platform_connections')
               .update({
                 access_token: encryptedAccessToken,
@@ -183,7 +162,7 @@ const tokenRefreshJobHandler = async () => {
 
           // Mark connection as expired if refresh fails
           {
-            const { error: expiredUpdateErr } = await getSupabaseClient()
+            const { error: expiredUpdateErr } = await supabaseAdmin
               .from('platform_connections')
               .update({
                 status: 'expired',
@@ -242,10 +221,9 @@ const oauthCleanupJobHandler = async () => {
   console.log('🧹 [Token Lifecycle] Starting OAuth state cleanup job...');
 
   try {
-    const supabase = getSupabaseClient();
 
     // Delete expired oauth_states (older than expiration time)
-    const { data: expiredStates, error: expiredError } = await supabase
+    const { data: expiredStates, error: expiredError } = await supabaseAdmin
       .from('oauth_states')
       .delete()
       .lt('expires_at', new Date().toISOString())
@@ -260,7 +238,7 @@ const oauthCleanupJobHandler = async () => {
 
     // Delete used oauth_states older than 1 hour (keep recent ones for debugging)
     const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString();
-    const { data: usedStates, error: usedError } = await supabase
+    const { data: usedStates, error: usedError } = await supabaseAdmin
       .from('oauth_states')
       .delete()
       .eq('used', true)

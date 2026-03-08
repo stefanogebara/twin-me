@@ -1,10 +1,5 @@
-import { createClient } from '@supabase/supabase-js';
+import { supabaseAdmin } from '../database.js';
 import { encryptToken, decryptToken } from '../encryption.js';
-
-const supabase = createClient(
-  process.env.SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
-);
 
 /**
  * GitHub Token Manager
@@ -21,7 +16,7 @@ export class GithubTokenManager {
   static async getValidAccessToken(userId) {
     try {
       // Fetch connection from database
-      const { data: connection, error } = await supabase
+      const { data: connection, error } = await supabaseAdmin
         .from('platform_connections')
         .select('*')
         .eq('user_id', userId)
@@ -45,7 +40,7 @@ export class GithubTokenManager {
         console.error(`❌ GitHub token invalid for user ${userId}`);
 
         // Mark connection as needs reauth
-        const { error: reauthErr } = await supabase
+        const { error: reauthErr } = await supabaseAdmin
           .from('platform_connections')
           .update({
             status: 'needs_reauth',
@@ -92,7 +87,7 @@ export class GithubTokenManager {
    * Check if user has GitHub connected
    */
   static async isConnected(userId) {
-    const { data, error } = await supabase
+    const { data, error } = await supabaseAdmin
       .from('platform_connections')
       .select('id, status')
       .eq('user_id', userId)
@@ -106,7 +101,7 @@ export class GithubTokenManager {
    * Revoke GitHub connection (user disconnect)
    */
   static async revokeConnection(userId) {
-    const { error } = await supabase
+    const { error } = await supabaseAdmin
       .from('platform_connections')
       .delete()
       .eq('user_id', userId)
@@ -124,7 +119,7 @@ export class GithubTokenManager {
    * Get connection status with metadata
    */
   static async getConnectionStatus(userId) {
-    const { data, error } = await supabase
+    const { data, error } = await supabaseAdmin
       .from('platform_connections')
       .select('*')
       .eq('user_id', userId)

@@ -5,21 +5,9 @@
  */
 
 import cron from 'node-cron';
-import { createClient } from '@supabase/supabase-js';
+import { supabaseAdmin } from './database.js';
 import { ensureFreshToken } from './tokenRefreshService.js';
 import axios from 'axios';
-
-// Lazy initialization to avoid crashes if env vars not loaded yet
-let supabase = null;
-function getSupabaseClient() {
-  if (!supabase) {
-    supabase = createClient(
-      process.env.SUPABASE_URL,
-      process.env.SUPABASE_SERVICE_ROLE_KEY
-    );
-  }
-  return supabase;
-}
 
 // Platform-specific polling configurations
 const POLLING_CONFIGS = {
@@ -112,7 +100,7 @@ async function pollPlatform(userId, platform, accessToken) {
       // Replace placeholders (e.g., {username})
       if (url.includes('{username}')) {
         // Get username from platform_connections metadata
-        const { data: connection, error: connErr } = await getSupabaseClient()
+        const { data: connection, error: connErr } = await supabaseAdmin
           .from('platform_connections')
           .select('platform_user_id, metadata')
           .eq('user_id', userId)
@@ -138,7 +126,7 @@ async function pollPlatform(userId, platform, accessToken) {
       console.log(`✅ Successfully polled ${platform} - ${endpoint.name}`);
 
       // Store the raw data
-      const { error: insertErr } = await getSupabaseClient().from('user_platform_data').insert({
+      const { error: insertErr } = await supabaseAdmin.from('user_platform_data').insert({
         user_id: userId,
         platform: platform,
         data_type: endpoint.name,
@@ -166,7 +154,7 @@ async function pollPlatform(userId, platform, accessToken) {
 
       // If unauthorized, mark connection as needs_reauth
       if (error.response?.status === 401) {
-        const { error: reauthErr } = await getSupabaseClient()
+        const { error: reauthErr } = await supabaseAdmin
           .from('platform_connections')
           .update({
             status: 'needs_reauth',
@@ -194,7 +182,7 @@ async function pollAllPlatformsForUser(userId) {
     console.log(`🔍 Polling all platforms for user: ${userId}`);
 
     // Get all connected platforms for this user
-    const { data: connections, error } = await getSupabaseClient()
+    const { data: connections, error } = await supabaseAdmin
       .from('platform_connections')
       .select('*')
       .eq('user_id', userId)
@@ -221,7 +209,7 @@ async function pollAllPlatformsForUser(userId) {
           const result = await nangoService.extractPlatformData(userId, connection.platform);
           if (result.success) {
             await nangoService.storeNangoExtractionData(userId, connection.platform, result);
-            const { error: nangoSyncErr } = await getSupabaseClient()
+            const { error: nangoSyncErr } = await supabaseAdmin
               .from('platform_connections')
               .update({
                 last_sync: new Date().toISOString(),
@@ -251,7 +239,7 @@ async function pollAllPlatformsForUser(userId) {
         const results = await pollPlatform(userId, connection.platform, accessToken);
 
         // Update last sync time
-        const { error: legacySyncErr } = await getSupabaseClient()
+        const { error: legacySyncErr } = await supabaseAdmin
           .from('platform_connections')
           .update({
             last_sync: new Date().toISOString(),
@@ -295,7 +283,7 @@ async function pollAllUsers() {
     console.log('🌍 Starting background polling for all users...');
 
     // Get all unique user IDs with at least one connected platform
-    const { data: connections, error } = await getSupabaseClient()
+    const { data: connections, error } = await supabaseAdmin
       .from('platform_connections')
       .select('user_id')
       .eq('status', 'connected');
@@ -388,7 +376,7 @@ async function pollPlatformForAllUsers(platform) {
   try {
     console.log(`📡 Polling ${platform} for all users...`);
 
-    const { data: connections, error } = await getSupabaseClient()
+    const { data: connections, error } = await supabaseAdmin
       .from('platform_connections')
       .select('user_id')
       .eq('platform', platform)
@@ -411,7 +399,7 @@ async function pollPlatformForAllUsers(platform) {
     for (const userId of uniqueUserIds) {
       try {
         // Check if this user's connection is Nango-managed
-        const { data: conn } = await getSupabaseClient()
+        const { data: conn } = await supabaseAdmin
           .from('platform_connections')
           .select('id, access_token')
           .eq('user_id', userId)
@@ -425,7 +413,7 @@ async function pollPlatformForAllUsers(platform) {
           const result = await nangoService.extractPlatformData(userId, platform);
           if (result.success) {
             await nangoService.storeNangoExtractionData(userId, platform, result);
-            const { error: pollUpdateErr } = await getSupabaseClient()
+            const { error: pollUpdateErr } = await supabaseAdmin
               .from('platform_connections')
               .update({
                 last_sync: new Date().toISOString(),
@@ -448,7 +436,7 @@ async function pollPlatformForAllUsers(platform) {
         await pollPlatform(userId, platform, accessToken);
 
         // Update last sync time
-        const { error: syncUpdateErr } = await getSupabaseClient()
+        const { error: syncUpdateErr } = await supabaseAdmin
           .from('platform_connections')
           .update({
             last_sync: new Date().toISOString(),

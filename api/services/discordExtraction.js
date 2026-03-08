@@ -6,20 +6,8 @@
  */
 
 import axios from 'axios';
-import { createClient } from '@supabase/supabase-js';
+import { supabaseAdmin } from './database.js';
 import { decryptToken } from './encryption.js';
-
-// Lazy initialization to avoid crashes if env vars not loaded yet
-let supabase = null;
-function getSupabaseClient() {
-  if (!supabase) {
-    supabase = createClient(
-      process.env.SUPABASE_URL,
-      process.env.SUPABASE_SERVICE_ROLE_KEY
-    );
-  }
-  return supabase;
-}
 
 /**
  * Main extraction function - retrieves all Discord data
@@ -27,7 +15,7 @@ function getSupabaseClient() {
 export async function extractDiscordData(userId) {
   try {
     // Get platform connection with encrypted tokens
-    const { data: connection, error: connectionError } = await getSupabaseClient()
+    const { data: connection, error: connectionError } = await supabaseAdmin
       .from('platform_connections')
       .select('*')
       .eq('user_id', userId)
@@ -83,7 +71,7 @@ export async function extractDiscordData(userId) {
     console.log(`✅ Extracted ${totalItems} Discord items`);
 
     // Save extracted data to soul_data table
-    const { error: insertError } = await getSupabaseClient()
+    const { error: insertError } = await supabaseAdmin
       .from('soul_data')
       .insert({
         user_id: userId,
@@ -103,7 +91,7 @@ export async function extractDiscordData(userId) {
     }
 
     // Update connection status
-    const { error: syncSuccessErr } = await getSupabaseClient()
+    const { error: syncSuccessErr } = await supabaseAdmin
       .from('platform_connections')
       .update({
         last_sync_at: new Date().toISOString(),
@@ -126,7 +114,7 @@ export async function extractDiscordData(userId) {
 
     // Handle token expiration
     if (error.response?.status === 401) {
-      const { error: reauthErr } = await getSupabaseClient()
+      const { error: reauthErr } = await supabaseAdmin
         .from('platform_connections')
         .update({
           last_sync_status: 'requires_reauth'
@@ -154,7 +142,7 @@ export async function extractDiscordData(userId) {
     }
 
     // Update connection with error status
-    const { error: failedErr } = await getSupabaseClient()
+    const { error: failedErr } = await supabaseAdmin
       .from('platform_connections')
       .update({
         last_sync_status: 'failed'

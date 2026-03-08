@@ -4,13 +4,8 @@
  */
 
 // Node.js 18+ has built-in fetch, no need for node-fetch
-import { createClient } from '@supabase/supabase-js';
+import { supabaseAdmin } from '../database.js';
 import { ensureFreshToken } from '../tokenRefreshService.js';
-
-const supabase = createClient(
-  process.env.SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
-);
 
 class SpotifyExtractor {
   constructor(userId, platform = 'spotify') {
@@ -380,7 +375,7 @@ class SpotifyExtractor {
    */
   async storeRawData(userId, platform, dataType, rawData) {
     try {
-      const { error } = await supabase
+      const { error } = await supabaseAdmin
         .from('user_platform_data')
         .upsert({
           user_id: userId,
@@ -407,7 +402,7 @@ class SpotifyExtractor {
    * Create extraction job
    */
   async createExtractionJob(userId, connectorId) {
-    const { data, error } = await supabase
+    const { data, error } = await supabaseAdmin
       .from('data_extraction_jobs')
       .insert({
         user_id: userId,
@@ -432,7 +427,7 @@ class SpotifyExtractor {
    * Complete extraction job
    */
   async completeExtractionJob(jobId, totalItems) {
-    const { error: updateErr } = await supabase
+    const { error: updateErr } = await supabaseAdmin
       .from('data_extraction_jobs')
       .update({
         status: 'completed',
@@ -449,7 +444,7 @@ class SpotifyExtractor {
    * Mark extraction job as failed
    */
   async failExtractionJob(jobId, errorMessage) {
-    const { error: failErr } = await supabase
+    const { error: failErr } = await supabaseAdmin
       .from('data_extraction_jobs')
       .update({
         status: 'failed',

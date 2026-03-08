@@ -3,19 +3,8 @@
  * Manages research paper embeddings and retrieval for evidence-backed personality inference
  */
 
-import { createClient } from '@supabase/supabase-js';
+import { supabaseAdmin } from './database.js';
 import OpenAI from 'openai';
-
-let supabase = null;
-function getSupabaseClient() {
-  if (!supabase) {
-    supabase = createClient(
-      process.env.SUPABASE_URL,
-      process.env.SUPABASE_SERVICE_ROLE_KEY
-    );
-  }
-  return supabase;
-}
 
 // Initialize OpenAI client
 const openai = process.env.OPENAI_API_KEY ? new OpenAI({
@@ -116,11 +105,11 @@ class ResearchRAGService {
    */
   async indexResearchPapers() {
     console.log('[ResearchRAG] Starting research paper indexing...');
-    const supabase = getSupabaseClient();
+
 
     try {
       // Get all papers without embeddings
-      const { data: papers, error } = await supabase
+      const { data: papers, error } = await supabaseAdmin
         .from('research_paper_embeddings')
         .select('id, paper_id, title, content')
         .is('embedding', null);
@@ -157,7 +146,7 @@ class ResearchRAGService {
           const embeddingVector = `[${embedding.join(',')}]`;
 
           // Update paper with embedding
-          const { error: updateError } = await supabase
+          const { error: updateError } = await supabaseAdmin
             .from('research_paper_embeddings')
             .update({
               embedding: embeddingVector,
@@ -200,7 +189,7 @@ class ResearchRAGService {
    */
   async searchResearch(query, limit = 5, threshold = 0.3) {
     console.log(`[ResearchRAG] Searching for: "${query}"`);
-    const supabase = getSupabaseClient();
+
 
     try {
       // Generate query embedding
@@ -215,7 +204,7 @@ class ResearchRAGService {
       const queryVector = `[${queryEmbedding.join(',')}]`;
 
       // Search using vector similarity
-      const { data: results, error } = await supabase.rpc('search_research_papers', {
+      const { data: results, error } = await supabaseAdmin.rpc('search_research_papers', {
         query_embedding: queryVector,
         match_count: limit,
         similarity_threshold: threshold
@@ -240,11 +229,11 @@ class ResearchRAGService {
    * Fallback search when RPC function is not available
    */
   async fallbackSearch(queryVector, limit, threshold) {
-    const supabase = getSupabaseClient();
+
 
     try {
       // Get all papers with embeddings
-      const { data: papers, error } = await supabase
+      const { data: papers, error } = await supabaseAdmin
         .from('research_paper_embeddings')
         .select('id, paper_id, title, content, embedding, metadata')
         .not('embedding', 'is', null);
@@ -375,9 +364,9 @@ class ResearchRAGService {
    * Get all indexed papers summary
    */
   async getIndexStatus() {
-    const supabase = getSupabaseClient();
 
-    const { data, error } = await supabase
+
+    const { data, error } = await supabaseAdmin
       .from('research_paper_embeddings')
       .select('paper_id, title, embedding, metadata');
 

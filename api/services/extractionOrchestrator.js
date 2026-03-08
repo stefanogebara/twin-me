@@ -5,7 +5,7 @@
  * Manages extraction jobs, retry logic, and periodic syncing.
  */
 
-import { createClient } from '@supabase/supabase-js';
+import { supabaseAdmin } from './database.js';
 import { extractSpotifyData } from './spotifyExtraction.js';
 import { extractDiscordData } from './discordExtraction.js';
 import { extractGitHubData } from './githubExtraction.js';
@@ -19,11 +19,6 @@ const linkedinFeatureExtractor = { extractFeatures: async () => ({}), saveFeatur
 // Pattern Learning Bridge
 import patternLearningBridge from './patternLearningBridge.js';
 
-// Initialize Supabase client
-const supabase = createClient(
-  process.env.SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
-);
 
 class ExtractionOrchestrator {
   constructor() {
@@ -41,7 +36,7 @@ class ExtractionOrchestrator {
 
     try {
       // 1. Get all connected platforms
-      const { data: connections, error } = await supabase
+      const { data: connections, error } = await supabaseAdmin
         .from('platform_connections')
         .select('*')
         .eq('user_id', userId)
@@ -75,7 +70,7 @@ class ExtractionOrchestrator {
       const results = await Promise.all(extractionPromises);
 
       // 3b. Invalidate stale twin_summaries so a fresh one regenerates on next chat
-      const { error: invalidateErr } = await supabase
+      const { error: invalidateErr } = await supabaseAdmin
         .from('twin_summaries')
         .delete()
         .eq('user_id', userId);
@@ -315,7 +310,7 @@ class ExtractionOrchestrator {
       };
 
       // Get all platform connections
-      const { data: connections, error: connErr } = await supabase
+      const { data: connections, error: connErr } = await supabaseAdmin
         .from('platform_connections')
         .select('platform, last_sync_at, last_sync_status, status')
         .eq('user_id', userId);
@@ -324,7 +319,7 @@ class ExtractionOrchestrator {
       }
 
       // Get recent extraction jobs
-      const { data: jobs } = await supabase
+      const { data: jobs } = await supabaseAdmin
         .from('data_extraction_jobs')
         .select('*')
         .eq('user_id', userId)
@@ -377,7 +372,7 @@ class ExtractionOrchestrator {
       // Get failed jobs from the last 24 hours
       const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
 
-      let query = supabase
+      let query = supabaseAdmin
         .from('data_extraction_jobs')
         .select('user_id, platform')
         .eq('status', 'failed')
@@ -439,7 +434,7 @@ class ExtractionOrchestrator {
 
       try {
         // Get all users with connected platforms (bounded to prevent loading entire table)
-        const { data: users, error: usersErr } = await supabase
+        const { data: users, error: usersErr } = await supabaseAdmin
           .from('platform_connections')
           .select('user_id')
           .not('access_token', 'is', null)
@@ -492,7 +487,7 @@ class ExtractionOrchestrator {
    * Create extraction job record
    */
   async createExtractionJob(userId, platform) {
-    const { data, error } = await supabase
+    const { data, error } = await supabaseAdmin
       .from('data_extraction_jobs')
       .insert({
         user_id: userId,
@@ -531,7 +526,7 @@ class ExtractionOrchestrator {
       updates.error_message = errorMessage;
     }
 
-    const { error } = await supabase
+    const { error } = await supabaseAdmin
       .from('data_extraction_jobs')
       .update(updates)
       .eq('id', jobId);

@@ -5,33 +5,7 @@
  */
 
 import WebSocket from 'ws';
-import { createClient } from '@supabase/supabase-js';
-
-// Lazy-load Supabase client to ensure env vars are loaded first
-let supabase = null;
-function getSupabase() {
-  if (!supabase) {
-    if (!process.env.SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
-      console.error('❌ [WebSocket] Missing Supabase credentials:', {
-        hasUrl: !!process.env.SUPABASE_URL,
-        hasServiceKey: !!process.env.SUPABASE_SERVICE_ROLE_KEY
-      });
-      throw new Error('Missing Supabase credentials for WebSocket service');
-    }
-
-    try {
-      supabase = createClient(
-        process.env.SUPABASE_URL,
-        process.env.SUPABASE_SERVICE_ROLE_KEY
-      );
-      console.log('✅ [WebSocket] Supabase client initialized');
-    } catch (error) {
-      console.error('❌ [WebSocket] Failed to create Supabase client:', error);
-      throw error;
-    }
-  }
-  return supabase;
-}
+import { supabaseAdmin } from './database.js';
 
 let wss = null;
 const clients = new Map(); // userId -> WebSocket connection
@@ -112,7 +86,7 @@ async function sendPlatformStatus(userId) {
   }
 
   try {
-    const { data: connections, error} = await getSupabase()
+    const { data: connections, error} = await supabaseAdmin
       .from('platform_connections')
       .select('*')
       .eq('user_id', userId);

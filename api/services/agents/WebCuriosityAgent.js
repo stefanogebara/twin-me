@@ -13,19 +13,7 @@
 
 import AgentBase from './AgentBase.js';
 import researchRAGService from '../researchRAGService.js';
-import { createClient } from '@supabase/supabase-js';
-
-// Lazy Supabase initialization
-let supabase = null;
-function getSupabaseClient() {
-  if (!supabase) {
-    supabase = createClient(
-      process.env.SUPABASE_URL,
-      process.env.SUPABASE_SERVICE_ROLE_KEY
-    );
-  }
-  return supabase;
-}
+import { supabaseAdmin } from '../database.js';
 
 // Research-validated correlations from peer-reviewed studies
 const WEB_CURIOSITY_CORRELATIONS = {
@@ -251,12 +239,10 @@ Applies research-backed correlations to compute scores with confidence intervals
   async getWebBrowsingData(userId) {
     console.log(`[WebCuriosityAgent] Fetching web browsing data for ${userId}`);
 
-    const supabase = getSupabaseClient();
-
     // Get web browsing events from last 30 days
     const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
 
-    const { data: webEvents, error } = await supabase
+    const { data: webEvents, error } = await supabaseAdmin
       .from('user_platform_data')
       .select('raw_data, data_type, extracted_at')
       .eq('user_id', userId)

@@ -9,18 +9,7 @@
  */
 
 import cron from 'node-cron';
-import { createClient } from '@supabase/supabase-js';
-
-let supabase = null;
-function getSupabaseClient() {
-  if (!supabase) {
-    supabase = createClient(
-      process.env.SUPABASE_URL,
-      process.env.SUPABASE_SERVICE_ROLE_KEY
-    );
-  }
-  return supabase;
-}
+import { supabaseAdmin } from './database.js';
 
 // Platform-specific refresh token lifetimes (in days)
 const REFRESH_TOKEN_LIFETIMES = {
@@ -40,11 +29,10 @@ async function checkExpiringTokens() {
   console.log('🔔 [Token Notifier] Checking for expiring tokens...');
 
   try {
-    const supabase = getSupabaseClient();
 
     // Get all connections - check both approaching expiry and already expired
     // Exclude NANGO_MANAGED connections since Nango handles token refresh automatically
-    const { data: connections, error } = await supabase
+    const { data: connections, error } = await supabaseAdmin
       .from('platform_connections')
       .select('id, user_id, platform, last_sync_at, status, updated_at, token_expires_at, access_token')
       .in('status', ['connected', 'token_expired', 'expired'])
@@ -127,7 +115,7 @@ async function checkExpiringTokens() {
       try {
         for (const notification of notificationsToCreate) {
           // Check for existing unread notification for same platform/user/type
-          const { data: existing, error: checkError } = await supabase
+          const { data: existing, error: checkError } = await supabaseAdmin
             .from('user_notifications')
             .select('id')
             .eq('user_id', notification.user_id)
@@ -141,7 +129,7 @@ async function checkExpiringTokens() {
           }
 
           if (!existing) {
-            const { error: insertError } = await supabase
+            const { error: insertError } = await supabaseAdmin
               .from('user_notifications')
               .insert(notification);
 
@@ -179,9 +167,8 @@ async function keepTokenAlive(userId, platform) {
   try {
     // Make a simple API call to use the token
     // This often extends the refresh token lifetime on some platforms
-    const supabase = getSupabaseClient();
 
-    const { data: conn } = await supabase
+    const { data: conn } = await supabaseAdmin
       .from('platform_connections')
       .select('access_token')
       .eq('user_id', userId)
@@ -194,7 +181,7 @@ async function keepTokenAlive(userId, platform) {
     }
 
     // Update last_sync_at to extend the "activity" window
-    const { error: keepAliveErr } = await supabase
+    const { error: keepAliveErr } = await supabaseAdmin
       .from('platform_connections')
       .update({
         last_sync_at: new Date().toISOString(),

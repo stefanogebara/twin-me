@@ -3,7 +3,7 @@
  * Orchestrates data extraction from all connected OAuth platforms
  */
 
-import { createClient } from '@supabase/supabase-js';
+import { supabaseAdmin } from './database.js';
 import GitHubExtractor from './extractors/githubExtractor.js';
 import DiscordExtractor from './extractors/discordExtractor.js';
 import LinkedInExtractor from './extractors/linkedinExtractor.js';
@@ -27,32 +27,6 @@ import {
 import { invalidatePlatformStatusCache } from './redisClient.js';
 import { addPlatformMemory } from './mem0Service.js';
 
-// Use SUPABASE_URL (backend) - fallback to VITE_ prefix for compatibility
-// Lazy initialization to avoid crashes if env vars not loaded yet
-let supabase = null;
-function getSupabaseClient() {
-  if (!supabase) {
-    if (!process.env.SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
-      console.error('❌ [DataExtraction] Missing Supabase credentials:', {
-        hasUrl: !!process.env.SUPABASE_URL,
-        hasServiceKey: !!process.env.SUPABASE_SERVICE_ROLE_KEY
-      });
-      throw new Error('Missing Supabase credentials for DataExtraction service');
-    }
-
-    try {
-      supabase = createClient(
-        process.env.SUPABASE_URL,
-        process.env.SUPABASE_SERVICE_ROLE_KEY
-      );
-      console.log('✅ [DataExtraction] Supabase client initialized');
-    } catch (error) {
-      console.error('❌ [DataExtraction] Failed to create Supabase client:', error);
-      throw error;
-    }
-  }
-  return supabase;
-}
 
 class DataExtractionService {
   /**
@@ -66,7 +40,7 @@ class DataExtractionService {
 
     try {
       // Get connector for this platform
-      const { data: connector, error } = await getSupabaseClient()
+      const { data: connector, error } = await supabaseAdmin
         .from('platform_connections')
         .select('*')
         .eq('user_id', userId)
@@ -78,7 +52,7 @@ class DataExtractionService {
       }
 
       // Create job record with 'pending' status
-      const { data: job, error: jobError } = await getSupabaseClient()
+      const { data: job, error: jobError } = await supabaseAdmin
         .from('data_extraction_jobs')
         .insert({
           user_id: userId,
@@ -104,7 +78,7 @@ class DataExtractionService {
 
       // Update job to 'running' status
       if (jobId) {
-        const { error: runningErr } = await getSupabaseClient()
+        const { error: runningErr } = await supabaseAdmin
           .from('data_extraction_jobs')
           .update({ status: 'running' })
           .eq('id', jobId);
@@ -122,7 +96,7 @@ class DataExtractionService {
           await storeYT(userId, 'youtube', ytResult);
           const ytItems = Object.keys(ytResult.data || {}).length;
           if (jobId) {
-            const { error: ytCompleteErr } = await getSupabaseClient()
+            const { error: ytCompleteErr } = await supabaseAdmin
               .from('data_extraction_jobs')
               .update({ status: 'completed', items_extracted: ytItems, completed_at: new Date().toISOString() })
               .eq('id', jobId);
@@ -131,7 +105,7 @@ class DataExtractionService {
           return { success: true, platform, message: 'YouTube data extracted via Nango', itemsExtracted: ytItems, skipped: false };
         }
         if (jobId) {
-          const { error: ytFailErr } = await getSupabaseClient()
+          const { error: ytFailErr } = await supabaseAdmin
             .from('data_extraction_jobs')
             .update({ status: 'failed', error_message: ytResult.error || 'Nango extraction failed', completed_at: new Date().toISOString() })
             .eq('id', jobId);
@@ -147,7 +121,7 @@ class DataExtractionService {
           await storeNangoExtractionData(userId, 'twitch', twitchResult);
           const twitchItems = Object.keys(twitchResult.data || {}).length;
           if (jobId) {
-            const { error: twitchCompleteErr } = await getSupabaseClient()
+            const { error: twitchCompleteErr } = await supabaseAdmin
               .from('data_extraction_jobs')
               .update({ status: 'completed', items_extracted: twitchItems, completed_at: new Date().toISOString() })
               .eq('id', jobId);
@@ -156,7 +130,7 @@ class DataExtractionService {
           return { success: true, platform, message: 'Twitch data extracted via Nango', itemsExtracted: twitchItems, skipped: false };
         }
         if (jobId) {
-          const { error: twitchFailErr } = await getSupabaseClient()
+          const { error: twitchFailErr } = await supabaseAdmin
             .from('data_extraction_jobs')
             .update({ status: 'failed', error_message: twitchResult.error || 'Nango extraction failed', completed_at: new Date().toISOString() })
             .eq('id', jobId);
@@ -168,7 +142,7 @@ class DataExtractionService {
       if (platform === 'whoop') {
         console.log(`[DataExtraction] Whoop uses direct API extraction via featureExtractor - skipping raw data storage`);
         if (jobId) {
-          const { error: whoopErr } = await getSupabaseClient()
+          const { error: whoopErr } = await supabaseAdmin
             .from('data_extraction_jobs')
             .update({ status: 'completed', completed_at: new Date().toISOString() })
             .eq('id', jobId);
@@ -185,7 +159,7 @@ class DataExtractionService {
         console.warn(`[DataExtraction] Failed to get valid token for ${platform}: ${tokenResult.error}`);
 
         if (jobId) {
-          const { error: tokenFailErr } = await getSupabaseClient()
+          const { error: tokenFailErr } = await supabaseAdmin
             .from('data_extraction_jobs')
             .update({
               status: 'failed',
@@ -255,7 +229,7 @@ class DataExtractionService {
 
       // Update job with completion status
       if (jobId) {
-        const { error: jobUpdateErr } = await getSupabaseClient()
+        const { error: jobUpdateErr } = await supabaseAdmin
           .from('data_extraction_jobs')
           .update({
             status: result.success ? 'completed' : 'failed',
@@ -304,7 +278,7 @@ class DataExtractionService {
 
       // Mark job as failed
       if (jobId) {
-        const { error: catchJobErr } = await getSupabaseClient()
+        const { error: catchJobErr } = await supabaseAdmin
           .from('data_extraction_jobs')
           .update({
             status: 'failed',
@@ -323,7 +297,7 @@ class DataExtractionService {
         console.warn(`[DataExtraction] 401 Unauthorized for ${platform} - token likely expired or revoked`);
 
         // Mark connector as disconnected
-        const { error: connStatusErr } = await getSupabaseClient()
+        const { error: connStatusErr } = await supabaseAdmin
           .from('platform_connections')
           .update({
             metadata: {
@@ -363,7 +337,7 @@ class DataExtractionService {
 
     try {
       // Get all connected platforms
-      const { data: connectors, error } = await getSupabaseClient()
+      const { data: connectors, error } = await supabaseAdmin
         .from('platform_connections')
         .select('platform')
         .eq('user_id', userId);
@@ -423,7 +397,7 @@ class DataExtractionService {
         last_sync_items: extractionResult.itemsExtracted || 0
       };
 
-      const { error: metaErr } = await getSupabaseClient()
+      const { error: metaErr } = await supabaseAdmin
         .from('platform_connections')
         .update({
           last_sync_at: now,
@@ -444,7 +418,7 @@ class DataExtractionService {
 
     try {
       // Get all unprocessed data
-      const { data: unprocessedData, error } = await getSupabaseClient()
+      const { data: unprocessedData, error } = await supabaseAdmin
         .from('user_platform_data')
         .select('id, platform, data_type')
         .eq('user_id', userId)
@@ -473,7 +447,7 @@ class DataExtractionService {
   async getExtractionStatus(userId) {
     try {
       // Get recent extraction jobs
-      const { data: jobs, error } = await getSupabaseClient()
+      const { data: jobs, error } = await supabaseAdmin
         .from('data_extraction_jobs')
         .select('*')
         .eq('user_id', userId)
@@ -485,7 +459,7 @@ class DataExtractionService {
       }
 
       // Get data statistics
-      const { data: stats, error: statsError } = await getSupabaseClient()
+      const { data: stats, error: statsError } = await supabaseAdmin
         .rpc('get_platform_stats', { target_user_id: userId });
 
       return {
@@ -508,7 +482,7 @@ class DataExtractionService {
     console.log(`[DataExtraction] Scheduling ${platform} sync every ${intervalHours} hours`);
 
     // For now, store schedule in connector metadata
-    const { data: connector } = await getSupabaseClient()
+    const { data: connector } = await supabaseAdmin
         .from('platform_connections')
         .select('metadata')
         .eq('user_id', userId)
@@ -523,7 +497,7 @@ class DataExtractionService {
         next_sync: new Date(Date.now() + intervalHours * 60 * 60 * 1000).toISOString()
       };
 
-      const { error: scheduleErr } = await getSupabaseClient()
+      const { error: scheduleErr } = await supabaseAdmin
         .from('platform_connections')
         .update({ metadata })
         .eq('user_id', userId)

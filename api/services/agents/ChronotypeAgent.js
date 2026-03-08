@@ -17,19 +17,7 @@
  */
 
 import AgentBase from './AgentBase.js';
-import { createClient } from '@supabase/supabase-js';
-
-// Lazy Supabase initialization
-let supabase = null;
-function getSupabaseClient() {
-  if (!supabase) {
-    supabase = createClient(
-      process.env.SUPABASE_URL,
-      process.env.SUPABASE_SERVICE_ROLE_KEY
-    );
-  }
-  return supabase;
-}
+import { supabaseAdmin } from '../database.js';
 
 // Research-backed chronotype and calendar correlations
 const CHRONOTYPE_CORRELATIONS = {
@@ -291,7 +279,7 @@ Remember: You analyze objective behavioral data, not self-reports. Your inferenc
       const startDate = new Date();
       startDate.setDate(startDate.getDate() - daysBack);
 
-      const { data, error } = await getSupabaseClient()
+      const { data, error } = await supabaseAdmin
         .from('platform_raw_data')
         .select('data, extracted_at')
         .eq('user_id', userId)

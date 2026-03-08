@@ -3,13 +3,8 @@
  * Extracts user profile, videos, and trend participation using TikTok Display API v2
  */
 
-import { createClient } from '@supabase/supabase-js';
+import { supabaseAdmin } from '../database.js';
 import { ensureFreshToken } from '../tokenRefreshService.js';
-
-const supabase = createClient(
-  process.env.VITE_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
-);
 
 class TikTokExtractor {
   constructor(userId, platform = 'tiktok') {
@@ -219,7 +214,7 @@ class TikTokExtractor {
    */
   async storeRawData(userId, platform, dataType, data, sourceUrl = null) {
     try {
-      const { error } = await supabase
+      const { error } = await supabaseAdmin
         .from('user_platform_data')
         .upsert({
           user_id: userId,
@@ -247,7 +242,7 @@ class TikTokExtractor {
    * Create extraction job record
    */
   async createExtractionJob(userId, connectorId) {
-    const { data, error } = await supabase
+    const { data, error } = await supabaseAdmin
       .from('extraction_jobs')
       .insert({
         user_id: userId,
@@ -271,7 +266,7 @@ class TikTokExtractor {
    * Complete extraction job
    */
   async completeExtractionJob(jobId, itemsExtracted) {
-    const { error } = await supabase
+    const { error } = await supabaseAdmin
       .from('extraction_jobs')
       .update({
         status: 'completed',

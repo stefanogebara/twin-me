@@ -8,13 +8,7 @@
  * just formats it for display.
  */
 
-import { createClient } from '@supabase/supabase-js';
-
-// Initialize Supabase
-const supabase = createClient(
-  process.env.SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+import { supabaseAdmin } from './database.js';
 
 class SpotifyInsightGenerator {
   constructor() {
@@ -87,7 +81,7 @@ class SpotifyInsightGenerator {
 
     try {
       // Fetch the most recent Spotify extraction from soul_data
-      const { data, error } = await supabase
+      const { data, error } = await supabaseAdmin
         .from('soul_data')
         .select('extracted_patterns, extracted_at, data_quality')
         .eq('user_id', userId)
@@ -145,7 +139,7 @@ class SpotifyInsightGenerator {
 
     try {
       // Get the most recent extraction
-      const { data, error } = await supabase
+      const { data, error } = await supabaseAdmin
         .from('soul_data')
         .select('extracted_patterns, extracted_at')
         .eq('user_id', userId)

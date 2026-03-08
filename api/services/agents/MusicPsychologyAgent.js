@@ -12,19 +12,7 @@
 
 import AgentBase from './AgentBase.js';
 import researchRAGService from '../researchRAGService.js';
-import { createClient } from '@supabase/supabase-js';
-
-// Lazy Supabase initialization
-let supabase = null;
-function getSupabaseClient() {
-  if (!supabase) {
-    supabase = createClient(
-      process.env.SUPABASE_URL,
-      process.env.SUPABASE_SERVICE_ROLE_KEY
-    );
-  }
-  return supabase;
-}
+import { supabaseAdmin } from '../database.js';
 
 // Research-validated correlations from peer-reviewed studies
 const MUSIC_PERSONALITY_CORRELATIONS = {
@@ -260,17 +248,15 @@ Applies research-backed correlations to compute scores with confidence intervals
   async getSpotifyData(userId) {
     console.log(`🎵 [MusicPsychologyAgent] Fetching Spotify data for ${userId}`);
 
-    const supabase = getSupabaseClient();
-
     // Get extracted Spotify features
-    const { data: features, error: featuresError } = await supabase
+    const { data: features, error: featuresError } = await supabaseAdmin
       .from('extracted_platform_features')
       .select('*')
       .eq('user_id', userId)
       .eq('platform', 'spotify');
 
     // Get raw Spotify data
-    const { data: rawData, error: rawError } = await supabase
+    const { data: rawData, error: rawError } = await supabaseAdmin
       .from('platform_raw_data')
       .select('data')
       .eq('user_id', userId)

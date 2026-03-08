@@ -6,21 +6,8 @@
  * Integrates with memoryArchitecture.js SleepTimeCompute
  */
 
-import { createClient } from '@supabase/supabase-js';
+import { supabaseAdmin } from './database.js';
 import { complete, TIER_EXTRACTION } from './llmGateway.js';
-
-// Lazy initialization to avoid crashes if env vars not loaded yet
-let supabase = null;
-
-function getSupabaseClient() {
-  if (!supabase) {
-    supabase = createClient(
-      process.env.SUPABASE_URL,
-      process.env.SUPABASE_SERVICE_ROLE_KEY
-    );
-  }
-  return supabase;
-}
 
 class PatternLearningService {
   constructor() {
@@ -41,7 +28,7 @@ class PatternLearningService {
     try {
       // 1. Get unprocessed feedback
       console.log(`📥 [PatternLearning] Fetching unprocessed feedback from database...`);
-      const { data: feedbackItems, error } = await getSupabaseClient()
+      const { data: feedbackItems, error } = await supabaseAdmin
         .from('recommendation_feedback')
         .select('*')
         .eq('user_id', userId)
@@ -95,7 +82,7 @@ class PatternLearningService {
       // 6. Mark feedback as processed
       console.log(`✓ [PatternLearning] Marking ${feedbackItems.length} feedback items as processed...`);
       const feedbackIds = feedbackItems.map(f => f.id);
-      const { error: markErr } = await getSupabaseClient()
+      const { error: markErr } = await supabaseAdmin
         .from('recommendation_feedback')
         .update({ processed_at: new Date().toISOString() })
         .in('id', feedbackIds);
@@ -268,7 +255,7 @@ Return as JSON:
   async adjustPatternConfidence(patternId, adjustment) {
     try {
       // Get current confidence
-      const { data: pattern, error: fetchError } = await getSupabaseClient()
+      const { data: pattern, error: fetchError } = await supabaseAdmin
         .from('behavioral_patterns')
         .select('confidence_score')
         .eq('id', patternId)
@@ -280,7 +267,7 @@ Return as JSON:
       const newConfidence = Math.max(0, Math.min(1, (pattern.confidence_score || 0.5) + adjustment));
 
       // Update
-      const { error: confidenceErr } = await getSupabaseClient()
+      const { error: confidenceErr } = await supabaseAdmin
         .from('behavioral_patterns')
         .update({
           confidence_score: newConfidence,
@@ -302,7 +289,7 @@ Return as JSON:
       // Store in core_memory table
       const preferenceKey = `recommendation_preference_${recommendationType}`;
 
-      const { data: existing } = await getSupabaseClient()
+      const { data: existing } = await supabaseAdmin
         .from('core_memory')
         .select('preference_data, confidence_score')
         .eq('user_id', userId)
@@ -312,7 +299,7 @@ Return as JSON:
       const currentConfidence = existing?.confidence_score || 0.5;
       const newConfidence = Math.max(0, Math.min(1, currentConfidence + adjustment));
 
-      const { error: upsertErr } = await getSupabaseClient()
+      const { error: upsertErr } = await supabaseAdmin
         .from('core_memory')
         .upsert({
           user_id: userId,
@@ -345,7 +332,7 @@ Return as JSON:
 
     try {
       // Get user context for personalization
-      const { data: soulData } = await getSupabaseClient()
+      const { data: soulData } = await supabaseAdmin
         .from('soul_data')
         .select('extracted_patterns, platform')
         .eq('user_id', userId)
@@ -424,7 +411,7 @@ Return as JSON array:
         expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString() // 7 days
       }));
 
-      const { error } = await getSupabaseClient()
+      const { error } = await supabaseAdmin
         .from('generated_insights')
         .insert(insightRecords);
 
@@ -443,13 +430,13 @@ Return as JSON array:
   async getUserLearningMetrics(userId) {
     try {
       // Get feedback stats
-      const { data: feedback } = await getSupabaseClient()
+      const { data: feedback } = await supabaseAdmin
         .from('recommendation_feedback')
         .select('thumbs_vote, star_rating, recommendation_type, created_at')
         .eq('user_id', userId);
 
       // Get generated insights
-      const { data: insights } = await getSupabaseClient()
+      const { data: insights } = await supabaseAdmin
         .from('generated_insights')
         .select('insight_type, confidence_score, generated_at')
         .eq('user_id', userId)
@@ -494,7 +481,7 @@ Return as JSON array:
     try {
       // Get users with unprocessed feedback
       console.log(`📋 [PatternLearning] Fetching users with pending feedback...`);
-      const { data: usersWithFeedback, error } = await getSupabaseClient()
+      const { data: usersWithFeedback, error } = await supabaseAdmin
         .from('recommendation_feedback')
         .select('user_id')
         .is('processed_at', null);
