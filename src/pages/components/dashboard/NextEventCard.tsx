@@ -135,7 +135,7 @@ export const NextEventCard: React.FC<NextEventCardProps> = ({
         className="text-sm flex-1"
         style={{ color: 'var(--text-secondary)' }}
       >
-        {isCalendarConnected ? 'No events today' : 'Connect your calendar to see events'}
+        {isCalendarConnected ? 'Looks like you have a free day' : 'Connect your calendar and I can help you plan your time'}
       </span>
       <button
         onClick={() => onNavigate(isCalendarConnected ? '/insights/calendar' : '/get-started')}

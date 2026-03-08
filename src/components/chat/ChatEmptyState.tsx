@@ -70,8 +70,8 @@ export const ChatEmptyState = ({
           transition={{ duration: 0.4, delay: 0.15, ease: [0.4, 0, 0.2, 1] }}
         >
           {connectedPlatforms.length > 0
-            ? "What do you want to know?"
-            : "Connect platforms to unlock your Twin"
+            ? "What's on your mind?"
+            : "Let me get to know you first"
           }
         </motion.h2>
 
@@ -83,8 +83,8 @@ export const ChatEmptyState = ({
           transition={{ duration: 0.4, delay: 0.25, ease: [0.4, 0, 0.2, 1] }}
         >
           {connectedPlatforms.length > 0
-            ? "Ask me anything about yourself — I know your Spotify, Calendar, and more."
-            : "Your twin learns from your platforms to understand your soul signature."
+            ? "Ask me anything — patterns you've noticed, things you're curious about, or just how you're doing."
+            : "Connect a platform and I'll start picking up on the things that make you you."
           }
         </motion.p>
 

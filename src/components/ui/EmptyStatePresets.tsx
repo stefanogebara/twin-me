@@ -24,8 +24,8 @@ export const NoPlatformsConnectedEmptyState: React.FC<{ onConnect?: () => void }
   return (
     <EmptyState
       icon={Link2}
-      title="No Platforms Connected Yet"
-      description="Connect your entertainment and lifestyle platforms to begin discovering your authentic soul signature."
+      title="I'm ready when you are"
+      description="Connect a platform and I'll start learning what makes you tick — your music, your schedule, your patterns."
       primaryAction={{
         label: 'Connect Your First Platform',
         onClick: onConnect || (() => navigate('/get-started')),
@@ -47,8 +47,8 @@ export const NoSoulSignatureEmptyState: React.FC<{ onConnect?: () => void }> = (
   return (
     <EmptyState
       icon={Sparkles}
-      title="Your Soul Signature Awaits"
-      description="Connect platforms and extract data to discover the authentic patterns that make you uniquely you. Your soul signature will emerge as we analyze your digital footprints."
+      title="Still getting to know you"
+      description="Connect a platform so I can start noticing patterns — your real ones, not just what's on your resume."
       primaryAction={{
         label: 'Connect Platforms',
         onClick: onConnect || (() => navigate('/get-started')),
@@ -68,7 +68,7 @@ export const NoSearchResultsEmptyState: React.FC<{
     <EmptyState
       icon={Search}
       title="No Results Found"
-      description={`We couldn't find anything matching "${searchQuery}". Try adjusting your search terms or filters.`}
+      description={`Nothing matching "${searchQuery}" — try different words or clear the search.`}
       primaryAction={onClearSearch ? {
         label: 'Clear Search',
         onClick: onClearSearch,
@@ -105,8 +105,8 @@ export const NoDataExtractedEmptyState: React.FC<{ onExtract?: () => void }> = (
   return (
     <EmptyState
       icon={Database}
-      title="No Data Extracted Yet"
-      description="Start extracting data from your connected platforms to build your soul signature. This may take a few minutes depending on your activity."
+      title="No data pulled yet"
+      description="Give me a moment to pull data from your connected platforms — it usually takes a minute or two the first time."
       primaryAction={onExtract ? {
         label: 'Start Extraction',
         onClick: onExtract,
@@ -200,8 +200,8 @@ export const NoRecentActivityEmptyState: React.FC = () => {
   return (
     <EmptyState
       icon={PackageOpen}
-      title="No Recent Activity"
-      description="You don't have any recent activity yet. As you connect platforms and interact with your soul signature, your activity will appear here."
+      title="Nothing here yet"
+      description="As you chat with your twin and connect platforms, activity will start showing up here."
       variant="compact"
     />
   );
@@ -214,8 +214,8 @@ export const NoDataEmptyState: React.FC<{
   actionLabel?: string;
   onAction?: () => void;
 }> = ({
-  title = "No Data Available",
-  description = "There's no data to display at the moment.",
+  title = "Nothing here yet",
+  description = "Data will show up here once your platforms start syncing.",
   actionLabel,
   onAction
 }) => {

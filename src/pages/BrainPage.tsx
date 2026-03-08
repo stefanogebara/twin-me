@@ -215,7 +215,7 @@ const BrainPage: React.FC = () => {
             </div>
             <h1 className="heading-serif mb-3" style={{ fontSize: 'clamp(2.25rem, 5vw, 3.5rem)', letterSpacing: '-0.05em', lineHeight: 1.1 }}>Your Twin's Brain</h1>
             <p className="mb-6" style={{ color: textSecondary }}>
-              Sign in to see what patterns your twin has discovered about you.
+              Sign in and I'll show you what I've been noticing about you.
             </p>
             <button
               onClick={() => navigate('/auth')}
@@ -302,10 +302,10 @@ const BrainPage: React.FC = () => {
             {!reflectionsLoading && topDiscoveries.length === 0 && (
               <div className="text-center py-12">
                 <p className="text-sm mb-1 font-medium" style={{ color: textSecondary }}>
-                  No discoveries yet
+                  I haven't noticed anything yet
                 </p>
                 <p className="text-xs mb-4" style={{ color: textSecondary }}>
-                  Discoveries appear after 2-3 days of platform data. Connect a platform to start.
+                  Discoveries show up after a couple of days of platform data — connect one to get me thinking.
                 </p>
                 <button
                   onClick={() => navigate('/get-started')}
@@ -430,7 +430,7 @@ const BrainPage: React.FC = () => {
                           <p className="text-xs mt-1 text-amber-500">Token expired — reconnect</p>
                         )}
                         {!isConnected && !isExpired && (
-                          <p className="text-xs mt-1" style={{ color: textSecondary }}>Not connected</p>
+                          <p className="text-xs mt-1" style={{ color: textSecondary }}>Not connected yet</p>
                         )}
                         {memoryStats?.byPlatform[provider] != null && (
                           <p className="text-xs mt-0.5" style={{ color: textSecondary }}>

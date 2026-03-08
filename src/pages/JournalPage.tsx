@@ -485,7 +485,7 @@ const JournalPage: React.FC = () => {
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.4, delay: 0.1, ease: [0.4, 0, 0.2, 1] }}
             >
-              Your journal is empty
+              Nothing written yet
             </motion.h3>
             <motion.p
               className="text-sm mb-8"
@@ -494,7 +494,7 @@ const JournalPage: React.FC = () => {
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.4, delay: 0.2, ease: [0.4, 0, 0.2, 1] }}
             >
-              Start writing to discover patterns in how you see yourself.
+              What's on your mind? Even a few lines help me understand how you actually see the world.
             </motion.p>
 
             {/* Suggested writing prompts */}
