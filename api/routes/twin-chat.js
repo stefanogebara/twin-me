@@ -48,6 +48,9 @@ import { runCitationPipeline } from '../services/citationExtractionService.js';
 import { strengthenCoCitedLinks } from '../services/memoryLinksService.js';
 import { computeAlpha } from '../services/memoryStreamService.js';
 import { lzComplexity } from '../utils/lzComplexity.js';
+import { getProfile } from '../services/personalityProfileService.js';
+import { buildPersonalityPrompt } from '../services/personalityPromptBuilder.js';
+import { rerankByPersonality } from '../services/personalityReranker.js';
 
 
 const router = express.Router();
@@ -689,7 +692,8 @@ router.post('/message', authenticateUser, async (req, res) => {
     let twinContext;
     let userLocation = null;
     try {
-      // Fetch twin context + user location in parallel
+      // Fetch twin context + user location + personality profile in parallel
+      let personalityProfile = null;
       const [ctx] = await Promise.all([
         fetchTwinContext(userId, message, {
           platforms: context?.platforms || ['spotify', 'calendar', 'whoop', 'web'],
@@ -701,6 +705,9 @@ router.post('/message', authenticateUser, async (req, res) => {
           .single()
           .then(({ data }) => { userLocation = data?.last_location || null; })
           .catch(() => { /* non-fatal */ }),
+        getProfile(userId)
+          .then(p => { personalityProfile = p; })
+          .catch(err => { console.warn('[Twin Chat] Personality profile fetch failed:', err.message); }),
       ]);
       twinContext = ctx;
     } finally {
@@ -718,6 +725,13 @@ router.post('/message', authenticateUser, async (req, res) => {
     if (personaBlock) {
       systemPrompt.splice(1, 0, { type: 'text', text: `\n${personaBlock}` });
       console.log(`[Twin Chat] Persona block (${personaBlock.length} chars)`);
+    }
+
+    // Inject personality calibration block (OCEAN-derived behavioral instructions, zero LLM cost)
+    const personalityPromptBlock = buildPersonalityPrompt(personalityProfile);
+    if (personalityPromptBlock) {
+      systemPrompt.push({ type: 'text', text: `\n${personalityPromptBlock}` });
+      console.log(`[Twin Chat] Personality calibration (${personalityPromptBlock.length} chars, confidence=${personalityProfile?.confidence?.toFixed(2)})`);
     }
 
     // Compute current emotional state from behavioral signals (no LLM, no extra API calls)
@@ -1005,7 +1019,10 @@ Make it sound natural and curious, not like a survey question.`;
           system: systemPrompt,
           messages: llmMessages,
           maxTokens: 2048,
-          temperature: 0.7,
+          temperature: personalityProfile?.temperature ?? 0.7,
+          top_p: personalityProfile?.top_p,
+          frequency_penalty: personalityProfile?.frequency_penalty,
+          presence_penalty: personalityProfile?.presence_penalty,
           userId,
           serviceName: 'twin-chat',
           onChunk: (chunk) => {
@@ -1023,15 +1040,34 @@ Make it sound natural and curious, not like a survey question.`;
     } else {
       try {
         chatLog('Starting LLM call');
-        const result = await complete({
-          tier: TIER_CHAT,
-          system: systemPrompt,
-          messages: llmMessages,
-          maxTokens: 2048,
-          temperature: 0.7,
-          userId,
-          serviceName: 'twin-chat'
-        });
+        // Use personality reranker if enabled and profile has embedding
+        const useReranker = process.env.ENABLE_PERSONALITY_RERANKER === 'true'
+          && personalityProfile?.personality_embedding
+          && personalityProfile?.confidence > 0.3;
+
+        let result;
+        if (useReranker) {
+          chatLog('Using personality reranker (best-of-N)');
+          result = await rerankByPersonality(
+            { system: systemPrompt, messages: llmMessages, maxTokens: 2048, userId },
+            personalityProfile.personality_embedding,
+            personalityProfile,
+          );
+        }
+        if (!result) {
+          result = await complete({
+            tier: TIER_CHAT,
+            system: systemPrompt,
+            messages: llmMessages,
+            maxTokens: 2048,
+            temperature: personalityProfile?.temperature ?? 0.7,
+            top_p: personalityProfile?.top_p,
+            frequency_penalty: personalityProfile?.frequency_penalty,
+            presence_penalty: personalityProfile?.presence_penalty,
+            userId,
+            serviceName: 'twin-chat'
+          });
+        }
         chatLog('LLM call complete');
         assistantMessage = result.content || 'I apologize, I could not generate a response.';
       } catch (llmError) {

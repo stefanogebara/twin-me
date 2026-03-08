@@ -3355,6 +3355,13 @@ async function runObservationIngestion() {
             console.warn(`[ObservationIngestion] Goal suggestions failed for ${userId}:`, err.message)
           );
 
+          // Check for personality drift (non-blocking)
+          import('./personalityDriftService.js').then(({ checkDrift }) =>
+            checkDrift(userId).catch(err =>
+              console.warn(`[ObservationIngestion] Personality drift check failed for ${userId}:`, err.message)
+            )
+          ).catch(() => { /* module load failure — non-fatal */ });
+
           // Regenerate twin summary after a delay to allow reflections to complete
           // Reflections have priority, so wait 45s before summarizing.
           // unref() ensures this timer doesn't prevent graceful process shutdown.
