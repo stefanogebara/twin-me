@@ -13,6 +13,7 @@
 
 import { Router } from 'express';
 import { authenticateUser } from '../middleware/auth.js';
+import { verifyCronSecret } from '../middleware/verifyCronSecret.js';
 import fs from 'fs';
 import path from 'path';
 import os from 'os';
@@ -333,18 +334,10 @@ async function runSyncForUser(userId) {
  */
 router.post('/', async (req, res) => {
   try {
-    // Verify cron secret for security
-    const cronSecret = req.headers['x-vercel-cron-secret'] || req.headers['authorization'];
-    const expectedSecret = process.env.CRON_SECRET;
-    const isDevelopment = process.env.NODE_ENV === 'development';
-
-    if (!isDevelopment) {
-      if (!expectedSecret) {
-        return res.status(500).json({ error: 'CRON_SECRET not configured in production' });
-      }
-      if (cronSecret !== expectedSecret && cronSecret !== `Bearer ${expectedSecret}`) {
-        return res.status(401).json({ error: 'Unauthorized' });
-      }
+    // Verify cron secret (timing-safe)
+    const authResult = verifyCronSecret(req);
+    if (!authResult.authorized) {
+      return res.status(authResult.status).json({ error: authResult.error });
     }
 
     console.log('[Claude Sync Cron] Starting scheduled sync...');
@@ -465,18 +458,10 @@ router.get('/status', authenticateUser, async (req, res) => {
  */
 router.post('/process-analysis', async (req, res) => {
   try {
-    // Verify cron secret for security (same as main cron endpoint)
-    const cronSecret = req.headers['x-vercel-cron-secret'] || req.headers['authorization'];
-    const expectedSecret = process.env.CRON_SECRET;
-    const isDevelopment = process.env.NODE_ENV === 'development';
-
-    if (!isDevelopment) {
-      if (!expectedSecret) {
-        return res.status(500).json({ error: 'CRON_SECRET not configured in production' });
-      }
-      if (cronSecret !== expectedSecret && cronSecret !== `Bearer ${expectedSecret}`) {
-        return res.status(401).json({ error: 'Unauthorized' });
-      }
+    // Verify cron secret (timing-safe)
+    const authResult = verifyCronSecret(req);
+    if (!authResult.authorized) {
+      return res.status(authResult.status).json({ error: authResult.error });
     }
 
     const limit = Math.min(Math.max(parseInt(req.query.limit, 10) || 50, 1), 200);

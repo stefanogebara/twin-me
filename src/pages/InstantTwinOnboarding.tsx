@@ -535,51 +535,40 @@ const InstantTwinOnboarding = () => {
 
       {connectedServices.length > 0 && (
         <GlassPanel className="mb-8">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div
-                className="w-10 h-10 rounded-full flex items-center justify-center"
-                style={{ backgroundColor: expiredConnections.length > 0 ? '#f59e0b' : colors.connected }}
-              >
-                {expiredConnections.length > 0 ? (
-                  <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                  </svg>
-                ) : (
-                  <CheckCircle2 className="w-5 h-5 text-white" />
-                )}
-              </div>
-              <div>
-                <p
-                  className="text-sm"
-                  style={{ color: colors.textPrimary, fontFamily: 'var(--font-heading)', fontWeight: 400 }}
-                >
-                  {activeConnections.length} platform{activeConnections.length !== 1 ? 's' : ''} active
-                  {expiredConnections.length > 0 && (
-                    <span style={{ color: '#f59e0b', marginLeft: '8px' }}>
-                      ({expiredConnections.length} need{expiredConnections.length === 1 ? 's' : ''} reconnection)
-                    </span>
-                  )}
-                </p>
-                <p
-                  className="text-xs"
-                  style={{ color: colors.muted, fontFamily: 'var(--font-body)' }}
-                >
-                  {expiredConnections.length > 0
-                    ? 'Reconnect expired platforms below for full access'
-                    : 'Syncing your data now — first insights appear in ~2 hours'}
-                </p>
-              </div>
-            </div>
-            <motion.button
-              onClick={() => navigate('/dashboard')}
-              className="btn-cta-app flex items-center gap-2 px-4 py-2 text-sm"
-              whileHover={{ scale: 1.05, y: -1 }}
-              whileTap={{ scale: 0.97 }}
+          <div className="flex items-center gap-3">
+            <div
+              className="w-10 h-10 rounded-full flex items-center justify-center"
+              style={{ backgroundColor: expiredConnections.length > 0 ? '#f59e0b' : colors.connected }}
             >
-              Continue to Dashboard
-              <ArrowRight className="w-4 h-4" />
-            </motion.button>
+              {expiredConnections.length > 0 ? (
+                <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                </svg>
+              ) : (
+                <CheckCircle2 className="w-5 h-5 text-white" />
+              )}
+            </div>
+            <div>
+              <p
+                className="text-sm"
+                style={{ color: colors.textPrimary, fontFamily: 'var(--font-heading)', fontWeight: 400 }}
+              >
+                {activeConnections.length} platform{activeConnections.length !== 1 ? 's' : ''} active
+                {expiredConnections.length > 0 && (
+                  <span style={{ color: '#f59e0b', marginLeft: '8px' }}>
+                    ({expiredConnections.length} need{expiredConnections.length === 1 ? 's' : ''} reconnection)
+                  </span>
+                )}
+              </p>
+              <p
+                className="text-xs"
+                style={{ color: colors.muted, fontFamily: 'var(--font-body)' }}
+              >
+                {expiredConnections.length > 0
+                  ? 'Reconnect expired platforms below for full access'
+                  : 'Connect more platforms below, or scroll down to reveal your archetype'}
+              </p>
+            </div>
           </div>
         </GlassPanel>
       )}
@@ -869,13 +858,6 @@ const InstantTwinOnboarding = () => {
                   </>
                 )}
               </motion.button>
-              <button
-                onClick={() => navigate('/dashboard')}
-                className="text-xs mt-3 hover:opacity-70 transition-opacity"
-                style={{ color: colors.muted, fontFamily: 'var(--font-body)' }}
-              >
-                Skip — go straight to dashboard →
-              </button>
             </div>
           )}
         </div>

@@ -260,7 +260,7 @@ const BrainPage: React.FC = () => {
           transition={{ duration: 0.4 }}
         >
           <Brain className="w-8 h-8" style={{ color: textColor }} />
-          <h1 className="heading-serif" style={{ color: textColor, fontSize: 'clamp(2rem, 4vw, 3rem)', fontFamily: 'var(--font-heading)', fontWeight: 400, letterSpacing: '-0.04em', lineHeight: 1.1 }}>
+          <h1 className="heading-serif" style={{ color: textColor, fontSize: 'clamp(2rem, 4vw, 3rem)', fontWeight: 400, letterSpacing: '-0.04em', lineHeight: 1.1 }}>
             Twin's Brain
           </h1>
           {totalMemories > 0 && (

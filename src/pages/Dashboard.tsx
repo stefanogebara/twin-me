@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
-import { AlertCircle, Target, Flame, Trophy, ChevronRight, Globe, BookOpen, Circle } from 'lucide-react';
+import { AlertCircle, Target, Flame, Trophy, ChevronRight, Globe, BookOpen, Circle, ArrowUp, Sparkles, Eye, Moon, Activity } from 'lucide-react';
 import { goalsAPI, GoalSummary } from '@/services/api/goalsAPI';
 import { PageLayout, GlassPanel } from '@/components/layout/PageLayout';
 import { calendarAPI, CalendarEvent } from '@/services/apiService';
@@ -17,6 +17,13 @@ import { NextEventCard } from './components/dashboard/NextEventCard';
 import { TwinInsightsGrid } from './components/dashboard/TwinInsightsGrid';
 import { TwinReadinessScore } from '@/components/twin/TwinReadinessScore';
 import { DailyCheckin } from '@/components/twin/DailyCheckin';
+
+const QUICK_CHIPS = [
+  { label: 'How am I doing?', icon: Sparkles },
+  { label: 'What should I focus on?', icon: Eye },
+  { label: 'Tell me something new', icon: Moon },
+  { label: 'My personality insights', icon: Activity },
+] as const;
 
 // Auto-refresh interval for calendar events (1 minute)
 const CALENDAR_REFRESH_INTERVAL = 60 * 1000;
@@ -287,13 +294,6 @@ export const Dashboard: React.FC = () => {
     }
   };
 
-  const getGreeting = () => {
-    const hour = new Date().getHours();
-    if (hour < 12) return 'Good morning';
-    if (hour < 17) return 'Good afternoon';
-    return 'Good evening';
-  };
-
   const formatLastSync = (lastSync: string | null): string => {
     if (!lastSync) return 'never';
     const diffMs = Date.now() - new Date(lastSync).getTime();
@@ -334,6 +334,21 @@ export const Dashboard: React.FC = () => {
     if (hours > 0) return `${hours}h ${minutes}m`;
     if (minutes <= 0) return 'starting';
     return `${minutes}m`;
+  };
+
+  const [promptValue, setPromptValue] = useState('');
+
+  const handlePromptSubmit = () => {
+    const text = promptValue.trim();
+    if (text) {
+      navigate('/talk-to-twin', { state: { discussContext: text } });
+    } else {
+      navigate('/talk-to-twin');
+    }
+  };
+
+  const handleChipClick = (label: string) => {
+    navigate('/talk-to-twin', { state: { discussContext: label } });
   };
 
   const isSpotifyConnected = connectedProviders.includes('spotify');
@@ -412,8 +427,9 @@ export const Dashboard: React.FC = () => {
         </div>
       )}
 
+      {/* ── Greeting ── */}
       <motion.div
-        className="mb-12"
+        className="mb-8"
         initial={{ opacity: 0, y: -8 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5, ease: [0.4, 0, 0.2, 1] }}
@@ -421,15 +437,15 @@ export const Dashboard: React.FC = () => {
         <h1
           className="heading-serif"
           style={{
-            fontSize: 'clamp(2.25rem, 5vw, 3.5rem)',
-            fontFamily: 'var(--font-heading)',
+            fontSize: 'clamp(2.5rem, 5.5vw, 3.75rem)',
             fontWeight: 400,
             letterSpacing: '-0.05em',
             lineHeight: 1.1,
-            marginBottom: '0.75rem'
+            marginBottom: '0.75rem',
+            color: 'var(--foreground)',
           }}
         >
-          {getGreeting()}, {user?.firstName || 'there'}
+          What's on your mind, {user?.firstName || 'there'}?
         </h1>
         <p className="text-[15px] font-medium" style={{ color: 'var(--text-secondary)', lineHeight: 1.7 }}>
           {todayEvents.length > 0
@@ -448,11 +464,96 @@ export const Dashboard: React.FC = () => {
             <span style={{ color: 'var(--text-muted)' }}>
               {' '}&bull;{' '}
               <span style={{ color: 'var(--accent-streak)' }}>
-                🔥 {checkinStreak}-day streak
+                {checkinStreak}-day streak
               </span>
             </span>
           )}
         </p>
+      </motion.div>
+
+      {/* ── Central Glass Prompt ── */}
+      <motion.div
+        className="mb-10"
+        initial={{ opacity: 0, y: 12 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.6, delay: 0.1 }}
+      >
+        <div
+          className="glass-card !p-1.5 !rounded-[20px] transition-all duration-200"
+          style={{
+            borderColor: 'var(--glass-surface-border)',
+          }}
+          onFocus={(e) => {
+            e.currentTarget.style.borderColor = 'rgba(212, 168, 83, 0.4)';
+            e.currentTarget.style.boxShadow = '0 8px 32px rgba(0, 0, 0, 0.12), 0 0 0 2px rgba(212, 168, 83, 0.15)';
+          }}
+          onBlur={(e) => {
+            e.currentTarget.style.borderColor = 'var(--glass-surface-border)';
+            e.currentTarget.style.boxShadow = '';
+          }}
+        >
+          <div className="flex items-center gap-3">
+            <input
+              type="text"
+              placeholder="Ask your twin anything..."
+              value={promptValue}
+              onChange={(e) => setPromptValue(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && handlePromptSubmit()}
+              className="flex-1 bg-transparent border-none outline-none px-5 py-4"
+              style={{
+                fontFamily: 'var(--font-body)',
+                fontSize: '15px',
+                fontWeight: 400,
+                color: 'var(--text-primary)',
+              }}
+            />
+            <button
+              onClick={handlePromptSubmit}
+              className="flex items-center justify-center w-11 h-11 rounded-full flex-shrink-0 mr-0.5 transition-all duration-200 hover:scale-105"
+              style={{
+                background: 'linear-gradient(135deg, var(--accent-vibrant), var(--accent-vibrant-hover))',
+                color: '#1a1a17',
+                boxShadow: '0 2px 12px var(--accent-vibrant-glow)',
+              }}
+              aria-label="Ask your twin"
+            >
+              <ArrowUp className="w-5 h-5" />
+            </button>
+          </div>
+        </div>
+
+        {/* Quick-action chips */}
+        <div className="flex flex-wrap gap-2 mt-4 justify-center">
+          {QUICK_CHIPS.map((chip) => {
+            const ChipIcon = chip.icon;
+            return (
+              <button
+                key={chip.label}
+                onClick={() => handleChipClick(chip.label)}
+                className="inline-flex items-center gap-2 px-4 py-2.5 rounded-full text-[13px] font-normal transition-all duration-200"
+                style={{
+                  fontFamily: 'var(--font-ui)',
+                  color: 'var(--text-secondary)',
+                  background: 'var(--glass-surface-bg-subtle)',
+                  border: '1px solid var(--glass-surface-border)',
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.borderColor = 'rgba(212, 168, 83, 0.4)';
+                  e.currentTarget.style.color = 'var(--text-primary)';
+                  e.currentTarget.style.background = 'rgba(212, 168, 83, 0.08)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.borderColor = 'var(--glass-surface-border)';
+                  e.currentTarget.style.color = 'var(--text-secondary)';
+                  e.currentTarget.style.background = 'var(--glass-surface-bg-subtle)';
+                }}
+              >
+                <ChipIcon className="w-3.5 h-3.5" />
+                {chip.label}
+              </button>
+            );
+          })}
+        </div>
       </motion.div>
 
       {memoryHealth?.readiness !== undefined && (
@@ -512,6 +613,9 @@ export const Dashboard: React.FC = () => {
       </AnimatePresence>
 
       <div className="mb-14">
+        <p className="text-xs font-medium uppercase tracking-wider mb-4" style={{ color: 'var(--text-secondary)' }}>
+          YOUR INSIGHTS
+        </p>
         <TodayInsights />
       </div>
 

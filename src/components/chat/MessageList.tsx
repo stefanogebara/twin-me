@@ -21,39 +21,39 @@ interface Message {
   };
 }
 
-interface Colors {
-  text: string;
-  textSecondary: string;
-  textMuted: string;
-  accent: string;
-  userBubble: string;
-  userBubbleBg: string;
-  userBubbleText: string;
-  bgTertiary: string;
-}
-
 interface MessageListProps {
   messages: Message[];
   isTyping: boolean;
-  colors: Colors;
   formatTime: (date: Date) => string;
   onRetry?: (content: string, messageId: string) => void;
 }
 
-// Design-system glass style for assistant bubbles
+// User bubble: warm amber
+const userBubbleStyle = {
+  background: 'linear-gradient(135deg, #D97706, #B45309)',
+  color: '#FFFFFF',
+} as React.CSSProperties;
+
+const userBubbleFailedStyle = {
+  backgroundColor: 'rgba(239,68,68,0.15)',
+  color: '#EF4444',
+  border: '1px solid rgba(239,68,68,0.3)',
+} as React.CSSProperties;
+
+// Assistant bubble: glass effect with warm border
 const assistantBubbleStyle = {
-  backgroundColor: 'rgba(255, 255, 255, 0.06)',
-  backdropFilter: 'blur(10px) saturate(140%)',
-  WebkitBackdropFilter: 'blur(10px) saturate(140%)',
-  border: '1px solid rgba(255, 255, 255, 0.10)',
-  boxShadow: '0 8px 32px rgba(0, 0, 0, 0.18), inset 0 1px 0 rgba(255, 255, 255, 0.08)',
+  background: 'var(--glass-surface-bg)',
+  backdropFilter: 'blur(16px) saturate(160%)',
+  WebkitBackdropFilter: 'blur(16px) saturate(160%)',
+  border: '1px solid var(--glass-surface-border)',
+  boxShadow: '0 4px 16px rgba(0, 0, 0, 0.06), inset 0 1px 0 var(--glass-inset-highlight)',
   color: 'var(--foreground)',
 } as React.CSSProperties;
 
 export const MessageList = forwardRef<HTMLDivElement, MessageListProps>(
-  ({ messages, isTyping, colors, formatTime, onRetry }, ref) => {
+  ({ messages, isTyping, formatTime, onRetry }, ref) => {
     return (
-      <div className="px-4 py-6 space-y-6">
+      <div className="px-4 py-6 space-y-5">
         {messages.map((message) => (
           <div
             key={message.id}
@@ -64,28 +64,24 @@ export const MessageList = forwardRef<HTMLDivElement, MessageListProps>(
           >
             {message.role === 'assistant' && (
               <div
-                className="w-8 h-8 rounded-full flex-shrink-0 flex items-center justify-center overflow-hidden"
+                className="w-7 h-7 rounded-full flex-shrink-0 flex items-center justify-center overflow-hidden"
                 style={{ backgroundColor: 'var(--glass-surface-bg)' }}
               >
-                <img src="/images/backgrounds/flower-hero.png" alt="" className="w-7 h-7 object-contain" />
+                <img src="/images/backgrounds/flower-hero.png" alt="" className="w-6 h-6 object-contain" />
               </div>
             )}
 
             <div className={cn("max-w-[80%]", message.role === 'user' && "order-first")}>
               <div
                 className={cn(
-                  "px-5 py-4 rounded-2xl",
+                  "px-4 py-3 rounded-2xl",
                   message.role === 'user'
                     ? "rounded-br-md"
                     : "rounded-bl-md"
                 )}
                 style={
                   message.role === 'user'
-                    ? {
-                        backgroundColor: message.failed ? 'rgba(239,68,68,0.15)' : '#000000',
-                        color: message.failed ? '#EF4444' : 'var(--foreground)',
-                        border: message.failed ? '1px solid rgba(239,68,68,0.3)' : undefined,
-                      }
+                    ? (message.failed ? userBubbleFailedStyle : userBubbleStyle)
                     : assistantBubbleStyle
                 }
               >
@@ -140,7 +136,7 @@ export const MessageList = forwardRef<HTMLDivElement, MessageListProps>(
                   {message.contextUsed.soulSignature && (
                     <span
                       className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs"
-                      style={{ backgroundColor: 'rgba(245, 158, 11, 0.12)', color: '#F59E0B' }}
+                      style={{ backgroundColor: 'var(--accent-vibrant-glow)', color: 'var(--accent-vibrant)' }}
                     >
                       <Sparkles className="w-3 h-3" />
                       Identity
@@ -163,7 +159,7 @@ export const MessageList = forwardRef<HTMLDivElement, MessageListProps>(
                   "text-xs mt-1",
                   message.role === 'user' ? "text-right" : "text-left"
                 )}
-                style={{ color: 'var(--text-secondary)' }}
+                style={{ color: 'var(--text-muted)' }}
               >
                 {formatTime(message.timestamp)}
               </div>
@@ -171,10 +167,12 @@ export const MessageList = forwardRef<HTMLDivElement, MessageListProps>(
 
             {message.role === 'user' && (
               <div
-                className="w-8 h-8 rounded-full flex-shrink-0 flex items-center justify-center"
-                style={{ backgroundColor: 'rgba(255, 255, 255, 0.06)', border: '1px solid rgba(255, 255, 255, 0.10)' }}
+                className="w-7 h-7 rounded-full flex-shrink-0 flex items-center justify-center"
+                style={{
+                  background: 'linear-gradient(135deg, var(--accent-vibrant), var(--accent-vibrant-hover))',
+                }}
               >
-                <User className="w-4 h-4" style={{ color: 'var(--text-secondary)' }} />
+                <User className="w-3.5 h-3.5" style={{ color: '#1a1a17' }} />
               </div>
             )}
           </div>
@@ -183,28 +181,31 @@ export const MessageList = forwardRef<HTMLDivElement, MessageListProps>(
         {isTyping && (
           <div className="flex gap-3">
             <div
-              className="w-8 h-8 rounded-full flex-shrink-0 flex items-center justify-center overflow-hidden"
+              className="w-7 h-7 rounded-full flex-shrink-0 flex items-center justify-center overflow-hidden"
               style={{ backgroundColor: 'var(--glass-surface-bg)' }}
             >
-              <img src="/images/backgrounds/flower-hero.png" alt="" className="w-7 h-7 object-contain" />
+              <img src="/images/backgrounds/flower-hero.png" alt="" className="w-6 h-6 object-contain" />
             </div>
             <div
-              className="px-5 py-4 rounded-2xl rounded-bl-md"
+              className="px-4 py-3 rounded-2xl rounded-bl-md"
               style={assistantBubbleStyle}
             >
-              <div className="flex gap-1.5">
-                <div
-                  className="w-2 h-2 rounded-full animate-bounce"
-                  style={{ backgroundColor: 'var(--foreground)', animationDelay: '0ms' }}
-                />
-                <div
-                  className="w-2 h-2 rounded-full animate-bounce"
-                  style={{ backgroundColor: 'var(--foreground)', animationDelay: '150ms' }}
-                />
-                <div
-                  className="w-2 h-2 rounded-full animate-bounce"
-                  style={{ backgroundColor: 'var(--foreground)', animationDelay: '300ms' }}
-                />
+              <div className="flex items-center gap-2">
+                <div className="flex gap-1.5">
+                  <div
+                    className="w-2 h-2 rounded-full animate-bounce"
+                    style={{ backgroundColor: 'var(--accent-vibrant)', animationDelay: '0ms' }}
+                  />
+                  <div
+                    className="w-2 h-2 rounded-full animate-bounce"
+                    style={{ backgroundColor: 'var(--accent-vibrant)', animationDelay: '150ms' }}
+                  />
+                  <div
+                    className="w-2 h-2 rounded-full animate-bounce"
+                    style={{ backgroundColor: 'var(--accent-vibrant)', animationDelay: '300ms' }}
+                  />
+                </div>
+                <span className="text-xs" style={{ color: 'var(--text-muted)' }}>thinking...</span>
               </div>
             </div>
           </div>

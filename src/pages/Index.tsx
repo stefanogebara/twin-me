@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowRight, PlayCircle } from 'lucide-react';
+import { ArrowRight, ArrowUp, PlayCircle, Globe, MessageSquare, Music, Clock, Sparkles, Brain } from 'lucide-react';
 import { useAuth, SignInButton } from '../contexts/AuthContext';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -11,25 +11,40 @@ import {
   LinkedinLogo,
 } from '../components/PlatformLogos';
 
-/* ── Active platform integrations ── */
+/* ── Active platform integrations + import-based sources ── */
+const BrowserExtIcon = ({ className, style }: { className?: string; style?: React.CSSProperties }) => (
+  <Globe className={className} style={style} />
+);
+const WhatsAppIcon = ({ className, style }: { className?: string; style?: React.CSSProperties }) => (
+  <MessageSquare className={className} style={style} />
+);
+
 const PLATFORMS = [
-  { id: 'spotify',   name: 'Spotify',          Icon: SpotifyLogo,         color: '#1DB954' },
-  { id: 'calendar',  name: 'Google Calendar',   Icon: GoogleCalendarLogo,  color: '#4285F4' },
-  { id: 'youtube',   name: 'YouTube',           Icon: YoutubeLogo,         color: '#FF0000' },
-  { id: 'discord',   name: 'Discord',           Icon: DiscordLogo,         color: '#5865F2' },
-  { id: 'linkedin',  name: 'LinkedIn',          Icon: LinkedinLogo,        color: '#0A66C2' },
+  { id: 'spotify',   name: 'Spotify',            Icon: SpotifyLogo,         color: '#1DB954' },
+  { id: 'calendar',  name: 'Google Calendar',     Icon: GoogleCalendarLogo,  color: '#4285F4' },
+  { id: 'youtube',   name: 'YouTube',             Icon: YoutubeLogo,         color: '#FF0000' },
+  { id: 'discord',   name: 'Discord',             Icon: DiscordLogo,         color: '#5865F2' },
+  { id: 'linkedin',  name: 'LinkedIn',            Icon: LinkedinLogo,        color: '#0A66C2' },
+  { id: 'browser',   name: 'Browser Extension',   Icon: BrowserExtIcon,      color: '#8B5CF6' },
+  { id: 'whatsapp',  name: 'WhatsApp',            Icon: WhatsAppIcon,        color: '#25D366' },
 ];
 
 /* ── Card images from Gemini ── */
 const CARD_IMAGES = {
-  hero: '/images/backgrounds/flower-card-1.jpg',      // Coral flower on blue sky
-  connect: '/images/backgrounds/flower-card-2.jpg',    // Orange poppy on green bokeh
-  discover: '/images/backgrounds/flower-card-7.jpg',   // NEW: warm amber flower on deep red-brown
-  share: '/images/backgrounds/flower-card-6.jpg',      // Abstract orange/teal grainy
-  control: '/images/backgrounds/flower-card-5.jpg',    // Pink/orange flower on purple
-  stats: '/images/backgrounds/flower-card-3.jpg',      // Orange flower on teal underwater (was discover)
-  cta: '/images/backgrounds/flower-card-4.jpg',        // Red/orange flower on cream — standalone CTA flower
+  connect: '/images/backgrounds/flower-card-2.jpg',
+  discover: '/images/backgrounds/flower-card-7.jpg',
+  share: '/images/backgrounds/flower-card-6.jpg',
+  control: '/images/backgrounds/flower-card-5.jpg',
+  cta: '/images/backgrounds/flower-card-4.jpg',
 };
+
+/* ── Quick-start discovery chips ── */
+const DISCOVERY_CHIPS = [
+  { label: 'Music taste', icon: Music },
+  { label: 'Daily rhythms', icon: Clock },
+  { label: 'Hidden patterns', icon: Sparkles },
+  { label: 'Personality traits', icon: Brain },
+];
 
 /* ── Service tab data ── */
 const SERVICES = [
@@ -71,6 +86,7 @@ const Index = () => {
   const navigate = useNavigate();
   const { isSignedIn, isLoaded } = useAuth();
   const [activeService, setActiveService] = useState(0);
+  const [promptValue, setPromptValue] = useState('');
 
   useEffect(() => {
     if (isLoaded && isSignedIn) {
@@ -86,18 +102,29 @@ const Index = () => {
     return () => clearInterval(timer);
   }, []);
 
+  const handlePromptSubmit = () => {
+    if (isSignedIn) {
+      navigate('/discover');
+    } else {
+      navigate('/discover');
+    }
+  };
+
+  const handleChipClick = (chip: string) => {
+    setPromptValue(chip);
+    handlePromptSubmit();
+  };
+
   return (
-    <div className="w-full min-h-screen" style={{ backgroundColor: 'var(--background)', color: 'var(--foreground)', fontFamily: "'Geist', sans-serif", fontSize: '14px', fontWeight: 500 }}>
+    <div className="w-full min-h-screen" style={{ backgroundColor: '#141414', color: '#F5F0EB', fontFamily: "'Geist', sans-serif", fontSize: '14px', fontWeight: 500 }}>
       <style>{`
-        /* ── Claura Typography System ── */
-        /* H1: 70px/400, H2: 56px/400, H3: 32px/400 — all Halant */
-        /* Body: 14px/500, Button: 12px/400 — all Geist */
+        /* ── Sundust Dark Typography System ── */
         .heading-serif {
           font-family: 'Halant', Georgia, serif;
           font-weight: 400;
           letter-spacing: -0.05em;
           line-height: 1.1;
-          color: var(--foreground);
+          color: #F5F0EB;
         }
         .h1 { font-size: 80px; }
         .h2 { font-size: 56px; }
@@ -106,31 +133,31 @@ const Index = () => {
           font-family: 'Halant', Georgia, serif;
           font-weight: 400;
           font-style: italic;
-          color: var(--text-secondary);
+          color: #A8A29E;
           letter-spacing: -0.05em;
         }
         .body-text {
           font-family: 'Geist', sans-serif;
           font-size: 14px;
           font-weight: 500;
-          color: var(--text-secondary);
+          color: #A8A29E;
           line-height: 1.65;
         }
         .claura-label {
           font-family: 'Geist', sans-serif;
-          background: var(--glass-surface-bg, rgba(0,0,0,0.04));
-          border: 1px solid var(--glass-surface-border, rgba(0,0,0,0.06));
+          background: rgba(255,255,255,0.04);
+          border: 1px solid rgba(255,255,255,0.08);
           border-radius: 8px;
           padding: 6px 14px;
           font-size: 12px;
           font-weight: 400;
-          color: var(--text-secondary);
+          color: #A8A29E;
           display: inline-block;
         }
         .btn-cta {
           font-family: 'Geist', sans-serif;
-          background-color: var(--foreground);
-          color: var(--background);
+          background-color: #F5F0EB;
+          color: #141414;
           border-radius: 9999px;
           padding: 14px 28px;
           font-size: 12px;
@@ -146,8 +173,8 @@ const Index = () => {
         .btn-outline {
           font-family: 'Geist', sans-serif;
           background: transparent;
-          color: var(--foreground);
-          border: 1.5px solid var(--glass-surface-border, #D5D0C8);
+          color: #F5F0EB;
+          border: 1.5px solid rgba(255,255,255,0.15);
           border-radius: 9999px;
           padding: 13px 26px;
           font-size: 12px;
@@ -159,7 +186,32 @@ const Index = () => {
           letter-spacing: 0.02em;
           text-transform: uppercase;
         }
-        .btn-outline:hover { border-color: var(--foreground); transform: translateY(-1px); }
+        .btn-outline:hover { border-color: rgba(255,255,255,0.4); transform: translateY(-1px); }
+
+        /* Nav link style */
+        .nav-link {
+          font-family: 'Geist', sans-serif;
+          font-size: 13px;
+          font-weight: 500;
+          color: #A8A29E;
+          transition: color 0.2s ease;
+          cursor: pointer;
+        }
+        .nav-link:hover { color: #F5F0EB; }
+
+        /* Sign in text button */
+        .btn-signin {
+          font-family: 'Geist', sans-serif;
+          font-size: 13px;
+          font-weight: 500;
+          color: #A8A29E;
+          background: none;
+          border: none;
+          cursor: pointer;
+          transition: color 0.2s ease;
+          padding: 8px 16px;
+        }
+        .btn-signin:hover { color: #F5F0EB; }
 
         /* Service tab highlight */
         .service-tab {
@@ -168,20 +220,135 @@ const Index = () => {
           border-radius: 16px;
           transition: all 0.3s ease;
         }
-        .service-tab:hover { background: var(--glass-surface-bg, rgba(0,0,0,0.03)); }
+        .service-tab:hover { background: rgba(255,255,255,0.03); }
         .service-tab.active {
-          background: var(--glass-surface-bg, rgba(0,0,0,0.04));
+          background: rgba(255,255,255,0.05);
         }
 
-        /* Glass stat card */
-        .glass-stat {
-          background: rgba(0,0,0,0.35);
-          border: 1px solid rgba(255,255,255,0.2);
+        /* Glass stat card — standalone */
+        .glass-stat-standalone {
+          background: rgba(255,255,255,0.03);
+          border: 1px solid rgba(255,255,255,0.08);
+          border-radius: 20px;
+          padding: 32px 28px;
+          text-align: center;
+          position: relative;
+          overflow: hidden;
+        }
+        .glass-stat-standalone::before {
+          content: '';
+          position: absolute;
+          top: 0;
+          left: 0;
+          right: 0;
+          height: 2px;
+          background: linear-gradient(90deg, transparent, #E8A050, #D4644A, transparent);
+          opacity: 0.6;
+        }
+
+        /* ── Sunset glow behind prompt ── */
+        .prompt-glow-wrapper {
+          position: relative;
+          width: 100%;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          padding: 60px 0 40px;
+        }
+        .prompt-glow-wrapper::before {
+          content: '';
+          position: absolute;
+          top: 50%;
+          left: 50%;
+          transform: translate(-50%, -50%);
+          width: 700px;
+          height: 400px;
+          background:
+            radial-gradient(ellipse 60% 70% at 50% 50%, rgba(232, 160, 80, 0.35) 0%, rgba(212, 100, 74, 0.2) 30%, rgba(91, 45, 110, 0.15) 55%, transparent 80%),
+            radial-gradient(ellipse 40% 50% at 50% 55%, rgba(255, 200, 100, 0.15) 0%, transparent 60%);
+          pointer-events: none;
+          z-index: 0;
+          animation: glowPulse 5s ease-in-out infinite;
+        }
+        @keyframes glowPulse {
+          0%, 100% { opacity: 0.8; transform: translate(-50%, -50%) scale(1); }
+          50% { opacity: 1; transform: translate(-50%, -50%) scale(1.06); }
+        }
+
+        /* Glass prompt input — Sundust dark */
+        .glass-prompt {
+          background: rgba(255,255,255,0.04);
+          border: 1px solid rgba(255,255,255,0.1);
           backdrop-filter: blur(16px);
           -webkit-backdrop-filter: blur(16px);
           border-radius: 20px;
-          padding: 28px 24px;
-          text-align: center;
+          padding: 6px 6px 6px 24px;
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          width: 100%;
+          max-width: 620px;
+          transition: border-color 0.2s ease;
+          position: relative;
+          z-index: 1;
+        }
+        .glass-prompt:focus-within {
+          border-color: rgba(232, 160, 80, 0.5);
+        }
+        .glass-prompt input {
+          flex: 1;
+          background: none;
+          border: none;
+          outline: none;
+          font-family: 'Geist', sans-serif;
+          font-size: 15px;
+          font-weight: 400;
+          color: #F5F0EB;
+          padding: 14px 0;
+        }
+        .glass-prompt input::placeholder {
+          color: #A8A29E;
+          opacity: 0.5;
+        }
+        .glass-prompt .prompt-submit {
+          background: #F5F0EB;
+          color: #141414;
+          border: none;
+          border-radius: 50%;
+          width: 44px;
+          height: 44px;
+          cursor: pointer;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          transition: opacity 0.2s ease, transform 0.2s ease;
+          flex-shrink: 0;
+        }
+        .glass-prompt .prompt-submit:hover { opacity: 0.85; transform: scale(1.05); }
+
+        /* Discovery chip — Sundust dark */
+        .discovery-chip {
+          font-family: 'Geist', sans-serif;
+          font-size: 13px;
+          font-weight: 400;
+          color: #A8A29E;
+          background: rgba(255,255,255,0.04);
+          border: 1px solid rgba(255,255,255,0.1);
+          border-radius: 9999px;
+          padding: 10px 18px;
+          cursor: pointer;
+          transition: all 0.2s ease;
+          white-space: nowrap;
+          display: inline-flex;
+          align-items: center;
+          gap: 8px;
+          position: relative;
+          z-index: 1;
+        }
+        .discovery-chip:hover {
+          border-color: rgba(232, 160, 80, 0.4);
+          color: #F5F0EB;
+          background: rgba(232, 160, 80, 0.08);
         }
 
         /* Step circle */
@@ -189,25 +356,50 @@ const Index = () => {
           width: 48px;
           height: 48px;
           border-radius: 50%;
-          border: 1.5px solid var(--glass-surface-border, #D5D0C8);
+          border: 1.5px solid rgba(255,255,255,0.15);
           display: flex;
           align-items: center;
           justify-content: center;
           font-family: 'Geist', sans-serif;
           font-size: 12px;
           font-weight: 400;
-          color: var(--text-secondary);
+          color: #A8A29E;
           flex-shrink: 0;
         }
         .step-badge {
           font-family: 'Geist', sans-serif;
-          background: var(--glass-surface-bg, rgba(0,0,0,0.04));
-          border: 1px solid var(--glass-surface-border, rgba(0,0,0,0.06));
+          background: rgba(255,255,255,0.04);
+          border: 1px solid rgba(255,255,255,0.08);
           border-radius: 6px;
           padding: 3px 10px;
           font-size: 12px;
           font-weight: 400;
-          color: var(--text-secondary);
+          color: #A8A29E;
+        }
+
+        /* Warm ambient glow */
+        .warm-glow {
+          position: relative;
+        }
+        .warm-glow::before {
+          content: '';
+          position: absolute;
+          top: -100px;
+          left: 50%;
+          transform: translateX(-50%);
+          width: 600px;
+          height: 400px;
+          background: radial-gradient(ellipse at center, rgba(232, 160, 80, 0.06) 0%, transparent 70%);
+          pointer-events: none;
+          z-index: 0;
+        }
+
+        /* Nav bottom border */
+        .nav-dark {
+          border-bottom: 1px solid rgba(255,255,255,0.06);
+          background: rgba(20, 20, 20, 0.95);
+          backdrop-filter: blur(12px);
+          -webkit-backdrop-filter: blur(12px);
         }
 
         /* Responsive heading sizes */
@@ -215,40 +407,79 @@ const Index = () => {
           .h1 { font-size: 48px; }
           .h2 { font-size: 36px; }
           .h3 { font-size: 24px; }
+          .glass-prompt { max-width: 100%; }
+          .prompt-glow-wrapper::before {
+            width: 100%;
+            height: 300px;
+          }
         }
       `}</style>
 
       {/* ────────────── NAV ────────────── */}
-      <nav className="sticky top-0 z-50 w-full px-6 lg:px-16" style={{ backgroundColor: 'var(--background)' }}>
+      <nav className="sticky top-0 z-50 w-full px-6 lg:px-16 nav-dark">
         <div className="max-w-[1200px] mx-auto flex items-center justify-between py-4">
-          <div className="flex items-center gap-8">
-            <span
-              className="heading-serif text-[22px] cursor-pointer"
-              onClick={() => navigate('/')}
+          {/* Left: Logo */}
+          <span
+            className="heading-serif text-[22px] cursor-pointer"
+            onClick={() => navigate('/')}
+          >
+            Twin Me
+          </span>
+
+          {/* Center: Nav links */}
+          <div className="hidden md:flex items-center gap-8">
+            <a
+              className="nav-link"
+              onClick={() => document.getElementById('services')?.scrollIntoView({ behavior: 'smooth' })}
             >
-              Twin Me
-            </span>
+              Features
+            </a>
+            <a
+              className="nav-link"
+              onClick={() => document.getElementById('how-it-works')?.scrollIntoView({ behavior: 'smooth' })}
+            >
+              How it works
+            </a>
           </div>
-          <div className="flex items-center gap-3">
+
+          {/* Right: Auth */}
+          <div className="flex items-center gap-2">
             {isLoaded && isSignedIn ? (
               <button onClick={() => navigate('/dashboard')} className="btn-cta">
                 Dashboard
               </button>
             ) : (
-              <SignInButton mode="modal" fallbackRedirectUrl="/discover" forceRedirectUrl="/discover">
-                <button className="btn-cta">
-                  Start Free
-                </button>
-              </SignInButton>
+              <>
+                <SignInButton mode="modal" fallbackRedirectUrl="/discover" forceRedirectUrl="/discover">
+                  <button className="btn-signin">
+                    Sign in
+                  </button>
+                </SignInButton>
+                <SignInButton mode="modal" fallbackRedirectUrl="/discover" forceRedirectUrl="/discover">
+                  <button className="btn-cta">
+                    Start Free
+                  </button>
+                </SignInButton>
+              </>
             )}
           </div>
         </div>
       </nav>
 
       {/* ────────────── HERO ────────────── */}
-      <section className="px-6 lg:px-16 pt-12 pb-14 lg:pt-16 lg:pb-16">
-        <div className="max-w-[1072px] mx-auto text-center flex flex-col items-center gap-8">
-          {/* Main heading — H1: 80px/400 */}
+      <section className="px-6 lg:px-16 pt-20 pb-0 lg:pt-28">
+        <div className="max-w-[1072px] mx-auto text-center flex flex-col items-center gap-6">
+          {/* Accent label chip */}
+          <motion.span
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5 }}
+            className="claura-label"
+          >
+            Soul Signature Platform
+          </motion.span>
+
+          {/* Main heading */}
           <motion.h1
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
@@ -268,7 +499,7 @@ const Index = () => {
             We discover what makes you authentically YOU through patterns across your music, calendar, content, conversations, and professional life.
           </motion.p>
 
-          {/* CTA buttons */}
+          {/* CTA buttons above prompt */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -294,38 +525,60 @@ const Index = () => {
             </button>
           </motion.div>
 
-          {/* Hero image card */}
+          {/* Prompt input with sunset glow behind it */}
           <motion.div
             initial={{ opacity: 0, y: 40 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8, delay: 0.4 }}
-            className="w-full mt-4 relative overflow-hidden"
-            style={{ borderRadius: '28px', aspectRatio: '2.4 / 1' }}
+            className="prompt-glow-wrapper"
           >
-            <img
-              src={CARD_IMAGES.hero}
-              alt="Soul Signature"
-              className="absolute inset-0 w-full h-full object-cover"
-              fetchPriority="high"
-            />
+            <div className="glass-prompt">
+              <input
+                type="text"
+                placeholder="What do you want to discover about yourself?"
+                value={promptValue}
+                onChange={(e) => setPromptValue(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && handlePromptSubmit()}
+              />
+              <button className="prompt-submit" onClick={handlePromptSubmit} aria-label="Submit">
+                <ArrowUp className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Quick-start chips below input */}
+            <div className="flex flex-wrap justify-center gap-2 mt-5">
+              {DISCOVERY_CHIPS.map((chip) => {
+                const ChipIcon = chip.icon;
+                return (
+                  <button
+                    key={chip.label}
+                    className="discovery-chip"
+                    onClick={() => handleChipClick(chip.label)}
+                  >
+                    <ChipIcon className="w-3.5 h-3.5" />
+                    {chip.label}
+                  </button>
+                );
+              })}
+            </div>
           </motion.div>
         </div>
       </section>
 
       {/* ────────────── PLATFORMS STRIP ────────────── */}
-      <section className="px-6 lg:px-16 py-10 border-t border-b border-[var(--glass-surface-border)]">
+      <section className="px-6 lg:px-16 py-12 border-t border-b" style={{ borderColor: 'rgba(255,255,255,0.06)' }}>
         <div className="max-w-[1200px] mx-auto">
-          <p className="text-center mb-7" style={{ fontFamily: "'Geist', sans-serif", fontSize: '11px', fontWeight: 400, letterSpacing: '0.12em', textTransform: 'uppercase', color: '#B5B0A8' }}>
+          <p className="text-center mb-7" style={{ fontFamily: "'Geist', sans-serif", fontSize: '11px', fontWeight: 400, letterSpacing: '0.12em', textTransform: 'uppercase', color: '#706B63' }}>
             Your data, your insights — powered by
           </p>
           <div className="flex flex-wrap justify-center items-center gap-8 lg:gap-14">
             {PLATFORMS.map(({ id, name, Icon, color }) => (
-              <div key={id} className="flex items-center gap-2.5 transition-opacity duration-200" style={{ opacity: 0.6 }}
-                onMouseEnter={e => (e.currentTarget.style.opacity = '1')}
-                onMouseLeave={e => (e.currentTarget.style.opacity = '0.6')}
+              <div key={id} className="flex items-center gap-2.5 transition-opacity duration-200" style={{ opacity: 0.5 }}
+                onMouseEnter={e => (e.currentTarget.style.opacity = '0.9')}
+                onMouseLeave={e => (e.currentTarget.style.opacity = '0.5')}
               >
                 <Icon className="w-5 h-5" style={{ color }} />
-                <span style={{ fontFamily: "'Geist', sans-serif", fontSize: '13px', fontWeight: 500, color: 'var(--text-secondary)' }}>{name}</span>
+                <span style={{ fontFamily: "'Geist', sans-serif", fontSize: '13px', fontWeight: 500, color: '#A8A29E' }}>{name}</span>
               </div>
             ))}
           </div>
@@ -333,10 +586,10 @@ const Index = () => {
       </section>
 
       {/* ────────────── WHO WE ARE + STATS ────────────── */}
-      <section className="px-6 lg:px-16 py-16 lg:py-20">
-        <div className="max-w-[1200px] mx-auto">
+      <section className="px-6 lg:px-16 py-24 warm-glow">
+        <div className="max-w-[1200px] mx-auto relative z-10">
           {/* Header row */}
-          <div className="flex flex-col lg:flex-row gap-8 lg:gap-16 mb-12">
+          <div className="flex flex-col lg:flex-row gap-8 lg:gap-16 mb-14">
             <div className="lg:w-1/2">
               <span className="claura-label mb-5 block">Who we are</span>
               <h2 className="heading-serif h2">
@@ -350,58 +603,46 @@ const Index = () => {
             </div>
           </div>
 
-          {/* Stats card with nature bg + glass stat boxes */}
+          {/* Stats — standalone glass cards */}
           <motion.div
             initial={{ opacity: 0, y: 30 }}
             whileInView={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.7 }}
             viewport={{ once: true, amount: 0.3 }}
-            className="relative overflow-hidden w-full"
-            style={{ borderRadius: '28px', minHeight: '380px', backgroundColor: '#2a2420' }}
+            className="grid grid-cols-1 md:grid-cols-3 gap-5"
           >
-            {/* Background image */}
-            <img
-              src={CARD_IMAGES.stats}
-              alt=""
-              className="absolute inset-0 w-full h-full object-cover"
-            />
-            {/* Subtle overlay for legibility — no heavy color filter */}
-            <div className="absolute inset-0" style={{ background: 'rgba(255, 255, 255, 0.25)' }} />
-
-            {/* Glass stat boxes */}
-            <div className="relative z-10 p-8 lg:p-12 grid grid-cols-1 md:grid-cols-3 gap-4 items-end h-full" style={{ minHeight: '380px' }}>
-              {[
-                { value: '5+', label: 'Platform integrations', sub: 'And growing' },
-                { value: '1,536d', label: 'Vector embeddings', sub: 'Per memory' },
-                { value: '< 60s', label: 'Time to first insight', sub: 'After connecting' },
-              ].map((stat, i) => (
-                <div key={i} className="glass-stat">
-                  <div
-                    style={{
-                      fontFamily: 'var(--font-heading)',
-                      fontSize: '56px',
-                      fontWeight: 600,
-                      lineHeight: 1.05,
-                      color: '#ffffff',
-                      marginBottom: '8px',
-                    }}
-                  >
-                    {stat.value}
-                  </div>
-                  <p style={{ fontFamily: 'var(--font-sans)', fontSize: '13px', color: 'rgba(255,255,255,0.85)', lineHeight: 1.4, margin: 0 }}>{stat.label}</p>
-                  <p style={{ fontFamily: 'var(--font-sans)', fontSize: '11px', color: 'rgba(255,255,255,0.55)', marginTop: '4px' }}>{stat.sub}</p>
+            {[
+              { value: '5+', label: 'Platform integrations', sub: 'And growing' },
+              { value: '1,536d', label: 'Vector embeddings', sub: 'Per memory' },
+              { value: '< 60s', label: 'Time to first insight', sub: 'After connecting' },
+            ].map((stat, i) => (
+              <div key={i} className="glass-stat-standalone">
+                <div
+                  style={{
+                    fontFamily: "'Halant', Georgia, serif",
+                    fontSize: '52px',
+                    fontWeight: 600,
+                    lineHeight: 1.05,
+                    color: '#F5F0EB',
+                    marginBottom: '10px',
+                    letterSpacing: '-0.03em',
+                  }}
+                >
+                  {stat.value}
                 </div>
-              ))}
-            </div>
+                <p className="body-text" style={{ margin: 0 }}>{stat.label}</p>
+                <p style={{ fontFamily: "'Geist', sans-serif", fontSize: '11px', color: '#706B63', marginTop: '4px' }}>{stat.sub}</p>
+              </div>
+            ))}
           </motion.div>
         </div>
       </section>
 
       {/* ────────────── SERVICES — Interactive Tab + Flower Card ────────────── */}
-      <section id="services" className="px-6 lg:px-16 py-16 lg:py-20">
+      <section id="services" className="px-6 lg:px-16 py-24">
         <div className="max-w-[1200px] mx-auto">
           {/* Header */}
-          <div className="mb-12">
+          <div className="mb-14">
             <span className="claura-label mb-5 block">Services</span>
             <div className="flex flex-col lg:flex-row gap-6 lg:gap-16">
               <h2 className="heading-serif h2 lg:max-w-[520px]">
@@ -424,12 +665,12 @@ const Index = () => {
                   onClick={() => setActiveService(idx)}
                 >
                   <h3 className={`heading-serif h3 transition-colors duration-300 ${
-                    idx === activeService ? 'text-[var(--foreground)]' : 'text-[var(--text-secondary)] opacity-40'
+                    idx === activeService ? 'text-[#F5F0EB]' : 'text-[#A8A29E] opacity-40'
                   }`}>
                     {svc.title}
                   </h3>
                   <span className={`body-text transition-colors duration-300 ${
-                    idx === activeService ? 'text-[#8A857D] dark:text-[#A8A29E]' : 'text-[var(--text-secondary)] opacity-40'
+                    idx === activeService ? 'text-[#A8A29E]' : 'text-[#706B63] opacity-40'
                   }`}>
                     {svc.num}
                   </span>
@@ -462,7 +703,7 @@ const Index = () => {
                     />
                   </div>
                   {/* Description */}
-                  <h4 className="body-text text-[var(--foreground)] mb-2" style={{ fontWeight: 600 }}>
+                  <h4 className="body-text mb-2" style={{ fontWeight: 600, color: '#F5F0EB' }}>
                     {SERVICES[activeService].heading}
                   </h4>
                   <p className="body-text max-w-[480px]">
@@ -476,8 +717,8 @@ const Index = () => {
       </section>
 
       {/* ────────────── HOW WE WORK — 3 Steps ────────────── */}
-      <section id="how-it-works" className="px-6 lg:px-16 py-16 lg:py-20">
-        <div className="max-w-[1200px] mx-auto flex flex-col lg:flex-row gap-12 lg:gap-20">
+      <section id="how-it-works" className="px-6 lg:px-16 py-24 warm-glow">
+        <div className="max-w-[1200px] mx-auto flex flex-col lg:flex-row gap-12 lg:gap-20 relative z-10">
           {/* Left: heading + CTA */}
           <div className="lg:w-[45%]">
             <span className="claura-label mb-5 block">How we work</span>
@@ -520,7 +761,7 @@ const Index = () => {
                 <div className="step-circle">{step.num}</div>
                 <div>
                   <div className="flex items-center gap-3 mb-2">
-                    <h4 className="body-text text-[var(--foreground)]" style={{ fontWeight: 600 }}>{step.title}</h4>
+                    <h4 className="body-text" style={{ fontWeight: 600, color: '#F5F0EB' }}>{step.title}</h4>
                     <span className="step-badge">{step.badge}</span>
                   </div>
                   <p className="body-text max-w-[420px]">
@@ -534,7 +775,7 @@ const Index = () => {
       </section>
 
       {/* ────────────── FINAL CTA ────────────── */}
-      <section className="px-6 lg:px-16 py-16 lg:py-20">
+      <section className="px-6 lg:px-16 py-24">
         <div className="max-w-[1072px] mx-auto text-center flex flex-col items-center gap-8">
           <h2 className="heading-serif h2">
             Turn confusion into <span className="heading-serif-italic">clarity,</span> today.
@@ -577,7 +818,7 @@ const Index = () => {
       </section>
 
       {/* ────────────── FOOTER ────────────── */}
-      <footer className="px-6 lg:px-16 pb-10 pt-12 border-t border-[var(--glass-surface-border)]">
+      <footer className="px-6 lg:px-16 pb-10 pt-12" style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
         <div className="max-w-[1200px] mx-auto">
           {/* Top row — 3 columns */}
           <div className="flex flex-col lg:flex-row justify-between gap-10 mb-10">
@@ -589,36 +830,36 @@ const Index = () => {
 
             {/* Product links */}
             <div>
-              <p className="text-[11px] uppercase tracking-widest text-[#8A857D] font-semibold mb-4">
+              <p className="text-[11px] uppercase tracking-widest font-semibold mb-4" style={{ color: '#706B63' }}>
                 Product
               </p>
               <ul className="space-y-2.5 body-text">
-                <li><a href="/#features" className="text-[var(--text-secondary)] hover:text-[var(--foreground)] transition-colors">Features</a></li>
-                <li><a href="/#how-it-works" className="text-[var(--text-secondary)] hover:text-[var(--foreground)] transition-colors">How it works</a></li>
-                <li><a href="/get-started" className="text-[var(--text-secondary)] hover:text-[var(--foreground)] transition-colors">Connect your data</a></li>
-                <li><a href="/soul-signature" className="text-[var(--text-secondary)] hover:text-[var(--foreground)] transition-colors">Soul Signature</a></li>
+                <li><a href="/#features" className="hover:text-[#F5F0EB] transition-colors" style={{ color: '#A8A29E' }}>Features</a></li>
+                <li><a href="/#how-it-works" className="hover:text-[#F5F0EB] transition-colors" style={{ color: '#A8A29E' }}>How it works</a></li>
+                <li><a href="/get-started" className="hover:text-[#F5F0EB] transition-colors" style={{ color: '#A8A29E' }}>Connect your data</a></li>
+                <li><a href="/soul-signature" className="hover:text-[#F5F0EB] transition-colors" style={{ color: '#A8A29E' }}>Soul Signature</a></li>
               </ul>
             </div>
 
             {/* Community */}
             <div>
-              <p className="text-[11px] uppercase tracking-widest text-[#8A857D] font-semibold mb-4">
+              <p className="text-[11px] uppercase tracking-widest font-semibold mb-4" style={{ color: '#706B63' }}>
                 Community
               </p>
               <ul className="space-y-2.5 body-text">
-                <li><a href="https://github.com/twinme-ai" target="_blank" rel="noopener noreferrer" className="text-[var(--text-secondary)] hover:text-[var(--foreground)] transition-colors">GitHub</a></li>
-                <li><a href="https://twitter.com/twinme_ai" target="_blank" rel="noopener noreferrer" className="text-[var(--text-secondary)] hover:text-[var(--foreground)] transition-colors">Twitter / X</a></li>
-                <li><a href="mailto:hello@twinme.ai" className="text-[var(--text-secondary)] hover:text-[var(--foreground)] transition-colors">Contact us</a></li>
+                <li><a href="https://github.com/twinme-ai" target="_blank" rel="noopener noreferrer" className="hover:text-[#F5F0EB] transition-colors" style={{ color: '#A8A29E' }}>GitHub</a></li>
+                <li><a href="https://twitter.com/twinme_ai" target="_blank" rel="noopener noreferrer" className="hover:text-[#F5F0EB] transition-colors" style={{ color: '#A8A29E' }}>Twitter / X</a></li>
+                <li><a href="mailto:hello@twinme.ai" className="hover:text-[#F5F0EB] transition-colors" style={{ color: '#A8A29E' }}>Contact us</a></li>
               </ul>
             </div>
           </div>
 
           {/* Bottom row */}
-          <div className="flex flex-col sm:flex-row justify-between gap-4 body-text border-t border-[var(--glass-surface-border)] pt-6" style={{ fontSize: '12px' }}>
+          <div className="flex flex-col sm:flex-row justify-between gap-4 body-text pt-6" style={{ fontSize: '12px', borderTop: '1px solid rgba(255,255,255,0.06)' }}>
             <p>&copy; 2026 Twin Me. All rights reserved.</p>
             <div className="flex gap-6">
-              <a href="/privacy-policy" className="hover:text-[var(--foreground)] transition-colors">Privacy Policy</a>
-              <a href="/terms" className="hover:text-[var(--foreground)] transition-colors">Terms</a>
+              <a href="/privacy-policy" className="hover:text-[#F5F0EB] transition-colors">Privacy Policy</a>
+              <a href="/terms" className="hover:text-[#F5F0EB] transition-colors">Terms</a>
             </div>
           </div>
         </div>

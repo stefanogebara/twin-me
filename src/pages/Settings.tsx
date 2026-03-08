@@ -10,8 +10,7 @@ import {
   Lock,
   Eye,
   ServerCrash,
-  Database,
-  LogOut
+  Database
 } from 'lucide-react';
 import { Clay3DIcon } from '@/components/Clay3DIcon';
 import ConnectedPlatformsSettings from './components/settings/ConnectedPlatformsSettings';
@@ -30,10 +29,13 @@ const getAuthHeaders = () => {
   return headers;
 };
 
+type SettingsTab = 'general' | 'platforms' | 'privacy';
+
 const Settings = () => {
   const navigate = useNavigate();
   const { user, signOut } = useAuth();
   const { isDemoMode } = useDemo();
+  const [activeTab, setActiveTab] = useState<SettingsTab>('general');
   const [disconnectingService, setDisconnectingService] = useState<string | null>(null);
   const [userIdCopied, setUserIdCopied] = useState(false);
   const [syncStats, setSyncStats] = useState<{
@@ -294,6 +296,31 @@ const Settings = () => {
           >
             Settings
           </h1>
+
+          {/* Tab Navigation */}
+          <div className="flex gap-2 mt-6">
+            {([
+              { key: 'general' as SettingsTab, label: 'General' },
+              { key: 'platforms' as SettingsTab, label: 'Connected Platforms' },
+              { key: 'privacy' as SettingsTab, label: 'Privacy & Data' },
+            ]).map(({ key, label }) => (
+              <button
+                key={key}
+                onClick={() => setActiveTab(key)}
+                className="px-4 py-2 rounded-full text-sm font-medium transition-all"
+                style={{
+                  fontFamily: 'var(--font-ui)',
+                  backgroundColor: activeTab === key ? 'var(--accent-vibrant-glow)' : 'var(--glass-surface-bg)',
+                  color: activeTab === key ? 'var(--accent-vibrant)' : 'var(--text-muted)',
+                  border: activeTab === key
+                    ? '1px solid var(--accent-vibrant)'
+                    : '1px solid var(--glass-surface-border)',
+                }}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
         </motion.div>
         <motion.div
           className="space-y-8"
@@ -302,7 +329,7 @@ const Settings = () => {
           transition={{ duration: 0.45, delay: 0.1, ease: [0.4, 0, 0.2, 1] }}
         >
 
-          {/* Demo Mode Notice */}
+          {/* Demo Mode Notice — visible on all tabs */}
           {isDemoMode && (
             <div
               className="rounded-2xl p-6 flex items-center gap-3"
@@ -318,129 +345,137 @@ const Settings = () => {
             </div>
           )}
 
-          {/* Account Information */}
-          <section className={`p-8 ${cardStyle}`}>
-            <div className="flex items-center justify-between gap-3 mb-6">
-              <div className="flex items-center gap-3">
-                <Clay3DIcon name="robot" size={20} />
-                <h2 className="heading-serif text-base">
-                  Account
-                </h2>
-              </div>
-              <button
-                onClick={async () => { try { await signOut(); } catch { /* ignore */ } navigate('/auth'); }}
-                className="flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-medium transition-all hover:scale-[1.02]"
-                style={{
-                  backgroundColor: 'rgba(239, 68, 68, 0.08)',
-                  color: '#EF4444',
-                  border: '1px solid rgba(239, 68, 68, 0.2)',
-                }}
-              >
-                <LogOut className="w-4 h-4" />
-                Sign Out
-              </button>
-            </div>
-            <div className="flex flex-wrap gap-6 body-text" style={{ color: 'var(--foreground)' }}>
-              <div>
-                <span style={{ color: 'var(--text-secondary)' }}>Name: </span>
-                {user?.fullName || `${user?.firstName || ''} ${user?.lastName || ''}`.trim() || 'Not set'}
-              </div>
-              <div>
-                <span style={{ color: 'var(--text-secondary)' }}>Email: </span>
-                {user?.email}
-              </div>
-            </div>
-          </section>
-
-          {/* Connected Services */}
-          <ConnectedPlatformsSettings
-            isDemoMode={isDemoMode}
-            connectorStatus={connectorStatus}
-            isLoading={isLoading}
-            error={error}
-            disconnectingService={disconnectingService}
-            refetch={refetch}
-            navigate={navigate}
-            handleDisconnectService={handleDisconnectService}
-          />
-
-          {/* GitHub + WhatsApp (B-phase integrations) */}
-          {!isDemoMode && <GitHubConnectCard />}
-          {!isDemoMode && <WhatsAppImportCard />}
-
-          {/* Data Consent */}
-          <DataConsentSettings
-            consents={consents}
-            loadingConsents={loadingConsents}
-            revokingConsent={revokingConsent}
-            handleRevokeConsent={handleRevokeConsent}
-            cardStyle={cardStyle}
-          />
-
-          {/* Claude Desktop Sync */}
-          <ClaudeDesktopSync
-            user={user}
-            syncStats={syncStats}
-            loadingSyncStats={loadingSyncStats}
-            syncing={syncing}
-            syncMessage={syncMessage}
-            userIdCopied={userIdCopied}
-            handleManualSync={handleManualSync}
-            handleCopyUserId={handleCopyUserId}
-            cardStyle={cardStyle}
-          />
-
-          {/* How Your Data is Protected */}
-          <section className={`p-8 ${cardStyle}`}>
-            <div className="flex items-center gap-3 mb-4">
-              <Shield className="w-5 h-5" style={{ color: '#10B981' }} />
-              <h2 className="heading-serif text-base">
-                How Your Data is Protected
-              </h2>
-            </div>
-            <p className="body-text mb-6" style={{ color: 'var(--text-secondary)' }}>
-              Your privacy is fundamental to Twin Me. Here's how we protect you.
-            </p>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-              {[
-                { icon: Lock, label: 'OAuth-only connections', desc: 'We never see or store your platform passwords' },
-                { icon: Database, label: 'Encrypted at rest', desc: 'All data stored in encrypted Supabase (PostgreSQL)' },
-                { icon: Eye, label: 'No data selling', desc: 'Your data is never sold, shared, or used for ads' },
-                { icon: ServerCrash, label: 'Complete deletion', desc: 'Delete your account and ALL data is removed instantly' },
-              ].map(({ icon: Icon, label, desc }) => (
-                <div
-                  key={label}
-                  className="flex items-start gap-3 p-5 rounded-2xl"
-                  style={{
-                    backgroundColor: 'rgba(16, 185, 129, 0.03)',
-                    border: '1px solid rgba(16, 185, 129, 0.08)',
-                  }}
-                >
-                  <Icon className="w-4 h-4 mt-0.5 flex-shrink-0" style={{ color: '#10B981' }} />
-                  <div>
-                    <div className="text-sm font-medium" style={{ color: 'var(--foreground)' }}>{label}</div>
-                    <div className="text-xs" style={{ color: 'var(--text-secondary)' }}>{desc}</div>
+          {/* === GENERAL TAB === */}
+          {activeTab === 'general' && (
+            <>
+              {/* Account Information */}
+              <section className={`p-8 ${cardStyle}`}>
+                <div className="flex items-center gap-3 mb-6">
+                  <Clay3DIcon name="robot" size={20} />
+                  <h2 className="heading-serif text-base">
+                    Account
+                  </h2>
+                </div>
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm" style={{ color: 'var(--text-muted)' }}>Name</span>
+                    <span className="text-sm font-medium" style={{ color: 'var(--foreground)' }}>
+                      {user?.fullName || `${user?.firstName || ''} ${user?.lastName || ''}`.trim() || 'Not set'}
+                    </span>
+                  </div>
+                  <div
+                    className="h-px"
+                    style={{ backgroundColor: 'var(--glass-surface-border)' }}
+                  />
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm" style={{ color: 'var(--text-muted)' }}>Email</span>
+                    <span className="text-sm font-medium" style={{ color: 'var(--foreground)' }}>
+                      {user?.email}
+                    </span>
                   </div>
                 </div>
-              ))}
-            </div>
-          </section>
+              </section>
 
-          {/* Privacy & Data Management */}
-          <DataManagementSettings
-            isDemoMode={isDemoMode}
-            navigate={navigate}
-            exporting={exporting}
-            deleting={deleting}
-            showDeleteConfirm={showDeleteConfirm}
-            deleteConfirmText={deleteConfirmText}
-            dataMessage={dataMessage}
-            handleExportData={handleExportData}
-            handleDeleteAccount={handleDeleteAccount}
-            setShowDeleteConfirm={setShowDeleteConfirm}
-            setDeleteConfirmText={setDeleteConfirmText}
-            cardStyle={cardStyle}
-          />
+              {/* Claude Desktop Sync */}
+              <ClaudeDesktopSync
+                user={user}
+                syncStats={syncStats}
+                loadingSyncStats={loadingSyncStats}
+                syncing={syncing}
+                syncMessage={syncMessage}
+                userIdCopied={userIdCopied}
+                handleManualSync={handleManualSync}
+                handleCopyUserId={handleCopyUserId}
+                cardStyle={cardStyle}
+              />
+            </>
+          )}
+
+          {/* === PLATFORMS TAB === */}
+          {activeTab === 'platforms' && (
+            <>
+              <ConnectedPlatformsSettings
+                isDemoMode={isDemoMode}
+                connectorStatus={connectorStatus}
+                isLoading={isLoading}
+                error={error}
+                disconnectingService={disconnectingService}
+                refetch={refetch}
+                navigate={navigate}
+                handleDisconnectService={handleDisconnectService}
+              />
+
+              {/* GitHub + WhatsApp (B-phase integrations) */}
+              {!isDemoMode && <GitHubConnectCard />}
+              {!isDemoMode && <WhatsAppImportCard />}
+            </>
+          )}
+
+          {/* === PRIVACY TAB === */}
+          {activeTab === 'privacy' && (
+            <>
+              {/* Data Consent */}
+              <DataConsentSettings
+                consents={consents}
+                loadingConsents={loadingConsents}
+                revokingConsent={revokingConsent}
+                handleRevokeConsent={handleRevokeConsent}
+                cardStyle={cardStyle}
+              />
+
+              {/* How Your Data is Protected */}
+              <section className={`p-8 ${cardStyle}`}>
+                <div className="flex items-center gap-3 mb-4">
+                  <Shield className="w-5 h-5" style={{ color: '#10B981' }} />
+                  <h2 className="heading-serif text-base">
+                    How Your Data is Protected
+                  </h2>
+                </div>
+                <p className="body-text mb-6" style={{ color: 'var(--text-secondary)' }}>
+                  Your privacy is fundamental to Twin Me. Here's how we protect you.
+                </p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                  {[
+                    { icon: Lock, label: 'OAuth-only connections', desc: 'We never see or store your platform passwords' },
+                    { icon: Database, label: 'Encrypted at rest', desc: 'All data stored in encrypted Supabase (PostgreSQL)' },
+                    { icon: Eye, label: 'No data selling', desc: 'Your data is never sold, shared, or used for ads' },
+                    { icon: ServerCrash, label: 'Complete deletion', desc: 'Delete your account and ALL data is removed instantly' },
+                  ].map(({ icon: Icon, label, desc }) => (
+                    <div
+                      key={label}
+                      className="flex items-start gap-3 p-5 rounded-2xl"
+                      style={{
+                        backgroundColor: 'rgba(16, 185, 129, 0.03)',
+                        border: '1px solid rgba(16, 185, 129, 0.08)',
+                      }}
+                    >
+                      <Icon className="w-4 h-4 mt-0.5 flex-shrink-0" style={{ color: '#10B981' }} />
+                      <div>
+                        <div className="text-sm font-medium" style={{ color: 'var(--foreground)' }}>{label}</div>
+                        <div className="text-xs" style={{ color: 'var(--text-secondary)' }}>{desc}</div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </section>
+
+              {/* Privacy & Data Management */}
+              <DataManagementSettings
+                isDemoMode={isDemoMode}
+                navigate={navigate}
+                exporting={exporting}
+                deleting={deleting}
+                showDeleteConfirm={showDeleteConfirm}
+                deleteConfirmText={deleteConfirmText}
+                dataMessage={dataMessage}
+                handleExportData={handleExportData}
+                handleDeleteAccount={handleDeleteAccount}
+                setShowDeleteConfirm={setShowDeleteConfirm}
+                setDeleteConfirmText={setDeleteConfirmText}
+                cardStyle={cardStyle}
+              />
+            </>
+          )}
 
         </motion.div>
       </main>

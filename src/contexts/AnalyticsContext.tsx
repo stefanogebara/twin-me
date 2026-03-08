@@ -9,7 +9,7 @@ const POSTHOG_HOST = import.meta.env.VITE_POSTHOG_HOST || 'https://us.i.posthog.
 let posthogInitialized = false;
 
 export function initPostHog() {
-  if (posthogInitialized || !POSTHOG_KEY) return;
+  if (posthogInitialized || !POSTHOG_KEY || POSTHOG_KEY === 'placeholder' || POSTHOG_KEY.startsWith('phc_xxx')) return;
   posthog.init(POSTHOG_KEY, {
     api_host: POSTHOG_HOST,
     capture_pageview: false,     // We handle pageviews via React Router
