@@ -481,14 +481,14 @@ export const Dashboard: React.FC = () => {
         <div
           className="glass-card !p-1.5 !rounded-[20px] transition-all duration-200"
           style={{
-            borderColor: 'var(--glass-surface-border)',
+            borderColor: 'rgba(212,168,83,0.25)',
           }}
           onFocus={(e) => {
             e.currentTarget.style.borderColor = 'rgba(212, 168, 83, 0.4)';
             e.currentTarget.style.boxShadow = '0 8px 32px rgba(0, 0, 0, 0.12), 0 0 0 2px rgba(212, 168, 83, 0.15)';
           }}
           onBlur={(e) => {
-            e.currentTarget.style.borderColor = 'var(--glass-surface-border)';
+            e.currentTarget.style.borderColor = 'rgba(212,168,83,0.25)';
             e.currentTarget.style.boxShadow = '';
           }}
         >
@@ -548,7 +548,7 @@ export const Dashboard: React.FC = () => {
                   e.currentTarget.style.background = 'var(--glass-surface-bg-subtle)';
                 }}
               >
-                <ChipIcon className="w-3.5 h-3.5" />
+                <ChipIcon className="w-3.5 h-3.5" style={{ color: 'rgba(212,168,83,0.6)' }} />
                 {chip.label}
               </button>
             );
@@ -577,10 +577,10 @@ export const Dashboard: React.FC = () => {
           {connectedProviders.map((provider) => {
             const status = platformStatusData[provider];
             const name = PLATFORM_DISPLAY_NAMES[provider] ?? provider;
-            const syncLabel = formatLastSync(status?.lastSync ?? null);
-            const isRecent = status?.lastSync
-              ? Date.now() - new Date(status.lastSync).getTime() < 2 * 60 * 60 * 1000
-              : false;
+            // Hide platforms that have never synced — "synced never" is confusing
+            if (!status?.lastSync) return null;
+            const syncLabel = formatLastSync(status.lastSync);
+            const isRecent = Date.now() - new Date(status.lastSync).getTime() < 2 * 60 * 60 * 1000;
             return (
               <span
                 key={provider}

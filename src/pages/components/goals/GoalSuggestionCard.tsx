@@ -167,7 +167,7 @@ const GoalSuggestionCard = React.forwardRef<HTMLDivElement, GoalSuggestionCardPr
               }}
             >
               Target: {goal.target_operator === '>=' ? '' : goal.target_operator + ' '}
-              {goal.target_value} {goal.target_unit}
+              {goal.target_value} {goal.target_unit === 'ms' ? 'HRV ms' : goal.target_unit}
             </span>
           )}
           <span
