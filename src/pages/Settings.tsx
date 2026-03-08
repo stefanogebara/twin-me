@@ -298,7 +298,10 @@ const Settings = () => {
           </h1>
 
           {/* Tab Navigation */}
-          <div className="flex gap-2 mt-6">
+          <div
+            className="flex gap-0 mt-6"
+            style={{ borderBottom: '1px solid var(--glass-surface-border)' }}
+          >
             {([
               { key: 'general' as SettingsTab, label: 'General' },
               { key: 'platforms' as SettingsTab, label: 'Connected Platforms' },
@@ -307,14 +310,17 @@ const Settings = () => {
               <button
                 key={key}
                 onClick={() => setActiveTab(key)}
-                className="px-4 py-2 rounded-full text-sm font-medium transition-all"
+                className="px-4 py-2.5 text-sm font-medium transition-all"
                 style={{
                   fontFamily: 'var(--font-ui)',
-                  backgroundColor: activeTab === key ? 'var(--accent-vibrant-glow)' : 'var(--glass-surface-bg)',
+                  backgroundColor: 'transparent',
                   color: activeTab === key ? 'var(--accent-vibrant)' : 'var(--text-muted)',
-                  border: activeTab === key
-                    ? '1px solid var(--accent-vibrant)'
-                    : '1px solid var(--glass-surface-border)',
+                  border: 'none',
+                  borderBottom: activeTab === key
+                    ? '2px solid var(--accent-vibrant)'
+                    : '2px solid transparent',
+                  borderRadius: 0,
+                  marginBottom: '-1px',
                 }}
               >
                 {label}
@@ -352,12 +358,15 @@ const Settings = () => {
               <section className={`p-8 ${cardStyle}`}>
                 <div className="flex items-center gap-3 mb-6">
                   <Clay3DIcon name="robot" size={20} />
-                  <h2 className="heading-serif text-base">
+                  <h2
+                    className="text-[11px] uppercase tracking-widest font-medium"
+                    style={{ color: 'var(--text-muted)' }}
+                  >
                     Account
                   </h2>
                 </div>
                 <div className="space-y-4">
-                  <div className="flex items-center justify-between">
+                  <div className="flex flex-col gap-1">
                     <span className="text-sm" style={{ color: 'var(--text-muted)' }}>Name</span>
                     <span className="text-sm font-medium" style={{ color: 'var(--foreground)' }}>
                       {user?.fullName || `${user?.firstName || ''} ${user?.lastName || ''}`.trim() || 'Not set'}
@@ -367,7 +376,7 @@ const Settings = () => {
                     className="h-px"
                     style={{ backgroundColor: 'var(--glass-surface-border)' }}
                   />
-                  <div className="flex items-center justify-between">
+                  <div className="flex flex-col gap-1">
                     <span className="text-sm" style={{ color: 'var(--text-muted)' }}>Email</span>
                     <span className="text-sm font-medium" style={{ color: 'var(--foreground)' }}>
                       {user?.email}

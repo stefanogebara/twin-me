@@ -52,6 +52,7 @@ const EvalDashboard = lazy(() => import("./pages/EvalDashboard"));
 const IdentityPage = lazy(() => import("./pages/IdentityPage"));
 const InterviewPage = lazy(() => import("./pages/InterviewPage"));
 
+
 const queryClient = new QueryClient();
 
 // Auto-track page views on route change
