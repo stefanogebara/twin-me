@@ -407,15 +407,33 @@ export async function buildProfile(userId) {
 
     const embeddingString = personalityEmbedding ? vectorToString(personalityEmbedding) : null;
 
+    const styl = stylometrics ?? {};
     const profile = {
       user_id: userId,
-      ocean_scores: ocean,
-      stylometrics: stylometrics ?? {},
-      sampling_params: samplingParams,
+      // OCEAN Big Five
+      openness: ocean.openness,
+      conscientiousness: ocean.conscientiousness,
+      extraversion: ocean.extraversion,
+      agreeableness: ocean.agreeableness,
+      neuroticism: ocean.neuroticism,
+      // Stylometrics
+      avg_sentence_length: styl.avg_sentence_length ?? null,
+      vocabulary_richness: styl.vocabulary_richness ?? null,
+      formality_score: styl.formality_score ?? null,
+      emotional_expressiveness: styl.emotional_expressiveness ?? null,
+      humor_markers: styl.humor_markers ?? null,
+      punctuation_style: styl.punctuation_style ?? {},
+      // Sampling params
+      temperature: samplingParams.temperature,
+      top_p: samplingParams.top_p,
+      frequency_penalty: samplingParams.frequency_penalty,
+      presence_penalty: samplingParams.presence_penalty,
+      // Embedding + metadata
       personality_embedding: embeddingString,
-      memory_count: totalMemories,
+      memory_count_at_build: totalMemories,
       confidence,
       last_built_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
     };
 
     const { error: upsertError } = await supabaseAdmin
