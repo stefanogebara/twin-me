@@ -503,7 +503,8 @@ class DataExtractionService {
    * Schedule incremental sync (for future implementation)
    */
   async scheduleIncrementalSync(userId, platform, intervalHours = 24) {
-    // TODO: Implement cron job or background task scheduling
+    // NOTE: Platform syncing is handled by cron routes (cron-platform-polling, cron-observation-ingestion).
+    // This method stores schedule metadata only; actual polling runs via Vercel cron.
     console.log(`[DataExtraction] Scheduling ${platform} sync every ${intervalHours} hours`);
 
     // For now, store schedule in connector metadata

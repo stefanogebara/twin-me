@@ -8,6 +8,7 @@
 import express from 'express';
 import { supabaseAdmin } from '../config/supabase.js';
 import { authenticateToken } from '../middleware/auth.js';
+import { verifyCronSecret } from '../middleware/verifyCronSecret.js';
 import {
   getQuestions,
   calculateBigFiveScores,
@@ -402,10 +403,9 @@ router.delete('/reset', authenticateToken, async (req, res) => {
 router.post('/seed', async (req, res) => {
   try {
     // Require CRON_SECRET for admin-only database seeding operation
-    const cronSecret = req.headers['x-vercel-cron-secret'] || req.headers['authorization'];
-    const expectedSecret = process.env.CRON_SECRET;
-    if (expectedSecret && cronSecret !== expectedSecret && cronSecret !== `Bearer ${expectedSecret}`) {
-      return res.status(401).json({ error: 'Unauthorized' });
+    const authResult = verifyCronSecret(req);
+    if (!authResult.authorized) {
+      return res.status(401).json({ error: authResult.reason || 'Unauthorized' });
     }
 
     console.log('[Personality] Starting database seeding...');
