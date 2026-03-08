@@ -166,15 +166,29 @@ function stripLeadingBullet(text: string): string {
  * - Deduplicates by normalised lowercase comparison
  * - Filters out empty strings
  */
+/** Bigram similarity (Dice coefficient) for fuzzy dedup */
+function bigramSimilarity(a: string, b: string): number {
+  const bigrams = (s: string) => {
+    const bg = new Set<string>();
+    const lower = s.toLowerCase();
+    for (let i = 0; i < lower.length - 1; i++) bg.add(lower.slice(i, i + 2));
+    return bg;
+  };
+  const setA = bigrams(a);
+  const setB = bigrams(b);
+  let intersection = 0;
+  for (const bg of setA) if (setB.has(bg)) intersection++;
+  return (2 * intersection) / (setA.size + setB.size) || 0;
+}
+
 function cleanBullets(bullets: string[]): string[] {
-  const seen = new Set<string>();
   const cleaned: string[] = [];
   for (const raw of bullets) {
     const text = stripCitations(stripLeadingBullet(raw));
     if (!text) continue;
-    const key = text.toLowerCase();
-    if (seen.has(key)) continue;
-    seen.add(key);
+    // Skip if too similar to any already-kept bullet (>0.75 bigram similarity)
+    const isDuplicate = cleaned.some((existing) => bigramSimilarity(existing, text) > 0.75);
+    if (isDuplicate) continue;
     cleaned.push(text);
   }
   return cleaned;

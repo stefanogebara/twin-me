@@ -64,6 +64,7 @@ export const TokenExpiryBanner: React.FC<TokenExpiryBannerProps> = ({
             },
           }
         );
+        if (!response.ok) return;
         const data = await response.json();
 
         if (data.success && data.notifications) {
@@ -73,8 +74,8 @@ export const TokenExpiryBanner: React.FC<TokenExpiryBannerProps> = ({
           );
           setNotifications(tokenNotifications);
         }
-      } catch (error) {
-        console.error('Failed to fetch notifications:', error);
+      } catch {
+        // Silently ignore — notifications are non-critical
       } finally {
         setIsLoading(false);
       }
@@ -95,8 +96,8 @@ export const TokenExpiryBanner: React.FC<TokenExpiryBannerProps> = ({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ userId: user?.id })
       });
-    } catch (error) {
-      console.error('Failed to dismiss notification:', error);
+    } catch {
+      // Silently ignore — dismiss is best-effort
     }
   };
 

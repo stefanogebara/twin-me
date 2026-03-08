@@ -439,7 +439,7 @@ const TalkToTwin = () => {
   }
 
   return (
-    <div className="min-h-screen flex" style={{ backgroundColor: 'var(--background)' }}>
+    <div className="flex" style={{ backgroundColor: 'var(--background)', height: '100dvh', maxHeight: '100dvh' }}>
       <div className="flex-1 flex flex-col max-w-4xl mx-auto w-full">
         {/* Compact top bar */}
         <header

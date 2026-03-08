@@ -86,6 +86,29 @@ async function fetchExpertReflections(userId) {
 }
 
 /**
+ * Fetch the onboarding calibration data (archetype from deep interview).
+ * Returns null if not found.
+ */
+async function fetchCalibration(userId) {
+  try {
+    const { data, error } = await supabaseAdmin
+      .from('onboarding_calibration')
+      .select('archetype_hint, personality_summary')
+      .eq('user_id', userId)
+      .maybeSingle();
+
+    if (error) {
+      console.warn('[TwinIdentity] calibration fetch error (non-fatal):', error.message);
+      return null;
+    }
+    return data ?? null;
+  } catch (err) {
+    console.warn('[TwinIdentity] calibration fetch threw (non-fatal):', err.message);
+    return null;
+  }
+}
+
+/**
  * Fetch the latest twin_summaries row for this user.
  * Returns null if not found.
  */
@@ -128,7 +151,7 @@ router.get('/identity', authenticateUser, async (req, res) => {
   const userId = req.user.id;
 
   // Run all data fetches in parallel for maximum throughput
-  const [identity, profile, expertInsights, summaryRow] = await Promise.all([
+  const [identity, profile, expertInsights, summaryRow, calibration] = await Promise.all([
     inferIdentityContext(userId).catch((err) => {
       console.warn('[TwinIdentity] inferIdentityContext failed (non-fatal):', err.message);
       return null;
@@ -136,13 +159,23 @@ router.get('/identity', authenticateUser, async (req, res) => {
     fetchProfile(userId),
     fetchExpertReflections(userId),
     fetchTwinSummary(userId),
+    fetchCalibration(userId),
   ]);
+
+  // Merge interview archetype into profile if soul_signature_profile has none
+  const mergedProfile = { ...(profile ?? {}) };
+  if (!mergedProfile.archetype && calibration?.archetype_hint) {
+    mergedProfile.archetype = calibration.archetype_hint;
+  }
+  if (!mergedProfile.personality_summary && calibration?.personality_summary) {
+    mergedProfile.personality_summary = calibration.personality_summary;
+  }
 
   return res.json({
     success: true,
     data: {
       identity: identity ?? null,
-      profile: profile ?? null,
+      profile: mergedProfile,
       expertInsights: expertInsights ?? {},
       summary: summaryRow?.summary ?? null,
       summaryUpdatedAt: summaryRow?.updated_at ?? null,

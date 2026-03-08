@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { ArrowRight, ArrowUp, PlayCircle, Globe, MessageSquare, Music, Clock, Sparkles, Brain } from 'lucide-react';
+import { useNavigate, Navigate } from 'react-router-dom';
+import { ArrowRight, ArrowUp, PlayCircle, Globe, MessageSquare, Music, Clock, Sparkles, Brain, Database, Eye, Bell, Shield } from 'lucide-react';
 import { useAuth, SignInButton } from '../contexts/AuthContext';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -88,12 +88,6 @@ const Index = () => {
   const [activeService, setActiveService] = useState(0);
   const [promptValue, setPromptValue] = useState('');
 
-  useEffect(() => {
-    if (isLoaded && isSignedIn) {
-      navigate('/dashboard');
-    }
-  }, [isLoaded, isSignedIn, navigate]);
-
   /* Auto-cycle services every 4s */
   useEffect(() => {
     const timer = setInterval(() => {
@@ -101,6 +95,11 @@ const Index = () => {
     }, 4000);
     return () => clearInterval(timer);
   }, []);
+
+  // Redirect authenticated users immediately
+  if (isLoaded && isSignedIn) {
+    return <Navigate to="/dashboard" replace />;
+  }
 
   const handlePromptSubmit = () => {
     if (isSignedIn) {
@@ -167,7 +166,6 @@ const Index = () => {
           align-items: center;
           gap: 8px;
           letter-spacing: 0.02em;
-          text-transform: uppercase;
         }
         .btn-cta:hover { opacity: 0.85; transform: translateY(-2px); }
         .btn-outline {
@@ -184,7 +182,6 @@ const Index = () => {
           align-items: center;
           gap: 8px;
           letter-spacing: 0.02em;
-          text-transform: uppercase;
         }
         .btn-outline:hover { border-color: rgba(255,255,255,0.4); transform: translateY(-1px); }
 
@@ -264,7 +261,7 @@ const Index = () => {
           width: 700px;
           height: 400px;
           background:
-            radial-gradient(ellipse 60% 70% at 50% 50%, rgba(232, 160, 80, 0.35) 0%, rgba(212, 100, 74, 0.2) 30%, rgba(91, 45, 110, 0.15) 55%, transparent 80%),
+            radial-gradient(ellipse 60% 70% at 50% 50%, rgba(232, 160, 80, 0.45) 0%, rgba(212, 100, 74, 0.2) 30%, rgba(91, 45, 110, 0.15) 55%, transparent 80%),
             radial-gradient(ellipse 40% 50% at 50% 55%, rgba(255, 200, 100, 0.15) 0%, transparent 60%);
           pointer-events: none;
           z-index: 0;
@@ -333,7 +330,7 @@ const Index = () => {
           font-weight: 400;
           color: #A8A29E;
           background: rgba(255,255,255,0.04);
-          border: 1px solid rgba(255,255,255,0.1);
+          border: 1px solid rgba(232,160,80,0.18);
           border-radius: 9999px;
           padding: 10px 18px;
           cursor: pointer;
@@ -356,7 +353,7 @@ const Index = () => {
           width: 48px;
           height: 48px;
           border-radius: 50%;
-          border: 1.5px solid rgba(255,255,255,0.15);
+          border: 1.5px solid rgba(232,160,80,0.25);
           display: flex;
           align-items: center;
           justify-content: center;
@@ -375,6 +372,31 @@ const Index = () => {
           font-size: 12px;
           font-weight: 400;
           color: #A8A29E;
+        }
+
+        /* Glass feature card */
+        .glass-feature-card {
+          background: rgba(255,255,255,0.03);
+          border: 1px solid rgba(255,255,255,0.08);
+          border-radius: 20px;
+          padding: 32px 28px;
+          position: relative;
+          overflow: hidden;
+          transition: border-color 0.3s ease, background 0.3s ease;
+        }
+        .glass-feature-card:hover {
+          border-color: rgba(232, 160, 80, 0.25);
+          background: rgba(255,255,255,0.05);
+        }
+        .glass-feature-card::before {
+          content: '';
+          position: absolute;
+          top: 0;
+          left: 0;
+          right: 0;
+          height: 2px;
+          background: linear-gradient(90deg, transparent, #E8A050, #D4644A, transparent);
+          opacity: 0.4;
         }
 
         /* Warm ambient glow */
@@ -431,6 +453,12 @@ const Index = () => {
             <a
               className="nav-link"
               onClick={() => document.getElementById('services')?.scrollIntoView({ behavior: 'smooth' })}
+            >
+              Services
+            </a>
+            <a
+              className="nav-link"
+              onClick={() => document.getElementById('features')?.scrollIntoView({ behavior: 'smooth' })}
             >
               Features
             </a>
@@ -716,6 +744,62 @@ const Index = () => {
         </div>
       </section>
 
+      {/* ────────────── FEATURES — 2x2 Grid ────────────── */}
+      <section id="features" className="px-6 lg:px-16 py-24 warm-glow">
+        <div className="max-w-[1200px] mx-auto relative z-10">
+          <div className="mb-14">
+            <span className="claura-label mb-5 block">Features</span>
+            <h2 className="heading-serif h2">
+              Everything your twin needs to <span className="heading-serif-italic">know you.</span>
+            </h2>
+          </div>
+
+          <motion.div
+            initial={{ opacity: 0, y: 30 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.7 }}
+            viewport={{ once: true, amount: 0.3 }}
+            className="grid grid-cols-1 md:grid-cols-2 gap-5"
+          >
+            {[
+              { icon: Database, title: 'Memory Stream', desc: 'Your complete digital footprint, unified and searchable' },
+              { icon: Brain, title: 'Expert Reflections', desc: 'AI-powered insights from multiple analytical perspectives' },
+              { icon: Bell, title: 'Proactive Insights', desc: 'Personalized recommendations delivered at the right moment' },
+              { icon: Shield, title: 'Privacy Spectrum', desc: 'Full control over what your twin knows and shares' },
+            ].map((feature, idx) => {
+              const FeatureIcon = feature.icon;
+              return (
+                <motion.div
+                  key={feature.title}
+                  initial={{ opacity: 0, y: 20 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.5, delay: idx * 0.1 }}
+                  viewport={{ once: true, amount: 0.5 }}
+                  className="glass-feature-card"
+                >
+                  <div
+                    className="mb-4 flex items-center justify-center"
+                    style={{
+                      width: '48px',
+                      height: '48px',
+                      borderRadius: '14px',
+                      background: 'rgba(232, 160, 80, 0.08)',
+                      border: '1px solid rgba(232, 160, 80, 0.18)',
+                    }}
+                  >
+                    <FeatureIcon className="w-5 h-5" style={{ color: '#E8A050' }} />
+                  </div>
+                  <h4 className="body-text mb-2" style={{ fontWeight: 600, color: '#F5F0EB', fontSize: '16px' }}>
+                    {feature.title}
+                  </h4>
+                  <p className="body-text">{feature.desc}</p>
+                </motion.div>
+              );
+            })}
+          </motion.div>
+        </div>
+      </section>
+
       {/* ────────────── HOW WE WORK — 3 Steps ────────────── */}
       <section id="how-it-works" className="px-6 lg:px-16 py-24 warm-glow">
         <div className="max-w-[1200px] mx-auto flex flex-col lg:flex-row gap-12 lg:gap-20 relative z-10">
@@ -775,7 +859,7 @@ const Index = () => {
       </section>
 
       {/* ────────────── FINAL CTA ────────────── */}
-      <section className="px-6 lg:px-16 py-24">
+      <section className="px-6 lg:px-16 py-24 warm-glow">
         <div className="max-w-[1072px] mx-auto text-center flex flex-col items-center gap-8">
           <h2 className="heading-serif h2">
             Turn confusion into <span className="heading-serif-italic">clarity,</span> today.
