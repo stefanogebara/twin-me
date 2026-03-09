@@ -691,9 +691,9 @@ router.post('/message', authenticateUser, async (req, res) => {
     chatLog('Starting fetchTwinContext');
     let twinContext;
     let userLocation = null;
+    let personalityProfile = null;
     try {
       // Fetch twin context + user location + personality profile in parallel
-      let personalityProfile = null;
       const [ctx] = await Promise.all([
         fetchTwinContext(userId, message, {
           platforms: context?.platforms || ['spotify', 'calendar', 'whoop', 'web'],
