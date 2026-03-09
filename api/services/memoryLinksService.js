@@ -166,12 +166,14 @@ export async function strengthenCoCitedLinks(userId, citedIds) {
       if (existing) {
         // Increment strength by 0.1, cap at 1.0
         const newStrength = Math.min(1.0, existing.strength + 0.1);
+        const now = new Date().toISOString();
         await supabaseAdmin
           .from('memory_links')
-          .update({ strength: newStrength, updated_at: new Date().toISOString() })
+          .update({ strength: newStrength, updated_at: now, last_reinforced_at: now })
           .eq('id', existing.id);
       } else {
         // Create new co_citation link at 0.3
+        const now = new Date().toISOString();
         await supabaseAdmin
           .from('memory_links')
           .upsert({
@@ -180,7 +182,8 @@ export async function strengthenCoCitedLinks(userId, citedIds) {
             target_memory_id: targetId,
             link_type: 'co_citation',
             strength: 0.3,
-            updated_at: new Date().toISOString(),
+            updated_at: now,
+            last_reinforced_at: now,
           }, { onConflict: 'source_memory_id,target_memory_id', ignoreDuplicates: false });
       }
     }
@@ -188,6 +191,75 @@ export async function strengthenCoCitedLinks(userId, citedIds) {
     console.log(`[MemoryLinks] STDP: strengthened ${pairs.length} co-citation pairs`);
   } catch (err) {
     console.warn('[MemoryLinks] strengthenCoCitedLinks error:', err.message);
+  }
+}
+
+// ====================================================================
+// Batch graph traversal for scored retrieval (Synaptic Maturation)
+// ====================================================================
+
+/**
+ * Batch-fetch linked memories for multiple seed memory IDs.
+ * Uses exactly 2 DB queries regardless of seed count (no N+1):
+ *   1. Fetch links via IN on source_memory_id
+ *   2. Fetch memory rows via IN on id
+ *
+ * Returns linked memories with their link strength for score boosting
+ * in the retrieval pipeline. Excludes any IDs already in existingIdSet.
+ *
+ * @param {string} userId
+ * @param {string[]} seedIds - Memory IDs to traverse from (top-K retrieved)
+ * @param {Set<string>} existingIdSet - IDs already in vector results (for dedup)
+ * @param {number} maxLinked - Max linked memories to return
+ * @returns {Promise<Array<{ memory: object, linkStrength: number }>>}
+ */
+export async function traverseLinksForRetrieval(userId, seedIds, existingIdSet, maxLinked = 8) {
+  if (!seedIds?.length) return [];
+
+  try {
+    // Query 1: batch fetch all links from seed memories, ordered by strength
+    const { data: links, error: linkErr } = await supabaseAdmin
+      .from('memory_links')
+      .select('target_memory_id, strength')
+      .eq('user_id', userId)
+      .in('source_memory_id', seedIds)
+      .gt('strength', 0.1) // skip near-dead links
+      .order('strength', { ascending: false })
+      .limit(50); // over-fetch for dedup headroom
+
+    if (linkErr || !links?.length) return [];
+
+    // Deduplicate targets, exclude already-retrieved, take top N
+    const seen = new Set();
+    const candidates = [];
+    for (const link of links) {
+      const tid = link.target_memory_id;
+      if (seen.has(tid) || existingIdSet.has(tid)) continue;
+      seen.add(tid);
+      candidates.push({ id: tid, strength: link.strength });
+      if (candidates.length >= maxLinked) break;
+    }
+
+    if (!candidates.length) return [];
+
+    // Query 2: batch fetch memory rows for the new IDs
+    const targetIds = candidates.map(c => c.id);
+    const { data: memories, error: memErr } = await supabaseAdmin
+      .from('user_memories')
+      .select('id, content, memory_type, importance_score, metadata, created_at, last_accessed_at')
+      .in('id', targetIds);
+
+    if (memErr || !memories?.length) return [];
+
+    // Build strength lookup and return matched memories
+    const strengthMap = new Map(candidates.map(c => [c.id, c.strength]));
+    return memories.map(mem => ({
+      memory: mem,
+      linkStrength: strengthMap.get(mem.id) || 0,
+    }));
+  } catch (err) {
+    console.warn('[MemoryLinks] traverseLinksForRetrieval error:', err.message);
+    return [];
   }
 }
 

@@ -294,6 +294,7 @@ import checkinRoutes from './routes/checkin.js';
 import importsRoutes from './routes/imports.js';
 import cronMemoryArchiveRoutes from './routes/cron-memory-archive.js';
 import cronMemoryForgettingRoutes from './routes/cron-memory-forgetting.js';
+import cronMemorySaliencyReplayRoutes from './routes/cron-memory-saliency-replay.js';
 import cronPersonalityEvalRoutes from './routes/cron-personality-eval.js';
 import memoryHealthRoutes from './routes/memory-health.js';
 import memoryLinksRoutes from './routes/memory-links.js';
@@ -469,6 +470,7 @@ app.use('/api/claude-sync', claudeSyncRoutes); // Claude Desktop conversation sy
 app.use('/api/cron/claude-sync', cronClaudeSyncRoutes); // Claude Desktop cron sync and AI analysis processing
 app.use('/api/cron/memory-archive', cronMemoryArchiveRoutes);    // Daily memory archival for large users
 app.use('/api/cron/memory-forgetting', cronMemoryForgettingRoutes); // Weekly multi-tier quality maintenance
+app.use('/api/cron/memory-saliency-replay', cronMemorySaliencyReplayRoutes); // Daily saliency replay (CL1-inspired)
 app.use('/api/cron/personality-eval', cronPersonalityEvalRoutes);   // Weekly personality assessment (Sunday 4am)
 app.use('/api/memory-health', memoryHealthRoutes); // Memory stream health dashboard
 // Personality assessment history (inline — small enough not to need its own route file)
