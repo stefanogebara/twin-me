@@ -778,16 +778,17 @@ async function getRecentImportanceSum(userId, hoursAgo = 2) {
  * @param {string} userId
  * @param {string} query - Used for reflection semantic search
  * @param {object} [budgets] - Override default per-type limits
+ * @param {string} [reflectionWeights='identity'] - Weight preset for reflection retrieval (e.g., 'identity', 'default', 'recent')
  * @returns {Array} Combined memories: up to 30 total with guaranteed type diversity
  */
-async function retrieveDiverseMemories(userId, query, budgets = {}) {
+async function retrieveDiverseMemories(userId, query, budgets = {}, reflectionWeights = 'identity') {
   const { reflections: maxReflections = 15, facts: maxFacts = 8, platformData: maxPlatformData = 4, conversations: maxConversations = 4 } = budgets;
 
   const SELECT_COLS = 'id, content, memory_type, importance_score, metadata, created_at, last_accessed_at';
 
   const [reflectionResults, factResults, platformResults, conversationResults] = await Promise.all([
     // Reflections: semantic search over-fetches, then we cap at maxReflections
-    retrieveMemories(userId, query, maxReflections * 2, 'identity').catch(err => {
+    retrieveMemories(userId, query, maxReflections * 2, reflectionWeights).catch(err => {
       console.warn('[MemoryStream] Diverse reflections fetch failed:', err.message);
       return [];
     }),

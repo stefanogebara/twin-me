@@ -27,6 +27,8 @@ import {
 // Shared context builder (unified with MCP server)
 import { fetchTwinContext, buildContextSourcesMeta } from '../services/twinContextBuilder.js';
 import { computeEmotionalState, buildEmotionalStateMemory } from '../services/emotionalStateService.js';
+import { detectConversationMode, applyNeurotransmitterModifiers, buildNeurotransmitterPromptBlock } from '../services/neurotransmitterService.js';
+import { classifyNeuropil } from '../services/neuropilRouter.js';
 
 // Unified memory stream (Generative Agents-inspired architecture)
 import {
@@ -602,6 +604,9 @@ router.post('/message', authenticateUser, async (req, res) => {
     const useExpertRouting = featureFlags.expert_routing !== false;
     const useIdentityContext = featureFlags.identity_context !== false;
     const useEmotionalState = featureFlags.emotional_state !== false;
+    const useNeurotransmitterModes = featureFlags.neurotransmitter_modes !== false;
+    const useConnectomeNeuropils = featureFlags.connectome_neuropils !== false;
+    const useEmbodiedFeedback = featureFlags.embodied_feedback_loop !== false;
 
     // Subscription gate: free users get 1 assistant reply, then paywall
     const sub = await getUserSubscription(userId);
@@ -688,16 +693,36 @@ router.post('/message', authenticateUser, async (req, res) => {
       }, 2000);
     }
 
+    // Classify neuropil domain BEFORE context fetch so we can route retrieval (pure, microseconds)
+    const neuropilResult = useConnectomeNeuropils ? classifyNeuropil(message) : { neuropilId: null, weights: null, budgets: null, confidence: 0 };
+    if (neuropilResult.neuropilId) {
+      chatLog(`Neuropil: ${neuropilResult.neuropilId} (confidence=${neuropilResult.confidence})`);
+    }
+
     chatLog('Starting fetchTwinContext');
     let twinContext;
     let userLocation = null;
     let personalityProfile = null;
     try {
       // Fetch twin context + user location + personality profile in parallel
+      // Pass neuropil-routed budgets/weights if classified (otherwise defaults preserved)
+      const contextOptions = {
+        platforms: context?.platforms || ['spotify', 'calendar', 'whoop', 'web'],
+      };
+      if (neuropilResult.neuropilId && neuropilResult.budgets) {
+        contextOptions.memoryBudgets = neuropilResult.budgets;
+      }
+      if (neuropilResult.neuropilId && neuropilResult.weights) {
+        // Convert weights object to a custom preset name — memoryStreamService uses 'identity' default
+        // For neuropil routing, we pass the weights directly (requires memoryStreamService to handle object weights)
+        // For now, map to closest preset based on dominant weight dimension
+        const w = neuropilResult.weights;
+        if (w.recency >= 0.8) contextOptions.memoryWeights = 'recent';
+        else if (w.importance >= 0.8) contextOptions.memoryWeights = 'identity';
+        else contextOptions.memoryWeights = 'identity'; // default fallback
+      }
       const [ctx] = await Promise.all([
-        fetchTwinContext(userId, message, {
-          platforms: context?.platforms || ['spotify', 'calendar', 'whoop', 'web'],
-        }),
+        fetchTwinContext(userId, message, contextOptions),
         supabaseAdmin
           .from('users')
           .select('last_location')
@@ -714,7 +739,7 @@ router.post('/message', authenticateUser, async (req, res) => {
       if (heartbeatInterval) clearInterval(heartbeatInterval);
     }
     chatLog('fetchTwinContext complete');
-    const { soulSignature, platformData, personalityScores, writingProfile, memories, twinSummary, proactiveInsights, enrichmentContext, voiceExamples, activeGoals, patterns, identityContext, calibrationContext } = twinContext;
+    const { soulSignature, platformData, personalityScores, writingProfile, memories, twinSummary, proactiveInsights, enrichmentContext, voiceExamples, activeGoals, patterns, identityContext, calibrationContext, nudgeHistory } = twinContext;
 
     // Build personalized system prompt with structured context layers
     // Returns array format for Anthropic prompt caching: [cached_base, dynamic_context]
@@ -734,6 +759,19 @@ router.post('/message', authenticateUser, async (req, res) => {
       console.log(`[Twin Chat] Personality calibration (${personalityPromptBlock.length} chars, confidence=${personalityProfile?.confidence?.toFixed(2)})`);
     }
 
+    // Detect neurotransmitter mode from message (pure keyword analysis, microseconds)
+    let neurotransmitterMode = { mode: 'default', confidence: 0, matchedKeywords: [] };
+    if (useNeurotransmitterModes) {
+      neurotransmitterMode = detectConversationMode(message);
+      if (neurotransmitterMode.mode !== 'default') {
+        const ntBlock = buildNeurotransmitterPromptBlock(neurotransmitterMode.mode);
+        if (ntBlock) {
+          systemPrompt.push({ type: 'text', text: `\n${ntBlock}` });
+          console.log(`[Twin Chat] Neurotransmitter mode: ${neurotransmitterMode.mode} (confidence=${neurotransmitterMode.confidence}, keywords=${neurotransmitterMode.matchedKeywords.join(',')})`);
+        }
+      }
+    }
+
     // Compute current emotional state from behavioral signals (no LLM, no extra API calls)
     // Pass user message for keyword-based sentiment detection
     const emotionalState = useEmotionalState ? computeEmotionalState(platformData, message) : { promptBlock: null };
@@ -747,6 +785,20 @@ router.post('/message', authenticateUser, async (req, res) => {
             .catch(err => console.warn('[Twin Chat] Failed to store emotional state memory:', err.message));
         });
       }
+    }
+
+    // Inject nudge history for embodied feedback loop (past suggestions + outcomes)
+    if (useEmbodiedFeedback && nudgeHistory?.length > 0) {
+      const nudgeLines = nudgeHistory.map(n => {
+        const action = n.nudge_action ? ` (suggested: "${n.nudge_action}")` : '';
+        const outcome = n.nudge_followed === true ? '✓ followed through'
+          : n.nudge_followed === false ? '✗ didn\'t follow through'
+          : '? unknown';
+        return `- ${n.insight.substring(0, 150)}${action} → ${outcome}`;
+      }).join('\n');
+      const nudgeBlock = `[PAST NUDGES — what you suggested before and whether they followed through]\n${nudgeLines}\nUse this to calibrate future suggestions: lean into what works, avoid repeating ignored patterns.`;
+      systemPrompt.push({ type: 'text', text: `\n${nudgeBlock}` });
+      console.log(`[Twin Chat] Nudge history: ${nudgeHistory.length} past nudges injected`);
     }
 
     // P8: identity + calibration now fetched inside fetchTwinContext (parallel)
@@ -1014,15 +1066,26 @@ Make it sound natural and curious, not like a survey question.`;
     if (isStreaming) {
       try {
         chatLog('Starting streaming LLM call');
+        // Apply neurotransmitter mode modifiers on top of personality-derived sampling params
+        const baseSampling = {
+          temperature: personalityProfile?.temperature ?? 0.7,
+          top_p: personalityProfile?.top_p ?? 0.9,
+          frequency_penalty: personalityProfile?.frequency_penalty ?? 0.0,
+          presence_penalty: personalityProfile?.presence_penalty ?? 0.0,
+        };
+        const finalSampling = useNeurotransmitterModes
+          ? applyNeurotransmitterModifiers(baseSampling, neurotransmitterMode.mode)
+          : baseSampling;
+
         const result = await streamLLM({
           tier: TIER_CHAT,
           system: systemPrompt,
           messages: llmMessages,
           maxTokens: 2048,
-          temperature: personalityProfile?.temperature ?? 0.7,
-          top_p: personalityProfile?.top_p,
-          frequency_penalty: personalityProfile?.frequency_penalty,
-          presence_penalty: personalityProfile?.presence_penalty,
+          temperature: finalSampling.temperature,
+          top_p: finalSampling.top_p,
+          frequency_penalty: finalSampling.frequency_penalty,
+          presence_penalty: finalSampling.presence_penalty,
           userId,
           serviceName: 'twin-chat',
           onChunk: (chunk) => {
@@ -1055,15 +1118,26 @@ Make it sound natural and curious, not like a survey question.`;
           );
         }
         if (!result) {
+          // Apply neurotransmitter mode modifiers on top of personality-derived sampling params
+          const baseSamplingNonStream = {
+            temperature: personalityProfile?.temperature ?? 0.7,
+            top_p: personalityProfile?.top_p ?? 0.9,
+            frequency_penalty: personalityProfile?.frequency_penalty ?? 0.0,
+            presence_penalty: personalityProfile?.presence_penalty ?? 0.0,
+          };
+          const finalSamplingNonStream = useNeurotransmitterModes
+            ? applyNeurotransmitterModifiers(baseSamplingNonStream, neurotransmitterMode.mode)
+            : baseSamplingNonStream;
+
           result = await complete({
             tier: TIER_CHAT,
             system: systemPrompt,
             messages: llmMessages,
             maxTokens: 2048,
-            temperature: personalityProfile?.temperature ?? 0.7,
-            top_p: personalityProfile?.top_p,
-            frequency_penalty: personalityProfile?.frequency_penalty,
-            presence_penalty: personalityProfile?.presence_penalty,
+            temperature: finalSamplingNonStream.temperature,
+            top_p: finalSamplingNonStream.top_p,
+            frequency_penalty: finalSamplingNonStream.frequency_penalty,
+            presence_penalty: finalSamplingNonStream.presence_penalty,
             userId,
             serviceName: 'twin-chat'
           });
@@ -1206,6 +1280,8 @@ Make it sound natural and curious, not like a survey question.`;
       contextSources: {
         ...buildContextSourcesMeta(twinContext),
         personaBlock: personaBlock ? personaBlock.length : 0,
+        neurotransmitterMode: neurotransmitterMode.mode !== 'default' ? neurotransmitterMode.mode : null,
+        neuropil: neuropilResult.neuropilId || null,
       }
     };
 

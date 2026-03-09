@@ -53,7 +53,7 @@ Recent observations:
 Known patterns:
 {reflections}
 
-Return as JSON array: [{"insight": "...", "urgency": "low|medium|high", "category": "trend|anomaly|celebration|concern|goal_progress|goal_suggestion"}]
+Return as JSON array: [{"insight": "...", "urgency": "low|medium|high", "category": "trend|anomaly|celebration|concern|goal_progress|goal_suggestion|nudge", "nudge_action": "optional: if category is nudge, a specific micro-action the user could try (e.g., 'take a 10-min walk', 'try a new playlist')"}]
 Only return the JSON array, no other text.`;
 
 /**
@@ -167,14 +167,20 @@ async function generateProactiveInsights(userId) {
 
       if (await isInsightDuplicate(userId, item.insight)) continue;
 
+      const validCategories = ['trend', 'anomaly', 'celebration', 'concern', 'goal_progress', 'goal_suggestion', 'nudge'];
+      const insertData = {
+        user_id: userId,
+        insight: item.insight.substring(0, 500),
+        urgency: ['low', 'medium', 'high'].includes(item.urgency) ? item.urgency : 'low',
+        category: validCategories.includes(item.category) ? item.category : null,
+      };
+      // Populate nudge_action when category is 'nudge'
+      if (item.category === 'nudge' && item.nudge_action) {
+        insertData.nudge_action = item.nudge_action.substring(0, 300);
+      }
       const { error } = await supabaseAdmin
         .from('proactive_insights')
-        .insert({
-          user_id: userId,
-          insight: item.insight.substring(0, 500),
-          urgency: ['low', 'medium', 'high'].includes(item.urgency) ? item.urgency : 'low',
-          category: ['trend', 'anomaly', 'celebration', 'concern', 'goal_progress', 'goal_suggestion'].includes(item.category) ? item.category : null,
-        });
+        .insert(insertData);
 
       if (!error) {
         stored++;
@@ -416,4 +422,165 @@ No other text.`,
   }
 }
 
-export { generateProactiveInsights, getUndeliveredInsights, markInsightsDelivered };
+// ── Embodied Feedback Loop: Nudge Evaluation ────────────────────────────────
+
+/**
+ * Evaluate delivered nudges by scanning recent platform_data memories for evidence.
+ * Finds nudges delivered 12-48h ago with null nudge_followed, checks if recent
+ * platform data contains keywords from the nudge_action.
+ *
+ * Called fire-and-forget from observationIngestion after platform data ingest.
+ *
+ * @param {string} userId
+ * @returns {Promise<number>} Number of nudges evaluated
+ */
+async function evaluateNudgeOutcomes(userId) {
+  try {
+    const now = Date.now();
+    const twelveHoursAgo = new Date(now - 12 * 60 * 60 * 1000).toISOString();
+    const fortyEightHoursAgo = new Date(now - 48 * 60 * 60 * 1000).toISOString();
+
+    // Find delivered nudges in the 12-48h window that haven't been evaluated
+    const { data: pendingNudges, error: fetchErr } = await supabaseAdmin
+      .from('proactive_insights')
+      .select('id, nudge_action, delivered_at, insight')
+      .eq('user_id', userId)
+      .eq('category', 'nudge')
+      .eq('delivered', true)
+      .is('nudge_followed', null)
+      .gte('delivered_at', fortyEightHoursAgo)
+      .lte('delivered_at', twelveHoursAgo)
+      .limit(10);
+
+    if (fetchErr || !pendingNudges?.length) return 0;
+
+    // Fetch recent platform_data memories (last 48h) to scan for evidence
+    const { data: recentData } = await supabaseAdmin
+      .from('user_memories')
+      .select('content')
+      .eq('user_id', userId)
+      .eq('memory_type', 'platform_data')
+      .gte('created_at', fortyEightHoursAgo)
+      .order('created_at', { ascending: false })
+      .limit(50);
+
+    const recentText = (recentData || []).map(m => m.content.toLowerCase()).join(' ');
+
+    let evaluated = 0;
+    for (const nudge of pendingNudges) {
+      if (!nudge.nudge_action) {
+        // No action to evaluate — mark as checked but unknown
+        await supabaseAdmin
+          .from('proactive_insights')
+          .update({ nudge_checked_at: new Date().toISOString() })
+          .eq('id', nudge.id);
+        evaluated++;
+        continue;
+      }
+
+      // Extract keywords from the nudge action for evidence matching
+      const actionWords = nudge.nudge_action.toLowerCase()
+        .split(/\s+/)
+        .filter(w => w.length > 3) // skip short words
+        .filter(w => !['take', 'try', 'your', 'the', 'and', 'for', 'with', 'that', 'this', 'from', 'have', 'been', 'will', 'could', 'should', 'would', 'might'].includes(w));
+
+      // Count keyword overlap between nudge action and recent platform data
+      const matchCount = actionWords.filter(w => recentText.includes(w)).length;
+      const matchRatio = actionWords.length > 0 ? matchCount / actionWords.length : 0;
+
+      // If >= 40% of action keywords appear in recent data, consider it followed
+      const followed = matchRatio >= 0.4;
+      const outcome = followed
+        ? `Evidence found: ${matchCount}/${actionWords.length} keywords matched in recent activity`
+        : `No clear evidence: ${matchCount}/${actionWords.length} keywords matched`;
+
+      await supabaseAdmin
+        .from('proactive_insights')
+        .update({
+          nudge_followed: followed,
+          nudge_outcome: outcome.substring(0, 500),
+          nudge_checked_at: new Date().toISOString(),
+        })
+        .eq('id', nudge.id);
+
+      evaluated++;
+    }
+
+    if (evaluated > 0) {
+      console.log(`[ProactiveInsights] Evaluated ${evaluated} nudge outcomes for user ${userId}`);
+    }
+    return evaluated;
+  } catch (err) {
+    console.warn('[ProactiveInsights] evaluateNudgeOutcomes error:', err.message);
+    return 0;
+  }
+}
+
+/**
+ * Get recent evaluated nudge history for chat context injection.
+ * Returns nudges with their outcomes so the twin can reference past suggestions.
+ *
+ * @param {string} userId
+ * @param {number} [limit=5]
+ * @returns {Promise<Array<{insight: string, nudge_action: string, nudge_followed: boolean, nudge_outcome: string, delivered_at: string}>>}
+ */
+async function getNudgeHistory(userId, limit = 5) {
+  try {
+    const { data, error } = await supabaseAdmin
+      .from('proactive_insights')
+      .select('insight, nudge_action, nudge_followed, nudge_outcome, delivered_at')
+      .eq('user_id', userId)
+      .eq('category', 'nudge')
+      .eq('delivered', true)
+      .not('nudge_checked_at', 'is', null)
+      .order('delivered_at', { ascending: false })
+      .limit(limit);
+
+    if (error || !data) return [];
+    return data;
+  } catch (err) {
+    console.warn('[ProactiveInsights] getNudgeHistory error:', err.message);
+    return [];
+  }
+}
+
+/**
+ * Calculate nudge effectiveness score: ratio of followed nudges to total evaluated.
+ * Returns a score between 0 and 1, or null if insufficient data.
+ *
+ * @param {string} userId
+ * @returns {Promise<{score: number|null, followed: number, total: number}>}
+ */
+async function getNudgeEffectivenessScore(userId) {
+  try {
+    const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
+
+    const { data, error } = await supabaseAdmin
+      .from('proactive_insights')
+      .select('nudge_followed')
+      .eq('user_id', userId)
+      .eq('category', 'nudge')
+      .not('nudge_checked_at', 'is', null)
+      .gte('delivered_at', thirtyDaysAgo);
+
+    if (error || !data?.length) return { score: null, followed: 0, total: 0 };
+
+    const total = data.length;
+    const followed = data.filter(d => d.nudge_followed === true).length;
+    const score = total >= 3 ? Math.round((followed / total) * 100) / 100 : null; // Need 3+ for meaningful ratio
+
+    return { score, followed, total };
+  } catch (err) {
+    console.warn('[ProactiveInsights] getNudgeEffectivenessScore error:', err.message);
+    return { score: null, followed: 0, total: 0 };
+  }
+}
+
+export {
+  generateProactiveInsights,
+  getUndeliveredInsights,
+  markInsightsDelivered,
+  evaluateNudgeOutcomes,
+  getNudgeHistory,
+  getNudgeEffectivenessScore,
+};

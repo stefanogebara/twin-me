@@ -220,6 +220,44 @@ No co-citations for 30+ days → STDP decay kicks in → strength ↓↓ → pru
 - CL1_LLM_Encoder (Cortical Labs) — Biological neuron blending formula, synaptic plasticity
 - arXiv:2412.00804 — Personality drift detection in LLM agents
 - STDP (Spike-Timing Dependent Plasticity) — Biological synaptic strengthening/weakening model
+- Eon Systems whole-brain emulation (Nature, Oct 2024) — Neurotransmitter distribution informing mode-based parameter modulation
+
+### Neurotransmitter Modes (`neurotransmitterService.js`)
+Context-dependent dynamic modulation of sampling parameters. Inspired by how neurotransmitters globally shift brain processing. All functions are PURE (no DB, no LLM, microseconds).
+
+**Three modes** (additive deltas on top of OCEAN-derived personality params):
+- **Serotonergic** (emotional/supportive): temp +0.05, freq_pen -0.08, pres_pen +0.05 — warmer, allows comforting repetition
+- **Dopaminergic** (analytical/goal-focused): temp -0.08, top_p -0.03, freq_pen +0.08, pres_pen -0.05 — precise, varied vocabulary
+- **Noradrenergic** (creative/exploratory): temp +0.10, top_p +0.05, freq_pen +0.03, pres_pen +0.03 — widest sampling
+
+**Detection**: Keyword-based classification, requires >= 2 keyword matches to activate. Returns `{ mode, confidence, matchedKeywords }`.
+**Feature flag**: `neurotransmitter_modes` (default: enabled)
+
+### Connectome Neuropils (`neuropilRouter.js`)
+Domain-specific memory retrieval routing. Maps 5 brain regions to the 5 reflection expert domains with custom retrieval weights and type budgets.
+
+**Five neuropils**:
+- `personality`: identity-like weights [0.3, 0.8, 1.0], more reflections+conversations
+- `lifestyle`: recent-biased [1.0, 0.5, 0.8], more platform_data (10)
+- `cultural`: balanced [0.5, 0.7, 1.0], standard mix
+- `social`: balanced-recent [0.7, 0.6, 1.0], more conversations (8)
+- `motivation`: recent+importance [0.8, 0.7, 1.0], more facts (8)
+
+**Routing**: `classifyNeuropil(message)` → `{ neuropilId, weights, budgets, confidence }`. Budgets passed to `retrieveDiverseMemories()`.
+**Feature flag**: `connectome_neuropils` (default: enabled)
+
+### Embodied Feedback Loop (Nudges)
+Closes the sensorimotor loop: twin suggests micro-action → user acts → twin observes result → learns what works.
+
+**Pipeline**: `generateProactiveInsights()` → 'nudge' category with `nudge_action` → delivered in chat → `evaluateNudgeOutcomes()` (12-48h later, keyword overlap with platform_data) → outcome stored → injected as "PAST NUDGES" context in future chats.
+
+**Functions** (in `proactiveInsights.js`):
+- `evaluateNudgeOutcomes(userId)` — keyword overlap scan of platform_data vs nudge_action, ≥40% match = followed
+- `getNudgeHistory(userId, limit)` — recent evaluated nudges for chat context
+- `getNudgeEffectivenessScore(userId)` — followed/total ratio (last 30d)
+
+**Feature flag**: `embodied_feedback_loop` (default: enabled)
+**Migration**: `20260309_add_nudge_feedback_columns` — adds nudge_action, nudge_followed, nudge_outcome, nudge_checked_at to proactive_insights
 
 ### Key Architecture Files
 - `api/services/memoryStreamService.js` - Write/read path for memory stream (per-utterance storage)
@@ -243,6 +281,8 @@ No co-citations for 30+ days → STDP decay kicks in → strength ↓↓ → pru
 - `api/services/saliencyReplayService.js` - CL1-inspired sleep consolidation: replay stale important memories
 - `api/routes/cron-memory-saliency-replay.js` - Daily 4am cron for saliency replay
 - `api/routes/cron-memory-forgetting.js` - Weekly memory quality: soft-delete, STDP decay, link pruning
+- `api/services/neurotransmitterService.js` - Context-dependent sampling parameter modulation (3 pure functions)
+- `api/services/neuropilRouter.js` - Domain-specific memory retrieval routing (5 neuropils)
 
 ## Tech Stack
 - **Frontend**: React 18, TypeScript, Vite, Tailwind CSS, Framer Motion, shadcn/ui

@@ -25,7 +25,7 @@ import { getValidAccessToken } from './tokenRefresh.js';
 import { addPlatformObservation } from './memoryStreamService.js';
 import { shouldTriggerReflection, generateReflections } from './reflectionEngine.js';
 import { runPlatformExpert } from './platformExperts.js';
-import { generateProactiveInsights } from './proactiveInsights.js';
+import { generateProactiveInsights, evaluateNudgeOutcomes } from './proactiveInsights.js';
 import { trackGoalProgress, generateGoalSuggestions } from './goalTrackingService.js';
 import { generateTwinSummary } from './twinSummaryService.js';
 import { seedMemoriesFromEnrichment } from './enrichmentMemoryBridge.js';
@@ -3343,6 +3343,11 @@ async function runObservationIngestion() {
           // After reflection trigger, also generate proactive insights
           generateProactiveInsights(userId).catch(err =>
             console.warn(`[ObservationIngestion] Proactive insights failed for ${userId}:`, err.message)
+          );
+
+          // Evaluate nudge outcomes: check if user followed through on past suggestions (non-blocking)
+          evaluateNudgeOutcomes(userId).catch(err =>
+            console.warn(`[ObservationIngestion] Nudge evaluation failed for ${userId}:`, err.message)
           );
 
           // Track goal progress from ingested platform data (non-blocking)
