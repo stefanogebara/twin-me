@@ -10,7 +10,7 @@ import { supabaseAdmin } from './database.js';
 import { getValidAccessToken } from './tokenRefresh.js';
 import { retrieveDiverseMemories } from './memoryStreamService.js';
 import { getTwinSummary } from './twinSummaryService.js';
-import { getUndeliveredInsights } from './proactiveInsights.js';
+import { getUndeliveredInsights, getNudgeHistory } from './proactiveInsights.js';
 import { getEnrichment } from './enrichment/enrichmentStore.js';
 import { getActiveGoalContext } from './goalTrackingService.js';
 import { getTopPatterns } from './twinPatternService.js';
@@ -54,6 +54,8 @@ async function fetchTwinContext(userId, userMessage, options = {}) {
     getSoulSignature: fetchSoul = true,
     getPlatformData: fetchPlatforms = true,
     getPersonalityScores: fetchPersonality = true,
+    memoryBudgets = {},
+    memoryWeights = 'identity',
   } = options;
 
   const ctxStart = Date.now();
@@ -66,7 +68,7 @@ async function fetchTwinContext(userId, userMessage, options = {}) {
   // Uses individual tracked promises so the circuit breaker preserves already-resolved results
   const CONTEXT_TIMEOUT_MS = 7000;
 
-  const defaults = [null, {}, null, null, [], null, [], { success: false, data: null }, [], null, [], null, null];
+  const defaults = [null, {}, null, null, [], null, [], { success: false, data: null }, [], null, [], null, null, []];
 
   const fetchPromises = [
     fetchSoul
@@ -95,7 +97,7 @@ async function fetchTwinContext(userId, userMessage, options = {}) {
       return null;
     })),
 
-    timed('memories', retrieveDiverseMemories(userId, userMessage).catch(err => {
+    timed('memories', retrieveDiverseMemories(userId, userMessage, memoryBudgets, memoryWeights).catch(err => {
       console.warn('[TwinContext] Memory retrieval failed:', err.message);
       return [];
     })),
@@ -145,6 +147,12 @@ async function fetchTwinContext(userId, userMessage, options = {}) {
       console.warn('[TwinContext] Calibration context fetch failed:', err.message);
       return null;
     })),
+
+    // Nudge history: recent evaluated nudges for embodied feedback loop
+    timed('nudgeHistory', getNudgeHistory(userId, 5).catch(err => {
+      console.warn('[TwinContext] Nudge history fetch failed:', err.message);
+      return [];
+    })),
   ];
 
   let contextResults;
@@ -182,6 +190,7 @@ async function fetchTwinContext(userId, userMessage, options = {}) {
     patterns,
     identityContext,
     calibrationContext,
+    nudgeHistory,
   ] = contextResults;
 
   ctxLog('All parallel fetches complete');
@@ -224,6 +233,7 @@ async function fetchTwinContext(userId, userMessage, options = {}) {
     patterns,
     identityContext,
     calibrationContext,
+    nudgeHistory,
   };
 }
 
