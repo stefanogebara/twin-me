@@ -4,31 +4,23 @@ import { useAuth } from '../contexts/AuthContext';
 import { useAnalytics } from '../contexts/AnalyticsContext';
 import { Loader2, X } from 'lucide-react';
 
-// Figma Sundust tokens — dark mode
-const BG = '#1b1818';
-const FG = '#fdfcfb';
-const TEXT_SEC = '#d9d1cb';
+// Figma Sundust tokens — light left panel / dark right panel
+const BG = '#fdfcfb';
+const FG = '#1b1818';
+const TEXT_SEC = '#4a4242';
 const TEXT_MUTED = '#86807b';
-const TEXT_SUBTLE = '#4a4242';
-const INPUT_BG = 'rgba(218, 217, 215, 0.12)';
-const INPUT_BORDER = 'rgba(217, 209, 203, 0.35)';
-const BUTTON_PRIMARY_BG = '#fdfcfb';
-const BUTTON_PRIMARY_FG = '#1b1818';
+const TEXT_SUBTLE = '#86807b';
+const INPUT_BG = 'rgba(218, 217, 215, 0.2)';
+const INPUT_BORDER = '#d9d1cb';
+const BUTTON_PRIMARY_BG = '#1b1818';
+const BUTTON_PRIMARY_FG = '#fdfcfb';
 const BUTTON_DARK_BG = '#252222';
 const BUTTON_DARK_FG = '#fdfcfb';
 
-// Hero glow — Figma radial gradient (amber orb, matches landing page)
-const HERO_GLOW = `radial-gradient(ellipse at 50% 50%,
-  rgba(193,126,44,1)     0%,
-  rgba(255,132,0,0.85)   12%,
-  rgba(224,129,22,0.6)   28%,
-  rgba(194,85,78,0.35)   50%,
-  rgba(195,45,112,0.1)   72%,
-  rgba(195,45,112,0)     100%
-)`;
-
-// Right panel base gradient — purple/cosmic backdrop
-const PANEL_BG = 'linear-gradient(160deg, #1c1630 0%, #3a1f5e 35%, #5a1e3e 65%, #1a0e1a 100%)';
+// Right panel — Figma exact: blue-to-purple vertical gradient
+const PANEL_BG = `linear-gradient(90deg, rgba(236,13,13,0.2) 0%, rgba(236,13,13,0.2) 100%),
+  linear-gradient(180deg, rgb(51,52,160) 0%, rgb(131,156,174) 30.3%, rgb(114,149,179) 38.9%,
+    rgb(90,90,107) 65.4%, rgb(97,74,74) 86.5%, rgb(95,76,139) 100%)`;
 
 const CustomAuth = () => {
   const navigate = useNavigate();
@@ -231,8 +223,8 @@ For privacy concerns: privacy@twinme.ai`
               alignItems: 'center',
               justifyContent: 'center',
               gap: '10px',
-              height: '44px',
-              borderRadius: '8px',
+              height: '36px',
+              borderRadius: '6px',
               backgroundColor: BUTTON_PRIMARY_BG,
               color: BUTTON_PRIMARY_FG,
               border: 'none',
@@ -336,27 +328,13 @@ For privacy concerns: privacy@twinme.ai`
         borderRadius: '20px',
         position: 'relative',
         overflow: 'hidden',
-        background: '#0e0c0c',
+        background: PANEL_BG,
         display: 'flex',
         flexDirection: 'column',
         justifyContent: 'flex-end',
         padding: '48px',
         minWidth: 0,
       }}>
-
-        {/* Amber glow overlay (Figma hero glow — blurred) */}
-        <div style={{
-          position: 'absolute',
-          left: 'calc(50% - 260px)',
-          top: '-60px',
-          width: '520px',
-          height: '520px',
-          borderRadius: '50%',
-          background: HERO_GLOW,
-          opacity: 0.5,
-          filter: 'blur(80px)',
-          pointerEvents: 'none',
-        }} />
 
         {/* Bottom gradient fade for text legibility */}
         <div style={{
@@ -365,7 +343,7 @@ For privacy concerns: privacy@twinme.ai`
           left: 0,
           right: 0,
           height: '55%',
-          background: 'linear-gradient(to top, rgba(14,12,12,1) 40%, rgba(14,12,12,0.7) 70%, transparent 100%)',
+          background: 'linear-gradient(to top, rgba(20,18,40,0.9) 40%, rgba(20,18,40,0.6) 70%, transparent 100%)',
           pointerEvents: 'none',
         }} />
 

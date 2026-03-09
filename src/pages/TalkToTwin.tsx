@@ -443,27 +443,28 @@ const TalkToTwin = () => {
       <div className="flex-1 flex flex-col max-w-4xl mx-auto w-full">
         {/* Compact top bar */}
         <header
-          className="flex items-center justify-between px-4 py-2.5 border-b"
-          style={{ borderColor: 'var(--glass-surface-border)' }}
+          className="flex items-center justify-between px-4 py-2.5"
+          style={{
+            borderBottom: '1px solid var(--glass-surface-border)',
+            backdropFilter: 'blur(19.65px)',
+            WebkitBackdropFilter: 'blur(19.65px)',
+          }}
         >
           <div className="flex items-center gap-2.5">
             <button
               onClick={() => navigate('/dashboard')}
-              className="p-1.5 rounded-lg transition-colors hover:opacity-70"
+              className="p-1.5 rounded-full transition-all hover:opacity-70"
               style={{ color: 'var(--foreground)' }}
               title="Back to dashboard"
             >
               <ArrowLeft className="w-5 h-5" />
             </button>
-            <div
-              className="w-7 h-7 rounded-full flex items-center justify-center overflow-hidden"
-              style={{ backgroundColor: 'var(--glass-surface-bg)' }}
-            >
-              <img src="/images/backgrounds/flower-hero.png" alt="" className="w-6 h-6 object-contain" />
+            <div className="w-7 h-7 rounded-full overflow-hidden flex-shrink-0">
+              <img src="/images/backgrounds/flower.png" alt="" className="w-full h-full object-cover" />
             </div>
             <span
               className="text-sm font-medium flex items-center gap-1.5"
-              style={{ color: 'var(--foreground)', fontFamily: 'var(--font-ui)' }}
+              style={{ color: 'var(--foreground)', fontFamily: 'Inter, sans-serif' }}
             >
               Your Twin
               <Sparkles className="w-3.5 h-3.5" style={{ color: 'var(--accent-vibrant)' }} />

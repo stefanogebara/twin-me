@@ -51,16 +51,16 @@ const DARK_ANCHORS: Anchor[] = [
     pm: [[220, 148, 58, 0.42], [200, 120, 54, 0.34], [185, 105, 60, 0.38], [210, 135, 70, 0.26]],
   },
   {
-    // Daytime — warm gold
+    // Daytime — Figma exact: amber-copper center, orange secondary, copper-red ground, purple corner
     elevation: 15,
-    am: [[230, 178, 75, 0.38], [210, 158, 65, 0.30], [190, 138, 55, 0.34], [220, 168, 85, 0.22]],
-    pm: [[230, 178, 75, 0.38], [210, 158, 65, 0.30], [190, 138, 55, 0.34], [220, 168, 85, 0.22]],
+    am: [[193, 126, 44, 0.50], [255, 132, 0, 0.40], [185, 101, 74, 0.38], [93, 92, 174, 0.28]],
+    pm: [[193, 126, 44, 0.50], [255, 132, 0, 0.40], [185, 101, 74, 0.38], [93, 92, 174, 0.28]],
   },
   {
-    // High noon — golden amber
+    // High noon — Figma exact, slightly more saturated
     elevation: 60,
-    am: [[230, 178, 75, 0.38], [210, 158, 65, 0.30], [190, 138, 55, 0.34], [220, 168, 85, 0.22]],
-    pm: [[230, 178, 75, 0.38], [210, 158, 65, 0.30], [190, 138, 55, 0.34], [220, 168, 85, 0.22]],
+    am: [[193, 126, 44, 0.55], [255, 132, 0, 0.45], [185, 101, 74, 0.42], [93, 92, 174, 0.30]],
+    pm: [[193, 126, 44, 0.55], [255, 132, 0, 0.45], [185, 101, 74, 0.42], [93, 92, 174, 0.30]],
   },
 ];
 
@@ -86,14 +86,16 @@ const LIGHT_ANCHORS: Anchor[] = [
     pm: [[210, 165, 90, 0.13], [195, 145, 80, 0.11], [185, 135, 85, 0.12], [205, 155, 95, 0.09]],
   },
   {
+    // Daytime light — Figma exact colors, muted for light mode
     elevation: 15,
-    am: [[200, 160, 80, 0.12], [180, 140, 70, 0.10], [160, 120, 60, 0.12], [190, 150, 80, 0.08]],
-    pm: [[200, 160, 80, 0.12], [180, 140, 70, 0.10], [160, 120, 60, 0.12], [190, 150, 80, 0.08]],
+    am: [[193, 126, 44, 0.14], [255, 132, 0, 0.10], [185, 101, 74, 0.12], [93, 92, 174, 0.07]],
+    pm: [[193, 126, 44, 0.14], [255, 132, 0, 0.10], [185, 101, 74, 0.12], [93, 92, 174, 0.07]],
   },
   {
+    // High noon light — same, very subtle
     elevation: 60,
-    am: [[200, 160, 80, 0.12], [180, 140, 70, 0.10], [160, 120, 60, 0.12], [190, 150, 80, 0.08]],
-    pm: [[200, 160, 80, 0.12], [180, 140, 70, 0.10], [160, 120, 60, 0.12], [190, 150, 80, 0.08]],
+    am: [[193, 126, 44, 0.14], [255, 132, 0, 0.10], [185, 101, 74, 0.12], [93, 92, 174, 0.07]],
+    pm: [[193, 126, 44, 0.14], [255, 132, 0, 0.10], [185, 101, 74, 0.12], [93, 92, 174, 0.07]],
   },
 ];
 
@@ -189,9 +191,10 @@ export function computeSkyGradients(
   const groundX = 50;
   const groundY = 100;
 
-  // Atmosphere fill: drifts with day progress
-  const fillX = Math.round(lerp(40, 70, sun.progress));
-  const fillY = 50;
+  // Purple corner orb: Figma places the cool-indigo gradient at the opposite bottom corner from sun
+  // Morning sun rises east (left) → purple sits bottom-right; evening → bottom-left
+  const fillX = isMorning ? 85 : 15;
+  const fillY = 90;
 
   // Size scaling: brighter day → larger orbs
   const dayScale = sun.isDay ? 1 : 0.7;

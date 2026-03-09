@@ -198,7 +198,7 @@ const GoalCard: React.FC<GoalCardProps> = ({
         >
           <motion.div
             className="h-full rounded-full"
-            style={{ backgroundColor: categoryStyle.text }}
+            style={{ backgroundColor: 'var(--accent-vibrant)' }}
             initial={{ width: 0 }}
             animate={{ width: `${progressPercent}%` }}
             transition={{ duration: 0.6, ease: [0.4, 0, 0.2, 1], delay: 0.2 }}

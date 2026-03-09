@@ -150,7 +150,7 @@ const BrainPage: React.FC = () => {
     const fetchReflections = async () => {
       setReflectionsLoading(true);
       try {
-        const res = await authFetch('/twin/reflections?limit=20');
+        const res = await authFetch('/twin/reflections?limit=12');
         if (!res.ok) return;
         const json = await res.json();
         if (json.success && Array.isArray(json.reflections)) {
@@ -318,7 +318,7 @@ const BrainPage: React.FC = () => {
             )}
 
             {!reflectionsLoading && topDiscoveries.length > 0 && (
-              <div className="space-y-6">
+              <div className="space-y-2">
                 {topDiscoveries.map((insight, i) => {
                   const expertKey = insight.category || '';
                   const em = EXPERT_META[expertKey];
@@ -333,28 +333,32 @@ const BrainPage: React.FC = () => {
                   return (
                     <motion.div
                       key={cardKey}
-                      className="glass-card rounded-2xl overflow-hidden cursor-pointer"
-                      style={{ background: em?.bg ?? 'var(--glass-surface-bg)', border: `1px solid ${em?.color ?? 'var(--glass-surface-border)'}22` }}
+                      className="rounded-xl overflow-hidden cursor-pointer"
+                      style={{ background: 'var(--glass-surface-bg)', border: '1px solid var(--glass-surface-border)' }}
                       onClick={() => setExpandedDiscovery(prev => prev === cardKey ? null : cardKey)}
-                      initial={{ opacity: 0, y: 8 }}
+                      initial={{ opacity: 0, y: 6 }}
                       animate={{ opacity: 1, y: 0 }}
-                      transition={{ duration: 0.35, delay: i * 0.05 }}
+                      transition={{ duration: 0.3, delay: i * 0.04 }}
                     >
-                      <div className="p-7 flex items-start gap-3">
+                      <div className="px-4 py-3 flex items-start gap-3">
                         <div className="flex-1 min-w-0">
-                          {em && <p className="text-[11px] font-medium uppercase tracking-widest mb-1.5" style={{ color: 'var(--accent-vibrant)', letterSpacing: '0.1em' }}>{em.label}</p>}
+                          {em && (
+                            <span className="inline-block text-[10px] font-medium uppercase tracking-widest mb-1 px-2 py-0.5 rounded-full"
+                              style={{ background: em.bg, color: em.color }}>
+                              {em.label}
+                            </span>
+                          )}
                           <p className="text-sm leading-relaxed" style={{ color: textColor }}>
                             {isExpanded ? displayContent : preview}
                           </p>
                         </div>
                         {hasMore && (
                           <ChevronDown
-                            className="flex-shrink-0 w-4 h-4 mt-0.5 transition-transform duration-200"
+                            className="flex-shrink-0 w-4 h-4 mt-1 transition-transform duration-200"
                             style={{ color: 'var(--text-muted)', transform: isExpanded ? 'rotate(180deg)' : 'rotate(0deg)' }}
                           />
                         )}
                       </div>
-                      {isExpanded && !hasMore && null}
                     </motion.div>
                   );
                 })}
@@ -386,7 +390,7 @@ const BrainPage: React.FC = () => {
                 ))}
               </div>
             ) : (
-              <div className="space-y-5">
+              <div className="space-y-1.5">
                 {ORDERED_PLATFORMS.map((provider) => {
                   const meta = PLATFORM_META[provider];
                   const status = platformStatus?.[provider];
@@ -396,47 +400,28 @@ const BrainPage: React.FC = () => {
                   return (
                     <div
                       key={provider}
-                      className="flex items-start gap-3 p-6 rounded-2xl"
+                      className="flex items-center gap-3 px-3 py-2.5 rounded-lg"
                       style={{ background: 'var(--glass-surface-bg)', border: '1px solid var(--glass-surface-border)' }}
                     >
-                      <span className="text-xl mt-0.5">{meta.icon}</span>
+                      <span className="text-base">{meta.icon}</span>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center justify-between gap-2">
-                          <p className="text-sm font-medium" style={{ color: textColor }}>
+                          <p className="text-sm font-medium leading-none" style={{ color: textColor }}>
                             {meta.label}
                           </p>
                           {isConnected && !isExpired ? (
-                            <CheckCircle2 className="w-4 h-4 text-emerald-500 flex-shrink-0" />
+                            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500 flex-shrink-0" />
                           ) : isExpired ? (
-                            <AlertCircle className="w-4 h-4 text-amber-400 flex-shrink-0" />
+                            <AlertCircle className="w-3.5 h-3.5 text-amber-400 flex-shrink-0" />
                           ) : (
-                            <div className="w-2 h-2 rounded-full flex-shrink-0"
+                            <div className="w-1.5 h-1.5 rounded-full flex-shrink-0"
                               style={{ background: 'var(--text-muted)' }}
                             />
                           )}
                         </div>
-                        <p className="text-xs mt-0.5" style={{ color: textSecondary }}>
-                          {meta.description}
+                        <p className="text-xs mt-0.5 truncate" style={{ color: textSecondary }}>
+                          {isExpired ? 'Token expired — reconnect' : isConnected && status?.lastSync ? formatLastSync(status.lastSync) : meta.description}
                         </p>
-                        {isConnected && status?.lastSync && (
-                          <p className="text-xs mt-1 flex items-center gap-1"
-                            style={{ color: textSecondary }}
-                          >
-                            <Clock className="w-3 h-3" />
-                            {formatLastSync(status.lastSync)}
-                          </p>
-                        )}
-                        {isExpired && (
-                          <p className="text-xs mt-1 text-amber-500">Token expired — reconnect</p>
-                        )}
-                        {!isConnected && !isExpired && (
-                          <p className="text-xs mt-1" style={{ color: textSecondary }}>Not connected yet</p>
-                        )}
-                        {memoryStats?.byPlatform[provider] != null && (
-                          <p className="text-xs mt-0.5" style={{ color: textSecondary }}>
-                            {memoryStats.byPlatform[provider]} {memoryStats.byPlatform[provider] === 1 ? 'memory' : 'memories'}
-                          </p>
-                        )}
                       </div>
                     </div>
                   );
@@ -494,9 +479,10 @@ const BrainPage: React.FC = () => {
                 </div>
               )}
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {reflections.map((r, i) => {
+              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
+                {reflections.slice(0, 12).map((r, i) => {
                   const isExpanded = expandedReflection === r.id;
+                  const em = r.expert ? EXPERT_META[r.expert] : null;
                   const displayContent2 = toSecondPerson(r.content);
                   const dotIdx = displayContent2.indexOf('. ');
                   const preview = dotIdx !== -1 && dotIdx < 120
@@ -506,35 +492,24 @@ const BrainPage: React.FC = () => {
                   return (
                     <motion.div
                       key={r.id}
-                      className="glass-card rounded-2xl overflow-hidden cursor-pointer"
-                      style={{ background: 'rgba(139,92,246,0.04)', border: '1px solid rgba(139,92,246,0.08)' }}
+                      className="rounded-xl overflow-hidden cursor-pointer"
+                      style={{ background: 'var(--glass-surface-bg)', border: '1px solid var(--glass-surface-border)' }}
                       onClick={() => setExpandedReflection(prev => prev === r.id ? null : r.id)}
                       initial={{ opacity: 0, y: 6 }}
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ duration: 0.3, delay: i * 0.04 }}
                     >
-                      <div className="p-6 flex items-start gap-3">
+                      <div className="px-4 py-3 flex items-start gap-3">
                         <div className="flex-1 min-w-0">
-                          {r.expert && (
-                            <p className="text-[11px] font-medium uppercase tracking-widest mb-1.5"
-                              style={{ color: 'var(--accent-vibrant)', letterSpacing: '0.1em' }}>
-                              {EXPERT_META[r.expert]?.label ?? r.expert}
-                            </p>
+                          {em && (
+                            <span className="inline-block text-[10px] font-medium uppercase tracking-widest mb-1 px-2 py-0.5 rounded-full"
+                              style={{ background: em.bg, color: em.color }}>
+                              {em.label}
+                            </span>
                           )}
                           <p className="text-sm leading-relaxed" style={{ color: textColor }}>
                             {isExpanded ? displayContent2 : preview}
                           </p>
-                          <div className="flex items-center gap-2 mt-2">
-                            {r.category && r.category !== r.expert && (
-                              <span className="text-xs px-2 py-0.5 rounded-full"
-                                style={{ background: 'rgba(139,92,246,0.08)', color: '#8b5cf6' }}>
-                                {EXPERT_META[r.category]?.label ?? r.category}
-                              </span>
-                            )}
-                            <span className="text-xs" style={{ color: textSecondary }}>
-                              importance {r.importance}/10
-                            </span>
-                          </div>
                         </div>
                         {hasMore && (
                           <ChevronDown

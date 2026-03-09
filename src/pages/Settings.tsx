@@ -313,10 +313,10 @@ const Settings = () => {
                 style={{
                   fontFamily: 'var(--font-ui)',
                   backgroundColor: 'transparent',
-                  color: activeTab === key ? 'var(--accent-vibrant)' : 'var(--text-muted)',
+                  color: activeTab === key ? 'var(--foreground)' : 'var(--text-muted)',
                   border: 'none',
                   borderBottom: activeTab === key
-                    ? '2px solid var(--accent-vibrant)'
+                    ? '2px solid var(--foreground)'
                     : '2px solid transparent',
                   borderRadius: 0,
                   marginBottom: '-1px',
@@ -355,29 +355,47 @@ const Settings = () => {
             <>
               {/* Account Information */}
               <section className={`p-8 ${cardStyle}`}>
-                <div className="flex items-center gap-3 mb-6">
-                  <Clay3DIcon name="robot" size={20} />
-                  <h2
-                    className="text-[11px] uppercase tracking-widest font-medium"
-                    style={{ color: 'var(--text-muted)' }}
+                {/* Avatar + name/email inline */}
+                <div className="flex items-center gap-4 mb-6">
+                  <div
+                    className="w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0 text-white font-medium text-base"
+                    style={{ background: 'var(--avatar-bg, rgba(255,115,0,0.6))' }}
                   >
-                    Account
-                  </h2>
+                    {(user?.fullName || user?.firstName || user?.email || 'U').charAt(0).toUpperCase()}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="text-sm font-medium truncate" style={{ color: 'var(--foreground)' }}>
+                      {user?.fullName || `${user?.firstName || ''} ${user?.lastName || ''}`.trim() || 'Not set'}
+                    </div>
+                    <div className="text-sm truncate mt-0.5" style={{ color: 'var(--text-secondary)' }}>
+                      {user?.email}
+                    </div>
+                  </div>
+                  <button
+                    className="flex-shrink-0 px-3 py-1.5 rounded text-xs font-medium transition-opacity hover:opacity-80"
+                    style={{ background: 'var(--button-bg-dark)', color: 'var(--foreground)', fontFamily: 'var(--font-ui)', borderRadius: 6 }}
+                  >
+                    Edit profile
+                  </button>
                 </div>
-                <div className="space-y-4">
-                  <div className="flex flex-col gap-1">
-                    <span className="text-sm" style={{ color: 'var(--text-muted)' }}>Name</span>
-                    <span className="text-sm font-medium" style={{ color: 'var(--foreground)' }}>
+
+                {/* Settings rows */}
+                <div>
+                  <div className="flex items-center justify-between py-5" style={{ borderBottom: '1px solid var(--card-separator)' }}>
+                    <div>
+                      <div className="text-sm font-medium" style={{ color: 'var(--foreground)', fontFamily: 'var(--font-ui)' }}>Name</div>
+                      <div className="text-xs mt-0.5" style={{ color: 'var(--text-secondary)' }}>Your display name</div>
+                    </div>
+                    <span className="text-sm" style={{ color: 'var(--text-muted)' }}>
                       {user?.fullName || `${user?.firstName || ''} ${user?.lastName || ''}`.trim() || 'Not set'}
                     </span>
                   </div>
-                  <div
-                    className="h-px"
-                    style={{ backgroundColor: 'var(--glass-surface-border)' }}
-                  />
-                  <div className="flex flex-col gap-1">
-                    <span className="text-sm" style={{ color: 'var(--text-muted)' }}>Email</span>
-                    <span className="text-sm font-medium" style={{ color: 'var(--foreground)' }}>
+                  <div className="flex items-center justify-between py-5">
+                    <div>
+                      <div className="text-sm font-medium" style={{ color: 'var(--foreground)', fontFamily: 'var(--font-ui)' }}>Email</div>
+                      <div className="text-xs mt-0.5" style={{ color: 'var(--text-secondary)' }}>Your account email</div>
+                    </div>
+                    <span className="text-sm" style={{ color: 'var(--text-muted)' }}>
                       {user?.email}
                     </span>
                   </div>

@@ -88,31 +88,36 @@ export const ChatEmptyState = ({
           }
         </motion.p>
 
-        {/* Quick action chips with amber outlines */}
+        {/* Quick action chips — Figma pill style: backdrop-blur(42px) rounded-[46px] px-[12px] py-[10px] gap-[4px] */}
         {connectedPlatforms.length > 0 && (
-          <div className="flex flex-col items-center gap-2.5 mb-6">
+          <div className="flex flex-wrap justify-center gap-2 mb-6">
             {quickActions.map((action, idx) => (
               <motion.button
                 key={idx}
                 onClick={() => onQuickAction(action.label)}
-                className="flex items-center gap-2 px-4 py-2 rounded-full text-sm transition-all"
+                className="flex items-center gap-1 transition-all"
                 style={{
-                  background: 'rgba(255,255,255,0.03)',
-                  backdropFilter: 'blur(8px)',
-                  border: '1.5px solid rgba(212,168,83,0.20)',
+                  backdropFilter: 'blur(42px)',
+                  WebkitBackdropFilter: 'blur(42px)',
+                  background: 'var(--glass-surface-bg)',
+                  border: '1px solid var(--glass-surface-border)',
+                  borderRadius: '46px',
+                  padding: '10px 12px',
+                  fontSize: '12px',
+                  fontWeight: 500,
+                  fontFamily: 'Inter, sans-serif',
                   color: 'var(--foreground)',
+                  lineHeight: '1.35',
                 }}
-                initial={{ opacity: 0, y: 10 }}
+                initial={{ opacity: 0, y: 8 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.35, delay: 0.3 + idx * 0.06, ease: [0.4, 0, 0.2, 1] }}
-                whileHover={{
-                  scale: 1.03,
-                  y: -1,
-                  backgroundColor: 'var(--accent-vibrant-glow)',
-                }}
+                transition={{ duration: 0.3, delay: 0.3 + idx * 0.05, ease: [0.4, 0, 0.2, 1] }}
+                whileHover={{ scale: 1.03, y: -1 }}
                 whileTap={{ scale: 0.97 }}
               >
-                <span style={{ color: 'var(--accent-vibrant)' }}>{action.icon}</span>
+                <span style={{ color: 'var(--accent-vibrant)', display: 'flex', width: '16px', height: '16px', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                  {action.icon}
+                </span>
                 {action.label}
               </motion.button>
             ))}

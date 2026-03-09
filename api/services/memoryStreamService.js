@@ -24,6 +24,11 @@ import { complete, TIER_EXTRACTION } from './llmGateway.js';
 import { supabaseAdmin } from './database.js';
 import { traverseLinksForRetrieval } from './memoryLinksService.js';
 import { getFeatureFlags } from './featureFlagsService.js';
+import {
+  RETRIEVAL_WEIGHTS as CONFIG_RETRIEVAL_WEIGHTS,
+  MMR_LAMBDA as CONFIG_MMR_LAMBDA,
+  ALPHA_CITATION_BASELINE as CONFIG_ALPHA_BASELINE,
+} from '../../twin-research/twin-config.js';
 
 // ====================================================================
 // Importance Rating
@@ -112,9 +117,8 @@ const REVISION_SIMILARITY_THRESHOLD = 0.90;
 export function computeAlpha(memory) {
   const confidence = memory.confidence ?? 0.7;
   const importance = (memory.importance_score ?? 5) / 10;
-  // P5: Citation boost raised from 0.7→0.85 baseline so first-retrieval memories
-  // aren't unfairly penalized (importance=7, conf=0.7, count=0 → alpha 0.416 vs old 0.343)
-  const citationBoost = Math.min(1.0, 0.85 + 0.05 * (memory.retrieval_count ?? 0));
+  // Citation baseline from twin-research/twin-config.js (tunable by research agent)
+  const citationBoost = Math.min(1.0, CONFIG_ALPHA_BASELINE + 0.05 * (memory.retrieval_count ?? 0));
   return confidence * importance * citationBoost;
 }
 
@@ -485,28 +489,15 @@ async function addReflection(userId, content, evidenceIds = [], metadata = {}, o
  * - Reflection queries (deeper patterns) → relevance + importance, recency off
  * - General conversation (default) → balanced weights
  */
-const RETRIEVAL_WEIGHTS = {
-  // Default: equal weights (original Generative Agents behavior)
-  default: { recency: 1.0, importance: 1.0, relevance: 1.0 },
-
-  // Identity: who is this person? Relevance dominant, recency low.
-  // Used by: twin summary generation, personality queries
-  identity: { recency: 0.2, importance: 0.8, relevance: 1.0 },
-
-  // Recent: what's happening now? Recency dominant, relevance still matters.
-  // Used by: proactive insights, "how are you?" type queries
-  recent: { recency: 1.0, importance: 0.5, relevance: 0.7 },
-
-  // Reflection: deep pattern analysis. Paper 2 style — no recency bias.
-  // Used by: reflection engine expert personas
-  reflection: { recency: 0.0, importance: 0.5, relevance: 1.0 },
-};
+// Retrieval weights loaded from twin-research/twin-config.js (tunable by research agent)
+const RETRIEVAL_WEIGHTS = CONFIG_RETRIEVAL_WEIGHTS;
 
 // ====================================================================
 // MMR Reranking (Maximum Marginal Relevance)
 // ====================================================================
 
-const MMR_LAMBDA = 0.5; // balance relevance vs diversity (0=pure diversity, 1=pure relevance)
+// MMR lambda loaded from twin-research/twin-config.js (tunable by research agent)
+const MMR_LAMBDA = CONFIG_MMR_LAMBDA;
 
 /**
  * Parse a stringified vector "[0.1,0.2,...]" → Float32Array.

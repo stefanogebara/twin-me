@@ -23,6 +23,8 @@
  * what information flows through them.
  */
 
+import { NEUROPIL_WEIGHTS as CONFIG_NEUROPIL_WEIGHTS } from '../../twin-research/twin-config.js';
+
 // ── Neuropil Definitions ─────────────────────────────────────────────────────
 
 /**
@@ -40,7 +42,7 @@ export const NEUROPILS = {
       'character', 'trait', 'temperament', 'introvert', 'extrovert', 'empathy',
       'confidence', 'insecurity', 'fear', 'anger', 'joy', 'grief',
     ],
-    weights: { recency: 0.3, importance: 0.8, relevance: 1.0 },  // identity-like: relevance dominant
+    get weights() { const [r,i,v] = CONFIG_NEUROPIL_WEIGHTS.personality; return { recency: r, importance: i, relevance: v }; },
     budgets: { reflections: 18, facts: 6, platformData: 2, conversations: 6 },
   },
   lifestyle: {
@@ -50,7 +52,7 @@ export const NEUROPILS = {
       'fitness', 'nutrition', 'weight', 'rest', 'wake', 'bed', 'gym',
       'run', 'walk', 'meal', 'hydration', 'caffeine',
     ],
-    weights: { recency: 1.0, importance: 0.5, relevance: 0.8 },  // recent-biased: latest data matters
+    get weights() { const [r,i,v] = CONFIG_NEUROPIL_WEIGHTS.lifestyle; return { recency: r, importance: i, relevance: v }; },
     budgets: { reflections: 10, facts: 5, platformData: 10, conversations: 3 },
   },
   cultural: {
@@ -60,7 +62,7 @@ export const NEUROPILS = {
       'film', 'series', 'concert', 'museum', 'theater', 'culture',
       'listen', 'watch', 'read', 'stream',
     ],
-    weights: { recency: 0.5, importance: 0.7, relevance: 1.0 },  // balanced: taste evolves but has roots
+    get weights() { const [r,i,v] = CONFIG_NEUROPIL_WEIGHTS.cultural; return { recency: r, importance: i, relevance: v }; },
     budgets: { reflections: 12, facts: 6, platformData: 8, conversations: 4 },
   },
   social: {
@@ -70,7 +72,7 @@ export const NEUROPILS = {
       'party', 'network', 'collaboration', 'partner', 'dating', 'lonely',
       'together', 'hangout', 'discord', 'message',
     ],
-    weights: { recency: 0.7, importance: 0.6, relevance: 1.0 },  // balanced-recent: recent social context
+    get weights() { const [r,i,v] = CONFIG_NEUROPIL_WEIGHTS.social; return { recency: r, importance: i, relevance: v }; },
     budgets: { reflections: 12, facts: 5, platformData: 4, conversations: 8 },
   },
   motivation: {
@@ -80,7 +82,7 @@ export const NEUROPILS = {
       'promotion', 'job', 'success', 'failure', 'challenge', 'strategy',
       'growth', 'learn', 'skill', 'performance', 'target',
     ],
-    weights: { recency: 0.8, importance: 0.7, relevance: 1.0 },  // recent + importance: active goals matter
+    get weights() { const [r,i,v] = CONFIG_NEUROPIL_WEIGHTS.motivation; return { recency: r, importance: i, relevance: v }; },
     budgets: { reflections: 12, facts: 8, platformData: 5, conversations: 4 },
   },
 };

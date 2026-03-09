@@ -1,8 +1,5 @@
 import { forwardRef } from 'react';
-import {
-  MessageCircle, Send, Loader2,
-  Sparkles, Mic, Paperclip
-} from 'lucide-react';
+import { ArrowUp, Loader2, Paperclip, Sparkles, MessageCircle } from 'lucide-react';
 
 interface ChatUsage {
   used: number;
@@ -36,114 +33,137 @@ export const ChatInputArea = forwardRef<HTMLTextAreaElement, ChatInputAreaProps>
     chatUsage,
   }, ref) => {
     const hasText = inputMessage.trim().length > 0;
+    const canSend = hasText && !isDisabled && !isTyping && !limitReached;
 
     return (
-      <div className="p-4">
+      <div className="px-4 pb-4 pt-2">
+        {/* Figma AI Chatbox — backdrop-blur(42px), rounded-[20px], warm glass */}
         <div
-          className="rounded-2xl overflow-hidden transition-all"
           style={{
+            backdropFilter: 'blur(42px)',
+            WebkitBackdropFilter: 'blur(42px)',
             background: 'var(--glass-surface-bg)',
-            backdropFilter: 'blur(16px) saturate(160%)',
-            WebkitBackdropFilter: 'blur(16px) saturate(160%)',
             border: '1px solid var(--glass-surface-border)',
-            boxShadow: '0 4px 16px rgba(0, 0, 0, 0.06), inset 0 1px 0 var(--glass-inset-highlight)',
+            borderRadius: '20px',
+            padding: '16px 20px',
+            boxShadow: '0 4px 16px rgba(0,0,0,0.08)',
+            overflow: 'hidden',
           }}
         >
+          {/* Textarea */}
           <textarea
             ref={ref}
             placeholder={hasConnectedPlatforms
-              ? "Ask your twin anything..."
-              : "Connect platforms to start chatting..."
+              ? "Ask your twin anything…"
+              : "Connect platforms to start chatting…"
             }
             value={inputMessage}
             onChange={(e) => onInputChange(e.target.value)}
             onKeyDown={onKeyDown}
             disabled={isDisabled || limitReached}
             rows={1}
-            className="w-full px-4 py-3 resize-none focus:outline-none disabled:opacity-50 text-[15px]"
+            className="w-full resize-none focus:outline-none disabled:opacity-50"
             style={{
               backgroundColor: 'transparent',
               color: 'var(--foreground)',
-              minHeight: '48px',
-              maxHeight: '120px',
+              fontSize: '14px',
+              fontFamily: 'Inter, sans-serif',
+              fontWeight: 400,
+              lineHeight: '1.5',
+              minHeight: '52px',
+              maxHeight: '140px',
               caretColor: 'var(--accent-vibrant)',
+              // Figma placeholder color: #86807b
             }}
           />
 
-          <div
-            className="flex items-center justify-between px-3 py-2 border-t"
-            style={{ borderColor: 'var(--glass-surface-border)' }}
-          >
-            <div className="flex items-center gap-1">
-              <button
-                disabled
-                className="p-2 rounded-lg transition-colors opacity-20 cursor-not-allowed"
-                style={{ color: 'var(--text-muted)' }}
-                title="File attachments -- coming soon"
-              >
-                <Paperclip className="w-4 h-4" />
-              </button>
-              <button
-                disabled
-                className="p-2 rounded-lg transition-colors opacity-20 cursor-not-allowed"
-                style={{ color: 'var(--text-muted)' }}
-                title="Voice input -- coming soon"
-              >
-                <Mic className="w-4 h-4" />
-              </button>
-            </div>
+          {/* Bottom toolbar — Figma: h-[28px] flex items-center justify-between */}
+          <div className="flex items-center justify-between mt-2" style={{ height: '28px' }}>
 
+            {/* Left: action buttons */}
             <div className="flex items-center gap-2">
-              {chatUsage && chatUsage.tier === 'free' && (
-                <div
-                  className="flex items-center gap-1 px-2 py-1 rounded-lg text-xs"
-                  style={{
-                    backgroundColor: chatUsage.remaining <= 2
-                      ? 'rgba(239, 68, 68, 0.1)'
-                      : 'var(--glass-surface-bg-subtle)',
-                    color: chatUsage.remaining <= 2
-                      ? '#ef4444'
-                      : 'var(--text-muted)'
-                  }}
-                >
-                  <MessageCircle className="w-3 h-3" />
-                  <span title={`${chatUsage.remaining} of ${chatUsage.limit} free messages remaining this month`}>{chatUsage.remaining} left</span>
-                </div>
-              )}
-
-              <div
-                className="flex items-center gap-1 px-2 py-1 rounded-lg text-xs"
+              {/* Attach — Figma: ghost pill rounded-[200px] px-[8px] py-[2px] */}
+              <button
+                disabled
+                className="flex items-center gap-1 transition-opacity opacity-40 cursor-not-allowed"
                 style={{
-                  backgroundColor: 'var(--glass-surface-bg-subtle)',
-                  color: 'var(--text-muted)'
+                  padding: '2px 8px',
+                  borderRadius: '200px',
+                  fontSize: '12px',
+                  fontWeight: 500,
+                  color: 'var(--foreground)',
+                  fontFamily: 'Inter, sans-serif',
+                  lineHeight: '24px',
+                }}
+                title="Attach — coming soon"
+              >
+                <Paperclip style={{ width: '16px', height: '16px' }} />
+                <span>Attach</span>
+              </button>
+
+              {/* Twin AI badge — Figma: ghost bg-[rgba(17,15,15,0.05)] rounded-[6px] px-[8px] py-[2px] */}
+              <div
+                className="flex items-center gap-1"
+                style={{
+                  padding: '2px 8px',
+                  borderRadius: '6px',
+                  background: 'rgba(17,15,15,0.05)',
+                  fontSize: '12px',
+                  fontWeight: 500,
+                  color: 'var(--foreground)',
+                  fontFamily: 'Inter, sans-serif',
+                  lineHeight: '24px',
                 }}
               >
-                <Sparkles className="w-3 h-3" />
+                <Sparkles style={{ width: '14px', height: '14px', color: 'var(--accent-vibrant)' }} />
                 <span>Twin AI</span>
               </div>
 
-              {/* Send button: amber gradient when active, muted when empty */}
-              <button
-                onClick={onSend}
-                disabled={!hasText || isDisabled || isTyping || limitReached}
-                className="p-2.5 rounded-xl transition-all hover:scale-[1.05] active:scale-95 disabled:hover:scale-100"
-                style={{
-                  background: hasText
-                    ? 'linear-gradient(135deg, var(--accent-vibrant), var(--accent-vibrant-hover))'
-                    : 'var(--glass-surface-bg-subtle)',
-                  color: hasText ? '#1a1a17' : 'var(--text-muted)',
-                  boxShadow: hasText ? '0 2px 8px var(--accent-vibrant-glow)' : 'none',
-                  opacity: (!hasText || isDisabled || limitReached) ? 0.5 : 1,
-                  cursor: (!hasText || isDisabled || limitReached) ? 'not-allowed' : 'pointer',
-                }}
-              >
-                {isTyping ? (
-                  <Loader2 className="w-5 h-5 animate-spin" />
-                ) : (
-                  <Send className="w-5 h-5" />
-                )}
-              </button>
+              {/* Usage counter */}
+              {chatUsage && chatUsage.tier === 'free' && (
+                <div
+                  className="flex items-center gap-1"
+                  style={{
+                    padding: '2px 8px',
+                    borderRadius: '6px',
+                    background: chatUsage.remaining <= 2 ? 'rgba(239,68,68,0.1)' : 'rgba(17,15,15,0.05)',
+                    fontSize: '11px',
+                    color: chatUsage.remaining <= 2 ? '#ef4444' : 'var(--text-muted)',
+                    fontFamily: 'Inter, sans-serif',
+                    lineHeight: '24px',
+                  }}
+                >
+                  <MessageCircle style={{ width: '12px', height: '12px' }} />
+                  <span>{chatUsage.remaining} left</span>
+                </div>
+              )}
             </div>
+
+            {/* Right: Send button — Figma: bg-[#252222] rounded-[100px] p-[4px] 28x28, opacity-50 when disabled */}
+            <button
+              onClick={onSend}
+              disabled={!canSend}
+              style={{
+                width: '28px',
+                height: '28px',
+                borderRadius: '100px',
+                background: canSend ? 'var(--foreground)' : 'var(--foreground)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                opacity: canSend ? 1 : 0.35,
+                cursor: canSend ? 'pointer' : 'not-allowed',
+                transition: 'opacity 0.15s, transform 0.1s',
+                flexShrink: 0,
+              }}
+              className="hover:opacity-80 active:scale-95"
+            >
+              {isTyping ? (
+                <Loader2 style={{ width: '14px', height: '14px', color: 'var(--background)', animation: 'spin 1s linear infinite' }} />
+              ) : (
+                <ArrowUp style={{ width: '14px', height: '14px', color: 'var(--background)' }} />
+              )}
+            </button>
           </div>
         </div>
       </div>

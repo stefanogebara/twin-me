@@ -50,6 +50,7 @@ import { inferIdentityContext } from './identityContextService.js';
 import { supabaseAdmin } from './database.js';
 import { generateEmbedding } from './embeddingService.js';
 import { autoLinkMemory } from './memoryLinksService.js';
+import { REFLECTION_CONFIG } from '../../twin-research/twin-config.js';
 
 // ====================================================================
 // Deduplication — Cosine similarity on stored embeddings
@@ -156,13 +157,9 @@ async function isDuplicateReflection(userId, expertId, newObservation) {
   }
 }
 
-// Reflection threshold: trigger when sum of recent importance scores exceeds this
-// 40 = ~8 platform observations at avg importance 5, prevents runaway triggering
-export const IMPORTANCE_THRESHOLD = 40;
-
-// Max recursive reflection depth — depth-2 prevents feedback loops while still
-// allowing reflections to synthesize other reflections (one level of meta-insight)
-const MAX_REFLECTION_DEPTH = 2;
+// Reflection threshold + depth from twin-research/twin-config.js (tunable by research agent)
+export const IMPORTANCE_THRESHOLD = REFLECTION_CONFIG.importance_threshold;
+const MAX_REFLECTION_DEPTH = REFLECTION_CONFIG.max_depth;
 
 // Cooldown: don't reflect more than once per hour per user
 // Uses Redis as primary store (serverless-safe) with in-memory Map as fallback

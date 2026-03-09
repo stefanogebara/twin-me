@@ -112,7 +112,9 @@ const GoalSuggestionCard = React.forwardRef<HTMLDivElement, GoalSuggestionCardPr
       <div
         className="flex-1 rounded-2xl rounded-tl-md p-4 space-y-3"
         style={{
-          background: 'var(--glass-surface-bg-subtle)',
+          background: 'var(--glass-surface-bg)',
+          backdropFilter: 'blur(42px)',
+          WebkitBackdropFilter: 'blur(42px)',
           border: `1px solid ${BORDER_COLOR}`,
         }}
       >
@@ -199,7 +201,15 @@ const GoalSuggestionCard = React.forwardRef<HTMLDivElement, GoalSuggestionCardPr
           <button
             onClick={() => onAccept(goal.id)}
             disabled={isLoading}
-            className="btn-cta-app flex items-center gap-1.5 px-4 py-1.5 text-xs font-medium transition-all disabled:opacity-40"
+            className="flex items-center gap-1.5 px-4 py-1.5 text-xs font-medium transition-all disabled:opacity-40"
+            style={{
+              background: 'var(--button-bg-dark)',
+              color: 'var(--foreground)',
+              borderRadius: 6,
+              height: 32,
+              fontFamily: 'var(--font-ui)',
+              border: 'none',
+            }}
           >
             {isAccepting ? (
               <Loader2 className="w-3.5 h-3.5 animate-spin" />
@@ -211,8 +221,8 @@ const GoalSuggestionCard = React.forwardRef<HTMLDivElement, GoalSuggestionCardPr
           <button
             onClick={() => onDismiss(goal.id)}
             disabled={isLoading}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs transition-all hover:bg-black/5 disabled:opacity-40"
-            style={{ color: TEXT_SECONDARY }}
+            className="flex items-center gap-1.5 px-3 py-1.5 text-xs transition-all disabled:opacity-40"
+            style={{ color: TEXT_SECONDARY, background: 'none', border: 'none', borderRadius: 6 }}
           >
             {isDismissing ? (
               <Loader2 className="w-3.5 h-3.5 animate-spin" />

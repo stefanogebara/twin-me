@@ -1,8 +1,4 @@
 import React from 'react';
-import {
-  AreaChart, Area, XAxis, YAxis, Tooltip,
-  ResponsiveContainer, CartesianGrid
-} from 'recharts';
 import { motion } from 'framer-motion';
 
 interface Snapshot {
@@ -21,22 +17,6 @@ function formatDate(dateStr: string): string {
   const d = new Date(dateStr);
   return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 }
-
-const CustomTooltip = ({ active, payload, label }: { active?: boolean; payload?: Array<{ value: number }>; label?: string }) => {
-  if (!active || !payload?.length) return null;
-  return (
-    <div className="rounded-xl px-3 py-2 text-xs shadow-lg"
-      style={{ background: 'var(--background)', border: '1px solid var(--glass-surface-border)' }}>
-      <p className="font-medium mb-1">{label}</p>
-      <p style={{ color: '#8b5cf6' }}>
-        Confidence: {((payload[0]?.value ?? 0) * 100).toFixed(0)}%
-      </p>
-      <p style={{ color: '#10b981' }}>
-        Knowledge nodes: {payload[1]?.value}
-      </p>
-    </div>
-  );
-};
 
 export const SoulEvolutionTimeline: React.FC<Props> = ({ snapshots }) => {
   const data = snapshots
@@ -57,74 +37,74 @@ export const SoulEvolutionTimeline: React.FC<Props> = ({ snapshots }) => {
     );
   }
 
+  const maxNodes = Math.max(...data.map(d => d.nodes), 1);
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4 }}
     >
-      <ResponsiveContainer width="100%" height={180}>
-        <AreaChart data={data} margin={{ top: 8, right: 8, left: -20, bottom: 0 }}>
-          <defs>
-            <linearGradient id="confGrad" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="5%" stopColor="#8b5cf6" stopOpacity={0.15} />
-              <stop offset="95%" stopColor="#8b5cf6" stopOpacity={0} />
-            </linearGradient>
-            <linearGradient id="nodeGrad" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="5%" stopColor="#10b981" stopOpacity={0.12} />
-              <stop offset="95%" stopColor="#10b981" stopOpacity={0} />
-            </linearGradient>
-          </defs>
-          <CartesianGrid strokeDasharray="3 3" stroke="var(--glass-surface-border)" />
-          <XAxis
-            dataKey="date"
-            tick={{ fontSize: 11, fill: 'var(--text-muted)' }}
-            axisLine={false}
-            tickLine={false}
-          />
-          <YAxis
-            yAxisId="conf"
-            domain={[0, 1]}
-            tick={{ fontSize: 11, fill: 'var(--text-muted)' }}
-            axisLine={false}
-            tickLine={false}
-            tickFormatter={(v: number) => `${(v * 100).toFixed(0)}%`}
-          />
-          <YAxis
-            yAxisId="nodes"
-            orientation="right"
-            tick={{ fontSize: 11, fill: 'var(--text-muted)' }}
-            axisLine={false}
-            tickLine={false}
-          />
-          <Tooltip content={<CustomTooltip />} />
-          <Area
-            yAxisId="conf"
-            type="monotone"
-            dataKey="confidence"
-            stroke="#8b5cf6"
-            strokeWidth={2}
-            fill="url(#confGrad)"
-            dot={{ r: 3, fill: '#8b5cf6' }}
-          />
-          <Area
-            yAxisId="nodes"
-            type="monotone"
-            dataKey="nodes"
-            stroke="#10b981"
-            strokeWidth={2}
-            fill="url(#nodeGrad)"
-            dot={{ r: 3, fill: '#10b981' }}
-          />
-        </AreaChart>
-      </ResponsiveContainer>
+      {/* Timeline bars */}
+      <div style={{ display: 'flex', gap: 8, alignItems: 'flex-end', height: 140, marginBottom: 8 }}>
+        {data.map((item, i) => (
+          <div
+            key={i}
+            style={{
+              flex: 1,
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              gap: 4,
+              height: '100%',
+              justifyContent: 'flex-end',
+            }}
+          >
+            {/* Dual bars container */}
+            <div style={{ width: '100%', display: 'flex', gap: 2, alignItems: 'flex-end', height: 110 }}>
+              {/* Confidence bar */}
+              <motion.div
+                title={`Confidence: ${(item.confidence * 100).toFixed(0)}%`}
+                initial={{ height: 0 }}
+                animate={{ height: `${Math.max(item.confidence * 100, 4)}%` }}
+                transition={{ duration: 0.5, delay: i * 0.05 }}
+                style={{
+                  flex: 1,
+                  background: 'rgba(139,92,246,0.6)',
+                  borderRadius: '3px 3px 0 0',
+                  minHeight: 4,
+                }}
+              />
+              {/* Nodes bar */}
+              <motion.div
+                title={`Nodes: ${item.nodes}`}
+                initial={{ height: 0 }}
+                animate={{ height: `${Math.max((item.nodes / maxNodes) * 100, 4)}%` }}
+                transition={{ duration: 0.5, delay: i * 0.05 + 0.05 }}
+                style={{
+                  flex: 1,
+                  background: 'rgba(16,185,129,0.6)',
+                  borderRadius: '3px 3px 0 0',
+                  minHeight: 4,
+                }}
+              />
+            </div>
+            {/* Date label */}
+            <div style={{ fontSize: 10, color: 'var(--text-muted)', textAlign: 'center', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '100%' }}>
+              {item.date}
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Legend */}
       <div className="flex items-center gap-4 mt-2 justify-center">
         <div className="flex items-center gap-1.5">
-          <div className="w-3 h-0.5 rounded" style={{ background: '#8b5cf6' }} />
+          <div className="w-3 h-2 rounded-sm" style={{ background: 'rgba(139,92,246,0.6)' }} />
           <span className="text-xs" style={{ color: 'var(--text-secondary)' }}>Confidence</span>
         </div>
         <div className="flex items-center gap-1.5">
-          <div className="w-3 h-0.5 rounded" style={{ background: '#10b981' }} />
+          <div className="w-3 h-2 rounded-sm" style={{ background: 'rgba(16,185,129,0.6)' }} />
           <span className="text-xs" style={{ color: 'var(--text-secondary)' }}>Knowledge nodes</span>
         </div>
       </div>

@@ -23,6 +23,7 @@ import {
 import * as SecureStore from 'expo-secure-store';
 import * as Location from 'expo-location';
 import { COLORS, STORAGE_KEYS } from '../constants';
+// Android-only modules — safe to import (return no-op stubs on iOS)
 import { UsageStatsModule } from '../native/UsageStatsModule';
 import { NotificationListenerModule } from '../native/NotificationListenerModule';
 
@@ -48,47 +49,59 @@ export function PermissionOnboardingScreen({ onDone }: Props) {
   }
 
   async function handleEnable(index: number) {
-    if (index === 0) {
-      UsageStatsModule.requestUsagePermission();
-    } else if (index === 1) {
-      NotificationListenerModule.requestNotificationPermission();
-    } else if (index === 2) {
+    if (Platform.OS === 'android') {
+      if (index === 0) {
+        UsageStatsModule.requestUsagePermission();
+      } else if (index === 1) {
+        NotificationListenerModule.requestNotificationPermission();
+      } else if (index === 2) {
+        await Location.requestForegroundPermissionsAsync();
+      }
+    } else {
+      // iOS: index 0 is location
       await Location.requestForegroundPermissionsAsync();
     }
     // Advance to next step (or finish if last step)
-    if (index < steps.length - 1) {
-      setStepIndex(index + 1);
+    if (stepIndex < steps.length - 1) {
+      setStepIndex(stepIndex + 1);
     } else {
       markShownAndFinish();
     }
   }
 
-  const steps: Step[] = [
-    {
-      title: 'See how you spend your time',
-      body:
-        'Twin Me reads which apps you use and when — never what you type.\n\n' +
-        'This unlocks insights like "you check Instagram 23x a day" and helps your twin understand your real habits.',
-      buttonLabel: 'Enable Usage Access',
-      onEnable: () => handleEnable(0),
-    },
-    {
-      title: 'Understand your notification habits',
-      body:
-        'We track which apps notify you and when — never the content.\n\n' +
-        'This reveals patterns like which apps interrupt your focus most and when you\'re hardest to reach.',
-      buttonLabel: 'Enable Notification Access',
-      onEnable: () => handleEnable(1),
-    },
+  // Android has 3 steps (usage + notifications + location)
+  // iOS only has 1 step (location — the other two are Android-only permissions)
+  const allSteps: Step[] = [
+    ...(Platform.OS === 'android'
+      ? [
+          {
+            title: 'See how you spend your time',
+            body:
+              'Twin Me reads which apps you use and when — never what you type.\n\n' +
+              'This unlocks insights like "you check Instagram 23x a day" and helps your twin understand your real habits.',
+            buttonLabel: 'Enable Usage Access',
+            onEnable: () => handleEnable(0),
+          },
+          {
+            title: 'Understand your notification habits',
+            body:
+              'We track which apps notify you and when — never the content.\n\n' +
+              "This reveals patterns like which apps interrupt your focus most and when you're hardest to reach.",
+            buttonLabel: 'Enable Notification Access',
+            onEnable: () => handleEnable(1),
+          },
+        ]
+      : []),
     {
       title: 'Understand your daily rhythms',
       body:
         'Foreground-only location access lets TwinMe detect your home/work split and weekend routines.\n\n' +
         'Only anonymous cluster patterns are sent — never raw coordinates. Skip if you prefer.',
       buttonLabel: 'Allow Location',
-      onEnable: () => handleEnable(2),
+      onEnable: () => handleEnable(Platform.OS === 'android' ? 2 : 0),
     },
   ];
+  const steps = allSteps;
 
   const step = steps[stepIndex];
 

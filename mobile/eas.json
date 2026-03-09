@@ -9,6 +9,9 @@
       "android": {
         "buildType": "apk"
       },
+      "ios": {
+        "simulator": true
+      },
       "env": {
         "EXPO_PUBLIC_API_URL": "http://10.0.2.2:3004/api"
       }
@@ -18,16 +21,22 @@
       "android": {
         "buildType": "apk"
       },
+      "ios": {
+        "resourceClass": "m-medium"
+      },
       "env": {
-        "EXPO_PUBLIC_API_URL": "https://www.twinme.me/api"
+        "EXPO_PUBLIC_API_URL": "https://twin-ai-learn.vercel.app/api"
       }
     },
     "production": {
       "android": {
         "buildType": "app-bundle"
       },
+      "ios": {
+        "resourceClass": "m-medium"
+      },
       "env": {
-        "EXPO_PUBLIC_API_URL": "https://www.twinme.me/api"
+        "EXPO_PUBLIC_API_URL": "https://twin-ai-learn.vercel.app/api"
       }
     }
   },
@@ -36,6 +45,9 @@
       "android": {
         "serviceAccountKeyPath": "./google-service-account.json",
         "track": "alpha"
+      },
+      "ios": {
+        "appleId": "stefanogebara@gmail.com"
       }
     }
   }

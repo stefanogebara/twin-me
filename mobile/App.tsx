@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, View, Text } from 'react-native';
+import { ActivityIndicator, Platform, View, Text } from 'react-native';
 import { NavigationContainer, NavigationContainerRef } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
@@ -28,6 +28,7 @@ import { TwinChatScreen } from './src/screens/TwinChatScreen';
 import { MeScreen } from './src/screens/MeScreen';
 import { PermissionOnboardingScreen } from './src/screens/PermissionOnboardingScreen';
 import { COLORS, STORAGE_KEYS } from './src/constants';
+// Android-only native modules — imported lazily to avoid iOS crash
 import { UsageStatsModule } from './src/native/UsageStatsModule';
 import { NotificationListenerModule } from './src/native/NotificationListenerModule';
 
@@ -98,9 +99,16 @@ export default function App() {
       setShowPermissions(false);
       return;
     }
-    const hasUsage = UsageStatsModule.hasUsagePermission();
-    const hasNotif = NotificationListenerModule.hasNotificationPermission();
-    setShowPermissions(!hasUsage || !hasNotif);
+    // Android-only: UsageStats + NotificationListener require special permissions
+    // iOS only needs location (handled inside PermissionOnboardingScreen)
+    if (Platform.OS === 'android') {
+      const hasUsage = UsageStatsModule.hasUsagePermission();
+      const hasNotif = NotificationListenerModule.hasNotificationPermission();
+      setShowPermissions(!hasUsage || !hasNotif);
+    } else {
+      // Always show onboarding on iOS to prompt for location permission
+      setShowPermissions(true);
+    }
   }
 
   async function handlePermissionsDone() {

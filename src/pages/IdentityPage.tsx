@@ -15,12 +15,6 @@ import { useAuth } from '@/contexts/AuthContext';
 import { authFetch } from '@/services/api/apiBase';
 import { PageLayout } from '@/components/layout/PageLayout';
 import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from '@/components/ui/accordion';
-import {
   Brain,
   Activity,
   Music,
@@ -216,46 +210,97 @@ const ColoredBadge: React.FC<ColoredBadgeProps> = ({ label, index }) => {
 interface ExpertSectionProps {
   config: ExpertConfig;
   bullets: string[];
+  isOpen: boolean;
+  onToggle: () => void;
+  isFirst: boolean;
+  isLast: boolean;
 }
 
-const ExpertSection: React.FC<ExpertSectionProps> = ({ config, bullets: rawBullets }) => {
-  const { key, label, Icon, color, bgColor } = config;
+const ExpertSection: React.FC<ExpertSectionProps> = ({ config, bullets: rawBullets, isOpen, onToggle, isFirst, isLast }) => {
+  const { label, Icon, color, bgColor } = config;
   const bullets = cleanBullets(rawBullets);
   const hasBullets = bullets.length > 0;
 
+  const borderRadius = isFirst
+    ? '16px 16px 4px 4px'
+    : isLast
+    ? '4px 4px 16px 16px'
+    : '4px';
+
   return (
-    <AccordionItem value={key} className="border-b last:border-0" style={{ borderColor: 'var(--glass-surface-border)' }}>
-      <AccordionTrigger className="py-4 px-5 hover:no-underline" style={{ borderLeft: `3px solid ${color}33` }}>
-        <div className="flex items-center gap-3">
-          <div
-            className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
-            style={{ backgroundColor: bgColor }}
-          >
-            <Icon className="w-4 h-4" style={{ color }} />
+    <div style={{
+      background: isOpen ? 'rgba(72,65,65,0.5)' : 'rgba(40,37,37,0.6)',
+      border: '1px solid rgba(94,86,86,0.35)',
+      borderRadius,
+      transition: 'background 0.2s ease',
+    }}>
+      <button
+        onClick={onToggle}
+        style={{
+          width: '100%',
+          display: 'flex',
+          alignItems: 'center',
+          gap: 16,
+          padding: '20px 24px',
+          background: 'none',
+          border: 'none',
+          cursor: 'pointer',
+          textAlign: 'left',
+        }}
+      >
+        <div style={{
+          width: 36,
+          height: 36,
+          borderRadius: '50%',
+          background: bgColor,
+          border: `1px solid ${color}33`,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          flexShrink: 0,
+        }}>
+          <Icon className="w-4 h-4" style={{ color }} />
+        </div>
+        <div style={{ flex: 1 }}>
+          <div style={{ fontSize: 11, fontWeight: 500, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 4 }}>
+            {label}
           </div>
-          <span className="text-sm text-left" style={{ fontFamily: 'var(--font-ui)', fontWeight: 500, letterSpacing: '-0.02em', color: 'var(--foreground)' }}>{label}</span>
-          {!hasBullets && (
-            <span className="ml-2 text-xs font-normal" style={{ color: 'var(--text-muted)' }}>(still learning)</span>
+          <div style={{ fontSize: 15, fontWeight: 500, color: 'var(--foreground)' }}>
+            {hasBullets ? `${bullets.length} insight${bullets.length !== 1 ? 's' : ''}` : 'Still learning…'}
+          </div>
+        </div>
+        <ChevronDown
+          className="w-4 h-4 flex-shrink-0"
+          style={{ color: 'var(--text-muted)', transform: isOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s ease' }}
+        />
+      </button>
+
+      {isOpen && (
+        <div style={{ padding: '0 24px 24px' }}>
+          {hasBullets ? (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              {bullets.map((bullet, i) => (
+                <div key={i} style={{
+                  display: 'flex',
+                  gap: 12,
+                  padding: '12px 16px',
+                  background: 'rgba(255,255,255,0.03)',
+                  borderRadius: 10,
+                  border: '1px solid rgba(255,255,255,0.05)',
+                }}>
+                  <div style={{ color: 'var(--accent-vibrant)', fontSize: 14, flexShrink: 0, marginTop: 1 }}>→</div>
+                  <div style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.6 }}>{toSecondPerson(bullet)}</div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p style={{ fontSize: 13, color: 'var(--text-muted)', fontStyle: 'italic', lineHeight: 1.6 }}>
+              Nothing here yet — keep your platforms connected and I'll fill this in as I notice things.
+            </p>
           )}
         </div>
-      </AccordionTrigger>
-      <AccordionContent style={{ padding: '1.5rem 2rem' }}>
-        {hasBullets ? (
-          <ul className="space-y-3 pl-11">
-            {bullets.map((bullet, i) => (
-              <li key={i} className="flex gap-2.5 leading-7" style={{ fontSize: '15px', color: 'var(--text-secondary)' }}>
-                <span className="mt-2.5 flex-shrink-0 w-1.5 h-1.5 rounded-full" style={{ backgroundColor: color }} />
-                <span>{toSecondPerson(bullet)}</span>
-              </li>
-            ))}
-          </ul>
-        ) : (
-          <p className="pl-11 italic leading-relaxed" style={{ fontSize: '15px', color: 'var(--text-secondary)' }}>
-            Nothing here yet — keep your platforms connected and I'll fill this in as I notice things.
-          </p>
-        )}
-      </AccordionContent>
-    </AccordionItem>
+      )}
+    </div>
   );
 };
 
@@ -266,6 +311,7 @@ const IdentityPage: React.FC = () => {
   const navigate = useNavigate();
   const [summaryExpanded, setSummaryExpanded] = useState(false);
   const [archetypeExpanded, setArchetypeExpanded] = useState(false);
+  const [openExpert, setOpenExpert] = useState<number | null>(0);
 
   useEffect(() => {
     if (!user) navigate('/auth');
@@ -387,28 +433,29 @@ const IdentityPage: React.FC = () => {
 
   return (
     <PageLayout>
-      <div className="max-w-3xl mx-auto px-4 py-12 space-y-16">
+      <div className="max-w-3xl mx-auto px-4 py-12 space-y-10">
 
         {/* Header */}
-        <div style={{ marginBottom: '3rem' }}>
-          <div className="flex items-center justify-between gap-3 mb-2">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-white/8 flex items-center justify-center">
-                <Fingerprint className="w-5 h-5 text-muted-foreground" />
-              </div>
-              <div>
-                <h1
-                  className="heading-serif"
-                  style={{
-                    fontSize: 'clamp(1.75rem, 4vw, 2.5rem)',
-                    fontWeight: 400,
-                    letterSpacing: '-0.05em',
-                    lineHeight: 1.1,
-                    color: 'var(--foreground)',
-                  }}
-                >Who You Are</h1>
-                <p className="text-lg mt-1" style={{ color: 'var(--text-secondary)' }}>What your twin knows about you</p>
-              </div>
+        <div style={{ marginBottom: 40 }}>
+          <div style={{ fontSize: 12, fontWeight: 500, color: 'var(--accent-vibrant)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 12, fontFamily: 'var(--font-ui)' }}>
+            Soul Signature
+          </div>
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <h1
+                className="heading-serif"
+                style={{
+                  fontSize: 'clamp(2rem, 5vw, 2.8rem)',
+                  fontWeight: 400,
+                  letterSpacing: '-0.05em',
+                  lineHeight: 1.1,
+                  color: 'var(--foreground)',
+                  marginBottom: 12,
+                }}
+              >Who you are</h1>
+              <p style={{ fontSize: 15, color: 'var(--text-secondary)', lineHeight: 1.7, fontFamily: 'var(--font-ui)' }}>
+                What your twin knows about you. Updated as your twin learns.
+              </p>
             </div>
             <button
               onClick={() => {
@@ -419,7 +466,14 @@ const IdentityPage: React.FC = () => {
                   toast.error('Could not copy link');
                 });
               }}
-              className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-medium glass-button flex-shrink-0"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-medium flex-shrink-0 transition-opacity hover:opacity-70"
+              style={{
+                background: 'var(--glass-surface-bg)',
+                border: '1px solid var(--glass-surface-border)',
+                color: 'var(--text-secondary)',
+                borderRadius: 6,
+                fontFamily: 'var(--font-ui)',
+              }}
             >
               <Share2 className="w-3.5 h-3.5" />
               Share
@@ -427,12 +481,33 @@ const IdentityPage: React.FC = () => {
           </div>
           {identityMetaPill && (
             <span
-              className="inline-block mt-2 rounded-full px-4 py-2 text-sm font-medium"
-              style={{ background: 'var(--glass-surface-bg)', border: '1px solid var(--glass-surface-border)', color: 'var(--text-secondary)', marginBottom: '2rem' }}
+              className="inline-block mt-3 rounded-full px-4 py-1.5 text-xs font-medium"
+              style={{ background: 'var(--glass-surface-bg)', border: '1px solid var(--glass-surface-border)', color: 'var(--text-secondary)', fontFamily: 'var(--font-ui)' }}
             >
               {identityMetaPill}
             </span>
           )}
+        </div>
+
+        {/* Stats grid */}
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(4, 1fr)',
+          gap: 12,
+        }}>
+          {[
+            { label: 'Memories', value: profile?.personality_summary ? '—' : '—' },
+            { label: 'Reflections', value: EXPERT_SECTIONS.reduce((acc, s) => acc + (expertInsights[s.key]?.length ?? 0), 0).toString() },
+            { label: 'Platforms', value: '5' },
+            { label: 'Days tracked', value: identity?.inferredAt ? Math.ceil((Date.now() - new Date(identity.inferredAt).getTime()) / (1000 * 60 * 60 * 24)).toString() : '—' },
+          ].map((stat, i) => (
+            <div key={i} className="glass-card" style={{ padding: '16px', textAlign: 'center', borderRadius: 12 }}>
+              <div style={{ fontSize: 22, fontWeight: 600, color: 'var(--foreground)', marginBottom: 4, fontFamily: '"Instrument Serif", serif', letterSpacing: '-0.04em' }}>
+                {stat.value}
+              </div>
+              <div style={{ fontSize: 12, color: 'var(--text-muted)', fontFamily: 'var(--font-ui)' }}>{stat.label}</div>
+            </div>
+          ))}
         </div>
 
         {/* Twin Summary */}
@@ -577,27 +652,28 @@ const IdentityPage: React.FC = () => {
         )}
 
         {/* Expert Insights Accordion */}
-        <div className="glass-card rounded-2xl overflow-hidden" style={{ padding: '2.5rem' }}>
-          <div style={{ marginBottom: '1.5rem' }}>
-            <p
-              className="text-base"
-              style={{ fontWeight: 400, letterSpacing: '-0.03em', color: 'var(--foreground)' }}
-            >
+        <div>
+          <div style={{ marginBottom: 16 }}>
+            <p className="text-sm font-medium" style={{ fontFamily: 'var(--font-ui)', color: 'var(--text-secondary)' }}>
               Expert Perspectives
             </p>
-            <p className="text-sm mt-1" style={{ color: 'var(--text-secondary)' }}>
+            <p className="text-xs mt-0.5" style={{ color: 'var(--text-muted)', fontFamily: 'var(--font-ui)' }}>
               5 specialist lenses from your twin's reflection engine
             </p>
           </div>
-          <Accordion type="multiple" defaultValue={[EXPERT_SECTIONS[0].key]} className="space-y-2">
-            {EXPERT_SECTIONS.map((config) => (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 1, borderRadius: 16, overflow: 'hidden' }}>
+            {EXPERT_SECTIONS.map((config, i) => (
               <ExpertSection
                 key={config.key}
                 config={config}
                 bullets={expertInsights[config.key] ?? []}
+                isOpen={openExpert === i}
+                onToggle={() => setOpenExpert(openExpert === i ? null : i)}
+                isFirst={i === 0}
+                isLast={i === EXPERT_SECTIONS.length - 1}
               />
             ))}
-          </Accordion>
+          </div>
         </div>
 
         {/* Music Signature */}

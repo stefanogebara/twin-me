@@ -107,11 +107,11 @@ export const CollapsibleSidebar: React.FC<CollapsibleSidebarProps> = ({
 
         {/* Inner glass container — overflow-hidden clips content to rounded corners */}
         <div
-          className="flex flex-col h-full overflow-hidden lg:rounded-2xl"
+          className="flex flex-col h-full overflow-hidden lg:rounded-[32px]"
           style={{
             backgroundColor: 'var(--glass-surface-bg)',
-            backdropFilter: 'blur(20px) saturate(140%)',
-            WebkitBackdropFilter: 'blur(20px) saturate(140%)',
+            backdropFilter: 'blur(19.65px) saturate(140%)',
+            WebkitBackdropFilter: 'blur(19.65px) saturate(140%)',
             border: '1px solid var(--glass-surface-border)',
             boxShadow: 'var(--glass-shadow), inset 0 1px 0 var(--glass-inset-highlight)',
           }}
@@ -155,12 +155,16 @@ export const CollapsibleSidebar: React.FC<CollapsibleSidebarProps> = ({
             )}
             title="Twin Me"
           >
-            <img
-              src="/images/backgrounds/flower-hero.png"
-              alt="Twin Me"
-              className="object-contain drop-shadow-sm flex-shrink-0"
+            <div
+              className="rounded-full overflow-hidden flex-shrink-0"
               style={{ width: isExpanded ? 36 : 32, height: isExpanded ? 36 : 32 }}
-            />
+            >
+              <img
+                src="/images/backgrounds/flower.png"
+                alt="Twin Me"
+                className="w-full h-full object-cover"
+              />
+            </div>
             {isExpanded && (
               <span
                 className="text-2xl heading-serif"
@@ -187,27 +191,24 @@ export const CollapsibleSidebar: React.FC<CollapsibleSidebarProps> = ({
                 aria-label={`Navigate to ${item.label}`}
                 aria-current={active ? 'page' : undefined}
                 className={cn(
-                  "w-full flex items-center gap-3 rounded-lg transition-all duration-200",
-                  isExpanded ? "px-4 py-3" : "px-3 py-3 justify-center",
+                  "w-full flex items-center gap-3 rounded-full transition-all duration-200",
+                  isExpanded ? "px-4 py-2.5" : "px-3 py-2.5 justify-center",
                   active
-                    ? "font-semibold"
-                    : isExpanded
-                      ? 'text-sidebar-foreground hover:bg-sidebar-accent border-l-[3px] border-l-transparent'
-                      : 'text-sidebar-foreground hover:bg-sidebar-accent'
+                    ? "font-medium"
+                    : 'text-sidebar-foreground hover:bg-sidebar-accent'
                 )}
                 style={active ? {
                   background: 'var(--accent-vibrant-glow)',
-                  borderLeft: isExpanded ? '3px solid var(--accent-vibrant)' : undefined,
                   color: 'var(--sidebar-accent-foreground)',
                 } : undefined}
                 title={item.label}
               >
                 <Icon
-                  className={cn("w-5 h-5 transition-transform", active && "scale-110")}
+                  className="w-5 h-5"
                   style={active ? { color: 'var(--accent-vibrant)' } : undefined}
                   aria-hidden="true"
                 />
-                {isExpanded && <span className="text-sm font-semibold">{item.label}</span>}
+                {isExpanded && <span className="text-sm font-medium" style={{ fontFamily: 'Poppins, sans-serif' }}>{item.label}</span>}
               </button>
             );
           })}

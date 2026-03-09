@@ -52,6 +52,16 @@ const EvalDashboard = lazy(() => import("./pages/EvalDashboard"));
 const IdentityPage = lazy(() => import("./pages/IdentityPage"));
 const InterviewPage = lazy(() => import("./pages/InterviewPage"));
 
+// Prototype pages (Sundust design system)
+const PrototypeLanding    = lazy(() => import('./prototype/pages/PrototypeLanding'));
+const PrototypeDashboard  = lazy(() => import('./prototype/pages/PrototypeDashboard'));
+const PrototypeChat       = lazy(() => import('./prototype/pages/PrototypeChat'));
+const PrototypeSettings   = lazy(() => import('./prototype/pages/PrototypeSettings'));
+const PrototypeIdentity   = lazy(() => import('./prototype/pages/PrototypeIdentity'));
+const PrototypeGoals      = lazy(() => import('./prototype/pages/PrototypeGoals'));
+const PrototypeBrain      = lazy(() => import('./prototype/pages/PrototypeBrain'));
+const PrototypeLayout     = lazy(() => import('./prototype/layouts/PrototypeLayout').then(m => ({ default: m.PrototypeLayout })));
+const LandingLayout       = lazy(() => import('./prototype/layouts/LandingLayout').then(m => ({ default: m.LandingLayout })));
 
 const queryClient = new QueryClient();
 
@@ -356,6 +366,19 @@ const App = () => {
 
             {/* Terms of Service - Public, no auth required */}
             <Route path="/terms" element={<TermsOfService />} />
+
+            {/* Sundust Prototype */}
+            <Route element={<LandingLayout />}>
+              <Route path="/prototype" element={<PrototypeLanding />} />
+            </Route>
+            <Route element={<PrototypeLayout />}>
+              <Route path="/prototype/dashboard" element={<PrototypeDashboard />} />
+              <Route path="/prototype/chat"      element={<PrototypeChat />} />
+              <Route path="/prototype/settings"  element={<PrototypeSettings />} />
+              <Route path="/prototype/identity"  element={<PrototypeIdentity />} />
+              <Route path="/prototype/goals"     element={<PrototypeGoals />} />
+              <Route path="/prototype/brain"     element={<PrototypeBrain />} />
+            </Route>
 
             {/* Catch-all */}
             <Route path="*" element={<NotFound />} />

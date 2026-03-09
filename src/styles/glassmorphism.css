@@ -213,28 +213,67 @@
     inset -1px 0 0 rgba(255, 255, 255, 0.08);
 }
 
-/* Dark Mode Glass Variations */
+/* Dark Mode Glass Variations — Sundust warm brown glass */
 .dark .glass {
-  background: rgba(255, 255, 255, 0.06);
-  border-color: rgba(255, 255, 255, 0.08);
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.30);
+  background: rgba(72, 65, 65, 0.6);
+  border-color: rgba(94, 86, 86, 0.6);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.35);
 }
 
-/* Dark mode glass overrides — production charcoal values */
+/* Dark mode glass-card — Sundust warm brown glass */
+.dark .glass-card {
+  background: linear-gradient(
+    170deg,
+    rgba(72, 65, 65, 0.65) 0%,
+    rgba(60, 55, 55, 0.5) 100%
+  );
+  border-color: rgba(94, 86, 86, 0.6);
+  box-shadow:
+    0 2px 4px rgba(0, 0, 0, 0.12),
+    0 8px 24px rgba(0, 0, 0, 0.25),
+    0 20px 60px rgba(0, 0, 0, 0.30),
+    inset 0 1px 0 rgba(255, 255, 255, 0.06),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.08);
+}
+
+.dark .glass-card:hover {
+  background: linear-gradient(
+    170deg,
+    rgba(85, 77, 77, 0.75) 0%,
+    rgba(72, 65, 65, 0.65) 100%
+  );
+  border-color: rgba(120, 110, 110, 0.7);
+}
+
+/* Dark mode glass-button — Sundust warm brown glass */
 .dark .glass-button {
   background: linear-gradient(
     135deg,
-    rgba(255, 255, 255, 0.10) 0%,
-    rgba(255, 255, 255, 0.05) 100%
+    rgba(72, 65, 65, 0.7) 0%,
+    rgba(60, 55, 55, 0.55) 100%
   );
-  color: var(--foreground);
-  border-color: rgba(255, 255, 255, 0.15);
+  color: #fdfcfb;
+  border-color: rgba(94, 86, 86, 0.6);
 }
 
+.dark .glass-button:hover {
+  background: linear-gradient(
+    135deg,
+    rgba(85, 77, 77, 0.8) 0%,
+    rgba(72, 65, 65, 0.7) 100%
+  );
+  border-color: rgba(120, 110, 110, 0.7);
+}
+
+/* Dark mode glass-input — Sundust warm brown glass */
 .dark .glass-input {
-  background: rgba(255, 255, 255, 0.05);
-  color: var(--foreground);
-  border-color: rgba(255, 255, 255, 0.10);
+  background: rgba(60, 55, 55, 0.5);
+  color: #fdfcfb;
+  border-color: rgba(94, 86, 86, 0.6);
+}
+
+.dark .glass-input::placeholder {
+  color: #86807b;
 }
 
 /* Liquid Animation */
