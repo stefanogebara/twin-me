@@ -74,3 +74,31 @@ enrichment-test-screenshots/
 
 # Supabase temp files
 supabase/.temp/
+
+# Figma design extraction artifacts
+figma-*.png
+page-*.png
+page-*.jpeg
+
+# Training data exports
+data/training/
+
+# Shell crash dumps
+*.stackdump
+
+# Spotify data imports
+StreamingHistory*.json
+import-spotify.mjs
+
+# Mobile build artifacts
+mobile/modules/*/android/build/
+mobile/.expo/
+mobile/android/
+mobile/ios/
+mobile/app.json.bak
+
+# Claude plans (session-specific, not code)
+.claude/plans/
+
+# Serena config
+.serena/
