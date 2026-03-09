@@ -32,10 +32,13 @@ const connectorConfig: ConnectorConfig[] = [
   { id: 'spotify', name: 'Spotify', description: 'Music preferences and listening patterns', isOAuth: true },
   { id: 'google_calendar', name: 'Google Calendar', description: 'Schedule and event patterns', isOAuth: true },
   { id: 'youtube', name: 'YouTube', description: 'Content preferences and watch history', isOAuth: true },
+  { id: 'google_gmail', name: 'Gmail', description: 'Communication patterns from email metadata', isOAuth: true },
   { id: 'discord', name: 'Discord', description: 'Community activity and communication style', isOAuth: true },
   { id: 'linkedin', name: 'LinkedIn', description: 'Career trajectory and professional skills', isOAuth: true },
-  { id: 'whoop', name: 'Whoop', description: 'Recovery, strain, sleep, and HRV patterns', isOAuth: false },
-  { id: 'gmail', name: 'Gmail', description: 'Communication patterns from email metadata', isOAuth: false },
+  { id: 'github', name: 'GitHub', description: 'Coding activity and open source contributions', isOAuth: true },
+  { id: 'reddit', name: 'Reddit', description: 'Community interests and discussion patterns', isOAuth: true },
+  { id: 'twitch', name: 'Twitch', description: 'Gaming identity and streaming preferences', isOAuth: true },
+  { id: 'whoop', name: 'Whoop', description: 'Recovery, strain, sleep, and HRV patterns', isOAuth: true },
 ];
 
 // Glass card class from design system
@@ -148,7 +151,18 @@ const ConnectedPlatformsSettings: React.FC<ConnectedPlatformsSettingsProps> = ({
                       </button>
                     </>
                   ) : (
-                    <XCircle className="w-4 h-4" style={{ color: 'var(--text-muted)' }} />
+                    <>
+                      <XCircle className="w-4 h-4" style={{ color: 'var(--text-muted)' }} />
+                      {!isDemoMode && (
+                        <button
+                          onClick={() => navigate('/get-started')}
+                          className="text-xs px-2 py-1 rounded-lg"
+                          style={{ color: 'var(--accent-vibrant, #ff8400)', backgroundColor: 'rgba(255, 132, 0, 0.1)' }}
+                        >
+                          Connect
+                        </button>
+                      )}
+                    </>
                   )}
                 </div>
               </div>
