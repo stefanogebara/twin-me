@@ -1,0 +1,11 @@
+commit	twin_quality_score	precision_at_5	recall_at_10	diversity	status	description
+ab153e2	0.740165	0.826234	0.930736	0.239135	keep	baseline
+ccceecb	0.740165	0.826234	0.930736	0.239135	discard	MMR_LAMBDA 0.35 no effect — candidates are mono-type from RPC
+d2ba529	0.740165	0.826234	0.930736	0.239135	discard	recent relevance 0.7→1.0 no effect — q13/q18 fact-dominated by access time
+ec9ff43	0.712384	0.780779	0.930736	0.213868	discard	identity recency 0.0 hurt precision — 0.2 baseline was optimal
+5a78e44	0.738054	0.822013	0.930736	0.239135	discard	reflection importance 1.0 slight regression
+704a181	0.741656	0.826234	0.930736	0.246592	keep	identity importance 1.0+relevance 1.2 — tiny diversity gain
+2a90974	0.741656	0.826234	0.930736	0.246592	discard	MMR_LAMBDA 0.7 no effect — same as 0.5
+eae7365	0.739546	0.822013	0.930736	0.246592	discard	reflection importance+relevance boost hurt precision
+2aaa0a7	0.741656	0.826234	0.930736	0.246592	discard	default recency+relevance tweak no effect — same score, simplicity wins
+1bfec81	0.741656	0.826234	0.930736	0.246592	discard	further identity boost no gain — E5 saturation point found
