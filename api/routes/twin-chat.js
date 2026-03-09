@@ -1209,7 +1209,10 @@ Make it sound natural and curious, not like a survey question.`;
       }
     };
 
-    if (isStreaming) {
+    // Guard against client disconnect / timeout race
+    if (res.destroyed || res.writableEnded) {
+      console.warn('[Twin Chat] Response already closed (client timeout?) — skipping send');
+    } else if (isStreaming) {
       res.write(`data: ${JSON.stringify({ type: 'done', ...responsePayload })}\n\n`);
       res.end();
     } else {
@@ -1217,12 +1220,21 @@ Make it sound natural and curious, not like a survey question.`;
     }
 
   } catch (error) {
+    // Silently ignore write-after-close from client disconnects
+    if (error.code === 'ERR_HTTP_HEADERS_SENT' || res.destroyed || res.writableEnded) {
+      console.warn('[Twin Chat] Client disconnected before response could be sent');
+      return;
+    }
+
     console.error('[Twin Chat] Error:', error);
 
     // If SSE headers already sent, write error event instead of JSON
     if (res.headersSent) {
-      res.write(`data: ${JSON.stringify({ type: 'error', error: 'Failed to process your message' })}\n\n`);
-      return res.end();
+      try {
+        res.write(`data: ${JSON.stringify({ type: 'error', error: 'Failed to process your message' })}\n\n`);
+        res.end();
+      } catch (_) { /* client gone */ }
+      return;
     }
 
     // Handle specific error types
