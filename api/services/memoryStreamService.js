@@ -22,6 +22,8 @@
 import { generateEmbedding, vectorToString } from './embeddingService.js';
 import { complete, TIER_EXTRACTION } from './llmGateway.js';
 import { supabaseAdmin } from './database.js';
+import { traverseLinksForRetrieval } from './memoryLinksService.js';
+import { getFeatureFlags } from './featureFlagsService.js';
 
 // ====================================================================
 // Importance Rating
@@ -660,6 +662,35 @@ async function retrieveMemories(userId, query, limit = 10, weights = 'default') 
     // Apply MMR reranking for diversity (strips embedding from output)
     const reranked = mmrRerank(data, limit);
 
+    // Graph traversal: augment vector results with strength-weighted linked memories
+    // Feature-flagged (graphRetrieval) — default off until validated
+    let graphCount = 0;
+    try {
+      const flags = await getFeatureFlags(userId);
+      if (flags?.graphRetrieval) {
+        const seedIds = reranked.slice(0, 5).map(m => m.id);
+        const existingIdSet = new Set(reranked.map(m => m.id));
+        const linked = await traverseLinksForRetrieval(userId, seedIds, existingIdSet, 5);
+        if (linked.length > 0) {
+          const topScore = reranked[0]?.score ?? 1.0;
+          for (const { memory, linkStrength } of linked) {
+            // Score proportional to link strength, capped below top vector result
+            memory.score = Math.min(
+              topScore * 0.8,
+              (memory.importance_score ?? 5) / 10 * linkStrength
+            );
+            memory.source = 'graph_traversal';
+            reranked.push(memory);
+          }
+          reranked.sort((a, b) => (b.score ?? 0) - (a.score ?? 0));
+          reranked.splice(limit); // trim back to requested limit
+          graphCount = linked.length;
+        }
+      }
+    } catch (graphErr) {
+      console.warn('[MemoryStream] Graph traversal failed (non-fatal):', graphErr.message);
+    }
+
     // Touch accessed memories (update last_accessed_at) - non-blocking
     const memoryIds = reranked.map(m => m.id);
     supabaseAdmin.rpc('touch_memories', { p_memory_ids: memoryIds })
@@ -667,7 +698,8 @@ async function retrieveMemories(userId, query, limit = 10, weights = 'default') 
       .catch(err => console.warn('[MemoryStream] Failed to touch memories:', err.message));
 
     const weightLabel = typeof weights === 'string' ? weights : 'custom';
-    console.log(`[MemoryStream] Retrieved ${reranked.length} memories (weights=${weightLabel}, MMR from ${data.length} candidates, top score: ${reranked[0]?.score?.toFixed(3)})`);
+    const graphSuffix = graphCount > 0 ? `, +${graphCount} graph-linked` : '';
+    console.log(`[MemoryStream] Retrieved ${reranked.length} memories (weights=${weightLabel}, MMR from ${data.length} candidates${graphSuffix}, top score: ${reranked[0]?.score?.toFixed(3)})`);
     return reranked;
   } catch (error) {
     console.error('[MemoryStream] retrieveMemories error:', error.message);
