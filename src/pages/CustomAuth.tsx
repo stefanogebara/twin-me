@@ -2,7 +2,33 @@ import React, { useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useAnalytics } from '../contexts/AnalyticsContext';
-import { ChevronLeft, Loader2, X } from 'lucide-react';
+import { Loader2, X } from 'lucide-react';
+
+// Figma Sundust tokens — dark mode
+const BG = '#1b1818';
+const FG = '#fdfcfb';
+const TEXT_SEC = '#d9d1cb';
+const TEXT_MUTED = '#86807b';
+const TEXT_SUBTLE = '#4a4242';
+const INPUT_BG = 'rgba(218, 217, 215, 0.12)';
+const INPUT_BORDER = 'rgba(217, 209, 203, 0.35)';
+const BUTTON_PRIMARY_BG = '#fdfcfb';
+const BUTTON_PRIMARY_FG = '#1b1818';
+const BUTTON_DARK_BG = '#252222';
+const BUTTON_DARK_FG = '#fdfcfb';
+
+// Hero glow — Figma radial gradient (amber orb, matches landing page)
+const HERO_GLOW = `radial-gradient(ellipse at 50% 50%,
+  rgba(193,126,44,1)     0%,
+  rgba(255,132,0,0.85)   12%,
+  rgba(224,129,22,0.6)   28%,
+  rgba(194,85,78,0.35)   50%,
+  rgba(195,45,112,0.1)   72%,
+  rgba(195,45,112,0)     100%
+)`;
+
+// Right panel base gradient — purple/cosmic backdrop
+const PANEL_BG = 'linear-gradient(160deg, #1c1630 0%, #3a1f5e 35%, #5a1e3e 65%, #1a0e1a 100%)';
 
 const CustomAuth = () => {
   const navigate = useNavigate();
@@ -114,184 +140,357 @@ For privacy concerns: privacy@twinme.ai`
   };
 
   return (
-    <div className="min-h-screen flex flex-col">
-      {/* Top bar: logo left, back to home right */}
-      <div className="w-full flex items-center justify-between px-6 py-4">
-        <div className="flex items-center gap-2.5">
-          <img
-            src="/images/backgrounds/flower-hero.png"
-            alt="Twin Me"
-            className="w-8 h-8 object-contain drop-shadow-md"
-          />
-          <span className="heading-serif text-lg" style={{ color: 'var(--foreground)' }}>
-            Twin Me
-          </span>
-        </div>
-        <button
-          onClick={() => navigate('/')}
-          className="flex items-center gap-1 text-sm transition-opacity hover:opacity-70"
-          style={{ color: 'var(--text-secondary)' }}
-        >
-          <ChevronLeft className="w-4 h-4" />
-          Back to home
-        </button>
-      </div>
+    <div style={{ minHeight: '100vh', backgroundColor: BG, display: 'flex', overflow: 'hidden' }}>
 
-      {/* Centered content */}
-      <div className="flex-1 flex items-center justify-center px-6 pb-12">
-        <div className="w-full max-w-md space-y-8">
+      {/* ── Left panel: form ─────────────────────────────── */}
+      <div style={{
+        width: '50%',
+        minWidth: '400px',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: '48px 80px',
+        position: 'relative',
+      }}>
+
+        {/* Logo */}
+        <div style={{ position: 'absolute', top: '40px', left: '48px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <div style={{
+            width: '32px', height: '32px', borderRadius: '50%',
+            overflow: 'hidden', flexShrink: 0,
+          }}>
+            <img src="/images/backgrounds/flower.png" alt="TwinMe" style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center' }} />
+          </div>
+          <span style={{
+            fontFamily: "'Halant', 'Instrument Serif', Georgia, serif",
+            fontSize: '25px',
+            letterSpacing: '-0.5px',
+            color: FG,
+            lineHeight: 1,
+          }}>TwinMe</span>
+        </div>
+
+        {/* Form container */}
+        <div style={{ width: '100%', maxWidth: '390px', display: 'flex', flexDirection: 'column', gap: '24px' }}>
+
           {/* Email hint banner */}
           {searchParams.get('email') && (
-            <div
-              className="rounded-xl p-4 text-center text-sm"
-              style={{
-                background: 'var(--glass-surface-bg)',
-                border: '1px solid var(--glass-surface-border)',
-                color: 'var(--accent-vibrant)',
-              }}
-            >
-              Signing up as <strong>{searchParams.get('email')}</strong> — continue with Google
+            <div style={{
+              background: 'rgba(72, 65, 65, 0.6)',
+              border: '1px solid rgba(94, 86, 86, 0.6)',
+              borderRadius: '10px',
+              padding: '12px 16px',
+              textAlign: 'center',
+              fontSize: '13px',
+              color: '#f97316',
+            }}>
+              Signing up as <strong>{searchParams.get('email')}</strong>
             </div>
           )}
 
-          {/* Error Message */}
+          {/* Error */}
           {error && (
-            <div className="alert-error">
-              <p className="text-sm" style={{ color: 'var(--destructive)' }}>{error}</p>
+            <div style={{
+              background: 'rgba(239, 68, 68, 0.1)',
+              border: '1px solid rgba(239, 68, 68, 0.3)',
+              borderRadius: '8px',
+              padding: '12px 16px',
+              fontSize: '13px',
+              color: '#fca5a5',
+            }}>
+              {error}
             </div>
           )}
 
-          {/* Glass Card Container */}
-          <div
-            className="glass-card overflow-hidden"
+          {/* Heading */}
+          <div style={{ textAlign: 'center' }}>
+            <h1 style={{
+              fontFamily: "'Halant', 'Instrument Serif', Georgia, serif",
+              fontSize: '36px',
+              fontWeight: 400,
+              letterSpacing: '-0.72px',
+              lineHeight: 1.5,
+              color: FG,
+              margin: 0,
+            }}>
+              Welcome back
+            </h1>
+            <p style={{ marginTop: '8px', fontSize: '14px', color: TEXT_MUTED, lineHeight: 1.5 }}>
+              Sign in to discover your soul signature
+            </p>
+          </div>
+
+          {/* Google sign-in button — primary white */}
+          <button
+            onClick={handleGoogleSignIn}
+            disabled={loading}
+            style={{
+              width: '100%',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '10px',
+              height: '44px',
+              borderRadius: '8px',
+              backgroundColor: BUTTON_PRIMARY_BG,
+              color: BUTTON_PRIMARY_FG,
+              border: 'none',
+              cursor: loading ? 'not-allowed' : 'pointer',
+              opacity: loading ? 0.6 : 1,
+              fontSize: '14px',
+              fontFamily: "'Inter', sans-serif",
+              fontWeight: 500,
+              letterSpacing: '-0.14px',
+              transition: 'opacity 0.15s, transform 0.15s',
+            }}
+            onMouseEnter={e => { if (!loading) (e.currentTarget as HTMLButtonElement).style.opacity = '0.9'; }}
+            onMouseLeave={e => { if (!loading) (e.currentTarget as HTMLButtonElement).style.opacity = '1'; }}
           >
-            <div className="p-8 space-y-6">
-              {/* Flower icon */}
-              <div className="flex justify-center">
-                <img
-                  src="/images/backgrounds/flower-hero.png"
-                  alt=""
-                  className="w-12 h-12 object-contain drop-shadow-md"
-                />
-              </div>
+            {loading ? (
+              <>
+                <Loader2 style={{ width: '18px', height: '18px', animation: 'spin 1s linear infinite' }} />
+                <span>Connecting…</span>
+              </>
+            ) : (
+              <>
+                <svg width="18" height="18" viewBox="0 0 24 24">
+                  <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+                  <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+                  <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+                  <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+                </svg>
+                <span>Continue with Google</span>
+              </>
+            )}
+          </button>
 
-              {/* Heading + Subtitle */}
-              <div className="text-center">
-                <h1 className="heading-serif text-3xl md:text-4xl font-normal tracking-tight">
-                  Twin Me
-                </h1>
-                <p className="mt-3 text-[15px] leading-6" style={{ color: 'var(--text-secondary)' }}>
-                  Sign in to discover your soul signature
-                </p>
-              </div>
+          {/* Divider */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <div style={{ flex: 1, height: '1px', backgroundColor: INPUT_BORDER }} />
+            <span style={{ fontSize: '13px', color: TEXT_SUBTLE, letterSpacing: '-0.2px', whiteSpace: 'nowrap' }}>
+              Or continue with email
+            </span>
+            <div style={{ flex: 1, height: '1px', backgroundColor: INPUT_BORDER }} />
+          </div>
 
-              {/* Google Sign In Button — white filled */}
-              <button
-                onClick={handleGoogleSignIn}
-                disabled={loading}
-                className="w-full flex items-center justify-center gap-3 px-6 py-4 text-[15px] leading-5 font-medium rounded-xl transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed hover:scale-[1.02] active:scale-[0.98]"
-                style={{
-                  backgroundColor: '#faf9f6',
-                  color: '#1a1a17',
-                  border: '1px solid var(--glass-surface-border)',
-                }}
-              >
-                {loading ? (
-                  <>
-                    <Loader2 className="w-5 h-5 animate-spin" />
-                    <span>Connecting to Google...</span>
-                  </>
-                ) : (
-                  <>
-                    <svg className="w-5 h-5" viewBox="0 0 24 24">
-                      <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
-                      <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
-                      <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
-                      <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
-                    </svg>
-                    <span>Continue with Google</span>
-                  </>
-                )}
-              </button>
+          {/* Email input (visual — future feature) */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            <label style={{ fontSize: '13px', fontWeight: 500, color: TEXT_SEC, fontFamily: "'Inter', sans-serif" }}>
+              Email
+            </label>
+            <div style={{
+              backgroundColor: INPUT_BG,
+              border: `1px solid ${INPUT_BORDER}`,
+              borderRadius: '6px',
+              padding: '10px 12px',
+              fontSize: '14px',
+              color: TEXT_MUTED,
+              fontFamily: "'Inter', sans-serif",
+              cursor: 'default',
+            }}>
+              Your email address
+            </div>
+          </div>
 
-              {/* Divider */}
-              <div className="divider">
-                <span className="divider-text uppercase" style={{ background: 'transparent' }}>or</span>
-              </div>
+          {/* Terms */}
+          <p style={{ textAlign: 'center', fontSize: '12px', color: TEXT_SUBTLE, lineHeight: 1.6, margin: 0 }}>
+            By continuing, you agree to our{' '}
+            <button
+              onClick={() => setActiveModal('terms')}
+              style={{ background: 'none', border: 'none', color: FG, textDecoration: 'underline', cursor: 'pointer', fontSize: '12px', fontFamily: "'Inter', sans-serif" }}
+            >
+              Terms of Service
+            </button>
+            {' '}and{' '}
+            <button
+              onClick={() => setActiveModal('privacy')}
+              style={{ background: 'none', border: 'none', color: FG, textDecoration: 'underline', cursor: 'pointer', fontSize: '12px', fontFamily: "'Inter', sans-serif" }}
+            >
+              Privacy Policy
+            </button>
+          </p>
 
-              {/* Terms text */}
-              <p className="text-center text-xs" style={{ color: 'var(--text-secondary)' }}>
-                By continuing, you agree to our{' '}
-                <button
-                  onClick={() => setActiveModal('terms')}
-                  className="underline font-semibold hover:opacity-80 transition-opacity"
-                  style={{ color: 'var(--foreground)' }}
-                >
-                  Terms of Service
-                </button>
-                {' '}and{' '}
-                <button
-                  onClick={() => setActiveModal('privacy')}
-                  className="underline font-semibold hover:opacity-80 transition-opacity"
-                  style={{ color: 'var(--foreground)' }}
-                >
-                  Privacy Policy
-                </button>
-              </p>
+          {/* Back link */}
+          <p style={{ textAlign: 'center', fontSize: '13px', color: TEXT_SUBTLE, margin: 0 }}>
+            New here?{' '}
+            <button
+              onClick={() => navigate('/discover')}
+              style={{ background: 'none', border: 'none', color: FG, fontWeight: 500, cursor: 'pointer', fontSize: '13px', fontFamily: "'Inter', sans-serif" }}
+            >
+              Learn more
+            </button>
+          </p>
+        </div>
+
+        {/* Footer */}
+        <div style={{ position: 'absolute', bottom: '24px', left: 0, right: 0, textAlign: 'center' }}>
+          <span style={{ fontSize: '12px', color: TEXT_MUTED }}>© 2026 TwinMe Inc.</span>
+        </div>
+      </div>
+
+      {/* ── Right panel: flower visual (Figma layout) ────── */}
+      <div style={{
+        flex: 1,
+        margin: '16px 16px 16px 0',
+        borderRadius: '20px',
+        position: 'relative',
+        overflow: 'hidden',
+        background: '#0e0c0c',
+        display: 'flex',
+        flexDirection: 'column',
+        justifyContent: 'flex-end',
+        padding: '48px',
+        minWidth: 0,
+      }}>
+
+        {/* Amber glow overlay (Figma hero glow — blurred) */}
+        <div style={{
+          position: 'absolute',
+          left: 'calc(50% - 260px)',
+          top: '-60px',
+          width: '520px',
+          height: '520px',
+          borderRadius: '50%',
+          background: HERO_GLOW,
+          opacity: 0.5,
+          filter: 'blur(80px)',
+          pointerEvents: 'none',
+        }} />
+
+        {/* Bottom gradient fade for text legibility */}
+        <div style={{
+          position: 'absolute',
+          bottom: 0,
+          left: 0,
+          right: 0,
+          height: '55%',
+          background: 'linear-gradient(to top, rgba(14,12,12,1) 40%, rgba(14,12,12,0.7) 70%, transparent 100%)',
+          pointerEvents: 'none',
+        }} />
+
+        {/* Small chatbox UI element — Figma center piece */}
+        <div style={{
+          position: 'absolute',
+          top: '50%',
+          left: '50%',
+          transform: 'translate(-50%, -50%)',
+          width: '320px',
+          backdropFilter: 'blur(42px)',
+          WebkitBackdropFilter: 'blur(42px)',
+          background: 'rgba(72, 65, 65, 0.55)',
+          border: '1px solid rgba(94, 86, 86, 0.5)',
+          borderRadius: '20px',
+          padding: '16px 20px',
+          boxShadow: '0 4px 24px rgba(0,0,0,0.3)',
+        }}>
+          <p style={{ fontSize: '14px', color: TEXT_MUTED, fontFamily: "'Inter', sans-serif", margin: 0, lineHeight: 1.4 }}>
+            What makes you authentically you?
+          </p>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '20px' }}>
+            <div style={{ display: 'flex', gap: '8px' }}>
+              <span style={{ fontSize: '12px', color: TEXT_SUBTLE, fontFamily: "'Inter', sans-serif", background: 'rgba(94,86,86,0.4)', padding: '2px 10px', borderRadius: '100px' }}>Explore</span>
+              <span style={{ fontSize: '12px', color: TEXT_SUBTLE, fontFamily: "'Inter', sans-serif", background: 'rgba(94,86,86,0.4)', padding: '2px 10px', borderRadius: '6px' }}>Platforms</span>
+            </div>
+            <div style={{ width: '28px', height: '28px', borderRadius: '50%', background: BUTTON_PRIMARY_BG, display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: 0.5 }}>
+              <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+                <path d="M6 10V2M2 6L6 2L10 6" stroke={BUTTON_PRIMARY_FG} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
             </div>
           </div>
         </div>
+
+        {/* Bottom text content */}
+        <div style={{ position: 'relative', zIndex: 1 }}>
+          <p style={{
+            fontSize: '11px',
+            fontFamily: "'Inter', sans-serif",
+            fontWeight: 500,
+            letterSpacing: '1.2px',
+            textTransform: 'uppercase',
+            color: 'rgba(253, 252, 251, 0.4)',
+            marginBottom: '12px',
+          }}>
+            Soul Signature Platform
+          </p>
+          <h2 style={{
+            fontFamily: "'Halant', 'Instrument Serif', Georgia, serif",
+            fontSize: 'clamp(28px, 3.2vw, 42px)',
+            fontWeight: 400,
+            letterSpacing: '-0.5px',
+            lineHeight: 1.2,
+            color: FG,
+            margin: 0,
+            maxWidth: '400px',
+          }}>
+            Your twin is waiting
+          </h2>
+          <p style={{
+            marginTop: '14px',
+            fontSize: '14px',
+            color: 'rgba(253, 252, 251, 0.55)',
+            lineHeight: 1.6,
+            maxWidth: '320px',
+            fontFamily: "'Inter', sans-serif",
+          }}>
+            Connect your platforms. Discover patterns you've never noticed. Meet the most accurate version of you.
+          </p>
+        </div>
       </div>
 
-      {/* Footer */}
-      <div className="w-full py-6 text-center">
-        <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
-          &copy; 2026 Twin Me. All rights reserved.
-        </p>
-      </div>
-
-      {/* Modal */}
+      {/* ── Modal ─────────────────────────────────────────── */}
       {activeModal && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center p-4"
+          style={{
+            position: 'fixed', inset: 0, zIndex: 50,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            padding: '16px',
+          }}
           onClick={() => setActiveModal(null)}
         >
-          {/* Backdrop */}
+          <div style={{
+            position: 'absolute', inset: 0,
+            backgroundColor: 'rgba(0,0,0,0.5)',
+            backdropFilter: 'blur(4px)',
+          }} />
           <div
-            className="absolute inset-0"
             style={{
-              backgroundColor: 'rgba(0, 0, 0, 0.5)',
-              backdropFilter: 'blur(4px)',
-              WebkitBackdropFilter: 'blur(4px)'
+              position: 'relative',
+              width: '100%',
+              maxWidth: '640px',
+              maxHeight: '80vh',
+              overflow: 'hidden',
+              borderRadius: '20px',
+              background: 'rgba(37, 34, 34, 0.95)',
+              border: '1px solid rgba(94, 86, 86, 0.5)',
+              backdropFilter: 'blur(42px)',
             }}
-          />
-          {/* Modal content */}
-          <div
-            className="glass-card relative w-full max-w-2xl max-h-[80vh] overflow-hidden"
-            onClick={(e) => e.stopPropagation()}
+            onClick={e => e.stopPropagation()}
           >
-            {/* Header */}
-            <div
-              className="flex items-center justify-between px-6 py-4 border-b"
-              style={{ borderColor: 'var(--glass-surface-border)' }}
-            >
-              <h2 className="heading-serif text-xl">
+            <div style={{
+              display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+              padding: '16px 24px',
+              borderBottom: '1px solid rgba(94, 86, 86, 0.4)',
+            }}>
+              <h2 style={{
+                fontFamily: "'Halant', Georgia, serif",
+                fontSize: '20px', fontWeight: 400,
+                letterSpacing: '-0.3px', color: FG, margin: 0,
+              }}>
                 {modalContent[activeModal].title}
               </h2>
               <button
                 onClick={() => setActiveModal(null)}
-                className="p-2 rounded-lg hover:opacity-70 transition-opacity"
-                style={{ color: 'var(--foreground)' }}
+                style={{ background: 'none', border: 'none', cursor: 'pointer', color: TEXT_SEC, padding: '4px' }}
               >
-                <X className="w-5 h-5" />
+                <X style={{ width: '20px', height: '20px' }} />
               </button>
             </div>
-            {/* Body */}
-            <div className="p-6 overflow-y-auto max-h-[60vh]">
-              <pre
-                className="whitespace-pre-wrap font-sans text-sm leading-relaxed"
-                style={{ color: 'var(--text-secondary)' }}
-              >
+            <div style={{ padding: '24px', overflowY: 'auto', maxHeight: 'calc(80vh - 64px)' }}>
+              <pre style={{
+                whiteSpace: 'pre-wrap', fontFamily: "'Inter', sans-serif",
+                fontSize: '13px', lineHeight: 1.7, color: TEXT_SEC, margin: 0,
+              }}>
                 {modalContent[activeModal].content}
               </pre>
             </div>
