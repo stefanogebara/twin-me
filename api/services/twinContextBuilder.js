@@ -63,15 +63,12 @@ async function fetchTwinContext(userId, userMessage, options = {}) {
   const timed = (label, promise) => promise.then(r => { ctxLog(`${label} done`); return r; });
 
   // Circuit breaker: if any single fetch hangs, cap total context build at 7s
+  // Uses individual tracked promises so the circuit breaker preserves already-resolved results
   const CONTEXT_TIMEOUT_MS = 7000;
-  const timeoutSentinel = new Promise((_, reject) =>
-    setTimeout(() => reject(new Error('fetchTwinContext timeout')), CONTEXT_TIMEOUT_MS)
-  );
 
-  let contextResults;
-  try {
-    contextResults = await Promise.race([
-      Promise.all([
+  const defaults = [null, {}, null, null, [], null, [], { success: false, data: null }, [], null, [], null, null];
+
+  const fetchPromises = [
     fetchSoul
       ? timed('soulSignature', _fetchSoulSignature(userId).catch(err => {
           console.warn('[TwinContext] Soul signature fetch failed:', err.message);
@@ -148,13 +145,24 @@ async function fetchTwinContext(userId, userMessage, options = {}) {
       console.warn('[TwinContext] Calibration context fetch failed:', err.message);
       return null;
     })),
-      ]),
-      timeoutSentinel,
+  ];
+
+  let contextResults;
+  try {
+    contextResults = await Promise.race([
+      Promise.all(fetchPromises),
+      new Promise((_, reject) =>
+        setTimeout(() => reject(new Error('fetchTwinContext timeout')), CONTEXT_TIMEOUT_MS)
+      ),
     ]);
   } catch (timeoutErr) {
     if (timeoutErr.message === 'fetchTwinContext timeout') {
       console.warn(`[TwinContext] Circuit breaker tripped at ${CONTEXT_TIMEOUT_MS}ms — returning partial context`);
-      contextResults = [null, {}, null, null, [], null, [], { success: false, data: null }, [], null, [], null, null];
+      // Snapshot already-resolved promises instead of discarding everything
+      const settled = await Promise.allSettled(fetchPromises);
+      contextResults = settled.map((result, i) =>
+        result.status === 'fulfilled' ? result.value : defaults[i]
+      );
     } else {
       throw timeoutErr;
     }

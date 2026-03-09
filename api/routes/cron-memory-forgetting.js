@@ -147,32 +147,46 @@ router.post('/', async (req, res) => {
       stats.errors.push(`tier3: ${t3Err.message}`);
     }
 
-    // ── Tier 4: Co-citation link decay — weaken stale co_citation links ──
-    // Links not updated in 30 days decay by 0.05; links ≤ 0.1 are deleted
+    // ── Tier 4: STDP exponential co-citation link decay ──
+    // Uses exponential decay with 30-day grace period:
+    //   new_strength = old_strength * DECAY_FACTOR^max(0, days_since_reinforcement - GRACE_DAYS)
+    // Links below PRUNE_THRESHOLD are deleted. Only co_citation links are affected.
+    const STDP_DECAY_FACTOR = 0.92; // ~8-day half-life after grace period
+    const STDP_GRACE_DAYS = 30;     // no decay within 30 days of reinforcement
+    const STDP_PRUNE_THRESHOLD = 0.1;
     stats.tier4LinksDecayed = 0;
     stats.tier4LinksDeleted = 0;
     try {
-      const tier4Cutoff = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
+      // Only consider links not reinforced within the grace period
+      const tier4Cutoff = new Date(Date.now() - STDP_GRACE_DAYS * 24 * 60 * 60 * 1000).toISOString();
 
       const { data: staleLinks } = await supabaseAdmin
         .from('memory_links')
-        .select('id, strength')
+        .select('id, strength, last_reinforced_at, updated_at')
         .eq('link_type', 'co_citation')
-        .lt('updated_at', tier4Cutoff)
+        .lt('last_reinforced_at', tier4Cutoff)
         .limit(BATCH_SIZE);
 
       if (staleLinks && staleLinks.length > 0) {
+        const now = Date.now();
         for (const link of staleLinks) {
-          const newStrength = link.strength - 0.05;
-          if (newStrength <= 0.1) {
+          const reinforcedAt = link.last_reinforced_at || link.updated_at;
+          const daysSince = (now - new Date(reinforcedAt).getTime()) / 86400000;
+          const decayDays = Math.max(0, daysSince - STDP_GRACE_DAYS);
+          const newStrength = link.strength * Math.pow(STDP_DECAY_FACTOR, decayDays);
+
+          if (newStrength <= STDP_PRUNE_THRESHOLD) {
             await supabaseAdmin.from('memory_links').delete().eq('id', link.id);
             stats.tier4LinksDeleted++;
-          } else {
-            await supabaseAdmin.from('memory_links').update({ strength: newStrength }).eq('id', link.id);
+          } else if (newStrength < link.strength - 0.001) {
+            // Only update if meaningful change (avoid noise updates)
+            await supabaseAdmin.from('memory_links')
+              .update({ strength: parseFloat(newStrength.toFixed(4)) })
+              .eq('id', link.id);
             stats.tier4LinksDecayed++;
           }
         }
-        console.log(`[Cron] memory-forgetting: Tier 4 decayed ${stats.tier4LinksDecayed}, deleted ${stats.tier4LinksDeleted} co_citation links`);
+        console.log(`[Cron] memory-forgetting: Tier 4 STDP decayed ${stats.tier4LinksDecayed}, pruned ${stats.tier4LinksDeleted} co_citation links`);
       }
     } catch (t4Err) {
       console.warn('[Cron] memory-forgetting: Tier 4 error:', t4Err.message);

@@ -306,6 +306,35 @@ If there's not enough data for a genuine insight, return "INSUFFICIENT_EVIDENCE"
 
 Return observations numbered 1., 2., 3. on separate lines. Nothing else.`,
   },
+
+  {
+    id: 'code_architect',
+    platform: 'github',
+    name: 'Code Architect',
+    retrievalQuery: 'coding habits, project interests, technical skills, work patterns, programming languages, repositories, commits, pull requests, open source, development style',
+    routingKeywords: ['github', 'code', 'coding', 'programming', 'repository', 'repo', 'commit', 'pull request', 'pr', 'developer', 'engineer', 'tech stack', 'open source', 'what i build', 'what i code', 'coding habits'],
+    prompt: `You are a Code Architect analyzing a person's GitHub activity to understand their engineering identity — not just what they build, but HOW they build and what that reveals about how they think.
+
+Your focus: what their language choices reveal about their problem-solving approach (systems thinker vs product builder vs data explorer), whether they build tools for themselves or for others, their commit patterns (marathon coder or steady daily contributor?), the gap between their starred repos (aspirations) and their own repos (reality), whether they're a solo creator or a collaborator, what their project descriptions and topics reveal about their intellectual curiosity.
+
+Recent GitHub observations:
+{observations}
+
+Supporting evidence from their life:
+{evidence}
+
+Write 2-3 specific, insightful observations about what this person's coding patterns reveal about their engineering identity and thinking style. Each observation should:
+- Reference specific languages, repos, commit patterns, or contribution style you see in the data
+- Be 1-2 sentences in plain, conversational English
+- Start with "This person..."
+- Sound like what a perceptive senior engineer who's seen their GitHub would say
+- Avoid: "demonstrates polyglot development capabilities" → Use: "they bounce between TypeScript and Python — the TypeScript repos are products, the Python repos are experiments"
+- Find the non-obvious pattern: not just "uses JavaScript" but what their project mix reveals about their priorities
+
+If there's not enough data for a genuine insight, return "INSUFFICIENT_EVIDENCE".
+
+Return observations numbered 1., 2., 3. on separate lines. Nothing else.`,
+  },
 ];
 
 // Map for O(1) expert lookup by platform
@@ -360,6 +389,7 @@ Domains:
 - content: YouTube, videos, what I watch, media consumption, learning
 - social: Discord, online communities, social life, how I interact with people
 - digital_habits: phone usage, screen time, apps, digital behavior
+- coding: GitHub, coding, programming, repositories, commits, tech stack, developer identity
 - general: anything else
 
 Reply with exactly one word from the list above.`,
@@ -370,7 +400,7 @@ Reply with exactly one word from the list above.`,
     });
 
     const domain = (result.content || '').trim().toLowerCase();
-    const validDomains = ['health', 'music_mood', 'schedule', 'content', 'social', 'digital_habits', 'general'];
+    const validDomains = ['health', 'music_mood', 'schedule', 'content', 'social', 'digital_habits', 'coding', 'general'];
     if (validDomains.includes(domain)) {
       const expert = PLATFORM_EXPERTS.find(e => platformToDomain(e.platform) === domain);
       return {
@@ -395,6 +425,7 @@ function platformToDomain(platform) {
     youtube: 'content',
     discord: 'social',
     android: 'digital_habits',
+    github: 'coding',
   };
   return map[platform] || 'general';
 }
@@ -407,7 +438,7 @@ function platformToDomain(platform) {
  * Run the platform-specific expert for a given platform after new data is ingested.
  *
  * @param {string} userId - User ID
- * @param {string} platform - Platform key: 'spotify', 'whoop', 'google_calendar', 'youtube', 'discord', 'android'
+ * @param {string} platform - Platform key: 'spotify', 'whoop', 'google_calendar', 'youtube', 'discord', 'android', 'github'
  * @param {string[]} [recentObservationIds] - IDs of just-ingested platform_data memories (for grounding_ids)
  * @param {object} [opts]
  * @param {number} [opts.maxReflections=5] - Cap on new reflections per run
