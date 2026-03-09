@@ -3303,6 +3303,26 @@ async function runObservationIngestion() {
                 console.warn(`[ObservationIngestion] Platform expert (${platform}) failed for ${userId}:`, err.message)
               );
             }
+
+            // Update last_sync_at in platform_connections for tracking (non-blocking)
+            // This ensures Settings UI shows accurate sync status for ALL platforms
+            const syncSupabase = await getSupabase();
+            if (syncSupabase) {
+              syncSupabase
+                .from('platform_connections')
+                .update({
+                  last_sync_at: new Date().toISOString(),
+                  last_sync_status: observations.length > 0 ? 'success' : 'no_new_data',
+                  updated_at: new Date().toISOString(),
+                })
+                .eq('user_id', userId)
+                .eq('platform', platform)
+                .then(({ error: syncUpdateErr }) => {
+                  if (syncUpdateErr) {
+                    // Silently ignore — platform may only exist in nango_connection_mappings
+                  }
+                });
+            }
           } catch (platformErr) {
             const errMsg = `${platform} for user ${userId}: ${platformErr.message}`;
             console.warn(`[ObservationIngestion] Platform error - ${errMsg}`);
