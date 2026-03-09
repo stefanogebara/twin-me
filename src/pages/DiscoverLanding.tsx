@@ -1,153 +1,838 @@
-// src/pages/DiscoverLanding.tsx
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { motion, AnimatePresence } from 'framer-motion';
-import { Loader2 } from 'lucide-react';
+import {
+  Music, Brain, BarChart3, Globe,
+  TrendingUp, Zap, Shield, Puzzle,
+  Check, ChevronDown, Sun, Moon,
+} from 'lucide-react';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3004/api';
+// ── Light mode tokens (Figma exact) ────────────────────────────────────
+const LIGHT = {
+  BG:       '#fdfcfb',
+  FG:       '#1b1818',
+  TEXT_SEC: '#4a4242',
+  TEXT_PH:  '#86807b',
+  CARD_BG:  'rgba(244, 241, 236, 0.7)',  // warm cream glass
+  CARD_BDR: '#d9d1cb',
+  BENTO_BG: 'rgba(241, 245, 249, 0.04)',
+  CTA_BG:   '#252222',
+  CTA_FG:   '#fdfcfb',
+  SIGN_UP_BG: '#1b1818',
+  SIGN_UP_FG: '#fdfcfb',
+  GHOST_BG: '#f4f1ec',
+};
 
-interface Discovered {
-  discovered_name?: string | null;
-  discovered_company?: string | null;
-  discovered_title?: string | null;
-  discovered_location?: string | null;
-  discovered_bio?: string | null;
-  discovered_photo?: string | null;
-}
+// ── Dark mode tokens (Figma exact) ─────────────────────────────────────
+const DARK = {
+  BG:       '#1b1818',
+  FG:       '#fdfcfb',
+  TEXT_SEC: '#a09898',
+  TEXT_PH:  '#86807b',
+  CARD_BG:  'rgba(72, 65, 65, 0.6)',    // dark glass
+  CARD_BDR: 'rgba(94, 86, 86, 0.6)',
+  BENTO_BG: 'rgba(241, 245, 249, 0.04)',
+  CTA_BG:   '#fdfcfb',
+  CTA_FG:   '#110f0f',
+  SIGN_UP_BG: '#fdfcfb',
+  SIGN_UP_FG: '#222528',
+  GHOST_BG: 'rgba(72, 65, 65, 0.6)',
+};
 
-const DiscoverLanding: React.FC = () => {
-  const navigate = useNavigate();
-  const [email, setEmail] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [discovered, setDiscovered] = useState<Discovered | null>(null);
-  const [scanned, setScanned] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+// ── Hero glow: RADIAL gradient (Figma exact — two stacked 455.74px ellipses) ──
+// Ellipse 3: blur(42px) soft layer | Ellipse 1: sharp grain layer
+const HERO_GLOW_GRADIENT = `radial-gradient(ellipse at 50% 50%,
+  rgba(193,126,44,1)     0%,
+  rgba(255,132,0,0.85)   12%,
+  rgba(224,129,22,0.6)   28%,
+  rgba(194,85,78,0.35)   50%,
+  rgba(195,45,112,0.1)   72%,
+  rgba(195,45,112,0)     100%
+)`;
 
-  const handleScan = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-    setError(null);
-    try {
-      const res = await fetch(`${API_URL}/discovery/scan`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: email.trim() }),
-      });
-      const json = await res.json();
-      setDiscovered(json.discovered);
-      setScanned(true);
-    } catch {
-      setError('Scan failed. Please try again.');
-    } finally {
-      setLoading(false);
-    }
+// ── Pricing / section accent: RADIAL amber gradient (Figma pricing SVG exact) ──
+const AMBER_GLOW_CSS = `radial-gradient(ellipse at 51.1% 127.3%,
+  rgba(195,45,112,0)     0%,  rgba(194,85,78,0.5)    9.375%,
+  rgba(193,126,44,1)     18.75%, rgba(224,129,22,0.8) 32.452%,
+  rgba(255,132,0,0.6)    46.154%, rgba(218,128,26,0.525) 53.245%,
+  rgba(181,124,52,0.45)  60.337%, rgba(108,117,103,0.3) 74.519%,
+  rgba(108,117,103,0)    96.635%
+)`;
+
+// Footer: 3 layered gradients (from Figma footer frame exact SVG transforms)
+const FOOTER_GLOW_1 = `radial-gradient(ellipse at 51.1% 127.3%,
+  rgba(195,45,112,0) 0%, rgba(194,85,78,0.5) 9.375%,
+  rgba(193,126,44,1) 18.75%, rgba(224,129,22,0.8) 32.452%,
+  rgba(255,132,0,0.6) 46.154%, rgba(218,128,26,0.525) 53.245%,
+  rgba(181,124,52,0.45) 60.337%, rgba(108,117,103,0.3) 74.519%,
+  rgba(108,117,103,0) 96.635%
+)`;
+const FOOTER_GLOW_2 = `radial-gradient(ellipse at 56.8% 130%,
+  rgba(195,45,112,0) 0%, rgba(225,88,56,0.3) 10.577%,
+  rgba(240,110,28,0.45) 15.865%, rgba(255,132,0,0.6) 21.154%,
+  rgba(224,129,22,0.8) 29.087%, rgba(193,126,44,1) 37.019%,
+  rgba(185,101,74,0.65) 55.769%, rgba(177,76,105,0.3) 74.519%,
+  rgba(73,56,57,0) 96.635%
+)`;
+const FOOTER_GLOW_3 = `radial-gradient(ellipse at 45.3% 148%,
+  rgba(195,45,112,0) 0%, rgba(146,34,67,0.3) 10.577%,
+  rgba(97,22,22,0.6) 21.154%, rgba(157,49,11,0.55) 29.087%,
+  rgba(217,76,0,0.5) 37.019%, rgba(202,78,22,0.475) 41.707%,
+  rgba(186,80,44,0.45) 46.394%, rgba(155,84,87,0.4) 55.769%,
+  rgba(93,92,174,0.3) 74.519%, rgba(73,56,57,0) 96.635%
+)`;
+
+// ── Data ──────────────────────────────────────────────────────────────
+const SUGGESTION_PILLS = [
+  { icon: Music,     label: 'My music taste' },
+  { icon: Brain,     label: 'My personality' },
+  { icon: BarChart3, label: 'My productivity' },
+  { icon: Globe,     label: 'My daily rhythms' },
+];
+
+const PLATFORM_LOGOS = ['Spotify', 'YouTube', 'Discord', 'LinkedIn', 'Whoop'];
+
+const FEATURES = [
+  { icon: TrendingUp, title: 'Deep Memory',        body: 'Every interaction stored with cognitive-science retrieval weighting — recency, importance, and relevance.' },
+  { icon: Zap,        title: 'Real-time Insights',  body: 'Your twin notices patterns you miss. Proactive insights surface before you ask.' },
+  { icon: Shield,     title: 'Privacy First',        body: 'You control exactly what your twin knows. The privacy spectrum dashboard gives you granular control.' },
+  { icon: Puzzle,     title: 'Cross-platform',       body: 'Spotify, YouTube, Discord, LinkedIn, Whoop — your digital footprints paint the real picture.' },
+];
+
+const FAQ_ITEMS = [
+  { q: 'What is a soul signature?' },
+  { q: 'How is my data used?' },
+  { q: 'What platforms can I connect?' },
+  { q: 'How accurate is the twin?' },
+  { q: 'Can I delete my data?' },
+  { q: 'Does TwinMe train AI on my data?' },
+  { q: 'How long until my twin feels like me?' },
+];
+
+const FAQ_ANSWERS: Record<string, string> = {
+  'What is a soul signature?':
+    'Your soul signature is a living AI portrait of your authentic self — patterns, preferences, and personality traits derived from how you actually behave across platforms.',
+  'How is my data used?':
+    'Your data never leaves our secure infrastructure and is never used to train AI models. You own your soul signature completely.',
+  'What platforms can I connect?':
+    'Spotify, Google Calendar, YouTube, Discord, LinkedIn, and Whoop are currently supported. More coming soon.',
+  'How accurate is the twin?':
+    'Twin accuracy improves over time as memories accumulate. Most users notice meaningful personality alignment within a few days of connecting platforms.',
+  'Can I delete my data?':
+    'Yes. You can delete any memory, any platform connection, or your entire soul signature at any time from Settings.',
+  'Does TwinMe train AI on my data?':
+    'Never. Your memories are yours alone. They are used only to power your personal twin, nothing else.',
+  'How long until my twin feels like me?':
+    'Connect 2–3 platforms and chat for a day — most users feel the difference immediately. The twin deepens over weeks.',
+};
+
+// ── Main component ─────────────────────────────────────────────────────
+export default function DiscoverLanding() {
+  const navigate  = useNavigate();
+  const [query, setQuery]             = useState('');
+  const [billingAnnual, setBillingAnnual] = useState(false);
+  const [openFaq, setOpenFaq]         = useState<number | null>(null);
+  const [isDark, setIsDark]           = useState(true);
+
+  const T = isDark ? DARK : LIGHT;
+
+  const glassStyle = {
+    backdropFilter: 'blur(19.65px)',
+    WebkitBackdropFilter: 'blur(19.65px)',
+    background: T.CARD_BG,
+    border: `1px solid ${T.CARD_BDR}`,
   };
-
-  const handleContinue = () => {
-    navigate(`/auth?email=${encodeURIComponent(email)}&mode=signup`);
+  const chatboxStyle = {
+    backdropFilter: 'blur(42px)',
+    WebkitBackdropFilter: 'blur(42px)',
+    background: T.CARD_BG,
+    border: `1px solid ${T.CARD_BDR}`,
+    boxShadow: '0 4px 4px rgba(0,0,0,0.12)',
+  };
+  const bentoStyle = {
+    background: T.BENTO_BG,
+    border: `1px solid ${T.CARD_BDR}`,
   };
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center px-6 py-20">
-      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
-        className="max-w-[480px] w-full mx-auto space-y-8">
+    <div
+      className="min-h-screen overflow-x-hidden"
+      style={{ backgroundColor: T.BG, color: T.FG, fontFamily: "'Inter', sans-serif" }}
+    >
 
-        {/* Logo */}
-        <div className="flex items-center justify-center gap-2">
-          <img src="/images/backgrounds/flower-hero.png" alt="" className="w-8 h-8" />
-          <span className="heading-serif text-xl">Twin Me</span>
-        </div>
+      {/* ══ NAV ══════════════════════════════════════════════════════════ */}
+      <div className="fixed top-5 left-1/2 -translate-x-1/2 z-50 w-full max-w-[878px] px-4">
+        <nav
+          className="flex items-center pl-5 pr-3 py-[10px] rounded-[32px] gap-9"
+          style={glassStyle}
+        >
+          {/* Logo — flower circle overlaps wordmark by 21px (Figma exact) */}
+          <div className="flex items-center shrink-0" style={{ width: '108px', paddingRight: '21px' }}>
+            <div
+              className="flex items-center justify-center shrink-0 rounded-full overflow-hidden"
+              style={{
+                width: '32px', height: '32px',
+                marginRight: '-21px',
+                zIndex: 1,
+                flexShrink: 0,
+              }}
+            >
+              <img
+                src="/images/backgrounds/flower.png"
+                alt="TwinMe"
+                style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center' }}
+              />
+            </div>
+            <span style={{
+              fontFamily: "'Halant', 'Instrument Serif', Georgia, serif",
+              fontSize: '25.36px',
+              letterSpacing: '-0.507px',
+              color: T.FG,
+              marginRight: '-21px',
+              whiteSpace: 'nowrap',
+              position: 'relative',
+              zIndex: 2,
+            }}>
+              TwinMe
+            </span>
+          </div>
 
-        {/* Header */}
-        <div className="text-center space-y-3">
-          <h1 className="heading-serif text-5xl font-normal tracking-tight">Discover your Soul Signature</h1>
-          <p className="text-base leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
-            First, let's see what the internet already knows about you.
-          </p>
-        </div>
+          {/* Nav links */}
+          <div
+            className="hidden md:flex items-center px-5 gap-14 flex-1"
+            style={{ fontFamily: "'Poppins', sans-serif", fontSize: '14px', color: T.FG }}
+          >
+            <a href="#how-it-works" className="hover:opacity-60 transition-opacity whitespace-nowrap">How it works</a>
+            <a href="#features"     className="hover:opacity-60 transition-opacity whitespace-nowrap">Features</a>
+            <a href="#pricing"      className="hover:opacity-60 transition-opacity whitespace-nowrap">Pricing</a>
+            <a href="#faq"          className="hover:opacity-60 transition-opacity whitespace-nowrap">FAQ</a>
+          </div>
 
-        {/* Scan form */}
-        {!scanned && (
-          <form onSubmit={handleScan} className="space-y-3">
-            <input
-              type="email"
-              value={email}
-              onChange={e => setEmail(e.target.value)}
-              placeholder="your@email.com"
-              className="input focus:border-[var(--glass-surface-border-hover)]"
-              required
-            />
-            <button type="submit" disabled={loading} className="btn-cta w-full disabled:opacity-50 flex items-center justify-center gap-2">
-              {loading && <Loader2 className="animate-spin w-4 h-4" />}
-              {loading ? 'Scanning the web...' : 'Scan my public footprint'}
+          {/* Divider */}
+          <div className="hidden md:block w-px self-stretch" style={{ background: T.CARD_BDR }} />
+
+          {/* Actions */}
+          <div className="flex items-center gap-1 shrink-0">
+            {/* Theme toggle */}
+            <button
+              onClick={() => setIsDark(!isDark)}
+              className="flex items-center justify-center w-8 h-8 rounded-full transition-opacity hover:opacity-70"
+              style={{ color: T.FG }}
+            >
+              {isDark ? <Sun className="w-[14px] h-[14px]" /> : <Moon className="w-[14px] h-[14px]" />}
             </button>
-            {error && <p className="text-sm text-center" style={{ color: 'var(--text-secondary)' }}>{error}</p>}
-          </form>
-        )}
+            {/* Sign in — Figma: ghost, 12px, min-w-[64px], px-2 py-0.5 */}
+            <button
+              onClick={() => navigate('/auth')}
+              style={{
+                fontFamily: "'Inter', sans-serif",
+                fontSize: '12px',
+                fontWeight: 500,
+                lineHeight: '24px',
+                color: T.FG,
+                background: 'transparent',
+                border: 'none',
+                cursor: 'pointer',
+                minWidth: '64px',
+                padding: '2px 8px',
+                borderRadius: '6px',
+                whiteSpace: 'nowrap',
+              }}
+              onMouseEnter={e => (e.currentTarget.style.background = isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.05)')}
+              onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+            >
+              Sign in
+            </button>
+            {/* Sign up — Figma: dark pill, 36px h, rounded-[100px], 14px */}
+            <button
+              onClick={() => navigate('/auth')}
+              style={{
+                fontFamily: "'Inter', sans-serif",
+                fontSize: '14px',
+                fontWeight: 500,
+                lineHeight: '24px',
+                color: T.SIGN_UP_FG,
+                background: T.SIGN_UP_BG,
+                border: 'none',
+                cursor: 'pointer',
+                height: '36px',
+                minWidth: '80px',
+                padding: '6px 12px',
+                borderRadius: '100px',
+                whiteSpace: 'nowrap',
+              }}
+              onMouseEnter={e => (e.currentTarget.style.opacity = '0.88')}
+              onMouseLeave={e => (e.currentTarget.style.opacity = '1')}
+            >
+              Sign up
+            </button>
+          </div>
+        </nav>
+      </div>
 
-        {/* Results */}
-        <AnimatePresence>
-          {scanned && (
-            <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} className="space-y-4">
-              {discovered ? (
-                <div className="rounded-2xl p-6 space-y-3"
+      {/* SVG grain filter (Sundust signature texture) */}
+      <svg style={{ position: 'absolute', width: 0, height: 0, overflow: 'hidden' }}>
+        <defs>
+          <filter id="sundust-grain" x="0%" y="0%" width="100%" height="100%">
+            <feTurbulence type="fractalNoise" baseFrequency="0.65" numOctaves="3" stitchTiles="stitch" result="noise"/>
+            <feColorMatrix type="saturate" values="0" in="noise" result="grayNoise"/>
+            <feBlend in="SourceGraphic" in2="grayNoise" mode="overlay" result="blend"/>
+            <feComposite in="blend" in2="SourceGraphic" operator="in"/>
+          </filter>
+        </defs>
+      </svg>
+
+      {/* ══ HERO ═════════════════════════════════════════════════════════ */}
+      <section className="relative flex flex-col items-center pt-48 pb-36 px-6" style={{ overflowX: 'clip' }}>
+
+        {/* Hero glow — two stacked ellipses from Figma CSS export */}
+        {/* Ellipse 3: blurred layer — Figma: y=-55.87px from hero frame, border-radius:50% = ellipse */}
+        <div
+          className="absolute pointer-events-none"
+          style={{
+            left: 'calc(50% - 455.74px / 2 - 1.37px)',
+            top: '-56px',
+            width: '455.74px',
+            height: '455.74px',
+            borderRadius: '50%',
+            background: HERO_GLOW_GRADIENT,
+            opacity: isDark ? 0.85 : 0.6,
+            filter: 'blur(42px)',
+          }}
+        />
+        {/* Ellipse 1: sharp layer with grain texture */}
+        <div
+          className="absolute pointer-events-none"
+          style={{
+            left: 'calc(50% - 455.74px / 2 - 1.37px)',
+            top: '-56px',
+            width: '455.74px',
+            height: '455.74px',
+            borderRadius: '50%',
+            background: HERO_GLOW_GRADIENT,
+            opacity: isDark ? 0.3 : 0.15,
+            filter: 'url(#sundust-grain)',
+          }}
+        />
+
+        {/* H1 */}
+        <h1
+          className="relative text-center mb-3 max-w-[608px]"
+          style={{
+            fontFamily: "'Halant', 'Instrument Serif', Georgia, serif",
+            fontSize: '48px',
+            lineHeight: 1,
+            letterSpacing: '-0.96px',
+            color: T.FG,
+          }}
+        >
+          Discover who you really are
+        </h1>
+
+        {/* Subtitle */}
+        <p
+          className="relative text-center mb-14 max-w-[608px]"
+          style={{ color: T.TEXT_SEC, fontSize: '16px', lineHeight: 1.25 }}
+        >
+          TwinMe builds a living portrait of your authentic self from the platforms you actually use — not just what you say about yourself.
+        </p>
+
+        {/* Chatbox */}
+        <div
+          className="relative w-full max-w-[608px] rounded-[20px] px-5 py-4 mb-3"
+          style={chatboxStyle}
+        >
+          <div className="flex flex-col" style={{ minHeight: '87px', justifyContent: 'space-between', gap: '10px' }}>
+            <p className="text-sm leading-[1.25]" style={{ color: T.TEXT_PH }}>
+              {query || 'What do you want to understand about yourself?'}
+            </p>
+            <div className="flex items-center justify-between h-7">
+              <div className="flex items-center gap-2">
+                <button
+                  className="flex items-center gap-1 min-w-[64px] px-2 py-0.5 rounded-[200px] text-xs font-medium"
+                  style={{ fontFamily: "'Inter', sans-serif", color: T.FG }}
+                  onMouseEnter={e => (e.currentTarget.style.background = isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.05)')}
+                  onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+                >
+                  <svg className="w-4 h-4 shrink-0" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M2 13.5L5.5 10M11 2.5a2 2 0 0 1 2 2L7 10.5l-3 .5.5-3 6.5-5.5Z"/>
+                  </svg>
+                  <span className="px-1">Explore</span>
+                </button>
+                <button
+                  className="flex items-center gap-1 min-w-[64px] px-2 py-0.5 rounded-md text-xs font-medium"
                   style={{
-                    background: 'var(--glass-surface-bg)',
-                    border: '1px solid var(--glass-surface-border)',
-                    backdropFilter: 'blur(8px)',
-                    boxShadow: 'var(--glass-shadow)',
+                    fontFamily: "'Inter', sans-serif",
+                    color: T.FG,
+                    background: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(17,15,15,0.05)',
+                  }}
+                >
+                  <svg className="w-4 h-4 shrink-0" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round">
+                    <circle cx="8" cy="8" r="6.5"/>
+                    <path d="M8 1.5a9 5 0 0 1 0 13M8 1.5a9 5 0 0 0 0 13M1.5 8h13"/>
+                  </svg>
+                  <span className="px-1">Platforms</span>
+                </button>
+              </div>
+              <button
+                onClick={() => navigate('/auth')}
+                className="w-7 h-7 rounded-full flex items-center justify-center"
+                style={{ background: isDark ? '#fdfcfb' : '#252222', opacity: query ? 1 : 0.5 }}
+              >
+                <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+                  <path d="M6 10V2M2 6L6 2L10 6" stroke={isDark ? '#222528' : '#fdfcfb'} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* Suggestion pills */}
+        <div className="relative flex items-center gap-2 flex-wrap justify-center">
+          {SUGGESTION_PILLS.map(({ icon: Icon, label }) => (
+            <button
+              key={label}
+              onClick={() => setQuery(label)}
+              className="flex items-center gap-1 px-3 py-[10px] rounded-[46px] text-xs font-medium transition-all"
+              style={{
+                backdropFilter: 'blur(42px)',
+                WebkitBackdropFilter: 'blur(42px)',
+                background: T.CARD_BG,
+                border: `1px solid ${T.CARD_BDR}`,
+                color: T.FG,
+                fontFamily: "'Geist', 'Inter', sans-serif",
+              }}
+            >
+              <Icon className="w-4 h-4 shrink-0" />
+              <span className="px-1">{label}</span>
+            </button>
+          ))}
+        </div>
+      </section>
+
+      {/* ══ TRUST LOGOS ══════════════════════════════════════════════════ */}
+      <section className="relative overflow-hidden">
+        {/* Edge fades */}
+        <div className="absolute left-0 top-0 bottom-0 w-32 pointer-events-none z-10"
+          style={{ background: `linear-gradient(to right, ${T.BG}, transparent)` }} />
+        <div className="absolute right-0 top-0 bottom-0 w-32 pointer-events-none z-10"
+          style={{ background: `linear-gradient(to left, ${T.BG}, transparent)` }} />
+
+        <div className="flex flex-col items-center gap-12 w-full px-[100px]">
+          {/* Section label */}
+          <div
+            className="inline-flex items-center justify-center px-9 py-5 rounded-[32px] text-sm"
+            style={{ ...glassStyle, color: T.FG, fontFamily: "'Inter', sans-serif" }}
+          >
+            Trusted by your favourite platforms
+          </div>
+
+          {/* Logo row */}
+          <div className="flex items-center justify-center gap-16 flex-wrap pb-4">
+            {PLATFORM_LOGOS.map(name => (
+              <span
+                key={name}
+                className="text-sm font-semibold tracking-wide opacity-50"
+                style={{ color: T.FG }}
+              >
+                {name}
+              </span>
+            ))}
+          </div>
+
+          <div className="w-full h-px" style={{ background: T.CARD_BDR }} />
+        </div>
+      </section>
+
+      {/* ══ FEATURES ═════════════════════════════════════════════════════ */}
+      <section id="features" className="px-[100px] mt-[80px]">
+        <div className="max-w-[1312px] mx-auto flex flex-col items-center gap-[42px]">
+
+          {/* Section label */}
+          <div
+            className="inline-flex items-center justify-center px-9 py-5 rounded-[32px] text-sm"
+            style={{ ...glassStyle, color: T.FG, fontFamily: "'Inter', sans-serif" }}
+          >
+            Product overview
+          </div>
+
+          {/* Heading with amber glow behind */}
+          <div className="relative flex items-center justify-center">
+            <div
+              className="absolute pointer-events-none"
+              style={{
+                width: '513px', height: '97px',
+                top: '9px', left: '50%',
+                transform: 'translateX(-50%)',
+                background: 'radial-gradient(ellipse at 50% 50%, rgba(255,132,0,0.45) 0%, rgba(224,129,22,0.3) 40%, transparent 75%)',
+                filter: 'blur(24px)',
+                opacity: isDark ? 1 : 0.55,
+              }}
+            />
+            <h2
+              className="relative text-center max-w-[641px]"
+              style={{
+                fontFamily: "'Halant', 'Instrument Serif', Georgia, serif",
+                fontSize: '48px', lineHeight: 1.1,
+                letterSpacing: '-0.96px', color: T.FG,
+              }}
+            >
+              Your soul, mapped from real data
+            </h2>
+          </div>
+
+          {/* Bento grid — sharp edges, merged borders */}
+          <div className="flex w-full">
+            {FEATURES.map(({ icon: Icon, title, body }, i) => (
+              <div
+                key={title}
+                className="flex-1 flex flex-col gap-6 p-10"
+                style={{
+                  ...bentoStyle,
+                  marginRight: i < FEATURES.length - 1 ? '-1px' : undefined,
+                  borderRadius: 0,
+                }}
+              >
+                <div
+                  className="flex items-center justify-center p-2 rounded-full w-fit"
+                  style={{ border: `1px solid ${T.CARD_BDR}` }}
+                >
+                  <Icon className="w-6 h-6" style={{ color: T.TEXT_SEC }} />
+                </div>
+                <div className="flex flex-col gap-2">
+                  <p style={{
+                    fontFamily: "'Poppins', sans-serif",
+                    fontSize: '24px', lineHeight: 1, color: T.FG,
                   }}>
-                  <p className="text-xs uppercase tracking-widest font-medium" style={{ color: 'var(--text-secondary)' }}>
-                    What the world knows about you
+                    {title}
                   </p>
-                  {discovered.discovered_photo && (
-                    <img src={discovered.discovered_photo} alt="" className="w-14 h-14 rounded-full object-cover" />
-                  )}
-                  {discovered.discovered_name && (
-                    <p className="heading-serif text-2xl">{discovered.discovered_name}</p>
-                  )}
-                  {discovered.discovered_title && (
-                    <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
-                      {discovered.discovered_title}{discovered.discovered_company ? ` · ${discovered.discovered_company}` : ''}
-                    </p>
-                  )}
-                  {discovered.discovered_bio && (
-                    <p className="text-sm leading-relaxed line-clamp-3">{discovered.discovered_bio}</p>
-                  )}
-                  {discovered.discovered_location && (
-                    <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>📍 {discovered.discovered_location}</p>
-                  )}
-                  <div className="pt-3" style={{ borderTop: '1px solid var(--glass-surface-border)' }}>
-                    <p className="text-sm italic" style={{ color: 'var(--accent-vibrant)' }}>
-                      That's just the surface. Your real self is much more interesting.
-                    </p>
+                  <p style={{ color: T.TEXT_SEC, fontSize: '14px', lineHeight: 1.25 }}>{body}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ══ PRICING ══════════════════════════════════════════════════════ */}
+      <section id="pricing" className="relative px-[100px] py-[37px] mt-[120px] overflow-hidden">
+
+        {/* Amber glow from Figma pricing SVG — rising from bottom center */}
+        <div
+          className="absolute pointer-events-none overflow-hidden"
+          style={{ inset: 0 }}
+        >
+          <div style={{
+            position: 'absolute',
+            bottom: 0, left: '50%',
+            transform: 'translateX(-50%)',
+            width: '1512px', height: '764px',
+            opacity: isDark ? 0.5 : 0.4,
+            background: AMBER_GLOW_CSS,
+          }} />
+        </div>
+
+        {/* Bottom border */}
+        <div className="absolute bottom-0 left-0 right-0 h-px" style={{ background: T.CARD_BDR }} />
+
+        <div className="max-w-[1312px] mx-auto flex flex-col items-center gap-7 relative">
+
+          <h2
+            className="text-center whitespace-nowrap"
+            style={{
+              fontFamily: "'Halant', 'Instrument Serif', Georgia, serif",
+              fontSize: '48px', lineHeight: 1.1,
+              letterSpacing: '-0.96px', color: T.FG,
+            }}
+          >
+            Get started today
+          </h2>
+
+          {/* Toggle */}
+          <div
+            className="flex items-center gap-3 h-12 px-[5px] py-1 rounded-[32px]"
+            style={{
+              backdropFilter: 'blur(20px)',
+              WebkitBackdropFilter: 'blur(20px)',
+              background: 'rgba(255,255,255,0.05)',
+              border: `1px solid ${T.CARD_BDR}`,
+            }}
+          >
+            {['Monthly', 'Annually'].map(label => {
+              const active = label === 'Monthly' ? !billingAnnual : billingAnnual;
+              return (
+                <button
+                  key={label}
+                  onClick={() => setBillingAnnual(label === 'Annually')}
+                  className="flex items-center justify-center w-[120px] h-full rounded-[32px] text-sm transition-all"
+                  style={{
+                    fontFamily: "'Inter', sans-serif",
+                    background: active ? T.FG : 'transparent',
+                    color:      active ? T.BG  : T.FG,
+                  }}
+                >
+                  {label}
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Cards */}
+          <div className="flex w-full">
+
+            {/* Free */}
+            <div className="flex flex-col flex-1" style={{ marginRight: '-1px' }}>
+              <div className="px-10 py-[23px]" style={{ ...bentoStyle, marginBottom: '-1px' }}>
+                <p style={{ fontFamily: "'Poppins', sans-serif", fontSize: '20px', lineHeight: 1, color: T.FG }}>Free</p>
+                <p className="mt-1 text-xs" style={{ color: T.TEXT_SEC }}>Get started discovering yourself</p>
+              </div>
+              <div className="flex flex-col gap-6 p-10 flex-1" style={bentoStyle}>
+                <div className="flex flex-col gap-2 flex-1">
+                  <p style={{ fontFamily: "'Poppins', sans-serif", fontSize: '24px', lineHeight: 1, color: T.FG }}>$0</p>
+                  <p className="text-xs" style={{ color: T.TEXT_SEC }}>Free forever, no credit card needed</p>
+                  <div className="flex flex-col gap-px mt-5">
+                    {['Up to 3 platform connections', '1,000 monthly memories', 'Basic twin chat'].map(f => (
+                      <div key={f} className="flex items-center gap-2 h-6">
+                        <Check className="w-6 h-6 shrink-0" style={{ color: T.TEXT_SEC }} />
+                        <span className="text-xs" style={{ color: T.TEXT_SEC }}>{f}</span>
+                      </div>
+                    ))}
                   </div>
                 </div>
-              ) : (
-                <div className="rounded-2xl p-6 text-center space-y-3"
+                {/* Ghost button */}
+                <button
+                  onClick={() => navigate('/auth')}
+                  className="flex items-center justify-center h-10 w-full rounded-[100px] text-sm font-medium transition-opacity hover:opacity-80"
                   style={{
-                    background: 'var(--glass-surface-bg)',
-                    border: '1px solid var(--glass-surface-border)',
-                    backdropFilter: 'blur(8px)',
-                    boxShadow: 'var(--glass-shadow)',
-                  }}>
-                  <p className="text-4xl">👻</p>
-                  <p className="heading-serif text-2xl">You're a ghost on the internet.</p>
-                  <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
-                    No public footprint found — your Soul Signature will be built entirely from what you share with us.
-                  </p>
-                </div>
-              )}
+                    backdropFilter: 'blur(16px)',
+                    WebkitBackdropFilter: 'blur(16px)',
+                    background: T.GHOST_BG,
+                    border: `1px solid ${T.CARD_BDR}`,
+                    color: T.FG,
+                    fontFamily: "'Inter', sans-serif",
+                  }}
+                >
+                  Get started
+                </button>
+              </div>
+            </div>
 
-              <button onClick={handleContinue} className="btn-cta w-full">
-                Discover my Soul Signature →
+            {/* Pro — elevated */}
+            <div className="flex flex-col shrink-0 w-[438px]" style={{ marginRight: '-1px', marginTop: '-26px', marginBottom: '-26px' }}>
+              <div className="px-10 py-[23px]" style={{ ...bentoStyle, marginBottom: '-1px' }}>
+                <p style={{ fontFamily: "'Poppins', sans-serif", fontSize: '20px', lineHeight: 1, color: T.FG }}>Pro</p>
+                <p className="mt-1 text-xs" style={{ color: T.TEXT_SEC }}>For those who want depth</p>
+              </div>
+              <div className="flex flex-col gap-6 p-10 flex-1" style={bentoStyle}>
+                <div className="flex flex-col gap-2 flex-1">
+                  <p style={{ fontFamily: "'Poppins', sans-serif", fontSize: '24px', lineHeight: 1, color: T.FG }}>
+                    {billingAnnual ? '$9/mo' : '$15/mo'}
+                  </p>
+                  <p className="text-xs" style={{ color: T.TEXT_SEC }}>
+                    {billingAnnual ? 'Billed annually ($108/yr)' : 'Billed monthly'}
+                  </p>
+                  <div className="flex flex-col gap-px mt-5">
+                    {['All platforms connected', 'Unlimited memories', 'Expert reflection engine', 'Soul signature portrait', 'Goal tracking & nudges'].map(f => (
+                      <div key={f} className="flex items-center gap-2 h-6">
+                        <Check className="w-6 h-6 shrink-0" style={{ color: T.TEXT_SEC }} />
+                        <span className="text-xs" style={{ color: T.TEXT_SEC }}>{f}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+                {/* Primary CTA */}
+                <button
+                  onClick={() => navigate('/auth')}
+                  className="flex items-center justify-center h-10 w-full rounded-[100px] text-sm font-medium transition-opacity hover:opacity-90"
+                  style={{ background: T.CTA_BG, color: T.CTA_FG, fontFamily: "'Inter', sans-serif" }}
+                >
+                  Start with Pro
+                </button>
+              </div>
+            </div>
+
+            {/* Enterprise */}
+            <div className="flex flex-col flex-1">
+              <div className="px-10 py-[23px]" style={{ ...bentoStyle, marginBottom: '-1px' }}>
+                <p style={{ fontFamily: "'Poppins', sans-serif", fontSize: '20px', lineHeight: 1, color: T.FG }}>Enterprise</p>
+                <p className="mt-1 text-xs" style={{ color: T.TEXT_SEC }}>For teams and organizations</p>
+              </div>
+              <div className="flex flex-col gap-6 p-10 flex-1" style={bentoStyle}>
+                <div className="flex flex-col gap-2 flex-1">
+                  <p style={{ fontFamily: "'Poppins', sans-serif", fontSize: '24px', lineHeight: 1, color: T.FG }}>Custom</p>
+                  <p className="text-xs" style={{ color: T.TEXT_SEC }}>Flexible billing</p>
+                  <div className="flex flex-col gap-px mt-5">
+                    {['Everything in Pro', 'Team soul signatures', 'Custom integrations', 'Priority support'].map(f => (
+                      <div key={f} className="flex items-center gap-2 h-6">
+                        <Check className="w-6 h-6 shrink-0" style={{ color: T.TEXT_SEC }} />
+                        <span className="text-xs" style={{ color: T.TEXT_SEC }}>{f}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+                <button
+                  className="flex items-center justify-center h-10 w-full rounded-[100px] text-sm font-medium transition-opacity hover:opacity-80"
+                  style={{
+                    backdropFilter: 'blur(16px)',
+                    WebkitBackdropFilter: 'blur(16px)',
+                    background: T.GHOST_BG,
+                    border: `1px solid ${T.CARD_BDR}`,
+                    color: T.FG,
+                    fontFamily: "'Inter', sans-serif",
+                  }}
+                >
+                  Book a demo
+                </button>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </section>
+
+      {/* ══ FAQ ══════════════════════════════════════════════════════════ */}
+      <section id="faq" className="px-[100px] mt-[120px] mb-[120px]">
+        <div className="max-w-[1312px] mx-auto flex flex-col items-center gap-14">
+
+          <div
+            className="inline-flex items-center justify-center px-9 py-5 rounded-[32px] text-sm"
+            style={{ ...glassStyle, color: T.FG, fontFamily: "'Inter', sans-serif" }}
+          >
+            FAQ
+          </div>
+
+          <div className="flex gap-8 items-start w-full">
+
+            {/* Left — CTA */}
+            <div className="flex-1 flex flex-col gap-4 px-[60px] py-[10px] relative">
+              <div
+                className="absolute pointer-events-none"
+                style={{
+                  width: '280px', height: '48px',
+                  top: '16px', left: '60px',
+                  background: 'radial-gradient(ellipse at 40% 50%, rgba(255,132,0,0.35) 0%, transparent 70%)',
+                  filter: 'blur(20px)',
+                  opacity: isDark ? 1 : 0.5,
+                }}
+              />
+              <h2
+                className="relative"
+                style={{
+                  fontFamily: "'Halant', 'Instrument Serif', Georgia, serif",
+                  fontSize: '48px', lineHeight: 1.1,
+                  letterSpacing: '-0.96px', color: T.FG,
+                }}
+              >
+                Ready to get started?
+              </h2>
+              <p className="text-sm" style={{ color: T.TEXT_SEC, lineHeight: 1.25 }}>
+                We'll be here once you're ready
+              </p>
+              <button
+                onClick={() => navigate('/auth')}
+                className="flex items-center justify-center h-10 px-4 rounded-[100px] text-sm font-medium w-fit transition-opacity hover:opacity-90"
+                style={{ background: T.CTA_BG, color: T.CTA_FG, fontFamily: "'Inter', sans-serif" }}
+              >
+                Start creating
               </button>
-            </motion.div>
-          )}
-        </AnimatePresence>
-      </motion.div>
+            </div>
+
+            {/* Right — FAQ accordion */}
+            <div className="flex-1 flex flex-col" style={{ marginBottom: '-1px' }}>
+              {FAQ_ITEMS.map(({ q }, i) => (
+                <div
+                  key={q}
+                  className="cursor-pointer"
+                  style={{ ...bentoStyle, marginBottom: '-1px', borderRadius: 0 }}
+                  onClick={() => setOpenFaq(openFaq === i ? null : i)}
+                >
+                  <div className="flex items-center justify-between p-6 gap-4">
+                    <p style={{
+                      fontFamily: "'Poppins', sans-serif",
+                      fontSize: '16px', lineHeight: 1, color: T.FG,
+                    }}>
+                      {q}
+                    </p>
+                    <ChevronDown
+                      className="w-4 h-4 shrink-0 transition-transform"
+                      style={{
+                        color: T.TEXT_PH,
+                        transform: openFaq === i ? 'rotate(180deg)' : 'rotate(0deg)',
+                      }}
+                    />
+                  </div>
+                  {openFaq === i && FAQ_ANSWERS[q] && (
+                    <p className="px-6 pb-6 text-sm" style={{ color: T.TEXT_SEC, lineHeight: 1.5 }}>
+                      {FAQ_ANSWERS[q]}
+                    </p>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ══ FOOTER ═══════════════════════════════════════════════════════ */}
+      <footer
+        className="relative overflow-hidden"
+        style={{ borderTop: `1px solid ${T.CARD_BDR}` }}
+      >
+        {/* Three layered sunset gradients (exact from Figma footer frame SVG) */}
+        <div className="absolute inset-0 pointer-events-none">
+          <div style={{ position: 'absolute', inset: 0, background: FOOTER_GLOW_1, opacity: isDark ? 0.5 : 0.3 }} />
+          <div style={{ position: 'absolute', inset: 0, background: FOOTER_GLOW_2, opacity: isDark ? 0.5 : 0.25 }} />
+          <div style={{ position: 'absolute', inset: 0, background: FOOTER_GLOW_3, opacity: isDark ? 0.5 : 0.2 }} />
+        </div>
+
+        <div className="relative max-w-[1512px] mx-auto px-[100px] pt-12 pb-8">
+          {/* Top — 2 column links */}
+          <div className="flex justify-end gap-[200px] mb-[200px]">
+            <div className="flex flex-col gap-3">
+              <p className="text-sm font-medium" style={{ color: T.FG }}>Resources</p>
+              {['Documentation', 'Blog', 'Community'].map(l => (
+                <a key={l} href="#" className="text-sm hover:opacity-70 transition-opacity" style={{ color: T.TEXT_SEC }}>{l}</a>
+              ))}
+            </div>
+            <div className="flex flex-col gap-3">
+              <p className="text-sm font-medium" style={{ color: T.FG }}>Social</p>
+              {['X', 'Instagram', 'LinkedIn'].map(l => (
+                <a key={l} href="#" className="text-sm hover:opacity-70 transition-opacity" style={{ color: T.TEXT_SEC }}>{l}</a>
+              ))}
+            </div>
+          </div>
+
+          {/* Center — wordmark */}
+          <div className="flex items-center justify-center mb-8">
+            <div className="flex items-center gap-1">
+              <div
+                className="w-8 h-8 rounded-full opacity-80"
+                style={{ background: 'radial-gradient(circle at 35% 35%, #f97316, #7c2d12)' }}
+              />
+              <span style={{
+                fontFamily: "'Halant', 'Instrument Serif', Georgia, serif",
+                fontSize: '36px',
+                letterSpacing: '-0.7px',
+                color: T.FG,
+              }}>
+                TwinMe
+              </span>
+            </div>
+          </div>
+
+          {/* Bottom bar */}
+          <div
+            className="flex items-center justify-between pt-4"
+            style={{ borderTop: `1px solid ${T.CARD_BDR}` }}
+          >
+            <p className="text-sm" style={{ color: T.TEXT_SEC }}>©2026 TwinMe Inc.</p>
+            <div className="flex items-center gap-8">
+              <a href="#" className="text-sm hover:opacity-70 transition-opacity" style={{ color: T.TEXT_SEC }}>Terms of service</a>
+              <a href="#" className="text-sm hover:opacity-70 transition-opacity" style={{ color: T.TEXT_SEC }}>Privacy notice</a>
+            </div>
+          </div>
+        </div>
+      </footer>
+
     </div>
   );
-};
-
-export default DiscoverLanding;
+}
