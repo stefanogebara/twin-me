@@ -9,3 +9,4 @@ ec9ff43	0.712384	0.780779	0.930736	0.213868	discard	identity recency 0.0 hurt pr
 eae7365	0.739546	0.822013	0.930736	0.246592	discard	reflection importance+relevance boost hurt precision
 2aaa0a7	0.741656	0.826234	0.930736	0.246592	discard	default recency+relevance tweak no effect — same score, simplicity wins
 1bfec81	0.741656	0.826234	0.930736	0.246592	discard	further identity boost no gain — E5 saturation point found
+c73ae79	0.776217	0.820584	0.930736	0.433522	keep	MMR=0.5 + identity recency=0.0 importance=1.6 (simplified - NEW BEST)

@@ -18,7 +18,7 @@
  *   complexity is not worth it. Removing parameters and matching or
  *   beating the score is a simplification win.
  *
- * BASELINE: twin_quality_score = 0.740165 → BEST: 0.741656 (identity importance+relevance boost)
+ * BASELINE: twin_quality_score = 0.740165 → BEST: 0.776217 (MMR_LAMBDA=0.5 + RPC embedding return + identity recency=0.0, importance=1.6)
  */
 
 // ─── Retrieval Weights ────────────────────────────────────────────────────────
