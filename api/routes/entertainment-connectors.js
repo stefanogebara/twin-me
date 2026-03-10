@@ -548,6 +548,63 @@ router.post('/oauth/callback', oauthCallbackLimiter, async (req, res) => {
         expiresIn = googleTokens.expires_in;
         break;
 
+      case 'reddit': {
+        const redditAuth = Buffer.from(
+          `${process.env.REDDIT_CLIENT_ID}:${process.env.REDDIT_CLIENT_SECRET}`
+        ).toString('base64');
+        const redditTokenResponse = await fetch('https://www.reddit.com/api/v1/access_token', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+            'Authorization': `Basic ${redditAuth}`,
+            'User-Agent': 'TwinMe/1.0'
+          },
+          body: new URLSearchParams({
+            grant_type: 'authorization_code',
+            code,
+            redirect_uri: `${process.env.VITE_APP_URL || 'http://127.0.0.1:8086'}/oauth/callback`
+          })
+        });
+
+        if (!redditTokenResponse.ok) {
+          const errorData = await redditTokenResponse.json();
+          console.error('Reddit token exchange error:', errorData);
+          throw new Error(`Failed to exchange Reddit authorization code: ${errorData.error || 'unknown'}`);
+        }
+
+        const redditTokens = await redditTokenResponse.json();
+        accessToken = redditTokens.access_token;
+        refreshToken = redditTokens.refresh_token;
+        expiresIn = redditTokens.expires_in;
+        break;
+      }
+
+      case 'linkedin': {
+        const linkedinTokenResponse = await fetch('https://www.linkedin.com/oauth/v2/accessToken', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+          body: new URLSearchParams({
+            grant_type: 'authorization_code',
+            code,
+            client_id: process.env.LINKEDIN_CLIENT_ID,
+            client_secret: process.env.LINKEDIN_CLIENT_SECRET,
+            redirect_uri: `${process.env.VITE_APP_URL || 'http://127.0.0.1:8086'}/oauth/callback`
+          })
+        });
+
+        if (!linkedinTokenResponse.ok) {
+          const errorData = await linkedinTokenResponse.json();
+          console.error('LinkedIn token exchange error:', errorData);
+          throw new Error(`Failed to exchange LinkedIn authorization code: ${errorData.error_description || errorData.error}`);
+        }
+
+        const linkedinTokens = await linkedinTokenResponse.json();
+        accessToken = linkedinTokens.access_token;
+        refreshToken = linkedinTokens.refresh_token;
+        expiresIn = linkedinTokens.expires_in;
+        break;
+      }
+
       case 'oura':
         const ouraConfig = PLATFORM_CONFIGS.oura;
         const ouraTokenResponse = await fetch(ouraConfig.tokenUrl, {

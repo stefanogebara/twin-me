@@ -7,8 +7,10 @@
 
 import express from 'express';
 import { platformAPIMappings } from '../services/platformAPIMappings.js';
-import { encryptState } from '../services/encryption.js';
+import { encryptState, encryptToken } from '../services/encryption.js';
 import { authenticateUser } from '../middleware/auth.js';
+import { supabaseAdmin } from '../config/supabase.js';
+import { generatePKCEParams } from '../services/pkce.js';
 
 const router = express.Router();
 
@@ -108,17 +110,38 @@ router.post('/connect/reddit', authenticateUser, async (req, res) => {
     if (!clientId) {
       return res.status(503).json({ error: 'Reddit integration not configured' });
     }
-    const redirectUri = encodeURIComponent(`${process.env.VITE_APP_URL}/oauth/callback`);
+    const redirectUri = `${process.env.VITE_APP_URL}/oauth/callback`;
+
+    // Generate PKCE parameters
+    const pkce = generatePKCEParams();
+
     const state = encryptState({
       platform: 'reddit',
       userId,
-      timestamp: Date.now()
+      codeVerifier: pkce.codeVerifier
     }, 'entertainment');
+
+    // Store state + code_verifier in DB (CSRF + PKCE)
+    const { error: stateInsertError } = await supabaseAdmin
+      .from('oauth_states')
+      .insert({
+        state,
+        code_verifier: encryptToken(pkce.codeVerifier),
+        data: { userId, platform: 'reddit' },
+        expires_at: new Date(Date.now() + 1800000)
+      });
+
+    if (stateInsertError) {
+      console.error('Failed to store Reddit OAuth state:', stateInsertError);
+      throw new Error('Failed to initialize Reddit connection');
+    }
 
     const authUrl = `https://www.reddit.com/api/v1/authorize?` +
       `client_id=${clientId}&response_type=code&` +
-      `state=${state}&redirect_uri=${redirectUri}&` +
-      `duration=temporary&scope=identity history read`;
+      `state=${state}&redirect_uri=${encodeURIComponent(redirectUri)}&` +
+      `duration=permanent&scope=identity history read`;
+
+    console.log(`🔴 Reddit OAuth initiated for user ${userId}`);
 
     res.json({
       success: true,
@@ -297,6 +320,117 @@ router.post('/connect/strava', authenticateUser, async (req, res) => {
   } catch (error) {
     console.error('Strava connection error:', error);
     res.status(500).json({ error: 'Failed to initialize Strava connection' });
+  }
+});
+
+// Gmail Connector (email patterns)
+router.post('/connect/google_gmail', authenticateUser, async (req, res) => {
+  try {
+    const userId = req.user.id;
+
+    const clientId = process.env.GOOGLE_CLIENT_ID;
+    if (!clientId) {
+      return res.status(503).json({ error: 'Gmail integration not configured' });
+    }
+    const redirectUri = `${process.env.VITE_APP_URL}/oauth/callback`;
+    const scope = 'https://www.googleapis.com/auth/gmail.readonly';
+
+    // Generate PKCE parameters
+    const pkce = generatePKCEParams();
+
+    const state = encryptState({
+      platform: 'google_gmail',
+      userId,
+      codeVerifier: pkce.codeVerifier
+    }, 'entertainment');
+
+    // Store state + code_verifier in DB (CSRF + PKCE)
+    const { error: stateInsertError } = await supabaseAdmin
+      .from('oauth_states')
+      .insert({
+        state,
+        code_verifier: encryptToken(pkce.codeVerifier),
+        data: { userId, platform: 'google_gmail' },
+        expires_at: new Date(Date.now() + 1800000)
+      });
+
+    if (stateInsertError) {
+      console.error('Failed to store Gmail OAuth state:', stateInsertError);
+      throw new Error('Failed to initialize Gmail connection');
+    }
+
+    const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?` +
+      `client_id=${clientId}&response_type=code&` +
+      `redirect_uri=${encodeURIComponent(redirectUri)}&` +
+      `scope=${encodeURIComponent(scope)}&` +
+      `access_type=offline&prompt=consent&state=${state}&` +
+      `code_challenge=${pkce.codeChallenge}&` +
+      `code_challenge_method=${pkce.codeChallengeMethod}`;
+
+    console.log(`📧 Gmail OAuth initiated for user ${userId}`);
+
+    res.json({
+      success: true,
+      authUrl,
+      message: 'Connect your email patterns',
+    });
+  } catch (error) {
+    console.error('Gmail connection error:', error);
+    res.status(500).json({ error: 'Failed to initialize Gmail connection' });
+  }
+});
+
+// LinkedIn Connector (professional identity)
+router.post('/connect/linkedin', authenticateUser, async (req, res) => {
+  try {
+    const userId = req.user.id;
+
+    const clientId = process.env.LINKEDIN_CLIENT_ID;
+    if (!clientId) {
+      return res.status(503).json({ error: 'LinkedIn integration not configured' });
+    }
+    const redirectUri = `${process.env.VITE_APP_URL}/oauth/callback`;
+    const scope = 'openid profile email';
+
+    // Generate PKCE parameters
+    const pkce = generatePKCEParams();
+
+    const state = encryptState({
+      platform: 'linkedin',
+      userId,
+      codeVerifier: pkce.codeVerifier
+    }, 'entertainment');
+
+    // Store state + code_verifier in DB (CSRF + PKCE)
+    const { error: stateInsertError } = await supabaseAdmin
+      .from('oauth_states')
+      .insert({
+        state,
+        code_verifier: encryptToken(pkce.codeVerifier),
+        data: { userId, platform: 'linkedin' },
+        expires_at: new Date(Date.now() + 1800000)
+      });
+
+    if (stateInsertError) {
+      console.error('Failed to store LinkedIn OAuth state:', stateInsertError);
+      throw new Error('Failed to initialize LinkedIn connection');
+    }
+
+    const authUrl = `https://www.linkedin.com/oauth/v2/authorization?` +
+      `client_id=${clientId}&response_type=code&` +
+      `redirect_uri=${encodeURIComponent(redirectUri)}&` +
+      `scope=${encodeURIComponent(scope)}&state=${state}`;
+
+    console.log(`💼 LinkedIn OAuth initiated for user ${userId}`);
+
+    res.json({
+      success: true,
+      authUrl,
+      message: 'Connect your professional identity',
+    });
+  } catch (error) {
+    console.error('LinkedIn connection error:', error);
+    res.status(500).json({ error: 'Failed to initialize LinkedIn connection' });
   }
 });
 
