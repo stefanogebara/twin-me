@@ -129,3 +129,63 @@ export function analyzeWritingStyle(messages) {
     avgSentenceWordCount: Math.round(avgSentenceLen),
   };
 }
+
+/**
+ * Get aggregate conversation statistics for a user.
+ * Queries mcp_conversation_logs for source breakdown, topics, and intents.
+ *
+ * @param {string} userId
+ * @returns {{ totalConversations: number, bySource: object, topTopics: Array, topIntents: Array }}
+ */
+export async function getConversationStats(userId) {
+  const { data: logs, error: logsErr } = await supabaseAdmin
+    .from('mcp_conversation_logs')
+    .select('mcp_client, topics_detected, intent, created_at')
+    .eq('user_id', userId);
+  if (logsErr) console.error('[ConversationLearning] Failed to fetch conversation logs:', logsErr.message);
+
+  if (!logs || logs.length === 0) {
+    return {
+      totalConversations: 0,
+      bySource: {},
+      topTopics: [],
+      topIntents: []
+    };
+  }
+
+  // Count by source
+  const bySource = {};
+  logs.forEach(log => {
+    const source = log.mcp_client || 'unknown';
+    bySource[source] = (bySource[source] || 0) + 1;
+  });
+
+  // Count topics
+  const topicCounts = {};
+  logs.forEach(log => {
+    (log.topics_detected || []).forEach(topic => {
+      topicCounts[topic] = (topicCounts[topic] || 0) + 1;
+    });
+  });
+  const topTopics = Object.entries(topicCounts)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 10)
+    .map(([topic, count]) => ({ topic, count }));
+
+  // Count intents
+  const intentCounts = {};
+  logs.forEach(log => {
+    const intent = log.intent || 'unknown';
+    intentCounts[intent] = (intentCounts[intent] || 0) + 1;
+  });
+  const topIntents = Object.entries(intentCounts)
+    .sort((a, b) => b[1] - a[1])
+    .map(([intent, count]) => ({ intent, count }));
+
+  return {
+    totalConversations: logs.length,
+    bySource,
+    topTopics,
+    topIntents
+  };
+}
