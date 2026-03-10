@@ -358,16 +358,17 @@ function buildTwinSystemPrompt(soulSignature, platformData, personalityScores = 
     dynamicContext += `\n\nWho I am (based on everything I've shared and experienced):\n${twinSummary}`;
   }
 
-  // === PROACTIVE INSIGHTS (Things I noticed - mention naturally if relevant) ===
+  // === PROACTIVE INSIGHTS (Things I noticed — bring up the most relevant one early) ===
   if (proactiveInsights && proactiveInsights.length > 0) {
-    const diverseInsights = deduplicateByTheme(proactiveInsights, i => i.insight, { threshold: 0.50, maxItems: 3 });
+    const diverseInsights = deduplicateByTheme(proactiveInsights, i => i.insight, { threshold: 0.50, maxItems: 2 });
     if (diverseInsights.length < proactiveInsights.length) {
       console.log(`[Twin Chat] Insights deduped: ${proactiveInsights.length} -> ${diverseInsights.length}`);
     }
-    dynamicContext += '\n\nTHINGS I NOTICED (mention naturally if relevant to the conversation):';
+    dynamicContext += '\n\nTHINGS I NOTICED — bring up the most relevant one early in this conversation (don\'t wait to be asked). If it\'s a nudge, casually suggest the action:';
     for (const insight of diverseInsights) {
-      const urgencyMarker = insight.urgency === 'high' ? ' [important]' : '';
-      dynamicContext += `\n- ${insight.insight}${urgencyMarker}`;
+      const urgencyMarker = insight.urgency === 'high' ? ' [bring up first]' : '';
+      const nudgeMarker = insight.category === 'nudge' ? ' [suggest this action]' : '';
+      dynamicContext += `\n- ${insight.insight}${urgencyMarker}${nudgeMarker}`;
     }
   }
 

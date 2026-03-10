@@ -103,6 +103,8 @@ router.post('/verify-connection', authenticateUser, async (req, res) => {
       'google-mail', 'google-mail-getting-started',
       'youtube', 'youtube-getting-started',
       'discord', 'discord-getting-started',
+      'reddit', 'reddit-getting-started',
+      'linkedin', 'linkedin-getting-started',
     ]);
     if (!ALLOWED_INTEGRATION_IDS.has(integrationId)) {
       console.warn(`[Nango API] Rejected unknown integrationId: ${integrationId}`);
