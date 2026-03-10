@@ -1,7 +1,31 @@
-<svg width="128" height="128" xmlns="http://www.w3.org/2000/svg">
-      <rect width="128" height="128" fill="#D97706"/>
-      <text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle"
-            font-family="Arial" font-size="64" fill="white" font-weight="bold">
-        SS
-      </text>
-    </svg>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128">
+  <defs>
+    <radialGradient id="bg128" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#1c1410"/>
+      <stop offset="100%" stop-color="#0d0b09"/>
+    </radialGradient>
+    <radialGradient id="glow128" cx="50%" cy="72%" r="55%">
+      <stop offset="0%" stop-color="#ff8400" stop-opacity="0.4"/>
+      <stop offset="100%" stop-color="#c17e2c" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="flame128" x1="50%" y1="0%" x2="50%" y2="100%">
+      <stop offset="0%" stop-color="#ffb347"/>
+      <stop offset="50%" stop-color="#ff8400"/>
+      <stop offset="100%" stop-color="#c17e2c"/>
+    </linearGradient>
+  </defs>
+  <rect width="128" height="128" rx="26" fill="url(#bg128)"/>
+  <rect width="128" height="128" rx="26" fill="url(#glow128)"/>
+  <!-- Outer orbit ring -->
+  <circle cx="64" cy="62" r="36" fill="none" stroke="#c17e2c" stroke-width="1" stroke-opacity="0.25" stroke-dasharray="4 4"/>
+  <!-- Twin flame shape — teardrop/soul mark -->
+  <path d="M64 28 C64 28 40 50 40 66 C40 79 51 88 64 88 C77 88 88 79 88 66 C88 50 64 28 64 28 Z"
+        fill="url(#flame128)" opacity="0.92"/>
+  <!-- Inner highlight -->
+  <ellipse cx="57" cy="52" rx="7" ry="10" fill="white" opacity="0.12" transform="rotate(-15 57 52)"/>
+  <!-- Letter T cut-out -->
+  <rect x="50" y="57" width="28" height="5" rx="2.5" fill="#0d0b09" opacity="0.7"/>
+  <rect x="61.5" y="57" width="5" height="22" rx="2.5" fill="#0d0b09" opacity="0.7"/>
+  <!-- Glow dot at base -->
+  <circle cx="64" cy="95" r="3" fill="#ff8400" opacity="0.6"/>
+</svg>

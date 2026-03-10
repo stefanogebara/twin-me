@@ -16,6 +16,7 @@ import { Clay3DIcon } from '@/components/Clay3DIcon';
 import ConnectedPlatformsSettings from './components/settings/ConnectedPlatformsSettings';
 import DataConsentSettings from './components/settings/DataConsentSettings';
 import ClaudeDesktopSync from './components/settings/ClaudeDesktopSync';
+import ApiKeyManager from './components/settings/ApiKeyManager';
 import DataManagementSettings from './components/settings/DataManagementSettings';
 import GitHubConnectCard from './components/settings/GitHubConnectCard';
 import WhatsAppImportCard from './components/settings/WhatsAppImportCard';
@@ -402,7 +403,10 @@ const Settings = () => {
                 </div>
               </section>
 
-              {/* Claude Desktop Sync */}
+              {/* Claude Desktop MCP — API Key Management */}
+              <ApiKeyManager cardStyle={cardStyle} />
+
+              {/* Claude Desktop Sync (conversation import) */}
               <ClaudeDesktopSync
                 user={user}
                 syncStats={syncStats}

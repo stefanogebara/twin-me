@@ -166,17 +166,28 @@ async function silentAutoDetect() {
       target: { tabId: appTab.id },
       func: () => {
         const raw = localStorage.getItem('auth_user');
-        if (!raw) return null;
+        const token = localStorage.getItem('auth_token');
+        if (!raw && !token) return null;
         try {
-          const u = JSON.parse(raw);
-          return { userId: u.id, name: u.name || u.given_name || u.email };
+          if (raw) {
+            const u = JSON.parse(raw);
+            return { userId: u.id, name: u.name || u.given_name || u.email, token };
+          }
+          if (token) {
+            const p = JSON.parse(atob(token.split('.')[1]));
+            return { userId: p.id || p.userId || p.sub, token };
+          }
         } catch { return null; }
+        return null;
       },
     });
 
     const userData = results?.[0]?.result;
     if (userData?.userId) {
       userId = userData.userId;
+      if (userData.token) {
+        chrome.runtime.sendMessage({ type: 'SET_AUTH_TOKEN', token: userData.token });
+      }
       chrome.runtime.sendMessage({ type: 'SET_USER_ID', userId }, (r) => {
         if (r?.success) showConnectedState();
       });
@@ -210,13 +221,13 @@ async function autoDetectUser() {
         if (raw) {
           try {
             const u = JSON.parse(raw);
-            return { userId: u.id, name: u.name || u.given_name || u.email, email: u.email };
+            return { userId: u.id, name: u.name || u.given_name || u.email, email: u.email, token };
           } catch { return null; }
         }
         if (token) {
           try {
             const p = JSON.parse(atob(token.split('.')[1]));
-            return { userId: p.userId || p.sub, name: p.name || p.email, email: p.email };
+            return { userId: p.id || p.userId || p.sub, name: p.name || p.email, email: p.email, token };
           } catch { return null; }
         }
         return null;
@@ -229,6 +240,9 @@ async function autoDetectUser() {
       detectStatus.textContent = 'Found: ' + (userData.name || userData.email || userId.substring(0, 8) + '...');
       detectStatus.style.color = '#34d399';
 
+      if (userData.token) {
+        chrome.runtime.sendMessage({ type: 'SET_AUTH_TOKEN', token: userData.token });
+      }
       chrome.runtime.sendMessage({ type: 'SET_USER_ID', userId }, (r) => {
         if (r?.success) setTimeout(() => showConnectedState(), 500);
       });

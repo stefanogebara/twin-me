@@ -361,7 +361,70 @@ async function storeLearnedFacts(userId, message, topics, intent) {
 }
 
 /**
+<<<<<<< Updated upstream
  * Get recent conversations (from both MCP and web)
+=======
+ * Get aggregate conversation statistics for a user.
+ * Queries mcp_conversation_logs for source breakdown, topics, and intents.
+ *
+ * @param {string} userId
+ * @returns {{ totalConversations: number, bySource: object, topTopics: string[], topIntents: string[] }}
+ */
+export async function getConversationStats(userId) {
+  try {
+    const { data, error } = await supabaseAdmin
+      .from('mcp_conversation_logs')
+      .select('mcp_client, topics_detected, intent')
+      .eq('user_id', userId);
+
+    if (error || !data) {
+      return { totalConversations: 0, bySource: {}, topTopics: [], topIntents: [] };
+    }
+
+    const bySource = {};
+    const topicCounts = {};
+    const intentCounts = {};
+
+    for (const row of data) {
+      // Source breakdown
+      const src = row.mcp_client || 'unknown';
+      bySource[src] = (bySource[src] || 0) + 1;
+
+      // Topic frequency
+      const rowTopics = Array.isArray(row.topics_detected) ? row.topics_detected : [];
+      for (const t of rowTopics) {
+        if (t) topicCounts[t] = (topicCounts[t] || 0) + 1;
+      }
+
+      // Intent frequency
+      if (row.intent) {
+        intentCounts[row.intent] = (intentCounts[row.intent] || 0) + 1;
+      }
+    }
+
+    const topTopics = Object.entries(topicCounts)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 10)
+      .map(([t]) => t);
+
+    const topIntents = Object.entries(intentCounts)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 10)
+      .map(([i]) => i);
+
+    return { totalConversations: data.length, bySource, topTopics, topIntents };
+  } catch (err) {
+    console.warn('[ConversationLearning] getConversationStats error:', err.message);
+    return { totalConversations: 0, bySource: {}, topTopics: [], topIntents: [] };
+  }
+}
+
+/**
+ * Analyze writing style from a set of messages.
+ *
+ * @param {string[]} messages
+ * @returns {object}
+>>>>>>> Stashed changes
  */
 export async function getRecentMcpConversations(userId, limit = 10) {
   const { data, error } = await supabaseAdmin
