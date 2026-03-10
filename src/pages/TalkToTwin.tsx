@@ -13,6 +13,7 @@ import { ChatEmptyState } from '@/components/chat/ChatEmptyState';
 import { MessageList } from '@/components/chat/MessageList';
 import { ChatInputArea } from '@/components/chat/ChatInputArea';
 import { ContextSidebar } from '@/components/chat/ContextSidebar';
+import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 
 interface Message {
   id: string;
@@ -64,6 +65,7 @@ function saveChatHistory(messages: Message[]): void {
 }
 
 const TalkToTwin = () => {
+  useDocumentTitle('Talk to Twin');
   const navigate = useNavigate();
   const location = useLocation();
   const { user, isSignedIn } = useAuth();

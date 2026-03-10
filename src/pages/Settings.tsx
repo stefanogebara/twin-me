@@ -19,6 +19,7 @@ import ClaudeDesktopSync from './components/settings/ClaudeDesktopSync';
 import DataManagementSettings from './components/settings/DataManagementSettings';
 import GitHubConnectCard from './components/settings/GitHubConnectCard';
 import WhatsAppImportCard from './components/settings/WhatsAppImportCard';
+import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
 
@@ -32,6 +33,7 @@ const getAuthHeaders = () => {
 type SettingsTab = 'general' | 'platforms' | 'privacy';
 
 const Settings = () => {
+  useDocumentTitle('Settings');
   const navigate = useNavigate();
   const { user, signOut } = useAuth();
   const { isDemoMode } = useDemo();

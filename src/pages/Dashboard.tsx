@@ -17,6 +17,7 @@ import { NextEventCard } from './components/dashboard/NextEventCard';
 import { TwinInsightsGrid } from './components/dashboard/TwinInsightsGrid';
 import { TwinReadinessScore } from '@/components/twin/TwinReadinessScore';
 import { DailyCheckin } from '@/components/twin/DailyCheckin';
+import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 
 const QUICK_CHIPS = [
   { label: 'How am I doing?', icon: Sparkles },
@@ -46,6 +47,7 @@ interface Pattern {
 }
 
 export const Dashboard: React.FC = () => {
+  useDocumentTitle('Dashboard');
   const { user } = useAuth();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
@@ -548,7 +550,7 @@ export const Dashboard: React.FC = () => {
                   e.currentTarget.style.background = 'var(--glass-surface-bg-subtle)';
                 }}
               >
-                <ChipIcon className="w-3.5 h-3.5" style={{ color: 'rgba(212,168,83,0.6)' }} />
+                <ChipIcon className="w-3.5 h-3.5" aria-hidden="true" style={{ color: 'rgba(212,168,83,0.6)' }} />
                 {chip.label}
               </button>
             );
