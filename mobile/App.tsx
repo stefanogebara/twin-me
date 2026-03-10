@@ -7,10 +7,8 @@ import { StatusBar } from 'expo-status-bar';
 import { useFonts } from 'expo-font';
 import * as SecureStore from 'expo-secure-store';
 import {
-  Halant_400Regular,
-  Halant_500Medium,
-  Halant_600SemiBold,
-} from '@expo-google-fonts/halant';
+  InstrumentSerif_400Regular,
+} from '@expo-google-fonts/instrument-serif';
 import {
   Inter_400Regular,
   Inter_500Medium,
@@ -59,9 +57,7 @@ function TabIcon({ label, focused }: { label: string; focused: boolean }) {
 
 export default function App() {
   const [fontsLoaded] = useFonts({
-    Halant_400Regular,
-    Halant_500Medium,
-    Halant_600SemiBold,
+    InstrumentSerif_400Regular,
     Inter_400Regular,
     Inter_500Medium,
     Inter_600SemiBold,
@@ -168,7 +164,7 @@ export default function App() {
         <Tab.Navigator
           screenOptions={{
             headerStyle: { backgroundColor: COLORS.background, elevation: 0, shadowOpacity: 0 },
-            headerTitleStyle: { color: COLORS.text, fontFamily: 'Halant_400Regular', fontSize: 18, letterSpacing: -0.5 },
+            headerTitleStyle: { color: COLORS.text, fontFamily: 'InstrumentSerif_400Regular', fontSize: 18, letterSpacing: -0.5 },
             tabBarStyle: {
               backgroundColor: COLORS.background,
               borderTopColor: 'rgba(0,0,0,0.06)',

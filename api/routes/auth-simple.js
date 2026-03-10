@@ -68,7 +68,7 @@ function generateTokenPair(user) {
   const accessToken = jwt.sign(
     { id: user.id, email: user.email },
     JWT_SECRET,
-    { expiresIn: '7d' }
+    { expiresIn: '30m' }
   );
 
   const refreshToken = crypto.randomBytes(64).toString('hex');

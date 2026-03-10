@@ -370,7 +370,7 @@ const PrivacySpectrumDashboard: React.FC = () => {
               fontWeight: 700,
               color: TEXT_PRIMARY,
               margin: 0,
-              fontFamily: "Halant, var(--font-heading), Georgia, serif",
+              fontFamily: "Instrument Serif, var(--font-heading), Georgia, serif",
             }}
           >
             Privacy Spectrum
@@ -497,7 +497,7 @@ const PrivacySpectrumDashboard: React.FC = () => {
               fontSize: 22,
               fontWeight: 800,
               color: TEXT_PRIMARY,
-              fontFamily: "Halant, var(--font-heading), Georgia, serif",
+              fontFamily: "Instrument Serif, var(--font-heading), Georgia, serif",
             }}
           >
             {currentGlobal}%
@@ -665,7 +665,7 @@ const StatCard: React.FC<{ label: string; value: string; color: string }> = ({ l
       padding: '12px 16px',
     }}
   >
-    <div style={{ fontSize: 20, fontWeight: 800, color, fontFamily: "Halant, var(--font-heading), Georgia, serif" }}>
+    <div style={{ fontSize: 20, fontWeight: 800, color, fontFamily: "Instrument Serif, var(--font-heading), Georgia, serif" }}>
       {value}
     </div>
     <div style={{ fontSize: 11, color: 'var(--text-secondary)', marginTop: 2, fontWeight: 500 }}>

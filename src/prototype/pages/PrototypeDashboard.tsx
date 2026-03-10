@@ -26,6 +26,7 @@ const twinNoticed = [
     badgeColor: 'rgba(255,255,255,0.08)',
     badgeTextColor: 'var(--sd-fg)',
     badgeBorder: 'rgba(255,255,255,0.12)',
+    gradientColors: 'rgba(245,158,11,0.5), rgba(245,158,11,0.08)',
   },
   {
     icon: '◑',
@@ -36,6 +37,7 @@ const twinNoticed = [
     badgeColor: 'rgba(129,140,248,0.12)',
     badgeTextColor: '#818cf8',
     badgeBorder: 'rgba(129,140,248,0.25)',
+    gradientColors: 'rgba(129,140,248,0.45), rgba(129,140,248,0.06)',
   },
   {
     icon: '⬡',
@@ -46,6 +48,18 @@ const twinNoticed = [
     badgeColor: 'rgba(52,211,153,0.1)',
     badgeTextColor: '#34d399',
     badgeBorder: 'rgba(52,211,153,0.2)',
+    gradientColors: 'rgba(52,211,153,0.4), rgba(52,211,153,0.05)',
+  },
+  {
+    icon: '✦',
+    iconColor: '#c17e2c',
+    title: 'Your soul signature emerging',
+    body: 'The Empathetic Obsessive archetype is confirmed across 847 data points. 91% confidence.',
+    badge: 'Archetype',
+    badgeColor: 'rgba(193,126,44,0.12)',
+    badgeTextColor: '#c17e2c',
+    badgeBorder: 'rgba(193,126,44,0.25)',
+    gradientColors: 'rgba(193,126,44,0.4), rgba(193,126,44,0.05)',
   },
 ];
 
@@ -268,53 +282,66 @@ export default function PrototypeDashboard() {
             </button>
           </div>
 
-          {/* 3-card grid */}
+          {/* 2x2 card grid */}
           <div style={{
             display: 'grid',
-            gridTemplateColumns: 'repeat(3, 1fr)',
+            gridTemplateColumns: 'repeat(2, 1fr)',
             gap: 16,
             marginBottom: 40,
           }}>
             {twinNoticed.map((card, i) => (
-              <div key={i} className="sd-card" style={{ padding: '22px', borderRadius: 8 }}>
-                <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 14 }}>
-                  <span style={{ fontSize: 20, lineHeight: 1, color: card.iconColor }}>
+              <div key={i} className="sd-card" style={{ padding: 0, borderRadius: 12, overflow: 'hidden' }}>
+                {/* Gradient thumbnail strip */}
+                <div style={{
+                  height: 80,
+                  background: `linear-gradient(160deg, ${card.gradientColors})`,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  position: 'relative',
+                }}>
+                  <span style={{ fontSize: 28, lineHeight: 1, color: card.iconColor, filter: 'drop-shadow(0 2px 8px rgba(0,0,0,0.3))' }}>
                     {card.icon}
                   </span>
-                  <span style={{
-                    fontSize: 11,
-                    fontWeight: 500,
-                    padding: '3px 10px',
-                    borderRadius: 100,
-                    background: card.badgeColor,
-                    color: card.badgeTextColor,
-                    border: `1px solid ${card.badgeBorder}`,
-                    letterSpacing: '0.02em',
+                </div>
+                {/* Card content */}
+                <div style={{ padding: '18px 22px 22px' }}>
+                  <div style={{ marginBottom: 10 }}>
+                    <span style={{
+                      fontSize: 11,
+                      fontWeight: 500,
+                      padding: '3px 10px',
+                      borderRadius: 100,
+                      background: card.badgeColor,
+                      color: card.badgeTextColor,
+                      border: `1px solid ${card.badgeBorder}`,
+                      letterSpacing: '0.02em',
+                    }}>
+                      {card.badge}
+                    </span>
+                  </div>
+                  <div style={{
+                    fontSize: 15,
+                    fontWeight: 600,
+                    color: 'var(--sd-fg)',
+                    marginBottom: 8,
+                    lineHeight: 1.35,
                   }}>
-                    {card.badge}
-                  </span>
-                </div>
-                <div style={{
-                  fontSize: 15,
-                  fontWeight: 500,
-                  color: 'var(--sd-fg)',
-                  marginBottom: 8,
-                  lineHeight: 1.4,
-                }}>
-                  {card.title}
-                </div>
-                <div style={{
-                  fontSize: 13,
-                  color: 'var(--sd-text-secondary)',
-                  lineHeight: 1.6,
-                }}>
-                  {card.body}
+                    {card.title}
+                  </div>
+                  <div style={{
+                    fontSize: 13,
+                    color: 'var(--sd-text-secondary)',
+                    lineHeight: 1.6,
+                  }}>
+                    {card.body}
+                  </div>
                 </div>
               </div>
             ))}
           </div>
 
-          {/* Recent conversations */}
+          {/* Recent activity label */}
           <div style={{
             fontSize: 11,
             fontWeight: 500,
@@ -323,7 +350,7 @@ export default function PrototypeDashboard() {
             letterSpacing: '0.08em',
             marginBottom: 14,
           }}>
-            Recent conversations
+            Recent activity
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
             {recentConvos.map((convo, i) => (

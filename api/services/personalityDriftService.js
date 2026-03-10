@@ -18,14 +18,18 @@ export async function checkDrift(userId) {
         .select('embedding')
         .eq('user_id', userId)
         .not('embedding', 'is', null)
-        .gte('created_at', recentCutoff),
+        .gte('created_at', recentCutoff)
+        .order('created_at', { ascending: false })
+        .limit(200),
       supabaseAdmin
         .from('user_memories')
         .select('embedding')
         .eq('user_id', userId)
         .not('embedding', 'is', null)
         .gte('created_at', baselineCutoff)
-        .lt('created_at', recentCutoff),
+        .lt('created_at', recentCutoff)
+        .order('created_at', { ascending: false })
+        .limit(200),
     ]);
 
     const recentMemories = recentResult.data ?? [];

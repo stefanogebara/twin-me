@@ -4,6 +4,7 @@ import {
   Music, Brain, BarChart3, Globe,
   TrendingUp, Zap, Shield, Puzzle,
   Check, ChevronDown, Sun, Moon,
+  Menu, X,
 } from 'lucide-react';
 
 // ── Light mode tokens (Figma exact) ────────────────────────────────────
@@ -132,6 +133,7 @@ export default function DiscoverLanding() {
   const [billingAnnual, setBillingAnnual] = useState(false);
   const [openFaq, setOpenFaq]         = useState<number | null>(null);
   const [isDark, setIsDark]           = useState(true);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const T = isDark ? DARK : LIGHT;
 
@@ -183,7 +185,7 @@ export default function DiscoverLanding() {
               />
             </div>
             <span style={{
-              fontFamily: "'Halant', 'Instrument Serif', Georgia, serif",
+              fontFamily: "'Instrument Serif', Georgia, serif",
               fontSize: '25.36px',
               letterSpacing: '-0.507px',
               color: T.FG,
@@ -196,7 +198,7 @@ export default function DiscoverLanding() {
             </span>
           </div>
 
-          {/* Nav links */}
+          {/* Nav links — hidden on mobile */}
           <div
             className="hidden md:flex items-center px-5 gap-14 flex-1"
             style={{ fontFamily: "'Poppins', sans-serif", fontSize: '14px', color: T.FG }}
@@ -207,11 +209,11 @@ export default function DiscoverLanding() {
             <a href="#faq"          className="hover:opacity-60 transition-opacity whitespace-nowrap">FAQ</a>
           </div>
 
-          {/* Divider */}
+          {/* Divider — hidden on mobile */}
           <div className="hidden md:block w-px self-stretch" style={{ background: T.CARD_BDR }} />
 
-          {/* Actions */}
-          <div className="flex items-center gap-1 shrink-0">
+          {/* Desktop actions — hidden on mobile */}
+          <div className="hidden md:flex items-center gap-1 shrink-0">
             {/* Theme toggle */}
             <button
               onClick={() => setIsDark(!isDark)}
@@ -266,8 +268,142 @@ export default function DiscoverLanding() {
               Sign up
             </button>
           </div>
+
+          {/* Mobile: theme toggle + hamburger — visible only on mobile */}
+          <div className="flex md:hidden items-center gap-1 ml-auto shrink-0">
+            <button
+              onClick={() => setIsDark(!isDark)}
+              className="flex items-center justify-center w-8 h-8 rounded-full transition-opacity hover:opacity-70"
+              style={{ color: T.FG }}
+            >
+              {isDark ? <Sun className="w-[14px] h-[14px]" /> : <Moon className="w-[14px] h-[14px]" />}
+            </button>
+            <button
+              onClick={() => setMobileMenuOpen(true)}
+              className="flex items-center justify-center w-8 h-8 rounded-full transition-opacity hover:opacity-70"
+              style={{ color: T.FG }}
+              aria-label="Open menu"
+            >
+              <Menu className="w-5 h-5" />
+            </button>
+          </div>
         </nav>
       </div>
+
+      {/* ══ MOBILE MENU OVERLAY ════════════════════════════════════════════ */}
+      {mobileMenuOpen && (
+        <div className="fixed inset-0 z-[60] md:hidden">
+          {/* Backdrop */}
+          <div
+            className="absolute inset-0"
+            style={{ background: 'rgba(0,0,0,0.4)' }}
+            onClick={() => setMobileMenuOpen(false)}
+          />
+          {/* Slide-down panel */}
+          <div
+            className="absolute top-0 left-0 right-0 rounded-b-[20px] px-6 pt-5 pb-8"
+            style={{
+              backdropFilter: 'blur(19.65px)',
+              WebkitBackdropFilter: 'blur(19.65px)',
+              background: isDark ? 'rgba(27, 24, 24, 0.95)' : 'rgba(244, 241, 236, 0.97)',
+              borderBottom: `1px solid ${T.CARD_BDR}`,
+              boxShadow: '0 4px 24px rgba(0,0,0,0.15)',
+            }}
+          >
+            {/* Header row: logo + close */}
+            <div className="flex items-center justify-between mb-8">
+              <div className="flex items-center" style={{ width: '108px', paddingRight: '21px' }}>
+                <div
+                  className="flex items-center justify-center shrink-0 rounded-full overflow-hidden"
+                  style={{ width: '32px', height: '32px', marginRight: '-21px', zIndex: 1, flexShrink: 0 }}
+                >
+                  <img
+                    src="/images/backgrounds/flower.png"
+                    alt="TwinMe"
+                    style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center' }}
+                  />
+                </div>
+                <span style={{
+                  fontFamily: "'Instrument Serif', Georgia, serif",
+                  fontSize: '25.36px',
+                  letterSpacing: '-0.507px',
+                  color: T.FG,
+                  marginRight: '-21px',
+                  whiteSpace: 'nowrap',
+                  position: 'relative',
+                  zIndex: 2,
+                }}>
+                  TwinMe
+                </span>
+              </div>
+              <button
+                onClick={() => setMobileMenuOpen(false)}
+                className="flex items-center justify-center w-8 h-8 rounded-full transition-opacity hover:opacity-70"
+                style={{ color: T.FG }}
+                aria-label="Close menu"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Nav links */}
+            <div className="flex flex-col gap-1 mb-6">
+              {[
+                { label: 'How it works', href: '#how-it-works' },
+                { label: 'Features',     href: '#features' },
+                { label: 'Pricing',      href: '#pricing' },
+                { label: 'FAQ',          href: '#faq' },
+              ].map(({ label, href }) => (
+                <a
+                  key={label}
+                  href={href}
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="block py-3 px-3 rounded-[12px] transition-colors"
+                  style={{
+                    fontFamily: "'Poppins', sans-serif",
+                    fontSize: '16px',
+                    color: T.FG,
+                  }}
+                  onMouseEnter={e => (e.currentTarget.style.background = isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.04)')}
+                  onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+                >
+                  {label}
+                </a>
+              ))}
+            </div>
+
+            {/* Divider */}
+            <div className="h-px mb-6" style={{ background: T.CARD_BDR }} />
+
+            {/* Action buttons */}
+            <div className="flex flex-col gap-3">
+              <button
+                onClick={() => { setMobileMenuOpen(false); navigate('/auth'); }}
+                className="flex items-center justify-center h-11 w-full rounded-[100px] text-sm font-medium transition-opacity hover:opacity-90"
+                style={{
+                  fontFamily: "'Inter', sans-serif",
+                  background: T.SIGN_UP_BG,
+                  color: T.SIGN_UP_FG,
+                }}
+              >
+                Get Started
+              </button>
+              <button
+                onClick={() => { setMobileMenuOpen(false); navigate('/auth'); }}
+                className="flex items-center justify-center h-11 w-full rounded-[100px] text-sm font-medium transition-opacity hover:opacity-80"
+                style={{
+                  fontFamily: "'Inter', sans-serif",
+                  background: 'transparent',
+                  color: T.FG,
+                  border: `1px solid ${T.CARD_BDR}`,
+                }}
+              >
+                Sign In
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* SVG grain filter (Sundust signature texture) */}
       <svg style={{ position: 'absolute', width: 0, height: 0, overflow: 'hidden' }}>
@@ -318,7 +454,7 @@ export default function DiscoverLanding() {
         <h1
           className="relative text-center mb-3 max-w-[608px]"
           style={{
-            fontFamily: "'Halant', 'Instrument Serif', Georgia, serif",
+            fontFamily: "'Instrument Serif', Georgia, serif",
             fontSize: '48px',
             lineHeight: 1,
             letterSpacing: '-0.96px',
@@ -471,7 +607,7 @@ export default function DiscoverLanding() {
             <h2
               className="relative text-center max-w-[641px]"
               style={{
-                fontFamily: "'Halant', 'Instrument Serif', Georgia, serif",
+                fontFamily: "'Instrument Serif', Georgia, serif",
                 fontSize: '48px', lineHeight: 1.1,
                 letterSpacing: '-0.96px', color: T.FG,
               }}
@@ -539,7 +675,7 @@ export default function DiscoverLanding() {
           <h2
             className="text-center whitespace-nowrap"
             style={{
-              fontFamily: "'Halant', 'Instrument Serif', Georgia, serif",
+              fontFamily: "'Instrument Serif', Georgia, serif",
               fontSize: '48px', lineHeight: 1.1,
               letterSpacing: '-0.96px', color: T.FG,
             }}
@@ -717,7 +853,7 @@ export default function DiscoverLanding() {
               <h2
                 className="relative"
                 style={{
-                  fontFamily: "'Halant', 'Instrument Serif', Georgia, serif",
+                  fontFamily: "'Instrument Serif', Georgia, serif",
                   fontSize: '48px', lineHeight: 1.1,
                   letterSpacing: '-0.96px', color: T.FG,
                 }}
@@ -809,7 +945,7 @@ export default function DiscoverLanding() {
                 style={{ background: 'radial-gradient(circle at 35% 35%, #f97316, #7c2d12)' }}
               />
               <span style={{
-                fontFamily: "'Halant', 'Instrument Serif', Georgia, serif",
+                fontFamily: "'Instrument Serif', Georgia, serif",
                 fontSize: '36px',
                 letterSpacing: '-0.7px',
                 color: T.FG,

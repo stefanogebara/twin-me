@@ -99,7 +99,7 @@ const AwakeningScreen: React.FC<AwakeningScreenProps> = ({ onEnter }) => {
           ) : (
             <p
               style={{
-                fontFamily: 'Halant, Georgia, serif',
+                fontFamily: 'Instrument Serif, Georgia, serif',
                 fontWeight: 400,
                 fontSize: 'clamp(18px, 3vw, 24px)',
                 letterSpacing: '-0.02em',

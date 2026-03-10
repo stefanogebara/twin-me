@@ -335,7 +335,7 @@ const JournalPage: React.FC = () => {
                   background: inputBg,
                   border: `1px solid ${borderColor}`,
                   color: textPrimary,
-                  fontFamily: "'Halant', Georgia, serif"
+                  fontFamily: "'Instrument Serif', Georgia, serif"
                 }}
               />
 

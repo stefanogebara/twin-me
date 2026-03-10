@@ -252,7 +252,7 @@ const styles = StyleSheet.create({
   header: { alignItems: 'center', marginBottom: 28 },
   logo: { width: 64, height: 64, marginBottom: 20 },
   title: {
-    fontFamily: 'Halant_400Regular',
+    fontFamily: 'InstrumentSerif_400Regular',
     fontSize: 32,
     color: COLORS.text,
     letterSpacing: -1,
