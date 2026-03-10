@@ -41,7 +41,7 @@ export const RETRIEVAL_WEIGHTS = {
 
   // Deep pattern analysis — no recency bias (Paper 2 style).
   // Used by: reflection engine expert personas
-  reflection: { recency: 0.0, importance: 0.5, relevance: 1.0 },
+  reflection: { recency: 0.0, importance: 0.5, relevance: 1.5 },
 };
 
 // ─── MMR Diversity ───────────────────────────────────────────────────────────
@@ -49,7 +49,7 @@ export const RETRIEVAL_WEIGHTS = {
 // 0.0 = pure diversity (maximize spread across topics)
 // 1.0 = pure relevance (return top-ranked by score only)
 // Range: [0.0, 1.0]
-export const MMR_LAMBDA = 0.5;
+export const MMR_LAMBDA = 0.4;
 
 // ─── Alpha Blending ───────────────────────────────────────────────────────────
 // Baseline for computeAlpha() citation boost.
