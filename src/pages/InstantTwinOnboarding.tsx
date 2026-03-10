@@ -177,11 +177,11 @@ const InstantTwinOnboarding = () => {
 
       const healthPlatforms = ['oura'];
       // Entertainment platforms use direct OAuth via entertainment-connectors endpoints
-      const entertainmentPlatforms = ['spotify', 'discord', 'youtube', 'netflix', 'hbo_max', 'prime_video', 'disney_plus', 'apple_tv'];
+      const entertainmentPlatforms = ['spotify', 'discord', 'youtube', 'netflix', 'hbo_max', 'prime_video', 'disney_plus', 'apple_tv', 'reddit', 'linkedin'];
       // Professional platforms that use Google OAuth scopes via entertainment-connectors
-      const googlePlatforms = ['google_calendar', 'gmail'];
+      const googlePlatforms = ['google_calendar', 'google_gmail'];
       // Arctic-managed platforms with built-in OAuth
-      const arcticPlatforms = ['github', 'reddit', 'linkedin'];
+      const arcticPlatforms = ['github'];
       // Nango-managed platforms — connect via Nango popup OAuth
       const nangoPlatforms = ['strava', 'fitbit', 'garmin', 'twitch', 'microsoft_outlook'];
 
