@@ -62,12 +62,14 @@ router.get('/', authenticateUser, userRateLimit(100, 15 * 60 * 1000), async (req
 
     if (error) {
       return res.status(500).json({
+        success: false,
         error: 'Failed to fetch conversations',
         message: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
       });
     }
 
     res.json({
+      success: true,
       conversations,
       count: conversations.length,
       timestamp: new Date().toISOString()
@@ -76,6 +78,7 @@ router.get('/', authenticateUser, userRateLimit(100, 15 * 60 * 1000), async (req
   } catch (error) {
     console.error('Error fetching conversations:', error);
     res.status(500).json({
+      success: false,
       error: 'Failed to fetch conversations',
       message: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
     });
@@ -88,11 +91,11 @@ router.get('/stats/:userId', authenticateUser, async (req, res) => {
     const { userId } = req.params;
 
     if (!userId) {
-      return res.status(400).json({ error: 'User ID required' });
+      return res.status(400).json({ success: false, error: 'User ID required' });
     }
 
     if (userId !== req.user.id) {
-      return res.status(403).json({ error: 'Forbidden', message: 'Access denied' });
+      return res.status(403).json({ success: false, error: 'Forbidden', message: 'Access denied' });
     }
 
     const stats = await getConversationStats(userId);
@@ -111,6 +114,7 @@ router.get('/stats/:userId', authenticateUser, async (req, res) => {
       .single();
 
     res.json({
+      success: true,
       totalConversations: stats.totalConversations,
       claudeDesktopConversations,
       bySource: stats.bySource,
@@ -123,6 +127,7 @@ router.get('/stats/:userId', authenticateUser, async (req, res) => {
   } catch (error) {
     console.error('Error fetching conversation stats:', error);
     res.status(500).json({
+      success: false,
       error: 'Failed to fetch conversation stats',
       message: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
     });

@@ -70,10 +70,10 @@ router.post('/webhook', express.raw({ type: 'application/json' }), async (req, r
         break;
       }
     }
-    res.json({ received: true });
+    res.json({ success: true, received: true });
   } catch (err) {
     console.error('[Billing] Webhook error:', err);
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ success: false, error: err.message });
   }
 });
 
@@ -81,19 +81,19 @@ router.post('/webhook', express.raw({ type: 'application/json' }), async (req, r
 router.get('/subscription', authenticateToken, async (req, res) => {
   try {
     const sub = await getUserSubscription(req.user?.id);
-    res.json({ subscription: sub });
+    res.json({ success: true, subscription: sub });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ success: false, error: err.message });
   }
 });
 
 // POST /api/billing/checkout
 router.post('/checkout', authenticateToken, async (req, res) => {
   if (!stripe) {
-    return res.status(503).json({ error: 'Billing not configured' });
+    return res.status(503).json({ success: false, error: 'Billing not configured' });
   }
   const { plan } = req.body;
-  if (!['pro', 'max'].includes(plan)) return res.status(400).json({ error: 'Invalid plan' });
+  if (!['pro', 'max'].includes(plan)) return res.status(400).json({ success: false, error: 'Invalid plan' });
 
   const priceId = plan === 'pro'
     ? (process.env.STRIPE_PRO_PRICE_ID || process.env.STRIPE_PRICE_PRO)
@@ -124,30 +124,30 @@ router.post('/checkout', authenticateToken, async (req, res) => {
       metadata: { userId: req.user?.id, plan },
     });
 
-    res.json({ url: session.url });
+    res.json({ success: true, url: session.url });
   } catch (err) {
     console.error('[Billing] Checkout error:', err);
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ success: false, error: err.message });
   }
 });
 
 // POST /api/billing/portal
 router.post('/portal', authenticateToken, async (req, res) => {
   if (!stripe) {
-    return res.status(503).json({ error: 'Billing not configured' });
+    return res.status(503).json({ success: false, error: 'Billing not configured' });
   }
   try {
     const { data: sub } = await supabaseAdmin
       .from('user_subscriptions').select('stripe_customer_id').eq('user_id', req.user?.id).single();
-    if (!sub?.stripe_customer_id) return res.status(400).json({ error: 'No billing account found' });
+    if (!sub?.stripe_customer_id) return res.status(400).json({ success: false, error: 'No billing account found' });
 
     const session = await stripe.billingPortal.sessions.create({
       customer: sub.stripe_customer_id,
       return_url: `${APP_URL}/settings`,
     });
-    res.json({ url: session.url });
+    res.json({ success: true, url: session.url });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ success: false, error: err.message });
   }
 });
 

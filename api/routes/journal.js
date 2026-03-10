@@ -43,10 +43,11 @@ router.get('/entries', asyncHandler(async (req, res) => {
 
   if (error) {
     console.error('[Journal] Error fetching entries:', error);
-    return res.status(500).json({ error: 'Failed to fetch journal entries' });
+    return res.status(500).json({ success: false, error: 'Failed to fetch journal entries' });
   }
 
   res.json({
+    success: true,
     entries: entries || [],
     pagination: {
       page,

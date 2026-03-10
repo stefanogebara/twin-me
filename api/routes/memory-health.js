@@ -30,7 +30,7 @@ router.get('/', authenticateUser, async (req, res) => {
     const cacheKey = `memoryHealth:${userId}`;
     const cached = await redisGet(cacheKey);
     if (cached) {
-      return res.json({ ...cached, cached: true });
+      return res.json({ success: true, ...cached, cached: true });
     }
 
     const now = new Date();
@@ -198,10 +198,10 @@ router.get('/', authenticateUser, async (req, res) => {
     // Cache for 5 minutes — non-blocking write
     redisSet(cacheKey, responseData, CACHE_TTL_SECONDS).catch(() => {});
 
-    res.json({ ...responseData, cached: false });
+    res.json({ success: true, ...responseData, cached: false });
   } catch (err) {
     console.error('[memory-health] Error:', err.message);
-    res.status(500).json({ error: process.env.NODE_ENV === 'development' ? err.message : 'Failed to load memory health data' });
+    res.status(500).json({ success: false, error: process.env.NODE_ENV === 'development' ? err.message : 'Failed to load memory health data' });
   }
 });
 

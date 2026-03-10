@@ -317,7 +317,7 @@ try {
 }
 import { serverDb, supabaseAdmin } from './services/database.js';
 import { sanitizeInput, validateContentType } from './middleware/sanitization.js';
-import { /* handleAuthError, */ handleGeneralError, handle404 } from './middleware/errorHandler.js';
+import { handleAuthError } from './middleware/errorHandler.js';
 import { errorHandler, notFoundHandler } from './middleware/errors.js';
 import { authenticateUser } from './middleware/auth.js';
 
@@ -553,7 +553,7 @@ if (process.env.NODE_ENV === 'development') {
 }
 
 // Authentication error handling (must be before general error handler)
-// app.use(handleAuthError);
+app.use(handleAuthError);
 
 // Sentry error handler (must be after routes but before other error handlers)
 if (process.env.SENTRY_DSN) {

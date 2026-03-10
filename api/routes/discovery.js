@@ -23,7 +23,7 @@ router.post('/scan', async (req, res) => {
 
   const { email, name } = req.body;
   if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-    return res.status(400).json({ error: 'Valid email required' });
+    return res.status(400).json({ success: false, error: 'Valid email required' });
   }
 
   try {
@@ -32,10 +32,10 @@ router.post('/scan', async (req, res) => {
     // Return null if nothing was found (source === 'none' means both Gravatar + GitHub failed)
     const innerData = result?.data;
     const discovered = (innerData && innerData.source !== 'none') ? innerData : null;
-    res.json({ discovered });
+    res.json({ success: true, discovered });
   } catch (err) {
     console.error('[Discovery] Scan error:', err.message);
-    res.json({ discovered: null });
+    res.json({ success: true, discovered: null });
   }
 });
 
