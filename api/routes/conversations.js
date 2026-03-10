@@ -3,6 +3,7 @@ import { body, validationResult } from 'express-validator';
 import { serverDb, supabaseAdmin } from '../services/database.js';
 import { authenticateUser, userRateLimit } from '../middleware/auth.js';
 import { getConversationStats, getUserWritingProfile } from '../services/conversationLearning.js';
+import { parsePagination, buildPaginationMeta } from '../utils/pagination.js';
 
 const router = express.Router();
 
@@ -55,10 +56,18 @@ const handleValidationErrors = (req, res, next) => {
 };
 
 // GET /api/conversations - Get all conversations for the authenticated user
+// Supports pagination: ?page=1&limit=20 (default 20, max 50)
 router.get('/', authenticateUser, userRateLimit(100, 15 * 60 * 1000), async (req, res) => {
   try {
     const userId = req.user.id;
-    const { data: conversations, error } = await serverDb.getConversationsByStudent(userId);
+    const { page, limit, offset } = parsePagination(req);
+
+    const { data: conversations, count, error } = await supabaseAdmin
+      .from('conversations')
+      .select('*', { count: 'exact' })
+      .eq('user_id', userId)
+      .order('updated_at', { ascending: false })
+      .range(offset, offset + limit - 1);
 
     if (error) {
       return res.status(500).json({
@@ -70,8 +79,8 @@ router.get('/', authenticateUser, userRateLimit(100, 15 * 60 * 1000), async (req
 
     res.json({
       success: true,
-      conversations,
-      count: conversations.length,
+      conversations: conversations || [],
+      pagination: buildPaginationMeta(page, limit, count || 0),
       timestamp: new Date().toISOString()
     });
 
@@ -277,11 +286,12 @@ router.delete('/:id', authenticateUser, userRateLimit(20, 15 * 60 * 1000), async
 });
 
 // GET /api/conversations/:id/messages - Get messages for a conversation
+// Supports pagination: ?page=1&limit=50 (default 50, max 200)
 router.get('/:id/messages', authenticateUser, userRateLimit(200, 15 * 60 * 1000), async (req, res) => {
   try {
     const { id } = req.params;
     const userId = req.user.id;
-    const limit = Math.min(Math.max(parseInt(req.query.limit, 10) || 50, 1), 200);
+    const { page, limit, offset } = parsePagination(req, { defaultLimit: 50, maxLimit: 200 });
 
     // IDOR guard: verify conversation ownership before fetching messages
     const { data: conversation, error: fetchError } = await serverDb.getConversation(id);
@@ -295,7 +305,12 @@ router.get('/:id/messages', authenticateUser, userRateLimit(200, 15 * 60 * 1000)
       return res.status(403).json({ error: 'Access denied' });
     }
 
-    const { data: messages, error } = await serverDb.getMessagesByConversation(id, limit);
+    const { data: messages, count, error } = await supabaseAdmin
+      .from('messages')
+      .select('*', { count: 'exact' })
+      .eq('conversation_id', id)
+      .order('created_at', { ascending: true })
+      .range(offset, offset + limit - 1);
 
     if (error) {
       return res.status(500).json({
@@ -305,8 +320,8 @@ router.get('/:id/messages', authenticateUser, userRateLimit(200, 15 * 60 * 1000)
     }
 
     res.json({
-      messages,
-      count: messages.length,
+      messages: messages || [],
+      pagination: buildPaginationMeta(page, limit, count || 0),
       conversationId: id,
       timestamp: new Date().toISOString()
     });
