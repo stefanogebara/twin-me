@@ -361,17 +361,10 @@ async function storeLearnedFacts(userId, message, topics, intent) {
 }
 
 /**
-<<<<<<< Updated upstream
- * Get recent conversations (from both MCP and web)
-=======
- * Get aggregate conversation statistics for a user.
- * Queries mcp_conversation_logs for source breakdown, topics, and intents.
+ * Get recent MCP conversation logs for a user.
  *
  * @param {string} userId
- * @returns {{ totalConversations: number, bySource: object, topTopics: string[], topIntents: string[] }}
- */
-/**
- * Get recent MCP conversation logs for a user
+ * @param {number} limit
  */
 export async function getRecentMcpConversations(userId, limit = 10) {
   const { data, error } = await supabaseAdmin
