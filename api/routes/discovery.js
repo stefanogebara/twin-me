@@ -38,13 +38,13 @@ router.post('/scan', async (req, res) => {
   const ip = req.ip || req.connection.remoteAddress;
 
   if (!rateLimit(ip)) {
-    return res.status(429).json({ error: 'Too many requests. Try again in 15 minutes.' });
+    return res.status(429).json({ success: false, error: 'Too many requests. Try again in 15 minutes.' });
   }
 
   const { email, name } = req.body;
   if (!email || typeof email !== 'string' || email.length > 254 ||
       !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-    return res.status(400).json({ error: 'Valid email required' });
+    return res.status(400).json({ success: false, error: 'Valid email required' });
   }
 
   // Sanitize name input
@@ -60,14 +60,14 @@ router.post('/scan', async (req, res) => {
     const delay = Math.max(0, MIN_RESPONSE_DELAY_MS - elapsed);
     if (delay > 0) await new Promise(r => setTimeout(r, delay));
 
-    res.json({ discovered });
+    res.json({ success: true, discovered });
   } catch (err) {
     console.error('[Discovery] Scan error:', err.message);
     // Same response shape on error — prevents enumeration
     const elapsed = Date.now() - startTime;
     const delay = Math.max(0, MIN_RESPONSE_DELAY_MS - elapsed);
     if (delay > 0) await new Promise(r => setTimeout(r, delay));
-    res.json({ discovered: null });
+    res.json({ success: true, discovered: null });
   }
 });
 

@@ -62,12 +62,14 @@ router.get('/', authenticateUser, userRateLimit(100, 15 * 60 * 1000), async (req
 
     if (error) {
       return res.status(500).json({
+        success: false,
         error: 'Failed to fetch conversations',
         message: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
       });
     }
 
     res.json({
+      success: true,
       conversations,
       count: conversations.length,
       timestamp: new Date().toISOString()
@@ -76,7 +78,57 @@ router.get('/', authenticateUser, userRateLimit(100, 15 * 60 * 1000), async (req
   } catch (error) {
     console.error('Error fetching conversations:', error);
     res.status(500).json({
+      success: false,
       error: 'Failed to fetch conversations',
+      message: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
+    });
+  }
+});
+
+// GET /api/conversations/stats/:userId - Get conversation sync stats (must be before /:id)
+router.get('/stats/:userId', authenticateUser, async (req, res) => {
+  try {
+    const { userId } = req.params;
+
+    if (!userId) {
+      return res.status(400).json({ success: false, error: 'User ID required' });
+    }
+
+    if (userId !== req.user.id) {
+      return res.status(403).json({ success: false, error: 'Forbidden', message: 'Access denied' });
+    }
+
+    const stats = await getConversationStats(userId);
+    const writingProfile = await getUserWritingProfile(userId);
+
+    const claudeDesktopConversations = (stats.bySource?.claude_desktop_import || 0) +
+      (stats.bySource?.claude_desktop || 0);
+
+    const { data: lastLog } = await supabaseAdmin
+      .from('mcp_conversation_logs')
+      .select('created_at')
+      .eq('user_id', userId)
+      .in('mcp_client', ['claude_desktop_import', 'claude_desktop'])
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .single();
+
+    res.json({
+      success: true,
+      totalConversations: stats.totalConversations,
+      claudeDesktopConversations,
+      bySource: stats.bySource,
+      topTopics: stats.topTopics,
+      topIntents: stats.topIntents,
+      writingProfile,
+      lastSyncAt: lastLog?.created_at || null
+    });
+
+  } catch (error) {
+    console.error('Error fetching conversation stats:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch conversation stats',
       message: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
     });
   }
@@ -312,55 +364,6 @@ router.post('/:id/messages', authenticateUser, userRateLimit(100, 15 * 60 * 1000
     console.error('Error creating message:', error);
     res.status(500).json({
       error: 'Failed to create message',
-      message: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
-    });
-  }
-});
-
-// GET /api/conversation-stats/:userId - Get conversation sync stats for Claude Desktop sync
-router.get('/stats/:userId', authenticateUser, async (req, res) => {
-  try {
-    const { userId } = req.params;
-
-    if (!userId) {
-      return res.status(400).json({ error: 'User ID required' });
-    }
-
-    if (userId !== req.user.id) {
-      return res.status(403).json({ error: 'Forbidden', message: 'Access denied' });
-    }
-
-    const stats = await getConversationStats(userId);
-    const writingProfile = await getUserWritingProfile(userId);
-
-    // Calculate Claude Desktop specific stats
-    const claudeDesktopConversations = (stats.bySource?.claude_desktop_import || 0) +
-      (stats.bySource?.claude_desktop || 0);
-
-    // Get last sync timestamp
-    const { data: lastLog } = await supabaseAdmin
-      .from('mcp_conversation_logs')
-      .select('created_at')
-      .eq('user_id', userId)
-      .in('mcp_client', ['claude_desktop_import', 'claude_desktop'])
-      .order('created_at', { ascending: false })
-      .limit(1)
-      .single();
-
-    res.json({
-      totalConversations: stats.totalConversations,
-      claudeDesktopConversations,
-      bySource: stats.bySource,
-      topTopics: stats.topTopics,
-      topIntents: stats.topIntents,
-      writingProfile,
-      lastSyncAt: lastLog?.created_at || null
-    });
-
-  } catch (error) {
-    console.error('Error fetching conversation stats:', error);
-    res.status(500).json({
-      error: 'Failed to fetch conversation stats',
       message: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
     });
   }
