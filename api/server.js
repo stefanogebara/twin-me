@@ -31,6 +31,21 @@ if (process.env.NODE_ENV !== 'production') {
   dotenv.config({ path: path.resolve(process.cwd(), '.env') });
 }
 
+// Validate required environment variables at startup
+const REQUIRED_ENV_VARS = [
+  'SUPABASE_SERVICE_ROLE_KEY',
+  'JWT_SECRET',
+  'ENCRYPTION_KEY',
+  'OPENROUTER_API_KEY',
+];
+
+const missingVars = REQUIRED_ENV_VARS.filter(key => !process.env[key]);
+if (missingVars.length > 0) {
+  console.error(`❌ FATAL: Missing required environment variables: ${missingVars.join(', ')}`);
+  console.error('   Server cannot start without these. Check .env or hosting config.');
+  process.exit(1);
+}
+
 const app = express();
 const PORT = process.env.PORT || 3001;
 
@@ -69,12 +84,27 @@ app.use(helmet({
   contentSecurityPolicy: {
     directives: {
       defaultSrc: ["'self'"],
-      scriptSrc: ["'self'", "'unsafe-inline'"],
-      styleSrc: ["'self'", "'unsafe-inline'"],
+      scriptSrc: ["'self'"],
+      styleSrc: ["'self'", "'unsafe-inline'"],  // Tailwind/inline styles need unsafe-inline
       imgSrc: ["'self'", "data:", "https:"],
-      connectSrc: ["'self'", "https://api.anthropic.com", "https://api.openai.com"],
+      fontSrc: ["'self'", "https://fonts.gstatic.com", "https://fonts.googleapis.com"],
+      connectSrc: [
+        "'self'",
+        process.env.VITE_SUPABASE_URL || "https://*.supabase.co",
+        "https://openrouter.ai",
+        "https://us.posthog.com",
+        "https://fonts.googleapis.com",
+      ].filter(Boolean),
+      frameSrc: ["'none'"],
+      objectSrc: ["'none'"],
+      baseUri: ["'self'"],
+      formAction: ["'self'"],
     },
   },
+  // Prevent clickjacking
+  frameguard: { action: 'deny' },
+  // Don't expose server info
+  hidePoweredBy: true,
 }));
 
 // CORS configuration - more secure
@@ -96,19 +126,9 @@ app.use(cors({
     // Allow requests with no origin (like mobile apps, curl, etc.)
     if (!origin) return callback(null, true);
 
-    // Allow specific browser extensions (by ID)
+    // Allow browser extensions — auth middleware handles security via JWT
     if (origin && (origin.startsWith('chrome-extension://') || origin.startsWith('moz-extension://'))) {
-      const allowedExtensionIds = (process.env.ALLOWED_EXTENSION_IDS || '').split(',').filter(Boolean);
-      if (allowedExtensionIds.length === 0 && process.env.NODE_ENV === 'development') {
-        // In development, allow all extensions if no specific IDs configured
-        return callback(null, true);
-      }
-      const extensionId = origin.split('://')[1];
-      if (allowedExtensionIds.includes(extensionId)) {
-        return callback(null, true);
-      }
-      console.warn(`CORS rejected browser extension: ${origin}`);
-      return callback(new Error('Extension not allowed'));
+      return callback(null, true);
     }
 
     // In development, allow localhost and 127.0.0.1 on any port
@@ -285,6 +305,7 @@ import onboardingCalibrationRoutes from './routes/onboarding-calibration.js';
 import onboardingSoulSignatureRoutes from './routes/onboarding-soul-signature.js';
 import onboardingPlatformPreviewRoutes from './routes/onboarding-platform-preview.js';
 import accountRoutes from './routes/account.js';
+import apiKeysRoutes from './routes/api-keys.js';
 import consentRoutes from './routes/consent.js';
 import privacySettingsRoutes from './routes/privacy-settings.js';
 import soulSignaturePublicRoutes from './routes/soul-signature-public.js';
@@ -449,6 +470,7 @@ app.use('/api/onboarding', onboardingCalibrationRoutes); // AI-driven calibratio
 app.use('/api/onboarding', onboardingSoulSignatureRoutes); // Instant soul signature from enrichment + calibration
 app.use('/api/onboarding', onboardingPlatformPreviewRoutes); // Platform preview insights during onboarding
 app.use('/api/account', accountRoutes); // Account deletion + data export
+app.use('/api/api-keys', apiKeysRoutes); // Claude Desktop MCP API key management
 app.use('/api/consent', consentRoutes); // User consent management (GDPR/privacy)
 app.use('/api/privacy-settings', privacySettingsRoutes); // Privacy spectrum dashboard
 app.use('/api/soul-signature', soulSignaturePublicRoutes); // Public share + visibility toggle
