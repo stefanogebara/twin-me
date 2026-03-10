@@ -154,7 +154,7 @@ export const ChatMessageSkeleton: React.FC<{ isUser?: boolean; className?: strin
         <Skeleton className="h-4 w-32" />
         <div className={cn(
           'rounded-2xl p-4 space-y-2',
-          isUser ? 'bg-[hsl(var(--claude-accent))]/10' : 'bg-[hsl(var(--claude-surface))]'
+          isUser ? 'bg-[var(--claude-accent)]/10' : 'bg-[var(--claude-surface)]'
         )}>
           <Skeleton className="h-4 w-full" />
           <Skeleton className="h-4 w-4/5" />
@@ -267,7 +267,7 @@ export const SettingsSectionSkeleton: React.FC<{ className?: string }> = ({ clas
 // List Item Skeleton
 export const ListItemSkeleton: React.FC<{ className?: string }> = ({ className }) => {
   return (
-    <div className={cn('flex items-center gap-4 p-4 border-b border-[hsl(var(--claude-border))]', className)}>
+    <div className={cn('flex items-center gap-4 p-4 border-b border-[var(--claude-border)]', className)}>
       <Skeleton className="h-10 w-10 rounded-full flex-shrink-0" />
       <div className="flex-1 space-y-2">
         <Skeleton className="h-4 w-48" />
@@ -284,7 +284,7 @@ export const ListSkeleton: React.FC<{ items?: number; className?: string }> = ({
   className
 }) => {
   return (
-    <div className={cn('border border-[hsl(var(--claude-border))] rounded-lg overflow-hidden', className)}>
+    <div className={cn('border border-[var(--claude-border)] rounded-lg overflow-hidden', className)}>
       {Array.from({ length: items }).map((_, i) => (
         <ListItemSkeleton key={i} />
       ))}
@@ -295,7 +295,7 @@ export const ListSkeleton: React.FC<{ items?: number; className?: string }> = ({
 // Full Page Loading Skeleton
 export const FullPageSkeleton: React.FC<{ className?: string }> = ({ className }) => {
   return (
-    <div className={cn('min-h-screen bg-[hsl(var(--claude-bg))] p-8', className)}>
+    <div className={cn('min-h-screen bg-[var(--claude-bg)] p-8', className)}>
       {/* Header */}
       <div className="max-w-7xl mx-auto mb-8">
         <div className="flex items-center justify-between">

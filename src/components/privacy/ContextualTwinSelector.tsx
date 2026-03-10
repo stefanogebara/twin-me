@@ -107,7 +107,7 @@ export const ContextualTwinSelector: React.FC<ContextualTwinSelectorProps> = ({
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h3 className="font-heading text-2xl font-medium text-[hsl(var(--claude-text))] mb-2">
+          <h3 className="font-heading text-2xl font-medium text-[var(--claude-text)] mb-2">
             Contextual Twins
           </h3>
           <p className="text-sm text-muted-foreground font-body leading-relaxed">
@@ -120,8 +120,8 @@ export const ContextualTwinSelector: React.FC<ContextualTwinSelectorProps> = ({
             onClick={onCreateTwin}
             className="
               flex items-center gap-2 px-4 py-2.5 rounded-xl
-              bg-[hsl(var(--claude-accent))] text-white
-              hover:bg-[hsl(var(--claude-accent))]/90
+              bg-[var(--claude-accent)] text-white
+              hover:bg-[var(--claude-accent)]/90
               font-ui font-medium text-sm
               shadow-md hover:shadow-lg
               transition-all duration-200
@@ -152,7 +152,7 @@ export const ContextualTwinSelector: React.FC<ContextualTwinSelectorProps> = ({
             </div>
           </div>
           <div className="flex-1">
-            <h4 className="font-heading text-lg font-medium text-[hsl(var(--claude-text))] mb-1">
+            <h4 className="font-heading text-lg font-medium text-[var(--claude-text)] mb-1">
               Currently Active: {activeTwin.name}
             </h4>
             <p className="text-sm text-muted-foreground font-body">
@@ -228,7 +228,7 @@ export const ContextualTwinSelector: React.FC<ContextualTwinSelectorProps> = ({
                       </div>
                     </div>
                     <div>
-                      <h5 className="font-heading text-base font-medium text-[hsl(var(--claude-text))] mb-0.5">
+                      <h5 className="font-heading text-base font-medium text-[var(--claude-text)] mb-0.5">
                         {twin.name}
                       </h5>
                       {twin.isDefault && (

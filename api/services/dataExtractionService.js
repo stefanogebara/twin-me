@@ -9,11 +9,11 @@ import DiscordExtractor from './extractors/discordExtractor.js';
 import LinkedInExtractor from './extractors/linkedinExtractor.js';
 import SpotifyExtractor from './extractors/spotifyExtractor.js';
 import RedditExtractor from './extractors/redditExtractor.js';
-// Gmail, Teams extractors removed (TIER 1 cleanup)
-const GmailExtractor = { extract: async () => ({}) };
+// Gmail, Teams extractors removed (TIER 1 cleanup) — stub classes so `new XExtractor()` doesn't throw
+class GmailExtractor { constructor() {} async extract() { return {}; } }
 import SlackExtractor from './extractors/slackExtractor.js';
 import CalendarExtractor from './extractors/calendarExtractor.js';
-const TeamsExtractor = { extract: async () => ({}) };
+class TeamsExtractor { constructor() {} async extract() { return {}; } }
 import TikTokExtractor from './extractors/tiktokExtractor.js';
 import { decryptToken } from './encryption.js';
 import { getValidAccessToken } from './tokenRefresh.js';

@@ -64,15 +64,15 @@ export const Sidebar: React.FC<SidebarProps> = ({ onNavigate }) => {
   };
 
   return (
-    <div className="flex flex-col h-screen w-72 md:w-64 bg-[hsl(var(--claude-surface))] border-r border-[hsl(var(--claude-border))]">
+    <div className="flex flex-col h-screen w-72 md:w-64 bg-[var(--claude-surface)] border-r border-[var(--claude-border)]">
       {/* Logo */}
-      <div className="flex items-center gap-3 p-4 md:p-6 border-b border-[hsl(var(--claude-border))]">
-        <div className="w-8 h-8 bg-[hsl(var(--claude-accent))] rounded-lg flex items-center justify-center text-white font-bold text-lg">
+      <div className="flex items-center gap-3 p-4 md:p-6 border-b border-[var(--claude-border)]">
+        <div className="w-8 h-8 bg-[var(--claude-accent)] rounded-lg flex items-center justify-center text-white font-bold text-lg">
           T
         </div>
         <div>
-          <h1 className="text-[hsl(var(--claude-text))] font-semibold text-lg">Twin Me</h1>
-          <p className="text-[hsl(var(--claude-text-muted))] text-xs">Soul Signature Platform</p>
+          <h1 className="text-[var(--claude-text)] font-semibold text-lg">Twin Me</h1>
+          <p className="text-[var(--claude-text-muted)] text-xs">Soul Signature Platform</p>
         </div>
       </div>
 
@@ -91,13 +91,13 @@ export const Sidebar: React.FC<SidebarProps> = ({ onNavigate }) => {
                 w-full flex items-center gap-3 px-3 py-3 rounded-lg
                 transition-all duration-150 group relative
                 ${active
-                  ? 'bg-[hsl(var(--claude-surface-raised))] text-[hsl(var(--claude-text))] shadow-sm'
-                  : 'text-[hsl(var(--claude-text-muted))] hover:bg-[hsl(var(--claude-surface-raised))]/60 hover:text-[hsl(var(--claude-text))]'
+                  ? 'bg-[var(--claude-surface-raised)] text-[var(--claude-text)] shadow-sm'
+                  : 'text-[var(--claude-text-muted)] hover:bg-[var(--claude-surface-raised)]/60 hover:text-[var(--claude-text)]'
                 }
               `}
             >
               {active && (
-                <div className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 rounded-r-full bg-[hsl(var(--claude-text))]" />
+                <div className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 rounded-r-full bg-[var(--claude-text)]" />
               )}
               <Icon className="w-5 h-5 flex-shrink-0" aria-hidden="true" />
               <span className="text-sm font-semibold">{item.label}</span>
@@ -109,7 +109,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ onNavigate }) => {
         <div className="mt-3">
           <button
             onClick={() => setMoreOpen(o => !o)}
-            className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-[hsl(var(--claude-text-muted))] hover:text-[hsl(var(--claude-text))] transition-colors text-xs font-medium uppercase tracking-wide"
+            className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-[var(--claude-text-muted)] hover:text-[var(--claude-text)] transition-colors text-xs font-medium uppercase tracking-wide"
           >
             {moreOpen || moreActive ? (
               <ChevronDown className="w-3.5 h-3.5" />
@@ -134,13 +134,13 @@ export const Sidebar: React.FC<SidebarProps> = ({ onNavigate }) => {
                       w-full flex items-center gap-3 px-3 py-2 rounded-lg
                       transition-all duration-150 relative
                       ${active
-                        ? 'bg-[hsl(var(--claude-surface-raised))] text-[hsl(var(--claude-text))]'
-                        : 'text-[hsl(var(--claude-text-muted))] hover:bg-[hsl(var(--claude-surface-raised))]/60 hover:text-[hsl(var(--claude-text))]'
+                        ? 'bg-[var(--claude-surface-raised)] text-[var(--claude-text)]'
+                        : 'text-[var(--claude-text-muted)] hover:bg-[var(--claude-surface-raised)]/60 hover:text-[var(--claude-text)]'
                       }
                     `}
                   >
                     {active && (
-                      <div className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-4 rounded-r-full bg-[hsl(var(--claude-text))]" />
+                      <div className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-4 rounded-r-full bg-[var(--claude-text)]" />
                     )}
                     <Icon className="w-4 h-4 flex-shrink-0" aria-hidden="true" />
                     <span className="text-xs font-medium">{item.label}</span>
@@ -153,22 +153,22 @@ export const Sidebar: React.FC<SidebarProps> = ({ onNavigate }) => {
       </nav>
 
       {/* User profile + sign out */}
-      <div className="border-t border-[hsl(var(--claude-border))] p-4">
+      <div className="border-t border-[var(--claude-border)] p-4">
         <div className="flex items-center gap-3 mb-3">
-          <div className="w-9 h-9 bg-[hsl(var(--claude-surface-raised))] rounded-full flex items-center justify-center text-[hsl(var(--claude-text))]">
+          <div className="w-9 h-9 bg-[var(--claude-surface-raised)] rounded-full flex items-center justify-center text-[var(--claude-text)]">
             <User className="w-4 h-4" />
           </div>
           <div className="flex-1 min-w-0">
-            <p className="text-sm font-medium text-[hsl(var(--claude-text))] truncate">
+            <p className="text-sm font-medium text-[var(--claude-text)] truncate">
               {user?.fullName || user?.email || 'User'}
             </p>
-            <p className="text-xs text-[hsl(var(--claude-text-muted))] truncate">{user?.email}</p>
+            <p className="text-xs text-[var(--claude-text-muted)] truncate">{user?.email}</p>
           </div>
         </div>
         <button
           onClick={handleSignOut}
           aria-label="Sign out of your account"
-          className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-[hsl(var(--claude-text-muted))] hover:bg-[hsl(var(--claude-surface-raised))] hover:text-[hsl(var(--claude-text))] transition-all duration-150"
+          className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-[var(--claude-text-muted)] hover:bg-[var(--claude-surface-raised)] hover:text-[var(--claude-text)] transition-all duration-150"
         >
           <LogOut className="w-4 h-4" aria-hidden="true" />
           <span className="text-sm font-medium">Sign Out</span>

@@ -28,9 +28,9 @@ import crypto from 'crypto';
  * @returns {{ authorized: boolean, status?: number, error?: string }}
  */
 export function verifyCronSecret(req) {
-  const isDevelopment = process.env.NODE_ENV === 'development';
-
-  if (isDevelopment) {
+  // Only skip cron auth when explicitly opted in, not just because NODE_ENV is development.
+  // This prevents accidental auth bypass in dev environments exposed to a network.
+  if (process.env.SKIP_CRON_AUTH === 'true') {
     return { authorized: true };
   }
 

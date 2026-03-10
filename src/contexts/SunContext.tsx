@@ -38,6 +38,10 @@ export function SunProvider({ children }: { children: React.ReactNode }) {
 
     const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
 
+    // Only post location if user is authenticated (token exists)
+    const token = localStorage.getItem('token');
+    if (!token) return;
+
     authFetch('/location/current', {
       method: 'POST',
       body: JSON.stringify({

@@ -19,6 +19,7 @@ dist-ssr
 .env.test.local
 .env.production.local
 .env.vercel
+.env.vercel.*
 .env.vercel-test
 
 # Upload directories

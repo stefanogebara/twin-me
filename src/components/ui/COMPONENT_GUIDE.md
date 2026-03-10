@@ -124,7 +124,7 @@ import {
 style={{ backgroundColor: '#D97706' }}  // ❌ Don't do this
 
 // Use CSS variables:
-className="bg-[hsl(var(--claude-accent))]"  // ✅ Do this
+className="bg-[var(--claude-accent)]"  // ✅ Do this
 
 // Or import from design tokens:
 import { colors } from '@/styles/design-tokens';
@@ -211,7 +211,7 @@ className="gap-4" // 16px
 <StandardCard>
   {isLoading ? (
     <div className="flex items-center justify-center p-8">
-      <Loader2 className="w-6 h-6 animate-spin text-[hsl(var(--claude-accent))]" />
+      <Loader2 className="w-6 h-6 animate-spin text-[var(--claude-accent)]" />
     </div>
   ) : (
     <CardContent>
@@ -225,9 +225,9 @@ className="gap-4" // 16px
 ```tsx
 <StandardCard variant="default" className="text-center">
   <CardContent className="py-12">
-    <Database className="w-12 h-12 mx-auto mb-4 text-[hsl(var(--claude-text-muted))]" />
+    <Database className="w-12 h-12 mx-auto mb-4 text-[var(--claude-text-muted)]" />
     <h3 className="font-heading text-lg mb-2">No Data Yet</h3>
-    <p className="text-[hsl(var(--claude-text-muted))] mb-4">
+    <p className="text-[var(--claude-text-muted)] mb-4">
       Connect your platforms to start building your soul signature
     </p>
     <PrimaryButton>
@@ -246,8 +246,8 @@ className="gap-4" // 16px
     </label>
     <input
       type="email"
-      className="w-full px-3 py-2 border border-[hsl(var(--claude-border))] rounded-lg
-                 focus:outline-none focus:ring-2 focus:ring-[hsl(var(--claude-accent))]"
+      className="w-full px-3 py-2 border border-[var(--claude-border)] rounded-lg
+                 focus:outline-none focus:ring-2 focus:ring-[var(--claude-accent)]"
       placeholder="you@example.com"
     />
   </div>

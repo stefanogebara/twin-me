@@ -78,7 +78,7 @@ export const DataTransparencyPanel: React.FC<DataTransparencyPanelProps> = ({
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h3 className="font-heading text-2xl font-medium text-[hsl(var(--claude-text))] mb-2">
+          <h3 className="font-heading text-2xl font-medium text-[var(--claude-text)] mb-2">
             Data Transparency
           </h3>
           <p className="text-sm text-muted-foreground font-body leading-relaxed">
@@ -91,8 +91,8 @@ export const DataTransparencyPanel: React.FC<DataTransparencyPanelProps> = ({
             onClick={onExportData}
             className="
               flex items-center gap-2 px-4 py-2.5 rounded-xl
-              bg-[hsl(var(--claude-accent))] text-white
-              hover:bg-[hsl(var(--claude-accent))]/90
+              bg-[var(--claude-accent)] text-white
+              hover:bg-[var(--claude-accent)]/90
               font-ui font-medium text-sm
               shadow-md hover:shadow-lg
               transition-all duration-200
@@ -191,7 +191,7 @@ export const DataTransparencyPanel: React.FC<DataTransparencyPanelProps> = ({
 
       {/* Data Sources List */}
       <div className="space-y-3">
-        <h4 className="font-heading text-lg font-medium text-[hsl(var(--claude-text))] mb-4">
+        <h4 className="font-heading text-lg font-medium text-[var(--claude-text)] mb-4">
           Connected Data Sources
         </h4>
 
@@ -229,7 +229,7 @@ export const DataTransparencyPanel: React.FC<DataTransparencyPanelProps> = ({
 
                       <div className="flex-1">
                         <div className="flex items-center gap-2 mb-1">
-                          <h5 className="font-heading text-base font-medium text-[hsl(var(--claude-text))] capitalize">
+                          <h5 className="font-heading text-base font-medium text-[var(--claude-text)] capitalize">
                             {source.platform}
                           </h5>
                           <CheckCircle className="w-4 h-4 text-green-500" />

@@ -52,11 +52,11 @@ export const MultiStepProgress: React.FC<MultiStepProgressProps> = ({
       case 'completed':
         return <CheckCircle2 className="w-5 h-5 text-green-400" />;
       case 'active':
-        return <Loader2 className="w-5 h-5 text-[hsl(var(--claude-accent))] animate-spin" />;
+        return <Loader2 className="w-5 h-5 text-[var(--claude-accent)] animate-spin" />;
       case 'error':
         return <Circle className="w-5 h-5 text-red-400" />;
       default:
-        return defaultIcon || <Circle className="w-5 h-5 text-[hsl(var(--claude-text-muted))]" />;
+        return defaultIcon || <Circle className="w-5 h-5 text-[var(--claude-text-muted)]" />;
     }
   };
 
@@ -64,16 +64,16 @@ export const MultiStepProgress: React.FC<MultiStepProgressProps> = ({
     return (
       <div className={cn('space-y-2', className)}>
         <div className="flex items-center justify-between text-sm">
-          <span className="font-medium text-[hsl(var(--claude-text))]">
+          <span className="font-medium text-[var(--claude-text)]">
             Step {currentStepIndex + 1} of {steps.length}: {steps[currentStepIndex]?.title}
           </span>
-          <span className="text-[hsl(var(--claude-text-muted))]">
+          <span className="text-[var(--claude-text-muted)]">
             {Math.round((currentStepIndex / steps.length) * 100)}%
           </span>
         </div>
         <Progress value={(currentStepIndex / steps.length) * 100} className="h-2" />
         {steps[currentStepIndex]?.description && (
-          <p className="text-sm text-[hsl(var(--claude-text-muted))]">
+          <p className="text-sm text-[var(--claude-text-muted)]">
             {steps[currentStepIndex].description}
           </p>
         )}
@@ -97,9 +97,9 @@ export const MultiStepProgress: React.FC<MultiStepProgressProps> = ({
                     className={cn(
                       'flex items-center justify-center w-10 h-10 rounded-full border-2 transition-all',
                       status === 'completed' && 'bg-green-900/20 border-green-600',
-                      status === 'active' && 'bg-[hsl(var(--claude-accent))]/10 border-[hsl(var(--claude-accent))]',
+                      status === 'active' && 'bg-[var(--claude-accent)]/10 border-[var(--claude-accent)]',
                       status === 'error' && 'bg-red-900/20 border-red-600',
-                      status === 'pending' && 'bg-[hsl(var(--claude-surface))] border-[hsl(var(--claude-border))]'
+                      status === 'pending' && 'bg-[var(--claude-surface)] border-[var(--claude-border)]'
                     )}
                   >
                     {getStepIcon(status, step.icon)}
@@ -110,16 +110,16 @@ export const MultiStepProgress: React.FC<MultiStepProgressProps> = ({
                     <p
                       className={cn(
                         'text-sm font-medium transition-colors',
-                        status === 'active' && 'text-[hsl(var(--claude-text))]',
+                        status === 'active' && 'text-[var(--claude-text)]',
                         status === 'completed' && 'text-green-400',
                         status === 'error' && 'text-red-400',
-                        status === 'pending' && 'text-[hsl(var(--claude-text-muted))]'
+                        status === 'pending' && 'text-[var(--claude-text-muted)]'
                       )}
                     >
                       {step.title}
                     </p>
                     {step.description && status === 'active' && (
-                      <p className="text-xs text-[hsl(var(--claude-text-muted))] mt-1">
+                      <p className="text-xs text-[var(--claude-text-muted)] mt-1">
                         {step.description}
                       </p>
                     )}
@@ -132,7 +132,7 @@ export const MultiStepProgress: React.FC<MultiStepProgressProps> = ({
                     <div
                       className={cn(
                         'h-full transition-all',
-                        index < currentStepIndex ? 'bg-green-600' : 'bg-[hsl(var(--claude-border))]'
+                        index < currentStepIndex ? 'bg-green-600' : 'bg-[var(--claude-border)]'
                       )}
                     />
                   </div>
@@ -165,9 +165,9 @@ export const MultiStepProgress: React.FC<MultiStepProgressProps> = ({
                   className={cn(
                     'flex items-center justify-center w-10 h-10 rounded-full border-2 transition-all z-10',
                     status === 'completed' && 'bg-green-900/20 border-green-600',
-                    status === 'active' && 'bg-[hsl(var(--claude-accent))]/10 border-[hsl(var(--claude-accent))]',
+                    status === 'active' && 'bg-[var(--claude-accent)]/10 border-[var(--claude-accent)]',
                     status === 'error' && 'bg-red-900/20 border-red-600',
-                    status === 'pending' && 'bg-[hsl(var(--claude-surface))] border-[hsl(var(--claude-border))]'
+                    status === 'pending' && 'bg-[var(--claude-surface)] border-[var(--claude-border)]'
                   )}
                 >
                   {getStepIcon(status, step.icon)}
@@ -179,7 +179,7 @@ export const MultiStepProgress: React.FC<MultiStepProgressProps> = ({
                     <div
                       className={cn(
                         'w-full h-full transition-all',
-                        index < currentStepIndex ? 'bg-green-600' : 'bg-[hsl(var(--claude-border))]'
+                        index < currentStepIndex ? 'bg-green-600' : 'bg-[var(--claude-border)]'
                       )}
                     />
                   </div>
@@ -191,16 +191,16 @@ export const MultiStepProgress: React.FC<MultiStepProgressProps> = ({
                 <h4
                   className={cn(
                     'font-medium transition-colors',
-                    status === 'active' && 'text-[hsl(var(--claude-text))]',
+                    status === 'active' && 'text-[var(--claude-text)]',
                     status === 'completed' && 'text-green-400',
                     status === 'error' && 'text-red-400',
-                    status === 'pending' && 'text-[hsl(var(--claude-text-muted))]'
+                    status === 'pending' && 'text-[var(--claude-text-muted)]'
                   )}
                 >
                   {step.title}
                 </h4>
                 {step.description && (
-                  <p className="text-sm text-[hsl(var(--claude-text-muted))] mt-1">
+                  <p className="text-sm text-[var(--claude-text-muted)] mt-1">
                     {step.description}
                   </p>
                 )}

@@ -123,6 +123,65 @@ const EXPERT_SECTIONS: ExpertConfig[] = [
   },
 ];
 
+// ── Demo fallback data ──────────────────────────────────────────────────────
+
+const DEMO_IDENTITY_DATA: IdentityData = {
+  identity: {
+    lifeStage: 'early_career',
+    culturalOrientation: 'global_digital_native',
+    careerSalience: 'high',
+    approximateAge: 28,
+    confidence: 0.82,
+    promptFragment: 'An analytically-minded creative who balances structure with spontaneity.',
+    twinVoiceHint: 'Warm but precise — thinks in systems, speaks in stories.',
+    inferredAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
+  },
+  profile: {
+    archetype: 'The Creative Synthesizer',
+    uniqueness_markers: [
+      'Rhythmic Thinker',
+      'Intentional Planner',
+      'Curious Generalist',
+      'Community Builder',
+    ],
+    music_signature: {
+      top_genres: ['Lo-fi', 'Ambient', 'Synthwave', 'Classical Crossover'],
+      listening_patterns: 'Uses music as a cognitive tool — high-energy for morning focus, ambient for deep work, lo-fi for transitions. Peak listening: 10pm-2am.',
+    },
+    core_values: ['Curiosity', 'Authenticity', 'Deep Work', 'Creative Freedom'],
+    personality_summary: 'Highly open to new experiences with strong conscientiousness when it matters. Thrives in environments that blend structure with creative freedom. Your digital footprint reveals someone who is simultaneously structured and spontaneous.',
+  },
+  expertInsights: {
+    personality_psychologist: [
+      'Your music selection follows a clear emotional regulation strategy — high-energy tracks during morning focus, ambient during deep work, lo-fi during transitions.',
+      'You demonstrate high openness (0.85) paired with moderate conscientiousness (0.78), a combination that enables creative productivity.',
+      'Your emotional processing style leans toward introspective — you use solitary activities (music, focused work) to recharge rather than social interaction.',
+    ],
+    lifestyle_analyst: [
+      'Calendar data reveals meeting clustering behavior — bunching meetings into Tuesday/Thursday afternoons, preserving mornings for uninterrupted work.',
+      'Your daily rhythm follows a consistent pattern: morning focus blocks, afternoon collaboration, late-night creative exploration.',
+      'You maintain a strong work-life boundary with 45% of calendar time blocked for deep work — well above the average of 20%.',
+    ],
+    cultural_identity: [
+      'Your aesthetic preferences lean toward immersive, textured experiences — electronic, ambient, and lo-fi traditions over mainstream pop.',
+      'Content consumption shows an 80/20 split: 80% niche technical content versus 20% broader cultural content.',
+      'You are a specialist who stays culturally literate — drawing from sound, systems thinking, and storytelling traditions.',
+    ],
+    social_dynamics: [
+      'Your social energy is concentrated in 3 niche communities centered on shared intellectual interests rather than broad social networks.',
+      'You prefer depth of connection over breadth — fewer, more meaningful relationships built around shared passions.',
+      'Communication style is warm but precise — you think in systems and speak in stories.',
+    ],
+    motivation_analyst: [
+      'Driven by mastery and novelty simultaneously — you set ambitious goals but pace them with intentional recovery cycles.',
+      'Your goal tracking shows strong follow-through: 83% completion rate on self-set targets over the past month.',
+      'You respond strongly to intrinsic motivation (learning, creating) over extrinsic rewards (status, recognition).',
+    ],
+  },
+  summary: 'You are a creative synthesizer who finds meaning at the intersection of music, technology, and human connection. Your listening patterns show deep emotional intelligence — you use sound as a tool for focus, recovery, and self-expression. The 45% of calendar time blocked for deep work reveals someone who guards their attention fiercely while remaining highly collaborative when present. Your personality combines high openness to experience with structured conscientiousness, enabling both creative exploration and reliable execution.',
+  summaryUpdatedAt: new Date(Date.now() - 3 * 60 * 60 * 1000).toISOString(),
+};
+
 // ── Badge colors for archetype / traits ────────────────────────────────────
 
 const BADGE_PALETTE = [
@@ -267,9 +326,11 @@ const IdentityPage: React.FC = () => {
   const [summaryExpanded, setSummaryExpanded] = useState(false);
   const [archetypeExpanded, setArchetypeExpanded] = useState(false);
 
+  const isDemoMode = localStorage.getItem('demo_mode') === 'true';
+
   useEffect(() => {
-    if (!user) navigate('/auth');
-  }, [user, navigate]);
+    if (!user && !isDemoMode) navigate('/auth');
+  }, [user, isDemoMode, navigate]);
 
   const { data, isLoading, error } = useQuery<{ success: boolean; data: IdentityData }>({
     queryKey: ['twin-identity'],
@@ -279,10 +340,11 @@ const IdentityPage: React.FC = () => {
       return res.json();
     },
     staleTime: 5 * 60 * 1000, // 5 minutes — identity changes slowly
-    enabled: !!user,
+    enabled: !!user && !isDemoMode,
+    initialData: isDemoMode ? { success: true, data: DEMO_IDENTITY_DATA } : undefined,
   });
 
-  if (!user) return null;
+  if (!user && !isDemoMode) return null;
 
   if (isLoading) {
     return (
@@ -297,7 +359,7 @@ const IdentityPage: React.FC = () => {
     );
   }
 
-  if (error) {
+  if (error && !isDemoMode) {
     return (
       <PageLayout>
         <div className="max-w-2xl mx-auto px-4 py-12">
@@ -410,20 +472,22 @@ const IdentityPage: React.FC = () => {
                 <p className="text-lg mt-1" style={{ color: 'var(--text-secondary)' }}>What your twin knows about you</p>
               </div>
             </div>
-            <button
-              onClick={() => {
-                const shareUrl = `${window.location.origin}/p/${user.id}`;
-                navigator.clipboard.writeText(shareUrl).then(() => {
-                  toast.success('Link copied! Share your Soul Signature');
-                }).catch(() => {
-                  toast.error('Could not copy link');
-                });
-              }}
-              className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-medium glass-button flex-shrink-0"
-            >
-              <Share2 className="w-3.5 h-3.5" />
-              Share
-            </button>
+            {!isDemoMode && user && (
+              <button
+                onClick={() => {
+                  const shareUrl = `${window.location.origin}/p/${user.id}`;
+                  navigator.clipboard.writeText(shareUrl).then(() => {
+                    toast.success('Link copied! Share your Soul Signature');
+                  }).catch(() => {
+                    toast.error('Could not copy link');
+                  });
+                }}
+                className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-medium glass-button flex-shrink-0"
+              >
+                <Share2 className="w-3.5 h-3.5" />
+                Share
+              </button>
+            )}
           </div>
           {identityMetaPill && (
             <span

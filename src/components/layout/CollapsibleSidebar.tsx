@@ -192,12 +192,12 @@ export const CollapsibleSidebar: React.FC<CollapsibleSidebarProps> = ({
                   active
                     ? "font-semibold"
                     : isExpanded
-                      ? 'text-sidebar-foreground hover:bg-sidebar-accent border-l-[3px] border-l-transparent'
+                      ? 'text-sidebar-foreground hover:bg-sidebar-accent'
                       : 'text-sidebar-foreground hover:bg-sidebar-accent'
                 )}
                 style={active ? {
                   background: 'var(--accent-vibrant-glow)',
-                  borderLeft: isExpanded ? '3px solid var(--accent-vibrant)' : undefined,
+                  borderRadius: '9999px',
                   color: 'var(--sidebar-accent-foreground)',
                 } : undefined}
                 title={item.label}
