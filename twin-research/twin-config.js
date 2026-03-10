@@ -28,8 +28,8 @@
 // Each weight can be [0.0, 2.0]. Values outside this range may destabilize retrieval.
 
 export const RETRIEVAL_WEIGHTS = {
-  // Balanced weights — general conversation
-  default: { recency: 1.0, importance: 1.0, relevance: 1.0 },
+  // Balanced weights — general conversation, importance boost
+  default: { recency: 1.0, importance: 1.4, relevance: 1.0 },
 
   // Identity queries (who is this person?) — relevance dominant, low recency bias.
   // Used by: twin summary generation, personality queries
