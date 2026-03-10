@@ -1,0 +1,674 @@
+/* === SUNDUST DESIGN SYSTEM — DARK + LIGHT MODE === */
+/* Scoped to .sundust — zero bleed into main app */
+/* Based on Figma Sundust UI Kit (fileKey: sm0EoOjSqFSL85choKFBwF) */
+
+/* ── DARK MODE (default) ── */
+.sundust {
+  /* Background */
+  --sd-bg: #110f0f;
+  --sd-fg: #fdfcfb;
+
+  /* Glass surfaces (dark mode) — Figma exact: rgba(72,65,65,0.6) */
+  --sd-glass-bg: rgba(52, 47, 47, 0.65);
+  --sd-glass-border: rgba(94, 86, 86, 0.5);
+  --sd-glass-blur: 42px;
+
+  /* Lighter glass for navbar */
+  --sd-nav-bg: rgba(40, 36, 36, 0.85);
+  --sd-nav-border: rgba(94, 86, 86, 0.5);
+
+  /* Input fields */
+  --sd-input-bg: rgba(255, 255, 255, 0.06);
+  --sd-input-border: rgba(60, 55, 55, 0.85);
+
+  /* Text */
+  --sd-text-primary: #fdfcfb;
+  --sd-text-secondary: #d9d1cb;
+  --sd-text-muted: rgba(217, 209, 203, 0.5);
+  --sd-text-placeholder: #86807b;
+
+  /* Accent */
+  --sd-accent: #ff8400;
+  --sd-accent-glow: rgba(255, 132, 0, 0.12);
+  --sd-accent-amber: #c17e2c;
+
+  /* Buttons */
+  --sd-btn-dark-bg: #252222;
+  --sd-btn-dark-fg: #fdfcfb;
+
+  /* Separators */
+  --sd-separator: rgba(44, 41, 41, 0.8);
+
+  /* Shadows */
+  --sd-shadow: 0 4px 4px rgba(0, 0, 0, 0.12);
+  --sd-shadow-lg: 0 8px 40px rgba(0, 0, 0, 0.5);
+
+  /* Base */
+  background-color: var(--sd-bg);
+  /* Nano Banana generated bg + 3-layer ambient gradient overlay — dark */
+  background-image:
+    radial-gradient(ellipse 80% 50% at 51% 100%, rgba(193,126,44,0.5) 0%, rgba(255,132,0,0.35) 30%, transparent 65%),
+    radial-gradient(ellipse 70% 50% at 30% 100%, rgba(193,126,44,0.45) 0%, rgba(185,101,74,0.3) 40%, transparent 70%),
+    radial-gradient(ellipse 60% 45% at 15% 100%, rgba(217,76,0,0.3) 0%, rgba(93,92,174,0.2) 60%, transparent 97%),
+    url('/images/backgrounds/sundust-dark-bg.png');
+  background-size: cover, cover, cover, cover;
+  background-position: center, center, center, center bottom;
+  background-attachment: fixed;
+  color: var(--sd-fg);
+  font-family: 'Inter', system-ui, sans-serif;
+  font-size: 14px;
+  line-height: 1.5;
+  letter-spacing: -0.28px;
+  min-height: 100vh;
+}
+
+/* === GLASS CARD === */
+.sd-card {
+  background: var(--sd-glass-bg);
+  border: 1px solid var(--sd-glass-border);
+  border-radius: 8px;
+  backdrop-filter: blur(var(--sd-glass-blur));
+  -webkit-backdrop-filter: blur(var(--sd-glass-blur));
+  box-shadow: var(--sd-shadow);
+}
+
+/* === FLOATING NAVBAR PILL === */
+.sd-navbar {
+  background: var(--sd-nav-bg);
+  border: 1px solid var(--sd-nav-border);
+  border-radius: 32px;
+  backdrop-filter: blur(19.65px);
+  -webkit-backdrop-filter: blur(19.65px);
+  box-shadow: var(--sd-shadow);
+}
+
+/* === SIDEBAR === */
+.sd-sidebar {
+  background: rgba(27, 24, 24, 0.9);
+  border-right: 1px solid #2C2929;
+  backdrop-filter: blur(42px);
+  -webkit-backdrop-filter: blur(42px);
+}
+
+/* === CHAT INPUT === */
+.sd-chatbox {
+  background: var(--sd-glass-bg);
+  border: 1px solid var(--sd-glass-border);
+  border-radius: 8px;
+  backdrop-filter: blur(42px);
+  -webkit-backdrop-filter: blur(42px);
+  box-shadow: var(--sd-shadow), inset 0 1px 0 rgba(255,255,255,0.04);
+}
+
+/* === SUGGESTION CHIP === */
+.sd-chip {
+  background: var(--sd-glass-bg);
+  border: 1px solid var(--sd-glass-border);
+  border-radius: 46px;
+  backdrop-filter: blur(42px);
+  -webkit-backdrop-filter: blur(42px);
+  padding: 10px 12px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--sd-text-secondary);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.sd-chip:hover {
+  background: rgba(94, 86, 86, 0.4);
+  color: var(--sd-text-primary);
+}
+
+/* === DARK BUTTON === */
+.sd-btn-dark {
+  background: var(--sd-btn-dark-bg);
+  color: var(--sd-btn-dark-fg);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 6px;
+  padding: 8px 16px;
+  height: 36px;
+  font-size: 14px;
+  font-weight: 500;
+  font-family: 'Inter', sans-serif;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  transition: opacity 0.15s ease;
+}
+.sd-btn-dark:hover {
+  opacity: 0.85;
+}
+
+/* === PILL BUTTON (CTA) === */
+.sd-btn-pill {
+  background: var(--sd-fg);
+  color: var(--sd-bg);
+  border: none;
+  border-radius: 100px;
+  padding: 8px 20px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: opacity 0.15s ease;
+}
+.sd-btn-pill:hover {
+  opacity: 0.9;
+}
+
+/* === GHOST BUTTON === */
+.sd-btn-ghost {
+  background: transparent;
+  color: var(--sd-text-secondary);
+  border: none;
+  border-radius: 6px;
+  padding: 6px 12px;
+  font-size: 13px;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+.sd-btn-ghost:hover {
+  background: rgba(255,255,255,0.06);
+}
+
+/* === SEND BUTTON === */
+.sd-send-btn {
+  background: var(--sd-btn-dark-bg);
+  border: none;
+  border-radius: 100px;
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: opacity 0.15s ease;
+  color: #fdfcfb;
+}
+.sd-send-btn:hover {
+  opacity: 0.85;
+}
+.sd-send-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* === INPUT FIELD === */
+.sd-input {
+  background: var(--sd-input-bg);
+  border: 1px solid var(--sd-input-border);
+  border-radius: 6px;
+  padding: 10px 12px;
+  font-size: 14px;
+  font-family: 'Inter', sans-serif;
+  color: var(--sd-fg);
+  width: 100%;
+  outline: none;
+  transition: border-color 0.15s ease;
+}
+.sd-input::placeholder {
+  color: var(--sd-text-placeholder);
+}
+.sd-input:focus {
+  border-color: rgba(255, 132, 0, 0.5);
+}
+
+/* === CHAT BUBBLES === */
+.sd-bubble-user {
+  background: #262323;
+  border-radius: 12px 12px 4px 12px;
+  padding: 12px 16px;
+  max-width: 75%;
+  font-size: 14px;
+  color: var(--sd-fg);
+  margin-left: auto;
+}
+
+.sd-bubble-twin {
+  background: transparent;
+  border-radius: 20px 20px 20px 4px;
+  padding: 12px 0;
+  max-width: 80%;
+  font-size: 14px;
+  color: var(--sd-text-secondary);
+}
+
+/* === SIDEBAR NAV ITEM === */
+.sd-nav-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  border-radius: 8px;
+  color: var(--sd-fg);
+  cursor: pointer;
+  font-size: 14px;
+  transition: background 0.15s ease;
+  width: 100%;
+  border: none;
+  background: none;
+  text-align: left;
+}
+.sd-nav-item:hover {
+  background: #2C2929;
+  color: var(--sd-fg);
+}
+.sd-nav-item.active {
+  background: #2C2929;
+  color: var(--sd-fg);
+}
+
+/* === SETTINGS ROW === */
+.sd-settings-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 0;
+  border-bottom: 1px solid var(--sd-separator);
+}
+.sd-settings-row:last-child {
+  border-bottom: none;
+}
+
+/* === TOGGLE === */
+.sd-toggle {
+  width: 40px;
+  height: 22px;
+  border-radius: 100px;
+  border: none;
+  cursor: pointer;
+  position: relative;
+  transition: background 0.2s ease;
+  flex-shrink: 0;
+}
+.sd-toggle.on {
+  background: var(--sd-fg);
+}
+.sd-toggle.off {
+  background: rgba(255,255,255,0.15);
+}
+.sd-toggle::after {
+  content: '';
+  position: absolute;
+  top: 3px;
+  width: 16px;
+  height: 16px;
+  background: white;
+  border-radius: 50%;
+  transition: left 0.2s ease;
+}
+.sd-toggle.on::after {
+  left: 21px;
+}
+.sd-toggle.off::after {
+  left: 3px;
+}
+
+/* === ONLINE BADGE === */
+.sd-badge {
+  background: rgba(17,15,15,0.4);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 6px;
+  padding: 2px 8px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--sd-text-secondary);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* === AMBER GLOW BLOB === */
+.sd-amber-glow {
+  position: absolute;
+  width: 456px;
+  height: 456px;
+  left: 50%;
+  transform: translateX(-50%);
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(193,126,44,0.7) 0%, rgba(255,132,0,0.4) 25%, rgba(193,126,44,0.15) 55%, transparent 75%);
+  filter: blur(40px);
+  pointer-events: none;
+}
+
+/* === HEADING SERIF === */
+.sd-heading {
+  font-family: 'Instrument Serif', Georgia, serif;
+  font-weight: 400;
+  letter-spacing: -0.02em;
+  color: var(--sd-fg);
+  line-height: 1.0;
+}
+
+/* === SETTINGS TAB === */
+.sd-tab {
+  padding: 8px 10px;
+  font-size: 14px;
+  font-family: 'Inter', sans-serif;
+  border: none;
+  background: none;
+  cursor: pointer;
+  color: var(--sd-text-secondary);
+  border-bottom: 2px solid transparent;
+  transition: all 0.15s ease;
+  height: 34px;
+  display: flex;
+  align-items: center;
+}
+.sd-tab.active {
+  color: var(--sd-fg);
+  border-bottom-color: var(--sd-fg);
+}
+.sd-tab:hover:not(.active) {
+  color: var(--sd-text-primary);
+}
+
+/* Scrollbar */
+.sd-scroll::-webkit-scrollbar { width: 4px; }
+.sd-scroll::-webkit-scrollbar-track { background: transparent; }
+.sd-scroll::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 2px; }
+
+/* ── LIGHT MODE ── */
+.sundust.light {
+  /* Background */
+  --sd-bg: #fdfcfb;
+  --sd-fg: #1b1818;
+
+  /* Glass surfaces */
+  --sd-glass-bg: rgba(244, 241, 236, 0.7);
+  --sd-glass-border: #d9d1cb;
+  --sd-glass-blur: 42px;
+
+  /* Navbar */
+  --sd-nav-bg: rgba(244, 241, 236, 0.8);
+  --sd-nav-border: #d9d1cb;
+
+  /* Input fields */
+  --sd-input-bg: rgba(218, 217, 215, 0.2);
+  --sd-input-border: #d9d1cb;
+
+  /* Text */
+  --sd-text-primary: #1b1818;
+  --sd-text-secondary: #4a4242;
+  --sd-text-muted: rgba(74, 66, 66, 0.5);
+  --sd-text-placeholder: #86807b;
+
+  /* Accent — same orange, dimmer glow */
+  --sd-accent: #ff8400;
+  --sd-accent-glow: rgba(255, 132, 0, 0.10);
+  --sd-accent-amber: #c17e2c;
+
+  /* Buttons */
+  --sd-btn-dark-bg: #252222;
+  --sd-btn-dark-fg: #fdfcfb;
+
+  /* Separators */
+  --sd-separator: rgba(50, 47, 47, 0.05);
+
+  /* Shadows */
+  --sd-shadow: 0 4px 4px rgba(0, 0, 0, 0.06);
+  --sd-shadow-lg: 0 8px 40px rgba(0, 0, 0, 0.15);
+
+  /* Base */
+  background-color: var(--sd-bg);
+  /* Nano Banana generated bg + subtle peachy-amber glow overlay — light */
+  background-image:
+    radial-gradient(ellipse 60% 40% at 50% 100%, rgba(193,126,44,0.18) 0%, rgba(255,132,0,0.08) 35%, transparent 65%),
+    radial-gradient(ellipse 40% 30% at 30% 100%, rgba(193,126,44,0.12) 0%, transparent 60%),
+    url('/images/backgrounds/sundust-light-bg.png');
+  background-size: cover, cover, cover;
+  background-position: center, center, center bottom;
+  color: var(--sd-fg);
+}
+
+/* Light mode sidebar */
+.sundust.light .sd-sidebar {
+  background: rgba(244, 241, 236, 0.85);
+  border-right: 1px solid #d9d1cb;
+}
+
+/* Light mode scrollbar */
+.sundust.light .sd-scroll::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.12);
+}
+
+/* Light mode nav item */
+.sundust.light .sd-nav-item:hover {
+  background: rgba(0, 0, 0, 0.04);
+  color: var(--sd-fg);
+}
+.sundust.light .sd-nav-item.active {
+  background: rgba(193, 126, 44, 0.12);
+  color: #1b1818;
+}
+.sundust.light .sd-nav-item.active img,
+.sundust.light .sd-nav-item.active svg {
+  opacity: 0.9;
+}
+
+/* Light mode user chat bubble — warm dark brown, not near-black */
+.sundust.light .sd-bubble-user {
+  background: #3d3535;
+}
+
+/* Light mode ghost button hover */
+.sundust.light .sd-btn-ghost:hover {
+  background: rgba(0, 0, 0, 0.05);
+}
+
+/* Light mode toggle off-state */
+.sundust.light .sd-toggle.off {
+  background: rgba(0, 0, 0, 0.12);
+}
+
+/* === TOP BAR (main content area) === */
+.sd-topbar {
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 24px;
+  border-bottom: 1px solid var(--sd-separator);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  background: rgba(17, 15, 15, 0.4);
+  flex-shrink: 0;
+  z-index: 10;
+}
+
+.sundust.light .sd-topbar {
+  background: rgba(253, 252, 251, 0.8);
+}
+
+/* === SETTINGS CARD (glass wrapper for settings page) === */
+.sd-settings-card {
+  background: rgba(30, 27, 27, 0.5);
+  backdrop-filter: blur(42px);
+  -webkit-backdrop-filter: blur(42px);
+  border: 1px solid var(--sd-glass-border);
+  border-radius: 8px;
+}
+.sundust.light .sd-settings-card {
+  background: rgba(218, 217, 215, 0.2);
+  border-color: #d9d1cb;
+}
+
+/* === COLLAPSED SIDEBAR NAV ITEM (icon-only) === */
+.sd-nav-item.icon-only {
+  justify-content: center;
+  padding: 8px;
+}
+
+/* Light mode top bar */
+.sundust.light .sd-sidebar {
+  background: rgba(244, 241, 236, 0.85);
+  border-right: 1px solid #d9d1cb;
+}
+
+/* Sidebar transition smoothing */
+.sd-sidebar * {
+  transition: opacity 0.15s ease;
+}
+
+/* === PROGRESS BAR === */
+.sd-progress-track {
+  width: 100%;
+  height: 4px;
+  background: rgba(255,255,255,0.08);
+  border-radius: 100px;
+  overflow: hidden;
+}
+.sd-progress-fill {
+  height: 100%;
+  border-radius: 100px;
+  background: var(--sd-fg);
+  transition: width 0.3s ease;
+}
+.sundust.light .sd-progress-track { background: rgba(0,0,0,0.08); }
+
+/* === SLIDER (Privacy Spectrum) === */
+.sd-slider {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 4px;
+  background: rgba(255,255,255,0.12);
+  border-radius: 100px;
+  outline: none;
+  cursor: pointer;
+}
+.sd-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--sd-fg);
+  cursor: pointer;
+  border: 2px solid rgba(255,255,255,0.2);
+}
+.sundust.light .sd-slider { background: rgba(0,0,0,0.1); }
+.sundust.light .sd-slider::-webkit-slider-thumb { border-color: rgba(0,0,0,0.15); }
+
+/* === SECTION LABEL === */
+.sd-section-label {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--sd-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-family: 'Inter', sans-serif;
+}
+
+/* === LABEL (input label) === */
+.sd-label {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--sd-fg);
+  font-family: 'Inter', sans-serif;
+  margin-bottom: 6px;
+}
+
+/* === PANEL (darker card variant) === */
+.sd-panel {
+  background: rgba(17, 15, 15, 0.6);
+  border: 1px solid var(--sd-glass-border);
+  border-radius: 8px;
+  backdrop-filter: blur(42px);
+  -webkit-backdrop-filter: blur(42px);
+}
+.sundust.light .sd-panel {
+  background: rgba(218, 217, 215, 0.35);
+  border-color: #d9d1cb;
+}
+
+/* === STAT CARD === */
+.sd-stat-card {
+  background: var(--sd-glass-bg);
+  border: 1px solid var(--sd-glass-border);
+  border-radius: 8px;
+  padding: 16px 20px;
+  backdrop-filter: blur(42px);
+  -webkit-backdrop-filter: blur(42px);
+  box-shadow: var(--sd-shadow);
+}
+
+/* === INSIGHT CARD === */
+.sd-insight-card {
+  background: var(--sd-glass-bg);
+  border: 1px solid var(--sd-glass-border);
+  border-radius: 8px;
+  padding: 20px 22px;
+  backdrop-filter: blur(42px);
+  -webkit-backdrop-filter: blur(42px);
+  box-shadow: var(--sd-shadow);
+  cursor: default;
+  transition: border-color 0.15s ease;
+}
+.sd-insight-card:hover {
+  border-color: rgba(193, 126, 44, 0.3);
+}
+
+/* === STATUS BADGE === */
+.sd-status-badge {
+  font-size: 11px;
+  font-weight: 500;
+  padding: 3px 10px;
+  border-radius: 100px;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  letter-spacing: 0.02em;
+}
+.sd-status-badge.connected {
+  background: rgba(52, 211, 153, 0.1);
+  color: #34d399;
+  border: 1px solid rgba(52, 211, 153, 0.2);
+}
+.sd-status-badge.disconnected {
+  background: rgba(255,255,255,0.05);
+  color: var(--sd-text-muted);
+  border: 1px solid rgba(255,255,255,0.08);
+}
+.sd-status-badge.active {
+  background: rgba(52, 211, 153, 0.1);
+  color: #34d399;
+  border: 1px solid rgba(52, 211, 153, 0.2);
+}
+
+/* === EMPTY STATE === */
+.sd-empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 64px 32px;
+  gap: 16px;
+  color: var(--sd-text-muted);
+}
+
+/* === CHAT TYPING INDICATOR === */
+.sd-typing {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+  padding: 8px 0;
+}
+.sd-typing span {
+  width: 5px;
+  height: 5px;
+  background: var(--sd-text-muted);
+  border-radius: 50%;
+  animation: sd-dot-bounce 1.2s infinite;
+}
+.sd-typing span:nth-child(2) { animation-delay: 0.2s; }
+.sd-typing span:nth-child(3) { animation-delay: 0.4s; }
+@keyframes sd-dot-bounce {
+  0%, 80%, 100% { transform: translateY(0); opacity: 0.4; }
+  40% { transform: translateY(-5px); opacity: 1; }
+}
