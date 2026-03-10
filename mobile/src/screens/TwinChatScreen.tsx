@@ -218,7 +218,7 @@ const styles = StyleSheet.create({
   },
   emptyLogo: { width: 64, height: 64, marginBottom: 20 },
   emptyTitle: {
-    fontFamily: 'Halant_400Regular',
+    fontFamily: 'InstrumentSerif_400Regular',
     fontSize: 26,
     color: COLORS.text,
     letterSpacing: -0.5,

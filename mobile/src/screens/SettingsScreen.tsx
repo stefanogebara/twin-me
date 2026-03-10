@@ -236,7 +236,7 @@ const styles = StyleSheet.create({
   },
   profileInfo: { flex: 1 },
   profileName: {
-    fontFamily: 'Halant_400Regular',
+    fontFamily: 'InstrumentSerif_400Regular',
     fontSize: 20,
     color: COLORS.text,
     letterSpacing: -0.3,

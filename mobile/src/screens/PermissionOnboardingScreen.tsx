@@ -171,7 +171,7 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 28,
-    fontFamily: 'Halant_500Medium',
+    fontFamily: 'InstrumentSerif_400Regular',
     color: COLORS.text,
     letterSpacing: -0.5,
     lineHeight: 36,

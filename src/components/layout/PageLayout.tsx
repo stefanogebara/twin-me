@@ -2,7 +2,7 @@
  * PageLayout Component
  *
  * Provides consistent page structure with the TwinMe landing page design.
- * Dark background (#1C1917), Halant headings, liquid glass cards.
+ * Dark background (#1C1917), Instrument Serif headings, liquid glass cards.
  * Light mode only — matches Index.tsx design language.
  */
 

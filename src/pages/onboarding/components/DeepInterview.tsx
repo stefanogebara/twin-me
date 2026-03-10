@@ -240,7 +240,7 @@ const DeepInterview: React.FC<DeepInterviewProps> = ({
         <h2
           className="text-xl md:text-2xl mb-1"
           style={{
-            fontFamily: 'Halant, Georgia, serif',
+            fontFamily: 'Instrument Serif, Georgia, serif',
             fontWeight: 400,
             letterSpacing: '-0.03em',
             color: 'var(--foreground)',
@@ -392,7 +392,7 @@ const DeepInterview: React.FC<DeepInterviewProps> = ({
             <p
               className="text-lg mb-1"
               style={{
-                fontFamily: 'Halant, Georgia, serif',
+                fontFamily: 'Instrument Serif, Georgia, serif',
                 fontWeight: 500,
                 color: 'var(--foreground)',
               }}
@@ -423,7 +423,7 @@ const DeepInterview: React.FC<DeepInterviewProps> = ({
                 className="text-xs leading-relaxed max-w-sm mx-auto mt-2"
                 style={{
                   color: 'var(--text-secondary)',
-                  fontFamily: 'Halant, Georgia, serif',
+                  fontFamily: 'Instrument Serif, Georgia, serif',
                   fontStyle: 'italic',
                   opacity: 0.8,
                 }}
@@ -437,7 +437,7 @@ const DeepInterview: React.FC<DeepInterviewProps> = ({
                 className="text-sm leading-relaxed max-w-sm mx-auto"
                 style={{
                   color: 'var(--text-secondary)',
-                  fontFamily: 'Halant, Georgia, serif',
+                  fontFamily: 'Instrument Serif, Georgia, serif',
                   fontStyle: 'italic',
                 }}
               >

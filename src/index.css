@@ -5,7 +5,7 @@
  */
 
 /* ===== FONTS ===== */
-@import url('https://fonts.googleapis.com/css2?family=Halant:wght@300;400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&display=swap');
 
 /* ===== GLASS MORPHISM EFFECTS ===== */
 @import './styles/glassmorphism.css';
@@ -37,7 +37,7 @@
     --text-secondary: #57534E;
     --text-muted: #78716C;
     --text-placeholder: #A8A29E;
-    --accent-streak: #C2410C;
+    --accent-streak: #ff8400;
 
     /* Border Colors */
     --border: rgba(28, 25, 23, 0.10);
@@ -78,11 +78,11 @@
     --glass-shadow: 0 8px 32px rgba(0, 0, 0, 0.08);
     --glass-shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.12);
 
-    /* Glass Surface Variables */
-    --glass-surface-bg: rgba(255, 255, 255, 0.55);
-    --glass-surface-bg-hover: rgba(255, 255, 255, 0.70);
-    --glass-surface-bg-subtle: rgba(255, 255, 255, 0.38);
-    --glass-surface-border: rgba(28, 25, 23, 0.10);
+    /* Glass Surface Variables — Figma Sundust exact */
+    --glass-surface-bg: rgba(244, 241, 236, 0.7);
+    --glass-surface-bg-hover: rgba(244, 241, 236, 0.85);
+    --glass-surface-bg-subtle: rgba(218, 217, 215, 0.2);
+    --glass-surface-border: #d9d1cb;
     --glass-surface-border-hover: rgba(28, 25, 23, 0.18);
     --glass-inset-highlight: rgba(255, 255, 255, 0.50);
 
@@ -106,18 +106,20 @@
     --bg-size-4: 60% 60%;
     --bg-spread-4: 45%;
 
-    /* Typography — Halant for headings, Geist for body */
-    --font-heading: 'Halant', Georgia, serif;
-    --font-accent: 'Halant', Georgia, serif;
+    /* Typography — Instrument Serif for headings, Geist for body */
+    --font-heading: 'Instrument Serif', Georgia, serif;
+    --font-accent: 'Instrument Serif', Georgia, serif;
     --font-body: 'Geist', 'Inter', system-ui, sans-serif;
     --font-sans: 'Geist', 'Inter', system-ui, sans-serif;
-    --font-serif: 'Halant', Georgia, serif;
+    --font-serif: 'Instrument Serif', Georgia, serif;
     --font-mono: ui-monospace, monospace;
 
-    /* Vibrant Accent for CTAs */
-    --accent-vibrant: #D4A853;
-    --accent-vibrant-hover: #C49A48;
-    --accent-vibrant-glow: rgba(212, 168, 83, 0.20);
+    /* Vibrant Accent for CTAs — Figma Sundust tokens */
+    --accent-vibrant: #ff8400;
+    --accent-vibrant-hover: #e67700;
+    --accent-vibrant-glow: rgba(255, 132, 0, 0.12);
+    --accent-amber: #c17e2c;
+    --accent-purple: #5d5cae;
 
     /* Spacing & Radius */
     --radius: 1rem;
@@ -147,7 +149,7 @@
     --text-secondary: #A8A29E;
     --text-muted: #9C9590;
     --text-placeholder: #57534E;
-    --accent-streak: #F97316;
+    --accent-streak: #ff8400;
 
     /* Border Colors */
     --border: rgba(255, 255, 255, 0.08);
@@ -188,11 +190,11 @@
     --glass-shadow: 0 8px 32px rgba(0, 0, 0, 0.35);
     --glass-shadow-lg: 0 16px 48px rgba(0, 0, 0, 0.45);
 
-    /* Glass Surface Variables */
-    --glass-surface-bg: rgba(255, 255, 255, 0.08);
-    --glass-surface-bg-hover: rgba(255, 255, 255, 0.12);
+    /* Glass Surface Variables — Figma Sundust dark */
+    --glass-surface-bg: rgba(72, 65, 65, 0.6);
+    --glass-surface-bg-hover: rgba(72, 65, 65, 0.75);
     --glass-surface-bg-subtle: rgba(255, 255, 255, 0.05);
-    --glass-surface-border: rgba(255, 255, 255, 0.12);
+    --glass-surface-border: rgba(94, 86, 86, 0.6);
     --glass-surface-border-hover: rgba(255, 255, 255, 0.22);
     --glass-inset-highlight: rgba(255, 255, 255, 0.18);
 
@@ -216,10 +218,12 @@
     --bg-size-4: 60% 60%;
     --bg-spread-4: 45%;
 
-    /* Vibrant Accent for CTAs — warm gold pops on dark */
-    --accent-vibrant: #E0B860;
-    --accent-vibrant-hover: #D4A853;
-    --accent-vibrant-glow: rgba(224, 184, 96, 0.25);
+    /* Vibrant Accent for CTAs — Figma Sundust tokens */
+    --accent-vibrant: #ff8400;
+    --accent-vibrant-hover: #e67700;
+    --accent-vibrant-glow: rgba(255, 132, 0, 0.12);
+    --accent-amber: #c17e2c;
+    --accent-purple: #5d5cae;
   }
 
   /* Theme inline definitions for Tailwind */
@@ -294,9 +298,9 @@
     -moz-osx-font-smoothing: grayscale;
   }
 
-  /* Headings — Halant serif for all headings (Claura system) */
+  /* Headings — Instrument Serif serif for all headings (Claura system) */
   h1, h2 {
-    font-family: 'Halant', Georgia, serif;
+    font-family: 'Instrument Serif', Georgia, serif;
     font-weight: 400;
     letter-spacing: -0.05em;
     line-height: 1.1;
@@ -304,7 +308,7 @@
   }
 
   h3 {
-    font-family: 'Halant', Georgia, serif;
+    font-family: 'Instrument Serif', Georgia, serif;
     font-weight: 400;
     letter-spacing: -0.03em;
     line-height: 1.2;
@@ -483,7 +487,7 @@
 
   /* === Typography Utilities — Claura === */
   .text-heading {
-    font-family: 'Halant', Georgia, serif;
+    font-family: 'Instrument Serif', Georgia, serif;
     font-weight: 400;
     letter-spacing: -0.05em;
     color: var(--text-primary);
@@ -778,7 +782,7 @@
 
   /* Hero Text — Claura */
   .hero-text {
-    font-family: 'Halant', Georgia, serif;
+    font-family: 'Instrument Serif', Georgia, serif;
     font-size: clamp(2.625rem, 8vw, 4.375rem);
     font-weight: 400;
     letter-spacing: -0.05em;
@@ -914,7 +918,7 @@
 }
 
 .font-playfair {
-  font-family: 'Halant', Georgia, serif;
+  font-family: 'Instrument Serif', Georgia, serif;
 }
 
 .font-inter {
@@ -923,7 +927,7 @@
 
 /* ===== CLAURA DESIGN SYSTEM — Global heading/body/button classes ===== */
 .heading-serif {
-  font-family: 'Halant', Georgia, serif;
+  font-family: 'Instrument Serif', Georgia, serif;
   font-weight: 400;
   letter-spacing: -0.05em;
   line-height: 1.1;
@@ -935,7 +939,7 @@
 .heading-serif.h4 { font-size: 22px; font-weight: 600; }
 
 .heading-serif-italic {
-  font-family: 'Halant', Georgia, serif;
+  font-family: 'Instrument Serif', Georgia, serif;
   font-weight: 400;
   font-style: italic;
   color: var(--text-muted);

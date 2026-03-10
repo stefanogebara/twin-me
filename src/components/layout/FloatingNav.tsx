@@ -108,7 +108,7 @@ export const FloatingNav: React.FC = () => {
           {/* Brand */}
           <div
             className="text-2xl font-bold text-foreground cursor-pointer hover:text-muted-foreground transition-colors"
-            style={{ fontFamily: '"Halant", var(--font-heading), Georgia, serif', fontWeight: 500 }}
+            style={{ fontFamily: '"Instrument Serif", var(--font-heading), Georgia, serif', fontWeight: 500 }}
             onClick={() => handleNavigate('/dashboard')}
           >
             Twin Me

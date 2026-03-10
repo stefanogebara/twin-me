@@ -48,7 +48,7 @@ const WelcomeStep: React.FC<WelcomeStepProps> = ({ onBegin }) => {
           animate={{ opacity: visible ? 1 : 0 }}
           transition={{ delay: 0.3, duration: 0.8 }}
           style={{
-            fontFamily: 'Halant, Georgia, serif',
+            fontFamily: 'Instrument Serif, Georgia, serif',
             fontWeight: 400,
             letterSpacing: '-0.05em',
             lineHeight: 1.1,

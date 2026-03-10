@@ -159,7 +159,7 @@ For privacy concerns: privacy@twinme.ai`
             <img src="/images/backgrounds/flower.png" alt="TwinMe" style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center' }} />
           </div>
           <span style={{
-            fontFamily: "'Halant', 'Instrument Serif', Georgia, serif",
+            fontFamily: "'Instrument Serif', Georgia, serif",
             fontSize: '25px',
             letterSpacing: '-0.5px',
             color: FG,
@@ -202,7 +202,7 @@ For privacy concerns: privacy@twinme.ai`
           {/* Heading */}
           <div style={{ textAlign: 'center' }}>
             <h1 style={{
-              fontFamily: "'Halant', 'Instrument Serif', Georgia, serif",
+              fontFamily: "'Instrument Serif', Georgia, serif",
               fontSize: '36px',
               fontWeight: 400,
               letterSpacing: '-0.72px',
@@ -337,33 +337,44 @@ For privacy concerns: privacy@twinme.ai`
           pointerEvents: 'none',
         }} />
 
-        {/* Small chatbox UI element — Figma center piece */}
-        <div style={{
-          position: 'absolute',
-          top: '50%',
-          left: '50%',
-          transform: 'translate(-50%, -50%)',
-          width: '320px',
-          backdropFilter: 'blur(42px)',
-          WebkitBackdropFilter: 'blur(42px)',
-          background: 'rgba(72, 65, 65, 0.55)',
-          border: '1px solid rgba(94, 86, 86, 0.5)',
-          borderRadius: '20px',
-          padding: '16px 20px',
-          boxShadow: '0 4px 24px rgba(0,0,0,0.3)',
-        }}>
-          <p style={{ fontSize: '14px', color: TEXT_MUTED, fontFamily: "'Inter', sans-serif", margin: 0, lineHeight: 1.4 }}>
-            What makes you authentically you?
-          </p>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '20px' }}>
-            <div style={{ display: 'flex', gap: '8px' }}>
-              <span style={{ fontSize: '12px', color: TEXT_SUBTLE, fontFamily: "'Inter', sans-serif", background: 'rgba(94,86,86,0.4)', padding: '2px 10px', borderRadius: '100px' }}>Explore</span>
-              <span style={{ fontSize: '12px', color: TEXT_SUBTLE, fontFamily: "'Inter', sans-serif", background: 'rgba(94,86,86,0.4)', padding: '2px 10px', borderRadius: '6px' }}>Platforms</span>
-            </div>
-            <div style={{ width: '28px', height: '28px', borderRadius: '50%', background: BUTTON_PRIMARY_BG, display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: 0.5 }}>
-              <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
-                <path d="M6 10V2M2 6L6 2L10 6" stroke={BUTTON_PRIMARY_FG} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-              </svg>
+        {/* Small chatbox UI element — Figma center piece (CTA to /discover) */}
+        <div
+          onClick={() => navigate('/discover')}
+          style={{
+            position: 'absolute',
+            top: '50%',
+            left: '50%',
+            transform: 'translate(-50%, -50%)',
+            width: '320px',
+            cursor: 'pointer',
+            transition: 'opacity 0.2s ease',
+          }}
+          onMouseEnter={(e) => { e.currentTarget.style.opacity = '0.85'; }}
+          onMouseLeave={(e) => { e.currentTarget.style.opacity = '1'; }}
+        >
+          <div style={{
+            width: '100%',
+            backdropFilter: 'blur(42px)',
+            WebkitBackdropFilter: 'blur(42px)',
+            background: 'rgba(72, 65, 65, 0.55)',
+            border: '1px solid rgba(94, 86, 86, 0.5)',
+            borderRadius: '20px',
+            padding: '16px 20px',
+            boxShadow: '0 4px 24px rgba(0,0,0,0.3)',
+          }}>
+            <p style={{ fontSize: '14px', color: TEXT_MUTED, fontFamily: "'Inter', sans-serif", margin: 0, lineHeight: 1.4 }}>
+              What makes you authentically you?
+            </p>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '20px' }}>
+              <div style={{ display: 'flex', gap: '8px' }}>
+                <span style={{ fontSize: '12px', color: TEXT_SUBTLE, fontFamily: "'Inter', sans-serif", background: 'rgba(94,86,86,0.4)', padding: '2px 10px', borderRadius: '100px' }}>Explore</span>
+                <span style={{ fontSize: '12px', color: TEXT_SUBTLE, fontFamily: "'Inter', sans-serif", background: 'rgba(94,86,86,0.4)', padding: '2px 10px', borderRadius: '6px' }}>Platforms</span>
+              </div>
+              <div style={{ width: '28px', height: '28px', borderRadius: '50%', background: BUTTON_PRIMARY_BG, display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: 0.5 }}>
+                <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+                  <path d="M6 10V2M2 6L6 2L10 6" stroke={BUTTON_PRIMARY_FG} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+              </div>
             </div>
           </div>
         </div>
@@ -382,7 +393,7 @@ For privacy concerns: privacy@twinme.ai`
             Soul Signature Platform
           </p>
           <h2 style={{
-            fontFamily: "'Halant', 'Instrument Serif', Georgia, serif",
+            fontFamily: "'Instrument Serif', Georgia, serif",
             fontSize: 'clamp(28px, 3.2vw, 42px)',
             fontWeight: 400,
             letterSpacing: '-0.5px',
@@ -441,7 +452,7 @@ For privacy concerns: privacy@twinme.ai`
               borderBottom: '1px solid rgba(94, 86, 86, 0.4)',
             }}>
               <h2 style={{
-                fontFamily: "'Halant', Georgia, serif",
+                fontFamily: "'Instrument Serif', Georgia, serif",
                 fontSize: '20px', fontWeight: 400,
                 letterSpacing: '-0.3px', color: FG, margin: 0,
               }}>

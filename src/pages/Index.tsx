@@ -119,7 +119,7 @@ const Index = () => {
       <style>{`
         /* ── Sundust Dark Typography System ── */
         .heading-serif {
-          font-family: 'Halant', Georgia, serif;
+          font-family: 'Instrument Serif', Georgia, serif;
           font-weight: 400;
           letter-spacing: -0.05em;
           line-height: 1.1;
@@ -129,7 +129,7 @@ const Index = () => {
         .h2 { font-size: 56px; }
         .h3 { font-size: 32px; }
         .heading-serif-italic {
-          font-family: 'Halant', Georgia, serif;
+          font-family: 'Instrument Serif', Georgia, serif;
           font-weight: 400;
           font-style: italic;
           color: #A8A29E;
@@ -647,7 +647,7 @@ const Index = () => {
               <div key={i} className="glass-stat-standalone">
                 <div
                   style={{
-                    fontFamily: "'Halant', Georgia, serif",
+                    fontFamily: "'Instrument Serif', Georgia, serif",
                     fontSize: '52px',
                     fontWeight: 600,
                     lineHeight: 1.05,

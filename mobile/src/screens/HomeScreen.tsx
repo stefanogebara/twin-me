@@ -200,7 +200,7 @@ const styles = StyleSheet.create({
     marginBottom: 2,
   },
   name: {
-    fontFamily: 'Halant_400Regular',
+    fontFamily: 'InstrumentSerif_400Regular',
     fontSize: 32,
     color: COLORS.text,
     letterSpacing: -1,
@@ -236,7 +236,7 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   bigNumber: {
-    fontFamily: 'Halant_400Regular',
+    fontFamily: 'InstrumentSerif_400Regular',
     fontSize: 52,
     color: COLORS.text,
     letterSpacing: -2,
@@ -302,7 +302,7 @@ const styles = StyleSheet.create({
 
   // Empty state
   emptyTitle: {
-    fontFamily: 'Halant_400Regular',
+    fontFamily: 'InstrumentSerif_400Regular',
     fontSize: 20,
     color: COLORS.text,
     marginBottom: 8,

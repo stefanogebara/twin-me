@@ -496,7 +496,7 @@ const styles = StyleSheet.create({
   },
   profileInfo: { flex: 1 },
   profileName: {
-    fontFamily: 'Halant_400Regular',
+    fontFamily: 'InstrumentSerif_400Regular',
     fontSize: 20,
     color: COLORS.text,
     letterSpacing: -0.3,
@@ -536,7 +536,7 @@ const styles = StyleSheet.create({
 
   // Soul signature
   archetypeTitle: {
-    fontFamily: 'Halant_500Medium',
+    fontFamily: 'InstrumentSerif_400Regular',
     fontSize: 22,
     color: COLORS.text,
     letterSpacing: -0.5,
@@ -560,7 +560,7 @@ const styles = StyleSheet.create({
   },
   emptyState: { padding: 20 },
   emptyTitle: {
-    fontFamily: 'Halant_400Regular',
+    fontFamily: 'InstrumentSerif_400Regular',
     fontSize: 17,
     color: COLORS.text,
     marginBottom: 6,
@@ -609,7 +609,7 @@ const styles = StyleSheet.create({
     paddingBottom: 8,
   },
   memoryTotal: {
-    fontFamily: 'Halant_500Medium',
+    fontFamily: 'InstrumentSerif_400Regular',
     fontSize: 32,
     color: COLORS.text,
     letterSpacing: -1,

@@ -249,8 +249,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       return;
     }
 
-    // Refresh token 5 minutes before expiration (access token is 1 hour)
-    const REFRESH_INTERVAL = 55 * 60 * 1000; // 55 minutes
+    // Refresh token 5 minutes before expiration (access token is 30 minutes)
+    const REFRESH_INTERVAL = 25 * 60 * 1000; // 25 minutes
 
     const refreshInterval = setInterval(() => {
       refreshAccessToken();

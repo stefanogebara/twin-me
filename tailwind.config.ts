@@ -16,11 +16,11 @@ export default {
     extend: {
       fontFamily: {
         // Claura Design System Fonts
-        'heading': ['Halant', 'Georgia', 'serif'],         // Serif headings
+        'heading': ['Instrument Serif', 'Georgia', 'serif'],         // Serif headings
         'body': ['Geist', 'Inter', 'system-ui', 'sans-serif'],   // Body text
         'ui': ['Geist', 'Inter', 'system-ui', 'sans-serif'],     // UI elements
         'sans': ['Geist', 'Inter', 'system-ui', 'sans-serif'],   // Default sans
-        'serif': ['Halant', 'Georgia', 'serif'],            // Default serif
+        'serif': ['Instrument Serif', 'Georgia', 'serif'],            // Default serif
         'mono': ['JetBrains Mono', 'Consolas', 'monospace'],
       },
       colors: {

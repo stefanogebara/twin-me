@@ -204,7 +204,7 @@ const PlatformStep: React.FC<PlatformStepProps> = ({ onContinue }) => {
         <h2
           className="mb-2 text-center"
           style={{
-            fontFamily: 'Halant, Georgia, serif',
+            fontFamily: 'Instrument Serif, Georgia, serif',
             fontWeight: 400,
             letterSpacing: '-0.04em',
             fontSize: '36px',

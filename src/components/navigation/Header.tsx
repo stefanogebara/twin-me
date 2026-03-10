@@ -55,7 +55,7 @@ export const Header: React.FC<HeaderProps> = ({ user, onSignOut }) => {
           </div>
           <span
             style={{
-              fontFamily: '"Halant", var(--font-heading), Georgia, serif',
+              fontFamily: '"Instrument Serif", var(--font-heading), Georgia, serif',
               fontWeight: 500,
               letterSpacing: '-0.02em',
               fontSize: '1.125rem',
