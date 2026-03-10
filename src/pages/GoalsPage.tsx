@@ -31,6 +31,7 @@ import {
   Loader2,
   Flame,
 } from 'lucide-react';
+import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 
 // --- Design tokens ---
 const TEXT_PRIMARY = 'var(--foreground)';
@@ -85,6 +86,7 @@ const useGoalProgress = () => {
 // --- Main Component ---
 
 const GoalsPage: React.FC = () => {
+  useDocumentTitle('Goals');
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const isDemoMode = localStorage.getItem('demo_mode') === 'true';
@@ -241,10 +243,34 @@ const GoalsPage: React.FC = () => {
 
       <div className="space-y-10">
 
-        {/* Loading state */}
+        {/* Loading skeleton */}
         {isLoading && (
-          <div className="flex items-center justify-center py-20">
-            <Loader2 className="w-6 h-6 animate-spin" style={{ color: TEXT_SECONDARY }} />
+          <div className="space-y-4 animate-pulse" aria-label="Loading goals">
+            {/* Summary stats skeleton */}
+            <div className="flex gap-3">
+              {[1, 2, 3].map((i) => (
+                <div
+                  key={i}
+                  className="h-9 w-28 rounded-full"
+                  style={{ background: 'var(--glass-surface-bg-subtle)' }}
+                />
+              ))}
+            </div>
+            {/* Goal card skeletons */}
+            {[1, 2, 3].map((i) => (
+              <div
+                key={i}
+                className="rounded-2xl p-5 space-y-3"
+                style={{
+                  background: 'var(--glass-surface-bg)',
+                  border: `1px solid ${BORDER_COLOR}`,
+                }}
+              >
+                <div className="h-5 w-2/3 rounded" style={{ background: 'var(--glass-surface-bg-subtle)' }} />
+                <div className="h-3 w-full rounded" style={{ background: 'var(--glass-surface-bg-subtle)' }} />
+                <div className="h-3 w-1/2 rounded" style={{ background: 'var(--glass-surface-bg-subtle)' }} />
+              </div>
+            ))}
           </div>
         )}
 

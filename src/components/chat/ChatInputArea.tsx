@@ -49,7 +49,11 @@ export const ChatInputArea = forwardRef<HTMLTextAreaElement, ChatInputAreaProps>
             boxShadow: '0 4px 16px rgba(0, 0, 0, 0.06), inset 0 1px 0 var(--glass-inset-highlight)',
           }}
         >
+          <label htmlFor="twin-chat-input" className="sr-only">
+            Message your twin
+          </label>
           <textarea
+            id="twin-chat-input"
             ref={ref}
             placeholder={hasConnectedPlatforms
               ? "Ask your twin anything..."
@@ -60,6 +64,7 @@ export const ChatInputArea = forwardRef<HTMLTextAreaElement, ChatInputAreaProps>
             onKeyDown={onKeyDown}
             disabled={isDisabled || limitReached}
             rows={1}
+            aria-label="Message your twin"
             className="w-full px-4 py-3 resize-none focus:outline-none disabled:opacity-50 text-[15px]"
             style={{
               backgroundColor: 'transparent',
@@ -80,16 +85,18 @@ export const ChatInputArea = forwardRef<HTMLTextAreaElement, ChatInputAreaProps>
                 className="p-2 rounded-lg transition-colors opacity-20 cursor-not-allowed"
                 style={{ color: 'var(--text-muted)' }}
                 title="File attachments -- coming soon"
+                aria-label="Attach file (coming soon)"
               >
-                <Paperclip className="w-4 h-4" />
+                <Paperclip className="w-4 h-4" aria-hidden="true" />
               </button>
               <button
                 disabled
                 className="p-2 rounded-lg transition-colors opacity-20 cursor-not-allowed"
                 style={{ color: 'var(--text-muted)' }}
                 title="Voice input -- coming soon"
+                aria-label="Voice input (coming soon)"
               >
-                <Mic className="w-4 h-4" />
+                <Mic className="w-4 h-4" aria-hidden="true" />
               </button>
             </div>
 
@@ -126,6 +133,7 @@ export const ChatInputArea = forwardRef<HTMLTextAreaElement, ChatInputAreaProps>
               <button
                 onClick={onSend}
                 disabled={!hasText || isDisabled || isTyping || limitReached}
+                aria-label={isTyping ? 'Twin is responding...' : 'Send message'}
                 className="p-2.5 rounded-xl transition-all hover:scale-[1.05] active:scale-95 disabled:hover:scale-100"
                 style={{
                   background: hasText
@@ -138,9 +146,9 @@ export const ChatInputArea = forwardRef<HTMLTextAreaElement, ChatInputAreaProps>
                 }}
               >
                 {isTyping ? (
-                  <Loader2 className="w-5 h-5 animate-spin" />
+                  <Loader2 className="w-5 h-5 animate-spin" aria-hidden="true" />
                 ) : (
-                  <Send className="w-5 h-5" />
+                  <Send className="w-5 h-5" aria-hidden="true" />
                 )}
               </button>
             </div>

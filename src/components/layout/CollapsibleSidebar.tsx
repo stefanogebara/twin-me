@@ -74,6 +74,10 @@ export const CollapsibleSidebar: React.FC<CollapsibleSidebarProps> = ({
         <div
           className="fixed inset-0 bg-black/20 z-40 lg:hidden"
           onClick={onClose}
+          role="button"
+          tabIndex={0}
+          aria-label="Close navigation menu"
+          onKeyDown={(e) => e.key === 'Escape' && onClose()}
         />
       )}
 
