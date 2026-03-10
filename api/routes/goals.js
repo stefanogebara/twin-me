@@ -23,6 +23,7 @@ import {
   dismissGoal,
   getGoalSummary,
 } from '../services/goalTrackingService.js';
+import { parsePagination, buildPaginationMeta } from '../utils/pagination.js';
 
 const router = express.Router();
 
@@ -36,15 +37,19 @@ router.get('/', authenticateUser, async (req, res) => {
   try {
     const userId = req.user.id;
     const { status } = req.query;
+    const { page, limit, offset } = parsePagination(req);
 
     if (status && !VALID_GOAL_STATUSES.has(status)) {
       return res.status(400).json({ success: false, error: 'Invalid status filter' });
     }
 
-    const statusFilter = status || null;
-    const goals = await getUserGoals(userId, statusFilter);
+    const { data: goals, total } = await getUserGoals(userId, status || null, { limit, offset });
 
-    res.json({ success: true, data: goals });
+    res.json({
+      success: true,
+      data: goals,
+      pagination: buildPaginationMeta(page, limit, total),
+    });
   } catch (error) {
     console.error('[Goals API] List error:', error.message);
     res.status(500).json({ success: false, error: 'Failed to fetch goals' });

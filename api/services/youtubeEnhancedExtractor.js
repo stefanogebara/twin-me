@@ -510,22 +510,62 @@ class YouTubeEnhancedExtractor {
     if (sortedHistory.length < 10) {
       return {
         evolutionDetected: false,
-        stability: 'Insufficient data'
+        stability: 'Insufficient data',
+        trendsIdentified: [],
       };
     }
 
-    // Compare early vs recent watches
-    const earlyWatches = sortedHistory.slice(0, Math.floor(sortedHistory.length / 3));
-    const recentWatches = sortedHistory.slice(-Math.floor(sortedHistory.length / 3));
+    // Build a lookup from videoId → video details for category/tag analysis
+    const detailMap = new Map(videoDetails.map(v => [v.id, v]));
 
-    // Simple evolution detection (could be enhanced)
-    const evolution = {
-      tasteStability: 'stable', // Placeholder
-      evolutionDetected: false,
-      trendsIdentified: []
+    // Split history into early third vs recent third
+    const splitAt = Math.floor(sortedHistory.length / 3);
+    const earlyWatches = sortedHistory.slice(0, splitAt);
+    const recentWatches = sortedHistory.slice(-splitAt);
+
+    // Count category distribution for each period
+    const countCategories = (items) => {
+      const counts = {};
+      for (const item of items) {
+        const detail = detailMap.get(item.videoId);
+        const cat = detail?.categoryId || 'unknown';
+        counts[cat] = (counts[cat] || 0) + 1;
+      }
+      return counts;
     };
 
-    return evolution;
+    const earlyCats = countCategories(earlyWatches);
+    const recentCats = countCategories(recentWatches);
+
+    // Detect shifts: categories that grew or shrank significantly
+    const allCats = new Set([...Object.keys(earlyCats), ...Object.keys(recentCats)]);
+    const trends = [];
+
+    for (const cat of allCats) {
+      const earlyPct = (earlyCats[cat] || 0) / (earlyWatches.length || 1);
+      const recentPct = (recentCats[cat] || 0) / (recentWatches.length || 1);
+      const delta = recentPct - earlyPct;
+
+      if (Math.abs(delta) > 0.15) {
+        trends.push({
+          categoryId: cat,
+          direction: delta > 0 ? 'growing' : 'declining',
+          earlyPct: Math.round(earlyPct * 100),
+          recentPct: Math.round(recentPct * 100),
+        });
+      }
+    }
+
+    const evolutionDetected = trends.length > 0;
+    const stability = !evolutionDetected ? 'stable'
+      : trends.length <= 2 ? 'gradual-shift'
+      : 'significant-shift';
+
+    return {
+      evolutionDetected,
+      stability,
+      trendsIdentified: trends.sort((a, b) => Math.abs(b.recentPct - b.earlyPct) - Math.abs(a.recentPct - a.earlyPct)),
+    };
   }
 
   /**
@@ -722,7 +762,11 @@ class YouTubeEnhancedExtractor {
 
   async getWatchHistory(accessToken, maxResults = 100) {
     try {
-      // Note: YouTube watch history API is limited, may return empty
+      // YouTube "HL" (History) playlist is often restricted (403) for OAuth apps.
+      // When accessible, playlist items are ordered most-recent-first.
+      // IMPORTANT: snippet.publishedAt on a playlistItem is when the item was
+      // ADDED TO THE PLAYLIST (≈ when the user watched it), NOT the video's
+      // upload date. This is the best timestamp available from the API.
       const response = await fetch(
         `${this.API_BASE}/playlistItems?part=snippet,contentDetails&playlistId=HL&maxResults=${maxResults}`,
         {
@@ -731,9 +775,8 @@ class YouTubeEnhancedExtractor {
       );
 
       if (!response.ok) {
-        // Watch history might not be available
-        console.warn('Watch history not available');
-        return [];
+        console.warn(`[YouTube Enhanced] Watch history unavailable (HTTP ${response.status}) — falling back to activities API`);
+        return this.getWatchHistoryFallback(accessToken, maxResults);
       }
 
       const data = await response.json();
@@ -742,10 +785,49 @@ class YouTubeEnhancedExtractor {
       return items.map(item => ({
         videoId: item.contentDetails?.videoId,
         channelId: item.snippet?.videoOwnerChannelId,
-        watchedAt: item.snippet?.publishedAt // Approximation
+        // snippet.publishedAt = when added to watch history ≈ actual watch time
+        watchedAt: item.snippet?.publishedAt || null,
+        // Keep video publication date separate for content age analysis
+        videoPublishedAt: item.contentDetails?.videoPublishedAt || null,
+        source: 'history_playlist',
       }));
     } catch (error) {
-      console.error('Error fetching watch history:', error);
+      console.error('[YouTube Enhanced] Watch history error:', error.message);
+      return this.getWatchHistoryFallback(accessToken, maxResults);
+    }
+  }
+
+  /**
+   * Fallback: use the Activities API when the HL playlist is unavailable.
+   * Activities include uploads, likes, and recommendations — not perfect,
+   * but provides temporal signals.
+   */
+  async getWatchHistoryFallback(accessToken, maxResults = 50) {
+    try {
+      const response = await fetch(
+        `${this.API_BASE}/activities?part=snippet,contentDetails&mine=true&maxResults=${Math.min(maxResults, 50)}`,
+        {
+          headers: { 'Authorization': `Bearer ${accessToken}` }
+        }
+      );
+
+      if (!response.ok) return [];
+
+      const data = await response.json();
+      const items = (data.items || []).filter(
+        item => item.snippet?.type === 'recommendation' || item.snippet?.type === 'like'
+      );
+
+      return items.map(item => ({
+        videoId: item.contentDetails?.recommendation?.resourceId?.videoId
+          || item.contentDetails?.like?.resourceId?.videoId
+          || null,
+        channelId: item.snippet?.channelId || null,
+        watchedAt: item.snippet?.publishedAt || null,
+        videoPublishedAt: null,
+        source: 'activities_fallback',
+      })).filter(item => item.videoId);
+    } catch {
       return [];
     }
   }

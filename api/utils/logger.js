@@ -1,0 +1,127 @@
+// api/utils/logger.js
+// Structured logging utility — zero dependencies, production-ready JSON output.
+// Usage:
+//   import { createLogger } from '../utils/logger.js';
+//   const log = createLogger('ServiceName');
+//   log.info('message', { key: 'value' });
+//   log.error('failed', { error: err });
+
+const LOG_LEVELS = { debug: 10, info: 20, warn: 30, error: 40 };
+const LEVEL_NAMES = { 10: 'debug', 20: 'info', 30: 'warn', 40: 'error' };
+
+const currentLevel = LOG_LEVELS[process.env.LOG_LEVEL || 'debug'] || LOG_LEVELS.debug;
+const isProduction = process.env.NODE_ENV === 'production';
+
+/**
+ * Format a log entry. JSON in production, human-readable in development.
+ */
+function formatEntry(level, service, message, context) {
+  const entry = {
+    level: LEVEL_NAMES[level],
+    ts: new Date().toISOString(),
+    service,
+    msg: message,
+  };
+
+  if (context) {
+    // Extract error objects specially
+    if (context.error instanceof Error) {
+      entry.error = {
+        name: context.error.name,
+        message: context.error.message,
+        ...(context.error.code && { code: context.error.code }),
+        ...(!isProduction && context.error.stack && { stack: context.error.stack }),
+      };
+      // Copy remaining context fields
+      const { error: _err, ...rest } = context;
+      if (Object.keys(rest).length > 0) Object.assign(entry, rest);
+    } else {
+      Object.assign(entry, context);
+    }
+  }
+
+  if (isProduction) {
+    return JSON.stringify(entry);
+  }
+
+  // Development: human-readable with colour hints
+  const prefix = {
+    debug: '\x1b[90m🔍',    // grey
+    info:  '\x1b[36m✅',    // cyan
+    warn:  '\x1b[33m⚠️ ',   // yellow
+    error: '\x1b[31m❌',    // red
+  }[LEVEL_NAMES[level]] || '';
+  const reset = '\x1b[0m';
+
+  const contextStr = context
+    ? ` ${JSON.stringify(context, replacer, 0)}`
+    : '';
+  return `${prefix} [${service}]${reset} ${message}${contextStr}`;
+}
+
+/** JSON.stringify replacer — handles Error objects inline */
+function replacer(_key, value) {
+  if (value instanceof Error) {
+    return { name: value.name, message: value.message, ...(value.code && { code: value.code }) };
+  }
+  return value;
+}
+
+/**
+ * Create a namespaced logger instance.
+ * @param {string} service - Service/module name (e.g. 'TwinChat', 'MemoryStream')
+ * @returns {{ debug, info, warn, error }} Logger methods
+ */
+export function createLogger(service) {
+  const emit = (level, message, context) => {
+    if (level < currentLevel) return;
+    const formatted = formatEntry(level, service, message, context);
+    if (level >= LOG_LEVELS.error) {
+      console.error(formatted);
+    } else if (level >= LOG_LEVELS.warn) {
+      console.warn(formatted);
+    } else {
+      console.log(formatted);
+    }
+  };
+
+  return {
+    debug: (msg, ctx) => emit(LOG_LEVELS.debug, msg, ctx),
+    info:  (msg, ctx) => emit(LOG_LEVELS.info, msg, ctx),
+    warn:  (msg, ctx) => emit(LOG_LEVELS.warn, msg, ctx),
+    error: (msg, ctx) => emit(LOG_LEVELS.error, msg, ctx),
+  };
+}
+
+/**
+ * Express request logging middleware.
+ * Logs method, path, status code, response time, and user ID.
+ */
+export function requestLogger() {
+  const log = createLogger('HTTP');
+
+  return (req, res, next) => {
+    const start = Date.now();
+
+    // Capture when response finishes
+    res.on('finish', () => {
+      const duration = Date.now() - start;
+      const level = res.statusCode >= 500 ? 'error'
+        : res.statusCode >= 400 ? 'warn'
+        : 'info';
+
+      log[level](`${req.method} ${req.originalUrl} ${res.statusCode}`, {
+        method: req.method,
+        path: req.originalUrl,
+        status: res.statusCode,
+        durationMs: duration,
+        ...(req.user?.id && { userId: req.user.id }),
+        ip: req.ip,
+      });
+    });
+
+    next();
+  };
+}
+
+export default { createLogger, requestLogger };

@@ -57,13 +57,18 @@ function pruneSuggestionCooldowns() {
 
 /**
  * Get goals for a user, optionally filtered by status.
+ * @param {string} userId
+ * @param {string|string[]|null} statusFilter
+ * @param {{ limit?: number, offset?: number }|undefined} pagination - When provided,
+ *   returns `{ data, total }` instead of a plain array (backward compatible).
  */
-async function getUserGoals(userId, statusFilter = null) {
+async function getUserGoals(userId, statusFilter = null, pagination) {
   const supabase = await getSupabase();
+  const paginated = pagination && typeof pagination.limit === 'number';
 
   let query = supabase
     .from('twin_goals')
-    .select('*')
+    .select('*', paginated ? { count: 'exact' } : undefined)
     .eq('user_id', userId)
     .order('created_at', { ascending: false });
 
@@ -75,14 +80,18 @@ async function getUserGoals(userId, statusFilter = null) {
     }
   }
 
-  const { data, error } = await query;
+  if (paginated) {
+    query = query.range(pagination.offset, pagination.offset + pagination.limit - 1);
+  }
+
+  const { data, count, error } = await query;
 
   if (error) {
     console.warn('[GoalTracking] getUserGoals error:', error.message);
-    return [];
+    return paginated ? { data: [], total: 0 } : [];
   }
 
-  return data || [];
+  return paginated ? { data: data || [], total: count || 0 } : (data || []);
 }
 
 /**

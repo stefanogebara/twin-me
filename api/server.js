@@ -215,6 +215,10 @@ app.use((req, res, next) => {
   next();
 });
 
+// Structured request logging (before routes, after rate limiting)
+import { requestLogger } from './utils/logger.js';
+app.use(requestLogger());
+
 // Billing webhook needs raw body — mount BEFORE express.json
 app.use('/api/billing', billingRoutes);
 

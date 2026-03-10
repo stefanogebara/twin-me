@@ -2,6 +2,7 @@ import express from 'express';
 import { body, validationResult } from 'express-validator';
 import { serverDb, supabaseAdmin } from '../services/database.js';
 import { authenticateUser, requireProfessor, userRateLimit } from '../middleware/auth.js';
+import { parsePagination, buildPaginationMeta } from '../utils/pagination.js';
 import dotenv from 'dotenv';
 
 dotenv.config();
@@ -58,11 +59,18 @@ const handleValidationErrors = (req, res, next) => {
 };
 
 // GET /api/twins - Get all twins for the authenticated user
+// Supports pagination: ?page=1&limit=20 (default 20, max 50)
 router.get('/', authenticateUser, userRateLimit(100, 15 * 60 * 1000), async (req, res) => {
   try {
     const userId = req.user.id;
+    const { page, limit, offset } = parsePagination(req);
 
-    const { data: twins, error } = await serverDb.getDigitalTwinsByCreator(userId);
+    const { data: twins, count, error } = await supabaseAdmin
+      .from('digital_twins')
+      .select('*', { count: 'exact' })
+      .eq('creator_id', userId)
+      .order('created_at', { ascending: false })
+      .range(offset, offset + limit - 1);
 
     if (error) {
       return res.status(500).json({
@@ -72,8 +80,8 @@ router.get('/', authenticateUser, userRateLimit(100, 15 * 60 * 1000), async (req
     }
 
     res.json({
-      twins,
-      count: twins.length,
+      twins: twins || [],
+      pagination: buildPaginationMeta(page, limit, count || 0),
       timestamp: new Date().toISOString()
     });
 
