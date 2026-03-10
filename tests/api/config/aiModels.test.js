@@ -23,8 +23,10 @@ describe('OPENROUTER_MODELS', () => {
     expect(OPENROUTER_MODELS[TIER_EXTRACTION]).toBeDefined();
   });
 
-  it('all model ids are non-empty strings', () => {
-    Object.values(OPENROUTER_MODELS).forEach(model => {
+  it('all required model ids are non-empty strings (finetuned may be null)', () => {
+    const requiredTiers = [TIER_CHAT, TIER_ANALYSIS, TIER_EXTRACTION];
+    requiredTiers.forEach(tier => {
+      const model = OPENROUTER_MODELS[tier];
       expect(typeof model).toBe('string');
       expect(model.length).toBeGreaterThan(0);
     });

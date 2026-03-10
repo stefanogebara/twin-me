@@ -105,10 +105,10 @@ describe('retrieveDiverseMemories', () => {
 
     await retrieveDiverseMemories('user-1', 'query');
 
-    // Should have called limit for facts (8) and platform_data (7)
+    // Should have called limit for facts (8) and platform_data (4)
     const limitCalls = limitSpy.mock.calls.map(c => c[0]);
     expect(limitCalls).toContain(8);  // facts budget
-    expect(limitCalls).toContain(7);  // platform_data budget
+    expect(limitCalls).toContain(4);  // platform_data budget
   });
 
   it('respects custom budgets', async () => {
