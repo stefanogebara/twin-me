@@ -58,23 +58,23 @@ export const BackButton: React.FC<BackButtonProps> = ({
   // Variant classes
   const variantClasses = {
     default: cn(
-      'bg-[hsl(var(--claude-surface))]',
-      'border border-[hsl(var(--claude-border))]',
-      'text-[hsl(var(--claude-text))]',
-      'hover:bg-[hsl(var(--claude-surface-raised))]',
-      'hover:border-[hsl(var(--claude-accent))]',
-      'hover:text-[hsl(var(--claude-accent))]'
+      'bg-[var(--claude-surface)]',
+      'border border-[var(--claude-border)]',
+      'text-[var(--claude-text)]',
+      'hover:bg-[var(--claude-surface-raised)]',
+      'hover:border-[var(--claude-accent)]',
+      'hover:text-[var(--claude-accent)]'
     ),
     ghost: cn(
       'bg-transparent',
-      'text-[hsl(var(--claude-text-muted))]',
-      'hover:bg-[hsl(var(--claude-surface-raised))]',
-      'hover:text-[hsl(var(--claude-accent))]'
+      'text-[var(--claude-text-muted)]',
+      'hover:bg-[var(--claude-surface-raised)]',
+      'hover:text-[var(--claude-accent)]'
     ),
     minimal: cn(
       'bg-transparent',
-      'text-[hsl(var(--claude-text-muted))]',
-      'hover:text-[hsl(var(--claude-accent))]'
+      'text-[var(--claude-text-muted)]',
+      'hover:text-[var(--claude-accent)]'
     )
   };
 
@@ -96,7 +96,7 @@ export const BackButton: React.FC<BackButtonProps> = ({
         'inline-flex items-center justify-center',
         'rounded-lg font-medium',
         'transition-all duration-200',
-        'focus:outline-none focus:ring-2 focus:ring-[hsl(var(--claude-accent))] focus:ring-offset-2',
+        'focus:outline-none focus:ring-2 focus:ring-[var(--claude-accent)] focus:ring-offset-2',
         sizeClasses[size],
         variantClasses[variant],
         className

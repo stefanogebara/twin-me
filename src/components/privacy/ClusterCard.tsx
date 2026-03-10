@@ -78,7 +78,7 @@ export const ClusterCard: React.FC<ClusterCardProps> = ({
             </div>
 
             <div className="flex-1">
-              <h3 className="font-heading text-lg font-medium text-[hsl(var(--claude-text))] mb-1">
+              <h3 className="font-heading text-lg font-medium text-[var(--claude-text)] mb-1">
                 {cluster.name}
               </h3>
               <div className="flex items-center gap-2 text-xs text-muted-foreground">
@@ -199,7 +199,7 @@ export const ClusterCard: React.FC<ClusterCardProps> = ({
                     transition={{ delay: index * 0.1 }}
                     className="flex items-start gap-2 text-sm text-muted-foreground font-body"
                   >
-                    <span className="text-[hsl(var(--claude-accent))] mt-1">•</span>
+                    <span className="text-[var(--claude-accent)] mt-1">•</span>
                     <span>{item}</span>
                   </motion.div>
                 ))}

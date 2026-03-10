@@ -195,12 +195,16 @@ const asyncHandler = (fn) => {
 
 // 404 handler for non-existent endpoints
 const handle404 = (req, res) => {
-  res.status(404).json({
+  const response = {
     error: 'NOT_FOUND',
     message: `The requested endpoint ${req.method} ${req.originalUrl} was not found`,
     timestamp: new Date().toISOString(),
     path: req.originalUrl,
-    availableEndpoints: {
+  };
+
+  // Only expose available endpoints in development to avoid route enumeration in production
+  if (process.env.NODE_ENV === 'development') {
+    response.availableEndpoints = {
       '/api/health': 'GET - Health check',
       '/api/ai/chat': 'POST - AI chat',
       '/api/twins': 'GET, POST - Digital twins',
@@ -214,8 +218,10 @@ const handle404 = (req, res) => {
       '/api/training/start': 'POST - Start training',
       '/api/training/stop': 'POST - Stop training',
       '/api/training/reset': 'POST - Reset model'
-    }
-  });
+    };
+  }
+
+  res.status(404).json(response);
 };
 
 // Success response helper

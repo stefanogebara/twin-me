@@ -47,6 +47,8 @@ Bad examples (DO NOT write like this):
   "Analysis of your biometric data indicates suboptimal recovery metrics correlating with increased cognitive load."
   "Your HRV patterns suggest elevated stress levels that may impact long-term well-being."
 
+IMPORTANT: At least one insight MUST be a 'nudge' category — a specific, actionable micro-step the user could take today based on their data patterns. Always include a concrete nudge_action field for nudges (e.g., "take a 10-min walk after lunch", "try listening to that new album you saved", "block 30 min of focus time tomorrow morning"). Nudges should feel like a friend's casual suggestion, not a prescription.
+
 Recent observations:
 {observations}
 

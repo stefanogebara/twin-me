@@ -33,14 +33,14 @@ export const Breadcrumbs: React.FC<BreadcrumbsProps> = ({ className = '' }) => {
   return (
     <nav
       aria-label="Breadcrumb navigation"
-      className={`flex items-center gap-2 py-4 px-6 bg-[hsl(var(--claude-surface))] border-b border-[hsl(var(--claude-border))] ${className}`}
+      className={`flex items-center gap-2 py-4 px-6 bg-[var(--claude-surface)] border-b border-[var(--claude-border)] ${className}`}
     >
       <ol className="flex items-center gap-2 text-sm">
         {/* Home/Root */}
         <li>
           <Link
             to="/"
-            className="flex items-center gap-1 text-[hsl(var(--claude-text-muted))] hover:text-[hsl(var(--claude-accent))] transition-colors"
+            className="flex items-center gap-1 text-[var(--claude-text-muted)] hover:text-[var(--claude-accent)] transition-colors"
             aria-label="Home"
           >
             <Home className="w-4 h-4" />
@@ -54,11 +54,11 @@ export const Breadcrumbs: React.FC<BreadcrumbsProps> = ({ className = '' }) => {
 
           return (
             <li key={crumb.path} className="flex items-center gap-2">
-              <ChevronRight className="w-4 h-4 text-[hsl(var(--claude-text-muted))]" />
+              <ChevronRight className="w-4 h-4 text-[var(--claude-text-muted)]" />
 
               {isLast ? (
                 <span
-                  className="text-[hsl(var(--claude-text))] font-medium"
+                  className="text-[var(--claude-text)] font-medium"
                   style={{
                     fontFamily: 'var(--font-heading)',
                   }}
@@ -70,7 +70,7 @@ export const Breadcrumbs: React.FC<BreadcrumbsProps> = ({ className = '' }) => {
               ) : (
                 <Link
                   to={crumb.path}
-                  className="text-[hsl(var(--claude-text-muted))] hover:text-[hsl(var(--claude-accent))] transition-colors"
+                  className="text-[var(--claude-text-muted)] hover:text-[var(--claude-accent)] transition-colors"
                   style={{
                     fontFamily: 'var(--font-body)',
                   }}

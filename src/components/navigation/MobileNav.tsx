@@ -113,10 +113,10 @@ export const MobileNav: React.FC<MobileNavProps> = ({ user, onSignOut }) => {
         onClick={() => setIsOpen(!isOpen)}
         className={cn(
           'md:hidden p-2 rounded-lg',
-          'text-[hsl(var(--claude-text))]',
-          'hover:bg-[hsl(var(--claude-surface-raised))]',
+          'text-[var(--claude-text)]',
+          'hover:bg-[var(--claude-surface-raised)]',
           'transition-colors duration-200',
-          'focus:outline-none focus:ring-2 focus:ring-[hsl(var(--claude-accent))]'
+          'focus:outline-none focus:ring-2 focus:ring-[var(--claude-accent)]'
         )}
         aria-label="Toggle menu"
         aria-expanded={isOpen}
@@ -144,8 +144,8 @@ export const MobileNav: React.FC<MobileNavProps> = ({ user, onSignOut }) => {
           <motion.div
             className={cn(
               'fixed top-0 right-0 bottom-0 w-[280px] z-50',
-              'bg-[hsl(var(--claude-surface))]',
-              'border-l border-[hsl(var(--claude-border))]',
+              'bg-[var(--claude-surface)]',
+              'border-l border-[var(--claude-border)]',
               'md:hidden overflow-y-auto'
             )}
             variants={menuVariants}
@@ -155,13 +155,13 @@ export const MobileNav: React.FC<MobileNavProps> = ({ user, onSignOut }) => {
           >
             <div className="flex flex-col h-full">
               {/* Header */}
-              <div className="flex items-center justify-between p-4 border-b border-[hsl(var(--claude-border))]">
+              <div className="flex items-center justify-between p-4 border-b border-[var(--claude-border)]">
                 <div className="flex items-center gap-2">
-                  <div className="w-8 h-8 rounded-lg bg-[hsl(var(--claude-accent))] flex items-center justify-center">
+                  <div className="w-8 h-8 rounded-lg bg-[var(--claude-accent)] flex items-center justify-center">
                     <span className="text-white font-bold text-lg">T</span>
                   </div>
                   <span
-                    className="text-lg font-semibold text-[hsl(var(--claude-text))]"
+                    className="text-lg font-semibold text-[var(--claude-text)]"
                     style={{
                       fontFamily: 'var(--font-heading)',
                       letterSpacing: '-0.02em'
@@ -172,7 +172,7 @@ export const MobileNav: React.FC<MobileNavProps> = ({ user, onSignOut }) => {
                 </div>
                 <button
                   onClick={() => setIsOpen(false)}
-                  className="p-2 rounded-lg hover:bg-[hsl(var(--claude-surface-raised))] transition-colors"
+                  className="p-2 rounded-lg hover:bg-[var(--claude-surface-raised)] transition-colors"
                   aria-label="Close menu"
                 >
                   <X className="w-5 h-5" />
@@ -201,8 +201,8 @@ export const MobileNav: React.FC<MobileNavProps> = ({ user, onSignOut }) => {
                             onClick={() => toggleSection(route.path)}
                             className={cn(
                               'w-full flex items-center gap-3 px-4 py-3 rounded-lg',
-                              'text-[hsl(var(--claude-text))]',
-                              'hover:bg-[hsl(var(--claude-surface-raised))]',
+                              'text-[var(--claude-text)]',
+                              'hover:bg-[var(--claude-surface-raised)]',
                               'transition-colors duration-200'
                             )}
                           >
@@ -231,8 +231,8 @@ export const MobileNav: React.FC<MobileNavProps> = ({ user, onSignOut }) => {
                                 'flex items-center gap-3 px-4 py-3 rounded-lg',
                                 'transition-colors duration-200',
                                 isActive
-                                  ? 'bg-[hsl(var(--claude-surface-raised))] text-[hsl(var(--claude-accent))]'
-                                  : 'text-[hsl(var(--claude-text))] hover:bg-[hsl(var(--claude-surface-raised))]'
+                                  ? 'bg-[var(--claude-surface-raised)] text-[var(--claude-accent)]'
+                                  : 'text-[var(--claude-text)] hover:bg-[var(--claude-surface-raised)]'
                               )
                             }
                           >
@@ -271,8 +271,8 @@ export const MobileNav: React.FC<MobileNavProps> = ({ user, onSignOut }) => {
                                           'flex items-center gap-2 px-3 py-2 rounded-lg text-sm',
                                           'transition-colors duration-200',
                                           isActive
-                                            ? 'bg-[hsl(var(--claude-surface-raised))] text-[hsl(var(--claude-accent))]'
-                                            : 'text-[hsl(var(--claude-text-muted))] hover:bg-[hsl(var(--claude-surface-raised))]'
+                                            ? 'bg-[var(--claude-surface-raised)] text-[var(--claude-accent)]'
+                                            : 'text-[var(--claude-text-muted)] hover:bg-[var(--claude-surface-raised)]'
                                         )
                                       }
                                     >
@@ -293,9 +293,9 @@ export const MobileNav: React.FC<MobileNavProps> = ({ user, onSignOut }) => {
 
               {/* User Section */}
               {user && (
-                <div className="p-4 border-t border-[hsl(var(--claude-border))] space-y-3">
-                  <div className="flex items-center gap-3 px-3 py-2 rounded-lg bg-[hsl(var(--claude-surface-raised))]">
-                    <div className="w-10 h-10 rounded-full bg-[hsl(var(--claude-accent))] flex items-center justify-center">
+                <div className="p-4 border-t border-[var(--claude-border)] space-y-3">
+                  <div className="flex items-center gap-3 px-3 py-2 rounded-lg bg-[var(--claude-surface-raised)]">
+                    <div className="w-10 h-10 rounded-full bg-[var(--claude-accent)] flex items-center justify-center">
                       {user.name ? (
                         <span className="text-white text-base font-medium">
                           {user.name.charAt(0).toUpperCase()}
@@ -307,7 +307,7 @@ export const MobileNav: React.FC<MobileNavProps> = ({ user, onSignOut }) => {
                     <div className="flex flex-col">
                       {user.name && (
                         <span
-                          className="text-sm text-[hsl(var(--claude-text))] font-medium"
+                          className="text-sm text-[var(--claude-text)] font-medium"
                           style={{
                             fontFamily: 'var(--font-heading)'
                           }}
@@ -317,7 +317,7 @@ export const MobileNav: React.FC<MobileNavProps> = ({ user, onSignOut }) => {
                       )}
                       {user.email && (
                         <span
-                          className="text-xs text-[hsl(var(--claude-text-muted))]"
+                          className="text-xs text-[var(--claude-text-muted)]"
                           style={{
                             fontFamily: 'var(--font-body)'
                           }}
@@ -334,9 +334,9 @@ export const MobileNav: React.FC<MobileNavProps> = ({ user, onSignOut }) => {
                       className={cn(
                         'w-full px-4 py-2 rounded-lg',
                         'text-sm font-medium',
-                        'text-[hsl(var(--claude-text-muted))]',
-                        'hover:text-[hsl(var(--claude-accent))]',
-                        'hover:bg-[hsl(var(--claude-surface-raised))]',
+                        'text-[var(--claude-text-muted)]',
+                        'hover:text-[var(--claude-accent)]',
+                        'hover:bg-[var(--claude-surface-raised)]',
                         'transition-colors duration-200'
                       )}
                       style={{

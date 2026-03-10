@@ -112,6 +112,8 @@ const App = () => {
           <Routes>
             {/* Authentication */}
             <Route path="/auth" element={<CustomAuth />} />
+            <Route path="/login" element={<Navigate to="/auth" replace />} />
+            <Route path="/signin" element={<Navigate to="/auth" replace />} />
             <Route path="/custom-auth" element={<CustomAuth />} />
             <Route path="/oauth/callback" element={<OAuthCallback />} />
             <Route path="/auth/callback" element={<OAuthCallback />} />

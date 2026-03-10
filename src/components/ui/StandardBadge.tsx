@@ -15,7 +15,7 @@ export interface StandardBadgeProps extends React.HTMLAttributes<HTMLSpanElement
 }
 
 const variants = {
-  default: 'bg-[hsl(var(--claude-accent))]/10 text-[hsl(var(--claude-accent))] border-[hsl(var(--claude-accent))]/20',
+  default: 'bg-[var(--claude-accent)]/10 text-[var(--claude-accent)] border-[var(--claude-accent)]/20',
   success: 'bg-green-900/20 text-green-400 border-green-800/30',
   error: 'bg-red-900/20 text-red-400 border-red-800/30',
   warning: 'bg-amber-900/15 text-amber-400 border-amber-800/20',

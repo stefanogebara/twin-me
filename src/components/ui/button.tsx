@@ -9,7 +9,7 @@ const buttonVariants = cva(
   {
     variants: {
       variant: {
-        default: "cartoon-button text-primary-foreground",
+        default: "bg-gradient-to-br from-primary to-primary/90 text-primary-foreground hover:shadow-lg hover:-translate-y-0.5 rounded-2xl border-2 border-primary/20",
         destructive: "bg-gradient-to-br from-destructive to-red-500 text-destructive-foreground hover:shadow-lg hover:-translate-y-0.5 rounded-2xl border-2 border-red-300/30",
         outline: "border-2 border-primary/30 bg-background/80 backdrop-blur-sm hover:bg-primary/10 hover:border-primary/50 text-primary rounded-2xl transition-all duration-200",
         secondary: "bg-gradient-to-br from-secondary to-stone-700 text-secondary-foreground hover:shadow-lg hover:-translate-y-0.5 rounded-2xl border-2 border-white/10",

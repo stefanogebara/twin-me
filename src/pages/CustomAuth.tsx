@@ -10,12 +10,8 @@ const FG = '#fdfcfb';
 const TEXT_SEC = '#d9d1cb';
 const TEXT_MUTED = '#86807b';
 const TEXT_SUBTLE = '#4a4242';
-const INPUT_BG = 'rgba(218, 217, 215, 0.12)';
-const INPUT_BORDER = 'rgba(217, 209, 203, 0.35)';
 const BUTTON_PRIMARY_BG = '#fdfcfb';
 const BUTTON_PRIMARY_FG = '#1b1818';
-const BUTTON_DARK_BG = '#252222';
-const BUTTON_DARK_FG = '#fdfcfb';
 
 // Hero glow — Figma radial gradient (amber orb, matches landing page)
 const HERO_GLOW = `radial-gradient(ellipse at 50% 50%,
@@ -264,34 +260,6 @@ For privacy concerns: privacy@twinme.ai`
               </>
             )}
           </button>
-
-          {/* Divider */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-            <div style={{ flex: 1, height: '1px', backgroundColor: INPUT_BORDER }} />
-            <span style={{ fontSize: '13px', color: TEXT_SUBTLE, letterSpacing: '-0.2px', whiteSpace: 'nowrap' }}>
-              Or continue with email
-            </span>
-            <div style={{ flex: 1, height: '1px', backgroundColor: INPUT_BORDER }} />
-          </div>
-
-          {/* Email input (visual — future feature) */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-            <label style={{ fontSize: '13px', fontWeight: 500, color: TEXT_SEC, fontFamily: "'Inter', sans-serif" }}>
-              Email
-            </label>
-            <div style={{
-              backgroundColor: INPUT_BG,
-              border: `1px solid ${INPUT_BORDER}`,
-              borderRadius: '6px',
-              padding: '10px 12px',
-              fontSize: '14px',
-              color: TEXT_MUTED,
-              fontFamily: "'Inter', sans-serif",
-              cursor: 'default',
-            }}>
-              Your email address
-            </div>
-          </div>
 
           {/* Terms */}
           <p style={{ textAlign: 'center', fontSize: '12px', color: TEXT_SUBTLE, lineHeight: 1.6, margin: 0 }}>

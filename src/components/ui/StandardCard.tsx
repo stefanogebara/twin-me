@@ -70,16 +70,16 @@ export const CardHeader: React.FC<CardHeaderProps> = ({
     >
       <div className="flex items-start gap-3">
         {icon && (
-          <div className="text-[hsl(var(--claude-accent))]">
+          <div className="text-[var(--claude-accent)]">
             {icon}
           </div>
         )}
         <div>
-          <h3 className="text-lg font-medium font-[family-name:var(--font-heading)] text-[hsl(var(--claude-text))]">
+          <h3 className="text-lg font-medium font-[family-name:var(--font-heading)] text-[var(--claude-text)]">
             {title}
           </h3>
           {subtitle && (
-            <p className="text-sm text-[hsl(var(--claude-text-muted))] font-[family-name:var(--font-body)] mt-1">
+            <p className="text-sm text-[var(--claude-text-muted)] font-[family-name:var(--font-body)] mt-1">
               {subtitle}
             </p>
           )}
@@ -100,7 +100,7 @@ export const CardContent: React.FC<React.HTMLAttributes<HTMLDivElement>> = ({
 }) => {
   return (
     <div
-      className={cn('font-[family-name:var(--font-body)] text-[hsl(var(--claude-text))]', className)}
+      className={cn('font-[family-name:var(--font-body)] text-[var(--claude-text)]', className)}
       {...props}
     >
       {children}
@@ -116,7 +116,7 @@ export const CardFooter: React.FC<React.HTMLAttributes<HTMLDivElement>> = ({
 }) => {
   return (
     <div
-      className={cn('flex items-center justify-between pt-4 mt-4 border-t border-[hsl(var(--claude-border))]', className)}
+      className={cn('flex items-center justify-between pt-4 mt-4 border-t border-[var(--claude-border)]', className)}
       {...props}
     >
       {children}
