@@ -151,6 +151,24 @@ const OAUTH_CONFIGS = {
     tokenUrl: 'https://www.reddit.com/api/v1/access_token'
   },
 
+  // Twitch
+  twitch: {
+    clientId: process.env.TWITCH_CLIENT_ID,
+    clientSecret: process.env.TWITCH_CLIENT_SECRET,
+    scopes: ['user:read:follows', 'user:read:email'],
+    authUrl: 'https://id.twitch.tv/oauth2/authorize',
+    tokenUrl: 'https://id.twitch.tv/oauth2/token'
+  },
+
+  // Whoop
+  whoop: {
+    clientId: process.env.WHOOP_CLIENT_ID,
+    clientSecret: process.env.WHOOP_CLIENT_SECRET,
+    scopes: ['read:recovery', 'read:sleep', 'read:workout', 'read:profile', 'read:body_measurement'],
+    authUrl: 'https://api.prod.whoop.com/oauth/oauth2/auth',
+    tokenUrl: 'https://api.prod.whoop.com/oauth/oauth2/token'
+  },
+
 };
 
 // Debug: Check LinkedIn config on load
@@ -262,27 +280,30 @@ router.get('/connect/:provider', authenticateUser, async (req, res) => {
         console.error('[connectors] Failed to store CSRF state for connect:', stateInsertErr1.message);
       }
 
-      let authUrl;
+      const scope = config.scopes.join(provider === 'slack' ? ',' : ' ');
+      const authParams = new URLSearchParams({
+        client_id: config.clientId,
+        response_type: 'code',
+        redirect_uri: redirectUri,
+        [provider === 'slack' ? 'user_scope' : 'scope']: scope,
+        state,
+      });
+
+      // Provider-specific OAuth parameters
       if (provider === 'spotify') {
-        const scope = config.scopes.join(' ');
-        authUrl = `${config.authUrl}?` +
-          `client_id=${config.clientId}&` +
-          `response_type=code&` +
-          `redirect_uri=${encodeURIComponent(redirectUri)}&` +
-          `scope=${encodeURIComponent(scope)}&` +
-          `state=${state}&` +
-          `show_dialog=true`;
-      } else {
-        const scope = config.scopes.join(' ');
-        authUrl = `${config.authUrl}?` +
-          `client_id=${config.clientId}&` +
-          `response_type=code&` +
-          `redirect_uri=${encodeURIComponent(redirectUri)}&` +
-          `scope=${encodeURIComponent(scope)}&` +
-          `state=${state}&` +
-          `access_type=offline&` +
-          `prompt=consent`;
+        authParams.set('show_dialog', 'true');
+      } else if (provider.startsWith('google') || provider === 'youtube') {
+        authParams.set('access_type', 'offline');
+        authParams.set('prompt', 'consent');
+      } else if (provider === 'reddit') {
+        authParams.set('duration', 'permanent');
+      } else if (provider === 'twitch') {
+        authParams.set('force_verify', 'true');
+      } else if (provider === 'discord') {
+        authParams.set('prompt', 'consent');
       }
+
+      const authUrl = `${config.authUrl}?${authParams.toString()}`;
 
       return res.json({
         success: true,
@@ -397,27 +418,29 @@ router.get('/connect/:provider', authenticateUser, async (req, res) => {
           console.error('[connectors] Failed to store CSRF state for reconnect:', stateInsertErr2.message);
         }
 
-        const scope = config.scopes.join(' ');
-        let authUrl;
+        const scope = config.scopes.join(provider === 'slack' ? ',' : ' ');
+        const reAuthParams = new URLSearchParams({
+          client_id: config.clientId,
+          response_type: 'code',
+          redirect_uri: redirectUri,
+          [provider === 'slack' ? 'user_scope' : 'scope']: scope,
+          state,
+        });
 
         if (provider === 'spotify') {
-          authUrl = `${config.authUrl}?` +
-            `client_id=${config.clientId}&` +
-            `response_type=code&` +
-            `redirect_uri=${encodeURIComponent(redirectUri)}&` +
-            `scope=${encodeURIComponent(scope)}&` +
-            `state=${state}&` +
-            `show_dialog=true`;
-        } else {
-          authUrl = `${config.authUrl}?` +
-            `client_id=${config.clientId}&` +
-            `response_type=code&` +
-            `redirect_uri=${encodeURIComponent(redirectUri)}&` +
-            `scope=${encodeURIComponent(scope)}&` +
-            `state=${state}&` +
-            `access_type=offline&` +
-            `prompt=consent`;
+          reAuthParams.set('show_dialog', 'true');
+        } else if (provider.startsWith('google') || provider === 'youtube') {
+          reAuthParams.set('access_type', 'offline');
+          reAuthParams.set('prompt', 'consent');
+        } else if (provider === 'reddit') {
+          reAuthParams.set('duration', 'permanent');
+        } else if (provider === 'twitch') {
+          reAuthParams.set('force_verify', 'true');
+        } else if (provider === 'discord') {
+          reAuthParams.set('prompt', 'consent');
         }
+
+        const authUrl = `${config.authUrl}?${reAuthParams.toString()}`;
 
         return res.json({
           success: true,
@@ -450,27 +473,29 @@ router.get('/connect/:provider', authenticateUser, async (req, res) => {
         console.error('[connectors] Failed to store CSRF state for /auth/:provider:', stateInsertErr3.message);
       }
 
-      const scope = config.scopes.join(' ');
-      let authUrl;
+      const scope = config.scopes.join(provider === 'slack' ? ',' : ' ');
+      const noRefreshParams = new URLSearchParams({
+        client_id: config.clientId,
+        response_type: 'code',
+        redirect_uri: redirectUri,
+        [provider === 'slack' ? 'user_scope' : 'scope']: scope,
+        state,
+      });
 
       if (provider === 'spotify') {
-        authUrl = `${config.authUrl}?` +
-          `client_id=${config.clientId}&` +
-          `response_type=code&` +
-          `redirect_uri=${encodeURIComponent(redirectUri)}&` +
-          `scope=${encodeURIComponent(scope)}&` +
-          `state=${state}&` +
-          `show_dialog=true`;
-      } else {
-        authUrl = `${config.authUrl}?` +
-          `client_id=${config.clientId}&` +
-          `response_type=code&` +
-          `redirect_uri=${encodeURIComponent(redirectUri)}&` +
-          `scope=${encodeURIComponent(scope)}&` +
-          `state=${state}&` +
-          `access_type=offline&` +
-          `prompt=consent`;
+        noRefreshParams.set('show_dialog', 'true');
+      } else if (provider.startsWith('google') || provider === 'youtube') {
+        noRefreshParams.set('access_type', 'offline');
+        noRefreshParams.set('prompt', 'consent');
+      } else if (provider === 'reddit') {
+        noRefreshParams.set('duration', 'permanent');
+      } else if (provider === 'twitch') {
+        noRefreshParams.set('force_verify', 'true');
+      } else if (provider === 'discord') {
+        noRefreshParams.set('prompt', 'consent');
       }
+
+      const authUrl = `${config.authUrl}?${noRefreshParams.toString()}`;
 
       return res.json({
         success: true,
@@ -560,10 +585,20 @@ router.get('/auth/:provider', authenticateUser, (req, res) => {
       redirect_uri: redirectUri,
       [scopeParam]: config.scopes.join(scopeSeparator),
       response_type: 'code',
-      access_type: 'offline',
-      prompt: 'consent',
       state
     });
+
+    // Provider-specific OAuth parameters for refresh tokens
+    if (provider.startsWith('google') || provider === 'youtube') {
+      params.set('access_type', 'offline');
+      params.set('prompt', 'consent');
+    } else if (provider === 'reddit') {
+      params.set('duration', 'permanent'); // Required for refresh tokens
+    } else if (provider === 'twitch') {
+      params.set('force_verify', 'true');
+    } else if (provider === 'discord') {
+      params.set('prompt', 'consent');
+    }
 
     const authUrl = `${config.authUrl}?${params.toString()}`;
 
@@ -1441,10 +1476,20 @@ router.post('/connect/:platform', authenticateUser, async (req, res) => {
       redirect_uri: redirectUri,
       [scopeParam]: config.scopes.join(scopeSeparator),
       response_type: 'code',
-      access_type: 'offline',
-      prompt: 'consent',
       state
     });
+
+    // Provider-specific OAuth parameters for refresh tokens
+    if (platform.startsWith('google') || platform === 'youtube') {
+      params.set('access_type', 'offline');
+      params.set('prompt', 'consent');
+    } else if (platform === 'reddit') {
+      params.set('duration', 'permanent');
+    } else if (platform === 'twitch') {
+      params.set('force_verify', 'true');
+    } else if (platform === 'discord') {
+      params.set('prompt', 'consent');
+    }
 
     const authUrl = `${config.authUrl}?${params.toString()}`;
 
