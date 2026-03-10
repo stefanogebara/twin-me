@@ -5,7 +5,11 @@
  */
 
 /* ===== FONTS ===== */
-@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&family=Instrument+Serif&family=Halant:wght@300;400;500;600;700&display=swap');
+/* Instrument Serif — hero/headings (Sundust + Figma spec)
+ * Poppins — menu/panel labels (Sundust spec)
+ * Inter — all UI body text
+ * Halant — kept for backward compat with existing references */
+@import url('https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Poppins:wght@400;500;600&family=Inter:wght@400;500;600&family=Halant:wght@300;400;500;600;700&display=swap');
 
 /* ===== GLASS MORPHISM EFFECTS ===== */
 @import './styles/glassmorphism.css';
@@ -16,6 +20,22 @@
 /* ===== DESIGN TOKENS - CLAURA DESIGN SYSTEM ===== */
 @layer base {
   :root {
+    /* ─── Graydust Scale (Sundust UI Kit) ─────────────────────────────────────
+     * The canonical 11-stop warm-gray scale. Used for borders, text, surfaces.
+     * Reference: Sundust_UI_UX_Guide — "Graydust System & Glassmorphism"
+     */
+    --graydust-50:  #FDFCFB;  /* Light bg / Primary text on dark        */
+    --graydust-100: #F4F1EC;  /* Light subtle background                 */
+    --graydust-200: #D9D1CB;  /* Borders light / Secondary text dark     */
+    --graydust-300: #BAB5B1;  /* Disabled text / Borders                 */
+    --graydust-400: #86807B;  /* Placeholder text                        */
+    --graydust-500: #5E5656;  /* Secondary icons / Mid UI traits         */
+    --graydust-600: #4A4242;  /* Muted body text                         */
+    --graydust-700: #3D3737;  /* Input focus rings / Dividers            */
+    --graydust-800: #252222;  /* Light primary bg / Dark borders         */
+    --graydust-900: #1B1818;  /* Card/Sidebar bg / Hover states          */
+    --graydust-950: #110F0F;  /* App main bg dark / Text on light        */
+
     /* Background Colors — Figma: #fdfcfb warm white */
     --background: #fdfcfb;
     --surface: rgba(244, 241, 236, 0.7);
@@ -108,18 +128,33 @@
     --bg-size-4: 60% 60%;
     --bg-spread-4: 45%;
 
-    /* Typography — Halant for headings, Geist for body */
-    --font-heading: 'Halant', Georgia, serif;
-    --font-accent: 'Halant', Georgia, serif;
+    /* Typography — Instrument Serif for headings (Sundust + Figma confirmed)
+     * Poppins for menus/panels, Inter/Geist for all body UI text */
+    --font-heading: 'Instrument Serif', Georgia, serif;
+    --font-accent: 'Instrument Serif', Georgia, serif;
     --font-body: 'Geist', 'Inter', system-ui, sans-serif;
     --font-sans: 'Geist', 'Inter', system-ui, sans-serif;
-    --font-serif: 'Halant', Georgia, serif;
+    --font-serif: 'Instrument Serif', Georgia, serif;
     --font-mono: ui-monospace, monospace;
 
     /* Vibrant Accent — Figma: #ff8400 amber-orange */
     --accent-vibrant: #ff8400;
     --accent-vibrant-hover: #e07600;
     --accent-vibrant-glow: rgba(255, 132, 0, 0.12);
+
+    /* Sundust Glow Color Accents — ambient background spheres */
+    --accent-rose: #C32D70;           /* Rose/pink gradient corner glow    */
+    --accent-rose-glow: rgba(195, 45, 112, 0.15);
+    --accent-eco: #6C7567;            /* Muted green-gray ambient fill     */
+    --accent-amber: #C17E2C;          /* Warm copper (gradient core)       */
+    --accent-purple: #5D5CAE;         /* Cool purple (gradient corner)     */
+
+    /* Sundust Input Standards */
+    --input-height: 36px;             /* Standard input/button height      */
+    --input-focus-border: var(--graydust-700);  /* #3D3737 focus ring      */
+
+    /* Font Menu — Poppins for sidebar/panel labels (Sundust spec) */
+    --font-menu: 'Poppins', 'Inter', system-ui, sans-serif;
 
     /* Spacing & Radius */
     --radius: 1rem;
@@ -298,9 +333,9 @@
     -moz-osx-font-smoothing: grayscale;
   }
 
-  /* Headings — Halant serif for all headings (Claura system) */
+  /* Headings — Instrument Serif for h1-h3 (Sundust + Figma confirmed) */
   h1, h2 {
-    font-family: 'Halant', Georgia, serif;
+    font-family: 'Instrument Serif', Georgia, serif;
     font-weight: 400;
     letter-spacing: -0.05em;
     line-height: 1.1;
@@ -308,7 +343,7 @@
   }
 
   h3 {
-    font-family: 'Halant', Georgia, serif;
+    font-family: 'Instrument Serif', Georgia, serif;
     font-weight: 400;
     letter-spacing: -0.03em;
     line-height: 1.2;
@@ -463,6 +498,7 @@
 
   .input:focus {
     outline: none;
+    border-color: var(--input-focus-border); /* #3D3737 graydust-700 — Sundust spec */
     box-shadow: 0 0 0 2px var(--ring);
   }
 
@@ -487,7 +523,7 @@
 
   /* === Typography Utilities — Claura === */
   .text-heading {
-    font-family: 'Halant', Georgia, serif;
+    font-family: 'Instrument Serif', Georgia, serif;
     font-weight: 400;
     letter-spacing: -0.05em;
     color: var(--text-primary);
@@ -780,9 +816,9 @@
     z-index: 50;
   }
 
-  /* Hero Text — Claura */
+  /* Hero Text — Instrument Serif (Sundust + Figma spec) */
   .hero-text {
-    font-family: 'Halant', Georgia, serif;
+    font-family: 'Instrument Serif', Georgia, serif;
     font-size: clamp(2.625rem, 8vw, 4.375rem);
     font-weight: 400;
     letter-spacing: -0.05em;
@@ -918,7 +954,7 @@
 }
 
 .font-playfair {
-  font-family: 'Halant', Georgia, serif;
+  font-family: 'Instrument Serif', Georgia, serif;
 }
 
 .font-inter {
@@ -927,7 +963,7 @@
 
 /* ===== CLAURA DESIGN SYSTEM — Global heading/body/button classes ===== */
 .heading-serif {
-  font-family: 'Halant', Georgia, serif;
+  font-family: 'Instrument Serif', Georgia, serif; /* Sundust: hero/display font */
   font-weight: 400;
   letter-spacing: -0.05em;
   line-height: 1.1;
@@ -939,7 +975,7 @@
 .heading-serif.h4 { font-size: 22px; font-weight: 600; }
 
 .heading-serif-italic {
-  font-family: 'Halant', Georgia, serif;
+  font-family: 'Instrument Serif', Georgia, serif;
   font-weight: 400;
   font-style: italic;
   color: var(--text-muted);
@@ -1202,7 +1238,11 @@
 }
 .btn-ghost-ds:hover { background: rgba(255, 255, 255, 0.1); }
 
-/* Sundust amber glow — hero and footer sections */
+/* Sundust ambient glow utilities
+ * Colours: amber #FF8400, rose #C32D70, eco #6C7567 (Sundust guide)
+ */
+
+/* Amber glow — hero / footer (center burst) */
 .sundust-glow {
   position: relative;
   overflow: hidden;
@@ -1224,6 +1264,50 @@
     rgba(108, 117, 103, 0) 97%
   );
   opacity: 0.5;
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* Rose glow — left-corner ambient accent */
+.sundust-glow-rose {
+  position: relative;
+  overflow: hidden;
+}
+.sundust-glow-rose::before {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 60%;
+  height: 100%;
+  background: radial-gradient(
+    ellipse 80% 60% at 15% 100%,
+    rgba(195, 45, 112, 0.30) 0%,
+    rgba(97, 22, 22, 0.20) 35%,
+    rgba(93, 92, 174, 0.15) 65%,
+    transparent 97%
+  );
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* Combined tri-color glow (amber + rose + purple) — full page hero */
+.sundust-glow-full {
+  position: relative;
+  overflow: hidden;
+}
+.sundust-glow-full::before {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 70%;
+  background:
+    radial-gradient(ellipse 80% 50% at 51% 100%, rgba(193,126,44,0.5) 0%, rgba(255,132,0,0.35) 30%, transparent 65%),
+    radial-gradient(ellipse 70% 50% at 30% 100%, rgba(193,126,44,0.45) 0%, rgba(185,101,74,0.3) 40%, transparent 70%),
+    radial-gradient(ellipse 60% 45% at 15% 100%, rgba(195,45,112,0.2) 0%, rgba(93,92,174,0.15) 60%, transparent 97%);
+  filter: blur(40px);
   pointer-events: none;
   z-index: 0;
 }

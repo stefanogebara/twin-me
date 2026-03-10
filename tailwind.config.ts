@@ -15,12 +15,13 @@ export default {
     },
     extend: {
       fontFamily: {
-        // Claura Design System Fonts
-        'heading': ['Halant', 'Georgia', 'serif'],         // Serif headings
-        'body': ['Geist', 'Inter', 'system-ui', 'sans-serif'],   // Body text
-        'ui': ['Geist', 'Inter', 'system-ui', 'sans-serif'],     // UI elements
-        'sans': ['Geist', 'Inter', 'system-ui', 'sans-serif'],   // Default sans
-        'serif': ['Halant', 'Georgia', 'serif'],            // Default serif
+        // Sundust Design System Fonts (updated per Sundust guide + Figma extraction)
+        'heading': ['Instrument Serif', 'Georgia', 'serif'],  // Hero/display headings
+        'serif': ['Instrument Serif', 'Georgia', 'serif'],    // Default serif
+        'menu': ['Poppins', 'Inter', 'system-ui', 'sans-serif'],  // Sidebar/panel labels
+        'body': ['Geist', 'Inter', 'system-ui', 'sans-serif'],    // Body text
+        'ui': ['Geist', 'Inter', 'system-ui', 'sans-serif'],      // UI elements
+        'sans': ['Geist', 'Inter', 'system-ui', 'sans-serif'],    // Default sans
         'mono': ['JetBrains Mono', 'Consolas', 'monospace'],
       },
       colors: {
@@ -57,6 +58,30 @@ export default {
         card: {
           DEFAULT: "var(--card)",
           foreground: "var(--card-foreground)",
+        },
+
+        // ── Graydust Scale (Sundust UI Kit — 11-stop warm gray) ─────────────
+        'graydust': {
+          50:  '#FDFCFB',  // Light bg / Primary text on dark
+          100: '#F4F1EC',  // Light subtle background
+          200: '#D9D1CB',  // Borders light / Secondary text dark
+          300: '#BAB5B1',  // Disabled text / Borders
+          400: '#86807B',  // Placeholder text
+          500: '#5E5656',  // Secondary icons / Mid UI
+          600: '#4A4242',  // Muted body text
+          700: '#3D3737',  // Input focus rings / Dividers
+          800: '#252222',  // Light primary bg / Dark borders
+          900: '#1B1818',  // Card/Sidebar bg / Hover states
+          950: '#110F0F',  // App main bg dark / Text on light
+        },
+
+        // ── Sundust Accent Colors ──────────────────────────────────────────
+        'sundust': {
+          amber:  '#C17E2C',  // Warm copper (gradient core)
+          orange: '#FF8400',  // Solar orange CTA highlight
+          rose:   '#C32D70',  // Rose/pink ambient glow
+          eco:    '#6C7567',  // Muted green ambient fill
+          purple: '#5D5CAE',  // Cool purple gradient corner
         },
 
         // Direct Anthropic colors for hard-coded use
