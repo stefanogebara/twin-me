@@ -673,7 +673,8 @@ async function trackGoalProgress(userId, platformData) {
 
       if (isCompleted || streakCompleted) {
         const successRate = newTotalTracked > 0 ? newTotalMet / newTotalTracked : 0;
-        newStatus = successRate >= 0.7 ? 'completed' : 'expired';
+        // 60% success = completed (was 70% — too harsh, caused near-misses like 67% to expire)
+        newStatus = successRate >= 0.6 ? 'completed' : 'expired';
       }
 
       const { error: updateErr } = await supabase

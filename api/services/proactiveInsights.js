@@ -24,30 +24,32 @@ import { complete, TIER_ANALYSIS } from './llmGateway.js';
 import { sendPushToUser } from './pushNotificationService.js';
 import { supabaseAdmin } from './database.js';
 
-const INSIGHT_GENERATION_PROMPT = `Based on these recent observations about a person, generate 1-3 proactive insights their digital twin should mention next time they chat. Focus on:
+const INSIGHT_GENERATION_PROMPT = `You MUST generate exactly 2-3 insights as a JSON array. The FIRST insight MUST have category "nudge" with a nudge_action field.
+
+A "nudge" is a specific, casual micro-action suggestion based on the person's data (e.g., "take a 10-min walk after lunch", "try that album you saved last week", "block 30 min of focus time tomorrow"). It should feel like a friend's offhand suggestion, NOT a prescription.
+
+The remaining 1-2 insights can be any of: trend, anomaly, celebration, concern, goal_progress, goal_suggestion.
+
+Focus on:
 - Cross-platform patterns (music + health + schedule connections)
 - Trends (things getting better or worse over time)
 - Anomalies (unusual behavior compared to their patterns)
 - Supportive observations (celebrating wins, flagging burnout)
-- Goal progress (if active goals exist, celebrate streaks or encourage when falling behind)
-- Goal suggestions (if patterns suggest a achievable goal the person could try)
+- Goal progress (celebrate streaks or encourage when falling behind)
 
 TONE RULES — this is critical:
 - Write like a close friend texting, NOT a wellness app or doctor
 - Max 1-2 short sentences per insight. No bullet points, no headers.
 - Zero jargon: no "cortisol", "HRV variability", "cognitive load", "biometrics", "longitudinal patterns"
-- Use plain words: "you seem tired" not "recovery metrics indicate fatigue", "lots of meetings lately" not "elevated schedule density"
+- Use plain words: "you seem tired" not "recovery metrics indicate fatigue"
 
-Good examples:
-  "you've been grinding pretty hard this week — might be worth actually taking a break this weekend"
-  "noticed you keep going back to that same playlist when your weeks get busy — comfort music?"
-  "your sleep has been all over the place lately, guessing things are hectic?"
+Good nudge examples:
+  {"insight": "you've been grinding pretty hard — might be worth taking an actual break this weekend", "urgency": "medium", "category": "nudge", "nudge_action": "block 2 hours this Saturday with nothing scheduled"}
+  {"insight": "noticed you haven't listened to much music lately — that usually means you're in your head", "urgency": "low", "category": "nudge", "nudge_action": "put on your comfort playlist during lunch today"}
 
-Bad examples (DO NOT write like this):
-  "Analysis of your biometric data indicates suboptimal recovery metrics correlating with increased cognitive load."
-  "Your HRV patterns suggest elevated stress levels that may impact long-term well-being."
-
-IMPORTANT: At least one insight MUST be a 'nudge' category — a specific, actionable micro-step the user could take today based on their data patterns. Always include a concrete nudge_action field for nudges (e.g., "take a 10-min walk after lunch", "try listening to that new album you saved", "block 30 min of focus time tomorrow morning"). Nudges should feel like a friend's casual suggestion, not a prescription.
+Good non-nudge examples:
+  {"insight": "you keep going back to that same playlist when your weeks get busy — comfort music?", "urgency": "low", "category": "trend"}
+  {"insight": "your sleep has been all over the place lately, guessing things are hectic?", "urgency": "medium", "category": "concern"}
 
 Recent observations:
 {observations}
@@ -55,8 +57,8 @@ Recent observations:
 Known patterns:
 {reflections}
 
-Return as JSON array: [{"insight": "...", "urgency": "low|medium|high", "category": "trend|anomaly|celebration|concern|goal_progress|goal_suggestion|nudge", "nudge_action": "optional: if category is nudge, a specific micro-action the user could try (e.g., 'take a 10-min walk', 'try a new playlist')"}]
-Only return the JSON array, no other text.`;
+Return ONLY a JSON array. First element MUST be a nudge with nudge_action:
+[{"insight": "...", "urgency": "low|medium|high", "category": "nudge", "nudge_action": "specific action"}, ...]`;
 
 /**
  * Check if a similar insight was already generated in the last 7 days.
@@ -160,6 +162,25 @@ async function generateProactiveInsights(userId) {
 
     if (!Array.isArray(insights) || insights.length === 0) {
       return 0;
+    }
+
+    // 4b. Post-parse nudge enforcement: if no nudge category, promote the most actionable insight
+    const hasNudge = insights.some(i => i.category === 'nudge');
+    if (!hasNudge && insights.length > 0) {
+      // Find the most actionable-sounding insight (has nudge_action, or contains action verbs)
+      const actionableIdx = insights.findIndex(i => i.nudge_action);
+      if (actionableIdx >= 0) {
+        insights[actionableIdx] = { ...insights[actionableIdx], category: 'nudge' };
+      } else {
+        // Promote the first insight to nudge — extract a simple action from the insight text
+        const first = insights[0];
+        insights[0] = {
+          ...first,
+          category: 'nudge',
+          nudge_action: first.nudge_action || _extractActionFromInsight(first.insight),
+        };
+      }
+      console.log('[ProactiveInsights] No nudge from LLM — promoted one insight to nudge category');
     }
 
     // 5. Store insights (max 3), with dedup against recent undelivered
@@ -576,6 +597,34 @@ async function getNudgeEffectivenessScore(userId) {
     console.warn('[ProactiveInsights] getNudgeEffectivenessScore error:', err.message);
     return { score: null, followed: 0, total: 0 };
   }
+}
+
+/**
+ * Best-effort extraction of an actionable suggestion from an insight string.
+ * Used as fallback when the LLM fails to provide a nudge_action field.
+ *
+ * @param {string} insight
+ * @returns {string} A simple action suggestion derived from the insight
+ */
+function _extractActionFromInsight(insight) {
+  if (!insight) return 'take a short break today';
+  const lower = insight.toLowerCase();
+  if (lower.includes('sleep') || lower.includes('tired') || lower.includes('rest')) {
+    return 'try getting to bed 30 minutes earlier tonight';
+  }
+  if (lower.includes('busy') || lower.includes('meeting') || lower.includes('packed')) {
+    return 'block 30 min of free time on your calendar tomorrow';
+  }
+  if (lower.includes('music') || lower.includes('playlist') || lower.includes('listen')) {
+    return 'put on your favorite playlist during your next break';
+  }
+  if (lower.includes('exercise') || lower.includes('move') || lower.includes('walk')) {
+    return 'take a 10-minute walk after your next meal';
+  }
+  if (lower.includes('stress') || lower.includes('overwhelm') || lower.includes('anxious')) {
+    return 'take 5 deep breaths right now — seriously, it helps';
+  }
+  return 'take a short break and do something you enjoy today';
 }
 
 export {
