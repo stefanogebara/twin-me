@@ -28,10 +28,10 @@
 // Each weight can be [0.0, 2.0]. Values outside this range may destabilize retrieval.
 
 export const RETRIEVAL_WEIGHTS = {
-  // Balanced weights — general conversation, importance + recency
-  default: { recency: 1.0, importance: 1.6, relevance: 1.0 },
+  // Balanced weights — general conversation
+  default: { recency: 1.0, importance: 1.0, relevance: 1.0 },
 
-  // Identity queries (who is this person?) — relevance dominant, low recency bias.
+  // Identity queries (who is this person?) — relevance+importance dominant, no recency.
   // Used by: twin summary generation, personality queries
   identity: { recency: 0.0, importance: 1.6, relevance: 1.2 },
 
@@ -41,7 +41,7 @@ export const RETRIEVAL_WEIGHTS = {
 
   // Deep pattern analysis — no recency bias (Paper 2 style).
   // Used by: reflection engine expert personas
-  reflection: { recency: 0.0, importance: 0.8, relevance: 1.5 },
+  reflection: { recency: 0.0, importance: 0.5, relevance: 1.5 },
 };
 
 // ─── MMR Diversity ───────────────────────────────────────────────────────────
