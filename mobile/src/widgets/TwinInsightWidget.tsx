@@ -35,7 +35,7 @@ interface Props {
 }
 
 export function TwinInsightWidget({ insight }: Props) {
-  const dotColor = CATEGORY_COLORS[insight.category ?? ''] ?? '#8b5cf6';
+  const dotColor = (CATEGORY_COLORS[insight.category ?? ''] ?? '#8b5cf6') as `#${string}`;
   const displayText = insight.text.length > 120
     ? insight.text.slice(0, 117) + '…'
     : insight.text;
@@ -57,7 +57,7 @@ export function TwinInsightWidget({ insight }: Props) {
       clickAction="OPEN_APP"
     >
       {/* Header row */}
-      <FlexWidget style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+      <FlexWidget style={{ flexDirection: 'row', alignItems: 'center', flexGap: 8 }}>
         <ImageWidget
           image={require('../../assets/flower-hero.png')}
           imageWidth={18}
@@ -80,7 +80,7 @@ export function TwinInsightWidget({ insight }: Props) {
           flex: 1,
           flexDirection: 'row',
           alignItems: 'flex-start',
-          gap: 8,
+          flexGap: 8,
           marginTop: 10,
           marginBottom: 10,
         }}
@@ -95,17 +95,18 @@ export function TwinInsightWidget({ insight }: Props) {
             marginTop: 5,
           }}
         />
-        <TextWidget
-          text={displayText}
-          style={{
-            flex: 1,
-            fontSize: 13,
-            color: '#1C1917',
-            fontFamily: 'Inter_400Regular',
-            lineHeight: 19,
-          }}
-          maxLines={5}
-        />
+        {/* Text wrapped in FlexWidget to get flex:1 */}
+        <FlexWidget style={{ flex: 1 }}>
+          <TextWidget
+            text={displayText}
+            style={{
+              fontSize: 13,
+              color: '#1C1917',
+              fontFamily: 'Inter_400Regular',
+            }}
+            maxLines={5}
+          />
+        </FlexWidget>
       </FlexWidget>
 
       {/* Footer */}
@@ -134,7 +135,7 @@ export function TwinInsightWidgetEmpty() {
         padding: 16,
         justifyContent: 'center',
         alignItems: 'center',
-        gap: 8,
+        flexGap: 8,
       }}
       clickAction="OPEN_APP"
     >

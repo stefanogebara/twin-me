@@ -328,21 +328,57 @@ const LinkedInInsightsPage: React.FC = () => {
 
       {/* Empty State */}
       {!insights?.reflection?.text && !insights?.linkedinHeadline && (
-        <div className="flex flex-col items-center justify-center min-h-[300px] gap-4 text-center">
-          <Briefcase className="w-12 h-12" style={{ color: colors.textSecondary }} />
-          <p className="text-lg" style={{ color: colors.text }}>
-            No LinkedIn data yet
-          </p>
-          <p className="text-sm" style={{ color: colors.textSecondary }}>
-            Connect LinkedIn to see what your professional profile reveals about you.
-          </p>
-          <button
-            onClick={() => navigate('/get-started')}
-            className="px-4 py-2 rounded-lg glass-button"
-            style={{ color: colors.text }}
-          >
-            Connect LinkedIn
-          </button>
+        <div className="space-y-4">
+          <GlassPanel className="text-center py-12">
+            <div
+              className="w-16 h-16 rounded-2xl mx-auto mb-5 flex items-center justify-center"
+              style={{ background: 'var(--platform-linkedin-bg)', border: '1px solid rgba(10, 102, 194, 0.2)' }}
+            >
+              <Briefcase className="w-8 h-8" style={{ color: 'var(--platform-linkedin)' }} />
+            </div>
+            <h3
+              className="text-xl mb-2"
+              style={{ color: colors.text, fontFamily: 'var(--font-heading)' }}
+            >
+              Your professional story awaits
+            </h3>
+            <p className="text-sm max-w-sm mx-auto mb-6 leading-relaxed" style={{ color: colors.textSecondary }}>
+              Connect LinkedIn and your twin will decode what your career trajectory, skills, and network reveal about your ambitions and professional identity.
+            </p>
+            <button
+              onClick={() => navigate('/get-started')}
+              className="px-5 py-2.5 rounded-xl text-sm font-medium text-white transition-all hover:scale-[1.02]"
+              style={{ background: 'var(--platform-linkedin)' }}
+            >
+              Connect LinkedIn
+            </button>
+            <div
+              className="mt-4 inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm"
+              style={{ background: 'var(--platform-linkedin-bg)', color: 'var(--platform-linkedin)', border: '1px solid rgba(10, 102, 194, 0.2)' }}
+            >
+              <div className="w-2 h-2 rounded-full animate-pulse" style={{ background: 'var(--platform-linkedin)' }} />
+              Awaiting your profile data...
+            </div>
+          </GlassPanel>
+          {/* Preview skeleton */}
+          <div aria-hidden="true" className="opacity-40 pointer-events-none space-y-3">
+            <p className="text-xs uppercase tracking-wider" style={{ color: colors.textSecondary }}>Preview of your insights</p>
+            <GlassPanel className="!p-4" style={{ border: '1px dashed' }}>
+              <div className="flex items-center gap-2 mb-3">
+                <Briefcase className="w-4 h-4" style={{ color: colors.textSecondary }} />
+                <span className="text-sm" style={{ color: colors.textSecondary }}>Career Profile</span>
+              </div>
+              <div className="space-y-3">
+                <div className="h-4 rounded animate-pulse" style={{ width: '70%', background: 'rgba(0,0,0,0.06)' }} />
+                <div className="h-3 rounded animate-pulse" style={{ width: '50%', background: 'rgba(0,0,0,0.04)' }} />
+                <div className="flex gap-2 mt-2">
+                  {[1, 2, 3].map(i => (
+                    <div key={i} className="h-6 w-20 rounded-full animate-pulse" style={{ background: 'var(--platform-linkedin-bg)' }} />
+                  ))}
+                </div>
+              </div>
+            </GlassPanel>
+          </div>
         </div>
       )}
     </PageLayout>

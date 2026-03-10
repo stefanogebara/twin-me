@@ -663,11 +663,11 @@ async function retrieveMemories(userId, query, limit = 10, weights = 'default') 
     const reranked = mmrRerank(data, limit);
 
     // Graph traversal: augment vector results with strength-weighted linked memories
-    // Feature-flagged (graphRetrieval) — default off until validated
+    // Default ON — validated by twin-research experiments (2026-03-10)
     let graphCount = 0;
     try {
       const flags = await getFeatureFlags(userId);
-      if (flags?.graphRetrieval) {
+      if (flags?.graphRetrieval !== false) {
         const seedIds = reranked.slice(0, 5).map(m => m.id);
         const existingIdSet = new Set(reranked.map(m => m.id));
         const linked = await traverseLinksForRetrieval(userId, seedIds, existingIdSet, 5);

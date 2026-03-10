@@ -353,21 +353,56 @@ const DiscordInsightsPage: React.FC = () => {
 
       {/* Empty State */}
       {!insights?.reflection?.text && !insights?.discordServers?.length && (
-        <div className="flex flex-col items-center justify-center min-h-[300px] gap-4 text-center">
-          <MessageSquare className="w-12 h-12" style={{ color: colors.textSecondary }} />
-          <p className="text-lg" style={{ color: colors.text }}>
-            No Discord data yet
-          </p>
-          <p className="text-sm" style={{ color: colors.textSecondary }}>
-            Connect Discord to reveal what your communities say about you.
-          </p>
-          <button
-            onClick={() => navigate('/get-started')}
-            className="px-4 py-2 rounded-lg glass-button"
-            style={{ color: colors.text }}
-          >
-            Connect Discord
-          </button>
+        <div className="space-y-4">
+          <GlassPanel className="text-center py-12">
+            <div
+              className="w-16 h-16 rounded-2xl mx-auto mb-5 flex items-center justify-center"
+              style={{ background: 'var(--platform-discord-bg)', border: '1px solid rgba(88, 101, 242, 0.2)' }}
+            >
+              <MessageSquare className="w-8 h-8" style={{ color: 'var(--platform-discord)' }} />
+            </div>
+            <h3
+              className="text-xl mb-2"
+              style={{ color: colors.text, fontFamily: 'var(--font-heading)' }}
+            >
+              Your twin is listening in
+            </h3>
+            <p className="text-sm max-w-sm mx-auto mb-6 leading-relaxed" style={{ color: colors.textSecondary }}>
+              As your Discord activity syncs, your twin will uncover what your communities and conversations reveal about your social world.
+            </p>
+            <button
+              onClick={() => navigate('/get-started')}
+              className="px-5 py-2.5 rounded-xl text-sm font-medium text-white transition-all hover:scale-[1.02]"
+              style={{ background: 'var(--platform-discord)' }}
+            >
+              Connect Discord
+            </button>
+            <div
+              className="mt-4 inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm"
+              style={{ background: 'var(--platform-discord-bg)', color: 'var(--platform-discord)', border: '1px solid rgba(88, 101, 242, 0.2)' }}
+            >
+              <div className="w-2 h-2 rounded-full animate-pulse" style={{ background: 'var(--platform-discord)' }} />
+              Collecting your server activity...
+            </div>
+          </GlassPanel>
+          {/* Preview skeleton */}
+          <div aria-hidden="true" className="opacity-40 pointer-events-none space-y-3">
+            <p className="text-xs uppercase tracking-wider" style={{ color: colors.textSecondary }}>Preview of your insights</p>
+            <GlassPanel className="!p-4" style={{ border: '1px dashed' }}>
+              <div className="flex items-center gap-2 mb-3">
+                <MessageSquare className="w-4 h-4" style={{ color: colors.textSecondary }} />
+                <span className="text-sm" style={{ color: colors.textSecondary }}>Your Communities</span>
+              </div>
+              <div className="space-y-2">
+                {[75, 55, 35].map((w, i) => (
+                  <div key={i} className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-full animate-pulse" style={{ background: 'var(--platform-discord-bg)' }} />
+                    <div className="flex-1 h-3 rounded animate-pulse" style={{ width: `${w}%`, background: 'rgba(0,0,0,0.06)' }} />
+                  </div>
+                ))}
+              </div>
+            </GlassPanel>
+          </div>
         </div>
       )}
     </PageLayout>

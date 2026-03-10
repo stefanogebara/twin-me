@@ -483,14 +483,14 @@ export const Dashboard: React.FC = () => {
         <div
           className="glass-card !p-1.5 !rounded-[20px] transition-all duration-200"
           style={{
-            borderColor: 'rgba(212,168,83,0.25)',
+            borderColor: 'var(--accent-vibrant-glow)',
           }}
           onFocus={(e) => {
-            e.currentTarget.style.borderColor = 'rgba(212, 168, 83, 0.4)';
-            e.currentTarget.style.boxShadow = '0 8px 32px rgba(0, 0, 0, 0.12), 0 0 0 2px rgba(212, 168, 83, 0.15)';
+            e.currentTarget.style.borderColor = 'rgba(255, 132, 0, 0.4)';
+            e.currentTarget.style.boxShadow = '0 8px 32px rgba(0, 0, 0, 0.12), 0 0 0 2px rgba(255, 132, 0, 0.15)';
           }}
           onBlur={(e) => {
-            e.currentTarget.style.borderColor = 'rgba(212,168,83,0.25)';
+            e.currentTarget.style.borderColor = 'var(--accent-vibrant-glow)';
             e.currentTarget.style.boxShadow = '';
           }}
         >
@@ -540,9 +540,9 @@ export const Dashboard: React.FC = () => {
                   border: '1px solid var(--glass-surface-border)',
                 }}
                 onMouseEnter={(e) => {
-                  e.currentTarget.style.borderColor = 'rgba(212, 168, 83, 0.4)';
+                  e.currentTarget.style.borderColor = 'rgba(255, 132, 0, 0.4)';
                   e.currentTarget.style.color = 'var(--text-primary)';
-                  e.currentTarget.style.background = 'rgba(212, 168, 83, 0.08)';
+                  e.currentTarget.style.background = 'var(--accent-vibrant-glow)';
                 }}
                 onMouseLeave={(e) => {
                   e.currentTarget.style.borderColor = 'var(--glass-surface-border)';

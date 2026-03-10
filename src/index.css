@@ -110,9 +110,34 @@
     --font-heading: 'Instrument Serif', Georgia, serif;
     --font-accent: 'Instrument Serif', Georgia, serif;
     --font-body: 'Geist', 'Inter', system-ui, sans-serif;
+    --font-ui: 'Geist', 'Inter', system-ui, sans-serif;
     --font-sans: 'Geist', 'Inter', system-ui, sans-serif;
     --font-serif: 'Instrument Serif', Georgia, serif;
     --font-mono: ui-monospace, monospace;
+
+    /* Platform brand colors */
+    --platform-spotify: #1DB954;
+    --platform-spotify-bg: rgba(29, 185, 84, 0.08);
+    --platform-youtube: #FF0000;
+    --platform-youtube-bg: rgba(255, 0, 0, 0.06);
+    --platform-calendar: #4285F4;
+    --platform-calendar-bg: rgba(66, 133, 244, 0.08);
+    --platform-discord: #5865F2;
+    --platform-discord-bg: rgba(88, 101, 242, 0.08);
+    --platform-linkedin: #0A66C2;
+    --platform-linkedin-bg: rgba(10, 102, 194, 0.08);
+
+    /* Expert domain colors */
+    --expert-personality: #8B5CF6;
+    --expert-personality-bg: rgba(139, 92, 246, 0.08);
+    --expert-lifestyle: #10B981;
+    --expert-lifestyle-bg: rgba(16, 185, 129, 0.08);
+    --expert-cultural: #F59E0B;
+    --expert-cultural-bg: rgba(245, 158, 11, 0.08);
+    --expert-social: #3B82F6;
+    --expert-social-bg: rgba(59, 130, 246, 0.08);
+    --expert-motivation: #EF4444;
+    --expert-motivation-bg: rgba(239, 68, 68, 0.08);
 
     /* Vibrant Accent for CTAs — Figma Sundust tokens */
     --accent-vibrant: #ff8400;
