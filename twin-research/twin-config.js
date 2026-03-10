@@ -41,7 +41,7 @@ export const RETRIEVAL_WEIGHTS = {
 
   // Deep pattern analysis — no recency bias (Paper 2 style).
   // Used by: reflection engine expert personas
-  reflection: { recency: 0.0, importance: 0.5, relevance: 1.5 },
+  reflection: { recency: 0.0, importance: 0.8, relevance: 1.5 },
 };
 
 // ─── MMR Diversity ───────────────────────────────────────────────────────────
